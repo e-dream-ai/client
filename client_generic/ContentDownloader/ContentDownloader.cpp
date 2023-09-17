@@ -140,7 +140,7 @@ bool	CContentDownloader::Startup( const bool _bPreview, bool _bReadOnlyInstance 
 			SYSTEM_INFO sysInfo;
 			GetSystemInfo( &sysInfo );
 			ncpus = (uint32)sysInfo.dwNumberOfProcessors;
-#elsif defined(MAC)
+#elif defined(MAC)
             int num = 1;
             size_t dataLen = sizeof(num); // 'num' is an 'int'
             int mib[2] = {CTL_HW, HW_NCPU};

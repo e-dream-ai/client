@@ -3,6 +3,12 @@
 
 #include	<map>
 #include	<vector>
+
+
+#pragma comment(lib, "wldap32.lib" )
+#pragma comment(lib, "crypt32.lib" )
+#pragma comment(lib, "Ws2_32.lib")
+
 #include	<curl/curl.h>
 #include	<curl/easy.h>
 #include	<curl/multi.h>

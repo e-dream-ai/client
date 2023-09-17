@@ -1,0 +1,9 @@
+﻿cl : command line  warning D9035: option 'Gm' has been deprecated and will be removed in a future release
+  tinyxmlparser.cpp
+  tinyxmlerror.cpp
+  tinyxml.cpp
+C:\Users\hencz\Documents\GitHub\e-dream-ai-client\client_generic\tinyXml\tinyxml.cpp(670,71): warning C4458: declaration of 'value' hides class member
+C:\Users\hencz\Documents\GitHub\e-dream-ai-client\client_generic\tinyXml\tinyxml.h(761,15): message : see declaration of 'TiXmlNode::value'
+  tinystr.cpp
+  Generating Code...
+  tinyxml_lib.vcxproj -> C:\Users\hencz\Documents\GitHub\e-dream-ai-client\client_generic\tinyXml\Debugtinyxml\tinyxmld.lib
