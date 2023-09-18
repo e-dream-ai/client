@@ -1000,7 +1000,6 @@
 						CreatedOnToolsVersion = 6.3;
 					};
 					2160FAAC0F30F43600B2C27A = {
-						DevelopmentTeam = 5ZJTFJRCQW;
 						ProvisioningStyle = Automatic;
 					};
 					218878CF0EC6CD7E001ABD2E = {
@@ -1286,7 +1285,7 @@
 					../Curl/include,
 					../DisplayOutput/OpenGL,
 					../DisplayOutput/Renderer,
-					../ffmpeg/osx/include,
+					../ffmpeg/include,
 					../Networking,
 					../libpng/include,
 					../boost/include,
@@ -1360,7 +1359,7 @@
 					../Curl/include,
 					../DisplayOutput/OpenGL,
 					../DisplayOutput/Renderer,
-					../ffmpeg/osx/include,
+					../ffmpeg/include,
 					../Networking,
 					../libpng/include,
 					../boost/include,
@@ -1409,12 +1408,12 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "compiler-default";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
-				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = 5ZJTFJRCQW;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_NS_ASSERTIONS = NO;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_DYNAMIC_NO_PIC = NO;
@@ -1460,13 +1459,13 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "compiler-default";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
-				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = YES;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = 5ZJTFJRCQW;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_NS_ASSERTIONS = NO;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_ENABLE_BUILTIN_FUNCTIONS = NO;

@@ -150,7 +150,7 @@ bool	CContentDownloader::Startup( const bool _bPreview, bool _bReadOnlyInstance 
                 num = 1;
             }
             ncpus = num;
-#elsif defined(LINUX_GNU)
+#elif defined(LINUX_GNU)
 			ncpus = sysconf( _SC_NPROCESSORS_ONLN );
 #endif
 		}
