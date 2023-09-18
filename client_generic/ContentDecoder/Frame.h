@@ -57,6 +57,24 @@ struct sMetaData
 	uint32 m_MaxFrameIdx;
 };
 
+static int DumpAVCodecError( int _err )
+{
+    if( _err < 0 )
+    {
+        switch( _err )
+        {
+            case AVERROR(EAGAIN): g_Log->Error("AVCodec needs more data sent."); break;
+            case AVERROR_INVALIDDATA:    g_Log->Error( "Error while parsing header" );    break;
+            case AVERROR(EIO):            g_Log->Error( "I/O error occured. Usually that means that input file is truncated and/or corrupted." );    break;
+            case AVERROR(ENOMEM):        g_Log->Error( "Memory allocation error occured" );    break;
+            case AVERROR(ENOENT):        /*g_Log->Error( "No such file or directory" );  legal, will be warned in Open()*/    break;
+            default:                    g_Log->Error( "Error while opening file" );    break;
+        }
+    }
+
+    return _err;
+}
+
 /*
 	CVideoFrame.
 	Base class for a decoded video frame.
@@ -103,11 +121,23 @@ class CVideoFrame
 				
 				if (m_pFrame != NULL)
 				{
-					int32 numBytes = avpicture_get_size( _format, _pCodecContext->width, _pCodecContext->height );
-					m_spBuffer = new Base::CAlignedBuffer( static_cast<uint32>(numBytes) * sizeof(uint8) );
-					avpicture_fill( (AVPicture *)m_pFrame, m_spBuffer->GetBufferPtr(), _format, _pCodecContext->width, _pCodecContext->height );
+                    int numBytes = av_image_get_buffer_size(_format, _pCodecContext->width, _pCodecContext->height, 1);
+                    m_spBuffer = new Base::CAlignedBuffer(static_cast<uint32>(numBytes) * sizeof(uint8));
+                    uint8_t* buffer = m_spBuffer->GetBufferPtr();
+                    int size = numBytes;
+                    const uint8_t * const *data = (const uint8_t * const *)m_pFrame->data;
+                    const int *linesize = (const int *)m_pFrame->linesize;
+                    enum AVPixelFormat format = _format;
+                    int width = _pCodecContext->width;
+                    int height = _pCodecContext->height;
+                    int align = 1;
+                    int ret = av_image_alloc(m_pFrame->data, m_pFrame->linesize, width, height, _format, 1);
+                    //int ret = av_image_copy_to_buffer(buffer, size, data, linesize, format, width, height, align);
+                    if (ret < 0)
+                        g_Log->Error( "av_image_copy_to_buffer error %i", ret );
 				} else
 					g_Log->Error( "m_pFrame == NULL" );
+
 			}
 
 			virtual ~CVideoFrame()

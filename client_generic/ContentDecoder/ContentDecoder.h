@@ -29,10 +29,12 @@ extern "C"{
 	#include "libavcodec/avcodec.h"
 	#include "libavformat/avformat.h"
 	#include "libswscale/swscale.h"
+    #include "libavutil/imgutils.h"
 #else
 	#include "avcodec.h"
 	#include "avformat.h"
 	#include "swscale.h"
+    #include "imgutils.h"
 #endif
 }
 
@@ -145,7 +147,7 @@ struct sOpenVideoInfo
 	AVFrame			*m_pFrame;
 	AVFormatContext	*m_pFormatContext;
 	AVCodecContext	*m_pVideoCodecContext;
-	AVCodec			*m_pVideoCodec;
+	const AVCodec	*m_pVideoCodec;
 	AVStream		*m_pVideoStream;
 	int32			m_VideoStreamID;
 	uint32			m_totalFrameCount;

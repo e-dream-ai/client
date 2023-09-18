@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 46;
+	objectVersion = 52;
 	objects = {
 
 /* Begin PBXAggregateTarget section */
@@ -247,6 +247,16 @@
 		21EE63C21013A879000CE53E /* ESScreensaverView.m in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA520EC7479A005E246D /* ESScreensaverView.m */; };
 		21EE63C31013A87F000CE53E /* ESScreensaver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA540EC74853005E246D /* ESScreensaver.cpp */; };
 		21EE63CF1013A93A000CE53E /* ESConfiguration.m in Sources */ = {isa = PBXBuildFile; fileRef = 21AAA0EE0F70453200AC23A8 /* ESConfiguration.m */; };
+		464A49DC2AB88A8200C77F6D /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49DA2AB8864600C77F6D /* VideoToolbox.framework */; };
+		464A49DE2AB88E1A00C77F6D /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49DD2AB88E1A00C77F6D /* Security.framework */; platformFilter = maccatalyst; };
+		464A49DF2AB89BC400C77F6D /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49DA2AB8864600C77F6D /* VideoToolbox.framework */; };
+		464A49E02AB89C1A00C77F6D /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49DD2AB88E1A00C77F6D /* Security.framework */; };
+		464A49E22AB89C5F00C77F6D /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49E12AB89C5F00C77F6D /* CoreMedia.framework */; };
+		464A49E32AB89C7000C77F6D /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49E12AB89C5F00C77F6D /* CoreMedia.framework */; };
+		464A49E52AB89CEB00C77F6D /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49E42AB89CEA00C77F6D /* AudioToolbox.framework */; };
+		464A49E62AB89CFC00C77F6D /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49E42AB89CEA00C77F6D /* AudioToolbox.framework */; };
+		464A49E82AB89D9100C77F6D /* liblzma.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49E72AB89D8300C77F6D /* liblzma.tbd */; };
+		464A49E92AB89D9D00C77F6D /* liblzma.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49E72AB89D8300C77F6D /* liblzma.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -568,6 +578,11 @@
 		21EE634E10139BEF000CE53E /* English */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = English; path = English.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		21EE63941013A674000CE53E /* ESWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ESWindow.h; sourceTree = "<group>"; };
 		21EE63951013A674000CE53E /* ESWindow.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ESWindow.m; sourceTree = "<group>"; };
+		464A49DA2AB8864600C77F6D /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = System/Library/Frameworks/VideoToolbox.framework; sourceTree = SDKROOT; };
+		464A49DD2AB88E1A00C77F6D /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		464A49E12AB89C5F00C77F6D /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
+		464A49E42AB89CEA00C77F6D /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
+		464A49E72AB89D8300C77F6D /* liblzma.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = liblzma.tbd; path = usr/lib/liblzma.tbd; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -578,13 +593,16 @@
 				213D540311F79C9800CF500D /* IOKit.framework in Frameworks */,
 				2160FC9D0F30F48200B2C27A /* CoreFoundation.framework in Frameworks */,
 				2160FC9E0F30F48200B2C27A /* GLUT.framework in Frameworks */,
+				464A49E22AB89C5F00C77F6D /* CoreMedia.framework in Frameworks */,
 				2160FC9F0F30F48200B2C27A /* OpenGL.framework in Frameworks */,
 				2160FCA00F30F48200B2C27A /* libpng.a in Frameworks */,
 				2160FCA10F30F48200B2C27A /* libavcodec.a in Frameworks */,
 				2197D56319B06F4600EFA1F2 /* VideoDecodeAcceleration.framework in Frameworks */,
 				2160FCA20F30F48200B2C27A /* libavdevice.a in Frameworks */,
+				464A49E82AB89D9100C77F6D /* liblzma.tbd in Frameworks */,
 				2197D56019B06ED300EFA1F2 /* CoreVideo.framework in Frameworks */,
 				2160FCA30F30F48200B2C27A /* libavutil.a in Frameworks */,
+				464A49E62AB89CFC00C77F6D /* AudioToolbox.framework in Frameworks */,
 				21A8AFBC18416ECA00F77369 /* libiconv.2.dylib in Frameworks */,
 				2197D56619B06FC300EFA1F2 /* libswresample.a in Frameworks */,
 				2160FCA50F30F48200B2C27A /* libboost_system.a in Frameworks */,
@@ -593,10 +611,12 @@
 				2160FCAA0F30F48200B2C27A /* libswscale.a in Frameworks */,
 				2160FCAB0F30F48200B2C27A /* libz.1.2.5.dylib in Frameworks */,
 				2160FCAC0F30F48200B2C27A /* libbz2.1.0.dylib in Frameworks */,
+				464A49E02AB89C1A00C77F6D /* Security.framework in Frameworks */,
 				2160FCAD0F30F48200B2C27A /* liblua5.1.a in Frameworks */,
 				21DC0CA91263B98200D60C6A /* libcurl.4.dylib in Frameworks */,
 				2160FCAF0F30F48200B2C27A /* AppKit.framework in Frameworks */,
 				212316970F50636700702B2C /* libboost_filesystem.a in Frameworks */,
+				464A49DF2AB89BC400C77F6D /* VideoToolbox.framework in Frameworks */,
 				21CE8E3E0F6EE12B00DDF96A /* SystemConfiguration.framework in Frameworks */,
 				215542301261FDC900AB51BF /* Sparkle.framework in Frameworks */,
 			);
@@ -609,6 +629,8 @@
 				213D535111F79C8D00CF500D /* IOKit.framework in Frameworks */,
 				2197D56519B06FC300EFA1F2 /* libswresample.a in Frameworks */,
 				2188A6D017EB94F30078C91C /* ApplicationServices.framework in Frameworks */,
+				464A49E32AB89C7000C77F6D /* CoreMedia.framework in Frameworks */,
+				464A49E92AB89D9D00C77F6D /* liblzma.tbd in Frameworks */,
 				2135DB250EC75133005E246D /* ScreenSaver.framework in Frameworks */,
 				21887A130EC6CDF9001ABD2E /* CoreFoundation.framework in Frameworks */,
 				21887A140EC6CDF9001ABD2E /* GLUT.framework in Frameworks */,
@@ -617,12 +639,15 @@
 				21887A170EC6CDF9001ABD2E /* libavcodec.a in Frameworks */,
 				21887A180EC6CDF9001ABD2E /* libavdevice.a in Frameworks */,
 				2197D55F19B06ED300EFA1F2 /* CoreVideo.framework in Frameworks */,
+				464A49DC2AB88A8200C77F6D /* VideoToolbox.framework in Frameworks */,
 				21887A190EC6CDF9001ABD2E /* libavutil.a in Frameworks */,
 				21887A1B0EC6CDF9001ABD2E /* libboost_system.a in Frameworks */,
 				21887A1D0EC6CDF9001ABD2E /* libboost_thread.a in Frameworks */,
 				21887A210EC6CDF9001ABD2E /* libavformat.a in Frameworks */,
+				464A49E52AB89CEB00C77F6D /* AudioToolbox.framework in Frameworks */,
 				2161F1940ECF8CEF00FE48E9 /* libz.1.2.5.dylib in Frameworks */,
 				21887A240EC6CDF9001ABD2E /* libbz2.1.0.dylib in Frameworks */,
+				464A49DE2AB88E1A00C77F6D /* Security.framework in Frameworks */,
 				21A8AFBB18416ECA00F77369 /* libiconv.2.dylib in Frameworks */,
 				21887A250EC6CDF9001ABD2E /* liblua5.1.a in Frameworks */,
 				21DC0CAC1263B99000D60C6A /* libcurl.4.dylib in Frameworks */,
@@ -647,6 +672,7 @@
 				21293B890F71751E00406DD4 /* proximus */,
 				08FB779DFE84155DC02AAC07 /* External Frameworks and Libraries */,
 				19C28FBDFE9D53C911CA2CBB /* Products */,
+				464A49D92AB8864600C77F6D /* Frameworks */,
 			);
 			name = ElectricSheep;
 			sourceTree = "<group>";
@@ -938,6 +964,18 @@
 			name = Resources;
 			sourceTree = "<group>";
 		};
+		464A49D92AB8864600C77F6D /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				464A49E72AB89D8300C77F6D /* liblzma.tbd */,
+				464A49E42AB89CEA00C77F6D /* AudioToolbox.framework */,
+				464A49E12AB89C5F00C77F6D /* CoreMedia.framework */,
+				464A49DD2AB88E1A00C77F6D /* Security.framework */,
+				464A49DA2AB8864600C77F6D /* VideoToolbox.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -994,7 +1032,7 @@
 		08FB7793FE84155DC02AAC07 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1100;
+				LastUpgradeCheck = 1320;
 				TargetAttributes = {
 					211E8EA61ADB403700C0B833 = {
 						CreatedOnToolsVersion = 6.3;
@@ -1296,7 +1334,7 @@
 					"\"$(SRCROOT)/../libpng/osx/lib\"",
 					"\"$(SRCROOT)/../ffmpeg/osx/lib\"",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 				WARNING_CFLAGS = (
@@ -1370,7 +1408,7 @@
 					"\"$(SRCROOT)/../libpng/osx/lib\"",
 					"\"$(SRCROOT)/../ffmpeg/osx/lib\"",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				SDKROOT = macosx;
 				WARNING_CFLAGS = (
 					"-Wall",
@@ -1440,7 +1478,7 @@
 					"\"$(SRCROOT)/../boost/osx/lib\"",
 					"\"$(SRCROOT)/../lua5.1/src\"",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				ONLY_ACTIVE_ARCH = NO;
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = org.elecricsheep.ElectricSheep.app;
@@ -1485,7 +1523,7 @@
 				INSTALL_PATH = "$(HOME)/Applications";
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../Frameworks";
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
-				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				ONLY_ACTIVE_ARCH = NO;
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = org.elecricsheep.ElectricSheep.app;
@@ -1534,7 +1572,7 @@
 				INSTALL_PATH = "$(HOME)/Library/ScreenSavers";
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../Frameworks";
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
-				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_LDFLAGS = (
 					"-read_only_relocs",
@@ -1588,7 +1626,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../Frameworks";
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				LINKER_DISPLAYS_MANGLED_NAMES = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				OTHER_LDFLAGS = (
 					"-read_only_relocs",
 					suppress,
