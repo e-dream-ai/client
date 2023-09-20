@@ -108,6 +108,18 @@ void	CContentDecoder::Destroy()
         sws_freeContext( m_pScaler );
         m_pScaler = NULL;
     }
+    
+    if (m_MainVideoInfo && m_MainVideoInfo->m_pVideoCodecContext)
+    {
+        avcodec_free_context(&m_MainVideoInfo->m_pVideoCodecContext);
+        m_MainVideoInfo->m_pVideoCodecContext = NULL;
+    }
+
+    if (m_SecondVideoInfo && m_SecondVideoInfo->m_pVideoCodecContext)
+    {
+        avcodec_free_context(&m_SecondVideoInfo->m_pVideoCodecContext);
+        m_SecondVideoInfo->m_pVideoCodecContext = NULL;
+    }
 }
 
 /*
@@ -195,14 +207,26 @@ bool	CContentDecoder::Open( sOpenVideoInfo *ovi )
     
     const auto& codecPar = ovi->m_pFormatContext->streams[ovi->m_VideoStreamID]->codecpar;
     ovi->m_pVideoCodec = avcodec_find_decoder(codecPar->codec_id);
-    ovi->m_pVideoCodecContext = avcodec_alloc_context3(ovi->m_pVideoCodec); //TODO: Where should we free this?
-
-    if( ovi->m_pVideoCodec == NULL )
+    ovi->m_pVideoCodecContext = avcodec_alloc_context3(ovi->m_pVideoCodec);
+    
+    bool useHWAcceleration = false;
+    
+    if (useHWAcceleration)
     {
-        ovi->m_pVideoCodecContext = NULL;
-        g_Log->Error( "Video Codec not found for %s", _filename.c_str() );
-        return false;
+        AVHWDeviceType hw_type = av_hwdevice_find_type_by_name("videotoolbox");
+        if (hw_type != AV_HWDEVICE_TYPE_NONE)
+        {
+            ovi->m_pVideoCodecContext->hw_device_ctx = av_hwdevice_ctx_alloc(hw_type);
+            av_hwdevice_ctx_init(ovi->m_pVideoCodecContext->hw_device_ctx);
+        }
+        else
+        {
+            g_Log->Error( "Hardware acceleration unsupported." );
+        }
     }
+
+    // Initialize the codec context
+    DumpError(avcodec_open2(ovi->m_pVideoCodecContext, ovi->m_pVideoCodec, NULL));
 
 	//m_pVideoCodecContext->workaround_bugs = 1;
     //m_pFormatContext->flags |= AVFMT_FLAG_GENPTS;		//	Generate pts if missing even if it requires parsing future frames.
@@ -570,10 +594,14 @@ CVideoFrame *CContentDecoder::ReadOneFrame(sOpenVideoInfo *ovi)
         }
         if (ret >= 0)
         {
-            avcodec_receive_frame(pVideoCodecContext, pFrame);
-            if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
+            ret = avcodec_receive_frame(pVideoCodecContext, pFrame);
+            if (ret == AVERROR(EAGAIN))
             {
-                return 0; //TODO: change
+                continue;
+            }
+            if (ret == AVERROR_EOF)
+            {
+                return NULL; //the codec has been fully flushed, and there will be no more output frames
             }
             else if (ret < 0)
             {
@@ -642,6 +670,7 @@ CVideoFrame *CContentDecoder::ReadOneFrame(sOpenVideoInfo *ovi)
             if( m_pScaler == NULL )
                 g_Log->Warning( "scaler == null" );
         }
+ 
 
         //printf( "creating pVideoFrame" );
         pVideoFrame = new CVideoFrame( pVideoCodecContext, m_WantedPixelFormat, std::string(pFormatContext->url) );

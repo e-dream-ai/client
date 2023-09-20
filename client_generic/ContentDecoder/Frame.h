@@ -90,7 +90,7 @@ class CVideoFrame
 		sMetaData m_MetaData;
 
 		Base::spCAlignedBuffer m_spBuffer;
-		AVFrame		*m_pFrame;
+        AVFrame        *m_pFrame;
 
 	public:
 		CVideoFrame( AVCodecContext *_pCodecContext, AVPixelFormat _format, std::string _filename ) : m_pFrame(NULL)
@@ -124,17 +124,13 @@ class CVideoFrame
                     int numBytes = av_image_get_buffer_size(_format, _pCodecContext->width, _pCodecContext->height, 1);
                     m_spBuffer = new Base::CAlignedBuffer(static_cast<uint32>(numBytes) * sizeof(uint8));
                     uint8_t* buffer = m_spBuffer->GetBufferPtr();
-                    int size = numBytes;
-                    const uint8_t * const *data = (const uint8_t * const *)m_pFrame->data;
-                    const int *linesize = (const int *)m_pFrame->linesize;
-                    enum AVPixelFormat format = _format;
                     int width = _pCodecContext->width;
                     int height = _pCodecContext->height;
-                    int align = 1;
-                    int ret = av_image_alloc(m_pFrame->data, m_pFrame->linesize, width, height, _format, 1);
-                    //int ret = av_image_copy_to_buffer(buffer, size, data, linesize, format, width, height, align);
+                    
+                    int ret = av_image_fill_arrays(m_pFrame->data, m_pFrame->linesize, buffer, _format, width, height, 1);
                     if (ret < 0)
                         g_Log->Error( "av_image_copy_to_buffer error %i", ret );
+                    
 				} else
 					g_Log->Error( "m_pFrame == NULL" );
 

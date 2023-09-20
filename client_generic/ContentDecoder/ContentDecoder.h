@@ -30,11 +30,13 @@ extern "C"{
 	#include "libavformat/avformat.h"
 	#include "libswscale/swscale.h"
     #include "libavutil/imgutils.h"
+    #include "libavutil/hwcontext.h"
 #else
 	#include "avcodec.h"
 	#include "avformat.h"
 	#include "swscale.h"
     #include "imgutils.h"
+    #include "hwcontext.h"
 #endif
 }
 
