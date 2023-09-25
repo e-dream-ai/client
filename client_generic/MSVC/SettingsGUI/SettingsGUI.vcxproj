@@ -22,25 +22,25 @@
     <ProjectGuid>{8AA39198-AF69-41D8-BE34-EA79BC0549A0}</ProjectGuid>
     <RootNamespace>SettingsGUI</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.18362.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>Windows7.1SDK</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -78,9 +78,9 @@
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
     <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">C:\boost_1_64_0;$(IncludePath)</IncludePath>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\boost_1_45_0_x64;$(IncludePath)</IncludePath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\boost_1_45_0_x64;C:\boost_1_64_0;$(IncludePath)</IncludePath>
     <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">C:\boost_1_64_0\stage\lib;$(LibraryPath)</LibraryPath>
-    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\boost_1_45_0_x64\stage\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\boost_1_45_0_x64\stage\lib;C:\boost_1_64_0\stage\lib;$(LibraryPath)</LibraryPath>
     <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\boost_1_64_0;$(IncludePath)</IncludePath>
     <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\boost_1_45_0_x64;$(IncludePath)</IncludePath>
     <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\boost_1_64_0\stage\lib;$(LibraryPath)</LibraryPath>
@@ -174,7 +174,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <AdditionalIncludeDirectories>..\..\common;..\..\tuplestorage;..\..\lua5.1-x64\include;..\..\ffmpeg\ffmpeg-static\include;..\..\tinyXml-x64;..\..\curl-x64\include;C:\wxWidgets-2.9.1-x64\include\msvc;C:\wxWidgets-2.9.1-x64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\common;..\..\tuplestorage;..\..\lua5.1\include;..\..\ffmpeg\ffmpeg-static\include;..\..\tinyXml;..\..\curl\include;C:\wxwidgets\include\msvc;C:\wxwidgets\include;C:\wxWidgets-2.9.1-x64\include\msvc;C:\wxWidgets-2.9.1-x64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;CURL_STATICLIB;_CRT_SECURE_NO_WARNINGS;WIN32_LEAN_AND_MEAN;VC_EXTRALEAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -183,10 +183,11 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <LanguageStandard_C>stdc11</LanguageStandard_C>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>wxbase29u.lib;wxmsw29u_core.lib;comctl32.lib;wxpng.lib;wxzlib.lib;rpcrt4.lib;shlwapi.lib;lua5.1.lib;tinyxml.lib;libcurl.lib;ws2_32.lib;wldap32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>C:\wxWidgets-2.9.1-x64\lib\vc_lib;..\..\lua5.1-x64\lib\static;..\..\tinyXml-x64\Release;..\..\curl-x64\lib\release-zlib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>wxbase32u.lib;wxmsw32u_core.lib;comctl32.lib;wxpng.lib;wxzlib.lib;rpcrt4.lib;shlwapi.lib;lua5.1.lib;tinyxml.lib;libcurl.lib;ws2_32.lib;wldap32.lib;ssleay32.lib;libeay32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\wxwidgets\lib\vc_x64_lib;..\..\lua5.1\mak.vs2005\x64\Release;..\..\tinyXml\x64\Release;..\..\curl\lib\release-ssl-zlib;..\..\openssl-1.0.2k\out32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>

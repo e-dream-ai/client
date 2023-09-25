@@ -1,0 +1,59 @@
+﻿  A subdirectory or file ..\runtimemsvc\scripts already exists.
+  A subdirectory or file ..\runtimemsvc\scripts\dictionary already exists.
+  ..\runtime\scripts\class.lua
+  ..\runtime\scripts\curltest.lua
+  ..\runtime\scripts\desc.lua
+  A subdirectory or file ..\runtimemsvc\scripts\logging already exists.
+  ..\runtime\scripts\histogram.lua
+  ..\runtime\scripts\iup_config.lua
+  ..\runtime\scripts\playlist.lua
+  ..\runtime\scripts\pq.lua
+  ..\runtime\scripts\serialize.lua
+          8 file(s) copied.
+  ..\runtime\scripts\dictionary\Deutsch.lua
+  ..\runtime\scripts\dictionary\English.lua
+  ..\runtime\scripts\dictionary\Portuguese.lua
+  ..\runtime\scripts\dictionary\Svenska.lua
+          4 file(s) copied.
+  ..\runtime\scripts\logging\console.lua
+  ..\runtime\scripts\logging\file.lua
+  ..\runtime\scripts\logging\localized.lua
+  ..\runtime\scripts\logging\logging.lua
+  ..\runtime\scripts\logging\null.lua
+          5 file(s) copied.
+          1 file(s) copied.
+          1 file(s) copied.
+          1 file(s) copied.
+  The system cannot find the file specified.
+  The system cannot find the file specified.
+          1 file(s) copied.
+          1 file(s) copied.
+          1 file(s) copied.
+          1 file(s) copied.
+ContentDecoder.obj : error LNK2019: unresolved external symbol _av_log_set_level referenced in function "public: __thiscall ContentDecoder::CContentDecoder::CContentDecoder(class Base::CRefCountPtr<class ContentDecoder::CPlaylist,class Base::CRefCountRep<class ContentDecoder::CPlaylist>,class ContentDecoder::CPlaylist *>,bool,bool,unsigned int,enum AVPixelFormat)" (??0CContentDecoder@ContentDecoder@@QAE@V?$CRefCountPtr@VCPlaylist@ContentDecoder@@V?$CRefCountRep@VCPlaylist@ContentDecoder@@@Base@@PAV12@@Base@@_N1IW4AVPixelFormat@@@Z)
+ContentDecoder.obj : error LNK2019: unresolved external symbol _av_frame_alloc referenced in function "public: __thiscall ContentDecoder::CVideoFrame::CVideoFrame(struct AVCodecContext *,enum AVPixelFormat,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >)" (??0CVideoFrame@ContentDecoder@@QAE@PAUAVCodecContext@@W4AVPixelFormat@@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z)
+ContentDecoder.obj : error LNK2019: unresolved external symbol _av_frame_free referenced in function "public: virtual __thiscall ContentDecoder::CVideoFrame::~CVideoFrame(void)" (??1CVideoFrame@ContentDecoder@@UAE@XZ)
+ContentDecoder.obj : error LNK2019: unresolved external symbol _av_frame_unref referenced in function "private: class ContentDecoder::CVideoFrame * __thiscall ContentDecoder::CContentDecoder::ReadOneFrame(struct ContentDecoder::sOpenVideoInfo *)" (?ReadOneFrame@CContentDecoder@ContentDecoder@@AAEPAVCVideoFrame@2@PAUsOpenVideoInfo@2@@Z)
+ContentDecoder.obj : error LNK2019: unresolved external symbol _avcodec_open2 referenced in function "private: bool __thiscall ContentDecoder::CContentDecoder::Open(struct ContentDecoder::sOpenVideoInfo *)" (?Open@CContentDecoder@ContentDecoder@@AAE_NPAUsOpenVideoInfo@2@@Z)
+ContentDecoder.obj : error LNK2019: unresolved external symbol _avcodec_close referenced in function "public: virtual __thiscall ContentDecoder::sOpenVideoInfo::~sOpenVideoInfo(void)" (??1sOpenVideoInfo@ContentDecoder@@UAE@XZ)
+ContentDecoder.obj : error LNK2019: unresolved external symbol _av_init_packet referenced in function "private: class ContentDecoder::CVideoFrame * __thiscall ContentDecoder::CContentDecoder::ReadOneFrame(struct ContentDecoder::sOpenVideoInfo *)" (?ReadOneFrame@CContentDecoder@ContentDecoder@@AAEPAVCVideoFrame@2@PAUsOpenVideoInfo@2@@Z)
+ContentDecoder.obj : error LNK2019: unresolved external symbol _av_free_packet referenced in function "private: class ContentDecoder::CVideoFrame * __thiscall ContentDecoder::CContentDecoder::ReadOneFrame(struct ContentDecoder::sOpenVideoInfo *)" (?ReadOneFrame@CContentDecoder@ContentDecoder@@AAEPAVCVideoFrame@2@PAUsOpenVideoInfo@2@@Z)
+ContentDecoder.obj : error LNK2019: unresolved external symbol _avcodec_find_decoder referenced in function "private: bool __thiscall ContentDecoder::CContentDecoder::Open(struct ContentDecoder::sOpenVideoInfo *)" (?Open@CContentDecoder@ContentDecoder@@AAE_NPAUsOpenVideoInfo@2@@Z)
+ContentDecoder.obj : error LNK2019: unresolved external symbol _avcodec_decode_video2 referenced in function "private: class ContentDecoder::CVideoFrame * __thiscall ContentDecoder::CContentDecoder::ReadOneFrame(struct ContentDecoder::sOpenVideoInfo *)" (?ReadOneFrame@CContentDecoder@ContentDecoder@@AAEPAVCVideoFrame@2@PAUsOpenVideoInfo@2@@Z)
+ContentDecoder.obj : error LNK2019: unresolved external symbol _avpicture_fill referenced in function "public: __thiscall ContentDecoder::CVideoFrame::CVideoFrame(struct AVCodecContext *,enum AVPixelFormat,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >)" (??0CVideoFrame@ContentDecoder@@QAE@PAUAVCodecContext@@W4AVPixelFormat@@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z)
+ContentDecoder.obj : error LNK2019: unresolved external symbol _avpicture_get_size referenced in function "public: __thiscall ContentDecoder::CVideoFrame::CVideoFrame(struct AVCodecContext *,enum AVPixelFormat,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >)" (??0CVideoFrame@ContentDecoder@@QAE@PAUAVCodecContext@@W4AVPixelFormat@@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z)
+ContentDecoder.obj : error LNK2019: unresolved external symbol _av_register_all referenced in function "public: __thiscall ContentDecoder::CContentDecoder::CContentDecoder(class Base::CRefCountPtr<class ContentDecoder::CPlaylist,class Base::CRefCountRep<class ContentDecoder::CPlaylist>,class ContentDecoder::CPlaylist *>,bool,bool,unsigned int,enum AVPixelFormat)" (??0CContentDecoder@ContentDecoder@@QAE@V?$CRefCountPtr@VCPlaylist@ContentDecoder@@V?$CRefCountRep@VCPlaylist@ContentDecoder@@@Base@@PAV12@@Base@@_N1IW4AVPixelFormat@@@Z)
+ContentDecoder.obj : error LNK2019: unresolved external symbol _avformat_open_input referenced in function "private: bool __thiscall ContentDecoder::CContentDecoder::Open(struct ContentDecoder::sOpenVideoInfo *)" (?Open@CContentDecoder@ContentDecoder@@AAE_NPAUsOpenVideoInfo@2@@Z)
+ContentDecoder.obj : error LNK2019: unresolved external symbol _avformat_find_stream_info referenced in function "private: bool __thiscall ContentDecoder::CContentDecoder::Open(struct ContentDecoder::sOpenVideoInfo *)" (?Open@CContentDecoder@ContentDecoder@@AAE_NPAUsOpenVideoInfo@2@@Z)
+ContentDecoder.obj : error LNK2019: unresolved external symbol _av_read_frame referenced in function "private: class ContentDecoder::CVideoFrame * __thiscall ContentDecoder::CContentDecoder::ReadOneFrame(struct ContentDecoder::sOpenVideoInfo *)" (?ReadOneFrame@CContentDecoder@ContentDecoder@@AAEPAVCVideoFrame@2@PAUsOpenVideoInfo@2@@Z)
+ContentDecoder.obj : error LNK2019: unresolved external symbol _avformat_close_input referenced in function "public: virtual __thiscall ContentDecoder::sOpenVideoInfo::~sOpenVideoInfo(void)" (??1sOpenVideoInfo@ContentDecoder@@UAE@XZ)
+ContentDecoder.obj : error LNK2019: unresolved external symbol _sws_freeContext referenced in function "private: void __thiscall ContentDecoder::CContentDecoder::Destroy(void)" (?Destroy@CContentDecoder@ContentDecoder@@AAEXXZ)
+ContentDecoder.obj : error LNK2019: unresolved external symbol _sws_getContext referenced in function "private: class ContentDecoder::CVideoFrame * __thiscall ContentDecoder::CContentDecoder::ReadOneFrame(struct ContentDecoder::sOpenVideoInfo *)" (?ReadOneFrame@CContentDecoder@ContentDecoder@@AAEPAVCVideoFrame@2@PAUsOpenVideoInfo@2@@Z)
+ContentDecoder.obj : error LNK2019: unresolved external symbol _sws_scale referenced in function "private: class ContentDecoder::CVideoFrame * __thiscall ContentDecoder::CContentDecoder::ReadOneFrame(struct ContentDecoder::sOpenVideoInfo *)" (?ReadOneFrame@CContentDecoder@ContentDecoder@@AAEPAVCVideoFrame@2@PAUsOpenVideoInfo@2@@Z)
+..\ffmpeg\win32\ffmpeg-static\lib\avcodec.lib : warning LNK4272: library machine type 'x64' conflicts with target machine type 'x86'
+..\ffmpeg\win32\ffmpeg-static\lib\avutil.lib : warning LNK4272: library machine type 'x64' conflicts with target machine type 'x86'
+..\ffmpeg\win32\ffmpeg-static\lib\avfilter.lib : warning LNK4272: library machine type 'x64' conflicts with target machine type 'x86'
+..\ffmpeg\win32\ffmpeg-static\lib\swscale.lib : warning LNK4272: library machine type 'x64' conflicts with target machine type 'x86'
+..\ffmpeg\win32\ffmpeg-static\lib\avdevice.lib : warning LNK4272: library machine type 'x64' conflicts with target machine type 'x86'
+..\ffmpeg\win32\ffmpeg-static\lib\avformat.lib : warning LNK4272: library machine type 'x64' conflicts with target machine type 'x86'
+C:\esmsvc\client_generic\MSVC\Debug\esd.exe : fatal error LNK1120: 20 unresolved externals

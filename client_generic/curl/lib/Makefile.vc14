@@ -77,7 +77,7 @@ ZLIB_PATH  = ../../zlib-1.2.8
 !ENDIF
 
 !IFNDEF MACHINE
-MACHINE  = X86
+MACHINE  = X64
 !ENDIF
 
 # USE_WINDOWS_SSPI uses windows libraries to allow NTLM authentication

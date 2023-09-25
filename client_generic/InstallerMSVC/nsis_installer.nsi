@@ -65,44 +65,44 @@ ShowUnInstDetails show
 Section "MainSection" SEC01
 	SetOverwrite on
 	SetOutPath "$TEMP" ; DirectX SDK components
-	File "..\RuntimeMSVC\Jun2010_D3DCompiler_43_x86.cab"
-	File "..\RuntimeMSVC\Jun2010_d3dx9_43_x86.cab"
+	File "..\RuntimeMSVC\Jun2010_D3DCompiler_43_x64.cab"
+	File "..\RuntimeMSVC\Jun2010_d3dx9_43_x64.cab"
 	File "..\RuntimeMSVC\dsetup32.dll"
 	File "..\RuntimeMSVC\DSETUP.dll"
 	File "..\RuntimeMSVC\dxdllreg_x86.cab"
 	File "..\RuntimeMSVC\dxnt.cab"
 	File "..\RuntimeMSVC\DXSETUP.exe"
 	File "..\RuntimeMSVC\dxupdate.cab"
-	
+
 	ExecWait '"$TEMP\DXSETUP.exe" /silent'
-	Delete "..\RuntimeMSVC\Jun2010_D3DCompiler_43_x86.cab"
-	Delete "..\RuntimeMSVC\Jun2010_d3dx9_43_x86.cab"
+	Delete "..\RuntimeMSVC\Jun2010_D3DCompiler_43_x64.cab"
+	Delete "..\RuntimeMSVC\Jun2010_d3dx9_43_x64.cab"
 	Delete "..\RuntimeMSVC\dsetup32.dll"
 	Delete "..\RuntimeMSVC\DSETUP.dll"
 	Delete "..\RuntimeMSVC\dxdllreg_x86.cab"
 	Delete "..\RuntimeMSVC\dxnt.cab"
 	Delete "..\RuntimeMSVC\DXSETUP.exe"
 	Delete "..\RuntimeMSVC\dxupdate.cab"
-	
+
 	SetOutPath "$WINDIR"
 	File "..\RuntimeMSVC\${PRODUCT_EXE_STRING}"
 	File "..\RuntimeMSVC\${PRODUCT_SCR_STRING}"
 	File "..\RuntimeMSVC\exchndl.dll" ; RPT debugging
-	
+
 	File "..\RuntimeMSVC\pthreadGC2.dll" ; for flam3
-	
+
 	File "..\RuntimeMSVC\avcodec-57.dll"   ; for ffmpeg
 	File "..\RuntimeMSVC\avformat-57.dll"  ; for ffmpeg
 	File "..\RuntimeMSVC\avutil-55.dll"    ; for ffmpeg
 	File "..\RuntimeMSVC\swresample-2.dll" ; for ffmpeg
 	File "..\RuntimeMSVC\swscale-4.dll"    ; for ffmpeg
-	
+
 	SetOutPath "$INSTDIR"
-	
+
 	CreateShortCut "$INSTDIR\SheepConfig.lnk" "$INSTDIR\settingsgui.exe"
-	
+
 	File "..\RuntimeMSVC\setacl.exe"
-	
+
 	File "..\RuntimeMSVC\electricsheep-smile.png"
 	File "..\RuntimeMSVC\electricsheep-frown.png"
 	File "..\RuntimeMSVC\electricsheep-attr.png"
@@ -125,7 +125,7 @@ Section "MainSection" SEC01
 	File "..\RuntimeMSVC\Scripts\logging\localized.lua"
 	File "..\RuntimeMSVC\Scripts\logging\logging.lua"
 	File "..\RuntimeMSVC\Scripts\logging\null.lua"
-	
+
 	SetShellVarContext all
 	CreateDirectory "$APPDATA\ElectricSheep"
 	AccessControl::GrantOnFile "$APPDATA\ElectricSheep" "(S-1-1-0)" "FullAccess"
@@ -137,7 +137,7 @@ Section "MainSection" SEC01
 	AccessControl::GrantOnFile "$WINDIR\${PRODUCT_SCR_STRING}" "(S-1-1-0)" "GenericExecute"
 	;CreateDirectory "$APPDATA\ElectricSheep\content\mpeg"
 	;AccessControl::GrantOnFile "$APPDATA\ElectricSheep\content\mpeg" "(S-1-1-0)" "FullAccess"
-	
+
 	;SetOutPath "$APPDATA\ElectricSheep\content\mpeg"
 	;File "..\flock100mb\00244=02682=02229=02370.avi"
 	;File "..\flock100mb\00244=02710=02370=02256.avi"
@@ -173,7 +173,7 @@ Section "MainSection" SEC01
 	;File "..\flock100mb\00244=20730=10478=12835.avi"
 	;File "..\flock100mb\00244=20731=12830=02370.avi"
 	;File "..\flock100mb\00244=20742=20740=12830.avi"
-	
+
 	SetShellVarContext current
 
 	SetOutPath "$INSTDIR"
@@ -221,20 +221,20 @@ Section Uninstall
 	MessageBox MB_YESNO "Would you like to save your sheeps?" IDYES SkipSheepDelete
 	RMDir /r "$APPDATA\ElectricSheep"
 	SkipSheepDelete:
-	
+
 	Delete "$WINDIR\${PRODUCT_EXE_STRING}"
 	Delete "$WINDIR\${PRODUCT_SCR_STRING}"
 	Delete "$WINDIR\exchndl.dll"
-	
-	Delete "$WINDIR\pthreadGC2.dll" 
-	
+
+	Delete "$WINDIR\pthreadGC2.dll"
+
 ;delete ffmpeg;s dll
 	Delete "$WINDIR\avcodec-57.dll"
 	Delete "$WINDIR\avformat-57.dll"
 	Delete "$WINDIR\avutil-55.dll"
 	Delete "$WINDIR\swresample-2.dll"
 	Delete "$WINDIR\swscale-4.dll"
-	
+
 	RMDir /r "$INSTDIR"
 
 ;	Push $INSTDIR
@@ -246,8 +246,8 @@ Section Uninstall
 	RMDir /r "$APPDATA\ElectricSheep\Content\xml"
 	RMDir /r "$APPDATA\ElectricSheep\Content\jpeg"
 	Delete "$APPDATA\ElectricSheep\Content\play_counts.*"
-	
-	
+
+
 	Delete	"$DESKTOP\Electric Sheep.lnk"
 	Delete "$SMPROGRAMS\Electric Sheep\Settings.lnk"
 	Delete "$SMPROGRAMS\Electric Sheep\Run Fullscreen.lnk"
@@ -256,7 +256,7 @@ Section Uninstall
 	Delete "$SMPROGRAMS\Electric Sheep\Uninstall.lnk"
 	RMDir "$SMPROGRAMS\Electric Sheep"
 	SetShellVarContext current
-	
+
 	DeleteRegKey ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}"
 	DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY}"
 	DeleteRegKey HKLM SOFTWARE\ElectricSheep
@@ -390,8 +390,3 @@ Function GetWindowsVersion
   Exch $R0
 
 FunctionEnd
-
-
-
-
-
