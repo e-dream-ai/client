@@ -129,7 +129,7 @@ private:
 			void	Stop();
 			
 #ifdef MAC
-			bool	AddDisplay( CGLContextObj _glContext );
+			bool	AddDisplay( CGraphicsContext _grapicsContext );
 #else
 #ifdef WIN32
 			bool	AddDisplay( uint32 screen, IDirect3D9 *_pIDirect3D9 = NULL, bool _blank = false );

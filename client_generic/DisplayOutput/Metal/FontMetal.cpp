@@ -46,7 +46,7 @@ namespace	DisplayOutput
 	CFontGL().
 
 */
-CFontGL::CFontGL( spCTextureFlat textTexture  ) : CBaseFont(), m_glyphs(NULL)
+CFontMetal::CFontMetal( spCTextureFlat textTexture  ) : CBaseFont(), m_glyphs(NULL)
 {
 	m_spTextTexture = textTexture;
 
@@ -60,22 +60,19 @@ CFontGL::CFontGL( spCTextureFlat textTexture  ) : CBaseFont(), m_glyphs(NULL)
 	~CFontGL().
 
 */
-CFontGL::~CFontGL()
+CFontMetal::~CFontMetal()
 {		
 	SAFE_DELETE_ARRAY(m_glyphs);
 }
 
 /*
 */
-bool	CFontGL::Create()
+bool	CFontMetal::Create()
 {
   // Open the file and check whether it is any good (a font file
   // starts with "F0")
-#ifndef LINUX_GNU
-	std::ifstream input((g_Settings()->Get( "settings.app.InstallDir", std::string(".\\") ) + "TrebuchetMS-20.glf").c_str(), std::ios::binary);
-#else
 	std::ifstream input((g_Settings()->Get( "settings.app.InstallDir", std::string("") ) + "TrebuchetMS-20.glf").c_str(), std::ios::binary);
-#endif
+
 	if (input.fail() || input.get() != 'F' || input.get() != '0')
 		return false;
  
@@ -146,17 +143,17 @@ bool	CFontGL::Create()
 	return( true );
 }
 
-fp4 CFontGL::LineHeight() const
+fp4 CFontMetal::LineHeight() const
 {
 	return m_lineHeight;
 }
 
-fp4 CFontGL::TexLineHeight() const
+fp4 CFontMetal::TexLineHeight() const
 {
 	return m_texLineHeight;
 }
 
-fp4 CFontGL::CharWidth(uint8 c) const
+fp4 CFontMetal::CharWidth(uint8 c) const
 {
 	if (m_table[c])
 		return m_table[c]->advance;
@@ -164,7 +161,7 @@ fp4 CFontGL::CharWidth(uint8 c) const
 		return 0.0;
 }
  
-fp4 CFontGL::StringWidth(const std::string& str) const
+fp4 CFontMetal::StringWidth(const std::string& str) const
 {
 	fp4 total = 0.0;
 	for (uint32 i = 0; i != str.size(); ++i)
@@ -172,17 +169,17 @@ fp4 CFontGL::StringWidth(const std::string& str) const
 	return total;
 }
 
-CFontGL::Glyph *CFontGL::GetGlyph(uint8 c)
+CFontMetal::Glyph *CFontMetal::GetGlyph(uint8 c)
 {
 	return m_table[c];
 }
 
-spCTextureFlat CFontGL::GetTexture( void )
+spCTextureFlat CFontMetal::GetTexture( void )
 {
 	return m_spTextTexture;
 }
 	
-void	CFontGL::Reupload()
+void CFontMetal::Reupload()
 {
 	m_spTextTexture->Reupload();
 }

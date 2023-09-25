@@ -6,8 +6,20 @@
 #include	"SmartPtr.h"
 #include	"linkpool.h"
 #ifdef MAC
+#ifndef USE_METAL
 #undef Random
 #include	<OpenGL/OpenGL.h>
+#endif
+#endif
+
+
+#ifdef USE_METAL
+#ifndef __OBJC__
+class MTKView;
+#endif
+typedef MTKView* CGraphicsContext;
+#else
+typedef CGLContextObj CGraphicsContext;
 #endif
 
 namespace	DisplayOutput
@@ -166,10 +178,10 @@ class	CDisplayOutput
 			virtual DWORD GetNumMonitors() { return 1; }
 #else
 #ifdef MAC
-			virtual bool Initialize( CGLContextObj _glContext, bool _bPreview ) = PureVirtual;
-			virtual void SetContext( CGLContextObj glContext ) = PureVirtual;
-			virtual CGLContextObj GetContext( void ) = PureVirtual;
-			virtual void ForceWidthAndHeight( uint32 _width, uint32 _height ) = PureVirtual;
+            virtual bool Initialize( CGraphicsContext _graphicsContext, bool _bPreview ) = PureVirtual;
+            virtual void SetContext( CGraphicsContext _graphicsContext ) = PureVirtual;
+            virtual CGraphicsContext GetContext( void ) = PureVirtual;
+            virtual void ForceWidthAndHeight( uint32 _width, uint32 _height ) = PureVirtual;
 #else
 			virtual bool Initialize( const uint32 _width, const uint32 _height, const bool _bFullscreen ) = PureVirtual;
 #endif

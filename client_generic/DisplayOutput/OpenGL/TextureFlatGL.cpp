@@ -1,3 +1,4 @@
+#ifndef USE_METAL
 #include <assert.h>
 #include <inttypes.h>
 #include <string.h>
@@ -311,3 +312,4 @@ bool	CTextureFlatGL::Unbind( const uint32 _index )
 }
 
 }
+#endif //!USE_METAL

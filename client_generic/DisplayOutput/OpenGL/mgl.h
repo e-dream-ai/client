@@ -1,7 +1,7 @@
 #ifndef _MGL__H_
 #define _MGL__H_
 
-#ifdef	MAC
+#if	defined(MAC) && !defined(USE_METAL)
 
 #ifdef _DisplayGL_H_
 #error "DisplayGL.h included before mgl.h!"
@@ -10,7 +10,6 @@
 #include "glee.h"
 #include "../DisplayOutput.h"
 #undef Random
-#include <ApplicationServices/ApplicationServices.h>
 #include <OpenGL/OpenGL.h>
 
 
@@ -41,10 +40,10 @@ class CMacGL : public CDisplayOutput
 
 			static const char *Description()	{	return "Macintosh OpenGL display";	};
 				
-			virtual bool	Initialize( CGLContextObj _glContext, bool _bPreview );
+			virtual bool	Initialize( CGraphicsContext _glContext, bool _bPreview );
 			
-			virtual void SetContext( CGLContextObj glContext ) { m_glContext = glContext; }
-			virtual CGLContextObj GetContext( void ) { return m_glContext; }
+			virtual void SetContext( CGraphicsContext glContext ) { m_glContext = glContext; }
+			virtual CGraphicsContext GetContext( void ) { return m_glContext; }
 
 			virtual void ForceWidthAndHeight( uint32 _width, uint32 _height );
 			

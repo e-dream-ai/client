@@ -4,7 +4,9 @@
 #include "dlfcn.h"
 #include "libgen.h"
 
+#ifndef USE_METAL
 NSOpenGLContext *glContext = NULL;
+#endif
 
 bool bStarted = false;
 
@@ -65,16 +67,16 @@ bool bStarted = false;
         // Now alloc and init the view, right from within the screen saver's initWithFrame:
 
         // If the view is valid, we continue
-        //if(glView)
+        //if(view)
         {
             // Make sure we autoresize
             [self setAutoresizesSubviews:YES];
             // So if our view is valid...
 			
-			glView = NULL;
+			view = NULL;
             
             // Do some setup on our context and view
-            //[glView prepareOpenGL];
+            //[view prepareOpenGL];
             // Then we set our animation loop timer
             //[self setAnimationTimeInterval:1/60.0];
 #ifdef SCREEN_SAVER
@@ -82,7 +84,7 @@ bool bStarted = false;
 #endif
             // Since our BasicOpenGLView class does it's setup in awakeFromNib, we call that here.
             // Note that this could be any method you want to use as the setup routine for your view.
-            //[glView awakeFromNib];
+            //[view awakeFromNib];
         }
         //else // Log an error if we fail here
            // NSLog(@"Error: Electric Sheep Screen Saver failed to initialize NSOpenGLView!");
@@ -123,7 +125,7 @@ bool bStarted = false;
 	}
 	else
 	{*/
-        if (glView == NULL)
+        if (view == NULL)
 		{
 			/*NSRect newRect;
 			
@@ -136,28 +138,40 @@ bool bStarted = false;
 			newRect.origin.y = theRect.origin.y;
 			
 			theRect = newRect;*/
+#ifdef USE_METAL
+            view = [[ESMetalView alloc] initWithFrame:theRect];
+#else
+			view = [[ESOpenGLView alloc] initWithFrame:theRect];
+#endif
 			
-			glView = [[ESOpenGLView alloc] initWithFrame:theRect]; 
-			
-			if(glView)
+			if(view)
 			{
-				glContext = [glView openGLContext];
+#ifndef USE_METAL
+				glContext = [view openGLContext];
+#endif
 
 				// We make it a subview of the screensaver view
-				[self addSubview:glView];
+				[self addSubview:view];
 			}
 		}
 	//}
-
-	if (glView != NULL && [glView openGLContext])
+#ifdef USE_METAL
+    
+    if (view != NULL)
+    {
+        ESScreensaver_InitClientStorage();
+        ESScreenSaver_AddGraphicsContext((__bridge void*)view);
+        ESScreensaver_DeinitClientStorage();
+    }
+#else
+	if (view != NULL && [view openGLContext])
 	{
 		ESScreensaver_InitClientStorage();
-		
-		ESScreenSaver_AddGLContext( (CGLContextObj)[[glView openGLContext] CGLContextObj] );
-		
+        ESScreenSaver_AddGraphicsContext((CGLContextObj)[[view openGLContext] CGLContextObj]);
 		ESScreensaver_DeinitClientStorage();
 	}
-	
+#endif //!USE_METAL
+
 	uint32 width = (uint32)theRect.size.width;
 	uint32 height = (uint32)theRect.size.height;
 	
@@ -212,7 +226,7 @@ bool bStarted = false;
 	
 	//ESScreensaver_DoFrame();
 	
-	//[glView setNeedsDisplay:YES];
+	//[view setNeedsDisplay:YES];
 }
 
 - (void)_animationThread
@@ -234,8 +248,8 @@ bool bStarted = false;
 			//if (m_isStopped)
 				//break;
 			
-			//if (glView != NULL)
-				//[glView setNeedsDisplay:YES];
+			//if (view != NULL)
+				//[view setNeedsDisplay:YES];
 		}
 		
 		if (animationLock != NULL)
@@ -267,7 +281,7 @@ bool bStarted = false;
 
 - (void)windowDidResize
 {
-	[glView setFrame: [self frame]];
+	[view setFrame: [self frame]];
 	
 	ESScreensaver_ForceWidthAndHeight( (uint32)[self frame].size.width, (uint32)[self frame].size.height );
 }

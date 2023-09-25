@@ -5,8 +5,9 @@
 extern "C" {
 #endif
 	CFBundleRef CopyDLBundle_ex( void );
-	void ESScreenSaver_AddGLContext( void *_glContext );
-	
+
+	void ESScreenSaver_AddGraphicsContext( void *_graphicsContext );
+
 	bool ESScreensaver_Start( bool _bPreview, uint32 _width, uint32 _height );
 	bool ESScreensaver_DoFrame( void );
 	void ESScreensaver_Stop( void );

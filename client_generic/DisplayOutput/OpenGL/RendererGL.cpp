@@ -1,5 +1,8 @@
 #include	<stdint.h>
 #include	<string.h>
+
+#ifndef USE_METAL
+
 #ifndef LINUX_GNU
 #include	"./OpenGL/GLee.h"
 #else
@@ -652,3 +655,4 @@ void 	CRendererGL::SetCurrentGLContext()
 
 }
 
+#endif //!USE_METAL

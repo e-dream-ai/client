@@ -257,6 +257,19 @@
 		464A49E62AB89CFC00C77F6D /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49E42AB89CEA00C77F6D /* AudioToolbox.framework */; };
 		464A49E82AB89D9100C77F6D /* liblzma.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49E72AB89D8300C77F6D /* liblzma.tbd */; };
 		464A49E92AB89D9D00C77F6D /* liblzma.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49E72AB89D8300C77F6D /* liblzma.tbd */; };
+		467230B42AC16FD400017C51 /* DisplayMetal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 467230B32AC16FD400017C51 /* DisplayMetal.cpp */; };
+		467230B72AC17A9E00017C51 /* ESMetalView.m in Sources */ = {isa = PBXBuildFile; fileRef = 467230B62AC17A9E00017C51 /* ESMetalView.m */; };
+		467230B92AC17C0400017C51 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 467230B82AC17C0400017C51 /* MetalKit.framework */; };
+		467230BA2AC17E4600017C51 /* ESMetalView.m in Sources */ = {isa = PBXBuildFile; fileRef = 467230B62AC17A9E00017C51 /* ESMetalView.m */; };
+		467230BB2AC17E9A00017C51 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 467230B82AC17C0400017C51 /* MetalKit.framework */; };
+		467230BD2AC17EAA00017C51 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 467230BC2AC17EAA00017C51 /* Metal.framework */; };
+		467230BE2AC17F4200017C51 /* DisplayMetal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 467230B32AC16FD400017C51 /* DisplayMetal.cpp */; };
+		467230C22AC1817500017C51 /* RendererMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C12AC1817500017C51 /* RendererMetal.mm */; };
+		467230C32AC1835300017C51 /* RendererMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C12AC1817500017C51 /* RendererMetal.mm */; };
+		467230C52AC18FDB00017C51 /* FontMetal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 467230C42AC18FDB00017C51 /* FontMetal.cpp */; };
+		467230C62AC18FDB00017C51 /* FontMetal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 467230C42AC18FDB00017C51 /* FontMetal.cpp */; };
+		467230C82AC1AE9D00017C51 /* TextureFlatMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C72AC1AE9D00017C51 /* TextureFlatMetal.mm */; };
+		467230C92AC1AE9D00017C51 /* TextureFlatMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C72AC1AE9D00017C51 /* TextureFlatMetal.mm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -583,6 +596,17 @@
 		464A49E12AB89C5F00C77F6D /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
 		464A49E42AB89CEA00C77F6D /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
 		464A49E72AB89D8300C77F6D /* liblzma.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = liblzma.tbd; path = usr/lib/liblzma.tbd; sourceTree = SDKROOT; };
+		467230B22AC16E9900017C51 /* DisplayMetal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = DisplayMetal.h; path = ../../DisplayOutput/Metal/DisplayMetal.h; sourceTree = "<group>"; };
+		467230B32AC16FD400017C51 /* DisplayMetal.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DisplayMetal.cpp; sourceTree = "<group>"; };
+		467230B52AC17A4D00017C51 /* ESMetalView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ESMetalView.h; sourceTree = "<group>"; };
+		467230B62AC17A9E00017C51 /* ESMetalView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = ESMetalView.m; path = ../DisplayOutput/OpenGL/ESMetalView.m; sourceTree = "<group>"; };
+		467230B82AC17C0400017C51 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
+		467230BC2AC17EAA00017C51 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		467230BF2AC1814800017C51 /* RendererMetal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = RendererMetal.h; path = ../../DisplayOutput/Metal/RendererMetal.h; sourceTree = "<group>"; };
+		467230C02AC1815100017C51 /* TextureFlatMetal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TextureFlatMetal.h; path = ../../DisplayOutput/Metal/TextureFlatMetal.h; sourceTree = "<group>"; };
+		467230C12AC1817500017C51 /* RendererMetal.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = RendererMetal.mm; path = ../../DisplayOutput/Metal/RendererMetal.mm; sourceTree = "<group>"; };
+		467230C42AC18FDB00017C51 /* FontMetal.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FontMetal.cpp; path = ../../DisplayOutput/Metal/FontMetal.cpp; sourceTree = "<group>"; };
+		467230C72AC1AE9D00017C51 /* TextureFlatMetal.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = TextureFlatMetal.mm; path = ../../DisplayOutput/Metal/TextureFlatMetal.mm; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -590,6 +614,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				467230BD2AC17EAA00017C51 /* Metal.framework in Frameworks */,
+				467230BB2AC17E9A00017C51 /* MetalKit.framework in Frameworks */,
 				213D540311F79C9800CF500D /* IOKit.framework in Frameworks */,
 				2160FC9D0F30F48200B2C27A /* CoreFoundation.framework in Frameworks */,
 				2160FC9E0F30F48200B2C27A /* GLUT.framework in Frameworks */,
@@ -635,6 +661,7 @@
 				21887A130EC6CDF9001ABD2E /* CoreFoundation.framework in Frameworks */,
 				21887A140EC6CDF9001ABD2E /* GLUT.framework in Frameworks */,
 				21887A150EC6CDF9001ABD2E /* OpenGL.framework in Frameworks */,
+				467230B92AC17C0400017C51 /* MetalKit.framework in Frameworks */,
 				21887A160EC6CDF9001ABD2E /* libpng.a in Frameworks */,
 				21887A170EC6CDF9001ABD2E /* libavcodec.a in Frameworks */,
 				21887A180EC6CDF9001ABD2E /* libavdevice.a in Frameworks */,
@@ -666,6 +693,7 @@
 		08FB7794FE84155DC02AAC07 /* ElectricSheep */ = {
 			isa = PBXGroup;
 			children = (
+				467230B52AC17A4D00017C51 /* ESMetalView.h */,
 				2160FE160F30F82800B2C27A /* Runtime */,
 				08FB7795FE84155DC02AAC07 /* Source */,
 				21AAA0390F703FDB00AC23A8 /* Resources */,
@@ -847,6 +875,7 @@
 		212B1A350E8E647900CE185C /* DisplayOutput */ = {
 			isa = PBXGroup;
 			children = (
+				467230B02AC16A7200017C51 /* Metal */,
 				212B1A490E8E651700CE185C /* Renderer */,
 				212B1A360E8E64C600CE185C /* OpenGL */,
 				212B1A100E8E646D00CE185C /* DisplayOutput.cpp */,
@@ -861,6 +890,7 @@
 			isa = PBXGroup;
 			children = (
 				2135D2200EC70153005E246D /* ESOpenGLView.m */,
+				467230B62AC17A9E00017C51 /* ESMetalView.m */,
 				212B1B590E8E755A00CE185C /* mgl.cpp */,
 				212B1A370E8E64EB00CE185C /* GLee.c */,
 				212B1A380E8E64EB00CE185C /* RendererGL.cpp */,
@@ -967,6 +997,8 @@
 		464A49D92AB8864600C77F6D /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				467230BC2AC17EAA00017C51 /* Metal.framework */,
+				467230B82AC17C0400017C51 /* MetalKit.framework */,
 				464A49E72AB89D8300C77F6D /* liblzma.tbd */,
 				464A49E42AB89CEA00C77F6D /* AudioToolbox.framework */,
 				464A49E12AB89C5F00C77F6D /* CoreMedia.framework */,
@@ -974,6 +1006,20 @@
 				464A49DA2AB8864600C77F6D /* VideoToolbox.framework */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		467230B02AC16A7200017C51 /* Metal */ = {
+			isa = PBXGroup;
+			children = (
+				467230C72AC1AE9D00017C51 /* TextureFlatMetal.mm */,
+				467230C42AC18FDB00017C51 /* FontMetal.cpp */,
+				467230B22AC16E9900017C51 /* DisplayMetal.h */,
+				467230C02AC1815100017C51 /* TextureFlatMetal.h */,
+				467230BF2AC1814800017C51 /* RendererMetal.h */,
+				467230B32AC16FD400017C51 /* DisplayMetal.cpp */,
+				467230C12AC1817500017C51 /* RendererMetal.mm */,
+			);
+			path = Metal;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -1119,6 +1165,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2197D56719B07FCF00EFA1F2 /* proximus.c in Sources */,
+				467230BE2AC17F4200017C51 /* DisplayMetal.cpp in Sources */,
 				2160FAB30F30F45100B2C27A /* Common.cpp in Sources */,
 				2160FAB40F30F45100B2C27A /* Exception.cpp in Sources */,
 				2160FAB50F30F45100B2C27A /* Log.cpp in Sources */,
@@ -1127,6 +1174,7 @@
 				2160FAB90F30F45100B2C27A /* pool.cpp in Sources */,
 				2160FABA0F30F45100B2C27A /* ContentDecoder.cpp in Sources */,
 				2160FABC0F30F45100B2C27A /* Player.cpp in Sources */,
+				467230C92AC1AE9D00017C51 /* TextureFlatMetal.mm in Sources */,
 				2160FABD0F30F45100B2C27A /* Voting.cpp in Sources */,
 				2160FAC60F30F45100B2C27A /* tinystr.cpp in Sources */,
 				2160FAC70F30F45100B2C27A /* tinyxml.cpp in Sources */,
@@ -1141,6 +1189,7 @@
 				2160FAD00F30F45100B2C27A /* LoadPNG.cpp in Sources */,
 				2160FAD10F30F45100B2C27A /* GLee.c in Sources */,
 				2160FAD20F30F45100B2C27A /* RendererGL.cpp in Sources */,
+				467230C32AC1835300017C51 /* RendererMetal.mm in Sources */,
 				2160FAD30F30F45100B2C27A /* ShaderGL.cpp in Sources */,
 				2160FAD40F30F45100B2C27A /* TextureFlatGL.cpp in Sources */,
 				2160FAD50F30F45100B2C27A /* Font.cpp in Sources */,
@@ -1148,10 +1197,12 @@
 				2160FAD70F30F45100B2C27A /* Shader.cpp in Sources */,
 				2160FAD80F30F45100B2C27A /* Texture.cpp in Sources */,
 				2160FAD90F30F45100B2C27A /* TextureFlat.cpp in Sources */,
+				467230C62AC18FDB00017C51 /* FontMetal.cpp in Sources */,
 				2160FADA0F30F45100B2C27A /* mgl.cpp in Sources */,
 				2160FADB0F30F45100B2C27A /* Hud.cpp in Sources */,
 				2160FADC0F30F45100B2C27A /* Rect.cpp in Sources */,
 				2160FADD0F30F45100B2C27A /* ESOpenGLView.m in Sources */,
+				467230BA2AC17E4600017C51 /* ESMetalView.m in Sources */,
 				2160FADE0F30F45100B2C27A /* Download.cpp in Sources */,
 				2160FADF0F30F45100B2C27A /* Networking.cpp in Sources */,
 				2160FAE00F30F45100B2C27A /* Upload.cpp in Sources */,
@@ -1200,17 +1251,20 @@
 				218878F20EC6CDE2001ABD2E /* LoadPNG.cpp in Sources */,
 				218878F30EC6CDE2001ABD2E /* GLee.c in Sources */,
 				218878F40EC6CDE2001ABD2E /* RendererGL.cpp in Sources */,
+				467230B42AC16FD400017C51 /* DisplayMetal.cpp in Sources */,
 				218878F50EC6CDE2001ABD2E /* ShaderGL.cpp in Sources */,
 				218878F60EC6CDE2001ABD2E /* TextureFlatGL.cpp in Sources */,
 				218878F70EC6CDE2001ABD2E /* Font.cpp in Sources */,
 				218878F80EC6CDE2001ABD2E /* Renderer.cpp in Sources */,
 				218878F90EC6CDE2001ABD2E /* Shader.cpp in Sources */,
 				218878FA0EC6CDE2001ABD2E /* Texture.cpp in Sources */,
+				467230C52AC18FDB00017C51 /* FontMetal.cpp in Sources */,
 				218878FB0EC6CDE2001ABD2E /* TextureFlat.cpp in Sources */,
 				218878FC0EC6CDE2001ABD2E /* mgl.cpp in Sources */,
 				218878FD0EC6CDE2001ABD2E /* Hud.cpp in Sources */,
 				218878FE0EC6CDE2001ABD2E /* Rect.cpp in Sources */,
 				2135D2220EC70153005E246D /* ESOpenGLView.m in Sources */,
+				467230B72AC17A9E00017C51 /* ESMetalView.m in Sources */,
 				2135DA530EC7479A005E246D /* ESScreensaverView.m in Sources */,
 				2135DA550EC74853005E246D /* ESScreensaver.cpp in Sources */,
 				211CDDDB0ED0BD9200EB9394 /* Download.cpp in Sources */,
@@ -1223,9 +1277,11 @@
 				2123132C0F503C4500702B2C /* Shepherd.cpp in Sources */,
 				210335040F549BEF00A83F17 /* AlignedBuffer.cpp in Sources */,
 				2199D0A80F574AC8007CEB9C /* SheepGenerator.cpp in Sources */,
+				467230C82AC1AE9D00017C51 /* TextureFlatMetal.mm in Sources */,
 				2199D0DC0F575949007CEB9C /* SheepUploader.cpp in Sources */,
 				21AAA0EF0F70453200AC23A8 /* ESConfiguration.m in Sources */,
 				21C5D0940F9CF6D9001657E7 /* md5.c in Sources */,
+				467230C22AC1817500017C51 /* RendererMetal.mm in Sources */,
 				2169AE8011397EF700689B02 /* isaac.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1300,6 +1356,7 @@
 					MAC,
 					NDEBUG,
 					NS_BLOCK_ASSERTIONS,
+					USE_METAL,
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
@@ -1374,6 +1431,7 @@
 					MAC,
 					NDEBUG,
 					NS_BLOCK_ASSERTIONS,
+					USE_METAL,
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
@@ -1465,6 +1523,7 @@
 					MAC,
 					DEBUG,
 					"BOOST_FILESYSTEM_VERSION=3",
+					USE_METAL,
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
@@ -1516,6 +1575,7 @@
 					"BOOST_FILESYSTEM_VERSION=3",
 					NDEBUG,
 					NS_BLOCK_ASSERTIONS,
+					USE_METAL,
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
@@ -1564,6 +1624,7 @@
 					SCREEN_SAVER,
 					DEBUG,
 					"BOOST_FILESYSTEM_VERSION=3",
+					USE_METAL,
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
@@ -1617,6 +1678,7 @@
 					"BOOST_FILESYSTEM_VERSION=3",
 					NDEBUG,
 					NS_BLOCK_ASSERTIONS,
+					USE_METAL,
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;

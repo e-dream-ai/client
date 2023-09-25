@@ -1,5 +1,9 @@
 #import <ScreenSaver/ScreenSaver.h>
+#if USE_METAL
+#import "ESMetalView.h"
+#else
 #import "ESOpenGLView.h"
+#endif
 #import "ESConfiguration.h"
 #import "Sparkle/Sparkle.h"
 
@@ -14,7 +18,11 @@
     // So what do you need to make an OpenGL screen saver? Just an NSOpenGLView (or subclass thereof)
     // So we'll put one in here.
     NSRect theRect;
-	ESOpenGLView *glView;
+#if USE_METAL
+    ESMetalView *view;
+#else
+	ESOpenGLView *view;
+#endif
 	NSTimer *animationTimer;
 	NSLock *animationLock;
 	BOOL m_isStopped;

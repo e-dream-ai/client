@@ -1,3 +1,5 @@
+#ifndef USE_METAL
+
 #include <iostream>
 #include <assert.h>
 #include <string.h>
@@ -429,3 +431,4 @@ void	CShaderUniformGL::Apply()
 
 }
 
+#endif //!USE_METAL

@@ -42,6 +42,9 @@
 #include	"../msvc/DisplayDD.h"
 #include	"../msvc/RendererDD.h"
 #endif
+#elif defined(MAC) && defined(USE_METAL)
+#include    "DisplayMetal.h"
+#include    "RendererMetal.h"
 #else
 #include	"DisplayGL.h"
 #include	"RendererGL.h"
@@ -111,7 +114,7 @@ void	CPlayer::SetHWND( HWND _hWnd )
 #endif
 
 #ifdef MAC
-bool CPlayer::AddDisplay( CGLContextObj _glContext )
+bool CPlayer::AddDisplay( CGraphicsContext _graphicsContext )
 #else
 #ifdef WIN32
 bool CPlayer::AddDisplay( uint32 screen, IDirect3D9 *_pIDirect3D9, bool _blank)
@@ -212,27 +215,38 @@ bool CPlayer::AddDisplay( uint32 screen )
 #endif
 		spRenderer = new CRendererDX();
 #else // !WIN32
+    
+#if defined(MAC) && defined(USE_METAL)
+    g_Log->Info( "Attempting to open %s...", CDisplayMetal::Description() );
+    spDisplay = new CDisplayMetal();
+#else
+    g_Log->Info( "Attempting to open %s...", CDisplayGL::Description() );
+    spDisplay = new CDisplayGL();
+#endif
 
-	g_Log->Info( "Attempting to open %s...", CDisplayGL::Description() );
-	spDisplay = new CDisplayGL();
 	if( spDisplay == NULL )
 		return false;
 	
-#ifdef MAC
-	if (_glContext != NULL)
-	{
-		if( !spDisplay->Initialize( _glContext, true ) )
-			return false;
-			
-		spDisplay->ForceWidthAndHeight(w, h);
-	}
+#if defined(MAC)
+    if (_graphicsContext != NULL)
+    {
+        if( !spDisplay->Initialize( _graphicsContext, true ) )
+            return false;
+            
+        spDisplay->ForceWidthAndHeight(w, h);
+    }
 #else
  	if( !spDisplay->Initialize( w, h, m_bFullscreen ) )
 		return false;
-#endif
-	
+#endif //!MAC
+
+#ifdef USE_METAL
+    spRenderer = new CRendererMetal();
+#else
  	spRenderer = new CRendererGL();
 #endif
+    
+#endif //!WIN32
 
 	//	Start renderer & set window title.
 	if (spRenderer->Initialize( spDisplay ) == false)

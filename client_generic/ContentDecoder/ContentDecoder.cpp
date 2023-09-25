@@ -213,6 +213,9 @@ bool	CContentDecoder::Open( sOpenVideoInfo *ovi )
     
     if (useHWAcceleration)
     {
+#ifndef USE_METAL
+        g_Log->Error( "Attempting to use hardware acceleration on an OpenGL client. This feature is only supported on Metal." );
+#endif
         AVHWDeviceType hw_type = av_hwdevice_find_type_by_name("videotoolbox");
         if (hw_type != AV_HWDEVICE_TYPE_NONE)
         {

@@ -25,18 +25,20 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <IOKit/ps/IOPowerSources.h>
 #include <IOKit/ps/IOPSKeys.h>
+#include <ApplicationServices/ApplicationServices.h>
 
 #include "../MacBuild/ESScreensaver.h"
 
 #include "proximus.h"
+
 
 /*
 	CElectricSheep_Mac().
 	Mac specific client code.
 */
 class	CElectricSheep_Mac : public CElectricSheep
-{	
-	std::vector<CGLContextObj> m_glContextList;
+{
+	std::vector<CGraphicsContext> m_graphicsContextList;
 	bool m_bIsPreview;
 	UInt8 m_proxyHost[256];
 	UInt8 m_proxyUser[32];
@@ -136,12 +138,12 @@ class	CElectricSheep_Mac : public CElectricSheep
 			{
                 m_proxyEnabled = get_proxy_for_server105( (const UInt8*)CLIENT_SERVER, m_proxyHost, sizeof(m_proxyHost) - 1, m_proxyUser, sizeof(m_proxyUser) - 1, m_proxyPass, sizeof(m_proxyPass) - 1 );
 			}
-			
-			void AddGLContext( CGLContextObj _glContext )
+
+			void AddGraphicsContext( CGraphicsContext _context )
 			{					
 				if ( g_Player().Display() == NULL )
 				{
-					m_glContextList.push_back( _glContext );
+					m_graphicsContextList.push_back( _context );
 				}
 				else
 				{
@@ -151,14 +153,14 @@ class	CElectricSheep_Mac : public CElectricSheep
 					DestroyUpdateThreads();
 #endif
 
-					g_Player().AddDisplay( _glContext );
+					g_Player().AddDisplay( _context );
 										
 #ifdef DO_THREAD_UPDATE
 					CreateUpdateThreads();
 #endif
 				}
 			}
-		
+    
 			void SetIsPreview( bool _isPreview )
 			{
 				m_bIsPreview = _isPreview;
@@ -195,14 +197,14 @@ class	CElectricSheep_Mac : public CElectricSheep
 				std::string tmp = "Working dir: " + m_WorkingDir;
 				g_Log->Info( tmp.c_str() );
 				
-				std::vector<CGLContextObj>::const_iterator it = m_glContextList.begin();
+				std::vector<CGraphicsContext>::const_iterator it = m_graphicsContextList.begin();
 				
-				for ( ; it != m_glContextList.end(); it++ )
+				for ( ; it != m_graphicsContextList.end(); it++ )
 				{
 					g_Player().AddDisplay(*it);
 				}
 					
-				m_glContextList.clear();
+				m_graphicsContextList.clear();
 				
 				//check the exclusive file lock to see if we are running alone...
 				std::string lockfile = m_AppData + ".instance-lock";
