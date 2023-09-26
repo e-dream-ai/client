@@ -6,9 +6,18 @@
 
 -(id) initWithFrame: (NSRect) frameRect
 {
+    NSArray<id<MTLDevice>> *devices = MTLCopyAllDevices();
+    id<MTLDevice> selectedDevice = nil;
+    for (id<MTLDevice> device in devices) {
+        if (!device.isLowPower) {
+            selectedDevice = device;
+            break;  // Found the discrete GPU, exit the loop
+        }
+    }
+    if (selectedDevice == nil)
+        selectedDevice = devices[0];
 
-	//self = [super initWithFrame: frameRect pixelFormat: pf];
-    self = [super initWithFrame:frameRect device:MTLCreateSystemDefaultDevice()];
+    self = [super initWithFrame:frameRect device:selectedDevice];
     //[viewController.view addSubview:metalView];
 
     return self;

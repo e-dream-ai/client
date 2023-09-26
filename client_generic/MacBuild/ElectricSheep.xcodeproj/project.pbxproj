@@ -270,6 +270,8 @@
 		467230C62AC18FDB00017C51 /* FontMetal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 467230C42AC18FDB00017C51 /* FontMetal.cpp */; };
 		467230C82AC1AE9D00017C51 /* TextureFlatMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C72AC1AE9D00017C51 /* TextureFlatMetal.mm */; };
 		467230C92AC1AE9D00017C51 /* TextureFlatMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C72AC1AE9D00017C51 /* TextureFlatMetal.mm */; };
+		46BCF0F12AC2F0FE003D79FF /* MetalShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 46BCF0F02AC2F0FE003D79FF /* MetalShaders.metal */; };
+		46BCF0F22AC2F0FE003D79FF /* MetalShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 46BCF0F02AC2F0FE003D79FF /* MetalShaders.metal */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -607,6 +609,7 @@
 		467230C12AC1817500017C51 /* RendererMetal.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = RendererMetal.mm; path = ../../DisplayOutput/Metal/RendererMetal.mm; sourceTree = "<group>"; };
 		467230C42AC18FDB00017C51 /* FontMetal.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FontMetal.cpp; path = ../../DisplayOutput/Metal/FontMetal.cpp; sourceTree = "<group>"; };
 		467230C72AC1AE9D00017C51 /* TextureFlatMetal.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = TextureFlatMetal.mm; path = ../../DisplayOutput/Metal/TextureFlatMetal.mm; sourceTree = "<group>"; };
+		46BCF0F02AC2F0FE003D79FF /* MetalShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = MetalShaders.metal; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1015,9 +1018,10 @@
 				467230C42AC18FDB00017C51 /* FontMetal.cpp */,
 				467230B22AC16E9900017C51 /* DisplayMetal.h */,
 				467230C02AC1815100017C51 /* TextureFlatMetal.h */,
-				467230BF2AC1814800017C51 /* RendererMetal.h */,
 				467230B32AC16FD400017C51 /* DisplayMetal.cpp */,
+				467230BF2AC1814800017C51 /* RendererMetal.h */,
 				467230C12AC1817500017C51 /* RendererMetal.mm */,
+				46BCF0F02AC2F0FE003D79FF /* MetalShaders.metal */,
 			);
 			path = Metal;
 			sourceTree = "<group>";
@@ -1200,6 +1204,7 @@
 				467230C62AC18FDB00017C51 /* FontMetal.cpp in Sources */,
 				2160FADA0F30F45100B2C27A /* mgl.cpp in Sources */,
 				2160FADB0F30F45100B2C27A /* Hud.cpp in Sources */,
+				46BCF0F22AC2F0FE003D79FF /* MetalShaders.metal in Sources */,
 				2160FADC0F30F45100B2C27A /* Rect.cpp in Sources */,
 				2160FADD0F30F45100B2C27A /* ESOpenGLView.m in Sources */,
 				467230BA2AC17E4600017C51 /* ESMetalView.m in Sources */,
@@ -1244,6 +1249,7 @@
 				218878EB0EC6CDE2001ABD2E /* tinyxmlparser.cpp in Sources */,
 				218878EC0EC6CDE2001ABD2E /* diriterator.cpp in Sources */,
 				218878ED0EC6CDE2001ABD2E /* luastorage.cpp in Sources */,
+				46BCF0F12AC2F0FE003D79FF /* MetalShaders.metal in Sources */,
 				218878EE0EC6CDE2001ABD2E /* storage.cpp in Sources */,
 				218878EF0EC6CDE2001ABD2E /* DisplayOutput.cpp in Sources */,
 				218878F00EC6CDE2001ABD2E /* Image.cpp in Sources */,

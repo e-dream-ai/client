@@ -43,13 +43,14 @@ namespace	DisplayOutput
     {
         m_Width = s_DefaultWidth;
         m_Height = s_DefaultHeight;
+        m_GraphicsContext = _graphicsContext;
 
         return true;
     }
 
-    void CDisplayMetal::SetContext(CGraphicsContext context)
+    void CDisplayMetal::SetContext(CGraphicsContext _graphicsContext)
     {
-        m_GraphicsContext = context;
+        m_GraphicsContext = _graphicsContext;
     }
 
     CGraphicsContext CDisplayMetal::GetContext()

@@ -7,7 +7,7 @@
 #include "Renderer.h"
 #include "TextureFlat.h"
 #include "Image.h"
-
+#include <CoreFoundation/CFBase.h>
 
 
 namespace	DisplayOutput
@@ -27,6 +27,7 @@ class CRendererMetal : public CRenderer
 	spCTextureFlat		m_spTextTexture;
 	
 	Base::Math::CRect	m_textRect;
+    CFTypeRef           m_pRendererContext;
 
 	public:
             CRendererMetal();
@@ -67,6 +68,9 @@ class CRendererMetal : public CRenderer
 			void	DrawSoftQuad( const Base::Math::CRect &_rect, const Base::Math::CVector4 &_color, const fp4 _width );
 	
 			void	SetCurrentMetalContext();
+#ifdef __OBJC__
+            void    SetBoundSlot(uint32_t _slot, id<MTLTexture> _texture);
+#endif
 };
 
 MakeSmartPointers( CRendererMetal );

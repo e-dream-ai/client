@@ -14,28 +14,38 @@
 #include "TextureFlatMetal.h"
 
 
+@interface TextureFlatMetalContext : NSObject
+@property (nonatomic, nonnull) id<MTLTexture> texture;
+@end
+
+@implementation TextureFlatMetalContext
+@end
+
 namespace	DisplayOutput
 {
 
 
 /*
 */
-CTextureFlatMetal::CTextureFlatMetal( CGraphicsContext _graphicsContext, const uint32 _flags ) : CTextureFlat( _flags )
+CTextureFlatMetal::CTextureFlatMetal( CGraphicsContext _graphicsContext, const uint32 _flags, spCRendererMetal _renderer  )
+    : CTextureFlat( _flags ), m_pGraphicsContext(_graphicsContext), m_spRenderer(_renderer)
 {
-    m_GraphicsContext = _graphicsContext;
+    TextureFlatMetalContext* textureContext = [[TextureFlatMetalContext alloc] init];
+    m_pTextureContext = CFBridgingRetain(textureContext);
 }
 
 /*
 */
 CTextureFlatMetal::~CTextureFlatMetal()
 {
-	
+    CFBridgingRelease(m_pTextureContext);
 }
 
 /*
 */
 bool CTextureFlatMetal::Upload( spCImage _spImage )
 {
+    TextureFlatMetalContext* textureContext = (__bridge TextureFlatMetalContext*)m_pTextureContext;
     m_spImage = _spImage;
 
 	if (m_spImage==NULL) return false;
@@ -72,10 +82,8 @@ bool CTextureFlatMetal::Upload( spCImage _spImage )
 
     MTLPixelFormat srcFormat = srcFormats[ format.getFormatEnum() ];
     
-    MTLTextureDescriptor *textureDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:srcFormat width:512 height:512 mipmapped:NO];
-    MTKView* view = m_GraphicsContext;
-    // Create a Metal texture
-    id<MTLTexture> texture = [view.device newTextureWithDescriptor:textureDescriptor];
+    MTKView* view = (__bridge MTKView*)m_pGraphicsContext;
+
     
     //TODO: Probably need to set sampler descriptor here
 
@@ -84,6 +92,13 @@ bool CTextureFlatMetal::Upload( spCImage _spImage )
     uint32_t mipMapLevel = 0;
     uint32_t width = _spImage->GetWidth();
     uint32_t height = _spImage->GetHeight();
+    bool mipMapped = _spImage->GetNumMipMaps() > 1;
+    MTLTextureDescriptor *textureDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:srcFormat
+                                                                                                 width:width
+                                                                                                height:height
+                                                                                             mipmapped:mipMapped];
+    id<MTLTexture> texture = [view.device newTextureWithDescriptor:textureDescriptor];
+    textureContext.texture = texture;
 
     while ((pSrc = _spImage->GetData(mipMapLevel)) != NULL)
     {
@@ -94,7 +109,7 @@ bool CTextureFlatMetal::Upload( spCImage _spImage )
         };
         if (format.isCompressed())
         {
-            //TODO: Implement compressed textures if applicable
+            //TODO: Implement compressed textures if needed
             g_Log->Error( "Compressed texture are currently unsupported on Metal." );
             return false;
         }
@@ -109,23 +124,15 @@ bool CTextureFlatMetal::Upload( spCImage _spImage )
 
     m_bDirty = true;
 
-    // Unbind the texture (not directly equivalent to OpenGL)
-
+    return true;
 }
 
 /*
 */
 bool	CTextureFlatMetal::Bind( const uint32 _index )
 {
-    /*
-	glActiveTextureARB( GL_TEXTURE0 + _index );
-	glEnable( m_TexTarget );
-	glBindTexture( m_TexTarget, m_TexID );
-	
-	m_bDirty = false;
-	
-	VERIFYGL;
-     */
+    TextureFlatMetalContext* textureContext = (__bridge TextureFlatMetalContext*)m_pTextureContext;
+    m_spRenderer->SetBoundSlot(_index, textureContext.texture);
 	return true;
 }
 

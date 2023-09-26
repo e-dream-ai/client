@@ -160,6 +160,7 @@ bool bStarted = false;
     if (view != NULL)
     {
         ESScreensaver_InitClientStorage();
+        
         ESScreenSaver_AddGraphicsContext((__bridge void*)view);
         ESScreensaver_DeinitClientStorage();
     }

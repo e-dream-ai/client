@@ -14,10 +14,12 @@
 
 
 #ifdef USE_METAL
-#ifndef __OBJC__
+#ifdef __OBJC__
+typedef void* CGraphicsContext;
+#else
 class MTKView;
-#endif
 typedef MTKView* CGraphicsContext;
+#endif
 #else
 typedef CGLContextObj CGraphicsContext;
 #endif

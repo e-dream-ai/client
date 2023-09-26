@@ -2,6 +2,8 @@
 #define _TEXTUREFLATMETAL_H
 
 #include "TextureFlat.h"
+#include <CoreFoundation/CFBase.h>
+
 
 namespace	DisplayOutput
 {
@@ -12,10 +14,12 @@ namespace	DisplayOutput
 */
 class CTextureFlatMetal : public CTextureFlat
 {
-    CGraphicsContext m_GraphicsContext;
+    CGraphicsContext    m_pGraphicsContext;
+    CFTypeRef           m_pTextureContext;
+    spCRendererMetal    m_spRenderer;
 
 	public:
-            CTextureFlatMetal( CGraphicsContext _graphicsContext, const uint32 _flags );
+            CTextureFlatMetal( CGraphicsContext _graphicsContext, const uint32 _flags, spCRendererMetal _renderer );
 			virtual ~CTextureFlatMetal();
 
 			bool	Upload( spCImage _spImage );
