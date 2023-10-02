@@ -464,10 +464,15 @@ bool	CContentDecoder::NextSheepForPlaying( int32 _forceNext )
 	else
 		return false;
 		
-	if (m_bCalculateTransitions && m_SecondVideoInfo != NULL && !m_SecondVideoInfo->IsOpen() && m_MainVideoInfo->m_Last != m_SecondVideoInfo->m_SheepID && m_MainVideoInfo->m_SheepID != m_SecondVideoInfo->m_First && m_MainVideoInfo->m_Last != m_SecondVideoInfo->m_First && (m_MainVideoInfo->m_Generation / 10000) == (m_SecondVideoInfo->m_Generation / 10000))
-	{
-		Open( m_SecondVideoInfo );
-	}
+    if (m_bCalculateTransitions &&
+        m_SecondVideoInfo != NULL &&
+        !m_SecondVideoInfo->IsOpen() &&
+        m_MainVideoInfo->m_Last != m_SecondVideoInfo->m_SheepID &&
+        m_MainVideoInfo->m_SheepID != m_SecondVideoInfo->m_First &&
+        m_MainVideoInfo->m_Last != m_SecondVideoInfo->m_First && (m_MainVideoInfo->m_Generation / 10000) == (m_SecondVideoInfo->m_Generation / 10000))
+    {
+        Open( m_SecondVideoInfo );
+    }
 
 	return true;
 }
@@ -591,9 +596,14 @@ CVideoFrame *CContentDecoder::ReadOneFrame(sOpenVideoInfo *ovi)
         //printf( "avcodec_decode_video(0x%x, 0x%x, 0x%x, 0x%x, %d)", m_pVideoCodecContext, pFrame, &frameDecoded, packet.data, packet.size );
 
         int ret = avcodec_send_packet(pVideoCodecContext, packet);
+        
         if (ret < 0)
         {
-            g_Log->Error("Error sending packet for decoding");
+            if (ret == AVERROR_EOF)
+            {
+                return NULL;
+            }
+            g_Log->Error("Error sending packet for decoding: %i", ret);
         }
         if (ret >= 0)
         {
@@ -778,9 +788,7 @@ void	CContentDecoder::ReadPackets()
 					}
 					else
 						pMainVideoFrame->SetMetaData_TransitionProgress(0.f);
-					
 					m_FrameQueue.push( pMainVideoFrame );
-					
 					bDoNextSheep = false;
 					
 					//printf( "yielding..." );
@@ -826,12 +834,10 @@ spCVideoFrame CContentDecoder::Frame()
 	if ( m_sharedFrame.IsNull() )
 	{
 		CVideoFrame *tmp = NULL;
-	   
 		if ( !m_FrameQueue.pop( tmp, false ) )
 		{
 			tmp = NULL;
 		}
-	   
 		m_sharedFrame = tmp;
 	}
 	else

@@ -48,7 +48,7 @@ bool CTextureFlatMetal::Upload( spCImage _spImage )
     TextureFlatMetalContext* textureContext = (__bridge TextureFlatMetalContext*)m_pTextureContext;
     m_spImage = _spImage;
 
-	if (m_spImage==NULL) return false;
+	if (m_spImage == NULL) return false;
 
 	CImageFormat	format = _spImage->GetFormat();
 
@@ -83,23 +83,27 @@ bool CTextureFlatMetal::Upload( spCImage _spImage )
     MTLPixelFormat srcFormat = srcFormats[ format.getFormatEnum() ];
     
     MTKView* view = (__bridge MTKView*)m_pGraphicsContext;
-
+    
+    uint32_t width = _spImage->GetWidth();
+    uint32_t height = _spImage->GetHeight();
+    id<MTLTexture> texture = textureContext.texture;
     
     //TODO: Probably need to set sampler descriptor here
-
+    //Create Metal texture if it doesn's exist yet
+    if (texture == nil)
+    {
+        bool mipMapped = _spImage->GetNumMipMaps() > 1;
+        MTLTextureDescriptor *textureDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:srcFormat
+                                                                                                     width:width
+                                                                                                    height:height
+                                                                                                 mipmapped:mipMapped];
+        texture = [view.device newTextureWithDescriptor:textureDescriptor];
+        textureContext.texture = texture;
+    }
+    
     // Upload the texture data
     uint8_t *pSrc;
     uint32_t mipMapLevel = 0;
-    uint32_t width = _spImage->GetWidth();
-    uint32_t height = _spImage->GetHeight();
-    bool mipMapped = _spImage->GetNumMipMaps() > 1;
-    MTLTextureDescriptor *textureDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:srcFormat
-                                                                                                 width:width
-                                                                                                height:height
-                                                                                             mipmapped:mipMapped];
-    id<MTLTexture> texture = [view.device newTextureWithDescriptor:textureDescriptor];
-    textureContext.texture = texture;
-
     while ((pSrc = _spImage->GetData(mipMapLevel)) != NULL)
     {
         MTLRegion region =

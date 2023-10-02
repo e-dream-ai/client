@@ -9,11 +9,10 @@
 #include "TextureFlatMetal.h"
 
 @interface RendererContext : NSObject
-/// The main GPU of the device.
-@property (nonatomic, nonnull) id<MTLDevice> device;
 @property (nonatomic, nonnull) id<MTLRenderPipelineState> renderPipeline;
 @property (nonatomic, nonnull) MTKView* metalView;
 @property (nonatomic, nonnull) NSMutableDictionary<NSNumber*, id<MTLTexture>>* boundTextures;
+@property (nonatomic, nonnull) id<MTLCommandQueue> commandQueue;
 @end
 
 @implementation RendererContext
@@ -49,15 +48,15 @@ bool	CRendererMetal::Initialize( spCDisplayOutput _spDisplay )
         return false;
 
     MTKView* metalView = (__bridge MTKView*)m_spDisplay->GetContext();
+    id<MTLDevice> device = metalView.device;
     
     RendererContext* rendererContext = [[RendererContext alloc] init];
     rendererContext.metalView = metalView;
-    rendererContext.device = metalView.device;
     rendererContext.boundTextures = [[NSMutableDictionary alloc] init];
+    rendererContext.commandQueue = [device newCommandQueue];
 
     m_pRendererContext = CFBridgingRetain(rendererContext);
 
-    id<MTLDevice> device = metalView.device;
     NSError* error;
     
     id<MTLLibrary> defaultLibrary = [device newDefaultLibrary];
@@ -192,67 +191,28 @@ void	CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math:
 {
     RendererContext* rendererContext = (__bridge RendererContext*)m_pRendererContext;
     id <MTLRenderPipelineState> renderPipelineState = rendererContext.renderPipeline;
-
-    // Get the Metal device from the view
-    id<MTLDevice> device = rendererContext.device;
-
-    // Define the vertices for your quad (in normalized device coordinates)
-    float vertices[] = {
-        -0.5f, -0.5f, 0.0f, 1.0f,
-         0.5f, -0.5f, 0.0f, 1.0f,
-        -0.5f,  0.5f, 0.0f, 1.0f,
-         0.5f,  0.5f, 0.0f, 1.0f,
-    };
-
-    // Create a Metal buffer for the vertices
-    id<MTLBuffer> vertexBuffer = [device newBufferWithBytes:vertices
-                                                       length:sizeof(vertices)
-                                                      options:MTLResourceStorageModeShared];
-
-    // Create a Metal shader (vertex and fragment shaders)
-    // Your shader code goes here...
-
-    // Create a Metal render pipeline with your shaders
-    // Your render pipeline setup code goes here...
-
-    // Create a Metal command queue
-    id<MTLCommandQueue> commandQueue = [device newCommandQueue];
-
-    // Render loop (Objective-C/C++ code)
+    id<MTLCommandQueue> commandQueue = rendererContext.commandQueue;
+    id<MTLCommandBuffer> commandBuffer = [commandQueue commandBuffer];
+    MTLRenderPassDescriptor *passDescriptor = rendererContext.metalView.currentRenderPassDescriptor;
     
-        // Start a new Metal command buffer
-        id<MTLCommandBuffer> commandBuffer = [commandQueue commandBuffer];
-        
-        // Create a Metal render pass descriptor
-        MTLRenderPassDescriptor *passDescriptor = rendererContext.metalView.currentRenderPassDescriptor;
-        
-        if (passDescriptor != nil) {
-            // Create a Metal render command encoder
-            id<MTLRenderCommandEncoder> renderEncoder = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
-            
-            // Set the render pipeline state
-            [renderEncoder setRenderPipelineState:renderPipelineState];
-            
-            // Set vertex buffer
-            [renderEncoder setVertexBuffer:vertexBuffer offset:0 atIndex:0];
-            
-            for (NSNumber* slot in rendererContext.boundTextures)
-            {
-                [renderEncoder setFragmentTexture:rendererContext.boundTextures[slot] atIndex:slot.unsignedIntegerValue];
-            }
-            
-            
-            // Draw the quad (4 vertices)
-            [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
-            
-            // End encoding
-            [renderEncoder endEncoding];
-            
-            // Commit the command buffer
-            [commandBuffer presentDrawable:rendererContext.metalView.currentDrawable];
-            [commandBuffer commit];
+    if (passDescriptor != nil)
+    {
+        id<MTLRenderCommandEncoder> renderEncoder = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
+        [renderEncoder setRenderPipelineState:renderPipelineState];
+        for (NSNumber* slot in rendererContext.boundTextures)
+        {
+            [renderEncoder setFragmentTexture:rendererContext.boundTextures[slot] atIndex:slot.unsignedIntegerValue];
         }
-    
+
+        [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
+        [renderEncoder endEncoding];
+        
+        [commandBuffer addScheduledHandler:^(id<MTLCommandBuffer>)
+        {
+            [rendererContext.metalView.currentDrawable present];
+        }];
+        [commandBuffer commit];
+    }
 }
 	
 void	CRendererMetal::DrawSoftQuad( const Base::Math::CRect &_rect, const Base::Math::CVector4 &_color, const fp4 _width )

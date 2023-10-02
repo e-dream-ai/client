@@ -1,5 +1,5 @@
-#ifndef USE_METAL
-#include	"FontGL.h"
+#ifdef USE_METAL
+#include	"FontMetal.h"
 #include	"Log.h"
 #include	"Settings.h"
 #include	<fstream>
