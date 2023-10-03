@@ -1,9 +1,17 @@
 #ifndef _TEXTUREFLAT_H
 #define _TEXTUREFLAT_H
 
+#include "libavcodec/avcodec.h"
+
+    #include "libavformat/avformat.h"
+    #include "libswscale/swscale.h"
+    #include "libavutil/imgutils.h"
+    #include "libavutil/hwcontext.h"
+
 #include "Texture.h"
 #include "Image.h"
 #include "AlignedBuffer.h"
+#include "Frame.h"
 
 namespace	DisplayOutput
 {
@@ -28,6 +36,7 @@ class CTextureFlat : public CTexture
 			virtual	bool	Upload( spCImage _spImage ) = PureVirtual;
 			virtual	bool	Bind( const uint32 _index ) = PureVirtual;
 			virtual	bool	Unbind( const uint32 _index ) = PureVirtual;
+            virtual bool    BindFrame(ContentDecoder::spCVideoFrame _pFrame) = PureVirtual;
 
 			virtual bool	Dirty( void )	{	return m_bDirty;	};
 	

@@ -257,6 +257,7 @@
 		464A49E62AB89CFC00C77F6D /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49E42AB89CEA00C77F6D /* AudioToolbox.framework */; };
 		464A49E82AB89D9100C77F6D /* liblzma.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49E72AB89D8300C77F6D /* liblzma.tbd */; };
 		464A49E92AB89D9D00C77F6D /* liblzma.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49E72AB89D8300C77F6D /* liblzma.tbd */; };
+		4665198F2ACC8C5100ADB56E /* IOSurface.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4665198E2ACC8C5000ADB56E /* IOSurface.framework */; };
 		467230B42AC16FD400017C51 /* DisplayMetal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 467230B32AC16FD400017C51 /* DisplayMetal.cpp */; };
 		467230B72AC17A9E00017C51 /* ESMetalView.m in Sources */ = {isa = PBXBuildFile; fileRef = 467230B62AC17A9E00017C51 /* ESMetalView.m */; };
 		467230B92AC17C0400017C51 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 467230B82AC17C0400017C51 /* MetalKit.framework */; };
@@ -599,6 +600,7 @@
 		464A49E12AB89C5F00C77F6D /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
 		464A49E42AB89CEA00C77F6D /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
 		464A49E72AB89D8300C77F6D /* liblzma.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = liblzma.tbd; path = usr/lib/liblzma.tbd; sourceTree = SDKROOT; };
+		4665198E2ACC8C5000ADB56E /* IOSurface.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOSurface.framework; path = System/Library/Frameworks/IOSurface.framework; sourceTree = SDKROOT; };
 		467230B22AC16E9900017C51 /* DisplayMetal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = DisplayMetal.h; path = ../../DisplayOutput/Metal/DisplayMetal.h; sourceTree = "<group>"; };
 		467230B32AC16FD400017C51 /* DisplayMetal.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DisplayMetal.cpp; sourceTree = "<group>"; };
 		467230B52AC17A4D00017C51 /* ESMetalView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ESMetalView.h; sourceTree = "<group>"; };
@@ -634,6 +636,7 @@
 				2160FCA30F30F48200B2C27A /* libavutil.a in Frameworks */,
 				464A49E62AB89CFC00C77F6D /* AudioToolbox.framework in Frameworks */,
 				21A8AFBC18416ECA00F77369 /* libiconv.2.dylib in Frameworks */,
+				4665198F2ACC8C5100ADB56E /* IOSurface.framework in Frameworks */,
 				2197D56619B06FC300EFA1F2 /* libswresample.a in Frameworks */,
 				2160FCA50F30F48200B2C27A /* libboost_system.a in Frameworks */,
 				2160FCA60F30F48200B2C27A /* libboost_thread.a in Frameworks */,
@@ -1001,6 +1004,7 @@
 		464A49D92AB8864600C77F6D /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				4665198E2ACC8C5000ADB56E /* IOSurface.framework */,
 				467230BC2AC17EAA00017C51 /* Metal.framework */,
 				467230B82AC17C0400017C51 /* MetalKit.framework */,
 				464A49E72AB89D8300C77F6D /* liblzma.tbd */,

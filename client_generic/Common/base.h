@@ -68,6 +68,8 @@ typedef	double				fp8;
 #define	NULL 0
 #endif
 
+#define USE_HW_ACCELERATION true
+
 /*
 	Assert disco.
 

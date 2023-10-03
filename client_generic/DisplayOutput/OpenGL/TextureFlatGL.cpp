@@ -310,6 +310,10 @@ bool	CTextureFlatGL::Unbind( const uint32 _index )
 	VERIFYGL;
 	return true;
 }
-
+bool    CTextureFlatGL::BindFrame(ContentDecoder::spCVideoFrame _pFrame)
+{
+    g_Log->Error("Creating textures from hardware accelerated sample buffers is not supported on OpenGL");
+    return false;
+}
 }
 #endif //!USE_METAL

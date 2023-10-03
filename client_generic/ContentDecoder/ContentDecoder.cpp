@@ -165,21 +165,13 @@ bool	CContentDecoder::Open( sOpenVideoInfo *ovi )
 
 	//Destroy();
 
-#ifdef USE_NEW_FFMPEG_API
 	if( DumpError( avformat_open_input( &ovi->m_pFormatContext, _filename.c_str(), NULL, NULL ) ) < 0 )
-#else
-	if( DumpError( av_open_input_file( &ovi->m_pFormatContext, _filename.c_str(), NULL, 0, NULL ) ) < 0 )
-#endif
 	{
 		g_Log->Warning( "Failed to open %s...", _filename.c_str() );
 		return false;
 	}
 
-#ifdef USE_NEW_FFMPEG_API
 	if( DumpError( avformat_find_stream_info( ovi->m_pFormatContext, NULL ) ) < 0 )
-#else
-	if( DumpError( av_find_stream_info( ovi->m_pFormatContext ) ) < 0 )
-#endif
 	{
 		g_Log->Error( "av_find_stream_info failed with %s...", _filename.c_str() );
 		return false;
@@ -208,10 +200,9 @@ bool	CContentDecoder::Open( sOpenVideoInfo *ovi )
     const auto& codecPar = ovi->m_pFormatContext->streams[ovi->m_VideoStreamID]->codecpar;
     ovi->m_pVideoCodec = avcodec_find_decoder(codecPar->codec_id);
     ovi->m_pVideoCodecContext = avcodec_alloc_context3(ovi->m_pVideoCodec);
+
     
-    bool useHWAcceleration = false;
-    
-    if (useHWAcceleration)
+    if (USE_HW_ACCELERATION)
     {
 #ifndef USE_METAL
         g_Log->Error( "Attempting to use hardware acceleration on an OpenGL client. This feature is only supported on Metal." );
@@ -236,21 +227,13 @@ bool	CContentDecoder::Open( sOpenVideoInfo *ovi )
     ovi->m_pFormatContext->flags |= AVFMT_FLAG_IGNIDX;		//	Ignore index.
     //m_pFormatContext->flags |= AVFMT_FLAG_NONBLOCK;		//	Do not block when reading packets from input.
 
-#ifdef USE_NEW_FFMPEG_API
     if( DumpError( avcodec_open2( ovi->m_pVideoCodecContext, ovi->m_pVideoCodec, NULL ) ) < 0 )
-#else
-    if( DumpError( avcodec_open( ovi->m_pVideoCodecContext, ovi->m_pVideoCodec ) ) < 0 )
-#endif
     {
         g_Log->Error( "avcodec_open failed for %s", _filename.c_str() );
         return false;
     }
 	
-#ifdef USE_NEW_FFMPEG_ALLOC_API
     ovi->m_pFrame = av_frame_alloc();
-#else
-    ovi->m_pFrame = avcodec_alloc_frame();
-#endif
 	
 	if (ovi->m_pVideoStream->nb_frames > 0)
 		ovi->m_totalFrameCount = static_cast<uint32>(ovi->m_pVideoStream->nb_frames);
@@ -651,49 +634,49 @@ CVideoFrame *CContentDecoder::ReadOneFrame(sOpenVideoInfo *ovi)
     if( frameDecoded != 0 )
     {
         //g_Log->Info( "frame decoded" );
-		
-		//if( pFrame->interlaced_frame )
-            //avpicture_deinterlace( (AVPicture *)pFrame, (AVPicture *)pFrame, m_pVideoCodecContext->pix_fmt, m_pVideoCodecContext->width, m_pVideoCodecContext->height );
 
-        //	If the decoded video has a different resolution, delete the scaler to trigger it to be recreated.
-        if( m_ScalerWidth != (uint32)pVideoCodecContext->width || m_ScalerHeight != (uint32)pVideoCodecContext->height )
+        if (USE_HW_ACCELERATION)
         {
-            g_Log->Info( "size doesn't match, recreating" );
-
-            if( m_pScaler )
+            pVideoFrame = new CVideoFrame(pFrame, std::string(pFormatContext->url));
+        }
+        else
+        {
+            //    If the decoded video has a different resolution, delete the scaler to trigger it to be recreated.
+            if( m_ScalerWidth != (uint32)pVideoCodecContext->width || m_ScalerHeight != (uint32)pVideoCodecContext->height )
             {
-                g_Log->Info( "deleting m_pScalar" );
-                sws_freeContext( m_pScaler );
-                m_pScaler = NULL;
+                g_Log->Info( "size doesn't match, recreating" );
+
+                if( m_pScaler )
+                {
+                    g_Log->Info( "deleting m_pScalar" );
+                    sws_freeContext( m_pScaler );
+                    m_pScaler = NULL;
+                }
             }
+            //    Make sure scaler is created.
+            if (m_pScaler == NULL)
+            {
+                g_Log->Info( "creating m_pScaler" );
+
+                m_pScaler = sws_getContext(    pVideoCodecContext->width, pVideoCodecContext->height, pVideoCodecContext->pix_fmt,
+                                                pVideoCodecContext->width, pVideoCodecContext->height, m_WantedPixelFormat, SWS_BICUBIC, NULL, NULL, NULL );
+
+                //    Store width & height now...
+                m_ScalerWidth = static_cast<uint32>(pVideoCodecContext->width);
+                m_ScalerHeight = (uint32)pVideoCodecContext->height;
+
+                if( m_pScaler == NULL )
+                    g_Log->Warning( "scaler == null" );
+            }
+            pVideoFrame = new CVideoFrame( pVideoCodecContext, m_WantedPixelFormat, std::string(pFormatContext->url) );
+            AVFrame	*pDest = pVideoFrame->Frame();
+
+            //printf( "calling sws_scale()" );
+            sws_scale( m_pScaler, pFrame->data, pFrame->linesize, 0, pVideoCodecContext->height, pDest->data, pDest->linesize );
+
         }
 
-        //	Make sure scaler is created.
-        if( m_pScaler == NULL )
-        {
-            g_Log->Info( "creating m_pScaler" );
-
-            m_pScaler = sws_getContext(	pVideoCodecContext->width, pVideoCodecContext->height, pVideoCodecContext->pix_fmt,
-                                            pVideoCodecContext->width, pVideoCodecContext->height, m_WantedPixelFormat, SWS_BICUBIC, NULL, NULL, NULL );
-
-            //	Store width & height now...
-            m_ScalerWidth = static_cast<uint32>(pVideoCodecContext->width);
-            m_ScalerHeight = (uint32)pVideoCodecContext->height;
-
-            if( m_pScaler == NULL )
-                g_Log->Warning( "scaler == null" );
-        }
- 
-
-        //printf( "creating pVideoFrame" );
-        pVideoFrame = new CVideoFrame( pVideoCodecContext, m_WantedPixelFormat, std::string(pFormatContext->url) );
-        AVFrame	*pDest = pVideoFrame->Frame();
-
-        //printf( "calling sws_scale()" );
-        sws_scale( m_pScaler, pFrame->data, pFrame->linesize, 0, pVideoCodecContext->height, pDest->data, pDest->linesize );
-
-        av_frame_unref( pFrame );
-
+        av_frame_unref(pFrame);
         
 		ovi->m_iCurrentFileFrameCount++;
 

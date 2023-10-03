@@ -15,7 +15,10 @@
 
 
 @interface TextureFlatMetalContext : NSObject
-@property (nonatomic, nonnull) id<MTLTexture> texture;
+{
+@public id<MTLTexture> texture;
+@public CVMetalTextureRef decoderFrameTextureRef;
+}
 @end
 
 @implementation TextureFlatMetalContext
@@ -27,8 +30,8 @@ namespace	DisplayOutput
 
 /*
 */
-CTextureFlatMetal::CTextureFlatMetal( CGraphicsContext _graphicsContext, const uint32 _flags, spCRendererMetal _renderer  )
-    : CTextureFlat( _flags ), m_pGraphicsContext(_graphicsContext), m_spRenderer(_renderer)
+CTextureFlatMetal::CTextureFlatMetal( CGraphicsContext _graphicsContext, const uint32 _flags, CRendererMetal* _pRenderer  )
+    : CTextureFlat( _flags ), m_pGraphicsContext(_graphicsContext), m_pRenderer(_pRenderer)
 {
     TextureFlatMetalContext* textureContext = [[TextureFlatMetalContext alloc] init];
     m_pTextureContext = CFBridgingRetain(textureContext);
@@ -86,7 +89,7 @@ bool CTextureFlatMetal::Upload( spCImage _spImage )
     
     uint32_t width = _spImage->GetWidth();
     uint32_t height = _spImage->GetHeight();
-    id<MTLTexture> texture = textureContext.texture;
+    id<MTLTexture> texture = textureContext->texture;
     
     //TODO: Probably need to set sampler descriptor here
     //Create Metal texture if it doesn's exist yet
@@ -98,7 +101,7 @@ bool CTextureFlatMetal::Upload( spCImage _spImage )
                                                                                                     height:height
                                                                                                  mipmapped:mipMapped];
         texture = [view.device newTextureWithDescriptor:textureDescriptor];
-        textureContext.texture = texture;
+        textureContext->texture = texture;
     }
     
     // Upload the texture data
@@ -135,8 +138,7 @@ bool CTextureFlatMetal::Upload( spCImage _spImage )
 */
 bool	CTextureFlatMetal::Bind( const uint32 _index )
 {
-    TextureFlatMetalContext* textureContext = (__bridge TextureFlatMetalContext*)m_pTextureContext;
-    m_spRenderer->SetBoundSlot(_index, textureContext.texture);
+    m_pRenderer->SetBoundSlot(_index, this);
 	return true;
 }
 
@@ -151,6 +153,42 @@ bool	CTextureFlatMetal::Unbind( const uint32 _index )
 	VERIFYGL;
      */
 	return true;
+}
+
+id<MTLTexture> CTextureFlatMetal::GetMetalTexture()
+{
+    TextureFlatMetalContext* textureContext = (__bridge TextureFlatMetalContext*)m_pTextureContext;
+    return textureContext->texture;
+    
+}
+
+CVMetalTextureRef CTextureFlatMetal::GetCVMetalTextureRef()
+{
+    TextureFlatMetalContext* textureContext = (__bridge TextureFlatMetalContext*)m_pTextureContext;
+    return textureContext->decoderFrameTextureRef;
+}
+
+bool    CTextureFlatMetal::BindFrame(ContentDecoder::spCVideoFrame _spFrame)
+{
+    m_spBoundFrame = _spFrame;
+    TextureFlatMetalContext* textureContext = (__bridge TextureFlatMetalContext*)m_pTextureContext;
+    
+    const uint32_t kAVFrameDataPixelBufferIndex = 3;
+    CVPixelBufferRef pixelBuffer = (CVPixelBufferRef)_spFrame->Frame()->data[kAVFrameDataPixelBufferIndex];
+    m_pRenderer->CreateMetalTextureFromDecoderFrame(pixelBuffer, &textureContext->decoderFrameTextureRef);
+    textureContext->texture = CVMetalTextureGetTexture(textureContext->decoderFrameTextureRef);
+    //CVPixelBufferRelease(textureContext->decoderFrameTextureRef);
+    
+    return true;
+}
+
+void CTextureFlatMetal::ReleaseMetalTexture()
+{
+    return;
+    TextureFlatMetalContext* textureContext = (__bridge TextureFlatMetalContext*)m_pTextureContext;
+    textureContext->texture = nil;
+    textureContext->decoderFrameTextureRef = NULL;
+    m_spBoundFrame = NULL;
 }
 
 }

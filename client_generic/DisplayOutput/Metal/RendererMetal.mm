@@ -9,14 +9,18 @@
 #include "TextureFlatMetal.h"
 
 @interface RendererContext : NSObject
-@property (nonatomic, nonnull) id<MTLRenderPipelineState> renderPipeline;
-@property (nonatomic, nonnull) MTKView* metalView;
-@property (nonatomic, nonnull) NSMutableDictionary<NSNumber*, id<MTLTexture>>* boundTextures;
-@property (nonatomic, nonnull) id<MTLCommandQueue> commandQueue;
+{
+    @public id<MTLRenderPipelineState> renderPipeline;
+    @public MTKView* metalView;
+    @public std::map<uint32_t, DisplayOutput::CTextureFlatMetal*> boundTextures;
+    @public id<MTLCommandQueue> commandQueue;
+    @public CVMetalTextureCacheRef textureCache;
+}
 @end
 
 @implementation RendererContext
 @end
+
 
 namespace DisplayOutput
 {
@@ -32,7 +36,11 @@ CRendererMetal::CRendererMetal() : CRenderer()
 */
 CRendererMetal::~CRendererMetal()
 {
-    CFBridgingRelease(m_pRendererContext);
+    RendererContext* rendererContext = CFBridgingRelease(m_pRendererContext);
+    if (rendererContext->textureCache)
+    {
+        CFRelease(rendererContext->textureCache);
+    }
 }
 
 typedef enum AAPLRenderTargetIndices
@@ -51,9 +59,17 @@ bool	CRendererMetal::Initialize( spCDisplayOutput _spDisplay )
     id<MTLDevice> device = metalView.device;
     
     RendererContext* rendererContext = [[RendererContext alloc] init];
-    rendererContext.metalView = metalView;
-    rendererContext.boundTextures = [[NSMutableDictionary alloc] init];
-    rendererContext.commandQueue = [device newCommandQueue];
+    rendererContext->metalView = metalView;
+    rendererContext->commandQueue = [device newCommandQueue];
+    
+    if (USE_HW_ACCELERATION)
+    {
+        CVReturn textureCacheError = CVMetalTextureCacheCreate(kCFAllocatorDefault, NULL, device, NULL, &rendererContext->textureCache);
+        if (textureCacheError != kCVReturnSuccess)
+        {
+            g_Log->Error("Error creating CVTextureCache:%d", textureCacheError);
+        }
+    }
 
     m_pRendererContext = CFBridgingRetain(rendererContext);
 
@@ -82,7 +98,7 @@ bool	CRendererMetal::Initialize( spCDisplayOutput _spDisplay )
         renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].writeMask = MTLColorWriteMaskAll;
         id <MTLRenderPipelineState> renderPipelineState = [device newRenderPipelineStateWithDescriptor:renderPipelineDesc
                                                                                                  error:&error];
-        rendererContext.renderPipeline = renderPipelineState;
+        rendererContext->renderPipeline = renderPipelineState;
         if (error != nil)
             g_Log->Error("Failed to create render pipeline state: %s", error.localizedDescription.UTF8String);
     }
@@ -96,10 +112,10 @@ void	CRendererMetal::Defaults()
 	
 }
 
-void    CRendererMetal::SetBoundSlot(uint32_t _slot, id<MTLTexture> _texture)
+void    CRendererMetal::SetBoundSlot(uint32_t _slot, CTextureFlatMetal* _texture)
 {
     RendererContext* rendererContext = (__bridge RendererContext*)m_pRendererContext;
-    rendererContext.boundTextures[@(_slot)] = _texture;
+    rendererContext->boundTextures[_slot] = _texture;
 }
 
 /*
@@ -189,29 +205,55 @@ void	CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math:
 */
 void	CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math::CVector4 &_color, const Base::Math::CRect &_uvrect )
 {
-    RendererContext* rendererContext = (__bridge RendererContext*)m_pRendererContext;
-    id <MTLRenderPipelineState> renderPipelineState = rendererContext.renderPipeline;
-    id<MTLCommandQueue> commandQueue = rendererContext.commandQueue;
-    id<MTLCommandBuffer> commandBuffer = [commandQueue commandBuffer];
-    MTLRenderPassDescriptor *passDescriptor = rendererContext.metalView.currentRenderPassDescriptor;
-    
-    if (passDescriptor != nil)
+    @autoreleasepool
     {
-        id<MTLRenderCommandEncoder> renderEncoder = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
-        [renderEncoder setRenderPipelineState:renderPipelineState];
-        for (NSNumber* slot in rendererContext.boundTextures)
-        {
-            [renderEncoder setFragmentTexture:rendererContext.boundTextures[slot] atIndex:slot.unsignedIntegerValue];
-        }
-
-        [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
-        [renderEncoder endEncoding];
+        RendererContext* rendererContext = (__bridge RendererContext*)m_pRendererContext;
+        id <MTLRenderPipelineState> renderPipelineState = rendererContext->renderPipeline;
+        id<MTLCommandQueue> commandQueue = rendererContext->commandQueue;
+        id<MTLCommandBuffer> commandBuffer = [commandQueue commandBuffer];
+        MTLRenderPassDescriptor *passDescriptor = rendererContext->metalView.currentRenderPassDescriptor;
         
-        [commandBuffer addScheduledHandler:^(id<MTLCommandBuffer>)
+        if (passDescriptor != nil)
         {
-            [rendererContext.metalView.currentDrawable present];
-        }];
-        [commandBuffer commit];
+            id<MTLRenderCommandEncoder> renderEncoder = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
+            [renderEncoder setRenderPipelineState:renderPipelineState];
+
+            std::map<uint32_t, CTextureFlatMetal*> boundTextures(rendererContext->boundTextures);
+            std::vector<CVMetalTextureRef> metalTexturesUsed;
+            for (auto it = boundTextures.begin(); it != boundTextures.end(); ++it)
+            {
+                if (it->second->GetMetalTexture())
+                {
+                    [renderEncoder setFragmentTexture:it->second->GetMetalTexture() atIndex:it->first];
+                    metalTexturesUsed.push_back(it->second->GetCVMetalTextureRef());
+                }
+            }
+
+            [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
+            [renderEncoder endEncoding];
+            
+            [commandBuffer addScheduledHandler:^(id<MTLCommandBuffer>)
+            {
+                [rendererContext->metalView.currentDrawable present];
+            }];
+            dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+            [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
+                
+                for (auto it = metalTexturesUsed.begin(); it != metalTexturesUsed.end(); ++it)
+                {
+                    CVMetalTextureRef metalTexture = *it;
+                    //CVBufferRelease(metalTexture);
+                    if (metalTexture)
+                    {
+                        //CFRelease(metalTexture);
+                        //it->ReleaseMetalTexture();
+                    }
+                }
+                dispatch_semaphore_signal(semaphore);
+            }];
+            [commandBuffer commit];
+            dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER); //@TODO: implement proper thread locking
+        }
     }
 }
 	
@@ -220,5 +262,29 @@ void	CRendererMetal::DrawSoftQuad( const Base::Math::CRect &_rect, const Base::M
 	
 }
 
+bool    CRendererMetal::CreateMetalTextureFromDecoderFrame(CVPixelBufferRef pixelBuffer, CVMetalTextureRef* _outMetalTextureRef)
+{
+    RendererContext* rendererContext = (__bridge RendererContext*)m_pRendererContext;
+    CVReturn ret;
+    int plane = 0;
+ 
+    ret = CVMetalTextureCacheCreateTextureFromImage(
+        NULL,
+        rendererContext->textureCache,
+        pixelBuffer,
+        NULL,
+        MTLPixelFormatR8Unorm,
+        CVPixelBufferGetWidthOfPlane(pixelBuffer, plane),
+        CVPixelBufferGetHeightOfPlane(pixelBuffer, plane),
+        plane,
+        _outMetalTextureRef
+    );
+    if (ret != kCVReturnSuccess)
+    {
+        g_Log->Error("Failed to create CVMetalTexture from image: %d", ret);
+        return false;
+    }
+    return true;
+}
 
 }

@@ -28,14 +28,6 @@
 #include	"linkpool.h"
 #include	"AlignedBuffer.h"
 
-#if defined(LIBAVCODEC_VERSION_INT) && (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(55,28,1))
-#define USE_NEW_FFMPEG_ALLOC_API
-#endif
-
-#if defined(MAC) || (defined(WIN32) && defined(_MSC_VER)) 
-#define USE_NEW_FFMPEG_API
-#endif
-
 namespace ContentDecoder
 {
 class CVideoFrame;
@@ -56,24 +48,6 @@ struct sMetaData
 	uint32 m_FrameIdx;
 	uint32 m_MaxFrameIdx;
 };
-
-static int DumpAVCodecError( int _err )
-{
-    if( _err < 0 )
-    {
-        switch( _err )
-        {
-            case AVERROR(EAGAIN): g_Log->Error("AVCodec needs more data sent."); break;
-            case AVERROR_INVALIDDATA:    g_Log->Error( "Error while parsing header" );    break;
-            case AVERROR(EIO):            g_Log->Error( "I/O error occured. Usually that means that input file is truncated and/or corrupted." );    break;
-            case AVERROR(ENOMEM):        g_Log->Error( "Memory allocation error occured" );    break;
-            case AVERROR(ENOENT):        /*g_Log->Error( "No such file or directory" );  legal, will be warned in Open()*/    break;
-            default:                    g_Log->Error( "Error while opening file" );    break;
-        }
-    }
-
-    return _err;
-}
 
 /*
 	CVideoFrame.
@@ -112,12 +86,7 @@ class CVideoFrame
 				m_Width = static_cast<uint32>(_pCodecContext->width);
 				m_Height = static_cast<uint32>(_pCodecContext->height);
 
-
-#ifdef USE_NEW_FFMPEG_ALLOC_API
                 m_pFrame = av_frame_alloc();
-#else
-                m_pFrame = avcodec_alloc_frame();
-#endif
 				
 				if (m_pFrame != NULL)
 				{
@@ -135,16 +104,30 @@ class CVideoFrame
 					g_Log->Error( "m_pFrame == NULL" );
 
 			}
+    
+            CVideoFrame(const AVFrame* _pFrame, std::string _filename)
+            {
+                m_pFrame = av_frame_alloc();
+                av_frame_ref(m_pFrame, _pFrame);
+                m_MetaData.m_Fade = 1.f;
+                m_MetaData.m_FileName = _filename;
+                m_MetaData.m_LastAccessTime = 0;
+                m_MetaData.m_SheepID = 0;
+                m_MetaData.m_SheepGeneration = 0;
+                m_MetaData.m_IsEdge = false;
+                m_MetaData.m_IsSeam = false;
+                m_MetaData.m_SecondFrame = NULL;
+                m_MetaData.m_TransitionProgress = 0.f;
+                m_Width = static_cast<uint32>(_pFrame->width);
+                m_Height = static_cast<uint32>(_pFrame->height);
+            }
 
 			virtual ~CVideoFrame()
 			{
 				if( m_pFrame )
 				{
-#ifdef USE_NEW_FFMPEG_ALLOC_API
-                    av_frame_free( &m_pFrame );
-#else
-					avcodec_free_frame( &m_pFrame );
-#endif
+                    av_frame_unref(m_pFrame);
+                    av_frame_free(&m_pFrame);
 				}
             }
 

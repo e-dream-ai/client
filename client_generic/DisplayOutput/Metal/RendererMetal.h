@@ -5,9 +5,10 @@
 #include "base.h"
 #include "SmartPtr.h"
 #include "Renderer.h"
-#include "TextureFlat.h"
+#include "TextureFlatMetal.h"
 #include "Image.h"
 #include <CoreFoundation/CFBase.h>
+
 
 
 namespace	DisplayOutput
@@ -67,9 +68,9 @@ class CRendererMetal : public CRenderer
 			void	DrawQuad( const Base::Math::CRect	&_rect, const Base::Math::CVector4 &_color, const Base::Math::CRect &_uvRect );
 			void	DrawSoftQuad( const Base::Math::CRect &_rect, const Base::Math::CVector4 &_color, const fp4 _width );
 	
-			void	SetCurrentMetalContext();
 #ifdef __OBJC__
-            void    SetBoundSlot(uint32_t _slot, id<MTLTexture> _texture);
+            void    SetBoundSlot(uint32_t _slot, CTextureFlatMetal* _texture);
+            bool    CreateMetalTextureFromDecoderFrame(CVPixelBufferRef pixelBuffer, CVMetalTextureRef* _pMetalTextureRef);
 #endif
 };
 

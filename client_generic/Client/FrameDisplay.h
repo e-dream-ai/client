@@ -88,10 +88,16 @@ class	CFrameDisplay
 				
 				if( _spTexture == NULL )
 					return false;
-				
-				//	Set image texturedata and upload to texture.
-				m_spImageRef->SetStorageBuffer( m_spFrameData->StorageBuffer() );
-				_spTexture->Upload( m_spImageRef );
+				if (USE_HW_ACCELERATION)
+                {
+                    _spTexture->BindFrame(m_spFrameData);
+                }
+                else
+                {
+                    //	Set image texturedata and upload to texture.
+                    m_spImageRef->SetStorageBuffer( m_spFrameData->StorageBuffer() );
+                    _spTexture->Upload( m_spImageRef );
+                }
 				
 #ifdef FRAME_DIAG
 				g_Log->Info( "Grabbing frame %ld/%ld from %ld (first)...prog - %f, seam - %d", _metadata.m_FrameIdx, _metadata.m_MaxFrameIdx, _metadata.m_SheepID, _metadata.m_TransitionProgress, _metadata.m_IsSeam );
