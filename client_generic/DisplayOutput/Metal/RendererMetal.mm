@@ -81,7 +81,7 @@ bool	CRendererMetal::Initialize( spCDisplayOutput _spDisplay )
     id<MTLLibrary> defaultLibrary = [device newDefaultLibrary];
     {
         id<MTLFunction> vertexFunc = [defaultLibrary newFunctionWithName:@"quadPassVertex"];
-        id<MTLFunction> fragmentFunc = [defaultLibrary newFunctionWithName:@"texture_fragment"];
+        id<MTLFunction> fragmentFunc = [defaultLibrary newFunctionWithName:@"texture_fragment_YUV"];
 
         MTLRenderPipelineDescriptor* renderPipelineDesc = [MTLRenderPipelineDescriptor new];
         renderPipelineDesc.label = @"Electric Sheep Render Pipeline";
@@ -227,9 +227,12 @@ void	CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math:
             std::vector<CVMetalTextureRef> metalTexturesUsed;
             for (auto it = boundTextures.begin(); it != boundTextures.end(); ++it)
             {
-                if (it->second->GetMetalTexture())
+                id<MTLTexture> yTexture;
+                id<MTLTexture> uvTexture;
+                if (it->second->GetMetalTextures(&yTexture, &uvTexture))
                 {
-                    [renderEncoder setFragmentTexture:it->second->GetMetalTexture() atIndex:it->first];
+                    [renderEncoder setFragmentTexture:yTexture atIndex:0];
+                    [renderEncoder setFragmentTexture:uvTexture atIndex:1];
                     //metalTexturesUsed.push_back(it->second->GetCVMetalTextureRef());
                 }
             }

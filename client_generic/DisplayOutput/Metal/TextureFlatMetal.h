@@ -31,7 +31,7 @@ class CTextureFlatMetal : public CTextureFlat
 			bool	Unbind( const uint32 _index );
             bool    BindFrame(ContentDecoder::spCVideoFrame _pFrame);
 #ifdef __OBJC__
-            id<MTLTexture> GetMetalTexture();
+            bool GetMetalTextures(id<MTLTexture>* _outYTexture, id<MTLTexture>* _outUVTexture);
             CVMetalTextureRef GetCVMetalTextureRef();
             void ReleaseMetalTexture();
 #endif

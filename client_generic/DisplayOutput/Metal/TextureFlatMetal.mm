@@ -16,7 +16,8 @@
 
 @interface TextureFlatMetalContext : NSObject
 {
-@public id<MTLTexture> texture;
+@public id<MTLTexture> yTexture;
+@public id<MTLTexture> uvTexture;
 @public CVMetalTextureRef decoderFrameTextureRef;
 @public IOSurfaceRef ioSurface;
 }
@@ -90,7 +91,7 @@ bool CTextureFlatMetal::Upload( spCImage _spImage )
     
     uint32_t width = _spImage->GetWidth();
     uint32_t height = _spImage->GetHeight();
-    id<MTLTexture> texture = textureContext->texture;
+    id<MTLTexture> texture = textureContext->yTexture;
     
     //TODO: Probably need to set sampler descriptor here
     //Create Metal texture if it doesn's exist yet
@@ -102,7 +103,7 @@ bool CTextureFlatMetal::Upload( spCImage _spImage )
                                                                                                     height:height
                                                                                                  mipmapped:mipMapped];
         texture = [view.device newTextureWithDescriptor:textureDescriptor];
-        textureContext->texture = texture;
+        textureContext->yTexture = texture;
     }
     
     // Upload the texture data
@@ -156,13 +157,13 @@ bool    CTextureFlatMetal::Unbind( const uint32 _index )
     return true;
 }
 
-id<MTLTexture> CTextureFlatMetal::GetMetalTexture()
+bool CTextureFlatMetal::GetMetalTextures(id<MTLTexture>* _outYTexture, id<MTLTexture>* _outUVTexture)
 {
     if (m_spBoundFrame == NULL)
-        return nil;
+        return false;
     TextureFlatMetalContext* textureContext = (__bridge TextureFlatMetalContext*)m_pTextureContext;
     MTKView* view = (__bridge MTKView*)m_pGraphicsContext;
-    if (textureContext->texture == nil)
+    if (textureContext->yTexture == nil)
     {
         const uint32_t kAVFrameDataPixelBufferIndex = 3;
         CVPixelBufferRef pixelBuffer = (CVPixelBufferRef)m_spBoundFrame->Frame()->data[kAVFrameDataPixelBufferIndex];
@@ -173,18 +174,26 @@ id<MTLTexture> CTextureFlatMetal::GetMetalTexture()
         bool mipMapped = false;
         
         
-        MTLTextureDescriptor *textureDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatR8Unorm
+        MTLTextureDescriptor *yTextureDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatR8Unorm
                                                                                                      width:width
                                                                                                     height:height
                                                                                                  mipmapped:mipMapped];
-        textureContext->texture = [view.device newTextureWithDescriptor:textureDescriptor iosurface:textureContext->ioSurface plane:0];
+        MTLTextureDescriptor *uvTextureDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRG8Unorm
+                                                                                                     width:width/2
+                                                                                                    height:height/2
+                                                                                                 mipmapped:mipMapped];
+        textureContext->yTexture = [view.device newTextureWithDescriptor:yTextureDescriptor iosurface:textureContext->ioSurface plane:0];
+        textureContext->uvTexture = [view.device newTextureWithDescriptor:uvTextureDescriptor iosurface:textureContext->ioSurface plane:1];
+        *_outYTexture = textureContext->yTexture;
+        *_outUVTexture = textureContext->uvTexture;
+        
         IOSurfaceIncrementUseCount(textureContext->ioSurface);
         
         //m_pRenderer->CreateMetalTextureFromDecoderFrame(pixelBuffer, &textureContext->decoderFrameTextureRef);
         //textureContext->texture = CVMetalTextureGetTexture(textureContext->decoderFrameTextureRef);
         //CVPixelBufferRelease(textureContext->decoderFrameTextureRef);
     }
-    return textureContext->texture;
+    return true;
 }
 
 CVMetalTextureRef CTextureFlatMetal::GetCVMetalTextureRef()
@@ -199,11 +208,12 @@ bool    CTextureFlatMetal::BindFrame(ContentDecoder::spCVideoFrame _spFrame)
     
     if (textureContext->ioSurface)
     {
-        IOSurfaceDecrementUseCount(textureContext->ioSurface);
+        //IOSurfaceDecrementUseCount(textureContext->ioSurface);
         textureContext->ioSurface = NULL;
     }
     
-    textureContext->texture = nil;
+    textureContext->yTexture = nil;
+    textureContext->uvTexture = nil;
     textureContext->decoderFrameTextureRef = NULL;
 
     m_spBoundFrame = _spFrame;
