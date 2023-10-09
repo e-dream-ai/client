@@ -29,6 +29,7 @@ class CRendererMetal : public CRenderer
 	
 	Base::Math::CRect	m_textRect;
     CFTypeRef           m_pRendererContext;
+    boost::shared_mutex m_mutex;
 
 	public:
             CRendererMetal();

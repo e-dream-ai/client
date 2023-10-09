@@ -25,7 +25,10 @@
 namespace DisplayOutput
 {
 	
-	
+
+typedef boost::shared_lock<boost::shared_mutex> reader_lock;
+typedef boost::unique_lock<boost::shared_mutex> writer_lock;
+
 /*
  */
 CRendererMetal::CRendererMetal() : CRenderer()
@@ -114,6 +117,7 @@ void	CRendererMetal::Defaults()
 
 void    CRendererMetal::SetBoundSlot(uint32_t _slot, CTextureFlatMetal* _texture)
 {
+    writer_lock lock( m_mutex );
     RendererContext* rendererContext = (__bridge RendererContext*)m_pRendererContext;
     rendererContext->boundTextures[_slot] = _texture;
 }
@@ -207,6 +211,7 @@ void	CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math:
 {
     @autoreleasepool
     {
+        reader_lock lock( m_mutex );
         RendererContext* rendererContext = (__bridge RendererContext*)m_pRendererContext;
         id <MTLRenderPipelineState> renderPipelineState = rendererContext->renderPipeline;
         id<MTLCommandQueue> commandQueue = rendererContext->commandQueue;
@@ -217,7 +222,7 @@ void	CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math:
         {
             id<MTLRenderCommandEncoder> renderEncoder = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
             [renderEncoder setRenderPipelineState:renderPipelineState];
-
+            
             std::map<uint32_t, CTextureFlatMetal*> boundTextures(rendererContext->boundTextures);
             std::vector<CVMetalTextureRef> metalTexturesUsed;
             for (auto it = boundTextures.begin(); it != boundTextures.end(); ++it)
@@ -225,7 +230,7 @@ void	CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math:
                 if (it->second->GetMetalTexture())
                 {
                     [renderEncoder setFragmentTexture:it->second->GetMetalTexture() atIndex:it->first];
-                    metalTexturesUsed.push_back(it->second->GetCVMetalTextureRef());
+                    //metalTexturesUsed.push_back(it->second->GetCVMetalTextureRef());
                 }
             }
 
@@ -254,6 +259,10 @@ void	CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math:
             [commandBuffer commit];
             dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER); //@TODO: implement proper thread locking
         }
+        else
+        {
+            [commandBuffer commit];
+        }
     }
 }
 	
@@ -265,6 +274,8 @@ void	CRendererMetal::DrawSoftQuad( const Base::Math::CRect &_rect, const Base::M
 bool    CRendererMetal::CreateMetalTextureFromDecoderFrame(CVPixelBufferRef pixelBuffer, CVMetalTextureRef* _outMetalTextureRef)
 {
     RendererContext* rendererContext = (__bridge RendererContext*)m_pRendererContext;
+    
+    
     CVReturn ret;
     int plane = 0;
  

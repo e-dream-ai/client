@@ -18,13 +18,14 @@
 {
 @public id<MTLTexture> texture;
 @public CVMetalTextureRef decoderFrameTextureRef;
+@public IOSurfaceRef ioSurface;
 }
 @end
 
 @implementation TextureFlatMetalContext
 @end
 
-namespace	DisplayOutput
+namespace    DisplayOutput
 {
 
 
@@ -51,9 +52,9 @@ bool CTextureFlatMetal::Upload( spCImage _spImage )
     TextureFlatMetalContext* textureContext = (__bridge TextureFlatMetalContext*)m_pTextureContext;
     m_spImage = _spImage;
 
-	if (m_spImage == NULL) return false;
+    if (m_spImage == NULL) return false;
 
-	CImageFormat	format = _spImage->GetFormat();
+    CImageFormat    format = _spImage->GetFormat();
 
     static const MTLPixelFormat srcFormats[] =
     {
@@ -136,30 +137,54 @@ bool CTextureFlatMetal::Upload( spCImage _spImage )
 
 /*
 */
-bool	CTextureFlatMetal::Bind( const uint32 _index )
+bool    CTextureFlatMetal::Bind( const uint32 _index )
 {
     m_pRenderer->SetBoundSlot(_index, this);
-	return true;
+    return true;
 }
 
 /*
 */
-bool	CTextureFlatMetal::Unbind( const uint32 _index )
+bool    CTextureFlatMetal::Unbind( const uint32 _index )
 {
     /*
-	glActiveTextureARB( GL_TEXTURE0 + _index );
-	glBindTexture( m_TexTarget, 0 );
-	glDisable( m_TexTarget );
-	VERIFYGL;
+    glActiveTextureARB( GL_TEXTURE0 + _index );
+    glBindTexture( m_TexTarget, 0 );
+    glDisable( m_TexTarget );
+    VERIFYGL;
      */
-	return true;
+    return true;
 }
 
 id<MTLTexture> CTextureFlatMetal::GetMetalTexture()
 {
+    if (m_spBoundFrame == NULL)
+        return nil;
     TextureFlatMetalContext* textureContext = (__bridge TextureFlatMetalContext*)m_pTextureContext;
+    MTKView* view = (__bridge MTKView*)m_pGraphicsContext;
+    if (textureContext->texture == nil)
+    {
+        const uint32_t kAVFrameDataPixelBufferIndex = 3;
+        CVPixelBufferRef pixelBuffer = (CVPixelBufferRef)m_spBoundFrame->Frame()->data[kAVFrameDataPixelBufferIndex];
+        textureContext->ioSurface = CVPixelBufferGetIOSurface(pixelBuffer);
+        
+        uint32_t width = m_spBoundFrame->Width();
+        uint32_t height= m_spBoundFrame->Height();
+        bool mipMapped = false;
+        
+        
+        MTLTextureDescriptor *textureDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatR8Unorm
+                                                                                                     width:width
+                                                                                                    height:height
+                                                                                                 mipmapped:mipMapped];
+        textureContext->texture = [view.device newTextureWithDescriptor:textureDescriptor iosurface:textureContext->ioSurface plane:0];
+        IOSurfaceIncrementUseCount(textureContext->ioSurface);
+        
+        //m_pRenderer->CreateMetalTextureFromDecoderFrame(pixelBuffer, &textureContext->decoderFrameTextureRef);
+        //textureContext->texture = CVMetalTextureGetTexture(textureContext->decoderFrameTextureRef);
+        //CVPixelBufferRelease(textureContext->decoderFrameTextureRef);
+    }
     return textureContext->texture;
-    
 }
 
 CVMetalTextureRef CTextureFlatMetal::GetCVMetalTextureRef()
@@ -170,25 +195,25 @@ CVMetalTextureRef CTextureFlatMetal::GetCVMetalTextureRef()
 
 bool    CTextureFlatMetal::BindFrame(ContentDecoder::spCVideoFrame _spFrame)
 {
-    m_spBoundFrame = _spFrame;
     TextureFlatMetalContext* textureContext = (__bridge TextureFlatMetalContext*)m_pTextureContext;
     
-    const uint32_t kAVFrameDataPixelBufferIndex = 3;
-    CVPixelBufferRef pixelBuffer = (CVPixelBufferRef)_spFrame->Frame()->data[kAVFrameDataPixelBufferIndex];
-    m_pRenderer->CreateMetalTextureFromDecoderFrame(pixelBuffer, &textureContext->decoderFrameTextureRef);
-    textureContext->texture = CVMetalTextureGetTexture(textureContext->decoderFrameTextureRef);
-    //CVPixelBufferRelease(textureContext->decoderFrameTextureRef);
+    if (textureContext->ioSurface)
+    {
+        IOSurfaceDecrementUseCount(textureContext->ioSurface);
+        textureContext->ioSurface = NULL;
+    }
     
+    textureContext->texture = nil;
+    textureContext->decoderFrameTextureRef = NULL;
+
+    m_spBoundFrame = _spFrame;
     return true;
 }
 
 void CTextureFlatMetal::ReleaseMetalTexture()
 {
-    return;
-    TextureFlatMetalContext* textureContext = (__bridge TextureFlatMetalContext*)m_pTextureContext;
-    textureContext->texture = nil;
-    textureContext->decoderFrameTextureRef = NULL;
-    m_spBoundFrame = NULL;
+    //m_spBoundFrame = NULL;
+    //return;
 }
 
 }
