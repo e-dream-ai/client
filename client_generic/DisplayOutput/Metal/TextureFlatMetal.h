@@ -20,7 +20,7 @@ class CTextureFlatMetal : public CTextureFlat
     CGraphicsContext    m_pGraphicsContext;
     CFTypeRef           m_pTextureContext;
     CRendererMetal*     m_pRenderer;
-    ContentDecoder::spCVideoFrame m_spBoundFrame;
+    ContentDecoder::CVideoFrame* m_spBoundFrame;
 
 	public:
             CTextureFlatMetal( CGraphicsContext _graphicsContext, const uint32 _flags, CRendererMetal* _pRenderer );
@@ -29,9 +29,9 @@ class CTextureFlatMetal : public CTextureFlat
 			bool	Upload( spCImage _spImage );
 			bool	Bind( const uint32 _index );
 			bool	Unbind( const uint32 _index );
-            bool    BindFrame(ContentDecoder::spCVideoFrame _pFrame);
+            bool    BindFrame(ContentDecoder::CVideoFrame* _pFrame);
 #ifdef __OBJC__
-            bool GetMetalTextures(id<MTLTexture>* _outYTexture, id<MTLTexture>* _outUVTexture);
+            bool GetMetalTextures(CVMetalTextureRef* _outYTexture, CVMetalTextureRef* _outUVTexture);
             CVMetalTextureRef GetCVMetalTextureRef();
             void ReleaseMetalTexture();
 #endif

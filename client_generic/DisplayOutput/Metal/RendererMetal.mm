@@ -15,6 +15,7 @@
     @public std::map<uint32_t, DisplayOutput::CTextureFlatMetal*> boundTextures;
     @public id<MTLCommandQueue> commandQueue;
     @public CVMetalTextureCacheRef textureCache;
+    @public id<MTLBuffer> uniformBuffer;
 }
 @end
 
@@ -75,7 +76,9 @@ bool	CRendererMetal::Initialize( spCDisplayOutput _spDisplay )
     }
 
     m_pRendererContext = CFBridgingRetain(rendererContext);
-
+    float alpha = 0;
+    rendererContext->uniformBuffer = [device newBufferWithBytes:&alpha length:sizeof(float) options:MTLResourceStorageModeShared];
+    
     NSError* error;
     
     id<MTLLibrary> defaultLibrary = [device newDefaultLibrary];
@@ -93,8 +96,8 @@ bool	CRendererMetal::Initialize( spCDisplayOutput _spDisplay )
 
         renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].blendingEnabled = true;
         renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].alphaBlendOperation = MTLBlendOperationAdd;
-        renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].sourceAlphaBlendFactor = MTLBlendFactorOne;
-        renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].destinationAlphaBlendFactor = MTLBlendFactorZero;
+        renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].sourceAlphaBlendFactor = MTLBlendFactorSourceAlpha;
+        renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
         renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].sourceRGBBlendFactor = MTLBlendFactorSourceAlpha;
         renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
         renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].rgbBlendOperation = MTLBlendOperationAdd;
@@ -134,7 +137,10 @@ bool	CRendererMetal::BeginFrame( void )
 */
 bool	CRendererMetal::EndFrame( bool drawn )
 {
-
+    if (!CRenderer::EndFrame())
+        return false;
+    RendererContext* rendererContext = (__bridge RendererContext*)m_pRendererContext;
+    [rendererContext->metalView.currentDrawable present];
 	return true;
 }
 
@@ -209,6 +215,8 @@ void	CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math:
 */
 void	CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math::CVector4 &_color, const Base::Math::CRect &_uvrect )
 {
+    dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+    dispatch_async(dispatch_get_main_queue(), ^{
     @autoreleasepool
     {
         reader_lock lock( m_mutex );
@@ -222,51 +230,54 @@ void	CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math:
         {
             id<MTLRenderCommandEncoder> renderEncoder = [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
             [renderEncoder setRenderPipelineState:renderPipelineState];
-            
             std::map<uint32_t, CTextureFlatMetal*> boundTextures(rendererContext->boundTextures);
             std::vector<CVMetalTextureRef> metalTexturesUsed;
-            for (auto it = boundTextures.begin(); it != boundTextures.end(); ++it)
+
+            for (int i = 0; i < MAX_TEXUNIT; ++i)
             {
-                id<MTLTexture> yTexture;
-                id<MTLTexture> uvTexture;
-                if (it->second->GetMetalTextures(&yTexture, &uvTexture))
+                auto tex = m_aspSelectedTextures[i];
+                if (!tex.IsNull())
                 {
-                    [renderEncoder setFragmentTexture:yTexture atIndex:0];
-                    [renderEncoder setFragmentTexture:uvTexture atIndex:1];
-                    //metalTexturesUsed.push_back(it->second->GetCVMetalTextureRef());
+                    CVMetalTextureRef yTextureRef;
+                    CVMetalTextureRef uvTextureRef;
+                    CTextureFlatMetal* metalTex = (CTextureFlatMetal*)&(*tex);//@TODO: clean this up
+                    if (metalTex->GetMetalTextures(&yTextureRef, &uvTextureRef))
+                    {
+                        id<MTLTexture> yTexture = CVMetalTextureGetTexture(yTextureRef);
+                        id<MTLTexture> uvTexture = CVMetalTextureGetTexture(uvTextureRef);
+                        [renderEncoder setFragmentTexture:yTexture atIndex:i * 2 + 0];
+                        [renderEncoder setFragmentTexture:uvTexture atIndex:i * 2 + 1];
+                        metalTexturesUsed.push_back(yTextureRef);
+                        metalTexturesUsed.push_back(uvTextureRef);
+                    }
                 }
             }
-
+            memcpy(rendererContext->uniformBuffer.contents, &_color.m_W, sizeof(float));
+            [renderEncoder setFragmentBuffer:rendererContext->uniformBuffer offset:0 atIndex:0];
             [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
             [renderEncoder endEncoding];
-            
-            [commandBuffer addScheduledHandler:^(id<MTLCommandBuffer>)
-            {
-                [rendererContext->metalView.currentDrawable present];
-            }];
-            dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
             [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
+                
                 
                 for (auto it = metalTexturesUsed.begin(); it != metalTexturesUsed.end(); ++it)
                 {
                     CVMetalTextureRef metalTexture = *it;
-                    //CVBufferRelease(metalTexture);
-                    if (metalTexture)
+                    if (!metalTexture)
                     {
-                        //CFRelease(metalTexture);
-                        //it->ReleaseMetalTexture();
+                        g_Log->Info("NOTEX");
                     }
+                    CVBufferRelease(metalTexture);
                 }
                 dispatch_semaphore_signal(semaphore);
             }];
             [commandBuffer commit];
-            dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER); //@TODO: implement proper thread locking
         }
         else
         {
             [commandBuffer commit];
         }
-    }
+    }});
+    dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER); //@TODO: implement proper thread locking
 }
 	
 void	CRendererMetal::DrawSoftQuad( const Base::Math::CRect &_rect, const Base::Math::CVector4 &_color, const fp4 _width )
@@ -274,20 +285,19 @@ void	CRendererMetal::DrawSoftQuad( const Base::Math::CRect &_rect, const Base::M
 	
 }
 
-bool    CRendererMetal::CreateMetalTextureFromDecoderFrame(CVPixelBufferRef pixelBuffer, CVMetalTextureRef* _outMetalTextureRef)
+bool    CRendererMetal::CreateMetalTextureFromDecoderFrame(CVPixelBufferRef pixelBuffer, CVMetalTextureRef* _outMetalTextureRef, int plane)
 {
     RendererContext* rendererContext = (__bridge RendererContext*)m_pRendererContext;
     
     
     CVReturn ret;
-    int plane = 0;
  
     ret = CVMetalTextureCacheCreateTextureFromImage(
         NULL,
         rendererContext->textureCache,
         pixelBuffer,
         NULL,
-        MTLPixelFormatR8Unorm,
+        plane == 0 ? MTLPixelFormatR8Unorm : MTLPixelFormatRG8Unorm,
         CVPixelBufferGetWidthOfPlane(pixelBuffer, plane),
         CVPixelBufferGetHeightOfPlane(pixelBuffer, plane),
         plane,
