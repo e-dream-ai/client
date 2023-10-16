@@ -26,6 +26,7 @@
 #include <IOKit/ps/IOPowerSources.h>
 #include <IOKit/ps/IOPSKeys.h>
 #include <ApplicationServices/ApplicationServices.h>
+#include <os/signpost.h>
 
 #include "../MacBuild/ESScreensaver.h"
 
@@ -46,6 +47,7 @@ class	CElectricSheep_Mac : public CElectricSheep
 	Boolean m_proxyEnabled;
 	std::string m_verStr;
 	int m_lckFile;
+    os_log_t m_signpostHandle;
 			
 	public:
 			CElectricSheep_Mac() : CElectricSheep()
@@ -198,6 +200,7 @@ class	CElectricSheep_Mac : public CElectricSheep
 				g_Log->Info( tmp.c_str() );
 				
 				std::vector<CGraphicsContext>::const_iterator it = m_graphicsContextList.begin();
+                m_signpostHandle = os_log_create("org.elecricsheep.ElectricSheep.app", OS_LOG_CATEGORY_POINTS_OF_INTEREST);
 				
 				for ( ; it != m_graphicsContextList.end(); it++ )
 				{
@@ -232,6 +235,7 @@ class	CElectricSheep_Mac : public CElectricSheep
 			bool Update()
 			{
 				using namespace DisplayOutput;
+                os_signpost_interval_begin(m_signpostHandle, OS_SIGNPOST_ID_EXCLUSIVE, "Renderer Frame");
 				
 				g_Player().Framerate( m_CurrentFps );
 
@@ -242,6 +246,8 @@ class	CElectricSheep_Mac : public CElectricSheep
 				g_Player().Display()->Update();
 
 				HandleEvents();
+
+                os_signpost_interval_end(m_signpostHandle, OS_SIGNPOST_ID_EXCLUSIVE, "Renderer Frame");
 				
 				return true;
 			}

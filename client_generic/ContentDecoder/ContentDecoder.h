@@ -51,6 +51,10 @@ extern "C"{
 #include	"Playlist.h"
 #include	"BlockingQueue.h"
 
+#ifdef MAC
+#include <os/signpost.h>
+#endif
+
 namespace ContentDecoder
 {
 
@@ -214,6 +218,10 @@ class CContentDecoder
 	bool			m_Initialized;
 	
 	bool			m_bCalculateTransitions;
+
+#ifdef MAC
+    os_log_t m_signpostHandle;
+#endif
 
 	bool	Open( sOpenVideoInfo *ovi );
 	sOpenVideoInfo*		GetNextSheepInfo();

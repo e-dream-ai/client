@@ -78,6 +78,7 @@ CContentDecoder::CContentDecoder( spCPlaylist _spPlaylist, bool _bStartByRandom,
 	
 	m_MainVideoInfo = NULL;//new sMainVideoInfo();
 	m_SecondVideoInfo = NULL;
+    m_signpostHandle = os_log_create("org.elecricsheep.ElectricSheep.app", OS_LOG_CATEGORY_POINTS_OF_INTEREST);
 }
 
 /*
@@ -739,7 +740,9 @@ void	CContentDecoder::ReadPackets()
 		while( true )
 		{			
 			this_thread::interruption_point();
-
+#ifdef MAC
+            os_signpost_interval_begin(m_signpostHandle, OS_SIGNPOST_ID_EXCLUSIVE, "Decoder Frame");
+#endif
             int32 nextForced = NextForced();
 			
 			if (nextForced != 0)
@@ -771,13 +774,28 @@ void	CContentDecoder::ReadPackets()
 					}
 					else
 						pMainVideoFrame->SetMetaData_TransitionProgress(0.f);
+#ifdef MAC
+            os_signpost_interval_end(m_signpostHandle, OS_SIGNPOST_ID_EXCLUSIVE, "Decoder Frame");
+#endif
 					m_FrameQueue.push( pMainVideoFrame );
 					bDoNextSheep = false;
 					
 					//printf( "yielding..." );
 					//m_pDecoderThread->yield();
 				}
+                else
+                {
+#ifdef MAC
+            os_signpost_interval_end(m_signpostHandle, OS_SIGNPOST_ID_EXCLUSIVE, "Decoder Frame");
+#endif
+                }
 			}
+            else
+            {
+#ifdef MAC
+            os_signpost_interval_end(m_signpostHandle, OS_SIGNPOST_ID_EXCLUSIVE, "Decoder Frame");
+#endif
+            }
 			
 			if (bDoNextSheep)
 			{					
@@ -817,6 +835,11 @@ spCVideoFrame CContentDecoder::Frame()
 	if ( m_sharedFrame.IsNull() )
 	{
 		CVideoFrame *tmp = NULL;
+        g_Log->Info("FrameQueue:%i", m_FrameQueue.size());
+        if (m_FrameQueue.size() < 2)
+        {
+            g_Log->Info("FQ!!");
+        }
 		if ( !m_FrameQueue.pop( tmp, false ) )
 		{
 			tmp = NULL;
