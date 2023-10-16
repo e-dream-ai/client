@@ -71,7 +71,7 @@ class CRendererMetal : public CRenderer
 	
 #ifdef __OBJC__
             void    SetBoundSlot(uint32_t _slot, CTextureFlatMetal* _texture);
-            bool    CreateMetalTextureFromDecoderFrame(CVPixelBufferRef pixelBuffer, CVMetalTextureRef* _pMetalTextureRef, int plane);
+            bool    CreateMetalTextureFromDecoderFrame(CVPixelBufferRef pixelBuffer, CVMetalTextureRef* _pMetalTextureRef, uint32_t plane);
 #endif
 };
 
