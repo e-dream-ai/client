@@ -120,6 +120,11 @@ class CVideoFrame
                 m_MetaData.m_TransitionProgress = 0.f;
                 m_Width = static_cast<uint32>(_pFrame->width);
                 m_Height = static_cast<uint32>(_pFrame->height);
+                
+                if (m_pFrame == NULL)
+                {
+                    g_Log->Error( "m_pFrame == NULL" );
+                }
             }
 
 			virtual ~CVideoFrame()

@@ -88,15 +88,18 @@ class	CFrameDisplay
 				
 				if( _spTexture == NULL )
 					return false;
-				if (USE_HW_ACCELERATION)
+                if (m_spFrameData->Frame())
                 {
-                    _spTexture->BindFrame(m_spFrameData);
-                }
-                else
-                {
-                    //	Set image texturedata and upload to texture.
-                    m_spImageRef->SetStorageBuffer( m_spFrameData->StorageBuffer() );
-                    _spTexture->Upload( m_spImageRef );
+                    if (USE_HW_ACCELERATION)
+                    {
+                        _spTexture->BindFrame(m_spFrameData);
+                    }
+                    else
+                    {
+                        //	Set image texturedata and upload to texture.
+                        m_spImageRef->SetStorageBuffer( m_spFrameData->StorageBuffer() );
+                        _spTexture->Upload( m_spImageRef );
+                    }
                 }
 				
 #ifdef FRAME_DIAG
@@ -118,10 +121,19 @@ class	CFrameDisplay
 					
 					if( _spSecondTexture != NULL )
 					{
-						//	Set image texturedata and upload to texture.
-						m_spSecondImageRef->SetStorageBuffer( spSecondFrameData->StorageBuffer() );
-						_spSecondTexture->Upload( m_spSecondImageRef );
-						
+                        if (spSecondFrameData->Frame())
+                        {
+                            if (USE_HW_ACCELERATION)
+                            {
+                                _spSecondTexture->BindFrame(spSecondFrameData);
+                            }
+                            else
+                            {
+                                //    Set image texturedata and upload to texture.
+                                m_spSecondImageRef->SetStorageBuffer( spSecondFrameData->StorageBuffer() );
+                                _spSecondTexture->Upload( m_spSecondImageRef );
+                            }
+                        }
 #ifdef FRAME_DIAG
 						ContentDecoder::sMetaData tmpMetaData;
 						
@@ -267,28 +279,33 @@ class	CFrameDisplay
 				
 				if ( m_spVideoTexture.IsNull() )
 					return false;
+                
+                //    Bind texture and render a quad covering the screen.
+                m_spRenderer->SetBlend( "alphablend" );
+                m_spRenderer->SetTexture( m_spVideoTexture, 0 );
 
-				//	Bind texture and render a quad covering the screen.
-				m_spRenderer->SetBlend( "alphablend" );
-				m_spRenderer->SetTexture( m_spVideoTexture, 0 );
-				m_spRenderer->Apply();
+                if (!m_spSecondVideoTexture.IsNull())
+                {
+				//m_spRenderer->Apply();
 
                 //UpdateInterframeDelta( _decodeFps );
 				
-				fp4 transCoef = m_MetaData.m_TransitionProgress / 100.0f;
 
                 UpdateTexRect( m_spVideoTexture->GetRect() );
+                //m_spRenderer->DrawQuad( m_texRect, Base::Math::CVector4( m_spSecondVideoTexture.IsNull() ? 10 : 1,1,1, currentalpha * (1.0f - transCoef) ), m_spVideoTexture->GetRect() );
                 
-                m_spRenderer->DrawQuad( m_texRect, Base::Math::CVector4( 1,1,1, currentalpha * (1.0f - transCoef) ), m_spVideoTexture->GetRect() );
-				
-				if (!m_spSecondVideoTexture.IsNull())
-				{
 					//	Bind the second texture and render a quad covering the screen.
-					m_spRenderer->SetTexture( m_spSecondVideoTexture, 0 );
-					m_spRenderer->Apply();
+					m_spRenderer->SetTexture( m_spSecondVideoTexture, 1 );
+					
                     
-                    m_spRenderer->DrawQuad( m_texRect, Base::Math::CVector4( 1,1,1, currentalpha * transCoef ), m_spVideoTexture->GetRect() );
-				}
+                }
+                else
+                {
+                    m_spRenderer->SetTexture( NULL, 1 );
+                }
+                m_spRenderer->Apply();
+                fp4 transCoef = m_MetaData.m_TransitionProgress / 100.0f;
+                m_spRenderer->DrawQuad( m_texRect, Base::Math::CVector4( 10,1,1, currentalpha * transCoef ), m_spVideoTexture->GetRect() );
 
 				return true;
 			}
