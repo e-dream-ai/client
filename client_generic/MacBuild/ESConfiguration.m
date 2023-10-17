@@ -294,20 +294,91 @@
 	m_httpData = [NSMutableData dataWithCapacity:10];
 			
 	NSString *newNickname = [drupalLogin stringValue];
+    NSString *newPassword = [drupalPassword stringValue];
 	
 	NSString *md5_pass = [self md5Password];
 
-	CFStringRef urlnickname = CFURLCreateStringByAddingPercentEscapes(kCFAllocatorDefault, (CFStringRef)newNickname, NULL, NULL, kCFStringEncodingUTF8);	
-	CFStringRef urlpass = CFURLCreateStringByAddingPercentEscapes(kCFAllocatorDefault, (CFStringRef)md5_pass, NULL, NULL, kCFStringEncodingUTF8);
-	CFStringRef urlver = CFURLCreateStringByAddingPercentEscapes(kCFAllocatorDefault, CFSTR(CLIENT_VERSION), NULL, NULL, kCFStringEncodingUTF8);
-	
-	NSString *urlstr = [NSString stringWithFormat:@"%@/query.php?q=redir&u=%@&p=%@&v=%@", m_redirectServer, urlnickname, urlpass, urlver ];
+	NSString *urlstr = [NSString stringWithFormat:@"%@/api/v1/auth/login", m_redirectServer];
 		
 	NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:urlstr]];
-	
-	CFRelease(urlnickname);
-	CFRelease(urlpass);
-	CFRelease(urlver);
+    // Set the HTTP method to POST
+    [request setHTTPMethod:@"POST"];
+    
+    // Set request headers
+    [request setValue:@"application/json, text/plain, */*" forHTTPHeaderField:@"Accept"];
+    [request setValue:@"application/json; charset=UTF-8" forHTTPHeaderField:@"Content-Type"];
+    
+
+    // Set request body data
+    NSDictionary* parameters;
+    NSError* error;
+    if (m_Token != nil && m_Token.length > 0)
+    {
+        NSDictionary* token = [NSJSONSerialization JSONObjectWithData:[m_Token dataUsingEncoding:NSUTF8StringEncoding] options:0 error:&error];
+        parameters = @{@"username": newNickname, @"token": token};
+    }
+    else
+    {
+        parameters = @{@"username": newNickname, @"password": newPassword};
+    }
+    NSData* postData = [NSJSONSerialization dataWithJSONObject:parameters options:0 error:&error];
+    [request setHTTPBody:postData];
+    
+    NSURLSession *session = [NSURLSession sharedSession];
+    
+    // Create a data task to send the request
+    NSURLSessionDataTask *dataTask = [session dataTaskWithRequest:request
+                                                completionHandler:^(NSData *data, NSURLResponse *response, NSError *error)
+                                      {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (error)
+            {
+                NSLog(@"Request failed with error: %@", error);
+            }
+            else
+            {
+                NSError *error;
+                        
+                // Convert JSON data to an NSDictionary
+                NSDictionary* jsonDictionary = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
+                NSString *responseString = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+                NSLog(@"Response: %@", responseString);
+                if (error)
+                {
+        #ifdef DEBUG
+                    NSLog(@"Unknown response type: %@", response);
+        #endif
+                }
+                else
+                {
+                    NSNumber* success = [jsonDictionary valueForKey:@"success"];
+                    if (success.boolValue)
+                    {
+                        NSDictionary* dataEntry = [jsonDictionary valueForKey:@"data"];
+                        NSDictionary* token = [dataEntry valueForKey:@"token"];
+                        NSData* jsonData = [NSJSONSerialization dataWithJSONObject:token options:NSJSONWritingPrettyPrinted error:&error];
+                        NSString* jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+                        self->m_Token = jsonString;
+                        ESScreensaver_SetStringSetting("settings.content.token", [jsonString UTF8String]);
+                        
+                        [self->loginStatusImage setImage:self->greenImage];
+                        [self->loginTestStatusText setStringValue:@"Logged in."];
+                    }
+                    else
+                    {
+                        [self->loginStatusImage setImage:self->redImage];
+                        [self->loginTestStatusText setStringValue:@"Login Failed :("];
+                    }
+                }
+                self->m_checkingLogin = NO;
+                
+                [self->signInButton setEnabled:YES];
+            }
+        });
+    }];
+    
+    // Start the data task
+    [dataTask resume];
 	
 	/*CFHTTPMessageRef dummyRequest =
 		CFHTTPMessageCreateRequest(
@@ -333,7 +404,7 @@
 	
 	[request setValue:authorizationString forHTTPHeaderField:@"Authorization"];*/
 	
-	[NSURLConnection connectionWithRequest:request delegate:self];
+	//[NSURLConnection connectionWithRequest:request delegate:self];
 }
 
 - (void)controlTextDidChange:(NSNotification *)aNotification
@@ -437,6 +508,8 @@
 	[drupalLogin setDelegate:self];
 	
 	m_origPassword = (__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting("settings.content.password_md5", "");
+    
+    m_Token = (__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting("settings.content.token", "");
 	
 	//[m_origPassword retain];
 
@@ -559,7 +632,7 @@
 	
 	ESScreensaver_SetStringSetting("settings.generator.nickname", [[drupalLogin stringValue] UTF8String]);
 	
-	ESScreensaver_SetStringSetting("settings.content.password_md5", [[self md5Password] UTF8String]);
+	ESScreensaver_SetStringSetting("settings.content.token", [m_Token UTF8String]);
 	
 	ESScreensaver_SetStringSetting("settings.content.proxy_username", [[proxyLogin stringValue] UTF8String]);
 

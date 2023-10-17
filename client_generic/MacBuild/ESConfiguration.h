@@ -65,6 +65,7 @@
 	
 	NSString *m_origNickname;
 	NSString *m_origPassword;
+    NSString* m_Token;
 	
 	//NSString *m_roleString;
 	

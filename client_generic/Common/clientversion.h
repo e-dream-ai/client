@@ -30,8 +30,8 @@
 
 #define	CLIENT_SERVER				"v2d7c.sheepserver.net"
 //#define	CLIENT_SERVER_REGISTERED	"r2d7c.sheepserver.net"
-#define REDIRECT_SERVER				"community.sheepserver.net"
-#define REDIRECT_SERVER_FULL		"https://community.sheepserver.net"
+#define REDIRECT_SERVER				"e-dream-76c98b08cc5d.herokuapp.com"
+#define REDIRECT_SERVER_FULL		"https://e-dream-76c98b08cc5d.herokuapp.com"
 
 #define	BETA_RELEASE
 
