@@ -128,6 +128,7 @@ class Shepherd
 	static bool fShutdown;
 	static int fChangeRes;
 	static int fChangingRes;
+    static bool fUseDreamAI;
 	static atomic_char_ptr fRole;
 	static boost::detail::atomic_count	*renderingFrames;
 	static boost::detail::atomic_count	*totalRenderedFrames;
@@ -187,6 +188,10 @@ class Shepherd
 			//
 			static void	setRegistered( const int &registered )		{	fRegistered = registered;	}
 			static int		registered()							{	return fRegistered;	}
+    
+            //
+            static void setUseDreamAI(bool use)                     { fUseDreamAI = use; }
+            static bool useDreamAI()                                { return fUseDreamAI; }
 
 			//
 			static int		cacheSize( const int getGenerationType )	

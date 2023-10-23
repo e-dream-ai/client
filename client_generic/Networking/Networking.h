@@ -45,8 +45,9 @@ class	CCurlTransfer
 	std::vector< uint32 > m_AllowedResponses;
 
 	protected:
-		CURL		*m_pCurl;
-		CURLM		*m_pCurlM;
+		CURL		        *m_pCurl;
+		CURLM		        *m_pCurlM;
+        struct curl_slist* m_Headers = NULL;
 
 		bool	Verify( CURLcode _code );
 		bool	VerifyM( CURLMcode _code );
@@ -57,6 +58,8 @@ class	CCurlTransfer
 		virtual ~CCurlTransfer();
 
 		static int32 customProgressCallback( void *_pUserData, fp8 _downTotal, fp8 _downNow, fp8 _upTotal, fp8 _upNow );
+        
+        virtual void    AppendHeader(const std::string& header);
 
 		virtual bool	InterruptiblePerform();
 		

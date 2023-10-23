@@ -98,6 +98,7 @@ boost::mutex	Shepherd::s_ComputeServerNameMutex;
 bool Shepherd::fShutdown = false;
 int Shepherd::fChangeRes = 0;
 int Shepherd::fChangingRes = 0;
+bool Shepherd::fUseDreamAI = true;
 
 time_t Shepherd::s_LastRequestTime = 0;
 

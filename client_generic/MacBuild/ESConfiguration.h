@@ -1,10 +1,7 @@
 #import <Cocoa/Cocoa.h>
 #import "Sparkle/Sparkle.h"
 
-@interface ESConfiguration : NSWindowController
-#if defined(MAC_OS_X_VERSION_10_6) && MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_6 
- <NSTextFieldDelegate> 
-#endif
+@interface ESConfiguration : NSWindowController <NSTextFieldDelegate> 
 {
     IBOutlet NSMatrix* displayMode;
 	
@@ -63,8 +60,8 @@
 	
 	IBOutlet NSButton* signInButton;
 	
-	NSString *m_origNickname;
-	NSString *m_origPassword;
+	NSString* m_origNickname;
+	NSString* m_origPassword;
     NSString* m_Token;
 	
 	//NSString *m_roleString;
@@ -75,13 +72,13 @@
 	NSImage* yellowImage;
 	NSImage* greenImage;
 	
-	SUUpdater *m_updater;
+	SUUpdater* m_updater;
 	
-	NSTimer *m_checkTimer;
+	NSTimer* m_checkTimer;
 		
 	BOOL m_checkingLogin;
     
-    NSString *m_redirectServer;
+    NSString* m_redirectServer;
 	
 }
 

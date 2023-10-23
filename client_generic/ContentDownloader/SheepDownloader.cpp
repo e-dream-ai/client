@@ -30,6 +30,7 @@
 
 //#include <boost/format.hpp>
 //#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/json.hpp>
 
 #include <zlib.h>
 #include <time.h>
@@ -410,46 +411,54 @@ void SheepDownloader::listStartElement(void *userData, const char *name, const c
 void SheepDownloader::parseSheepList()
 {
  	boost::mutex::scoped_lock lockthis( s_DownloaderMutex );
+    
+    if (Shepherd::useDreamAI())
+    {
+        
+    }
+    else
+    {
 
-	char pbuf[MAXBUF];
+        char pbuf[MAXBUF];
 
-	//	Open the file.
-	sprintf(pbuf, "%slist_%s.xml", Shepherd::xmlPath(), Shepherd::role());
+        //	Open the file.
+        sprintf(pbuf, "%slist_%s.xml", Shepherd::xmlPath(), Shepherd::role());
 
-	TiXmlDocument doc(pbuf);
-	if (doc.LoadFile())
-	{
-		TiXmlHandle hDoc(&doc);
-		TiXmlElement* listElement;
+        TiXmlDocument doc(pbuf);
+        if (doc.LoadFile())
+        {
+            TiXmlHandle hDoc(&doc);
+            TiXmlElement* listElement;
 
-		listElement=hDoc.FirstChild( "list" ).Element();
-		
-		//only if there is at least one child in the list, we delete the list from previous request
-		if (listElement && listElement->FirstChildElement() != NULL)
-		{
-			fGotList = false;
+            listElement=hDoc.FirstChild( "list" ).Element();
+            
+            //only if there is at least one child in the list, we delete the list from previous request
+            if (listElement && listElement->FirstChildElement() != NULL)
+            {
+                fGotList = false;
 
-			SheepArray::iterator it = fServerFlock.begin();
-			while(it != fServerFlock.end())
-			{
-				delete *it;
-				it++;
-			}
-			fServerFlock.clear();
+                SheepArray::iterator it = fServerFlock.begin();
+                while(it != fServerFlock.end())
+                {
+                    delete *it;
+                    it++;
+                }
+                fServerFlock.clear();
 
-			handleListElement(listElement);
-		}
-		else 
-		{
-			g_Log->Error( "There are no sheep in the downloaded list, is that correct?!?\n" );
-			return;
-		}
-	}
-	else
-	{
-		g_Log->Error( "%s at line %d\n", doc.ErrorDesc(), doc.ErrorRow() );
-		return;
-	}
+                handleListElement(listElement);
+            }
+            else
+            {
+                g_Log->Error( "There are no sheep in the downloaded list, is that correct?!?\n" );
+                return;
+            }
+        }
+        else
+        {
+            g_Log->Error( "%s at line %d\n", doc.ErrorDesc(), doc.ErrorRow() );
+            return;
+        }
+    }
 
 	//remove( pbuf );
 	fGotList = true;
@@ -994,91 +1003,111 @@ void	SheepDownloader::findSheepToDownload()
 */
 bool	SheepDownloader::getSheepList()
 {
-	const char *xmlPath = Shepherd::xmlPath();
+    const char *xmlPath = Shepherd::xmlPath();
+    char filename[ MAX_PATH ];
 
-	char filename[ MAX_PATH ];
-    snprintf( filename, MAX_PATH, "%slist_%s.xml", xmlPath, Shepherd::role() );
-
-	struct stat stat_buf;
-	if( -1 != stat( filename, &stat_buf) )
-	{
-		if( time(0) - stat_buf.st_mtime < MIN_READ_INTERVAL )
-			return true;
-	}
-	
-	Shepherd::setDownloadState("Getting sheep list...");
-
-    snprintf( filename, MAX_PATH, "%slist.gzip", xmlPath );
-
-	//	Create the url for getting the cp file to create the frame
-	char 	url[ MAXBUF*5 ];
-    snprintf( url, MAXBUF*5, "%scgi/list?v=%s&u=%s",	ContentDownloader::Shepherd::serverName(),
-																CLIENT_VERSION,
-																Shepherd::uniqueID() );
-
-	Network::spCFileDownloader spDownload = new Network::CFileDownloader( "Sheep list" );
-	if( !spDownload->Perform( url ) )
-	{
-		if( spDownload->ResponseCode() == 304 )	//	"Not Modified"
-			return true;
-
-		if( spDownload->ResponseCode() == 401 )
-			g_ContentDownloader().ServerFallback();
-
-		g_Log->Error( "Failed to download %s.\n", url );
-		return false;
-	}
-
-	//	Save the data to file.
-    if( !spDownload->Save( filename ) )
+    if (Shepherd::useDreamAI())
     {
-    	g_Log->Error( "Unable to save %s\n", filename );
-    	return false;
+        
+        Network::spCFileDownloader spDownload = new Network::CFileDownloader( "Sheep list" );
+        spDownload->AppendHeader("Content-Type: application/json");
+        spDownload->AppendHeader("Authorization: Bearer eyJraWQiOiJKdXpUZ2ZLcGJwQVh0REFIa3RRcEs5NEViU3czbmYwWVwvbkFiWnFiaEJ2WT0iLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiI2ZGY1YjJlZi1mNTM2LTQxYmEtOTIyMy03ZGIyYmVmMmQ5ZjIiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9vNHVwU0tKb3ciLCJjbGllbnRfaWQiOiI3OWJnMWFxNWwwM2w1cTFia29xZ2JjY3BoZCIsIm9yaWdpbl9qdGkiOiI3YmQyMTdlMS1lZjAwLTQzMzctOTJkMC0yOGMwMGM3ZDIyYmQiLCJldmVudF9pZCI6ImNmZGQ1YzgzLWVkNWYtNDk5Mi04ZjlhLTg3MGRlZjdmMjMzMyIsInRva2VuX3VzZSI6ImFjY2VzcyIsInNjb3BlIjoiYXdzLmNvZ25pdG8uc2lnbmluLnVzZXIuYWRtaW4iLCJhdXRoX3RpbWUiOjE2OTgwODcyNTQsImV4cCI6MTY5ODA5MDg1NCwiaWF0IjoxNjk4MDg3MjU0LCJqdGkiOiI2NmE4NzZmMC0zZmY4LTQyNWUtYjc5ZS03ZmYxNjg4NDRjZDEiLCJ1c2VybmFtZSI6IjZkZjViMmVmLWY1MzYtNDFiYS05MjIzLTdkYjJiZWYyZDlmMiJ9.qX20BgW1BW3sG4pE34cfRAJlNjkut71bNLds-5dmD-DRGy4d-3h8XdR3HoqpoF1hV9yDfgVc661tW1Lr9dYWJTjf2W0y3WE5UMGbfA2hNL5lC82iqJYl0GrZauT_Sj-gLeVfO0RG0LrrsV1odvDwwhJnt7kaDpPnaiiaFPU__uhiMEuRl_hP53IWaibztllm-9cAdSPt_VV8SSut5X6602EHzbKkzNINJjMc1VR71GdYlRXDcYkZlVyHukvtaF9B50mO67xz-Ql7uHXAYYUjlZTeCdyb54H_SPkk54l-fT-zYcF7SnKHPIYz4DBKNunaulM1jVLw-32ghz0abD_ZMQ");
+        if( !spDownload->Perform( DREAM_ENDPOINT ) )
+        {
+            //@TODO: Implement error handling
+            return false;
+        }
+
+        snprintf( filename, MAX_PATH, "%sdreams.json", xmlPath );
+        if( !spDownload->Save( filename ) )
+        {
+            g_Log->Error( "Unable to save %s\n", filename );
+            return false;
+        }
     }
+    else
+    {
+        snprintf( filename, MAX_PATH, "%slist_%s.xml", xmlPath, Shepherd::role() );
 
-	//	Save file time.
-	time( &fLastListTime );
+        struct stat stat_buf;
+        if( -1 != stat( filename, &stat_buf) )
+        {
+            if( time(0) - stat_buf.st_mtime < MIN_READ_INTERVAL )
+                return true;
+        }
+        
+        Shepherd::setDownloadState("Getting sheep list...");
 
-	//	Open the file to write the uncompressed xml data.
-	snprintf( filename, MAX_PATH, "%slist_%s.xml", xmlPath, Shepherd::role() );
-	FILE *outXML = fopen( filename, "wb" );
-	if( outXML == NULL )
-		return false;
+        snprintf( filename, MAX_PATH, "%slist.gzip", xmlPath );
 
-	//	Reset the current generation
-	//setCurrentGeneration( 0 );
+        //	Create the url for getting the cp file to create the frame
+        char 	url[ MAXBUF*5 ];
+        snprintf( url, MAXBUF*5, "%scgi/list?v=%s&u=%s",	ContentDownloader::Shepherd::serverName(),
+                                                                    CLIENT_VERSION,
+                                                                    Shepherd::uniqueID() );
 
-	//	Gzopen the compressed file to uncompress.
-	snprintf( filename, MAX_PATH, "%slist.gzip", xmlPath );
-	gzFile gzinF = gzopen( filename, "rb" );
-	if( gzinF == NULL )
-	{
-		g_Log->Error( "Unable to open %s", filename );
-		fclose( outXML );
-		return false;
-	}
+        Network::spCFileDownloader spDownload = new Network::CFileDownloader( "Sheep list" );
+        if( !spDownload->Perform( url ) )
+        {
+            if( spDownload->ResponseCode() == 304 )	//	"Not Modified"
+                return true;
 
-	//	Uncompress the data.
-	char	buf[ MAXBUF ];
-	int numBytes = 0;
-	do
-	{
-		numBytes = gzread( gzinF, buf, 250 );
-		if (numBytes <= 0)
-            break;
-		fwrite( buf, static_cast<size_t>(numBytes), 1, outXML );
-	} while( !gzeof( gzinF ) );
+            if( spDownload->ResponseCode() == 401 )
+                g_ContentDownloader().ServerFallback();
 
-	//	Close the input and output file.
-	gzclose( gzinF );
-	fclose( outXML );
+            g_Log->Error( "Failed to download %s.\n", url );
+            return false;
+        }
 
-	fListDirty = true;
+        //	Save the data to file.
+        if( !spDownload->Save( filename ) )
+        {
+            g_Log->Error( "Unable to save %s\n", filename );
+            return false;
+        }
 
-	//	Delete the temp file with the compressed data.
-	snprintf( filename, MAX_PATH, "%slist.gzip", xmlPath );
-	remove( filename );
+        //	Save file time.
+        time( &fLastListTime );
 
+        //	Open the file to write the uncompressed xml data.
+        snprintf( filename, MAX_PATH, "%slist_%s.xml", xmlPath, Shepherd::role() );
+        FILE *outXML = fopen( filename, "wb" );
+        if( outXML == NULL )
+            return false;
+
+        //	Reset the current generation
+        //setCurrentGeneration( 0 );
+
+        //	Gzopen the compressed file to uncompress.
+        snprintf( filename, MAX_PATH, "%slist.gzip", xmlPath );
+        gzFile gzinF = gzopen( filename, "rb" );
+        if( gzinF == NULL )
+        {
+            g_Log->Error( "Unable to open %s", filename );
+            fclose( outXML );
+            return false;
+        }
+
+        //	Uncompress the data.
+        char	buf[ MAXBUF ];
+        int numBytes = 0;
+        do
+        {
+            numBytes = gzread( gzinF, buf, 250 );
+            if (numBytes <= 0)
+                break;
+            fwrite( buf, static_cast<size_t>(numBytes), 1, outXML );
+        } while( !gzeof( gzinF ) );
+
+        //	Close the input and output file.
+        gzclose( gzinF );
+        fclose( outXML );
+
+        //	Delete the temp file with the compressed data.
+        snprintf( filename, MAX_PATH, "%slist.gzip", xmlPath );
+        remove( filename );
+    }
+    fListDirty = true;
 	return true;
 }
 

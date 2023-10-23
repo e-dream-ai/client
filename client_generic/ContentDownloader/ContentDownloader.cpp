@@ -106,6 +106,7 @@ bool	CContentDownloader::Startup( const bool _bPreview, bool _bReadOnlyInstance 
 	Shepherd::setProxy( g_Settings()->Get( "settings.content.proxy", std::string("") ).c_str() );
 	Shepherd::setProxyUserName( g_Settings()->Get( "settings.content.proxy_username", std::string("") ).c_str() );
 	Shepherd::setProxyPassword( g_Settings()->Get( "settings.content.proxy_password", std::string("") ).c_str() );
+    Shepherd::setUseDreamAI( g_Settings()->Get( "settings.content.use_dream_ai", true));
 
 	Shepherd::setSaveFrames( g_Settings()->Get( "settings.generator.save_frames", false ) );
 	SheepGenerator::setNickName( g_Settings()->Get( "settings.generator.nickname", std::string("") ).c_str() );

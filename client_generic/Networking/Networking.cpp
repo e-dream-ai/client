@@ -259,6 +259,11 @@ bool	CCurlTransfer::InterruptiblePerform()
 	return true;
 }
 
+void CCurlTransfer::AppendHeader(const std::string& header)
+{
+    m_Headers = curl_slist_append(m_Headers, header.c_str());
+}
+
 
 /*
 	Perform().
@@ -299,6 +304,11 @@ bool	CCurlTransfer::Perform( const std::string &_url )
     if( !Verify( curl_easy_setopt( m_pCurl, CURLOPT_SSL_VERIFYHOST, 0 ) ) )	return false;
     if( !Verify( curl_easy_setopt( m_pCurl, CURLOPT_SSL_VERIFYPEER, 0 ) ) )	return false;
 
+    if( !Verify( curl_easy_setopt(m_pCurl, CURLOPT_HTTPHEADER, m_Headers) ) )    return false;
+     
+    
+
+
 	Status( "Active" );
 
 	//if( !Verify( curl_easy_perform( m_pCurl ) ) )
@@ -306,10 +316,15 @@ bool	CCurlTransfer::Perform( const std::string &_url )
 	{
 		g_Log->Warning( errorBuffer );
 		Status( "Failed" );
+        if (m_Headers)
+            curl_slist_free_all(m_Headers);
 		return false;
 	}
 	else
 		Status( "Completed" );
+    
+    if (m_Headers)
+        curl_slist_free_all(m_Headers);
 
 	//	Need to do this to trigger the strings to propagate.
 	g_NetworkManager->UpdateProgress( this, 100, 0 );
