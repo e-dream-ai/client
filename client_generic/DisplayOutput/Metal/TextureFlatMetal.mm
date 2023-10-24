@@ -214,7 +214,7 @@ CVMetalTextureRef CTextureFlatMetal::GetCVMetalTextureRef()
     return textureContext->decoderFrameYTextureRef;
 }
 
-bool    CTextureFlatMetal::BindFrame(ContentDecoder::CVideoFrame* _spFrame)
+bool    CTextureFlatMetal::BindFrame(ContentDecoder::spCVideoFrame _spFrame)
 {
     //ReleaseMetalTexture();
     m_spBoundFrame = _spFrame;
