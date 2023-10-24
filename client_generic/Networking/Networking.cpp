@@ -7,6 +7,7 @@
 #include <iomanip>
 #include "Log.h"
 #include "Networking.h"
+#include "Shepherd.h"
 
 namespace	Network
 {
@@ -420,6 +421,8 @@ bool	CManager::Shutdown()
 */
 CURLcode	CManager::Prepare( CURL *_pCurl )
 {
+    if (ContentDownloader::Shepherd::useDreamAI())
+        return CURLE_OK;
 	g_Log->Info( "Prepare()" );
 
 	boost::mutex::scoped_lock locker( m_Lock );

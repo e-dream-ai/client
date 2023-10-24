@@ -204,7 +204,7 @@ bool SheepDownloader::downloadSheep( Sheep *sheep )
 		return false;
 	}
 
-	if (sheep->fileSize() != spDownload->Data().size())
+	if (!Shepherd::useDreamAI() && sheep->fileSize() != spDownload->Data().size())
 	{
 		g_Log->Warning( "Failed to download %s - file size mismatch.\n", sheep->URL() );
 		return false;
@@ -418,8 +418,50 @@ void SheepDownloader::parseSheepList()
         snprintf(pbuf, MAX_PATH, "%sdreams.json", Shepherd::xmlPath());
 		std::ifstream file(pbuf);
         boost::json::error_code ec;
-        boost::json::value value = boost::json::parse(file, ec);
+        boost::json::value response = boost::json::parse(file, ec);
 		file.close();
+        
+        bool success = response.at("success").as_bool();
+        if (!success)
+        {
+            g_Log->Error("Fetching dreams from API was unsuccessful: %s", response.at("message").as_string().data());
+            return;
+        }
+        boost::json::value data = response.at("data");
+        int32_t count = (int32_t)data.at("count").as_int64();
+        boost::json::value dreams = data.at("dreams");
+        
+        if (count)
+        {
+            SheepArray::iterator it = fServerFlock.begin();
+            while (it != fServerFlock.end())
+            {
+                delete *it;
+                it++;
+            }
+            fServerFlock.clear();
+
+            for (int32_t i = 0; i < count; ++i)
+            {
+                boost::json::value dream = dreams.at(0);
+
+                //    Create a new sheep and parse the attributes.
+                Sheep *newSheep = new Sheep();
+                newSheep->setGeneration( currentGeneration() );
+                //"id": 27,
+                //"uuid": "eedf9ae8-1b5f-4b5d-bb8d-a98df40d0695",
+                //"name": "digital dadaism, evolution in the style of Salvador Dali",
+                //"video": "https://edream-storage-dreams-staging.s3.us-east-1.amazonaws.com/92e1c95c-031f-46b8-ab7e-b67b52423828/eedf9ae8-1b5f-4b5d-bb8d-a98df40d0695/eedf9ae8-1b5f-4b5d-bb8d-a98df40d0695.mp4",
+                //"thumbnail": "https://edream-storage-dreams-staging.s3.us-east-1.amazonaws.com/92e1c95c-031f-46b8-ab7e-b67b52423828/eedf9ae8-1b5f-4b5d-bb8d-a98df40d0695/eedf9ae8-1b5f-4b5d-bb8d-a98df40d0695.jpg",
+                //"created_at": "2023-10-23T00:19:42.911Z",
+                //"updated_at": "2023-10-23T00:21:16.370Z",
+                
+                newSheep->setId((uint32)dream.at("id").as_int64());
+                newSheep->setURL(dream.at("video").as_string().data());
+                newSheep->setRating(atoi("5"));
+                fServerFlock.push_back(newSheep);
+            }
+        }
 	}
     else
     {
@@ -1016,7 +1058,7 @@ bool	SheepDownloader::getSheepList()
         
         Network::spCFileDownloader spDownload = new Network::CFileDownloader( "Sheep list" );
         spDownload->AppendHeader("Content-Type: application/json");
-        spDownload->AppendHeader("Authorization: Bearer eyJraWQiOiJKdXpUZ2ZLcGJwQVh0REFIa3RRcEs5NEViU3czbmYwWVwvbkFiWnFiaEJ2WT0iLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiI2ZGY1YjJlZi1mNTM2LTQxYmEtOTIyMy03ZGIyYmVmMmQ5ZjIiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9vNHVwU0tKb3ciLCJjbGllbnRfaWQiOiI3OWJnMWFxNWwwM2w1cTFia29xZ2JjY3BoZCIsIm9yaWdpbl9qdGkiOiI3YmQyMTdlMS1lZjAwLTQzMzctOTJkMC0yOGMwMGM3ZDIyYmQiLCJldmVudF9pZCI6ImNmZGQ1YzgzLWVkNWYtNDk5Mi04ZjlhLTg3MGRlZjdmMjMzMyIsInRva2VuX3VzZSI6ImFjY2VzcyIsInNjb3BlIjoiYXdzLmNvZ25pdG8uc2lnbmluLnVzZXIuYWRtaW4iLCJhdXRoX3RpbWUiOjE2OTgwODcyNTQsImV4cCI6MTY5ODA5MDg1NCwiaWF0IjoxNjk4MDg3MjU0LCJqdGkiOiI2NmE4NzZmMC0zZmY4LTQyNWUtYjc5ZS03ZmYxNjg4NDRjZDEiLCJ1c2VybmFtZSI6IjZkZjViMmVmLWY1MzYtNDFiYS05MjIzLTdkYjJiZWYyZDlmMiJ9.qX20BgW1BW3sG4pE34cfRAJlNjkut71bNLds-5dmD-DRGy4d-3h8XdR3HoqpoF1hV9yDfgVc661tW1Lr9dYWJTjf2W0y3WE5UMGbfA2hNL5lC82iqJYl0GrZauT_Sj-gLeVfO0RG0LrrsV1odvDwwhJnt7kaDpPnaiiaFPU__uhiMEuRl_hP53IWaibztllm-9cAdSPt_VV8SSut5X6602EHzbKkzNINJjMc1VR71GdYlRXDcYkZlVyHukvtaF9B50mO67xz-Ql7uHXAYYUjlZTeCdyb54H_SPkk54l-fT-zYcF7SnKHPIYz4DBKNunaulM1jVLw-32ghz0abD_ZMQ");
+        spDownload->AppendHeader("Authorization: Bearer eyJraWQiOiJKdXpUZ2ZLcGJwQVh0REFIa3RRcEs5NEViU3czbmYwWVwvbkFiWnFiaEJ2WT0iLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiI2ZGY1YjJlZi1mNTM2LTQxYmEtOTIyMy03ZGIyYmVmMmQ5ZjIiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9vNHVwU0tKb3ciLCJjbGllbnRfaWQiOiI3OWJnMWFxNWwwM2w1cTFia29xZ2JjY3BoZCIsIm9yaWdpbl9qdGkiOiJhN2QyZDc4Ny1iMjQxLTQ5OWEtYjBmYy04YWY5NjFhZmQ0MTEiLCJldmVudF9pZCI6IjlhNDExOGY5LWI5NDctNDk5OC04MmJmLTA1NDRjMjUzY2UyYSIsInRva2VuX3VzZSI6ImFjY2VzcyIsInNjb3BlIjoiYXdzLmNvZ25pdG8uc2lnbmluLnVzZXIuYWRtaW4iLCJhdXRoX3RpbWUiOjE2OTgxNTYxNzUsImV4cCI6MTY5ODE1OTc3NSwiaWF0IjoxNjk4MTU2MTc1LCJqdGkiOiJmY2E4Y2I0Ny05ZTNlLTQ3M2EtYTBmMi0xNDAxM2M4Y2M2Y2QiLCJ1c2VybmFtZSI6IjZkZjViMmVmLWY1MzYtNDFiYS05MjIzLTdkYjJiZWYyZDlmMiJ9.NT0S8piZOJSEljjKxFY_FcCLoZo4_sWT2WzojbEthaNBvPslL5XIqKSiLUnwB_xuyTdJqWUSpt9K0_DzqqvzPNnklv4eVd8JBzwoFn4HGFEUJQF9mzy_VN38LXc1lShmF-rU8JtwDiq6cvNonJLu3qBX0xACsAZo8nqaLp7yqcUzGsQzgaUzKIE9KwWro9INokLufLd_4vrJSpes6Ya5auz-XULdauRV-Mp0J3sdKO2cQKDp8jjs_-KDDmHp1JFO1J6FXDn_D-93f7PtIwlEVgioP9oVWRCDQu2vLHHL6mupivqNgHh-TWGYBCbnbHN5bf5BrvGLhlzFc1mYc1s_9Q");
         if( !spDownload->Perform( DREAM_ENDPOINT ) )
         {
             //@TODO: Implement error handling
