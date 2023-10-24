@@ -414,8 +414,13 @@ void SheepDownloader::parseSheepList()
     
     if (Shepherd::useDreamAI())
     {
-        
-    }
+        char pbuf[MAXBUF];
+        snprintf(pbuf, MAX_PATH, "%sdreams.json", Shepherd::xmlPath());
+		std::ifstream file(pbuf);
+        boost::json::error_code ec;
+        boost::json::value value = boost::json::parse(file, ec);
+		file.close();
+	}
     else
     {
 
