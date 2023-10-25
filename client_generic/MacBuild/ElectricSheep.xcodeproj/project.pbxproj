@@ -271,8 +271,12 @@
 		467230C62AC18FDB00017C51 /* FontMetal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 467230C42AC18FDB00017C51 /* FontMetal.cpp */; };
 		467230C82AC1AE9D00017C51 /* TextureFlatMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C72AC1AE9D00017C51 /* TextureFlatMetal.mm */; };
 		467230C92AC1AE9D00017C51 /* TextureFlatMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C72AC1AE9D00017C51 /* TextureFlatMetal.mm */; };
+		467B6FC92AE6D031001C80CB /* EDreamClient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 467B6FC82AE6D031001C80CB /* EDreamClient.cpp */; };
+		467B6FCA2AE6D031001C80CB /* EDreamClient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 467B6FC82AE6D031001C80CB /* EDreamClient.cpp */; };
 		46BCF0F12AC2F0FE003D79FF /* MetalShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 46BCF0F02AC2F0FE003D79FF /* MetalShaders.metal */; };
 		46BCF0F22AC2F0FE003D79FF /* MetalShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 46BCF0F02AC2F0FE003D79FF /* MetalShaders.metal */; };
+		46E9C25A2AE7F32800C5444A /* libboost_json.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 46E9C2592AE7F32700C5444A /* libboost_json.a */; };
+		46E9C25B2AE7F35700C5444A /* libboost_json.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 46E9C2592AE7F32700C5444A /* libboost_json.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -612,7 +616,10 @@
 		467230C12AC1817500017C51 /* RendererMetal.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = RendererMetal.mm; path = ../../DisplayOutput/Metal/RendererMetal.mm; sourceTree = "<group>"; };
 		467230C42AC18FDB00017C51 /* FontMetal.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FontMetal.cpp; path = ../../DisplayOutput/Metal/FontMetal.cpp; sourceTree = "<group>"; };
 		467230C72AC1AE9D00017C51 /* TextureFlatMetal.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = TextureFlatMetal.mm; path = ../../DisplayOutput/Metal/TextureFlatMetal.mm; sourceTree = "<group>"; };
+		467B6FC72AE6CFFB001C80CB /* EDreamClient.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = EDreamClient.h; path = ../Networking/EDreamClient.h; sourceTree = "<group>"; };
+		467B6FC82AE6D031001C80CB /* EDreamClient.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = EDreamClient.cpp; path = ../Networking/EDreamClient.cpp; sourceTree = "<group>"; };
 		46BCF0F02AC2F0FE003D79FF /* MetalShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = MetalShaders.metal; sourceTree = "<group>"; };
+		46E9C2592AE7F32700C5444A /* libboost_json.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_json.a; path = ../boost/osx/lib/libboost_json.a; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -620,6 +627,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				46E9C25A2AE7F32800C5444A /* libboost_json.a in Frameworks */,
 				467230BD2AC17EAA00017C51 /* Metal.framework in Frameworks */,
 				467230BB2AC17E9A00017C51 /* MetalKit.framework in Frameworks */,
 				213D540311F79C9800CF500D /* IOKit.framework in Frameworks */,
@@ -659,6 +667,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				46E9C25B2AE7F35700C5444A /* libboost_json.a in Frameworks */,
 				213D535111F79C8D00CF500D /* IOKit.framework in Frameworks */,
 				2197D56519B06FC300EFA1F2 /* libswresample.a in Frameworks */,
 				2188A6D017EB94F30078C91C /* ApplicationServices.framework in Frameworks */,
@@ -854,6 +863,8 @@
 				212B195F0E8E5CCE00CE185C /* main.cpp */,
 				212B19600E8E5CCE00CE185C /* Player.cpp */,
 				212B19610E8E5CCE00CE185C /* Voting.cpp */,
+				467B6FC72AE6CFFB001C80CB /* EDreamClient.h */,
+				467B6FC82AE6D031001C80CB /* EDreamClient.cpp */,
 			);
 			name = Client;
 			sourceTree = "<group>";
@@ -1004,6 +1015,7 @@
 		464A49D92AB8864600C77F6D /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				46E9C2592AE7F32700C5444A /* libboost_json.a */,
 				4665198E2ACC8C5000ADB56E /* IOSurface.framework */,
 				467230BC2AC17EAA00017C51 /* Metal.framework */,
 				467230B82AC17C0400017C51 /* MetalKit.framework */,
@@ -1092,10 +1104,6 @@
 				TargetAttributes = {
 					211E8EA61ADB403700C0B833 = {
 						CreatedOnToolsVersion = 6.3;
-					};
-					218878CF0EC6CD7E001ABD2E = {
-						DevelopmentTeam = 5ZJTFJRCQW;
-						ProvisioningStyle = Automatic;
 					};
 				};
 			};
@@ -1199,6 +1207,7 @@
 				467230C32AC1835300017C51 /* RendererMetal.mm in Sources */,
 				2160FAD30F30F45100B2C27A /* ShaderGL.cpp in Sources */,
 				2160FAD40F30F45100B2C27A /* TextureFlatGL.cpp in Sources */,
+				467B6FCA2AE6D031001C80CB /* EDreamClient.cpp in Sources */,
 				2160FAD50F30F45100B2C27A /* Font.cpp in Sources */,
 				2160FAD60F30F45100B2C27A /* Renderer.cpp in Sources */,
 				2160FAD70F30F45100B2C27A /* Shader.cpp in Sources */,
@@ -1276,6 +1285,7 @@
 				467230B72AC17A9E00017C51 /* ESMetalView.m in Sources */,
 				2135DA530EC7479A005E246D /* ESScreensaverView.m in Sources */,
 				2135DA550EC74853005E246D /* ESScreensaver.cpp in Sources */,
+				467B6FC92AE6D031001C80CB /* EDreamClient.cpp in Sources */,
 				211CDDDB0ED0BD9200EB9394 /* Download.cpp in Sources */,
 				211CDDDC0ED0BD9200EB9394 /* Networking.cpp in Sources */,
 				211CDDDD0ED0BD9200EB9394 /* Upload.cpp in Sources */,
@@ -1358,7 +1368,7 @@
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				FRAMEWORK_SEARCH_PATHS = Frameworks;
-				GCC_C_LANGUAGE_STANDARD = c99;
+				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -1434,7 +1444,7 @@
 				CONFIGURATION_BUILD_DIR = build/Release;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				FRAMEWORK_SEARCH_PATHS = Frameworks;
-				GCC_C_LANGUAGE_STANDARD = c99;
+				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					MAC,
@@ -1510,15 +1520,15 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_CXX_LANGUAGE_STANDARD = "compiler-default";
+				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
-				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = YMV69ATXXX;
+				DEVELOPMENT_TEAM = FCG855WTXV;
 				ENABLE_NS_ASSERTIONS = NO;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_DYNAMIC_NO_PIC = NO;
@@ -1549,9 +1559,9 @@
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				ONLY_ACTIVE_ARCH = NO;
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = org.elecricsheep.ElectricSheep.app;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.spotworks.e-dream-dev";
 				PRODUCT_NAME = "Electric Sheep";
-				PROVISIONING_PROFILE_SPECIFIER = "";
+				PROVISIONING_PROFILE_SPECIFIER = "tibi's profile";
 				SDKROOT = macosx;
 				STRIP_INSTALLED_PRODUCT = NO;
 				VALID_ARCHS = "i386 ppc x86_64";
@@ -1562,16 +1572,16 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_CXX_LANGUAGE_STANDARD = "compiler-default";
+				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
-				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = YES;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = YMV69ATXXX;
+				DEVELOPMENT_TEAM = FCG855WTXV;
 				ENABLE_NS_ASSERTIONS = NO;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_ENABLE_BUILTIN_FUNCTIONS = NO;
@@ -1595,10 +1605,10 @@
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				ONLY_ACTIVE_ARCH = NO;
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = org.elecricsheep.ElectricSheep.app;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.spotworks.e-dream-dev";
 				PRODUCT_NAME = "Electric Sheep";
 				PROVISIONING_PROFILE = "";
-				PROVISIONING_PROFILE_SPECIFIER = "";
+				PROVISIONING_PROFILE_SPECIFIER = "tibi's profile";
 				SDKROOT = macosx;
 				STRIP_INSTALLED_PRODUCT = YES;
 				VALID_ARCHS = "i386 ppc x86_64";
@@ -1613,13 +1623,13 @@
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = build/Debug;
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = 5ZJTFJRCQW;
+				DEVELOPMENT_TEAM = YMV69ATXXX;
 				ENABLE_NS_ASSERTIONS = NO;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_DYNAMIC_NO_PIC = NO;
@@ -1649,7 +1659,7 @@
 					suppress,
 				);
 				"OTHER_LDFLAGS[arch=x86_64]" = "";
-				PRODUCT_BUNDLE_IDENTIFIER = org.electricsheep.ElectricSheep.saver;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.spotworks.e-dream-dev";
 				PRODUCT_NAME = "Electric Sheep";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
@@ -1666,14 +1676,14 @@
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = build/Release;
 				COPY_PHASE_STRIP = YES;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEPLOYMENT_POSTPROCESSING = NO;
-				DEVELOPMENT_TEAM = 5ZJTFJRCQW;
+				DEVELOPMENT_TEAM = YMV69ATXXX;
 				ENABLE_NS_ASSERTIONS = NO;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_ENABLE_OBJC_GC = unsupported;
@@ -1704,7 +1714,7 @@
 				);
 				"OTHER_LDFLAGS[arch=x86_64]" = "";
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = org.electricsheep.ElectricSheep.saver;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.spotworks.e-dream-dev";
 				PRODUCT_NAME = "Electric Sheep";
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";

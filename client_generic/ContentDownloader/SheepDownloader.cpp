@@ -66,6 +66,7 @@
 #if defined(WIN32) && defined(_MSC_VER)
 #include "../msvc/msvc_fix.h"
 #endif
+#include "EDreamClient.h"
 
 namespace ContentDownloader
 {
@@ -1050,30 +1051,15 @@ void	SheepDownloader::findSheepToDownload()
 */
 bool	SheepDownloader::getSheepList()
 {
-    const char *xmlPath = Shepherd::xmlPath();
-    char filename[ MAX_PATH ];
-
     if (Shepherd::useDreamAI())
     {
-        
-        Network::spCFileDownloader spDownload = new Network::CFileDownloader( "Sheep list" );
-        spDownload->AppendHeader("Content-Type: application/json");
-        spDownload->AppendHeader("Authorization: Bearer eyJraWQiOiJKdXpUZ2ZLcGJwQVh0REFIa3RRcEs5NEViU3czbmYwWVwvbkFiWnFiaEJ2WT0iLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiI2ZGY1YjJlZi1mNTM2LTQxYmEtOTIyMy03ZGIyYmVmMmQ5ZjIiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9vNHVwU0tKb3ciLCJjbGllbnRfaWQiOiI3OWJnMWFxNWwwM2w1cTFia29xZ2JjY3BoZCIsIm9yaWdpbl9qdGkiOiJhN2QyZDc4Ny1iMjQxLTQ5OWEtYjBmYy04YWY5NjFhZmQ0MTEiLCJldmVudF9pZCI6IjlhNDExOGY5LWI5NDctNDk5OC04MmJmLTA1NDRjMjUzY2UyYSIsInRva2VuX3VzZSI6ImFjY2VzcyIsInNjb3BlIjoiYXdzLmNvZ25pdG8uc2lnbmluLnVzZXIuYWRtaW4iLCJhdXRoX3RpbWUiOjE2OTgxNTYxNzUsImV4cCI6MTY5ODE1OTc3NSwiaWF0IjoxNjk4MTU2MTc1LCJqdGkiOiJmY2E4Y2I0Ny05ZTNlLTQ3M2EtYTBmMi0xNDAxM2M4Y2M2Y2QiLCJ1c2VybmFtZSI6IjZkZjViMmVmLWY1MzYtNDFiYS05MjIzLTdkYjJiZWYyZDlmMiJ9.NT0S8piZOJSEljjKxFY_FcCLoZo4_sWT2WzojbEthaNBvPslL5XIqKSiLUnwB_xuyTdJqWUSpt9K0_DzqqvzPNnklv4eVd8JBzwoFn4HGFEUJQF9mzy_VN38LXc1lShmF-rU8JtwDiq6cvNonJLu3qBX0xACsAZo8nqaLp7yqcUzGsQzgaUzKIE9KwWro9INokLufLd_4vrJSpes6Ya5auz-XULdauRV-Mp0J3sdKO2cQKDp8jjs_-KDDmHp1JFO1J6FXDn_D-93f7PtIwlEVgioP9oVWRCDQu2vLHHL6mupivqNgHh-TWGYBCbnbHN5bf5BrvGLhlzFc1mYc1s_9Q");
-        if( !spDownload->Perform( DREAM_ENDPOINT ) )
-        {
-            //@TODO: Implement error handling
-            return false;
-        }
-
-        snprintf( filename, MAX_PATH, "%sdreams.json", xmlPath );
-        if( !spDownload->Save( filename ) )
-        {
-            g_Log->Error( "Unable to save %s\n", filename );
-            return false;
-        }
+        fListDirty = EDreamClient::GetDreams();
+        return fListDirty;
     }
     else
     {
+        const char *xmlPath = Shepherd::xmlPath();
+        char filename[ MAX_PATH ];
         snprintf( filename, MAX_PATH, "%slist_%s.xml", xmlPath, Shepherd::role() );
 
         struct stat stat_buf;
@@ -1153,9 +1139,9 @@ bool	SheepDownloader::getSheepList()
         //	Delete the temp file with the compressed data.
         snprintf( filename, MAX_PATH, "%slist.gzip", xmlPath );
         remove( filename );
+        fListDirty = true;
+        return true;
     }
-    fListDirty = true;
-	return true;
 }
 
 /*

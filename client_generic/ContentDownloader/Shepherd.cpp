@@ -39,6 +39,7 @@
 #include "Shepherd.h"
 #include "SheepDownloader.h"
 #include "SheepGenerator.h"
+#include "EDreamClient.h"
 #include "md5.h"
 
 namespace ContentDownloader
@@ -129,6 +130,7 @@ void Shepherd::initializeShepherd(/*HINSTANCE hInst, HWND hWnd*/)
 {
 	SheepDownloader::initializeDownloader();
 	SheepGenerator::initializeGenerator();
+    EDreamClient::InitializeClient();
 
 	totalRenderedFrames = new boost::detail::atomic_count((int)(int32)g_Settings()->Get( "settings.generator.totalFramesRendered", 0 ));
 	renderingFrames = new boost::detail::atomic_count(0);

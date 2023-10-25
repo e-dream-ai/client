@@ -84,7 +84,8 @@ class	CFileDownloader : public CCurlTransfer
 
 		CFileDownloader( const std::string &_name );
 		virtual ~CFileDownloader();
-
+    
+        bool    SetPostFields(const char* postFields);
 		virtual bool	Perform( const std::string &_url );
 		bool	Save( const std::string &_output );
 

@@ -30,8 +30,16 @@
 
 #define	CLIENT_SERVER				"v2d7c.sheepserver.net"
 //#define	CLIENT_SERVER_REGISTERED	"r2d7c.sheepserver.net"
-#define REDIRECT_SERVER				"e-dream-76c98b08cc5d.herokuapp.com"
-#define REDIRECT_SERVER_FULL		"https://e-dream-76c98b08cc5d.herokuapp.com"
+
+#define REDIRECT_SERVER                "community.sheepserver.net"
+#define REDIRECT_SERVER_FULL        "https://community.sheepserver.net"
+
+#define DREAM_SERVER                "https://e-dream-76c98b08cc5d.herokuapp.com"
+#define DREAM_ENDPOINT              DREAM_SERVER "/api/v1/dream"
+#define REFRESH_ENDPOINT            DREAM_SERVER "/api/v1/auth/refresh"
+
+#define REFRESH_TOKEN_MAX_LENGTH    1024
+#define ACCESS_TOKEN_MAX_LENGTH     2048
 
 #define	BETA_RELEASE
 
