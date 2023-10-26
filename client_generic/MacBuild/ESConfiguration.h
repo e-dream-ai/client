@@ -77,6 +77,7 @@
 	NSTimer* m_checkTimer;
 		
 	BOOL m_checkingLogin;
+    BOOL m_loginWasSuccessful;
     
     NSString* m_redirectServer;
 	

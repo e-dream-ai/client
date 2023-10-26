@@ -311,21 +311,22 @@ bool	CCurlTransfer::Perform( const std::string &_url )
 
 
 	Status( "Active" );
+    bool success = InterruptiblePerform();
+    if (m_Headers)
+    {
+        curl_slist_free_all(m_Headers);
+        m_Headers = NULL;
+    }
 
 	//if( !Verify( curl_easy_perform( m_pCurl ) ) )
-	if ( !InterruptiblePerform() )
+	if (!success)
 	{
 		g_Log->Warning( errorBuffer );
 		Status( "Failed" );
-        if (m_Headers)
-            curl_slist_free_all(m_Headers);
 		return false;
 	}
 	else
 		Status( "Completed" );
-    
-    if (m_Headers)
-        curl_slist_free_all(m_Headers);
 
 	//	Need to do this to trigger the strings to propagate.
 	g_NetworkManager->UpdateProgress( this, 100, 0 );

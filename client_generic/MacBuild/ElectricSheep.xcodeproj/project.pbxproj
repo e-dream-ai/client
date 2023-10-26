@@ -224,7 +224,7 @@
 		21A8AFBB18416ECA00F77369 /* libiconv.2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 21A8AFBA18416ECA00F77369 /* libiconv.2.dylib */; };
 		21A8AFBC18416ECA00F77369 /* libiconv.2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 21A8AFBA18416ECA00F77369 /* libiconv.2.dylib */; };
 		21AAA0BD0F7040B500AC23A8 /* ElectricSheep.nib in Resources */ = {isa = PBXBuildFile; fileRef = 21AAA09E0F70400D00AC23A8 /* ElectricSheep.nib */; };
-		21AAA0EF0F70453200AC23A8 /* ESConfiguration.m in Sources */ = {isa = PBXBuildFile; fileRef = 21AAA0EE0F70453200AC23A8 /* ESConfiguration.m */; };
+		21AAA0EF0F70453200AC23A8 /* ESConfiguration.mm in Sources */ = {isa = PBXBuildFile; fileRef = 21AAA0EE0F70453200AC23A8 /* ESConfiguration.mm */; };
 		21ADBB241305D380000A9F20 /* green.tif in Resources */ = {isa = PBXBuildFile; fileRef = 21ADBB211305D380000A9F20 /* green.tif */; };
 		21ADBB251305D380000A9F20 /* red.tif in Resources */ = {isa = PBXBuildFile; fileRef = 21ADBB221305D380000A9F20 /* red.tif */; };
 		21ADBB261305D380000A9F20 /* yellow.tif in Resources */ = {isa = PBXBuildFile; fileRef = 21ADBB231305D380000A9F20 /* yellow.tif */; };
@@ -243,10 +243,10 @@
 		21EE633510139BCC000CE53E /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 21EE633410139BCC000CE53E /* main.m */; };
 		21EE636210139D68000CE53E /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 21EE634D10139BEF000CE53E /* MainMenu.xib */; };
 		21EE636310139D68000CE53E /* ElectricSheep.nib in Resources */ = {isa = PBXBuildFile; fileRef = 21AAA09E0F70400D00AC23A8 /* ElectricSheep.nib */; };
-		21EE63961013A674000CE53E /* ESWindow.m in Sources */ = {isa = PBXBuildFile; fileRef = 21EE63951013A674000CE53E /* ESWindow.m */; };
+		21EE63961013A674000CE53E /* ESWindow.mm in Sources */ = {isa = PBXBuildFile; fileRef = 21EE63951013A674000CE53E /* ESWindow.mm */; };
 		21EE63C21013A879000CE53E /* ESScreensaverView.m in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA520EC7479A005E246D /* ESScreensaverView.m */; };
 		21EE63C31013A87F000CE53E /* ESScreensaver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA540EC74853005E246D /* ESScreensaver.cpp */; };
-		21EE63CF1013A93A000CE53E /* ESConfiguration.m in Sources */ = {isa = PBXBuildFile; fileRef = 21AAA0EE0F70453200AC23A8 /* ESConfiguration.m */; };
+		21EE63CF1013A93A000CE53E /* ESConfiguration.mm in Sources */ = {isa = PBXBuildFile; fileRef = 21AAA0EE0F70453200AC23A8 /* ESConfiguration.mm */; };
 		464A49DC2AB88A8200C77F6D /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49DA2AB8864600C77F6D /* VideoToolbox.framework */; };
 		464A49DE2AB88E1A00C77F6D /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49DD2AB88E1A00C77F6D /* Security.framework */; platformFilter = maccatalyst; };
 		464A49DF2AB89BC400C77F6D /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49DA2AB8864600C77F6D /* VideoToolbox.framework */; };
@@ -578,7 +578,7 @@
 		2199D0DB0F575949007CEB9C /* SheepUploader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SheepUploader.cpp; sourceTree = "<group>"; };
 		21A8AFBA18416ECA00F77369 /* libiconv.2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.2.dylib; path = usr/lib/libiconv.2.dylib; sourceTree = SDKROOT; };
 		21AAA0ED0F70453200AC23A8 /* ESConfiguration.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ESConfiguration.h; sourceTree = "<group>"; };
-		21AAA0EE0F70453200AC23A8 /* ESConfiguration.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ESConfiguration.m; sourceTree = "<group>"; };
+		21AAA0EE0F70453200AC23A8 /* ESConfiguration.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ESConfiguration.mm; sourceTree = "<group>"; };
 		21ADBB211305D380000A9F20 /* green.tif */ = {isa = PBXFileReference; lastKnownFileType = image.tiff; path = green.tif; sourceTree = SOURCE_ROOT; };
 		21ADBB221305D380000A9F20 /* red.tif */ = {isa = PBXFileReference; lastKnownFileType = image.tiff; path = red.tif; sourceTree = SOURCE_ROOT; };
 		21ADBB231305D380000A9F20 /* yellow.tif */ = {isa = PBXFileReference; lastKnownFileType = image.tiff; path = yellow.tif; sourceTree = SOURCE_ROOT; };
@@ -597,7 +597,7 @@
 		21EE633610139BD8000CE53E /* English */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = English; path = ElectricSheep.nib; sourceTree = "<group>"; };
 		21EE634E10139BEF000CE53E /* English */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = English; path = English.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		21EE63941013A674000CE53E /* ESWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ESWindow.h; sourceTree = "<group>"; };
-		21EE63951013A674000CE53E /* ESWindow.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ESWindow.m; sourceTree = "<group>"; };
+		21EE63951013A674000CE53E /* ESWindow.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ESWindow.mm; sourceTree = "<group>"; };
 		460F56A82ACAF82F0066985C /* FontMetal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FontMetal.h; path = ../../DisplayOutput/FontMetal.h; sourceTree = "<group>"; };
 		464A49DA2AB8864600C77F6D /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = System/Library/Frameworks/VideoToolbox.framework; sourceTree = SDKROOT; };
 		464A49DD2AB88E1A00C77F6D /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
@@ -851,11 +851,11 @@
 				21AAA0ED0F70453200AC23A8 /* ESConfiguration.h */,
 				2191E23719B5111700F5B82D /* FrameDisplay.h */,
 				2191E23819B5111700F5B82D /* StartupScreen.h */,
-				21AAA0EE0F70453200AC23A8 /* ESConfiguration.m */,
+				21AAA0EE0F70453200AC23A8 /* ESConfiguration.mm */,
 				2135DA540EC74853005E246D /* ESScreensaver.cpp */,
 				2135DA520EC7479A005E246D /* ESScreensaverView.m */,
 				21EE63941013A674000CE53E /* ESWindow.h */,
-				21EE63951013A674000CE53E /* ESWindow.m */,
+				21EE63951013A674000CE53E /* ESWindow.mm */,
 				21008B760EB7D69900E64796 /* Console.h */,
 				21DD8C6F0EA9BA5F00BB9EC7 /* Splash.h */,
 				21D90D010EA1D52000F8E5D5 /* Hud.cpp */,
@@ -1233,10 +1233,10 @@
 				2199D0DD0F575949007CEB9C /* SheepUploader.cpp in Sources */,
 				21C5D0950F9CF6D9001657E7 /* md5.c in Sources */,
 				21EE633510139BCC000CE53E /* main.m in Sources */,
-				21EE63961013A674000CE53E /* ESWindow.m in Sources */,
+				21EE63961013A674000CE53E /* ESWindow.mm in Sources */,
 				21EE63C21013A879000CE53E /* ESScreensaverView.m in Sources */,
 				21EE63C31013A87F000CE53E /* ESScreensaver.cpp in Sources */,
-				21EE63CF1013A93A000CE53E /* ESConfiguration.m in Sources */,
+				21EE63CF1013A93A000CE53E /* ESConfiguration.mm in Sources */,
 				2169AE7F11397EF700689B02 /* isaac.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1298,7 +1298,7 @@
 				2199D0A80F574AC8007CEB9C /* SheepGenerator.cpp in Sources */,
 				467230C82AC1AE9D00017C51 /* TextureFlatMetal.mm in Sources */,
 				2199D0DC0F575949007CEB9C /* SheepUploader.cpp in Sources */,
-				21AAA0EF0F70453200AC23A8 /* ESConfiguration.m in Sources */,
+				21AAA0EF0F70453200AC23A8 /* ESConfiguration.mm in Sources */,
 				21C5D0940F9CF6D9001657E7 /* md5.c in Sources */,
 				467230C22AC1817500017C51 /* RendererMetal.mm in Sources */,
 				2169AE8011397EF700689B02 /* isaac.cpp in Sources */,

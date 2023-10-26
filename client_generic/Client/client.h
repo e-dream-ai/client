@@ -37,6 +37,11 @@
 #include "cpu_usage_mac.h"
 #endif
 #endif
+
+typedef void (*ShowPreferencesCallback_t)();
+extern void ESSetShowPreferencesCallback(ShowPreferencesCallback_t);
+extern void ESShowPreferences();
+
 /*
 	CElectricSheep().
 	Prime mover for the client, used from main.cpp...
@@ -1103,3 +1108,4 @@ class	CElectricSheep
 };
 
 #endif // CLIENT_H_INCLUDED
+

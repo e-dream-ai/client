@@ -1,5 +1,6 @@
 #import "ESWindow.h"
 #import "ESScreensaver.h" 
+#include "client.h"
 
 @implementation ESController
 
@@ -12,6 +13,14 @@
 
 
 @implementation ESWindow
+
+static __weak ESWindow* s_pWindow = nil;
+static void ShowPreferencesCallback()
+{
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [s_pWindow showPreferences:nil];
+    });
+}
 
 - (void)awakeFromNib  // was - (NSWindow *)window
 {
@@ -73,6 +82,8 @@
 				
 		[mESView startAnimation];
 	}
+    s_pWindow = self;
+    ESSetShowPreferencesCallback(ShowPreferencesCallback);
 }
 
 - (void)switchFullScreen:(id)sender
@@ -181,21 +192,23 @@
 
 - (void)showPreferences:(id) __unused sender
 {
-	if ( !mIsFullScreen && mESView && [mESView hasConfigureSheet] )
+    //@TODO: is the full screen check needed? disabling for now
+	if ( /*!mIsFullScreen &&*/ mESView && [mESView hasConfigureSheet] )
 	{
 		[mESView stopAnimation];
-		
-		[NSApp beginSheet: [mESView configureSheet]
+        mInSheet = YES;
+        [self beginSheet:[mESView configureSheet] completionHandler:^(NSModalResponse returnCode) {
+            [self didEndSheet:[self->mESView configureSheet] returnCode:returnCode contextInfo:nil];
+        }];
+        /*[NSApp beginSheet: [mESView configureSheet]
             modalForWindow: self
             modalDelegate: self
             didEndSelector: @selector(didEndSheet:returnCode:contextInfo:)
-            contextInfo: nil];
-			
-		mInSheet = YES;
+            contextInfo: nil];*/
 	}
 }
 
-- (void)didEndSheet:(NSWindow *)sheet returnCode:(int) __unused returnCode contextInfo:(void *) __unused contextInfo
+- (void)didEndSheet:(NSWindow *)sheet returnCode:(NSModalResponse) __unused returnCode contextInfo:(void *) __unused contextInfo
 {
     [sheet orderOut:self];
 	

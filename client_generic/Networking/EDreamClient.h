@@ -12,7 +12,7 @@ public:
     static void InitializeClient();
     static bool GetDreams();
     static const char* GetAccessToken();
-    static void RefreshAccessToken();
+    static bool RefreshAccessToken();
 };
 
 #endif /* _EDREAMCLIENT_H_ */

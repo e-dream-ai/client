@@ -38,7 +38,7 @@
 #define DREAM_ENDPOINT              DREAM_SERVER "/api/v1/dream"
 #define REFRESH_ENDPOINT            DREAM_SERVER "/api/v1/auth/refresh"
 
-#define REFRESH_TOKEN_MAX_LENGTH    1024
+#define REFRESH_TOKEN_MAX_LENGTH    2048
 #define ACCESS_TOKEN_MAX_LENGTH     2048
 
 #define	BETA_RELEASE

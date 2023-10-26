@@ -2,6 +2,7 @@
 #import "ESScreensaver.h"
 #import "clientversion.h"
 #import "md5.h"
+#include "Shepherd.h"
 
 @implementation ESConfiguration
 
@@ -13,12 +14,12 @@
 	
 	ESScreensaver_DeinitClientStorage();
 	
-	[NSApp endSheet:[self window]];
+	[NSApp endSheet:[self window] returnCode:m_loginWasSuccessful];
 }
 
 - (IBAction)cancel:(id) __unused sender
 {
-	[NSApp endSheet:[self window]];
+	[NSApp endSheet:[self window] returnCode:m_loginWasSuccessful];
 }
 
 - (void)awakeFromNib  // was - (NSWindow *)window
@@ -270,15 +271,19 @@
     [challenge.sender continueWithoutCredentialForAuthenticationChallenge:challenge];
 }
 
-- (void)startTest:(NSTimer *)timer
+- (void)timerInvokeStartTest:(NSTimer *)timer
 {
-	if (m_checkingLogin)
-	{
-		if (timer)
-			[m_checkTimer setFireDate:[NSDate dateWithTimeIntervalSinceNow:2.0]];
-		return;
-	}
-	
+    if (m_checkingLogin)
+    {
+        if (timer)
+            [m_checkTimer setFireDate:[NSDate dateWithTimeIntervalSinceNow:2.0]];
+        return;
+    }
+    [self startTest:YES];
+}
+
+- (void)startTest:(BOOL)useToken
+{
 	[signInButton setEnabled:NO];
 		
 	m_checkingLogin = YES;
@@ -312,10 +317,22 @@
     // Set request body data
     NSDictionary* parameters;
     NSError* error;
-    if (m_Token != nil && m_Token.length > 0)
+    if (ContentDownloader::Shepherd::useDreamAI() && useToken)
     {
-        NSDictionary* token = [NSJSONSerialization JSONObjectWithData:[m_Token dataUsingEncoding:NSUTF8StringEncoding] options:0 error:&error];
-        parameters = @{@"username": newNickname, @"token": token};
+        if (m_Token == nil || m_Token.length == 0)
+        {
+            [loginStatusImage setImage:nil];
+            [loginTestStatusText setStringValue:@"Please log in."];
+            [self->signInButton setEnabled:YES];
+            
+            m_checkingLogin = NO;
+            return;
+        }
+        else
+        {
+            NSDictionary* token = [NSJSONSerialization JSONObjectWithData:[m_Token dataUsingEncoding:NSUTF8StringEncoding] options:0 error:&error];
+            parameters = @{@"username": newNickname, @"token": token};
+        }
     }
     else
     {
@@ -334,6 +351,7 @@
             if (error)
             {
                 NSLog(@"Request failed with error: %@", error);
+                self->m_loginWasSuccessful = NO;
             }
             else
             {
@@ -348,26 +366,33 @@
         #ifdef DEBUG
                     NSLog(@"Unknown response type: %@", response);
         #endif
+                    self->m_loginWasSuccessful = NO;
                 }
                 else
                 {
                     NSNumber* success = [jsonDictionary valueForKey:@"success"];
                     if (success.boolValue)
                     {
-                        NSDictionary* dataEntry = [jsonDictionary valueForKey:@"data"];
-                        NSDictionary* token = [dataEntry valueForKey:@"token"];
-                        NSData* jsonData = [NSJSONSerialization dataWithJSONObject:token options:NSJSONWritingPrettyPrinted error:&error];
-                        NSString* jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-                        self->m_Token = jsonString;
-                        ESScreensaver_SetStringSetting("settings.content.token", [jsonString UTF8String]);
-                        
+                        if (!useToken)
+                        {
+                            NSDictionary* dataEntry = [jsonDictionary valueForKey:@"data"];
+                            NSDictionary* tokenDict = [dataEntry valueForKey:@"token"];
+                            NSString* accessToken = [tokenDict valueForKey:@"AccessToken"];
+                            NSString* refreshToken = [tokenDict valueForKey:@"RefreshToken"];
+                            
+                            self->m_Token = accessToken;
+                            ESScreensaver_SetStringSetting("settings.content.access_token", [accessToken UTF8String]);
+                            ESScreensaver_SetStringSetting("settings.content.refresh_token", [refreshToken UTF8String]);
+                        }
                         [self->loginStatusImage setImage:self->greenImage];
                         [self->loginTestStatusText setStringValue:@"Logged in."];
+                        self->m_loginWasSuccessful = YES;
                     }
                     else
                     {
                         [self->loginStatusImage setImage:self->redImage];
                         [self->loginTestStatusText setStringValue:@"Login Failed :("];
+                        self->m_loginWasSuccessful = NO;
                     }
                 }
                 self->m_checkingLogin = NO;
@@ -426,13 +451,20 @@
 		}
 	}
 			
-	m_checkTimer = [NSTimer scheduledTimerWithTimeInterval:2.0 target:self selector:@selector(startTest:) userInfo:nil repeats:NO];
+	m_checkTimer = [NSTimer scheduledTimerWithTimeInterval:2.0 target:self selector:@selector(timerInvokeStartTest:) userInfo:nil repeats:NO];
 }
 
 
 - (void)loadSettings
 {
-    m_redirectServer = [NSString stringWithUTF8String: REDIRECT_SERVER_FULL]; //(__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting("settings.content.redirectserver", REDIRECT_SERVER_FULL);
+    if (ContentDownloader::Shepherd::useDreamAI())
+    {
+        m_redirectServer = [NSString stringWithUTF8String: DREAM_SERVER];
+    }
+    else
+    {
+        m_redirectServer = [NSString stringWithUTF8String: REDIRECT_SERVER_FULL]; //(__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting("settings.content.redirectserver", REDIRECT_SERVER_FULL);
+    }
     
     if (![m_redirectServer hasPrefix:@"http"])
     {
@@ -509,7 +541,7 @@
 	
 	m_origPassword = (__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting("settings.content.password_md5", "");
     
-    m_Token = (__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting("settings.content.token", "");
+    m_Token = (__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting("settings.content.access_token", "");
 	
 	//[m_origPassword retain];
 
@@ -573,7 +605,7 @@
 		
 	[self fixFlockSize];
 	
-	[self startTest:nil];
+	[self startTest:YES];
 
 }
 
@@ -632,7 +664,7 @@
 	
 	ESScreensaver_SetStringSetting("settings.generator.nickname", [[drupalLogin stringValue] UTF8String]);
 	
-	ESScreensaver_SetStringSetting("settings.content.token", [m_Token UTF8String]);
+	ESScreensaver_SetStringSetting("settings.content.access_token", [m_Token UTF8String]);
 	
 	ESScreensaver_SetStringSetting("settings.content.proxy_username", [[proxyLogin stringValue] UTF8String]);
 
@@ -748,7 +780,7 @@
 
 - (IBAction)doSignIn:(id) __unused sender
 {
-	[self startTest:nil];
+	[self startTest:NO];
 }
 
 - (IBAction)goToHelpPage:(id) __unused sender

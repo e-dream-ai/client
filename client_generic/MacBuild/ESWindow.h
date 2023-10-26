@@ -38,9 +38,9 @@ NSMutableArray *mBlackingWindows;
 
 //- (void)windowWillClose:(NSNotification *)notification;
 
-- (void)showPreferences:(id)sender;
+- (BOOL)showPreferences:(id)sender;
 
-- (void)didEndSheet:(NSWindow *)sheet returnCode:(int)returnCode contextInfo:(void *)contextInfo;
+- (void)didEndSheet:(NSWindow *)sheet returnCode:(NSModalResponse)returnCode contextInfo:(void *)contextInfo;
 
 - (void)windowDidResize:(NSNotification *)notification;
 
