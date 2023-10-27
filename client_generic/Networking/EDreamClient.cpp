@@ -49,6 +49,7 @@ void EDreamClient::InitializeClient()
 {
     Network::spCFileDownloader spDownload = new Network::CFileDownloader( "Sheep list" );
     spDownload->AppendHeader("Content-Type: application/json");
+    //g_Settings()->Set("settings.content.access_token", std::string(""));
     SetNewAndDeleteOldString(fAccessToken, g_Settings()->Get("settings.content.access_token", std::string("")).c_str());
     SetNewAndDeleteOldString(fRefreshToken, g_Settings()->Get("settings.content.refresh_token", std::string("")).c_str());
 }
@@ -91,9 +92,8 @@ bool EDreamClient::RefreshAccessToken()
 
 bool EDreamClient::GetDreams()
 {
-    Network::spCFileDownloader spDownload = new Network::CFileDownloader( "Dreams list" );
-    spDownload->AppendHeader("Content-Type: application/json");
     
+    Network::spCFileDownloader spDownload;
     const char *xmlPath = ContentDownloader::Shepherd::xmlPath();
     char filename[ MAX_PATH ];
 
@@ -102,7 +102,10 @@ bool EDreamClient::GetDreams()
     int currentAttempt = 0;
     while (currentAttempt++ < maxAttempts)
     {
-        sprintf(authHeader, "Authorization: Bearer %s", GetAccessToken());
+        spDownload = new Network::CFileDownloader( "Dreams list" );
+        spDownload->AppendHeader("Content-Type: application/json");
+        snprintf(authHeader, ACCESS_TOKEN_MAX_LENGTH, "Authorization: Bearer %s", GetAccessToken());
+        g_Log->Error("HEADER: %s", authHeader);
         spDownload->AppendHeader(authHeader);
         if (spDownload->Perform(DREAM_ENDPOINT))
         {
@@ -110,7 +113,8 @@ bool EDreamClient::GetDreams()
         }
         else
         {
-            if (spDownload->ResponseCode() == 400)
+            if (spDownload->ResponseCode() == 400 ||
+                spDownload->ResponseCode() == 401)
             {
                 if (currentAttempt == maxAttempts)
                     return false;

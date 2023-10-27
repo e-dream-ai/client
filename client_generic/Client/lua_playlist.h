@@ -262,18 +262,18 @@ class	CLuaPlaylist : public CPlaylist
 		std::vector<std::string>	files;
 
 		int usedsheeptype = g_Settings()->Get( "settings.player.PlaybackMixingMode", 0 );
+        const char* ext = ContentDownloader::Shepherd::videoExtension();
+        if ( usedsheeptype == 0 )
+        {
+            if ( Base::GetFileList( files, _dir.string().c_str(), ext, true, false, true ) == false )
+                usedsheeptype = 2; // only gold, if any - revert to all if gold not found
+        }
 
-		if ( usedsheeptype == 0 )
-		{
-			if ( Base::GetFileList( files, _dir.string().c_str(), "avi", true, false ) == false )
-				usedsheeptype = 2; // only gold, if any - revert to all if gold not found
-		}
+        if ( usedsheeptype == 1 ) // free sheep only
+            Base::GetFileList( files, _dir.string().c_str(), ext, false, true, true );
 
-		if ( usedsheeptype == 1 ) // free sheep only
-			Base::GetFileList( files, _dir.string().c_str(), "avi", false, true );
-
-		if ( usedsheeptype > 1 ) // play all sheep, also handle case of error (2 is maximum allowed value)
-			Base::GetFileList( files, _dir.string().c_str(), "avi", true, true );
+        if ( usedsheeptype > 1 ) // play all sheep, also handle case of error (2 is maximum allowed value)
+            Base::GetFileList( files, _dir.string().c_str(), ext, true, true, true );
 
 		//	Clear the sheep context...
 		if( _bRebuild )
@@ -430,14 +430,14 @@ class	CLuaPlaylist : public CPlaylist
 			}
 
 			//	Overrides the playlist to play _id next time.
-			void	Override( const uint32 _id )
+			virtual void	Override( const uint32 _id )
 			{
 				boost::mutex::scoped_lock locker( m_Lock );
 				m_pState->Pop( Base::Script::Call( m_pState->GetState(), "Override", "i", _id ) );
 			}
 
 			//	Queues _id to be deleted.
-			void	Delete( const uint32 _id )
+			virtual void	Delete( const uint32 _id )
 			{
 				boost::mutex::scoped_lock locker( m_Lock );
 				m_pState->Pop( Base::Script::Call( m_pState->GetState(), "Delete", "i", _id ) );

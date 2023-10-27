@@ -153,8 +153,10 @@ bool	CContentDecoder::Open( sOpenVideoInfo *ovi )
 	
 	boost::filesystem::path sys_name( ovi->m_Path );
 
-	const std::string &_filename = sys_name.string();
-	
+	std::string _filename = sys_name.string();
+    
+
+    
 	ovi->m_iCurrentFileFrameCount = 0;
 	ovi->m_totalFrameCount = 0;
 	struct stat fs;
@@ -201,6 +203,24 @@ bool	CContentDecoder::Open( sOpenVideoInfo *ovi )
     const auto& codecPar = ovi->m_pFormatContext->streams[ovi->m_VideoStreamID]->codecpar;
     ovi->m_pVideoCodec = avcodec_find_decoder(codecPar->codec_id);
     ovi->m_pVideoCodecContext = avcodec_alloc_context3(ovi->m_pVideoCodec);
+    
+    const AVBitStreamFilter *bsf = av_bsf_get_by_name("h264_mp4toannexb");
+    if (!bsf)
+    {
+        g_Log->Error( "FFmpeg error: av_bsf_get_by_name() failed" );
+        return false;
+    }
+    if(DumpError(av_bsf_alloc(bsf, &ovi->m_pBsfContext)))
+    {
+        g_Log->Error( "FFmpeg error: av_bsf_alloc() failed" );
+        return false;
+    }
+    avcodec_parameters_copy(ovi->m_pBsfContext->par_in, codecPar);
+    if(DumpError(av_bsf_init(ovi->m_pBsfContext)))
+    {
+        g_Log->Error( "FFmpeg error: av_bsf_init() failed" );
+        return false;
+    }
 
     
     if (USE_HW_ACCELERATION)
@@ -543,6 +563,7 @@ CVideoFrame *CContentDecoder::ReadOneFrame(sOpenVideoInfo *ovi)
         return NULL;
 
     AVPacket* packet;
+    AVPacket* filteredPacket;
     int	frameDecoded = 0;
 	AVFrame *pFrame = ovi->m_pFrame;
     AVCodecContext	*pVideoCodecContext = ovi->m_pVideoCodecContext;
@@ -551,6 +572,7 @@ CVideoFrame *CContentDecoder::ReadOneFrame(sOpenVideoInfo *ovi)
 	while(true)
     {
         packet = av_packet_alloc();
+        filteredPacket = av_packet_alloc();
         
         if (!ovi->m_ReadingTrailingFrames)
         {
@@ -562,25 +584,19 @@ CVideoFrame *CContentDecoder::ReadOneFrame(sOpenVideoInfo *ovi)
             }
         }
         
+        DumpError(av_bsf_send_packet(ovi->m_pBsfContext, packet));
+        DumpError(av_bsf_receive_packet(ovi->m_pBsfContext, filteredPacket));
+        
+        int ret = avcodec_send_packet(pVideoCodecContext, filteredPacket);
+        
+        
         if (packet->stream_index != ovi->m_VideoStreamID)
         {
             g_Log->Error("Mismatching stream ID");
             break;
         }
 		
-		//printf( "calling av_dup_packet" );
-		/*if( av_dup_packet( &packet ) < 0 )
-		{
-			g_Log->Warning( "av_dup_packet < 0" );
-			break;
-		}*/
 
-        //printf( "av_read_frame done" );
-		
-        //printf( "avcodec_decode_video(0x%x, 0x%x, 0x%x, 0x%x, %d)", m_pVideoCodecContext, pFrame, &frameDecoded, packet.data, packet.size );
-
-        int ret = avcodec_send_packet(pVideoCodecContext, packet);
-        
         if (ret < 0)
         {
             if (ret == AVERROR_EOF)
@@ -606,29 +622,16 @@ CVideoFrame *CContentDecoder::ReadOneFrame(sOpenVideoInfo *ovi)
             }
             frameDecoded = 1;
         }
-        /*
-        //avcodec_receive_frame(pVideoCodecContext, pFrame);
-        if (ret == AVERROR(EAGAIN)) {
-            ret = avcodec_send_packet(pVideoCodecContext, packet);
-            if (ret < 0) {
-                g_Log->Warning("Error sending packet to decoder");
-                break;
-            }
-            continue;
-        } else if (ret < 0) {
-            g_Log->Warning("Error receiving frame from decoder");
-            break;
-        } else {
-            frameDecoded = 1;
-        }
-    */
         av_packet_unref(packet);
+        av_packet_unref(filteredPacket);
     
         if (frameDecoded != 0 || ovi->m_ReadingTrailingFrames)
         {
             break;
         }
+
         av_packet_free(&packet);
+        av_packet_free(&filteredPacket);
     }
 
     //	Do we have a fresh frame?
@@ -719,7 +722,8 @@ CVideoFrame *CContentDecoder::ReadOneFrame(sOpenVideoInfo *ovi)
         ovi->m_NextIsSeam = false;
     }
     
-        av_packet_free(&packet);
+    av_packet_free(&packet);
+    av_packet_free(&filteredPacket);
     
     return pVideoFrame;
 }

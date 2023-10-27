@@ -44,6 +44,22 @@ class	CSimplePlaylist : public CPlaylist
 
 				return true;
 			}
+
+			virtual bool ChooseSheepForPlaying(uint32 curGen, uint32 curID)
+			{
+				g_PlayCounter().IncPlayCount(curGen, curID);
+				
+				return true;
+			}
+			//	Overrides the playlist to play _id next time.
+			virtual void Override(const uint32 _id)
+			{
+			}
+
+			//	Queues _id to be deleted.
+			virtual void Delete(const uint32 _id)
+			{
+			}
 };
 
 MakeSmartPointers( CSimplePlaylist );

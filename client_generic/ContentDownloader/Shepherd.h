@@ -243,6 +243,7 @@ class Shepherd
 			static const char *mpegPath();
 			static const char *xmlPath();
 			static const char *jpegPath();
+            static const char *videoExtension()                 {   return fUseDreamAI ? ".mp4" : ".avi"; }
 
 			static void setRole( const char *role );
 			static const char *role();

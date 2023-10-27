@@ -21,7 +21,9 @@ class	CPlaylist
 			virtual bool	Add( const std::string &_file ) = PureVirtual;
 			virtual bool	Next( std::string &_result, bool& _bEnoughSheep, uint32 _curID, const bool _bRebuild = false, bool _bStartByRandom = true ) = PureVirtual;
 			virtual bool	ChooseSheepForPlaying( uint32 curGen, uint32 curID ) = PureVirtual;
-			
+			virtual void	Override( const uint32 _id ) = PureVirtual;
+			virtual void	Delete( const uint32 _id ) = PureVirtual;
+
 			virtual bool GetSheepInfoFromPath( const std::string& _path, uint32& Generation, uint32& ID, uint32& First, uint32& Last, std::string& _filename )
 			{
 				//	Remove the full path so we can work on the filename.

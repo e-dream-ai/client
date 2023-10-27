@@ -57,7 +57,7 @@ private:
 	DisplayUnitList							m_displayUnits;
 	
 	//	Playlist.
-	ContentDecoder::spCLuaPlaylist			m_spPlaylist;
+	ContentDecoder::spCPlaylist			m_spPlaylist;
 
 
 	//	Timer.

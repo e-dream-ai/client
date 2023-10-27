@@ -131,7 +131,7 @@ bool	CContentDownloader::Startup( const bool _bPreview, bool _bReadOnlyInstance 
 	else
 		g_Log->Warning( "Downloading disabled." );
 
-	if( g_Settings()->Get( "settings.generator.enabled", true ) && _bReadOnlyInstance == false)
+	if (!Shepherd::useDreamAI() && g_Settings()->Get( "settings.generator.enabled", true ) && _bReadOnlyInstance == false)
 	{
 		//	Create the generators based on the number of processors.
 		uint32 ncpus = 1;

@@ -31,12 +31,14 @@ extern "C"{
 	#include "libswscale/swscale.h"
     #include "libavutil/imgutils.h"
     #include "libavutil/hwcontext.h"
+    #include "libavcodec/bsf.h"
 #else
 	#include "avcodec.h"
 	#include "avformat.h"
 	#include "swscale.h"
     #include "imgutils.h"
     #include "hwcontext.h"
+    #include "bsf.h"
 #endif
 }
 
@@ -144,6 +146,7 @@ struct sOpenVideoInfo
 	AVFrame			*m_pFrame;
 	AVFormatContext	*m_pFormatContext;
 	AVCodecContext	*m_pVideoCodecContext;
+    AVBSFContext    *m_pBsfContext;
 	const AVCodec	*m_pVideoCodec;
 	AVStream		*m_pVideoStream;
 	int32			m_VideoStreamID;

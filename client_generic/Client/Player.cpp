@@ -51,6 +51,7 @@
 #endif
 
 
+#include    "SimplePlaylist.h"
 #include	"lua_playlist.h"
 #include	"Settings.h"
 #include	"ContentDownloader.h"
@@ -136,7 +137,7 @@ bool CPlayer::AddDisplay( uint32 screen )
 		std::string watchFolder = g_Settings()->Get( "settings.content.sheepdir", content ) + "/mpeg/";
 
 		std::vector<std::string> files;
-		m_HasGoldSheep = Base::GetFileList( files,  watchFolder, "avi", true, false );
+		m_HasGoldSheep = Base::GetFileList( files,  watchFolder, ".avi", true, false, true );
 	}
 	// modify aspect ratio and/or window size hint
 	uint32	w = 1280;
@@ -360,9 +361,16 @@ bool	CPlayer::Startup()
 
 	//	Create playlist.
 	g_Log->Info( "Creating playlist..." );
-  	m_spPlaylist = new ContentDecoder::CLuaPlaylist(	scriptPath.string(),
-														watchPath.string(),
-														m_UsedSheepType );
+    if (ContentDownloader::Shepherd::useDreamAI())
+    {
+        m_spPlaylist = new ContentDecoder::CSimplePlaylist();
+    }
+    else
+    {
+        m_spPlaylist = new ContentDecoder::CLuaPlaylist(	scriptPath.string(),
+                                                            watchPath.string(),
+                                                            m_UsedSheepType );
+    }
 
 	//	Create decoder last.
 	g_Log->Info( "Starting decoder..." );

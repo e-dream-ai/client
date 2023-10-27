@@ -31,6 +31,7 @@
 //#include <boost/format.hpp>
 //#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/json.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <zlib.h>
 #include <time.h>
@@ -212,7 +213,16 @@ bool SheepDownloader::downloadSheep( Sheep *sheep )
 	}
 	//	Save file.
 	char filename[ MAXBUF ];
-    snprintf( filename, MAXBUF, "%s%05d=%05d=%05d=%05d.avi", Shepherd::mpegPath(), sheep->generation(), sheep->id(), sheep->firstId(), sheep->lastId() );
+    if (Shepherd::useDreamAI())
+    {
+        std::vector<std::string> urlParts;
+        boost::split(urlParts, sheep->URL(), boost::is_any_of("/"));
+        strcpy(filename, urlParts.back().c_str());
+    }
+    else
+    {
+        snprintf( filename, MAXBUF, "%s%05d=%05d=%05d=%05d.avi", Shepherd::mpegPath(), sheep->generation(), sheep->id(), sheep->firstId(), sheep->lastId() );
+    }
     if( !spDownload->Save( filename ) )
     {
     	g_Log->Error( "Unable to save %s\n", filename );
@@ -417,52 +427,67 @@ void SheepDownloader::parseSheepList()
     {
         char pbuf[MAXBUF];
         snprintf(pbuf, MAX_PATH, "%sdreams.json", Shepherd::xmlPath());
-		std::ifstream file(pbuf);
-        boost::json::error_code ec;
-        boost::json::value response = boost::json::parse(file, ec);
-		file.close();
-        
-        bool success = response.at("success").as_bool();
-        if (!success)
+        std::ifstream file(pbuf);
+        try
         {
-            g_Log->Error("Fetching dreams from API was unsuccessful: %s", response.at("message").as_string().data());
-            return;
+            boost::json::error_code ec;
+            boost::json::value response = boost::json::parse(file, ec);
+
+            
+            bool success = response.at("success").as_bool();
+            if (!success)
+            {
+                g_Log->Error("Fetching dreams from API was unsuccessful: %s", response.at("message").as_string().data());
+                return;
+            }
+            boost::json::value data = response.at("data");
+            int32_t count = (int32_t)data.at("count").as_int64();
+            boost::json::value dreams = data.at("dreams");
+            
+            if (count)
+            {
+                SheepArray::iterator it = fServerFlock.begin();
+                while (it != fServerFlock.end())
+                {
+                    delete *it;
+                    it++;
+                }
+                fServerFlock.clear();
+
+                for (int32_t i = 0; i < count; ++i)
+                {
+                    boost::json::value dream = dreams.at(0);
+
+                    //    Create a new sheep and parse the attributes.
+                    Sheep *newSheep = new Sheep();
+                    newSheep->setGeneration( currentGeneration() );
+                    //"id": 27,
+                    //"uuid": "eedf9ae8-1b5f-4b5d-bb8d-a98df40d0695",
+                    //"name": "digital dadaism, evolution in the style of Salvador Dali",
+                    //"video": "https://edream-storage-dreams-staging.s3.us-east-1.amazonaws.com/92e1c95c-031f-46b8-ab7e-b67b52423828/eedf9ae8-1b5f-4b5d-bb8d-a98df40d0695/eedf9ae8-1b5f-4b5d-bb8d-a98df40d0695.mp4",
+                    //"thumbnail": "https://edream-storage-dreams-staging.s3.us-east-1.amazonaws.com/92e1c95c-031f-46b8-ab7e-b67b52423828/eedf9ae8-1b5f-4b5d-bb8d-a98df40d0695/eedf9ae8-1b5f-4b5d-bb8d-a98df40d0695.jpg",
+                    //"created_at": "2023-10-23T00:19:42.911Z",
+                    //"updated_at": "2023-10-23T00:21:16.370Z",
+                    
+                    newSheep->setId((uint32)dream.at("id").as_int64());
+                    newSheep->setURL(dream.at("video").as_string().data());
+                    newSheep->setRating(atoi("5"));
+                    fServerFlock.push_back(newSheep);
+                }
+            }
         }
-        boost::json::value data = response.at("data");
-        int32_t count = (int32_t)data.at("count").as_int64();
-        boost::json::value dreams = data.at("dreams");
-        
-        if (count)
+        catch (const std::exception& e)
         {
-            SheepArray::iterator it = fServerFlock.begin();
-            while (it != fServerFlock.end())
-            {
-                delete *it;
-                it++;
-            }
-            fServerFlock.clear();
-
-            for (int32_t i = 0; i < count; ++i)
-            {
-                boost::json::value dream = dreams.at(0);
-
-                //    Create a new sheep and parse the attributes.
-                Sheep *newSheep = new Sheep();
-                newSheep->setGeneration( currentGeneration() );
-                //"id": 27,
-                //"uuid": "eedf9ae8-1b5f-4b5d-bb8d-a98df40d0695",
-                //"name": "digital dadaism, evolution in the style of Salvador Dali",
-                //"video": "https://edream-storage-dreams-staging.s3.us-east-1.amazonaws.com/92e1c95c-031f-46b8-ab7e-b67b52423828/eedf9ae8-1b5f-4b5d-bb8d-a98df40d0695/eedf9ae8-1b5f-4b5d-bb8d-a98df40d0695.mp4",
-                //"thumbnail": "https://edream-storage-dreams-staging.s3.us-east-1.amazonaws.com/92e1c95c-031f-46b8-ab7e-b67b52423828/eedf9ae8-1b5f-4b5d-bb8d-a98df40d0695/eedf9ae8-1b5f-4b5d-bb8d-a98df40d0695.jpg",
-                //"created_at": "2023-10-23T00:19:42.911Z",
-                //"updated_at": "2023-10-23T00:21:16.370Z",
-                
-                newSheep->setId((uint32)dream.at("id").as_int64());
-                newSheep->setURL(dream.at("video").as_string().data());
-                newSheep->setRating(atoi("5"));
-                fServerFlock.push_back(newSheep);
-            }
+            file.seekg(0, std::ios::end);
+            std::streampos fileSize = file.tellg();
+            file.seekg(0, std::ios::beg);
+            char* cString = new char[(size_t)fileSize + 1];
+            file.read(cString, fileSize);
+            cString[fileSize] = '\0';
+            g_Log->Error("Exception during parsing dreams list:%s contents:\"%s\"", e.what(), cString);
+            delete[] cString;
         }
+        file.close();
 	}
     else
     {

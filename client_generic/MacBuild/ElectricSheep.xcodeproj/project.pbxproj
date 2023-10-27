@@ -599,6 +599,7 @@
 		21EE63941013A674000CE53E /* ESWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ESWindow.h; sourceTree = "<group>"; };
 		21EE63951013A674000CE53E /* ESWindow.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ESWindow.mm; sourceTree = "<group>"; };
 		460F56A82ACAF82F0066985C /* FontMetal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FontMetal.h; path = ../../DisplayOutput/FontMetal.h; sourceTree = "<group>"; };
+		461614182AEBEA57008AC64A /* DreamPlaylist.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DreamPlaylist.h; path = ../Client/DreamPlaylist.h; sourceTree = "<group>"; };
 		464A49DA2AB8864600C77F6D /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = System/Library/Frameworks/VideoToolbox.framework; sourceTree = SDKROOT; };
 		464A49DD2AB88E1A00C77F6D /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		464A49E12AB89C5F00C77F6D /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
@@ -709,6 +710,7 @@
 		08FB7794FE84155DC02AAC07 /* ElectricSheep */ = {
 			isa = PBXGroup;
 			children = (
+				461614182AEBEA57008AC64A /* DreamPlaylist.h */,
 				467230B52AC17A4D00017C51 /* ESMetalView.h */,
 				2160FE160F30F82800B2C27A /* Runtime */,
 				08FB7795FE84155DC02AAC07 /* Source */,

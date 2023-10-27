@@ -15,7 +15,7 @@ namespace	Base
 
 using namespace boost::filesystem;
 
-bool GetFileList( std::vector<std::string> &_list, const std::string _dir, const std::string _extension, const bool _usegoldsheep, const bool _usefreesheep )
+bool GetFileList( std::vector<std::string> &_list, const std::string _dir, const std::string _extension, const bool _usegoldsheep, const bool _usefreesheep, const bool _scanProps )
 {
 	bool gotSheep = false;
 	try {
@@ -29,34 +29,42 @@ bool GetFileList( std::vector<std::string> &_list, const std::string _dir, const
 		std::string dirname(itr->path().filename().string());
 		if (is_directory(itr->status()))
 		{
-			gotSheep |= GetFileList( _list, (itr->path().string() + std::string("/")), _extension, _usegoldsheep, _usefreesheep );
+			gotSheep |= GetFileList( _list, (itr->path().string() + std::string("/")), _extension, _usegoldsheep, _usefreesheep, _scanProps );
 		}
 		else
 		{
 			std::string fname(itr->path().filename().string());
 			std::string ext(itr->path().extension().string());
 			
-			if (ext == std::string(".avi"))
+			if (ext == _extension)
 			{
-				int generation;
-				int id;
-				int first;
-				int last;
+                if (_scanProps)
+                {
+                    int generation;
+                    int id;
+                    int first;
+                    int last;
 
-				if( 4 == sscanf( fname.c_str(), "%d=%d=%d=%d.avi", &generation, &id, &first, &last ) )
-				{
-					std::string xxxname(fname);
-					xxxname.replace(fname.size() - 3, 3, "xxx");
-				
-					if ( !exists( p/xxxname ) ) // is it deleted?
-					{
-						if ( (_usegoldsheep && generation >= 10000) || (_usefreesheep && generation < 10000) )
-						{
-							_list.push_back(itr->path().string().c_str());
-							gotSheep = true;
-						}
-					}
-				}
+                    if( 4 == sscanf( fname.c_str(), (std::string("%d=%d=%d=%d.") + _extension).c_str(), &generation, &id, &first, &last ) )
+                    {
+                        std::string xxxname(fname);
+                        xxxname.replace(fname.size() - 3, 3, "xxx");
+                    
+                        if ( !exists( p/xxxname ) ) // is it deleted?
+                        {
+                            if ( (_usegoldsheep && generation >= 10000) || (_usefreesheep && generation < 10000) )
+                            {
+                                _list.push_back(itr->path().string().c_str());
+                                gotSheep = true;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    _list.push_back(itr->path().string().c_str());
+                    gotSheep = true;
+                }
 			}
 		}
 	}
