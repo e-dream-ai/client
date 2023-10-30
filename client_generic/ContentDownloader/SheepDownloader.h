@@ -62,6 +62,7 @@ class SheepDownloader
 	Network::spCFileDownloader m_spSheepDownloader;
 	
 	boost::mutex m_AbortMutex;
+    boost::shared_mutex& m_DownloadSaveMutex;
 	
 	protected:
 
@@ -116,7 +117,7 @@ class SheepDownloader
 		static bool fListDirty;
 
 	public:
-			SheepDownloader();
+			SheepDownloader( boost::shared_mutex& _downloadSaveMutex );
 			virtual ~SheepDownloader();
 
 			static void shepherdCallback(void* data);

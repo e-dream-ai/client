@@ -48,14 +48,10 @@ class	CDreamPlaylist : public CPlaylist
 	fp8				m_MedianLevel;
 	uint64			m_FlockMBs;
 	uint64			m_FlockGoldMBs;
+    std::queue<std::string>    m_List;
+
 
 	
-	//
-	void	DeduceGraphnessFromFilenameAndQueue( path const &/*_basedir*/, const std::string& _filename )
-	{
-		
-		m_numSheep++;
-	}
 
 	void	AutoMedianLevel(uint64 megabytes)
 	{
@@ -88,35 +84,25 @@ class	CDreamPlaylist : public CPlaylist
 		
 		std::vector<std::string>	files;
 
-		int usedsheeptype = g_Settings()->Get( "settings.player.PlaybackMixingMode", 0 );
         const char* ext = ContentDownloader::Shepherd::videoExtension();
-        if ( usedsheeptype == 0 )
-        {
-            if ( Base::GetFileList( files, _dir.string().c_str(), ext, true, false, true ) == false )
-                usedsheeptype = 2; // only gold, if any - revert to all if gold not found
-        }
-
-        if ( usedsheeptype == 1 ) // free sheep only
-            Base::GetFileList( files, _dir.string().c_str(), ext, false, true, true );
-
-        if ( usedsheeptype > 1 ) // play all sheep, also handle case of error (2 is maximum allowed value)
-            Base::GetFileList( files, _dir.string().c_str(), ext, true, true, true );
+        Base::GetFileList(files, _dir.string().c_str(), ext, true, true, false);
 
 		//	Clear the sheep context...
-		if( _bRebuild )
+		if (_bRebuild)
 		{
 			if (m_AutoMedian)
 				AutoMedianLevel( m_FlockMBs + m_FlockGoldMBs );
-			m_pState->Pop( Base::Script::Call( m_pState->GetState(), "Clear", "d", m_MedianLevel ) );
+			//m_pState->Pop( Base::Script::Call( m_pState->GetState(), "Clear", "d", m_MedianLevel ) );
 			//m_pState->Execute( "Clear()" );
+            
 		}
-
+        Clear();
 		for( std::vector<std::string>::const_iterator i=files.begin(); i!=files.end(); ++i )
-			DeduceGraphnessFromFilenameAndQueue( _dir, *i );
+            Add(*i);
 	}
 
 	public:
-			CDreamPlaylist( const std::string &_watchFolder, int &/*_usedsheeptype*/ ) : CPlaylist()/*, m_UsedSheepType(_usedsheeptype)*/
+			CDreamPlaylist( const std::string &_watchFolder) : CPlaylist()/*, m_UsedSheepType(_usedsheeptype)*/
 			{
 				m_NormalInterval = fp8(g_Settings()->Get( "settings.player.NormalInterval", 100 ));
 				m_EmptyInterval = 10.0f;
@@ -124,47 +110,36 @@ class	CDreamPlaylist : public CPlaylist
  				m_Path = _watchFolder.c_str();
 				
 				m_numSheep = 0;
-
-				int32	loopIterations = g_Settings()->Get( "settings.player.LoopIterations", 2 );
-				bool	seamlessPlayback = g_Settings()->Get( "settings.player.SeamlessPlayback", false );
-				fp8		playEvenly = (fp8) g_Settings()->Get( "settings.player.PlayEvenly", 100 ) / 100.0;
-				m_MedianLevel = (fp8) g_Settings()->Get( "settings.player.MedianLevel", 80 ) / 100.0;
-				m_AutoMedian = g_Settings()->Get( "settings.player.AutoMedianLevel", true );
-				m_RandomMedian = g_Settings()->Get( "settings.player.RandomMedianLevel", true );
-				if (m_AutoMedian)
-				{
-					// HACK to get flock size before full initialization
-					ContentDownloader::Shepherd::setRootPath( g_Settings()->Get( "settings.content.sheepdir", g_Settings()->Root() + "content" ).c_str() );
-					m_FlockMBs = ContentDownloader::Shepherd::GetFlockSizeMBsRecount(0);
-					m_FlockGoldMBs = ContentDownloader::Shepherd::GetFlockSizeMBsRecount(1);
-					AutoMedianLevel( m_FlockMBs );
-				}
-
 				
 				UpdateDirectory( m_Path );
 			}
 
 			//
 			virtual ~CDreamPlaylist()
-			{				
-				SAFE_DELETE( m_pState );
+			{
 			}
 
 			//
 			virtual bool	Add( const std::string &_file )
 			{
-				boost::mutex::scoped_lock locker( m_Lock );
-				//m_pState->Pop( Base::Script::Call( m_pState->GetState(), "Add", "s", _file.c_str() ) );
+				//boost::mutex::scoped_lock locker( m_Lock );
+                m_List.push(_file);
 				return true ;
 			}
 
 			virtual uint32	Size()
 			{
 				boost::mutex::scoped_lock locker( m_Lock );
-				int32	ret = 0;
-				//m_pState->Pop( Base::Script::Call( m_pState->GetState(), "Size", ">i", &ret ) );
+				uint32	ret = 0;
+                ret = static_cast<uint32>(m_List.size());
 				return (uint32)ret;
 			}
+    
+            virtual void Clear()
+            {
+                std::queue<std::string> empty;
+                std::swap(m_List, empty);
+            }
 
 			virtual bool	Next( std::string &_result, bool &_bEnoughSheep, uint32 _curID, const bool _bRebuild = false, bool _bStartByRandom = true )
 			{
@@ -184,10 +159,14 @@ class	CDreamPlaylist : public CPlaylist
 					UpdateDirectory( m_Path, _bRebuild );
 					m_Clock = m_Timer.Time();
 				}
+                
+                if (m_List.empty())
+                    return false;
+
+                _result = m_List.front();
+                m_List.pop();
 
 				_bEnoughSheep = ( m_numSheep > kSheepNumTreshold );
-				
-                
 				
 				return true;
 			}

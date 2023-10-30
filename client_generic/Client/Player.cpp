@@ -51,7 +51,7 @@
 #endif
 
 
-#include    "SimplePlaylist.h"
+#include    "DreamPlaylist.h"
 #include	"lua_playlist.h"
 #include	"Settings.h"
 #include	"ContentDownloader.h"
@@ -309,7 +309,7 @@ bool CPlayer::AddDisplay( uint32 screen )
 		
 		if ( m_MultiDisplayMode == kMDIndividualMode && !Stopped() )
 		{
-			du->spDecoder = CreateContentDecoder( true );
+			du->spDecoder = CreateContentDecoder( *m_DownloadSaveMutex, true );
 			du->spDecoder->Start();
 		}
 		
@@ -329,8 +329,9 @@ bool CPlayer::AddDisplay( uint32 screen )
 
 /*
 */
-bool	CPlayer::Startup()
+bool	CPlayer::Startup( boost::shared_mutex& _downloadSaveMutex )
 {
+    m_DownloadSaveMutex = &_downloadSaveMutex;
 	m_DisplayFps = g_Settings()->Get( "settings.player.display_fps", 60. );
 	
 #ifdef HONOR_VBL_SYNC
@@ -363,7 +364,7 @@ bool	CPlayer::Startup()
 	g_Log->Info( "Creating playlist..." );
     if (ContentDownloader::Shepherd::useDreamAI())
     {
-        m_spPlaylist = new ContentDecoder::CSimplePlaylist();
+        m_spPlaylist = new ContentDecoder::CDreamPlaylist(watchPath.string());
     }
     else
     {
@@ -380,7 +381,7 @@ bool	CPlayer::Startup()
 	return true;
 }
 
-ContentDecoder::CContentDecoder *CPlayer::CreateContentDecoder( bool _bStartByRandom )
+ContentDecoder::CContentDecoder *CPlayer::CreateContentDecoder( boost::shared_mutex& _downloadSaveMutex, bool _bStartByRandom )
 {
 	if ( m_spPlaylist.IsNull() )
 		return NULL;
@@ -402,7 +403,7 @@ ContentDecoder::CContentDecoder *CPlayer::CreateContentDecoder( bool _bStartByRa
 
 #endif
 
-	return new ContentDecoder::CContentDecoder( m_spPlaylist, _bStartByRandom, g_Settings()->Get( "settings.player.CalculateTransitions", true ), (uint32)abs(g_Settings()->Get( "settings.player.BufferLength", 25 )), pf );
+	return new ContentDecoder::CContentDecoder( m_spPlaylist, _bStartByRandom, g_Settings()->Get( "settings.player.CalculateTransitions", true ), (uint32)abs(g_Settings()->Get( "settings.player.BufferLength", 25 )), _downloadSaveMutex, pf);
 }
 
 /*
@@ -446,7 +447,7 @@ void	CPlayer::Start()
 		
 		if ( m_MultiDisplayMode == kMDSharedMode )
 		{
-			m_spDecoder =  CreateContentDecoder( true );
+			m_spDecoder =  CreateContentDecoder( *m_DownloadSaveMutex, true );
 
 			if( !m_spDecoder->Start() )
 				g_Log->Warning( "Nothing to play" );
@@ -460,7 +461,7 @@ void	CPlayer::Start()
 			for ( ; it != m_displayUnits.end(); it++ )
 			{
 				if ((*it)->spDecoder.IsNull())
-					(*it)->spDecoder = CreateContentDecoder( true );
+					(*it)->spDecoder = CreateContentDecoder( *m_DownloadSaveMutex, true );
 					
 				if( !(*it)->spDecoder->Start() )
 					g_Log->Warning( "Nothing to play" );

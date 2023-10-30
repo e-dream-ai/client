@@ -77,7 +77,7 @@ void	CContentDownloader::ServerFallback()
 
 /*
 */
-bool	CContentDownloader::Startup( const bool _bPreview, bool _bReadOnlyInstance )
+bool	CContentDownloader::Startup( boost::shared_mutex& _downloadSaveMutex, const bool _bPreview, bool _bReadOnlyInstance )
 {
 	g_Log->Info( "Attempting to start contentdownloader...", _bPreview );
 	Shepherd::initializeShepherd();
@@ -107,6 +107,7 @@ bool	CContentDownloader::Startup( const bool _bPreview, bool _bReadOnlyInstance 
 	Shepherd::setProxyUserName( g_Settings()->Get( "settings.content.proxy_username", std::string("") ).c_str() );
 	Shepherd::setProxyPassword( g_Settings()->Get( "settings.content.proxy_password", std::string("") ).c_str() );
     Shepherd::setUseDreamAI( g_Settings()->Get( "settings.content.use_dream_ai", true));
+    //Shepherd::setUseDreamAI( false );
 
 	Shepherd::setSaveFrames( g_Settings()->Get( "settings.generator.save_frames", false ) );
 	SheepGenerator::setNickName( g_Settings()->Get( "settings.generator.nickname", std::string("") ).c_str() );
@@ -116,7 +117,7 @@ bool	CContentDownloader::Startup( const bool _bPreview, bool _bReadOnlyInstance 
 		
 	if( g_Settings()->Get( "settings.content.download_mode", true ) && _bReadOnlyInstance == false)
 	{
-		m_gDownloader = new SheepDownloader();
+		m_gDownloader = new SheepDownloader( _downloadSaveMutex );
 		g_Log->Info( "Starting download thread..." );
 		m_gDownloadThread = new boost::thread( boost::bind( &SheepDownloader::shepherdCallback, m_gDownloader ) );
 #ifdef WIN32

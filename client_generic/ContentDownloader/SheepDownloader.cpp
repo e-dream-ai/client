@@ -96,7 +96,7 @@ boost::mutex SheepDownloader::s_DownloaderMutex;
 
 /*
 */
-SheepDownloader::SheepDownloader()
+SheepDownloader::SheepDownloader( boost::shared_mutex& _downloadSaveMutex ) : m_DownloadSaveMutex(_downloadSaveMutex)
 {
 	fHasMessage = false;
 	fCurrentGeneration = 0;
@@ -217,16 +217,19 @@ bool SheepDownloader::downloadSheep( Sheep *sheep )
     {
         std::vector<std::string> urlParts;
         boost::split(urlParts, sheep->URL(), boost::is_any_of("/"));
-        strcpy(filename, urlParts.back().c_str());
+        snprintf(filename, MAXBUF, "%s%s", Shepherd::mpegPath(), urlParts.back().c_str());
     }
     else
     {
         snprintf( filename, MAXBUF, "%s%05d=%05d=%05d=%05d.avi", Shepherd::mpegPath(), sheep->generation(), sheep->id(), sheep->firstId(), sheep->lastId() );
     }
-    if( !spDownload->Save( filename ) )
     {
-    	g_Log->Error( "Unable to save %s\n", filename );
-    	return false;
+        boost::unique_lock<boost::shared_mutex> lock(m_DownloadSaveMutex);
+        if( !spDownload->Save( filename ) )
+        {
+            g_Log->Error( "Unable to save %s\n", filename );
+            return false;
+        }
     }
 
     return true;
@@ -428,6 +431,7 @@ void SheepDownloader::parseSheepList()
         char pbuf[MAXBUF];
         snprintf(pbuf, MAX_PATH, "%sdreams.json", Shepherd::xmlPath());
         std::ifstream file(pbuf);
+        int dreamIndex = 0;
         try
         {
             boost::json::error_code ec;
@@ -454,9 +458,9 @@ void SheepDownloader::parseSheepList()
                 }
                 fServerFlock.clear();
 
-                for (int32_t i = 0; i < count; ++i)
+                do
                 {
-                    boost::json::value dream = dreams.at(0);
+                    boost::json::value dream = dreams.at(dreamIndex);
 
                     //    Create a new sheep and parse the attributes.
                     Sheep *newSheep = new Sheep();
@@ -469,11 +473,22 @@ void SheepDownloader::parseSheepList()
                     //"created_at": "2023-10-23T00:19:42.911Z",
                     //"updated_at": "2023-10-23T00:21:16.370Z",
                     
+                    boost::json::value video = dream.at("video");
+                    if (video.is_null())
+                        continue;
                     newSheep->setId((uint32)dream.at("id").as_int64());
-                    newSheep->setURL(dream.at("video").as_string().data());
+                    newSheep->setURL(video.as_string().data());
+                    boost::json::string timeString = dream.at("updated_at").as_string();
+                    struct tm timeinfo = {};
+                    strptime(timeString.data(), "%Y-%m-%dT%H:%M:%S", &timeinfo);
+                    timeinfo.tm_isdst = 0; // Set daylight saving time to 0
+                    time_t time = std::mktime(&timeinfo);
+                    g_Log->Error("TIME:%s      %d", timeString.data(), time);
+                    newSheep->setFileWriteTime(time);
                     newSheep->setRating(atoi("5"));
                     fServerFlock.push_back(newSheep);
                 }
+                while (++dreamIndex < count);
             }
         }
         catch (const std::exception& e)
@@ -484,7 +499,7 @@ void SheepDownloader::parseSheepList()
             char* cString = new char[(size_t)fileSize + 1];
             file.read(cString, fileSize);
             cString[fileSize] = '\0';
-            g_Log->Error("Exception during parsing dreams list:%s contents:\"%s\"", e.what(), cString);
+            g_Log->Error("Exception during parsing dreams list:%s contents:\"%s\" dreamIndex:%d", e.what(), cString, dreamIndex);
             delete[] cString;
         }
         file.close();
@@ -968,6 +983,7 @@ void	SheepDownloader::findSheepToDownload()
 								}
 							}
 						}
+                        bool useDreamAI = Shepherd::useDreamAI();
 						//	Iterate the server flock to find the next sheep to download.
 						for( i=0; i<fServerFlock.size(); i++ )
 						{
@@ -986,8 +1002,17 @@ void	SheepDownloader::findSheepToDownload()
 									(fServerFlock[i]->rating() > best_rating && fServerFlock[i]->rating() <= best_rating_old) ||
 									(fServerFlock[i]->rating() == best_rating && fServerFlock[i]->fileWriteTime() < best_ctime ) )
 									{
+                                        bool timeCheck = false;
+                                        //if (useDreamAI)
+                                        {
+                                          //  timeCheck = fServerFlock[i]->fileWriteTime() != best_ctime_old;
+                                        }
+                                        //else
+                                        {
+                                            timeCheck = fServerFlock[i]->fileWriteTime() > best_ctime_old;
+                                        }
 										if ( fServerFlock[i]->rating() != best_rating_old ||
-											(fServerFlock[i]->rating() == best_rating_old  && fServerFlock[i]->fileWriteTime() > best_ctime_old) )
+											(fServerFlock[i]->rating() == best_rating_old  && timeCheck) )
 										{
 											best_rating = fServerFlock[i]->rating();
 											best_ctime = fServerFlock[i]->fileWriteTime();

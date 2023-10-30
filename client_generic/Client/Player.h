@@ -77,6 +77,8 @@ private:
 	MultiDisplayMode m_MultiDisplayMode;
 	
 	bool			m_bStarted;
+    
+    boost::shared_mutex* m_DownloadSaveMutex;
 
 	//	Used to keep track of elapsed time since last frame.
 	fp8	m_CapClock;
@@ -96,12 +98,12 @@ private:
 	private:
 #endif
 	
-	ContentDecoder::CContentDecoder *CreateContentDecoder( bool _bStartByRandom = false );
+	ContentDecoder::CContentDecoder *CreateContentDecoder( boost::shared_mutex& _downloadSaveMutex, bool _bStartByRandom = false );
 	
 	void FpsCap( const fp8 _cap );
 
 	public:
-			bool	Startup();
+			bool	Startup( boost::shared_mutex& _downloadSaveMutex );
 			bool	Shutdown( void );
 			virtual ~CPlayer();
 

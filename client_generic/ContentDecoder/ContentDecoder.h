@@ -122,6 +122,11 @@ struct sOpenVideoInfo
 			av_frame_free( &m_pFrame );
 			m_pFrame = NULL;
 		}
+        if (m_pBsfContext)
+        {
+            av_bsf_flush(m_pBsfContext);
+            av_bsf_free(&m_pBsfContext);
+        }
 	}
 	
 	bool IsLoop() { return (!m_bSpecialSheep && !IsEdge()); }
@@ -146,7 +151,7 @@ struct sOpenVideoInfo
 	AVFrame			*m_pFrame;
 	AVFormatContext	*m_pFormatContext;
 	AVCodecContext	*m_pVideoCodecContext;
-    AVBSFContext    *m_pBsfContext;
+    AVBSFContext    *m_pBsfContext = nullptr;
 	const AVCodec	*m_pVideoCodec;
 	AVStream		*m_pVideoStream;
 	int32			m_VideoStreamID;
@@ -221,6 +226,7 @@ class CContentDecoder
 	bool			m_Initialized;
 	
 	bool			m_bCalculateTransitions;
+    boost::shared_mutex& m_DownloadSaveMutex;
 
 #ifdef MAC
     os_log_t m_signpostHandle;
@@ -236,7 +242,7 @@ class CContentDecoder
 	static int DumpError( int _err );
 
 	public:
-			CContentDecoder( spCPlaylist _spPlaylist, bool _bStartByRandom, bool _bAllowTransitions, const uint32 _queueLenght, AVPixelFormat _wantedPixelFormat = AV_PIX_FMT_RGB24 );
+			CContentDecoder( spCPlaylist _spPlaylist, bool _bStartByRandom, bool _bAllowTransitions, const uint32 _queueLenght, boost::shared_mutex& _downloadSaveMutex, AVPixelFormat _wantedPixelFormat = AV_PIX_FMT_RGB24 );
 			virtual ~CContentDecoder();
 
 			bool	Initialized() { return m_Initialized; }

@@ -109,7 +109,7 @@ class	CElectricSheep
 		
 		boost::mutex m_BarrierMutex;
 #endif
-		
+        boost::shared_mutex m_DownloadSaveMutex;
 
 		//	Init tuplestorage.
 		bool	InitStorage(bool _bReadOnly = false)
@@ -205,7 +205,7 @@ class	CElectricSheep
 				g_Player().SetMultiDisplayMode( (CPlayer::MultiDisplayMode)g_Settings()->Get( "settings.player.MultiDisplayMode", 0 ) );
 
                 //	Init the display and create decoder.
-                if( !g_Player().Startup() )
+                if( !g_Player().Startup(m_DownloadSaveMutex) )
                     return false;
 					
 #ifdef DO_THREAD_UPDATE
@@ -383,7 +383,7 @@ class	CElectricSheep
                 //	Start downloader.
                 g_Log->Info( "Starting downloader..." );
 
-				g_ContentDownloader().Startup( false, m_MultipleInstancesMode );
+				g_ContentDownloader().Startup( m_DownloadSaveMutex, false, m_MultipleInstancesMode );
 
 				//call static method to fill sheep counts
 				ContentDownloader::Shepherd::GetFlockSizeMBsRecount(0);
