@@ -28,6 +28,7 @@
 #include	"Log.h"
 #include	"Timer.h"
 #include	"Settings.h"
+#include    "Shepherd.h"
 
 using namespace boost;
 
@@ -96,7 +97,6 @@ CContentDecoder::CContentDecoder( spCPlaylist _spPlaylist, bool _bStartByRandom,
 	
 	m_MainVideoInfo = NULL;//new sMainVideoInfo();
 	m_SecondVideoInfo = NULL;
-    m_signpostHandle = os_log_create("org.elecricsheep.ElectricSheep.app", OS_LOG_CATEGORY_POINTS_OF_INTEREST);
     av_log_set_callback(AVCodecLogCallback);
 }
 
@@ -152,11 +152,11 @@ int	CContentDecoder::DumpError( int _err )
 	{
 		switch( _err )
 		{
-			case AVERROR_INVALIDDATA:	g_Log->Error( "FFmpeg error: Error while parsing header" );	break;
-			case AVERROR(EIO):			g_Log->Error( "FFmpeg error: I/O error occured. Usually that means that input file is truncated and/or corrupted." );	break;
-			case AVERROR(ENOMEM):		g_Log->Error( "FFmpeg error: Memory allocation error occured" );	break;
-			case AVERROR(ENOENT):		g_Log->Error( "FFmpeg error: ENOENT" );	break;
-			default:					g_Log->Error( "FFmpeg error: Error while opening file" );	break;
+            case AVERROR_INVALIDDATA:	g_Log->Error( "FFmpeg error %s: Error while parsing header", UNFFERRTAG(_err) );	break;
+            case AVERROR(EIO):			g_Log->Error( "FFmpeg error %s: I/O error occured. Usually that means that input file is truncated and/or corrupted.", UNFFERRTAG(_err) );	break;
+            case AVERROR(ENOMEM):		g_Log->Error( "FFmpeg error %s: Memory allocation error occured", UNFFERRTAG(_err) );	break;
+            case AVERROR(ENOENT):		g_Log->Error( "FFmpeg error %s: ENOENT", UNFFERRTAG(_err) );	break;
+            default:					g_Log->Error( "FFmpeg error %s: Error while opening file", UNFFERRTAG(_err) );	break;
 		}
 	}
 
@@ -440,7 +440,7 @@ bool	CContentDecoder::NextSheepForPlaying( int32 _forceNext )
 			return false;
 	}
 	
-	if (!m_MainVideoInfo->m_bSpecialSheep)
+	if (!m_MainVideoInfo->m_bSpecialSheep || ContentDownloader::Shepherd::useDreamAI())
 	{
 		if (m_SecondVideoInfo == NULL)
 		{
@@ -609,12 +609,31 @@ CVideoFrame *CContentDecoder::ReadOneFrame(sOpenVideoInfo *ovi)
             }
         }
         
-        int ret;
+        int ret = 0;
         if (ovi->m_pBsfContext)
         {
             DumpError(av_bsf_send_packet(ovi->m_pBsfContext, packet));
-            DumpError(av_bsf_receive_packet(ovi->m_pBsfContext, filteredPacket));
-            ret = avcodec_send_packet(pVideoCodecContext, filteredPacket);
+            ret = av_bsf_receive_packet(ovi->m_pBsfContext, filteredPacket);
+            if (ret < 0)
+            {
+                if (ret == AVERROR_EOF)
+                {
+                    av_packet_free(&packet);
+                    av_packet_free(&filteredPacket);
+                    return NULL;
+                }
+                g_Log->Error("Error receiving packet from bit stream filter: %s", UNFFERRTAG(ret));
+            }
+            if (filteredPacket->size)
+            {
+                ret = avcodec_send_packet(pVideoCodecContext, filteredPacket);
+            }
+            else
+            {
+                av_packet_free(&packet);
+                av_packet_free(&filteredPacket);
+                continue;
+            }
         }
         else
         {
@@ -625,7 +644,7 @@ CVideoFrame *CContentDecoder::ReadOneFrame(sOpenVideoInfo *ovi)
         
         if (packet->stream_index != ovi->m_VideoStreamID)
         {
-            g_Log->Error("Mismatching stream ID");
+            g_Log->Error("FFmpeg Mismatching stream ID");
             break;
         }
 		
@@ -634,24 +653,30 @@ CVideoFrame *CContentDecoder::ReadOneFrame(sOpenVideoInfo *ovi)
         {
             if (ret == AVERROR_EOF)
             {
+                av_packet_free(&packet);
+                av_packet_free(&filteredPacket);
                 return NULL;
             }
-            g_Log->Error("Error sending packet for decoding: %i", ret);
+            g_Log->Error("FFmpeg Error sending packet for decoding: %i:%s", ret, UNFFERRTAG(ret));
         }
         if (ret >= 0)
         {
             ret = avcodec_receive_frame(pVideoCodecContext, pFrame);
             if (ret == AVERROR(EAGAIN))
             {
+                av_packet_free(&packet);
+                av_packet_free(&filteredPacket);
                 continue;
             }
             if (ret == AVERROR_EOF)
             {
+                av_packet_free(&packet);
+                av_packet_free(&filteredPacket);
                 return NULL; //the codec has been fully flushed, and there will be no more output frames
             }
             else if (ret < 0)
             {
-                g_Log->Error("Error decoding: %i", ret);
+                g_Log->Error("FFmpeg Error decoding: %s", UNFFERRTAG(ret));
             }
             frameDecoded = 1;
         }
@@ -777,9 +802,9 @@ void	CContentDecoder::ReadPackets()
 		while( true )
 		{			
 			this_thread::interruption_point();
-#ifdef MAC
-            os_signpost_interval_begin(m_signpostHandle, OS_SIGNPOST_ID_EXCLUSIVE, "Decoder Frame");
-#endif
+
+            PROFILER_BEGIN("Decoder Frame");
+
             int32 nextForced = NextForced();
 			
 			if (nextForced != 0)
@@ -811,9 +836,8 @@ void	CContentDecoder::ReadPackets()
 					}
 					else
 						pMainVideoFrame->SetMetaData_TransitionProgress(0.f);
-#ifdef MAC
-            os_signpost_interval_end(m_signpostHandle, OS_SIGNPOST_ID_EXCLUSIVE, "Decoder Frame");
-#endif
+
+                    PROFILER_END("Decoder Frame");
 					m_FrameQueue.push( pMainVideoFrame );
 					bDoNextSheep = false;
 					
@@ -822,16 +846,12 @@ void	CContentDecoder::ReadPackets()
 				}
                 else
                 {
-#ifdef MAC
-            os_signpost_interval_end(m_signpostHandle, OS_SIGNPOST_ID_EXCLUSIVE, "Decoder Frame");
-#endif
+                    PROFILER_END("Decoder Frame");
                 }
 			}
             else
             {
-#ifdef MAC
-            os_signpost_interval_end(m_signpostHandle, OS_SIGNPOST_ID_EXCLUSIVE, "Decoder Frame");
-#endif
+                PROFILER_END("Decoder Frame");
             }
 			
 			if (bDoNextSheep)
@@ -839,7 +859,6 @@ void	CContentDecoder::ReadPackets()
 				g_Log->Info( "calling Next()" );
 				
 				NextSheepForPlaying( nextForced );
-				
 				if ( nextForced != 0 )
 					ClearQueue();
 			}
@@ -872,7 +891,7 @@ spCVideoFrame CContentDecoder::Frame()
 	if ( m_sharedFrame.IsNull() )
 	{
 		CVideoFrame *tmp = NULL;
-        g_Log->Info("FrameQueue:%i", m_FrameQueue.size());
+        //g_Log->Info("FrameQueue:%i", m_FrameQueue.size());
         if (m_FrameQueue.size() < 2)
         {
             g_Log->Info("FQ!!");

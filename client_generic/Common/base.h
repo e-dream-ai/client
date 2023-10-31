@@ -77,6 +77,16 @@ typedef	double				fp8;
 #endif
 #endif
 
+#define UNFFERRTAG(tag) (const char[]){(char)(-tag & 0xFF), (char)((-tag >> 8) & 0xFF), (char)((-tag >> 16) & 0xFF), (char)((-tag >> 24) & 0xFF), 0}
+
+#ifdef MAC
+#define PROFILER_BEGIN(x) ProfilerBegin(x)
+#define PROFILER_END(x) ProfilerEnd(x)
+#else
+#define PROFILER_BEGIN(x)
+#define PROFILER_END(x)
+#endif
+
 /*
 	Assert disco.
 
