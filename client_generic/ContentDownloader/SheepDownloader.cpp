@@ -91,6 +91,8 @@ uint32 SheepDownloader::fCurrentGeneration = 0;
 bool SheepDownloader::fGotList = false;
 bool SheepDownloader::fListDirty = true;
 time_t SheepDownloader::fLastListTime = 0;
+SheepArray SheepDownloader::fServerFlock;
+SheepArray SheepDownloader::fClientFlock;
 
 boost::mutex SheepDownloader::s_DownloaderMutex;
 
@@ -103,9 +105,15 @@ SheepDownloader::SheepDownloader( boost::shared_mutex& _downloadSaveMutex ) : m_
 	m_bAborted = false;
 	fGotList = false;
 	fListDirty = true;
-	updateCachedSheep();
-	deleteCached(0, 0);
-	deleteCached(0, 1);
+
+    if (Shepherd::useDreamAI())
+    {
+        parseSheepList();
+    }
+
+    updateCachedSheep();
+    deleteCached(0, 0);
+    deleteCached(0, 1);
 }
 
 /*
@@ -215,9 +223,7 @@ bool SheepDownloader::downloadSheep( Sheep *sheep )
 	char filename[ MAXBUF ];
     if (Shepherd::useDreamAI())
     {
-        std::vector<std::string> urlParts;
-        boost::split(urlParts, sheep->URL(), boost::is_any_of("/"));
-        snprintf(filename, MAXBUF, "%s%s", Shepherd::mpegPath(), urlParts.back().c_str());
+        snprintf(filename, MAXBUF, "%s%s.mp4", Shepherd::mpegPath(), sheep->uuid());
     }
     else
     {
@@ -431,7 +437,7 @@ void SheepDownloader::parseSheepList()
         char pbuf[MAXBUF];
         snprintf(pbuf, MAX_PATH, "%sdreams.json", Shepherd::xmlPath());
         std::ifstream file(pbuf);
-        int dreamIndex = 0;
+        size_t dreamIndex = 0;
         try
         {
             boost::json::error_code ec;
@@ -445,7 +451,7 @@ void SheepDownloader::parseSheepList()
                 return;
             }
             boost::json::value data = response.at("data");
-            int32_t count = (int32_t)data.at("count").as_int64();
+            size_t count = (size_t)data.at("count").as_int64();
             boost::json::value dreams = data.at("dreams");
             
             if (count)
@@ -461,31 +467,22 @@ void SheepDownloader::parseSheepList()
                 do
                 {
                     boost::json::value dream = dreams.at(dreamIndex);
+                    boost::json::value video = dream.at("video");
+                    if (video.is_null())
+                        continue;
+
+                    //"uuid": "eedf9ae8-1b5f-4b5d-bb8d-a98df40d0695",
+                    //"name": "digital dadaism, evolution in the style of Salvador Dali",
+                    //"created_at": "2023-10-23T00:19:42.911Z",
 
                     //    Create a new sheep and parse the attributes.
                     Sheep *newSheep = new Sheep();
                     newSheep->setGeneration( currentGeneration() );
-                    //"id": 27,
-                    //"uuid": "eedf9ae8-1b5f-4b5d-bb8d-a98df40d0695",
-                    //"name": "digital dadaism, evolution in the style of Salvador Dali",
-                    //"video": "https://edream-storage-dreams-staging.s3.us-east-1.amazonaws.com/92e1c95c-031f-46b8-ab7e-b67b52423828/eedf9ae8-1b5f-4b5d-bb8d-a98df40d0695/eedf9ae8-1b5f-4b5d-bb8d-a98df40d0695.mp4",
-                    //"thumbnail": "https://edream-storage-dreams-staging.s3.us-east-1.amazonaws.com/92e1c95c-031f-46b8-ab7e-b67b52423828/eedf9ae8-1b5f-4b5d-bb8d-a98df40d0695/eedf9ae8-1b5f-4b5d-bb8d-a98df40d0695.jpg",
-                    //"created_at": "2023-10-23T00:19:42.911Z",
-                    //"updated_at": "2023-10-23T00:21:16.370Z",
-                    
-                    boost::json::value video = dream.at("video");
-                    if (video.is_null())
-                        continue;
                     newSheep->setId((uint32)dream.at("id").as_int64());
                     newSheep->setURL(video.as_string().data());
-                    boost::json::string timeString = dream.at("updated_at").as_string();
-                    struct tm timeinfo = {};
-                    strptime(timeString.data(), "%Y-%m-%dT%H:%M:%S", &timeinfo);
-                    timeinfo.tm_isdst = 0; // Set daylight saving time to 0
-                    time_t time = std::mktime(&timeinfo);
-                    g_Log->Error("TIME:%s      %d", timeString.data(), time);
-                    newSheep->setFileWriteTime(time);
+                    newSheep->setFileWriteTime(dream.at("updated_at").as_string().data());
                     newSheep->setRating(atoi("5"));
+                    newSheep->setUuid(dream.at("uuid").as_string().data());
                     fServerFlock.push_back(newSheep);
                 }
                 while (++dreamIndex < count);
@@ -994,6 +991,7 @@ void	SheepDownloader::findSheepToDownload()
 									break;
 							}
 
+                            //@TODO: is this correct?
 							//	If it is not found and the cache is ok to store than check if the file should be downloaded based on rating and server file write time.
 							if( (j == fClientFlock.size()) && !cacheOverflow((double)fServerFlock[i]->fileSize(), fServerFlock[i]->getGenerationType()) )
 							{

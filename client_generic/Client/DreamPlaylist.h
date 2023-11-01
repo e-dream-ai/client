@@ -156,8 +156,13 @@ class	CDreamPlaylist : public CPlaylist
 						m_FlockMBs = ContentDownloader::Shepherd::GetFlockSizeMBsRecount(0);
 						m_FlockGoldMBs = ContentDownloader::Shepherd::GetFlockSizeMBsRecount(1);
 					}
-					UpdateDirectory( m_Path, _bRebuild );
+					//UpdateDirectory( m_Path, _bRebuild );
 					m_Clock = m_Timer.Time();
+                    auto sheep = ContentDownloader::SheepDownloader::getClientFlock();
+                    for (auto sh = sheep->begin(); sh != sheep->end(); ++sh)
+                    {
+                        Add(sh->fileName());
+                    }
 				}
                 
                 if (m_List.empty())

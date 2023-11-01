@@ -23,6 +23,9 @@
 #ifndef _SHEEP_H_
 #define _SHEEP_H_
 
+#include <string>
+#include <unordered_map>
+
 #include "base.h"
 
 namespace ContentDownloader
@@ -81,9 +84,19 @@ public:
 	//
 	const char *fileName() const { return fFileName; }
 
+    // Sets the sheep file name
+    //
+    void setUuid(const char *uuid);
+
+    // gets the sheep file name
+    //
+    const char *uuid() const { return fUuid; }
+
 	// sets the file write time
 	//
 	void setFileWriteTime( const time_t &time ) { fWriteTime = time; }
+    
+    void setFileWriteTime (const char* timeString );
 
 	// gets the file write time
 	//
@@ -171,6 +184,7 @@ private:
 	//
 	char		*fURL;
 	char		*fFileName;
+    char        *fUuid;
 	uint64		fFileSize;
 	time_t		fWriteTime;
 	int			fRating;
@@ -184,10 +198,53 @@ private:
 	bool		fIsTemp;
 };
 
-// This is a convienince for defining an array
-// of sheep using stl::vector
-//
-typedef std::vector<Sheep *> SheepArray;
+struct SheepArray
+{
+    typedef std::string key_type;
+    typedef Sheep* mapped_type;
+    typedef std::vector<mapped_type>::iterator iterator;
+
+    std::vector<mapped_type> vecData;
+    std::unordered_map<key_type, mapped_type> mapData;
+
+
+    iterator begin() { return vecData.begin(); }
+    iterator end() { return vecData.end(); }
+    size_t size() { return vecData.size(); }
+    
+    Sheep*& operator[](size_t i)
+    {
+        return vecData[i];
+    }
+
+    Sheep* operator[](const std::string& key)
+    {
+        return mapData[key];
+    }
+    
+    bool tryGetSheepWithUuid(const std::string& key, Sheep*& outSheep) const
+    {
+        auto i = mapData.find(key);
+        if (i == mapData.end())
+            return false;
+        outSheep = i->second;
+        return true;
+    }
+
+	void push_back(Sheep *sheep)
+	{
+		std::string key(sheep->uuid());
+        mapData[key] = sheep;
+		vecData.push_back(sheep);
+	}
+    
+    void clear()
+    {
+        mapData.clear();
+        vecData.clear();
+    }
+};
+//typedef vecmap<std::string, Sheep *> SheepArray;
 
 };
 

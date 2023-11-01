@@ -58,8 +58,10 @@ Sheep::Sheep( const Sheep &sheep )
 {
 	fURL = NULL;
 	fFileName = NULL;
+    fUuid = NULL;
 	setURL(sheep.fURL);
 	setFileName(sheep.fFileName);
+    setUuid(sheep.fUuid);
 	fFileSize = sheep.fFileSize;
 	fWriteTime = sheep.fWriteTime;
 	fRating = sheep.fRating;
@@ -130,6 +132,30 @@ Sheep::setFileName(const char *filename)
 		fFileName = new char[strlen(filename) + 1];
 		strcpy(fFileName, filename);
 	}
+}
+
+void Sheep::setUuid(const char *uuid)
+{
+    if(fUuid == NULL)
+    {
+        delete[] fUuid;
+        fUuid = NULL;
+    }
+
+    if (uuid)
+    {
+        fUuid = new char[strlen(uuid) + 1];
+        strcpy(fUuid, uuid);
+    }
+}
+
+void Sheep::setFileWriteTime(const char* timeString)
+{
+    struct tm timeinfo = {};
+    strptime(timeString, "%Y-%m-%dT%H:%M:%S", &timeinfo);
+    timeinfo.tm_isdst = 0; // Set daylight saving time to 0
+    time_t time = std::mktime(&timeinfo);
+    setFileWriteTime(time);
 }
 
 };

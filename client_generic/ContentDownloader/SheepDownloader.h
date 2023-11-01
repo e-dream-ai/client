@@ -45,8 +45,8 @@ class SheepDownloader
 	static int fDownloadedSheep;
 
 	// sheep flocks
-	SheepArray fServerFlock;
-	SheepArray fClientFlock;
+	static SheepArray fServerFlock;
+	static SheepArray fClientFlock;
 	SheepRenderer *fRenderer;
 
 	// boolean for message checks
@@ -127,6 +127,8 @@ class SheepDownloader
 			static uint32 currentGeneration() { return fCurrentGeneration; }
 
 			static bool getSheepList();
+            static const SheepArray& getServerFlock() { return fServerFlock; }
+            static const SheepArray& getClientFlock() { return fServerFlock; }
 
 
 			// add to the number of downloaded sheep (called by torrent)

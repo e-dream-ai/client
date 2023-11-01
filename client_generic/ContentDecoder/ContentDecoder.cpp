@@ -492,12 +492,27 @@ bool	CContentDecoder::NextSheepForPlaying( int32 _forceNext )
 		
     if (m_bCalculateTransitions &&
         m_SecondVideoInfo != NULL &&
-        !m_SecondVideoInfo->IsOpen() &&
-        m_MainVideoInfo->m_Last != m_SecondVideoInfo->m_SheepID &&
-        m_MainVideoInfo->m_SheepID != m_SecondVideoInfo->m_First &&
-        m_MainVideoInfo->m_Last != m_SecondVideoInfo->m_First && (m_MainVideoInfo->m_Generation / 10000) == (m_SecondVideoInfo->m_Generation / 10000))
+        !m_SecondVideoInfo->IsOpen())
     {
-        Open( m_SecondVideoInfo );
+        bool openSecondVideo = false;
+        if (ContentDownloader::Shepherd::useDreamAI())
+        {
+            openSecondVideo = true;
+        }
+        else
+        {
+            if (m_MainVideoInfo->m_Last != m_SecondVideoInfo->m_SheepID &&
+                m_MainVideoInfo->m_SheepID != m_SecondVideoInfo->m_First &&
+                m_MainVideoInfo->m_Last != m_SecondVideoInfo->m_First &&
+                (m_MainVideoInfo->m_Generation / 10000) == (m_SecondVideoInfo->m_Generation / 10000))
+            {
+                openSecondVideo = true;
+            }
+        }
+        if (openSecondVideo)
+        {
+            Open(m_SecondVideoInfo);
+        }
     }
 
 	return true;

@@ -98,7 +98,7 @@ class Shepherd
 	}	SHEPHERD_MESSAGE;
 
 	//	Gets all sheep in path.
-	static bool getSheep( const char *path, SheepArray *sheep );
+	static bool getSheep( const char *path, SheepArray *sheep, const SheepArray& serverFlock );
 
 	static uint64 s_ClientFlockBytes;
 	static uint64 s_ClientFlockCount;
