@@ -67,6 +67,7 @@ class	CLuaPlaylist : public CPlaylist
 	fp8				m_MedianLevel;
 	uint64			m_FlockMBs;
 	uint64			m_FlockGoldMBs;
+    std::queue<std::string>    m_List;
 
 	//	The lua state that will do all the work.
 	Base::Script::CLuaState	*m_pState;
@@ -378,11 +379,13 @@ class	CLuaPlaylist : public CPlaylist
 				return (uint32)ret;
 			}
 
-			virtual bool	Next( std::string &_result, bool &_bEnoughSheep, uint32 _curID, const bool _bRebuild = false, bool _bStartByRandom = true )
+			virtual bool	Next( std::string &_result, bool &_bEnoughSheep, uint32 _curID, bool& _playFreshSheep, const bool _bRebuild = false, bool _bStartByRandom = true )
 			{
 				boost::mutex::scoped_lock locker( m_Lock );
 								
 				fp8 interval = ( m_numSheep >  kSheepNumTreshold ) ? m_NormalInterval : m_EmptyInterval;
+
+                _playFreshSheep = false;
 
 				//	Update from directory if enough time has passed, or we're asked to.
 				if( _bRebuild || ((m_Timer.Time() - m_Clock) > interval) )

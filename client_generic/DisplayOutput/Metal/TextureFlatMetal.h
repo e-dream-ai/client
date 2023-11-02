@@ -21,6 +21,7 @@ class CTextureFlatMetal : public CTextureFlat
     CFTypeRef           m_pTextureContext;
     CRendererMetal*     m_pRenderer;
     ContentDecoder::spCVideoFrame m_spBoundFrame;
+    char name[5];
 
 	public:
             CTextureFlatMetal( CGraphicsContext _graphicsContext, const uint32 _flags, CRendererMetal* _pRenderer );

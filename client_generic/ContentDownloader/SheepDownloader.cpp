@@ -55,6 +55,7 @@
 #include "Networking.h"
 #include "ContentDownloader.h"
 #include "SheepDownloader.h"
+#include "Player.h"
 #ifdef WIN32
 #include "io.h"
 #include "SheepGenerator.h"
@@ -236,6 +237,7 @@ bool SheepDownloader::downloadSheep( Sheep *sheep )
             g_Log->Error( "Unable to save %s\n", filename );
             return false;
         }
+        g_Player().Add(filename);
     }
 
     return true;

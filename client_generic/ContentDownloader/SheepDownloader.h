@@ -128,7 +128,7 @@ class SheepDownloader
 
 			static bool getSheepList();
             static const SheepArray& getServerFlock() { return fServerFlock; }
-            static const SheepArray& getClientFlock() { return fServerFlock; }
+            static const SheepArray& getClientFlock() { return fClientFlock; }
 
 
 			// add to the number of downloaded sheep (called by torrent)

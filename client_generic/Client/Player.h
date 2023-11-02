@@ -213,6 +213,7 @@ private:
 				return decoder->GetCurrentPlayingGeneration();
 			};
 			
+            inline void     Add(const std::string& _fileName) { if (!m_spPlaylist.IsNull()) m_spPlaylist->Add(_fileName); }
 			inline void		Delete( const uint32 _id )			{	if ( !m_spPlaylist.IsNull() ) m_spPlaylist->Delete( _id );	};
 			inline void		SkipToNext( void )
 			{

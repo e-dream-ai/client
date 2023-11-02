@@ -36,14 +36,18 @@ namespace    DisplayOutput
 CTextureFlatMetal::CTextureFlatMetal( CGraphicsContext _graphicsContext, const uint32 _flags, CRendererMetal* _pRenderer  )
     : CTextureFlat( _flags ), m_pGraphicsContext(_graphicsContext), m_pRenderer(_pRenderer)
 {
-    TextureFlatMetalContext* textureContext = [[TextureFlatMetalContext alloc] init];
+    TextureFlatMetalContext* textureContext = [[TextureFlatMetalContext alloc] init]; //@TODO: check what all these textures are
     m_pTextureContext = CFBridgingRetain(textureContext);
+    for(int i=0;i<4;++i)name[i]='A'+((char)std::rand()%22);name[4] = 0; //@TODO: cleanup
+    m_spBoundFrame = NULL;
+    g_Log->Error("TEXTURES:ALLOCATING TEXTURE:%s %i isnull:%i", name, m_spBoundFrame == NULL, m_spBoundFrame.IsNull());
 }
 
 /*
 */
 CTextureFlatMetal::~CTextureFlatMetal()
 {
+    g_Log->Error("TEXTURES:DESTROYING TEXTURE:%s bound:%i isnull:%i", name, m_spBoundFrame == NULL, m_spBoundFrame.IsNull());
     CFBridgingRelease(m_pTextureContext);
 }
 

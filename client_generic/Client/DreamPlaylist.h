@@ -12,6 +12,7 @@
 #include "Shepherd.h"
 #include "isaac.h"
 #include "ContentDownloader.h"
+#include "SheepDownloader.h"
 
 #include	"boost/filesystem/path.hpp"
 #include	"boost/filesystem/operations.hpp"
@@ -49,6 +50,7 @@ class	CDreamPlaylist : public CPlaylist
 	uint64			m_FlockMBs;
 	uint64			m_FlockGoldMBs;
     std::queue<std::string>    m_List;
+    std::queue<std::string>    m_FreshList;
 
 
 	
@@ -100,102 +102,147 @@ class	CDreamPlaylist : public CPlaylist
 		for( std::vector<std::string>::const_iterator i=files.begin(); i!=files.end(); ++i )
             Add(*i);
 	}
-
-	public:
-			CDreamPlaylist( const std::string &_watchFolder) : CPlaylist()/*, m_UsedSheepType(_usedsheeptype)*/
-			{
-				m_NormalInterval = fp8(g_Settings()->Get( "settings.player.NormalInterval", 100 ));
-				m_EmptyInterval = 10.0f;
-				m_Clock = 0.0f;
- 				m_Path = _watchFolder.c_str();
-				
-				m_numSheep = 0;
-				
-				UpdateDirectory( m_Path );
-			}
-
-			//
-			virtual ~CDreamPlaylist()
-			{
-			}
-
-			//
-			virtual bool	Add( const std::string &_file )
-			{
-				//boost::mutex::scoped_lock locker( m_Lock );
-                m_List.push(_file);
-				return true ;
-			}
-
-			virtual uint32	Size()
-			{
-				boost::mutex::scoped_lock locker( m_Lock );
-				uint32	ret = 0;
-                ret = static_cast<uint32>(m_List.size());
-				return (uint32)ret;
-			}
     
-            virtual void Clear()
+    bool PlayFreshOnesFirst(std::string& _result)
+    {
+        if (!m_FreshList.empty())
+        {
+            _result = m_FreshList.front();
+            m_FreshList.pop();
+            return true;
+        }
+        return false;
+    }
+
+public:
+    CDreamPlaylist( const std::string &_watchFolder) : CPlaylist()/*, m_UsedSheepType(_usedsheeptype)*/
+    {
+        m_NormalInterval = fp8(g_Settings()->Get( "settings.player.NormalInterval", 100 ));
+        m_EmptyInterval = 10.0f;
+        m_Clock = 0.0f;
+        m_Path = _watchFolder.c_str();
+        
+        m_numSheep = 0;
+        
+        //UpdateDirectory( m_Path );
+    }
+
+    //
+    virtual ~CDreamPlaylist()
+    {
+    }
+
+    //
+    virtual bool	Add( const std::string &_file )
+    {
+        boost::mutex::scoped_lock locker( m_Lock );
+        m_FreshList.push(_file);
+        return true ;
+    }
+
+    virtual uint32	Size()
+    {
+        boost::mutex::scoped_lock locker( m_Lock );
+        uint32	ret = 0;
+        ret = static_cast<uint32>(m_List.size());
+        return (uint32)ret;
+    }
+
+    virtual void Clear()
+    {
+        std::queue<std::string> empty;
+        std::swap(m_List, empty);
+    }
+
+
+    virtual bool PopFreshlyDownloadedSheep(std::string& _result)
+    {
+        boost::mutex::scoped_lock locker( m_Lock );
+        if (!m_FreshList.empty())
+        {
+            _result = m_FreshList.front();
+            m_FreshList.pop();
+            return true;
+        }
+        return false;
+    }
+
+    virtual bool HasFreshlyDownloadedSheep()
+    {
+        boost::mutex::scoped_lock locker( m_Lock );
+        return !m_FreshList.empty();
+    }
+
+    virtual bool	Next( std::string &_result, bool &_bEnoughSheep, uint32 _curID, bool& _playFreshSheep, const bool _bRebuild = false, bool _bStartByRandom = true )
+    {
+        boost::mutex::scoped_lock locker( m_Lock );
+        
+        //if ((_playFreshSheep = PlayFreshOnesFirst(_result)))
+            //return true;
+                        
+        fp8 interval = ( m_numSheep >  kSheepNumTreshold ) ? m_NormalInterval : m_EmptyInterval;
+
+        //	Update from directory if enough time has passed, or we're asked to.
+        if( _bRebuild )// || ((m_Timer.Time() - m_Clock) > interval) )
+        {
+            if (g_PlayCounter().ReadOnlyPlayCounts())
             {
-                std::queue<std::string> empty;
-                std::swap(m_List, empty);
+                g_PlayCounter().ClosePlayCounts();
+                m_FlockMBs = ContentDownloader::Shepherd::GetFlockSizeMBsRecount(0);
+                m_FlockGoldMBs = ContentDownloader::Shepherd::GetFlockSizeMBsRecount(1);
+            }
+            //UpdateDirectory( m_Path, _bRebuild );
+            m_Clock = m_Timer.Time();
+            auto allSheep = ContentDownloader::SheepDownloader::getClientFlock();
+            std::vector<ContentDownloader::Sheep*> sheepList;
+            for (auto it = allSheep.begin(); it != allSheep.end(); ++it)
+            {
+                ContentDownloader::Sheep* sheep = *it;
+                sheepList.push_back(sheep);
             }
 
-			virtual bool	Next( std::string &_result, bool &_bEnoughSheep, uint32 _curID, const bool _bRebuild = false, bool _bStartByRandom = true )
-			{
-				boost::mutex::scoped_lock locker( m_Lock );
-								
-				fp8 interval = ( m_numSheep >  kSheepNumTreshold ) ? m_NormalInterval : m_EmptyInterval;
+            std::sort(sheepList.begin(), sheepList.end(), [](ContentDownloader::Sheep* a, ContentDownloader::Sheep* b) {
+                return a->fileWriteTime() > b->fileWriteTime();
+            });
+            for (auto it = sheepList.begin(); it != sheepList.end(); ++it)
+            {
+                ContentDownloader::Sheep* sheep = *it;
+                std::string fileName = sheep->fileName();
+                m_List.push(fileName);
+            }
+        }
+        
+        if (m_List.empty())
+            return false;
 
-				//	Update from directory if enough time has passed, or we're asked to.
-				if( _bRebuild || ((m_Timer.Time() - m_Clock) > interval) )
-				{
-					if (g_PlayCounter().ReadOnlyPlayCounts())
-					{
-						g_PlayCounter().ClosePlayCounts();
-						m_FlockMBs = ContentDownloader::Shepherd::GetFlockSizeMBsRecount(0);
-						m_FlockGoldMBs = ContentDownloader::Shepherd::GetFlockSizeMBsRecount(1);
-					}
-					//UpdateDirectory( m_Path, _bRebuild );
-					m_Clock = m_Timer.Time();
-                    auto sheep = ContentDownloader::SheepDownloader::getClientFlock();
-                    for (auto sh = sheep->begin(); sh != sheep->end(); ++sh)
-                    {
-                        Add(sh->fileName());
-                    }
-				}
-                
-                if (m_List.empty())
-                    return false;
+        _result = m_List.front();
+        m_List.pop();
 
-                _result = m_List.front();
-                m_List.pop();
+        _bEnoughSheep = ( m_numSheep > kSheepNumTreshold );
+        
+        return true;
+    }
+    
+    virtual bool ChooseSheepForPlaying(uint32 curGen, uint32 curID)
+    {
+        g_PlayCounter().IncPlayCount(curGen, curID);
+        
+        return true;
+    }
 
-				_bEnoughSheep = ( m_numSheep > kSheepNumTreshold );
-				
-				return true;
-			}
-			
-			virtual bool ChooseSheepForPlaying(uint32 curGen, uint32 curID)
-			{
-				g_PlayCounter().IncPlayCount(curGen, curID);
-				
-				return true;
-			}
+    //	Overrides the playlist to play _id next time.
+    void	Override( const uint32 _id )
+    {
+        boost::mutex::scoped_lock locker( m_Lock );
+        //m_pState->Pop( Base::Script::Call( m_pState->GetState(), "Override", "i", _id ) );
+    }
 
-			//	Overrides the playlist to play _id next time.
-			void	Override( const uint32 _id )
-			{
-				boost::mutex::scoped_lock locker( m_Lock );
-				//m_pState->Pop( Base::Script::Call( m_pState->GetState(), "Override", "i", _id ) );
-			}
-
-			//	Queues _id to be deleted.
-			void	Delete( const uint32 _id )
-			{
-				boost::mutex::scoped_lock locker( m_Lock );
-				//m_pState->Pop( Base::Script::Call( m_pState->GetState(), "Delete", "i", _id ) );
-			}
+    //	Queues _id to be deleted.
+    void	Delete( const uint32 _id )
+    {
+        boost::mutex::scoped_lock locker( m_Lock );
+        //m_pState->Pop( Base::Script::Call( m_pState->GetState(), "Delete", "i", _id ) );
+    }
 };
 
 MakeSmartPointers( CDreamPlaylist );

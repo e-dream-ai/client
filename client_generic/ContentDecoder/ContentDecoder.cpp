@@ -323,7 +323,15 @@ sOpenVideoInfo*	CContentDecoder::GetNextSheepInfo()
 {
 	std::string name;
 
-	sOpenVideoInfo *retOVI = NULL;
+    sOpenVideoInfo *retOVI = NULL;
+    
+    if (m_spPlaylist->PopFreshlyDownloadedSheep(name))
+    {
+        retOVI = new sOpenVideoInfo;
+        retOVI->m_Path.assign(name);
+        return retOVI;
+    }
+
 	
 	bool sheepfound = false;
 	
@@ -542,9 +550,10 @@ void	CContentDecoder::CalculateNextSheep()
 			
 			std::string _spath;
 			bool _enoughSheep = true;
+            bool _playFreshSheep = false;
             {
-                boost::shared_lock<boost::shared_mutex> lock(m_DownloadSaveMutex);
-                if( m_spPlaylist->Next( _spath, _enoughSheep, _curID, bRebuild, m_bStartByRandom ) )
+                //boost::shared_lock<boost::shared_mutex> lock(m_DownloadSaveMutex); //@TODO: strip out
+                if( m_spPlaylist->Next( _spath, _enoughSheep, _curID, _playFreshSheep, bRebuild, m_bStartByRandom ) )
                 {
                     bRebuild = false;
                     
@@ -574,7 +583,8 @@ void	CContentDecoder::CalculateNextSheep()
                             }
                         }
                     }
-                    
+                    //if (_playFreshSheep)
+                        //m_NextSheepQueue.clear(0);
                     m_NextSheepQueue.push( _spath );
                 }
                 else
@@ -858,6 +868,12 @@ void	CContentDecoder::ReadPackets()
 					
 					//printf( "yielding..." );
 					//m_pDecoderThread->yield();
+                    
+                    if (m_spPlaylist->HasFreshlyDownloadedSheep())
+                    {
+                        m_SecondVideoInfo = GetNextSheepInfo();
+                        Open(m_SecondVideoInfo);
+                    }
 				}
                 else
                 {

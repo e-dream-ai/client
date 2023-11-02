@@ -19,10 +19,12 @@ class	CPlaylist
 			virtual ~CPlaylist()	{}
 			virtual uint32	Size() = PureVirtual;
 			virtual bool	Add( const std::string &_file ) = PureVirtual;
-			virtual bool	Next( std::string &_result, bool& _bEnoughSheep, uint32 _curID, const bool _bRebuild = false, bool _bStartByRandom = true ) = PureVirtual;
+			virtual bool	Next( std::string &_result, bool& _bEnoughSheep, uint32 _curID, bool& _playFreshSheep, const bool _bRebuild = false, bool _bStartByRandom = true ) = PureVirtual;
 			virtual bool	ChooseSheepForPlaying( uint32 curGen, uint32 curID ) = PureVirtual;
 			virtual void	Override( const uint32 _id ) = PureVirtual;
 			virtual void	Delete( const uint32 _id ) = PureVirtual;
+            virtual bool PopFreshlyDownloadedSheep(std::string& _result) { return false; }
+            virtual bool HasFreshlyDownloadedSheep() { return false; }
 
 			virtual bool GetSheepInfoFromPath( const std::string& _path, uint32& Generation, uint32& ID, uint32& First, uint32& Last, std::string& _filename )
 			{

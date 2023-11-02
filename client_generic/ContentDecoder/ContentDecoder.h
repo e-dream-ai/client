@@ -226,7 +226,6 @@ class CContentDecoder
 	bool			m_Initialized;
 	
 	bool			m_bCalculateTransitions;
-    boost::shared_mutex& m_DownloadSaveMutex;
 
 #ifdef MAC
     os_log_t m_signpostHandle;
