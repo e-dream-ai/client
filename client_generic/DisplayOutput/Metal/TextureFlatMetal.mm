@@ -98,7 +98,7 @@ bool CTextureFlatMetal::Upload( spCImage _spImage )
     uint32_t height = _spImage->GetHeight();
     id<MTLTexture> texture = textureContext->yTexture;
     
-    //TODO: Probably need to set sampler descriptor here
+    //@TODO: Probably need to set sampler descriptor here
     //Create Metal texture if it doesn's exist yet
     if (texture == nil)
     {
@@ -123,7 +123,7 @@ bool CTextureFlatMetal::Upload( spCImage _spImage )
         };
         if (format.isCompressed())
         {
-            //TODO: Implement compressed textures if needed
+            //@TODO: Implement compressed textures if needed
             g_Log->Error( "Compressed texture are currently unsupported on Metal." );
             return false;
         }
@@ -162,11 +162,10 @@ bool    CTextureFlatMetal::Unbind( const uint32 _index )
     return true;
 }
 
-bool CTextureFlatMetal::GetMetalTextures(CVMetalTextureRef* _outYTexture, CVMetalTextureRef* _outUVTexture)
+bool CTextureFlatMetal::GetYUVMetalTextures(CVMetalTextureRef* _outYTexture, CVMetalTextureRef* _outUVTexture)
 {
     if (m_spBoundFrame == NULL)
         return false;
-    TextureFlatMetalContext* textureContext = (__bridge TextureFlatMetalContext*)m_pTextureContext;
     MTKView* view = (__bridge MTKView*)m_pGraphicsContext;
     //if (textureContext->yTexture == nil)
     {
@@ -212,14 +211,21 @@ bool CTextureFlatMetal::GetMetalTextures(CVMetalTextureRef* _outYTexture, CVMeta
     return true;
 }
 
+id<MTLTexture> CTextureFlatMetal::GetRGBMetalTexture()
+{
+    TextureFlatMetalContext* textureContext = (__bridge TextureFlatMetalContext*)m_pTextureContext;
+    return textureContext->yTexture;
+}
+
 CVMetalTextureRef CTextureFlatMetal::GetCVMetalTextureRef()
 {
     TextureFlatMetalContext* textureContext = (__bridge TextureFlatMetalContext*)m_pTextureContext;
     return textureContext->decoderFrameYTextureRef;
 }
 
-bool    CTextureFlatMetal::BindFrame(ContentDecoder::spCVideoFrame _spFrame)
+bool CTextureFlatMetal::BindFrame(ContentDecoder::spCVideoFrame _spFrame)
 {
+    m_Flags |= eTextureFlags::TEXTURE_YUV;
     //ReleaseMetalTexture();
     m_spBoundFrame = _spFrame;
     if (m_spBoundFrame->Frame() == NULL)

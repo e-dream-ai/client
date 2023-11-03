@@ -57,7 +57,7 @@ static void AVCodecLogCallback(void* /*_avcl*/, int _level, const char* _fmt, va
 	CContentDecoder.
 
 */
-CContentDecoder::CContentDecoder( spCPlaylist _spPlaylist, bool _bStartByRandom, bool _bCalculateTransitions, const uint32 _queueLenght, boost::shared_mutex& _downloadSaveMutex, AVPixelFormat _wantedFormat ) : m_DownloadSaveMutex(_downloadSaveMutex)
+CContentDecoder::CContentDecoder( spCPlaylist _spPlaylist, bool _bStartByRandom, bool _bCalculateTransitions, const uint32 _queueLenght, boost::shared_mutex& _downloadSaveMutex, AVPixelFormat _wantedFormat ) 
 {
 	g_Log->Info( "CContentDecoder()" );
 	m_FadeCount = static_cast<uint32>(g_Settings()->Get("settings.player.fadecount", 30));

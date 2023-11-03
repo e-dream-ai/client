@@ -85,7 +85,7 @@ class	CFrameDisplay
 
 				if (_spTexture.IsNull())
 					_spTexture = m_spRenderer->NewTextureFlat();
-				
+
 				if( _spTexture == NULL )
 					return false;
                 if (m_spFrameData->Frame())
@@ -304,8 +304,8 @@ class	CFrameDisplay
                     m_spRenderer->SetTexture( NULL, 1 );
                 }
                 m_spRenderer->Apply();
-                fp4 transCoef = m_MetaData.m_TransitionProgress / 100.0f;
-                m_spRenderer->DrawQuad( m_texRect, Base::Math::CVector4( 10,1,1, currentalpha * transCoef ), m_spVideoTexture->GetRect() );
+                fp4 crossfadeRatio = m_MetaData.m_TransitionProgress / 100.0f;
+                m_spRenderer->DrawQuad( m_texRect, Base::Math::CVector4( 1,1,1,1 ), m_spVideoTexture->GetRect(), currentalpha * crossfadeRatio );
 
 				return true;
 			}

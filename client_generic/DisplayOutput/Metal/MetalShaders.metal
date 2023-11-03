@@ -6,6 +6,9 @@
 //
 
 #include <metal_stdlib>
+
+#include "ShaderUniforms.h"
+
 using namespace metal;
 
 
@@ -24,14 +27,6 @@ vertex ColorInOut quadPassVertex(uint vid[[vertex_id]])
     out.position = position;
     out.uv = uv;
     return out;
-}
-
-fragment float4 texture_fragment(ColorInOut vert [[stage_in]],
-                                texture2d<float, access::sample> texture [[texture(0)]])
-{
-    constexpr sampler s( address::repeat, filter::linear );
-    float4 color = texture.sample(s, vert.uv);
-    return color;
 }
 
 fragment float4 texture_fragment_YUV2(ColorInOut vert [[stage_in]],
@@ -76,10 +71,6 @@ float4 SampleTextureRGBA(float2 uv, texture2d<float, access::sample> yTexture, t
     rgba.w = 1;
     return rgba;
 }
-struct FragmentUniforms {
-    float transitionCoefficient;
-};
-
 
 fragment float4 texture_fragment_YUV(ColorInOut vert [[stage_in]],
                                      texture2d<float, access::sample> yTexture1 [[texture(0)]],
@@ -90,5 +81,15 @@ fragment float4 texture_fragment_YUV(ColorInOut vert [[stage_in]],
 {
     float4 rgba1 = SampleTextureRGBA(vert.uv, yTexture1, uvTexture1);
     float4 rgba2 = SampleTextureRGBA(vert.uv, yTexture2, uvTexture2);
-    return mix(rgba1, rgba2, uniforms.transitionCoefficient);
+    return mix(rgba1, rgba2, uniforms.crossfadeRatio);
+}
+
+fragment float4 texture_fragment_RGB(ColorInOut vert [[stage_in]],
+                                texture2d<float, access::sample> texture [[texture(0)]],
+                                     constant FragmentUniforms &uniforms [[buffer(0)]])
+{
+    constexpr sampler s( address::clamp_to_zero, filter::linear );
+    float2 adjustedUV = (vert.uv - uniforms.rect.xy) / uniforms.rect.zw;
+    float4 color = texture.sample(s, adjustedUV);
+    return color;
 }

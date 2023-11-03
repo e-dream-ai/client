@@ -7,12 +7,14 @@
 
 #include "RendererMetal.h"
 #include "TextureFlatMetal.h"
+#include "ShaderUniforms.h"
 
 static const NSUInteger MaxFramesInFlight = 3;
 
 @interface RendererContext : NSObject
 {
-    @public id<MTLRenderPipelineState> renderPipeline;
+    @public id<MTLRenderPipelineState> yuvPipeline;
+    @public id<MTLRenderPipelineState> rgbPipeline;
     @public MTKView* metalView;
     @public std::map<uint32_t, DisplayOutput::CTextureFlatMetal*> boundTextures;
     @public id<MTLCommandQueue> commandQueue;
@@ -87,34 +89,42 @@ bool	CRendererMetal::Initialize( spCDisplayOutput _spDisplay )
         rendererContext->uniformBuffers[i] = [device newBufferWithBytes:&alpha length:sizeof(float) options:MTLResourceStorageModeShared];
     }
     
-    NSError* error;
     
     id<MTLLibrary> defaultLibrary = [device newDefaultLibrary];
     {
         id<MTLFunction> vertexFunc = [defaultLibrary newFunctionWithName:@"quadPassVertex"];
-        id<MTLFunction> fragmentFunc = [defaultLibrary newFunctionWithName:@"texture_fragment_YUV"];
+        id<MTLFunction> fragmentFuncYUV = [defaultLibrary newFunctionWithName:@"texture_fragment_YUV"];
+        id<MTLFunction> fragmentFuncRGB = [defaultLibrary newFunctionWithName:@"texture_fragment_RGB"];
 
-        MTLRenderPipelineDescriptor* renderPipelineDesc = [MTLRenderPipelineDescriptor new];
-        renderPipelineDesc.label = @"Electric Sheep Render Pipeline";
-        renderPipelineDesc.vertexFunction = vertexFunc;
-        renderPipelineDesc.fragmentFunction = fragmentFunc;
-        renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].pixelFormat = metalView.colorPixelFormat;
-        renderPipelineDesc.depthAttachmentPixelFormat = metalView.depthStencilPixelFormat;
-        renderPipelineDesc.stencilAttachmentPixelFormat = MTLPixelFormatInvalid;
+        id <MTLRenderPipelineState> (^createRenderPipeline)(id<MTLFunction> fragmentFunc) = ^(id<MTLFunction> fragmentFunc)
+        {
+            MTLRenderPipelineDescriptor* renderPipelineDesc = [MTLRenderPipelineDescriptor new];
+            renderPipelineDesc.label = @"Electric Sheep Render Pipeline";
+            renderPipelineDesc.vertexFunction = vertexFunc;
+            renderPipelineDesc.fragmentFunction = fragmentFunc;
+            renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].pixelFormat = metalView.colorPixelFormat;
+            renderPipelineDesc.depthAttachmentPixelFormat = metalView.depthStencilPixelFormat;
+            renderPipelineDesc.stencilAttachmentPixelFormat = MTLPixelFormatInvalid;
 
-        renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].blendingEnabled = true;
-        renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].alphaBlendOperation = MTLBlendOperationAdd;
-        renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].sourceAlphaBlendFactor = MTLBlendFactorSourceAlpha;
-        renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
-        renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].sourceRGBBlendFactor = MTLBlendFactorSourceAlpha;
-        renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
-        renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].rgbBlendOperation = MTLBlendOperationAdd;
-        renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].writeMask = MTLColorWriteMaskAll;
-        id <MTLRenderPipelineState> renderPipelineState = [device newRenderPipelineStateWithDescriptor:renderPipelineDesc
-                                                                                                 error:&error];
-        rendererContext->renderPipeline = renderPipelineState;
-        if (error != nil)
-            g_Log->Error("Failed to create render pipeline state: %s", error.localizedDescription.UTF8String);
+            renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].blendingEnabled = true;
+            renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].alphaBlendOperation = MTLBlendOperationAdd;
+            renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].sourceAlphaBlendFactor = MTLBlendFactorSourceAlpha;
+            renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
+            renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].sourceRGBBlendFactor = MTLBlendFactorSourceAlpha;
+            renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
+            renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].rgbBlendOperation = MTLBlendOperationAdd;
+            renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].writeMask = MTLColorWriteMaskAll;
+            
+            NSError* error;
+            id <MTLRenderPipelineState> pipelineState = [device newRenderPipelineStateWithDescriptor:renderPipelineDesc
+                                                                                                     error:&error];
+            if (error != nil)
+                g_Log->Error("Failed to create render pipeline state: %s", error.localizedDescription.UTF8String);
+            return pipelineState;
+        };
+        rendererContext->yuvPipeline = createRenderPipeline(fragmentFuncYUV);
+        rendererContext->rgbPipeline = createRenderPipeline(fragmentFuncRGB);
+        
     }
 	return true;
 }
@@ -225,14 +235,22 @@ void	CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math:
 
 /*
 */
-void	CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math::CVector4 &_color, const Base::Math::CRect &_uvrect )
+void	CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math::CVector4 &_color, const Base::Math::CRect &_uvrect, float crossfadeRatio )
 {
     RendererContext* rendererContext = (__bridge RendererContext*)m_pRendererContext;
     @autoreleasepool
     {
         dispatch_semaphore_wait(rendererContext->inFlightSemaphore, DISPATCH_TIME_FOREVER);
 
-        id <MTLRenderPipelineState> renderPipelineState = rendererContext->renderPipeline;
+        id <MTLRenderPipelineState> renderPipelineState;
+        if (!m_aspSelectedTextures[0].IsNull() && m_aspSelectedTextures[0]->IsYUVTexture())
+        {
+            renderPipelineState = rendererContext->yuvPipeline;
+        }
+        else
+        {
+            renderPipelineState = rendererContext->rgbPipeline;
+        }
         id<MTLCommandQueue> commandQueue = rendererContext->commandQueue;
         id<MTLCommandBuffer> commandBuffer = [commandQueue commandBuffer];
         MTLRenderPassDescriptor *passDescriptor = rendererContext->metalView.currentRenderPassDescriptor;
@@ -248,29 +266,44 @@ void	CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math:
             reader_lock lock( m_mutex );
             for (uint32_t i = 0; i < MAX_TEXUNIT; ++i)
             {
-                const spCTexture& selectedTexture = m_aspSelectedTextures[i];
+                spCTextureFlatMetal selectedTexture = static_cast<spCTextureFlatMetal>(m_aspSelectedTextures[i]);
                 if (!selectedTexture.IsNull())
                 {
-                    CVMetalTextureRef yTextureRef;
-                    CVMetalTextureRef uvTextureRef;
-                    CTextureFlatMetal* metalTex = static_cast<CTextureFlatMetal*>(selectedTexture.GetRepPtr()->getPointer());
-                    if (metalTex->GetMetalTextures(&yTextureRef, &uvTextureRef))
+                    if (selectedTexture->IsYUVTexture())
                     {
-                        id<MTLTexture> yTexture = CVMetalTextureGetTexture(yTextureRef);
-                        id<MTLTexture> uvTexture = CVMetalTextureGetTexture(uvTextureRef);
-                        [renderEncoder setFragmentTexture:yTexture atIndex:i * 2 + 0];
-                        [renderEncoder setFragmentTexture:uvTexture atIndex:i * 2 + 1];
-                        metalTexturesUsed.push_back(yTextureRef);
-                        metalTexturesUsed.push_back(uvTextureRef);
+                        CVMetalTextureRef yTextureRef;
+                        CVMetalTextureRef uvTextureRef;
+                        if (selectedTexture->GetYUVMetalTextures(&yTextureRef, &uvTextureRef))
+                        {
+                            id<MTLTexture> yTexture = CVMetalTextureGetTexture(yTextureRef);
+                            id<MTLTexture> uvTexture = CVMetalTextureGetTexture(uvTextureRef);
+                            [renderEncoder setFragmentTexture:yTexture atIndex:i * 2 + 0];
+                            [renderEncoder setFragmentTexture:uvTexture atIndex:i * 2 + 1];
+                            metalTexturesUsed.push_back(yTextureRef);
+                            metalTexturesUsed.push_back(uvTextureRef);
+                        }
+                        else
+                        {
+                            g_Log->Error("DAS");
+                        }
+                    }
+                    else
+                    {
+                        id<MTLTexture> rgbTexture = selectedTexture->GetRGBMetalTexture();
+                        [renderEncoder setFragmentTexture:rgbTexture atIndex:i];
                     }
                 }
             }
+            FragmentUniforms uniforms;
+            uniforms.crossfadeRatio = crossfadeRatio;
+            uniforms.rect = vector_float4 { _rect.m_X0, _rect.m_Y0, _rect.m_X1 - _rect.m_X0, _rect.m_Y1 - _rect.m_Y0 };
             id<MTLBuffer> uniformBuffer = rendererContext->uniformBuffers[currentFrameIndex];
-            memcpy(uniformBuffer.contents, &_color.m_W, sizeof(float));
+            memcpy(uniformBuffer.contents, &uniforms, sizeof(FragmentUniforms));
             [renderEncoder setFragmentBuffer:uniformBuffer offset:0 atIndex:0];
             [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
             [renderEncoder endEncoding];
-            [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
+            [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull)
+             {
                 for (auto it = metalTexturesUsed.begin(); it != metalTexturesUsed.end(); ++it)
                 {
                     CVMetalTextureRef metalTexture = *it;

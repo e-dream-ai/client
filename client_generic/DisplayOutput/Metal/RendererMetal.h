@@ -66,7 +66,7 @@ class CRendererMetal : public CRenderer
 
 			//
 			void	DrawQuad( const Base::Math::CRect	&_rect, const Base::Math::CVector4 &_color );
-			void	DrawQuad( const Base::Math::CRect	&_rect, const Base::Math::CVector4 &_color, const Base::Math::CRect &_uvRect );
+			void	DrawQuad( const Base::Math::CRect	&_rect, const Base::Math::CVector4 &_color, const Base::Math::CRect &_uvRect, float crossfadeRatio );
 			void	DrawSoftQuad( const Base::Math::CRect &_rect, const Base::Math::CVector4 &_color, const fp4 _width );
 	
 #ifdef __OBJC__

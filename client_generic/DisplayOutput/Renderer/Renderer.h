@@ -179,7 +179,7 @@ class CRenderer
 			virtual void	DrawLine( const Base::Math::CVector2 &/*_start*/, const Base::Math::CVector2 &/*_end*/, const Base::Math::CVector4 &/*_color*/, const fp4 /*_width = 1.0f*/ ) {};
 			virtual void	DrawRect( const Base::Math::CRect	&/*_rect*/, const Base::Math::CVector4 &/*_color*/, const fp4 /*_width = 1.0f*/ )	{};
 			virtual void	DrawQuad( const Base::Math::CRect	&/*_rect*/, const Base::Math::CVector4 &/*_color*/ ) {};
-			virtual void	DrawQuad( const Base::Math::CRect	&/*_rect*/, const Base::Math::CVector4 &/*_color*/, const Base::Math::CRect &/*_uvRect*/ )	{};
+			virtual void	DrawQuad( const Base::Math::CRect	&/*_rect*/, const Base::Math::CVector4 &/*_color*/, const Base::Math::CRect &/*_uvRect*/, float crossfadeRatio = 1.0f )	{};
 			virtual void	DrawSoftQuad( const Base::Math::CRect &/*_rect*/, const Base::Math::CVector4 &/*_color*/, const fp4 /*_width*/ )	{};
 };
 

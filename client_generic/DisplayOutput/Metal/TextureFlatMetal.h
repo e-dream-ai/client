@@ -23,18 +23,19 @@ class CTextureFlatMetal : public CTextureFlat
     ContentDecoder::spCVideoFrame m_spBoundFrame;
     char name[5];
 
-	public:
-            CTextureFlatMetal( CGraphicsContext _graphicsContext, const uint32 _flags, CRendererMetal* _pRenderer );
-			virtual ~CTextureFlatMetal();
+public:
+    CTextureFlatMetal( CGraphicsContext _graphicsContext, const uint32 _flags, CRendererMetal* _pRenderer );
+    virtual ~CTextureFlatMetal();
 
-			bool	Upload( spCImage _spImage );
-			bool	Bind( const uint32 _index );
-			bool	Unbind( const uint32 _index );
-            bool    BindFrame(ContentDecoder::spCVideoFrame _spFrame);
+    bool	Upload( spCImage _spImage );
+    bool	Bind( const uint32 _index );
+    bool	Unbind( const uint32 _index );
+    bool    BindFrame(ContentDecoder::spCVideoFrame _spFrame);
 #ifdef __OBJC__
-            bool GetMetalTextures(CVMetalTextureRef* _outYTexture, CVMetalTextureRef* _outUVTexture);
-            CVMetalTextureRef GetCVMetalTextureRef();
-            void ReleaseMetalTexture();
+    bool GetYUVMetalTextures(CVMetalTextureRef* _outYTexture, CVMetalTextureRef* _outUVTexture);
+    id<MTLTexture> GetRGBMetalTexture();
+    CVMetalTextureRef GetCVMetalTextureRef();
+    void ReleaseMetalTexture();
 #endif
 };
 
