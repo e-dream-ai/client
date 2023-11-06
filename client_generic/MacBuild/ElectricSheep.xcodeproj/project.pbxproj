@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 52;
+	objectVersion = 46;
 	objects = {
 
 /* Begin PBXAggregateTarget section */
@@ -248,7 +248,7 @@
 		21EE63C31013A87F000CE53E /* ESScreensaver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA540EC74853005E246D /* ESScreensaver.cpp */; };
 		21EE63CF1013A93A000CE53E /* ESConfiguration.mm in Sources */ = {isa = PBXBuildFile; fileRef = 21AAA0EE0F70453200AC23A8 /* ESConfiguration.mm */; };
 		464A49DC2AB88A8200C77F6D /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49DA2AB8864600C77F6D /* VideoToolbox.framework */; };
-		464A49DE2AB88E1A00C77F6D /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49DD2AB88E1A00C77F6D /* Security.framework */; platformFilter = maccatalyst; };
+		464A49DE2AB88E1A00C77F6D /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49DD2AB88E1A00C77F6D /* Security.framework */; };
 		464A49DF2AB89BC400C77F6D /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49DA2AB8864600C77F6D /* VideoToolbox.framework */; };
 		464A49E02AB89C1A00C77F6D /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49DD2AB88E1A00C77F6D /* Security.framework */; };
 		464A49E22AB89C5F00C77F6D /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49E12AB89C5F00C77F6D /* CoreMedia.framework */; };
@@ -271,6 +271,7 @@
 		467230C92AC1AE9D00017C51 /* TextureFlatMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C72AC1AE9D00017C51 /* TextureFlatMetal.mm */; };
 		467B6FC92AE6D031001C80CB /* EDreamClient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 467B6FC82AE6D031001C80CB /* EDreamClient.cpp */; };
 		467B6FCA2AE6D031001C80CB /* EDreamClient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 467B6FC82AE6D031001C80CB /* EDreamClient.cpp */; };
+		46C427BB2AF8F575009C3879 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 467230BC2AC17EAA00017C51 /* Metal.framework */; };
 		46E9C25A2AE7F32800C5444A /* libboost_json.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 46E9C2592AE7F32700C5444A /* libboost_json.a */; };
 		46E9C25B2AE7F35700C5444A /* libboost_json.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 46E9C2592AE7F32700C5444A /* libboost_json.a */; };
 		46ED5CB12AF5326A00AF8F45 /* MetalShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 46ED5CAF2AF5326A00AF8F45 /* MetalShaders.metal */; };
@@ -669,6 +670,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				464A49DE2AB88E1A00C77F6D /* Security.framework in Frameworks */,
+				46C427BB2AF8F575009C3879 /* Metal.framework in Frameworks */,
 				46E9C25B2AE7F35700C5444A /* libboost_json.a in Frameworks */,
 				213D535111F79C8D00CF500D /* IOKit.framework in Frameworks */,
 				2197D56519B06FC300EFA1F2 /* libswresample.a in Frameworks */,
@@ -692,7 +695,6 @@
 				464A49E52AB89CEB00C77F6D /* AudioToolbox.framework in Frameworks */,
 				2161F1940ECF8CEF00FE48E9 /* libz.1.2.5.dylib in Frameworks */,
 				21887A240EC6CDF9001ABD2E /* libbz2.1.0.dylib in Frameworks */,
-				464A49DE2AB88E1A00C77F6D /* Security.framework in Frameworks */,
 				21A8AFBB18416ECA00F77369 /* libiconv.2.dylib in Frameworks */,
 				21887A250EC6CDF9001ABD2E /* liblua5.1.a in Frameworks */,
 				21DC0CAC1263B99000D60C6A /* libcurl.4.dylib in Frameworks */,
@@ -1109,6 +1111,14 @@
 					211E8EA61ADB403700C0B833 = {
 						CreatedOnToolsVersion = 6.3;
 					};
+					2160FAAC0F30F43600B2C27A = {
+						DevelopmentTeam = FCG855WTXV;
+						ProvisioningStyle = Manual;
+					};
+					218878CF0EC6CD7E001ABD2E = {
+						DevelopmentTeam = FCG855WTXV;
+						ProvisioningStyle = Manual;
+					};
 				};
 			};
 			buildConfigurationList = 1DEB924B08733DCA0010E9CD /* Build configuration list for PBXProject "ElectricSheep" */;
@@ -1415,7 +1425,7 @@
 					"\"$(SRCROOT)/../ffmpeg/osx/lib\"",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
-				ONLY_ACTIVE_ARCH = YES;
+				ONLY_ACTIVE_ARCH = NO;
 				SDKROOT = macosx;
 				WARNING_CFLAGS = (
 					"-Wall",
@@ -1509,6 +1519,7 @@
 		211E8EA71ADB403700C0B833 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -1624,16 +1635,17 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				BUILD_VARIANTS = normal;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
-				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = build/Debug;
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = YMV69ATXXX;
+				DEVELOPMENT_TEAM = FCG855WTXV;
 				ENABLE_NS_ASSERTIONS = NO;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_DYNAMIC_NO_PIC = NO;
@@ -1677,9 +1689,10 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				BUILD_VARIANTS = normal;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
-				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = build/Release;
@@ -1687,7 +1700,7 @@
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEPLOYMENT_POSTPROCESSING = NO;
-				DEVELOPMENT_TEAM = YMV69ATXXX;
+				DEVELOPMENT_TEAM = FCG855WTXV;
 				ENABLE_NS_ASSERTIONS = NO;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_ENABLE_OBJC_GC = unsupported;
@@ -1737,7 +1750,7 @@
 				COPY_PHASE_STRIP = NO;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
-				ONLY_ACTIVE_ARCH = YES;
+				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_NAME = All;
 			};
 			name = Debug;
@@ -1747,7 +1760,7 @@
 			buildSettings = {
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				ONLY_ACTIVE_ARCH = YES;
+				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_NAME = All;
 				ZERO_LINK = NO;
 			};
