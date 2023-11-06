@@ -1427,6 +1427,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				ONLY_ACTIVE_ARCH = NO;
 				SDKROOT = macosx;
+				VALID_ARCHS = "arm64 arm64e i386 x86_64";
 				WARNING_CFLAGS = (
 					"-Wall",
 					"-Wconversion",
@@ -1501,6 +1502,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				SDKROOT = macosx;
+				VALID_ARCHS = "arm64 arm64e i386 x86_64";
 				WARNING_CFLAGS = (
 					"-Wall",
 					"-Wconversion",
@@ -1579,7 +1581,7 @@
 				PROVISIONING_PROFILE_SPECIFIER = "tibi's profile";
 				SDKROOT = macosx;
 				STRIP_INSTALLED_PRODUCT = NO;
-				VALID_ARCHS = "i386 ppc x86_64";
+				VALID_ARCHS = "arm64e i386 x86_64";
 			};
 			name = Debug;
 		};
@@ -1626,7 +1628,7 @@
 				PROVISIONING_PROFILE_SPECIFIER = "tibi's profile";
 				SDKROOT = macosx;
 				STRIP_INSTALLED_PRODUCT = YES;
-				VALID_ARCHS = "i386 ppc x86_64";
+				VALID_ARCHS = "arm64e i386 x86_64";
 			};
 			name = Release;
 		};
@@ -1679,7 +1681,7 @@
 				PRODUCT_NAME = "Electric Sheep";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
-				VALID_ARCHS = "i386 ppc x86_64";
+				VALID_ARCHS = "arm64e i386 x86_64";
 				WRAPPER_EXTENSION = saver;
 			};
 			name = Debug;
@@ -1739,7 +1741,7 @@
 				SEPARATE_STRIP = NO;
 				STRIP_INSTALLED_PRODUCT = YES;
 				STRIP_STYLE = all;
-				VALID_ARCHS = "i386 ppc x86_64";
+				VALID_ARCHS = "arm64e i386 x86_64";
 				WRAPPER_EXTENSION = saver;
 			};
 			name = Release;
