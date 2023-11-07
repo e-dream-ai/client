@@ -109,7 +109,6 @@
 		2160FC9D0F30F48200B2C27A /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 09AB6884FE841BABC02AAC07 /* CoreFoundation.framework */; };
 		2160FC9E0F30F48200B2C27A /* GLUT.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B196C0E8E5D0800CE185C /* GLUT.framework */; };
 		2160FC9F0F30F48200B2C27A /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B19850E8E5E9200CE185C /* OpenGL.framework */; };
-		2160FCA00F30F48200B2C27A /* libpng.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1AAC0E8E68E200CE185C /* libpng.a */; };
 		2160FCA10F30F48200B2C27A /* libavcodec.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1AB00E8E690900CE185C /* libavcodec.a */; };
 		2160FCA20F30F48200B2C27A /* libavdevice.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1AB40E8E693200CE185C /* libavdevice.a */; };
 		2160FCA30F30F48200B2C27A /* libavutil.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1AB50E8E693200CE185C /* libavutil.a */; };
@@ -119,7 +118,6 @@
 		2160FCAA0F30F48200B2C27A /* libswscale.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2181FAEF0ECF42820078FDDA /* libswscale.a */; };
 		2160FCAB0F30F48200B2C27A /* libz.1.2.5.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1AD90E8E6E0100CE185C /* libz.1.2.5.dylib */; };
 		2160FCAC0F30F48200B2C27A /* libbz2.1.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1ADD0E8E6E5000CE185C /* libbz2.1.0.dylib */; };
-		2160FCAD0F30F48200B2C27A /* liblua5.1.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1AF30E8E715E00CE185C /* liblua5.1.a */; };
 		2160FCAF0F30F48200B2C27A /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2135D2670EC70571005E246D /* AppKit.framework */; };
 		2160FE7C0F30F8A000B2C27A /* electricsheep-frown.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE190F30F82800B2C27A /* electricsheep-frown.png */; };
 		2160FE7D0F30F8A000B2C27A /* electricsheep-smile.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE1A0F30F82800B2C27A /* electricsheep-smile.png */; };
@@ -258,6 +256,8 @@
 		464A49E82AB89D9100C77F6D /* liblzma.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49E72AB89D8300C77F6D /* liblzma.tbd */; };
 		464A49E92AB89D9D00C77F6D /* liblzma.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49E72AB89D8300C77F6D /* liblzma.tbd */; };
 		4665198F2ACC8C5100ADB56E /* IOSurface.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4665198E2ACC8C5000ADB56E /* IOSurface.framework */; };
+		466C2AA82AFA5B7200ED939F /* liblua_universal.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 466C2AA72AFA5B7200ED939F /* liblua_universal.a */; };
+		466C2AAA2AFA5B8600ED939F /* libpng_universal.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 466C2AA92AFA5B8600ED939F /* libpng_universal.a */; };
 		467230B72AC17A9E00017C51 /* ESMetalView.m in Sources */ = {isa = PBXBuildFile; fileRef = 467230B62AC17A9E00017C51 /* ESMetalView.m */; };
 		467230B92AC17C0400017C51 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 467230B82AC17C0400017C51 /* MetalKit.framework */; };
 		467230BA2AC17E4600017C51 /* ESMetalView.m in Sources */ = {isa = PBXBuildFile; fileRef = 467230B62AC17A9E00017C51 /* ESMetalView.m */; };
@@ -272,7 +272,6 @@
 		467B6FC92AE6D031001C80CB /* EDreamClient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 467B6FC82AE6D031001C80CB /* EDreamClient.cpp */; };
 		467B6FCA2AE6D031001C80CB /* EDreamClient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 467B6FC82AE6D031001C80CB /* EDreamClient.cpp */; };
 		46C427BB2AF8F575009C3879 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 467230BC2AC17EAA00017C51 /* Metal.framework */; };
-		46E9C25A2AE7F32800C5444A /* libboost_json.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 46E9C2592AE7F32700C5444A /* libboost_json.a */; };
 		46E9C25B2AE7F35700C5444A /* libboost_json.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 46E9C2592AE7F32700C5444A /* libboost_json.a */; };
 		46ED5CB12AF5326A00AF8F45 /* MetalShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 46ED5CAF2AF5326A00AF8F45 /* MetalShaders.metal */; };
 		46ED5CB22AF5326A00AF8F45 /* MetalShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 46ED5CAF2AF5326A00AF8F45 /* MetalShaders.metal */; };
@@ -607,6 +606,8 @@
 		464A49E42AB89CEA00C77F6D /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
 		464A49E72AB89D8300C77F6D /* liblzma.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = liblzma.tbd; path = usr/lib/liblzma.tbd; sourceTree = SDKROOT; };
 		4665198E2ACC8C5000ADB56E /* IOSurface.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOSurface.framework; path = System/Library/Frameworks/IOSurface.framework; sourceTree = SDKROOT; };
+		466C2AA72AFA5B7200ED939F /* liblua_universal.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = liblua_universal.a; path = ../lua5.1/osx/lib/liblua_universal.a; sourceTree = "<group>"; };
+		466C2AA92AFA5B8600ED939F /* libpng_universal.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libpng_universal.a; path = ../libpng/osx/lib/libpng_universal.a; sourceTree = "<group>"; };
 		467230B22AC16E9900017C51 /* DisplayMetal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = DisplayMetal.h; path = ../../DisplayOutput/Metal/DisplayMetal.h; sourceTree = "<group>"; };
 		467230B52AC17A4D00017C51 /* ESMetalView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ESMetalView.h; sourceTree = "<group>"; };
 		467230B62AC17A9E00017C51 /* ESMetalView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = ESMetalView.m; path = ../DisplayOutput/OpenGL/ESMetalView.m; sourceTree = "<group>"; };
@@ -630,7 +631,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				46E9C25A2AE7F32800C5444A /* libboost_json.a in Frameworks */,
+				466C2AAA2AFA5B8600ED939F /* libpng_universal.a in Frameworks */,
+				466C2AA82AFA5B7200ED939F /* liblua_universal.a in Frameworks */,
 				467230BD2AC17EAA00017C51 /* Metal.framework in Frameworks */,
 				467230BB2AC17E9A00017C51 /* MetalKit.framework in Frameworks */,
 				213D540311F79C9800CF500D /* IOKit.framework in Frameworks */,
@@ -638,7 +640,6 @@
 				2160FC9E0F30F48200B2C27A /* GLUT.framework in Frameworks */,
 				464A49E22AB89C5F00C77F6D /* CoreMedia.framework in Frameworks */,
 				2160FC9F0F30F48200B2C27A /* OpenGL.framework in Frameworks */,
-				2160FCA00F30F48200B2C27A /* libpng.a in Frameworks */,
 				2160FCA10F30F48200B2C27A /* libavcodec.a in Frameworks */,
 				2197D56319B06F4600EFA1F2 /* VideoDecodeAcceleration.framework in Frameworks */,
 				2160FCA20F30F48200B2C27A /* libavdevice.a in Frameworks */,
@@ -656,7 +657,6 @@
 				2160FCAB0F30F48200B2C27A /* libz.1.2.5.dylib in Frameworks */,
 				2160FCAC0F30F48200B2C27A /* libbz2.1.0.dylib in Frameworks */,
 				464A49E02AB89C1A00C77F6D /* Security.framework in Frameworks */,
-				2160FCAD0F30F48200B2C27A /* liblua5.1.a in Frameworks */,
 				21DC0CA91263B98200D60C6A /* libcurl.4.dylib in Frameworks */,
 				2160FCAF0F30F48200B2C27A /* AppKit.framework in Frameworks */,
 				212316970F50636700702B2C /* libboost_filesystem.a in Frameworks */,
@@ -1020,6 +1020,8 @@
 		464A49D92AB8864600C77F6D /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				466C2AA92AFA5B8600ED939F /* libpng_universal.a */,
+				466C2AA72AFA5B7200ED939F /* liblua_universal.a */,
 				46E9C2592AE7F32700C5444A /* libboost_json.a */,
 				4665198E2ACC8C5000ADB56E /* IOSurface.framework */,
 				467230BC2AC17EAA00017C51 /* Metal.framework */,
@@ -1581,7 +1583,7 @@
 				PROVISIONING_PROFILE_SPECIFIER = "tibi's profile";
 				SDKROOT = macosx;
 				STRIP_INSTALLED_PRODUCT = NO;
-				VALID_ARCHS = "arm64e i386 x86_64";
+				VALID_ARCHS = "arm64 arm64e i386 x86_64";
 			};
 			name = Debug;
 		};
@@ -1628,7 +1630,7 @@
 				PROVISIONING_PROFILE_SPECIFIER = "tibi's profile";
 				SDKROOT = macosx;
 				STRIP_INSTALLED_PRODUCT = YES;
-				VALID_ARCHS = "arm64e i386 x86_64";
+				VALID_ARCHS = "arm64 arm64e i386 x86_64";
 			};
 			name = Release;
 		};

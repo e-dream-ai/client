@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <boost/json.hpp>
+#include <boost/json/src.hpp>
 
 #include "EDreamClient.h"
 #include "Networking.h"
@@ -9,6 +10,8 @@
 #include "Log.h"
 #include "Settings.h"
 #include "client.h"
+
+
 static ShowPreferencesCallback_t gShowPreferencesCallback = nullptr;
 void ESSetShowPreferencesCallback(ShowPreferencesCallback_t _callback)
 {
