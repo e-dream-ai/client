@@ -21,6 +21,7 @@ class	CServerMessage : public CConsole
 {
 	std::string	m_Message;
 	DisplayOutput::CFontDescription m_Desc;
+    DisplayOutput::spCBaseText        m_spText;
 	fp4 m_MoveMessageCounter;
 
 	public:
@@ -38,6 +39,7 @@ class	CServerMessage : public CConsole
 				m_Message = _msg.substr( 0, offs );
 
 				m_spFont = g_Player().Renderer()->NewFont( m_Desc );
+                m_spText = g_Player().Renderer()->NewText( m_spFont, _msg );
 				m_MoveMessageCounter = 0.;
 			}
 
@@ -90,7 +92,7 @@ class	CServerMessage : public CConsole
 				if (!m_spFont.IsNull())
 					m_spFont->Reupload();
 
-				g_Player().Renderer()->Text( m_spFont, m_Message, Base::Math::CVector4( 1, 1, 1, 1 ), Base::Math::CRect( r.m_X0+edge, r.m_Y0+edge, r.m_X1, r.m_Y1 ), 0 );
+                g_Player().Renderer()->DrawText( m_spText, Base::Math::CVector4( 1, 1, 1, 1 ), Base::Math::CRect( r.m_X0+edge, r.m_Y0+edge, r.m_X1, r.m_Y1 ) );
 
 				return true;
 			}

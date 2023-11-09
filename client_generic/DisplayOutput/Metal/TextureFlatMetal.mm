@@ -55,17 +55,39 @@ CTextureFlatMetal::~CTextureFlatMetal()
 */
 bool CTextureFlatMetal::Upload( spCImage _spImage )
 {
-    TextureFlatMetalContext* textureContext = (__bridge TextureFlatMetalContext*)m_pTextureContext;
     m_spImage = _spImage;
-
     if (m_spImage == NULL) return false;
-
+    
     CImageFormat    format = _spImage->GetFormat();
+    uint32_t width = _spImage->GetWidth();
+    uint32_t height = _spImage->GetHeight();
+    bool mipMapped = _spImage->GetNumMipMaps() > 1;
+    uint32_t bytesPerRow = _spImage->GetPitch();
+    
+    // Upload the texture data
+    uint8_t *pSrc;
+    uint32_t mipMapLevel = 0;
+    while ((pSrc = _spImage->GetData(mipMapLevel)) != NULL)
+    {
+        Upload(pSrc, format, width, height, bytesPerRow, mipMapped, mipMapLevel);
+        mipMapLevel++;
+    }
+}
+
+bool CTextureFlatMetal::Upload(const uint8_t* _data,
+                               CImageFormat _format,
+                               uint32_t _width,
+                               uint32_t _height,
+                               uint32_t _bytesPerRow,
+                               bool _mipMapped,
+                               uint32_t _mipMapLevel)
+{
+    TextureFlatMetalContext* textureContext = (__bridge TextureFlatMetalContext*)m_pTextureContext;
 
     static const MTLPixelFormat srcFormats[] =
     {
         MTLPixelFormatInvalid,      // eImage_None
-        MTLPixelFormatA8Unorm,      // eImage_I8
+        MTLPixelFormatR8Unorm,      // eImage_I8
         MTLPixelFormatRG8Unorm,     // eImage_IA8
         MTLPixelFormatRGBA8Unorm,   // eImage_RGB8
         MTLPixelFormatRGBA8Unorm,   // eImage_RGBA8
@@ -90,50 +112,39 @@ bool CTextureFlatMetal::Upload( spCImage _spImage )
         MTLPixelFormatInvalid,      // eImage_D24
     };
 
-    MTLPixelFormat srcFormat = srcFormats[ format.getFormatEnum() ];
+    MTLPixelFormat srcFormat = srcFormats[ _format.getFormatEnum() ];
     
     MTKView* view = (__bridge MTKView*)m_pGraphicsContext;
-    
-    uint32_t width = _spImage->GetWidth();
-    uint32_t height = _spImage->GetHeight();
+
     id<MTLTexture> texture = textureContext->yTexture;
     
     //@TODO: Probably need to set sampler descriptor here
     //Create Metal texture if it doesn's exist yet
     if (texture == nil)
     {
-        bool mipMapped = _spImage->GetNumMipMaps() > 1;
+        
         MTLTextureDescriptor *textureDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:srcFormat
-                                                                                                     width:width
-                                                                                                    height:height
-                                                                                                 mipmapped:mipMapped];
+                                                                                                     width:_width
+                                                                                                    height:_height
+                                                                                                 mipmapped:_mipMapped];
         texture = [view.device newTextureWithDescriptor:textureDescriptor];
         textureContext->yTexture = texture;
     }
-    
-    // Upload the texture data
-    uint8_t *pSrc;
-    uint32_t mipMapLevel = 0;
-    while ((pSrc = _spImage->GetData(mipMapLevel)) != NULL)
-    {
-        MTLRegion region =
-        {
-           {0, 0, 0},  // Origin
-           {width, height, 1}  // Size
-        };
-        if (format.isCompressed())
-        {
-            //@TODO: Implement compressed textures if needed
-            g_Log->Error( "Compressed texture are currently unsupported on Metal." );
-            return false;
-        }
-        else
-        {
-            uint32_t bytesPerRow = _spImage->GetPitch();
-            [texture replaceRegion:region mipmapLevel:mipMapLevel withBytes:pSrc bytesPerRow:bytesPerRow];
-        }
 
-        mipMapLevel++;
+    MTLRegion region =
+    {
+       {0, 0, 0},  // Origin
+       {_width, _height, 1}  // Size
+    };
+    if (_format.isCompressed())
+    {
+        //@TODO: Implement compressed textures if needed
+        g_Log->Error( "Compressed texture are currently unsupported on Metal." );
+        return false;
+    }
+    else
+    {
+        [texture replaceRegion:region mipmapLevel:_mipMapLevel withBytes:_data bytesPerRow:_bytesPerRow];
     }
 
     m_bDirty = true;

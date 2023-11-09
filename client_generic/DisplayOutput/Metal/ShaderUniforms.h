@@ -3,10 +3,23 @@
 
 #include <simd/simd.h>
 
-typedef struct
+struct QuadUniforms
 {
     vector_float4 rect;
     float crossfadeRatio;
-} FragmentUniforms;
+};
+
+struct TextUniforms
+{
+    matrix_float4x4 modelMatrix;
+    matrix_float4x4 viewProjectionMatrix;
+    vector_float4 foregroundColor;
+};
+
+struct VertexText
+{
+    packed_float4 position;
+    packed_float2 texCoords;
+};
 
 #endif /* ShaderUniforms_h */

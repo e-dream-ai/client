@@ -77,7 +77,7 @@ fragment float4 texture_fragment_YUV(ColorInOut vert [[stage_in]],
                                      texture2d<float, access::sample> uvTexture1 [[texture(1)]],
                                      texture2d<float, access::sample> yTexture2 [[texture(2)]],
                                      texture2d<float, access::sample> uvTexture2 [[texture(3)]],
-                                     constant FragmentUniforms &uniforms [[buffer(0)]])
+                                     constant QuadUniforms &uniforms [[buffer(0)]])
 {
     float4 rgba1 = SampleTextureRGBA(vert.uv, yTexture1, uvTexture1);
     float4 rgba2 = SampleTextureRGBA(vert.uv, yTexture2, uvTexture2);
@@ -86,10 +86,47 @@ fragment float4 texture_fragment_YUV(ColorInOut vert [[stage_in]],
 
 fragment float4 texture_fragment_RGB(ColorInOut vert [[stage_in]],
                                 texture2d<float, access::sample> texture [[texture(0)]],
-                                     constant FragmentUniforms &uniforms [[buffer(0)]])
+                                     constant QuadUniforms &uniforms [[buffer(0)]])
 {
     constexpr sampler s( address::clamp_to_zero, filter::linear );
     float2 adjustedUV = (vert.uv - uniforms.rect.xy) / uniforms.rect.zw;
     float4 color = texture.sample(s, adjustedUV);
     return color;
+}
+
+struct TransformedVertex
+{
+    float4 position [[position]];
+    float2 texCoords;
+};
+
+
+vertex TransformedVertex drawText_vertex(constant VertexText *vertices [[buffer(0)]],
+                                      constant TextUniforms &uniforms [[buffer(1)]],
+                                      uint vid [[vertex_id]])
+{
+    TransformedVertex outVert;
+    outVert.position = uniforms.viewProjectionMatrix * uniforms.modelMatrix * float4(vertices[vid].position);
+    outVert.texCoords = vertices[vid].texCoords;
+    return outVert;
+}
+
+fragment half4 drawText_fragment(TransformedVertex vert [[stage_in]],
+                              constant TextUniforms &uniforms [[buffer(0)]],
+                              texture2d<float, access::sample> texture [[texture(0)]])
+{
+    //return 1;
+    constexpr sampler s( address::repeat, filter::linear );
+    
+    float4 color = uniforms.foregroundColor;
+    // Outline of glyph is the isocontour with value 50%
+    float edgeDistance = 0.5;
+    // Sample the signed-distance field to find distance from this fragment to the glyph outline
+    float sampleDistance = texture.sample(s, vert.texCoords).r;
+    // Use local automatic gradients to find anti-aliased anisotropic edge width, cf. Gustavson 2012
+    float edgeWidth = 0.75 * length(float2(dfdx(sampleDistance), dfdy(sampleDistance)));
+    // Smooth the glyph edge by interpolating across the boundary in a band with the width determined above
+    float insideness = smoothstep(edgeDistance - edgeWidth, edgeDistance + edgeWidth, sampleDistance);
+    
+    return half4(color.r, color.g, color.b, insideness);
 }

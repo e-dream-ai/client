@@ -5,6 +5,7 @@
 #include "base.h"
 #include "SmartPtr.h"
 #include "Font.h"
+#include "Text.h"
 #include "TextureFlat.h"
 #include "Shader.h"
 #include "Image.h"
@@ -131,7 +132,7 @@ class CRenderer
 
 			//
 			virtual	bool	BeginFrame( void )	{	return( true );	};
-			virtual	bool	EndFrame( bool /*drawn*/ = true )	{	return( true );	};
+			virtual	bool	EndFrame( bool drawn = true )	{	return( drawn );	};
 
 			//	Textures.
 			virtual spCTextureFlat	NewTextureFlat( const uint32 flags = 0 ) = PureVirtual;
@@ -139,7 +140,8 @@ class CRenderer
 
 			//	Font.
 			virtual	spCBaseFont		NewFont( CFontDescription &_desc ) = PureVirtual;
-			virtual void			Text( spCBaseFont /*_spFont*/, const std::string &/*_text*/, const Base::Math::CVector4 &/*_color*/, const Base::Math::CRect &/*_rect*/, uint32 /*_flags*/ ) {};
+            virtual spCBaseText     NewText( spCBaseFont _font, const std::string& _text ) = PureVirtual;
+			virtual void			DrawText( spCBaseText _text, const Base::Math::CVector4& _color, const Base::Math::CRect &_rect ) = PureVirtual;
 			virtual Base::Math::CVector2	GetTextExtent( spCBaseFont /*_spFont*/, const std::string &/*_text*/ )	{	return Base::Math::CVector2( 0, 0 );	};
 
 			virtual bool HasShaders() { return false; }

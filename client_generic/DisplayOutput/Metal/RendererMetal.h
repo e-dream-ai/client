@@ -57,8 +57,9 @@ class CRendererMetal : public CRenderer
 			spCTextureFlat	NewTextureFlat( spCImage _spImage, const uint32 flags = 0 );
 
 			//
-			spCBaseFont		NewFont( CFontDescription &_desc );
-			void			Text( spCBaseFont _spFont, const std::string &_text, const Base::Math::CVector4 &_color, const Base::Math::CRect &_rect, uint32 _flags );
+            spCBaseFont     NewFont( CFontDescription &_desc );
+            spCBaseText     NewText( spCBaseFont _font, const std::string& _text );
+            void            DrawText( spCBaseText _text, const Base::Math::CVector4& _color, const Base::Math::CRect &_rect );
 			Base::Math::CVector2	GetTextExtent( spCBaseFont _spFont, const std::string &_text );
 
 			//
@@ -73,6 +74,8 @@ class CRendererMetal : public CRenderer
             void    SetBoundSlot(uint32_t _slot, CTextureFlatMetal* _texture);
             bool    CreateMetalTextureFromDecoderFrame(CVPixelBufferRef pixelBuffer, CVMetalTextureRef* _pMetalTextureRef, uint32_t plane);
 #endif
+private:
+    void BuildDepthTexture();
 };
 
 MakeSmartPointers( CRendererMetal );

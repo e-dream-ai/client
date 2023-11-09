@@ -28,6 +28,13 @@ public:
     virtual ~CTextureFlatMetal();
 
     bool	Upload( spCImage _spImage );
+    bool    Upload(const uint8_t* _data,
+                   CImageFormat _format,
+                   uint32_t _width,
+                   uint32_t _height,
+                   uint32_t _bytesPerRow,
+                   bool _mipMapped,
+                   uint32_t _mipMapLevel);
     bool	Bind( const uint32 _index );
     bool	Unbind( const uint32 _index );
     bool    BindFrame(ContentDecoder::spCVideoFrame _spFrame);

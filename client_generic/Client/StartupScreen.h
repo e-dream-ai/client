@@ -14,6 +14,7 @@ class	CStartupScreen : public CHudEntry
 	std::string m_StartupMessage;
 	DisplayOutput::CFontDescription m_Desc;
 	DisplayOutput::spCBaseFont	m_spFont;
+    DisplayOutput::spCBaseText  m_spText;
 	DisplayOutput::spCImage		m_spImageRef;
 	DisplayOutput::spCTextureFlat m_spVideoTexture;
 	
@@ -33,6 +34,7 @@ class	CStartupScreen : public CHudEntry
 
 				m_spFont = g_Player().Renderer()->NewFont( m_Desc );
 				m_StartupMessage = "No Sheep downloaded yet, this should take less than a minute\nbut might take several hours.  Please see ElectricSheep.org\nto learn more, or press F1 for help.";
+                m_spText = g_Player().Renderer()->NewText( m_spFont, m_StartupMessage );
 				m_spImageRef = new DisplayOutput::CImage();
 				m_spImageRef->Create(256, 256, DisplayOutput::eImage_RGBA8, false, true );
 #ifndef LINUX_GNU
@@ -120,8 +122,8 @@ class	CStartupScreen : public CHudEntry
 				//dasvo - terrible hack - redo!!
 				if (!m_spFont.IsNull())
 					m_spFont->Reupload();
-				
-				_spRenderer->Text( m_spFont, m_StartupMessage, Base::Math::CVector4( 1, 1, 1, 1 ), Base::Math::CRect( r.m_X0+edge, r.m_Y0+edge, r.m_X1, r.m_Y1 ), 0 );
+
+                _spRenderer->DrawText( m_spText, Base::Math::CVector4( 1, 1, 1, 1 ), Base::Math::CRect( r.m_X0+edge, r.m_Y0+edge, r.m_X1, r.m_Y1 ) );
 
 				return true;
 			}
