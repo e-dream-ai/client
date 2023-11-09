@@ -233,7 +233,7 @@ spCBaseText CRendererMetal::NewText( spCBaseFont _font, const std::string& _text
 
 Base::Math::CVector2 CRendererMetal::GetTextExtent( spCBaseFont _spFont, const std::string &_text )
 {
-    return Base::Math::CVector2( 0,0 );
+    return Base::Math::CVector2( 0,0.05f );
 }
 
 
@@ -312,7 +312,7 @@ void CRendererMetal::DrawText( spCBaseText _text, const Base::Math::CVector4& _c
         [renderEncoder setRenderPipelineState:rendererContext->textPipeline];
         [renderEncoder setVertexBuffer:textMesh.vertexBuffer offset:0 atIndex:0];
 
-        vector_float3 translation = { _rect.m_X0, _rect.m_Y0, 0 };
+        vector_float3 translation = { _rect.m_X0, (1-_rect.m_Y0) * 512, 0 };
         vector_float3 scale = { 1, 1, 1 }; //@TODO: implement scale
         matrix_float4x4 modelMatrix = matrix_multiply(matrix_translation(translation), matrix_scale(scale));
         matrix_float4x4 projectionMatrix = matrix_orthographic_projection(0, 512, 0, 512);//@TODO: <--this is the size
