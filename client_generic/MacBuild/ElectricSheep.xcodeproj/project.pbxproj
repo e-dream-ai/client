@@ -6,32 +6,6 @@
 	objectVersion = 46;
 	objects = {
 
-/* Begin PBXAggregateTarget section */
-		211E8EA61ADB403700C0B833 /* boost_download */ = {
-			isa = PBXAggregateTarget;
-			buildConfigurationList = 211E8EA91ADB403700C0B833 /* Build configuration list for PBXAggregateTarget "boost_download" */;
-			buildPhases = (
-				211E8EAA1ADB404900C0B833 /* ShellScript */,
-			);
-			dependencies = (
-			);
-			name = boost_download;
-			productName = boost_download;
-		};
-		21A36C27101FA2840086E7C8 /* All */ = {
-			isa = PBXAggregateTarget;
-			buildConfigurationList = 21A36C2F101FA2BC0086E7C8 /* Build configuration list for PBXAggregateTarget "All" */;
-			buildPhases = (
-			);
-			dependencies = (
-				21A36C2B101FA2920086E7C8 /* PBXTargetDependency */,
-				21A36C2D101FA2970086E7C8 /* PBXTargetDependency */,
-			);
-			name = All;
-			productName = All;
-		};
-/* End PBXAggregateTarget section */
-
 /* Begin PBXBuildFile section */
 		21006FC81017BC4B004A6511 /* Credits.html in CopyFiles */ = {isa = PBXBuildFile; fileRef = 21006FBD1017BC2C004A6511 /* Credits.html */; };
 		210335040F549BEF00A83F17 /* AlignedBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 210335030F549BEF00A83F17 /* AlignedBuffer.cpp */; };
@@ -304,37 +278,6 @@
 			script = "";
 		};
 /* End PBXBuildRule section */
-
-/* Begin PBXContainerItemProxy section */
-		211E8EAB1ADB406D00C0B833 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 08FB7793FE84155DC02AAC07 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 211E8EA61ADB403700C0B833;
-			remoteInfo = boost_download;
-		};
-		211E8EAD1ADB407800C0B833 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 08FB7793FE84155DC02AAC07 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 211E8EA61ADB403700C0B833;
-			remoteInfo = boost_download;
-		};
-		21A36C2A101FA2920086E7C8 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 08FB7793FE84155DC02AAC07 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 218878CF0EC6CD7E001ABD2E;
-			remoteInfo = ScreenSaver;
-		};
-		21A36C2C101FA2970086E7C8 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 08FB7793FE84155DC02AAC07 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 2160FAAC0F30F43600B2C27A;
-			remoteInfo = ElectricSheepTestApp;
-		};
-/* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		215542511261FE2100AB51BF /* CopyFiles */ = {
@@ -1128,7 +1071,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				211E8EAC1ADB406D00C0B833 /* PBXTargetDependency */,
 			);
 			name = ElectricSheepTestApp;
 			productName = ElectricSheep;
@@ -1152,7 +1094,6 @@
 				2135DA930EC74C6B005E246D /* PBXBuildRule */,
 			);
 			dependencies = (
-				211E8EAE1ADB407800C0B833 /* PBXTargetDependency */,
 			);
 			name = ScreenSaver;
 			productName = ScreenSaver;
@@ -1165,17 +1106,13 @@
 		08FB7793FE84155DC02AAC07 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1320;
+				LastUpgradeCheck = 1500;
 				TargetAttributes = {
-					211E8EA61ADB403700C0B833 = {
-						CreatedOnToolsVersion = 6.3;
-					};
 					2160FAAC0F30F43600B2C27A = {
 						DevelopmentTeam = FCG855WTXV;
 						ProvisioningStyle = Manual;
 					};
 					218878CF0EC6CD7E001ABD2E = {
-						DevelopmentTeam = FCG855WTXV;
 						ProvisioningStyle = Manual;
 					};
 				};
@@ -1196,8 +1133,6 @@
 			targets = (
 				218878CF0EC6CD7E001ABD2E /* ScreenSaver */,
 				2160FAAC0F30F43600B2C27A /* ElectricSheepTestApp */,
-				21A36C27101FA2840086E7C8 /* All */,
-				211E8EA61ADB403700C0B833 /* boost_download */,
 			);
 		};
 /* End PBXProject section */
@@ -1230,22 +1165,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
-
-/* Begin PBXShellScriptBuildPhase section */
-		211E8EAA1ADB404900C0B833 /* ShellScript */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "${PROJECT_DIR}/../boost/osx/get_boost.sh";
-		};
-/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		2160FAAA0F30F43600B2C27A /* Sources */ = {
@@ -1391,29 +1310,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		211E8EAC1ADB406D00C0B833 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 211E8EA61ADB403700C0B833 /* boost_download */;
-			targetProxy = 211E8EAB1ADB406D00C0B833 /* PBXContainerItemProxy */;
-		};
-		211E8EAE1ADB407800C0B833 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 211E8EA61ADB403700C0B833 /* boost_download */;
-			targetProxy = 211E8EAD1ADB407800C0B833 /* PBXContainerItemProxy */;
-		};
-		21A36C2B101FA2920086E7C8 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 218878CF0EC6CD7E001ABD2E /* ScreenSaver */;
-			targetProxy = 21A36C2A101FA2920086E7C8 /* PBXContainerItemProxy */;
-		};
-		21A36C2D101FA2970086E7C8 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 2160FAAC0F30F43600B2C27A /* ElectricSheepTestApp */;
-			targetProxy = 21A36C2C101FA2970086E7C8 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		21AAA09E0F70400D00AC23A8 /* ElectricSheep.nib */ = {
@@ -1591,21 +1487,6 @@
 			};
 			name = Release;
 		};
-		211E8EA71ADB403700C0B833 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ONLY_ACTIVE_ARCH = NO;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-			};
-			name = Debug;
-		};
-		211E8EA81ADB403700C0B833 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				PRODUCT_NAME = "$(TARGET_NAME)";
-			};
-			name = Release;
-		};
 		2160FAB00F30F43700B2C27A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1614,11 +1495,13 @@
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CODE_SIGN_IDENTITY = "Mac Developer";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = FCG855WTXV;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = "";
 				ENABLE_NS_ASSERTIONS = NO;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_DYNAMIC_NO_PIC = NO;
@@ -1652,6 +1535,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.spotworks.e-dream-dev";
 				PRODUCT_NAME = "Electric Sheep";
 				PROVISIONING_PROFILE_SPECIFIER = "tibi's profile";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=macosx*]" = "";
 				SDKROOT = macosx;
 				STRIP_INSTALLED_PRODUCT = NO;
 				VALID_ARCHS = "arm64 arm64e i386 x86_64";
@@ -1666,12 +1550,14 @@
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CODE_SIGN_IDENTITY = "Mac Developer";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = YES;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = FCG855WTXV;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = "";
 				ENABLE_NS_ASSERTIONS = NO;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_ENABLE_BUILTIN_FUNCTIONS = NO;
@@ -1699,6 +1585,7 @@
 				PRODUCT_NAME = "Electric Sheep";
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "tibi's profile";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=macosx*]" = "";
 				SDKROOT = macosx;
 				STRIP_INSTALLED_PRODUCT = YES;
 				VALID_ARCHS = "arm64 arm64e i386 x86_64";
@@ -1714,6 +1601,7 @@
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CODE_SIGN_IDENTITY = "Mac Developer";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = build/Debug;
@@ -1721,6 +1609,7 @@
 				DEAD_CODE_STRIPPING = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = FCG855WTXV;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = "";
 				ENABLE_NS_ASSERTIONS = NO;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_DYNAMIC_NO_PIC = NO;
@@ -1768,6 +1657,7 @@
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CODE_SIGN_IDENTITY = "Mac Developer";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = build/Release;
@@ -1776,6 +1666,7 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEPLOYMENT_POSTPROCESSING = NO;
 				DEVELOPMENT_TEAM = FCG855WTXV;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = "";
 				ENABLE_NS_ASSERTIONS = NO;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_ENABLE_OBJC_GC = unsupported;
@@ -1819,28 +1710,6 @@
 			};
 			name = Release;
 		};
-		21A36C28101FA2850086E7C8 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				COPY_PHASE_STRIP = NO;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				ONLY_ACTIVE_ARCH = NO;
-				PRODUCT_NAME = All;
-			};
-			name = Debug;
-		};
-		21A36C29101FA2850086E7C8 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				ONLY_ACTIVE_ARCH = NO;
-				PRODUCT_NAME = All;
-				ZERO_LINK = NO;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1849,15 +1718,6 @@
 			buildConfigurations = (
 				1DEB924C08733DCA0010E9CD /* Debug */,
 				1DEB924D08733DCA0010E9CD /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		211E8EA91ADB403700C0B833 /* Build configuration list for PBXAggregateTarget "boost_download" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				211E8EA71ADB403700C0B833 /* Debug */,
-				211E8EA81ADB403700C0B833 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -1876,15 +1736,6 @@
 			buildConfigurations = (
 				218878D20EC6CD7F001ABD2E /* Debug */,
 				218878D30EC6CD7F001ABD2E /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		21A36C2F101FA2BC0086E7C8 /* Build configuration list for PBXAggregateTarget "All" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				21A36C28101FA2850086E7C8 /* Debug */,
-				21A36C29101FA2850086E7C8 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
