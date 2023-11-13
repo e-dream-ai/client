@@ -319,7 +319,7 @@
     NSError* error;
     if (ContentDownloader::Shepherd::useDreamAI() && useToken)
     {
-        if (m_Token == nil || m_Token.length == 0)
+        if (m_accessToken == nil || m_accessToken.length == 0)
         {
             [loginStatusImage setImage:nil];
             [loginTestStatusText setStringValue:@"Please log in."];
@@ -330,7 +330,7 @@
         }
         else
         {
-            NSDictionary* token = [NSJSONSerialization JSONObjectWithData:[m_Token dataUsingEncoding:NSUTF8StringEncoding] options:0 error:&error];
+            NSDictionary* token = [NSJSONSerialization JSONObjectWithData:[m_accessToken dataUsingEncoding:NSUTF8StringEncoding] options:0 error:&error];
             parameters = @{@"username": newNickname, @"token": token};
         }
     }
@@ -380,7 +380,8 @@
                             NSString* accessToken = [tokenDict valueForKey:@"AccessToken"];
                             NSString* refreshToken = [tokenDict valueForKey:@"RefreshToken"];
                             
-                            self->m_Token = accessToken;
+                            self->m_accessToken = accessToken;
+                            self->m_refreshToken = refreshToken;
                             ESScreensaver_SetStringSetting("settings.content.access_token", [accessToken UTF8String]);
                             ESScreensaver_SetStringSetting("settings.content.refresh_token", [refreshToken UTF8String]);
                         }
@@ -541,8 +542,9 @@
 	
 	m_origPassword = (__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting("settings.content.password_md5", "");
     
-    m_Token = (__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting("settings.content.access_token", "");
-	
+    m_accessToken = (__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting("settings.content.access_token", "");
+    
+    m_refreshToken = (__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting("settings.content.refresh_token", "");
 	//[m_origPassword retain];
 
 	[drupalPassword setStringValue: m_origPassword];
@@ -664,7 +666,9 @@
 	
 	ESScreensaver_SetStringSetting("settings.generator.nickname", [[drupalLogin stringValue] UTF8String]);
 	
-	ESScreensaver_SetStringSetting("settings.content.access_token", [m_Token UTF8String]);
+	ESScreensaver_SetStringSetting("settings.content.refresh_token", [m_refreshToken UTF8String]);
+
+    ESScreensaver_SetStringSetting("settings.content.access_token", [m_accessToken UTF8String]);
 	
 	ESScreensaver_SetStringSetting("settings.content.proxy_username", [[proxyLogin stringValue] UTF8String]);
 
