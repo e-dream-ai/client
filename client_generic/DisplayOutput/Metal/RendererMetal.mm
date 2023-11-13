@@ -271,16 +271,16 @@ bool    CRendererMetal::EndFrame( bool drawn )
         dispatch_semaphore_signal(semaphore);
     }];
     rendererContext->drawCallIndex++;
-    [rendererContext->currentCommandBuffer commit];
     
     @autoreleasepool
     {
         auto drawable = rendererContext->metalView.currentDrawable;
         if (drawable)
         {
-            [drawable present];
+            [rendererContext->currentCommandBuffer presentDrawable:drawable];
         }
     }
+    [rendererContext->currentCommandBuffer commit];
 
     return true;
 }

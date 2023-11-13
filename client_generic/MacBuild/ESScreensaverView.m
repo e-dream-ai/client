@@ -139,7 +139,13 @@ bool bStarted = false;
 			
 			theRect = newRect;*/
 #ifdef USE_METAL
-            view = [[ESMetalView alloc] initWithFrame:theRect];
+            ESMetalView* metalView =
+            
+            [[ESMetalView alloc] initWithFrame:theRect];
+            metalView.delegate = self;
+            metalView.preferredFramesPerSecond = 1000;
+            view = metalView;
+            
 #else
 			view = [[ESOpenGLView alloc] initWithFrame:theRect];
 #endif
@@ -237,21 +243,7 @@ bool bStarted = false;
 		if (animationLock != NULL)
 			[animationLock lock];
 			
-		while (!m_isStopped && !ESScreensaver_Stopped() && ESScreensaver_DoFrame())
-		{
-#ifdef SCREEN_SAVER
-			if (!m_isPreview && CGCursorIsVisible())
-			{
-				[NSCursor hide];
-				m_isHidden = YES;
-			}
-#endif		
-			//if (m_isStopped)
-				//break;
-			
-			//if (view != NULL)
-				//[view setNeedsDisplay:YES];
-		}
+
 		
 		if (animationLock != NULL)
 			[animationLock unlock];
@@ -416,5 +408,23 @@ bool bStarted = false;
 	m_isFullScreen = fullscreen;
 }
 
+
+- (void)drawInMTKView:(nonnull MTKView *)view { 
+    if (!m_isStopped && !ESScreensaver_Stopped() && ESScreensaver_DoFrame())
+    {
+#ifdef SCREEN_SAVER
+        if (!m_isPreview && CGCursorIsVisible())
+        {
+            [NSCursor hide];
+            m_isHidden = YES;
+        }
+#endif
+        //if (m_isStopped)
+            //break;
+        
+        //if (view != NULL)
+            //[view setNeedsDisplay:YES];
+    }
+}
 
 @end

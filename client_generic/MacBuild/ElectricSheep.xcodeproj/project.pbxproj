@@ -1032,7 +1032,8 @@
 				46D2E8E62AFBA57E0054049D /* ESMetalView.h */,
 				467230B62AC17A9E00017C51 /* ESMetalView.m */,
 			);
-			path = Metal;
+			name = Metal;
+			path = ../DisplayOutput/Metal;
 			sourceTree = "<group>";
 		};
 		46D2E8E72AFBA64B0054049D /* TextRendering */ = {
