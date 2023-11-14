@@ -330,8 +330,7 @@
         }
         else
         {
-            NSDictionary* token = [NSJSONSerialization JSONObjectWithData:[m_accessToken dataUsingEncoding:NSUTF8StringEncoding] options:0 error:&error];
-            parameters = @{@"username": newNickname, @"token": token};
+            parameters = @{@"username": newNickname, @"token": m_accessToken};
         }
     }
     else
