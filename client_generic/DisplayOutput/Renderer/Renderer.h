@@ -47,6 +47,7 @@ enum	eRenderType
 {
 	eDX9,
 	eGL,
+    eMetal,
 };
 
 //	Blending constants

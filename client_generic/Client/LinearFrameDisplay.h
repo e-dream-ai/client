@@ -114,10 +114,18 @@ class	CLinearFrameDisplay : public CFrameDisplay
 					}";
 
 				//	Compile the shader.
-				if( _spRenderer->Type() == DisplayOutput::eDX9 )
-					m_spShader = _spRenderer->NewShader( linear_vertexshader, linear_pixelshaderDX );
-				else
-					m_spShader = _spRenderer->NewShader( NULL, ( _spRenderer->GetTextureTargetType() == DisplayOutput::eTexture2DRect ) ? linear_pixelshaderGL2DRect : linear_pixelshaderGL2D );
+                switch (_spRenderer->Type())
+                {
+                    case DisplayOutput::eDX9:
+                        m_spShader = _spRenderer->NewShader( linear_vertexshader, linear_pixelshaderDX );
+                        break;
+                    case DisplayOutput::eGL:
+                        m_spShader = _spRenderer->NewShader( NULL, ( _spRenderer->GetTextureTargetType() == DisplayOutput::eTexture2DRect ) ? linear_pixelshaderGL2DRect : linear_pixelshaderGL2D );
+                        break;
+                    case DisplayOutput::eMetal:
+                        m_spShader = _spRenderer->NewShader( "quadPassVertex", "linearFrameBlendFragment" );
+                        break;
+                }
 
 				if( !m_spShader )
 					m_bValid = false;
@@ -136,31 +144,20 @@ class	CLinearFrameDisplay : public CFrameDisplay
 				
 				if (m_bWaitNextFrame)
 				{
-#if !defined(WIN32) && !defined(_MSC_VER)
-					if ( !GrabFrame( _spDecoder, m_spFrames[ m_State ], m_spFrames[ m_State + kMaxFrames ], _metadata ) )
+                    frameGrabbed = GrabFrame( _spDecoder, m_spFrames[ m_State ], m_spFrames[ m_State + kMaxFrames ], _metadata );
+#if !defined(WIN32) && !defined(_MSC_VER) //@TODO: why is this check here?
+					if ( !frameGrabbed )
 					{
 						return false;
 					}
-					else
-					{
-						frameGrabbed = true;
-						
-						Reset();
-					
-						m_bWaitNextFrame = false;
-
-					}
-					
-#else
-					if ( GrabFrame( _spDecoder, m_spFrames[ m_State ], m_spFrames[ m_State + kMaxFrames ], _metadata ) )
-					{
-						frameGrabbed = true;
-						
-						Reset();	
-						
-						m_bWaitNextFrame = false;
-					}
 #endif
+
+					if (frameGrabbed)
+					{
+						Reset();
+						m_bWaitNextFrame = false;
+					}
+
 				}
 				else
 				{

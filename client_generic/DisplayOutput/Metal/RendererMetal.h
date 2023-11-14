@@ -35,7 +35,7 @@ class CRendererMetal : public CRenderer
             CRendererMetal();
 			virtual ~CRendererMetal();
 
-			virtual eRenderType	Type( void ) const {	return eGL;	};
+			virtual eRenderType	Type( void ) const {	return eMetal;	};
 			virtual const std::string	Description( void ) const { return "Metal"; }
 
 			//
