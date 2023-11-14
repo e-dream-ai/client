@@ -424,6 +424,76 @@
 
 /* Begin PBXFileReference section */
 		09AB6884FE841BABC02AAC07 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
+		12478A652B03B15B006A8669 /* SheepGenerator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SheepGenerator.h; sourceTree = "<group>"; };
+		12478A662B03B164006A8669 /* SheepUploader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SheepUploader.h; sourceTree = "<group>"; };
+		12478A672B03B194006A8669 /* Networking.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Networking.h; sourceTree = "<group>"; };
+		12478A682B03B1A4006A8669 /* DisplayOutput.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = DisplayOutput.h; path = ../DisplayOutput/DisplayOutput.h; sourceTree = "<group>"; };
+		12478A692B03B1AB006A8669 /* Image.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Image.h; path = ../DisplayOutput/Image.h; sourceTree = "<group>"; };
+		12478A6A2B03B1FE006A8669 /* ESOpenGLView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ESOpenGLView.h; path = ../DisplayOutput/OpenGL/ESOpenGLView.h; sourceTree = "<group>"; };
+		12478A6B2B03B206006A8669 /* mgl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = mgl.h; path = ../DisplayOutput/OpenGL/mgl.h; sourceTree = "<group>"; };
+		12478A6C2B03B211006A8669 /* glut.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = glut.h; path = ../DisplayOutput/OpenGL/glut.h; sourceTree = "<group>"; };
+		12478A6D2B03B211006A8669 /* GLee.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GLee.h; path = ../DisplayOutput/OpenGL/GLee.h; sourceTree = "<group>"; };
+		12478A6E2B03B220006A8669 /* DisplayGL.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = DisplayGL.h; path = ../DisplayOutput/OpenGL/DisplayGL.h; sourceTree = "<group>"; };
+		12478A6F2B03B22B006A8669 /* FontGL.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = FontGL.h; path = ../DisplayOutput/OpenGL/FontGL.h; sourceTree = "<group>"; };
+		12478A702B03B243006A8669 /* RendererGL.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = RendererGL.h; path = ../DisplayOutput/OpenGL/RendererGL.h; sourceTree = "<group>"; };
+		12478A712B03B248006A8669 /* ShaderGL.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ShaderGL.h; path = ../DisplayOutput/OpenGL/ShaderGL.h; sourceTree = "<group>"; };
+		12478A722B03B24C006A8669 /* TextureFlatGL.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TextureFlatGL.h; path = ../DisplayOutput/OpenGL/TextureFlatGL.h; sourceTree = "<group>"; };
+		12478A732B03B262006A8669 /* diriterator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = diriterator.h; path = ../TupleStorage/diriterator.h; sourceTree = "<group>"; };
+		12478A742B03B266006A8669 /* luastorage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = luastorage.h; path = ../TupleStorage/luastorage.h; sourceTree = "<group>"; };
+		12478A752B03B26D006A8669 /* Settings.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Settings.h; path = ../TupleStorage/Settings.h; sourceTree = "<group>"; };
+		12478A762B03B275006A8669 /* storage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = storage.h; path = ../TupleStorage/storage.h; sourceTree = "<group>"; };
+		12478A772B03B2D0006A8669 /* client.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = client.h; path = ../Client/client.h; sourceTree = "<group>"; };
+		12478A792B03B2DA006A8669 /* cpu_usage_mac.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = cpu_usage_mac.h; path = ../Client/cpu_usage_mac.h; sourceTree = "<group>"; };
+		12478A7B2B03B2EC006A8669 /* CrossFade.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CrossFade.h; path = ../Client/CrossFade.h; sourceTree = "<group>"; };
+		12478A7C2B03B2EC006A8669 /* CubicFrameDisplay.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CubicFrameDisplay.h; path = ../Client/CubicFrameDisplay.h; sourceTree = "<group>"; };
+		12478A7D2B03B30D006A8669 /* FrameDisplay.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = FrameDisplay.h; path = ../Client/FrameDisplay.h; sourceTree = "<group>"; };
+		12478A7E2B03B317006A8669 /* ESScreensaver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ESScreensaver.h; sourceTree = "<group>"; };
+		12478A7F2B03B55F006A8669 /* Hud.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Hud.h; path = ../Client/Hud.h; sourceTree = "<group>"; };
+		12478A802B03B565006A8669 /* LinearFrameDisplay.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = LinearFrameDisplay.h; path = ../Client/LinearFrameDisplay.h; sourceTree = "<group>"; };
+		12478A812B03B56D006A8669 /* lua_playlist.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = lua_playlist.h; path = ../Client/lua_playlist.h; sourceTree = "<group>"; };
+		12478A822B03B57E006A8669 /* PlayCounter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PlayCounter.h; path = ../Client/PlayCounter.h; sourceTree = "<group>"; };
+		12478A832B03B584006A8669 /* Player.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Player.h; path = ../Client/Player.h; sourceTree = "<group>"; };
+		12478A842B03B5BB006A8669 /* MonoInstance.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MonoInstance.h; path = ../Client/MonoInstance.h; sourceTree = "<group>"; };
+		12478A852B03B5C8006A8669 /* ServerMessage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ServerMessage.h; path = ../Client/ServerMessage.h; sourceTree = "<group>"; };
+		12478A862B03B5EF006A8669 /* StatsConsole.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StatsConsole.h; path = ../Client/StatsConsole.h; sourceTree = "<group>"; };
+		12478A872B03B5F9006A8669 /* Voting.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Voting.h; path = ../Client/Voting.h; sourceTree = "<group>"; };
+		12478A882B03B60A006A8669 /* ContentDecoder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ContentDecoder.h; path = ../ContentDecoder/ContentDecoder.h; sourceTree = "<group>"; };
+		12478A892B03B61B006A8669 /* SimplePlaylist.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SimplePlaylist.h; path = ../ContentDecoder/SimplePlaylist.h; sourceTree = "<group>"; };
+		12478A8A2B03B61B006A8669 /* graph_playlist.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = graph_playlist.h; path = ../ContentDecoder/graph_playlist.h; sourceTree = "<group>"; };
+		12478A8B2B03B61B006A8669 /* LoopingPlaylist.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = LoopingPlaylist.h; path = ../ContentDecoder/LoopingPlaylist.h; sourceTree = "<group>"; };
+		12478A8C2B03B61B006A8669 /* Frame.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Frame.h; path = ../ContentDecoder/Frame.h; sourceTree = "<group>"; };
+		12478A8D2B03B61B006A8669 /* Playlist.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Playlist.h; path = ../ContentDecoder/Playlist.h; sourceTree = "<group>"; };
+		12478A8E2B03B61B006A8669 /* DirectoryPlaylist.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = DirectoryPlaylist.h; path = ../ContentDecoder/DirectoryPlaylist.h; sourceTree = "<group>"; };
+		12478A8F2B03B632006A8669 /* AlignedBuffer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = AlignedBuffer.h; path = ../Common/AlignedBuffer.h; sourceTree = "<group>"; };
+		12478A902B03B64F006A8669 /* Common.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Common.h; path = ../Common/Common.h; sourceTree = "<group>"; };
+		12478A912B03B655006A8669 /* Exception.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Exception.h; path = ../Common/Exception.h; sourceTree = "<group>"; };
+		12478A922B03B65C006A8669 /* isaac.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = isaac.h; path = ../Common/isaac.h; sourceTree = "<group>"; };
+		12478A932B03B664006A8669 /* isaacs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = isaacs.h; path = ../Common/isaacs.h; sourceTree = "<group>"; };
+		12478A942B03B66D006A8669 /* linkpool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = linkpool.h; path = ../Common/linkpool.h; sourceTree = "<group>"; };
+		12478A952B03B671006A8669 /* Log.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Log.h; path = ../Common/Log.h; sourceTree = "<group>"; };
+		12478A962B03B674006A8669 /* LuaState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = LuaState.h; path = ../Common/LuaState.h; sourceTree = "<group>"; };
+		12478A972B03B67A006A8669 /* luaxml.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = luaxml.h; path = ../Common/luaxml.h; sourceTree = "<group>"; };
+		12478A982B03B692006A8669 /* Vector2_X86.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Vector2_X86.h; path = ../Common/Math/Vector2_X86.h; sourceTree = "<group>"; };
+		12478A992B03B692006A8669 /* Vector3_X86.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Vector3_X86.h; path = ../Common/Math/Vector3_X86.h; sourceTree = "<group>"; };
+		12478A9A2B03B692006A8669 /* Matrix3x3_x86.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Matrix3x3_x86.h; path = ../Common/Math/Matrix3x3_x86.h; sourceTree = "<group>"; };
+		12478A9B2B03B692006A8669 /* Vector3.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Vector3.h; path = ../Common/Math/Vector3.h; sourceTree = "<group>"; };
+		12478A9C2B03B692006A8669 /* Vector4_X86.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Vector4_X86.h; path = ../Common/Math/Vector4_X86.h; sourceTree = "<group>"; };
+		12478A9D2B03B692006A8669 /* Vector4.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Vector4.h; path = ../Common/Math/Vector4.h; sourceTree = "<group>"; };
+		12478A9E2B03B692006A8669 /* Rect.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Rect.h; path = ../Common/Math/Rect.h; sourceTree = "<group>"; };
+		12478A9F2B03B692006A8669 /* Matrix.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Matrix.h; path = ../Common/Math/Matrix.h; sourceTree = "<group>"; };
+		12478AA02B03B692006A8669 /* Matrix4x4_x86.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Matrix4x4_x86.h; path = ../Common/Math/Matrix4x4_x86.h; sourceTree = "<group>"; };
+		12478AA12B03B692006A8669 /* MatrixDefs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MatrixDefs.h; path = ../Common/Math/MatrixDefs.h; sourceTree = "<group>"; };
+		12478AA22B03B692006A8669 /* fastbez.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = fastbez.h; path = ../Common/Math/fastbez.h; sourceTree = "<group>"; };
+		12478AA32B03B692006A8669 /* Vector2.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Vector2.h; path = ../Common/Math/Vector2.h; sourceTree = "<group>"; };
+		12478AA42B03B6C4006A8669 /* SmartPtr.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SmartPtr.h; path = ../Common/SmartPtr.h; sourceTree = "<group>"; };
+		12478AA52B03B6C4006A8669 /* XTimer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = XTimer.h; path = ../Common/XTimer.h; sourceTree = "<group>"; };
+		12478AA62B03B6C4006A8669 /* MathBase.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MathBase.h; path = ../Common/MathBase.h; sourceTree = "<group>"; };
+		12478AA72B03B6C4006A8669 /* ProcessForker.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ProcessForker.h; path = ../Common/ProcessForker.h; sourceTree = "<group>"; };
+		12478AA82B03B6C4006A8669 /* WTimer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WTimer.h; path = ../Common/WTimer.h; sourceTree = "<group>"; };
+		12478AA92B03B6C4006A8669 /* MTimer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MTimer.h; path = ../Common/MTimer.h; sourceTree = "<group>"; };
+		12478AAA2B03B6C4006A8669 /* Timer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Timer.h; path = ../Common/Timer.h; sourceTree = "<group>"; };
+		12478AAB2B03B6C4006A8669 /* Singleton.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Singleton.h; path = ../Common/Singleton.h; sourceTree = "<group>"; };
+		12478AAC2B03B6CA006A8669 /* pool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = pool.h; path = ../Common/pool.h; sourceTree = "<group>"; };
 		21006FBD1017BC2C004A6511 /* Credits.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = Credits.html; sourceTree = SOURCE_ROOT; };
 		21008B760EB7D69900E64796 /* Console.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Console.h; path = ../Client/Console.h; sourceTree = SOURCE_ROOT; };
 		210335030F549BEF00A83F17 /* AlignedBuffer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AlignedBuffer.cpp; path = ../Common/AlignedBuffer.cpp; sourceTree = SOURCE_ROOT; };
@@ -760,6 +830,7 @@
 			children = (
 				211CDDD60ED0BD9200EB9394 /* Download.cpp */,
 				211CDDD80ED0BD9200EB9394 /* Networking.cpp */,
+				12478A672B03B194006A8669 /* Networking.h */,
 				211CDDDA0ED0BD9200EB9394 /* Upload.cpp */,
 			);
 			name = Networking;
@@ -770,6 +841,7 @@
 			isa = PBXGroup;
 			children = (
 				2199D0DB0F575949007CEB9C /* SheepUploader.cpp */,
+				12478A662B03B164006A8669 /* SheepUploader.h */,
 				212313190F503C4500702B2C /* ContentDownloader.cpp */,
 				2123131A0F503C4500702B2C /* ContentDownloader.h */,
 				2123131B0F503C4500702B2C /* Sheep.cpp */,
@@ -777,6 +849,7 @@
 				2123131D0F503C4500702B2C /* SheepDownloader.cpp */,
 				2123131E0F503C4500702B2C /* SheepDownloader.h */,
 				2199D0A70F574AC8007CEB9C /* SheepGenerator.cpp */,
+				12478A652B03B15B006A8669 /* SheepGenerator.h */,
 				212313230F503C4500702B2C /* Shepherd.cpp */,
 				212313240F503C4500702B2C /* Shepherd.h */,
 			);
@@ -796,16 +869,34 @@
 		212B19380E8E591F00CE185C /* Common */ = {
 			isa = PBXGroup;
 			children = (
+				12478AA62B03B6C4006A8669 /* MathBase.h */,
+				12478AA92B03B6C4006A8669 /* MTimer.h */,
+				12478AA72B03B6C4006A8669 /* ProcessForker.h */,
+				12478AAB2B03B6C4006A8669 /* Singleton.h */,
 				2191E23919B5113E00F5B82D /* SmartPtr.h */,
+				12478AAA2B03B6C4006A8669 /* Timer.h */,
+				12478AA82B03B6C4006A8669 /* WTimer.h */,
+				12478AA52B03B6C4006A8669 /* XTimer.h */,
 				2169AE7E11397EF700689B02 /* isaac.cpp */,
+				12478A922B03B65C006A8669 /* isaac.h */,
+				12478A932B03B664006A8669 /* isaacs.h */,
+				12478A942B03B66D006A8669 /* linkpool.h */,
 				214B75030EBBA76700B5B897 /* Math */,
 				210335030F549BEF00A83F17 /* AlignedBuffer.cpp */,
+				12478A8F2B03B632006A8669 /* AlignedBuffer.h */,
 				212B192A0E8E591000CE185C /* Common.cpp */,
+				12478A902B03B64F006A8669 /* Common.h */,
 				212B192B0E8E591000CE185C /* Exception.cpp */,
+				12478A912B03B655006A8669 /* Exception.h */,
 				212B192C0E8E591000CE185C /* Log.cpp */,
+				12478A952B03B671006A8669 /* Log.h */,
 				212B192D0E8E591000CE185C /* LuaState.cpp */,
+				12478A962B03B674006A8669 /* LuaState.h */,
 				212B192E0E8E591000CE185C /* luaxml.cpp */,
+				12478A972B03B67A006A8669 /* luaxml.h */,
 				212B19300E8E591000CE185C /* pool.cpp */,
+				12478AAC2B03B6CA006A8669 /* pool.h */,
+				12478AA42B03B6C4006A8669 /* SmartPtr.h */,
 			);
 			name = Common;
 			sourceTree = "<group>";
@@ -814,6 +905,13 @@
 			isa = PBXGroup;
 			children = (
 				212B19400E8E59E700CE185C /* ContentDecoder.cpp */,
+				12478A882B03B60A006A8669 /* ContentDecoder.h */,
+				12478A8E2B03B61B006A8669 /* DirectoryPlaylist.h */,
+				12478A8C2B03B61B006A8669 /* Frame.h */,
+				12478A8A2B03B61B006A8669 /* graph_playlist.h */,
+				12478A8B2B03B61B006A8669 /* LoopingPlaylist.h */,
+				12478A8D2B03B61B006A8669 /* Playlist.h */,
+				12478A892B03B61B006A8669 /* SimplePlaylist.h */,
 			);
 			name = ContentDecoder;
 			sourceTree = "<group>";
@@ -822,26 +920,41 @@
 			isa = PBXGroup;
 			children = (
 				21EE633410139BCC000CE53E /* main.m */,
-				21C5D0920F9CF6D9001657E7 /* md5.h */,
+				212B195F0E8E5CCE00CE185C /* main.cpp */,
 				21C5D0930F9CF6D9001657E7 /* md5.c */,
-				21AAA0ED0F70453200AC23A8 /* ESConfiguration.h */,
-				2191E23719B5111700F5B82D /* FrameDisplay.h */,
-				2191E23819B5111700F5B82D /* StartupScreen.h */,
-				461614182AEBEA57008AC64A /* DreamPlaylist.h */,
+				21C5D0920F9CF6D9001657E7 /* md5.h */,
 				21AAA0EE0F70453200AC23A8 /* ESConfiguration.mm */,
-				2135DA540EC74853005E246D /* ESScreensaver.cpp */,
+				21AAA0ED0F70453200AC23A8 /* ESConfiguration.h */,
 				2135DA520EC7479A005E246D /* ESScreensaverView.m */,
+				2135DA540EC74853005E246D /* ESScreensaver.cpp */,
+				12478A7E2B03B317006A8669 /* ESScreensaver.h */,
+				2191E23719B5111700F5B82D /* FrameDisplay.h */,
+				12478A7D2B03B30D006A8669 /* FrameDisplay.h */,
+				12478A7C2B03B2EC006A8669 /* CubicFrameDisplay.h */,
+				12478A802B03B565006A8669 /* LinearFrameDisplay.h */,
+				2191E23819B5111700F5B82D /* StartupScreen.h */,
 				21EE63941013A674000CE53E /* ESWindow.h */,
 				21EE63951013A674000CE53E /* ESWindow.mm */,
+				12478A7B2B03B2EC006A8669 /* CrossFade.h */,
 				21008B760EB7D69900E64796 /* Console.h */,
-				21DD8C6F0EA9BA5F00BB9EC7 /* Splash.h */,
+				12478A792B03B2DA006A8669 /* cpu_usage_mac.h */,
 				21D90D010EA1D52000F8E5D5 /* Hud.cpp */,
+				12478A7F2B03B55F006A8669 /* Hud.h */,
 				21D944A90E8F6245001C141E /* client_mac.h */,
-				212B195F0E8E5CCE00CE185C /* main.cpp */,
 				212B19600E8E5CCE00CE185C /* Player.cpp */,
+				12478A832B03B584006A8669 /* Player.h */,
 				212B19610E8E5CCE00CE185C /* Voting.cpp */,
+				12478A872B03B5F9006A8669 /* Voting.h */,
 				467B6FC72AE6CFFB001C80CB /* EDreamClient.h */,
 				467B6FC82AE6D031001C80CB /* EDreamClient.cpp */,
+				12478A772B03B2D0006A8669 /* client.h */,
+				21DD8C6F0EA9BA5F00BB9EC7 /* Splash.h */,
+				461614182AEBEA57008AC64A /* DreamPlaylist.h */,
+				12478A812B03B56D006A8669 /* lua_playlist.h */,
+				12478A822B03B57E006A8669 /* PlayCounter.h */,
+				12478A842B03B5BB006A8669 /* MonoInstance.h */,
+				12478A852B03B5C8006A8669 /* ServerMessage.h */,
+				12478A862B03B5EF006A8669 /* StatsConsole.h */,
 			);
 			name = Client;
 			sourceTree = "<group>";
@@ -861,8 +974,12 @@
 			isa = PBXGroup;
 			children = (
 				212B19F20E8E639400CE185C /* diriterator.cpp */,
+				12478A732B03B262006A8669 /* diriterator.h */,
 				212B19F30E8E639400CE185C /* luastorage.cpp */,
+				12478A742B03B266006A8669 /* luastorage.h */,
 				212B19F40E8E639400CE185C /* storage.cpp */,
+				12478A762B03B275006A8669 /* storage.h */,
+				12478A752B03B26D006A8669 /* Settings.h */,
 			);
 			name = TupleStorage;
 			sourceTree = "<group>";
@@ -874,7 +991,9 @@
 				212B1A490E8E651700CE185C /* Renderer */,
 				212B1A360E8E64C600CE185C /* OpenGL */,
 				212B1A100E8E646D00CE185C /* DisplayOutput.cpp */,
+				12478A682B03B1A4006A8669 /* DisplayOutput.h */,
 				212B1A110E8E646D00CE185C /* Image.cpp */,
+				12478A692B03B1AB006A8669 /* Image.h */,
 				212B1A120E8E646D00CE185C /* LoadDDS.cpp */,
 				212B1A130E8E646D00CE185C /* LoadPNG.cpp */,
 			);
@@ -885,12 +1004,21 @@
 			isa = PBXGroup;
 			children = (
 				2135D2200EC70153005E246D /* ESOpenGLView.m */,
+				12478A6A2B03B1FE006A8669 /* ESOpenGLView.h */,
 				212B1B590E8E755A00CE185C /* mgl.cpp */,
+				12478A6B2B03B206006A8669 /* mgl.h */,
 				212B1A370E8E64EB00CE185C /* GLee.c */,
+				12478A6D2B03B211006A8669 /* GLee.h */,
 				212B1A380E8E64EB00CE185C /* RendererGL.cpp */,
+				12478A702B03B243006A8669 /* RendererGL.h */,
 				212B1A390E8E64EB00CE185C /* ShaderGL.cpp */,
+				12478A712B03B248006A8669 /* ShaderGL.h */,
 				212B1A3A0E8E64EB00CE185C /* TextureFlatGL.cpp */,
+				12478A722B03B24C006A8669 /* TextureFlatGL.h */,
 				214CC3660F34E5CF0083617B /* FontGL.cpp */,
+				12478A6F2B03B22B006A8669 /* FontGL.h */,
+				12478A6C2B03B211006A8669 /* glut.h */,
+				12478A6E2B03B220006A8669 /* DisplayGL.h */,
 			);
 			name = OpenGL;
 			sourceTree = "<group>";
@@ -898,18 +1026,18 @@
 		212B1A490E8E651700CE185C /* Renderer */ = {
 			isa = PBXGroup;
 			children = (
-				46D2E8FA2AFBAEF80054049D /* Text.h */,
-				46D2E8F52AFBAE230054049D /* Font.h */,
-				46D2E8F62AFBAE330054049D /* Renderer.h */,
-				46D2E8F72AFBAE330054049D /* Shader.h */,
-				46D2E8F82AFBAE330054049D /* Texture.h */,
-				46D2E8F92AFBAE330054049D /* TextureFlat.h */,
 				46D2E9002AFBC3720054049D /* Text.cpp */,
+				46D2E8FA2AFBAEF80054049D /* Text.h */,
 				212B1A3F0E8E651000CE185C /* Font.cpp */,
+				46D2E8F52AFBAE230054049D /* Font.h */,
 				212B1A400E8E651000CE185C /* Renderer.cpp */,
+				46D2E8F62AFBAE330054049D /* Renderer.h */,
 				212B1A410E8E651000CE185C /* Shader.cpp */,
+				46D2E8F72AFBAE330054049D /* Shader.h */,
 				212B1A420E8E651000CE185C /* Texture.cpp */,
+				46D2E8F82AFBAE330054049D /* Texture.h */,
 				212B1A430E8E651000CE185C /* TextureFlat.cpp */,
+				46D2E8F92AFBAE330054049D /* TextureFlat.h */,
 			);
 			name = Renderer;
 			sourceTree = "<group>";
@@ -918,6 +1046,18 @@
 			isa = PBXGroup;
 			children = (
 				214B75060EBBA78900B5B897 /* Rect.cpp */,
+				12478A9E2B03B692006A8669 /* Rect.h */,
+				12478AA22B03B692006A8669 /* fastbez.h */,
+				12478A9F2B03B692006A8669 /* Matrix.h */,
+				12478A9A2B03B692006A8669 /* Matrix3x3_x86.h */,
+				12478AA02B03B692006A8669 /* Matrix4x4_x86.h */,
+				12478AA12B03B692006A8669 /* MatrixDefs.h */,
+				12478A982B03B692006A8669 /* Vector2_X86.h */,
+				12478AA32B03B692006A8669 /* Vector2.h */,
+				12478A992B03B692006A8669 /* Vector3_X86.h */,
+				12478A9B2B03B692006A8669 /* Vector3.h */,
+				12478A9C2B03B692006A8669 /* Vector4_X86.h */,
+				12478A9D2B03B692006A8669 /* Vector4.h */,
 			);
 			name = Math;
 			sourceTree = "<group>";
@@ -1017,20 +1157,20 @@
 			isa = PBXGroup;
 			children = (
 				46D2E8E72AFBA64B0054049D /* TextRendering */,
-				46D2E8FB2AFBB37A0054049D /* TextMetal.h */,
 				46D2E8FC2AFBBBF50054049D /* TextMetal.mm */,
-				467230C02AC1815100017C51 /* TextureFlatMetal.h */,
+				46D2E8FB2AFBB37A0054049D /* TextMetal.h */,
 				467230C72AC1AE9D00017C51 /* TextureFlatMetal.mm */,
-				46D2E8FF2AFBBD2D0054049D /* FontMetal.h */,
+				467230C02AC1815100017C51 /* TextureFlatMetal.h */,
 				467230C42AC18FDB00017C51 /* FontMetal.mm */,
-				467230BF2AC1814800017C51 /* RendererMetal.h */,
+				46D2E8FF2AFBBD2D0054049D /* FontMetal.h */,
 				467230C12AC1817500017C51 /* RendererMetal.mm */,
-				467230B22AC16E9900017C51 /* DisplayMetal.h */,
+				467230BF2AC1814800017C51 /* RendererMetal.h */,
 				46ED5CB02AF5326A00AF8F45 /* DisplayMetal.cpp */,
+				467230B22AC16E9900017C51 /* DisplayMetal.h */,
 				46ED5CAF2AF5326A00AF8F45 /* MetalShaders.metal */,
 				46ED5CAE2AF531EA00AF8F45 /* ShaderUniforms.h */,
-				46D2E8E62AFBA57E0054049D /* ESMetalView.h */,
 				467230B62AC17A9E00017C51 /* ESMetalView.m */,
+				46D2E8E62AFBA57E0054049D /* ESMetalView.h */,
 			);
 			name = Metal;
 			path = ../DisplayOutput/Metal;
@@ -1039,15 +1179,15 @@
 		46D2E8E72AFBA64B0054049D /* TextRendering */ = {
 			isa = PBXGroup;
 			children = (
-				46D2E9032AFBF8F60054049D /* MBEMathUtilities.h */,
 				46D2E9042AFBF8F70054049D /* MBEMathUtilities.m */,
-				46D2E8E82AFBA64B0054049D /* MBEMesh.m */,
+				46D2E9032AFBF8F60054049D /* MBEMathUtilities.h */,
 				46D2E8E92AFBA64B0054049D /* MBEFontAtlas.m */,
-				46D2E8EA2AFBA64B0054049D /* MBETextMesh.h */,
 				46D2E8EB2AFBA64B0054049D /* MBEFontAtlas.h */,
+				46D2E8E82AFBA64B0054049D /* MBEMesh.m */,
 				46D2E8EC2AFBA64B0054049D /* MBEMesh.h */,
-				46D2E8ED2AFBA64B0054049D /* MBETypes.h */,
 				46D2E8EE2AFBA64B0054049D /* MBETextMesh.m */,
+				46D2E8EA2AFBA64B0054049D /* MBETextMesh.h */,
+				46D2E8ED2AFBA64B0054049D /* MBETypes.h */,
 			);
 			name = TextRendering;
 			path = ../../DisplayOutput/Metal/TextRendering;
