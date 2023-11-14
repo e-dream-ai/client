@@ -62,6 +62,7 @@ class	CSplash : public CHudEntry
 				spRenderer->Reset( DisplayOutput::eTexture | DisplayOutput::eShader );
 				spRenderer->SetTexture( m_spTexture, 0 );
 				spRenderer->SetBlend( "alphablend" );
+                spRenderer->SetShader( NULL );
 				spRenderer->Apply();
 
 
@@ -131,6 +132,7 @@ class	CSplashImage : public CHudEntry
 				spRenderer->Reset( DisplayOutput::eTexture | DisplayOutput::eShader );
 				spRenderer->SetTexture( m_spTexture, 0 );
 				spRenderer->SetBlend( "alphablend" );
+                spRenderer->SetShader( NULL );
 				spRenderer->Apply();
 
 

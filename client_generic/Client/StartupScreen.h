@@ -82,6 +82,7 @@ class	CStartupScreen : public CHudEntry
 				_spRenderer->Reset( DisplayOutput::eTexture | DisplayOutput::eShader);
 				_spRenderer->SetBlend( "alphablend" );
 				_spRenderer->SetTexture( m_spVideoTexture, 0 );
+                _spRenderer->SetShader( NULL );
 				_spRenderer->Apply();
 
 				Base::Math::CRect rr;

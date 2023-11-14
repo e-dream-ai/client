@@ -16,7 +16,7 @@ const uint32_t kFontAtlasSize = 2048;
 */
 CFontMetal::CFontMetal(CFontDescription& _desc, spCTextureFlat _textTexture) : CBaseFont()
 {
-    NSString* typeFace = [NSString stringWithUTF8String:_desc.TypeFace().c_str()];
+    NSString* typeFace = @(_desc.TypeFace().c_str());
     NSFont* font = [NSFont fontWithName:typeFace size:_desc.Height()];
     m_pFontAtlas = [[MBEFontAtlas alloc] initWithFont:font textureSize:kFontAtlasSize];
     m_spAtlasTexture = _textTexture;

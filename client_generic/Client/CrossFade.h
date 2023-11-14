@@ -63,6 +63,7 @@ class	CCrossFade : public CHudEntry
 				spRenderer->Reset( DisplayOutput::eTexture | DisplayOutput::eShader );
 				spRenderer->SetTexture( m_spTexture, 0 );
 				spRenderer->SetBlend( "alphablend" );
+                spRenderer->SetShader( NULL );
 				spRenderer->Apply();
 				
 				fp4 alpha = fp4(m_Delta * 4.0f);

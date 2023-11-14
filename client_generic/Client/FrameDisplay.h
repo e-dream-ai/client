@@ -41,6 +41,7 @@ class	CFrameDisplay
 		DisplayOutput::spCImage		m_spSecondImageRef;
 		
 		DisplayOutput::spCRenderer	m_spRenderer;
+        DisplayOutput::spCShader    m_spShader;
 
 		//	Dimensions of the display surface.
 		Base::Math::CRect	m_dispSize;
@@ -215,6 +216,11 @@ class	CFrameDisplay
                 m_LastTexMoveClock = -1;
                 m_CurTexMoveOff = 0;
                 m_CurTexMoveDir = 1.;
+#if USE_METAL
+                m_spShader = m_spRenderer->NewShader("quadPassVertex", "drawDecodedFrameNoBlendingFragment");
+#else
+                m_spShader = NULL;
+#endif
 			}
 
 			virtual ~CFrameDisplay()
@@ -280,6 +286,7 @@ class	CFrameDisplay
 				if ( m_spVideoTexture.IsNull() )
 					return false;
                 
+                m_spRenderer->SetShader( m_spShader );
                 //    Bind texture and render a quad covering the screen.
                 m_spRenderer->SetBlend( "alphablend" );
                 m_spRenderer->SetTexture( m_spVideoTexture, 0 );

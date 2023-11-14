@@ -72,7 +72,7 @@ float4 SampleTextureRGBA(float2 uv, texture2d<float, access::sample> yTexture, t
     return rgba;
 }
 
-fragment float4 texture_fragment_YUV(ColorInOut vert [[stage_in]],
+fragment float4 drawDecodedNoFrameBlendFragment(ColorInOut vert [[stage_in]],
                                      texture2d<float, access::sample> yTexture1 [[texture(0)]],
                                      texture2d<float, access::sample> uvTexture1 [[texture(1)]],
                                      texture2d<float, access::sample> yTexture2 [[texture(2)]],
@@ -84,7 +84,20 @@ fragment float4 texture_fragment_YUV(ColorInOut vert [[stage_in]],
     return mix(rgba1, rgba2, uniforms.crossfadeRatio);
 }
 
-fragment float4 texture_fragment_RGB(ColorInOut vert [[stage_in]],
+fragment float4 drawDecodedLinearFrameBlendFragment(ColorInOut vert [[stage_in]],
+                                                    texture2d<float, access::sample> yTexture1 [[texture(0)]],
+                                                    texture2d<float, access::sample> uvTexture1 [[texture(1)]],
+                                                    texture2d<float, access::sample> yTexture2 [[texture(2)]],
+                                                    texture2d<float, access::sample> uvTexture2 [[texture(3)]],
+                                                    constant QuadUniforms &uniforms [[buffer(0)]])
+{
+    float4 rgba1 = SampleTextureRGBA(vert.uv, yTexture1, uvTexture1);
+    float4 rgba2 = SampleTextureRGBA(vert.uv, yTexture2, uvTexture2);
+    return mix(rgba1, rgba2, uniforms.crossfadeRatio);
+}
+
+
+fragment float4 drawTextureFragment(ColorInOut vert [[stage_in]],
                                 texture2d<float, access::sample> texture [[texture(0)]],
                                      constant QuadUniforms &uniforms [[buffer(0)]])
 {
@@ -94,6 +107,8 @@ fragment float4 texture_fragment_RGB(ColorInOut vert [[stage_in]],
     return color;
 }
 
+
+
 struct TransformedVertex
 {
     float4 position [[position]];
@@ -101,7 +116,7 @@ struct TransformedVertex
 };
 
 
-vertex TransformedVertex drawText_vertex(constant VertexText *vertices [[buffer(0)]],
+vertex TransformedVertex drawTextVertex(constant VertexText *vertices [[buffer(0)]],
                                       constant TextUniforms &uniforms [[buffer(1)]],
                                       uint vid [[vertex_id]])
 {
@@ -111,7 +126,7 @@ vertex TransformedVertex drawText_vertex(constant VertexText *vertices [[buffer(
     return outVert;
 }
 
-fragment half4 drawText_fragment(TransformedVertex vert [[stage_in]],
+fragment half4 drawTextFragment(TransformedVertex vert [[stage_in]],
                               constant TextUniforms &uniforms [[buffer(0)]],
                               texture2d<float, access::sample> texture [[texture(0)]])
 {

@@ -26,7 +26,7 @@ void CTextMetal::SetText(const std::string& _text, const Base::Math::CRect& _ali
     if (_text != m_Text)
     {
         m_Text = _text;
-        NSString* text = [NSString stringWithUTF8String:_text.c_str()];
+        NSString* text = @(_text.c_str());
         CGRect rect = CGRectMake(0, 0, 1024, 1024); //@TODO: is this ok?
         CGFloat size = m_spFont->FontDescription().Height();
         MBEFontAtlas* atlas = m_spFont->GetAtlas();

@@ -10,20 +10,19 @@
 #include "RendererMetal.h"
 #include "TextureFlatMetal.h"
 #include "TextMetal.h"
+#include "ShaderMetal.h"
 #include "ShaderUniforms.h"
 
 static const NSUInteger MaxFramesInFlight = 3;
 
 @interface RendererContext : NSObject
 {
-    @public id<MTLRenderPipelineState> yuvPipeline;
-    @public id<MTLRenderPipelineState> rgbPipeline;
-    @public id<MTLRenderPipelineState> textPipeline;
     @public MTKView* metalView;
     @public std::map<uint32_t, DisplayOutput::CTextureFlatMetal*> boundTextures;
     @public id<MTLCommandQueue> commandQueue;
     @public id<MTLCommandBuffer> currentCommandBuffer;
     @public id<MTLTexture> depthTexture;
+    @public id<MTLLibrary> shaderLibrary;
     @public std::vector<CVMetalTextureRef> metalTexturesUsed[MaxFramesInFlight];
     @public CVMetalTextureCacheRef textureCache;
     @public dispatch_semaphore_t inFlightSemaphore;
@@ -31,6 +30,9 @@ static const NSUInteger MaxFramesInFlight = 3;
     @public uint32_t frameCounter;
     @public uint8_t currentFrameIndex;
     @public size_t drawCallIndex;
+    @public DisplayOutput::spCShaderMetal drawTextureShader;
+    @public DisplayOutput::spCShaderMetal drawTextShader;
+    @public DisplayOutput::spCShaderMetal activeShader;
 }
 @end
 
@@ -62,34 +64,9 @@ CRendererMetal::~CRendererMetal()
     }
 }
 
-typedef enum AAPLRenderTargetIndices
-{
-    AAPLRenderTargetColor           = 0,
-} AAPLRenderTargetIndices;
-
-static MTLRenderPipelineDescriptor* CreateRenderPipelineDesc(MTKView* metalView)
-{
-    MTLRenderPipelineDescriptor* renderPipelineDesc = [MTLRenderPipelineDescriptor new];
-    renderPipelineDesc.label = @"Electric Sheep Render Pipeline";
-    renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].pixelFormat = metalView.colorPixelFormat;
-    renderPipelineDesc.depthAttachmentPixelFormat = metalView.depthStencilPixelFormat;
-    renderPipelineDesc.stencilAttachmentPixelFormat = MTLPixelFormatInvalid;
-
-    renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].blendingEnabled = true;
-    renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].alphaBlendOperation = MTLBlendOperationAdd;
-    renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].sourceAlphaBlendFactor = MTLBlendFactorOne;
-    renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
-    renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].sourceRGBBlendFactor = MTLBlendFactorSourceAlpha;
-    renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
-    renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].rgbBlendOperation = MTLBlendOperationAdd;
-    renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].writeMask = MTLColorWriteMaskAll;
-
-    return renderPipelineDesc;
-}
-
 static MTLVertexDescriptor* CreateTextVertexDescriptor()
 {
-    MTLVertexDescriptor *vertexDescriptor = [MTLVertexDescriptor new];
+    MTLVertexDescriptor* vertexDescriptor = [MTLVertexDescriptor new];
 
     // Position
     vertexDescriptor.attributes[0].format = MTLVertexFormatFloat4;
@@ -116,9 +93,18 @@ bool	CRendererMetal::Initialize( spCDisplayOutput _spDisplay )
     id<MTLDevice> device = metalView.device;
     
     RendererContext* rendererContext = [[RendererContext alloc] init];
+    m_pRendererContext = CFBridgingRetain(rendererContext);
     rendererContext->metalView = metalView;
     rendererContext->commandQueue = [device newCommandQueue];
     rendererContext->inFlightSemaphore = dispatch_semaphore_create(MaxFramesInFlight);
+    rendererContext->shaderLibrary = [device newDefaultLibrary];
+    rendererContext->drawTextureShader = NewShader("quadPassVertex", "drawTextureFragment");
+    rendererContext->drawTextShader = new CShaderMetal(
+        device,
+        [rendererContext->shaderLibrary newFunctionWithName:@"drawTextVertex"],
+        [rendererContext->shaderLibrary newFunctionWithName:@"drawTextFragment"],
+        CreateTextVertexDescriptor());
+    
     
     if (USE_HW_ACCELERATION)
     {
@@ -127,36 +113,6 @@ bool	CRendererMetal::Initialize( spCDisplayOutput _spDisplay )
         {
             g_Log->Error("Error creating CVTextureCache:%d", textureCacheError);
         }
-    }
-
-    m_pRendererContext = CFBridgingRetain(rendererContext);
-    
-    id<MTLLibrary> defaultLibrary = [device newDefaultLibrary];
-    {
-        id<MTLFunction> vertexFuncQuad = [defaultLibrary newFunctionWithName:@"quadPassVertex"];
-        id<MTLFunction> vertexFuncText = [defaultLibrary newFunctionWithName:@"drawText_vertex"];
-        id<MTLFunction> fragmentFuncQuadYUV = [defaultLibrary newFunctionWithName:@"texture_fragment_YUV"];
-        id<MTLFunction> fragmentFuncQuadRGB = [defaultLibrary newFunctionWithName:@"texture_fragment_RGB"];
-        id<MTLFunction> fragmentFuncText = [defaultLibrary newFunctionWithName:@"drawText_fragment"];
-        
-        auto createRenderPipeline = ^(id<MTLFunction> vertexFunc, id<MTLFunction> fragmentFunc, MTLVertexDescriptor* vertexDesc)
-        {
-            MTLRenderPipelineDescriptor* renderPipelineDesc = CreateRenderPipelineDesc(metalView);
-            renderPipelineDesc.vertexFunction = vertexFunc;
-            renderPipelineDesc.fragmentFunction = fragmentFunc;
-            renderPipelineDesc.vertexDescriptor = vertexDesc;
-            
-            NSError* error;
-            id <MTLRenderPipelineState> pipelineState = [device newRenderPipelineStateWithDescriptor:renderPipelineDesc
-                                                                                                     error:&error];
-            if (error != nil)
-                g_Log->Error("Failed to create render pipeline state: %s", error.localizedDescription.UTF8String);
-            return pipelineState;
-        };
-        rendererContext->yuvPipeline = createRenderPipeline(vertexFuncQuad, fragmentFuncQuadYUV, nil);
-        rendererContext->rgbPipeline = createRenderPipeline(vertexFuncQuad, fragmentFuncQuadRGB, nil);
-        rendererContext->textPipeline = createRenderPipeline(vertexFuncText, fragmentFuncText, CreateTextVertexDescriptor());
-        
     }
 	return true;
 }
@@ -213,7 +169,10 @@ spCTextureFlat	CRendererMetal::NewTextureFlat( const uint32 _flags )
 */
 spCShader	CRendererMetal::NewShader( const char *_pVertexShader, const char *_pFragmentShader )
 {
-    return NULL;
+    RendererContext* rendererContext = (__bridge RendererContext*)m_pRendererContext;
+    id<MTLFunction> vertexFunc = [rendererContext->shaderLibrary newFunctionWithName:@(_pVertexShader)];
+    id<MTLFunction> fragmentFunc = [rendererContext->shaderLibrary newFunctionWithName:@(_pFragmentShader)];
+    return new CShaderMetal(rendererContext->metalView.device, vertexFunc, fragmentFunc, nil);
 }
 
 /*
@@ -309,7 +268,7 @@ void CRendererMetal::DrawText( spCBaseText _text, const Base::Math::CVector4& _c
         id<MTLRenderCommandEncoder> renderEncoder = [rendererContext->currentCommandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
         [renderEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
         [renderEncoder setCullMode:MTLCullModeNone];
-        [renderEncoder setRenderPipelineState:rendererContext->textPipeline];
+        [renderEncoder setRenderPipelineState:rendererContext->drawTextShader->GetPipelineState()];
         [renderEncoder setVertexBuffer:textMesh.vertexBuffer offset:0 atIndex:0];
 
         vector_float3 translation = { _rect.m_X0, (1-_rect.m_Y0) * 512, 0 };
@@ -345,15 +304,8 @@ void	CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math:
     RendererContext* rendererContext = (__bridge RendererContext*)m_pRendererContext;
     @autoreleasepool
     {
-        id <MTLRenderPipelineState> renderPipelineState;
-        if (!m_aspSelectedTextures[0].IsNull() && m_aspSelectedTextures[0]->IsYUVTexture())
-        {
-            renderPipelineState = rendererContext->yuvPipeline;
-        }
-        else
-        {
-            renderPipelineState = rendererContext->rgbPipeline;
-        }
+        spCShaderMetal activeShader = m_spSelectedShader != nullptr ? static_cast<spCShaderMetal>(m_spSelectedShader) : rendererContext->drawTextureShader;
+        id <MTLRenderPipelineState> renderPipelineState = activeShader->GetPipelineState();
         MTLRenderPassDescriptor *passDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
         if (passDescriptor != nil)
         {
