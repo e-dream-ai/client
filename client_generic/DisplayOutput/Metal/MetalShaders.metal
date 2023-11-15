@@ -82,15 +82,21 @@ fragment float4 drawDecodedFrameNoBlendingFragment(ColorInOut vert [[stage_in]],
 }
 
 fragment float4 drawDecodedFrameLinearFrameBlendFragment(ColorInOut vert [[stage_in]],
-                                                    texture2d<float, access::sample> yTexture1 [[texture(0)]],
-                                                    texture2d<float, access::sample> uvTexture1 [[texture(1)]],
-                                                    texture2d<float, access::sample> yTexture2 [[texture(2)]],
-                                                    texture2d<float, access::sample> uvTexture2 [[texture(3)]],
-                                                    constant QuadUniforms& uniforms [[buffer(0)]])
+                                                    texture2d<float, access::sample> video1frame1Y [[texture(0)]],
+                                                    texture2d<float, access::sample> video1frame1UV [[texture(1)]],
+                                                    texture2d<float, access::sample> video1frame2Y [[texture(2)]],
+                                                    texture2d<float, access::sample> video1frame2UV [[texture(3)]],
+                                                    texture2d<float, access::sample> video2frame1Y [[texture(4)]],
+                                                    texture2d<float, access::sample> video2frame1UV [[texture(5)]],
+                                                    texture2d<float, access::sample> video2frame2Y [[texture(6)]],
+                                                    texture2d<float, access::sample> video2frame2UV [[texture(7)]],
+                                                    constant QuadUniforms& uniforms [[buffer(0)]],
+                                                    constant float& delta [[buffer(1)]])
 {
-    float4 rgba1 = SampleTextureRGBA(vert.uv, yTexture1, uvTexture1);
-    float4 rgba2 = SampleTextureRGBA(vert.uv, yTexture2, uvTexture2);
-    return mix(rgba1, rgba2, 1);
+    float4 video1frame1RGBA = SampleTextureRGBA(vert.uv, video1frame1Y, video1frame1UV);
+    float4 video1frame2RGBA = SampleTextureRGBA(vert.uv, video1frame2Y, video1frame2UV);
+
+    return mix(video1frame1RGBA, video1frame2RGBA, delta);
 }
 
 

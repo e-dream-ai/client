@@ -123,7 +123,7 @@ class	CLinearFrameDisplay : public CFrameDisplay
                         m_spShader = _spRenderer->NewShader( NULL, ( _spRenderer->GetTextureTargetType() == DisplayOutput::eTexture2DRect ) ? linear_pixelshaderGL2DRect : linear_pixelshaderGL2D );
                         break;
                     case DisplayOutput::eMetal:
-                        m_spShader = _spRenderer->NewShader( "quadPassVertex", "drawDecodedLinearFrameBlendFragment" );
+                        m_spShader = _spRenderer->NewShader( "quadPassVertex", "drawDecodedFrameLinearFrameBlendFragment" );
                         break;
                 }
 
