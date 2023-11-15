@@ -393,6 +393,7 @@ void	CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math:
         uniforms.rect = vector_float4 { _rect.m_X0, _rect.m_Y0, _rect.m_X1 - _rect.m_X0, _rect.m_Y1 - _rect.m_Y0 };
 
         [renderEncoder setFragmentBytes:&uniforms length:sizeof(uniforms) atIndex:0];
+        activeShader->UploadUniforms(renderEncoder);
         [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
         [renderEncoder endEncoding];
         rendererContext->currentLoadAction = MTLLoadActionLoad;

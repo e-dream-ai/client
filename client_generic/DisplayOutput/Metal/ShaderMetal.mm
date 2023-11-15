@@ -52,6 +52,19 @@ CShaderMetal::~CShaderMetal()
     
 }
 
+bool CShaderMetal::Set( [[maybe_unused]] const std::string _name, uint64_t _uniformIndex, const fp4 _value )
+{
+    m_UniformValues[_uniformIndex] = _value;
+    return true;
+}
+
+void CShaderMetal::UploadUniforms(id<MTLRenderCommandEncoder> renderEncoder)
+{
+    for (auto it = m_UniformValues.begin(); it != m_UniformValues.end(); ++it)
+    {
+        [renderEncoder setFragmentBytes:&it->second length:sizeof(float) atIndex:it->first];
+    }
+}
 
 /*
 */

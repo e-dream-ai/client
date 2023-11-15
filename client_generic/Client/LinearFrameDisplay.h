@@ -233,9 +233,9 @@ class	CLinearFrameDisplay : public CFrameDisplay
 						}
 					}
 					texRect = m_spFrames[ m_State ]->GetRect();
-					m_spShader->Set( "delta", (fp4)m_InterframeDelta );
-					m_spShader->Set( "newalpha", (fp4)currentalpha );
-					m_spShader->Set( "transPct", m_MetaData.m_TransitionProgress);
+					m_spShader->Set( "delta", 1, (fp4)m_InterframeDelta );
+					m_spShader->Set( "newalpha", 2, (fp4)currentalpha );
+					m_spShader->Set( "transPct", 3, m_MetaData.m_TransitionProgress);
 					m_spRenderer->Apply();
 					
                     UpdateTexRect( texRect );

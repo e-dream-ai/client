@@ -40,14 +40,14 @@ CTextureFlatMetal::CTextureFlatMetal( CGraphicsContext _graphicsContext, const u
     m_pTextureContext = CFBridgingRetain(textureContext);
     for(int i=0;i<4;++i)name[i]='A'+((char)std::rand()%22);name[4] = 0; //@TODO: cleanup
     m_spBoundFrame = NULL;
-    g_Log->Error("TEXTURES:ALLOCATING TEXTURE:%s %i isnull:%i", name, m_spBoundFrame == NULL, m_spBoundFrame.IsNull());
+    //g_Log->Error("TEXTURES:ALLOCATING TEXTURE:%s %i isnull:%i", name, m_spBoundFrame == NULL, m_spBoundFrame.IsNull());
 }
 
 /*
 */
 CTextureFlatMetal::~CTextureFlatMetal()
 {
-    g_Log->Error("TEXTURES:DESTROYING TEXTURE:%s bound:%i isnull:%i", name, m_spBoundFrame == NULL, m_spBoundFrame.IsNull());
+    //g_Log->Error("TEXTURES:DESTROYING TEXTURE:%s bound:%i isnull:%i", name, m_spBoundFrame == NULL, m_spBoundFrame.IsNull());
     CFBridgingRelease(m_pTextureContext);
 }
 
@@ -117,8 +117,7 @@ bool CTextureFlatMetal::Upload(const uint8_t* _data,
     MTKView* view = (__bridge MTKView*)m_pGraphicsContext;
 
     id<MTLTexture> texture = textureContext->yTexture;
-    
-    //@TODO: Probably need to set sampler descriptor here
+
     //Create Metal texture if it doesn's exist yet
     if (texture == nil)
     {
@@ -164,12 +163,6 @@ bool    CTextureFlatMetal::Bind( const uint32 _index )
 */
 bool    CTextureFlatMetal::Unbind( const uint32 _index )
 {
-    /*
-    glActiveTextureARB( GL_TEXTURE0 + _index );
-    glBindTexture( m_TexTarget, 0 );
-    glDisable( m_TexTarget );
-    VERIFYGL;
-     */
     return true;
 }
 
@@ -178,47 +171,14 @@ bool CTextureFlatMetal::GetYUVMetalTextures(CVMetalTextureRef* _outYTexture, CVM
     if (m_spBoundFrame == NULL)
         return false;
     MTKView* view = (__bridge MTKView*)m_pGraphicsContext;
-    //if (textureContext->yTexture == nil)
+    const uint32_t kAVFrameDataPixelBufferIndex = 3;
+    if (m_spBoundFrame->Frame() == NULL)
     {
-        const uint32_t kAVFrameDataPixelBufferIndex = 3;
-        if (m_spBoundFrame->Frame() == NULL)
-        {
-            g_Log->Error("THIS SHOULDN'T BE NULL");
-        }
-        CVPixelBufferRef pixelBuffer = (CVPixelBufferRef)m_spBoundFrame->Frame()->data[kAVFrameDataPixelBufferIndex];
-        /*
-        textureContext->ioSurface = CVPixelBufferGetIOSurface(pixelBuffer);
-        
-        uint32_t width = m_spBoundFrame->Width();
-        uint32_t height= m_spBoundFrame->Height();
-        bool mipMapped = false;
-        
-        
-        MTLTextureDescriptor *yTextureDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatR8Unorm
-                                                                                                     width:width
-                                                                                                    height:height
-                                                                                                 mipmapped:mipMapped];
-        MTLTextureDescriptor *uvTextureDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRG8Unorm
-                                                                                                     width:width/2
-                                                                                                    height:height/2
-                                                                                                 mipmapped:mipMapped];
-        textureContext->yTexture = [view.device newTextureWithDescriptor:yTextureDescriptor iosurface:textureContext->ioSurface plane:0];
-        textureContext->uvTexture = [view.device newTextureWithDescriptor:uvTextureDescriptor iosurface:textureContext->ioSurface plane:1];
-        *_outYTexture = textureContext->yTexture;
-        *_outUVTexture = textureContext->uvTexture;
-        
-        IOSurfaceIncrementUseCount(textureContext->ioSurface);
-        */
-        m_pRenderer->CreateMetalTextureFromDecoderFrame(pixelBuffer, _outYTexture, 0);
-        m_pRenderer->CreateMetalTextureFromDecoderFrame(pixelBuffer, _outUVTexture, 1);
-        //textureContext->yTexture = CVMetalTextureGetTexture(textureContext->decoderFrameYTextureRef);
-        //textureContext->uvTexture = CVMetalTextureGetTexture(textureContext->decoderFrameUVTextureRef);
-        //*_outYTexture = textureContext->yTexture;
-        //*_outUVTexture = textureContext->uvTexture;
-        //g_Log->Info("Create Texture %p", this);
-        //NSLog(@"yTex:%@", textureContext->yTexture);
-        //CVPixelBufferRelease(pixelBuffer);
+        g_Log->Error("THIS SHOULDN'T BE NULL");
     }
+    CVPixelBufferRef pixelBuffer = (CVPixelBufferRef)m_spBoundFrame->Frame()->data[kAVFrameDataPixelBufferIndex];
+    m_pRenderer->CreateMetalTextureFromDecoderFrame(pixelBuffer, _outYTexture, 0);
+    m_pRenderer->CreateMetalTextureFromDecoderFrame(pixelBuffer, _outUVTexture, 1);
     return true;
 }
 
@@ -237,7 +197,6 @@ CVMetalTextureRef CTextureFlatMetal::GetCVMetalTextureRef()
 bool CTextureFlatMetal::BindFrame(ContentDecoder::spCVideoFrame _spFrame)
 {
     m_Flags |= eTextureFlags::TEXTURE_YUV;
-    //ReleaseMetalTexture();
     m_spBoundFrame = _spFrame;
     if (m_spBoundFrame->Frame() == NULL)
     {
@@ -249,18 +208,11 @@ bool CTextureFlatMetal::BindFrame(ContentDecoder::spCVideoFrame _spFrame)
 void CTextureFlatMetal::ReleaseMetalTexture()
 {
     TextureFlatMetalContext* textureContext = (__bridge TextureFlatMetalContext*)m_pTextureContext;
-    
-    
+
     textureContext->decoderFrameYTextureRef = NULL;
     textureContext->decoderFrameUVTextureRef = NULL;
     textureContext->yTexture = nil;
     textureContext->uvTexture = nil;
-    
-    //CVPixelBufferRelease(pixelBuffer);
-    //CVBufferRelease(textureContext->decoderFrameYTextureRef);
-    //CVBufferRelease(textureContext->decoderFrameUVTextureRef);
-    //m_spBoundFrame = NULL;
-    //return;
 }
 
 }

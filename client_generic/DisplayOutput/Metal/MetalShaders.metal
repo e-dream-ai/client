@@ -82,21 +82,32 @@ fragment float4 drawDecodedFrameNoBlendingFragment(ColorInOut vert [[stage_in]],
 }
 
 fragment float4 drawDecodedFrameLinearFrameBlendFragment(ColorInOut vert [[stage_in]],
-                                                    texture2d<float, access::sample> video1frame1Y [[texture(0)]],
-                                                    texture2d<float, access::sample> video1frame1UV [[texture(1)]],
-                                                    texture2d<float, access::sample> video1frame2Y [[texture(2)]],
-                                                    texture2d<float, access::sample> video1frame2UV [[texture(3)]],
-                                                    texture2d<float, access::sample> video2frame1Y [[texture(4)]],
-                                                    texture2d<float, access::sample> video2frame1UV [[texture(5)]],
-                                                    texture2d<float, access::sample> video2frame2Y [[texture(6)]],
-                                                    texture2d<float, access::sample> video2frame2UV [[texture(7)]],
+                                                    texture2d<float, access::sample> video1frame1Y [[texture(2)]],
+                                                    texture2d<float, access::sample> video1frame1UV [[texture(3)]],
+                                                    texture2d<float, access::sample> video1frame2Y [[texture(4)]],
+                                                    texture2d<float, access::sample> video1frame2UV [[texture(5)]],
+                                                    texture2d<float, access::sample> video2frame1Y [[texture(6)]],
+                                                    texture2d<float, access::sample> video2frame1UV [[texture(7)]],
+                                                    texture2d<float, access::sample> video2frame2Y [[texture(8)]],
+                                                    texture2d<float, access::sample> video2frame2UV [[texture(9)]],
                                                     constant QuadUniforms& uniforms [[buffer(0)]],
-                                                    constant float& delta [[buffer(1)]])
+                                                    constant float& delta [[buffer(1)]],
+                                                    constant float& newAlpha [[buffer(2)]],
+                                                    constant float& transPct [[buffer(3)]])
 {
     float4 video1frame1RGBA = SampleTextureRGBA(vert.uv, video1frame1Y, video1frame1UV);
     float4 video1frame2RGBA = SampleTextureRGBA(vert.uv, video1frame2Y, video1frame2UV);
 
-    return mix(video1frame1RGBA, video1frame2RGBA, delta);
+    float4 v1 = mix(video1frame1RGBA, video1frame2RGBA, delta);
+    
+    float4 video2frame1RGBA = SampleTextureRGBA(vert.uv, video2frame1Y, video2frame1UV);
+    float4 video2frame2RGBA = SampleTextureRGBA(vert.uv, video2frame2Y, video2frame2UV);
+    
+    float4 v2 = mix(video2frame1RGBA, video2frame2RGBA, delta);
+    
+    float4 result = mix(v1, v2, transPct / 100.0);
+    result.a = newAlpha;
+    return result;
 }
 
 

@@ -90,7 +90,7 @@ class CShader
 
 			virtual bool	Build( const char *_pVertexShader, const char *_pFragmentShader ) = PureVirtual;
 
-			bool	Set( const std::string _name, const int32 _value ) const
+			virtual bool	Set( const std::string _name, [[maybe_unused]] uint64_t _uniformIndex, const int32 _value )
 			{
 				spCShaderUniform spUniform = Uniform( _name );
 				if( spUniform != NULL )
@@ -102,7 +102,7 @@ class CShader
 				return false;
 			}
 
-			bool	Set( const std::string _name, const fp4 _value ) const
+			virtual bool	Set( const std::string _name, [[maybe_unused]] uint64_t _uniformIndex, const fp4 _value )
 			{
 				spCShaderUniform spUniform = Uniform( _name );
 				if( spUniform != NULL )
@@ -114,7 +114,7 @@ class CShader
 				return false;
 			}
 
-			bool	Set( const std::string _name, const fp4 _x, const fp4 _y, const fp4 _z, const fp4 _w ) const
+			virtual bool	Set( const std::string _name, [[maybe_unused]] uint64_t _uniformIndex, const fp4 _x, const fp4 _y, const fp4 _z, const fp4 _w )
 			{
 				spCShaderUniform spUniform = Uniform( _name );
 				if( spUniform != NULL )
