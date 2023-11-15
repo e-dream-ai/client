@@ -23,7 +23,7 @@ CShaderMetal::CShaderMetal(id<MTLDevice> device, id<MTLFunction> vertexFunction,
     MTLRenderPipelineDescriptor* renderPipelineDesc = [MTLRenderPipelineDescriptor new];
     renderPipelineDesc.label = @"Electric Sheep Render Pipeline";
     renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].pixelFormat = MTLPixelFormatBGRA8Unorm;
-    renderPipelineDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth16Unorm;
+    renderPipelineDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
     renderPipelineDesc.stencilAttachmentPixelFormat = MTLPixelFormatInvalid;
 
     renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].blendingEnabled = true;
