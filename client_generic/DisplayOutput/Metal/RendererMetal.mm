@@ -244,6 +244,31 @@ bool    CRendererMetal::EndFrame( bool drawn )
     return true;
 }
 
+void CRendererMetal::Clear()
+{
+    
+    RendererContext* rendererContext = (__bridge RendererContext*)m_pRendererContext;
+    @autoreleasepool
+    {
+        MTLRenderPassDescriptor *passDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
+        if (passDescriptor != nil)
+        {
+            passDescriptor.colorAttachments[0].texture = rendererContext->metalView.currentDrawable.texture;
+            passDescriptor.colorAttachments[0].loadAction = MTLLoadActionLoad; // Don't clear the old image
+            passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+            
+            passDescriptor.depthAttachment.texture = rendererContext->depthTexture;
+            passDescriptor.depthAttachment.clearDepth = 1.0;
+            passDescriptor.depthAttachment.loadAction = MTLLoadActionClear;
+            passDescriptor.depthAttachment.storeAction = MTLStoreActionDontCare;
+        }
+          
+        id<MTLRenderCommandEncoder> renderEncoder = [rendererContext->currentCommandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
+
+        [renderEncoder endEncoding];
+    }
+}
+
 void CRendererMetal::DrawText( spCBaseText _text, const Base::Math::CVector4& _color, const Base::Math::CRect &_rect )
 {
     RendererContext* rendererContext = (__bridge RendererContext*)m_pRendererContext;
@@ -256,7 +281,7 @@ void CRendererMetal::DrawText( spCBaseText _text, const Base::Math::CVector4& _c
         if (passDescriptor != nil)
         {
             passDescriptor.colorAttachments[0].texture = rendererContext->metalView.currentDrawable.texture;
-            passDescriptor.colorAttachments[0].loadAction = MTLLoadActionLoad; // Don't clear the old image
+            passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear; // Don't clear the old image
             passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
             
             passDescriptor.depthAttachment.texture = rendererContext->depthTexture;
@@ -318,7 +343,7 @@ void	CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math:
                 BuildDepthTexture();
             }
             passDescriptor.colorAttachments[0].texture = rendererContext->metalView.currentDrawable.texture;
-            passDescriptor.colorAttachments[0].loadAction = MTLLoadActionLoad; // Don't clear the old image
+            passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear; // Don't clear the old image
             passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
             
             passDescriptor.depthAttachment.texture = rendererContext->depthTexture;

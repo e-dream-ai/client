@@ -64,6 +64,8 @@ class CRendererMetal : public CRenderer
 
 			//
 			spCShader		NewShader( const char *_pVertexShader, const char *_pFragmentShader );
+    
+            void Clear();
 
 			//
 			void	DrawQuad( const Base::Math::CRect	&_rect, const Base::Math::CVector4 &_color );

@@ -93,7 +93,7 @@ fragment float4 drawDecodedLinearFrameBlendFragment(ColorInOut vert [[stage_in]]
 {
     float4 rgba1 = SampleTextureRGBA(vert.uv, yTexture1, uvTexture1);
     float4 rgba2 = SampleTextureRGBA(vert.uv, yTexture2, uvTexture2);
-    return mix(rgba1, rgba2, uniforms.crossfadeRatio);
+    return float4(mix(rgba1, rgba2, uniforms.crossfadeRatio).rgb, 0.1);
 }
 
 
