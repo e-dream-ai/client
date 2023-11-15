@@ -6,7 +6,7 @@
 struct QuadUniforms
 {
     vector_float4 rect;
-    float crossfadeRatio;
+    vector_float4 color;
 };
 
 struct TextUniforms

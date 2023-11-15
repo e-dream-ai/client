@@ -29,7 +29,7 @@ static const NSUInteger MaxFramesInFlight = 3;
     @public uint8_t drawCallsInFrame[MaxFramesInFlight];
     @public uint32_t frameCounter;
     @public uint8_t currentFrameIndex;
-    @public size_t drawCallIndex;
+    @public MTLLoadAction currentLoadAction;
     @public DisplayOutput::spCShaderMetal drawTextureShader;
     @public DisplayOutput::spCShaderMetal drawTextShader;
     @public DisplayOutput::spCShaderMetal activeShader;
@@ -206,7 +206,7 @@ bool    CRendererMetal::BeginFrame( void )
     id<MTLCommandQueue> commandQueue = rendererContext->commandQueue;
     rendererContext->currentCommandBuffer = [commandQueue commandBuffer];
     
-    rendererContext->drawCallIndex = 0;
+    rendererContext->currentLoadAction = MTLLoadActionClear;
     return true;
 }
 
@@ -229,8 +229,7 @@ bool    CRendererMetal::EndFrame( bool drawn )
         metalTexturesUsed.clear();
         dispatch_semaphore_signal(semaphore);
     }];
-    rendererContext->drawCallIndex++;
-    
+
     @autoreleasepool
     {
         auto drawable = rendererContext->metalView.currentDrawable;
@@ -254,7 +253,7 @@ void CRendererMetal::Clear()
         if (passDescriptor != nil)
         {
             passDescriptor.colorAttachments[0].texture = rendererContext->metalView.currentDrawable.texture;
-            passDescriptor.colorAttachments[0].loadAction = MTLLoadActionLoad; // Don't clear the old image
+            passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
             passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
             
             passDescriptor.depthAttachment.texture = rendererContext->depthTexture;
@@ -281,13 +280,13 @@ void CRendererMetal::DrawText( spCBaseText _text, const Base::Math::CVector4& _c
         if (passDescriptor != nil)
         {
             passDescriptor.colorAttachments[0].texture = rendererContext->metalView.currentDrawable.texture;
-            passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear; // Don't clear the old image
+            passDescriptor.colorAttachments[0].loadAction = rendererContext->currentLoadAction;
             passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
             
             passDescriptor.depthAttachment.texture = rendererContext->depthTexture;
             passDescriptor.depthAttachment.clearDepth = 1.0;
-            passDescriptor.depthAttachment.loadAction = MTLLoadActionClear;
-            passDescriptor.depthAttachment.storeAction = MTLStoreActionDontCare;
+            passDescriptor.depthAttachment.loadAction = rendererContext->currentLoadAction;
+            passDescriptor.depthAttachment.storeAction = MTLStoreActionStore;
         }
 
         id<MTLRenderCommandEncoder> renderEncoder = [rendererContext->currentCommandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
@@ -320,6 +319,7 @@ void CRendererMetal::DrawText( spCBaseText _text, const Base::Math::CVector4& _c
                             indexBufferOffset:0];
 
         [renderEncoder endEncoding];
+        rendererContext->currentLoadAction = MTLLoadActionLoad;
     }
 }
 		
@@ -343,13 +343,13 @@ void	CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math:
                 BuildDepthTexture();
             }
             passDescriptor.colorAttachments[0].texture = rendererContext->metalView.currentDrawable.texture;
-            passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear; // Don't clear the old image
+            passDescriptor.colorAttachments[0].loadAction = rendererContext->currentLoadAction;
             passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
             
             passDescriptor.depthAttachment.texture = rendererContext->depthTexture;
             passDescriptor.depthAttachment.clearDepth = 1.0;
-            passDescriptor.depthAttachment.loadAction = MTLLoadActionClear;
-            passDescriptor.depthAttachment.storeAction = MTLStoreActionDontCare;
+            passDescriptor.depthAttachment.loadAction = rendererContext->currentLoadAction;;
+            passDescriptor.depthAttachment.storeAction = MTLStoreActionStore;
         }
 
         id<MTLRenderCommandEncoder> renderEncoder = [rendererContext->currentCommandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
@@ -389,12 +389,13 @@ void	CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math:
             }
         }
         QuadUniforms uniforms;
-        uniforms.crossfadeRatio = crossfadeRatio;
+        uniforms.color = vector_float4 { _color.m_X, _color.m_Y, _color.m_Z, _color.m_W };
         uniforms.rect = vector_float4 { _rect.m_X0, _rect.m_Y0, _rect.m_X1 - _rect.m_X0, _rect.m_Y1 - _rect.m_Y0 };
 
         [renderEncoder setFragmentBytes:&uniforms length:sizeof(uniforms) atIndex:0];
         [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
         [renderEncoder endEncoding];
+        rendererContext->currentLoadAction = MTLLoadActionLoad;
     }
 }
 

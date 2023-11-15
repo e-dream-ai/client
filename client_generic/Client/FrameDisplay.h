@@ -290,29 +290,23 @@ class	CFrameDisplay
                 //    Bind texture and render a quad covering the screen.
                 m_spRenderer->SetBlend( "alphablend" );
                 m_spRenderer->SetTexture( m_spVideoTexture, 0 );
-
-                if (!m_spSecondVideoTexture.IsNull())
-                {
-				//m_spRenderer->Apply();
+				m_spRenderer->Apply();
 
                 //UpdateInterframeDelta( _decodeFps );
-				
+                fp4 transCoef = m_MetaData.m_TransitionProgress / 100.0f;
 
                 UpdateTexRect( m_spVideoTexture->GetRect() );
-                //m_spRenderer->DrawQuad( m_texRect, Base::Math::CVector4( m_spSecondVideoTexture.IsNull() ? 10 : 1,1,1, currentalpha * (1.0f - transCoef) ), m_spVideoTexture->GetRect() );
                 
-					//	Bind the second texture and render a quad covering the screen.
-					m_spRenderer->SetTexture( m_spSecondVideoTexture, 1 );
-					
-                    
-                }
-                else
+                m_spRenderer->DrawQuad( m_texRect, Base::Math::CVector4( 1,1,1, currentalpha * (1.0f - transCoef) ), m_spVideoTexture->GetRect() );
+                
+                if (!m_spSecondVideoTexture.IsNull())
                 {
-                    m_spRenderer->SetTexture( NULL, 1 );
+                    //    Bind the second texture and render a quad covering the screen.
+                    m_spRenderer->SetTexture( m_spSecondVideoTexture, 0 );
+                    m_spRenderer->Apply();
+                    
+                    m_spRenderer->DrawQuad( m_texRect, Base::Math::CVector4( 1,1,1, currentalpha * transCoef ), m_spVideoTexture->GetRect() );
                 }
-                m_spRenderer->Apply();
-                fp4 crossfadeRatio = m_MetaData.m_TransitionProgress / 100.0f;
-                m_spRenderer->DrawQuad( m_texRect, Base::Math::CVector4( 1,1,1,1 ), m_spVideoTexture->GetRect(), currentalpha * crossfadeRatio );
 
 				return true;
 			}
