@@ -47,7 +47,17 @@ fragment float4 texture_fragment_YUV2(ColorInOut vert [[stage_in]],
     return float4(rgb, 1);
 }
 
-float4 SampleTextureRGBA(float2 uv, texture2d<float, access::sample> yTexture, texture2d<float, access::sample> uvTexture)
+fragment float4 drawTextureFragment(ColorInOut vert [[stage_in]],
+                                texture2d<float, access::sample> texture [[texture(0)]],
+                                     constant QuadUniforms& uniforms [[buffer(0)]])
+{
+    constexpr sampler s( address::clamp_to_zero, filter::linear );
+    float2 adjustedUV = (vert.uv - uniforms.rect.xy) / uniforms.rect.zw;
+    float4 color = texture.sample(s, adjustedUV);
+    return color;
+}
+
+float4 SampleYUVTexturesRGBA(float2 uv, texture2d<float, access::sample> yTexture, texture2d<float, access::sample> uvTexture)
 {
     constexpr sampler s( address::repeat, filter::linear );
     float3 yuv;
@@ -77,7 +87,7 @@ fragment float4 drawDecodedFrameNoBlendingFragment(ColorInOut vert [[stage_in]],
                                      texture2d<float, access::sample> uvTexture1 [[texture(1)]],
                                      constant QuadUniforms& uniforms [[buffer(0)]])
 {
-    float4 rgba = SampleTextureRGBA(vert.uv, yTexture1, uvTexture1);
+    float4 rgba = SampleYUVTexturesRGBA(vert.uv, yTexture1, uvTexture1);
     return rgba * uniforms.color;
 }
 
@@ -95,13 +105,13 @@ fragment float4 drawDecodedFrameLinearFrameBlendFragment(ColorInOut vert [[stage
                                                     constant float& newAlpha [[buffer(2)]],
                                                     constant float& transPct [[buffer(3)]])
 {
-    float4 video1frame1RGBA = SampleTextureRGBA(vert.uv, video1frame1Y, video1frame1UV);
-    float4 video1frame2RGBA = SampleTextureRGBA(vert.uv, video1frame2Y, video1frame2UV);
+    float4 video1frame1RGBA = SampleYUVTexturesRGBA(vert.uv, video1frame1Y, video1frame1UV);
+    float4 video1frame2RGBA = SampleYUVTexturesRGBA(vert.uv, video1frame2Y, video1frame2UV);
 
     float4 v1 = mix(video1frame1RGBA, video1frame2RGBA, delta);
     
-    float4 video2frame1RGBA = SampleTextureRGBA(vert.uv, video2frame1Y, video2frame1UV);
-    float4 video2frame2RGBA = SampleTextureRGBA(vert.uv, video2frame2Y, video2frame2UV);
+    float4 video2frame1RGBA = SampleYUVTexturesRGBA(vert.uv, video2frame1Y, video2frame1UV);
+    float4 video2frame2RGBA = SampleYUVTexturesRGBA(vert.uv, video2frame2Y, video2frame2UV);
     
     float4 v2 = mix(video2frame1RGBA, video2frame2RGBA, delta);
     
@@ -111,15 +121,43 @@ fragment float4 drawDecodedFrameLinearFrameBlendFragment(ColorInOut vert [[stage
 }
 
 
-fragment float4 drawTextureFragment(ColorInOut vert [[stage_in]],
-                                texture2d<float, access::sample> texture [[texture(0)]],
-                                     constant QuadUniforms& uniforms [[buffer(0)]])
+fragment float4 drawDecodedFrameCubicFrameBlendFragment(ColorInOut vert [[stage_in]],
+                                                        texture2d<float, access::sample> video1frame1Y [[texture(2)]],
+                                                        texture2d<float, access::sample> video1frame1UV [[texture(3)]],
+                                                        texture2d<float, access::sample> video1frame2Y [[texture(4)]],
+                                                        texture2d<float, access::sample> video1frame2UV [[texture(5)]],
+                                                        texture2d<float, access::sample> video1frame3Y [[texture(6)]],
+                                                        texture2d<float, access::sample> video1frame3UV [[texture(7)]],
+                                                        texture2d<float, access::sample> video1frame4Y [[texture(8)]],
+                                                        texture2d<float, access::sample> video1frame4UV [[texture(9)]],
+                                                        texture2d<float, access::sample> video2frame1Y [[texture(10)]],
+                                                        texture2d<float, access::sample> video2frame1UV [[texture(11)]],
+                                                        texture2d<float, access::sample> video2frame2Y [[texture(12)]],
+                                                        texture2d<float, access::sample> video2frame2UV [[texture(13)]],
+                                                        texture2d<float, access::sample> video2frame3Y [[texture(14)]],
+                                                        texture2d<float, access::sample> video2frame3UV [[texture(15)]],
+                                                        texture2d<float, access::sample> video2frame4Y [[texture(16)]],
+                                                        texture2d<float, access::sample> video2frame4UV [[texture(17)]],
+                                                        constant QuadUniforms& uniforms [[buffer(0)]],
+                                                        constant float4& weights [[buffer(1)]],
+                                                        constant float& newalpha [[buffer(2)]],
+                                                        constant float& transPct [[buffer(3)]])
 {
-    constexpr sampler s( address::clamp_to_zero, filter::linear );
-    float2 adjustedUV = (vert.uv - uniforms.rect.xy) / uniforms.rect.zw;
-    float4 color = texture.sample(s, adjustedUV);
-    return color;
+    float4 c1 = SampleYUVTexturesRGBA(vert.uv, video1frame1Y, video1frame1UV);
+    float4 c2 = SampleYUVTexturesRGBA(vert.uv, video1frame2Y, video1frame2UV);
+    float4 c3 = SampleYUVTexturesRGBA(vert.uv, video1frame3Y, video1frame3UV);
+    float4 c4 = SampleYUVTexturesRGBA(vert.uv, video1frame4Y, video1frame4UV);
+    float4 c5 = ( c1 * weights.x ) + ( c2 * weights.y ) + ( c3 * weights.z ) + ( c4 * weights.w );
+    c1 = SampleYUVTexturesRGBA(vert.uv, video2frame1Y, video2frame1UV);
+    c2 = SampleYUVTexturesRGBA(vert.uv, video2frame2Y, video2frame2UV);
+    c3 = SampleYUVTexturesRGBA(vert.uv, video2frame3Y, video2frame3UV);
+    c4 = SampleYUVTexturesRGBA(vert.uv, video2frame4Y, video2frame4UV);
+    float4 c6 = ( c1 * weights.x ) + ( c2 * weights.y ) + ( c3 * weights.z ) + ( c4 * weights.w );
+    float4 c7 = mix( c5, c6, transPct / 100.0 );
+    c7.a = newalpha;
+    return c1;
 }
+
 
 
 

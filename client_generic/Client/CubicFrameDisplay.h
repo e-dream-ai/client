@@ -164,10 +164,18 @@ class	CCubicFrameDisplay : public CFrameDisplay
 
 
 				//	Compile the shader.
-				if( _spRenderer->Type() == DisplayOutput::eDX9 )
-					m_spShader = _spRenderer->NewShader( cubic_vertexshader, cubic_fragmentshaderDX );
-				else
-					m_spShader = _spRenderer->NewShader( NULL, ( _spRenderer->GetTextureTargetType() == DisplayOutput::eTexture2DRect ) ? cubic_fragmentshaderGL2DRect : cubic_fragmentshaderGL2D );
+                switch (_spRenderer->Type())
+                {
+                    case DisplayOutput::eDX9:
+                        m_spShader = _spRenderer->NewShader( cubic_vertexshader, cubic_fragmentshaderDX );
+                        break;
+                    case DisplayOutput::eGL:
+                        m_spShader = _spRenderer->NewShader( NULL, ( _spRenderer->GetTextureTargetType() == DisplayOutput::eTexture2DRect ) ? cubic_fragmentshaderGL2DRect : cubic_fragmentshaderGL2D );
+                        break;
+                    case DisplayOutput::eMetal:
+                        m_spShader = _spRenderer->NewShader( "quadPassVertex", "drawDecodedFrameCubicFrameBlendFragment" );
+                        break;
+                }
 
 				if( !m_spShader )
 					m_bValid = false;
