@@ -173,7 +173,11 @@ class	CCubicFrameDisplay : public CFrameDisplay
                         m_spShader = _spRenderer->NewShader( NULL, ( _spRenderer->GetTextureTargetType() == DisplayOutput::eTexture2DRect ) ? cubic_fragmentshaderGL2DRect : cubic_fragmentshaderGL2D );
                         break;
                     case DisplayOutput::eMetal:
-                        m_spShader = _spRenderer->NewShader( "quadPassVertex", "drawDecodedFrameCubicFrameBlendFragment" );
+                        m_spShader = _spRenderer->NewShader( "quadPassVertex", "drawDecodedFrameCubicFrameBlendFragment", {
+                            {"weights", DisplayOutput::eUniform_Float4},
+                            {"newalpha", DisplayOutput::eUniform_Float},
+                            {"transPct", DisplayOutput::eUniform_Float}
+                        } );
                         break;
                 }
 
@@ -345,11 +349,12 @@ class	CCubicFrameDisplay : public CFrameDisplay
 					const fp4 C = 0.0f;
 
 					//	Set the filter weights...
-					m_spShader->Set( "weights", 1, MitchellNetravali( fp4(m_InterframeDelta) + 1.f, B, C ), MitchellNetravali( fp4(m_InterframeDelta), B, C ),
-												MitchellNetravali( 1.f - fp4(m_InterframeDelta), B, C ), MitchellNetravali( 2.f - fp4(m_InterframeDelta), B, C ) );
-					m_spShader->Set( "newalpha", 2, currentalpha);
+                    m_spShader->Set( "weights", 1,0,0,0);
+                                    //MitchellNetravali( fp4(m_InterframeDelta) + 1.f, B, C ), MitchellNetravali( fp4(m_InterframeDelta), B, C ),
+										//		MitchellNetravali( 1.f - fp4(m_InterframeDelta), B, C ), MitchellNetravali( 2.f - fp4(m_InterframeDelta), B, C ) );
+					m_spShader->Set( "newalpha", currentalpha);
 					
-					m_spShader->Set( "transPct", 3, m_MetaData.m_TransitionProgress);
+					m_spShader->Set( "transPct", m_MetaData.m_TransitionProgress );
 
 					m_spRenderer->SetBlend( "alphablend" );
 					m_spRenderer->Apply();

@@ -63,7 +63,7 @@ class CRendererMetal : public CRenderer
 			Base::Math::CVector2	GetTextExtent( spCBaseFont _spFont, const std::string &_text );
 
 			//
-			spCShader		NewShader( const char *_pVertexShader, const char *_pFragmentShader );
+            spCShader		NewShader( const char *_pVertexShader, const char *_pFragmentShader, std::vector<std::pair<std::string, eUniformType>> uniforms = {} );
     
             void Clear();
 

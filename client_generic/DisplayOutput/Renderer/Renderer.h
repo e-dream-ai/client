@@ -2,6 +2,8 @@
 #define	_RENDERER_H_
 
 #include <string>
+#include <map>
+
 #include "base.h"
 #include "SmartPtr.h"
 #include "Font.h"
@@ -147,7 +149,7 @@ class CRenderer
 
 			virtual bool HasShaders() { return false; }
 			//	Shaders.
-			virtual	spCShader		NewShader( const char *_pVertexShader, const char *_pFragmentShader ) = PureVirtual;
+            virtual	spCShader		NewShader( const char *_pVertexShader, const char *_pFragmentShader, std::vector<std::pair<std::string, eUniformType>> _uniforms = {} ) = PureVirtual;
 
 			//	Shortcut helper function.
 			void	Orthographic();

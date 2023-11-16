@@ -99,11 +99,10 @@ bool	CRendererMetal::Initialize( spCDisplayOutput _spDisplay )
     rendererContext->inFlightSemaphore = dispatch_semaphore_create(MaxFramesInFlight);
     rendererContext->shaderLibrary = [device newDefaultLibrary];
     rendererContext->drawTextureShader = NewShader("quadPassVertex", "drawTextureFragment");
-    rendererContext->drawTextShader = new CShaderMetal(
-        device,
-        [rendererContext->shaderLibrary newFunctionWithName:@"drawTextVertex"],
-        [rendererContext->shaderLibrary newFunctionWithName:@"drawTextFragment"],
-        CreateTextVertexDescriptor());
+    rendererContext->drawTextShader = new CShaderMetal(device,
+                                                       [rendererContext->shaderLibrary newFunctionWithName:@"drawTextVertex"],
+                                                       [rendererContext->shaderLibrary newFunctionWithName:@"drawTextFragment"],
+                                                       CreateTextVertexDescriptor(), {});
     
     
     if (USE_HW_ACCELERATION)
@@ -167,12 +166,12 @@ spCTextureFlat	CRendererMetal::NewTextureFlat( const uint32 _flags )
 
 /*
 */
-spCShader	CRendererMetal::NewShader( const char *_pVertexShader, const char *_pFragmentShader )
+spCShader	CRendererMetal::NewShader( const char *_pVertexShader, const char *_pFragmentShader, std::vector<std::pair<std::string, eUniformType>> _uniforms )
 {
     RendererContext* rendererContext = (__bridge RendererContext*)m_pRendererContext;
     id<MTLFunction> vertexFunc = [rendererContext->shaderLibrary newFunctionWithName:@(_pVertexShader)];
     id<MTLFunction> fragmentFunc = [rendererContext->shaderLibrary newFunctionWithName:@(_pFragmentShader)];
-    return new CShaderMetal(rendererContext->metalView.device, vertexFunc, fragmentFunc, nil);
+    return new CShaderMetal(rendererContext->metalView.device, vertexFunc, fragmentFunc, nil, _uniforms);
 }
 
 /*

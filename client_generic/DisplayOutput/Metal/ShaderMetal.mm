@@ -18,7 +18,11 @@ typedef enum AAPLRenderTargetIndices
 /*
 */
 
-CShaderMetal::CShaderMetal(id<MTLDevice> device, id<MTLFunction> vertexFunction, id<MTLFunction> fragmentFunction, MTLVertexDescriptor* vertexDescriptor)
+CShaderMetal::CShaderMetal(id<MTLDevice> device,
+                           id<MTLFunction> vertexFunction,
+                           id<MTLFunction> fragmentFunction,
+                           MTLVertexDescriptor* vertexDescriptor,
+                           std::vector<std::pair<std::string, eUniformType>> _uniforms)
 {
     MTLRenderPipelineDescriptor* renderPipelineDesc = [MTLRenderPipelineDescriptor new];
     renderPipelineDesc.label = @"Electric Sheep Render Pipeline";
@@ -43,6 +47,18 @@ CShaderMetal::CShaderMetal(id<MTLDevice> device, id<MTLFunction> vertexFunction,
     if (error != nil)
         g_Log->Error("Failed to create render pipeline state: %s", error.localizedDescription.UTF8String);
     
+    int index = 0;
+    size_t bufferSize = 0;
+    for (size_t i = 0; i < _uniforms.size(); ++i)
+    {
+        eUniformType uniformType = _uniforms[i].second;
+        size_t size = UniformTypeSizes[uniformType];
+        spCShaderUniformMetal uniform = new CShaderUniformMetal(_uniforms[i].first, uniformType, index, size);
+        m_Uniforms[_uniforms[i].first] = uniform;
+        m_SortedUniformRefs.push_back(uniform);
+        bufferSize += size;
+    }
+    m_UniformBuffer.resize(bufferSize);
 }
 
 /*
@@ -52,17 +68,18 @@ CShaderMetal::~CShaderMetal()
     
 }
 
-bool CShaderMetal::Set( [[maybe_unused]] const std::string _name, uint64_t _uniformIndex, const fp4 _value )
-{
-    m_UniformValues[_uniformIndex] = _value;
-    return true;
-}
-
 void CShaderMetal::UploadUniforms(id<MTLRenderCommandEncoder> renderEncoder)
 {
-    for (auto it = m_UniformValues.begin(); it != m_UniformValues.end(); ++it)
+    if (m_Uniforms.size())
     {
-        [renderEncoder setFragmentBytes:&it->second length:sizeof(float) atIndex:it->first];
+        uint8_t* data = m_UniformBuffer.data();
+        for (auto uniform : m_SortedUniformRefs)
+        {
+            size_t size = uniform->GetSize();
+            std::memcpy(data, uniform->GetData(), size);
+            data += size;
+        }
+        [renderEncoder setFragmentBytes:m_UniformBuffer.data() length:m_UniformBuffer.size() atIndex:1];
     }
 }
 
