@@ -1,3 +1,5 @@
+#ifdef USE_METAL
+
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
 
@@ -216,3 +218,5 @@ void CTextureFlatMetal::ReleaseMetalTexture()
 }
 
 }
+
+#endif /*USE_METAL*/

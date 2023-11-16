@@ -1,3 +1,5 @@
+#ifdef USE_METAL
+
 #include "Log.h"
 #include "Settings.h"
 #include "DisplayMetal.h"
@@ -76,3 +78,4 @@ namespace	DisplayOutput
 
 };
 
+#endif /*USE_METAL*/

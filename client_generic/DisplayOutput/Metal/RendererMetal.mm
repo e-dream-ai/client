@@ -1,3 +1,5 @@
+#ifdef USE_METAL
+
 #import <Metal/Metal.h>
 #import <Metal/MTLRenderPipeline.h>
 #import <MetalKit/MetalKit.h>
@@ -323,7 +325,7 @@ void CRendererMetal::DrawText( spCBaseText _text, const Base::Math::CVector4& _c
 }
 		
 
-void	CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math::CVector4 &_color, const Base::Math::CRect &_uvrect, float crossfadeRatio )
+void	CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math::CVector4 &_color, const Base::Math::CRect &_uvrect )
 {
     RendererContext* rendererContext = (__bridge RendererContext*)m_pRendererContext;
     @autoreleasepool
@@ -401,12 +403,12 @@ void	CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math:
 
 void    CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math::CVector4 &_color )
 {
-    DrawQuad(_rect, _color, Base::Math::CRect{0,0,1,1}, 0.0f);
+    DrawQuad(_rect, _color, Base::Math::CRect{0,0,1,1});
 }
 
 void	CRendererMetal::DrawSoftQuad( const Base::Math::CRect &_rect, const Base::Math::CVector4 &_color, const fp4 _width )
 {
-    DrawQuad(_rect, _color, Base::Math::CRect{0,0,1,1}, 0.0f);
+    DrawQuad(_rect, _color, Base::Math::CRect{0,0,1,1});
 }
 
 void CRendererMetal::BuildDepthTexture()
@@ -452,3 +454,4 @@ bool    CRendererMetal::CreateMetalTextureFromDecoderFrame(CVPixelBufferRef pixe
 }
 
 }
+#endif /*USE_METAL*/

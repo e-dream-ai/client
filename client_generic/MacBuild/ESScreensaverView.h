@@ -13,7 +13,11 @@
 #else
 : NSView 
 #endif
-<SUUpdaterDelegate, MTKViewDelegate>
+<SUUpdaterDelegate
+#ifdef USE_METAL
+, MTKViewDelegate
+#endif
+>
 {
     // So what do you need to make an OpenGL screen saver? Just an NSOpenGLView (or subclass thereof)
     // So we'll put one in here.

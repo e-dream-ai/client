@@ -349,9 +349,8 @@ class	CCubicFrameDisplay : public CFrameDisplay
 					const fp4 C = 0.0f;
 
 					//	Set the filter weights...
-                    m_spShader->Set( "weights", 1,0,0,0);
-                                    //MitchellNetravali( fp4(m_InterframeDelta) + 1.f, B, C ), MitchellNetravali( fp4(m_InterframeDelta), B, C ),
-										//		MitchellNetravali( 1.f - fp4(m_InterframeDelta), B, C ), MitchellNetravali( 2.f - fp4(m_InterframeDelta), B, C ) );
+                    m_spShader->Set( "weights", MitchellNetravali( fp4(m_InterframeDelta) + 1.f, B, C ), MitchellNetravali( fp4(m_InterframeDelta), B, C ),
+												MitchellNetravali( 1.f - fp4(m_InterframeDelta), B, C ), MitchellNetravali( 2.f - fp4(m_InterframeDelta), B, C ) );
 					m_spShader->Set( "newalpha", currentalpha);
 					
 					m_spShader->Set( "transPct", m_MetaData.m_TransitionProgress );

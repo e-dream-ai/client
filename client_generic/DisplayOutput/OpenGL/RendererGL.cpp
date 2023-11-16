@@ -334,7 +334,7 @@ eTextureTargetType	CRendererGL::GetTextureTargetType( void )
 
 /*
 */
-spCShader	CRendererGL::NewShader( const char *_pVertexShader, const char *_pFragmentShader )
+spCShader	CRendererGL::NewShader( const char *_pVertexShader, const char *_pFragmentShader, [[maybe_unused]] std::vector<std::pair<std::string, eUniformType>> _uniforms )
 {
 	SetCurrentGLContext();
 	

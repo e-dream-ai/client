@@ -156,16 +156,14 @@ fragment float4 drawDecodedFrameCubicFrameBlendFragment(ColorInOut vert [[stage_
     float4 c2 = SampleYUVTexturesRGBA(vert.uv, video1frame2Y, video1frame2UV);
     float4 c3 = SampleYUVTexturesRGBA(vert.uv, video1frame3Y, video1frame3UV);
     float4 c4 = SampleYUVTexturesRGBA(vert.uv, video1frame4Y, video1frame4UV);
-    
-    float4 c5 = ( c1 * frameBlend.weights.x ) + ( c1 * frameBlend.weights.y ) + ( c1 * frameBlend.weights.z ) + ( c1 * frameBlend.weights.w );
-    return frameBlend.weights;
+    float4 c5 = ( c1 * frameBlend.weights.x ) + ( c2 * frameBlend.weights.y ) + ( c3 * frameBlend.weights.z ) + ( c4 * frameBlend.weights.w );
+
     c1 = SampleYUVTexturesRGBA(vert.uv, video2frame1Y, video2frame1UV);
     c2 = SampleYUVTexturesRGBA(vert.uv, video2frame2Y, video2frame2UV);
     c3 = SampleYUVTexturesRGBA(vert.uv, video2frame3Y, video2frame3UV);
     c4 = SampleYUVTexturesRGBA(vert.uv, video2frame4Y, video2frame4UV);
-    
-    
     float4 c6 = ( c1 * frameBlend.weights.x ) + ( c2 * frameBlend.weights.y ) + ( c3 * frameBlend.weights.z ) + ( c4 * frameBlend.weights.w );
+    
     float4 c7 = mix( c5, c6, frameBlend.transPct / 100.0 );
     c7.a = frameBlend.newAlpha;
     return c7;

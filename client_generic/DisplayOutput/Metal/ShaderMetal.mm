@@ -1,3 +1,5 @@
+#ifdef USE_METAL
+
 #include <iostream>
 #include <assert.h>
 #include <string.h>
@@ -105,3 +107,5 @@ bool    CShaderMetal::Unbind()
 }
     
 };
+
+#endif /*USE_METAL*/

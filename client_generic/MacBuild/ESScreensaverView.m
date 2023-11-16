@@ -242,7 +242,23 @@ bool bStarted = false;
 
 		if (animationLock != NULL)
 			[animationLock lock];
-			
+#if !USE_METAL
+        if (!m_isStopped && !ESScreensaver_Stopped() && ESScreensaver_DoFrame())
+        {
+    #ifdef SCREEN_SAVER
+            if (!m_isPreview && CGCursorIsVisible())
+            {
+                [NSCursor hide];
+                m_isHidden = YES;
+            }
+    #endif
+            //if (m_isStopped)
+                //break;
+            
+            //if (view != NULL)
+                //[view setNeedsDisplay:YES];
+        }
+#endif
 
 		
 		if (animationLock != NULL)
@@ -408,8 +424,8 @@ bool bStarted = false;
 	m_isFullScreen = fullscreen;
 }
 
-
-- (void)drawInMTKView:(nonnull MTKView *)view { 
+#ifdef USE_METAL
+- (void)drawInMTKView:(nonnull MTKView *)view {
     if (!m_isStopped && !ESScreensaver_Stopped() && ESScreensaver_DoFrame())
     {
 #ifdef SCREEN_SAVER
@@ -426,5 +442,5 @@ bool bStarted = false;
             //[view setNeedsDisplay:YES];
     }
 }
-
+#endif
 @end

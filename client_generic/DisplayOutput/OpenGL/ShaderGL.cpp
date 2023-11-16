@@ -64,7 +64,7 @@ bool	CShaderGL::Bind()
 */
 bool	CShaderGL::Apply()
 {
-	std::vector<std::pair<std::string, spCShaderUniform>>::const_iterator	iter;
+    std::map< std::string, spCShaderUniform >::const_iterator	iter;
 
 	//	Update all uniforms.
 	for( iter = m_Uniforms.begin(); iter != m_Uniforms.end(); ++iter )
@@ -252,9 +252,9 @@ bool	CShaderGL::Build( const char *_pVertexShader, const char *_pFragmentShader 
 							}
 						
 #ifdef MAC
-                            m_Uniforms.push_back({ name, new CShaderUniformGL( cgl_ctx, name, eType, glGetUniformLocationARB( m_Program, name ), size ) });
+                            m_Uniforms[name] = new CShaderUniformGL( cgl_ctx, name, eType, glGetUniformLocationARB( m_Program, name ), size );
 #else
-                            m_Uniforms.push_back({ name, new CShaderUniformGL( name, eType, glGetUniformLocationARB( m_Program, name ), size ) });
+                            m_Uniforms[name] = new CShaderUniformGL( name, eType, glGetUniformLocationARB( m_Program, name ), size );
 #endif
 						}
 						else if( bracket != NULL && bracket[1] > '0' )
