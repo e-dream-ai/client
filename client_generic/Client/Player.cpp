@@ -592,11 +592,12 @@ bool	CPlayer::EndFrameUpdate()
 		
 		spFD = m_displayUnits[ 0 ]->spFrameDisplay;
 	}
-	
+
+#ifndef USE_METAL
 	fp8 capFPS = spFD->GetFps( m_PlayerFps, m_DisplayFps );
-	
 	if ( !spFD.IsNull() && capFPS > 0.000001)
 		FpsCap( capFPS );
+#endif
 	
 	return true;
 }

@@ -1,4 +1,8 @@
 #import <ScreenSaver/ScreenSaver.h>
+
+#include <boost/thread.hpp>
+#include <memory>
+
 #if USE_METAL
 #import "ESMetalView.h"
 #else
@@ -42,6 +46,8 @@
 	ESConfiguration* m_config;
 	
 	SUUpdater* m_updater;
+    std::unique_ptr<boost::barrier> m_beginFrameBarrier;
+    std::unique_ptr<boost::barrier> m_endFrameBarrier;
 }
 
 - (id)initWithFrame:(NSRect)frame isPreview:(BOOL)isPreview;

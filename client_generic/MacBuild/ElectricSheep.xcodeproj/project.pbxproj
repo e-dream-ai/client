@@ -29,7 +29,7 @@
 		212CAF851141CA3F009DA85A /* TrebuchetMS-20.glf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 212CAF831141CA3F009DA85A /* TrebuchetMS-20.glf */; };
 		2135D2220EC70153005E246D /* ESOpenGLView.m in Sources */ = {isa = PBXBuildFile; fileRef = 2135D2200EC70153005E246D /* ESOpenGLView.m */; };
 		2135D2690EC70571005E246D /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2135D2670EC70571005E246D /* AppKit.framework */; };
-		2135DA530EC7479A005E246D /* ESScreensaverView.m in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA520EC7479A005E246D /* ESScreensaverView.m */; };
+		2135DA530EC7479A005E246D /* ESScreensaverView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA520EC7479A005E246D /* ESScreensaverView.mm */; };
 		2135DA550EC74853005E246D /* ESScreensaver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA540EC74853005E246D /* ESScreensaver.cpp */; };
 		2135DB250EC75133005E246D /* ScreenSaver.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2135DB240EC75133005E246D /* ScreenSaver.framework */; };
 		213D535111F79C8D00CF500D /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 213D529B11F79B0000CF500D /* IOKit.framework */; };
@@ -216,7 +216,7 @@
 		21EE636210139D68000CE53E /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 21EE634D10139BEF000CE53E /* MainMenu.xib */; };
 		21EE636310139D68000CE53E /* ElectricSheep.nib in Resources */ = {isa = PBXBuildFile; fileRef = 21AAA09E0F70400D00AC23A8 /* ElectricSheep.nib */; };
 		21EE63961013A674000CE53E /* ESWindow.mm in Sources */ = {isa = PBXBuildFile; fileRef = 21EE63951013A674000CE53E /* ESWindow.mm */; };
-		21EE63C21013A879000CE53E /* ESScreensaverView.m in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA520EC7479A005E246D /* ESScreensaverView.m */; };
+		21EE63C21013A879000CE53E /* ESScreensaverView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA520EC7479A005E246D /* ESScreensaverView.mm */; };
 		21EE63C31013A87F000CE53E /* ESScreensaver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA540EC74853005E246D /* ESScreensaver.cpp */; };
 		21EE63CF1013A93A000CE53E /* ESConfiguration.mm in Sources */ = {isa = PBXBuildFile; fileRef = 21AAA0EE0F70453200AC23A8 /* ESConfiguration.mm */; };
 		464A49DC2AB88A8200C77F6D /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49DA2AB8864600C77F6D /* VideoToolbox.framework */; };
@@ -559,7 +559,7 @@
 		212CAF831141CA3F009DA85A /* TrebuchetMS-20.glf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "TrebuchetMS-20.glf"; sourceTree = "<group>"; };
 		2135D2200EC70153005E246D /* ESOpenGLView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = ESOpenGLView.m; path = ../DisplayOutput/OpenGL/ESOpenGLView.m; sourceTree = SOURCE_ROOT; };
 		2135D2670EC70571005E246D /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
-		2135DA520EC7479A005E246D /* ESScreensaverView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ESScreensaverView.m; sourceTree = "<group>"; };
+		2135DA520EC7479A005E246D /* ESScreensaverView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ESScreensaverView.mm; sourceTree = "<group>"; };
 		2135DA540EC74853005E246D /* ESScreensaver.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ESScreensaver.cpp; sourceTree = "<group>"; };
 		2135DB240EC75133005E246D /* ScreenSaver.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ScreenSaver.framework; path = System/Library/Frameworks/ScreenSaver.framework; sourceTree = SDKROOT; };
 		213D529B11F79B0000CF500D /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
@@ -929,7 +929,7 @@
 				21C5D0920F9CF6D9001657E7 /* md5.h */,
 				21AAA0EE0F70453200AC23A8 /* ESConfiguration.mm */,
 				21AAA0ED0F70453200AC23A8 /* ESConfiguration.h */,
-				2135DA520EC7479A005E246D /* ESScreensaverView.m */,
+				2135DA520EC7479A005E246D /* ESScreensaverView.mm */,
 				2135DA540EC74853005E246D /* ESScreensaver.cpp */,
 				12478A7E2B03B317006A8669 /* ESScreensaver.h */,
 				2191E23719B5111700F5B82D /* FrameDisplay.h */,
@@ -1379,7 +1379,7 @@
 				21C5D0950F9CF6D9001657E7 /* md5.c in Sources */,
 				21EE633510139BCC000CE53E /* main.m in Sources */,
 				21EE63961013A674000CE53E /* ESWindow.mm in Sources */,
-				21EE63C21013A879000CE53E /* ESScreensaverView.m in Sources */,
+				21EE63C21013A879000CE53E /* ESScreensaverView.mm in Sources */,
 				21EE63C31013A87F000CE53E /* ESScreensaver.cpp in Sources */,
 				21EE63CF1013A93A000CE53E /* ESConfiguration.mm in Sources */,
 				46ED5CB42AF5326A00AF8F45 /* DisplayMetal.cpp in Sources */,
@@ -1432,7 +1432,7 @@
 				2135D2220EC70153005E246D /* ESOpenGLView.m in Sources */,
 				467230B72AC17A9E00017C51 /* ESMetalView.m in Sources */,
 				46D2E9052AFBF8F70054049D /* MBEMathUtilities.m in Sources */,
-				2135DA530EC7479A005E246D /* ESScreensaverView.m in Sources */,
+				2135DA530EC7479A005E246D /* ESScreensaverView.mm in Sources */,
 				2135DA550EC74853005E246D /* ESScreensaver.cpp in Sources */,
 				467B6FC92AE6D031001C80CB /* EDreamClient.cpp in Sources */,
 				211CDDDB0ED0BD9200EB9394 /* Download.cpp in Sources */,

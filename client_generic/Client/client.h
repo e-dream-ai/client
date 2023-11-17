@@ -440,7 +440,7 @@ class	CElectricSheep
 				{
 					//g_Player().Renderer()->BeginFrame();
 
-					if( !Update() )
+					//if( !Update() )
 					{
 						g_Player().Renderer()->EndFrame();
 							return false;
@@ -541,7 +541,7 @@ class	CElectricSheep
 #endif
 
 			//
-			virtual bool Update()
+			virtual bool Update( boost::barrier& _beginFrameBarrier, boost::barrier& _endFrameBarrier )
 			{
 				g_Player().BeginFrameUpdate();
 
@@ -559,7 +559,10 @@ class	CElectricSheep
                 bool ret = true;
 				for (uint32 i = 0; i < displayCnt; i++)
 				{
+                    _beginFrameBarrier.wait();
 					ret &= DoRealFrameUpdate(i);
+                    _endFrameBarrier.wait();
+
                     if ( !ret )
                         break;
 				}				

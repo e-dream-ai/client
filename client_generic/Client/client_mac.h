@@ -228,7 +228,7 @@ class	CElectricSheep_Mac : public CElectricSheep
 
 
 			//
-			bool Update()
+			virtual bool Update( boost::barrier& _beginFrameBarrier, boost::barrier& _endFrameBarrier )
 			{
 				using namespace DisplayOutput;
                 
@@ -236,7 +236,7 @@ class	CElectricSheep_Mac : public CElectricSheep
 				
 				g_Player().Framerate( m_CurrentFps );
 
-				if( !CElectricSheep::Update() )
+				if( !CElectricSheep::Update( _beginFrameBarrier, _endFrameBarrier ) )
 					return false;
 				
 				//	Update display events.

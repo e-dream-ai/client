@@ -89,11 +89,11 @@ bool ESScreensaver_Start( bool _bPreview, uint32 _width, uint32 _height )
 	return true;
 }
 
-bool ESScreensaver_DoFrame( void )
+bool ESScreensaver_DoFrame( boost::barrier& _beginFrameBarrier, boost::barrier& _endFrameBarrier )
 {
 	bool retval = true;
 		
-	if( gClient.Update() == false )
+	if( gClient.Update(_beginFrameBarrier, _endFrameBarrier) == false )
 	{
 		retval = false;
 	}

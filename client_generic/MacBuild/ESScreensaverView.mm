@@ -23,8 +23,11 @@ bool bStarted = false;
 	m_updater = NULL;
 	
 	m_isFullScreen = !isPreview;
+    m_isStopped = YES;
 	
 	m_isPreview = isPreview;
+    m_beginFrameBarrier = std::make_unique<boost::barrier>(2);
+    m_endFrameBarrier = std::make_unique<boost::barrier>(2);
 
 #ifdef SCREEN_SAVER
 	//if (isPreview)
@@ -143,7 +146,7 @@ bool bStarted = false;
             
             [[ESMetalView alloc] initWithFrame:theRect];
             metalView.delegate = self;
-            metalView.preferredFramesPerSecond = 1000;
+            metalView.preferredFramesPerSecond = 60;
             view = metalView;
             
 #else
@@ -242,8 +245,8 @@ bool bStarted = false;
 
 		if (animationLock != NULL)
 			[animationLock lock];
-#if !USE_METAL
-        if (!m_isStopped && !ESScreensaver_Stopped() && ESScreensaver_DoFrame())
+
+        while (!m_isStopped && !ESScreensaver_Stopped() && ESScreensaver_DoFrame(*m_beginFrameBarrier, *m_endFrameBarrier))
         {
     #ifdef SCREEN_SAVER
             if (!m_isPreview && CGCursorIsVisible())
@@ -258,8 +261,6 @@ bool bStarted = false;
             //if (view != NULL)
                 //[view setNeedsDisplay:YES];
         }
-#endif
-
 		
 		if (animationLock != NULL)
 			[animationLock unlock];
@@ -425,21 +426,17 @@ bool bStarted = false;
 }
 
 #ifdef USE_METAL
-- (void)drawInMTKView:(nonnull MTKView *)view {
-    if (!m_isStopped && !ESScreensaver_Stopped() && ESScreensaver_DoFrame())
+
+- (void)mtkView:(MTKView *)view drawableSizeWillChange:(CGSize)size
+{
+}
+
+- (void)drawInMTKView:(nonnull MTKView *)view
+{
+    if (!m_isStopped)
     {
-#ifdef SCREEN_SAVER
-        if (!m_isPreview && CGCursorIsVisible())
-        {
-            [NSCursor hide];
-            m_isHidden = YES;
-        }
-#endif
-        //if (m_isStopped)
-            //break;
-        
-        //if (view != NULL)
-            //[view setNeedsDisplay:YES];
+        m_beginFrameBarrier->wait();
+        m_endFrameBarrier->wait();
     }
 }
 #endif

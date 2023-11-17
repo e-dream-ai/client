@@ -1,4 +1,6 @@
 #include <CoreFoundation/CoreFoundation.h>
+#include <boost/thread.hpp>
+
 #include "base.h"
 
 #ifdef __cplusplus
@@ -9,7 +11,7 @@ extern "C" {
 	void ESScreenSaver_AddGraphicsContext( void *_graphicsContext );
 
 	bool ESScreensaver_Start( bool _bPreview, uint32 _width, uint32 _height );
-	bool ESScreensaver_DoFrame( void );
+	bool ESScreensaver_DoFrame( boost::barrier& _beginFrameBarrier, boost::barrier& _endFrameBarrier );
 	void ESScreensaver_Stop( void );
 	bool ESScreensaver_Stopped( void );
 	void ESScreensaver_ForceWidthAndHeight( uint32 _width, uint32 _height );
