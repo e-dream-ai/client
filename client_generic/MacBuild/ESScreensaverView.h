@@ -32,7 +32,7 @@
 	ESOpenGLView *view;
 #endif
 	NSTimer *animationTimer;
-	NSLock *animationLock;
+    dispatch_group_t m_animationDispatchGroup;
 	BOOL m_isStopped;
 	
 	BOOL m_isPreview;

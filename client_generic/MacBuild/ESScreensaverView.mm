@@ -28,6 +28,7 @@ bool bStarted = false;
 	m_isPreview = isPreview;
     m_beginFrameBarrier = std::make_unique<boost::barrier>(2);
     m_endFrameBarrier = std::make_unique<boost::barrier>(2);
+    m_animationDispatchGroup = dispatch_group_create();
 
 #ifdef SCREEN_SAVER
 	//if (isPreview)
@@ -243,9 +244,6 @@ bool bStarted = false;
 {
 	@autoreleasepool {
 
-		if (animationLock != NULL)
-			[animationLock lock];
-
         while (!m_isStopped && !ESScreensaver_Stopped() && ESScreensaver_DoFrame(*m_beginFrameBarrier, *m_endFrameBarrier))
         {
     #ifdef SCREEN_SAVER
@@ -261,22 +259,21 @@ bool bStarted = false;
             //if (view != NULL)
                 //[view setNeedsDisplay:YES];
         }
-		
-		if (animationLock != NULL)
-			[animationLock unlock];
 	
 	}
 }
 
 - (void)_beginThread
 {
-	animationLock = [[NSLock alloc] init];
-	
 	//[animationLock lock];
 		
 	m_isStopped = NO;
-	
-	[NSThread detachNewThreadSelector:@selector(_animationThread) toTarget:self withObject:nil];
+
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        dispatch_group_enter(self->m_animationDispatchGroup);
+        [self _animationThread];
+        dispatch_group_leave(self->m_animationDispatchGroup);
+    });
 }
 
 - (void)_endThread
@@ -285,10 +282,7 @@ bool bStarted = false;
     m_beginFrameBarrier->wait();
     m_endFrameBarrier->wait();
 	
-	[animationLock lock];
-	[animationLock unlock];
-	
-	animationLock = NULL;
+    dispatch_group_wait(m_animationDispatchGroup, DISPATCH_TIME_FOREVER);
 }
 
 - (void)windowDidResize
