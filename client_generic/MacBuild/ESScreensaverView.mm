@@ -282,6 +282,8 @@ bool bStarted = false;
 - (void)_endThread
 {
 	m_isStopped = YES;
+    m_beginFrameBarrier->wait();
+    m_endFrameBarrier->wait();
 	
 	[animationLock lock];
 	[animationLock unlock];
