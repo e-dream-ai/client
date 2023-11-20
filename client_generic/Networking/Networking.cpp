@@ -40,6 +40,12 @@ CCurlTransfer::~CCurlTransfer()
 {
 	//g_NetworkManager->Remove( this );
 	g_Log->Info( "~CCurlTransfer()" );
+    
+    if (m_Headers)
+    {
+        curl_slist_free_all(m_Headers);
+        m_Headers = NULL;
+    }
 	
 	if ( m_pCurlM != NULL && m_pCurl != NULL )
 		curl_multi_remove_handle(m_pCurlM, m_pCurl);
