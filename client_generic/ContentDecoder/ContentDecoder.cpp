@@ -111,16 +111,7 @@ CContentDecoder::~CContentDecoder()
 void	CContentDecoder::Destroy()
 {
 	g_Log->Info( "Destroy()" );
-	
-	if (m_MainVideoInfo != NULL)
-	{
-		SAFE_DELETE(m_MainVideoInfo);
-	}
-	
-	if (m_SecondVideoInfo != NULL)
-	{
-		SAFE_DELETE(m_SecondVideoInfo);
-	}
+
     
     if( m_pScaler )
     {
@@ -142,6 +133,9 @@ void	CContentDecoder::Destroy()
         av_bsf_free(&m_SecondVideoInfo->m_pBsfContext);
         m_SecondVideoInfo->m_pVideoCodecContext = NULL;
     }
+
+    SAFE_DELETE(m_MainVideoInfo);
+    SAFE_DELETE(m_SecondVideoInfo);
 }
 
 /*
@@ -439,8 +433,8 @@ bool	CContentDecoder::NextSheepForPlaying( int32 _forceNext )
 	SAFE_DELETE(m_MainVideoInfo);
 	
 	m_MainVideoInfo = m_SecondVideoInfo;
-	
-	m_SecondVideoInfo = NULL;
+
+    m_SecondVideoInfo = NULL;
 	
 	if (m_MainVideoInfo == NULL)
 	{
@@ -456,7 +450,7 @@ bool	CContentDecoder::NextSheepForPlaying( int32 _forceNext )
 		{
 			if (m_MainVideoInfo->IsLoop() && m_LoopIterations > 0 && m_MainVideoInfo->m_NumIterations < (m_LoopIterations - 1))
 			{
-				m_SecondVideoInfo = new sOpenVideoInfo(m_MainVideoInfo);
+				m_SecondVideoInfo = new sOpenVideoInfo(*m_MainVideoInfo);
 				m_SecondVideoInfo->m_NumIterations++;
 			}
 			else

@@ -83,29 +83,8 @@ struct sOpenVideoInfo
 		
 	{ }
 	
-	sOpenVideoInfo( const sOpenVideoInfo* ovi)
-	:	m_pFrame(NULL),
-		m_pFormatContext(NULL),
-		m_pVideoCodecContext(NULL),
-		m_pVideoCodec(NULL),
-		m_pVideoStream(NULL),
-		m_VideoStreamID(-1),
-		m_totalFrameCount(0),
-		m_CurrentFileatime(0),
-		m_iCurrentFileFrameCount(0),
-		m_Generation(ovi->m_Generation),
-		m_SheepID(ovi->m_SheepID),
-		m_First(ovi->m_First),
-		m_Last(ovi->m_Last),
-		m_Path(ovi->m_Path),
-		m_bSpecialSheep(ovi->m_bSpecialSheep),
-		m_NumIterations(ovi->m_NumIterations),
-		m_NextIsSeam(false),
-		m_ReadingTrailingFrames(false)
-	{ }
-	
 	virtual ~sOpenVideoInfo()
-	{
+    {
 		if( m_pVideoCodecContext )
 		{
 			avcodec_close( m_pVideoCodecContext );
