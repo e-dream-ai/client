@@ -2,17 +2,9 @@
 #import "ESScreensaver.h" 
 #include "client.h"
 
-@implementation ESController
-
-- (void)launchHelp: (id) __unused sender
-{
-	[[NSWorkspace sharedWorkspace] openFile:[[NSBundle mainBundle] pathForResource:@"Instructions" ofType:@"rtf"]];
-}
-
-@end
-
 
 @implementation ESWindow
+
 
 static __weak ESWindow* s_pWindow = nil;
 static void ShowPreferencesCallback()
@@ -20,6 +12,11 @@ static void ShowPreferencesCallback()
     dispatch_async(dispatch_get_main_queue(), ^{
         [s_pWindow showPreferences:nil];
     });
+}
+
+- (IBAction)showHelpFile:(NSMenuItem *)sender
+{
+    [[NSWorkspace sharedWorkspace] openFile:[[NSBundle mainBundle] pathForResource:@"Instructions" ofType:@"rtf"]];
 }
 
 - (void)awakeFromNib  // was - (NSWindow *)window
