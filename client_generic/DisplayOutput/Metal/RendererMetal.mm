@@ -127,7 +127,6 @@ void	CRendererMetal::Defaults()
 
 void    CRendererMetal::SetBoundSlot(uint32_t _slot, CTextureFlatMetal* _texture)
 {
-    writer_lock lock( m_mutex );
     RendererContext* rendererContext = (__bridge RendererContext*)m_pRendererContext;
     rendererContext->boundTextures[_slot] = _texture;
 }
@@ -222,12 +221,15 @@ bool    CRendererMetal::EndFrame( bool drawn )
     __block std::vector<CVMetalTextureRef>& metalTexturesUsed = rendererContext->metalTexturesUsed[rendererContext->currentFrameIndex];
     [rendererContext->currentCommandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull)
      {
-        for (auto it = metalTexturesUsed.begin(); it != metalTexturesUsed.end(); ++it)
         {
-            CVMetalTextureRef metalTexture = *it;
-            CVBufferRelease(metalTexture);
+            writer_lock lock(m_textureMutex);
+            for (auto it = metalTexturesUsed.begin(); it != metalTexturesUsed.end(); ++it)
+            {
+                CVMetalTextureRef metalTexture = *it;
+                CVBufferRelease(metalTexture);
+            }
+            metalTexturesUsed.clear();
         }
-        metalTexturesUsed.clear();
         dispatch_semaphore_signal(semaphore);
     }];
 
@@ -356,9 +358,8 @@ void	CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math:
         id<MTLRenderCommandEncoder> renderEncoder = [rendererContext->currentCommandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
         [renderEncoder setRenderPipelineState:renderPipelineState];
         std::map<uint32_t, CTextureFlatMetal*> boundTextures(rendererContext->boundTextures);
-        std::vector<CVMetalTextureRef> metalTexturesUsed;
-        
-        reader_lock lock( m_mutex );
+        std::vector<CVMetalTextureRef>& metalTexturesUsed = rendererContext->metalTexturesUsed[rendererContext->currentFrameIndex];
+
         for (uint32_t i = 0; i < MAX_TEXUNIT; ++i)
         {
             spCTextureFlatMetal selectedTexture = static_cast<spCTextureFlatMetal>(m_aspSelectedTextures[i]);
@@ -374,8 +375,11 @@ void	CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math:
                         id<MTLTexture> uvTexture = CVMetalTextureGetTexture(uvTextureRef);
                         [renderEncoder setFragmentTexture:yTexture atIndex:i * 2 + 0];
                         [renderEncoder setFragmentTexture:uvTexture atIndex:i * 2 + 1];
-                        metalTexturesUsed.push_back(yTextureRef);
-                        metalTexturesUsed.push_back(uvTextureRef);
+                        {
+                            writer_lock lock( m_textureMutex );
+                            metalTexturesUsed.push_back(yTextureRef);
+                            metalTexturesUsed.push_back(uvTextureRef);
+                        }
                     }
                     else
                     {
