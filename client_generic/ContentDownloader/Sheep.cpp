@@ -81,6 +81,12 @@ Sheep::~Sheep()
 //		Destructor. Cleans up any alocated data.
 //
 {
+    if(fUuid != NULL)
+    {
+        delete[] fUuid;
+        fUuid = NULL;
+    }
+
 	if(fURL != NULL)
 	{
 		delete [] fURL;
@@ -136,7 +142,7 @@ Sheep::setFileName(const char *filename)
 
 void Sheep::setUuid(const char *uuid)
 {
-    if(fUuid == NULL)
+    if(fUuid != NULL)
     {
         delete[] fUuid;
         fUuid = NULL;
