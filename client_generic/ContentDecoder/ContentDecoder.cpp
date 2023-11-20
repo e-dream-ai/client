@@ -132,12 +132,14 @@ void	CContentDecoder::Destroy()
     if (m_MainVideoInfo && m_MainVideoInfo->m_pVideoCodecContext)
     {
         avcodec_free_context(&m_MainVideoInfo->m_pVideoCodecContext);
+        av_bsf_free(&m_MainVideoInfo->m_pBsfContext);
         m_MainVideoInfo->m_pVideoCodecContext = NULL;
     }
 
     if (m_SecondVideoInfo && m_SecondVideoInfo->m_pVideoCodecContext)
     {
         avcodec_free_context(&m_SecondVideoInfo->m_pVideoCodecContext);
+        av_bsf_free(&m_SecondVideoInfo->m_pBsfContext);
         m_SecondVideoInfo->m_pVideoCodecContext = NULL;
     }
 }
@@ -630,6 +632,7 @@ CVideoFrame *CContentDecoder::ReadOneFrame(sOpenVideoInfo *ovi)
             {
                 ovi->m_ReadingTrailingFrames = true;
                 av_packet_free(&packet);
+                av_packet_free(&filteredPacket);
                 continue;
             }
         }
