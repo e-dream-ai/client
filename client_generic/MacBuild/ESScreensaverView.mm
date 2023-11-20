@@ -242,10 +242,12 @@ bool bStarted = false;
 
 - (void)_animationThread
 {
-	@autoreleasepool {
-
-        while (!m_isStopped && !ESScreensaver_Stopped() && ESScreensaver_DoFrame(*m_beginFrameBarrier, *m_endFrameBarrier))
-        {
+    while (!m_isStopped && !ESScreensaver_Stopped())
+    {
+        @autoreleasepool
+            {
+            if (!ESScreensaver_DoFrame(*m_beginFrameBarrier, *m_endFrameBarrier))
+                break;
     #ifdef SCREEN_SAVER
             if (!m_isPreview && CGCursorIsVisible())
             {
@@ -259,7 +261,6 @@ bool bStarted = false;
             //if (view != NULL)
                 //[view setNeedsDisplay:YES];
         }
-	
 	}
 }
 
