@@ -38,22 +38,10 @@ static void ShowPreferencesCallback()
 	mBlackingWindows = nil;
 	
 	ESScreensaver_InitClientStorage();
-	
-	SInt32 pmm = ESScreensaver_GetIntSetting("settings.player.PlaybackMixingMode", 0);
-    
-    NSString *root = (__bridge_transfer NSString*)ESScreensaver_CopyGetRoot();
-	
-	const char *mpegpath = [[NSString stringWithFormat:@"%@/mpeg", root] UTF8String];
-    
-	if (pmm == 1 || mpegpath == NULL || *mpegpath == 0 || ESScreensaver_GetFlockSizeMBs(mpegpath, 1) == 0) //playing only free sheep???
-	{
-		frame.size.width = 800;
-		frame.size.height = 592;
-	}
-	else {
-		frame.size.width = 1280;
-		frame.size.height = 720; 
-	}
+
+    frame.size.width = 1280;
+    frame.size.height = 720;
+    [self setContentAspectRatio:CGSizeMake(16.f, 9.f)];
 	
 	mBlackouMonitors = ESScreensaver_GetBoolSetting("settings.player.blackout_monitors", true);
 
@@ -176,8 +164,6 @@ static void ShowPreferencesCallback()
 	NSRect screen_frame = [[mFullScreenWindow screen] frame];
 	[mFullScreenWindow setFrame:screen_frame display:YES animate:NO];
 }
-
-
 
 - (void)windowWillClose:(NSNotification *) __unused notification
 {
