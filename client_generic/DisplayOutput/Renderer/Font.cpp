@@ -12,7 +12,7 @@ namespace	DisplayOutput
 /*
 */
 CFontDescription::CFontDescription() :
-m_Height( 10 ), m_Style( Normal ), m_bItalic( false ), m_bUnderline( false ), m_bAntiAliased( true ), m_TypeFace( "Trebuchet MS" )
+m_Height( 10 ), m_Style( Normal ), m_bItalic( false ), m_bUnderline( false ), m_bAntiAliased( true ), m_TypeFace( "Lato" )
 {
 }
 

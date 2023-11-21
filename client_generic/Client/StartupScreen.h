@@ -32,7 +32,7 @@ class	CStartupScreen : public CHudEntry
 				m_Desc.Italic( false );
 				m_Desc.TypeFace( _FontName );
 
-				m_spFont = g_Player().Renderer()->NewFont( m_Desc );
+				m_spFont = g_Player().Renderer()->GetFont( m_Desc );
 				m_StartupMessage = "No Sheep downloaded yet, this should take less than a minute\nbut might take several hours.  Please see ElectricSheep.org\nto learn more, or press F1 for help.";
                 m_spText = g_Player().Renderer()->NewText( m_spFont, m_StartupMessage );
 				m_spImageRef = new DisplayOutput::CImage();

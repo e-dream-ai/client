@@ -227,7 +227,7 @@ class	CElectricSheep
 
 
                 //	Get hud font size.
-                std::string	hudFontName = g_Settings()->Get( "settings.player.hudFontName", std::string("Trebuchet MS") );
+                std::string	hudFontName = g_Settings()->Get( "settings.player.hudFontName", std::string("Lato") );
                 uint32		hudFontSize = static_cast<uint32>(g_Settings()->Get( "settings.player.hudFontSize", 24 ));
 
 				m_PNGDelayTimer = g_Settings()->Get( "settings.player.pngdelaytimer", 600);
@@ -614,7 +614,7 @@ class	CElectricSheep
 						if (drawNoSheepIntro)
 						{
 							if (m_StartupScreen.IsNull())
-								m_StartupScreen = new Hud::CStartupScreen(Base::Math::CRect(0,0,1.,1.), "Trebuchet MS", 24);
+								m_StartupScreen = new Hud::CStartupScreen(Base::Math::CRect(0,0,1.,1.), "Lato", 24);
 							m_StartupScreen->Render(0., g_Player().Renderer());
 						}
 						//	Process any server messages.

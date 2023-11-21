@@ -160,8 +160,4 @@ typedef void (^MBEGlyphPositionEnumerationBlock)(CGGlyph glyph,
 
     [image unlockFocus];
 }
--(void)dealloc
-{
-    NSLog(@"dealloc");
-}
 @end

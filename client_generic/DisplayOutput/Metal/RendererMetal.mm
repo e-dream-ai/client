@@ -177,9 +177,18 @@ spCShader	CRendererMetal::NewShader( const char *_pVertexShader, const char *_pF
 
 /*
 */
-spCBaseFont	CRendererMetal::NewFont( CFontDescription &_desc )
-{	
-    return new CFontMetal(_desc, NewTextureFlat());
+spCBaseFont	CRendererMetal::GetFont( CFontDescription &_desc )
+{
+    auto it = m_fontPool.find(_desc.TypeFace());
+    if (it == m_fontPool.end())
+    {
+        spCBaseFont font = new CFontMetal(_desc, NewTextureFlat());
+        if (!font->Create())
+            return NULL;
+        m_fontPool[_desc.TypeFace()] = font;
+        return font;
+    }
+    return it->second;
 }
 
 spCBaseText CRendererMetal::NewText( spCBaseFont _font, const std::string& _text )
@@ -205,7 +214,6 @@ bool    CRendererMetal::BeginFrame( void )
     dispatch_semaphore_wait(rendererContext->inFlightSemaphore, DISPATCH_TIME_FOREVER);
     id<MTLCommandQueue> commandQueue = rendererContext->commandQueue;
     rendererContext->currentCommandBuffer = [commandQueue commandBuffer];
-    
     rendererContext->currentLoadAction = MTLLoadActionClear;
     return true;
 }
@@ -248,7 +256,6 @@ bool    CRendererMetal::EndFrame( bool drawn )
 
 void CRendererMetal::Clear()
 {
-    
     RendererContext* rendererContext = (__bridge RendererContext*)m_pRendererContext;
     @autoreleasepool
     {

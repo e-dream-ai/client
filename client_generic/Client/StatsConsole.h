@@ -270,7 +270,7 @@ class	CStatsConsole : public CConsole
 				m_Desc.Italic( false );
 				m_Desc.TypeFace( _FontName );
 
-				m_spFont = g_Player().Renderer()->NewFont( m_Desc );
+				m_spFont = g_Player().Renderer()->GetFont( m_Desc );
 
 				m_Stats.clear();
 			}

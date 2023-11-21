@@ -2,9 +2,12 @@
 #define	_RENDERERMETAL_H_
 
 #include <string>
+#include <map>
+
 #include "base.h"
 #include "SmartPtr.h"
 #include "Renderer.h"
+#include "Font.h"
 #include "TextureFlatMetal.h"
 #include "Image.h"
 #include <CoreFoundation/CFBase.h>
@@ -30,6 +33,7 @@ class CRendererMetal : public CRenderer
 	Base::Math::CRect	m_textRect;
     CFTypeRef           m_pRendererContext;
     boost::shared_mutex m_textureMutex;
+    std::map<std::string, spCBaseFont> m_fontPool;
 
 	public:
             CRendererMetal();
@@ -57,7 +61,7 @@ class CRendererMetal : public CRenderer
 			spCTextureFlat	NewTextureFlat( spCImage _spImage, const uint32 flags = 0 );
 
 			//
-            spCBaseFont     NewFont( CFontDescription &_desc );
+            spCBaseFont     GetFont( CFontDescription &_desc );
             spCBaseText     NewText( spCBaseFont _font, const std::string& _text );
             void            DrawText( spCBaseText _text, const Base::Math::CVector4& _color, const Base::Math::CRect &_rect );
 			Base::Math::CVector2	GetTextExtent( spCBaseFont _spFont, const std::string &_text );

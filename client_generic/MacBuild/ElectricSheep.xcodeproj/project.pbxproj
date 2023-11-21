@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		12A00CD12B0D22A4001C0792 /* Trebuchet MS.sddf in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD02B0D22A4001C0792 /* Trebuchet MS.sddf */; };
+		12A00CD32B0D22B4001C0792 /* Trebuchet MS.sddf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 12A00CD02B0D22A4001C0792 /* Trebuchet MS.sddf */; };
+		12A00CD52B0D31E6001C0792 /* Lato.sddf in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD42B0D31E6001C0792 /* Lato.sddf */; };
+		12A00CD72B0D31F9001C0792 /* Lato.sddf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 12A00CD42B0D31E6001C0792 /* Lato.sddf */; };
 		21006FC81017BC4B004A6511 /* Credits.html in CopyFiles */ = {isa = PBXBuildFile; fileRef = 21006FBD1017BC2C004A6511 /* Credits.html */; };
 		210335040F549BEF00A83F17 /* AlignedBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 210335030F549BEF00A83F17 /* AlignedBuffer.cpp */; };
 		210335050F549BEF00A83F17 /* AlignedBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 210335030F549BEF00A83F17 /* AlignedBuffer.cpp */; };
@@ -308,6 +312,8 @@
 			dstPath = "";
 			dstSubfolderSpec = 7;
 			files = (
+				12A00CD72B0D31F9001C0792 /* Lato.sddf in CopyFiles */,
+				12A00CD32B0D22B4001C0792 /* Trebuchet MS.sddf in CopyFiles */,
 				21E6A56110B5F9A000DAF0FF /* electricsheep-attr.png in CopyFiles */,
 				21DE7CD91019020600E77D68 /* Instructions.rtf in CopyFiles */,
 				21598FA00F571EE000DDDFA6 /* flam3-animate in CopyFiles */,
@@ -496,6 +502,8 @@
 		12478AAA2B03B6C4006A8669 /* Timer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Timer.h; path = ../Common/Timer.h; sourceTree = "<group>"; };
 		12478AAB2B03B6C4006A8669 /* Singleton.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Singleton.h; path = ../Common/Singleton.h; sourceTree = "<group>"; };
 		12478AAC2B03B6CA006A8669 /* pool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = pool.h; path = ../Common/pool.h; sourceTree = "<group>"; };
+		12A00CD02B0D22A4001C0792 /* Trebuchet MS.sddf */ = {isa = PBXFileReference; lastKnownFileType = file.bplist; path = "Trebuchet MS.sddf"; sourceTree = "<group>"; };
+		12A00CD42B0D31E6001C0792 /* Lato.sddf */ = {isa = PBXFileReference; lastKnownFileType = file.bplist; path = Lato.sddf; sourceTree = "<group>"; };
 		21006FBD1017BC2C004A6511 /* Credits.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = Credits.html; sourceTree = SOURCE_ROOT; };
 		21008B760EB7D69900E64796 /* Console.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Console.h; path = ../Client/Console.h; sourceTree = SOURCE_ROOT; };
 		210335030F549BEF00A83F17 /* AlignedBuffer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AlignedBuffer.cpp; path = ../Common/AlignedBuffer.cpp; sourceTree = SOURCE_ROOT; };
@@ -1077,6 +1085,8 @@
 				2118A3B30F51BED100BA0582 /* ElectricSheep.icns */,
 				212CAF831141CA3F009DA85A /* TrebuchetMS-20.glf */,
 				2187F3850F463A740004F8F9 /* TrebuchetMS-24.glf */,
+				12A00CD02B0D22A4001C0792 /* Trebuchet MS.sddf */,
+				12A00CD42B0D31E6001C0792 /* Lato.sddf */,
 				2160FE190F30F82800B2C27A /* electricsheep-frown.png */,
 				2160FE1A0F30F82800B2C27A /* electricsheep-smile.png */,
 				2160FE230F30F82800B2C27A /* License.rtf */,
@@ -1289,8 +1299,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				12A00CD52B0D31E6001C0792 /* Lato.sddf in Resources */,
 				21AAA0BD0F7040B500AC23A8 /* ElectricSheep.nib in Resources */,
 				215545AA12620D3000AB51BF /* dsa_pub.pem in Resources */,
+				12A00CD12B0D22A4001C0792 /* Trebuchet MS.sddf in Resources */,
 				21934CB919F3C2430096E7D7 /* thumbnail.tif in Resources */,
 				21ADBB271305D380000A9F20 /* green.tif in Resources */,
 				21ADBB281305D380000A9F20 /* red.tif in Resources */,

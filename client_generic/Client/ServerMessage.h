@@ -33,12 +33,12 @@ class	CServerMessage : public CConsole
 				m_Desc.Height( _fontHeight );
 				m_Desc.Style( DisplayOutput::CFontDescription::Normal );
 				m_Desc.Italic( false );
-				m_Desc.TypeFace( "Trebuchet MS" );
+				m_Desc.TypeFace( "Lato" );
 
 				size_t offs = _msg.find_last_of( '\n', _msg.size() );
 				m_Message = _msg.substr( 0, offs );
 
-				m_spFont = g_Player().Renderer()->NewFont( m_Desc );
+				m_spFont = g_Player().Renderer()->GetFont( m_Desc );
                 m_spText = g_Player().Renderer()->NewText( m_spFont, _msg );
 				m_MoveMessageCounter = 0.;
 			}

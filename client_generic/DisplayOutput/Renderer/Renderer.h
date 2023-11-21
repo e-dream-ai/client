@@ -142,7 +142,7 @@ class CRenderer
 			virtual spCTextureFlat	NewTextureFlat( spCImage _spImage, const uint32 flags = 0 ) = PureVirtual;
 
 			//	Font.
-			virtual	spCBaseFont		NewFont( CFontDescription &_desc ) = PureVirtual;
+			virtual	spCBaseFont		GetFont( CFontDescription &_desc ) = PureVirtual;
             virtual spCBaseText     NewText( spCBaseFont _font, const std::string& _text ) = PureVirtual;
 			virtual void			DrawText( spCBaseText _text, const Base::Math::CVector4& _color, const Base::Math::CRect &_rect ) = PureVirtual;
 			virtual Base::Math::CVector2	GetTextExtent( spCBaseFont /*_spFont*/, const std::string &/*_text*/ )	{	return Base::Math::CVector2( 0, 0 );	};
