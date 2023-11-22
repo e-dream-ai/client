@@ -215,6 +215,7 @@ bool    CRendererMetal::BeginFrame( void )
     id<MTLCommandQueue> commandQueue = rendererContext->commandQueue;
     rendererContext->currentCommandBuffer = [commandQueue commandBuffer];
     rendererContext->currentLoadAction = MTLLoadActionClear;
+    PROFILER_BEGIN_F("Metal Frame", "%d", rendererContext->frameCounter);
     return true;
 }
 
@@ -222,11 +223,11 @@ bool    CRendererMetal::BeginFrame( void )
 */
 bool    CRendererMetal::EndFrame( bool drawn )
 {
-    if (!CRenderer::EndFrame(drawn))
-        return false;
+    CRenderer::EndFrame(drawn);
     RendererContext* rendererContext = (__bridge RendererContext*)m_pRendererContext;
     __block dispatch_semaphore_t semaphore = rendererContext->inFlightSemaphore;
     __block std::vector<CVMetalTextureRef>& metalTexturesUsed = rendererContext->metalTexturesUsed[rendererContext->currentFrameIndex];
+    __block uint32_t frameNumber = rendererContext->frameCounter;
     [rendererContext->currentCommandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull)
      {
         {
@@ -238,6 +239,7 @@ bool    CRendererMetal::EndFrame( bool drawn )
             }
             metalTexturesUsed.clear();
         }
+        PROFILER_EVENT_F("Metal Frame Finished", "%d", frameNumber);
         dispatch_semaphore_signal(semaphore);
     }];
 
@@ -250,7 +252,7 @@ bool    CRendererMetal::EndFrame( bool drawn )
         }
     }
     [rendererContext->currentCommandBuffer commit];
-
+    PROFILER_END_F("Metal Frame", "%d", rendererContext->frameCounter);
     return true;
 }
 

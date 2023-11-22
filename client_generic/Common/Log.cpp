@@ -3,7 +3,7 @@
 #include	<string>
 #include	<time.h>
 #include	<sstream>
-#include <os/signpost.h>
+#include    <os/signpost.h>
 
 #include	"base.h"
 #include	"Log.h"
@@ -215,12 +215,4 @@ void	CLog::Fatal( const char *_pFmt, ... )	{	grabvarargs	Log( "FATAL", /*m_File.
 
 };
 
-static os_log_t g_SignpostHandle = os_log_create("org.elecricsheep.ElectricSheep.app", OS_LOG_CATEGORY_POINTS_OF_INTEREST);
-void ProfilerBegin(const char* /*name*/)
-{
-    //os_signpost_interval_begin(g_SignpostHandle, OS_SIGNPOST_ID_EXCLUSIVE, name);
-}
-void ProfilerEnd(const char* /*name*/)
-{
-    //os_signpost_interval_end(m_signpostHandle, OS_SIGNPOST_ID_EXCLUSIVE, name);
-}
+os_log_t g_SignpostHandle = os_log_create("com.spotworks.e-dream.app", OS_LOG_CATEGORY_POINTS_OF_INTEREST);
