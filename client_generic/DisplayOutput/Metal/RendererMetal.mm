@@ -194,8 +194,9 @@ spCBaseFont	CRendererMetal::GetFont( CFontDescription &_desc )
 spCBaseText CRendererMetal::NewText( spCBaseFont _font, const std::string& _text )
 {
     RendererContext* rendererContext = (__bridge RendererContext*)m_pRendererContext;
-    CTextMetal* text = new CTextMetal(static_cast<spCFontMetal>(_font), rendererContext->metalView.device);
-    text->SetText(_text, Base::Math::CRect{0,0,1,1});
+    float aspect = m_spDisplay->Aspect();
+    CTextMetal* text = new CTextMetal(static_cast<spCFontMetal>(_font), rendererContext->metalView.device, aspect);
+    text->SetText(_text);
     return text;
 }
 
@@ -307,10 +308,11 @@ void CRendererMetal::DrawText( spCBaseText _text, const Base::Math::CVector4& _c
         [renderEncoder setRenderPipelineState:rendererContext->drawTextShader->GetPipelineState()];
         [renderEncoder setVertexBuffer:textMesh.vertexBuffer offset:0 atIndex:0];
 
-        vector_float3 translation = { _rect.m_X0, (1-_rect.m_Y0) * 512, 0 };
-        vector_float3 scale = { 1, 1, 1 }; //@TODO: implement scale
-        matrix_float4x4 modelMatrix = matrix_multiply(matrix_translation(translation), matrix_scale(scale));
-        matrix_float4x4 projectionMatrix = matrix_orthographic_projection(0, 512, 0, 512);//@TODO: <--this is the size
+        vector_float3 translation = { _rect.m_X0, _rect.m_Y0, 0 };
+        vector_float3 scale = { 1, 1, 1 };
+        float aspect = m_spDisplay->Aspect();
+        matrix_float4x4 modelMatrix = matrix_multiply(matrix_translation(translation * kMetalTextReferenceContextSize), matrix_scale(scale * vector_float3 { aspect, 1, 1 } ));
+        matrix_float4x4 projectionMatrix = matrix_orthographic_projection(0, kMetalTextReferenceContextSize, 0, kMetalTextReferenceContextSize);
         
         TextUniforms uniforms;
         uniforms.modelMatrix = modelMatrix;
@@ -336,7 +338,7 @@ void CRendererMetal::DrawText( spCBaseText _text, const Base::Math::CVector4& _c
 }
 		
 
-void	CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math::CVector4 &_color, const Base::Math::CRect &_uvrect )
+void	CRendererMetal::DrawQuad( const Base::Math::CRect& _rect, const Base::Math::CVector4& _color, const Base::Math::CRect& _uvrect )
 {
     RendererContext* rendererContext = (__bridge RendererContext*)m_pRendererContext;
     @autoreleasepool
@@ -405,6 +407,7 @@ void	CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math:
         QuadUniforms uniforms;
         uniforms.color = vector_float4 { _color.m_X, _color.m_Y, _color.m_Z, _color.m_W };
         uniforms.rect = vector_float4 { _rect.m_X0, _rect.m_Y0, _rect.m_X1 - _rect.m_X0, _rect.m_Y1 - _rect.m_Y0 };
+        uniforms.uvRect = vector_float4 { _uvrect.m_X0, _uvrect.m_Y0, _uvrect.m_X1 - _uvrect.m_X0, _uvrect.m_Y1 - _uvrect.m_Y0 };
 
         [renderEncoder setFragmentBytes:&uniforms length:sizeof(uniforms) atIndex:0];
         activeShader->UploadUniforms(renderEncoder);
@@ -414,12 +417,12 @@ void	CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math:
     }
 }
 
-void    CRendererMetal::DrawQuad( const Base::Math::CRect &_rect, const Base::Math::CVector4 &_color )
+void    CRendererMetal::DrawQuad( const Base::Math::CRect& _rect, const Base::Math::CVector4& _color )
 {
     DrawQuad(_rect, _color, Base::Math::CRect{0,0,1,1});
 }
 
-void	CRendererMetal::DrawSoftQuad( const Base::Math::CRect &_rect, const Base::Math::CVector4 &_color, const fp4 _width )
+void	CRendererMetal::DrawSoftQuad( const Base::Math::CRect& _rect, const Base::Math::CVector4& _color, const fp4 _width )
 {
     DrawQuad(_rect, _color, Base::Math::CRect{0,0,1,1});
 }

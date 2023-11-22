@@ -12,6 +12,8 @@
 
 @interface MBETextMesh : MBEMesh
 
+@property (nonatomic, assign) CGSize textExtent;
+
 - (instancetype)initWithString:(NSString *)string
                         inRect:(CGRect)rect
                       withFontAtlas:(MBEFontAtlas *)fontAtlas

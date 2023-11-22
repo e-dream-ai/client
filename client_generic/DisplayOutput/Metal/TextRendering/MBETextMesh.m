@@ -41,21 +41,22 @@ typedef void (^MBEGlyphPositionEnumerationBlock)(CGGlyph glyph,
     NSFont *font = [fontAtlas.parentFont fontWithSize:fontSize];
     NSDictionary *attributes = @{ NSFontAttributeName : font };
     NSAttributedString *attrString = [[NSAttributedString alloc] initWithString:string attributes:attributes];
-    CFRange stringRange = CFRangeMake(0, attrString.length);
+    CFRange stringRange = CFRangeMake(0, (CFIndex)attrString.length);
     CGPathRef rectPath = CGPathCreateWithRect(rect, NULL);
     CTFramesetterRef framesetter = CTFramesetterCreateWithAttributedString((__bridge CFAttributedStringRef)attrString);
     CTFrameRef frame = CTFramesetterCreateFrame(framesetter, stringRange, rectPath, NULL);
 
-    __block CFIndex frameGlyphCount = 0;
+    __block size_t frameGlyphCount = 0;
     NSArray *lines = (__bridge id)CTFrameGetLines(frame);
-    [lines enumerateObjectsUsingBlock:^(id lineObject, NSUInteger lineIndex, BOOL *stop) {
-        frameGlyphCount += CTLineGetGlyphCount((__bridge CTLineRef)lineObject);
+    [lines enumerateObjectsUsingBlock:^(id lineObject, __unused NSUInteger lineIndex, __unused BOOL *stop) {
+        frameGlyphCount += (size_t)CTLineGetGlyphCount((__bridge CTLineRef)lineObject);
     }];
 
     const size_t vertexCount = frameGlyphCount * 4;
     const size_t indexCount = frameGlyphCount * 6;
     MBEVertex *vertices = malloc(vertexCount * sizeof(MBEVertex));
     MBEIndexType *indices = malloc(indexCount * sizeof(MBEIndexType));
+    __block CGSize newExtents = CGSizeMake(0, 0);
 
     __block MBEIndexType v = 0, i = 0;
     [self enumerateGlyphsInFrame:frame block:^(CGGlyph glyph, NSInteger glyphIndex, CGRect glyphBounds) {
@@ -65,25 +66,28 @@ typedef void (^MBEGlyphPositionEnumerationBlock)(CGGlyph glyph,
             return;
         }
         MBEGlyphDescriptor *glyphInfo = fontAtlas.glyphDescriptors[glyph];
-        float minX = CGRectGetMinX(glyphBounds);
-        float maxX = CGRectGetMaxX(glyphBounds);
-        float minY = CGRectGetMinY(glyphBounds);
-        float maxY = CGRectGetMaxY(glyphBounds);
-        float minS = glyphInfo.topLeftTexCoord.x;
-        float maxS = glyphInfo.bottomRightTexCoord.x;
-        float minT = glyphInfo.topLeftTexCoord.y;
-        float maxT = glyphInfo.bottomRightTexCoord.y;
+        float minX = (float)CGRectGetMinX(glyphBounds);
+        float maxX = (float)CGRectGetMaxX(glyphBounds);
+        float minY = (float)CGRectGetMinY(glyphBounds);
+        float maxY = (float)CGRectGetMaxY(glyphBounds);
+        float minS = (float)glyphInfo.topLeftTexCoord.x;
+        float maxS = (float)glyphInfo.bottomRightTexCoord.x;
+        float minT = (float)glyphInfo.topLeftTexCoord.y;
+        float maxT = (float)glyphInfo.bottomRightTexCoord.y;
         vertices[v++] = (MBEVertex){ { minX, maxY, 0, 1 }, { minS, maxT } };
         vertices[v++] = (MBEVertex){ { minX, minY, 0, 1 }, { minS, minT } };
         vertices[v++] = (MBEVertex){ { maxX, minY, 0, 1 }, { maxS, minT } };
         vertices[v++] = (MBEVertex){ { maxX, maxY, 0, 1 }, { maxS, maxT } };
-        indices[i++] = glyphIndex * 4;
-        indices[i++] = glyphIndex * 4 + 1;
-        indices[i++] = glyphIndex * 4 + 2;
-        indices[i++] = glyphIndex * 4 + 2;
-        indices[i++] = glyphIndex * 4 + 3;
-        indices[i++] = glyphIndex * 4;
+        indices[i++] = (MBEIndexType)glyphIndex * 4;
+        indices[i++] = (MBEIndexType)glyphIndex * 4 + 1;
+        indices[i++] = (MBEIndexType)glyphIndex * 4 + 2;
+        indices[i++] = (MBEIndexType)glyphIndex * 4 + 2;
+        indices[i++] = (MBEIndexType)glyphIndex * 4 + 3;
+        indices[i++] = (MBEIndexType)glyphIndex * 4;
+        newExtents.width = MAX(newExtents.width, maxX);
+        newExtents.height = MAX(newExtents.height, maxY);
     }];
+    self.textExtent = newExtents;
 
     _vertexBuffer = [device newBufferWithBytes:vertices
                                         length:vertexCount * sizeof(MBEVertex)
@@ -123,15 +127,14 @@ typedef void (^MBEGlyphPositionEnumerationBlock)(CGGlyph glyph,
     [image lockFocus];
     CGContextRef context = [[NSGraphicsContext currentContext] CGContext];
 
-    [lines enumerateObjectsUsingBlock:^(id lineObject, NSUInteger lineIndex, BOOL *stop) {
+    [lines enumerateObjectsUsingBlock:^(id lineObject, NSUInteger lineIndex, __unused BOOL *stop) {
         CTLineRef line = (__bridge CTLineRef)lineObject;
         CGPoint lineOrigin = lineOriginBuffer[lineIndex];
 
         NSArray *runs = (__bridge id)CTLineGetGlyphRuns(line);
-        [runs enumerateObjectsUsingBlock:^(id runObject, NSUInteger rangeIndex, BOOL *stop) {
+        [runs enumerateObjectsUsingBlock:^(id runObject, __unused NSUInteger rangeIndex, __unused BOOL *stopInner) {
             CTRunRef run = (__bridge CTRunRef)runObject;
-
-            size_t glyphCount = CTRunGetGlyphCount(run);
+            size_t glyphCount = (size_t)CTRunGetGlyphCount(run);
 
             CGGlyph *glyphBuffer = malloc(glyphCount * sizeof(CGGlyph));
             CTRunGetGlyphs(run, entire, glyphBuffer);
@@ -143,7 +146,7 @@ typedef void (^MBEGlyphPositionEnumerationBlock)(CGGlyph glyph,
             {
                 CGGlyph glyph = glyphBuffer[glyphIndex];
                 CGPoint glyphOrigin = positionBuffer[glyphIndex];
-                CGRect glyphRect = CTRunGetImageBounds(run, context, CFRangeMake(glyphIndex, 1));
+                CGRect glyphRect = CTRunGetImageBounds(run, context, CFRangeMake((CFIndex)glyphIndex, 1));
                 CGFloat boundsTransX = frameBoundingRect.origin.x + lineOrigin.x;
                 CGFloat boundsTransY = NSHeight(frameBoundingRect) + frameBoundingRect.origin.y - lineOrigin.y + glyphOrigin.y;
                 CGAffineTransform pathTransform = CGAffineTransformMake(1, 0, 0, -1, boundsTransX, boundsTransY);

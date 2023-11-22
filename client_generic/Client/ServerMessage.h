@@ -68,7 +68,7 @@ class	CServerMessage : public CConsole
 
 				//	Figure out text extent for all strings.
 				Base::Math::CRect	extent;
-				Base::Math::CVector2 size = g_Player().Renderer()->GetTextExtent( m_spFont, m_Message );
+                Base::Math::CVector2 size = m_spText->GetExtent();
 				extent = extent.Union( Base::Math::CRect( 0, 0, size.m_X+(edge*2), size.m_Y+(edge*2) ) );
 
 				boost::posix_time::time_duration td = boost::posix_time::second_clock::local_time() - m_ServerMessageStartTimer;

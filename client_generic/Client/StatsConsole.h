@@ -307,7 +307,9 @@ class	CStatsConsole : public CConsole
 					CStat *e = i->second.stat;
 					if( e && e->Visible() )
 					{
-						sizeq.push(_spRenderer->GetTextExtent( m_spFont, e->Report( _time ) ));
+                        DisplayOutput::spCBaseText& text = i->second.text;
+                        text->SetText(e->Report(_time));
+						sizeq.push(text->GetExtent());
 						extent = extent.Union( Base::Math::CRect( 0, pos, sizeq.back().m_X+(edge*2), sizeq.back().m_Y+(pos)+(edge*2) ) );
 						pos += sizeq.back().m_Y;
 					}
@@ -336,8 +338,7 @@ class	CStatsConsole : public CConsole
 						sizeq.pop();
                         DisplayOutput::spCBaseText& text = i->second.text;
 						Base::Math::CRect rect = Base::Math::CRect(edge, pos, 1, size.m_Y + pos + step);
-						text->SetText(e->Report(_time), rect);
-						_spRenderer->DrawText(text, Base::Math::CVector4( 1, 1, 1, 1 ), rect);
+                        _spRenderer->DrawText(text, Base::Math::CVector4(1, 1, 1, 1), rect);
 						pos += size.m_Y;
 					}
 				}

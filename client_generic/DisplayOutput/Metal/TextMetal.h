@@ -15,6 +15,8 @@
 namespace	DisplayOutput
 {
 
+const CGFloat kMetalTextReferenceContextSize = 2048.;
+
 /*
  CTextMetal.
 
@@ -26,11 +28,13 @@ class CTextMetal : public CBaseText
     MBETextMesh* m_pTextMesh;
     Base::Math::CRect m_AlignRect;
     id<MTLDevice>   m_Device;
+    float m_ContextAspect;
 
 public:
-    CTextMetal(spCFontMetal _font, id<MTLDevice> _device);
+    CTextMetal(spCFontMetal _font, id<MTLDevice> _device, float _contextAspect);
     virtual ~CTextMetal();
-    virtual void SetText(const std::string& _text, const Base::Math::CRect& _alignRect);
+    virtual void SetText(const std::string& _text);
+    virtual Base::Math::CVector2 GetExtent() const;
     const MBETextMesh* GetTextMesh() const { return m_pTextMesh; }
     const spCFontMetal GetFont() const { return m_spFont; }
 };

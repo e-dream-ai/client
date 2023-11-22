@@ -99,7 +99,7 @@ class	CStartupScreen : public CHudEntry
 				fp4 edge = 24 / (fp4)_spRenderer->Display()->Width();
 
 				Base::Math::CRect	extent;
-				Base::Math::CVector2 size = g_Player().Renderer()->GetTextExtent( m_spFont, m_StartupMessage );
+				Base::Math::CVector2 size = m_spText->GetExtent();
 				extent = extent.Union( Base::Math::CRect( 0, 0, size.m_X+(edge*2), size.m_Y+(edge*2) ) );
 
 				boost::posix_time::time_duration td = boost::posix_time::second_clock::local_time() - m_ServerMessageStartTimer;

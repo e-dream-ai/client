@@ -48,13 +48,15 @@ fragment float4 texture_fragment_YUV2(ColorInOut vert [[stage_in]],
 }
 
 fragment float4 drawTextureFragment(ColorInOut vert [[stage_in]],
-                                texture2d<float, access::sample> texture [[texture(0)]],
-                                     constant QuadUniforms& uniforms [[buffer(0)]])
+                                    texture2d<float, access::sample> texture [[texture(0)]],
+                                    constant QuadUniforms& uniforms [[buffer(0)]])
 {
     constexpr sampler s( address::clamp_to_zero, filter::linear );
     float2 adjustedUV = (vert.uv - uniforms.rect.xy) / uniforms.rect.zw;
-    float4 color = texture.sample(s, adjustedUV);
-    return color;
+    float alpha = uniforms.color.a * all(adjustedUV > 0 && adjustedUV < 1);
+    adjustedUV = (adjustedUV.xy + uniforms.uvRect.xy) * uniforms.uvRect.zw;
+    float3 color = texture.sample(s, adjustedUV).rgb;
+    return float4(color * uniforms.color.rgb, alpha);
 }
 
 float4 SampleYUVTexturesRGBA(float2 uv, texture2d<float, access::sample> yTexture, texture2d<float, access::sample> uvTexture)
