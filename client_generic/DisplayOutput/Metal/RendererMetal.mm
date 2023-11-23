@@ -8,6 +8,9 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <atomic>
+#include <chrono>
+#include <thread>
 
 #include "RendererMetal.h"
 #include "TextureFlatMetal.h"
@@ -35,6 +38,8 @@ static const NSUInteger MaxFramesInFlight = 3;
     @public DisplayOutput::spCShaderMetal drawTextureShader;
     @public DisplayOutput::spCShaderMetal drawTextShader;
     @public DisplayOutput::spCShaderMetal activeShader;
+    @public std::atomic<uint8_t> framesStarted;
+    @public std::atomic<uint8_t> framesFinished;
 }
 @end
 
@@ -60,6 +65,10 @@ CRendererMetal::CRendererMetal() : CRenderer()
 CRendererMetal::~CRendererMetal()
 {
     RendererContext* rendererContext = CFBridgingRelease(m_pRendererContext);
+    while (rendererContext->framesStarted.load() != rendererContext->framesFinished.load())
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
     if (rendererContext->textureCache)
     {
         CFRelease(rendererContext->textureCache);
@@ -229,6 +238,8 @@ bool    CRendererMetal::EndFrame( bool drawn )
     __block dispatch_semaphore_t semaphore = rendererContext->inFlightSemaphore;
     __block std::vector<CVMetalTextureRef>& metalTexturesUsed = rendererContext->metalTexturesUsed[rendererContext->currentFrameIndex];
     __block uint32_t frameNumber = rendererContext->frameCounter;
+    __block std::atomic<uint8_t>& framesFinished = rendererContext->framesFinished;
+    rendererContext->framesStarted++;
     [rendererContext->currentCommandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull)
      {
         {
@@ -242,6 +253,7 @@ bool    CRendererMetal::EndFrame( bool drawn )
         }
         PROFILER_EVENT_F("Metal Frame Finished", "%d", frameNumber);
         dispatch_semaphore_signal(semaphore);
+        framesFinished++;
     }];
 
     @autoreleasepool
