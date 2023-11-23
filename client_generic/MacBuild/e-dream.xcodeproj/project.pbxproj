@@ -11,11 +11,13 @@
 		12A00CD32B0D22B4001C0792 /* Trebuchet MS.sddf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 12A00CD02B0D22A4001C0792 /* Trebuchet MS.sddf */; };
 		12A00CD52B0D31E6001C0792 /* Lato.sddf in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD42B0D31E6001C0792 /* Lato.sddf */; };
 		12A00CD72B0D31F9001C0792 /* Lato.sddf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 12A00CD42B0D31E6001C0792 /* Lato.sddf */; };
+		12A00CD92B0FCA39001C0792 /* e-dream.icns in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD82B0FCA39001C0792 /* e-dream.icns */; };
+		12A00CDA2B0FCA39001C0792 /* e-dream.icns in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD82B0FCA39001C0792 /* e-dream.icns */; };
+		12A00CDC2B0FCA6C001C0792 /* e-dream-attr.png in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */; };
+		12A00CDD2B0FCA6C001C0792 /* e-dream-attr.png in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */; };
 		21006FC81017BC4B004A6511 /* Credits.html in CopyFiles */ = {isa = PBXBuildFile; fileRef = 21006FBD1017BC2C004A6511 /* Credits.html */; };
 		210335040F549BEF00A83F17 /* AlignedBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 210335030F549BEF00A83F17 /* AlignedBuffer.cpp */; };
 		210335050F549BEF00A83F17 /* AlignedBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 210335030F549BEF00A83F17 /* AlignedBuffer.cpp */; };
-		2118A3C40F51BEE800BA0582 /* ElectricSheep.icns in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2118A3B30F51BED100BA0582 /* ElectricSheep.icns */; };
-		2118A3C50F51BF0500BA0582 /* ElectricSheep.icns in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2118A3B30F51BED100BA0582 /* ElectricSheep.icns */; };
 		211CDDDB0ED0BD9200EB9394 /* Download.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDD60ED0BD9200EB9394 /* Download.cpp */; };
 		211CDDDC0ED0BD9200EB9394 /* Networking.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDD80ED0BD9200EB9394 /* Networking.cpp */; };
 		211CDDDD0ED0BD9200EB9394 /* Upload.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDDA0ED0BD9200EB9394 /* Upload.cpp */; };
@@ -214,8 +216,6 @@
 		21DC0CA91263B98200D60C6A /* libcurl.4.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 211CDDEB0ED0BE8300EB9394 /* libcurl.4.dylib */; };
 		21DC0CAC1263B99000D60C6A /* libcurl.4.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 211CDDEB0ED0BE8300EB9394 /* libcurl.4.dylib */; };
 		21DE7CD91019020600E77D68 /* Instructions.rtf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 21DE7CA6101901E900E77D68 /* Instructions.rtf */; };
-		21E6A55410B5F97E00DAF0FF /* electricsheep-attr.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 21E6A55110B5F96800DAF0FF /* electricsheep-attr.png */; };
-		21E6A56110B5F9A000DAF0FF /* electricsheep-attr.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 21E6A55110B5F96800DAF0FF /* electricsheep-attr.png */; };
 		21EE633510139BCC000CE53E /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 21EE633410139BCC000CE53E /* main.m */; };
 		21EE636210139D68000CE53E /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 21EE634D10139BEF000CE53E /* MainMenu.xib */; };
 		21EE636310139D68000CE53E /* ElectricSheep.nib in Resources */ = {isa = PBXBuildFile; fileRef = 21AAA09E0F70400D00AC23A8 /* ElectricSheep.nib */; };
@@ -316,10 +316,8 @@
 			files = (
 				12A00CD72B0D31F9001C0792 /* Lato.sddf in CopyFiles */,
 				12A00CD32B0D22B4001C0792 /* Trebuchet MS.sddf in CopyFiles */,
-				21E6A56110B5F9A000DAF0FF /* electricsheep-attr.png in CopyFiles */,
 				21DE7CD91019020600E77D68 /* Instructions.rtf in CopyFiles */,
 				21598FA00F571EE000DDDFA6 /* flam3-animate in CopyFiles */,
-				2118A3C50F51BF0500BA0582 /* ElectricSheep.icns in CopyFiles */,
 				212CAF841141CA3F009DA85A /* TrebuchetMS-20.glf in CopyFiles */,
 				2187F3870F463AB50004F8F9 /* TrebuchetMS-24.glf in CopyFiles */,
 				2160FE7C0F30F8A000B2C27A /* electricsheep-frown.png in CopyFiles */,
@@ -377,9 +375,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 7;
 			files = (
-				21E6A55410B5F97E00DAF0FF /* electricsheep-attr.png in CopyFiles */,
 				21598F920F571ECF00DDDFA6 /* flam3-animate in CopyFiles */,
-				2118A3C40F51BEE800BA0582 /* ElectricSheep.icns in CopyFiles */,
 				212CAF851141CA3F009DA85A /* TrebuchetMS-20.glf in CopyFiles */,
 				2187F3860F463AA20004F8F9 /* TrebuchetMS-24.glf in CopyFiles */,
 				2160FEE90F30F9FB00B2C27A /* electricsheep-frown.png in CopyFiles */,
@@ -506,10 +502,11 @@
 		12478AAC2B03B6CA006A8669 /* pool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = pool.h; path = ../Common/pool.h; sourceTree = "<group>"; };
 		12A00CD02B0D22A4001C0792 /* Trebuchet MS.sddf */ = {isa = PBXFileReference; lastKnownFileType = file.bplist; path = "Trebuchet MS.sddf"; sourceTree = "<group>"; };
 		12A00CD42B0D31E6001C0792 /* Lato.sddf */ = {isa = PBXFileReference; lastKnownFileType = file.bplist; path = Lato.sddf; sourceTree = "<group>"; };
+		12A00CD82B0FCA39001C0792 /* e-dream.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = "e-dream.icns"; sourceTree = SOURCE_ROOT; };
+		12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "e-dream-attr.png"; sourceTree = "<group>"; };
 		21006FBD1017BC2C004A6511 /* Credits.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = Credits.html; sourceTree = SOURCE_ROOT; };
 		21008B760EB7D69900E64796 /* Console.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Console.h; path = ../Client/Console.h; sourceTree = SOURCE_ROOT; };
 		210335030F549BEF00A83F17 /* AlignedBuffer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AlignedBuffer.cpp; path = ../Common/AlignedBuffer.cpp; sourceTree = SOURCE_ROOT; };
-		2118A3B30F51BED100BA0582 /* ElectricSheep.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = ElectricSheep.icns; sourceTree = SOURCE_ROOT; };
 		211CDDD60ED0BD9200EB9394 /* Download.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Download.cpp; sourceTree = "<group>"; };
 		211CDDD80ED0BD9200EB9394 /* Networking.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Networking.cpp; sourceTree = "<group>"; };
 		211CDDDA0ED0BD9200EB9394 /* Upload.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Upload.cpp; sourceTree = "<group>"; };
@@ -578,7 +575,7 @@
 		2155422F1261FDC900AB51BF /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Sparkle.framework; path = Frameworks/Sparkle.framework; sourceTree = SOURCE_ROOT; };
 		215545A812620D3000AB51BF /* dsa_pub.pem */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = dsa_pub.pem; sourceTree = "<group>"; };
 		21598F860F571EB000DDDFA6 /* flam3-animate */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = "flam3-animate"; sourceTree = "<group>"; };
-		2160FAAD0F30F43600B2C27A /* Electric Sheep.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Electric Sheep.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		2160FAAD0F30F43600B2C27A /* e-dream.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "e-dream.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		2160FAAF0F30F43600B2C27A /* ElectricSheep-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "ElectricSheep-Info.plist"; sourceTree = "<group>"; };
 		2160FE190F30F82800B2C27A /* electricsheep-frown.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "electricsheep-frown.png"; sourceTree = "<group>"; };
 		2160FE1A0F30F82800B2C27A /* electricsheep-smile.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "electricsheep-smile.png"; sourceTree = "<group>"; };
@@ -601,7 +598,7 @@
 		2169AE7E11397EF700689B02 /* isaac.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = isaac.cpp; path = ../Common/isaac.cpp; sourceTree = SOURCE_ROOT; };
 		2181FAEF0ECF42820078FDDA /* libswscale.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswscale.a; path = ../ffmpeg/osx/lib/libswscale.a; sourceTree = SOURCE_ROOT; };
 		2187F3850F463A740004F8F9 /* TrebuchetMS-24.glf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "TrebuchetMS-24.glf"; sourceTree = "<group>"; };
-		218878D00EC6CD7E001ABD2E /* Electric Sheep.saver */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Electric Sheep.saver"; sourceTree = BUILT_PRODUCTS_DIR; };
+		218878D00EC6CD7E001ABD2E /* e-dream.saver */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "e-dream.saver"; sourceTree = BUILT_PRODUCTS_DIR; };
 		218878D10EC6CD7E001ABD2E /* ScreenSaver-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "ScreenSaver-Info.plist"; sourceTree = "<group>"; };
 		2188A6CF17EB94F30078C91C /* ApplicationServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ApplicationServices.framework; path = System/Library/Frameworks/ApplicationServices.framework; sourceTree = SDKROOT; };
 		2191E23719B5111700F5B82D /* FrameDisplay.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = FrameDisplay.h; path = ../Client/FrameDisplay.h; sourceTree = "<group>"; };
@@ -629,7 +626,6 @@
 		21D944A90E8F6245001C141E /* client_mac.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = client_mac.h; path = ../Client/client_mac.h; sourceTree = SOURCE_ROOT; };
 		21DD8C6F0EA9BA5F00BB9EC7 /* Splash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Splash.h; path = ../Client/Splash.h; sourceTree = SOURCE_ROOT; };
 		21DE7CA6101901E900E77D68 /* Instructions.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; path = Instructions.rtf; sourceTree = "<group>"; };
-		21E6A55110B5F96800DAF0FF /* electricsheep-attr.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "electricsheep-attr.png"; sourceTree = "<group>"; };
 		21EE633410139BCC000CE53E /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		21EE633610139BD8000CE53E /* English */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = English; path = ElectricSheep.nib; sourceTree = "<group>"; };
 		21EE634E10139BEF000CE53E /* English */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = English; path = English.lproj/MainMenu.xib; sourceTree = "<group>"; };
@@ -834,8 +830,8 @@
 		19C28FBDFE9D53C911CA2CBB /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				218878D00EC6CD7E001ABD2E /* Electric Sheep.saver */,
-				2160FAAD0F30F43600B2C27A /* Electric Sheep.app */,
+				218878D00EC6CD7E001ABD2E /* e-dream.saver */,
+				2160FAAD0F30F43600B2C27A /* e-dream.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -1081,11 +1077,11 @@
 			isa = PBXGroup;
 			children = (
 				21934CB819F3C2430096E7D7 /* thumbnail.tif */,
-				21E6A55110B5F96800DAF0FF /* electricsheep-attr.png */,
+				12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */,
 				21006FBD1017BC2C004A6511 /* Credits.html */,
 				21598F860F571EB000DDDFA6 /* flam3-animate */,
 				21DE7CA6101901E900E77D68 /* Instructions.rtf */,
-				2118A3B30F51BED100BA0582 /* ElectricSheep.icns */,
+				12A00CD82B0FCA39001C0792 /* e-dream.icns */,
 				212CAF831141CA3F009DA85A /* TrebuchetMS-20.glf */,
 				2187F3850F463A740004F8F9 /* TrebuchetMS-24.glf */,
 				12A00CD02B0D22A4001C0792 /* Trebuchet MS.sddf */,
@@ -1235,7 +1231,7 @@
 			);
 			name = ElectricSheepTestApp;
 			productName = ElectricSheep;
-			productReference = 2160FAAD0F30F43600B2C27A /* Electric Sheep.app */;
+			productReference = 2160FAAD0F30F43600B2C27A /* e-dream.app */;
 			productType = "com.apple.product-type.application";
 		};
 		218878CF0EC6CD7E001ABD2E /* ScreenSaver */ = {
@@ -1258,7 +1254,7 @@
 			);
 			name = ScreenSaver;
 			productName = ScreenSaver;
-			productReference = 218878D00EC6CD7E001ABD2E /* Electric Sheep.saver */;
+			productReference = 218878D00EC6CD7E001ABD2E /* e-dream.saver */;
 			productType = "com.apple.product-type.bundle";
 		};
 /* End PBXNativeTarget section */
@@ -1278,7 +1274,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 1DEB924B08733DCA0010E9CD /* Build configuration list for PBXProject "ElectricSheep" */;
+			buildConfigurationList = 1DEB924B08733DCA0010E9CD /* Build configuration list for PBXProject "e-dream" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
 			hasScannedForEncodings = 1;
@@ -1305,12 +1301,14 @@
 			files = (
 				12A00CD52B0D31E6001C0792 /* Lato.sddf in Resources */,
 				21AAA0BD0F7040B500AC23A8 /* ElectricSheep.nib in Resources */,
+				12A00CD92B0FCA39001C0792 /* e-dream.icns in Resources */,
 				215545AA12620D3000AB51BF /* dsa_pub.pem in Resources */,
 				12A00CD12B0D22A4001C0792 /* Trebuchet MS.sddf in Resources */,
 				4628A55E2B0F84EF001C3078 /* Lato-Regular.ttf in Resources */,
 				21934CB919F3C2430096E7D7 /* thumbnail.tif in Resources */,
 				21ADBB271305D380000A9F20 /* green.tif in Resources */,
 				21ADBB281305D380000A9F20 /* red.tif in Resources */,
+				12A00CDC2B0FCA6C001C0792 /* e-dream-attr.png in Resources */,
 				21ADBB291305D380000A9F20 /* yellow.tif in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1321,7 +1319,9 @@
 			files = (
 				21EE636210139D68000CE53E /* MainMenu.xib in Resources */,
 				21EE636310139D68000CE53E /* ElectricSheep.nib in Resources */,
+				12A00CDA2B0FCA39001C0792 /* e-dream.icns in Resources */,
 				215545A912620D3000AB51BF /* dsa_pub.pem in Resources */,
+				12A00CDD2B0FCA6C001C0792 /* e-dream-attr.png in Resources */,
 				21ADBB241305D380000A9F20 /* green.tif in Resources */,
 				4628A55F2B0F84EF001C3078 /* Lato-Regular.ttf in Resources */,
 				21ADBB251305D380000A9F20 /* red.tif in Resources */,
@@ -1658,6 +1658,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_APPICON_NAME = "e-dream";
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -1687,6 +1689,7 @@
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				INFOPLIST_FILE = "ElectricSheep-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "e-dream";
 				INSTALL_PATH = "$(HOME)/Applications";
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../Frameworks";
 				LIBRARY_SEARCH_PATHS = (
@@ -1700,7 +1703,7 @@
 				ONLY_ACTIVE_ARCH = NO;
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.spotworks.e-dream-dev";
-				PRODUCT_NAME = "Electric Sheep";
+				PRODUCT_NAME = "e-dream";
 				PROVISIONING_PROFILE_SPECIFIER = "tibi's profile";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=macosx*]" = "";
 				SDKROOT = macosx;
@@ -1713,6 +1716,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_APPICON_NAME = "e-dream";
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -1742,6 +1747,7 @@
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				INFOPLIST_FILE = "ElectricSheep-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "e-dream";
 				INSTALL_PATH = "$(HOME)/Applications";
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../Frameworks";
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
@@ -1749,7 +1755,7 @@
 				ONLY_ACTIVE_ARCH = NO;
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.spotworks.e-dream-dev";
-				PRODUCT_NAME = "Electric Sheep";
+				PRODUCT_NAME = "e-dream";
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "tibi's profile";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=macosx*]" = "";
@@ -1807,7 +1813,7 @@
 				);
 				"OTHER_LDFLAGS[arch=x86_64]" = "";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.spotworks.e-dream-dev";
-				PRODUCT_NAME = "Electric Sheep";
+				PRODUCT_NAME = "e-dream";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
 				VALID_ARCHS = "arm64e i386 x86_64";
@@ -1865,7 +1871,7 @@
 				"OTHER_LDFLAGS[arch=x86_64]" = "";
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.spotworks.e-dream-dev";
-				PRODUCT_NAME = "Electric Sheep";
+				PRODUCT_NAME = "e-dream";
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
@@ -1880,7 +1886,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		1DEB924B08733DCA0010E9CD /* Build configuration list for PBXProject "ElectricSheep" */ = {
+		1DEB924B08733DCA0010E9CD /* Build configuration list for PBXProject "e-dream" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				1DEB924C08733DCA0010E9CD /* Debug */,

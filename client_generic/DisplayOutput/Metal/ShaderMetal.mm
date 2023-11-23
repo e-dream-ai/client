@@ -27,7 +27,7 @@ CShaderMetal::CShaderMetal(id<MTLDevice> device,
                            std::vector<std::pair<std::string, eUniformType>> _uniforms)
 {
     MTLRenderPipelineDescriptor* renderPipelineDesc = [MTLRenderPipelineDescriptor new];
-    renderPipelineDesc.label = @"Electric Sheep Render Pipeline";
+    renderPipelineDesc.label = @"e-dream Render Pipeline";
     renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].pixelFormat = MTLPixelFormatBGRA8Unorm;
     renderPipelineDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
     renderPipelineDesc.stencilAttachmentPixelFormat = MTLPixelFormatInvalid;

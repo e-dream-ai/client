@@ -237,7 +237,7 @@ class	CElectricSheep
 				m_HudManager->Add( "helpmessage", new Hud::CStatsConsole( Base::Math::CRect( 1, 1 ), hudFontName, hudFontSize ) );
 				
 				Hud::spCStatsConsole spHelpMessage = (Hud::spCStatsConsole)m_HudManager->Get( "helpmessage" );
-				spHelpMessage->Add( new Hud::CStringStat( "message", "Electric Sheep\n\nYou are now part of a cyborg mind composed of thousands of\ncomputers and people communicating with a genetic algorithm.\n\nKeyboard Commands\nUp-arrow: vote for this sheep\nDown-arrow: vote against this sheep and delete it\nLeft-arrow: go back to play previous sheep\nRight-arrow: go forward through history\n"
+				spHelpMessage->Add( new Hud::CStringStat( "message", "e-dream\n\nYou are now part of a cyborg mind composed of thousands of\ncomputers and people communicating with a genetic algorithm.\n\nKeyboard Commands\nUp-arrow: vote for this sheep\nDown-arrow: vote against this sheep and delete it\nLeft-arrow: go back to play previous sheep\nRight-arrow: go forward through history\n"
 #ifdef MAC
 				"Cmd" 
 #else
@@ -319,7 +319,7 @@ class	CElectricSheep
 				m_spSplashNeg = new Hud::CSplash( 0.2f, g_Settings()->Get( "settings.app.InstallDir", defaultDir ) + "electricsheep-frown.png" );
                 
 				// PNG splash
-				m_SplashFilename = g_Settings()->Get( "settings.player.attrpngfilename", g_Settings()->Get( "settings.app.InstallDir", defaultDir ) + "electricsheep-attr.png"  );
+				m_SplashFilename = g_Settings()->Get( "settings.player.attrpngfilename", g_Settings()->Get( "settings.app.InstallDir", defaultDir ) + "e-dream-attr.png"  );
                 
                 bool splashFound = false;
                 
@@ -364,7 +364,7 @@ class	CElectricSheep
                 
                 if ( !splashFound )
                 {
-                    m_SplashFilename = g_Settings()->Get( "settings.app.InstallDir", defaultDir ) + "electricsheep-attr.png";
+                    m_SplashFilename = g_Settings()->Get( "settings.app.InstallDir", defaultDir ) + "e-dream-attr.png";
                     g_Settings()->Set( "settings.player.attrpngfilename", m_SplashFilename );
                 }
 
@@ -1098,12 +1098,12 @@ class	CElectricSheep
 
 			void SetUpdateAvailable(const std::string& verinfo)
 			{	
-				std::string message("New Electric Sheep ");
+				std::string message("New e-drean ");
 				
 				message += verinfo;
 				message += " is available.";
 #ifdef MAC
-				message += " Relaunch ES application or preference pane to update.";
+				message += " Relaunch e-dream application or preference pane to update.";
 #endif
 				
 				ContentDownloader::Shepherd::QueueMessage( message, 30.0 );

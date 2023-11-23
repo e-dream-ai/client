@@ -252,7 +252,7 @@ bool CPlayer::AddDisplay( uint32 screen )
 	//	Start renderer & set window title.
 	if (spRenderer->Initialize( spDisplay ) == false)
 		return false;
-	spDisplay->Title( "Electric Sheep" );
+	spDisplay->Title( "e-dream" );
 
 	//	Create frame display.
 	int32 displayMode = g_Settings()->Get( "settings.player.DisplayMode", 2 );

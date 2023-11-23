@@ -38,9 +38,9 @@ class	CStartupScreen : public CHudEntry
 				m_spImageRef = new DisplayOutput::CImage();
 				m_spImageRef->Create(256, 256, DisplayOutput::eImage_RGBA8, false, true );
 #ifndef LINUX_GNU
-				m_spImageRef->Load(g_Settings()->Get( "settings.app.InstallDir", std::string(".\\") ) + "electricsheep-smile.png", false);
+				m_spImageRef->Load(g_Settings()->Get( "settings.app.InstallDir", std::string(".\\") ) + "logo.png", false);
 #else
-				m_spImageRef->Load(g_Settings()->Get( "settings.app.InstallDir", std::string("") ) + "electricsheep-smile.png", false);
+				m_spImageRef->Load(g_Settings()->Get( "settings.app.InstallDir", std::string("") ) + "logo.png", false);
 #endif
 				fp4 aspect = g_Player().Display()->Aspect();
 				m_LogoSize.m_X0 = 0.f;
