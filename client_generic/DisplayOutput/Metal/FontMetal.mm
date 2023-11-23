@@ -59,8 +59,8 @@ bool CFontMetal::Create()
         return false;
     }
 #endif
-    m_pFontAtlas = atlas;
-    m_spAtlasTexture->Upload((uint8_t*)m_pFontAtlas.textureData.bytes, eImage_I8, kFontAtlasSize, kFontAtlasSize, kFontAtlasSize, false, 0);
+    m_pFontAtlas = CFBridgingRetain(atlas);
+    m_spAtlasTexture->Upload((uint8_t*)GetAtlas().textureData.bytes, eImage_I8, kFontAtlasSize, kFontAtlasSize, kFontAtlasSize, false, 0);
     return true;
 }
 
@@ -70,6 +70,12 @@ bool CFontMetal::Create()
 */
 CFontMetal::~CFontMetal()
 {
+    CFBridgingRelease(m_pFontAtlas);
+}
+
+MBEFontAtlas* CFontMetal::GetAtlas() const
+{
+    return (__bridge MBEFontAtlas*)m_pFontAtlas;
 }
 
 };
