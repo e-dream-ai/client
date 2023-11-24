@@ -1058,6 +1058,14 @@ class	CElectricSheep
 								m_F1F4Timer.Reset();
 								m_HudManager->Toggle( "displaystats" );	
 								break;
+                            case    DisplayOutput::CKeyEvent::KEY_Comma:
+                                m_F1F4Timer.Reset();
+                                g_Player().Framerate( m_CurrentFps *= (1.f/1.1f) );
+                                break;
+                            case    DisplayOutput::CKeyEvent::KEY_Period:
+                                m_F1F4Timer.Reset();
+                                g_Player().Framerate( m_CurrentFps *= (1.1f) );
+                                break;
 								
 							//	All other keys needs to be ignored, they are handled somewhere else...
 							default:

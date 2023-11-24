@@ -84,7 +84,9 @@ class	CKeyEvent : public CEvent
 				KEY_F11,
 				KEY_F12,
 				KEY_Esc,
-				KEY_NONE
+				KEY_NONE,
+                KEY_Comma,
+                KEY_Period
 			};
 
 			CKeyEvent() : m_bPressed( true ), m_Code( KEY_NONE )	{}

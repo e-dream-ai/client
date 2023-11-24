@@ -378,6 +378,16 @@ bool bStarted = false;
 				ESScreensaver_AppendKeyEvent( 0x64 );
 				handled = YES;
 				break;
+                
+            case u',':
+                ESScreensaver_AppendKeyEvent( 0xBC );
+                handled = YES;
+                break;
+            
+            case u'.':
+                ESScreensaver_AppendKeyEvent( 0xBE );
+                handled = YES;
+                break;
 								
 			default:
 				break;
