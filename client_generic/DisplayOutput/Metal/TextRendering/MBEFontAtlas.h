@@ -8,6 +8,9 @@
 
 #import <AppKit/AppKit.h>
 
+#define USE_LIMITED_CHARSET 1
+#define MAX_UNICHAR_INDEX 256
+
 @interface MBEGlyphDescriptor : NSObject <NSSecureCoding>
 @property (nonatomic, assign) CGGlyph glyphIndex;
 @property (nonatomic, assign) CGPoint topLeftTexCoord;

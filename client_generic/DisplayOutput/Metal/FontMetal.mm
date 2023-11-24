@@ -10,7 +10,7 @@
 namespace	DisplayOutput
 {
 
-const uint32_t kFontAtlasSize = 2048;
+const uint32_t kFontAtlasSize = 4096;
 
 /*
 	CFontMetal().

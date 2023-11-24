@@ -10,7 +10,8 @@
 #import "MBETypes.h"
 @import CoreText;
 
-typedef void (^MBEGlyphPositionEnumerationBlock)(CGGlyph glyph,
+typedef void (^MBEGlyphPositionEnumerationBlock)(CFIndex strIndex,
+                                                 CGGlyph glyph,
                                                  NSInteger glyphIndex,
                                                  CGRect glyphBounds);
 
@@ -39,7 +40,7 @@ typedef void (^MBEGlyphPositionEnumerationBlock)(CGGlyph glyph,
                      device:(id<MTLDevice>)device
 {
     NSFont *font = [fontAtlas.parentFont fontWithSize:fontSize];
-    NSDictionary *attributes = @{ NSFontAttributeName : font };
+    NSDictionary *attributes = @{ NSFontAttributeName : font,  (id)kCTLigatureAttributeName: @((USE_LIMITED_CHARSET) ^ 1) };
     NSAttributedString *attrString = [[NSAttributedString alloc] initWithString:string attributes:attributes];
     CFRange stringRange = CFRangeMake(0, (CFIndex)attrString.length);
     CGPathRef rectPath = CGPathCreateWithRect(rect, NULL);
@@ -59,13 +60,19 @@ typedef void (^MBEGlyphPositionEnumerationBlock)(CGGlyph glyph,
     __block CGSize newExtents = CGSizeMake(0, 0);
 
     __block MBEIndexType v = 0, i = 0;
-    [self enumerateGlyphsInFrame:frame block:^(CGGlyph glyph, NSInteger glyphIndex, CGRect glyphBounds) {
-        if (glyph >= fontAtlas.glyphDescriptors.count)
+    [self enumerateGlyphsInFrame:frame withString:attrString block:^(CFIndex strIndex, CGGlyph glyph, NSInteger glyphIndex, CGRect glyphBounds) {
+#if USE_LIMITED_CHARSET
+        UniChar character = [string characterAtIndex:(NSUInteger)strIndex];
+#else
+        UniChar character = glyph;
+#endif
+        
+        if (character >= fontAtlas.glyphDescriptors.count)
         {
             NSLog(@"Font atlas has no entry corresponding to glyph #%d; Skipping...", glyph);
             return;
         }
-        MBEGlyphDescriptor *glyphInfo = fontAtlas.glyphDescriptors[glyph];
+        MBEGlyphDescriptor *glyphInfo = fontAtlas.glyphDescriptors[character];
         float minX = (float)CGRectGetMinX(glyphBounds);
         float maxX = (float)CGRectGetMaxX(glyphBounds);
         float minY = (float)CGRectGetMinY(glyphBounds);
@@ -106,6 +113,7 @@ typedef void (^MBEGlyphPositionEnumerationBlock)(CGGlyph glyph,
 }
 
 - (void)enumerateGlyphsInFrame:(CTFrameRef)frame
+                    withString:(NSAttributedString*)string
                          block:(MBEGlyphPositionEnumerationBlock)block
 {
     if (!block)
@@ -141,6 +149,10 @@ typedef void (^MBEGlyphPositionEnumerationBlock)(CGGlyph glyph,
 
             CGPoint *positionBuffer = malloc(glyphCount * sizeof(CGPoint));
             CTRunGetPositions(run, entire, positionBuffer);
+            
+            CFIndex* indices = malloc(glyphCount * sizeof(CFIndex));
+            
+            CTRunGetStringIndices(run, entire, indices);
 
             for (size_t glyphIndex = 0; glyphIndex < glyphCount; ++glyphIndex)
             {
@@ -151,11 +163,13 @@ typedef void (^MBEGlyphPositionEnumerationBlock)(CGGlyph glyph,
                 CGFloat boundsTransY = NSHeight(frameBoundingRect) + frameBoundingRect.origin.y - lineOrigin.y + glyphOrigin.y;
                 CGAffineTransform pathTransform = CGAffineTransformMake(1, 0, 0, -1, boundsTransX, boundsTransY);
                 glyphRect = CGRectApplyAffineTransform(glyphRect, pathTransform);
-                block(glyph, glyphIndexInFrame, glyphRect);
+                CFIndex strIndex = indices[glyphIndex];
+                block(strIndex, glyph, glyphIndexInFrame, glyphRect);
 
                 ++glyphIndexInFrame;
             }
 
+            free(indices);
             free(positionBuffer);
             free(glyphBuffer);
         }];

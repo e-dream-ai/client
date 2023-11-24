@@ -162,7 +162,11 @@ static NSString *const MBEGlyphDescriptorsKey = @"glyphDescriptors";
     const float textureArea = (float)rect.size.width * (float)rect.size.height;
     NSFont *trialFont = [NSFont fontWithName:font.fontName size:size];
     CTFontRef trialCTFont = CTFontCreateWithName((__bridge CFStringRef)(font.fontName), size, NULL);
+#if USE_LIMITED_CHARSET
+    CFIndex fontGlyphCount = MIN(MAX_UNICHAR_INDEX, CTFontGetGlyphCount(trialCTFont));
+#else
     CFIndex fontGlyphCount = CTFontGetGlyphCount(trialCTFont);
+#endif
     CGFloat glyphMargin = [self estimatedLineWidthForFont:trialFont];
     CGSize averageGlyphSize = [self estimatedGlyphSizeForFont:trialFont];
     CGFloat estimatedGlyphTotalArea = (averageGlyphSize.width + glyphMargin) * (averageGlyphSize.height + glyphMargin) * fontGlyphCount;
@@ -229,8 +233,16 @@ static NSString *const MBEGlyphDescriptorsKey = @"glyphDescriptors";
 
     CGPoint origin = CGPointMake(0, fontAscent);
     CGFloat maxYCoordForLine = -1;
+    
+#if USE_LIMITED_CHARSET
+    for (UniChar character = 0; character < MAX_UNICHAR_INDEX; ++character)
+    {
+        CGGlyph glyph;
+        CTFontGetGlyphsForCharacters(ctFont, &character, &glyph, 1);
+#else
     for (CGGlyph glyph = 0; glyph < fontGlyphCount; ++glyph)
     {
+#endif
         CGRect boundingRect;
         CTFontGetBoundingRectsForGlyphs(ctFont, kCTFontOrientationHorizontal, &glyph, &boundingRect, 1);
 
