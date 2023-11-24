@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "2160FAAC0F30F43600B2C27A"
-               BuildableName = "Electric Sheep.app"
+               BuildableName = "e-dream.app"
                BlueprintName = "ElectricSheepTestApp"
                ReferencedContainer = "container:e-dream.xcodeproj">
             </BuildableReference>
@@ -46,7 +46,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "2160FAAC0F30F43600B2C27A"
-            BuildableName = "Electric Sheep.app"
+            BuildableName = "e-dream.app"
             BlueprintName = "ElectricSheepTestApp"
             ReferencedContainer = "container:e-dream.xcodeproj">
          </BuildableReference>
@@ -63,7 +63,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "2160FAAC0F30F43600B2C27A"
-            BuildableName = "Electric Sheep.app"
+            BuildableName = "e-dream.app"
             BlueprintName = "ElectricSheepTestApp"
             ReferencedContainer = "container:e-dream.xcodeproj">
          </BuildableReference>
