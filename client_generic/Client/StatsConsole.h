@@ -288,6 +288,22 @@ class	CStatsConsole : public CConsole
 
             void	Add( CStat *_pStat )	{	m_Stats[ _pStat->m_Name ] = { _pStat, g_Player().Renderer()->NewText(m_spFont, "") };	}
 			CStat	*Get( const std::string &_name ) {	return m_Stats[ _name ].stat;	}
+    
+            virtual void Visible(const bool _bState) override
+            {
+                CHudEntry::Visible(_bState);
+                if (!_bState)
+                {
+                    std::map<std::string, StatText>::iterator i;
+                    for( i=m_Stats.begin(); i != m_Stats.end(); ++i )
+                    {
+                        if (!i->second.text.IsNull())
+                        {
+                            i->second.text->SetEnabled(false);
+                        }
+                    }
+                }
+            }
 
 			bool	Render( const fp8 _time, DisplayOutput::spCRenderer _spRenderer )
 			{
@@ -305,9 +321,13 @@ class	CStatsConsole : public CConsole
 				for( i=m_Stats.begin(); i != m_Stats.end(); ++i )
 				{
 					CStat *e = i->second.stat;
+                    DisplayOutput::spCBaseText& text = i->second.text;
+                    if (!text.IsNull())
+                    {
+                        text->SetEnabled(e->Visible());
+                    }
 					if( e && e->Visible() )
 					{
-                        DisplayOutput::spCBaseText& text = i->second.text;
                         text->SetText(e->Report(_time));
 						sizeq.push(text->GetExtent());
 						extent = extent.Union( Base::Math::CRect( 0, pos, sizeq.back().m_X+(edge*2), sizeq.back().m_Y+(pos)+(edge*2) ) );
@@ -337,8 +357,8 @@ class	CStatsConsole : public CConsole
 						Base::Math::CVector2 size = sizeq.front();
 						sizeq.pop();
                         DisplayOutput::spCBaseText& text = i->second.text;
-						Base::Math::CRect rect = Base::Math::CRect(edge, pos, 1, size.m_Y + pos + step);
-                        _spRenderer->DrawText(text, Base::Math::CVector4(1, 1, 1, 1), rect);
+						text->SetRect(Base::Math::CRect(edge, pos, 1, size.m_Y + pos + step));
+                        _spRenderer->DrawText(text, Base::Math::CVector4(1, 1, 1, 1));
 						pos += size.m_Y;
 					}
 				}

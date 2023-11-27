@@ -23,7 +23,7 @@ class   CHudEntry
 			CHudEntry( Base::Math::CRect _rect ) : m_Rect( _rect )	{};
 			virtual ~CHudEntry()    {};
 
-			void	SetTime( fp8 _startTime, fp8 _duration )	{	m_StartTime = _startTime; m_Duration = _duration; m_Delta = 0; m_bVisible = false;	};
+            void	SetTime( fp8 _startTime, fp8 _duration )	{	m_StartTime = _startTime; m_Duration = _duration; m_Delta = 0; Visible(false);	};
 			virtual	bool	Render( const fp8 _time, DisplayOutput::spCRenderer /*_spRenderer*/ )
 			{
 				if( m_Duration > 0.0f )
@@ -36,7 +36,7 @@ class   CHudEntry
 				return true;
 			};
 
-			void Visible( const bool _bState )	{	m_bVisible = _bState;	};
+			virtual void Visible( const bool _bState )	{	m_bVisible = _bState;	};
 			virtual bool	Visible() const	{	return m_bVisible;	};
 };
 

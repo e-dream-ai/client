@@ -49,6 +49,12 @@ class	CServerMessage : public CConsole
 
 			//	Override to make it always visible.
 			virtual bool	Visible() const	{	return true;	};
+            
+            virtual void Visible(const bool _bState) override
+            {
+                CHudEntry::Visible(_bState);
+                m_spText->SetEnabled(_bState);
+            }
 
 			//
 			bool	Render( const fp8 _time, DisplayOutput::spCRenderer _spRenderer )
@@ -91,8 +97,8 @@ class	CServerMessage : public CConsole
 				//dasvo - terrible hack - redo!!
 				if (!m_spFont.IsNull())
 					m_spFont->Reupload();
-
-                g_Player().Renderer()->DrawText( m_spText, Base::Math::CVector4( 1, 1, 1, 1 ), Base::Math::CRect( r.m_X0+edge, r.m_Y0+edge, r.m_X1, r.m_Y1 ) );
+                m_spText->SetRect(Base::Math::CRect( r.m_X0+edge, r.m_Y0+edge, r.m_X1, r.m_Y1 ));
+                g_Player().Renderer()->DrawText( m_spText, Base::Math::CVector4( 1, 1, 1, 1 ));
 
 				return true;
 			}

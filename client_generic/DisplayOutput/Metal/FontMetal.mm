@@ -1,9 +1,12 @@
 #ifdef USE_METAL
-#include	"FontMetal.h"
+#include    <fstream>
+#include    <iostream>
+
 #include	"Log.h"
 #include	"Settings.h"
-#include	<fstream>
-#include	<iostream>
+#include    "TextMetal.h"
+#include    "FontMetal.h"
+
 
 #define GENERATE_FONT_ATLAS 0
 
@@ -24,6 +27,7 @@ CFontMetal::CFontMetal(CFontDescription& _desc, spCTextureFlat _textTexture) : C
 
 bool CFontMetal::Create()
 {
+#if !USE_SYSTEM_UI
     NSString* typeFace = @(m_typeFace.c_str());
     NSError* error;
 #if GENERATE_FONT_ATLAS
@@ -37,7 +41,7 @@ bool CFontMetal::Create()
         return false;
     }
     [data writeToFile:fileName atomically:YES];
-#else
+#else /*GENERATE_FONT_ATLAS*/
     NSString* fileName = [[NSBundle mainBundle] pathForResource:typeFace ofType:@"sddf"];
     NSData* data = [NSData dataWithContentsOfFile:fileName];
     if (!data)
@@ -58,9 +62,10 @@ bool CFontMetal::Create()
         g_Log->Error("Error while reading font file:%s", error.localizedDescription.UTF8String);
         return false;
     }
-#endif
+#endif /*GENERATE_FONT_ATLAS*/
     m_pFontAtlas = CFBridgingRetain(atlas);
     m_spAtlasTexture->Upload((uint8_t*)GetAtlas().textureData.bytes, eImage_I8, kFontAtlasSize, kFontAtlasSize, kFontAtlasSize, false, 0);
+#endif /*!USE_SYSTEM_UI*/
     return true;
 }
 
@@ -70,12 +75,18 @@ bool CFontMetal::Create()
 */
 CFontMetal::~CFontMetal()
 {
+#if !USE_SYSTEM_UI
     CFBridgingRelease(m_pFontAtlas);
+#endif
 }
 
 MBEFontAtlas* CFontMetal::GetAtlas() const
 {
+#if !USE_SYSTEM_UI
     return (__bridge MBEFontAtlas*)m_pFontAtlas;
+#else
+    return nullptr;
+#endif
 }
 
 };

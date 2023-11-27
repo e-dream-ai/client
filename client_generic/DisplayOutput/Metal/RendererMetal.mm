@@ -194,6 +194,7 @@ spCBaseFont	CRendererMetal::GetFont( CFontDescription &_desc )
         spCBaseFont font = new CFontMetal(_desc, NewTextureFlat());
         if (!font->Create())
             return NULL;
+        font->FontDescription(_desc);
         m_fontPool[_desc.TypeFace()] = font;
         return font;
     }
@@ -204,8 +205,9 @@ spCBaseText CRendererMetal::NewText( spCBaseFont _font, const std::string& _text
 {
     RendererContext* rendererContext = (__bridge RendererContext*)m_pRendererContext;
     float aspect = m_spDisplay->Aspect();
-    CTextMetal* text = new CTextMetal(static_cast<spCFontMetal>(_font), rendererContext->metalView.device, aspect);
+    CTextMetal* text = new CTextMetal(static_cast<spCFontMetal>(_font), rendererContext->metalView, aspect);
     text->SetText(_text);
+    
     return text;
 }
 
@@ -293,8 +295,9 @@ void CRendererMetal::Clear()
     }
 }
 
-void CRendererMetal::DrawText( spCBaseText _text, const Base::Math::CVector4& _color, const Base::Math::CRect &_rect )
+void CRendererMetal::DrawText( spCBaseText _text, const Base::Math::CVector4& _color)
 {
+#if !USE_SYSTEM_UI
     RendererContext* rendererContext = (__bridge RendererContext*)m_pRendererContext;
     @autoreleasepool
     {
@@ -320,7 +323,7 @@ void CRendererMetal::DrawText( spCBaseText _text, const Base::Math::CVector4& _c
         [renderEncoder setRenderPipelineState:rendererContext->drawTextShader->GetPipelineState()];
         [renderEncoder setVertexBuffer:textMesh.vertexBuffer offset:0 atIndex:0];
 
-        vector_float3 translation = { _rect.m_X0, _rect.m_Y0, 0 };
+        vector_float3 translation = { _text->GetRect().m_X0, _text->GetRect().m_Y0, 0 };
         vector_float3 scale = { 1, 1, 1 };
         float aspect = m_spDisplay->Aspect();
         matrix_float4x4 modelMatrix = matrix_multiply(matrix_translation(translation * kMetalTextReferenceContextSize), matrix_scale(scale * vector_float3 { aspect, 1, 1 } ));
@@ -347,6 +350,7 @@ void CRendererMetal::DrawText( spCBaseText _text, const Base::Math::CVector4& _c
         [renderEncoder endEncoding];
         rendererContext->currentLoadAction = MTLLoadActionLoad;
     }
+#endif /*USE_SYSTEM_UI*/
 }
 		
 

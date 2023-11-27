@@ -63,7 +63,7 @@ class CRendererMetal : public CRenderer
 			//
             spCBaseFont     GetFont( CFontDescription &_desc );
             spCBaseText     NewText( spCBaseFont _font, const std::string& _text );
-            void            DrawText( spCBaseText _text, const Base::Math::CVector4& _color, const Base::Math::CRect &_rect );
+            void            DrawText(spCBaseText _text, const Base::Math::CVector4& _color);
 			Base::Math::CVector2	GetTextExtent( spCBaseFont _spFont, const std::string &_text );
 
 			//

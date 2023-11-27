@@ -144,7 +144,7 @@ class CRenderer
 			//	Font.
 			virtual	spCBaseFont		GetFont( CFontDescription &_desc ) = PureVirtual;
             virtual spCBaseText     NewText( spCBaseFont _font, const std::string& _text ) = PureVirtual;
-			virtual void			DrawText( spCBaseText _text, const Base::Math::CVector4& _color, const Base::Math::CRect &_rect ) = PureVirtual;
+			virtual void			DrawText( spCBaseText _text, const Base::Math::CVector4& _color) = PureVirtual;
 			virtual Base::Math::CVector2	GetTextExtent( spCBaseFont /*_spFont*/, const std::string &/*_text*/ )	{	return Base::Math::CVector2( 0, 0 );	};
 
 			virtual bool HasShaders() { return false; }
