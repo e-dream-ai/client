@@ -99,31 +99,12 @@
 	{
 
 		size_t flockSize = ESScreensaver_GetFlockSizeMBs(mpegpath, 0);
-		
-		size_t goldFlockSize = ESScreensaver_GetFlockSizeMBs(mpegpath, 1);
-		
-		size_t totalSize = flockSize + goldFlockSize;
 
-		
 		NSMutableString *str = [NSMutableString stringWithString:[flockSizeText stringValue]];
 
 		[str replaceOccurrencesOfString:@"^1" withString:[NSString stringWithFormat:@"%ld", flockSize] options:0 range:NSMakeRange(0, [str length])];
 		
 		[flockSizeText setStringValue:str];
-		
-		
-		str = [NSMutableString stringWithString:[goldFlockSizeText stringValue]];
-
-		[str replaceOccurrencesOfString:@"^1" withString:[NSString stringWithFormat:@"%ld", goldFlockSize] options:0 range:NSMakeRange(0, [str length])];
-		
-		[goldFlockSizeText setStringValue:str]; 
-		
-		
-		str = [NSMutableString stringWithString:[totalFlockSizeText stringValue]];
-
-		[str replaceOccurrencesOfString:@"^1" withString:[NSString stringWithFormat:@"%ld", totalSize] options:0 range:NSMakeRange(0, [str length])];
-		
-		[totalFlockSizeText setStringValue:str];  
 	}
 }
 
@@ -706,7 +687,7 @@
 
 - (IBAction)goToCreateAccountPage:(id) __unused sender
 {
-	NSURL *helpURL = [NSURL URLWithString: @"http://community.electricsheep.org/user/register"];
+	NSURL *helpURL = [NSURL URLWithString: @"https://e-dream.ai/register"];
 	
 	[[NSWorkspace sharedWorkspace] openURL:helpURL];
 }
@@ -727,7 +708,7 @@
 
 - (IBAction)goToLearnMorePage:(id) __unused sender
 {
-    NSURL *helpURL = [NSURL URLWithString: @"https://electricsheep.org/learnmore"];
+    NSURL *helpURL = [NSURL URLWithString: @"https://e-dream.ai/learnmore"];
 	
 	[[NSWorkspace sharedWorkspace] openURL:helpURL];
 }
@@ -788,7 +769,7 @@
 
 - (IBAction)goToHelpPage:(id) __unused sender
 {
-	NSString *urlStr = [NSString stringWithFormat:@"http://electricsheep.org/client/%s", CLIENT_VERSION];
+	NSString *urlStr = [NSString stringWithFormat:@"https://e-dream.ai/%s", CLIENT_VERSION];
 	
 	NSURL *helpURL = [NSURL URLWithString:urlStr];
 	

@@ -49,10 +49,7 @@
 	IBOutlet NSTextField* version;	
 	
 	IBOutlet NSTextField* flockSizeText;
-	
-	IBOutlet NSTextField* goldFlockSizeText;
-	
-	IBOutlet NSTextField* totalFlockSizeText;
+
 	
 	IBOutlet NSTextField* loginTestStatusText;
 	
