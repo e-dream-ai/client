@@ -73,6 +73,10 @@ bool EDreamClient::Authenticate()
     
     spDownload->AppendHeader(authHeader);
     bool success = spDownload->Perform(USER_ENDPOINT);
+    if (!success && spDownload->ResponseCode() == 401)
+    {
+        success = RefreshAccessToken();
+    }
     fIsLoggedIn.exchange(success);
     fAuthMutex.unlock();
     return success;

@@ -13,6 +13,7 @@
 #include "Settings.h"
 #include "clientversion.h"
 
+#include "EDreamClient.h"
 #include "ContentDownloader.h"
 #include "SheepGenerator.h"
 #include "Shepherd.h"
@@ -866,25 +867,17 @@ class	CElectricSheep
 						if( pTmp )
 						{
 							bool visible = true;
-							
-							const char *role = ContentDownloader::Shepherd::role();
-							std::string loginstatus;
-							if (role != NULL)
-								loginstatus = role;
-							else
-								visible = false;
 								
-							if( loginstatus.empty() || loginstatus == "none" )
-							{
+                            if (EDreamClient::IsLoggedIn())
+                            {
+                                std::stringstream loginstatusstr;
+                                loginstatusstr << "Logged in as " << ContentDownloader::SheepGenerator::nickName();
+                                pTmp->SetSample( loginstatusstr.str() );
+                            }
+                            else
+                            {
 								pTmp->SetSample( "Not logged in" );
 							}
-							else
-							{
-								std::stringstream loginstatusstr;
-								loginstatusstr << "Logged in as " << ContentDownloader::SheepGenerator::nickName() << " (" << loginstatus << ")";
-								pTmp->SetSample( loginstatusstr.str() );
-							}
-							
 							pTmp->Visible( visible );
 						}
 
