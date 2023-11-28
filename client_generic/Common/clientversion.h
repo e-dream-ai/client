@@ -35,8 +35,11 @@
 #define REDIRECT_SERVER_FULL        "https://community.sheepserver.net"
 
 #define DREAM_SERVER                "https://e-dream-76c98b08cc5d.herokuapp.com"
-#define DREAM_ENDPOINT              DREAM_SERVER "/api/v1/dream"
-#define REFRESH_ENDPOINT            DREAM_SERVER "/api/v1/auth/refresh"
+#define API_VERSION                 "/api/v1"
+#define DREAM_ENDPOINT              DREAM_SERVER API_VERSION "/dream"
+#define LOGIN_ENDPOINT            DREAM_SERVER API_VERSION "/auth/login"
+#define REFRESH_ENDPOINT            DREAM_SERVER API_VERSION "/auth/refresh"
+#define USER_ENDPOINT               DREAM_SERVER API_VERSION "/auth/user"
 
 #define REFRESH_TOKEN_MAX_LENGTH    2048
 #define ACCESS_TOKEN_MAX_LENGTH     2048

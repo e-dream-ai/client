@@ -24,8 +24,10 @@ void ESShowPreferences()
         gShowPreferencesCallback();
     }
 }
-boost::atomic<char *> EDreamClient::fAccessToken(NULL);
-boost::atomic<char *> EDreamClient::fRefreshToken(NULL);
+boost::atomic<char*> EDreamClient::fAccessToken(NULL);
+boost::atomic<char*> EDreamClient::fRefreshToken(NULL);
+boost::atomic<bool> EDreamClient::fIsLoggedIn(false);
+boost::mutex EDreamClient::fAuthMutex;
 
 static void SetNewAndDeleteOldString(boost::atomic<char*>& str, char* newval, boost::memory_order mem_ord = boost::memory_order_relaxed)
 {
@@ -50,16 +52,36 @@ static void SetNewAndDeleteOldString(boost::atomic<char*>& str, const char* newv
 
 void EDreamClient::InitializeClient()
 {
-    Network::spCFileDownloader spDownload = new Network::CFileDownloader( "Sheep list" );
-    spDownload->AppendHeader("Content-Type: application/json");
     //g_Settings()->Set("settings.content.access_token", std::string(""));
     SetNewAndDeleteOldString(fAccessToken, g_Settings()->Get("settings.content.access_token", std::string("")).c_str());
     SetNewAndDeleteOldString(fRefreshToken, g_Settings()->Get("settings.content.refresh_token", std::string("")).c_str());
+    fAuthMutex.lock();
+    boost::thread t(&EDreamClient::Authenticate);
 }
 
 const char* EDreamClient::GetAccessToken()
 {
     return fAccessToken.load(boost::memory_order_relaxed);
+}
+
+bool EDreamClient::Authenticate()
+{
+    char authHeader[ACCESS_TOKEN_MAX_LENGTH + 22];
+    Network::spCFileDownloader spDownload = new Network::CFileDownloader("Authenticate");
+    spDownload->AppendHeader("Content-Type: application/json");
+    snprintf(authHeader, ACCESS_TOKEN_MAX_LENGTH, "Authorization: Bearer %s", GetAccessToken());
+    
+    spDownload->AppendHeader(authHeader);
+    bool success = spDownload->Perform(USER_ENDPOINT);
+    fIsLoggedIn.exchange(success);
+    fAuthMutex.unlock();
+    return success;
+}
+
+bool EDreamClient::IsLoggedIn()
+{
+    boost::lock_guard<boost::mutex> lock(fAuthMutex);
+    return fIsLoggedIn.load();
 }
 
 bool EDreamClient::RefreshAccessToken()
@@ -95,10 +117,9 @@ bool EDreamClient::RefreshAccessToken()
 
 bool EDreamClient::GetDreams()
 {
-    
     Network::spCFileDownloader spDownload;
     const char *xmlPath = ContentDownloader::Shepherd::xmlPath();
-    char filename[ MAX_PATH ];
+    char filename[MAX_PATH];
 
     char authHeader[ACCESS_TOKEN_MAX_LENGTH + 22];
     int maxAttempts = 3;
@@ -108,7 +129,6 @@ bool EDreamClient::GetDreams()
         spDownload = new Network::CFileDownloader( "Dreams list" );
         spDownload->AppendHeader("Content-Type: application/json");
         snprintf(authHeader, ACCESS_TOKEN_MAX_LENGTH, "Authorization: Bearer %s", GetAccessToken());
-        g_Log->Error("HEADER: %s", authHeader);
         spDownload->AppendHeader(authHeader);
         if (spDownload->Perform(DREAM_ENDPOINT))
         {

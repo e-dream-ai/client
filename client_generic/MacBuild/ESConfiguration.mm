@@ -1,8 +1,9 @@
 #import "ESConfiguration.h"
 #import "ESScreensaver.h"
 #import "clientversion.h"
-#import "md5.h"
+
 #include "Shepherd.h"
+#include "EDreamClient.h"
 
 @implementation ESConfiguration
 
@@ -52,29 +53,6 @@
 	[self loadSettings];
 
 	ESScreensaver_DeinitClientStorage();
-}
-
-- (NSString*)computeMD5:(NSString*)str
-{
-	unsigned char digest[16]; //md5 digest size is 16
-	
-	const char *cstr = [str UTF8String];
-	
-	if ( cstr == nil )
-		return nil;
-		
-	md5_buffer( cstr, strlen(cstr), digest );
-	
-	NSMutableString *retStr = [NSMutableString stringWithCapacity:sizeof(digest)*2];
-	
-	for (uint32 i = 0; i < sizeof(digest); i++)
-	{
-		char *hex_digits = "0123456789ABCDEF";
-		
-		[retStr appendFormat:@"%c%c", hex_digits[ digest[i] >> 4 ], hex_digits[ digest[i] & 0x0F ]];
-	}
-		
-	return retStr;
 }
 
 
@@ -281,23 +259,11 @@
 			
 	NSString *newNickname = [drupalLogin stringValue];
     NSString *newPassword = [drupalPassword stringValue];
-	
-	NSString *md5_pass = [self md5Password];
 
-	NSString *urlstr = [NSString stringWithFormat:@"%@/api/v1/auth/login", m_redirectServer];
-		
-	NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:urlstr]];
-    // Set the HTTP method to POST
-    [request setHTTPMethod:@"POST"];
-    
-    // Set request headers
-    [request setValue:@"application/json, text/plain, */*" forHTTPHeaderField:@"Accept"];
-    [request setValue:@"application/json; charset=UTF-8" forHTTPHeaderField:@"Content-Type"];
-    
+    NSString *urlstr;
+    NSString* httpMethod;
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:urlstr]];
 
-    // Set request body data
-    NSDictionary* parameters;
-    NSError* error;
     if (ContentDownloader::Shepherd::useDreamAI() && useToken)
     {
         if (m_accessToken == nil || m_accessToken.length == 0)
@@ -311,37 +277,54 @@
         }
         else
         {
-            parameters = @{@"username": newNickname, @"token": m_accessToken};
+            urlstr = @(USER_ENDPOINT);
+            httpMethod = @"GET";
+            NSString* authorizationHeaderValue = [NSString stringWithFormat:@"Bearer %@", m_accessToken];
+            [request setValue:authorizationHeaderValue forHTTPHeaderField:@"Authorization"];
+
         }
     }
     else
     {
-        parameters = @{@"username": newNickname, @"password": newPassword};
+        urlstr = @(LOGIN_ENDPOINT);
+        httpMethod = @"POST";
+        // Set request body data
+        NSDictionary* parameters = @{@"username": newNickname, @"password": newPassword};
+        NSError* serializationError;
+        NSData* postData = [NSJSONSerialization dataWithJSONObject:parameters options:0 error:&serializationError];
+        [request setHTTPBody:postData];
     }
-    NSData* postData = [NSJSONSerialization dataWithJSONObject:parameters options:0 error:&error];
-    [request setHTTPBody:postData];
+    
+    // Set the HTTP method to POST
+    [request setHTTPMethod:httpMethod];
+    [request setURL:[NSURL URLWithString:urlstr]];
+
+    // Set request headers
+    [request setValue:@"application/json, text/plain, */*" forHTTPHeaderField:@"Accept"];
+    [request setValue:@"application/json; charset=UTF-8" forHTTPHeaderField:@"Content-Type"];
+    
     
     NSURLSession *session = [NSURLSession sharedSession];
     
     // Create a data task to send the request
     NSURLSessionDataTask *dataTask = [session dataTaskWithRequest:request
-                                                completionHandler:^(NSData *data, NSURLResponse *response, NSError *error)
+                                                completionHandler:^(NSData *data, NSURLResponse *response, NSError *sessionError)
                                       {
         dispatch_async(dispatch_get_main_queue(), ^{
-            if (error)
+            if (sessionError)
             {
-                NSLog(@"Request failed with error: %@", error);
+                NSLog(@"Request failed with error: %@", sessionError);
                 self->m_loginWasSuccessful = NO;
             }
             else
             {
-                NSError *error;
+                NSError *dictionaryError;
                         
                 // Convert JSON data to an NSDictionary
-                NSDictionary* jsonDictionary = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
+                NSDictionary* jsonDictionary = [NSJSONSerialization JSONObjectWithData:data options:0 error:&dictionaryError];
                 NSString *responseString = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
                 NSLog(@"Response: %@", responseString);
-                if (error)
+                if (dictionaryError)
                 {
         #ifdef DEBUG
                     NSLog(@"Unknown response type: %@", response);
@@ -587,8 +570,18 @@
 		
 	[self fixFlockSize];
 	
-	[self startTest:YES];
-
+    if (EDreamClient::IsLoggedIn())
+    {
+        [self->loginStatusImage setImage:self->greenImage];
+        [self->loginTestStatusText setStringValue:@"Logged in."];
+        self->m_loginWasSuccessful = YES;
+    }
+    else
+    {
+        [self->loginStatusImage setImage:self->redImage];
+        [self->loginTestStatusText setStringValue:@"Login Failed :("];
+        self->m_loginWasSuccessful = NO;
+    }
 }
 
 - (void)saveSettings
@@ -690,20 +683,6 @@
 	NSURL *helpURL = [NSURL URLWithString: @"https://e-dream.ai/register"];
 	
 	[[NSWorkspace sharedWorkspace] openURL:helpURL];
-}
-
-- (NSString*)md5Password
-{
-	NSString *newNickname = [drupalLogin stringValue];
-	NSString *newPassword = [drupalPassword stringValue];
-
-	if (![newPassword isEqual:m_origPassword])
-	{
-		return [self computeMD5:[NSString stringWithFormat:@"%@sh33p%@", newPassword, newNickname]];
-	}
-	else {
-		return newPassword;
-	}
 }
 
 - (IBAction)goToLearnMorePage:(id) __unused sender

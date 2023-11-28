@@ -95,7 +95,6 @@
 
 - (void)htmlifyEditFields;
 - (void)fixFlockSize;
-- (NSString*)md5Password;
 - (void)updateMembershipText:(NSString*)role;
 
 - (void)awakeFromNib;
