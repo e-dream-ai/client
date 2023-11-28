@@ -7,6 +7,7 @@
 #include <string>
 
 #include "base.h"
+#include "Player.h"
 
 
 namespace DisplayOutput
@@ -53,6 +54,7 @@ CTextMetal::CTextMetal(spCFontMetal _font, MTKView* _view, float /*_contextAspec
 CTextMetal::~CTextMetal()
 {
 #if USE_SYSTEM_UI
+    [m_TextField removeFromSuperview];
     CFBridgingRelease((__bridge CFTypeRef)m_TextField);
 #endif
 }
@@ -65,6 +67,8 @@ void CTextMetal::SetText(const std::string& _text)
 #if USE_SYSTEM_UI
         __block NSString* str = [NSString stringWithUTF8String:_text.c_str()];
         dispatch_async(dispatch_get_main_queue(), ^{
+            if (g_Player().Stopped())
+                return;
             [m_TextField setStringValue:str];
             NSSize contentSize = [m_TextField sizeThatFits:NSMakeSize(CGFLOAT_MAX, CGFLOAT_MAX)];
             [m_TextField setFrame:NSMakeRect(0, 0, contentSize.width, contentSize.height)];
@@ -85,6 +89,8 @@ void CTextMetal::SetRect(const Base::Math::CRect& _rect)
     __block Base::Math::CRect rect = _rect;
     __block const Base::Math::CVector2& extents = m_Extents;
     dispatch_async(dispatch_get_main_queue(), ^{
+        if (g_Player().Stopped())
+            return;
         NSRect frame = m_TextField.frame;
         NSRect parentFrame = m_TextField.superview.frame;
         [m_TextField setFrame:NSMakeRect(rect.m_X0 * parentFrame.size.width, ((1 - rect.m_Y0) - extents.m_Y) * parentFrame.size.height, frame.size.width, frame.size.height)];
@@ -97,6 +103,8 @@ Base::Math::CVector2 CTextMetal::GetExtent()
 #if USE_SYSTEM_UI
     __block Base::Math::CVector2& extents = m_Extents;
     dispatch_async(dispatch_get_main_queue(), ^{
+        if (g_Player().Stopped())
+            return;
         NSRect frame = m_TextField.frame;
         NSRect parentFrame = m_TextField.superview.frame;
         extents = { (fp4)frame.size.width / (fp4)parentFrame.size.width, (fp4)frame.size.height / (fp4)parentFrame.size.height };
@@ -120,6 +128,8 @@ void CTextMetal::SetEnabled(bool _enabled)
         if (m_Extents.m_X == 0.f)
             return;
         dispatch_async(dispatch_get_main_queue(), ^{
+            if (g_Player().Stopped())
+                return;
             [m_TextField setHidden:!_enabled];
         });
 #endif
