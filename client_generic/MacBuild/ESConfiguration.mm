@@ -9,6 +9,9 @@
 
 - (IBAction)ok:(id) __unused sender
 {
+    if (m_checkingLogin)
+        return;
+
 	ESScreensaver_InitClientStorage();
 
     [self saveSettings];
@@ -53,6 +56,9 @@
 	[self loadSettings];
 
 	ESScreensaver_DeinitClientStorage();
+    
+    [drupalPassword setTarget:self];
+    [drupalPassword setAction:@selector(doSignIn:)];
 }
 
 
@@ -86,89 +92,46 @@
 	}
 }
 
-- (void)setCheckingLogin:(Boolean) __unused cl
+
+- (void)updateAuthUI
 {
-	
+    [self updateAuthUI:@"Please log in."];
 }
 
-
-- (void)connection:(NSURLConnection *) __unused connection
-  didFailWithError:(NSError *) __unused error
-{ 
-	[loginStatusImage setImage:yellowImage];
-	[loginTestStatusText setStringValue:@"The server is unreachable."];
-	
-	m_checkingLogin = NO;
-	
-	[signInButton setEnabled:YES];
-}
-
-- (void)connectionDidFinishLoading:(NSURLConnection *) __unused connection
+- (void)updateAuthUI:(NSString*)failMessage
 {
-	// do something with the data
-	// receivedData is declared as a method instance elsewhere
-	// NSLog(@"Succeeded! Received bytes of data");
-	
-	uint64 len = [m_httpData length];
-	
-	if (len > 0)
-	{
-		char xml[1024];
-	   
-		[m_httpData getBytes:xml length:sizeof(xml) - 1];
-	   
-		if ([m_httpData length] < sizeof(xml))
-			xml[ [m_httpData length] ] = 0;
-		else
-			xml[sizeof(xml) - 1] = 0;
-			
-		NSString *rolestr = (__bridge_transfer NSString*)ESScreensaver_CopyGetRoleFromXML(xml);
-		   
-		if (![rolestr isEqual:@"error"] && ![rolestr isEqual:@"none"])
-		{
-			[loginStatusImage setImage:greenImage];
-			[loginTestStatusText setStringValue:[NSString stringWithFormat:@"Logged in (role: %@).", rolestr ?: @"N/A"]];
-			//m_roleString = rolestr;
-		}
-		else
-		{
-			[loginStatusImage setImage:redImage];
-			[loginTestStatusText setStringValue:[NSString stringWithFormat:@"Not logged in."]];
-			//m_roleString = @"member";
-		}
-
-		[self updateMembershipText:rolestr];
-	}
-	else
-	{
-		[loginStatusImage setImage:yellowImage];
-		[loginTestStatusText setStringValue:@"Incorrect response from the server."];
-	}
-	
-	
-	m_checkingLogin = NO;
-	
-	[signInButton setEnabled:YES];
-}
-
-- (void)updateMembershipText:(NSString*)role
-{
-	if ([role isEqual:@"error"] || [role isEqual:@"none"])
-	{
-		[membershipText setStringValue:@"Create an account on the server and upgrade to Gold for higher resolution and other benefits.\n"];
-	} else
-	if ([role isEqual:@"registered"])
-	{
-		[membershipText setStringValue:@"Thank you for registering, you may become a member for access to\nour private server with more sheep, higher resolution sheep,\nand other interactive features."];
-	} else
-	if ([role isEqual:@"member"])
-	{
-		[membershipText setStringValue:@"Create an account on the server and upgrade to Gold for higher resolution and other benefits."];
-	} else
-	if ([role isEqual:@"gold"])
-	{
-		[membershipText setStringValue:@"Thank you for your membership. Please access the server to manage your account."];
-	}						
+    if (EDreamClient::IsLoggedIn())
+    {
+        [loginStatusImage setImage:self->greenImage];
+        [loginTestStatusText setStringValue:[NSString stringWithFormat:@"Logged in as %@", m_origNickname]];
+        m_loginWasSuccessful = YES;
+        [signInButton setTitle:@"Sign Out"];
+        [passwordLabel setHidden:YES];
+        [emailLabel setHidden:YES];
+        [drupalPassword setTarget:nil];
+        [drupalPassword setAction:nil];
+        [drupalPassword setHidden:YES];
+        [drupalLogin setHidden:YES];
+        [loginTestStatusText setFrame:NSMakeRect(158, 56, 204, 18)];
+        [loginStatusImage setFrame:NSMakeRect(137, 59, 16, 16)];
+        [signInButton setFrame:NSMakeRect(197, 23, 101, 32)];
+    }
+    else
+    {
+        [loginStatusImage setImage:self->redImage];
+        [loginTestStatusText setStringValue:failMessage];
+        m_loginWasSuccessful = NO;
+        [signInButton setTitle:@"Sign In"];
+        [passwordLabel setHidden:NO];
+        [emailLabel setHidden:NO];
+        [drupalPassword setTarget:self];
+        [drupalPassword setAction:@selector(doSignIn:)];
+        [drupalPassword setHidden:NO];
+        [drupalLogin setHidden:NO];
+        [loginTestStatusText setFrame:NSMakeRect(120, 11, 204, 18)];
+        [loginStatusImage setFrame:NSMakeRect(99, 14, 16, 16)];
+        [signInButton setFrame:NSMakeRect(338, 5, 101, 32)];
+    }
 }
 
 - (void)connection:(NSURLConnection *) __unused connection didReceiveResponse:(NSURLResponse *)response
@@ -183,7 +146,8 @@
     //[receivedData setLength:0];
 	NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse*)response;
     
-    if (![httpResponse isKindOfClass:[NSHTTPURLResponse class]]) {
+    if (![httpResponse isKindOfClass:[NSHTTPURLResponse class]])
+    {
 #ifdef DEBUG
         NSLog(@"Unknown response type: %@", response);
 #endif
@@ -230,21 +194,12 @@
     [challenge.sender continueWithoutCredentialForAuthenticationChallenge:challenge];
 }
 
-- (void)timerInvokeStartTest:(NSTimer *)timer
-{
-    if (m_checkingLogin)
-    {
-        if (timer)
-            [m_checkTimer setFireDate:[NSDate dateWithTimeIntervalSinceNow:2.0]];
-        return;
-    }
-    [self startTest:YES];
-}
-
 - (void)startTest:(BOOL)useToken
 {
 	[signInButton setEnabled:NO];
 		
+    [okButton setEnabled:NO];
+    [cancelButton setEnabled:NO];
 	m_checkingLogin = YES;
 
 	[m_checkTimer invalidate];
@@ -264,36 +219,13 @@
     NSString* httpMethod;
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:urlstr]];
 
-    if (ContentDownloader::Shepherd::useDreamAI() && useToken)
-    {
-        if (m_accessToken == nil || m_accessToken.length == 0)
-        {
-            [loginStatusImage setImage:nil];
-            [loginTestStatusText setStringValue:@"Please log in."];
-            [self->signInButton setEnabled:YES];
-            
-            m_checkingLogin = NO;
-            return;
-        }
-        else
-        {
-            urlstr = @(USER_ENDPOINT);
-            httpMethod = @"GET";
-            NSString* authorizationHeaderValue = [NSString stringWithFormat:@"Bearer %@", m_accessToken];
-            [request setValue:authorizationHeaderValue forHTTPHeaderField:@"Authorization"];
-
-        }
-    }
-    else
-    {
-        urlstr = @(LOGIN_ENDPOINT);
-        httpMethod = @"POST";
-        // Set request body data
-        NSDictionary* parameters = @{@"username": newNickname, @"password": newPassword};
-        NSError* serializationError;
-        NSData* postData = [NSJSONSerialization dataWithJSONObject:parameters options:0 error:&serializationError];
-        [request setHTTPBody:postData];
-    }
+    urlstr = @(LOGIN_ENDPOINT);
+    httpMethod = @"POST";
+    // Set request body data
+    NSDictionary* parameters = @{@"username": newNickname, @"password": newPassword};
+    NSError* serializationError;
+    NSData* postData = [NSJSONSerialization dataWithJSONObject:parameters options:0 error:&serializationError];
+    [request setHTTPBody:postData];
     
     // Set the HTTP method to POST
     [request setHTTPMethod:httpMethod];
@@ -336,30 +268,17 @@
                     NSNumber* success = [jsonDictionary valueForKey:@"success"];
                     if (success.boolValue)
                     {
-                        if (!useToken)
-                        {
-                            NSDictionary* dataEntry = [jsonDictionary valueForKey:@"data"];
-                            NSDictionary* tokenDict = [dataEntry valueForKey:@"token"];
-                            NSString* accessToken = [tokenDict valueForKey:@"AccessToken"];
-                            NSString* refreshToken = [tokenDict valueForKey:@"RefreshToken"];
-                            
-                            self->m_accessToken = accessToken;
-                            self->m_refreshToken = refreshToken;
-                            ESScreensaver_SetStringSetting("settings.content.access_token", [accessToken UTF8String]);
-                            ESScreensaver_SetStringSetting("settings.content.refresh_token", [refreshToken UTF8String]);
-                        }
-                        [self->loginStatusImage setImage:self->greenImage];
-                        [self->loginTestStatusText setStringValue:@"Logged in."];
-                        self->m_loginWasSuccessful = YES;
+                        NSDictionary* dataEntry = [jsonDictionary valueForKey:@"data"];
+                        NSDictionary* tokenDict = [dataEntry valueForKey:@"token"];
+                        NSString* accessToken = [tokenDict valueForKey:@"AccessToken"];
+                        NSString* refreshToken = [tokenDict valueForKey:@"RefreshToken"];
+                        EDreamClient::DidSignIn(accessToken.UTF8String, refreshToken.UTF8String);
                     }
-                    else
-                    {
-                        [self->loginStatusImage setImage:self->redImage];
-                        [self->loginTestStatusText setStringValue:@"Login Failed :("];
-                        self->m_loginWasSuccessful = NO;
-                    }
+                    [self updateAuthUI:@"Login Failed :("];
                 }
                 self->m_checkingLogin = NO;
+                [self->okButton setEnabled:YES];
+                [self->cancelButton setEnabled:YES];
                 
                 [self->signInButton setEnabled:YES];
             }
@@ -395,29 +314,6 @@
 	
 	//[NSURLConnection connectionWithRequest:request delegate:self];
 }
-
-- (void)controlTextDidChange:(NSNotification *)aNotification
-{
-	NSTextField *ed = [aNotification object];
-
-	if (ed == drupalLogin && [m_origPassword isEqual: [drupalPassword stringValue]])
-	{
-		[drupalPassword setStringValue: @""];
-		return;
-	}
-	
-	if (m_checkTimer != nil)
-	{
-		if ([m_checkTimer isValid])
-		{
-			[m_checkTimer setFireDate:[NSDate dateWithTimeIntervalSinceNow:2.0]];
-			return;
-		}
-	}
-			
-	m_checkTimer = [NSTimer scheduledTimerWithTimeInterval:2.0 target:self selector:@selector(timerInvokeStartTest:) userInfo:nil repeats:NO];
-}
-
 
 - (void)loadSettings
 {
@@ -500,19 +396,12 @@
 	//[m_origNickname retain];
 	
 	[drupalLogin setStringValue: m_origNickname];
-	
-	[drupalLogin setDelegate:self];
-	
+
 	m_origPassword = (__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting("settings.content.password_md5", "");
     
-    m_accessToken = (__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting("settings.content.access_token", "");
-    
-    m_refreshToken = (__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting("settings.content.refresh_token", "");
 	//[m_origPassword retain];
 
-	[drupalPassword setStringValue: m_origPassword];
-	
-	[drupalPassword setDelegate:self];
+	[drupalPassword setStringValue: @""];
 	
 	[proxyLogin setStringValue: (__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting("settings.content.proxy_username", "")];
 
@@ -570,18 +459,7 @@
 		
 	[self fixFlockSize];
 	
-    if (EDreamClient::IsLoggedIn())
-    {
-        [self->loginStatusImage setImage:self->greenImage];
-        [self->loginTestStatusText setStringValue:@"Logged in."];
-        self->m_loginWasSuccessful = YES;
-    }
-    else
-    {
-        [self->loginStatusImage setImage:self->redImage];
-        [self->loginTestStatusText setStringValue:@"Login Failed :("];
-        self->m_loginWasSuccessful = NO;
-    }
+    [self updateAuthUI];
 }
 
 - (void)saveSettings
@@ -638,11 +516,7 @@
 	ESScreensaver_SetStringSetting("settings.content.sheepdir", [[[contentFldr stringValue] stringByStandardizingPath] UTF8String]);
 	
 	ESScreensaver_SetStringSetting("settings.generator.nickname", [[drupalLogin stringValue] UTF8String]);
-	
-	ESScreensaver_SetStringSetting("settings.content.refresh_token", [m_refreshToken UTF8String]);
 
-    ESScreensaver_SetStringSetting("settings.content.access_token", [m_accessToken UTF8String]);
-	
 	ESScreensaver_SetStringSetting("settings.content.proxy_username", [[proxyLogin stringValue] UTF8String]);
 
 	ESScreensaver_SetStringSetting("settings.content.proxy_password", [[proxyPassword stringValue] UTF8String]);
@@ -743,7 +617,17 @@
 
 - (IBAction)doSignIn:(id) __unused sender
 {
-	[self startTest:NO];
+    ESScreensaver_InitClientStorage();
+    if (EDreamClient::IsLoggedIn())
+    {
+        EDreamClient::SignOut();
+        [drupalPassword setStringValue:@""];
+        [self updateAuthUI];
+    }
+    else
+    {
+        [self startTest:NO];
+    }
 }
 
 - (IBAction)goToHelpPage:(id) __unused sender

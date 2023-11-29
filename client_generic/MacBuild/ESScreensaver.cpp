@@ -223,7 +223,7 @@ void ESScreensaver_SetDoubleSetting( const char *url, const double val )
 	
 void ESScreensaver_DeinitClientStorage( void )
 {
-	g_Settings()->Shutdown();
+    g_Settings()->Storage()->Commit();
 }
 
 void ESScreensaver_SetUpdateAvailable( const char *verinfo)

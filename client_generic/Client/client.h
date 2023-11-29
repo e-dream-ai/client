@@ -238,13 +238,13 @@ class	CElectricSheep
 				m_HudManager->Add( "helpmessage", new Hud::CStatsConsole( Base::Math::CRect( 1, 1 ), hudFontName, hudFontSize ) );
 				
 				Hud::spCStatsConsole spHelpMessage = (Hud::spCStatsConsole)m_HudManager->Get( "helpmessage" );
-				spHelpMessage->Add( new Hud::CStringStat( "message", "e-dream\n\nYou are now part of a cyborg mind composed of thousands of\ncomputers and people communicating with a genetic algorithm.\n\nKeyboard Commands\nUp-arrow: vote for this sheep\nDown-arrow: vote against this sheep and delete it\nLeft-arrow: go back to play previous sheep\nRight-arrow: go forward through history\n"
+				spHelpMessage->Add( new Hud::CStringStat( "message", "e-dream\n\nA platform for gen AI visuals, see e-dream.ai to learn more.\n\nKeyboard Commands\nUp-arrow: vote for this dream\nDown-arrow: vote against this dreams and delete it\nLeft-arrow: go back to play previous dream\nRight-arrow: go forward through history\n"
 #ifdef MAC
 				"Cmd" 
 #else
 				"Control" 
 #endif
-				"-F: go full screen (if in window)\nF1: help (this page)\nF2: download status and error log\nF3: render status\nF4: playback status\n\nby Scott Draves and open source programmers all over the world\nElectricSheep.org", "" ) );	
+				"-F: go full screen (if in window)\nF1: help (this page)\nF2: download status and error log\nF3: render status\nF4: playback status\n\nby Scott Draves and open source programmers all over the world\ne-dream.ai", "" ) );
 				
 				std::string ver = GetVersion();
                 
@@ -255,38 +255,14 @@ class	CElectricSheep
 				
 				m_SeamlessPlayback = g_Settings()->Get( "settings.player.SeamlessPlayback", false );
 
-				//	Add some display stats.
-                m_HudManager->Add( "displaystats", new Hud::CStatsConsole( Base::Math::CRect( 1, 1 ), hudFontName, hudFontSize ) );
-                Hud::spCStatsConsole spStats = (Hud::spCStatsConsole)m_HudManager->Get( "displaystats" );
-                spStats->Add( new Hud::CStringStat( "decodefps", "Decoding video at ", "? fps" ) );
-				
-
-                int32 displayMode = g_Settings()->Get( "settings.player.DisplayMode", 0 );
-                if( displayMode == 2 )
-                    spStats->Add( new Hud::CAverageCounter( "displayfps", 
-					g_Player().Renderer()->Description() +
-					" piecewise cubic display at ", " fps", 1.0 ) );
-                else if( displayMode == 1 )
-                    spStats->Add( new Hud::CAverageCounter( "displayfps", 
-					g_Player().Renderer()->Description() +
-					" piecewise linear display at ", " fps", 1.0 ) );
-                else
-                    spStats->Add( new Hud::CAverageCounter( "displayfps", 
-					g_Player().Renderer()->Description() +
-					" display at ", " fps", 1.0 ) );
-
-				spStats->Add( new Hud::CStringStat( "currentid", "Currently playing sheep: ", "n/a" ) );
-                spStats->Add( new Hud::CStringStat( "uptime", "\nClient uptime: ", "...." ) );
-
                 //	Add some server stats.
-                m_HudManager->Add( "serverstats", new Hud::CStatsConsole( Base::Math::CRect( 1, 1 ), hudFontName, hudFontSize ) );
-                spStats = (Hud::spCStatsConsole)m_HudManager->Get( "serverstats" );
+                m_HudManager->Add( "dreamstats", new Hud::CStatsConsole( Base::Math::CRect( 1, 1 ), hudFontName, hudFontSize ) );
+                Hud::spCStatsConsole spStats = (Hud::spCStatsConsole)m_HudManager->Get( "dreamstats" );
 				spStats->Add( new Hud::CStringStat( "loginstatus", "", "Not logged in" ) );
-				spStats->Add( new Hud::CStringStat( "all", "Local flock: ", "unknown..." ) );
+				spStats->Add( new Hud::CStringStat( "all", "Content cache: ", "unknown..." ) );
                 spStats->Add( new Hud::CStringStat( "server", "Server is ", "not known yet" ) );
                 spStats->Add( new Hud::CStringStat( "transfers", "", "" ) );
 				spStats->Add( new Hud::CStringStat( "deleted", "", "" ) );
-				spStats->Add( new Hud::CStringStat( "bsurvivors", "", "" ) );
 				if (m_MultipleInstancesMode == true)
 					spStats->Add( new Hud::CTimeCountDownStat( "svstat", "", "Downloading disabled, read-only mode" ) );
 				else
@@ -294,21 +270,26 @@ class	CElectricSheep
 						spStats->Add( new Hud::CTimeCountDownStat( "svstat", "", "Downloading disabled" ) );
 					else
 						spStats->Add( new Hud::CTimeCountDownStat( "svstat", "", "Preparing downloader..." ) );
-				spStats->Add( new Hud::CStringStat( std::string("zconnerror"), "", "" ) );
+                
+                spStats->Add( new Hud::CStringStat( "zzacpu", "CPU usage: ", "Unknown" ) );
+                spStats->Add( new Hud::CStringStat( "uptime", "\nClient uptime: ", "...." ) );
+                spStats->Add( new Hud::CStringStat( "decodefps", "Decoding video at ", "? fps" ) );
+                
 
-                //	Add some display stats.
-                m_HudManager->Add( "renderstats", new Hud::CStatsConsole( Base::Math::CRect( 1, 1 ), hudFontName, hudFontSize ) );
-                spStats = (Hud::spCStatsConsole)m_HudManager->Get( "renderstats" );
-				spStats->Add( new Hud::CTimeCountDownStat( "countdown", "", "Rendering disabled" ) );
-                spStats->Add( new Hud::CIntCounter( "rendering", "Currently rendering ", " frames" ) );
-                spStats->Add( new Hud::CIntCounter( "totalframes", "", " frames rendered" ) );
-				
-				bool hasBattery = (GetACLineStatus() != -1);								
-				
-				if (hasBattery)
-					spStats->Add( new Hud::CStringStat( "zbattery", "\nPower source: ", "Unknown" ) );
-			
-				spStats->Add( new Hud::CStringStat( "zzacpu", "CPU usage: ", "Unknown" ) );
+                int32 displayMode = g_Settings()->Get( "settings.player.DisplayMode", 0 );
+                if( displayMode == 2 )
+                    spStats->Add( new Hud::CAverageCounter( "displayfps",
+                    g_Player().Renderer()->Description() +
+                    " piecewise cubic display at ", " fps", 1.0 ) );
+                else if( displayMode == 1 )
+                    spStats->Add( new Hud::CAverageCounter( "displayfps",
+                    g_Player().Renderer()->Description() +
+                    " piecewise linear display at ", " fps", 1.0 ) );
+                else
+                    spStats->Add( new Hud::CAverageCounter( "displayfps",
+                    g_Player().Renderer()->Description() +
+                    " display at ", " fps", 1.0 ) );
+				spStats->Add( new Hud::CStringStat( std::string("zconnerror"), "", "" ) );
 
 #ifndef LINUX_GNU
 				std::string defaultDir = std::string(".\\");
@@ -681,8 +662,7 @@ class	CElectricSheep
 						{
 							m_F1F4Timer.Reset();
 							m_HudManager->Hide( "helpmessage" );
-							m_HudManager->Hide( "serverstats" );
-							m_HudManager->Hide( "renderstats" );	
+							m_HudManager->Hide( "dreamstats" );
 							m_HudManager->Hide( "displaystats" );	
 						}
 
@@ -750,7 +730,7 @@ class	CElectricSheep
 							ContentDownloader::Shepherd::SetRenderingAllowed(true);
 
 						//	Update some stats.
-						Hud::spCStatsConsole spStats = (Hud::spCStatsConsole)m_HudManager->Get( "displaystats" );
+						Hud::spCStatsConsole spStats = (Hud::spCStatsConsole)m_HudManager->Get( "dreamstats" );
 						std::stringstream decodefpsstr;
 						decodefpsstr.precision(2);
 						decodefpsstr << std::fixed << m_CurrentFps << " fps";
@@ -798,15 +778,21 @@ class	CElectricSheep
 						if (playingID != 0)
 							((Hud::CStringStat *)spStats->Get( "currentid" ))->SetSample( strCurID );
 
-						//	Prettify uptime.
-						uint64	uptime = (uint64)m_Timer.Time();
-
-						char strHP[128];
-						snprintf( strHP, 127, "%s", FormatTimeDiff(uptime, true).c_str() );
-						((Hud::CStringStat *)spStats->Get( "uptime" ))->SetSample( strHP );
-
 						//	Serverstats.
-						spStats = (Hud::spCStatsConsole)m_HudManager->Get( "serverstats" );
+						spStats = (Hud::spCStatsConsole)m_HudManager->Get( "dreamstats" );
+                        
+                        //    Prettify uptime.
+                        uint64    uptime = (uint64)m_Timer.Time();
+
+                        char strHP[128];
+                        snprintf( strHP, 127, "%s", FormatTimeDiff(uptime, true).c_str() );
+                        ((Hud::CStringStat *)spStats->Get( "uptime" ))->SetSample( strHP );
+                        if (m_CpuUsageTotal != -1 && m_CpuUsageES != -1)
+                        {
+                            std::stringstream temp;
+                            temp << " ES " << m_CpuUsageES << "%, total " << m_CpuUsageTotal << "% ";
+                            ((Hud::CStringStat *)spStats->Get( "zzacpu" ))->SetSample( temp.str() );
+                        }
 						
 						std::stringstream tmpstr;
 						uint64 flockcount = 0;
@@ -837,7 +823,7 @@ class	CElectricSheep
 								flockmbs = flockmbsfree + flockmbsgold;
 							break;
 						};
-						tmpstr << flockcount << ((g_Player().UsedSheepType() == 0 && g_Player().HasGoldSheep() == true) ? " gold sheep, " : " sheep, ") << flockmbs << "MB";
+						tmpstr << flockcount << ((g_Player().UsedSheepType() == 0 && g_Player().HasGoldSheep() == true) ? " gold sheep, " : " dreams, ") << flockmbs << "MB";
 						((Hud::CStringStat *)spStats->Get( "all" ))->SetSample(tmpstr.str());
 
 						const char *servername = ContentDownloader::Shepherd::serverName( false );
@@ -880,20 +866,6 @@ class	CElectricSheep
 							}
 							pTmp->Visible( visible );
 						}
-
-						pTmp = (Hud::CStringStat *)spStats->Get( "bsurvivors" );
-						if( pTmp )
-						{
-							std::stringstream survivors;
-
-							survivors << "Survivors: median cut=" << g_PlayCounter().GetMedianCutSurvivors();
-							
-							if (m_SeamlessPlayback)
-							survivors << ", dead end eliminator=" << g_PlayCounter().GetDeadEndCutSurvivors();
-
-							pTmp->SetSample( survivors.str() );
-							pTmp->Visible( true );
-						}
 						
 						pTmp = (Hud::CStringStat *)spStats->Get( "deleted" );
 						if( pTmp )
@@ -933,44 +905,6 @@ class	CElectricSheep
 							if ( isnew )
 							{
 								pTcd->SetSample( dlState );
-								pTcd->Visible( true );
-							}
-						}
-
-						//	Renderer stats.
-						spStats = (Hud::spCStatsConsole)m_HudManager->Get( "renderstats" );
-						((Hud::CIntCounter *)spStats->Get( "rendering" ))->SetSample( ContentDownloader::Shepherd::FramesRendering() );
-						((Hud::CIntCounter *)spStats->Get( "totalframes" ))->SetSample( ContentDownloader::Shepherd::TotalFramesRendered() );
-						
-						Hud::CStringStat *batteryStat = ((Hud::CStringStat *)spStats->Get( "zbattery" ));
-						
-						if (batteryStat != NULL)
-							batteryStat->SetSample( batteryStatus );
-						
-						if (m_CpuUsageTotal != -1 && m_CpuUsageES != -1)
-						{
-							std::stringstream temp;
-							
-							temp << " ES " << m_CpuUsageES << "%, total " << m_CpuUsageTotal << "% ";
-
-							if ( ContentDownloader::Shepherd::RenderingAllowed() )
-								temp << "(new rendering allowed)";
-							else
-								temp << "(new rendering blocked)";
-
-							((Hud::CStringStat *)spStats->Get( "zzacpu" ))->SetSample( temp.str() );
-						}
-
-						pTcd = (Hud::CTimeCountDownStat *)spStats->Get( "countdown" );
-						if( pTcd )
-						{
-							bool isnew = false;
-							
-							std::string renderState = ContentDownloader::Shepherd::renderState( isnew );
-							
-							if ( isnew )
-							{
-								pTcd->SetSample( renderState );
 								pTcd->Visible( true );
 							}
 						}
@@ -1041,15 +975,7 @@ class	CElectricSheep
 								break;
 							case	DisplayOutput::CKeyEvent::KEY_F2:
 								m_F1F4Timer.Reset();
-								m_HudManager->Toggle( "serverstats" );
-								break;
-							case	DisplayOutput::CKeyEvent::KEY_F3:
-								m_F1F4Timer.Reset();
-								m_HudManager->Toggle( "renderstats" );	
-								break;
-							case	DisplayOutput::CKeyEvent::KEY_F4:
-								m_F1F4Timer.Reset();
-								m_HudManager->Toggle( "displaystats" );	
+								m_HudManager->Toggle( "dreamstats" );
 								break;
                             case    DisplayOutput::CKeyEvent::KEY_Comma:
                                 m_F1F4Timer.Reset();

@@ -53,6 +53,7 @@ static void SetNewAndDeleteOldString(boost::atomic<char*>& str, const char* newv
 void EDreamClient::InitializeClient()
 {
     //g_Settings()->Set("settings.content.access_token", std::string(""));
+    
     SetNewAndDeleteOldString(fAccessToken, g_Settings()->Get("settings.content.access_token", std::string("")).c_str());
     SetNewAndDeleteOldString(fRefreshToken, g_Settings()->Get("settings.content.refresh_token", std::string("")).c_str());
     fAuthMutex.lock();
@@ -82,6 +83,28 @@ bool EDreamClient::Authenticate()
     return success;
 }
 
+void EDreamClient::SignOut()
+{
+    boost::lock_guard<boost::mutex> lock(fAuthMutex);
+    fIsLoggedIn.exchange(false);
+    SetNewAndDeleteOldString(fAccessToken, "");
+    SetNewAndDeleteOldString(fRefreshToken, "");
+    g_Settings()->Set( "settings.content.access_token", std::string(""));
+    g_Settings()->Set( "settings.content.refresh_token", std::string(""));
+    g_Settings()->Storage()->Commit();
+}
+
+void EDreamClient::DidSignIn(const std::string& _authToken, const std::string& _refreshToken)
+{
+    boost::lock_guard<boost::mutex> lock(fAuthMutex);
+    fIsLoggedIn.exchange(true);
+    SetNewAndDeleteOldString(fAccessToken, _authToken.c_str());
+    SetNewAndDeleteOldString(fRefreshToken, _refreshToken.c_str());
+    g_Settings()->Set( "settings.content.access_token", _authToken);
+    g_Settings()->Set( "settings.content.refresh_token", _refreshToken);
+    g_Settings()->Storage()->Commit();
+}
+
 bool EDreamClient::IsLoggedIn()
 {
     boost::lock_guard<boost::mutex> lock(fAuthMutex);
@@ -104,6 +127,7 @@ bool EDreamClient::RefreshAccessToken()
         const char* accessToken = data.at("AccessToken").as_string().data();
         g_Settings()->Set( "settings.content.access_token", std::string(accessToken));
         SetNewAndDeleteOldString(fAccessToken, accessToken);
+        g_Settings()->Storage()->Commit();
         return true;
     }
     else
@@ -112,6 +136,7 @@ bool EDreamClient::RefreshAccessToken()
         {
             g_Settings()->Set("settings.content.access_token", std::string(""));
             ESShowPreferences();
+            g_Settings()->Storage()->Commit();
             return false;
         }
         g_Log->Error("Refreshing access token failed. Server returned %i: %s", spDownload->ResponseCode(), spDownload->Data().c_str());

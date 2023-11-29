@@ -18,6 +18,8 @@ public:
     static bool RefreshAccessToken();
     static bool IsLoggedIn();
     static bool Authenticate();
+    static void SignOut();
+    static void DidSignIn(const std::string& _authToken, const std::string& _refreshToken);
 };
 
 #endif /* _EDREAMCLIENT_H_ */

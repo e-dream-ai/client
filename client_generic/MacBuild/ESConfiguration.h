@@ -1,7 +1,7 @@
 #import <Cocoa/Cocoa.h>
 #import "Sparkle/Sparkle.h"
 
-@interface ESConfiguration : NSWindowController <NSTextFieldDelegate> 
+@interface ESConfiguration : NSWindowController 
 {
     IBOutlet NSMatrix* displayMode;
 	
@@ -22,6 +22,8 @@
 			
     IBOutlet NSTextField* drupalLogin;
     IBOutlet NSSecureTextField* drupalPassword;
+    IBOutlet NSTextField* passwordLabel;
+    IBOutlet NSTextField* emailLabel;
     IBOutlet NSButton* useProxy;
     IBOutlet NSTextField* proxyHost;
     IBOutlet NSTextField* proxyLogin;
@@ -56,11 +58,12 @@
 	IBOutlet NSImageView* loginStatusImage;
 	
 	IBOutlet NSButton* signInButton;
+    
+    IBOutlet NSButton* okButton;
+    IBOutlet NSButton* cancelButton;
 	
 	NSString* m_origNickname;
 	NSString* m_origPassword;
-    NSString* m_accessToken;
-    NSString* m_refreshToken;
 	
 	//NSString *m_roleString;
 	
