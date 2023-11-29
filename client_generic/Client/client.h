@@ -238,13 +238,13 @@ class	CElectricSheep
 				m_HudManager->Add( "helpmessage", new Hud::CStatsConsole( Base::Math::CRect( 1, 1 ), hudFontName, hudFontSize ) );
 				
 				Hud::spCStatsConsole spHelpMessage = (Hud::spCStatsConsole)m_HudManager->Get( "helpmessage" );
-				spHelpMessage->Add( new Hud::CStringStat( "message", "e-dream\n\nA platform for gen AI visuals, see e-dream.ai to learn more.\n\nKeyboard Commands\nUp-arrow: vote for this dream\nDown-arrow: vote against this dreams and delete it\nLeft-arrow: go back to play previous dream\nRight-arrow: go forward through history\n"
+				spHelpMessage->Add( new Hud::CStringStat( "message", "e-dream\n\nA platform for gen AI visuals, see e-dream.ai to learn more.\n\nKeyboard Commands\nUp-arrow: vote for this dream\nDown-arrow: vote against this dream and delete it\nLeft-arrow: go back to play previous dream\nRight-arrow: go forward through history\nComma: playback slower\nPeriod: playback faster\nSlash: show credit\n"
 #ifdef MAC
 				"Cmd" 
 #else
 				"Control" 
 #endif
-				"-F: go full screen (if in window)\nF1: help (this page)\nF2: download status and error log\nF3: render status\nF4: playback status\n\nby Scott Draves and open source programmers all over the world\ne-dream.ai", "" ) );
+				"-F: toggle full screen\nF1: help (this page)\nF2: status overlay\n\nby Scott Draves and open source programmers all over the world", "" ) );
 				
 				std::string ver = GetVersion();
                 
@@ -790,7 +790,7 @@ class	CElectricSheep
                         if (m_CpuUsageTotal != -1 && m_CpuUsageES != -1)
                         {
                             std::stringstream temp;
-                            temp << " ES " << m_CpuUsageES << "%, total " << m_CpuUsageTotal << "% ";
+                            temp << m_CpuUsageES << "%/" << m_CpuUsageTotal << "% ";
                             ((Hud::CStringStat *)spStats->Get( "zzacpu" ))->SetSample( temp.str() );
                         }
 						

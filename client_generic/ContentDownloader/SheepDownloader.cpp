@@ -1056,7 +1056,7 @@ void	SheepDownloader::findSheepToDownload()
 
 						std::stringstream tmp;
 			
-						tmp << "All available sheep downloaded, will retry in {" << std::fixed << std::setprecision(0) << failureSleepDuration << "}...";
+						tmp << "All available dreams downloaded, will retry in {" << std::fixed << std::setprecision(0) << failureSleepDuration << "}...";
 
 						Shepherd::setDownloadState(tmp.str());
 					}
