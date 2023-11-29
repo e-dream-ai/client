@@ -632,7 +632,7 @@
 
 - (IBAction)goToHelpPage:(id) __unused sender
 {
-	NSString *urlStr = [NSString stringWithFormat:@"https://e-dream.ai/%s", CLIENT_VERSION];
+	NSString *urlStr = [NSString stringWithFormat:@"https://e-dream.ai/help?v=%s", CLIENT_VERSION];
 	
 	NSURL *helpURL = [NSURL URLWithString:urlStr];
 	
