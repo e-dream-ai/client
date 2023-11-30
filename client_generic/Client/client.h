@@ -234,6 +234,10 @@ class	CElectricSheep
 				m_PNGDelayTimer = g_Settings()->Get( "settings.player.pngdelaytimer", 600);
 
 				m_HudManager = new Hud::CHudManager;
+                
+                m_HudManager->Add( "dreamcredits", new Hud::CStatsConsole( Base::Math::CRect( 1, 1 ), hudFontName, hudFontSize ) );
+                Hud::spCStatsConsole spStats = (Hud::spCStatsConsole)m_HudManager->Get( "dreamcredits" );
+                spStats->Add( new Hud::CStringStat( "credits", "", "Artist - Title" ) );
 
 				m_HudManager->Add( "helpmessage", new Hud::CStatsConsole( Base::Math::CRect( 1, 1 ), hudFontName, hudFontSize ) );
 				
@@ -257,7 +261,7 @@ class	CElectricSheep
 
                 //	Add some server stats.
                 m_HudManager->Add( "dreamstats", new Hud::CStatsConsole( Base::Math::CRect( 1, 1 ), hudFontName, hudFontSize ) );
-                Hud::spCStatsConsole spStats = (Hud::spCStatsConsole)m_HudManager->Get( "dreamstats" );
+                spStats = (Hud::spCStatsConsole)m_HudManager->Get( "dreamstats" );
 				spStats->Add( new Hud::CStringStat( "loginstatus", "", "Not logged in" ) );
 				spStats->Add( new Hud::CStringStat( "all", "Content cache: ", "unknown..." ) );
                 spStats->Add( new Hud::CStringStat( "server", "Server is ", "not known yet" ) );
@@ -965,7 +969,7 @@ class	CElectricSheep
 							case	DisplayOutput::CKeyEvent::KEY_F8:		
 								g_Player().RepeatSheep();	
 								break;
-																
+                                									
 								//	OSD info.
 								
 								//	OSD info.
@@ -985,6 +989,10 @@ class	CElectricSheep
                                 m_F1F4Timer.Reset();
                                 g_Player().Framerate( m_CurrentFps *= (1.1f) );
                                 break;
+                            case    DisplayOutput::CKeyEvent::KEY_P:
+                                m_HudManager->Toggle( "dreamcredits" );
+                                break;
+                                
 								
 							//	All other keys needs to be ignored, they are handled somewhere else...
 							default:

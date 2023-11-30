@@ -22,11 +22,11 @@
 		211CDDDC0ED0BD9200EB9394 /* Networking.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDD80ED0BD9200EB9394 /* Networking.cpp */; };
 		211CDDDD0ED0BD9200EB9394 /* Upload.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDDA0ED0BD9200EB9394 /* Upload.cpp */; };
 		212313270F503C4500702B2C /* ContentDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212313190F503C4500702B2C /* ContentDownloader.cpp */; };
-		212313280F503C4500702B2C /* Sheep.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2123131B0F503C4500702B2C /* Sheep.cpp */; };
+		212313280F503C4500702B2C /* Dream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2123131B0F503C4500702B2C /* Dream.cpp */; };
 		212313290F503C4500702B2C /* SheepDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2123131D0F503C4500702B2C /* SheepDownloader.cpp */; };
 		2123132C0F503C4500702B2C /* Shepherd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212313230F503C4500702B2C /* Shepherd.cpp */; };
 		2123132E0F503C4500702B2C /* ContentDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212313190F503C4500702B2C /* ContentDownloader.cpp */; };
-		2123132F0F503C4500702B2C /* Sheep.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2123131B0F503C4500702B2C /* Sheep.cpp */; };
+		2123132F0F503C4500702B2C /* Dream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2123131B0F503C4500702B2C /* Dream.cpp */; };
 		212313300F503C4500702B2C /* SheepDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2123131D0F503C4500702B2C /* SheepDownloader.cpp */; };
 		212313330F503C4500702B2C /* Shepherd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212313230F503C4500702B2C /* Shepherd.cpp */; };
 		212316960F50636700702B2C /* libboost_filesystem.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 212316950F50636700702B2C /* libboost_filesystem.a */; };
@@ -513,8 +513,8 @@
 		211CDDEB0ED0BE8300EB9394 /* libcurl.4.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libcurl.4.dylib; path = usr/lib/libcurl.4.dylib; sourceTree = SDKROOT; };
 		212313190F503C4500702B2C /* ContentDownloader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ContentDownloader.cpp; sourceTree = "<group>"; };
 		2123131A0F503C4500702B2C /* ContentDownloader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ContentDownloader.h; sourceTree = "<group>"; };
-		2123131B0F503C4500702B2C /* Sheep.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Sheep.cpp; sourceTree = "<group>"; };
-		2123131C0F503C4500702B2C /* Sheep.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Sheep.h; sourceTree = "<group>"; };
+		2123131B0F503C4500702B2C /* Dream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Dream.cpp; sourceTree = "<group>"; };
+		2123131C0F503C4500702B2C /* Dream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Dream.h; sourceTree = "<group>"; };
 		2123131D0F503C4500702B2C /* SheepDownloader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SheepDownloader.cpp; sourceTree = "<group>"; };
 		2123131E0F503C4500702B2C /* SheepDownloader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SheepDownloader.h; sourceTree = "<group>"; };
 		212313230F503C4500702B2C /* Shepherd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Shepherd.cpp; sourceTree = "<group>"; };
@@ -855,8 +855,8 @@
 				12478A662B03B164006A8669 /* SheepUploader.h */,
 				212313190F503C4500702B2C /* ContentDownloader.cpp */,
 				2123131A0F503C4500702B2C /* ContentDownloader.h */,
-				2123131B0F503C4500702B2C /* Sheep.cpp */,
-				2123131C0F503C4500702B2C /* Sheep.h */,
+				2123131B0F503C4500702B2C /* Dream.cpp */,
+				2123131C0F503C4500702B2C /* Dream.h */,
 				2123131D0F503C4500702B2C /* SheepDownloader.cpp */,
 				2123131E0F503C4500702B2C /* SheepDownloader.h */,
 				2199D0A70F574AC8007CEB9C /* SheepGenerator.cpp */,
@@ -1388,7 +1388,7 @@
 				2160FAE00F30F45100B2C27A /* Upload.cpp in Sources */,
 				214CC3680F34E5CF0083617B /* FontGL.cpp in Sources */,
 				2123132E0F503C4500702B2C /* ContentDownloader.cpp in Sources */,
-				2123132F0F503C4500702B2C /* Sheep.cpp in Sources */,
+				2123132F0F503C4500702B2C /* Dream.cpp in Sources */,
 				212313300F503C4500702B2C /* SheepDownloader.cpp in Sources */,
 				212313330F503C4500702B2C /* Shepherd.cpp in Sources */,
 				210335050F549BEF00A83F17 /* AlignedBuffer.cpp in Sources */,
@@ -1460,7 +1460,7 @@
 				46ED5CB32AF5326A00AF8F45 /* DisplayMetal.cpp in Sources */,
 				212313270F503C4500702B2C /* ContentDownloader.cpp in Sources */,
 				46FA9E1A2B03CB0500708000 /* ShaderMetal.mm in Sources */,
-				212313280F503C4500702B2C /* Sheep.cpp in Sources */,
+				212313280F503C4500702B2C /* Dream.cpp in Sources */,
 				212313290F503C4500702B2C /* SheepDownloader.cpp in Sources */,
 				2123132C0F503C4500702B2C /* Shepherd.cpp in Sources */,
 				46D2E8F12AFBA64B0054049D /* MBEFontAtlas.m in Sources */,

@@ -761,7 +761,7 @@ bool Shepherd::getSheep(const char *path, SheepArray* sheep, const SheepArray& s
                 if (!tryParseLegacySheepFile(fname, p, itr->path(), id, first, last, generation, isTemp, isDeleted))
                     continue;
                 //    Allocate the sheep and set the attributes.
-                Sheep *newSheep = new Sheep();
+                Dream *newSheep = new Dream();
                 newSheep->setGeneration( generation );
                 newSheep->setId( id );
                 newSheep->setFirstId( first );
@@ -787,10 +787,10 @@ bool Shepherd::getSheep(const char *path, SheepArray* sheep, const SheepArray& s
                 if (fileName.extension() == ".mp4")
                 {
                     std::string uuid = fileName.stem().string();
-                    Sheep* serverSheep = nullptr;
+                    Dream* serverSheep = nullptr;
                     if (serverFlock.tryGetSheepWithUuid(uuid, serverSheep))
                     {
-                        Sheep* newSheep = new Sheep(*serverSheep);
+                        Dream* newSheep = new Dream(*serverSheep);
                         newSheep->setFileName(itr->path().c_str());
                         newSheep->setFileSize(boost::filesystem::file_size(itr->path()));
                         sheep->push_back(newSheep);

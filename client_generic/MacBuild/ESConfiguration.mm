@@ -422,10 +422,6 @@
 	
 	[cacheSize setIntValue: cache_size];
 	
-	[enableDownload setState: ESScreensaver_GetBoolSetting("settings.content.download_mode", true)];
-
-	[enableRendering setState: ESScreensaver_GetBoolSetting("settings.generator.enabled", true)];
-	
 	//[allCores setState: ESScreensaver_GetBoolSetting("settings.generator.all_cores", false)];
 
 	[saveFrames setState: ESScreensaver_GetBoolSetting("settings.generator.save_frames", false)];
@@ -528,10 +524,6 @@
 	SInt32 cache_size = [cacheSize intValue];
 	
 	ESScreensaver_SetIntSetting("settings.content.cache_size", cache_size);
-
-	ESScreensaver_SetBoolSetting("settings.content.download_mode", [enableDownload state]);
-	
-	ESScreensaver_SetBoolSetting("settings.generator.enabled", [enableRendering state]);
 
 	//ESScreensaver_SetBoolSetting("settings.generator.all_cores", [allCores state]);
 

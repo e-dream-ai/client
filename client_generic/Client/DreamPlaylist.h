@@ -194,19 +194,19 @@ public:
             //UpdateDirectory( m_Path, _bRebuild );
             m_Clock = m_Timer.Time();
             auto allSheep = ContentDownloader::SheepDownloader::getClientFlock();
-            std::vector<ContentDownloader::Sheep*> sheepList;
+            std::vector<ContentDownloader::Dream*> sheepList;
             for (auto it = allSheep.begin(); it != allSheep.end(); ++it)
             {
-                ContentDownloader::Sheep* sheep = *it;
+                ContentDownloader::Dream* sheep = *it;
                 sheepList.push_back(sheep);
             }
 
-            std::sort(sheepList.begin(), sheepList.end(), [](ContentDownloader::Sheep* a, ContentDownloader::Sheep* b) {
+            std::sort(sheepList.begin(), sheepList.end(), [](ContentDownloader::Dream* a, ContentDownloader::Dream* b) {
                 return a->fileWriteTime() > b->fileWriteTime();
             });
             for (auto it = sheepList.begin(); it != sheepList.end(); ++it)
             {
-                ContentDownloader::Sheep* sheep = *it;
+                ContentDownloader::Dream* sheep = *it;
                 std::string fileName = sheep->fileName();
                 m_List.push(fileName);
             }

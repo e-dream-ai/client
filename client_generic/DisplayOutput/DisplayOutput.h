@@ -86,7 +86,8 @@ class	CKeyEvent : public CEvent
 				KEY_Esc,
 				KEY_NONE,
                 KEY_Comma,
-                KEY_Period
+                KEY_Period,
+                KEY_P
 			};
 
 			CKeyEvent() : m_bPressed( true ), m_Code( KEY_NONE )	{}

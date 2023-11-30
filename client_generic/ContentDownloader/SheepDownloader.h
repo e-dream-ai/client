@@ -28,7 +28,7 @@
 #else
 #include "expat.h"
 #endif
-#include "Sheep.h"
+#include "Dream.h"
 #include "Networking.h"
 
 namespace ContentDownloader
@@ -67,7 +67,7 @@ class SheepDownloader
 	protected:
 
 		//	Downloads the given sheep and queues it up for rendering.
-		bool downloadSheep( Sheep *sheep );
+		bool downloadSheep( Dream *sheep );
 
 		//	Function to parse the cache and find a sheep to download.
 		void findSheepToDownload();
@@ -110,7 +110,7 @@ class SheepDownloader
 		//	Function to initialize the downloader threads
 		static void initializeDownloader();
 
-		void deleteSheep(Sheep *sheep);
+		void deleteSheep(Dream *sheep);
 
 		static bool fGotList;
 		

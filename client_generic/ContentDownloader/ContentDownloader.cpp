@@ -115,7 +115,7 @@ bool	CContentDownloader::Startup( boost::shared_mutex& _downloadSaveMutex, const
 
     m_gDownloader = NULL;
 		
-	if( g_Settings()->Get( "settings.content.download_mode", true ) && _bReadOnlyInstance == false)
+	if (_bReadOnlyInstance == false)
 	{
 		m_gDownloader = new SheepDownloader( _downloadSaveMutex );
 		g_Log->Info( "Starting download thread..." );
@@ -131,59 +131,6 @@ bool	CContentDownloader::Startup( boost::shared_mutex& _downloadSaveMutex, const
 	}
 	else
 		g_Log->Warning( "Downloading disabled." );
-
-	if (!Shepherd::useDreamAI() && g_Settings()->Get( "settings.generator.enabled", true ) && _bReadOnlyInstance == false)
-	{
-		//	Create the generators based on the number of processors.
-		uint32 ncpus = 1;
-		if( g_Settings()->Get( "settings.generator.all_cores", false ) )
-		{
-#if defined(WIN32)
-			SYSTEM_INFO sysInfo;
-			GetSystemInfo( &sysInfo );
-			ncpus = (uint32)sysInfo.dwNumberOfProcessors;
-#elif defined(MAC)
-            int num = 1;
-            size_t dataLen = sizeof(num); // 'num' is an 'int'
-            int mib[2] = {CTL_HW, HW_NCPU};
-            int result = sysctl(mib, sizeof(mib)/sizeof(*mib), &num, &dataLen, NULL, 0);
-            if (result == -1)
-            {
-                num = 1;
-            }
-            ncpus = num;
-#elif defined(LINUX_GNU)
-			ncpus = sysconf( _SC_NPROCESSORS_ONLN );
-#endif
-		}
-
-		if (ncpus > 1)
-			--ncpus;
-		uint32 i;
-		for( i=0; i<ncpus; i++ )
-		{
-			g_Log->Info( "Starting generator for core %d...", i );
-			gGenerators.push_back( new SheepGenerator() );
-			gGenerators[i]->setGeneratorId( i );
-		}
-
-		g_Log->Info( "Starting generator threads..." );
-
-		for( i=0; i<gGenerators.size(); i++ )
-		{
-			gGeneratorThreads.push_back( new boost::thread( boost::bind( &SheepGenerator::shepherdCallback, gGenerators[i] ) ) );
-#ifdef WIN32
-			SetThreadPriority( (HANDLE)gGeneratorThreads[i]->native_handle(), THREAD_PRIORITY_IDLE );
-			SetThreadPriorityBoost( (HANDLE)gGeneratorThreads[i]->native_handle(), FALSE );
-#else
-			struct sched_param sp;
-			sp.sched_priority = 1; //THREAD_PRIORITY_IDLE - THREAD_PRIORITY_IDLE
-			pthread_setschedparam( (pthread_t)gGeneratorThreads[i]->native_handle(), SCHED_RR, &sp );
-#endif
-		}
-	}
-	else
-		g_Log->Warning( "Generators disabled..." );
 
 	g_Log->Info( "...success" );
 

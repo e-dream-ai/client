@@ -37,20 +37,20 @@ namespace ContentDownloader
 // on the server or on the client. It has methods to
 // get and set different aspects of a sheep
 //
-class Sheep
+class Dream
 {
 public:
 	// Default constructor
 	//
-	Sheep();
+	Dream();
 
 	// Copy Constructor
 	//
-	Sheep( const Sheep &sheep );
+	Dream( const Dream &sheep );
 
 	// Destructor
 	//
-	~Sheep();
+	~Dream();
 
 	// sets the URL that this sheep lives at
 	//
@@ -84,13 +84,29 @@ public:
 	//
 	const char *fileName() const { return fFileName; }
 
-    // Sets the sheep file name
+    // Sets the sheep UUID
     //
     void setUuid(const char *uuid);
 
-    // gets the sheep file name
+    // gets the sheep UUID
     //
     const char *uuid() const { return fUuid; }
+
+    // Sets the sheep author
+    //
+    void setAuthor(const char *author);
+
+    // gets the sheep author
+    //
+    const char *author() const { return fAuthor; }
+    
+    // Sets the sheep name
+    //
+    void setName(const char* _name);
+
+    // gets the sheep name
+    //
+    const char *name() const { return fName; }
 
 	// sets the file write time
 	//
@@ -185,6 +201,8 @@ private:
 	char		*fURL;
 	char		*fFileName;
     char        *fUuid;
+    char        *fAuthor;
+    char        *fName;
 	uint64		fFileSize;
 	time_t		fWriteTime;
 	int			fRating;
@@ -201,7 +219,7 @@ private:
 struct SheepArray
 {
     typedef std::string key_type;
-    typedef Sheep* mapped_type;
+    typedef Dream* mapped_type;
     typedef std::vector<mapped_type>::iterator iterator;
 
     std::vector<mapped_type> vecData;
@@ -212,17 +230,17 @@ struct SheepArray
     iterator end() { return vecData.end(); }
     size_t size() { return vecData.size(); }
     
-    Sheep*& operator[](size_t i)
+    Dream*& operator[](size_t i)
     {
         return vecData[i];
     }
 
-    Sheep* operator[](const std::string& key)
+    Dream* operator[](const std::string& key)
     {
         return mapData[key];
     }
     
-    bool tryGetSheepWithUuid(const std::string& key, Sheep*& outSheep) const
+    bool tryGetSheepWithUuid(const std::string& key, Dream*& outSheep) const
     {
         auto i = mapData.find(key);
         if (i == mapData.end())
@@ -231,7 +249,7 @@ struct SheepArray
         return true;
     }
 
-	void push_back(Sheep *sheep)
+	void push_back(Dream *sheep)
 	{
 		std::string key(sheep->uuid());
         mapData[key] = sheep;

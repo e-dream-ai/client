@@ -30,7 +30,7 @@
 #include	"boost/detail/atomic_count.hpp"
 #include    "boost/atomic.hpp"
 #include	"Timer.h"
-#include	"Sheep.h"
+#include	"Dream.h"
 #include	"Log.h"
 #include	"BlockingQueue.h"
 

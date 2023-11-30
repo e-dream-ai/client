@@ -181,7 +181,7 @@ void SheepDownloader::Abort( void )
 }
 
 //	Downloads the given sheep from the server and supplies a unique name for it based on it's ids.
-bool SheepDownloader::downloadSheep( Sheep *sheep )
+bool SheepDownloader::downloadSheep( Dream *sheep )
 {
 	if( sheep->downloaded() )
 		return false;
@@ -271,7 +271,7 @@ void SheepDownloader::handleListElement(TiXmlElement* listElement)
 				g_Log->Error( "malformed list, received sheep without generation set.\n" );
 
 			//	Create a new sheep and parse the attributes.
-			Sheep *newSheep = new Sheep();
+			Dream *newSheep = new Dream();
 			newSheep->setGeneration( currentGeneration() );
 
 			const char *a;
@@ -473,19 +473,18 @@ void SheepDownloader::parseSheepList()
                     if (video.is_null())
                         continue;
 
-                    //"uuid": "eedf9ae8-1b5f-4b5d-bb8d-a98df40d0695",
-                    //"name": "digital dadaism, evolution in the style of Salvador Dali",
-                    //"created_at": "2023-10-23T00:19:42.911Z",
-
-                    //    Create a new sheep and parse the attributes.
-                    Sheep *newSheep = new Sheep();
-                    newSheep->setGeneration( currentGeneration() );
-                    newSheep->setId((uint32)dream.at("id").as_int64());
-                    newSheep->setURL(video.as_string().data());
-                    newSheep->setFileWriteTime(dream.at("updated_at").as_string().data());
-                    newSheep->setRating(atoi("5"));
-                    newSheep->setUuid(dream.at("uuid").as_string().data());
-                    fServerFlock.push_back(newSheep);
+                    //    Create a new dream and parse the attributes.
+                    Dream* newDream = new Dream();
+                    newDream->setGeneration( currentGeneration() );
+                    newDream->setId((uint32)dream.at("id").as_int64());
+                    newDream->setURL(video.as_string().data());
+                    newDream->setFileWriteTime(dream.at("updated_at").as_string().data());
+                    newDream->setRating(atoi("5"));
+                    newDream->setUuid(dream.at("uuid").as_string().data());
+                    boost::json::value user = dream.at("user");
+                    newDream->setAuthor(user.at("email").as_string().data());
+                    newDream->setName(dream.at("name").as_string().data());
+                    fServerFlock.push_back(newDream);
                 }
                 while (++dreamIndex < count);
             }
@@ -567,7 +566,7 @@ void	SheepDownloader::updateCachedSheep()
 		for( uint32 i=0; i<fClientFlock.size(); i++ )
 		{
 			//	Get the current sheep.
-			Sheep *currentSheep = fClientFlock[i];
+			Dream *currentSheep = fClientFlock[i];
 
 			//	Check if it is deleted.
 			if( currentSheep->deleted() && fGotList )
@@ -608,7 +607,7 @@ void	SheepDownloader::updateCachedSheep()
 				//	Update the sheep rating from the server.
 				for( uint32 j=0; j<fServerFlock.size(); j++ )
 				{
-					Sheep *shp = fServerFlock[j];
+					Dream *shp = fServerFlock[j];
 					if( shp->id() == currentSheep->id() && shp->generation() == currentSheep->generation() )
 						if( shp->firstId() == currentSheep->firstId() )
 							if( shp->lastId() == currentSheep->lastId() )
@@ -698,7 +697,7 @@ void	SheepDownloader::deleteCached( const uint64 &size, const int getGenerationT
 			//	Iterate the client flock to get the oldest and worst_rated file.
 			for( uint32 i=0; i<fClientFlock.size(); i++ )
 			{
-				Sheep *curSheep = fClientFlock[i];
+				Dream *curSheep = fClientFlock[i];
 				//	If the file is allready deleted than skip.
 				if( curSheep->deleted() || curSheep->isTemp() || curSheep->getGenerationType() != getGenerationType )
 					continue;
@@ -764,7 +763,7 @@ void	SheepDownloader::deleteCached( const uint64 &size, const int getGenerationT
 	deleteSheep().
 
 */
-void	SheepDownloader::deleteSheep( Sheep *sheep )
+void	SheepDownloader::deleteSheep( Dream *sheep )
 {
 	if (remove( sheep->fileName() ) != 0)
 		g_Log->Warning( "Failed to remove %s", sheep->fileName());
@@ -814,7 +813,7 @@ void	SheepDownloader::deleteSheepId( uint32 sheepId )
 {
 	for( uint32 i=0; i<fClientFlock.size(); i++ )
 	{
-		Sheep *curSheep = fClientFlock[i];
+		Dream *curSheep = fClientFlock[i];
 		if( curSheep->deleted() || curSheep->isTemp() )
 			continue;
 

@@ -145,6 +145,7 @@ void ESScreensaver_AppendKeyEvent( UInt32 keyCode )
 			case 0x35:	spEvent->m_Code = CKeyEvent::KEY_Esc;	break;
             case 0xBC:  spEvent->m_Code = CKeyEvent::KEY_Comma; break;
             case 0xBE:  spEvent->m_Code = CKeyEvent::KEY_Period; break;
+            case 0x50:  spEvent->m_Code = CKeyEvent::KEY_P; break;
 		}
 		
 		spCEvent e = spEvent;

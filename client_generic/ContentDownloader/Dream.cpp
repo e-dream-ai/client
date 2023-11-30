@@ -24,20 +24,21 @@
 #include <time.h>
 #include <string.h>
 
-#include "Sheep.h"
+#include "Dream.h"
 
 namespace ContentDownloader
 {
 
-Sheep::Sheep()
+Dream::Dream()
 //
 // Description:
 //		Default constrictor. Initialize all class data.
 //
 {
-	fURL = NULL;
+	fURL = nullptr;
 	fFileSize = 0;
-	fFileName = NULL;
+	fFileName = nullptr;
+    fName = nullptr;
 	fWriteTime = 0;
 	fRating = 0;
 	fDownloaded = false;
@@ -45,24 +46,30 @@ Sheep::Sheep()
 	fFirst = 0;
 	fLast = 0;
 	fType = 0;
-    fUuid = NULL;
+    fUuid = nullptr;
+    fAuthor = nullptr;
+    fName = nullptr;
 	fDeleted = false;
 	fGeneration = 0;
 	fIsTemp = false;
 }
 
-Sheep::Sheep( const Sheep &sheep )
+Dream::Dream( const Dream &sheep )
 //
 // Description:
 //		Copy constrictor. copies all class data.
 //
 {
-	fURL = NULL;
-	fFileName = NULL;
-    fUuid = NULL;
+	fURL = nullptr;
+	fFileName = nullptr;
+    fUuid = nullptr;
+    fAuthor = nullptr;
+    fName = nullptr;
 	setURL(sheep.fURL);
 	setFileName(sheep.fFileName);
     setUuid(sheep.fUuid);
+    setAuthor(sheep.fAuthor);
+    setName(sheep.fName);
 	fFileSize = sheep.fFileSize;
 	fWriteTime = sheep.fWriteTime;
 	fRating = sheep.fRating;
@@ -76,62 +83,36 @@ Sheep::Sheep( const Sheep &sheep )
 	fIsTemp = sheep.fIsTemp;
 }
 
-Sheep::~Sheep()
-//
-// Description:
-//		Destructor. Cleans up any alocated data.
-//
+Dream::~Dream()
 {
-    if(fUuid != NULL)
-    {
-        delete[] fUuid;
-        fUuid = NULL;
-    }
-
-	if(fURL != NULL)
-	{
-		delete [] fURL;
-		fURL = NULL;
-	}
-
-	if(fFileName != NULL)
-	{
-		delete [] fFileName;
-		fFileName = NULL;
-	}
+    SAFE_DELETE(fUuid)
+	SAFE_DELETE(fURL)
+    SAFE_DELETE(fFileName);
+    SAFE_DELETE(fAuthor);
+    SAFE_DELETE(fName);
 }
 
-void
-Sheep::setURL(const char *url)
-//
-// Description:
-//		Sets the URL for this sheep.
-//
+void Dream::setURL(const char *url)
 {
-	if(fURL == NULL)
+	if (fURL == nullptr)
 	{
 		delete [] fURL;
-		fURL = NULL;
+		fURL = nullptr;
 	}
 
-	if(url)
+	if (url)
 	{
 		fURL = new char[strlen(url) + 1];
 		strcpy(fURL, url);
 	}
 }
 
-void
-Sheep::setFileName(const char *filename)
-//
-// Description:
-//		Sets the filename of the sheep.
-//
+void Dream::setFileName(const char *filename)
 {
-	if(fFileName == NULL)
+	if (fFileName == nullptr)
 	{
 		delete [] fFileName;
-		fFileName = NULL;
+		fFileName = nullptr;
 	}
 
 	if(filename)
@@ -141,12 +122,12 @@ Sheep::setFileName(const char *filename)
 	}
 }
 
-void Sheep::setUuid(const char *uuid)
+void Dream::setUuid(const char *uuid)
 {
-    if(fUuid != NULL)
+    if(fUuid != nullptr)
     {
         delete[] fUuid;
-        fUuid = NULL;
+        fUuid = nullptr;
     }
 
     if (uuid)
@@ -156,7 +137,21 @@ void Sheep::setUuid(const char *uuid)
     }
 }
 
-void Sheep::setFileWriteTime(const char* timeString)
+void Dream::setAuthor(const char* _author)
+{
+    if (fAuthor != nullptr)
+    {
+        delete[] fAuthor;
+        fAuthor = nullptr;
+    }
+    if (_author)
+    {
+        fAuthor = new char[strlen(_author) + 1];
+        strcpy(fAuthor, _author);
+    }
+}
+
+void Dream::setFileWriteTime(const char* timeString)
 {
     struct tm timeinfo = {};
     strptime(timeString, "%Y-%m-%dT%H:%M:%S", &timeinfo);

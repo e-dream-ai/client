@@ -31,9 +31,7 @@
 
 	IBOutlet NSMatrix* cacheType;
 	IBOutlet NSFormCell* cacheSize;
-	IBOutlet NSTextField* contentFldr;	
-	IBOutlet NSButton* enableDownload;
-	IBOutlet NSButton* enableRendering;
+	IBOutlet NSTextField* contentFldr;
 	//IBOutlet NSButton* allCores;
 	IBOutlet NSButton* saveFrames;
 	IBOutlet NSButton* debugLog;

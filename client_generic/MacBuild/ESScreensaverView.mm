@@ -329,6 +329,7 @@ bool bStarted = false;
     BOOL handled = NO;
 	
     NSString *characters = [ev charactersIgnoringModifiers];
+    NSLog(@"char: %@ - %@", [ev charactersIgnoringModifiers], [ev characters]);
     unsigned int characterIndex, characterCount = (unsigned int)[characters length];
     
     for (characterIndex = 0; characterIndex < characterCount; characterIndex++) {
@@ -388,6 +389,12 @@ bool bStarted = false;
                 ESScreensaver_AppendKeyEvent( 0xBE );
                 handled = YES;
                 break;
+                
+            case u'c':
+                ESScreensaver_AppendKeyEvent( 0x50 );
+                handled = YES;
+                break;
+                
 								
 			default:
 				break;
