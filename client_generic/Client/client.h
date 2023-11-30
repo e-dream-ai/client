@@ -823,7 +823,7 @@ class	CElectricSheep
 								flockmbs = flockmbsfree + flockmbsgold;
 							break;
 						};
-						tmpstr << flockcount << ((g_Player().UsedSheepType() == 0 && g_Player().HasGoldSheep() == true) ? " gold sheep, " : " dreams, ") << flockmbs << "MB";
+						tmpstr << flockcount << " dream" << (flockcount > 1 ? "s" : "") << ", " << flockmbs << "MB";
 						((Hud::CStringStat *)spStats->Get( "all" ))->SetSample(tmpstr.str());
 
 						const char *servername = ContentDownloader::Shepherd::serverName( false );

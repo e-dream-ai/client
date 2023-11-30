@@ -792,6 +792,7 @@ bool Shepherd::getSheep(const char *path, SheepArray* sheep, const SheepArray& s
                     {
                         Sheep* newSheep = new Sheep(*serverSheep);
                         newSheep->setFileName(itr->path().c_str());
+                        newSheep->setFileSize(boost::filesystem::file_size(itr->path()));
                         sheep->push_back(newSheep);
                         gotSheep = true;
                     }
