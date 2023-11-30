@@ -344,36 +344,7 @@ sOpenVideoInfo*	CContentDecoder::GetNextSheepInfo()
 		retOVI = new sOpenVideoInfo;
 		
 		retOVI->m_Path.assign(name);
-			
-		if( m_spPlaylist->GetSheepInfoFromPath( name, Generation, ID, First, Last, fname ) )
-		{				
-			boost::filesystem::path p( name );
-			
-			if ( !boost::filesystem::exists( p ) )
-			{
-				sheepfound = false;
-				continue;
-			}
-			
-			std::string xxxname( name );
-			xxxname.replace(xxxname.size() - 3, 3, "xxx");
-			
-			if ( boost::filesystem::exists( p/xxxname ) )
-			{
-				sheepfound = false;
-				continue;
-			}
-
-			retOVI->m_SheepID = ID;
-			retOVI->m_Generation = Generation;
-			retOVI->m_First = First;
-			retOVI->m_Last = Last;
-			retOVI->m_bSpecialSheep = false;
-		}
-		else
-		{
-			retOVI->m_bSpecialSheep = true;			
-		}
+        retOVI->m_bSpecialSheep = true;
 	}
 	
 	return retOVI;
@@ -552,22 +523,6 @@ void	CContentDecoder::CalculateNextSheep()
                 if( m_spPlaylist->Next( _spath, _enoughSheep, _curID, _playFreshSheep, bRebuild, m_bStartByRandom ) )
                 {
                     bRebuild = false;
-                    
-                    uint32 Generation, ID, First, Last;
-                    std::string fname;
-                    
-                    if ( m_spPlaylist->GetSheepInfoFromPath( _spath, Generation, ID, First, Last, fname ) )
-                    {
-                        boost::filesystem::path p( _spath );
-                    
-                        if ( !bRebuild && !boost::filesystem::exists( _spath ) )
-                        {
-                            bRebuild = true;
-                            continue;
-                        }
-
-                        _curID = ID;
-                    }
                     
                     if ( !_enoughSheep )
                     {

@@ -667,7 +667,6 @@ class	CElectricSheep
 							m_F1F4Timer.Reset();
 							m_HudManager->Hide( "helpmessage" );
 							m_HudManager->Hide( "dreamstats" );
-							m_HudManager->Hide( "displaystats" );	
 						}
 
 						

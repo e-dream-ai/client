@@ -92,63 +92,44 @@ Dream::~Dream()
     SAFE_DELETE(fName);
 }
 
+static void UpdateString(char*& _strToUpdate, const char* _newValue)
+{
+    if (_strToUpdate != nullptr)
+    {
+        delete[] _strToUpdate;
+        _strToUpdate = nullptr;
+    }
+    if (_newValue)
+    {
+        _strToUpdate = new char[strlen(_newValue) + 1];
+        strcpy(_strToUpdate, _newValue);
+    }
+}
+
 void Dream::setURL(const char *url)
 {
-	if (fURL == nullptr)
-	{
-		delete [] fURL;
-		fURL = nullptr;
-	}
-
-	if (url)
-	{
-		fURL = new char[strlen(url) + 1];
-		strcpy(fURL, url);
-	}
+    UpdateString(fURL, url);
 }
 
 void Dream::setFileName(const char *filename)
 {
-	if (fFileName == nullptr)
-	{
-		delete [] fFileName;
-		fFileName = nullptr;
-	}
-
-	if(filename)
-	{
-		fFileName = new char[strlen(filename) + 1];
-		strcpy(fFileName, filename);
-	}
+    UpdateString(fFileName, filename);
 }
 
 void Dream::setUuid(const char *uuid)
 {
-    if(fUuid != nullptr)
-    {
-        delete[] fUuid;
-        fUuid = nullptr;
-    }
-
-    if (uuid)
-    {
-        fUuid = new char[strlen(uuid) + 1];
-        strcpy(fUuid, uuid);
-    }
+    UpdateString(fUuid, uuid);
 }
 
 void Dream::setAuthor(const char* _author)
 {
-    if (fAuthor != nullptr)
-    {
-        delete[] fAuthor;
-        fAuthor = nullptr;
-    }
-    if (_author)
-    {
-        fAuthor = new char[strlen(_author) + 1];
-        strcpy(fAuthor, _author);
-    }
+    UpdateString(fAuthor, _author);
+}
+
+
+void Dream::setName(const char* _name)
+{
+    UpdateString(fName, _name);
 }
 
 void Dream::setFileWriteTime(const char* timeString)
