@@ -5,6 +5,7 @@
 #include	"Hud.h"
 #include	"Rect.h"
 #include	"Console.h"
+#include    "Text.h"
 #include	<iomanip>
 
 namespace	Hud
@@ -249,7 +250,13 @@ class CTimeCountDownStat : public CStat
 */
 class	CStatsConsole : public CConsole
 {
-	std::map<std::string, CStat *> m_Stats;
+    struct StatText
+    {
+        CStat* stat;
+        DisplayOutput::spCBaseText text;
+    };
+
+	std::map<std::string, StatText> m_Stats;
 	DisplayOutput::CFontDescription m_Desc;
 
 	public:
@@ -263,24 +270,40 @@ class	CStatsConsole : public CConsole
 				m_Desc.Italic( false );
 				m_Desc.TypeFace( _FontName );
 
-				m_spFont = g_Player().Renderer()->NewFont( m_Desc );
+				m_spFont = g_Player().Renderer()->GetFont( m_Desc );
 
 				m_Stats.clear();
 			}
 
 			virtual ~CStatsConsole()
 			{
-				std::map<std::string, CStat *>::iterator ii = m_Stats.begin();
+				std::map<std::string, StatText>::iterator ii = m_Stats.begin();
 				while (m_Stats.end() != ii)
 				{
-					delete ii->second;
+					delete ii->second.stat;
 					++ii;
 				}
 				m_Stats.clear();
 			}
 
-			void	Add( CStat *_pStat )	{	m_Stats[ _pStat->m_Name ] = _pStat;	}
-			CStat	*Get( const std::string &_name ) {	return m_Stats[ _name ];	}
+            void	Add( CStat *_pStat )	{	m_Stats[ _pStat->m_Name ] = { _pStat, g_Player().Renderer()->NewText(m_spFont, "") };	}
+			CStat	*Get( const std::string &_name ) {	return m_Stats[ _name ].stat;	}
+    
+            virtual void Visible(const bool _bState) override
+            {
+                CHudEntry::Visible(_bState);
+                if (!_bState)
+                {
+                    std::map<std::string, StatText>::iterator i;
+                    for( i=m_Stats.begin(); i != m_Stats.end(); ++i )
+                    {
+                        if (!i->second.text.IsNull())
+                        {
+                            i->second.text->SetEnabled(false);
+                        }
+                    }
+                }
+            }
 
 			bool	Render( const fp8 _time, DisplayOutput::spCRenderer _spRenderer )
 			{
@@ -290,17 +313,23 @@ class	CStatsConsole : public CConsole
 				fp4	pos = 0;
 				fp4 edge = 24 / (fp4)_spRenderer->Display()->Width();
 
-				std::map<std::string, CStat *>::const_iterator i;
+				std::map<std::string, StatText>::iterator i;
 
 				//	Figure out text extent for all strings.
 				Base::Math::CRect	extent;
 				std::queue<Base::Math::CVector2> sizeq;
 				for( i=m_Stats.begin(); i != m_Stats.end(); ++i )
 				{
-					CStat *e = i->second;
+					CStat *e = i->second.stat;
+                    DisplayOutput::spCBaseText& text = i->second.text;
+                    if (!text.IsNull())
+                    {
+                        text->SetEnabled(e->Visible());
+                    }
 					if( e && e->Visible() )
 					{
-						sizeq.push(_spRenderer->GetTextExtent( m_spFont, e->Report( _time ) ));
+                        text->SetText(e->Report(_time));
+						sizeq.push(text->GetExtent());
 						extent = extent.Union( Base::Math::CRect( 0, pos, sizeq.back().m_X+(edge*2), sizeq.back().m_Y+(pos)+(edge*2) ) );
 						pos += sizeq.back().m_Y;
 					}
@@ -315,17 +344,21 @@ class	CStatsConsole : public CConsole
 				_spRenderer->SetBlend( "alphablend" );
 				_spRenderer->Apply();
 				_spRenderer->DrawSoftQuad( extent, Base::Math::CVector4( 0, 0, 0, 0.375f ), 16 );
+                
+                //_spRenderer->NewText(m_spFont)
 				
 				// align text at bottom
 				pos = extent.m_Y0 + edge;
 				for( i=m_Stats.begin(); i != m_Stats.end(); ++i )
 				{
-					CStat *e = i->second;
+					CStat *e = i->second.stat;
 					if( e && e->Visible() )
 					{
 						Base::Math::CVector2 size = sizeq.front();
 						sizeq.pop();
-						_spRenderer->Text( m_spFont, e->Report( _time ), Base::Math::CVector4( 1, 1, 1, 1 ), Base::Math::CRect( edge, pos, 1, size.m_Y+pos+step ), 0 );
+                        DisplayOutput::spCBaseText& text = i->second.text;
+						text->SetRect(Base::Math::CRect(edge, pos, 1, size.m_Y + pos + step));
+                        _spRenderer->DrawText(text, Base::Math::CVector4(1, 1, 1, 1));
 						pos += size.m_Y;
 					}
 				}

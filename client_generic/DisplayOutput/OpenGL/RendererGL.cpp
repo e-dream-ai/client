@@ -1,5 +1,8 @@
 #include	<stdint.h>
 #include	<string.h>
+
+#ifndef USE_METAL
+
 #ifndef LINUX_GNU
 #include	"./OpenGL/GLee.h"
 #else
@@ -331,7 +334,7 @@ eTextureTargetType	CRendererGL::GetTextureTargetType( void )
 
 /*
 */
-spCShader	CRendererGL::NewShader( const char *_pVertexShader, const char *_pFragmentShader )
+spCShader	CRendererGL::NewShader( const char *_pVertexShader, const char *_pFragmentShader, [[maybe_unused]] std::vector<std::pair<std::string, eUniformType>> _uniforms )
 {
 	SetCurrentGLContext();
 	
@@ -652,3 +655,4 @@ void 	CRendererGL::SetCurrentGLContext()
 
 }
 
+#endif //!USE_METAL

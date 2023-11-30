@@ -1,3 +1,4 @@
+#ifndef USE_METAL
 #import <Cocoa/Cocoa.h>
 #import <OpenGL/gl.h>
 #import <OpenGL/OpenGL.h>
@@ -45,3 +46,4 @@
 }
 
 @end
+#endif //!USE_METAL

@@ -1,5 +1,13 @@
 #import <ScreenSaver/ScreenSaver.h>
+
+#include <boost/thread.hpp>
+#include <memory>
+
+#if USE_METAL
+#import "ESMetalView.h"
+#else
 #import "ESOpenGLView.h"
+#endif
 #import "ESConfiguration.h"
 #import "Sparkle/Sparkle.h"
 
@@ -9,14 +17,22 @@
 #else
 : NSView 
 #endif
-<SUUpdaterDelegate>
+<SUUpdaterDelegate
+#ifdef USE_METAL
+, MTKViewDelegate
+#endif
+>
 {
     // So what do you need to make an OpenGL screen saver? Just an NSOpenGLView (or subclass thereof)
     // So we'll put one in here.
     NSRect theRect;
-	ESOpenGLView *glView;
+#if USE_METAL
+    ESMetalView *view;
+#else
+	ESOpenGLView *view;
+#endif
 	NSTimer *animationTimer;
-	NSLock *animationLock;
+    dispatch_group_t m_animationDispatchGroup;
 	BOOL m_isStopped;
 	
 	BOOL m_isPreview;
@@ -30,6 +46,8 @@
 	ESConfiguration* m_config;
 	
 	SUUpdater* m_updater;
+    std::unique_ptr<boost::barrier> m_beginFrameBarrier;
+    std::unique_ptr<boost::barrier> m_endFrameBarrier;
 }
 
 - (id)initWithFrame:(NSRect)frame isPreview:(BOOL)isPreview;

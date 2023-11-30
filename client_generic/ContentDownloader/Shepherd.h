@@ -30,7 +30,7 @@
 #include	"boost/detail/atomic_count.hpp"
 #include    "boost/atomic.hpp"
 #include	"Timer.h"
-#include	"Sheep.h"
+#include	"Dream.h"
 #include	"Log.h"
 #include	"BlockingQueue.h"
 
@@ -98,7 +98,7 @@ class Shepherd
 	}	SHEPHERD_MESSAGE;
 
 	//	Gets all sheep in path.
-	static bool getSheep( const char *path, SheepArray *sheep );
+	static bool getSheep( const char *path, SheepArray *sheep, const SheepArray& serverFlock );
 
 	static uint64 s_ClientFlockBytes;
 	static uint64 s_ClientFlockCount;
@@ -128,6 +128,7 @@ class Shepherd
 	static bool fShutdown;
 	static int fChangeRes;
 	static int fChangingRes;
+    static bool fUseDreamAI;
 	static atomic_char_ptr fRole;
 	static boost::detail::atomic_count	*renderingFrames;
 	static boost::detail::atomic_count	*totalRenderedFrames;
@@ -187,6 +188,10 @@ class Shepherd
 			//
 			static void	setRegistered( const int &registered )		{	fRegistered = registered;	}
 			static int		registered()							{	return fRegistered;	}
+    
+            //
+            static void setUseDreamAI(bool use)                     { fUseDreamAI = use; }
+            static bool useDreamAI()                                { return fUseDreamAI; }
 
 			//
 			static int		cacheSize( const int getGenerationType )	
@@ -238,6 +243,7 @@ class Shepherd
 			static const char *mpegPath();
 			static const char *xmlPath();
 			static const char *jpegPath();
+            static const char *videoExtension()                 {   return fUseDreamAI ? ".mp4" : ".avi"; }
 
 			static void setRole( const char *role );
 			static const char *role();

@@ -1,3 +1,4 @@
+#ifndef USE_METAL
 #include	"FontGL.h"
 #include	"Log.h"
 #include	"Settings.h"
@@ -187,3 +188,4 @@ void	CFontGL::Reupload()
 }
 	
 };
+#endif //!USE_METAL

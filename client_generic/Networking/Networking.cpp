@@ -7,6 +7,7 @@
 #include <iomanip>
 #include "Log.h"
 #include "Networking.h"
+#include "Shepherd.h"
 
 namespace	Network
 {
@@ -39,6 +40,12 @@ CCurlTransfer::~CCurlTransfer()
 {
 	//g_NetworkManager->Remove( this );
 	g_Log->Info( "~CCurlTransfer()" );
+    
+    if (m_Headers)
+    {
+        curl_slist_free_all(m_Headers);
+        m_Headers = NULL;
+    }
 	
 	if ( m_pCurlM != NULL && m_pCurl != NULL )
 		curl_multi_remove_handle(m_pCurlM, m_pCurl);
@@ -259,6 +266,11 @@ bool	CCurlTransfer::InterruptiblePerform()
 	return true;
 }
 
+void CCurlTransfer::AppendHeader(const std::string& header)
+{
+    m_Headers = curl_slist_append(m_Headers, header.c_str());
+}
+
 
 /*
 	Perform().
@@ -299,10 +311,21 @@ bool	CCurlTransfer::Perform( const std::string &_url )
     if( !Verify( curl_easy_setopt( m_pCurl, CURLOPT_SSL_VERIFYHOST, 0 ) ) )	return false;
     if( !Verify( curl_easy_setopt( m_pCurl, CURLOPT_SSL_VERIFYPEER, 0 ) ) )	return false;
 
+    if( !Verify( curl_easy_setopt(m_pCurl, CURLOPT_HTTPHEADER, m_Headers) ) )    return false;
+     
+    
+
+
 	Status( "Active" );
+    bool success = InterruptiblePerform();
+    if (m_Headers)
+    {
+        curl_slist_free_all(m_Headers);
+        m_Headers = NULL;
+    }
 
 	//if( !Verify( curl_easy_perform( m_pCurl ) ) )
-	if ( !InterruptiblePerform() )
+	if (!success)
 	{
 		g_Log->Warning( errorBuffer );
 		Status( "Failed" );
@@ -405,6 +428,8 @@ bool	CManager::Shutdown()
 */
 CURLcode	CManager::Prepare( CURL *_pCurl )
 {
+    if (ContentDownloader::Shepherd::useDreamAI())
+        return CURLE_OK;
 	g_Log->Info( "Prepare()" );
 
 	boost::mutex::scoped_lock locker( m_Lock );

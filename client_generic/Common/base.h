@@ -11,6 +11,10 @@
 #include <inttypes.h>
 #endif
 
+#ifdef MAC
+#include <os/signpost.h>
+#endif
+
 //	Standard signed types.
 typedef	signed char			int8;
 typedef	signed short		int16;
@@ -67,6 +71,55 @@ typedef	double				fp8;
 #ifndef	NULL
 #define	NULL 0
 #endif
+
+#define USE_HW_ACCELERATION true
+
+#ifndef USE_METAL
+#if USE_HW_ACCELERATION
+#undef USE_HW_ACCELERATION
+#define USE_HW_ACCELERATION 0
+#endif
+#endif
+
+#define UNFFERRTAG(tag) (const char[]){(char)(-tag & 0xFF), (char)((-tag >> 8) & 0xFF), (char)((-tag >> 16) & 0xFF), (char)((-tag >> 24) & 0xFF), 0}
+
+#define LOG_PROFILER_EVENTS 0
+
+#if LOG_PROFILER_EVENTS
+#define LOGEVENT(x, ...) g_Log->Info(x, ##__VA_ARGS__)
+#else
+#define LOGEVENT(x, ...)
+#endif
+
+#ifdef MAC
+extern os_log_t g_SignpostHandle;
+#define ES_SIGNPOST_BEGIN(...) os_signpost_interval_begin(__VA_ARGS__)
+#define ES_SIGNPOST_END(...) os_signpost_interval_end(__VA_ARGS__)
+#define ES_SIGNPOST_EVENT(...) os_signpost_event_emit(__VA_ARGS__)
+#else
+#define ES_SIGNPOST_BEGIN(...)
+#define ES_SIGNPOST_END(...)
+#define ES_SIGNPOST_EVENT(...)
+#endif
+
+#define PROFILER_BEGIN_F(eventName, format, ...) \
+    do { \
+        ES_SIGNPOST_BEGIN(g_SignpostHandle, OS_SIGNPOST_ID_EXCLUSIVE, eventName, format, ##__VA_ARGS__); \
+        LOGEVENT("PROFILER BEGIN: " eventName " " format, ##__VA_ARGS__); \
+    } while (0)
+#define PROFILER_BEGIN(eventName) PROFILER_BEGIN_F(eventName, "")
+#define PROFILER_END_F(eventName, format, ...) \
+    do { \
+        ES_SIGNPOST_END(g_SignpostHandle, OS_SIGNPOST_ID_EXCLUSIVE, eventName, format, ##__VA_ARGS__); \
+        LOGEVENT("PROFILER END: " eventName " " format, ##__VA_ARGS__); \
+    } while (0)
+#define PROFILER_END(eventName) PROFILER_END_F(eventName, "")
+#define PROFILER_EVENT_F(eventName, format, ...) \
+    do { \
+        ES_SIGNPOST_EVENT(g_SignpostHandle, OS_SIGNPOST_ID_EXCLUSIVE, eventName, format, ##__VA_ARGS__); \
+        LOGEVENT("PROFILER EVENT: " eventName " " format, ##__VA_ARGS__); \
+    } while (0)
+#define PROFILER_EVENT(eventName) PROFILER_EVENT_F(eventName, "")
 
 /*
 	Assert disco.

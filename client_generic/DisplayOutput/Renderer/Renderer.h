@@ -2,9 +2,12 @@
 #define	_RENDERER_H_
 
 #include <string>
+#include <map>
+
 #include "base.h"
 #include "SmartPtr.h"
 #include "Font.h"
+#include "Text.h"
 #include "TextureFlat.h"
 #include "Shader.h"
 #include "Image.h"
@@ -46,6 +49,7 @@ enum	eRenderType
 {
 	eDX9,
 	eGL,
+    eMetal,
 };
 
 //	Blending constants
@@ -131,20 +135,21 @@ class CRenderer
 
 			//
 			virtual	bool	BeginFrame( void )	{	return( true );	};
-			virtual	bool	EndFrame( bool /*drawn*/ = true )	{	return( true );	};
+			virtual	bool	EndFrame( bool drawn = true )	{	return( drawn );	};
 
 			//	Textures.
 			virtual spCTextureFlat	NewTextureFlat( const uint32 flags = 0 ) = PureVirtual;
 			virtual spCTextureFlat	NewTextureFlat( spCImage _spImage, const uint32 flags = 0 ) = PureVirtual;
 
 			//	Font.
-			virtual	spCBaseFont		NewFont( CFontDescription &_desc ) = PureVirtual;
-			virtual void			Text( spCBaseFont /*_spFont*/, const std::string &/*_text*/, const Base::Math::CVector4 &/*_color*/, const Base::Math::CRect &/*_rect*/, uint32 /*_flags*/ ) {};
+			virtual	spCBaseFont		GetFont( CFontDescription &_desc ) = PureVirtual;
+            virtual spCBaseText     NewText( spCBaseFont _font, const std::string& _text ) = PureVirtual;
+			virtual void			DrawText( spCBaseText _text, const Base::Math::CVector4& _color) = PureVirtual;
 			virtual Base::Math::CVector2	GetTextExtent( spCBaseFont /*_spFont*/, const std::string &/*_text*/ )	{	return Base::Math::CVector2( 0, 0 );	};
 
 			virtual bool HasShaders() { return false; }
 			//	Shaders.
-			virtual	spCShader		NewShader( const char *_pVertexShader, const char *_pFragmentShader ) = PureVirtual;
+            virtual	spCShader		NewShader( const char *_pVertexShader, const char *_pFragmentShader, std::vector<std::pair<std::string, eUniformType>> _uniforms = {} ) = PureVirtual;
 
 			//	Shortcut helper function.
 			void	Orthographic();
@@ -179,7 +184,7 @@ class CRenderer
 			virtual void	DrawLine( const Base::Math::CVector2 &/*_start*/, const Base::Math::CVector2 &/*_end*/, const Base::Math::CVector4 &/*_color*/, const fp4 /*_width = 1.0f*/ ) {};
 			virtual void	DrawRect( const Base::Math::CRect	&/*_rect*/, const Base::Math::CVector4 &/*_color*/, const fp4 /*_width = 1.0f*/ )	{};
 			virtual void	DrawQuad( const Base::Math::CRect	&/*_rect*/, const Base::Math::CVector4 &/*_color*/ ) {};
-			virtual void	DrawQuad( const Base::Math::CRect	&/*_rect*/, const Base::Math::CVector4 &/*_color*/, const Base::Math::CRect &/*_uvRect*/ )	{};
+			virtual void	DrawQuad( const Base::Math::CRect	&/*_rect*/, const Base::Math::CVector4 &/*_color*/, const Base::Math::CRect &/*_uvRect*/)	{};
 			virtual void	DrawSoftQuad( const Base::Math::CRect &/*_rect*/, const Base::Math::CVector4 &/*_color*/, const fp4 /*_width*/ )	{};
 };
 

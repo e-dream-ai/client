@@ -1,10 +1,7 @@
 #import <Cocoa/Cocoa.h>
 #import "Sparkle/Sparkle.h"
 
-@interface ESConfiguration : NSWindowController
-#if defined(MAC_OS_X_VERSION_10_6) && MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_6 
- <NSTextFieldDelegate> 
-#endif
+@interface ESConfiguration : NSWindowController 
 {
     IBOutlet NSMatrix* displayMode;
 	
@@ -25,6 +22,8 @@
 			
     IBOutlet NSTextField* drupalLogin;
     IBOutlet NSSecureTextField* drupalPassword;
+    IBOutlet NSTextField* passwordLabel;
+    IBOutlet NSTextField* emailLabel;
     IBOutlet NSButton* useProxy;
     IBOutlet NSTextField* proxyHost;
     IBOutlet NSTextField* proxyLogin;
@@ -32,9 +31,7 @@
 
 	IBOutlet NSMatrix* cacheType;
 	IBOutlet NSFormCell* cacheSize;
-	IBOutlet NSTextField* contentFldr;	
-	IBOutlet NSButton* enableDownload;
-	IBOutlet NSButton* enableRendering;
+	IBOutlet NSTextField* contentFldr;
 	//IBOutlet NSButton* allCores;
 	IBOutlet NSButton* saveFrames;
 	IBOutlet NSButton* debugLog;
@@ -52,19 +49,19 @@
 	IBOutlet NSTextField* version;	
 	
 	IBOutlet NSTextField* flockSizeText;
-	
-	IBOutlet NSTextField* goldFlockSizeText;
-	
-	IBOutlet NSTextField* totalFlockSizeText;
+
 	
 	IBOutlet NSTextField* loginTestStatusText;
 	
 	IBOutlet NSImageView* loginStatusImage;
 	
 	IBOutlet NSButton* signInButton;
+    
+    IBOutlet NSButton* okButton;
+    IBOutlet NSButton* cancelButton;
 	
-	NSString *m_origNickname;
-	NSString *m_origPassword;
+	NSString* m_origNickname;
+	NSString* m_origPassword;
 	
 	//NSString *m_roleString;
 	
@@ -74,13 +71,14 @@
 	NSImage* yellowImage;
 	NSImage* greenImage;
 	
-	SUUpdater *m_updater;
+	SUUpdater* m_updater;
 	
-	NSTimer *m_checkTimer;
+	NSTimer* m_checkTimer;
 		
 	BOOL m_checkingLogin;
+    BOOL m_loginWasSuccessful;
     
-    NSString *m_redirectServer;
+    NSString* m_redirectServer;
 	
 }
 
@@ -98,7 +96,6 @@
 
 - (void)htmlifyEditFields;
 - (void)fixFlockSize;
-- (NSString*)md5Password;
 - (void)updateMembershipText:(NSString*)role;
 
 - (void)awakeFromNib;

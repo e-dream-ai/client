@@ -42,12 +42,16 @@
 #include	"../msvc/DisplayDD.h"
 #include	"../msvc/RendererDD.h"
 #endif
+#elif defined(MAC) && defined(USE_METAL)
+#include    "DisplayMetal.h"
+#include    "RendererMetal.h"
 #else
 #include	"DisplayGL.h"
 #include	"RendererGL.h"
 #endif
 
 
+#include    "DreamPlaylist.h"
 #include	"lua_playlist.h"
 #include	"Settings.h"
 #include	"ContentDownloader.h"
@@ -111,7 +115,7 @@ void	CPlayer::SetHWND( HWND _hWnd )
 #endif
 
 #ifdef MAC
-bool CPlayer::AddDisplay( CGLContextObj _glContext )
+bool CPlayer::AddDisplay( CGraphicsContext _graphicsContext )
 #else
 #ifdef WIN32
 bool CPlayer::AddDisplay( uint32 screen, IDirect3D9 *_pIDirect3D9, bool _blank)
@@ -133,7 +137,7 @@ bool CPlayer::AddDisplay( uint32 screen )
 		std::string watchFolder = g_Settings()->Get( "settings.content.sheepdir", content ) + "/mpeg/";
 
 		std::vector<std::string> files;
-		m_HasGoldSheep = Base::GetFileList( files,  watchFolder, "avi", true, false );
+		m_HasGoldSheep = Base::GetFileList( files,  watchFolder, ".avi", true, false, true );
 	}
 	// modify aspect ratio and/or window size hint
 	uint32	w = 1280;
@@ -212,32 +216,43 @@ bool CPlayer::AddDisplay( uint32 screen )
 #endif
 		spRenderer = new CRendererDX();
 #else // !WIN32
+    
+#if defined(MAC) && defined(USE_METAL)
+    g_Log->Info( "Attempting to open %s...", CDisplayMetal::Description() );
+    spDisplay = new CDisplayMetal();
+#else
+    g_Log->Info( "Attempting to open %s...", CDisplayGL::Description() );
+    spDisplay = new CDisplayGL();
+#endif
 
-	g_Log->Info( "Attempting to open %s...", CDisplayGL::Description() );
-	spDisplay = new CDisplayGL();
 	if( spDisplay == NULL )
 		return false;
 	
-#ifdef MAC
-	if (_glContext != NULL)
-	{
-		if( !spDisplay->Initialize( _glContext, true ) )
-			return false;
-			
-		spDisplay->ForceWidthAndHeight(w, h);
-	}
+#if defined(MAC)
+    if (_graphicsContext != NULL)
+    {
+        if( !spDisplay->Initialize( _graphicsContext, true ) )
+            return false;
+            
+        spDisplay->ForceWidthAndHeight(w, h);
+    }
 #else
  	if( !spDisplay->Initialize( w, h, m_bFullscreen ) )
 		return false;
-#endif
-	
+#endif //!MAC
+
+#ifdef USE_METAL
+    spRenderer = new CRendererMetal();
+#else
  	spRenderer = new CRendererGL();
 #endif
+    
+#endif //!WIN32
 
 	//	Start renderer & set window title.
 	if (spRenderer->Initialize( spDisplay ) == false)
 		return false;
-	spDisplay->Title( "Electric Sheep" );
+	spDisplay->Title( "e-dream" );
 
 	//	Create frame display.
 	int32 displayMode = g_Settings()->Get( "settings.player.DisplayMode", 2 );
@@ -294,7 +309,7 @@ bool CPlayer::AddDisplay( uint32 screen )
 		
 		if ( m_MultiDisplayMode == kMDIndividualMode && !Stopped() )
 		{
-			du->spDecoder = CreateContentDecoder( true );
+			du->spDecoder = CreateContentDecoder( *m_DownloadSaveMutex, true );
 			du->spDecoder->Start();
 		}
 		
@@ -314,8 +329,9 @@ bool CPlayer::AddDisplay( uint32 screen )
 
 /*
 */
-bool	CPlayer::Startup()
+bool	CPlayer::Startup( boost::shared_mutex& _downloadSaveMutex )
 {
+    m_DownloadSaveMutex = &_downloadSaveMutex;
 	m_DisplayFps = g_Settings()->Get( "settings.player.display_fps", 60. );
 	
 #ifdef HONOR_VBL_SYNC
@@ -346,9 +362,16 @@ bool	CPlayer::Startup()
 
 	//	Create playlist.
 	g_Log->Info( "Creating playlist..." );
-  	m_spPlaylist = new ContentDecoder::CLuaPlaylist(	scriptPath.string(),
-														watchPath.string(),
-														m_UsedSheepType );
+    if (ContentDownloader::Shepherd::useDreamAI())
+    {
+        m_spPlaylist = new ContentDecoder::CDreamPlaylist(watchPath.string());
+    }
+    else
+    {
+        m_spPlaylist = new ContentDecoder::CLuaPlaylist(	scriptPath.string(),
+                                                            watchPath.string(),
+                                                            m_UsedSheepType );
+    }
 
 	//	Create decoder last.
 	g_Log->Info( "Starting decoder..." );
@@ -358,7 +381,7 @@ bool	CPlayer::Startup()
 	return true;
 }
 
-ContentDecoder::CContentDecoder *CPlayer::CreateContentDecoder( bool _bStartByRandom )
+ContentDecoder::CContentDecoder *CPlayer::CreateContentDecoder( boost::shared_mutex& _downloadSaveMutex, bool _bStartByRandom )
 {
 	if ( m_spPlaylist.IsNull() )
 		return NULL;
@@ -380,7 +403,7 @@ ContentDecoder::CContentDecoder *CPlayer::CreateContentDecoder( bool _bStartByRa
 
 #endif
 
-	return new ContentDecoder::CContentDecoder( m_spPlaylist, _bStartByRandom, g_Settings()->Get( "settings.player.CalculateTransitions", true ), (uint32)abs(g_Settings()->Get( "settings.player.BufferLength", 25 )), pf );
+	return new ContentDecoder::CContentDecoder( m_spPlaylist, _bStartByRandom, g_Settings()->Get( "settings.player.CalculateTransitions", true ), (uint32)abs(g_Settings()->Get( "settings.player.BufferLength", 25 )), _downloadSaveMutex, pf);
 }
 
 /*
@@ -424,7 +447,7 @@ void	CPlayer::Start()
 		
 		if ( m_MultiDisplayMode == kMDSharedMode )
 		{
-			m_spDecoder =  CreateContentDecoder( true );
+			m_spDecoder =  CreateContentDecoder( *m_DownloadSaveMutex, true );
 
 			if( !m_spDecoder->Start() )
 				g_Log->Warning( "Nothing to play" );
@@ -438,7 +461,7 @@ void	CPlayer::Start()
 			for ( ; it != m_displayUnits.end(); it++ )
 			{
 				if ((*it)->spDecoder.IsNull())
-					(*it)->spDecoder = CreateContentDecoder( true );
+					(*it)->spDecoder = CreateContentDecoder( *m_DownloadSaveMutex, true );
 					
 				if( !(*it)->spDecoder->Start() )
 					g_Log->Warning( "Nothing to play" );
@@ -569,11 +592,12 @@ bool	CPlayer::EndFrameUpdate()
 		
 		spFD = m_displayUnits[ 0 ]->spFrameDisplay;
 	}
-	
+
+#ifndef USE_METAL
 	fp8 capFPS = spFD->GetFps( m_PlayerFps, m_DisplayFps );
-	
 	if ( !spFD.IsNull() && capFPS > 0.000001)
 		FpsCap( capFPS );
+#endif
 	
 	return true;
 }

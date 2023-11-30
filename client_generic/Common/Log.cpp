@@ -3,6 +3,7 @@
 #include	<string>
 #include	<time.h>
 #include	<sstream>
+#include    <os/signpost.h>
 
 #include	"base.h"
 #include	"Log.h"
@@ -145,10 +146,10 @@ size_t CLog::s_MessageSpamCount = 0;
 
 void	CLog::Log( const char *_pType, /*const char *_file, const uint32 _line, const char *_pFunc,*/ const char *_pStr )
 {
-	//boost::mutex::scoped_lock locker( m_Lock );
+	boost::mutex::scoped_lock locker( m_Lock );
 
-	if (m_pFile == NULL)
-		return;
+	//if (m_pFile == NULL)
+		//return;
 
 	time_t	curTime;
 	time( &curTime );
@@ -213,3 +214,5 @@ void	CLog::Error( const char *_pFmt, ... )	{	grabvarargs	Log( "ERROR", /*m_File.
 void	CLog::Fatal( const char *_pFmt, ... )	{	grabvarargs	Log( "FATAL", /*m_File.c_str(), m_Line, m_Function.c_str(),*/ pTempStr );	}
 
 };
+
+os_log_t g_SignpostHandle = os_log_create("com.spotworks.e-dream.app", OS_LOG_CATEGORY_POINTS_OF_INTEREST);

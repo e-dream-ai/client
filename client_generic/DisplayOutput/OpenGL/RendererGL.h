@@ -73,12 +73,14 @@ class CRendererGL : public CRenderer
 			//
 			spCBaseFont		NewFont( CFontDescription &_desc );
 			void			Text( spCBaseFont _spFont, const std::string &_text, const Base::Math::CVector4 &_color, const Base::Math::CRect &_rect, uint32 _flags );
+            spCBaseText     NewText( spCBaseFont /*_font*/, const std::string& /*_text*/ ) { return NULL; }
 			Base::Math::CVector2	GetTextExtent( spCBaseFont _spFont, const std::string &_text );
 
 			//
-			spCShader		NewShader( const char *_pVertexShader, const char *_pFragmentShader );
+            spCShader        NewShader( const char *_pVertexShader, const char *_pFragmentShader, std::vector<std::pair<std::string, eUniformType>> _uniforms = {} );
 
 			//
+            void    DrawText( spCBaseText /*_text*/, const Base::Math::CVector4& /*_color*/, const Base::Math::CRect& /*_rect*/ ) {}
 			void	DrawQuad( const Base::Math::CRect	&_rect, const Base::Math::CVector4 &_color );
 			void	DrawQuad( const Base::Math::CRect	&_rect, const Base::Math::CVector4 &_color, const Base::Math::CRect &_uvRect );
 			void	DrawSoftQuad( const Base::Math::CRect &_rect, const Base::Math::CVector4 &_color, const fp4 _width );

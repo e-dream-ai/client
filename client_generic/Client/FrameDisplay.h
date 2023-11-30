@@ -41,6 +41,7 @@ class	CFrameDisplay
 		DisplayOutput::spCImage		m_spSecondImageRef;
 		
 		DisplayOutput::spCRenderer	m_spRenderer;
+        DisplayOutput::spCShader    m_spShader;
 
 		//	Dimensions of the display surface.
 		Base::Math::CRect	m_dispSize;
@@ -85,13 +86,22 @@ class	CFrameDisplay
 
 				if (_spTexture.IsNull())
 					_spTexture = m_spRenderer->NewTextureFlat();
-				
+
 				if( _spTexture == NULL )
 					return false;
-				
-				//	Set image texturedata and upload to texture.
-				m_spImageRef->SetStorageBuffer( m_spFrameData->StorageBuffer() );
-				_spTexture->Upload( m_spImageRef );
+                if (m_spFrameData->Frame())
+                {
+                    if (USE_HW_ACCELERATION)
+                    {
+                        _spTexture->BindFrame(m_spFrameData);
+                    }
+                    else
+                    {
+                        //	Set image texturedata and upload to texture.
+                        m_spImageRef->SetStorageBuffer( m_spFrameData->StorageBuffer() );
+                        _spTexture->Upload( m_spImageRef );
+                    }
+                }
 				
 #ifdef FRAME_DIAG
 				g_Log->Info( "Grabbing frame %ld/%ld from %ld (first)...prog - %f, seam - %d", _metadata.m_FrameIdx, _metadata.m_MaxFrameIdx, _metadata.m_SheepID, _metadata.m_TransitionProgress, _metadata.m_IsSeam );
@@ -112,10 +122,19 @@ class	CFrameDisplay
 					
 					if( _spSecondTexture != NULL )
 					{
-						//	Set image texturedata and upload to texture.
-						m_spSecondImageRef->SetStorageBuffer( spSecondFrameData->StorageBuffer() );
-						_spSecondTexture->Upload( m_spSecondImageRef );
-						
+                        if (spSecondFrameData->Frame())
+                        {
+                            if (USE_HW_ACCELERATION)
+                            {
+                                _spSecondTexture->BindFrame(spSecondFrameData);
+                            }
+                            else
+                            {
+                                //    Set image texturedata and upload to texture.
+                                m_spSecondImageRef->SetStorageBuffer( spSecondFrameData->StorageBuffer() );
+                                _spSecondTexture->Upload( m_spSecondImageRef );
+                            }
+                        }
 #ifdef FRAME_DIAG
 						ContentDecoder::sMetaData tmpMetaData;
 						
@@ -197,6 +216,11 @@ class	CFrameDisplay
                 m_LastTexMoveClock = -1;
                 m_CurTexMoveOff = 0;
                 m_CurTexMoveDir = 1.;
+#ifdef USE_METAL
+                m_spShader = m_spRenderer->NewShader("quadPassVertex", "drawDecodedFrameNoBlendingFragment");
+#else
+                m_spShader = NULL;
+#endif
 			}
 
 			virtual ~CFrameDisplay()
@@ -261,28 +285,28 @@ class	CFrameDisplay
 				
 				if ( m_spVideoTexture.IsNull() )
 					return false;
-
-				//	Bind texture and render a quad covering the screen.
-				m_spRenderer->SetBlend( "alphablend" );
-				m_spRenderer->SetTexture( m_spVideoTexture, 0 );
+                
+                m_spRenderer->SetShader( m_spShader );
+                //    Bind texture and render a quad covering the screen.
+                m_spRenderer->SetBlend( "alphablend" );
+                m_spRenderer->SetTexture( m_spVideoTexture, 0 );
 				m_spRenderer->Apply();
 
                 //UpdateInterframeDelta( _decodeFps );
-				
-				fp4 transCoef = m_MetaData.m_TransitionProgress / 100.0f;
+                fp4 transCoef = m_MetaData.m_TransitionProgress / 100.0f;
 
                 UpdateTexRect( m_spVideoTexture->GetRect() );
                 
                 m_spRenderer->DrawQuad( m_texRect, Base::Math::CVector4( 1,1,1, currentalpha * (1.0f - transCoef) ), m_spVideoTexture->GetRect() );
-				
-				if (!m_spSecondVideoTexture.IsNull())
-				{
-					//	Bind the second texture and render a quad covering the screen.
-					m_spRenderer->SetTexture( m_spSecondVideoTexture, 0 );
-					m_spRenderer->Apply();
+                
+                if (!m_spSecondVideoTexture.IsNull())
+                {
+                    //    Bind the second texture and render a quad covering the screen.
+                    m_spRenderer->SetTexture( m_spSecondVideoTexture, 0 );
+                    m_spRenderer->Apply();
                     
                     m_spRenderer->DrawQuad( m_texRect, Base::Math::CVector4( 1,1,1, currentalpha * transCoef ), m_spVideoTexture->GetRect() );
-				}
+                }
 
 				return true;
 			}

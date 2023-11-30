@@ -3,6 +3,12 @@
 
 #include	<map>
 #include	<vector>
+
+
+#pragma comment(lib, "wldap32.lib" )
+#pragma comment(lib, "crypt32.lib" )
+#pragma comment(lib, "Ws2_32.lib")
+
 #include	<curl/curl.h>
 #include	<curl/easy.h>
 #include	<curl/multi.h>
@@ -39,8 +45,9 @@ class	CCurlTransfer
 	std::vector< uint32 > m_AllowedResponses;
 
 	protected:
-		CURL		*m_pCurl;
-		CURLM		*m_pCurlM;
+		CURL		        *m_pCurl;
+		CURLM		        *m_pCurlM;
+        struct curl_slist* m_Headers = NULL;
 
 		bool	Verify( CURLcode _code );
 		bool	VerifyM( CURLMcode _code );
@@ -51,6 +58,8 @@ class	CCurlTransfer
 		virtual ~CCurlTransfer();
 
 		static int32 customProgressCallback( void *_pUserData, fp8 _downTotal, fp8 _downNow, fp8 _upTotal, fp8 _upNow );
+        
+        virtual void    AppendHeader(const std::string& header);
 
 		virtual bool	InterruptiblePerform();
 		
@@ -75,7 +84,8 @@ class	CFileDownloader : public CCurlTransfer
 
 		CFileDownloader( const std::string &_name );
 		virtual ~CFileDownloader();
-
+    
+        bool    SetPostFields(const char* postFields);
 		virtual bool	Perform( const std::string &_url );
 		bool	Save( const std::string &_output );
 

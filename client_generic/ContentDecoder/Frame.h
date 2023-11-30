@@ -28,14 +28,6 @@
 #include	"linkpool.h"
 #include	"AlignedBuffer.h"
 
-#if defined(LIBAVCODEC_VERSION_INT) && (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(55,28,1))
-#define USE_NEW_FFMPEG_ALLOC_API
-#endif
-
-#if defined(MAC) || (defined(WIN32) && defined(_MSC_VER)) 
-#define USE_NEW_FFMPEG_API
-#endif
-
 namespace ContentDecoder
 {
 class CVideoFrame;
@@ -72,7 +64,7 @@ class CVideoFrame
 		sMetaData m_MetaData;
 
 		Base::spCAlignedBuffer m_spBuffer;
-		AVFrame		*m_pFrame;
+        AVFrame        *m_pFrame;
 
 	public:
 		CVideoFrame( AVCodecContext *_pCodecContext, AVPixelFormat _format, std::string _filename ) : m_pFrame(NULL)
@@ -94,31 +86,53 @@ class CVideoFrame
 				m_Width = static_cast<uint32>(_pCodecContext->width);
 				m_Height = static_cast<uint32>(_pCodecContext->height);
 
-
-#ifdef USE_NEW_FFMPEG_ALLOC_API
                 m_pFrame = av_frame_alloc();
-#else
-                m_pFrame = avcodec_alloc_frame();
-#endif
 				
 				if (m_pFrame != NULL)
 				{
-					int32 numBytes = avpicture_get_size( _format, _pCodecContext->width, _pCodecContext->height );
-					m_spBuffer = new Base::CAlignedBuffer( static_cast<uint32>(numBytes) * sizeof(uint8) );
-					avpicture_fill( (AVPicture *)m_pFrame, m_spBuffer->GetBufferPtr(), _format, _pCodecContext->width, _pCodecContext->height );
+                    int numBytes = av_image_get_buffer_size(_format, _pCodecContext->width, _pCodecContext->height, 1);
+                    m_spBuffer = new Base::CAlignedBuffer(static_cast<uint32>(numBytes) * sizeof(uint8));
+                    uint8_t* buffer = m_spBuffer->GetBufferPtr();
+                    int width = _pCodecContext->width;
+                    int height = _pCodecContext->height;
+                    
+                    int ret = av_image_fill_arrays(m_pFrame->data, m_pFrame->linesize, buffer, _format, width, height, 1);
+                    if (ret < 0)
+                        g_Log->Error( "av_image_copy_to_buffer error %i", ret );
+                    
 				} else
 					g_Log->Error( "m_pFrame == NULL" );
+
 			}
+    
+            CVideoFrame(const AVFrame* _pFrame, std::string _filename)
+            {
+                m_pFrame = av_frame_alloc();
+                av_frame_ref(m_pFrame, _pFrame);
+                m_MetaData.m_Fade = 1.f;
+                m_MetaData.m_FileName = _filename;
+                m_MetaData.m_LastAccessTime = 0;
+                m_MetaData.m_SheepID = 0;
+                m_MetaData.m_SheepGeneration = 0;
+                m_MetaData.m_IsEdge = false;
+                m_MetaData.m_IsSeam = false;
+                m_MetaData.m_SecondFrame = NULL;
+                m_MetaData.m_TransitionProgress = 0.f;
+                m_Width = static_cast<uint32>(_pFrame->width);
+                m_Height = static_cast<uint32>(_pFrame->height);
+                
+                if (m_pFrame == NULL)
+                {
+                    g_Log->Error( "m_pFrame == NULL" );
+                }
+            }
 
 			virtual ~CVideoFrame()
 			{
 				if( m_pFrame )
 				{
-#ifdef USE_NEW_FFMPEG_ALLOC_API
-                    av_frame_free( &m_pFrame );
-#else
-					avcodec_free_frame( &m_pFrame );
-#endif
+                    av_frame_unref(m_pFrame);
+                    av_frame_free(&m_pFrame);
 				}
             }
 

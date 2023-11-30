@@ -39,6 +39,7 @@
 #include "Shepherd.h"
 #include "SheepDownloader.h"
 #include "SheepGenerator.h"
+#include "EDreamClient.h"
 #include "md5.h"
 
 namespace ContentDownloader
@@ -98,6 +99,7 @@ boost::mutex	Shepherd::s_ComputeServerNameMutex;
 bool Shepherd::fShutdown = false;
 int Shepherd::fChangeRes = 0;
 int Shepherd::fChangingRes = 0;
+bool Shepherd::fUseDreamAI = true;
 
 time_t Shepherd::s_LastRequestTime = 0;
 
@@ -128,6 +130,7 @@ void Shepherd::initializeShepherd(/*HINSTANCE hInst, HWND hWnd*/)
 {
 	SheepDownloader::initializeDownloader();
 	SheepGenerator::initializeGenerator();
+    EDreamClient::InitializeClient();
 
 	totalRenderedFrames = new boost::detail::atomic_count((int)(int32)g_Settings()->Get( "settings.generator.totalFramesRendered", 0 ));
 	renderingFrames = new boost::detail::atomic_count(0);
@@ -621,6 +624,7 @@ bool	Shepherd::getClientFlock(SheepArray *sheep)
 	
 	uint64 clientFlockGoldBytes = 0;
 	uint64 clientFlockGoldCount = 0;
+    const SheepArray& serverFlock = SheepDownloader::getServerFlock();
 
 	SheepArray::iterator iter;
 	for (iter = sheep->begin(); iter != sheep->end(); ++iter )
@@ -629,7 +633,7 @@ bool	Shepherd::getClientFlock(SheepArray *sheep)
 	sheep->clear();
 
 	//	Get the sheep in fMpegPath.
-	getSheep( mpegPath(), sheep );
+	getSheep( mpegPath(), sheep, serverFlock );
 	for (iter = sheep->begin(); iter != sheep->end(); ++iter )
 	{
 		if ((*iter)->getGenerationType() == 0)
@@ -656,11 +660,70 @@ bool	Shepherd::getClientFlock(SheepArray *sheep)
 
 using namespace boost::filesystem;
 
+static bool tryParseLegacySheepFile(
+    const string& fname,
+    const boost::filesystem::path& root,
+    const boost::filesystem::path& subPath,
+    uint32& id,
+    uint32& first,
+    uint32& last,
+    uint32& generation,
+    bool& isTemp,
+    bool& isDeleted)
+{
+    if( Shepherd::filenameIsXxx( fname.c_str() ) )
+    {
+        //    We have found an mpeg so check the filename to see if it is valid than add it
+        if( 4 != sscanf( fname.c_str(), "%d=%d=%d=%d.xxx", &generation, &id, &first, &last ) )
+        {
+            //    This file is from the older format so delete it from the cache.
+            remove(subPath);
+            return false;
+        }
+
+        isDeleted = true;
+    }
+    else if( Shepherd::filenameIsTmp( fname.c_str() ) )
+    {
+        //    This file is an unfinished downloaded file so mark it for deletion.
+        if( 4 != sscanf( fname.c_str(), "%d=%d=%d=%d.avi.tmp", &generation, &id, &first, &last ) )
+        {
+            //    This file is from the older format so delete it from the cache.
+            remove(subPath);
+            return false;
+        }
+        isTemp = true;
+    }
+    else if( Shepherd::filenameIsMpg( fname.c_str() ) )
+    {
+        //    We have found an mpeg so check the filename to see if it is valid than add it
+        if( 4 != sscanf( fname.c_str(), "%d=%d=%d=%d.avi", &generation, &id, &first, &last ) )
+        {
+            //    This file is from the older format so delete it from the cache.
+            remove(subPath);
+            return false;
+        }
+        
+        std::string xxxname(fname);
+        xxxname.replace(fname.size() - 3, 3, "xxx");
+        
+        if ( exists( root/xxxname ) )
+        {
+            isDeleted = true;
+        }
+    }
+    else
+    {
+        //    Not a recognizable file skip it.
+        return false;
+    }
+}
+
 /*
 	getSheep().
 	Recursively loops through all files in the path looking for sheep.
 */
-bool Shepherd::getSheep( const char *path, SheepArray *sheep )
+bool Shepherd::getSheep(const char *path, SheepArray* sheep, const SheepArray& serverFlock)
 {
 	bool gotSheep = false;
 	char fbuf[ MAXBUF ];
@@ -682,7 +745,7 @@ bool Shepherd::getSheep( const char *path, SheepArray *sheep )
 
 		if (is_directory(itr->status()))
 		{
-			bool gotSheepSubfolder = getSheep( (char*)(itr->path().string() + std::string("/")).c_str(), sheep );
+			bool gotSheepSubfolder = getSheep( (char*)(itr->path().string() + std::string("/")).c_str(), sheep, serverFlock );
 			gotSheep |= gotSheepSubfolder;
 
 			if (!gotSheepSubfolder)
@@ -690,76 +753,51 @@ bool Shepherd::getSheep( const char *path, SheepArray *sheep )
 		}
 		else
 		{
-			std::string fname(itr->path().filename().string());
+            auto fileName = itr->path().filename();
 
-			if( Shepherd::filenameIsXxx( fname.c_str() ) )
-			{
-				//	We have found an mpeg so check the filename to see if it is valid than add it
-				if( 4 != sscanf( fname.c_str(), "%d=%d=%d=%d.xxx", &generation, &id, &first, &last ) )
-				{
-					//	This file is from the older format so delete it from the cache.
-					remove(itr->path());
-					continue;
-				}
+            if (!Shepherd::useDreamAI())
+            {
+                std::string fname(fileName.string());
+                if (!tryParseLegacySheepFile(fname, p, itr->path(), id, first, last, generation, isTemp, isDeleted))
+                    continue;
+                //    Allocate the sheep and set the attributes.
+                Dream *newSheep = new Dream();
+                newSheep->setGeneration( generation );
+                newSheep->setId( id );
+                newSheep->setFirstId( first );
+                newSheep->setLastId( last );
+                newSheep->setIsTemp( isTemp );
+                newSheep->setDeleted( isDeleted );
 
-				isDeleted = true;
-			}
-			else if( Shepherd::filenameIsTmp( fname.c_str() ) )
-			{
-				//	This file is an unfinished downloaded file so mark it for deletion.
-				if( 4 != sscanf( fname.c_str(), "%d=%d=%d=%d.avi.tmp", &generation, &id, &first, &last ) )
-				{
-					//	This file is from the older format so delete it from the cache.
-					remove(itr->path());
-					continue;
-				}
-				isTemp = true;
-			}
-			else if( Shepherd::filenameIsMpg( fname.c_str() ) )
-			{
-				//	We have found an mpeg so check the filename to see if it is valid than add it
-				if( 4 != sscanf( fname.c_str(), "%d=%d=%d=%d.avi", &generation, &id, &first, &last ) )
-				{
-					//	This file is from the older format so delete it from the cache.
-					remove(itr->path());
-					continue;
-				}
-				
-				std::string xxxname(fname);
-				xxxname.replace(fname.size() - 3, 3, "xxx");
-				
-				if ( exists( p/xxxname ) )
-				{
-					isDeleted = true;
-				}
-			}
-			else
-			{
-				//	Not a recognizable file skip it.
-				continue;
-			}
+                //    Set the filename.
+                snprintf( fbuf, MAXBUF, "%s%s", path,  fname.c_str() );
+                newSheep->setFileName( fbuf );
+                struct stat sbuf;
 
-			//	Allocate the sheep and set the attributes.
-			Sheep *newSheep = new Sheep();
-			newSheep->setGeneration( generation );
-			newSheep->setId( id );
-			newSheep->setFirstId( first );
-			newSheep->setLastId( last );
-			newSheep->setIsTemp( isTemp );
-			newSheep->setDeleted( isDeleted );
+                stat( fbuf, &sbuf );
+                newSheep->setFileWriteTime( sbuf.st_ctime );
+                newSheep->setFileSize( static_cast<uint64>(sbuf.st_size) );
 
-			//	Set the filename.
-			snprintf( fbuf, MAXBUF, "%s%s", path,  fname.c_str() );
-			newSheep->setFileName( fbuf );
-			struct stat sbuf;
-
-			stat( fbuf, &sbuf );
-			newSheep->setFileWriteTime( sbuf.st_ctime );
-			newSheep->setFileSize( static_cast<uint64>(sbuf.st_size) );
-
-			//	Add it to the return array.
-			sheep->push_back( newSheep );
-			gotSheep = true;
+                //    Add it to the return array.
+                sheep->push_back( newSheep );
+                gotSheep = true;
+            }
+            else
+            {
+                if (fileName.extension() == ".mp4")
+                {
+                    std::string uuid = fileName.stem().string();
+                    Dream* serverSheep = nullptr;
+                    if (serverFlock.tryGetSheepWithUuid(uuid, serverSheep))
+                    {
+                        Dream* newSheep = new Dream(*serverSheep);
+                        newSheep->setFileName(itr->path().c_str());
+                        newSheep->setFileSize(boost::filesystem::file_size(itr->path()));
+                        sheep->push_back(newSheep);
+                        gotSheep = true;
+                    }
+                }
+            }
 		}
 	}
 

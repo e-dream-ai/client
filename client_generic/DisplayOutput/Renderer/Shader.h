@@ -28,6 +28,25 @@ enum	eUniformType	{
 	eUniform_NumUniformTypes,
 };
 
+// Corresponding array with sizes
+const std::size_t UniformTypeSizes[eUniform_NumUniformTypes] = {
+    sizeof(float),      // eUniform_Float
+    sizeof(float) * 2,  // eUniform_Float2
+    sizeof(float) * 3,  // eUniform_Float3
+    sizeof(float) * 4,  // eUniform_Float4
+    sizeof(int),        // eUniform_Int
+    sizeof(int) * 2,     // eUniform_Int2
+    sizeof(int) * 3,     // eUniform_Int3
+    sizeof(int) * 4,     // eUniform_Int4
+    sizeof(bool),       // eUniform_Boolean
+    sizeof(bool) * 2,    // eUniform_Boolean2
+    sizeof(bool) * 3,    // eUniform_Boolean3
+    sizeof(bool) * 4,    // eUniform_Boolean4
+    sizeof(float) * 4,   // eUniform_Matrix2
+    sizeof(float) * 9,   // eUniform_Matrix3
+    sizeof(float) * 16,  // eUniform_Matrix4
+    sizeof(int),         // eUniform_Sampler (assuming int for simplicity)
+};
 
 /*
 	CShaderUniform.
@@ -61,7 +80,7 @@ class CShader
 		std::map< std::string, spCShaderUniform > m_Uniforms;
 		std::map< std::string, spCShaderUniform > m_Samplers;
 
-		spCShaderUniform	Uniform( const std::string _name ) const
+		virtual spCShaderUniform	Uniform( const std::string _name ) const
 		{
 			spCShaderUniform ret = NULL;
 
@@ -90,7 +109,7 @@ class CShader
 
 			virtual bool	Build( const char *_pVertexShader, const char *_pFragmentShader ) = PureVirtual;
 
-			bool	Set( const std::string _name, const int32 _value ) const
+            bool	Set( const std::string _name, const int32 _value )
 			{
 				spCShaderUniform spUniform = Uniform( _name );
 				if( spUniform != NULL )
@@ -102,7 +121,7 @@ class CShader
 				return false;
 			}
 
-			bool	Set( const std::string _name, const fp4 _value ) const
+            bool	Set( const std::string _name, const fp4 _value )
 			{
 				spCShaderUniform spUniform = Uniform( _name );
 				if( spUniform != NULL )
@@ -114,7 +133,7 @@ class CShader
 				return false;
 			}
 
-			bool	Set( const std::string _name, const fp4 _x, const fp4 _y, const fp4 _z, const fp4 _w ) const
+            bool	Set( const std::string _name, const fp4 _x, const fp4 _y, const fp4 _z, const fp4 _w )
 			{
 				spCShaderUniform spUniform = Uniform( _name );
 				if( spUniform != NULL )

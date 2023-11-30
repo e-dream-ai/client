@@ -21,6 +21,7 @@ class	CServerMessage : public CConsole
 {
 	std::string	m_Message;
 	DisplayOutput::CFontDescription m_Desc;
+    DisplayOutput::spCBaseText        m_spText;
 	fp4 m_MoveMessageCounter;
 
 	public:
@@ -32,12 +33,13 @@ class	CServerMessage : public CConsole
 				m_Desc.Height( _fontHeight );
 				m_Desc.Style( DisplayOutput::CFontDescription::Normal );
 				m_Desc.Italic( false );
-				m_Desc.TypeFace( "Trebuchet MS" );
+				m_Desc.TypeFace( "Lato" );
 
 				size_t offs = _msg.find_last_of( '\n', _msg.size() );
 				m_Message = _msg.substr( 0, offs );
 
-				m_spFont = g_Player().Renderer()->NewFont( m_Desc );
+				m_spFont = g_Player().Renderer()->GetFont( m_Desc );
+                m_spText = g_Player().Renderer()->NewText( m_spFont, _msg );
 				m_MoveMessageCounter = 0.;
 			}
 
@@ -47,6 +49,12 @@ class	CServerMessage : public CConsole
 
 			//	Override to make it always visible.
 			virtual bool	Visible() const	{	return true;	};
+            
+            virtual void Visible(const bool _bState) override
+            {
+                CHudEntry::Visible(_bState);
+                m_spText->SetEnabled(_bState);
+            }
 
 			//
 			bool	Render( const fp8 _time, DisplayOutput::spCRenderer _spRenderer )
@@ -66,7 +74,7 @@ class	CServerMessage : public CConsole
 
 				//	Figure out text extent for all strings.
 				Base::Math::CRect	extent;
-				Base::Math::CVector2 size = g_Player().Renderer()->GetTextExtent( m_spFont, m_Message );
+                Base::Math::CVector2 size = m_spText->GetExtent();
 				extent = extent.Union( Base::Math::CRect( 0, 0, size.m_X+(edge*2), size.m_Y+(edge*2) ) );
 
 				boost::posix_time::time_duration td = boost::posix_time::second_clock::local_time() - m_ServerMessageStartTimer;
@@ -89,8 +97,8 @@ class	CServerMessage : public CConsole
 				//dasvo - terrible hack - redo!!
 				if (!m_spFont.IsNull())
 					m_spFont->Reupload();
-
-				g_Player().Renderer()->Text( m_spFont, m_Message, Base::Math::CVector4( 1, 1, 1, 1 ), Base::Math::CRect( r.m_X0+edge, r.m_Y0+edge, r.m_X1, r.m_Y1 ), 0 );
+                m_spText->SetRect(Base::Math::CRect( r.m_X0+edge, r.m_Y0+edge, r.m_X1, r.m_Y1 ));
+                g_Player().Renderer()->DrawText( m_spText, Base::Math::CVector4( 1, 1, 1, 1 ));
 
 				return true;
 			}

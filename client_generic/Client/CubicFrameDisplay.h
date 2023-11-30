@@ -164,10 +164,22 @@ class	CCubicFrameDisplay : public CFrameDisplay
 
 
 				//	Compile the shader.
-				if( _spRenderer->Type() == DisplayOutput::eDX9 )
-					m_spShader = _spRenderer->NewShader( cubic_vertexshader, cubic_fragmentshaderDX );
-				else
-					m_spShader = _spRenderer->NewShader( NULL, ( _spRenderer->GetTextureTargetType() == DisplayOutput::eTexture2DRect ) ? cubic_fragmentshaderGL2DRect : cubic_fragmentshaderGL2D );
+                switch (_spRenderer->Type())
+                {
+                    case DisplayOutput::eDX9:
+                        m_spShader = _spRenderer->NewShader( cubic_vertexshader, cubic_fragmentshaderDX );
+                        break;
+                    case DisplayOutput::eGL:
+                        m_spShader = _spRenderer->NewShader( NULL, ( _spRenderer->GetTextureTargetType() == DisplayOutput::eTexture2DRect ) ? cubic_fragmentshaderGL2DRect : cubic_fragmentshaderGL2D );
+                        break;
+                    case DisplayOutput::eMetal:
+                        m_spShader = _spRenderer->NewShader( "quadPassVertex", "drawDecodedFrameCubicFrameBlendFragment", {
+                            {"weights", DisplayOutput::eUniform_Float4},
+                            {"newalpha", DisplayOutput::eUniform_Float},
+                            {"transPct", DisplayOutput::eUniform_Float}
+                        } );
+                        break;
+                }
 
 				if( !m_spShader )
 					m_bValid = false;
@@ -337,11 +349,11 @@ class	CCubicFrameDisplay : public CFrameDisplay
 					const fp4 C = 0.0f;
 
 					//	Set the filter weights...
-					m_spShader->Set( "weights", MitchellNetravali( fp4(m_InterframeDelta) + 1.f, B, C ), MitchellNetravali( fp4(m_InterframeDelta), B, C ),
+                    m_spShader->Set( "weights", MitchellNetravali( fp4(m_InterframeDelta) + 1.f, B, C ), MitchellNetravali( fp4(m_InterframeDelta), B, C ),
 												MitchellNetravali( 1.f - fp4(m_InterframeDelta), B, C ), MitchellNetravali( 2.f - fp4(m_InterframeDelta), B, C ) );
 					m_spShader->Set( "newalpha", currentalpha);
 					
-					m_spShader->Set( "transPct", m_MetaData.m_TransitionProgress);
+					m_spShader->Set( "transPct", m_MetaData.m_TransitionProgress );
 
 					m_spRenderer->SetBlend( "alphablend" );
 					m_spRenderer->Apply();

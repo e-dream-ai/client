@@ -1,0 +1,36 @@
+﻿cl : command line  warning D9035: option 'Gm' has been deprecated and will be removed in a future release
+  lzio.c
+  lvm.c
+  lundump.c
+  ltm.c
+  ltablib.c
+  ltable.c
+  lstrlib.c
+  lstring.c
+  lstate.c
+  lparser.c
+  loslib.c
+  lopcodes.c
+  lobject.c
+  loadlib.c
+  lmem.c
+  lmathlib.c
+  llex.c
+  liolib.c
+  linit.c
+  lgc.c
+  Generating Code...
+  Compiling...
+  lfunc.c
+  ldump.c
+  ldo.c
+  ldebug.c
+  ldblib.c
+  lcode.c
+  lbaselib.c
+  lauxlib.c
+  lapi.c
+  Generating Code...
+C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.CppBuild.targets(1556,5): warning MSB8012: TargetPath(C:\Users\hencz\Documents\GitHub\e-dream-ai-client\client_generic\lua5.1\lib\static\lua5.1_libd.lib) does not match the Library's OutputFile property value (C:\Users\hencz\Documents\GitHub\e-dream-ai-client\client_generic\lua5.1\lib\static\lua5.1d.lib). This may cause your project to build incorrectly. To correct this, please make sure that $(OutDir), $(TargetName) and $(TargetExt) property values match the value specified in %(Lib.OutputFile).
+C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.CppBuild.targets(1558,5): warning MSB8012: TargetName(lua5.1_libd) does not match the Library's OutputFile property value (lua5.1d). This may cause your project to build incorrectly. To correct this, please make sure that $(OutDir), $(TargetName) and $(TargetExt) property values match the value specified in %(Lib.OutputFile).
+  lua5.1_lib.vcxproj -> C:\Users\hencz\Documents\GitHub\e-dream-ai-client\client_generic\lua5.1\lib\static\lua5.1_libd.lib

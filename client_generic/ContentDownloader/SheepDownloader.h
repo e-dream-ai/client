@@ -28,7 +28,7 @@
 #else
 #include "expat.h"
 #endif
-#include "Sheep.h"
+#include "Dream.h"
 #include "Networking.h"
 
 namespace ContentDownloader
@@ -45,8 +45,8 @@ class SheepDownloader
 	static int fDownloadedSheep;
 
 	// sheep flocks
-	SheepArray fServerFlock;
-	SheepArray fClientFlock;
+	static SheepArray fServerFlock;
+	static SheepArray fClientFlock;
 	SheepRenderer *fRenderer;
 
 	// boolean for message checks
@@ -62,11 +62,12 @@ class SheepDownloader
 	Network::spCFileDownloader m_spSheepDownloader;
 	
 	boost::mutex m_AbortMutex;
+    boost::shared_mutex& m_DownloadSaveMutex;
 	
 	protected:
 
 		//	Downloads the given sheep and queues it up for rendering.
-		bool downloadSheep( Sheep *sheep );
+		bool downloadSheep( Dream *sheep );
 
 		//	Function to parse the cache and find a sheep to download.
 		void findSheepToDownload();
@@ -109,14 +110,14 @@ class SheepDownloader
 		//	Function to initialize the downloader threads
 		static void initializeDownloader();
 
-		void deleteSheep(Sheep *sheep);
+		void deleteSheep(Dream *sheep);
 
 		static bool fGotList;
 		
 		static bool fListDirty;
 
 	public:
-			SheepDownloader();
+			SheepDownloader( boost::shared_mutex& _downloadSaveMutex );
 			virtual ~SheepDownloader();
 
 			static void shepherdCallback(void* data);
@@ -126,6 +127,8 @@ class SheepDownloader
 			static uint32 currentGeneration() { return fCurrentGeneration; }
 
 			static bool getSheepList();
+            static const SheepArray& getServerFlock() { return fServerFlock; }
+            static const SheepArray& getClientFlock() { return fClientFlock; }
 
 
 			// add to the number of downloaded sheep (called by torrent)

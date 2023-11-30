@@ -118,7 +118,7 @@ class	CElectricSheep_Win32 : public CElectricSheep
 	}
 
 	public:
-			CElectricSheep_Win32() : CElectricSheep(), g_SingleInstanceObj( "Global\\{"CLIENT_VERSION_PRETTY"}" ), m_bAllowFKey(false), m_pD3D9(NULL)
+		    CElectricSheep_Win32() : CElectricSheep(), g_SingleInstanceObj("Global\\{" CLIENT_VERSION_PRETTY "}"), m_bAllowFKey(false), m_pD3D9(NULL)
 			{
 				printf( "CElectricSheep_Win32()\n" );
 

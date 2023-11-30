@@ -1,0 +1,357 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Bucket
+   uuid = "1C0D9BF5-EC7D-4F63-B40F-05CE9353E6DB"
+   type = "1"
+   version = "2.0">
+   <Breakpoints>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "09E0B071-B6B4-470E-8366-16A47632A010"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "../ContentDecoder/ContentDecoder.cpp"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "930"
+            endingLineNumber = "930"
+            landmarkName = "CContentDecoder::Frame()"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "5D344C72-1E93-48A7-B16C-1B57757C3CD2"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "../DisplayOutput/Metal/RendererMetal.mm"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "403"
+            endingLineNumber = "403"
+            landmarkName = "CRendererMetal::DrawQuad(_rect, _color, _uvrect, crossfadeRatio)"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "5D344C72-1E93-48A7-B16C-1B57757C3CD2 - e90377fc646a336f"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "DisplayOutput::CRendererMetal::DrawQuad(Base::Math::CRect const&amp;, Base::Math::Base::Math::CVector4_x86 const&amp;, Base::Math::CRect const&amp;, float)"
+                  moduleName = "Electric Sheep"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/tiborhencz/Documents/GitHub/client/client_generic/DisplayOutput/Metal/RendererMetal.mm"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "404"
+                  endingLineNumber = "404"
+                  offsetFromSymbolStart = "2268">
+               </Location>
+               <Location
+                  uuid = "5D344C72-1E93-48A7-B16C-1B57757C3CD2 - e90377fc646a309f"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "DisplayOutput::CRendererMetal::DrawQuad(Base::Math::CRect const&amp;, Base::Math::Base::Math::CVector4_x86 const&amp;, Base::Math::CRect const&amp;, float)"
+                  moduleName = "Electric Sheep"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/tiborhencz/Documents/GitHub/client/client_generic/DisplayOutput/Metal/RendererMetal.mm"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "420"
+                  endingLineNumber = "420"
+                  offsetFromSymbolStart = "768">
+               </Location>
+               <Location
+                  uuid = "5D344C72-1E93-48A7-B16C-1B57757C3CD2 - e90377fc646a309f"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "DisplayOutput::CRendererMetal::DrawQuad(Base::Math::CRect const&amp;, Base::Math::Base::Math::CVector4_x86 const&amp;, Base::Math::CRect const&amp;, float)"
+                  moduleName = "Electric Sheep"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/tiborhencz/Documents/GitHub/client/client_generic/DisplayOutput/Metal/RendererMetal.mm"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "420"
+                  endingLineNumber = "420"
+                  offsetFromSymbolStart = "780">
+               </Location>
+               <Location
+                  uuid = "5D344C72-1E93-48A7-B16C-1B57757C3CD2 - e90377fc646a328e"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "DisplayOutput::CRendererMetal::DrawQuad(Base::Math::CRect const&amp;, Base::Math::Base::Math::CVector4_x86 const&amp;, Base::Math::CRect const&amp;, float)"
+                  moduleName = "Electric Sheep"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/tiborhencz/Documents/GitHub/client/client_generic/DisplayOutput/Metal/RendererMetal.mm"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "405"
+                  endingLineNumber = "405"
+                  offsetFromSymbolStart = "2268">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "958676C2-51CA-4FF1-80D3-BFF5C3F8DC3E"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "../DisplayOutput/Metal/MetalShaders.metal"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "85"
+            endingLineNumber = "85"
+            landmarkName = "texture_fragment_YUV(ColorInOut vert [[stage_in]], texture2d&lt;float, access::sample&gt; yTexture1 [[texture(0)]], texture2d&lt;float, access::sample&gt; uvTexture1 [[texture(1)]], texture2d&lt;float, access::sample&gt; yTexture2 [[texture(2)]], texture2d&lt;float, access::sample&gt; uvTexture2 [[texture(3)]], constant QuadUniforms &amp;uniforms [[buffer(0)]])"
+            landmarkType = "9">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "BD450E9A-AD70-4635-B493-87F800E7979C"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "../Client/Hud.cpp"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "60"
+            endingLineNumber = "60"
+            landmarkName = "CHudManager::Render(_spRenderer)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "EC524312-9167-4CE3-A539-BE1F8652E733"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "../DisplayOutput/Metal/RendererMetal.mm"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "290"
+            endingLineNumber = "290"
+            landmarkName = "CRendererMetal::DrawText(_text, _color, _rect)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "CB1493E3-85B5-4347-85CE-EE45DD14E4D4"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "../Client/FrameDisplay.h"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "315"
+            endingLineNumber = "315"
+            landmarkName = "GetFps(, _displayFps)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "2332ADCF-778A-49EE-9273-A3F86B32EE5E"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "../Client/FrameDisplay.h"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "270"
+            endingLineNumber = "270"
+            landmarkName = "Update(_spDecoder, _decodeFps, fp8, _metadata)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "72DF2A98-C48D-429E-A973-4A7622252765"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "ESConfiguration.mm"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "386"
+            endingLineNumber = "386"
+            landmarkName = "-startTest:"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "72DF2A98-C48D-429E-A973-4A7622252765 - d2821f09951f670d"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "__29-[ESConfiguration startTest:]_block_invoke_2"
+                  moduleName = "Electric Sheep"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/tiborhencz/Documents/GitHub/client/client_generic/MacBuild/ESConfiguration.mm"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "386"
+                  endingLineNumber = "386"
+                  offsetFromSymbolStart = "812">
+               </Location>
+               <Location
+                  uuid = "72DF2A98-C48D-429E-A973-4A7622252765 - d2821f09951f670d"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "__29-[ESConfiguration startTest:]_block_invoke_2"
+                  moduleName = "Electric Sheep"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/tiborhencz/Documents/GitHub/client/client_generic/MacBuild/ESConfiguration.mm"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "386"
+                  endingLineNumber = "386"
+                  offsetFromSymbolStart = "852">
+               </Location>
+               <Location
+                  uuid = "72DF2A98-C48D-429E-A973-4A7622252765 - d2821f09951f670d"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "__29-[ESConfiguration startTest:]_block_invoke_2"
+                  moduleName = "Electric Sheep"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/tiborhencz/Documents/GitHub/client/client_generic/MacBuild/ESConfiguration.mm"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "386"
+                  endingLineNumber = "386"
+                  offsetFromSymbolStart = "784">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "509185A3-C145-41C4-9424-5963A4CE60C2"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "../Networking/EDreamClient.cpp"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "57"
+            endingLineNumber = "57"
+            landmarkName = "EDreamClient::InitializeClient()"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "9475A3B0-2F02-4027-B7FE-6F7FE0386AB3"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "../Networking/EDreamClient.cpp"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "69"
+            endingLineNumber = "69"
+            landmarkName = "EDreamClient::RefreshAccessToken()"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "E69D0E28-99B5-434F-9147-E04A51029791"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "../TupleStorage/luastorage.cpp"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "194"
+            endingLineNumber = "194"
+            landmarkName = "CStorageLua::Commit()"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "CCA8EF92-E4FB-4617-879E-70E89CA1BB16"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "ESConfiguration.mm"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "616"
+            endingLineNumber = "616"
+            landmarkName = "-saveSettings"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "CCA8EF92-E4FB-4617-879E-70E89CA1BB16 - 7f42c857460fc27f"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "-[ESConfiguration saveSettings]"
+                  moduleName = "Electric Sheep"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/tiborhencz/Documents/GitHub/client/client_generic/MacBuild/ESConfiguration.mm"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "616"
+                  endingLineNumber = "616"
+                  offsetFromSymbolStart = "52">
+               </Location>
+               <Location
+                  uuid = "CCA8EF92-E4FB-4617-879E-70E89CA1BB16 - 7f42c857460fc27f"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "-[ESConfiguration saveSettings]"
+                  moduleName = "Electric Sheep"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/tiborhencz/Documents/GitHub/client/client_generic/MacBuild/ESConfiguration.mm"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "616"
+                  endingLineNumber = "616"
+                  offsetFromSymbolStart = "36">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "BDE405C9-D621-477F-AB91-3C4B61CDA4F5"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "../TupleStorage/Settings.h"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "47"
+            endingLineNumber = "47"
+            landmarkName = "Shutdown()"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+   </Breakpoints>
+</Bucket>

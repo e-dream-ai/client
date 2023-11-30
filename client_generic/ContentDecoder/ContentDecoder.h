@@ -29,10 +29,16 @@ extern "C"{
 	#include "libavcodec/avcodec.h"
 	#include "libavformat/avformat.h"
 	#include "libswscale/swscale.h"
+    #include "libavutil/imgutils.h"
+    #include "libavutil/hwcontext.h"
+    #include "libavcodec/bsf.h"
 #else
 	#include "avcodec.h"
 	#include "avformat.h"
 	#include "swscale.h"
+    #include "imgutils.h"
+    #include "hwcontext.h"
+    #include "bsf.h"
 #endif
 }
 
@@ -46,6 +52,10 @@ extern "C"{
 #include	"Frame.h"
 #include	"Playlist.h"
 #include	"BlockingQueue.h"
+
+#ifdef MAC
+#include <os/signpost.h>
+#endif
 
 namespace ContentDecoder
 {
@@ -73,29 +83,8 @@ struct sOpenVideoInfo
 		
 	{ }
 	
-	sOpenVideoInfo( const sOpenVideoInfo* ovi)
-	:	m_pFrame(NULL),
-		m_pFormatContext(NULL),
-		m_pVideoCodecContext(NULL),
-		m_pVideoCodec(NULL),
-		m_pVideoStream(NULL),
-		m_VideoStreamID(-1),
-		m_totalFrameCount(0),
-		m_CurrentFileatime(0),
-		m_iCurrentFileFrameCount(0),
-		m_Generation(ovi->m_Generation),
-		m_SheepID(ovi->m_SheepID),
-		m_First(ovi->m_First),
-		m_Last(ovi->m_Last),
-		m_Path(ovi->m_Path),
-		m_bSpecialSheep(ovi->m_bSpecialSheep),
-		m_NumIterations(ovi->m_NumIterations),
-		m_NextIsSeam(false),
-		m_ReadingTrailingFrames(false)
-	{ }
-	
 	virtual ~sOpenVideoInfo()
-	{
+    {
 		if( m_pVideoCodecContext )
 		{
 			avcodec_close( m_pVideoCodecContext );
@@ -104,23 +93,19 @@ struct sOpenVideoInfo
 
 		if( m_pFormatContext )
 		{
-#ifdef USE_NEW_FFMPEG_API
 			avformat_close_input( &m_pFormatContext );
-#else
-			av_close_input_file( m_pFormatContext );
-			m_pFormatContext = NULL;
-#endif  // USE_NEW_FFMPEG_API
 		}
 		
 		if ( m_pFrame )
 		{
-#ifdef USE_NEW_FFMPEG_ALLOC_API
 			av_frame_free( &m_pFrame );
-#else
-			avcodec_free_frame( &m_pFrame );
-#endif
 			m_pFrame = NULL;
 		}
+        if (m_pBsfContext)
+        {
+            av_bsf_flush(m_pBsfContext);
+            av_bsf_free(&m_pBsfContext);
+        }
 	}
 	
 	bool IsLoop() { return (!m_bSpecialSheep && !IsEdge()); }
@@ -145,7 +130,8 @@ struct sOpenVideoInfo
 	AVFrame			*m_pFrame;
 	AVFormatContext	*m_pFormatContext;
 	AVCodecContext	*m_pVideoCodecContext;
-	AVCodec			*m_pVideoCodec;
+    AVBSFContext    *m_pBsfContext = nullptr;
+	const AVCodec	*m_pVideoCodec;
 	AVStream		*m_pVideoStream;
 	int32			m_VideoStreamID;
 	uint32			m_totalFrameCount;
@@ -220,6 +206,10 @@ class CContentDecoder
 	
 	bool			m_bCalculateTransitions;
 
+#ifdef MAC
+    os_log_t m_signpostHandle;
+#endif
+
 	bool	Open( sOpenVideoInfo *ovi );
 	sOpenVideoInfo*		GetNextSheepInfo();
 	bool	NextSheepForPlaying( int32 _forceNext = 0 );
@@ -230,7 +220,7 @@ class CContentDecoder
 	static int DumpError( int _err );
 
 	public:
-			CContentDecoder( spCPlaylist _spPlaylist, bool _bStartByRandom, bool _bAllowTransitions, const uint32 _queueLenght, AVPixelFormat _wantedPixelFormat = AV_PIX_FMT_RGB24 );
+			CContentDecoder( spCPlaylist _spPlaylist, bool _bStartByRandom, bool _bAllowTransitions, const uint32 _queueLenght, boost::shared_mutex& _downloadSaveMutex, AVPixelFormat _wantedPixelFormat = AV_PIX_FMT_RGB24 );
 			virtual ~CContentDecoder();
 
 			bool	Initialized() { return m_Initialized; }

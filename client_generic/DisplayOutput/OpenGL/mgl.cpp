@@ -1,4 +1,4 @@
-#ifdef	MAC
+#if	defined(MAC) && !defined(USE_METAL)
 
 #include "Log.h"
 #include "Settings.h"

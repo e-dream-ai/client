@@ -6,8 +6,22 @@
 #include	"SmartPtr.h"
 #include	"linkpool.h"
 #ifdef MAC
+#ifndef USE_METAL
 #undef Random
 #include	<OpenGL/OpenGL.h>
+#endif
+#endif
+
+
+#ifdef USE_METAL
+#ifdef __OBJC__
+typedef void* CGraphicsContext;
+#else
+class MTKView;
+typedef MTKView* CGraphicsContext;
+#endif
+#else
+typedef CGLContextObj CGraphicsContext;
 #endif
 
 namespace	DisplayOutput
@@ -70,7 +84,10 @@ class	CKeyEvent : public CEvent
 				KEY_F11,
 				KEY_F12,
 				KEY_Esc,
-				KEY_NONE
+				KEY_NONE,
+                KEY_Comma,
+                KEY_Period,
+                KEY_P
 			};
 
 			CKeyEvent() : m_bPressed( true ), m_Code( KEY_NONE )	{}
@@ -166,10 +183,10 @@ class	CDisplayOutput
 			virtual DWORD GetNumMonitors() { return 1; }
 #else
 #ifdef MAC
-			virtual bool Initialize( CGLContextObj _glContext, bool _bPreview ) = PureVirtual;
-			virtual void SetContext( CGLContextObj glContext ) = PureVirtual;
-			virtual CGLContextObj GetContext( void ) = PureVirtual;
-			virtual void ForceWidthAndHeight( uint32 _width, uint32 _height ) = PureVirtual;
+            virtual bool Initialize( CGraphicsContext _graphicsContext, bool _bPreview ) = PureVirtual;
+            virtual void SetContext( CGraphicsContext _graphicsContext ) = PureVirtual;
+            virtual CGraphicsContext GetContext( void ) = PureVirtual;
+            virtual void ForceWidthAndHeight( uint32 _width, uint32 _height ) = PureVirtual;
 #else
 			virtual bool Initialize( const uint32 _width, const uint32 _height, const bool _bFullscreen ) = PureVirtual;
 #endif

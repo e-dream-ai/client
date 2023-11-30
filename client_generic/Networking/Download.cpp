@@ -43,6 +43,11 @@ int32 CFileDownloader::customWrite( void *_pBuffer, size_t _size, size_t _nmemb,
 	return (int32)(_size * _nmemb);
 }
 
+bool    CFileDownloader::SetPostFields(const char* postFields)
+{
+    if( !Verify( curl_easy_setopt(m_pCurl, CURLOPT_POSTFIELDS, postFields) )) return false;
+    return true;
+}
 
 /*
 	Perform().

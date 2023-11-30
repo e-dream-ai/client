@@ -1,4 +1,4 @@
-VERSION 5.1.3
+VERSION 5.1
 EXPORTS
   lua_tolstring
   lua_typename

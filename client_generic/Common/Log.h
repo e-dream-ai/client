@@ -17,6 +17,9 @@
 #include <stdio.h>
 #endif
 
+extern void ProfilerBegin(const char* name);
+extern void ProfilerEnd(const char* name);
+
 namespace	Base
 {
 

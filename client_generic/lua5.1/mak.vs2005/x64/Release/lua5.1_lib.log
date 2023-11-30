@@ -1,0 +1,36 @@
+﻿  lapi.c
+  lauxlib.c
+  lbaselib.c
+  lcode.c
+  ldblib.c
+  ldebug.c
+  ldo.c
+  ldump.c
+  lfunc.c
+  lgc.c
+C:\Users\hencz\Documents\GitHub\e-dream-ai-client\client_generic\lua5.1\src\lgc.c(288,56): warning C4334: '<<': result of 32-bit shift implicitly converted to 64 bits (was 64-bit shift intended?)
+  linit.c
+  liolib.c
+  llex.c
+  lmathlib.c
+  lmem.c
+  loadlib.c
+  lobject.c
+  lopcodes.c
+  loslib.c
+  lparser.c
+  Compiling...
+  lstate.c
+  lstring.c
+  lstrlib.c
+  ltable.c
+C:\Users\hencz\Documents\GitHub\e-dream-ai-client\client_generic\lua5.1\src\ltable.c(323,5): warning C4334: '<<': result of 32-bit shift implicitly converted to 64 bits (was 64-bit shift intended?)
+C:\Users\hencz\Documents\GitHub\e-dream-ai-client\client_generic\lua5.1\src\ltable.c(376,5): warning C4334: '<<': result of 32-bit shift implicitly converted to 64 bits (was 64-bit shift intended?)
+  ltablib.c
+  ltm.c
+  lundump.c
+  lvm.c
+  lzio.c
+C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.CppBuild.targets(1556,5): warning MSB8012: TargetPath(C:\Users\hencz\Documents\GitHub\e-dream-ai-client\client_generic\lua5.1\mak.vs2005\x64\Release\lua5.1_lib.lib) does not match the Library's OutputFile property value (C:\Users\hencz\Documents\GitHub\e-dream-ai-client\client_generic\lua5.1\mak.vs2005\x64\Release\lua5.1.lib). This may cause your project to build incorrectly. To correct this, please make sure that $(OutDir), $(TargetName) and $(TargetExt) property values match the value specified in %(Lib.OutputFile).
+C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.CppBuild.targets(1558,5): warning MSB8012: TargetName(lua5.1_lib) does not match the Library's OutputFile property value (lua5.1). This may cause your project to build incorrectly. To correct this, please make sure that $(OutDir), $(TargetName) and $(TargetExt) property values match the value specified in %(Lib.OutputFile).
+  lua5.1_lib.vcxproj -> C:\Users\hencz\Documents\GitHub\e-dream-ai-client\client_generic\lua5.1\mak.vs2005\x64\Release\lua5.1_lib.lib

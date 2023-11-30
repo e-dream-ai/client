@@ -574,7 +574,7 @@ template<class T, class REP, class ACCESS> bool SmartPtr<T,REP,ACCESS>::operator
 }
 
 //
-template<class T, class REP, class ACCESS> bool	SmartPtr<T,REP,ACCESS>::IsNull() const
+template<class T, class REP, class ACCESS> bool SmartPtr<T,REP,ACCESS>::IsNull() const
 {
 	return( m_rep == NULL );
 }
@@ -747,7 +747,20 @@ template<class T, class REP = CSyncRefCountRep<T>, class ACCESS = CSyncAccess<T>
 			}
 };
 
+template <class T, class REP, class ACCESS> bool operator!=(const CSyncRefCountPtr<T, REP, ACCESS> &ptr1, const CSyncRefCountPtr<T, REP, ACCESS> &ptr2)
+{
+    return !(ptr1.GetRepPtr() == ptr2.GetRepPtr());
+}
 
+template <class T, class REP, class ACCESS> bool operator!=(const CRefCountPtr<T, REP, ACCESS> &ptr1, const CRefCountPtr<T, REP, ACCESS> &ptr2)
+{
+    return !(ptr1.GetRepPtr() == ptr2.GetRepPtr());
+}
+
+template <class T, class REP, class ACCESS> bool operator!=(const CSyncPtr<T, REP, ACCESS> &ptr1, const CSyncPtr<T, REP, ACCESS> &ptr2)
+{
+    return !(ptr1.GetRepPtr() == ptr2.GetRepPtr());
+}
 /*
 	Forward declaration and smart pointer def.
 

@@ -1,3 +1,4 @@
+#ifndef USE_METAL
 #import <Cocoa/Cocoa.h>
 
 @interface ESOpenGLView : NSOpenGLView
@@ -12,3 +13,4 @@
 - (BOOL)needsDisplay;
 
 @end
+#endif //!USE_METAL

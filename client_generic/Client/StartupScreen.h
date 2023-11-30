@@ -14,6 +14,7 @@ class	CStartupScreen : public CHudEntry
 	std::string m_StartupMessage;
 	DisplayOutput::CFontDescription m_Desc;
 	DisplayOutput::spCBaseFont	m_spFont;
+    DisplayOutput::spCBaseText  m_spText;
 	DisplayOutput::spCImage		m_spImageRef;
 	DisplayOutput::spCTextureFlat m_spVideoTexture;
 	
@@ -31,14 +32,15 @@ class	CStartupScreen : public CHudEntry
 				m_Desc.Italic( false );
 				m_Desc.TypeFace( _FontName );
 
-				m_spFont = g_Player().Renderer()->NewFont( m_Desc );
+				m_spFont = g_Player().Renderer()->GetFont( m_Desc );
 				m_StartupMessage = "No Sheep downloaded yet, this should take less than a minute\nbut might take several hours.  Please see ElectricSheep.org\nto learn more, or press F1 for help.";
+                m_spText = g_Player().Renderer()->NewText( m_spFont, m_StartupMessage );
 				m_spImageRef = new DisplayOutput::CImage();
 				m_spImageRef->Create(256, 256, DisplayOutput::eImage_RGBA8, false, true );
 #ifndef LINUX_GNU
-				m_spImageRef->Load(g_Settings()->Get( "settings.app.InstallDir", std::string(".\\") ) + "electricsheep-smile.png", false);
+				m_spImageRef->Load(g_Settings()->Get( "settings.app.InstallDir", std::string(".\\") ) + "logo.png", false);
 #else
-				m_spImageRef->Load(g_Settings()->Get( "settings.app.InstallDir", std::string("") ) + "electricsheep-smile.png", false);
+				m_spImageRef->Load(g_Settings()->Get( "settings.app.InstallDir", std::string("") ) + "logo.png", false);
 #endif
 				fp4 aspect = g_Player().Display()->Aspect();
 				m_LogoSize.m_X0 = 0.f;
@@ -54,6 +56,12 @@ class	CStartupScreen : public CHudEntry
 			{
 				m_spVideoTexture = NULL;
 			}
+    
+            virtual void Visible(const bool _bState) override
+            {
+                CHudEntry::Visible(_bState);
+                m_spText->SetEnabled(_bState);
+            }
 
 			bool	Render( const fp8 _time, DisplayOutput::spCRenderer _spRenderer )
 			{
@@ -80,6 +88,7 @@ class	CStartupScreen : public CHudEntry
 				_spRenderer->Reset( DisplayOutput::eTexture | DisplayOutput::eShader);
 				_spRenderer->SetBlend( "alphablend" );
 				_spRenderer->SetTexture( m_spVideoTexture, 0 );
+                _spRenderer->SetShader( NULL );
 				_spRenderer->Apply();
 
 				Base::Math::CRect rr;
@@ -96,7 +105,7 @@ class	CStartupScreen : public CHudEntry
 				fp4 edge = 24 / (fp4)_spRenderer->Display()->Width();
 
 				Base::Math::CRect	extent;
-				Base::Math::CVector2 size = g_Player().Renderer()->GetTextExtent( m_spFont, m_StartupMessage );
+				Base::Math::CVector2 size = m_spText->GetExtent();
 				extent = extent.Union( Base::Math::CRect( 0, 0, size.m_X+(edge*2), size.m_Y+(edge*2) ) );
 
 				boost::posix_time::time_duration td = boost::posix_time::second_clock::local_time() - m_ServerMessageStartTimer;
@@ -120,8 +129,8 @@ class	CStartupScreen : public CHudEntry
 				//dasvo - terrible hack - redo!!
 				if (!m_spFont.IsNull())
 					m_spFont->Reupload();
-				
-				_spRenderer->Text( m_spFont, m_StartupMessage, Base::Math::CVector4( 1, 1, 1, 1 ), Base::Math::CRect( r.m_X0+edge, r.m_Y0+edge, r.m_X1, r.m_Y1 ), 0 );
+                m_spText->SetRect(Base::Math::CRect( r.m_X0+edge, r.m_Y0+edge, r.m_X1, r.m_Y1));
+                _spRenderer->DrawText( m_spText, Base::Math::CVector4( 1, 1, 1, 1 ));
 
 				return true;
 			}
