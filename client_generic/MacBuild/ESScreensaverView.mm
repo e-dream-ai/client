@@ -304,7 +304,7 @@ bool bStarted = false;
 - (NSWindow*)configureSheet
 {
     if (!m_config) {
-        m_config = [[ESConfiguration alloc] initWithWindowNibName:@"ElectricSheep" updater:m_updater];
+        m_config = [[ESConfiguration alloc] initWithWindowNibName:@"ElectricSheep"];
     }
     
     return [m_config window];

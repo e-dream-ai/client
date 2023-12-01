@@ -7,17 +7,11 @@
 	
     IBOutlet NSTextField* playerFPS;
     IBOutlet NSTextField* displayFPS;
-    IBOutlet NSTextField* loopIterations;
 	IBOutlet NSPopUpButton* display;
 	IBOutlet NSPopUpButton* multiDisplayMode;
-	IBOutlet NSButton* seamlessPlayback;
 	IBOutlet NSButton* synchronizeVBL;
 	IBOutlet NSButton* blackoutMonitors;
-	IBOutlet NSSlider* playEvenly;
 	IBOutlet NSButton* showAttribution;
-	IBOutlet NSButton* autoUpdates;
-	IBOutlet NSButton* negVoteKills;
-	IBOutlet NSButton* calculateTransitions;
     IBOutlet NSButton* preserveAR;
 			
     IBOutlet NSTextField* drupalLogin;
@@ -32,17 +26,8 @@
 	IBOutlet NSMatrix* cacheType;
 	IBOutlet NSFormCell* cacheSize;
 	IBOutlet NSTextField* contentFldr;
-	//IBOutlet NSButton* allCores;
-	IBOutlet NSButton* saveFrames;
 	IBOutlet NSButton* debugLog;
-	IBOutlet NSButton* silentMode;
-	
-	IBOutlet NSPopUpButton* playbackMixingMode;
-	IBOutlet NSMatrix* goldCacheType;
-	IBOutlet NSFormCell* goldCacheSize;
 
-	
-	IBOutlet NSTextField* aboutText;
 	
 	IBOutlet NSTextField* membershipText;
 		
@@ -61,7 +46,6 @@
     IBOutlet NSButton* cancelButton;
 	
 	NSString* m_origNickname;
-	NSString* m_origPassword;
 	
 	//NSString *m_roleString;
 	
@@ -70,9 +54,7 @@
 	NSImage* redImage;
 	NSImage* yellowImage;
 	NSImage* greenImage;
-	
-	SUUpdater* m_updater;
-	
+
 	NSTimer* m_checkTimer;
 		
 	BOOL m_checkingLogin;
@@ -85,23 +67,15 @@
 
 - (IBAction)ok:(id)sender;
 - (IBAction)cancel:(id)sender;
-- (IBAction)goToCreateAccountPage:(id)sender;
 - (IBAction)goToLearnMorePage:(id)sender;
 - (IBAction)goToHelpPage:(id)sender;
 - (IBAction)chooseContentFolder:(id)sender;
-- (IBAction)doManualUpdate:(id)sender;
 - (IBAction)doSignIn:(id)sender;
 
-- (ESConfiguration*)initWithWindowNibName:(NSString*)nibName updater:(SUUpdater*)updater;
-
-- (void)htmlifyEditFields;
 - (void)fixFlockSize;
-- (void)updateMembershipText:(NSString*)role;
-
 - (void)awakeFromNib;
 - (void)loadSettings;
 - (void)saveSettings;
-- (SUUpdater*) updater;
 
 - (void)dealloc;
 

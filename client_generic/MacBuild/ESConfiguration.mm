@@ -61,20 +61,6 @@
     [drupalPassword setAction:@selector(doSignIn:)];
 }
 
-
-- (void)htmlifyEditFields
-{
-	// both are needed, otherwise hyperlink won't accept mousedown
-    [aboutText setAllowsEditingTextAttributes: YES];
-    [aboutText setSelectable: YES];
-
-    NSAttributedString* string = [[NSMutableAttributedString alloc] initWithHTML:[[aboutText stringValue] dataUsingEncoding:NSUTF8StringEncoding] documentAttributes:NULL];
-
-    // set the attributed string to the NSTextField
-    [aboutText setAttributedStringValue: string];
-	
-}
-
 - (void)fixFlockSize
 {	 
 	const char *mpegpath = [[[contentFldr stringValue] stringByStandardizingPath] UTF8String];
@@ -330,15 +316,10 @@
     {
         m_redirectServer = [@"http://" stringByAppendingString: m_redirectServer];
     }
-        
-    
-	[self htmlifyEditFields];
 	
 	[playerFPS setDoubleValue: ESScreensaver_GetDoubleSetting("settings.player.player_fps", 23.0)];
 	
 	[displayFPS setDoubleValue: ESScreensaver_GetDoubleSetting("settings.player.display_fps", 60.0)];
-	
-	[loopIterations setIntValue: ESScreensaver_GetIntSetting("settings.player.LoopIterations", 2)];
 	
 	SInt32 dm = ESScreensaver_GetIntSetting("settings.player.DisplayMode", 2);
 	
@@ -359,11 +340,7 @@
 	SInt32 mdmode = ESScreensaver_GetIntSetting("settings.player.MultiDisplayMode", 0);
 	
 	[multiDisplayMode selectItemAtIndex:mdmode];
-	
-	[seamlessPlayback setState: ESScreensaver_GetBoolSetting("settings.player.SeamlessPlayback", false)];
-	
-	[calculateTransitions setState: ESScreensaver_GetBoolSetting("settings.player.CalculateTransitions", false)];
-	
+
 	[synchronizeVBL setState: ESScreensaver_GetBoolSetting("settings.player.vbl_sync", false)];
 	
     [preserveAR setState: ESScreensaver_GetBoolSetting("settings.player.preserve_AR", false)];
@@ -374,18 +351,7 @@
 	[blackoutMonitors setHidden:true];
 #endif
 
-	[playEvenly setIntValue: ESScreensaver_GetIntSetting("settings.player.PlayEvenly", 100)];
-	
-	[silentMode setState: ESScreensaver_GetBoolSetting("settings.player.silent_mode", true)];
-
 	[showAttribution setState: ESScreensaver_GetBoolSetting("settings.app.attributionpng", true)];
-	
-	[negVoteKills setState: ESScreensaver_GetBoolSetting("settings.content.negvotedeletes", true)];
-	
-	SUUpdater *upd = [self updater];
-
-	if (upd)
-		[autoUpdates setState:[upd automaticallyChecksForUpdates]];
 
 	[useProxy setState: ESScreensaver_GetBoolSetting("settings.content.use_proxy", false)];
 			
@@ -396,10 +362,6 @@
 	//[m_origNickname retain];
 	
 	[drupalLogin setStringValue: m_origNickname];
-
-	m_origPassword = (__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting("settings.content.password_md5", "");
-    
-	//[m_origPassword retain];
 
 	[drupalPassword setStringValue: @""];
 	
@@ -421,34 +383,10 @@
 	[cacheType selectCellWithTag: (unlimited_cache ? 0 : 1) ];
 	
 	[cacheSize setIntValue: cache_size];
-	
-	//[allCores setState: ESScreensaver_GetBoolSetting("settings.generator.all_cores", false)];
-
-	[saveFrames setState: ESScreensaver_GetBoolSetting("settings.generator.save_frames", false)];
 
 	[debugLog setState: ESScreensaver_GetBoolSetting("settings.app.log", false)];
 
 	[contentFldr setStringValue: [(__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting("settings.content.sheepdir", "") stringByAbbreviatingWithTildeInPath]];
-	
-	
-	SInt32 pmm = ESScreensaver_GetIntSetting("settings.player.PlaybackMixingMode", 0);
-	
-	[playbackMixingMode selectItemAtIndex:pmm];
-	
-	bool unlimited_cache_gold = ESScreensaver_GetBoolSetting("settings.content.unlimited_cache_gold", true);
-	
-	SInt32 cache_size_gold = ESScreensaver_GetIntSetting("settings.content.cache_size_gold", 2000);
-
-	if (cache_size_gold == 0)
-	{
-		unlimited_cache_gold = true;
-		
-		cache_size_gold = 2000;
-	}
-
-	[goldCacheType selectCellWithTag: (unlimited_cache_gold ? 0 : 1) ];
-	
-	[goldCacheSize setIntValue: cache_size_gold];
 	
 
 	[version setStringValue:(__bridge NSString*)ESScreensaver_GetVersion()];
@@ -474,13 +412,7 @@
 	
 	ESScreensaver_SetDoubleSetting("settings.player.display_fps", display_fps);
 
-	ESScreensaver_SetIntSetting("settings.player.LoopIterations", [loopIterations intValue]);
-
 	ESScreensaver_SetIntSetting("settings.player.DisplayMode", (SInt32)[[displayMode selectedCell] tag]);
-	
-	ESScreensaver_SetBoolSetting("settings.player.SeamlessPlayback", [seamlessPlayback state]);
-	
-	ESScreensaver_SetBoolSetting("settings.player.CalculateTransitions", [calculateTransitions state]);
 	
 	ESScreensaver_SetBoolSetting("settings.player.vbl_sync", [synchronizeVBL state]);
     
@@ -488,22 +420,11 @@
 	
 	ESScreensaver_SetBoolSetting("settings.player.blackout_monitors", [blackoutMonitors state]);
 
-	ESScreensaver_SetIntSetting("settings.player.PlayEvenly", [playEvenly intValue]);
-
 	ESScreensaver_SetIntSetting("settings.player.screen", (SInt32)[display indexOfSelectedItem]);
 	
 	ESScreensaver_SetIntSetting("settings.player.MultiDisplayMode", (SInt32)[multiDisplayMode indexOfSelectedItem]);
-
-	ESScreensaver_SetBoolSetting("settings.player.silent_mode", [silentMode state]);
 	
 	ESScreensaver_SetBoolSetting("settings.app.attributionpng", [showAttribution state]);
-	
-	ESScreensaver_SetBoolSetting("settings.content.negvotedeletes", [negVoteKills state]);
-
-	SUUpdater *upd = [self updater];
-
-	if (upd)
-		[upd setAutomaticallyChecksForUpdates:[autoUpdates state] ? YES : NO];
 
 	ESScreensaver_SetBoolSetting("settings.content.use_proxy", [useProxy state]);
 
@@ -525,22 +446,7 @@
 	
 	ESScreensaver_SetIntSetting("settings.content.cache_size", cache_size);
 
-	//ESScreensaver_SetBoolSetting("settings.generator.all_cores", [allCores state]);
-
-	ESScreensaver_SetBoolSetting("settings.generator.save_frames", [saveFrames state]);
-
 	ESScreensaver_SetBoolSetting("settings.app.log", [debugLog state]);
-	
-	
-	ESScreensaver_SetIntSetting("settings.player.PlaybackMixingMode", (SInt32)[playbackMixingMode indexOfSelectedItem]);
-		
-	bool unlimited_cache_gold = ([[goldCacheType selectedCell] tag] == 0);
-	
-	ESScreensaver_SetBoolSetting("settings.content.unlimited_cache_gold", unlimited_cache_gold);
-
-	SInt32 cache_size_gold = [goldCacheSize intValue];
-	
-	ESScreensaver_SetIntSetting("settings.content.cache_size_gold", cache_size_gold);
 }
 
 
@@ -583,28 +489,6 @@
     }
 	
 	[self fixFlockSize];
-}
-
-- (ESConfiguration*)initWithWindowNibName:(NSString*)nibName updater:(SUUpdater*)updater
-{
-	m_updater = updater;
-	
-	return [super initWithWindowNibName:nibName];
-}
-
-- (SUUpdater*) updater
-{
-	return m_updater;
-}
-
-- (IBAction)doManualUpdate:(id)sender
-{
-	//[NSApp endSheet:[self window]];
-	
-	SUUpdater *upd = [self updater];
-				
-	if (upd != NULL)
-		[upd checkForUpdates:sender];
 }
 
 - (IBAction)doSignIn:(id) __unused sender
