@@ -38,6 +38,8 @@ struct sMetaData
 {
 	fp4 m_Fade;
 	std::string m_FileName;
+    std::string m_Name;
+    std::string m_Author;
 	uint32 m_SheepID;
 	uint32 m_SheepGeneration;
 	time_t m_LastAccessTime;
@@ -78,6 +80,8 @@ class CVideoFrame
 				m_MetaData.m_LastAccessTime = 0;
 				m_MetaData.m_SheepID = 0;
 				m_MetaData.m_SheepGeneration = 0;
+                m_MetaData.m_Name = "";
+                m_MetaData.m_Author = "";
 				m_MetaData.m_IsEdge = false;
 				m_MetaData.m_IsSeam = false;
 				m_MetaData.m_SecondFrame = NULL;
@@ -114,6 +118,8 @@ class CVideoFrame
                 m_MetaData.m_LastAccessTime = 0;
                 m_MetaData.m_SheepID = 0;
                 m_MetaData.m_SheepGeneration = 0;
+                m_MetaData.m_Name = "";
+                m_MetaData.m_Author = "";
                 m_MetaData.m_IsEdge = false;
                 m_MetaData.m_IsSeam = false;
                 m_MetaData.m_SecondFrame = NULL;
@@ -160,6 +166,16 @@ class CVideoFrame
 			{
 				m_MetaData.m_SheepGeneration = _sheepgeneration;
 			}
+
+            inline void SetMetaData_DreamName(const std::string& _name)
+            {
+                m_MetaData.m_Name = _name;
+            }
+
+            inline void SetMetaData_DreamAuthor(const std::string& _author)
+            {
+                m_MetaData.m_Author = _author;
+            }
 
 			inline void SetMetaData_IsEdge(bool _isedge)
 			{

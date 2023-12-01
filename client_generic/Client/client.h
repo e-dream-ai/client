@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+
 #include "base.h"
 #include "Exception.h"
 #include "Log.h"
@@ -780,7 +781,14 @@ class	CElectricSheep
 							);
 						if (playingID != 0)
 							((Hud::CStringStat *)spStats->Get( "currentid" ))->SetSample( strCurID );
-
+                        
+                        spStats = (Hud::spCStatsConsole)m_HudManager->Get( "dreamcredits" );
+                        std::string dreamName = g_Player().GetCurrentPlayingDreamName();
+                        std::string dreamAuthor = g_Player().GetCurrentPlayingDreamAuthor();
+                        
+                        char buf[1024];
+                        snprintf(buf, sizeof(buf), "%s - %s", dreamAuthor.c_str(), dreamName.c_str());
+                        ((Hud::CStringStat *)spStats->Get("credits"))->SetSample(buf);
 						//	Serverstats.
 						spStats = (Hud::spCStatsConsole)m_HudManager->Get( "dreamstats" );
                         

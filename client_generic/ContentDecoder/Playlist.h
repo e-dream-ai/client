@@ -25,6 +25,7 @@ class	CPlaylist
 			virtual void	Delete( const uint32 _id ) = PureVirtual;
             virtual bool PopFreshlyDownloadedSheep(std::string& _result) { return false; }
             virtual bool HasFreshlyDownloadedSheep() { return false; }
+            virtual bool GetDreamNameAndAuthor(const std::string& _filePath, std::string* _outDreamName, std::string* _outDreamAuthor) { return false; }
 
 			virtual bool GetSheepInfoFromPath( const std::string& _path, uint32& Generation, uint32& ID, uint32& First, uint32& Last, std::string& _filename )
 			{

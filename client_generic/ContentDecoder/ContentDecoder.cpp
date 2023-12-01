@@ -749,6 +749,10 @@ CVideoFrame *CContentDecoder::ReadOneFrame(sOpenVideoInfo *ovi)
 
         pVideoFrame->SetMetaData_SheepID( ovi->m_SheepID );
         pVideoFrame->SetMetaData_SheepGeneration( ovi->m_Generation );
+        std::string name, author;
+        m_spPlaylist->GetDreamNameAndAuthor(ovi->m_Path, &name, &author);
+        pVideoFrame->SetMetaData_DreamName(name);
+        pVideoFrame->SetMetaData_DreamAuthor(author);
         pVideoFrame->SetMetaData_IsEdge( ovi->IsEdge() );
         pVideoFrame->SetMetaData_atime( ovi->m_CurrentFileatime );
         pVideoFrame->SetMetaData_IsSeam( ovi->m_NextIsSeam );

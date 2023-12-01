@@ -177,6 +177,14 @@ private:
 			{
 				return m_displayUnits[0]->m_MetaData.m_FileName;
 			}
+            inline std::string GetCurrentPlayingDreamName()
+            {
+                return m_displayUnits[0]->m_MetaData.m_Name;
+            }
+            inline std::string GetCurrentPlayingDreamAuthor()
+            {
+                return m_displayUnits[0]->m_MetaData.m_Author;
+            }
 			inline uint32	GetCurrentPlayingSheepID()
 			{	
 				return m_displayUnits[0]->m_MetaData.m_SheepID;

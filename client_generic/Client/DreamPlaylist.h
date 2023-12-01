@@ -223,6 +223,23 @@ public:
         return true;
     }
     
+    virtual bool GetDreamNameAndAuthor(const std::string& _filePath, std::string* _outDreamName, std::string* _outDreamAuthor)
+    {
+        auto allSheep = ContentDownloader::SheepDownloader::getClientFlock();
+        std::vector<ContentDownloader::Dream*> sheepList;
+        for (auto it = allSheep.begin(); it != allSheep.end(); ++it)
+        {
+            ContentDownloader::Dream* sheep = *it;
+            if (sheep->fileName() == _filePath)
+            {
+                *_outDreamName = sheep->name();
+                *_outDreamAuthor = sheep->author();
+                return true;
+            }
+        }
+        return false;
+    }
+    
     virtual bool ChooseSheepForPlaying(uint32 curGen, uint32 curID)
     {
         g_PlayCounter().IncPlayCount(curGen, curID);

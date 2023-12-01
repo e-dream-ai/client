@@ -12,13 +12,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>755</string>
+					<string>749</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>754</string>
+					<string>748</string>
 					<key>Timestamp</key>
-					<string>722202839.900601</string>
+					<string>723138854.600499</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -34,16 +34,16 @@
 			<key>text-context</key>
 			<dict>
 				<key>focused</key>
-				<string>            pVideoFrame = new CVideoFrame( pVideoCodecContext, m_WantedPixelFormat, std::string(pFormatContext-&gt;url) );
+				<string>
 </string>
 				<key>leading</key>
-				<string>                    g_Log-&gt;Warning( "scaler == null" );
-            }
+				<string>            }
+        }*/
 </string>
 				<key>trailing</key>
-				<string>            AVFrame	*pDest = pVideoFrame-&gt;Frame();
-
-            //printf( "calling sws_scale()" );
+				<string>        pVideoFrame-&gt;SetMetaData_SheepID( ovi-&gt;m_SheepID );
+        pVideoFrame-&gt;SetMetaData_SheepGeneration( ovi-&gt;m_Generation );
+        std::string name, author;
 </string>
 			</dict>
 			<key>type</key>

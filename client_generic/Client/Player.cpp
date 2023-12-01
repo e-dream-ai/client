@@ -304,6 +304,8 @@ bool CPlayer::AddDisplay( uint32 screen )
 		du->m_MetaData.m_SheepGeneration = 0;
 		du->m_MetaData.m_Fade = 1.f;
 		du->m_MetaData.m_FileName = "";
+        du->m_MetaData.m_Name = "";
+        du->m_MetaData.m_Author = "";
 		du->m_MetaData.m_LastAccessTime = time(NULL);
 		du->m_MetaData.m_IsEdge = false;
 		
