@@ -147,7 +147,9 @@ bool bStarted = false;
             
             [[ESMetalView alloc] initWithFrame:theRect];
             metalView.delegate = self;
-            metalView.preferredFramesPerSecond = 60;
+            metalView.preferredFramesPerSecond = 600;
+            
+            
             view = metalView;
             
 #else
