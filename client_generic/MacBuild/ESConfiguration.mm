@@ -346,6 +346,8 @@
     [preserveAR setState: ESScreensaver_GetBoolSetting("settings.player.preserve_AR", false)];
 
 	[blackoutMonitors setState: ESScreensaver_GetBoolSetting("settings.player.blackout_monitors", true)];
+    
+    [silentMode setState: ESScreensaver_GetBoolSetting("settings.player.silent_mode", true)];
 	
 #ifdef SCREEN_SAVER
 	[blackoutMonitors setHidden:true];
@@ -427,6 +429,8 @@
 	ESScreensaver_SetBoolSetting("settings.app.attributionpng", [showAttribution state]);
 
 	ESScreensaver_SetBoolSetting("settings.content.use_proxy", [useProxy state]);
+
+    ESScreensaver_SetBoolSetting("settings.player.silent_mode", [silentMode state]);
 
 	ESScreensaver_SetStringSetting("settings.content.proxy", [[proxyHost stringValue] UTF8String]);
 

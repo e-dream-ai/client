@@ -11,6 +11,7 @@
 	IBOutlet NSPopUpButton* multiDisplayMode;
 	IBOutlet NSButton* synchronizeVBL;
 	IBOutlet NSButton* blackoutMonitors;
+    IBOutlet NSButton* silentMode;
 	IBOutlet NSButton* showAttribution;
     IBOutlet NSButton* preserveAR;
 			
