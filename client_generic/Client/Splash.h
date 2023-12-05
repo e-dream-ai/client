@@ -20,7 +20,7 @@ class	CSplash : public CHudEntry
 	public:
 			CSplash( const fp4 _size, const std::string &_texture ) : CHudEntry( Base::Math::CRect(_size, _size ) )
 			{
-				DisplayOutput::spCImage tmpImage = new DisplayOutput::CImage();
+				DisplayOutput::spCImage tmpImage(new DisplayOutput::CImage());
 				if( tmpImage->Load( _texture, false ) )
 				{
 					m_spTexture = g_Player().Renderer()->NewTextureFlat();
@@ -90,7 +90,7 @@ class	CSplashImage : public CHudEntry
 	public:
 			CSplashImage( const fp4 _size, const std::string &_texture, fp4 fadeintime, fp4 holdtime, fp4 fadeouttime ) : CHudEntry( Base::Math::CRect(_size, _size ) )
 			{
-				DisplayOutput::spCImage tmpImage = new DisplayOutput::CImage();
+				DisplayOutput::spCImage tmpImage = std::make_shared<DisplayOutput::CImage>();
 				if( tmpImage->Load( _texture, false ) )
 				{
 					m_spTexture = g_Player().Renderer()->NewTextureFlat();

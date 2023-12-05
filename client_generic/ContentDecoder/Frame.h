@@ -95,7 +95,7 @@ class CVideoFrame
 				if (m_pFrame != NULL)
 				{
                     int numBytes = av_image_get_buffer_size(_format, _pCodecContext->width, _pCodecContext->height, 1);
-                    m_spBuffer = new Base::CAlignedBuffer(static_cast<uint32>(numBytes) * sizeof(uint8));
+                    m_spBuffer = std::make_shared<Base::CAlignedBuffer>(static_cast<uint32>(numBytes) * sizeof(uint8));
                     uint8_t* buffer = m_spBuffer->GetBufferPtr();
                     int width = _pCodecContext->width;
                     int height = _pCodecContext->height;
@@ -189,7 +189,7 @@ class CVideoFrame
 
 			inline void SetMetaData_SecondFrame(CVideoFrame *pSecondFrame)
 			{
-				m_MetaData.m_SecondFrame = pSecondFrame;
+                m_MetaData.m_SecondFrame = spCVideoFrame { pSecondFrame };
 			}
 			
 			inline void SetMetaData_IsSeam(bool bIsSeam)
@@ -239,7 +239,7 @@ class CVideoFrame
 				memcpy( newBuffer->GetBufferPtr(), m_spBuffer->GetBufferPtr(), m_spBuffer->Size() );
 				
 
-				m_spBuffer = newBuffer;
+                m_spBuffer = Base::spCAlignedBuffer(newBuffer);
 			};
 
 

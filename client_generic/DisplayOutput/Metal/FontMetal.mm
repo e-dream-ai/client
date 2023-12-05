@@ -21,7 +21,7 @@ const uint32_t kFontAtlasSize = 4096;
 */
 CFontMetal::CFontMetal(CFontDescription& _desc, spCTextureFlat _textTexture) : CBaseFont()
 {
-    m_spAtlasTexture = _textTexture;
+    m_spAtlasTexture = std::dynamic_pointer_cast<CTextureFlatMetal>(_textTexture);
     m_typeFace = _desc.TypeFace();
 }
 

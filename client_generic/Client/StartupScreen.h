@@ -35,7 +35,7 @@ class	CStartupScreen : public CHudEntry
 				m_spFont = g_Player().Renderer()->GetFont( m_Desc );
 				m_StartupMessage = "No Sheep downloaded yet, this should take less than a minute\nbut might take several hours.  Please see ElectricSheep.org\nto learn more, or press F1 for help.";
                 m_spText = g_Player().Renderer()->NewText( m_spFont, m_StartupMessage );
-				m_spImageRef = new DisplayOutput::CImage();
+				m_spImageRef = std::make_shared<DisplayOutput::CImage>();
 				m_spImageRef->Create(256, 256, DisplayOutput::eImage_RGBA8, false, true );
 #ifndef LINUX_GNU
 				m_spImageRef->Load(g_Settings()->Get( "settings.app.InstallDir", std::string(".\\") ) + "logo.png", false);
@@ -75,14 +75,14 @@ class	CStartupScreen : public CHudEntry
 
 				// draw picture
 
-				DisplayOutput::spCImage tmpImage = new DisplayOutput::CImage();
-				if( m_spImageRef.IsNull() == false )
+				DisplayOutput::spCImage tmpImage = std::make_shared<DisplayOutput::CImage>();
+				if( m_spImageRef )
 				{
 					m_spVideoTexture = _spRenderer->NewTextureFlat();
 					m_spVideoTexture->Upload( m_spImageRef );
 				}
 
-				if ( m_spVideoTexture.IsNull() )
+				if ( !m_spVideoTexture )
 					return false;
 				
 				_spRenderer->Reset( DisplayOutput::eTexture | DisplayOutput::eShader);
@@ -127,7 +127,7 @@ class	CStartupScreen : public CHudEntry
 				_spRenderer->DrawSoftQuad( r, Base::Math::CVector4( 0, 0, 0, 0.5f ), 16 );
 				
 				//dasvo - terrible hack - redo!!
-				if (!m_spFont.IsNull())
+				if (m_spFont)
 					m_spFont->Reupload();
                 m_spText->SetRect(Base::Math::CRect( r.m_X0+edge, r.m_Y0+edge, r.m_X1, r.m_Y1));
                 _spRenderer->DrawText( m_spText, Base::Math::CVector4( 1, 1, 1, 1 ));

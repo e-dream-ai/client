@@ -109,11 +109,11 @@ bool	CRendererMetal::Initialize( spCDisplayOutput _spDisplay )
     rendererContext->commandQueue = [device newCommandQueue];
     rendererContext->inFlightSemaphore = dispatch_semaphore_create(MaxFramesInFlight);
     rendererContext->shaderLibrary = [device newDefaultLibrary];
-    rendererContext->drawTextureShader = NewShader("quadPassVertex", "drawTextureFragment");
-    rendererContext->drawTextShader = new CShaderMetal(device,
+    rendererContext->drawTextureShader = std::static_pointer_cast<CShaderMetal>(NewShader("quadPassVertex", "drawTextureFragment"));
+    rendererContext->drawTextShader = spCShaderMetal(new CShaderMetal(device,
                                                        [rendererContext->shaderLibrary newFunctionWithName:@"drawTextVertex"],
                                                        [rendererContext->shaderLibrary newFunctionWithName:@"drawTextFragment"],
-                                                       CreateTextVertexDescriptor(), {});
+                                                       CreateTextVertexDescriptor(), {}));
     
     
     if (USE_HW_ACCELERATION)
@@ -161,7 +161,7 @@ void	CRendererMetal::Reset( const uint32 _flags )
 */
 spCTextureFlat	CRendererMetal::NewTextureFlat( spCImage _spImage, const uint32 _flags )
 {
-    spCTextureFlat spTex = new CTextureFlatMetal( m_spDisplay->GetContext(),  _flags, this );
+    spCTextureFlat spTex = std::make_shared<CTextureFlatMetal>( m_spDisplay->GetContext(),  _flags, this );
     spTex->Upload( _spImage );
     return spTex;
 }
@@ -170,7 +170,7 @@ spCTextureFlat	CRendererMetal::NewTextureFlat( spCImage _spImage, const uint32 _
 */
 spCTextureFlat	CRendererMetal::NewTextureFlat( const uint32 _flags )
 {
-    spCTextureFlat spTex = new CTextureFlatMetal( m_spDisplay->GetContext(), _flags, this );
+    spCTextureFlat spTex = std::make_shared<CTextureFlatMetal>( m_spDisplay->GetContext(), _flags, this );
     return spTex;
 }
 
@@ -181,7 +181,7 @@ spCShader	CRendererMetal::NewShader( const char *_pVertexShader, const char *_pF
     RendererContext* rendererContext = (__bridge RendererContext*)m_pRendererContext;
     id<MTLFunction> vertexFunc = [rendererContext->shaderLibrary newFunctionWithName:@(_pVertexShader)];
     id<MTLFunction> fragmentFunc = [rendererContext->shaderLibrary newFunctionWithName:@(_pFragmentShader)];
-    return new CShaderMetal(rendererContext->metalView.device, vertexFunc, fragmentFunc, nil, _uniforms);
+    return std::make_shared<CShaderMetal>(rendererContext->metalView.device, vertexFunc, fragmentFunc, nil, _uniforms);
 }
 
 /*
@@ -191,7 +191,7 @@ spCBaseFont	CRendererMetal::GetFont( CFontDescription &_desc )
     auto it = m_fontPool.find(_desc.TypeFace());
     if (it == m_fontPool.end())
     {
-        spCBaseFont font = new CFontMetal(_desc, NewTextureFlat());
+        spCBaseFont font = std::make_shared<CFontMetal>(_desc, NewTextureFlat());
         if (!font->Create())
             return NULL;
         font->FontDescription(_desc);
@@ -205,10 +205,10 @@ spCBaseText CRendererMetal::NewText( spCBaseFont _font, const std::string& _text
 {
     RendererContext* rendererContext = (__bridge RendererContext*)m_pRendererContext;
     float aspect = m_spDisplay->Aspect();
-    CTextMetal* text = new CTextMetal(static_cast<spCFontMetal>(_font), rendererContext->metalView, aspect);
+    CTextMetal* text = new CTextMetal(static_pointer_cast<CFontMetal>(_font), rendererContext->metalView, aspect);
     text->SetText(_text);
     
-    return text;
+    return spCBaseText(text);
 }
 
 Base::Math::CVector2 CRendererMetal::GetTextExtent( spCBaseFont _spFont, const std::string &_text )
@@ -359,7 +359,7 @@ void	CRendererMetal::DrawQuad( const Base::Math::CRect& _rect, const Base::Math:
     RendererContext* rendererContext = (__bridge RendererContext*)m_pRendererContext;
     @autoreleasepool
     {
-        spCShaderMetal activeShader = m_spSelectedShader != nullptr ? static_cast<spCShaderMetal>(m_spSelectedShader) : rendererContext->drawTextureShader;
+        spCShaderMetal activeShader = m_spSelectedShader != nullptr ? std::static_pointer_cast<CShaderMetal>(m_spSelectedShader) : rendererContext->drawTextureShader;
         id <MTLRenderPipelineState> renderPipelineState = activeShader->GetPipelineState();
         MTLRenderPassDescriptor *passDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
         if (passDescriptor != nil)
@@ -389,8 +389,8 @@ void	CRendererMetal::DrawQuad( const Base::Math::CRect& _rect, const Base::Math:
 
         for (uint32_t i = 0; i < MAX_TEXUNIT; ++i)
         {
-            spCTextureFlatMetal selectedTexture = static_cast<spCTextureFlatMetal>(m_aspSelectedTextures[i]);
-            if (!selectedTexture.IsNull())
+            spCTextureFlatMetal selectedTexture = static_pointer_cast<CTextureFlatMetal>(m_aspSelectedTextures[i]);
+            if (selectedTexture)
             {
                 if (selectedTexture->IsYUVTexture())
                 {

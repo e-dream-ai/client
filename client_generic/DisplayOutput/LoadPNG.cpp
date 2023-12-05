@@ -114,7 +114,7 @@ bool	CImage::LoadPNG( const std::string &_fileName, const bool _wantMipMaps )
 
 	// now we can allocate memory to store the image
 	//m_pData = new uint8[ getMipMappedSize( 0, _wantMipMaps ? 0x7fffffff : 1 ) ];
-	m_spData = new Base::CAlignedBuffer( getMipMappedSize( 0, m_nMipMaps ) );
+	m_spData = std::make_shared<Base::CAlignedBuffer>( getMipMappedSize(0, m_nMipMaps));
 
 	// set the individual row-pointers to point at the correct offsets
 	ppbRowPointers = new png_bytep[ m_Height ];

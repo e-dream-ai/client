@@ -274,7 +274,7 @@ class Shepherd
 			static bool	AddOverflowMessage( const std::string _msg )
 			{
 				boost::mutex::scoped_lock lockthis( s_OverflowMessageQueueMutex );
-				m_OverflowMessageQueue.push_back( new CTimedMessageBody( _msg, 60. ) );
+                m_OverflowMessageQueue.emplace_back(new CTimedMessageBody( _msg, 60. ));
 				return true;
 			}
 
@@ -324,7 +324,7 @@ class Shepherd
 			static bool	QueueMessage( const std::string _msg, const fp8 _duration )
 			{
 				boost::mutex::scoped_lock lockthis( m_MessageQueueMutex );
-				m_MessageQueue.push( new CMessageBody( _msg, _duration ) );
+                m_MessageQueue.emplace(new CMessageBody( _msg, _duration ));
 				return true;
 			}
 

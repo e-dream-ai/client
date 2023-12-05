@@ -55,7 +55,7 @@ CShaderMetal::CShaderMetal(id<MTLDevice> device,
     {
         eUniformType uniformType = _uniforms[i].second;
         size_t size = UniformTypeSizes[uniformType];
-        spCShaderUniformMetal uniform = new CShaderUniformMetal(_uniforms[i].first, uniformType, index, size);
+        spCShaderUniformMetal uniform = std::make_shared<CShaderUniformMetal>(_uniforms[i].first, uniformType, index, size);
         m_Uniforms[_uniforms[i].first] = uniform;
         m_SortedUniformRefs.push_back(uniform);
         bufferSize += size;

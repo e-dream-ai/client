@@ -297,7 +297,7 @@ class	CStatsConsole : public CConsole
                     std::map<std::string, StatText>::iterator i;
                     for( i=m_Stats.begin(); i != m_Stats.end(); ++i )
                     {
-                        if (!i->second.text.IsNull())
+                        if (i->second.text)
                         {
                             i->second.text->SetEnabled(false);
                         }
@@ -322,7 +322,7 @@ class	CStatsConsole : public CConsole
 				{
 					CStat *e = i->second.stat;
                     DisplayOutput::spCBaseText& text = i->second.text;
-                    if (!text.IsNull())
+                    if (text)
                     {
                         text->SetEnabled(e->Visible());
                     }

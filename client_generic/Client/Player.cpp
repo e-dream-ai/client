@@ -219,10 +219,10 @@ bool CPlayer::AddDisplay( uint32 screen )
     
 #if defined(MAC) && defined(USE_METAL)
     g_Log->Info( "Attempting to open %s...", CDisplayMetal::Description() );
-    spDisplay = new CDisplayMetal();
+    spDisplay = std::make_shared<CDisplayMetal>();
 #else
     g_Log->Info( "Attempting to open %s...", CDisplayGL::Description() );
-    spDisplay = new CDisplayGL();
+    spDisplay = std::make_shared<CDisplayGL>();
 #endif
 
 	if( spDisplay == NULL )
@@ -242,7 +242,7 @@ bool CPlayer::AddDisplay( uint32 screen )
 #endif //!MAC
 
 #ifdef USE_METAL
-    spRenderer = new CRendererMetal();
+    spRenderer = std::make_shared<CRendererMetal>();
 #else
  	spRenderer = new CRendererGL();
 #endif
@@ -261,7 +261,7 @@ bool CPlayer::AddDisplay( uint32 screen )
 		if( spDisplay->HasShaders() )
 		{
 			g_Log->Info( "Using piecewise cubic video display..." );
-			spFrameDisplay = new CCubicFrameDisplay( spRenderer );
+			spFrameDisplay = std::make_shared<CCubicFrameDisplay>( spRenderer );
 		}
 	}
 	else
@@ -271,7 +271,7 @@ bool CPlayer::AddDisplay( uint32 screen )
 			if( spDisplay->HasShaders() )
 			{
 				g_Log->Info( "Using piecewise linear video display..." );
-				spFrameDisplay = new CLinearFrameDisplay( spRenderer );
+				spFrameDisplay = std::make_shared<CLinearFrameDisplay>( spRenderer );
 				g_Settings()->Set( "settings.player.DisplayMode", 1 );
 			}
 		}
@@ -288,7 +288,7 @@ bool CPlayer::AddDisplay( uint32 screen )
 	if( spFrameDisplay == NULL )
 	{
 		g_Log->Info( "Using normal video display..." );
-		spFrameDisplay = new CFrameDisplay( spRenderer );
+		spFrameDisplay = std::make_shared<CFrameDisplay>( spRenderer );
 		g_Settings()->Set( "settings.player.DisplayMode", 0 );
 	}
 
@@ -311,7 +311,7 @@ bool CPlayer::AddDisplay( uint32 screen )
 		
 		if ( m_MultiDisplayMode == kMDIndividualMode && !Stopped() )
 		{
-			du->spDecoder = CreateContentDecoder( *m_DownloadSaveMutex, true );
+			du->spDecoder = ContentDecoder::spCContentDecoder(CreateContentDecoder( *m_DownloadSaveMutex, true ));
 			du->spDecoder->Start();
 		}
 		
@@ -366,11 +366,11 @@ bool	CPlayer::Startup( boost::shared_mutex& _downloadSaveMutex )
 	g_Log->Info( "Creating playlist..." );
     if (ContentDownloader::Shepherd::useDreamAI())
     {
-        m_spPlaylist = new ContentDecoder::CDreamPlaylist(watchPath.string());
+        m_spPlaylist = std::make_shared<ContentDecoder::CDreamPlaylist>(watchPath.string());
     }
     else
     {
-        m_spPlaylist = new ContentDecoder::CLuaPlaylist(	scriptPath.string(),
+        m_spPlaylist = std::make_shared<ContentDecoder::CLuaPlaylist>(	scriptPath.string(),
                                                             watchPath.string(),
                                                             m_UsedSheepType );
     }
@@ -385,7 +385,7 @@ bool	CPlayer::Startup( boost::shared_mutex& _downloadSaveMutex )
 
 ContentDecoder::CContentDecoder *CPlayer::CreateContentDecoder( boost::shared_mutex& _downloadSaveMutex, bool _bStartByRandom )
 {
-	if ( m_spPlaylist.IsNull() )
+	if ( !m_spPlaylist )
 		return NULL;
 	
 #ifndef LINUX_GNU
@@ -424,14 +424,14 @@ void CPlayer::ForceWidthAndHeight(uint32 du, uint32 _w, uint32 _h)
         return;
     
 #ifdef MAC
-    if (!duptr->spDisplay.IsNull())
+    if (duptr->spDisplay)
     {
         spCDisplayOutput disp = duptr->spDisplay;
         disp->ForceWidthAndHeight(_w, _h);
     }
 #endif
     
-    if (!duptr->spFrameDisplay.IsNull())
+    if (duptr->spFrameDisplay)
     {
         spCFrameDisplay fd = duptr->spFrameDisplay;
         fd->SetDisplaySize(_w, _h);
@@ -449,7 +449,7 @@ void	CPlayer::Start()
 		
 		if ( m_MultiDisplayMode == kMDSharedMode )
 		{
-			m_spDecoder =  CreateContentDecoder( *m_DownloadSaveMutex, true );
+			m_spDecoder = ContentDecoder::spCContentDecoder(CreateContentDecoder( *m_DownloadSaveMutex, true ));
 
 			if( !m_spDecoder->Start() )
 				g_Log->Warning( "Nothing to play" );
@@ -462,8 +462,8 @@ void	CPlayer::Start()
 			
 			for ( ; it != m_displayUnits.end(); it++ )
 			{
-				if ((*it)->spDecoder.IsNull())
-					(*it)->spDecoder = CreateContentDecoder( *m_DownloadSaveMutex, true );
+				if (!(*it)->spDecoder)
+					(*it)->spDecoder = ContentDecoder::spCContentDecoder(CreateContentDecoder( *m_DownloadSaveMutex, true ));
 					
 				if( !(*it)->spDecoder->Start() )
 					g_Log->Warning( "Nothing to play" );
@@ -495,7 +495,7 @@ void	CPlayer::Stop()
 			
 			for ( ; it != m_displayUnits.end(); it++ )
 			{
-				if (!(*it)->spDecoder.IsNull())
+				if ((*it)->spDecoder)
 					(*it)->spDecoder->Stop();
 			}
 		}
@@ -514,7 +514,7 @@ bool	CPlayer::Shutdown( void )
 
 	if ( m_MultiDisplayMode == kMDSharedMode )
 	{
-		if (m_spDecoder.IsNull() == false)
+		if (m_spDecoder)
 			m_spDecoder->Close();
 	}
 	else
@@ -525,7 +525,7 @@ bool	CPlayer::Shutdown( void )
 		
 		for ( ; it != m_displayUnits.end(); it++ )
 		{
-			if (!(*it)->spDecoder.IsNull())
+			if ((*it)->spDecoder)
 				(*it)->spDecoder->Close();
 				
 		}
@@ -565,7 +565,7 @@ bool	CPlayer::BeginFrameUpdate()
 {
 	if ( m_MultiDisplayMode == kMDSharedMode )
 	{
-		if (m_spDecoder.IsNull() == false)
+		if (m_spDecoder)
 			m_spDecoder->ResetSharedFrame();
 	}
 	else
@@ -576,7 +576,7 @@ bool	CPlayer::BeginFrameUpdate()
 		
 		for ( ; it != m_displayUnits.end(); it++ )
 		{
-			if (!(*it)->spDecoder.IsNull())
+			if ((*it)->spDecoder)
 				(*it)->spDecoder->ResetSharedFrame();
 				
 		}
@@ -597,7 +597,7 @@ bool	CPlayer::EndFrameUpdate()
 
 #ifndef USE_METAL
 	fp8 capFPS = spFD->GetFps( m_PlayerFps, m_DisplayFps );
-	if ( !spFD.IsNull() && capFPS > 0.000001)
+	if ( spFD && capFPS > 0.000001)
 		FpsCap( capFPS );
 #endif
 	
@@ -677,10 +677,10 @@ bool	CPlayer::Update(uint32 displayUnit, bool &bPlayNoSheepIntro)
 		boost::mutex::scoped_lock lockthis( m_updateMutex );
 
 	//	Update the frame display, it rests before doing any work to keep the framerate.
-	if( !du->spFrameDisplay->Update( du->spDecoder.IsNull() ? m_spDecoder : du->spDecoder, m_PlayerFps, m_DisplayFps, du->m_MetaData ) )
+	if( !du->spFrameDisplay->Update( !du->spDecoder ? m_spDecoder : du->spDecoder, m_PlayerFps, m_DisplayFps, du->m_MetaData ) )
 	{
-			if ( (m_spDecoder.IsNull() == false && m_spDecoder->PlayNoSheepIntro()) || 
-				 (du->spDecoder.IsNull() == false && du->spDecoder->PlayNoSheepIntro()) )
+			if ( (m_spDecoder && m_spDecoder->PlayNoSheepIntro()) ||
+				 (du->spDecoder && du->spDecoder->PlayNoSheepIntro()) )
 			{
 				bPlayNoSheepIntro = true;
 				return true;
@@ -691,8 +691,8 @@ bool	CPlayer::Update(uint32 displayUnit, bool &bPlayNoSheepIntro)
 	}
 	}
 	
-	if ( (m_spDecoder.IsNull() == false && m_spDecoder->PlayNoSheepIntro()) || 
-		 (du->spDecoder.IsNull() == false && du->spDecoder->PlayNoSheepIntro()) )
+	if ( (m_spDecoder && m_spDecoder->PlayNoSheepIntro()) ||
+		 (du->spDecoder && du->spDecoder->PlayNoSheepIntro()) )
 	{
 		bPlayNoSheepIntro = true;
 		return true;

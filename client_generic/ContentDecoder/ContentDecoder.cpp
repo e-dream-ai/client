@@ -875,9 +875,9 @@ spCVideoFrame CContentDecoder::Frame()
 {
 	//mutex::scoped_lock lock( m_sharedFrameMutex );
 	
-	if ( m_sharedFrame.IsNull() )
+	if ( !m_sharedFrame )
 	{
-		CVideoFrame *tmp = NULL;
+		CVideoFrame *tmp = nullptr;
         //g_Log->Info("FrameQueue:%i", m_FrameQueue.size());
         if (m_FrameQueue.size() < 2)
         {
@@ -887,7 +887,7 @@ spCVideoFrame CContentDecoder::Frame()
 		{
 			tmp = NULL;
 		}
-		m_sharedFrame = tmp;
+		m_sharedFrame = spCVideoFrame(tmp);
 	}
 	else
 		m_sharedFrame->CopyBuffer();

@@ -68,7 +68,7 @@ const char* EDreamClient::GetAccessToken()
 bool EDreamClient::Authenticate()
 {
     char authHeader[ACCESS_TOKEN_MAX_LENGTH + 22];
-    Network::spCFileDownloader spDownload = new Network::CFileDownloader("Authenticate");
+    Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>("Authenticate");
     spDownload->AppendHeader("Content-Type: application/json");
     snprintf(authHeader, ACCESS_TOKEN_MAX_LENGTH, "Authorization: Bearer %s", GetAccessToken());
     
@@ -115,7 +115,7 @@ bool EDreamClient::RefreshAccessToken()
 {
     char body[REFRESH_TOKEN_MAX_LENGTH + 17];
     snprintf(body, REFRESH_TOKEN_MAX_LENGTH, "{\"refreshToken\":\"%s\"}", fRefreshToken.load());
-    Network::spCFileDownloader spDownload = new Network::CFileDownloader( "Refresh token" );
+    Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>( "Refresh token" );
     spDownload->AppendHeader("Content-Type: application/json");
     spDownload->AppendHeader("Accept: application/json");
     spDownload->SetPostFields(body);
@@ -155,7 +155,7 @@ bool EDreamClient::GetDreams()
     int currentAttempt = 0;
     while (currentAttempt++ < maxAttempts)
     {
-        spDownload = new Network::CFileDownloader( "Dreams list" );
+        spDownload = std::make_shared<Network::CFileDownloader>( "Dreams list" );
         spDownload->AppendHeader("Content-Type: application/json");
         snprintf(authHeader, ACCESS_TOKEN_MAX_LENGTH, "Authorization: Bearer %s", GetAccessToken());
         spDownload->AppendHeader(authHeader);

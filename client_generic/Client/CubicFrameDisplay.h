@@ -273,7 +273,7 @@ class	CCubicFrameDisplay : public CFrameDisplay
 						
 					m_NumFrames++;
 						
-					if (m_spFrames[ m_Frames[3] + kMaxFrames ].IsNull())
+					if (!m_spFrames[ m_Frames[3] + kMaxFrames ])
 						m_NumSecondFrames = 0;
 					else
 						m_NumSecondFrames++;
@@ -282,7 +282,7 @@ class	CCubicFrameDisplay : public CFrameDisplay
 				}
 
 
-				if (m_NumFrames > 0 && !m_spFrames[ m_Frames[3] ].IsNull())
+				if (m_NumFrames > 0 && m_spFrames[ m_Frames[3] ])
 				{
 					//	Enable the shader.
 					m_spRenderer->SetShader( m_spShader );
@@ -319,7 +319,7 @@ class	CCubicFrameDisplay : public CFrameDisplay
 						m_spRenderer->SetTexture( m_spFrames[ realIdx ], i + 1);
 					}
 					
-					if ( m_NumSecondFrames > 0 && !m_spFrames[ m_Frames[3] + kMaxFrames ].IsNull() )
+					if ( m_NumSecondFrames > 0 && m_spFrames[ m_Frames[3] + kMaxFrames ])
 					{
 					
 						uint32 secFrameToUse = m_NumSecondFrames;

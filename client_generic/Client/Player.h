@@ -205,7 +205,7 @@ private:
 			{	
 				ContentDecoder::spCContentDecoder decoder = Decoder();
 				
-				if ( decoder.IsNull() )
+				if (!decoder)
 					return 0;
 					
 				return decoder->GetCurrentPlayingID();	
@@ -215,19 +215,19 @@ private:
 			{	
 				ContentDecoder::spCContentDecoder decoder = Decoder();
 				
-				if ( decoder.IsNull() )
+				if (!decoder)
 					return 0;
 
 				return decoder->GetCurrentPlayingGeneration();
 			};
 			
-            inline void     Add(const std::string& _fileName) { if (!m_spPlaylist.IsNull()) m_spPlaylist->Add(_fileName); }
-			inline void		Delete( const uint32 _id )			{	if ( !m_spPlaylist.IsNull() ) m_spPlaylist->Delete( _id );	};
+            inline void     Add(const std::string& _fileName) { if (m_spPlaylist) m_spPlaylist->Add(_fileName); }
+			inline void		Delete( const uint32 _id )			{	if (m_spPlaylist) m_spPlaylist->Delete( _id );	};
 			inline void		SkipToNext( void )
 			{
 				ContentDecoder::spCContentDecoder decoder = Decoder();
 				
-				if ( decoder.IsNull() )
+				if (!decoder)
 					return;
 
 				decoder->ForceNext();
@@ -237,7 +237,7 @@ private:
 			{
 				ContentDecoder::spCContentDecoder decoder = Decoder();
 				
-				if ( decoder.IsNull() )
+				if (!decoder)
 					return;
 
 				decoder->ForceNext( -2 );
@@ -247,7 +247,7 @@ private:
 			{
 				ContentDecoder::spCContentDecoder decoder = Decoder();
 				
-				if ( decoder.IsNull() )
+				if (!decoder)
 					return;
 
 				decoder->ForceNext( -1 );

@@ -190,7 +190,7 @@ bool SheepDownloader::downloadSheep( Dream *sheep )
 	//	To identify transfer.
 	snprintf( tmp, 32, "Sheep #%d.%05d", sheep->generation(), sheep->id() );
 
-	m_spSheepDownloader = new Network::CFileDownloader( tmp );
+	m_spSheepDownloader = std::make_shared<Network::CFileDownloader>( tmp );
 
 	Network::spCFileDownloader spDownload = m_spSheepDownloader;
 
@@ -1128,7 +1128,7 @@ bool	SheepDownloader::getSheepList()
                                                                     CLIENT_VERSION,
                                                                     Shepherd::uniqueID() );
 
-        Network::spCFileDownloader spDownload = new Network::CFileDownloader( "Sheep list" );
+        Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>( "Sheep list" );
         if( !spDownload->Perform( url ) )
         {
             if( spDownload->ResponseCode() == 304 )	//	"Not Modified"

@@ -104,7 +104,7 @@ bool SheepUploader::uploadSheep()
 	else
 		upname++;
 	
-	Network::spCFileUploader spUpload = new Network::CFileUploader( upname );
+	Network::spCFileUploader spUpload = std::make_shared<Network::CFileUploader>( upname );
 	char url[ MAX_PATH ];
     snprintf( url, MAX_PATH, "%scgi/put?j=%d&id=%d&s=%ld&g=%d&v=%s&u=%s",	ContentDownloader::Shepherd::serverName(),
 																					fJob,

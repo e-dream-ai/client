@@ -50,7 +50,7 @@ bool	CRenderer::Initialize( spCDisplayOutput _spDisplay )
 */
 void	CRenderer::AddBlend( std::string _name, int32 _src, int32 _dst, int32 _mode )
 {
-	spCBlend spBlend = new CBlend( _src, _dst, _mode );
+	spCBlend spBlend(new CBlend( _src, _dst, _mode ));
 	m_BlendMap[ _name ] = spBlend;
 }
 
@@ -152,9 +152,9 @@ void	CRenderer::Apply()
 #if 0
 #warning FIXME (Keffo#1#): hum, same pointer, different tex?
 #endif
-		if (spTex.IsNull())
+		if (!spTex)
 		{
-			if (!m_aspActiveTextures[i].IsNull())
+			if (m_aspActiveTextures[i])
 			{
 				m_aspActiveTextures[i]->Unbind( i );
 				m_aspActiveTextures[i] = NULL;

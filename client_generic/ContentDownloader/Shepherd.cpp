@@ -454,7 +454,7 @@ const char *Shepherd::serverName( bool allowServerQuery, eServerTargetType serve
 					Shepherd::uniqueID()
 					);
 
-				Network::spCFileDownloader spDownload = new Network::CFileDownloader( "Sheep Server Request" );
+                Network::spCFileDownloader spDownload { new Network::CFileDownloader( "Sheep Server Request" ) };
 
 				if( spDownload->Perform( url ) )
 				{

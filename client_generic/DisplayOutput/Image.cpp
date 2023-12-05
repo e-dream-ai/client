@@ -38,7 +38,7 @@ void	CImage::Copy( const CImage &_image, const uint32 _mipLevel )
 		if( !m_bRef )
 		{
 			uint32	size = getMipMappedSize( 0, m_nMipMaps );
-			m_spData = new Base::CAlignedBuffer( size );			
+			m_spData = std::make_shared<Base::CAlignedBuffer>(size);
 			if (m_spData->IsValid())
 				memcpy( m_spData->GetBufferPtr(), _image.GetData( 0 ), size );
 		}
@@ -54,7 +54,7 @@ void	CImage::Copy( const CImage &_image, const uint32 _mipLevel )
 		if( !m_bRef )
 		{
 			uint32	size = getMipMappedSize( 0, m_nMipMaps );
-			m_spData = new Base::CAlignedBuffer( size );
+			m_spData = std::make_shared<Base::CAlignedBuffer>(size);
 			if ( m_spData->IsValid() )
 				memcpy( m_spData->GetBufferPtr(), _image.GetData( _mipLevel ), size );
 		}
@@ -78,7 +78,7 @@ void	CImage::Create( const uint32 _w, const uint32 _h, const eImageFormat _forma
 	if( !m_bRef )
 	{
 		uint32	size = getMipMappedSize( 0, m_nMipMaps );
-		m_spData  = new Base::CAlignedBuffer( size );
+		m_spData  = std::make_shared<Base::CAlignedBuffer>(size);
 		memset( m_spData->GetBufferPtr(), 0, size );
 	}
 }
@@ -98,10 +98,10 @@ CImage::~CImage()
 */
 uint8	*CImage::GetData( const uint32 _mipLevel ) const
 {
-	if( m_bRef && m_spData.IsNull() )
+	if( m_bRef && !m_spData )
 		return( NULL );
 		
-	const Base::CAlignedBuffer *ab = m_spData.GetRepPtr()->getRealPointer();
+	const Base::CAlignedBuffer *ab = m_spData.get();
 
 	if( _mipLevel == 0 )
 		return( ab->GetBufferPtr() );
@@ -635,7 +635,7 @@ bool	CImage::Convert( const eImageFormat _newFormatType )
 		return( false );
 
 	uint8	*src = m_spData->GetBufferPtr();
-	Base::spCAlignedBuffer newPixels = new Base::CAlignedBuffer( getMipMappedSize( 0, m_nMipMaps, newFormat ) );
+	Base::spCAlignedBuffer newPixels = std::make_shared<Base::CAlignedBuffer>( getMipMappedSize( 0, m_nMipMaps, newFormat ) );
 	uint8	*dest = newPixels->GetBufferPtr();
 
 	uint32	nPixels = getNumPixels( 0, m_nMipMaps );
@@ -762,7 +762,7 @@ bool	CImage::Scale( const uint32 _newWidth, const uint32 _newHeight, const eScal
 
 	uint32 nChannels = m_Format.GetChannels();
 
-	Base::spCAlignedBuffer newPixels = new Base::CAlignedBuffer( _newWidth * _newHeight * nChannels );
+	Base::spCAlignedBuffer newPixels = std::make_shared<Base::CAlignedBuffer>(_newWidth * _newHeight * nChannels);
 	
 	uint8 *pData = GetData( 0 );
 

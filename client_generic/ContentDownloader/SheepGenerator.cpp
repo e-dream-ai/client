@@ -114,7 +114,7 @@ void	SheepGenerator::closeGenerator()
 */
 void	SheepGenerator::Abort()
 {
-	if ( !m_spFlam.IsNull() )
+	if (m_spFlam)
 		m_spFlam->Terminate();
 }
 
@@ -304,7 +304,7 @@ bool	SheepGenerator::getControlPoints( SheepUploader *uploader )
 
 	char tmp[ 128 ];
 	snprintf( tmp, 128, "Controlpoints for generator #%d", fGeneratorId );
-	Network::spCFileDownloader spDownload = new Network::CFileDownloader( tmp );
+	Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>( tmp );
 	if( !spDownload->Perform( url ) )
 	{
 		g_Log->Error( "Failed to download %s.\n", url );
@@ -502,7 +502,7 @@ bool	SheepGenerator::generateSheep()
 							{
 								//	Create process...
 								std::string fmt = "tmp";
-								m_spFlam = new Base::CProcessForker( forkee.c_str() );
+								m_spFlam = std::make_shared<Base::CProcessForker>( forkee.c_str() );
 
 								TiXmlElement *pElement = pArgs->ToElement();
 								for( TiXmlAttribute *pAttribute = pElement->FirstAttribute(); pAttribute; pAttribute = pAttribute->Next() )

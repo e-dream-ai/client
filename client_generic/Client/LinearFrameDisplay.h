@@ -219,7 +219,7 @@ class	CLinearFrameDisplay : public CFrameDisplay
 						m_spRenderer->SetTexture( m_spFrames[ m_State ], 1 );
 						m_spRenderer->SetTexture( m_spFrames[ m_State ], 2 );
 						
-						if (!m_spFrames[ m_State + kMaxFrames ].IsNull())
+						if (m_spFrames[ m_State + kMaxFrames ])
 						{
 							m_spRenderer->SetTexture( m_spFrames[ m_State + kMaxFrames ], 2 );
 							m_spRenderer->SetTexture( m_spFrames[ m_State + kMaxFrames ], 3 );
@@ -230,7 +230,7 @@ class	CLinearFrameDisplay : public CFrameDisplay
 						m_spRenderer->SetTexture( m_spFrames[ 0 ], (m_State ^ 1) + 1);
 						m_spRenderer->SetTexture( m_spFrames[ 1 ], m_State + 1);
 						
-						if (!m_spFrames[ m_State + kMaxFrames ].IsNull())
+						if (m_spFrames[ m_State + kMaxFrames ])
 						{
 							m_spRenderer->SetTexture( m_spFrames[ 2 ], (m_State ^ 1) + kMaxFrames + 1);
 							m_spRenderer->SetTexture( m_spFrames[ 3 ], m_State + kMaxFrames + 1);

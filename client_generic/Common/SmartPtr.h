@@ -141,6 +141,7 @@
 #endif
 
 #include	"base.h"
+#include    <memory>
 
 namespace Base
 {
@@ -775,7 +776,7 @@ template <class T, class REP, class ACCESS> bool operator!=(const CSyncPtr<T, RE
 		tspCRenderer	m_tspRenderer;		//	"thread" + "smart" + "pointer" + class
 */
 #define MakeSmartPointers(CBase)	class CBase;	\
-	typedef Base::CRefCountPtr<CBase> sp##CBase; \
+    typedef std::shared_ptr<CBase> sp##CBase; \
 	typedef Base::CSyncPtr<CBase> tp##CBase; \
 	typedef Base::CSyncRefCountPtr<CBase> tsp##CBase; \
 

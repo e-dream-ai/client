@@ -127,7 +127,7 @@ void ESScreensaver_AppendKeyEvent( UInt32 keyCode )
 		
 	if ( g_Player().Display() != NULL )
 	{
-		CKeyEvent *spEvent = new CKeyEvent();
+		spCKeyEvent spEvent = std::make_shared<CKeyEvent>();
 		spEvent->m_bPressed = true;
 		
 		switch( keyCode )
@@ -147,9 +147,8 @@ void ESScreensaver_AppendKeyEvent( UInt32 keyCode )
             case 0xBE:  spEvent->m_Code = CKeyEvent::KEY_Period; break;
             case 0x50:  spEvent->m_Code = CKeyEvent::KEY_P; break;
 		}
-		
-		spCEvent e = spEvent;
-		g_Player().Display()->AppendEvent( e );
+
+		g_Player().Display()->AppendEvent(spEvent);
 	}	
 }
 

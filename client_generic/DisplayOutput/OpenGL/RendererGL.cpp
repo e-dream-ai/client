@@ -356,7 +356,7 @@ spCShader	CRendererGL::NewShader( const char *_pVertexShader, const char *_pFrag
 */
 spCBaseFont	CRendererGL::NewFont( CFontDescription &_desc )
 {	
-	if (m_glFont.IsNull())
+	if (!m_glFont)
 	{
 		SetCurrentGLContext();
 

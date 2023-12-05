@@ -84,10 +84,10 @@ class	CFrameDisplay
 					m_spImageRef->Create( m_spFrameData->Width(), m_spFrameData->Height(), DisplayOutput::eImage_RGBA8, false, true );
 				}
 
-				if (_spTexture.IsNull())
+				if (!_spTexture)
 					_spTexture = m_spRenderer->NewTextureFlat();
 
-				if( _spTexture == NULL )
+				if (!_spTexture)
 					return false;
                 if (m_spFrameData->Frame())
                 {
@@ -109,7 +109,7 @@ class	CFrameDisplay
 				
 				ContentDecoder::spCVideoFrame spSecondFrameData = _metadata.m_SecondFrame;
 				
-				if (!spSecondFrameData.IsNull())
+				if (spSecondFrameData)
 				{
 					if( m_spSecondImageRef->GetWidth() != spSecondFrameData->Width() || m_spSecondImageRef->GetHeight() != spSecondFrameData->Height() )
 					{
@@ -117,7 +117,7 @@ class	CFrameDisplay
 						m_spSecondImageRef->Create( spSecondFrameData->Width(), spSecondFrameData->Height(), DisplayOutput::eImage_RGBA8, false, true );
 					}
 
-					if (_spSecondTexture.IsNull())
+					if (!_spSecondTexture)
 						_spSecondTexture = m_spRenderer->NewTextureFlat();
 					
 					if( _spSecondTexture != NULL )
@@ -206,8 +206,8 @@ class	CFrameDisplay
 				m_Acc = 0;
 				m_T = 0;
 				m_spRenderer = _spRenderer;
-				m_spImageRef = new DisplayOutput::CImage();
-				m_spSecondImageRef = new DisplayOutput::CImage();
+				m_spImageRef = std::make_shared<DisplayOutput::CImage>();
+				m_spSecondImageRef = std::make_shared<DisplayOutput::CImage>();
 				m_bValid = true;
 				m_FadeCount = (fp8)g_Settings()->Get("settings.player.fadecount", 30);
                 
@@ -283,7 +283,7 @@ class	CFrameDisplay
 					m_spSecondVideoTexture = NULL;
 				}
 				
-				if ( m_spVideoTexture.IsNull() )
+				if (!m_spVideoTexture)
 					return false;
                 
                 m_spRenderer->SetShader( m_spShader );
@@ -299,7 +299,7 @@ class	CFrameDisplay
                 
                 m_spRenderer->DrawQuad( m_texRect, Base::Math::CVector4( 1,1,1, currentalpha * (1.0f - transCoef) ), m_spVideoTexture->GetRect() );
                 
-                if (!m_spSecondVideoTexture.IsNull())
+                if (m_spSecondVideoTexture)
                 {
                     //    Bind the second texture and render a quad covering the screen.
                     m_spRenderer->SetTexture( m_spSecondVideoTexture, 0 );

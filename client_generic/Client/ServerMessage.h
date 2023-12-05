@@ -95,7 +95,7 @@ class	CServerMessage : public CConsole
 				_spRenderer->DrawSoftQuad( r, Base::Math::CVector4( 0, 0, 0, 0.5 ), 16 );
 				
 				//dasvo - terrible hack - redo!!
-				if (!m_spFont.IsNull())
+				if (m_spFont)
 					m_spFont->Reupload();
                 m_spText->SetRect(Base::Math::CRect( r.m_X0+edge, r.m_Y0+edge, r.m_X1, r.m_Y1 ));
                 g_Player().Renderer()->DrawText( m_spText, Base::Math::CVector4( 1, 1, 1, 1 ));

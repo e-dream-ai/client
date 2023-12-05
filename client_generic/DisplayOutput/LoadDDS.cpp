@@ -109,7 +109,7 @@ bool	CImage::LoadDDS( const std::string &_fileName, const bool _wantMipMaps )
 	else
 		size = readSize;
 
-	m_spData = new Base::CAlignedBuffer( size );
+	m_spData = std::make_shared<Base::CAlignedBuffer>( size );
 	fread( m_spData->GetBufferPtr(), readSize, 1, pFileData );
 
 	/*if( m_Format.is( eImage_RGB8 ) || m_Format.is( eImage_RGBA8 ) )

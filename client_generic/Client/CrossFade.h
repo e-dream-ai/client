@@ -21,7 +21,7 @@ class	CCrossFade : public CHudEntry
 	public:
 			CCrossFade( uint32 width, uint32 height, bool skipToNext ) : CHudEntry( Base::Math::CRect(fp4(width), fp4(height) ) ), m_bSkipped(false), m_bSkipToNext(skipToNext)
 			{
-				DisplayOutput::spCImage tmpImage = new DisplayOutput::CImage();
+				DisplayOutput::spCImage tmpImage = std::make_shared<DisplayOutput::CImage>();
 								
 				tmpImage->Create( width, height, DisplayOutput::eImage_RGBA8, 0, false );
 				

@@ -234,15 +234,15 @@ class	CElectricSheep
 
 				m_PNGDelayTimer = g_Settings()->Get( "settings.player.pngdelaytimer", 600);
 
-				m_HudManager = new Hud::CHudManager;
+				m_HudManager = std::make_shared<Hud::CHudManager>();
                 
-                m_HudManager->Add( "dreamcredits", new Hud::CStatsConsole( Base::Math::CRect( 1, 1 ), hudFontName, hudFontSize ) );
-                Hud::spCStatsConsole spStats = (Hud::spCStatsConsole)m_HudManager->Get( "dreamcredits" );
+                m_HudManager->Add( "dreamcredits", std::make_shared<Hud::CStatsConsole>( Base::Math::CRect( 1, 1 ), hudFontName, hudFontSize ) );
+                Hud::spCStatsConsole spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(m_HudManager->Get( "dreamcredits" ));
                 spStats->Add( new Hud::CStringStat( "credits", "", "Artist - Title" ) );
 
-				m_HudManager->Add( "helpmessage", new Hud::CStatsConsole( Base::Math::CRect( 1, 1 ), hudFontName, hudFontSize ) );
+				m_HudManager->Add( "helpmessage", std::make_shared<Hud::CStatsConsole>( Base::Math::CRect( 1, 1 ), hudFontName, hudFontSize ) );
 				
-				Hud::spCStatsConsole spHelpMessage = (Hud::spCStatsConsole)m_HudManager->Get( "helpmessage" );
+				Hud::spCStatsConsole spHelpMessage = std::dynamic_pointer_cast<Hud::CStatsConsole>(m_HudManager->Get( "helpmessage" ));
 				spHelpMessage->Add( new Hud::CStringStat( "message", "e-dream\n\nA platform for gen AI visuals, see e-dream.ai to learn more.\n\nKeyboard Commands\nUp-arrow: vote for this dream\nDown-arrow: vote against this dream and delete it\nLeft-arrow: go back to play previous dream\nRight-arrow: go forward through history\nComma: playback slower\nPeriod: playback faster\nSlash: show credit\n"
 #ifdef MAC
 				"Cmd" 
@@ -261,8 +261,8 @@ class	CElectricSheep
 				m_SeamlessPlayback = g_Settings()->Get( "settings.player.SeamlessPlayback", false );
 
                 //	Add some server stats.
-                m_HudManager->Add( "dreamstats", new Hud::CStatsConsole( Base::Math::CRect( 1, 1 ), hudFontName, hudFontSize ) );
-                spStats = (Hud::spCStatsConsole)m_HudManager->Get( "dreamstats" );
+                m_HudManager->Add( "dreamstats", std::make_shared<Hud::CStatsConsole>( Base::Math::CRect( 1, 1 ), hudFontName, hudFontSize ) );
+                spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(m_HudManager->Get( "dreamstats" ));
 				spStats->Add( new Hud::CStringStat( "loginstatus", "", "Not logged in" ) );
 				spStats->Add( new Hud::CStringStat( "all", "Content cache: ", "unknown..." ) );
                 spStats->Add( new Hud::CStringStat( "server", "Server is ", "not known yet" ) );
@@ -302,8 +302,8 @@ class	CElectricSheep
 				std::string defaultDir = std::string("");
 #endif
 				//	Vote splash.
-				m_spSplashPos = new Hud::CSplash( 0.2f, g_Settings()->Get( "settings.app.InstallDir", defaultDir ) + "electricsheep-smile.png" );
-				m_spSplashNeg = new Hud::CSplash( 0.2f, g_Settings()->Get( "settings.app.InstallDir", defaultDir ) + "electricsheep-frown.png" );
+				m_spSplashPos = std::make_shared<Hud::CSplash>( 0.2f, g_Settings()->Get( "settings.app.InstallDir", defaultDir ) + "electricsheep-smile.png" );
+				m_spSplashNeg = std::make_shared<Hud::CSplash>( 0.2f, g_Settings()->Get( "settings.app.InstallDir", defaultDir ) + "electricsheep-frown.png" );
                 
 				// PNG splash
 				m_SplashFilename = g_Settings()->Get( "settings.player.attrpngfilename", g_Settings()->Get( "settings.app.InstallDir", defaultDir ) + "e-dream-attr.png"  );
@@ -358,14 +358,14 @@ class	CElectricSheep
 
 				// if multiple splashes are found then they are loaded when the timer goes off, not here
 				if ( m_SplashFilename.empty() == false && g_Settings()->Get( "settings.app.attributionpng", true ) == true )
-				  m_spSplashPNG = new Hud::CSplashImage( 0.2f, m_SplashFilename.c_str(),
+				  m_spSplashPNG = std::make_shared<Hud::CSplashImage>( 0.2f, m_SplashFilename.c_str(),
 									 fp4( g_Settings()->Get( "settings.app.pngfadein", 10 ) ),
 									 fp4( g_Settings()->Get( "settings.app.pnghold", 10 ) ),
 									 fp4( g_Settings()->Get( "settings.app.pngfadeout", 10 ) )
 									 );
 
 				
-				m_spCrossFade = new Hud::CCrossFade( g_Player().Display()->Width(), g_Player().Display()->Height(), true );
+				m_spCrossFade = std::make_shared<Hud::CCrossFade>( g_Player().Display()->Width(), g_Player().Display()->Height(), true );
 				
                 //	Start downloader.
                 g_Log->Info( "Starting downloader..." );
@@ -600,15 +600,15 @@ class	CElectricSheep
 					{
 						if (drawNoSheepIntro)
 						{
-							if (m_StartupScreen.IsNull())
-								m_StartupScreen = new Hud::CStartupScreen(Base::Math::CRect(0,0,1.,1.), "Lato", 24);
+							if (!m_StartupScreen)
+								m_StartupScreen = std::make_shared<Hud::CStartupScreen>(Base::Math::CRect(0,0,1.,1.), "Lato", 24);
 							m_StartupScreen->Render(0., g_Player().Renderer());
 						}
 						//	Process any server messages.
 						std::string msg;
 						fp8 duration;
 
-						if ( !m_spSplashPNG.IsNull() )
+						if ( m_spSplashPNG )
 						{
 							if ( m_SplashPNGDelayTimer.Time() >  m_PNGDelayTimer)
 							{
@@ -621,7 +621,7 @@ class	CElectricSheep
 									char fNameFormatted[FILENAME_MAX];
 									snprintf( fNameFormatted, FILENAME_MAX, m_SplashFilename.c_str(), rand() % m_nSplashes );
 									if ( m_SplashFilename.empty() == false && g_Settings()->Get( "settings.app.attributionpng", true ) == true )
-										m_spSplashPNG = new Hud::CSplashImage( 0.2f, fNameFormatted,
+										m_spSplashPNG = std::make_shared<Hud::CSplashImage>( 0.2f, fNameFormatted,
 														fp4( g_Settings()->Get( "settings.app.pngfadein", 10 ) ),
 														fp4( g_Settings()->Get( "settings.app.pnghold", 10 ) ),
 														fp4( g_Settings()->Get( "settings.app.pngfadeout", 10 ) )
@@ -659,7 +659,7 @@ class	CElectricSheep
 
 							if (addtohud == true)
 							{
-								m_HudManager->Add( "servermessage", new Hud::CServerMessage( msg, Base::Math::CRect( 1, 1 ), 24 ), duration );
+								m_HudManager->Add( "servermessage", std::make_shared<Hud::CServerMessage>( msg, Base::Math::CRect( 1, 1 ), 24 ), duration );
 								m_HudManager->HideAll();
 							}
 						}
@@ -734,7 +734,7 @@ class	CElectricSheep
 							ContentDownloader::Shepherd::SetRenderingAllowed(true);
 
 						//	Update some stats.
-						Hud::spCStatsConsole spStats = (Hud::spCStatsConsole)m_HudManager->Get( "dreamstats" );
+						Hud::spCStatsConsole spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(m_HudManager->Get( "dreamstats" ));
 						std::stringstream decodefpsstr;
 						decodefpsstr.precision(2);
 						decodefpsstr << std::fixed << m_CurrentFps << " fps";
@@ -782,7 +782,7 @@ class	CElectricSheep
 						if (playingID != 0)
 							((Hud::CStringStat *)spStats->Get( "currentid" ))->SetSample( strCurID );
                         
-                        spStats = (Hud::spCStatsConsole)m_HudManager->Get( "dreamcredits" );
+                        spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(m_HudManager->Get( "dreamcredits" ));
                         std::string dreamName = g_Player().GetCurrentPlayingDreamName();
                         std::string dreamAuthor = g_Player().GetCurrentPlayingDreamAuthor();
                         
@@ -790,7 +790,7 @@ class	CElectricSheep
                         snprintf(buf, sizeof(buf), "%s - %s", dreamAuthor.c_str(), dreamName.c_str());
                         ((Hud::CStringStat *)spStats->Get("credits"))->SetSample(buf);
 						//	Serverstats.
-						spStats = (Hud::spCStatsConsole)m_HudManager->Get( "dreamstats" );
+						spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(m_HudManager->Get( "dreamstats" ));
                         
                         //    Prettify uptime.
                         uint64    uptime = (uint64)m_Timer.Time();
@@ -940,7 +940,7 @@ class	CElectricSheep
 
 				if( _event->Type() == DisplayOutput::CEvent::Event_KEY )
 					{
-						DisplayOutput::spCKeyEvent spKey = static_cast<DisplayOutput::spCKeyEvent>( _event );
+						DisplayOutput::spCKeyEvent spKey = std::dynamic_pointer_cast<DisplayOutput::CKeyEvent>( _event );
 						switch( spKey->m_Code )
 						{
 								//	Vote for sheep.
