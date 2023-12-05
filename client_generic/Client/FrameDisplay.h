@@ -1,6 +1,7 @@
 #ifndef	_FRAMEDISPLAY_H_
 #define	_FRAMEDISPLAY_H_
 
+#include    "Settings.h"
 #include	"TextureFlat.h"
 #include	"Player.h"
 #include	"Rect.h"

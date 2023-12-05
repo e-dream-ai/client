@@ -40,9 +40,7 @@ extern "C" {
 	
 	void ESScreensaver_SetUpdateAvailable( const char *verinfo );
 	
-	size_t ESScreensaver_GetFlockSizeMBs(const char *mpegpath, int sheeptype);
-	
-	CFStringRef ESScreensaver_CopyGetRoleFromXML(const char *xml);
+	size_t ESScreensaver_GetFlockSizeMBs(const char *mp4path, int sheeptype);
 	
 #ifdef __cplusplus
 }

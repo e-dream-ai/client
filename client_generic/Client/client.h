@@ -11,12 +11,12 @@
 #include "Player.h"
 #include "storage.h"
 #include "Networking.h"
+#include "PlayCounter.h"
 #include "Settings.h"
 #include "clientversion.h"
 
 #include "EDreamClient.h"
 #include "ContentDownloader.h"
-#include "SheepGenerator.h"
 #include "Shepherd.h"
 #include "Voting.h"
 #include "Timer.h"
@@ -198,8 +198,6 @@ class	CElectricSheep
 						g_Settings()->Set( "settings.content.password_md5", ContentDownloader::Shepherd::computeMD5( g_Settings()->Get( "settings.content.password", std::string("") ) ) );
 						//g_Settings()->Set( "settings.content.password", "" );
 					}
-
-					g_NetworkManager->Login( g_Settings()->Get( "settings.generator.nickname", std::string("") ), g_Settings()->Get( "settings.content.password_md5", std::string("") ) );
 					
 					m_pVoter = new CVote();
 				}
@@ -376,7 +374,7 @@ class	CElectricSheep
 				ContentDownloader::Shepherd::GetFlockSizeMBsRecount(0);
 				ContentDownloader::Shepherd::GetFlockSizeMBsRecount(1);
                 //	For testing...
-                //ContentDownloader::Shepherd::addMessageText( "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua", 50, 18 );
+                ContentDownloader::Shepherd::addMessageText( "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua", 50, 18 );
 
                 //	And we're off.
 				m_SplashPNGDelayTimer.Reset();
@@ -818,11 +816,9 @@ class	CElectricSheep
 							{
 								flockcount = flockcountgold;
 								flockmbs = flockmbsgold;
-								if (g_Player().HasGoldSheep() == false)
-								{
-									flockcount += flockcountfree;
-									flockmbs += flockmbsfree;
-								}
+
+                                flockcount += flockcountfree;
+                                flockmbs += flockmbsfree;
 							}
 							break;
 						case 1: // free sheep only
@@ -868,7 +864,7 @@ class	CElectricSheep
                             if (EDreamClient::IsLoggedIn())
                             {
                                 std::stringstream loginstatusstr;
-                                loginstatusstr << "Logged in as " << ContentDownloader::SheepGenerator::nickName();
+                                loginstatusstr << "Logged in as " << ContentDownloader::Shepherd::GetNickName();
                                 pTmp->SetSample( loginstatusstr.str() );
                             }
                             else

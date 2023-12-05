@@ -42,8 +42,6 @@ class	CDreamPlaylist : public CPlaylist
 
 	Base::CTimer	m_Timer;
 	
-	uint32			m_numSheep;
-	
 	bool			m_AutoMedian;
 	bool			m_RandomMedian;
 	fp8				m_MedianLevel;
@@ -76,32 +74,6 @@ class	CDreamPlaylist : public CPlaylist
 			g_Log->Info( "Flock 100 - 1000 MBs AutoMedian = %f", m_MedianLevel );
 		}
 	}
-
-	//
-	void	UpdateDirectory( path const &_dir, const bool _bRebuild = false )
-	{
-		//boost::mutex::scoped_lock locker( m_Lock );
-
-		m_numSheep = 0;
-		
-		std::vector<std::string>	files;
-
-        const char* ext = ContentDownloader::Shepherd::videoExtension();
-        Base::GetFileList(files, _dir.string().c_str(), ext, true, true, false);
-
-		//	Clear the sheep context...
-		if (_bRebuild)
-		{
-			if (m_AutoMedian)
-				AutoMedianLevel( m_FlockMBs + m_FlockGoldMBs );
-			//m_pState->Pop( Base::Script::Call( m_pState->GetState(), "Clear", "d", m_MedianLevel ) );
-			//m_pState->Execute( "Clear()" );
-            
-		}
-        Clear();
-		for( std::vector<std::string>::const_iterator i=files.begin(); i!=files.end(); ++i )
-            Add(*i);
-	}
     
     bool PlayFreshOnesFirst(std::string& _result)
     {
@@ -121,10 +93,6 @@ public:
         m_EmptyInterval = 10.0f;
         m_Clock = 0.0f;
         m_Path = _watchFolder.c_str();
-        
-        m_numSheep = 0;
-        
-        //UpdateDirectory( m_Path );
     }
 
     //
@@ -180,7 +148,7 @@ public:
         //if ((_playFreshSheep = PlayFreshOnesFirst(_result)))
             //return true;
                         
-        fp8 interval = ( m_numSheep >  kSheepNumTreshold ) ? m_NormalInterval : m_EmptyInterval;
+        fp8 interval = m_EmptyInterval;
 
         //	Update from directory if enough time has passed, or we're asked to.
         if( _bRebuild )// || ((m_Timer.Time() - m_Clock) > interval) )
@@ -191,7 +159,6 @@ public:
                 m_FlockMBs = ContentDownloader::Shepherd::GetFlockSizeMBsRecount(0);
                 m_FlockGoldMBs = ContentDownloader::Shepherd::GetFlockSizeMBsRecount(1);
             }
-            //UpdateDirectory( m_Path, _bRebuild );
             m_Clock = m_Timer.Time();
             auto allSheep = ContentDownloader::SheepDownloader::getClientFlock();
             std::vector<ContentDownloader::Dream*> sheepList;
@@ -218,7 +185,7 @@ public:
         _result = m_List.front();
         m_List.pop();
 
-        _bEnoughSheep = ( m_numSheep > kSheepNumTreshold );
+        _bEnoughSheep = false;
         
         return true;
     }

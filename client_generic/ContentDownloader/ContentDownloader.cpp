@@ -14,7 +14,6 @@
 #include	"Shepherd.h"
 #include	"ContentDownloader.h"
 #include	"SheepDownloader.h"
-#include	"SheepGenerator.h"
 #ifdef MAC
 #include <sys/types.h>
 #include <sys/sysctl.h>
@@ -22,10 +21,6 @@
 
 namespace ContentDownloader
 {
-
-//	Generators.
-std::vector<class SheepGenerator *> gGenerators;
-std::vector<boost::thread *> gGeneratorThreads;
 
 /*
 */
@@ -72,7 +67,6 @@ static std::string generateID()
 void	CContentDownloader::ServerFallback()
 {
 	Shepherd::setRegistered( false );
-	g_NetworkManager->Logout();
 }
 
 /*
@@ -106,12 +100,10 @@ bool	CContentDownloader::Startup( boost::shared_mutex& _downloadSaveMutex, const
 	Shepherd::setProxy( g_Settings()->Get( "settings.content.proxy", std::string("") ).c_str() );
 	Shepherd::setProxyUserName( g_Settings()->Get( "settings.content.proxy_username", std::string("") ).c_str() );
 	Shepherd::setProxyPassword( g_Settings()->Get( "settings.content.proxy_password", std::string("") ).c_str() );
-    Shepherd::setUseDreamAI( g_Settings()->Get( "settings.content.use_dream_ai", true));
     //Shepherd::setUseDreamAI( false );
 
 	Shepherd::setSaveFrames( g_Settings()->Get( "settings.generator.save_frames", false ) );
-	SheepGenerator::setNickName( g_Settings()->Get( "settings.generator.nickname", std::string("") ).c_str() );
-	SheepGenerator::setURL( g_Settings()->Get( "settings.generator.user_url", std::string("") ).c_str() );
+	Shepherd::GetNickName( g_Settings()->Get( "settings.generator.nickname", std::string("") ).c_str() );
 
     m_gDownloader = NULL;
 		
@@ -157,26 +149,6 @@ bool	CContentDownloader::Shutdown( void )
 	}
 	
 	SAFE_DELETE( m_gDownloader );
-	
-	for( unsigned int i=0; i<gGeneratorThreads.size(); i++ )
-	{
-		//give to everybody time to abort
-		gGenerators[i]->Abort();
-		gGeneratorThreads[i]->interrupt();
-	}
-
-	for( unsigned int i=0; i<gGeneratorThreads.size(); i++ )
-	{
-		
-
-		gGeneratorThreads[i]->timed_join(boost::posix_time::seconds(3));
-
-		SAFE_DELETE( gGeneratorThreads[i] );
-		SAFE_DELETE( gGenerators[i] );
-	}
-	
-	gGenerators.clear();
-	gGeneratorThreads.clear();
 
 	//	Notify the shepherd that the app is about to close so that he can properly clean up his threads
 	Shepherd::notifyShepherdOfHisUntimleyDeath();

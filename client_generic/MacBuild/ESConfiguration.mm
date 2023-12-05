@@ -63,12 +63,12 @@
 
 - (void)fixFlockSize
 {	 
-	const char *mpegpath = [[[contentFldr stringValue] stringByStandardizingPath] UTF8String];
+	const char *mp4path = [[[contentFldr stringValue] stringByStandardizingPath] UTF8String];
 	 
-	if (mpegpath != NULL && *mpegpath)
+	if (mp4path != NULL && *mp4path)
 	{
 
-		size_t flockSize = ESScreensaver_GetFlockSizeMBs(mpegpath, 0);
+		size_t flockSize = ESScreensaver_GetFlockSizeMBs(mp4path, 0);
 
 		NSMutableString *str = [NSMutableString stringWithString:[flockSizeText stringValue]];
 
@@ -302,21 +302,7 @@
 }
 
 - (void)loadSettings
-{
-    if (ContentDownloader::Shepherd::useDreamAI())
-    {
-        m_redirectServer = [NSString stringWithUTF8String: DREAM_SERVER];
-    }
-    else
-    {
-        m_redirectServer = [NSString stringWithUTF8String: REDIRECT_SERVER_FULL]; //(__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting("settings.content.redirectserver", REDIRECT_SERVER_FULL);
-    }
-    
-    if (![m_redirectServer hasPrefix:@"http"])
-    {
-        m_redirectServer = [@"http://" stringByAppendingString: m_redirectServer];
-    }
-	
+{	
 	[playerFPS setDoubleValue: ESScreensaver_GetDoubleSetting("settings.player.player_fps", 23.0)];
 	
 	[displayFPS setDoubleValue: ESScreensaver_GetDoubleSetting("settings.player.display_fps", 60.0)];

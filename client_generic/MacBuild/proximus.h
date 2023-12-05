@@ -1,6 +1,6 @@
 /*
  *  proximus.h
- *  ElectricSheep
+ *  EDream
  */
 
 extern "C" {

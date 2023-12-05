@@ -86,15 +86,6 @@ class SheepDownloader
 		//	This methods parses the sheep list and intializes the array of server sheep.
 		void parseSheepList();
 
-#if 1//DASVO_TEST
-		void handleListElement(TiXmlElement* listElement);
-#else
-		//	Functions to parse the XML structures.
-		static void listStartElement( void *userData, const char *name, const char **atts );
-		static void characterHandler( void *userData, const char *s, int len );
-		static void getEndElement( void *userData, const char *name );
-#endif
-
 		//	Message retrival from server.
 		void setHasMessage(const bool &hasMessage) { fHasMessage = hasMessage; }
 		bool hasMessage() const { return fHasMessage; }

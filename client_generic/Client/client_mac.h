@@ -13,7 +13,6 @@
 #include "Log.h"
 #include "Player.h"
 #include "SimplePlaylist.h"
-#include "lua_playlist.h"
 #include "Timer.h"
 #include "storage.h"
 #include "Settings.h"
@@ -74,7 +73,7 @@ class	CElectricSheep_Mac : public CElectricSheep
 						{							
 							m_AppData = (char *)path;
 							
-							m_AppData += "/ElectricSheep/";
+							m_AppData += "/e-dream.ai/";
 						}
 						
 						CFRelease(appSupportURL);

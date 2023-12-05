@@ -195,8 +195,6 @@
 		2197D56619B06FC300EFA1F2 /* libswresample.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2197D56419B06FC300EFA1F2 /* libswresample.a */; };
 		2197D56719B07FCF00EFA1F2 /* proximus.c in Sources */ = {isa = PBXBuildFile; fileRef = 21CE8B8E0F6ECFFC00DDF96A /* proximus.c */; };
 		2197D56819B0806F00EFA1F2 /* proximus.c in Sources */ = {isa = PBXBuildFile; fileRef = 21CE8B8E0F6ECFFC00DDF96A /* proximus.c */; };
-		2199D0A80F574AC8007CEB9C /* SheepGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2199D0A70F574AC8007CEB9C /* SheepGenerator.cpp */; };
-		2199D0A90F574AC8007CEB9C /* SheepGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2199D0A70F574AC8007CEB9C /* SheepGenerator.cpp */; };
 		2199D0DC0F575949007CEB9C /* SheepUploader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2199D0DB0F575949007CEB9C /* SheepUploader.cpp */; };
 		2199D0DD0F575949007CEB9C /* SheepUploader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2199D0DB0F575949007CEB9C /* SheepUploader.cpp */; };
 		21A8AFBB18416ECA00F77369 /* libiconv.2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 21A8AFBA18416ECA00F77369 /* libiconv.2.dylib */; };
@@ -430,7 +428,6 @@
 
 /* Begin PBXFileReference section */
 		09AB6884FE841BABC02AAC07 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
-		12478A652B03B15B006A8669 /* SheepGenerator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SheepGenerator.h; sourceTree = "<group>"; };
 		12478A662B03B164006A8669 /* SheepUploader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SheepUploader.h; sourceTree = "<group>"; };
 		12478A672B03B194006A8669 /* Networking.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Networking.h; sourceTree = "<group>"; };
 		12478A682B03B1A4006A8669 /* DisplayOutput.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = DisplayOutput.h; path = ../DisplayOutput/DisplayOutput.h; sourceTree = "<group>"; };
@@ -456,7 +453,6 @@
 		12478A7E2B03B317006A8669 /* ESScreensaver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ESScreensaver.h; sourceTree = "<group>"; };
 		12478A7F2B03B55F006A8669 /* Hud.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Hud.h; path = ../Client/Hud.h; sourceTree = "<group>"; };
 		12478A802B03B565006A8669 /* LinearFrameDisplay.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = LinearFrameDisplay.h; path = ../Client/LinearFrameDisplay.h; sourceTree = "<group>"; };
-		12478A812B03B56D006A8669 /* lua_playlist.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = lua_playlist.h; path = ../Client/lua_playlist.h; sourceTree = "<group>"; };
 		12478A822B03B57E006A8669 /* PlayCounter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PlayCounter.h; path = ../Client/PlayCounter.h; sourceTree = "<group>"; };
 		12478A832B03B584006A8669 /* Player.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Player.h; path = ../Client/Player.h; sourceTree = "<group>"; };
 		12478A842B03B5BB006A8669 /* MonoInstance.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MonoInstance.h; path = ../Client/MonoInstance.h; sourceTree = "<group>"; };
@@ -608,7 +604,6 @@
 		2197D55E19B06ED300EFA1F2 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
 		2197D56119B06F4600EFA1F2 /* VideoDecodeAcceleration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoDecodeAcceleration.framework; path = System/Library/Frameworks/VideoDecodeAcceleration.framework; sourceTree = SDKROOT; };
 		2197D56419B06FC300EFA1F2 /* libswresample.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswresample.a; path = ../ffmpeg/osx/lib/libswresample.a; sourceTree = SOURCE_ROOT; };
-		2199D0A70F574AC8007CEB9C /* SheepGenerator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SheepGenerator.cpp; sourceTree = "<group>"; };
 		2199D0DB0F575949007CEB9C /* SheepUploader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SheepUploader.cpp; sourceTree = "<group>"; };
 		21A8AFBA18416ECA00F77369 /* libiconv.2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.2.dylib; path = usr/lib/libiconv.2.dylib; sourceTree = SDKROOT; };
 		21AAA0ED0F70453200AC23A8 /* ESConfiguration.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ESConfiguration.h; sourceTree = "<group>"; };
@@ -859,8 +854,6 @@
 				2123131C0F503C4500702B2C /* Dream.h */,
 				2123131D0F503C4500702B2C /* SheepDownloader.cpp */,
 				2123131E0F503C4500702B2C /* SheepDownloader.h */,
-				2199D0A70F574AC8007CEB9C /* SheepGenerator.cpp */,
-				12478A652B03B15B006A8669 /* SheepGenerator.h */,
 				212313230F503C4500702B2C /* Shepherd.cpp */,
 				212313240F503C4500702B2C /* Shepherd.h */,
 			);
@@ -961,7 +954,6 @@
 				12478A772B03B2D0006A8669 /* client.h */,
 				21DD8C6F0EA9BA5F00BB9EC7 /* Splash.h */,
 				461614182AEBEA57008AC64A /* DreamPlaylist.h */,
-				12478A812B03B56D006A8669 /* lua_playlist.h */,
 				12478A822B03B57E006A8669 /* PlayCounter.h */,
 				12478A842B03B5BB006A8669 /* MonoInstance.h */,
 				12478A852B03B5C8006A8669 /* ServerMessage.h */,
@@ -1392,7 +1384,6 @@
 				212313300F503C4500702B2C /* SheepDownloader.cpp in Sources */,
 				212313330F503C4500702B2C /* Shepherd.cpp in Sources */,
 				210335050F549BEF00A83F17 /* AlignedBuffer.cpp in Sources */,
-				2199D0A90F574AC8007CEB9C /* SheepGenerator.cpp in Sources */,
 				2199D0DD0F575949007CEB9C /* SheepUploader.cpp in Sources */,
 				21C5D0950F9CF6D9001657E7 /* md5.c in Sources */,
 				21EE633510139BCC000CE53E /* main.m in Sources */,
@@ -1465,7 +1456,6 @@
 				2123132C0F503C4500702B2C /* Shepherd.cpp in Sources */,
 				46D2E8F12AFBA64B0054049D /* MBEFontAtlas.m in Sources */,
 				210335040F549BEF00A83F17 /* AlignedBuffer.cpp in Sources */,
-				2199D0A80F574AC8007CEB9C /* SheepGenerator.cpp in Sources */,
 				467230C82AC1AE9D00017C51 /* TextureFlatMetal.mm in Sources */,
 				46D2E8FD2AFBBBF50054049D /* TextMetal.mm in Sources */,
 				2199D0DC0F575949007CEB9C /* SheepUploader.cpp in Sources */,

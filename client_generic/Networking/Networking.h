@@ -139,9 +139,6 @@ class	CManager : public Base::CSingleton<CManager>
 	//	To keep track of progress.
 	std::map< std::string, std::string> m_ProgressMap;
 
-	//	User/password for http authentication.
-	std::string	m_UserPass;
-
 	//	Proxy url and corresponding user/pass.
 	std::string	m_ProxyUrl, m_ProxyUserPass;
 
@@ -159,8 +156,6 @@ class	CManager : public Base::CSingleton<CManager>
 
 			//	Session wide proxy settings & user/pass.
 			void	Proxy( const std::string &_url, const std::string &_userName, const std::string &_password );
-			void	Login( const std::string &_userName, const std::string &_password );
-			void	Logout();
 
 			//	Called by CCurlTransfer prior to each Perform() call to handle proxy & authentication.
 			CURLcode Prepare( CURL *_pCurl );

@@ -107,9 +107,8 @@ class Shepherd
 	static uint64 s_ClientFlockGoldCount;
 
 	static atomic_char_ptr fRootPath;
-	static atomic_char_ptr fMpegPath;
-	static atomic_char_ptr fXmlPath;
-	static atomic_char_ptr fJpegPath;
+	static atomic_char_ptr fMp4Path;
+	static atomic_char_ptr fJsonPath;
 	static atomic_char_ptr fRedirectServerName;
 	static atomic_char_ptr fServerName;
 	static atomic_char_ptr fVoteServerName;
@@ -117,6 +116,7 @@ class Shepherd
 	static atomic_char_ptr fProxy;
 	static atomic_char_ptr fProxyUser;
 	static atomic_char_ptr fProxyPass;
+    static atomic_char_ptr fNickName;
 	static int	fSaveFrames;
 	static int	fUseProxy;
 	static int	fCacheSize;
@@ -128,7 +128,6 @@ class Shepherd
 	static bool fShutdown;
 	static int fChangeRes;
 	static int fChangingRes;
-    static bool fUseDreamAI;
 	static atomic_char_ptr fRole;
 	static boost::detail::atomic_count	*renderingFrames;
 	static boost::detail::atomic_count	*totalRenderedFrames;
@@ -188,10 +187,7 @@ class Shepherd
 			//
 			static void	setRegistered( const int &registered )		{	fRegistered = registered;	}
 			static int		registered()							{	return fRegistered;	}
-    
-            //
-            static void setUseDreamAI(bool use)                     { fUseDreamAI = use; }
-            static bool useDreamAI()                                { return fUseDreamAI; }
+
 
 			//
 			static int		cacheSize( const int getGenerationType )	
@@ -240,10 +236,9 @@ class Shepherd
             static void setNewAndDeleteOldString(atomic_char_ptr &str, char *newval, boost::memory_order mem_ord = boost::memory_order_relaxed);
 			static void setRootPath( const char *path );
 			static const char *rootPath();
-			static const char *mpegPath();
-			static const char *xmlPath();
-			static const char *jpegPath();
-            static const char *videoExtension()                 {   return fUseDreamAI ? ".mp4" : ".avi"; }
+			static const char *mp4Path();
+			static const char *jsonPath();
+            static const char *videoExtension() { return ".mp4"; }
 
 			static void setRole( const char *role );
 			static const char *role();
@@ -270,6 +265,8 @@ class Shepherd
 			static int	TotalFramesRendered();
 			static bool	RenderingAllowed();
 			static void SetRenderingAllowed(bool _yesno);
+            static void GetNickName(const char *nick);
+            static const char* GetNickName();
 
 			static bool	AddOverflowMessage( const std::string _msg )
 			{
@@ -341,12 +338,6 @@ class Shepherd
 				}
 				return false;
 			}
-
-
-			//	Methods to check for filename extensions.
-			static int filenameIsMpg(const char *name);
-			static int filenameIsXxx(const char *name);
-			static int filenameIsTmp(const char *name);
 
 			//	Method to get all of the sheep the exist on the client.
 			static bool getClientFlock(SheepArray *sheep);

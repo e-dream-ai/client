@@ -1,13 +1,13 @@
 /*
  *  proximus.c
- *  ElectricSheep
+ *  EDream
  */
 
 #include <CoreServices/CoreServices.h>
 #include <SystemConfiguration/SystemConfiguration.h>
 #include <CoreFoundation/CoreFoundation.h>
 
-#define kPrivateRunLoopMode CFSTR("org.electricsheep.proxy.autoconfigloop")
+#define kPrivateRunLoopMode CFSTR("org.edream.proxy.autoconfigloop")
 
 static void CFQRelease(CFTypeRef cf)
 	// Trivial wrapper for CFRelease that treats NULL as a no-op.

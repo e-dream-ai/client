@@ -58,7 +58,6 @@
 #include "Player.h"
 #ifdef WIN32
 #include "io.h"
-#include "SheepGenerator.h"
 #endif
 #include "Shepherd.h"
 #include "Settings.h"
@@ -107,11 +106,7 @@ SheepDownloader::SheepDownloader( boost::shared_mutex& _downloadSaveMutex ) : m_
 	fGotList = false;
 	fListDirty = true;
 
-    if (Shepherd::useDreamAI())
-    {
-        parseSheepList();
-    }
-
+    parseSheepList();
     updateCachedSheep();
     deleteCached(0, 0);
     deleteCached(0, 1);
@@ -215,21 +210,9 @@ bool SheepDownloader::downloadSheep( Dream *sheep )
 		return false;
 	}
 
-	if (!Shepherd::useDreamAI() && sheep->fileSize() != spDownload->Data().size())
-	{
-		g_Log->Warning( "Failed to download %s - file size mismatch.\n", sheep->URL() );
-		return false;
-	}
 	//	Save file.
 	char filename[ MAXBUF ];
-    if (Shepherd::useDreamAI())
-    {
-        snprintf(filename, MAXBUF, "%s%s.mp4", Shepherd::mpegPath(), sheep->uuid());
-    }
-    else
-    {
-        snprintf( filename, MAXBUF, "%s%05d=%05d=%05d=%05d.avi", Shepherd::mpegPath(), sheep->generation(), sheep->id(), sheep->firstId(), sheep->lastId() );
-    }
+    snprintf(filename, MAXBUF, "%s%s.mp4", Shepherd::mp4Path(), sheep->uuid());
     {
         boost::unique_lock<boost::shared_mutex> lock(m_DownloadSaveMutex);
         if( !spDownload->Save( filename ) )
@@ -243,310 +226,76 @@ bool SheepDownloader::downloadSheep( Dream *sheep )
     return true;
 }
 
-#if 1//DASVO_TEST
-//
-void SheepDownloader::handleListElement(TiXmlElement* listElement)
-{
-	int32 cur_gen = 0;
-
-	listElement->QueryIntAttribute("gen", &cur_gen);
-
-	if (cur_gen <= 0 )
-    {
-		cur_gen = 0;
-        g_Log->Error( "generation must be positive.\n" );
-    }
-
-	setCurrentGeneration( static_cast<uint32>(cur_gen) );
-
-	TiXmlElement* pChildNode;
-	for ( pChildNode = listElement->FirstChildElement(); pChildNode; pChildNode = pChildNode->NextSiblingElement() )
-	{
-		const char* name = pChildNode->Value();
-
-		if( !strcmp( "sheep", name ) )
-		{
-			const char *state = NULL;
-			if( 0 == currentGeneration() )
-				g_Log->Error( "malformed list, received sheep without generation set.\n" );
-
-			//	Create a new sheep and parse the attributes.
-			Dream *newSheep = new Dream();
-			newSheep->setGeneration( currentGeneration() );
-
-			const char *a;
-			if ((a = pChildNode->Attribute("id")))		newSheep->setId(static_cast<uint32>(atoi(a)));
-			if ((a = pChildNode->Attribute("type")))		newSheep->setType(atoi(a));
-			if ((a = pChildNode->Attribute("time")))		newSheep->setFileWriteTime(atoi(a));
-			if ((a = pChildNode->Attribute("size")))		newSheep->setFileSize(static_cast<uint64>(atol(a)));
-			if ((a = pChildNode->Attribute("rating")))	newSheep->setRating(atoi(a));
-			if ((a = pChildNode->Attribute("first")))		newSheep->setFirstId(static_cast<uint32>(atoi(a)));
-			if ((a = pChildNode->Attribute("last")))		newSheep->setLastId(static_cast<uint32>(atoi(a)));
-			if ((a = pChildNode->Attribute("state")))		state = a;
-			if ((a = pChildNode->Attribute("url")))		newSheep->setURL(a);
-			
-            // TODO: fix malformed state, potential error
-			if (state != NULL)
-            {
-                if( !strcmp(state, "done") && (0 == newSheep->type()) )
-                    fServerFlock.push_back(newSheep);
-                else
-                {
-                    if( !strcmp( state, "expunge" ) )
-                    {
-                        char buf[ MAXBUF ];
-                        sprintf(buf, "%s%05d=%05d=%05d=%05d.avi", Shepherd::mpegPath(), newSheep->generation(), newSheep->id(), newSheep->firstId(), newSheep->lastId() );
-                        remove( buf );
-                    }
-
-                    SAFE_DELETE( newSheep );
-                }
-            }
-		}
-		else if( !strcmp( "message", name ) )
-		{
-			setHasMessage( true );
-
-			const char *txt = pChildNode->GetText();
-			if (txt)
-				Shepherd::addMessageText( txt, strlen(txt), 30 );
-
-		}
-		else if( !strcmp( "error", name ) )
-		{
-			char server_error_type[ MAXBUF ];
-
-			const char *a = pChildNode->Attribute("type");
-
-			if( a )
-			{
-				if( !strcmp( a, "unauthenticated" ) )
-					strncpy( server_error_type, "Invalid Nickname or Password", MAXBUF );
-				else
-					strncpy( server_error_type, a, MAXBUF );
-
-				Shepherd::addMessageText( server_error_type, strlen( server_error_type ), 180 ); //	3 minutes
-			}
-		}
-	}
-}
-#else
-//
-void SheepDownloader::getEndElement(void *userData, const char *name)
-{
-	SheepDownloader *dl = (SheepDownloader *)userData;
-    if( !strcmp( "message", name ) )
-		dl->setHasMessage( false );
-}
-
-//
-void SheepDownloader::characterHandler(void *userData, const char *s, int len)
-{
-	SheepDownloader *dl = (SheepDownloader *)userData;
-    if( dl->hasMessage() )
-		Shepherd::addMessageText( s, len, 30 );
-}
-
-//
-void SheepDownloader::listStartElement(void *userData, const char *name, const char **atts)
-{
-	SheepDownloader *dl = (SheepDownloader *)userData;
-	int i = 0;
-
-    if( !strcmp( "list", name ) )
-	{
-		while( atts[i] )
-		{
-			if( !strcmp( atts[i], "gen" ) )
-			{
-				dl->setCurrentGeneration( atoi( atts[i+1] ) );
-				if (dl->currentGeneration() == 0 )
-					g_Log->Error( "generation must be positive.\n" );
-
-				break;
-			}
-			i += 2;
-		}
-    }
-	else if( !strcmp( "sheep", name ) )
-	{
-		const char *state = NULL;
-		if( 0 == dl->currentGeneration() )
-			g_Log->Error( "malformed list, received sheep without generation set.\n" );
-
-		//	Create a new sheep and parse the attributes.
-		Sheep *newSheep = new Sheep();
-		newSheep->setGeneration( dl->currentGeneration() );
-
-		while( atts[i] )
-		{
-			const char *a = atts[i+1];
-			if (!strcmp(atts[i], "id"))				newSheep->setId(atoi(a));
-			else if (!strcmp(atts[i], "type"))		newSheep->setType(atoi(a));
-			else if (!strcmp(atts[i], "time"))		newSheep->setFileWriteTime(atoi(a));
-			else if (!strcmp(atts[i], "size"))		newSheep->setFileSize(atol(a));
-			else if (!strcmp(atts[i], "rating"))	newSheep->setRating(atoi(a));
-			else if (!strcmp(atts[i], "first"))		newSheep->setFirstId(atoi(a));
-			else if (!strcmp(atts[i], "last"))		newSheep->setLastId(atoi(a));
-			else if (!strcmp(atts[i], "state"))		state = a;
-			else if (!strcmp(atts[i], "url"))		newSheep->setURL(a);
-			i += 2;
-		}
-		if( !strcmp(state, "done") && (0 == newSheep->type()) )
-            dl->fServerFlock.push_back(newSheep);
-		else
-		{
-			if( !strcmp( state, "expunge" ) )
-			{
-				char buf[ MAXBUF ];
-				sprintf(buf, "%s%05d=%05d=%05d=%05d.avi", Shepherd::mpegPath(), newSheep->generation(), newSheep->id(), newSheep->firstId(), newSheep->lastId() );
-				remove( buf );
-			}
-
-			SAFE_DELETE( newSheep );
-		}
-    }
-	else if( !strcmp( "message", name ) )	dl->setHasMessage( true );
-	else if( !strcmp( "error", name ) )
-	{
-		char server_error_type[ MAXBUF ];
-
-		while( atts[i] )
-		{
-			if( !strcmp( atts[i], "type" ) )
-			{
-				if( !strcmp( atts[i+1], "unauthenticated" ) )
-					strncpy( server_error_type, "Invalid Nickname or Password", MAXBUF );
-				else
-					strncpy( server_error_type, atts[i+1], MAXBUF );
-
-				Shepherd::addMessageText( server_error_type, strlen( server_error_type ), 180 ); //	3 minutes
-			}
-
-			i += 2;
-		}
-    }
-}
-#endif
-
 //	Parse the sheep list and create the server sheep.
 void SheepDownloader::parseSheepList()
 {
  	boost::mutex::scoped_lock lockthis( s_DownloaderMutex );
-    
-    if (Shepherd::useDreamAI())
+
+    char pbuf[MAXBUF];
+    snprintf(pbuf, MAX_PATH, "%sdreams.json", Shepherd::jsonPath());
+    std::ifstream file(pbuf);
+    size_t dreamIndex = 0;
+    try
     {
-        char pbuf[MAXBUF];
-        snprintf(pbuf, MAX_PATH, "%sdreams.json", Shepherd::xmlPath());
-        std::ifstream file(pbuf);
-        size_t dreamIndex = 0;
-        try
+        boost::json::error_code ec;
+        boost::json::value response = boost::json::parse(file, ec);
+
+        
+        bool success = response.at("success").as_bool();
+        if (!success)
         {
-            boost::json::error_code ec;
-            boost::json::value response = boost::json::parse(file, ec);
-
-            
-            bool success = response.at("success").as_bool();
-            if (!success)
-            {
-                g_Log->Error("Fetching dreams from API was unsuccessful: %s", response.at("message").as_string().data());
-                return;
-            }
-            boost::json::value data = response.at("data");
-            size_t count = (size_t)data.at("count").as_int64();
-            boost::json::value dreams = data.at("dreams");
-            
-            if (count)
-            {
-                SheepArray::iterator it = fServerFlock.begin();
-                while (it != fServerFlock.end())
-                {
-                    delete *it;
-                    it++;
-                }
-                fServerFlock.clear();
-
-                do
-                {
-                    boost::json::value dream = dreams.at(dreamIndex);
-                    boost::json::value video = dream.at("video");
-                    if (video.is_null())
-                        continue;
-
-                    //    Create a new dream and parse the attributes.
-                    Dream* newDream = new Dream();
-                    newDream->setGeneration( currentGeneration() );
-                    newDream->setId((uint32)dream.at("id").as_int64());
-                    newDream->setURL(video.as_string().data());
-                    newDream->setFileWriteTime(dream.at("updated_at").as_string().data());
-                    newDream->setRating(atoi("5"));
-                    newDream->setUuid(dream.at("uuid").as_string().data());
-                    boost::json::value user = dream.at("user");
-                    newDream->setAuthor(user.at("email").as_string().data());
-                    newDream->setName(dream.at("name").as_string().data());
-                    fServerFlock.push_back(newDream);
-                }
-                while (++dreamIndex < count);
-            }
-        }
-        catch (const std::exception& e)
-        {
-            file.seekg(0, std::ios::end);
-            std::streampos fileSize = file.tellg();
-            file.seekg(0, std::ios::beg);
-            char* cString = new char[(size_t)fileSize + 1];
-            file.read(cString, fileSize);
-            cString[fileSize] = '\0';
-            g_Log->Error("Exception during parsing dreams list:%s contents:\"%s\" dreamIndex:%d", e.what(), cString, dreamIndex);
-            delete[] cString;
-        }
-        file.close();
-	}
-    else
-    {
-
-        char pbuf[MAXBUF];
-
-        //	Open the file.
-        sprintf(pbuf, "%slist_%s.xml", Shepherd::xmlPath(), Shepherd::role());
-
-        TiXmlDocument doc(pbuf);
-        if (doc.LoadFile())
-        {
-            TiXmlHandle hDoc(&doc);
-            TiXmlElement* listElement;
-
-            listElement=hDoc.FirstChild( "list" ).Element();
-            
-            //only if there is at least one child in the list, we delete the list from previous request
-            if (listElement && listElement->FirstChildElement() != NULL)
-            {
-                fGotList = false;
-
-                SheepArray::iterator it = fServerFlock.begin();
-                while(it != fServerFlock.end())
-                {
-                    delete *it;
-                    it++;
-                }
-                fServerFlock.clear();
-
-                handleListElement(listElement);
-            }
-            else
-            {
-                g_Log->Error( "There are no sheep in the downloaded list, is that correct?!?\n" );
-                return;
-            }
-        }
-        else
-        {
-            g_Log->Error( "%s at line %d\n", doc.ErrorDesc(), doc.ErrorRow() );
+            g_Log->Error("Fetching dreams from API was unsuccessful: %s", response.at("message").as_string().data());
             return;
         }
-    }
+        boost::json::value data = response.at("data");
+        size_t count = (size_t)data.at("count").as_int64();
+        boost::json::value dreams = data.at("dreams");
+        
+        if (count)
+        {
+            SheepArray::iterator it = fServerFlock.begin();
+            while (it != fServerFlock.end())
+            {
+                delete *it;
+                it++;
+            }
+            fServerFlock.clear();
 
-	//remove( pbuf );
+            do
+            {
+                boost::json::value dream = dreams.at(dreamIndex);
+                boost::json::value video = dream.at("video");
+                if (video.is_null())
+                    continue;
+
+                //    Create a new dream and parse the attributes.
+                Dream* newDream = new Dream();
+                newDream->setGeneration( currentGeneration() );
+                newDream->setId((uint32)dream.at("id").as_int64());
+                newDream->setURL(video.as_string().data());
+                newDream->setFileWriteTime(dream.at("updated_at").as_string().data());
+                newDream->setRating(atoi("5"));
+                newDream->setUuid(dream.at("uuid").as_string().data());
+                boost::json::value user = dream.at("user");
+                newDream->setAuthor(user.at("email").as_string().data());
+                newDream->setName(dream.at("name").as_string().data());
+                fServerFlock.push_back(newDream);
+            }
+            while (++dreamIndex < count);
+        }
+    }
+    catch (const std::exception& e)
+    {
+        file.seekg(0, std::ios::end);
+        std::streampos fileSize = file.tellg();
+        file.seekg(0, std::ios::beg);
+        char* cString = new char[(size_t)fileSize + 1];
+        file.read(cString, fileSize);
+        cString[fileSize] = '\0';
+        g_Log->Error("Exception during parsing dreams list:%s contents:\"%s\" dreamIndex:%d", e.what(), cString, dreamIndex);
+        delete[] cString;
+    }
+    file.close();
 	fGotList = true;
 	fListDirty = false;
 }
@@ -634,34 +383,6 @@ void	SheepDownloader::updateCachedSheep()
 */
 int	SheepDownloader::cacheOverflow( const double &bytes, const int getGenerationType ) const
 {
-/*
-//karelsson - is it here for a reason???
-boost::uintmax_t availableBytes;
-
-
-#ifdef WIN32
-	ULARGE_INTEGER avBytes;
-
-	//	Get the available number of bytes on the disk.
-	if( !GetDiskFreeSpaceExA( Shepherd::xmlPath(), (PULARGE_INTEGER)&avBytes, NULL, NULL ) )
-	{
-		g_Log->Error( "Unable to get free disc space" );
-		avBytes.QuadPart = 0;
-		exit(1);
-	}
-
-	availableBytes = (boost::uintmax_t)avBytes.QuadPart;
-#else
-	struct statfs buf;
-	if(statfs(Shepherd::xmlPath(), &buf) < 0)
-	{
-		g_Log->Error( "not enough space on disk" );
-		exit(1);
-	}
-
-	availableBytes = (boost::uintmax_t)buf.f_bavail * (boost::uintmax_t)buf.f_bsize;
-#endif*/
-
 	//	Return the overflow status
     return (Shepherd::cacheSize(getGenerationType) && (bytes > (1024.0 * 1024.0 * Shepherd::cacheSize(getGenerationType))));
 }
@@ -893,21 +614,21 @@ void	SheepDownloader::findSheepToDownload()
 #ifdef WIN32
 			ULARGE_INTEGER winlpFreeBytesAvailable, winlpTotalNumberOfBytes, winlpRealBytesAvailable;
 
-			if ( GetDiskFreeSpaceExA( Shepherd::xmlPath(),(PULARGE_INTEGER)&winlpFreeBytesAvailable,(PULARGE_INTEGER)&winlpTotalNumberOfBytes,(PULARGE_INTEGER)&winlpRealBytesAvailable ) )
+			if ( GetDiskFreeSpaceExA( Shepherd::jsonPath(),(PULARGE_INTEGER)&winlpFreeBytesAvailable,(PULARGE_INTEGER)&winlpTotalNumberOfBytes,(PULARGE_INTEGER)&winlpRealBytesAvailable ) )
 			{
 				lpFreeBytesAvailable = winlpFreeBytesAvailable.QuadPart;
 			} else
 				incorrect_folder = true;
 #else
 			struct statfs buf;
-			if( statfs( Shepherd::xmlPath(), &buf) >= 0 )
+			if( statfs( Shepherd::jsonPath(), &buf) >= 0 )
 			{
 				lpFreeBytesAvailable = (boost::uintmax_t)buf.f_bavail * (boost::uintmax_t)buf.f_bsize;
 			} else
 				incorrect_folder = true;
 #endif
 
-			incorrect_folder = incorrect_folder || ( !isFolderAccessible( Shepherd::xmlPath() ) || !isFolderAccessible( Shepherd::mpegPath() ) );
+			incorrect_folder = incorrect_folder || ( !isFolderAccessible( Shepherd::jsonPath() ) || !isFolderAccessible( Shepherd::mp4Path() ) );
 			if( lpFreeBytesAvailable < ((boost::uintmax_t)MIN_MEGABYTES * 1024 * 1024) || incorrect_folder)
 			{
 				if (incorrect_folder)
@@ -981,7 +702,6 @@ void	SheepDownloader::findSheepToDownload()
 								}
 							}
 						}
-                        bool useDreamAI = Shepherd::useDreamAI();
 						//	Iterate the server flock to find the next sheep to download.
 						for( i=0; i<fServerFlock.size(); i++ )
 						{
@@ -1100,97 +820,8 @@ void	SheepDownloader::findSheepToDownload()
 */
 bool	SheepDownloader::getSheepList()
 {
-    if (Shepherd::useDreamAI())
-    {
-        fListDirty = EDreamClient::GetDreams();
-        return fListDirty;
-    }
-    else
-    {
-        const char *xmlPath = Shepherd::xmlPath();
-        char filename[ MAX_PATH ];
-        snprintf( filename, MAX_PATH, "%slist_%s.xml", xmlPath, Shepherd::role() );
-
-        struct stat stat_buf;
-        if( -1 != stat( filename, &stat_buf) )
-        {
-            if( time(0) - stat_buf.st_mtime < MIN_READ_INTERVAL )
-                return true;
-        }
-        
-        Shepherd::setDownloadState("Getting sheep list...");
-
-        snprintf( filename, MAX_PATH, "%slist.gzip", xmlPath );
-
-        //	Create the url for getting the cp file to create the frame
-        char 	url[ MAXBUF*5 ];
-        snprintf( url, MAXBUF*5, "%scgi/list?v=%s&u=%s",	ContentDownloader::Shepherd::serverName(),
-                                                                    CLIENT_VERSION,
-                                                                    Shepherd::uniqueID() );
-
-        Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>( "Sheep list" );
-        if( !spDownload->Perform( url ) )
-        {
-            if( spDownload->ResponseCode() == 304 )	//	"Not Modified"
-                return true;
-
-            if( spDownload->ResponseCode() == 401 )
-                g_ContentDownloader().ServerFallback();
-
-            g_Log->Error( "Failed to download %s.\n", url );
-            return false;
-        }
-
-        //	Save the data to file.
-        if( !spDownload->Save( filename ) )
-        {
-            g_Log->Error( "Unable to save %s\n", filename );
-            return false;
-        }
-
-        //	Save file time.
-        time( &fLastListTime );
-
-        //	Open the file to write the uncompressed xml data.
-        snprintf( filename, MAX_PATH, "%slist_%s.xml", xmlPath, Shepherd::role() );
-        FILE *outXML = fopen( filename, "wb" );
-        if( outXML == NULL )
-            return false;
-
-        //	Reset the current generation
-        //setCurrentGeneration( 0 );
-
-        //	Gzopen the compressed file to uncompress.
-        snprintf( filename, MAX_PATH, "%slist.gzip", xmlPath );
-        gzFile gzinF = gzopen( filename, "rb" );
-        if( gzinF == NULL )
-        {
-            g_Log->Error( "Unable to open %s", filename );
-            fclose( outXML );
-            return false;
-        }
-
-        //	Uncompress the data.
-        char	buf[ MAXBUF ];
-        int numBytes = 0;
-        do
-        {
-            numBytes = gzread( gzinF, buf, 250 );
-            if (numBytes <= 0)
-                break;
-            fwrite( buf, static_cast<size_t>(numBytes), 1, outXML );
-        } while( !gzeof( gzinF ) );
-
-        //	Close the input and output file.
-        gzclose( gzinF );
-        fclose( outXML );
-
-        //	Delete the temp file with the compressed data.
-        snprintf( filename, MAX_PATH, "%slist.gzip", xmlPath );
-        remove( filename );
-        fListDirty = true;
-        return true;
-    }
+    fListDirty = EDreamClient::GetDreams();
+    return fListDirty;
 }
 
 /*

@@ -54,8 +54,10 @@ CTextMetal::CTextMetal(spCFontMetal _font, MTKView* _view, float /*_contextAspec
 CTextMetal::~CTextMetal()
 {
 #if USE_SYSTEM_UI
-    [m_TextField removeFromSuperview];
-    CFBridgingRelease((__bridge CFTypeRef)m_TextField);
+    __block NSTextField* textField = CFBridgingRelease((__bridge CFTypeRef)m_TextField);
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [textField removeFromSuperview];
+    });
 #endif
 }
 

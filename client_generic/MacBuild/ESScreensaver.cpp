@@ -1,3 +1,4 @@
+#include <sys/stat.h>
 
 #include "ESScreensaver.h"
 #ifdef USE_METAL
@@ -236,14 +237,14 @@ using namespace boost::filesystem;
 
 static uint64 GetFlockSizeBytes(const std::string& path, int sheeptype)
 {
-	std::string mpegpath(path);
+	std::string mp4path(path);
 	
-	if (mpegpath.substr(mpegpath.size() - 1, 1) != "/")
-		mpegpath += "/";
+	if (mp4path.substr(mp4path.size() - 1, 1) != "/")
+		mp4path += "/";
 	uint64 retval = 0;
 
 	try {
-	boost::filesystem::path p(mpegpath.c_str());
+	boost::filesystem::path p(mp4path.c_str());
 
 	directory_iterator end_itr; // default construction yields past-the-end
 	for ( directory_iterator itr( p );
@@ -269,7 +270,7 @@ static uint64 GetFlockSizeBytes(const std::string& path, int sheeptype)
 					{
 						struct stat sbuf;
 
-						if (stat( (mpegpath + "/" +fname).c_str(), &sbuf ) == 0)
+						if (stat( (mp4path + "/" +fname).c_str(), &sbuf ) == 0)
 							retval += (uint64)sbuf.st_size;
 					}
 				}
@@ -288,32 +289,8 @@ static uint64 GetFlockSizeBytes(const std::string& path, int sheeptype)
 	return retval;
 }
 
-size_t ESScreensaver_GetFlockSizeMBs(const char *mpegpath, int sheeptype)
+size_t ESScreensaver_GetFlockSizeMBs(const char *mp4path, int sheeptype)
 {
-	return GetFlockSizeBytes(mpegpath, sheeptype)/1024/1024;
+	return GetFlockSizeBytes(mp4path, sheeptype)/1024/1024;
 
-}
-
-CFStringRef ESScreensaver_CopyGetRoleFromXML(const char *xml)
-{
-	TiXmlDocument doc;
-	if ( doc.Parse(xml, NULL, TIXML_ENCODING_UTF8 ) )
-	{
-		TiXmlHandle hDoc(&doc);
-		TiXmlElement* listElement;
-		const char *role = NULL;
-
-		listElement=hDoc.FirstChild( "query" ).FirstChild( "redir" ).Element();
-
-		if ( listElement != NULL )
-			role = listElement->Attribute("role");
-
-		if ( role != NULL )
-		{
-			return CFStringCreateWithCString(kCFAllocatorDefault, role, kCFStringEncodingUTF8);
-
-		}
-	}
-	
-	return NULL;
 }

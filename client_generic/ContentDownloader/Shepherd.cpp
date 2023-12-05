@@ -38,7 +38,6 @@
 #include "Settings.h"
 #include "Shepherd.h"
 #include "SheepDownloader.h"
-#include "SheepGenerator.h"
 #include "EDreamClient.h"
 #include "md5.h"
 
@@ -59,9 +58,8 @@ uint64 Shepherd::s_ClientFlockGoldBytes = 0;
 uint64 Shepherd::s_ClientFlockCount = 0;
 uint64 Shepherd::s_ClientFlockGoldCount = 0;
 atomic_char_ptr Shepherd::fRootPath(NULL);
-atomic_char_ptr Shepherd::fMpegPath(NULL);
-atomic_char_ptr Shepherd::fXmlPath(NULL);
-atomic_char_ptr Shepherd::fJpegPath(NULL);
+atomic_char_ptr Shepherd::fMp4Path(NULL);
+atomic_char_ptr Shepherd::fJsonPath(NULL);
 atomic_char_ptr Shepherd::fRedirectServerName(NULL);
 atomic_char_ptr Shepherd::fServerName(NULL);
 atomic_char_ptr Shepherd::fVoteServerName(NULL);
@@ -69,6 +67,7 @@ atomic_char_ptr Shepherd::fRenderServerName(NULL);
 atomic_char_ptr Shepherd::fProxy(NULL);
 atomic_char_ptr Shepherd::fProxyUser(NULL);
 atomic_char_ptr Shepherd::fProxyPass(NULL);
+atomic_char_ptr Shepherd::fNickName(NULL);
 int Shepherd::fUseProxy = 0;
 int Shepherd::fSaveFrames = 0;
 int Shepherd::fCacheSize = 100;
@@ -99,7 +98,6 @@ boost::mutex	Shepherd::s_ComputeServerNameMutex;
 bool Shepherd::fShutdown = false;
 int Shepherd::fChangeRes = 0;
 int Shepherd::fChangingRes = 0;
-bool Shepherd::fUseDreamAI = true;
 
 time_t Shepherd::s_LastRequestTime = 0;
 
@@ -129,7 +127,6 @@ void Shepherd::initializeShepherd(/*HINSTANCE hInst, HWND hWnd*/)
 //
 {
 	SheepDownloader::initializeDownloader();
-	SheepGenerator::initializeGenerator();
     EDreamClient::InitializeClient();
 
 	totalRenderedFrames = new boost::detail::atomic_count((int)(int32)g_Settings()->Get( "settings.generator.totalFramesRendered", 0 ));
@@ -145,14 +142,12 @@ void	Shepherd::notifyShepherdOfHisUntimleyDeath()
 	g_Log->Info( "notifyShepherdOfHisUntimleyDeath..." );
 
 	SheepDownloader::closeDownloader();
-	SheepGenerator::closeGenerator();
 
 	//boost::mutex::scoped_lock lockthis( s_ShepherdMutex );
 
 	SAFE_DELETE_ARRAY( fRootPath );
-	SAFE_DELETE_ARRAY( fMpegPath );
-	SAFE_DELETE_ARRAY( fXmlPath );
-	SAFE_DELETE_ARRAY( fJpegPath );
+	SAFE_DELETE_ARRAY( fMp4Path );
+	SAFE_DELETE_ARRAY( fJsonPath );
 	SAFE_DELETE_ARRAY( fRedirectServerName );
 	SAFE_DELETE_ARRAY( fServerName );
 	SAFE_DELETE_ARRAY( fVoteServerName );
@@ -167,11 +162,9 @@ void	Shepherd::notifyShepherdOfHisUntimleyDeath()
 	SAFE_DELETE( totalRenderedFrames );
 	SAFE_DELETE( renderingFrames );
 
-	std::vector<char *>::const_iterator it;
-	
 	char *str;
 	
-	while(fStringsToDelete.pop(str))
+	while (fStringsToDelete.pop(str))
 	{
 		SAFE_DELETE_ARRAY( str );
 	}
@@ -179,12 +172,22 @@ void	Shepherd::notifyShepherdOfHisUntimleyDeath()
 	fStringsToDelete.clear(0);
 }
     
-void Shepherd::setNewAndDeleteOldString(atomic_char_ptr &str, char *newval, boost::memory_order mem_ord)
+void Shepherd::setNewAndDeleteOldString(atomic_char_ptr &str, char* newval, boost::memory_order mem_ord)
 {
     char *toDelete = str.exchange(newval, mem_ord);
     
     if (toDelete != NULL)
         fStringsToDelete.push(toDelete);
+}
+
+static void MakeCopyAndSetAtomicCharPtr(atomic_char_ptr& target, const char* newVal, boost::memory_order mem_ord = boost::memory_order_relaxed)
+{
+    size_t len = strlen(newVal);
+
+    char* newCopy = new char[len + 1];
+    strcpy(newCopy, newVal);
+    
+    Shepherd::setNewAndDeleteOldString(target, newCopy, mem_ord);
 }
 
 void Shepherd::setRootPath(const char *path)
@@ -231,44 +234,29 @@ void Shepherd::setRootPath(const char *path)
     
 	char *newMpegPath = new char[(len + 12)];
     
-	snprintf(newMpegPath, len + 12, "%smpeg%c", newRootPath,PATH_SEPARATOR_C);
+	snprintf(newMpegPath, len + 12, "%smp4%c", newRootPath,PATH_SEPARATOR_C);
 #ifdef WIN32
 	CreateDirectoryA(newMpegPath, NULL);
 #else
 	mkdir(newMpegPath, 0755);
 #endif
     
-    setNewAndDeleteOldString(fMpegPath, newMpegPath);
+    setNewAndDeleteOldString(fMp4Path, newMpegPath);
 
-    char *newXmlPath = new char[(len + 12)];
-	snprintf(newXmlPath, len + 12,"%sxml%c", newRootPath,PATH_SEPARATOR_C);
+    char *newJsonPath = new char[(len + 12)];
+	snprintf(newJsonPath, len + 12,"%sjson%c", newRootPath,PATH_SEPARATOR_C);
 #ifdef WIN32
-	CreateDirectoryA(newXmlPath, NULL);
+	CreateDirectoryA(newJsonPath, NULL);
 #else
-	mkdir(newXmlPath, 0755);
+	mkdir(newJsonPath, 0755);
 #endif
 
-    setNewAndDeleteOldString(fXmlPath, newXmlPath);
-
-    char *newJpegPath = new char[(len + 12)];
-	snprintf(newJpegPath, len + 12,"%sjpeg%c", newRootPath,PATH_SEPARATOR_C);
-#ifdef WIN32
-	CreateDirectoryA(newJpegPath, NULL);
-#else
-	mkdir(newJpegPath, 0755);
-#endif
-    
-    setNewAndDeleteOldString(fJpegPath, newJpegPath);
+    setNewAndDeleteOldString(fJsonPath, newJsonPath);
 }
 
 void Shepherd::setRole( const char *role )
 {
-	size_t len = strlen(role);
-
-    char *newRole = new char[len + 1];
-	strcpy(newRole, role);
-    
-    setNewAndDeleteOldString(fRole, newRole);
+    MakeCopyAndSetAtomicCharPtr(fRole, role);
 }
 
 const char *Shepherd::role()
@@ -283,12 +271,7 @@ Shepherd::setRedirectServerName(const char *server)
 //		Sets the server name for the sheep server.
 //
 {
-	size_t len = strlen(server);
-
-	char *newRedirectServerName = new char[len + 1];
-	strcpy(newRedirectServerName, server);
-    
-    setNewAndDeleteOldString(fRedirectServerName, newRedirectServerName);
+    MakeCopyAndSetAtomicCharPtr(fRedirectServerName, server);
 }
 
 
@@ -300,75 +283,28 @@ Shepherd::setProxy(const char *proxy)
 //	transactions.
 //
 {
-	size_t len = strlen(proxy);
-
-	char *newProxy = new char[len + 1];
-	strcpy(newProxy, proxy);
-    
-    setNewAndDeleteOldString(fProxy, newProxy);
+    MakeCopyAndSetAtomicCharPtr(fProxy, proxy);
 }
 
 void
 Shepherd::setProxyUserName(const char *userName)
-//
-// Description:
-//		Sets the proxy username.
-//
 {
-	size_t len = strlen(userName);
-
-	char *newProxyUser = new char[len + 1];
-	strcpy(newProxyUser, userName);
-
-    setNewAndDeleteOldString(fProxyUser, newProxyUser);
+    MakeCopyAndSetAtomicCharPtr(fProxyUser, userName);
 }
 
-void
-Shepherd::setProxyPassword(const char *password)
-//
-// Description:
-//		Sets the proxy password.
-//
+void Shepherd::setProxyPassword(const char *password)
 {
-	size_t len = strlen(password);
-
-    char *newProxyPass = new char[len + 1];
-	strcpy(newProxyPass, password);
-
-    setNewAndDeleteOldString(fProxyPass, newProxyPass);
+    MakeCopyAndSetAtomicCharPtr(fProxyPass, password);
 }
 
-int
-Shepherd::filenameIsMpg(const char *name)
-//
-// Description:
-//		Returns if the file is a valid mpeg name.
-//
+void Shepherd::GetNickName( const char *nick )
 {
-	size_t n = strlen(name);
-	return !((n <= 4 || 0 != strcmp(&name[n-4], ".avi")) );
+    MakeCopyAndSetAtomicCharPtr(fNickName, nick);
 }
 
-int
-Shepherd::filenameIsXxx(const char *name)
-//
-// Description:
-//		Returns if the file is a deleted mpeg file.
-//
+const char* Shepherd::GetNickName()
 {
-	size_t n = strlen(name);
-	return !(n <= 4 || 0 != strcmp(&name[n-4], ".xxx"));
-}
-
-int
-Shepherd::filenameIsTmp(const char *name)
-//
-// Description:
-//		Returns if the file is a deleted mpeg file.
-//
-{
-	size_t n = strlen(name);
-	return !(n <= 4 || 0 != strcmp(&name[n-4], ".tmp"));
+    return fNickName.load(boost::memory_order_relaxed);
 }
 
 void Shepherd::addMessageText(const char *s, size_t len, time_t timeout)
@@ -381,19 +317,14 @@ const char *Shepherd::rootPath()
     return fRootPath.load(boost::memory_order_relaxed);
 }
 
-const char *Shepherd::mpegPath()
+const char *Shepherd::mp4Path()
 {
-	return fMpegPath.load(boost::memory_order_relaxed);
+	return fMp4Path.load(boost::memory_order_relaxed);
 }
 
-const char *Shepherd::xmlPath()
+const char *Shepherd::jsonPath()
 {
-	return fXmlPath.load(boost::memory_order_relaxed);
-}
-
-const char *Shepherd::jpegPath()
-{
-	return fJpegPath.load(boost::memory_order_relaxed);
+	return fJsonPath.load(boost::memory_order_relaxed);
 }
 
 std::string Shepherd::computeMD5( const std::string& str )
@@ -433,7 +364,7 @@ const char *Shepherd::serverName( bool allowServerQuery, eServerTargetType serve
             
             if ( redirectServerName != NULL )
 			{
-				std::string	nickEncoded = Network::CManager::Encode( SheepGenerator::nickName() );
+				std::string	nickEncoded = Network::CManager::Encode( Shepherd::GetNickName() );
 				std::string	passEncoded = Network::CManager::Encode( Shepherd::password() );
                 
                 bool addHTTP = false;
@@ -632,8 +563,8 @@ bool	Shepherd::getClientFlock(SheepArray *sheep)
 
 	sheep->clear();
 
-	//	Get the sheep in fMpegPath.
-	getSheep( mpegPath(), sheep, serverFlock );
+	//	Get the sheep in fMp4Path.
+	getSheep( mp4Path(), sheep, serverFlock );
 	for (iter = sheep->begin(); iter != sheep->end(); ++iter )
 	{
 		if ((*iter)->getGenerationType() == 0)
@@ -659,65 +590,6 @@ bool	Shepherd::getClientFlock(SheepArray *sheep)
 }
 
 using namespace boost::filesystem;
-
-static bool tryParseLegacySheepFile(
-    const string& fname,
-    const boost::filesystem::path& root,
-    const boost::filesystem::path& subPath,
-    uint32& id,
-    uint32& first,
-    uint32& last,
-    uint32& generation,
-    bool& isTemp,
-    bool& isDeleted)
-{
-    if( Shepherd::filenameIsXxx( fname.c_str() ) )
-    {
-        //    We have found an mpeg so check the filename to see if it is valid than add it
-        if( 4 != sscanf( fname.c_str(), "%d=%d=%d=%d.xxx", &generation, &id, &first, &last ) )
-        {
-            //    This file is from the older format so delete it from the cache.
-            remove(subPath);
-            return false;
-        }
-
-        isDeleted = true;
-    }
-    else if( Shepherd::filenameIsTmp( fname.c_str() ) )
-    {
-        //    This file is an unfinished downloaded file so mark it for deletion.
-        if( 4 != sscanf( fname.c_str(), "%d=%d=%d=%d.avi.tmp", &generation, &id, &first, &last ) )
-        {
-            //    This file is from the older format so delete it from the cache.
-            remove(subPath);
-            return false;
-        }
-        isTemp = true;
-    }
-    else if( Shepherd::filenameIsMpg( fname.c_str() ) )
-    {
-        //    We have found an mpeg so check the filename to see if it is valid than add it
-        if( 4 != sscanf( fname.c_str(), "%d=%d=%d=%d.avi", &generation, &id, &first, &last ) )
-        {
-            //    This file is from the older format so delete it from the cache.
-            remove(subPath);
-            return false;
-        }
-        
-        std::string xxxname(fname);
-        xxxname.replace(fname.size() - 3, 3, "xxx");
-        
-        if ( exists( root/xxxname ) )
-        {
-            isDeleted = true;
-        }
-    }
-    else
-    {
-        //    Not a recognizable file skip it.
-        return false;
-    }
-}
 
 /*
 	getSheep().
@@ -754,48 +626,17 @@ bool Shepherd::getSheep(const char *path, SheepArray* sheep, const SheepArray& s
 		else
 		{
             auto fileName = itr->path().filename();
-
-            if (!Shepherd::useDreamAI())
+            if (fileName.extension() == ".mp4")
             {
-                std::string fname(fileName.string());
-                if (!tryParseLegacySheepFile(fname, p, itr->path(), id, first, last, generation, isTemp, isDeleted))
-                    continue;
-                //    Allocate the sheep and set the attributes.
-                Dream *newSheep = new Dream();
-                newSheep->setGeneration( generation );
-                newSheep->setId( id );
-                newSheep->setFirstId( first );
-                newSheep->setLastId( last );
-                newSheep->setIsTemp( isTemp );
-                newSheep->setDeleted( isDeleted );
-
-                //    Set the filename.
-                snprintf( fbuf, MAXBUF, "%s%s", path,  fname.c_str() );
-                newSheep->setFileName( fbuf );
-                struct stat sbuf;
-
-                stat( fbuf, &sbuf );
-                newSheep->setFileWriteTime( sbuf.st_ctime );
-                newSheep->setFileSize( static_cast<uint64>(sbuf.st_size) );
-
-                //    Add it to the return array.
-                sheep->push_back( newSheep );
-                gotSheep = true;
-            }
-            else
-            {
-                if (fileName.extension() == ".mp4")
+                std::string uuid = fileName.stem().string();
+                Dream* serverSheep = nullptr;
+                if (serverFlock.tryGetSheepWithUuid(uuid, serverSheep))
                 {
-                    std::string uuid = fileName.stem().string();
-                    Dream* serverSheep = nullptr;
-                    if (serverFlock.tryGetSheepWithUuid(uuid, serverSheep))
-                    {
-                        Dream* newSheep = new Dream(*serverSheep);
-                        newSheep->setFileName(itr->path().c_str());
-                        newSheep->setFileSize(boost::filesystem::file_size(itr->path()));
-                        sheep->push_back(newSheep);
-                        gotSheep = true;
-                    }
+                    Dream* newSheep = new Dream(*serverSheep);
+                    newSheep->setFileName(itr->path().c_str());
+                    newSheep->setFileSize(boost::filesystem::file_size(itr->path()));
+                    sheep->push_back(newSheep);
+                    gotSheep = true;
                 }
             }
 		}

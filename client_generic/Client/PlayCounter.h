@@ -1,6 +1,6 @@
 /*
  *  PlayCounter.h
- *  ElectricSheep
+ *  EDream
  */
 
 #ifndef _PLAYCOUNTER_H

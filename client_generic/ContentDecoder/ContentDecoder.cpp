@@ -414,23 +414,18 @@ bool	CContentDecoder::NextSheepForPlaying( int32 _forceNext )
 		if (m_MainVideoInfo == NULL)
 			return false;
 	}
-	
-	if (!m_MainVideoInfo->m_bSpecialSheep || ContentDownloader::Shepherd::useDreamAI())
-	{
-		if (m_SecondVideoInfo == NULL)
-		{
-			if (m_MainVideoInfo->IsLoop() && m_LoopIterations > 0 && m_MainVideoInfo->m_NumIterations < (m_LoopIterations - 1))
-			{
-				m_SecondVideoInfo = new sOpenVideoInfo(*m_MainVideoInfo);
-				m_SecondVideoInfo->m_NumIterations++;
-			}
-			else
-				m_SecondVideoInfo = GetNextSheepInfo();
 
-		}
-	}
-	else
-		m_NoSheeps = true;
+    if (m_SecondVideoInfo == NULL)
+    {
+        if (m_MainVideoInfo->IsLoop() && m_LoopIterations > 0 && m_MainVideoInfo->m_NumIterations < (m_LoopIterations - 1))
+        {
+            m_SecondVideoInfo = new sOpenVideoInfo(*m_MainVideoInfo);
+            m_SecondVideoInfo->m_NumIterations++;
+        }
+        else
+            m_SecondVideoInfo = GetNextSheepInfo();
+
+    }
 	
 	if (!m_MainVideoInfo->IsOpen())
 	{
@@ -469,25 +464,7 @@ bool	CContentDecoder::NextSheepForPlaying( int32 _forceNext )
         m_SecondVideoInfo != NULL &&
         !m_SecondVideoInfo->IsOpen())
     {
-        bool openSecondVideo = false;
-        if (ContentDownloader::Shepherd::useDreamAI())
-        {
-            openSecondVideo = true;
-        }
-        else
-        {
-            if (m_MainVideoInfo->m_Last != m_SecondVideoInfo->m_SheepID &&
-                m_MainVideoInfo->m_SheepID != m_SecondVideoInfo->m_First &&
-                m_MainVideoInfo->m_Last != m_SecondVideoInfo->m_First &&
-                (m_MainVideoInfo->m_Generation / 10000) == (m_SecondVideoInfo->m_Generation / 10000))
-            {
-                openSecondVideo = true;
-            }
-        }
-        if (openSecondVideo)
-        {
-            Open(m_SecondVideoInfo);
-        }
+        Open(m_SecondVideoInfo);
     }
 
 	return true;

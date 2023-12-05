@@ -52,7 +52,6 @@
 
 
 #include    "DreamPlaylist.h"
-#include	"lua_playlist.h"
 #include	"Settings.h"
 #include	"ContentDownloader.h"
 #include	"PlayCounter.h"
@@ -134,36 +133,11 @@ bool CPlayer::AddDisplay( uint32 screen )
 	{
 		detectgold = false;
 		std::string content = g_Settings()->Root() + "content/";
-		std::string watchFolder = g_Settings()->Get( "settings.content.sheepdir", content ) + "/mpeg/";
-
-		std::vector<std::string> files;
-		m_HasGoldSheep = Base::GetFileList( files,  watchFolder, ".avi", true, false, true );
+		std::string watchFolder = g_Settings()->Get( "settings.content.sheepdir", content ) + "/mp4/";
 	}
 	// modify aspect ratio and/or window size hint
 	uint32	w = 1280;
 	uint32 h = 720;
-	m_UsedSheepType = g_Settings()->Get( "settings.player.PlaybackMixingMode", 0 );
-	switch ( m_UsedSheepType )
-	{
-	case 0: // only gold, if any
-		{
-			if (m_HasGoldSheep == false)
-			{
-				w = 800;
-				h = 592;
-				m_UsedSheepType = 2;
-			}
-		}
-		break;
-	case 1: // free sheep only
-		w = 800;
-		h = 592;
-		break;
-	case 2: // all sheep
-		break;
-	};
-
-
 
 #ifdef	WIN32
 #ifndef _WIN64
@@ -350,7 +324,7 @@ bool	CPlayer::Startup( boost::shared_mutex& _downloadSaveMutex )
 #else
 	std::string	scriptRoot = g_Settings()->Get( "settings.app.InstallDir", std::string(SHAREDIR) ) + "Scripts";
 #endif
-	std::string watchFolder = g_Settings()->Get( "settings.content.sheepdir", content ) + "/mpeg/";
+	std::string watchFolder = g_Settings()->Get( "settings.content.sheepdir", content ) + "/mp4/";
 
  	if( TupleStorage::IStorageInterface::CreateFullDirectory( content.c_str() ) )
 	{
@@ -364,16 +338,8 @@ bool	CPlayer::Startup( boost::shared_mutex& _downloadSaveMutex )
 
 	//	Create playlist.
 	g_Log->Info( "Creating playlist..." );
-    if (ContentDownloader::Shepherd::useDreamAI())
-    {
-        m_spPlaylist = std::make_shared<ContentDecoder::CDreamPlaylist>(watchPath.string());
-    }
-    else
-    {
-        m_spPlaylist = std::make_shared<ContentDecoder::CLuaPlaylist>(	scriptPath.string(),
-                                                            watchPath.string(),
-                                                            m_UsedSheepType );
-    }
+    
+    m_spPlaylist = std::make_shared<ContentDecoder::CDreamPlaylist>(watchPath.string());
 
 	//	Create decoder last.
 	g_Log->Info( "Starting decoder..." );

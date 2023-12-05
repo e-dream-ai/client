@@ -147,7 +147,7 @@ bool EDreamClient::RefreshAccessToken()
 bool EDreamClient::GetDreams()
 {
     Network::spCFileDownloader spDownload;
-    const char *xmlPath = ContentDownloader::Shepherd::xmlPath();
+    const char *jsonPath = ContentDownloader::Shepherd::jsonPath();
     char filename[MAX_PATH];
 
     char authHeader[ACCESS_TOKEN_MAX_LENGTH + 22];
@@ -180,7 +180,7 @@ bool EDreamClient::GetDreams()
         }
     }
 
-    snprintf( filename, MAX_PATH, "%sdreams.json", xmlPath );
+    snprintf( filename, MAX_PATH, "%sdreams.json", jsonPath );
     if( !spDownload->Save( filename ) )
     {
         g_Log->Error( "Unable to save %s\n", filename );

@@ -143,35 +143,6 @@ void	CManager::Proxy( const std::string &_url, const std::string &_userName, con
 	m_ProxyUserPass = pu.str();
 }
 
-/*
-	Login().
-	Set authentication user/pass for transfer.	Default method is basic.
-*/
-void	CManager::Login( const std::string &_userName, const std::string &_password )
-{
-	g_Log->Info( "Login()" );
-
-	if( _userName == "" || _password == "" )
-		return;
-
-	boost::mutex::scoped_lock locker( m_Lock );
-
-	std::stringstream pu;
-	pu << _userName << ":" << _password;
-	m_UserPass = pu.str();
-}
-
-/*
-	Logout().
-	Clears authentication user/pass.
-*/
-void	CManager::Logout()
-{
-	g_Log->Info( "Logout()" );
-	boost::mutex::scoped_lock locker( m_Lock );
-	m_UserPass = "";
-}
-
 bool	CCurlTransfer::InterruptiblePerform()
 {
 	CURLMcode _code;
@@ -402,7 +373,6 @@ bool	CManager::Startup()
 {
 	curl_global_init( CURL_GLOBAL_DEFAULT );
 
-	m_UserPass = "";
 	m_ProxyUrl = "";
 	m_ProxyUserPass = "";
 	
@@ -428,24 +398,11 @@ bool	CManager::Shutdown()
 */
 CURLcode	CManager::Prepare( CURL *_pCurl )
 {
-    if (ContentDownloader::Shepherd::useDreamAI())
-        return CURLE_OK;
 	g_Log->Info( "Prepare()" );
 
 	boost::mutex::scoped_lock locker( m_Lock );
 
 	CURLcode code = CURLE_OK;
-
-	//	Set http authentication if there is one.
-	if( m_UserPass != "" )
-	{
-		curl_easy_setopt(_pCurl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC); 
-
-		code = curl_easy_setopt( _pCurl, CURLOPT_USERPWD, m_UserPass.c_str() );
-	
-		if( code != CURLE_OK )
-			return code;
-	}
 
 	//	Set proxy url and user/pass if they're defined.
 	if( m_ProxyUrl != "" )

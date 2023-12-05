@@ -5,11 +5,11 @@
 #include	<d3d9.h>
 #include	<d3dx9.h>
 #endif
+#include    "Settings.h"
 #include	"DisplayOutput.h"
 #include	"Renderer.h"
 #include	"Singleton.h"
 #include	"ContentDecoder.h"
-#include	"lua_playlist.h"
 #include	"Timer.h"
 #include	"FrameDisplay.h"
 #include	"Timer.h"
@@ -83,7 +83,6 @@ private:
 	//	Used to keep track of elapsed time since last frame.
 	fp8	m_CapClock;
 
-	bool m_HasGoldSheep;
 	int m_UsedSheepType;
 	
 	boost::mutex	m_updateMutex;
@@ -254,7 +253,6 @@ private:
 			}
 			
 			inline void		SetMultiDisplayMode( MultiDisplayMode mode )	{ m_MultiDisplayMode = mode; }
-			inline bool		HasGoldSheep() { return m_HasGoldSheep; }
 			inline int		UsedSheepType() { return m_UsedSheepType; }
 			
 			inline uint32		GetDisplayCount() { return static_cast<uint32>(m_displayUnits.size()); }
