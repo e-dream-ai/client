@@ -101,14 +101,19 @@ bool	CRendererMetal::Initialize( spCDisplayOutput _spDisplay )
         return false;
 
     MTKView* metalView = (__bridge MTKView*)m_spDisplay->GetContext();
-    id<MTLDevice> device = metalView.device;
+    id<MTLDevice> device;
+    ASSERT(device = metalView.device);
     
     RendererContext* rendererContext = [[RendererContext alloc] init];
     m_pRendererContext = CFBridgingRetain(rendererContext);
     rendererContext->metalView = metalView;
-    rendererContext->commandQueue = [device newCommandQueue];
+    ASSERT(rendererContext->commandQueue = [device newCommandQueue]);
+    
     rendererContext->inFlightSemaphore = dispatch_semaphore_create(MaxFramesInFlight);
-    rendererContext->shaderLibrary = [device newDefaultLibrary];
+    NSError* err;
+    rendererContext->shaderLibrary = [device newLibraryWithFile:[[NSBundle bundleForClass:RendererContext.class] pathForResource:@"default" ofType:@"metallib"] error:&err];
+    NSAssert(err == nil, @"%@", error);
+
     rendererContext->drawTextureShader = std::static_pointer_cast<CShaderMetal>(NewShader("quadPassVertex", "drawTextureFragment"));
     rendererContext->drawTextShader = spCShaderMetal(new CShaderMetal(device,
                                                        [rendererContext->shaderLibrary newFunctionWithName:@"drawTextVertex"],
@@ -181,6 +186,8 @@ spCShader	CRendererMetal::NewShader( const char *_pVertexShader, const char *_pF
     RendererContext* rendererContext = (__bridge RendererContext*)m_pRendererContext;
     id<MTLFunction> vertexFunc = [rendererContext->shaderLibrary newFunctionWithName:@(_pVertexShader)];
     id<MTLFunction> fragmentFunc = [rendererContext->shaderLibrary newFunctionWithName:@(_pFragmentShader)];
+    ASSERT(vertexFunc);
+    ASSERT(fragmentFunc);
     return std::make_shared<CShaderMetal>(rendererContext->metalView.device, vertexFunc, fragmentFunc, nil, _uniforms);
 }
 
