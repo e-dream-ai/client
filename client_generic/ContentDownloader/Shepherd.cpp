@@ -187,13 +187,6 @@ static void MakeCopyAndSetAtomicCharPtr(atomic_char_ptr& target, const char* new
 }
 
 void Shepherd::setRootPath(const char *path)
-//
-// Description:
-//		This method is used to set the root path
-// where all of the files will be created and downloaded
-// to. The method also initializes all of the relative paths
-// for the subdirectories.
-//
 {
 	// strip off trailing white space
 	//

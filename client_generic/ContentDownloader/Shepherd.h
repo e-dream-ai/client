@@ -86,7 +86,7 @@ MakeSmartPointers( CTimedMessageBody );
     
 typedef boost::atomic<char *> atomic_char_ptr;
     
-/*
+/*!
 	Shepherd.
 	This class is responsible for managing the threads to create, render, and download sheep.
 */
@@ -99,7 +99,7 @@ class Shepherd
 		time_t	expire;
 	}	SHEPHERD_MESSAGE;
 
-	//	Gets all sheep in path.
+	///	Gets all sheep in path.
 	static bool getSheep( const char *path, SheepArray *sheep, const SheepArray& serverFlock );
 
 	static uint64 s_ClientFlockBytes;
@@ -235,21 +235,29 @@ class Shepherd
 			static void notifyShepherdOfHisUntimleyDeath();
     
             static void setNewAndDeleteOldString(atomic_char_ptr &str, char *newval, boost::memory_order mem_ord = boost::memory_order_relaxed);
+            
+            /*!
+             * @discussion
+             *        This method is used to set the root path
+             * where all of the files will be created and downloaded
+             * to. The method also initializes all of the relative paths
+             * for the subdirectories.
+             */
 			static void setRootPath( const char *path );
 			static const char *rootPath();
 			static const char *mp4Path();
 			static const char *jsonPath();
             static const char *videoExtension() { return ".mp4"; }
 
-			//	Gets/sets the registration password.
+			///	Gets/sets the registration password.
 			static void setPassword( const char *password );
 			static const char *password();
 
-			//	Overlay text management for the renderer.
+			///	Overlay text management for the renderer.
 			static void addMessageText(std::string_view s, time_t timeout);
 
 
-			//	Called from generators.
+			///	Called from generators.
 			static void FrameStarted();
 			static void	FrameCompleted();
 			static int	FramesRendering();
