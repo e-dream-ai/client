@@ -134,7 +134,7 @@ class	CElectricSheep_Mac : public CElectricSheep
 				
 			void GetClientProxy(void)
 			{
-                m_proxyEnabled = get_proxy_for_server105( (const UInt8*)CLIENT_SERVER, m_proxyHost, sizeof(m_proxyHost) - 1, m_proxyUser, sizeof(m_proxyUser) - 1, m_proxyPass, sizeof(m_proxyPass) - 1 );
+                m_proxyEnabled = get_proxy_for_server105( (const UInt8*)DREAM_SERVER, m_proxyHost, sizeof(m_proxyHost) - 1, m_proxyUser, sizeof(m_proxyUser) - 1, m_proxyPass, sizeof(m_proxyPass) - 1 );
 			}
 
 			void AddGraphicsContext( CGraphicsContext _context )

@@ -139,7 +139,7 @@ class	CElectricSheep
 		void	AttachLog()
 		{
 			TupleStorage::IStorageInterface::CreateFullDirectory( m_AppData + "Logs/" );
-			if (g_Settings()->Get( "settings.app.log", false ))
+			if (g_Settings()->Get( "settings.app.log", true ))
 				g_Log->Attach( m_AppData + "Logs/" );
 			g_Log->Info( "AttachLog()" );
 
@@ -191,12 +191,6 @@ class	CElectricSheep
 						g_NetworkManager->Proxy( g_Settings()->Get( "settings.content.proxy", std::string("") ),
 												 g_Settings()->Get( "settings.content.proxy_username", std::string("") ),
 												 g_Settings()->Get( "settings.content.proxy_password", std::string("") ) );
-					}
-					
-					//if some user has a legacy clear-text password, lets convert it to md5 one.  (should we remove the old one ???)
-					if (g_Settings()->Get( "settings.content.password_md5", std::string("") ) == "") {
-						g_Settings()->Set( "settings.content.password_md5", ContentDownloader::Shepherd::computeMD5( g_Settings()->Get( "settings.content.password", std::string("") ) ) );
-						//g_Settings()->Set( "settings.content.password", "" );
 					}
 					
 					m_pVoter = new CVote();
@@ -833,15 +827,6 @@ class	CElectricSheep
 						tmpstr << flockcount << " dream" << (flockcount > 1 ? "s" : "") << ", " << flockmbs << "MB";
 						((Hud::CStringStat *)spStats->Get( "all" ))->SetSample(tmpstr.str());
 
-						const char *servername = ContentDownloader::Shepherd::serverName( false );
-						if ( servername != NULL && servername[0] )
-						{
-							((Hud::CStringStat *)spStats->Get( "server" ))->SetSample( servername );
-							((Hud::CStringStat *)spStats->Get( "server" ))->Visible( true );
-						}
-						else
-							((Hud::CStringStat *)spStats->Get( "server" ))->Visible( false );
-						
 
 						Hud::CStringStat	*pTmp = (Hud::CStringStat *)spStats->Get( "transfers" );
 						if( pTmp )

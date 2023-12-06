@@ -49,8 +49,6 @@
 	
 	m_checkTimer = nil;
 	
-	//m_roleString = @"member";
-	
 	ESScreensaver_InitClientStorage();
 
 	[self loadSettings];

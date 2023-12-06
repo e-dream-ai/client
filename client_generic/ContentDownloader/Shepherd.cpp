@@ -60,7 +60,6 @@ uint64 Shepherd::s_ClientFlockGoldCount = 0;
 atomic_char_ptr Shepherd::fRootPath(NULL);
 atomic_char_ptr Shepherd::fMp4Path(NULL);
 atomic_char_ptr Shepherd::fJsonPath(NULL);
-atomic_char_ptr Shepherd::fRedirectServerName(NULL);
 atomic_char_ptr Shepherd::fServerName(NULL);
 atomic_char_ptr Shepherd::fVoteServerName(NULL);
 atomic_char_ptr Shepherd::fRenderServerName(NULL);
@@ -75,7 +74,6 @@ int Shepherd::fCacheSizeGold = 100;
 int Shepherd::fRegistered = 0;
 atomic_char_ptr Shepherd::fPassword(NULL);
 atomic_char_ptr Shepherd::fUniqueID(NULL);
-atomic_char_ptr Shepherd::fRole(NULL);
 boost::detail::atomic_count *Shepherd::renderingFrames = NULL;
 boost::detail::atomic_count *Shepherd::totalRenderedFrames = NULL;
 bool Shepherd::m_RenderingAllowed = true;
@@ -148,7 +146,6 @@ void	Shepherd::notifyShepherdOfHisUntimleyDeath()
 	SAFE_DELETE_ARRAY( fRootPath );
 	SAFE_DELETE_ARRAY( fMp4Path );
 	SAFE_DELETE_ARRAY( fJsonPath );
-	SAFE_DELETE_ARRAY( fRedirectServerName );
 	SAFE_DELETE_ARRAY( fServerName );
 	SAFE_DELETE_ARRAY( fVoteServerName );
 	SAFE_DELETE_ARRAY( fRenderServerName );
@@ -157,7 +154,6 @@ void	Shepherd::notifyShepherdOfHisUntimleyDeath()
 	SAFE_DELETE_ARRAY( fProxyUser );
 	SAFE_DELETE_ARRAY( fProxyPass );
 	SAFE_DELETE_ARRAY( fUniqueID );
-	SAFE_DELETE_ARRAY( fRole );
 
 	SAFE_DELETE( totalRenderedFrames );
 	SAFE_DELETE( renderingFrames );
@@ -254,27 +250,6 @@ void Shepherd::setRootPath(const char *path)
     setNewAndDeleteOldString(fJsonPath, newJsonPath);
 }
 
-void Shepherd::setRole( const char *role )
-{
-    MakeCopyAndSetAtomicCharPtr(fRole, role);
-}
-
-const char *Shepherd::role()
-{
-	return fRole.load(boost::memory_order_relaxed);
-}
-
-void
-Shepherd::setRedirectServerName(const char *server)
-//
-// Description:
-//		Sets the server name for the sheep server.
-//
-{
-    MakeCopyAndSetAtomicCharPtr(fRedirectServerName, server);
-}
-
-
 void
 Shepherd::setProxy(const char *proxy)
 //
@@ -297,7 +272,7 @@ void Shepherd::setProxyPassword(const char *password)
     MakeCopyAndSetAtomicCharPtr(fProxyPass, password);
 }
 
-void Shepherd::GetNickName( const char *nick )
+void Shepherd::SetNickName( const char *nick )
 {
     MakeCopyAndSetAtomicCharPtr(fNickName, nick);
 }
@@ -325,168 +300,6 @@ const char *Shepherd::mp4Path()
 const char *Shepherd::jsonPath()
 {
 	return fJsonPath.load(boost::memory_order_relaxed);
-}
-
-std::string Shepherd::computeMD5( const std::string& str )
-{
-	unsigned char digest[16]; //md5 digest size is 16
-
-	md5_buffer( str.c_str(), str.size(), digest );
-
-	std::string md5Str;
-
-	for (uint32 i = 0; i < sizeof(digest); i++)
-	{
-		const char *hex_digits = "0123456789ABCDEF";
-
-		md5Str += hex_digits[ digest[i] >> 4 ];
-		md5Str += hex_digits[ digest[i] & 0x0F ];
-	}
-
-	return md5Str;
-}
-
-
-const char *Shepherd::serverName( bool allowServerQuery, eServerTargetType serverType)
-{
-	//just want to get current server name? We should not block!!!
-	if (!allowServerQuery)
-	{
-        return fServerName.load(boost::memory_order_relaxed);
-	}
-
-	{
-		boost::mutex::scoped_lock lockName( s_ComputeServerNameMutex );
-        
-        if ( ( fServerName.load(boost::memory_order_relaxed) == NULL || (time(0) - s_LastRequestTime) > _24_HOURS ) )
-		{
-            const char *redirectServerName = REDIRECT_SERVER_FULL; //fRedirectServerName.load(boost::memory_order_relaxed);
-            
-            if ( redirectServerName != NULL )
-			{
-				std::string	nickEncoded = Network::CManager::Encode( Shepherd::GetNickName() );
-				std::string	passEncoded = Network::CManager::Encode( Shepherd::password() );
-                
-                bool addHTTP = false;
-                
-                if (redirectServerName[0] != 'h' || redirectServerName[1] != 't' || redirectServerName[2] != 't' || redirectServerName[3] != 'p')
-                {
-                    addHTTP = true;
-                }
-
-				//	Create the url for getting the cp file to create the frame
-				char 	url[ MAXBUF*5 ];
-				snprintf( url, MAXBUF*5, "%s%s/query.php?q=redir&u=%s&p=%s&v=%s&i=%s",
-                    addHTTP ? "http://" : "",
-                    redirectServerName,
-					nickEncoded.c_str(),
-					passEncoded.c_str(),
-					CLIENT_VERSION,
-					Shepherd::uniqueID()
-					);
-
-                Network::spCFileDownloader spDownload { new Network::CFileDownloader( "Sheep Server Request" ) };
-
-				if( spDownload->Perform( url ) )
-				{
-					std::string response( spDownload->Data() );
-
-					//TinyXML has problems with string not terminated by \n
-					response += "\n";
-
-					TiXmlDocument doc;
-					if ( doc.Parse(response.c_str(), NULL, TIXML_ENCODING_UTF8 ) )
-					{
-						TiXmlHandle hDoc(&doc);
-						TiXmlElement* listElement;
-						const char *host = NULL;
-						const char *vote = NULL;
-						const char *render = NULL;
-						const char *role = NULL;
-
-						listElement=hDoc.FirstChild( "query" ).FirstChild( "redir" ).Element();
-
-						if ( listElement != NULL )
-						{
-							host = listElement->Attribute("host");
-							vote = listElement->Attribute("vote");
-							render = listElement->Attribute("render");
-							role = listElement->Attribute("role");
-						}
-
-						if (vote != NULL && *vote != 0)
-						{
-							const char *oldVoteServerName = fVoteServerName.load(boost::memory_order_relaxed);
-
-							if (oldVoteServerName == NULL || (strcmp(oldVoteServerName, vote) != 0))
-							{
-								char *newVoteServerName = new char[strlen(vote) + 1];
-
-								strcpy(newVoteServerName, vote);
-
-								setNewAndDeleteOldString(fVoteServerName, newVoteServerName);
-							}
-						}
-
-
-						if (render != NULL && *render != 0)
-						{
-							const char *oldRenderServerName = fRenderServerName.load(boost::memory_order_relaxed);
-
-							if (oldRenderServerName == NULL || (strcmp(oldRenderServerName, render) != 0))
-							{
-								char *newRenderServerName = new char[strlen(render) + 1];
-
-								strcpy(newRenderServerName, render);
-
-								setNewAndDeleteOldString(fRenderServerName, newRenderServerName);
-							}
-						}
-
-
-						if ( host != NULL && *host != 0 )
-						{
-                            const char *oldServerName = fServerName.load(boost::memory_order_relaxed);
-							
-                            if ( oldServerName == NULL || (strcmp( oldServerName, host ) != 0) )
-							{
-								char *newServerName = new char[ strlen(host) + 1 ];
-
-								strcpy( newServerName, host );
-                                
-                                setNewAndDeleteOldString(fServerName, newServerName);
-							}
-
-						}
-
-						if ( role != NULL && *role != 0 )
-						{
-							setRole(role);
-						}
-					}
-					else
-					{
-						fprintf( stderr, "Server Request Failed: %s at line %d\n", doc.ErrorDesc(), doc.ErrorRow() );
-					}
-
-					time(&s_LastRequestTime);
-				}
-			}
-		}
-	}
-
-	switch (serverType)
-	{
-	case eVoteServer:
-		if (fVoteServerName.load(boost::memory_order_relaxed) != NULL) return fVoteServerName.load(boost::memory_order_relaxed);
-		else return fServerName.load(boost::memory_order_relaxed);
-	case eRenderServer:
-		if (fRenderServerName.load(boost::memory_order_relaxed) != NULL) return fRenderServerName.load(boost::memory_order_relaxed);
-		else return fServerName.load(boost::memory_order_relaxed);
-	case eHostServer:
-	default:
-    return fServerName.load(boost::memory_order_relaxed);
-}
 }
 
 const char *Shepherd::proxy()

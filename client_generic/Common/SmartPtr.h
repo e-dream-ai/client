@@ -436,7 +436,7 @@ template<class T, class REP, class ACCESS = T *> class SmartPtr : public SmartPt
 			SmartPtr &operator = ( const SmartPtrBase &ptr );
 
 			//	Operators.
-			ACCESS	operator -> ();
+    _LIBCPP_INLINE_VISIBILITY ACCESS	operator -> ();
 			T		&operator * ();
 
 			//	Casting operator.
@@ -526,7 +526,8 @@ template<class T, class REP, class ACCESS> SmartPtr<T,REP,ACCESS> &SmartPtr<T,RE
 }
 
 //
-template<class T, class REP, class ACCESS> ACCESS	SmartPtr<T,REP,ACCESS>::operator -> ()
+template<class T, class REP, class ACCESS> ACCESS
+_LIBCPP_INLINE_VISIBILITY SmartPtr<T,REP,ACCESS>::operator -> ()
 {
 	ASSERT( ! IsNull() );
 	return( GetRepPtr()->getPointer() );

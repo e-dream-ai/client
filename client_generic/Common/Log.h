@@ -80,7 +80,7 @@ class	CLog : public CSingleton<CLog>
 			void	Fatal( const char *_pFmt, ... );
 
 			//	Provides singleton access.
-			static CLog *Instance( const char* /*_pFileStr*/, const uint32 /*_line*/, const char* /*_pFunc*/ )
+            __attribute__((no_instrument_function)) static CLog *Instance( const char* /*_pFileStr*/, const uint32 /*_line*/, const char* /*_pFunc*/ )
 			{
 				static	CLog	log;
 

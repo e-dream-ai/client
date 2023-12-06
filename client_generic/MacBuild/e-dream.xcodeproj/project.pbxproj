@@ -138,7 +138,6 @@
 		2161F1940ECF8CEF00FE48E9 /* libz.1.2.5.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1AD90E8E6E0100CE185C /* libz.1.2.5.dylib */; };
 		2169AE7F11397EF700689B02 /* isaac.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2169AE7E11397EF700689B02 /* isaac.cpp */; };
 		2169AE8011397EF700689B02 /* isaac.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2169AE7E11397EF700689B02 /* isaac.cpp */; };
-		2181FAF00ECF42820078FDDA /* libswscale.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2181FAEF0ECF42820078FDDA /* libswscale.a */; };
 		2187F3860F463AA20004F8F9 /* TrebuchetMS-24.glf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2187F3850F463A740004F8F9 /* TrebuchetMS-24.glf */; };
 		2187F3870F463AB50004F8F9 /* TrebuchetMS-24.glf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2187F3850F463A740004F8F9 /* TrebuchetMS-24.glf */; };
 		218878D50EC6CDE2001ABD2E /* Common.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B192A0E8E591000CE185C /* Common.cpp */; };
@@ -176,7 +175,6 @@
 		21887A130EC6CDF9001ABD2E /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 09AB6884FE841BABC02AAC07 /* CoreFoundation.framework */; };
 		21887A140EC6CDF9001ABD2E /* GLUT.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B196C0E8E5D0800CE185C /* GLUT.framework */; };
 		21887A150EC6CDF9001ABD2E /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B19850E8E5E9200CE185C /* OpenGL.framework */; };
-		21887A160EC6CDF9001ABD2E /* libpng.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1AAC0E8E68E200CE185C /* libpng.a */; };
 		21887A170EC6CDF9001ABD2E /* libavcodec.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1AB00E8E690900CE185C /* libavcodec.a */; };
 		21887A180EC6CDF9001ABD2E /* libavdevice.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1AB40E8E693200CE185C /* libavdevice.a */; };
 		21887A190EC6CDF9001ABD2E /* libavutil.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1AB50E8E693200CE185C /* libavutil.a */; };
@@ -184,7 +182,6 @@
 		21887A1D0EC6CDF9001ABD2E /* libboost_thread.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1ABD0E8E69F700CE185C /* libboost_thread.a */; };
 		21887A210EC6CDF9001ABD2E /* libavformat.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1AD10E8E6C0500CE185C /* libavformat.a */; };
 		21887A240EC6CDF9001ABD2E /* libbz2.1.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1ADD0E8E6E5000CE185C /* libbz2.1.0.dylib */; };
-		21887A250EC6CDF9001ABD2E /* liblua5.1.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1AF30E8E715E00CE185C /* liblua5.1.a */; };
 		2188A6D017EB94F30078C91C /* ApplicationServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2188A6CF17EB94F30078C91C /* ApplicationServices.framework */; };
 		21934CB919F3C2430096E7D7 /* thumbnail.tif in Resources */ = {isa = PBXBuildFile; fileRef = 21934CB819F3C2430096E7D7 /* thumbnail.tif */; };
 		2197D55F19B06ED300EFA1F2 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2197D55E19B06ED300EFA1F2 /* CoreVideo.framework */; };
@@ -195,8 +192,6 @@
 		2197D56619B06FC300EFA1F2 /* libswresample.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2197D56419B06FC300EFA1F2 /* libswresample.a */; };
 		2197D56719B07FCF00EFA1F2 /* proximus.c in Sources */ = {isa = PBXBuildFile; fileRef = 21CE8B8E0F6ECFFC00DDF96A /* proximus.c */; };
 		2197D56819B0806F00EFA1F2 /* proximus.c in Sources */ = {isa = PBXBuildFile; fileRef = 21CE8B8E0F6ECFFC00DDF96A /* proximus.c */; };
-		2199D0DC0F575949007CEB9C /* SheepUploader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2199D0DB0F575949007CEB9C /* SheepUploader.cpp */; };
-		2199D0DD0F575949007CEB9C /* SheepUploader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2199D0DB0F575949007CEB9C /* SheepUploader.cpp */; };
 		21A8AFBB18416ECA00F77369 /* libiconv.2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 21A8AFBA18416ECA00F77369 /* libiconv.2.dylib */; };
 		21A8AFBC18416ECA00F77369 /* libiconv.2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 21A8AFBA18416ECA00F77369 /* libiconv.2.dylib */; };
 		21AAA0BD0F7040B500AC23A8 /* ElectricSheep.nib in Resources */ = {isa = PBXBuildFile; fileRef = 21AAA09E0F70400D00AC23A8 /* ElectricSheep.nib */; };
@@ -247,6 +242,9 @@
 		467230C62AC18FDB00017C51 /* FontMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C42AC18FDB00017C51 /* FontMetal.mm */; };
 		467230C82AC1AE9D00017C51 /* TextureFlatMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C72AC1AE9D00017C51 /* TextureFlatMetal.mm */; };
 		467230C92AC1AE9D00017C51 /* TextureFlatMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C72AC1AE9D00017C51 /* TextureFlatMetal.mm */; };
+		467A64922B1F722E00510BEE /* libpng_universal.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 466C2AA92AFA5B8600ED939F /* libpng_universal.a */; };
+		467A64932B1F725B00510BEE /* liblua_universal.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 466C2AA72AFA5B7200ED939F /* liblua_universal.a */; };
+		467A64942B1F730500510BEE /* libswscale.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2181FAEF0ECF42820078FDDA /* libswscale.a */; };
 		467B6FC92AE6D031001C80CB /* EDreamClient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 467B6FC82AE6D031001C80CB /* EDreamClient.cpp */; };
 		467B6FCA2AE6D031001C80CB /* EDreamClient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 467B6FC82AE6D031001C80CB /* EDreamClient.cpp */; };
 		46C427BB2AF8F575009C3879 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 467230BC2AC17EAA00017C51 /* Metal.framework */; };
@@ -428,7 +426,6 @@
 
 /* Begin PBXFileReference section */
 		09AB6884FE841BABC02AAC07 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
-		12478A662B03B164006A8669 /* SheepUploader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SheepUploader.h; sourceTree = "<group>"; };
 		12478A672B03B194006A8669 /* Networking.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Networking.h; sourceTree = "<group>"; };
 		12478A682B03B1A4006A8669 /* DisplayOutput.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = DisplayOutput.h; path = ../DisplayOutput/DisplayOutput.h; sourceTree = "<group>"; };
 		12478A692B03B1AB006A8669 /* Image.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Image.h; path = ../DisplayOutput/Image.h; sourceTree = "<group>"; };
@@ -604,7 +601,6 @@
 		2197D55E19B06ED300EFA1F2 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
 		2197D56119B06F4600EFA1F2 /* VideoDecodeAcceleration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoDecodeAcceleration.framework; path = System/Library/Frameworks/VideoDecodeAcceleration.framework; sourceTree = SDKROOT; };
 		2197D56419B06FC300EFA1F2 /* libswresample.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswresample.a; path = ../ffmpeg/osx/lib/libswresample.a; sourceTree = SOURCE_ROOT; };
-		2199D0DB0F575949007CEB9C /* SheepUploader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SheepUploader.cpp; sourceTree = "<group>"; };
 		21A8AFBA18416ECA00F77369 /* libiconv.2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.2.dylib; path = usr/lib/libiconv.2.dylib; sourceTree = SDKROOT; };
 		21AAA0ED0F70453200AC23A8 /* ESConfiguration.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ESConfiguration.h; sourceTree = "<group>"; };
 		21AAA0EE0F70453200AC23A8 /* ESConfiguration.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ESConfiguration.mm; sourceTree = "<group>"; };
@@ -719,6 +715,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				467A64942B1F730500510BEE /* libswscale.a in Frameworks */,
+				467A64932B1F725B00510BEE /* liblua_universal.a in Frameworks */,
+				467A64922B1F722E00510BEE /* libpng_universal.a in Frameworks */,
 				464A49DE2AB88E1A00C77F6D /* Security.framework in Frameworks */,
 				46C427BB2AF8F575009C3879 /* Metal.framework in Frameworks */,
 				46E9C25B2AE7F35700C5444A /* libboost_json.a in Frameworks */,
@@ -732,7 +731,6 @@
 				21887A140EC6CDF9001ABD2E /* GLUT.framework in Frameworks */,
 				21887A150EC6CDF9001ABD2E /* OpenGL.framework in Frameworks */,
 				467230B92AC17C0400017C51 /* MetalKit.framework in Frameworks */,
-				21887A160EC6CDF9001ABD2E /* libpng.a in Frameworks */,
 				21887A170EC6CDF9001ABD2E /* libavcodec.a in Frameworks */,
 				21887A180EC6CDF9001ABD2E /* libavdevice.a in Frameworks */,
 				2197D55F19B06ED300EFA1F2 /* CoreVideo.framework in Frameworks */,
@@ -745,10 +743,8 @@
 				2161F1940ECF8CEF00FE48E9 /* libz.1.2.5.dylib in Frameworks */,
 				21887A240EC6CDF9001ABD2E /* libbz2.1.0.dylib in Frameworks */,
 				21A8AFBB18416ECA00F77369 /* libiconv.2.dylib in Frameworks */,
-				21887A250EC6CDF9001ABD2E /* liblua5.1.a in Frameworks */,
 				21DC0CAC1263B99000D60C6A /* libcurl.4.dylib in Frameworks */,
 				2135D2690EC70571005E246D /* AppKit.framework in Frameworks */,
-				2181FAF00ECF42820078FDDA /* libswscale.a in Frameworks */,
 				2197D56219B06F4600EFA1F2 /* VideoDecodeAcceleration.framework in Frameworks */,
 				212316960F50636700702B2C /* libboost_filesystem.a in Frameworks */,
 				21CE8E3D0F6EE12B00DDF96A /* SystemConfiguration.framework in Frameworks */,
@@ -846,8 +842,6 @@
 		212313170F503C4500702B2C /* ContentDownloader */ = {
 			isa = PBXGroup;
 			children = (
-				2199D0DB0F575949007CEB9C /* SheepUploader.cpp */,
-				12478A662B03B164006A8669 /* SheepUploader.h */,
 				212313190F503C4500702B2C /* ContentDownloader.cpp */,
 				2123131A0F503C4500702B2C /* ContentDownloader.h */,
 				2123131B0F503C4500702B2C /* Dream.cpp */,
@@ -1384,7 +1378,6 @@
 				212313300F503C4500702B2C /* SheepDownloader.cpp in Sources */,
 				212313330F503C4500702B2C /* Shepherd.cpp in Sources */,
 				210335050F549BEF00A83F17 /* AlignedBuffer.cpp in Sources */,
-				2199D0DD0F575949007CEB9C /* SheepUploader.cpp in Sources */,
 				21C5D0950F9CF6D9001657E7 /* md5.c in Sources */,
 				21EE633510139BCC000CE53E /* main.m in Sources */,
 				21EE63961013A674000CE53E /* ESWindow.mm in Sources */,
@@ -1458,7 +1451,6 @@
 				210335040F549BEF00A83F17 /* AlignedBuffer.cpp in Sources */,
 				467230C82AC1AE9D00017C51 /* TextureFlatMetal.mm in Sources */,
 				46D2E8FD2AFBBBF50054049D /* TextMetal.mm in Sources */,
-				2199D0DC0F575949007CEB9C /* SheepUploader.cpp in Sources */,
 				21AAA0EF0F70453200AC23A8 /* ESConfiguration.mm in Sources */,
 				21C5D0940F9CF6D9001657E7 /* md5.c in Sources */,
 				467230C22AC1817500017C51 /* RendererMetal.mm in Sources */,
@@ -1682,13 +1674,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "e-dream";
 				INSTALL_PATH = "$(HOME)/Applications";
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../Frameworks";
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../libpng/osx/lib\"",
-					"\"$(SRCROOT)/../ffmpeg/osx/lib\"",
-					"\"$(SRCROOT)/../boost/osx/lib\"",
-					"\"$(SRCROOT)/../lua5.1/src\"",
-				);
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				ONLY_ACTIVE_ARCH = NO;
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;

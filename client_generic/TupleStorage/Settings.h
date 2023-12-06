@@ -143,7 +143,7 @@ class	CSettings : public Base::CSingleton<CSettings>
 
 
 			//	Singleton instance method.
-			static CSettings	*Instance()
+            __attribute__((no_instrument_function)) static CSettings	*Instance()
 			{
 				static	CSettings	storage;
 
@@ -160,6 +160,6 @@ class	CSettings : public Base::CSingleton<CSettings>
 	Helper for less typing...
 
 */
-inline tpCSettings g_Settings( void )	{	return( CSettings::Instance() );	}
+__attribute__((no_instrument_function)) _LIBCPP_INLINE_VISIBILITY inline tpCSettings g_Settings( void )	{	return( CSettings::Instance() );	}
 
 #endif

@@ -11,9 +11,9 @@ fi
 
 #sets current screen saver the way 10.4 - 10.5 do
 
-sudo -u "$USER" defaults -currentHost write com.apple.screensaver moduleName "Electric Sheep"
+sudo -u "$USER" defaults -currentHost write com.apple.screensaver moduleName "e-dream"
 
 sudo -u "$USER" defaults -currentHost write com.apple.screensaver modulePath "$2"
 
 #sets current screen saver the way 10.6 does
-sudo -u "$USER" defaults -currentHost write com.apple.screensaver moduleDict -dict moduleName "Electric Sheep" path "$2" type 0
+sudo -u "$USER" defaults -currentHost write com.apple.screensaver moduleDict -dict moduleName "e-dream" path "$2" type 0

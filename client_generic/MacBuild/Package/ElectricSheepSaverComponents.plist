@@ -10,7 +10,7 @@
 		<key>BundleOverwriteAction</key>
 		<string>upgrade</string>
 		<key>RootRelativeBundlePath</key>
-		<string>Electric Sheep.saver</string>
+		<string>e-dream.saver</string>
 		<!-- <key>BundlePreInstallScriptPath</key>
 		<string>./PrepareDir</string> -->
 		<key>BundlePostInstallScriptPath</key>

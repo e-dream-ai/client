@@ -10,7 +10,7 @@
 		<key>BundleOverwriteAction</key>
 		<string>upgrade</string>
 		<key>RootRelativeBundlePath</key>
-		<string>Electric Sheep.app</string>
+		<string>e-dream.app</string>
 		<!-- <key>BundlePreInstallScriptPath</key>
 		<string>./PrepareDir</string> -->
 	</dict>

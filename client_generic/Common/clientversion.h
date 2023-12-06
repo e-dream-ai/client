@@ -1,43 +1,30 @@
 #ifndef CLIENTVERSION_H_INCLUDED
 #define CLIENTVERSION_H_INCLUDED
 
-#ifdef	WIN32
-	#define CLIENT_VERSIONW				L"WIN_3.0.1"
-	#define	CLIENT_VERSION_PRETTYW		L"Windows 3.0"
-	#define CLIENT_SETTINGSW			L"ElectricSheep"
+#define VER_MAJOR "1"
+#define VER_MINOR "0"
+#define VER_BUILD "0"
 
-	#define CLIENT_VERSION				"WIN_3.0.1"
-	#define	CLIENT_VERSION_PRETTY		"Windows 3.0.1"
-	#define CLIENT_SETTINGS				"ElectricSheep"
 
-	#define	CLIENT_VERSION_PRETTYW2		L"version 3.0.1"
+#if	defined(WIN32)
+    #define OS_PREFIX               "WIN_"
+    #define OS_PREFIX_PRETTY        "Windows "
+#elif defined(MAC)
+    #define OS_PREFIX               "MACOS_"
+    #define OS_PREFIX_PRETTY        "macOS "
 #else
-	#ifdef MAC
-		#define CLIENT_VERSION				"OSX_3.0.3"
-		#define	CLIENT_VERSION_PRETTY		"macOS 3.0.3"
-		#define CLIENT_SETTINGS				"ElectricSheep"
-	#else
-		#define CLIENT_VERSION				"LNX_3.0.2"
-		#define	CLIENT_VERSION_PRETTY		"version 3.0.2"
-		#define CLIENT_SETTINGS				"ElectricSheep"
-	#endif
+    #define OS_PREFIX               "LINUX_"
+    #define OS_PREFIX_PRETTY        "Linux "
 #endif
 
-#ifdef WIN32
-	#define	CLIENT_SERVERW				L"v2d7c.sheepserver.net"
-	#define REDIRECT_SERVERW			L"community.sheepserver.net"
-#endif
-
-#define	CLIENT_SERVER				"v2d7c.sheepserver.net"
-//#define	CLIENT_SERVER_REGISTERED	"r2d7c.sheepserver.net"
-
-#define REDIRECT_SERVER                "community.sheepserver.net"
-#define REDIRECT_SERVER_FULL        "https://community.sheepserver.net"
+#define CLIENT_VERSION              OS_PREFIX VER_MAJOR "." VER_MINOR "." VER_BUILD
+#define CLIENT_VERSION_PRETTY       OS_PREFIX_PRETTY VER_MAJOR "." VER_MINOR "." VER_BUILD
+#define CLIENT_SETTINGS             "e-dream"
 
 #define DREAM_SERVER                "https://e-dream-76c98b08cc5d.herokuapp.com"
 #define API_VERSION                 "/api/v1"
 #define DREAM_ENDPOINT              DREAM_SERVER API_VERSION "/dream"
-#define LOGIN_ENDPOINT            DREAM_SERVER API_VERSION "/auth/login"
+#define LOGIN_ENDPOINT              DREAM_SERVER API_VERSION "/auth/login"
 #define REFRESH_ENDPOINT            DREAM_SERVER API_VERSION "/auth/refresh"
 #define USER_ENDPOINT               DREAM_SERVER API_VERSION "/auth/user"
 

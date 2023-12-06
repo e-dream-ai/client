@@ -75,8 +75,6 @@ bool	CContentDownloader::Startup( boost::shared_mutex& _downloadSaveMutex, const
 {
 	g_Log->Info( "Attempting to start contentdownloader...", _bPreview );
 	Shepherd::initializeShepherd();
-
-	Shepherd::setRedirectServerName( g_Settings()->Get( "settings.content.redirectserver", std::string(REDIRECT_SERVER_FULL) ).c_str() );
 	
 	std::string root = g_Settings()->Get( "settings.content.sheepdir", g_Settings()->Root() + "content" );
 	
@@ -88,12 +86,8 @@ bool	CContentDownloader::Startup( boost::shared_mutex& _downloadSaveMutex, const
 	
 	Shepherd::setRootPath( root.c_str() );
 	Shepherd::setCacheSize( g_Settings()->Get( "settings.content.cache_size", 2000 ), 0 );
-	Shepherd::setCacheSize( g_Settings()->Get( "settings.content.cache_size_gold", 2000 ), 1 );
 	if (g_Settings()->Get( "settings.content.unlimited_cache", true) == true)
 		Shepherd::setCacheSize( 0, 0 );
-	if (g_Settings()->Get( "settings.content.unlimited_cache_gold", true) == true)
-		Shepherd::setCacheSize( 0, 1 );
-	Shepherd::setPassword( g_Settings()->Get( "settings.content.password_md5", std::string("") ).c_str() );
 	Shepherd::setUniqueID( g_Settings()->Get( "settings.content.unique_id", generateID() ).c_str() );
 	Shepherd::setUseProxy( g_Settings()->Get( "settings.content.use_proxy", false ) );
 	Shepherd::setRegistered( g_Settings()->Get( "settings.content.registered", false ) );
@@ -103,7 +97,7 @@ bool	CContentDownloader::Startup( boost::shared_mutex& _downloadSaveMutex, const
     //Shepherd::setUseDreamAI( false );
 
 	Shepherd::setSaveFrames( g_Settings()->Get( "settings.generator.save_frames", false ) );
-	Shepherd::GetNickName( g_Settings()->Get( "settings.generator.nickname", std::string("") ).c_str() );
+	Shepherd::SetNickName( g_Settings()->Get( "settings.generator.nickname", std::string("") ).c_str() );
 
     m_gDownloader = NULL;
 		

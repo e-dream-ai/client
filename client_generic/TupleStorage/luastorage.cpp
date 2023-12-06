@@ -291,7 +291,7 @@ bool	CStorageLua::Initialise( const std::string &_sRoot, const std::string &_sWo
 											end\
 											local val = f()\
 											if type(val) ~= type(_default) then\
-												g_Log( 'returned type does not match, returning ' .. tostring(_default) )\
+												g_Log( 'returned type does not match: ' .. tostring(type(val)) .. ' vs ' .. tostring(type(_default)) .. ', returning ' .. tostring(_default) )\
 												return 0, _default\
 											end\
 											g_Log( 'g_GetSetting returned ' .. tostring(val) )\

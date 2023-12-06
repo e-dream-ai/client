@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
 <installer-gui-script minSpecVersion="1">
-    <title>Electric Sheep ##VER##</title>
+    <title>e-dream ##VER##</title>
     <options customize="allow" require-scripts="false" allow-external-scripts="no" hostArchitectures="x86_64"/>
     <volume-check>
         <allowed-os-versions>
@@ -18,7 +18,7 @@
     <choice id="choice0" title="ElectricSheep Screen Saver">
         <pkg-ref id="org.electricsheep.electricSheep.pkg"/>
     </choice>
-    <choice id="choice2" title="Electric Sheep Standalone Application">
+    <choice id="choice2" title="e-dream Standalone Application">
         <pkg-ref id="org.electricsheep.electricSheep.app.pkg"/>
     </choice>
     <pkg-ref id="org.electricsheep.electricSheep.app.pkg" onConclusion="none">ElectricSheepApp.pkg</pkg-ref>

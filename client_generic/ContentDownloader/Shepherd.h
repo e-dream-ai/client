@@ -128,7 +128,6 @@ class Shepherd
 	static bool fShutdown;
 	static int fChangeRes;
 	static int fChangingRes;
-	static atomic_char_ptr fRole;
 	static boost::detail::atomic_count	*renderingFrames;
 	static boost::detail::atomic_count	*totalRenderedFrames;
 	static bool m_RenderingAllowed;
@@ -240,19 +239,9 @@ class Shepherd
 			static const char *jsonPath();
             static const char *videoExtension() { return ".mp4"; }
 
-			static void setRole( const char *role );
-			static const char *role();
-
-			//	Gets/sets the host name of the server to use.
-			static void setRedirectServerName( const char *server );
-			static const char *serverName( bool allowServerQuery = true, eServerTargetType serverType = eHostServer);
-
 			//	Gets/sets the registration password.
 			static void setPassword( const char *password );
 			static const char *password();
-
-			//computes MD5 hash
-			static std::string computeMD5( const std::string& str );
 
 			//	Overlay text management for the renderer.
 			static void addMessageText( const char *s, size_t len, time_t timeout );
@@ -265,7 +254,7 @@ class Shepherd
 			static int	TotalFramesRendered();
 			static bool	RenderingAllowed();
 			static void SetRenderingAllowed(bool _yesno);
-            static void GetNickName(const char *nick);
+            static void SetNickName(const char *nick);
             static const char* GetNickName();
 
 			static bool	AddOverflowMessage( const std::string _msg )

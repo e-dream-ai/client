@@ -91,7 +91,7 @@ bool bStarted = false;
             //[view awakeFromNib];
         }
         //else // Log an error if we fail here
-           // NSLog(@"Error: Electric Sheep Screen Saver failed to initialize NSOpenGLView!");
+           // NSLog(@"Error: e-dream Screen Saver failed to initialize NSOpenGLView!");
     }
     // Finally return our newly-initialized self
     return self;
@@ -147,8 +147,7 @@ bool bStarted = false;
             
             [[ESMetalView alloc] initWithFrame:theRect];
             metalView.delegate = self;
-            metalView.preferredFramesPerSecond = 600;
-            
+            metalView.preferredFramesPerSecond = 60;
             
             view = metalView;
             

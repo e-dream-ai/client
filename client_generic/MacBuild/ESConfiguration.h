@@ -47,9 +47,7 @@
     IBOutlet NSButton* cancelButton;
 	
 	NSString* m_origNickname;
-	
-	//NSString *m_roleString;
-	
+
 	NSMutableData *m_httpData;
 	
 	NSImage* redImage;
