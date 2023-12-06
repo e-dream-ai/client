@@ -13,6 +13,18 @@
 namespace DisplayOutput
 {
 
+inline void ExecuteOnMainThread(void (^_block)(void))
+{
+    if ([NSThread isMainThread])
+    {
+        _block();
+    }
+    else
+    {
+        dispatch_async(dispatch_get_main_queue(), _block);
+    }
+}
+
 CTextMetal::CTextMetal(spCFontMetal _font, MTKView* _view, float /*_contextAspect*/) :
     m_spFont(_font),
     m_pTextMesh(NULL),
@@ -23,7 +35,7 @@ CTextMetal::CTextMetal(spCFontMetal _font, MTKView* _view, float /*_contextAspec
     __block spCFontMetal font = _font;
     __block MTKView* view = _view;
     __block NSTextField* __strong& resultTextField = m_TextField;
-    dispatch_async(dispatch_get_main_queue(), ^{
+    ExecuteOnMainThread(^{
         NSTextField* textField = [[NSTextField alloc] init];
         [textField setBezeled:NO];
         [textField setBordered:NO];
@@ -55,7 +67,7 @@ CTextMetal::~CTextMetal()
 {
 #if USE_SYSTEM_UI
     __block NSTextField* textField = CFBridgingRelease((__bridge CFTypeRef)m_TextField);
-    dispatch_async(dispatch_get_main_queue(), ^{
+    ExecuteOnMainThread(^{
         [textField removeFromSuperview];
     });
 #endif
@@ -68,7 +80,7 @@ void CTextMetal::SetText(const std::string& _text)
         m_Text = _text;
 #if USE_SYSTEM_UI
         __block NSString* str = [NSString stringWithUTF8String:_text.c_str()];
-        dispatch_async(dispatch_get_main_queue(), ^{
+        ExecuteOnMainThread(^{
             if (g_Player().Stopped())
                 return;
             [m_TextField setStringValue:str];
@@ -90,7 +102,7 @@ void CTextMetal::SetRect(const Base::Math::CRect& _rect)
 #if USE_SYSTEM_UI
     __block Base::Math::CRect rect = _rect;
     __block const Base::Math::CVector2& extents = m_Extents;
-    dispatch_async(dispatch_get_main_queue(), ^{
+    ExecuteOnMainThread(^{
         if (g_Player().Stopped())
             return;
         NSRect frame = m_TextField.frame;
@@ -104,7 +116,7 @@ Base::Math::CVector2 CTextMetal::GetExtent()
 {
 #if USE_SYSTEM_UI
     __block Base::Math::CVector2& extents = m_Extents;
-    dispatch_async(dispatch_get_main_queue(), ^{
+    ExecuteOnMainThread(^{
         if (g_Player().Stopped())
             return;
         NSRect frame = m_TextField.frame;
@@ -127,9 +139,9 @@ void CTextMetal::SetEnabled(bool _enabled)
     if (_enabled != m_Enabled)
     {
 #if USE_SYSTEM_UI
-        if (m_Extents.m_X == 0.f)
-            return;
-        dispatch_async(dispatch_get_main_queue(), ^{
+        //if (m_Extents.m_X == 0.f)
+            //return;
+        ExecuteOnMainThread(^{
             if (g_Player().Stopped())
                 return;
             [m_TextField setHidden:!_enabled];

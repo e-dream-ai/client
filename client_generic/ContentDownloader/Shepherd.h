@@ -23,9 +23,11 @@
 #ifndef _SHEPHERD_H_
 #define _SHEPHERD_H_
 
+#include    <queue>
+#include    <string_view>
+
 #include	"base.h"
 #include	"SmartPtr.h"
-#include	<queue>
 #include	"boost/thread/mutex.hpp"
 #include	"boost/detail/atomic_count.hpp"
 #include    "boost/atomic.hpp"
@@ -53,7 +55,7 @@ enum eServerTargetType
 class	CMessageBody
 {
 	public:
-			CMessageBody( const std::string &_str, const fp8 _duration ) : m_Msg( _str ), m_Duration(_duration)	{};
+			CMessageBody(std::string_view _str, const fp8 _duration) : m_Msg( _str ), m_Duration(_duration)	{};
 			~CMessageBody()	{};
 
 			std::string m_Msg;
@@ -244,7 +246,7 @@ class Shepherd
 			static const char *password();
 
 			//	Overlay text management for the renderer.
-			static void addMessageText( const char *s, size_t len, time_t timeout );
+			static void addMessageText(std::string_view s, time_t timeout);
 
 
 			//	Called from generators.
@@ -307,10 +309,10 @@ class Shepherd
 				return false;
 			}
 
-			static bool	QueueMessage( const std::string _msg, const fp8 _duration )
+			static bool	QueueMessage(std::string_view _msg, const fp8 _duration)
 			{
 				boost::mutex::scoped_lock lockthis( m_MessageQueueMutex );
-                m_MessageQueue.emplace(new CMessageBody( _msg, _duration ));
+                m_MessageQueue.emplace(new CMessageBody(_msg, _duration));
 				return true;
 			}
 

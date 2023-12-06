@@ -28,7 +28,7 @@
 #include <iomanip>
 #include <list>
 
-//#include <boost/format.hpp>
+#include <boost/format.hpp>
 //#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/json.hpp>
 #include <boost/algorithm/string.hpp>
@@ -292,6 +292,8 @@ void SheepDownloader::parseSheepList()
         char* cString = new char[(size_t)fileSize + 1];
         file.read(cString, fileSize);
         cString[fileSize] = '\0';
+        auto str = boost::format("Exception during parsing dreams list:%s contents:\"%s\" dreamIndex:%d") % e.what() % cString % dreamIndex;
+        ContentDownloader::Shepherd::addMessageText(str.str().c_str(), 180);
         g_Log->Error("Exception during parsing dreams list:%s contents:\"%s\" dreamIndex:%d", e.what(), cString, dreamIndex);
         delete[] cString;
     }
@@ -634,14 +636,14 @@ void	SheepDownloader::findSheepToDownload()
 				if (incorrect_folder)
 				{
 					const char *err = "Content folder is not working.  Downloading disabled.\n";
-					Shepherd::addMessageText( err, strlen(err), 180 ); //3 minutes
+					Shepherd::addMessageText(err, 180); //3 minutes
 
 					boost::thread::sleep( get_system_time() + posix_time::seconds(TIMEOUT) );
 				}
 				else
 				{
 					const char *err = "Low disk space.  Downloading disabled.\n";
-					Shepherd::addMessageText( err, strlen(err), 180 ); //3 minutes
+					Shepherd::addMessageText(err, 180); //3 minutes
 
 					boost::thread::sleep( get_system_time() + posix_time::seconds(TIMEOUT) );
 				
@@ -796,7 +798,7 @@ void	SheepDownloader::findSheepToDownload()
 				{
 					//	Error connecting to server so timeout then try again.
 				        const char *err = "error connecting to server";
-					Shepherd::addMessageText( err, strlen(err), 180 );	//	3 minutes.
+					Shepherd::addMessageText(err, 180);	//	3 minutes.
 					failureSleepDuration = TIMEOUT;
 					
 					badSheepSleepDuration = 10;

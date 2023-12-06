@@ -282,9 +282,9 @@ const char* Shepherd::GetNickName()
     return fNickName.load(boost::memory_order_relaxed);
 }
 
-void Shepherd::addMessageText(const char *s, size_t len, time_t timeout)
+void Shepherd::addMessageText(std::string_view s, time_t timeout)
 {
-	QueueMessage( std::string( s, len ), (fp8)timeout );
+	QueueMessage(s, (fp8)timeout);
 }
 
 const char *Shepherd::rootPath()

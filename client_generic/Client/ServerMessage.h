@@ -35,11 +35,18 @@ class	CServerMessage : public CConsole
 				m_Desc.Italic( false );
 				m_Desc.TypeFace( "Lato" );
 
-				size_t offs = _msg.find_last_of( '\n', _msg.size() );
-				m_Message = _msg.substr( 0, offs );
+                std::ostringstream stringBuilder;
+                size_t lineLength = 100;
+                for (size_t i = 0; i < _msg.length(); i += lineLength)
+                {
+                    std::string_view lineView(_msg.data() + i, std::min(lineLength, _msg.length() - i));
+                    stringBuilder << lineView << '\n';
+                }
+                m_Message = stringBuilder.str();
 
 				m_spFont = g_Player().Renderer()->GetFont( m_Desc );
-                m_spText = g_Player().Renderer()->NewText( m_spFont, _msg );
+                m_spText = g_Player().Renderer()->NewText( m_spFont, m_Message );
+                m_spText->SetEnabled(true);
 				m_MoveMessageCounter = 0.;
 			}
 
@@ -48,7 +55,7 @@ class	CServerMessage : public CConsole
 			}
 
 			//	Override to make it always visible.
-			virtual bool	Visible() const	{	return true;	};
+            virtual bool	Visible() const override 	{	return true;	};
             
             virtual void Visible(const bool _bState) override
             {
@@ -57,7 +64,7 @@ class	CServerMessage : public CConsole
             }
 
 			//
-			bool	Render( const fp8 _time, DisplayOutput::spCRenderer _spRenderer )
+			virtual bool	Render( const fp8 _time, DisplayOutput::spCRenderer _spRenderer ) override
 			{
 				if( !CHudEntry::Render( _time, _spRenderer ) )
 					return false;
@@ -94,6 +101,7 @@ class	CServerMessage : public CConsole
 				_spRenderer->Apply();
 				_spRenderer->DrawSoftQuad( r, Base::Math::CVector4( 0, 0, 0, 0.5 ), 16 );
 				
+                //@TODO: not needed on Metal. do we need this on DX?
 				//dasvo - terrible hack - redo!!
 				if (m_spFont)
 					m_spFont->Reupload();

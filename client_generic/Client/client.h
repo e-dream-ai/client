@@ -230,10 +230,11 @@ class	CElectricSheep
                 
                 m_HudManager->Add( "dreamcredits", std::make_shared<Hud::CStatsConsole>( Base::Math::CRect( 1, 1 ), hudFontName, hudFontSize ) );
                 Hud::spCStatsConsole spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(m_HudManager->Get( "dreamcredits" ));
+                m_HudManager->Hide("dreamcredits");
                 spStats->Add( new Hud::CStringStat( "credits", "", "Artist - Title" ) );
 
 				m_HudManager->Add( "helpmessage", std::make_shared<Hud::CStatsConsole>( Base::Math::CRect( 1, 1 ), hudFontName, hudFontSize ) );
-				
+                m_HudManager->Hide("helpmessage");
 				Hud::spCStatsConsole spHelpMessage = std::dynamic_pointer_cast<Hud::CStatsConsole>(m_HudManager->Get( "helpmessage" ));
 				spHelpMessage->Add( new Hud::CStringStat( "message", "e-dream\n\nA platform for gen AI visuals, see e-dream.ai to learn more.\n\nKeyboard Commands\nUp-arrow: vote for this dream\nDown-arrow: vote against this dream and delete it\nLeft-arrow: go back to play previous dream\nRight-arrow: go forward through history\nComma: playback slower\nPeriod: playback faster\nSlash: show credit\n"
 #ifdef MAC
@@ -254,6 +255,7 @@ class	CElectricSheep
 
                 //	Add some server stats.
                 m_HudManager->Add( "dreamstats", std::make_shared<Hud::CStatsConsole>( Base::Math::CRect( 1, 1 ), hudFontName, hudFontSize ) );
+                m_HudManager->Hide("dreamstats");
                 spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(m_HudManager->Get( "dreamstats" ));
 				spStats->Add( new Hud::CStringStat( "loginstatus", "", "Not logged in" ) );
 				spStats->Add( new Hud::CStringStat( "all", "Content cache: ", "unknown..." ) );
@@ -368,7 +370,7 @@ class	CElectricSheep
 				ContentDownloader::Shepherd::GetFlockSizeMBsRecount(0);
 				ContentDownloader::Shepherd::GetFlockSizeMBsRecount(1);
                 //	For testing...
-                ContentDownloader::Shepherd::addMessageText( "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua", 50, 18 );
+                ContentDownloader::Shepherd::addMessageText("Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua", 180);
 
                 //	And we're off.
 				m_SplashPNGDelayTimer.Reset();
@@ -652,7 +654,6 @@ class	CElectricSheep
 							if (addtohud == true)
 							{
 								m_HudManager->Add( "servermessage", std::make_shared<Hud::CServerMessage>( msg, Base::Math::CRect( 1, 1 ), 24 ), duration );
-								m_HudManager->HideAll();
 							}
 						}
 						if (m_F1F4Timer.Time() > 20*60)

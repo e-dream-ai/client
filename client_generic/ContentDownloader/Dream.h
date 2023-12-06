@@ -24,6 +24,7 @@
 #define _SHEEP_H_
 
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 #include "base.h"
@@ -218,7 +219,7 @@ private:
 
 struct SheepArray
 {
-    typedef std::string key_type;
+    typedef std::string_view key_type;
     typedef Dream* mapped_type;
     typedef std::vector<mapped_type>::iterator iterator;
 
@@ -235,12 +236,12 @@ struct SheepArray
         return vecData[i];
     }
 
-    Dream* operator[](const std::string& key)
+    Dream* operator[](key_type key)
     {
         return mapData[key];
     }
     
-    bool tryGetSheepWithUuid(const std::string& key, Dream*& outSheep) const
+    bool tryGetSheepWithUuid(key_type key, Dream*& outSheep) const
     {
         auto i = mapData.find(key);
         if (i == mapData.end())
@@ -251,7 +252,7 @@ struct SheepArray
 
 	void push_back(Dream *sheep)
 	{
-		std::string key(sheep->uuid());
+        key_type key { sheep->uuid() };
         mapData[key] = sheep;
 		vecData.push_back(sheep);
 	}
