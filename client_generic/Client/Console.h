@@ -14,15 +14,15 @@ namespace Hud
 */
 class CConsole : public CHudEntry
 {
-protected:
-  DisplayOutput::spCBaseFont m_spFont;
+  protected:
+    DisplayOutput::spCBaseFont m_spFont;
 
-public:
-  CConsole(Base::Math::CRect _rect) : CHudEntry(_rect){};
-  virtual ~CConsole(){};
+  public:
+    CConsole(Base::Math::CRect _rect) : CHudEntry(_rect){};
+    virtual ~CConsole(){};
 
-  virtual bool Render(const fp8 _time,
-                      DisplayOutput::spCRenderer _spRenderer) = PureVirtual;
+    virtual bool Render(const fp8 _time,
+                        DisplayOutput::spCRenderer _spRenderer) = PureVirtual;
 };
 
 MakeSmartPointers(CConsole);

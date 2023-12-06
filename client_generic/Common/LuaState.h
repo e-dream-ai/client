@@ -26,34 +26,34 @@ int32 Call(lua_State *_pState, const char *_pFunc, const char *_pSig, ...);
 */
 class CLuaState
 {
-  NO_CLASS_STANDARDS(CLuaState);
+    NO_CLASS_STANDARDS(CLuaState);
 
-protected:
-  lua_State *m_pState;
+  protected:
+    lua_State *m_pState;
 
-public:
-  CLuaState();
-  ~CLuaState();
+  public:
+    CLuaState();
+    ~CLuaState();
 
-  //
-  void Init(const std::string &_basePath);
-  void AddPackage(const std::string &_packagePath,
-                  const bool _bRelativeRuntimeDir = true);
-  void registerLib(const char *_pName, lua_CFunction _func);
+    //
+    void Init(const std::string &_basePath);
+    void AddPackage(const std::string &_packagePath,
+                    const bool _bRelativeRuntimeDir = true);
+    void registerLib(const char *_pName, lua_CFunction _func);
 
-  //	Execute lua code.
-  bool Execute(const std::string &_command);
+    //	Execute lua code.
+    bool Execute(const std::string &_command);
 
-  //	Run a lua script.
-  bool Run(const std::string &_script);
+    //	Run a lua script.
+    bool Run(const std::string &_script);
 
-  //
-  lua_State *GetState(void) { return (m_pState); };
+    //
+    lua_State *GetState(void) { return (m_pState); };
 
-  //
-  void Pop(const int32 _num);
+    //
+    void Pop(const int32 _num);
 
-  void DumpStack();
+    void DumpStack();
 };
 
 }; // namespace Script

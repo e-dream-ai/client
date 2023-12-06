@@ -10,13 +10,13 @@ namespace Base
 //	Timer interface.
 class ITimer
 {
-public:
-  virtual ~ITimer(){};
-  virtual void Reset() = PureVirtual;
-  virtual fp8 Time() = PureVirtual;
-  virtual fp8 Delta() = PureVirtual;
-  virtual fp8 Resolution() = PureVirtual;
-  // virtual void	Wait( fp8 seconds ) = PureVirtual;
+  public:
+    virtual ~ITimer(){};
+    virtual void Reset() = PureVirtual;
+    virtual fp8 Time() = PureVirtual;
+    virtual fp8 Delta() = PureVirtual;
+    virtual fp8 Resolution() = PureVirtual;
+    // virtual void	Wait( fp8 seconds ) = PureVirtual;
 };
 
 }; // namespace Base

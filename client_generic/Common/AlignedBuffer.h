@@ -33,75 +33,76 @@ MakeSmartPointers(CReusableAlignedBuffers);
 // idea proposed by F-D. Cami
 class CReusableAlignedBuffers : public CSingleton<CReusableAlignedBuffers>
 {
-  typedef struct
-  {
-    uint32 seed;
-
-    uint32 size;
-
-    uint8 *ptr;
-  } BufferElement;
-
-  BufferElement m_BufferCache[BUFFER_CACHE_SIZE];
-
-  uint32 m_Seed;
-
-  static uint32 s_PageSize;
-
-  boost::mutex m_CacheLock;
-
-public:
-  CReusableAlignedBuffers();
-
-  ~CReusableAlignedBuffers();
-
-  uint8 *Allocate(uint32 size);
-
-  void Free(uint8 *ptr, uint32 size);
-
-  static void RealFree(uint8 *ptr, uint32 size);
-
-  uint8 *Reallocate(uint8 *ptr, uint32 size);
-
-  static inline uint32 GetPageSize(void)
-  {
-    if (s_PageSize == 0)
+    typedef struct
     {
+        uint32 seed;
+
+        uint32 size;
+
+        uint8 *ptr;
+    } BufferElement;
+
+    BufferElement m_BufferCache[BUFFER_CACHE_SIZE];
+
+    uint32 m_Seed;
+
+    static uint32 s_PageSize;
+
+    boost::mutex m_CacheLock;
+
+  public:
+    CReusableAlignedBuffers();
+
+    ~CReusableAlignedBuffers();
+
+    uint8 *Allocate(uint32 size);
+
+    void Free(uint8 *ptr, uint32 size);
+
+    static void RealFree(uint8 *ptr, uint32 size);
+
+    uint8 *Reallocate(uint8 *ptr, uint32 size);
+
+    static inline uint32 GetPageSize(void)
+    {
+        if (s_PageSize == 0)
+        {
 #if defined(WIN32) && WIN32
-      SYSTEM_INFO system_info;
-      GetSystemInfo(&system_info);
-      s_PageSize = (uint32)system_info.dwPageSize;
+            SYSTEM_INFO system_info;
+            GetSystemInfo(&system_info);
+            s_PageSize = (uint32)system_info.dwPageSize;
 #else
-      s_PageSize = static_cast<uint32>(getpagesize());
+            s_PageSize = static_cast<uint32>(getpagesize());
 #endif
+        }
+
+        return s_PageSize;
     }
 
-    return s_PageSize;
-  }
+    bool Shutdown(void) { return true; }
 
-  bool Shutdown(void) { return true; }
+    const char *Description() { return "CReusableAlignedBuffers"; }
 
-  const char *Description() { return "CReusableAlignedBuffers"; }
-
-  //	Provides singleton access.
-  static CReusableAlignedBuffers *Instance(const char * /*_pFileStr*/,
-                                           const uint32 /*_line*/,
-                                           const char * /*_pFunc*/)
-  {
-    static CReusableAlignedBuffers rab;
-
-    if (rab.SingletonActive() == false)
+    //	Provides singleton access.
+    static CReusableAlignedBuffers *Instance(const char * /*_pFileStr*/,
+                                             const uint32 /*_line*/,
+                                             const char * /*_pFunc*/)
     {
-      printf("Trying to access shutdown singleton %s\n", rab.Description());
-      return NULL;
-    }
+        static CReusableAlignedBuffers rab;
 
-    return (&rab);
-  }
+        if (rab.SingletonActive() == false)
+        {
+            printf("Trying to access shutdown singleton %s\n",
+                   rab.Description());
+            return NULL;
+        }
+
+        return (&rab);
+    }
 };
 
 #define g_ReusableAlignedBuffers                                               \
-  Base::CReusableAlignedBuffers::Instance(__FILE__, __LINE__, __FUNCTION__)
+    Base::CReusableAlignedBuffers::Instance(__FILE__, __LINE__, __FUNCTION__)
 
 /*
         CAlignedBuffer.
@@ -111,30 +112,30 @@ MakeSmartPointers(CAlignedBuffer);
 
 class CAlignedBuffer
 {
-  uint8 *m_Buffer;
+    uint8 *m_Buffer;
 
-  uint8 *m_BufferAlignedStart;
+    uint8 *m_BufferAlignedStart;
 
-  uint32 m_Size;
+    uint32 m_Size;
 
-public:
-  CAlignedBuffer();
+  public:
+    CAlignedBuffer();
 
-  CAlignedBuffer(uint32 size);
+    CAlignedBuffer(uint32 size);
 
-  ~CAlignedBuffer();
+    ~CAlignedBuffer();
 
-  bool Allocate(uint32 size);
+    bool Allocate(uint32 size);
 
-  bool Reallocate(uint32 size);
+    bool Reallocate(uint32 size);
 
-  void Free(void);
+    void Free(void);
 
-  uint8 *GetBufferPtr(void) const;
+    uint8 *GetBufferPtr(void) const;
 
-  bool IsValid() const { return (m_Buffer != NULL); }
+    bool IsValid() const { return (m_Buffer != NULL); }
 
-  uint32 Size(void) { return m_Size; }
+    uint32 Size(void) { return m_Size; }
 };
 
 }; // namespace Base

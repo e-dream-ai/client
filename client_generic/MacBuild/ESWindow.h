@@ -8,19 +8,19 @@
                       <NSWindowDelegate, NSApplicationDelegate>
 #endif
 {
-  ESScreensaverView *mESView;
+    ESScreensaverView *mESView;
 
-  ESWindow *mFullScreenWindow;
+    ESWindow *mFullScreenWindow;
 
-  ESWindow *mOriginalWindow;
+    ESWindow *mOriginalWindow;
 
-  BOOL mIsFullScreen;
+    BOOL mIsFullScreen;
 
-  BOOL mInSheet;
+    BOOL mInSheet;
 
-  BOOL mBlackouMonitors;
+    BOOL mBlackouMonitors;
 
-  NSMutableArray *mBlackingWindows;
+    NSMutableArray *mBlackingWindows;
 }
 
 - (void)awakeFromNib;

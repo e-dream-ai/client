@@ -17,7 +17,7 @@ namespace DisplayOutput
 
 extern "C"
 {
-  void SetupPool();
+    void SetupPool();
 }
 
 /*
@@ -26,39 +26,39 @@ extern "C"
 */
 class CMacGL : public CDisplayOutput
 {
-  CGLContextObj m_glContext;
+    CGLContextObj m_glContext;
 
-  static uint32 s_DefaultWidth;
-  static uint32 s_DefaultHeight;
+    static uint32 s_DefaultWidth;
+    static uint32 s_DefaultHeight;
 
-public:
-  CMacGL();
-  virtual ~CMacGL();
+  public:
+    CMacGL();
+    virtual ~CMacGL();
 
-  // static LRESULT CALLBACK	wndProc( HWND hWnd, UINT msg, WPARAM wParam,
-  // LPARAM lParam );
+    // static LRESULT CALLBACK	wndProc( HWND hWnd, UINT msg, WPARAM wParam,
+    // LPARAM lParam );
 
-  static const char *Description() { return "Macintosh OpenGL display"; };
+    static const char *Description() { return "Macintosh OpenGL display"; };
 
-  virtual bool Initialize(CGraphicsContext _glContext, bool _bPreview);
+    virtual bool Initialize(CGraphicsContext _glContext, bool _bPreview);
 
-  virtual void SetContext(CGraphicsContext glContext)
-  {
-    m_glContext = glContext;
-  }
-  virtual CGraphicsContext GetContext(void) { return m_glContext; }
+    virtual void SetContext(CGraphicsContext glContext)
+    {
+        m_glContext = glContext;
+    }
+    virtual CGraphicsContext GetContext(void) { return m_glContext; }
 
-  virtual void ForceWidthAndHeight(uint32 _width, uint32 _height);
+    virtual void ForceWidthAndHeight(uint32 _width, uint32 _height);
 
-  static void SetDefaultWidthAndHeight(uint32 defWidth, uint32 defHeight);
+    static void SetDefaultWidthAndHeight(uint32 defWidth, uint32 defHeight);
 
-  virtual bool HasShaders() { return true; };
+    virtual bool HasShaders() { return true; };
 
-  //
-  virtual void Title(const std::string &_title);
-  virtual void Update();
+    //
+    virtual void Title(const std::string &_title);
+    virtual void Update();
 
-  void SwapBuffers();
+    void SwapBuffers();
 };
 
 typedef CMacGL CDisplayGL;

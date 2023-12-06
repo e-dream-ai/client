@@ -23,45 +23,45 @@ namespace DisplayOutput
 */
 class CFontGL : public CBaseFont
 {
-public:
-  typedef struct
-  {
-    fp4 tex_x1, tex_y1, tex_x2;
-    fp4 advance;
-  } Glyph;
+  public:
+    typedef struct
+    {
+        fp4 tex_x1, tex_y1, tex_x2;
+        fp4 advance;
+    } Glyph;
 
-private:
-  Glyph *m_glyphs;
+  private:
+    Glyph *m_glyphs;
 
-  Glyph *m_table[256];
+    Glyph *m_table[256];
 
-  fp4 m_lineHeight;
+    fp4 m_lineHeight;
 
-  fp4 m_texLineHeight;
+    fp4 m_texLineHeight;
 
-  spCImage m_spTextImage;
+    spCImage m_spTextImage;
 
-  spCTextureFlat m_spTextTexture;
+    spCTextureFlat m_spTextTexture;
 
-public:
-  CFontGL(spCTextureFlat textTexture);
-  virtual ~CFontGL();
+  public:
+    CFontGL(spCTextureFlat textTexture);
+    virtual ~CFontGL();
 
-  bool Create(void);
+    bool Create(void);
 
-  fp4 LineHeight(void) const;
+    fp4 LineHeight(void) const;
 
-  fp4 TexLineHeight(void) const;
+    fp4 TexLineHeight(void) const;
 
-  fp4 CharWidth(uint8 c) const;
+    fp4 CharWidth(uint8 c) const;
 
-  fp4 StringWidth(const std::string &str) const;
+    fp4 StringWidth(const std::string &str) const;
 
-  Glyph *GetGlyph(uint8 c);
+    Glyph *GetGlyph(uint8 c);
 
-  spCTextureFlat GetTexture(void);
+    spCTextureFlat GetTexture(void);
 
-  virtual void Reupload();
+    virtual void Reupload();
 };
 
 MakeSmartPointers(CFontGL);

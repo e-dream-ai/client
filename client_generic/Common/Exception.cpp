@@ -28,11 +28,11 @@ std::string CException::m_ArgString;
 */
 void CException::ReportCatch(void) const
 {
-  //	printf( "%s\n", Text().c_str() );
-  g_Log->Error("EXCEPTION: %s", Text().c_str());
+    //	printf( "%s\n", Text().c_str() );
+    g_Log->Error("EXCEPTION: %s", Text().c_str());
 #ifdef WIN32
 #ifdef DEBUG
-  // MessageBox( NULL, Text().c_str(), "Exception", MB_OK | MB_ICONERROR );
+    // MessageBox( NULL, Text().c_str(), "Exception", MB_OK | MB_ICONERROR );
 #endif
 #endif
 }
@@ -43,9 +43,9 @@ void CException::ReportCatch(void) const
 */
 std::string CException::Text(void) const
 {
-  std::ostringstream os;
-  os << "in " << m_File << "(" << m_Line << "): " << m_String;
-  return (std::string(os.str()));
+    std::ostringstream os;
+    os << "in " << m_File << "(" << m_Line << "): " << m_String;
+    return (std::string(os.str()));
 }
 
 /*
@@ -54,15 +54,15 @@ std::string CException::Text(void) const
 */
 void CException::CollectArguments(const char *String, ...)
 {
-  static char s_StringWork[8192];
+    static char s_StringWork[8192];
 
-  va_list ArgPtr;
+    va_list ArgPtr;
 
-  va_start(ArgPtr, String);
-  vsprintf(s_StringWork, String, ArgPtr);
-  va_end(ArgPtr);
+    va_start(ArgPtr, String);
+    vsprintf(s_StringWork, String, ArgPtr);
+    va_end(ArgPtr);
 
-  m_ArgString = s_StringWork;
+    m_ArgString = s_StringWork;
 }
 
 }; // namespace Base

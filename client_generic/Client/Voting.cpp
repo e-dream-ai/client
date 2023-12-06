@@ -22,97 +22,97 @@
  */
 CVote::CVote()
 {
-  m_Clock = 0;
-  m_Timer.Reset();
-  m_pThread = NULL;
-  m_Votings.clear(0);
+    m_Clock = 0;
+    m_Timer.Reset();
+    m_pThread = NULL;
+    m_Votings.clear(0);
 };
 
 /*
  */
 CVote::~CVote()
 {
-  if (m_pThread != NULL)
-  {
-    m_pThread->interrupt();
-    try
+    if (m_pThread != NULL)
     {
-      m_pThread->timed_join(boost::posix_time::seconds(3));
+        m_pThread->interrupt();
+        try
+        {
+            m_pThread->timed_join(boost::posix_time::seconds(3));
+        }
+        catch (boost::thread_interrupted const &)
+        {
+        }
+        SAFE_DELETE(m_pThread);
     }
-    catch (boost::thread_interrupted const &)
-    {
-    }
-    SAFE_DELETE(m_pThread);
-  }
 };
 
 /*
  */
 void CVote::ThreadFunc()
 {
-  try
-  {
-    VotingInfo vi;
-
-    const char *pServerName = /*ContentDownloader::Shepherd::serverName( true,
-                                 ContentDownloader::eVoteServer );*/
-        "";
-
-    if (pServerName == NULL)
-      return;
-
-    const char *pUniqueID = ContentDownloader::Shepherd::uniqueID();
-
-    if (pUniqueID == NULL)
-      return;
-
-    std::string serverName = pServerName;
-    std::string uniqueID = pUniqueID;
-
-    while (m_Votings.pop(vi, true))
+    try
     {
-      static const char *votedesc[] = {"Negative", "Positive"};
+        VotingInfo vi;
 
-      g_Log->Info("%s vote for sheep %d", votedesc[vi.vtype], vi.vid);
+        const char *pServerName = /*ContentDownloader::Shepherd::serverName(
+                                     true, ContentDownloader::eVoteServer );*/
+            "";
 
-      Network::CCurlTransfer *spRequest =
-          new Network::CCurlTransfer(std::string(votedesc[vi.vtype]) + " vote");
+        if (pServerName == NULL)
+            return;
 
-      char url[MAX_PATH];
+        const char *pUniqueID = ContentDownloader::Shepherd::uniqueID();
 
-      int voteDir = -1;
-      if (vi.vtype == 1)
-        voteDir = 1;
+        if (pUniqueID == NULL)
+            return;
 
-      snprintf(url, MAX_PATH, "%scgi/vote.cgi?id=%d&vote=%d&u=%s",
-               serverName.c_str(), vi.vid, voteDir, uniqueID.c_str());
+        std::string serverName = pServerName;
+        std::string uniqueID = pUniqueID;
 
-      //	Server responds (correctly) with a "302 Moved", so we need to
-      // allow that.
-      spRequest->Allow(302);
+        while (m_Votings.pop(vi, true))
+        {
+            static const char *votedesc[] = {"Negative", "Positive"};
 
-      // If we were interrupted before this point, we don't need to start the
-      // unnecessary transfer.
-      boost::this_thread::interruption_point();
+            g_Log->Info("%s vote for sheep %d", votedesc[vi.vtype], vi.vid);
 
-      //	Send it...
-      if (!spRequest->Perform(url))
-      {
-        g_Log->Error("Failed to vote (%s).\n", url);
+            Network::CCurlTransfer *spRequest = new Network::CCurlTransfer(
+                std::string(votedesc[vi.vtype]) + " vote");
 
-        if (spRequest->ResponseCode() == 401)
-          g_ContentDownloader().ServerFallback();
-      }
+            char url[MAX_PATH];
 
-      boost::this_thread::interruption_point();
+            int voteDir = -1;
+            if (vi.vtype == 1)
+                voteDir = 1;
 
-      SAFE_DELETE(spRequest);
-      g_Log->Info("done voting...");
+            snprintf(url, MAX_PATH, "%scgi/vote.cgi?id=%d&vote=%d&u=%s",
+                     serverName.c_str(), vi.vid, voteDir, uniqueID.c_str());
+
+            //	Server responds (correctly) with a "302 Moved", so we need to
+            // allow that.
+            spRequest->Allow(302);
+
+            // If we were interrupted before this point, we don't need to start
+            // the unnecessary transfer.
+            boost::this_thread::interruption_point();
+
+            //	Send it...
+            if (!spRequest->Perform(url))
+            {
+                g_Log->Error("Failed to vote (%s).\n", url);
+
+                if (spRequest->ResponseCode() == 401)
+                    g_ContentDownloader().ServerFallback();
+            }
+
+            boost::this_thread::interruption_point();
+
+            SAFE_DELETE(spRequest);
+            g_Log->Info("done voting...");
+        }
     }
-  }
-  catch (boost::thread_interrupted const &)
-  {
-  }
+    catch (boost::thread_interrupted const &)
+    {
+    }
 }
 
 /*
@@ -121,38 +121,38 @@ void CVote::ThreadFunc()
 */
 bool CVote::Vote(const uint32 _id, const uint8 _type, const fp4 _duration)
 {
-  const fp8 time = m_Timer.Time();
+    const fp8 time = m_Timer.Time();
 
-  //	Check frequency.
-  if (time - m_Clock > _duration)
-  {
-    if (_type == 0 &&
-        g_Settings()->Get("settings.content.negvotedeletes", true))
+    //	Check frequency.
+    if (time - m_Clock > _duration)
     {
-      //	Queue this sheep to be deleted.
-      g_Player().Delete(_id);
+        if (_type == 0 &&
+            g_Settings()->Get("settings.content.negvotedeletes", true))
+        {
+            //	Queue this sheep to be deleted.
+            g_Player().Delete(_id);
+        }
+
+        m_Clock = time;
+    }
+    else
+    {
+        g_Log->Warning("Voting is not allowed this frequently, be patient...");
+        return false;
     }
 
-    m_Clock = time;
-  }
-  else
-  {
-    g_Log->Warning("Voting is not allowed this frequently, be patient...");
-    return false;
-  }
+    VotingInfo vi;
 
-  VotingInfo vi;
+    vi.vid = _id;
+    vi.vtype = _type;
 
-  vi.vid = _id;
-  vi.vtype = _type;
+    m_Votings.push(vi);
 
-  m_Votings.push(vi);
+    if (m_pThread == NULL)
+    {
+        //	Spawn the thread.
+        m_pThread = new boost::thread(boost::bind(&CVote::ThreadFunc, this));
+    }
 
-  if (m_pThread == NULL)
-  {
-    //	Spawn the thread.
-    m_pThread = new boost::thread(boost::bind(&CVote::ThreadFunc, this));
-  }
-
-  return true;
+    return true;
 }

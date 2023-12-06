@@ -34,32 +34,35 @@ static NSString *const MBEGlyphDescriptorsKey = @"glyphDescriptors";
 
 - (instancetype)initWithCoder:(NSCoder *)aDecoder
 {
-  if ((self = [super init]))
-  {
-    _glyphIndex = (CGGlyph)[aDecoder decodeIntForKey:MBEGlyphIndexKey];
-    _topLeftTexCoord.x = [aDecoder decodeFloatForKey:MBELeftTexCoordKey];
-    _topLeftTexCoord.y = [aDecoder decodeFloatForKey:MBETopTexCoordKey];
-    _bottomRightTexCoord.x = [aDecoder decodeFloatForKey:MBERightTexCoordKey];
-    _bottomRightTexCoord.y = [aDecoder decodeFloatForKey:MBEBottomTexCoordKey];
-  }
+    if ((self = [super init]))
+    {
+        _glyphIndex = (CGGlyph)[aDecoder decodeIntForKey:MBEGlyphIndexKey];
+        _topLeftTexCoord.x = [aDecoder decodeFloatForKey:MBELeftTexCoordKey];
+        _topLeftTexCoord.y = [aDecoder decodeFloatForKey:MBETopTexCoordKey];
+        _bottomRightTexCoord.x =
+            [aDecoder decodeFloatForKey:MBERightTexCoordKey];
+        _bottomRightTexCoord.y =
+            [aDecoder decodeFloatForKey:MBEBottomTexCoordKey];
+    }
 
-  return self;
+    return self;
 }
 
 - (void)encodeWithCoder:(NSCoder *)aCoder
 {
-  [aCoder encodeInt:self.glyphIndex forKey:MBEGlyphIndexKey];
-  [aCoder encodeFloat:(float)self.topLeftTexCoord.x forKey:MBELeftTexCoordKey];
-  [aCoder encodeFloat:(float)self.topLeftTexCoord.y forKey:MBETopTexCoordKey];
-  [aCoder encodeFloat:(float)self.bottomRightTexCoord.x
-               forKey:MBERightTexCoordKey];
-  [aCoder encodeFloat:(float)self.bottomRightTexCoord.y
-               forKey:MBEBottomTexCoordKey];
+    [aCoder encodeInt:self.glyphIndex forKey:MBEGlyphIndexKey];
+    [aCoder encodeFloat:(float)self.topLeftTexCoord.x
+                 forKey:MBELeftTexCoordKey];
+    [aCoder encodeFloat:(float)self.topLeftTexCoord.y forKey:MBETopTexCoordKey];
+    [aCoder encodeFloat:(float)self.bottomRightTexCoord.x
+                 forKey:MBERightTexCoordKey];
+    [aCoder encodeFloat:(float)self.bottomRightTexCoord.y
+                 forKey:MBEBottomTexCoordKey];
 }
 
 + (BOOL)supportsSecureCoding
 {
-  return YES;
+    return YES;
 }
 
 @end
@@ -68,266 +71,273 @@ static NSString *const MBEGlyphDescriptorsKey = @"glyphDescriptors";
 
 - (instancetype)initWithFont:(NSFont *)font textureSize:(size_t)textureSize
 {
-  if ((self = [super init]))
-  {
-    _parentFont = font;
-    _fontPointSize = font.pointSize;
-    _spread = [self estimatedLineWidthForFont:font] * 0.5;
-    _glyphDescriptors = [NSMutableArray array];
-    _textureSize = textureSize;
-    [self createTextureData];
-  }
+    if ((self = [super init]))
+    {
+        _parentFont = font;
+        _fontPointSize = font.pointSize;
+        _spread = [self estimatedLineWidthForFont:font] * 0.5;
+        _glyphDescriptors = [NSMutableArray array];
+        _textureSize = textureSize;
+        [self createTextureData];
+    }
 
-  return self;
+    return self;
 }
 
 - (instancetype)initWithCoder:(NSCoder *)aDecoder
 {
-  if ((self = [super init]))
-  {
-    NSString *fontName = [aDecoder decodeObjectForKey:MBEFontNameKey];
-    CGFloat fontSize = [aDecoder decodeFloatForKey:MBEFontSizeKey];
-    CGFloat spread = [aDecoder decodeFloatForKey:MBEFontSpreadKey];
-
-    if (fontName.length == 0 || fontSize <= 0)
+    if ((self = [super init]))
     {
-      NSLog(@"Encountered invalid persisted font (invalid font name or size). "
-            @"Aborting...");
-      return nil;
+        NSString *fontName = [aDecoder decodeObjectForKey:MBEFontNameKey];
+        CGFloat fontSize = [aDecoder decodeFloatForKey:MBEFontSizeKey];
+        CGFloat spread = [aDecoder decodeFloatForKey:MBEFontSpreadKey];
+
+        if (fontName.length == 0 || fontSize <= 0)
+        {
+            NSLog(@"Encountered invalid persisted font (invalid font name or "
+                  @"size). "
+                  @"Aborting...");
+            return nil;
+        }
+
+        _parentFont = [NSFont fontWithName:fontName size:fontSize];
+        _fontPointSize = fontSize;
+        _spread = spread;
+        _glyphDescriptors =
+            [aDecoder decodeObjectForKey:MBEGlyphDescriptorsKey];
+
+        if (_glyphDescriptors == nil)
+        {
+            NSLog(@"Encountered invalid persisted font (no glyph metrics). "
+                  @"Aborting...");
+            return nil;
+        }
+
+        size_t width = (size_t)[aDecoder decodeIntForKey:MBETextureWidthKey];
+        size_t height = (size_t)[aDecoder decodeIntForKey:MBETextureHeightKey];
+
+        if (width != height)
+        {
+            NSLog(@"Encountered invalid persisted font (non-square textures "
+                  @"aren't "
+                  @"supported). Aborting...");
+            return nil;
+        }
+
+        _textureSize = width;
+
+        _textureData = [aDecoder decodeObjectForKey:MBETextureDataKey];
+
+        if (_textureData == nil)
+        {
+            NSLog(
+                @"Encountered invalid persisted font (texture data is empty). "
+                @"Aborting...");
+        }
     }
 
-    _parentFont = [NSFont fontWithName:fontName size:fontSize];
-    _fontPointSize = fontSize;
-    _spread = spread;
-    _glyphDescriptors = [aDecoder decodeObjectForKey:MBEGlyphDescriptorsKey];
-
-    if (_glyphDescriptors == nil)
-    {
-      NSLog(@"Encountered invalid persisted font (no glyph metrics). "
-            @"Aborting...");
-      return nil;
-    }
-
-    size_t width = (size_t)[aDecoder decodeIntForKey:MBETextureWidthKey];
-    size_t height = (size_t)[aDecoder decodeIntForKey:MBETextureHeightKey];
-
-    if (width != height)
-    {
-      NSLog(@"Encountered invalid persisted font (non-square textures aren't "
-            @"supported). Aborting...");
-      return nil;
-    }
-
-    _textureSize = width;
-
-    _textureData = [aDecoder decodeObjectForKey:MBETextureDataKey];
-
-    if (_textureData == nil)
-    {
-      NSLog(@"Encountered invalid persisted font (texture data is empty). "
-            @"Aborting...");
-    }
-  }
-
-  return self;
+    return self;
 }
 
 - (void)encodeWithCoder:(NSCoder *)aCoder
 {
-  [aCoder encodeObject:self.parentFont.fontName forKey:MBEFontNameKey];
-  [aCoder encodeFloat:(float)self.fontPointSize forKey:MBEFontSizeKey];
-  [aCoder encodeFloat:(float)self.spread forKey:MBEFontSpreadKey];
-  [aCoder encodeObject:self.textureData forKey:MBETextureDataKey];
-  [aCoder encodeInt64:(int64_t)self.textureSize forKey:MBETextureWidthKey];
-  [aCoder encodeInt64:(int64_t)self.textureSize forKey:MBETextureHeightKey];
-  [aCoder encodeObject:self.glyphDescriptors forKey:MBEGlyphDescriptorsKey];
+    [aCoder encodeObject:self.parentFont.fontName forKey:MBEFontNameKey];
+    [aCoder encodeFloat:(float)self.fontPointSize forKey:MBEFontSizeKey];
+    [aCoder encodeFloat:(float)self.spread forKey:MBEFontSpreadKey];
+    [aCoder encodeObject:self.textureData forKey:MBETextureDataKey];
+    [aCoder encodeInt64:(int64_t)self.textureSize forKey:MBETextureWidthKey];
+    [aCoder encodeInt64:(int64_t)self.textureSize forKey:MBETextureHeightKey];
+    [aCoder encodeObject:self.glyphDescriptors forKey:MBEGlyphDescriptorsKey];
 }
 
 + (BOOL)supportsSecureCoding
 {
-  return YES;
+    return YES;
 }
 
 - (CGSize)estimatedGlyphSizeForFont:(NSFont *)font
 {
-  NSString *exemplarString = @"{ǺOJMQYZa@jmqyw";
-  CGSize exemplarStringSize =
-      [exemplarString sizeWithAttributes:@{NSFontAttributeName : font}];
-  CGFloat averageGlyphWidth =
-      ceilf((float)exemplarStringSize.width / exemplarString.length);
-  CGFloat maxGlyphHeight = ceilf((float)exemplarStringSize.height);
+    NSString *exemplarString = @"{ǺOJMQYZa@jmqyw";
+    CGSize exemplarStringSize =
+        [exemplarString sizeWithAttributes:@{NSFontAttributeName : font}];
+    CGFloat averageGlyphWidth =
+        ceilf((float)exemplarStringSize.width / exemplarString.length);
+    CGFloat maxGlyphHeight = ceilf((float)exemplarStringSize.height);
 
-  return CGSizeMake(averageGlyphWidth, maxGlyphHeight);
+    return CGSizeMake(averageGlyphWidth, maxGlyphHeight);
 }
 
 - (CGFloat)estimatedLineWidthForFont:(NSFont *)font
 {
-  CGFloat estimatedStrokeWidth =
-      [@"!" sizeWithAttributes:@{NSFontAttributeName : font}].width;
-  return ceilf((float)estimatedStrokeWidth);
+    CGFloat estimatedStrokeWidth =
+        [@"!" sizeWithAttributes:@{NSFontAttributeName : font}].width;
+    return ceilf((float)estimatedStrokeWidth);
 }
 
 - (BOOL)font:(NSFont *)font
                       atSize:(CGFloat)size
     isLikelyToFitInAtlasRect:(CGRect)rect
 {
-  const float textureArea = (float)rect.size.width * (float)rect.size.height;
-  NSFont *trialFont = [NSFont fontWithName:font.fontName size:size];
-  CTFontRef trialCTFont =
-      CTFontCreateWithName((__bridge CFStringRef)(font.fontName), size, NULL);
+    const float textureArea = (float)rect.size.width * (float)rect.size.height;
+    NSFont *trialFont = [NSFont fontWithName:font.fontName size:size];
+    CTFontRef trialCTFont =
+        CTFontCreateWithName((__bridge CFStringRef)(font.fontName), size, NULL);
 #if USE_LIMITED_CHARSET
-  CFIndex fontGlyphCount =
-      MIN(MAX_UNICHAR_INDEX, CTFontGetGlyphCount(trialCTFont));
+    CFIndex fontGlyphCount =
+        MIN(MAX_UNICHAR_INDEX, CTFontGetGlyphCount(trialCTFont));
 #else
-  CFIndex fontGlyphCount = CTFontGetGlyphCount(trialCTFont);
+    CFIndex fontGlyphCount = CTFontGetGlyphCount(trialCTFont);
 #endif
-  CGFloat glyphMargin = [self estimatedLineWidthForFont:trialFont];
-  CGSize averageGlyphSize = [self estimatedGlyphSizeForFont:trialFont];
-  CGFloat estimatedGlyphTotalArea = (averageGlyphSize.width + glyphMargin) *
-                                    (averageGlyphSize.height + glyphMargin) *
-                                    fontGlyphCount;
-  CFRelease(trialCTFont);
-  BOOL fits = (estimatedGlyphTotalArea < textureArea);
-  return fits;
+    CGFloat glyphMargin = [self estimatedLineWidthForFont:trialFont];
+    CGSize averageGlyphSize = [self estimatedGlyphSizeForFont:trialFont];
+    CGFloat estimatedGlyphTotalArea = (averageGlyphSize.width + glyphMargin) *
+                                      (averageGlyphSize.height + glyphMargin) *
+                                      fontGlyphCount;
+    CFRelease(trialCTFont);
+    BOOL fits = (estimatedGlyphTotalArea < textureArea);
+    return fits;
 }
 
 - (CGFloat)pointSizeThatFitsForFont:(NSFont *)font inAtlasRect:(CGRect)rect
 {
-  CGFloat fittedSize = font.pointSize;
+    CGFloat fittedSize = font.pointSize;
 
-  while ([self font:font atSize:fittedSize isLikelyToFitInAtlasRect:rect])
-    ++fittedSize;
+    while ([self font:font atSize:fittedSize isLikelyToFitInAtlasRect:rect])
+        ++fittedSize;
 
-  while (![self font:font atSize:fittedSize isLikelyToFitInAtlasRect:rect])
-    --fittedSize;
+    while (![self font:font atSize:fittedSize isLikelyToFitInAtlasRect:rect])
+        --fittedSize;
 
-  return fittedSize;
+    return fittedSize;
 }
 
 - (uint8_t *)createAtlasForFont:(NSFont *)font
                           width:(size_t)width
                          height:(size_t)height
 {
-  uint8_t *imageData = malloc(width * height);
+    uint8_t *imageData = malloc(width * height);
 
-  CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceGray();
-  CGBitmapInfo bitmapInfo = (kCGBitmapAlphaInfoMask & kCGImageAlphaNone);
-  CGContextRef context = CGBitmapContextCreate(imageData, width, height, 8,
-                                               width, colorSpace, bitmapInfo);
+    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceGray();
+    CGBitmapInfo bitmapInfo = (kCGBitmapAlphaInfoMask & kCGImageAlphaNone);
+    CGContextRef context = CGBitmapContextCreate(imageData, width, height, 8,
+                                                 width, colorSpace, bitmapInfo);
 
-  // Turn off antialiasing so we only get fully-on or fully-off pixels.
-  // This implicitly disables subpixel antialiasing and hinting.
-  CGContextSetAllowsAntialiasing(context, false);
+    // Turn off antialiasing so we only get fully-on or fully-off pixels.
+    // This implicitly disables subpixel antialiasing and hinting.
+    CGContextSetAllowsAntialiasing(context, false);
 
-  // Flip context coordinate space so y increases downward
-  CGContextTranslateCTM(context, 0, height);
-  CGContextScaleCTM(context, 1, -1);
+    // Flip context coordinate space so y increases downward
+    CGContextTranslateCTM(context, 0, height);
+    CGContextScaleCTM(context, 1, -1);
 
-  // Fill the context with an opaque black color
-  CGContextSetRGBFillColor(context, 0, 0, 0, 1);
-  CGContextFillRect(context, CGRectMake(0, 0, width, height));
+    // Fill the context with an opaque black color
+    CGContextSetRGBFillColor(context, 0, 0, 0, 1);
+    CGContextFillRect(context, CGRectMake(0, 0, width, height));
 
-  _fontPointSize =
-      [self pointSizeThatFitsForFont:font
-                         inAtlasRect:CGRectMake(0, 0, width, height)];
-  CTFontRef ctFont = CTFontCreateWithName((__bridge CFStringRef)font.fontName,
-                                          _fontPointSize, NULL);
-  _parentFont = [NSFont fontWithName:font.fontName size:_fontPointSize];
+    _fontPointSize =
+        [self pointSizeThatFitsForFont:font
+                           inAtlasRect:CGRectMake(0, 0, width, height)];
+    CTFontRef ctFont = CTFontCreateWithName((__bridge CFStringRef)font.fontName,
+                                            _fontPointSize, NULL);
+    _parentFont = [NSFont fontWithName:font.fontName size:_fontPointSize];
 
-  CFIndex fontGlyphCount = CTFontGetGlyphCount(ctFont);
+    CFIndex fontGlyphCount = CTFontGetGlyphCount(ctFont);
 
-  CGFloat glyphMargin = [self estimatedLineWidthForFont:_parentFont];
+    CGFloat glyphMargin = [self estimatedLineWidthForFont:_parentFont];
 
-  // Set fill color so that glyphs are solid white
-  CGContextSetRGBFillColor(context, 1, 1, 1, 1);
+    // Set fill color so that glyphs are solid white
+    CGContextSetRGBFillColor(context, 1, 1, 1, 1);
 
-  NSMutableArray *mutableGlyphs = (NSMutableArray *)self.glyphDescriptors;
-  [mutableGlyphs removeAllObjects];
+    NSMutableArray *mutableGlyphs = (NSMutableArray *)self.glyphDescriptors;
+    [mutableGlyphs removeAllObjects];
 
-  CGFloat fontAscent = CTFontGetAscent(ctFont);
-  CGFloat fontDescent = CTFontGetDescent(ctFont);
+    CGFloat fontAscent = CTFontGetAscent(ctFont);
+    CGFloat fontDescent = CTFontGetDescent(ctFont);
 
-  CGPoint origin = CGPointMake(0, fontAscent);
-  CGFloat maxYCoordForLine = -1;
+    CGPoint origin = CGPointMake(0, fontAscent);
+    CGFloat maxYCoordForLine = -1;
 
 #if USE_LIMITED_CHARSET
-  for (UniChar character = 0; character < MAX_UNICHAR_INDEX; ++character)
-  {
-    CGGlyph glyph;
-    CTFontGetGlyphsForCharacters(ctFont, &character, &glyph, 1);
+    for (UniChar character = 0; character < MAX_UNICHAR_INDEX; ++character)
+    {
+        CGGlyph glyph;
+        CTFontGetGlyphsForCharacters(ctFont, &character, &glyph, 1);
 #else
-  for (CGGlyph glyph = 0; glyph < fontGlyphCount; ++glyph)
-  {
+    for (CGGlyph glyph = 0; glyph < fontGlyphCount; ++glyph)
+    {
 #endif
-    CGRect boundingRect;
-    CTFontGetBoundingRectsForGlyphs(ctFont, kCTFontOrientationHorizontal,
-                                    &glyph, &boundingRect, 1);
+        CGRect boundingRect;
+        CTFontGetBoundingRectsForGlyphs(ctFont, kCTFontOrientationHorizontal,
+                                        &glyph, &boundingRect, 1);
 
-    if (origin.x + CGRectGetMaxX(boundingRect) + glyphMargin > width)
-    {
-      origin.x = 0;
-      origin.y = maxYCoordForLine + glyphMargin + fontDescent;
-      maxYCoordForLine = -1;
+        if (origin.x + CGRectGetMaxX(boundingRect) + glyphMargin > width)
+        {
+            origin.x = 0;
+            origin.y = maxYCoordForLine + glyphMargin + fontDescent;
+            maxYCoordForLine = -1;
+        }
+
+        if (origin.y + CGRectGetMaxY(boundingRect) > maxYCoordForLine)
+        {
+            maxYCoordForLine = origin.y + CGRectGetMaxY(boundingRect);
+        }
+
+        CGFloat glyphOriginX =
+            origin.x - boundingRect.origin.x + (glyphMargin * 0.5);
+        CGFloat glyphOriginY = origin.y + (glyphMargin * 0.5);
+
+        CGAffineTransform glyphTransform =
+            CGAffineTransformMake(1, 0, 0, -1, glyphOriginX, glyphOriginY);
+
+        CGPathRef path =
+            CTFontCreatePathForGlyph(ctFont, glyph, &glyphTransform);
+        CGContextAddPath(context, path);
+        CGContextFillPath(context);
+
+        CGRect glyphPathBoundingRect = CGPathGetPathBoundingBox(path);
+
+        // The null rect (i.e., the bounding rect of an empty path) is
+        // problematic because it has its origin at (+inf, +inf); we fix that up
+        // here
+        if (CGRectEqualToRect(glyphPathBoundingRect, CGRectNull))
+        {
+            glyphPathBoundingRect = CGRectZero;
+        }
+
+        CGFloat texCoordLeft = glyphPathBoundingRect.origin.x / width;
+        CGFloat texCoordRight = (glyphPathBoundingRect.origin.x +
+                                 glyphPathBoundingRect.size.width) /
+                                width;
+        CGFloat texCoordTop = (glyphPathBoundingRect.origin.y) / height;
+        CGFloat texCoordBottom = (glyphPathBoundingRect.origin.y +
+                                  glyphPathBoundingRect.size.height) /
+                                 height;
+
+        MBEGlyphDescriptor *descriptor = [MBEGlyphDescriptor new];
+        descriptor.glyphIndex = glyph;
+        descriptor.topLeftTexCoord = CGPointMake(texCoordLeft, texCoordTop);
+        descriptor.bottomRightTexCoord =
+            CGPointMake(texCoordRight, texCoordBottom);
+        [mutableGlyphs addObject:descriptor];
+
+        CGPathRelease(path);
+
+        origin.x += CGRectGetWidth(boundingRect) + glyphMargin;
     }
-
-    if (origin.y + CGRectGetMaxY(boundingRect) > maxYCoordForLine)
-    {
-      maxYCoordForLine = origin.y + CGRectGetMaxY(boundingRect);
-    }
-
-    CGFloat glyphOriginX =
-        origin.x - boundingRect.origin.x + (glyphMargin * 0.5);
-    CGFloat glyphOriginY = origin.y + (glyphMargin * 0.5);
-
-    CGAffineTransform glyphTransform =
-        CGAffineTransformMake(1, 0, 0, -1, glyphOriginX, glyphOriginY);
-
-    CGPathRef path = CTFontCreatePathForGlyph(ctFont, glyph, &glyphTransform);
-    CGContextAddPath(context, path);
-    CGContextFillPath(context);
-
-    CGRect glyphPathBoundingRect = CGPathGetPathBoundingBox(path);
-
-    // The null rect (i.e., the bounding rect of an empty path) is problematic
-    // because it has its origin at (+inf, +inf); we fix that up here
-    if (CGRectEqualToRect(glyphPathBoundingRect, CGRectNull))
-    {
-      glyphPathBoundingRect = CGRectZero;
-    }
-
-    CGFloat texCoordLeft = glyphPathBoundingRect.origin.x / width;
-    CGFloat texCoordRight =
-        (glyphPathBoundingRect.origin.x + glyphPathBoundingRect.size.width) /
-        width;
-    CGFloat texCoordTop = (glyphPathBoundingRect.origin.y) / height;
-    CGFloat texCoordBottom =
-        (glyphPathBoundingRect.origin.y + glyphPathBoundingRect.size.height) /
-        height;
-
-    MBEGlyphDescriptor *descriptor = [MBEGlyphDescriptor new];
-    descriptor.glyphIndex = glyph;
-    descriptor.topLeftTexCoord = CGPointMake(texCoordLeft, texCoordTop);
-    descriptor.bottomRightTexCoord = CGPointMake(texCoordRight, texCoordBottom);
-    [mutableGlyphs addObject:descriptor];
-
-    CGPathRelease(path);
-
-    origin.x += CGRectGetWidth(boundingRect) + glyphMargin;
-  }
 
 #if MBE_GENERATE_DEBUG_ATLAS_IMAGE
-  CGImageRef contextImage = CGBitmapContextCreateImage(context);
-  // Break here to view the generated font atlas bitmap
-  CIImage *fontImage = [CIImage imageWithCGImage:contextImage];
-  fontImage = nil;
-  CGImageRelease(contextImage);
+    CGImageRef contextImage = CGBitmapContextCreateImage(context);
+    // Break here to view the generated font atlas bitmap
+    CIImage *fontImage = [CIImage imageWithCGImage:contextImage];
+    fontImage = nil;
+    CGImageRelease(contextImage);
 #endif
 
-  CFRelease(ctFont);
-  CGContextRelease(context);
-  CGColorSpaceRelease(colorSpace);
+    CFRelease(ctFont);
+    CGContextRelease(context);
+    CGColorSpaceRelease(colorSpace);
 
-  return imageData;
+    return imageData;
 }
 
 /// Compute signed-distance field for an 8-bpp grayscale image (values greater
@@ -337,133 +347,135 @@ static NSString *const MBEGlyphDescriptorsKey = @"glyphDescriptors";
                                                 width:(size_t)width
                                                height:(size_t)height
 {
-  if (imageData == NULL || width == 0 || height == 0)
-    return NULL;
+    if (imageData == NULL || width == 0 || height == 0)
+        return NULL;
 
-  typedef struct
-  {
-    unsigned short x, y;
-  } intpoint_t;
+    typedef struct
+    {
+        unsigned short x, y;
+    } intpoint_t;
 
-  float *distanceMap = malloc(
-      width * height * sizeof(float)); // distance to nearest boundary point map
-  intpoint_t *boundaryPointMap =
-      malloc(width * height * sizeof(intpoint_t)); // nearest boundary point map
+    float *distanceMap =
+        malloc(width * height *
+               sizeof(float)); // distance to nearest boundary point map
+    intpoint_t *boundaryPointMap = malloc(
+        width * height * sizeof(intpoint_t)); // nearest boundary point map
 
-  // Some helpers for manipulating the above arrays
+    // Some helpers for manipulating the above arrays
 #define image(_x, _y) (imageData[(_y) * width + (_x)] > 0x7f)
 #define distance(_x, _y) distanceMap[(_y) * width + (_x)]
 #define nearestpt(_x, _y) boundaryPointMap[(_y) * width + (_x)]
 
-  const float maxDist = (float)hypot((float)width, (float)height);
-  const float distUnit = 1;
-  const float distDiag = (float)sqrt(2);
+    const float maxDist = (float)hypot((float)width, (float)height);
+    const float distUnit = 1;
+    const float distDiag = (float)sqrt(2);
 
-  // Initialization phase: set all distances to "infinity"; zero out nearest
-  // boundary point map
-  for (size_t y = 0; y < height; ++y)
-  {
-    for (size_t x = 0; x < width; ++x)
+    // Initialization phase: set all distances to "infinity"; zero out nearest
+    // boundary point map
+    for (size_t y = 0; y < height; ++y)
     {
-      distance(x, y) = maxDist;
-      nearestpt(x, y) = (intpoint_t){0, 0};
+        for (size_t x = 0; x < width; ++x)
+        {
+            distance(x, y) = maxDist;
+            nearestpt(x, y) = (intpoint_t){0, 0};
+        }
     }
-  }
 
-  // Immediate interior/exterior phase: mark all points along the boundary as
-  // such
-  for (size_t y = 1; y < height - 1; ++y)
-  {
-    for (size_t x = 1; x < width - 1; ++x)
+    // Immediate interior/exterior phase: mark all points along the boundary as
+    // such
+    for (size_t y = 1; y < height - 1; ++y)
     {
-      bool inside = image(x, y);
-      if (image(x - 1, y) != inside || image(x + 1, y) != inside ||
-          image(x, y - 1) != inside || image(x, y + 1) != inside)
-      {
-        distance(x, y) = 0;
-        nearestpt(x, y) = (intpoint_t){(uint16_t)x, (uint16_t)y};
-      }
+        for (size_t x = 1; x < width - 1; ++x)
+        {
+            bool inside = image(x, y);
+            if (image(x - 1, y) != inside || image(x + 1, y) != inside ||
+                image(x, y - 1) != inside || image(x, y + 1) != inside)
+            {
+                distance(x, y) = 0;
+                nearestpt(x, y) = (intpoint_t){(uint16_t)x, (uint16_t)y};
+            }
+        }
     }
-  }
 
-  // Forward dead-reckoning pass
-  for (size_t y = 1; y < height - 2; ++y)
-  {
-    for (size_t x = 1; x < width - 2; ++x)
+    // Forward dead-reckoning pass
+    for (size_t y = 1; y < height - 2; ++y)
     {
-      if (distanceMap[(y - 1) * width + (x - 1)] + distDiag < distance(x, y))
-      {
-        nearestpt(x, y) = nearestpt(x - 1, y - 1);
-        distance(x, y) =
-            (float)hypot(x - nearestpt(x, y).x, y - nearestpt(x, y).y);
-      }
-      if (distance(x, y - 1) + distUnit < distance(x, y))
-      {
-        nearestpt(x, y) = nearestpt(x, y - 1);
-        distance(x, y) =
-            (float)hypot(x - nearestpt(x, y).x, y - nearestpt(x, y).y);
-      }
-      if (distance(x + 1, y - 1) + distDiag < distance(x, y))
-      {
-        nearestpt(x, y) = nearestpt(x + 1, y - 1);
-        distance(x, y) =
-            (float)hypot(x - nearestpt(x, y).x, y - nearestpt(x, y).y);
-      }
-      if (distance(x - 1, y) + distUnit < distance(x, y))
-      {
-        nearestpt(x, y) = nearestpt(x - 1, y);
-        distance(x, y) =
-            (float)hypot(x - nearestpt(x, y).x, y - nearestpt(x, y).y);
-      }
+        for (size_t x = 1; x < width - 2; ++x)
+        {
+            if (distanceMap[(y - 1) * width + (x - 1)] + distDiag <
+                distance(x, y))
+            {
+                nearestpt(x, y) = nearestpt(x - 1, y - 1);
+                distance(x, y) =
+                    (float)hypot(x - nearestpt(x, y).x, y - nearestpt(x, y).y);
+            }
+            if (distance(x, y - 1) + distUnit < distance(x, y))
+            {
+                nearestpt(x, y) = nearestpt(x, y - 1);
+                distance(x, y) =
+                    (float)hypot(x - nearestpt(x, y).x, y - nearestpt(x, y).y);
+            }
+            if (distance(x + 1, y - 1) + distDiag < distance(x, y))
+            {
+                nearestpt(x, y) = nearestpt(x + 1, y - 1);
+                distance(x, y) =
+                    (float)hypot(x - nearestpt(x, y).x, y - nearestpt(x, y).y);
+            }
+            if (distance(x - 1, y) + distUnit < distance(x, y))
+            {
+                nearestpt(x, y) = nearestpt(x - 1, y);
+                distance(x, y) =
+                    (float)hypot(x - nearestpt(x, y).x, y - nearestpt(x, y).y);
+            }
+        }
     }
-  }
 
-  // Backward dead-reckoning pass
-  for (size_t y = height - 2; y >= 1; --y)
-  {
-    for (size_t x = width - 2; x >= 1; --x)
+    // Backward dead-reckoning pass
+    for (size_t y = height - 2; y >= 1; --y)
     {
-      if (distance(x + 1, y) + distUnit < distance(x, y))
-      {
-        nearestpt(x, y) = nearestpt(x + 1, y);
-        distance(x, y) =
-            (float)hypot(x - nearestpt(x, y).x, y - nearestpt(x, y).y);
-      }
-      if (distance(x - 1, y + 1) + distDiag < distance(x, y))
-      {
-        nearestpt(x, y) = nearestpt(x - 1, y + 1);
-        distance(x, y) =
-            (float)hypot(x - nearestpt(x, y).x, y - nearestpt(x, y).y);
-      }
-      if (distance(x, y + 1) + distUnit < distance(x, y))
-      {
-        nearestpt(x, y) = nearestpt(x, y + 1);
-        distance(x, y) =
-            (float)hypot(x - nearestpt(x, y).x, y - nearestpt(x, y).y);
-      }
-      if (distance(x + 1, y + 1) + distDiag < distance(x, y))
-      {
-        nearestpt(x, y) = nearestpt(x + 1, y + 1);
-        distance(x, y) =
-            (float)hypot(x - nearestpt(x, y).x, y - nearestpt(x, y).y);
-      }
+        for (size_t x = width - 2; x >= 1; --x)
+        {
+            if (distance(x + 1, y) + distUnit < distance(x, y))
+            {
+                nearestpt(x, y) = nearestpt(x + 1, y);
+                distance(x, y) =
+                    (float)hypot(x - nearestpt(x, y).x, y - nearestpt(x, y).y);
+            }
+            if (distance(x - 1, y + 1) + distDiag < distance(x, y))
+            {
+                nearestpt(x, y) = nearestpt(x - 1, y + 1);
+                distance(x, y) =
+                    (float)hypot(x - nearestpt(x, y).x, y - nearestpt(x, y).y);
+            }
+            if (distance(x, y + 1) + distUnit < distance(x, y))
+            {
+                nearestpt(x, y) = nearestpt(x, y + 1);
+                distance(x, y) =
+                    (float)hypot(x - nearestpt(x, y).x, y - nearestpt(x, y).y);
+            }
+            if (distance(x + 1, y + 1) + distDiag < distance(x, y))
+            {
+                nearestpt(x, y) = nearestpt(x + 1, y + 1);
+                distance(x, y) =
+                    (float)hypot(x - nearestpt(x, y).x, y - nearestpt(x, y).y);
+            }
+        }
     }
-  }
 
-  // Interior distance negation pass; distances outside the figure are
-  // considered negative
-  for (size_t y = 0; y < height; ++y)
-  {
-    for (size_t x = 0; x < width; ++x)
+    // Interior distance negation pass; distances outside the figure are
+    // considered negative
+    for (size_t y = 0; y < height; ++y)
     {
-      if (!image(x, y))
-        distance(x, y) = -distance(x, y);
+        for (size_t x = 0; x < width; ++x)
+        {
+            if (!image(x, y))
+                distance(x, y) = -distance(x, y);
+        }
     }
-  }
 
-  free(boundaryPointMap);
+    free(boundaryPointMap);
 
-  return distanceMap;
+    return distanceMap;
 
 #undef image
 #undef distance
@@ -475,33 +487,34 @@ static NSString *const MBEGlyphDescriptorsKey = @"glyphDescriptors";
                         height:(size_t)height
                    scaleFactor:(size_t)scaleFactor
 {
-  NSAssert(width % scaleFactor == 0 && height % scaleFactor == 0,
-           @"Scale factor does not evenly divide width and height of source "
-           @"distance field");
+    NSAssert(width % scaleFactor == 0 && height % scaleFactor == 0,
+             @"Scale factor does not evenly divide width and height of source "
+             @"distance field");
 
-  size_t scaledWidth = width / scaleFactor;
-  size_t scaledHeight = height / scaleFactor;
-  float *outData = malloc(scaledWidth * scaledHeight * sizeof(float));
+    size_t scaledWidth = width / scaleFactor;
+    size_t scaledHeight = height / scaleFactor;
+    float *outData = malloc(scaledWidth * scaledHeight * sizeof(float));
 
-  for (size_t y = 0; y < height; y += scaleFactor)
-  {
-    for (size_t x = 0; x < width; x += scaleFactor)
+    for (size_t y = 0; y < height; y += scaleFactor)
     {
-      float accum = 0;
-      for (size_t ky = 0; ky < scaleFactor; ++ky)
-      {
-        for (size_t kx = 0; kx < scaleFactor; ++kx)
+        for (size_t x = 0; x < width; x += scaleFactor)
         {
-          accum += inData[(y + ky) * width + (x + kx)];
+            float accum = 0;
+            for (size_t ky = 0; ky < scaleFactor; ++ky)
+            {
+                for (size_t kx = 0; kx < scaleFactor; ++kx)
+                {
+                    accum += inData[(y + ky) * width + (x + kx)];
+                }
+            }
+            accum = accum / (scaleFactor * scaleFactor);
+
+            outData[(y / scaleFactor) * scaledWidth + (x / scaleFactor)] =
+                accum;
         }
-      }
-      accum = accum / (scaleFactor * scaleFactor);
-
-      outData[(y / scaleFactor) * scaledWidth + (x / scaleFactor)] = accum;
     }
-  }
 
-  return outData;
+    return outData;
 }
 
 - (uint8_t *)createQuantizedDistanceField:(float *)inData
@@ -509,75 +522,75 @@ static NSString *const MBEGlyphDescriptorsKey = @"glyphDescriptors";
                                    height:(size_t)height
                       normalizationFactor:(float)normalizationFactor
 {
-  uint8_t *outData = malloc(width * height);
+    uint8_t *outData = malloc(width * height);
 
-  for (size_t y = 0; y < height; ++y)
-  {
-    for (size_t x = 0; x < width; ++x)
+    for (size_t y = 0; y < height; ++y)
     {
-      float dist = inData[y * width + x];
-      float clampDist =
-          (float)fmax(-normalizationFactor, fmin(dist, normalizationFactor));
-      float scaledDist = clampDist / normalizationFactor;
-      uint8_t value = (uint8_t)(((scaledDist + 1) / 2) * UINT8_MAX);
-      outData[y * width + x] = value;
+        for (size_t x = 0; x < width; ++x)
+        {
+            float dist = inData[y * width + x];
+            float clampDist = (float)fmax(-normalizationFactor,
+                                          fmin(dist, normalizationFactor));
+            float scaledDist = clampDist / normalizationFactor;
+            uint8_t value = (uint8_t)(((scaledDist + 1) / 2) * UINT8_MAX);
+            outData[y * width + x] = value;
+        }
     }
-  }
 
-  return outData;
+    return outData;
 }
 
 - (void)createTextureData
 {
-  NSAssert(MBEFontAtlasSize >= self.textureSize,
-           @"Requested font atlas texture size (%d) must be smaller than "
-           @"intermediate texture size (%d)",
-           (int)MBEFontAtlasSize, (int)self.textureSize);
+    NSAssert(MBEFontAtlasSize >= self.textureSize,
+             @"Requested font atlas texture size (%d) must be smaller than "
+             @"intermediate texture size (%d)",
+             (int)MBEFontAtlasSize, (int)self.textureSize);
 
-  NSAssert(MBEFontAtlasSize % self.textureSize == 0,
-           @"Requested font atlas texture size (%d) does not evenly divide "
-           @"intermediate texture size (%d)",
-           (int)MBEFontAtlasSize, (int)self.textureSize);
+    NSAssert(MBEFontAtlasSize % self.textureSize == 0,
+             @"Requested font atlas texture size (%d) does not evenly divide "
+             @"intermediate texture size (%d)",
+             (int)MBEFontAtlasSize, (int)self.textureSize);
 
-  // Generate an atlas image for the font, resizing if necessary to fit in the
-  // specified size.
-  uint8_t *atlasData = [self createAtlasForFont:self.parentFont
-                                          width:MBEFontAtlasSize
-                                         height:MBEFontAtlasSize];
+    // Generate an atlas image for the font, resizing if necessary to fit in the
+    // specified size.
+    uint8_t *atlasData = [self createAtlasForFont:self.parentFont
+                                            width:MBEFontAtlasSize
+                                           height:MBEFontAtlasSize];
 
-  size_t scaleFactor = MBEFontAtlasSize / self.textureSize;
+    size_t scaleFactor = MBEFontAtlasSize / self.textureSize;
 
-  // Create the signed-distance field representation of the font atlas from the
-  // rasterized glyph image.
-  float *distanceField =
-      [self createSignedDistanceFieldForGrayscaleImage:atlasData
-                                                 width:MBEFontAtlasSize
-                                                height:MBEFontAtlasSize];
+    // Create the signed-distance field representation of the font atlas from
+    // the rasterized glyph image.
+    float *distanceField =
+        [self createSignedDistanceFieldForGrayscaleImage:atlasData
+                                                   width:MBEFontAtlasSize
+                                                  height:MBEFontAtlasSize];
 
-  free(atlasData);
+    free(atlasData);
 
-  // Downsample the signed-distance field to the expected texture resolution
-  void *scaledField = [self createResampledData:distanceField
-                                          width:MBEFontAtlasSize
-                                         height:MBEFontAtlasSize
-                                    scaleFactor:scaleFactor];
+    // Downsample the signed-distance field to the expected texture resolution
+    void *scaledField = [self createResampledData:distanceField
+                                            width:MBEFontAtlasSize
+                                           height:MBEFontAtlasSize
+                                      scaleFactor:scaleFactor];
 
-  free(distanceField);
+    free(distanceField);
 
-  CGFloat spread = [self estimatedLineWidthForFont:self.parentFont] * 0.5;
-  // Quantize the downsampled distance field into an 8-bit grayscale array
-  // suitable for use as a texture
-  uint8_t *texture = [self createQuantizedDistanceField:scaledField
-                                                  width:self.textureSize
-                                                 height:self.textureSize
-                                    normalizationFactor:(float)spread];
+    CGFloat spread = [self estimatedLineWidthForFont:self.parentFont] * 0.5;
+    // Quantize the downsampled distance field into an 8-bit grayscale array
+    // suitable for use as a texture
+    uint8_t *texture = [self createQuantizedDistanceField:scaledField
+                                                    width:self.textureSize
+                                                   height:self.textureSize
+                                      normalizationFactor:(float)spread];
 
-  free(scaledField);
+    free(scaledField);
 
-  size_t textureByteCount = self.textureSize * self.textureSize;
-  _textureData = [NSData dataWithBytesNoCopy:texture
-                                      length:textureByteCount
-                                freeWhenDone:YES];
+    size_t textureByteCount = self.textureSize * self.textureSize;
+    _textureData = [NSData dataWithBytesNoCopy:texture
+                                        length:textureByteCount
+                                  freeWhenDone:YES];
 }
 
 @end

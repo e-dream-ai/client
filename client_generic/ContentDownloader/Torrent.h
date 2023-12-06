@@ -36,138 +36,138 @@ namespace ContentDownloader
 //
 class Torrent
 {
-public:
-  enum torrentstate_t
-  {
-    none,
-    queued_seed,
-    queued_download,
-    seed,
-    download
-  };
+  public:
+    enum torrentstate_t
+    {
+        none,
+        queued_seed,
+        queued_download,
+        seed,
+        download
+    };
 
-  // Default constructor
-  Torrent();
+    // Default constructor
+    Torrent();
 
-  // Copy Constructor
-  Torrent(Torrent &torrent);
+    // Copy Constructor
+    Torrent(Torrent &torrent);
 
-  // Destructor
-  ~Torrent();
+    // Destructor
+    ~Torrent();
 
-  // sets the URL that this torrent lives at
-  void setURL(const char *url);
+    // sets the URL that this torrent lives at
+    void setURL(const char *url);
 
-  // returns the URL that the torrent lives at
-  const char *URL() const { return fURL; }
+    // returns the URL that the torrent lives at
+    const char *URL() const { return fURL; }
 
-  // Sets the torrent file size on the server
-  void setFileSize(const long &size) { fFileSize = size; }
+    // Sets the torrent file size on the server
+    void setFileSize(const long &size) { fFileSize = size; }
 
-  // gets the torrent file size
-  long fileSize() const { return fFileSize; }
+    // gets the torrent file size
+    long fileSize() const { return fFileSize; }
 
-  // Sets the torrent file name
-  void setFileName(const char *name);
+    // Sets the torrent file name
+    void setFileName(const char *name);
 
-  // gets the torrent file name
-  const char *fileName() const { return fFileName; }
+    // gets the torrent file name
+    const char *fileName() const { return fFileName; }
 
-  // sets the torrent id
-  void setId(const char *id);
+    // sets the torrent id
+    void setId(const char *id);
 
-  // gets the torrent id
-  char *const id() const { return fTorrentId; }
+    // gets the torrent id
+    char *const id() const { return fTorrentId; }
 
-  // sets whether or not the torrent has been downloaded
-  void setDownloaded(const bool &state) { fDownloaded = state; }
+    // sets whether or not the torrent has been downloaded
+    void setDownloaded(const bool &state) { fDownloaded = state; }
 
-  // returns if the torrent has been downloaded
-  bool downloaded() const { return fDownloaded; }
+    // returns if the torrent has been downloaded
+    bool downloaded() const { return fDownloaded; }
 
-  // sets whether or not the torrent has been added to the session
-  void setActive(const bool &state);
+    // sets whether or not the torrent has been added to the session
+    void setActive(const bool &state);
 
-  // returns if the torrent has been added to the session
-  bool active() const { return fActive; }
+    // returns if the torrent has been added to the session
+    bool active() const { return fActive; }
 
-  // sets whether or not the torrent has been removed from the server
-  void setDeleted(const bool &state) { fDeleted = state; }
+    // sets whether or not the torrent has been removed from the server
+    void setDeleted(const bool &state) { fDeleted = state; }
 
-  // returns if the torrent has been removed from the server
-  bool deleted() const { return fDeleted; }
+    // returns if the torrent has been removed from the server
+    bool deleted() const { return fDeleted; }
 
-  // set the torrent generation
-  void setGeneration(const int &gen) { fGeneration = gen; }
+    // set the torrent generation
+    void setGeneration(const int &gen) { fGeneration = gen; }
 
-  // returns the torrent generation
-  int generation() const { return fGeneration; }
+    // returns the torrent generation
+    int generation() const { return fGeneration; }
 
-  // returns true if this torrent is just seeding
-  bool isSeeding();
+    // returns true if this torrent is just seeding
+    bool isSeeding();
 
-  // move finished files to mpg dir
-  void moveSeeding();
+    // move finished files to mpg dir
+    void moveSeeding();
 
-  void setInSeeding(const bool &state) { fInSeeding = state; }
-  bool inSeeding() { return fInSeeding; }
+    void setInSeeding(const bool &state) { fInSeeding = state; }
+    bool inSeeding() { return fInSeeding; }
 
-  void setPurged(const bool &state) { fPurged = state; }
-  bool purged() { return fPurged; }
+    void setPurged(const bool &state) { fPurged = state; }
+    bool purged() { return fPurged; }
 
-  void stopSeeding() { fInSeeding = false; }
+    void stopSeeding() { fInSeeding = false; }
 
-  // handle single sheep downloads
-  void setSingleDownload(const int &index);
-  int singleDownload() { return fSingleDownload; }
-  void resetSingleDownload();
+    // handle single sheep downloads
+    void setSingleDownload(const int &index);
+    int singleDownload() { return fSingleDownload; }
+    void resetSingleDownload();
 
-  void setSeedQueue(const bool &state) { fSeedQueue = state; }
-  bool seedQueue() { return fSeedQueue; }
-  void setDownloadQueue(const bool &state) { fDownloadQueue = state; }
-  bool downloadQueue() { return fDownloadQueue; }
-  float getRatio(int place);
+    void setSeedQueue(const bool &state) { fSeedQueue = state; }
+    bool seedQueue() { return fSeedQueue; }
+    void setDownloadQueue(const bool &state) { fDownloadQueue = state; }
+    bool downloadQueue() { return fDownloadQueue; }
+    float getRatio(int place);
 
-  bool gotHandle() { return fGotHandle; }
+    bool gotHandle() { return fGotHandle; }
 
-  bool is_paused();
+    bool is_paused();
 
-  libtorrent::torrent_status::state_t getStatus();
+    libtorrent::torrent_status::state_t getStatus();
 
-  libtorrent::torrent_info getInfo()
-  {
-    return fTorrentHandle.get_torrent_info();
-  }
+    libtorrent::torrent_info getInfo()
+    {
+        return fTorrentHandle.get_torrent_info();
+    }
 
-  libtorrent::torrent_handle handle() { return fTorrentHandle; }
+    libtorrent::torrent_handle handle() { return fTorrentHandle; }
 
-  libtorrent::torrent_handle fTorrentHandle;
+    libtorrent::torrent_handle fTorrentHandle;
 
-  int fReannounceCounter;
-  int fNextReannounce;
+    int fReannounceCounter;
+    int fNextReannounce;
 
-  void setTorrentState(const torrentstate_t &state) { fTorrentState = state; }
-  torrentstate_t torrentState() { return fTorrentState; }
+    void setTorrentState(const torrentstate_t &state) { fTorrentState = state; }
+    torrentstate_t torrentState() { return fTorrentState; }
 
-private:
-  // private memeber data
-  //
-  char *fURL;
-  char *fFileName;
-  char *fTorrentId;
-  bool fDownloaded;
-  int fGeneration;
-  bool fActive;
-  bool fDeleted;
-  bool fGotHandle;
-  bool fInSeeding;
-  int fFileSize;
-  int fSingleDownload;
-  bool fPurged;
-  bool fSeedQueue;
-  bool fDownloadQueue;
+  private:
+    // private memeber data
+    //
+    char *fURL;
+    char *fFileName;
+    char *fTorrentId;
+    bool fDownloaded;
+    int fGeneration;
+    bool fActive;
+    bool fDeleted;
+    bool fGotHandle;
+    bool fInSeeding;
+    int fFileSize;
+    int fSingleDownload;
+    bool fPurged;
+    bool fSeedQueue;
+    bool fDownloadQueue;
 
-  torrentstate_t fTorrentState;
+    torrentstate_t fTorrentState;
 };
 
 // This is a convienince for defining an array

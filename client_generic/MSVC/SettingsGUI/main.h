@@ -5,13 +5,13 @@
 
 class wxWidgetsApp : public wxApp
 {
-public:
-  wxWidgetsApp();
-  virtual ~wxWidgetsApp();
-  virtual bool OnInit();
+  public:
+    wxWidgetsApp();
+    virtual ~wxWidgetsApp();
+    virtual bool OnInit();
 
-private:
-  electricsheepguiMyDialog2 *m_dialog;
+  private:
+    electricsheepguiMyDialog2 *m_dialog;
 };
 
 DECLARE_APP(wxWidgetsApp)

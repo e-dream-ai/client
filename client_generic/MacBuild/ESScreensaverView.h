@@ -24,31 +24,31 @@
 #endif
        >
 {
-  // So what do you need to make an OpenGL screen saver? Just an NSOpenGLView
-  // (or subclass thereof) So we'll put one in here.
-  NSRect theRect;
+    // So what do you need to make an OpenGL screen saver? Just an NSOpenGLView
+    // (or subclass thereof) So we'll put one in here.
+    NSRect theRect;
 #if USE_METAL
-  ESMetalView *view;
+    ESMetalView *view;
 #else
-  ESOpenGLView *view;
+    ESOpenGLView *view;
 #endif
-  NSTimer *animationTimer;
-  dispatch_group_t m_animationDispatchGroup;
-  BOOL m_isStopped;
+    NSTimer *animationTimer;
+    dispatch_group_t m_animationDispatchGroup;
+    BOOL m_isStopped;
 
-  BOOL m_isPreview;
+    BOOL m_isPreview;
 
-  BOOL m_isFullScreen;
+    BOOL m_isFullScreen;
 
 #ifdef SCREEN_SAVER
-  BOOL m_isHidden;
+    BOOL m_isHidden;
 #endif
 
-  ESConfiguration *m_config;
+    ESConfiguration *m_config;
 
-  SUUpdater *m_updater;
-  std::unique_ptr<boost::barrier> m_beginFrameBarrier;
-  std::unique_ptr<boost::barrier> m_endFrameBarrier;
+    SUUpdater *m_updater;
+    std::unique_ptr<boost::barrier> m_beginFrameBarrier;
+    std::unique_ptr<boost::barrier> m_endFrameBarrier;
 }
 
 - (id)initWithFrame:(NSRect)frame isPreview:(BOOL)isPreview;

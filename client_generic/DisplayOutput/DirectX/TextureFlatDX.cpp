@@ -57,8 +57,8 @@ static const D3DFORMAT dxformats[] = {
 CTextureFlatDX::CTextureFlatDX(IDirect3DDevice9 *_pDevice, const uint32 _flags)
     : CTextureFlat(_flags), m_pDevice(_pDevice), m_pTextureDX9(NULL)
 {
-  if (_pDevice == NULL)
-    g_Log->Error("Texture received device == NULL");
+    if (_pDevice == NULL)
+        g_Log->Error("Texture received device == NULL");
 }
 
 /*
@@ -69,88 +69,89 @@ CTextureFlatDX::~CTextureFlatDX() { SAFE_RELEASE(m_pTextureDX9); }
  */
 bool CTextureFlatDX::Upload(spCImage _spImage)
 {
-  m_spImage = _spImage;
+    m_spImage = _spImage;
 
-  CImageFormat format = m_spImage->GetFormat();
+    CImageFormat format = m_spImage->GetFormat();
 
-  if (m_Size.iWidth() != (int32)_spImage->GetWidth() ||
-      m_Size.iHeight() != (int32)_spImage->GetHeight() ||
-      m_Format != format.getFormatEnum())
-  {
-    //	Stuff changed, nuke old texture.
-    SAFE_RELEASE(m_pTextureDX9);
-  }
-
-  if (!m_pTextureDX9)
-  {
-    HRESULT hr = m_pDevice->CreateTexture(
-        m_spImage->GetWidth(), m_spImage->GetHeight(),
-        m_spImage->GetNumMipMaps(), 0, dxformats[format.getFormatEnum()],
-        D3DPOOL_MANAGED, &m_pTextureDX9, NULL);
-
-    g_Log->Info("%s texture created", format.GetDescription().c_str());
-
-    m_Size = Base::Math::CRect(fp4(m_spImage->GetWidth()),
-                               fp4(m_spImage->GetHeight()));
-    m_Format = format.getFormatEnum();
-
-    if (FAILED(hr))
+    if (m_Size.iWidth() != (int32)_spImage->GetWidth() ||
+        m_Size.iHeight() != (int32)_spImage->GetHeight() ||
+        m_Format != format.getFormatEnum())
     {
-      g_Log->Error("Texture upload failed!");
-      return (false);
-    }
-  }
-
-  //	Copy texturedata.
-  uint32 mipMapLevel = 0;
-  uint8 *pSrc = m_spImage->GetData(0);
-
-  while (pSrc)
-  {
-    D3DLOCKED_RECT rect;
-
-    HRESULT hr = m_pTextureDX9->LockRect(mipMapLevel, &rect, NULL, 0);
-    if (!FAILED(hr))
-    {
-      memcpy(rect.pBits, pSrc, m_spImage->getMipMappedSize(mipMapLevel, 1));
-      m_pTextureDX9->UnlockRect(mipMapLevel);
+        //	Stuff changed, nuke old texture.
+        SAFE_RELEASE(m_pTextureDX9);
     }
 
-    pSrc = m_spImage->GetData(++mipMapLevel);
-  }
+    if (!m_pTextureDX9)
+    {
+        HRESULT hr = m_pDevice->CreateTexture(
+            m_spImage->GetWidth(), m_spImage->GetHeight(),
+            m_spImage->GetNumMipMaps(), 0, dxformats[format.getFormatEnum()],
+            D3DPOOL_MANAGED, &m_pTextureDX9, NULL);
 
-  m_bDirty = true;
-  return true;
+        g_Log->Info("%s texture created", format.GetDescription().c_str());
+
+        m_Size = Base::Math::CRect(fp4(m_spImage->GetWidth()),
+                                   fp4(m_spImage->GetHeight()));
+        m_Format = format.getFormatEnum();
+
+        if (FAILED(hr))
+        {
+            g_Log->Error("Texture upload failed!");
+            return (false);
+        }
+    }
+
+    //	Copy texturedata.
+    uint32 mipMapLevel = 0;
+    uint8 *pSrc = m_spImage->GetData(0);
+
+    while (pSrc)
+    {
+        D3DLOCKED_RECT rect;
+
+        HRESULT hr = m_pTextureDX9->LockRect(mipMapLevel, &rect, NULL, 0);
+        if (!FAILED(hr))
+        {
+            memcpy(rect.pBits, pSrc,
+                   m_spImage->getMipMappedSize(mipMapLevel, 1));
+            m_pTextureDX9->UnlockRect(mipMapLevel);
+        }
+
+        pSrc = m_spImage->GetData(++mipMapLevel);
+    }
+
+    m_bDirty = true;
+    return true;
 }
 
 /*
  */
 bool CTextureFlatDX::Bind(const uint32 _index)
 {
-  HRESULT hr = m_pDevice->SetTexture(_index, m_pTextureDX9);
-  if (FAILED(hr))
-  {
-    g_Log->Error("Bind failed!");
-    return (false);
-  }
+    HRESULT hr = m_pDevice->SetTexture(_index, m_pTextureDX9);
+    if (FAILED(hr))
+    {
+        g_Log->Error("Bind failed!");
+        return (false);
+    }
 
-  m_bDirty = false;
+    m_bDirty = false;
 
-  return true;
+    return true;
 }
 
 /*
  */
 bool CTextureFlatDX::Unbind(const uint32 _index)
 {
-  HRESULT hr = m_pDevice->SetTexture(_index, NULL);
-  if (FAILED(hr))
-  {
-    g_Log->Error("Bind failed!");
-    return (false);
-  }
+    HRESULT hr = m_pDevice->SetTexture(_index, NULL);
+    if (FAILED(hr))
+    {
+        g_Log->Error("Bind failed!");
+        return (false);
+    }
 
-  return true;
+    return true;
 }
 
 } // namespace DisplayOutput

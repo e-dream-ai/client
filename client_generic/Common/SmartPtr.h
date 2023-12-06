@@ -161,21 +161,21 @@ namespace Base
 */
 template <class T> class CRefCountRep
 {
-  T *m_pRealPtr;
-  long m_counter;
+    T *m_pRealPtr;
+    long m_counter;
 
-  //	Constructors and destructor
-public:
-  CRefCountRep(const T *ptr);
-  ~CRefCountRep();
+    //	Constructors and destructor
+  public:
+    CRefCountRep(const T *ptr);
+    ~CRefCountRep();
 
-  long incrRefCount();
-  long decrRefCount();
+    long incrRefCount();
+    long decrRefCount();
 
-  T *getPointer() const;
-  T *getRealPointer() const;
+    T *getPointer() const;
+    T *getRealPointer() const;
 
-  bool isNull() const;
+    bool isNull() const;
 };
 
 //
@@ -187,32 +187,32 @@ CRefCountRep<T>::CRefCountRep(const T *ptr) : m_pRealPtr((T *)ptr), m_counter(0)
 //
 template <class T> CRefCountRep<T>::~CRefCountRep()
 {
-  ASSERT(m_counter <= 0);
-  SAFE_DELETE(this->m_pRealPtr);
+    ASSERT(m_counter <= 0);
+    SAFE_DELETE(this->m_pRealPtr);
 }
 
 //
 template <class T> long CRefCountRep<T>::incrRefCount()
 {
-  m_counter++;
-  return (m_counter);
+    m_counter++;
+    return (m_counter);
 }
 template <class T> long CRefCountRep<T>::decrRefCount()
 {
-  m_counter--;
-  return (m_counter);
+    m_counter--;
+    return (m_counter);
 }
 template <class T> T *CRefCountRep<T>::getPointer() const
 {
-  return (m_pRealPtr);
+    return (m_pRealPtr);
 }
 template <class T> T *CRefCountRep<T>::getRealPointer() const
 {
-  return (m_pRealPtr);
+    return (m_pRealPtr);
 }
 template <class T> bool CRefCountRep<T>::isNull() const
 {
-  return (m_pRealPtr == NULL);
+    return (m_pRealPtr == NULL);
 }
 
 //
@@ -224,31 +224,31 @@ template <class T> class CSyncAccess;
 */
 template <class T> class CSyncAccessRep
 {
-protected:
-  T *m_pRealPtr;
-  long m_counter;
+  protected:
+    T *m_pRealPtr;
+    long m_counter;
 
 #ifdef WIN32
-  CRITICAL_SECTION m_CriticalSection;
-  DWORD m_ThreadID;
+    CRITICAL_SECTION m_CriticalSection;
+    DWORD m_ThreadID;
 #else
-  pthread_mutex_t m_Mutex;
+    pthread_mutex_t m_Mutex;
 #endif
 
-public:
-  CSyncAccessRep(const T *ptr);
-  ~CSyncAccessRep();
+  public:
+    CSyncAccessRep(const T *ptr);
+    ~CSyncAccessRep();
 
-  long incrRefCount();
-  long decrRefCount();
+    long incrRefCount();
+    long decrRefCount();
 
-  CSyncAccess<T> getPointer() const;
-  T *getRealPointer() const;
+    CSyncAccess<T> getPointer() const;
+    T *getRealPointer() const;
 
-  bool isNull() const;
+    bool isNull() const;
 
-  void acquireAccess();
-  void releaseAccess();
+    void acquireAccess();
+    void releaseAccess();
 };
 
 //
@@ -257,28 +257,28 @@ CSyncAccessRep<T>::CSyncAccessRep(const T *ptr)
     : m_pRealPtr((T *)ptr), m_counter(0)
 {
 #ifdef WIN32
-  ::InitializeCriticalSection(&m_CriticalSection);
-  //	::InitializeCriticalSectionAndSpinCount( &m_CriticalSection, 0x80000400
-  //);
+    ::InitializeCriticalSection(&m_CriticalSection);
+    //	::InitializeCriticalSectionAndSpinCount( &m_CriticalSection, 0x80000400
+    //);
 
-  //::EnterCriticalSection( &m_CriticalSection );
-  // m_ThreadID = GetCurrentThreadId();
-  // printf( "New t-pointer, %d", m_ThreadID );
-  //::LeaveCriticalSection( &m_CriticalSection );
+    //::EnterCriticalSection( &m_CriticalSection );
+    // m_ThreadID = GetCurrentThreadId();
+    // printf( "New t-pointer, %d", m_ThreadID );
+    //::LeaveCriticalSection( &m_CriticalSection );
 
 #else
-  pthread_mutex_init(&m_Mutex, NULL);
+    pthread_mutex_init(&m_Mutex, NULL);
 #endif
 }
 
 //
 template <class T> CSyncAccessRep<T>::~CSyncAccessRep()
 {
-  ASSERT(m_counter <= 0);
+    ASSERT(m_counter <= 0);
 #ifdef WIN32
-  ::DeleteCriticalSection(&m_CriticalSection);
+    ::DeleteCriticalSection(&m_CriticalSection);
 #else
-  pthread_mutex_destroy(&m_Mutex);
+    pthread_mutex_destroy(&m_Mutex);
 #endif
 }
 
@@ -286,13 +286,13 @@ template <class T> CSyncAccessRep<T>::~CSyncAccessRep()
 template <class T> long CSyncAccessRep<T>::incrRefCount()
 {
 #ifdef WIN32
-  return (::InterlockedIncrement(&m_counter));
+    return (::InterlockedIncrement(&m_counter));
 #else
-  // printf( "incrRefCount(), m_counter = %d\n", m_counter );
-  pthread_mutex_lock(&m_Mutex);
-  m_counter++;
-  pthread_mutex_unlock(&m_Mutex);
-  return (m_counter);
+    // printf( "incrRefCount(), m_counter = %d\n", m_counter );
+    pthread_mutex_lock(&m_Mutex);
+    m_counter++;
+    pthread_mutex_unlock(&m_Mutex);
+    return (m_counter);
 #endif
 }
 
@@ -300,13 +300,13 @@ template <class T> long CSyncAccessRep<T>::incrRefCount()
 template <class T> long CSyncAccessRep<T>::decrRefCount()
 {
 #ifdef WIN32
-  return (::InterlockedDecrement(&m_counter));
+    return (::InterlockedDecrement(&m_counter));
 #else
-  // printf( "decrRefCount(), m_counter = %d\n", m_counter );
-  pthread_mutex_lock(&m_Mutex);
-  m_counter--;
-  pthread_mutex_unlock(&m_Mutex);
-  return (m_counter);
+    // printf( "decrRefCount(), m_counter = %d\n", m_counter );
+    pthread_mutex_lock(&m_Mutex);
+    m_counter--;
+    pthread_mutex_unlock(&m_Mutex);
+    return (m_counter);
 #endif
 }
 
@@ -314,30 +314,30 @@ template <class T> long CSyncAccessRep<T>::decrRefCount()
 // the stack.
 template <class T> CSyncAccess<T> CSyncAccessRep<T>::getPointer() const
 {
-  return (this);
+    return (this);
 }
 
 template <class T> T *CSyncAccessRep<T>::getRealPointer() const
 {
-  return (m_pRealPtr);
+    return (m_pRealPtr);
 }
 template <class T> bool CSyncAccessRep<T>::isNull() const
 {
-  return (m_pRealPtr == NULL);
+    return (m_pRealPtr == NULL);
 }
 
 template <class T> void CSyncAccessRep<T>::acquireAccess()
 {
 #ifdef WIN32
-  ::EnterCriticalSection(&m_CriticalSection);
-  /*if( TryEnterCriticalSection( &m_CriticalSection ) != 0 )
-  {
-          printf( "CS owned by %d...\n", m_ThreadID );
-  }
-  else
-          m_ThreadID = GetCurrentThreadId();*/
+    ::EnterCriticalSection(&m_CriticalSection);
+    /*if( TryEnterCriticalSection( &m_CriticalSection ) != 0 )
+    {
+            printf( "CS owned by %d...\n", m_ThreadID );
+    }
+    else
+            m_ThreadID = GetCurrentThreadId();*/
 #else
-  pthread_mutex_lock(&m_Mutex);
+    pthread_mutex_lock(&m_Mutex);
 #endif
 }
 
@@ -345,10 +345,10 @@ template <class T> void CSyncAccessRep<T>::acquireAccess()
 template <class T> void CSyncAccessRep<T>::releaseAccess()
 {
 #ifdef WIN32
-  m_ThreadID = 0;
-  ::LeaveCriticalSection(&m_CriticalSection);
+    m_ThreadID = 0;
+    ::LeaveCriticalSection(&m_CriticalSection);
 #else
-  pthread_mutex_unlock(&m_Mutex);
+    pthread_mutex_unlock(&m_Mutex);
 #endif
 }
 
@@ -358,9 +358,9 @@ template <class T> void CSyncAccessRep<T>::releaseAccess()
 */
 template <class T> class CSyncRefCountRep : public CSyncAccessRep<T>
 {
-public:
-  CSyncRefCountRep(const T *ptr);
-  ~CSyncRefCountRep();
+  public:
+    CSyncRefCountRep(const T *ptr);
+    ~CSyncRefCountRep();
 };
 
 //
@@ -372,11 +372,11 @@ CSyncRefCountRep<T>::CSyncRefCountRep(const T *ptr) : CSyncAccessRep<T>(ptr)
 //
 template <class T> CSyncRefCountRep<T>::~CSyncRefCountRep()
 {
-  ASSERT(this->m_counter <= 0);
-  //	This is the only change needed to make in CSyncRefCountRep<T> class to
-  // collect the garbage and 	in the same time to do Object Level Thread
-  // Synchronization.
-  delete (this->m_pRealPtr);
+    ASSERT(this->m_counter <= 0);
+    //	This is the only change needed to make in CSyncRefCountRep<T> class to
+    // collect the garbage and 	in the same time to do Object Level Thread
+    // Synchronization.
+    delete (this->m_pRealPtr);
 }
 
 /*
@@ -386,18 +386,18 @@ template <class T> CSyncRefCountRep<T>::~CSyncRefCountRep()
 */
 template <class T> class CSyncAccess
 {
-  typedef CSyncAccessRep<T> REP;
+    typedef CSyncAccessRep<T> REP;
 
-  REP *m_rep;
-  bool m_acquired;
+    REP *m_rep;
+    bool m_acquired;
 
-public:
-  CSyncAccess(const CSyncAccess<REP> &that);
-  CSyncAccess(const CSyncAccess &that);
-  CSyncAccess(const REP *rep);
-  ~CSyncAccess();
+  public:
+    CSyncAccess(const CSyncAccess<REP> &that);
+    CSyncAccess(const CSyncAccess &that);
+    CSyncAccess(const REP *rep);
+    ~CSyncAccess();
 
-  T *operator->();
+    T *operator->();
 };
 
 //
@@ -417,23 +417,23 @@ CSyncAccess<T>::CSyncAccess(const CSyncAccess<REP> &that)
 //
 template <class T> CSyncAccess<T>::~CSyncAccess()
 {
-  if (m_acquired)
-    m_rep->releaseAccess();
+    if (m_acquired)
+        m_rep->releaseAccess();
 }
 
 //
 template <class T> T *CSyncAccess<T>::operator->()
 {
-  //	This is checked by SmartPtr<T>::operator -> () too.
-  ASSERT((m_rep != NULL) && (!m_rep->isNull()));
+    //	This is checked by SmartPtr<T>::operator -> () too.
+    ASSERT((m_rep != NULL) && (!m_rep->isNull()));
 
-  if (!m_acquired)
-  {
-    m_rep->acquireAccess();
-    m_acquired = true;
-  }
+    if (!m_acquired)
+    {
+        m_rep->acquireAccess();
+        m_acquired = true;
+    }
 
-  return (m_rep->getRealPointer());
+    return (m_rep->getRealPointer());
 }
 
 /*
@@ -442,10 +442,10 @@ template <class T> T *CSyncAccess<T>::operator->()
 */
 class SmartPtrBase
 {
-public:
-  SmartPtrBase() : m_rep(NULL){};
+  public:
+    SmartPtrBase() : m_rep(NULL){};
 
-  void *m_rep;
+    void *m_rep;
 };
 
 /*
@@ -455,45 +455,45 @@ public:
 template <class T, class REP, class ACCESS = T *>
 class SmartPtr : public SmartPtrBase
 {
-  void IncrRefCount();
-  void DecrRefCount();
+    void IncrRefCount();
+    void DecrRefCount();
 
-protected:
-  //	Helper methods.
-  void CopyFrom(const SmartPtrBase &ptr);
-  void CopyFrom(const T *ptr);
+  protected:
+    //	Helper methods.
+    void CopyFrom(const SmartPtrBase &ptr);
+    void CopyFrom(const T *ptr);
 
-public:
-  SmartPtr();
-  ~SmartPtr();
+  public:
+    SmartPtr();
+    ~SmartPtr();
 
-  //
-  SmartPtr(const SmartPtr &ptr);
-  SmartPtr(const T *ptr);
-  SmartPtr(const SmartPtrBase &ptr);
+    //
+    SmartPtr(const SmartPtr &ptr);
+    SmartPtr(const T *ptr);
+    SmartPtr(const SmartPtrBase &ptr);
 
-  //	Assignment Operators
-  SmartPtr &operator=(const SmartPtr &ptr);
-  SmartPtr &operator=(const T *ptr);
-  SmartPtr &operator=(const SmartPtrBase &ptr);
+    //	Assignment Operators
+    SmartPtr &operator=(const SmartPtr &ptr);
+    SmartPtr &operator=(const T *ptr);
+    SmartPtr &operator=(const SmartPtrBase &ptr);
 
-  //	Operators.
-  _LIBCPP_INLINE_VISIBILITY ACCESS operator->();
-  T &operator*();
+    //	Operators.
+    _LIBCPP_INLINE_VISIBILITY ACCESS operator->();
+    T &operator*();
 
-  //	Casting operator.
-  operator T *();
+    //	Casting operator.
+    operator T *();
 
-  //	Comparison Operators.
-  bool operator==(const SmartPtrBase &ptr);
-  bool operator==(const T *ptr);
-  bool operator!=(const SmartPtrBase &ptr);
-  bool operator!=(const T *ptr);
+    //	Comparison Operators.
+    bool operator==(const SmartPtrBase &ptr);
+    bool operator==(const T *ptr);
+    bool operator!=(const SmartPtrBase &ptr);
+    bool operator!=(const T *ptr);
 
-  //	Attributes.
-  bool IsNull() const;
-  long GetRefCount() const;
-  REP *GetRepPtr() const;
+    //	Attributes.
+    bool IsNull() const;
+    long GetRefCount() const;
+    REP *GetRepPtr() const;
 };
 
 //
@@ -505,49 +505,49 @@ template <class T, class REP, class ACCESS> SmartPtr<T, REP, ACCESS>::SmartPtr()
 template <class T, class REP, class ACCESS>
 SmartPtr<T, REP, ACCESS>::~SmartPtr()
 {
-  DecrRefCount();
+    DecrRefCount();
 }
 
 //
 template <class T, class REP, class ACCESS>
 SmartPtr<T, REP, ACCESS>::SmartPtr(const SmartPtr &ptr) : SmartPtrBase()
 {
-  CopyFrom(ptr);
+    CopyFrom(ptr);
 }
 
 //
 template <class T, class REP, class ACCESS>
 SmartPtr<T, REP, ACCESS>::SmartPtr(const T *ptr) : SmartPtrBase()
 {
-  CopyFrom(ptr);
+    CopyFrom(ptr);
 }
 
 //
 template <class T, class REP, class ACCESS>
 SmartPtr<T, REP, ACCESS>::SmartPtr(const SmartPtrBase &ptr)
 {
-  CopyFrom(ptr);
+    CopyFrom(ptr);
 }
 
 //
 template <class T, class REP, class ACCESS>
 void SmartPtr<T, REP, ACCESS>::CopyFrom(const SmartPtrBase &ptr)
 {
-  if (m_rep != ptr.m_rep)
-  {
-    DecrRefCount();
-    m_rep = ptr.m_rep;
-    IncrRefCount();
-  }
+    if (m_rep != ptr.m_rep)
+    {
+        DecrRefCount();
+        m_rep = ptr.m_rep;
+        IncrRefCount();
+    }
 }
 
 //
 template <class T, class REP, class ACCESS>
 void SmartPtr<T, REP, ACCESS>::CopyFrom(const T *ptr)
 {
-  DecrRefCount();
-  m_rep = (ptr != NULL) ? new REP(ptr) : NULL;
-  IncrRefCount();
+    DecrRefCount();
+    m_rep = (ptr != NULL) ? new REP(ptr) : NULL;
+    IncrRefCount();
 }
 
 //
@@ -555,16 +555,16 @@ template <class T, class REP, class ACCESS>
 SmartPtr<T, REP, ACCESS> &
 SmartPtr<T, REP, ACCESS>::operator=(const SmartPtr &ptr)
 {
-  CopyFrom(ptr);
-  return (*this);
+    CopyFrom(ptr);
+    return (*this);
 }
 
 //
 template <class T, class REP, class ACCESS>
 SmartPtr<T, REP, ACCESS> &SmartPtr<T, REP, ACCESS>::operator=(const T *ptr)
 {
-  CopyFrom(ptr);
-  return (*this);
+    CopyFrom(ptr);
+    return (*this);
 }
 
 //
@@ -572,110 +572,110 @@ template <class T, class REP, class ACCESS>
 SmartPtr<T, REP, ACCESS> &
 SmartPtr<T, REP, ACCESS>::operator=(const SmartPtrBase &ptr)
 {
-  CopyFrom(ptr);
-  return (*this);
+    CopyFrom(ptr);
+    return (*this);
 }
 
 //
 template <class T, class REP, class ACCESS>
 ACCESS _LIBCPP_INLINE_VISIBILITY SmartPtr<T, REP, ACCESS>::operator->()
 {
-  ASSERT(!IsNull());
-  return (GetRepPtr()->getPointer());
+    ASSERT(!IsNull());
+    return (GetRepPtr()->getPointer());
 }
 
 //
 template <class T, class REP, class ACCESS>
 T &SmartPtr<T, REP, ACCESS>::operator*()
 {
-  ASSERT(!IsNull());
-  return (*(GetRepPtr()->getRealPointer()));
+    ASSERT(!IsNull());
+    return (*(GetRepPtr()->getRealPointer()));
 }
 
 //
 template <class T, class REP, class ACCESS>
 SmartPtr<T, REP, ACCESS>::operator T *()
 {
-  return ((IsNull()) ? NULL : GetRepPtr()->getRealPointer());
+    return ((IsNull()) ? NULL : GetRepPtr()->getRealPointer());
 }
 
 //
 template <class T, class REP, class ACCESS>
 bool SmartPtr<T, REP, ACCESS>::operator==(const SmartPtrBase &ptr)
 {
-  return (m_rep == ptr.m_rep);
+    return (m_rep == ptr.m_rep);
 }
 
 //
 template <class T, class REP, class ACCESS>
 bool SmartPtr<T, REP, ACCESS>::operator==(const T *ptr)
 {
-  if (!IsNull())
-  {
-    return (GetRepPtr()->getRealPointer() == ptr);
-  }
+    if (!IsNull())
+    {
+        return (GetRepPtr()->getRealPointer() == ptr);
+    }
 
-  return (ptr == NULL);
+    return (ptr == NULL);
 }
 
 //
 template <class T, class REP, class ACCESS>
 bool SmartPtr<T, REP, ACCESS>::operator!=(const SmartPtrBase &ptr)
 {
-  return (m_rep != ptr.m_rep);
+    return (m_rep != ptr.m_rep);
 }
 
 //
 template <class T, class REP, class ACCESS>
 bool SmartPtr<T, REP, ACCESS>::operator!=(const T *ptr)
 {
-  return (!(operator==(ptr)));
+    return (!(operator==(ptr)));
 }
 
 //
 template <class T, class REP, class ACCESS>
 bool SmartPtr<T, REP, ACCESS>::IsNull() const
 {
-  return (m_rep == NULL);
+    return (m_rep == NULL);
 }
 
 //
 template <class T, class REP, class ACCESS>
 long SmartPtr<T, REP, ACCESS>::GetRefCount() const
 {
-  ASSERT(!IsNull());
-  return (GetRepPtr()->m_counter);
+    ASSERT(!IsNull());
+    return (GetRepPtr()->m_counter);
 }
 
 //
 template <class T, class REP, class ACCESS>
 REP *SmartPtr<T, REP, ACCESS>::GetRepPtr() const
 {
-  return ((REP *)m_rep);
+    return ((REP *)m_rep);
 }
 
 //
 template <class T, class REP, class ACCESS>
 void SmartPtr<T, REP, ACCESS>::IncrRefCount()
 {
-  if (!IsNull())
-    GetRepPtr()->incrRefCount();
+    if (!IsNull())
+        GetRepPtr()->incrRefCount();
 }
 
 //
 template <class T, class REP, class ACCESS>
 void SmartPtr<T, REP, ACCESS>::DecrRefCount()
 {
-  if (!IsNull())
-  {
-    if (GetRepPtr()->decrRefCount() <= 0)
+    if (!IsNull())
     {
-      REP *rep = (REP *)m_rep;
-      delete rep;
-    }
+        if (GetRepPtr()->decrRefCount() <= 0)
+        {
+            REP *rep = (REP *)m_rep;
+            delete rep;
+        }
 
-    m_rep = NULL;
-  }
+        m_rep = NULL;
+    }
 }
 
 /*
@@ -685,39 +685,39 @@ void SmartPtr<T, REP, ACCESS>::DecrRefCount()
 template <class T, class REP = CRefCountRep<T>, class ACCESS = T *>
 class CRefCountPtr : public SmartPtr<T, REP, ACCESS>
 {
-public:
-  CRefCountPtr(){};
-  ~CRefCountPtr(){};
+  public:
+    CRefCountPtr(){};
+    ~CRefCountPtr(){};
 
-  //	Copy constructor.
-  CRefCountPtr(const CRefCountPtr &ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
+    //	Copy constructor.
+    CRefCountPtr(const CRefCountPtr &ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
 
-  //
-  CRefCountPtr(const SmartPtrBase &ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
+    //
+    CRefCountPtr(const SmartPtrBase &ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
 
-  //
-  CRefCountPtr(const T *ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
+    //
+    CRefCountPtr(const T *ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
 
-  //	Assignment Operators
-  CRefCountPtr &operator=(const CRefCountPtr &ptr)
-  {
-    SmartPtr<T, REP, ACCESS>::CopyFrom(ptr);
-    return (*this);
-  }
+    //	Assignment Operators
+    CRefCountPtr &operator=(const CRefCountPtr &ptr)
+    {
+        SmartPtr<T, REP, ACCESS>::CopyFrom(ptr);
+        return (*this);
+    }
 
-  //
-  CRefCountPtr &operator=(const T *ptr)
-  {
-    SmartPtr<T, REP, ACCESS>::CopyFrom(ptr);
-    return (*this);
-  }
+    //
+    CRefCountPtr &operator=(const T *ptr)
+    {
+        SmartPtr<T, REP, ACCESS>::CopyFrom(ptr);
+        return (*this);
+    }
 
-  //
-  CRefCountPtr &operator=(const SmartPtrBase &ptr)
-  {
-    SmartPtr<T, REP, ACCESS>::CopyFrom(ptr);
-    return (*this);
-  }
+    //
+    CRefCountPtr &operator=(const SmartPtrBase &ptr)
+    {
+        SmartPtr<T, REP, ACCESS>::CopyFrom(ptr);
+        return (*this);
+    }
 };
 
 /*
@@ -727,39 +727,39 @@ public:
 template <class T, class REP = CSyncAccessRep<T>, class ACCESS = CSyncAccess<T>>
 class CSyncPtr : public SmartPtr<T, REP, ACCESS>
 {
-public:
-  CSyncPtr(){};
-  ~CSyncPtr(){};
+  public:
+    CSyncPtr(){};
+    ~CSyncPtr(){};
 
-  //	Copy constructor.
-  CSyncPtr(const CSyncPtr &ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
+    //	Copy constructor.
+    CSyncPtr(const CSyncPtr &ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
 
-  //
-  CSyncPtr(const SmartPtrBase &ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
+    //
+    CSyncPtr(const SmartPtrBase &ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
 
-  //
-  CSyncPtr(const T *ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
+    //
+    CSyncPtr(const T *ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
 
-  //	Assignment Operators.
-  CSyncPtr &operator=(const CSyncPtr &ptr)
-  {
-    CopyFrom(ptr);
-    return (*this);
-  }
+    //	Assignment Operators.
+    CSyncPtr &operator=(const CSyncPtr &ptr)
+    {
+        CopyFrom(ptr);
+        return (*this);
+    }
 
-  //
-  CSyncPtr &operator=(const T *ptr)
-  {
-    CopyFrom(ptr);
-    return (*this);
-  }
+    //
+    CSyncPtr &operator=(const T *ptr)
+    {
+        CopyFrom(ptr);
+        return (*this);
+    }
 
-  //
-  CSyncPtr &operator=(const SmartPtrBase &ptr)
-  {
-    SmartPtr<T, REP, ACCESS>::CopyFrom(ptr);
-    return (*this);
-  }
+    //
+    CSyncPtr &operator=(const SmartPtrBase &ptr)
+    {
+        SmartPtr<T, REP, ACCESS>::CopyFrom(ptr);
+        return (*this);
+    }
 };
 
 /*
@@ -771,61 +771,61 @@ template <class T, class REP = CSyncRefCountRep<T>,
           class ACCESS = CSyncAccess<T>>
 class CSyncRefCountPtr : public SmartPtr<T, REP, ACCESS>
 {
-public:
-  CSyncRefCountPtr(){};
-  ~CSyncRefCountPtr(){};
+  public:
+    CSyncRefCountPtr(){};
+    ~CSyncRefCountPtr(){};
 
-  //	Copy constructor.
-  CSyncRefCountPtr(const CSyncRefCountPtr &ptr)
-      : SmartPtr<T, REP, ACCESS>(ptr){};
+    //	Copy constructor.
+    CSyncRefCountPtr(const CSyncRefCountPtr &ptr)
+        : SmartPtr<T, REP, ACCESS>(ptr){};
 
-  //
-  CSyncRefCountPtr(const SmartPtrBase &ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
+    //
+    CSyncRefCountPtr(const SmartPtrBase &ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
 
-  //
-  CSyncRefCountPtr(const T *ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
+    //
+    CSyncRefCountPtr(const T *ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
 
-  //	Assignment Operators.
-  CSyncRefCountPtr &operator=(const CSyncRefCountPtr &ptr)
-  {
-    CopyFrom(ptr);
-    return (*this);
-  }
+    //	Assignment Operators.
+    CSyncRefCountPtr &operator=(const CSyncRefCountPtr &ptr)
+    {
+        CopyFrom(ptr);
+        return (*this);
+    }
 
-  //
-  CSyncRefCountPtr &operator=(const T *ptr)
-  {
-    CopyFrom(ptr);
-    return (*this);
-  }
+    //
+    CSyncRefCountPtr &operator=(const T *ptr)
+    {
+        CopyFrom(ptr);
+        return (*this);
+    }
 
-  //
-  CSyncRefCountPtr &operator=(const SmartPtrBase &ptr)
-  {
-    SmartPtr<T, REP, ACCESS>::CopyFrom(ptr);
-    return (*this);
-  }
+    //
+    CSyncRefCountPtr &operator=(const SmartPtrBase &ptr)
+    {
+        SmartPtr<T, REP, ACCESS>::CopyFrom(ptr);
+        return (*this);
+    }
 };
 
 template <class T, class REP, class ACCESS>
 bool operator!=(const CSyncRefCountPtr<T, REP, ACCESS> &ptr1,
                 const CSyncRefCountPtr<T, REP, ACCESS> &ptr2)
 {
-  return !(ptr1.GetRepPtr() == ptr2.GetRepPtr());
+    return !(ptr1.GetRepPtr() == ptr2.GetRepPtr());
 }
 
 template <class T, class REP, class ACCESS>
 bool operator!=(const CRefCountPtr<T, REP, ACCESS> &ptr1,
                 const CRefCountPtr<T, REP, ACCESS> &ptr2)
 {
-  return !(ptr1.GetRepPtr() == ptr2.GetRepPtr());
+    return !(ptr1.GetRepPtr() == ptr2.GetRepPtr());
 }
 
 template <class T, class REP, class ACCESS>
 bool operator!=(const CSyncPtr<T, REP, ACCESS> &ptr1,
                 const CSyncPtr<T, REP, ACCESS> &ptr2)
 {
-  return !(ptr1.GetRepPtr() == ptr2.GetRepPtr());
+    return !(ptr1.GetRepPtr() == ptr2.GetRepPtr());
 }
 /*
         Forward declaration and smart pointer def.
@@ -842,10 +842,10 @@ bool operator!=(const CSyncPtr<T, REP, ACCESS> &ptr1,
    "thread" + "smart" + "pointer" + class
 */
 #define MakeSmartPointers(CBase)                                               \
-  class CBase;                                                                 \
-  typedef std::shared_ptr<CBase> sp##CBase;                                    \
-  typedef Base::CSyncPtr<CBase> tp##CBase;                                     \
-  typedef Base::CSyncRefCountPtr<CBase> tsp##CBase;
+    class CBase;                                                               \
+    typedef std::shared_ptr<CBase> sp##CBase;                                  \
+    typedef Base::CSyncPtr<CBase> tp##CBase;                                   \
+    typedef Base::CSyncRefCountPtr<CBase> tsp##CBase;
 
 }; // namespace Base
 

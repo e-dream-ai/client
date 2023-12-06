@@ -11,26 +11,26 @@
 */
 class CVote
 {
-  typedef struct
-  {
-    uint32 vid;
-    uint8 vtype;
-  } VotingInfo;
+    typedef struct
+    {
+        uint32 vid;
+        uint8 vtype;
+    } VotingInfo;
 
-  boost::thread *m_pThread;
-  Base::CTimer m_Timer;
+    boost::thread *m_pThread;
+    Base::CTimer m_Timer;
 
-  Base::CBlockingQueue<VotingInfo> m_Votings;
+    Base::CBlockingQueue<VotingInfo> m_Votings;
 
-  void ThreadFunc();
+    void ThreadFunc();
 
-  fp8 m_Clock;
+    fp8 m_Clock;
 
-public:
-  CVote();
-  virtual ~CVote();
+  public:
+    CVote();
+    virtual ~CVote();
 
-  bool Vote(const uint32 _id, const uint8 _type, const fp4 _duration);
+    bool Vote(const uint32 _id, const uint8 _type, const fp4 _duration);
 };
 
 #endif

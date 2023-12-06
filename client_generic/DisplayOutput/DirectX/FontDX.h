@@ -20,16 +20,16 @@ namespace DisplayOutput
 */
 class CFontDX : public CBaseFont
 {
-  IDirect3DDevice9 *m_pDevice;
-  ID3DXFont *m_pDXFont;
+    IDirect3DDevice9 *m_pDevice;
+    ID3DXFont *m_pDXFont;
 
-public:
-  CFontDX(IDirect3DDevice9 *_pDevice);
-  virtual ~CFontDX();
+  public:
+    CFontDX(IDirect3DDevice9 *_pDevice);
+    virtual ~CFontDX();
 
-  bool Create();
+    bool Create();
 
-  ID3DXFont *GetDXFont(void) { return (m_pDXFont); };
+    ID3DXFont *GetDXFont(void) { return (m_pDXFont); };
 };
 
 MakeSmartPointers(CFontDX);

@@ -11,45 +11,46 @@
 */
 class CCubicFrameDisplay : public CFrameDisplay
 {
-  static const uint32 kMaxFrames = 4;
+    static const uint32 kMaxFrames = 4;
 
-  fp4 m_LastAlpha;
-  DisplayOutput::spCShader m_spShader;
+    fp4 m_LastAlpha;
+    DisplayOutput::spCShader m_spShader;
 
-  //	The four frames.
-  DisplayOutput::spCTextureFlat m_spFrames[2 * kMaxFrames];
+    //	The four frames.
+    DisplayOutput::spCTextureFlat m_spFrames[2 * kMaxFrames];
 
-  //	Simple ringbuffer...
-  uint32 m_Frames[kMaxFrames];
-  uint32 m_NumFrames;
-  uint32 m_NumSecondFrames;
+    //	Simple ringbuffer...
+    uint32 m_Frames[kMaxFrames];
+    uint32 m_NumFrames;
+    uint32 m_NumSecondFrames;
 
-  bool m_bWaitNextFrame;
+    bool m_bWaitNextFrame;
 
-  //	Mitchell Netravali Reconstruction Filter.
-  fp4 MitchellNetravali(const fp4 _x, const fp4 _B, const fp4 _C)
-  {
-    float ax = fabsf(_x);
+    //	Mitchell Netravali Reconstruction Filter.
+    fp4 MitchellNetravali(const fp4 _x, const fp4 _B, const fp4 _C)
+    {
+        float ax = fabsf(_x);
 
-    if (ax < 1.f)
-      return ((12.f - 9.f * _B - 6.f * _C) * ax * ax * ax +
-              (-18.f + 12.f * _B + 6.f * _C) * ax * ax + (6.f - 2.f * _B)) /
-             6.f;
-    else if ((ax >= 1.f) && (ax < 2.f))
-      return ((-_B - 6.f * _C) * ax * ax * ax +
-              (6.f * _B + 30.f * _C) * ax * ax + (-12.f * _B - 48.f * _C) * ax +
-              (8.f * _B + 24.f * _C)) /
-             6.f;
-    else
-      return 0.f;
-  }
+        if (ax < 1.f)
+            return ((12.f - 9.f * _B - 6.f * _C) * ax * ax * ax +
+                    (-18.f + 12.f * _B + 6.f * _C) * ax * ax +
+                    (6.f - 2.f * _B)) /
+                   6.f;
+        else if ((ax >= 1.f) && (ax < 2.f))
+            return ((-_B - 6.f * _C) * ax * ax * ax +
+                    (6.f * _B + 30.f * _C) * ax * ax +
+                    (-12.f * _B - 48.f * _C) * ax + (8.f * _B + 24.f * _C)) /
+                   6.f;
+        else
+            return 0.f;
+    }
 
-public:
-  CCubicFrameDisplay(DisplayOutput::spCRenderer _spRenderer)
-      : CFrameDisplay(_spRenderer)
-  {
-    //	glsl fragment shader
-    static const char *cubic_fragmentshaderGL2D = "\
+  public:
+    CCubicFrameDisplay(DisplayOutput::spCRenderer _spRenderer)
+        : CFrameDisplay(_spRenderer)
+    {
+        //	glsl fragment shader
+        static const char *cubic_fragmentshaderGL2D = "\
 					uniform sampler2D texUnit1;	\
 					uniform sampler2D texUnit2;	\
 					uniform sampler2D texUnit3;	\
@@ -85,8 +86,8 @@ public:
 						gl_FragColor.a = newalpha;\
 					}";
 
-    //	glsl fragment shader 2DRect
-    static const char *cubic_fragmentshaderGL2DRect = "\
+        //	glsl fragment shader 2DRect
+        static const char *cubic_fragmentshaderGL2DRect = "\
 					uniform sampler2DRect texUnit1;	\
 					uniform sampler2DRect texUnit2;	\
 					uniform sampler2DRect texUnit3;	\
@@ -122,9 +123,9 @@ public:
 						gl_FragColor.a = newalpha;\
 					}";
 
-    // gl_FragColor = ( c0 * weights.x ) + ( c1 * weights.y ) + ( c2 * weights.z
-    // ) + ( c3 * weights.w ); 	hlsl vertexshader...
-    static const char *cubic_vertexshader = "\
+        // gl_FragColor = ( c0 * weights.x ) + ( c1 * weights.y ) + ( c2 *
+        // weights.z ) + ( c3 * weights.w ); 	hlsl vertexshader...
+        static const char *cubic_vertexshader = "\
 					float4x4 WorldViewProj: WORLDVIEWPROJECTION;\
 					struct VS_OUTPUT\
 					{\
@@ -139,8 +140,8 @@ public:
 					  return Out;\
 					}";
 
-    //	hlsl fragmentshader.
-    static const char *cubic_fragmentshaderDX = "\
+        //	hlsl fragmentshader.
+        static const char *cubic_fragmentshaderDX = "\
 					sampler2D texUnit1: register(s1);\
 					sampler2D texUnit2: register(s2);\
 					sampler2D texUnit3: register(s3);\
@@ -169,229 +170,231 @@ public:
 						return c7;\
 					}";
 
-    //	Compile the shader.
-    switch (_spRenderer->Type())
-    {
-    case DisplayOutput::eDX9:
-      m_spShader =
-          _spRenderer->NewShader(cubic_vertexshader, cubic_fragmentshaderDX);
-      break;
-    case DisplayOutput::eGL:
-      m_spShader =
-          _spRenderer->NewShader(NULL, (_spRenderer->GetTextureTargetType() ==
-                                        DisplayOutput::eTexture2DRect)
-                                           ? cubic_fragmentshaderGL2DRect
-                                           : cubic_fragmentshaderGL2D);
-      break;
-    case DisplayOutput::eMetal:
-      m_spShader = _spRenderer->NewShader(
-          "quadPassVertex", "drawDecodedFrameCubicFrameBlendFragment",
-          {{"weights", DisplayOutput::eUniform_Float4},
-           {"newalpha", DisplayOutput::eUniform_Float},
-           {"transPct", DisplayOutput::eUniform_Float}});
-      break;
-    }
-
-    if (!m_spShader)
-      m_bValid = false;
-
-    m_NumFrames = 0;
-    m_NumSecondFrames = 0;
-
-    m_Frames[0] = 0;
-    m_Frames[1] = 1;
-    m_Frames[2] = 2;
-    m_Frames[3] = 3;
-
-    m_bWaitNextFrame = false;
-  }
-
-  virtual ~CCubicFrameDisplay() {}
-
-  //	Decode a frame every 1/_fpsCap seconds, store the previous 4 frames, and
-  // lerp between them.
-  virtual bool Update(ContentDecoder::spCContentDecoder _spDecoder,
-                      const fp8 _decodeFps, const fp8 /*_displayFps*/,
-                      ContentDecoder::sMetaData &_metadata)
-  {
-    fp4 currentalpha = m_LastAlpha;
-    bool frameGrabbed = false;
-    bool isSeam = false;
-
-    if (m_bWaitNextFrame)
-    {
-#if !defined(WIN32) && !defined(_MSC_VER)
-      if (!GrabFrame(_spDecoder, m_spFrames[m_Frames[3]],
-                     m_spFrames[m_Frames[3] + kMaxFrames], _metadata))
-      {
-        return false;
-      }
-      else
-      {
-        frameGrabbed = true;
-
-        Reset();
-
-        m_bWaitNextFrame = false;
-      }
-
-#else
-      if (GrabFrame(_spDecoder, m_spFrames[m_Frames[3]],
-                    m_spFrames[m_Frames[3] + kMaxFrames], _metadata))
-      {
-        frameGrabbed = true;
-
-        Reset();
-
-        m_bWaitNextFrame = false;
-      }
-#endif
-    }
-    else
-    {
-      if (UpdateInterframeDelta(_decodeFps))
-      {
-        //	Shift array back one step.
-        uint32 tmp = m_Frames[0];
-        m_Frames[0] = m_Frames[1];
-        m_Frames[1] = m_Frames[2];
-        m_Frames[2] = m_Frames[3];
-        m_Frames[3] = tmp;
-
-        //	... and fill the frontmost slot.
-        if (!GrabFrame(_spDecoder, m_spFrames[m_Frames[3]],
-                       m_spFrames[m_Frames[3] + kMaxFrames], _metadata))
+        //	Compile the shader.
+        switch (_spRenderer->Type())
         {
-          m_bWaitNextFrame = true;
+        case DisplayOutput::eDX9:
+            m_spShader = _spRenderer->NewShader(cubic_vertexshader,
+                                                cubic_fragmentshaderDX);
+            break;
+        case DisplayOutput::eGL:
+            m_spShader = _spRenderer->NewShader(
+                NULL, (_spRenderer->GetTextureTargetType() ==
+                       DisplayOutput::eTexture2DRect)
+                          ? cubic_fragmentshaderGL2DRect
+                          : cubic_fragmentshaderGL2D);
+            break;
+        case DisplayOutput::eMetal:
+            m_spShader = _spRenderer->NewShader(
+                "quadPassVertex", "drawDecodedFrameCubicFrameBlendFragment",
+                {{"weights", DisplayOutput::eUniform_Float4},
+                 {"newalpha", DisplayOutput::eUniform_Float},
+                 {"transPct", DisplayOutput::eUniform_Float}});
+            break;
+        }
+
+        if (!m_spShader)
+            m_bValid = false;
+
+        m_NumFrames = 0;
+        m_NumSecondFrames = 0;
+
+        m_Frames[0] = 0;
+        m_Frames[1] = 1;
+        m_Frames[2] = 2;
+        m_Frames[3] = 3;
+
+        m_bWaitNextFrame = false;
+    }
+
+    virtual ~CCubicFrameDisplay() {}
+
+    //	Decode a frame every 1/_fpsCap seconds, store the previous 4 frames, and
+    // lerp between them.
+    virtual bool Update(ContentDecoder::spCContentDecoder _spDecoder,
+                        const fp8 _decodeFps, const fp8 /*_displayFps*/,
+                        ContentDecoder::sMetaData &_metadata)
+    {
+        fp4 currentalpha = m_LastAlpha;
+        bool frameGrabbed = false;
+        bool isSeam = false;
+
+        if (m_bWaitNextFrame)
+        {
 #if !defined(WIN32) && !defined(_MSC_VER)
-          return false;
+            if (!GrabFrame(_spDecoder, m_spFrames[m_Frames[3]],
+                           m_spFrames[m_Frames[3] + kMaxFrames], _metadata))
+            {
+                return false;
+            }
+            else
+            {
+                frameGrabbed = true;
+
+                Reset();
+
+                m_bWaitNextFrame = false;
+            }
+
 #else
-          m_NumFrames--;
+            if (GrabFrame(_spDecoder, m_spFrames[m_Frames[3]],
+                          m_spFrames[m_Frames[3] + kMaxFrames], _metadata))
+            {
+                frameGrabbed = true;
+
+                Reset();
+
+                m_bWaitNextFrame = false;
+            }
 #endif
         }
         else
-          frameGrabbed = true;
-      }
-      else
-      {
-        currentalpha = (fp4)Base::Math::Clamped(
-            m_LastAlpha + Base::Math::Clamped(m_InterframeDelta / m_FadeCount,
-                                              0., 1. / m_FadeCount),
-            0., 1.);
-      }
-    }
-
-    if (frameGrabbed)
-    {
-      m_MetaData = _metadata;
-      m_LastAlpha = m_MetaData.m_Fade;
-      currentalpha = m_LastAlpha;
-
-      m_NumFrames++;
-
-      if (!m_spFrames[m_Frames[3] + kMaxFrames])
-        m_NumSecondFrames = 0;
-      else
-        m_NumSecondFrames++;
-
-      isSeam = _metadata.m_IsSeam;
-    }
-
-    if (m_NumFrames > 0 && m_spFrames[m_Frames[3]])
-    {
-      //	Enable the shader.
-      m_spRenderer->SetShader(m_spShader);
-
-      if (isSeam)
-      {
-        m_spFrames[m_Frames[0]] = m_spFrames[m_Frames[0] + kMaxFrames];
-        m_spFrames[m_Frames[1]] = m_spFrames[m_Frames[1] + kMaxFrames];
-        m_spFrames[m_Frames[2]] = m_spFrames[m_Frames[2] + kMaxFrames];
-
-        m_spFrames[m_Frames[0] + kMaxFrames] = NULL;
-        m_spFrames[m_Frames[1] + kMaxFrames] = NULL;
-        m_spFrames[m_Frames[2] + kMaxFrames] = NULL;
-      }
-
-      uint32 framesToUse = m_NumFrames;
-
-      if (framesToUse > kMaxFrames)
-        framesToUse = kMaxFrames;
-
-      uint32 i;
-
-      for (i = 0; i < kMaxFrames - framesToUse; i++)
-      {
-        uint32 realIdx = m_Frames[kMaxFrames - framesToUse];
-
-        m_spRenderer->SetTexture(m_spFrames[realIdx], i + 1);
-      }
-
-      for (i = kMaxFrames - framesToUse; i < kMaxFrames; i++)
-      {
-        uint32 realIdx = m_Frames[i];
-
-        m_spRenderer->SetTexture(m_spFrames[realIdx], i + 1);
-      }
-
-      if (m_NumSecondFrames > 0 && m_spFrames[m_Frames[3] + kMaxFrames])
-      {
-
-        uint32 secFrameToUse = m_NumSecondFrames;
-
-        if (secFrameToUse > kMaxFrames)
-          secFrameToUse = kMaxFrames;
-
-        for (i = 0; i < kMaxFrames - secFrameToUse; i++)
         {
-          uint32 realIdx = m_Frames[kMaxFrames - secFrameToUse];
+            if (UpdateInterframeDelta(_decodeFps))
+            {
+                //	Shift array back one step.
+                uint32 tmp = m_Frames[0];
+                m_Frames[0] = m_Frames[1];
+                m_Frames[1] = m_Frames[2];
+                m_Frames[2] = m_Frames[3];
+                m_Frames[3] = tmp;
 
-          m_spRenderer->SetTexture(m_spFrames[realIdx + kMaxFrames],
-                                   i + kMaxFrames + 1);
+                //	... and fill the frontmost slot.
+                if (!GrabFrame(_spDecoder, m_spFrames[m_Frames[3]],
+                               m_spFrames[m_Frames[3] + kMaxFrames], _metadata))
+                {
+                    m_bWaitNextFrame = true;
+#if !defined(WIN32) && !defined(_MSC_VER)
+                    return false;
+#else
+                    m_NumFrames--;
+#endif
+                }
+                else
+                    frameGrabbed = true;
+            }
+            else
+            {
+                currentalpha = (fp4)Base::Math::Clamped(
+                    m_LastAlpha +
+                        Base::Math::Clamped(m_InterframeDelta / m_FadeCount, 0.,
+                                            1. / m_FadeCount),
+                    0., 1.);
+            }
         }
 
-        for (i = kMaxFrames - secFrameToUse; i < kMaxFrames; i++)
+        if (frameGrabbed)
         {
-          uint32 realIdx = m_Frames[i];
+            m_MetaData = _metadata;
+            m_LastAlpha = m_MetaData.m_Fade;
+            currentalpha = m_LastAlpha;
 
-          m_spRenderer->SetTexture(m_spFrames[realIdx + kMaxFrames],
-                                   i + kMaxFrames + 1);
+            m_NumFrames++;
+
+            if (!m_spFrames[m_Frames[3] + kMaxFrames])
+                m_NumSecondFrames = 0;
+            else
+                m_NumSecondFrames++;
+
+            isSeam = _metadata.m_IsSeam;
         }
-      }
 
-      //	B = 1,   C = 0   - cubic B-spline
-      //	B = 1/3, C = 1/3 - nice
-      //	B = 0,   C = 1/2 - Catmull-Rom spline.
-      const fp4 B = 1.0f;
-      const fp4 C = 0.0f;
+        if (m_NumFrames > 0 && m_spFrames[m_Frames[3]])
+        {
+            //	Enable the shader.
+            m_spRenderer->SetShader(m_spShader);
 
-      //	Set the filter weights...
-      m_spShader->Set("weights",
-                      MitchellNetravali(fp4(m_InterframeDelta) + 1.f, B, C),
-                      MitchellNetravali(fp4(m_InterframeDelta), B, C),
-                      MitchellNetravali(1.f - fp4(m_InterframeDelta), B, C),
-                      MitchellNetravali(2.f - fp4(m_InterframeDelta), B, C));
-      m_spShader->Set("newalpha", currentalpha);
+            if (isSeam)
+            {
+                m_spFrames[m_Frames[0]] = m_spFrames[m_Frames[0] + kMaxFrames];
+                m_spFrames[m_Frames[1]] = m_spFrames[m_Frames[1] + kMaxFrames];
+                m_spFrames[m_Frames[2]] = m_spFrames[m_Frames[2] + kMaxFrames];
 
-      m_spShader->Set("transPct", m_MetaData.m_TransitionProgress);
+                m_spFrames[m_Frames[0] + kMaxFrames] = NULL;
+                m_spFrames[m_Frames[1] + kMaxFrames] = NULL;
+                m_spFrames[m_Frames[2] + kMaxFrames] = NULL;
+            }
 
-      m_spRenderer->SetBlend("alphablend");
-      m_spRenderer->Apply();
+            uint32 framesToUse = m_NumFrames;
 
-      UpdateTexRect(m_spFrames[m_Frames[3]]->GetRect());
+            if (framesToUse > kMaxFrames)
+                framesToUse = kMaxFrames;
 
-      m_spRenderer->DrawQuad(m_texRect,
-                             Base::Math::CVector4(1, 1, 1, currentalpha),
-                             m_spFrames[m_Frames[3]]->GetRect());
+            uint32 i;
+
+            for (i = 0; i < kMaxFrames - framesToUse; i++)
+            {
+                uint32 realIdx = m_Frames[kMaxFrames - framesToUse];
+
+                m_spRenderer->SetTexture(m_spFrames[realIdx], i + 1);
+            }
+
+            for (i = kMaxFrames - framesToUse; i < kMaxFrames; i++)
+            {
+                uint32 realIdx = m_Frames[i];
+
+                m_spRenderer->SetTexture(m_spFrames[realIdx], i + 1);
+            }
+
+            if (m_NumSecondFrames > 0 && m_spFrames[m_Frames[3] + kMaxFrames])
+            {
+
+                uint32 secFrameToUse = m_NumSecondFrames;
+
+                if (secFrameToUse > kMaxFrames)
+                    secFrameToUse = kMaxFrames;
+
+                for (i = 0; i < kMaxFrames - secFrameToUse; i++)
+                {
+                    uint32 realIdx = m_Frames[kMaxFrames - secFrameToUse];
+
+                    m_spRenderer->SetTexture(m_spFrames[realIdx + kMaxFrames],
+                                             i + kMaxFrames + 1);
+                }
+
+                for (i = kMaxFrames - secFrameToUse; i < kMaxFrames; i++)
+                {
+                    uint32 realIdx = m_Frames[i];
+
+                    m_spRenderer->SetTexture(m_spFrames[realIdx + kMaxFrames],
+                                             i + kMaxFrames + 1);
+                }
+            }
+
+            //	B = 1,   C = 0   - cubic B-spline
+            //	B = 1/3, C = 1/3 - nice
+            //	B = 0,   C = 1/2 - Catmull-Rom spline.
+            const fp4 B = 1.0f;
+            const fp4 C = 0.0f;
+
+            //	Set the filter weights...
+            m_spShader->Set(
+                "weights",
+                MitchellNetravali(fp4(m_InterframeDelta) + 1.f, B, C),
+                MitchellNetravali(fp4(m_InterframeDelta), B, C),
+                MitchellNetravali(1.f - fp4(m_InterframeDelta), B, C),
+                MitchellNetravali(2.f - fp4(m_InterframeDelta), B, C));
+            m_spShader->Set("newalpha", currentalpha);
+
+            m_spShader->Set("transPct", m_MetaData.m_TransitionProgress);
+
+            m_spRenderer->SetBlend("alphablend");
+            m_spRenderer->Apply();
+
+            UpdateTexRect(m_spFrames[m_Frames[3]]->GetRect());
+
+            m_spRenderer->DrawQuad(m_texRect,
+                                   Base::Math::CVector4(1, 1, 1, currentalpha),
+                                   m_spFrames[m_Frames[3]]->GetRect());
+        }
+
+        return true;
     }
 
-    return true;
-  }
-
-  virtual fp8 GetFps(fp8 /*_decodeFps*/, fp8 _displayFps)
-  {
-    return _displayFps;
-  }
+    virtual fp8 GetFps(fp8 /*_decodeFps*/, fp8 _displayFps)
+    {
+        return _displayFps;
+    }
 };
 
 MakeSmartPointers(CCubicFrameDisplay);

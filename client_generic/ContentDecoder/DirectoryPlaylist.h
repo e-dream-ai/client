@@ -13,24 +13,24 @@ using boost::filesystem::directory_iterator;
 */
 class CDirectoryPlaylist : public ContentDecoder::CLoopingPlaylist
 {
-public:
-  CDirectoryPlaylist(const std::string &_directory)
-      : ContentDecoder::CLoopingPlaylist()
-  {
-    std::set<std::string> valid;
-
-    for (directory_iterator i(_directory), end; i != end; ++i)
+  public:
+    CDirectoryPlaylist(const std::string &_directory)
+        : ContentDecoder::CLoopingPlaylist()
     {
-      std::string file = i->string();
-      size_t pos = file.rfind('.');
-      if (pos != std::string::npos)
-      {
-        const std::string ext = file.substr(pos + 1);
-        if (ext == "avi")
-          Add(file);
-      }
+        std::set<std::string> valid;
+
+        for (directory_iterator i(_directory), end; i != end; ++i)
+        {
+            std::string file = i->string();
+            size_t pos = file.rfind('.');
+            if (pos != std::string::npos)
+            {
+                const std::string ext = file.substr(pos + 1);
+                if (ext == "avi")
+                    Add(file);
+            }
+        }
     }
-  }
 };
 
 MakeSmartPointers(CDirectoryPlaylist);

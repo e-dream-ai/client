@@ -36,19 +36,19 @@ MakeSmartPointers(CVideoFrame);
 
 struct sMetaData
 {
-  fp4 m_Fade;
-  std::string m_FileName;
-  std::string m_Name;
-  std::string m_Author;
-  uint32 m_SheepID;
-  uint32 m_SheepGeneration;
-  time_t m_LastAccessTime;
-  bool m_IsEdge;
-  spCVideoFrame m_SecondFrame;
-  bool m_IsSeam;
-  fp4 m_TransitionProgress;
-  uint32 m_FrameIdx;
-  uint32 m_MaxFrameIdx;
+    fp4 m_Fade;
+    std::string m_FileName;
+    std::string m_Name;
+    std::string m_Author;
+    uint32 m_SheepID;
+    uint32 m_SheepGeneration;
+    time_t m_LastAccessTime;
+    bool m_IsEdge;
+    spCVideoFrame m_SecondFrame;
+    bool m_IsSeam;
+    fp4 m_TransitionProgress;
+    uint32 m_FrameIdx;
+    uint32 m_MaxFrameIdx;
 };
 
 /*
@@ -58,192 +58,198 @@ struct sMetaData
 */
 class CVideoFrame
 {
-protected:
-  uint32 m_Width;
-  uint32 m_Height;
-  fp8 m_Pts;
+  protected:
+    uint32 m_Width;
+    uint32 m_Height;
+    fp8 m_Pts;
 
-  sMetaData m_MetaData;
+    sMetaData m_MetaData;
 
-  Base::spCAlignedBuffer m_spBuffer;
-  AVFrame *m_pFrame;
+    Base::spCAlignedBuffer m_spBuffer;
+    AVFrame *m_pFrame;
 
-public:
-  CVideoFrame(AVCodecContext *_pCodecContext, AVPixelFormat _format,
-              std::string _filename)
-      : m_pFrame(NULL)
-  {
-    assert(_pCodecContext);
-    if (_pCodecContext == NULL)
-      g_Log->Info("_pCodecContext == NULL");
-
-    m_MetaData.m_Fade = 1.f;
-    m_MetaData.m_FileName = _filename;
-    m_MetaData.m_LastAccessTime = 0;
-    m_MetaData.m_SheepID = 0;
-    m_MetaData.m_SheepGeneration = 0;
-    m_MetaData.m_Name = "";
-    m_MetaData.m_Author = "";
-    m_MetaData.m_IsEdge = false;
-    m_MetaData.m_IsSeam = false;
-    m_MetaData.m_SecondFrame = NULL;
-    m_MetaData.m_TransitionProgress = 0.f;
-
-    m_Width = static_cast<uint32>(_pCodecContext->width);
-    m_Height = static_cast<uint32>(_pCodecContext->height);
-
-    m_pFrame = av_frame_alloc();
-
-    if (m_pFrame != NULL)
+  public:
+    CVideoFrame(AVCodecContext *_pCodecContext, AVPixelFormat _format,
+                std::string _filename)
+        : m_pFrame(NULL)
     {
-      int numBytes = av_image_get_buffer_size(_format, _pCodecContext->width,
-                                              _pCodecContext->height, 1);
-      m_spBuffer = std::make_shared<Base::CAlignedBuffer>(
-          static_cast<uint32>(numBytes) * sizeof(uint8));
-      uint8_t *buffer = m_spBuffer->GetBufferPtr();
-      int width = _pCodecContext->width;
-      int height = _pCodecContext->height;
+        assert(_pCodecContext);
+        if (_pCodecContext == NULL)
+            g_Log->Info("_pCodecContext == NULL");
 
-      int ret = av_image_fill_arrays(m_pFrame->data, m_pFrame->linesize, buffer,
-                                     _format, width, height, 1);
-      if (ret < 0)
-        g_Log->Error("av_image_copy_to_buffer error %i", ret);
+        m_MetaData.m_Fade = 1.f;
+        m_MetaData.m_FileName = _filename;
+        m_MetaData.m_LastAccessTime = 0;
+        m_MetaData.m_SheepID = 0;
+        m_MetaData.m_SheepGeneration = 0;
+        m_MetaData.m_Name = "";
+        m_MetaData.m_Author = "";
+        m_MetaData.m_IsEdge = false;
+        m_MetaData.m_IsSeam = false;
+        m_MetaData.m_SecondFrame = NULL;
+        m_MetaData.m_TransitionProgress = 0.f;
+
+        m_Width = static_cast<uint32>(_pCodecContext->width);
+        m_Height = static_cast<uint32>(_pCodecContext->height);
+
+        m_pFrame = av_frame_alloc();
+
+        if (m_pFrame != NULL)
+        {
+            int numBytes = av_image_get_buffer_size(
+                _format, _pCodecContext->width, _pCodecContext->height, 1);
+            m_spBuffer = std::make_shared<Base::CAlignedBuffer>(
+                static_cast<uint32>(numBytes) * sizeof(uint8));
+            uint8_t *buffer = m_spBuffer->GetBufferPtr();
+            int width = _pCodecContext->width;
+            int height = _pCodecContext->height;
+
+            int ret = av_image_fill_arrays(m_pFrame->data, m_pFrame->linesize,
+                                           buffer, _format, width, height, 1);
+            if (ret < 0)
+                g_Log->Error("av_image_copy_to_buffer error %i", ret);
+        }
+        else
+            g_Log->Error("m_pFrame == NULL");
     }
-    else
-      g_Log->Error("m_pFrame == NULL");
-  }
 
-  CVideoFrame(const AVFrame *_pFrame, std::string _filename)
-  {
-    m_pFrame = av_frame_alloc();
-    av_frame_ref(m_pFrame, _pFrame);
-    m_MetaData.m_Fade = 1.f;
-    m_MetaData.m_FileName = _filename;
-    m_MetaData.m_LastAccessTime = 0;
-    m_MetaData.m_SheepID = 0;
-    m_MetaData.m_SheepGeneration = 0;
-    m_MetaData.m_Name = "";
-    m_MetaData.m_Author = "";
-    m_MetaData.m_IsEdge = false;
-    m_MetaData.m_IsSeam = false;
-    m_MetaData.m_SecondFrame = NULL;
-    m_MetaData.m_TransitionProgress = 0.f;
-    m_Width = static_cast<uint32>(_pFrame->width);
-    m_Height = static_cast<uint32>(_pFrame->height);
-
-    if (m_pFrame == NULL)
+    CVideoFrame(const AVFrame *_pFrame, std::string _filename)
     {
-      g_Log->Error("m_pFrame == NULL");
-    }
-  }
+        m_pFrame = av_frame_alloc();
+        av_frame_ref(m_pFrame, _pFrame);
+        m_MetaData.m_Fade = 1.f;
+        m_MetaData.m_FileName = _filename;
+        m_MetaData.m_LastAccessTime = 0;
+        m_MetaData.m_SheepID = 0;
+        m_MetaData.m_SheepGeneration = 0;
+        m_MetaData.m_Name = "";
+        m_MetaData.m_Author = "";
+        m_MetaData.m_IsEdge = false;
+        m_MetaData.m_IsSeam = false;
+        m_MetaData.m_SecondFrame = NULL;
+        m_MetaData.m_TransitionProgress = 0.f;
+        m_Width = static_cast<uint32>(_pFrame->width);
+        m_Height = static_cast<uint32>(_pFrame->height);
 
-  virtual ~CVideoFrame()
-  {
-    if (m_pFrame)
+        if (m_pFrame == NULL)
+        {
+            g_Log->Error("m_pFrame == NULL");
+        }
+    }
+
+    virtual ~CVideoFrame()
     {
-      av_frame_unref(m_pFrame);
-      av_frame_free(&m_pFrame);
+        if (m_pFrame)
+        {
+            av_frame_unref(m_pFrame);
+            av_frame_free(&m_pFrame);
+        }
     }
-  }
 
-  inline void GetMetaData(sMetaData &_metadata) { _metadata = m_MetaData; }
+    inline void GetMetaData(sMetaData &_metadata) { _metadata = m_MetaData; }
 
-  inline void SetMetaData_Fade(fp4 _fade) { m_MetaData.m_Fade = _fade; }
+    inline void SetMetaData_Fade(fp4 _fade) { m_MetaData.m_Fade = _fade; }
 
-  inline void SetMetaData_FileName(std::string _filename)
-  {
-    m_MetaData.m_FileName = _filename;
-  }
+    inline void SetMetaData_FileName(std::string _filename)
+    {
+        m_MetaData.m_FileName = _filename;
+    }
 
-  inline void SetMetaData_SheepID(uint32 _sheepid)
-  {
-    m_MetaData.m_SheepID = _sheepid;
-  }
+    inline void SetMetaData_SheepID(uint32 _sheepid)
+    {
+        m_MetaData.m_SheepID = _sheepid;
+    }
 
-  inline void SetMetaData_SheepGeneration(uint32 _sheepgeneration)
-  {
-    m_MetaData.m_SheepGeneration = _sheepgeneration;
-  }
+    inline void SetMetaData_SheepGeneration(uint32 _sheepgeneration)
+    {
+        m_MetaData.m_SheepGeneration = _sheepgeneration;
+    }
 
-  inline void SetMetaData_DreamName(const std::string &_name)
-  {
-    m_MetaData.m_Name = _name;
-  }
+    inline void SetMetaData_DreamName(const std::string &_name)
+    {
+        m_MetaData.m_Name = _name;
+    }
 
-  inline void SetMetaData_DreamAuthor(const std::string &_author)
-  {
-    m_MetaData.m_Author = _author;
-  }
+    inline void SetMetaData_DreamAuthor(const std::string &_author)
+    {
+        m_MetaData.m_Author = _author;
+    }
 
-  inline void SetMetaData_IsEdge(bool _isedge)
-  {
-    m_MetaData.m_IsEdge = _isedge;
-  }
+    inline void SetMetaData_IsEdge(bool _isedge)
+    {
+        m_MetaData.m_IsEdge = _isedge;
+    }
 
-  inline void SetMetaData_atime(time_t _atime)
-  {
-    m_MetaData.m_LastAccessTime = _atime;
-  }
+    inline void SetMetaData_atime(time_t _atime)
+    {
+        m_MetaData.m_LastAccessTime = _atime;
+    }
 
-  inline void SetMetaData_SecondFrame(CVideoFrame *pSecondFrame)
-  {
-    m_MetaData.m_SecondFrame = spCVideoFrame{pSecondFrame};
-  }
+    inline void SetMetaData_SecondFrame(CVideoFrame *pSecondFrame)
+    {
+        m_MetaData.m_SecondFrame = spCVideoFrame{pSecondFrame};
+    }
 
-  inline void SetMetaData_IsSeam(bool bIsSeam)
-  {
-    m_MetaData.m_IsSeam = bIsSeam;
-  }
+    inline void SetMetaData_IsSeam(bool bIsSeam)
+    {
+        m_MetaData.m_IsSeam = bIsSeam;
+    }
 
-  inline void SetMetaData_TransitionProgress(fp4 progress)
-  {
-    m_MetaData.m_TransitionProgress = progress;
-  }
+    inline void SetMetaData_TransitionProgress(fp4 progress)
+    {
+        m_MetaData.m_TransitionProgress = progress;
+    }
 
-  inline void SetMetaData_FrameIdx(uint32 idx) { m_MetaData.m_FrameIdx = idx; }
+    inline void SetMetaData_FrameIdx(uint32 idx)
+    {
+        m_MetaData.m_FrameIdx = idx;
+    }
 
-  inline void SetMetaData_MaxFrameIdx(uint32 idx)
-  {
-    m_MetaData.m_MaxFrameIdx = idx;
-  }
+    inline void SetMetaData_MaxFrameIdx(uint32 idx)
+    {
+        m_MetaData.m_MaxFrameIdx = idx;
+    }
 
-  inline void Pts(const fp8 _pts) { m_Pts = _pts; };
-  inline fp8 Pts(void) { return m_Pts; };
-  inline uint32 Width() { return m_Width; };
-  inline uint32 Height() { return m_Height; };
+    inline void Pts(const fp8 _pts) { m_Pts = _pts; };
+    inline fp8 Pts(void) { return m_Pts; };
+    inline uint32 Width() { return m_Width; };
+    inline uint32 Height() { return m_Height; };
 
-  inline AVFrame *Frame() { return m_pFrame; };
+    inline AVFrame *Frame() { return m_pFrame; };
 
-  virtual inline uint8 *Data()
-  {
-    if (!m_pFrame)
-      return NULL;
+    virtual inline uint8 *Data()
+    {
+        if (!m_pFrame)
+            return NULL;
 
-    return m_pFrame->data[0];
-  };
+        return m_pFrame->data[0];
+    };
 
-  virtual inline Base::spCAlignedBuffer &StorageBuffer() { return m_spBuffer; };
+    virtual inline Base::spCAlignedBuffer &StorageBuffer()
+    {
+        return m_spBuffer;
+    };
 
-  virtual void CopyBuffer()
-  {
-    Base::CAlignedBuffer *newBuffer =
-        new Base::CAlignedBuffer(m_spBuffer->Size());
+    virtual void CopyBuffer()
+    {
+        Base::CAlignedBuffer *newBuffer =
+            new Base::CAlignedBuffer(m_spBuffer->Size());
 
-    memcpy(newBuffer->GetBufferPtr(), m_spBuffer->GetBufferPtr(),
-           m_spBuffer->Size());
+        memcpy(newBuffer->GetBufferPtr(), m_spBuffer->GetBufferPtr(),
+               m_spBuffer->Size());
 
-    m_spBuffer = Base::spCAlignedBuffer(newBuffer);
-  };
+        m_spBuffer = Base::spCAlignedBuffer(newBuffer);
+    };
 
-  virtual inline int32 Stride()
-  {
-    if (!m_pFrame)
-      return 0;
+    virtual inline int32 Stride()
+    {
+        if (!m_pFrame)
+            return 0;
 
-    return m_pFrame->linesize[0];
-  };
+        return m_pFrame->linesize[0];
+    };
 
-  // POOLED( CVideoFrame, Memory::CLinkPool );
+    // POOLED( CVideoFrame, Memory::CLinkPool );
 };
 
 } // namespace ContentDecoder

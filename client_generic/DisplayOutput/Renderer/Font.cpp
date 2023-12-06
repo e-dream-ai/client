@@ -24,11 +24,11 @@ CFontDescription::~CFontDescription() {}
  */
 bool CFontDescription::operator==(const CFontDescription &_rhs) const
 {
-  return ((m_Height == _rhs.m_Height) && (m_Style == _rhs.m_Style) &&
-          (m_bItalic == _rhs.m_bItalic) &&
-          (m_bUnderline == _rhs.m_bUnderline) &&
-          (m_bAntiAliased == _rhs.m_bAntiAliased) &&
-          (m_TypeFace == _rhs.m_TypeFace));
+    return ((m_Height == _rhs.m_Height) && (m_Style == _rhs.m_Style) &&
+            (m_bItalic == _rhs.m_bItalic) &&
+            (m_bUnderline == _rhs.m_bUnderline) &&
+            (m_bAntiAliased == _rhs.m_bAntiAliased) &&
+            (m_TypeFace == _rhs.m_TypeFace));
 }
 
 /*

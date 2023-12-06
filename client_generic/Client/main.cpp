@@ -18,8 +18,8 @@
 #ifdef WIN32
 class ExceptionHandler
 {
-public:
-  ExceptionHandler() { LoadLibraryA("exchndl.dll"); }
+  public:
+    ExceptionHandler() { LoadLibraryA("exchndl.dll"); }
 };
 
 static ExceptionHandler gExceptionHandler; //  global instance of class
@@ -48,26 +48,26 @@ int32 APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 #else
 int32 main(int argc, char *argv[])
 {
-  glutInit(&argc, argv);
+    glutInit(&argc, argv);
 #endif
 
-  //	Start log (unattached).
-  g_Log->Startup();
+    //	Start log (unattached).
+    g_Log->Startup();
 
-  CElectricSheepClient client;
+    CElectricSheepClient client;
 
-  if (client.Startup())
-    client.Run();
+    if (client.Startup())
+        client.Run();
 
-  //    g_Log->Info( "Raising access violation...\n" );
-  //    asm( "movl $0, %eax" );
-  //    asm( "movl $1, (%eax)" );
+    //    g_Log->Info( "Raising access violation...\n" );
+    //    asm( "movl $0, %eax" );
+    //    asm( "movl $1, (%eax)" );
 
-  //    __asm("int3");
+    //    __asm("int3");
 
-  client.Shutdown();
+    client.Shutdown();
 
-  g_Log->Shutdown();
+    g_Log->Shutdown();
 
-  return 0;
+    return 0;
 }

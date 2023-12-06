@@ -10,23 +10,23 @@ namespace DisplayOutput
 
 enum eUniformType
 {
-  eUniform_Float = 0,
-  eUniform_Float2,
-  eUniform_Float3,
-  eUniform_Float4,
-  eUniform_Int,
-  eUniform_Int2,
-  eUniform_Int3,
-  eUniform_Int4,
-  eUniform_Boolean,
-  eUniform_Boolean2,
-  eUniform_Boolean3,
-  eUniform_Boolean4,
-  eUniform_Matrix2,
-  eUniform_Matrix3,
-  eUniform_Matrix4,
-  eUniform_Sampler,
-  eUniform_NumUniformTypes,
+    eUniform_Float = 0,
+    eUniform_Float2,
+    eUniform_Float3,
+    eUniform_Float4,
+    eUniform_Int,
+    eUniform_Int2,
+    eUniform_Int3,
+    eUniform_Int4,
+    eUniform_Boolean,
+    eUniform_Boolean2,
+    eUniform_Boolean3,
+    eUniform_Boolean4,
+    eUniform_Matrix2,
+    eUniform_Matrix3,
+    eUniform_Matrix4,
+    eUniform_Sampler,
+    eUniform_NumUniformTypes,
 };
 
 // Corresponding array with sizes
@@ -55,20 +55,20 @@ const std::size_t UniformTypeSizes[eUniform_NumUniformTypes] = {
 */
 class CShaderUniform
 {
-protected:
-  bool m_bDirty;
-  std::string m_Name;
-  eUniformType m_eType;
+  protected:
+    bool m_bDirty;
+    std::string m_Name;
+    eUniformType m_eType;
 
-public:
-  CShaderUniform(const std::string _name, const eUniformType _eType)
-      : m_bDirty(true), m_Name(_name), m_eType(_eType)
-  {
-  }
-  virtual ~CShaderUniform() {}
+  public:
+    CShaderUniform(const std::string _name, const eUniformType _eType)
+        : m_bDirty(true), m_Name(_name), m_eType(_eType)
+    {
+    }
+    virtual ~CShaderUniform() {}
 
-  virtual bool SetData(void *_pData, const uint32 _size) = PureVirtual;
-  virtual void Apply() = PureVirtual;
+    virtual bool SetData(void *_pData, const uint32 _size) = PureVirtual;
+    virtual void Apply() = PureVirtual;
 };
 
 MakeSmartPointers(CShaderUniform);
@@ -79,77 +79,77 @@ MakeSmartPointers(CShaderUniform);
 */
 class CShader
 {
-protected:
-  std::map<std::string, spCShaderUniform> m_Uniforms;
-  std::map<std::string, spCShaderUniform> m_Samplers;
+  protected:
+    std::map<std::string, spCShaderUniform> m_Uniforms;
+    std::map<std::string, spCShaderUniform> m_Samplers;
 
-  virtual spCShaderUniform Uniform(const std::string _name) const
-  {
-    spCShaderUniform ret = NULL;
-
-    std::map<std::string, spCShaderUniform>::const_iterator iter;
-
-    iter = m_Uniforms.find(_name);
-    if (iter != m_Uniforms.end())
-      return iter->second;
-
-    iter = m_Samplers.find(_name);
-    if (iter != m_Samplers.end())
-      return iter->second;
-
-    // ThrowStr( ("Uniform '" + _name + "' not found").c_str() );
-    // g_Log->Warning( "Uniform '%s' not found", _name.c_str() );
-    return NULL;
-  }
-
-public:
-  CShader();
-  virtual ~CShader();
-
-  virtual bool Bind(void) = PureVirtual;
-  virtual bool Unbind(void) = PureVirtual;
-  virtual bool Apply(void) = PureVirtual;
-
-  virtual bool Build(const char *_pVertexShader,
-                     const char *_pFragmentShader) = PureVirtual;
-
-  bool Set(const std::string _name, const int32 _value)
-  {
-    spCShaderUniform spUniform = Uniform(_name);
-    if (spUniform != NULL)
+    virtual spCShaderUniform Uniform(const std::string _name) const
     {
-      spUniform->SetData((void *)&_value, sizeof(_value));
-      return true;
+        spCShaderUniform ret = NULL;
+
+        std::map<std::string, spCShaderUniform>::const_iterator iter;
+
+        iter = m_Uniforms.find(_name);
+        if (iter != m_Uniforms.end())
+            return iter->second;
+
+        iter = m_Samplers.find(_name);
+        if (iter != m_Samplers.end())
+            return iter->second;
+
+        // ThrowStr( ("Uniform '" + _name + "' not found").c_str() );
+        // g_Log->Warning( "Uniform '%s' not found", _name.c_str() );
+        return NULL;
     }
 
-    return false;
-  }
+  public:
+    CShader();
+    virtual ~CShader();
 
-  bool Set(const std::string _name, const fp4 _value)
-  {
-    spCShaderUniform spUniform = Uniform(_name);
-    if (spUniform != NULL)
+    virtual bool Bind(void) = PureVirtual;
+    virtual bool Unbind(void) = PureVirtual;
+    virtual bool Apply(void) = PureVirtual;
+
+    virtual bool Build(const char *_pVertexShader,
+                       const char *_pFragmentShader) = PureVirtual;
+
+    bool Set(const std::string _name, const int32 _value)
     {
-      spUniform->SetData((void *)&_value, sizeof(_value));
-      return true;
+        spCShaderUniform spUniform = Uniform(_name);
+        if (spUniform != NULL)
+        {
+            spUniform->SetData((void *)&_value, sizeof(_value));
+            return true;
+        }
+
+        return false;
     }
 
-    return false;
-  }
-
-  bool Set(const std::string _name, const fp4 _x, const fp4 _y, const fp4 _z,
-           const fp4 _w)
-  {
-    spCShaderUniform spUniform = Uniform(_name);
-    if (spUniform != NULL)
+    bool Set(const std::string _name, const fp4 _value)
     {
-      fp4 v[4] = {_x, _y, _z, _w};
-      spUniform->SetData(&v, sizeof(v));
-      return true;
+        spCShaderUniform spUniform = Uniform(_name);
+        if (spUniform != NULL)
+        {
+            spUniform->SetData((void *)&_value, sizeof(_value));
+            return true;
+        }
+
+        return false;
     }
 
-    return false;
-  }
+    bool Set(const std::string _name, const fp4 _x, const fp4 _y, const fp4 _z,
+             const fp4 _w)
+    {
+        spCShaderUniform spUniform = Uniform(_name);
+        if (spUniform != NULL)
+        {
+            fp4 v[4] = {_x, _y, _z, _w};
+            spUniform->SetData(&v, sizeof(v));
+            return true;
+        }
+
+        return false;
+    }
 };
 
 MakeSmartPointers(CShader);

@@ -19,32 +19,32 @@ namespace ContentDownloader
 */
 class CContentDownloader : public Base::CSingleton<CContentDownloader>
 {
-  friend class Base::CSingleton<CContentDownloader>;
+    friend class Base::CSingleton<CContentDownloader>;
 
-  //	Private constructor accessible only to CSingleton.
-  CContentDownloader();
+    //	Private constructor accessible only to CSingleton.
+    CContentDownloader();
 
-  //	No copy constructor or assignment operator.
-  NO_CLASS_STANDARDS(CContentDownloader);
+    //	No copy constructor or assignment operator.
+    NO_CLASS_STANDARDS(CContentDownloader);
 
-  //	Downloader.
-  class SheepDownloader *m_gDownloader;
-  boost::thread *m_gDownloadThread;
+    //	Downloader.
+    class SheepDownloader *m_gDownloader;
+    boost::thread *m_gDownloadThread;
 
-public:
-  bool Startup(boost::shared_mutex &_downloadSaveMutex, const bool _bPreview,
-               bool _bReadOnlyInstance = false);
-  bool Shutdown(void);
+  public:
+    bool Startup(boost::shared_mutex &_downloadSaveMutex, const bool _bPreview,
+                 bool _bReadOnlyInstance = false);
+    bool Shutdown(void);
 
-  const char *Description() { return "Content Downloader"; };
+    const char *Description() { return "Content Downloader"; };
 
-  std::string ServerMessages();
+    std::string ServerMessages();
 
-  //	Called if network said unauthorized, will fallback everything to
-  // unregistered server.
-  void ServerFallback();
+    //	Called if network said unauthorized, will fallback everything to
+    // unregistered server.
+    void ServerFallback();
 
-  virtual ~CContentDownloader();
+    virtual ~CContentDownloader();
 };
 
 }; // namespace ContentDownloader
@@ -55,7 +55,7 @@ public:
 */
 inline ContentDownloader::CContentDownloader &g_ContentDownloader(void)
 {
-  return (ContentDownloader::CContentDownloader::Instance());
+    return (ContentDownloader::CContentDownloader::Instance());
 }
 
 #endif

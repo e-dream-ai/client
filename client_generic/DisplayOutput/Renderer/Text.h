@@ -16,16 +16,16 @@ namespace DisplayOutput
 */
 class CBaseText
 {
-  Base::Math::CRect m_Rect;
+    Base::Math::CRect m_Rect;
 
-public:
-  CBaseText();
-  virtual ~CBaseText();
-  virtual void SetText(const std::string &_text) = PureVirtual;
-  virtual Base::Math::CVector2 GetExtent() = PureVirtual;
-  virtual void SetRect(const Base::Math::CRect &_rect) { m_Rect = _rect; }
-  virtual Base::Math::CRect GetRect() const { return m_Rect; }
-  virtual void SetEnabled(bool _enabled) = PureVirtual;
+  public:
+    CBaseText();
+    virtual ~CBaseText();
+    virtual void SetText(const std::string &_text) = PureVirtual;
+    virtual Base::Math::CVector2 GetExtent() = PureVirtual;
+    virtual void SetRect(const Base::Math::CRect &_rect) { m_Rect = _rect; }
+    virtual Base::Math::CRect GetRect() const { return m_Rect; }
+    virtual void SetEnabled(bool _enabled) = PureVirtual;
 };
 
 MakeSmartPointers(CBaseText);

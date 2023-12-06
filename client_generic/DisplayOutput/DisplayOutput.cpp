@@ -24,22 +24,22 @@ CDisplayOutput::~CDisplayOutput() { ClearEvents(); }
  */
 bool CDisplayOutput::GetEvent(spCEvent &_spEvent)
 {
-  if (!m_EventQueue.empty())
-  {
-    _spEvent = m_EventQueue.front();
-    m_EventQueue.pop();
-    return true;
-  }
+    if (!m_EventQueue.empty())
+    {
+        _spEvent = m_EventQueue.front();
+        m_EventQueue.pop();
+        return true;
+    }
 
-  return false;
+    return false;
 }
 
 /*
  */
 void CDisplayOutput::ClearEvents()
 {
-  while (!m_EventQueue.empty())
-    m_EventQueue.pop();
+    while (!m_EventQueue.empty())
+        m_EventQueue.pop();
 }
 
 /*

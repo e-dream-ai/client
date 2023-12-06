@@ -26,50 +26,50 @@ CMacGL::~CMacGL() {}
 
 void CMacGL::ForceWidthAndHeight(uint32 _width, uint32 _height)
 {
-  m_Width = _width;
-  m_Height = _height;
+    m_Width = _width;
+    m_Height = _height;
 
-  if (m_glContext)
-  {
-    CGLSetCurrentContext(m_glContext);
-    glViewport(0, 0, static_cast<GLsizei>(m_Width),
-               static_cast<GLsizei>(m_Height));
-  }
+    if (m_glContext)
+    {
+        CGLSetCurrentContext(m_glContext);
+        glViewport(0, 0, static_cast<GLsizei>(m_Width),
+                   static_cast<GLsizei>(m_Height));
+    }
 }
 
 void CMacGL::SetDefaultWidthAndHeight(uint32 defWidth, uint32 defHeight)
 {
-  s_DefaultWidth = defWidth;
-  s_DefaultHeight = defHeight;
+    s_DefaultWidth = defWidth;
+    s_DefaultHeight = defHeight;
 }
 
 bool CMacGL::Initialize(CGLContextObj _glContext, bool /*_bPreview*/)
 {
-  if (_glContext)
-  {
-    SetContext(_glContext);
-
-    CGLSetCurrentContext(m_glContext);
-
-    GLint vblsync = 0;
-
-    if (g_Settings()->Get("settings.player.vbl_sync", false))
+    if (_glContext)
     {
-      vblsync = 1;
+        SetContext(_glContext);
+
+        CGLSetCurrentContext(m_glContext);
+
+        GLint vblsync = 0;
+
+        if (g_Settings()->Get("settings.player.vbl_sync", false))
+        {
+            vblsync = 1;
+        }
+
+        /*CGLError err =  */ // CGLEnable( m_glContext, kCGLCEMPEngine);
+
+        // if ( err != kCGLNoError )
+        //	vblsync = 0;
+
+        CGLSetParameter(m_glContext, kCGLCPSwapInterval, &vblsync);
     }
 
-    /*CGLError err =  */ // CGLEnable( m_glContext, kCGLCEMPEngine);
+    m_Width = s_DefaultWidth;
+    m_Height = s_DefaultHeight;
 
-    // if ( err != kCGLNoError )
-    //	vblsync = 0;
-
-    CGLSetParameter(m_glContext, kCGLCPSwapInterval, &vblsync);
-  }
-
-  m_Width = s_DefaultWidth;
-  m_Height = s_DefaultHeight;
-
-  return true;
+    return true;
 }
 
 //

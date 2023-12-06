@@ -15,43 +15,43 @@ namespace Math
 */
 class CRect
 {
-public:
-  CRect();
-  CRect(const CRect &r);
-  CRect(fp4 _w, fp4 _h);
-  CRect(fp4 _x0, fp4 _y0, fp4 _x1, fp4 _y1);
-  CRect(const CVector2 &_a, const CVector2 &_b);
+  public:
+    CRect();
+    CRect(const CRect &r);
+    CRect(fp4 _w, fp4 _h);
+    CRect(fp4 _x0, fp4 _y0, fp4 _x1, fp4 _y1);
+    CRect(const CVector2 &_a, const CVector2 &_b);
 
-  //	'IsNull' is not very clear, should be 'IsInvalid' or 'IsSingularity' or
-  // something like that.
-  bool IsNull() const;
+    //	'IsNull' is not very clear, should be 'IsInvalid' or 'IsSingularity' or
+    // something like that.
+    bool IsNull() const;
 
-  //
-  fp4 Width() const;
-  fp4 Height() const;
+    //
+    fp4 Width() const;
+    fp4 Height() const;
 
-  //	Force integer.
-  int32 iWidth() const;
-  int32 iHeight() const;
+    //	Force integer.
+    int32 iWidth() const;
+    int32 iHeight() const;
 
-  //
-  fp4 Aspect(void) const;
-  fp4 Area(void) const;
-  uint32 iArea(void) const;
+    //
+    fp4 Aspect(void) const;
+    fp4 Area(void) const;
+    uint32 iArea(void) const;
 
-  //
-  bool IsNormalized() const;
-  CRect &Normalize();
+    //
+    bool IsNormalized() const;
+    CRect &Normalize();
 
-  //	Boolean things.
-  CRect Intersection(const CRect &_r) const;
-  CRect Union(const CRect &_r) const;
-  bool Surrounds(const CRect &_r) const;
-  bool Inside(const CVector2 &_p) const;
+    //	Boolean things.
+    CRect Intersection(const CRect &_r) const;
+    CRect Union(const CRect &_r) const;
+    bool Surrounds(const CRect &_r) const;
+    bool Inside(const CVector2 &_p) const;
 
-  //
-  fp4 m_X0, m_Y0;
-  fp4 m_X1, m_Y1;
+    //
+    fp4 m_X0, m_Y0;
+    fp4 m_X1, m_Y1;
 };
 
 /*
@@ -87,7 +87,7 @@ inline CRect::CRect(const CVector2 &_a, const CVector2 &_b)
  */
 inline bool CRect::IsNull() const
 {
-  return (Width() == 0.0f && Height() == 0.0f);
+    return (Width() == 0.0f && Height() == 0.0f);
 }
 
 /*
@@ -110,27 +110,27 @@ inline int32 CRect::iHeight() const { return ((int32)Height()); }
  */
 inline bool CRect::IsNormalized() const
 {
-  return ((Width() >= 0.0f) && (Height() >= 0.0f));
+    return ((Width() >= 0.0f) && (Height() >= 0.0f));
 }
 
 /*
  */
 inline bool CRect::Surrounds(const CRect &_r) const
 {
-  return ((m_X0 < _r.m_X0) && (m_Y0 < _r.m_Y0) && (m_X1 > _r.m_X1) &&
-          (m_Y1 > _r.m_Y1));
+    return ((m_X0 < _r.m_X0) && (m_Y0 < _r.m_Y0) && (m_X1 > _r.m_X1) &&
+            (m_Y1 > _r.m_Y1));
 }
 
 /*
  */
 inline bool CRect::Inside(const CVector2 &_p) const
 {
-  if ((_p.m_X < m_X0) || (_p.m_X > m_X1))
-    return (false);
-  if ((_p.m_Y < m_Y0) || (_p.m_Y > m_Y1))
-    return (false);
+    if ((_p.m_X < m_X0) || (_p.m_X > m_X1))
+        return (false);
+    if ((_p.m_Y < m_Y0) || (_p.m_Y > m_Y1))
+        return (false);
 
-  return (true);
+    return (true);
 }
 
 /*

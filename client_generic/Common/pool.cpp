@@ -12,13 +12,13 @@ namespace Memory
 */
 void *CPoolBase::AllocSys(size_t _size)
 {
-  void *pData = ::operator new(_size, std::nothrow);
-  if (!pData)
-  {
-    //	Do whatever you want.
-  }
+    void *pData = ::operator new(_size, std::nothrow);
+    if (!pData)
+    {
+        //	Do whatever you want.
+    }
 
-  return pData;
+    return pData;
 }
 
 /*
@@ -27,8 +27,8 @@ void *CPoolBase::AllocSys(size_t _size)
 */
 void CPoolBase::DeallocSys(void *_pData)
 {
-  if (_pData)
-    delete (char *)_pData;
+    if (_pData)
+        delete (char *)_pData;
 }
 
 } // namespace Memory

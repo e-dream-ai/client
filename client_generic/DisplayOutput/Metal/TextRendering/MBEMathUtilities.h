@@ -42,23 +42,23 @@ matrix_float4x4 matrix_perspective_projection(float aspect, float fovy,
 matrix_float4x4 matrix_orthographic_projection(float left, float right,
                                                float top, float bottom)
 {
-  float near = 0;
-  float far = 1;
+    float near = 0;
+    float far = 1;
 
-  float sx = 2 / (right - left);
-  float sy = 2 / (top - bottom);
-  float sz = 1 / (far - near);
-  float tx = (right + left) / (left - right);
-  float ty = (top + bottom) / (bottom - top);
-  float tz = near / (far - near);
+    float sx = 2 / (right - left);
+    float sy = 2 / (top - bottom);
+    float sz = 1 / (far - near);
+    float tx = (right + left) / (left - right);
+    float ty = (top + bottom) / (bottom - top);
+    float tz = near / (far - near);
 
-  vector_float4 P = {sx, 0, 0, 0};
-  vector_float4 Q = {0, sy, 0, 0};
-  vector_float4 R = {0, 0, sz, 0};
-  vector_float4 S = {tx, ty, tz, 1};
+    vector_float4 P = {sx, 0, 0, 0};
+    vector_float4 Q = {0, sy, 0, 0};
+    vector_float4 R = {0, 0, sz, 0};
+    vector_float4 S = {tx, ty, tz, 1};
 
-  matrix_float4x4 mat = {P, Q, R, S};
-  return mat;
+    matrix_float4x4 mat = {P, Q, R, S};
+    return mat;
 }
 int ahsdb(float, float, float, float) { return 0; }
 

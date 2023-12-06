@@ -11,26 +11,26 @@
 */
 class CLinearFrameDisplay : public CFrameDisplay
 {
-  static const uint32 kMaxFrames = 2;
+    static const uint32 kMaxFrames = 2;
 
-  fp4 m_LastAlpha;
-  //	Pixelshader.
-  DisplayOutput::spCShader m_spShader;
+    fp4 m_LastAlpha;
+    //	Pixelshader.
+    DisplayOutput::spCShader m_spShader;
 
-  //	The two frames.
-  DisplayOutput::spCTextureFlat m_spFrames[2 * kMaxFrames];
-  uint32 m_State;
+    //	The two frames.
+    DisplayOutput::spCTextureFlat m_spFrames[2 * kMaxFrames];
+    uint32 m_State;
 
-  bool m_bWaitNextFrame;
+    bool m_bWaitNextFrame;
 
-public:
-  CLinearFrameDisplay(DisplayOutput::spCRenderer _spRenderer)
-      : CFrameDisplay(_spRenderer)
-  {
-    m_State = 0;
+  public:
+    CLinearFrameDisplay(DisplayOutput::spCRenderer _spRenderer)
+        : CFrameDisplay(_spRenderer)
+    {
+        m_State = 0;
 
-    //	Pixelshader to lerp between two textures.
-    static const char *linear_pixelshaderGL2D = "\
+        //	Pixelshader to lerp between two textures.
+        static const char *linear_pixelshaderGL2D = "\
 					uniform float delta;\
 					uniform sampler2D texUnit1;	\
 					uniform sampler2D texUnit2;	\
@@ -52,8 +52,8 @@ public:
 						gl_FragColor.a = newalpha;\
 					}";
 
-    //	Pixelshader to lerp between two textures.
-    static const char *linear_pixelshaderGL2DRect = "\
+        //	Pixelshader to lerp between two textures.
+        static const char *linear_pixelshaderGL2DRect = "\
 					uniform float delta;\
 					uniform sampler2DRect texUnit1;	\
 					uniform sampler2DRect texUnit2;	\
@@ -75,8 +75,8 @@ public:
 						gl_FragColor.a = newalpha;\
 					}";
 
-    //	vertexshader...
-    static const char *linear_vertexshader = "\
+        //	vertexshader...
+        static const char *linear_vertexshader = "\
 					float4x4 WorldViewProj: WORLDVIEWPROJECTION;\
 					struct VS_OUTPUT\
 					{\
@@ -91,8 +91,8 @@ public:
 					  return Out;\
 					}";
 
-    //	Pixelshader to lerp between two textures.
-    static const char *linear_pixelshaderDX = "\
+        //	Pixelshader to lerp between two textures.
+        static const char *linear_pixelshaderDX = "\
 					float delta;\
 					float newalpha;\
 					float transPct;\
@@ -114,155 +114,161 @@ public:
 						return c5;\
 					}";
 
-    //	Compile the shader.
-    switch (_spRenderer->Type())
-    {
-    case DisplayOutput::eDX9:
-      m_spShader =
-          _spRenderer->NewShader(linear_vertexshader, linear_pixelshaderDX);
-      break;
-    case DisplayOutput::eGL:
-      m_spShader =
-          _spRenderer->NewShader(NULL, (_spRenderer->GetTextureTargetType() ==
-                                        DisplayOutput::eTexture2DRect)
-                                           ? linear_pixelshaderGL2DRect
-                                           : linear_pixelshaderGL2D);
-      break;
-    case DisplayOutput::eMetal:
-      m_spShader = _spRenderer->NewShader(
-          "quadPassVertex", "drawDecodedFrameLinearFrameBlendFragment",
-          {{"delta", DisplayOutput::eUniform_Float},
-           {"newalpha", DisplayOutput::eUniform_Float},
-           {"transPct", DisplayOutput::eUniform_Float}});
-      break;
-    }
-
-    if (!m_spShader)
-      m_bValid = false;
-  }
-
-  virtual ~CLinearFrameDisplay() {}
-
-  //	Decode a frame every 1/_fpsCap seconds, store the previous frame, and
-  // lerp between them.
-  virtual bool Update(ContentDecoder::spCContentDecoder _spDecoder,
-                      const fp8 _decodeFps, const fp8 /*_displayFps*/,
-                      ContentDecoder::sMetaData &_metadata)
-  {
-    fp4 currentalpha = m_LastAlpha;
-    bool frameGrabbed = false;
-    bool isSeam = false;
-
-    if (m_bWaitNextFrame)
-    {
-      frameGrabbed = GrabFrame(_spDecoder, m_spFrames[m_State],
-                               m_spFrames[m_State + kMaxFrames], _metadata);
-#if !defined(WIN32) && !defined(_MSC_VER) //@TODO: why is this check here?
-      if (!frameGrabbed)
-      {
-        return false;
-      }
-#endif
-
-      if (frameGrabbed)
-      {
-        Reset();
-        m_bWaitNextFrame = false;
-      }
-    }
-    else
-    {
-      if (UpdateInterframeDelta(_decodeFps))
-      {
-        m_State ^= 1;
-
-        if (!GrabFrame(_spDecoder, m_spFrames[m_State],
-                       m_spFrames[m_State + kMaxFrames], _metadata))
+        //	Compile the shader.
+        switch (_spRenderer->Type())
         {
-          m_bWaitNextFrame = true;
-#if !defined(WIN32) && !defined(_MSC_VER)
-          return false;
+        case DisplayOutput::eDX9:
+            m_spShader = _spRenderer->NewShader(linear_vertexshader,
+                                                linear_pixelshaderDX);
+            break;
+        case DisplayOutput::eGL:
+            m_spShader = _spRenderer->NewShader(
+                NULL, (_spRenderer->GetTextureTargetType() ==
+                       DisplayOutput::eTexture2DRect)
+                          ? linear_pixelshaderGL2DRect
+                          : linear_pixelshaderGL2D);
+            break;
+        case DisplayOutput::eMetal:
+            m_spShader = _spRenderer->NewShader(
+                "quadPassVertex", "drawDecodedFrameLinearFrameBlendFragment",
+                {{"delta", DisplayOutput::eUniform_Float},
+                 {"newalpha", DisplayOutput::eUniform_Float},
+                 {"transPct", DisplayOutput::eUniform_Float}});
+            break;
+        }
+
+        if (!m_spShader)
+            m_bValid = false;
+    }
+
+    virtual ~CLinearFrameDisplay() {}
+
+    //	Decode a frame every 1/_fpsCap seconds, store the previous frame, and
+    // lerp between them.
+    virtual bool Update(ContentDecoder::spCContentDecoder _spDecoder,
+                        const fp8 _decodeFps, const fp8 /*_displayFps*/,
+                        ContentDecoder::sMetaData &_metadata)
+    {
+        fp4 currentalpha = m_LastAlpha;
+        bool frameGrabbed = false;
+        bool isSeam = false;
+
+        if (m_bWaitNextFrame)
+        {
+            frameGrabbed =
+                GrabFrame(_spDecoder, m_spFrames[m_State],
+                          m_spFrames[m_State + kMaxFrames], _metadata);
+#if !defined(WIN32) && !defined(_MSC_VER) //@TODO: why is this check here?
+            if (!frameGrabbed)
+            {
+                return false;
+            }
 #endif
+
+            if (frameGrabbed)
+            {
+                Reset();
+                m_bWaitNextFrame = false;
+            }
         }
         else
-          frameGrabbed = true;
-      }
-      else
-      {
-        currentalpha = (fp4)Base::Math::Clamped(
-            m_LastAlpha + Base::Math::Clamped(m_InterframeDelta / m_FadeCount,
-                                              0., 1. / m_FadeCount),
-            0., 1.);
-      }
-    }
-
-    if (frameGrabbed)
-    {
-      m_MetaData = _metadata;
-      m_LastAlpha = m_MetaData.m_Fade;
-      currentalpha = m_LastAlpha;
-
-      isSeam = _metadata.m_IsSeam;
-    }
-
-    if (m_spFrames[m_State] != NULL)
-    {
-      Base::Math::CRect texRect;
-
-      if (isSeam)
-      {
-        m_spFrames[!m_State] = m_spFrames[!m_State + kMaxFrames];
-
-        m_spFrames[!m_State + kMaxFrames] = NULL;
-      }
-
-      m_spRenderer->SetShader(m_spShader);
-      m_spRenderer->SetBlend("alphablend");
-
-      //	Only one frame so far, let's display it normally.
-      if (m_spFrames[m_State ^ 1] == NULL)
-      {
-        //	Bind texture and render a quad covering the screen.
-        m_spRenderer->SetTexture(m_spFrames[m_State], 1);
-        m_spRenderer->SetTexture(m_spFrames[m_State], 2);
-
-        if (m_spFrames[m_State + kMaxFrames])
         {
-          m_spRenderer->SetTexture(m_spFrames[m_State + kMaxFrames], 2);
-          m_spRenderer->SetTexture(m_spFrames[m_State + kMaxFrames], 3);
-        }
-      }
-      else
-      {
-        m_spRenderer->SetTexture(m_spFrames[0], (m_State ^ 1) + 1);
-        m_spRenderer->SetTexture(m_spFrames[1], m_State + 1);
+            if (UpdateInterframeDelta(_decodeFps))
+            {
+                m_State ^= 1;
 
-        if (m_spFrames[m_State + kMaxFrames])
+                if (!GrabFrame(_spDecoder, m_spFrames[m_State],
+                               m_spFrames[m_State + kMaxFrames], _metadata))
+                {
+                    m_bWaitNextFrame = true;
+#if !defined(WIN32) && !defined(_MSC_VER)
+                    return false;
+#endif
+                }
+                else
+                    frameGrabbed = true;
+            }
+            else
+            {
+                currentalpha = (fp4)Base::Math::Clamped(
+                    m_LastAlpha +
+                        Base::Math::Clamped(m_InterframeDelta / m_FadeCount, 0.,
+                                            1. / m_FadeCount),
+                    0., 1.);
+            }
+        }
+
+        if (frameGrabbed)
         {
-          m_spRenderer->SetTexture(m_spFrames[2],
-                                   (m_State ^ 1) + kMaxFrames + 1);
-          m_spRenderer->SetTexture(m_spFrames[3], m_State + kMaxFrames + 1);
+            m_MetaData = _metadata;
+            m_LastAlpha = m_MetaData.m_Fade;
+            currentalpha = m_LastAlpha;
+
+            isSeam = _metadata.m_IsSeam;
         }
-      }
-      texRect = m_spFrames[m_State]->GetRect();
-      m_spShader->Set("delta", (fp4)m_InterframeDelta);
-      m_spShader->Set("newalpha", (fp4)currentalpha);
-      m_spShader->Set("transPct", m_MetaData.m_TransitionProgress);
-      m_spRenderer->Apply();
 
-      UpdateTexRect(texRect);
+        if (m_spFrames[m_State] != NULL)
+        {
+            Base::Math::CRect texRect;
 
-      m_spRenderer->DrawQuad(
-          m_texRect, Base::Math::CVector4(1, 1, 1, currentalpha), texRect);
+            if (isSeam)
+            {
+                m_spFrames[!m_State] = m_spFrames[!m_State + kMaxFrames];
+
+                m_spFrames[!m_State + kMaxFrames] = NULL;
+            }
+
+            m_spRenderer->SetShader(m_spShader);
+            m_spRenderer->SetBlend("alphablend");
+
+            //	Only one frame so far, let's display it normally.
+            if (m_spFrames[m_State ^ 1] == NULL)
+            {
+                //	Bind texture and render a quad covering the screen.
+                m_spRenderer->SetTexture(m_spFrames[m_State], 1);
+                m_spRenderer->SetTexture(m_spFrames[m_State], 2);
+
+                if (m_spFrames[m_State + kMaxFrames])
+                {
+                    m_spRenderer->SetTexture(m_spFrames[m_State + kMaxFrames],
+                                             2);
+                    m_spRenderer->SetTexture(m_spFrames[m_State + kMaxFrames],
+                                             3);
+                }
+            }
+            else
+            {
+                m_spRenderer->SetTexture(m_spFrames[0], (m_State ^ 1) + 1);
+                m_spRenderer->SetTexture(m_spFrames[1], m_State + 1);
+
+                if (m_spFrames[m_State + kMaxFrames])
+                {
+                    m_spRenderer->SetTexture(m_spFrames[2],
+                                             (m_State ^ 1) + kMaxFrames + 1);
+                    m_spRenderer->SetTexture(m_spFrames[3],
+                                             m_State + kMaxFrames + 1);
+                }
+            }
+            texRect = m_spFrames[m_State]->GetRect();
+            m_spShader->Set("delta", (fp4)m_InterframeDelta);
+            m_spShader->Set("newalpha", (fp4)currentalpha);
+            m_spShader->Set("transPct", m_MetaData.m_TransitionProgress);
+            m_spRenderer->Apply();
+
+            UpdateTexRect(texRect);
+
+            m_spRenderer->DrawQuad(m_texRect,
+                                   Base::Math::CVector4(1, 1, 1, currentalpha),
+                                   texRect);
+        }
+
+        return true;
     }
 
-    return true;
-  }
-
-  virtual fp8 GetFps(fp8 /*_decodeFps*/, fp8 _displayFps)
-  {
-    return _displayFps;
-  }
+    virtual fp8 GetFps(fp8 /*_decodeFps*/, fp8 _displayFps)
+    {
+        return _displayFps;
+    }
 };
 
 MakeSmartPointers(CLinearFrameDisplay);

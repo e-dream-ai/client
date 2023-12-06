@@ -19,34 +19,34 @@ namespace DisplayOutput
 */
 class CWindowsGL : public CDisplayOutput
 {
-  HWND m_WindowHandle;
+    HWND m_WindowHandle;
 
-  //	Only valid when running as a screensaver.
-  bool m_bScreensaver;
-  bool m_bPreview;
+    //	Only valid when running as a screensaver.
+    bool m_bScreensaver;
+    bool m_bPreview;
 
-public:
-  CWindowsGL();
-  virtual ~CWindowsGL();
+  public:
+    CWindowsGL();
+    virtual ~CWindowsGL();
 
-  static LRESULT CALLBACK wndProc(HWND hWnd, UINT msg, WPARAM wParam,
-                                  LPARAM lParam);
+    static LRESULT CALLBACK wndProc(HWND hWnd, UINT msg, WPARAM wParam,
+                                    LPARAM lParam);
 
-  static char *Description() { return "Windows OpenGL display"; };
-  virtual HWND Initialize(const uint32 _width, const uint32 _height,
-                          const bool _bFullscreen);
+    static char *Description() { return "Windows OpenGL display"; };
+    virtual HWND Initialize(const uint32 _width, const uint32 _height,
+                            const bool _bFullscreen);
 
-  HWND WindowHandle(void) { return m_WindowHandle; };
+    HWND WindowHandle(void) { return m_WindowHandle; };
 
-  //	This is used when running as a screensaver, where the hwnd might already
-  // be provided.
-  virtual bool Initialize(HWND _hWnd, bool _bPreview);
+    //	This is used when running as a screensaver, where the hwnd might already
+    // be provided.
+    virtual bool Initialize(HWND _hWnd, bool _bPreview);
 
-  //
-  virtual void Title(const std::string &_title);
-  virtual void Update();
+    //
+    virtual void Title(const std::string &_title);
+    virtual void Update();
 
-  void SwapBuffers();
+    void SwapBuffers();
 };
 
 typedef CWindowsGL CDisplayGL;

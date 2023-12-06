@@ -21,16 +21,16 @@ namespace DisplayOutput
 */
 class CFontMetal : public CBaseFont
 {
-  CFTypeRef m_pFontAtlas;
-  spCTextureFlatMetal m_spAtlasTexture;
-  std::string m_typeFace;
+    CFTypeRef m_pFontAtlas;
+    spCTextureFlatMetal m_spAtlasTexture;
+    std::string m_typeFace;
 
-public:
-  CFontMetal(CFontDescription &_desc, spCTextureFlat _textTexture);
-  virtual ~CFontMetal();
-  virtual bool Create();
-  MBEFontAtlas *GetAtlas() const;
-  spCTextureFlatMetal GetAtlasTexture() { return m_spAtlasTexture; }
+  public:
+    CFontMetal(CFontDescription &_desc, spCTextureFlat _textTexture);
+    virtual ~CFontMetal();
+    virtual bool Create();
+    MBEFontAtlas *GetAtlas() const;
+    spCTextureFlatMetal GetAtlasTexture() { return m_spAtlasTexture; }
 };
 
 MakeSmartPointers(CFontMetal);

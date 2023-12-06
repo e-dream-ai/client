@@ -15,10 +15,10 @@
 
 class WObject
 {
-public:
-  WObject() {} // default ctor required
+  public:
+    WObject() {} // default ctor required
 
-private:
-  WObject(const WObject &);            // prevent bitwise copy
-  WObject &operator=(const WObject &); // prevent bitwise assignment
+  private:
+    WObject(const WObject &);            // prevent bitwise copy
+    WObject &operator=(const WObject &); // prevent bitwise assignment
 };

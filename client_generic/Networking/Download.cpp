@@ -16,7 +16,7 @@ namespace Network
 CFileDownloader::CFileDownloader(const std::string &_name)
     : CCurlTransfer(_name), m_Data()
 {
-  m_Data.reserve(10 * 1024 * 1024);
+    m_Data.reserve(10 * 1024 * 1024);
 }
 
 /*
@@ -32,22 +32,22 @@ CFileDownloader::~CFileDownloader() {}
 int32 CFileDownloader::customWrite(void *_pBuffer, size_t _size, size_t _nmemb,
                                    void *_pUserData)
 {
-  CFileDownloader *pOut = (CFileDownloader *)_pUserData;
-  if (!pOut)
-  {
-    g_Log->Info("Error, no _pUserData.");
-    return -1;
-  }
+    CFileDownloader *pOut = (CFileDownloader *)_pUserData;
+    if (!pOut)
+    {
+        g_Log->Info("Error, no _pUserData.");
+        return -1;
+    }
 
-  pOut->m_Data.append((char *)_pBuffer, _size * _nmemb);
-  return (int32)(_size * _nmemb);
+    pOut->m_Data.append((char *)_pBuffer, _size * _nmemb);
+    return (int32)(_size * _nmemb);
 }
 
 bool CFileDownloader::SetPostFields(const char *postFields)
 {
-  if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_POSTFIELDS, postFields)))
-    return false;
-  return true;
+    if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_POSTFIELDS, postFields)))
+        return false;
+    return true;
 }
 
 /*
@@ -56,15 +56,15 @@ bool CFileDownloader::SetPostFields(const char *postFields)
 */
 bool CFileDownloader::Perform(const std::string &_url)
 {
-  m_Data = "";
+    m_Data = "";
 
-  if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_WRITEDATA, this)))
-    return false;
-  if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_WRITEFUNCTION,
-                               &CFileDownloader::customWrite)))
-    return false;
+    if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_WRITEDATA, this)))
+        return false;
+    if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_WRITEFUNCTION,
+                                 &CFileDownloader::customWrite)))
+        return false;
 
-  return CCurlTransfer::Perform(_url);
+    return CCurlTransfer::Perform(_url);
 }
 
 /*
@@ -73,18 +73,18 @@ bool CFileDownloader::Perform(const std::string &_url)
 */
 bool CFileDownloader::Save(const std::string &_output)
 {
-  std::ofstream out(_output.c_str(), std::ios::out | std::ios::binary);
-  if (out.bad())
-  {
-    g_Log->Info("Failed to open output file.");
-    return false;
-  }
+    std::ofstream out(_output.c_str(), std::ios::out | std::ios::binary);
+    if (out.bad())
+    {
+        g_Log->Info("Failed to open output file.");
+        return false;
+    }
 
-  out << m_Data;
-  out.close();
+    out << m_Data;
+    out.close();
 
-  g_Log->Info("%s saved.", _output.c_str());
-  return true;
+    g_Log->Info("%s saved.", _output.c_str());
+    return true;
 }
 
 /*
@@ -110,11 +110,11 @@ CFileDownloader_TimeCondition::~CFileDownloader_TimeCondition() {}
 bool CFileDownloader_TimeCondition::PerformDownloadWithTC(
     const std::string &_url, const time_t _lastTime)
 {
-  if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_TIMECONDITION, this)))
-    return false;
-  if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_TIMEVALUE, _lastTime)))
-    return false;
-  return CFileDownloader::Perform(_url);
+    if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_TIMECONDITION, this)))
+        return false;
+    if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_TIMEVALUE, _lastTime)))
+        return false;
+    return CFileDownloader::Perform(_url);
 }
 
 }; // namespace Network

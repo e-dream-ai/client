@@ -29,36 +29,36 @@ CContentDownloader::CContentDownloader() {}
 //
 static std::string generateID()
 {
-  uint8 *salt;
-  uint32 u;
-  char id[17];
-  id[16] = 0;
+    uint8 *salt;
+    uint32 u;
+    char id[17];
+    id[16] = 0;
 
 #ifdef WIN32
-  SYSTEMTIME syst;
-  GetSystemTime(&syst);
-  salt = ((unsigned char *)&syst) + sizeof(SYSTEMTIME) - 8;
+    SYSTEMTIME syst;
+    GetSystemTime(&syst);
+    salt = ((unsigned char *)&syst) + sizeof(SYSTEMTIME) - 8;
 #else
-  timeval cur_time;
-  gettimeofday(&cur_time, NULL);
+    timeval cur_time;
+    gettimeofday(&cur_time, NULL);
 
-  salt = (unsigned char *)&cur_time;
+    salt = (unsigned char *)&cur_time;
 #endif
 
-  for (u = 0; u < 16; u++)
-  {
-    unsigned r = static_cast<unsigned>(rand());
-    r = r ^ (salt[u >> 1] >> ((u & 1) << 2));
-    r &= 15;
-    if (r < 10)
-      r += '0';
-    else
-      r += 'A' - 10;
+    for (u = 0; u < 16; u++)
+    {
+        unsigned r = static_cast<unsigned>(rand());
+        r = r ^ (salt[u >> 1] >> ((u & 1) << 2));
+        r &= 15;
+        if (r < 10)
+            r += '0';
+        else
+            r += 'A' - 10;
 
-    id[u] = static_cast<char>(r & 0xFF);
-  }
+        id[u] = static_cast<char>(r & 0xFF);
+    }
 
-  return std::string(id);
+    return std::string(id);
 }
 
 //
@@ -69,110 +69,112 @@ void CContentDownloader::ServerFallback() { Shepherd::setRegistered(false); }
 bool CContentDownloader::Startup(boost::shared_mutex &_downloadSaveMutex,
                                  const bool _bPreview, bool _bReadOnlyInstance)
 {
-  g_Log->Info("Attempting to start contentdownloader...", _bPreview);
-  Shepherd::initializeShepherd();
+    g_Log->Info("Attempting to start contentdownloader...", _bPreview);
+    Shepherd::initializeShepherd();
 
-  std::string root = g_Settings()->Get("settings.content.sheepdir",
-                                       g_Settings()->Root() + "content");
+    std::string root = g_Settings()->Get("settings.content.sheepdir",
+                                         g_Settings()->Root() + "content");
 
-  if (root.empty())
-  {
-    root = g_Settings()->Root() + "content";
-    g_Settings()->Set("settings.content.sheepdir", root);
-  }
+    if (root.empty())
+    {
+        root = g_Settings()->Root() + "content";
+        g_Settings()->Set("settings.content.sheepdir", root);
+    }
 
-  Shepherd::setRootPath(root.c_str());
-  Shepherd::setCacheSize(g_Settings()->Get("settings.content.cache_size", 2000),
-                         0);
-  if (g_Settings()->Get("settings.content.unlimited_cache", true) == true)
-    Shepherd::setCacheSize(0, 0);
-  Shepherd::setUniqueID(
-      g_Settings()->Get("settings.content.unique_id", generateID()).c_str());
-  Shepherd::setUseProxy(g_Settings()->Get("settings.content.use_proxy", false));
-  Shepherd::setRegistered(
-      g_Settings()->Get("settings.content.registered", false));
-  Shepherd::setProxy(
-      g_Settings()->Get("settings.content.proxy", std::string("")).c_str());
-  Shepherd::setProxyUserName(
-      g_Settings()
-          ->Get("settings.content.proxy_username", std::string(""))
-          .c_str());
-  Shepherd::setProxyPassword(
-      g_Settings()
-          ->Get("settings.content.proxy_password", std::string(""))
-          .c_str());
-  // Shepherd::setUseDreamAI( false );
+    Shepherd::setRootPath(root.c_str());
+    Shepherd::setCacheSize(
+        g_Settings()->Get("settings.content.cache_size", 2000), 0);
+    if (g_Settings()->Get("settings.content.unlimited_cache", true) == true)
+        Shepherd::setCacheSize(0, 0);
+    Shepherd::setUniqueID(
+        g_Settings()->Get("settings.content.unique_id", generateID()).c_str());
+    Shepherd::setUseProxy(
+        g_Settings()->Get("settings.content.use_proxy", false));
+    Shepherd::setRegistered(
+        g_Settings()->Get("settings.content.registered", false));
+    Shepherd::setProxy(
+        g_Settings()->Get("settings.content.proxy", std::string("")).c_str());
+    Shepherd::setProxyUserName(
+        g_Settings()
+            ->Get("settings.content.proxy_username", std::string(""))
+            .c_str());
+    Shepherd::setProxyPassword(
+        g_Settings()
+            ->Get("settings.content.proxy_password", std::string(""))
+            .c_str());
+    // Shepherd::setUseDreamAI( false );
 
-  Shepherd::setSaveFrames(
-      g_Settings()->Get("settings.generator.save_frames", false));
-  Shepherd::SetNickName(
-      g_Settings()
-          ->Get("settings.generator.nickname", std::string(""))
-          .c_str());
+    Shepherd::setSaveFrames(
+        g_Settings()->Get("settings.generator.save_frames", false));
+    Shepherd::SetNickName(
+        g_Settings()
+            ->Get("settings.generator.nickname", std::string(""))
+            .c_str());
 
-  m_gDownloader = NULL;
+    m_gDownloader = NULL;
 
-  if (_bReadOnlyInstance == false)
-  {
-    m_gDownloader = new SheepDownloader(_downloadSaveMutex);
-    g_Log->Info("Starting download thread...");
-    m_gDownloadThread = new boost::thread(
-        boost::bind(&SheepDownloader::shepherdCallback, m_gDownloader));
+    if (_bReadOnlyInstance == false)
+    {
+        m_gDownloader = new SheepDownloader(_downloadSaveMutex);
+        g_Log->Info("Starting download thread...");
+        m_gDownloadThread = new boost::thread(
+            boost::bind(&SheepDownloader::shepherdCallback, m_gDownloader));
 #ifdef WIN32
-    SetThreadPriority((HANDLE)m_gDownloadThread->native_handle(),
-                      THREAD_PRIORITY_BELOW_NORMAL);
-    SetThreadPriorityBoost((HANDLE)m_gDownloadThread->native_handle(), TRUE);
+        SetThreadPriority((HANDLE)m_gDownloadThread->native_handle(),
+                          THREAD_PRIORITY_BELOW_NORMAL);
+        SetThreadPriorityBoost((HANDLE)m_gDownloadThread->native_handle(),
+                               TRUE);
 #else
-    struct sched_param sp;
-    sp.sched_priority =
-        6; // Background NORMAL_PRIORITY_CLASS - THREAD_PRIORITY_BELOW_NORMAL
-    pthread_setschedparam((pthread_t)m_gDownloadThread->native_handle(),
-                          SCHED_RR, &sp);
+        struct sched_param sp;
+        sp.sched_priority = 6; // Background NORMAL_PRIORITY_CLASS -
+                               // THREAD_PRIORITY_BELOW_NORMAL
+        pthread_setschedparam((pthread_t)m_gDownloadThread->native_handle(),
+                              SCHED_RR, &sp);
 #endif
-  }
-  else
-    g_Log->Warning("Downloading disabled.");
+    }
+    else
+        g_Log->Warning("Downloading disabled.");
 
-  g_Log->Info("...success");
+    g_Log->Info("...success");
 
-  return true;
+    return true;
 }
 
 /*
  */
 bool CContentDownloader::Shutdown(void)
 {
-  //	Terminate the threads.
-  g_Log->Info("Terminating download thread.");
+    //	Terminate the threads.
+    g_Log->Info("Terminating download thread.");
 
-  g_NetworkManager->Abort();
+    g_NetworkManager->Abort();
 
-  if (m_gDownloadThread && m_gDownloader)
-  {
-    m_gDownloader->Abort();
-    m_gDownloadThread->interrupt();
+    if (m_gDownloadThread && m_gDownloader)
+    {
+        m_gDownloader->Abort();
+        m_gDownloadThread->interrupt();
 
-    m_gDownloadThread->timed_join(boost::posix_time::seconds(3));
+        m_gDownloadThread->timed_join(boost::posix_time::seconds(3));
 
-    SAFE_DELETE(m_gDownloadThread);
-  }
+        SAFE_DELETE(m_gDownloadThread);
+    }
 
-  SAFE_DELETE(m_gDownloader);
+    SAFE_DELETE(m_gDownloader);
 
-  //	Notify the shepherd that the app is about to close so that he can
-  // properly clean up his threads
-  Shepherd::notifyShepherdOfHisUntimleyDeath();
+    //	Notify the shepherd that the app is about to close so that he can
+    // properly clean up his threads
+    Shepherd::notifyShepherdOfHisUntimleyDeath();
 
-  return true;
+    return true;
 }
 
 /*
  */
 CContentDownloader::~CContentDownloader()
 {
-  //	Mark singleton as properly shutdown, to track unwanted access after this
-  // point.
-  SingletonActive(false);
+    //	Mark singleton as properly shutdown, to track unwanted access after this
+    // point.
+    SingletonActive(false);
 }
 
 }; // namespace ContentDownloader

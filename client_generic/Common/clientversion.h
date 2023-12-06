@@ -18,7 +18,7 @@
 
 #define CLIENT_VERSION OS_PREFIX VER_MAJOR "." VER_MINOR "." VER_BUILD
 #define CLIENT_VERSION_PRETTY                                                  \
-  OS_PREFIX_PRETTY VER_MAJOR "." VER_MINOR "." VER_BUILD
+    OS_PREFIX_PRETTY VER_MAJOR "." VER_MINOR "." VER_BUILD
 #define CLIENT_SETTINGS "e-dream"
 
 #define DREAM_SERVER "https://e-dream-76c98b08cc5d.herokuapp.com"

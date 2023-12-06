@@ -9,108 +9,108 @@
 
 class ESCpuUsage
 {
-  Base::CTimer m_Timer;
-  fp8 m_LastCPUCheckTime;
+    Base::CTimer m_Timer;
+    fp8 m_LastCPUCheckTime;
 
-  fp8 m_LastSystemTime;
-  fp8 m_LastESTime;
+    fp8 m_LastSystemTime;
+    fp8 m_LastESTime;
 
-  glibtop *glibtopdata;
-  glibtop_cpu m_lastProcessorInfo, m_currentProcessorInfo;
+    glibtop *glibtopdata;
+    glibtop_cpu m_lastProcessorInfo, m_currentProcessorInfo;
 
-  int numProcessors;
+    int numProcessors;
 
-public:
-  ESCpuUsage() : m_LastCPUCheckTime(0)
-  {
-
-    glibtopdata = glibtop_init();
-
-    m_Timer.Reset();
-    m_LastCPUCheckTime = m_Timer.Time();
-
-    struct rusage r_usage;
-    if (!getrusage(RUSAGE_SELF, &r_usage))
+  public:
+    ESCpuUsage() : m_LastCPUCheckTime(0)
     {
 
-      m_LastESTime =
-          (fp8)r_usage.ru_utime.tv_sec + (fp8)r_usage.ru_utime.tv_usec * 1e-6;
+        glibtopdata = glibtop_init();
 
-      m_LastESTime +=
-          (fp8)r_usage.ru_stime.tv_sec + (fp8)r_usage.ru_stime.tv_usec * 1e-6;
+        m_Timer.Reset();
+        m_LastCPUCheckTime = m_Timer.Time();
+
+        struct rusage r_usage;
+        if (!getrusage(RUSAGE_SELF, &r_usage))
+        {
+
+            m_LastESTime = (fp8)r_usage.ru_utime.tv_sec +
+                           (fp8)r_usage.ru_utime.tv_usec * 1e-6;
+
+            m_LastESTime += (fp8)r_usage.ru_stime.tv_sec +
+                            (fp8)r_usage.ru_stime.tv_usec * 1e-6;
+        }
+
+        numProcessors = glibtopdata->ncpu + 1;
+        glibtop_get_cpu(&m_lastProcessorInfo);
     }
 
-    numProcessors = glibtopdata->ncpu + 1;
-    glibtop_get_cpu(&m_lastProcessorInfo);
-  }
+    virtual ~ESCpuUsage() {}
 
-  virtual ~ESCpuUsage() {}
-
-  bool GetCpuUsage(int &_total, int &_es)
-  {
-    struct rusage r_usage;
-
-    fp8 newtime = m_Timer.Time();
-
-    fp8 period = newtime - m_LastCPUCheckTime;
-    if (period > 0.)
+    bool GetCpuUsage(int &_total, int &_es)
     {
-      if (!getrusage(RUSAGE_SELF, &r_usage))
-      {
+        struct rusage r_usage;
 
-        fp8 utime =
-            (fp8)r_usage.ru_utime.tv_sec + (fp8)r_usage.ru_utime.tv_usec * 1e-6;
+        fp8 newtime = m_Timer.Time();
 
-        utime +=
-            (fp8)r_usage.ru_stime.tv_sec + (fp8)r_usage.ru_stime.tv_usec * 1e-6;
+        fp8 period = newtime - m_LastCPUCheckTime;
+        if (period > 0.)
+        {
+            if (!getrusage(RUSAGE_SELF, &r_usage))
+            {
 
-        _es = int((utime - m_LastESTime) * 100. / period);
+                fp8 utime = (fp8)r_usage.ru_utime.tv_sec +
+                            (fp8)r_usage.ru_utime.tv_usec * 1e-6;
 
-        m_LastESTime = utime;
-      }
+                utime += (fp8)r_usage.ru_stime.tv_sec +
+                         (fp8)r_usage.ru_stime.tv_usec * 1e-6;
 
-      float accInUse = 0.0f, accTotal = 0.0f;
+                _es = int((utime - m_LastESTime) * 100. / period);
 
-      glibtop_get_cpu(&m_currentProcessorInfo);
+                m_LastESTime = utime;
+            }
 
-      for (unsigned i = 0U; i < numProcessors; ++i)
-      {
-        float inUse, total;
+            float accInUse = 0.0f, accTotal = 0.0f;
 
-        inUse = ((m_currentProcessorInfo.xcpu_user[i] -
-                  m_lastProcessorInfo.xcpu_user[i]) +
-                 (m_currentProcessorInfo.xcpu_sys[i] -
-                  m_lastProcessorInfo.xcpu_sys[i]) +
-                 (m_currentProcessorInfo.xcpu_nice[i] -
-                  m_lastProcessorInfo.xcpu_nice[i]));
+            glibtop_get_cpu(&m_currentProcessorInfo);
 
-        total = inUse + (m_currentProcessorInfo.xcpu_idle[i] -
-                         m_lastProcessorInfo.xcpu_idle[i]);
+            for (unsigned i = 0U; i < numProcessors; ++i)
+            {
+                float inUse, total;
 
-        accInUse += inUse;
-        accTotal += total;
-      }
+                inUse = ((m_currentProcessorInfo.xcpu_user[i] -
+                          m_lastProcessorInfo.xcpu_user[i]) +
+                         (m_currentProcessorInfo.xcpu_sys[i] -
+                          m_lastProcessorInfo.xcpu_sys[i]) +
+                         (m_currentProcessorInfo.xcpu_nice[i] -
+                          m_lastProcessorInfo.xcpu_nice[i]));
 
-      _total = (fp8)accInUse * 100. / (fp8)accTotal;
+                total = inUse + (m_currentProcessorInfo.xcpu_idle[i] -
+                                 m_lastProcessorInfo.xcpu_idle[i]);
 
-      _es /= numProcessors;
+                accInUse += inUse;
+                accTotal += total;
+            }
 
-      memcpy(&m_lastProcessorInfo, &m_currentProcessorInfo,
-             sizeof(glibtop_cpu));
+            _total = (fp8)accInUse * 100. / (fp8)accTotal;
+
+            _es /= numProcessors;
+
+            memcpy(&m_lastProcessorInfo, &m_currentProcessorInfo,
+                   sizeof(glibtop_cpu));
+        }
+        else
+        {
+            _es = 0;
+            _total = 0;
+        }
+
+        _es = ::Base::Math::Clamped(_es, 0, 100);
+        _total = ::Base::Math::Clamped(_total, 0, 100);
+
+        m_LastCPUCheckTime = newtime;
+
+        return true;
     }
-    else
-    {
-      _es = 0;
-      _total = 0;
-    }
-
-    _es = ::Base::Math::Clamped(_es, 0, 100);
-    _total = ::Base::Math::Clamped(_total, 0, 100);
-
-    m_LastCPUCheckTime = newtime;
-
-    return true;
-  }
 };
 
 #endif

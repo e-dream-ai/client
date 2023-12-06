@@ -15,313 +15,316 @@ bool bStarted = false;
 - (id)initWithFrame:(NSRect)frame isPreview:(BOOL)isPreview
 {
 #ifdef SCREEN_SAVER
-  self = [super initWithFrame:frame isPreview:isPreview];
+    self = [super initWithFrame:frame isPreview:isPreview];
 #else
-  self = [super initWithFrame:frame];
+    self = [super initWithFrame:frame];
 #endif
 
-  m_updater = NULL;
+    m_updater = NULL;
 
-  m_isFullScreen = !isPreview;
-  m_isStopped = YES;
+    m_isFullScreen = !isPreview;
+    m_isStopped = YES;
 
-  m_isPreview = isPreview;
-  m_beginFrameBarrier = std::make_unique<boost::barrier>(2);
-  m_endFrameBarrier = std::make_unique<boost::barrier>(2);
-  m_animationDispatchGroup = dispatch_group_create();
+    m_isPreview = isPreview;
+    m_beginFrameBarrier = std::make_unique<boost::barrier>(2);
+    m_endFrameBarrier = std::make_unique<boost::barrier>(2);
+    m_animationDispatchGroup = dispatch_group_create();
 
 #ifdef SCREEN_SAVER
-  // if (isPreview)
+    // if (isPreview)
 #endif
-  {
-    CFBundleRef bndl = CopyDLBundle_ex();
-    NSBundle *nsbndl;
-
-    if (bndl != NULL)
     {
-      NSURL *url = (NSURL *)CFBridgingRelease(CFBundleCopyBundleURL(bndl));
+        CFBundleRef bndl = CopyDLBundle_ex();
+        NSBundle *nsbndl;
 
-      nsbndl = [NSBundle bundleWithPath:[url path]];
+        if (bndl != NULL)
+        {
+            NSURL *url =
+                (NSURL *)CFBridgingRelease(CFBundleCopyBundleURL(bndl));
 
-      m_updater = [SUUpdater updaterForBundle:nsbndl];
+            nsbndl = [NSBundle bundleWithPath:[url path]];
 
-      [m_updater setDelegate:self];
+            m_updater = [SUUpdater updaterForBundle:nsbndl];
 
-      if (m_updater && [m_updater automaticallyChecksForUpdates])
-      {
-        [m_updater checkForUpdateInformation];
-      }
+            [m_updater setDelegate:self];
 
-      CFRelease(bndl);
+            if (m_updater && [m_updater automaticallyChecksForUpdates])
+            {
+                [m_updater checkForUpdateInformation];
+            }
+
+            CFRelease(bndl);
+        }
     }
-  }
 
-  if (self)
-  {
-    // So we modify the setup routines just a little bit to get our
-    // new OpenGL screensaver working.
-
-    // Create the new frame
-    NSRect newFrame = frame;
-    // Slam the origin values
-    newFrame.origin.x = 0.0;
-    newFrame.origin.y = 0.0;
-
-    theRect = newFrame;
-    // Now alloc and init the view, right from within the screen saver's
-    // initWithFrame:
-
-    // If the view is valid, we continue
-    // if(view)
+    if (self)
     {
-      // Make sure we autoresize
-      [self setAutoresizesSubviews:YES];
-      // So if our view is valid...
+        // So we modify the setup routines just a little bit to get our
+        // new OpenGL screensaver working.
 
-      view = NULL;
+        // Create the new frame
+        NSRect newFrame = frame;
+        // Slam the origin values
+        newFrame.origin.x = 0.0;
+        newFrame.origin.y = 0.0;
 
-      // Do some setup on our context and view
-      //[view prepareOpenGL];
-      // Then we set our animation loop timer
-      //[self setAnimationTimeInterval:1/60.0];
+        theRect = newFrame;
+        // Now alloc and init the view, right from within the screen saver's
+        // initWithFrame:
+
+        // If the view is valid, we continue
+        // if(view)
+        {
+            // Make sure we autoresize
+            [self setAutoresizesSubviews:YES];
+            // So if our view is valid...
+
+            view = NULL;
+
+            // Do some setup on our context and view
+            //[view prepareOpenGL];
+            // Then we set our animation loop timer
+            //[self setAnimationTimeInterval:1/60.0];
 #ifdef SCREEN_SAVER
-      [self setAnimationTimeInterval:-1];
+            [self setAnimationTimeInterval:-1];
 #endif
-      // Since our BasicOpenGLView class does it's setup in awakeFromNib, we
-      // call that here. Note that this could be any method you want to use as
-      // the setup routine for your view.
-      //[view awakeFromNib];
+            // Since our BasicOpenGLView class does it's setup in awakeFromNib,
+            // we call that here. Note that this could be any method you want to
+            // use as the setup routine for your view.
+            //[view awakeFromNib];
+        }
+        // else // Log an error if we fail here
+        //  NSLog(@"Error: e-dream Screen Saver failed to initialize
+        //  NSOpenGLView!");
     }
-    // else // Log an error if we fail here
-    //  NSLog(@"Error: e-dream Screen Saver failed to initialize
-    //  NSOpenGLView!");
-  }
-  // Finally return our newly-initialized self
-  return self;
+    // Finally return our newly-initialized self
+    return self;
 }
 
 - (void)startAnimation
 {
-  /*NSMutableArray *displays = [NSMutableArray arrayWithCapacity:5];
+    /*NSMutableArray *displays = [NSMutableArray arrayWithCapacity:5];
 
-  [displays addObject:[NSScreen mainScreen]];
+    [displays addObject:[NSScreen mainScreen]];
 
-  UInt32 cnt = [[NSScreen screens] count];
+    UInt32 cnt = [[NSScreen screens] count];
 
-  for (int i=0; i<cnt; i++)
-  {
-          NSScreen *scr = [[NSScreen screens] objectAtIndex:i];
-
-           if (scr !=  [NSScreen mainScreen])
-                  [displays addObject:scr];
-  }
-
-  ESScreensaver_InitClientStorage();
-
-  SInt32 scr = ESScreensaver_GetIntSetting("settings.player.screen", 0);
-
-  ESScreensaver_DeinitClientStorage();
-
-  if (scr >= cnt)
-          scr = cnt - 1;
-
-  //main screen only for now?
-  if (!m_isPreview && [[self window] screen] != [displays objectAtIndex:scr])
-  {
- return;
-  }
-  else
-  {*/
-  if (view == NULL)
-  {
-    /*NSRect newRect;
-
-    newRect.size.height = theRect.size.height;
-
-    newRect.size.width = 800.0 * ( theRect.size.height / 592.0 );
-
-    newRect.origin.x = theRect.origin.x + ( theRect.size.width -
-    newRect.size.width ) / 2.0;
-
-    newRect.origin.y = theRect.origin.y;
-
-    theRect = newRect;*/
-#ifdef USE_METAL
-    ESMetalView *metalView =
-
-        [[ESMetalView alloc] initWithFrame:theRect];
-    metalView.delegate = self;
-    metalView.preferredFramesPerSecond = 60;
-
-    view = metalView;
-
-#else
-    view = [[ESOpenGLView alloc] initWithFrame:theRect];
-#endif
-
-    if (view)
+    for (int i=0; i<cnt; i++)
     {
-#ifndef USE_METAL
-      glContext = [view openGLContext];
+            NSScreen *scr = [[NSScreen screens] objectAtIndex:i];
+
+             if (scr !=  [NSScreen mainScreen])
+                    [displays addObject:scr];
+    }
+
+    ESScreensaver_InitClientStorage();
+
+    SInt32 scr = ESScreensaver_GetIntSetting("settings.player.screen", 0);
+
+    ESScreensaver_DeinitClientStorage();
+
+    if (scr >= cnt)
+            scr = cnt - 1;
+
+    //main screen only for now?
+    if (!m_isPreview && [[self window] screen] != [displays objectAtIndex:scr])
+    {
+   return;
+    }
+    else
+    {*/
+    if (view == NULL)
+    {
+        /*NSRect newRect;
+
+        newRect.size.height = theRect.size.height;
+
+        newRect.size.width = 800.0 * ( theRect.size.height / 592.0 );
+
+        newRect.origin.x = theRect.origin.x + ( theRect.size.width -
+        newRect.size.width ) / 2.0;
+
+        newRect.origin.y = theRect.origin.y;
+
+        theRect = newRect;*/
+#ifdef USE_METAL
+        ESMetalView *metalView =
+
+            [[ESMetalView alloc] initWithFrame:theRect];
+        metalView.delegate = self;
+        metalView.preferredFramesPerSecond = 60;
+
+        view = metalView;
+
+#else
+        view = [[ESOpenGLView alloc] initWithFrame:theRect];
 #endif
 
-      // We make it a subview of the screensaver view
-      [self addSubview:view];
+        if (view)
+        {
+#ifndef USE_METAL
+            glContext = [view openGLContext];
+#endif
+
+            // We make it a subview of the screensaver view
+            [self addSubview:view];
+        }
     }
-  }
-  //}
+    //}
 #ifdef USE_METAL
 
-  if (view != NULL)
-  {
-    ESScreensaver_InitClientStorage();
+    if (view != NULL)
+    {
+        ESScreensaver_InitClientStorage();
 
-    ESScreenSaver_AddGraphicsContext((__bridge void *)view);
-    ESScreensaver_DeinitClientStorage();
-  }
+        ESScreenSaver_AddGraphicsContext((__bridge void *)view);
+        ESScreensaver_DeinitClientStorage();
+    }
 #else
-  if (view != NULL && [view openGLContext])
-  {
-    ESScreensaver_InitClientStorage();
-    ESScreenSaver_AddGraphicsContext(
-        (CGLContextObj)[[view openGLContext] CGLContextObj]);
-    ESScreensaver_DeinitClientStorage();
-  }
+    if (view != NULL && [view openGLContext])
+    {
+        ESScreensaver_InitClientStorage();
+        ESScreenSaver_AddGraphicsContext(
+            (CGLContextObj)[[view openGLContext] CGLContextObj]);
+        ESScreensaver_DeinitClientStorage();
+    }
 #endif //! USE_METAL
 
-  uint32 width = (uint32)theRect.size.width;
-  uint32 height = (uint32)theRect.size.height;
+    uint32 width = (uint32)theRect.size.width;
+    uint32 height = (uint32)theRect.size.height;
 
 #ifdef SCREEN_SAVER
-  m_isHidden = NO;
+    m_isHidden = NO;
 #endif
 
-  if (!bStarted)
-  {
+    if (!bStarted)
+    {
 
-    if (!ESScreensaver_Start(m_isPreview, width, height))
-      return;
+        if (!ESScreensaver_Start(m_isPreview, width, height))
+            return;
 
-    bStarted = true;
+        bStarted = true;
 
-    [self _beginThread];
-  }
+        [self _beginThread];
+    }
 #ifdef SCREEN_SAVER
-  [super startAnimation];
+    [super startAnimation];
 #endif
 }
 
 - (void)stopAnimation
 {
 #ifdef SCREEN_SAVER
-  [NSCursor unhide];
+    [NSCursor unhide];
 #endif
-  if (bStarted)
-  {
-    [self _endThread];
+    if (bStarted)
+    {
+        [self _endThread];
 
-    ESScreensaver_Stop();
+        ESScreensaver_Stop();
 
-    ESScreensaver_Deinit();
+        ESScreensaver_Deinit();
 
-    bStarted = false;
-  }
+        bStarted = false;
+    }
 
 #ifdef SCREEN_SAVER
-  if (m_isHidden)
-    [NSCursor unhide];
-  m_isHidden = NO;
-  [super stopAnimation];
+    if (m_isHidden)
+        [NSCursor unhide];
+    m_isHidden = NO;
+    [super stopAnimation];
 #endif
 }
 
 - (void)animateOneFrame
 {
-  //[self setAnimationTimeInterval:-1];
+    //[self setAnimationTimeInterval:-1];
 
-  //[animationLock unlock];
+    //[animationLock unlock];
 
-  // ESScreensaver_DoFrame();
+    // ESScreensaver_DoFrame();
 
-  //[view setNeedsDisplay:YES];
+    //[view setNeedsDisplay:YES];
 }
 
 - (void)_animationThread
 {
-  while (!m_isStopped && !ESScreensaver_Stopped())
-  {
-    @autoreleasepool
+    while (!m_isStopped && !ESScreensaver_Stopped())
     {
-      if (!ESScreensaver_DoFrame(*m_beginFrameBarrier, *m_endFrameBarrier))
-        break;
+        @autoreleasepool
+        {
+            if (!ESScreensaver_DoFrame(*m_beginFrameBarrier,
+                                       *m_endFrameBarrier))
+                break;
 #ifdef SCREEN_SAVER
-      if (!m_isPreview && CGCursorIsVisible())
-      {
-        [NSCursor hide];
-        m_isHidden = YES;
-      }
+            if (!m_isPreview && CGCursorIsVisible())
+            {
+                [NSCursor hide];
+                m_isHidden = YES;
+            }
 #endif
-      // if (m_isStopped)
-      // break;
+            // if (m_isStopped)
+            // break;
 
-      // if (view != NULL)
-      //[view setNeedsDisplay:YES];
+            // if (view != NULL)
+            //[view setNeedsDisplay:YES];
+        }
     }
-  }
 }
 
 - (void)_beginThread
 {
-  //[animationLock lock];
+    //[animationLock lock];
 
-  m_isStopped = NO;
+    m_isStopped = NO;
 
-  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
-                 ^{
-                   dispatch_group_enter(self->m_animationDispatchGroup);
-                   [self _animationThread];
-                   dispatch_group_leave(self->m_animationDispatchGroup);
-                 });
+    dispatch_async(
+        dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            dispatch_group_enter(self->m_animationDispatchGroup);
+            [self _animationThread];
+            dispatch_group_leave(self->m_animationDispatchGroup);
+        });
 }
 
 - (void)_endThread
 {
-  m_isStopped = YES;
-  m_beginFrameBarrier->wait();
-  m_endFrameBarrier->wait();
+    m_isStopped = YES;
+    m_beginFrameBarrier->wait();
+    m_endFrameBarrier->wait();
 
-  dispatch_group_wait(m_animationDispatchGroup, DISPATCH_TIME_FOREVER);
+    dispatch_group_wait(m_animationDispatchGroup, DISPATCH_TIME_FOREVER);
 }
 
 - (void)windowDidResize
 {
-  [view setFrame:[self frame]];
+    [view setFrame:[self frame]];
 
-  ESScreensaver_ForceWidthAndHeight((uint32)[self frame].size.width,
-                                    (uint32)[self frame].size.height);
+    ESScreensaver_ForceWidthAndHeight((uint32)[self frame].size.width,
+                                      (uint32)[self frame].size.height);
 }
 
 - (BOOL)hasConfigureSheet
 {
-  return YES;
+    return YES;
 }
 
 - (NSWindow *)configureSheet
 {
-  if (!m_config)
-  {
-    m_config = [[ESConfiguration alloc] initWithWindowNibName:@"ElectricSheep"];
-  }
+    if (!m_config)
+    {
+        m_config =
+            [[ESConfiguration alloc] initWithWindowNibName:@"ElectricSheep"];
+    }
 
-  return [m_config window];
+    return [m_config window];
 }
 
 - (void)flagsChanged:(NSEvent *)ev
 {
-  if ([ev keyCode] == 63) // FN Key
-    return;
+    if ([ev keyCode] == 63) // FN Key
+        return;
 
-  [super flagsChanged:ev];
+    [super flagsChanged:ev];
 }
 
 // keyDown
@@ -336,125 +339,125 @@ bool bStarted = false;
 // http://www.filewatcher.com/p/BasiliskII-0.9.1.tgz.276457/share/BasiliskII/keycodes.html
 - (void)keyDown:(NSEvent *)ev
 {
-  BOOL handled = NO;
+    BOOL handled = NO;
 
-  NSString *characters = [ev charactersIgnoringModifiers];
-  NSLog(@"char: %@ - %@", [ev charactersIgnoringModifiers], [ev characters]);
-  unsigned int characterIndex,
-      characterCount = (unsigned int)[characters length];
+    NSString *characters = [ev charactersIgnoringModifiers];
+    NSLog(@"char: %@ - %@", [ev charactersIgnoringModifiers], [ev characters]);
+    unsigned int characterIndex,
+        characterCount = (unsigned int)[characters length];
 
-  for (characterIndex = 0; characterIndex < characterCount; characterIndex++)
-  {
-    unichar c = [characters characterAtIndex:characterIndex];
-    switch (c)
+    for (characterIndex = 0; characterIndex < characterCount; characterIndex++)
     {
-    case NSRightArrowFunctionKey:
-      ESScreensaver_AppendKeyEvent(0x7C);
-      handled = YES;
-      break;
+        unichar c = [characters characterAtIndex:characterIndex];
+        switch (c)
+        {
+        case NSRightArrowFunctionKey:
+            ESScreensaver_AppendKeyEvent(0x7C);
+            handled = YES;
+            break;
 
-    case NSLeftArrowFunctionKey:
-      ESScreensaver_AppendKeyEvent(0x7B);
-      handled = YES;
-      break;
+        case NSLeftArrowFunctionKey:
+            ESScreensaver_AppendKeyEvent(0x7B);
+            handled = YES;
+            break;
 
-    case NSUpArrowFunctionKey:
-      ESScreensaver_AppendKeyEvent(0x7E);
-      handled = YES;
-      break;
+        case NSUpArrowFunctionKey:
+            ESScreensaver_AppendKeyEvent(0x7E);
+            handled = YES;
+            break;
 
-    case NSDownArrowFunctionKey:
-      ESScreensaver_AppendKeyEvent(0x7D);
-      handled = YES;
-      break;
+        case NSDownArrowFunctionKey:
+            ESScreensaver_AppendKeyEvent(0x7D);
+            handled = YES;
+            break;
 
-    case NSF1FunctionKey:
-      ESScreensaver_AppendKeyEvent(0x7A);
-      handled = YES;
-      break;
+        case NSF1FunctionKey:
+            ESScreensaver_AppendKeyEvent(0x7A);
+            handled = YES;
+            break;
 
-    case NSF2FunctionKey:
-      ESScreensaver_AppendKeyEvent(0x78);
-      handled = YES;
-      break;
+        case NSF2FunctionKey:
+            ESScreensaver_AppendKeyEvent(0x78);
+            handled = YES;
+            break;
 
-    case NSF3FunctionKey:
-      ESScreensaver_AppendKeyEvent(0x63);
-      handled = YES;
-      break;
+        case NSF3FunctionKey:
+            ESScreensaver_AppendKeyEvent(0x63);
+            handled = YES;
+            break;
 
-    case NSF4FunctionKey:
-      ESScreensaver_AppendKeyEvent(0x76);
-      handled = YES;
-      break;
+        case NSF4FunctionKey:
+            ESScreensaver_AppendKeyEvent(0x76);
+            handled = YES;
+            break;
 
-    case NSF8FunctionKey:
-      ESScreensaver_AppendKeyEvent(0x64);
-      handled = YES;
-      break;
+        case NSF8FunctionKey:
+            ESScreensaver_AppendKeyEvent(0x64);
+            handled = YES;
+            break;
 
-    case u',':
-      ESScreensaver_AppendKeyEvent(0xBC);
-      handled = YES;
-      break;
+        case u',':
+            ESScreensaver_AppendKeyEvent(0xBC);
+            handled = YES;
+            break;
 
-    case u'.':
-      ESScreensaver_AppendKeyEvent(0xBE);
-      handled = YES;
-      break;
+        case u'.':
+            ESScreensaver_AppendKeyEvent(0xBE);
+            handled = YES;
+            break;
 
-    case u'c':
-      ESScreensaver_AppendKeyEvent(0x50);
-      handled = YES;
-      break;
+        case u'c':
+            ESScreensaver_AppendKeyEvent(0x50);
+            handled = YES;
+            break;
 
-    default:
-      break;
+        default:
+            break;
+        }
     }
-  }
 
-  // If we didn't handle the key press, send it to the parent class
-  if (handled == NO)
-    [super keyDown:ev];
+    // If we didn't handle the key press, send it to the parent class
+    if (handled == NO)
+        [super keyDown:ev];
 }
 
 // Called immediately before relaunching.
 - (void)updaterWillRelaunchApplication:(SUUpdater *)__unused updater
 {
-  if (m_config != NULL)
-    [NSApp endSheet:[m_config window]];
+    if (m_config != NULL)
+        [NSApp endSheet:[m_config window]];
 }
 
 - (void)doUpdate:(NSTimer *)timer
 {
-  SUAppcastItem *update = [timer userInfo];
+    SUAppcastItem *update = [timer userInfo];
 
-  if (!m_isFullScreen)
-    [m_updater checkForUpdatesInBackground];
-  else
-    ESScreensaver_SetUpdateAvailable(
-        [[update displayVersionString] UTF8String]);
+    if (!m_isFullScreen)
+        [m_updater checkForUpdatesInBackground];
+    else
+        ESScreensaver_SetUpdateAvailable(
+            [[update displayVersionString] UTF8String]);
 }
 
 // Sent when a valid update is found by the update driver.
 - (void)updater:(SUUpdater *)__unused updater
     didFindValidUpdate:(SUAppcastItem *)update
 {
-  [NSTimer scheduledTimerWithTimeInterval:1.0
-                                   target:self
-                                 selector:@selector(doUpdate:)
-                                 userInfo:update
-                                  repeats:NO];
+    [NSTimer scheduledTimerWithTimeInterval:1.0
+                                     target:self
+                                   selector:@selector(doUpdate:)
+                                   userInfo:update
+                                    repeats:NO];
 }
 
 - (BOOL)fullscreen
 {
-  return m_isFullScreen;
+    return m_isFullScreen;
 }
 
 - (void)setFullScreen:(BOOL)fullscreen
 {
-  m_isFullScreen = fullscreen;
+    m_isFullScreen = fullscreen;
 }
 
 #ifdef USE_METAL
@@ -465,11 +468,11 @@ bool bStarted = false;
 
 - (void)drawInMTKView:(nonnull MTKView *)view
 {
-  if (!m_isStopped)
-  {
-    m_beginFrameBarrier->wait();
-    m_endFrameBarrier->wait();
-  }
+    if (!m_isStopped)
+    {
+        m_beginFrameBarrier->wait();
+        m_endFrameBarrier->wait();
+    }
 }
 #endif
 @end

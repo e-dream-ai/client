@@ -14,16 +14,16 @@ wxWidgetsApp::~wxWidgetsApp() {}
 
 bool wxWidgetsApp::OnInit()
 {
-  m_dialog = new electricsheepguiMyDialog2((wxWindow *)NULL);
+    m_dialog = new electricsheepguiMyDialog2((wxWindow *)NULL);
 #ifdef WIN32
-  m_dialog->SetIcon(wxString(L"0"));
+    m_dialog->SetIcon(wxString(L"0"));
 #endif
 #ifdef LINUX_GNU
-  wxIcon myicon = wxIcon(eslogo);
-  m_dialog->SetIcon(myicon);
+    wxIcon myicon = wxIcon(eslogo);
+    m_dialog->SetIcon(myicon);
 #endif
-  m_dialog->Centre();
-  m_dialog->Show(true);
-  SetTopWindow(m_dialog);
-  return true;
+    m_dialog->Centre();
+    m_dialog->Show(true);
+    SetTopWindow(m_dialog);
+    return true;
 }
