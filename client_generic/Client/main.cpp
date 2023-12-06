@@ -1,6 +1,6 @@
-#include <string>
 #include <stddef.h>
 #include <stdio.h>
+#include <string>
 #include <sys/types.h>
 #if defined(WIN32) && !defined(_MSC_VER)
 #include <dirent.h>
@@ -15,62 +15,59 @@
 
 #include "client.h"
 
-#ifdef	WIN32
+#ifdef WIN32
 class ExceptionHandler
 {
-    public:
-
-    ExceptionHandler()
-    {
-        LoadLibraryA( "exchndl.dll" );
-    }
+public:
+  ExceptionHandler() { LoadLibraryA("exchndl.dll"); }
 };
 
-static ExceptionHandler gExceptionHandler;	//  global instance of class
+static ExceptionHandler gExceptionHandler; //  global instance of class
 
-	#include	"client_win32.h"
-	typedef CElectricSheep_Win32	CElectricSheepClient;
+#include "client_win32.h"
+typedef CElectricSheep_Win32 CElectricSheepClient;
 #else
 #ifdef MAC
-#include    <OpenGL/gl.h>
-#include    <GLUT/glut.h>
-#include	"client_mac.h"
-typedef CElectricSheep_Mac	CElectricSheepClient;
+#include "client_mac.h"
+#include <GLUT/glut.h>
+#include <OpenGL/gl.h>
+typedef CElectricSheep_Mac CElectricSheepClient;
 #else
-#include    <GL/gl.h>
-#include    <GL/glut.h>
-#include	"client_linux.h"
-typedef CElectricSheep_Linux	CElectricSheepClient;
+#include "client_linux.h"
+#include <GL/gl.h>
+#include <GL/glut.h>
+typedef CElectricSheep_Linux CElectricSheepClient;
 #endif
 #endif
 
 //
-#ifdef	WIN32
-int32 APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow )
+#ifdef WIN32
+int32 APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
+                       LPSTR lpCmdLine, int nCmdShow)
 {
 #else
-int32 main( int argc, char *argv[] )
+int32 main(int argc, char *argv[])
 {
-	glutInit( &argc, argv );
+  glutInit(&argc, argv);
 #endif
 
-    //	Start log (unattached).
-    g_Log->Startup();
+  //	Start log (unattached).
+  g_Log->Startup();
 
-	CElectricSheepClient	client;
+  CElectricSheepClient client;
 
-	if( client.Startup() )
-		client.Run();
+  if (client.Startup())
+    client.Run();
 
-//    g_Log->Info( "Raising access violation...\n" );
-//    asm( "movl $0, %eax" );
-//    asm( "movl $1, (%eax)" );
+  //    g_Log->Info( "Raising access violation...\n" );
+  //    asm( "movl $0, %eax" );
+  //    asm( "movl $1, (%eax)" );
 
-//    __asm("int3");
+  //    __asm("int3");
 
-	client.Shutdown();
+  client.Shutdown();
 
-	g_Log->Shutdown();
+  g_Log->Shutdown();
 
-	return 0;
+  return 0;
 }

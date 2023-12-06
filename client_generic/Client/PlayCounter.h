@@ -6,253 +6,241 @@
 #ifndef _PLAYCOUNTER_H
 #define _PLAYCOUNTER_H
 
-#include	<boost/filesystem/path.hpp>
-#include	<boost/scoped_ptr.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/scoped_ptr.hpp>
 static const uint32 gl_sMaxGeneration = 100000;
 #define max_sheep 100000
-#define max_play_count ((1<<16)-1)
+#define max_play_count ((1 << 16) - 1)
 #define log_page_size 10
-#define log_count_size (log_page_size-1)
-#define play_count_size (1<<log_count_size)
-#define n_dirty_bits (1+(max_sheep>>log_count_size))
+#define log_count_size (log_page_size - 1)
+#define play_count_size (1 << log_count_size)
+#define n_dirty_bits (1 + (max_sheep >> log_count_size))
 #define play_write_rate 10
 
 using boost::filesystem::path;
 
 struct sPlayCountData
 {
-	uint16	PlayCounts[ max_sheep ];
-	FILE*	PlayCountFile;
+  uint16 PlayCounts[max_sheep];
+  FILE *PlayCountFile;
 };
 
-class	CPlayCounter : public Base::CSingleton<CPlayCounter>
+class CPlayCounter : public Base::CSingleton<CPlayCounter>
 {
-	friend class Base::CSingleton<CPlayCounter>;
-    
-    typedef std::map<uint32, sPlayCountData> PlayCountMap;
+  friend class Base::CSingleton<CPlayCounter>;
 
-	PlayCountMap m_PlayCounts;
-	path m_PlayCountFilePath;
-	bool m_ReadOnly;
+  typedef std::map<uint32, sPlayCountData> PlayCountMap;
 
-	size_t	m_DeadEndCutSurvivors;
-	size_t	m_MedianCutSurvivors;
+  PlayCountMap m_PlayCounts;
+  path m_PlayCountFilePath;
+  bool m_ReadOnly;
 
-	int	m_PlayCountDecayY;
-	int	m_PlayCountDecayZ;
+  size_t m_DeadEndCutSurvivors;
+  size_t m_MedianCutSurvivors;
 
-	uint64	m_PlayCountTotal;
+  int m_PlayCountDecayY;
+  int m_PlayCountDecayZ;
 
-	void InitPlayCounts(uint32 generation)
-	{
-		if (generation >= gl_sMaxGeneration || generation == 0)
-			return;
-		m_PlayCountTotal = 0;
+  uint64 m_PlayCountTotal;
 
-		PlayCountMap::iterator iter = m_PlayCounts.find(generation);
-		if (iter == m_PlayCounts.end())
-		{
-			boost::scoped_ptr<sPlayCountData> pdata(new sPlayCountData);
-			memset(pdata.get(), 0, sizeof(sPlayCountData));
-			path generation_path = m_PlayCountFilePath;
-			std::stringstream generationstr;
-			generationstr << "play_counts." << generation;
-			generation_path /= generationstr.str().c_str();
-			// create new file for this generation
+  void InitPlayCounts(uint32 generation)
+  {
+    if (generation >= gl_sMaxGeneration || generation == 0)
+      return;
+    m_PlayCountTotal = 0;
+
+    PlayCountMap::iterator iter = m_PlayCounts.find(generation);
+    if (iter == m_PlayCounts.end())
+    {
+      boost::scoped_ptr<sPlayCountData> pdata(new sPlayCountData);
+      memset(pdata.get(), 0, sizeof(sPlayCountData));
+      path generation_path = m_PlayCountFilePath;
+      std::stringstream generationstr;
+      generationstr << "play_counts." << generation;
+      generation_path /= generationstr.str().c_str();
+      // create new file for this generation
 #ifdef WIN32
-			pdata->PlayCountFile = _fsopen(generation_path.string().c_str(), "r+b", _SH_DENYWR); // deny write
+      pdata->PlayCountFile = _fsopen(generation_path.string().c_str(), "r+b",
+                                     _SH_DENYWR); // deny write
 #else
-			pdata->PlayCountFile = fopen(generation_path.string().c_str(), "r+b"); // deny write
+      pdata->PlayCountFile =
+          fopen(generation_path.string().c_str(), "r+b"); // deny write
 #endif
-			if (pdata->PlayCountFile == NULL) // file not found
-			{
+      if (pdata->PlayCountFile == NULL) // file not found
+      {
 #ifdef WIN32
-				pdata->PlayCountFile = _fsopen(generation_path.string().c_str(), "w+b", _SH_DENYWR);
+        pdata->PlayCountFile =
+            _fsopen(generation_path.string().c_str(), "w+b", _SH_DENYWR);
 #else
-				pdata->PlayCountFile = fopen(generation_path.string().c_str(), "w+b");
+        pdata->PlayCountFile = fopen(generation_path.string().c_str(), "w+b");
 #endif
-				if ( pdata->PlayCountFile == NULL ) // unable to open for writing
-				{
-					pdata->PlayCountFile = fopen(generation_path.string().c_str(), "rb" );
-					if ( pdata->PlayCountFile == NULL ) // unable to open for reading
-					{
-						m_ReadOnly = true;
-						g_Log->Error( "Running without play counts: %s",  generation_path.string().c_str());
-						m_PlayCounts[generation] = *pdata;
-						return;
-					}
-					else
-					{
-						g_Log->Warning( "Using read-only playcounts" );
-						m_ReadOnly = true;
-					}
-				}
-				else // write after w+b
-				if ( max_sheep != fwrite( pdata->PlayCounts, sizeof( uint16 ), max_sheep, pdata->PlayCountFile ) )
-				{
-					m_ReadOnly = true;
-					g_Log->Error( "Cannot initialize play counts, fwrite failed" );
-					fclose( pdata->PlayCountFile );
-					pdata->PlayCountFile = NULL;
-					m_PlayCounts[generation] = *pdata;
-					return;
-				}
-				else
-					fflush(pdata->PlayCountFile);
-			}
+        if (pdata->PlayCountFile == NULL) // unable to open for writing
+        {
+          pdata->PlayCountFile = fopen(generation_path.string().c_str(), "rb");
+          if (pdata->PlayCountFile == NULL) // unable to open for reading
+          {
+            m_ReadOnly = true;
+            g_Log->Error("Running without play counts: %s",
+                         generation_path.string().c_str());
+            m_PlayCounts[generation] = *pdata;
+            return;
+          }
+          else
+          {
+            g_Log->Warning("Using read-only playcounts");
+            m_ReadOnly = true;
+          }
+        }
+        else // write after w+b
+          if (max_sheep != fwrite(pdata->PlayCounts, sizeof(uint16), max_sheep,
+                                  pdata->PlayCountFile))
+          {
+            m_ReadOnly = true;
+            g_Log->Error("Cannot initialize play counts, fwrite failed");
+            fclose(pdata->PlayCountFile);
+            pdata->PlayCountFile = NULL;
+            m_PlayCounts[generation] = *pdata;
+            return;
+          }
+          else
+            fflush(pdata->PlayCountFile);
+      }
 
+      size_t nread = fread(pdata->PlayCounts, sizeof(uint16), max_sheep,
+                           pdata->PlayCountFile);
+      fflush(pdata->PlayCountFile);
+      if (nread < max_sheep)
+      {
+        g_Log->Error("Cannot initialize play counts, fread failed");
+        fclose(pdata->PlayCountFile);
+        pdata->PlayCountFile = NULL;
+      }
 
-			size_t nread = fread( pdata->PlayCounts, sizeof( uint16 ), max_sheep, pdata->PlayCountFile);
-			fflush(pdata->PlayCountFile);
-			if ( nread < max_sheep )
-			{
-				g_Log->Error( "Cannot initialize play counts, fread failed" );
-				fclose( pdata->PlayCountFile );
-				pdata->PlayCountFile = NULL;
-			}
-			
-			m_PlayCounts[generation] = *pdata;
-			
-			if ( nread == max_sheep )
-				for (size_t ii = 0; ii < max_sheep; ++ii)
-					m_PlayCountTotal += m_PlayCounts[generation].PlayCounts[ii];
-		}
-	}
+      m_PlayCounts[generation] = *pdata;
+
+      if (nread == max_sheep)
+        for (size_t ii = 0; ii < max_sheep; ++ii)
+          m_PlayCountTotal += m_PlayCounts[generation].PlayCounts[ii];
+    }
+  }
 
 public:
-	CPlayCounter():m_ReadOnly(false), m_DeadEndCutSurvivors(0), m_MedianCutSurvivors(0), m_PlayCountTotal(0)
-	{
-		m_PlayCountDecayY = g_Settings()->Get( "settings.player.PlayCountDecayY", 2000 );
-		m_PlayCountDecayZ = g_Settings()->Get( "settings.player.PlayCountDecayZ", 60 );
-		if (m_PlayCountDecayZ < 0)
-			m_PlayCountDecayZ = 0;
-		if (m_PlayCountDecayZ > 100)
-			m_PlayCountDecayZ = 100;
-	}
-	
-	virtual ~CPlayCounter()
-	{
-		Shutdown();
-		
-		SingletonActive( false );
-	}
-	
-	const char *Description()	{	return( "Player" );	};
-	
-	void clearMedianSurvivorsStats()
-	{
-		m_MedianCutSurvivors = 0;
-	}
+  CPlayCounter()
+      : m_ReadOnly(false), m_DeadEndCutSurvivors(0), m_MedianCutSurvivors(0),
+        m_PlayCountTotal(0)
+  {
+    m_PlayCountDecayY =
+        g_Settings()->Get("settings.player.PlayCountDecayY", 2000);
+    m_PlayCountDecayZ =
+        g_Settings()->Get("settings.player.PlayCountDecayZ", 60);
+    if (m_PlayCountDecayZ < 0)
+      m_PlayCountDecayZ = 0;
+    if (m_PlayCountDecayZ > 100)
+      m_PlayCountDecayZ = 100;
+  }
 
-	void clearDeadEndSurvivorsStats()
-	{
-		m_DeadEndCutSurvivors = 0;
-	}
+  virtual ~CPlayCounter()
+  {
+    Shutdown();
 
-	void IncMedianCutSurvivors()
-	{
-		++m_MedianCutSurvivors;
-	}
+    SingletonActive(false);
+  }
 
-	void IncDeadEndCutSurvivors()
-	{
-		++m_DeadEndCutSurvivors;
-	}
+  const char *Description() { return ("Player"); };
 
-	uint64 GetMedianCutSurvivors()
-	{
-		return m_MedianCutSurvivors;
-	}
+  void clearMedianSurvivorsStats() { m_MedianCutSurvivors = 0; }
 
-	uint64 GetDeadEndCutSurvivors()
-	{
-		return m_DeadEndCutSurvivors;
-	}
+  void clearDeadEndSurvivorsStats() { m_DeadEndCutSurvivors = 0; }
 
-	void ClosePlayCounts()
-	{
-		PlayCountMap::iterator iter = m_PlayCounts.begin();
-		while (iter != m_PlayCounts.end())
-		{
-			if (iter->second.PlayCountFile != NULL)
-			{
-				fflush( iter->second.PlayCountFile );
-				fseek( iter->second.PlayCountFile, 0, SEEK_SET );
-				size_t nwrite = fwrite( iter->second.PlayCounts, sizeof( uint16 ), max_sheep, iter->second.PlayCountFile );
-				if (nwrite != max_sheep)
-					g_Log->Error( "Writing playcounts failed" );
-				fclose( iter->second.PlayCountFile );
-				iter->second.PlayCountFile = NULL;
-			}
-			++iter;
-		}
-		m_PlayCounts.clear();
-	}
+  void IncMedianCutSurvivors() { ++m_MedianCutSurvivors; }
 
-	bool Shutdown( void )
-	{ 
-		ClosePlayCounts();
+  void IncDeadEndCutSurvivors() { ++m_DeadEndCutSurvivors; }
 
-		return true;
-	}
-	
-	void SetDirectory( const path& dir )
-	{
-		m_PlayCountFilePath = dir;
-	}
+  uint64 GetMedianCutSurvivors() { return m_MedianCutSurvivors; }
 
-	void IncPlayCount( uint32 generation, uint32 id )
-	{
-		if (id >= max_sheep || generation > gl_sMaxGeneration || generation == 0)
-			return;
-		if (m_PlayCountTotal > static_cast<uint64>(m_PlayCountDecayY) && m_PlayCountDecayZ != 100)
-		{
-			m_PlayCountTotal = 0;
-			for (PlayCountMap::iterator jj = m_PlayCounts.begin(); jj != m_PlayCounts.end(); ++jj)
-			for (size_t ii = 0; ii < max_sheep; ++ii)
-			{
-				jj->second.PlayCounts[ii] = uint16(m_PlayCountDecayZ/100. * jj->second.PlayCounts[ii]);
-				m_PlayCountTotal += jj->second.PlayCounts[ii];
-			}
-		}
+  uint64 GetDeadEndCutSurvivors() { return m_DeadEndCutSurvivors; }
 
-		PlayCountMap::iterator iter = m_PlayCounts.find(generation);
-		if (iter == m_PlayCounts.end())
-			InitPlayCounts(generation);
+  void ClosePlayCounts()
+  {
+    PlayCountMap::iterator iter = m_PlayCounts.begin();
+    while (iter != m_PlayCounts.end())
+    {
+      if (iter->second.PlayCountFile != NULL)
+      {
+        fflush(iter->second.PlayCountFile);
+        fseek(iter->second.PlayCountFile, 0, SEEK_SET);
+        size_t nwrite = fwrite(iter->second.PlayCounts, sizeof(uint16),
+                               max_sheep, iter->second.PlayCountFile);
+        if (nwrite != max_sheep)
+          g_Log->Error("Writing playcounts failed");
+        fclose(iter->second.PlayCountFile);
+        iter->second.PlayCountFile = NULL;
+      }
+      ++iter;
+    }
+    m_PlayCounts.clear();
+  }
 
-		iter = m_PlayCounts.find(generation);
-		++iter->second.PlayCounts[id];
-		++m_PlayCountTotal;
-	}
+  bool Shutdown(void)
+  {
+    ClosePlayCounts();
 
-	uint16 PlayCount( uint32 generation, uint32 id )
-	{
-		if ( id < max_sheep  && generation != 0 && generation < gl_sMaxGeneration)
-		{
-			PlayCountMap::iterator iter = m_PlayCounts.find(generation);
-			if (iter == m_PlayCounts.end())
-				InitPlayCounts(generation);
+    return true;
+  }
 
-			iter = m_PlayCounts.find(generation);
-			if (iter->second.PlayCounts[id] != 0)
-				return iter->second.PlayCounts[id];
-			else
-				return 1;
-		}
-		return 1;
-	}
+  void SetDirectory(const path &dir) { m_PlayCountFilePath = dir; }
 
-	bool ReadOnlyPlayCounts()
-	{
-		return m_ReadOnly;
-	}
+  void IncPlayCount(uint32 generation, uint32 id)
+  {
+    if (id >= max_sheep || generation > gl_sMaxGeneration || generation == 0)
+      return;
+    if (m_PlayCountTotal > static_cast<uint64>(m_PlayCountDecayY) &&
+        m_PlayCountDecayZ != 100)
+    {
+      m_PlayCountTotal = 0;
+      for (PlayCountMap::iterator jj = m_PlayCounts.begin();
+           jj != m_PlayCounts.end(); ++jj)
+        for (size_t ii = 0; ii < max_sheep; ++ii)
+        {
+          jj->second.PlayCounts[ii] =
+              uint16(m_PlayCountDecayZ / 100. * jj->second.PlayCounts[ii]);
+          m_PlayCountTotal += jj->second.PlayCounts[ii];
+        }
+    }
+
+    PlayCountMap::iterator iter = m_PlayCounts.find(generation);
+    if (iter == m_PlayCounts.end())
+      InitPlayCounts(generation);
+
+    iter = m_PlayCounts.find(generation);
+    ++iter->second.PlayCounts[id];
+    ++m_PlayCountTotal;
+  }
+
+  uint16 PlayCount(uint32 generation, uint32 id)
+  {
+    if (id < max_sheep && generation != 0 && generation < gl_sMaxGeneration)
+    {
+      PlayCountMap::iterator iter = m_PlayCounts.find(generation);
+      if (iter == m_PlayCounts.end())
+        InitPlayCounts(generation);
+
+      iter = m_PlayCounts.find(generation);
+      if (iter->second.PlayCounts[id] != 0)
+        return iter->second.PlayCounts[id];
+      else
+        return 1;
+    }
+    return 1;
+  }
+
+  bool ReadOnlyPlayCounts() { return m_ReadOnly; }
 };
 
 /*
-	Helper for less typing...
+        Helper for less typing...
 
 */
-inline CPlayCounter &g_PlayCounter( void )	{ return( CPlayCounter::Instance() ); }
+inline CPlayCounter &g_PlayCounter(void) { return (CPlayCounter::Instance()); }
 
 #endif //_PLAYCOUNTER_H
-

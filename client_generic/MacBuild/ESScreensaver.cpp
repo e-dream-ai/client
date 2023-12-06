@@ -8,289 +8,307 @@
 #endif
 #include "client.h"
 #include "client_mac.h"
-#include <OpenGL/OpenGL.h>
-#include <GLUT/glut.h>
 #include "tinyxml.h"
+#include <GLUT/glut.h>
+#include <OpenGL/OpenGL.h>
 
+CElectricSheep_Mac gClient;
 
-CElectricSheep_Mac	gClient;
-
-CFBundleRef CopyDLBundle_ex( void )
+CFBundleRef CopyDLBundle_ex(void)
 {
-	
-	CFBundleRef bundle = NULL;
-	Dl_info info;
-	
-	if( dladdr( (const void *)__func__, &info ) ) {
-		
-		const char *bundle_path = dirname( (char *)info.dli_fname );
-		
-		do {
-			if (bundle != NULL)
-            {
-                CFRelease(bundle);
-                bundle = NULL;
-            }
-            
-            CFURLRef bundleURL = CFURLCreateFromFileSystemRepresentation( kCFAllocatorDefault, (UInt8 *)bundle_path, (CFIndex)strlen( bundle_path ), true );
-			
-			bundle = CFBundleCreate( kCFAllocatorDefault, bundleURL );
-			
-			CFRelease(bundleURL);
-			
-			if (bundle == NULL)
-				return NULL;
-			
-			if( CFBundleGetValueForInfoDictionaryKey( bundle, kCFBundleExecutableKey ) != NULL ) {
-				break;
-			}
-			bundle_path = dirname( (char *)bundle_path );
-		} while( strcmp( bundle_path, "." ) );
-	}
-	
-	return( bundle );
+
+  CFBundleRef bundle = NULL;
+  Dl_info info;
+
+  if (dladdr((const void *)__func__, &info))
+  {
+
+    const char *bundle_path = dirname((char *)info.dli_fname);
+
+    do
+    {
+      if (bundle != NULL)
+      {
+        CFRelease(bundle);
+        bundle = NULL;
+      }
+
+      CFURLRef bundleURL = CFURLCreateFromFileSystemRepresentation(
+          kCFAllocatorDefault, (UInt8 *)bundle_path,
+          (CFIndex)strlen(bundle_path), true);
+
+      bundle = CFBundleCreate(kCFAllocatorDefault, bundleURL);
+
+      CFRelease(bundleURL);
+
+      if (bundle == NULL)
+        return NULL;
+
+      if (CFBundleGetValueForInfoDictionaryKey(bundle,
+                                               kCFBundleExecutableKey) != NULL)
+      {
+        break;
+      }
+      bundle_path = dirname((char *)bundle_path);
+    } while (strcmp(bundle_path, "."));
+  }
+
+  return (bundle);
 }
 
-void ESScreenSaver_AddGraphicsContext( void *_glContext )
+void ESScreenSaver_AddGraphicsContext(void *_glContext)
 {
-	gClient.AddGraphicsContext( (CGraphicsContext)_glContext );
+  gClient.AddGraphicsContext((CGraphicsContext)_glContext);
 }
 
-
-bool ESScreensaver_Start( bool _bPreview, uint32 _width, uint32 _height )
-{	
-	if (g_Player().Display() == NULL)
-	{
+bool ESScreensaver_Start(bool _bPreview, uint32 _width, uint32 _height)
+{
+  if (g_Player().Display() == NULL)
+  {
 #ifdef USE_METAL
-        DisplayOutput::CDisplayMetal::SetDefaultWidthAndHeight( _width, _height );
+    DisplayOutput::CDisplayMetal::SetDefaultWidthAndHeight(_width, _height);
 #else
-		DisplayOutput::CMacGL::SetDefaultWidthAndHeight( _width, _height );
+    DisplayOutput::CMacGL::SetDefaultWidthAndHeight(_width, _height);
 #endif
-		
-		gClient.SetIsPreview( _bPreview );
-				
-		gClient.Startup();
-		//we should stop the player, if it is started by default, just to be sure.
-		//g_Player().Stop();
-	}
-		
-    //g_Player().Display()->SetContext((CGLContextObj)_glContext);
-    g_Player().ForceWidthAndHeight(0, _width, _height );
 
-	//g_Player().SetGLContext((CGLContextObj)_glContext, _bPreview);
-	
-	//if (g_Player().Renderer() != NULL)
-	//{
-		//g_Player().Renderer()->Defaults();
-	//}
-	
-	//if (g_Player().Stopped())
-		//g_Player().Start();
-		
-	return true;
+    gClient.SetIsPreview(_bPreview);
+
+    gClient.Startup();
+    // we should stop the player, if it is started by default, just to be sure.
+    // g_Player().Stop();
+  }
+
+  // g_Player().Display()->SetContext((CGLContextObj)_glContext);
+  g_Player().ForceWidthAndHeight(0, _width, _height);
+
+  // g_Player().SetGLContext((CGLContextObj)_glContext, _bPreview);
+
+  // if (g_Player().Renderer() != NULL)
+  //{
+  // g_Player().Renderer()->Defaults();
+  //}
+
+  // if (g_Player().Stopped())
+  // g_Player().Start();
+
+  return true;
 }
 
-bool ESScreensaver_DoFrame( boost::barrier& _beginFrameBarrier, boost::barrier& _endFrameBarrier )
+bool ESScreensaver_DoFrame(boost::barrier &_beginFrameBarrier,
+                           boost::barrier &_endFrameBarrier)
 {
-	bool retval = true;
-		
-	if( gClient.Update(_beginFrameBarrier, _endFrameBarrier) == false )
-	{
-		retval = false;
-	}
-	
-	return retval;
+  bool retval = true;
+
+  if (gClient.Update(_beginFrameBarrier, _endFrameBarrier) == false)
+  {
+    retval = false;
+  }
+
+  return retval;
 }
 
-void ESScreensaver_Stop( void )
+void ESScreensaver_Stop(void) { g_Player().Stop(); }
+
+bool ESScreensaver_Stopped(void) { return g_Player().Stopped(); }
+
+void ESScreensaver_ForceWidthAndHeight(uint32 _width, uint32 _height)
 {
-	g_Player().Stop();
+  g_Player().ForceWidthAndHeight(0, _width, _height);
 }
 
-bool ESScreensaver_Stopped( void )
+void ESScreensaver_Deinit(void) { gClient.Shutdown(); }
+
+void ESScreensaver_AppendKeyEvent(UInt32 keyCode)
 {
-	return g_Player().Stopped();
+  using namespace DisplayOutput;
+
+  if (g_Player().Display() != NULL)
+  {
+    spCKeyEvent spEvent = std::make_shared<CKeyEvent>();
+    spEvent->m_bPressed = true;
+
+    switch (keyCode)
+    {
+    case 0x7B:
+      spEvent->m_Code = CKeyEvent::KEY_LEFT;
+      break;
+    case 0x7C:
+      spEvent->m_Code = CKeyEvent::KEY_RIGHT;
+      break;
+    case 0x7E:
+      spEvent->m_Code = CKeyEvent::KEY_UP;
+      break;
+    case 0x7D:
+      spEvent->m_Code = CKeyEvent::KEY_DOWN;
+      break;
+    case 0x31:
+      spEvent->m_Code = CKeyEvent::KEY_SPACE;
+      break;
+    case 0x7A:
+      spEvent->m_Code = CKeyEvent::KEY_F1;
+      break;
+    case 0x78:
+      spEvent->m_Code = CKeyEvent::KEY_F2;
+      break;
+    case 0x63:
+      spEvent->m_Code = CKeyEvent::KEY_F3;
+      break;
+    case 0x76:
+      spEvent->m_Code = CKeyEvent::KEY_F4;
+      break;
+    case 0x64:
+      spEvent->m_Code = CKeyEvent::KEY_F8;
+      break;
+    case 0x35:
+      spEvent->m_Code = CKeyEvent::KEY_Esc;
+      break;
+    case 0xBC:
+      spEvent->m_Code = CKeyEvent::KEY_Comma;
+      break;
+    case 0xBE:
+      spEvent->m_Code = CKeyEvent::KEY_Period;
+      break;
+    case 0x50:
+      spEvent->m_Code = CKeyEvent::KEY_P;
+      break;
+    }
+
+    g_Player().Display()->AppendEvent(spEvent);
+  }
 }
 
-void ESScreensaver_ForceWidthAndHeight( uint32 _width, uint32 _height )
+CFStringRef ESScreensaver_GetVersion(void)
 {
-	g_Player().ForceWidthAndHeight(0, _width, _height );
+  return gClient.GetBundleVersion();
 }
 
-void ESScreensaver_Deinit( void )
+void ESScreensaver_InitClientStorage(void) { gClient.SetUpConfig(); }
+
+CFStringRef ESScreensaver_CopyGetRoot(void)
 {
-	gClient.Shutdown();
+  std::string root = g_Settings()->Get("settings.content.sheepdir",
+                                       g_Settings()->Root() + "content");
+
+  if (root.empty())
+  {
+    root = g_Settings()->Root() + "content";
+    g_Settings()->Set("settings.content.sheepdir", root);
+  }
+
+  return CFStringCreateWithCString(NULL, root.c_str(), kCFStringEncodingUTF8);
 }
 
-void ESScreensaver_AppendKeyEvent( UInt32 keyCode )
+CFStringRef ESScreensaver_CopyGetStringSetting(const char *url,
+                                               const char *defval)
 {
-	using namespace DisplayOutput;
-		
-	if ( g_Player().Display() != NULL )
-	{
-		spCKeyEvent spEvent = std::make_shared<CKeyEvent>();
-		spEvent->m_bPressed = true;
-		
-		switch( keyCode )
-		{
-			case 0x7B:	spEvent->m_Code = CKeyEvent::KEY_LEFT;	break;
-			case 0x7C:	spEvent->m_Code = CKeyEvent::KEY_RIGHT;	break;
-			case 0x7E:	spEvent->m_Code = CKeyEvent::KEY_UP;	break;
-			case 0x7D:	spEvent->m_Code = CKeyEvent::KEY_DOWN;	break;
-			case 0x31:	spEvent->m_Code = CKeyEvent::KEY_SPACE;	break;
-			case 0x7A:	spEvent->m_Code = CKeyEvent::KEY_F1;	break;
-			case 0x78:	spEvent->m_Code = CKeyEvent::KEY_F2;	break;
-			case 0x63:	spEvent->m_Code = CKeyEvent::KEY_F3;	break;
-			case 0x76:	spEvent->m_Code = CKeyEvent::KEY_F4;	break;
-			case 0x64:	spEvent->m_Code = CKeyEvent::KEY_F8;	break;
-			case 0x35:	spEvent->m_Code = CKeyEvent::KEY_Esc;	break;
-            case 0xBC:  spEvent->m_Code = CKeyEvent::KEY_Comma; break;
-            case 0xBE:  spEvent->m_Code = CKeyEvent::KEY_Period; break;
-            case 0x50:  spEvent->m_Code = CKeyEvent::KEY_P; break;
-		}
+  std::string val = g_Settings()->Get(std::string(url), std::string(defval));
 
-		g_Player().Display()->AppendEvent(spEvent);
-	}	
+  return CFStringCreateWithCString(NULL, val.c_str(), kCFStringEncodingUTF8);
 }
 
-CFStringRef ESScreensaver_GetVersion( void )
+SInt32 ESScreensaver_GetIntSetting(const char *url, const SInt32 defval)
 {
-	return gClient.GetBundleVersion();
+  return g_Settings()->Get(std::string(url), (int32)defval);
 }
 
-
-void ESScreensaver_InitClientStorage( void )
+bool ESScreensaver_GetBoolSetting(const char *url, const bool defval)
 {
-	gClient.SetUpConfig();
+  return g_Settings()->Get(std::string(url), (bool)defval);
 }
 
-CFStringRef ESScreensaver_CopyGetRoot( void )
-{	
-	std::string root = g_Settings()->Get("settings.content.sheepdir", g_Settings()->Root() + "content");
-	
-	if (root.empty())
-	{
-		root = g_Settings()->Root() + "content";
-		g_Settings()->Set("settings.content.sheepdir", root);
-	}
-	
-	return CFStringCreateWithCString( NULL, root.c_str(), kCFStringEncodingUTF8 );
-}
-
-
-CFStringRef ESScreensaver_CopyGetStringSetting( const char *url, const char *defval )
-{	
-	std::string val = g_Settings()->Get( std::string(url), std::string(defval) );
-	
-	return CFStringCreateWithCString( NULL, val.c_str(), kCFStringEncodingUTF8 );
-}
-
-SInt32 ESScreensaver_GetIntSetting( const char *url, const SInt32 defval )
-{	
-	return g_Settings()->Get(std::string(url), (int32)defval );
-}
-
-bool ESScreensaver_GetBoolSetting( const char *url, const bool defval )
-{	
-	return g_Settings()->Get(std::string(url), (bool)defval );
-}
-
-double ESScreensaver_GetDoubleSetting( const char *url, const double defval )
-{	
-	return g_Settings()->Get(std::string(url), (fp8)defval );
-}
-
-
-void ESScreensaver_SetStringSetting( const char *url, const char *val )
+double ESScreensaver_GetDoubleSetting(const char *url, const double defval)
 {
-	g_Settings()->Set(std::string(url), std::string(val));
+  return g_Settings()->Get(std::string(url), (fp8)defval);
 }
 
-void ESScreensaver_SetIntSetting( const char *url, const SInt32 val )
+void ESScreensaver_SetStringSetting(const char *url, const char *val)
 {
-	g_Settings()->Set(std::string(url), (int32)val);
+  g_Settings()->Set(std::string(url), std::string(val));
 }
 
-void ESScreensaver_SetBoolSetting( const char *url, const bool val )
+void ESScreensaver_SetIntSetting(const char *url, const SInt32 val)
 {
-	g_Settings()->Set(std::string(url), val);
+  g_Settings()->Set(std::string(url), (int32)val);
 }
 
-void ESScreensaver_SetDoubleSetting( const char *url, const double val )
+void ESScreensaver_SetBoolSetting(const char *url, const bool val)
 {
-	g_Settings()->Set(std::string(url), val);
+  g_Settings()->Set(std::string(url), val);
 }
 
-	
-void ESScreensaver_DeinitClientStorage( void )
+void ESScreensaver_SetDoubleSetting(const char *url, const double val)
 {
-    g_Settings()->Storage()->Commit();
+  g_Settings()->Set(std::string(url), val);
 }
 
-void ESScreensaver_SetUpdateAvailable( const char *verinfo)
+void ESScreensaver_DeinitClientStorage(void)
 {
-	gClient.SetUpdateAvailable(verinfo);
+  g_Settings()->Storage()->Commit();
+}
+
+void ESScreensaver_SetUpdateAvailable(const char *verinfo)
+{
+  gClient.SetUpdateAvailable(verinfo);
 }
 
 #include <boost/filesystem.hpp>
 using namespace boost::filesystem;
 
-static uint64 GetFlockSizeBytes(const std::string& path, int sheeptype)
+static uint64 GetFlockSizeBytes(const std::string &path, int sheeptype)
 {
-	std::string mp4path(path);
-	
-	if (mp4path.substr(mp4path.size() - 1, 1) != "/")
-		mp4path += "/";
-	uint64 retval = 0;
+  std::string mp4path(path);
 
-	try {
-	boost::filesystem::path p(mp4path.c_str());
+  if (mp4path.substr(mp4path.size() - 1, 1) != "/")
+    mp4path += "/";
+  uint64 retval = 0;
 
-	directory_iterator end_itr; // default construction yields past-the-end
-	for ( directory_iterator itr( p );
-			itr != end_itr;
-			++itr )
-	{
-		if (!is_directory(itr->status()))
-		{
-			std::string fname(itr->path().filename().string());
-			
-			std::string ext(itr->path().extension().string());
-			
-			if ( ext == std::string(".avi"))
-			{
-				int generation;
-				int id;
-				int first;
-				int last;
+  try
+  {
+    boost::filesystem::path p(mp4path.c_str());
 
-				if( 4 == sscanf( fname.c_str(), "%d=%d=%d=%d.avi", &generation, &id, &first, &last ) )
-				{
-					if ( (generation >= 10000 && sheeptype == 1) || (generation < 10000 && sheeptype == 0) )
-					{
-						struct stat sbuf;
+    directory_iterator end_itr; // default construction yields past-the-end
+    for (directory_iterator itr(p); itr != end_itr; ++itr)
+    {
+      if (!is_directory(itr->status()))
+      {
+        std::string fname(itr->path().filename().string());
 
-						if (stat( (mp4path + "/" +fname).c_str(), &sbuf ) == 0)
-							retval += (uint64)sbuf.st_size;
-					}
-				}
-			}
-		}
-		else
-			retval += GetFlockSizeBytes(itr->path().string(), sheeptype);
-	}
+        std::string ext(itr->path().extension().string());
 
-	}
-	catch(boost::filesystem::filesystem_error& err)
-	{
-		g_Log->Error( "Path enumeration threw error: %s",  err.what() );
-		return 0;
-	}
-	return retval;
+        if (ext == std::string(".avi"))
+        {
+          int generation;
+          int id;
+          int first;
+          int last;
+
+          if (4 == sscanf(fname.c_str(), "%d=%d=%d=%d.avi", &generation, &id,
+                          &first, &last))
+          {
+            if ((generation >= 10000 && sheeptype == 1) ||
+                (generation < 10000 && sheeptype == 0))
+            {
+              struct stat sbuf;
+
+              if (stat((mp4path + "/" + fname).c_str(), &sbuf) == 0)
+                retval += (uint64)sbuf.st_size;
+            }
+          }
+        }
+      }
+      else
+        retval += GetFlockSizeBytes(itr->path().string(), sheeptype);
+    }
+  }
+  catch (boost::filesystem::filesystem_error &err)
+  {
+    g_Log->Error("Path enumeration threw error: %s", err.what());
+    return 0;
+  }
+  return retval;
 }
 
 size_t ESScreensaver_GetFlockSizeMBs(const char *mp4path, int sheeptype)
 {
-	return GetFlockSizeBytes(mp4path, sheeptype)/1024/1024;
-
+  return GetFlockSizeBytes(mp4path, sheeptype) / 1024 / 1024;
 }

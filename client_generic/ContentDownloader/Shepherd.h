@@ -23,18 +23,18 @@
 #ifndef _SHEPHERD_H_
 #define _SHEPHERD_H_
 
-#include    <queue>
-#include    <string_view>
+#include <queue>
+#include <string_view>
 
-#include	"base.h"
-#include	"SmartPtr.h"
-#include	"boost/thread/mutex.hpp"
-#include	"boost/detail/atomic_count.hpp"
-#include    "boost/atomic.hpp"
-#include	"Timer.h"
-#include	"Dream.h"
-#include	"Log.h"
-#include	"BlockingQueue.h"
+#include "BlockingQueue.h"
+#include "Dream.h"
+#include "Log.h"
+#include "SmartPtr.h"
+#include "Timer.h"
+#include "base.h"
+#include "boost/atomic.hpp"
+#include "boost/detail/atomic_count.hpp"
+#include "boost/thread/mutex.hpp"
 
 #ifdef WIN32
 #define PATH_SEPARATOR_C '\\'
@@ -47,343 +47,362 @@ namespace ContentDownloader
 
 enum eServerTargetType
 {
-	eHostServer,
-	eVoteServer,
-	eRenderServer
+  eHostServer,
+  eVoteServer,
+  eRenderServer
 };
 
-class	CMessageBody
+class CMessageBody
 {
-	public:
-			CMessageBody(std::string_view _str, const fp8 _duration) : m_Msg( _str ), m_Duration(_duration)	{};
-			~CMessageBody()	{};
+public:
+  CMessageBody(std::string_view _str, const fp8 _duration)
+      : m_Msg(_str), m_Duration(_duration){};
+  ~CMessageBody(){};
 
-			std::string m_Msg;
-			fp8	m_Duration;
+  std::string m_Msg;
+  fp8 m_Duration;
 };
 
-MakeSmartPointers( CMessageBody );
+MakeSmartPointers(CMessageBody);
 
-class	CTimedMessageBody
+class CTimedMessageBody
 {
-	public:
-			CTimedMessageBody( const std::string &_str, const fp8 _duration ) : m_Msg( _str ), m_Duration(_duration)	{ m_Timer.Reset(); };
-			~CTimedMessageBody()	{};
+public:
+  CTimedMessageBody(const std::string &_str, const fp8 _duration)
+      : m_Msg(_str), m_Duration(_duration)
+  {
+    m_Timer.Reset();
+  };
+  ~CTimedMessageBody(){};
 
-			bool TimedOut()
-			{
-				if (m_Timer.Time() > m_Duration)
-					return true;
+  bool TimedOut()
+  {
+    if (m_Timer.Time() > m_Duration)
+      return true;
 
-				return false;
-			}
-			Base::CTimer m_Timer;
-			std::string m_Msg;
-			fp8	m_Duration;
+    return false;
+  }
+  Base::CTimer m_Timer;
+  std::string m_Msg;
+  fp8 m_Duration;
 };
 
-MakeSmartPointers( CTimedMessageBody );
-    
+MakeSmartPointers(CTimedMessageBody);
+
 typedef boost::atomic<char *> atomic_char_ptr;
-    
+
 /*!
-	Shepherd.
-	This class is responsible for managing the threads to create, render, and download sheep.
+        Shepherd.
+        This class is responsible for managing the threads to create, render,
+   and download sheep.
 */
 class Shepherd
 {
-	typedef struct _SHEPHERD_MESSAGE
-	{
-		char	*text;
-		int		length;
-		time_t	expire;
-	}	SHEPHERD_MESSAGE;
+  typedef struct _SHEPHERD_MESSAGE
+  {
+    char *text;
+    int length;
+    time_t expire;
+  } SHEPHERD_MESSAGE;
 
-	///	Gets all sheep in path.
-	static bool getSheep( const char *path, SheepArray *sheep, const SheepArray& serverFlock );
+  ///	Gets all sheep in path.
+  static bool getSheep(const char *path, SheepArray *sheep,
+                       const SheepArray &serverFlock);
 
-	static uint64 s_ClientFlockBytes;
-	static uint64 s_ClientFlockCount;
+  static uint64 s_ClientFlockBytes;
+  static uint64 s_ClientFlockCount;
 
-	static uint64 s_ClientFlockGoldBytes;
-	static uint64 s_ClientFlockGoldCount;
+  static uint64 s_ClientFlockGoldBytes;
+  static uint64 s_ClientFlockGoldCount;
 
-	static atomic_char_ptr fRootPath;
-	static atomic_char_ptr fMp4Path;
-	static atomic_char_ptr fJsonPath;
-	static atomic_char_ptr fRedirectServerName;
-	static atomic_char_ptr fServerName;
-	static atomic_char_ptr fVoteServerName;
-	static atomic_char_ptr fRenderServerName;
-	static atomic_char_ptr fProxy;
-	static atomic_char_ptr fProxyUser;
-	static atomic_char_ptr fProxyPass;
-    static atomic_char_ptr fNickName;
-	static int	fSaveFrames;
-	static int	fUseProxy;
-	static int	fCacheSize;
-	static int	fCacheSizeGold;
-	static int	fFuseLen;
-	static int	fRegistered;
-	static atomic_char_ptr fPassword;
-	static atomic_char_ptr fUniqueID;
-	static bool fShutdown;
-	static int fChangeRes;
-	static int fChangingRes;
-	static boost::detail::atomic_count	*renderingFrames;
-	static boost::detail::atomic_count	*totalRenderedFrames;
-	static bool m_RenderingAllowed;
+  static atomic_char_ptr fRootPath;
+  static atomic_char_ptr fMp4Path;
+  static atomic_char_ptr fJsonPath;
+  static atomic_char_ptr fRedirectServerName;
+  static atomic_char_ptr fServerName;
+  static atomic_char_ptr fVoteServerName;
+  static atomic_char_ptr fRenderServerName;
+  static atomic_char_ptr fProxy;
+  static atomic_char_ptr fProxyUser;
+  static atomic_char_ptr fProxyPass;
+  static atomic_char_ptr fNickName;
+  static int fSaveFrames;
+  static int fUseProxy;
+  static int fCacheSize;
+  static int fCacheSizeGold;
+  static int fFuseLen;
+  static int fRegistered;
+  static atomic_char_ptr fPassword;
+  static atomic_char_ptr fUniqueID;
+  static bool fShutdown;
+  static int fChangeRes;
+  static int fChangingRes;
+  static boost::detail::atomic_count *renderingFrames;
+  static boost::detail::atomic_count *totalRenderedFrames;
+  static bool m_RenderingAllowed;
 
+  static std::queue<spCMessageBody> m_MessageQueue;
+  static boost::mutex m_MessageQueueMutex;
 
-	static std::queue<spCMessageBody>	m_MessageQueue;
-	static boost::mutex	m_MessageQueueMutex;
+  static std::vector<spCTimedMessageBody> m_OverflowMessageQueue;
+  static boost::mutex s_OverflowMessageQueueMutex;
 
-	static std::vector<spCTimedMessageBody>	m_OverflowMessageQueue;
-	static boost::mutex s_OverflowMessageQueueMutex;
+  static boost::mutex s_ShepherdMutex;
 
-	static boost::mutex	s_ShepherdMutex;
-	
-	static boost::shared_mutex	s_DownloadStateMutex;
+  static boost::shared_mutex s_DownloadStateMutex;
 
-	static boost::shared_mutex	s_RenderStateMutex;
+  static boost::shared_mutex s_RenderStateMutex;
 
-	static boost::mutex	s_ComputeServerNameMutex;
-	
-	static boost::shared_mutex	s_GetServerNameMutex;
-		
+  static boost::mutex s_ComputeServerNameMutex;
 
-	static time_t s_LastRequestTime;
+  static boost::shared_mutex s_GetServerNameMutex;
 
-	static Base::CBlockingQueue<char *> fStringsToDelete;
-	
-	static std::string s_DownloadState;
+  static time_t s_LastRequestTime;
 
-	static std::string s_RenderState;
-	
-	static bool s_IsDownloadStateNew;
-	
-	static bool s_IsRenderStateNew;
+  static Base::CBlockingQueue<char *> fStringsToDelete;
 
-	public:
-			Shepherd();
-			~Shepherd();
+  static std::string s_DownloadState;
 
-			static void initializeShepherd();
+  static std::string s_RenderState;
 
-			//
-			static void	setUseProxy( const int &useProxy )			{	fUseProxy = useProxy;	}
-			static int	useProxy()									{	return fUseProxy;	}
+  static bool s_IsDownloadStateNew;
 
-			static void setProxy(const char *proxy);
-			static const char *proxy();
-			static void setProxyUserName( const char *userName );
-			static const char *proxyUserName();
-			static void setProxyPassword( const char *password );
-			static const char *proxyPassword();
+  static bool s_IsRenderStateNew;
 
-			//
-			static void	setSaveFrames(const int &saveFrames)		{	fSaveFrames = saveFrames;	}
-			static int		saveFrames()							{	return fSaveFrames;	}
+public:
+  Shepherd();
+  ~Shepherd();
 
-			//
-			static void	setRegistered( const int &registered )		{	fRegistered = registered;	}
-			static int		registered()							{	return fRegistered;	}
+  static void initializeShepherd();
 
+  //
+  static void setUseProxy(const int &useProxy) { fUseProxy = useProxy; }
+  static int useProxy() { return fUseProxy; }
 
-			//
-			static int		cacheSize( const int getGenerationType )	
-			{	
-				switch (getGenerationType)
-				{
-				case 0 :
-					return fCacheSize;	
-					break;
-				case 1 :
-					return fCacheSizeGold;	
-					break;
-				default:
-					g_Log->Error("Getting cache size for unknown generation type %d", getGenerationType);
-					return 0;
-				};
-			}
-			static void	setCacheSize( const int &size, const int getGenerationType )
-			{
+  static void setProxy(const char *proxy);
+  static const char *proxy();
+  static void setProxyUserName(const char *userName);
+  static const char *proxyUserName();
+  static void setProxyPassword(const char *password);
+  static const char *proxyPassword();
 
-				/*if( (size < 300) && (size > 0) )	fCacheSize = 300;
-				else*/	
-				switch (getGenerationType)
-				{
-				case 0 :
-					fCacheSize = size;
-					break;
-				case 1 :
-					fCacheSizeGold = size;
-					break;
-				default:
-					g_Log->Error("Setting cache size for unknown generation type %d", getGenerationType);
-				};
-			}
+  //
+  static void setSaveFrames(const int &saveFrames) { fSaveFrames = saveFrames; }
+  static int saveFrames() { return fSaveFrames; }
 
-			//
-			static void setChangeRes(const int &changeRes)		{	fChangeRes = changeRes;	}
-			static int changeRes()								{	return fChangeRes;	}
-			static void setChangingRes(int state)				{	fChangingRes = state;	}
-			static void incChangingRes()						{	fChangingRes++;	}
-			static int getChangingRes()							{	return fChangingRes;	}
+  //
+  static void setRegistered(const int &registered) { fRegistered = registered; }
+  static int registered() { return fRegistered; }
 
-			//
-			static void notifyShepherdOfHisUntimleyDeath();
-    
-            static void setNewAndDeleteOldString(atomic_char_ptr &str, char *newval, boost::memory_order mem_ord = boost::memory_order_relaxed);
-            
-            /*!
-             * @discussion
-             *        This method is used to set the root path
-             * where all of the files will be created and downloaded
-             * to. The method also initializes all of the relative paths
-             * for the subdirectories.
-             */
-			static void setRootPath( const char *path );
-			static const char *rootPath();
-			static const char *mp4Path();
-			static const char *jsonPath();
-            static const char *videoExtension() { return ".mp4"; }
+  //
+  static int cacheSize(const int getGenerationType)
+  {
+    switch (getGenerationType)
+    {
+    case 0:
+      return fCacheSize;
+      break;
+    case 1:
+      return fCacheSizeGold;
+      break;
+    default:
+      g_Log->Error("Getting cache size for unknown generation type %d",
+                   getGenerationType);
+      return 0;
+    };
+  }
+  static void setCacheSize(const int &size, const int getGenerationType)
+  {
 
-			///	Gets/sets the registration password.
-			static void setPassword( const char *password );
-			static const char *password();
+    /*if( (size < 300) && (size > 0) )	fCacheSize = 300;
+    else*/
+    switch (getGenerationType)
+    {
+    case 0:
+      fCacheSize = size;
+      break;
+    case 1:
+      fCacheSizeGold = size;
+      break;
+    default:
+      g_Log->Error("Setting cache size for unknown generation type %d",
+                   getGenerationType);
+    };
+  }
 
-			///	Overlay text management for the renderer.
-			static void addMessageText(std::string_view s, time_t timeout);
+  //
+  static void setChangeRes(const int &changeRes) { fChangeRes = changeRes; }
+  static int changeRes() { return fChangeRes; }
+  static void setChangingRes(int state) { fChangingRes = state; }
+  static void incChangingRes() { fChangingRes++; }
+  static int getChangingRes() { return fChangingRes; }
 
+  //
+  static void notifyShepherdOfHisUntimleyDeath();
 
-			///	Called from generators.
-			static void FrameStarted();
-			static void	FrameCompleted();
-			static int	FramesRendering();
-			static int	TotalFramesRendered();
-			static bool	RenderingAllowed();
-			static void SetRenderingAllowed(bool _yesno);
-            static void SetNickName(const char *nick);
-            static const char* GetNickName();
+  static void setNewAndDeleteOldString(
+      atomic_char_ptr &str, char *newval,
+      boost::memory_order mem_ord = boost::memory_order_relaxed);
 
-			static bool	AddOverflowMessage( const std::string _msg )
-			{
-				boost::mutex::scoped_lock lockthis( s_OverflowMessageQueueMutex );
-                m_OverflowMessageQueue.emplace_back(new CTimedMessageBody( _msg, 60. ));
-				return true;
-			}
+  /*!
+   * @discussion
+   *        This method is used to set the root path
+   * where all of the files will be created and downloaded
+   * to. The method also initializes all of the relative paths
+   * for the subdirectories.
+   */
+  static void setRootPath(const char *path);
+  static const char *rootPath();
+  static const char *mp4Path();
+  static const char *jsonPath();
+  static const char *videoExtension() { return ".mp4"; }
 
-			static bool	PopOverflowMessage( std::string &_dst )
-			{
-				boost::mutex::scoped_lock lockthis( s_OverflowMessageQueueMutex );
-				if( m_OverflowMessageQueue.size() > 10 )
-				{
-					m_OverflowMessageQueue.erase(m_OverflowMessageQueue.begin(), m_OverflowMessageQueue.begin() + static_cast<std::vector<spCTimedMessageBody>::difference_type>(m_OverflowMessageQueue.size()) - 10);
-				}
-				if( m_OverflowMessageQueue.size() > 0 )
-				{
-					bool del = false;
-					size_t deletestart = 0;
-					size_t deleteend = 0;
-					for (size_t ii = 0; ii != m_OverflowMessageQueue.size(); ++ii)
-					{
-						spCTimedMessageBody msg = m_OverflowMessageQueue[ii];
-						_dst += msg->m_Msg;
-						if (msg->TimedOut())
-						{
-							if (del == false)
-							{
-								deletestart = ii;
-								deleteend = ii;
-							} 
-							else
-							{
-								deleteend = ii;
-							}
-							del = true;
-						}
-						_dst += "\n";
-					}
-					_dst.erase(_dst.find_last_of("\n"));
-					
-					if (del == true)
-					{
-						m_OverflowMessageQueue.erase(m_OverflowMessageQueue.begin() + static_cast<std::vector<spCTimedMessageBody>::difference_type>(deletestart), m_OverflowMessageQueue.begin() + static_cast<std::vector<spCTimedMessageBody>::difference_type>(deleteend) + 1);
-					}
+  ///	Gets/sets the registration password.
+  static void setPassword(const char *password);
+  static const char *password();
 
-					return true;
-				}
-				return false;
-			}
+  ///	Overlay text management for the renderer.
+  static void addMessageText(std::string_view s, time_t timeout);
 
-			static bool	QueueMessage(std::string_view _msg, const fp8 _duration)
-			{
-				boost::mutex::scoped_lock lockthis( m_MessageQueueMutex );
-                m_MessageQueue.emplace(new CMessageBody(_msg, _duration));
-				return true;
-			}
+  ///	Called from generators.
+  static void FrameStarted();
+  static void FrameCompleted();
+  static int FramesRendering();
+  static int TotalFramesRendered();
+  static bool RenderingAllowed();
+  static void SetRenderingAllowed(bool _yesno);
+  static void SetNickName(const char *nick);
+  static const char *GetNickName();
 
-			static bool	PopMessage( std::string &_dst, fp8 &_duration )
-			{
-				boost::mutex::scoped_lock lockthis( m_MessageQueueMutex );
-				if( m_MessageQueue.size() > 0 )
-				{
-					spCMessageBody msg = m_MessageQueue.front();
-					_dst = msg->m_Msg;
-					_duration = msg->m_Duration;
-					m_MessageQueue.pop();
-					return true;
-				}
-				return false;
-			}
+  static bool AddOverflowMessage(const std::string _msg)
+  {
+    boost::mutex::scoped_lock lockthis(s_OverflowMessageQueueMutex);
+    m_OverflowMessageQueue.emplace_back(new CTimedMessageBody(_msg, 60.));
+    return true;
+  }
 
-			//	Method to get all of the sheep the exist on the client.
-			static bool getClientFlock(SheepArray *sheep);
-			static uint64 GetFlockSizeMBsRecount(const int generationtype);
+  static bool PopOverflowMessage(std::string &_dst)
+  {
+    boost::mutex::scoped_lock lockthis(s_OverflowMessageQueueMutex);
+    if (m_OverflowMessageQueue.size() > 10)
+    {
+      m_OverflowMessageQueue.erase(
+          m_OverflowMessageQueue.begin(),
+          m_OverflowMessageQueue.begin() +
+              static_cast<std::vector<spCTimedMessageBody>::difference_type>(
+                  m_OverflowMessageQueue.size()) -
+              10);
+    }
+    if (m_OverflowMessageQueue.size() > 0)
+    {
+      bool del = false;
+      size_t deletestart = 0;
+      size_t deleteend = 0;
+      for (size_t ii = 0; ii != m_OverflowMessageQueue.size(); ++ii)
+      {
+        spCTimedMessageBody msg = m_OverflowMessageQueue[ii];
+        _dst += msg->m_Msg;
+        if (msg->TimedOut())
+        {
+          if (del == false)
+          {
+            deletestart = ii;
+            deleteend = ii;
+          }
+          else
+          {
+            deleteend = ii;
+          }
+          del = true;
+        }
+        _dst += "\n";
+      }
+      _dst.erase(_dst.find_last_of("\n"));
 
-			//	Sets/Gets the unique id for this Shepherd.
-			static void	setUniqueID( const char *uniqueID );
-			static const char	*uniqueID();
-			
-			static void setDownloadState( const std::string& state );
-			static std::string downloadState( bool& isnew );
-	
-			static void setRenderState( const std::string& state );
-			static std::string renderState( bool& isnew );
+      if (del == true)
+      {
+        m_OverflowMessageQueue.erase(
+            m_OverflowMessageQueue.begin() +
+                static_cast<std::vector<spCTimedMessageBody>::difference_type>(
+                    deletestart),
+            m_OverflowMessageQueue.begin() +
+                static_cast<std::vector<spCTimedMessageBody>::difference_type>(
+                    deleteend) +
+                1);
+      }
 
-			static void subClientFlockBytes(uint64 removedbytes, const int generationtype)
-			{
-				if ( generationtype == 0 )
-					s_ClientFlockBytes -= removedbytes;
-				if ( generationtype == 1 )
-					s_ClientFlockGoldBytes -= removedbytes;
-			}
-			static void subClientFlockCount(const int generationtype)
-			{
-				if ( generationtype == 0 )
-					--s_ClientFlockCount;
-				if ( generationtype == 1 )
-					--s_ClientFlockGoldCount;
-			}
+      return true;
+    }
+    return false;
+  }
 
-			static uint64 getClientFlockMBs(const int generationtype)
-			{
-				if ( generationtype == 0 )
-					return s_ClientFlockBytes/1024/1024;
-				if ( generationtype == 1 )
-					return s_ClientFlockGoldBytes/1024/1024;
-				return 0;
-			}
-			static uint64 getClientFlockCount(const int generationtype)
-			{
-				if ( generationtype == 0 )
-					return s_ClientFlockCount;
-				if ( generationtype == 1 )
-					return s_ClientFlockGoldCount;
-				return 0;
-			}
+  static bool QueueMessage(std::string_view _msg, const fp8 _duration)
+  {
+    boost::mutex::scoped_lock lockthis(m_MessageQueueMutex);
+    m_MessageQueue.emplace(new CMessageBody(_msg, _duration));
+    return true;
+  }
+
+  static bool PopMessage(std::string &_dst, fp8 &_duration)
+  {
+    boost::mutex::scoped_lock lockthis(m_MessageQueueMutex);
+    if (m_MessageQueue.size() > 0)
+    {
+      spCMessageBody msg = m_MessageQueue.front();
+      _dst = msg->m_Msg;
+      _duration = msg->m_Duration;
+      m_MessageQueue.pop();
+      return true;
+    }
+    return false;
+  }
+
+  //	Method to get all of the sheep the exist on the client.
+  static bool getClientFlock(SheepArray *sheep);
+  static uint64 GetFlockSizeMBsRecount(const int generationtype);
+
+  //	Sets/Gets the unique id for this Shepherd.
+  static void setUniqueID(const char *uniqueID);
+  static const char *uniqueID();
+
+  static void setDownloadState(const std::string &state);
+  static std::string downloadState(bool &isnew);
+
+  static void setRenderState(const std::string &state);
+  static std::string renderState(bool &isnew);
+
+  static void subClientFlockBytes(uint64 removedbytes, const int generationtype)
+  {
+    if (generationtype == 0)
+      s_ClientFlockBytes -= removedbytes;
+    if (generationtype == 1)
+      s_ClientFlockGoldBytes -= removedbytes;
+  }
+  static void subClientFlockCount(const int generationtype)
+  {
+    if (generationtype == 0)
+      --s_ClientFlockCount;
+    if (generationtype == 1)
+      --s_ClientFlockGoldCount;
+  }
+
+  static uint64 getClientFlockMBs(const int generationtype)
+  {
+    if (generationtype == 0)
+      return s_ClientFlockBytes / 1024 / 1024;
+    if (generationtype == 1)
+      return s_ClientFlockGoldBytes / 1024 / 1024;
+    return 0;
+  }
+  static uint64 getClientFlockCount(const int generationtype)
+  {
+    if (generationtype == 0)
+      return s_ClientFlockCount;
+    if (generationtype == 1)
+      return s_ClientFlockGoldCount;
+    return 0;
+  }
 };
 
-};
+}; // namespace ContentDownloader
 #endif

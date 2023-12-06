@@ -11,7 +11,7 @@
 
 @interface MBEMesh : NSObject
 
-@property (nonatomic, readonly) id<MTLBuffer> vertexBuffer;
-@property (nonatomic, readonly) id<MTLBuffer> indexBuffer;
+@property(nonatomic, readonly) id<MTLBuffer> vertexBuffer;
+@property(nonatomic, readonly) id<MTLBuffer> indexBuffer;
 
 @end

@@ -1,56 +1,51 @@
-#ifndef	_LOOPINGPLAYLIST_H
+#ifndef _LOOPINGPLAYLIST_H
 #define _LOOPINGPLAYLIST_H
 
 #include "Playlist.h"
 #include <queue>
 
-namespace	ContentDecoder
+namespace ContentDecoder
 {
 
 /*
-	CLoopingPlaylist().
-	Looping playlist based on an array.
+        CLoopingPlaylist().
+        Looping playlist based on an array.
 */
-class	CLoopingPlaylist : public CPlaylist
+class CLoopingPlaylist : public CPlaylist
 {
-	std::vector<std::string>    m_List;
-	uint32	m_Index;
+  std::vector<std::string> m_List;
+  uint32 m_Index;
 
-	public:
-			CLoopingPlaylist() : CPlaylist()
-			{
-				m_Index = 0;
-			}
+public:
+  CLoopingPlaylist() : CPlaylist() { m_Index = 0; }
 
-			virtual ~CLoopingPlaylist()
-			{}
+  virtual ~CLoopingPlaylist() {}
 
-			//
-			virtual bool	Add( const std::string &_file )
-			{
-				m_List.push_back( _file );
-				return( true );
-			}
+  //
+  virtual bool Add(const std::string &_file)
+  {
+    m_List.push_back(_file);
+    return (true);
+  }
 
-			virtual bool	Next( std::string &_result )
-			{
-				if( m_List.empty() )
-					return false;
+  virtual bool Next(std::string &_result)
+  {
+    if (m_List.empty())
+      return false;
 
-				printf( "%d\n", m_Index );
-				_result = m_List[ m_Index ];
+    printf("%d\n", m_Index);
+    _result = m_List[m_Index];
 
-				m_Index++;
-				if( m_Index >= m_List.capacity() )
-					m_Index = 0;
+    m_Index++;
+    if (m_Index >= m_List.capacity())
+      m_Index = 0;
 
-				return true;
-			}
+    return true;
+  }
 };
 
-MakeSmartPointers( CLoopingPlaylist );
+MakeSmartPointers(CLoopingPlaylist);
 
-}
-
+} // namespace ContentDecoder
 
 #endif

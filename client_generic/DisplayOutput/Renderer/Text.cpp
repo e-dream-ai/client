@@ -1,24 +1,20 @@
-#include	<string>
-#include	"base.h"
-#include	"Text.h"
+#include "Text.h"
+#include "base.h"
+#include <string>
 
-namespace	DisplayOutput
+namespace DisplayOutput
 {
 
 /*
  CBaseText().
 
 */
-CBaseText::CBaseText()
-{
-}
+CBaseText::CBaseText() {}
 
 /*
-	~CBaseText().
+        ~CBaseText().
 
 */
-CBaseText::~CBaseText()
-{
-}
+CBaseText::~CBaseText() {}
 
-};
+}; // namespace DisplayOutput

@@ -1,66 +1,69 @@
 #ifndef _MGL__H_
 #define _MGL__H_
 
-#if	defined(MAC) && !defined(USE_METAL)
+#if defined(MAC) && !defined(USE_METAL)
 
 #ifdef _DisplayGL_H_
 #error "DisplayGL.h included before mgl.h!"
 #endif
 
-#include "glee.h"
 #include "../DisplayOutput.h"
+#include "glee.h"
 #undef Random
 #include <OpenGL/OpenGL.h>
 
-
 namespace DisplayOutput
 {
-	
-extern "C" {
-	void SetupPool();
+
+extern "C"
+{
+  void SetupPool();
 }
-	
+
 /*
-	CMacGL.
-	Macintosh OpenGL output.
+        CMacGL.
+        Macintosh OpenGL output.
 */
 class CMacGL : public CDisplayOutput
 {
-	CGLContextObj	m_glContext;
+  CGLContextObj m_glContext;
 
+  static uint32 s_DefaultWidth;
+  static uint32 s_DefaultHeight;
 
-	static uint32 s_DefaultWidth;
-	static uint32 s_DefaultHeight;
+public:
+  CMacGL();
+  virtual ~CMacGL();
 
-	public:
-			CMacGL();
-			virtual ~CMacGL();
+  // static LRESULT CALLBACK	wndProc( HWND hWnd, UINT msg, WPARAM wParam,
+  // LPARAM lParam );
 
-			//static LRESULT CALLBACK	wndProc( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam );
+  static const char *Description() { return "Macintosh OpenGL display"; };
 
-			static const char *Description()	{	return "Macintosh OpenGL display";	};
-				
-			virtual bool	Initialize( CGraphicsContext _glContext, bool _bPreview );
-			
-			virtual void SetContext( CGraphicsContext glContext ) { m_glContext = glContext; }
-			virtual CGraphicsContext GetContext( void ) { return m_glContext; }
+  virtual bool Initialize(CGraphicsContext _glContext, bool _bPreview);
 
-			virtual void ForceWidthAndHeight( uint32 _width, uint32 _height );
-			
-			static void SetDefaultWidthAndHeight( uint32 defWidth, uint32 defHeight );
-	
-			virtual bool HasShaders() { return true; };
+  virtual void SetContext(CGraphicsContext glContext)
+  {
+    m_glContext = glContext;
+  }
+  virtual CGraphicsContext GetContext(void) { return m_glContext; }
 
-			//
-			virtual void	Title( const std::string &_title );
-			virtual void	Update();
+  virtual void ForceWidthAndHeight(uint32 _width, uint32 _height);
 
-			void    SwapBuffers();
+  static void SetDefaultWidthAndHeight(uint32 defWidth, uint32 defHeight);
+
+  virtual bool HasShaders() { return true; };
+
+  //
+  virtual void Title(const std::string &_title);
+  virtual void Update();
+
+  void SwapBuffers();
 };
 
-typedef	CMacGL	CDisplayGL;
+typedef CMacGL CDisplayGL;
 
-};
+}; // namespace DisplayOutput
 
 #endif
 

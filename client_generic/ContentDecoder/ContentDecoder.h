@@ -24,34 +24,35 @@
 #define _CONTENTDECODER_H
 
 //	FFmpeg headers.
-extern "C"{
-#if defined(WIN32) || defined(MAC) || defined (LINUX_GNU)
-	#include "libavcodec/avcodec.h"
-	#include "libavformat/avformat.h"
-	#include "libswscale/swscale.h"
-    #include "libavutil/imgutils.h"
-    #include "libavutil/hwcontext.h"
-    #include "libavcodec/bsf.h"
+extern "C"
+{
+#if defined(WIN32) || defined(MAC) || defined(LINUX_GNU)
+#include "libavcodec/avcodec.h"
+#include "libavcodec/bsf.h"
+#include "libavformat/avformat.h"
+#include "libavutil/hwcontext.h"
+#include "libavutil/imgutils.h"
+#include "libswscale/swscale.h"
 #else
-	#include "avcodec.h"
-	#include "avformat.h"
-	#include "swscale.h"
-    #include "imgutils.h"
-    #include "hwcontext.h"
-    #include "bsf.h"
+#include "avcodec.h"
+#include "avformat.h"
+#include "bsf.h"
+#include "hwcontext.h"
+#include "imgutils.h"
+#include "swscale.h"
 #endif
 }
 
-#include	"base.h"
-#include	<string>
-#include	<queue>
-#include	"boost/thread/thread.hpp"
-#include	"boost/thread/mutex.hpp"
-#include	"boost/thread/xtime.hpp"
-#include	"boost/bind.hpp"
-#include	"Frame.h"
-#include	"Playlist.h"
-#include	"BlockingQueue.h"
+#include "BlockingQueue.h"
+#include "Frame.h"
+#include "Playlist.h"
+#include "base.h"
+#include "boost/bind.hpp"
+#include "boost/thread/mutex.hpp"
+#include "boost/thread/thread.hpp"
+#include "boost/thread/xtime.hpp"
+#include <queue>
+#include <string>
 
 #ifdef MAC
 #include <os/signpost.h>
@@ -62,197 +63,190 @@ namespace ContentDecoder
 
 struct sOpenVideoInfo
 {
-	sOpenVideoInfo() 
-	:	m_pFrame(NULL),
-		m_pFormatContext(NULL),
-		m_pVideoCodecContext(NULL),
-		m_pVideoCodec(NULL),
-		m_pVideoStream(NULL),
-		m_VideoStreamID(-1),
-		m_totalFrameCount(0),
-		m_CurrentFileatime(0),
-		m_iCurrentFileFrameCount(0),
-		m_Generation(0),
-		m_SheepID(0),
-		m_First(0),
-		m_Last(0),
-		m_bSpecialSheep(false),
-		m_NumIterations(0),
-		m_NextIsSeam(false),
-		m_ReadingTrailingFrames(false)
-		
-	{ }
-	
-	virtual ~sOpenVideoInfo()
-    {
-		if( m_pVideoCodecContext )
-		{
-			avcodec_close( m_pVideoCodecContext );
-			m_pVideoCodecContext = NULL;
-		}
+  sOpenVideoInfo()
+      : m_pFrame(NULL), m_pFormatContext(NULL), m_pVideoCodecContext(NULL),
+        m_pVideoCodec(NULL), m_pVideoStream(NULL), m_VideoStreamID(-1),
+        m_totalFrameCount(0), m_CurrentFileatime(0),
+        m_iCurrentFileFrameCount(0), m_Generation(0), m_SheepID(0), m_First(0),
+        m_Last(0), m_bSpecialSheep(false), m_NumIterations(0),
+        m_NextIsSeam(false), m_ReadingTrailingFrames(false)
 
-		if( m_pFormatContext )
-		{
-			avformat_close_input( &m_pFormatContext );
-		}
-		
-		if ( m_pFrame )
-		{
-			av_frame_free( &m_pFrame );
-			m_pFrame = NULL;
-		}
-        if (m_pBsfContext)
-        {
-            av_bsf_flush(m_pBsfContext);
-            av_bsf_free(&m_pBsfContext);
-        }
-	}
-	
-	bool IsLoop() { return (!m_bSpecialSheep && !IsEdge()); }
-	
-	void Reset() { m_pFormatContext = NULL; }
-	
-	bool IsOpen() { return (m_pFormatContext != NULL); }
-	
-	bool EqualsTo( sOpenVideoInfo *ovi )
-	{
-		return ( m_SheepID == ovi->m_SheepID && m_Generation == ovi->m_Generation );
-	}
-	
-	bool IsEdge()
-	{
-		if (m_bSpecialSheep)
-			return false;
-		
-		return !(m_First == m_Last && m_Last == m_SheepID);
-	}
-	
-	AVFrame			*m_pFrame;
-	AVFormatContext	*m_pFormatContext;
-	AVCodecContext	*m_pVideoCodecContext;
-    AVBSFContext    *m_pBsfContext = nullptr;
-	const AVCodec	*m_pVideoCodec;
-	AVStream		*m_pVideoStream;
-	int32			m_VideoStreamID;
-	uint32			m_totalFrameCount;
-	time_t			m_CurrentFileatime;
-	uint32			m_iCurrentFileFrameCount;
-	uint32			m_Generation;
-	uint32			m_SheepID;
-	uint32			m_First;
-	uint32			m_Last;
-	std::string		m_Path;
-	bool			m_bSpecialSheep;
-	uint32			m_NumIterations;
-	bool			m_NextIsSeam;
-	bool			m_ReadingTrailingFrames;
+  {
+  }
+
+  virtual ~sOpenVideoInfo()
+  {
+    if (m_pVideoCodecContext)
+    {
+      avcodec_close(m_pVideoCodecContext);
+      m_pVideoCodecContext = NULL;
+    }
+
+    if (m_pFormatContext)
+    {
+      avformat_close_input(&m_pFormatContext);
+    }
+
+    if (m_pFrame)
+    {
+      av_frame_free(&m_pFrame);
+      m_pFrame = NULL;
+    }
+    if (m_pBsfContext)
+    {
+      av_bsf_flush(m_pBsfContext);
+      av_bsf_free(&m_pBsfContext);
+    }
+  }
+
+  bool IsLoop() { return (!m_bSpecialSheep && !IsEdge()); }
+
+  void Reset() { m_pFormatContext = NULL; }
+
+  bool IsOpen() { return (m_pFormatContext != NULL); }
+
+  bool EqualsTo(sOpenVideoInfo *ovi)
+  {
+    return (m_SheepID == ovi->m_SheepID && m_Generation == ovi->m_Generation);
+  }
+
+  bool IsEdge()
+  {
+    if (m_bSpecialSheep)
+      return false;
+
+    return !(m_First == m_Last && m_Last == m_SheepID);
+  }
+
+  AVFrame *m_pFrame;
+  AVFormatContext *m_pFormatContext;
+  AVCodecContext *m_pVideoCodecContext;
+  AVBSFContext *m_pBsfContext = nullptr;
+  const AVCodec *m_pVideoCodec;
+  AVStream *m_pVideoStream;
+  int32 m_VideoStreamID;
+  uint32 m_totalFrameCount;
+  time_t m_CurrentFileatime;
+  uint32 m_iCurrentFileFrameCount;
+  uint32 m_Generation;
+  uint32 m_SheepID;
+  uint32 m_First;
+  uint32 m_Last;
+  std::string m_Path;
+  bool m_bSpecialSheep;
+  uint32 m_NumIterations;
+  bool m_NextIsSeam;
+  bool m_ReadingTrailingFrames;
 };
 
 /*
-	CContentDecoder.
-	Video decoding wrapper for ffmpeg, influenced by glover.
+        CContentDecoder.
+        Video decoding wrapper for ffmpeg, influenced by glover.
 */
 class CContentDecoder
 {
-	bool			m_bStop;
-	uint32			m_prevLast;
+  bool m_bStop;
+  uint32 m_prevLast;
 
+  uint32 m_FadeIn;
+  uint32 m_FadeOut;
+  uint32 m_FadeCount;
 
-	uint32				m_FadeIn;
-	uint32				m_FadeOut;
-	uint32				m_FadeCount;
-	
-    SwsContext		*m_pScaler;
-    uint32			m_ScalerWidth;
-    uint32			m_ScalerHeight;
+  SwsContext *m_pScaler;
+  uint32 m_ScalerWidth;
+  uint32 m_ScalerHeight;
 
-	//	Thread & threadfunction.
-	boost::thread	*m_pDecoderThread;
-	void			ReadPackets();
-	
-	boost::thread	*m_pNextSheepThread;
-	void			CalculateNextSheep();
+  //	Thread & threadfunction.
+  boost::thread *m_pDecoderThread;
+  void ReadPackets();
 
-	//	Queue for decoded frames.
-	Base::CBlockingQueue<CVideoFrame *>	m_FrameQueue;
-	boost::shared_mutex	m_ForceNextMutex;
+  boost::thread *m_pNextSheepThread;
+  void CalculateNextSheep();
 
-	//	Codec context & working objects.
-	sOpenVideoInfo		*m_MainVideoInfo;
-	
-	sOpenVideoInfo		*m_SecondVideoInfo;
-	
-	AVPixelFormat		m_WantedPixelFormat;
+  //	Queue for decoded frames.
+  Base::CBlockingQueue<CVideoFrame *> m_FrameQueue;
+  boost::shared_mutex m_ForceNextMutex;
 
+  //	Codec context & working objects.
+  sOpenVideoInfo *m_MainVideoInfo;
 
-	spCPlaylist		m_spPlaylist;
-	
-	Base::CBlockingQueue<std::string>	m_NextSheepQueue;
-	Base::CBlockingQueue<std::string>	m_SheepHistoryQueue;
-	
-	
-	uint32			m_LoopIterations;
-	
-	int32			m_bForceNext;
-	
-	spCVideoFrame	m_sharedFrame;
-	boost::mutex	m_sharedFrameMutex;
-	
-	bool			m_bStartByRandom;
+  sOpenVideoInfo *m_SecondVideoInfo;
 
-	bool			m_NoSheeps;
-	
-	bool			m_Initialized;
-	
-	bool			m_bCalculateTransitions;
+  AVPixelFormat m_WantedPixelFormat;
+
+  spCPlaylist m_spPlaylist;
+
+  Base::CBlockingQueue<std::string> m_NextSheepQueue;
+  Base::CBlockingQueue<std::string> m_SheepHistoryQueue;
+
+  uint32 m_LoopIterations;
+
+  int32 m_bForceNext;
+
+  spCVideoFrame m_sharedFrame;
+  boost::mutex m_sharedFrameMutex;
+
+  bool m_bStartByRandom;
+
+  bool m_NoSheeps;
+
+  bool m_Initialized;
+
+  bool m_bCalculateTransitions;
 
 #ifdef MAC
-    os_log_t m_signpostHandle;
+  os_log_t m_signpostHandle;
 #endif
 
-	bool	Open( sOpenVideoInfo *ovi );
-	sOpenVideoInfo*		GetNextSheepInfo();
-	bool	NextSheepForPlaying( int32 _forceNext = 0 );
-	void	Destroy();
-	
-	CVideoFrame *ReadOneFrame(sOpenVideoInfo *ovi);
+  bool Open(sOpenVideoInfo *ovi);
+  sOpenVideoInfo *GetNextSheepInfo();
+  bool NextSheepForPlaying(int32 _forceNext = 0);
+  void Destroy();
 
-	static int DumpError( int _err );
+  CVideoFrame *ReadOneFrame(sOpenVideoInfo *ovi);
 
-	public:
-			CContentDecoder( spCPlaylist _spPlaylist, bool _bStartByRandom, bool _bAllowTransitions, const uint32 _queueLenght, boost::shared_mutex& _downloadSaveMutex, AVPixelFormat _wantedPixelFormat = AV_PIX_FMT_RGB24 );
-			virtual ~CContentDecoder();
+  static int DumpError(int _err);
 
-			bool	Initialized() { return m_Initialized; }
-			void	Close();
-			bool	Start();
-			void	Stop();
+public:
+  CContentDecoder(spCPlaylist _spPlaylist, bool _bStartByRandom,
+                  bool _bAllowTransitions, const uint32 _queueLenght,
+                  boost::shared_mutex &_downloadSaveMutex,
+                  AVPixelFormat _wantedPixelFormat = AV_PIX_FMT_RGB24);
+  virtual ~CContentDecoder();
 
-			//CVideoFrame *DecodeFrame();
-			void	ResetSharedFrame();
-			spCVideoFrame Frame();
+  bool Initialized() { return m_Initialized; }
+  void Close();
+  bool Start();
+  void Stop();
 
-			bool	Stopped()	{	return m_bStop; };
-			bool	Healthy()	{ return true; };
+  // CVideoFrame *DecodeFrame();
+  void ResetSharedFrame();
+  spCVideoFrame Frame();
 
-			bool	PlayNoSheepIntro()	
-			{ 
-				return m_NoSheeps; 
-			};
-			
-			inline uint32	GetCurrentPlayingID()				{	return (m_MainVideoInfo != NULL) ? m_MainVideoInfo->m_SheepID : 0;	};
-			inline uint32	GetCurrentPlayingGeneration()		{	return (m_MainVideoInfo != NULL) ? m_MainVideoInfo->m_Generation : 0; };
+  bool Stopped() { return m_bStop; };
+  bool Healthy() { return true; };
 
-			uint32	QueueLength();
-			
-			void ClearQueue( uint32 leave = 0 );
-			
-			void ForceNext( int32 forced = 1 );
-			int32 NextForced( void );
+  bool PlayNoSheepIntro() { return m_NoSheeps; };
+
+  inline uint32 GetCurrentPlayingID()
+  {
+    return (m_MainVideoInfo != NULL) ? m_MainVideoInfo->m_SheepID : 0;
+  };
+  inline uint32 GetCurrentPlayingGeneration()
+  {
+    return (m_MainVideoInfo != NULL) ? m_MainVideoInfo->m_Generation : 0;
+  };
+
+  uint32 QueueLength();
+
+  void ClearQueue(uint32 leave = 0);
+
+  void ForceNext(int32 forced = 1);
+  int32 NextForced(void);
 };
 
-MakeSmartPointers( CContentDecoder );
+MakeSmartPointers(CContentDecoder);
 
-}
+} // namespace ContentDecoder
 
 #endif

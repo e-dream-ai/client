@@ -1,81 +1,68 @@
 #ifdef USE_METAL
 
+#include "DisplayMetal.h"
 #include "Log.h"
 #include "Settings.h"
-#include "DisplayMetal.h"
 
-#include	"Exception.h"
+#include "Exception.h"
 
-
-namespace	DisplayOutput
+namespace DisplayOutput
 {
 
-    uint32 CDisplayMetal::s_DefaultWidth = 0;
-    uint32 CDisplayMetal::s_DefaultHeight = 0;
+uint32 CDisplayMetal::s_DefaultWidth = 0;
+uint32 CDisplayMetal::s_DefaultHeight = 0;
 
-    /*
-     CDisplayMetal().
+/*
+ CDisplayMetal().
 
-    */
-    CDisplayMetal::CDisplayMetal() : CDisplayOutput()
-    {
-    }
+*/
+CDisplayMetal::CDisplayMetal() : CDisplayOutput() {}
 
-    /*
-    ~CMacGL().
+/*
+~CMacGL().
 
-    */
-    CDisplayMetal::~CDisplayMetal()
-    {
-    }
+*/
+CDisplayMetal::~CDisplayMetal() {}
 
-    void  CDisplayMetal::ForceWidthAndHeight( uint32 _width, uint32 _height )
-    {
-        m_Width = _width;
-        m_Height = _height;
-    }
+void CDisplayMetal::ForceWidthAndHeight(uint32 _width, uint32 _height)
+{
+  m_Width = _width;
+  m_Height = _height;
+}
 
-    void CDisplayMetal::SetDefaultWidthAndHeight( uint32 defWidth, uint32 defHeight )
-    {
-        s_DefaultWidth = defWidth;
-        s_DefaultHeight = defHeight;
-    }
+void CDisplayMetal::SetDefaultWidthAndHeight(uint32 defWidth, uint32 defHeight)
+{
+  s_DefaultWidth = defWidth;
+  s_DefaultHeight = defHeight;
+}
 
-    bool CDisplayMetal::Initialize( CGraphicsContext _graphicsContext, bool /*_bPreview*/)
-    {
-        m_Width = s_DefaultWidth;
-        m_Height = s_DefaultHeight;
-        m_GraphicsContext = _graphicsContext;
+bool CDisplayMetal::Initialize(CGraphicsContext _graphicsContext,
+                               bool /*_bPreview*/)
+{
+  m_Width = s_DefaultWidth;
+  m_Height = s_DefaultHeight;
+  m_GraphicsContext = _graphicsContext;
 
-        return true;
-    }
+  return true;
+}
 
-    void CDisplayMetal::SetContext(CGraphicsContext _graphicsContext)
-    {
-        m_GraphicsContext = _graphicsContext;
-    }
+void CDisplayMetal::SetContext(CGraphicsContext _graphicsContext)
+{
+  m_GraphicsContext = _graphicsContext;
+}
 
-    CGraphicsContext CDisplayMetal::GetContext()
-    {
-        return m_GraphicsContext;
-    }
+CGraphicsContext CDisplayMetal::GetContext() { return m_GraphicsContext; }
 
-    //
-    void CDisplayMetal::Title( const std::string &/*_title*/ )
-    {
-    }
+//
+void CDisplayMetal::Title(const std::string & /*_title*/) {}
 
-    //
-    void CDisplayMetal::Update()
-    {
-    }
+//
+void CDisplayMetal::Update() {}
 
-    /*
-    */
-    void CDisplayMetal::SwapBuffers()
-    {
-    }
+/*
+ */
+void CDisplayMetal::SwapBuffers() {}
 
-};
+}; // namespace DisplayOutput
 
 #endif /*USE_METAL*/

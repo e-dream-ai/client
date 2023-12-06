@@ -1,32 +1,32 @@
-#ifndef	_CONSOLE_H_
+#ifndef _CONSOLE_H_
 #define _CONSOLE_H_
 
-#include	"Hud.h"
-#include	"Rect.h"
-#include	"Font.h"
+#include "Font.h"
+#include "Hud.h"
+#include "Rect.h"
 
-namespace	Hud
+namespace Hud
 {
 
 /*
-	CConsole.
+        CConsole.
 
 */
-class	CConsole : public CHudEntry
+class CConsole : public CHudEntry
 {
-	protected:
+protected:
+  DisplayOutput::spCBaseFont m_spFont;
 
-		DisplayOutput::spCBaseFont	m_spFont;
+public:
+  CConsole(Base::Math::CRect _rect) : CHudEntry(_rect){};
+  virtual ~CConsole(){};
 
-	public:
-			CConsole( Base::Math::CRect _rect ) : CHudEntry( _rect )	{};
-			virtual ~CConsole()	{};
-
-			virtual bool	Render( const fp8 _time, DisplayOutput::spCRenderer _spRenderer ) = PureVirtual;
+  virtual bool Render(const fp8 _time,
+                      DisplayOutput::spCRenderer _spRenderer) = PureVirtual;
 };
 
-MakeSmartPointers( CConsole );
+MakeSmartPointers(CConsole);
 
-};
+}; // namespace Hud
 
 #endif

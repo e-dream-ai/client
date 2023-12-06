@@ -4,10 +4,9 @@
 
 @interface ESMetalView : MTKView
 {
-
 }
 
-- (id) initWithFrame: (NSRect) frameRect;
+- (id)initWithFrame:(NSRect)frameRect;
 
 - (BOOL)needsDisplay;
 

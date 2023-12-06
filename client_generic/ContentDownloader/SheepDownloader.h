@@ -23,7 +23,7 @@
 #ifndef _SHEEPDOWNLOADER_H_
 #define _SHEEPDOWNLOADER_H_
 
-#if 1//DASVO_TEST
+#if 1 // DASVO_TEST
 #include "tinyxml.h"
 #else
 #include "expat.h"
@@ -37,103 +37,107 @@ class SheepRenderer;
 
 /*
 
-	This class is responsible for downloading and queueing new sheep to the renderer..
+        This class is responsible for downloading and queueing new sheep to the
+   renderer..
 */
 class SheepDownloader
 {
-	// number of sheep that the downloader has downloaded
-	static int fDownloadedSheep;
+  // number of sheep that the downloader has downloaded
+  static int fDownloadedSheep;
 
-	// sheep flocks
-	static SheepArray fServerFlock;
-	static SheepArray fClientFlock;
-	SheepRenderer *fRenderer;
+  // sheep flocks
+  static SheepArray fServerFlock;
+  static SheepArray fClientFlock;
+  SheepRenderer *fRenderer;
 
-	// boolean for message checks
-	bool fHasMessage;
-	static uint32 fCurrentGeneration;
+  // boolean for message checks
+  bool fHasMessage;
+  static uint32 fCurrentGeneration;
 
-	static time_t fLastListTime;
-	
-	static boost::mutex	s_DownloaderMutex;
-	
-	bool m_bAborted;
-	
-	Network::spCFileDownloader m_spSheepDownloader;
-	
-	boost::mutex m_AbortMutex;
-    boost::shared_mutex& m_DownloadSaveMutex;
-	
-	protected:
+  static time_t fLastListTime;
 
-		//	Downloads the given sheep and queues it up for rendering.
-		bool downloadSheep( Dream *sheep );
+  static boost::mutex s_DownloaderMutex;
 
-		//	Function to parse the cache and find a sheep to download.
-		void findSheepToDownload();
+  bool m_bAborted;
 
-		//	Ipdate the cached sheep and make sure there is enough room for a second sheep.
-		void updateCachedSheep();
+  Network::spCFileDownloader m_spSheepDownloader;
 
-		//	Clears the flock list being maintained
-		void clearFlocks();
+  boost::mutex m_AbortMutex;
+  boost::shared_mutex &m_DownloadSaveMutex;
 
-		//	Delete enough sheep to clear enough room for the given amount of bytes.
-		void deleteCached( const uint64 &bytes, const int getGenerationType );
+protected:
+  //	Downloads the given sheep and queues it up for rendering.
+  bool downloadSheep(Dream *sheep);
 
-		bool isFolderAccessible( const char *folder );
+  //	Function to parse the cache and find a sheep to download.
+  void findSheepToDownload();
 
-		//	This methods parses the sheep list and intializes the array of server sheep.
-		void parseSheepList();
+  //	Ipdate the cached sheep and make sure there is enough room for a second
+  // sheep.
+  void updateCachedSheep();
 
-		//	Message retrival from server.
-		void setHasMessage(const bool &hasMessage) { fHasMessage = hasMessage; }
-		bool hasMessage() const { return fHasMessage; }
+  //	Clears the flock list being maintained
+  void clearFlocks();
 
-		void setCurrentGeneration(const uint32 &generation) { fCurrentGeneration = generation; }
+  //	Delete enough sheep to clear enough room for the given amount of bytes.
+  void deleteCached(const uint64 &bytes, const int getGenerationType);
 
-		//	Checks the disk space to make sure the cache is not being overflowed.
-		int cacheOverflow(const double &bytes, const int getGenerationType) const;
+  bool isFolderAccessible(const char *folder);
 
-		// Clean global and static data for the downloader threads.
-		static void closeDownloader();
+  //	This methods parses the sheep list and intializes the array of server
+  // sheep.
+  void parseSheepList();
 
-		//	Function to initialize the downloader threads
-		static void initializeDownloader();
+  //	Message retrival from server.
+  void setHasMessage(const bool &hasMessage) { fHasMessage = hasMessage; }
+  bool hasMessage() const { return fHasMessage; }
 
-		void deleteSheep(Dream *sheep);
+  void setCurrentGeneration(const uint32 &generation)
+  {
+    fCurrentGeneration = generation;
+  }
 
-		static bool fGotList;
-		
-		static bool fListDirty;
+  //	Checks the disk space to make sure the cache is not being overflowed.
+  int cacheOverflow(const double &bytes, const int getGenerationType) const;
 
-	public:
-			SheepDownloader( boost::shared_mutex& _downloadSaveMutex );
-			virtual ~SheepDownloader();
+  // Clean global and static data for the downloader threads.
+  static void closeDownloader();
 
-			static void shepherdCallback(void* data);
+  //	Function to initialize the downloader threads
+  static void initializeDownloader();
 
-			static int numberOfDownloadedSheep();
+  void deleteSheep(Dream *sheep);
 
-			static uint32 currentGeneration() { return fCurrentGeneration; }
+  static bool fGotList;
 
-			static bool getSheepList();
-            static const SheepArray& getServerFlock() { return fServerFlock; }
-            static const SheepArray& getClientFlock() { return fClientFlock; }
+  static bool fListDirty;
 
+public:
+  SheepDownloader(boost::shared_mutex &_downloadSaveMutex);
+  virtual ~SheepDownloader();
 
-			// add to the number of downloaded sheep (called by torrent)
-			static void addDownloadedSheep(int sheep) { fDownloadedSheep += sheep; }
+  static void shepherdCallback(void *data);
 
-			void deleteSheepId(uint32 sheepId);
+  static int numberOfDownloadedSheep();
 
-			// Aborts the working thread
-			void Abort( void );
+  static uint32 currentGeneration() { return fCurrentGeneration; }
 
-			//	Declare friend classes for protected data accesss.
-			friend class Shepherd;
+  static bool getSheepList();
+  static const SheepArray &getServerFlock() { return fServerFlock; }
+  static const SheepArray &getClientFlock() { return fClientFlock; }
+
+  // add to the number of downloaded sheep (called by torrent)
+  static void addDownloadedSheep(int sheep) { fDownloadedSheep += sheep; }
+
+  void deleteSheepId(uint32 sheepId);
+
+  // Aborts the working thread
+  void Abort(void);
+
+  //	Declare friend classes for protected data accesss.
+  friend class Shepherd;
 };
 
-};
+}; // namespace ContentDownloader
 
 #endif

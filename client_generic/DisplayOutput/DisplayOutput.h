@@ -1,222 +1,214 @@
 #ifndef _DISPLAY_OUTPUT_H
-#define	_DISPLAY_OUTPUT_H
+#define _DISPLAY_OUTPUT_H
 
-#include	<queue>
-#include	"base.h"
-#include	"SmartPtr.h"
-#include	"linkpool.h"
+#include "SmartPtr.h"
+#include "base.h"
+#include "linkpool.h"
+#include <queue>
 #ifdef MAC
 #ifndef USE_METAL
 #undef Random
-#include	<OpenGL/OpenGL.h>
+#include <OpenGL/OpenGL.h>
 #endif
 #endif
-
 
 #ifdef USE_METAL
 #ifdef __OBJC__
-typedef void* CGraphicsContext;
+typedef void *CGraphicsContext;
 #else
 class MTKView;
-typedef MTKView* CGraphicsContext;
+typedef MTKView *CGraphicsContext;
 #endif
 #else
 typedef CGLContextObj CGraphicsContext;
 #endif
 
-namespace	DisplayOutput
+namespace DisplayOutput
 {
 
 /*
-	CEvent.
-	Event interface.
+        CEvent.
+        Event interface.
 */
-class	CEvent
+class CEvent
 {
-	public:
-			enum eEventType
-			{
-				Event_KEY,
-				Event_Mouse,
-				Event_Power,
-				Event_NONE
-			};
-    
-            virtual ~CEvent() {}
+public:
+  enum eEventType
+  {
+    Event_KEY,
+    Event_Mouse,
+    Event_Power,
+    Event_NONE
+  };
 
-			virtual	eEventType	Type()	{	return( Event_NONE );	};
+  virtual ~CEvent() {}
 
-			POOLED( CEvent, Memory::CLinkPool );
+  virtual eEventType Type() { return (Event_NONE); };
+
+  POOLED(CEvent, Memory::CLinkPool);
 };
 
-MakeSmartPointers( CEvent );
+MakeSmartPointers(CEvent);
 
 /*
-	CKeyEvent.
-	Keyboard event.
+        CKeyEvent.
+        Keyboard event.
 */
-class	CKeyEvent : public CEvent
+class CKeyEvent : public CEvent
 {
-	public:
-			enum eKeyCode
-			{
-				KEY_TAB,
-				KEY_LALT,
-				KEY_MENU,
-				KEY_CTRL,
-				KEY_F,
-				KEY_s,
-				KEY_SPACE,
-				KEY_LEFT,
-				KEY_RIGHT,
-				KEY_UP,
-				KEY_DOWN,
-				KEY_F1,
-				KEY_F2,
-				KEY_F3,
-				KEY_F4,
-				KEY_F5,
-				KEY_F6,
-				KEY_F7,
-				KEY_F8,
-				KEY_F9,
-				KEY_F10,
-				KEY_F11,
-				KEY_F12,
-				KEY_Esc,
-				KEY_NONE,
-                KEY_Comma,
-                KEY_Period,
-                KEY_P
-			};
+public:
+  enum eKeyCode
+  {
+    KEY_TAB,
+    KEY_LALT,
+    KEY_MENU,
+    KEY_CTRL,
+    KEY_F,
+    KEY_s,
+    KEY_SPACE,
+    KEY_LEFT,
+    KEY_RIGHT,
+    KEY_UP,
+    KEY_DOWN,
+    KEY_F1,
+    KEY_F2,
+    KEY_F3,
+    KEY_F4,
+    KEY_F5,
+    KEY_F6,
+    KEY_F7,
+    KEY_F8,
+    KEY_F9,
+    KEY_F10,
+    KEY_F11,
+    KEY_F12,
+    KEY_Esc,
+    KEY_NONE,
+    KEY_Comma,
+    KEY_Period,
+    KEY_P
+  };
 
-			CKeyEvent() : m_bPressed( true ), m_Code( KEY_NONE )	{}
-    
-            virtual ~CKeyEvent() {}
-    
-			virtual eEventType	Type()	{	return( CEvent::Event_KEY );	};
-			bool    	m_bPressed;
-			eKeyCode	m_Code;
+  CKeyEvent() : m_bPressed(true), m_Code(KEY_NONE) {}
 
-			POOLED( CKeyEvent, Memory::CLinkPool );
+  virtual ~CKeyEvent() {}
+
+  virtual eEventType Type() { return (CEvent::Event_KEY); };
+  bool m_bPressed;
+  eKeyCode m_Code;
+
+  POOLED(CKeyEvent, Memory::CLinkPool);
 };
 
-MakeSmartPointers( CKeyEvent );
-
+MakeSmartPointers(CKeyEvent);
 
 /*
-	CMouseEvent.
-	Mouse event.
+        CMouseEvent.
+        Mouse event.
 */
-class	CMouseEvent : public CEvent
+class CMouseEvent : public CEvent
 {
-	public:
-			enum eMouseCode
-			{
-				Mouse_LEFT,
-				Mouse_RIGHT,
-				Mouse_MOVE,
-				Mouse_NONE
-			};
+public:
+  enum eMouseCode
+  {
+    Mouse_LEFT,
+    Mouse_RIGHT,
+    Mouse_MOVE,
+    Mouse_NONE
+  };
 
-			CMouseEvent() : m_Code( Mouse_NONE )	{}
-    
-            virtual ~CMouseEvent() {}
-    
-			virtual eEventType	Type()	{	return( CEvent::Event_Mouse );	};
-			eMouseCode	m_Code;
+  CMouseEvent() : m_Code(Mouse_NONE) {}
 
-			int32	m_X;
-			int32	m_Y;
+  virtual ~CMouseEvent() {}
 
-			POOLED( CMouseEvent, Memory::CLinkPool );
+  virtual eEventType Type() { return (CEvent::Event_Mouse); };
+  eMouseCode m_Code;
+
+  int32 m_X;
+  int32 m_Y;
+
+  POOLED(CMouseEvent, Memory::CLinkPool);
 };
 
-MakeSmartPointers( CMouseEvent );
-
-
+MakeSmartPointers(CMouseEvent);
 
 /*
-	CPowerEvent.
-	Power broadcast event.
+        CPowerEvent.
+        Power broadcast event.
 */
-class	CPowerEvent : public CEvent
+class CPowerEvent : public CEvent
 {
-	public:
-			CPowerEvent()	{}
-    
-            virtual ~CPowerEvent() {}
+public:
+  CPowerEvent() {}
 
-            virtual eEventType	Type()	{	return( CEvent::Event_Power );	};
+  virtual ~CPowerEvent() {}
+
+  virtual eEventType Type() { return (CEvent::Event_Power); };
 };
 
-MakeSmartPointers( CPowerEvent );
+MakeSmartPointers(CPowerEvent);
 
 /*
-	CDisplayOutput.
-	Base class.
+        CDisplayOutput.
+        Base class.
 
-	Note, it's up to constructor(or Initialize()), to set width/height.
+        Note, it's up to constructor(or Initialize()), to set width/height.
 */
-class	CDisplayOutput
+class CDisplayOutput
 {
-	protected:
+protected:
+  int32 m_XPosition;
+  int32 m_YPosition;
+  uint32 m_Width;
+  uint32 m_Height;
+  bool m_bFullScreen;
+  bool m_bVSync;
+  bool m_bClosed;
 
-		int32	m_XPosition;
-		int32	m_YPosition;
-		uint32	m_Width;
-		uint32	m_Height;
-		bool    m_bFullScreen;
-		bool    m_bVSync;
-		bool	m_bClosed;
+  static std::queue<spCEvent> m_EventQueue;
 
-		static std::queue<spCEvent>	m_EventQueue;
+public:
+  CDisplayOutput();
+  virtual ~CDisplayOutput();
 
-	public:
-			CDisplayOutput();
-			virtual ~CDisplayOutput();
-
-#ifdef	WIN32
-			virtual bool Initialize( HWND _hWnd, bool _bPreview ) = PureVirtual;
-			virtual HWND Initialize( const uint32 _width, const uint32 _height, const bool _bFullscreen ) = PureVirtual;
-			virtual HWND WindowHandle( void ) = PureVirtual;
-			virtual DWORD GetNumMonitors() { return 1; }
+#ifdef WIN32
+  virtual bool Initialize(HWND _hWnd, bool _bPreview) = PureVirtual;
+  virtual HWND Initialize(const uint32 _width, const uint32 _height,
+                          const bool _bFullscreen) = PureVirtual;
+  virtual HWND WindowHandle(void) = PureVirtual;
+  virtual DWORD GetNumMonitors() { return 1; }
 #else
 #ifdef MAC
-            virtual bool Initialize( CGraphicsContext _graphicsContext, bool _bPreview ) = PureVirtual;
-            virtual void SetContext( CGraphicsContext _graphicsContext ) = PureVirtual;
-            virtual CGraphicsContext GetContext( void ) = PureVirtual;
-            virtual void ForceWidthAndHeight( uint32 _width, uint32 _height ) = PureVirtual;
+  virtual bool Initialize(CGraphicsContext _graphicsContext,
+                          bool _bPreview) = PureVirtual;
+  virtual void SetContext(CGraphicsContext _graphicsContext) = PureVirtual;
+  virtual CGraphicsContext GetContext(void) = PureVirtual;
+  virtual void ForceWidthAndHeight(uint32 _width, uint32 _height) = PureVirtual;
 #else
-			virtual bool Initialize( const uint32 _width, const uint32 _height, const bool _bFullscreen ) = PureVirtual;
+  virtual bool Initialize(const uint32 _width, const uint32 _height,
+                          const bool _bFullscreen) = PureVirtual;
 #endif
 #endif
 
-			//
-			virtual void Title( const std::string &_title) = PureVirtual;
-			virtual void Update() = PureVirtual;
-			virtual void SwapBuffers() = PureVirtual;
+  //
+  virtual void Title(const std::string &_title) = PureVirtual;
+  virtual void Update() = PureVirtual;
+  virtual void SwapBuffers() = PureVirtual;
 
-			bool	GetEvent( spCEvent &_event );
-			void	AppendEvent( spCEvent _event );
-			void	ClearEvents();
+  bool GetEvent(spCEvent &_event);
+  void AppendEvent(spCEvent _event);
+  void ClearEvents();
 
-			virtual bool HasShaders() { return false; };
-			uint32	Width()		
-			{	
-				return( m_Width );	    
-			};
-			uint32	Height()	
-			{	
-				return( m_Height );	    
-			};
-			fp4		Aspect()	{	return( (fp4)m_Height / (fp4)m_Width );	};
-			bool    Closed()    {   return( m_bClosed );    };
-			void	Close()		{	m_bClosed = true;		};
+  virtual bool HasShaders() { return false; };
+  uint32 Width() { return (m_Width); };
+  uint32 Height() { return (m_Height); };
+  fp4 Aspect() { return ((fp4)m_Height / (fp4)m_Width); };
+  bool Closed() { return (m_bClosed); };
+  void Close() { m_bClosed = true; };
 };
 
-MakeSmartPointers( CDisplayOutput );
+MakeSmartPointers(CDisplayOutput);
 
-};
+}; // namespace DisplayOutput
 
 #endif

@@ -1,16 +1,17 @@
 #pragma once
 
-#include <wx/wx.h>
 #include "electricsheepguiMyDialog2.h"
+#include <wx/wx.h>
 
 class wxWidgetsApp : public wxApp
 {
 public:
-    wxWidgetsApp();
-    virtual ~wxWidgetsApp();
-    virtual bool OnInit();
+  wxWidgetsApp();
+  virtual ~wxWidgetsApp();
+  virtual bool OnInit();
+
 private:
-	electricsheepguiMyDialog2 *m_dialog;
+  electricsheepguiMyDialog2 *m_dialog;
 };
 
 DECLARE_APP(wxWidgetsApp)

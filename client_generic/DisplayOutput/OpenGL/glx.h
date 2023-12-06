@@ -17,46 +17,47 @@
 #endif
 #include "DisplayOutput.h"
 
-namespace	DisplayOutput
+namespace DisplayOutput
 {
 
 class CUnixGL : public CDisplayOutput
 {
-    Display     *m_pDisplay;
-    GLXContext  m_GlxContext;
-    Window      m_Window;
-    GLXWindow   m_GlxWindow;
-    bool        m_FullScreen;
-    int         m_VSync;
+  Display *m_pDisplay;
+  GLXContext m_GlxContext;
+  Window m_Window;
+  GLXWindow m_GlxWindow;
+  bool m_FullScreen;
+  int m_VSync;
 
-    uint32	m_WidthFS;
-    uint32	m_HeightFS;
+  uint32 m_WidthFS;
+  uint32 m_HeightFS;
 
-    void    setFullScreen( bool enabled );
-    void    setWindowDecorations( bool enabled );
-    void    toggleVSync();
-    void    alwaysOnTop();
-    void    checkClientMessages();
-    //bool    checkResizeEvent( ResizeEvent &event);
+  void setFullScreen(bool enabled);
+  void setWindowDecorations(bool enabled);
+  void toggleVSync();
+  void alwaysOnTop();
+  void checkClientMessages();
+  // bool    checkResizeEvent( ResizeEvent &event);
 
-    public:
-            CUnixGL();
-            virtual ~CUnixGL();
+public:
+  CUnixGL();
+  virtual ~CUnixGL();
 
-			static const char *Description()	{	return "X OpenGL display";	};
+  static const char *Description() { return "X OpenGL display"; };
 
-            virtual bool	Initialize( const uint32 _width, const uint32 _height, const bool _bFullscreen );
+  virtual bool Initialize(const uint32 _width, const uint32 _height,
+                          const bool _bFullscreen);
 
-			//
-			virtual void Title( const std::string &_title );
-			virtual void Update();
+  //
+  virtual void Title(const std::string &_title);
+  virtual void Update();
 
-			void SwapBuffers();
+  void SwapBuffers();
 };
 
-typedef	CUnixGL	CDisplayGL;
+typedef CUnixGL CDisplayGL;
 
-}
+} // namespace DisplayOutput
 
 #endif
 

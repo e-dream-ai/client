@@ -16,8 +16,8 @@ MODIFIED:
 #ifndef _ISAAC_H_
 #define _ISAAC_H_
 
-#define RANDSIZL   (4)  /* I recommend 8 for crypto, 4 for simulations */
-#define RANDSIZ    (1<<RANDSIZL)
+#define RANDSIZL (4) /* I recommend 8 for crypto, 4 for simulations */
+#define RANDSIZ (1 << RANDSIZL)
 
 /* context of random number generator */
 struct randctx
@@ -29,28 +29,25 @@ struct randctx
   ub4 randb;
   ub4 randc;
 };
-typedef  struct randctx  randctx;
+typedef struct randctx randctx;
 
 /*
 ------------------------------------------------------------------------------
  If (flag==TRUE), then use the contents of randrsl[0..RANDSIZ-1] as the seed.
 ------------------------------------------------------------------------------
 */
-void irandinit( randctx *r, word flag );
+void irandinit(randctx *r, word flag);
 
-void isaac( randctx *r );
-
+void isaac(randctx *r);
 
 /*
 ------------------------------------------------------------------------------
  Call irand(/o_ randctx *r _o/) to retrieve a single 32-bit random value
 ------------------------------------------------------------------------------
 */
-#define irand(r) \
-   (!(r)->randcnt-- ? \
-     (isaac(r), (r)->randcnt=RANDSIZ-1, (r)->randrsl[(r)->randcnt]) : \
-     (r)->randrsl[(r)->randcnt])
+#define irand(r)                                                               \
+  (!(r)->randcnt--                                                             \
+       ? (isaac(r), (r)->randcnt = RANDSIZ - 1, (r)->randrsl[(r)->randcnt])    \
+       : (r)->randrsl[(r)->randcnt])
 
 #endif
-
-

@@ -1,7 +1,7 @@
 #ifndef _MATRIXDEFS_H_
 #define _MATRIXDEFS_H_
 
-namespace	Base
+namespace Base
 {
 
 namespace Math
@@ -21,11 +21,11 @@ namespace Math
 #define M34 m_Mat[2][3]
 #define M41 m_Mat[3][0]
 #define M42 m_Mat[3][1]
-#define	M43	m_Mat[3][2]
-#define	M44 m_Mat[3][3]
+#define M43 m_Mat[3][2]
+#define M44 m_Mat[3][3]
 
-};
+}; // namespace Math
 
-};
+}; // namespace Base
 
 #endif

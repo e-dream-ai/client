@@ -3,42 +3,41 @@
 
 #include "TextureFlat.h"
 
-namespace	DisplayOutput
+namespace DisplayOutput
 {
 
 const uint32 kRectTexture = 0x80000000;
 
 /*
-	CTextureFlatGL.
+        CTextureFlatGL.
 
 */
 class CTextureFlatGL : public CTextureFlat
 {
-	GLuint	m_TexID;
-	
-	GLenum	m_TexTarget;
-	
-#ifdef MAC
-	CGLContextObj cgl_ctx;
-#endif
-	
+  GLuint m_TexID;
 
-	public:
+  GLenum m_TexTarget;
+
 #ifdef MAC
-			CTextureFlatGL( const uint32 _flags = 0, CGLContextObj glctx = NULL  );
+  CGLContextObj cgl_ctx;
+#endif
+
+public:
+#ifdef MAC
+  CTextureFlatGL(const uint32 _flags = 0, CGLContextObj glctx = NULL);
 #else
-			CTextureFlatGL( const uint32 _flags = 0  );
+  CTextureFlatGL(const uint32 _flags = 0);
 #endif
-			virtual ~CTextureFlatGL();
+  virtual ~CTextureFlatGL();
 
-			bool	Upload( spCImage _spImage );
-			bool	Bind( const uint32 _index );
-			bool	Unbind( const uint32 _index );
-            bool    BindFrame(ContentDecoder::spCVideoFrame _pFrame);
+  bool Upload(spCImage _spImage);
+  bool Bind(const uint32 _index);
+  bool Unbind(const uint32 _index);
+  bool BindFrame(ContentDecoder::spCVideoFrame _pFrame);
 };
 
-MakeSmartPointers( CTextureFlatGL );
+MakeSmartPointers(CTextureFlatGL);
 
-}
+} // namespace DisplayOutput
 
 #endif

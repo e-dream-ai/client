@@ -2,26 +2,26 @@
 #include <inttypes.h>
 #include <string>
 
-#include "base.h"
+#include "DisplayOutput.h"
+#include "Exception.h"
 #include "Log.h"
 #include "MathBase.h"
-#include "Exception.h"
-#include "DisplayOutput.h"
 #include "TextureFlat.h"
+#include "base.h"
 
-namespace	DisplayOutput
+namespace DisplayOutput
 {
 
 /*
-*/
-CTextureFlat::CTextureFlat( const uint32 _flags ) : CTexture( _flags ), m_spImage( NULL ), m_bDirty(false), m_texRect( Base::Math::CRect( 1, 1 ) )
+ */
+CTextureFlat::CTextureFlat(const uint32 _flags)
+    : CTexture(_flags), m_spImage(NULL), m_bDirty(false),
+      m_texRect(Base::Math::CRect(1, 1))
 {
 }
 
 /*
-*/
-CTextureFlat::~CTextureFlat()
-{
-}
+ */
+CTextureFlat::~CTextureFlat() {}
 
-}
+} // namespace DisplayOutput

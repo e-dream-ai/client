@@ -3,14 +3,13 @@
 
 @interface ESOpenGLView : NSOpenGLView
 {
-
 }
 
-+ (NSOpenGLPixelFormat*) esPixelFormat;
++ (NSOpenGLPixelFormat *)esPixelFormat;
 
-- (id) initWithFrame: (NSRect) frameRect;
+- (id)initWithFrame:(NSRect)frameRect;
 
 - (BOOL)needsDisplay;
 
 @end
-#endif //!USE_METAL
+#endif //! USE_METAL

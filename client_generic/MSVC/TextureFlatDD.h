@@ -5,31 +5,32 @@
 
 #include "TextureFlat.h"
 
-namespace	DisplayOutput
+namespace DisplayOutput
 {
 
 class CTextureFlatDS : public CTextureFlat
 {
-	LPDIRECTDRAWSURFACE7	m_pTextureDS;
+  LPDIRECTDRAWSURFACE7 m_pTextureDS;
 
-	//	Internal to keep track if size or format changed.
-	Base::Math::CRect	m_Size;
-	DisplayOutput::eImageFormat	m_Format;
-	CBackBufDD *m_BackBuffer;
-	HDC	m_hdc;
-	HDC m_sdc;
-	public:
-			CTextureFlatDS(CBackBufDD *backbuffer = NULL, const uint32 _flags = 0 );
-			virtual ~CTextureFlatDS();
+  //	Internal to keep track if size or format changed.
+  Base::Math::CRect m_Size;
+  DisplayOutput::eImageFormat m_Format;
+  CBackBufDD *m_BackBuffer;
+  HDC m_hdc;
+  HDC m_sdc;
 
-			virtual bool	Upload( spCImage _spImage );
-			virtual bool	Bind( const uint32 _index );
-			virtual bool	Unbind( const uint32 _index );
+public:
+  CTextureFlatDS(CBackBufDD *backbuffer = NULL, const uint32 _flags = 0);
+  virtual ~CTextureFlatDS();
+
+  virtual bool Upload(spCImage _spImage);
+  virtual bool Bind(const uint32 _index);
+  virtual bool Unbind(const uint32 _index);
 };
 
-MakeSmartPointers( CTextureFlatDS );
+MakeSmartPointers(CTextureFlatDS);
 
-}
+} // namespace DisplayOutput
 
 #endif
 #endif

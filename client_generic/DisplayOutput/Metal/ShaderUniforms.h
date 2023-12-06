@@ -5,23 +5,23 @@
 
 struct QuadUniforms
 {
-    vector_float4 rect;
-    vector_float4 uvRect;
-    vector_float4 color;
-    float halfSmooth;
+  vector_float4 rect;
+  vector_float4 uvRect;
+  vector_float4 color;
+  float halfSmooth;
 };
 
 struct TextUniforms
 {
-    matrix_float4x4 modelMatrix;
-    matrix_float4x4 viewProjectionMatrix;
-    vector_float4 foregroundColor;
+  matrix_float4x4 modelMatrix;
+  matrix_float4x4 viewProjectionMatrix;
+  vector_float4 foregroundColor;
 };
 
 struct VertexText
 {
-    packed_float4 position;
-    packed_float2 texCoords;
+  packed_float4 position;
+  packed_float2 texCoords;
 };
 
 #endif /* ShaderUniforms_h */

@@ -1,7 +1,7 @@
-#ifndef	_DIRITERATOR_H
+#ifndef _DIRITERATOR_H
 #define _DIRITERATOR_H
 
-namespace	TupleStorage
+namespace TupleStorage
 {
 
 #ifdef WIN32
@@ -10,36 +10,36 @@ namespace	TupleStorage
 
 typedef struct dir_data
 {
-	long	hFile;
-	char	pattern[ MAX_DIR_LENGTH + 1 ];
-}	dir_data;
+  long hFile;
+  char pattern[MAX_DIR_LENGTH + 1];
+} dir_data;
 
 #endif
 
 /*
-*/
-class	CDirectoryIterator
+ */
+class CDirectoryIterator
 {
 
-#ifdef	WIN32
-	dir_data	*m_pDirData;
+#ifdef WIN32
+  dir_data *m_pDirData;
 #else
-	DIR			*m_pDirData;
+  DIR *m_pDirData;
 #endif
 
-	std::string	m_Directory;
+  std::string m_Directory;
 
-	public:
-			CDirectoryIterator( const std::string &_path );
-			~CDirectoryIterator();
+public:
+  CDirectoryIterator(const std::string &_path);
+  ~CDirectoryIterator();
 
-			//
-			bool Next( std::string &_object );
-			bool isDirectory( const std::string &_object );
+  //
+  bool Next(std::string &_object);
+  bool isDirectory(const std::string &_object);
 
-//			POOLED( CDirectoryIterator, Memory::CLinkPool );
+  //			POOLED( CDirectoryIterator, Memory::CLinkPool );
 };
 
-};
+}; // namespace TupleStorage
 
 #endif

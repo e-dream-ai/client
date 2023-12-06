@@ -1,99 +1,87 @@
-#if	defined(MAC) && !defined(USE_METAL)
+#if defined(MAC) && !defined(USE_METAL)
 
+#include "mgl.h"
 #include "Log.h"
 #include "Settings.h"
-#include "mgl.h"
 
-#include	"Exception.h"
+#include "Exception.h"
 
-
-namespace	DisplayOutput
+namespace DisplayOutput
 {
 
 uint32 CMacGL::s_DefaultWidth = 0;
 uint32 CMacGL::s_DefaultHeight = 0;
 
 /*
-	CMacGL().
+        CMacGL().
 
 */
-CMacGL::CMacGL() : CDisplayOutput()
-{
-	m_glContext = NULL;
-}
+CMacGL::CMacGL() : CDisplayOutput() { m_glContext = NULL; }
 
 /*
-	~CMacGL().
+        ~CMacGL().
 
 */
-CMacGL::~CMacGL()
+CMacGL::~CMacGL() {}
+
+void CMacGL::ForceWidthAndHeight(uint32 _width, uint32 _height)
 {
+  m_Width = _width;
+  m_Height = _height;
+
+  if (m_glContext)
+  {
+    CGLSetCurrentContext(m_glContext);
+    glViewport(0, 0, static_cast<GLsizei>(m_Width),
+               static_cast<GLsizei>(m_Height));
+  }
 }
 
-void  CMacGL::ForceWidthAndHeight( uint32 _width, uint32 _height )
+void CMacGL::SetDefaultWidthAndHeight(uint32 defWidth, uint32 defHeight)
 {
-	m_Width = _width;
-	m_Height = _height;
-		
-	if ( m_glContext )
-	{		
-		CGLSetCurrentContext (m_glContext);
-		glViewport(0, 0, static_cast<GLsizei>(m_Width), static_cast<GLsizei>(m_Height));
-	}
+  s_DefaultWidth = defWidth;
+  s_DefaultHeight = defHeight;
 }
-	
-void	CMacGL::SetDefaultWidthAndHeight( uint32 defWidth, uint32 defHeight )
-{
-	s_DefaultWidth = defWidth;
-	s_DefaultHeight = defHeight;
-}
-	
-bool CMacGL::Initialize( CGLContextObj _glContext, bool /*_bPreview*/)
-{
-	if (_glContext)
-	{		
-		SetContext(_glContext);
 
-		CGLSetCurrentContext (m_glContext);	
-		
-		GLint vblsync = 0;
-		
-		if ( g_Settings()->Get( "settings.player.vbl_sync", false ) )
-		{
-			vblsync = 1;
-		}
-		
-		/*CGLError err =  *///CGLEnable( m_glContext, kCGLCEMPEngine);
-		
-		//if ( err != kCGLNoError )
-		//	vblsync = 0;
-			
-		CGLSetParameter(m_glContext, kCGLCPSwapInterval, &vblsync);
-	}
-	
-	m_Width = s_DefaultWidth;
-	m_Height = s_DefaultHeight;
-	
-	return true;
+bool CMacGL::Initialize(CGLContextObj _glContext, bool /*_bPreview*/)
+{
+  if (_glContext)
+  {
+    SetContext(_glContext);
+
+    CGLSetCurrentContext(m_glContext);
+
+    GLint vblsync = 0;
+
+    if (g_Settings()->Get("settings.player.vbl_sync", false))
+    {
+      vblsync = 1;
+    }
+
+    /*CGLError err =  */ // CGLEnable( m_glContext, kCGLCEMPEngine);
+
+    // if ( err != kCGLNoError )
+    //	vblsync = 0;
+
+    CGLSetParameter(m_glContext, kCGLCPSwapInterval, &vblsync);
+  }
+
+  m_Width = s_DefaultWidth;
+  m_Height = s_DefaultHeight;
+
+  return true;
 }
 
 //
-void CMacGL::Title( const std::string &/*_title*/ )
-{
-}
+void CMacGL::Title(const std::string & /*_title*/) {}
 
 //
-void	CMacGL::Update()
-{	
-}
+void CMacGL::Update() {}
 
 /*
-*/
-void    CMacGL::SwapBuffers()
-{
-	CGLFlushDrawable(m_glContext);
-}
+ */
+void CMacGL::SwapBuffers() { CGLFlushDrawable(m_glContext); }
 
-};
+}; // namespace DisplayOutput
 
 #endif

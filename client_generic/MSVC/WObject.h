@@ -4,20 +4,21 @@
 // Software Foundation; either version 2 of the License, or any later version.
 /*
         chris korda
- 
-		revision history:
-		rev		date	comments
-		00		15aug04	initial version
- 
+
+                revision history:
+                rev		date	comments
+                00		15aug04	initial version
+
         minimal base class for objects not derived from CObject
- 
+
 */
 
-class WObject {
+class WObject
+{
 public:
-	WObject() {}	// default ctor required
+  WObject() {} // default ctor required
 
 private:
-	WObject(const WObject&);	// prevent bitwise copy
-	WObject& operator=(const WObject&);	// prevent bitwise assignment
+  WObject(const WObject &);            // prevent bitwise copy
+  WObject &operator=(const WObject &); // prevent bitwise assignment
 };

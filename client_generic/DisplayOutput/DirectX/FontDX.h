@@ -1,39 +1,39 @@
 /*
-	FONTDX9.H
-	Author: Stef.
+        FONTDX9.H
+        Author: Stef.
 
-	DX9 Font.
+        DX9 Font.
 */
-#ifndef	_FONTDX_H_
-#define	_FONTDX_H_
+#ifndef _FONTDX_H_
+#define _FONTDX_H_
 
-#include	"base.h"
-#include	"SmartPtr.h"
-#include	"Font.h"
+#include "Font.h"
+#include "SmartPtr.h"
+#include "base.h"
 
-namespace	DisplayOutput
+namespace DisplayOutput
 {
 
 /*
-	CFontDX.
+        CFontDX.
 
 */
-class	CFontDX :	public CBaseFont
+class CFontDX : public CBaseFont
 {
-	IDirect3DDevice9 *m_pDevice;
-	ID3DXFont	*m_pDXFont;
+  IDirect3DDevice9 *m_pDevice;
+  ID3DXFont *m_pDXFont;
 
-	public:
-			CFontDX( IDirect3DDevice9 *_pDevice );
-			virtual ~CFontDX();
+public:
+  CFontDX(IDirect3DDevice9 *_pDevice);
+  virtual ~CFontDX();
 
-			bool	Create();
+  bool Create();
 
-			ID3DXFont	*GetDXFont( void )	{	return(	m_pDXFont	);	};
+  ID3DXFont *GetDXFont(void) { return (m_pDXFont); };
 };
 
-MakeSmartPointers( CFontDX );
+MakeSmartPointers(CFontDX);
 
-};
+}; // namespace DisplayOutput
 
 #endif
