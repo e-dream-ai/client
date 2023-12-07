@@ -5,6 +5,13 @@
 #error This file is not supposed to be used for this platform...
 #endif
 
+#include <string>
+#include <ApplicationServices/ApplicationServices.h>
+#include <CoreFoundation/CoreFoundation.h>
+#include <IOKit/ps/IOPSKeys.h>
+#include <IOKit/ps/IOPowerSources.h>
+#include <SystemConfiguration/SystemConfiguration.h>
+
 #include "Exception.h"
 #include "Log.h"
 #include "MathBase.h"
@@ -15,16 +22,9 @@
 #include "Timer.h"
 #include "base.h"
 #include "storage.h"
-#include <SystemConfiguration/SystemConfiguration.h>
-#include <string>
-
 #include "dlfcn.h"
 #include "libgen.h"
 
-#include <ApplicationServices/ApplicationServices.h>
-#include <CoreFoundation/CoreFoundation.h>
-#include <IOKit/ps/IOPSKeys.h>
-#include <IOKit/ps/IOPowerSources.h>
 
 #include "../MacBuild/ESScreensaver.h"
 
@@ -62,7 +62,7 @@ class CElectricSheep_Mac : public CElectricSheep
 
         UInt8 path[1024];
 
-        OSErr err = FSFindFolder(kUserDomain, kApplicationSupportFolderType,
+        OSErr err = FSFindFolder(kUserDomain, kDomainLibraryFolderType,
                                  false, &foundRef);
 
         if (err == noErr)
@@ -75,8 +75,10 @@ class CElectricSheep_Mac : public CElectricSheep
                                                      sizeof(path) - 1))
                 {
                     m_AppData = (char*)path;
-
-                    m_AppData += "/e-dream.ai/";
+#ifndef SCREEN_SAVER
+                    m_AppData += "/Containers/com.apple.ScreenSaver.Engine.legacyScreenSaver/Data/Library";
+#endif
+                    m_AppData += "/Application Support/e-dream.ai/";
                 }
 
                 CFRelease(appSupportURL);

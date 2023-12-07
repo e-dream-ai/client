@@ -1792,7 +1792,7 @@
 				PRODUCT_NAME = "e-dream";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
-				VALID_ARCHS = "arm64e i386 x86_64";
+				VALID_ARCHS = "arm64 arm64e i386 x86_64";
 				WRAPPER_EXTENSION = saver;
 			};
 			name = Debug;
@@ -1854,7 +1854,7 @@
 				SEPARATE_STRIP = NO;
 				STRIP_INSTALLED_PRODUCT = YES;
 				STRIP_STYLE = all;
-				VALID_ARCHS = "arm64e i386 x86_64";
+				VALID_ARCHS = "arm64 arm64e i386 x86_64";
 				WRAPPER_EXTENSION = saver;
 			};
 			name = Release;
