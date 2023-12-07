@@ -244,8 +244,9 @@ void SheepDownloader::parseSheepList()
             return;
         }
         boost::json::value data = response.at("data");
-        size_t count = (size_t)data.at("count").as_int64();
         boost::json::value dreams = data.at("dreams");
+        boost::json::array dreamsArray = dreams.get_array();
+        size_t count = dreamsArray.size();
 
         if (count)
         {
@@ -259,7 +260,7 @@ void SheepDownloader::parseSheepList()
 
             do
             {
-                boost::json::value dream = dreams.at(dreamIndex);
+                boost::json::value dream = dreamsArray.at(dreamIndex);
                 boost::json::value video = dream.at("video");
                 if (video.is_null())
                     continue;
@@ -277,7 +278,7 @@ void SheepDownloader::parseSheepList()
                 newDream->setAuthor(user.at("email").as_string().data());
                 newDream->setName(dream.at("name").as_string().data());
                 fServerFlock.push_back(newDream);
-            } while (++dreamIndex < count);
+            } while (++dreamIndex < dreamsArray.size());
         }
     }
     catch (const std::exception& e)
