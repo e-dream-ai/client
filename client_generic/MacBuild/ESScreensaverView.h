@@ -28,11 +28,11 @@
     // (or subclass thereof) So we'll put one in here.
     NSRect theRect;
 #if USE_METAL
-    ESMetalView *view;
+    ESMetalView* view;
 #else
-    ESOpenGLView *view;
+    ESOpenGLView* view;
 #endif
-    NSTimer *animationTimer;
+    NSTimer* animationTimer;
     dispatch_group_t m_animationDispatchGroup;
     BOOL m_isStopped;
 
@@ -44,9 +44,9 @@
     BOOL m_isHidden;
 #endif
 
-    ESConfiguration *m_config;
+    ESConfiguration* m_config;
 
-    SUUpdater *m_updater;
+    SUUpdater* m_updater;
     std::unique_ptr<boost::barrier> m_beginFrameBarrier;
     std::unique_ptr<boost::barrier> m_endFrameBarrier;
 }
@@ -57,9 +57,9 @@
 - (void)animateOneFrame;
 
 - (BOOL)hasConfigureSheet;
-- (NSWindow *)configureSheet;
-- (void)flagsChanged:(NSEvent *)ev;
-- (void)keyDown:(NSEvent *)ev;
+- (NSWindow*)configureSheet;
+- (void)flagsChanged:(NSEvent*)ev;
+- (void)keyDown:(NSEvent*)ev;
 
 - (void)_beginThread;
 - (void)_endThread;
@@ -67,8 +67,8 @@
 
 - (void)windowDidResize;
 
-- (void)updaterWillRelaunchApplication:(SUUpdater *)updater;
-- (void)updater:(SUUpdater *)updater didFindValidUpdate:(SUAppcastItem *)update;
+- (void)updaterWillRelaunchApplication:(SUUpdater*)updater;
+- (void)updater:(SUUpdater*)updater didFindValidUpdate:(SUAppcastItem*)update;
 
 - (BOOL)fullscreen;
 - (void)setFullScreen:(BOOL)fullscreen;

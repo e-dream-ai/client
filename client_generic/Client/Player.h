@@ -37,8 +37,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
         ContentDecoder::sMetaData m_MetaData; // current frame meta data
     } DisplayUnit;
 
-    typedef std::vector<DisplayUnit *> DisplayUnitList;
-    typedef std::vector<DisplayUnit *>::iterator DisplayUnitIterator;
+    typedef std::vector<DisplayUnit*> DisplayUnitList;
+    typedef std::vector<DisplayUnit*>::iterator DisplayUnitIterator;
 
     boost::mutex m_displayListMutex;
 
@@ -76,7 +76,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
 
     bool m_bStarted;
 
-    boost::shared_mutex *m_DownloadSaveMutex;
+    boost::shared_mutex* m_DownloadSaveMutex;
 
     //	Used to keep track of elapsed time since last frame.
     fp8 m_CapClock;
@@ -97,18 +97,18 @@ class CPlayer : public Base::CSingleton<CPlayer>
   private:
 #endif
 
-    ContentDecoder::CContentDecoder *
-    CreateContentDecoder(boost::shared_mutex &_downloadSaveMutex,
+    ContentDecoder::CContentDecoder*
+    CreateContentDecoder(boost::shared_mutex& _downloadSaveMutex,
                          bool _bStartByRandom = false);
 
     void FpsCap(const fp8 _cap);
 
   public:
-    bool Startup(boost::shared_mutex &_downloadSaveMutex);
+    bool Startup(boost::shared_mutex& _downloadSaveMutex);
     bool Shutdown(void);
     virtual ~CPlayer();
 
-    const char *Description() { return ("Player"); };
+    const char* Description() { return ("Player"); };
 
     bool Closed(void)
     {
@@ -127,7 +127,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     bool EndFrameUpdate();
     bool BeginDisplayFrame(uint32 displayUnit);
     bool EndDisplayFrame(uint32 displayUnit, bool drawn = true);
-    bool Update(uint32 displayUnit, bool &bPlayNoSheepIntro);
+    bool Update(uint32 displayUnit, bool& bPlayNoSheepIntro);
     void Start();
     void Stop();
 
@@ -135,7 +135,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     bool AddDisplay(CGraphicsContext _grapicsContext);
 #else
 #ifdef WIN32
-    bool AddDisplay(uint32 screen, IDirect3D9 *_pIDirect3D9 = NULL,
+    bool AddDisplay(uint32 screen, IDirect3D9* _pIDirect3D9 = NULL,
                     bool _blank = false);
 #else
     bool AddDisplay(uint32 screen);
@@ -223,7 +223,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
         return decoder->GetCurrentPlayingGeneration();
     };
 
-    inline void Add(const std::string &_fileName)
+    inline void Add(const std::string& _fileName)
     {
         if (m_spPlaylist)
             m_spPlaylist->Add(_fileName);
@@ -281,6 +281,6 @@ class CPlayer : public Base::CSingleton<CPlayer>
         Helper for less typing...
 
 */
-inline CPlayer &g_Player(void) { return (CPlayer::Instance()); }
+inline CPlayer& g_Player(void) { return (CPlayer::Instance()); }
 
 #endif

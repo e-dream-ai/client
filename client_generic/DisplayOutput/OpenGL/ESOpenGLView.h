@@ -5,7 +5,7 @@
 {
 }
 
-+ (NSOpenGLPixelFormat *)esPixelFormat;
++ (NSOpenGLPixelFormat*)esPixelFormat;
 
 - (id)initWithFrame:(NSRect)frameRect;
 

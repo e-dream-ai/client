@@ -19,6 +19,6 @@ class WObject
     WObject() {} // default ctor required
 
   private:
-    WObject(const WObject &);            // prevent bitwise copy
-    WObject &operator=(const WObject &); // prevent bitwise assignment
+    WObject(const WObject&);            // prevent bitwise copy
+    WObject& operator=(const WObject&); // prevent bitwise assignment
 };

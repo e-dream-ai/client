@@ -67,7 +67,7 @@ CReusableAlignedBuffers::~CReusableAlignedBuffers()
         Allocate().
 
 */
-uint8 *CReusableAlignedBuffers::Allocate(uint32 size)
+uint8* CReusableAlignedBuffers::Allocate(uint32 size)
 {
     {
         boost::mutex::scoped_lock locker(m_CacheLock);
@@ -75,11 +75,11 @@ uint8 *CReusableAlignedBuffers::Allocate(uint32 size)
         for (uint32 i = 0; i < sizeof(m_BufferCache) / sizeof(*m_BufferCache);
              i++)
         {
-            BufferElement *elptr = m_BufferCache + i;
+            BufferElement* elptr = m_BufferCache + i;
 
             if (elptr->ptr != NULL && elptr->size == size)
             {
-                uint8 *retval = elptr->ptr;
+                uint8* retval = elptr->ptr;
 
                 elptr->ptr = NULL;
 
@@ -90,15 +90,15 @@ uint8 *CReusableAlignedBuffers::Allocate(uint32 size)
 
 #ifdef WIN32
     // no valloc so malloc for now on WIN32. Needs to be implemented properly
-    return (uint8 *)malloc(size + GetPageSize() - 1);
+    return (uint8*)malloc(size + GetPageSize() - 1);
 #else
-    return (uint8 *)valloc(size);
+    return (uint8*)valloc(size);
     // m_Buffer = (uint8 *)mmap( NULL, size, PROT_WRITE, MAP_ANON | MAP_SHARED,
     // -1, 0 );
 #endif
 }
 
-void CReusableAlignedBuffers::Free(uint8 *buffer, uint32 size)
+void CReusableAlignedBuffers::Free(uint8* buffer, uint32 size)
 {
     if (buffer == NULL)
         return;
@@ -126,7 +126,7 @@ void CReusableAlignedBuffers::Free(uint8 *buffer, uint32 size)
 
     // did not find - really allocate and set to mini
 
-    BufferElement *elptr = m_BufferCache + mini;
+    BufferElement* elptr = m_BufferCache + mini;
 
     RealFree(elptr->ptr, elptr->size);
 
@@ -137,12 +137,12 @@ void CReusableAlignedBuffers::Free(uint8 *buffer, uint32 size)
     elptr->seed = m_Seed++;
 }
 
-uint8 *CReusableAlignedBuffers::Reallocate(uint8 *buffer, uint32 size)
+uint8* CReusableAlignedBuffers::Reallocate(uint8* buffer, uint32 size)
 {
-    return (uint8 *)realloc(buffer, size + GetPageSize() - 1);
+    return (uint8*)realloc(buffer, size + GetPageSize() - 1);
 }
 
-void CReusableAlignedBuffers::RealFree(uint8 *buffer, uint32 /*size*/)
+void CReusableAlignedBuffers::RealFree(uint8* buffer, uint32 /*size*/)
 {
     free(buffer);
 }
@@ -171,7 +171,7 @@ CAlignedBuffer::~CAlignedBuffer() { Free(); }
 */
 bool CAlignedBuffer::Allocate(uint32 size)
 {
-    CReusableAlignedBuffers *rab = g_ReusableAlignedBuffers;
+    CReusableAlignedBuffers* rab = g_ReusableAlignedBuffers;
 
     if (rab == NULL)
         return false;
@@ -180,7 +180,7 @@ bool CAlignedBuffer::Allocate(uint32 size)
 
     unsigned long mask = CReusableAlignedBuffers::GetPageSize() - 1;
 
-    m_BufferAlignedStart = (uint8 *)((unsigned long)(m_Buffer + mask) & ~mask);
+    m_BufferAlignedStart = (uint8*)((unsigned long)(m_Buffer + mask) & ~mask);
 
     m_Size = size;
 
@@ -193,16 +193,16 @@ bool CAlignedBuffer::Allocate(uint32 size)
 */
 bool CAlignedBuffer::Reallocate(uint32 size)
 {
-    CReusableAlignedBuffers *rab = g_ReusableAlignedBuffers;
+    CReusableAlignedBuffers* rab = g_ReusableAlignedBuffers;
 
     if (rab == NULL)
         return false;
 
-    m_Buffer = (uint8 *)rab->Reallocate(m_Buffer, size);
+    m_Buffer = (uint8*)rab->Reallocate(m_Buffer, size);
 
     unsigned long mask = CReusableAlignedBuffers::GetPageSize() - 1;
 
-    m_BufferAlignedStart = (uint8 *)((unsigned long)(m_Buffer + mask) & ~mask);
+    m_BufferAlignedStart = (uint8*)((unsigned long)(m_Buffer + mask) & ~mask);
 
     m_Size = size;
 
@@ -215,7 +215,7 @@ bool CAlignedBuffer::Reallocate(uint32 size)
 */
 void CAlignedBuffer::Free(void)
 {
-    CReusableAlignedBuffers *rab = g_ReusableAlignedBuffers;
+    CReusableAlignedBuffers* rab = g_ReusableAlignedBuffers;
 
     if (rab != NULL)
         rab->Free(m_Buffer, m_Size);
@@ -227,6 +227,6 @@ void CAlignedBuffer::Free(void)
         GetBufferPtr().
 
 */
-uint8 *CAlignedBuffer::GetBufferPtr(void) const { return m_BufferAlignedStart; }
+uint8* CAlignedBuffer::GetBufferPtr(void) const { return m_BufferAlignedStart; }
 
 }; // namespace Base

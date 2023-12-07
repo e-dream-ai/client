@@ -39,7 +39,7 @@ namespace TupleStorage
         Set( [bool] ).
 
 */
-bool CStorageLua::Set(const std::string &_entry, const bool _val)
+bool CStorageLua::Set(const std::string& _entry, const bool _val)
 {
     assert(m_pState != NULL);
     std::stringstream s;
@@ -58,7 +58,7 @@ bool CStorageLua::Set(const std::string &_entry, const bool _val)
         Set( [integer] ).
 
 */
-bool CStorageLua::Set(const std::string &_entry, const int32 _val)
+bool CStorageLua::Set(const std::string& _entry, const int32 _val)
 {
     assert(m_pState != NULL);
     std::stringstream s;
@@ -72,7 +72,7 @@ bool CStorageLua::Set(const std::string &_entry, const int32 _val)
         Set( [double] ).
 
 */
-bool CStorageLua::Set(const std::string &_entry, const fp8 _val)
+bool CStorageLua::Set(const std::string& _entry, const fp8 _val)
 {
     assert(m_pState != NULL);
     std::stringstream s;
@@ -86,7 +86,7 @@ bool CStorageLua::Set(const std::string &_entry, const fp8 _val)
         Set( [string] ).
 
 */
-bool CStorageLua::Set(const std::string &_entry, const std::string &_str)
+bool CStorageLua::Set(const std::string& _entry, const std::string& _str)
 {
     assert(m_pState != NULL);
     std::stringstream s;
@@ -100,7 +100,7 @@ bool CStorageLua::Set(const std::string &_entry, const std::string &_str)
         Get( &[bool] ).
 
 */
-bool CStorageLua::Get(const std::string &_entry, bool &_val)
+bool CStorageLua::Get(const std::string& _entry, bool& _val)
 {
     assert(m_pState != NULL);
     std::string s = "g_Settings." + _entry;
@@ -116,7 +116,7 @@ bool CStorageLua::Get(const std::string &_entry, bool &_val)
         Get( &[integer] ).
 
 */
-bool CStorageLua::Get(const std::string &_entry, int32 &_val)
+bool CStorageLua::Get(const std::string& _entry, int32& _val)
 {
     assert(m_pState != NULL);
     std::string s = "g_Settings." + _entry;
@@ -131,12 +131,12 @@ bool CStorageLua::Get(const std::string &_entry, int32 &_val)
         Get( &[double] ).
 
 */
-bool CStorageLua::Get(const std::string &_entry, fp8 &_val)
+bool CStorageLua::Get(const std::string& _entry, fp8& _val)
 {
     assert(m_pState != NULL);
     std::string s = "g_Settings." + _entry;
     int32 bSuccess = 0;
-    char *ret = NULL;
+    char* ret = NULL;
     m_pState->Pop(Base::Script::Call(m_pState->GetState(), "g_GetSetting",
                                      "ss>is", s.c_str(), "?", &bSuccess, &ret));
     if (bSuccess && ret != NULL)
@@ -152,14 +152,14 @@ bool CStorageLua::Get(const std::string &_entry, fp8 &_val)
         Get( &[string] ).
 
 */
-bool CStorageLua::Get(const std::string &_entry, std::string &_val)
+bool CStorageLua::Get(const std::string& _entry, std::string& _val)
 {
     assert(m_pState != NULL);
     std::string s = "g_Settings." + _entry;
     std::string a = "?";
 
     int32 bSuccess = 0;
-    char *ret = NULL;
+    char* ret = NULL;
     int32 stackdelta =
         Base::Script::Call(m_pState->GetState(), "g_GetSetting", "ss>is",
                            s.c_str(), "?", &bSuccess, &ret);
@@ -177,7 +177,7 @@ bool CStorageLua::Get(const std::string &_entry, std::string &_val)
         Remove().
         No use for this yet.
 */
-bool CStorageLua::Remove(const std::string &_url)
+bool CStorageLua::Remove(const std::string& _url)
 {
     assert(m_pState != NULL);
 
@@ -236,18 +236,18 @@ bool CStorageLua::Commit()
 }
 
 //	Simple function to use the logger..
-int CStorageLua::SettingsLogger(lua_State *_pState)
+int CStorageLua::SettingsLogger(lua_State* _pState)
 {
     assert(_pState != NULL);
-    const char *pString = luaL_checkstring(_pState, 1);
+    const char* pString = luaL_checkstring(_pState, 1);
     g_Log->Info("%s", pString);
     return (0);
 }
 
 /*
  */
-bool CStorageLua::Initialise(const std::string &_sRoot,
-                             const std::string &_sWorkingDir, bool _bReadOnly)
+bool CStorageLua::Initialise(const std::string& _sRoot,
+                             const std::string& _sWorkingDir, bool _bReadOnly)
 {
     g_Log->Info("CStorageLua::Initialize( %s, %s )\n", _sRoot.c_str(),
                 _sWorkingDir.c_str());
@@ -297,7 +297,7 @@ bool CStorageLua::Initialise(const std::string &_sRoot,
     //	Store root.
     m_pState->Execute("g_Root = [[" + m_sRoot + "]]");
 
-    static const char *getSettings = "function g_GetSetting( _url, _default )\
+    static const char* getSettings = "function g_GetSetting( _url, _default )\
 											g_Log( 'g_GetSetting(' .. tostring(_url) .. ', ' .. tostring(_default) .. ')' )\
 											local f = assert( loadstring( 'return ' .. _url ) )\
 											if not f then\
@@ -324,7 +324,7 @@ bool CStorageLua::Initialise(const std::string &_sRoot,
 
 /*
  */
-bool CStorageLua::Config(const std::string &_url)
+bool CStorageLua::Config(const std::string& _url)
 {
 #ifndef WIN32
     (void)_url;

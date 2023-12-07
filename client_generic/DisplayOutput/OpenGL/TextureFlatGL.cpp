@@ -173,7 +173,7 @@ bool CTextureFlatGL::Upload(spCImage _spImage)
     glTexParameteri(m_TexTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
     // Upload it all
-    uint8 *pSrc;
+    uint8* pSrc;
     uint32 mipMapLevel = 0;
     while ((pSrc = _spImage->GetData(mipMapLevel)) != NULL)
     {

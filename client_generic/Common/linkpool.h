@@ -16,7 +16,7 @@ namespace Memory
 //	Unallocated memory in the linkpool will use this to point to fresh mem.
 struct CChunk
 {
-    CChunk *m_pNext;
+    CChunk* m_pNext;
 };
 
 /*
@@ -29,8 +29,8 @@ template <size_t _size, size_t TGrow = 4> class CLinkPool : public CPoolBase
     bool m_bSingletonActive;
 
     //	No copy constructor or assignment operator.
-    CLinkPool(const CLinkPool &);
-    void operator=(const CLinkPool &);
+    CLinkPool(const CLinkPool&);
+    void operator=(const CLinkPool&);
 
     //	Private constructor & destructor.
     CLinkPool() : m_bSingletonActive(true)
@@ -55,10 +55,10 @@ template <size_t _size, size_t TGrow = 4> class CLinkPool : public CPoolBase
     }
 
     //	Root pointer.
-    static CChunk *m_pMemoryPool;
+    static CChunk* m_pMemoryPool;
 
     //
-    inline void Push(CChunk *_pNode)
+    inline void Push(CChunk* _pNode)
     {
         ASSERT(_pNode);
         _pNode->m_pNext = m_pMemoryPool;
@@ -66,9 +66,9 @@ template <size_t _size, size_t TGrow = 4> class CLinkPool : public CPoolBase
     }
 
     //
-    inline CChunk *Pop()
+    inline CChunk* Pop()
     {
-        CChunk *pNode = m_pMemoryPool;
+        CChunk* pNode = m_pMemoryPool;
         if (pNode)
             m_pMemoryPool = pNode->m_pNext;
 
@@ -86,16 +86,16 @@ template <size_t _size, size_t TGrow = 4> class CLinkPool : public CPoolBase
 
         //	Preallocate.
         for (unsigned int i = 0; i < _number; i++)
-            Push(reinterpret_cast<CChunk *>(AllocSys(Pad(_size))));
+            Push(reinterpret_cast<CChunk*>(AllocSys(Pad(_size))));
 
         m_Count = 0;
     }
 
     //
-    void *Allocate()
+    void* Allocate()
     {
         //	Unlink a chunk from the pool.
-        void *pMem = Pop();
+        void* pMem = Pop();
         if (pMem == NULL)
         {
             //	Try growing a bit.
@@ -109,10 +109,10 @@ template <size_t _size, size_t TGrow = 4> class CLinkPool : public CPoolBase
     }
 
     //	Deallocate, ie give memory back to the pool.
-    void Deallocate(void *_pData)
+    void Deallocate(void* _pData)
     {
         //	Link chunk back mem into pool.
-        Push(reinterpret_cast<CChunk *>(_pData));
+        Push(reinterpret_cast<CChunk*>(_pData));
     }
 
     //	Purge the pool, give back all it's memory.
@@ -120,7 +120,7 @@ template <size_t _size, size_t TGrow = 4> class CLinkPool : public CPoolBase
     {
         while (m_pMemoryPool)
         {
-            char *pData = (char *)Pop();
+            char* pData = (char*)Pop();
             if (pData)
                 delete pData;
         }
@@ -130,7 +130,7 @@ template <size_t _size, size_t TGrow = 4> class CLinkPool : public CPoolBase
     bool SingletonActive(void) { return (m_bSingletonActive); };
 
     //	Return instance.
-    static CLinkPool &Instance()
+    static CLinkPool& Instance()
     {
         static CLinkPool instance;
 
@@ -144,7 +144,7 @@ template <size_t _size, size_t TGrow = 4> class CLinkPool : public CPoolBase
 
 //
 template <size_t _size, size_t TGrow>
-CChunk *CLinkPool<_size, TGrow>::m_pMemoryPool = NULL;
+CChunk* CLinkPool<_size, TGrow>::m_pMemoryPool = NULL;
 
 }; // namespace Memory
 

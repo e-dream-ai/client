@@ -21,7 +21,7 @@ template <typename T> class CBlockingQueue
 
     CBlockingQueue() { m_maxQueueElements = 0xFFFFFFFF; }
 
-    bool push(const T &el, bool pushBack = true, bool checkMax = true)
+    bool push(const T& el, bool pushBack = true, bool checkMax = true)
     {
         writer_lock lock(m_mutex);
 
@@ -40,7 +40,7 @@ template <typename T> class CBlockingQueue
         return true;
     }
 
-    bool peek(T &el, bool wait = false, bool popFront = true)
+    bool peek(T& el, bool wait = false, bool popFront = true)
     {
         upg_reader_lock lock(m_mutex);
 
@@ -78,14 +78,14 @@ template <typename T> class CBlockingQueue
         return true;
     }
 
-    void peekn(T &el, size_t n)
+    void peekn(T& el, size_t n)
     {
         reader_lock lock(m_mutex);
 
         el = m_queue[n];
     }
 
-    bool pop(T &el, bool wait = false, bool popFront = true)
+    bool pop(T& el, bool wait = false, bool popFront = true)
     {
         upg_reader_lock lock(m_mutex);
 

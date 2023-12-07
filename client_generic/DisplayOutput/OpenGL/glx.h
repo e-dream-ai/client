@@ -22,7 +22,7 @@ namespace DisplayOutput
 
 class CUnixGL : public CDisplayOutput
 {
-    Display *m_pDisplay;
+    Display* m_pDisplay;
     GLXContext m_GlxContext;
     Window m_Window;
     GLXWindow m_GlxWindow;
@@ -43,13 +43,13 @@ class CUnixGL : public CDisplayOutput
     CUnixGL();
     virtual ~CUnixGL();
 
-    static const char *Description() { return "X OpenGL display"; };
+    static const char* Description() { return "X OpenGL display"; };
 
     virtual bool Initialize(const uint32 _width, const uint32 _height,
                             const bool _bFullscreen);
 
     //
-    virtual void Title(const std::string &_title);
+    virtual void Title(const std::string& _title);
     virtual void Update();
 
     void SwapBuffers();

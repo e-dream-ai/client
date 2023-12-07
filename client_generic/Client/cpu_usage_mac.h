@@ -64,7 +64,7 @@ class ESCpuUsage
         }
     }
 
-    bool GetCpuUsage(int &_total, int &_es)
+    bool GetCpuUsage(int& _total, int& _es)
     {
         struct rusage r_usage;
 

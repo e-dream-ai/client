@@ -14,7 +14,7 @@ wxWidgetsApp::~wxWidgetsApp() {}
 
 bool wxWidgetsApp::OnInit()
 {
-    m_dialog = new electricsheepguiMyDialog2((wxWindow *)NULL);
+    m_dialog = new electricsheepguiMyDialog2((wxWindow*)NULL);
 #ifdef WIN32
     m_dialog->SetIcon(wxString(L"0"));
 #endif

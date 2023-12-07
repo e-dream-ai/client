@@ -55,13 +55,13 @@ class CFontDD : public CBaseFont
         // if (hdc != NULL)
         //{
         //	logfont.lfHeight = -MulDiv(m_FontDescription.Height(),
-        //GetDeviceCaps(hdc ,LOGPIXELSY), 72); 	ReleaseDC(NULL, hdc);
-        //logfont.lfHeight = -MulDiv(m_FontDescription.Height(), 72, 72) - 1;
+        // GetDeviceCaps(hdc ,LOGPIXELSY), 72); 	ReleaseDC(NULL, hdc);
+        // logfont.lfHeight = -MulDiv(m_FontDescription.Height(), 72, 72) - 1;
         // }
         // else
         //{
         //	logfont.lfHeight = -MulDiv(m_FontDescription.Height(), 72, 72) -
-        //1;
+        // 1;
         // }
         logfont.lfItalic = m_FontDescription.Italic();
         logfont.lfQuality = m_FontDescription.AntiAliased()

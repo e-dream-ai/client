@@ -32,7 +32,7 @@ class CWindowsGL : public CDisplayOutput
     static LRESULT CALLBACK wndProc(HWND hWnd, UINT msg, WPARAM wParam,
                                     LPARAM lParam);
 
-    static char *Description() { return "Windows OpenGL display"; };
+    static char* Description() { return "Windows OpenGL display"; };
     virtual HWND Initialize(const uint32 _width, const uint32 _height,
                             const bool _bFullscreen);
 
@@ -43,7 +43,7 @@ class CWindowsGL : public CDisplayOutput
     virtual bool Initialize(HWND _hWnd, bool _bPreview);
 
     //
-    virtual void Title(const std::string &_title);
+    virtual void Title(const std::string& _title);
     virtual void Update();
 
     void SwapBuffers();

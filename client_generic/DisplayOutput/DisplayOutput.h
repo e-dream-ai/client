@@ -14,10 +14,10 @@
 
 #ifdef USE_METAL
 #ifdef __OBJC__
-typedef void *CGraphicsContext;
+typedef void* CGraphicsContext;
 #else
 class MTKView;
-typedef MTKView *CGraphicsContext;
+typedef MTKView* CGraphicsContext;
 #endif
 #else
 typedef CGLContextObj CGraphicsContext;
@@ -192,11 +192,11 @@ class CDisplayOutput
 #endif
 
     //
-    virtual void Title(const std::string &_title) = PureVirtual;
+    virtual void Title(const std::string& _title) = PureVirtual;
     virtual void Update() = PureVirtual;
     virtual void SwapBuffers() = PureVirtual;
 
-    bool GetEvent(spCEvent &_event);
+    bool GetEvent(spCEvent& _event);
     void AppendEvent(spCEvent _event);
     void ClearEvents();
 

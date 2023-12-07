@@ -25,7 +25,7 @@ CImage::CImage()
         CImage().
 
 */
-void CImage::Copy(const CImage &_image, const uint32 _mipLevel)
+void CImage::Copy(const CImage& _image, const uint32 _mipLevel)
 {
     g_Log->Info("CImage( const CImage & )...");
 
@@ -101,12 +101,12 @@ CImage::~CImage()
         GetData().
 
 */
-uint8 *CImage::GetData(const uint32 _mipLevel) const
+uint8* CImage::GetData(const uint32 _mipLevel) const
 {
     if (m_bRef && !m_spData)
         return (NULL);
 
-    const Base::CAlignedBuffer *ab = m_spData.get();
+    const Base::CAlignedBuffer* ab = m_spData.get();
 
     if (_mipLevel == 0)
         return (ab->GetBufferPtr());
@@ -120,7 +120,7 @@ uint8 *CImage::GetData(const uint32 _mipLevel) const
         SetData().
 
 */
-void CImage::SetData(uint8 * /*_pData*/)
+void CImage::SetData(uint8* /*_pData*/)
 {
     // if( !m_bRef /*|| m_nMipMaps > 1*/ )
     // return;
@@ -163,7 +163,7 @@ d = getDepth (firstMipMapLevel); int size = 0; while (nMipMapLevels){ size += w
 */
 uint32 CImage::getMipMappedSize(const uint32 _firstMipMapLevel,
                                 const uint32 _nMipMapLevels,
-                                const CImageFormat &_format) const
+                                const CImageFormat& _format) const
 {
     uint32 w = GetWidth(_firstMipMapLevel) << 1;
     uint32 h = GetHeight(_firstMipMapLevel) << 1;
@@ -216,7 +216,7 @@ uint32 CImage::getNumberOfMipMapsFromDimesions(void) const
         Load().
 
 */
-bool CImage::Load(const std::string &_fileName, const bool _calcMipmaps)
+bool CImage::Load(const std::string& _fileName, const bool _calcMipmaps)
 {
     std::string ext = "";
 
@@ -284,7 +284,7 @@ bool CImage::Load(const std::string &_fileName, const bool _calcMipmaps)
 
     //	Done!
     g_Log->Info("CImage::Load( %s ): (%d x %d, %d MipMaps)",
-                (const char *)_fileName.c_str(), m_Width, m_Height, m_nMipMaps);
+                (const char*)_fileName.c_str(), m_Width, m_Height, m_nMipMaps);
     return (true);
 }
 
@@ -313,7 +313,7 @@ bool CImage::GenerateMipmaps(void)
         Load().
 
 */
-bool CImage::Save(const std::string &_fileName)
+bool CImage::Save(const std::string& _fileName)
 {
     std::string ext = "";
 
@@ -335,8 +335,8 @@ bool CImage::Save(const std::string &_fileName)
             return (false);
     }
 
-    g_Log->Info("CImage::Save( %s ): Complete!",
-                (const char *)_fileName.c_str(), m_Width, m_Height, m_nMipMaps);
+    g_Log->Info("CImage::Save( %s ): Complete!", (const char*)_fileName.c_str(),
+                m_Width, m_Height, m_nMipMaps);
     return (true);
 }
 
@@ -391,7 +391,7 @@ struct DDSHeader
 };
 #pragma pack(pop)
 
-bool CImage::SaveDDS(const std::string &_fileName)
+bool CImage::SaveDDS(const std::string& _fileName)
 {
     eImageFormat fmt = m_Format.getFormatEnum();
 
@@ -437,7 +437,7 @@ bool CImage::SaveDDS(const std::string &_fileName)
         {0, 0, 0},
     };
 
-    FILE *pFile = fopen(_fileName.c_str(), "wb");
+    FILE* pFile = fopen(_fileName.c_str(), "wb");
     if (!pFile)
         return (false);
 
@@ -465,7 +465,7 @@ bool CImage::SaveDDS(const std::string &_fileName)
         buildMipMap8().
 
 */
-void buildMipMap8(uint8 *dest, uint8 *src, uint32 width, uint32 height,
+void buildMipMap8(uint8* dest, uint8* src, uint32 width, uint32 height,
                   uint32 channels)
 {
     uint32 xOff = (width < 2) ? 0 : channels;
@@ -492,7 +492,7 @@ void buildMipMap8(uint8 *dest, uint8 *src, uint32 width, uint32 height,
         buildMipMap32f().
 
 */
-void buildMipMap32f(fp4 *dest, fp4 *src, uint32 width, uint32 height,
+void buildMipMap32f(fp4* dest, fp4* src, uint32 width, uint32 height,
                     uint32 channels)
 {
     uint32 xOff = (width < 2) ? 0 : channels;
@@ -520,7 +520,7 @@ void buildMipMap32f(fp4 *dest, fp4 *src, uint32 width, uint32 height,
         buildMipMapRGB565().
 
 */
-void buildMipMapRGB565(uint16 *dest, uint16 *src, uint32 width, uint32 height)
+void buildMipMapRGB565(uint16* dest, uint16* src, uint32 width, uint32 height)
 {
     uint32 x, y, diff;
     uint32 xOff = (width < 2) ? 0 : 1;
@@ -567,16 +567,16 @@ bool CImage::createMipMaps(void)
 
     union
     {
-        uint8 *src;
-        uint16 *src16;
-        fp4 *src32f;
+        uint8* src;
+        uint16* src16;
+        fp4* src32f;
     };
 
     union
     {
-        uint8 *dest;
-        uint16 *dest16;
-        fp4 *dest32f;
+        uint8* dest;
+        uint16* dest16;
+        fp4* dest32f;
     };
 
     if (m_nMipMaps <= 1)
@@ -665,10 +665,10 @@ bool CImage::Convert(const eImageFormat _newFormatType)
     if (!newFormat.isPlain())
         return (false);
 
-    uint8 *src = m_spData->GetBufferPtr();
+    uint8* src = m_spData->GetBufferPtr();
     Base::spCAlignedBuffer newPixels = std::make_shared<Base::CAlignedBuffer>(
         getMipMappedSize(0, m_nMipMaps, newFormat));
-    uint8 *dest = newPixels->GetBufferPtr();
+    uint8* dest = newPixels->GetBufferPtr();
 
     uint32 nPixels = getNumPixels(0, m_nMipMaps);
 
@@ -702,13 +702,13 @@ bool CImage::Convert(const eImageFormat _newFormatType)
             if (m_Format.isFloat())
             {
                 for (uint32 i = 0; i < nSrcChannels; i++)
-                    rgba[i] = ((fp4 *)src)[i];
+                    rgba[i] = ((fp4*)src)[i];
             }
             else if (m_Format.m_Format >= eImage_I16 &&
                      m_Format.m_Format <= eImage_RGBA16)
             {
                 for (uint32 i = 0; i < nSrcChannels; i++)
-                    rgba[i] = ((uint16 *)src)[i] * (1.0f / 65535.0f);
+                    rgba[i] = ((uint16*)src)[i] * (1.0f / 65535.0f);
             }
             else
             {
@@ -727,13 +727,13 @@ bool CImage::Convert(const eImageFormat _newFormatType)
             if (newFormat.isFloat())
             {
                 for (uint32 i = 0; i < nDestChannels; i++)
-                    ((fp4 *)dest)[i] = rgba[i];
+                    ((fp4*)dest)[i] = rgba[i];
             }
             else if (newFormat.m_Format >= eImage_I16 &&
                      newFormat.m_Format <= eImage_RGBA16)
             {
                 for (uint32 i = 0; i < nDestChannels; i++)
-                    ((uint16 *)dest)[i] =
+                    ((uint16*)dest)[i] =
                         (uint16)(65535 *
                                      Base::Math::Clamped(rgba[i], 0.0f, 1.1f) +
                                  0.5f);
@@ -806,7 +806,7 @@ bool CImage::Scale(const uint32 _newWidth, const uint32 _newHeight,
     Base::spCAlignedBuffer newPixels = std::make_shared<Base::CAlignedBuffer>(
         _newWidth * _newHeight * nChannels);
 
-    uint8 *pData = GetData(0);
+    uint8* pData = GetData(0);
 
     uint32 x, y, k, sampleX, sampleY, wX, wY;
     uint8 *src, *dest = newPixels->GetBufferPtr();
@@ -952,7 +952,7 @@ void CImage::PutPixel(const int32 _x, const int32 _y, const fp4 _r,
     fp4 rgba[4] = {_r, _g, _b, _a};
 
     uint32 nDestChannels = m_Format.GetChannels();
-    uint8 *pData = (GetData(0) + (static_cast<uint32>(_y) * GetPitch())) +
+    uint8* pData = (GetData(0) + (static_cast<uint32>(_y) * GetPitch())) +
                    (static_cast<uint32>(_x) * m_Format.getBPPixel());
 
     if (pData == NULL)
@@ -961,13 +961,13 @@ void CImage::PutPixel(const int32 _x, const int32 _y, const fp4 _r,
     if (m_Format.isFloat())
     {
         for (uint8 i = 0; i < nDestChannels; i++)
-            ((fp4 *)pData)[i] = rgba[i];
+            ((fp4*)pData)[i] = rgba[i];
     }
     else if (m_Format.m_Format >= eImage_I16 &&
              m_Format.m_Format <= eImage_RGBA16)
     {
         for (uint8 i = 0; i < nDestChannels; i++)
-            ((uint16 *)pData)[i] =
+            ((uint16*)pData)[i] =
                 (uint16)(65535 * Base::Math::Clamped(rgba[i], 0.0f, 1.1f) +
                          0.5f);
     }
@@ -981,8 +981,8 @@ void CImage::PutPixel(const int32 _x, const int32 _y, const fp4 _r,
 
 /*
  */
-void CImage::GetPixel(const int32 _x, const int32 _y, fp4 &_r, fp4 &_g, fp4 &_b,
-                      fp4 &_a)
+void CImage::GetPixel(const int32 _x, const int32 _y, fp4& _r, fp4& _g, fp4& _b,
+                      fp4& _a)
 {
     //	Complicated formats are no go.
     if (!m_Format.isPlain())
@@ -995,7 +995,7 @@ void CImage::GetPixel(const int32 _x, const int32 _y, fp4 &_r, fp4 &_g, fp4 &_b,
         return;
 
     uint32 nSrcChannels = m_Format.GetChannels();
-    uint8 *pData = (GetData(0) + (static_cast<uint32>(_y) * GetPitch())) +
+    uint8* pData = (GetData(0) + (static_cast<uint32>(_y) * GetPitch())) +
                    (static_cast<uint32>(_x) * m_Format.getBPPixel());
     fp4 rgba[4];
 
@@ -1008,13 +1008,13 @@ void CImage::GetPixel(const int32 _x, const int32 _y, fp4 &_r, fp4 &_g, fp4 &_b,
     if (m_Format.isFloat())
     {
         for (uint32 i = 0; i < nSrcChannels; i++)
-            rgba[i] = ((fp4 *)pData)[i];
+            rgba[i] = ((fp4*)pData)[i];
     }
     else if (m_Format.m_Format >= eImage_I16 &&
              m_Format.m_Format <= eImage_RGBA16)
     {
         for (uint32 i = 0; i < nSrcChannels; i++)
-            rgba[i] = ((uint16 *)pData)[i] * (1.0f / 65535.0f);
+            rgba[i] = ((uint16*)pData)[i] * (1.0f / 65535.0f);
     }
     else
     {

@@ -22,7 +22,7 @@ class CSimplePlaylist : public CPlaylist
     virtual ~CSimplePlaylist() {}
 
     //
-    virtual bool Add(const std::string &_file)
+    virtual bool Add(const std::string& _file)
     {
         m_List.push(_file);
         return (true);
@@ -30,8 +30,8 @@ class CSimplePlaylist : public CPlaylist
 
     virtual uint32 Size() { return static_cast<uint32>(m_List.size()); }
 
-    virtual bool Next(std::string &_result, bool &_bEnoughSheep,
-                      uint32 /*_curID*/, bool &_playFreshSheep,
+    virtual bool Next(std::string& _result, bool& _bEnoughSheep,
+                      uint32 /*_curID*/, bool& _playFreshSheep,
                       const bool /*_bRebuild*/ = false,
                       bool /*_bStartByRandom*/ = false)
     {

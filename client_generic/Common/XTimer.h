@@ -71,7 +71,7 @@ class CXTimer : public ITimer
 
     static fp8 DetermineResolution()
     {
-        FILE *f = fopen("/proc/cpuinfo", "r");
+        FILE* f = fopen("/proc/cpuinfo", "r");
         if (!f)
             return 0.0;
 

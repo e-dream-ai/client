@@ -85,12 +85,12 @@ bool CShaderGL::Unbind()
     return true;
 }
 
-bool CShaderGL::Build(const char *_pVertexShader, const char *_pFragmentShader)
+bool CShaderGL::Build(const char* _pVertexShader, const char* _pFragmentShader)
 {
     if (!_pVertexShader && !_pFragmentShader)
         return false;
 
-    const GLcharARB *shaderStrings[6];
+    const GLcharARB* shaderStrings[6];
     int strIndex = 0;
     char line[16];
     GLint vsResult, fsResult, linkResult;
@@ -110,8 +110,8 @@ bool CShaderGL::Build(const char *_pVertexShader, const char *_pFragmentShader)
 #if GL_ARB_shading_language_100 && !defined(GL_SHADING_LANGUAGE_VERSION_ARB)
 #define GL_SHADING_LANGUAGE_VERSION_ARB 0x8B8C
 #endif
-            const char *pVersion =
-                (const char *)glGetString(GL_SHADING_LANGUAGE_VERSION_ARB);
+            const char* pVersion =
+                (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION_ARB);
             if (pVersion)
             {
                 snprintf(versionString, 16, "#version %d%d\n", atoi(pVersion),
@@ -205,7 +205,7 @@ bool CShaderGL::Build(const char *_pVertexShader, const char *_pFragmentShader)
 
             int nSamplers = 0;
             // int nUniforms = 0;
-            char *name = new char[maxLength];
+            char* name = new char[maxLength];
 
             for (int i = 0; i < uniformCount; i++)
             {
@@ -239,7 +239,7 @@ bool CShaderGL::Build(const char *_pVertexShader, const char *_pFragmentShader)
                     //	Store all non-gl uniforms.
                     if (strncmp(name, "gl_", 3) != 0)
                     {
-                        char *bracket = strchr(name, '[');
+                        char* bracket = strchr(name, '[');
                         if (bracket == NULL ||
                             (bracket[1] == '0' && bracket[2] == ']'))
                         {
@@ -358,32 +358,32 @@ bool CShaderGL::Build(const char *_pVertexShader, const char *_pFragmentShader)
 }
 
 //	Static list of pointers to opengl uniform functions.
-static void *g_UniformFunctionList[eUniform_NumUniformTypes - 1];
+static void* g_UniformFunctionList[eUniform_NumUniformTypes - 1];
 static bool g_bFunclistValid = false;
 
 /*
  */
-bool CShaderUniformGL::SetData(void *_pData, const uint32 _size)
+bool CShaderUniformGL::SetData(void* _pData, const uint32 _size)
 {
     //	Let's take this opportunity to make sure the function pointers are
     // correctly set up.. Ugly, fix!
     if (!g_bFunclistValid)
     {
-        g_UniformFunctionList[eUniform_Float] = (void *)glUniform1fvARB;
-        g_UniformFunctionList[eUniform_Float2] = (void *)glUniform2fvARB;
-        g_UniformFunctionList[eUniform_Float3] = (void *)glUniform3fvARB;
-        g_UniformFunctionList[eUniform_Float4] = (void *)glUniform4fvARB;
-        g_UniformFunctionList[eUniform_Int] = (void *)glUniform1ivARB;
-        g_UniformFunctionList[eUniform_Int2] = (void *)glUniform2ivARB;
-        g_UniformFunctionList[eUniform_Int3] = (void *)glUniform3ivARB;
-        g_UniformFunctionList[eUniform_Int4] = (void *)glUniform4ivARB;
-        g_UniformFunctionList[eUniform_Boolean] = (void *)glUniform1ivARB;
-        g_UniformFunctionList[eUniform_Boolean2] = (void *)glUniform2ivARB;
-        g_UniformFunctionList[eUniform_Boolean3] = (void *)glUniform3ivARB;
-        g_UniformFunctionList[eUniform_Boolean4] = (void *)glUniform4ivARB;
-        g_UniformFunctionList[eUniform_Matrix2] = (void *)glUniformMatrix2fvARB;
-        g_UniformFunctionList[eUniform_Matrix3] = (void *)glUniformMatrix3fvARB;
-        g_UniformFunctionList[eUniform_Matrix4] = (void *)glUniformMatrix4fvARB;
+        g_UniformFunctionList[eUniform_Float] = (void*)glUniform1fvARB;
+        g_UniformFunctionList[eUniform_Float2] = (void*)glUniform2fvARB;
+        g_UniformFunctionList[eUniform_Float3] = (void*)glUniform3fvARB;
+        g_UniformFunctionList[eUniform_Float4] = (void*)glUniform4fvARB;
+        g_UniformFunctionList[eUniform_Int] = (void*)glUniform1ivARB;
+        g_UniformFunctionList[eUniform_Int2] = (void*)glUniform2ivARB;
+        g_UniformFunctionList[eUniform_Int3] = (void*)glUniform3ivARB;
+        g_UniformFunctionList[eUniform_Int4] = (void*)glUniform4ivARB;
+        g_UniformFunctionList[eUniform_Boolean] = (void*)glUniform1ivARB;
+        g_UniformFunctionList[eUniform_Boolean2] = (void*)glUniform2ivARB;
+        g_UniformFunctionList[eUniform_Boolean3] = (void*)glUniform3ivARB;
+        g_UniformFunctionList[eUniform_Boolean4] = (void*)glUniform4ivARB;
+        g_UniformFunctionList[eUniform_Matrix2] = (void*)glUniformMatrix2fvARB;
+        g_UniformFunctionList[eUniform_Matrix3] = (void*)glUniformMatrix3fvARB;
+        g_UniformFunctionList[eUniform_Matrix4] = (void*)glUniformMatrix4fvARB;
         g_bFunclistValid = true;
     }
 
@@ -460,11 +460,11 @@ bool CShaderUniformGL::SetData(void *_pData, const uint32 _size)
     return true;
 }
 
-typedef GLvoid(APIENTRY *Uniform_Func)(GLint location, GLsizei count,
-                                       const void *value);
-typedef GLvoid(APIENTRY *Uniform_MatrixFunc)(GLint location, GLsizei count,
+typedef GLvoid(APIENTRY* Uniform_Func)(GLint location, GLsizei count,
+                                       const void* value);
+typedef GLvoid(APIENTRY* Uniform_MatrixFunc)(GLint location, GLsizei count,
                                              GLboolean transpose,
-                                             const GLfloat *value);
+                                             const GLfloat* value);
 
 /*
  */
@@ -476,45 +476,45 @@ void CShaderUniformGL::Apply()
     switch (m_eType)
     {
     case eUniform_Float:
-        glUniform1fvARB(m_Index, m_Size, (const GLfloat *)m_pData);
+        glUniform1fvARB(m_Index, m_Size, (const GLfloat*)m_pData);
         break;
     case eUniform_Float2:
-        glUniform2fvARB(m_Index, m_Size, (const GLfloat *)m_pData);
+        glUniform2fvARB(m_Index, m_Size, (const GLfloat*)m_pData);
         break;
     case eUniform_Float3:
-        glUniform3fvARB(m_Index, m_Size, (const GLfloat *)m_pData);
+        glUniform3fvARB(m_Index, m_Size, (const GLfloat*)m_pData);
         break;
     case eUniform_Float4:
-        glUniform4fvARB(m_Index, m_Size, (const GLfloat *)m_pData);
+        glUniform4fvARB(m_Index, m_Size, (const GLfloat*)m_pData);
         break;
     case eUniform_Int:
     case eUniform_Boolean:
     case eUniform_Sampler:
-        glUniform1ivARB(m_Index, m_Size, (const GLint *)m_pData);
+        glUniform1ivARB(m_Index, m_Size, (const GLint*)m_pData);
         break;
     case eUniform_Int2:
     case eUniform_Boolean2:
-        glUniform2ivARB(m_Index, m_Size, (const GLint *)m_pData);
+        glUniform2ivARB(m_Index, m_Size, (const GLint*)m_pData);
         break;
     case eUniform_Int3:
     case eUniform_Boolean3:
-        glUniform3ivARB(m_Index, m_Size, (const GLint *)m_pData);
+        glUniform3ivARB(m_Index, m_Size, (const GLint*)m_pData);
         break;
     case eUniform_Int4:
     case eUniform_Boolean4:
-        glUniform4ivARB(m_Index, m_Size, (const GLint *)m_pData);
+        glUniform4ivARB(m_Index, m_Size, (const GLint*)m_pData);
         break;
     case eUniform_Matrix2:
         glUniformMatrix2fvARB(m_Index, m_Size, GL_TRUE,
-                              (const GLfloat *)m_pData);
+                              (const GLfloat*)m_pData);
         break;
     case eUniform_Matrix3:
         glUniformMatrix3fvARB(m_Index, m_Size, GL_TRUE,
-                              (const GLfloat *)m_pData);
+                              (const GLfloat*)m_pData);
         break;
     case eUniform_Matrix4:
         glUniformMatrix4fvARB(m_Index, m_Size, GL_TRUE,
-                              (const GLfloat *)m_pData);
+                              (const GLfloat*)m_pData);
         break;
     default:
         break;

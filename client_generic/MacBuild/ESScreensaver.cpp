@@ -20,10 +20,10 @@ CFBundleRef CopyDLBundle_ex(void)
     CFBundleRef bundle = NULL;
     Dl_info info;
 
-    if (dladdr((const void *)__func__, &info))
+    if (dladdr((const void*)__func__, &info))
     {
 
-        const char *bundle_path = dirname((char *)info.dli_fname);
+        const char* bundle_path = dirname((char*)info.dli_fname);
 
         do
         {
@@ -34,7 +34,7 @@ CFBundleRef CopyDLBundle_ex(void)
             }
 
             CFURLRef bundleURL = CFURLCreateFromFileSystemRepresentation(
-                kCFAllocatorDefault, (UInt8 *)bundle_path,
+                kCFAllocatorDefault, (UInt8*)bundle_path,
                 (CFIndex)strlen(bundle_path), true);
 
             bundle = CFBundleCreate(kCFAllocatorDefault, bundleURL);
@@ -49,14 +49,14 @@ CFBundleRef CopyDLBundle_ex(void)
             {
                 break;
             }
-            bundle_path = dirname((char *)bundle_path);
+            bundle_path = dirname((char*)bundle_path);
         } while (strcmp(bundle_path, "."));
     }
 
     return (bundle);
 }
 
-void ESScreenSaver_AddGraphicsContext(void *_glContext)
+void ESScreenSaver_AddGraphicsContext(void* _glContext)
 {
     gClient.AddGraphicsContext((CGraphicsContext)_glContext);
 }
@@ -94,8 +94,8 @@ bool ESScreensaver_Start(bool _bPreview, uint32 _width, uint32 _height)
     return true;
 }
 
-bool ESScreensaver_DoFrame(boost::barrier &_beginFrameBarrier,
-                           boost::barrier &_endFrameBarrier)
+bool ESScreensaver_DoFrame(boost::barrier& _beginFrameBarrier,
+                           boost::barrier& _endFrameBarrier)
 {
     bool retval = true;
 
@@ -198,45 +198,45 @@ CFStringRef ESScreensaver_CopyGetRoot(void)
     return CFStringCreateWithCString(NULL, root.c_str(), kCFStringEncodingUTF8);
 }
 
-CFStringRef ESScreensaver_CopyGetStringSetting(const char *url,
-                                               const char *defval)
+CFStringRef ESScreensaver_CopyGetStringSetting(const char* url,
+                                               const char* defval)
 {
     std::string val = g_Settings()->Get(std::string(url), std::string(defval));
 
     return CFStringCreateWithCString(NULL, val.c_str(), kCFStringEncodingUTF8);
 }
 
-SInt32 ESScreensaver_GetIntSetting(const char *url, const SInt32 defval)
+SInt32 ESScreensaver_GetIntSetting(const char* url, const SInt32 defval)
 {
     return g_Settings()->Get(std::string(url), (int32)defval);
 }
 
-bool ESScreensaver_GetBoolSetting(const char *url, const bool defval)
+bool ESScreensaver_GetBoolSetting(const char* url, const bool defval)
 {
     return g_Settings()->Get(std::string(url), (bool)defval);
 }
 
-double ESScreensaver_GetDoubleSetting(const char *url, const double defval)
+double ESScreensaver_GetDoubleSetting(const char* url, const double defval)
 {
     return g_Settings()->Get(std::string(url), (fp8)defval);
 }
 
-void ESScreensaver_SetStringSetting(const char *url, const char *val)
+void ESScreensaver_SetStringSetting(const char* url, const char* val)
 {
     g_Settings()->Set(std::string(url), std::string(val));
 }
 
-void ESScreensaver_SetIntSetting(const char *url, const SInt32 val)
+void ESScreensaver_SetIntSetting(const char* url, const SInt32 val)
 {
     g_Settings()->Set(std::string(url), (int32)val);
 }
 
-void ESScreensaver_SetBoolSetting(const char *url, const bool val)
+void ESScreensaver_SetBoolSetting(const char* url, const bool val)
 {
     g_Settings()->Set(std::string(url), val);
 }
 
-void ESScreensaver_SetDoubleSetting(const char *url, const double val)
+void ESScreensaver_SetDoubleSetting(const char* url, const double val)
 {
     g_Settings()->Set(std::string(url), val);
 }
@@ -246,7 +246,7 @@ void ESScreensaver_DeinitClientStorage(void)
     g_Settings()->Storage()->Commit();
 }
 
-void ESScreensaver_SetUpdateAvailable(const char *verinfo)
+void ESScreensaver_SetUpdateAvailable(const char* verinfo)
 {
     gClient.SetUpdateAvailable(verinfo);
 }
@@ -254,7 +254,7 @@ void ESScreensaver_SetUpdateAvailable(const char *verinfo)
 #include <boost/filesystem.hpp>
 using namespace boost::filesystem;
 
-static uint64 GetFlockSizeBytes(const std::string &path, int sheeptype)
+static uint64 GetFlockSizeBytes(const std::string& path, int sheeptype)
 {
     std::string mp4path(path);
 
@@ -301,7 +301,7 @@ static uint64 GetFlockSizeBytes(const std::string &path, int sheeptype)
                 retval += GetFlockSizeBytes(itr->path().string(), sheeptype);
         }
     }
-    catch (boost::filesystem::filesystem_error &err)
+    catch (boost::filesystem::filesystem_error& err)
     {
         g_Log->Error("Path enumeration threw error: %s", err.what());
         return 0;
@@ -309,7 +309,7 @@ static uint64 GetFlockSizeBytes(const std::string &path, int sheeptype)
     return retval;
 }
 
-size_t ESScreensaver_GetFlockSizeMBs(const char *mp4path, int sheeptype)
+size_t ESScreensaver_GetFlockSizeMBs(const char* mp4path, int sheeptype)
 {
     return GetFlockSizeBytes(mp4path, sheeptype) / 1024 / 1024;
 }

@@ -22,13 +22,13 @@ class CLoopingPlaylist : public CPlaylist
     virtual ~CLoopingPlaylist() {}
 
     //
-    virtual bool Add(const std::string &_file)
+    virtual bool Add(const std::string& _file)
     {
         m_List.push_back(_file);
         return (true);
     }
 
-    virtual bool Next(std::string &_result)
+    virtual bool Next(std::string& _result)
     {
         if (m_List.empty())
             return false;

@@ -46,7 +46,7 @@ int32 APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                        LPSTR lpCmdLine, int nCmdShow)
 {
 #else
-int32 main(int argc, char *argv[])
+int32 main(int argc, char* argv[])
 {
     glutInit(&argc, argv);
 #endif

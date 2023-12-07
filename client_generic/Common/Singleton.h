@@ -22,8 +22,8 @@ namespace Base
 template <typename T> class CSingleton
 {
     //	We do not want these.
-    CSingleton(const CSingleton &);
-    CSingleton &operator=(const CSingleton &);
+    CSingleton(const CSingleton&);
+    CSingleton& operator=(const CSingleton&);
 
   protected:
     //
@@ -40,10 +40,10 @@ template <typename T> class CSingleton
     //
     void SingletonActive(const bool _state) { m_bSingletonActive = _state; };
     bool SingletonActive(void) { return (m_bSingletonActive); };
-    virtual const char *Description() = PureVirtual;
+    virtual const char* Description() = PureVirtual;
 
     //	Return instance.
-    static T &Instance()
+    static T& Instance()
     {
         static T instance;
 

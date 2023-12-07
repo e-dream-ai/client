@@ -60,17 +60,17 @@ class CProcessForker
     bool m_bWaiting;
     HANDLE m_hProcess;
 
-    const char *m_pAppName;
-    const char *m_pAppDir;
+    const char* m_pAppName;
+    const char* m_pAppDir;
 
-    char *m_pEnv;
-    char *m_pParams;
+    char* m_pEnv;
+    char* m_pParams;
     LPSTR m_pCurrentVar;
     LPSTR m_pCurrentParam;
 
   public:
-    CProcessForker(const char *_pProcessName, bool _bTerminate = true,
-                   const char *_wd = NULL)
+    CProcessForker(const char* _pProcessName, bool _bTerminate = true,
+                   const char* _wd = NULL)
         : m_bWaiting(false), m_pAppName(_pProcessName),
           m_bTerminate(_bTerminate), m_pAppDir(_wd)
     {
@@ -91,7 +91,7 @@ class CProcessForker
         SAFE_DELETE(m_pEnv);
     }
 
-    bool PushEnv(const std::string &_name, const std::string &_value)
+    bool PushEnv(const std::string& _name, const std::string& _value)
     {
         printf("PushEnv( %s, %s )\n", _name.c_str(), _value.c_str());
 
@@ -124,7 +124,7 @@ class CProcessForker
         return true;
     }
 
-    bool PushParam(const std::string &_param)
+    bool PushParam(const std::string& _param)
     {
         printf("PushParam( %s )\n", _param.c_str());
 
@@ -171,7 +171,7 @@ class CProcessForker
             g_Log->Info("Starting %s...", m_pAppName);
 
         if (!CreateProcessA(m_pAppName, cmdLine, NULL, NULL, TRUE, dwFlags,
-                            (LPVOID)m_pEnv, (CHAR *)m_pAppDir, &si, &pi))
+                            (LPVOID)m_pEnv, (CHAR*)m_pAppDir, &si, &pi))
         {
             CHAR msg[MAX_PATH + 1];
             int32 err = GetLastError();
@@ -281,7 +281,7 @@ class CProcessForker
                 // g_Log->Info( "WAIT_OBJECT_0+1..." );
 
                 //	Remove any messages that may be in the queue. If the
-                //queue
+                // queue
                 // contains any mouse or keyboard messages, end the operation.
                 while (PeekMessage(&msg, hwnd, 0, 0, PM_REMOVE))
                 {
@@ -333,22 +333,22 @@ class CProcessForker
     bool m_bTerminate;
     int m_ChildPID;
 
-    const char *m_pAppName;
+    const char* m_pAppName;
 
-    char *m_pEnv[m_MaxEnvCount + 1];
-    char *m_pParam[m_MaxParamCount + 1];
+    char* m_pEnv[m_MaxEnvCount + 1];
+    char* m_pParam[m_MaxParamCount + 1];
     uint32 m_EnvSize;
     uint32 m_ParamSize;
 
   public:
-    CProcessForker(const char *_pProcessName, bool _bTerminate = true,
-                   const char * /*_wd*/ = NULL)
+    CProcessForker(const char* _pProcessName, bool _bTerminate = true,
+                   const char* /*_wd*/ = NULL)
         : m_bTerminate(_bTerminate), m_pAppName(_pProcessName)
     {
         m_pEnv[0] = NULL;
         m_EnvSize = 0;
 
-        char *procName = NULL;
+        char* procName = NULL;
         uint32 paramSize = 0;
 
         if (_pProcessName != NULL)
@@ -383,7 +383,7 @@ class CProcessForker
         }
     }
 
-    bool PushEnv(const std::string &_name, const std::string &_value)
+    bool PushEnv(const std::string& _name, const std::string& _value)
     {
         printf("PushEnv( %s, %s )\n", _name.c_str(), _value.c_str());
 
@@ -405,7 +405,7 @@ class CProcessForker
         std::stringstream stm;
         stm << _name << "=" << _value;
 
-        char *env = new char[stm.str().size() + 1];
+        char* env = new char[stm.str().size() + 1];
 
         if (strcpy(env, stm.str().c_str()) == NULL)
             return false;
@@ -416,14 +416,14 @@ class CProcessForker
         return true;
     }
 
-    bool PushParam(const std::string &_param)
+    bool PushParam(const std::string& _param)
     {
         printf("PushParam( %s )\n", _param.c_str());
 
         if (m_ParamSize >= m_MaxParamCount)
             return false;
 
-        char *param = new char[_param.size() + 1];
+        char* param = new char[_param.size() + 1];
 
         if (strcpy(param, _param.c_str()) == NULL)
             return false;

@@ -29,7 +29,7 @@ CContentDownloader::CContentDownloader() {}
 //
 static std::string generateID()
 {
-    uint8 *salt;
+    uint8* salt;
     uint32 u;
     char id[17];
     id[16] = 0;
@@ -37,12 +37,12 @@ static std::string generateID()
 #ifdef WIN32
     SYSTEMTIME syst;
     GetSystemTime(&syst);
-    salt = ((unsigned char *)&syst) + sizeof(SYSTEMTIME) - 8;
+    salt = ((unsigned char*)&syst) + sizeof(SYSTEMTIME) - 8;
 #else
     timeval cur_time;
     gettimeofday(&cur_time, NULL);
 
-    salt = (unsigned char *)&cur_time;
+    salt = (unsigned char*)&cur_time;
 #endif
 
     for (u = 0; u < 16; u++)
@@ -66,7 +66,7 @@ void CContentDownloader::ServerFallback() { Shepherd::setRegistered(false); }
 
 /*
  */
-bool CContentDownloader::Startup(boost::shared_mutex &_downloadSaveMutex,
+bool CContentDownloader::Startup(boost::shared_mutex& _downloadSaveMutex,
                                  const bool _bPreview, bool _bReadOnlyInstance)
 {
     g_Log->Info("Attempting to start contentdownloader...", _bPreview);

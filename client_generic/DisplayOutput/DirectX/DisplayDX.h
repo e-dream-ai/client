@@ -43,12 +43,12 @@ class CDisplayDX : public CDisplayOutput
     bool m_BlankUnused;
     bool m_Shader20;
     D3DPRESENT_PARAMETERS m_PresentationParams;
-    IDirect3DDevice9 *m_pDevice;
+    IDirect3DDevice9* m_pDevice;
 
     HWND m_WindowHandle;
     uint32 m_DesiredScreenID;
 
-    IDirect3D9 *m_pDirect3DInstance;
+    IDirect3D9* m_pDirect3DInstance;
 
     void EnumMonitors();
     HWND createwindow(uint32 _w, uint32 _h, const bool _bFullscreen);
@@ -65,22 +65,22 @@ class CDisplayDX : public CDisplayOutput
     bool InitDX9();
 
   public:
-    CDisplayDX(bool _blank, IDirect3D9 *_pIDirect3D9);
+    CDisplayDX(bool _blank, IDirect3D9* _pIDirect3D9);
     virtual ~CDisplayDX();
 
     virtual DWORD GetNumMonitors() { return m_dwNumMonitors; }
-    void BlankUnusedMonitors(WNDCLASS &wnd, HWND hWnd, HINSTANCE hInstance);
+    void BlankUnusedMonitors(WNDCLASS& wnd, HWND hWnd, HINSTANCE hInstance);
 
     static LRESULT CALLBACK wndProc(HWND hWnd, UINT msg, WPARAM wParam,
                                     LPARAM lParam);
 
-    static char *Description() { return "Windows DirectX display"; };
+    static char* Description() { return "Windows DirectX display"; };
     virtual HWND Initialize(const uint32 _width, const uint32 _height,
                             const bool _bFullscreen);
 
     UINT GetAdapterOrdinal();
     HWND WindowHandle(void) { return m_WindowHandle; };
-    IDirect3DDevice9 *Device() { return m_pDevice; };
+    IDirect3DDevice9* Device() { return m_pDevice; };
     D3DPRESENT_PARAMETERS PresentParameters() { return m_PresentationParams; };
 
     void SetScreen(const uint32 _screen) { m_DesiredScreenID = _screen; };
@@ -90,7 +90,7 @@ class CDisplayDX : public CDisplayOutput
     virtual bool Initialize(HWND _hWnd, bool _bPreview);
 
     //
-    virtual void Title(const std::string &_title);
+    virtual void Title(const std::string& _title);
     virtual void Update();
 
     virtual bool HasShaders() { return m_Shader20; };

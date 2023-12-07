@@ -17,22 +17,22 @@
 // the fine details.
 static const size_t MBEFontAtlasSize = 4096;
 
-static NSString *const MBEGlyphIndexKey = @"glyphIndex";
-static NSString *const MBELeftTexCoordKey = @"leftTexCoord";
-static NSString *const MBERightTexCoordKey = @"rightTexCoord";
-static NSString *const MBETopTexCoordKey = @"topTexCoord";
-static NSString *const MBEBottomTexCoordKey = @"bottomTexCoord";
-static NSString *const MBEFontNameKey = @"fontName";
-static NSString *const MBEFontSizeKey = @"fontSize";
-static NSString *const MBEFontSpreadKey = @"spread";
-static NSString *const MBETextureDataKey = @"textureData";
-static NSString *const MBETextureWidthKey = @"textureWidth";
-static NSString *const MBETextureHeightKey = @"textureHeight";
-static NSString *const MBEGlyphDescriptorsKey = @"glyphDescriptors";
+static NSString* const MBEGlyphIndexKey = @"glyphIndex";
+static NSString* const MBELeftTexCoordKey = @"leftTexCoord";
+static NSString* const MBERightTexCoordKey = @"rightTexCoord";
+static NSString* const MBETopTexCoordKey = @"topTexCoord";
+static NSString* const MBEBottomTexCoordKey = @"bottomTexCoord";
+static NSString* const MBEFontNameKey = @"fontName";
+static NSString* const MBEFontSizeKey = @"fontSize";
+static NSString* const MBEFontSpreadKey = @"spread";
+static NSString* const MBETextureDataKey = @"textureData";
+static NSString* const MBETextureWidthKey = @"textureWidth";
+static NSString* const MBETextureHeightKey = @"textureHeight";
+static NSString* const MBEGlyphDescriptorsKey = @"glyphDescriptors";
 
 @implementation MBEGlyphDescriptor
 
-- (instancetype)initWithCoder:(NSCoder *)aDecoder
+- (instancetype)initWithCoder:(NSCoder*)aDecoder
 {
     if ((self = [super init]))
     {
@@ -48,7 +48,7 @@ static NSString *const MBEGlyphDescriptorsKey = @"glyphDescriptors";
     return self;
 }
 
-- (void)encodeWithCoder:(NSCoder *)aCoder
+- (void)encodeWithCoder:(NSCoder*)aCoder
 {
     [aCoder encodeInt:self.glyphIndex forKey:MBEGlyphIndexKey];
     [aCoder encodeFloat:(float)self.topLeftTexCoord.x
@@ -69,7 +69,7 @@ static NSString *const MBEGlyphDescriptorsKey = @"glyphDescriptors";
 
 @implementation MBEFontAtlas
 
-- (instancetype)initWithFont:(NSFont *)font textureSize:(size_t)textureSize
+- (instancetype)initWithFont:(NSFont*)font textureSize:(size_t)textureSize
 {
     if ((self = [super init]))
     {
@@ -84,11 +84,11 @@ static NSString *const MBEGlyphDescriptorsKey = @"glyphDescriptors";
     return self;
 }
 
-- (instancetype)initWithCoder:(NSCoder *)aDecoder
+- (instancetype)initWithCoder:(NSCoder*)aDecoder
 {
     if ((self = [super init]))
     {
-        NSString *fontName = [aDecoder decodeObjectForKey:MBEFontNameKey];
+        NSString* fontName = [aDecoder decodeObjectForKey:MBEFontNameKey];
         CGFloat fontSize = [aDecoder decodeFloatForKey:MBEFontSizeKey];
         CGFloat spread = [aDecoder decodeFloatForKey:MBEFontSpreadKey];
 
@@ -139,7 +139,7 @@ static NSString *const MBEGlyphDescriptorsKey = @"glyphDescriptors";
     return self;
 }
 
-- (void)encodeWithCoder:(NSCoder *)aCoder
+- (void)encodeWithCoder:(NSCoder*)aCoder
 {
     [aCoder encodeObject:self.parentFont.fontName forKey:MBEFontNameKey];
     [aCoder encodeFloat:(float)self.fontPointSize forKey:MBEFontSizeKey];
@@ -155,9 +155,9 @@ static NSString *const MBEGlyphDescriptorsKey = @"glyphDescriptors";
     return YES;
 }
 
-- (CGSize)estimatedGlyphSizeForFont:(NSFont *)font
+- (CGSize)estimatedGlyphSizeForFont:(NSFont*)font
 {
-    NSString *exemplarString = @"{ǺOJMQYZa@jmqyw";
+    NSString* exemplarString = @"{ǺOJMQYZa@jmqyw";
     CGSize exemplarStringSize =
         [exemplarString sizeWithAttributes:@{NSFontAttributeName : font}];
     CGFloat averageGlyphWidth =
@@ -167,19 +167,19 @@ static NSString *const MBEGlyphDescriptorsKey = @"glyphDescriptors";
     return CGSizeMake(averageGlyphWidth, maxGlyphHeight);
 }
 
-- (CGFloat)estimatedLineWidthForFont:(NSFont *)font
+- (CGFloat)estimatedLineWidthForFont:(NSFont*)font
 {
     CGFloat estimatedStrokeWidth =
         [@"!" sizeWithAttributes:@{NSFontAttributeName : font}].width;
     return ceilf((float)estimatedStrokeWidth);
 }
 
-- (BOOL)font:(NSFont *)font
+- (BOOL)font:(NSFont*)font
                       atSize:(CGFloat)size
     isLikelyToFitInAtlasRect:(CGRect)rect
 {
     const float textureArea = (float)rect.size.width * (float)rect.size.height;
-    NSFont *trialFont = [NSFont fontWithName:font.fontName size:size];
+    NSFont* trialFont = [NSFont fontWithName:font.fontName size:size];
     CTFontRef trialCTFont =
         CTFontCreateWithName((__bridge CFStringRef)(font.fontName), size, NULL);
 #if USE_LIMITED_CHARSET
@@ -198,7 +198,7 @@ static NSString *const MBEGlyphDescriptorsKey = @"glyphDescriptors";
     return fits;
 }
 
-- (CGFloat)pointSizeThatFitsForFont:(NSFont *)font inAtlasRect:(CGRect)rect
+- (CGFloat)pointSizeThatFitsForFont:(NSFont*)font inAtlasRect:(CGRect)rect
 {
     CGFloat fittedSize = font.pointSize;
 
@@ -211,11 +211,11 @@ static NSString *const MBEGlyphDescriptorsKey = @"glyphDescriptors";
     return fittedSize;
 }
 
-- (uint8_t *)createAtlasForFont:(NSFont *)font
-                          width:(size_t)width
-                         height:(size_t)height
+- (uint8_t*)createAtlasForFont:(NSFont*)font
+                         width:(size_t)width
+                        height:(size_t)height
 {
-    uint8_t *imageData = malloc(width * height);
+    uint8_t* imageData = malloc(width * height);
 
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceGray();
     CGBitmapInfo bitmapInfo = (kCGBitmapAlphaInfoMask & kCGImageAlphaNone);
@@ -248,7 +248,7 @@ static NSString *const MBEGlyphDescriptorsKey = @"glyphDescriptors";
     // Set fill color so that glyphs are solid white
     CGContextSetRGBFillColor(context, 1, 1, 1, 1);
 
-    NSMutableArray *mutableGlyphs = (NSMutableArray *)self.glyphDescriptors;
+    NSMutableArray* mutableGlyphs = (NSMutableArray*)self.glyphDescriptors;
     [mutableGlyphs removeAllObjects];
 
     CGFloat fontAscent = CTFontGetAscent(ctFont);
@@ -313,7 +313,7 @@ static NSString *const MBEGlyphDescriptorsKey = @"glyphDescriptors";
                                   glyphPathBoundingRect.size.height) /
                                  height;
 
-        MBEGlyphDescriptor *descriptor = [MBEGlyphDescriptor new];
+        MBEGlyphDescriptor* descriptor = [MBEGlyphDescriptor new];
         descriptor.glyphIndex = glyph;
         descriptor.topLeftTexCoord = CGPointMake(texCoordLeft, texCoordTop);
         descriptor.bottomRightTexCoord =
@@ -328,7 +328,7 @@ static NSString *const MBEGlyphDescriptorsKey = @"glyphDescriptors";
 #if MBE_GENERATE_DEBUG_ATLAS_IMAGE
     CGImageRef contextImage = CGBitmapContextCreateImage(context);
     // Break here to view the generated font atlas bitmap
-    CIImage *fontImage = [CIImage imageWithCGImage:contextImage];
+    CIImage* fontImage = [CIImage imageWithCGImage:contextImage];
     fontImage = nil;
     CGImageRelease(contextImage);
 #endif
@@ -343,9 +343,9 @@ static NSString *const MBEGlyphDescriptorsKey = @"glyphDescriptors";
 /// Compute signed-distance field for an 8-bpp grayscale image (values greater
 /// than 127 are considered "on") For details of this algorithm, see "The 'dead
 /// reckoning' signed distance transform" [Grevera 2004]
-- (float *)createSignedDistanceFieldForGrayscaleImage:(const uint8_t *)imageData
-                                                width:(size_t)width
-                                               height:(size_t)height
+- (float*)createSignedDistanceFieldForGrayscaleImage:(const uint8_t*)imageData
+                                               width:(size_t)width
+                                              height:(size_t)height
 {
     if (imageData == NULL || width == 0 || height == 0)
         return NULL;
@@ -355,10 +355,10 @@ static NSString *const MBEGlyphDescriptorsKey = @"glyphDescriptors";
         unsigned short x, y;
     } intpoint_t;
 
-    float *distanceMap =
+    float* distanceMap =
         malloc(width * height *
                sizeof(float)); // distance to nearest boundary point map
-    intpoint_t *boundaryPointMap = malloc(
+    intpoint_t* boundaryPointMap = malloc(
         width * height * sizeof(intpoint_t)); // nearest boundary point map
 
     // Some helpers for manipulating the above arrays
@@ -482,10 +482,10 @@ static NSString *const MBEGlyphDescriptorsKey = @"glyphDescriptors";
 #undef nearestpt
 }
 
-- (float *)createResampledData:(float *)inData
-                         width:(size_t)width
-                        height:(size_t)height
-                   scaleFactor:(size_t)scaleFactor
+- (float*)createResampledData:(float*)inData
+                        width:(size_t)width
+                       height:(size_t)height
+                  scaleFactor:(size_t)scaleFactor
 {
     NSAssert(width % scaleFactor == 0 && height % scaleFactor == 0,
              @"Scale factor does not evenly divide width and height of source "
@@ -493,7 +493,7 @@ static NSString *const MBEGlyphDescriptorsKey = @"glyphDescriptors";
 
     size_t scaledWidth = width / scaleFactor;
     size_t scaledHeight = height / scaleFactor;
-    float *outData = malloc(scaledWidth * scaledHeight * sizeof(float));
+    float* outData = malloc(scaledWidth * scaledHeight * sizeof(float));
 
     for (size_t y = 0; y < height; y += scaleFactor)
     {
@@ -517,12 +517,12 @@ static NSString *const MBEGlyphDescriptorsKey = @"glyphDescriptors";
     return outData;
 }
 
-- (uint8_t *)createQuantizedDistanceField:(float *)inData
-                                    width:(size_t)width
-                                   height:(size_t)height
-                      normalizationFactor:(float)normalizationFactor
+- (uint8_t*)createQuantizedDistanceField:(float*)inData
+                                   width:(size_t)width
+                                  height:(size_t)height
+                     normalizationFactor:(float)normalizationFactor
 {
-    uint8_t *outData = malloc(width * height);
+    uint8_t* outData = malloc(width * height);
 
     for (size_t y = 0; y < height; ++y)
     {
@@ -554,7 +554,7 @@ static NSString *const MBEGlyphDescriptorsKey = @"glyphDescriptors";
 
     // Generate an atlas image for the font, resizing if necessary to fit in the
     // specified size.
-    uint8_t *atlasData = [self createAtlasForFont:self.parentFont
+    uint8_t* atlasData = [self createAtlasForFont:self.parentFont
                                             width:MBEFontAtlasSize
                                            height:MBEFontAtlasSize];
 
@@ -562,7 +562,7 @@ static NSString *const MBEGlyphDescriptorsKey = @"glyphDescriptors";
 
     // Create the signed-distance field representation of the font atlas from
     // the rasterized glyph image.
-    float *distanceField =
+    float* distanceField =
         [self createSignedDistanceFieldForGrayscaleImage:atlasData
                                                    width:MBEFontAtlasSize
                                                   height:MBEFontAtlasSize];
@@ -570,7 +570,7 @@ static NSString *const MBEGlyphDescriptorsKey = @"glyphDescriptors";
     free(atlasData);
 
     // Downsample the signed-distance field to the expected texture resolution
-    void *scaledField = [self createResampledData:distanceField
+    void* scaledField = [self createResampledData:distanceField
                                             width:MBEFontAtlasSize
                                            height:MBEFontAtlasSize
                                       scaleFactor:scaleFactor];
@@ -580,7 +580,7 @@ static NSString *const MBEGlyphDescriptorsKey = @"glyphDescriptors";
     CGFloat spread = [self estimatedLineWidthForFont:self.parentFont] * 0.5;
     // Quantize the downsampled distance field into an 8-bit grayscale array
     // suitable for use as a texture
-    uint8_t *texture = [self createQuantizedDistanceField:scaledField
+    uint8_t* texture = [self createQuantizedDistanceField:scaledField
                                                     width:self.textureSize
                                                    height:self.textureSize
                                       normalizationFactor:(float)spread];

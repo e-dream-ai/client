@@ -39,7 +39,7 @@ CVote::~CVote()
         {
             m_pThread->timed_join(boost::posix_time::seconds(3));
         }
-        catch (boost::thread_interrupted const &)
+        catch (boost::thread_interrupted const&)
         {
         }
         SAFE_DELETE(m_pThread);
@@ -54,14 +54,14 @@ void CVote::ThreadFunc()
     {
         VotingInfo vi;
 
-        const char *pServerName = /*ContentDownloader::Shepherd::serverName(
+        const char* pServerName = /*ContentDownloader::Shepherd::serverName(
                                      true, ContentDownloader::eVoteServer );*/
             "";
 
         if (pServerName == NULL)
             return;
 
-        const char *pUniqueID = ContentDownloader::Shepherd::uniqueID();
+        const char* pUniqueID = ContentDownloader::Shepherd::uniqueID();
 
         if (pUniqueID == NULL)
             return;
@@ -71,11 +71,11 @@ void CVote::ThreadFunc()
 
         while (m_Votings.pop(vi, true))
         {
-            static const char *votedesc[] = {"Negative", "Positive"};
+            static const char* votedesc[] = {"Negative", "Positive"};
 
             g_Log->Info("%s vote for sheep %d", votedesc[vi.vtype], vi.vid);
 
-            Network::CCurlTransfer *spRequest = new Network::CCurlTransfer(
+            Network::CCurlTransfer* spRequest = new Network::CCurlTransfer(
                 std::string(votedesc[vi.vtype]) + " vote");
 
             char url[MAX_PATH];
@@ -110,7 +110,7 @@ void CVote::ThreadFunc()
             g_Log->Info("done voting...");
         }
     }
-    catch (boost::thread_interrupted const &)
+    catch (boost::thread_interrupted const&)
     {
     }
 }

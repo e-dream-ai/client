@@ -46,22 +46,22 @@ spCTextureFlat CRendererDD::NewTextureFlat(const uint32 _flags)
     return spTex;
 }
 
-spCShader CRendererDD::NewShader(const char *_pVertexShader,
-                                 const char *_pFragmentShader)
+spCShader CRendererDD::NewShader(const char* _pVertexShader,
+                                 const char* _pFragmentShader)
 {
     return NULL;
 }
 
-spCBaseFont CRendererDD::NewFont(CFontDescription &_desc)
+spCBaseFont CRendererDD::NewFont(CFontDescription& _desc)
 {
-    CBaseFont *pFont = new CFontDD();
+    CBaseFont* pFont = new CFontDD();
     pFont->FontDescription(_desc);
     pFont->Create();
     return pFont;
 }
 
 Base::Math::CVector2 CRendererDD::GetTextExtent(spCBaseFont _spFont,
-                                                const std::string &_text)
+                                                const std::string& _text)
 {
     ASSERT(_text != "");
 
@@ -84,7 +84,7 @@ Base::Math::CVector2 CRendererDD::GetTextExtent(spCBaseFont _spFont,
     ASSERT(textLength < 2048);
 
     static char pTmp[2048];
-    strcpy(pTmp, (const char *)_text.c_str());
+    strcpy(pTmp, (const char*)_text.c_str());
     pTmp[textLength] = '.';
     pTmp[textLength + 1] = '\0';
 
@@ -125,9 +125,9 @@ Base::Math::CVector2 CRendererDD::GetTextExtent(spCBaseFont _spFont,
     return (result);
 }
 
-void CRendererDD::Text(spCBaseFont _spFont, const std::string &_text,
-                       const Base::Math::CVector4 &_color,
-                       const Base::Math::CRect &_rect, uint32 _flags)
+void CRendererDD::Text(spCBaseFont _spFont, const std::string& _text,
+                       const Base::Math::CVector4& _color,
+                       const Base::Math::CRect& _rect, uint32 _flags)
 {
     ASSERT(_text != "");
 
@@ -174,9 +174,9 @@ void CRendererDD::Text(spCBaseFont _spFont, const std::string &_text,
     m_BackBufferPtr->ReleaseDC(xdc);
 }
 
-void CRendererDD::DrawQuad(const Base::Math::CRect &_rect,
-                           const Base::Math::CVector4 &_color,
-                           const Base::Math::CRect &_uvrect)
+void CRendererDD::DrawQuad(const Base::Math::CRect& _rect,
+                           const Base::Math::CVector4& _color,
+                           const Base::Math::CRect& _uvrect)
 {
     m_BackBufferPtr->DrawQuad(_rect, _color, _uvrect);
 }

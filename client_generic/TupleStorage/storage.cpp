@@ -25,7 +25,7 @@ namespace TupleStorage
         CreateDir().
 
 */
-bool IStorageInterface::CreateDir(const std::string &_sPath)
+bool IStorageInterface::CreateDir(const std::string& _sPath)
 {
 #ifdef WIN32
     if (CreateDirectoryA(_sPath.c_str(), NULL) != 0)
@@ -51,7 +51,7 @@ bool IStorageInterface::CreateDir(const std::string &_sPath)
         RemoveDir().
 
 */
-bool IStorageInterface::RemoveDir(const std::string &_sPath)
+bool IStorageInterface::RemoveDir(const std::string& _sPath)
 {
 #ifdef WIN32
     BOOL result = RemoveDirectoryA(_sPath.c_str());
@@ -76,7 +76,7 @@ bool IStorageInterface::RemoveDir(const std::string &_sPath)
         CreateFullDirectory().
 
 */
-bool IStorageInterface::CreateFullDirectory(const std::string &_sPath)
+bool IStorageInterface::CreateFullDirectory(const std::string& _sPath)
 {
     //	Will be false once we're out of the "../../"'s, then we will actually
     // create.
@@ -110,7 +110,7 @@ bool IStorageInterface::CreateFullDirectory(const std::string &_sPath)
         DirectoryEmpty().
 
 */
-bool IStorageInterface::DirectoryEmpty(const std::string &_sPath)
+bool IStorageInterface::DirectoryEmpty(const std::string& _sPath)
 {
     CDirectoryIterator iterator(_sPath);
 
@@ -135,7 +135,7 @@ bool IStorageInterface::DirectoryEmpty(const std::string &_sPath)
         RemoveFullDirectory().
 
 */
-bool IStorageInterface::RemoveFullDirectory(const std::string &_sPath,
+bool IStorageInterface::RemoveFullDirectory(const std::string& _sPath,
                                             const bool _bSubdirectories)
 {
     std::string path = _sPath;
@@ -144,7 +144,7 @@ bool IStorageInterface::RemoveFullDirectory(const std::string &_sPath,
     if (path[len - 1] != '/')
         path.append("/");
 
-    CDirectoryIterator *pIterator = new CDirectoryIterator(path);
+    CDirectoryIterator* pIterator = new CDirectoryIterator(path);
 
     std::vector<std::string> dirlist;
     std::vector<std::string> filelist;
@@ -190,9 +190,9 @@ bool IStorageInterface::RemoveFullDirectory(const std::string &_sPath,
         IoHierarchyHelper().
 
 */
-bool IStorageInterface::IoHierarchyHelper(const std::string &_uniformPath,
-                                          std::string &_retPath,
-                                          std::string &_retName)
+bool IStorageInterface::IoHierarchyHelper(const std::string& _uniformPath,
+                                          std::string& _retPath,
+                                          std::string& _retName)
 {
     std::string path = _uniformPath;
 

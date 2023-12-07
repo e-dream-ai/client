@@ -23,9 +23,9 @@ static const NSUInteger MaxFramesInFlight = 3;
 @interface RendererContext : NSObject
 {
   @public
-    MTKView *metalView;
+    MTKView* metalView;
   @public
-    std::map<uint32_t, DisplayOutput::CTextureFlatMetal *> boundTextures;
+    std::map<uint32_t, DisplayOutput::CTextureFlatMetal*> boundTextures;
   @public
     id<MTLCommandQueue> commandQueue;
   @public
@@ -78,7 +78,7 @@ CRendererMetal::CRendererMetal() : CRenderer() {}
  */
 CRendererMetal::~CRendererMetal()
 {
-    RendererContext *rendererContext = CFBridgingRelease(m_pRendererContext);
+    RendererContext* rendererContext = CFBridgingRelease(m_pRendererContext);
     while (rendererContext->framesStarted.load() !=
            rendererContext->framesFinished.load())
     {
@@ -90,9 +90,9 @@ CRendererMetal::~CRendererMetal()
     }
 }
 
-static MTLVertexDescriptor *CreateTextVertexDescriptor()
+static MTLVertexDescriptor* CreateTextVertexDescriptor()
 {
-    MTLVertexDescriptor *vertexDescriptor = [MTLVertexDescriptor new];
+    MTLVertexDescriptor* vertexDescriptor = [MTLVertexDescriptor new];
 
     // Position
     vertexDescriptor.attributes[0].format = MTLVertexFormatFloat4;
@@ -115,18 +115,18 @@ bool CRendererMetal::Initialize(spCDisplayOutput _spDisplay)
     if (!CRenderer::Initialize(_spDisplay))
         return false;
 
-    MTKView *metalView = (__bridge MTKView *)m_spDisplay->GetContext();
+    MTKView* metalView = (__bridge MTKView*)m_spDisplay->GetContext();
     id<MTLDevice> device;
     ASSERT(device = metalView.device);
 
-    RendererContext *rendererContext = [[RendererContext alloc] init];
+    RendererContext* rendererContext = [[RendererContext alloc] init];
     m_pRendererContext = CFBridgingRetain(rendererContext);
     rendererContext->metalView = metalView;
     ASSERT(rendererContext->commandQueue = [device newCommandQueue]);
 
     rendererContext->inFlightSemaphore =
         dispatch_semaphore_create(MaxFramesInFlight);
-    NSError *err;
+    NSError* err;
     rendererContext->shaderLibrary = [device
         newLibraryWithFile:[[NSBundle bundleForClass:RendererContext.class]
                                pathForResource:@"default"
@@ -159,10 +159,10 @@ bool CRendererMetal::Initialize(spCDisplayOutput _spDisplay)
 //
 void CRendererMetal::Defaults() {}
 
-void CRendererMetal::SetBoundSlot(uint32_t _slot, CTextureFlatMetal *_texture)
+void CRendererMetal::SetBoundSlot(uint32_t _slot, CTextureFlatMetal* _texture)
 {
-    RendererContext *rendererContext =
-        (__bridge RendererContext *)m_pRendererContext;
+    RendererContext* rendererContext =
+        (__bridge RendererContext*)m_pRendererContext;
     rendererContext->boundTextures[_slot] = _texture;
 }
 
@@ -197,11 +197,11 @@ spCTextureFlat CRendererMetal::NewTextureFlat(const uint32 _flags)
 /*
  */
 spCShader CRendererMetal::NewShader(
-    const char *_pVertexShader, const char *_pFragmentShader,
+    const char* _pVertexShader, const char* _pFragmentShader,
     std::vector<std::pair<std::string, eUniformType>> _uniforms)
 {
-    RendererContext *rendererContext =
-        (__bridge RendererContext *)m_pRendererContext;
+    RendererContext* rendererContext =
+        (__bridge RendererContext*)m_pRendererContext;
     id<MTLFunction> vertexFunc =
         [rendererContext->shaderLibrary newFunctionWithName:@(_pVertexShader)];
     id<MTLFunction> fragmentFunc = [rendererContext->shaderLibrary
@@ -215,7 +215,7 @@ spCShader CRendererMetal::NewShader(
 
 /*
  */
-spCBaseFont CRendererMetal::GetFont(CFontDescription &_desc)
+spCBaseFont CRendererMetal::GetFont(CFontDescription& _desc)
 {
     auto it = m_fontPool.find(_desc.TypeFace());
     if (it == m_fontPool.end())
@@ -231,12 +231,12 @@ spCBaseFont CRendererMetal::GetFont(CFontDescription &_desc)
     return it->second;
 }
 
-spCBaseText CRendererMetal::NewText(spCBaseFont _font, const std::string &_text)
+spCBaseText CRendererMetal::NewText(spCBaseFont _font, const std::string& _text)
 {
-    RendererContext *rendererContext =
-        (__bridge RendererContext *)m_pRendererContext;
+    RendererContext* rendererContext =
+        (__bridge RendererContext*)m_pRendererContext;
     float aspect = m_spDisplay->Aspect();
-    CTextMetal *text = new CTextMetal(static_pointer_cast<CFontMetal>(_font),
+    CTextMetal* text = new CTextMetal(static_pointer_cast<CFontMetal>(_font),
                                       rendererContext->metalView, aspect);
     text->SetText(_text);
 
@@ -244,7 +244,7 @@ spCBaseText CRendererMetal::NewText(spCBaseFont _font, const std::string &_text)
 }
 
 Base::Math::CVector2 CRendererMetal::GetTextExtent(spCBaseFont _spFont,
-                                                   const std::string &_text)
+                                                   const std::string& _text)
 {
     return Base::Math::CVector2(0, 0.05f);
 }
@@ -253,8 +253,8 @@ Base::Math::CVector2 CRendererMetal::GetTextExtent(spCBaseFont _spFont,
  */
 bool CRendererMetal::BeginFrame(void)
 {
-    RendererContext *rendererContext =
-        (__bridge RendererContext *)m_pRendererContext;
+    RendererContext* rendererContext =
+        (__bridge RendererContext*)m_pRendererContext;
     rendererContext->currentFrameIndex =
         rendererContext->frameCounter++ % MaxFramesInFlight;
     dispatch_semaphore_wait(rendererContext->inFlightSemaphore,
@@ -271,13 +271,13 @@ bool CRendererMetal::BeginFrame(void)
 bool CRendererMetal::EndFrame(bool drawn)
 {
     CRenderer::EndFrame(drawn);
-    RendererContext *rendererContext =
-        (__bridge RendererContext *)m_pRendererContext;
+    RendererContext* rendererContext =
+        (__bridge RendererContext*)m_pRendererContext;
     __block dispatch_semaphore_t semaphore = rendererContext->inFlightSemaphore;
-    __block std::vector<CVMetalTextureRef> &metalTexturesUsed =
+    __block std::vector<CVMetalTextureRef>& metalTexturesUsed =
         rendererContext->metalTexturesUsed[rendererContext->currentFrameIndex];
     __block uint32_t frameNumber = rendererContext->frameCounter;
-    __block std::atomic<uint8_t> &framesFinished =
+    __block std::atomic<uint8_t>& framesFinished =
         rendererContext->framesFinished;
     rendererContext->framesStarted++;
     [rendererContext->currentCommandBuffer
@@ -312,11 +312,11 @@ bool CRendererMetal::EndFrame(bool drawn)
 
 void CRendererMetal::Clear()
 {
-    RendererContext *rendererContext =
-        (__bridge RendererContext *)m_pRendererContext;
+    RendererContext* rendererContext =
+        (__bridge RendererContext*)m_pRendererContext;
     @autoreleasepool
     {
-        MTLRenderPassDescriptor *passDescriptor =
+        MTLRenderPassDescriptor* passDescriptor =
             [MTLRenderPassDescriptor renderPassDescriptor];
         if (passDescriptor != nil)
         {
@@ -342,17 +342,17 @@ void CRendererMetal::Clear()
 }
 
 void CRendererMetal::DrawText(spCBaseText _text,
-                              const Base::Math::CVector4 &_color)
+                              const Base::Math::CVector4& _color)
 {
 #if !USE_SYSTEM_UI
-    RendererContext *rendererContext =
-        (__bridge RendererContext *)m_pRendererContext;
+    RendererContext* rendererContext =
+        (__bridge RendererContext*)m_pRendererContext;
     @autoreleasepool
     {
         spCTextMetal textMetal = static_cast<spCTextMetal>(_text);
-        const MBETextMesh *textMesh = textMetal->GetTextMesh();
+        const MBETextMesh* textMesh = textMetal->GetTextMesh();
 
-        MTLRenderPassDescriptor *passDescriptor =
+        MTLRenderPassDescriptor* passDescriptor =
             [MTLRenderPassDescriptor renderPassDescriptor];
         if (passDescriptor != nil)
         {
@@ -424,12 +424,12 @@ void CRendererMetal::DrawText(spCBaseText _text,
 #endif /*USE_SYSTEM_UI*/
 }
 
-void CRendererMetal::DrawQuad(const Base::Math::CRect &_rect,
-                              const Base::Math::CVector4 &_color,
-                              const Base::Math::CRect &_uvrect)
+void CRendererMetal::DrawQuad(const Base::Math::CRect& _rect,
+                              const Base::Math::CVector4& _color,
+                              const Base::Math::CRect& _uvrect)
 {
-    RendererContext *rendererContext =
-        (__bridge RendererContext *)m_pRendererContext;
+    RendererContext* rendererContext =
+        (__bridge RendererContext*)m_pRendererContext;
     @autoreleasepool
     {
         spCShaderMetal activeShader =
@@ -438,7 +438,7 @@ void CRendererMetal::DrawQuad(const Base::Math::CRect &_rect,
                 : rendererContext->drawTextureShader;
         id<MTLRenderPipelineState> renderPipelineState =
             activeShader->GetPipelineState();
-        MTLRenderPassDescriptor *passDescriptor =
+        MTLRenderPassDescriptor* passDescriptor =
             [MTLRenderPassDescriptor renderPassDescriptor];
         if (passDescriptor != nil)
         {
@@ -471,9 +471,9 @@ void CRendererMetal::DrawQuad(const Base::Math::CRect &_rect,
             [rendererContext->currentCommandBuffer
                 renderCommandEncoderWithDescriptor:passDescriptor];
         [renderEncoder setRenderPipelineState:renderPipelineState];
-        std::map<uint32_t, CTextureFlatMetal *> boundTextures(
+        std::map<uint32_t, CTextureFlatMetal*> boundTextures(
             rendererContext->boundTextures);
-        std::vector<CVMetalTextureRef> &metalTexturesUsed =
+        std::vector<CVMetalTextureRef>& metalTexturesUsed =
             rendererContext
                 ->metalTexturesUsed[rendererContext->currentFrameIndex];
 
@@ -540,14 +540,14 @@ void CRendererMetal::DrawQuad(const Base::Math::CRect &_rect,
     }
 }
 
-void CRendererMetal::DrawQuad(const Base::Math::CRect &_rect,
-                              const Base::Math::CVector4 &_color)
+void CRendererMetal::DrawQuad(const Base::Math::CRect& _rect,
+                              const Base::Math::CVector4& _color)
 {
     DrawQuad(_rect, _color, Base::Math::CRect{0, 0, 1, 1});
 }
 
-void CRendererMetal::DrawSoftQuad(const Base::Math::CRect &_rect,
-                                  const Base::Math::CVector4 &_color,
+void CRendererMetal::DrawSoftQuad(const Base::Math::CRect& _rect,
+                                  const Base::Math::CVector4& _color,
                                   const fp4 _width)
 {
     DrawQuad(_rect, _color, Base::Math::CRect{0, 0, 1, 1});
@@ -555,11 +555,11 @@ void CRendererMetal::DrawSoftQuad(const Base::Math::CRect &_rect,
 
 void CRendererMetal::BuildDepthTexture()
 {
-    RendererContext *rendererContext =
-        (__bridge RendererContext *)m_pRendererContext;
+    RendererContext* rendererContext =
+        (__bridge RendererContext*)m_pRendererContext;
     id<MTLDevice> device = rendererContext->metalView.device;
     id<MTLTexture> texture = rendererContext->metalView.currentDrawable.texture;
-    MTLTextureDescriptor *depthTextureDescriptor =
+    MTLTextureDescriptor* depthTextureDescriptor =
         [[MTLTextureDescriptor alloc] init];
     depthTextureDescriptor.pixelFormat = MTLPixelFormatDepth32Float;
     depthTextureDescriptor.width = texture.width;
@@ -572,11 +572,11 @@ void CRendererMetal::BuildDepthTexture()
 }
 
 bool CRendererMetal::CreateMetalTextureFromDecoderFrame(
-    CVPixelBufferRef pixelBuffer, CVMetalTextureRef *_outMetalTextureRef,
+    CVPixelBufferRef pixelBuffer, CVMetalTextureRef* _outMetalTextureRef,
     uint32_t plane)
 {
-    RendererContext *rendererContext =
-        (__bridge RendererContext *)m_pRendererContext;
+    RendererContext* rendererContext =
+        (__bridge RendererContext*)m_pRendererContext;
 
     CVReturn ret;
 

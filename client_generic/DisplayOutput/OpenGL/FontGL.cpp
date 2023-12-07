@@ -28,9 +28,9 @@
 #endif
 
 // Helper function to read a piece of data from a stream.
-template <class T, class S> void Read_Object(T &to_read, S &in)
+template <class T, class S> void Read_Object(T& to_read, S& in)
 {
-    in.read(reinterpret_cast<char *>(&to_read), sizeof(T));
+    in.read(reinterpret_cast<char*>(&to_read), sizeof(T));
 }
 
 // This is how glyphs are stored in the file.
@@ -128,7 +128,7 @@ bool CFontGL::Create()
 
     // All chars that do not have their own glyph are set to point to
     // the default glyph.
-    Glyph *default_glyph = m_table[(unsigned char)'\xFF'];
+    Glyph* default_glyph = m_table[(unsigned char)'\xFF'];
     // We must have the default character (stored under '\xFF')
     if (default_glyph == NULL)
         return false;
@@ -147,7 +147,7 @@ bool CFontGL::Create()
         m_spTextImage->GetPitch(0) != width * 4)
         return false;
 
-    input.read(reinterpret_cast<char *>(m_spTextImage->GetData(0)),
+    input.read(reinterpret_cast<char*>(m_spTextImage->GetData(0)),
                m_spTextImage->GetPitch(0) * m_spTextImage->GetHeight());
 
     m_spTextTexture->Upload(m_spTextImage);
@@ -167,7 +167,7 @@ fp4 CFontGL::CharWidth(uint8 c) const
         return 0.0;
 }
 
-fp4 CFontGL::StringWidth(const std::string &str) const
+fp4 CFontGL::StringWidth(const std::string& str) const
 {
     fp4 total = 0.0;
     for (uint32 i = 0; i != str.size(); ++i)
@@ -175,7 +175,7 @@ fp4 CFontGL::StringWidth(const std::string &str) const
     return total;
 }
 
-CFontGL::Glyph *CFontGL::GetGlyph(uint8 c) { return m_table[c]; }
+CFontGL::Glyph* CFontGL::GetGlyph(uint8 c) { return m_table[c]; }
 
 spCTextureFlat CFontGL::GetTexture(void) { return m_spTextTexture; }
 

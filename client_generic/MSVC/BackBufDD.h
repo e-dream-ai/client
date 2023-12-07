@@ -36,16 +36,16 @@ class CBackBufDD
     };
     CBackBufDD();
     ~CBackBufDD();
-    BOOL Create(HWND Main, HWND View, GUID *Driver = NULL,
+    BOOL Create(HWND Main, HWND View, GUID* Driver = NULL,
                 bool Exclusive = FALSE);
     void Destroy();
     void DeleteSurface();
     bool CreateSurface(int Width, int Height);
-    void DrawQuad(const Base::Math::CRect &_rect,
-                  const Base::Math::CVector4 &_color,
-                  const Base::Math::CRect &_uvrect);
+    void DrawQuad(const Base::Math::CRect& _rect,
+                  const Base::Math::CVector4& _color,
+                  const Base::Math::CRect& _uvrect);
     void SetContexts(LPDIRECTDRAWSURFACE7 _tex, int _SrcWidth, int _SrcHeight);
-    HRESULT GetDC(HDC FAR *lphDC);
+    HRESULT GetDC(HDC FAR* lphDC);
     HRESULT ReleaseDC(HDC hDC);
     bool Blt();
     HRESULT GetLastError() const;
@@ -59,11 +59,11 @@ class CBackBufDD
     SIZE GetSize() const;
     bool IsExclusive() const;
     bool IsSurface() const;
-    static HMONITOR GetFullScreenRect(HWND hWnd, RECT &rc);
-    static bool GetMonitorGUID(HMONITOR hMon, GUID &MonGuid);
+    static HMONITOR GetFullScreenRect(HWND hWnd, RECT& rc);
+    static bool GetMonitorGUID(HMONITOR hMon, GUID& MonGuid);
     static LPCSTR GetErrorString(HRESULT hr);
     HRESULT CreateSurface(LPDDSURFACEDESC2 SurfaceDesc,
-                          LPDIRECTDRAWSURFACE7 FAR *Surface);
+                          LPDIRECTDRAWSURFACE7 FAR* Surface);
 
   private:
     typedef struct tagERRTRAN
@@ -99,7 +99,7 @@ class CBackBufDD
     bool m_ContextsUsed;
     WINDOWPLACEMENT m_PreExcl; // window placement before exclusive mode
 
-    static BOOL WINAPI DDEnumCallbackEx(GUID FAR *lpGUID,
+    static BOOL WINAPI DDEnumCallbackEx(GUID FAR* lpGUID,
                                         LPTSTR lpDriverDescription,
                                         LPTSTR lpDriverName, LPVOID lpContext,
                                         HMONITOR hm);

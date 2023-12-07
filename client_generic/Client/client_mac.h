@@ -74,7 +74,7 @@ class CElectricSheep_Mac : public CElectricSheep
                 if (CFURLGetFileSystemRepresentation(appSupportURL, true, path,
                                                      sizeof(path) - 1))
                 {
-                    m_AppData = (char *)path;
+                    m_AppData = (char*)path;
 
                     m_AppData += "/e-dream.ai/";
                 }
@@ -94,7 +94,7 @@ class CElectricSheep_Mac : public CElectricSheep
                 if (CFURLGetFileSystemRepresentation(resourcesURL, true, path,
                                                      sizeof(path) - 1))
                 {
-                    m_WorkingDir = (char *)path;
+                    m_WorkingDir = (char*)path;
 
                     m_WorkingDir += "/";
                 }
@@ -141,7 +141,7 @@ class CElectricSheep_Mac : public CElectricSheep
     void GetClientProxy(void)
     {
         m_proxyEnabled = get_proxy_for_server105(
-            (const UInt8 *)DREAM_SERVER, m_proxyHost, sizeof(m_proxyHost) - 1,
+            (const UInt8*)DREAM_SERVER, m_proxyHost, sizeof(m_proxyHost) - 1,
             m_proxyUser, sizeof(m_proxyUser) - 1, m_proxyPass,
             sizeof(m_proxyPass) - 1);
     }
@@ -191,7 +191,7 @@ class CElectricSheep_Mac : public CElectricSheep
                               (bool)(m_proxyEnabled != 0));
 
             g_Settings()->Set("settings.content.proxy",
-                              std::string((char *)m_proxyHost));
+                              std::string((char*)m_proxyHost));
 
             // for now the resolver doesn't support user/password combination,
             // so we should not touch it so user can set it in prefs.
@@ -238,8 +238,8 @@ class CElectricSheep_Mac : public CElectricSheep
     }
 
     //
-    virtual bool Update(boost::barrier &_beginFrameBarrier,
-                        boost::barrier &_endFrameBarrier)
+    virtual bool Update(boost::barrier& _beginFrameBarrier,
+                        boost::barrier& _endFrameBarrier)
     {
         using namespace DisplayOutput;
 

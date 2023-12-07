@@ -11,7 +11,7 @@ class CShaderUniformGL : public CShaderUniform
 {
     int32 m_Index;
     int32 m_Size;
-    uint8 *m_pData;
+    uint8* m_pData;
 
 #ifdef MAC
     CGLContextObj cgl_ctx;
@@ -97,7 +97,7 @@ class CShaderUniformGL : public CShaderUniform
 
     virtual ~CShaderUniformGL() { SAFE_DELETE_ARRAY(m_pData); };
 
-    virtual bool SetData(void *_pData, const uint32 _size);
+    virtual bool SetData(void* _pData, const uint32 _size);
     virtual void Apply();
 };
 
@@ -129,7 +129,7 @@ class CShaderGL : public CShader
     virtual bool Unbind(void);
     virtual bool Apply(void);
 
-    bool Build(const char *_pVertexShader, const char *_pFragmentShader);
+    bool Build(const char* _pVertexShader, const char* _pFragmentShader);
 };
 
 MakeSmartPointers(CShaderGL);

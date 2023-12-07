@@ -26,7 +26,7 @@ class CServerMessage : public CConsole
     fp4 m_MoveMessageCounter;
 
   public:
-    CServerMessage(std::string &_msg, Base::Math::CRect _rect,
+    CServerMessage(std::string& _msg, Base::Math::CRect _rect,
                    const uint32 _fontHeight)
         : CConsole(_rect)
     {
@@ -82,7 +82,7 @@ class CServerMessage : public CConsole
         // (fp4)_spRenderer->Display()->Height();
         fp4 edge = 24 / (fp4)_spRenderer->Display()->Width();
 
-        std::map<std::string, CStat *>::const_iterator i;
+        std::map<std::string, CStat*>::const_iterator i;
 
         //	Figure out text extent for all strings.
         Base::Math::CRect extent;

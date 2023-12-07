@@ -68,7 +68,7 @@ MakeSmartPointers(CMessageBody);
 class CTimedMessageBody
 {
   public:
-    CTimedMessageBody(const std::string &_str, const fp8 _duration)
+    CTimedMessageBody(const std::string& _str, const fp8 _duration)
         : m_Msg(_str), m_Duration(_duration)
     {
         m_Timer.Reset();
@@ -89,7 +89,7 @@ class CTimedMessageBody
 
 MakeSmartPointers(CTimedMessageBody);
 
-typedef boost::atomic<char *> atomic_char_ptr;
+typedef boost::atomic<char*> atomic_char_ptr;
 
 /*!
         Shepherd.
@@ -100,14 +100,14 @@ class Shepherd
 {
     typedef struct _SHEPHERD_MESSAGE
     {
-        char *text;
+        char* text;
         int length;
         time_t expire;
     } SHEPHERD_MESSAGE;
 
     ///	Gets all sheep in path.
-    static bool getSheep(const char *path, SheepArray *sheep,
-                         const SheepArray &serverFlock);
+    static bool getSheep(const char* path, SheepArray* sheep,
+                         const SheepArray& serverFlock);
 
     static uint64 s_ClientFlockBytes;
     static uint64 s_ClientFlockCount;
@@ -137,8 +137,8 @@ class Shepherd
     static bool fShutdown;
     static int fChangeRes;
     static int fChangingRes;
-    static boost::detail::atomic_count *renderingFrames;
-    static boost::detail::atomic_count *totalRenderedFrames;
+    static boost::detail::atomic_count* renderingFrames;
+    static boost::detail::atomic_count* totalRenderedFrames;
     static bool m_RenderingAllowed;
 
     static std::queue<spCMessageBody> m_MessageQueue;
@@ -159,7 +159,7 @@ class Shepherd
 
     static time_t s_LastRequestTime;
 
-    static Base::CBlockingQueue<char *> fStringsToDelete;
+    static Base::CBlockingQueue<char*> fStringsToDelete;
 
     static std::string s_DownloadState;
 
@@ -176,25 +176,25 @@ class Shepherd
     static void initializeShepherd();
 
     //
-    static void setUseProxy(const int &useProxy) { fUseProxy = useProxy; }
+    static void setUseProxy(const int& useProxy) { fUseProxy = useProxy; }
     static int useProxy() { return fUseProxy; }
 
-    static void setProxy(const char *proxy);
-    static const char *proxy();
-    static void setProxyUserName(const char *userName);
-    static const char *proxyUserName();
-    static void setProxyPassword(const char *password);
-    static const char *proxyPassword();
+    static void setProxy(const char* proxy);
+    static const char* proxy();
+    static void setProxyUserName(const char* userName);
+    static const char* proxyUserName();
+    static void setProxyPassword(const char* password);
+    static const char* proxyPassword();
 
     //
-    static void setSaveFrames(const int &saveFrames)
+    static void setSaveFrames(const int& saveFrames)
     {
         fSaveFrames = saveFrames;
     }
     static int saveFrames() { return fSaveFrames; }
 
     //
-    static void setRegistered(const int &registered)
+    static void setRegistered(const int& registered)
     {
         fRegistered = registered;
     }
@@ -217,7 +217,7 @@ class Shepherd
             return 0;
         };
     }
-    static void setCacheSize(const int &size, const int getGenerationType)
+    static void setCacheSize(const int& size, const int getGenerationType)
     {
 
         /*if( (size < 300) && (size > 0) )	fCacheSize = 300;
@@ -237,7 +237,7 @@ class Shepherd
     }
 
     //
-    static void setChangeRes(const int &changeRes) { fChangeRes = changeRes; }
+    static void setChangeRes(const int& changeRes) { fChangeRes = changeRes; }
     static int changeRes() { return fChangeRes; }
     static void setChangingRes(int state) { fChangingRes = state; }
     static void incChangingRes() { fChangingRes++; }
@@ -247,7 +247,7 @@ class Shepherd
     static void notifyShepherdOfHisUntimleyDeath();
 
     static void setNewAndDeleteOldString(
-        atomic_char_ptr &str, char *newval,
+        atomic_char_ptr& str, char* newval,
         boost::memory_order mem_ord = boost::memory_order_relaxed);
 
     /*!
@@ -257,15 +257,15 @@ class Shepherd
      * to. The method also initializes all of the relative paths
      * for the subdirectories.
      */
-    static void setRootPath(const char *path);
-    static const char *rootPath();
-    static const char *mp4Path();
-    static const char *jsonPath();
-    static const char *videoExtension() { return ".mp4"; }
+    static void setRootPath(const char* path);
+    static const char* rootPath();
+    static const char* mp4Path();
+    static const char* jsonPath();
+    static const char* videoExtension() { return ".mp4"; }
 
     ///	Gets/sets the registration password.
-    static void setPassword(const char *password);
-    static const char *password();
+    static void setPassword(const char* password);
+    static const char* password();
 
     ///	Overlay text management for the renderer.
     static void addMessageText(std::string_view s, time_t timeout);
@@ -277,8 +277,8 @@ class Shepherd
     static int TotalFramesRendered();
     static bool RenderingAllowed();
     static void SetRenderingAllowed(bool _yesno);
-    static void SetNickName(const char *nick);
-    static const char *GetNickName();
+    static void SetNickName(const char* nick);
+    static const char* GetNickName();
 
     static bool AddOverflowMessage(const std::string _msg)
     {
@@ -287,7 +287,7 @@ class Shepherd
         return true;
     }
 
-    static bool PopOverflowMessage(std::string &_dst)
+    static bool PopOverflowMessage(std::string& _dst)
     {
         boost::mutex::scoped_lock lockthis(s_OverflowMessageQueueMutex);
         if (m_OverflowMessageQueue.size() > 10)
@@ -352,7 +352,7 @@ class Shepherd
         return true;
     }
 
-    static bool PopMessage(std::string &_dst, fp8 &_duration)
+    static bool PopMessage(std::string& _dst, fp8& _duration)
     {
         boost::mutex::scoped_lock lockthis(m_MessageQueueMutex);
         if (m_MessageQueue.size() > 0)
@@ -367,18 +367,18 @@ class Shepherd
     }
 
     //	Method to get all of the sheep the exist on the client.
-    static bool getClientFlock(SheepArray *sheep);
+    static bool getClientFlock(SheepArray* sheep);
     static uint64 GetFlockSizeMBsRecount(const int generationtype);
 
     //	Sets/Gets the unique id for this Shepherd.
-    static void setUniqueID(const char *uniqueID);
-    static const char *uniqueID();
+    static void setUniqueID(const char* uniqueID);
+    static const char* uniqueID();
 
-    static void setDownloadState(const std::string &state);
-    static std::string downloadState(bool &isnew);
+    static void setDownloadState(const std::string& state);
+    static std::string downloadState(bool& isnew);
 
-    static void setRenderState(const std::string &state);
-    static std::string renderState(bool &isnew);
+    static void setRenderState(const std::string& state);
+    static std::string renderState(bool& isnew);
 
     static void subClientFlockBytes(uint64 removedbytes,
                                     const int generationtype)

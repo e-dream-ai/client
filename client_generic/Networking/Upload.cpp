@@ -10,7 +10,7 @@ namespace Network
         CFileUploader().
         Constructor.
 */
-CFileUploader::CFileUploader(const std::string &_name) : CCurlTransfer(_name) {}
+CFileUploader::CFileUploader(const std::string& _name) : CCurlTransfer(_name) {}
 
 /*
         ~CFileUploader().
@@ -22,19 +22,19 @@ CFileUploader::~CFileUploader() {}
         Perform().
         Upload specific Perform function.
 */
-bool CFileUploader::PerformUpload(const std::string &_url,
-                                  const std::string &_file,
+bool CFileUploader::PerformUpload(const std::string& _url,
+                                  const std::string& _file,
                                   const uint32 _fileSize)
 {
     //	Open input file to transfer.
-    FILE *pFile = fopen(_file.c_str(), "rb");
+    FILE* pFile = fopen(_file.c_str(), "rb");
     if (!pFile)
     {
         g_Log->Info("Failed to open %s", _file.c_str());
         return false;
     }
 
-    struct curl_slist *slist = NULL;
+    struct curl_slist* slist = NULL;
     slist = curl_slist_append(slist, "Expect:");
     if (slist != NULL)
         if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_HTTPHEADER, slist)))

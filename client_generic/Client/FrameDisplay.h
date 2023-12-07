@@ -62,9 +62,9 @@ class CFrameDisplay
 
     //	Grab a frame from the decoder and use it as a texture.
     bool GrabFrame(ContentDecoder::spCContentDecoder _spDecoder,
-                   DisplayOutput::spCTextureFlat &_spTexture,
-                   DisplayOutput::spCTextureFlat &_spSecondTexture,
-                   ContentDecoder::sMetaData &_metadata)
+                   DisplayOutput::spCTextureFlat& _spTexture,
+                   DisplayOutput::spCTextureFlat& _spSecondTexture,
+                   ContentDecoder::sMetaData& _metadata)
     {
         //_metadata.m_Fade = 1.0f;
         m_MetaData = _metadata;
@@ -77,7 +77,7 @@ class CFrameDisplay
         m_spFrameData = NULL;
 
         //	Spin until we have a decoded frame from decoder.	(spin
-        //really?)
+        // really?)
         m_spFrameData = _spDecoder->Frame();
         if (m_spFrameData != NULL)
         {
@@ -193,7 +193,7 @@ class CFrameDisplay
         bool bCrossedFrame = false;
 
         //	Accumulated time is longer than the requested framerate, we
-        //crossed over
+        // crossed over
         // to the next frame
         if (m_Acc >= dt)
             bCrossedFrame = true;
@@ -268,7 +268,7 @@ class CFrameDisplay
     //	Decode a frame, and render it.
     virtual bool Update(ContentDecoder::spCContentDecoder _spDecoder,
                         const fp8 _decodeFps, const fp8 /*_displayFps*/,
-                        ContentDecoder::sMetaData &_metadata)
+                        ContentDecoder::sMetaData& _metadata)
     {
         fp4 currentalpha = m_LastAlpha;
         bool isSeam = false;
@@ -355,7 +355,7 @@ class CFrameDisplay
         return _displayFps;
     }
 
-    virtual void UpdateTexRect(const Base::Math::CRect &texDim)
+    virtual void UpdateTexRect(const Base::Math::CRect& texDim)
     {
         m_texRect.m_X0 = 0.f;
         m_texRect.m_Y0 = 0.f;

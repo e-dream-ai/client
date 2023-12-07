@@ -15,7 +15,7 @@
 namespace DisplayOutput
 {
 
-CTextureFlatDS::CTextureFlatDS(CBackBufDD *backbuffer, const uint32 _flags)
+CTextureFlatDS::CTextureFlatDS(CBackBufDD* backbuffer, const uint32 _flags)
     : CTextureFlat(_flags), m_pTextureDS(NULL), m_BackBuffer(backbuffer)
 {
 }

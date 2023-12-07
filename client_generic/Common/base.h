@@ -75,10 +75,10 @@ typedef double fp8;
 #define NO_DEFAULT_CTOR(_x) _x()
 
 //	Disallows the compiler defined copy constructor.
-#define NO_COPY_CTOR(_x) _x(const _x &)
+#define NO_COPY_CTOR(_x) _x(const _x&)
 
 //	Disallows the compiler defined assignment operator.
-#define NO_ASSIGNMENT(_x) void operator=(const _x &)
+#define NO_ASSIGNMENT(_x) void operator=(const _x&)
 
 //	Lazy.
 #define NO_CLASS_STANDARDS(_x)                                                 \

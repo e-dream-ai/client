@@ -58,7 +58,7 @@ Torrent::Torrent()
     fTorrentState = none;
 }
 
-Torrent::Torrent(Torrent &torrent)
+Torrent::Torrent(Torrent& torrent)
 //
 // Description:
 //		Copy constrictor. copies all class data.
@@ -145,7 +145,7 @@ void Torrent::moveSeeding()
     }
 }
 
-void Torrent::setURL(const char *url)
+void Torrent::setURL(const char* url)
 //
 // Description:
 //		Sets the URL for this torrent.
@@ -164,7 +164,7 @@ void Torrent::setURL(const char *url)
     }
 }
 
-void Torrent::setFileName(const char *filename)
+void Torrent::setFileName(const char* filename)
 //
 // Description:
 //		Sets the filename of the torrent.
@@ -183,7 +183,7 @@ void Torrent::setFileName(const char *filename)
     }
 }
 
-void Torrent::setId(const char *id)
+void Torrent::setId(const char* id)
 //
 // Description:
 //		Sets the filename of the sheep.
@@ -202,7 +202,7 @@ void Torrent::setId(const char *id)
     }
 }
 
-void Torrent::setActive(const bool &state)
+void Torrent::setActive(const bool& state)
 {
     fActive = state;
     if (fActive == true && fTorrentHandle.is_valid())
@@ -228,7 +228,7 @@ void Torrent::resetSingleDownload()
     }
 }
 
-void Torrent::setSingleDownload(const int &index)
+void Torrent::setSingleDownload(const int& index)
 {
     if (fTorrentHandle.is_valid())
     {

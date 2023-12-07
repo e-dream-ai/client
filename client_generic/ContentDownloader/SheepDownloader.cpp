@@ -98,7 +98,7 @@ boost::mutex SheepDownloader::s_DownloaderMutex;
 
 /*
  */
-SheepDownloader::SheepDownloader(boost::shared_mutex &_downloadSaveMutex)
+SheepDownloader::SheepDownloader(boost::shared_mutex& _downloadSaveMutex)
     : m_DownloadSaveMutex(_downloadSaveMutex)
 {
     fHasMessage = false;
@@ -172,7 +172,7 @@ void SheepDownloader::Abort(void)
 
 //	Downloads the given sheep from the server and supplies a unique name for
 // it based on it's ids.
-bool SheepDownloader::downloadSheep(Dream *sheep)
+bool SheepDownloader::downloadSheep(Dream* sheep)
 {
     if (sheep->downloaded())
         return false;
@@ -265,7 +265,7 @@ void SheepDownloader::parseSheepList()
                     continue;
 
                 //    Create a new dream and parse the attributes.
-                Dream *newDream = new Dream();
+                Dream* newDream = new Dream();
                 newDream->setGeneration(currentGeneration());
                 newDream->setId((uint32)dream.at("id").as_int64());
                 newDream->setURL(video.as_string().data());
@@ -280,12 +280,12 @@ void SheepDownloader::parseSheepList()
             } while (++dreamIndex < count);
         }
     }
-    catch (const std::exception &e)
+    catch (const std::exception& e)
     {
         file.seekg(0, std::ios::end);
         std::streampos fileSize = file.tellg();
         file.seekg(0, std::ios::beg);
-        char *cString = new char[(size_t)fileSize + 1];
+        char* cString = new char[(size_t)fileSize + 1];
         file.read(cString, fileSize);
         cString[fileSize] = '\0';
         auto str = boost::format("Exception during parsing dreams list:%s "
@@ -317,13 +317,13 @@ void SheepDownloader::updateCachedSheep()
         for (uint32 i = 0; i < fClientFlock.size(); i++)
         {
             //	Get the current sheep.
-            Dream *currentSheep = fClientFlock[i];
+            Dream* currentSheep = fClientFlock[i];
 
             //	Check if it is deleted.
             if (currentSheep->deleted() && fGotList)
             {
                 //	If it is than run through the server flock to see if it
-                //is still
+                // is still
                 // there.
                 uint32 j;
                 for (j = 0; j < fServerFlock.size(); j++)
@@ -335,7 +335,7 @@ void SheepDownloader::updateCachedSheep()
                 }
 
                 //	If it was not found on the server then it is time to
-                //delete the
+                // delete the
                 // file.
                 if (j == fServerFlock.size())
                 {
@@ -369,7 +369,7 @@ void SheepDownloader::updateCachedSheep()
                 //	Update the sheep rating from the server.
                 for (uint32 j = 0; j < fServerFlock.size(); j++)
                 {
-                    Dream *shp = fServerFlock[j];
+                    Dream* shp = fServerFlock[j];
                     if (shp->id() == currentSheep->id() &&
                         shp->generation() == currentSheep->generation())
                         if (shp->firstId() == currentSheep->firstId())
@@ -396,7 +396,7 @@ void SheepDownloader::updateCachedSheep()
         Checks if the cache will overflow if the given number of bytes are
    added.
 */
-int SheepDownloader::cacheOverflow(const double &bytes,
+int SheepDownloader::cacheOverflow(const double& bytes,
                                    const int getGenerationType) const
 {
     //	Return the overflow status
@@ -411,7 +411,7 @@ int SheepDownloader::cacheOverflow(const double &bytes,
    newly downloaded files. If the cache is to large than the oldest and worst
    rated files will be deleted.
 */
-void SheepDownloader::deleteCached(const uint64 &size,
+void SheepDownloader::deleteCached(const uint64& size,
                                    const int getGenerationType)
 {
     double total;
@@ -438,7 +438,7 @@ void SheepDownloader::deleteCached(const uint64 &size,
             //	Iterate the client flock to get the oldest and worst_rated file.
             for (uint32 i = 0; i < fClientFlock.size(); i++)
             {
-                Dream *curSheep = fClientFlock[i];
+                Dream* curSheep = fClientFlock[i];
                 //	If the file is allready deleted than skip.
                 if (curSheep->deleted() || curSheep->isTemp() ||
                     curSheep->getGenerationType() != getGenerationType)
@@ -518,7 +518,7 @@ void SheepDownloader::deleteCached(const uint64 &size,
         deleteSheep().
 
 */
-void SheepDownloader::deleteSheep(Dream *sheep)
+void SheepDownloader::deleteSheep(Dream* sheep)
 {
     if (remove(sheep->fileName()) != 0)
         g_Log->Warning("Failed to remove %s", sheep->fileName());
@@ -532,7 +532,7 @@ void SheepDownloader::deleteSheep(Dream *sheep)
 
     //	Create the filename with an xxx extension.
     size_t len = strlen(sheep->fileName());
-    char *deletedFile = new char[len + 1];
+    char* deletedFile = new char[len + 1];
     strcpy(deletedFile, sheep->fileName());
 
     deletedFile[len - 3] = 'x';
@@ -540,7 +540,7 @@ void SheepDownloader::deleteSheep(Dream *sheep)
     deletedFile[len - 1] = 'x';
 
     //	Open the deleted file and save the zero length file.
-    FILE *out = fopen(deletedFile, "wb");
+    FILE* out = fopen(deletedFile, "wb");
     if (out != NULL)
         fclose(out);
 
@@ -569,7 +569,7 @@ void SheepDownloader::deleteSheepId(uint32 sheepId)
 {
     for (uint32 i = 0; i < fClientFlock.size(); i++)
     {
-        Dream *curSheep = fClientFlock[i];
+        Dream* curSheep = fClientFlock[i];
         if (curSheep->deleted() || curSheep->isTemp())
             continue;
 
@@ -578,7 +578,7 @@ void SheepDownloader::deleteSheepId(uint32 sheepId)
     }
 }
 
-bool SheepDownloader::isFolderAccessible(const char *folder)
+bool SheepDownloader::isFolderAccessible(const char* folder)
 {
     if (folder == NULL)
         return false;
@@ -688,7 +688,7 @@ void SheepDownloader::findSheepToDownload()
             {
                 if (incorrect_folder)
                 {
-                    const char *err = "Content folder is not working.  "
+                    const char* err = "Content folder is not working.  "
                                       "Downloading disabled.\n";
                     Shepherd::addMessageText(err, 180); // 3 minutes
 
@@ -697,7 +697,7 @@ void SheepDownloader::findSheepToDownload()
                 }
                 else
                 {
-                    const char *err =
+                    const char* err =
                         "Low disk space.  Downloading disabled.\n";
                     Shepherd::addMessageText(err, 180); // 3 minutes
 
@@ -753,7 +753,7 @@ void SheepDownloader::findSheepToDownload()
                         for (i = 0; i < fServerFlock.size(); i++)
                         {
                             //	Iterate the client flock to see if it allready
-                            //exists in
+                            // exists in
                             // the cache.
                             for (j = 0; j < fClientFlock.size(); j++)
                             {
@@ -768,11 +768,11 @@ void SheepDownloader::findSheepToDownload()
                             }
                         }
                         //	Iterate the server flock to find the next sheep
-                        //to download.
+                        // to download.
                         for (i = 0; i < fServerFlock.size(); i++)
                         {
                             //	Iterate the client flock to see if it allready
-                            //exists in
+                            // exists in
                             // the cache.
                             for (j = 0; j < fClientFlock.size(); j++)
                             {
@@ -785,7 +785,7 @@ void SheepDownloader::findSheepToDownload()
 
                             //@TODO: is this correct?
                             //	If it is not found and the cache is ok to store
-                            //than
+                            // than
                             // check if the file should be downloaded based on
                             // rating and server file write time.
                             if ((j == fClientFlock.size()) &&
@@ -794,7 +794,7 @@ void SheepDownloader::findSheepToDownload()
                                     fServerFlock[i]->getGenerationType()))
                             {
                                 //	Check if it is the best file to
-                                //download.
+                                // download.
                                 if ((best_ctime == 0 && best_ctime_old == 0) ||
                                     (fServerFlock[i]->rating() > best_rating &&
                                      fServerFlock[i]->rating() <=
@@ -894,7 +894,7 @@ void SheepDownloader::findSheepToDownload()
                     else
                     {
                         //	Gradually increase duration betwee 10 seconds
-                        //and TIMEOUT, if
+                        // and TIMEOUT, if
                         // the sheep fail to download consecutively
                         failureSleepDuration = badSheepSleepDuration;
 
@@ -913,7 +913,7 @@ void SheepDownloader::findSheepToDownload()
                 else
                 {
                     //	Error connecting to server so timeout then try again.
-                    const char *err = "error connecting to server";
+                    const char* err = "error connecting to server";
                     Shepherd::addMessageText(err, 180); //	3 minutes.
                     failureSleepDuration = TIMEOUT;
 
@@ -927,7 +927,7 @@ void SheepDownloader::findSheepToDownload()
             }
         }
     }
-    catch (thread_interrupted const &)
+    catch (thread_interrupted const&)
     {
     }
 }
@@ -947,9 +947,9 @@ bool SheepDownloader::getSheepList()
         This method is also in charge of downling the sheep in their
    transitional order.
 */
-void SheepDownloader::shepherdCallback(void *data)
+void SheepDownloader::shepherdCallback(void* data)
 {
-    ((SheepDownloader *)data)->findSheepToDownload();
+    ((SheepDownloader*)data)->findSheepToDownload();
 }
 
 }; // namespace ContentDownloader

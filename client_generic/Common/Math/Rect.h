@@ -17,10 +17,10 @@ class CRect
 {
   public:
     CRect();
-    CRect(const CRect &r);
+    CRect(const CRect& r);
     CRect(fp4 _w, fp4 _h);
     CRect(fp4 _x0, fp4 _y0, fp4 _x1, fp4 _y1);
-    CRect(const CVector2 &_a, const CVector2 &_b);
+    CRect(const CVector2& _a, const CVector2& _b);
 
     //	'IsNull' is not very clear, should be 'IsInvalid' or 'IsSingularity' or
     // something like that.
@@ -41,13 +41,13 @@ class CRect
 
     //
     bool IsNormalized() const;
-    CRect &Normalize();
+    CRect& Normalize();
 
     //	Boolean things.
-    CRect Intersection(const CRect &_r) const;
-    CRect Union(const CRect &_r) const;
-    bool Surrounds(const CRect &_r) const;
-    bool Inside(const CVector2 &_p) const;
+    CRect Intersection(const CRect& _r) const;
+    CRect Union(const CRect& _r) const;
+    bool Surrounds(const CRect& _r) const;
+    bool Inside(const CVector2& _p) const;
 
     //
     fp4 m_X0, m_Y0;
@@ -60,7 +60,7 @@ inline CRect::CRect() : m_X0(0.0f), m_Y0(0.0f), m_X1(0.0f), m_Y1(0.0f) {}
 
 /*
  */
-inline CRect::CRect(const CRect &_r)
+inline CRect::CRect(const CRect& _r)
     : m_X0(_r.m_X0), m_Y0(_r.m_Y0), m_X1(_r.m_X1), m_Y1(_r.m_Y1)
 {
 }
@@ -78,7 +78,7 @@ inline CRect::CRect(fp4 _x0, fp4 _y0, fp4 _x1, fp4 _y1)
 
 /*
  */
-inline CRect::CRect(const CVector2 &_a, const CVector2 &_b)
+inline CRect::CRect(const CVector2& _a, const CVector2& _b)
     : m_X0(_a.m_X), m_Y0(_a.m_Y), m_X1(_b.m_X), m_Y1(_b.m_Y)
 {
 }
@@ -115,7 +115,7 @@ inline bool CRect::IsNormalized() const
 
 /*
  */
-inline bool CRect::Surrounds(const CRect &_r) const
+inline bool CRect::Surrounds(const CRect& _r) const
 {
     return ((m_X0 < _r.m_X0) && (m_Y0 < _r.m_Y0) && (m_X1 > _r.m_X1) &&
             (m_Y1 > _r.m_Y1));
@@ -123,7 +123,7 @@ inline bool CRect::Surrounds(const CRect &_r) const
 
 /*
  */
-inline bool CRect::Inside(const CVector2 &_p) const
+inline bool CRect::Inside(const CVector2& _p) const
 {
     if ((_p.m_X < m_X0) || (_p.m_X > m_X1))
         return (false);

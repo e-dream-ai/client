@@ -84,7 +84,7 @@ class CImageFormat
 
     CImageFormat() : m_Format(eImage_None){};
     CImageFormat(eImageFormat _format) : m_Format(_format){};
-    CImageFormat(const CImageFormat &_image) : m_Format(_image.m_Format){};
+    CImageFormat(const CImageFormat& _image) : m_Format(_image.m_Format){};
 
     //
     inline std::string GetDescription(void) const
@@ -279,7 +279,7 @@ class CImageFormat
 MakeSmartPointers(CImageFormat);
 
 //
-inline void flipChannels(uint8 *_pData, uint32 _nPixels,
+inline void flipChannels(uint8* _pData, uint32 _nPixels,
                          const uint32 _nChannels)
 {
     uint8 tmp;
@@ -299,7 +299,7 @@ inline void flipChannels(uint8 *_pData, uint32 _nPixels,
     } while (--_nPixels);
 }
 
-inline void flipChannelsRB(uint8 *_pData, uint32 _nPixels,
+inline void flipChannelsRB(uint8* _pData, uint32 _nPixels,
                            const uint32 _nChannels)
 {
     uint8 tmp;
@@ -335,21 +335,21 @@ class CImage
     uint32 getNumberOfMipMapsFromDimesions(void) const;
     uint32 getMipMappedSize(const uint32 _firstMipMapLevel,
                             const uint32 _nMipMapLevels,
-                            const CImageFormat &_format) const;
+                            const CImageFormat& _format) const;
     uint32 getNumPixels(const uint32 _firstMipMapLevel,
                         const uint32 _nMipMapLevels) const;
     bool createMipMaps(void);
 
     //	Image loaders.
-    bool LoadDDS(const std::string &_fileName, const bool _wantMipMaps = true);
+    bool LoadDDS(const std::string& _fileName, const bool _wantMipMaps = true);
     // bool	LoadTGA( const std::string &_fileName, const bool _wantMipMaps =
     // true );
-    bool LoadPNG(const std::string &_fileName, const bool _wantMipMaps = true);
+    bool LoadPNG(const std::string& _fileName, const bool _wantMipMaps = true);
     // bool	LoadJPG( const std::string &_fileName, const bool _wantMipMaps =
     // true );
 
     //	Image savers.
-    bool SaveDDS(const std::string &_fileName);
+    bool SaveDDS(const std::string& _fileName);
 
   protected:
     CImageFormat m_Format;
@@ -370,16 +370,16 @@ class CImage
     //
     void Create(const uint32 _w, const uint32 _h, const eImageFormat _format,
                 const bool _bMipmaps = false, const bool _bRef = false);
-    void Copy(const CImage &_image, const uint32 _mipLevel);
+    void Copy(const CImage& _image, const uint32 _mipLevel);
 
-    bool Load(const std::string &_filename, const bool _calcMimaps = true);
-    bool Save(const std::string &_filename);
+    bool Load(const std::string& _filename, const bool _calcMimaps = true);
+    bool Save(const std::string& _filename);
 
-    Base::spCAlignedBuffer &GetStorageBuffer(void) { return m_spData; }
-    void SetStorageBuffer(Base::spCAlignedBuffer &buffer) { m_spData = buffer; }
+    Base::spCAlignedBuffer& GetStorageBuffer(void) { return m_spData; }
+    void SetStorageBuffer(Base::spCAlignedBuffer& buffer) { m_spData = buffer; }
 
-    uint8 *GetData(const uint32 _mipLevel) const;
-    void SetData(uint8 *_pData);
+    uint8* GetData(const uint32 _mipLevel) const;
+    void SetData(uint8* _pData);
 
     uint32 GetPitch(const uint32 _mipMapLevel = 0) const;
 
@@ -410,11 +410,11 @@ class CImage
     inline uint32 GetNumMipMaps(void) const { return (m_nMipMaps); };
     uint32 getMipMappedSize(const uint32 _firstMipMapLevel = 0,
                             const uint32 _nMipMapLevels = 0x7FFFFFFF) const;
-    inline const CImageFormat &GetFormat(void) const { return (m_Format); };
+    inline const CImageFormat& GetFormat(void) const { return (m_Format); };
 
     //
-    void GetPixel(const int32 _x, const int32 _y, fp4 &_r, fp4 &_g, fp4 &_b,
-                  fp4 &_a);
+    void GetPixel(const int32 _x, const int32 _y, fp4& _r, fp4& _g, fp4& _b,
+                  fp4& _a);
     void PutPixel(const int32 _x, const int32 _y, const fp4 _r, const fp4 _g,
                   const fp4 _b, const fp4 _a);
 };

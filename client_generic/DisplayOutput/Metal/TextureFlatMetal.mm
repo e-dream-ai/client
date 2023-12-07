@@ -40,11 +40,11 @@ namespace DisplayOutput
  */
 CTextureFlatMetal::CTextureFlatMetal(CGraphicsContext _graphicsContext,
                                      const uint32 _flags,
-                                     CRendererMetal *_pRenderer)
+                                     CRendererMetal* _pRenderer)
     : CTextureFlat(_flags), m_pGraphicsContext(_graphicsContext),
       m_pRenderer(_pRenderer)
 {
-    TextureFlatMetalContext *textureContext = [[TextureFlatMetalContext alloc]
+    TextureFlatMetalContext* textureContext = [[TextureFlatMetalContext alloc]
         init]; //@TODO: check what all these textures are
     m_pTextureContext = CFBridgingRetain(textureContext);
     for (int i = 0; i < 4; ++i)
@@ -79,7 +79,7 @@ bool CTextureFlatMetal::Upload(spCImage _spImage)
     uint32_t bytesPerRow = _spImage->GetPitch();
 
     // Upload the texture data
-    uint8_t *pSrc;
+    uint8_t* pSrc;
     uint32_t mipMapLevel = 0;
     while ((pSrc = _spImage->GetData(mipMapLevel)) != NULL)
     {
@@ -89,13 +89,13 @@ bool CTextureFlatMetal::Upload(spCImage _spImage)
     }
 }
 
-bool CTextureFlatMetal::Upload(const uint8_t *_data, CImageFormat _format,
+bool CTextureFlatMetal::Upload(const uint8_t* _data, CImageFormat _format,
                                uint32_t _width, uint32_t _height,
                                uint32_t _bytesPerRow, bool _mipMapped,
                                uint32_t _mipMapLevel)
 {
-    TextureFlatMetalContext *textureContext =
-        (__bridge TextureFlatMetalContext *)m_pTextureContext;
+    TextureFlatMetalContext* textureContext =
+        (__bridge TextureFlatMetalContext*)m_pTextureContext;
 
     static const MTLPixelFormat srcFormats[] = {
         MTLPixelFormatInvalid,     // eImage_None
@@ -126,7 +126,7 @@ bool CTextureFlatMetal::Upload(const uint8_t *_data, CImageFormat _format,
 
     MTLPixelFormat srcFormat = srcFormats[_format.getFormatEnum()];
 
-    MTKView *view = (__bridge MTKView *)m_pGraphicsContext;
+    MTKView* view = (__bridge MTKView*)m_pGraphicsContext;
 
     id<MTLTexture> texture = textureContext->yTexture;
 
@@ -134,7 +134,7 @@ bool CTextureFlatMetal::Upload(const uint8_t *_data, CImageFormat _format,
     if (texture == nil)
     {
 
-        MTLTextureDescriptor *textureDescriptor = [MTLTextureDescriptor
+        MTLTextureDescriptor* textureDescriptor = [MTLTextureDescriptor
             texture2DDescriptorWithPixelFormat:srcFormat
                                          width:_width
                                         height:_height
@@ -178,12 +178,12 @@ bool CTextureFlatMetal::Bind(const uint32 _index)
  */
 bool CTextureFlatMetal::Unbind(const uint32 _index) { return true; }
 
-bool CTextureFlatMetal::GetYUVMetalTextures(CVMetalTextureRef *_outYTexture,
-                                            CVMetalTextureRef *_outUVTexture)
+bool CTextureFlatMetal::GetYUVMetalTextures(CVMetalTextureRef* _outYTexture,
+                                            CVMetalTextureRef* _outUVTexture)
 {
     if (m_spBoundFrame == NULL)
         return false;
-    MTKView *view = (__bridge MTKView *)m_pGraphicsContext;
+    MTKView* view = (__bridge MTKView*)m_pGraphicsContext;
     const uint32_t kAVFrameDataPixelBufferIndex = 3;
     if (m_spBoundFrame->Frame() == NULL)
     {
@@ -200,15 +200,15 @@ bool CTextureFlatMetal::GetYUVMetalTextures(CVMetalTextureRef *_outYTexture,
 
 id<MTLTexture> CTextureFlatMetal::GetRGBMetalTexture()
 {
-    TextureFlatMetalContext *textureContext =
-        (__bridge TextureFlatMetalContext *)m_pTextureContext;
+    TextureFlatMetalContext* textureContext =
+        (__bridge TextureFlatMetalContext*)m_pTextureContext;
     return textureContext->yTexture;
 }
 
 CVMetalTextureRef CTextureFlatMetal::GetCVMetalTextureRef()
 {
-    TextureFlatMetalContext *textureContext =
-        (__bridge TextureFlatMetalContext *)m_pTextureContext;
+    TextureFlatMetalContext* textureContext =
+        (__bridge TextureFlatMetalContext*)m_pTextureContext;
     return textureContext->decoderFrameYTextureRef;
 }
 
@@ -225,8 +225,8 @@ bool CTextureFlatMetal::BindFrame(ContentDecoder::spCVideoFrame _spFrame)
 
 void CTextureFlatMetal::ReleaseMetalTexture()
 {
-    TextureFlatMetalContext *textureContext =
-        (__bridge TextureFlatMetalContext *)m_pTextureContext;
+    TextureFlatMetalContext* textureContext =
+        (__bridge TextureFlatMetalContext*)m_pTextureContext;
 
     textureContext->decoderFrameYTextureRef = NULL;
     textureContext->decoderFrameUVTextureRef = NULL;

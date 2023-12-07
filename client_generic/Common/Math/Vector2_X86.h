@@ -20,13 +20,13 @@ class CVector2_x86
   public:
     CVector2_x86();
     CVector2_x86(const float _x, const float _y);
-    CVector2_x86(const CVector2_x86 &_vec);
-    CVector2_x86(const fp4 *_p);
+    CVector2_x86(const CVector2_x86& _vec);
+    CVector2_x86(const fp4* _p);
 
     //
     void Set(const fp4 _x, const fp4 _y);
-    void Set(const CVector2_x86 &_vec);
-    void Set(const fp4 *_p);
+    void Set(const CVector2_x86& _vec);
+    void Set(const fp4* _p);
 
     //
     fp4 Len() const;
@@ -39,14 +39,14 @@ class CVector2_x86
     void NormalizeFast();
 
     //
-    void operator+=(const CVector2_x86 &_v0);
-    void operator-=(const CVector2_x86 &_v0);
+    void operator+=(const CVector2_x86& _v0);
+    void operator-=(const CVector2_x86& _v0);
     void operator*=(const fp4 _s);
     void operator/=(const fp4 _s);
 
     //
-    bool IsEqual(const CVector2_x86 &_v, const fp4 _tol) const;
-    int32 Compare(const CVector2_x86 &_v, const fp4 _tol) const; //	-1, 0,
+    bool IsEqual(const CVector2_x86& _v, const fp4 _tol) const;
+    int32 Compare(const CVector2_x86& _v, const fp4 _tol) const; //	-1, 0,
                                                                  //+1
 
     //
@@ -65,14 +65,14 @@ inline CVector2_x86::CVector2_x86(const fp4 _x, const fp4 _y) : m_X(_x), m_Y(_y)
 
 /*
  */
-inline CVector2_x86::CVector2_x86(const CVector2_x86 &_vec)
+inline CVector2_x86::CVector2_x86(const CVector2_x86& _vec)
     : m_X(_vec.m_X), m_Y(_vec.m_Y)
 {
 }
 
 /*
  */
-inline CVector2_x86::CVector2_x86(const fp4 *_p) : m_X(_p[0]), m_Y(_p[1]) {}
+inline CVector2_x86::CVector2_x86(const fp4* _p) : m_X(_p[0]), m_Y(_p[1]) {}
 
 /*
  */
@@ -84,7 +84,7 @@ inline void CVector2_x86::Set(const fp4 _x, const fp4 _y)
 
 /*
  */
-inline void CVector2_x86::Set(const CVector2_x86 &_v)
+inline void CVector2_x86::Set(const CVector2_x86& _v)
 {
     m_X = _v.m_X;
     m_Y = _v.m_Y;
@@ -92,7 +92,7 @@ inline void CVector2_x86::Set(const CVector2_x86 &_v)
 
 /*
  */
-inline void CVector2_x86::Set(const fp4 *_p)
+inline void CVector2_x86::Set(const fp4* _p)
 {
     m_X = _p[0];
     m_Y = _p[1];
@@ -147,7 +147,7 @@ inline void CVector2_x86::NormalizeFast(void)
 
 /*
  */
-inline void CVector2_x86::operator+=(const CVector2_x86 &_v0)
+inline void CVector2_x86::operator+=(const CVector2_x86& _v0)
 {
     m_X += _v0.m_X;
     m_Y += _v0.m_Y;
@@ -155,7 +155,7 @@ inline void CVector2_x86::operator+=(const CVector2_x86 &_v0)
 
 /*
  */
-inline void CVector2_x86::operator-=(const CVector2_x86 &_v0)
+inline void CVector2_x86::operator-=(const CVector2_x86& _v0)
 {
     m_X -= _v0.m_X;
     m_Y -= _v0.m_Y;
@@ -180,7 +180,7 @@ inline void CVector2_x86::operator/=(const fp4 _s)
 
 /*
  */
-inline bool CVector2_x86::IsEqual(const CVector2_x86 &_v, const fp4 _tol) const
+inline bool CVector2_x86::IsEqual(const CVector2_x86& _v, const fp4 _tol) const
 {
     if (fabsf(_v.m_X - m_X) > _tol)
         return (false);
@@ -191,7 +191,7 @@ inline bool CVector2_x86::IsEqual(const CVector2_x86 &_v, const fp4 _tol) const
 
 /*
  */
-inline int32 CVector2_x86::Compare(const CVector2_x86 &_v, const fp4 _tol) const
+inline int32 CVector2_x86::Compare(const CVector2_x86& _v, const fp4 _tol) const
 {
     if (fabsf(_v.m_X - m_X) > _tol)
         return ((_v.m_X > m_X) ? +1 : -1);
@@ -203,30 +203,30 @@ inline int32 CVector2_x86::Compare(const CVector2_x86 &_v, const fp4 _tol) const
 
 /*
  */
-static inline CVector2_x86 operator+(const CVector2_x86 &_v0,
-                                     const CVector2_x86 &_v1)
+static inline CVector2_x86 operator+(const CVector2_x86& _v0,
+                                     const CVector2_x86& _v1)
 {
     return (CVector2_x86(_v0.m_X + _v1.m_X, _v0.m_Y + _v1.m_Y));
 }
 
 /*
  */
-static inline CVector2_x86 operator-(const CVector2_x86 &_v0,
-                                     const CVector2_x86 &_v1)
+static inline CVector2_x86 operator-(const CVector2_x86& _v0,
+                                     const CVector2_x86& _v1)
 {
     return (CVector2_x86(_v0.m_X - _v1.m_X, _v0.m_Y - _v1.m_Y));
 }
 
 /*
  */
-static inline CVector2_x86 operator*(const CVector2_x86 &_v0, const fp4 _s)
+static inline CVector2_x86 operator*(const CVector2_x86& _v0, const fp4 _s)
 {
     return (CVector2_x86(_v0.m_X * _s, _v0.m_Y * _s));
 }
 
 /*
  */
-static inline CVector2_x86 operator-(const CVector2_x86 &_v)
+static inline CVector2_x86 operator-(const CVector2_x86& _v)
 {
     return (CVector2_x86(-_v.m_X, -_v.m_Y));
 }

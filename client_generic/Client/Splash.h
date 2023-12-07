@@ -18,7 +18,7 @@ class CSplash : public CHudEntry
     Base::Math::CFastBezier *m_pAlphaBezier, *m_pSizeBezier;
 
   public:
-    CSplash(const fp4 _size, const std::string &_texture)
+    CSplash(const fp4 _size, const std::string& _texture)
         : CHudEntry(Base::Math::CRect(_size, _size))
     {
         DisplayOutput::spCImage tmpImage(new DisplayOutput::CImage());
@@ -94,7 +94,7 @@ class CSplashImage : public CHudEntry
     fp4 m_FadeoutTime;
 
   public:
-    CSplashImage(const fp4 _size, const std::string &_texture, fp4 fadeintime,
+    CSplashImage(const fp4 _size, const std::string& _texture, fp4 fadeintime,
                  fp4 holdtime, fp4 fadeouttime)
         : CHudEntry(Base::Math::CRect(_size, _size))
     {

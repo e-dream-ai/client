@@ -8,7 +8,7 @@
 @implementation ESOpenGLView
 
 // pixel format definition
-+ (NSOpenGLPixelFormat *)esPixelFormat
++ (NSOpenGLPixelFormat*)esPixelFormat
 {
     NSOpenGLPixelFormatAttribute attributes[] = {
         // NSOpenGLPFAFullScreen,
@@ -33,7 +33,7 @@
 
 - (id)initWithFrame:(NSRect)frameRect
 {
-    NSOpenGLPixelFormat *pf = [ESOpenGLView esPixelFormat];
+    NSOpenGLPixelFormat* pf = [ESOpenGLView esPixelFormat];
 
     self = [super initWithFrame:frameRect pixelFormat:pf];
 

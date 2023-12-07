@@ -31,9 +31,9 @@ class CFontGL : public CBaseFont
     } Glyph;
 
   private:
-    Glyph *m_glyphs;
+    Glyph* m_glyphs;
 
-    Glyph *m_table[256];
+    Glyph* m_table[256];
 
     fp4 m_lineHeight;
 
@@ -55,9 +55,9 @@ class CFontGL : public CBaseFont
 
     fp4 CharWidth(uint8 c) const;
 
-    fp4 StringWidth(const std::string &str) const;
+    fp4 StringWidth(const std::string& str) const;
 
-    Glyph *GetGlyph(uint8 c);
+    Glyph* GetGlyph(uint8 c);
 
     spCTextureFlat GetTexture(void);
 

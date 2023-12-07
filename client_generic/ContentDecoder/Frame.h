@@ -66,10 +66,10 @@ class CVideoFrame
     sMetaData m_MetaData;
 
     Base::spCAlignedBuffer m_spBuffer;
-    AVFrame *m_pFrame;
+    AVFrame* m_pFrame;
 
   public:
-    CVideoFrame(AVCodecContext *_pCodecContext, AVPixelFormat _format,
+    CVideoFrame(AVCodecContext* _pCodecContext, AVPixelFormat _format,
                 std::string _filename)
         : m_pFrame(NULL)
     {
@@ -100,7 +100,7 @@ class CVideoFrame
                 _format, _pCodecContext->width, _pCodecContext->height, 1);
             m_spBuffer = std::make_shared<Base::CAlignedBuffer>(
                 static_cast<uint32>(numBytes) * sizeof(uint8));
-            uint8_t *buffer = m_spBuffer->GetBufferPtr();
+            uint8_t* buffer = m_spBuffer->GetBufferPtr();
             int width = _pCodecContext->width;
             int height = _pCodecContext->height;
 
@@ -113,7 +113,7 @@ class CVideoFrame
             g_Log->Error("m_pFrame == NULL");
     }
 
-    CVideoFrame(const AVFrame *_pFrame, std::string _filename)
+    CVideoFrame(const AVFrame* _pFrame, std::string _filename)
     {
         m_pFrame = av_frame_alloc();
         av_frame_ref(m_pFrame, _pFrame);
@@ -146,7 +146,7 @@ class CVideoFrame
         }
     }
 
-    inline void GetMetaData(sMetaData &_metadata) { _metadata = m_MetaData; }
+    inline void GetMetaData(sMetaData& _metadata) { _metadata = m_MetaData; }
 
     inline void SetMetaData_Fade(fp4 _fade) { m_MetaData.m_Fade = _fade; }
 
@@ -165,12 +165,12 @@ class CVideoFrame
         m_MetaData.m_SheepGeneration = _sheepgeneration;
     }
 
-    inline void SetMetaData_DreamName(const std::string &_name)
+    inline void SetMetaData_DreamName(const std::string& _name)
     {
         m_MetaData.m_Name = _name;
     }
 
-    inline void SetMetaData_DreamAuthor(const std::string &_author)
+    inline void SetMetaData_DreamAuthor(const std::string& _author)
     {
         m_MetaData.m_Author = _author;
     }
@@ -185,7 +185,7 @@ class CVideoFrame
         m_MetaData.m_LastAccessTime = _atime;
     }
 
-    inline void SetMetaData_SecondFrame(CVideoFrame *pSecondFrame)
+    inline void SetMetaData_SecondFrame(CVideoFrame* pSecondFrame)
     {
         m_MetaData.m_SecondFrame = spCVideoFrame{pSecondFrame};
     }
@@ -215,9 +215,9 @@ class CVideoFrame
     inline uint32 Width() { return m_Width; };
     inline uint32 Height() { return m_Height; };
 
-    inline AVFrame *Frame() { return m_pFrame; };
+    inline AVFrame* Frame() { return m_pFrame; };
 
-    virtual inline uint8 *Data()
+    virtual inline uint8* Data()
     {
         if (!m_pFrame)
             return NULL;
@@ -225,14 +225,14 @@ class CVideoFrame
         return m_pFrame->data[0];
     };
 
-    virtual inline Base::spCAlignedBuffer &StorageBuffer()
+    virtual inline Base::spCAlignedBuffer& StorageBuffer()
     {
         return m_spBuffer;
     };
 
     virtual void CopyBuffer()
     {
-        Base::CAlignedBuffer *newBuffer =
+        Base::CAlignedBuffer* newBuffer =
             new Base::CAlignedBuffer(m_spBuffer->Size());
 
         memcpy(newBuffer->GetBufferPtr(), m_spBuffer->GetBufferPtr(),

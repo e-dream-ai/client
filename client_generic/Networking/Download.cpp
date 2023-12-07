@@ -13,7 +13,7 @@ namespace Network
         CFileDownloader().
         Constructor.
 */
-CFileDownloader::CFileDownloader(const std::string &_name)
+CFileDownloader::CFileDownloader(const std::string& _name)
     : CCurlTransfer(_name), m_Data()
 {
     m_Data.reserve(10 * 1024 * 1024);
@@ -29,21 +29,21 @@ CFileDownloader::~CFileDownloader() {}
         customWrite().
         Appends incoming data to string.
 */
-int32 CFileDownloader::customWrite(void *_pBuffer, size_t _size, size_t _nmemb,
-                                   void *_pUserData)
+int32 CFileDownloader::customWrite(void* _pBuffer, size_t _size, size_t _nmemb,
+                                   void* _pUserData)
 {
-    CFileDownloader *pOut = (CFileDownloader *)_pUserData;
+    CFileDownloader* pOut = (CFileDownloader*)_pUserData;
     if (!pOut)
     {
         g_Log->Info("Error, no _pUserData.");
         return -1;
     }
 
-    pOut->m_Data.append((char *)_pBuffer, _size * _nmemb);
+    pOut->m_Data.append((char*)_pBuffer, _size * _nmemb);
     return (int32)(_size * _nmemb);
 }
 
-bool CFileDownloader::SetPostFields(const char *postFields)
+bool CFileDownloader::SetPostFields(const char* postFields)
 {
     if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_POSTFIELDS, postFields)))
         return false;
@@ -54,7 +54,7 @@ bool CFileDownloader::SetPostFields(const char *postFields)
         Perform().
         Download specific Perform function.
 */
-bool CFileDownloader::Perform(const std::string &_url)
+bool CFileDownloader::Perform(const std::string& _url)
 {
     m_Data = "";
 
@@ -71,7 +71,7 @@ bool CFileDownloader::Perform(const std::string &_url)
         Save().
         Saves completed data to file.
 */
-bool CFileDownloader::Save(const std::string &_output)
+bool CFileDownloader::Save(const std::string& _output)
 {
     std::ofstream out(_output.c_str(), std::ios::out | std::ios::binary);
     if (out.bad())
@@ -92,7 +92,7 @@ bool CFileDownloader::Save(const std::string &_output)
         Constructor.
 */
 CFileDownloader_TimeCondition::CFileDownloader_TimeCondition(
-    const std::string &_name)
+    const std::string& _name)
     : CFileDownloader(_name)
 {
 }
@@ -108,7 +108,7 @@ CFileDownloader_TimeCondition::~CFileDownloader_TimeCondition() {}
 
 */
 bool CFileDownloader_TimeCondition::PerformDownloadWithTC(
-    const std::string &_url, const time_t _lastTime)
+    const std::string& _url, const time_t _lastTime)
 {
     if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_TIMECONDITION, this)))
         return false;

@@ -27,29 +27,29 @@ class DXDLLFun : public CSingleton<DXDLLFun>
     //	No copy constructor or assignment operator.
     NO_CLASS_STANDARDS(DXDLLFun);
 
-    typedef HRESULT(WINAPI *D3DXCreateFontA_fun_type)(
+    typedef HRESULT(WINAPI* D3DXCreateFontA_fun_type)(
         LPDIRECT3DDEVICE9 pDevice, INT Height, UINT Width, UINT Weight,
         UINT MipLevels, BOOL Italic, DWORD CharSet, DWORD OutputPrecision,
         DWORD Quality, DWORD PitchAndFamily, LPCSTR pFaceName,
-        LPD3DXFONT *ppFont);
+        LPD3DXFONT* ppFont);
 
-    typedef HRESULT(WINAPI *D3DXCreateSprite_fun_type)(
-        LPDIRECT3DDEVICE9 pDevice, LPD3DXSPRITE *ppSprite);
+    typedef HRESULT(WINAPI* D3DXCreateSprite_fun_type)(
+        LPDIRECT3DDEVICE9 pDevice, LPD3DXSPRITE* ppSprite);
 
-    typedef D3DXMATRIX *(WINAPI *D3DXMatrixMultiply_fun_type)(
-        D3DXMATRIX *pOut, CONST D3DXMATRIX *pM1, CONST D3DXMATRIX *pM2);
+    typedef D3DXMATRIX*(WINAPI* D3DXMatrixMultiply_fun_type)(
+        D3DXMATRIX* pOut, CONST D3DXMATRIX* pM1, CONST D3DXMATRIX* pM2);
 
-    typedef LPCSTR(WINAPI *D3DXGetPixelShaderProfile_fun_type)(
+    typedef LPCSTR(WINAPI* D3DXGetPixelShaderProfile_fun_type)(
         LPDIRECT3DDEVICE9 pDevice);
 
-    typedef LPCSTR(WINAPI *D3DXGetVertexShaderProfile_fun_type)(
+    typedef LPCSTR(WINAPI* D3DXGetVertexShaderProfile_fun_type)(
         LPDIRECT3DDEVICE9 pDevice);
 
-    typedef HRESULT(WINAPI *D3DXCompileShader_fun_type)(
-        LPCSTR pSrcData, UINT SrcDataLen, CONST D3DXMACRO *pDefines,
+    typedef HRESULT(WINAPI* D3DXCompileShader_fun_type)(
+        LPCSTR pSrcData, UINT SrcDataLen, CONST D3DXMACRO* pDefines,
         LPD3DXINCLUDE pInclude, LPCSTR pFunctionName, LPCSTR pProfile,
-        DWORD Flags, LPD3DXBUFFER *ppShader, LPD3DXBUFFER *ppErrorMsgs,
-        LPD3DXCONSTANTTABLE *ppConstantTable);
+        DWORD Flags, LPD3DXBUFFER* ppShader, LPD3DXBUFFER* ppErrorMsgs,
+        LPD3DXCONSTANTTABLE* ppConstantTable);
 
     HMODULE d3dx9_hmodule;
     bool m_bInitDone;
@@ -135,7 +135,7 @@ class DXDLLFun : public CSingleton<DXDLLFun>
         return true;
     }
 
-    const char *Description() { return "DXDLLFun"; }
+    const char* Description() { return "DXDLLFun"; }
     bool Shutdown(void)
     {
         if (d3dx9_hmodule != NULL)
@@ -143,7 +143,7 @@ class DXDLLFun : public CSingleton<DXDLLFun>
         return true;
     }
 
-    static DXDLLFun *Instance()
+    static DXDLLFun* Instance()
     {
         static DXDLLFun dllfun;
 

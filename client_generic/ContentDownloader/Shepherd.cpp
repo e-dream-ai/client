@@ -74,8 +74,8 @@ int Shepherd::fCacheSizeGold = 100;
 int Shepherd::fRegistered = 0;
 atomic_char_ptr Shepherd::fPassword(NULL);
 atomic_char_ptr Shepherd::fUniqueID(NULL);
-boost::detail::atomic_count *Shepherd::renderingFrames = NULL;
-boost::detail::atomic_count *Shepherd::totalRenderedFrames = NULL;
+boost::detail::atomic_count* Shepherd::renderingFrames = NULL;
+boost::detail::atomic_count* Shepherd::totalRenderedFrames = NULL;
 bool Shepherd::m_RenderingAllowed = true;
 
 std::queue<spCMessageBody> Shepherd::m_MessageQueue;
@@ -99,7 +99,7 @@ int Shepherd::fChangingRes = 0;
 
 time_t Shepherd::s_LastRequestTime = 0;
 
-Base::CBlockingQueue<char *> Shepherd::fStringsToDelete;
+Base::CBlockingQueue<char*> Shepherd::fStringsToDelete;
 
 std::string Shepherd::s_DownloadState;
 std::string Shepherd::s_RenderState;
@@ -160,7 +160,7 @@ void Shepherd::notifyShepherdOfHisUntimleyDeath()
     SAFE_DELETE(totalRenderedFrames);
     SAFE_DELETE(renderingFrames);
 
-    char *str;
+    char* str;
 
     while (fStringsToDelete.pop(str))
     {
@@ -170,33 +170,33 @@ void Shepherd::notifyShepherdOfHisUntimleyDeath()
     fStringsToDelete.clear(0);
 }
 
-void Shepherd::setNewAndDeleteOldString(atomic_char_ptr &str, char *newval,
+void Shepherd::setNewAndDeleteOldString(atomic_char_ptr& str, char* newval,
                                         boost::memory_order mem_ord)
 {
-    char *toDelete = str.exchange(newval, mem_ord);
+    char* toDelete = str.exchange(newval, mem_ord);
 
     if (toDelete != NULL)
         fStringsToDelete.push(toDelete);
 }
 
 static void MakeCopyAndSetAtomicCharPtr(
-    atomic_char_ptr &target, const char *newVal,
+    atomic_char_ptr& target, const char* newVal,
     boost::memory_order mem_ord = boost::memory_order_relaxed)
 {
     size_t len = strlen(newVal);
 
-    char *newCopy = new char[len + 1];
+    char* newCopy = new char[len + 1];
     strcpy(newCopy, newVal);
 
     Shepherd::setNewAndDeleteOldString(target, newCopy, mem_ord);
 }
 
-void Shepherd::setRootPath(const char *path)
+void Shepherd::setRootPath(const char* path)
 {
     // strip off trailing white space
     //
     size_t len = strlen(path);
-    char *runner = const_cast<char *>(path) + len - 1;
+    char* runner = const_cast<char*>(path) + len - 1;
     while (*runner == ' ')
     {
         len--;
@@ -204,7 +204,7 @@ void Shepherd::setRootPath(const char *path)
     }
 
     // we need space for trailing \ character
-    char *newRootPath = new char[len + 2];
+    char* newRootPath = new char[len + 2];
 
     // copy the data
     memcpy(newRootPath, path, len);
@@ -227,7 +227,7 @@ void Shepherd::setRootPath(const char *path)
 
     setNewAndDeleteOldString(fRootPath, newRootPath);
 
-    char *newMpegPath = new char[(len + 12)];
+    char* newMpegPath = new char[(len + 12)];
 
     snprintf(newMpegPath, len + 12, "%smp4%c", newRootPath, PATH_SEPARATOR_C);
 #ifdef WIN32
@@ -238,7 +238,7 @@ void Shepherd::setRootPath(const char *path)
 
     setNewAndDeleteOldString(fMp4Path, newMpegPath);
 
-    char *newJsonPath = new char[(len + 12)];
+    char* newJsonPath = new char[(len + 12)];
     snprintf(newJsonPath, len + 12, "%sjson%c", newRootPath, PATH_SEPARATOR_C);
 #ifdef WIN32
     CreateDirectoryA(newJsonPath, NULL);
@@ -249,7 +249,7 @@ void Shepherd::setRootPath(const char *path)
     setNewAndDeleteOldString(fJsonPath, newJsonPath);
 }
 
-void Shepherd::setProxy(const char *proxy)
+void Shepherd::setProxy(const char* proxy)
 //
 // Description:
 //		Sets the proxy server address for tcp|ip
@@ -259,22 +259,22 @@ void Shepherd::setProxy(const char *proxy)
     MakeCopyAndSetAtomicCharPtr(fProxy, proxy);
 }
 
-void Shepherd::setProxyUserName(const char *userName)
+void Shepherd::setProxyUserName(const char* userName)
 {
     MakeCopyAndSetAtomicCharPtr(fProxyUser, userName);
 }
 
-void Shepherd::setProxyPassword(const char *password)
+void Shepherd::setProxyPassword(const char* password)
 {
     MakeCopyAndSetAtomicCharPtr(fProxyPass, password);
 }
 
-void Shepherd::SetNickName(const char *nick)
+void Shepherd::SetNickName(const char* nick)
 {
     MakeCopyAndSetAtomicCharPtr(fNickName, nick);
 }
 
-const char *Shepherd::GetNickName()
+const char* Shepherd::GetNickName()
 {
     return fNickName.load(boost::memory_order_relaxed);
 }
@@ -284,45 +284,45 @@ void Shepherd::addMessageText(std::string_view s, time_t timeout)
     QueueMessage(s, (fp8)timeout);
 }
 
-const char *Shepherd::rootPath()
+const char* Shepherd::rootPath()
 {
     return fRootPath.load(boost::memory_order_relaxed);
 }
 
-const char *Shepherd::mp4Path()
+const char* Shepherd::mp4Path()
 {
     return fMp4Path.load(boost::memory_order_relaxed);
 }
 
-const char *Shepherd::jsonPath()
+const char* Shepherd::jsonPath()
 {
     return fJsonPath.load(boost::memory_order_relaxed);
 }
 
-const char *Shepherd::proxy()
+const char* Shepherd::proxy()
 {
     return fProxy.load(boost::memory_order_relaxed);
 }
 
-const char *Shepherd::proxyUserName()
+const char* Shepherd::proxyUserName()
 {
     return fProxyUser.load(boost::memory_order_relaxed);
 }
 
 /*
  */
-const char *Shepherd::proxyPassword()
+const char* Shepherd::proxyPassword()
 {
     return fProxyPass.load(boost::memory_order_relaxed);
 }
 
 /*
  */
-void Shepherd::setPassword(const char *password)
+void Shepherd::setPassword(const char* password)
 {
     size_t len = strlen(password);
 
-    char *newPassword = new char[len + 1];
+    char* newPassword = new char[len + 1];
     strcpy(newPassword, password);
 
     setNewAndDeleteOldString(fPassword, newPassword);
@@ -330,7 +330,7 @@ void Shepherd::setPassword(const char *password)
 
 /*
  */
-const char *Shepherd::password()
+const char* Shepherd::password()
 {
     return fPassword.load(boost::memory_order_relaxed);
 }
@@ -359,14 +359,14 @@ uint64 Shepherd::GetFlockSizeMBsRecount(const int generationtype)
         This method fills the given sheeparray with all of the sheep on the
    client.
 */
-bool Shepherd::getClientFlock(SheepArray *sheep)
+bool Shepherd::getClientFlock(SheepArray* sheep)
 {
     uint64 clientFlockBytes = 0;
     uint64 clientFlockCount = 0;
 
     uint64 clientFlockGoldBytes = 0;
     uint64 clientFlockGoldCount = 0;
-    const SheepArray &serverFlock = SheepDownloader::getServerFlock();
+    const SheepArray& serverFlock = SheepDownloader::getServerFlock();
 
     SheepArray::iterator iter;
     for (iter = sheep->begin(); iter != sheep->end(); ++iter)
@@ -405,8 +405,8 @@ using namespace boost::filesystem;
         getSheep().
         Recursively loops through all files in the path looking for sheep.
 */
-bool Shepherd::getSheep(const char *path, SheepArray *sheep,
-                        const SheepArray &serverFlock)
+bool Shepherd::getSheep(const char* path, SheepArray* sheep,
+                        const SheepArray& serverFlock)
 {
     bool gotSheep = false;
     char fbuf[MAXBUF];
@@ -428,7 +428,7 @@ bool Shepherd::getSheep(const char *path, SheepArray *sheep,
             if (is_directory(itr->status()))
             {
                 bool gotSheepSubfolder = getSheep(
-                    (char *)(itr->path().string() + std::string("/")).c_str(),
+                    (char*)(itr->path().string() + std::string("/")).c_str(),
                     sheep, serverFlock);
                 gotSheep |= gotSheepSubfolder;
 
@@ -441,10 +441,10 @@ bool Shepherd::getSheep(const char *path, SheepArray *sheep,
                 if (fileName.extension() == ".mp4")
                 {
                     std::string uuid = fileName.stem().string();
-                    Dream *serverSheep = nullptr;
+                    Dream* serverSheep = nullptr;
                     if (serverFlock.tryGetSheepWithUuid(uuid, serverSheep))
                     {
-                        Dream *newSheep = new Dream(*serverSheep);
+                        Dream* newSheep = new Dream(*serverSheep);
                         newSheep->setFileName(itr->path().c_str());
                         newSheep->setFileSize(
                             boost::filesystem::file_size(itr->path()));
@@ -455,7 +455,7 @@ bool Shepherd::getSheep(const char *path, SheepArray *sheep,
             }
         }
     }
-    catch (boost::filesystem::filesystem_error &err)
+    catch (boost::filesystem::filesystem_error& err)
     {
         g_Log->Error("Path enumeration threw error: %s", err.what());
     }
@@ -464,7 +464,7 @@ bool Shepherd::getSheep(const char *path, SheepArray *sheep,
 }
 
 //	Sets the unique id for this Shepherd.
-void Shepherd::setUniqueID(const char *uniqueID)
+void Shepherd::setUniqueID(const char* uniqueID)
 {
     size_t len;
     if (strlen(uniqueID) > 16)
@@ -472,19 +472,19 @@ void Shepherd::setUniqueID(const char *uniqueID)
     else
         len = 16;
 
-    char *newUniqueID = new char[len + 1];
+    char* newUniqueID = new char[len + 1];
     strcpy(newUniqueID, uniqueID);
 
     setNewAndDeleteOldString(fUniqueID, newUniqueID);
 }
 
 //	This method returns the unique ID to use.
-const char *Shepherd::uniqueID()
+const char* Shepherd::uniqueID()
 {
     return fUniqueID.load(boost::memory_order_relaxed);
 }
 
-void Shepherd::setDownloadState(const std::string &state)
+void Shepherd::setDownloadState(const std::string& state)
 {
     boost::upgrade_lock<boost::shared_mutex> lockthis(s_DownloadStateMutex);
 
@@ -493,7 +493,7 @@ void Shepherd::setDownloadState(const std::string &state)
     s_IsDownloadStateNew = true;
 }
 
-std::string Shepherd::downloadState(bool &isnew)
+std::string Shepherd::downloadState(bool& isnew)
 {
     boost::shared_lock<boost::shared_mutex> lockthis(s_DownloadStateMutex);
 
@@ -504,7 +504,7 @@ std::string Shepherd::downloadState(bool &isnew)
     return s_DownloadState;
 }
 
-void Shepherd::setRenderState(const std::string &state)
+void Shepherd::setRenderState(const std::string& state)
 {
     boost::upgrade_lock<boost::shared_mutex> lockthis(s_RenderStateMutex);
 
@@ -513,7 +513,7 @@ void Shepherd::setRenderState(const std::string &state)
     s_IsRenderStateNew = true;
 }
 
-std::string Shepherd::renderState(bool &isnew)
+std::string Shepherd::renderState(bool& isnew)
 {
     boost::shared_lock<boost::shared_mutex> lockthis(s_RenderStateMutex);
 

@@ -22,7 +22,7 @@ CDisplayOutput::~CDisplayOutput() { ClearEvents(); }
 
 /*
  */
-bool CDisplayOutput::GetEvent(spCEvent &_spEvent)
+bool CDisplayOutput::GetEvent(spCEvent& _spEvent)
 {
     if (!m_EventQueue.empty())
     {

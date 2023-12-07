@@ -15,7 +15,7 @@ class ESCpuUsage
     fp8 m_LastSystemTime;
     fp8 m_LastESTime;
 
-    glibtop *glibtopdata;
+    glibtop* glibtopdata;
     glibtop_cpu m_lastProcessorInfo, m_currentProcessorInfo;
 
     int numProcessors;
@@ -46,7 +46,7 @@ class ESCpuUsage
 
     virtual ~ESCpuUsage() {}
 
-    bool GetCpuUsage(int &_total, int &_es)
+    bool GetCpuUsage(int& _total, int& _es)
     {
         struct rusage r_usage;
 

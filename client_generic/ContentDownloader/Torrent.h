@@ -50,55 +50,55 @@ class Torrent
     Torrent();
 
     // Copy Constructor
-    Torrent(Torrent &torrent);
+    Torrent(Torrent& torrent);
 
     // Destructor
     ~Torrent();
 
     // sets the URL that this torrent lives at
-    void setURL(const char *url);
+    void setURL(const char* url);
 
     // returns the URL that the torrent lives at
-    const char *URL() const { return fURL; }
+    const char* URL() const { return fURL; }
 
     // Sets the torrent file size on the server
-    void setFileSize(const long &size) { fFileSize = size; }
+    void setFileSize(const long& size) { fFileSize = size; }
 
     // gets the torrent file size
     long fileSize() const { return fFileSize; }
 
     // Sets the torrent file name
-    void setFileName(const char *name);
+    void setFileName(const char* name);
 
     // gets the torrent file name
-    const char *fileName() const { return fFileName; }
+    const char* fileName() const { return fFileName; }
 
     // sets the torrent id
-    void setId(const char *id);
+    void setId(const char* id);
 
     // gets the torrent id
-    char *const id() const { return fTorrentId; }
+    char* const id() const { return fTorrentId; }
 
     // sets whether or not the torrent has been downloaded
-    void setDownloaded(const bool &state) { fDownloaded = state; }
+    void setDownloaded(const bool& state) { fDownloaded = state; }
 
     // returns if the torrent has been downloaded
     bool downloaded() const { return fDownloaded; }
 
     // sets whether or not the torrent has been added to the session
-    void setActive(const bool &state);
+    void setActive(const bool& state);
 
     // returns if the torrent has been added to the session
     bool active() const { return fActive; }
 
     // sets whether or not the torrent has been removed from the server
-    void setDeleted(const bool &state) { fDeleted = state; }
+    void setDeleted(const bool& state) { fDeleted = state; }
 
     // returns if the torrent has been removed from the server
     bool deleted() const { return fDeleted; }
 
     // set the torrent generation
-    void setGeneration(const int &gen) { fGeneration = gen; }
+    void setGeneration(const int& gen) { fGeneration = gen; }
 
     // returns the torrent generation
     int generation() const { return fGeneration; }
@@ -109,22 +109,22 @@ class Torrent
     // move finished files to mpg dir
     void moveSeeding();
 
-    void setInSeeding(const bool &state) { fInSeeding = state; }
+    void setInSeeding(const bool& state) { fInSeeding = state; }
     bool inSeeding() { return fInSeeding; }
 
-    void setPurged(const bool &state) { fPurged = state; }
+    void setPurged(const bool& state) { fPurged = state; }
     bool purged() { return fPurged; }
 
     void stopSeeding() { fInSeeding = false; }
 
     // handle single sheep downloads
-    void setSingleDownload(const int &index);
+    void setSingleDownload(const int& index);
     int singleDownload() { return fSingleDownload; }
     void resetSingleDownload();
 
-    void setSeedQueue(const bool &state) { fSeedQueue = state; }
+    void setSeedQueue(const bool& state) { fSeedQueue = state; }
     bool seedQueue() { return fSeedQueue; }
-    void setDownloadQueue(const bool &state) { fDownloadQueue = state; }
+    void setDownloadQueue(const bool& state) { fDownloadQueue = state; }
     bool downloadQueue() { return fDownloadQueue; }
     float getRatio(int place);
 
@@ -146,15 +146,15 @@ class Torrent
     int fReannounceCounter;
     int fNextReannounce;
 
-    void setTorrentState(const torrentstate_t &state) { fTorrentState = state; }
+    void setTorrentState(const torrentstate_t& state) { fTorrentState = state; }
     torrentstate_t torrentState() { return fTorrentState; }
 
   private:
     // private memeber data
     //
-    char *fURL;
-    char *fFileName;
-    char *fTorrentId;
+    char* fURL;
+    char* fFileName;
+    char* fTorrentId;
     bool fDownloaded;
     int fGeneration;
     bool fActive;
@@ -173,7 +173,7 @@ class Torrent
 // This is a convienince for defining an array
 // of torrents using stl::vector
 //
-typedef std::vector<Torrent *> TorrentArray;
+typedef std::vector<Torrent*> TorrentArray;
 
 }; // namespace ContentDownloader
 

@@ -8,12 +8,12 @@ extern "C"
 {
 
 #if !defined(_MSC_VER) || (_MSC_VER < 1900)
-    int snprintf(char *buffer, size_t count, const char *fmt, ...);
+    int snprintf(char* buffer, size_t count, const char* fmt, ...);
 #endif
 #ifdef _WIN64
     void ___chkstk();
     void usleep(int ms);
-    double __strtod(const char *_Str, char **_EndPtr);
+    double __strtod(const char* _Str, char** _EndPtr);
 
     struct timezone
     {
@@ -21,7 +21,7 @@ extern "C"
         int tz_dsttime;     /* type of dst correction */
     };
 
-    int gettimeofday(struct timeval *tv, struct timezone *tz);
+    int gettimeofday(struct timeval* tv, struct timezone* tz);
 #endif
 };
 

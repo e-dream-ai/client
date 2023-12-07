@@ -54,7 +54,7 @@ void CDisplayMetal::SetContext(CGraphicsContext _graphicsContext)
 CGraphicsContext CDisplayMetal::GetContext() { return m_GraphicsContext; }
 
 //
-void CDisplayMetal::Title(const std::string & /*_title*/) {}
+void CDisplayMetal::Title(const std::string& /*_title*/) {}
 
 //
 void CDisplayMetal::Update() {}

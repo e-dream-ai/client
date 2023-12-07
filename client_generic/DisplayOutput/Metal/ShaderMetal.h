@@ -26,12 +26,12 @@ class CShaderUniformMetal : public CShaderUniform
         m_Data.resize(_size);
     };
 
-    virtual bool SetData(void *_pData, const uint32 _size)
+    virtual bool SetData(void* _pData, const uint32 _size)
     {
         std::memcpy(m_Data.data(), _pData, _size);
         return true;
     }
-    const uint8_t *GetData() const { return m_Data.data(); }
+    const uint8_t* GetData() const { return m_Data.data(); }
     int32 GetIndex() const { return m_Index; }
     size_t GetSize() const { return m_Size; }
     virtual void Apply(){};
@@ -51,7 +51,7 @@ class CShaderMetal : public CShader
   public:
     CShaderMetal(id<MTLDevice> device, id<MTLFunction> vertexFunction,
                  id<MTLFunction> fragmentFunction,
-                 MTLVertexDescriptor *vertexDescriptor,
+                 MTLVertexDescriptor* vertexDescriptor,
                  std::vector<std::pair<std::string, eUniformType>> _uniforms);
     virtual ~CShaderMetal();
 
@@ -59,7 +59,7 @@ class CShaderMetal : public CShader
     virtual bool Unbind(void);
     virtual bool Apply(void);
 
-    virtual bool Build(const char *, const char *) { return true; };
+    virtual bool Build(const char*, const char*) { return true; };
     id<MTLRenderPipelineState> GetPipelineState() const
     {
         return m_PipelineState;

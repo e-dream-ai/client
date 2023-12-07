@@ -9,7 +9,7 @@ extern "C"
 {
 
 #if !defined(_MSC_VER) || (_MSC_VER < 1900)
-    int snprintf(char *buffer, size_t count, const char *fmt, ...)
+    int snprintf(char* buffer, size_t count, const char* fmt, ...)
     {
         va_list ap;
         int ret;
@@ -30,12 +30,12 @@ extern "C"
 
     void usleep(int ms) { Sleep(ms); }
 
-    double __strtod(const char *_Str, char **_EndPtr)
+    double __strtod(const char* _Str, char** _EndPtr)
     {
         return strtod(_Str, _EndPtr);
     }
 
-    int gettimeofday(struct timeval *tv, struct timezone *tz)
+    int gettimeofday(struct timeval* tv, struct timezone* tz)
     {
         FILETIME ft;
         unsigned __int64 tmpres = 0;

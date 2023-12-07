@@ -54,7 +54,7 @@ Dream::Dream()
     fIsTemp = false;
 }
 
-Dream::Dream(const Dream &sheep)
+Dream::Dream(const Dream& sheep)
 //
 // Description:
 //		Copy constrictor. copies all class data.
@@ -92,7 +92,7 @@ Dream::~Dream()
     SAFE_DELETE(fName);
 }
 
-static void UpdateString(char *&_strToUpdate, const char *_newValue)
+static void UpdateString(char*& _strToUpdate, const char* _newValue)
 {
     if (_strToUpdate != nullptr)
     {
@@ -106,20 +106,20 @@ static void UpdateString(char *&_strToUpdate, const char *_newValue)
     }
 }
 
-void Dream::setURL(const char *url) { UpdateString(fURL, url); }
+void Dream::setURL(const char* url) { UpdateString(fURL, url); }
 
-void Dream::setFileName(const char *filename)
+void Dream::setFileName(const char* filename)
 {
     UpdateString(fFileName, filename);
 }
 
-void Dream::setUuid(const char *uuid) { UpdateString(fUuid, uuid); }
+void Dream::setUuid(const char* uuid) { UpdateString(fUuid, uuid); }
 
-void Dream::setAuthor(const char *_author) { UpdateString(fAuthor, _author); }
+void Dream::setAuthor(const char* _author) { UpdateString(fAuthor, _author); }
 
-void Dream::setName(const char *_name) { UpdateString(fName, _name); }
+void Dream::setName(const char* _name) { UpdateString(fName, _name); }
 
-void Dream::setFileWriteTime(const char *timeString)
+void Dream::setFileWriteTime(const char* timeString)
 {
     struct tm timeinfo = {};
     strptime(timeString, "%Y-%m-%dT%H:%M:%S", &timeinfo);

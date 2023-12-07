@@ -28,15 +28,15 @@ class CContentDownloader : public Base::CSingleton<CContentDownloader>
     NO_CLASS_STANDARDS(CContentDownloader);
 
     //	Downloader.
-    class SheepDownloader *m_gDownloader;
-    boost::thread *m_gDownloadThread;
+    class SheepDownloader* m_gDownloader;
+    boost::thread* m_gDownloadThread;
 
   public:
-    bool Startup(boost::shared_mutex &_downloadSaveMutex, const bool _bPreview,
+    bool Startup(boost::shared_mutex& _downloadSaveMutex, const bool _bPreview,
                  bool _bReadOnlyInstance = false);
     bool Shutdown(void);
 
-    const char *Description() { return "Content Downloader"; };
+    const char* Description() { return "Content Downloader"; };
 
     std::string ServerMessages();
 
@@ -53,7 +53,7 @@ class CContentDownloader : public Base::CSingleton<CContentDownloader>
         Helper for less typing...
 
 */
-inline ContentDownloader::CContentDownloader &g_ContentDownloader(void)
+inline ContentDownloader::CContentDownloader& g_ContentDownloader(void)
 {
     return (ContentDownloader::CContentDownloader::Instance());
 }

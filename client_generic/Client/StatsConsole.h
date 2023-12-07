@@ -79,8 +79,8 @@ class CIntCounter : public CStat
         return s.str();
     }
 
-    void SetSample(const int32 &_val) { m_Value = _val; };
-    void AddSample(const int32 &_val) { m_Value += _val; };
+    void SetSample(const int32& _val) { m_Value = _val; };
+    void AddSample(const int32& _val) { m_Value += _val; };
 };
 
 // MakeSmartPointers( CIntCounter );
@@ -190,7 +190,7 @@ class CTimeCountDownStat : public CStat
         return res;
     }
 
-    void SetSample(const std::string &_val)
+    void SetSample(const std::string& _val)
     {
         m_EndTime = 0.0;
 
@@ -250,7 +250,7 @@ class CStatsConsole : public CConsole
 {
     struct StatText
     {
-        CStat *stat;
+        CStat* stat;
         DisplayOutput::spCBaseText text;
     };
 
@@ -258,7 +258,7 @@ class CStatsConsole : public CConsole
     DisplayOutput::CFontDescription m_Desc;
 
   public:
-    CStatsConsole(Base::Math::CRect _rect, const std::string &_FontName,
+    CStatsConsole(Base::Math::CRect _rect, const std::string& _FontName,
                   const uint32 _fontHeight)
         : CConsole(_rect)
     {
@@ -286,12 +286,12 @@ class CStatsConsole : public CConsole
         m_Stats.clear();
     }
 
-    void Add(CStat *_pStat)
+    void Add(CStat* _pStat)
     {
         m_Stats[_pStat->m_Name] = {
             _pStat, g_Player().Renderer()->NewText(m_spFont, "")};
     }
-    CStat *Get(const std::string &_name) { return m_Stats[_name].stat; }
+    CStat* Get(const std::string& _name) { return m_Stats[_name].stat; }
 
     virtual void Visible(const bool _bState) override
     {
@@ -324,8 +324,8 @@ class CStatsConsole : public CConsole
         std::queue<Base::Math::CVector2> sizeq;
         for (i = m_Stats.begin(); i != m_Stats.end(); ++i)
         {
-            CStat *e = i->second.stat;
-            DisplayOutput::spCBaseText &text = i->second.text;
+            CStat* e = i->second.stat;
+            DisplayOutput::spCBaseText& text = i->second.text;
             if (text)
             {
                 text->SetEnabled(e->Visible());
@@ -359,12 +359,12 @@ class CStatsConsole : public CConsole
         pos = extent.m_Y0 + edge;
         for (i = m_Stats.begin(); i != m_Stats.end(); ++i)
         {
-            CStat *e = i->second.stat;
+            CStat* e = i->second.stat;
             if (e && e->Visible())
             {
                 Base::Math::CVector2 size = sizeq.front();
                 sizeq.pop();
-                DisplayOutput::spCBaseText &text = i->second.text;
+                DisplayOutput::spCBaseText& text = i->second.text;
                 text->SetRect(
                     Base::Math::CRect(edge, pos, 1, size.m_Y + pos + step));
                 _spRenderer->DrawText(text, Base::Math::CVector4(1, 1, 1, 1));

@@ -245,7 +245,7 @@ void CRendererDX::Apply()
     if (isBit(m_bDirtyMatrices, eWorld))
     {
         m_pDevice->SetTransform(D3DTS_WORLD,
-                                (D3DMATRIX *)(const fp4 *)m_WorldMat.m_Mat);
+                                (D3DMATRIX*)(const fp4*)m_WorldMat.m_Mat);
         remBit(m_bDirtyMatrices, eWorld);
     }
 
@@ -253,7 +253,7 @@ void CRendererDX::Apply()
     if (isBit(m_bDirtyMatrices, eView))
     {
         m_pDevice->SetTransform(D3DTS_VIEW,
-                                (D3DMATRIX *)(const fp4 *)m_ViewMat.m_Mat);
+                                (D3DMATRIX*)(const fp4*)m_ViewMat.m_Mat);
         remBit(m_bDirtyMatrices, eView);
     }
 
@@ -261,7 +261,7 @@ void CRendererDX::Apply()
     if (isBit(m_bDirtyMatrices, eProjection))
     {
         m_pDevice->SetTransform(D3DTS_PROJECTION,
-                                (D3DMATRIX *)(const fp4 *)m_ProjMat.m_Mat);
+                                (D3DMATRIX*)(const fp4*)m_ProjMat.m_Mat);
         remBit(m_bDirtyMatrices, eProjection);
     }
 
@@ -307,8 +307,8 @@ spCTextureFlat CRendererDX::NewTextureFlat(const uint32 _flags)
 
 /*
  */
-spCShader CRendererDX::NewShader(const char *_pVertexShader,
-                                 const char *_pFragmentShader)
+spCShader CRendererDX::NewShader(const char* _pVertexShader,
+                                 const char* _pFragmentShader)
 {
     spCShader spShader = new CShaderDX(m_pDevice, fp4(m_spDisplay->Width()),
                                        fp4(m_spDisplay->Height()));
@@ -323,12 +323,12 @@ spCShader CRendererDX::NewShader(const char *_pVertexShader,
 
 /*
  */
-spCBaseFont CRendererDX::NewFont(CFontDescription &_desc)
+spCBaseFont CRendererDX::NewFont(CFontDescription& _desc)
 {
-    CBaseFont *pFont = new CFontDX(m_pDevice);
+    CBaseFont* pFont = new CFontDX(m_pDevice);
     pFont->FontDescription(_desc);
     pFont->Create();
-    ID3DXFont *font = ((CFontDX *)pFont)->GetDXFont();
+    ID3DXFont* font = ((CFontDX*)pFont)->GetDXFont();
     font->AddRef();
     m_Fonts.push_back(font);
     return pFont;
@@ -336,9 +336,9 @@ spCBaseFont CRendererDX::NewFont(CFontDescription &_desc)
 
 /*
  */
-void CRendererDX::Text(spCBaseFont _spFont, const std::string &_text,
-                       const Base::Math::CVector4 &_color,
-                       const Base::Math::CRect &_rect, uint32 _flags)
+void CRendererDX::Text(spCBaseFont _spFont, const std::string& _text,
+                       const Base::Math::CVector4& _color,
+                       const Base::Math::CRect& _rect, uint32 _flags)
 {
     ASSERT(_text != "");
 
@@ -384,12 +384,12 @@ void CRendererDX::Text(spCBaseFont _spFont, const std::string &_text,
         D3DCOLOR_COLORVALUE(_color.m_X, _color.m_Y, _color.m_Z, _color.m_W);
 
     spCFontDX spDXFont = _spFont;
-    ID3DXFont *pDXFont = spDXFont->GetDXFont();
+    ID3DXFont* pDXFont = spDXFont->GetDXFont();
     ASSERT(pDXFont);
 
     m_pSprite->Begin(D3DXSPRITE_ALPHABLEND | D3DXSPRITE_SORT_TEXTURE |
                      D3DXSPRITE_OBJECTSPACE | D3DXSPRITE_DO_NOT_ADDREF_TEXTURE);
-    pDXFont->DrawTextA(m_pSprite, (const char *)_text.c_str(), -1, &r, d3dFlags,
+    pDXFont->DrawTextA(m_pSprite, (const char*)_text.c_str(), -1, &r, d3dFlags,
                        d3dColor);
     m_pSprite->End();
 }
@@ -397,7 +397,7 @@ void CRendererDX::Text(spCBaseFont _spFont, const std::string &_text,
 /*
  */
 Base::Math::CVector2 CRendererDX::GetTextExtent(spCBaseFont _spFont,
-                                                const std::string &_text)
+                                                const std::string& _text)
 {
     ASSERT(_text != "");
 
@@ -413,7 +413,7 @@ Base::Math::CVector2 CRendererDX::GetTextExtent(spCBaseFont _spFont,
     fp4 dispHeight = (fp4)m_spDisplay->Height();
 
     spCFontDX spDXFont = _spFont;
-    ID3DXFont *pDXFont = spDXFont->GetDXFont();
+    ID3DXFont* pDXFont = spDXFont->GetDXFont();
     ASSERT(pDXFont);
 
     //	Make a copy of `text' and extend it by `.'.
@@ -421,7 +421,7 @@ Base::Math::CVector2 CRendererDX::GetTextExtent(spCBaseFont _spFont,
     ASSERT(textLength < 2048);
 
     static char pTmp[2048];
-    strcpy(pTmp, (const char *)_text.c_str());
+    strcpy(pTmp, (const char*)_text.c_str());
     pTmp[textLength] = '.';
     pTmp[textLength + 1] = '\0';
 
@@ -448,8 +448,8 @@ Base::Math::CVector2 CRendererDX::GetTextExtent(spCBaseFont _spFont,
         DrawRect().
 
 */
-void CRendererDX::DrawRect(const Base::Math::CRect &_rect,
-                           const Base::Math::CVector4 &_color, const fp4 _width)
+void CRendererDX::DrawRect(const Base::Math::CRect& _rect,
+                           const Base::Math::CVector4& _color, const fp4 _width)
 {
     /*	ASSERT( m_pLine != NULL );
 
@@ -471,8 +471,8 @@ void CRendererDX::DrawRect(const Base::Math::CRect &_rect,
         DrawQuad().
 
 */
-void CRendererDX::DrawQuad(const Base::Math::CRect &_rect,
-                           const Base::Math::CVector4 &_color)
+void CRendererDX::DrawQuad(const Base::Math::CRect& _rect,
+                           const Base::Math::CVector4& _color)
 {
     m_pDevice->SetFVF(D3DFVF_XYZ | D3DFVF_DIFFUSE);
 
@@ -511,8 +511,8 @@ void CRendererDX::DrawQuad(const Base::Math::CRect &_rect,
 
 /*
  */
-void CRendererDX::DrawSoftQuad(const Base::Math::CRect &_rect,
-                               const Base::Math::CVector4 &_color,
+void CRendererDX::DrawSoftQuad(const Base::Math::CRect& _rect,
+                               const Base::Math::CVector4& _color,
                                const fp4 _width)
 {
     if (m_spSoftCorner == NULL)
@@ -613,9 +613,9 @@ void CRendererDX::DrawSoftQuad(const Base::Math::CRect &_rect,
         DrawQuad().
 
 */
-void CRendererDX::DrawQuad(const Base::Math::CRect &_rect,
-                           const Base::Math::CVector4 &_color,
-                           const Base::Math::CRect &_uvrect)
+void CRendererDX::DrawQuad(const Base::Math::CRect& _rect,
+                           const Base::Math::CVector4& _color,
+                           const Base::Math::CRect& _uvrect)
 {
     m_pDevice->SetFVF(D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1);
 
@@ -661,9 +661,9 @@ void CRendererDX::DrawQuad(const Base::Math::CRect &_rect,
         DrawRect().
 
 */
-void CRendererDX::DrawLine(const Base::Math::CVector2 &_start,
-                           const Base::Math::CVector2 &_end,
-                           const Base::Math::CVector4 &_color, const fp4 _width)
+void CRendererDX::DrawLine(const Base::Math::CVector2& _start,
+                           const Base::Math::CVector2& _end,
+                           const Base::Math::CVector4& _color, const fp4 _width)
 {
     /*	ASSERT( m_pLine != NULL );
 

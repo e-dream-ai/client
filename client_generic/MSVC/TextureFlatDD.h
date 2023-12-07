@@ -15,12 +15,12 @@ class CTextureFlatDS : public CTextureFlat
     //	Internal to keep track if size or format changed.
     Base::Math::CRect m_Size;
     DisplayOutput::eImageFormat m_Format;
-    CBackBufDD *m_BackBuffer;
+    CBackBufDD* m_BackBuffer;
     HDC m_hdc;
     HDC m_sdc;
 
   public:
-    CTextureFlatDS(CBackBufDD *backbuffer = NULL, const uint32 _flags = 0);
+    CTextureFlatDS(CBackBufDD* backbuffer = NULL, const uint32 _flags = 0);
     virtual ~CTextureFlatDS();
 
     virtual bool Upload(spCImage _spImage);

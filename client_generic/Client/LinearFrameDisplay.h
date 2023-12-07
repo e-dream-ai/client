@@ -30,7 +30,7 @@ class CLinearFrameDisplay : public CFrameDisplay
         m_State = 0;
 
         //	Pixelshader to lerp between two textures.
-        static const char *linear_pixelshaderGL2D = "\
+        static const char* linear_pixelshaderGL2D = "\
 					uniform float delta;\
 					uniform sampler2D texUnit1;	\
 					uniform sampler2D texUnit2;	\
@@ -53,7 +53,7 @@ class CLinearFrameDisplay : public CFrameDisplay
 					}";
 
         //	Pixelshader to lerp between two textures.
-        static const char *linear_pixelshaderGL2DRect = "\
+        static const char* linear_pixelshaderGL2DRect = "\
 					uniform float delta;\
 					uniform sampler2DRect texUnit1;	\
 					uniform sampler2DRect texUnit2;	\
@@ -76,7 +76,7 @@ class CLinearFrameDisplay : public CFrameDisplay
 					}";
 
         //	vertexshader...
-        static const char *linear_vertexshader = "\
+        static const char* linear_vertexshader = "\
 					float4x4 WorldViewProj: WORLDVIEWPROJECTION;\
 					struct VS_OUTPUT\
 					{\
@@ -92,7 +92,7 @@ class CLinearFrameDisplay : public CFrameDisplay
 					}";
 
         //	Pixelshader to lerp between two textures.
-        static const char *linear_pixelshaderDX = "\
+        static const char* linear_pixelshaderDX = "\
 					float delta;\
 					float newalpha;\
 					float transPct;\
@@ -147,7 +147,7 @@ class CLinearFrameDisplay : public CFrameDisplay
     // lerp between them.
     virtual bool Update(ContentDecoder::spCContentDecoder _spDecoder,
                         const fp8 _decodeFps, const fp8 /*_displayFps*/,
-                        ContentDecoder::sMetaData &_metadata)
+                        ContentDecoder::sMetaData& _metadata)
     {
         fp4 currentalpha = m_LastAlpha;
         bool frameGrabbed = false;

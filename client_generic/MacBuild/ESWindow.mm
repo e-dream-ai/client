@@ -4,7 +4,7 @@
 
 @implementation ESWindow
 
-static __weak ESWindow *s_pWindow = nil;
+static __weak ESWindow* s_pWindow = nil;
 static void ShowPreferencesCallback()
 {
     dispatch_async(dispatch_get_main_queue(), ^{
@@ -12,7 +12,7 @@ static void ShowPreferencesCallback()
     });
 }
 
-- (IBAction)showHelpFile:(NSMenuItem *)sender
+- (IBAction)showHelpFile:(NSMenuItem*)sender
 {
     [[NSWorkspace sharedWorkspace]
         openFile:[[NSBundle mainBundle] pathForResource:@"Instructions"
@@ -81,7 +81,7 @@ static void ShowPreferencesCallback()
 /*
         Black out all screens except fullscreen screen
  */
-- (void)blackScreensExcept:(NSScreen *)fullscreen
+- (void)blackScreensExcept:(NSScreen*)fullscreen
 {
     if (mBlackingWindows != nil)
     {
@@ -92,12 +92,12 @@ static void ShowPreferencesCallback()
         [[NSMutableArray alloc] initWithCapacity:[[NSScreen screens] count]];
 
     unsigned int i;
-    NSWindow *win;
+    NSWindow* win;
     NSRect fs_rect;
     for (i = 0; i < [[NSScreen screens] count]; i++)
     {
 
-        NSScreen *actScreen = NSScreen.screens[i];
+        NSScreen* actScreen = NSScreen.screens[i];
 
         if (actScreen == nil || fullscreen == actScreen)
             continue;
@@ -152,11 +152,11 @@ static void ShowPreferencesCallback()
 /*
         Animate window fading in/out
 */
-- (void)fadeWindow:(NSWindow *)window withEffect:(NSString *)effect
+- (void)fadeWindow:(NSWindow*)window withEffect:(NSString*)effect
 {
 
-    NSViewAnimation *anim;
-    NSMutableDictionary *animInfo;
+    NSViewAnimation* anim;
+    NSMutableDictionary* animInfo;
 
     animInfo = [NSMutableDictionary dictionaryWithCapacity:2];
     animInfo[NSViewAnimationTargetKey] = window;
@@ -170,14 +170,14 @@ static void ShowPreferencesCallback()
     [anim startAnimation];
 }
 
-- (void)fullscreenWindowMoved:(NSNotification *)__unused notification
+- (void)fullscreenWindowMoved:(NSNotification*)__unused notification
 {
     // triggered when fullscreen window changes spaces
     NSRect screen_frame = [[mFullScreenWindow screen] frame];
     [mFullScreenWindow setFrame:screen_frame display:YES animate:NO];
 }
 
-- (void)windowWillClose:(NSNotification *)__unused notification
+- (void)windowWillClose:(NSNotification*)__unused notification
 {
     if (mESView != nil)
     {
@@ -206,9 +206,9 @@ static void ShowPreferencesCallback()
     }
 }
 
-- (void)didEndSheet:(NSWindow *)sheet
+- (void)didEndSheet:(NSWindow*)sheet
          returnCode:(NSModalResponse)__unused returnCode
-        contextInfo:(void *)__unused contextInfo
+        contextInfo:(void*)__unused contextInfo
 {
     [sheet orderOut:self];
 
@@ -221,7 +221,7 @@ static void ShowPreferencesCallback()
     }
 }
 
-- (void)windowDidResize:(NSNotification *)__unused notification
+- (void)windowDidResize:(NSNotification*)__unused notification
 {
     if (mInSheet)
         return;
@@ -230,8 +230,8 @@ static void ShowPreferencesCallback()
         [mESView windowDidResize];
 }
 
-- (BOOL)applicationShouldTerminateAfterLastWindowClosed:
-    (NSApplication *)__unused theApplication
+- (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication*)__unused
+    theApplication
 {
     return YES;
 }
@@ -241,12 +241,12 @@ static void ShowPreferencesCallback()
     return YES;
 }
 
-- (ESWindow *)originalWindow
+- (ESWindow*)originalWindow
 {
     return mOriginalWindow;
 }
 
-- (void)setOriginalWindow:(ESWindow *)window
+- (void)setOriginalWindow:(ESWindow*)window
 {
     mOriginalWindow = window;
 }
@@ -256,11 +256,11 @@ static void ShowPreferencesCallback()
     return mIsFullScreen;
 }
 
-- (void)keyDown:(NSEvent *)ev
+- (void)keyDown:(NSEvent*)ev
 {
     BOOL handled = NO;
 
-    NSString *characters = [ev charactersIgnoringModifiers];
+    NSString* characters = [ev charactersIgnoringModifiers];
     unsigned int characterIndex,
         characterCount = (unsigned int)[characters length];
 

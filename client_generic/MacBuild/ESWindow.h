@@ -8,11 +8,11 @@
                       <NSWindowDelegate, NSApplicationDelegate>
 #endif
 {
-    ESScreensaverView *mESView;
+    ESScreensaverView* mESView;
 
-    ESWindow *mFullScreenWindow;
+    ESWindow* mFullScreenWindow;
 
-    ESWindow *mOriginalWindow;
+    ESWindow* mOriginalWindow;
 
     BOOL mIsFullScreen;
 
@@ -20,7 +20,7 @@
 
     BOOL mBlackouMonitors;
 
-    NSMutableArray *mBlackingWindows;
+    NSMutableArray* mBlackingWindows;
 }
 
 - (void)awakeFromNib;
@@ -29,29 +29,29 @@
 
 - (BOOL)showPreferences:(id)sender;
 
-- (void)didEndSheet:(NSWindow *)sheet
+- (void)didEndSheet:(NSWindow*)sheet
          returnCode:(NSModalResponse)returnCode
-        contextInfo:(void *)contextInfo;
+        contextInfo:(void*)contextInfo;
 
-- (void)windowDidResize:(NSNotification *)notification;
+- (void)windowDidResize:(NSNotification*)notification;
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:
-    (NSApplication *)theApplication;
+    (NSApplication*)theApplication;
 
 - (BOOL)canBecomeKeyWindow;
 
-- (ESWindow *)originalWindow;
+- (ESWindow*)originalWindow;
 
-- (void)setOriginalWindow:(ESWindow *)window;
+- (void)setOriginalWindow:(ESWindow*)window;
 
 - (BOOL)isFullScreen;
 
 - (void)switchFullScreen:(id)sender;
 
-- (void)blackScreensExcept:(NSScreen *)fullscreen;
+- (void)blackScreensExcept:(NSScreen*)fullscreen;
 
 - (void)unblackScreens;
 
-- (void)fadeWindow:(NSWindow *)window withEffect:(NSString *)effect;
+- (void)fadeWindow:(NSWindow*)window withEffect:(NSString*)effect;
 
 @end

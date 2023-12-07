@@ -16,7 +16,7 @@ namespace Network
         CCurlTransfer().
         Constructor.
 */
-CCurlTransfer::CCurlTransfer(const std::string &_name)
+CCurlTransfer::CCurlTransfer(const std::string& _name)
     : m_Name(_name), m_Status("Idle"), m_AverageSpeed("0 kb/s")
 {
     g_Log->Info("CCurlTransfer(%s)", _name.c_str());
@@ -100,7 +100,7 @@ bool CCurlTransfer::VerifyM(CURLMcode _code)
 
 /*
  */
-int CCurlTransfer::customProgressCallback(void *_pUserData, fp8 _downTotal,
+int CCurlTransfer::customProgressCallback(void* _pUserData, fp8 _downTotal,
                                           fp8 _downNow, fp8 _upTotal,
                                           fp8 _upNow)
 {
@@ -109,7 +109,7 @@ int CCurlTransfer::customProgressCallback(void *_pUserData, fp8 _downTotal,
     if (!g_NetworkManager->SingletonActive() || g_NetworkManager->IsAborted())
         return -1;
 
-    CCurlTransfer *pOut = static_cast<CCurlTransfer *>(_pUserData);
+    CCurlTransfer* pOut = static_cast<CCurlTransfer*>(_pUserData);
     if (!pOut)
     {
         g_Log->Info("Error, no _pUserData");
@@ -130,8 +130,8 @@ int CCurlTransfer::customProgressCallback(void *_pUserData, fp8 _downTotal,
         Proxy().
         Set proxy info used during transfer.
 */
-void CManager::Proxy(const std::string &_url, const std::string &_userName,
-                     const std::string &_password)
+void CManager::Proxy(const std::string& _url, const std::string& _userName,
+                     const std::string& _password)
 {
     g_Log->Info("Proxy()");
 
@@ -251,7 +251,7 @@ bool CCurlTransfer::InterruptiblePerform()
     return true;
 }
 
-void CCurlTransfer::AppendHeader(const std::string &header)
+void CCurlTransfer::AppendHeader(const std::string& header)
 {
     m_Headers = curl_slist_append(m_Headers, header.c_str());
 }
@@ -260,7 +260,7 @@ void CCurlTransfer::AppendHeader(const std::string &header)
         Perform().
         Do the actual transfer.
 */
-bool CCurlTransfer::Perform(const std::string &_url)
+bool CCurlTransfer::Perform(const std::string& _url)
 {
     if (!g_NetworkManager->SingletonActive() || g_NetworkManager->IsAborted())
         return false;
@@ -421,7 +421,7 @@ bool CManager::Shutdown()
         Called from CCurlTransfer::Perform().
         Sets proxy & http authentication.
 */
-CURLcode CManager::Prepare(CURL *_pCurl)
+CURLcode CManager::Prepare(CURL* _pCurl)
 {
     g_Log->Info("Prepare()");
 
@@ -471,7 +471,7 @@ bool CManager::IsAborted(void)
         Called from the callback of each CCurlTransfer instance to update
    progress.
 */
-void CManager::UpdateProgress(CCurlTransfer *_pTransfer,
+void CManager::UpdateProgress(CCurlTransfer* _pTransfer,
                               const fp8 _percentComplete,
                               const fp8 _bytesTransferred)
 {
@@ -544,7 +544,7 @@ std::string CManager::Status()
         Remove().
         Removes transfer from progressmap.
 */
-void CManager::Remove(CCurlTransfer *_pTransfer)
+void CManager::Remove(CCurlTransfer* _pTransfer)
 {
     g_Log->Info("Remove()");
     boost::mutex::scoped_lock locker(m_Lock);
@@ -555,16 +555,16 @@ void CManager::Remove(CCurlTransfer *_pTransfer)
         Encode().
         Url encode a string, returns a new string.
 */
-std::string CManager::Encode(const std::string &_src)
+std::string CManager::Encode(const std::string& _src)
 {
     g_Log->Info("Encode()");
 
     const uint8 dec2hex[16 + 1] = "0123456789ABCDEF";
-    const uint8 *pSrc = (const uint8 *)_src.c_str();
+    const uint8* pSrc = (const uint8*)_src.c_str();
     const size_t srcLen = _src.length();
-    uint8 *const pStart = new uint8[srcLen * 3];
-    uint8 *pEnd = pStart;
-    const uint8 *const srcEnd = pSrc + srcLen;
+    uint8* const pStart = new uint8[srcLen * 3];
+    uint8* pEnd = pStart;
+    const uint8* const srcEnd = pSrc + srcLen;
 
     for (; pSrc < srcEnd; ++pSrc)
     {
@@ -579,7 +579,7 @@ std::string CManager::Encode(const std::string &_src)
         }
     }
 
-    std::string sResult((char *)pStart, (char *)pEnd);
+    std::string sResult((char*)pStart, (char*)pEnd);
     delete[] pStart;
     return sResult;
 }

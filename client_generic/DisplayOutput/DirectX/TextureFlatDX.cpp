@@ -54,7 +54,7 @@ static const D3DFORMAT dxformats[] = {
 
 /*
  */
-CTextureFlatDX::CTextureFlatDX(IDirect3DDevice9 *_pDevice, const uint32 _flags)
+CTextureFlatDX::CTextureFlatDX(IDirect3DDevice9* _pDevice, const uint32 _flags)
     : CTextureFlat(_flags), m_pDevice(_pDevice), m_pTextureDX9(NULL)
 {
     if (_pDevice == NULL)
@@ -103,7 +103,7 @@ bool CTextureFlatDX::Upload(spCImage _spImage)
 
     //	Copy texturedata.
     uint32 mipMapLevel = 0;
-    uint8 *pSrc = m_spImage->GetData(0);
+    uint8* pSrc = m_spImage->GetData(0);
 
     while (pSrc)
     {

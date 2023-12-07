@@ -27,9 +27,9 @@
 #define CLIENT_HELP_LINK "http://electricsheep.org/client/LNX_2.7b28"
 #endif
 
-static electricsheepguiMyDialog2 *sMainDialog = NULL;
+static electricsheepguiMyDialog2* sMainDialog = NULL;
 
-std::string computeMD5(const std::string &str)
+std::string computeMD5(const std::string& str)
 {
     unsigned char digest[16]; // md5 digest size is 16
 
@@ -39,7 +39,7 @@ std::string computeMD5(const std::string &str)
 
     for (int i = 0; i < sizeof(digest); i++)
     {
-        const char *hex_digits = "0123456789ABCDEF";
+        const char* hex_digits = "0123456789ABCDEF";
 
         md5Str += hex_digits[digest[i] >> 4];
         md5Str += hex_digits[digest[i] & 0x0F];
@@ -50,7 +50,7 @@ std::string computeMD5(const std::string &str)
 
 static std::string generateID()
 {
-    uint8 *salt;
+    uint8* salt;
     uint32 u;
     char id[17];
     id[16] = 0;
@@ -58,12 +58,12 @@ static std::string generateID()
 #ifdef WIN32
     SYSTEMTIME syst;
     GetSystemTime(&syst);
-    salt = ((unsigned char *)&syst) + sizeof(SYSTEMTIME) - 8;
+    salt = ((unsigned char*)&syst) + sizeof(SYSTEMTIME) - 8;
 #else
     timeval cur_time;
     gettimeofday(&cur_time, NULL);
 
-    salt = (unsigned char *)&cur_time;
+    salt = (unsigned char*)&cur_time;
 #endif
 
     for (u = 0; u < 16; u++)
@@ -82,14 +82,14 @@ static std::string generateID()
     return std::string(id);
 }
 
-std::string Encode(const std::string &_src)
+std::string Encode(const std::string& _src)
 {
     const int8 dec2hex[16 + 1] = "0123456789ABCDEF";
-    const uint8 *pSrc = (const uint8 *)_src.c_str();
+    const uint8* pSrc = (const uint8*)_src.c_str();
     const int32 srcLen = _src.length();
-    uint8 *const pStart = new uint8[srcLen * 3];
-    uint8 *pEnd = pStart;
-    const uint8 *const srcEnd = pSrc + srcLen;
+    uint8* const pStart = new uint8[srcLen * 3];
+    uint8* pEnd = pStart;
+    const uint8* const srcEnd = pSrc + srcLen;
 
     for (; pSrc < srcEnd; ++pSrc)
     {
@@ -104,7 +104,7 @@ std::string Encode(const std::string &_src)
         }
     }
 
-    std::string sResult((char *)pStart, (char *)pEnd);
+    std::string sResult((char*)pStart, (char*)pEnd);
     delete[] pStart;
     return sResult;
 }
@@ -114,7 +114,7 @@ DEFINE_EVENT_TYPE(EVT_TYPE_LOGININFOUPDATE)
 
 IMPLEMENT_DYNAMIC_CLASS(LoginStatusUpdateEvent, wxEvent)
 
-LoginStatusUpdateEvent::LoginStatusUpdateEvent(const wxString &text)
+LoginStatusUpdateEvent::LoginStatusUpdateEvent(const wxString& text)
     : m_text(text)
 {
     SetEventType(EVT_TYPE_LOGINSTATUSUPDATE);
@@ -123,7 +123,7 @@ LoginStatusUpdateEvent::LoginStatusUpdateEvent(const wxString &text)
 
 IMPLEMENT_DYNAMIC_CLASS(LoginInfoUpdateEvent, wxEvent)
 
-LoginInfoUpdateEvent::LoginInfoUpdateEvent(const wxString &text) : m_text(text)
+LoginInfoUpdateEvent::LoginInfoUpdateEvent(const wxString& text) : m_text(text)
 {
     SetEventType(EVT_TYPE_LOGININFOUPDATE);
     SetEventObject(NULL);
@@ -270,7 +270,7 @@ uint64 GetFlockSizeBytes(wxString mpegpath, int sheeptype)
                 retval += GetFlockSizeBytes(itr->path().string(), sheeptype);
         }
     }
-    catch (boost::filesystem::filesystem_error &err)
+    catch (boost::filesystem::filesystem_error& err)
     {
         g_Log->Error("Path enumeration threw error: %s", err.what());
         return 0;
@@ -433,17 +433,17 @@ void electricsheepguiMyDialog2::LoadSettings()
     m_GoldFlockStaticSizer->Layout();
 }
 
-int32 customWrite(void *_pBuffer, size_t _size, size_t _nmemb, void *_pUserData)
+int32 customWrite(void* _pBuffer, size_t _size, size_t _nmemb, void* _pUserData)
 {
-    ((electricsheepguiMyDialog2 *)_pUserData)
-        ->m_Response.append((char *)_pBuffer, _size * _nmemb);
+    ((electricsheepguiMyDialog2*)_pUserData)
+        ->m_Response.append((char*)_pBuffer, _size * _nmemb);
     return _size * _nmemb; // dummy
 }
 
 void electricsheepguiMyDialog2::Login()
 {
     curl_global_init(CURL_GLOBAL_DEFAULT);
-    CURL *pCurl = curl_easy_init();
+    CURL* pCurl = curl_easy_init();
 
     std::string nickencoded = Encode(
         g_Settings()->Get("settings.generator.nickname", std::string("")));
@@ -471,7 +471,7 @@ void electricsheepguiMyDialog2::Login()
     curl_easy_setopt(pCurl, CURLOPT_WRITEDATA, this);
     curl_easy_setopt(pCurl, CURLOPT_NOPROGRESS, true);
 
-    curl_slist *slist = NULL;
+    curl_slist* slist = NULL;
     slist = curl_slist_append(slist, "Connection: Keep-Alive");
     slist = curl_slist_append(slist, "Accept-Language: en-us");
 
@@ -505,9 +505,9 @@ void electricsheepguiMyDialog2::Login()
                 if (doc.Parse(m_Response.c_str(), NULL, TIXML_ENCODING_UTF8))
                 {
                     TiXmlHandle hDoc(&doc);
-                    TiXmlElement *listElement;
-                    const char *host = NULL;
-                    const char *role = NULL;
+                    TiXmlElement* listElement;
+                    const char* host = NULL;
+                    const char* role = NULL;
 
                     listElement =
                         hDoc.FirstChild("query").FirstChild("redir").Element();
@@ -603,7 +603,7 @@ electricsheepguiMyDialog2::~electricsheepguiMyDialog2()
     g_Settings()->Shutdown();
 }
 
-void electricsheepguiMyDialog2::OnIdle(wxIdleEvent &event)
+void electricsheepguiMyDialog2::OnIdle(wxIdleEvent& event)
 {
     if (m_TestLogin)
     {
@@ -636,7 +636,7 @@ void electricsheepguiMyDialog2::DeleteListXml()
     remove((path + std::string("\\xml\\list.xml")).c_str());
 }
 
-electricsheepguiMyDialog2::electricsheepguiMyDialog2(wxWindow *parent)
+electricsheepguiMyDialog2::electricsheepguiMyDialog2(wxWindow* parent)
     : MyDialog2(parent)
 {
     sMainDialog = this;
@@ -721,11 +721,11 @@ electricsheepguiMyDialog2::electricsheepguiMyDialog2(wxWindow *parent)
     LoadSettings();
 }
 
-void electricsheepguiMyDialog2::OnDialogClose(wxCloseEvent &event)
+void electricsheepguiMyDialog2::OnDialogClose(wxCloseEvent& event)
 {
     this->Destroy();
 }
-void *LoginThread::Entry()
+void* LoginThread::Entry()
 {
     wxMilliSleep(1000);
     if (sMainDialog->m_TestLogin)
@@ -734,19 +734,19 @@ void *LoginThread::Entry()
     return 0;
 }
 
-void electricsheepguiMyDialog2::FireLoginStatusUpdateEvent(const wxString &text)
+void electricsheepguiMyDialog2::FireLoginStatusUpdateEvent(const wxString& text)
 {
     LoginStatusUpdateEvent event(text);
     AddPendingEvent(event);
 }
 
-void electricsheepguiMyDialog2::FireLoginInfoUpdateEvent(const wxString &text)
+void electricsheepguiMyDialog2::FireLoginInfoUpdateEvent(const wxString& text)
 {
     LoginInfoUpdateEvent event(text);
     AddPendingEvent(event);
 }
 
-void electricsheepguiMyDialog2::OnRunClick(wxCommandEvent &event)
+void electricsheepguiMyDialog2::OnRunClick(wxCommandEvent& event)
 {
     SaveSettings();
     //::Base::RecreateProcess(std::string("-x"));
@@ -759,12 +759,12 @@ void electricsheepguiMyDialog2::OnRunClick(wxCommandEvent &event)
 #endif
 }
 
-void electricsheepguiMyDialog2::OnHelpClick(wxCommandEvent &event)
+void electricsheepguiMyDialog2::OnHelpClick(wxCommandEvent& event)
 {
     wxLaunchDefaultBrowser(CLIENT_HELP_LINK);
 }
 
-void electricsheepguiMyDialog2::OnTextLeftUp(wxMouseEvent &event)
+void electricsheepguiMyDialog2::OnTextLeftUp(wxMouseEvent& event)
 {
     event.Skip();
     switch (event.GetId())
@@ -867,13 +867,13 @@ void electricsheepguiMyDialog2::OnTextLeftUp(wxMouseEvent &event)
     }
 }
 
-void electricsheepguiMyDialog2::OnTextSetFocus(wxFocusEvent &event)
+void electricsheepguiMyDialog2::OnTextSetFocus(wxFocusEvent& event)
 {
     m_NewFocus = true;
     event.Skip();
 }
 
-void electricsheepguiMyDialog2::OnDrupalNameTextEnter(wxCommandEvent &event)
+void electricsheepguiMyDialog2::OnDrupalNameTextEnter(wxCommandEvent& event)
 {
     // m_staticText6->SetLabel("...password changed, press 'Login' to
     // verify...");
@@ -888,7 +888,7 @@ void electricsheepguiMyDialog2::OnDrupalNameTextEnter(wxCommandEvent &event)
     m_textDrupalPassword->ChangeValue(wxEmptyString);
 }
 
-void electricsheepguiMyDialog2::OnDrupalPasswordTextEnter(wxCommandEvent &event)
+void electricsheepguiMyDialog2::OnDrupalPasswordTextEnter(wxCommandEvent& event)
 {
     // m_staticText6->SetLabel("...password changed, press 'Login' to
     // verify...");
@@ -908,13 +908,13 @@ void electricsheepguiMyDialog2::OnDrupalPasswordTextEnter(wxCommandEvent &event)
     m_TestLogin = true;
 }
 
-void electricsheepguiMyDialog2::OnTestAccountButtonClick(wxCommandEvent &event)
+void electricsheepguiMyDialog2::OnTestAccountButtonClick(wxCommandEvent& event)
 {
     m_staticText6->SetLabel("...talking...");
     m_TestLogin = true;
 }
 
-void electricsheepguiMyDialog2::OnCreateClick(wxCommandEvent &event)
+void electricsheepguiMyDialog2::OnCreateClick(wxCommandEvent& event)
 {
     std::string nickencoded = Encode(
         g_Settings()->Get("settings.generator.nickname", std::string("")));
@@ -926,7 +926,7 @@ void electricsheepguiMyDialog2::OnCreateClick(wxCommandEvent &event)
     ::wxLaunchDefaultBrowser(wxString(browserlink.str()));
 }
 
-void electricsheepguiMyDialog2::OnUnlimitedCacheCheck(wxCommandEvent &event)
+void electricsheepguiMyDialog2::OnUnlimitedCacheCheck(wxCommandEvent& event)
 {
     m_spinCache->Enable(true);
     g_Settings()->Set("settings.content.unlimited_cache", false);
@@ -937,7 +937,7 @@ void electricsheepguiMyDialog2::OnUnlimitedCacheCheck(wxCommandEvent &event)
     }
 }
 
-void electricsheepguiMyDialog2::OnGoldUnlimitedCacheCheck(wxCommandEvent &event)
+void electricsheepguiMyDialog2::OnGoldUnlimitedCacheCheck(wxCommandEvent& event)
 {
     m_spinGoldCache->Enable(true);
     g_Settings()->Set("settings.content.unlimited_cache_gold", false);
@@ -948,7 +948,7 @@ void electricsheepguiMyDialog2::OnGoldUnlimitedCacheCheck(wxCommandEvent &event)
     }
 }
 
-void electricsheepguiMyDialog2::OnContentDirChanged(wxFileDirPickerEvent &event)
+void electricsheepguiMyDialog2::OnContentDirChanged(wxFileDirPickerEvent& event)
 {
     g_Settings()->Set("settings.content.sheepdir",
                       std::string(event.GetPath()));
@@ -972,7 +972,7 @@ void electricsheepguiMyDialog2::OnContentDirChanged(wxFileDirPickerEvent &event)
 #endif
 }
 
-void electricsheepguiMyDialog2::OnOpenClick(wxCommandEvent &event)
+void electricsheepguiMyDialog2::OnOpenClick(wxCommandEvent& event)
 {
 #ifndef LINUX_GNU
     wxString tmpstr = m_dirContent->GetPath();
@@ -987,7 +987,7 @@ void electricsheepguiMyDialog2::OnOpenClick(wxCommandEvent &event)
 #endif
 }
 
-void electricsheepguiMyDialog2::OnDecodeFpsKillFocus(wxFocusEvent &event)
+void electricsheepguiMyDialog2::OnDecodeFpsKillFocus(wxFocusEvent& event)
 {
     if (m_spinDecodeFps->GetValue() == wxEmptyString)
         m_spinDecodeFps->ChangeValue(wxT("20"));
@@ -1003,7 +1003,7 @@ void electricsheepguiMyDialog2::OnDecodeFpsKillFocus(wxFocusEvent &event)
     event.Skip();
 }
 
-void electricsheepguiMyDialog2::OnDecodeFpsTextUpdated(wxCommandEvent &event)
+void electricsheepguiMyDialog2::OnDecodeFpsTextUpdated(wxCommandEvent& event)
 {
     /*if (m_spinDecodeFps != NULL)
     {
@@ -1020,7 +1020,7 @@ void electricsheepguiMyDialog2::OnDecodeFpsTextUpdated(wxCommandEvent &event)
     event.Skip();
 }
 
-void electricsheepguiMyDialog2::OnPlayerFpsKillFocus(wxFocusEvent &event)
+void electricsheepguiMyDialog2::OnPlayerFpsKillFocus(wxFocusEvent& event)
 {
     if (m_spinDisplayFps->GetValue() == wxEmptyString)
         m_spinDisplayFps->ChangeValue(wxT("60"));
@@ -1036,7 +1036,7 @@ void electricsheepguiMyDialog2::OnPlayerFpsKillFocus(wxFocusEvent &event)
     event.Skip();
 }
 
-void electricsheepguiMyDialog2::OnPlayerFpsTextUpdated(wxCommandEvent &event)
+void electricsheepguiMyDialog2::OnPlayerFpsTextUpdated(wxCommandEvent& event)
 {
     /*if (m_spinDisplayFps != NULL)
     {
@@ -1053,7 +1053,7 @@ void electricsheepguiMyDialog2::OnPlayerFpsTextUpdated(wxCommandEvent &event)
     event.Skip();
 }
 
-void electricsheepguiMyDialog2::OnProxyTextEnter(wxCommandEvent &event)
+void electricsheepguiMyDialog2::OnProxyTextEnter(wxCommandEvent& event)
 {
     g_Settings()->Set("settings.content.proxy",
                       std::string(m_textProxyHost->GetValue()));
@@ -1063,42 +1063,42 @@ void electricsheepguiMyDialog2::OnProxyTextEnter(wxCommandEvent &event)
         g_Settings()->Set("settings.content.use_proxy", false);
 }
 
-void electricsheepguiMyDialog2::OnProxyUserNameEnter(wxCommandEvent &event)
+void electricsheepguiMyDialog2::OnProxyUserNameEnter(wxCommandEvent& event)
 {
     g_Settings()->Set("settings.content.proxy_username",
                       std::string(m_textProxyUser->GetValue()));
 }
 
-void electricsheepguiMyDialog2::OnProxyPasswordEnter(wxCommandEvent &event)
+void electricsheepguiMyDialog2::OnProxyPasswordEnter(wxCommandEvent& event)
 {
     g_Settings()->Set("settings.content.proxy_password",
                       std::string(m_textProxyPassword->GetValue()));
 }
 
-void electricsheepguiMyDialog2::OnAboutUrl(wxTextUrlEvent &event)
+void electricsheepguiMyDialog2::OnAboutUrl(wxTextUrlEvent& event)
 {
     wxLaunchDefaultBrowser(event.GetString());
 }
 
-void electricsheepguiMyDialog2::OnClickOk(wxCommandEvent &event)
+void electricsheepguiMyDialog2::OnClickOk(wxCommandEvent& event)
 {
     SaveSettings();
     this->Destroy();
 }
 
-void electricsheepguiMyDialog2::OnCancelClick(wxCommandEvent &event)
+void electricsheepguiMyDialog2::OnCancelClick(wxCommandEvent& event)
 {
     this->Destroy();
 }
 
 void electricsheepguiMyDialog2::OnLoginStatusUpdate(
-    LoginStatusUpdateEvent &event)
+    LoginStatusUpdateEvent& event)
 {
     m_staticText6->SetLabel(event.getText());
     Layout();
 }
 
-void electricsheepguiMyDialog2::OnLoginInfoUpdate(LoginInfoUpdateEvent &event)
+void electricsheepguiMyDialog2::OnLoginInfoUpdate(LoginInfoUpdateEvent& event)
 {
     m_staticText25->SetLabel(event.getText());
     Layout();

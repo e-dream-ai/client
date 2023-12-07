@@ -25,7 +25,7 @@ class CDisplayDD : public CDisplayOutput
     static LRESULT CALLBACK wndProc(HWND hWnd, UINT msg, WPARAM wParam,
                                     LPARAM lParam);
 
-    static char *Description() { return "Windows DirectDraw display"; };
+    static char* Description() { return "Windows DirectDraw display"; };
     virtual HWND Initialize(const uint32 _width, const uint32 _height,
                             const bool _bFullscreen);
 
@@ -35,9 +35,9 @@ class CDisplayDD : public CDisplayOutput
     //	This is used when running as a screensaver, where the hwnd might already
     // be provided.
     virtual bool Initialize(HWND _hWnd, bool _bPreview);
-    CBackBufDD *GetBackBufferPtr() { return (CBackBufDD *)(&m_dd); }
+    CBackBufDD* GetBackBufferPtr() { return (CBackBufDD*)(&m_dd); }
     //
-    virtual void Title(const std::string &_title);
+    virtual void Title(const std::string& _title);
     virtual void Update();
 
     virtual bool HasShaders() { return false; };

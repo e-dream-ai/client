@@ -72,7 +72,7 @@ class CDreamPlaylist : public CPlaylist
         }
     }
 
-    bool PlayFreshOnesFirst(std::string &_result)
+    bool PlayFreshOnesFirst(std::string& _result)
     {
         if (!m_FreshList.empty())
         {
@@ -84,7 +84,7 @@ class CDreamPlaylist : public CPlaylist
     }
 
   public:
-    CDreamPlaylist(const std::string &_watchFolder)
+    CDreamPlaylist(const std::string& _watchFolder)
         : CPlaylist() /*, m_UsedSheepType(_usedsheeptype)*/
     {
         m_NormalInterval =
@@ -98,7 +98,7 @@ class CDreamPlaylist : public CPlaylist
     virtual ~CDreamPlaylist() {}
 
     //
-    virtual bool Add(const std::string &_file)
+    virtual bool Add(const std::string& _file)
     {
         boost::mutex::scoped_lock locker(m_Lock);
         m_FreshList.push(_file);
@@ -119,7 +119,7 @@ class CDreamPlaylist : public CPlaylist
         std::swap(m_List, empty);
     }
 
-    virtual bool PopFreshlyDownloadedSheep(std::string &_result)
+    virtual bool PopFreshlyDownloadedSheep(std::string& _result)
     {
         boost::mutex::scoped_lock locker(m_Lock);
         if (!m_FreshList.empty())
@@ -137,8 +137,8 @@ class CDreamPlaylist : public CPlaylist
         return !m_FreshList.empty();
     }
 
-    virtual bool Next(std::string &_result, bool &_bEnoughSheep, uint32 _curID,
-                      bool &_playFreshSheep, const bool _bRebuild = false,
+    virtual bool Next(std::string& _result, bool& _bEnoughSheep, uint32 _curID,
+                      bool& _playFreshSheep, const bool _bRebuild = false,
                       bool _bStartByRandom = true)
     {
         boost::mutex::scoped_lock locker(m_Lock);
@@ -149,7 +149,7 @@ class CDreamPlaylist : public CPlaylist
         fp8 interval = m_EmptyInterval;
 
         //	Update from directory if enough time has passed, or we're asked
-        //to.
+        // to.
         if (_bRebuild) // || ((m_Timer.Time() - m_Clock) > interval) )
         {
             if (g_PlayCounter().ReadOnlyPlayCounts())
@@ -163,20 +163,20 @@ class CDreamPlaylist : public CPlaylist
             m_Clock = m_Timer.Time();
             auto allSheep =
                 ContentDownloader::SheepDownloader::getClientFlock();
-            std::vector<ContentDownloader::Dream *> sheepList;
+            std::vector<ContentDownloader::Dream*> sheepList;
             for (auto it = allSheep.begin(); it != allSheep.end(); ++it)
             {
-                ContentDownloader::Dream *sheep = *it;
+                ContentDownloader::Dream* sheep = *it;
                 sheepList.push_back(sheep);
             }
 
             std::sort(
                 sheepList.begin(), sheepList.end(),
-                [](ContentDownloader::Dream *a, ContentDownloader::Dream *b)
+                [](ContentDownloader::Dream* a, ContentDownloader::Dream* b)
                 { return a->fileWriteTime() > b->fileWriteTime(); });
             for (auto it = sheepList.begin(); it != sheepList.end(); ++it)
             {
-                ContentDownloader::Dream *sheep = *it;
+                ContentDownloader::Dream* sheep = *it;
                 std::string fileName = sheep->fileName();
                 m_List.push(fileName);
             }
@@ -193,15 +193,15 @@ class CDreamPlaylist : public CPlaylist
         return true;
     }
 
-    virtual bool GetDreamNameAndAuthor(const std::string &_filePath,
-                                       std::string *_outDreamName,
-                                       std::string *_outDreamAuthor)
+    virtual bool GetDreamNameAndAuthor(const std::string& _filePath,
+                                       std::string* _outDreamName,
+                                       std::string* _outDreamAuthor)
     {
         auto allSheep = ContentDownloader::SheepDownloader::getClientFlock();
-        std::vector<ContentDownloader::Dream *> sheepList;
+        std::vector<ContentDownloader::Dream*> sheepList;
         for (auto it = allSheep.begin(); it != allSheep.end(); ++it)
         {
-            ContentDownloader::Dream *sheep = *it;
+            ContentDownloader::Dream* sheep = *it;
             if (sheep->fileName() == _filePath)
             {
                 *_outDreamName = sheep->name();

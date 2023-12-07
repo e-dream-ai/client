@@ -6,7 +6,7 @@
 
 - (id)initWithFrame:(NSRect)frameRect
 {
-    NSArray<id<MTLDevice>> *devices = MTLCopyAllDevices();
+    NSArray<id<MTLDevice>>* devices = MTLCopyAllDevices();
     id<MTLDevice> selectedDevice = nil;
     for (id<MTLDevice> device in devices)
     {

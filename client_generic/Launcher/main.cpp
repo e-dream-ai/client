@@ -5,7 +5,7 @@
 #include <string>
 
 //	Grab a string from the registry.
-HRESULT RegGetString(HKEY hKey, LPCTSTR szValueName, LPTSTR *lpszResult)
+HRESULT RegGetString(HKEY hKey, LPCTSTR szValueName, LPTSTR* lpszResult)
 {
 #define MAXBUF 4096
 
@@ -36,7 +36,7 @@ HRESULT RegGetString(HKEY hKey, LPCTSTR szValueName, LPTSTR *lpszResult)
     //	Allocate memory for string - We add space for a null terminating
     // character...
     dwBufSize = dwDataSize + (1 * sizeof(TCHAR));
-    *lpszResult = (TCHAR *)malloc(dwBufSize);
+    *lpszResult = (TCHAR*)malloc(dwBufSize);
 
     if (*lpszResult == NULL)
         return E_OUTOFMEMORY;
@@ -94,16 +94,16 @@ std::string InstallationDirectory()
 }
 
 //	Remove exename from params.
-char *ParseCmdLine()
+char* ParseCmdLine()
 {
-    char *lpszCommandLine = GetCommandLine();
+    char* lpszCommandLine = GetCommandLine();
     printf("Cmdline %s\n", lpszCommandLine);
 
     //	Skip past program name (first token in command line).
     if (*lpszCommandLine == '"')
     {
         //	Scan, and skip over, subsequent characters until  another
-        //double-quote
+        // double-quote
         // or a null is encountered.
         while (*lpszCommandLine && (*lpszCommandLine != '"'))
             lpszCommandLine++;
@@ -144,7 +144,7 @@ int CALLBACK EnumWindowsProc(HWND hwnd, LPARAM param)
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                      LPSTR lpCmdLine, int nCmdShow)
 {
-    FILE *stream;
+    FILE* stream;
     if ((stream = freopen("c:\\es_launcher.log", "w", stdout)) == NULL)
         exit(-1);
 
@@ -161,7 +161,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     std::string appdir = InstallationDirectory();
     std::string starter = appdir + "Client.exe";
 
-    char *c = ParseCmdLine();
+    char* c = ParseCmdLine();
     char cmdLine[MAX_PATH];
     _snprintf(cmdLine, MAX_PATH, " %s", c);
 

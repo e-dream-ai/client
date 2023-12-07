@@ -22,10 +22,10 @@ typedef enum AAPLRenderTargetIndices
 
 CShaderMetal::CShaderMetal(
     id<MTLDevice> device, id<MTLFunction> vertexFunction,
-    id<MTLFunction> fragmentFunction, MTLVertexDescriptor *vertexDescriptor,
+    id<MTLFunction> fragmentFunction, MTLVertexDescriptor* vertexDescriptor,
     std::vector<std::pair<std::string, eUniformType>> _uniforms)
 {
-    MTLRenderPipelineDescriptor *renderPipelineDesc =
+    MTLRenderPipelineDescriptor* renderPipelineDesc =
         [MTLRenderPipelineDescriptor new];
     renderPipelineDesc.label = @"e-dream Render Pipeline";
     renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].pixelFormat =
@@ -53,7 +53,7 @@ CShaderMetal::CShaderMetal(
     renderPipelineDesc.fragmentFunction = fragmentFunction;
     renderPipelineDesc.vertexDescriptor = vertexDescriptor;
 
-    NSError *error;
+    NSError* error;
     m_PipelineState =
         [device newRenderPipelineStateWithDescriptor:renderPipelineDesc
                                                error:&error];
@@ -84,7 +84,7 @@ void CShaderMetal::UploadUniforms(id<MTLRenderCommandEncoder> renderEncoder)
 {
     if (m_Uniforms.size())
     {
-        uint8_t *data = m_UniformBuffer.data();
+        uint8_t* data = m_UniformBuffer.data();
         for (auto uniform : m_SortedUniformRefs)
         {
             size_t size = uniform->GetSize();

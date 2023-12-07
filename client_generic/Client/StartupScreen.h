@@ -22,7 +22,7 @@ class CStartupScreen : public CHudEntry
     fp4 m_MoveMessageCounter;
 
   public:
-    CStartupScreen(Base::Math::CRect _rect, const std::string &_FontName,
+    CStartupScreen(Base::Math::CRect _rect, const std::string& _FontName,
                    const uint32 _fontHeight)
         : CHudEntry(_rect)
     {

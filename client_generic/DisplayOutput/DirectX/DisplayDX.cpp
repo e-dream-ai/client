@@ -28,7 +28,7 @@ static HWND gl_hFocusWindow = NULL;
         CDisplayDX().
 
 */
-CDisplayDX::CDisplayDX(bool _blank, IDirect3D9 *_pIDirect3D9) : CDisplayOutput()
+CDisplayDX::CDisplayDX(bool _blank, IDirect3D9* _pIDirect3D9) : CDisplayOutput()
 {
     memset(&m_PresentationParams, 0, sizeof(m_PresentationParams));
     m_pDevice = NULL;
@@ -63,9 +63,9 @@ void CDisplayDX::EnumMonitors()
     dispdev2.cb = sizeof(dispdev2);
     devmode.dmSize = sizeof(devmode);
     devmode.dmDriverExtra = 0;
-    MonitorInfo *pMonitorInfoNew;
+    MonitorInfo* pMonitorInfoNew;
 
-    while (EnumDisplayDevices(NULL, iDevice, (DISPLAY_DEVICE *)&dispdev, 0))
+    while (EnumDisplayDevices(NULL, iDevice, (DISPLAY_DEVICE*)&dispdev, 0))
     {
         //	Ignore NetMeeting's mirrored displays.
         if ((dispdev.StateFlags & DISPLAY_DEVICE_MIRRORING_DRIVER) == 0)
@@ -74,7 +74,7 @@ void CDisplayDX::EnumMonitors()
             // EnumDisplayDevices a second time, 	passing
             // dispdev.DeviceName (from the first call) as the first parameter.
             if (EnumDisplayDevices(dispdev.DeviceName, 0,
-                                   (DISPLAY_DEVICE *)&dispdev2, 0) != 0)
+                                   (DISPLAY_DEVICE*)&dispdev2, 0) != 0)
             {
                 pMonitorInfoNew = &m_Monitors[m_dwNumMonitors];
                 ZeroMemory(pMonitorInfoNew, sizeof(MonitorInfo));
@@ -128,7 +128,7 @@ void CDisplayDX::EnumMonitors()
     }
 }
 
-void CDisplayDX::BlankUnusedMonitors(WNDCLASS &wnd, HWND hWnd,
+void CDisplayDX::BlankUnusedMonitors(WNDCLASS& wnd, HWND hWnd,
                                      HINSTANCE hInstance)
 {
     if (m_BlankUnused)
@@ -141,7 +141,7 @@ void CDisplayDX::BlankUnusedMonitors(WNDCLASS &wnd, HWND hWnd,
 
         for (DWORD iMonitor = 0; iMonitor < m_dwNumMonitors; iMonitor++)
         {
-            MonitorInfo *pMonitorInfo;
+            MonitorInfo* pMonitorInfo;
             pMonitorInfo = &m_Monitors[iMonitor];
             if (pMonitorInfo->hMonitor == NULL)
                 continue;
@@ -165,7 +165,7 @@ void CDisplayDX::BlankUnusedMonitors(WNDCLASS &wnd, HWND hWnd,
 
         for (DWORD iMonitor = 0; iMonitor < m_dwNumMonitors; iMonitor++)
         {
-            MonitorInfo *pMonitorInfo = &m_Monitors[iMonitor];
+            MonitorInfo* pMonitorInfo = &m_Monitors[iMonitor];
             monitorInfo.cbSize = sizeof(MONITORINFO);
             GetMonitorInfo(pMonitorInfo->hMonitor, &monitorInfo);
 
@@ -205,7 +205,7 @@ LRESULT CALLBACK CDisplayDX::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
     {
     case WM_USER:
         //	All initialization messages have gone through.  Allow 500ms of
-        //idle
+        // idle
         // time, then proceed with initialization.
         SetTimer(hWnd, 1, 500, NULL);
         g_Log->Info("Starting 500ms preview timer");
@@ -245,7 +245,7 @@ LRESULT CALLBACK CDisplayDX::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
 
     case WM_KEYUP:
     {
-        CKeyEvent *spEvent = new CKeyEvent();
+        CKeyEvent* spEvent = new CKeyEvent();
         spEvent->m_bPressed = true;
 
         switch (wParam)
@@ -307,7 +307,7 @@ LRESULT CALLBACK CDisplayDX::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
 
     case WM_LBUTTONUP:
     {
-        CMouseEvent *spEvent = new CMouseEvent();
+        CMouseEvent* spEvent = new CMouseEvent();
         spEvent->m_Code = CMouseEvent::Mouse_LEFT;
         spEvent->m_X = MAKEPOINTS(lParam).x;
         spEvent->m_Y = MAKEPOINTS(lParam).y;
@@ -318,7 +318,7 @@ LRESULT CALLBACK CDisplayDX::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
 
     case WM_RBUTTONUP:
     {
-        CMouseEvent *spEvent = new CMouseEvent();
+        CMouseEvent* spEvent = new CMouseEvent();
         spEvent->m_Code = CMouseEvent::Mouse_RIGHT;
         spEvent->m_X = MAKEPOINTS(lParam).x;
         spEvent->m_Y = MAKEPOINTS(lParam).y;
@@ -329,7 +329,7 @@ LRESULT CALLBACK CDisplayDX::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
 
     case WM_MOUSEMOVE:
     {
-        CMouseEvent *spEvent = new CMouseEvent();
+        CMouseEvent* spEvent = new CMouseEvent();
         spEvent->m_Code = CMouseEvent::Mouse_MOVE;
 
         spEvent->m_X = MAKEPOINTS(lParam).x;
@@ -346,7 +346,7 @@ LRESULT CALLBACK CDisplayDX::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
         case PBT_APMBATTERYLOW:
         case PBT_APMSUSPEND:
         {
-            CPowerEvent *spEvent = new CPowerEvent();
+            CPowerEvent* spEvent = new CPowerEvent();
             spCEvent e = spEvent;
             m_EventQueue.push(e);
         }
@@ -375,7 +375,7 @@ UINT CDisplayDX::GetAdapterOrdinal()
     {
         if (iMonitor == m_DesiredScreenID)
         {
-            MonitorInfo *pMonitorInfo = &m_Monitors[iMonitor];
+            MonitorInfo* pMonitorInfo = &m_Monitors[iMonitor];
             monitorInfo.cbSize = sizeof(MONITORINFO);
             if (GetMonitorInfo(pMonitorInfo->hMonitor, &monitorInfo) != 0)
                 for (UINT iAdapter = 0;
@@ -602,7 +602,7 @@ HWND CDisplayDX::createwindow(uint32 _w, uint32 _h, const bool _bFullscreen)
     {
         if (iMonitor == m_DesiredScreenID && _bFullscreen)
         {
-            MonitorInfo *pMonitorInfo = &m_Monitors[iMonitor];
+            MonitorInfo* pMonitorInfo = &m_Monitors[iMonitor];
             monitorInfo.cbSize = sizeof(MONITORINFO);
             GetMonitorInfo(pMonitorInfo->hMonitor, &monitorInfo);
             pMonitorInfo->rcScreen = monitorInfo.rcMonitor;
@@ -806,7 +806,7 @@ HWND CDisplayDX::Initialize(const uint32 _width, const uint32 _height,
 }
 
 //
-void CDisplayDX::Title(const std::string &_title)
+void CDisplayDX::Title(const std::string& _title)
 {
     SetWindowTextA(m_WindowHandle, _title.c_str());
 }

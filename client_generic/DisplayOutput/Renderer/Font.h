@@ -44,7 +44,7 @@ class CFontDescription
     ~CFontDescription();
 
     //
-    bool operator==(const CFontDescription &_rhs) const;
+    bool operator==(const CFontDescription& _rhs) const;
 
     //
     void Height(uint32 _h) { m_Height = _h; };
@@ -67,8 +67,8 @@ class CFontDescription
     bool AntiAliased(void) const { return (m_bAntiAliased); };
 
     //
-    void TypeFace(const std::string &_n) { m_TypeFace = _n; };
-    const std::string &TypeFace() const { return (m_TypeFace); };
+    void TypeFace(const std::string& _n) { m_TypeFace = _n; };
+    const std::string& TypeFace() const { return (m_TypeFace); };
 };
 
 MakeSmartPointers(CFontDescription);
@@ -104,7 +104,7 @@ class CBaseFont
     virtual void Reupload(){};
 
     //
-    void FontDescription(const CFontDescription &_desc)
+    void FontDescription(const CFontDescription& _desc)
     {
         m_FontDescription = _desc;
     };

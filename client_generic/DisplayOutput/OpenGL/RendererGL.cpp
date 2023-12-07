@@ -181,7 +181,7 @@ bool CRendererGL::BeginFrame(void)
     return true;
 }
 
-void CRendererGL::Verify(const char * /*_file*/, const int32 /*_line*/)
+void CRendererGL::Verify(const char* /*_file*/, const int32 /*_line*/)
 {
     /*int error = glGetError();
     if( error != GL_NO_ERROR )
@@ -246,7 +246,7 @@ void CRendererGL::Apply()
     if (isBit(m_bDirtyMatrices, eWorld))
     {
         glMatrixMode(GL_MODELVIEW);
-        glLoadMatrixf((GLfloat *)(const fp4 *)m_WorldMat.m_Mat);
+        glLoadMatrixf((GLfloat*)(const fp4*)m_WorldMat.m_Mat);
         remBit(m_bDirtyMatrices, static_cast<uint32>(eWorld));
     }
 
@@ -260,7 +260,7 @@ void CRendererGL::Apply()
     if (isBit(m_bDirtyMatrices, eProjection))
     {
         glMatrixMode(GL_PROJECTION);
-        glLoadMatrixf((GLfloat *)(const fp4 *)m_ProjMat.m_Mat);
+        glLoadMatrixf((GLfloat*)(const fp4*)m_ProjMat.m_Mat);
         remBit(m_bDirtyMatrices, static_cast<uint32>(eProjection));
     }
 
@@ -344,7 +344,7 @@ eTextureTargetType CRendererGL::GetTextureTargetType(void)
 /*
  */
 spCShader CRendererGL::NewShader(
-    const char *_pVertexShader, const char *_pFragmentShader,
+    const char* _pVertexShader, const char* _pFragmentShader,
     [[maybe_unused]] std::vector<std::pair<std::string, eUniformType>>
         _uniforms)
 {
@@ -366,7 +366,7 @@ spCShader CRendererGL::NewShader(
 
 /*
  */
-spCBaseFont CRendererGL::NewFont(CFontDescription &_desc)
+spCBaseFont CRendererGL::NewFont(CFontDescription& _desc)
 {
     if (!m_glFont)
     {
@@ -380,9 +380,9 @@ spCBaseFont CRendererGL::NewFont(CFontDescription &_desc)
     return m_glFont;
 }
 
-void CRendererGL::Text(spCBaseFont _spFont, const std::string &_text,
-                       const Base::Math::CVector4 & /*_color*/,
-                       const Base::Math::CRect &_rect, uint32 /*_flags*/)
+void CRendererGL::Text(spCBaseFont _spFont, const std::string& _text,
+                       const Base::Math::CVector4& /*_color*/,
+                       const Base::Math::CRect& _rect, uint32 /*_flags*/)
 {
     SetCurrentGLContext();
 
@@ -411,7 +411,7 @@ void CRendererGL::Text(spCBaseFont _spFont, const std::string &_text,
             continue;
         }
 
-        CFontGL::Glyph *glyph = glFont->GetGlyph(ch);
+        CFontGL::Glyph* glyph = glFont->GetGlyph(ch);
 
         if (glyph == NULL)
             continue;
@@ -435,7 +435,7 @@ void CRendererGL::Text(spCBaseFont _spFont, const std::string &_text,
 }
 
 Base::Math::CVector2 CRendererGL::GetTextExtent(spCBaseFont _spFont,
-                                                const std::string &_text)
+                                                const std::string& _text)
 {
     SetCurrentGLContext();
 
@@ -484,8 +484,8 @@ Base::Math::CVector2 CRendererGL::GetTextExtent(spCBaseFont _spFont,
 
 /*
  */
-void CRendererGL::DrawQuad(const Base::Math::CRect &_rect,
-                           const Base::Math::CVector4 &_color)
+void CRendererGL::DrawQuad(const Base::Math::CRect& _rect,
+                           const Base::Math::CVector4& _color)
 {
     SetCurrentGLContext();
 
@@ -512,9 +512,9 @@ void CRendererGL::DrawQuad(const Base::Math::CRect &_rect,
 
 /*
  */
-void CRendererGL::DrawQuad(const Base::Math::CRect &_rect,
-                           const Base::Math::CVector4 &_color,
-                           const Base::Math::CRect &_uvrect)
+void CRendererGL::DrawQuad(const Base::Math::CRect& _rect,
+                           const Base::Math::CVector4& _color,
+                           const Base::Math::CRect& _uvrect)
 {
     SetCurrentGLContext();
 
@@ -560,8 +560,8 @@ void CRendererGL::DrawQuad(const Base::Math::CRect &_rect,
     glEnd();
 }
 
-void CRendererGL::DrawSoftQuad(const Base::Math::CRect &_rect,
-                               const Base::Math::CVector4 &_color,
+void CRendererGL::DrawSoftQuad(const Base::Math::CRect& _rect,
+                               const Base::Math::CVector4& _color,
                                const fp4 _width)
 {
     SetCurrentGLContext();

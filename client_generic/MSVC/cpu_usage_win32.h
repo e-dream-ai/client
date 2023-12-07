@@ -27,7 +27,7 @@ class ESCpuUsage
         m_LastCPUCheckTime = m_Timer.Time();
         GetSystemTimes(&m_LastIdleTime, &m_LastKernelTime, &m_LastUserTime);
     }
-    bool GetCpuUsage(int &_total, int &_es)
+    bool GetCpuUsage(int& _total, int& _es)
     {
         FILETIME dummy1;
         FILETIME dummy2;

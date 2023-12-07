@@ -36,14 +36,14 @@ namespace Base
 */
 class CException
 {
-    CException(const char *_sz, const char *_szFile, const uint32 _line)
+    CException(const char* _sz, const char* _szFile, const uint32 _line)
     {
         m_File = _szFile;
         m_String = _sz;
         m_Line = _line;
     }
 
-    CException(const std::string &_s, const char *const _szFile,
+    CException(const std::string& _s, const char* const _szFile,
                const uint32 _line)
     {
         m_File = _szFile;
@@ -65,26 +65,26 @@ class CException
     std::string Text(void) const;
 
     //
-    static void Throw(const char *_sz, const char *_szFile, const uint32 _line)
+    static void Throw(const char* _sz, const char* _szFile, const uint32 _line)
     {
         throw(CException(_sz, _szFile, _line));
     }
 
     //
-    static void Throw(const std::string &_s, const char *_szFile,
+    static void Throw(const std::string& _s, const char* _szFile,
                       const uint32 _line)
     {
         throw(CException(_s, _szFile, _line));
     }
 
     //
-    static void Throw(char *_szFile, const uint32 _line)
+    static void Throw(char* _szFile, const uint32 _line)
     {
         throw(CException(m_ArgString, _szFile, _line));
     }
 
     //
-    static void CollectArguments(const char *_String, ...); //	Args.
+    static void CollectArguments(const char* _String, ...); //	Args.
 };
 
 }; // namespace Base

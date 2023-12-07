@@ -5,7 +5,7 @@
 #import <OpenGL/OpenGL.h>
 
 #ifndef USE_METAL
-NSOpenGLContext *glContext = NULL;
+NSOpenGLContext* glContext = NULL;
 #endif
 
 bool bStarted = false;
@@ -35,12 +35,11 @@ bool bStarted = false;
 #endif
     {
         CFBundleRef bndl = CopyDLBundle_ex();
-        NSBundle *nsbndl;
+        NSBundle* nsbndl;
 
         if (bndl != NULL)
         {
-            NSURL *url =
-                (NSURL *)CFBridgingRelease(CFBundleCopyBundleURL(bndl));
+            NSURL* url = (NSURL*)CFBridgingRelease(CFBundleCopyBundleURL(bndl));
 
             nsbndl = [NSBundle bundleWithPath:[url path]];
 
@@ -148,7 +147,7 @@ bool bStarted = false;
 
         theRect = newRect;*/
 #ifdef USE_METAL
-        ESMetalView *metalView =
+        ESMetalView* metalView =
 
             [[ESMetalView alloc] initWithFrame:theRect];
         metalView.delegate = self;
@@ -177,7 +176,7 @@ bool bStarted = false;
     {
         ESScreensaver_InitClientStorage();
 
-        ESScreenSaver_AddGraphicsContext((__bridge void *)view);
+        ESScreenSaver_AddGraphicsContext((__bridge void*)view);
         ESScreensaver_DeinitClientStorage();
     }
 #else
@@ -308,7 +307,7 @@ bool bStarted = false;
     return YES;
 }
 
-- (NSWindow *)configureSheet
+- (NSWindow*)configureSheet
 {
     if (!m_config)
     {
@@ -319,7 +318,7 @@ bool bStarted = false;
     return [m_config window];
 }
 
-- (void)flagsChanged:(NSEvent *)ev
+- (void)flagsChanged:(NSEvent*)ev
 {
     if ([ev keyCode] == 63) // FN Key
         return;
@@ -337,11 +336,11 @@ bool bStarted = false;
 
 // keycodes based on -
 // http://www.filewatcher.com/p/BasiliskII-0.9.1.tgz.276457/share/BasiliskII/keycodes.html
-- (void)keyDown:(NSEvent *)ev
+- (void)keyDown:(NSEvent*)ev
 {
     BOOL handled = NO;
 
-    NSString *characters = [ev charactersIgnoringModifiers];
+    NSString* characters = [ev charactersIgnoringModifiers];
     NSLog(@"char: %@ - %@", [ev charactersIgnoringModifiers], [ev characters]);
     unsigned int characterIndex,
         characterCount = (unsigned int)[characters length];
@@ -422,15 +421,15 @@ bool bStarted = false;
 }
 
 // Called immediately before relaunching.
-- (void)updaterWillRelaunchApplication:(SUUpdater *)__unused updater
+- (void)updaterWillRelaunchApplication:(SUUpdater*)__unused updater
 {
     if (m_config != NULL)
         [NSApp endSheet:[m_config window]];
 }
 
-- (void)doUpdate:(NSTimer *)timer
+- (void)doUpdate:(NSTimer*)timer
 {
-    SUAppcastItem *update = [timer userInfo];
+    SUAppcastItem* update = [timer userInfo];
 
     if (!m_isFullScreen)
         [m_updater checkForUpdatesInBackground];
@@ -440,8 +439,8 @@ bool bStarted = false;
 }
 
 // Sent when a valid update is found by the update driver.
-- (void)updater:(SUUpdater *)__unused updater
-    didFindValidUpdate:(SUAppcastItem *)update
+- (void)updater:(SUUpdater*)__unused updater
+    didFindValidUpdate:(SUAppcastItem*)update
 {
     [NSTimer scheduledTimerWithTimeInterval:1.0
                                      target:self
@@ -462,11 +461,11 @@ bool bStarted = false;
 
 #ifdef USE_METAL
 
-- (void)mtkView:(MTKView *)view drawableSizeWillChange:(CGSize)size
+- (void)mtkView:(MTKView*)view drawableSizeWillChange:(CGSize)size
 {
 }
 
-- (void)drawInMTKView:(nonnull MTKView *)view
+- (void)drawInMTKView:(nonnull MTKView*)view
 {
     if (!m_isStopped)
     {

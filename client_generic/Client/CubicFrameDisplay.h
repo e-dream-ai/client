@@ -50,7 +50,7 @@ class CCubicFrameDisplay : public CFrameDisplay
         : CFrameDisplay(_spRenderer)
     {
         //	glsl fragment shader
-        static const char *cubic_fragmentshaderGL2D = "\
+        static const char* cubic_fragmentshaderGL2D = "\
 					uniform sampler2D texUnit1;	\
 					uniform sampler2D texUnit2;	\
 					uniform sampler2D texUnit3;	\
@@ -87,7 +87,7 @@ class CCubicFrameDisplay : public CFrameDisplay
 					}";
 
         //	glsl fragment shader 2DRect
-        static const char *cubic_fragmentshaderGL2DRect = "\
+        static const char* cubic_fragmentshaderGL2DRect = "\
 					uniform sampler2DRect texUnit1;	\
 					uniform sampler2DRect texUnit2;	\
 					uniform sampler2DRect texUnit3;	\
@@ -125,7 +125,7 @@ class CCubicFrameDisplay : public CFrameDisplay
 
         // gl_FragColor = ( c0 * weights.x ) + ( c1 * weights.y ) + ( c2 *
         // weights.z ) + ( c3 * weights.w ); 	hlsl vertexshader...
-        static const char *cubic_vertexshader = "\
+        static const char* cubic_vertexshader = "\
 					float4x4 WorldViewProj: WORLDVIEWPROJECTION;\
 					struct VS_OUTPUT\
 					{\
@@ -141,7 +141,7 @@ class CCubicFrameDisplay : public CFrameDisplay
 					}";
 
         //	hlsl fragmentshader.
-        static const char *cubic_fragmentshaderDX = "\
+        static const char* cubic_fragmentshaderDX = "\
 					sampler2D texUnit1: register(s1);\
 					sampler2D texUnit2: register(s2);\
 					sampler2D texUnit3: register(s3);\
@@ -213,7 +213,7 @@ class CCubicFrameDisplay : public CFrameDisplay
     // lerp between them.
     virtual bool Update(ContentDecoder::spCContentDecoder _spDecoder,
                         const fp8 _decodeFps, const fp8 /*_displayFps*/,
-                        ContentDecoder::sMetaData &_metadata)
+                        ContentDecoder::sMetaData& _metadata)
     {
         fp4 currentalpha = m_LastAlpha;
         bool frameGrabbed = false;

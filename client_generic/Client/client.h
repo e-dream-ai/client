@@ -77,7 +77,7 @@ class CElectricSheep
     fp8 m_OriginalFps;
 
     //	Voting object.
-    CVote *m_pVoter;
+    CVote* m_pVoter;
 
     //	Default root directory, ie application data.
     std::string m_AppData;
@@ -104,9 +104,9 @@ class CElectricSheep
     uint64 m_lastPlayedSeconds;
 
 #ifdef DO_THREAD_UPDATE
-    boost::barrier *m_pUpdateBarrier;
+    boost::barrier* m_pUpdateBarrier;
 
-    boost::thread_group *m_pUpdateThreads;
+    boost::thread_group* m_pUpdateThreads;
 
     boost::mutex m_BarrierMutex;
 #endif
@@ -356,7 +356,7 @@ class CElectricSheep
 
         bool splashFound = false;
 
-        const char *percent;
+        const char* percent;
 
         if (m_SplashFilename.empty() == false)
         {
@@ -364,7 +364,7 @@ class CElectricSheep
             {
                 if (percent[1] == 'd')
                 {
-                    FILE *test;
+                    FILE* test;
                     while (1)
                     {
                         char fNameFormatted[FILENAME_MAX];
@@ -385,7 +385,7 @@ class CElectricSheep
             }
             else
             {
-                FILE *test = fopen(m_SplashFilename.c_str(), "r");
+                FILE* test = fopen(m_SplashFilename.c_str(), "r");
 
                 if (test != NULL)
                 {
@@ -501,7 +501,7 @@ class CElectricSheep
         uint32 minutes = (timediff / 60) % 60;
         uint32 hours = (timediff / 3600) % 24;
         uint32 days = uint32((timediff / (60 * 60 * 24)));
-        const char *space = "";
+        const char* space = "";
         if (days > 0)
         {
             ss << days << " day" << ((days != 1) ? "s" : "") << ",";
@@ -561,7 +561,7 @@ class CElectricSheep
 
         for (int i = 0; i < displayCnt; i++)
         {
-            boost::thread *th =
+            boost::thread* th =
                 new boost::thread(&CElectricSheep::UpdateFrameThread, this, i);
 #ifdef WIN32
             SetThreadPriority((HANDLE)th->native_handle(),
@@ -594,8 +594,8 @@ class CElectricSheep
 #endif
 
     //
-    virtual bool Update(boost::barrier &_beginFrameBarrier,
-                        boost::barrier &_endFrameBarrier)
+    virtual bool Update(boost::barrier& _beginFrameBarrier,
+                        boost::barrier& _endFrameBarrier)
     {
         g_Player().BeginFrameUpdate();
 
@@ -641,7 +641,7 @@ class CElectricSheep
                 m_pUpdateBarrier->wait();
             }
         }
-        catch (boost::thread_interrupted const &)
+        catch (boost::thread_interrupted const&)
         {
         }
     }
@@ -826,9 +826,9 @@ class CElectricSheep
                 std::stringstream decodefpsstr;
                 decodefpsstr.precision(2);
                 decodefpsstr << std::fixed << m_CurrentFps << " fps";
-                ((Hud::CStringStat *)spStats->Get("decodefps"))
+                ((Hud::CStringStat*)spStats->Get("decodefps"))
                     ->SetSample(decodefpsstr.str());
-                ((Hud::CIntCounter *)spStats->Get("displayfps"))->AddSample(1);
+                ((Hud::CIntCounter*)spStats->Get("displayfps"))->AddSample(1);
 
                 uint32 playingID = g_Player().GetCurrentPlayingSheepID();
                 uint32 playingGen =
@@ -872,7 +872,7 @@ class CElectricSheep
                          g_Player().IsCurrentPlayingEdge() ? "edge" : "loop",
                          playCntStr);
                 if (playingID != 0)
-                    ((Hud::CStringStat *)spStats->Get("currentid"))
+                    ((Hud::CStringStat*)spStats->Get("currentid"))
                         ->SetSample(strCurID);
 
                 spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
@@ -884,7 +884,7 @@ class CElectricSheep
                 char buf[1024];
                 snprintf(buf, sizeof(buf), "%s - %s", dreamAuthor.c_str(),
                          dreamName.c_str());
-                ((Hud::CStringStat *)spStats->Get("credits"))->SetSample(buf);
+                ((Hud::CStringStat*)spStats->Get("credits"))->SetSample(buf);
                 //	Serverstats.
                 spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
                     m_HudManager->Get("dreamstats"));
@@ -895,12 +895,12 @@ class CElectricSheep
                 char strHP[128];
                 snprintf(strHP, 127, "%s",
                          FormatTimeDiff(uptime, true).c_str());
-                ((Hud::CStringStat *)spStats->Get("uptime"))->SetSample(strHP);
+                ((Hud::CStringStat*)spStats->Get("uptime"))->SetSample(strHP);
                 if (m_CpuUsageTotal != -1 && m_CpuUsageES != -1)
                 {
                     std::stringstream temp;
                     temp << m_CpuUsageES << "%/" << m_CpuUsageTotal << "% ";
-                    ((Hud::CStringStat *)spStats->Get("zzacpu"))
+                    ((Hud::CStringStat*)spStats->Get("zzacpu"))
                         ->SetSample(temp.str());
                 }
 
@@ -937,11 +937,11 @@ class CElectricSheep
                 };
                 tmpstr << flockcount << " dream" << (flockcount > 1 ? "s" : "")
                        << ", " << flockmbs << "MB";
-                ((Hud::CStringStat *)spStats->Get("all"))
+                ((Hud::CStringStat*)spStats->Get("all"))
                     ->SetSample(tmpstr.str());
 
-                Hud::CStringStat *pTmp =
-                    (Hud::CStringStat *)spStats->Get("transfers");
+                Hud::CStringStat* pTmp =
+                    (Hud::CStringStat*)spStats->Get("transfers");
                 if (pTmp)
                 {
                     std::string serverStatus = g_NetworkManager->Status();
@@ -954,7 +954,7 @@ class CElectricSheep
                     }
                 }
 
-                pTmp = (Hud::CStringStat *)spStats->Get("loginstatus");
+                pTmp = (Hud::CStringStat*)spStats->Get("loginstatus");
                 if (pTmp)
                 {
                     bool visible = true;
@@ -974,7 +974,7 @@ class CElectricSheep
                     pTmp->Visible(visible);
                 }
 
-                pTmp = (Hud::CStringStat *)spStats->Get("deleted");
+                pTmp = (Hud::CStringStat*)spStats->Get("deleted");
                 if (pTmp)
                 {
                     std::string deleted;
@@ -989,7 +989,7 @@ class CElectricSheep
                         pTmp->Visible(false);
                 }
 
-                pTmp = (Hud::CStringStat *)spStats->Get("zconnerror");
+                pTmp = (Hud::CStringStat*)spStats->Get("zconnerror");
                 if (pTmp)
                 {
                     if (m_ConnectionErrors.size() > 0)
@@ -1009,8 +1009,8 @@ class CElectricSheep
                         pTmp->Visible(false);
                 }
 
-                Hud::CTimeCountDownStat *pTcd =
-                    (Hud::CTimeCountDownStat *)spStats->Get("svstat");
+                Hud::CTimeCountDownStat* pTcd =
+                    (Hud::CTimeCountDownStat*)spStats->Get("svstat");
                 if (pTcd)
                 {
                     bool isnew = false;
@@ -1038,7 +1038,7 @@ class CElectricSheep
         return true;
     }
 
-    virtual bool HandleOneEvent(DisplayOutput::spCEvent &_event)
+    virtual bool HandleOneEvent(DisplayOutput::spCEvent& _event)
     {
         static const fp4 voteDelaySeconds = 1;
 
@@ -1144,7 +1144,7 @@ class CElectricSheep
 
     virtual int GetACLineStatus() { return -1; }
 
-    void SetUpdateAvailable(const std::string &verinfo)
+    void SetUpdateAvailable(const std::string& verinfo)
     {
         std::string message("New e-drean ");
 

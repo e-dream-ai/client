@@ -38,7 +38,7 @@ class CMacGL : public CDisplayOutput
     // static LRESULT CALLBACK	wndProc( HWND hWnd, UINT msg, WPARAM wParam,
     // LPARAM lParam );
 
-    static const char *Description() { return "Macintosh OpenGL display"; };
+    static const char* Description() { return "Macintosh OpenGL display"; };
 
     virtual bool Initialize(CGraphicsContext _glContext, bool _bPreview);
 
@@ -55,7 +55,7 @@ class CMacGL : public CDisplayOutput
     virtual bool HasShaders() { return true; };
 
     //
-    virtual void Title(const std::string &_title);
+    virtual void Title(const std::string& _title);
     virtual void Update();
 
     void SwapBuffers();

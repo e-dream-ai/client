@@ -56,7 +56,7 @@ LRESULT CALLBACK CDisplayDD::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
     {
     case WM_USER:
         //	All initialization messages have gone through.  Allow 500ms of
-        //idle
+        // idle
         // time, then proceed with initialization.
         SetTimer(hWnd, 1, 500, NULL);
         g_Log->Info("Starting 500ms preview timer");
@@ -87,7 +87,7 @@ LRESULT CALLBACK CDisplayDD::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
 
     case WM_KEYUP:
     {
-        CKeyEvent *spEvent = new CKeyEvent();
+        CKeyEvent* spEvent = new CKeyEvent();
         spEvent->m_bPressed = true;
 
         switch (wParam)
@@ -149,7 +149,7 @@ LRESULT CALLBACK CDisplayDD::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
 
     case WM_LBUTTONUP:
     {
-        CMouseEvent *spEvent = new CMouseEvent();
+        CMouseEvent* spEvent = new CMouseEvent();
         spEvent->m_Code = CMouseEvent::Mouse_LEFT;
         spEvent->m_X = MAKEPOINTS(lParam).x;
         spEvent->m_Y = MAKEPOINTS(lParam).y;
@@ -160,7 +160,7 @@ LRESULT CALLBACK CDisplayDD::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
 
     case WM_RBUTTONUP:
     {
-        CMouseEvent *spEvent = new CMouseEvent();
+        CMouseEvent* spEvent = new CMouseEvent();
         spEvent->m_Code = CMouseEvent::Mouse_RIGHT;
         spEvent->m_X = MAKEPOINTS(lParam).x;
         spEvent->m_Y = MAKEPOINTS(lParam).y;
@@ -171,7 +171,7 @@ LRESULT CALLBACK CDisplayDD::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
 
     case WM_MOUSEMOVE:
     {
-        CMouseEvent *spEvent = new CMouseEvent();
+        CMouseEvent* spEvent = new CMouseEvent();
         spEvent->m_Code = CMouseEvent::Mouse_MOVE;
 
         spEvent->m_X = MAKEPOINTS(lParam).x;
@@ -188,7 +188,7 @@ LRESULT CALLBACK CDisplayDD::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
         case PBT_APMBATTERYLOW:
         case PBT_APMSUSPEND:
         {
-            CPowerEvent *spEvent = new CPowerEvent();
+            CPowerEvent* spEvent = new CPowerEvent();
             spCEvent e = spEvent;
             m_EventQueue.push(e);
         }
@@ -426,7 +426,7 @@ HWND CDisplayDD::Initialize(const uint32 _width, const uint32 _height,
 }
 
 //
-void CDisplayDD::Title(const std::string &_title)
+void CDisplayDD::Title(const std::string& _title)
 {
     SetWindowTextA(m_WindowHandle, _title.c_str());
 }

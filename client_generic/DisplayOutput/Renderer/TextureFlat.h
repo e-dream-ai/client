@@ -40,8 +40,8 @@ class CTextureFlat : public CTexture
 
     virtual bool Dirty(void) { return m_bDirty; };
 
-    virtual Base::Math::CRect &GetRect(void) { return m_texRect; };
-    virtual void SetRect(const Base::Math::CRect &_rect) { m_texRect = _rect; };
+    virtual Base::Math::CRect& GetRect(void) { return m_texRect; };
+    virtual void SetRect(const Base::Math::CRect& _rect) { m_texRect = _rect; };
 };
 
 MakeSmartPointers(CTextureFlat);

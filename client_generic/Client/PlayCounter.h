@@ -22,7 +22,7 @@ using boost::filesystem::path;
 struct sPlayCountData
 {
     uint16 PlayCounts[max_sheep];
-    FILE *PlayCountFile;
+    FILE* PlayCountFile;
 };
 
 class CPlayCounter : public Base::CSingleton<CPlayCounter>
@@ -151,7 +151,7 @@ class CPlayCounter : public Base::CSingleton<CPlayCounter>
         SingletonActive(false);
     }
 
-    const char *Description() { return ("Player"); };
+    const char* Description() { return ("Player"); };
 
     void clearMedianSurvivorsStats() { m_MedianCutSurvivors = 0; }
 
@@ -193,7 +193,7 @@ class CPlayCounter : public Base::CSingleton<CPlayCounter>
         return true;
     }
 
-    void SetDirectory(const path &dir) { m_PlayCountFilePath = dir; }
+    void SetDirectory(const path& dir) { m_PlayCountFilePath = dir; }
 
     void IncPlayCount(uint32 generation, uint32 id)
     {
@@ -247,6 +247,6 @@ class CPlayCounter : public Base::CSingleton<CPlayCounter>
         Helper for less typing...
 
 */
-inline CPlayCounter &g_PlayCounter(void) { return (CPlayCounter::Instance()); }
+inline CPlayCounter& g_PlayCounter(void) { return (CPlayCounter::Instance()); }
 
 #endif //_PLAYCOUNTER_H

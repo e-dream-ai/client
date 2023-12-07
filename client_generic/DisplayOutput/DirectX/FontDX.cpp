@@ -14,7 +14,7 @@ namespace DisplayOutput
         CFontDX().
 
 */
-CFontDX::CFontDX(IDirect3DDevice9 *_pDevice)
+CFontDX::CFontDX(IDirect3DDevice9* _pDevice)
     : CBaseFont(), m_pDXFont(NULL), m_pDevice(_pDevice)
 {
 }

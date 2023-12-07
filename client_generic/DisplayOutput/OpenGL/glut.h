@@ -309,36 +309,36 @@ signal handling.
 
 #if defined(_WIN32)
 /* Stroke font constants (use these in GLUT program). */
-#define GLUT_STROKE_ROMAN ((void *)0)
-#define GLUT_STROKE_MONO_ROMAN ((void *)1)
+#define GLUT_STROKE_ROMAN ((void*)0)
+#define GLUT_STROKE_MONO_ROMAN ((void*)1)
 
 /* Bitmap font constants (use these in GLUT program). */
-#define GLUT_BITMAP_9_BY_15 ((void *)2)
-#define GLUT_BITMAP_8_BY_13 ((void *)3)
-#define GLUT_BITMAP_TIMES_ROMAN_10 ((void *)4)
-#define GLUT_BITMAP_TIMES_ROMAN_24 ((void *)5)
+#define GLUT_BITMAP_9_BY_15 ((void*)2)
+#define GLUT_BITMAP_8_BY_13 ((void*)3)
+#define GLUT_BITMAP_TIMES_ROMAN_10 ((void*)4)
+#define GLUT_BITMAP_TIMES_ROMAN_24 ((void*)5)
 #if (GLUT_API_VERSION >= 3)
-#define GLUT_BITMAP_HELVETICA_10 ((void *)6)
-#define GLUT_BITMAP_HELVETICA_12 ((void *)7)
-#define GLUT_BITMAP_HELVETICA_18 ((void *)8)
+#define GLUT_BITMAP_HELVETICA_10 ((void*)6)
+#define GLUT_BITMAP_HELVETICA_12 ((void*)7)
+#define GLUT_BITMAP_HELVETICA_18 ((void*)8)
 #endif
 #else
 /* Stroke font opaque addresses (use constants instead in source code). */
-GLUTAPI void *glutStrokeRoman;
-GLUTAPI void *glutStrokeMonoRoman;
+GLUTAPI void* glutStrokeRoman;
+GLUTAPI void* glutStrokeMonoRoman;
 
 /* Stroke font constants (use these in GLUT program). */
 #define GLUT_STROKE_ROMAN (&glutStrokeRoman)
 #define GLUT_STROKE_MONO_ROMAN (&glutStrokeMonoRoman)
 
 /* Bitmap font opaque addresses (use constants instead in source code). */
-GLUTAPI void *glutBitmap9By15;
-GLUTAPI void *glutBitmap8By13;
-GLUTAPI void *glutBitmapTimesRoman10;
-GLUTAPI void *glutBitmapTimesRoman24;
-GLUTAPI void *glutBitmapHelvetica10;
-GLUTAPI void *glutBitmapHelvetica12;
-GLUTAPI void *glutBitmapHelvetica18;
+GLUTAPI void* glutBitmap9By15;
+GLUTAPI void* glutBitmap8By13;
+GLUTAPI void* glutBitmapTimesRoman10;
+GLUTAPI void* glutBitmapTimesRoman24;
+GLUTAPI void* glutBitmapHelvetica10;
+GLUTAPI void* glutBitmapHelvetica12;
+GLUTAPI void* glutBitmapHelvetica18;
 
 /* Bitmap font constants (use these in GLUT program). */
 #define GLUT_BITMAP_9_BY_15 (&glutBitmap9By15)
@@ -487,12 +487,12 @@ GLUTAPI void *glutBitmapHelvetica18;
 #endif
 
     /* GLUT initialization sub-API. */
-    GLUTAPI void APIENTRY glutInit(int *argcp, char **argv);
+    GLUTAPI void APIENTRY glutInit(int* argcp, char** argv);
 #if defined(_WIN32) && !defined(GLUT_DISABLE_ATEXIT_HACK)
-    GLUTAPI void APIENTRY __glutInitWithExit(int *argcp, char **argv,
-                                             void(__cdecl *exitfunc)(int));
+    GLUTAPI void APIENTRY __glutInitWithExit(int* argcp, char** argv,
+                                             void(__cdecl* exitfunc)(int));
 #ifndef GLUT_BUILDING_LIB
-    static void APIENTRY glutInit_ATEXIT_HACK(int *argcp, char **argv)
+    static void APIENTRY glutInit_ATEXIT_HACK(int* argcp, char** argv)
     {
         __glutInitWithExit(argcp, argv, exit);
     }
@@ -501,19 +501,19 @@ GLUTAPI void *glutBitmapHelvetica18;
 #endif
     GLUTAPI void APIENTRY glutInitDisplayMode(unsigned int mode);
 #if (GLUT_API_VERSION >= 4 || GLUT_XLIB_IMPLEMENTATION >= 9)
-    GLUTAPI void APIENTRY glutInitDisplayString(const char *string);
+    GLUTAPI void APIENTRY glutInitDisplayString(const char* string);
 #endif
     GLUTAPI void APIENTRY glutInitWindowPosition(int x, int y);
     GLUTAPI void APIENTRY glutInitWindowSize(int width, int height);
     GLUTAPI void APIENTRY glutMainLoop(void);
 
     /* GLUT window sub-API. */
-    GLUTAPI int APIENTRY glutCreateWindow(const char *title);
+    GLUTAPI int APIENTRY glutCreateWindow(const char* title);
 #if defined(_WIN32) && !defined(GLUT_DISABLE_ATEXIT_HACK)
     GLUTAPI int APIENTRY
-    __glutCreateWindowWithExit(const char *title, void(__cdecl *exitfunc)(int));
+    __glutCreateWindowWithExit(const char* title, void(__cdecl* exitfunc)(int));
 #ifndef GLUT_BUILDING_LIB
-    static int APIENTRY glutCreateWindow_ATEXIT_HACK(const char *title)
+    static int APIENTRY glutCreateWindow_ATEXIT_HACK(const char* title)
     {
         return __glutCreateWindowWithExit(title, exit);
     }
@@ -530,8 +530,8 @@ GLUTAPI void *glutBitmapHelvetica18;
     GLUTAPI void APIENTRY glutSwapBuffers(void);
     GLUTAPI int APIENTRY glutGetWindow(void);
     GLUTAPI void APIENTRY glutSetWindow(int win);
-    GLUTAPI void APIENTRY glutSetWindowTitle(const char *title);
-    GLUTAPI void APIENTRY glutSetIconTitle(const char *title);
+    GLUTAPI void APIENTRY glutSetWindowTitle(const char* title);
+    GLUTAPI void APIENTRY glutSetIconTitle(const char* title);
     GLUTAPI void APIENTRY glutPositionWindow(int x, int y);
     GLUTAPI void APIENTRY glutReshapeWindow(int width, int height);
     GLUTAPI void APIENTRY glutPopWindow(void);
@@ -559,13 +559,13 @@ GLUTAPI void *glutBitmapHelvetica18;
 #endif
 
     /* GLUT menu sub-API. */
-    GLUTAPI int APIENTRY glutCreateMenu(void(GLUTCALLBACK *func)(int));
+    GLUTAPI int APIENTRY glutCreateMenu(void(GLUTCALLBACK* func)(int));
 #if defined(_WIN32) && !defined(GLUT_DISABLE_ATEXIT_HACK)
-    GLUTAPI int APIENTRY __glutCreateMenuWithExit(void(GLUTCALLBACK *func)(int),
-                                                  void(__cdecl *exitfunc)(int));
+    GLUTAPI int APIENTRY __glutCreateMenuWithExit(void(GLUTCALLBACK* func)(int),
+                                                  void(__cdecl* exitfunc)(int));
 #ifndef GLUT_BUILDING_LIB
     static int APIENTRY
-    glutCreateMenu_ATEXIT_HACK(void(GLUTCALLBACK *func)(int))
+    glutCreateMenu_ATEXIT_HACK(void(GLUTCALLBACK* func)(int))
     {
         return __glutCreateMenuWithExit(func, exit);
     }
@@ -575,73 +575,73 @@ GLUTAPI void *glutBitmapHelvetica18;
     GLUTAPI void APIENTRY glutDestroyMenu(int menu);
     GLUTAPI int APIENTRY glutGetMenu(void);
     GLUTAPI void APIENTRY glutSetMenu(int menu);
-    GLUTAPI void APIENTRY glutAddMenuEntry(const char *label, int value);
-    GLUTAPI void APIENTRY glutAddSubMenu(const char *label, int submenu);
-    GLUTAPI void APIENTRY glutChangeToMenuEntry(int item, const char *label,
+    GLUTAPI void APIENTRY glutAddMenuEntry(const char* label, int value);
+    GLUTAPI void APIENTRY glutAddSubMenu(const char* label, int submenu);
+    GLUTAPI void APIENTRY glutChangeToMenuEntry(int item, const char* label,
                                                 int value);
-    GLUTAPI void APIENTRY glutChangeToSubMenu(int item, const char *label,
+    GLUTAPI void APIENTRY glutChangeToSubMenu(int item, const char* label,
                                               int submenu);
     GLUTAPI void APIENTRY glutRemoveMenuItem(int item);
     GLUTAPI void APIENTRY glutAttachMenu(int button);
     GLUTAPI void APIENTRY glutDetachMenu(int button);
 
     /* GLUT window callback sub-API. */
-    GLUTAPI void APIENTRY glutDisplayFunc(void(GLUTCALLBACK *func)(void));
-    GLUTAPI void APIENTRY glutReshapeFunc(void(GLUTCALLBACK *func)(int width,
+    GLUTAPI void APIENTRY glutDisplayFunc(void(GLUTCALLBACK* func)(void));
+    GLUTAPI void APIENTRY glutReshapeFunc(void(GLUTCALLBACK* func)(int width,
                                                                    int height));
     GLUTAPI void APIENTRY
-    glutKeyboardFunc(void(GLUTCALLBACK *func)(unsigned char key, int x, int y));
-    GLUTAPI void APIENTRY glutMouseFunc(void(GLUTCALLBACK *func)(int button,
+    glutKeyboardFunc(void(GLUTCALLBACK* func)(unsigned char key, int x, int y));
+    GLUTAPI void APIENTRY glutMouseFunc(void(GLUTCALLBACK* func)(int button,
                                                                  int state,
                                                                  int x, int y));
-    GLUTAPI void APIENTRY glutMotionFunc(void(GLUTCALLBACK *func)(int x,
+    GLUTAPI void APIENTRY glutMotionFunc(void(GLUTCALLBACK* func)(int x,
                                                                   int y));
     GLUTAPI void APIENTRY
-    glutPassiveMotionFunc(void(GLUTCALLBACK *func)(int x, int y));
-    GLUTAPI void APIENTRY glutEntryFunc(void(GLUTCALLBACK *func)(int state));
+    glutPassiveMotionFunc(void(GLUTCALLBACK* func)(int x, int y));
+    GLUTAPI void APIENTRY glutEntryFunc(void(GLUTCALLBACK* func)(int state));
     GLUTAPI void APIENTRY
-    glutVisibilityFunc(void(GLUTCALLBACK *func)(int state));
-    GLUTAPI void APIENTRY glutIdleFunc(void(GLUTCALLBACK *func)(void));
+    glutVisibilityFunc(void(GLUTCALLBACK* func)(int state));
+    GLUTAPI void APIENTRY glutIdleFunc(void(GLUTCALLBACK* func)(void));
     GLUTAPI void APIENTRY glutTimerFunc(unsigned int millis,
-                                        void(GLUTCALLBACK *func)(int value),
+                                        void(GLUTCALLBACK* func)(int value),
                                         int value);
     GLUTAPI void APIENTRY
-    glutMenuStateFunc(void(GLUTCALLBACK *func)(int state));
+    glutMenuStateFunc(void(GLUTCALLBACK* func)(int state));
 #if (GLUT_API_VERSION >= 2)
-    GLUTAPI void APIENTRY glutSpecialFunc(void(GLUTCALLBACK *func)(int key,
+    GLUTAPI void APIENTRY glutSpecialFunc(void(GLUTCALLBACK* func)(int key,
                                                                    int x,
                                                                    int y));
     GLUTAPI void APIENTRY
-    glutSpaceballMotionFunc(void(GLUTCALLBACK *func)(int x, int y, int z));
+    glutSpaceballMotionFunc(void(GLUTCALLBACK* func)(int x, int y, int z));
     GLUTAPI void APIENTRY
-    glutSpaceballRotateFunc(void(GLUTCALLBACK *func)(int x, int y, int z));
+    glutSpaceballRotateFunc(void(GLUTCALLBACK* func)(int x, int y, int z));
     GLUTAPI void APIENTRY
-    glutSpaceballButtonFunc(void(GLUTCALLBACK *func)(int button, int state));
+    glutSpaceballButtonFunc(void(GLUTCALLBACK* func)(int button, int state));
     GLUTAPI void APIENTRY
-    glutButtonBoxFunc(void(GLUTCALLBACK *func)(int button, int state));
-    GLUTAPI void APIENTRY glutDialsFunc(void(GLUTCALLBACK *func)(int dial,
+    glutButtonBoxFunc(void(GLUTCALLBACK* func)(int button, int state));
+    GLUTAPI void APIENTRY glutDialsFunc(void(GLUTCALLBACK* func)(int dial,
                                                                  int value));
-    GLUTAPI void APIENTRY glutTabletMotionFunc(void(GLUTCALLBACK *func)(int x,
+    GLUTAPI void APIENTRY glutTabletMotionFunc(void(GLUTCALLBACK* func)(int x,
                                                                         int y));
     GLUTAPI void APIENTRY glutTabletButtonFunc(
-        void(GLUTCALLBACK *func)(int button, int state, int x, int y));
+        void(GLUTCALLBACK* func)(int button, int state, int x, int y));
 #if (GLUT_API_VERSION >= 3)
     GLUTAPI void APIENTRY
-    glutMenuStatusFunc(void(GLUTCALLBACK *func)(int status, int x, int y));
+    glutMenuStatusFunc(void(GLUTCALLBACK* func)(int status, int x, int y));
     GLUTAPI void APIENTRY
-    glutOverlayDisplayFunc(void(GLUTCALLBACK *func)(void));
+    glutOverlayDisplayFunc(void(GLUTCALLBACK* func)(void));
 #if (GLUT_API_VERSION >= 4 || GLUT_XLIB_IMPLEMENTATION >= 9)
     GLUTAPI void APIENTRY
-    glutWindowStatusFunc(void(GLUTCALLBACK *func)(int state));
+    glutWindowStatusFunc(void(GLUTCALLBACK* func)(int state));
 #endif
 #if (GLUT_API_VERSION >= 4 || GLUT_XLIB_IMPLEMENTATION >= 13)
     GLUTAPI void APIENTRY glutKeyboardUpFunc(
-        void(GLUTCALLBACK *func)(unsigned char key, int x, int y));
-    GLUTAPI void APIENTRY glutSpecialUpFunc(void(GLUTCALLBACK *func)(int key,
+        void(GLUTCALLBACK* func)(unsigned char key, int x, int y));
+    GLUTAPI void APIENTRY glutSpecialUpFunc(void(GLUTCALLBACK* func)(int key,
                                                                      int x,
                                                                      int y));
     GLUTAPI void APIENTRY glutJoystickFunc(
-        void(GLUTCALLBACK *func)(unsigned int buttonMask, int x, int y, int z),
+        void(GLUTCALLBACK* func)(unsigned int buttonMask, int x, int y, int z),
         int pollInterval);
 #endif
 #endif
@@ -658,7 +658,7 @@ GLUTAPI void *glutBitmapHelvetica18;
     GLUTAPI int APIENTRY glutDeviceGet(GLenum type);
 #if (GLUT_API_VERSION >= 2)
     /* GLUT extension support sub-API */
-    GLUTAPI int APIENTRY glutExtensionSupported(const char *name);
+    GLUTAPI int APIENTRY glutExtensionSupported(const char* name);
 #endif
 #if (GLUT_API_VERSION >= 3)
     GLUTAPI int APIENTRY glutGetModifiers(void);
@@ -666,15 +666,15 @@ GLUTAPI void *glutBitmapHelvetica18;
 #endif
 
     /* GLUT font sub-API */
-    GLUTAPI void APIENTRY glutBitmapCharacter(void *font, int character);
-    GLUTAPI int APIENTRY glutBitmapWidth(void *font, int character);
-    GLUTAPI void APIENTRY glutStrokeCharacter(void *font, int character);
-    GLUTAPI int APIENTRY glutStrokeWidth(void *font, int character);
+    GLUTAPI void APIENTRY glutBitmapCharacter(void* font, int character);
+    GLUTAPI int APIENTRY glutBitmapWidth(void* font, int character);
+    GLUTAPI void APIENTRY glutStrokeCharacter(void* font, int character);
+    GLUTAPI int APIENTRY glutStrokeWidth(void* font, int character);
 #if (GLUT_API_VERSION >= 4 || GLUT_XLIB_IMPLEMENTATION >= 9)
-    GLUTAPI int APIENTRY glutBitmapLength(void *font,
-                                          const unsigned char *string);
-    GLUTAPI int APIENTRY glutStrokeLength(void *font,
-                                          const unsigned char *string);
+    GLUTAPI int APIENTRY glutBitmapLength(void* font,
+                                          const unsigned char* string);
+    GLUTAPI int APIENTRY glutStrokeLength(void* font,
+                                          const unsigned char* string);
 #endif
 
     /* GLUT pre-built models sub-API */
@@ -744,7 +744,7 @@ GLUTAPI void *glutBitmapHelvetica18;
 #define GLUT_GAME_MODE_REFRESH_RATE ((GLenum)5)
 #define GLUT_GAME_MODE_DISPLAY_CHANGED ((GLenum)6)
 
-    GLUTAPI void APIENTRY glutGameModeString(const char *string);
+    GLUTAPI void APIENTRY glutGameModeString(const char* string);
     GLUTAPI int APIENTRY glutEnterGameMode(void);
     GLUTAPI void APIENTRY glutLeaveGameMode(void);
     GLUTAPI int APIENTRY glutGameModeGet(GLenum mode);

@@ -39,11 +39,11 @@ struct DDSHeader
         LoadDDS().
 
 */
-bool CImage::LoadDDS(const std::string &_fileName, const bool _wantMipMaps)
+bool CImage::LoadDDS(const std::string& _fileName, const bool _wantMipMaps)
 {
     DDSHeader header;
 
-    FILE *pFileData = fopen(_fileName.c_str(), "rb");
+    FILE* pFileData = fopen(_fileName.c_str(), "rb");
     if (!pFileData)
     {
         ThrowStr(("CImage::LoadDDS() Unable to open " + _fileName).c_str());

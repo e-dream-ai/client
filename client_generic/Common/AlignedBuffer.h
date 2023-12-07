@@ -39,7 +39,7 @@ class CReusableAlignedBuffers : public CSingleton<CReusableAlignedBuffers>
 
         uint32 size;
 
-        uint8 *ptr;
+        uint8* ptr;
     } BufferElement;
 
     BufferElement m_BufferCache[BUFFER_CACHE_SIZE];
@@ -55,13 +55,13 @@ class CReusableAlignedBuffers : public CSingleton<CReusableAlignedBuffers>
 
     ~CReusableAlignedBuffers();
 
-    uint8 *Allocate(uint32 size);
+    uint8* Allocate(uint32 size);
 
-    void Free(uint8 *ptr, uint32 size);
+    void Free(uint8* ptr, uint32 size);
 
-    static void RealFree(uint8 *ptr, uint32 size);
+    static void RealFree(uint8* ptr, uint32 size);
 
-    uint8 *Reallocate(uint8 *ptr, uint32 size);
+    uint8* Reallocate(uint8* ptr, uint32 size);
 
     static inline uint32 GetPageSize(void)
     {
@@ -81,12 +81,12 @@ class CReusableAlignedBuffers : public CSingleton<CReusableAlignedBuffers>
 
     bool Shutdown(void) { return true; }
 
-    const char *Description() { return "CReusableAlignedBuffers"; }
+    const char* Description() { return "CReusableAlignedBuffers"; }
 
     //	Provides singleton access.
-    static CReusableAlignedBuffers *Instance(const char * /*_pFileStr*/,
+    static CReusableAlignedBuffers* Instance(const char* /*_pFileStr*/,
                                              const uint32 /*_line*/,
-                                             const char * /*_pFunc*/)
+                                             const char* /*_pFunc*/)
     {
         static CReusableAlignedBuffers rab;
 
@@ -112,9 +112,9 @@ MakeSmartPointers(CAlignedBuffer);
 
 class CAlignedBuffer
 {
-    uint8 *m_Buffer;
+    uint8* m_Buffer;
 
-    uint8 *m_BufferAlignedStart;
+    uint8* m_BufferAlignedStart;
 
     uint32 m_Size;
 
@@ -131,7 +131,7 @@ class CAlignedBuffer
 
     void Free(void);
 
-    uint8 *GetBufferPtr(void) const;
+    uint8* GetBufferPtr(void) const;
 
     bool IsValid() const { return (m_Buffer != NULL); }
 

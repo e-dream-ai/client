@@ -23,7 +23,7 @@ inline void ExecuteOnMainThread(void (^_block)(void))
     }
 }
 
-CTextMetal::CTextMetal(spCFontMetal _font, MTKView *_view,
+CTextMetal::CTextMetal(spCFontMetal _font, MTKView* _view,
                        float /*_contextAspect*/)
     : m_spFont(_font), m_pTextMesh(NULL), m_Device(_view.device),
       m_ContextAspect(
@@ -32,10 +32,10 @@ CTextMetal::CTextMetal(spCFontMetal _font, MTKView *_view,
 {
 #if USE_SYSTEM_UI
     __block spCFontMetal font = _font;
-    __block MTKView *view = _view;
-    __block NSTextField *__strong &resultTextField = m_TextField;
+    __block MTKView* view = _view;
+    __block NSTextField* __strong& resultTextField = m_TextField;
     ExecuteOnMainThread(^{
-        NSTextField *textField = [[NSTextField alloc] init];
+        NSTextField* textField = [[NSTextField alloc] init];
         [textField setBezeled:NO];
         [textField setBordered:NO];
         [textField setBackgroundColor:NSColor.clearColor];
@@ -50,7 +50,7 @@ CTextMetal::CTextMetal(spCFontMetal _font, MTKView *_view,
         [textField setAutoresizingMask:NSViewMaxYMargin];
         [textField setHidden:YES];
 
-        NSShadow *textShadow = [[NSShadow alloc] init];
+        NSShadow* textShadow = [[NSShadow alloc] init];
         [textShadow setShadowColor:[NSColor blackColor]];
         [textShadow setShadowOffset:NSMakeSize(1, 1)];
         [textField setShadow:textShadow];
@@ -65,7 +65,7 @@ CTextMetal::CTextMetal(spCFontMetal _font, MTKView *_view,
 
         [view addSubview:textField];
 
-        resultTextField = (__bridge NSTextField *)CFBridgingRetain(textField);
+        resultTextField = (__bridge NSTextField*)CFBridgingRetain(textField);
     });
 #endif
 }
@@ -73,7 +73,7 @@ CTextMetal::CTextMetal(spCFontMetal _font, MTKView *_view,
 CTextMetal::~CTextMetal()
 {
 #if USE_SYSTEM_UI
-    __block NSTextField *textField =
+    __block NSTextField* textField =
         CFBridgingRelease((__bridge CFTypeRef)m_TextField);
     ExecuteOnMainThread(^{
         [textField removeFromSuperview];
@@ -81,13 +81,13 @@ CTextMetal::~CTextMetal()
 #endif
 }
 
-void CTextMetal::SetText(const std::string &_text)
+void CTextMetal::SetText(const std::string& _text)
 {
     if (_text != m_Text)
     {
         m_Text = _text;
 #if USE_SYSTEM_UI
-        __block NSString *str = [NSString stringWithUTF8String:_text.c_str()];
+        __block NSString* str = [NSString stringWithUTF8String:_text.c_str()];
         ExecuteOnMainThread(^{
             if (g_Player().Stopped())
                 return;
@@ -98,12 +98,12 @@ void CTextMetal::SetText(const std::string &_text)
                                              contentSize.height)];
         });
 #else  /*USE_SYSTEM_UI*/
-        NSString *text = @(_text.c_str());
+        NSString* text = @(_text.c_str());
         CGRect rect = CGRectMake(
             0, 0, kMetalTextReferenceContextSize * (1.f / m_ContextAspect),
             kMetalTextReferenceContextSize);
         CGFloat size = m_spFont->FontDescription().Height() * 3;
-        MBEFontAtlas *atlas = m_spFont->GetAtlas();
+        MBEFontAtlas* atlas = m_spFont->GetAtlas();
         m_pTextMesh = [[MBETextMesh alloc] initWithString:text
                                                    inRect:rect
                                             withFontAtlas:atlas
@@ -112,12 +112,12 @@ void CTextMetal::SetText(const std::string &_text)
 #endif /*USE_SYSTEM_UI*/
     }
 }
-void CTextMetal::SetRect(const Base::Math::CRect &_rect)
+void CTextMetal::SetRect(const Base::Math::CRect& _rect)
 {
     CBaseText::SetRect(_rect);
 #if USE_SYSTEM_UI
     __block Base::Math::CRect rect = _rect;
-    __block const Base::Math::CVector2 &extents = m_Extents;
+    __block const Base::Math::CVector2& extents = m_Extents;
     ExecuteOnMainThread(^{
         if (g_Player().Stopped())
             return;
@@ -134,7 +134,7 @@ void CTextMetal::SetRect(const Base::Math::CRect &_rect)
 Base::Math::CVector2 CTextMetal::GetExtent()
 {
 #if USE_SYSTEM_UI
-    __block Base::Math::CVector2 &extents = m_Extents;
+    __block Base::Math::CVector2& extents = m_Extents;
     ExecuteOnMainThread(^{
         if (g_Player().Stopped())
             return;

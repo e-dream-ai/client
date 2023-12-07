@@ -67,7 +67,7 @@ CUnixGL::~CUnixGL()
 
 #ifdef LINUX_GNU
 
-static Bool WaitForNotify(Display *dpy, XEvent *event, XPointer arg)
+static Bool WaitForNotify(Display* dpy, XEvent* event, XPointer arg)
 {
     return (event->type == MapNotify) && (event->xmap.window == (Window)arg);
 }
@@ -99,9 +99,9 @@ bool CUnixGL::Initialize(const uint32 _width, const uint32 _height,
         return false;
     }
 
-    GLXFBConfig *pFbConfig = NULL;
+    GLXFBConfig* pFbConfig = NULL;
     GLXFBConfig renderFBConfig;
-    XVisualInfo *pVisualInfo = NULL;
+    XVisualInfo* pVisualInfo = NULL;
     XSetWindowAttributes winAttributes;
     int numElements;
     XEvent event;
@@ -165,11 +165,11 @@ bool CUnixGL::Initialize(const uint32 _width, const uint32 _height,
     winAttributes.override_redirect = true;
 
 #ifdef LINUX_GNU
-    const char *xss_id = getenv("XSCREENSAVER_WINDOW");
+    const char* xss_id = getenv("XSCREENSAVER_WINDOW");
     if (xss_id && *xss_id)
     {
         int numReturned;
-        XVisualInfo *xvis;
+        XVisualInfo* xvis;
         XVisualInfo xvtmpl;
         XWindowAttributes attr;
 
@@ -295,10 +295,10 @@ bool CUnixGL::Initialize(const uint32 _width, const uint32 _height,
 
 /*
  */
-void CUnixGL::Title(const std::string &_title)
+void CUnixGL::Title(const std::string& _title)
 {
     XTextProperty textProp;
-    textProp.value = (unsigned char *)_title.c_str();
+    textProp.value = (unsigned char*)_title.c_str();
     textProp.encoding = XA_STRING;
     textProp.format = 8;
     textProp.nitems = _title.length();
@@ -310,7 +310,7 @@ void CUnixGL::Title(const std::string &_title)
  */
 void CUnixGL::setWindowDecorations(bool enabled)
 {
-    unsigned char *pucData;
+    unsigned char* pucData;
     int iFormat;
     unsigned long ulItems;
     unsigned long ulBytesAfter;
@@ -331,7 +331,7 @@ void CUnixGL::setWindowDecorations(bool enabled)
         newHints.decorations = enabled ? 1 : 0;
 
         XChangeProperty(m_pDisplay, m_Window, hintsAtom, hintsAtom, 32,
-                        PropModeReplace, (unsigned char *)&newHints,
+                        PropModeReplace, (unsigned char*)&newHints,
                         sizeof(MotifWmHints) / sizeof(long));
         set = true;
     }
@@ -343,7 +343,7 @@ void CUnixGL::setWindowDecorations(bool enabled)
         long KWMHints = 0;
 
         XChangeProperty(m_pDisplay, m_Window, hintsAtom, hintsAtom, 32,
-                        PropModeReplace, (unsigned char *)&KWMHints,
+                        PropModeReplace, (unsigned char*)&KWMHints,
                         sizeof(KWMHints) / 4);
         set = true;
     }
@@ -354,7 +354,7 @@ void CUnixGL::setWindowDecorations(bool enabled)
         long GNOMEHints = 0;
 
         XChangeProperty(m_pDisplay, m_Window, hintsAtom, hintsAtom, 32,
-                        PropModeReplace, (unsigned char *)&GNOMEHints,
+                        PropModeReplace, (unsigned char*)&GNOMEHints,
                         sizeof(GNOMEHints) / 4);
         set = true;
     }
@@ -366,7 +366,7 @@ void CUnixGL::setWindowDecorations(bool enabled)
     }
 }
 
-static bool isWindowMapped(Display *dpy, Window *xWin)
+static bool isWindowMapped(Display* dpy, Window* xWin)
 {
     XWindowAttributes attr;
 
@@ -428,7 +428,7 @@ void CUnixGL::setFullScreen(bool enabled)
             atoms[count++] = XA_NET_WM_STATE_MAXIMIZED_VERT;
             atoms[count++] = XA_NET_WM_STATE_MAXIMIZED_HORZ;
             XChangeProperty(m_pDisplay, m_Window, XA_NET_WM_STATE, XA_ATOM, 32,
-                            PropModeReplace, (unsigned char *)atoms, count);
+                            PropModeReplace, (unsigned char*)atoms, count);
         }
 
         changes.x = 0;
@@ -494,7 +494,7 @@ void CUnixGL::alwaysOnTop()
 
     long propvalue = 12;
     XChangeProperty(m_pDisplay, m_Window, XA_WIN_LAYER, XA_CARDINAL, 32,
-                    PropModeReplace, (unsigned char *)&propvalue, 1);
+                    PropModeReplace, (unsigned char*)&propvalue, 1);
     XRaiseWindow(m_pDisplay, m_Window);
 }
 
@@ -564,7 +564,7 @@ void CUnixGL::checkClientMessages()
     if (XCheckWindowEvent(m_pDisplay, m_Window, KeyPressMask | KeyReleaseMask,
                           &xEvent))
     {
-        CKeyEvent *spEvent = new CKeyEvent();
+        CKeyEvent* spEvent = new CKeyEvent();
 
         if (xEvent.type == KeyPress)
         {
@@ -581,7 +581,7 @@ void CUnixGL::checkClientMessages()
         // );
 
         int keysyms_per_keycode_returned = 0;
-        KeySym *keySymbol = XGetKeyboardMapping(
+        KeySym* keySymbol = XGetKeyboardMapping(
             m_pDisplay, xEvent.xkey.keycode, 1, &keysyms_per_keycode_returned);
 
         switch (keySymbol[0])

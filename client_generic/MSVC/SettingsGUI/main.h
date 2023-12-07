@@ -11,7 +11,7 @@ class wxWidgetsApp : public wxApp
     virtual bool OnInit();
 
   private:
-    electricsheepguiMyDialog2 *m_dialog;
+    electricsheepguiMyDialog2* m_dialog;
 };
 
 DECLARE_APP(wxWidgetsApp)

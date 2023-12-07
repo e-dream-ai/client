@@ -18,30 +18,30 @@ class CPlaylist
     CPlaylist() {}
     virtual ~CPlaylist() {}
     virtual uint32 Size() = PureVirtual;
-    virtual bool Add(const std::string &_file) = PureVirtual;
-    virtual bool Next(std::string &_result, bool &_bEnoughSheep, uint32 _curID,
-                      bool &_playFreshSheep, const bool _bRebuild = false,
+    virtual bool Add(const std::string& _file) = PureVirtual;
+    virtual bool Next(std::string& _result, bool& _bEnoughSheep, uint32 _curID,
+                      bool& _playFreshSheep, const bool _bRebuild = false,
                       bool _bStartByRandom = true) = PureVirtual;
     virtual bool ChooseSheepForPlaying(uint32 curGen,
                                        uint32 curID) = PureVirtual;
     virtual void Override(const uint32 _id) = PureVirtual;
     virtual void Delete(const uint32 _id) = PureVirtual;
-    virtual bool PopFreshlyDownloadedSheep(std::string &_result)
+    virtual bool PopFreshlyDownloadedSheep(std::string& _result)
     {
         return false;
     }
     virtual bool HasFreshlyDownloadedSheep() { return false; }
-    virtual bool GetDreamNameAndAuthor(const std::string &_filePath,
-                                       std::string *_outDreamName,
-                                       std::string *_outDreamAuthor)
+    virtual bool GetDreamNameAndAuthor(const std::string& _filePath,
+                                       std::string* _outDreamName,
+                                       std::string* _outDreamAuthor)
     {
         return false;
     }
 
-    virtual bool GetSheepInfoFromPath(const std::string &_path,
-                                      uint32 &Generation, uint32 &ID,
-                                      uint32 &First, uint32 &Last,
-                                      std::string &_filename)
+    virtual bool GetSheepInfoFromPath(const std::string& _path,
+                                      uint32& Generation, uint32& ID,
+                                      uint32& First, uint32& Last,
+                                      std::string& _filename)
     {
         //	Remove the full path so we can work on the filename.
         size_t offs = _path.find_last_of("/\\", _path.size());

@@ -73,7 +73,7 @@ bool CMacGL::Initialize(CGLContextObj _glContext, bool /*_bPreview*/)
 }
 
 //
-void CMacGL::Title(const std::string & /*_title*/) {}
+void CMacGL::Title(const std::string& /*_title*/) {}
 
 //
 void CMacGL::Update() {}

@@ -23,13 +23,13 @@ class CWTimer : public ITimer
   public:
     CWTimer()
     {
-        QueryPerformanceFrequency((LARGE_INTEGER *)&m_Frequency);
+        QueryPerformanceFrequency((LARGE_INTEGER*)&m_Frequency);
         Reset();
     }
 
     void Reset()
     {
-        QueryPerformanceCounter((LARGE_INTEGER *)&m_TimeCounter);
+        QueryPerformanceCounter((LARGE_INTEGER*)&m_TimeCounter);
         m_DeltaCounter = m_TimeCounter;
         m_Time = 0;
     }
@@ -37,7 +37,7 @@ class CWTimer : public ITimer
     fp8 Time()
     {
         int64 counter;
-        QueryPerformanceCounter((LARGE_INTEGER *)&counter);
+        QueryPerformanceCounter((LARGE_INTEGER*)&counter);
         m_Time += (fp8)(counter - m_TimeCounter) / (fp8)m_Frequency;
         m_TimeCounter = counter;
         return m_Time;
@@ -46,7 +46,7 @@ class CWTimer : public ITimer
     fp8 Delta()
     {
         int64 counter;
-        QueryPerformanceCounter((LARGE_INTEGER *)&counter);
+        QueryPerformanceCounter((LARGE_INTEGER*)&counter);
         m_DeltaCounter = counter;
         return (fp8)(counter - m_DeltaCounter) / (fp8)m_Frequency;
     }

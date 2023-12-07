@@ -17,7 +17,7 @@ class CVote
         uint8 vtype;
     } VotingInfo;
 
-    boost::thread *m_pThread;
+    boost::thread* m_pThread;
     Base::CTimer m_Timer;
 
     Base::CBlockingQueue<VotingInfo> m_Votings;

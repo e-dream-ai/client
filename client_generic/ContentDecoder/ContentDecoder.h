@@ -105,7 +105,7 @@ struct sOpenVideoInfo
 
     bool IsOpen() { return (m_pFormatContext != NULL); }
 
-    bool EqualsTo(sOpenVideoInfo *ovi)
+    bool EqualsTo(sOpenVideoInfo* ovi)
     {
         return (m_SheepID == ovi->m_SheepID &&
                 m_Generation == ovi->m_Generation);
@@ -119,12 +119,12 @@ struct sOpenVideoInfo
         return !(m_First == m_Last && m_Last == m_SheepID);
     }
 
-    AVFrame *m_pFrame;
-    AVFormatContext *m_pFormatContext;
-    AVCodecContext *m_pVideoCodecContext;
-    AVBSFContext *m_pBsfContext = nullptr;
-    const AVCodec *m_pVideoCodec;
-    AVStream *m_pVideoStream;
+    AVFrame* m_pFrame;
+    AVFormatContext* m_pFormatContext;
+    AVCodecContext* m_pVideoCodecContext;
+    AVBSFContext* m_pBsfContext = nullptr;
+    const AVCodec* m_pVideoCodec;
+    AVStream* m_pVideoStream;
     int32 m_VideoStreamID;
     uint32 m_totalFrameCount;
     time_t m_CurrentFileatime;
@@ -153,25 +153,25 @@ class CContentDecoder
     uint32 m_FadeOut;
     uint32 m_FadeCount;
 
-    SwsContext *m_pScaler;
+    SwsContext* m_pScaler;
     uint32 m_ScalerWidth;
     uint32 m_ScalerHeight;
 
     //	Thread & threadfunction.
-    boost::thread *m_pDecoderThread;
+    boost::thread* m_pDecoderThread;
     void ReadPackets();
 
-    boost::thread *m_pNextSheepThread;
+    boost::thread* m_pNextSheepThread;
     void CalculateNextSheep();
 
     //	Queue for decoded frames.
-    Base::CBlockingQueue<CVideoFrame *> m_FrameQueue;
+    Base::CBlockingQueue<CVideoFrame*> m_FrameQueue;
     boost::shared_mutex m_ForceNextMutex;
 
     //	Codec context & working objects.
-    sOpenVideoInfo *m_MainVideoInfo;
+    sOpenVideoInfo* m_MainVideoInfo;
 
-    sOpenVideoInfo *m_SecondVideoInfo;
+    sOpenVideoInfo* m_SecondVideoInfo;
 
     AVPixelFormat m_WantedPixelFormat;
 
@@ -199,19 +199,19 @@ class CContentDecoder
     os_log_t m_signpostHandle;
 #endif
 
-    bool Open(sOpenVideoInfo *ovi);
-    sOpenVideoInfo *GetNextSheepInfo();
+    bool Open(sOpenVideoInfo* ovi);
+    sOpenVideoInfo* GetNextSheepInfo();
     bool NextSheepForPlaying(int32 _forceNext = 0);
     void Destroy();
 
-    CVideoFrame *ReadOneFrame(sOpenVideoInfo *ovi);
+    CVideoFrame* ReadOneFrame(sOpenVideoInfo* ovi);
 
     static int DumpError(int _err);
 
   public:
     CContentDecoder(spCPlaylist _spPlaylist, bool _bStartByRandom,
                     bool _bAllowTransitions, const uint32 _queueLenght,
-                    boost::shared_mutex &_downloadSaveMutex,
+                    boost::shared_mutex& _downloadSaveMutex,
                     AVPixelFormat _wantedPixelFormat = AV_PIX_FMT_RGB24);
     virtual ~CContentDecoder();
 

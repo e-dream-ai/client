@@ -18,7 +18,7 @@ const uint32_t kFontAtlasSize = 4096;
         CFontMetal().
 
 */
-CFontMetal::CFontMetal(CFontDescription &_desc, spCTextureFlat _textTexture)
+CFontMetal::CFontMetal(CFontDescription& _desc, spCTextureFlat _textTexture)
     : CBaseFont()
 {
     m_spAtlasTexture =
@@ -29,14 +29,14 @@ CFontMetal::CFontMetal(CFontDescription &_desc, spCTextureFlat _textTexture)
 bool CFontMetal::Create()
 {
 #if !USE_SYSTEM_UI
-    NSString *typeFace = @(m_typeFace.c_str());
-    NSError *error;
+    NSString* typeFace = @(m_typeFace.c_str());
+    NSError* error;
 #if GENERATE_FONT_ATLAS
-    NSString *fileName = [NSString stringWithFormat:@"%@.sddf", typeFace];
-    NSFont *font = [NSFont fontWithName:typeFace size:24];
-    MBEFontAtlas *atlas = [[MBEFontAtlas alloc] initWithFont:font
+    NSString* fileName = [NSString stringWithFormat:@"%@.sddf", typeFace];
+    NSFont* font = [NSFont fontWithName:typeFace size:24];
+    MBEFontAtlas* atlas = [[MBEFontAtlas alloc] initWithFont:font
                                                  textureSize:kFontAtlasSize];
-    NSData *data = [NSKeyedArchiver archivedDataWithRootObject:atlas
+    NSData* data = [NSKeyedArchiver archivedDataWithRootObject:atlas
                                          requiringSecureCoding:NO
                                                          error:&error];
     if (error)
@@ -47,9 +47,9 @@ bool CFontMetal::Create()
     }
     [data writeToFile:fileName atomically:YES];
 #else  /*GENERATE_FONT_ATLAS*/
-    NSString *fileName = [[NSBundle mainBundle] pathForResource:typeFace
+    NSString* fileName = [[NSBundle mainBundle] pathForResource:typeFace
                                                          ofType:@"sddf"];
-    NSData *data = [NSData dataWithContentsOfFile:fileName];
+    NSData* data = [NSData dataWithContentsOfFile:fileName];
     if (!data)
     {
         g_Log->Error(
@@ -57,11 +57,11 @@ bool CFontMetal::Create()
             "font or create a font atlas for it.");
         return false;
     }
-    NSArray *allowedClasses = @[
+    NSArray* allowedClasses = @[
         MBEFontAtlas.class, NSString.class, NSData.class, NSArray.class,
         MBEGlyphDescriptor.class
     ];
-    MBEFontAtlas *atlas = [NSKeyedUnarchiver
+    MBEFontAtlas* atlas = [NSKeyedUnarchiver
         unarchivedObjectOfClasses:[NSSet setWithArray:allowedClasses]
                          fromData:data
                             error:&error];
@@ -73,7 +73,7 @@ bool CFontMetal::Create()
     }
 #endif /*GENERATE_FONT_ATLAS*/
     m_pFontAtlas = CFBridgingRetain(atlas);
-    m_spAtlasTexture->Upload((uint8_t *)GetAtlas().textureData.bytes, eImage_I8,
+    m_spAtlasTexture->Upload((uint8_t*)GetAtlas().textureData.bytes, eImage_I8,
                              kFontAtlasSize, kFontAtlasSize, kFontAtlasSize,
                              false, 0);
 #endif /*!USE_SYSTEM_UI*/
@@ -91,10 +91,10 @@ CFontMetal::~CFontMetal()
 #endif
 }
 
-MBEFontAtlas *CFontMetal::GetAtlas() const
+MBEFontAtlas* CFontMetal::GetAtlas() const
 {
 #if !USE_SYSTEM_UI
-    return (__bridge MBEFontAtlas *)m_pFontAtlas;
+    return (__bridge MBEFontAtlas*)m_pFontAtlas;
 #else
     return nullptr;
 #endif

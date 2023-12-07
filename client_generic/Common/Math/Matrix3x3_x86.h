@@ -29,24 +29,24 @@ class CMatrix3x3_x86
 {
   public:
     CMatrix3x3_x86();
-    CMatrix3x3_x86(const CVector3_x86 &_v0, const CVector3_x86 &_v1,
-                   const CVector3_x86 &_v2);
-    CMatrix3x3_x86(const CMatrix3x3_x86 &_mx);
+    CMatrix3x3_x86(const CVector3_x86& _v0, const CVector3_x86& _v1,
+                   const CVector3_x86& _v2);
+    CMatrix3x3_x86(const CMatrix3x3_x86& _mx);
     CMatrix3x3_x86(fp4 _m11, fp4 _m12, fp4 _m13, fp4 _m21, fp4 _m22, fp4 _m23,
                    fp4 _m31, fp4 _m32, fp4 _m33);
 
     //
-    void Aim(const CVector3_x86 &_from, const CVector3_x86 &_to,
-             const CVector3_x86 &_up);
-    void AimRestricted(const CVector3_x86 &_from, const CVector3_x86 &_to,
-                       const CVector3_x86 &_up);
+    void Aim(const CVector3_x86& _from, const CVector3_x86& _to,
+             const CVector3_x86& _up);
+    void AimRestricted(const CVector3_x86& _from, const CVector3_x86& _to,
+                       const CVector3_x86& _up);
 
     //
     void Set(fp4 _m11, fp4 _m12, fp4 _m13, fp4 _m21, fp4 _m22, fp4 _m23,
              fp4 _m31, fp4 _m32, fp4 _m33);
-    void Set(const CVector3_x86 &_v0, const CVector3_x86 &_v1,
-             const CVector3_x86 &_v2);
-    void Set(const CMatrix3x3_x86 &_m1);
+    void Set(const CVector3_x86& _v0, const CVector3_x86& _v1,
+             const CVector3_x86& _v2);
+    void Set(const CMatrix3x3_x86& _m1);
 
     //
     void Identity();
@@ -54,7 +54,7 @@ class CMatrix3x3_x86
     bool Orthonorm(const fp4 _limit);
 
     //
-    void Scale(const CVector3_x86 &_s);
+    void Scale(const CVector3_x86& _s);
 
     //	World.
     void Rotate_X(const fp4 _a);
@@ -67,7 +67,7 @@ class CMatrix3x3_x86
     void Rotate_LZ(const fp4 _a);
 
     //
-    void Rotate(const CVector3_x86 &_vec, const fp4 _a);
+    void Rotate(const CVector3_x86& _vec, const fp4 _a);
 
     //
     CVector3_x86 GetX(void) const;
@@ -75,19 +75,19 @@ class CMatrix3x3_x86
     CVector3_x86 GetZ(void) const;
 
     //
-    void operator*=(const CMatrix3x3_x86 &_m1);
+    void operator*=(const CMatrix3x3_x86& _m1);
 
     //
-    void Transform(const CVector3_x86 &_src, CVector3_x86 &_dst) const;
-    void Translate(const CVector2_x86 &_t);
+    void Transform(const CVector3_x86& _src, CVector3_x86& _dst) const;
+    void Translate(const CVector2_x86& _t);
 
     fp4 m_Mat[3][3];
 };
 
 /*
  */
-static inline CMatrix3x3_x86 operator*(const CMatrix3x3_x86 &_m0,
-                                       const CMatrix3x3_x86 &_m1)
+static inline CMatrix3x3_x86 operator*(const CMatrix3x3_x86& _m0,
+                                       const CMatrix3x3_x86& _m1)
 {
     CMatrix3x3_x86 m2(
         _m0.m_Mat[0][0] * _m1.m_Mat[0][0] + _m0.m_Mat[0][1] * _m1.m_Mat[1][0] +
@@ -115,8 +115,8 @@ static inline CMatrix3x3_x86 operator*(const CMatrix3x3_x86 &_m0,
 
 /*
  */
-static inline CVector3_x86 operator*(const CMatrix3x3_x86 &_m,
-                                     const CVector3_x86 &_v)
+static inline CVector3_x86 operator*(const CMatrix3x3_x86& _m,
+                                     const CVector3_x86& _v)
 {
     return (CVector3_x86(_m.M11 * _v.m_X + _m.M21 * _v.m_Y + _m.M31 * _v.m_Z,
                          _m.M12 * _v.m_X + _m.M22 * _v.m_Y + _m.M32 * _v.m_Z,
@@ -133,9 +133,9 @@ inline CMatrix3x3_x86::CMatrix3x3_x86()
 
 /*
  */
-inline CMatrix3x3_x86::CMatrix3x3_x86(const CVector3_x86 &_v0,
-                                      const CVector3_x86 &_v1,
-                                      const CVector3_x86 &_v2)
+inline CMatrix3x3_x86::CMatrix3x3_x86(const CVector3_x86& _v0,
+                                      const CVector3_x86& _v1,
+                                      const CVector3_x86& _v2)
 {
     M11 = _v0.m_X;
     M12 = _v0.m_Y;
@@ -150,7 +150,7 @@ inline CMatrix3x3_x86::CMatrix3x3_x86(const CVector3_x86 &_v0,
 
 /*
  */
-inline CMatrix3x3_x86::CMatrix3x3_x86(const CMatrix3x3_x86 &_m1)
+inline CMatrix3x3_x86::CMatrix3x3_x86(const CMatrix3x3_x86& _m1)
 {
     memcpy(m_Mat, &(_m1.m_Mat[0][0]), 9 * sizeof(fp4));
 }
@@ -174,9 +174,9 @@ inline CMatrix3x3_x86::CMatrix3x3_x86(fp4 _m11, fp4 _m12, fp4 _m13, fp4 _m21,
 
 /*
  */
-inline void CMatrix3x3_x86::Aim(const CVector3_x86 &_from,
-                                const CVector3_x86 &_to,
-                                const CVector3_x86 &_up)
+inline void CMatrix3x3_x86::Aim(const CVector3_x86& _from,
+                                const CVector3_x86& _to,
+                                const CVector3_x86& _up)
 {
     CVector3_x86 z(_from - _to);
     z.NormalizeFast();
@@ -199,9 +199,9 @@ inline void CMatrix3x3_x86::Aim(const CVector3_x86 &_from,
 
 /*
  */
-inline void CMatrix3x3_x86::AimRestricted(const CVector3_x86 &_from,
-                                          const CVector3_x86 &_to,
-                                          const CVector3_x86 &_up)
+inline void CMatrix3x3_x86::AimRestricted(const CVector3_x86& _from,
+                                          const CVector3_x86& _to,
+                                          const CVector3_x86& _up)
 {
     CVector3_x86 z(_from - _to);
     z.NormalizeFast();
@@ -242,9 +242,9 @@ inline void CMatrix3x3_x86::Set(fp4 _m11, fp4 _m12, fp4 _m13, fp4 _m21,
 
 /*
  */
-inline void CMatrix3x3_x86::Set(const CVector3_x86 &_v0,
-                                const CVector3_x86 &_v1,
-                                const CVector3_x86 &_v2)
+inline void CMatrix3x3_x86::Set(const CVector3_x86& _v0,
+                                const CVector3_x86& _v1,
+                                const CVector3_x86& _v2)
 {
     M11 = _v0.m_X;
     M12 = _v0.m_Y;
@@ -259,7 +259,7 @@ inline void CMatrix3x3_x86::Set(const CVector3_x86 &_v0,
 
 /*
  */
-inline void CMatrix3x3_x86::Set(const CMatrix3x3_x86 &_m1)
+inline void CMatrix3x3_x86::Set(const CMatrix3x3_x86& _m1)
 {
     memcpy(m_Mat, &(_m1.m_Mat), 9 * sizeof(fp4));
 }
@@ -308,7 +308,7 @@ inline bool CMatrix3x3_x86::Orthonorm(const fp4 _limit)
 
 /*
  */
-inline void CMatrix3x3_x86::Scale(const CVector3_x86 &_s)
+inline void CMatrix3x3_x86::Scale(const CVector3_x86& _s)
 {
     for (uint32 i = 0; i < 3; i++)
     {
@@ -419,7 +419,7 @@ inline void CMatrix3x3_x86::Rotate_LZ(const fp4 _a)
         Rotate().
 
 */
-inline void CMatrix3x3_x86::Rotate(const CVector3_x86 &_vec, const fp4 _a)
+inline void CMatrix3x3_x86::Rotate(const CVector3_x86& _vec, const fp4 _a)
 {
     CVector3_x86 v(_vec);
     v.NormalizeFast();
@@ -467,7 +467,7 @@ inline CVector3_x86 CMatrix3x3_x86::GetZ(void) const
 
 /*
  */
-inline void CMatrix3x3_x86::operator*=(const CMatrix3x3_x86 &_m1)
+inline void CMatrix3x3_x86::operator*=(const CMatrix3x3_x86& _m1)
 {
     for (uint32 i = 0; i < 3; i++)
     {
@@ -487,8 +487,8 @@ inline void CMatrix3x3_x86::operator*=(const CMatrix3x3_x86 &_m1)
         Multiply source vector with matrix and store in destination vector.
         This eliminates the construction of a temp CVector3_x86 object.
 */
-inline void CMatrix3x3_x86::Transform(const CVector3_x86 &_src,
-                                      CVector3_x86 &_dst) const
+inline void CMatrix3x3_x86::Transform(const CVector3_x86& _src,
+                                      CVector3_x86& _dst) const
 {
     _dst.m_X = M11 * _src.m_X + M21 * _src.m_Y + M31 * _src.m_Z;
     _dst.m_Y = M12 * _src.m_X + M22 * _src.m_Y + M32 * _src.m_Z;
@@ -498,7 +498,7 @@ inline void CMatrix3x3_x86::Transform(const CVector3_x86 &_src,
 /*
         Matrix is treated like a 2x2 rotational matrix and 2d-translation.
 */
-inline void CMatrix3x3_x86::Translate(const CVector2_x86 &_t)
+inline void CMatrix3x3_x86::Translate(const CVector2_x86& _t)
 {
     M31 += _t.m_X;
     M32 += _t.m_Y;

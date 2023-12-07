@@ -42,7 +42,7 @@ namespace Script
         luaInstallation().
 
 */
-static const char *luaInstallation =
+static const char* luaInstallation =
     "								\
 	function SetInstallation( _luaPath )							\
 		print( 'SetInstallation: ' .. tostring(_luaPath) )			\
@@ -59,7 +59,7 @@ static const char *luaInstallation =
         addInstallation().
 
 */
-static const char *addInstallation =
+static const char* addInstallation =
     "								\
 	function AddInstallation( _package )							\
 		print( 'AddInstallation: ' .. tostring(_package) )			\
@@ -73,10 +73,10 @@ static const char *addInstallation =
 	end";
 
 //
-static int LuaAlert(::lua_State *_pState)
+static int LuaAlert(::lua_State* _pState)
 {
     ASSERT(_pState != NULL);
-    const char *pMsg = lua_tostring(_pState, -1);
+    const char* pMsg = lua_tostring(_pState, -1);
     // ThrowStr( pMsg );
     g_Log->Error("Lua Alert: %s", pMsg);
     return (0);
@@ -108,7 +108,7 @@ void CLuaState::DumpStack()
         registerLib().
         Pre-register library, so it's up to the script to require libraries.
 */
-void CLuaState::registerLib(const char *_pName, lua_CFunction _func)
+void CLuaState::registerLib(const char* _pName, lua_CFunction _func)
 {
     lua_getglobal(m_pState, "package");
     lua_getfield(m_pState, -1, "preload"); //	'package.preload'
@@ -121,9 +121,9 @@ void CLuaState::registerLib(const char *_pName, lua_CFunction _func)
         AddPackagePath().
 
 */
-static int c_AddPackagePath(lua_State *_pState)
+static int c_AddPackagePath(lua_State* _pState)
 {
-    const char *packagePath = luaL_checkstring(_pState, 1);
+    const char* packagePath = luaL_checkstring(_pState, 1);
 
     bool bRelative = true;
 
@@ -145,7 +145,7 @@ static int c_AddPackagePath(lua_State *_pState)
     else
         dir = packagePath;
 
-    Call(_pState, "AddInstallation", "s", (const char *)dir.c_str());
+    Call(_pState, "AddInstallation", "s", (const char*)dir.c_str());
 
     return (0);
 }
@@ -154,7 +154,7 @@ static int c_AddPackagePath(lua_State *_pState)
         Init().
 
 */
-void CLuaState::Init(const std::string &_basePath)
+void CLuaState::Init(const std::string& _basePath)
 {
     g_Log->Info("Lua base bath: %s", _basePath.c_str());
 
@@ -203,7 +203,7 @@ void CLuaState::Init(const std::string &_basePath)
     cmd = addInstallation;
     Execute(addInstallation);
 
-    Call(m_pState, "SetInstallation", "s", (const char *)_basePath.c_str());
+    Call(m_pState, "SetInstallation", "s", (const char*)_basePath.c_str());
 
     //	Start collector again.
     lua_gc(m_pState, LUA_GCRESTART, 0);
@@ -211,7 +211,7 @@ void CLuaState::Init(const std::string &_basePath)
 
 /*
  */
-static int traceback(lua_State *_pLuaState)
+static int traceback(lua_State* _pLuaState)
 {
     lua_getfield(_pLuaState, LUA_GLOBALSINDEX, "debug");
     if (!lua_istable(_pLuaState, -1))
@@ -237,7 +237,7 @@ static int traceback(lua_State *_pLuaState)
 
 /*
  */
-static int docall(lua_State *_pLuaState, int narg, int clear)
+static int docall(lua_State* _pLuaState, int narg, int clear)
 {
     int status;
     int base = lua_gettop(_pLuaState) - narg; //	Function index.
@@ -260,11 +260,11 @@ static int docall(lua_State *_pLuaState, int narg, int clear)
         reportLua().
 
 */
-static bool reportLua(lua_State *_pLuaState, const int32 _status)
+static bool reportLua(lua_State* _pLuaState, const int32 _status)
 {
     if (_status && !lua_isnil(_pLuaState, -1))
     {
-        const char *pMsg = lua_tostring(_pLuaState, -1);
+        const char* pMsg = lua_tostring(_pLuaState, -1);
 
         if (!pMsg)
             pMsg = "(error object is not a string)";
@@ -284,7 +284,7 @@ static bool reportLua(lua_State *_pLuaState, const int32 _status)
         Execute().
         Execute lua code.
 */
-bool CLuaState::Execute(const std::string &_command)
+bool CLuaState::Execute(const std::string& _command)
 {
     int status = luaL_loadstring(m_pState, _command.c_str());
     if (status == 0)
@@ -316,7 +316,7 @@ bool CLuaState::Execute(const std::string &_command)
         Run().
 
 */
-bool CLuaState::Run(const std::string &_script)
+bool CLuaState::Run(const std::string& _script)
 {
     int status = luaL_loadfile(m_pState, _script.c_str());
     if (status == 0)
@@ -344,7 +344,7 @@ void CLuaState::Pop(const int32 _num)
         Call().
 
 */
-int32 Call(lua_State *_pState, const char *_pFunc, const char *_pSig, ...)
+int32 Call(lua_State* _pState, const char* _pFunc, const char* _pSig, ...)
 {
     ASSERT(_pState != NULL);
 
@@ -370,7 +370,7 @@ int32 Call(lua_State *_pState, const char *_pFunc, const char *_pSig, ...)
         //	Push arguments.
         narg = 0;
 
-        char *pBinarySource = NULL;
+        char* pBinarySource = NULL;
         int32 binaryLen = 0;
 
         //	Gimme args.
@@ -395,7 +395,7 @@ int32 Call(lua_State *_pState, const char *_pFunc, const char *_pSig, ...)
 
             case 'x': //	Binary string argument. Next argument MUST be an
                       // integer. (which will be skipped)
-                pBinarySource = va_arg(pArg, char *);
+                pBinarySource = va_arg(pArg, char*);
                 binaryLen = va_arg(pArg, int32);
                 lua_pushlstring(_pState, pBinarySource,
                                 static_cast<size_t>(binaryLen));
@@ -403,7 +403,7 @@ int32 Call(lua_State *_pState, const char *_pFunc, const char *_pSig, ...)
                 break;
 
             case 's': //	String argument.
-                lua_pushstring(_pState, va_arg(pArg, char *));
+                lua_pushstring(_pState, va_arg(pArg, char*));
                 break;
 
             case '>':
@@ -443,7 +443,7 @@ int32 Call(lua_State *_pState, const char *_pFunc, const char *_pSig, ...)
                 if (!lua_isnumber(_pState, nres))
                     g_Log->Error("Wrong result type, expected double");
                 else
-                    *va_arg(pArg, fp8 *) = lua_tonumber(_pState, nres);
+                    *va_arg(pArg, fp8*) = lua_tonumber(_pState, nres);
 
                 break;
 
@@ -451,7 +451,7 @@ int32 Call(lua_State *_pState, const char *_pFunc, const char *_pSig, ...)
                 if (!lua_isboolean(_pState, nres))
                     g_Log->Error("Wrong result type, expected bool");
                 else
-                    *va_arg(pArg, bool *) = lua_toboolean(_pState, nres) != 0;
+                    *va_arg(pArg, bool*) = lua_toboolean(_pState, nres) != 0;
 
                 break;
 
@@ -459,7 +459,7 @@ int32 Call(lua_State *_pState, const char *_pFunc, const char *_pSig, ...)
                 if (!lua_isnumber(_pState, nres))
                     g_Log->Error("Wrong result type, expected integer");
                 else
-                    *va_arg(pArg, int32 *) = (int32)lua_tonumber(_pState, nres);
+                    *va_arg(pArg, int32*) = (int32)lua_tonumber(_pState, nres);
 
                 break;
 
@@ -467,7 +467,7 @@ int32 Call(lua_State *_pState, const char *_pFunc, const char *_pSig, ...)
                 if (!lua_isstring(_pState, nres))
                     g_Log->Error("Wrong result type, expected string");
                 else
-                    *va_arg(pArg, const char **) = lua_tostring(_pState, nres);
+                    *va_arg(pArg, const char**) = lua_tostring(_pState, nres);
 
                 break;
 

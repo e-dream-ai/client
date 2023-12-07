@@ -99,7 +99,7 @@ void CRenderer::Orthographic(const uint32 _width, const uint32 _height)
 
 /*
  */
-void CRenderer::SetTransform(const Base::Math::CMatrix4x4 &_transform,
+void CRenderer::SetTransform(const Base::Math::CMatrix4x4& _transform,
                              const eMatrixTransformType _type)
 {
     switch (_type)

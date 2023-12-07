@@ -68,7 +68,7 @@ bool CLog::Shutdown(void)
 
 /*
  */
-void CLog::Attach(const std::string &_location, const uint32 /*_level*/)
+void CLog::Attach(const std::string& _location, const uint32 /*_level*/)
 {
     time_t curTime;
     time(&curTime);
@@ -130,8 +130,8 @@ void CLog::Detach(void)
         SetFile().
         Store file that did the logging.
 */
-void CLog::SetInfo(const char *_pFileStr, const uint32 _line,
-                   const char *_pFunc)
+void CLog::SetInfo(const char* _pFileStr, const uint32 _line,
+                   const char* _pFunc)
 {
     // boost::mutex::scoped_lock locker( m_Lock );
 
@@ -151,9 +151,9 @@ char CLog::s_MessageType[m_MaxMessageLength] = {0};
 size_t CLog::s_MessageSpamCount = 0;
 
 void CLog::Log(
-    const char *_pType,
-    /*const char *_file, const uint32 _line, const char *_pFunc,*/ const char
-        *_pStr)
+    const char* _pType,
+    /*const char *_file, const uint32 _line, const char *_pFunc,*/ const char*
+        _pStr)
 {
     boost::mutex::scoped_lock locker(m_Lock);
 
@@ -224,27 +224,27 @@ void CLog::Log(
     va_end(ArgPtr);
 
 //	Def our loggers.
-void CLog::Debug(const char *_pFmt, ...)
+void CLog::Debug(const char* _pFmt, ...)
 {
     grabvarargs Log("DEBUG",
                     /*m_File.c_str(), m_Line, m_Function.c_str(),*/ pTempStr);
 }
-void CLog::Info(const char *_pFmt, ...)
+void CLog::Info(const char* _pFmt, ...)
 {
     grabvarargs Log("INFO",
                     /*m_File.c_str(), m_Line, m_Function.c_str(),*/ pTempStr);
 }
-void CLog::Warning(const char *_pFmt, ...)
+void CLog::Warning(const char* _pFmt, ...)
 {
     grabvarargs Log("WARN",
                     /*m_File.c_str(), m_Line, m_Function.c_str(),*/ pTempStr);
 }
-void CLog::Error(const char *_pFmt, ...)
+void CLog::Error(const char* _pFmt, ...)
 {
     grabvarargs Log("ERROR",
                     /*m_File.c_str(), m_Line, m_Function.c_str(),*/ pTempStr);
 }
-void CLog::Fatal(const char *_pFmt, ...)
+void CLog::Fatal(const char* _pFmt, ...)
 {
     grabvarargs Log("FATAL",
                     /*m_File.c_str(), m_Line, m_Function.c_str(),*/ pTempStr);

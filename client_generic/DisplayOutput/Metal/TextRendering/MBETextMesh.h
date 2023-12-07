@@ -14,9 +14,9 @@
 
 @property(nonatomic, assign) CGSize textExtent;
 
-- (instancetype)initWithString:(NSString *)string
+- (instancetype)initWithString:(NSString*)string
                         inRect:(CGRect)rect
-                 withFontAtlas:(MBEFontAtlas *)fontAtlas
+                 withFontAtlas:(MBEFontAtlas*)fontAtlas
                         atSize:(CGFloat)fontSize
                         device:(id<MTLDevice>)device;
 

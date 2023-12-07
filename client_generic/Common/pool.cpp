@@ -10,9 +10,9 @@ namespace Memory
         AllocSys().
 
 */
-void *CPoolBase::AllocSys(size_t _size)
+void* CPoolBase::AllocSys(size_t _size)
 {
-    void *pData = ::operator new(_size, std::nothrow);
+    void* pData = ::operator new(_size, std::nothrow);
     if (!pData)
     {
         //	Do whatever you want.
@@ -25,10 +25,10 @@ void *CPoolBase::AllocSys(size_t _size)
         DeallocSys().
 
 */
-void CPoolBase::DeallocSys(void *_pData)
+void CPoolBase::DeallocSys(void* _pData)
 {
     if (_pData)
-        delete (char *)_pData;
+        delete (char*)_pData;
 }
 
 } // namespace Memory

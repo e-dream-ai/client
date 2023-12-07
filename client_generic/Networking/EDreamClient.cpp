@@ -23,32 +23,32 @@ void ESShowPreferences()
         gShowPreferencesCallback();
     }
 }
-boost::atomic<char *> EDreamClient::fAccessToken(NULL);
-boost::atomic<char *> EDreamClient::fRefreshToken(NULL);
+boost::atomic<char*> EDreamClient::fAccessToken(NULL);
+boost::atomic<char*> EDreamClient::fRefreshToken(NULL);
 boost::atomic<bool> EDreamClient::fIsLoggedIn(false);
 boost::mutex EDreamClient::fAuthMutex;
 
 static void SetNewAndDeleteOldString(
-    boost::atomic<char *> &str, char *newval,
+    boost::atomic<char*>& str, char* newval,
     boost::memory_order mem_ord = boost::memory_order_relaxed)
 {
-    char *toDelete = str.exchange(newval, mem_ord);
+    char* toDelete = str.exchange(newval, mem_ord);
 
     if (toDelete != NULL)
         delete[] toDelete;
 }
 
 static void SetNewAndDeleteOldString(
-    boost::atomic<char *> &str, const char *newval,
+    boost::atomic<char*>& str, const char* newval,
     boost::memory_order mem_ord = boost::memory_order_relaxed)
 {
     if (newval == NULL)
     {
-        SetNewAndDeleteOldString(str, (char *)NULL, mem_ord);
+        SetNewAndDeleteOldString(str, (char*)NULL, mem_ord);
         return;
     }
     size_t len = strlen(newval) + 1;
-    char *newStr = new char[len];
+    char* newStr = new char[len];
     memcpy(newStr, newval, len);
     SetNewAndDeleteOldString(str, newStr);
 }
@@ -71,7 +71,7 @@ void EDreamClient::InitializeClient()
     boost::thread t(&EDreamClient::Authenticate);
 }
 
-const char *EDreamClient::GetAccessToken()
+const char* EDreamClient::GetAccessToken()
 {
     return fAccessToken.load(boost::memory_order_relaxed);
 }
@@ -107,8 +107,8 @@ void EDreamClient::SignOut()
     g_Settings()->Storage()->Commit();
 }
 
-void EDreamClient::DidSignIn(const std::string &_authToken,
-                             const std::string &_refreshToken)
+void EDreamClient::DidSignIn(const std::string& _authToken,
+                             const std::string& _refreshToken)
 {
     boost::lock_guard<boost::mutex> lock(fAuthMutex);
     fIsLoggedIn.exchange(true);
@@ -141,7 +141,7 @@ bool EDreamClient::RefreshAccessToken()
         boost::json::value response =
             boost::json::parse(spDownload->Data(), ec);
         boost::json::value data = response.at("data");
-        const char *accessToken = data.at("AccessToken").as_string().data();
+        const char* accessToken = data.at("AccessToken").as_string().data();
         g_Settings()->Set("settings.content.access_token",
                           std::string(accessToken));
         SetNewAndDeleteOldString(fAccessToken, accessToken);
@@ -166,7 +166,7 @@ bool EDreamClient::RefreshAccessToken()
 bool EDreamClient::GetDreams()
 {
     Network::spCFileDownloader spDownload;
-    const char *jsonPath = ContentDownloader::Shepherd::jsonPath();
+    const char* jsonPath = ContentDownloader::Shepherd::jsonPath();
     char filename[MAX_PATH];
 
     char authHeader[ACCESS_TOKEN_MAX_LENGTH + 22];

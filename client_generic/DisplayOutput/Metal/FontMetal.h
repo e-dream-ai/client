@@ -26,10 +26,10 @@ class CFontMetal : public CBaseFont
     std::string m_typeFace;
 
   public:
-    CFontMetal(CFontDescription &_desc, spCTextureFlat _textTexture);
+    CFontMetal(CFontDescription& _desc, spCTextureFlat _textTexture);
     virtual ~CFontMetal();
     virtual bool Create();
-    MBEFontAtlas *GetAtlas() const;
+    MBEFontAtlas* GetAtlas() const;
     spCTextureFlatMetal GetAtlasTexture() { return m_spAtlasTexture; }
 };
 

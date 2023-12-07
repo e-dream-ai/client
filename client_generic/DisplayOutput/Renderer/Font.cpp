@@ -22,7 +22,7 @@ CFontDescription::~CFontDescription() {}
 
 /*
  */
-bool CFontDescription::operator==(const CFontDescription &_rhs) const
+bool CFontDescription::operator==(const CFontDescription& _rhs) const
 {
     return ((m_Height == _rhs.m_Height) && (m_Style == _rhs.m_Style) &&
             (m_bItalic == _rhs.m_bItalic) &&

@@ -26,10 +26,10 @@ namespace TupleStorage
         CDirectoryIterator().
 
 */
-CDirectoryIterator::CDirectoryIterator(const std::string &_path)
+CDirectoryIterator::CDirectoryIterator(const std::string& _path)
 {
 #ifdef WIN32
-    m_pDirData = (dir_data *)malloc(sizeof(dir_data));
+    m_pDirData = (dir_data*)malloc(sizeof(dir_data));
     m_pDirData->hFile = 0L;
     if (_path.size() <= MAX_DIR_LENGTH)
         sprintf(m_pDirData->pattern, "%s/*", _path.c_str());
@@ -70,7 +70,7 @@ CDirectoryIterator::~CDirectoryIterator()
         isDirectory().
 
 */
-bool CDirectoryIterator::isDirectory(const std::string &_object)
+bool CDirectoryIterator::isDirectory(const std::string& _object)
 {
     struct stat info;
 
@@ -91,7 +91,7 @@ bool CDirectoryIterator::isDirectory(const std::string &_object)
         Next().
 
 */
-bool CDirectoryIterator::Next(std::string &_object)
+bool CDirectoryIterator::Next(std::string& _object)
 {
 #ifdef WIN32
     struct _finddata_t c_file;
@@ -120,7 +120,7 @@ bool CDirectoryIterator::Next(std::string &_object)
         }
     }
 #else
-    struct dirent *entry;
+    struct dirent* entry;
     if ((entry = readdir(m_pDirData)) != NULL)
     {
         _object = entry->d_name;

@@ -13,17 +13,17 @@
 
 ///////////////////////////////////////////////////////////////////////////
 
-MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
-                     const wxPoint &pos, const wxSize &size, long style)
+MyDialog2::MyDialog2(wxWindow* parent, wxWindowID id, const wxString& title,
+                     const wxPoint& pos, const wxSize& size, long style)
     : wxDialog(parent, id, title, pos, size, style)
 {
     wxImage::AddHandler(new wxPNGHandler);
     this->SetSizeHints(wxDefaultSize, wxDefaultSize);
 
-    wxBoxSizer *bSizer1;
+    wxBoxSizer* bSizer1;
     bSizer1 = new wxBoxSizer(wxVERTICAL);
 
-    wxBoxSizer *bSizer2;
+    wxBoxSizer* bSizer2;
     bSizer2 = new wxBoxSizer(wxHORIZONTAL);
 #ifdef LINUX_GNU
     m_bitmap12 = new wxStaticBitmap(this, wxID_ANY, wxBitmap(eslogo),
@@ -52,7 +52,7 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
 
     bSizer1->Add(bSizer2, 0, wxEXPAND, 5);
 
-    wxBoxSizer *bSizer3;
+    wxBoxSizer* bSizer3;
     bSizer3 = new wxBoxSizer(wxHORIZONTAL);
 
     m_RunButton = new wxButton(this, wxID_ANY, wxT("Run"), wxDefaultPosition,
@@ -71,14 +71,14 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
 
     bSizer1->Add(bSizer3, 0, wxALIGN_CENTER_HORIZONTAL | wxALL, 5);
 
-    wxBoxSizer *bSizer4;
+    wxBoxSizer* bSizer4;
     bSizer4 = new wxBoxSizer(wxVERTICAL);
 
     m_notebook2 =
         new wxNotebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0);
     m_Basic = new wxPanel(m_notebook2, wxID_ANY, wxDefaultPosition,
                           wxDefaultSize, wxTAB_TRAVERSAL);
-    wxBoxSizer *bSizer5;
+    wxBoxSizer* bSizer5;
     bSizer5 = new wxBoxSizer(wxVERTICAL);
 
     m_staticText22 =
@@ -89,11 +89,11 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
     m_staticText22->Wrap(-1);
     bSizer5->Add(m_staticText22, 0, wxALL, 5);
 
-    wxStaticBoxSizer *sbSizer1;
+    wxStaticBoxSizer* sbSizer1;
     sbSizer1 = new wxStaticBoxSizer(
         new wxStaticBox(m_Basic, wxID_ANY, wxT("Sign In")), wxVERTICAL);
 
-    wxBoxSizer *bSizer6;
+    wxBoxSizer* bSizer6;
     bSizer6 = new wxBoxSizer(wxHORIZONTAL);
 
     m_staticText3 = new wxStaticText(m_Basic, wxID_ANY, wxT("E-mail:"),
@@ -111,7 +111,7 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
 
     sbSizer1->Add(bSizer6, 0, wxALIGN_RIGHT, 5);
 
-    wxBoxSizer *bSizer7;
+    wxBoxSizer* bSizer7;
     bSizer7 = new wxBoxSizer(wxHORIZONTAL);
 
     m_staticText41 = new wxStaticText(m_Basic, wxID_ANY, wxT("Password:"),
@@ -129,10 +129,10 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
 
     sbSizer1->Add(bSizer7, 0, wxALIGN_RIGHT, 5);
 
-    wxBoxSizer *bSizer8;
+    wxBoxSizer* bSizer8;
     bSizer8 = new wxBoxSizer(wxHORIZONTAL);
 
-    wxBoxSizer *bSizer47;
+    wxBoxSizer* bSizer47;
     bSizer47 = new wxBoxSizer(wxVERTICAL);
 
     m_staticText6 =
@@ -147,7 +147,7 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
 
     bSizer8->Add(bSizer47, 1, wxEXPAND, 5);
 
-    wxBoxSizer *bSizer481;
+    wxBoxSizer* bSizer481;
     bSizer481 = new wxBoxSizer(wxVERTICAL);
 
     m_TestAccountButton = new wxButton(m_Basic, wxID_ANY, wxT("Sign In"),
@@ -160,11 +160,11 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
 
     bSizer5->Add(sbSizer1, 0, wxEXPAND, 5);
 
-    wxStaticBoxSizer *sbSizer5;
+    wxStaticBoxSizer* sbSizer5;
     sbSizer5 = new wxStaticBoxSizer(
         new wxStaticBox(m_Basic, wxID_ANY, wxT("Register")), wxVERTICAL);
 
-    wxBoxSizer *bSizer51;
+    wxBoxSizer* bSizer51;
     bSizer51 = new wxBoxSizer(wxVERTICAL);
 
     m_staticText25 = new wxStaticText(
@@ -177,7 +177,7 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
 
     sbSizer5->Add(bSizer51, 0, wxEXPAND, 5);
 
-    wxBoxSizer *bSizer50;
+    wxBoxSizer* bSizer50;
     bSizer50 = new wxBoxSizer(wxVERTICAL);
 
     m_CreateAccountButton = new wxButton(m_Basic, wxID_ANY, wxT("Learn More"),
@@ -197,14 +197,14 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
     m_notebook2->AddPage(m_Basic, wxT("Account"), true);
     m_Flock = new wxPanel(m_notebook2, wxID_ANY, wxDefaultPosition,
                           wxDefaultSize, wxTAB_TRAVERSAL);
-    wxBoxSizer *bSizer52;
+    wxBoxSizer* bSizer52;
     bSizer52 = new wxBoxSizer(wxVERTICAL);
 
-    wxStaticBoxSizer *sbSizer2;
+    wxStaticBoxSizer* sbSizer2;
     sbSizer2 = new wxStaticBoxSizer(
         new wxStaticBox(m_Flock, wxID_ANY, wxT("Local Flock")), wxVERTICAL);
 
-    wxBoxSizer *bSizer35;
+    wxBoxSizer* bSizer35;
     bSizer35 = new wxBoxSizer(wxVERTICAL);
 
     m_staticTextFlockSize = new wxStaticText(
@@ -220,7 +220,7 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
 
     sbSizer2->Add(bSizer35, 0, wxALIGN_RIGHT, 5);
 
-    wxBoxSizer *bSizer9;
+    wxBoxSizer* bSizer9;
     bSizer9 = new wxBoxSizer(wxHORIZONTAL);
 
     m_staticText7 = new wxStaticText(m_Flock, wxID_ANY, wxT("Max disk space:"),
@@ -244,7 +244,7 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
 
     sbSizer2->Add(bSizer9, 0, wxALIGN_RIGHT | wxALL, 5);
 
-    wxBoxSizer *bSizer28;
+    wxBoxSizer* bSizer28;
     bSizer28 = new wxBoxSizer(wxVERTICAL);
 
     m_checkUnlimitedCache =
@@ -261,7 +261,7 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
     m_GoldFlockStaticSizer = new wxStaticBoxSizer(
         new wxStaticBox(m_Flock, wxID_ANY, wxT("Gold Flock")), wxVERTICAL);
 
-    wxBoxSizer *bSizer44;
+    wxBoxSizer* bSizer44;
     bSizer44 = new wxBoxSizer(wxVERTICAL);
 
     m_staticTextGoldFlockSize =
@@ -272,7 +272,7 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
 
     m_GoldFlockStaticSizer->Add(bSizer44, 0, wxALIGN_RIGHT, 5);
 
-    wxBoxSizer *bSizer43;
+    wxBoxSizer* bSizer43;
     bSizer43 = new wxBoxSizer(wxHORIZONTAL);
 
     m_staticText20 = new wxStaticText(m_Flock, wxID_ANY, wxT("Max disk space:"),
@@ -296,7 +296,7 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
 
     m_GoldFlockStaticSizer->Add(bSizer43, 0, wxALIGN_RIGHT | wxALL, 5);
 
-    wxBoxSizer *bSizer281;
+    wxBoxSizer* bSizer281;
     bSizer281 = new wxBoxSizer(wxVERTICAL);
 
     m_checkGoldUnlimitedCache =
@@ -316,10 +316,10 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
     m_notebook2->AddPage(m_Flock, wxT("Flock"), false);
     m_Playback = new wxPanel(m_notebook2, wxID_ANY, wxDefaultPosition,
                              wxDefaultSize, wxTAB_TRAVERSAL);
-    wxBoxSizer *bSizer40;
+    wxBoxSizer* bSizer40;
     bSizer40 = new wxBoxSizer(wxVERTICAL);
 
-    wxBoxSizer *bSizer10;
+    wxBoxSizer* bSizer10;
     bSizer10 = new wxBoxSizer(wxHORIZONTAL);
 
     m_staticText8 =
@@ -343,7 +343,7 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
 
     bSizer40->Add(bSizer10, 0, wxALIGN_CENTER_HORIZONTAL | wxALL, 5);
 
-    wxBoxSizer *bSizer11;
+    wxBoxSizer* bSizer11;
     bSizer11 = new wxBoxSizer(wxHORIZONTAL);
 
     m_staticText9 = new wxStaticText(m_Playback, wxID_ANY, wxT("Repeat loops"),
@@ -366,7 +366,7 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
 
     bSizer40->Add(bSizer11, 0, wxALIGN_CENTER_HORIZONTAL | wxALL, 5);
 
-    wxBoxSizer *bSizer23;
+    wxBoxSizer* bSizer23;
     bSizer23 = new wxBoxSizer(wxHORIZONTAL);
 
     m_SeamlessPlayback =
@@ -384,10 +384,10 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
     m_notebook2->AddPage(m_Playback, wxT("Playback"), false);
     m_Display = new wxPanel(m_notebook2, wxID_ANY, wxDefaultPosition,
                             wxDefaultSize, wxTAB_TRAVERSAL);
-    wxBoxSizer *bSizer77;
+    wxBoxSizer* bSizer77;
     bSizer77 = new wxBoxSizer(wxVERTICAL);
 
-    wxBoxSizer *bSizer25;
+    wxBoxSizer* bSizer25;
     bSizer25 = new wxBoxSizer(wxHORIZONTAL);
 
     wxString m_radioMultiDisplayModeChoices[] = {
@@ -405,7 +405,7 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
 
     bSizer77->Add(bSizer25, 0, wxALIGN_RIGHT, 5);
 
-    wxBoxSizer *bSizer14;
+    wxBoxSizer* bSizer14;
     bSizer14 = new wxBoxSizer(wxHORIZONTAL);
 
     m_staticText13 =
@@ -446,7 +446,7 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
 
     bSizer77->Add(bSizer14, 0, wxALIGN_RIGHT, 5);
 
-    wxBoxSizer *bSizer16;
+    wxBoxSizer* bSizer16;
     bSizer16 = new wxBoxSizer(wxHORIZONTAL);
 
     wxString m_radioDisplayModeChoices[] = {wxT("Off"), wxT("Linear"),
@@ -466,7 +466,7 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
 
     bSizer77->Add(bSizer16, 0, wxALIGN_RIGHT, 5);
 
-    wxBoxSizer *bSizer331;
+    wxBoxSizer* bSizer331;
     bSizer331 = new wxBoxSizer(wxVERTICAL);
 
     m_VerticalSync =
@@ -480,7 +480,7 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
 
     bSizer77->Add(bSizer331, 0, wxALIGN_RIGHT | wxALL, 5);
 
-    wxBoxSizer *bSizer341;
+    wxBoxSizer* bSizer341;
     bSizer341 = new wxBoxSizer(wxVERTICAL);
 
     m_ReverseDisplays =
@@ -493,7 +493,7 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
 
     bSizer77->Add(bSizer341, 0, wxALIGN_RIGHT | wxALL, 5);
 
-    wxBoxSizer *bSizer27;
+    wxBoxSizer* bSizer27;
     bSizer27 = new wxBoxSizer(wxHORIZONTAL);
 
     m_DirectDraw =
@@ -512,10 +512,10 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
     m_notebook2->AddPage(m_Display, wxT("Display"), false);
     m_Proxy = new wxPanel(m_notebook2, wxID_ANY, wxDefaultPosition,
                           wxDefaultSize, wxTAB_TRAVERSAL);
-    wxBoxSizer *bSizer36;
+    wxBoxSizer* bSizer36;
     bSizer36 = new wxBoxSizer(wxVERTICAL);
 
-    wxBoxSizer *bSizer61;
+    wxBoxSizer* bSizer61;
     bSizer61 = new wxBoxSizer(wxHORIZONTAL);
 
     m_staticText31 = new wxStaticText(m_Proxy, wxID_ANY, wxT("Hostname:"),
@@ -531,7 +531,7 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
 
     bSizer36->Add(bSizer61, 0, wxALIGN_RIGHT | wxALL, 5);
 
-    wxBoxSizer *bSizer71;
+    wxBoxSizer* bSizer71;
     bSizer71 = new wxBoxSizer(wxHORIZONTAL);
 
     m_staticText411 = new wxStaticText(m_Proxy, wxID_ANY, wxT("User:"),
@@ -547,7 +547,7 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
 
     bSizer36->Add(bSizer71, 0, wxALIGN_RIGHT | wxALL, 5);
 
-    wxBoxSizer *bSizer72;
+    wxBoxSizer* bSizer72;
     bSizer72 = new wxBoxSizer(wxHORIZONTAL);
 
     m_staticText412 = new wxStaticText(m_Proxy, wxID_ANY, wxT("Password:"),
@@ -571,19 +571,19 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
                              wxDefaultSize, wxTAB_TRAVERSAL);
     m_Advanced->SetToolTip(wxT("Advanced client settings"));
 
-    wxBoxSizer *bSizer12;
+    wxBoxSizer* bSizer12;
     bSizer12 = new wxBoxSizer(wxVERTICAL);
 
-    wxBoxSizer *bSizer13;
+    wxBoxSizer* bSizer13;
     bSizer13 = new wxBoxSizer(wxVERTICAL);
 
-    wxBoxSizer *bSizer33;
+    wxBoxSizer* bSizer33;
     bSizer33 = new wxBoxSizer(wxHORIZONTAL);
 
-    wxBoxSizer *bSizer31;
+    wxBoxSizer* bSizer31;
     bSizer31 = new wxBoxSizer(wxVERTICAL);
 
-    wxBoxSizer *bSizer17;
+    wxBoxSizer* bSizer17;
     bSizer17 = new wxBoxSizer(wxHORIZONTAL);
 
     m_checkHttp =
@@ -598,7 +598,7 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
 
     bSizer31->Add(bSizer17, 0, wxALIGN_RIGHT | wxALL, 5);
 
-    wxBoxSizer *bSizer18;
+    wxBoxSizer* bSizer18;
     bSizer18 = new wxBoxSizer(wxHORIZONTAL);
 
     m_checkRenderFrames =
@@ -613,7 +613,7 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
 
     bSizer31->Add(bSizer18, 0, wxALIGN_RIGHT | wxALL, 5);
 
-    wxBoxSizer *bSizer19;
+    wxBoxSizer* bSizer19;
     bSizer19 = new wxBoxSizer(wxHORIZONTAL);
 
     m_checkMulticore =
@@ -629,7 +629,7 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
 
     bSizer31->Add(bSizer19, 0, wxALIGN_RIGHT | wxALL, 5);
 
-    wxBoxSizer *bSizer20;
+    wxBoxSizer* bSizer20;
     bSizer20 = new wxBoxSizer(wxHORIZONTAL);
 
     m_checkKeepFrames =
@@ -643,7 +643,7 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
 
     bSizer31->Add(bSizer20, 0, wxALIGN_RIGHT | wxALL, 5);
 
-    wxBoxSizer *bSizer21;
+    wxBoxSizer* bSizer21;
     bSizer21 = new wxBoxSizer(wxHORIZONTAL);
 
     m_checkNegVoteDeletes =
@@ -661,10 +661,10 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
 
     bSizer33->Add(bSizer31, 1, wxEXPAND, 5);
 
-    wxBoxSizer *bSizer34;
+    wxBoxSizer* bSizer34;
     bSizer34 = new wxBoxSizer(wxVERTICAL);
 
-    wxBoxSizer *bSizer271;
+    wxBoxSizer* bSizer271;
     bSizer271 = new wxBoxSizer(wxHORIZONTAL);
 
     m_QuietMode =
@@ -677,7 +677,7 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
 
     bSizer34->Add(bSizer271, 0, wxALIGN_RIGHT | wxALL, 5);
 
-    wxBoxSizer *bSizer24;
+    wxBoxSizer* bSizer24;
     bSizer24 = new wxBoxSizer(wxVERTICAL);
 
     m_DebugLog =
@@ -689,7 +689,7 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
 
     bSizer34->Add(bSizer24, 0, wxALIGN_RIGHT | wxALL, 5);
 
-    wxBoxSizer *bSizer32;
+    wxBoxSizer* bSizer32;
     bSizer32 = new wxBoxSizer(wxVERTICAL);
 
     m_checkAttributionPNG =
@@ -706,7 +706,7 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
 
     bSizer13->Add(bSizer33, 1, wxALIGN_CENTER_HORIZONTAL | wxEXPAND, 5);
 
-    wxStaticBoxSizer *sbSizer3;
+    wxStaticBoxSizer* sbSizer3;
     sbSizer3 = new wxStaticBoxSizer(
         new wxStaticBox(m_Advanced, wxID_ANY, wxT("Content directory")),
         wxHORIZONTAL);
@@ -727,7 +727,7 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
 
     bSizer13->Add(sbSizer3, 0, wxALIGN_CENTER_HORIZONTAL | wxALL | wxEXPAND, 5);
 
-    wxStaticBoxSizer *sbSizer6;
+    wxStaticBoxSizer* sbSizer6;
     sbSizer6 = new wxStaticBoxSizer(
         new wxStaticBox(m_Advanced, wxID_ANY, wxT("Flock choice")), wxVERTICAL);
 
@@ -754,7 +754,7 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
     m_notebook2->AddPage(m_Advanced, wxT("Advanced"), false);
     m_About = new wxPanel(m_notebook2, wxID_ANY, wxDefaultPosition,
                           wxDefaultSize, wxTAB_TRAVERSAL);
-    wxBoxSizer *bSizer48;
+    wxBoxSizer* bSizer48;
     bSizer48 = new wxBoxSizer(wxVERTICAL);
 
     m_AboutText = new wxRichTextCtrl(
@@ -775,7 +775,7 @@ MyDialog2::MyDialog2(wxWindow *parent, wxWindowID id, const wxString &title,
                      wxALIGN_TOP | wxALL,
                  5);
 
-    wxBoxSizer *bSizer22;
+    wxBoxSizer* bSizer22;
     bSizer22 = new wxBoxSizer(wxHORIZONTAL);
 
     m_Ok = new wxButton(this, wxID_ANY, wxT("OK"), wxDefaultPosition,

@@ -56,12 +56,12 @@ CBackBufDD::CBackBufDD()
 
 CBackBufDD::~CBackBufDD() { Destroy(); }
 
-BOOL CBackBufDD::Create(HWND Main, HWND View, GUID *Driver, bool Exclusive)
+BOOL CBackBufDD::Create(HWND Main, HWND View, GUID* Driver, bool Exclusive)
 {
     // OutputDebugStringA("CBackBufDD::Create");
     Destroy();
 
-    if (FAILED(m_hr = DirectDrawCreateEx(Driver, (VOID **)&m_dd,
+    if (FAILED(m_hr = DirectDrawCreateEx(Driver, (VOID**)&m_dd,
                                          IID_IDirectDraw7, NULL)))
     {
         // OutputDebugStringA("CBackBufDD::Create DirectDrawCreateEx");
@@ -475,7 +475,7 @@ bool CBackBufDD::SetExclusive(HWND Main, HWND View, bool Enable)
     return (TRUE);
 }
 
-HMONITOR CBackBufDD::GetFullScreenRect(HWND hWnd, RECT &rc)
+HMONITOR CBackBufDD::GetFullScreenRect(HWND hWnd, RECT& rc)
 {
     RECT wr;
     ::GetWindowRect(hWnd, &wr);
@@ -497,12 +497,12 @@ HMONITOR CBackBufDD::GetFullScreenRect(HWND hWnd, RECT &rc)
     return (hMon);
 }
 
-BOOL WINAPI CBackBufDD::DDEnumCallbackEx(GUID FAR *lpGUID,
+BOOL WINAPI CBackBufDD::DDEnumCallbackEx(GUID FAR* lpGUID,
                                          LPTSTR lpDriverDescription,
                                          LPTSTR lpDriverName, LPVOID lpContext,
                                          HMONITOR hm)
 {
-    MONGUID *mg = (MONGUID *)lpContext;
+    MONGUID* mg = (MONGUID*)lpContext;
     if (hm == mg->Mon)
     {                              // if it's the monitor we're looking for
         mg->Guid = *lpGUID;        // pass its GUID to caller
@@ -512,7 +512,7 @@ BOOL WINAPI CBackBufDD::DDEnumCallbackEx(GUID FAR *lpGUID,
     return (DDENUMRET_OK); // continue enumerating
 }
 
-bool CBackBufDD::GetMonitorGUID(HMONITOR hMon, GUID &MonGuid)
+bool CBackBufDD::GetMonitorGUID(HMONITOR hMon, GUID& MonGuid)
 {
     // DirectDrawEnumerateEx has to be manually imported from the DirectDraw DLL
     HINSTANCE h = LoadLibrary(L"ddraw.dll");
@@ -537,9 +537,9 @@ bool CBackBufDD::GetMonitorGUID(HMONITOR hMon, GUID &MonGuid)
     return (retc);
 }
 
-void CBackBufDD::DrawQuad(const Base::Math::CRect &_rect,
-                          const Base::Math::CVector4 &_color,
-                          const Base::Math::CRect &_uvrect)
+void CBackBufDD::DrawQuad(const Base::Math::CRect& _rect,
+                          const Base::Math::CVector4& _color,
+                          const Base::Math::CRect& _uvrect)
 {
     if (!IsCreated())
         return;
@@ -601,7 +601,7 @@ void CBackBufDD::SetContexts(LPDIRECTDRAWSURFACE7 _tex, int _SrcWidth,
     m_SrcHeight.push(_SrcHeight);
 }
 
-HRESULT CBackBufDD::GetDC(HDC FAR *lphDC)
+HRESULT CBackBufDD::GetDC(HDC FAR* lphDC)
 {
     if (m_DrawBuf != NULL)
         return (m_DrawBuf->GetDC(lphDC));
@@ -641,7 +641,7 @@ bool CBackBufDD::IsExclusive() const { return (m_IsExclusive); }
 bool CBackBufDD::IsSurface() const { return (m_Back != NULL); }
 
 HRESULT CBackBufDD::CreateSurface(LPDDSURFACEDESC2 SurfaceDesc,
-                                  LPDIRECTDRAWSURFACE7 FAR *Surface)
+                                  LPDIRECTDRAWSURFACE7 FAR* Surface)
 {
     if (m_dd != NULL)
         return (m_dd->CreateSurface(SurfaceDesc, Surface, NULL));

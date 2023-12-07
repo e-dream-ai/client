@@ -51,7 +51,7 @@ class CElectricSheep_Win32 : public CElectricSheep
 
     //	Mode deduced from cmdline parsing.
     eScrMode m_ScrMode;
-    IDirect3D9 *m_pD3D9;
+    IDirect3D9* m_pD3D9;
 
     //	Previous mouse pos, for movement calcs.
     bool m_bMouseUnknown;
@@ -60,7 +60,7 @@ class CElectricSheep_Win32 : public CElectricSheep
     bool m_bAllowFKey;
 
     //	Grab a string from the registry.
-    HRESULT RegGetString(HKEY hKey, LPCSTR szValueName, LPSTR *lpszResult)
+    HRESULT RegGetString(HKEY hKey, LPCSTR szValueName, LPSTR* lpszResult)
     {
 #define MAXBUF 4096
 
@@ -84,7 +84,7 @@ class CElectricSheep_Win32 : public CElectricSheep
             RegQueryValueExA(hKey, szValueName, 0, &dwType, NULL, &dwDataSize);
 
         //	Check result and make sure the registry value is a
-        //string(REG_SZ)...
+        // string(REG_SZ)...
         if (lResult != ERROR_SUCCESS)
             return HRESULT_FROM_WIN32(lResult);
         else if (dwType != REG_SZ)
@@ -93,7 +93,7 @@ class CElectricSheep_Win32 : public CElectricSheep
         //	Allocate memory for string - We add space for a null terminating
         // character...
         dwBufSize = dwDataSize + (1 * sizeof(CHAR));
-        *lpszResult = (CHAR *)malloc(dwBufSize);
+        *lpszResult = (CHAR*)malloc(dwBufSize);
 
         if (*lpszResult == NULL)
             return E_OUTOFMEMORY;
@@ -103,7 +103,7 @@ class CElectricSheep_Win32 : public CElectricSheep
                                    (LPBYTE)*lpszResult, &dwDataSize);
 
         //	Check result and type again. If we fail here we must free the
-        //memory we
+        // memory we
         // allocated...
         if (lResult != ERROR_SUCCESS)
         {
@@ -117,7 +117,7 @@ class CElectricSheep_Win32 : public CElectricSheep
         }
 
         //	We are not guaranteed a null terminated string from
-        //RegQueryValueEx so
+        // RegQueryValueEx so
         // explicitly null terminate the returned string...
         (*lpszResult)[(dwBufSize / sizeof(CHAR)) - 1] = '\0';
 
@@ -133,7 +133,7 @@ class CElectricSheep_Win32 : public CElectricSheep
         printf("CElectricSheep_Win32()\n");
 
         //	Windows spawns a screensaver process with idle priority, which
-        //will
+        // will
         // compete with forked generators.
         if (SetPriorityClass(GetCurrentProcess(), NORMAL_PRIORITY_CLASS))
             printf("Changed priority class to normal\n");
@@ -165,7 +165,7 @@ class CElectricSheep_Win32 : public CElectricSheep
         m_ScrMode = eNone;
 
         //	Some very ugly win32 screensaver cmdline parsing.
-        char *c = GetCommandLineA();
+        char* c = GetCommandLineA();
         if (*c == '\"')
         {
             c++;
@@ -250,7 +250,7 @@ class CElectricSheep_Win32 : public CElectricSheep
         }
 
         //	Check for multiple instances if we're not specifically asked not
-        //to.
+        // to.
         if (m_ScrMode != eWindowed_AllowMultipleInstances &&
             m_ScrMode != eSaver && m_ScrMode != eConfig &&
             m_ScrMode != eFullScreenStandalone)
@@ -300,7 +300,7 @@ class CElectricSheep_Win32 : public CElectricSheep
             RegCloseKey(key);
         }
         //	If the exe is renamed to .scr, the path lacks trailing slashes
-        //for some
+        // for some
         // bizarre reason...
         size_t len = m_WorkingDir.size();
         if (m_WorkingDir[len - 1] != '\\')
@@ -493,7 +493,7 @@ class CElectricSheep_Win32 : public CElectricSheep
         return true;
     }
 
-    virtual bool HandleOneEvent(DisplayOutput::spCEvent &_event)
+    virtual bool HandleOneEvent(DisplayOutput::spCEvent& _event)
     {
         //	Handle events.
         if (_event->Type() == DisplayOutput::CEvent::Event_Power)

@@ -35,7 +35,7 @@ using namespace boost;
 namespace ContentDecoder
 {
 
-static void AVCodecLogCallback(void * /*_avcl*/, int _level, const char *_fmt,
+static void AVCodecLogCallback(void* /*_avcl*/, int _level, const char* _fmt,
                                va_list _vl)
 {
     // Format the log message using vsnprintf
@@ -61,7 +61,7 @@ static void AVCodecLogCallback(void * /*_avcl*/, int _level, const char *_fmt,
 CContentDecoder::CContentDecoder(spCPlaylist _spPlaylist, bool _bStartByRandom,
                                  bool _bCalculateTransitions,
                                  const uint32 _queueLenght,
-                                 boost::shared_mutex &_downloadSaveMutex,
+                                 boost::shared_mutex& _downloadSaveMutex,
                                  AVPixelFormat _wantedFormat)
 {
     g_Log->Info("CContentDecoder()");
@@ -180,7 +180,7 @@ int CContentDecoder::DumpError(int _err)
 
 /*
  */
-bool CContentDecoder::Open(sOpenVideoInfo *ovi)
+bool CContentDecoder::Open(sOpenVideoInfo* ovi)
 {
     if (ovi == NULL)
         return false;
@@ -235,14 +235,14 @@ bool CContentDecoder::Open(sOpenVideoInfo *ovi)
         return false;
     }
 
-    const auto &codecPar =
+    const auto& codecPar =
         ovi->m_pFormatContext->streams[ovi->m_VideoStreamID]->codecpar;
     ovi->m_pVideoCodec = avcodec_find_decoder(codecPar->codec_id);
     ovi->m_pVideoCodecContext = avcodec_alloc_context3(ovi->m_pVideoCodec);
 
     if (codecPar->codec_id == AV_CODEC_ID_H264)
     {
-        const AVBitStreamFilter *bsf = av_bsf_get_by_name("h264_mp4toannexb");
+        const AVBitStreamFilter* bsf = av_bsf_get_by_name("h264_mp4toannexb");
         if (!bsf)
         {
             g_Log->Error("FFmpeg error: av_bsf_get_by_name() failed");
@@ -346,11 +346,11 @@ void CContentDecoder::Close()
         }
 }*/
 
-sOpenVideoInfo *CContentDecoder::GetNextSheepInfo()
+sOpenVideoInfo* CContentDecoder::GetNextSheepInfo()
 {
     std::string name;
 
-    sOpenVideoInfo *retOVI = NULL;
+    sOpenVideoInfo* retOVI = NULL;
 
     if (m_spPlaylist->PopFreshlyDownloadedSheep(name))
     {
@@ -561,27 +561,27 @@ void CContentDecoder::CalculateNextSheep()
             // this_thread::yield();
         }
     }
-    catch (thread_interrupted const &)
+    catch (thread_interrupted const&)
     {
     }
 }
 
-CVideoFrame *CContentDecoder::ReadOneFrame(sOpenVideoInfo *ovi)
+CVideoFrame* CContentDecoder::ReadOneFrame(sOpenVideoInfo* ovi)
 {
     if (ovi == NULL)
         return NULL;
 
-    AVFormatContext *pFormatContext = ovi->m_pFormatContext;
+    AVFormatContext* pFormatContext = ovi->m_pFormatContext;
 
     if (!pFormatContext)
         return NULL;
 
-    AVPacket *packet;
-    AVPacket *filteredPacket;
+    AVPacket* packet;
+    AVPacket* filteredPacket;
     int frameDecoded = 0;
-    AVFrame *pFrame = ovi->m_pFrame;
-    AVCodecContext *pVideoCodecContext = ovi->m_pVideoCodecContext;
-    CVideoFrame *pVideoFrame = NULL;
+    AVFrame* pFrame = ovi->m_pFrame;
+    AVCodecContext* pVideoCodecContext = ovi->m_pVideoCodecContext;
+    CVideoFrame* pVideoFrame = NULL;
 
     while (true)
     {
@@ -730,7 +730,7 @@ CVideoFrame *CContentDecoder::ReadOneFrame(sOpenVideoInfo *ovi)
             pVideoFrame =
                 new CVideoFrame(pVideoCodecContext, m_WantedPixelFormat,
                                 std::string(pFormatContext->url));
-            AVFrame *pDest = pVideoFrame->Frame();
+            AVFrame* pDest = pVideoFrame->Frame();
 
             // printf( "calling sws_scale()" );
             sws_scale(m_pScaler, pFrame->data, pFrame->linesize, 0,
@@ -822,11 +822,11 @@ void CContentDecoder::ReadPackets()
 
             if (nextForced == 0)
             {
-                CVideoFrame *pMainVideoFrame = ReadOneFrame(m_MainVideoInfo);
+                CVideoFrame* pMainVideoFrame = ReadOneFrame(m_MainVideoInfo);
 
                 if (pMainVideoFrame != NULL)
                 {
-                    CVideoFrame *pSecondVideoFrame = NULL;
+                    CVideoFrame* pSecondVideoFrame = NULL;
 
 #define kTransitionFrameLength 60
 
@@ -888,7 +888,7 @@ void CContentDecoder::ReadPackets()
             }
         }
     }
-    catch (thread_interrupted const &)
+    catch (thread_interrupted const&)
     {
     }
 
@@ -910,7 +910,7 @@ spCVideoFrame CContentDecoder::Frame()
 
     if (!m_sharedFrame)
     {
-        CVideoFrame *tmp = nullptr;
+        CVideoFrame* tmp = nullptr;
         // g_Log->Info("FrameQueue:%i", m_FrameQueue.size());
         if (m_FrameQueue.size() < 2)
         {
@@ -970,7 +970,7 @@ bool CContentDecoder::Start()
 
     int retry = 0;
 
-    CVideoFrame *tmp = NULL;
+    CVideoFrame* tmp = NULL;
 
     while (retry < 10 && !m_FrameQueue.peek(tmp, false) && !m_bStop)
     {
@@ -1009,7 +1009,7 @@ void CContentDecoder::ClearQueue(uint32 leave)
 {
     while (m_FrameQueue.size() > leave)
     {
-        CVideoFrame *vf;
+        CVideoFrame* vf;
 
         if (m_FrameQueue.pop(vf, false, false))
         {

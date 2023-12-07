@@ -22,17 +22,17 @@ namespace DisplayOutput
         LoadPNG().
 
 */
-bool CImage::LoadPNG(const std::string &_fileName, const bool _wantMipMaps)
+bool CImage::LoadPNG(const std::string& _fileName, const bool _wantMipMaps)
 {
     png_structp png_ptr = NULL;
     png_infop info_ptr = NULL;
-    FILE *file;
+    FILE* file;
 
     png_byte pbSig[8];
     int iBitDepth, iColorType;
     double dGamma;
-    png_color_16 *pBackground;
-    png_byte **ppbRowPointers;
+    png_color_16* pBackground;
+    png_byte** ppbRowPointers;
 
     // open the PNG input file
     if ((file = fopen(_fileName.c_str(), "rb")) == NULL)
@@ -75,8 +75,8 @@ bool CImage::LoadPNG(const std::string &_fileName, const bool _wantMipMaps)
     png_read_info(png_ptr, info_ptr);
 
     // get width, height, bit-depth and color-type
-    png_get_IHDR(png_ptr, info_ptr, (png_uint_32 *)&m_Width,
-                 (png_uint_32 *)&m_Height, &iBitDepth, &iColorType, NULL, NULL,
+    png_get_IHDR(png_ptr, info_ptr, (png_uint_32*)&m_Width,
+                 (png_uint_32*)&m_Height, &iBitDepth, &iColorType, NULL, NULL,
                  NULL);
 
     // expand images of all color-type and bit-depth to 3x8 bit RGB images
@@ -106,8 +106,8 @@ bool CImage::LoadPNG(const std::string &_fileName, const bool _wantMipMaps)
     png_read_update_info(png_ptr, info_ptr);
 
     // get again width, height and the new bit-depth and color-type
-    png_get_IHDR(png_ptr, info_ptr, (png_uint_32 *)&m_Width,
-                 (png_uint_32 *)&m_Height, &iBitDepth, &iColorType, NULL, NULL,
+    png_get_IHDR(png_ptr, info_ptr, (png_uint_32*)&m_Width,
+                 (png_uint_32*)&m_Height, &iBitDepth, &iColorType, NULL, NULL,
                  NULL);
     uint32 nChannels = png_get_channels(png_ptr, info_ptr);
 

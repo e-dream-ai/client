@@ -115,7 +115,7 @@ void CPlayer::SetHWND(HWND _hWnd)
 bool CPlayer::AddDisplay(CGraphicsContext _graphicsContext)
 #else
 #ifdef WIN32
-bool CPlayer::AddDisplay(uint32 screen, IDirect3D9 *_pIDirect3D9, bool _blank)
+bool CPlayer::AddDisplay(uint32 screen, IDirect3D9* _pIDirect3D9, bool _blank)
 #else
 bool CPlayer::AddDisplay(uint32 screen)
 #endif
@@ -141,9 +141,9 @@ bool CPlayer::AddDisplay(uint32 screen)
 #ifdef WIN32
 #ifndef _WIN64
     bool bDirectDraw = g_Settings()->Get("settings.player.directdraw", false);
-    CDisplayDD *pDisplayDD = NULL;
+    CDisplayDD* pDisplayDD = NULL;
 #endif
-    CDisplayDX *pDisplayDX = NULL;
+    CDisplayDX* pDisplayDX = NULL;
 #ifndef _WIN64
     if (bDirectDraw)
     {
@@ -267,7 +267,7 @@ bool CPlayer::AddDisplay(uint32 screen)
     spFrameDisplay->SetDisplaySize(spDisplay->Width(), spDisplay->Height());
 
     {
-        DisplayUnit *du = new DisplayUnit;
+        DisplayUnit* du = new DisplayUnit;
 
         du->spFrameDisplay = spFrameDisplay;
         du->spRenderer = spRenderer;
@@ -301,7 +301,7 @@ bool CPlayer::AddDisplay(uint32 screen)
 
 /*
  */
-bool CPlayer::Startup(boost::shared_mutex &_downloadSaveMutex)
+bool CPlayer::Startup(boost::shared_mutex& _downloadSaveMutex)
 {
     m_DownloadSaveMutex = &_downloadSaveMutex;
     m_DisplayFps = g_Settings()->Get("settings.player.display_fps", 60.);
@@ -351,8 +351,8 @@ bool CPlayer::Startup(boost::shared_mutex &_downloadSaveMutex)
     return true;
 }
 
-ContentDecoder::CContentDecoder *
-CPlayer::CreateContentDecoder(boost::shared_mutex &_downloadSaveMutex,
+ContentDecoder::CContentDecoder*
+CPlayer::CreateContentDecoder(boost::shared_mutex& _downloadSaveMutex,
                               bool _bStartByRandom)
 {
     if (!m_spPlaylist)
@@ -392,7 +392,7 @@ void CPlayer::ForceWidthAndHeight(uint32 du, uint32 _w, uint32 _h)
     if (du >= m_displayUnits.size())
         return;
 
-    const DisplayUnit *duptr = m_displayUnits[du];
+    const DisplayUnit* duptr = m_displayUnits[du];
 
     if (duptr == NULL)
         return;
@@ -581,7 +581,7 @@ bool CPlayer::EndFrameUpdate()
 
 bool CPlayer::BeginDisplayFrame(uint32 displayUnit)
 {
-    DisplayUnit *du;
+    DisplayUnit* du;
 
     {
         boost::mutex::scoped_lock lockthis(m_displayListMutex);
@@ -600,7 +600,7 @@ bool CPlayer::BeginDisplayFrame(uint32 displayUnit)
 
 bool CPlayer::EndDisplayFrame(uint32 displayUnit, bool drawn)
 {
-    DisplayUnit *du;
+    DisplayUnit* du;
 
     {
         boost::mutex::scoped_lock lockthis(m_displayListMutex);
@@ -628,11 +628,11 @@ void CPlayer::FpsCap(const fp8 _cap)
         Update().
 
 */
-bool CPlayer::Update(uint32 displayUnit, bool &bPlayNoSheepIntro)
+bool CPlayer::Update(uint32 displayUnit, bool& bPlayNoSheepIntro)
 {
     bPlayNoSheepIntro = false;
 
-    DisplayUnit *du;
+    DisplayUnit* du;
 
     {
         boost::mutex::scoped_lock lockthis(m_displayListMutex);
@@ -651,7 +651,7 @@ bool CPlayer::Update(uint32 displayUnit, bool &bPlayNoSheepIntro)
         boost::mutex::scoped_lock lockthis(m_updateMutex);
 
         //	Update the frame display, it rests before doing any work to keep
-        //the
+        // the
         // framerate.
         if (!du->spFrameDisplay->Update(
                 !du->spDecoder ? m_spDecoder : du->spDecoder, m_PlayerFps,

@@ -14,7 +14,7 @@ extern "C"
 
 /*
  */
-void LuaXML_ParseNode(lua_State *L, TiXmlNode *pNode)
+void LuaXML_ParseNode(lua_State* L, TiXmlNode* pNode)
 {
     if (!pNode)
         return;
@@ -22,7 +22,7 @@ void LuaXML_ParseNode(lua_State *L, TiXmlNode *pNode)
     //	Resize stack if neccessary.
     luaL_checkstack(L, 5, "LuaXML_ParseNode : recursion too deep");
 
-    TiXmlElement *pElem = pNode->ToElement();
+    TiXmlElement* pElem = pNode->ToElement();
     if (pElem)
     {
         //	Element name.
@@ -31,7 +31,7 @@ void LuaXML_ParseNode(lua_State *L, TiXmlNode *pNode)
         lua_settable(L, -3);
 
         //	Parse attributes.
-        TiXmlAttribute *pAttr = pElem->FirstAttribute();
+        TiXmlAttribute* pAttr = pElem->FirstAttribute();
         if (pAttr)
         {
             lua_pushstring(L, "attr");
@@ -49,7 +49,7 @@ void LuaXML_ParseNode(lua_State *L, TiXmlNode *pNode)
     }
 
     //	Children.
-    TiXmlNode *pChild = pNode->FirstChild();
+    TiXmlNode* pChild = pNode->FirstChild();
     if (pChild)
     {
         int iChildCount = 0;
@@ -88,9 +88,9 @@ void LuaXML_ParseNode(lua_State *L, TiXmlNode *pNode)
 
 /*
  */
-static int LuaXML_ParseFile(lua_State *L)
+static int LuaXML_ParseFile(lua_State* L)
 {
-    const char *sFileName = luaL_checkstring(L, 1);
+    const char* sFileName = luaL_checkstring(L, 1);
     TiXmlDocument doc(sFileName);
     doc.LoadFile();
     lua_newtable(L);
@@ -100,12 +100,12 @@ static int LuaXML_ParseFile(lua_State *L)
 
 /*
  */
-static int LuaXML_ParseData(lua_State *L)
+static int LuaXML_ParseData(lua_State* L)
 {
-    const char *sData = luaL_checkstring(L, 1);
+    const char* sData = luaL_checkstring(L, 1);
 
     TiXmlDocument doc;
-    doc.Parse((const char *)sData, 0, TIXML_ENCODING_UTF8);
+    doc.Parse((const char*)sData, 0, TIXML_ENCODING_UTF8);
     lua_newtable(L);
     LuaXML_ParseNode(L, &doc);
     return 1;
@@ -119,7 +119,7 @@ static const luaL_Reg luaxmllib[] = {{"parseData", LuaXML_ParseData},
 /*
 ** Open math library
 */
-extern int luaopen_xml(lua_State *L)
+extern int luaopen_xml(lua_State* L)
 {
     luaL_register(L, "luaXML", luaxmllib);
     return 1;

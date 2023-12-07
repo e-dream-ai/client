@@ -29,17 +29,17 @@ class CMatrix4x4_x86
 {
   public:
     CMatrix4x4_x86();
-    CMatrix4x4_x86(const CVector4_x86 &_v0, const CVector4_x86 &_v1,
-                   const CVector4_x86 &_v2, const CVector4_x86 &_v3);
-    CMatrix4x4_x86(const CMatrix4x4_x86 &_m1);
+    CMatrix4x4_x86(const CVector4_x86& _v0, const CVector4_x86& _v1,
+                   const CVector4_x86& _v2, const CVector4_x86& _v3);
+    CMatrix4x4_x86(const CMatrix4x4_x86& _m1);
     CMatrix4x4_x86(fp4 _m11, fp4 _m12, fp4 _m13, fp4 _m14, fp4 _m21, fp4 _m22,
                    fp4 _m23, fp4 _m24, fp4 _m31, fp4 _m32, fp4 _m33, fp4 _m34,
                    fp4 _m41, fp4 _m42, fp4 _m43, fp4 _m44);
 
     //
-    void Set(const CVector4_x86 &_v0, const CVector4_x86 &_v1,
-             const CVector4_x86 &_v2, const CVector4_x86 &_v3);
-    void Set(const CMatrix4x4_x86 &_m1);
+    void Set(const CVector4_x86& _v0, const CVector4_x86& _v1,
+             const CVector4_x86& _v2, const CVector4_x86& _v3);
+    void Set(const CMatrix4x4_x86& _m1);
     void Set(fp4 _m11, fp4 _m12, fp4 _m13, fp4 _m14, fp4 _m21, fp4 _m22,
              fp4 _m23, fp4 _m24, fp4 _m31, fp4 _m32, fp4 _m33, fp4 _m34,
              fp4 _m41, fp4 _m42, fp4 _m43, fp4 _m44);
@@ -52,24 +52,24 @@ class CMatrix4x4_x86
     void InvertFast(); //	Only when 3x3rot+trans.
 
     //
-    CVector4_x86 &GetX() const;
-    CVector4_x86 &GetY() const;
-    CVector4_x86 &GetZ() const;
-    CVector4_x86 &GetW() const;
+    CVector4_x86& GetX() const;
+    CVector4_x86& GetY() const;
+    CVector4_x86& GetZ() const;
+    CVector4_x86& GetW() const;
 
     //	World.
     void Rotate_X(const fp4 _a);
     void Rotate_Y(const fp4 _a);
     void Rotate_Z(const fp4 _a);
-    void Rotate(const CVector3_x86 &_vec, const fp4 _a);
+    void Rotate(const CVector3_x86& _vec, const fp4 _a);
 
     //
-    void Translate(const CVector4_x86 &_t);
-    void SetTranslation(const CVector4_x86 &_t);
-    void Scale(const CVector3_x86 &_s);
+    void Translate(const CVector4_x86& _t);
+    void SetTranslation(const CVector4_x86& _t);
+    void Scale(const CVector3_x86& _s);
 
     //	Lefthanded.
-    void AimLH(const CVector3_x86 &_to, const CVector3_x86 &_up);
+    void AimLH(const CVector3_x86& _to, const CVector3_x86& _up);
     void PerspectiveLH(const fp4 _fovY, const fp4 _aspect, const fp4 _zn,
                        const fp4 _zf);
     void PerspectiveOffCenterLH(const fp4 _minX, const fp4 _maxX,
@@ -79,7 +79,7 @@ class CMatrix4x4_x86
                         const fp4 _zf);
 
     //	Righthanded.
-    void AimRH(const CVector3_x86 &_to, const CVector3_x86 &_up);
+    void AimRH(const CVector3_x86& _to, const CVector3_x86& _up);
     void PerspectiveRH(const fp4 _fovY, const fp4 _aspect, const fp4 _zn,
                        const fp4 _zf);
     void PerspectiveOffCenterRH(const fp4 _minX, const fp4 _maxX,
@@ -89,20 +89,20 @@ class CMatrix4x4_x86
                         const fp4 _zf);
 
     //
-    void AimRestricted(const CVector3_x86 &_to, const CVector3_x86 &_up);
+    void AimRestricted(const CVector3_x86& _to, const CVector3_x86& _up);
 
     //
-    void operator*=(const CMatrix4x4_x86 &_m1);
-    void MultiplyFast(const CMatrix4x4_x86 &_m1); //	Only when 14=24=34=0 &
+    void operator*=(const CMatrix4x4_x86& _m1);
+    void MultiplyFast(const CMatrix4x4_x86& _m1); //	Only when 14=24=34=0 &
                                                   // 44=1
 
     //
     CVector3_x86
-    Transform(const CVector3_x86 &_v) const; //	Projecting back into w=1
+    Transform(const CVector3_x86& _v) const; //	Projecting back into w=1
 
     //
-    void Multiply(const CVector4_x86 &_src, CVector4_x86 &_dst) const;
-    void Multiply(const CVector3_x86 &_src, CVector3_x86 &_dst) const;
+    void Multiply(const CVector4_x86& _src, CVector4_x86& _dst) const;
+    void Multiply(const CVector3_x86& _src, CVector3_x86& _dst) const;
 
     //
     fp4 m_Mat[4][4];
@@ -118,10 +118,10 @@ inline CMatrix4x4_x86::CMatrix4x4_x86()
 
 /*
  */
-inline CMatrix4x4_x86::CMatrix4x4_x86(const CVector4_x86 &_v0,
-                                      const CVector4_x86 &_v1,
-                                      const CVector4_x86 &_v2,
-                                      const CVector4_x86 &_v3)
+inline CMatrix4x4_x86::CMatrix4x4_x86(const CVector4_x86& _v0,
+                                      const CVector4_x86& _v1,
+                                      const CVector4_x86& _v2,
+                                      const CVector4_x86& _v3)
 {
     M11 = _v0.m_X;
     M12 = _v0.m_Y;
@@ -143,7 +143,7 @@ inline CMatrix4x4_x86::CMatrix4x4_x86(const CVector4_x86 &_v0,
 
 /*
  */
-inline CMatrix4x4_x86::CMatrix4x4_x86(const CMatrix4x4_x86 &_m1)
+inline CMatrix4x4_x86::CMatrix4x4_x86(const CMatrix4x4_x86& _m1)
 {
     memcpy(m_Mat, &(_m1.m_Mat[0][0]), 16 * sizeof(fp4));
 }
@@ -175,10 +175,10 @@ inline CMatrix4x4_x86::CMatrix4x4_x86(fp4 _m11, fp4 _m12, fp4 _m13, fp4 _m14,
 
 /*
  */
-inline void CMatrix4x4_x86::Set(const CVector4_x86 &_v0,
-                                const CVector4_x86 &_v1,
-                                const CVector4_x86 &_v2,
-                                const CVector4_x86 &_v3)
+inline void CMatrix4x4_x86::Set(const CVector4_x86& _v0,
+                                const CVector4_x86& _v1,
+                                const CVector4_x86& _v2,
+                                const CVector4_x86& _v3)
 {
     M11 = _v0.m_X;
     M12 = _v0.m_Y;
@@ -200,7 +200,7 @@ inline void CMatrix4x4_x86::Set(const CVector4_x86 &_v0,
 
 /*
  */
-inline void CMatrix4x4_x86::Set(const CMatrix4x4_x86 &_m1)
+inline void CMatrix4x4_x86::Set(const CMatrix4x4_x86& _m1)
 {
     memcpy(m_Mat, &(_m1.m_Mat[0][0]), 16 * sizeof(fp4));
 }
@@ -343,7 +343,7 @@ inline void CMatrix4x4_x86::InvertFast(void)
 /*
         M14==M24==M34==0 & M44==1
 */
-inline void CMatrix4x4_x86::MultiplyFast(const CMatrix4x4_x86 &_m1)
+inline void CMatrix4x4_x86::MultiplyFast(const CMatrix4x4_x86& _m1)
 {
     for (uint32 i = 0; i < 4; i++)
     {
@@ -371,7 +371,7 @@ inline void CMatrix4x4_x86::MultiplyFast(const CMatrix4x4_x86 &_m1)
 /*
         Transforms a vector by the matrix, projecting the result back into w=1.
 */
-inline CVector3_x86 CMatrix4x4_x86::Transform(const CVector3_x86 &_v) const
+inline CVector3_x86 CMatrix4x4_x86::Transform(const CVector3_x86& _v) const
 {
     fp4 d = 1.0f / (M14 * _v.m_X + M24 * _v.m_Y + M34 * _v.m_Z + M44);
     return (
@@ -382,30 +382,30 @@ inline CVector3_x86 CMatrix4x4_x86::Transform(const CVector3_x86 &_v) const
 
 /*
  */
-inline CVector4_x86 &CMatrix4x4_x86::GetX(void) const
+inline CVector4_x86& CMatrix4x4_x86::GetX(void) const
 {
-    return (*(CVector4_x86 *)&M11);
+    return (*(CVector4_x86*)&M11);
 }
 
 /*
  */
-inline CVector4_x86 &CMatrix4x4_x86::GetY(void) const
+inline CVector4_x86& CMatrix4x4_x86::GetY(void) const
 {
-    return (*(CVector4_x86 *)&M21);
+    return (*(CVector4_x86*)&M21);
 }
 
 /*
  */
-inline CVector4_x86 &CMatrix4x4_x86::GetZ(void) const
+inline CVector4_x86& CMatrix4x4_x86::GetZ(void) const
 {
-    return (*(CVector4_x86 *)&M31);
+    return (*(CVector4_x86*)&M31);
 }
 
 /*
  */
-inline CVector4_x86 &CMatrix4x4_x86::GetW(void) const
+inline CVector4_x86& CMatrix4x4_x86::GetW(void) const
 {
-    return (*(CVector4_x86 *)&M41);
+    return (*(CVector4_x86*)&M41);
 }
 
 /*
@@ -458,7 +458,7 @@ inline void CMatrix4x4_x86::Rotate_Z(const fp4 _a)
 
 /*
  */
-inline void CMatrix4x4_x86::Translate(const CVector4_x86 &_t)
+inline void CMatrix4x4_x86::Translate(const CVector4_x86& _t)
 {
     M41 += _t.m_X;
     M42 += _t.m_Y;
@@ -468,7 +468,7 @@ inline void CMatrix4x4_x86::Translate(const CVector4_x86 &_t)
 
 /*
  */
-inline void CMatrix4x4_x86::SetTranslation(const CVector4_x86 &_t)
+inline void CMatrix4x4_x86::SetTranslation(const CVector4_x86& _t)
 {
     M41 = _t.m_X;
     M42 = _t.m_Y;
@@ -478,7 +478,7 @@ inline void CMatrix4x4_x86::SetTranslation(const CVector4_x86 &_t)
 
 /*
  */
-inline void CMatrix4x4_x86::Scale(const CVector3_x86 &_s)
+inline void CMatrix4x4_x86::Scale(const CVector3_x86& _s)
 {
     for (uint32 i = 0; i < 4; i++)
     {
@@ -490,8 +490,8 @@ inline void CMatrix4x4_x86::Scale(const CVector3_x86 &_s)
 
 /*
  */
-inline void CMatrix4x4_x86::AimRH(const CVector3_x86 &_at,
-                                  const CVector3_x86 &_up)
+inline void CMatrix4x4_x86::AimRH(const CVector3_x86& _at,
+                                  const CVector3_x86& _up)
 {
     CVector3_x86 eye(M41, M42, M43);
 
@@ -519,8 +519,8 @@ inline void CMatrix4x4_x86::AimRH(const CVector3_x86 &_at,
 
 /*
  */
-inline void CMatrix4x4_x86::AimLH(const CVector3_x86 &_at,
-                                  const CVector3_x86 &_up)
+inline void CMatrix4x4_x86::AimLH(const CVector3_x86& _at,
+                                  const CVector3_x86& _up)
 {
     CVector3_x86 eye(M41, M42, M43);
 
@@ -696,8 +696,8 @@ inline void CMatrix4x4_x86::OrthographicRH(const fp4 _w, const fp4 _h,
 
 /*
  */
-inline void CMatrix4x4_x86::AimRestricted(const CVector3_x86 &_to,
-                                          const CVector3_x86 &_up)
+inline void CMatrix4x4_x86::AimRestricted(const CVector3_x86& _to,
+                                          const CVector3_x86& _up)
 {
     CVector3_x86 from(M41, M42, M43);
     CVector3_x86 z(from - _to);
@@ -725,7 +725,7 @@ inline void CMatrix4x4_x86::AimRestricted(const CVector3_x86 &_to,
 
 /*
  */
-inline void CMatrix4x4_x86::operator*=(const CMatrix4x4_x86 &_m1)
+inline void CMatrix4x4_x86::operator*=(const CMatrix4x4_x86& _m1)
 {
     for (uint32 i = 0; i < 4; i++)
     {
@@ -747,7 +747,7 @@ inline void CMatrix4x4_x86::operator*=(const CMatrix4x4_x86 &_m1)
 
 /*
  */
-inline void CMatrix4x4_x86::Rotate(const CVector3_x86 &_vec, const fp4 _a)
+inline void CMatrix4x4_x86::Rotate(const CVector3_x86& _vec, const fp4 _a)
 {
     CVector3_x86 v(_vec);
     v.NormalizeFast();
@@ -771,8 +771,8 @@ inline void CMatrix4x4_x86::Rotate(const CVector3_x86 &_vec, const fp4 _a)
 
 /*
  */
-inline void CMatrix4x4_x86::Multiply(const CVector4_x86 &_src,
-                                     CVector4_x86 &_dst) const
+inline void CMatrix4x4_x86::Multiply(const CVector4_x86& _src,
+                                     CVector4_x86& _dst) const
 {
     _dst.m_X =
         M11 * _src.m_X + M21 * _src.m_Y + M31 * _src.m_Z + M41 * _src.m_W;
@@ -786,8 +786,8 @@ inline void CMatrix4x4_x86::Multiply(const CVector4_x86 &_src,
 
 /*
  */
-inline void CMatrix4x4_x86::Multiply(const CVector3_x86 &_src,
-                                     CVector3_x86 &_dst) const
+inline void CMatrix4x4_x86::Multiply(const CVector3_x86& _src,
+                                     CVector3_x86& _dst) const
 {
     _dst.m_X = M11 * _src.m_X + M21 * _src.m_Y + M31 * _src.m_Z + M41;
     _dst.m_Y = M12 * _src.m_X + M22 * _src.m_Y + M32 * _src.m_Z + M42;
@@ -796,8 +796,8 @@ inline void CMatrix4x4_x86::Multiply(const CVector3_x86 &_src,
 
 /*
  */
-static inline CMatrix4x4_x86 operator*(const CMatrix4x4_x86 &_m0,
-                                       const CMatrix4x4_x86 &_m1)
+static inline CMatrix4x4_x86 operator*(const CMatrix4x4_x86& _m0,
+                                       const CMatrix4x4_x86& _m1)
 {
     CMatrix4x4_x86 m2(
 
@@ -858,8 +858,8 @@ static inline CMatrix4x4_x86 operator*(const CMatrix4x4_x86 &_m0,
 
 /*
  */
-static inline CVector3_x86 operator*(const CMatrix4x4_x86 &_m,
-                                     const CVector3_x86 &_v)
+static inline CVector3_x86 operator*(const CMatrix4x4_x86& _m,
+                                     const CVector3_x86& _v)
 {
     return (CVector3_x86(
         _m.M11 * _v.m_X + _m.M21 * _v.m_Y + _m.M31 * _v.m_Z + _m.M41,
@@ -869,8 +869,8 @@ static inline CVector3_x86 operator*(const CMatrix4x4_x86 &_m,
 
 /*
  */
-static inline CVector4_x86 operator*(const CMatrix4x4_x86 &_m,
-                                     const CVector4_x86 &_v)
+static inline CVector4_x86 operator*(const CMatrix4x4_x86& _m,
+                                     const CVector4_x86& _v)
 {
     return (CVector4_x86(
         _m.M11 * _v.m_X + _m.M21 * _v.m_Y + _m.M31 * _v.m_Z + _m.M41 * _v.m_W,

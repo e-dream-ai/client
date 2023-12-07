@@ -20,7 +20,7 @@ class CDisplayMetal : public CDisplayOutput
     CDisplayMetal();
     virtual ~CDisplayMetal();
 
-    static const char *Description() { return "macOS Metal display"; };
+    static const char* Description() { return "macOS Metal display"; };
 
     virtual bool Initialize(CGraphicsContext _graphicsContext, bool _bPreview);
 
@@ -34,7 +34,7 @@ class CDisplayMetal : public CDisplayOutput
     virtual bool HasShaders() { return true; };
 
     //
-    virtual void Title(const std::string &_title);
+    virtual void Title(const std::string& _title);
     virtual void Update();
 
     void SwapBuffers();

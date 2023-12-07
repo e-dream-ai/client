@@ -79,14 +79,14 @@ namespace Math
 
 //	Handy clamp template.
 template <class T, class T1, class T2>
-inline T Clamped(const T &_x, const T1 &_lo, const T2 &_hi)
+inline T Clamped(const T& _x, const T1& _lo, const T2& _hi)
 {
     return ((_x < _lo) ? _lo : (_x > _hi) ? _hi : _x);
 }
 
 //	Sine & Cosine of _angle.	For x86 roughly twice as fast as sinf()
 //+ cosf()...
-inline void SinCos(const fp4 _angle, fp4 *_pSin, fp4 *_pCos)
+inline void SinCos(const fp4 _angle, fp4* _pSin, fp4* _pCos)
 {
     // #ifdef AMD64
     *_pSin = (fp4)sinf(_angle);
@@ -126,9 +126,9 @@ inline fp4 RSqrtFast(fp4 _v)
     //	ASSERT( _v != 0.0f );
 
     const fp4 v_half = _v * 0.5f;
-    long i = *(long *)&_v;
+    long i = *(long*)&_v;
     i = 0x5f3759df - (i >> 1);
-    _v = *(fp4 *)&i;
+    _v = *(fp4*)&i;
     return (_v * (1.5f - v_half * _v * _v));
 }
 
@@ -226,11 +226,11 @@ inline unsigned int UpperPowerOfTwo(const unsigned int x)
 }
 
 //
-static inline int FloatIsNAN(const float &_Number)
+static inline int FloatIsNAN(const float& _Number)
 {
-    if (((*((unsigned int *)&_Number)) & 0x7F800000) == 0x7F800000)
+    if (((*((unsigned int*)&_Number)) & 0x7F800000) == 0x7F800000)
     {
-        if ((*((unsigned int *)&_Number)) & 0x007FFFFF)
+        if ((*((unsigned int*)&_Number)) & 0x007FFFFF)
             return (true);
         else
             return (false);
@@ -240,11 +240,11 @@ static inline int FloatIsNAN(const float &_Number)
 }
 
 //
-static inline int FloatIsInfinite(const float &_Number)
+static inline int FloatIsInfinite(const float& _Number)
 {
-    if (((*((unsigned int *)&_Number)) & 0x7F800000) == 0x7F800000)
+    if (((*((unsigned int*)&_Number)) & 0x7F800000) == 0x7F800000)
     {
-        if (!((*((unsigned int *)&_Number)) & 0x007FFFFF))
+        if (!((*((unsigned int*)&_Number)) & 0x007FFFFF))
             return (true);
         else
             return (false);
@@ -254,16 +254,16 @@ static inline int FloatIsInfinite(const float &_Number)
 }
 
 //
-static inline bool FloatInRange(const float &_Number, const float _Low,
+static inline bool FloatInRange(const float& _Number, const float _Low,
                                 const float _High)
 {
     return ((_Number >= _Low) && (_Number <= _High));
 }
 
 //
-static inline int FloatIsInvalid(const float &_Number)
+static inline int FloatIsInvalid(const float& _Number)
 {
-    return (((*((unsigned int *)&_Number)) & 0x7F800000) == 0x7F800000);
+    return (((*((unsigned int*)&_Number)) & 0x7F800000) == 0x7F800000);
 }
 
 }; // namespace Math

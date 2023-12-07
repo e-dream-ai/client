@@ -30,17 +30,17 @@
 {
     CFBundleRef bndl = CopyDLBundle_ex();
 
-    NSURL *imgUrl = (NSURL *)CFBridgingRelease(
+    NSURL* imgUrl = (NSURL*)CFBridgingRelease(
         CFBundleCopyResourceURL(bndl, CFSTR("red.tif"), NULL, NULL));
 
     redImage = [[NSImage alloc] initWithContentsOfURL:imgUrl];
 
-    imgUrl = (NSURL *)CFBridgingRelease(
+    imgUrl = (NSURL*)CFBridgingRelease(
         CFBundleCopyResourceURL(bndl, CFSTR("yellow.tif"), NULL, NULL));
 
     yellowImage = [[NSImage alloc] initWithContentsOfURL:imgUrl];
 
-    imgUrl = (NSURL *)CFBridgingRelease(
+    imgUrl = (NSURL*)CFBridgingRelease(
         CFBundleCopyResourceURL(bndl, CFSTR("green.tif"), NULL, NULL));
 
     greenImage = [[NSImage alloc] initWithContentsOfURL:imgUrl];
@@ -61,7 +61,7 @@
 
 - (void)fixFlockSize
 {
-    const char *mp4path =
+    const char* mp4path =
         [[[contentFldr stringValue] stringByStandardizingPath] UTF8String];
 
     if (mp4path != NULL && *mp4path)
@@ -69,7 +69,7 @@
 
         size_t flockSize = ESScreensaver_GetFlockSizeMBs(mp4path, 0);
 
-        NSMutableString *str =
+        NSMutableString* str =
             [NSMutableString stringWithString:[flockSizeText stringValue]];
 
         [str replaceOccurrencesOfString:@"^1"
@@ -87,7 +87,7 @@
     [self updateAuthUI:@"Please log in."];
 }
 
-- (void)updateAuthUI:(NSString *)failMessage
+- (void)updateAuthUI:(NSString*)failMessage
 {
     if (EDreamClient::IsLoggedIn())
     {
@@ -125,8 +125,8 @@
     }
 }
 
-- (void)connection:(NSURLConnection *)__unused connection
-    didReceiveResponse:(NSURLResponse *)response
+- (void)connection:(NSURLConnection*)__unused connection
+    didReceiveResponse:(NSURLResponse*)response
 {
     // This method is called when the server has determined that it
     // has enough information to create the NSURLResponse.
@@ -136,7 +136,7 @@
 
     // receivedData is an instance variable declared elsewhere.
     //[receivedData setLength:0];
-    NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
+    NSHTTPURLResponse* httpResponse = (NSHTTPURLResponse*)response;
 
     if (![httpResponse isKindOfClass:[NSHTTPURLResponse class]])
     {
@@ -158,29 +158,29 @@
     }
 }
 
-- (void)connection:(NSURLConnection *)__unused connection
-    didReceiveData:(NSData *)data
+- (void)connection:(NSURLConnection*)__unused connection
+    didReceiveData:(NSData*)data
 {
     // Append the new data to receivedData.
     // receivedData is an instance variable declared elsewhere.
     [m_httpData appendData:data];
 }
 
-- (BOOL)connection:(NSURLConnection *)__unused connection
-    canAuthenticateAgainstProtectionSpace:(NSURLProtectionSpace *)space
+- (BOOL)connection:(NSURLConnection*)__unused connection
+    canAuthenticateAgainstProtectionSpace:(NSURLProtectionSpace*)space
 {
     return [space.authenticationMethod
         isEqualToString:NSURLAuthenticationMethodServerTrust];
 }
 
-- (void)connection:(NSURLConnection *)__unused connection
-    didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge
+- (void)connection:(NSURLConnection*)__unused connection
+    didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge*)challenge
 {
 
     if ([challenge.protectionSpace.authenticationMethod
             isEqualToString:NSURLAuthenticationMethodServerTrust])
     {
-        NSURLCredential *credential = [NSURLCredential
+        NSURLCredential* credential = [NSURLCredential
             credentialForTrust:challenge.protectionSpace.serverTrust];
         [challenge.sender useCredential:credential
              forAuthenticationChallenge:challenge];
@@ -207,21 +207,21 @@
 
     m_httpData = [NSMutableData dataWithCapacity:10];
 
-    NSString *newNickname = [drupalLogin stringValue];
-    NSString *newPassword = [drupalPassword stringValue];
+    NSString* newNickname = [drupalLogin stringValue];
+    NSString* newPassword = [drupalPassword stringValue];
 
-    NSString *urlstr;
-    NSString *httpMethod;
-    NSMutableURLRequest *request =
+    NSString* urlstr;
+    NSString* httpMethod;
+    NSMutableURLRequest* request =
         [NSMutableURLRequest requestWithURL:[NSURL URLWithString:urlstr]];
 
     urlstr = @(LOGIN_ENDPOINT);
     httpMethod = @"POST";
     // Set request body data
-    NSDictionary *parameters =
+    NSDictionary* parameters =
         @{@"username" : newNickname, @"password" : newPassword};
-    NSError *serializationError;
-    NSData *postData =
+    NSError* serializationError;
+    NSData* postData =
         [NSJSONSerialization dataWithJSONObject:parameters
                                         options:0
                                           error:&serializationError];
@@ -237,13 +237,13 @@
     [request setValue:@"application/json; charset=UTF-8"
         forHTTPHeaderField:@"Content-Type"];
 
-    NSURLSession *session = [NSURLSession sharedSession];
+    NSURLSession* session = [NSURLSession sharedSession];
 
     // Create a data task to send the request
-    NSURLSessionDataTask *dataTask = [session
+    NSURLSessionDataTask* dataTask = [session
         dataTaskWithRequest:request
-          completionHandler:^(NSData *data, NSURLResponse *response,
-                              NSError *sessionError) {
+          completionHandler:^(NSData* data, NSURLResponse* response,
+                              NSError* sessionError) {
               dispatch_async(dispatch_get_main_queue(), ^{
                   if (sessionError)
                   {
@@ -252,14 +252,14 @@
                   }
                   else
                   {
-                      NSError *dictionaryError;
+                      NSError* dictionaryError;
 
                       // Convert JSON data to an NSDictionary
-                      NSDictionary *jsonDictionary = [NSJSONSerialization
+                      NSDictionary* jsonDictionary = [NSJSONSerialization
                           JSONObjectWithData:data
                                      options:0
                                        error:&dictionaryError];
-                      NSString *responseString =
+                      NSString* responseString =
                           [[NSString alloc] initWithData:data
                                                 encoding:NSUTF8StringEncoding];
                       NSLog(@"Response: %@", responseString);
@@ -272,17 +272,17 @@
                       }
                       else
                       {
-                          NSNumber *success =
+                          NSNumber* success =
                               [jsonDictionary valueForKey:@"success"];
                           if (success.boolValue)
                           {
-                              NSDictionary *dataEntry =
+                              NSDictionary* dataEntry =
                                   [jsonDictionary valueForKey:@"data"];
-                              NSDictionary *tokenDict =
+                              NSDictionary* tokenDict =
                                   [dataEntry valueForKey:@"token"];
-                              NSString *accessToken =
+                              NSString* accessToken =
                                   [tokenDict valueForKey:@"AccessToken"];
-                              NSString *refreshToken =
+                              NSString* refreshToken =
                                   [tokenDict valueForKey:@"RefreshToken"];
                               EDreamClient::DidSignIn(accessToken.UTF8String,
                                                       refreshToken.UTF8String);
@@ -381,12 +381,12 @@
     [useProxy setState:ESScreensaver_GetBoolSetting(
                            "settings.content.use_proxy", false)];
 
-    [proxyHost setStringValue:(__bridge_transfer NSString *)
+    [proxyHost setStringValue:(__bridge_transfer NSString*)
                                   ESScreensaver_CopyGetStringSetting(
                                       "settings.content.proxy", "")];
 
     m_origNickname =
-        (__bridge_transfer NSString *)ESScreensaver_CopyGetStringSetting(
+        (__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting(
             "settings.generator.nickname", "");
 
     //[m_origNickname retain];
@@ -395,12 +395,12 @@
 
     [drupalPassword setStringValue:@""];
 
-    [proxyLogin setStringValue:(__bridge_transfer NSString *)
+    [proxyLogin setStringValue:(__bridge_transfer NSString*)
                                    ESScreensaver_CopyGetStringSetting(
                                        "settings.content.proxy_username", "")];
 
     [proxyPassword
-        setStringValue:(__bridge_transfer NSString *)
+        setStringValue:(__bridge_transfer NSString*)
                            ESScreensaver_CopyGetStringSetting(
                                "settings.content.proxy_password", "")];
 
@@ -423,12 +423,12 @@
 
     [debugLog setState:ESScreensaver_GetBoolSetting("settings.app.log", false)];
 
-    [contentFldr setStringValue:[(__bridge_transfer NSString *)
+    [contentFldr setStringValue:[(__bridge_transfer NSString*)
                                         ESScreensaver_CopyGetStringSetting(
                                             "settings.content.sheepdir", "")
                                     stringByAbbreviatingWithTildeInPath]];
 
-    [version setStringValue:(__bridge NSString *)ESScreensaver_GetVersion()];
+    [version setStringValue:(__bridge NSString*)ESScreensaver_GetVersion()];
 
     [self fixFlockSize];
 
@@ -508,29 +508,29 @@
 
 - (IBAction)goToCreateAccountPage:(id)__unused sender
 {
-    NSURL *helpURL = [NSURL URLWithString:@"https://e-dream.ai/register"];
+    NSURL* helpURL = [NSURL URLWithString:@"https://e-dream.ai/register"];
 
     [[NSWorkspace sharedWorkspace] openURL:helpURL];
 }
 
 - (IBAction)goToLearnMorePage:(id)__unused sender
 {
-    NSURL *helpURL = [NSURL URLWithString:@"https://e-dream.ai/learnmore"];
+    NSURL* helpURL = [NSURL URLWithString:@"https://e-dream.ai/learnmore"];
 
     [[NSWorkspace sharedWorkspace] openURL:helpURL];
 }
 
 - (IBAction)chooseContentFolder:(id)__unused sender
 {
-    NSTextField *field = nil;
+    NSTextField* field = nil;
 
     field = contentFldr;
 
     if (field)
     {
-        NSOpenPanel *openPanel = [NSOpenPanel openPanel];
+        NSOpenPanel* openPanel = [NSOpenPanel openPanel];
         NSInteger result = NSOKButton;
-        NSString *path = [[field stringValue] stringByExpandingTildeInPath];
+        NSString* path = [[field stringValue] stringByExpandingTildeInPath];
 
         [openPanel setCanChooseFiles:NO];
         [openPanel setCanChooseDirectories:YES];
@@ -569,10 +569,10 @@
 
 - (IBAction)goToHelpPage:(id)__unused sender
 {
-    NSString *urlStr = [NSString
+    NSString* urlStr = [NSString
         stringWithFormat:@"https://e-dream.ai/help?v=%s", CLIENT_VERSION];
 
-    NSURL *helpURL = [NSURL URLWithString:urlStr];
+    NSURL* helpURL = [NSURL URLWithString:urlStr];
 
     [[NSWorkspace sharedWorkspace] openURL:helpURL];
 }

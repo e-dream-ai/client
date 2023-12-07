@@ -142,13 +142,13 @@ class CRenderer
                                           const uint32 flags = 0) = PureVirtual;
 
     //	Font.
-    virtual spCBaseFont GetFont(CFontDescription &_desc) = PureVirtual;
+    virtual spCBaseFont GetFont(CFontDescription& _desc) = PureVirtual;
     virtual spCBaseText NewText(spCBaseFont _font,
-                                const std::string &_text) = PureVirtual;
+                                const std::string& _text) = PureVirtual;
     virtual void DrawText(spCBaseText _text,
-                          const Base::Math::CVector4 &_color) = PureVirtual;
+                          const Base::Math::CVector4& _color) = PureVirtual;
     virtual Base::Math::CVector2 GetTextExtent(spCBaseFont /*_spFont*/,
-                                               const std::string & /*_text*/)
+                                               const std::string& /*_text*/)
     {
         return Base::Math::CVector2(0, 0);
     };
@@ -156,7 +156,7 @@ class CRenderer
     virtual bool HasShaders() { return false; }
     //	Shaders.
     virtual spCShader
-    NewShader(const char *_pVertexShader, const char *_pFragmentShader,
+    NewShader(const char* _pVertexShader, const char* _pFragmentShader,
               std::vector<std::pair<std::string, eUniformType>> _uniforms =
                   {}) = PureVirtual;
 
@@ -172,7 +172,7 @@ class CRenderer
         eProjection = 4,
     };
 
-    void SetTransform(const Base::Math::CMatrix4x4 &_transform,
+    void SetTransform(const Base::Math::CMatrix4x4& _transform,
                       const eMatrixTransformType _type);
 
     //	State api.
@@ -192,20 +192,20 @@ class CRenderer
     void SetBlend(std::string _blend);
 
     //	Aux functions.
-    virtual void DrawLine(const Base::Math::CVector2 & /*_start*/,
-                          const Base::Math::CVector2 & /*_end*/,
-                          const Base::Math::CVector4 & /*_color*/,
+    virtual void DrawLine(const Base::Math::CVector2& /*_start*/,
+                          const Base::Math::CVector2& /*_end*/,
+                          const Base::Math::CVector4& /*_color*/,
                           const fp4 /*_width = 1.0f*/){};
-    virtual void DrawRect(const Base::Math::CRect & /*_rect*/,
-                          const Base::Math::CVector4 & /*_color*/,
+    virtual void DrawRect(const Base::Math::CRect& /*_rect*/,
+                          const Base::Math::CVector4& /*_color*/,
                           const fp4 /*_width = 1.0f*/){};
-    virtual void DrawQuad(const Base::Math::CRect & /*_rect*/,
-                          const Base::Math::CVector4 & /*_color*/){};
-    virtual void DrawQuad(const Base::Math::CRect & /*_rect*/,
-                          const Base::Math::CVector4 & /*_color*/,
-                          const Base::Math::CRect & /*_uvRect*/){};
-    virtual void DrawSoftQuad(const Base::Math::CRect & /*_rect*/,
-                              const Base::Math::CVector4 & /*_color*/,
+    virtual void DrawQuad(const Base::Math::CRect& /*_rect*/,
+                          const Base::Math::CVector4& /*_color*/){};
+    virtual void DrawQuad(const Base::Math::CRect& /*_rect*/,
+                          const Base::Math::CVector4& /*_color*/,
+                          const Base::Math::CRect& /*_uvRect*/){};
+    virtual void DrawSoftQuad(const Base::Math::CRect& /*_rect*/,
+                              const Base::Math::CVector4& /*_color*/,
                               const fp4 /*_width*/){};
 };
 

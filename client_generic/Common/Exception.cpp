@@ -52,7 +52,7 @@ std::string CException::Text(void) const
         CollectArguments().
 
 */
-void CException::CollectArguments(const char *String, ...)
+void CException::CollectArguments(const char* String, ...)
 {
     static char s_StringWork[8192];
 

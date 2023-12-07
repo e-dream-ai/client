@@ -14,7 +14,7 @@ using boost::filesystem::directory_iterator;
 class CDirectoryPlaylist : public ContentDecoder::CLoopingPlaylist
 {
   public:
-    CDirectoryPlaylist(const std::string &_directory)
+    CDirectoryPlaylist(const std::string& _directory)
         : ContentDecoder::CLoopingPlaylist()
     {
         std::set<std::string> valid;

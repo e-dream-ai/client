@@ -16,7 +16,7 @@ namespace DisplayOutput
 
 /*
  */
-CShaderDX::CShaderDX(IDirect3DDevice9 *_pDevice, float _width, float _height)
+CShaderDX::CShaderDX(IDirect3DDevice9* _pDevice, float _width, float _height)
     : m_pDevice(_pDevice), m_Width(_width), m_Height(_height)
 {
     if (_pDevice == NULL)
@@ -61,7 +61,7 @@ bool CShaderDX::Apply()
 
             matWorldViewProj = matWorld * matView * matProj;
 
-            spUni->SetData((D3DMATRIX *)(const fp4 *)matWorldViewProj.m_Mat,
+            spUni->SetData((D3DMATRIX*)(const fp4*)matWorldViewProj.m_Mat,
                            sizeof(D3DXMATRIX));
         }
     }
@@ -87,7 +87,7 @@ bool CShaderDX::Unbind()
 
 /*
  */
-bool CShaderDX::Build(const char *_pVertexShader, const char *_pFragmentShader)
+bool CShaderDX::Build(const char* _pVertexShader, const char* _pFragmentShader)
 {
     if (!_pVertexShader && !_pFragmentShader)
         return false;
@@ -101,7 +101,7 @@ bool CShaderDX::Build(const char *_pVertexShader, const char *_pFragmentShader)
     {
         std::string shaderString = _pVertexShader;
 
-        const char *profile =
+        const char* profile =
             g_DLLFun->D3DXGetVertexShaderProfile_fun(m_pDevice);
 
         if (g_DLLFun->D3DXCompileShader_fun(
@@ -110,12 +110,12 @@ bool CShaderDX::Build(const char *_pVertexShader, const char *_pFragmentShader)
                 &pErrorsBuf, &m_pVertexConstants) == D3D_OK)
         {
             if (FAILED(m_pDevice->CreateVertexShader(
-                    (DWORD *)pShaderBuf->GetBufferPointer(), &m_pVertexShader)))
+                    (DWORD*)pShaderBuf->GetBufferPointer(), &m_pVertexShader)))
             {
                 g_Log->Error("Unable to create vertex shader");
                 if (pErrorsBuf != NULL)
                     g_Log->Error("DX Error: %s",
-                                 (const char *)pErrorsBuf->GetBufferPointer());
+                                 (const char*)pErrorsBuf->GetBufferPointer());
             }
         }
         else
@@ -123,7 +123,7 @@ bool CShaderDX::Build(const char *_pVertexShader, const char *_pFragmentShader)
             g_Log->Error("Unable to compile vertex shaders");
             if (pErrorsBuf != NULL)
                 g_Log->Error("DX Error: %s",
-                             (const char *)pErrorsBuf->GetBufferPointer());
+                             (const char*)pErrorsBuf->GetBufferPointer());
         }
 
         SAFE_RELEASE(pShaderBuf);
@@ -137,7 +137,7 @@ bool CShaderDX::Build(const char *_pVertexShader, const char *_pFragmentShader)
     {
         std::string shaderString = _pFragmentShader;
 
-        const char *profile =
+        const char* profile =
             g_DLLFun->D3DXGetPixelShaderProfile_fun(m_pDevice);
 
         if (g_DLLFun->D3DXCompileShader_fun(
@@ -146,19 +146,19 @@ bool CShaderDX::Build(const char *_pVertexShader, const char *_pFragmentShader)
                 &pErrorsBuf, &m_pFragmentConstants) == D3D_OK)
         {
             if (FAILED(m_pDevice->CreatePixelShader(
-                    (DWORD *)pShaderBuf->GetBufferPointer(),
+                    (DWORD*)pShaderBuf->GetBufferPointer(),
                     &m_pFragmentShader)))
             {
                 g_Log->Error("Unable to create fragment shader");
                 if (pErrorsBuf != NULL)
-                    g_Log->Error((const char *)pErrorsBuf->GetBufferPointer());
+                    g_Log->Error((const char*)pErrorsBuf->GetBufferPointer());
             }
         }
         else
         {
             g_Log->Error("Unable to compile fragment shader");
             if (pErrorsBuf != NULL)
-                g_Log->Error((const char *)pErrorsBuf->GetBufferPointer());
+                g_Log->Error((const char*)pErrorsBuf->GetBufferPointer());
         }
 
         SAFE_RELEASE(pShaderBuf);
@@ -303,7 +303,7 @@ bool CShaderDX::Build(const char *_pVertexShader, const char *_pFragmentShader)
 
 /*
  */
-bool CShaderUniformDX::SetData(void *_pData, const uint32 _size)
+bool CShaderUniformDX::SetData(void* _pData, const uint32 _size)
 {
     if (m_pData == NULL)
     {
@@ -369,24 +369,24 @@ void CShaderUniformDX::Apply()
     {
         //		case	eUniform_Sampler:	break;
     case eUniform_Float:
-        m_pDevice->SetPixelShaderConstantF(m_Index, (const float *)m_float4Data,
+        m_pDevice->SetPixelShaderConstantF(m_Index, (const float*)m_float4Data,
                                            1);
         break;
     case eUniform_Float4:
-        m_pDevice->SetPixelShaderConstantF(m_Index, (const float *)m_pData,
+        m_pDevice->SetPixelShaderConstantF(m_Index, (const float*)m_pData,
                                            m_Size / sizeof(float) / 4);
         break;
     case eUniform_Int:
         g_Log->Warning("eUniform_Int used in ShaderDX");
-        m_pDevice->SetPixelShaderConstantI(m_Index, (const int32 *)m_pData,
+        m_pDevice->SetPixelShaderConstantI(m_Index, (const int32*)m_pData,
                                            m_Size / sizeof(int32) / 4);
         break;
     case eUniform_Boolean:
-        m_pDevice->SetPixelShaderConstantB(m_Index, (const BOOL *)m_pData,
+        m_pDevice->SetPixelShaderConstantB(m_Index, (const BOOL*)m_pData,
                                            m_Size / sizeof(BOOL));
         break;
     case eUniform_Matrix4:
-        m_pDevice->SetVertexShaderConstantF(m_Index, (const fp4 *)m_pData,
+        m_pDevice->SetVertexShaderConstantF(m_Index, (const fp4*)m_pData,
                                             m_Size / sizeof(float) / 4);
         break;
     }

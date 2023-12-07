@@ -55,7 +55,7 @@ class CNode
     }
 
     //	Deduce generation & graph location from filename.
-    bool Init(std::string &_filename)
+    bool Init(std::string& _filename)
     {
         //	Save what we're all about.
         m_Filename = _filename;
@@ -88,7 +88,7 @@ class CNode
         return true;
     }
 
-    const std::string &FileName() { return (m_Filename); };
+    const std::string& FileName() { return (m_Filename); };
     const int32 PlayCount() { return (m_PlayCount); };
     void IncPlayCount() { m_PlayCount++; };
 };
@@ -115,7 +115,7 @@ class CGraphPlaylist : public CPlaylist
 
     gnode_t m_Graph;
 
-    void UpdateDirectory(path const &_dir)
+    void UpdateDirectory(path const& _dir)
     {
         // g_Log->Info( "Monitoring in %s...", monitor_dir.string().c_str() );
         for (directory_iterator i(_dir), end; i != end; ++i)
@@ -139,7 +139,7 @@ class CGraphPlaylist : public CPlaylist
     }
 
   public:
-    CGraphPlaylist(const std::string &_watchFolder) : CPlaylist()
+    CGraphPlaylist(const std::string& _watchFolder) : CPlaylist()
     {
         m_Interval = 2;
         m_Clock = 0;
@@ -147,7 +147,7 @@ class CGraphPlaylist : public CPlaylist
         boost::filesystem::path::default_name_check(boost::filesystem::native);
 
         //	Update now so other parts of the code doesn't freak when this
-        //returns
+        // returns
         // zero length;
         m_Path = _watchFolder.c_str();
 
@@ -159,7 +159,7 @@ class CGraphPlaylist : public CPlaylist
     virtual ~CGraphPlaylist() {}
 
     //
-    virtual bool Add(const std::string &_file)
+    virtual bool Add(const std::string& _file)
     {
         printf("%s\n", _file.c_str());
         return (true);

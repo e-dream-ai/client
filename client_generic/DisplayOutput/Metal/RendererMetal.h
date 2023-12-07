@@ -59,33 +59,33 @@ class CRendererMetal : public CRenderer
     spCTextureFlat NewTextureFlat(spCImage _spImage, const uint32 flags = 0);
 
     //
-    spCBaseFont GetFont(CFontDescription &_desc);
-    spCBaseText NewText(spCBaseFont _font, const std::string &_text);
-    void DrawText(spCBaseText _text, const Base::Math::CVector4 &_color);
+    spCBaseFont GetFont(CFontDescription& _desc);
+    spCBaseText NewText(spCBaseFont _font, const std::string& _text);
+    void DrawText(spCBaseText _text, const Base::Math::CVector4& _color);
     Base::Math::CVector2 GetTextExtent(spCBaseFont _spFont,
-                                       const std::string &_text);
+                                       const std::string& _text);
 
     //
     spCShader
-    NewShader(const char *_pVertexShader, const char *_pFragmentShader,
+    NewShader(const char* _pVertexShader, const char* _pFragmentShader,
               std::vector<std::pair<std::string, eUniformType>> uniforms = {});
 
     void Clear();
 
     //
-    void DrawQuad(const Base::Math::CRect &_rect,
-                  const Base::Math::CVector4 &_color);
-    void DrawQuad(const Base::Math::CRect &_rect,
-                  const Base::Math::CVector4 &_color,
-                  const Base::Math::CRect &_uvRect);
-    void DrawSoftQuad(const Base::Math::CRect &_rect,
-                      const Base::Math::CVector4 &_color, const fp4 _width);
+    void DrawQuad(const Base::Math::CRect& _rect,
+                  const Base::Math::CVector4& _color);
+    void DrawQuad(const Base::Math::CRect& _rect,
+                  const Base::Math::CVector4& _color,
+                  const Base::Math::CRect& _uvRect);
+    void DrawSoftQuad(const Base::Math::CRect& _rect,
+                      const Base::Math::CVector4& _color, const fp4 _width);
 
 #ifdef __OBJC__
-    void SetBoundSlot(uint32_t _slot, CTextureFlatMetal *_texture);
+    void SetBoundSlot(uint32_t _slot, CTextureFlatMetal* _texture);
     bool
     CreateMetalTextureFromDecoderFrame(CVPixelBufferRef pixelBuffer,
-                                       CVMetalTextureRef *_pMetalTextureRef,
+                                       CVMetalTextureRef* _pMetalTextureRef,
                                        uint32_t plane);
 #endif
   private:

@@ -161,26 +161,26 @@ namespace Base
 */
 template <class T> class CRefCountRep
 {
-    T *m_pRealPtr;
+    T* m_pRealPtr;
     long m_counter;
 
     //	Constructors and destructor
   public:
-    CRefCountRep(const T *ptr);
+    CRefCountRep(const T* ptr);
     ~CRefCountRep();
 
     long incrRefCount();
     long decrRefCount();
 
-    T *getPointer() const;
-    T *getRealPointer() const;
+    T* getPointer() const;
+    T* getRealPointer() const;
 
     bool isNull() const;
 };
 
 //
 template <class T>
-CRefCountRep<T>::CRefCountRep(const T *ptr) : m_pRealPtr((T *)ptr), m_counter(0)
+CRefCountRep<T>::CRefCountRep(const T* ptr) : m_pRealPtr((T*)ptr), m_counter(0)
 {
 }
 
@@ -202,11 +202,11 @@ template <class T> long CRefCountRep<T>::decrRefCount()
     m_counter--;
     return (m_counter);
 }
-template <class T> T *CRefCountRep<T>::getPointer() const
+template <class T> T* CRefCountRep<T>::getPointer() const
 {
     return (m_pRealPtr);
 }
-template <class T> T *CRefCountRep<T>::getRealPointer() const
+template <class T> T* CRefCountRep<T>::getRealPointer() const
 {
     return (m_pRealPtr);
 }
@@ -225,7 +225,7 @@ template <class T> class CSyncAccess;
 template <class T> class CSyncAccessRep
 {
   protected:
-    T *m_pRealPtr;
+    T* m_pRealPtr;
     long m_counter;
 
 #ifdef WIN32
@@ -236,14 +236,14 @@ template <class T> class CSyncAccessRep
 #endif
 
   public:
-    CSyncAccessRep(const T *ptr);
+    CSyncAccessRep(const T* ptr);
     ~CSyncAccessRep();
 
     long incrRefCount();
     long decrRefCount();
 
     CSyncAccess<T> getPointer() const;
-    T *getRealPointer() const;
+    T* getRealPointer() const;
 
     bool isNull() const;
 
@@ -253,8 +253,8 @@ template <class T> class CSyncAccessRep
 
 //
 template <class T>
-CSyncAccessRep<T>::CSyncAccessRep(const T *ptr)
-    : m_pRealPtr((T *)ptr), m_counter(0)
+CSyncAccessRep<T>::CSyncAccessRep(const T* ptr)
+    : m_pRealPtr((T*)ptr), m_counter(0)
 {
 #ifdef WIN32
     ::InitializeCriticalSection(&m_CriticalSection);
@@ -317,7 +317,7 @@ template <class T> CSyncAccess<T> CSyncAccessRep<T>::getPointer() const
     return (this);
 }
 
-template <class T> T *CSyncAccessRep<T>::getRealPointer() const
+template <class T> T* CSyncAccessRep<T>::getRealPointer() const
 {
     return (m_pRealPtr);
 }
@@ -359,13 +359,13 @@ template <class T> void CSyncAccessRep<T>::releaseAccess()
 template <class T> class CSyncRefCountRep : public CSyncAccessRep<T>
 {
   public:
-    CSyncRefCountRep(const T *ptr);
+    CSyncRefCountRep(const T* ptr);
     ~CSyncRefCountRep();
 };
 
 //
 template <class T>
-CSyncRefCountRep<T>::CSyncRefCountRep(const T *ptr) : CSyncAccessRep<T>(ptr)
+CSyncRefCountRep<T>::CSyncRefCountRep(const T* ptr) : CSyncAccessRep<T>(ptr)
 {
 }
 
@@ -388,28 +388,28 @@ template <class T> class CSyncAccess
 {
     typedef CSyncAccessRep<T> REP;
 
-    REP *m_rep;
+    REP* m_rep;
     bool m_acquired;
 
   public:
-    CSyncAccess(const CSyncAccess<REP> &that);
-    CSyncAccess(const CSyncAccess &that);
-    CSyncAccess(const REP *rep);
+    CSyncAccess(const CSyncAccess<REP>& that);
+    CSyncAccess(const CSyncAccess& that);
+    CSyncAccess(const REP* rep);
     ~CSyncAccess();
 
-    T *operator->();
+    T* operator->();
 };
 
 //
 template <class T>
-CSyncAccess<T>::CSyncAccess(const REP *rep)
-    : m_rep((REP *)rep), m_acquired(false)
+CSyncAccess<T>::CSyncAccess(const REP* rep)
+    : m_rep((REP*)rep), m_acquired(false)
 {
 }
 
 //
 template <class T>
-CSyncAccess<T>::CSyncAccess(const CSyncAccess<REP> &that)
+CSyncAccess<T>::CSyncAccess(const CSyncAccess<REP>& that)
     : m_rep(that.m_rep), m_acquired(false)
 {
 }
@@ -422,7 +422,7 @@ template <class T> CSyncAccess<T>::~CSyncAccess()
 }
 
 //
-template <class T> T *CSyncAccess<T>::operator->()
+template <class T> T* CSyncAccess<T>::operator->()
 {
     //	This is checked by SmartPtr<T>::operator -> () too.
     ASSERT((m_rep != NULL) && (!m_rep->isNull()));
@@ -445,14 +445,14 @@ class SmartPtrBase
   public:
     SmartPtrBase() : m_rep(NULL){};
 
-    void *m_rep;
+    void* m_rep;
 };
 
 /*
         SmartPtr.
 
 */
-template <class T, class REP, class ACCESS = T *>
+template <class T, class REP, class ACCESS = T*>
 class SmartPtr : public SmartPtrBase
 {
     void IncrRefCount();
@@ -460,40 +460,40 @@ class SmartPtr : public SmartPtrBase
 
   protected:
     //	Helper methods.
-    void CopyFrom(const SmartPtrBase &ptr);
-    void CopyFrom(const T *ptr);
+    void CopyFrom(const SmartPtrBase& ptr);
+    void CopyFrom(const T* ptr);
 
   public:
     SmartPtr();
     ~SmartPtr();
 
     //
-    SmartPtr(const SmartPtr &ptr);
-    SmartPtr(const T *ptr);
-    SmartPtr(const SmartPtrBase &ptr);
+    SmartPtr(const SmartPtr& ptr);
+    SmartPtr(const T* ptr);
+    SmartPtr(const SmartPtrBase& ptr);
 
     //	Assignment Operators
-    SmartPtr &operator=(const SmartPtr &ptr);
-    SmartPtr &operator=(const T *ptr);
-    SmartPtr &operator=(const SmartPtrBase &ptr);
+    SmartPtr& operator=(const SmartPtr& ptr);
+    SmartPtr& operator=(const T* ptr);
+    SmartPtr& operator=(const SmartPtrBase& ptr);
 
     //	Operators.
     _LIBCPP_INLINE_VISIBILITY ACCESS operator->();
-    T &operator*();
+    T& operator*();
 
     //	Casting operator.
-    operator T *();
+    operator T*();
 
     //	Comparison Operators.
-    bool operator==(const SmartPtrBase &ptr);
-    bool operator==(const T *ptr);
-    bool operator!=(const SmartPtrBase &ptr);
-    bool operator!=(const T *ptr);
+    bool operator==(const SmartPtrBase& ptr);
+    bool operator==(const T* ptr);
+    bool operator!=(const SmartPtrBase& ptr);
+    bool operator!=(const T* ptr);
 
     //	Attributes.
     bool IsNull() const;
     long GetRefCount() const;
-    REP *GetRepPtr() const;
+    REP* GetRepPtr() const;
 };
 
 //
@@ -510,28 +510,28 @@ SmartPtr<T, REP, ACCESS>::~SmartPtr()
 
 //
 template <class T, class REP, class ACCESS>
-SmartPtr<T, REP, ACCESS>::SmartPtr(const SmartPtr &ptr) : SmartPtrBase()
+SmartPtr<T, REP, ACCESS>::SmartPtr(const SmartPtr& ptr) : SmartPtrBase()
 {
     CopyFrom(ptr);
 }
 
 //
 template <class T, class REP, class ACCESS>
-SmartPtr<T, REP, ACCESS>::SmartPtr(const T *ptr) : SmartPtrBase()
+SmartPtr<T, REP, ACCESS>::SmartPtr(const T* ptr) : SmartPtrBase()
 {
     CopyFrom(ptr);
 }
 
 //
 template <class T, class REP, class ACCESS>
-SmartPtr<T, REP, ACCESS>::SmartPtr(const SmartPtrBase &ptr)
+SmartPtr<T, REP, ACCESS>::SmartPtr(const SmartPtrBase& ptr)
 {
     CopyFrom(ptr);
 }
 
 //
 template <class T, class REP, class ACCESS>
-void SmartPtr<T, REP, ACCESS>::CopyFrom(const SmartPtrBase &ptr)
+void SmartPtr<T, REP, ACCESS>::CopyFrom(const SmartPtrBase& ptr)
 {
     if (m_rep != ptr.m_rep)
     {
@@ -543,7 +543,7 @@ void SmartPtr<T, REP, ACCESS>::CopyFrom(const SmartPtrBase &ptr)
 
 //
 template <class T, class REP, class ACCESS>
-void SmartPtr<T, REP, ACCESS>::CopyFrom(const T *ptr)
+void SmartPtr<T, REP, ACCESS>::CopyFrom(const T* ptr)
 {
     DecrRefCount();
     m_rep = (ptr != NULL) ? new REP(ptr) : NULL;
@@ -552,8 +552,8 @@ void SmartPtr<T, REP, ACCESS>::CopyFrom(const T *ptr)
 
 //
 template <class T, class REP, class ACCESS>
-SmartPtr<T, REP, ACCESS> &
-SmartPtr<T, REP, ACCESS>::operator=(const SmartPtr &ptr)
+SmartPtr<T, REP, ACCESS>&
+SmartPtr<T, REP, ACCESS>::operator=(const SmartPtr& ptr)
 {
     CopyFrom(ptr);
     return (*this);
@@ -561,7 +561,7 @@ SmartPtr<T, REP, ACCESS>::operator=(const SmartPtr &ptr)
 
 //
 template <class T, class REP, class ACCESS>
-SmartPtr<T, REP, ACCESS> &SmartPtr<T, REP, ACCESS>::operator=(const T *ptr)
+SmartPtr<T, REP, ACCESS>& SmartPtr<T, REP, ACCESS>::operator=(const T* ptr)
 {
     CopyFrom(ptr);
     return (*this);
@@ -569,8 +569,8 @@ SmartPtr<T, REP, ACCESS> &SmartPtr<T, REP, ACCESS>::operator=(const T *ptr)
 
 //
 template <class T, class REP, class ACCESS>
-SmartPtr<T, REP, ACCESS> &
-SmartPtr<T, REP, ACCESS>::operator=(const SmartPtrBase &ptr)
+SmartPtr<T, REP, ACCESS>&
+SmartPtr<T, REP, ACCESS>::operator=(const SmartPtrBase& ptr)
 {
     CopyFrom(ptr);
     return (*this);
@@ -586,7 +586,7 @@ ACCESS _LIBCPP_INLINE_VISIBILITY SmartPtr<T, REP, ACCESS>::operator->()
 
 //
 template <class T, class REP, class ACCESS>
-T &SmartPtr<T, REP, ACCESS>::operator*()
+T& SmartPtr<T, REP, ACCESS>::operator*()
 {
     ASSERT(!IsNull());
     return (*(GetRepPtr()->getRealPointer()));
@@ -594,21 +594,21 @@ T &SmartPtr<T, REP, ACCESS>::operator*()
 
 //
 template <class T, class REP, class ACCESS>
-SmartPtr<T, REP, ACCESS>::operator T *()
+SmartPtr<T, REP, ACCESS>::operator T*()
 {
     return ((IsNull()) ? NULL : GetRepPtr()->getRealPointer());
 }
 
 //
 template <class T, class REP, class ACCESS>
-bool SmartPtr<T, REP, ACCESS>::operator==(const SmartPtrBase &ptr)
+bool SmartPtr<T, REP, ACCESS>::operator==(const SmartPtrBase& ptr)
 {
     return (m_rep == ptr.m_rep);
 }
 
 //
 template <class T, class REP, class ACCESS>
-bool SmartPtr<T, REP, ACCESS>::operator==(const T *ptr)
+bool SmartPtr<T, REP, ACCESS>::operator==(const T* ptr)
 {
     if (!IsNull())
     {
@@ -620,14 +620,14 @@ bool SmartPtr<T, REP, ACCESS>::operator==(const T *ptr)
 
 //
 template <class T, class REP, class ACCESS>
-bool SmartPtr<T, REP, ACCESS>::operator!=(const SmartPtrBase &ptr)
+bool SmartPtr<T, REP, ACCESS>::operator!=(const SmartPtrBase& ptr)
 {
     return (m_rep != ptr.m_rep);
 }
 
 //
 template <class T, class REP, class ACCESS>
-bool SmartPtr<T, REP, ACCESS>::operator!=(const T *ptr)
+bool SmartPtr<T, REP, ACCESS>::operator!=(const T* ptr)
 {
     return (!(operator==(ptr)));
 }
@@ -649,9 +649,9 @@ long SmartPtr<T, REP, ACCESS>::GetRefCount() const
 
 //
 template <class T, class REP, class ACCESS>
-REP *SmartPtr<T, REP, ACCESS>::GetRepPtr() const
+REP* SmartPtr<T, REP, ACCESS>::GetRepPtr() const
 {
-    return ((REP *)m_rep);
+    return ((REP*)m_rep);
 }
 
 //
@@ -670,7 +670,7 @@ void SmartPtr<T, REP, ACCESS>::DecrRefCount()
     {
         if (GetRepPtr()->decrRefCount() <= 0)
         {
-            REP *rep = (REP *)m_rep;
+            REP* rep = (REP*)m_rep;
             delete rep;
         }
 
@@ -682,7 +682,7 @@ void SmartPtr<T, REP, ACCESS>::DecrRefCount()
         CRefCountPtr.
         Helper class for easier use of the SmartPtr class.
 */
-template <class T, class REP = CRefCountRep<T>, class ACCESS = T *>
+template <class T, class REP = CRefCountRep<T>, class ACCESS = T*>
 class CRefCountPtr : public SmartPtr<T, REP, ACCESS>
 {
   public:
@@ -690,30 +690,30 @@ class CRefCountPtr : public SmartPtr<T, REP, ACCESS>
     ~CRefCountPtr(){};
 
     //	Copy constructor.
-    CRefCountPtr(const CRefCountPtr &ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
+    CRefCountPtr(const CRefCountPtr& ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
 
     //
-    CRefCountPtr(const SmartPtrBase &ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
+    CRefCountPtr(const SmartPtrBase& ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
 
     //
-    CRefCountPtr(const T *ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
+    CRefCountPtr(const T* ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
 
     //	Assignment Operators
-    CRefCountPtr &operator=(const CRefCountPtr &ptr)
+    CRefCountPtr& operator=(const CRefCountPtr& ptr)
     {
         SmartPtr<T, REP, ACCESS>::CopyFrom(ptr);
         return (*this);
     }
 
     //
-    CRefCountPtr &operator=(const T *ptr)
+    CRefCountPtr& operator=(const T* ptr)
     {
         SmartPtr<T, REP, ACCESS>::CopyFrom(ptr);
         return (*this);
     }
 
     //
-    CRefCountPtr &operator=(const SmartPtrBase &ptr)
+    CRefCountPtr& operator=(const SmartPtrBase& ptr)
     {
         SmartPtr<T, REP, ACCESS>::CopyFrom(ptr);
         return (*this);
@@ -732,30 +732,30 @@ class CSyncPtr : public SmartPtr<T, REP, ACCESS>
     ~CSyncPtr(){};
 
     //	Copy constructor.
-    CSyncPtr(const CSyncPtr &ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
+    CSyncPtr(const CSyncPtr& ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
 
     //
-    CSyncPtr(const SmartPtrBase &ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
+    CSyncPtr(const SmartPtrBase& ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
 
     //
-    CSyncPtr(const T *ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
+    CSyncPtr(const T* ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
 
     //	Assignment Operators.
-    CSyncPtr &operator=(const CSyncPtr &ptr)
+    CSyncPtr& operator=(const CSyncPtr& ptr)
     {
         CopyFrom(ptr);
         return (*this);
     }
 
     //
-    CSyncPtr &operator=(const T *ptr)
+    CSyncPtr& operator=(const T* ptr)
     {
         CopyFrom(ptr);
         return (*this);
     }
 
     //
-    CSyncPtr &operator=(const SmartPtrBase &ptr)
+    CSyncPtr& operator=(const SmartPtrBase& ptr)
     {
         SmartPtr<T, REP, ACCESS>::CopyFrom(ptr);
         return (*this);
@@ -776,31 +776,31 @@ class CSyncRefCountPtr : public SmartPtr<T, REP, ACCESS>
     ~CSyncRefCountPtr(){};
 
     //	Copy constructor.
-    CSyncRefCountPtr(const CSyncRefCountPtr &ptr)
+    CSyncRefCountPtr(const CSyncRefCountPtr& ptr)
         : SmartPtr<T, REP, ACCESS>(ptr){};
 
     //
-    CSyncRefCountPtr(const SmartPtrBase &ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
+    CSyncRefCountPtr(const SmartPtrBase& ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
 
     //
-    CSyncRefCountPtr(const T *ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
+    CSyncRefCountPtr(const T* ptr) : SmartPtr<T, REP, ACCESS>(ptr){};
 
     //	Assignment Operators.
-    CSyncRefCountPtr &operator=(const CSyncRefCountPtr &ptr)
+    CSyncRefCountPtr& operator=(const CSyncRefCountPtr& ptr)
     {
         CopyFrom(ptr);
         return (*this);
     }
 
     //
-    CSyncRefCountPtr &operator=(const T *ptr)
+    CSyncRefCountPtr& operator=(const T* ptr)
     {
         CopyFrom(ptr);
         return (*this);
     }
 
     //
-    CSyncRefCountPtr &operator=(const SmartPtrBase &ptr)
+    CSyncRefCountPtr& operator=(const SmartPtrBase& ptr)
     {
         SmartPtr<T, REP, ACCESS>::CopyFrom(ptr);
         return (*this);
@@ -808,22 +808,22 @@ class CSyncRefCountPtr : public SmartPtr<T, REP, ACCESS>
 };
 
 template <class T, class REP, class ACCESS>
-bool operator!=(const CSyncRefCountPtr<T, REP, ACCESS> &ptr1,
-                const CSyncRefCountPtr<T, REP, ACCESS> &ptr2)
+bool operator!=(const CSyncRefCountPtr<T, REP, ACCESS>& ptr1,
+                const CSyncRefCountPtr<T, REP, ACCESS>& ptr2)
 {
     return !(ptr1.GetRepPtr() == ptr2.GetRepPtr());
 }
 
 template <class T, class REP, class ACCESS>
-bool operator!=(const CRefCountPtr<T, REP, ACCESS> &ptr1,
-                const CRefCountPtr<T, REP, ACCESS> &ptr2)
+bool operator!=(const CRefCountPtr<T, REP, ACCESS>& ptr1,
+                const CRefCountPtr<T, REP, ACCESS>& ptr2)
 {
     return !(ptr1.GetRepPtr() == ptr2.GetRepPtr());
 }
 
 template <class T, class REP, class ACCESS>
-bool operator!=(const CSyncPtr<T, REP, ACCESS> &ptr1,
-                const CSyncPtr<T, REP, ACCESS> &ptr2)
+bool operator!=(const CSyncPtr<T, REP, ACCESS>& ptr1,
+                const CSyncPtr<T, REP, ACCESS>& ptr2)
 {
     return !(ptr1.GetRepPtr() == ptr2.GetRepPtr());
 }

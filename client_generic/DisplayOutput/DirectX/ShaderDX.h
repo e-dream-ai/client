@@ -11,13 +11,13 @@ class CShaderUniformDX : public CShaderUniform
 {
     uint32 m_Index;
     uint32 m_Size;
-    uint8 *m_pData;
+    uint8* m_pData;
     fp4 m_float4Data[4];
 
-    IDirect3DDevice9 *m_pDevice;
+    IDirect3DDevice9* m_pDevice;
 
   public:
-    CShaderUniformDX(IDirect3DDevice9 *_pDevice, const std::string _name,
+    CShaderUniformDX(IDirect3DDevice9* _pDevice, const std::string _name,
                      const eUniformType _eType, const uint32 _index = 0,
                      const uint32 _size = 0)
         : CShaderUniform(_name, _eType), m_Index(_index), m_pDevice(_pDevice),
@@ -85,7 +85,7 @@ class CShaderUniformDX : public CShaderUniform
 
     virtual ~CShaderUniformDX() { SAFE_DELETE_ARRAY(m_pData); };
 
-    virtual bool SetData(void *_pData, const uint32 _size);
+    virtual bool SetData(void* _pData, const uint32 _size);
     virtual void Apply();
 };
 
@@ -97,26 +97,26 @@ MakeSmartPointers(CShaderUniformDX);
 */
 class CShaderDX : public CShader
 {
-    IDirect3DDevice9 *m_pDevice;
+    IDirect3DDevice9* m_pDevice;
 
-    IDirect3DVertexShader9 *m_pVertexShader;
-    IDirect3DPixelShader9 *m_pFragmentShader;
+    IDirect3DVertexShader9* m_pVertexShader;
+    IDirect3DPixelShader9* m_pFragmentShader;
 
-    ID3DXConstantTable *m_pVertexConstants;
-    ID3DXConstantTable *m_pFragmentConstants;
+    ID3DXConstantTable* m_pVertexConstants;
+    ID3DXConstantTable* m_pFragmentConstants;
 
     float m_Width;
     float m_Height;
 
   public:
-    CShaderDX(IDirect3DDevice9 *_pDevice, float _width, float _height);
+    CShaderDX(IDirect3DDevice9* _pDevice, float _width, float _height);
     virtual ~CShaderDX();
 
     virtual bool Bind(void);
     virtual bool Unbind(void);
     virtual bool Apply(void);
 
-    bool Build(const char *_pVertexShader, const char *_pFragmentShader);
+    bool Build(const char* _pVertexShader, const char* _pFragmentShader);
 };
 
 MakeSmartPointers(CShaderDX);
