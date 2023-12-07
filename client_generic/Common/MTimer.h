@@ -7,7 +7,6 @@
 
 #include <errno.h>
 #include <math.h>
-
 #include <mach/mach_time.h>
 
 // #define	USE_RDTSC

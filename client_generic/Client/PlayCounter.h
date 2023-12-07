@@ -8,6 +8,11 @@
 
 #include <boost/filesystem/path.hpp>
 #include <boost/scoped_ptr.hpp>
+
+#include "Settings.h"
+
+
+
 static const uint32 gl_sMaxGeneration = 100000;
 #define max_sheep 100000
 #define max_play_count ((1 << 16) - 1)

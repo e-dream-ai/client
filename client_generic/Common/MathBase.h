@@ -3,6 +3,8 @@
 
 #include <math.h>
 
+#include "base.h"
+
 namespace Base
 {
 

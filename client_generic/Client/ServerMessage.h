@@ -1,13 +1,15 @@
 #ifndef _SERVERMESSAGE_H_
 #define _SERVERMESSAGE_H_
 
-#include "Console.h"
-#include "Hud.h"
-#include "Rect.h"
 #include <sstream>
 #ifdef WIN32
 #include "boost/date_time/posix_time/posix_time.hpp"
 #endif
+
+#include "StatsConsole.h"
+#include "Hud.h"
+#include "Rect.h"
+
 
 namespace Hud
 {

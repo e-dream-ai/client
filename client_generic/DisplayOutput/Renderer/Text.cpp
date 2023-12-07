@@ -1,5 +1,5 @@
-#include "Text.h"
 #include "base.h"
+#include "Text.h"
 #include <string>
 
 namespace DisplayOutput

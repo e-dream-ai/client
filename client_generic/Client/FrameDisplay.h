@@ -1,11 +1,14 @@
 #ifndef _FRAMEDISPLAY_H_
 #define _FRAMEDISPLAY_H_
 
+#include "base.h"
 #include "Player.h"
 #include "Rect.h"
 #include "Settings.h"
+#include "Renderer.h"
 #include "TextureFlat.h"
 #include "Vector4.h"
+#include "Timer.h"
 
 // #ifndef FRAME_DIAG
 // #define FRAME_DIAG

@@ -7,6 +7,8 @@
 #ifndef _LUA_STATE_H
 #define _LUA_STATE_H
 
+#include <string>
+
 #include "base.h"
 
 struct lua_State;
