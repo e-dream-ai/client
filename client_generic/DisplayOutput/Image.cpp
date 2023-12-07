@@ -1,6 +1,6 @@
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdint>
+#include <cstdlib>
+#include <string>
 
 #include "Exception.h"
 #include "Image.h"

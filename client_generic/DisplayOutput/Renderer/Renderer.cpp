@@ -1,5 +1,5 @@
-#include <stdint.h>
-#include <string.h>
+#include <cstdint>
+#include <string>
 
 #include "DisplayOutput.h"
 #include "Matrix.h"

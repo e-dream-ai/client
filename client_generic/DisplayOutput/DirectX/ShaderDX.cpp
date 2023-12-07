@@ -1,4 +1,4 @@
-#include <assert.h>
+#include <cassert>
 #include <iostream>
 
 #if defined(WIN32) && defined(_MSC_VER)

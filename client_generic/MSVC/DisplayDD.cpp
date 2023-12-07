@@ -3,7 +3,7 @@
 
 #include "DisplayDD.h"
 #include "Log.h"
-#include <stdio.h>
+#include <cstdio>
 #include <windows.h>
 
 namespace DisplayOutput

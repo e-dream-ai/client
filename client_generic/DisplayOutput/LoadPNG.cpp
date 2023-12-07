@@ -2,7 +2,7 @@
 #include "Log.h"
 #include "base.h"
 #include "png.h"
-#include <stdint.h>
+#include <cstdint>
 
 #ifdef LINUX_GNU
 #include <endian.h>

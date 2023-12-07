@@ -1,6 +1,5 @@
 #include "Hud.h"
 #include "Settings.h"
-#include <string.h>
 #include <string>
 
 namespace Hud

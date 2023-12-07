@@ -8,8 +8,8 @@
 
 #include <atomic>
 #include <chrono>
-#include <stdint.h>
-#include <string.h>
+#include <cstdint>
+#include <string>
 #include <thread>
 
 #include "RendererMetal.h"

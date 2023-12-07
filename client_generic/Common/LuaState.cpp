@@ -5,8 +5,8 @@
 */
 // #include	<io.h>
 #include <limits.h>
-#include <stdint.h>
-#include <string.h>
+#include <cstdint>
+#include <string>
 #ifdef WIN32
 #include <io.h>
 #endif

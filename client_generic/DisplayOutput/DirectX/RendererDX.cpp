@@ -1,4 +1,4 @@
-#include <stdint.h>
+#include <cstdint>
 
 #include "DisplayDX.h"
 #include "FontDX.h"

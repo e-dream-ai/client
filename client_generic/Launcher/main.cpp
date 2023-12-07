@@ -1,7 +1,7 @@
 #ifndef LINUX_GNU
 #include <windows.h>
 #endif
-#include <stdio.h>
+#include <cstdio>
 #include <string>
 
 //	Grab a string from the registry.

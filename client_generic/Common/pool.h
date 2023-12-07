@@ -1,7 +1,7 @@
 #ifndef _POOL_H_
 #define _POOL_H_
 
-#include <stddef.h>
+#include <cstddef>
 
 namespace Memory
 {

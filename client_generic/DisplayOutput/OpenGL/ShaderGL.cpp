@@ -1,9 +1,9 @@
 #ifndef USE_METAL
 
-#include <assert.h>
+#include <cassert>
 #include <iostream>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <string>
 #ifndef LINUX_GNU
 #include "./OpenGL/GLee.h"
 #include <OpenGL/CGLMacro.h>

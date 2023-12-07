@@ -1,6 +1,6 @@
 #include <boost/json.hpp>
 #include <boost/json/src.hpp>
-#include <stdio.h>
+#include <cstdio>
 
 #include "ContentDownloader.h"
 #include "EDreamClient.h"

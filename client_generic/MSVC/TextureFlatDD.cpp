@@ -1,6 +1,6 @@
 #ifdef WIN32
 #ifdef _MSC_VER
-#include <assert.h>
+#include <cassert>
 #include <inttypes.h>
 #include <string>
 

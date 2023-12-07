@@ -1,6 +1,6 @@
 #include "Rect.h"
 #include <algorithm>
-#include <stdint.h>
+#include <cstdint>
 
 namespace Base
 {

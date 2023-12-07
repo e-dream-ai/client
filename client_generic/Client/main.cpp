@@ -1,5 +1,5 @@
-#include <stddef.h>
-#include <stdio.h>
+#include <cstddef>
+#include <cstdio>
 #include <string>
 #include <sys/types.h>
 #if defined(WIN32) && !defined(_MSC_VER)

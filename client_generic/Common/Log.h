@@ -14,7 +14,7 @@
 #include "boost/thread.hpp"
 
 #ifdef LINUX_GNU
-#include <stdio.h>
+#include <cstdio>
 #endif
 
 extern void ProfilerBegin(const char* name);

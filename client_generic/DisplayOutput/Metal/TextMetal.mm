@@ -2,7 +2,7 @@
 
 #import "TextMetal.h"
 
-#include <stdio.h>
+#include <cstdio>
 #include <string>
 
 #include "Player.h"

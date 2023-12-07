@@ -6,7 +6,7 @@
 #include <dirent.h>
 #endif
 #include <math.h>
-#include <string.h>
+#include <string>
 
 #ifndef WIN32
 #ifndef LINUX_GNU

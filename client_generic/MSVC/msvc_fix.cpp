@@ -1,6 +1,6 @@
 #include "msvc_fix.h"
-#include <stdarg.h>
-#include <stdio.h>
+#include <cstdarg>
+#include <cstdio>
 #include <windows.h>
 #ifdef _WIN64
 #include <winsock2.h>

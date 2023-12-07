@@ -1,7 +1,8 @@
+#include <cstdio>
+#include <string>
+
 #include "Log.h"
 #include "Networking.h"
-#include <stdio.h>
-#include <string>
 
 namespace Network
 {

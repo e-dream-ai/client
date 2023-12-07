@@ -1,7 +1,7 @@
 #include <inttypes.h>
 #include <os/signpost.h>
 #include <sstream>
-#include <stdarg.h>
+#include <cstdarg>
 #include <string>
 #include <time.h>
 

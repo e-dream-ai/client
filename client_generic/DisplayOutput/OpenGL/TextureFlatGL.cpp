@@ -1,7 +1,7 @@
 #ifndef USE_METAL
-#include <assert.h>
+#include <cassert>
 #include <inttypes.h>
-#include <string.h>
+#include <string>
 #ifndef LINUX_GNU
 #include "GLee.h"
 #else

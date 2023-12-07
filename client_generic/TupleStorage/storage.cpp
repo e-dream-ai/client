@@ -3,8 +3,8 @@
 #else
 #include <dirent.h>
 #include <errno.h>
-#include <stddef.h>
-#include <stdio.h>
+#include <cstddef>
+#include <cstdio>
 #include <sys/stat.h>
 #include <sys/types.h>
 #endif

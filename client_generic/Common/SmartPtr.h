@@ -144,7 +144,7 @@
 // warning. i.e.  int, short, etc... #pragma warning( disable : 4284 ) 	Debug
 // symbols cannot be longer than 255 but when using templates it is usual to
 // have debug symbols longer than 255. #pragma warning( disable : 4786 )
-#include <stdio.h>
+#include <cstdio>
 #include <windows.h>
 #else
 #include <pthread.h>

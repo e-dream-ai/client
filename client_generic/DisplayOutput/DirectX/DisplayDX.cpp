@@ -6,8 +6,8 @@
 #include <mmsystem.h>
 #include <multimon.h>
 #include <regstr.h>
-#include <stdint.h>
-#include <stdio.h>
+#include <cstdint>
+#include <cstdio>
 #include <tchar.h>
 #include <windowsx.h>
 

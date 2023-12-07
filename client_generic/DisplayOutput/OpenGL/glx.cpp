@@ -2,7 +2,7 @@
 
 #include <X11/Xatom.h>
 #include <X11/extensions/Xrender.h>
-#include <assert.h>
+#include <cassert>
 #include <iostream>
 #include <string>
 

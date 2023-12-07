@@ -1,13 +1,14 @@
-#include "Networking.h"
-#include "Log.h"
-#include "Shepherd.h"
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <math.h>
 #include <sstream>
-#include <stdio.h>
+#include <cstdio>
 #include <string>
+
+#include "Networking.h"
+#include "Log.h"
+#include "Shepherd.h"
 
 namespace Network
 {

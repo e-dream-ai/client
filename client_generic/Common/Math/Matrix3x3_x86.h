@@ -5,10 +5,11 @@
 #ifndef _MATRIX3X3_X86_H
 #define _MATRIX3X3_X86_H
 
+#include <string>
+
 #include "MatrixDefs.h"
 #include "Vector2_X86.h"
 #include "Vector3_X86.h"
-#include <string.h>
 
 namespace Base
 {

@@ -1,10 +1,11 @@
-#include "Log.h"
-#include "Networking.h"
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include <stdio.h>
+#include <cstdio>
 #include <string>
+
+#include "Log.h"
+#include "Networking.h"
 
 namespace Network
 {

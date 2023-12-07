@@ -2,8 +2,8 @@
 
 #include <assert.h>
 #include <iostream>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <string>
 
 #include "Exception.h"
 #include "Log.h"

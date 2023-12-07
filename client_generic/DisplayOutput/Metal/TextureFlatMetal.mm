@@ -5,7 +5,7 @@
 
 #include <assert.h>
 #include <inttypes.h>
-#include <string.h>
+#include <string>
 
 #include "DisplayOutput.h"
 #include "Exception.h"

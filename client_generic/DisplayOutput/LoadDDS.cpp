@@ -1,6 +1,6 @@
 #include "Image.h"
 #include "base.h"
-#include <stdint.h>
+#include <cstdint>
 
 namespace DisplayOutput
 {

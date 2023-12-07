@@ -9,8 +9,8 @@
 #endif
 
 #include <sstream>
-#include <stdarg.h>
-#include <stdio.h>
+#include <cstdarg>
+#include <cstdio>
 #include <string>
 
 #include "Exception.h"

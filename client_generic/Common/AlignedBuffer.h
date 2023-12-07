@@ -10,7 +10,7 @@
 #ifndef _ALIGNEDBUFFER_H_
 #define _ALIGNEDBUFFER_H_
 
-#include <stdint.h>
+#include <cstdint>
 #ifndef WIN32
 #include <unistd.h>
 #endif
@@ -20,7 +20,7 @@
 #include <boost/thread.hpp>
 
 #ifdef LINUX_GNU
-#include <stdio.h>
+#include <cstdio>
 #endif
 
 #define BUFFER_CACHE_SIZE 20

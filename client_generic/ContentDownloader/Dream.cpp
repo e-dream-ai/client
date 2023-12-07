@@ -20,7 +20,7 @@
 //    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 //
 ///////////////////////////////////////////////////////////////////////////////
-#include <string.h>
+#include <string>
 #include <time.h>
 #include <vector>
 
