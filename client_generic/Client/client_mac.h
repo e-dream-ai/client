@@ -74,11 +74,11 @@ class CElectricSheep_Mac : public CElectricSheep
                 if (CFURLGetFileSystemRepresentation(appSupportURL, true, path,
                                                      sizeof(path) - 1))
                 {
-                    m_AppData = (char*)path;
+                    m_AppData = "/Users/Shared/e-dream.ai/";
 #ifndef SCREEN_SAVER
-                    m_AppData += "/Containers/com.apple.ScreenSaver.Engine.legacyScreenSaver/Data/Library";
+                    //m_AppData += "/Containers/com.apple.ScreenSaver.Engine.legacyScreenSaver/Data/Library";
 #endif
-                    m_AppData += "/Application Support/e-dream.ai/";
+                    //m_AppData += "/Application Support/e-dream.ai/";
                 }
 
                 CFRelease(appSupportURL);
