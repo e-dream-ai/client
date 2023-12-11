@@ -283,20 +283,17 @@ void SheepDownloader::parseSheepList()
     }
     catch (const std::exception& e)
     {
-        file.seekg(0, std::ios::end);
-        std::streampos fileSize = file.tellg();
         file.seekg(0, std::ios::beg);
-        char* cString = new char[(size_t)fileSize + 1];
-        file.read(cString, fileSize);
-        cString[fileSize] = '\0';
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        auto fileStr = buffer.str();
         auto str = boost::format("Exception during parsing dreams list:%s "
                                  "contents:\"%s\" dreamIndex:%d") %
-                   e.what() % cString % dreamIndex;
-        ContentDownloader::Shepherd::addMessageText(str.str().c_str(), 180);
+                   e.what() % fileStr % dreamIndex;
+        //ContentDownloader::Shepherd::addMessageText(str.str().c_str(), 180);
         g_Log->Error("Exception during parsing dreams list:%s contents:\"%s\" "
                      "dreamIndex:%d",
-                     e.what(), cString, dreamIndex);
-        delete[] cString;
+                     e.what(), fileStr.c_str(), dreamIndex);
     }
     file.close();
     fGotList = true;

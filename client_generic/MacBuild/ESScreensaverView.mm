@@ -29,6 +29,7 @@ bool bStarted = false;
     m_beginFrameBarrier = std::make_unique<boost::barrier>(2);
     m_endFrameBarrier = std::make_unique<boost::barrier>(2);
     m_animationDispatchGroup = dispatch_group_create();
+    m_frameUpdateQueue = dispatch_queue_create("Frame Update", NULL);
 
 #ifdef SCREEN_SAVER
     // if (isPreview)
@@ -277,12 +278,11 @@ bool bStarted = false;
 
     m_isStopped = NO;
 
-    dispatch_async(
-        dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-            dispatch_group_enter(self->m_animationDispatchGroup);
-            [self _animationThread];
-            dispatch_group_leave(self->m_animationDispatchGroup);
-        });
+    dispatch_async(m_frameUpdateQueue, ^{
+        dispatch_group_enter(self->m_animationDispatchGroup);
+        [self _animationThread];
+        dispatch_group_leave(self->m_animationDispatchGroup);
+    });
 }
 
 - (void)_endThread

@@ -34,6 +34,7 @@
 #endif
     NSTimer* animationTimer;
     dispatch_group_t m_animationDispatchGroup;
+    dispatch_queue_t m_frameUpdateQueue;
     BOOL m_isStopped;
 
     BOOL m_isPreview;
