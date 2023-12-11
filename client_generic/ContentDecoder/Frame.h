@@ -110,7 +110,10 @@ class CVideoFrame
                 g_Log->Error("av_image_copy_to_buffer error %i", ret);
         }
         else
+        {
             g_Log->Error("m_pFrame == NULL");
+            m_spBuffer = nullptr;
+        }
     }
 
     CVideoFrame(const AVFrame* _pFrame, std::string _filename)
@@ -130,6 +133,7 @@ class CVideoFrame
         m_MetaData.m_TransitionProgress = 0.f;
         m_Width = static_cast<uint32>(_pFrame->width);
         m_Height = static_cast<uint32>(_pFrame->height);
+        m_spBuffer = nullptr;
 
         if (m_pFrame == NULL)
         {
@@ -144,6 +148,7 @@ class CVideoFrame
             av_frame_unref(m_pFrame);
             av_frame_free(&m_pFrame);
         }
+        m_spBuffer = nullptr;
     }
 
     inline void GetMetaData(sMetaData& _metadata) { _metadata = m_MetaData; }
@@ -232,6 +237,8 @@ class CVideoFrame
 
     virtual void CopyBuffer()
     {
+        if (!m_spBuffer)
+            return;
         Base::CAlignedBuffer* newBuffer =
             new Base::CAlignedBuffer(m_spBuffer->Size());
 
