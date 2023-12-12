@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1270D0EF2B28975500E1DCE3 /* PlatformUtils_Mac.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1270D0EE2B28975400E1DCE3 /* PlatformUtils_Mac.mm */; };
+		1270D0F02B28975500E1DCE3 /* PlatformUtils_Mac.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1270D0EE2B28975400E1DCE3 /* PlatformUtils_Mac.mm */; };
 		12A00CD12B0D22A4001C0792 /* Trebuchet MS.sddf in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD02B0D22A4001C0792 /* Trebuchet MS.sddf */; };
 		12A00CD32B0D22B4001C0792 /* Trebuchet MS.sddf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 12A00CD02B0D22A4001C0792 /* Trebuchet MS.sddf */; };
 		12A00CD52B0D31E6001C0792 /* Lato.sddf in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD42B0D31E6001C0792 /* Lato.sddf */; };
@@ -493,6 +495,8 @@
 		12478AAA2B03B6C4006A8669 /* Timer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Timer.h; path = ../Common/Timer.h; sourceTree = "<group>"; };
 		12478AAB2B03B6C4006A8669 /* Singleton.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Singleton.h; path = ../Common/Singleton.h; sourceTree = "<group>"; };
 		12478AAC2B03B6CA006A8669 /* pool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = pool.h; path = ../Common/pool.h; sourceTree = "<group>"; };
+		1270D0EA2B28960500E1DCE3 /* PlatformUtils.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = PlatformUtils.h; path = ../Client/PlatformUtils.h; sourceTree = "<group>"; };
+		1270D0EE2B28975400E1DCE3 /* PlatformUtils_Mac.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PlatformUtils_Mac.mm; sourceTree = "<group>"; };
 		12A00CD02B0D22A4001C0792 /* Trebuchet MS.sddf */ = {isa = PBXFileReference; lastKnownFileType = file.bplist; path = "Trebuchet MS.sddf"; sourceTree = "<group>"; };
 		12A00CD42B0D31E6001C0792 /* Lato.sddf */ = {isa = PBXFileReference; lastKnownFileType = file.bplist; path = Lato.sddf; sourceTree = "<group>"; };
 		12A00CD82B0FCA39001C0792 /* e-dream.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = "e-dream.icns"; sourceTree = SOURCE_ROOT; };
@@ -952,6 +956,8 @@
 				12478A842B03B5BB006A8669 /* MonoInstance.h */,
 				12478A852B03B5C8006A8669 /* ServerMessage.h */,
 				12478A862B03B5EF006A8669 /* StatsConsole.h */,
+				1270D0EA2B28960500E1DCE3 /* PlatformUtils.h */,
+				1270D0EE2B28975400E1DCE3 /* PlatformUtils_Mac.mm */,
 			);
 			name = Client;
 			sourceTree = "<group>";
@@ -1252,7 +1258,6 @@
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
 					2160FAAC0F30F43600B2C27A = {
-						DevelopmentTeam = FCG855WTXV;
 						ProvisioningStyle = Manual;
 					};
 					218878CF0EC6CD7E001ABD2E = {
@@ -1357,6 +1362,7 @@
 				46D2E8F02AFBA64B0054049D /* MBEMesh.m in Sources */,
 				2160FAD50F30F45100B2C27A /* Font.cpp in Sources */,
 				2160FAD60F30F45100B2C27A /* Renderer.cpp in Sources */,
+				1270D0F02B28975500E1DCE3 /* PlatformUtils_Mac.mm in Sources */,
 				2160FAD70F30F45100B2C27A /* Shader.cpp in Sources */,
 				2160FAD80F30F45100B2C27A /* Texture.cpp in Sources */,
 				46D2E8F22AFBA64B0054049D /* MBEFontAtlas.m in Sources */,
@@ -1421,6 +1427,7 @@
 				218878F50EC6CDE2001ABD2E /* ShaderGL.cpp in Sources */,
 				218878F60EC6CDE2001ABD2E /* TextureFlatGL.cpp in Sources */,
 				218878F70EC6CDE2001ABD2E /* Font.cpp in Sources */,
+				1270D0EF2B28975500E1DCE3 /* PlatformUtils_Mac.mm in Sources */,
 				218878F80EC6CDE2001ABD2E /* Renderer.cpp in Sources */,
 				218878F90EC6CDE2001ABD2E /* Shader.cpp in Sources */,
 				218878FA0EC6CDE2001ABD2E /* Texture.cpp in Sources */,
@@ -1645,14 +1652,12 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
-				CODE_SIGN_IDENTITY = "Mac Developer";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				CODE_SIGN_IDENTITY = "";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = FCG855WTXV;
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = "";
 				ENABLE_NS_ASSERTIONS = NO;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_DYNAMIC_NO_PIC = NO;
@@ -1680,8 +1685,7 @@
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.spotworks.e-dream-dev";
 				PRODUCT_NAME = "e-dream";
-				PROVISIONING_PROFILE_SPECIFIER = "tibi's profile";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=macosx*]" = "";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
 				STRIP_INSTALLED_PRODUCT = NO;
 				VALID_ARCHS = "arm64 arm64e i386 x86_64";
@@ -1697,15 +1701,15 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
-				CODE_SIGN_IDENTITY = "Mac Developer";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				CODE_SIGN_ENTITLEMENTS = ElectricSheepTestApp.entitlements;
+				CODE_SIGN_IDENTITY = "";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = YES;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = FCG855WTXV;
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = "";
+				DEVELOPMENT_TEAM = "";
 				ENABLE_NS_ASSERTIONS = NO;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_ENABLE_BUILTIN_FUNCTIONS = NO;
@@ -1733,8 +1737,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.spotworks.e-dream-dev";
 				PRODUCT_NAME = "e-dream";
 				PROVISIONING_PROFILE = "";
-				PROVISIONING_PROFILE_SPECIFIER = "tibi's profile";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=macosx*]" = "";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
 				STRIP_INSTALLED_PRODUCT = YES;
 				VALID_ARCHS = "arm64 arm64e i386 x86_64";
@@ -1749,8 +1752,8 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
-				CODE_SIGN_IDENTITY = "Mac Developer";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				CODE_SIGN_IDENTITY = "";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = build/Debug;
@@ -1805,8 +1808,8 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
-				CODE_SIGN_IDENTITY = "Mac Developer";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				CODE_SIGN_IDENTITY = "";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = build/Release;
