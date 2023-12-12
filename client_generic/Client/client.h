@@ -28,6 +28,8 @@
 #include "TextureFlat.h"
 #include "Timer.h"
 #include "Voting.h"
+#include "PlatformUtils.h"
+
 #if defined(WIN32) && defined(_MSC_VER)
 #include "../msvc/cpu_usage_win32.h"
 #include "../msvc/msvc_fix.h"
@@ -418,20 +420,29 @@ class CElectricSheep
             g_Player().Display()->Width(), g_Player().Display()->Height(),
             true);
 
-        //	Start downloader.
-        g_Log->Info("Starting downloader...");
-
-        g_ContentDownloader().Startup(m_DownloadSaveMutex, false,
-                                      m_MultipleInstancesMode);
-
-        // call static method to fill sheep counts
-        ContentDownloader::Shepherd::GetFlockSizeMBsRecount(0);
-        ContentDownloader::Shepherd::GetFlockSizeMBsRecount(1);
+        /*
         //	For testing...
         ContentDownloader::Shepherd::addMessageText(
             "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do "
             "eiusmod tempor incididunt ut labore et dolore magna aliqua",
             180);
+         */
+        if (!PlatformUtils::IsInternetReachable())
+        {
+            ContentDownloader::Shepherd::addMessageText("Check your internet connection and relaunch e-dream.", 180);
+        }
+        else
+        {
+            //    Start downloader.
+            g_Log->Info("Starting downloader...");
+            
+            g_ContentDownloader().Startup(m_DownloadSaveMutex, false,
+                                          m_MultipleInstancesMode);
+        }
+
+        // call static method to fill sheep counts
+        ContentDownloader::Shepherd::GetFlockSizeMBsRecount(0);
+        ContentDownloader::Shepherd::GetFlockSizeMBsRecount(1);
 
         //	And we're off.
         m_SplashPNGDelayTimer.Reset();
