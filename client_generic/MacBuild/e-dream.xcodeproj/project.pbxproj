@@ -610,7 +610,6 @@
 		464A49E42AB89CEA00C77F6D /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
 		464A49E72AB89D8300C77F6D /* liblzma.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = liblzma.tbd; path = usr/lib/liblzma.tbd; sourceTree = SDKROOT; };
 		4665198E2ACC8C5000ADB56E /* IOSurface.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOSurface.framework; path = System/Library/Frameworks/IOSurface.framework; sourceTree = SDKROOT; };
-		466C2AA72AFA5B7200ED939F /* liblua_universal.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = liblua_universal.a; path = ../lua5.1/osx/lib/liblua_universal.a; sourceTree = "<group>"; };
 		466C2AA92AFA5B8600ED939F /* libpng_universal.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libpng_universal.a; path = ../libpng/osx/lib/libpng_universal.a; sourceTree = "<group>"; };
 		467230B22AC16E9900017C51 /* DisplayMetal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = DisplayMetal.h; path = ../../DisplayOutput/Metal/DisplayMetal.h; sourceTree = "<group>"; };
 		467230B62AC17A9E00017C51 /* ESMetalView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = ESMetalView.m; path = ../../DisplayOutput/Metal/ESMetalView.m; sourceTree = "<group>"; };
@@ -719,6 +718,7 @@
 				464A49E52AB89CEB00C77F6D /* AudioToolbox.framework in Frameworks */,
 				2161F1940ECF8CEF00FE48E9 /* libz.1.2.5.dylib in Frameworks */,
 				21887A240EC6CDF9001ABD2E /* libbz2.1.0.dylib in Frameworks */,
+				21A8AFBB18416ECA00F77369 /* libiconv.2.dylib in Frameworks */,
 				21DC0CAC1263B99000D60C6A /* libcurl.4.dylib in Frameworks */,
 				2135D2690EC70571005E246D /* AppKit.framework in Frameworks */,
 				2197D56219B06F4600EFA1F2 /* VideoDecodeAcceleration.framework in Frameworks */,
@@ -1100,7 +1100,6 @@
 			isa = PBXGroup;
 			children = (
 				466C2AA92AFA5B8600ED939F /* libpng_universal.a */,
-				466C2AA72AFA5B7200ED939F /* liblua_universal.a */,
 				46E9C2592AE7F32700C5444A /* libboost_json.a */,
 				4665198E2ACC8C5000ADB56E /* IOSurface.framework */,
 				467230BC2AC17EAA00017C51 /* Metal.framework */,
