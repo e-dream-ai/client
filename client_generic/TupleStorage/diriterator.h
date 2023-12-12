@@ -30,12 +30,12 @@ class CDirectoryIterator
     std::string m_Directory;
 
   public:
-    CDirectoryIterator(const std::string& _path);
+    CDirectoryIterator(std::string_view _path);
     ~CDirectoryIterator();
 
     //
     bool Next(std::string& _object);
-    bool isDirectory(const std::string& _object);
+    bool isDirectory(std::string_view _object);
 
     //			POOLED( CDirectoryIterator, Memory::CLinkPool );
 };

@@ -1,13 +1,15 @@
 #ifndef _SETTINGS_H_
 #define _SETTINGS_H_
 
+
+#include <boost/thread.hpp>
+
 #include "Log.h"
 #include "Singleton.h"
 #include "SmartPtr.h"
 #include "base.h"
-#include "luastorage.h"
 #include "storage.h"
-#include <boost/thread.hpp>
+#include "JSONStorage.h"
 
 /**
         CSettings.
@@ -68,7 +70,7 @@ class CSettings : public Base::CSingleton<CSettings>
     bool Init(const std::string& _sRoot, const std::string& _workingDir,
               bool _bReadOnly = false)
     {
-        m_pStorage = new TupleStorage::CStorageLua();
+        m_pStorage = new TupleStorage::JSONStorage();
         return m_pStorage->Initialise(_sRoot, _workingDir, _bReadOnly);
     }
 

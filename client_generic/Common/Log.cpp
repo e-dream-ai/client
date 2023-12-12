@@ -8,14 +8,6 @@
 #include "Log.h"
 #include "base.h"
 
-//	Lua.
-extern "C"
-{
-#include "lauxlib.h"
-#include "lua.h"
-#include "lualib.h"
-};
-
 namespace Base
 {
 
@@ -45,7 +37,6 @@ bool CLog::Startup()
     // m_pStdout = freopen( "debug.txt", "a+", stdout );
     //) == NULL )
     // exit(-1);
-    m_pState = NULL;
     m_pFile = NULL;
     return (true);
 }
@@ -90,28 +81,6 @@ void CLog::Attach(const std::string& _location, const uint32 /*_level*/)
         exit(-1);
     }
 
-    /*
-            m_pState = new Base::Script::CLuaState();
-            m_pState->Init( "" );
-
-            //	Load embedded scripts.
-            if( luaL_loadbuffer( m_pState->GetState(),(const char*)luaLogging,
-       sizeof(luaLogging), "logging.lua" ) == 0 ) lua_pcall(
-       m_pState->GetState(), 0, 0, 0 );
-
-            //
-            m_pState->Execute( "require 'os'" );
-            m_pState->Execute( "require 'io'" );
-            m_pState->Execute( "require 'table'" );
-            m_pState->Execute( "require 'string'" );
-            m_pState->Execute( "function createLogFile( _location )	logfile
-       = logging.file( _location .. '%s.log', '%y-%m-%d' )	end" );
-            m_pState->Execute( "function g_Log( _level, _file, _func, _line,
-       _timestamp, _msg )	logfile:log( _level, _timestamp ..
-       '->['.._level..']:'.._func .. '('..tostring(_line)..'): '..
-       tostring(_msg) ) end" ); m_pState->Pop( Script::Call(
-       m_pState->GetState(), "createLogFile", "s", _location.c_str() ) );
-    */
     m_bActive = true;
 }
 
@@ -120,7 +89,6 @@ void CLog::Attach(const std::string& _location, const uint32 /*_level*/)
 void CLog::Detach(void)
 {
     m_bActive = false;
-    SAFE_DELETE(m_pState);
 
     if (m_pFile)
         fclose(m_pFile);

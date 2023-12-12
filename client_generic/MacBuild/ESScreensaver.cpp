@@ -8,7 +8,6 @@
 #endif
 #include "client.h"
 #include "client_mac.h"
-#include "tinyxml.h"
 #include <GLUT/glut.h>
 #include <OpenGL/OpenGL.h>
 

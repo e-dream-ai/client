@@ -227,9 +227,9 @@ void SheepDownloader::parseSheepList()
 {
     boost::mutex::scoped_lock lockthis(s_DownloaderMutex);
 
-    char pbuf[MAXBUF];
-    snprintf(pbuf, MAX_PATH, "%sdreams.json", Shepherd::jsonPath());
-    std::ifstream file(pbuf);
+    std::vector<char> pbuf(MAX_PATH);
+    snprintf(pbuf.data(), MAX_PATH, "%sdreams.json", Shepherd::jsonPath());
+    std::ifstream file(pbuf.data());
     size_t dreamIndex = 0;
     try
     {
@@ -291,9 +291,7 @@ void SheepDownloader::parseSheepList()
                                  "contents:\"%s\" dreamIndex:%d") %
                    e.what() % fileStr % dreamIndex;
         //ContentDownloader::Shepherd::addMessageText(str.str().c_str(), 180);
-        g_Log->Error("Exception during parsing dreams list:%s contents:\"%s\" "
-                     "dreamIndex:%d",
-                     e.what(), fileStr.c_str(), dreamIndex);
+        g_Log->Error(str.str().data());
     }
     file.close();
     fGotList = true;

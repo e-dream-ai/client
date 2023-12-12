@@ -25,7 +25,7 @@ namespace TupleStorage
         CreateDir().
 
 */
-bool IStorageInterface::CreateDir(const std::string& _sPath)
+bool IStorageInterface::CreateDir(std::string_view _sPath)
 {
 #ifdef WIN32
     if (CreateDirectoryA(_sPath.c_str(), NULL) != 0)
@@ -37,7 +37,7 @@ bool IStorageInterface::CreateDir(const std::string& _sPath)
             return (false);
     }
 #else
-    if (mkdir(_sPath.c_str(), (S_IRWXU | S_IRWXG | S_IRWXO)) != 0)
+    if (mkdir(_sPath.data(), (S_IRWXU | S_IRWXG | S_IRWXO)) != 0)
     {
         if (errno == EEXIST)
             return (true); //	This error is ok.
@@ -51,7 +51,7 @@ bool IStorageInterface::CreateDir(const std::string& _sPath)
         RemoveDir().
 
 */
-bool IStorageInterface::RemoveDir(const std::string& _sPath)
+bool IStorageInterface::RemoveDir(std::string_view _sPath)
 {
 #ifdef WIN32
     BOOL result = RemoveDirectoryA(_sPath.c_str());
@@ -62,7 +62,7 @@ bool IStorageInterface::RemoveDir(const std::string& _sPath)
     }
 
 #else
-    if (rmdir(_sPath.c_str()) != 0)
+    if (rmdir(_sPath.data()) != 0)
     {
         g_Log->Error("%d...", errno);
         return (false);
@@ -76,7 +76,7 @@ bool IStorageInterface::RemoveDir(const std::string& _sPath)
         CreateFullDirectory().
 
 */
-bool IStorageInterface::CreateFullDirectory(const std::string& _sPath)
+bool IStorageInterface::CreateFullDirectory(std::string_view _sPath)
 {
     //	Will be false once we're out of the "../../"'s, then we will actually
     // create.
@@ -88,7 +88,7 @@ bool IStorageInterface::CreateFullDirectory(const std::string& _sPath)
         {
             if (dotdot == false)
             {
-                std::string subPath = _sPath.substr(0, C);
+                auto subPath = _sPath.substr(0, C);
                 if (!CreateDir(subPath))
                 {
                     return (false);
@@ -110,7 +110,7 @@ bool IStorageInterface::CreateFullDirectory(const std::string& _sPath)
         DirectoryEmpty().
 
 */
-bool IStorageInterface::DirectoryEmpty(const std::string& _sPath)
+bool IStorageInterface::DirectoryEmpty(std::string_view _sPath)
 {
     CDirectoryIterator iterator(_sPath);
 
@@ -135,10 +135,10 @@ bool IStorageInterface::DirectoryEmpty(const std::string& _sPath)
         RemoveFullDirectory().
 
 */
-bool IStorageInterface::RemoveFullDirectory(const std::string& _sPath,
+bool IStorageInterface::RemoveFullDirectory(std::string_view _sPath,
                                             const bool _bSubdirectories)
 {
-    std::string path = _sPath;
+    std::string path {_sPath};
 
     size_t len = path.size();
     if (path[len - 1] != '/')
@@ -190,11 +190,11 @@ bool IStorageInterface::RemoveFullDirectory(const std::string& _sPath,
         IoHierarchyHelper().
 
 */
-bool IStorageInterface::IoHierarchyHelper(const std::string& _uniformPath,
+bool IStorageInterface::IoHierarchyHelper(std::string_view _uniformPath,
                                           std::string& _retPath,
                                           std::string& _retName)
 {
-    std::string path = _uniformPath;
+    std::string path { _uniformPath };
 
     //	Convert '.' to '/'
     for (size_t c = 0; c < path.size(); c++)

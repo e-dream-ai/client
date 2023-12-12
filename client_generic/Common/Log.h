@@ -7,7 +7,6 @@
 #ifndef _LOG_H_
 #define _LOG_H_
 
-#include "LuaState.h"
 #include "Singleton.h"
 #include "SmartPtr.h"
 #include "base.h"
@@ -47,9 +46,6 @@ class CLog : public CSingleton<CLog>
     NO_CLASS_STANDARDS(CLog);
 
     bool m_bActive;
-
-    //	The luastate that will do all the actual work.
-    Base::Script::CLuaState* m_pState;
 
     FILE* m_pFile;
     // FILE *m_pStdout;

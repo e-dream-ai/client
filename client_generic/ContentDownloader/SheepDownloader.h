@@ -23,11 +23,6 @@
 #ifndef _SHEEPDOWNLOADER_H_
 #define _SHEEPDOWNLOADER_H_
 
-#if 1 // DASVO_TEST
-#include "tinyxml.h"
-#else
-#include "expat.h"
-#endif
 #include "Dream.h"
 #include "Networking.h"
 
