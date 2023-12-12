@@ -10,7 +10,6 @@
 #include "Hud.h"
 #include "Rect.h"
 
-
 namespace Hud
 {
 static boost::posix_time::ptime m_ServerMessageStartTimer =

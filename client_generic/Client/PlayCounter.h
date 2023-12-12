@@ -11,8 +11,6 @@
 
 #include "Settings.h"
 
-
-
 static const uint32 gl_sMaxGeneration = 100000;
 #define max_sheep 100000
 #define max_play_count ((1 << 16) - 1)

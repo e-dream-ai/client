@@ -25,7 +25,6 @@
 #include "dlfcn.h"
 #include "libgen.h"
 
-
 #include "../MacBuild/ESScreensaver.h"
 
 #include "proximus.h"
@@ -62,8 +61,8 @@ class CElectricSheep_Mac : public CElectricSheep
 
         UInt8 path[1024];
 
-        OSErr err = FSFindFolder(kUserDomain, kDomainLibraryFolderType,
-                                 false, &foundRef);
+        OSErr err = FSFindFolder(kUserDomain, kDomainLibraryFolderType, false,
+                                 &foundRef);
 
         if (err == noErr)
         {
