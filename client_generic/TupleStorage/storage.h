@@ -46,8 +46,7 @@ class IStorageInterface
     virtual bool Get(std::string_view _entry, bool& _ret) = PureVirtual;
     virtual bool Get(std::string_view _entry, int32& _ret) = PureVirtual;
     virtual bool Get(std::string_view _entry, fp8& _ret) = PureVirtual;
-    virtual bool Get(std::string_view _entry,
-                     std::string& _ret) = PureVirtual;
+    virtual bool Get(std::string_view _entry, std::string& _ret) = PureVirtual;
 
     //	Remove node from storage.
     virtual bool Remove(std::string_view _entry) = PureVirtual;

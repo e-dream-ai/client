@@ -5,7 +5,6 @@
 //  Created by Tibor Hencz on 12.12.2023.
 //
 
-
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -22,8 +21,7 @@ namespace TupleStorage
 {
 
 bool JSONStorage::Initialise(std::string_view _sRoot,
-                        std::string_view /*_sWorkingDir*/,
-                        bool _bReadOnly)
+                             std::string_view /*_sWorkingDir*/, bool _bReadOnly)
 {
     m_sRoot = _sRoot;
     m_ConfigPath = m_sRoot + CLIENT_SETTINGS + ".json";
@@ -52,13 +50,11 @@ bool JSONStorage::Initialise(std::string_view _sRoot,
     return true;
 }
 
-bool JSONStorage::Finalise()
-{
-    return false;
-}
+bool JSONStorage::Finalise() { return false; }
 
-template<typename T>
-bool JSONStorage::GetOrSetValue(std::string_view _entry, T& _val, std::function<T(json::value*)> callback)
+template <typename T>
+bool JSONStorage::GetOrSetValue(std::string_view _entry, T& _val,
+                                std::function<T(json::value*)> callback)
 {
     std::istringstream f(_entry.data());
     std::string token;
@@ -103,84 +99,103 @@ bool JSONStorage::GetOrSetValue(std::string_view _entry, T& _val, std::function<
     return true;
 }
 
-template bool JSONStorage::GetOrSetValue(std::string_view _entry, bool&, std::function<bool(json::value*)>);
-template bool JSONStorage::GetOrSetValue(std::string_view _entry, int32&, std::function<int32(json::value*)>);
-template bool JSONStorage::GetOrSetValue(std::string_view _entry, fp8&, std::function<fp8(json::value*)>);
-template bool JSONStorage::GetOrSetValue(std::string_view _entry, std::string&, std::function<std::string(json::value*)>);
+template bool JSONStorage::GetOrSetValue(std::string_view _entry, bool&,
+                                         std::function<bool(json::value*)>);
+template bool JSONStorage::GetOrSetValue(std::string_view _entry, int32&,
+                                         std::function<int32(json::value*)>);
+template bool JSONStorage::GetOrSetValue(std::string_view _entry, fp8&,
+                                         std::function<fp8(json::value*)>);
+template bool
+JSONStorage::GetOrSetValue(std::string_view _entry, std::string&,
+                           std::function<std::string(json::value*)>);
 
 bool JSONStorage::Set(std::string_view _entry, bool _val)
 {
-    GetOrSetValue<bool>(_entry, _val, [=](json::value* jsonVal) -> bool { return jsonVal->as_bool() = _val;});
+    GetOrSetValue<bool>(_entry, _val,
+                        [=](json::value* jsonVal) -> bool
+                        { return jsonVal->as_bool() = _val; });
     Dirty(true);
     return true;
 }
 
 bool JSONStorage::Set(std::string_view _entry, int32 _val)
 {
-    GetOrSetValue<int32>(_entry, _val, [=](json::value* jsonVal) -> int32 { return jsonVal->as_int64() = _val; });
+    GetOrSetValue<int32>(_entry, _val,
+                         [=](json::value* jsonVal) -> int32
+                         { return jsonVal->as_int64() = _val; });
     Dirty(true);
     return true;
 }
 bool JSONStorage::Set(std::string_view _entry, fp8 _val)
 {
-    GetOrSetValue<fp8>(_entry, _val, [=](json::value* jsonVal) -> fp8 { return jsonVal->as_double() = _val; });
+    GetOrSetValue<fp8>(_entry, _val,
+                       [=](json::value* jsonVal) -> fp8
+                       { return jsonVal->as_double() = _val; });
     Dirty(true);
     return true;
 }
-bool JSONStorage::Set(std::string_view _entry,
-                 std::string_view _str)
+bool JSONStorage::Set(std::string_view _entry, std::string_view _str)
 {
     std::string str;
-    GetOrSetValue<std::string>(_entry, str, [=](json::value* jsonVal) -> std::string { jsonVal->as_string() = _str; return ""; });
+    GetOrSetValue<std::string>(_entry, str,
+                               [=](json::value* jsonVal) -> std::string
+                               {
+                                   jsonVal->as_string() = _str;
+                                   return "";
+                               });
     Dirty(true);
     return true;
 }
-
 
 //    Get values.
 bool JSONStorage::Get(std::string_view _entry, bool& _ret)
 {
-    return GetOrSetValue<bool>(_entry, _ret, [=](json::value* jsonVal) -> bool { return jsonVal->as_bool(); });
+    return GetOrSetValue<bool>(_entry, _ret,
+                               [=](json::value* jsonVal) -> bool
+                               { return jsonVal->as_bool(); });
 }
 bool JSONStorage::Get(std::string_view _entry, int32& _ret)
 {
-    return GetOrSetValue<int32>(_entry, _ret, [=](json::value* jsonVal) -> int32 { return (int32)jsonVal->as_int64(); });
+    return GetOrSetValue<int32>(_entry, _ret,
+                                [=](json::value* jsonVal) -> int32
+                                { return (int32)jsonVal->as_int64(); });
 }
 bool JSONStorage::Get(std::string_view _entry, fp8& _ret)
 {
-    return GetOrSetValue<fp8>(_entry, _ret, [=](json::value* jsonVal) -> fp8 { return jsonVal->as_double(); });
+    return GetOrSetValue<fp8>(_entry, _ret,
+                              [=](json::value* jsonVal) -> fp8
+                              { return jsonVal->as_double(); });
 }
-bool JSONStorage::Get(std::string_view _entry,
-                 std::string& _ret)
+bool JSONStorage::Get(std::string_view _entry, std::string& _ret)
 {
-    return GetOrSetValue<std::string>(_entry, _ret, [=](json::value* jsonVal) -> std::string { return jsonVal->as_string().data(); });
+    return GetOrSetValue<std::string>(_entry, _ret,
+                                      [=](json::value* jsonVal) -> std::string
+                                      { return jsonVal->as_string().data(); });
 }
 
 //    Remove node from storage.
-bool JSONStorage::Remove(std::string_view /*_entry*/)
-{
-    return true;
-}
-static void PrettyPrint( std::ostream& os, json::value const& jv, std::string* indent = nullptr )
+bool JSONStorage::Remove(std::string_view /*_entry*/) { return true; }
+static void PrettyPrint(std::ostream& os, json::value const& jv,
+                        std::string* indent = nullptr)
 {
     std::string indent_;
-    if(! indent)
+    if (!indent)
         indent = &indent_;
-    switch(jv.kind())
+    switch (jv.kind())
     {
     case json::kind::object:
     {
         os << "{\n";
         indent->append(4, ' ');
         auto const& obj = jv.get_object();
-        if(! obj.empty())
+        if (!obj.empty())
         {
             auto it = obj.begin();
-            for(;;)
+            for (;;)
             {
                 os << *indent << json::serialize(it->key()) << " : ";
                 PrettyPrint(os, it->value(), indent);
-                if(++it == obj.end())
+                if (++it == obj.end())
                     break;
                 os << ",\n";
             }
@@ -196,14 +211,14 @@ static void PrettyPrint( std::ostream& os, json::value const& jv, std::string* i
         os << "[\n";
         indent->append(4, ' ');
         auto const& arr = jv.get_array();
-        if(! arr.empty())
+        if (!arr.empty())
         {
             auto it = arr.begin();
-            for(;;)
+            for (;;)
             {
                 os << *indent;
-                PrettyPrint( os, *it, indent);
-                if(++it == arr.end())
+                PrettyPrint(os, *it, indent);
+                if (++it == arr.end())
                     break;
                 os << ",\n";
             }
@@ -233,7 +248,7 @@ static void PrettyPrint( std::ostream& os, json::value const& jv, std::string* i
         break;
 
     case json::kind::bool_:
-        if(jv.get_bool())
+        if (jv.get_bool())
             os << "true";
         else
             os << "false";
@@ -244,7 +259,7 @@ static void PrettyPrint( std::ostream& os, json::value const& jv, std::string* i
         break;
     }
 
-    if(indent->empty())
+    if (indent->empty())
         os << "\n";
 }
 
@@ -262,9 +277,6 @@ bool JSONStorage::Commit()
 }
 
 //    Config.
-bool JSONStorage::Config(std::string_view /*_url*/)
-{
-    return true;
-}
+bool JSONStorage::Config(std::string_view /*_url*/) { return true; }
 
-};
+}; // namespace TupleStorage

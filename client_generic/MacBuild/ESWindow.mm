@@ -53,13 +53,6 @@ static void ShowPreferencesCallback()
     [self makeKeyWindow];
 
     [self setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
-    FILE* logFile = fopen("/Users/Shared/e-dream-base.log", "a");
-
-    fprintf(logFile, "format");
-    fprintf(logFile, "\n");
-
-    // Close the log file
-    fclose(logFile);
 
     mESView = [[ESScreensaverView alloc] initWithFrame:frame isPreview:NO];
 

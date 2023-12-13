@@ -1,7 +1,6 @@
 #ifndef _SETTINGS_H_
 #define _SETTINGS_H_
 
-
 #include <boost/thread.hpp>
 
 #include "Log.h"

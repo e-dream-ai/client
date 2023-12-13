@@ -89,7 +89,7 @@ void CLog::Attach(const std::string& _location, const uint32 /*_level*/)
 void CLog::Detach(void)
 {
     m_bActive = false;
-
+    fflush(m_pFile);
     if (m_pFile)
         fclose(m_pFile);
 }

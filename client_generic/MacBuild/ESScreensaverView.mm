@@ -1,8 +1,11 @@
+#import <OpenGL/OpenGL.h>
+
 #import "ESScreensaverView.h"
 #import "ESScreensaver.h"
+
 #include "dlfcn.h"
 #include "libgen.h"
-#import <OpenGL/OpenGL.h>
+#include "Log.h"
 
 #ifndef USE_METAL
 NSOpenGLContext* glContext = NULL;
@@ -249,6 +252,7 @@ bool bStarted = false;
 
 - (void)_animationThread
 {
+
     while (!m_isStopped && !ESScreensaver_Stopped())
     {
         @autoreleasepool
@@ -277,12 +281,36 @@ bool bStarted = false;
     //[animationLock lock];
 
     m_isStopped = NO;
+    [NSWorkspace.sharedWorkspace.notificationCenter
+        addObserver:self
+           selector:@selector(willStop:)
+               name:NSWorkspaceWillSleepNotification
+             object:nil];
+    [NSDistributedNotificationCenter.defaultCenter
+        addObserver:self
+           selector:@selector(onSleepNote:)
+               name:NSNotificationName(@"com.apple.screensaver.willstop")
+             object:nil];
 
     dispatch_async(m_frameUpdateQueue, ^{
         dispatch_group_enter(self->m_animationDispatchGroup);
         [self _animationThread];
         dispatch_group_leave(self->m_animationDispatchGroup);
     });
+}
+
+- (void)willStop:(NSNotification*)notification
+{
+    g_Log->Info("Killed by system from willStop");
+    g_Log->Shutdown();
+    exit(0);
+}
+
+- (void)onSleepNote:(NSNotification*)NSNotification
+{
+    g_Log->Info("Killed by system from onSleepNote");
+    g_Log->Shutdown();
+    exit(0);
 }
 
 - (void)_endThread

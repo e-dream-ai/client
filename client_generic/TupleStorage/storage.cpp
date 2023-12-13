@@ -138,7 +138,7 @@ bool IStorageInterface::DirectoryEmpty(std::string_view _sPath)
 bool IStorageInterface::RemoveFullDirectory(std::string_view _sPath,
                                             const bool _bSubdirectories)
 {
-    std::string path {_sPath};
+    std::string path{_sPath};
 
     size_t len = path.size();
     if (path[len - 1] != '/')
@@ -194,7 +194,7 @@ bool IStorageInterface::IoHierarchyHelper(std::string_view _uniformPath,
                                           std::string& _retPath,
                                           std::string& _retName)
 {
-    std::string path { _uniformPath };
+    std::string path{_uniformPath};
 
     //	Convert '.' to '/'
     for (size_t c = 0; c < path.size(); c++)

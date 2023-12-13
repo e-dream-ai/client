@@ -429,13 +429,14 @@ class CElectricSheep
          */
         if (!PlatformUtils::IsInternetReachable())
         {
-            ContentDownloader::Shepherd::addMessageText("Check your internet connection and relaunch e-dream.", 180);
+            ContentDownloader::Shepherd::addMessageText(
+                "Check your internet connection and relaunch e-dream.", 180);
         }
         else
         {
             //    Start downloader.
             g_Log->Info("Starting downloader...");
-            
+
             g_ContentDownloader().Startup(m_DownloadSaveMutex, false,
                                           m_MultipleInstancesMode);
         }

@@ -18,8 +18,6 @@
 #include "Shepherd.h"
 #include "Timer.h"
 
-
-
 using boost::filesystem::directory_iterator;
 using boost::filesystem::exists;
 using boost::filesystem::extension;

@@ -18,14 +18,15 @@ namespace TupleStorage
 class JSONStorage : public IStorageInterface
 {
 
-private:
+  private:
     boost::json::object m_JSON;
     std::string m_ConfigPath;
     bool m_bReadOnly;
-    template<typename T>
-    bool GetOrSetValue(std::string_view _entry, T& _value, std::function<T(boost::json::value*)> callback);
+    template <typename T>
+    bool GetOrSetValue(std::string_view _entry, T& _value,
+                       std::function<T(boost::json::value*)> callback);
 
-public:
+  public:
     virtual bool Initialise(std::string_view _sRoot,
                             std::string_view _sWorkingDir,
                             bool _bReadOnly = false) override;
@@ -35,15 +36,13 @@ public:
     virtual bool Set(std::string_view _entry, bool _val) override;
     virtual bool Set(std::string_view _entry, int32 _val) override;
     virtual bool Set(std::string_view _entry, fp8 _val) override;
-    virtual bool Set(std::string_view _entry,
-                     std::string_view _str) override;
+    virtual bool Set(std::string_view _entry, std::string_view _str) override;
 
     //    Get values.
     virtual bool Get(std::string_view _entry, bool& _ret) override;
     virtual bool Get(std::string_view _entry, int32& _ret) override;
     virtual bool Get(std::string_view _entry, fp8& _ret) override;
-    virtual bool Get(std::string_view _entry,
-                     std::string& _ret) override;
+    virtual bool Get(std::string_view _entry, std::string& _ret) override;
 
     //    Remove node from storage.
     virtual bool Remove(std::string_view _entry) override;
