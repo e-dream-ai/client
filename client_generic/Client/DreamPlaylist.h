@@ -1,6 +1,13 @@
 #ifndef _DREAMPLAYLIST_H
 #define _DREAMPLAYLIST_H
 
+#include <sstream>
+#include <sys/stat.h>
+#include <boost/thread.hpp>
+#include <boost/filesystem/convenience.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
+
 #include "Common.h"
 #include "ContentDownloader.h"
 #include "Log.h"
@@ -10,14 +17,8 @@
 #include "SheepDownloader.h"
 #include "Shepherd.h"
 #include "Timer.h"
-#include "isaac.h"
-#include <sstream>
-#include <sys/stat.h>
 
-#include "boost/filesystem/convenience.hpp"
-#include "boost/filesystem/operations.hpp"
-#include "boost/filesystem/path.hpp"
-#include <boost/thread.hpp>
+
 
 using boost::filesystem::directory_iterator;
 using boost::filesystem::exists;
