@@ -425,27 +425,12 @@
 		214CC3660F34E5CF0083617B /* FontGL.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FontGL.cpp; path = ../DisplayOutput/OpenGL/FontGL.cpp; sourceTree = SOURCE_ROOT; };
 		2155422F1261FDC900AB51BF /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Sparkle.framework; path = Frameworks/Sparkle.framework; sourceTree = SOURCE_ROOT; };
 		215545A812620D3000AB51BF /* dsa_pub.pem */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = dsa_pub.pem; sourceTree = "<group>"; };
-		21598F860F571EB000DDDFA6 /* flam3-animate */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = "flam3-animate"; sourceTree = "<group>"; };
 		2160FAAD0F30F43600B2C27A /* e-dream.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "e-dream.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		2160FAAF0F30F43600B2C27A /* ElectricSheep-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "ElectricSheep-Info.plist"; sourceTree = "<group>"; };
 		2160FE190F30F82800B2C27A /* electricsheep-frown.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "electricsheep-frown.png"; sourceTree = "<group>"; };
 		2160FE1A0F30F82800B2C27A /* electricsheep-smile.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "electricsheep-smile.png"; sourceTree = "<group>"; };
 		2160FE230F30F82800B2C27A /* License.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; path = License.rtf; sourceTree = "<group>"; };
 		2160FE240F30F82800B2C27A /* logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = logo.png; sourceTree = "<group>"; };
-		2160FE2A0F30F82800B2C27A /* class.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = class.lua; sourceTree = "<group>"; };
-		2160FE320F30F82800B2C27A /* Deutsch.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Deutsch.lua; sourceTree = "<group>"; };
-		2160FE330F30F82800B2C27A /* English.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = English.lua; sourceTree = "<group>"; };
-		2160FE360F30F82800B2C27A /* Portuguese.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Portuguese.lua; sourceTree = "<group>"; };
-		2160FE370F30F82800B2C27A /* Svenska.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Svenska.lua; sourceTree = "<group>"; };
-		2160FE380F30F82800B2C27A /* histogram.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = histogram.lua; sourceTree = "<group>"; };
-		2160FE3B0F30F82800B2C27A /* console.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = console.lua; sourceTree = "<group>"; };
-		2160FE3C0F30F82800B2C27A /* file.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = file.lua; sourceTree = "<group>"; };
-		2160FE3D0F30F82800B2C27A /* localized.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = localized.lua; sourceTree = "<group>"; };
-		2160FE3E0F30F82800B2C27A /* logging.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = logging.lua; sourceTree = "<group>"; };
-		2160FE3F0F30F82800B2C27A /* null.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = null.lua; sourceTree = "<group>"; };
-		2160FE410F30F82800B2C27A /* playlist.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = playlist.lua; sourceTree = "<group>"; };
-		2160FE420F30F82800B2C27A /* pq.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = pq.lua; sourceTree = "<group>"; };
-		2160FE430F30F82800B2C27A /* serialize.lua */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = serialize.lua; sourceTree = "<group>"; };
 		2181FAEF0ECF42820078FDDA /* libswscale.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswscale.a; path = ../ffmpeg/osx/lib/libswscale.a; sourceTree = SOURCE_ROOT; };
 		2187F3850F463A740004F8F9 /* TrebuchetMS-24.glf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "TrebuchetMS-24.glf"; sourceTree = "<group>"; };
 		218878D00EC6CD7E001ABD2E /* e-dream.saver */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "e-dream.saver"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -900,7 +885,6 @@
 				21934CB819F3C2430096E7D7 /* thumbnail.tif */,
 				12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */,
 				21006FBD1017BC2C004A6511 /* Credits.html */,
-				21598F860F571EB000DDDFA6 /* flam3-animate */,
 				21DE7CA6101901E900E77D68 /* Instructions.rtf */,
 				12A00CD82B0FCA39001C0792 /* e-dream.icns */,
 				212CAF831141CA3F009DA85A /* TrebuchetMS-20.glf */,
@@ -915,48 +899,10 @@
 				21ADBB211305D380000A9F20 /* green.tif */,
 				21ADBB221305D380000A9F20 /* red.tif */,
 				21ADBB231305D380000A9F20 /* yellow.tif */,
-				2160FE290F30F82800B2C27A /* Scripts */,
 			);
 			name = Runtime;
 			path = ../Runtime;
 			sourceTree = SOURCE_ROOT;
-		};
-		2160FE290F30F82800B2C27A /* Scripts */ = {
-			isa = PBXGroup;
-			children = (
-				2160FE2A0F30F82800B2C27A /* class.lua */,
-				2160FE310F30F82800B2C27A /* Dictionary */,
-				2160FE380F30F82800B2C27A /* histogram.lua */,
-				2160FE3A0F30F82800B2C27A /* logging */,
-				2160FE410F30F82800B2C27A /* playlist.lua */,
-				2160FE420F30F82800B2C27A /* pq.lua */,
-				2160FE430F30F82800B2C27A /* serialize.lua */,
-			);
-			path = Scripts;
-			sourceTree = "<group>";
-		};
-		2160FE310F30F82800B2C27A /* Dictionary */ = {
-			isa = PBXGroup;
-			children = (
-				2160FE320F30F82800B2C27A /* Deutsch.lua */,
-				2160FE330F30F82800B2C27A /* English.lua */,
-				2160FE360F30F82800B2C27A /* Portuguese.lua */,
-				2160FE370F30F82800B2C27A /* Svenska.lua */,
-			);
-			path = Dictionary;
-			sourceTree = "<group>";
-		};
-		2160FE3A0F30F82800B2C27A /* logging */ = {
-			isa = PBXGroup;
-			children = (
-				2160FE3B0F30F82800B2C27A /* console.lua */,
-				2160FE3C0F30F82800B2C27A /* file.lua */,
-				2160FE3D0F30F82800B2C27A /* localized.lua */,
-				2160FE3E0F30F82800B2C27A /* logging.lua */,
-				2160FE3F0F30F82800B2C27A /* null.lua */,
-			);
-			path = logging;
-			sourceTree = "<group>";
 		};
 		21AAA0390F703FDB00AC23A8 /* Resources */ = {
 			isa = PBXGroup;
