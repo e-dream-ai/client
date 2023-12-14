@@ -245,7 +245,7 @@ higher resolution sheep, and other interactive features.</string>
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <subviews>
                                                 <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="pzr-ms-FUU">
-                                                    <rect key="frame" x="18" y="208" width="451" height="42"/>
+                                                    <rect key="frame" x="18" y="119" width="451" height="42"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                     <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" title="Dreams are stored on your local disk so they can be played many times without redownloading." id="VFp-cJ-9Zc">
                                                         <font key="font" metaFont="smallSystem"/>
@@ -254,7 +254,7 @@ higher resolution sheep, and other interactive features.</string>
                                                     </textFieldCell>
                                                 </textField>
                                                 <matrix verticalHuggingPriority="750" fixedFrame="YES" allowsEmptySelection="NO" translatesAutoresizingMaskIntoConstraints="NO" id="c6g-Pr-R99">
-                                                    <rect key="frame" x="230" y="92" width="139" height="38"/>
+                                                    <rect key="frame" x="303" y="78" width="139" height="38"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                     <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                                     <size key="cellSize" width="139" height="18"/>
@@ -277,7 +277,7 @@ higher resolution sheep, and other interactive features.</string>
                                                     </cells>
                                                 </matrix>
                                                 <form verticalHuggingPriority="750" fixedFrame="YES" mode="track" allowsEmptySelection="NO" autosizesCells="NO" translatesAutoresizingMaskIntoConstraints="NO" id="SKn-Zz-5rv">
-                                                    <rect key="frame" x="242" y="94" width="65" height="18"/>
+                                                    <rect key="frame" x="315" y="80" width="65" height="18"/>
                                                     <autoresizingMask key="autoresizingMask"/>
                                                     <string key="toolTip">After the maximum is reached,
 old sheep are deleted to make
@@ -306,7 +306,7 @@ room for new ones</string>
                                                     </cells>
                                                 </form>
                                                 <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="q4z-Zp-Qb9">
-                                                    <rect key="frame" x="313" y="94" width="38" height="14"/>
+                                                    <rect key="frame" x="386" y="98" width="38" height="14"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                     <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="MB" id="6ba-QI-Gni">
                                                         <font key="font" metaFont="smallSystem"/>
@@ -315,7 +315,7 @@ room for new ones</string>
                                                     </textFieldCell>
                                                 </textField>
                                                 <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="eU7-0Z-v70">
-                                                    <rect key="frame" x="132" y="114" width="93" height="14"/>
+                                                    <rect key="frame" x="205" y="100" width="93" height="14"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                     <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" title="Max. disk space:" id="SzH-1M-JuE">
                                                         <font key="font" metaFont="smallSystem"/>
@@ -324,7 +324,7 @@ room for new ones</string>
                                                     </textFieldCell>
                                                 </textField>
                                                 <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="B6q-XX-CjP">
-                                                    <rect key="frame" x="132" y="138" width="451" height="14"/>
+                                                    <rect key="frame" x="18" y="100" width="451" height="14"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                     <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="It is currently using ^1 MB." id="mby-UY-ffY">
                                                         <font key="font" metaFont="smallSystem"/>
@@ -678,7 +678,7 @@ room for new ones</string>
                 <outlet property="delegate" destination="-2" id="776"/>
                 <outlet property="initialFirstResponder" destination="328" id="548"/>
             </connections>
-            <point key="canvasLocation" x="137.5" y="203.5"/>
+            <point key="canvasLocation" x="146" y="201"/>
         </window>
     </objects>
 </document>

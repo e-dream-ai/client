@@ -68,15 +68,15 @@
     {
 
         size_t flockSize = ESScreensaver_GetFlockSizeMBs(mp4path, 0);
-
-        NSMutableString* str =
-            [NSMutableString stringWithString:[flockSizeText stringValue]];
-
-        [str replaceOccurrencesOfString:@"^1"
-                             withString:[NSString
-                                            stringWithFormat:@"%ld", flockSize]
-                                options:0
-                                  range:NSMakeRange(0, [str length])];
+        NSString* str;
+        if (flockSize < 1024)
+        {
+            str = [NSString stringWithFormat:@"It is currently using %ld MB", flockSize];
+        }
+        else
+        {
+            str = [NSString stringWithFormat:@"It is currently using %.02f GB", flockSize / 1024.];
+        }
 
         [flockSizeText setStringValue:str];
     }

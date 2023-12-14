@@ -274,26 +274,17 @@ static uint64 GetFlockSizeBytes(const std::string& path, int sheeptype)
 
                 std::string ext(itr->path().extension().string());
 
-                if (ext == std::string(".avi"))
+                if (ext == std::string(".mp4"))
                 {
                     int generation;
                     int id;
                     int first;
                     int last;
+                    struct stat sbuf;
 
-                    if (4 == sscanf(fname.c_str(), "%d=%d=%d=%d.avi",
-                                    &generation, &id, &first, &last))
-                    {
-                        if ((generation >= 10000 && sheeptype == 1) ||
-                            (generation < 10000 && sheeptype == 0))
-                        {
-                            struct stat sbuf;
-
-                            if (stat((mp4path + "/" + fname).c_str(), &sbuf) ==
-                                0)
-                                retval += (uint64)sbuf.st_size;
-                        }
-                    }
+                    if (stat((mp4path + "/" + fname).c_str(), &sbuf) ==
+                        0)
+                        retval += (uint64)sbuf.st_size;
                 }
             }
             else
