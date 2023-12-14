@@ -160,7 +160,7 @@ extern os_log_t g_SignpostHandle;
 #include <assert.h>
 #define ASSERT assert
 #else
-#define ASSERT(b)
+#define ASSERT(b) (b)
 #endif
 
 #endif

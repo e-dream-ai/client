@@ -133,6 +133,7 @@ bool CRendererMetal::Initialize(spCDisplayOutput _spDisplay)
                                         ofType:@"metallib"]
                      error:&err];
     NSAssert(err == nil, @"%@", error);
+    ASSERT(rendererContext->shaderLibrary);
 
     rendererContext->drawTextureShader = std::static_pointer_cast<CShaderMetal>(
         NewShader("quadPassVertex", "drawTextureFragment"));
