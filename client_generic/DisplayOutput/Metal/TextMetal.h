@@ -3,6 +3,7 @@
 
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
+#import <QuartzCore/CATextLayer.h>
 
 #import "TextRendering/MBETextMesh.h"
 
@@ -32,8 +33,10 @@ class CTextMetal : public CBaseText
     MBETextMesh* m_pTextMesh;
     Base::Math::CRect m_AlignRect;
     id<MTLDevice> m_Device;
-    NSTextField* m_TextField;
+    CATextLayer* m_TextLayer;
+#if !USE_SYSTEM_UI
     float m_ContextAspect;
+#endif
     Base::Math::CVector2 m_Extents;
     bool m_Enabled;
 

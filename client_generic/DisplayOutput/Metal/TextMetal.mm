@@ -25,36 +25,33 @@ inline void ExecuteOnMainThread(void (^_block)(void))
 
 CTextMetal::CTextMetal(spCFontMetal _font, MTKView* _view,
                        float /*_contextAspect*/)
-    : m_spFont(_font), m_pTextMesh(NULL), m_Device(_view.device),
-      m_ContextAspect(
+    : m_spFont(_font), m_pTextMesh(NULL), m_Device(_view.device)
+#if !USE_SYSTEM_UI
+      ,m_ContextAspect(
           9. /
           16.) //@TODO: update me when resized, for now just going with 16:9
+#endif
 {
 #if USE_SYSTEM_UI
     __block spCFontMetal font = _font;
     __block MTKView* view = _view;
-    __block NSTextField* __strong& resultTextField = m_TextField;
+    __block CATextLayer* __strong& resultTextLayer = m_TextLayer;
     ExecuteOnMainThread(^{
-        NSTextField* textField = [[NSTextField alloc] init];
-        [textField setBezeled:NO];
-        [textField setBordered:NO];
-        [textField setBackgroundColor:NSColor.clearColor];
-        [textField setEditable:NO];
-        [textField setSelectable:NO];
-        [textField
-            setFont:[NSFont fontWithName:@(font->FontDescription()
-                                               .TypeFace()
-                                               .c_str())
-                                    size:font->FontDescription().Height()]];
-        [textField setTranslatesAutoresizingMaskIntoConstraints:YES];
-        [textField setAutoresizingMask:NSViewMaxYMargin];
-        [textField setHidden:YES];
-
-        NSShadow* textShadow = [[NSShadow alloc] init];
-        [textShadow setShadowColor:[NSColor blackColor]];
-        [textShadow setShadowOffset:NSMakeSize(1, 1)];
-        [textField setShadow:textShadow];
-
+        CATextLayer* textLayer = [[CATextLayer alloc] init];
+        [textLayer setFont:(__bridge CFTypeRef)@(font->FontDescription().TypeFace().c_str())];
+        [textLayer setString:@"ASKDNKJASNF"];
+        [textLayer setFrame:CGRectMake(0, 0, 100, 200)];
+        [textLayer setFontSize:font->FontDescription().Height()];
+        [textLayer setShadowOpacity:1];
+        [textLayer setShadowColor:NSColor.blackColor.CGColor];
+        [textLayer setForegroundColor:NSColor.whiteColor.CGColor];
+        [textLayer setShadowOffset:NSMakeSize(1, -1)];
+        [textLayer setShadowRadius:0];
+        [textLayer display];
+        [textLayer setAutoresizingMask:NSViewMaxYMargin];
+        [textLayer setHidden:YES];
+        
+        [view.layer addSublayer:textLayer];
         [view setAutoresizesSubviews:NO];
         [view setContentHuggingPriority:NSLayoutPriorityRequired
                          forOrientation:NSLayoutConstraintOrientationVertical];
@@ -63,9 +60,7 @@ CTextMetal::CTextMetal(spCFontMetal _font, MTKView* _view,
                                      forOrientation:
                                          NSLayoutConstraintOrientationVertical];
 
-        [view addSubview:textField];
-
-        resultTextField = (__bridge NSTextField*)CFBridgingRetain(textField);
+        resultTextLayer = (__bridge CATextLayer*)CFBridgingRetain(textLayer);
     });
 #endif
 }
@@ -73,12 +68,22 @@ CTextMetal::CTextMetal(spCFontMetal _font, MTKView* _view,
 CTextMetal::~CTextMetal()
 {
 #if USE_SYSTEM_UI
-    __block NSTextField* textField =
-        CFBridgingRelease((__bridge CFTypeRef)m_TextField);
+    __block CATextLayer* textLayer = CFBridgingRelease((__bridge CFTypeRef)m_TextLayer);
     ExecuteOnMainThread(^{
-        [textField removeFromSuperview];
+        [textLayer removeFromSuperlayer];
     });
 #endif
+}
+
+static void PrintLayers(CALayer* layer)
+{
+    NSLog(@"LAYER: %@", layer.className);
+    NSLog(@"[");
+    for (CALayer* l in layer.sublayers)
+    {
+        PrintLayers(l);
+    }
+    NSLog(@"]");
 }
 
 void CTextMetal::SetText(const std::string& _text)
@@ -88,13 +93,13 @@ void CTextMetal::SetText(const std::string& _text)
         m_Text = _text;
 #if USE_SYSTEM_UI
         __block NSString* str = [NSString stringWithUTF8String:_text.c_str()];
+        __block CATextLayer* textLayer = m_TextLayer;
         ExecuteOnMainThread(^{
             if (g_Player().Stopped())
                 return;
-            [m_TextField setStringValue:str];
-            NSSize contentSize =
-                [m_TextField sizeThatFits:NSMakeSize(CGFLOAT_MAX, CGFLOAT_MAX)];
-            [m_TextField setFrame:NSMakeRect(0, 0, contentSize.width,
+            [textLayer setString:str];
+            NSSize contentSize = [textLayer preferredFrameSize];
+            [textLayer setFrame:NSMakeRect(0, 0, contentSize.width,
                                              contentSize.height)];
         });
 #else  /*USE_SYSTEM_UI*/
@@ -118,15 +123,17 @@ void CTextMetal::SetRect(const Base::Math::CRect& _rect)
 #if USE_SYSTEM_UI
     __block Base::Math::CRect rect = _rect;
     __block const Base::Math::CVector2& extents = m_Extents;
+    __block CATextLayer* textLayer = m_TextLayer;
     ExecuteOnMainThread(^{
         if (g_Player().Stopped())
             return;
-        NSRect frame = m_TextField.frame;
-        NSRect parentFrame = m_TextField.superview.frame;
-        [m_TextField setFrame:NSMakeRect(rect.m_X0 * parentFrame.size.width,
+        NSRect frame = textLayer.frame;
+        NSRect parentFrame = textLayer.superlayer.frame;
+        [textLayer setFrame:NSMakeRect(rect.m_X0 * parentFrame.size.width,
                                          ((1 - rect.m_Y0) - extents.m_Y) *
-                                             parentFrame.size.height,
+                                            parentFrame.size.height,
                                          frame.size.width, frame.size.height)];
+        [textLayer display];
     });
 #endif
 }
@@ -135,11 +142,12 @@ Base::Math::CVector2 CTextMetal::GetExtent()
 {
 #if USE_SYSTEM_UI
     __block Base::Math::CVector2& extents = m_Extents;
+    __block CATextLayer* textLayer = m_TextLayer;
     ExecuteOnMainThread(^{
         if (g_Player().Stopped())
             return;
-        NSRect frame = m_TextField.frame;
-        NSRect parentFrame = m_TextField.superview.frame;
+        NSRect frame = textLayer.frame;
+        NSRect parentFrame = textLayer.superlayer.frame;
         extents = {(fp4)frame.size.width / (fp4)parentFrame.size.width,
                    (fp4)frame.size.height / (fp4)parentFrame.size.height};
     });
@@ -162,10 +170,11 @@ void CTextMetal::SetEnabled(bool _enabled)
 #if USE_SYSTEM_UI
         // if (m_Extents.m_X == 0.f)
         // return;
+        __block CATextLayer* textLayer = m_TextLayer;
         ExecuteOnMainThread(^{
             if (g_Player().Stopped())
                 return;
-            [m_TextField setHidden:!_enabled];
+            [textLayer setHidden:!_enabled];
         });
 #endif
         m_Enabled = _enabled;
