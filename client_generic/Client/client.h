@@ -418,26 +418,24 @@ class CElectricSheep
             g_Player().Display()->Width(), g_Player().Display()->Height(),
             true);
 
-        /*
+        
         //	For testing...
         ContentDownloader::Shepherd::addMessageText(
             "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do "
             "eiusmod tempor incididunt ut labore et dolore magna aliqua",
             180);
-         */
-        if (!PlatformUtils::IsInternetReachable())
+         
+        bool internetReachable = PlatformUtils::IsInternetReachable();
+        if (!internetReachable)
         {
             ContentDownloader::Shepherd::addMessageText(
                 "Check your internet connection and relaunch e-dream.", 180);
         }
-        else
-        {
-            //    Start downloader.
-            g_Log->Info("Starting downloader...");
+        //    Start downloader.
+        g_Log->Info("Starting downloader...");
 
-            g_ContentDownloader().Startup(m_DownloadSaveMutex, false,
-                                          m_MultipleInstancesMode);
-        }
+        g_ContentDownloader().Startup(m_DownloadSaveMutex, false,
+                                      m_MultipleInstancesMode || !internetReachable);
 
         // call static method to fill sheep counts
         ContentDownloader::Shepherd::GetFlockSizeMBsRecount(0);

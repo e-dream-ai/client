@@ -408,6 +408,9 @@ using namespace boost::filesystem;
 bool Shepherd::getSheep(const char* path, SheepArray* sheep,
                         const SheepArray& serverFlock)
 {
+    if (path == nullptr)
+        return false;
+
     bool gotSheep = false;
     char fbuf[MAXBUF];
 

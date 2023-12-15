@@ -111,11 +111,10 @@ bool CContentDownloader::Startup(boost::shared_mutex& _downloadSaveMutex,
             ->Get("settings.generator.nickname", std::string(""))
             .c_str());
 
-    m_gDownloader = NULL;
+    m_gDownloader = new SheepDownloader(_downloadSaveMutex);
 
     if (_bReadOnlyInstance == false)
     {
-        m_gDownloader = new SheepDownloader(_downloadSaveMutex);
         g_Log->Info("Starting download thread...");
         m_gDownloadThread = new boost::thread(
             boost::bind(&SheepDownloader::shepherdCallback, m_gDownloader));
