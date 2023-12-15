@@ -27,7 +27,8 @@ CTextMetal::CTextMetal(spCFontMetal _font, MTKView* _view,
                        float /*_contextAspect*/)
     : m_spFont(_font), m_pTextMesh(NULL), m_Device(_view.device)
 #if !USE_SYSTEM_UI
-      ,m_ContextAspect(
+      ,
+      m_ContextAspect(
           9. /
           16.) //@TODO: update me when resized, for now just going with 16:9
 #endif
@@ -38,7 +39,8 @@ CTextMetal::CTextMetal(spCFontMetal _font, MTKView* _view,
     __block CATextLayer* __strong& resultTextLayer = m_TextLayer;
     ExecuteOnMainThread(^{
         CATextLayer* textLayer = [[CATextLayer alloc] init];
-        textLayer.font = (__bridge CFTypeRef)@(font->FontDescription().TypeFace().c_str());
+        textLayer.font =
+            (__bridge CFTypeRef) @(font->FontDescription().TypeFace().c_str());
         textLayer.string = @"ASKDNKJASNF";
         textLayer.frame = CGRectMake(0, 0, 100, 200);
         textLayer.fontSize = font->FontDescription().Height();
@@ -50,7 +52,7 @@ CTextMetal::CTextMetal(spCFontMetal _font, MTKView* _view,
         [textLayer display];
         textLayer.autoresizingMask = NSViewMaxYMargin;
         [textLayer setHidden:YES];
-        
+
         [view.layer addSublayer:textLayer];
         [view setAutoresizesSubviews:NO];
         [view setContentHuggingPriority:NSLayoutPriorityRequired
@@ -68,7 +70,8 @@ CTextMetal::CTextMetal(spCFontMetal _font, MTKView* _view,
 CTextMetal::~CTextMetal()
 {
 #if USE_SYSTEM_UI
-    __block CATextLayer* textLayer = CFBridgingRelease((__bridge CFTypeRef)m_TextLayer);
+    __block CATextLayer* textLayer =
+        CFBridgingRelease((__bridge CFTypeRef)m_TextLayer);
     ExecuteOnMainThread(^{
         [textLayer removeFromSuperlayer];
     });
@@ -99,8 +102,8 @@ void CTextMetal::SetText(const std::string& _text)
                 return;
             textLayer.string = str;
             NSSize contentSize = [textLayer preferredFrameSize];
-            textLayer.frame = NSMakeRect(0, 0, contentSize.width,
-                                             contentSize.height);
+            textLayer.frame =
+                NSMakeRect(0, 0, contentSize.width, contentSize.height);
         });
 #else  /*USE_SYSTEM_UI*/
         NSString* text = @(_text.c_str());
@@ -130,9 +133,9 @@ void CTextMetal::SetRect(const Base::Math::CRect& _rect)
         NSRect frame = textLayer.frame;
         NSRect parentFrame = textLayer.superlayer.frame;
         textLayer.frame = NSMakeRect(rect.m_X0 * parentFrame.size.width,
-                                         ((1 - rect.m_Y0) - extents.m_Y) *
-                                            parentFrame.size.height,
-                                         frame.size.width, frame.size.height);
+                                     ((1 - rect.m_Y0) - extents.m_Y) *
+                                         parentFrame.size.height,
+                                     frame.size.width, frame.size.height);
         [textLayer display];
     });
 #endif

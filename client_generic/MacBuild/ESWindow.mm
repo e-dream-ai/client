@@ -103,9 +103,10 @@ static void ShowPreferencesCallback()
 
         // when blacking the main screen, hide the menu bar and dock
         if (actScreen == [NSScreen mainScreen])
-            [NSApplication sharedApplication].presentationOptions = NSApplicationPresentationFullScreen |
-                    NSApplicationPresentationAutoHideDock |
-                    NSApplicationPresentationAutoHideMenuBar;
+            [NSApplication sharedApplication].presentationOptions =
+                NSApplicationPresentationFullScreen |
+                NSApplicationPresentationAutoHideDock |
+                NSApplicationPresentationAutoHideMenuBar;
 
         fs_rect = actScreen.frame;
         fs_rect.origin = NSZeroPoint;

@@ -282,8 +282,7 @@ static uint64 GetFlockSizeBytes(const std::string& path, int sheeptype)
                     int last;
                     struct stat sbuf;
 
-                    if (stat((mp4path + "/" + fname).c_str(), &sbuf) ==
-                        0)
+                    if (stat((mp4path + "/" + fname).c_str(), &sbuf) == 0)
                         retval += (uint64)sbuf.st_size;
                 }
             }

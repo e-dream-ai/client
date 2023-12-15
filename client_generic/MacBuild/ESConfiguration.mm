@@ -71,11 +71,13 @@
         NSString* str;
         if (flockSize < 1024)
         {
-            str = [NSString stringWithFormat:@"It is currently using %ld MB", flockSize];
+            str = [NSString
+                stringWithFormat:@"It is currently using %ld MB", flockSize];
         }
         else
         {
-            str = [NSString stringWithFormat:@"It is currently using %.02f GB", flockSize / 1024.];
+            str = [NSString stringWithFormat:@"It is currently using %.02f GB",
+                                             flockSize / 1024.];
         }
 
         flockSizeText.stringValue = str;
@@ -92,8 +94,8 @@
     if (EDreamClient::IsLoggedIn())
     {
         loginStatusImage.image = self->greenImage;
-        loginTestStatusText.stringValue = [NSString stringWithFormat:@"Logged in as %@",
-                                                      m_origNickname];
+        loginTestStatusText.stringValue =
+            [NSString stringWithFormat:@"Logged in as %@", m_origNickname];
         m_loginWasSuccessful = YES;
         signInButton.title = @"Sign Out";
         [passwordLabel setHidden:YES];
@@ -330,11 +332,11 @@
 
 - (void)loadSettings
 {
-    playerFPS.doubleValue = ESScreensaver_GetDoubleSetting(
-                                  "settings.player.player_fps", 23.0);
+    playerFPS.doubleValue =
+        ESScreensaver_GetDoubleSetting("settings.player.player_fps", 23.0);
 
-    displayFPS.doubleValue = ESScreensaver_GetDoubleSetting(
-                                   "settings.player.display_fps", 60.0);
+    displayFPS.doubleValue =
+        ESScreensaver_GetDoubleSetting("settings.player.display_fps", 60.0);
 
     SInt32 dm = ESScreensaver_GetIntSetting("settings.player.DisplayMode", 2);
 
@@ -358,31 +360,31 @@
 
     [multiDisplayMode selectItemAtIndex:mdmode];
 
-    synchronizeVBL.state = ESScreensaver_GetBoolSetting(
-                                 "settings.player.vbl_sync", false);
+    synchronizeVBL.state =
+        ESScreensaver_GetBoolSetting("settings.player.vbl_sync", false);
 
-    preserveAR.state = ESScreensaver_GetBoolSetting(
-                             "settings.player.preserve_AR", false);
+    preserveAR.state =
+        ESScreensaver_GetBoolSetting("settings.player.preserve_AR", false);
 
-    blackoutMonitors.state = ESScreensaver_GetBoolSetting(
-                                   "settings.player.blackout_monitors", true);
+    blackoutMonitors.state =
+        ESScreensaver_GetBoolSetting("settings.player.blackout_monitors", true);
 
-    silentMode.state = ESScreensaver_GetBoolSetting(
-                             "settings.player.quiet_mode", true);
+    silentMode.state =
+        ESScreensaver_GetBoolSetting("settings.player.quiet_mode", true);
 
 #ifdef SCREEN_SAVER
     [blackoutMonitors setHidden:true];
 #endif
 
-    showAttribution.state = ESScreensaver_GetBoolSetting(
-                                  "settings.app.attributionpng", true);
+    showAttribution.state =
+        ESScreensaver_GetBoolSetting("settings.app.attributionpng", true);
 
-    useProxy.state = ESScreensaver_GetBoolSetting(
-                           "settings.content.use_proxy", false);
+    useProxy.state =
+        ESScreensaver_GetBoolSetting("settings.content.use_proxy", false);
 
-    proxyHost.stringValue = (__bridge_transfer NSString*)
-                                  ESScreensaver_CopyGetStringSetting(
-                                      "settings.content.proxy", "");
+    proxyHost.stringValue =
+        (__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting(
+            "settings.content.proxy", "");
 
     m_origNickname =
         (__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting(
@@ -392,13 +394,13 @@
 
     drupalPassword.stringValue = @"";
 
-    proxyLogin.stringValue = (__bridge_transfer NSString*)
-                                   ESScreensaver_CopyGetStringSetting(
-                                       "settings.content.proxy_username", "");
+    proxyLogin.stringValue =
+        (__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting(
+            "settings.content.proxy_username", "");
 
-    proxyPassword.stringValue = (__bridge_transfer NSString*)
-                           ESScreensaver_CopyGetStringSetting(
-                               "settings.content.proxy_password", "");
+    proxyPassword.stringValue =
+        (__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting(
+            "settings.content.proxy_password", "");
 
     bool unlimited_cache =
         ESScreensaver_GetBoolSetting("settings.content.unlimited_cache", true);
@@ -419,9 +421,10 @@
 
     debugLog.state = ESScreensaver_GetBoolSetting("settings.app.log", false);
 
-    contentFldr.stringValue = ((__bridge_transfer NSString*)
-                                        ESScreensaver_CopyGetStringSetting(
-                                            "settings.content.sheepdir", "")).stringByAbbreviatingWithTildeInPath;
+    contentFldr.stringValue =
+        ((__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting(
+             "settings.content.sheepdir", ""))
+            .stringByAbbreviatingWithTildeInPath;
 
     version.stringValue = (__bridge NSString*)ESScreensaver_GetVersion();
 
@@ -467,8 +470,7 @@
     ESScreensaver_SetBoolSetting("settings.app.attributionpng",
                                  showAttribution.state);
 
-    ESScreensaver_SetBoolSetting("settings.content.use_proxy",
-                                 useProxy.state);
+    ESScreensaver_SetBoolSetting("settings.content.use_proxy", useProxy.state);
 
     ESScreensaver_SetBoolSetting("settings.player.quiet_mode",
                                  silentMode.state);
@@ -531,14 +533,15 @@
         [openPanel setCanChooseDirectories:YES];
         [openPanel setCanCreateDirectories:YES];
         [openPanel setAllowsMultipleSelection:NO];
-        openPanel.directoryURL = [NSURL
-                                fileURLWithPath:path.stringByStandardizingPath
-                                    isDirectory:YES];
+        openPanel.directoryURL =
+            [NSURL fileURLWithPath:path.stringByStandardizingPath
+                       isDirectory:YES];
 
         result = [openPanel runModal];
         if (result == NSOKButton)
         {
-            field.objectValue = openPanel.directoryURL.path.stringByAbbreviatingWithTildeInPath;
+            field.objectValue =
+                openPanel.directoryURL.path.stringByAbbreviatingWithTildeInPath;
         }
     }
 
