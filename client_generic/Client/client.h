@@ -296,8 +296,6 @@ class CElectricSheep
         spStats->Add(new Hud::CStringStat("loginstatus", "", "Not logged in"));
         spStats->Add(
             new Hud::CStringStat("all", "Content cache: ", "unknown..."));
-        spStats->Add(
-            new Hud::CStringStat("server", "Server is ", "not known yet"));
         spStats->Add(new Hud::CStringStat("transfers", "", ""));
         spStats->Add(new Hud::CStringStat("deleted", "", ""));
         if (m_MultipleInstancesMode == true)
