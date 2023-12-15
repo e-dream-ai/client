@@ -15,7 +15,7 @@ bool bStarted = false;
 
 @implementation ESScreensaverView
 
-- (id)initWithFrame:(NSRect)frame isPreview:(BOOL)isPreview
+- (instancetype)initWithFrame:(NSRect)frame isPreview:(BOOL)isPreview
 {
 #ifdef SCREEN_SAVER
     self = [super initWithFrame:frame isPreview:isPreview];
@@ -45,13 +45,13 @@ bool bStarted = false;
         {
             NSURL* url = (NSURL*)CFBridgingRelease(CFBundleCopyBundleURL(bndl));
 
-            nsbndl = [NSBundle bundleWithPath:[url path]];
+            nsbndl = [NSBundle bundleWithPath:url.path];
 
             m_updater = [SUUpdater updaterForBundle:nsbndl];
 
-            [m_updater setDelegate:self];
+            m_updater.delegate = self;
 
-            if (m_updater && [m_updater automaticallyChecksForUpdates])
+            if (m_updater && m_updater.automaticallyChecksForUpdates)
             {
                 [m_updater checkForUpdateInformation];
             }
@@ -324,10 +324,10 @@ bool bStarted = false;
 
 - (void)windowDidResize
 {
-    [view setFrame:[self frame]];
+    view.frame = self.frame;
 
-    ESScreensaver_ForceWidthAndHeight((uint32)[self frame].size.width,
-                                      (uint32)[self frame].size.height);
+    ESScreensaver_ForceWidthAndHeight((uint32)self.frame.size.width,
+                                      (uint32)self.frame.size.height);
 }
 
 - (BOOL)hasConfigureSheet
@@ -343,12 +343,12 @@ bool bStarted = false;
             [[ESConfiguration alloc] initWithWindowNibName:@"ElectricSheep"];
     }
 
-    return [m_config window];
+    return m_config.window;
 }
 
 - (void)flagsChanged:(NSEvent*)ev
 {
-    if ([ev keyCode] == 63) // FN Key
+    if (ev.keyCode == 63) // FN Key
         return;
 
     [super flagsChanged:ev];
@@ -368,10 +368,10 @@ bool bStarted = false;
 {
     BOOL handled = NO;
 
-    NSString* characters = [ev charactersIgnoringModifiers];
-    NSLog(@"char: %@ - %@", [ev charactersIgnoringModifiers], [ev characters]);
+    NSString* characters = ev.charactersIgnoringModifiers;
+    NSLog(@"char: %@ - %@", ev.charactersIgnoringModifiers, ev.characters);
     unsigned int characterIndex,
-        characterCount = (unsigned int)[characters length];
+        characterCount = (unsigned int)characters.length;
 
     for (characterIndex = 0; characterIndex < characterCount; characterIndex++)
     {
@@ -452,18 +452,18 @@ bool bStarted = false;
 - (void)updaterWillRelaunchApplication:(SUUpdater*)__unused updater
 {
     if (m_config != NULL)
-        [NSApp endSheet:[m_config window]];
+        [NSApp endSheet:m_config.window];
 }
 
 - (void)doUpdate:(NSTimer*)timer
 {
-    SUAppcastItem* update = [timer userInfo];
+    SUAppcastItem* update = timer.userInfo;
 
     if (!m_isFullScreen)
         [m_updater checkForUpdatesInBackground];
     else
         ESScreensaver_SetUpdateAvailable(
-            [[update displayVersionString] UTF8String]);
+            update.displayVersionString.UTF8String);
 }
 
 // Sent when a valid update is found by the update driver.

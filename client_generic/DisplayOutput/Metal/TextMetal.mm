@@ -38,17 +38,17 @@ CTextMetal::CTextMetal(spCFontMetal _font, MTKView* _view,
     __block CATextLayer* __strong& resultTextLayer = m_TextLayer;
     ExecuteOnMainThread(^{
         CATextLayer* textLayer = [[CATextLayer alloc] init];
-        [textLayer setFont:(__bridge CFTypeRef)@(font->FontDescription().TypeFace().c_str())];
-        [textLayer setString:@"ASKDNKJASNF"];
-        [textLayer setFrame:CGRectMake(0, 0, 100, 200)];
-        [textLayer setFontSize:font->FontDescription().Height()];
-        [textLayer setShadowOpacity:1];
-        [textLayer setShadowColor:NSColor.blackColor.CGColor];
-        [textLayer setForegroundColor:NSColor.whiteColor.CGColor];
-        [textLayer setShadowOffset:NSMakeSize(1, -1)];
-        [textLayer setShadowRadius:0];
+        textLayer.font = (__bridge CFTypeRef)@(font->FontDescription().TypeFace().c_str());
+        textLayer.string = @"ASKDNKJASNF";
+        textLayer.frame = CGRectMake(0, 0, 100, 200);
+        textLayer.fontSize = font->FontDescription().Height();
+        textLayer.shadowOpacity = 1;
+        textLayer.shadowColor = NSColor.blackColor.CGColor;
+        textLayer.foregroundColor = NSColor.whiteColor.CGColor;
+        textLayer.shadowOffset = NSMakeSize(1, -1);
+        textLayer.shadowRadius = 0;
         [textLayer display];
-        [textLayer setAutoresizingMask:NSViewMaxYMargin];
+        textLayer.autoresizingMask = NSViewMaxYMargin;
         [textLayer setHidden:YES];
         
         [view.layer addSublayer:textLayer];
@@ -92,15 +92,15 @@ void CTextMetal::SetText(const std::string& _text)
     {
         m_Text = _text;
 #if USE_SYSTEM_UI
-        __block NSString* str = [NSString stringWithUTF8String:_text.c_str()];
+        __block NSString* str = @(_text.c_str());
         __block CATextLayer* textLayer = m_TextLayer;
         ExecuteOnMainThread(^{
             if (g_Player().Stopped())
                 return;
-            [textLayer setString:str];
+            textLayer.string = str;
             NSSize contentSize = [textLayer preferredFrameSize];
-            [textLayer setFrame:NSMakeRect(0, 0, contentSize.width,
-                                             contentSize.height)];
+            textLayer.frame = NSMakeRect(0, 0, contentSize.width,
+                                             contentSize.height);
         });
 #else  /*USE_SYSTEM_UI*/
         NSString* text = @(_text.c_str());
@@ -129,10 +129,10 @@ void CTextMetal::SetRect(const Base::Math::CRect& _rect)
             return;
         NSRect frame = textLayer.frame;
         NSRect parentFrame = textLayer.superlayer.frame;
-        [textLayer setFrame:NSMakeRect(rect.m_X0 * parentFrame.size.width,
+        textLayer.frame = NSMakeRect(rect.m_X0 * parentFrame.size.width,
                                          ((1 - rect.m_Y0) - extents.m_Y) *
                                             parentFrame.size.height,
-                                         frame.size.width, frame.size.height)];
+                                         frame.size.width, frame.size.height);
         [textLayer display];
     });
 #endif
@@ -174,7 +174,7 @@ void CTextMetal::SetEnabled(bool _enabled)
         ExecuteOnMainThread(^{
             if (g_Player().Stopped())
                 return;
-            [textLayer setHidden:!_enabled];
+            textLayer.hidden = !_enabled;
         });
 #endif
         m_Enabled = _enabled;

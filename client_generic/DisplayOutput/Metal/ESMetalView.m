@@ -4,7 +4,7 @@
 
 @implementation ESMetalView
 
-- (id)initWithFrame:(NSRect)frameRect
+- (instancetype)initWithFrame:(NSRect)frameRect
 {
     NSArray<id<MTLDevice>>* devices = MTLCopyAllDevices();
     id<MTLDevice> selectedDevice = nil;

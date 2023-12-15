@@ -129,12 +129,12 @@ typedef void (^MBEGlyphPositionEnumerationBlock)(CFIndex strIndex,
         [device newBufferWithBytes:vertices
                             length:vertexCount * sizeof(MBEVertex)
                            options:MTLResourceOptionCPUCacheModeDefault];
-    [_vertexBuffer setLabel:@"Text Mesh Vertices"];
+    _vertexBuffer.label = @"Text Mesh Vertices";
     _indexBuffer =
         [device newBufferWithBytes:indices
                             length:indexCount * sizeof(MBEIndexType)
                            options:MTLResourceOptionCPUCacheModeDefault];
-    [_indexBuffer setLabel:@"Text Mesh Indices"];
+    _indexBuffer.label = @"Text Mesh Indices";
 
     free(indices);
     free(vertices);
@@ -164,7 +164,7 @@ typedef void (^MBEGlyphPositionEnumerationBlock)(CFIndex strIndex,
 
     NSImage* image = [[NSImage alloc] initWithSize:NSMakeSize(1, 1)];
     [image lockFocus];
-    CGContextRef context = [[NSGraphicsContext currentContext] CGContext];
+    CGContextRef context = [NSGraphicsContext currentContext].CGContext;
 
     [lines enumerateObjectsUsingBlock:^(id lineObject, NSUInteger lineIndex,
                                         __unused BOOL* stop) {

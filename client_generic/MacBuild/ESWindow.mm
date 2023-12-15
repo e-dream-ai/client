@@ -21,11 +21,11 @@ static void ShowPreferencesCallback()
 
 - (void)awakeFromNib // was - (NSWindow *)window
 {
-    [self setDelegate:self];
+    self.delegate = self;
 
-    [[NSApplication sharedApplication] setDelegate:self];
+    [NSApplication sharedApplication].delegate = self;
 
-    NSRect frame = [self contentRectForFrameRect:[self frame]];
+    NSRect frame = [self contentRectForFrameRect:self.frame];
 
     mInSheet = NO;
 
@@ -41,7 +41,7 @@ static void ShowPreferencesCallback()
 
     frame.size.width = 1280;
     frame.size.height = 720;
-    [self setContentAspectRatio:CGSizeMake(16.f, 9.f)];
+    self.contentAspectRatio = CGSizeMake(16.f, 9.f);
 
     mBlackouMonitors =
         ESScreensaver_GetBoolSetting("settings.player.blackout_monitors", true);
@@ -52,16 +52,15 @@ static void ShowPreferencesCallback()
 
     [self makeKeyWindow];
 
-    [self setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
+    self.collectionBehavior = NSWindowCollectionBehaviorFullScreenPrimary;
 
     mESView = [[ESScreensaverView alloc] initWithFrame:frame isPreview:NO];
 
     if (mESView != nil)
     {
-        [self setContentView:mESView];
+        self.contentView = mESView;
 
-        [mESView
-            setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
+        mESView.autoresizingMask = (NSViewWidthSizable | NSViewHeightSizable);
 
         [mESView setAutoresizesSubviews:YES];
 
@@ -89,12 +88,12 @@ static void ShowPreferencesCallback()
     }
 
     mBlackingWindows =
-        [[NSMutableArray alloc] initWithCapacity:[[NSScreen screens] count]];
+        [[NSMutableArray alloc] initWithCapacity:[NSScreen screens].count];
 
     unsigned int i;
     NSWindow* win;
     NSRect fs_rect;
-    for (i = 0; i < [[NSScreen screens] count]; i++)
+    for (i = 0; i < [NSScreen screens].count; i++)
     {
 
         NSScreen* actScreen = NSScreen.screens[i];
@@ -104,21 +103,19 @@ static void ShowPreferencesCallback()
 
         // when blacking the main screen, hide the menu bar and dock
         if (actScreen == [NSScreen mainScreen])
-            [[NSApplication sharedApplication]
-                setPresentationOptions:
-                    NSApplicationPresentationFullScreen |
+            [NSApplication sharedApplication].presentationOptions = NSApplicationPresentationFullScreen |
                     NSApplicationPresentationAutoHideDock |
-                    NSApplicationPresentationAutoHideMenuBar];
+                    NSApplicationPresentationAutoHideMenuBar;
 
-        fs_rect = [actScreen frame];
+        fs_rect = actScreen.frame;
         fs_rect.origin = NSZeroPoint;
         win = [[NSWindow alloc] initWithContentRect:fs_rect
                                           styleMask:NSBorderlessWindowMask
                                             backing:NSBackingStoreBuffered
                                               defer:NO
                                              screen:NSScreen.screens[i]];
-        [win setBackgroundColor:[NSColor blackColor]];
-        [win setLevel:NSScreenSaverWindowLevel];
+        win.backgroundColor = [NSColor blackColor];
+        win.level = NSScreenSaverWindowLevel;
         [win orderFront:nil];
 
         // if ([[AppController sharedController] animateInterface])
@@ -137,7 +134,7 @@ static void ShowPreferencesCallback()
         return;
 
     unsigned int i;
-    for (i = 0; i < [mBlackingWindows count]; i++)
+    for (i = 0; i < mBlackingWindows.count; i++)
     {
         /*if (![[AppController sharedController] animateInterface])
                 [[mBlackingWindows objectAtIndex:i] close];
@@ -163,9 +160,9 @@ static void ShowPreferencesCallback()
     animInfo[NSViewAnimationEffectKey] = effect;
 
     anim = [[NSViewAnimation alloc] initWithViewAnimations:@[ animInfo ]];
-    [anim setAnimationBlockingMode:NSAnimationNonblockingThreaded];
-    [anim setAnimationCurve:NSAnimationEaseIn];
-    [anim setDuration:0.3];
+    anim.animationBlockingMode = NSAnimationNonblockingThreaded;
+    anim.animationCurve = NSAnimationEaseIn;
+    anim.duration = 0.3;
 
     [anim startAnimation];
 }
@@ -173,7 +170,7 @@ static void ShowPreferencesCallback()
 - (void)fullscreenWindowMoved:(NSNotification*)__unused notification
 {
     // triggered when fullscreen window changes spaces
-    NSRect screen_frame = [[mFullScreenWindow screen] frame];
+    NSRect screen_frame = mFullScreenWindow.screen.frame;
     [mFullScreenWindow setFrame:screen_frame display:YES animate:NO];
 }
 
@@ -260,9 +257,9 @@ static void ShowPreferencesCallback()
 {
     BOOL handled = NO;
 
-    NSString* characters = [ev charactersIgnoringModifiers];
+    NSString* characters = ev.charactersIgnoringModifiers;
     unsigned int characterIndex,
-        characterCount = (unsigned int)[characters length];
+        characterCount = (unsigned int)characters.length;
 
     for (characterIndex = 0; characterIndex < characterCount; characterIndex++)
     {
