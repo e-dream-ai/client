@@ -3,6 +3,8 @@
 #import "ESScreensaverView.h"
 #import "ESScreensaver.h"
 
+#include <csignal>
+
 #include "dlfcn.h"
 #include "libgen.h"
 #include "Log.h"
@@ -276,6 +278,13 @@ bool bStarted = false;
     }
 }
 
+static void signnal_handler(int signal)
+{
+    g_Log->Info("RECEIVED SIGSEGV");
+    g_Log->Shutdown();
+    exit(0);
+}
+
 - (void)_beginThread
 {
     //[animationLock lock];
@@ -291,6 +300,7 @@ bool bStarted = false;
            selector:@selector(onSleepNote:)
                name:NSNotificationName(@"com.apple.screensaver.willstop")
              object:nil];
+    std::signal(SIGSEGV, signnal_handler);
 
     dispatch_async(m_frameUpdateQueue, ^{
         dispatch_group_enter(self->m_animationDispatchGroup);
