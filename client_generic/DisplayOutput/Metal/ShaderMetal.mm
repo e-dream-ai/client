@@ -73,6 +73,8 @@ CShaderMetal::CShaderMetal(
         m_SortedUniformRefs.push_back(uniform);
         bufferSize += size;
     }
+    const int kGPUBufferAlignment = 32;
+    bufferSize = ((bufferSize + kGPUBufferAlignment - 1) / kGPUBufferAlignment) * kGPUBufferAlignment;
     m_UniformBuffer.resize(bufferSize);
 }
 
