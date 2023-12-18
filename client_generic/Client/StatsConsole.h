@@ -1,12 +1,14 @@
 #ifndef _STATSCONSOLE_H_
 #define _STATSCONSOLE_H_
 
+#include <iomanip>
+#include <sstream>
+#include <unordered_map>
+
 #include "Console.h"
 #include "Hud.h"
 #include "Rect.h"
 #include "Text.h"
-#include <iomanip>
-#include <sstream>
 
 namespace Hud
 {
@@ -254,7 +256,7 @@ class CStatsConsole : public CConsole
         DisplayOutput::spCBaseText text;
     };
 
-    std::map<std::string, StatText> m_Stats;
+    std::unordered_map<std::string, StatText> m_Stats;
     DisplayOutput::CFontDescription m_Desc;
 
   public:
@@ -277,7 +279,7 @@ class CStatsConsole : public CConsole
 
     virtual ~CStatsConsole()
     {
-        std::map<std::string, StatText>::iterator ii = m_Stats.begin();
+        std::unordered_map<std::string, StatText>::iterator ii = m_Stats.begin();
         while (m_Stats.end() != ii)
         {
             delete ii->second.stat;
@@ -298,7 +300,7 @@ class CStatsConsole : public CConsole
         CHudEntry::Visible(_bState);
         if (!_bState)
         {
-            std::map<std::string, StatText>::iterator i;
+            std::unordered_map<std::string, StatText>::iterator i;
             for (i = m_Stats.begin(); i != m_Stats.end(); ++i)
             {
                 if (i->second.text)
@@ -317,7 +319,7 @@ class CStatsConsole : public CConsole
         fp4 pos = 0;
         fp4 edge = 24 / (fp4)_spRenderer->Display()->Width();
 
-        std::map<std::string, StatText>::iterator i;
+        std::unordered_map<std::string, StatText>::iterator i;
 
         //	Figure out text extent for all strings.
         Base::Math::CRect extent;
