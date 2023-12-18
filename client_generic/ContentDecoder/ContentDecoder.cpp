@@ -178,6 +178,12 @@ int CContentDecoder::DumpError(int _err)
     return _err;
 }
 
+static int64_t FrameToPts(AVStream* pavStream, uint64_t frame)
+{
+    return (int64_t(frame) * pavStream->r_frame_rate.den *  pavStream->time_base.den) /
+    (int64_t(pavStream->r_frame_rate.num) *
+    pavStream->time_base.num);
+}
 /*
  */
 bool CContentDecoder::Open(sOpenVideoInfo* ovi)
@@ -304,18 +310,25 @@ bool CContentDecoder::Open(sOpenVideoInfo* ovi)
             .5));
 
     ovi->m_ReadingTrailingFrames = false;
-    
+
     if (ovi->m_iCurrentFileFrameCount)
     {
-        //int seek = avformat_seek_file(ovi->m_pFormatContext, 0, (int64)ovi->m_iCurrentFileFrameCount, (int64)ovi->m_iCurrentFileFrameCount, (int64)ovi->m_iCurrentFileFrameCount, AVSEEK_FLAG_FRAME);
-        // Calculate the timestamp for the target frame
-         AVRational timeBase = ovi->m_pFormatContext->streams[0]->time_base;
-         int64_t targetTimestamp = av_rescale_q((int64)ovi->m_iCurrentFileFrameCount, {1, AV_TIME_BASE}, timeBase);
-
-        int seek = av_seek_frame(ovi->m_pFormatContext, ovi->m_VideoStreamID, targetTimestamp, AVSEEK_FLAG_BACKWARD);
+        AVRational timeBase = ovi->m_pFormatContext->streams[0]->time_base;
+                 int64_t targetTimestamp = av_rescale_q((int64)ovi->m_iCurrentFileFrameCount, {1, AV_TIME_BASE}, timeBase);
+        int seek = av_seek_frame(ovi->m_pFormatContext, ovi->m_VideoStreamID, targetTimestamp, 0);
+        avcodec_flush_buffers(ovi->m_pVideoCodecContext);
         if (seek < 0)
         {
             g_Log->Error("Error seeking:%i", seek);
+        }
+        AVPacket packet;
+        // Read frames until reaching the desired timestamp
+        while (av_read_frame(ovi->m_pFormatContext, &packet) >= 0) {
+            if (packet.stream_index == ovi->m_VideoStreamID && packet.pts >= targetTimestamp) {
+                // Process the packet or break out of the loop
+                break;
+            }
+            av_packet_unref(&packet);
         }
     }
 
@@ -323,6 +336,7 @@ bool CContentDecoder::Open(sOpenVideoInfo* ovi)
 
     return true;
 }
+
 
 /*
  */
