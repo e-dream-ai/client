@@ -256,7 +256,7 @@ class CStatsConsole : public CConsole
         DisplayOutput::spCBaseText text;
     };
 
-    std::unordered_map<std::string, StatText> m_Stats;
+    std::vector<std::pair<std::string, StatText>> m_Stats;
     DisplayOutput::CFontDescription m_Desc;
 
   public:
@@ -279,7 +279,7 @@ class CStatsConsole : public CConsole
 
     virtual ~CStatsConsole()
     {
-        std::unordered_map<std::string, StatText>::iterator ii = m_Stats.begin();
+        auto ii = m_Stats.begin();
         while (m_Stats.end() != ii)
         {
             delete ii->second.stat;
@@ -290,18 +290,24 @@ class CStatsConsole : public CConsole
 
     void Add(CStat* _pStat)
     {
-        m_Stats[_pStat->m_Name] = {
-            _pStat, g_Player().Renderer()->NewText(m_spFont, "")};
+        m_Stats.emplace_back(_pStat->m_Name, StatText {
+            _pStat, g_Player().Renderer()->NewText(m_spFont, "")});
     }
-    CStat* Get(const std::string& _name) { return m_Stats[_name].stat; }
+
+    CStat* Get(std::string_view _name)
+    {
+        auto it = std::find_if(m_Stats.begin(), m_Stats.end(), [=](auto i) { return i.first == _name; });
+        if (it == m_Stats.end())
+            return nullptr;
+        return it->second.stat;
+    }
 
     virtual void Visible(const bool _bState) override
     {
         CHudEntry::Visible(_bState);
         if (!_bState)
         {
-            std::unordered_map<std::string, StatText>::iterator i;
-            for (i = m_Stats.begin(); i != m_Stats.end(); ++i)
+            for (auto i = m_Stats.begin(); i != m_Stats.end(); ++i)
             {
                 if (i->second.text)
                 {
@@ -319,12 +325,10 @@ class CStatsConsole : public CConsole
         fp4 pos = 0;
         fp4 edge = 24 / (fp4)_spRenderer->Display()->Width();
 
-        std::unordered_map<std::string, StatText>::iterator i;
-
         //	Figure out text extent for all strings.
         Base::Math::CRect extent;
         std::queue<Base::Math::CVector2> sizeq;
-        for (i = m_Stats.begin(); i != m_Stats.end(); ++i)
+        for (auto i = m_Stats.begin(); i != m_Stats.end(); ++i)
         {
             CStat* e = i->second.stat;
             DisplayOutput::spCBaseText& text = i->second.text;
@@ -359,7 +363,7 @@ class CStatsConsole : public CConsole
 
         // align text at bottom
         pos = extent.m_Y0 + edge;
-        for (i = m_Stats.begin(); i != m_Stats.end(); ++i)
+        for (auto i = m_Stats.begin(); i != m_Stats.end(); ++i)
         {
             CStat* e = i->second.stat;
             if (e && e->Visible())

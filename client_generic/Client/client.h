@@ -283,7 +283,9 @@ class CElectricSheep
                 new Hud::CStringStat("version", "\nVersion: ", ver));
         }
         spHelpMessage->Add(
-            new Hud::CStringStat("build", "\nGit hash: ", GIT_VERSION));
+            new Hud::CStringStat("git version", "", GIT_VERSION));
+        spHelpMessage->Add(
+            new Hud::CStringStat("build date", "", BUILD_DATE));
 
         m_SeamlessPlayback =
             g_Settings()->Get("settings.player.SeamlessPlayback", false);
