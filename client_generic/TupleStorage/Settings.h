@@ -1,6 +1,7 @@
 #ifndef _SETTINGS_H_
 #define _SETTINGS_H_
 
+#include <string_view>
 #include <boost/thread.hpp>
 
 #include "Log.h"
@@ -66,7 +67,7 @@ class CSettings : public Base::CSingleton<CSettings>
     };
 
     //	Init.
-    bool Init(const std::string& _sRoot, const std::string& _workingDir,
+    bool Init(std::string_view _sRoot, std::string_view _workingDir,
               bool _bReadOnly = false)
     {
         m_pStorage = new TupleStorage::JSONStorage();
@@ -74,28 +75,35 @@ class CSettings : public Base::CSingleton<CSettings>
     }
 
     //	Set 32bit integer, double precision floationg point, and string.
-    void Set(const std::string& _url, const bool _value)
+    void Set(std::string_view _url, const bool _value)
     {
         if (!m_pStorage)
             return;
         boost::mutex::scoped_lock locker(m_Lock);
         m_pStorage->Set(_url, _value);
     }
-    void Set(const std::string& _url, const int32 _value)
+    void Set(std::string_view _url, const int32 _value)
     {
         if (!m_pStorage)
             return;
         boost::mutex::scoped_lock locker(m_Lock);
         m_pStorage->Set(_url, _value);
     }
-    void Set(const std::string& _url, const fp8 _value)
+    void Set(std::string_view _url, const fp8 _value)
     {
         if (!m_pStorage)
             return;
         boost::mutex::scoped_lock locker(m_Lock);
         m_pStorage->Set(_url, _value);
     }
-    void Set(const std::string& _url, const std::string& _value)
+    void Set(std::string_view _url, const uint64_t _value)
+    {
+        if (!m_pStorage)
+            return;
+        boost::mutex::scoped_lock locker(m_Lock);
+        m_pStorage->Set(_url, _value);
+    }
+    void Set(std::string_view _url, std::string_view _value)
     {
         if (!m_pStorage)
             return;
@@ -104,7 +112,7 @@ class CSettings : public Base::CSingleton<CSettings>
     }
 
     //	Return boolean.
-    bool Get(const std::string& _url, const bool _default = false)
+    bool Get(std::string_view _url, const bool _default = false)
     {
         boost::mutex::scoped_lock locker(m_Lock);
 
@@ -119,7 +127,7 @@ class CSettings : public Base::CSingleton<CSettings>
     }
 
     //	Return 32bit integer.
-    int32 Get(const std::string& _url, const int32 _default = 0)
+    int32 Get(std::string_view _url, const int32 _default = 0)
     {
         boost::mutex::scoped_lock locker(m_Lock);
 
@@ -134,7 +142,7 @@ class CSettings : public Base::CSingleton<CSettings>
     }
 
     //	Return double precision floating point.
-    fp8 Get(const std::string& _url, const fp8 _default = 0.0)
+    fp8 Get(std::string_view _url, const fp8 _default = 0.0)
     {
         boost::mutex::scoped_lock locker(m_Lock);
 
@@ -148,17 +156,32 @@ class CSettings : public Base::CSingleton<CSettings>
         return ret;
     }
 
-    //	Return string.
-    std::string Get(const std::string& _url, const std::string _default)
+    //    Return 64bit unsigned integer.
+    uint64 Get(std::string_view _url, const uint64 _default = 0)
     {
         boost::mutex::scoped_lock locker(m_Lock);
 
-        std::string ret = _default;
+        uint64 ret = _default;
         if (m_pStorage && !m_pStorage->Get(_url, ret))
         {
             m_pStorage->Set(_url, _default);
             m_pStorage->Commit();
             return _default;
+        }
+        return ret;
+    }
+
+    //	Return string.
+    std::string Get(std::string_view _url, const std::string_view _default = nullptr)
+    {
+        boost::mutex::scoped_lock locker(m_Lock);
+
+        std::string ret;
+        if (m_pStorage && !m_pStorage->Get(_url, ret))
+        {
+            m_pStorage->Set(_url, _default);
+            m_pStorage->Commit();
+            return std::string(_default);
         }
         return ret;
     }
