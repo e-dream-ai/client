@@ -128,7 +128,7 @@ struct sOpenVideoInfo
     int32 m_VideoStreamID;
     uint32 m_totalFrameCount;
     time_t m_CurrentFileatime;
-    uint32 m_iCurrentFileFrameCount;
+    uint64 m_iCurrentFileFrameCount;
     uint32 m_Generation;
     uint32 m_SheepID;
     uint32 m_First;

@@ -189,7 +189,6 @@ bool CContentDecoder::Open(sOpenVideoInfo* ovi)
 
     std::string _filename = sys_name.string();
 
-    ovi->m_iCurrentFileFrameCount = 0;
     ovi->m_totalFrameCount = 0;
     struct stat fs;
     if (!::stat(_filename.c_str(), &fs))
@@ -282,14 +281,8 @@ bool CContentDecoder::Open(sOpenVideoInfo* ovi)
     }
 
     // Initialize the codec context
-    DumpError(
-        avcodec_open2(ovi->m_pVideoCodecContext, ovi->m_pVideoCodec, NULL));
-
-    // m_pVideoCodecContext->workaround_bugs = 1;
-    // m_pFormatContext->flags |= AVFMT_FLAG_GENPTS;		//	Generate
-    // pts if missing even if it requires parsing future frames.
     ovi->m_pFormatContext->flags |= AVFMT_FLAG_IGNIDX; //	Ignore index.
-    // m_pFormatContext->flags |= AVFMT_FLAG_NONBLOCK;		//	Do not
+    ovi->m_pFormatContext->flags |= AVFMT_FLAG_NONBLOCK;		//	Do not
     // block when reading packets from input.
 
     if (DumpError(avcodec_open2(ovi->m_pVideoCodecContext, ovi->m_pVideoCodec,
@@ -298,7 +291,7 @@ bool CContentDecoder::Open(sOpenVideoInfo* ovi)
         g_Log->Error("avcodec_open failed for %s", _filename.c_str());
         return false;
     }
-
+    
     ovi->m_pFrame = av_frame_alloc();
 
     if (ovi->m_pVideoStream->nb_frames > 0)
@@ -311,6 +304,20 @@ bool CContentDecoder::Open(sOpenVideoInfo* ovi)
             .5));
 
     ovi->m_ReadingTrailingFrames = false;
+    
+    if (ovi->m_iCurrentFileFrameCount)
+    {
+        //int seek = avformat_seek_file(ovi->m_pFormatContext, 0, (int64)ovi->m_iCurrentFileFrameCount, (int64)ovi->m_iCurrentFileFrameCount, (int64)ovi->m_iCurrentFileFrameCount, AVSEEK_FLAG_FRAME);
+        // Calculate the timestamp for the target frame
+         AVRational timeBase = ovi->m_pFormatContext->streams[0]->time_base;
+         int64_t targetTimestamp = av_rescale_q((int64)ovi->m_iCurrentFileFrameCount, {1, AV_TIME_BASE}, timeBase);
+
+        int seek = av_seek_frame(ovi->m_pFormatContext, ovi->m_VideoStreamID, targetTimestamp, AVSEEK_FLAG_BACKWARD);
+        if (seek < 0)
+        {
+            g_Log->Error("Error seeking:%i", seek);
+        }
+    }
 
     g_Log->Info("Open done()");
 
@@ -365,9 +372,6 @@ sOpenVideoInfo* CContentDecoder::GetNextSheepInfo()
     {
         if (name.empty())
             break;
-
-        uint32 Generation, ID, First, Last;
-        std::string fname;
 
         sheepfound = true;
 
@@ -804,8 +808,24 @@ void CContentDecoder::ReadPackets()
 
         g_Log->Info("Packet thread started...");
 
-        if (!NextSheepForPlaying())
-            return;
+        bool videoOpened = false;
+        std::string lastPlayedFile = g_Settings()->Get("settings.content.last_played_file", std::string{});
+        if (lastPlayedFile != "")
+        {
+            uint64_t seekFrame;
+            seekFrame = g_Settings()->Get("settings.content.last_played_frame", uint64_t{});
+            
+            m_MainVideoInfo = new sOpenVideoInfo;
+            m_MainVideoInfo->m_Path.assign(lastPlayedFile);
+            m_MainVideoInfo->m_iCurrentFileFrameCount = seekFrame;
+            videoOpened = Open(m_MainVideoInfo);
+        }
+
+        if (!videoOpened)
+        {
+            if (!NextSheepForPlaying())
+                return;
+        }
 
         while (true)
         {
@@ -989,6 +1009,8 @@ bool CContentDecoder::Start()
 void CContentDecoder::Stop()
 {
     m_bStop = true;
+    g_Settings()->Set("settings.content.last_played_file", m_MainVideoInfo->m_Path);
+    g_Settings()->Set("settings.content.last_played_frame", m_MainVideoInfo->m_iCurrentFileFrameCount);
 
     if (m_pDecoderThread)
     {
