@@ -277,15 +277,10 @@ class CElectricSheep
 
         std::string ver = GetVersion();
 
-        if (!ver.empty())
-        {
-            spHelpMessage->Add(
-                new Hud::CStringStat("version", "\nVersion: ", ver));
-        }
         spHelpMessage->Add(
-            new Hud::CStringStat("git version", "", PlatformUtils::GetGitRevision()));
-        spHelpMessage->Add(
-            new Hud::CStringStat("build date", "", PlatformUtils::GetBuildDate()));
+            new Hud::CStringStat("version", "\nVersion: ",
+                                 ver + " " + PlatformUtils::GetGitRevision() +
+                                     " " + PlatformUtils::GetBuildDate()));
 
         m_SeamlessPlayback =
             g_Settings()->Get("settings.player.SeamlessPlayback", false);
@@ -422,13 +417,12 @@ class CElectricSheep
             g_Player().Display()->Width(), g_Player().Display()->Height(),
             true);
 
-        
         //	For testing...
         ContentDownloader::Shepherd::addMessageText(
             "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do "
             "eiusmod tempor incididunt ut labore et dolore magna aliqua",
             180);
-         
+
         bool internetReachable = PlatformUtils::IsInternetReachable();
         if (!internetReachable)
         {
@@ -439,7 +433,8 @@ class CElectricSheep
         g_Log->Info("Starting downloader...");
 
         g_ContentDownloader().Startup(m_DownloadSaveMutex, false,
-                                      m_MultipleInstancesMode || !internetReachable);
+                                      m_MultipleInstancesMode ||
+                                          !internetReachable);
 
         // call static method to fill sheep counts
         ContentDownloader::Shepherd::GetFlockSizeMBsRecount(0);

@@ -172,7 +172,8 @@ class CSettings : public Base::CSingleton<CSettings>
     }
 
     //	Return string.
-    std::string Get(std::string_view _url, const std::string_view _default = nullptr)
+    std::string Get(std::string_view _url,
+                    const std::string_view _default = nullptr)
     {
         boost::mutex::scoped_lock locker(m_Lock);
 

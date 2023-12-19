@@ -10,6 +10,9 @@
 
 #import "ESScreensaverView.h"
 
+#include <string_view>
+
+#include "Log.h"
 #include "PlatformUtils.h"
 
 bool PlatformUtils::IsInternetReachable()
@@ -38,25 +41,40 @@ bool PlatformUtils::IsInternetReachable()
     return NO;
 }
 
-static NSBundle* GetBundle()
+static std::string GetDictValue(std::string_view key)
 {
-    return [NSBundle bundleForClass:ESScreensaverView.class];
-}
-
-std::string PlatformUtils::GetBuildDate()
-{
-    NSString* str = [GetBundle() objectForInfoDictionaryKey:@"BUILD_DATE"];
+    static NSDictionary* dict = nil;
+    if (dict == nil)
+    {
+        NSBundle* bundle = [NSBundle bundleForClass:ESScreensaverView.class];
+        NSString* path = [bundle pathForResource:@"BuildData" ofType:@"json"];
+        NSData* data = [NSData dataWithContentsOfFile:path];
+        NSError* error;
+        dict = [NSJSONSerialization JSONObjectWithData:data
+                                               options:0
+                                                 error:&error];
+        if (error)
+        {
+            g_Log->Error("Error deserializing BuildData.json: %s",
+                         error.localizedDescription.UTF8String);
+            return "";
+        }
+    }
+    NSString* str =
+        [dict objectForKey:[NSString stringWithUTF8String:key.data()]];
+    if (!str)
+        return "";
     return str.UTF8String;
 }
 
-std::string PlatformUtils::GetGitRevision()
-{
-    NSString* str = [GetBundle() objectForInfoDictionaryKey:@"REVISION"];
-    return str.UTF8String;
-}
+std::string PlatformUtils::GetBuildDate() { return GetDictValue("BUILD_DATE"); }
+
+std::string PlatformUtils::GetGitRevision() { return GetDictValue("REVISION"); }
 
 std::string PlatformUtils::GetAppVersion()
 {
-    NSString* str = [GetBundle() objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
+    NSBundle* bundle = [NSBundle bundleForClass:ESScreensaverView.class];
+    NSString* str =
+        [bundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
     return str.UTF8String;
 }

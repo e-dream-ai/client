@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1243576C2B31FC1B00CCD62A /* BuildData.json in Resources */ = {isa = PBXBuildFile; fileRef = 1243576B2B31FC1B00CCD62A /* BuildData.json */; };
+		1243576D2B31FC1B00CCD62A /* BuildData.json in Resources */ = {isa = PBXBuildFile; fileRef = 1243576B2B31FC1B00CCD62A /* BuildData.json */; };
 		1270D0EF2B28975500E1DCE3 /* PlatformUtils_Mac.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1270D0EE2B28975400E1DCE3 /* PlatformUtils_Mac.mm */; };
 		1270D0F02B28975500E1DCE3 /* PlatformUtils_Mac.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1270D0EE2B28975400E1DCE3 /* PlatformUtils_Mac.mm */; };
 		12A00CD12B0D22A4001C0792 /* Trebuchet MS.sddf in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD02B0D22A4001C0792 /* Trebuchet MS.sddf */; };
@@ -297,6 +299,7 @@
 
 /* Begin PBXFileReference section */
 		09AB6884FE841BABC02AAC07 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
+		1243576B2B31FC1B00CCD62A /* BuildData.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = BuildData.json; sourceTree = "<group>"; };
 		12478A672B03B194006A8669 /* Networking.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Networking.h; sourceTree = "<group>"; };
 		12478A682B03B1A4006A8669 /* DisplayOutput.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = DisplayOutput.h; path = ../DisplayOutput/DisplayOutput.h; sourceTree = "<group>"; };
 		12478A692B03B1AB006A8669 /* Image.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Image.h; path = ../DisplayOutput/Image.h; sourceTree = "<group>"; };
@@ -912,6 +915,7 @@
 				2160FAAF0F30F43600B2C27A /* ElectricSheep-Info.plist */,
 				218878D10EC6CD7E001ABD2E /* ScreenSaver-Info.plist */,
 				21AAA09E0F70400D00AC23A8 /* ElectricSheep.nib */,
+				1243576B2B31FC1B00CCD62A /* BuildData.json */,
 			);
 			name = Resources;
 			sourceTree = "<group>";
@@ -1062,6 +1066,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1243576C2B31FC1B00CCD62A /* BuildData.json in Resources */,
 				12A00CD52B0D31E6001C0792 /* Lato.sddf in Resources */,
 				21AAA0BD0F7040B500AC23A8 /* ElectricSheep.nib in Resources */,
 				12A00CD92B0FCA39001C0792 /* e-dream.icns in Resources */,
@@ -1088,6 +1093,7 @@
 				21ADBB241305D380000A9F20 /* green.tif in Resources */,
 				4628A55F2B0F84EF001C3078 /* Lato-Regular.ttf in Resources */,
 				21ADBB251305D380000A9F20 /* red.tif in Resources */,
+				1243576D2B31FC1B00CCD62A /* BuildData.json in Resources */,
 				21ADBB261305D380000A9F20 /* yellow.tif in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1110,7 +1116,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Get the latest Git tag\nlatest_tag=$(git describe --tags --abbrev=0)\nGIT=`xcrun -find git`\nGIT_REV=`${GIT} rev-parse --short HEAD`\nBUILD_DATE=`date -u`\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :REVISION ${GIT_REV}\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :BUILD_DATE ${BUILD_DATE}\" ${INFOPLIST_FILE}\n";
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Get the latest Git tag\nlatest_tag=$(git describe --tags --abbrev=0)\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\nsh generate_builddata.sh\n";
 		};
 		12B37C882B308A3900E86D2E /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -1144,7 +1150,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Get the latest Git tag\nlatest_tag=$(git describe --tags --abbrev=0)\nGIT=`xcrun -find git`\nGIT_REV=`${GIT} rev-parse --short HEAD`\nBUILD_DATE=`date -u`\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :REVISION ${GIT_REV}\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :BUILD_DATE ${BUILD_DATE}\" ${INFOPLIST_FILE}\n";
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Get the latest Git tag\nlatest_tag=$(git describe --tags --abbrev=0)\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\nsh generate_builddata.sh\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

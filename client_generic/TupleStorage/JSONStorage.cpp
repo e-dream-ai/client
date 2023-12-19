@@ -54,7 +54,8 @@ bool JSONStorage::Finalise() { return false; }
 
 template <typename T>
 bool JSONStorage::GetOrSetValue(std::string_view _entry, T& _val,
-                                std::function<T(json::value*)> callback, bool set)
+                                std::function<T(json::value*)> callback,
+                                bool set)
 {
     std::istringstream f(_entry.data());
     std::string token;
@@ -111,59 +112,72 @@ bool JSONStorage::GetOrSetValue(std::string_view _entry, T& _val,
 }
 
 template bool JSONStorage::GetOrSetValue(std::string_view _entry, bool&,
-                                         std::function<bool(json::value*)>, bool);
+                                         std::function<bool(json::value*)>,
+                                         bool);
 template bool JSONStorage::GetOrSetValue(std::string_view _entry, int32&,
-                                         std::function<int32(json::value*)>, bool);
+                                         std::function<int32(json::value*)>,
+                                         bool);
 template bool JSONStorage::GetOrSetValue(std::string_view _entry, fp8&,
-                                         std::function<fp8(json::value*)>, bool);
+                                         std::function<fp8(json::value*)>,
+                                         bool);
 template bool JSONStorage::GetOrSetValue(std::string_view _entry, uint64&,
-                                         std::function<uint64(json::value*)>, bool);
+                                         std::function<uint64(json::value*)>,
+                                         bool);
 template bool
 JSONStorage::GetOrSetValue(std::string_view _entry, std::string&,
                            std::function<std::string(json::value*)>, bool);
 
 bool JSONStorage::Set(std::string_view _entry, bool _val)
 {
-    GetOrSetValue<bool>(_entry, _val,
-                        [=](json::value* jsonVal) -> bool
-                        { return jsonVal->as_bool() = _val; }, true);
+    GetOrSetValue<bool>(
+        _entry, _val,
+        [=](json::value* jsonVal) -> bool { return jsonVal->as_bool() = _val; },
+        true);
     Dirty(true);
     return true;
 }
 
 bool JSONStorage::Set(std::string_view _entry, int32 _val)
 {
-    GetOrSetValue<int32>(_entry, _val,
-                         [=](json::value* jsonVal) -> int32
-                         { return jsonVal->as_int64() = _val; }, true);
+    GetOrSetValue<int32>(
+        _entry, _val,
+        [=](json::value* jsonVal) -> int32
+        { return jsonVal->as_int64() = _val; },
+        true);
     Dirty(true);
     return true;
 }
 bool JSONStorage::Set(std::string_view _entry, fp8 _val)
 {
-    GetOrSetValue<fp8>(_entry, _val,
-                       [=](json::value* jsonVal) -> fp8
-                       { return jsonVal->as_double() = _val; }, true);
+    GetOrSetValue<fp8>(
+        _entry, _val,
+        [=](json::value* jsonVal) -> fp8
+        { return jsonVal->as_double() = _val; },
+        true);
     Dirty(true);
     return true;
 }
 bool JSONStorage::Set(std::string_view _entry, uint64 _val)
 {
-    GetOrSetValue<uint64>(_entry, _val,
-                         [=](json::value* jsonVal) -> uint64
-                          { return jsonVal->as_uint64() = _val; }, true);
+    GetOrSetValue<uint64>(
+        _entry, _val,
+        [=](json::value* jsonVal) -> uint64
+        { return jsonVal->as_uint64() = _val; },
+        true);
     Dirty(true);
     return true;
 }
 bool JSONStorage::Set(std::string_view _entry, std::string_view _str)
 {
     std::string str;
-    GetOrSetValue<std::string>(_entry, str,
-                               [=](json::value* jsonVal) -> std::string
-                               {
-                                   jsonVal->as_string() = _str;
-                                   return "";
-    }, true);
+    GetOrSetValue<std::string>(
+        _entry, str,
+        [=](json::value* jsonVal) -> std::string
+        {
+            jsonVal->as_string() = _str;
+            return "";
+        },
+        true);
     Dirty(true);
     return true;
 }
@@ -171,33 +185,40 @@ bool JSONStorage::Set(std::string_view _entry, std::string_view _str)
 //    Get values.
 bool JSONStorage::Get(std::string_view _entry, bool& _ret)
 {
-    return GetOrSetValue<bool>(_entry, _ret,
-                               [=](json::value* jsonVal) -> bool
-                               { return jsonVal->as_bool(); }, false);
+    return GetOrSetValue<bool>(
+        _entry, _ret,
+        [=](json::value* jsonVal) -> bool { return jsonVal->as_bool(); },
+        false);
 }
 bool JSONStorage::Get(std::string_view _entry, int32& _ret)
 {
-    return GetOrSetValue<int32>(_entry, _ret,
-                                [=](json::value* jsonVal) -> int32
-                                { return (int32)jsonVal->as_int64(); }, false);
+    return GetOrSetValue<int32>(
+        _entry, _ret,
+        [=](json::value* jsonVal) -> int32
+        { return (int32)jsonVal->as_int64(); },
+        false);
 }
 bool JSONStorage::Get(std::string_view _entry, fp8& _ret)
 {
-    return GetOrSetValue<fp8>(_entry, _ret,
-                              [=](json::value* jsonVal) -> fp8
-                              { return jsonVal->as_double(); }, false);
+    return GetOrSetValue<fp8>(
+        _entry, _ret,
+        [=](json::value* jsonVal) -> fp8 { return jsonVal->as_double(); },
+        false);
 }
 bool JSONStorage::Get(std::string_view _entry, uint64& _ret)
 {
-    return GetOrSetValue<uint64>(_entry, _ret,
-                                [=](json::value* jsonVal) -> uint64
-                                 { return jsonVal->as_uint64(); }, false);
+    return GetOrSetValue<uint64>(
+        _entry, _ret,
+        [=](json::value* jsonVal) -> uint64 { return jsonVal->as_uint64(); },
+        false);
 }
 bool JSONStorage::Get(std::string_view _entry, std::string& _ret)
 {
-    return GetOrSetValue<std::string>(_entry, _ret,
-                                      [=](json::value* jsonVal) -> std::string
-                                      { return jsonVal->as_string().data(); }, false);
+    return GetOrSetValue<std::string>(
+        _entry, _ret,
+        [=](json::value* jsonVal) -> std::string
+        { return jsonVal->as_string().data(); },
+        false);
 }
 
 //    Remove node from storage.

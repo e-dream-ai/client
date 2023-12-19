@@ -180,9 +180,9 @@ int CContentDecoder::DumpError(int _err)
 
 static int64_t FrameToPts(AVStream* pavStream, uint64_t frame)
 {
-    return (int64_t(frame) * pavStream->r_frame_rate.den *  pavStream->time_base.den) /
-    (int64_t(pavStream->r_frame_rate.num) *
-    pavStream->time_base.num);
+    return (int64_t(frame) * pavStream->r_frame_rate.den *
+            pavStream->time_base.den) /
+           (int64_t(pavStream->r_frame_rate.num) * pavStream->time_base.num);
 }
 /*
  */
@@ -287,8 +287,8 @@ bool CContentDecoder::Open(sOpenVideoInfo* ovi)
     }
 
     // Initialize the codec context
-    ovi->m_pFormatContext->flags |= AVFMT_FLAG_IGNIDX; //	Ignore index.
-    ovi->m_pFormatContext->flags |= AVFMT_FLAG_NONBLOCK;		//	Do not
+    ovi->m_pFormatContext->flags |= AVFMT_FLAG_IGNIDX;   //	Ignore index.
+    ovi->m_pFormatContext->flags |= AVFMT_FLAG_NONBLOCK; //	Do not
     // block when reading packets from input.
 
     if (DumpError(avcodec_open2(ovi->m_pVideoCodecContext, ovi->m_pVideoCodec,
@@ -297,7 +297,7 @@ bool CContentDecoder::Open(sOpenVideoInfo* ovi)
         g_Log->Error("avcodec_open failed for %s", _filename.c_str());
         return false;
     }
-    
+
     ovi->m_pFrame = av_frame_alloc();
 
     if (ovi->m_pVideoStream->nb_frames > 0)
@@ -314,8 +314,10 @@ bool CContentDecoder::Open(sOpenVideoInfo* ovi)
     if (ovi->m_iCurrentFileFrameCount)
     {
         AVRational timeBase = ovi->m_pFormatContext->streams[0]->time_base;
-                 int64_t targetTimestamp = av_rescale_q((int64)ovi->m_iCurrentFileFrameCount, {1, AV_TIME_BASE}, timeBase);
-        int seek = av_seek_frame(ovi->m_pFormatContext, ovi->m_VideoStreamID, targetTimestamp, 0);
+        int64_t targetTimestamp = av_rescale_q(
+            (int64)ovi->m_iCurrentFileFrameCount, {1, AV_TIME_BASE}, timeBase);
+        int seek = av_seek_frame(ovi->m_pFormatContext, ovi->m_VideoStreamID,
+                                 targetTimestamp, 0);
         avcodec_flush_buffers(ovi->m_pVideoCodecContext);
         if (seek < 0)
         {
@@ -323,8 +325,11 @@ bool CContentDecoder::Open(sOpenVideoInfo* ovi)
         }
         AVPacket packet;
         // Read frames until reaching the desired timestamp
-        while (av_read_frame(ovi->m_pFormatContext, &packet) >= 0) {
-            if (packet.stream_index == ovi->m_VideoStreamID && packet.pts >= targetTimestamp) {
+        while (av_read_frame(ovi->m_pFormatContext, &packet) >= 0)
+        {
+            if (packet.stream_index == ovi->m_VideoStreamID &&
+                packet.pts >= targetTimestamp)
+            {
                 // Process the packet or break out of the loop
                 break;
             }
@@ -337,7 +342,6 @@ bool CContentDecoder::Open(sOpenVideoInfo* ovi)
 
     return true;
 }
-
 
 /*
  */
@@ -824,12 +828,14 @@ void CContentDecoder::ReadPackets()
         g_Log->Info("Packet thread started...");
 
         bool videoOpened = false;
-        std::string lastPlayedFile = g_Settings()->Get("settings.content.last_played_file", std::string{});
+        std::string lastPlayedFile = g_Settings()->Get(
+            "settings.content.last_played_file", std::string{});
         if (lastPlayedFile != "")
         {
             uint64_t seekFrame;
-            seekFrame = g_Settings()->Get("settings.content.last_played_frame", uint64_t{});
-            
+            seekFrame = g_Settings()->Get("settings.content.last_played_frame",
+                                          uint64_t{});
+
             m_MainVideoInfo = new sOpenVideoInfo;
             m_MainVideoInfo->m_Path.assign(lastPlayedFile);
             m_MainVideoInfo->m_iCurrentFileFrameCount = seekFrame;
@@ -1024,8 +1030,10 @@ bool CContentDecoder::Start()
 void CContentDecoder::Stop()
 {
     m_bStop = true;
-    g_Settings()->Set("settings.content.last_played_file", m_MainVideoInfo->m_Path);
-    g_Settings()->Set("settings.content.last_played_frame", m_MainVideoInfo->m_iCurrentFileFrameCount);
+    g_Settings()->Set("settings.content.last_played_file",
+                      m_MainVideoInfo->m_Path);
+    g_Settings()->Set("settings.content.last_played_frame",
+                      m_MainVideoInfo->m_iCurrentFileFrameCount);
 
     if (m_pDecoderThread)
     {

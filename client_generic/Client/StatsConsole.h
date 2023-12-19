@@ -290,13 +290,15 @@ class CStatsConsole : public CConsole
 
     void Add(CStat* _pStat)
     {
-        m_Stats.emplace_back(_pStat->m_Name, StatText {
-            _pStat, g_Player().Renderer()->NewText(m_spFont, "")});
+        m_Stats.emplace_back(
+            _pStat->m_Name,
+            StatText{_pStat, g_Player().Renderer()->NewText(m_spFont, "")});
     }
 
     CStat* Get(std::string_view _name)
     {
-        auto it = std::find_if(m_Stats.begin(), m_Stats.end(), [=](auto i) { return i.first == _name; });
+        auto it = std::find_if(m_Stats.begin(), m_Stats.end(),
+                               [=](auto i) { return i.first == _name; });
         if (it == m_Stats.end())
             return nullptr;
         return it->second.stat;

@@ -24,7 +24,8 @@ class JSONStorage : public IStorageInterface
     bool m_bReadOnly;
     template <typename T>
     bool GetOrSetValue(std::string_view _entry, T& _value,
-                       std::function<T(boost::json::value*)> callback, bool set);
+                       std::function<T(boost::json::value*)> callback,
+                       bool set);
 
   public:
     virtual bool Initialise(std::string_view _sRoot,
