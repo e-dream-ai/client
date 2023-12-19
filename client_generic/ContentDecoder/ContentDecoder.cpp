@@ -330,6 +330,7 @@ bool CContentDecoder::Open(sOpenVideoInfo* ovi)
             }
             av_packet_unref(&packet);
         }
+        m_NoSheeps = false;
     }
 
     g_Log->Info("Open done()");
