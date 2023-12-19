@@ -35,7 +35,7 @@ CTextMetal::CTextMetal(spCFontMetal _font, MTKView* _view,
 {
 #if USE_SYSTEM_UI
     __block spCFontMetal font = _font;
-    __block MTKView* view = _view;
+    __weak MTKView* view = _view;
     __block CATextLayer* __strong& resultTextLayer = m_TextLayer;
     ExecuteOnMainThread(^{
         CATextLayer* textLayer = [[CATextLayer alloc] init];
@@ -70,23 +70,12 @@ CTextMetal::CTextMetal(spCFontMetal _font, MTKView* _view,
 CTextMetal::~CTextMetal()
 {
 #if USE_SYSTEM_UI
-    __block CATextLayer* textLayer =
-        CFBridgingRelease((__bridge CFTypeRef)m_TextLayer);
+    __weak CATextLayer* textLayer = m_TextLayer;
     ExecuteOnMainThread(^{
         [textLayer removeFromSuperlayer];
+        CFBridgingRelease((__bridge CFTypeRef)textLayer);
     });
 #endif
-}
-
-static void PrintLayers(CALayer* layer)
-{
-    NSLog(@"LAYER: %@", layer.className);
-    NSLog(@"[");
-    for (CALayer* l in layer.sublayers)
-    {
-        PrintLayers(l);
-    }
-    NSLog(@"]");
 }
 
 void CTextMetal::SetText(const std::string& _text)
@@ -96,7 +85,7 @@ void CTextMetal::SetText(const std::string& _text)
         m_Text = _text;
 #if USE_SYSTEM_UI
         __block NSString* str = @(_text.c_str());
-        __block CATextLayer* textLayer = m_TextLayer;
+        __weak CATextLayer* textLayer = m_TextLayer;
         ExecuteOnMainThread(^{
             if (g_Player().Stopped())
                 return;
@@ -126,7 +115,7 @@ void CTextMetal::SetRect(const Base::Math::CRect& _rect)
 #if USE_SYSTEM_UI
     __block Base::Math::CRect rect = _rect;
     __block const Base::Math::CVector2& extents = m_Extents;
-    __block CATextLayer* textLayer = m_TextLayer;
+    __weak CATextLayer* textLayer = m_TextLayer;
     ExecuteOnMainThread(^{
         if (g_Player().Stopped())
             return;
@@ -145,7 +134,7 @@ Base::Math::CVector2 CTextMetal::GetExtent()
 {
 #if USE_SYSTEM_UI
     __block Base::Math::CVector2& extents = m_Extents;
-    __block CATextLayer* textLayer = m_TextLayer;
+    __weak CATextLayer* textLayer = m_TextLayer;
     ExecuteOnMainThread(^{
         if (g_Player().Stopped())
             return;
@@ -173,7 +162,7 @@ void CTextMetal::SetEnabled(bool _enabled)
 #if USE_SYSTEM_UI
         // if (m_Extents.m_X == 0.f)
         // return;
-        __block CATextLayer* textLayer = m_TextLayer;
+        __weak CATextLayer* textLayer = m_TextLayer;
         ExecuteOnMainThread(^{
             if (g_Player().Stopped())
                 return;
