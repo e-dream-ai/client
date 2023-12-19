@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 46;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -363,7 +363,6 @@
 		12A00CD42B0D31E6001C0792 /* Lato.sddf */ = {isa = PBXFileReference; lastKnownFileType = file.bplist; path = Lato.sddf; sourceTree = "<group>"; };
 		12A00CD82B0FCA39001C0792 /* e-dream.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = "e-dream.icns"; sourceTree = SOURCE_ROOT; };
 		12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "e-dream-attr.png"; sourceTree = "<group>"; };
-		12B37C852B307C5200E86D2E /* gitversion.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = gitversion.h; sourceTree = "<group>"; };
 		21006FBD1017BC2C004A6511 /* Credits.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = Credits.html; sourceTree = SOURCE_ROOT; };
 		21008B760EB7D69900E64796 /* Console.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Console.h; path = ../Client/Console.h; sourceTree = SOURCE_ROOT; };
 		210335030F549BEF00A83F17 /* AlignedBuffer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AlignedBuffer.cpp; path = ../Common/AlignedBuffer.cpp; sourceTree = SOURCE_ROOT; };
@@ -775,7 +774,6 @@
 				12478A872B03B5F9006A8669 /* Voting.h */,
 				467B6FC72AE6CFFB001C80CB /* EDreamClient.h */,
 				467B6FC82AE6D031001C80CB /* EDreamClient.cpp */,
-				12B37C852B307C5200E86D2E /* gitversion.h */,
 				12478A772B03B2D0006A8669 /* client.h */,
 				21DD8C6F0EA9BA5F00BB9EC7 /* Splash.h */,
 				461614182AEBEA57008AC64A /* DreamPlaylist.h */,
@@ -984,8 +982,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 2160FAB20F30F43800B2C27A /* Build configuration list for PBXNativeTarget "ElectricSheepTestApp" */;
 			buildPhases = (
-				12B37C862B307D5B00E86D2E /* ShellScript */,
-				12B37C872B30894800E86D2E /* ShellScript */,
+				1243576A2B31E89000CCD62A /* ShellScript */,
 				21EE636610139D86000CE53E /* Resources */,
 				2160FAAA0F30F43600B2C27A /* Sources */,
 				2160FAAB0F30F43600B2C27A /* Frameworks */,
@@ -1098,29 +1095,8 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		12B37C862B307D5B00E86D2E /* ShellScript */ = {
+		1243576A2B31E89000CCD62A /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"",
-			);
-			inputPaths = (
-			);
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/bash;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its \n${PROJECT_DIR}/generate_gitversion.sh\n";
-		};
-		12B37C872B30894800E86D2E /* ShellScript */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
@@ -1133,12 +1109,11 @@
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/bash;
-			shellScript = "# Get the latest Git tag\nlatest_tag=$(git describe --tags --abbrev=0)\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n";
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Get the latest Git tag\nlatest_tag=$(git describe --tags --abbrev=0)\nGIT=`xcrun -find git`\nGIT_REV=`${GIT} rev-parse --short HEAD`\nBUILD_DATE=`date -u`\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :REVISION ${GIT_REV}\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :BUILD_DATE ${BUILD_DATE}\" ${INFOPLIST_FILE}\n";
 		};
 		12B37C882B308A3900E86D2E /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
@@ -1156,7 +1131,6 @@
 		};
 		12B37C892B308A6300E86D2E /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
@@ -1169,8 +1143,8 @@
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/bash;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its \n${PROJECT_DIR}/generate_gitversion.sh\n";
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Get the latest Git tag\nlatest_tag=$(git describe --tags --abbrev=0)\nGIT=`xcrun -find git`\nGIT_REV=`${GIT} rev-parse --short HEAD`\nBUILD_DATE=`date -u`\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :REVISION ${GIT_REV}\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :BUILD_DATE ${BUILD_DATE}\" ${INFOPLIST_FILE}\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -1331,6 +1305,7 @@
 			buildSettings = {
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
@@ -1407,6 +1382,7 @@
 			buildSettings = {
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
@@ -1483,9 +1459,8 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
 				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_ENABLE_OBJC_ARC = YES;
 				CODE_SIGN_IDENTITY = "";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
@@ -1534,7 +1509,6 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
 				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_ENABLE_OBJC_ARC = YES;
 				CODE_SIGN_ENTITLEMENTS = ElectricSheepTestApp.entitlements;
 				CODE_SIGN_IDENTITY = "";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "";
@@ -1588,9 +1562,8 @@
 				BUILD_VARIANTS = normal;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
 				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_ENABLE_OBJC_ARC = YES;
 				CODE_SIGN_IDENTITY = "";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = build/Debug;
@@ -1644,7 +1617,6 @@
 				BUILD_VARIANTS = normal;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
 				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_ENABLE_OBJC_ARC = YES;
 				CODE_SIGN_IDENTITY = "";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Manual;

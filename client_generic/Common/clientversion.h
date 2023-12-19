@@ -1,8 +1,6 @@
 #ifndef CLIENTVERSION_H_INCLUDED
 #define CLIENTVERSION_H_INCLUDED
 
-#include "gitversion.h"
-
 #define VER_MAJOR "0"
 #define VER_MINOR "1"
 #define VER_BUILD "0"

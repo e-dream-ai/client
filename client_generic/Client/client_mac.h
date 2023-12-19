@@ -261,8 +261,6 @@ class CElectricSheep_Mac : public CElectricSheep
         return true;
     }
 
-    virtual std::string GetVersion() { return m_verStr; }
-
     virtual int GetACLineStatus()
     {
         CFTypeRef blob = IOPSCopyPowerSourcesInfo();

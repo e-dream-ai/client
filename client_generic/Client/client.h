@@ -283,9 +283,9 @@ class CElectricSheep
                 new Hud::CStringStat("version", "\nVersion: ", ver));
         }
         spHelpMessage->Add(
-            new Hud::CStringStat("git version", "", GIT_VERSION));
+            new Hud::CStringStat("git version", "", PlatformUtils::GetGitRevision()));
         spHelpMessage->Add(
-            new Hud::CStringStat("build date", "", BUILD_DATE));
+            new Hud::CStringStat("build date", "", PlatformUtils::GetBuildDate()));
 
         m_SeamlessPlayback =
             g_Settings()->Get("settings.player.SeamlessPlayback", false);
@@ -1152,7 +1152,7 @@ class CElectricSheep
         return true;
     }
 
-    virtual std::string GetVersion() { return ""; }
+    std::string GetVersion() { return PlatformUtils::GetAppVersion(); }
 
     virtual int GetACLineStatus() { return -1; }
 
