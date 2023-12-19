@@ -313,6 +313,7 @@ static void signnal_handler(int signal)
 {
     g_Log->Info("Killed by system from willStop");
     g_Log->Shutdown();
+    ESScreensaver_Deinit();
     exit(0);
 }
 
@@ -320,6 +321,7 @@ static void signnal_handler(int signal)
 {
     g_Log->Info("Killed by system from onSleepNote");
     g_Log->Shutdown();
+    ESScreensaver_Deinit();
     exit(0);
 }
 

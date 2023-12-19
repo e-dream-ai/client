@@ -8,6 +8,8 @@
 #import <Foundation/Foundation.h>
 #import <SystemConfiguration/SystemConfiguration.h>
 
+#import "ESScreensaverView.h"
+
 #include "PlatformUtils.h"
 
 bool PlatformUtils::IsInternetReachable()
@@ -34,4 +36,27 @@ bool PlatformUtils::IsInternetReachable()
     }
 
     return NO;
+}
+
+static NSBundle* GetBundle()
+{
+    return [NSBundle bundleForClass:ESScreensaverView.class];
+}
+
+std::string PlatformUtils::GetBuildDate()
+{
+    NSString* str = [GetBundle() objectForInfoDictionaryKey:@"BUILD_DATE"];
+    return str.UTF8String;
+}
+
+std::string PlatformUtils::GetGitRevision()
+{
+    NSString* str = [GetBundle() objectForInfoDictionaryKey:@"REVISION"];
+    return str.UTF8String;
+}
+
+std::string PlatformUtils::GetAppVersion()
+{
+    NSString* str = [GetBundle() objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
+    return str.UTF8String;
 }

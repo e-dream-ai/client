@@ -4,6 +4,8 @@
 <dict>
 	<key>ATSApplicationFontsPath</key>
 	<string></string>
+	<key>BUILD_DATE</key>
+	<string>Tue Dec 19 16:08:35 UTC 2023</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>English</string>
 	<key>CFBundleExecutable</key>
@@ -46,6 +48,8 @@
 	<string>ESScreensaverView</string>
 	<key>NSSupportsAutomaticGraphicsSwitching</key>
 	<true/>
+	<key>REVISION</key>
+	<string>3f2221c5</string>
 	<key>SUFeedURL</key>
 	<string>https://sparkle.electricsheep.org/appcast.xml</string>
 	<key>SUPublicDSAKeyFile</key>
