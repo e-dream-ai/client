@@ -17,7 +17,6 @@
 
 bool PlatformUtils::IsInternetReachable()
 {
-    return false;
     // Create a reachability reference
     SCNetworkReachabilityRef reachability =
         SCNetworkReachabilityCreateWithName(NULL, "www.apple.com");
