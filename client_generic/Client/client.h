@@ -418,16 +418,16 @@ class CElectricSheep
             true);
 
         //	For testing...
-        ContentDownloader::Shepherd::addMessageText(
+        /*ContentDownloader::Shepherd::addMessageText(
             "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do "
             "eiusmod tempor incididunt ut labore et dolore magna aliqua",
-            180);
+            180);*/
 
         bool internetReachable = PlatformUtils::IsInternetReachable();
         if (!internetReachable)
         {
             ContentDownloader::Shepherd::addMessageText(
-                "Check your internet connection and relaunch e-dream.", 180);
+                "No Internet Connection.", 180);
         }
         //    Start downloader.
         g_Log->Info("Starting downloader...");

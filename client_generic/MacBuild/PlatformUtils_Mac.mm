@@ -17,6 +17,7 @@
 
 bool PlatformUtils::IsInternetReachable()
 {
+    return false;
     // Create a reachability reference
     SCNetworkReachabilityRef reachability =
         SCNetworkReachabilityCreateWithName(NULL, "www.apple.com");
@@ -77,6 +78,18 @@ std::string PlatformUtils::GetAppVersion()
     NSString* str =
         [bundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
     return str.UTF8String;
+}
+
+void PlatformUtils::SetCursorHidden(bool _hidden)
+{
+    if (_hidden)
+    {
+        [NSCursor hide];
+    }
+    else
+    {
+        [NSCursor unhide];
+    }
 }
 
 void PlatformUtils::SetOnMouseMovedCallback(
