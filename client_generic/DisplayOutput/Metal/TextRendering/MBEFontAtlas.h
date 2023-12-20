@@ -19,7 +19,7 @@
 
 @interface MBEFontAtlas : NSObject <NSSecureCoding>
 
-@property(weak, nonatomic, readonly) NSFont* parentFont;
+@property(nonatomic, readonly) NSFont* parentFont;
 @property(nonatomic, readonly) CGFloat fontPointSize;
 @property(nonatomic, readonly) CGFloat spread;
 @property(nonatomic, readonly) size_t textureSize;

@@ -36,12 +36,13 @@ CTextMetal::CTextMetal(spCFontMetal _font, MTKView* _view,
 #if USE_SYSTEM_UI
     __block spCFontMetal font = _font;
     __weak MTKView* view = _view;
-    __block CATextLayer* __strong& resultTextLayer = m_TextLayer;
+
+    CATextLayer* textLayer = [[CATextLayer alloc] init];
+    m_TextLayer = (__bridge CATextLayer*)CFBridgingRetain(textLayer);
     ExecuteOnMainThread(^{
-        CATextLayer* textLayer = [[CATextLayer alloc] init];
         textLayer.font =
             (__bridge CFTypeRef) @(font->FontDescription().TypeFace().c_str());
-        textLayer.string = @"ASKDNKJASNF";
+        textLayer.string = @"";
         textLayer.frame = CGRectMake(0, 0, 100, 200);
         textLayer.fontSize = font->FontDescription().Height();
         textLayer.shadowOpacity = 1;
@@ -62,7 +63,7 @@ CTextMetal::CTextMetal(spCFontMetal _font, MTKView* _view,
                                      forOrientation:
                                          NSLayoutConstraintOrientationVertical];
 
-        resultTextLayer = (__bridge CATextLayer*)CFBridgingRetain(textLayer);
+        //resultTextLayer = (__bridge CATextLayer*)CFBridgingRetain(textLayer);
     });
 #endif
 }
