@@ -439,6 +439,17 @@ class CElectricSheep
         // call static method to fill sheep counts
         ContentDownloader::Shepherd::GetFlockSizeMBsRecount(0);
         ContentDownloader::Shepherd::GetFlockSizeMBsRecount(1);
+        spCDelayedDispatch hideCursorDispatch =
+            std::make_shared<CDelayedDispatch>(
+                []() -> void { PlatformUtils::SetCursorHidden(true); });
+        hideCursorDispatch->DispatchAfter(5);
+        PlatformUtils::SetOnMouseMovedCallback(
+            [=](int, int) -> void
+            {
+                PlatformUtils::SetCursorHidden(false);
+                hideCursorDispatch->Cancel();
+                hideCursorDispatch->DispatchAfter(5);
+            });
 
         //	And we're off.
         m_SplashPNGDelayTimer.Reset();

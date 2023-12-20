@@ -78,3 +78,41 @@ std::string PlatformUtils::GetAppVersion()
         [bundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
     return str.UTF8String;
 }
+
+void PlatformUtils::SetOnMouseMovedCallback(
+    std::function<void(int, int)> _callback)
+{
+    if (_callback)
+    {
+        // Set up mouse moved event listener using Objective-C
+        [NSEvent
+            addLocalMonitorForEventsMatchingMask:NSEventMaskMouseMoved
+                                         handler:^(NSEvent* event) {
+                                             NSPoint mouseLocation =
+                                                 [event locationInWindow];
+                                             _callback((int)mouseLocation.x,
+                                                       (int)mouseLocation.y);
+                                             return event;
+                                         }];
+    }
+}
+
+CDelayedDispatch::CDelayedDispatch(std::function<void()> _func)
+    : m_DispatchTime(0), m_Func(_func)
+{
+}
+
+void CDelayedDispatch::Cancel() { m_DispatchTime = 0; }
+
+void CDelayedDispatch::DispatchAfter(uint64_t seconds)
+{
+    dispatch_time_t thisDispatchTime =
+        dispatch_time(DISPATCH_TIME_NOW, (int64_t)(seconds * NSEC_PER_SEC));
+    m_DispatchTime = thisDispatchTime;
+    dispatch_after(thisDispatchTime, dispatch_get_main_queue(), ^{
+        if (m_DispatchTime == thisDispatchTime)
+        {
+            m_Func();
+        }
+    });
+}
