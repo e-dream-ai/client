@@ -125,17 +125,17 @@ struct sOpenVideoInfo
     AVBSFContext* m_pBsfContext = nullptr;
     const AVCodec* m_pVideoCodec;
     AVStream* m_pVideoStream;
-    int32 m_VideoStreamID;
-    uint32 m_totalFrameCount;
+    int32_t m_VideoStreamID;
+    uint32_t m_totalFrameCount;
     time_t m_CurrentFileatime;
-    uint64 m_iCurrentFileFrameCount;
-    uint32 m_Generation;
-    uint32 m_SheepID;
-    uint32 m_First;
-    uint32 m_Last;
+    uint64_t m_iCurrentFileFrameCount;
+    uint32_t m_Generation;
+    uint32_t m_SheepID;
+    uint32_t m_First;
+    uint32_t m_Last;
     std::string m_Path;
     bool m_bSpecialSheep;
-    uint32 m_NumIterations;
+    uint32_t m_NumIterations;
     bool m_NextIsSeam;
     bool m_ReadingTrailingFrames;
 };
@@ -147,15 +147,15 @@ struct sOpenVideoInfo
 class CContentDecoder
 {
     bool m_bStop;
-    uint32 m_prevLast;
+    uint32_t m_prevLast;
 
-    uint32 m_FadeIn;
-    uint32 m_FadeOut;
-    uint32 m_FadeCount;
+    uint32_t m_FadeIn;
+    uint32_t m_FadeOut;
+    uint32_t m_FadeCount;
 
     SwsContext* m_pScaler;
-    uint32 m_ScalerWidth;
-    uint32 m_ScalerHeight;
+    uint32_t m_ScalerWidth;
+    uint32_t m_ScalerHeight;
 
     //	Thread & threadfunction.
     boost::thread* m_pDecoderThread;
@@ -180,9 +180,9 @@ class CContentDecoder
     Base::CBlockingQueue<std::string> m_NextSheepQueue;
     Base::CBlockingQueue<std::string> m_SheepHistoryQueue;
 
-    uint32 m_LoopIterations;
+    uint32_t m_LoopIterations;
 
-    int32 m_bForceNext;
+    int32_t m_bForceNext;
 
     spCVideoFrame m_sharedFrame;
     boost::mutex m_sharedFrameMutex;
@@ -201,7 +201,7 @@ class CContentDecoder
 
     bool Open(sOpenVideoInfo* ovi);
     sOpenVideoInfo* GetNextSheepInfo();
-    bool NextSheepForPlaying(int32 _forceNext = 0);
+    bool NextSheepForPlaying(int32_t _forceNext = 0);
     void Destroy();
 
     CVideoFrame* ReadOneFrame(sOpenVideoInfo* ovi);
@@ -210,7 +210,7 @@ class CContentDecoder
 
   public:
     CContentDecoder(spCPlaylist _spPlaylist, bool _bStartByRandom,
-                    bool _bAllowTransitions, const uint32 _queueLenght,
+                    bool _bAllowTransitions, const uint32_t _queueLenght,
                     boost::shared_mutex& _downloadSaveMutex,
                     AVPixelFormat _wantedPixelFormat = AV_PIX_FMT_RGB24);
     virtual ~CContentDecoder();
@@ -229,21 +229,21 @@ class CContentDecoder
 
     bool PlayNoSheepIntro() { return m_NoSheeps; };
 
-    inline uint32 GetCurrentPlayingID()
+    inline uint32_t GetCurrentPlayingID()
     {
         return (m_MainVideoInfo != NULL) ? m_MainVideoInfo->m_SheepID : 0;
     };
-    inline uint32 GetCurrentPlayingGeneration()
+    inline uint32_t GetCurrentPlayingGeneration()
     {
         return (m_MainVideoInfo != NULL) ? m_MainVideoInfo->m_Generation : 0;
     };
 
-    uint32 QueueLength();
+    uint32_t QueueLength();
 
-    void ClearQueue(uint32 leave = 0);
+    void ClearQueue(uint32_t leave = 0);
 
-    void ForceNext(int32 forced = 1);
-    int32 NextForced(void);
+    void ForceNext(int32_t forced = 1);
+    int32_t NextForced(void);
 };
 
 MakeSmartPointers(CContentDecoder);

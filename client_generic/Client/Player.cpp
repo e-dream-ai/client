@@ -115,9 +115,9 @@ void CPlayer::SetHWND(HWND _hWnd)
 bool CPlayer::AddDisplay(CGraphicsContext _graphicsContext)
 #else
 #ifdef WIN32
-bool CPlayer::AddDisplay(uint32 screen, IDirect3D9* _pIDirect3D9, bool _blank)
+bool CPlayer::AddDisplay(uint32_t screen, IDirect3D9* _pIDirect3D9, bool _blank)
 #else
-bool CPlayer::AddDisplay(uint32 screen)
+bool CPlayer::AddDisplay(uint32_t screen)
 #endif
 #endif
 {
@@ -135,8 +135,8 @@ bool CPlayer::AddDisplay(uint32 screen)
             g_Settings()->Get("settings.content.sheepdir", content) + "/mp4/";
     }
     // modify aspect ratio and/or window size hint
-    uint32 w = 1280;
-    uint32 h = 720;
+    uint32_t w = 1280;
+    uint32_t h = 720;
 
 #ifdef WIN32
 #ifndef _WIN64
@@ -226,7 +226,7 @@ bool CPlayer::AddDisplay(uint32 screen)
     spDisplay->Title("e-dream");
 
     //	Create frame display.
-    int32 displayMode = g_Settings()->Get("settings.player.DisplayMode", 2);
+    int32_t displayMode = g_Settings()->Get("settings.player.DisplayMode", 2);
     if (displayMode == 2)
     {
         if (spDisplay->HasShaders())
@@ -378,14 +378,14 @@ CPlayer::CreateContentDecoder(boost::shared_mutex& _downloadSaveMutex,
     return new ContentDecoder::CContentDecoder(
         m_spPlaylist, _bStartByRandom,
         g_Settings()->Get("settings.player.CalculateTransitions", true),
-        (uint32)abs(g_Settings()->Get("settings.player.BufferLength", 25)),
+        (uint32_t)abs(g_Settings()->Get("settings.player.BufferLength", 25)),
         _downloadSaveMutex, pf);
 }
 
 /*
 
  */
-void CPlayer::ForceWidthAndHeight(uint32 du, uint32 _w, uint32 _h)
+void CPlayer::ForceWidthAndHeight(uint32_t du, uint32_t _w, uint32_t _h)
 {
     boost::mutex::scoped_lock lockthis(m_displayListMutex);
 
@@ -571,7 +571,7 @@ bool CPlayer::EndFrameUpdate()
     }
 
 #ifndef USE_METAL
-    fp8 capFPS = spFD->GetFps(m_PlayerFps, m_DisplayFps);
+    double capFPS = spFD->GetFps(m_PlayerFps, m_DisplayFps);
     if (spFD && capFPS > 0.000001)
         FpsCap(capFPS);
 #endif
@@ -579,7 +579,7 @@ bool CPlayer::EndFrameUpdate()
     return true;
 }
 
-bool CPlayer::BeginDisplayFrame(uint32 displayUnit)
+bool CPlayer::BeginDisplayFrame(uint32_t displayUnit)
 {
     DisplayUnit* du;
 
@@ -598,7 +598,7 @@ bool CPlayer::BeginDisplayFrame(uint32 displayUnit)
     return true;
 }
 
-bool CPlayer::EndDisplayFrame(uint32 displayUnit, bool drawn)
+bool CPlayer::EndDisplayFrame(uint32_t displayUnit, bool drawn)
 {
     DisplayUnit* du;
 
@@ -615,9 +615,9 @@ bool CPlayer::EndDisplayFrame(uint32 displayUnit, bool drawn)
 }
 
 //	Chill the remaining time to keep the framerate.
-void CPlayer::FpsCap(const fp8 _cap)
+void CPlayer::FpsCap(const double _cap)
 {
-    fp8 diff = 1.0 / _cap - (m_Timer.Time() - m_CapClock);
+    double diff = 1.0 / _cap - (m_Timer.Time() - m_CapClock);
     if (diff > 0.0)
         Base::CTimer::Wait(diff);
 
@@ -628,7 +628,7 @@ void CPlayer::FpsCap(const fp8 _cap)
         Update().
 
 */
-bool CPlayer::Update(uint32 displayUnit, bool& bPlayNoSheepIntro)
+bool CPlayer::Update(uint32_t displayUnit, bool& bPlayNoSheepIntro)
 {
     bPlayNoSheepIntro = false;
 

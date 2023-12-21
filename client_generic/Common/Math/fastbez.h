@@ -24,10 +24,10 @@ namespace Math
 */
 class CFastBezier
 {
-    fp4 m_Curve[4];
+    float m_Curve[4];
 
   public:
-    CFastBezier(fp4 _a, fp4 _b, fp4 _c, fp4 _d)
+    CFastBezier(float _a, float _b, float _c, float _d)
     {
         m_Curve[0] = _a;
         m_Curve[1] = _b;
@@ -35,11 +35,11 @@ class CFastBezier
         m_Curve[3] = _d;
     }
 
-    inline fp4 Sample(const fp4 _time) const
+    inline float Sample(const float _time) const
     {
-        fp4 a[3];
-        fp4 b[2];
-        fp4 res;
+        float a[3];
+        float b[2];
+        float res;
 
         a[0] = lerpMacro(m_Curve[0], m_Curve[1], _time);
         a[1] = lerpMacro(m_Curve[1], m_Curve[2], _time);

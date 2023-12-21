@@ -23,7 +23,7 @@
 */
 class CElectricSheep_Linux : public CElectricSheep
 {
-    /*	std::vector<uint32> m_glContextList;*/
+    /*	std::vector<uint32_t> m_glContextList;*/
 
   public:
     CElectricSheep_Linux() : CElectricSheep()
@@ -103,7 +103,7 @@ class CElectricSheep_Linux : public CElectricSheep
         //	Update display events.
         spDisplay->Update();
 
-        static const fp4 voteDelaySeconds = 1;
+        static const float voteDelaySeconds = 1;
 
         //	Handle events.
         spCEvent spEvent;
@@ -208,7 +208,7 @@ class CElectricSheep_Linux : public CElectricSheep
     }
 
     /* gf: try
-    void AddGLContext( uint32 _glContext )
+    void AddGLContext( uint32_t _glContext )
     {
             if ( g_Player().Display() == NULL )
             {

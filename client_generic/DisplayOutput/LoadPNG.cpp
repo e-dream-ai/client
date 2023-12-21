@@ -109,7 +109,7 @@ bool CImage::LoadPNG(const std::string& _fileName, const bool _wantMipMaps)
     png_get_IHDR(png_ptr, info_ptr, (png_uint_32*)&m_Width,
                  (png_uint_32*)&m_Height, &iBitDepth, &iColorType, NULL, NULL,
                  NULL);
-    uint32 nChannels = png_get_channels(png_ptr, info_ptr);
+    uint32_t nChannels = png_get_channels(png_ptr, info_ptr);
 
     switch (nChannels)
     {
@@ -133,14 +133,14 @@ bool CImage::LoadPNG(const std::string& _fileName, const bool _wantMipMaps)
         m_nMipMaps = getNumberOfMipMapsFromDimesions();
 
     // now we can allocate memory to store the image
-    // m_pData = new uint8[ getMipMappedSize( 0, _wantMipMaps ? 0x7fffffff : 1 )
+    // m_pData = new uint8_t[ getMipMappedSize( 0, _wantMipMaps ? 0x7fffffff : 1 )
     // ];
     m_spData =
         std::make_shared<Base::CAlignedBuffer>(getMipMappedSize(0, m_nMipMaps));
 
     // set the individual row-pointers to point at the correct offsets
     ppbRowPointers = new png_bytep[m_Height];
-    for (uint32 i = 0; i < m_Height; i++)
+    for (uint32_t i = 0; i < m_Height; i++)
         ppbRowPointers[i] = m_spData->GetBufferPtr() + i * m_Width * nChannels;
 
     // now we can go ahead and just read the whole image
@@ -156,7 +156,7 @@ bool CImage::LoadPNG(const std::string& _fileName, const bool _wantMipMaps)
     }
     else
     {
-        for (uint32 i = 0; i < m_Height; i++)
+        for (uint32_t i = 0; i < m_Height; i++)
         {
             flipChannelsRB(ppbRowPointers[i], m_Width, nChannels);
         }
@@ -164,7 +164,7 @@ bool CImage::LoadPNG(const std::string& _fileName, const bool _wantMipMaps)
 #endif
 
 #if (defined(MAC) || defined(LINUX_GNU)) && defined(__BIG_ENDIAN__)
-    for (uint32 i = 0; i < m_Height; i++)
+    for (uint32_t i = 0; i < m_Height; i++)
     {
         flipChannels(ppbRowPointers[i], m_Width, nChannels);
     }

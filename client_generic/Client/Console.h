@@ -21,7 +21,7 @@ class CConsole : public CHudEntry
     CConsole(Base::Math::CRect _rect) : CHudEntry(_rect){};
     virtual ~CConsole(){};
 
-    virtual bool Render(const fp8 _time,
+    virtual bool Render(const double _time,
                         DisplayOutput::spCRenderer _spRenderer) = PureVirtual;
 };
 

@@ -11,12 +11,12 @@ extern "C"
 
     void ESScreenSaver_AddGraphicsContext(void* _graphicsContext);
 
-    bool ESScreensaver_Start(bool _bPreview, uint32 _width, uint32 _height);
+    bool ESScreensaver_Start(bool _bPreview, uint32_t _width, uint32_t _height);
     bool ESScreensaver_DoFrame(boost::barrier& _beginFrameBarrier,
                                boost::barrier& _endFrameBarrier);
     void ESScreensaver_Stop(void);
     bool ESScreensaver_Stopped(void);
-    void ESScreensaver_ForceWidthAndHeight(uint32 _width, uint32 _height);
+    void ESScreensaver_ForceWidthAndHeight(uint32_t _width, uint32_t _height);
     void ESScreensaver_Deinit(void);
 
     void ESScreensaver_AppendKeyEvent(UInt32 keyCode);

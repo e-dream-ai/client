@@ -54,7 +54,7 @@ class CElectricSheep
 {
   protected:
     ESCpuUsage m_CpuUsage;
-    fp8 m_LastCPUCheckTime;
+    double m_LastCPUCheckTime;
     int m_CpuUsageTotal;
     int m_CpuUsageES;
     int m_HighCpuUsageCounter;
@@ -68,15 +68,15 @@ class CElectricSheep
     Hud::spCHudManager m_HudManager;
     Hud::spCStartupScreen m_StartupScreen;
 
-    fp8 m_PNGDelayTimer;
+    double m_PNGDelayTimer;
 
     //	The base framerate(from config).
-    fp8 m_PlayerFps;
+    double m_PlayerFps;
 
     //	Potentially adjusted framerate(from <- and -> keys)
-    fp8 m_CurrentFps;
+    double m_CurrentFps;
 
-    fp8 m_OriginalFps;
+    double m_OriginalFps;
 
     //	Voting object.
     CVote* m_pVoter;
@@ -101,9 +101,9 @@ class CElectricSheep
 
     std::deque<std::string> m_ConnectionErrors;
 
-    uint32 m_curPlayingID;
-    uint32 m_curPlayingGen;
-    uint64 m_lastPlayedSeconds;
+    uint32_t m_curPlayingID;
+    uint32_t m_curPlayingGen;
+    uint64_t m_lastPlayedSeconds;
 
 #ifdef DO_THREAD_UPDATE
     boost::barrier* m_pUpdateBarrier;
@@ -230,7 +230,7 @@ class CElectricSheep
         //	Get hud font size.
         std::string hudFontName = g_Settings()->Get(
             "settings.player.hudFontName", std::string("Lato"));
-        uint32 hudFontSize = static_cast<uint32>(
+        uint32_t hudFontSize = static_cast<uint32_t>(
             g_Settings()->Get("settings.player.hudFontSize", 24));
 
         m_PNGDelayTimer =
@@ -314,7 +314,8 @@ class CElectricSheep
         spStats->Add(
             new Hud::CStringStat("decodefps", "Decoding video at ", "? fps"));
 
-        int32 displayMode = g_Settings()->Get("settings.player.DisplayMode", 0);
+        int32_t displayMode =
+            g_Settings()->Get("settings.player.DisplayMode", 0);
         if (displayMode == 2)
             spStats->Add(
                 new Hud::CAverageCounter("displayfps",
@@ -409,9 +410,9 @@ class CElectricSheep
             g_Settings()->Get("settings.app.attributionpng", true) == true)
             m_spSplashPNG = std::make_shared<Hud::CSplashImage>(
                 0.2f, m_SplashFilename.c_str(),
-                fp4(g_Settings()->Get("settings.app.pngfadein", 10)),
-                fp4(g_Settings()->Get("settings.app.pnghold", 10)),
-                fp4(g_Settings()->Get("settings.app.pngfadeout", 10)));
+                float(g_Settings()->Get("settings.app.pngfadein", 10)),
+                float(g_Settings()->Get("settings.app.pnghold", 10)),
+                float(g_Settings()->Get("settings.app.pngfadeout", 10)));
 
         m_spCrossFade = std::make_shared<Hud::CCrossFade>(
             g_Player().Display()->Width(), g_Player().Display()->Height(),
@@ -510,15 +511,15 @@ class CElectricSheep
         return true;
     }
 
-    std::string FormatTimeDiff(uint64 timediff, bool showseconds)
+    std::string FormatTimeDiff(uint64_t timediff, bool showseconds)
     {
         std::stringstream ss;
 
         //	Prettify uptime.
-        uint32 seconds = (timediff % 60);
-        uint32 minutes = (timediff / 60) % 60;
-        uint32 hours = (timediff / 3600) % 24;
-        uint32 days = uint32((timediff / (60 * 60 * 24)));
+        uint32_t seconds = (timediff % 60);
+        uint32_t minutes = (timediff / 60) % 60;
+        uint32_t hours = (timediff / 3600) % 24;
+        uint32_t days = uint32_t((timediff / (60 * 60 * 24)));
         const char* space = "";
         if (days > 0)
         {
@@ -626,10 +627,10 @@ class CElectricSheep
             m_pUpdateBarrier->wait();
         }
 #else
-        uint32 displayCnt = g_Player().GetDisplayCount();
+        uint32_t displayCnt = g_Player().GetDisplayCount();
 
         bool ret = true;
-        for (uint32 i = 0; i < displayCnt; i++)
+        for (uint32_t i = 0; i < displayCnt; i++)
         {
             _beginFrameBarrier.wait();
             ret &= DoRealFrameUpdate(i);
@@ -646,7 +647,7 @@ class CElectricSheep
     }
 
 #ifdef DO_THREAD_UPDATE
-    virtual void UpdateFrameThread(int32 displayUnit)
+    virtual void UpdateFrameThread(int32_t displayUnit)
     {
         try
         {
@@ -665,7 +666,7 @@ class CElectricSheep
     }
 #endif
 
-    virtual bool DoRealFrameUpdate(uint32 displayUnit)
+    virtual bool DoRealFrameUpdate(uint32_t displayUnit)
     {
         if (g_Player().BeginDisplayFrame(displayUnit))
         {
@@ -694,7 +695,7 @@ class CElectricSheep
                 }
                 //	Process any server messages.
                 std::string msg;
-                fp8 duration;
+                double duration;
 
                 if (m_spSplashPNG)
                 {
@@ -716,17 +717,18 @@ class CElectricSheep
                                 m_spSplashPNG =
                                     std::make_shared<Hud::CSplashImage>(
                                         0.2f, fNameFormatted,
-                                        fp4(g_Settings()->Get(
+                                        float(g_Settings()->Get(
                                             "settings.app.pngfadein", 10)),
-                                        fp4(g_Settings()->Get(
+                                        float(g_Settings()->Get(
                                             "settings.app.pnghold", 10)),
-                                        fp4(g_Settings()->Get(
+                                        float(g_Settings()->Get(
                                             "settings.app.pngfadeout", 10)));
                         }
 
                         m_HudManager->Add(
                             "splash_png", m_spSplashPNG,
-                            fp4(g_Settings()->Get("settings.app.pngfadein",
+                            float(
+                                g_Settings()->Get("settings.app.pngfadein",
                                                   10) +
                                 g_Settings()->Get("settings.app.pnghold", 10) +
                                 g_Settings()->Get("settings.app.pngfadeout",
@@ -848,10 +850,10 @@ class CElectricSheep
                     ->SetSample(decodefpsstr.str());
                 ((Hud::CIntCounter*)spStats->Get("displayfps"))->AddSample(1);
 
-                uint32 playingID = g_Player().GetCurrentPlayingSheepID();
-                uint32 playingGen =
+                uint32_t playingID = g_Player().GetCurrentPlayingSheepID();
+                uint32_t playingGen =
                     g_Player().GetCurrentPlayingSheepGeneration();
-                uint16 playCnt =
+                uint16_t playCnt =
                     g_PlayCounter().PlayCount(playingGen, playingID) - 1;
 
                 char strCurID[256];
@@ -863,7 +865,7 @@ class CElectricSheep
                         time_t lastatime = g_Player().GetCurrentPlayingatime();
                         time_t currenttime = time(NULL);
                         m_lastPlayedSeconds =
-                            (uint64)floor(difftime(currenttime, lastatime));
+                            (uint64_t)floor(difftime(currenttime, lastatime));
                     }
                     else
                         m_lastPlayedSeconds = 0;
@@ -908,7 +910,7 @@ class CElectricSheep
                     m_HudManager->Get("dreamstats"));
 
                 //    Prettify uptime.
-                uint64 uptime = (uint64)m_Timer.Time();
+                uint64_t uptime = (uint64_t)m_Timer.Time();
 
                 char strHP[128];
                 snprintf(strHP, 127, "%s",
@@ -923,15 +925,15 @@ class CElectricSheep
                 }
 
                 std::stringstream tmpstr;
-                uint64 flockcount = 0;
-                uint64 flockmbs = 0;
-                uint64 flockcountfree =
+                uint64_t flockcount = 0;
+                uint64_t flockmbs = 0;
+                uint64_t flockcountfree =
                     ContentDownloader::Shepherd::getClientFlockCount(0);
-                uint64 flockcountgold =
+                uint64_t flockcountgold =
                     ContentDownloader::Shepherd::getClientFlockCount(1);
-                uint64 flockmbsfree =
+                uint64_t flockmbsfree =
                     ContentDownloader::Shepherd::getClientFlockMBs(0);
-                uint64 flockmbsgold =
+                uint64_t flockmbsgold =
                     ContentDownloader::Shepherd::getClientFlockMBs(1);
                 switch (g_Player().UsedSheepType())
                 {
@@ -1058,7 +1060,7 @@ class CElectricSheep
 
     virtual bool HandleOneEvent(DisplayOutput::spCEvent& _event)
     {
-        static const fp4 voteDelaySeconds = 1;
+        static const float voteDelaySeconds = 1;
 
         if (_event->Type() == DisplayOutput::CEvent::Event_KEY)
         {

@@ -17,20 +17,20 @@ class CHudEntry
 
   protected:
     Base::Math::CRect m_Rect;
-    fp8 m_StartTime, m_Duration, m_Delta;
+    double m_StartTime, m_Duration, m_Delta;
 
   public:
     CHudEntry(Base::Math::CRect _rect) : m_Rect(_rect){};
     virtual ~CHudEntry(){};
 
-    void SetTime(fp8 _startTime, fp8 _duration)
+    void SetTime(double _startTime, double _duration)
     {
         m_StartTime = _startTime;
         m_Duration = _duration;
         m_Delta = 0;
         Visible(false);
     };
-    virtual bool Render(const fp8 _time,
+    virtual bool Render(const double _time,
                         DisplayOutput::spCRenderer /*_spRenderer*/)
     {
         if (m_Duration > 0.0f)
@@ -64,7 +64,8 @@ class CHudManager
     ~CHudManager();
 
     //	Add/Remove hud entry. (duration -1 means infinite...)
-    bool Add(const std::string _name, spCHudEntry _entry, fp8 _duration = -1);
+    bool Add(const std::string _name, spCHudEntry _entry,
+             double _duration = -1);
     bool Remove(const std::string _name);
 
     //	Operators rule.

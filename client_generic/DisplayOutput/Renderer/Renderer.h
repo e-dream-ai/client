@@ -85,7 +85,7 @@ enum eBlendMode
 class CBlend
 {
   public:
-    CBlend(int32 _src, int32 _dst, int32 _mode)
+    CBlend(int32_t _src, int32_t _dst, int32_t _mode)
     {
         m_Src = _src;
         m_Dst = _dst;
@@ -95,9 +95,9 @@ class CBlend
     ~CBlend(){};
 
     bool m_bEnabled;
-    int32 m_Src;
-    int32 m_Dst;
-    int32 m_Mode;
+    int32_t m_Src;
+    int32_t m_Dst;
+    int32_t m_Mode;
 };
 
 MakeSmartPointers(CBlend);
@@ -119,7 +119,7 @@ class CRenderer
 
     //	Matrices.
     Base::Math::CMatrix4x4 m_WorldMat, m_ViewMat, m_ProjMat;
-    uint32 m_bDirtyMatrices;
+    uint32_t m_bDirtyMatrices;
 
   public:
     CRenderer();
@@ -137,9 +137,10 @@ class CRenderer
     virtual bool EndFrame(bool drawn = true) { return (drawn); };
 
     //	Textures.
-    virtual spCTextureFlat NewTextureFlat(const uint32 flags = 0) = PureVirtual;
-    virtual spCTextureFlat NewTextureFlat(spCImage _spImage,
-                                          const uint32 flags = 0) = PureVirtual;
+    virtual spCTextureFlat
+    NewTextureFlat(const uint32_t flags = 0) = PureVirtual;
+    virtual spCTextureFlat
+    NewTextureFlat(spCImage _spImage, const uint32_t flags = 0) = PureVirtual;
 
     //	Font.
     virtual spCBaseFont GetFont(CFontDescription& _desc) = PureVirtual;
@@ -162,7 +163,7 @@ class CRenderer
 
     //	Shortcut helper function.
     void Orthographic();
-    void Orthographic(const uint32 _width, const uint32 _height);
+    void Orthographic(const uint32_t _width, const uint32_t _height);
 
     //
     enum eMatrixTransformType
@@ -177,9 +178,9 @@ class CRenderer
 
     //	State api.
     virtual void Defaults() = PureVirtual;
-    virtual void Reset(const uint32 _flags);
+    virtual void Reset(const uint32_t _flags);
     virtual void Apply();
-    virtual void SetTexture(spCTexture _spTex, const uint32 _index);
+    virtual void SetTexture(spCTexture _spTex, const uint32_t _index);
     virtual void SetShader(spCShader _spShader);
 
     virtual eTextureTargetType GetTextureTargetType(void)
@@ -188,17 +189,17 @@ class CRenderer
     };
 
     //
-    void AddBlend(std::string _name, int32 _src, int32 _dst, int32 _mode);
+    void AddBlend(std::string _name, int32_t _src, int32_t _dst, int32_t _mode);
     void SetBlend(std::string _blend);
 
     //	Aux functions.
     virtual void DrawLine(const Base::Math::CVector2& /*_start*/,
                           const Base::Math::CVector2& /*_end*/,
                           const Base::Math::CVector4& /*_color*/,
-                          const fp4 /*_width = 1.0f*/){};
+                          const float /*_width = 1.0f*/){};
     virtual void DrawRect(const Base::Math::CRect& /*_rect*/,
                           const Base::Math::CVector4& /*_color*/,
-                          const fp4 /*_width = 1.0f*/){};
+                          const float /*_width = 1.0f*/){};
     virtual void DrawQuad(const Base::Math::CRect& /*_rect*/,
                           const Base::Math::CVector4& /*_color*/){};
     virtual void DrawQuad(const Base::Math::CRect& /*_rect*/,
@@ -206,7 +207,7 @@ class CRenderer
                           const Base::Math::CRect& /*_uvRect*/){};
     virtual void DrawSoftQuad(const Base::Math::CRect& /*_rect*/,
                               const Base::Math::CVector4& /*_color*/,
-                              const fp4 /*_width*/){};
+                              const float /*_width*/){};
 };
 
 MakeSmartPointers(CRenderer);

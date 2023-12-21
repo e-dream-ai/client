@@ -207,7 +207,7 @@ CFStringRef ESScreensaver_CopyGetStringSetting(const char* url,
 
 SInt32 ESScreensaver_GetIntSetting(const char* url, const SInt32 defval)
 {
-    return g_Settings()->Get(std::string(url), (int32)defval);
+    return g_Settings()->Get(std::string(url), defval);
 }
 
 bool ESScreensaver_GetBoolSetting(const char* url, const bool defval)
@@ -217,7 +217,7 @@ bool ESScreensaver_GetBoolSetting(const char* url, const bool defval)
 
 double ESScreensaver_GetDoubleSetting(const char* url, const double defval)
 {
-    return g_Settings()->Get(std::string(url), (fp8)defval);
+    return g_Settings()->Get(std::string(url), defval);
 }
 
 void ESScreensaver_SetStringSetting(const char* url, const char* val)
@@ -227,7 +227,7 @@ void ESScreensaver_SetStringSetting(const char* url, const char* val)
 
 void ESScreensaver_SetIntSetting(const char* url, const SInt32 val)
 {
-    g_Settings()->Set(std::string(url), (int32)val);
+    g_Settings()->Set(std::string(url), val);
 }
 
 void ESScreensaver_SetBoolSetting(const char* url, const bool val)

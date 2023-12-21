@@ -14,9 +14,9 @@ namespace DisplayOutput
         GetBlendConstant().
 
 */
-const int32 GetBlendConstant(const int32 _src)
+const int32_t GetBlendConstant(const int32_t _src)
 {
-    static int32 formatLut[] = {
+    static int32_t formatLut[] = {
         D3DBLEND_ZERO,         D3DBLEND_ONE,         D3DBLEND_SRCCOLOR,
         D3DBLEND_INVSRCCOLOR,  D3DBLEND_DESTCOLOR,   D3DBLEND_INVDESTCOLOR,
         D3DBLEND_SRCALPHA,     D3DBLEND_INVSRCALPHA, D3DBLEND_DESTALPHA,
@@ -30,9 +30,9 @@ const int32 GetBlendConstant(const int32 _src)
         GetBlendMode().
 
 */
-const int32 GetBlendMode(const int32 _src)
+const int32_t GetBlendMode(const int32_t _src)
 {
-    static int32 formatLut[] = {
+    static int32_t formatLut[] = {
         D3DBLENDOP_ADD, D3DBLENDOP_SUBTRACT, D3DBLENDOP_REVSUBTRACT,
         D3DBLENDOP_MIN, D3DBLENDOP_MAX,
     };
@@ -245,7 +245,7 @@ void CRendererDX::Apply()
     if (isBit(m_bDirtyMatrices, eWorld))
     {
         m_pDevice->SetTransform(D3DTS_WORLD,
-                                (D3DMATRIX*)(const fp4*)m_WorldMat.m_Mat);
+                                (D3DMATRIX*)(const float*)m_WorldMat.m_Mat);
         remBit(m_bDirtyMatrices, eWorld);
     }
 
@@ -253,7 +253,7 @@ void CRendererDX::Apply()
     if (isBit(m_bDirtyMatrices, eView))
     {
         m_pDevice->SetTransform(D3DTS_VIEW,
-                                (D3DMATRIX*)(const fp4*)m_ViewMat.m_Mat);
+                                (D3DMATRIX*)(const float*)m_ViewMat.m_Mat);
         remBit(m_bDirtyMatrices, eView);
     }
 
@@ -261,7 +261,7 @@ void CRendererDX::Apply()
     if (isBit(m_bDirtyMatrices, eProjection))
     {
         m_pDevice->SetTransform(D3DTS_PROJECTION,
-                                (D3DMATRIX*)(const fp4*)m_ProjMat.m_Mat);
+                                (D3DMATRIX*)(const float*)m_ProjMat.m_Mat);
         remBit(m_bDirtyMatrices, eProjection);
     }
 
@@ -285,12 +285,12 @@ void CRendererDX::Apply()
 
 /*
  */
-void CRendererDX::Reset(const uint32 _flags) { CRenderer::Reset(_flags); }
+void CRendererDX::Reset(const uint32_t _flags) { CRenderer::Reset(_flags); }
 
 /*
  */
 spCTextureFlat CRendererDX::NewTextureFlat(spCImage _spImage,
-                                           const uint32 _flags)
+                                           const uint32_t _flags)
 {
     spCTextureFlat spTex = new CTextureFlatDX(m_pDevice, _flags);
     spTex->Upload(_spImage);
@@ -299,7 +299,7 @@ spCTextureFlat CRendererDX::NewTextureFlat(spCImage _spImage,
 
 /*
  */
-spCTextureFlat CRendererDX::NewTextureFlat(const uint32 _flags)
+spCTextureFlat CRendererDX::NewTextureFlat(const uint32_t _flags)
 {
     spCTextureFlat spTex = new CTextureFlatDX(m_pDevice, _flags);
     return spTex;
@@ -310,8 +310,8 @@ spCTextureFlat CRendererDX::NewTextureFlat(const uint32 _flags)
 spCShader CRendererDX::NewShader(const char* _pVertexShader,
                                  const char* _pFragmentShader)
 {
-    spCShader spShader = new CShaderDX(m_pDevice, fp4(m_spDisplay->Width()),
-                                       fp4(m_spDisplay->Height()));
+    spCShader spShader = new CShaderDX(m_pDevice, float(m_spDisplay->Width()),
+                                       float(m_spDisplay->Height()));
     if (!spShader->Build(_pVertexShader, _pFragmentShader))
         return NULL;
 
@@ -338,15 +338,15 @@ spCBaseFont CRendererDX::NewFont(CFontDescription& _desc)
  */
 void CRendererDX::Text(spCBaseFont _spFont, const std::string& _text,
                        const Base::Math::CVector4& _color,
-                       const Base::Math::CRect& _rect, uint32 _flags)
+                       const Base::Math::CRect& _rect, uint32_t _flags)
 {
     ASSERT(_text != "");
 
     if (_spFont == NULL)
         return;
 
-    const fp4 w05 = (fp4)m_spDisplay->Width() * 0.5f;
-    const fp4 h05 = (fp4)m_spDisplay->Height() * 0.5f;
+    const float w05 = (float)m_spDisplay->Width() * 0.5f;
+    const float h05 = (float)m_spDisplay->Height() * 0.5f;
     Base::Math::CRect _r(
         lerpMacro(-w05, w05, _rect.m_X0), lerpMacro(-h05, h05, _rect.m_Y0),
         lerpMacro(-w05, w05, _rect.m_X1), lerpMacro(-h05, h05, _rect.m_Y1));
@@ -406,11 +406,11 @@ Base::Math::CVector2 CRendererDX::GetTextExtent(spCBaseFont _spFont,
     if (_spFont == NULL)
         return result;
 
-    uint32 width = 0;
-    uint32 height = 0;
+    uint32_t width = 0;
+    uint32_t height = 0;
 
-    fp4 dispWidth = (fp4)m_spDisplay->Width();
-    fp4 dispHeight = (fp4)m_spDisplay->Height();
+    float dispWidth = (float)m_spDisplay->Width();
+    float dispHeight = (float)m_spDisplay->Height();
 
     spCFontDX spDXFont = _spFont;
     ID3DXFont* pDXFont = spDXFont->GetDXFont();
@@ -427,9 +427,9 @@ Base::Math::CVector2 CRendererDX::GetTextExtent(spCBaseFont _spFont,
 
     //	Determine extents of `.'.
     RECT dotRect = {0, 0, 0, 0};
-    int32 h = pDXFont->DrawTextA(NULL, ".", -1, &dotRect,
-                                 DT_LEFT | DT_NOCLIP | DT_CALCRECT, 0);
-    int32 dotWidth = dotRect.right - dotRect.left;
+    int32_t h = pDXFont->DrawTextA(NULL, ".", -1, &dotRect,
+                                   DT_LEFT | DT_NOCLIP | DT_CALCRECT, 0);
+    int32_t dotWidth = dotRect.right - dotRect.left;
 
     RECT rect = {0, 0, 0, 0};
     h = pDXFont->DrawTextA(NULL, pTmp, -1, &rect,
@@ -438,8 +438,8 @@ Base::Math::CVector2 CRendererDX::GetTextExtent(spCBaseFont _spFont,
     width = rect.right - rect.left - dotWidth;
     height = rect.bottom - rect.top;
 
-    result = Base::Math::CVector2((fp4(width) / dispWidth),
-                                  (fp4(height) / dispHeight));
+    result = Base::Math::CVector2((float(width) / dispWidth),
+                                  (float(height) / dispHeight));
 
     return (result);
 }
@@ -449,7 +449,8 @@ Base::Math::CVector2 CRendererDX::GetTextExtent(spCBaseFont _spFont,
 
 */
 void CRendererDX::DrawRect(const Base::Math::CRect& _rect,
-                           const Base::Math::CVector4& _color, const fp4 _width)
+                           const Base::Math::CVector4& _color,
+                           const float _width)
 {
     /*	ASSERT( m_pLine != NULL );
 
@@ -476,8 +477,8 @@ void CRendererDX::DrawQuad(const Base::Math::CRect& _rect,
 {
     m_pDevice->SetFVF(D3DFVF_XYZ | D3DFVF_DIFFUSE);
 
-    const fp4 w05 = (fp4)m_spDisplay->Width() * 0.5f;
-    const fp4 h05 = (fp4)m_spDisplay->Height() * 0.5f;
+    const float w05 = (float)m_spDisplay->Width() * 0.5f;
+    const float h05 = (float)m_spDisplay->Height() * 0.5f;
     Base::Math::CRect r(
         lerpMacro(-w05, w05, _rect.m_X0), lerpMacro(-h05, h05, _rect.m_Y0),
         lerpMacro(-w05, w05, _rect.m_X1), lerpMacro(-h05, h05, _rect.m_Y1));
@@ -488,7 +489,7 @@ void CRendererDX::DrawQuad(const Base::Math::CRect& _rect,
     struct Q
     {
         D3DXVECTOR3 vertex;
-        uint32 color;
+        uint32_t color;
     };
 
     Q qv[4];
@@ -513,19 +514,19 @@ void CRendererDX::DrawQuad(const Base::Math::CRect& _rect,
  */
 void CRendererDX::DrawSoftQuad(const Base::Math::CRect& _rect,
                                const Base::Math::CVector4& _color,
-                               const fp4 _width)
+                               const float _width)
 {
     if (m_spSoftCorner == NULL)
     {
         DisplayOutput::spCImage tmpImage = new DisplayOutput::CImage();
         tmpImage->Create(32, 32, DisplayOutput::eImage_RGBA8);
 
-        for (uint32 y = 0; y < 32; y++)
-            for (uint32 x = 0; x < 32; x++)
+        for (uint32_t y = 0; y < 32; y++)
+            for (uint32_t x = 0; x < 32; x++)
             {
-                fp4 c = Base::Math::saturate(
+                float c = Base::Math::saturate(
                     1.0f -
-                    powf(Base::Math::Sqrt(fp4(x * x + y * y)) / 31.0f, 1.0f));
+                    powf(Base::Math::Sqrt(float(x * x + y * y)) / 31.0f, 1.0f));
                 tmpImage->PutPixel(x, y, c, c, c, c);
             }
 
@@ -533,8 +534,8 @@ void CRendererDX::DrawSoftQuad(const Base::Math::CRect& _rect,
         m_spSoftCorner->Upload(tmpImage);
     }
 
-    const fp4 w05 = (fp4)m_spDisplay->Width() * 0.5f;
-    const fp4 h05 = (fp4)m_spDisplay->Height() * 0.5f;
+    const float w05 = (float)m_spDisplay->Width() * 0.5f;
+    const float h05 = (float)m_spDisplay->Height() * 0.5f;
     Base::Math::CRect r(
         lerpMacro(-w05, w05, _rect.m_X0), lerpMacro(-h05, h05, _rect.m_Y0),
         lerpMacro(-w05, w05, _rect.m_X1), lerpMacro(-h05, h05, _rect.m_Y1));
@@ -544,10 +545,10 @@ void CRendererDX::DrawSoftQuad(const Base::Math::CRect& _rect,
     struct Q
     {
         D3DXVECTOR3 vertex;
-        uint32 color;
+        uint32_t color;
         D3DXVECTOR2 tc;
-        Q(const fp4 _x, const fp4 _y, const fp4 _tx, const fp4 _ty,
-          const uint32 _c)
+        Q(const float _x, const float _y, const float _tx, const float _ty,
+          const uint32_t _c)
         {
             vertex = D3DXVECTOR3(_x, _y, 0);
             tc = D3DXVECTOR2(_tx, _ty);
@@ -555,15 +556,15 @@ void CRendererDX::DrawSoftQuad(const Base::Math::CRect& _rect,
         }
     };
 
-    fp4 x0 = r.m_X0;
-    fp4 y0 = r.m_Y0;
-    fp4 x1 = r.m_X1;
-    fp4 y1 = r.m_Y1;
+    float x0 = r.m_X0;
+    float y0 = r.m_Y0;
+    float x1 = r.m_X1;
+    float y1 = r.m_Y1;
 
-    fp4 x0bw = r.m_X0 + _width;
-    fp4 y0bw = r.m_Y0 + _width;
-    fp4 x1bw = r.m_X1 - _width;
-    fp4 y1bw = r.m_Y1 - _width;
+    float x0bw = r.m_X0 + _width;
+    float y0bw = r.m_Y0 + _width;
+    float x1bw = r.m_X1 - _width;
+    float y1bw = r.m_Y1 - _width;
 
     m_pDevice->SetFVF(D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1);
 
@@ -601,8 +602,8 @@ void CRendererDX::DrawSoftQuad(const Base::Math::CRect& _rect,
     SetTexture(NULL, 0);
     Apply();
 
-    fp4 wu = _width / m_spDisplay->Width();
-    fp4 hu = _width / m_spDisplay->Height();
+    float wu = _width / m_spDisplay->Width();
+    float hu = _width / m_spDisplay->Height();
 
     Base::Math::CRect r2(_rect.m_X0 + wu, _rect.m_Y0 + hu, _rect.m_X1 - wu,
                          _rect.m_Y1 - hu);
@@ -619,8 +620,8 @@ void CRendererDX::DrawQuad(const Base::Math::CRect& _rect,
 {
     m_pDevice->SetFVF(D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1);
 
-    const fp4 w05 = (fp4)m_spDisplay->Width() * 0.5f;
-    const fp4 h05 = (fp4)m_spDisplay->Height() * 0.5f;
+    const float w05 = (float)m_spDisplay->Width() * 0.5f;
+    const float h05 = (float)m_spDisplay->Height() * 0.5f;
     Base::Math::CRect r(
         lerpMacro(-w05, w05, _rect.m_X0), lerpMacro(-h05, h05, _rect.m_Y0),
         lerpMacro(-w05, w05, _rect.m_X1), lerpMacro(-h05, h05, _rect.m_Y1));
@@ -631,7 +632,7 @@ void CRendererDX::DrawQuad(const Base::Math::CRect& _rect,
     struct Q
     {
         D3DXVECTOR3 vertex;
-        uint32 color;
+        uint32_t color;
         D3DXVECTOR2 tc;
     };
 
@@ -663,7 +664,8 @@ void CRendererDX::DrawQuad(const Base::Math::CRect& _rect,
 */
 void CRendererDX::DrawLine(const Base::Math::CVector2& _start,
                            const Base::Math::CVector2& _end,
-                           const Base::Math::CVector4& _color, const fp4 _width)
+                           const Base::Math::CVector4& _color,
+                           const float _width)
 {
     /*	ASSERT( m_pLine != NULL );
 

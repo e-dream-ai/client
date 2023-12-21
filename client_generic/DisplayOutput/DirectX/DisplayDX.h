@@ -46,12 +46,12 @@ class CDisplayDX : public CDisplayOutput
     IDirect3DDevice9* m_pDevice;
 
     HWND m_WindowHandle;
-    uint32 m_DesiredScreenID;
+    uint32_t m_DesiredScreenID;
 
     IDirect3D9* m_pDirect3DInstance;
 
     void EnumMonitors();
-    HWND createwindow(uint32 _w, uint32 _h, const bool _bFullscreen);
+    HWND createwindow(uint32_t _w, uint32_t _h, const bool _bFullscreen);
     MonitorInfo m_Monitors[MAX_DISPLAYS];
     DWORD m_dwNumMonitors;
 
@@ -75,7 +75,7 @@ class CDisplayDX : public CDisplayOutput
                                     LPARAM lParam);
 
     static char* Description() { return "Windows DirectX display"; };
-    virtual HWND Initialize(const uint32 _width, const uint32 _height,
+    virtual HWND Initialize(const uint32_t _width, const uint32_t _height,
                             const bool _bFullscreen);
 
     UINT GetAdapterOrdinal();
@@ -83,7 +83,7 @@ class CDisplayDX : public CDisplayOutput
     IDirect3DDevice9* Device() { return m_pDevice; };
     D3DPRESENT_PARAMETERS PresentParameters() { return m_PresentationParams; };
 
-    void SetScreen(const uint32 _screen) { m_DesiredScreenID = _screen; };
+    void SetScreen(const uint32_t _screen) { m_DesiredScreenID = _screen; };
 
     //	This is used when running as a screensaver, where the hwnd might already
     // be provided.

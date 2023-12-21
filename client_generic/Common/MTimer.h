@@ -15,10 +15,10 @@ namespace Base
 {
 namespace internal
 {
-static void Wait(fp8 _seconds)
+static void Wait(double _seconds)
 {
-    const fp8 floorSeconds = ::floor(_seconds);
-    const fp8 fractionalSeconds = _seconds - floorSeconds;
+    const double floorSeconds = ::floor(_seconds);
+    const double fractionalSeconds = _seconds - floorSeconds;
 
     timespec timeOut;
     timeOut.tv_sec = static_cast<time_t>(floorSeconds);
@@ -30,7 +30,7 @@ static void Wait(fp8 _seconds)
     timespec timeRemaining;
     while (true)
     {
-        const int32 ret = nanosleep(&timeOut, &timeRemaining);
+        const int32_t ret = nanosleep(&timeOut, &timeRemaining);
         if (ret == -1 && errno == EINTR)
         {
             //	There was only an sleep interruption, go back to sleep.
@@ -48,20 +48,20 @@ static void Wait(fp8 _seconds)
 
 class CMTimer : public ITimer
 {
-    fp8 m_Start;
-    fp8 m_DeltaStart;
+    double m_Start;
+    double m_DeltaStart;
 
-    static inline fp8 realTime()
+    static inline double realTime()
     {
 
         mach_timebase_info_data_t tTBI;
 
         mach_timebase_info(&tTBI);
-        fp8 cv =
-            (static_cast<fp8>(tTBI.numer)) / (static_cast<fp8>(tTBI.denom));
+        double cv = (static_cast<double>(tTBI.numer)) /
+                    (static_cast<double>(tTBI.denom));
 
         uint64_t now = mach_absolute_time();
-        fp8 tNS = now * cv;
+        double tNS = now * cv;
 
         return tNS * 1e-9;
     }
@@ -71,28 +71,28 @@ class CMTimer : public ITimer
 
     void Reset() { m_DeltaStart = m_Start = realTime(); }
 
-    fp8 Time() { return realTime() - m_Start; }
+    double Time() { return realTime() - m_Start; }
 
-    fp8 Delta()
+    double Delta()
     {
-        const fp8 now = realTime();
-        const fp8 dt = now - m_DeltaStart;
+        const double now = realTime();
+        const double dt = now - m_DeltaStart;
         m_DeltaStart = now;
         return dt;
     }
 
-    fp8 Resolution()
+    double Resolution()
     {
         mach_timebase_info_data_t tTBI;
 
         mach_timebase_info(&tTBI);
-        fp8 cv =
-            (static_cast<fp8>(tTBI.numer)) / (static_cast<fp8>(tTBI.denom));
+        double cv = (static_cast<double>(tTBI.numer)) /
+                    (static_cast<double>(tTBI.denom));
 
         return cv * 1e-9;
     }
 
-    static inline void Wait(fp8 _seconds) { Base::internal::Wait(_seconds); }
+    static inline void Wait(double _seconds) { Base::internal::Wait(_seconds); }
 };
 
 typedef CMTimer CTimer;

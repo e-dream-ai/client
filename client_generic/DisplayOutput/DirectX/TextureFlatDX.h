@@ -21,12 +21,12 @@ class CTextureFlatDX : public CTextureFlat
   public:
     Base::Math::CRect m_Size;
 
-    CTextureFlatDX(IDirect3DDevice9* _pDevice, const uint32 _flags = 0);
+    CTextureFlatDX(IDirect3DDevice9* _pDevice, const uint32_t _flags = 0);
     virtual ~CTextureFlatDX();
 
     virtual bool Upload(spCImage _spImage);
-    virtual bool Bind(const uint32 _index);
-    virtual bool Unbind(const uint32 _index);
+    virtual bool Bind(const uint32_t _index);
+    virtual bool Unbind(const uint32_t _index);
 };
 
 MakeSmartPointers(CTextureFlatDX);

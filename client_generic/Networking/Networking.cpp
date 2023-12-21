@@ -101,9 +101,9 @@ bool CCurlTransfer::VerifyM(CURLMcode _code)
 
 /*
  */
-int CCurlTransfer::customProgressCallback(void* _pUserData, fp8 _downTotal,
-                                          fp8 _downNow, fp8 _upTotal,
-                                          fp8 _upNow)
+int CCurlTransfer::customProgressCallback(void* _pUserData, double _downTotal,
+                                          double _downNow, double _upTotal,
+                                          double _upNow)
 {
     // g_Log->Info( "customProgressCallback()" );
 
@@ -337,7 +337,7 @@ bool CCurlTransfer::Perform(const std::string& _url)
     if (m_HttpCode != 200)
     {
         //	Check if the response code is allowed.
-        std::vector<uint32>::const_iterator it = std::find(
+        std::vector<uint32_t>::const_iterator it = std::find(
             m_AllowedResponses.begin(), m_AllowedResponses.end(), m_HttpCode);
         if (it == m_AllowedResponses.end())
         {
@@ -369,15 +369,15 @@ bool CCurlTransfer::Perform(const std::string& _url)
         }
     }
 
-    fp8 speedUp = 0;
-    fp8 speedDown = 0;
+    double speedUp = 0;
+    double speedDown = 0;
     if (!Verify(curl_easy_getinfo(m_pCurl, CURLINFO_SPEED_UPLOAD, &speedDown)))
         return false;
     if (!Verify(curl_easy_getinfo(m_pCurl, CURLINFO_SPEED_DOWNLOAD, &speedUp)))
         return false;
 
     std::stringstream statusres;
-    statusres << "~" << (uint32)((speedUp + speedDown) / 1000) << " kb/s";
+    statusres << "~" << (uint32_t)((speedUp + speedDown) / 1000) << " kb/s";
     m_AverageSpeed = statusres.str();
 
     g_Log->Info("Perform() complete");
@@ -473,8 +473,8 @@ bool CManager::IsAborted(void)
    progress.
 */
 void CManager::UpdateProgress(CCurlTransfer* _pTransfer,
-                              const fp8 _percentComplete,
-                              const fp8 _bytesTransferred)
+                              const double _percentComplete,
+                              const double _bytesTransferred)
 {
     boost::mutex::scoped_lock locker(m_Lock);
 
@@ -487,7 +487,7 @@ void CManager::UpdateProgress(CCurlTransfer* _pTransfer,
     tmp << _pTransfer->Name() << " (" << _pTransfer->Status() << ")";
     if (_pTransfer->Status() == "Active")
     {
-        tmp << ": " << (int32)_percentComplete << "%";
+        tmp << ": " << (int32_t)_percentComplete << "%";
         if (_bytesTransferred > 1024 * 1024)
             tmp << std::fixed << std::setprecision(1) << " ("
                 << (_bytesTransferred / (1024.0 * 1024)) << " MB)";
@@ -560,12 +560,12 @@ std::string CManager::Encode(const std::string& _src)
 {
     g_Log->Info("Encode()");
 
-    const uint8 dec2hex[16 + 1] = "0123456789ABCDEF";
-    const uint8* pSrc = (const uint8*)_src.c_str();
+    const uint8_t dec2hex[16 + 1] = "0123456789ABCDEF";
+    const uint8_t* pSrc = (const uint8_t*)_src.c_str();
     const size_t srcLen = _src.length();
-    uint8* const pStart = new uint8[srcLen * 3];
-    uint8* pEnd = pStart;
-    const uint8* const srcEnd = pSrc + srcLen;
+    uint8_t* const pStart = new uint8_t[srcLen * 3];
+    uint8_t* pEnd = pStart;
+    const uint8_t* const srcEnd = pSrc + srcLen;
 
     for (; pSrc < srcEnd; ++pSrc)
     {

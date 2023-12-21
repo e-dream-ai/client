@@ -50,11 +50,11 @@ static void RecreateProcess(std::string parameters)
 
 class CProcessForker
 {
-    static const uint32 m_BUFSIZE = 8192;
+    static const uint32_t m_BUFSIZE = 8192;
 
     //	Safety.
-    static const uint32 m_NAMESIZE = 32;
-    static const uint32 m_VALUESIZE = 256;
+    static const uint32_t m_NAMESIZE = 32;
+    static const uint32_t m_VALUESIZE = 256;
 
     bool m_bTerminate;
     bool m_bWaiting;
@@ -174,7 +174,7 @@ class CProcessForker
                             (LPVOID)m_pEnv, (CHAR*)m_pAppDir, &si, &pi))
         {
             CHAR msg[MAX_PATH + 1];
-            int32 err = GetLastError();
+            int32_t err = GetLastError();
 
             FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM |
                                FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -246,7 +246,7 @@ class CProcessForker
     }*/
 
     //
-    int32 Wait()
+    int32_t Wait()
     {
         m_bWaiting = true;
         bool bExitWhile = false;
@@ -321,14 +321,14 @@ class CProcessForker
 
 class CProcessForker
 {
-    static const uint32 m_BUFSIZE = 8192;
+    static const uint32_t m_BUFSIZE = 8192;
 
     //	Safety.
-    static const uint32 m_NAMESIZE = 32;
-    static const uint32 m_VALUESIZE = 256;
+    static const uint32_t m_NAMESIZE = 32;
+    static const uint32_t m_VALUESIZE = 256;
 
-    static const uint32 m_MaxEnvCount = 256;
-    static const uint32 m_MaxParamCount = 20;
+    static const uint32_t m_MaxEnvCount = 256;
+    static const uint32_t m_MaxParamCount = 20;
 
     bool m_bTerminate;
     int m_ChildPID;
@@ -337,8 +337,8 @@ class CProcessForker
 
     char* m_pEnv[m_MaxEnvCount + 1];
     char* m_pParam[m_MaxParamCount + 1];
-    uint32 m_EnvSize;
-    uint32 m_ParamSize;
+    uint32_t m_EnvSize;
+    uint32_t m_ParamSize;
 
   public:
     CProcessForker(const char* _pProcessName, bool _bTerminate = true,
@@ -349,7 +349,7 @@ class CProcessForker
         m_EnvSize = 0;
 
         char* procName = NULL;
-        uint32 paramSize = 0;
+        uint32_t paramSize = 0;
 
         if (_pProcessName != NULL)
         {
@@ -372,12 +372,12 @@ class CProcessForker
             Terminate();
         }
 
-        for (uint32 i = 0; i < m_EnvSize; i++)
+        for (uint32_t i = 0; i < m_EnvSize; i++)
         {
             SAFE_DELETE_ARRAY(m_pEnv[i]);
         }
 
-        for (uint32 i = 0; i < m_ParamSize; i++)
+        for (uint32_t i = 0; i < m_ParamSize; i++)
         {
             SAFE_DELETE_ARRAY(m_pParam[i]);
         }
@@ -457,7 +457,7 @@ class CProcessForker
     }
 
     //
-    int32 Wait()
+    int32_t Wait()
     {
         if (m_ChildPID == -1)
             return 0;

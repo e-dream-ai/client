@@ -8,7 +8,7 @@
 
         try
         {
-                uint32	value = something.Function();
+                uint32_t	value = something.Function();
 
                 if( value == 0 )
                         ThrowStr( "Something returned 0!" );
@@ -36,7 +36,7 @@ namespace Base
 */
 class CException
 {
-    CException(const char* _sz, const char* _szFile, const uint32 _line)
+    CException(const char* _sz, const char* _szFile, const uint32_t _line)
     {
         m_File = _szFile;
         m_String = _sz;
@@ -44,7 +44,7 @@ class CException
     }
 
     CException(const std::string& _s, const char* const _szFile,
-               const uint32 _line)
+               const uint32_t _line)
     {
         m_File = _szFile;
         m_String = _s;
@@ -53,7 +53,7 @@ class CException
 
     std::string m_String;
     std::string m_File;
-    uint32 m_Line;
+    uint32_t m_Line;
 
     // for PrintfToStatic :
     static std::string m_ArgString;
@@ -65,20 +65,21 @@ class CException
     std::string Text(void) const;
 
     //
-    static void Throw(const char* _sz, const char* _szFile, const uint32 _line)
+    static void Throw(const char* _sz, const char* _szFile,
+                      const uint32_t _line)
     {
         throw(CException(_sz, _szFile, _line));
     }
 
     //
     static void Throw(const std::string& _s, const char* _szFile,
-                      const uint32 _line)
+                      const uint32_t _line)
     {
         throw(CException(_s, _szFile, _line));
     }
 
     //
-    static void Throw(char* _szFile, const uint32 _line)
+    static void Throw(char* _szFile, const uint32_t _line)
     {
         throw(CException(m_ArgString, _szFile, _line));
     }
@@ -90,7 +91,7 @@ class CException
 }; // namespace Base
 
 //	Throw an exception with arguments. For example: ThrowArgs( ("Bad ass
-// number %d", 42) );  DON´T FORGET THE EXTRA ()!
+// number %d", 42) );  DONï¿½T FORGET THE EXTRA ()!
 #define ThrowArgs(varargs)                                                     \
     Base::CException::CollectArguments varargs,                                \
         Base::CException::Throw(__FILE__, __LINE__)

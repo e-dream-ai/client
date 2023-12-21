@@ -47,7 +47,7 @@ class SheepDownloader
 
     // boolean for message checks
     bool fHasMessage;
-    static uint32 fCurrentGeneration;
+    static uint32_t fCurrentGeneration;
 
     static time_t fLastListTime;
 
@@ -75,7 +75,7 @@ class SheepDownloader
     void clearFlocks();
 
     //	Delete enough sheep to clear enough room for the given amount of bytes.
-    void deleteCached(const uint64& bytes, const int getGenerationType);
+    void deleteCached(const uint64_t& bytes, const int getGenerationType);
 
     bool isFolderAccessible(const char* folder);
 
@@ -87,7 +87,7 @@ class SheepDownloader
     void setHasMessage(const bool& hasMessage) { fHasMessage = hasMessage; }
     bool hasMessage() const { return fHasMessage; }
 
-    void setCurrentGeneration(const uint32& generation)
+    void setCurrentGeneration(const uint32_t& generation)
     {
         fCurrentGeneration = generation;
     }
@@ -115,7 +115,7 @@ class SheepDownloader
 
     static int numberOfDownloadedSheep();
 
-    static uint32 currentGeneration() { return fCurrentGeneration; }
+    static uint32_t currentGeneration() { return fCurrentGeneration; }
 
     static bool getSheepList();
     static const SheepArray& getServerFlock() { return fServerFlock; }
@@ -124,7 +124,7 @@ class SheepDownloader
     // add to the number of downloaded sheep (called by torrent)
     static void addDownloadedSheep(int sheep) { fDownloadedSheep += sheep; }
 
-    void deleteSheepId(uint32 sheepId);
+    void deleteSheepId(uint32_t sheepId);
 
     // Aborts the working thread
     void Abort(void);

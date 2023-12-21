@@ -60,13 +60,13 @@ static void AVCodecLogCallback(void* /*_avcl*/, int _level, const char* _fmt,
 */
 CContentDecoder::CContentDecoder(spCPlaylist _spPlaylist, bool _bStartByRandom,
                                  bool _bCalculateTransitions,
-                                 const uint32 _queueLenght,
+                                 const uint32_t _queueLenght,
                                  boost::shared_mutex& _downloadSaveMutex,
                                  AVPixelFormat _wantedFormat)
 {
     g_Log->Info("CContentDecoder()");
-    m_FadeCount =
-        static_cast<uint32>(g_Settings()->Get("settings.player.fadecount", 30));
+    m_FadeCount = static_cast<uint32_t>(
+        g_Settings()->Get("settings.player.fadecount", 30));
     //	We want errors!
     av_log_set_level(AV_LOG_ERROR);
 
@@ -223,13 +223,13 @@ bool CContentDecoder::Open(sOpenVideoInfo* ovi)
 
     //	Find video stream;
     ovi->m_VideoStreamID = -1;
-    for (uint32 i = 0; i < ovi->m_pFormatContext->nb_streams; i++)
+    for (uint32_t i = 0; i < ovi->m_pFormatContext->nb_streams; i++)
     {
         if (ovi->m_pFormatContext->streams[i]->codecpar->codec_type ==
             AVMEDIA_TYPE_VIDEO)
         {
             ovi->m_pVideoStream = ovi->m_pFormatContext->streams[i];
-            ovi->m_VideoStreamID = static_cast<int32>(i);
+            ovi->m_VideoStreamID = static_cast<int32_t>(i);
             break;
         }
     }
@@ -302,9 +302,9 @@ bool CContentDecoder::Open(sOpenVideoInfo* ovi)
 
     if (ovi->m_pVideoStream->nb_frames > 0)
         ovi->m_totalFrameCount =
-            static_cast<uint32>(ovi->m_pVideoStream->nb_frames);
+            static_cast<uint32_t>(ovi->m_pVideoStream->nb_frames);
     else
-        ovi->m_totalFrameCount = uint32((
+        ovi->m_totalFrameCount = uint32_t((
             (((double)ovi->m_pFormatContext->duration / (double)AV_TIME_BASE)) /
                 av_q2d(ovi->m_pVideoStream->avg_frame_rate) +
             .5));
@@ -314,8 +314,9 @@ bool CContentDecoder::Open(sOpenVideoInfo* ovi)
     if (ovi->m_iCurrentFileFrameCount)
     {
         AVRational timeBase = ovi->m_pFormatContext->streams[0]->time_base;
-        int64_t targetTimestamp = av_rescale_q(
-            (int64)ovi->m_iCurrentFileFrameCount, {1, AV_TIME_BASE}, timeBase);
+        int64_t targetTimestamp =
+            av_rescale_q((int64_t)ovi->m_iCurrentFileFrameCount,
+                         {1, AV_TIME_BASE}, timeBase);
         int seek = av_seek_frame(ovi->m_pFormatContext, ovi->m_VideoStreamID,
                                  targetTimestamp, 0);
         avcodec_flush_buffers(ovi->m_pVideoCodecContext);
@@ -362,12 +363,12 @@ void CContentDecoder::Close()
 
 /*
  */
-/*void	CContentDecoder::Size( uint32 &_width, uint32 &_height )
+/*void	CContentDecoder::Size( uint32_t &_width, uint32_t &_height )
 {
         if( m_pVideoCodecContext[ m_CurrentLayer ] )
         {
-                _width = (uint32)m_pVideoCodecContext[ m_CurrentLayer ]->width;
-                _height = (uint32)m_pVideoCodecContext[ m_CurrentLayer
+                _width = (uint32_t)m_pVideoCodecContext[ m_CurrentLayer ]->width;
+                _height = (uint32_t)m_pVideoCodecContext[ m_CurrentLayer
 ]->height;
         }
 }*/
@@ -407,7 +408,7 @@ sOpenVideoInfo* CContentDecoder::GetNextSheepInfo()
         Next().
         Advance to next playlist entry.
 */
-bool CContentDecoder::NextSheepForPlaying(int32 _forceNext)
+bool CContentDecoder::NextSheepForPlaying(int32_t _forceNext)
 {
 
     if (m_spPlaylist == NULL)
@@ -428,7 +429,7 @@ bool CContentDecoder::NextSheepForPlaying(int32 _forceNext)
 
         if (_forceNext < 0)
         {
-            uint32 _numPrevious = (uint32)(-_forceNext);
+            uint32_t _numPrevious = (uint32_t)(-_forceNext);
 
             if (m_SheepHistoryQueue.size() > 0)
             {
@@ -437,7 +438,7 @@ bool CContentDecoder::NextSheepForPlaying(int32 _forceNext)
 
                 std::string name;
 
-                for (uint32 i = 0; i < _numPrevious; i++)
+                for (uint32_t i = 0; i < _numPrevious; i++)
                 {
                     while (m_SheepHistoryQueue.pop(name, false, false))
                     {
@@ -533,7 +534,7 @@ void CContentDecoder::CalculateNextSheep()
     try
     {
 
-        uint32 _curID = 0;
+        uint32_t _curID = 0;
 
         bool bRebuild = true;
 
@@ -720,8 +721,8 @@ CVideoFrame* CContentDecoder::ReadOneFrame(sOpenVideoInfo* ovi)
         {
             //    If the decoded video has a different resolution, delete the
             //    scaler to trigger it to be recreated.
-            if (m_ScalerWidth != (uint32)pVideoCodecContext->width ||
-                m_ScalerHeight != (uint32)pVideoCodecContext->height)
+            if (m_ScalerWidth != (uint32_t)pVideoCodecContext->width ||
+                m_ScalerHeight != (uint32_t)pVideoCodecContext->height)
             {
                 g_Log->Info("size doesn't match, recreating");
 
@@ -744,8 +745,9 @@ CVideoFrame* CContentDecoder::ReadOneFrame(sOpenVideoInfo* ovi)
                     SWS_BICUBIC, NULL, NULL, NULL);
 
                 //    Store width & height now...
-                m_ScalerWidth = static_cast<uint32>(pVideoCodecContext->width);
-                m_ScalerHeight = (uint32)pVideoCodecContext->height;
+                m_ScalerWidth =
+                    static_cast<uint32_t>(pVideoCodecContext->width);
+                m_ScalerHeight = (uint32_t)pVideoCodecContext->height;
 
                 if (m_pScaler == NULL)
                     g_Log->Warning("scaler == null");
@@ -782,15 +784,15 @@ CVideoFrame* CContentDecoder::ReadOneFrame(sOpenVideoInfo* ovi)
                 --m_FadeOut;
                 if (m_FadeOut == 0)
                     m_FadeIn = 0;
-                pVideoFrame->SetMetaData_Fade(fp4(m_FadeOut) /
-        fp4(m_FadeCount));
+                pVideoFrame->SetMetaData_Fade(float(m_FadeOut) /
+        float(m_FadeCount));
                 //g_Log->Info("FADING fadeout %u fadein %u framecount %u",
         m_FadeOut, m_FadeIn, m_iCurrentFileFrameCount);
             }
             if (m_FadeIn < m_FadeCount)
             {
                 ++m_FadeIn;
-                pVideoFrame->SetMetaData_Fade(fp4(m_FadeIn) / fp4(m_FadeCount));
+                pVideoFrame->SetMetaData_Fade(float(m_FadeIn) / float(m_FadeCount));
                 //g_Log->Info("FADING fadeout %u fadein %u framecount %u",
         m_FadeOut, m_FadeIn, m_iCurrentFileFrameCount);
             }
@@ -854,7 +856,7 @@ void CContentDecoder::ReadPackets()
 
             PROFILER_BEGIN("Decoder Frame");
 
-            int32 nextForced = NextForced();
+            int32_t nextForced = NextForced();
 
             if (nextForced != 0)
                 ForceNext(0);
@@ -886,9 +888,9 @@ void CContentDecoder::ReadPackets()
                         if (m_SecondVideoInfo->m_iCurrentFileFrameCount <
                             kTransitionFrameLength)
                             pMainVideoFrame->SetMetaData_TransitionProgress(
-                                (fp4)m_SecondVideoInfo
+                                (float)m_SecondVideoInfo
                                     ->m_iCurrentFileFrameCount *
-                                100.f / ((fp4)kTransitionFrameLength - 1.f));
+                                100.f / ((float)kTransitionFrameLength - 1.f));
                         else
                             pMainVideoFrame->SetMetaData_TransitionProgress(
                                 100.f);
@@ -982,8 +984,8 @@ bool CContentDecoder::Start()
     }
 
     // abs is a protection against malicious negative numbers giving large
-    // integer when converted to uint32
-    m_LoopIterations = static_cast<uint32>(
+    // integer when converted to uint32_t
+    m_LoopIterations = static_cast<uint32_t>(
         g_Settings()->Get("settings.player.LoopIterations", 2));
 
     //	Start by opening, so we have a context to work with.
@@ -1050,7 +1052,7 @@ void CContentDecoder::Stop()
     }
 }
 
-void CContentDecoder::ClearQueue(uint32 leave)
+void CContentDecoder::ClearQueue(uint32_t leave)
 {
     while (m_FrameQueue.size() > leave)
     {
@@ -1065,11 +1067,14 @@ void CContentDecoder::ClearQueue(uint32 leave)
 
 /*
  */
-uint32 CContentDecoder::QueueLength() { return (uint32)m_FrameQueue.size(); }
+uint32_t CContentDecoder::QueueLength()
+{
+    return (uint32_t)m_FrameQueue.size();
+}
 
 /*
  */
-void CContentDecoder::ForceNext(int32 forced)
+void CContentDecoder::ForceNext(int32_t forced)
 {
     upgrade_lock<boost::shared_mutex> lock(m_ForceNextMutex);
     m_bForceNext = forced;
@@ -1077,7 +1082,7 @@ void CContentDecoder::ForceNext(int32 forced)
 
 /*
  */
-int32 CContentDecoder::NextForced(void)
+int32_t CContentDecoder::NextForced(void)
 {
     shared_lock<boost::shared_mutex> lock(m_ForceNextMutex);
     return m_bForceNext;

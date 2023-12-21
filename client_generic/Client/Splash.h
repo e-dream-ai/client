@@ -18,7 +18,7 @@ class CSplash : public CHudEntry
     Base::Math::CFastBezier *m_pAlphaBezier, *m_pSizeBezier;
 
   public:
-    CSplash(const fp4 _size, const std::string& _texture)
+    CSplash(const float _size, const std::string& _texture)
         : CHudEntry(Base::Math::CRect(_size, _size))
     {
         DisplayOutput::spCImage tmpImage(new DisplayOutput::CImage());
@@ -29,7 +29,7 @@ class CSplash : public CHudEntry
         }
 
         //	Adjust aspect...
-        fp4 aspect = g_Player().Display()->Aspect();
+        float aspect = g_Player().Display()->Aspect();
         m_Rect.m_X0 = 0;
         m_Rect.m_X1 = _size * aspect;
         m_Rect.m_Y0 = 0;
@@ -50,7 +50,7 @@ class CSplash : public CHudEntry
     //	Override to make it always visible.
     virtual bool Visible() const { return true; };
 
-    bool Render(const fp8 _time, DisplayOutput::spCRenderer _spRenderer)
+    bool Render(const double _time, DisplayOutput::spCRenderer _spRenderer)
     {
         if (!CHudEntry::Render(_time, _spRenderer))
             return false;
@@ -67,7 +67,7 @@ class CSplash : public CHudEntry
         spRenderer->Apply();
 
         Base::Math::CRect r = m_Rect;
-        const fp4 s = m_pSizeBezier->Sample(fp4(m_Delta));
+        const float s = m_pSizeBezier->Sample(float(m_Delta));
         r.m_X0 = 0.5f - (m_Rect.Width() * s);
         r.m_Y0 = 0.5f - (m_Rect.Height() * s);
         r.m_X1 = 0.5f + (m_Rect.Width() * s);
@@ -77,7 +77,7 @@ class CSplash : public CHudEntry
             r,
             Base::Math::CVector4(
                 1, 1, 1,
-                Base::Math::saturate(m_pAlphaBezier->Sample(fp4(m_Delta)))),
+                Base::Math::saturate(m_pAlphaBezier->Sample(float(m_Delta)))),
             m_spTexture->GetRect());
 
         return true;
@@ -89,13 +89,13 @@ MakeSmartPointers(CSplash);
 class CSplashImage : public CHudEntry
 {
     DisplayOutput::spCTextureFlat m_spTexture;
-    fp4 m_FadeinTime;
-    fp4 m_HoldTime;
-    fp4 m_FadeoutTime;
+    float m_FadeinTime;
+    float m_HoldTime;
+    float m_FadeoutTime;
 
   public:
-    CSplashImage(const fp4 _size, const std::string& _texture, fp4 fadeintime,
-                 fp4 holdtime, fp4 fadeouttime)
+    CSplashImage(const float _size, const std::string& _texture,
+                 float fadeintime, float holdtime, float fadeouttime)
         : CHudEntry(Base::Math::CRect(_size, _size))
     {
         DisplayOutput::spCImage tmpImage =
@@ -107,7 +107,7 @@ class CSplashImage : public CHudEntry
         }
 
         //	Adjust aspect...
-        fp4 aspect = g_Player().Display()->Aspect();
+        float aspect = g_Player().Display()->Aspect();
         m_Rect.m_X0 = 0;
         m_Rect.m_X1 = _size * aspect;
         m_Rect.m_Y0 = 0;
@@ -125,7 +125,7 @@ class CSplashImage : public CHudEntry
     //	Override to make it always visible.
     virtual bool Visible() const { return true; };
 
-    bool Render(const fp8 _time, DisplayOutput::spCRenderer _spRenderer)
+    bool Render(const double _time, DisplayOutput::spCRenderer _spRenderer)
     {
         if (!CHudEntry::Render(_time, _spRenderer))
             return false;
@@ -147,10 +147,10 @@ class CSplashImage : public CHudEntry
         r.m_X1 = 1.f;
         r.m_Y1 = 1.f;
 
-        fp8 alpha = 0.;
+        double alpha = 0.;
 
-        fp8 timepassed = fmod(_time, m_StartTime + m_FadeinTime + m_HoldTime +
-                                         m_FadeoutTime);
+        double timepassed = fmod(_time, m_StartTime + m_FadeinTime +
+                                            m_HoldTime + m_FadeoutTime);
         if (timepassed > m_StartTime + m_FadeinTime + m_HoldTime) // fadeout
         {
             alpha =
@@ -165,7 +165,7 @@ class CSplashImage : public CHudEntry
                 alpha = ((timepassed - m_StartTime) / m_FadeinTime);
         }
 
-        spRenderer->DrawQuad(r, Base::Math::CVector4(1, 1, 1, fp4(alpha)),
+        spRenderer->DrawQuad(r, Base::Math::CVector4(1, 1, 1, float(alpha)),
                              m_spTexture->GetRect());
 
         return true;

@@ -13,8 +13,8 @@ class CVote
 {
     typedef struct
     {
-        uint32 vid;
-        uint8 vtype;
+        uint32_t vid;
+        uint8_t vtype;
     } VotingInfo;
 
     boost::thread* m_pThread;
@@ -24,13 +24,13 @@ class CVote
 
     void ThreadFunc();
 
-    fp8 m_Clock;
+    double m_Clock;
 
   public:
     CVote();
     virtual ~CVote();
 
-    bool Vote(const uint32 _id, const uint8 _type, const fp4 _duration);
+    bool Vote(const uint32_t _id, const uint8_t _type, const float _duration);
 };
 
 #endif

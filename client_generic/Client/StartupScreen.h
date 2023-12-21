@@ -19,11 +19,11 @@ class CStartupScreen : public CHudEntry
     DisplayOutput::spCTextureFlat m_spVideoTexture;
 
     Base::Math::CRect m_LogoSize;
-    fp4 m_MoveMessageCounter;
+    float m_MoveMessageCounter;
 
   public:
     CStartupScreen(Base::Math::CRect _rect, const std::string& _FontName,
-                   const uint32 _fontHeight)
+                   const uint32_t _fontHeight)
         : CHudEntry(_rect)
     {
         DisplayOutput::CFontDescription fontDesc;
@@ -54,7 +54,7 @@ class CStartupScreen : public CHudEntry
                 "logo.png",
             false);
 #endif
-        fp4 aspect = g_Player().Display()->Aspect();
+        float aspect = g_Player().Display()->Aspect();
         m_LogoSize.m_X0 = 0.f;
         m_LogoSize.m_X1 = 0.2f * aspect;
         m_LogoSize.m_Y0 = 0.f;
@@ -72,7 +72,7 @@ class CStartupScreen : public CHudEntry
         m_spText->SetEnabled(_bState);
     }
 
-    bool Render(const fp8 _time, DisplayOutput::spCRenderer _spRenderer)
+    bool Render(const double _time, DisplayOutput::spCRenderer _spRenderer)
     {
         CHudEntry::Render(_time, _spRenderer);
 
@@ -113,9 +113,9 @@ class CStartupScreen : public CHudEntry
 
         // draw text
 
-        // fp4 step = (fp4)m_Desc.Height() /
-        // (fp4)_spRenderer->Display()->Height();
-        fp4 edge = 24 / (fp4)_spRenderer->Display()->Width();
+        // float step = (float)m_Desc.Height() /
+        // (float)_spRenderer->Display()->Height();
+        float edge = 24 / (float)_spRenderer->Display()->Width();
 
         Base::Math::CRect extent;
         Base::Math::CVector2 size = m_spText->GetExtent();
@@ -129,7 +129,7 @@ class CStartupScreen : public CHudEntry
         {
             m_MoveMessageCounter += 0.0005f;
             if (m_MoveMessageCounter >= 1.f)
-                m_MoveMessageCounter -= 1.f + edge * 2 + fp4(size.m_Y);
+                m_MoveMessageCounter -= 1.f + edge * 2 + float(size.m_Y);
         }
 
         //	Draw quad.

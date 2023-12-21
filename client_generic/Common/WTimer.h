@@ -15,10 +15,10 @@ namespace Base
 */
 class CWTimer : public ITimer
 {
-    fp8 m_Time;           //	Current time in seconds.
-    int64 m_TimeCounter;  //	Raw 64bit timer counter for time.
-    int64 m_DeltaCounter; //	Raw 64bit timer counter for delta.
-    int64 m_Frequency;    //	Raw 64bit timer frequency.
+    double m_Time;          //	Current time in seconds.
+    int64_t m_TimeCounter;  //	Raw 64bit timer counter for time.
+    int64_t m_DeltaCounter; //	Raw 64bit timer counter for delta.
+    int64_t m_Frequency;    //	Raw 64bit timer frequency.
 
   public:
     CWTimer()
@@ -34,26 +34,26 @@ class CWTimer : public ITimer
         m_Time = 0;
     }
 
-    fp8 Time()
+    double Time()
     {
-        int64 counter;
+        int64_t counter;
         QueryPerformanceCounter((LARGE_INTEGER*)&counter);
-        m_Time += (fp8)(counter - m_TimeCounter) / (fp8)m_Frequency;
+        m_Time += (double)(counter - m_TimeCounter) / (double)m_Frequency;
         m_TimeCounter = counter;
         return m_Time;
     }
 
-    fp8 Delta()
+    double Delta()
     {
-        int64 counter;
+        int64_t counter;
         QueryPerformanceCounter((LARGE_INTEGER*)&counter);
         m_DeltaCounter = counter;
-        return (fp8)(counter - m_DeltaCounter) / (fp8)m_Frequency;
+        return (double)(counter - m_DeltaCounter) / (double)m_Frequency;
     }
 
-    fp8 Resolution() { return 1.0 / (fp8)m_Frequency; }
+    double Resolution() { return 1.0 / (double)m_Frequency; }
 
-    static void Wait(const fp8 _seconds) { Sleep(int32(_seconds * 1000)); }
+    static void Wait(const double _seconds) { Sleep(int32_t(_seconds * 1000)); }
 };
 
 typedef CWTimer CTimer;

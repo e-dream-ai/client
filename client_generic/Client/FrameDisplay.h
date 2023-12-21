@@ -21,22 +21,22 @@
 class CFrameDisplay
 {
     //	To keep track of in-between frame times.
-    fp8 m_Clock;
-    fp8 m_Acc;
-    fp8 m_T;
+    double m_Clock;
+    double m_Acc;
+    double m_T;
 
-    fp4 m_LastAlpha;
+    float m_LastAlpha;
 
-    fp8 m_LastTexMoveClock;
+    double m_LastTexMoveClock;
 
-    fp4 m_CurTexMoveOff;
+    float m_CurTexMoveOff;
 
-    fp4 m_CurTexMoveDir;
+    float m_CurTexMoveDir;
 
-    const fp8 TEX_MOVE_SECS = 60.f * 30.f; // 30 minutes
+    const double TEX_MOVE_SECS = 60.f * 30.f; // 30 minutes
 
   protected:
-    fp8 m_FadeCount;
+    double m_FadeCount;
 
     ContentDecoder::sMetaData m_MetaData;
     //	Temporary storage for decoded videoframe.
@@ -185,14 +185,14 @@ class CFrameDisplay
     }
 
     //	Do some math to figure out the delta between frames...
-    bool UpdateInterframeDelta(const fp8 _fpsCap)
+    bool UpdateInterframeDelta(const double _fpsCap)
     {
-        fp8 newTime = m_Timer.Time();
-        fp8 deltaTime = newTime - m_Clock;
+        double newTime = m_Timer.Time();
+        double deltaTime = newTime - m_Clock;
         m_Clock = newTime;
         m_Acc += deltaTime;
 
-        const fp8 dt = 1.0 / (fp8)_fpsCap;
+        const double dt = 1.0 / (double)_fpsCap;
         bool bCrossedFrame = false;
 
         //	Accumulated time is longer than the requested framerate, we
@@ -222,7 +222,7 @@ class CFrameDisplay
         m_Acc = 0;
     }
 
-    fp8 m_InterframeDelta;
+    double m_InterframeDelta;
     bool m_bValid;
 
   public:
@@ -238,7 +238,8 @@ class CFrameDisplay
         m_spImageRef = std::make_shared<DisplayOutput::CImage>();
         m_spSecondImageRef = std::make_shared<DisplayOutput::CImage>();
         m_bValid = true;
-        m_FadeCount = (fp8)g_Settings()->Get("settings.player.fadecount", 30);
+        m_FadeCount =
+            (double)g_Settings()->Get("settings.player.fadecount", 30);
 
         m_bPreserveAR = g_Settings()->Get("settings.player.preserve_AR", false);
         m_texRect = Base::Math::CRect(1, 1);
@@ -262,7 +263,7 @@ class CFrameDisplay
     bool Valid() { return m_bValid; };
 
     //
-    void SetDisplaySize(const uint32 _w, const uint32 _h)
+    void SetDisplaySize(const uint32_t _w, const uint32_t _h)
     {
         m_dispSize = Base::Math::CRect(_w, _h);
         m_CurTexMoveOff = 0.f;
@@ -270,10 +271,10 @@ class CFrameDisplay
 
     //	Decode a frame, and render it.
     virtual bool Update(ContentDecoder::spCContentDecoder _spDecoder,
-                        const fp8 _decodeFps, const fp8 /*_displayFps*/,
+                        const double _decodeFps, const double /*_displayFps*/,
                         ContentDecoder::sMetaData& _metadata)
     {
-        fp4 currentalpha = m_LastAlpha;
+        float currentalpha = m_LastAlpha;
         bool isSeam = false;
 
         // making static analyzer happy...
@@ -307,7 +308,7 @@ class CFrameDisplay
         }
         else
         {
-            currentalpha = (fp4)Base::Math::Clamped(
+            currentalpha = (float)Base::Math::Clamped(
                 m_LastAlpha +
                     Base::Math::Clamped(m_InterframeDelta / m_FadeCount, 0.,
                                         1. / m_FadeCount),
@@ -329,7 +330,7 @@ class CFrameDisplay
         m_spRenderer->Apply();
 
         // UpdateInterframeDelta( _decodeFps );
-        fp4 transCoef = m_MetaData.m_TransitionProgress / 100.0f;
+        float transCoef = m_MetaData.m_TransitionProgress / 100.0f;
 
         UpdateTexRect(m_spVideoTexture->GetRect());
 
@@ -353,7 +354,7 @@ class CFrameDisplay
         return true;
     }
 
-    virtual fp8 GetFps(fp8 /*_decodeFps*/, fp8 _displayFps)
+    virtual double GetFps(double /*_decodeFps*/, double _displayFps)
     {
         return _displayFps;
     }
@@ -370,8 +371,8 @@ class CFrameDisplay
 
         bool landscape = true;
 
-        fp4 r1 = (fp4)m_dispSize.Width() / (fp4)m_dispSize.Height();
-        fp4 r2 = texDim.Width() / texDim.Height();
+        float r1 = (float)m_dispSize.Width() / (float)m_dispSize.Height();
+        float r2 = texDim.Width() / texDim.Height();
 
         if (r2 > r1)
         {
@@ -380,11 +381,11 @@ class CFrameDisplay
             landscape = false;
         }
 
-        fp4 bars = (r1 - r2) / (2 * r1);
+        float bars = (r1 - r2) / (2 * r1);
 
         if (bars > 0)
         {
-            fp8 acttm = m_Timer.Time();
+            double acttm = m_Timer.Time();
 
             if (m_LastTexMoveClock < 0)
             {
@@ -397,7 +398,7 @@ class CFrameDisplay
                 m_LastTexMoveClock = acttm;
             }
 
-            fp4 *a = NULL, *b = NULL;
+            float *a = NULL, *b = NULL;
 
             if (landscape)
             {

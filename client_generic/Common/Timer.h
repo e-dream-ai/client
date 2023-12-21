@@ -13,10 +13,10 @@ class ITimer
   public:
     virtual ~ITimer(){};
     virtual void Reset() = PureVirtual;
-    virtual fp8 Time() = PureVirtual;
-    virtual fp8 Delta() = PureVirtual;
-    virtual fp8 Resolution() = PureVirtual;
-    // virtual void	Wait( fp8 seconds ) = PureVirtual;
+    virtual double Time() = PureVirtual;
+    virtual double Delta() = PureVirtual;
+    virtual double Resolution() = PureVirtual;
+    // virtual void	Wait( double seconds ) = PureVirtual;
 };
 
 }; // namespace Base
@@ -38,8 +38,8 @@ namespace Base
 
 class CTimer : public ITimer
 {
-        fp8		m_Time;				//	Current time in
-seconds. fp8		m_Resolution;		//	Timer resolution in
+        double		m_Time;				//	Current time in
+seconds. double		m_Resolution;		//	Timer resolution in
 seconds. clock_t	m_TimeCounter;		//	Time counter in clocks.
         clock_t	m_DeltaCounter;		//	Delta counter in clocks.
 
@@ -57,24 +57,24 @@ seconds. clock_t	m_TimeCounter;		//	Time counter in clocks.
                                 m_DeltaCounter = m_TimeCounter;
                         }
 
-                        fp8	Time()
+                        double	Time()
                         {
                                 clock_t counter = std::clock();
-                                fp8	delta = ( counter - m_TimeCounter ) *
+                                double	delta = ( counter - m_TimeCounter ) *
 m_Resolution; m_TimeCounter = counter; m_Time += delta; return m_Time;
                         }
 
-                        fp8	Delta()
+                        double	Delta()
                         {
                                 clock_t counter = std::clock();
-                                fp8 delta = ( counter - m_DeltaCounter ) *
+                                double delta = ( counter - m_DeltaCounter ) *
 m_Resolution; m_DeltaCounter = counter; return delta;
                         }
 
-                        fp8	Resolution()	{	return m_Resolution;
+                        double	Resolution()	{	return m_Resolution;
 }
 
-                        static void Wait( fp8 _seconds )
+                        static void Wait( double _seconds )
                         {
                                 clock_t start = std::clock();
                                 clock_t finish = start + clock_t( _seconds /

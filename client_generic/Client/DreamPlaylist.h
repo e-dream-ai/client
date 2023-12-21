@@ -34,21 +34,21 @@ class CDreamPlaylist : public CPlaylist
 
     //	Path to folder to monitor & update interval in seconds.
     path m_Path;
-    fp8 m_NormalInterval;
-    fp8 m_EmptyInterval;
-    fp8 m_Clock;
+    double m_NormalInterval;
+    double m_EmptyInterval;
+    double m_Clock;
 
     Base::CTimer m_Timer;
 
     bool m_AutoMedian;
     bool m_RandomMedian;
-    fp8 m_MedianLevel;
-    uint64 m_FlockMBs;
-    uint64 m_FlockGoldMBs;
+    double m_MedianLevel;
+    uint64_t m_FlockMBs;
+    uint64_t m_FlockGoldMBs;
     std::queue<std::string> m_List;
     std::queue<std::string> m_FreshList;
 
-    void AutoMedianLevel(uint64 megabytes)
+    void AutoMedianLevel(uint64_t megabytes)
     {
         if (megabytes < 100)
         {
@@ -62,7 +62,7 @@ class CDreamPlaylist : public CPlaylist
         }
         else
         {
-            m_MedianLevel = 13. / 12. - fp8(megabytes) / 1200.;
+            m_MedianLevel = 13. / 12. - double(megabytes) / 1200.;
             if (m_MedianLevel > 1.)
                 m_MedianLevel = 1.;
             if (m_MedianLevel < .25)
@@ -87,7 +87,7 @@ class CDreamPlaylist : public CPlaylist
         : CPlaylist() /*, m_UsedSheepType(_usedsheeptype)*/
     {
         m_NormalInterval =
-            fp8(g_Settings()->Get("settings.player.NormalInterval", 100));
+            double(g_Settings()->Get("settings.player.NormalInterval", 100));
         m_EmptyInterval = 10.0f;
         m_Clock = 0.0f;
         m_Path = _watchFolder.c_str();
@@ -104,12 +104,12 @@ class CDreamPlaylist : public CPlaylist
         return true;
     }
 
-    virtual uint32 Size()
+    virtual uint32_t Size()
     {
         boost::mutex::scoped_lock locker(m_Lock);
-        uint32 ret = 0;
-        ret = static_cast<uint32>(m_List.size());
-        return (uint32)ret;
+        uint32_t ret = 0;
+        ret = static_cast<uint32_t>(m_List.size());
+        return (uint32_t)ret;
     }
 
     virtual void Clear()
@@ -136,16 +136,16 @@ class CDreamPlaylist : public CPlaylist
         return !m_FreshList.empty();
     }
 
-    virtual bool Next(std::string& _result, bool& _bEnoughSheep, uint32 _curID,
-                      bool& _playFreshSheep, const bool _bRebuild = false,
-                      bool _bStartByRandom = true)
+    virtual bool Next(std::string& _result, bool& _bEnoughSheep,
+                      uint32_t _curID, bool& _playFreshSheep,
+                      const bool _bRebuild = false, bool _bStartByRandom = true)
     {
         boost::mutex::scoped_lock locker(m_Lock);
 
         // if ((_playFreshSheep = PlayFreshOnesFirst(_result)))
         // return true;
 
-        fp8 interval = m_EmptyInterval;
+        double interval = m_EmptyInterval;
 
         //	Update from directory if enough time has passed, or we're asked
         // to.
@@ -211,7 +211,7 @@ class CDreamPlaylist : public CPlaylist
         return false;
     }
 
-    virtual bool ChooseSheepForPlaying(uint32 curGen, uint32 curID)
+    virtual bool ChooseSheepForPlaying(uint32_t curGen, uint32_t curID)
     {
         g_PlayCounter().IncPlayCount(curGen, curID);
 
@@ -219,7 +219,7 @@ class CDreamPlaylist : public CPlaylist
     }
 
     //	Overrides the playlist to play _id next time.
-    void Override(const uint32 _id)
+    void Override(const uint32_t _id)
     {
         boost::mutex::scoped_lock locker(m_Lock);
         // m_pState->Pop( Base::Script::Call( m_pState->GetState(), "Override",
@@ -227,7 +227,7 @@ class CDreamPlaylist : public CPlaylist
     }
 
     //	Queues _id to be deleted.
-    void Delete(const uint32 _id)
+    void Delete(const uint32_t _id)
     {
         boost::mutex::scoped_lock locker(m_Lock);
         // m_pState->Pop( Base::Script::Call( m_pState->GetState(), "Delete",

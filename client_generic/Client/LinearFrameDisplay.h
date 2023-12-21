@@ -11,15 +11,15 @@
 */
 class CLinearFrameDisplay : public CFrameDisplay
 {
-    static const uint32 kMaxFrames = 2;
+    static const uint32_t kMaxFrames = 2;
 
-    fp4 m_LastAlpha;
+    float m_LastAlpha;
     //	Pixelshader.
     DisplayOutput::spCShader m_spShader;
 
     //	The two frames.
     DisplayOutput::spCTextureFlat m_spFrames[2 * kMaxFrames];
-    uint32 m_State;
+    uint32_t m_State;
 
     bool m_bWaitNextFrame;
 
@@ -146,10 +146,10 @@ class CLinearFrameDisplay : public CFrameDisplay
     //	Decode a frame every 1/_fpsCap seconds, store the previous frame, and
     // lerp between them.
     virtual bool Update(ContentDecoder::spCContentDecoder _spDecoder,
-                        const fp8 _decodeFps, const fp8 /*_displayFps*/,
+                        const double _decodeFps, const double /*_displayFps*/,
                         ContentDecoder::sMetaData& _metadata)
     {
-        fp4 currentalpha = m_LastAlpha;
+        float currentalpha = m_LastAlpha;
         bool frameGrabbed = false;
         bool isSeam = false;
 
@@ -190,7 +190,7 @@ class CLinearFrameDisplay : public CFrameDisplay
             }
             else
             {
-                currentalpha = (fp4)Base::Math::Clamped(
+                currentalpha = (float)Base::Math::Clamped(
                     m_LastAlpha +
                         Base::Math::Clamped(m_InterframeDelta / m_FadeCount, 0.,
                                             1. / m_FadeCount),
@@ -250,8 +250,8 @@ class CLinearFrameDisplay : public CFrameDisplay
                 }
             }
             texRect = m_spFrames[m_State]->GetRect();
-            m_spShader->Set("delta", (fp4)m_InterframeDelta);
-            m_spShader->Set("newalpha", (fp4)currentalpha);
+            m_spShader->Set("delta", (float)m_InterframeDelta);
+            m_spShader->Set("newalpha", (float)currentalpha);
             m_spShader->Set("transPct", m_MetaData.m_TransitionProgress);
             m_spRenderer->Apply();
 
@@ -265,7 +265,7 @@ class CLinearFrameDisplay : public CFrameDisplay
         return true;
     }
 
-    virtual fp8 GetFps(fp8 /*_decodeFps*/, fp8 _displayFps)
+    virtual double GetFps(double /*_decodeFps*/, double _displayFps)
     {
         return _displayFps;
     }

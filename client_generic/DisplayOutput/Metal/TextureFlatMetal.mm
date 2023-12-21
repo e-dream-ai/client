@@ -39,7 +39,7 @@ namespace DisplayOutput
 /*
  */
 CTextureFlatMetal::CTextureFlatMetal(CGraphicsContext _graphicsContext,
-                                     const uint32 _flags,
+                                     const uint32_t _flags,
                                      CRendererMetal* _pRenderer)
     : CTextureFlat(_flags), m_pGraphicsContext(_graphicsContext),
       m_pRenderer(_pRenderer)
@@ -168,7 +168,7 @@ bool CTextureFlatMetal::Upload(const uint8_t* _data, CImageFormat _format,
 
 /*
  */
-bool CTextureFlatMetal::Bind(const uint32 _index)
+bool CTextureFlatMetal::Bind(const uint32_t _index)
 {
     m_pRenderer->SetBoundSlot(_index, this);
     return true;
@@ -176,7 +176,7 @@ bool CTextureFlatMetal::Bind(const uint32 _index)
 
 /*
  */
-bool CTextureFlatMetal::Unbind(const uint32 _index) { return true; }
+bool CTextureFlatMetal::Unbind(const uint32_t _index) { return true; }
 
 bool CTextureFlatMetal::GetYUVMetalTextures(CVMetalTextureRef* _outYTexture,
                                             CVMetalTextureRef* _outUVTexture)

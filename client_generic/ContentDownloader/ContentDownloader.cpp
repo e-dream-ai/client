@@ -29,8 +29,8 @@ CContentDownloader::CContentDownloader() {}
 //
 static std::string generateID()
 {
-    uint8* salt;
-    uint32 u;
+    uint8_t* salt;
+    uint32_t u;
     char id[17];
     id[16] = 0;
 

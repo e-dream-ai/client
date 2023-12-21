@@ -61,7 +61,7 @@ bool CShaderDX::Apply()
 
             matWorldViewProj = matWorld * matView * matProj;
 
-            spUni->SetData((D3DMATRIX*)(const fp4*)matWorldViewProj.m_Mat,
+            spUni->SetData((D3DMATRIX*)(const float*)matWorldViewProj.m_Mat,
                            sizeof(D3DXMATRIX));
         }
     }
@@ -175,7 +175,7 @@ bool CShaderDX::Build(const char* _pVertexShader, const char* _pFragmentShader)
         D3DXCONSTANTTABLE_DESC vsDesc;
         m_pVertexConstants->GetDesc(&vsDesc);
 
-        for (uint32 i = 0; i < vsDesc.Constants; i++)
+        for (uint32_t i = 0; i < vsDesc.Constants; i++)
         {
             UINT count = 1;
             m_pVertexConstants->GetConstantDesc(
@@ -231,7 +231,7 @@ bool CShaderDX::Build(const char* _pVertexShader, const char* _pFragmentShader)
         D3DXCONSTANTTABLE_DESC psDesc;
         m_pFragmentConstants->GetDesc(&psDesc);
 
-        for (uint32 i = 0; i < psDesc.Constants; i++)
+        for (uint32_t i = 0; i < psDesc.Constants; i++)
         {
             UINT count = 1;
             m_pFragmentConstants->GetConstantDesc(
@@ -303,7 +303,7 @@ bool CShaderDX::Build(const char* _pVertexShader, const char* _pFragmentShader)
 
 /*
  */
-bool CShaderUniformDX::SetData(void* _pData, const uint32 _size)
+bool CShaderUniformDX::SetData(void* _pData, const uint32_t _size)
 {
     if (m_pData == NULL)
     {
@@ -312,22 +312,22 @@ bool CShaderUniformDX::SetData(void* _pData, const uint32 _size)
         switch (m_eType)
         {
         case eUniform_Sampler:
-            m_Size = sizeof(int32);
+            m_Size = sizeof(int32_t);
             break;
         case eUniform_Float:
-            m_Size = sizeof(fp4);
+            m_Size = sizeof(float);
             break;
         case eUniform_Float4:
-            m_Size = sizeof(fp4) * 4;
+            m_Size = sizeof(float) * 4;
             break;
         case eUniform_Int:
-            m_Size = sizeof(int32);
+            m_Size = sizeof(int32_t);
             break;
         case eUniform_Boolean:
             m_Size = sizeof(BOOL);
             break;
         case eUniform_Matrix4:
-            m_Size = sizeof(fp4) * 16;
+            m_Size = sizeof(float) * 16;
             break;
         default:
             g_Log->Warning("Unknown uniform type");
@@ -338,7 +338,7 @@ bool CShaderUniformDX::SetData(void* _pData, const uint32 _size)
         if (m_Size != _size)
             g_Log->Warning("hmm, uniform size != _size?");
 
-        m_pData = new uint8[m_Size];
+        m_pData = new uint8_t[m_Size];
         ZeroMemory(m_pData, m_Size);
     }
 
@@ -378,15 +378,15 @@ void CShaderUniformDX::Apply()
         break;
     case eUniform_Int:
         g_Log->Warning("eUniform_Int used in ShaderDX");
-        m_pDevice->SetPixelShaderConstantI(m_Index, (const int32*)m_pData,
-                                           m_Size / sizeof(int32) / 4);
+        m_pDevice->SetPixelShaderConstantI(m_Index, (const int32_t*)m_pData,
+                                           m_Size / sizeof(int32_t) / 4);
         break;
     case eUniform_Boolean:
         m_pDevice->SetPixelShaderConstantB(m_Index, (const BOOL*)m_pData,
                                            m_Size / sizeof(BOOL));
         break;
     case eUniform_Matrix4:
-        m_pDevice->SetVertexShaderConstantF(m_Index, (const fp4*)m_pData,
+        m_pDevice->SetVertexShaderConstantF(m_Index, (const float*)m_pData,
                                             m_Size / sizeof(float) / 4);
         break;
     }

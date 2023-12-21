@@ -28,10 +28,10 @@ class CSimplePlaylist : public CPlaylist
         return (true);
     }
 
-    virtual uint32 Size() { return static_cast<uint32>(m_List.size()); }
+    virtual uint32_t Size() { return static_cast<uint32_t>(m_List.size()); }
 
     virtual bool Next(std::string& _result, bool& _bEnoughSheep,
-                      uint32 /*_curID*/, bool& _playFreshSheep,
+                      uint32_t /*_curID*/, bool& _playFreshSheep,
                       const bool /*_bRebuild*/ = false,
                       bool /*_bStartByRandom*/ = false)
     {
@@ -47,17 +47,17 @@ class CSimplePlaylist : public CPlaylist
         return true;
     }
 
-    virtual bool ChooseSheepForPlaying(uint32 curGen, uint32 curID)
+    virtual bool ChooseSheepForPlaying(uint32_t curGen, uint32_t curID)
     {
         g_PlayCounter().IncPlayCount(curGen, curID);
 
         return true;
     }
     //	Overrides the playlist to play _id next time.
-    virtual void Override(const uint32 _id) {}
+    virtual void Override(const uint32_t _id) {}
 
     //	Queues _id to be deleted.
-    virtual void Delete(const uint32 _id) {}
+    virtual void Delete(const uint32_t _id) {}
 };
 
 MakeSmartPointers(CSimplePlaylist);

@@ -141,16 +141,16 @@ Base::Math::CVector2 CTextMetal::GetExtent()
             return;
         NSRect frame = textLayer.frame;
         NSRect parentFrame = textLayer.superlayer.frame;
-        extents = {(fp4)frame.size.width / (fp4)parentFrame.size.width,
-                   (fp4)frame.size.height / (fp4)parentFrame.size.height};
+        extents = {(float)frame.size.width / (float)parentFrame.size.width,
+                   (float)frame.size.height / (float)parentFrame.size.height};
     });
     return extents;
 #else  /*USE_SYSTEM_UI*/
     if (m_pTextMesh)
     {
         CGSize size = m_pTextMesh.textExtent;
-        return {(fp4)(size.width / kMetalTextReferenceContextSize),
-                (fp4)(size.height / kMetalTextReferenceContextSize)};
+        return {(float)(size.width / kMetalTextReferenceContextSize),
+                (float)(size.height / kMetalTextReferenceContextSize)};
     }
     return {0.f, 0.f};
 #endif /*USE_SYSTEM_UI*/

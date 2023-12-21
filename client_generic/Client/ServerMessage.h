@@ -24,11 +24,11 @@ class CServerMessage : public CConsole
     std::string m_Message;
     DisplayOutput::CFontDescription m_Desc;
     DisplayOutput::spCBaseText m_spText;
-    fp4 m_MoveMessageCounter;
+    float m_MoveMessageCounter;
 
   public:
     CServerMessage(std::string& _msg, Base::Math::CRect _rect,
-                   const uint32 _fontHeight)
+                   const uint32_t _fontHeight)
         : CConsole(_rect)
     {
         DisplayOutput::CFontDescription fontDesc;
@@ -67,7 +67,7 @@ class CServerMessage : public CConsole
     }
 
     //
-    virtual bool Render(const fp8 _time,
+    virtual bool Render(const double _time,
                         DisplayOutput::spCRenderer _spRenderer) override
     {
         if (!CHudEntry::Render(_time, _spRenderer))
@@ -79,9 +79,9 @@ class CServerMessage : public CConsole
             m_ServerMessageStartTimer =
                 boost::posix_time::second_clock::local_time();
         }
-        // fp4 step = (fp4)m_Desc.Height() /
-        // (fp4)_spRenderer->Display()->Height();
-        fp4 edge = 24 / (fp4)_spRenderer->Display()->Width();
+        // float step = (float)m_Desc.Height() /
+        // (float)_spRenderer->Display()->Height();
+        float edge = 24 / (float)_spRenderer->Display()->Width();
 
         std::map<std::string, CStat*>::const_iterator i;
 
@@ -98,7 +98,7 @@ class CServerMessage : public CConsole
         {
             m_MoveMessageCounter += 0.0005f;
             if (m_MoveMessageCounter >= 1.f)
-                m_MoveMessageCounter -= 1.f + edge * 2 + fp4(size.m_Y);
+                m_MoveMessageCounter -= 1.f + edge * 2 + float(size.m_Y);
         }
         //	Draw quad.
         _spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader |

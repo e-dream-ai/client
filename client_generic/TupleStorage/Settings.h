@@ -82,14 +82,14 @@ class CSettings : public Base::CSingleton<CSettings>
         boost::mutex::scoped_lock locker(m_Lock);
         m_pStorage->Set(_url, _value);
     }
-    void Set(std::string_view _url, const int32 _value)
+    void Set(std::string_view _url, const int32_t _value)
     {
         if (!m_pStorage)
             return;
         boost::mutex::scoped_lock locker(m_Lock);
         m_pStorage->Set(_url, _value);
     }
-    void Set(std::string_view _url, const fp8 _value)
+    void Set(std::string_view _url, const double _value)
     {
         if (!m_pStorage)
             return;
@@ -127,11 +127,11 @@ class CSettings : public Base::CSingleton<CSettings>
     }
 
     //	Return 32bit integer.
-    int32 Get(std::string_view _url, const int32 _default = 0)
+    int32_t Get(std::string_view _url, const int32_t _default = 0)
     {
         boost::mutex::scoped_lock locker(m_Lock);
 
-        int32 ret = _default;
+        int32_t ret = _default;
         if (m_pStorage && !m_pStorage->Get(_url, ret))
         {
             m_pStorage->Set(_url, _default);
@@ -142,11 +142,11 @@ class CSettings : public Base::CSingleton<CSettings>
     }
 
     //	Return double precision floating point.
-    fp8 Get(std::string_view _url, const fp8 _default = 0.0)
+    double Get(std::string_view _url, const double _default = 0.0)
     {
         boost::mutex::scoped_lock locker(m_Lock);
 
-        fp8 ret = _default;
+        double ret = _default;
         if (m_pStorage && !m_pStorage->Get(_url, ret))
         {
             m_pStorage->Set(_url, _default);
@@ -157,11 +157,11 @@ class CSettings : public Base::CSingleton<CSettings>
     }
 
     //    Return 64bit unsigned integer.
-    uint64 Get(std::string_view _url, const uint64 _default = 0)
+    uint64_t Get(std::string_view _url, const uint64_t _default = 0)
     {
         boost::mutex::scoped_lock locker(m_Lock);
 
-        uint64 ret = _default;
+        uint64_t ret = _default;
         if (m_pStorage && !m_pStorage->Get(_url, ret))
         {
             m_pStorage->Set(_url, _default);

@@ -112,7 +112,7 @@ bool bStarted = false;
 
     [displays addObject:[NSScreen mainScreen]];
 
-    UInt32 cnt = [[NSScreen screens] count];
+    uint32_t cnt = [[NSScreen screens] count];
 
     for (int i=0; i<cnt; i++)
     {
@@ -124,7 +124,7 @@ bool bStarted = false;
 
     ESScreensaver_InitClientStorage();
 
-    SInt32 scr = ESScreensaver_GetIntSetting("settings.player.screen", 0);
+    Sint32_t scr = ESScreensaver_GetIntSetting("settings.player.screen", 0);
 
     ESScreensaver_DeinitClientStorage();
 
@@ -195,8 +195,8 @@ bool bStarted = false;
     }
 #endif //! USE_METAL
 
-    uint32 width = (uint32)theRect.size.width;
-    uint32 height = (uint32)theRect.size.height;
+    uint32_t width = (uint32_t)theRect.size.width;
+    uint32_t height = (uint32_t)theRect.size.height;
 
 #ifdef SCREEN_SAVER
     m_isHidden = NO;
@@ -338,8 +338,8 @@ static void signnal_handler(int signal)
 {
     view.frame = self.frame;
 
-    ESScreensaver_ForceWidthAndHeight((uint32)self.frame.size.width,
-                                      (uint32)self.frame.size.height);
+    ESScreensaver_ForceWidthAndHeight((uint32_t)self.frame.size.width,
+                                      (uint32_t)self.frame.size.height);
 }
 
 - (BOOL)hasConfigureSheet

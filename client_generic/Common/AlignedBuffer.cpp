@@ -27,7 +27,7 @@
 namespace Base
 {
 
-uint32 CReusableAlignedBuffers::s_PageSize = 0;
+uint32_t CReusableAlignedBuffers::s_PageSize = 0;
 
 /*
         CReusableBuffers().
@@ -35,7 +35,8 @@ uint32 CReusableAlignedBuffers::s_PageSize = 0;
 */
 CReusableAlignedBuffers::CReusableAlignedBuffers()
 {
-    for (uint32 i = 0; i < sizeof(m_BufferCache) / sizeof(*m_BufferCache); i++)
+    for (uint32_t i = 0; i < sizeof(m_BufferCache) / sizeof(*m_BufferCache);
+         i++)
     {
         m_BufferCache[i].seed = 0;
         m_BufferCache[i].size = 0;
@@ -51,7 +52,8 @@ CReusableAlignedBuffers::CReusableAlignedBuffers()
 */
 CReusableAlignedBuffers::~CReusableAlignedBuffers()
 {
-    for (uint32 i = 0; i < sizeof(m_BufferCache) / sizeof(*m_BufferCache); i++)
+    for (uint32_t i = 0; i < sizeof(m_BufferCache) / sizeof(*m_BufferCache);
+         i++)
     {
         RealFree(m_BufferCache[i].ptr, m_BufferCache[i].size);
 
@@ -67,19 +69,19 @@ CReusableAlignedBuffers::~CReusableAlignedBuffers()
         Allocate().
 
 */
-uint8* CReusableAlignedBuffers::Allocate(uint32 size)
+uint8_t* CReusableAlignedBuffers::Allocate(uint32_t size)
 {
     {
         boost::mutex::scoped_lock locker(m_CacheLock);
 
-        for (uint32 i = 0; i < sizeof(m_BufferCache) / sizeof(*m_BufferCache);
+        for (uint32_t i = 0; i < sizeof(m_BufferCache) / sizeof(*m_BufferCache);
              i++)
         {
             BufferElement* elptr = m_BufferCache + i;
 
             if (elptr->ptr != NULL && elptr->size == size)
             {
-                uint8* retval = elptr->ptr;
+                uint8_t* retval = elptr->ptr;
 
                 elptr->ptr = NULL;
 
@@ -90,25 +92,26 @@ uint8* CReusableAlignedBuffers::Allocate(uint32 size)
 
 #ifdef WIN32
     // no valloc so malloc for now on WIN32. Needs to be implemented properly
-    return (uint8*)malloc(size + GetPageSize() - 1);
+    return (uint8_t*)malloc(size + GetPageSize() - 1);
 #else
-    return (uint8*)valloc(size);
-    // m_Buffer = (uint8 *)mmap( NULL, size, PROT_WRITE, MAP_ANON | MAP_SHARED,
+    return (uint8_t*)valloc(size);
+    // m_Buffer = (uint8_t *)mmap( NULL, size, PROT_WRITE, MAP_ANON | MAP_SHARED,
     // -1, 0 );
 #endif
 }
 
-void CReusableAlignedBuffers::Free(uint8* buffer, uint32 size)
+void CReusableAlignedBuffers::Free(uint8_t* buffer, uint32_t size)
 {
     if (buffer == NULL)
         return;
 
     boost::mutex::scoped_lock locker(m_CacheLock);
 
-    uint32 minseed = 0xFFFFFFFF;
-    uint32 mini = 0;
+    uint32_t minseed = 0xFFFFFFFF;
+    uint32_t mini = 0;
 
-    for (uint32 i = 0; i < sizeof(m_BufferCache) / sizeof(*m_BufferCache); i++)
+    for (uint32_t i = 0; i < sizeof(m_BufferCache) / sizeof(*m_BufferCache);
+         i++)
     {
         if (m_BufferCache[i].ptr == NULL)
         {
@@ -137,12 +140,12 @@ void CReusableAlignedBuffers::Free(uint8* buffer, uint32 size)
     elptr->seed = m_Seed++;
 }
 
-uint8* CReusableAlignedBuffers::Reallocate(uint8* buffer, uint32 size)
+uint8_t* CReusableAlignedBuffers::Reallocate(uint8_t* buffer, uint32_t size)
 {
-    return (uint8*)realloc(buffer, size + GetPageSize() - 1);
+    return (uint8_t*)realloc(buffer, size + GetPageSize() - 1);
 }
 
-void CReusableAlignedBuffers::RealFree(uint8* buffer, uint32 /*size*/)
+void CReusableAlignedBuffers::RealFree(uint8_t* buffer, uint32_t /*size*/)
 {
     free(buffer);
 }
@@ -157,7 +160,10 @@ CAlignedBuffer::CAlignedBuffer() : m_Buffer(NULL) {}
         CAlignedBuffer( size ).
 
 */
-CAlignedBuffer::CAlignedBuffer(uint32 size) : m_Buffer(NULL) { Allocate(size); }
+CAlignedBuffer::CAlignedBuffer(uint32_t size) : m_Buffer(NULL)
+{
+    Allocate(size);
+}
 
 /*
         ~CAlignedBuffer().
@@ -169,7 +175,7 @@ CAlignedBuffer::~CAlignedBuffer() { Free(); }
         Allocate().
 
 */
-bool CAlignedBuffer::Allocate(uint32 size)
+bool CAlignedBuffer::Allocate(uint32_t size)
 {
     CReusableAlignedBuffers* rab = g_ReusableAlignedBuffers;
 
@@ -180,7 +186,7 @@ bool CAlignedBuffer::Allocate(uint32 size)
 
     unsigned long mask = CReusableAlignedBuffers::GetPageSize() - 1;
 
-    m_BufferAlignedStart = (uint8*)((unsigned long)(m_Buffer + mask) & ~mask);
+    m_BufferAlignedStart = (uint8_t*)((unsigned long)(m_Buffer + mask) & ~mask);
 
     m_Size = size;
 
@@ -191,18 +197,18 @@ bool CAlignedBuffer::Allocate(uint32 size)
         Reallocate().
 
 */
-bool CAlignedBuffer::Reallocate(uint32 size)
+bool CAlignedBuffer::Reallocate(uint32_t size)
 {
     CReusableAlignedBuffers* rab = g_ReusableAlignedBuffers;
 
     if (rab == NULL)
         return false;
 
-    m_Buffer = (uint8*)rab->Reallocate(m_Buffer, size);
+    m_Buffer = (uint8_t*)rab->Reallocate(m_Buffer, size);
 
     unsigned long mask = CReusableAlignedBuffers::GetPageSize() - 1;
 
-    m_BufferAlignedStart = (uint8*)((unsigned long)(m_Buffer + mask) & ~mask);
+    m_BufferAlignedStart = (uint8_t*)((unsigned long)(m_Buffer + mask) & ~mask);
 
     m_Size = size;
 
@@ -227,6 +233,9 @@ void CAlignedBuffer::Free(void)
         GetBufferPtr().
 
 */
-uint8* CAlignedBuffer::GetBufferPtr(void) const { return m_BufferAlignedStart; }
+uint8_t* CAlignedBuffer::GetBufferPtr(void) const
+{
+    return m_BufferAlignedStart;
+}
 
 }; // namespace Base

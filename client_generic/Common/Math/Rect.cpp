@@ -12,7 +12,7 @@ namespace Math
  */
 CRect& CRect::Normalize(void)
 {
-    fp4 t;
+    float t;
     if (m_X0 > m_X1)
     {
         t = m_X0;

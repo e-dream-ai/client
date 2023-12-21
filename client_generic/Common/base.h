@@ -15,28 +15,6 @@
 #include <os/signpost.h>
 #endif
 
-//	Standard signed types.
-typedef signed char int8;
-typedef signed short int16;
-typedef signed int int32;
-
-//	Standard unsigned types.
-typedef unsigned char uint8;
-typedef unsigned short uint16;
-typedef unsigned int uint32;
-
-//	64bit standard types.
-#ifdef _MSC_VER
-typedef __int64 int64;
-typedef unsigned __int64 uint64;
-#else
-typedef int64_t int64;
-typedef uint64_t uint64;
-#endif
-//	Single & double precision floating points.
-typedef float fp4;
-typedef double fp8;
-
 //	Lazy.
 #define isBit(v, b) ((v) & (b))
 #define setBit(v, b) ((v) |= (b))

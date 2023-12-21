@@ -17,10 +17,10 @@ namespace Base
 {
 namespace internal
 {
-static void Wait(fp8 _seconds)
+static void Wait(double _seconds)
 {
-    const fp8 floorSeconds = ::floor(_seconds);
-    const fp8 fractionalSeconds = _seconds - floorSeconds;
+    const double floorSeconds = ::floor(_seconds);
+    const double fractionalSeconds = _seconds - floorSeconds;
 
     timespec timeOut;
     timeOut.tv_sec = static_cast<time_t>(floorSeconds);
@@ -32,7 +32,7 @@ static void Wait(fp8 _seconds)
     timespec timeRemaining;
     while (true)
     {
-        const int32 ret = nanosleep(&timeOut, &timeRemaining);
+        const int32_t ret = nanosleep(&timeOut, &timeRemaining);
         if (ret == -1 && errno == EINTR)
         {
             //	There was only an sleep interruption, go back to sleep.
@@ -52,38 +52,38 @@ static void Wait(fp8 _seconds)
 
 class CXTimer : public ITimer
 {
-    uint64 m_Start;
-    uint64 m_DeltaStart;
-    fp8 m_Resolution;
+    uint64_t m_Start;
+    uint64_t m_DeltaStart;
+    double m_Resolution;
 
     static inline uint64_t Tick()
     {
         //	x86_64
-        // uint32 a, d;
+        // uint32_t a, d;
         //__asm__ __volatile__("rdtsc": "=a"(a), "=d"(d));
         // return (static_cast<uint64_t>(d) << 32) | static_cast<uint64_t>(a);
 
         //	x86_32
-        uint64 val;
+        uint64_t val;
         __asm__ __volatile__("rdtsc" : "=A"(val));
         return val;
     }
 
-    static fp8 DetermineResolution()
+    static double DetermineResolution()
     {
         FILE* f = fopen("/proc/cpuinfo", "r");
         if (!f)
             return 0.0;
 
-        const int32 bufferSize = 256;
+        const int32_t bufferSize = 256;
         char buffer[bufferSize];
         while (fgets(buffer, bufferSize, f))
         {
-            fp4 frequency;
+            float frequency;
             if (sscanf(buffer, "cpu MHz         : %f", &frequency) == 1)
             {
                 fclose(f);
-                return 1e-6 / static_cast<fp8>(frequency);
+                return 1e-6 / static_cast<double>(frequency);
             }
         }
         fclose(f);
@@ -96,33 +96,33 @@ class CXTimer : public ITimer
 
     void Reset() { m_DeltaStart = m_Start = Tick(); }
 
-    fp8 Time()
+    double Time()
     {
         const uint64_t now = Tick();
         return m_Resolution * (now - m_Start);
     }
 
-    fp8 Delta()
+    double Delta()
     {
-        const uint64 now = Tick();
-        const fp8 dt = m_Resolution * (now - m_DeltaStart);
+        const uint64_t now = Tick();
+        const double dt = m_Resolution * (now - m_DeltaStart);
         m_DeltaStart = now;
         return dt;
     }
 
-    fp8 Resolution() { return m_Resolution; }
+    double Resolution() { return m_Resolution; }
 
-    static inline void Wait(fp8 _seconds) { internal::Wait(_seconds); }
+    static inline void Wait(double _seconds) { internal::Wait(_seconds); }
 };
 
 #else
 
 class CXTimer : public ITimer
 {
-    fp8 m_Start;
-    fp8 m_DeltaStart;
+    double m_Start;
+    double m_DeltaStart;
 
-    static inline fp8 realTime()
+    static inline double realTime()
     {
         timespec time;
         if (clock_gettime(CLOCK_REALTIME, &time) != 0)
@@ -136,17 +136,17 @@ class CXTimer : public ITimer
 
     void Reset() { m_DeltaStart = m_Start = realTime(); }
 
-    fp8 Time() { return realTime() - m_Start; }
+    double Time() { return realTime() - m_Start; }
 
-    fp8 Delta()
+    double Delta()
     {
-        const fp8 now = realTime();
-        const fp8 dt = now - m_DeltaStart;
+        const double now = realTime();
+        const double dt = now - m_DeltaStart;
         m_DeltaStart = now;
         return dt;
     }
 
-    fp8 Resolution()
+    double Resolution()
     {
         timespec res;
         if (clock_getres(CLOCK_REALTIME, &res) != 0)
@@ -155,7 +155,7 @@ class CXTimer : public ITimer
         return res.tv_sec + res.tv_nsec * 1e-9;
     }
 
-    static inline void Wait(fp8 _seconds) { internal::Wait(_seconds); }
+    static inline void Wait(double _seconds) { internal::Wait(_seconds); }
 };
 
 #endif

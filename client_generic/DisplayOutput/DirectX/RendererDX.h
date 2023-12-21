@@ -53,19 +53,19 @@ class CRendererDX : public CRenderer
 
     //
     void Apply();
-    void Reset(const uint32 _flags);
+    void Reset(const uint32_t _flags);
 
     bool TestResetDevice();
 
     //
-    spCTextureFlat NewTextureFlat(const uint32 flags = 0);
-    spCTextureFlat NewTextureFlat(spCImage _spImage, const uint32 flags = 0);
+    spCTextureFlat NewTextureFlat(const uint32_t flags = 0);
+    spCTextureFlat NewTextureFlat(spCImage _spImage, const uint32_t flags = 0);
 
     //
     spCBaseFont NewFont(CFontDescription& _desc);
     void Text(spCBaseFont _spFont, const std::string& _text,
               const Base::Math::CVector4& _color,
-              const Base::Math::CRect& _rect, uint32 _flags);
+              const Base::Math::CRect& _rect, uint32_t _flags);
     Base::Math::CVector2 GetTextExtent(spCBaseFont _spFont,
                                        const std::string& _text);
 
@@ -76,16 +76,18 @@ class CRendererDX : public CRenderer
     //	Aux functions.
     void DrawLine(const Base::Math::CVector2& _start,
                   const Base::Math::CVector2& _end,
-                  const Base::Math::CVector4& _color, const fp4 _width = 1.0f);
+                  const Base::Math::CVector4& _color,
+                  const float _width = 1.0f);
     void DrawRect(const Base::Math::CRect& _rect,
-                  const Base::Math::CVector4& _color, const fp4 _width = 1.0f);
+                  const Base::Math::CVector4& _color,
+                  const float _width = 1.0f);
     void DrawQuad(const Base::Math::CRect& _rect,
                   const Base::Math::CVector4& _color);
     void DrawQuad(const Base::Math::CRect& _rect,
                   const Base::Math::CVector4& _color,
                   const Base::Math::CRect& _uvRect);
     void DrawSoftQuad(const Base::Math::CRect& _rect,
-                      const Base::Math::CVector4& _color, const fp4 _width);
+                      const Base::Math::CVector4& _color, const float _width);
 };
 
 MakeSmartPointers(CRendererDX);

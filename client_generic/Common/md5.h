@@ -43,7 +43,7 @@
 
 #ifdef _LIBC
 #include <sys/types.h>
-typedef u_int32_t md5_uint32;
+typedef u_int32_t md5_uint32_t;
 #else
 #if defined __STDC__ && __STDC__
 #define UINT_MAX_32_BITS 4294967295U
@@ -61,13 +61,13 @@ typedef u_int32_t md5_uint32;
 #endif
 
 #if UINT_MAX == UINT_MAX_32_BITS
-typedef unsigned int md5_uint32;
+typedef unsigned int md5_uint32_t;
 #else
 #if USHRT_MAX == UINT_MAX_32_BITS
-typedef unsigned short md5_uint32;
+typedef unsigned short md5_uint32_t;
 #else
 #if ULONG_MAX == UINT_MAX_32_BITS
-typedef unsigned long md5_uint32;
+typedef unsigned long md5_uint32_t;
 #else
 /* The following line is intended to evoke an error.
    Using #error is not portable enough.  */
@@ -91,14 +91,14 @@ typedef unsigned long md5_uint32;
 /* Structure to save state of computation between the single steps.  */
 struct md5_ctx
 {
-    md5_uint32 A;
-    md5_uint32 B;
-    md5_uint32 C;
-    md5_uint32 D;
+    md5_uint32_t A;
+    md5_uint32_t B;
+    md5_uint32_t C;
+    md5_uint32_t D;
 
-    md5_uint32 total[2];
-    md5_uint32 buflen;
-    char buffer[128] __attribute__((__aligned__(__alignof__(md5_uint32))));
+    md5_uint32_t total[2];
+    md5_uint32_t buflen;
+    char buffer[128] __attribute__((__aligned__(__alignof__(md5_uint32_t))));
 };
 
 #ifdef __cplusplus

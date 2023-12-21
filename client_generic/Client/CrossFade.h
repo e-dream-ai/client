@@ -16,11 +16,11 @@ class CCrossFade : public CHudEntry
     DisplayOutput::spCTextureFlat m_spTexture;
     bool m_bSkipped;
     bool m_bSkipToNext;
-    uint32 m_currID;
+    uint32_t m_currID;
 
   public:
-    CCrossFade(uint32 width, uint32 height, bool skipToNext)
-        : CHudEntry(Base::Math::CRect(fp4(width), fp4(height))),
+    CCrossFade(uint32_t width, uint32_t height, bool skipToNext)
+        : CHudEntry(Base::Math::CRect(float(width), float(height))),
           m_bSkipped(false), m_bSkipToNext(skipToNext)
     {
         DisplayOutput::spCImage tmpImage =
@@ -28,12 +28,12 @@ class CCrossFade : public CHudEntry
 
         tmpImage->Create(width, height, DisplayOutput::eImage_RGBA8, 0, false);
 
-        for (uint32 x = 0; x < width; x++)
+        for (uint32_t x = 0; x < width; x++)
         {
-            for (uint32 y = 0; y < height; y++)
+            for (uint32_t y = 0; y < height; y++)
             {
-                tmpImage->PutPixel(static_cast<int32>(x), static_cast<int32>(y),
-                                   0, 0, 0, 255);
+                tmpImage->PutPixel(static_cast<int32_t>(x),
+                                   static_cast<int32_t>(y), 0, 0, 0, 255);
             }
         }
 
@@ -52,7 +52,8 @@ class CCrossFade : public CHudEntry
         m_currID = g_Player().GetCurrentPlayingID();
     }
 
-    virtual bool Render(const fp8 _time, DisplayOutput::spCRenderer _spRenderer)
+    virtual bool Render(const double _time,
+                        DisplayOutput::spCRenderer _spRenderer)
     {
         if (!CHudEntry::Render(_time, _spRenderer))
             return false;
@@ -68,7 +69,7 @@ class CCrossFade : public CHudEntry
         spRenderer->SetShader(NULL);
         spRenderer->Apply();
 
-        fp4 alpha = fp4(m_Delta * 4.0f);
+        float alpha = float(m_Delta * 4.0f);
 
         if (alpha > 1.0f)
         {

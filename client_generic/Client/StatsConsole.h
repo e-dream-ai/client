@@ -25,7 +25,7 @@ class CStat
 
     std::string m_Name;
 
-    virtual const std::string Report(const fp8 _time) = PureVirtual;
+    virtual const std::string Report(const double _time) = PureVirtual;
 
     void Visible(const bool _bState) { m_bVisible = _bState; };
     bool Visible(void) const { return m_bVisible; };
@@ -46,7 +46,7 @@ class CStringStat : public CStat
         : CStat(_name), m_PreString(_pre), m_Value(_init){};
     virtual ~CStringStat(){};
 
-    virtual const std::string Report(const fp8 /*_time*/)
+    virtual const std::string Report(const double /*_time*/)
     {
         std::stringstream s;
         s << m_PreString << m_Value;
@@ -66,7 +66,7 @@ class CIntCounter : public CStat
 {
   protected:
     std::string m_PreString, m_PostString;
-    fp8 m_Value;
+    double m_Value;
 
   public:
     CIntCounter(const std::string _name, const std::string _pre,
@@ -74,15 +74,15 @@ class CIntCounter : public CStat
         : CStat(_name), m_PreString(_pre), m_PostString(_post), m_Value(0){};
     virtual ~CIntCounter(){};
 
-    virtual const std::string Report(const fp8 /*_time*/)
+    virtual const std::string Report(const double /*_time*/)
     {
         std::stringstream s;
-        s << m_PreString << uint32(m_Value) << m_PostString;
+        s << m_PreString << uint32_t(m_Value) << m_PostString;
         return s.str();
     }
 
-    void SetSample(const int32& _val) { m_Value = _val; };
-    void AddSample(const int32& _val) { m_Value += _val; };
+    void SetSample(const int32_t& _val) { m_Value = _val; };
+    void AddSample(const int32_t& _val) { m_Value += _val; };
 };
 
 // MakeSmartPointers( CIntCounter );
@@ -91,13 +91,13 @@ class CIntCounter : public CStat
  */
 class CAverageCounter : public CIntCounter
 {
-    fp8 m_Rate;
-    fp8 m_Time;
+    double m_Rate;
+    double m_Time;
     std::string m_Average;
 
   public:
     CAverageCounter(const std::string _name, const std::string _pre,
-                    const std::string _post, const fp8 _rateInSeconds)
+                    const std::string _post, const double _rateInSeconds)
         : CIntCounter(_name, _pre, _post)
     {
         m_Rate = _rateInSeconds;
@@ -108,7 +108,7 @@ class CAverageCounter : public CIntCounter
     };
     virtual ~CAverageCounter(){};
 
-    virtual const std::string Report(const fp8 _time)
+    virtual const std::string Report(const double _time)
     {
         if (m_Time < 0.0005)
         {
@@ -140,7 +140,7 @@ class CTimeCountDownStat : public CStat
 {
   protected:
     std::string m_PreString, m_PreValue, m_PostValue;
-    fp8 m_EndTime;
+    double m_EndTime;
 
     bool m_ShowMinutes;
 
@@ -160,14 +160,14 @@ class CTimeCountDownStat : public CStat
 
     virtual ~CTimeCountDownStat(){};
 
-    virtual const std::string Report(const fp8 /*_time*/)
+    virtual const std::string Report(const double /*_time*/)
     {
         std::stringstream s;
         s << m_PreString << m_PreValue;
 
         if (m_EndTime > 0.001)
         {
-            fp8 delaysec = ceil(m_EndTime - m_Timer.Time());
+            double delaysec = ceil(m_EndTime - m_Timer.Time());
 
             if (delaysec < 0.0)
                 delaysec = 0.0;
@@ -176,7 +176,7 @@ class CTimeCountDownStat : public CStat
 
             if (m_ShowMinutes && delaysec > 59.0)
             {
-                fp8 delaymin = ceil(delaysec / 60.0);
+                double delaymin = ceil(delaysec / 60.0);
 
                 s << delaymin << ((delaymin == 1.0) ? " minute" : " minutes");
             }
@@ -261,7 +261,7 @@ class CStatsConsole : public CConsole
 
   public:
     CStatsConsole(Base::Math::CRect _rect, const std::string& _FontName,
-                  const uint32 _fontHeight)
+                  const uint32_t _fontHeight)
         : CConsole(_rect)
     {
         DisplayOutput::CFontDescription fontDesc;
@@ -319,13 +319,14 @@ class CStatsConsole : public CConsole
         }
     }
 
-    bool Render(const fp8 _time, DisplayOutput::spCRenderer _spRenderer)
+    bool Render(const double _time, DisplayOutput::spCRenderer _spRenderer)
     {
         CHudEntry::Render(_time, _spRenderer);
 
-        fp4 step = (fp4)m_Desc.Height() / (fp4)_spRenderer->Display()->Height();
-        fp4 pos = 0;
-        fp4 edge = 24 / (fp4)_spRenderer->Display()->Width();
+        float step =
+            (float)m_Desc.Height() / (float)_spRenderer->Display()->Height();
+        float pos = 0;
+        float edge = 24 / (float)_spRenderer->Display()->Width();
 
         //	Figure out text extent for all strings.
         Base::Math::CRect extent;

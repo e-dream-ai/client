@@ -12,8 +12,8 @@ namespace DisplayOutput
 */
 class CDisplayMetal : public CDisplayOutput
 {
-    static uint32 s_DefaultWidth;
-    static uint32 s_DefaultHeight;
+    static uint32_t s_DefaultWidth;
+    static uint32_t s_DefaultHeight;
     CGraphicsContext m_GraphicsContext;
 
   public:
@@ -27,9 +27,9 @@ class CDisplayMetal : public CDisplayOutput
     virtual void SetContext(CGraphicsContext context);
     virtual CGraphicsContext GetContext(void);
 
-    virtual void ForceWidthAndHeight(uint32 _width, uint32 _height);
+    virtual void ForceWidthAndHeight(uint32_t _width, uint32_t _height);
 
-    static void SetDefaultWidthAndHeight(uint32 defWidth, uint32 defHeight);
+    static void SetDefaultWidthAndHeight(uint32_t defWidth, uint32_t defHeight);
 
     virtual bool HasShaders() { return true; };
 

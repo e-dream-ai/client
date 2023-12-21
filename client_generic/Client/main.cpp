@@ -42,11 +42,11 @@ typedef CElectricSheep_Linux CElectricSheepClient;
 
 //
 #ifdef WIN32
-int32 APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
-                       LPSTR lpCmdLine, int nCmdShow)
+int32_t APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
+                         LPSTR lpCmdLine, int nCmdShow)
 {
 #else
-int32 main(int argc, char* argv[])
+int32_t main(int argc, char* argv[])
 {
     glutInit(&argc, argv);
 #endif

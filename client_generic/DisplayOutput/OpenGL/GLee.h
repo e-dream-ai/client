@@ -12543,25 +12543,26 @@ GLEE_EXTERN PFNGLXSET3DFXMODEMESAPROC pglXSet3DfxModeMESA;
 /* Constants */
 typedef Bool(APIENTRYP PFNGLXGETSYNCVALUESOMLPROC)(Display* dpy,
                                                    GLXDrawable drawable,
-                                                   int64_t* ust, int64_t* msc,
-                                                   int64_t* sbc);
+                                                   int64* ust, int64* msc,
+                                                   int64* sbc);
 typedef Bool(APIENTRYP PFNGLXGETMSCRATEOMLPROC)(Display* dpy,
                                                 GLXDrawable drawable,
                                                 int32_t* numerator,
                                                 int32_t* denominator);
-typedef int64_t(APIENTRYP PFNGLXSWAPBUFFERSMSCOMLPROC)(Display* dpy,
-                                                       GLXDrawable drawable,
-                                                       int64_t target_msc,
-                                                       int64_t divisor,
-                                                       int64_t remainder);
-typedef Bool(APIENTRYP PFNGLXWAITFORMSCOMLPROC)(
-    Display* dpy, GLXDrawable drawable, int64_t target_msc, int64_t divisor,
-    int64_t remainder, int64_t* ust, int64_t* msc, int64_t* sbc);
+typedef int64(APIENTRYP PFNGLXSWAPBUFFERSMSCOMLPROC)(Display* dpy,
+                                                     GLXDrawable drawable,
+                                                     int64 target_msc,
+                                                     int64 divisor,
+                                                     int64 remainder);
+typedef Bool(APIENTRYP PFNGLXWAITFORMSCOMLPROC)(Display* dpy,
+                                                GLXDrawable drawable,
+                                                int64 target_msc, int64 divisor,
+                                                int64 remainder, int64* ust,
+                                                int64* msc, int64* sbc);
 typedef Bool(APIENTRYP PFNGLXWAITFORSBCOMLPROC)(Display* dpy,
                                                 GLXDrawable drawable,
-                                                int64_t target_sbc,
-                                                int64_t* ust, int64_t* msc,
-                                                int64_t* sbc);
+                                                int64 target_sbc, int64* ust,
+                                                int64* msc, int64* sbc);
 GLEE_EXTERN PFNGLXGETSYNCVALUESOMLPROC pglXGetSyncValuesOML;
 GLEE_EXTERN PFNGLXGETMSCRATEOMLPROC pglXGetMscRateOML;
 GLEE_EXTERN PFNGLXSWAPBUFFERSMSCOMLPROC pglXSwapBuffersMscOML;

@@ -16,7 +16,7 @@ CHudManager::~CHudManager() { m_EntryMap.clear(); }
 /*
  */
 bool CHudManager::Add(const std::string _name, spCHudEntry _entry,
-                      fp8 _duration)
+                      double _duration)
 {
     _entry->SetTime(m_Timer.Time(), _duration);
     _entry->Visible(true);

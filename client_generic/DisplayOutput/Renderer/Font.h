@@ -31,7 +31,7 @@ class CFontDescription
     };
 
   private:
-    uint32 m_Height;
+    uint32_t m_Height;
     eStyle m_Style;
     bool m_bItalic;
     bool m_bUnderline;
@@ -47,8 +47,8 @@ class CFontDescription
     bool operator==(const CFontDescription& _rhs) const;
 
     //
-    void Height(uint32 _h) { m_Height = _h; };
-    uint32 Height(void) const { return (m_Height); };
+    void Height(uint32_t _h) { m_Height = _h; };
+    uint32_t Height(void) const { return (m_Height); };
 
     //
     void Style(const eStyle _w) { m_Style = _w; };

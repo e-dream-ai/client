@@ -40,7 +40,7 @@ class CCurlTransfer
     char errorBuffer[CURL_ERROR_SIZE];
 
     //	Map of respons codes allowed. This is checkd on failed perform's.
-    std::vector<uint32> m_AllowedResponses;
+    std::vector<uint32_t> m_AllowedResponses;
 
   protected:
     CURL* m_pCurl;
@@ -55,8 +55,9 @@ class CCurlTransfer
     CCurlTransfer(const std::string& _name);
     virtual ~CCurlTransfer();
 
-    static int32 customProgressCallback(void* _pUserData, fp8 _downTotal,
-                                        fp8 _downNow, fp8 _upTotal, fp8 _upNow);
+    static int32_t customProgressCallback(void* _pUserData, double _downTotal,
+                                          double _downNow, double _upTotal,
+                                          double _upNow);
 
     virtual void AppendHeader(const std::string& header);
 
@@ -65,7 +66,7 @@ class CCurlTransfer
     virtual bool Perform(const std::string& _url);
 
     //	Add a response code to the list of allowed ones.
-    void Allow(const uint32 _code) { m_AllowedResponses.push_back(_code); }
+    void Allow(const uint32_t _code) { m_AllowedResponses.push_back(_code); }
 
     const std::string& Name() const { return m_Name; };
     const std::string& Status() const { return m_Status; };
@@ -79,8 +80,8 @@ class CFileDownloader : public CCurlTransfer
     std::string m_Data;
 
   public:
-    static int32 customWrite(void* _pBuffer, size_t _size, size_t _nmemb,
-                             void* _pUserData);
+    static int32_t customWrite(void* _pBuffer, size_t _size, size_t _nmemb,
+                               void* _pUserData);
 
     CFileDownloader(const std::string& _name);
     virtual ~CFileDownloader();
@@ -110,7 +111,7 @@ class CFileUploader : public CCurlTransfer
     virtual ~CFileUploader();
 
     bool PerformUpload(const std::string& _url, const std::string& _file,
-                       const uint32 _filesize);
+                       const uint32_t _filesize);
 };
 
 //	Def some smart pointers for these.
@@ -163,8 +164,9 @@ class CManager : public Base::CSingleton<CManager>
     CURLcode Prepare(CURL* _pCurl);
 
     //	Used by the transfers to update progress.
-    void UpdateProgress(CCurlTransfer* _pTransfer, const fp8 _percentComplete,
-                        const fp8 _bytesTransferred);
+    void UpdateProgress(CCurlTransfer* _pTransfer,
+                        const double _percentComplete,
+                        const double _bytesTransferred);
 
     // Used to abort any curl transfer
 
@@ -178,8 +180,8 @@ class CManager : public Base::CSingleton<CManager>
     static std::string Encode(const std::string& _src);
 
     //	Threadsafe.
-    static CManager* Instance(const char* /*_pFileStr*/, const uint32 /*_line*/,
-                              const char* /*_pFunc*/)
+    static CManager* Instance(const char* /*_pFileStr*/,
+                              const uint32_t /*_line*/, const char* /*_pFunc*/)
     {
         // printf( "g_NetworkManager( %s(%d): %s )\n", _pFileStr, _line, _pFunc
         // ); fflush( stdout );

@@ -55,12 +55,12 @@ enum eServerTargetType
 class CMessageBody
 {
   public:
-    CMessageBody(std::string_view _str, const fp8 _duration)
+    CMessageBody(std::string_view _str, const double _duration)
         : m_Msg(_str), m_Duration(_duration){};
     ~CMessageBody(){};
 
     std::string m_Msg;
-    fp8 m_Duration;
+    double m_Duration;
 };
 
 MakeSmartPointers(CMessageBody);
@@ -68,7 +68,7 @@ MakeSmartPointers(CMessageBody);
 class CTimedMessageBody
 {
   public:
-    CTimedMessageBody(const std::string& _str, const fp8 _duration)
+    CTimedMessageBody(const std::string& _str, const double _duration)
         : m_Msg(_str), m_Duration(_duration)
     {
         m_Timer.Reset();
@@ -84,7 +84,7 @@ class CTimedMessageBody
     }
     Base::CTimer m_Timer;
     std::string m_Msg;
-    fp8 m_Duration;
+    double m_Duration;
 };
 
 MakeSmartPointers(CTimedMessageBody);
@@ -109,11 +109,11 @@ class Shepherd
     static bool getSheep(const char* path, SheepArray* sheep,
                          const SheepArray& serverFlock);
 
-    static uint64 s_ClientFlockBytes;
-    static uint64 s_ClientFlockCount;
+    static uint64_t s_ClientFlockBytes;
+    static uint64_t s_ClientFlockCount;
 
-    static uint64 s_ClientFlockGoldBytes;
-    static uint64 s_ClientFlockGoldCount;
+    static uint64_t s_ClientFlockGoldBytes;
+    static uint64_t s_ClientFlockGoldCount;
 
     static atomic_char_ptr fRootPath;
     static atomic_char_ptr fMp4Path;
@@ -345,14 +345,14 @@ class Shepherd
         return false;
     }
 
-    static bool QueueMessage(std::string_view _msg, const fp8 _duration)
+    static bool QueueMessage(std::string_view _msg, const double _duration)
     {
         boost::mutex::scoped_lock lockthis(m_MessageQueueMutex);
         m_MessageQueue.emplace(new CMessageBody(_msg, _duration));
         return true;
     }
 
-    static bool PopMessage(std::string& _dst, fp8& _duration)
+    static bool PopMessage(std::string& _dst, double& _duration)
     {
         boost::mutex::scoped_lock lockthis(m_MessageQueueMutex);
         if (m_MessageQueue.size() > 0)
@@ -368,7 +368,7 @@ class Shepherd
 
     //	Method to get all of the sheep the exist on the client.
     static bool getClientFlock(SheepArray* sheep);
-    static uint64 GetFlockSizeMBsRecount(const int generationtype);
+    static uint64_t GetFlockSizeMBsRecount(const int generationtype);
 
     //	Sets/Gets the unique id for this Shepherd.
     static void setUniqueID(const char* uniqueID);
@@ -380,7 +380,7 @@ class Shepherd
     static void setRenderState(const std::string& state);
     static std::string renderState(bool& isnew);
 
-    static void subClientFlockBytes(uint64 removedbytes,
+    static void subClientFlockBytes(uint64_t removedbytes,
                                     const int generationtype)
     {
         if (generationtype == 0)
@@ -396,7 +396,7 @@ class Shepherd
             --s_ClientFlockGoldCount;
     }
 
-    static uint64 getClientFlockMBs(const int generationtype)
+    static uint64_t getClientFlockMBs(const int generationtype)
     {
         if (generationtype == 0)
             return s_ClientFlockBytes / 1024 / 1024;
@@ -404,7 +404,7 @@ class Shepherd
             return s_ClientFlockGoldBytes / 1024 / 1024;
         return 0;
     }
-    static uint64 getClientFlockCount(const int generationtype)
+    static uint64_t getClientFlockCount(const int generationtype)
     {
         if (generationtype == 0)
             return s_ClientFlockCount;

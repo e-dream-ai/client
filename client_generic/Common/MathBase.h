@@ -88,11 +88,11 @@ inline T Clamped(const T& _x, const T1& _lo, const T2& _hi)
 
 //	Sine & Cosine of _angle.	For x86 roughly twice as fast as sinf()
 //+ cosf()...
-inline void SinCos(const fp4 _angle, fp4* _pSin, fp4* _pCos)
+inline void SinCos(const float _angle, float* _pSin, float* _pCos)
 {
     // #ifdef AMD64
-    *_pSin = (fp4)sinf(_angle);
-    *_pCos = (fp4)cosf(_angle);
+    *_pSin = (float)sinf(_angle);
+    *_pCos = (float)cosf(_angle);
     /*#else
             __asm
             {
@@ -107,30 +107,30 @@ inline void SinCos(const fp4 _angle, fp4* _pSin, fp4* _pCos)
 }
 
 //	Squareroot.	MAKE BETTER!
-inline fp4 Sqrt(const fp4 _f)
+inline float Sqrt(const float _f)
 {
-    //	ASSERTFP4( _f );
+    //	ASSERTfloat( _f );
     //	ASSERT( _f != 0.0f );
     return (sqrtf(_f));
 }
 
 //	Reciprocal squareroot.	(~92 clocks)	MAKE BETTER!
-inline fp4 RSqrt(const fp4 _f)
+inline float RSqrt(const float _f)
 {
-    //	ASSERTFP4( _f );
+    //	ASSERTfloat( _f );
     return (1.0f / Sqrt(_f));
 }
 
 //	Fast approximate reciprocal squareroot.	(~31 clocks)
-inline fp4 RSqrtFast(fp4 _v)
+inline float RSqrtFast(float _v)
 {
-    //	ASSERTFP4( _v );
+    //	ASSERTfloat( _v );
     //	ASSERT( _v != 0.0f );
 
-    const fp4 v_half = _v * 0.5f;
+    const float v_half = _v * 0.5f;
     long i = *(long*)&_v;
     i = 0x5f3759df - (i >> 1);
-    _v = *(fp4*)&i;
+    _v = *(float*)&i;
     return (_v * (1.5f - v_half * _v * _v));
 }
 

@@ -9,17 +9,17 @@ namespace DisplayOutput
 
 class CShaderUniformDX : public CShaderUniform
 {
-    uint32 m_Index;
-    uint32 m_Size;
-    uint8* m_pData;
-    fp4 m_float4Data[4];
+    uint32_t m_Index;
+    uint32_t m_Size;
+    uint8_t* m_pData;
+    float m_float4Data[4];
 
     IDirect3DDevice9* m_pDevice;
 
   public:
     CShaderUniformDX(IDirect3DDevice9* _pDevice, const std::string _name,
-                     const eUniformType _eType, const uint32 _index = 0,
-                     const uint32 _size = 0)
+                     const eUniformType _eType, const uint32_t _index = 0,
+                     const uint32_t _size = 0)
         : CShaderUniform(_name, _eType), m_Index(_index), m_pDevice(_pDevice),
           m_pData(NULL)
     {
@@ -85,7 +85,7 @@ class CShaderUniformDX : public CShaderUniform
 
     virtual ~CShaderUniformDX() { SAFE_DELETE_ARRAY(m_pData); };
 
-    virtual bool SetData(void* _pData, const uint32 _size);
+    virtual bool SetData(void* _pData, const uint32_t _size);
     virtual void Apply();
 };
 

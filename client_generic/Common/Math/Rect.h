@@ -18,8 +18,8 @@ class CRect
   public:
     CRect();
     CRect(const CRect& r);
-    CRect(fp4 _w, fp4 _h);
-    CRect(fp4 _x0, fp4 _y0, fp4 _x1, fp4 _y1);
+    CRect(float _w, float _h);
+    CRect(float _x0, float _y0, float _x1, float _y1);
     CRect(const CVector2& _a, const CVector2& _b);
 
     //	'IsNull' is not very clear, should be 'IsInvalid' or 'IsSingularity' or
@@ -27,17 +27,17 @@ class CRect
     bool IsNull() const;
 
     //
-    fp4 Width() const;
-    fp4 Height() const;
+    float Width() const;
+    float Height() const;
 
     //	Force integer.
-    int32 iWidth() const;
-    int32 iHeight() const;
+    int32_t iWidth() const;
+    int32_t iHeight() const;
 
     //
-    fp4 Aspect(void) const;
-    fp4 Area(void) const;
-    uint32 iArea(void) const;
+    float Aspect(void) const;
+    float Area(void) const;
+    uint32_t iArea(void) const;
 
     //
     bool IsNormalized() const;
@@ -50,8 +50,8 @@ class CRect
     bool Inside(const CVector2& _p) const;
 
     //
-    fp4 m_X0, m_Y0;
-    fp4 m_X1, m_Y1;
+    float m_X0, m_Y0;
+    float m_X1, m_Y1;
 };
 
 /*
@@ -67,11 +67,13 @@ inline CRect::CRect(const CRect& _r)
 
 /*
  */
-inline CRect::CRect(fp4 _w, fp4 _h) : m_X0(0), m_Y0(0), m_X1(_w), m_Y1(_h) {}
+inline CRect::CRect(float _w, float _h) : m_X0(0), m_Y0(0), m_X1(_w), m_Y1(_h)
+{
+}
 
 /*
  */
-inline CRect::CRect(fp4 _x0, fp4 _y0, fp4 _x1, fp4 _y1)
+inline CRect::CRect(float _x0, float _y0, float _x1, float _y1)
     : m_X0(_x0), m_Y0(_y0), m_X1(_x1), m_Y1(_y1)
 {
 }
@@ -92,19 +94,19 @@ inline bool CRect::IsNull() const
 
 /*
  */
-inline fp4 CRect::Width() const { return (m_X1 - m_X0); }
+inline float CRect::Width() const { return (m_X1 - m_X0); }
 
 /*
  */
-inline fp4 CRect::Height() const { return (m_Y1 - m_Y0); }
+inline float CRect::Height() const { return (m_Y1 - m_Y0); }
 
 /*
  */
-inline int32 CRect::iWidth() const { return ((int32)Width()); }
+inline int32_t CRect::iWidth() const { return ((int32_t)Width()); }
 
 /*
  */
-inline int32 CRect::iHeight() const { return ((int32)Height()); }
+inline int32_t CRect::iHeight() const { return ((int32_t)Height()); }
 
 /*
  */
@@ -135,15 +137,18 @@ inline bool CRect::Inside(const CVector2& _p) const
 
 /*
  */
-inline fp4 CRect::Aspect(void) const { return (Height() / Width()); }
+inline float CRect::Aspect(void) const { return (Height() / Width()); }
 
 /*
  */
-inline fp4 CRect::Area(void) const { return (Width() * Height()); }
+inline float CRect::Area(void) const { return (Width() * Height()); }
 
 /*
  */
-inline uint32 CRect::iArea(void) const { return uint32(iWidth() * iHeight()); }
+inline uint32_t CRect::iArea(void) const
+{
+    return uint32_t(iWidth() * iHeight());
+}
 
 }; // namespace Math
 

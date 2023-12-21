@@ -10,10 +10,10 @@
 class ESCpuUsage
 {
     Base::CTimer m_Timer;
-    fp8 m_LastCPUCheckTime;
+    double m_LastCPUCheckTime;
 
-    fp8 m_LastSystemTime;
-    fp8 m_LastESTime;
+    double m_LastSystemTime;
+    double m_LastESTime;
 
     glibtop* glibtopdata;
     glibtop_cpu m_lastProcessorInfo, m_currentProcessorInfo;
@@ -33,11 +33,11 @@ class ESCpuUsage
         if (!getrusage(RUSAGE_SELF, &r_usage))
         {
 
-            m_LastESTime = (fp8)r_usage.ru_utime.tv_sec +
-                           (fp8)r_usage.ru_utime.tv_usec * 1e-6;
+            m_LastESTime = (double)r_usage.ru_utime.tv_sec +
+                           (double)r_usage.ru_utime.tv_usec * 1e-6;
 
-            m_LastESTime += (fp8)r_usage.ru_stime.tv_sec +
-                            (fp8)r_usage.ru_stime.tv_usec * 1e-6;
+            m_LastESTime += (double)r_usage.ru_stime.tv_sec +
+                            (double)r_usage.ru_stime.tv_usec * 1e-6;
         }
 
         numProcessors = glibtopdata->ncpu + 1;
@@ -50,19 +50,19 @@ class ESCpuUsage
     {
         struct rusage r_usage;
 
-        fp8 newtime = m_Timer.Time();
+        double newtime = m_Timer.Time();
 
-        fp8 period = newtime - m_LastCPUCheckTime;
+        double period = newtime - m_LastCPUCheckTime;
         if (period > 0.)
         {
             if (!getrusage(RUSAGE_SELF, &r_usage))
             {
 
-                fp8 utime = (fp8)r_usage.ru_utime.tv_sec +
-                            (fp8)r_usage.ru_utime.tv_usec * 1e-6;
+                double utime = (double)r_usage.ru_utime.tv_sec +
+                               (double)r_usage.ru_utime.tv_usec * 1e-6;
 
-                utime += (fp8)r_usage.ru_stime.tv_sec +
-                         (fp8)r_usage.ru_stime.tv_usec * 1e-6;
+                utime += (double)r_usage.ru_stime.tv_sec +
+                         (double)r_usage.ru_stime.tv_usec * 1e-6;
 
                 _es = int((utime - m_LastESTime) * 100. / period);
 
@@ -91,7 +91,7 @@ class ESCpuUsage
                 accTotal += total;
             }
 
-            _total = (fp8)accInUse * 100. / (fp8)accTotal;
+            _total = (double)accInUse * 100. / (double)accTotal;
 
             _es /= numProcessors;
 

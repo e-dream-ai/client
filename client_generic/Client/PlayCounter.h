@@ -11,7 +11,7 @@
 
 #include "Settings.h"
 
-static const uint32 gl_sMaxGeneration = 100000;
+static const uint32_t gl_sMaxGeneration = 100000;
 #define max_sheep 100000
 #define max_play_count ((1 << 16) - 1)
 #define log_page_size 10
@@ -24,7 +24,7 @@ using boost::filesystem::path;
 
 struct sPlayCountData
 {
-    uint16 PlayCounts[max_sheep];
+    uint16_t PlayCounts[max_sheep];
     FILE* PlayCountFile;
 };
 
@@ -32,7 +32,7 @@ class CPlayCounter : public Base::CSingleton<CPlayCounter>
 {
     friend class Base::CSingleton<CPlayCounter>;
 
-    typedef std::map<uint32, sPlayCountData> PlayCountMap;
+    typedef std::map<uint32_t, sPlayCountData> PlayCountMap;
 
     PlayCountMap m_PlayCounts;
     path m_PlayCountFilePath;
@@ -44,9 +44,9 @@ class CPlayCounter : public Base::CSingleton<CPlayCounter>
     int m_PlayCountDecayY;
     int m_PlayCountDecayZ;
 
-    uint64 m_PlayCountTotal;
+    uint64_t m_PlayCountTotal;
 
-    void InitPlayCounts(uint32 generation)
+    void InitPlayCounts(uint32_t generation)
     {
         if (generation >= gl_sMaxGeneration || generation == 0)
             return;
@@ -99,7 +99,7 @@ class CPlayCounter : public Base::CSingleton<CPlayCounter>
                     }
                 }
                 else // write after w+b
-                    if (max_sheep != fwrite(pdata->PlayCounts, sizeof(uint16),
+                    if (max_sheep != fwrite(pdata->PlayCounts, sizeof(uint16_t),
                                             max_sheep, pdata->PlayCountFile))
                     {
                         m_ReadOnly = true;
@@ -114,7 +114,7 @@ class CPlayCounter : public Base::CSingleton<CPlayCounter>
                         fflush(pdata->PlayCountFile);
             }
 
-            size_t nread = fread(pdata->PlayCounts, sizeof(uint16), max_sheep,
+            size_t nread = fread(pdata->PlayCounts, sizeof(uint16_t), max_sheep,
                                  pdata->PlayCountFile);
             fflush(pdata->PlayCountFile);
             if (nread < max_sheep)
@@ -164,9 +164,9 @@ class CPlayCounter : public Base::CSingleton<CPlayCounter>
 
     void IncDeadEndCutSurvivors() { ++m_DeadEndCutSurvivors; }
 
-    uint64 GetMedianCutSurvivors() { return m_MedianCutSurvivors; }
+    uint64_t GetMedianCutSurvivors() { return m_MedianCutSurvivors; }
 
-    uint64 GetDeadEndCutSurvivors() { return m_DeadEndCutSurvivors; }
+    uint64_t GetDeadEndCutSurvivors() { return m_DeadEndCutSurvivors; }
 
     void ClosePlayCounts()
     {
@@ -177,8 +177,9 @@ class CPlayCounter : public Base::CSingleton<CPlayCounter>
             {
                 fflush(iter->second.PlayCountFile);
                 fseek(iter->second.PlayCountFile, 0, SEEK_SET);
-                size_t nwrite = fwrite(iter->second.PlayCounts, sizeof(uint16),
-                                       max_sheep, iter->second.PlayCountFile);
+                size_t nwrite =
+                    fwrite(iter->second.PlayCounts, sizeof(uint16_t), max_sheep,
+                           iter->second.PlayCountFile);
                 if (nwrite != max_sheep)
                     g_Log->Error("Writing playcounts failed");
                 fclose(iter->second.PlayCountFile);
@@ -198,12 +199,12 @@ class CPlayCounter : public Base::CSingleton<CPlayCounter>
 
     void SetDirectory(const path& dir) { m_PlayCountFilePath = dir; }
 
-    void IncPlayCount(uint32 generation, uint32 id)
+    void IncPlayCount(uint32_t generation, uint32_t id)
     {
         if (id >= max_sheep || generation > gl_sMaxGeneration ||
             generation == 0)
             return;
-        if (m_PlayCountTotal > static_cast<uint64>(m_PlayCountDecayY) &&
+        if (m_PlayCountTotal > static_cast<uint64_t>(m_PlayCountDecayY) &&
             m_PlayCountDecayZ != 100)
         {
             m_PlayCountTotal = 0;
@@ -211,7 +212,7 @@ class CPlayCounter : public Base::CSingleton<CPlayCounter>
                  jj != m_PlayCounts.end(); ++jj)
                 for (size_t ii = 0; ii < max_sheep; ++ii)
                 {
-                    jj->second.PlayCounts[ii] = uint16(
+                    jj->second.PlayCounts[ii] = uint16_t(
                         m_PlayCountDecayZ / 100. * jj->second.PlayCounts[ii]);
                     m_PlayCountTotal += jj->second.PlayCounts[ii];
                 }
@@ -226,7 +227,7 @@ class CPlayCounter : public Base::CSingleton<CPlayCounter>
         ++m_PlayCountTotal;
     }
 
-    uint16 PlayCount(uint32 generation, uint32 id)
+    uint16_t PlayCount(uint32_t generation, uint32_t id)
     {
         if (id < max_sheep && generation != 0 && generation < gl_sMaxGeneration)
         {

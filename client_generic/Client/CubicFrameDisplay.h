@@ -11,23 +11,23 @@
 */
 class CCubicFrameDisplay : public CFrameDisplay
 {
-    static const uint32 kMaxFrames = 4;
+    static const uint32_t kMaxFrames = 4;
 
-    fp4 m_LastAlpha;
+    float m_LastAlpha;
     DisplayOutput::spCShader m_spShader;
 
     //	The four frames.
     DisplayOutput::spCTextureFlat m_spFrames[2 * kMaxFrames];
 
     //	Simple ringbuffer...
-    uint32 m_Frames[kMaxFrames];
-    uint32 m_NumFrames;
-    uint32 m_NumSecondFrames;
+    uint32_t m_Frames[kMaxFrames];
+    uint32_t m_NumFrames;
+    uint32_t m_NumSecondFrames;
 
     bool m_bWaitNextFrame;
 
     //	Mitchell Netravali Reconstruction Filter.
-    fp4 MitchellNetravali(const fp4 _x, const fp4 _B, const fp4 _C)
+    float MitchellNetravali(const float _x, const float _B, const float _C)
     {
         float ax = fabsf(_x);
 
@@ -212,10 +212,10 @@ class CCubicFrameDisplay : public CFrameDisplay
     //	Decode a frame every 1/_fpsCap seconds, store the previous 4 frames, and
     // lerp between them.
     virtual bool Update(ContentDecoder::spCContentDecoder _spDecoder,
-                        const fp8 _decodeFps, const fp8 /*_displayFps*/,
+                        const double _decodeFps, const double /*_displayFps*/,
                         ContentDecoder::sMetaData& _metadata)
     {
-        fp4 currentalpha = m_LastAlpha;
+        float currentalpha = m_LastAlpha;
         bool frameGrabbed = false;
         bool isSeam = false;
 
@@ -253,7 +253,7 @@ class CCubicFrameDisplay : public CFrameDisplay
             if (UpdateInterframeDelta(_decodeFps))
             {
                 //	Shift array back one step.
-                uint32 tmp = m_Frames[0];
+                uint32_t tmp = m_Frames[0];
                 m_Frames[0] = m_Frames[1];
                 m_Frames[1] = m_Frames[2];
                 m_Frames[2] = m_Frames[3];
@@ -275,7 +275,7 @@ class CCubicFrameDisplay : public CFrameDisplay
             }
             else
             {
-                currentalpha = (fp4)Base::Math::Clamped(
+                currentalpha = (float)Base::Math::Clamped(
                     m_LastAlpha +
                         Base::Math::Clamped(m_InterframeDelta / m_FadeCount, 0.,
                                             1. / m_FadeCount),
@@ -315,23 +315,23 @@ class CCubicFrameDisplay : public CFrameDisplay
                 m_spFrames[m_Frames[2] + kMaxFrames] = NULL;
             }
 
-            uint32 framesToUse = m_NumFrames;
+            uint32_t framesToUse = m_NumFrames;
 
             if (framesToUse > kMaxFrames)
                 framesToUse = kMaxFrames;
 
-            uint32 i;
+            uint32_t i;
 
             for (i = 0; i < kMaxFrames - framesToUse; i++)
             {
-                uint32 realIdx = m_Frames[kMaxFrames - framesToUse];
+                uint32_t realIdx = m_Frames[kMaxFrames - framesToUse];
 
                 m_spRenderer->SetTexture(m_spFrames[realIdx], i + 1);
             }
 
             for (i = kMaxFrames - framesToUse; i < kMaxFrames; i++)
             {
-                uint32 realIdx = m_Frames[i];
+                uint32_t realIdx = m_Frames[i];
 
                 m_spRenderer->SetTexture(m_spFrames[realIdx], i + 1);
             }
@@ -339,14 +339,14 @@ class CCubicFrameDisplay : public CFrameDisplay
             if (m_NumSecondFrames > 0 && m_spFrames[m_Frames[3] + kMaxFrames])
             {
 
-                uint32 secFrameToUse = m_NumSecondFrames;
+                uint32_t secFrameToUse = m_NumSecondFrames;
 
                 if (secFrameToUse > kMaxFrames)
                     secFrameToUse = kMaxFrames;
 
                 for (i = 0; i < kMaxFrames - secFrameToUse; i++)
                 {
-                    uint32 realIdx = m_Frames[kMaxFrames - secFrameToUse];
+                    uint32_t realIdx = m_Frames[kMaxFrames - secFrameToUse];
 
                     m_spRenderer->SetTexture(m_spFrames[realIdx + kMaxFrames],
                                              i + kMaxFrames + 1);
@@ -354,7 +354,7 @@ class CCubicFrameDisplay : public CFrameDisplay
 
                 for (i = kMaxFrames - secFrameToUse; i < kMaxFrames; i++)
                 {
-                    uint32 realIdx = m_Frames[i];
+                    uint32_t realIdx = m_Frames[i];
 
                     m_spRenderer->SetTexture(m_spFrames[realIdx + kMaxFrames],
                                              i + kMaxFrames + 1);
@@ -364,16 +364,16 @@ class CCubicFrameDisplay : public CFrameDisplay
             //	B = 1,   C = 0   - cubic B-spline
             //	B = 1/3, C = 1/3 - nice
             //	B = 0,   C = 1/2 - Catmull-Rom spline.
-            const fp4 B = 1.0f;
-            const fp4 C = 0.0f;
+            const float B = 1.0f;
+            const float C = 0.0f;
 
             //	Set the filter weights...
             m_spShader->Set(
                 "weights",
-                MitchellNetravali(fp4(m_InterframeDelta) + 1.f, B, C),
-                MitchellNetravali(fp4(m_InterframeDelta), B, C),
-                MitchellNetravali(1.f - fp4(m_InterframeDelta), B, C),
-                MitchellNetravali(2.f - fp4(m_InterframeDelta), B, C));
+                MitchellNetravali(float(m_InterframeDelta) + 1.f, B, C),
+                MitchellNetravali(float(m_InterframeDelta), B, C),
+                MitchellNetravali(1.f - float(m_InterframeDelta), B, C),
+                MitchellNetravali(2.f - float(m_InterframeDelta), B, C));
             m_spShader->Set("newalpha", currentalpha);
 
             m_spShader->Set("transPct", m_MetaData.m_TransitionProgress);
@@ -391,7 +391,7 @@ class CCubicFrameDisplay : public CFrameDisplay
         return true;
     }
 
-    virtual fp8 GetFps(fp8 /*_decodeFps*/, fp8 _displayFps)
+    virtual double GetFps(double /*_decodeFps*/, double _displayFps)
     {
         return _displayFps;
     }

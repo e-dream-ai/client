@@ -19,18 +19,18 @@ class CVector3_x86
 {
   public:
     CVector3_x86();
-    CVector3_x86(const fp4 _x, const fp4 _y, const fp4 _z);
+    CVector3_x86(const float _x, const float _y, const float _z);
     CVector3_x86(const CVector3_x86& _vec);
 
     //
-    void Set(const fp4 _x, const fp4 _y, const fp4 _z);
+    void Set(const float _x, const float _y, const float _z);
     void Set(const CVector3_x86& _vec);
 
     //
-    fp4 Len() const;
-    fp4 RLen() const;
-    fp4 RLenFast() const;
-    fp4 LenSqr() const;
+    float Len() const;
+    float RLen() const;
+    float RLenFast() const;
+    float LenSqr() const;
 
     //
     void Normalize();
@@ -39,37 +39,37 @@ class CVector3_x86
     //
     void operator+=(const CVector3_x86& _v0);
     void operator-=(const CVector3_x86& _v0);
-    void operator*=(fp4 _s);
+    void operator*=(float _s);
 
     //
     bool operator>(const CVector3_x86& _rhs);
     bool operator<(const CVector3_x86& _rhs);
 
     //
-    fp4& operator()(const uint32 _i);
-    fp4 operator()(const uint32 _i) const;
+    float& operator()(const uint32_t _i);
+    float operator()(const uint32_t _i) const;
 
     //
-    bool IsEqual(const CVector3_x86& _v, const fp4 _tol) const;
-    int32 Compare(const CVector3_x86& _v,
-                  const fp4 _tol) const; //	-1, 0, +1.
+    bool IsEqual(const CVector3_x86& _v, const float _tol) const;
+    int32_t Compare(const CVector3_x86& _v,
+                    const float _tol) const; //	-1, 0, +1.
 
     //
-    void Rotate(const CVector3_x86& _axis, const fp4 _angle);
-    void Lerp(const CVector3_x86& _v0, const fp4 _delta);
+    void Rotate(const CVector3_x86& _axis, const float _angle);
+    void Lerp(const CVector3_x86& _v0, const float _delta);
 
     //	Returns a vector orthogonal to self, not normalized.
     CVector3_x86 FindOrtho(void) const;
 
     //
     void Saturate(void);
-    fp4 Dot(const CVector3_x86& _v0) const;
-    static fp4 Distance(const CVector3_x86& _v0, const CVector3_x86& _v1);
+    float Dot(const CVector3_x86& _v0) const;
+    static float Distance(const CVector3_x86& _v0, const CVector3_x86& _v1);
 
     //
-    fp4 m_X;
-    fp4 m_Y;
-    fp4 m_Z;
+    float m_X;
+    float m_Y;
+    float m_Z;
 };
 
 /*
@@ -78,7 +78,8 @@ inline CVector3_x86::CVector3_x86() : m_X(0.0f), m_Y(0.0f), m_Z(0.0f) {}
 
 /*
  */
-inline CVector3_x86::CVector3_x86(const fp4 _x, const fp4 _y, const fp4 _z)
+inline CVector3_x86::CVector3_x86(const float _x, const float _y,
+                                  const float _z)
     : m_X(_x), m_Y(_y), m_Z(_z)
 {
 }
@@ -92,7 +93,7 @@ inline CVector3_x86::CVector3_x86(const CVector3_x86& _vec)
 
 /*
  */
-inline void CVector3_x86::Set(const fp4 _x, const fp4 _y, const fp4 _z)
+inline void CVector3_x86::Set(const float _x, const float _y, const float _z)
 {
     m_X = _x;
     m_Y = _y;
@@ -110,28 +111,28 @@ inline void CVector3_x86::Set(const CVector3_x86& _vec)
 
 /*
  */
-inline fp4 CVector3_x86::Len(void) const
+inline float CVector3_x86::Len(void) const
 {
     return (Sqrt(m_X * m_X + m_Y * m_Y + m_Z * m_Z));
 }
 
 /*
  */
-inline fp4 CVector3_x86::RLen(void) const
+inline float CVector3_x86::RLen(void) const
 {
     return (RSqrt(m_X * m_X + m_Y * m_Y + m_Z * m_Z));
 }
 
 /*
  */
-inline fp4 CVector3_x86::RLenFast(void) const
+inline float CVector3_x86::RLenFast(void) const
 {
     return (RSqrtFast(m_X * m_X + m_Y * m_Y + m_Z * m_Z));
 }
 
 /*
  */
-inline fp4 CVector3_x86::LenSqr(void) const
+inline float CVector3_x86::LenSqr(void) const
 {
     return (m_X * m_X + m_Y * m_Y + m_Z * m_Z);
 }
@@ -142,7 +143,7 @@ inline fp4 CVector3_x86::LenSqr(void) const
 */
 inline void CVector3_x86::Normalize(void)
 {
-    fp4 l = RLen();
+    float l = RLen();
     m_X *= l;
     m_Y *= l;
     m_Z *= l;
@@ -154,7 +155,7 @@ inline void CVector3_x86::Normalize(void)
 */
 inline void CVector3_x86::NormalizeFast(void)
 {
-    fp4 l = RLenFast();
+    float l = RLenFast();
     m_X *= l;
     m_Y *= l;
     m_Z *= l;
@@ -180,7 +181,7 @@ inline void CVector3_x86::operator-=(const CVector3_x86& _v0)
 
 /*
  */
-inline void CVector3_x86::operator*=(fp4 _s)
+inline void CVector3_x86::operator*=(float _s)
 {
     m_X *= _s;
     m_Y *= _s;
@@ -189,7 +190,8 @@ inline void CVector3_x86::operator*=(fp4 _s)
 
 /*
  */
-inline bool CVector3_x86::IsEqual(const CVector3_x86& _v, const fp4 _tol) const
+inline bool CVector3_x86::IsEqual(const CVector3_x86& _v,
+                                  const float _tol) const
 {
     if (fabsf(_v.m_X - m_X) > _tol)
         return (false);
@@ -203,7 +205,8 @@ inline bool CVector3_x86::IsEqual(const CVector3_x86& _v, const fp4 _tol) const
 
 /*
  */
-inline int32 CVector3_x86::Compare(const CVector3_x86& _v, const fp4 _tol) const
+inline int32_t CVector3_x86::Compare(const CVector3_x86& _v,
+                                     const float _tol) const
 {
     if (fabsf(_v.m_X - m_X) > _tol)
         return ((_v.m_X > m_X) ? +1 : -1);
@@ -217,10 +220,10 @@ inline int32 CVector3_x86::Compare(const CVector3_x86& _v, const fp4 _tol) const
 
 /*
  */
-inline void CVector3_x86::Rotate(const CVector3_x86& _axis, const fp4 _angle)
+inline void CVector3_x86::Rotate(const CVector3_x86& _axis, const float _angle)
 {
-    fp4 rotM[9];
-    fp4 sa, ca;
+    float rotM[9];
+    float sa, ca;
 
     SinCos(_angle, &sa, &ca);
 
@@ -263,7 +266,7 @@ static inline CVector3_x86 operator-(const CVector3_x86& _v0,
 
 /*
  */
-static inline CVector3_x86 operator*(const CVector3_x86& _v0, const fp4 _s)
+static inline CVector3_x86 operator*(const CVector3_x86& _v0, const float _s)
 {
     return (CVector3_x86(_v0.m_X * _s, _v0.m_Y * _s, _v0.m_Z * _s));
 }
@@ -277,16 +280,16 @@ static inline CVector3_x86 operator-(const CVector3_x86& _v)
 
 /*
  */
-static inline CVector3_x86 operator/(const CVector3_x86& _v0, const fp4 _s)
+static inline CVector3_x86 operator/(const CVector3_x86& _v0, const float _s)
 {
-    const fp4 rs = 1.0f / _s;
+    const float rs = 1.0f / _s;
     return (CVector3_x86(_v0.m_X * rs, _v0.m_Y * rs, _v0.m_Z * rs));
 }
 
 /*
         Dot product.
 */
-static inline fp4 operator%(const CVector3_x86& _v0, const CVector3_x86& _v1)
+static inline float operator%(const CVector3_x86& _v0, const CVector3_x86& _v1)
 {
     return (_v0.m_X * _v1.m_X + _v0.m_Y * _v1.m_Y + _v0.m_Z * _v1.m_Z);
 }
@@ -304,7 +307,7 @@ static inline CVector3_x86 operator*(const CVector3_x86& _v0,
 
 /*
  */
-inline void CVector3_x86::Lerp(const CVector3_x86& _v0, const fp4 _delta)
+inline void CVector3_x86::Lerp(const CVector3_x86& _v0, const float _delta)
 {
     m_X = _v0.m_X + ((m_X - _v0.m_X) * _delta);
     m_Y = _v0.m_Y + ((m_Y - _v0.m_Y) * _delta);
@@ -345,7 +348,7 @@ inline CVector3_x86 CVector3_x86::FindOrtho(void) const
 /*
         Dot product.
 */
-inline fp4 CVector3_x86::Dot(const CVector3_x86& _v0) const
+inline float CVector3_x86::Dot(const CVector3_x86& _v0) const
 {
     return (m_X * _v0.m_X + m_Y * _v0.m_Y + m_Z * _v0.m_Z);
 }
@@ -371,21 +374,21 @@ inline bool CVector3_x86::operator<(const CVector3_x86& _rhs)
 }
 
 //
-inline fp4& CVector3_x86::operator()(const uint32 _i)
+inline float& CVector3_x86::operator()(const uint32_t _i)
 {
-    return ((fp4*)this)[_i];
+    return ((float*)this)[_i];
 }
 
 //
-inline fp4 CVector3_x86::operator()(const uint32 _i) const
+inline float CVector3_x86::operator()(const uint32_t _i) const
 {
-    return ((const fp4*)this)[_i];
+    return ((const float*)this)[_i];
 }
 
 /*
  */
-inline fp4 CVector3_x86::Distance(const CVector3_x86& _v0,
-                                  const CVector3_x86& _v1)
+inline float CVector3_x86::Distance(const CVector3_x86& _v0,
+                                    const CVector3_x86& _v1)
 {
     CVector3_x86 v(_v1 - _v0);
     return (Sqrt(v.m_X * v.m_X + v.m_Y * v.m_Y + v.m_Z * v.m_Z));

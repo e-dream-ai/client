@@ -59,7 +59,7 @@ bool CLog::Shutdown(void)
 
 /*
  */
-void CLog::Attach(const std::string& _location, const uint32 /*_level*/)
+void CLog::Attach(const std::string& _location, const uint32_t /*_level*/)
 {
     time_t curTime;
     time(&curTime);
@@ -98,7 +98,7 @@ void CLog::Detach(void)
         SetFile().
         Store file that did the logging.
 */
-void CLog::SetInfo(const char* _pFileStr, const uint32 _line,
+void CLog::SetInfo(const char* _pFileStr, const uint32_t _line,
                    const char* _pFunc)
 {
     // boost::mutex::scoped_lock locker( m_Lock );
@@ -120,7 +120,7 @@ size_t CLog::s_MessageSpamCount = 0;
 
 void CLog::Log(
     const char* _pType,
-    /*const char *_file, const uint32 _line, const char *_pFunc,*/ const char*
+    /*const char *_file, const uint32_t _line, const char *_pFunc,*/ const char*
         _pStr)
 {
     boost::mutex::scoped_lock locker(m_Lock);

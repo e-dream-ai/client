@@ -14,7 +14,7 @@ namespace ContentDecoder
 class CLoopingPlaylist : public CPlaylist
 {
     std::vector<std::string> m_List;
-    uint32 m_Index;
+    uint32_t m_Index;
 
   public:
     CLoopingPlaylist() : CPlaylist() { m_Index = 0; }

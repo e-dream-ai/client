@@ -35,7 +35,7 @@ bool CFontDX::Create()
 {
     ASSERT(m_pDXFont == NULL);
 
-    uint32 fontFlags = 0;
+    uint32_t fontFlags = 0;
     switch (m_FontDescription.Style())
     {
     case CFontDescription::Thin:
@@ -55,7 +55,7 @@ bool CFontDX::Create()
         break;
     }
 
-    uint32 height = m_FontDescription.Height();
+    uint32_t height = m_FontDescription.Height();
     // HDC hdc = GetDC(NULL);
     // if (hdc != NULL)
     //{

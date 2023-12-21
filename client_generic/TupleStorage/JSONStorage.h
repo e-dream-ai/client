@@ -35,16 +35,16 @@ class JSONStorage : public IStorageInterface
 
     //    Set values.
     virtual bool Set(std::string_view _entry, bool _val) override;
-    virtual bool Set(std::string_view _entry, int32 _val) override;
-    virtual bool Set(std::string_view _entry, fp8 _val) override;
-    virtual bool Set(std::string_view _entry, uint64 _val) override;
+    virtual bool Set(std::string_view _entry, int32_t _val) override;
+    virtual bool Set(std::string_view _entry, double _val) override;
+    virtual bool Set(std::string_view _entry, uint64_t _val) override;
     virtual bool Set(std::string_view _entry, std::string_view _str) override;
 
     //    Get values.
     virtual bool Get(std::string_view _entry, bool& _ret) override;
-    virtual bool Get(std::string_view _entry, int32& _ret) override;
-    virtual bool Get(std::string_view _entry, fp8& _ret) override;
-    virtual bool Get(std::string_view _entry, uint64& _ret) override;
+    virtual bool Get(std::string_view _entry, int32_t& _ret) override;
+    virtual bool Get(std::string_view _entry, double& _ret) override;
+    virtual bool Get(std::string_view _entry, uint64_t& _ret) override;
     virtual bool Get(std::string_view _entry, std::string& _ret) override;
 
     //    Remove node from storage.

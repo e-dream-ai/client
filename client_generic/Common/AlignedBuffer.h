@@ -35,18 +35,18 @@ class CReusableAlignedBuffers : public CSingleton<CReusableAlignedBuffers>
 {
     typedef struct
     {
-        uint32 seed;
+        uint32_t seed;
 
-        uint32 size;
+        uint32_t size;
 
-        uint8* ptr;
+        uint8_t* ptr;
     } BufferElement;
 
     BufferElement m_BufferCache[BUFFER_CACHE_SIZE];
 
-    uint32 m_Seed;
+    uint32_t m_Seed;
 
-    static uint32 s_PageSize;
+    static uint32_t s_PageSize;
 
     boost::mutex m_CacheLock;
 
@@ -55,24 +55,24 @@ class CReusableAlignedBuffers : public CSingleton<CReusableAlignedBuffers>
 
     ~CReusableAlignedBuffers();
 
-    uint8* Allocate(uint32 size);
+    uint8_t* Allocate(uint32_t size);
 
-    void Free(uint8* ptr, uint32 size);
+    void Free(uint8_t* ptr, uint32_t size);
 
-    static void RealFree(uint8* ptr, uint32 size);
+    static void RealFree(uint8_t* ptr, uint32_t size);
 
-    uint8* Reallocate(uint8* ptr, uint32 size);
+    uint8_t* Reallocate(uint8_t* ptr, uint32_t size);
 
-    static inline uint32 GetPageSize(void)
+    static inline uint32_t GetPageSize(void)
     {
         if (s_PageSize == 0)
         {
 #if defined(WIN32) && WIN32
             SYSTEM_INFO system_info;
             GetSystemInfo(&system_info);
-            s_PageSize = (uint32)system_info.dwPageSize;
+            s_PageSize = (uint32_t)system_info.dwPageSize;
 #else
-            s_PageSize = static_cast<uint32>(getpagesize());
+            s_PageSize = static_cast<uint32_t>(getpagesize());
 #endif
         }
 
@@ -85,7 +85,7 @@ class CReusableAlignedBuffers : public CSingleton<CReusableAlignedBuffers>
 
     //	Provides singleton access.
     static CReusableAlignedBuffers* Instance(const char* /*_pFileStr*/,
-                                             const uint32 /*_line*/,
+                                             const uint32_t /*_line*/,
                                              const char* /*_pFunc*/)
     {
         static CReusableAlignedBuffers rab;
@@ -112,30 +112,30 @@ MakeSmartPointers(CAlignedBuffer);
 
 class CAlignedBuffer
 {
-    uint8* m_Buffer;
+    uint8_t* m_Buffer;
 
-    uint8* m_BufferAlignedStart;
+    uint8_t* m_BufferAlignedStart;
 
-    uint32 m_Size;
+    uint32_t m_Size;
 
   public:
     CAlignedBuffer();
 
-    CAlignedBuffer(uint32 size);
+    CAlignedBuffer(uint32_t size);
 
     ~CAlignedBuffer();
 
-    bool Allocate(uint32 size);
+    bool Allocate(uint32_t size);
 
-    bool Reallocate(uint32 size);
+    bool Reallocate(uint32_t size);
 
     void Free(void);
 
-    uint8* GetBufferPtr(void) const;
+    uint8_t* GetBufferPtr(void) const;
 
     bool IsValid() const { return (m_Buffer != NULL); }
 
-    uint32 Size(void) { return m_Size; }
+    uint32_t Size(void) { return m_Size; }
 };
 
 }; // namespace Base

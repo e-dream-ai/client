@@ -53,10 +53,10 @@ using namespace std;
 
 // Initialize static class data
 //
-uint64 Shepherd::s_ClientFlockBytes = 0;
-uint64 Shepherd::s_ClientFlockGoldBytes = 0;
-uint64 Shepherd::s_ClientFlockCount = 0;
-uint64 Shepherd::s_ClientFlockGoldCount = 0;
+uint64_t Shepherd::s_ClientFlockBytes = 0;
+uint64_t Shepherd::s_ClientFlockGoldBytes = 0;
+uint64_t Shepherd::s_ClientFlockCount = 0;
+uint64_t Shepherd::s_ClientFlockGoldCount = 0;
 atomic_char_ptr Shepherd::fRootPath(NULL);
 atomic_char_ptr Shepherd::fMp4Path(NULL);
 atomic_char_ptr Shepherd::fJsonPath(NULL);
@@ -127,7 +127,7 @@ void Shepherd::initializeShepherd(/*HINSTANCE hInst, HWND hWnd*/)
     EDreamClient::InitializeClient();
 
     totalRenderedFrames =
-        new boost::detail::atomic_count((int)(int32)g_Settings()->Get(
+        new boost::detail::atomic_count((int)(int32_t)g_Settings()->Get(
             "settings.generator.totalFramesRendered", 0));
     renderingFrames = new boost::detail::atomic_count(0);
 }
@@ -281,7 +281,7 @@ const char* Shepherd::GetNickName()
 
 void Shepherd::addMessageText(std::string_view s, time_t timeout)
 {
-    QueueMessage(s, (fp8)timeout);
+    QueueMessage(s, (double)timeout);
 }
 
 const char* Shepherd::rootPath()
@@ -339,7 +339,7 @@ const char* Shepherd::password()
         Get flock size in MBs after recounting
 */
 
-uint64 Shepherd::GetFlockSizeMBsRecount(const int generationtype)
+uint64_t Shepherd::GetFlockSizeMBsRecount(const int generationtype)
 {
     if (generationtype == 0)
     {
@@ -361,11 +361,11 @@ uint64 Shepherd::GetFlockSizeMBsRecount(const int generationtype)
 */
 bool Shepherd::getClientFlock(SheepArray* sheep)
 {
-    uint64 clientFlockBytes = 0;
-    uint64 clientFlockCount = 0;
+    uint64_t clientFlockBytes = 0;
+    uint64_t clientFlockCount = 0;
 
-    uint64 clientFlockGoldBytes = 0;
-    uint64 clientFlockGoldCount = 0;
+    uint64_t clientFlockGoldBytes = 0;
+    uint64_t clientFlockGoldCount = 0;
     const SheepArray& serverFlock = SheepDownloader::getServerFlock();
 
     SheepArray::iterator iter;
@@ -421,10 +421,10 @@ bool Shepherd::getSheep(const char* path, SheepArray* sheep,
         directory_iterator end_itr; // default construction yields past-the-end
         for (directory_iterator itr(p); itr != end_itr; ++itr)
         {
-            uint32 id = 0;
-            uint32 first = 0;
-            uint32 last = 0;
-            uint32 generation = 0;
+            uint32_t id = 0;
+            uint32_t first = 0;
+            uint32_t last = 0;
+            uint32_t generation = 0;
             bool isTemp = false;
             bool isDeleted = false;
 
@@ -552,7 +552,7 @@ void Shepherd::FrameCompleted()
     if (totalRenderedFrames)
         ++(*totalRenderedFrames);
     g_Settings()->Set("settings.generator.totalFramesRendered",
-                      totalRenderedFrames ? (int32)*totalRenderedFrames : 0);
+                      totalRenderedFrames ? (int32_t)*totalRenderedFrames : 0);
 }
 
 }; // namespace ContentDownloader

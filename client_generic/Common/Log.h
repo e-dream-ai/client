@@ -34,7 +34,7 @@ class CLog : public CSingleton<CLog>
 
     boost::mutex m_Lock;
 
-    static const uint32 m_MaxMessageLength = 4096;
+    static const uint32_t m_MaxMessageLength = 4096;
     static char s_MessageSpam[m_MaxMessageLength];
     static char s_MessageType[m_MaxMessageLength];
     static size_t s_MessageSpamCount;
@@ -53,10 +53,10 @@ class CLog : public CSingleton<CLog>
     //	Temporary storage vars.
     std::string m_File;
     std::string m_Function;
-    uint32 m_Line;
+    uint32_t m_Line;
 
     void Log(const char* _pType,
-             /*const char *_file, const uint32 _line, const char *_pFunc,*/
+             /*const char *_file, const uint32_t _line, const char *_pFunc,*/
              const char* _pStr);
 
   public:
@@ -66,10 +66,11 @@ class CLog : public CSingleton<CLog>
 
     const char* Description() { return "Logger"; };
 
-    void Attach(const std::string& _location, const uint32 _level = 0);
+    void Attach(const std::string& _location, const uint32_t _level = 0);
     void Detach(void);
 
-    void SetInfo(const char* _pFileStr, const uint32 _line, const char* _pFunc);
+    void SetInfo(const char* _pFileStr, const uint32_t _line,
+                 const char* _pFunc);
 
     void Debug(const char* _pFmt, ...);
     void Info(const char* _pFmt, ...);
@@ -79,7 +80,7 @@ class CLog : public CSingleton<CLog>
 
     //	Provides singleton access.
     __attribute__((no_instrument_function)) static CLog*
-    Instance(const char* /*_pFileStr*/, const uint32 /*_line*/,
+    Instance(const char* /*_pFileStr*/, const uint32_t /*_line*/,
              const char* /*_pFunc*/)
     {
         static CLog log;

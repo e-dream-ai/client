@@ -77,17 +77,17 @@ using namespace boost;
 
 #define MAXBUF 1024
 #define TIMEOUT 600
-static const int32 MAX_TIMEOUT = 24 * 60 * 60; // 1 day
+static const int32_t MAX_TIMEOUT = 24 * 60 * 60; // 1 day
 #define MIN_MEGABYTES 1024
 #define MIN_READ_INTERVAL 3600
 
 #ifndef DEBUG
-static const uint32 INIT_DELAY = 60;
+static const uint32_t INIT_DELAY = 60;
 #endif
 
 // Initialize the class data
 int SheepDownloader::fDownloadedSheep = 0;
-uint32 SheepDownloader::fCurrentGeneration = 0;
+uint32_t SheepDownloader::fCurrentGeneration = 0;
 bool SheepDownloader::fGotList = false;
 bool SheepDownloader::fListDirty = true;
 time_t SheepDownloader::fLastListTime = 0;
@@ -147,7 +147,7 @@ void SheepDownloader::clearFlocks()
 {
     boost::mutex::scoped_lock lockthis(s_DownloaderMutex);
     //	Clear the server flock.
-    for (uint32 i = 0; i < fServerFlock.size(); i++)
+    for (uint32_t i = 0; i < fServerFlock.size(); i++)
         SAFE_DELETE(fServerFlock[i]);
 
     fServerFlock.clear();
@@ -268,7 +268,7 @@ void SheepDownloader::parseSheepList()
                 //    Create a new dream and parse the attributes.
                 Dream* newDream = new Dream();
                 newDream->setGeneration(currentGeneration());
-                newDream->setId((uint32)dream.at("id").as_int64());
+                newDream->setId((uint32_t)dream.at("id").as_int64());
                 newDream->setURL(video.as_string().data());
                 newDream->setFileWriteTime(
                     dream.at("updated_at").as_string().data());
@@ -310,7 +310,7 @@ void SheepDownloader::updateCachedSheep()
     if (Shepherd::getClientFlock(&fClientFlock))
     {
         //	Run through the client flock to find deleted sheep.
-        for (uint32 i = 0; i < fClientFlock.size(); i++)
+        for (uint32_t i = 0; i < fClientFlock.size(); i++)
         {
             //	Get the current sheep.
             Dream* currentSheep = fClientFlock[i];
@@ -321,7 +321,7 @@ void SheepDownloader::updateCachedSheep()
                 //	If it is than run through the server flock to see if it
                 // is still
                 // there.
-                uint32 j;
+                uint32_t j;
                 for (j = 0; j < fServerFlock.size(); j++)
                 {
                     if (fServerFlock[j]->id() == currentSheep->id() &&
@@ -363,7 +363,7 @@ void SheepDownloader::updateCachedSheep()
             if (fGotList)
             {
                 //	Update the sheep rating from the server.
-                for (uint32 j = 0; j < fServerFlock.size(); j++)
+                for (uint32_t j = 0; j < fServerFlock.size(); j++)
                 {
                     Dream* shp = fServerFlock[j];
                     if (shp->id() == currentSheep->id() &&
@@ -407,15 +407,15 @@ int SheepDownloader::cacheOverflow(const double& bytes,
    newly downloaded files. If the cache is to large than the oldest and worst
    rated files will be deleted.
 */
-void SheepDownloader::deleteCached(const uint64& size,
+void SheepDownloader::deleteCached(const uint64_t& size,
                                    const int getGenerationType)
 {
     double total;
     time_t oldest_time; // oldest time for sheep with highest playcount
     int highest_playcount;
-    uint32 best;              // oldest sheep with highest playcount
+    uint32_t best;            // oldest sheep with highest playcount
     time_t oldest_sheep_time; // oldest time for sheep (from whole flock)
-    uint32 oldest;            // oldest sheep index
+    uint32_t oldest;          // oldest sheep index
 
     //	updateCachedSheep();
 
@@ -432,7 +432,7 @@ void SheepDownloader::deleteCached(const uint64& size,
             oldest_sheep_time = 0;
 
             //	Iterate the client flock to get the oldest and worst_rated file.
-            for (uint32 i = 0; i < fClientFlock.size(); i++)
+            for (uint32_t i = 0; i < fClientFlock.size(); i++)
             {
                 Dream* curSheep = fClientFlock[i];
                 //	If the file is allready deleted than skip.
@@ -450,7 +450,7 @@ void SheepDownloader::deleteCached(const uint64& size,
                     oldest_sheep_time = curSheep->fileWriteTime();
                 }
 
-                uint16 curPlayCount = g_PlayCounter().PlayCount(
+                uint16_t curPlayCount = g_PlayCounter().PlayCount(
                     curSheep->generation(), curSheep->id());
 
                 if (oldest_time == 0 || (curPlayCount > highest_playcount) ||
@@ -487,7 +487,7 @@ void SheepDownloader::deleteCached(const uint64& size,
                                 filename.find_last_of("/\\")) +
                             1);
 
-                uint16 playcount =
+                uint16_t playcount =
                     g_PlayCounter().PlayCount(fClientFlock[best]->generation(),
                                               fClientFlock[best]->id()) -
                     1;
@@ -545,7 +545,7 @@ void SheepDownloader::deleteSheep(Dream* sheep)
     /*if( sheep->firstId() == sheep->lastId() )
     {
             //	It's a loop so you might as well delete the edges as well.
-            for( uint32 i=0; i<fClientFlock.size(); i++ )
+            for( uint32_t i=0; i<fClientFlock.size(); i++ )
             {
                     Sheep *curSheep = fClientFlock[i];
 
@@ -561,9 +561,9 @@ void SheepDownloader::deleteSheep(Dream* sheep)
 
 /*
  */
-void SheepDownloader::deleteSheepId(uint32 sheepId)
+void SheepDownloader::deleteSheepId(uint32_t sheepId)
 {
-    for (uint32 i = 0; i < fClientFlock.size(); i++)
+    for (uint32_t i = 0; i < fClientFlock.size(); i++)
     {
         Dream* curSheep = fClientFlock[i];
         if (curSheep->deleted() || curSheep->isTemp())
@@ -625,7 +625,7 @@ void SheepDownloader::findSheepToDownload()
             std::stringstream tmp;
 
             tmp << "Downloading starts in {"
-                << (int32)ContentDownloader::INIT_DELAY << "}...";
+                << (int32_t)ContentDownloader::INIT_DELAY << "}...";
 
             Shepherd::setDownloadState(tmp.str());
 
@@ -643,8 +643,8 @@ void SheepDownloader::findSheepToDownload()
 
         boost::uintmax_t lpFreeBytesAvailable = 0;
 
-        int32 failureSleepDuration = TIMEOUT;
-        int32 badSheepSleepDuration = TIMEOUT;
+        int32_t failureSleepDuration = TIMEOUT;
+        int32_t badSheepSleepDuration = TIMEOUT;
 
         while (1)
         {

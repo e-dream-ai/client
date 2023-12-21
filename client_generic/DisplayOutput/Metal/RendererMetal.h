@@ -52,11 +52,11 @@ class CRendererMetal : public CRenderer
 
     //
     void Apply();
-    void Reset(const uint32 _flags);
+    void Reset(const uint32_t _flags);
 
     //
-    spCTextureFlat NewTextureFlat(const uint32 flags = 0);
-    spCTextureFlat NewTextureFlat(spCImage _spImage, const uint32 flags = 0);
+    spCTextureFlat NewTextureFlat(const uint32_t flags = 0);
+    spCTextureFlat NewTextureFlat(spCImage _spImage, const uint32_t flags = 0);
 
     //
     spCBaseFont GetFont(CFontDescription& _desc);
@@ -79,7 +79,7 @@ class CRendererMetal : public CRenderer
                   const Base::Math::CVector4& _color,
                   const Base::Math::CRect& _uvRect);
     void DrawSoftQuad(const Base::Math::CRect& _rect,
-                      const Base::Math::CVector4& _color, const fp4 _width);
+                      const Base::Math::CVector4& _color, const float _width);
 
 #ifdef __OBJC__
     void SetBoundSlot(uint32_t _slot, CTextureFlatMetal* _texture);

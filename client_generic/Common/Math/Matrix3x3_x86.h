@@ -18,7 +18,7 @@ namespace Math
 {
 
 //	Identity
-static const fp4 g_matrix3x3_x86_ident[9] = {
+static const float g_matrix3x3_x86_ident[9] = {
     1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
 };
 
@@ -33,8 +33,8 @@ class CMatrix3x3_x86
     CMatrix3x3_x86(const CVector3_x86& _v0, const CVector3_x86& _v1,
                    const CVector3_x86& _v2);
     CMatrix3x3_x86(const CMatrix3x3_x86& _mx);
-    CMatrix3x3_x86(fp4 _m11, fp4 _m12, fp4 _m13, fp4 _m21, fp4 _m22, fp4 _m23,
-                   fp4 _m31, fp4 _m32, fp4 _m33);
+    CMatrix3x3_x86(float _m11, float _m12, float _m13, float _m21, float _m22,
+                   float _m23, float _m31, float _m32, float _m33);
 
     //
     void Aim(const CVector3_x86& _from, const CVector3_x86& _to,
@@ -43,8 +43,8 @@ class CMatrix3x3_x86
                        const CVector3_x86& _up);
 
     //
-    void Set(fp4 _m11, fp4 _m12, fp4 _m13, fp4 _m21, fp4 _m22, fp4 _m23,
-             fp4 _m31, fp4 _m32, fp4 _m33);
+    void Set(float _m11, float _m12, float _m13, float _m21, float _m22,
+             float _m23, float _m31, float _m32, float _m33);
     void Set(const CVector3_x86& _v0, const CVector3_x86& _v1,
              const CVector3_x86& _v2);
     void Set(const CMatrix3x3_x86& _m1);
@@ -52,23 +52,23 @@ class CMatrix3x3_x86
     //
     void Identity();
     void Transpose();
-    bool Orthonorm(const fp4 _limit);
+    bool Orthonorm(const float _limit);
 
     //
     void Scale(const CVector3_x86& _s);
 
     //	World.
-    void Rotate_X(const fp4 _a);
-    void Rotate_Y(const fp4 _a);
-    void Rotate_Z(const fp4 _a);
+    void Rotate_X(const float _a);
+    void Rotate_Y(const float _a);
+    void Rotate_Z(const float _a);
 
     //	Local.
-    void Rotate_LX(const fp4 _a);
-    void Rotate_LY(const fp4 _a);
-    void Rotate_LZ(const fp4 _a);
+    void Rotate_LX(const float _a);
+    void Rotate_LY(const float _a);
+    void Rotate_LZ(const float _a);
 
     //
-    void Rotate(const CVector3_x86& _vec, const fp4 _a);
+    void Rotate(const CVector3_x86& _vec, const float _a);
 
     //
     CVector3_x86 GetX(void) const;
@@ -82,7 +82,7 @@ class CMatrix3x3_x86
     void Transform(const CVector3_x86& _src, CVector3_x86& _dst) const;
     void Translate(const CVector2_x86& _t);
 
-    fp4 m_Mat[3][3];
+    float m_Mat[3][3];
 };
 
 /*
@@ -153,14 +153,14 @@ inline CMatrix3x3_x86::CMatrix3x3_x86(const CVector3_x86& _v0,
  */
 inline CMatrix3x3_x86::CMatrix3x3_x86(const CMatrix3x3_x86& _m1)
 {
-    memcpy(m_Mat, &(_m1.m_Mat[0][0]), 9 * sizeof(fp4));
+    memcpy(m_Mat, &(_m1.m_Mat[0][0]), 9 * sizeof(float));
 }
 
 /*
  */
-inline CMatrix3x3_x86::CMatrix3x3_x86(fp4 _m11, fp4 _m12, fp4 _m13, fp4 _m21,
-                                      fp4 _m22, fp4 _m23, fp4 _m31, fp4 _m32,
-                                      fp4 _m33)
+inline CMatrix3x3_x86::CMatrix3x3_x86(float _m11, float _m12, float _m13,
+                                      float _m21, float _m22, float _m23,
+                                      float _m31, float _m32, float _m33)
 {
     M11 = _m11;
     M12 = _m12;
@@ -226,9 +226,9 @@ inline void CMatrix3x3_x86::AimRestricted(const CVector3_x86& _from,
 
 /*
  */
-inline void CMatrix3x3_x86::Set(fp4 _m11, fp4 _m12, fp4 _m13, fp4 _m21,
-                                fp4 _m22, fp4 _m23, fp4 _m31, fp4 _m32,
-                                fp4 _m33)
+inline void CMatrix3x3_x86::Set(float _m11, float _m12, float _m13, float _m21,
+                                float _m22, float _m23, float _m31, float _m32,
+                                float _m33)
 {
     M11 = _m11;
     M12 = _m12;
@@ -262,7 +262,7 @@ inline void CMatrix3x3_x86::Set(const CVector3_x86& _v0,
  */
 inline void CMatrix3x3_x86::Set(const CMatrix3x3_x86& _m1)
 {
-    memcpy(m_Mat, &(_m1.m_Mat), 9 * sizeof(fp4));
+    memcpy(m_Mat, &(_m1.m_Mat), 9 * sizeof(float));
 }
 
 /*
@@ -279,7 +279,7 @@ inline void CMatrix3x3_x86::Transpose(void)
 {
 #define da_swap(x, y)                                                          \
     {                                                                          \
-        fp4 t = x;                                                             \
+        float t = x;                                                           \
         x = y;                                                                 \
         y = t;                                                                 \
     }
@@ -291,7 +291,7 @@ inline void CMatrix3x3_x86::Transpose(void)
 
 /*
  */
-inline bool CMatrix3x3_x86::Orthonorm(const fp4 _limit)
+inline bool CMatrix3x3_x86::Orthonorm(const float _limit)
 {
     if (((M11 * M21 + M12 * M22 + M13 * M23) < _limit) &&
         ((M11 * M31 + M12 * M32 + M13 * M33) < _limit) &&
@@ -311,7 +311,7 @@ inline bool CMatrix3x3_x86::Orthonorm(const fp4 _limit)
  */
 inline void CMatrix3x3_x86::Scale(const CVector3_x86& _s)
 {
-    for (uint32 i = 0; i < 3; i++)
+    for (uint32_t i = 0; i < 3; i++)
     {
         m_Mat[i][0] *= _s.m_X;
         m_Mat[i][1] *= _s.m_Y;
@@ -321,15 +321,15 @@ inline void CMatrix3x3_x86::Scale(const CVector3_x86& _s)
 
 /*
  */
-inline void CMatrix3x3_x86::Rotate_X(const fp4 _a)
+inline void CMatrix3x3_x86::Rotate_X(const float _a)
 {
-    fp4 s, c;
+    float s, c;
     SinCos(_a, &s, &c);
 
-    for (uint32 i = 0; i < 3; i++)
+    for (uint32_t i = 0; i < 3; i++)
     {
-        fp4 mi1 = m_Mat[i][1];
-        fp4 mi2 = m_Mat[i][2];
+        float mi1 = m_Mat[i][1];
+        float mi2 = m_Mat[i][2];
         m_Mat[i][1] = mi1 * c + mi2 * -s;
         m_Mat[i][2] = mi1 * s + mi2 * c;
     }
@@ -337,15 +337,15 @@ inline void CMatrix3x3_x86::Rotate_X(const fp4 _a)
 
 /*
  */
-inline void CMatrix3x3_x86::Rotate_Y(const fp4 _a)
+inline void CMatrix3x3_x86::Rotate_Y(const float _a)
 {
-    fp4 s, c;
+    float s, c;
     SinCos(_a, &s, &c);
 
-    for (uint32 i = 0; i < 3; i++)
+    for (uint32_t i = 0; i < 3; i++)
     {
-        fp4 mi0 = m_Mat[i][0];
-        fp4 mi2 = m_Mat[i][2];
+        float mi0 = m_Mat[i][0];
+        float mi2 = m_Mat[i][2];
         m_Mat[i][0] = mi0 * c + mi2 * s;
         m_Mat[i][2] = mi0 * -s + mi2 * c;
     }
@@ -353,15 +353,15 @@ inline void CMatrix3x3_x86::Rotate_Y(const fp4 _a)
 
 /*
  */
-inline void CMatrix3x3_x86::Rotate_Z(const fp4 _a)
+inline void CMatrix3x3_x86::Rotate_Z(const float _a)
 {
-    fp4 s, c;
+    float s, c;
     SinCos(_a, &s, &c);
 
-    for (uint32 i = 0; i < 3; i++)
+    for (uint32_t i = 0; i < 3; i++)
     {
-        fp4 mi0 = m_Mat[i][0];
-        fp4 mi1 = m_Mat[i][1];
+        float mi0 = m_Mat[i][0];
+        float mi1 = m_Mat[i][1];
         m_Mat[i][0] = mi0 * c + mi1 * -s;
         m_Mat[i][1] = mi0 * s + mi1 * c;
     }
@@ -369,9 +369,9 @@ inline void CMatrix3x3_x86::Rotate_Z(const fp4 _a)
 
 /*
  */
-inline void CMatrix3x3_x86::Rotate_LX(const fp4 _a)
+inline void CMatrix3x3_x86::Rotate_LX(const float _a)
 {
-    fp4 sa, ca;
+    float sa, ca;
     SinCos(_a, &sa, &ca);
 
     CMatrix3x3_x86 rotM;
@@ -386,9 +386,9 @@ inline void CMatrix3x3_x86::Rotate_LX(const fp4 _a)
 
 /*
  */
-inline void CMatrix3x3_x86::Rotate_LY(const fp4 _a)
+inline void CMatrix3x3_x86::Rotate_LY(const float _a)
 {
-    fp4 sa, ca;
+    float sa, ca;
     SinCos(_a, &sa, &ca);
 
     CMatrix3x3_x86 rotM;
@@ -402,9 +402,9 @@ inline void CMatrix3x3_x86::Rotate_LY(const fp4 _a)
 
 /*
  */
-inline void CMatrix3x3_x86::Rotate_LZ(const fp4 _a)
+inline void CMatrix3x3_x86::Rotate_LZ(const float _a)
 {
-    fp4 sa, ca;
+    float sa, ca;
     SinCos(_a, &sa, &ca);
 
     CMatrix3x3_x86 rotM;
@@ -420,12 +420,12 @@ inline void CMatrix3x3_x86::Rotate_LZ(const fp4 _a)
         Rotate().
 
 */
-inline void CMatrix3x3_x86::Rotate(const CVector3_x86& _vec, const fp4 _a)
+inline void CMatrix3x3_x86::Rotate(const CVector3_x86& _vec, const float _a)
 {
     CVector3_x86 v(_vec);
     v.NormalizeFast();
 
-    fp4 sa, ca;
+    float sa, ca;
     SinCos(_a, &sa, &ca);
 
     CMatrix3x3_x86 rotM;
@@ -470,11 +470,11 @@ inline CVector3_x86 CMatrix3x3_x86::GetZ(void) const
  */
 inline void CMatrix3x3_x86::operator*=(const CMatrix3x3_x86& _m1)
 {
-    for (uint32 i = 0; i < 3; i++)
+    for (uint32_t i = 0; i < 3; i++)
     {
-        fp4 mi0 = m_Mat[i][0];
-        fp4 mi1 = m_Mat[i][1];
-        fp4 mi2 = m_Mat[i][2];
+        float mi0 = m_Mat[i][0];
+        float mi1 = m_Mat[i][1];
+        float mi2 = m_Mat[i][2];
         m_Mat[i][0] = mi0 * _m1.m_Mat[0][0] + mi1 * _m1.m_Mat[1][0] +
                       mi2 * _m1.m_Mat[2][0];
         m_Mat[i][1] = mi0 * _m1.m_Mat[0][1] + mi1 * _m1.m_Mat[1][1] +

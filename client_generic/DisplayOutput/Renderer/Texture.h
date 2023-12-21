@@ -18,14 +18,14 @@ class CTexture
         TEXTURE_NONE = 0,
         TEXTURE_YUV = 1 << 0,
     };
-    uint32 m_Flags;
+    uint32_t m_Flags;
 
   public:
-    CTexture(const uint32 _flags = 0);
+    CTexture(const uint32_t _flags = 0);
     virtual ~CTexture();
 
-    virtual bool Bind(const uint32 _index) = PureVirtual;
-    virtual bool Unbind(const uint32 _index) = PureVirtual;
+    virtual bool Bind(const uint32_t _index) = PureVirtual;
+    virtual bool Unbind(const uint32_t _index) = PureVirtual;
 
     virtual bool Dirty(void) { return false; };
     virtual bool IsYUVTexture() const

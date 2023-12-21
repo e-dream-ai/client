@@ -124,8 +124,8 @@ class CMouseEvent : public CEvent
     virtual eEventType Type() { return (CEvent::Event_Mouse); };
     eMouseCode m_Code;
 
-    int32 m_X;
-    int32 m_Y;
+    int32_t m_X;
+    int32_t m_Y;
 
     POOLED(CMouseEvent, Memory::CLinkPool);
 };
@@ -157,10 +157,10 @@ MakeSmartPointers(CPowerEvent);
 class CDisplayOutput
 {
   protected:
-    int32 m_XPosition;
-    int32 m_YPosition;
-    uint32 m_Width;
-    uint32 m_Height;
+    int32_t m_XPosition;
+    int32_t m_YPosition;
+    uint32_t m_Width;
+    uint32_t m_Height;
     bool m_bFullScreen;
     bool m_bVSync;
     bool m_bClosed;
@@ -173,7 +173,7 @@ class CDisplayOutput
 
 #ifdef WIN32
     virtual bool Initialize(HWND _hWnd, bool _bPreview) = PureVirtual;
-    virtual HWND Initialize(const uint32 _width, const uint32 _height,
+    virtual HWND Initialize(const uint32_t _width, const uint32_t _height,
                             const bool _bFullscreen) = PureVirtual;
     virtual HWND WindowHandle(void) = PureVirtual;
     virtual DWORD GetNumMonitors() { return 1; }
@@ -183,10 +183,10 @@ class CDisplayOutput
                             bool _bPreview) = PureVirtual;
     virtual void SetContext(CGraphicsContext _graphicsContext) = PureVirtual;
     virtual CGraphicsContext GetContext(void) = PureVirtual;
-    virtual void ForceWidthAndHeight(uint32 _width,
-                                     uint32 _height) = PureVirtual;
+    virtual void ForceWidthAndHeight(uint32_t _width,
+                                     uint32_t _height) = PureVirtual;
 #else
-    virtual bool Initialize(const uint32 _width, const uint32 _height,
+    virtual bool Initialize(const uint32_t _width, const uint32_t _height,
                             const bool _bFullscreen) = PureVirtual;
 #endif
 #endif
@@ -201,9 +201,9 @@ class CDisplayOutput
     void ClearEvents();
 
     virtual bool HasShaders() { return false; };
-    uint32 Width() { return (m_Width); };
-    uint32 Height() { return (m_Height); };
-    fp4 Aspect() { return ((fp4)m_Height / (fp4)m_Width); };
+    uint32_t Width() { return (m_Width); };
+    uint32_t Height() { return (m_Height); };
+    float Aspect() { return ((float)m_Height / (float)m_Width); };
     bool Closed() { return (m_bClosed); };
     void Close() { m_bClosed = true; };
 };

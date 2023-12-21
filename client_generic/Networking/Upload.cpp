@@ -25,7 +25,7 @@ CFileUploader::~CFileUploader() {}
 */
 bool CFileUploader::PerformUpload(const std::string& _url,
                                   const std::string& _file,
-                                  const uint32 _fileSize)
+                                  const uint32_t _fileSize)
 {
     //	Open input file to transfer.
     FILE* pFile = fopen(_file.c_str(), "rb");

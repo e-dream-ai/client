@@ -21,20 +21,21 @@ class CVector4_x86
 {
   public:
     CVector4_x86();
-    CVector4_x86(const fp4 _x, const fp4 _y, const fp4 _z, const fp4 _w = 0.0f);
+    CVector4_x86(const float _x, const float _y, const float _z,
+                 const float _w = 0.0f);
     CVector4_x86(const CVector4_x86& _vec);
     CVector4_x86(const CVector3_x86& _vec3); //	.m_W = 1.0f.
 
     //
-    void Set(const fp4 _x, const fp4 _y, const fp4 _z, const fp4 _w);
+    void Set(const float _x, const float _y, const float _z, const float _w);
     void Set(const CVector4_x86& _v);
     void Set(const CVector3_x86& _v); //	.m_W = 1.0f.
 
     //
-    fp4 Len() const;
-    fp4 LenSqr() const;
-    fp4 RLen() const;
-    fp4 RLenFast() const;
+    float Len() const;
+    float LenSqr() const;
+    float RLen() const;
+    float RLenFast() const;
 
     //
     void Normalize();
@@ -46,7 +47,7 @@ class CVector4_x86
     //
     void operator+=(const CVector4_x86& _v);
     void operator-=(const CVector4_x86& _v);
-    void operator*=(const fp4 _s);
+    void operator*=(const float _s);
 
     //
     bool operator>(const CVector4_x86& _rhs);
@@ -56,30 +57,30 @@ class CVector4_x86
     CVector4_x86& operator=(const CVector3_x86& _v); //	.m_W = 1.0f.
 
     //
-    fp4& operator()(const uint32 _i);
-    fp4 operator()(const uint32 _i) const;
+    float& operator()(const uint32_t _i);
+    float operator()(const uint32_t _i) const;
 
     //
-    bool IsEqual(const CVector4_x86& _v, const fp4 _tol) const;
-    int32 Compare(const CVector4_x86& _v,
-                  const fp4 _tol) const; //	-1, 0, +1.
+    bool IsEqual(const CVector4_x86& _v, const float _tol) const;
+    int32_t Compare(const CVector4_x86& _v,
+                    const float _tol) const; //	-1, 0, +1.
 
     //
     void Minimum(const CVector4_x86& _v);
     void Maximum(const CVector4_x86& _v);
 
     //
-    void Lerp(const CVector4_x86& _v0, const fp4 _delta);
+    void Lerp(const CVector4_x86& _v0, const float _delta);
     void Saturate();
 
     //
-    fp4 Dot(const CVector4_x86& _v0) const;
+    float Dot(const CVector4_x86& _v0) const;
 
     //
-    fp4 m_X;
-    fp4 m_Y;
-    fp4 m_Z;
-    fp4 m_W;
+    float m_X;
+    float m_Y;
+    float m_Z;
+    float m_W;
 };
 
 /*
@@ -90,8 +91,8 @@ inline CVector4_x86::CVector4_x86() : m_X(0.0f), m_Y(0.0f), m_Z(0.0f), m_W(0.0f)
 
 /*
  */
-inline CVector4_x86::CVector4_x86(const fp4 _x, const fp4 _y, const fp4 _z,
-                                  const fp4 _w)
+inline CVector4_x86::CVector4_x86(const float _x, const float _y,
+                                  const float _z, const float _w)
     : m_X(_x), m_Y(_y), m_Z(_z), m_W(_w)
 {
 }
@@ -112,8 +113,8 @@ inline CVector4_x86::CVector4_x86(const CVector3_x86& _v)
 
 /*
  */
-inline void CVector4_x86::Set(const fp4 _x, const fp4 _y, const fp4 _z,
-                              const fp4 _w)
+inline void CVector4_x86::Set(const float _x, const float _y, const float _z,
+                              const float _w)
 {
     m_X = _x;
     m_Y = _y;
@@ -143,28 +144,28 @@ inline void CVector4_x86::Set(const CVector3_x86& _v)
 
 /*
  */
-inline fp4 CVector4_x86::Len(void) const
+inline float CVector4_x86::Len(void) const
 {
     return (Sqrt(m_X * m_X + m_Y * m_Y + m_Z * m_Z + m_W * m_W));
 }
 
 /*
  */
-inline fp4 CVector4_x86::LenSqr(void) const
+inline float CVector4_x86::LenSqr(void) const
 {
     return (m_X * m_X + m_Y * m_Y + m_Z * m_Z + m_W * m_W);
 }
 
 /*
  */
-inline fp4 CVector4_x86::RLen(void) const
+inline float CVector4_x86::RLen(void) const
 {
     return (RSqrt(m_X * m_X + m_Y * m_Y + m_Z * m_Z + m_W * m_W));
 }
 
 /*
  */
-inline fp4 CVector4_x86::RLenFast(void) const
+inline float CVector4_x86::RLenFast(void) const
 {
     return (RSqrtFast(m_X * m_X + m_Y * m_Y + m_Z * m_Z + m_W * m_W));
 }
@@ -175,7 +176,7 @@ inline fp4 CVector4_x86::RLenFast(void) const
 */
 inline void CVector4_x86::Normalize(void)
 {
-    fp4 l = RLen();
+    float l = RLen();
     m_X *= l;
     m_Y *= l;
     m_Z *= l;
@@ -188,7 +189,7 @@ inline void CVector4_x86::Normalize(void)
 */
 inline void CVector4_x86::NormalizeFast(void)
 {
-    fp4 l = RLenFast();
+    float l = RLenFast();
     m_X *= l;
     m_Y *= l;
     m_Z *= l;
@@ -229,7 +230,7 @@ inline void CVector4_x86::operator-=(const CVector4_x86& _v)
 
 /*
  */
-inline void CVector4_x86::operator*=(const fp4 _s)
+inline void CVector4_x86::operator*=(const float _s)
 {
     m_X *= _s;
     m_Y *= _s;
@@ -247,7 +248,8 @@ inline CVector4_x86& CVector4_x86::operator=(const CVector3_x86& _v)
 
 /*
  */
-inline bool CVector4_x86::IsEqual(const CVector4_x86& _v, const fp4 _tol) const
+inline bool CVector4_x86::IsEqual(const CVector4_x86& _v,
+                                  const float _tol) const
 {
     if (fabsf(_v.m_X - m_X) > _tol)
         return (false);
@@ -262,7 +264,8 @@ inline bool CVector4_x86::IsEqual(const CVector4_x86& _v, const fp4 _tol) const
 
 /*
  */
-inline int32 CVector4_x86::Compare(const CVector4_x86& _v, const fp4 _tol) const
+inline int32_t CVector4_x86::Compare(const CVector4_x86& _v,
+                                     const float _tol) const
 {
     if (fabsf(_v.m_X - m_X) > _tol)
         return ((_v.m_X > m_X) ? +1 : -1);
@@ -318,7 +321,7 @@ static inline CVector4_x86 operator-(const CVector4_x86& _v0,
 
 /*
  */
-static inline CVector4_x86 operator*(const CVector4_x86& _v0, const fp4& _s)
+static inline CVector4_x86 operator*(const CVector4_x86& _v0, const float& _s)
 {
     return (
         CVector4_x86(_v0.m_X * _s, _v0.m_Y * _s, _v0.m_Z * _s, _v0.m_W * _s));
@@ -327,7 +330,7 @@ static inline CVector4_x86 operator*(const CVector4_x86& _v0, const fp4& _s)
 /*
         Dot product.
 */
-static inline fp4 operator%(const CVector4_x86& _v0, const CVector4_x86& _v1)
+static inline float operator%(const CVector4_x86& _v0, const CVector4_x86& _v1)
 {
     return (_v0.m_X * _v1.m_X + _v0.m_Y * _v1.m_Y + _v0.m_Z * _v1.m_Z +
             _v0.m_W * _v1.m_W);
@@ -353,20 +356,20 @@ static inline CVector4_x86 operator-(const CVector4_x86& _v)
 }
 
 //
-inline fp4& CVector4_x86::operator()(const uint32 _i)
+inline float& CVector4_x86::operator()(const uint32_t _i)
 {
-    return ((fp4*)this)[_i];
+    return ((float*)this)[_i];
 }
 
 //
-inline fp4 CVector4_x86::operator()(const uint32 _i) const
+inline float CVector4_x86::operator()(const uint32_t _i) const
 {
-    return ((const fp4*)this)[_i];
+    return ((const float*)this)[_i];
 }
 
 /*
  */
-inline void CVector4_x86::Lerp(const CVector4_x86& _v0, const fp4 _delta)
+inline void CVector4_x86::Lerp(const CVector4_x86& _v0, const float _delta)
 {
     m_X = _v0.m_X + ((m_X - _v0.m_X) * _delta);
     m_Y = _v0.m_Y + ((m_Y - _v0.m_Y) * _delta);
@@ -388,7 +391,7 @@ inline void CVector4_x86::Saturate(void)
         Dot.
 
 */
-inline fp4 CVector4_x86::Dot(const CVector4_x86& _v0) const
+inline float CVector4_x86::Dot(const CVector4_x86& _v0) const
 {
     return (m_X * _v0.m_X + m_Y * _v0.m_Y + m_Z * _v0.m_Z + m_W * _v0.m_W);
 }

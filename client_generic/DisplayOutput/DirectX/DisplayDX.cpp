@@ -530,7 +530,7 @@ bool CDisplayDX::InitDX9()
         createwindow().
         Creates a new window, _w * _h in size, optionally fullscreen.
 */
-HWND CDisplayDX::createwindow(uint32 _w, uint32 _h, const bool _bFullscreen)
+HWND CDisplayDX::createwindow(uint32_t _w, uint32_t _h, const bool _bFullscreen)
 {
     m_bFullScreen = _bFullscreen;
     HMODULE hInstance = GetModuleHandle(NULL);
@@ -663,8 +663,8 @@ bool CDisplayDX::Initialize(HWND _hWnd, bool _bPreview)
         RECT rc;
         // GetWindowRect( _hWnd, &rc );
         GetClientRect(_hWnd, &rc);
-        int32 cx = rc.right - rc.left;
-        int32 cy = rc.bottom - rc.top;
+        int32_t cx = rc.right - rc.left;
+        int32_t cy = rc.bottom - rc.top;
 
         g_Log->Info("rc: %d, %d", cx, cy);
 
@@ -728,8 +728,8 @@ bool CDisplayDX::Initialize(HWND _hWnd, bool _bPreview)
     }
     else
     {
-        //		int32 cx = GetSystemMetrics( SM_CXSCREEN );
-        //		int32 cy = GetSystemMetrics( SM_CYSCREEN );
+        //		int32_t cx = GetSystemMetrics( SM_CXSCREEN );
+        //		int32_t cy = GetSystemMetrics( SM_CYSCREEN );
         RECT rc;
         GetWindowRect(_hWnd, &rc);
         m_Width = rc.right - rc.left;
@@ -773,7 +773,7 @@ bool CDisplayDX::Initialize(HWND _hWnd, bool _bPreview)
         Initialize().
 
 */
-HWND CDisplayDX::Initialize(const uint32 _width, const uint32 _height,
+HWND CDisplayDX::Initialize(const uint32_t _width, const uint32_t _height,
                             const bool _bFullscreen)
 {
     m_WindowHandle = createwindow(_width, _height, _bFullscreen);

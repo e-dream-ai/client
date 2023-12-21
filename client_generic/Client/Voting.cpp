@@ -119,9 +119,9 @@ void CVote::ThreadFunc()
         Vote().
         Spawn a thread which sends a vote to the sheep server.
 */
-bool CVote::Vote(const uint32 _id, const uint8 _type, const fp4 _duration)
+bool CVote::Vote(const uint32_t _id, const uint8_t _type, const float _duration)
 {
-    const fp8 time = m_Timer.Time();
+    const double time = m_Timer.Time();
 
     //	Check frequency.
     if (time - m_Clock > _duration)

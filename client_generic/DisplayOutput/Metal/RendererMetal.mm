@@ -173,12 +173,12 @@ void CRendererMetal::Apply() { CRenderer::Apply(); }
 
 /*
  */
-void CRendererMetal::Reset(const uint32 _flags) { CRenderer::Reset(_flags); }
+void CRendererMetal::Reset(const uint32_t _flags) { CRenderer::Reset(_flags); }
 
 /*
  */
 spCTextureFlat CRendererMetal::NewTextureFlat(spCImage _spImage,
-                                              const uint32 _flags)
+                                              const uint32_t _flags)
 {
     spCTextureFlat spTex = std::make_shared<CTextureFlatMetal>(
         m_spDisplay->GetContext(), _flags, this);
@@ -188,7 +188,7 @@ spCTextureFlat CRendererMetal::NewTextureFlat(spCImage _spImage,
 
 /*
  */
-spCTextureFlat CRendererMetal::NewTextureFlat(const uint32 _flags)
+spCTextureFlat CRendererMetal::NewTextureFlat(const uint32_t _flags)
 {
     spCTextureFlat spTex = std::make_shared<CTextureFlatMetal>(
         m_spDisplay->GetContext(), _flags, this);
@@ -415,7 +415,7 @@ void CRendererMetal::DrawText(spCBaseText _text,
         [renderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                                   indexCount:[textMesh.indexBuffer length] /
                                              sizeof(uint16_t)
-                                   indexType:MTLIndexTypeUInt16
+                                   indexType:MTLIndexTypeUint16_t
                                  indexBuffer:textMesh.indexBuffer
                            indexBufferOffset:0];
 
@@ -549,7 +549,7 @@ void CRendererMetal::DrawQuad(const Base::Math::CRect& _rect,
 
 void CRendererMetal::DrawSoftQuad(const Base::Math::CRect& _rect,
                                   const Base::Math::CVector4& _color,
-                                  const fp4 _width)
+                                  const float _width)
 {
     DrawQuad(_rect, _color, Base::Math::CRect{0, 0, 1, 1});
 }

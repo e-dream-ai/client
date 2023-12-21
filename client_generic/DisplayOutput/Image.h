@@ -171,7 +171,7 @@ class CImageFormat
     }
 
     //
-    inline uint32 GetChannels(void) const
+    inline uint32_t GetChannels(void) const
     {
         switch (m_Format)
         {
@@ -209,13 +209,13 @@ class CImageFormat
     }
 
     //	Bytes per block.
-    inline uint32 getBPBlock(void) const
+    inline uint32_t getBPBlock(void) const
     {
         return ((m_Format == eImage_DXT1) ? 8 : 16);
     }
 
     //	Bytes per pixel.
-    inline uint32 getBPPixel(void) const
+    inline uint32_t getBPPixel(void) const
     {
         switch (m_Format)
         {
@@ -279,16 +279,16 @@ class CImageFormat
 MakeSmartPointers(CImageFormat);
 
 //
-inline void flipChannels(uint8* _pData, uint32 _nPixels,
-                         const uint32 _nChannels)
+inline void flipChannels(uint8_t* _pData, uint32_t _nPixels,
+                         const uint32_t _nChannels)
 {
-    uint8 tmp;
+    uint8_t tmp;
 
     do
     {
         tmp = _pData[_nChannels - 1];
 
-        for (uint32 i = _nChannels - 1; i > 0; i--)
+        for (uint32_t i = _nChannels - 1; i > 0; i--)
         {
             _pData[i] = _pData[i - 1];
         }
@@ -299,10 +299,10 @@ inline void flipChannels(uint8* _pData, uint32 _nPixels,
     } while (--_nPixels);
 }
 
-inline void flipChannelsRB(uint8* _pData, uint32 _nPixels,
-                           const uint32 _nChannels)
+inline void flipChannelsRB(uint8_t* _pData, uint32_t _nPixels,
+                           const uint32_t _nChannels)
 {
-    uint8 tmp;
+    uint8_t tmp;
 
     do
     {
@@ -323,7 +323,7 @@ inline void flipChannelsRB(uint8* _pData, uint32 _nPixels,
 #define MCHAR4(a, b, c, d) (a | (b << 8) | (c << 16) | (d << 24))
 #endif
 
-#define MAX_MIPMAP (sizeof(uint32) * 8)
+#define MAX_MIPMAP (sizeof(uint32_t) * 8)
 
 /*
         CImage.
@@ -332,12 +332,12 @@ inline void flipChannelsRB(uint8* _pData, uint32 _nPixels,
 class CImage
 {
 
-    uint32 getNumberOfMipMapsFromDimesions(void) const;
-    uint32 getMipMappedSize(const uint32 _firstMipMapLevel,
-                            const uint32 _nMipMapLevels,
-                            const CImageFormat& _format) const;
-    uint32 getNumPixels(const uint32 _firstMipMapLevel,
-                        const uint32 _nMipMapLevels) const;
+    uint32_t getNumberOfMipMapsFromDimesions(void) const;
+    uint32_t getMipMappedSize(const uint32_t _firstMipMapLevel,
+                              const uint32_t _nMipMapLevels,
+                              const CImageFormat& _format) const;
+    uint32_t getNumPixels(const uint32_t _firstMipMapLevel,
+                          const uint32_t _nMipMapLevels) const;
     bool createMipMaps(void);
 
     //	Image loaders.
@@ -356,10 +356,10 @@ class CImage
 
     Base::spCAlignedBuffer m_spData;
 
-    uint32 m_Width;
-    uint32 m_Height;
+    uint32_t m_Width;
+    uint32_t m_Height;
 
-    uint32 m_nMipMaps;
+    uint32_t m_nMipMaps;
 
     bool m_bRef;
 
@@ -368,9 +368,10 @@ class CImage
     ~CImage();
 
     //
-    void Create(const uint32 _w, const uint32 _h, const eImageFormat _format,
-                const bool _bMipmaps = false, const bool _bRef = false);
-    void Copy(const CImage& _image, const uint32 _mipLevel);
+    void Create(const uint32_t _w, const uint32_t _h,
+                const eImageFormat _format, const bool _bMipmaps = false,
+                const bool _bRef = false);
+    void Copy(const CImage& _image, const uint32_t _mipLevel);
 
     bool Load(const std::string& _filename, const bool _calcMimaps = true);
     bool Save(const std::string& _filename);
@@ -378,13 +379,13 @@ class CImage
     Base::spCAlignedBuffer& GetStorageBuffer(void) { return m_spData; }
     void SetStorageBuffer(Base::spCAlignedBuffer& buffer) { m_spData = buffer; }
 
-    uint8* GetData(const uint32 _mipLevel) const;
-    void SetData(uint8* _pData);
+    uint8_t* GetData(const uint32_t _mipLevel) const;
+    void SetData(uint8_t* _pData);
 
-    uint32 GetPitch(const uint32 _mipMapLevel = 0) const;
+    uint32_t GetPitch(const uint32_t _mipMapLevel = 0) const;
 
     //
-    bool Scale(const uint32 _newWidth, const uint32 _newHeight,
+    bool Scale(const uint32_t _newWidth, const uint32_t _newHeight,
                const eScaleFilters _eFilter);
     bool Convert(const eImageFormat _newFormat);
 
@@ -393,30 +394,30 @@ class CImage
 
     //
     inline bool isReference(void) const { return (m_bRef); };
-    inline uint32 GetWidth(const uint32 _mipMapLevel = 0) const
+    inline uint32_t GetWidth(const uint32_t _mipMapLevel = 0) const
     {
-        uint32 a = m_Width >> _mipMapLevel;
+        uint32_t a = m_Width >> _mipMapLevel;
         return ((a == 0) ? 1 : a);
     }
-    inline uint32 GetHeight(const uint32 _mipMapLevel = 0) const
+    inline uint32_t GetHeight(const uint32_t _mipMapLevel = 0) const
     {
-        uint32 a = m_Height >> _mipMapLevel;
+        uint32_t a = m_Height >> _mipMapLevel;
         return ((a == 0) ? 1 : a);
     }
     inline Base::Math::CRect GetRect(void) const
     {
-        return (Base::Math::CRect((fp4)m_Width, (fp4)m_Height));
+        return (Base::Math::CRect((float)m_Width, (float)m_Height));
     };
-    inline uint32 GetNumMipMaps(void) const { return (m_nMipMaps); };
-    uint32 getMipMappedSize(const uint32 _firstMipMapLevel = 0,
-                            const uint32 _nMipMapLevels = 0x7FFFFFFF) const;
+    inline uint32_t GetNumMipMaps(void) const { return (m_nMipMaps); };
+    uint32_t getMipMappedSize(const uint32_t _firstMipMapLevel = 0,
+                              const uint32_t _nMipMapLevels = 0x7FFFFFFF) const;
     inline const CImageFormat& GetFormat(void) const { return (m_Format); };
 
     //
-    void GetPixel(const int32 _x, const int32 _y, fp4& _r, fp4& _g, fp4& _b,
-                  fp4& _a);
-    void PutPixel(const int32 _x, const int32 _y, const fp4 _r, const fp4 _g,
-                  const fp4 _b, const fp4 _a);
+    void GetPixel(const int32_t _x, const int32_t _y, float& _r, float& _g,
+                  float& _b, float& _a);
+    void PutPixel(const int32_t _x, const int32_t _y, const float _r,
+                  const float _g, const float _b, const float _a);
 };
 
 MakeSmartPointers(CImage);

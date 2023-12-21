@@ -102,8 +102,8 @@ bool CImage::LoadDDS(const std::string& _fileName, const bool _wantMipMaps)
     }
 
     //	Calculate how large buffer we need possibly including mipmaps.
-    uint32 readSize = getMipMappedSize(0, m_nMipMaps);
-    uint32 size;
+    uint32_t readSize = getMipMappedSize(0, m_nMipMaps);
+    uint32_t size;
 
     if (m_Format.isPlain() && _wantMipMaps)
         size = getMipMappedSize(0, 0x7fffffff);

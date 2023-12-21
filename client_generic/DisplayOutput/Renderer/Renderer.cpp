@@ -23,10 +23,10 @@ CRenderer::CRenderer()
 CRenderer::~CRenderer()
 {
     if (m_aspSelectedTextures != NULL)
-        for (uint32 i = 0; i < MAX_TEXUNIT; i++)
+        for (uint32_t i = 0; i < MAX_TEXUNIT; i++)
             m_aspSelectedTextures[i] = NULL;
     if (m_aspActiveTextures != NULL)
-        for (uint32 i = 0; i < MAX_TEXUNIT; i++)
+        for (uint32_t i = 0; i < MAX_TEXUNIT; i++)
             m_aspActiveTextures[i] = NULL;
     SAFE_DELETE_ARRAY(m_aspActiveTextures);
     SAFE_DELETE_ARRAY(m_aspSelectedTextures);
@@ -48,7 +48,8 @@ bool CRenderer::Initialize(spCDisplayOutput _spDisplay)
 
 /*
  */
-void CRenderer::AddBlend(std::string _name, int32 _src, int32 _dst, int32 _mode)
+void CRenderer::AddBlend(std::string _name, int32_t _src, int32_t _dst,
+                         int32_t _mode)
 {
     spCBlend spBlend(new CBlend(_src, _dst, _mode));
     m_BlendMap[_name] = spBlend;
@@ -56,7 +57,7 @@ void CRenderer::AddBlend(std::string _name, int32 _src, int32 _dst, int32 _mode)
 
 /*
  */
-void CRenderer::Reset(const uint32 _flags)
+void CRenderer::Reset(const uint32_t _flags)
 {
     if (isBit(_flags, eShader))
         m_spSelectedShader = NULL;
@@ -66,7 +67,7 @@ void CRenderer::Reset(const uint32 _flags)
 
     if (isBit(_flags, eTexture))
     {
-        for (uint32 i = 0; i < MAX_TEXUNIT; i++)
+        for (uint32_t i = 0; i < MAX_TEXUNIT; i++)
             m_aspSelectedTextures[i] = NULL;
     }
 
@@ -90,10 +91,10 @@ void CRenderer::Orthographic()
 
 /*
  */
-void CRenderer::Orthographic(const uint32 _width, const uint32 _height)
+void CRenderer::Orthographic(const uint32_t _width, const uint32_t _height)
 {
     Base::Math::CMatrix4x4 proj;
-    proj.OrthographicRH(fp4(_width), fp4(_height), -1, 1);
+    proj.OrthographicRH(float(_width), float(_height), -1, 1);
     SetTransform(proj, eProjection);
 }
 
@@ -124,7 +125,7 @@ void CRenderer::SetTransform(const Base::Math::CMatrix4x4& _transform,
         SetTexture().
 
 */
-void CRenderer::SetTexture(spCTexture _spTex, const uint32 _index)
+void CRenderer::SetTexture(spCTexture _spTex, const uint32_t _index)
 {
     ASSERT(_index <= MAX_TEXUNIT);
     m_aspSelectedTextures[_index] = _spTex;
@@ -150,7 +151,7 @@ void CRenderer::SetBlend(std::string _blend)
 void CRenderer::Apply()
 {
     //	Update textures.
-    for (uint32 i = 0; i < MAX_TEXUNIT; i++)
+    for (uint32_t i = 0; i < MAX_TEXUNIT; i++)
     {
         spCTexture spTex = m_aspSelectedTextures[i];
 #if 0

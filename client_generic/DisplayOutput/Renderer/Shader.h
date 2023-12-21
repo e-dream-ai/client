@@ -67,7 +67,7 @@ class CShaderUniform
     }
     virtual ~CShaderUniform() {}
 
-    virtual bool SetData(void* _pData, const uint32 _size) = PureVirtual;
+    virtual bool SetData(void* _pData, const uint32_t _size) = PureVirtual;
     virtual void Apply() = PureVirtual;
 };
 
@@ -113,7 +113,7 @@ class CShader
     virtual bool Build(const char* _pVertexShader,
                        const char* _pFragmentShader) = PureVirtual;
 
-    bool Set(const std::string _name, const int32 _value)
+    bool Set(const std::string _name, const int32_t _value)
     {
         spCShaderUniform spUniform = Uniform(_name);
         if (spUniform != NULL)
@@ -125,7 +125,7 @@ class CShader
         return false;
     }
 
-    bool Set(const std::string _name, const fp4 _value)
+    bool Set(const std::string _name, const float _value)
     {
         spCShaderUniform spUniform = Uniform(_name);
         if (spUniform != NULL)
@@ -137,13 +137,13 @@ class CShader
         return false;
     }
 
-    bool Set(const std::string _name, const fp4 _x, const fp4 _y, const fp4 _z,
-             const fp4 _w)
+    bool Set(const std::string _name, const float _x, const float _y,
+             const float _z, const float _w)
     {
         spCShaderUniform spUniform = Uniform(_name);
         if (spUniform != NULL)
         {
-            fp4 v[4] = {_x, _y, _z, _w};
+            float v[4] = {_x, _y, _z, _w};
             spUniform->SetData(&v, sizeof(v));
             return true;
         }

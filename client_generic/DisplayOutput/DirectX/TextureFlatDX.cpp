@@ -54,7 +54,8 @@ static const D3DFORMAT dxformats[] = {
 
 /*
  */
-CTextureFlatDX::CTextureFlatDX(IDirect3DDevice9* _pDevice, const uint32 _flags)
+CTextureFlatDX::CTextureFlatDX(IDirect3DDevice9* _pDevice,
+                               const uint32_t _flags)
     : CTextureFlat(_flags), m_pDevice(_pDevice), m_pTextureDX9(NULL)
 {
     if (_pDevice == NULL)
@@ -73,8 +74,8 @@ bool CTextureFlatDX::Upload(spCImage _spImage)
 
     CImageFormat format = m_spImage->GetFormat();
 
-    if (m_Size.iWidth() != (int32)_spImage->GetWidth() ||
-        m_Size.iHeight() != (int32)_spImage->GetHeight() ||
+    if (m_Size.iWidth() != (int32_t)_spImage->GetWidth() ||
+        m_Size.iHeight() != (int32_t)_spImage->GetHeight() ||
         m_Format != format.getFormatEnum())
     {
         //	Stuff changed, nuke old texture.
@@ -90,8 +91,8 @@ bool CTextureFlatDX::Upload(spCImage _spImage)
 
         g_Log->Info("%s texture created", format.GetDescription().c_str());
 
-        m_Size = Base::Math::CRect(fp4(m_spImage->GetWidth()),
-                                   fp4(m_spImage->GetHeight()));
+        m_Size = Base::Math::CRect(float(m_spImage->GetWidth()),
+                                   float(m_spImage->GetHeight()));
         m_Format = format.getFormatEnum();
 
         if (FAILED(hr))
@@ -102,8 +103,8 @@ bool CTextureFlatDX::Upload(spCImage _spImage)
     }
 
     //	Copy texturedata.
-    uint32 mipMapLevel = 0;
-    uint8* pSrc = m_spImage->GetData(0);
+    uint32_t mipMapLevel = 0;
+    uint8_t* pSrc = m_spImage->GetData(0);
 
     while (pSrc)
     {
@@ -126,7 +127,7 @@ bool CTextureFlatDX::Upload(spCImage _spImage)
 
 /*
  */
-bool CTextureFlatDX::Bind(const uint32 _index)
+bool CTextureFlatDX::Bind(const uint32_t _index)
 {
     HRESULT hr = m_pDevice->SetTexture(_index, m_pTextureDX9);
     if (FAILED(hr))
@@ -142,7 +143,7 @@ bool CTextureFlatDX::Bind(const uint32 _index)
 
 /*
  */
-bool CTextureFlatDX::Unbind(const uint32 _index)
+bool CTextureFlatDX::Unbind(const uint32_t _index)
 {
     HRESULT hr = m_pDevice->SetTexture(_index, NULL);
     if (FAILED(hr))

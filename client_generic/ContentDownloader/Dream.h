@@ -71,11 +71,11 @@ class Dream
 
     // Sets the sheep file size on the server
     //
-    void setFileSize(const uint64& size) { fFileSize = size; }
+    void setFileSize(const uint64_t& size) { fFileSize = size; }
 
     // gets the sheep file size
     //
-    uint64 fileSize() const { return fFileSize; }
+    uint64_t fileSize() const { return fFileSize; }
 
     // Sets the sheep file name
     //
@@ -121,28 +121,28 @@ class Dream
 
     // sets the sheep id
     //
-    void setId(const uint32& id) { fSheepId = id; }
+    void setId(const uint32_t& id) { fSheepId = id; }
 
     // gets the sheep id
     //
-    uint32 id() const { return fSheepId; }
+    uint32_t id() const { return fSheepId; }
 
     // sets the the sheep that transitions into this sheep
     //
-    void setFirstId(const uint32& first) { fFirst = first; }
+    void setFirstId(const uint32_t& first) { fFirst = first; }
 
     // gets the sheep that transitions into this sheep
     //
-    uint32 firstId() const { return fFirst; }
+    uint32_t firstId() const { return fFirst; }
 
     // sets the sheep that this sheep should transistion
     // into
     //
-    void setLastId(const uint32& last) { fLast = last; }
+    void setLastId(const uint32_t& last) { fLast = last; }
 
     // gets the sheep that this sheep should transition into
     //
-    uint32 lastId() const { return fLast; }
+    uint32_t lastId() const { return fLast; }
 
     // sets whether or not this sheep has been deleted from the
     // server
@@ -171,11 +171,11 @@ class Dream
 
     // set the sheep generation
     //
-    void setGeneration(const uint32& gen) { fGeneration = gen; }
+    void setGeneration(const uint32_t& gen) { fGeneration = gen; }
 
     // returns the sheep generation
     //
-    uint32 generation() const { return fGeneration; }
+    uint32_t generation() const { return fGeneration; }
 
     // returns sheep generation type (currently 0 - normal, 1 - gold)
     int getGenerationType() const
@@ -204,16 +204,16 @@ class Dream
     char* fUuid;
     char* fAuthor;
     char* fName;
-    uint64 fFileSize;
+    uint64_t fFileSize;
     time_t fWriteTime;
     int fRating;
-    uint32 fSheepId;
-    uint32 fFirst;
-    uint32 fLast;
+    uint32_t fSheepId;
+    uint32_t fFirst;
+    uint32_t fLast;
     int fType;
     bool fDeleted;
     bool fDownloaded;
-    uint32 fGeneration;
+    uint32_t fGeneration;
     bool fIsTemp;
 };
 

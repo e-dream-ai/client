@@ -8,7 +8,7 @@ namespace DisplayOutput
 
 /*
  */
-CTexture::CTexture(const uint32 _flags) : m_Flags(_flags) {}
+CTexture::CTexture(const uint32_t _flags) : m_Flags(_flags) {}
 
 /*
  */

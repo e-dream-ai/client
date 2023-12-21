@@ -9,8 +9,8 @@
 namespace DisplayOutput
 {
 
-uint32 CDisplayMetal::s_DefaultWidth = 0;
-uint32 CDisplayMetal::s_DefaultHeight = 0;
+uint32_t CDisplayMetal::s_DefaultWidth = 0;
+uint32_t CDisplayMetal::s_DefaultHeight = 0;
 
 /*
  CDisplayMetal().
@@ -24,13 +24,14 @@ CDisplayMetal::CDisplayMetal() : CDisplayOutput() {}
 */
 CDisplayMetal::~CDisplayMetal() {}
 
-void CDisplayMetal::ForceWidthAndHeight(uint32 _width, uint32 _height)
+void CDisplayMetal::ForceWidthAndHeight(uint32_t _width, uint32_t _height)
 {
     m_Width = _width;
     m_Height = _height;
 }
 
-void CDisplayMetal::SetDefaultWidthAndHeight(uint32 defWidth, uint32 defHeight)
+void CDisplayMetal::SetDefaultWidthAndHeight(uint32_t defWidth,
+                                             uint32_t defHeight)
 {
     s_DefaultWidth = defWidth;
     s_DefaultHeight = defHeight;

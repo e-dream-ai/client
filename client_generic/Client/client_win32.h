@@ -55,7 +55,7 @@ class CElectricSheep_Win32 : public CElectricSheep
 
     //	Previous mouse pos, for movement calcs.
     bool m_bMouseUnknown;
-    int32 m_MouseX, m_MouseY;
+    int32_t m_MouseX, m_MouseY;
 
     bool m_bAllowFKey;
 
@@ -435,7 +435,7 @@ class CElectricSheep_Win32 : public CElectricSheep
             m_ScrMode == eWindowed_AllowMultipleInstances)
             g_Player().Fullscreen(false);
 
-        uint32 monnum = g_Settings()->Get("settings.player.screen", 0);
+        uint32_t monnum = g_Settings()->Get("settings.player.screen", 0);
 
         m_pD3D9 = Direct3DCreate9(D3D_SDK_VERSION);
 
@@ -553,7 +553,7 @@ class CElectricSheep_Win32 : public CElectricSheep
                 //	All other keys close...
                 default:
                 {
-                    uint32 x = spKey->m_Code;
+                    uint32_t x = spKey->m_Code;
                     g_Log->Info("Key event, closing");
                     return false;
                 }
@@ -576,9 +576,9 @@ class CElectricSheep_Win32 : public CElectricSheep
                         if (spMouse->m_Code ==
                             DisplayOutput::CMouseEvent::Mouse_MOVE)
                         {
-                            fp4 dx = (fp4)spMouse->m_X - (fp4)m_MouseX;
-                            fp4 dy = (fp4)spMouse->m_Y - (fp4)m_MouseY;
-                            fp4 dist = dx * dx + dy * dy;
+                            float dx = (float)spMouse->m_X - (float)m_MouseX;
+                            float dy = (float)spMouse->m_Y - (float)m_MouseY;
+                            float dist = dx * dx + dy * dy;
 
                             //	Store for next run.
                             m_MouseX = spMouse->m_X;
@@ -647,7 +647,7 @@ class CElectricSheep_Win32 : public CElectricSheep
             return true;
         }
 
-        static const fp4 voteDelaySeconds = 1;
+        static const float voteDelaySeconds = 1;
         return HandleEvents();
     }
 

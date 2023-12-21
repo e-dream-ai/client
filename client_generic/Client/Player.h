@@ -62,10 +62,10 @@ class CPlayer : public Base::CSingleton<CPlayer>
     Base::CTimer m_Timer;
 
     //	Goal decoding framerate.
-    fp8 m_PlayerFps;
+    double m_PlayerFps;
 
     //	Goal display framerate;
-    fp8 m_DisplayFps;
+    double m_DisplayFps;
 
     //	Fullscreen or not.
     bool m_bFullscreen;
@@ -79,7 +79,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     boost::shared_mutex* m_DownloadSaveMutex;
 
     //	Used to keep track of elapsed time since last frame.
-    fp8 m_CapClock;
+    double m_CapClock;
 
     int m_UsedSheepType;
 
@@ -101,7 +101,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     CreateContentDecoder(boost::shared_mutex& _downloadSaveMutex,
                          bool _bStartByRandom = false);
 
-    void FpsCap(const fp8 _cap);
+    void FpsCap(const double _cap);
 
   public:
     bool Startup(boost::shared_mutex& _downloadSaveMutex);
@@ -125,9 +125,9 @@ class CPlayer : public Base::CSingleton<CPlayer>
 
     bool BeginFrameUpdate();
     bool EndFrameUpdate();
-    bool BeginDisplayFrame(uint32 displayUnit);
-    bool EndDisplayFrame(uint32 displayUnit, bool drawn = true);
-    bool Update(uint32 displayUnit, bool& bPlayNoSheepIntro);
+    bool BeginDisplayFrame(uint32_t displayUnit);
+    bool EndDisplayFrame(uint32_t displayUnit, bool drawn = true);
+    bool Update(uint32_t displayUnit, bool& bPlayNoSheepIntro);
     void Start();
     void Stop();
 
@@ -135,19 +135,19 @@ class CPlayer : public Base::CSingleton<CPlayer>
     bool AddDisplay(CGraphicsContext _grapicsContext);
 #else
 #ifdef WIN32
-    bool AddDisplay(uint32 screen, IDirect3D9* _pIDirect3D9 = NULL,
+    bool AddDisplay(uint32_t screen, IDirect3D9* _pIDirect3D9 = NULL,
                     bool _blank = false);
 #else
-    bool AddDisplay(uint32 screen);
+    bool AddDisplay(uint32_t screen);
 #endif
 #endif
 
     inline void PlayCountsInitOff() { m_InitPlayCounts = false; };
-    inline void Framerate(const fp8 _fps) { m_PlayerFps = _fps; };
+    inline void Framerate(const double _fps) { m_PlayerFps = _fps; };
     inline void Fullscreen(const bool _bState) { m_bFullscreen = _bState; };
     inline bool Stopped() { return !m_bStarted; };
 
-    inline DisplayOutput::spCDisplayOutput Display(uint32 du = 0)
+    inline DisplayOutput::spCDisplayOutput Display(uint32_t du = 0)
     {
         boost::mutex::scoped_lock lockthis(m_displayListMutex);
 
@@ -187,11 +187,11 @@ class CPlayer : public Base::CSingleton<CPlayer>
     {
         return m_displayUnits[0]->m_MetaData.m_Author;
     }
-    inline uint32 GetCurrentPlayingSheepID()
+    inline uint32_t GetCurrentPlayingSheepID()
     {
         return m_displayUnits[0]->m_MetaData.m_SheepID;
     };
-    inline uint32 GetCurrentPlayingSheepGeneration()
+    inline uint32_t GetCurrentPlayingSheepGeneration()
     {
         return m_displayUnits[0]->m_MetaData.m_SheepGeneration;
     };
@@ -203,7 +203,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     {
         return m_displayUnits[0]->m_MetaData.m_IsEdge;
     };
-    inline uint32 GetCurrentPlayingID()
+    inline uint32_t GetCurrentPlayingID()
     {
         ContentDecoder::spCContentDecoder decoder = Decoder();
 
@@ -213,7 +213,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
         return decoder->GetCurrentPlayingID();
     };
 
-    inline uint32 GetCurrentPlayingGeneration()
+    inline uint32_t GetCurrentPlayingGeneration()
     {
         ContentDecoder::spCContentDecoder decoder = Decoder();
 
@@ -228,7 +228,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
         if (m_spPlaylist)
             m_spPlaylist->Add(_fileName);
     }
-    inline void Delete(const uint32 _id)
+    inline void Delete(const uint32_t _id)
     {
         if (m_spPlaylist)
             m_spPlaylist->Delete(_id);
@@ -269,12 +269,12 @@ class CPlayer : public Base::CSingleton<CPlayer>
     }
     inline int UsedSheepType() { return m_UsedSheepType; }
 
-    inline uint32 GetDisplayCount()
+    inline uint32_t GetDisplayCount()
     {
-        return static_cast<uint32>(m_displayUnits.size());
+        return static_cast<uint32_t>(m_displayUnits.size());
     }
 
-    void ForceWidthAndHeight(uint32 du, uint32 _w, uint32 _h);
+    void ForceWidthAndHeight(uint32_t du, uint32_t _w, uint32_t _h);
 };
 
 /*

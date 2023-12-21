@@ -16,7 +16,7 @@ namespace Math
 {
 
 //	Identity
-static const fp4 g_matrix4x4_x86_ident[16] = {
+static const float g_matrix4x4_x86_ident[16] = {
     1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
     0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
 };
@@ -32,22 +32,24 @@ class CMatrix4x4_x86
     CMatrix4x4_x86(const CVector4_x86& _v0, const CVector4_x86& _v1,
                    const CVector4_x86& _v2, const CVector4_x86& _v3);
     CMatrix4x4_x86(const CMatrix4x4_x86& _m1);
-    CMatrix4x4_x86(fp4 _m11, fp4 _m12, fp4 _m13, fp4 _m14, fp4 _m21, fp4 _m22,
-                   fp4 _m23, fp4 _m24, fp4 _m31, fp4 _m32, fp4 _m33, fp4 _m34,
-                   fp4 _m41, fp4 _m42, fp4 _m43, fp4 _m44);
+    CMatrix4x4_x86(float _m11, float _m12, float _m13, float _m14, float _m21,
+                   float _m22, float _m23, float _m24, float _m31, float _m32,
+                   float _m33, float _m34, float _m41, float _m42, float _m43,
+                   float _m44);
 
     //
     void Set(const CVector4_x86& _v0, const CVector4_x86& _v1,
              const CVector4_x86& _v2, const CVector4_x86& _v3);
     void Set(const CMatrix4x4_x86& _m1);
-    void Set(fp4 _m11, fp4 _m12, fp4 _m13, fp4 _m14, fp4 _m21, fp4 _m22,
-             fp4 _m23, fp4 _m24, fp4 _m31, fp4 _m32, fp4 _m33, fp4 _m34,
-             fp4 _m41, fp4 _m42, fp4 _m43, fp4 _m44);
+    void Set(float _m11, float _m12, float _m13, float _m14, float _m21,
+             float _m22, float _m23, float _m24, float _m31, float _m32,
+             float _m33, float _m34, float _m41, float _m42, float _m43,
+             float _m44);
 
     //
     void Identity();
     void Transpose();
-    fp4 Determinant();
+    float Determinant();
     void Invert();
     void InvertFast(); //	Only when 3x3rot+trans.
 
@@ -58,10 +60,10 @@ class CMatrix4x4_x86
     CVector4_x86& GetW() const;
 
     //	World.
-    void Rotate_X(const fp4 _a);
-    void Rotate_Y(const fp4 _a);
-    void Rotate_Z(const fp4 _a);
-    void Rotate(const CVector3_x86& _vec, const fp4 _a);
+    void Rotate_X(const float _a);
+    void Rotate_Y(const float _a);
+    void Rotate_Z(const float _a);
+    void Rotate(const CVector3_x86& _vec, const float _a);
 
     //
     void Translate(const CVector4_x86& _t);
@@ -70,23 +72,23 @@ class CMatrix4x4_x86
 
     //	Lefthanded.
     void AimLH(const CVector3_x86& _to, const CVector3_x86& _up);
-    void PerspectiveLH(const fp4 _fovY, const fp4 _aspect, const fp4 _zn,
-                       const fp4 _zf);
-    void PerspectiveOffCenterLH(const fp4 _minX, const fp4 _maxX,
-                                const fp4 _minY, const fp4 _maxY, const fp4 _zn,
-                                const fp4 _zf);
-    void OrthographicLH(const fp4 _w, const fp4 _h, const fp4 _zn,
-                        const fp4 _zf);
+    void PerspectiveLH(const float _fovY, const float _aspect, const float _zn,
+                       const float _zf);
+    void PerspectiveOffCenterLH(const float _minX, const float _maxX,
+                                const float _minY, const float _maxY,
+                                const float _zn, const float _zf);
+    void OrthographicLH(const float _w, const float _h, const float _zn,
+                        const float _zf);
 
     //	Righthanded.
     void AimRH(const CVector3_x86& _to, const CVector3_x86& _up);
-    void PerspectiveRH(const fp4 _fovY, const fp4 _aspect, const fp4 _zn,
-                       const fp4 _zf);
-    void PerspectiveOffCenterRH(const fp4 _minX, const fp4 _maxX,
-                                const fp4 _minY, const fp4 _maxY, const fp4 _zn,
-                                const fp4 _zf);
-    void OrthographicRH(const fp4 _w, const fp4 _h, const fp4 _zn,
-                        const fp4 _zf);
+    void PerspectiveRH(const float _fovY, const float _aspect, const float _zn,
+                       const float _zf);
+    void PerspectiveOffCenterRH(const float _minX, const float _maxX,
+                                const float _minY, const float _maxY,
+                                const float _zn, const float _zf);
+    void OrthographicRH(const float _w, const float _h, const float _zn,
+                        const float _zf);
 
     //
     void AimRestricted(const CVector3_x86& _to, const CVector3_x86& _up);
@@ -105,7 +107,7 @@ class CMatrix4x4_x86
     void Multiply(const CVector3_x86& _src, CVector3_x86& _dst) const;
 
     //
-    fp4 m_Mat[4][4];
+    float m_Mat[4][4];
 };
 
 /*
@@ -145,15 +147,17 @@ inline CMatrix4x4_x86::CMatrix4x4_x86(const CVector4_x86& _v0,
  */
 inline CMatrix4x4_x86::CMatrix4x4_x86(const CMatrix4x4_x86& _m1)
 {
-    memcpy(m_Mat, &(_m1.m_Mat[0][0]), 16 * sizeof(fp4));
+    memcpy(m_Mat, &(_m1.m_Mat[0][0]), 16 * sizeof(float));
 }
 
 /*
  */
-inline CMatrix4x4_x86::CMatrix4x4_x86(fp4 _m11, fp4 _m12, fp4 _m13, fp4 _m14,
-                                      fp4 _m21, fp4 _m22, fp4 _m23, fp4 _m24,
-                                      fp4 _m31, fp4 _m32, fp4 _m33, fp4 _m34,
-                                      fp4 _m41, fp4 _m42, fp4 _m43, fp4 _m44)
+inline CMatrix4x4_x86::CMatrix4x4_x86(float _m11, float _m12, float _m13,
+                                      float _m14, float _m21, float _m22,
+                                      float _m23, float _m24, float _m31,
+                                      float _m32, float _m33, float _m34,
+                                      float _m41, float _m42, float _m43,
+                                      float _m44)
 {
     M11 = _m11;
     M12 = _m12;
@@ -202,15 +206,15 @@ inline void CMatrix4x4_x86::Set(const CVector4_x86& _v0,
  */
 inline void CMatrix4x4_x86::Set(const CMatrix4x4_x86& _m1)
 {
-    memcpy(m_Mat, &(_m1.m_Mat[0][0]), 16 * sizeof(fp4));
+    memcpy(m_Mat, &(_m1.m_Mat[0][0]), 16 * sizeof(float));
 }
 
 /*
  */
-inline void CMatrix4x4_x86::Set(fp4 _m11, fp4 _m12, fp4 _m13, fp4 _m14,
-                                fp4 _m21, fp4 _m22, fp4 _m23, fp4 _m24,
-                                fp4 _m31, fp4 _m32, fp4 _m33, fp4 _m34,
-                                fp4 _m41, fp4 _m42, fp4 _m43, fp4 _m44)
+inline void CMatrix4x4_x86::Set(float _m11, float _m12, float _m13, float _m14,
+                                float _m21, float _m22, float _m23, float _m24,
+                                float _m31, float _m32, float _m33, float _m34,
+                                float _m41, float _m42, float _m43, float _m44)
 {
     M11 = _m11;
     M12 = _m12;
@@ -244,7 +248,7 @@ inline void CMatrix4x4_x86::Transpose(void)
 {
 #define da_swap(x, y)                                                          \
     {                                                                          \
-        fp4 t = x;                                                             \
+        float t = x;                                                           \
         x = y;                                                                 \
         y = t;                                                                 \
     }
@@ -259,7 +263,7 @@ inline void CMatrix4x4_x86::Transpose(void)
 
 /*
  */
-inline fp4 CMatrix4x4_x86::Determinant(void)
+inline float CMatrix4x4_x86::Determinant(void)
 {
     return ((M11 * M22 - M12 * M21) * (M33 * M44 - M34 * M43) -
             (M11 * M23 - M13 * M21) * (M32 * M44 - M34 * M42) +
@@ -273,7 +277,7 @@ inline fp4 CMatrix4x4_x86::Determinant(void)
  */
 inline void CMatrix4x4_x86::Invert(void)
 {
-    fp4 s = Determinant();
+    float s = Determinant();
     if (s == 0.0f)
         return;
 
@@ -319,7 +323,7 @@ inline void CMatrix4x4_x86::Invert(void)
 */
 inline void CMatrix4x4_x86::InvertFast(void)
 {
-    fp4 s = Determinant();
+    float s = Determinant();
 
     if (s == 0.0f)
         return;
@@ -345,11 +349,11 @@ inline void CMatrix4x4_x86::InvertFast(void)
 */
 inline void CMatrix4x4_x86::MultiplyFast(const CMatrix4x4_x86& _m1)
 {
-    for (uint32 i = 0; i < 4; i++)
+    for (uint32_t i = 0; i < 4; i++)
     {
-        fp4 mi0 = m_Mat[i][0];
-        fp4 mi1 = m_Mat[i][1];
-        fp4 mi2 = m_Mat[i][2];
+        float mi0 = m_Mat[i][0];
+        float mi1 = m_Mat[i][1];
+        float mi2 = m_Mat[i][2];
         m_Mat[i][0] = mi0 * _m1.m_Mat[0][0] + mi1 * _m1.m_Mat[1][0] +
                       mi2 * _m1.m_Mat[2][0];
         m_Mat[i][1] = mi0 * _m1.m_Mat[0][1] + mi1 * _m1.m_Mat[1][1] +
@@ -373,7 +377,7 @@ inline void CMatrix4x4_x86::MultiplyFast(const CMatrix4x4_x86& _m1)
 */
 inline CVector3_x86 CMatrix4x4_x86::Transform(const CVector3_x86& _v) const
 {
-    fp4 d = 1.0f / (M14 * _v.m_X + M24 * _v.m_Y + M34 * _v.m_Z + M44);
+    float d = 1.0f / (M14 * _v.m_X + M24 * _v.m_Y + M34 * _v.m_Z + M44);
     return (
         CVector3_x86((M11 * _v.m_X + M21 * _v.m_Y + M31 * _v.m_Z + M41) * d,
                      (M12 * _v.m_X + M22 * _v.m_Y + M32 * _v.m_Z + M42) * d,
@@ -410,15 +414,15 @@ inline CVector4_x86& CMatrix4x4_x86::GetW(void) const
 
 /*
  */
-inline void CMatrix4x4_x86::Rotate_X(const fp4 _a)
+inline void CMatrix4x4_x86::Rotate_X(const float _a)
 {
-    fp4 s, c;
+    float s, c;
     SinCos(_a, &s, &c);
 
-    for (uint32 i = 0; i < 4; i++)
+    for (uint32_t i = 0; i < 4; i++)
     {
-        fp4 mi1 = m_Mat[i][1];
-        fp4 mi2 = m_Mat[i][2];
+        float mi1 = m_Mat[i][1];
+        float mi2 = m_Mat[i][2];
         m_Mat[i][1] = mi1 * c + mi2 * -s;
         m_Mat[i][2] = mi1 * s + mi2 * c;
     }
@@ -426,15 +430,15 @@ inline void CMatrix4x4_x86::Rotate_X(const fp4 _a)
 
 /*
  */
-inline void CMatrix4x4_x86::Rotate_Y(const fp4 _a)
+inline void CMatrix4x4_x86::Rotate_Y(const float _a)
 {
-    fp4 s, c;
+    float s, c;
     SinCos(_a, &s, &c);
 
-    for (uint32 i = 0; i < 4; i++)
+    for (uint32_t i = 0; i < 4; i++)
     {
-        fp4 mi0 = m_Mat[i][0];
-        fp4 mi2 = m_Mat[i][2];
+        float mi0 = m_Mat[i][0];
+        float mi2 = m_Mat[i][2];
         m_Mat[i][0] = mi0 * c + mi2 * s;
         m_Mat[i][2] = mi0 * -s + mi2 * c;
     }
@@ -442,15 +446,15 @@ inline void CMatrix4x4_x86::Rotate_Y(const fp4 _a)
 
 /*
  */
-inline void CMatrix4x4_x86::Rotate_Z(const fp4 _a)
+inline void CMatrix4x4_x86::Rotate_Z(const float _a)
 {
-    fp4 s, c;
+    float s, c;
     SinCos(_a, &s, &c);
 
-    for (uint32 i = 0; i < 4; i++)
+    for (uint32_t i = 0; i < 4; i++)
     {
-        fp4 mi0 = m_Mat[i][0];
-        fp4 mi1 = m_Mat[i][1];
+        float mi0 = m_Mat[i][0];
+        float mi1 = m_Mat[i][1];
         m_Mat[i][0] = mi0 * c + mi1 * -s;
         m_Mat[i][1] = mi0 * s + mi1 * c;
     }
@@ -480,7 +484,7 @@ inline void CMatrix4x4_x86::SetTranslation(const CVector4_x86& _t)
  */
 inline void CMatrix4x4_x86::Scale(const CVector3_x86& _s)
 {
-    for (uint32 i = 0; i < 4; i++)
+    for (uint32_t i = 0; i < 4; i++)
     {
         m_Mat[i][0] *= _s.m_X;
         m_Mat[i][1] *= _s.m_Y;
@@ -548,11 +552,12 @@ inline void CMatrix4x4_x86::AimLH(const CVector3_x86& _at,
 
 /*
  */
-inline void CMatrix4x4_x86::PerspectiveLH(const fp4 _fovY, const fp4 _aspect,
-                                          const fp4 _zn, const fp4 _zf)
+inline void CMatrix4x4_x86::PerspectiveLH(const float _fovY,
+                                          const float _aspect, const float _zn,
+                                          const float _zf)
 {
-    fp4 h = 1.0f / tanf(_fovY * 0.5f);
-    fp4 w = h / _aspect;
+    float h = 1.0f / tanf(_fovY * 0.5f);
+    float w = h / _aspect;
 
     M11 = w;
     M12 = 0.0f;
@@ -574,11 +579,12 @@ inline void CMatrix4x4_x86::PerspectiveLH(const fp4 _fovY, const fp4 _aspect,
 
 /*
  */
-inline void CMatrix4x4_x86::PerspectiveRH(const fp4 _fovY, const fp4 _aspect,
-                                          const fp4 _zn, const fp4 _zf)
+inline void CMatrix4x4_x86::PerspectiveRH(const float _fovY,
+                                          const float _aspect, const float _zn,
+                                          const float _zf)
 {
-    fp4 h = 1.0f / tanf(_fovY * 0.5f);
-    fp4 w = h / _aspect;
+    float h = 1.0f / tanf(_fovY * 0.5f);
+    float w = h / _aspect;
 
     M11 = w;
     M12 = 0.0f;
@@ -600,11 +606,10 @@ inline void CMatrix4x4_x86::PerspectiveRH(const fp4 _fovY, const fp4 _aspect,
 
 /*
  */
-inline void CMatrix4x4_x86::PerspectiveOffCenterLH(const fp4 _minX,
-                                                   const fp4 _maxX,
-                                                   const fp4 _minY,
-                                                   const fp4 _maxY,
-                                                   const fp4 _zn, const fp4 _zf)
+inline void
+CMatrix4x4_x86::PerspectiveOffCenterLH(const float _minX, const float _maxX,
+                                       const float _minY, const float _maxY,
+                                       const float _zn, const float _zf)
 {
     M11 = 2.0f * _zn / (_maxX - _minX);
     M12 = 0.0f, M13 = 0.0f;
@@ -625,11 +630,10 @@ inline void CMatrix4x4_x86::PerspectiveOffCenterLH(const fp4 _minX,
 
 /*
  */
-inline void CMatrix4x4_x86::PerspectiveOffCenterRH(const fp4 _minX,
-                                                   const fp4 _maxX,
-                                                   const fp4 _minY,
-                                                   const fp4 _maxY,
-                                                   const fp4 _zn, const fp4 _zf)
+inline void
+CMatrix4x4_x86::PerspectiveOffCenterRH(const float _minX, const float _maxX,
+                                       const float _minY, const float _maxY,
+                                       const float _zn, const float _zf)
 {
     M11 = 2.0f * _zn / (_maxX - _minX);
     M12 = 0.0f, M13 = 0.0f;
@@ -650,8 +654,8 @@ inline void CMatrix4x4_x86::PerspectiveOffCenterRH(const fp4 _minX,
 
 /*
  */
-inline void CMatrix4x4_x86::OrthographicLH(const fp4 _w, const fp4 _h,
-                                           const fp4 _zn, const fp4 _zf)
+inline void CMatrix4x4_x86::OrthographicLH(const float _w, const float _h,
+                                           const float _zn, const float _zf)
 {
     M11 = 2.0f / _w;
     M12 = 0.0f;
@@ -673,8 +677,8 @@ inline void CMatrix4x4_x86::OrthographicLH(const fp4 _w, const fp4 _h,
 
 /*
  */
-inline void CMatrix4x4_x86::OrthographicRH(const fp4 _w, const fp4 _h,
-                                           const fp4 _zn, const fp4 _zf)
+inline void CMatrix4x4_x86::OrthographicRH(const float _w, const float _h,
+                                           const float _zn, const float _zf)
 {
     M11 = 2.0f / _w;
     M12 = 0.0f;
@@ -727,12 +731,12 @@ inline void CMatrix4x4_x86::AimRestricted(const CVector3_x86& _to,
  */
 inline void CMatrix4x4_x86::operator*=(const CMatrix4x4_x86& _m1)
 {
-    for (uint32 i = 0; i < 4; i++)
+    for (uint32_t i = 0; i < 4; i++)
     {
-        fp4 mi0 = m_Mat[i][0];
-        fp4 mi1 = m_Mat[i][1];
-        fp4 mi2 = m_Mat[i][2];
-        fp4 mi3 = m_Mat[i][3];
+        float mi0 = m_Mat[i][0];
+        float mi1 = m_Mat[i][1];
+        float mi2 = m_Mat[i][2];
+        float mi3 = m_Mat[i][3];
 
         m_Mat[i][0] = mi0 * _m1.m_Mat[0][0] + mi1 * _m1.m_Mat[1][0] +
                       mi2 * _m1.m_Mat[2][0] + mi3 * _m1.m_Mat[3][0];
@@ -747,12 +751,12 @@ inline void CMatrix4x4_x86::operator*=(const CMatrix4x4_x86& _m1)
 
 /*
  */
-inline void CMatrix4x4_x86::Rotate(const CVector3_x86& _vec, const fp4 _a)
+inline void CMatrix4x4_x86::Rotate(const CVector3_x86& _vec, const float _a)
 {
     CVector3_x86 v(_vec);
     v.NormalizeFast();
 
-    fp4 sa, ca;
+    float sa, ca;
     SinCos(_a, &sa, &ca);
 
     CMatrix4x4_x86 rotM;
