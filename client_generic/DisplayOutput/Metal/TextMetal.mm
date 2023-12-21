@@ -62,8 +62,6 @@ CTextMetal::CTextMetal(spCFontMetal _font, MTKView* _view,
             setContentCompressionResistancePriority:NSLayoutPriorityRequired
                                      forOrientation:
                                          NSLayoutConstraintOrientationVertical];
-
-        //resultTextLayer = (__bridge CATextLayer*)CFBridgingRetain(textLayer);
     });
 #endif
 }

@@ -313,12 +313,20 @@ bool CContentDecoder::Open(sOpenVideoInfo* ovi)
 
     if (ovi->m_iCurrentFileFrameCount)
     {
-        AVRational timeBase = ovi->m_pFormatContext->streams[0]->time_base;
-        int64_t targetTimestamp =
-            av_rescale_q((int64_t)ovi->m_iCurrentFileFrameCount,
-                         {1, AV_TIME_BASE}, timeBase);
-        int seek = av_seek_frame(ovi->m_pFormatContext, ovi->m_VideoStreamID,
-                                 targetTimestamp, 0);
+        AVRational timeBase =
+            ovi->m_pFormatContext->streams[ovi->m_VideoStreamID]->time_base;
+        int64_t frameRate =
+            (int64_t)av_q2d(ovi->m_pFormatContext->streams[ovi->m_VideoStreamID]
+                                ->avg_frame_rate);
+
+        // Calculate target timestamp in stream time base
+        int64_t targetTimestamp = (int64_t)(ovi->m_iCurrentFileFrameCount /
+                                            (frameRate * av_q2d(timeBase)));
+
+        // Seek to the target timestamp
+        int seek = avformat_seek_file(
+            ovi->m_pFormatContext, ovi->m_VideoStreamID, targetTimestamp - 70,
+            targetTimestamp, targetTimestamp, 0);
         avcodec_flush_buffers(ovi->m_pVideoCodecContext);
         if (seek < 0)
         {
@@ -328,8 +336,10 @@ bool CContentDecoder::Open(sOpenVideoInfo* ovi)
         // Read frames until reaching the desired timestamp
         while (av_read_frame(ovi->m_pFormatContext, &packet) >= 0)
         {
+            int64_t frameNumber =
+                (int64_t)((packet.pts * frameRate) * av_q2d(timeBase));
             if (packet.stream_index == ovi->m_VideoStreamID &&
-                packet.pts >= targetTimestamp)
+                frameNumber >= (int64_t)ovi->m_iCurrentFileFrameCount)
             {
                 // Process the packet or break out of the loop
                 break;
