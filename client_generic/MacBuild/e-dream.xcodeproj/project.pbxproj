@@ -300,6 +300,7 @@
 /* Begin PBXFileReference section */
 		09AB6884FE841BABC02AAC07 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
 		1243576B2B31FC1B00CCD62A /* BuildData.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = BuildData.json; sourceTree = "<group>"; };
+		1243576E2B35CA2000CCD62A /* JSONUtil.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = JSONUtil.h; path = ../Common/JSONUtil.h; sourceTree = "<group>"; };
 		12478A672B03B194006A8669 /* Networking.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Networking.h; sourceTree = "<group>"; };
 		12478A682B03B1A4006A8669 /* DisplayOutput.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = DisplayOutput.h; path = ../DisplayOutput/DisplayOutput.h; sourceTree = "<group>"; };
 		12478A692B03B1AB006A8669 /* Image.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Image.h; path = ../DisplayOutput/Image.h; sourceTree = "<group>"; };
@@ -729,6 +730,7 @@
 				212B19300E8E591000CE185C /* pool.cpp */,
 				12478AAC2B03B6CA006A8669 /* pool.h */,
 				12478AA42B03B6C4006A8669 /* SmartPtr.h */,
+				1243576E2B35CA2000CCD62A /* JSONUtil.h */,
 			);
 			name = Common;
 			sourceTree = "<group>";

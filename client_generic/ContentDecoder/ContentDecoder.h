@@ -67,7 +67,7 @@ struct sOpenVideoInfo
         : m_pFrame(NULL), m_pFormatContext(NULL), m_pVideoCodecContext(NULL),
           m_pVideoCodec(NULL), m_pVideoStream(NULL), m_VideoStreamID(-1),
           m_totalFrameCount(0), m_CurrentFileatime(0),
-          m_iCurrentFileFrameCount(0), m_Generation(0), m_SheepID(0),
+          m_CurrentFileFrameCount(0), m_SeekTargetFrame(0), m_Generation(0), m_SheepID(0),
           m_First(0), m_Last(0), m_bSpecialSheep(false), m_NumIterations(0),
           m_NextIsSeam(false), m_ReadingTrailingFrames(false)
 
@@ -128,7 +128,8 @@ struct sOpenVideoInfo
     int32_t m_VideoStreamID;
     uint32_t m_totalFrameCount;
     time_t m_CurrentFileatime;
-    uint64_t m_iCurrentFileFrameCount;
+    int64_t m_CurrentFileFrameCount;
+    int64_t m_SeekTargetFrame;
     uint32_t m_Generation;
     uint32_t m_SheepID;
     uint32_t m_First;
@@ -156,6 +157,8 @@ class CContentDecoder
     SwsContext* m_pScaler;
     uint32_t m_ScalerWidth;
     uint32_t m_ScalerHeight;
+    
+    int64_t m_LastReadFrameNumber;
 
     //	Thread & threadfunction.
     boost::thread* m_pDecoderThread;

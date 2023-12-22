@@ -6,6 +6,7 @@
 #endif
 
 #include <string>
+#include <csignal>
 #include <ApplicationServices/ApplicationServices.h>
 #include <CoreFoundation/CoreFoundation.h>
 #include <IOKit/ps/IOPSKeys.h>
@@ -217,6 +218,19 @@ class CElectricSheep_Mac : public CElectricSheep
 
         // check the exclusive file lock to see if we are running alone...
         std::string lockfile = m_AppData + ".instance-lock";
+    /*
+        NSTask *task = [[NSTask alloc] init];
+        [task setLaunchPath:@"/usr/bin/pkill"];
+        [task setArguments:@[processName]];
+
+        // Launch the task
+        [task launch];
+        [task waitUntilExit];
+     // Check the exit status
+        int status = [task terminationStatus];*/
+        
+        //kill(55432, SIGTERM);
+
 
         m_lckFile =
             open(lockfile.c_str(), O_WRONLY + O_EXLOCK + O_NONBLOCK + O_CREAT,

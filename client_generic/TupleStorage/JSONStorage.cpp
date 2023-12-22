@@ -13,6 +13,7 @@
 #include "clientversion.h"
 #include "Shepherd.h"
 #include "Log.h"
+#include "JSONUtil.h"
 #include "JSONStorage.h"
 
 namespace json = boost::json;
@@ -223,93 +224,6 @@ bool JSONStorage::Get(std::string_view _entry, std::string& _ret)
 
 //    Remove node from storage.
 bool JSONStorage::Remove(std::string_view /*_entry*/) { return true; }
-static void PrettyPrint(std::ostream& os, json::value const& jv,
-                        std::string* indent = nullptr)
-{
-    std::string indent_;
-    if (!indent)
-        indent = &indent_;
-    switch (jv.kind())
-    {
-    case json::kind::object:
-    {
-        os << "{\n";
-        indent->append(4, ' ');
-        auto const& obj = jv.get_object();
-        if (!obj.empty())
-        {
-            auto it = obj.begin();
-            for (;;)
-            {
-                os << *indent << json::serialize(it->key()) << " : ";
-                PrettyPrint(os, it->value(), indent);
-                if (++it == obj.end())
-                    break;
-                os << ",\n";
-            }
-        }
-        os << "\n";
-        indent->resize(indent->size() - 4);
-        os << *indent << "}";
-        break;
-    }
-
-    case json::kind::array:
-    {
-        os << "[\n";
-        indent->append(4, ' ');
-        auto const& arr = jv.get_array();
-        if (!arr.empty())
-        {
-            auto it = arr.begin();
-            for (;;)
-            {
-                os << *indent;
-                PrettyPrint(os, *it, indent);
-                if (++it == arr.end())
-                    break;
-                os << ",\n";
-            }
-        }
-        os << "\n";
-        indent->resize(indent->size() - 4);
-        os << *indent << "]";
-        break;
-    }
-
-    case json::kind::string:
-    {
-        os << json::serialize(jv.get_string());
-        break;
-    }
-
-    case json::kind::uint64:
-        os << jv.get_uint64();
-        break;
-
-    case json::kind::int64:
-        os << jv.get_int64();
-        break;
-
-    case json::kind::double_:
-        os << jv.get_double();
-        break;
-
-    case json::kind::bool_:
-        if (jv.get_bool())
-            os << "true";
-        else
-            os << "false";
-        break;
-
-    case json::kind::null:
-        os << "null";
-        break;
-    }
-
-    if (indent->empty())
-        os << "\n";
-}
 
 //    Persist changes.
 bool JSONStorage::Commit()
@@ -317,7 +231,7 @@ bool JSONStorage::Commit()
     if (Dirty() && !m_bReadOnly)
     {
         std::ofstream outFile(m_ConfigPath);
-        PrettyPrint(outFile, m_JSON);
+        JSONUtil::PrettyPrintJSON(outFile, m_JSON);
         outFile.close();
         Dirty(false);
     }

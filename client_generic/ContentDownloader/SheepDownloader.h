@@ -47,7 +47,6 @@ class SheepDownloader
 
     // boolean for message checks
     bool fHasMessage;
-    static uint32_t fCurrentGeneration;
 
     static time_t fLastListTime;
 
@@ -87,11 +86,6 @@ class SheepDownloader
     void setHasMessage(const bool& hasMessage) { fHasMessage = hasMessage; }
     bool hasMessage() const { return fHasMessage; }
 
-    void setCurrentGeneration(const uint32_t& generation)
-    {
-        fCurrentGeneration = generation;
-    }
-
     //	Checks the disk space to make sure the cache is not being overflowed.
     int cacheOverflow(const double& bytes, const int getGenerationType) const;
 
@@ -114,8 +108,6 @@ class SheepDownloader
     static void shepherdCallback(void* data);
 
     static int numberOfDownloadedSheep();
-
-    static uint32_t currentGeneration() { return fCurrentGeneration; }
 
     static bool getSheepList();
     static const SheepArray& getServerFlock() { return fServerFlock; }

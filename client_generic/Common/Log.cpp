@@ -187,32 +187,32 @@ void CLog::Log(
 #define grabvarargs                                                            \
     va_list ArgPtr;                                                            \
     char pTempStr[m_MaxMessageLength];                                         \
-    va_start(ArgPtr, _pFmt);                                                   \
-    vsnprintf(pTempStr, m_MaxMessageLength, _pFmt, ArgPtr);                    \
+    va_start(ArgPtr, _pFmt);                                            \
+    vsnprintf(pTempStr, m_MaxMessageLength, _pFmt.data(), ArgPtr);             \
     va_end(ArgPtr);
 
 //	Def our loggers.
-void CLog::Debug(const char* _pFmt, ...)
+void CLog::Debug(std::string_view _pFmt, ...)
 {
     grabvarargs Log("DEBUG",
                     /*m_File.c_str(), m_Line, m_Function.c_str(),*/ pTempStr);
 }
-void CLog::Info(const char* _pFmt, ...)
+void CLog::Info(std::string_view _pFmt, ...)
 {
     grabvarargs Log("INFO",
                     /*m_File.c_str(), m_Line, m_Function.c_str(),*/ pTempStr);
 }
-void CLog::Warning(const char* _pFmt, ...)
+void CLog::Warning(std::string_view _pFmt, ...)
 {
     grabvarargs Log("WARN",
                     /*m_File.c_str(), m_Line, m_Function.c_str(),*/ pTempStr);
 }
-void CLog::Error(const char* _pFmt, ...)
+void CLog::Error(std::string_view _pFmt, ...)
 {
     grabvarargs Log("ERROR",
                     /*m_File.c_str(), m_Line, m_Function.c_str(),*/ pTempStr);
 }
-void CLog::Fatal(const char* _pFmt, ...)
+void CLog::Fatal(std::string_view _pFmt, ...)
 {
     grabvarargs Log("FATAL",
                     /*m_File.c_str(), m_Line, m_Function.c_str(),*/ pTempStr);

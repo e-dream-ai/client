@@ -61,7 +61,7 @@ class CVideoFrame
   protected:
     uint32_t m_Width;
     uint32_t m_Height;
-    double m_Pts;
+    int64_t m_FrameNumber;
 
     sMetaData m_MetaData;
 
@@ -116,9 +116,10 @@ class CVideoFrame
         }
     }
 
-    CVideoFrame(const AVFrame* _pFrame, std::string _filename)
+    CVideoFrame(const AVFrame* _pFrame, int64_t _frameNumber, std::string _filename)
     {
         m_pFrame = av_frame_alloc();
+        m_FrameNumber = _frameNumber;
         av_frame_ref(m_pFrame, _pFrame);
         m_MetaData.m_Fade = 1.f;
         m_MetaData.m_FileName = _filename;
@@ -150,6 +151,8 @@ class CVideoFrame
         }
         m_spBuffer = nullptr;
     }
+    
+    int64_t GetFrameNumber() const { return m_FrameNumber; }
 
     inline void GetMetaData(sMetaData& _metadata) { _metadata = m_MetaData; }
 
@@ -215,8 +218,6 @@ class CVideoFrame
         m_MetaData.m_MaxFrameIdx = idx;
     }
 
-    inline void Pts(const double _pts) { m_Pts = _pts; };
-    inline double Pts(void) { return m_Pts; };
     inline uint32_t Width() { return m_Width; };
     inline uint32_t Height() { return m_Height; };
 

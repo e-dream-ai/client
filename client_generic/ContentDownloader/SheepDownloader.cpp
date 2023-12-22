@@ -52,6 +52,7 @@
 #include "ContentDownloader.h"
 #include "MathBase.h"
 #include "Networking.h"
+#include "JSONUtil.h"
 #include "Player.h"
 #include "SheepDownloader.h"
 #include "base.h"
@@ -87,7 +88,6 @@ static const uint32_t INIT_DELAY = 60;
 
 // Initialize the class data
 int SheepDownloader::fDownloadedSheep = 0;
-uint32_t SheepDownloader::fCurrentGeneration = 0;
 bool SheepDownloader::fGotList = false;
 bool SheepDownloader::fListDirty = true;
 time_t SheepDownloader::fLastListTime = 0;
@@ -102,7 +102,6 @@ SheepDownloader::SheepDownloader(boost::shared_mutex& _downloadSaveMutex)
     : m_DownloadSaveMutex(_downloadSaveMutex)
 {
     fHasMessage = false;
-    fCurrentGeneration = 0;
     m_bAborted = false;
     fGotList = false;
     fListDirty = true;
@@ -222,6 +221,14 @@ bool SheepDownloader::downloadSheep(Dream* sheep)
     return true;
 }
 
+static void LogException(const std::exception& e, size_t dreamIndex, std::string_view fileStr)
+{
+    auto str = string_format("Exception during parsing dreams list:%s "
+                             "contents:\"%s\" dreamIndex:%d", e.what(), fileStr.data(), dreamIndex);
+    //ContentDownloader::Shepherd::addMessageText(str.str().c_str(), 180);
+    g_Log->Error(str);
+}
+
 //	Parse the sheep list and create the server sheep.
 void SheepDownloader::parseSheepList()
 {
@@ -260,24 +267,31 @@ void SheepDownloader::parseSheepList()
 
             do
             {
+                
                 boost::json::value dream = dreamsArray.at(dreamIndex);
                 boost::json::value video = dream.at("video");
                 if (video.is_null())
                     continue;
-
-                //    Create a new dream and parse the attributes.
-                Dream* newDream = new Dream();
-                newDream->setGeneration(currentGeneration());
-                newDream->setId((uint32_t)dream.at("id").as_int64());
-                newDream->setURL(video.as_string().data());
-                newDream->setFileWriteTime(
-                    dream.at("updated_at").as_string().data());
-                newDream->setRating(atoi("5"));
-                newDream->setUuid(dream.at("uuid").as_string().data());
-                boost::json::value user = dream.at("user");
-                newDream->setAuthor(user.at("email").as_string().data());
-                newDream->setName(dream.at("name").as_string().data());
-                fServerFlock.push_back(newDream);
+                try
+                {
+                    //    Create a new dream and parse the attributes.
+                    Dream* newDream = new Dream();
+                    newDream->setId((uint32_t)dream.at("id").as_int64());
+                    newDream->setURL(video.as_string().data());
+                    newDream->setFileWriteTime(
+                                               dream.at("updated_at").as_string().data());
+                    newDream->setRating(atoi("5"));
+                    newDream->setUuid(dream.at("uuid").as_string().data());
+                    boost::json::value user = dream.at("user");
+                    newDream->setAuthor(user.at("email").as_string().data());
+                    newDream->setName(dream.at("name").as_string().data());
+                    fServerFlock.push_back(newDream);
+                }
+                catch (const boost::system::system_error& e)
+                {
+                    std::string str = JSONUtil::PrintJSON(dream);
+                    LogException(e, dreamIndex, str);
+                }
             } while (++dreamIndex < dreamsArray.size());
         }
     }
@@ -287,11 +301,7 @@ void SheepDownloader::parseSheepList()
         std::stringstream buffer;
         buffer << file.rdbuf();
         auto fileStr = buffer.str();
-        auto str = boost::format("Exception during parsing dreams list:%s "
-                                 "contents:\"%s\" dreamIndex:%d") %
-                   e.what() % fileStr % dreamIndex;
-        //ContentDownloader::Shepherd::addMessageText(str.str().c_str(), 180);
-        g_Log->Error(str.str().data());
+        LogException(e, dreamIndex, fileStr);
     }
     file.close();
     fGotList = true;
@@ -713,8 +723,6 @@ void SheepDownloader::findSheepToDownload()
                 best_ctime_old = 0;
                 best_rating_old = INT_MAX;
 
-                //	Reset the generation number.
-                setCurrentGeneration(0);
 
                 //	Get the sheep list from the server.
                 if (getSheepList())

@@ -7,14 +7,17 @@
 #ifndef _LOG_H_
 #define _LOG_H_
 
+#include <string_view>
+
+#ifdef LINUX_GNU
+#include <cstdio>
+#endif
+
 #include "Singleton.h"
 #include "SmartPtr.h"
 #include "base.h"
 #include "boost/thread.hpp"
 
-#ifdef LINUX_GNU
-#include <cstdio>
-#endif
 
 extern void ProfilerBegin(const char* name);
 extern void ProfilerEnd(const char* name);
@@ -72,11 +75,11 @@ class CLog : public CSingleton<CLog>
     void SetInfo(const char* _pFileStr, const uint32_t _line,
                  const char* _pFunc);
 
-    void Debug(const char* _pFmt, ...);
-    void Info(const char* _pFmt, ...);
-    void Warning(const char* _pFmt, ...);
-    void Error(const char* _pFmt, ...);
-    void Fatal(const char* _pFmt, ...);
+    void Debug(std::string_view _pFmt, ...);
+    void Info(std::string_view _pFmt, ...);
+    void Warning(std::string_view _pFmt, ...);
+    void Error(std::string_view _pFmt, ...);
+    void Fatal(std::string_view _pFmt, ...);
 
     //	Provides singleton access.
     __attribute__((no_instrument_function)) static CLog*

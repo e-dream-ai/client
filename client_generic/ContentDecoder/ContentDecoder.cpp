@@ -311,7 +311,7 @@ bool CContentDecoder::Open(sOpenVideoInfo* ovi)
 
     ovi->m_ReadingTrailingFrames = false;
 
-    if (ovi->m_iCurrentFileFrameCount)
+    if (ovi->m_SeekTargetFrame)
     {
         AVRational timeBase =
             ovi->m_pFormatContext->streams[ovi->m_VideoStreamID]->time_base;
@@ -320,32 +320,19 @@ bool CContentDecoder::Open(sOpenVideoInfo* ovi)
                                 ->avg_frame_rate);
 
         // Calculate target timestamp in stream time base
-        int64_t targetTimestamp = (int64_t)(ovi->m_iCurrentFileFrameCount /
+        int64_t targetTimestamp = (int64_t)(ovi->m_SeekTargetFrame /
                                             (frameRate * av_q2d(timeBase)));
 
         // Seek to the target timestamp
         int seek = avformat_seek_file(
-            ovi->m_pFormatContext, ovi->m_VideoStreamID, targetTimestamp - 70,
+            ovi->m_pFormatContext, ovi->m_VideoStreamID, 0,
             targetTimestamp, targetTimestamp, 0);
         avcodec_flush_buffers(ovi->m_pVideoCodecContext);
         if (seek < 0)
         {
             g_Log->Error("Error seeking:%i", seek);
         }
-        AVPacket packet;
-        // Read frames until reaching the desired timestamp
-        while (av_read_frame(ovi->m_pFormatContext, &packet) >= 0)
-        {
-            int64_t frameNumber =
-                (int64_t)((packet.pts * frameRate) * av_q2d(timeBase));
-            if (packet.stream_index == ovi->m_VideoStreamID &&
-                frameNumber >= (int64_t)ovi->m_iCurrentFileFrameCount)
-            {
-                // Process the packet or break out of the loop
-                break;
-            }
-            av_packet_unref(&packet);
-        }
+
         m_NoSheeps = false;
     }
 
@@ -609,13 +596,19 @@ CVideoFrame* CContentDecoder::ReadOneFrame(sOpenVideoInfo* ovi)
 
     if (!pFormatContext)
         return NULL;
-
+    
+        AVRational timeBase =
+    pFormatContext->streams[ovi->m_VideoStreamID]->time_base;
+        int64_t frameRate =
+            (int64_t)av_q2d(pFormatContext->streams[ovi->m_VideoStreamID]
+                                ->avg_frame_rate);
     AVPacket* packet;
     AVPacket* filteredPacket;
     int frameDecoded = 0;
     AVFrame* pFrame = ovi->m_pFrame;
     AVCodecContext* pVideoCodecContext = ovi->m_pVideoCodecContext;
     CVideoFrame* pVideoFrame = NULL;
+    int64_t frameNumber = 0;
 
     while (true)
     {
@@ -634,6 +627,7 @@ CVideoFrame* CContentDecoder::ReadOneFrame(sOpenVideoInfo* ovi)
         }
 
         int ret = 0;
+        AVPacket* packetToSend = nullptr;
         if (ovi->m_pBsfContext)
         {
             DumpError(av_bsf_send_packet(ovi->m_pBsfContext, packet));
@@ -652,7 +646,7 @@ CVideoFrame* CContentDecoder::ReadOneFrame(sOpenVideoInfo* ovi)
             }
             if (filteredPacket->size)
             {
-                ret = avcodec_send_packet(pVideoCodecContext, filteredPacket);
+                packetToSend = filteredPacket;
             }
             else
             {
@@ -663,7 +657,12 @@ CVideoFrame* CContentDecoder::ReadOneFrame(sOpenVideoInfo* ovi)
         }
         else
         {
-            ret = avcodec_send_packet(pVideoCodecContext, packet);
+           packetToSend = packet;
+        }
+        
+        if (packetToSend)
+        {
+            ret = avcodec_send_packet(pVideoCodecContext, packetToSend);
         }
 
         if (packet->stream_index != ovi->m_VideoStreamID)
@@ -686,6 +685,11 @@ CVideoFrame* CContentDecoder::ReadOneFrame(sOpenVideoInfo* ovi)
         if (ret >= 0)
         {
             ret = avcodec_receive_frame(pVideoCodecContext, pFrame);
+
+            frameNumber =
+                (int64_t)((pFrame->pts * frameRate) * av_q2d(timeBase));
+            ovi->m_CurrentFileFrameCount = frameNumber;
+
             if (ret == AVERROR(EAGAIN))
             {
                 av_packet_free(&packet);
@@ -710,9 +714,16 @@ CVideoFrame* CContentDecoder::ReadOneFrame(sOpenVideoInfo* ovi)
 
         if (frameDecoded != 0 || ovi->m_ReadingTrailingFrames)
         {
-            break;
+            if (ovi->m_CurrentFileFrameCount >= ovi->m_SeekTargetFrame)
+            {
+                break;
+            }
+            else
+            {
+                av_frame_unref(pFrame);
+            }
         }
-
+        
         av_packet_free(&packet);
         av_packet_free(&filteredPacket);
     }
@@ -725,7 +736,7 @@ CVideoFrame* CContentDecoder::ReadOneFrame(sOpenVideoInfo* ovi)
         if (USE_HW_ACCELERATION)
         {
             pVideoFrame =
-                new CVideoFrame(pFrame, std::string(pFormatContext->url));
+                new CVideoFrame(pFrame, frameNumber, std::string(pFormatContext->url));
         }
         else
         {
@@ -774,7 +785,6 @@ CVideoFrame* CContentDecoder::ReadOneFrame(sOpenVideoInfo* ovi)
 
         av_frame_unref(pFrame);
 
-        ovi->m_iCurrentFileFrameCount++;
 
         /*if (m_totalFrameCount > 0)
         {
@@ -817,7 +827,7 @@ CVideoFrame* CContentDecoder::ReadOneFrame(sOpenVideoInfo* ovi)
         pVideoFrame->SetMetaData_IsEdge(ovi->IsEdge());
         pVideoFrame->SetMetaData_atime(ovi->m_CurrentFileatime);
         pVideoFrame->SetMetaData_IsSeam(ovi->m_NextIsSeam);
-        pVideoFrame->SetMetaData_FrameIdx(ovi->m_iCurrentFileFrameCount);
+        pVideoFrame->SetMetaData_FrameIdx(ovi->m_CurrentFileFrameCount);
         pVideoFrame->SetMetaData_MaxFrameIdx(ovi->m_totalFrameCount);
         ovi->m_NextIsSeam = false;
     }
@@ -850,7 +860,7 @@ void CContentDecoder::ReadPackets()
 
             m_MainVideoInfo = new sOpenVideoInfo;
             m_MainVideoInfo->m_Path.assign(lastPlayedFile);
-            m_MainVideoInfo->m_iCurrentFileFrameCount = seekFrame;
+            m_MainVideoInfo->m_SeekTargetFrame = seekFrame;
             videoOpened = Open(m_MainVideoInfo);
         }
 
@@ -885,7 +895,7 @@ void CContentDecoder::ReadPackets()
 
                     if (m_SecondVideoInfo != NULL &&
                         m_SecondVideoInfo->IsOpen() &&
-                        m_MainVideoInfo->m_iCurrentFileFrameCount >=
+                        m_MainVideoInfo->m_CurrentFileFrameCount >=
                             (m_MainVideoInfo->m_totalFrameCount -
                              kTransitionFrameLength))
                         pSecondVideoFrame = ReadOneFrame(m_SecondVideoInfo);
@@ -895,11 +905,11 @@ void CContentDecoder::ReadPackets()
                         pMainVideoFrame->SetMetaData_SecondFrame(
                             pSecondVideoFrame);
 
-                        if (m_SecondVideoInfo->m_iCurrentFileFrameCount <
+                        if (m_SecondVideoInfo->m_CurrentFileFrameCount <
                             kTransitionFrameLength)
                             pMainVideoFrame->SetMetaData_TransitionProgress(
                                 (float)m_SecondVideoInfo
-                                    ->m_iCurrentFileFrameCount *
+                                    ->m_CurrentFileFrameCount *
                                 100.f / ((float)kTransitionFrameLength - 1.f));
                         else
                             pMainVideoFrame->SetMetaData_TransitionProgress(
@@ -973,6 +983,10 @@ spCVideoFrame CContentDecoder::Frame()
         {
             tmp = NULL;
         }
+        else
+        {
+            m_LastReadFrameNumber = tmp->GetFrameNumber();
+        }
         m_sharedFrame = spCVideoFrame(tmp);
     }
     else
@@ -1045,7 +1059,7 @@ void CContentDecoder::Stop()
     g_Settings()->Set("settings.content.last_played_file",
                       m_MainVideoInfo->m_Path);
     g_Settings()->Set("settings.content.last_played_frame",
-                      m_MainVideoInfo->m_iCurrentFileFrameCount);
+                      (uint64_t)m_LastReadFrameNumber);
 
     if (m_pDecoderThread)
     {
