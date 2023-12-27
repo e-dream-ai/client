@@ -116,7 +116,8 @@ class CVideoFrame
         }
     }
 
-    CVideoFrame(const AVFrame* _pFrame, int64_t _frameNumber, std::string _filename)
+    CVideoFrame(const AVFrame* _pFrame, int64_t _frameNumber,
+                std::string _filename)
     {
         m_pFrame = av_frame_alloc();
         m_FrameNumber = _frameNumber;
@@ -151,7 +152,7 @@ class CVideoFrame
         }
         m_spBuffer = nullptr;
     }
-    
+
     int64_t GetFrameNumber() const { return m_FrameNumber; }
 
     inline void GetMetaData(sMetaData& _metadata) { _metadata = m_MetaData; }

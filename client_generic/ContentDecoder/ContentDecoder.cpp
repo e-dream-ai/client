@@ -320,13 +320,13 @@ bool CContentDecoder::Open(sOpenVideoInfo* ovi)
                                 ->avg_frame_rate);
 
         // Calculate target timestamp in stream time base
-        int64_t targetTimestamp = (int64_t)(ovi->m_SeekTargetFrame /
-                                            (frameRate * av_q2d(timeBase)));
+        int64_t targetTimestamp =
+            (int64_t)(ovi->m_SeekTargetFrame / (frameRate * av_q2d(timeBase)));
 
         // Seek to the target timestamp
-        int seek = avformat_seek_file(
-            ovi->m_pFormatContext, ovi->m_VideoStreamID, 0,
-            targetTimestamp, targetTimestamp, 0);
+        int seek =
+            avformat_seek_file(ovi->m_pFormatContext, ovi->m_VideoStreamID, 0,
+                               targetTimestamp, targetTimestamp, 0);
         avcodec_flush_buffers(ovi->m_pVideoCodecContext);
         if (seek < 0)
         {
@@ -596,12 +596,11 @@ CVideoFrame* CContentDecoder::ReadOneFrame(sOpenVideoInfo* ovi)
 
     if (!pFormatContext)
         return NULL;
-    
-        AVRational timeBase =
-    pFormatContext->streams[ovi->m_VideoStreamID]->time_base;
-        int64_t frameRate =
-            (int64_t)av_q2d(pFormatContext->streams[ovi->m_VideoStreamID]
-                                ->avg_frame_rate);
+
+    AVRational timeBase =
+        pFormatContext->streams[ovi->m_VideoStreamID]->time_base;
+    int64_t frameRate = (int64_t)av_q2d(
+        pFormatContext->streams[ovi->m_VideoStreamID]->avg_frame_rate);
     AVPacket* packet;
     AVPacket* filteredPacket;
     int frameDecoded = 0;
@@ -657,9 +656,9 @@ CVideoFrame* CContentDecoder::ReadOneFrame(sOpenVideoInfo* ovi)
         }
         else
         {
-           packetToSend = packet;
+            packetToSend = packet;
         }
-        
+
         if (packetToSend)
         {
             ret = avcodec_send_packet(pVideoCodecContext, packetToSend);
@@ -723,7 +722,7 @@ CVideoFrame* CContentDecoder::ReadOneFrame(sOpenVideoInfo* ovi)
                 av_frame_unref(pFrame);
             }
         }
-        
+
         av_packet_free(&packet);
         av_packet_free(&filteredPacket);
     }
@@ -735,8 +734,8 @@ CVideoFrame* CContentDecoder::ReadOneFrame(sOpenVideoInfo* ovi)
 
         if (USE_HW_ACCELERATION)
         {
-            pVideoFrame =
-                new CVideoFrame(pFrame, frameNumber, std::string(pFormatContext->url));
+            pVideoFrame = new CVideoFrame(pFrame, frameNumber,
+                                          std::string(pFormatContext->url));
         }
         else
         {
@@ -784,7 +783,6 @@ CVideoFrame* CContentDecoder::ReadOneFrame(sOpenVideoInfo* ovi)
         }
 
         av_frame_unref(pFrame);
-
 
         /*if (m_totalFrameCount > 0)
         {
@@ -908,8 +906,8 @@ void CContentDecoder::ReadPackets()
                         if (m_SecondVideoInfo->m_CurrentFileFrameCount <
                             kTransitionFrameLength)
                             pMainVideoFrame->SetMetaData_TransitionProgress(
-                                (float)m_SecondVideoInfo
-                                    ->m_CurrentFileFrameCount *
+                                (float)
+                                    m_SecondVideoInfo->m_CurrentFileFrameCount *
                                 100.f / ((float)kTransitionFrameLength - 1.f));
                         else
                             pMainVideoFrame->SetMetaData_TransitionProgress(

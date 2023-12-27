@@ -187,7 +187,7 @@ void CLog::Log(
 #define grabvarargs                                                            \
     va_list ArgPtr;                                                            \
     char pTempStr[m_MaxMessageLength];                                         \
-    va_start(ArgPtr, _pFmt);                                            \
+    va_start(ArgPtr, _pFmt);                                                   \
     vsnprintf(pTempStr, m_MaxMessageLength, _pFmt.data(), ArgPtr);             \
     va_end(ArgPtr);
 
