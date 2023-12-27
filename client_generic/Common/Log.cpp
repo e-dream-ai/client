@@ -217,7 +217,10 @@ void CLog::Fatal(std::string_view _pFmt, ...)
     grabvarargs Log("FATAL",
                     /*m_File.c_str(), m_Line, m_Function.c_str(),*/ pTempStr);
 }
-
+std::string CLog::Format(std::string_view _pFmt, ...)
+{
+    grabvarargs return pTempStr;
+}
 }; // namespace Base
 
 os_log_t g_SignpostHandle = os_log_create("com.spotworks.e-dream.app",

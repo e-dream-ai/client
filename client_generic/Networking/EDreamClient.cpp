@@ -1,15 +1,22 @@
+#include <websocketpp/client.hpp>
+#include <websocketpp/config/asio_no_tls_client.hpp>
 #include <boost/json.hpp>
 #include <boost/json/src.hpp>
 #include <cstdio>
 
 #include "ContentDownloader.h"
-#include "EDreamClient.h"
 #include "Log.h"
 #include "Networking.h"
 #include "Settings.h"
 #include "Shepherd.h"
 #include "client.h"
 #include "clientversion.h"
+#include "EDreamClient.h"
+
+typedef websocketpp::client<websocketpp::config::asio_client> WebSocketClient;
+static void OnWebSocketMessage(websocketpp::connection_hdl,
+                               WebSocketClient::message_ptr message);
+static void OnWebSocketOpen(websocketpp::connection_hdl);
 
 static ShowPreferencesCallback_t gShowPreferencesCallback = nullptr;
 void ESSetShowPreferencesCallback(ShowPreferencesCallback_t _callback)
@@ -23,10 +30,11 @@ void ESShowPreferences()
         gShowPreferencesCallback();
     }
 }
-boost::atomic<char*> EDreamClient::fAccessToken(NULL);
-boost::atomic<char*> EDreamClient::fRefreshToken(NULL);
+boost::atomic<char*> EDreamClient::fAccessToken(nullptr);
+boost::atomic<char*> EDreamClient::fRefreshToken(nullptr);
 boost::atomic<bool> EDreamClient::fIsLoggedIn(false);
 boost::mutex EDreamClient::fAuthMutex;
+WebSocketClient s_WebSocketClient;
 
 static void SetNewAndDeleteOldString(
     boost::atomic<char*>& str, char* newval,
@@ -34,7 +42,7 @@ static void SetNewAndDeleteOldString(
 {
     char* toDelete = str.exchange(newval, mem_ord);
 
-    if (toDelete != NULL)
+    if (toDelete != nullptr)
         delete[] toDelete;
 }
 
@@ -42,9 +50,9 @@ static void SetNewAndDeleteOldString(
     boost::atomic<char*>& str, const char* newval,
     boost::memory_order mem_ord = boost::memory_order_relaxed)
 {
-    if (newval == NULL)
+    if (newval == nullptr)
     {
-        SetNewAndDeleteOldString(str, (char*)NULL, mem_ord);
+        SetNewAndDeleteOldString(str, (char*)nullptr, mem_ord);
         return;
     }
     size_t len = strlen(newval) + 1;
@@ -56,6 +64,13 @@ static void SetNewAndDeleteOldString(
 void EDreamClient::InitializeClient()
 {
     // g_Settings()->Set("settings.content.access_token", std::string(""));
+    s_WebSocketClient.set_access_channels(websocketpp::log::alevel::all);
+    s_WebSocketClient.clear_access_channels(
+        websocketpp::log::alevel::frame_payload);
+    s_WebSocketClient.set_error_channels(websocketpp::log::elevel::all);
+    s_WebSocketClient.init_asio();
+    s_WebSocketClient.set_message_handler(&OnWebSocketMessage);
+    s_WebSocketClient.set_open_handler(&OnWebSocketOpen);
 
     SetNewAndDeleteOldString(
         fAccessToken,
@@ -68,7 +83,8 @@ void EDreamClient::InitializeClient()
             ->Get("settings.content.refresh_token", std::string(""))
             .c_str());
     fAuthMutex.lock();
-    boost::thread t(&EDreamClient::Authenticate);
+    boost::thread authThread(&EDreamClient::Authenticate);
+    boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
 }
 
 const char* EDreamClient::GetAccessToken()
@@ -209,4 +225,52 @@ bool EDreamClient::GetDreams()
         return false;
     }
     return true;
+}
+
+static void OnWebSocketMessage(websocketpp::connection_hdl,
+                               WebSocketClient::message_ptr message)
+{
+    g_Log->Info("Received WebSocket message: %s",
+                message->get_payload().c_str());
+}
+
+static void OnWebSocketOpen(websocketpp::connection_hdl handle)
+{
+    try
+    {
+        s_WebSocketClient.send(handle,
+                               "{\"event\":\"authentication\",\"client_id\":"
+                               "\"client\",\"client_mode\":\"desktop\"}",
+                               websocketpp::frame::opcode::value::TEXT);
+    }
+    catch (websocketpp::exception const& ex)
+    {
+        g_Log->Error("WebSocket exception: %s", ex.what());
+    }
+}
+
+void EDreamClient::ConnectRemoteControlSocket()
+{
+    try
+    {
+        websocketpp::lib::error_code ec;
+        WebSocketClient::connection_ptr connection =
+            s_WebSocketClient.get_connection("ws://localhost:8000/ws", ec);
+        if (ec)
+        {
+            g_Log->Error("Error creating WebSocket connection: %s",
+                         ec.message().c_str());
+            return;
+        }
+        s_WebSocketClient.connect(connection);
+        s_WebSocketClient.send(connection->get_handle(),
+                               "{\"event\":\"authentication\",\"client_id\":"
+                               "\"client\",\"client_mode\":\"desktop\"}",
+                               websocketpp::frame::opcode::value::TEXT);
+        s_WebSocketClient.run();
+    }
+    catch (websocketpp::exception const& ex)
+    {
+        g_Log->Error("WebSocket exception: %s", ex.what());
+    }
 }

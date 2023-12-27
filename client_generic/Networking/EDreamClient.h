@@ -1,6 +1,7 @@
 #ifndef _EDREAMCLIENT_H_
 #define _EDREAMCLIENT_H_
 
+#include <memory>
 #include <boost/atomic.hpp>
 #include <boost/thread/mutex.hpp>
 
@@ -22,6 +23,7 @@ class EDreamClient
     static void SignOut();
     static void DidSignIn(const std::string& _authToken,
                           const std::string& _refreshToken);
+    static void ConnectRemoteControlSocket();
 };
 
 #endif /* _EDREAMCLIENT_H_ */
