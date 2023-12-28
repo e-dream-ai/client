@@ -9,10 +9,6 @@
 #include "libgen.h"
 #include "Log.h"
 
-#ifndef USE_METAL
-NSOpenGLContext* glContext = NULL;
-#endif
-
 bool bStarted = false;
 
 @implementation ESScreensaverView
@@ -152,7 +148,7 @@ bool bStarted = false;
         newRect.origin.y = theRect.origin.y;
 
         theRect = newRect;*/
-#ifdef USE_METAL
+
         ESMetalView* metalView =
 
             [[ESMetalView alloc] initWithFrame:theRect];
@@ -161,23 +157,13 @@ bool bStarted = false;
 
         view = metalView;
 
-#else
-        view = [[ESOpenGLView alloc] initWithFrame:theRect];
-#endif
-
         if (view)
         {
-#ifndef USE_METAL
-            glContext = [view openGLContext];
-#endif
-
             // We make it a subview of the screensaver view
             [self addSubview:view];
         }
     }
     //}
-#ifdef USE_METAL
-
     if (view != NULL)
     {
         ESScreensaver_InitClientStorage();
@@ -185,15 +171,6 @@ bool bStarted = false;
         ESScreenSaver_AddGraphicsContext((__bridge void*)view);
         ESScreensaver_DeinitClientStorage();
     }
-#else
-    if (view != NULL && [view openGLContext])
-    {
-        ESScreensaver_InitClientStorage();
-        ESScreenSaver_AddGraphicsContext(
-            (CGLContextObj)[[view openGLContext] CGLContextObj]);
-        ESScreensaver_DeinitClientStorage();
-    }
-#endif //! USE_METAL
 
     uint32_t width = (uint32_t)theRect.size.width;
     uint32_t height = (uint32_t)theRect.size.height;
@@ -499,8 +476,6 @@ static void signnal_handler(int signal)
     m_isFullScreen = fullscreen;
 }
 
-#ifdef USE_METAL
-
 - (void)mtkView:(MTKView*)view drawableSizeWillChange:(CGSize)size
 {
 }
@@ -513,5 +488,5 @@ static void signnal_handler(int signal)
         m_endFrameBarrier->wait();
     }
 }
-#endif
+
 @end

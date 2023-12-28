@@ -1,11 +1,7 @@
 #include <sys/stat.h>
 
 #include "ESScreensaver.h"
-#ifdef USE_METAL
 #include "DisplayMetal.h"
-#else
-#include "mgl.h"
-#endif
 #include "client.h"
 #include "client_mac.h"
 #include <GLUT/glut.h>
@@ -64,11 +60,7 @@ bool ESScreensaver_Start(bool _bPreview, uint32 _width, uint32 _height)
 {
     if (g_Player().Display() == NULL)
     {
-#ifdef USE_METAL
         DisplayOutput::CDisplayMetal::SetDefaultWidthAndHeight(_width, _height);
-#else
-        DisplayOutput::CMacGL::SetDefaultWidthAndHeight(_width, _height);
-#endif
 
         gClient.SetIsPreview(_bPreview);
 

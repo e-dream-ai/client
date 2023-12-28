@@ -39,15 +39,12 @@
 		212316970F50636700702B2C /* libboost_filesystem.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 212316950F50636700702B2C /* libboost_filesystem.a */; };
 		212CAF841141CA3F009DA85A /* TrebuchetMS-20.glf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 212CAF831141CA3F009DA85A /* TrebuchetMS-20.glf */; };
 		212CAF851141CA3F009DA85A /* TrebuchetMS-20.glf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 212CAF831141CA3F009DA85A /* TrebuchetMS-20.glf */; };
-		2135D2220EC70153005E246D /* ESOpenGLView.m in Sources */ = {isa = PBXBuildFile; fileRef = 2135D2200EC70153005E246D /* ESOpenGLView.m */; };
 		2135D2690EC70571005E246D /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2135D2670EC70571005E246D /* AppKit.framework */; };
 		2135DA530EC7479A005E246D /* ESScreensaverView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA520EC7479A005E246D /* ESScreensaverView.mm */; };
 		2135DA550EC74853005E246D /* ESScreensaver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA540EC74853005E246D /* ESScreensaver.cpp */; };
 		2135DB250EC75133005E246D /* ScreenSaver.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2135DB240EC75133005E246D /* ScreenSaver.framework */; };
 		213D535111F79C8D00CF500D /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 213D529B11F79B0000CF500D /* IOKit.framework */; };
 		213D540311F79C9800CF500D /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 213D529B11F79B0000CF500D /* IOKit.framework */; };
-		214CC3670F34E5CF0083617B /* FontGL.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 214CC3660F34E5CF0083617B /* FontGL.cpp */; };
-		214CC3680F34E5CF0083617B /* FontGL.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 214CC3660F34E5CF0083617B /* FontGL.cpp */; };
 		215542301261FDC900AB51BF /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2155422F1261FDC900AB51BF /* Sparkle.framework */; };
 		215542311261FDC900AB51BF /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2155422F1261FDC900AB51BF /* Sparkle.framework */; };
 		215542561261FE2F00AB51BF /* Sparkle.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2155422F1261FDC900AB51BF /* Sparkle.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
@@ -67,19 +64,13 @@
 		2160FACE0F30F45100B2C27A /* Image.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A110E8E646D00CE185C /* Image.cpp */; };
 		2160FACF0F30F45100B2C27A /* LoadDDS.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A120E8E646D00CE185C /* LoadDDS.cpp */; };
 		2160FAD00F30F45100B2C27A /* LoadPNG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A130E8E646D00CE185C /* LoadPNG.cpp */; };
-		2160FAD10F30F45100B2C27A /* GLee.c in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A370E8E64EB00CE185C /* GLee.c */; };
-		2160FAD20F30F45100B2C27A /* RendererGL.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A380E8E64EB00CE185C /* RendererGL.cpp */; };
-		2160FAD30F30F45100B2C27A /* ShaderGL.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A390E8E64EB00CE185C /* ShaderGL.cpp */; };
-		2160FAD40F30F45100B2C27A /* TextureFlatGL.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A3A0E8E64EB00CE185C /* TextureFlatGL.cpp */; };
 		2160FAD50F30F45100B2C27A /* Font.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A3F0E8E651000CE185C /* Font.cpp */; };
 		2160FAD60F30F45100B2C27A /* Renderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A400E8E651000CE185C /* Renderer.cpp */; };
 		2160FAD70F30F45100B2C27A /* Shader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A410E8E651000CE185C /* Shader.cpp */; };
 		2160FAD80F30F45100B2C27A /* Texture.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A420E8E651000CE185C /* Texture.cpp */; };
 		2160FAD90F30F45100B2C27A /* TextureFlat.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A430E8E651000CE185C /* TextureFlat.cpp */; };
-		2160FADA0F30F45100B2C27A /* mgl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1B590E8E755A00CE185C /* mgl.cpp */; };
 		2160FADB0F30F45100B2C27A /* Hud.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 21D90D010EA1D52000F8E5D5 /* Hud.cpp */; };
 		2160FADC0F30F45100B2C27A /* Rect.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 214B75060EBBA78900B5B897 /* Rect.cpp */; };
-		2160FADD0F30F45100B2C27A /* ESOpenGLView.m in Sources */ = {isa = PBXBuildFile; fileRef = 2135D2200EC70153005E246D /* ESOpenGLView.m */; };
 		2160FADE0F30F45100B2C27A /* Download.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDD60ED0BD9200EB9394 /* Download.cpp */; };
 		2160FADF0F30F45100B2C27A /* Networking.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDD80ED0BD9200EB9394 /* Networking.cpp */; };
 		2160FAE00F30F45100B2C27A /* Upload.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDDA0ED0BD9200EB9394 /* Upload.cpp */; };
@@ -120,16 +111,11 @@
 		218878F00EC6CDE2001ABD2E /* Image.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A110E8E646D00CE185C /* Image.cpp */; };
 		218878F10EC6CDE2001ABD2E /* LoadDDS.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A120E8E646D00CE185C /* LoadDDS.cpp */; };
 		218878F20EC6CDE2001ABD2E /* LoadPNG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A130E8E646D00CE185C /* LoadPNG.cpp */; };
-		218878F30EC6CDE2001ABD2E /* GLee.c in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A370E8E64EB00CE185C /* GLee.c */; };
-		218878F40EC6CDE2001ABD2E /* RendererGL.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A380E8E64EB00CE185C /* RendererGL.cpp */; };
-		218878F50EC6CDE2001ABD2E /* ShaderGL.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A390E8E64EB00CE185C /* ShaderGL.cpp */; };
-		218878F60EC6CDE2001ABD2E /* TextureFlatGL.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A3A0E8E64EB00CE185C /* TextureFlatGL.cpp */; };
 		218878F70EC6CDE2001ABD2E /* Font.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A3F0E8E651000CE185C /* Font.cpp */; };
 		218878F80EC6CDE2001ABD2E /* Renderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A400E8E651000CE185C /* Renderer.cpp */; };
 		218878F90EC6CDE2001ABD2E /* Shader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A410E8E651000CE185C /* Shader.cpp */; };
 		218878FA0EC6CDE2001ABD2E /* Texture.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A420E8E651000CE185C /* Texture.cpp */; };
 		218878FB0EC6CDE2001ABD2E /* TextureFlat.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A430E8E651000CE185C /* TextureFlat.cpp */; };
-		218878FC0EC6CDE2001ABD2E /* mgl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1B590E8E755A00CE185C /* mgl.cpp */; };
 		218878FD0EC6CDE2001ABD2E /* Hud.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 21D90D010EA1D52000F8E5D5 /* Hud.cpp */; };
 		218878FE0EC6CDE2001ABD2E /* Rect.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 214B75060EBBA78900B5B897 /* Rect.cpp */; };
 		21887A130EC6CDF9001ABD2E /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 09AB6884FE841BABC02AAC07 /* CoreFoundation.framework */; };
@@ -308,15 +294,6 @@
 		12478A672B03B194006A8669 /* Networking.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Networking.h; sourceTree = "<group>"; };
 		12478A682B03B1A4006A8669 /* DisplayOutput.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = DisplayOutput.h; path = ../DisplayOutput/DisplayOutput.h; sourceTree = "<group>"; };
 		12478A692B03B1AB006A8669 /* Image.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Image.h; path = ../DisplayOutput/Image.h; sourceTree = "<group>"; };
-		12478A6A2B03B1FE006A8669 /* ESOpenGLView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ESOpenGLView.h; path = ../DisplayOutput/OpenGL/ESOpenGLView.h; sourceTree = "<group>"; };
-		12478A6B2B03B206006A8669 /* mgl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = mgl.h; path = ../DisplayOutput/OpenGL/mgl.h; sourceTree = "<group>"; };
-		12478A6C2B03B211006A8669 /* glut.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = glut.h; path = ../DisplayOutput/OpenGL/glut.h; sourceTree = "<group>"; };
-		12478A6D2B03B211006A8669 /* GLee.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GLee.h; path = ../DisplayOutput/OpenGL/GLee.h; sourceTree = "<group>"; };
-		12478A6E2B03B220006A8669 /* DisplayGL.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = DisplayGL.h; path = ../DisplayOutput/OpenGL/DisplayGL.h; sourceTree = "<group>"; };
-		12478A6F2B03B22B006A8669 /* FontGL.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = FontGL.h; path = ../DisplayOutput/OpenGL/FontGL.h; sourceTree = "<group>"; };
-		12478A702B03B243006A8669 /* RendererGL.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = RendererGL.h; path = ../DisplayOutput/OpenGL/RendererGL.h; sourceTree = "<group>"; };
-		12478A712B03B248006A8669 /* ShaderGL.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ShaderGL.h; path = ../DisplayOutput/OpenGL/ShaderGL.h; sourceTree = "<group>"; };
-		12478A722B03B24C006A8669 /* TextureFlatGL.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TextureFlatGL.h; path = ../DisplayOutput/OpenGL/TextureFlatGL.h; sourceTree = "<group>"; };
 		12478A732B03B262006A8669 /* diriterator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = diriterator.h; path = ../TupleStorage/diriterator.h; sourceTree = "<group>"; };
 		12478A752B03B26D006A8669 /* Settings.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Settings.h; path = ../TupleStorage/Settings.h; sourceTree = "<group>"; };
 		12478A762B03B275006A8669 /* storage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = storage.h; path = ../TupleStorage/storage.h; sourceTree = "<group>"; };
@@ -403,10 +380,6 @@
 		212B1A110E8E646D00CE185C /* Image.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Image.cpp; path = ../DisplayOutput/Image.cpp; sourceTree = SOURCE_ROOT; };
 		212B1A120E8E646D00CE185C /* LoadDDS.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = LoadDDS.cpp; path = ../DisplayOutput/LoadDDS.cpp; sourceTree = SOURCE_ROOT; };
 		212B1A130E8E646D00CE185C /* LoadPNG.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = LoadPNG.cpp; path = ../DisplayOutput/LoadPNG.cpp; sourceTree = SOURCE_ROOT; };
-		212B1A370E8E64EB00CE185C /* GLee.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = GLee.c; path = ../DisplayOutput/OpenGL/GLee.c; sourceTree = SOURCE_ROOT; };
-		212B1A380E8E64EB00CE185C /* RendererGL.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = RendererGL.cpp; path = ../DisplayOutput/OpenGL/RendererGL.cpp; sourceTree = SOURCE_ROOT; };
-		212B1A390E8E64EB00CE185C /* ShaderGL.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ShaderGL.cpp; path = ../DisplayOutput/OpenGL/ShaderGL.cpp; sourceTree = SOURCE_ROOT; };
-		212B1A3A0E8E64EB00CE185C /* TextureFlatGL.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = TextureFlatGL.cpp; path = ../DisplayOutput/OpenGL/TextureFlatGL.cpp; sourceTree = SOURCE_ROOT; };
 		212B1A3F0E8E651000CE185C /* Font.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Font.cpp; path = ../DisplayOutput/Renderer/Font.cpp; sourceTree = SOURCE_ROOT; };
 		212B1A400E8E651000CE185C /* Renderer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Renderer.cpp; path = ../DisplayOutput/Renderer/Renderer.cpp; sourceTree = SOURCE_ROOT; };
 		212B1A410E8E651000CE185C /* Shader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Shader.cpp; path = ../DisplayOutput/Renderer/Shader.cpp; sourceTree = SOURCE_ROOT; };
@@ -421,16 +394,13 @@
 		212B1AD10E8E6C0500CE185C /* libavformat.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavformat.a; path = ../ffmpeg/osx/lib/libavformat.a; sourceTree = SOURCE_ROOT; };
 		212B1AD90E8E6E0100CE185C /* libz.1.2.5.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.1.2.5.dylib; path = usr/lib/libz.1.2.5.dylib; sourceTree = SDKROOT; };
 		212B1ADD0E8E6E5000CE185C /* libbz2.1.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libbz2.1.0.dylib; path = usr/lib/libbz2.1.0.dylib; sourceTree = SDKROOT; };
-		212B1B590E8E755A00CE185C /* mgl.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = mgl.cpp; path = ../DisplayOutput/OpenGL/mgl.cpp; sourceTree = SOURCE_ROOT; };
 		212CAF831141CA3F009DA85A /* TrebuchetMS-20.glf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "TrebuchetMS-20.glf"; sourceTree = "<group>"; };
-		2135D2200EC70153005E246D /* ESOpenGLView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = ESOpenGLView.m; path = ../DisplayOutput/OpenGL/ESOpenGLView.m; sourceTree = SOURCE_ROOT; };
 		2135D2670EC70571005E246D /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
 		2135DA520EC7479A005E246D /* ESScreensaverView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ESScreensaverView.mm; sourceTree = "<group>"; };
 		2135DA540EC74853005E246D /* ESScreensaver.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ESScreensaver.cpp; sourceTree = "<group>"; };
 		2135DB240EC75133005E246D /* ScreenSaver.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ScreenSaver.framework; path = System/Library/Frameworks/ScreenSaver.framework; sourceTree = SDKROOT; };
 		213D529B11F79B0000CF500D /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		214B75060EBBA78900B5B897 /* Rect.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Rect.cpp; path = ../Common/Math/Rect.cpp; sourceTree = SOURCE_ROOT; };
-		214CC3660F34E5CF0083617B /* FontGL.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FontGL.cpp; path = ../DisplayOutput/OpenGL/FontGL.cpp; sourceTree = SOURCE_ROOT; };
 		2155422F1261FDC900AB51BF /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Sparkle.framework; path = Frameworks/Sparkle.framework; sourceTree = SOURCE_ROOT; };
 		215545A812620D3000AB51BF /* dsa_pub.pem */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = dsa_pub.pem; sourceTree = "<group>"; };
 		2160FAAD0F30F43600B2C27A /* e-dream.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "e-dream.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -817,7 +787,6 @@
 			children = (
 				467230B02AC16A7200017C51 /* Metal */,
 				212B1A490E8E651700CE185C /* Renderer */,
-				212B1A360E8E64C600CE185C /* OpenGL */,
 				212B1A100E8E646D00CE185C /* DisplayOutput.cpp */,
 				12478A682B03B1A4006A8669 /* DisplayOutput.h */,
 				212B1A110E8E646D00CE185C /* Image.cpp */,
@@ -826,29 +795,6 @@
 				212B1A130E8E646D00CE185C /* LoadPNG.cpp */,
 			);
 			name = DisplayOutput;
-			sourceTree = "<group>";
-		};
-		212B1A360E8E64C600CE185C /* OpenGL */ = {
-			isa = PBXGroup;
-			children = (
-				2135D2200EC70153005E246D /* ESOpenGLView.m */,
-				12478A6A2B03B1FE006A8669 /* ESOpenGLView.h */,
-				212B1B590E8E755A00CE185C /* mgl.cpp */,
-				12478A6B2B03B206006A8669 /* mgl.h */,
-				212B1A370E8E64EB00CE185C /* GLee.c */,
-				12478A6D2B03B211006A8669 /* GLee.h */,
-				212B1A380E8E64EB00CE185C /* RendererGL.cpp */,
-				12478A702B03B243006A8669 /* RendererGL.h */,
-				212B1A390E8E64EB00CE185C /* ShaderGL.cpp */,
-				12478A712B03B248006A8669 /* ShaderGL.h */,
-				212B1A3A0E8E64EB00CE185C /* TextureFlatGL.cpp */,
-				12478A722B03B24C006A8669 /* TextureFlatGL.h */,
-				214CC3660F34E5CF0083617B /* FontGL.cpp */,
-				12478A6F2B03B22B006A8669 /* FontGL.h */,
-				12478A6C2B03B211006A8669 /* glut.h */,
-				12478A6E2B03B220006A8669 /* DisplayGL.h */,
-			);
-			name = OpenGL;
 			sourceTree = "<group>";
 		};
 		212B1A490E8E651700CE185C /* Renderer */ = {
@@ -1186,11 +1132,7 @@
 				2160FACE0F30F45100B2C27A /* Image.cpp in Sources */,
 				2160FACF0F30F45100B2C27A /* LoadDDS.cpp in Sources */,
 				2160FAD00F30F45100B2C27A /* LoadPNG.cpp in Sources */,
-				2160FAD10F30F45100B2C27A /* GLee.c in Sources */,
-				2160FAD20F30F45100B2C27A /* RendererGL.cpp in Sources */,
 				467230C32AC1835300017C51 /* RendererMetal.mm in Sources */,
-				2160FAD30F30F45100B2C27A /* ShaderGL.cpp in Sources */,
-				2160FAD40F30F45100B2C27A /* TextureFlatGL.cpp in Sources */,
 				467B6FCA2AE6D031001C80CB /* EDreamClient.cpp in Sources */,
 				46D2E9022AFBC3720054049D /* Text.cpp in Sources */,
 				46D2E8F02AFBA64B0054049D /* MBEMesh.m in Sources */,
@@ -1204,16 +1146,13 @@
 				2160FAD90F30F45100B2C27A /* TextureFlat.cpp in Sources */,
 				46D2E8F42AFBA64B0054049D /* MBETextMesh.m in Sources */,
 				467230C62AC18FDB00017C51 /* FontMetal.mm in Sources */,
-				2160FADA0F30F45100B2C27A /* mgl.cpp in Sources */,
 				2160FADB0F30F45100B2C27A /* Hud.cpp in Sources */,
 				1220B53A2B3DC64D00D68410 /* StringFormat.cpp in Sources */,
 				2160FADC0F30F45100B2C27A /* Rect.cpp in Sources */,
-				2160FADD0F30F45100B2C27A /* ESOpenGLView.m in Sources */,
 				467230BA2AC17E4600017C51 /* ESMetalView.m in Sources */,
 				2160FADE0F30F45100B2C27A /* Download.cpp in Sources */,
 				2160FADF0F30F45100B2C27A /* Networking.cpp in Sources */,
 				2160FAE00F30F45100B2C27A /* Upload.cpp in Sources */,
-				214CC3680F34E5CF0083617B /* FontGL.cpp in Sources */,
 				2123132E0F503C4500702B2C /* ContentDownloader.cpp in Sources */,
 				2123132F0F503C4500702B2C /* Dream.cpp in Sources */,
 				212313300F503C4500702B2C /* SheepDownloader.cpp in Sources */,
@@ -1249,11 +1188,7 @@
 				218878F00EC6CDE2001ABD2E /* Image.cpp in Sources */,
 				218878F10EC6CDE2001ABD2E /* LoadDDS.cpp in Sources */,
 				218878F20EC6CDE2001ABD2E /* LoadPNG.cpp in Sources */,
-				218878F30EC6CDE2001ABD2E /* GLee.c in Sources */,
-				218878F40EC6CDE2001ABD2E /* RendererGL.cpp in Sources */,
 				46D2E9012AFBC3720054049D /* Text.cpp in Sources */,
-				218878F50EC6CDE2001ABD2E /* ShaderGL.cpp in Sources */,
-				218878F60EC6CDE2001ABD2E /* TextureFlatGL.cpp in Sources */,
 				218878F70EC6CDE2001ABD2E /* Font.cpp in Sources */,
 				1270D0EF2B28975500E1DCE3 /* PlatformUtils_Mac.mm in Sources */,
 				218878F80EC6CDE2001ABD2E /* Renderer.cpp in Sources */,
@@ -1263,11 +1198,9 @@
 				467230C52AC18FDB00017C51 /* FontMetal.mm in Sources */,
 				1220B5392B3DC64D00D68410 /* StringFormat.cpp in Sources */,
 				218878FB0EC6CDE2001ABD2E /* TextureFlat.cpp in Sources */,
-				218878FC0EC6CDE2001ABD2E /* mgl.cpp in Sources */,
 				218878FD0EC6CDE2001ABD2E /* Hud.cpp in Sources */,
 				218878FE0EC6CDE2001ABD2E /* Rect.cpp in Sources */,
 				46ED5CB12AF5326A00AF8F45 /* MetalShaders.metal in Sources */,
-				2135D2220EC70153005E246D /* ESOpenGLView.m in Sources */,
 				467230B72AC17A9E00017C51 /* ESMetalView.m in Sources */,
 				46D2E9052AFBF8F70054049D /* MBEMathUtilities.m in Sources */,
 				2135DA530EC7479A005E246D /* ESScreensaverView.mm in Sources */,
@@ -1276,7 +1209,6 @@
 				211CDDDB0ED0BD9200EB9394 /* Download.cpp in Sources */,
 				211CDDDC0ED0BD9200EB9394 /* Networking.cpp in Sources */,
 				211CDDDD0ED0BD9200EB9394 /* Upload.cpp in Sources */,
-				214CC3670F34E5CF0083617B /* FontGL.cpp in Sources */,
 				46ED5CB32AF5326A00AF8F45 /* DisplayMetal.cpp in Sources */,
 				212313270F503C4500702B2C /* ContentDownloader.cpp in Sources */,
 				46FA9E1A2B03CB0500708000 /* ShaderMetal.mm in Sources */,

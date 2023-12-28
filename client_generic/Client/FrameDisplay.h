@@ -246,12 +246,8 @@ class CFrameDisplay
         m_LastTexMoveClock = -1;
         m_CurTexMoveOff = 0;
         m_CurTexMoveDir = 1.;
-#ifdef USE_METAL
         m_spShader = m_spRenderer->NewShader(
             "quadPassVertex", "drawDecodedFrameNoBlendingFragment");
-#else
-        m_spShader = NULL;
-#endif
     }
 
     virtual ~CFrameDisplay()

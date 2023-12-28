@@ -5,22 +5,12 @@
 #include "base.h"
 #include "linkpool.h"
 #include <queue>
-#ifdef MAC
-#ifndef USE_METAL
-#undef Random
-#include <OpenGL/OpenGL.h>
-#endif
-#endif
 
-#ifdef USE_METAL
 #ifdef __OBJC__
 typedef void* CGraphicsContext;
 #else
 class MTKView;
 typedef MTKView* CGraphicsContext;
-#endif
-#else
-typedef CGLContextObj CGraphicsContext;
 #endif
 
 namespace DisplayOutput

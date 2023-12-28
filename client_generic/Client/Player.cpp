@@ -8,27 +8,6 @@
 #include <math.h>
 #include <string>
 
-#ifndef WIN32
-#ifndef LINUX_GNU
-#include "GLee.h"
-#else
-#include <GLee.h>
-#include <endian.h>
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-#define __LITTLE_ENDIAN__ __LITTLE_ENDIAN
-#undef __BIG_ENDIAN__
-#else
-#undef __LITTLE_ENDIAN__
-#define __BIG_ENDIAN__ __BIG_ENDIAN
-#endif
-#endif
-#ifdef MAC
-#include <GLUT/glut.h>
-#else
-#include <GL/glut.h>
-#endif
-#endif
-
 #include "Log.h"
 #include "MathBase.h"
 #include "Player.h"
@@ -42,12 +21,9 @@
 #include "../msvc/DisplayDD.h"
 #include "../msvc/RendererDD.h"
 #endif
-#elif defined(MAC) && defined(USE_METAL)
+#else
 #include "DisplayMetal.h"
 #include "RendererMetal.h"
-#else
-#include "DisplayGL.h"
-#include "RendererGL.h"
 #endif
 
 #include "ContentDownloader.h"
@@ -188,13 +164,8 @@ bool CPlayer::AddDisplay(uint32_t screen)
         spRenderer = new CRendererDX();
 #else // !WIN32
 
-#if defined(MAC) && defined(USE_METAL)
     g_Log->Info("Attempting to open %s...", CDisplayMetal::Description());
     spDisplay = std::make_shared<CDisplayMetal>();
-#else
-    g_Log->Info("Attempting to open %s...", CDisplayGL::Description());
-    spDisplay = std::make_shared<CDisplayGL>();
-#endif
 
     if (spDisplay == NULL)
         return false;
@@ -212,11 +183,7 @@ bool CPlayer::AddDisplay(uint32_t screen)
         return false;
 #endif //! MAC
 
-#ifdef USE_METAL
     spRenderer = std::make_shared<CRendererMetal>();
-#else
-    spRenderer = new CRendererGL();
-#endif
 
 #endif //! WIN32
 
