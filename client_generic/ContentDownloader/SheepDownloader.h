@@ -57,7 +57,6 @@ class SheepDownloader
     Network::spCFileDownloader m_spSheepDownloader;
 
     boost::mutex m_AbortMutex;
-    boost::shared_mutex& m_DownloadSaveMutex;
 
   protected:
     //	Downloads the given sheep and queues it up for rendering.
@@ -102,7 +101,7 @@ class SheepDownloader
     static bool fListDirty;
 
   public:
-    SheepDownloader(boost::shared_mutex& _downloadSaveMutex);
+    SheepDownloader();
     virtual ~SheepDownloader();
 
     static void shepherdCallback(void* data);

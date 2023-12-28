@@ -250,8 +250,8 @@ bool CPlayer::AddDisplay(uint32_t screen)
 
         if (m_MultiDisplayMode == kMDIndividualMode && !Stopped())
         {
-            du->spDecoder = ContentDecoder::spCContentDecoder(
-                CreateContentDecoder(*m_DownloadSaveMutex, true));
+            du->spDecoder =
+                ContentDecoder::spCContentDecoder(CreateContentDecoder(true));
             du->spDecoder->Start();
         }
 
@@ -268,9 +268,8 @@ bool CPlayer::AddDisplay(uint32_t screen)
 
 /*
  */
-bool CPlayer::Startup(boost::shared_mutex& _downloadSaveMutex)
+bool CPlayer::Startup()
 {
-    m_DownloadSaveMutex = &_downloadSaveMutex;
     m_DisplayFps = g_Settings()->Get("settings.player.display_fps", 60.);
 
 #ifdef HONOR_VBL_SYNC
@@ -319,8 +318,7 @@ bool CPlayer::Startup(boost::shared_mutex& _downloadSaveMutex)
 }
 
 ContentDecoder::CContentDecoder*
-CPlayer::CreateContentDecoder(boost::shared_mutex& _downloadSaveMutex,
-                              bool _bStartByRandom)
+CPlayer::CreateContentDecoder(bool _bStartByRandom)
 {
     if (!m_spPlaylist)
         return NULL;
@@ -346,7 +344,7 @@ CPlayer::CreateContentDecoder(boost::shared_mutex& _downloadSaveMutex,
         m_spPlaylist, _bStartByRandom,
         g_Settings()->Get("settings.player.CalculateTransitions", true),
         (uint32_t)abs(g_Settings()->Get("settings.player.BufferLength", 25)),
-        _downloadSaveMutex, pf);
+        pf);
 }
 
 /*
@@ -390,8 +388,8 @@ void CPlayer::Start()
 
         if (m_MultiDisplayMode == kMDSharedMode)
         {
-            m_spDecoder = ContentDecoder::spCContentDecoder(
-                CreateContentDecoder(*m_DownloadSaveMutex, true));
+            m_spDecoder =
+                ContentDecoder::spCContentDecoder(CreateContentDecoder(true));
 
             if (!m_spDecoder->Start())
                 g_Log->Warning("Nothing to play");
@@ -406,7 +404,7 @@ void CPlayer::Start()
             {
                 if (!(*it)->spDecoder)
                     (*it)->spDecoder = ContentDecoder::spCContentDecoder(
-                        CreateContentDecoder(*m_DownloadSaveMutex, true));
+                        CreateContentDecoder(true));
 
                 if (!(*it)->spDecoder->Start())
                     g_Log->Warning("Nothing to play");

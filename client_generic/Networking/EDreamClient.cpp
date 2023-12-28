@@ -254,6 +254,14 @@ static void OnWebSocketMessage(websocketpp::connection_hdl,
         {
             g_Player().ReturnToPrevious();
         }
+        else if (event == "skip_fw")
+        {
+            g_Player().SkipForward(10);
+        }
+        else if (event == "skip_bw")
+        {
+            g_Player().SkipForward(-10);
+        }
         else
         {
             g_Log->Error("Unknown event type received: %s (message was:%s)",
@@ -303,7 +311,7 @@ void EDreamClient::ConnectRemoteControlSocket()
     {
         websocketpp::lib::error_code ec;
         WebSocketClient::connection_ptr connection =
-            s_WebSocketClient.get_connection("ws://localhost:8000/ws", ec);
+            s_WebSocketClient.get_connection("ws://localhost:9000/ws", ec);
         if (ec)
         {
             g_Log->Error("Error creating WebSocket connection: %s",

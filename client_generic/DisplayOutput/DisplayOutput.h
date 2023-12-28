@@ -49,34 +49,36 @@ class CKeyEvent : public CEvent
   public:
     enum eKeyCode
     {
-        KEY_TAB,
-        KEY_LALT,
-        KEY_MENU,
-        KEY_CTRL,
-        KEY_F,
-        KEY_s,
-        KEY_SPACE,
-        KEY_LEFT,
-        KEY_RIGHT,
-        KEY_UP,
-        KEY_DOWN,
-        KEY_F1,
-        KEY_F2,
-        KEY_F3,
-        KEY_F4,
-        KEY_F5,
-        KEY_F6,
-        KEY_F7,
-        KEY_F8,
-        KEY_F9,
-        KEY_F10,
-        KEY_F11,
-        KEY_F12,
-        KEY_Esc,
-        KEY_NONE,
-        KEY_Comma,
-        KEY_Period,
-        KEY_P
+        KEY_TAB = 0x09,
+        KEY_LALT = 0xA4, // Left Alt
+        KEY_MENU = 0x5D, // Alt Gr / Right Alt
+        KEY_CTRL = 0x11, // Ctrl
+        KEY_F = 0x46,
+        KEY_s = 0x53,
+        KEY_SPACE = 0x20,
+        KEY_LEFT = 0x25,
+        KEY_RIGHT = 0x27,
+        KEY_UP = 0x26,
+        KEY_DOWN = 0x28,
+        KEY_F1 = 0x70,
+        KEY_F2 = 0x71,
+        KEY_F3 = 0x72,
+        KEY_F4 = 0x73,
+        KEY_F5 = 0x74,
+        KEY_F6 = 0x75,
+        KEY_F7 = 0x76,
+        KEY_F8 = 0x77,
+        KEY_F9 = 0x78,
+        KEY_F10 = 0x79,
+        KEY_F11 = 0x7A,
+        KEY_F12 = 0x7B,
+        KEY_Esc = 0x1B,
+        KEY_NONE = 0x00, // No key pressed
+        KEY_Comma = 0xBC,
+        KEY_Period = 0xBE,
+        KEY_C = 0x5,
+        KEY_A = 0x41,
+        KEY_D = 0x44
     };
 
     CKeyEvent() : m_bPressed(true), m_Code(KEY_NONE) {}

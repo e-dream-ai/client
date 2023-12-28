@@ -188,6 +188,8 @@ class CContentDecoder
 
     int32_t m_bForceNext;
 
+    float m_SkipTime = 0;
+
     spCVideoFrame m_sharedFrame;
     boost::mutex m_sharedFrameMutex;
 
@@ -215,7 +217,6 @@ class CContentDecoder
   public:
     CContentDecoder(spCPlaylist _spPlaylist, bool _bStartByRandom,
                     bool _bAllowTransitions, const uint32_t _queueLenght,
-                    boost::shared_mutex& _downloadSaveMutex,
                     AVPixelFormat _wantedPixelFormat = AV_PIX_FMT_RGB24);
     virtual ~CContentDecoder();
 
@@ -247,7 +248,10 @@ class CContentDecoder
     void ClearQueue(uint32_t leave = 0);
 
     void ForceNext(int32_t forced = 1);
+
     int32_t NextForced(void);
+
+    void SkipForward(float _seconds);
 };
 
 MakeSmartPointers(CContentDecoder);

@@ -99,8 +99,7 @@ boost::mutex SheepDownloader::s_DownloaderMutex;
 
 /*
  */
-SheepDownloader::SheepDownloader(boost::shared_mutex& _downloadSaveMutex)
-    : m_DownloadSaveMutex(_downloadSaveMutex)
+SheepDownloader::SheepDownloader()
 {
     fHasMessage = false;
     m_bAborted = false;
@@ -210,7 +209,7 @@ bool SheepDownloader::downloadSheep(Dream* sheep)
     char filename[MAXBUF];
     snprintf(filename, MAXBUF, "%s%s.mp4", Shepherd::mp4Path(), sheep->uuid());
     {
-        boost::unique_lock<boost::shared_mutex> lock(m_DownloadSaveMutex);
+        boost::unique_lock<boost::shared_mutex> lock();
         if (!spDownload->Save(filename))
         {
             g_Log->Error("Unable to save %s\n", filename);

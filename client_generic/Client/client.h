@@ -112,7 +112,6 @@ class CElectricSheep
 
     boost::mutex m_BarrierMutex;
 #endif
-    boost::shared_mutex m_DownloadSaveMutex;
 
     //	Init tuplestorage.
     bool InitStorage(bool _bReadOnly = false)
@@ -207,7 +206,7 @@ class CElectricSheep
                 "settings.player.MultiDisplayMode", 0));
 
         //	Init the display and create decoder.
-        if (!g_Player().Startup(m_DownloadSaveMutex))
+        if (!g_Player().Startup())
             return false;
 
 #ifdef DO_THREAD_UPDATE
@@ -433,9 +432,8 @@ class CElectricSheep
         //    Start downloader.
         g_Log->Info("Starting downloader...");
 
-        g_ContentDownloader().Startup(m_DownloadSaveMutex, false,
-                                      m_MultipleInstancesMode ||
-                                          !internetReachable);
+        g_ContentDownloader().Startup(false, m_MultipleInstancesMode ||
+                                                 !internetReachable);
 
         // call static method to fill sheep counts
         ContentDownloader::Shepherd::GetFlockSizeMBsRecount(0);
@@ -1094,24 +1092,24 @@ class CElectricSheep
                                       voteDelaySeconds * 0.9f);
                 }
                 break;
-
                 //	Repeat current sheep
             case DisplayOutput::CKeyEvent::KEY_LEFT:
                 g_Player().ReturnToPrevious();
                 break;
-
                 //  Force Next Sheep
             case DisplayOutput::CKeyEvent::KEY_RIGHT:
                 g_Player().SkipToNext();
                 break;
-
                 //	Repeat sheep
             case DisplayOutput::CKeyEvent::KEY_F8:
                 g_Player().RepeatSheep();
                 break;
-
-                //	OSD info.
-
+            case DisplayOutput::CKeyEvent::KEY_A:
+                g_Player().SkipForward(-10);
+                break;
+            case DisplayOutput::CKeyEvent::KEY_D:
+                g_Player().SkipForward(10);
+                break;
                 //	OSD info.
             case DisplayOutput::CKeyEvent::KEY_F1:
                 m_F1F4Timer.Reset();
@@ -1129,7 +1127,7 @@ class CElectricSheep
                 m_F1F4Timer.Reset();
                 g_Player().Framerate(m_CurrentFps *= (1.1f));
                 break;
-            case DisplayOutput::CKeyEvent::KEY_P:
+            case DisplayOutput::CKeyEvent::KEY_C:
                 m_HudManager->Toggle("dreamcredits");
                 break;
 
