@@ -922,6 +922,7 @@ class CElectricSheep
                     temp << m_CpuUsageES << "%/" << m_CpuUsageTotal << "% ";
                     ((Hud::CStringStat*)spStats->Get("zzacpu"))
                         ->SetSample(temp.str());
+                    EDreamClient::SetCPUUsage(m_CpuUsageES);
                 }
 
                 std::stringstream tmpstr;

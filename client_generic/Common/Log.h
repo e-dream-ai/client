@@ -79,7 +79,6 @@ class CLog : public CSingleton<CLog>
     void Warning(std::string_view _pFmt, ...);
     void Error(std::string_view _pFmt, ...);
     void Fatal(std::string_view _pFmt, ...);
-    std::string Format(std::string_view _pFmt, ...);
 
     //	Provides singleton access.
     __attribute__((no_instrument_function)) static CLog*

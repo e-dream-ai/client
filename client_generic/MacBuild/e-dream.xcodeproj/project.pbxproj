@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1220B5392B3DC64D00D68410 /* StringFormat.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1220B5382B3DC64D00D68410 /* StringFormat.cpp */; };
+		1220B53A2B3DC64D00D68410 /* StringFormat.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1220B5382B3DC64D00D68410 /* StringFormat.cpp */; };
 		1243576C2B31FC1B00CCD62A /* BuildData.json in Resources */ = {isa = PBXBuildFile; fileRef = 1243576B2B31FC1B00CCD62A /* BuildData.json */; };
 		1243576D2B31FC1B00CCD62A /* BuildData.json in Resources */ = {isa = PBXBuildFile; fileRef = 1243576B2B31FC1B00CCD62A /* BuildData.json */; };
 		1270D0EF2B28975500E1DCE3 /* PlatformUtils_Mac.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1270D0EE2B28975400E1DCE3 /* PlatformUtils_Mac.mm */; };
@@ -299,6 +301,8 @@
 
 /* Begin PBXFileReference section */
 		09AB6884FE841BABC02AAC07 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
+		1220B5372B3DC4F700D68410 /* StringFormat.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StringFormat.h; path = ../Client/StringFormat.h; sourceTree = "<group>"; };
+		1220B5382B3DC64D00D68410 /* StringFormat.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = StringFormat.cpp; path = ../Client/StringFormat.cpp; sourceTree = "<group>"; };
 		1243576B2B31FC1B00CCD62A /* BuildData.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = BuildData.json; sourceTree = "<group>"; };
 		1243576E2B35CA2000CCD62A /* JSONUtil.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = JSONUtil.h; path = ../Common/JSONUtil.h; sourceTree = "<group>"; };
 		12478A672B03B194006A8669 /* Networking.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Networking.h; sourceTree = "<group>"; };
@@ -731,6 +735,8 @@
 				12478AAC2B03B6CA006A8669 /* pool.h */,
 				12478AA42B03B6C4006A8669 /* SmartPtr.h */,
 				1243576E2B35CA2000CCD62A /* JSONUtil.h */,
+				1220B5372B3DC4F700D68410 /* StringFormat.h */,
+				1220B5382B3DC64D00D68410 /* StringFormat.cpp */,
 			);
 			name = Common;
 			sourceTree = "<group>";
@@ -1200,6 +1206,7 @@
 				467230C62AC18FDB00017C51 /* FontMetal.mm in Sources */,
 				2160FADA0F30F45100B2C27A /* mgl.cpp in Sources */,
 				2160FADB0F30F45100B2C27A /* Hud.cpp in Sources */,
+				1220B53A2B3DC64D00D68410 /* StringFormat.cpp in Sources */,
 				2160FADC0F30F45100B2C27A /* Rect.cpp in Sources */,
 				2160FADD0F30F45100B2C27A /* ESOpenGLView.m in Sources */,
 				467230BA2AC17E4600017C51 /* ESMetalView.m in Sources */,
@@ -1254,6 +1261,7 @@
 				218878FA0EC6CDE2001ABD2E /* Texture.cpp in Sources */,
 				46D2E8EF2AFBA64B0054049D /* MBEMesh.m in Sources */,
 				467230C52AC18FDB00017C51 /* FontMetal.mm in Sources */,
+				1220B5392B3DC64D00D68410 /* StringFormat.cpp in Sources */,
 				218878FB0EC6CDE2001ABD2E /* TextureFlat.cpp in Sources */,
 				218878FC0EC6CDE2001ABD2E /* mgl.cpp in Sources */,
 				218878FD0EC6CDE2001ABD2E /* Hud.cpp in Sources */,

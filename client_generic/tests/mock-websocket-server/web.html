@@ -1,0 +1,68 @@
+<html>
+    <head>
+        <script>
+            const createSocket = (clientId) => {
+                const socket = new WebSocket("ws://localhost:8000/ws");
+                
+                socket.onopen = (event) => {
+                    socket.send(JSON.stringify({
+                        event: 'authentication',
+                        client_id: clientId,
+                        client_mode: 'web',
+                    }))
+                    document.getElementById('status').textContent = `Connected`
+                    document.getElementById('client_id').textContent = clientId
+                }
+                socket.onmessage = (event) => {
+                    const message = JSON.parse(event.data)
+                    if (message.event === 'cpu') {
+                        document.getElementById('value').textContent = message.value
+                    }
+                }
+
+                window.addEventListener('unload', (event) => socket.close())
+
+                return socket
+            }
+
+            const disconnectSocket = (socket) => {
+                socket.close()
+                document.getElementById('status').textContent = `Disconnected`
+            }
+
+            document.addEventListener("DOMContentLoaded", () => {
+                let socket
+
+                const form = document.getElementById('connect_form')
+                form.addEventListener('submit', (event) => {
+                    event.preventDefault()
+                    if (socket) {
+                        disconnectSocket(socket)
+                    }
+                    socket = createSocket(document.getElementById('client_id_input').value)
+                })
+
+                const disconnectButton = document.getElementById('disconnect_button')
+                disconnectButton.addEventListener('click', () => disconnectSocket(socket))
+                
+                const nextButton = document.getElementById('next_button')
+                nextButton.addEventListener('click', () => socket.send(JSON.stringify({ event: 'next' })))
+                const prevButton = document.getElementById('previous_button')
+                prevButton.addEventListener('click', () => socket.send(JSON.stringify({ event: 'previous' })))
+            })
+        </script>
+    </head>
+    <body>
+        <h1>Status: <span id="status">Disconnected</span></h1>
+        <h1>Client ID: <span id="client_id">?</span></h1>
+        <h1>CPU usage: <span id="value">?</span>%</h1>
+        <h1><button type="button" id="previous_button">Previous</button></h1>
+        <h1><button type="button" id="next_button">Next</button></h1>
+        
+        <form id="connect_form">
+            <input type="text" id="client_id_input" placeholder="client_id" />
+            <button type="submit">Connect</button>
+            <button type="button" id="disconnect_button">Disconnect</button>
+        </form>
+    </body>
+</html>

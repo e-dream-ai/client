@@ -65,6 +65,7 @@
 #include "Settings.h"
 #include "Shepherd.h"
 #include "Timer.h"
+#include "StringFormat.h"
 #if defined(WIN32) && defined(_MSC_VER)
 #include "../msvc/msvc_fix.h"
 #endif
