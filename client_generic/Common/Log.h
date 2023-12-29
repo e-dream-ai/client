@@ -18,7 +18,6 @@
 #include "base.h"
 #include "boost/thread.hpp"
 
-
 extern void ProfilerBegin(const char* name);
 extern void ProfilerEnd(const char* name);
 

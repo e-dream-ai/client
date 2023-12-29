@@ -66,8 +66,7 @@ void CContentDownloader::ServerFallback() { Shepherd::setRegistered(false); }
 
 /*
  */
-bool CContentDownloader::Startup(boost::shared_mutex& _downloadSaveMutex,
-                                 const bool _bPreview, bool _bReadOnlyInstance)
+bool CContentDownloader::Startup(const bool _bPreview, bool _bReadOnlyInstance)
 {
     g_Log->Info("Attempting to start contentdownloader...", _bPreview);
     Shepherd::initializeShepherd();
@@ -111,7 +110,7 @@ bool CContentDownloader::Startup(boost::shared_mutex& _downloadSaveMutex,
             ->Get("settings.generator.nickname", std::string(""))
             .c_str());
 
-    m_gDownloader = new SheepDownloader(_downloadSaveMutex);
+    m_gDownloader = new SheepDownloader();
 
     if (_bReadOnlyInstance == false)
     {

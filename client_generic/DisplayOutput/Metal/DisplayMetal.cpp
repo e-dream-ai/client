@@ -1,5 +1,3 @@
-#ifdef USE_METAL
-
 #include "DisplayMetal.h"
 #include "Log.h"
 #include "Settings.h"
@@ -65,5 +63,3 @@ void CDisplayMetal::Update() {}
 void CDisplayMetal::SwapBuffers() {}
 
 }; // namespace DisplayOutput
-
-#endif /*USE_METAL*/

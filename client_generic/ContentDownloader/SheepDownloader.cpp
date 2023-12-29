@@ -65,6 +65,7 @@
 #include "Settings.h"
 #include "Shepherd.h"
 #include "Timer.h"
+#include "StringFormat.h"
 #if defined(WIN32) && defined(_MSC_VER)
 #include "../msvc/msvc_fix.h"
 #endif
@@ -98,8 +99,7 @@ boost::mutex SheepDownloader::s_DownloaderMutex;
 
 /*
  */
-SheepDownloader::SheepDownloader(boost::shared_mutex& _downloadSaveMutex)
-    : m_DownloadSaveMutex(_downloadSaveMutex)
+SheepDownloader::SheepDownloader()
 {
     fHasMessage = false;
     m_bAborted = false;
@@ -209,7 +209,7 @@ bool SheepDownloader::downloadSheep(Dream* sheep)
     char filename[MAXBUF];
     snprintf(filename, MAXBUF, "%s%s.mp4", Shepherd::mp4Path(), sheep->uuid());
     {
-        boost::unique_lock<boost::shared_mutex> lock(m_DownloadSaveMutex);
+        boost::unique_lock<boost::shared_mutex> lock();
         if (!spDownload->Save(filename))
         {
             g_Log->Error("Unable to save %s\n", filename);
@@ -221,10 +221,12 @@ bool SheepDownloader::downloadSheep(Dream* sheep)
     return true;
 }
 
-static void LogException(const std::exception& e, size_t dreamIndex, std::string_view fileStr)
+static void LogException(const std::exception& e, size_t dreamIndex,
+                         std::string_view fileStr)
 {
     auto str = string_format("Exception during parsing dreams list:%s "
-                             "contents:\"%s\" dreamIndex:%d", e.what(), fileStr.data(), dreamIndex);
+                             "contents:\"%s\" dreamIndex:%d",
+                             e.what(), fileStr.data(), dreamIndex);
     //ContentDownloader::Shepherd::addMessageText(str.str().c_str(), 180);
     g_Log->Error(str);
 }
@@ -267,7 +269,7 @@ void SheepDownloader::parseSheepList()
 
             do
             {
-                
+
                 boost::json::value dream = dreamsArray.at(dreamIndex);
                 boost::json::value video = dream.at("video");
                 if (video.is_null())
@@ -279,7 +281,7 @@ void SheepDownloader::parseSheepList()
                     newDream->setId((uint32_t)dream.at("id").as_int64());
                     newDream->setURL(video.as_string().data());
                     newDream->setFileWriteTime(
-                                               dream.at("updated_at").as_string().data());
+                        dream.at("updated_at").as_string().data());
                     newDream->setRating(atoi("5"));
                     newDream->setUuid(dream.at("uuid").as_string().data());
                     boost::json::value user = dream.at("user");
@@ -722,7 +724,6 @@ void SheepDownloader::findSheepToDownload()
                 std::string best_anim_old_url;
                 best_ctime_old = 0;
                 best_rating_old = INT_MAX;
-
 
                 //	Get the sheep list from the server.
                 if (getSheepList())

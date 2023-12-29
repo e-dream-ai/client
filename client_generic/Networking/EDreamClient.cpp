@@ -1,15 +1,28 @@
+#include <websocketpp/client.hpp>
+#include <websocketpp/config/asio_no_tls_client.hpp>
 #include <boost/json.hpp>
 #include <boost/json/src.hpp>
 #include <cstdio>
 
 #include "ContentDownloader.h"
-#include "EDreamClient.h"
+#include "StringFormat.h"
 #include "Log.h"
+#include "Player.h"
 #include "Networking.h"
 #include "Settings.h"
 #include "Shepherd.h"
 #include "client.h"
 #include "clientversion.h"
+#include "EDreamClient.h"
+
+typedef websocketpp::client<websocketpp::config::asio_client> WebSocketClient;
+static void OnWebSocketMessage(websocketpp::connection_hdl,
+                               WebSocketClient::message_ptr message);
+static void OnWebSocketOpen(websocketpp::connection_hdl);
+static void OnWebSocketClose(websocketpp::connection_hdl);
+static void OnWebSocketFail(websocketpp::connection_hdl);
+
+namespace json = boost::json;
 
 static ShowPreferencesCallback_t gShowPreferencesCallback = nullptr;
 void ESSetShowPreferencesCallback(ShowPreferencesCallback_t _callback)
@@ -23,10 +36,12 @@ void ESShowPreferences()
         gShowPreferencesCallback();
     }
 }
-boost::atomic<char*> EDreamClient::fAccessToken(NULL);
-boost::atomic<char*> EDreamClient::fRefreshToken(NULL);
+boost::atomic<char*> EDreamClient::fAccessToken(nullptr);
+boost::atomic<char*> EDreamClient::fRefreshToken(nullptr);
 boost::atomic<bool> EDreamClient::fIsLoggedIn(false);
+boost::atomic<int> EDreamClient::fCpuUsage(0);
 boost::mutex EDreamClient::fAuthMutex;
+WebSocketClient s_WebSocketClient;
 
 static void SetNewAndDeleteOldString(
     boost::atomic<char*>& str, char* newval,
@@ -34,7 +49,7 @@ static void SetNewAndDeleteOldString(
 {
     char* toDelete = str.exchange(newval, mem_ord);
 
-    if (toDelete != NULL)
+    if (toDelete != nullptr)
         delete[] toDelete;
 }
 
@@ -42,9 +57,9 @@ static void SetNewAndDeleteOldString(
     boost::atomic<char*>& str, const char* newval,
     boost::memory_order mem_ord = boost::memory_order_relaxed)
 {
-    if (newval == NULL)
+    if (newval == nullptr)
     {
-        SetNewAndDeleteOldString(str, (char*)NULL, mem_ord);
+        SetNewAndDeleteOldString(str, (char*)nullptr, mem_ord);
         return;
     }
     size_t len = strlen(newval) + 1;
@@ -56,6 +71,15 @@ static void SetNewAndDeleteOldString(
 void EDreamClient::InitializeClient()
 {
     // g_Settings()->Set("settings.content.access_token", std::string(""));
+    s_WebSocketClient.set_access_channels(websocketpp::log::alevel::all);
+    s_WebSocketClient.clear_access_channels(
+        websocketpp::log::alevel::frame_payload);
+    s_WebSocketClient.set_error_channels(websocketpp::log::elevel::all);
+    s_WebSocketClient.init_asio();
+    s_WebSocketClient.set_message_handler(&OnWebSocketMessage);
+    s_WebSocketClient.set_open_handler(&OnWebSocketOpen);
+    s_WebSocketClient.set_close_handler(&OnWebSocketClose);
+    s_WebSocketClient.set_fail_handler(&OnWebSocketFail);
 
     SetNewAndDeleteOldString(
         fAccessToken,
@@ -68,7 +92,8 @@ void EDreamClient::InitializeClient()
             ->Get("settings.content.refresh_token", std::string(""))
             .c_str());
     fAuthMutex.lock();
-    boost::thread t(&EDreamClient::Authenticate);
+    boost::thread authThread(&EDreamClient::Authenticate);
+    //boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
 }
 
 const char* EDreamClient::GetAccessToken()
@@ -137,10 +162,9 @@ bool EDreamClient::RefreshAccessToken()
     spDownload->SetPostFields(body);
     if (spDownload->Perform(REFRESH_ENDPOINT))
     {
-        boost::json::error_code ec;
-        boost::json::value response =
-            boost::json::parse(spDownload->Data(), ec);
-        boost::json::value data = response.at("data");
+        json::error_code ec;
+        json::value response = json::parse(spDownload->Data(), ec);
+        json::value data = response.at("data");
         const char* accessToken = data.at("AccessToken").as_string().data();
         g_Settings()->Set("settings.content.access_token",
                           std::string(accessToken));
@@ -210,3 +234,112 @@ bool EDreamClient::GetDreams()
     }
     return true;
 }
+
+static void OnWebSocketMessage(websocketpp::connection_hdl,
+                               WebSocketClient::message_ptr _pMessage)
+{
+    std::string_view message = _pMessage->get_payload();
+    g_Log->Info("Received WebSocket message: %s", message.data());
+    try
+    {
+
+        json::error_code ec;
+        json::value response = json::parse(message, ec);
+        std::string_view event = response.at("event").as_string().data();
+        if (event == "next")
+        {
+            g_Player().SkipToNext();
+        }
+        else if (event == "previous")
+        {
+            g_Player().ReturnToPrevious();
+        }
+        else if (event == "skip_fw")
+        {
+            g_Player().SkipForward(10);
+        }
+        else if (event == "skip_bw")
+        {
+            g_Player().SkipForward(-10);
+        }
+        else
+        {
+            g_Log->Error("Unknown event type received: %s (message was:%s)",
+                         event.data(), message.data());
+        }
+    }
+    catch (std::exception const& e)
+    {
+        g_Log->Error(
+            "Exception while parsing WebSocket message: %s (message was:%s)",
+            e.what(), message.data());
+    }
+}
+
+static void OnWebSocketOpen(websocketpp::connection_hdl handle)
+{
+    try
+    {
+        s_WebSocketClient.send(handle,
+                               "{\"event\":\"authentication\",\"client_id\":"
+                               "\"client\",\"client_mode\":\"desktop\"}",
+                               websocketpp::frame::opcode::value::TEXT);
+    }
+    catch (websocketpp::exception const& ex)
+    {
+        g_Log->Error("WebSocket exception: %s", ex.what());
+    }
+}
+
+static void OnWebSocketClose(websocketpp::connection_hdl handle)
+{
+    std::string reason =
+        s_WebSocketClient.get_con_from_hdl(handle)->get_remote_close_reason();
+    g_Log->Error("WebSocket closed. Reason: %s", reason.data());
+}
+
+static void OnWebSocketFail(websocketpp::connection_hdl handle)
+{
+    std::string reason =
+        s_WebSocketClient.get_con_from_hdl(handle)->get_remote_close_reason();
+    g_Log->Error("WebSocket failure. Reason: %s", reason.data());
+}
+
+void EDreamClient::ConnectRemoteControlSocket()
+{
+    try
+    {
+        websocketpp::lib::error_code ec;
+        WebSocketClient::connection_ptr connection =
+            s_WebSocketClient.get_connection("ws://localhost:9000/ws", ec);
+        if (ec)
+        {
+            g_Log->Error("Error creating WebSocket connection: %s",
+                         ec.message().c_str());
+            return;
+        }
+        s_WebSocketClient.connect(connection);
+        std::string payload = "{\"event\":\"authentication\",\"client_id\":"
+                              "\"client\",\"client_mode\":\"desktop\"}";
+        connection->send(payload);
+        boost::thread cpuUsageThread(
+            [=]() -> void
+            {
+                while (true)
+                {
+                    boost::thread::sleep(boost::get_system_time() +
+                                         boost::posix_time::seconds(1));
+                    int cpuUsage = fCpuUsage.load();
+                    connection->send(string_format(
+                        "{\"event\":\"cpu\",\"value\":%d}", cpuUsage));
+                }
+            });
+        s_WebSocketClient.run();
+    }
+    catch (websocketpp::exception const& ex)
+    {
+        g_Log->Error("WebSocket exception: %s", ex.what());
+    }
+}
+
+void EDreamClient::SetCPUUsage(int _cpuUsage) { fCpuUsage.exchange(_cpuUsage); }

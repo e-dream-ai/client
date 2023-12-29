@@ -32,8 +32,7 @@ class CContentDownloader : public Base::CSingleton<CContentDownloader>
     boost::thread* m_gDownloadThread;
 
   public:
-    bool Startup(boost::shared_mutex& _downloadSaveMutex, const bool _bPreview,
-                 bool _bReadOnlyInstance = false);
+    bool Startup(const bool _bPreview, bool _bReadOnlyInstance = false);
     bool Shutdown(void);
 
     const char* Description() { return "Content Downloader"; };

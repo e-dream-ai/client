@@ -1,5 +1,3 @@
-#ifdef USE_METAL
-
 #import "TextMetal.h"
 
 #include <cstdio>
@@ -173,5 +171,3 @@ void CTextMetal::SetEnabled(bool _enabled)
 }
 
 } // namespace DisplayOutput
-
-#endif /*USE_METAL*/

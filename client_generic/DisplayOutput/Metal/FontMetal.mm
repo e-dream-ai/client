@@ -1,4 +1,3 @@
-#ifdef USE_METAL
 #include <fstream>
 #include <iostream>
 
@@ -100,5 +99,4 @@ MBEFontAtlas* CFontMetal::GetAtlas() const
 #endif
 }
 
-};     // namespace DisplayOutput
-#endif // USE_METAL
+}; // namespace DisplayOutput

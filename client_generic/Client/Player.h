@@ -76,8 +76,6 @@ class CPlayer : public Base::CSingleton<CPlayer>
 
     bool m_bStarted;
 
-    boost::shared_mutex* m_DownloadSaveMutex;
-
     //	Used to keep track of elapsed time since last frame.
     double m_CapClock;
 
@@ -98,13 +96,12 @@ class CPlayer : public Base::CSingleton<CPlayer>
 #endif
 
     ContentDecoder::CContentDecoder*
-    CreateContentDecoder(boost::shared_mutex& _downloadSaveMutex,
-                         bool _bStartByRandom = false);
+    CreateContentDecoder(bool _bStartByRandom = false);
 
     void FpsCap(const double _cap);
 
   public:
-    bool Startup(boost::shared_mutex& _downloadSaveMutex);
+    bool Startup();
     bool Shutdown(void);
     virtual ~CPlayer();
 
@@ -251,6 +248,16 @@ class CPlayer : public Base::CSingleton<CPlayer>
             return;
 
         decoder->ForceNext(-2);
+    }
+
+    inline void SkipForward(float _seconds)
+    {
+        ContentDecoder::spCContentDecoder decoder = Decoder();
+
+        if (!decoder)
+            return;
+
+        decoder->SkipForward(_seconds);
     }
 
     inline void RepeatSheep(void)

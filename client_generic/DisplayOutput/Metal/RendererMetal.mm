@@ -1,5 +1,3 @@
-#ifdef USE_METAL
-
 #import <Metal/MTLRenderPipeline.h>
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
@@ -596,4 +594,3 @@ bool CRendererMetal::CreateMetalTextureFromDecoderFrame(
 }
 
 } // namespace DisplayOutput
-#endif /*USE_METAL*/

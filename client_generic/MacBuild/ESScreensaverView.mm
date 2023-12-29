@@ -8,10 +8,7 @@
 #include "dlfcn.h"
 #include "libgen.h"
 #include "Log.h"
-
-#ifndef USE_METAL
-NSOpenGLContext* glContext = NULL;
-#endif
+#include "DisplayOutput.h"
 
 bool bStarted = false;
 
@@ -152,7 +149,7 @@ bool bStarted = false;
         newRect.origin.y = theRect.origin.y;
 
         theRect = newRect;*/
-#ifdef USE_METAL
+
         ESMetalView* metalView =
 
             [[ESMetalView alloc] initWithFrame:theRect];
@@ -161,23 +158,13 @@ bool bStarted = false;
 
         view = metalView;
 
-#else
-        view = [[ESOpenGLView alloc] initWithFrame:theRect];
-#endif
-
         if (view)
         {
-#ifndef USE_METAL
-            glContext = [view openGLContext];
-#endif
-
             // We make it a subview of the screensaver view
             [self addSubview:view];
         }
     }
     //}
-#ifdef USE_METAL
-
     if (view != NULL)
     {
         ESScreensaver_InitClientStorage();
@@ -185,15 +172,6 @@ bool bStarted = false;
         ESScreenSaver_AddGraphicsContext((__bridge void*)view);
         ESScreensaver_DeinitClientStorage();
     }
-#else
-    if (view != NULL && [view openGLContext])
-    {
-        ESScreensaver_InitClientStorage();
-        ESScreenSaver_AddGraphicsContext(
-            (CGLContextObj)[[view openGLContext] CGLContextObj]);
-        ESScreensaver_DeinitClientStorage();
-    }
-#endif //! USE_METAL
 
     uint32_t width = (uint32_t)theRect.size.width;
     uint32_t height = (uint32_t)theRect.size.height;
@@ -280,9 +258,12 @@ bool bStarted = false;
 
 static void signnal_handler(int signal)
 {
-    g_Log->Info("RECEIVED SIGSEGV");
-    g_Log->Shutdown();
-    exit(0);
+    if (signal == SIGSEGV || signal == SIGTERM || signal == SIGKILL)
+    {
+        g_Log->Info("RECEIVED SIGSEGV");
+        g_Log->Shutdown();
+        exit(0);
+    }
 }
 
 - (void)_beginThread
@@ -366,16 +347,6 @@ static void signnal_handler(int signal)
     [super flagsChanged:ev];
 }
 
-// keyDown
-// Capture Up/Down for rating animations
-// If there is no animation, or the computer cannot access the electricsheep
-// server, UP and DOWN act just like in a normal screensaver (they stop it) -
-// initially I thought it should just ignore the vote and not end playback (for
-// consistency - UP/DOWN would never stop it) but I think it is appropriate that
-// if you can't vote, the default event behavior used
-
-// keycodes based on -
-// http://www.filewatcher.com/p/BasiliskII-0.9.1.tgz.276457/share/BasiliskII/keycodes.html
 - (void)keyDown:(NSEvent*)ev
 {
     BOOL handled = NO;
@@ -388,65 +359,76 @@ static void signnal_handler(int signal)
     for (characterIndex = 0; characterIndex < characterCount; characterIndex++)
     {
         unichar c = [characters characterAtIndex:characterIndex];
+        using namespace DisplayOutput;
         switch (c)
         {
         case NSRightArrowFunctionKey:
-            ESScreensaver_AppendKeyEvent(0x7C);
+            ESScreensaver_AppendKeyEvent(CKeyEvent::eKeyCode::KEY_RIGHT);
             handled = YES;
             break;
 
         case NSLeftArrowFunctionKey:
-            ESScreensaver_AppendKeyEvent(0x7B);
+            ESScreensaver_AppendKeyEvent(CKeyEvent::eKeyCode::KEY_LEFT);
             handled = YES;
             break;
 
         case NSUpArrowFunctionKey:
-            ESScreensaver_AppendKeyEvent(0x7E);
+            ESScreensaver_AppendKeyEvent(CKeyEvent::eKeyCode::KEY_UP);
             handled = YES;
             break;
 
         case NSDownArrowFunctionKey:
-            ESScreensaver_AppendKeyEvent(0x7D);
+            ESScreensaver_AppendKeyEvent(CKeyEvent::eKeyCode::KEY_DOWN);
             handled = YES;
             break;
 
         case NSF1FunctionKey:
-            ESScreensaver_AppendKeyEvent(0x7A);
+            ESScreensaver_AppendKeyEvent(CKeyEvent::eKeyCode::KEY_F1);
             handled = YES;
             break;
 
         case NSF2FunctionKey:
-            ESScreensaver_AppendKeyEvent(0x78);
+            ESScreensaver_AppendKeyEvent(CKeyEvent::eKeyCode::KEY_F2);
             handled = YES;
             break;
 
         case NSF3FunctionKey:
-            ESScreensaver_AppendKeyEvent(0x63);
+            ESScreensaver_AppendKeyEvent(CKeyEvent::eKeyCode::KEY_F3);
             handled = YES;
             break;
 
         case NSF4FunctionKey:
-            ESScreensaver_AppendKeyEvent(0x76);
+            ESScreensaver_AppendKeyEvent(CKeyEvent::eKeyCode::KEY_F4);
             handled = YES;
             break;
 
         case NSF8FunctionKey:
-            ESScreensaver_AppendKeyEvent(0x64);
+            ESScreensaver_AppendKeyEvent(CKeyEvent::eKeyCode::KEY_F8);
             handled = YES;
             break;
 
         case u',':
-            ESScreensaver_AppendKeyEvent(0xBC);
+            ESScreensaver_AppendKeyEvent(CKeyEvent::eKeyCode::KEY_Comma);
             handled = YES;
             break;
 
         case u'.':
-            ESScreensaver_AppendKeyEvent(0xBE);
+            ESScreensaver_AppendKeyEvent(CKeyEvent::eKeyCode::KEY_Period);
             handled = YES;
             break;
 
         case u'c':
-            ESScreensaver_AppendKeyEvent(0x50);
+            ESScreensaver_AppendKeyEvent(CKeyEvent::eKeyCode::KEY_C);
+            handled = YES;
+            break;
+
+        case u'a':
+            ESScreensaver_AppendKeyEvent(CKeyEvent::eKeyCode::KEY_A);
+            handled = YES;
+            break;
+
+        case u'd':
+            ESScreensaver_AppendKeyEvent(CKeyEvent::eKeyCode::KEY_D);
             handled = YES;
             break;
 
@@ -499,8 +481,6 @@ static void signnal_handler(int signal)
     m_isFullScreen = fullscreen;
 }
 
-#ifdef USE_METAL
-
 - (void)mtkView:(MTKView*)view drawableSizeWillChange:(CGSize)size
 {
 }
@@ -513,5 +493,5 @@ static void signnal_handler(int signal)
         m_endFrameBarrier->wait();
     }
 }
-#endif
+
 @end

@@ -1,5 +1,3 @@
-#ifdef USE_METAL
-
 #include <assert.h>
 #include <iostream>
 #include <cstdlib>
@@ -114,5 +112,3 @@ bool CShaderMetal::Apply() { return true; }
 bool CShaderMetal::Unbind() { return true; }
 
 }; // namespace DisplayOutput
-
-#endif /*USE_METAL*/

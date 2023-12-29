@@ -2,6 +2,7 @@
 #include <boost/thread.hpp>
 
 #include "base.h"
+#include "DisplayOutput.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -19,7 +20,8 @@ extern "C"
     void ESScreensaver_ForceWidthAndHeight(uint32_t _width, uint32_t _height);
     void ESScreensaver_Deinit(void);
 
-    void ESScreensaver_AppendKeyEvent(UInt32 keyCode);
+    void
+    ESScreensaver_AppendKeyEvent(DisplayOutput::CKeyEvent::eKeyCode keyCode);
 
     CFStringRef ESScreensaver_GetVersion(void);
 

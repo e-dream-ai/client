@@ -1,11 +1,7 @@
 #include <sys/stat.h>
 
 #include "ESScreensaver.h"
-#ifdef USE_METAL
 #include "DisplayMetal.h"
-#else
-#include "mgl.h"
-#endif
 #include "client.h"
 #include "client_mac.h"
 #include <GLUT/glut.h>
@@ -64,11 +60,7 @@ bool ESScreensaver_Start(bool _bPreview, uint32 _width, uint32 _height)
 {
     if (g_Player().Display() == NULL)
     {
-#ifdef USE_METAL
         DisplayOutput::CDisplayMetal::SetDefaultWidthAndHeight(_width, _height);
-#else
-        DisplayOutput::CMacGL::SetDefaultWidthAndHeight(_width, _height);
-#endif
 
         gClient.SetIsPreview(_bPreview);
 
@@ -117,7 +109,7 @@ void ESScreensaver_ForceWidthAndHeight(uint32 _width, uint32 _height)
 
 void ESScreensaver_Deinit(void) { gClient.Shutdown(); }
 
-void ESScreensaver_AppendKeyEvent(UInt32 keyCode)
+void ESScreensaver_AppendKeyEvent(DisplayOutput::CKeyEvent::eKeyCode keyCode)
 {
     using namespace DisplayOutput;
 
@@ -125,52 +117,7 @@ void ESScreensaver_AppendKeyEvent(UInt32 keyCode)
     {
         spCKeyEvent spEvent = std::make_shared<CKeyEvent>();
         spEvent->m_bPressed = true;
-
-        switch (keyCode)
-        {
-        case 0x7B:
-            spEvent->m_Code = CKeyEvent::KEY_LEFT;
-            break;
-        case 0x7C:
-            spEvent->m_Code = CKeyEvent::KEY_RIGHT;
-            break;
-        case 0x7E:
-            spEvent->m_Code = CKeyEvent::KEY_UP;
-            break;
-        case 0x7D:
-            spEvent->m_Code = CKeyEvent::KEY_DOWN;
-            break;
-        case 0x31:
-            spEvent->m_Code = CKeyEvent::KEY_SPACE;
-            break;
-        case 0x7A:
-            spEvent->m_Code = CKeyEvent::KEY_F1;
-            break;
-        case 0x78:
-            spEvent->m_Code = CKeyEvent::KEY_F2;
-            break;
-        case 0x63:
-            spEvent->m_Code = CKeyEvent::KEY_F3;
-            break;
-        case 0x76:
-            spEvent->m_Code = CKeyEvent::KEY_F4;
-            break;
-        case 0x64:
-            spEvent->m_Code = CKeyEvent::KEY_F8;
-            break;
-        case 0x35:
-            spEvent->m_Code = CKeyEvent::KEY_Esc;
-            break;
-        case 0xBC:
-            spEvent->m_Code = CKeyEvent::KEY_Comma;
-            break;
-        case 0xBE:
-            spEvent->m_Code = CKeyEvent::KEY_Period;
-            break;
-        case 0x50:
-            spEvent->m_Code = CKeyEvent::KEY_P;
-            break;
-        }
+        spEvent->m_Code = keyCode;
 
         g_Player().Display()->AppendEvent(spEvent);
     }

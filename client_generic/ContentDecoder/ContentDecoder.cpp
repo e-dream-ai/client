@@ -61,7 +61,6 @@ static void AVCodecLogCallback(void* /*_avcl*/, int _level, const char* _fmt,
 CContentDecoder::CContentDecoder(spCPlaylist _spPlaylist, bool _bStartByRandom,
                                  bool _bCalculateTransitions,
                                  const uint32_t _queueLenght,
-                                 boost::shared_mutex& _downloadSaveMutex,
                                  AVPixelFormat _wantedFormat)
 {
     g_Log->Info("CContentDecoder()");
@@ -268,11 +267,6 @@ bool CContentDecoder::Open(sOpenVideoInfo* ovi)
 
     if (USE_HW_ACCELERATION)
     {
-#ifndef USE_METAL
-        g_Log->Error(
-            "Attempting to use hardware acceleration on an OpenGL client. "
-            "This feature is only supported on Metal.");
-#endif
         AVHWDeviceType hw_type = av_hwdevice_find_type_by_name("videotoolbox");
         if (hw_type != AV_HWDEVICE_TYPE_NONE)
         {
@@ -310,32 +304,7 @@ bool CContentDecoder::Open(sOpenVideoInfo* ovi)
             .5));
 
     ovi->m_ReadingTrailingFrames = false;
-
-    if (ovi->m_SeekTargetFrame)
-    {
-        AVRational timeBase =
-            ovi->m_pFormatContext->streams[ovi->m_VideoStreamID]->time_base;
-        int64_t frameRate =
-            (int64_t)av_q2d(ovi->m_pFormatContext->streams[ovi->m_VideoStreamID]
-                                ->avg_frame_rate);
-
-        // Calculate target timestamp in stream time base
-        int64_t targetTimestamp = (int64_t)(ovi->m_SeekTargetFrame /
-                                            (frameRate * av_q2d(timeBase)));
-
-        // Seek to the target timestamp
-        int seek = avformat_seek_file(
-            ovi->m_pFormatContext, ovi->m_VideoStreamID, 0,
-            targetTimestamp, targetTimestamp, 0);
-        avcodec_flush_buffers(ovi->m_pVideoCodecContext);
-        if (seek < 0)
-        {
-            g_Log->Error("Error seeking:%i", seek);
-        }
-
-        m_NoSheeps = false;
-    }
-
+    m_NoSheeps = false;
     g_Log->Info("Open done()");
 
     return true;
@@ -550,9 +519,6 @@ void CContentDecoder::CalculateNextSheep()
             bool _enoughSheep = true;
             bool _playFreshSheep = false;
             {
-                // boost::shared_lock<boost::shared_mutex>
-                // lock(m_DownloadSaveMutex);
-                // //@TODO: strip out
                 if (m_spPlaylist->Next(_spath, _enoughSheep, _curID,
                                        _playFreshSheep, bRebuild,
                                        m_bStartByRandom))
@@ -592,16 +558,41 @@ CVideoFrame* CContentDecoder::ReadOneFrame(sOpenVideoInfo* ovi)
     if (ovi == NULL)
         return NULL;
 
+    if (ovi->m_SeekTargetFrame)
+    {
+        m_FrameQueue.clear(0);
+        AVRational timeBase =
+            ovi->m_pFormatContext->streams[ovi->m_VideoStreamID]->time_base;
+        int64_t frameRate =
+            (int64_t)av_q2d(ovi->m_pFormatContext->streams[ovi->m_VideoStreamID]
+                                ->avg_frame_rate);
+
+        // Calculate target timestamp in stream time base
+        int64_t targetTimestamp =
+            (int64_t)(ovi->m_SeekTargetFrame / (frameRate * av_q2d(timeBase)));
+
+        // Seek to the target timestamp
+        int seek =
+            avformat_seek_file(ovi->m_pFormatContext, ovi->m_VideoStreamID, 0,
+                               targetTimestamp, targetTimestamp, 0);
+        avcodec_flush_buffers(ovi->m_pVideoCodecContext);
+        if (seek < 0)
+        {
+            g_Log->Error("Error seeking:%i", seek);
+        }
+
+        ovi->m_SeekTargetFrame = 0;
+    }
+
     AVFormatContext* pFormatContext = ovi->m_pFormatContext;
 
     if (!pFormatContext)
         return NULL;
-    
-        AVRational timeBase =
-    pFormatContext->streams[ovi->m_VideoStreamID]->time_base;
-        int64_t frameRate =
-            (int64_t)av_q2d(pFormatContext->streams[ovi->m_VideoStreamID]
-                                ->avg_frame_rate);
+
+    AVRational timeBase =
+        pFormatContext->streams[ovi->m_VideoStreamID]->time_base;
+    int64_t frameRate = (int64_t)av_q2d(
+        pFormatContext->streams[ovi->m_VideoStreamID]->avg_frame_rate);
     AVPacket* packet;
     AVPacket* filteredPacket;
     int frameDecoded = 0;
@@ -657,9 +648,9 @@ CVideoFrame* CContentDecoder::ReadOneFrame(sOpenVideoInfo* ovi)
         }
         else
         {
-           packetToSend = packet;
+            packetToSend = packet;
         }
-        
+
         if (packetToSend)
         {
             ret = avcodec_send_packet(pVideoCodecContext, packetToSend);
@@ -723,7 +714,7 @@ CVideoFrame* CContentDecoder::ReadOneFrame(sOpenVideoInfo* ovi)
                 av_frame_unref(pFrame);
             }
         }
-        
+
         av_packet_free(&packet);
         av_packet_free(&filteredPacket);
     }
@@ -735,8 +726,8 @@ CVideoFrame* CContentDecoder::ReadOneFrame(sOpenVideoInfo* ovi)
 
         if (USE_HW_ACCELERATION)
         {
-            pVideoFrame =
-                new CVideoFrame(pFrame, frameNumber, std::string(pFormatContext->url));
+            pVideoFrame = new CVideoFrame(pFrame, frameNumber,
+                                          std::string(pFormatContext->url));
         }
         else
         {
@@ -785,7 +776,6 @@ CVideoFrame* CContentDecoder::ReadOneFrame(sOpenVideoInfo* ovi)
 
         av_frame_unref(pFrame);
 
-
         /*if (m_totalFrameCount > 0)
         {
             //g_Log->Info("framcount %lu, %lf",
@@ -827,7 +817,8 @@ CVideoFrame* CContentDecoder::ReadOneFrame(sOpenVideoInfo* ovi)
         pVideoFrame->SetMetaData_IsEdge(ovi->IsEdge());
         pVideoFrame->SetMetaData_atime(ovi->m_CurrentFileatime);
         pVideoFrame->SetMetaData_IsSeam(ovi->m_NextIsSeam);
-        pVideoFrame->SetMetaData_FrameIdx(ovi->m_CurrentFileFrameCount);
+        pVideoFrame->SetMetaData_FrameIdx(
+            (uint32_t)ovi->m_CurrentFileFrameCount);
         pVideoFrame->SetMetaData_MaxFrameIdx(ovi->m_totalFrameCount);
         ovi->m_NextIsSeam = false;
     }
@@ -860,7 +851,7 @@ void CContentDecoder::ReadPackets()
 
             m_MainVideoInfo = new sOpenVideoInfo;
             m_MainVideoInfo->m_Path.assign(lastPlayedFile);
-            m_MainVideoInfo->m_SeekTargetFrame = seekFrame;
+            m_MainVideoInfo->m_SeekTargetFrame = (int64_t)seekFrame;
             videoOpened = Open(m_MainVideoInfo);
         }
 
@@ -877,9 +868,25 @@ void CContentDecoder::ReadPackets()
             PROFILER_BEGIN("Decoder Frame");
 
             int32_t nextForced = NextForced();
+            float skipTime = 0;
+            {
+                upgrade_lock<boost::shared_mutex> lock(m_ForceNextMutex);
+                skipTime = m_SkipTime;
+                m_SkipTime = 0;
+            }
 
             if (nextForced != 0)
                 ForceNext(0);
+            else if (fpclassify(skipTime) != FP_ZERO)
+            {
+                m_MainVideoInfo->m_SeekTargetFrame =
+                    m_MainVideoInfo->m_CurrentFileFrameCount +
+                    (int64_t)(skipTime *
+                              av_q2d(m_MainVideoInfo->m_pFormatContext
+                                         ->streams[m_MainVideoInfo
+                                                       ->m_VideoStreamID]
+                                         ->avg_frame_rate));
+            }
 
             bool bDoNextSheep = true;
 
@@ -908,8 +915,8 @@ void CContentDecoder::ReadPackets()
                         if (m_SecondVideoInfo->m_CurrentFileFrameCount <
                             kTransitionFrameLength)
                             pMainVideoFrame->SetMetaData_TransitionProgress(
-                                (float)m_SecondVideoInfo
-                                    ->m_CurrentFileFrameCount *
+                                (float)
+                                    m_SecondVideoInfo->m_CurrentFileFrameCount *
                                 100.f / ((float)kTransitionFrameLength - 1.f));
                         else
                             pMainVideoFrame->SetMetaData_TransitionProgress(
@@ -1103,6 +1110,12 @@ void CContentDecoder::ForceNext(int32_t forced)
     upgrade_lock<boost::shared_mutex> lock(m_ForceNextMutex);
     m_bForceNext = forced;
 };
+
+void CContentDecoder::SkipForward(float _seconds)
+{
+    upgrade_lock<boost::shared_mutex> lock(m_ForceNextMutex);
+    m_SkipTime = _seconds;
+}
 
 /*
  */

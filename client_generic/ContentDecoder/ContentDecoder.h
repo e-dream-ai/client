@@ -67,9 +67,10 @@ struct sOpenVideoInfo
         : m_pFrame(NULL), m_pFormatContext(NULL), m_pVideoCodecContext(NULL),
           m_pVideoCodec(NULL), m_pVideoStream(NULL), m_VideoStreamID(-1),
           m_totalFrameCount(0), m_CurrentFileatime(0),
-          m_CurrentFileFrameCount(0), m_SeekTargetFrame(0), m_Generation(0), m_SheepID(0),
-          m_First(0), m_Last(0), m_bSpecialSheep(false), m_NumIterations(0),
-          m_NextIsSeam(false), m_ReadingTrailingFrames(false)
+          m_CurrentFileFrameCount(0), m_SeekTargetFrame(0), m_Generation(0),
+          m_SheepID(0), m_First(0), m_Last(0), m_bSpecialSheep(false),
+          m_NumIterations(0), m_NextIsSeam(false),
+          m_ReadingTrailingFrames(false)
 
     {
     }
@@ -157,7 +158,7 @@ class CContentDecoder
     SwsContext* m_pScaler;
     uint32_t m_ScalerWidth;
     uint32_t m_ScalerHeight;
-    
+
     int64_t m_LastReadFrameNumber;
 
     //	Thread & threadfunction.
@@ -187,6 +188,8 @@ class CContentDecoder
 
     int32_t m_bForceNext;
 
+    float m_SkipTime = 0;
+
     spCVideoFrame m_sharedFrame;
     boost::mutex m_sharedFrameMutex;
 
@@ -214,7 +217,6 @@ class CContentDecoder
   public:
     CContentDecoder(spCPlaylist _spPlaylist, bool _bStartByRandom,
                     bool _bAllowTransitions, const uint32_t _queueLenght,
-                    boost::shared_mutex& _downloadSaveMutex,
                     AVPixelFormat _wantedPixelFormat = AV_PIX_FMT_RGB24);
     virtual ~CContentDecoder();
 
@@ -246,7 +248,10 @@ class CContentDecoder
     void ClearQueue(uint32_t leave = 0);
 
     void ForceNext(int32_t forced = 1);
+
     int32_t NextForced(void);
+
+    void SkipForward(float _seconds);
 };
 
 MakeSmartPointers(CContentDecoder);
