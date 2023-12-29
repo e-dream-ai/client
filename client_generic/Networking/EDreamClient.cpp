@@ -93,7 +93,7 @@ void EDreamClient::InitializeClient()
             .c_str());
     fAuthMutex.lock();
     boost::thread authThread(&EDreamClient::Authenticate);
-    boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
+    //boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
 }
 
 const char* EDreamClient::GetAccessToken()
