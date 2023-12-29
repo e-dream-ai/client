@@ -71,7 +71,7 @@ static void SetNewAndDeleteOldString(
 void EDreamClient::InitializeClient()
 {
     // g_Settings()->Set("settings.content.access_token", std::string(""));
-    s_WebSocketClient.set_access_channels(websocketpp::log::alevel::all);
+    /*s_WebSocketClient.set_access_channels(websocketpp::log::alevel::all);
     s_WebSocketClient.clear_access_channels(
         websocketpp::log::alevel::frame_payload);
     s_WebSocketClient.set_error_channels(websocketpp::log::elevel::all);
@@ -79,7 +79,7 @@ void EDreamClient::InitializeClient()
     s_WebSocketClient.set_message_handler(&OnWebSocketMessage);
     s_WebSocketClient.set_open_handler(&OnWebSocketOpen);
     s_WebSocketClient.set_close_handler(&OnWebSocketClose);
-    s_WebSocketClient.set_fail_handler(&OnWebSocketFail);
+    s_WebSocketClient.set_fail_handler(&OnWebSocketFail);*/
 
     SetNewAndDeleteOldString(
         fAccessToken,
