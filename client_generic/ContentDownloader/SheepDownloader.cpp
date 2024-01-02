@@ -279,15 +279,17 @@ void SheepDownloader::parseSheepList()
                     //    Create a new dream and parse the attributes.
                     Dream* newDream = new Dream();
                     newDream->setId((uint32_t)dream.at("id").as_int64());
+                    newDream->setUuid(dream.at("uuid").as_string().data());
                     newDream->setURL(video.as_string().data());
+                    fServerFlock.push_back(newDream);
+
+                    //these can fail
                     newDream->setFileWriteTime(
                         dream.at("updated_at").as_string().data());
                     newDream->setRating(atoi("5"));
-                    newDream->setUuid(dream.at("uuid").as_string().data());
                     boost::json::value user = dream.at("user");
                     newDream->setAuthor(user.at("email").as_string().data());
                     newDream->setName(dream.at("name").as_string().data());
-                    fServerFlock.push_back(newDream);
                 }
                 catch (const boost::system::system_error& e)
                 {
