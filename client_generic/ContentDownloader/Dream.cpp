@@ -52,6 +52,9 @@ Dream::Dream()
     fDeleted = false;
     fGeneration = 0;
     fIsTemp = false;
+    setName("");
+    setAuthor("");
+    setFileWriteTime(time(0));
 }
 
 Dream::Dream(const Dream& sheep)
