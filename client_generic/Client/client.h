@@ -288,7 +288,7 @@ class CElectricSheep
         m_HudManager->Add("dreamstats", std::make_shared<Hud::CStatsConsole>(
                                             Base::Math::CRect(1, 1),
                                             hudFontName, hudFontSize));
-        // m_HudManager->Hide("dreamstats");
+        m_HudManager->Hide("dreamstats");
         spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
             m_HudManager->Get("dreamstats"));
         spStats->Add(new Hud::CStringStat("loginstatus", "", "Not logged in"));
@@ -768,7 +768,7 @@ class CElectricSheep
                 {
                     m_F1F4Timer.Reset();
                     m_HudManager->Hide("helpmessage");
-                    // m_HudManager->Hide("dreamstats");
+                    m_HudManager->Hide("dreamstats");
                 }
 
                 std::string batteryStatus = "Unknown";
