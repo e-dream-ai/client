@@ -1063,10 +1063,13 @@ bool CContentDecoder::Start()
 void CContentDecoder::Stop()
 {
     m_bStop = true;
-    g_Settings()->Set("settings.content.last_played_file",
-                      m_MainVideoInfo->m_Path);
-    g_Settings()->Set("settings.content.last_played_frame",
-                      (uint64_t)m_LastReadFrameNumber);
+    if (m_MainVideoInfo)
+    {
+        g_Settings()->Set("settings.content.last_played_file",
+                          m_MainVideoInfo->m_Path);
+        g_Settings()->Set("settings.content.last_played_frame",
+                          (uint64_t)m_LastReadFrameNumber);
+    }
 
     if (m_pDecoderThread)
     {
