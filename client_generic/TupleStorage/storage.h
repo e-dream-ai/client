@@ -57,16 +57,9 @@ class IStorageInterface
     virtual bool Commit() = PureVirtual;
 
     //	Helpers.
-    static bool IoHierarchyHelper(std::string_view _uniformPath,
-                                  std::string& _retPath, std::string& _retName);
     static bool CreateDir(std::string_view _sPath);
-    static bool RemoveDir(std::string_view _sPath);
     static bool CreateFullDirectory(std::string_view _sPath);
-    static bool RemoveFullDirectory(std::string_view _sPath,
-                                    const bool _bSubdirectories = false);
-    static bool DirectoryEmpty(std::string_view _sPath);
 
-    //	Config.
     virtual bool Config(std::string_view _url) = PureVirtual;
 };
 

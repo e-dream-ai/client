@@ -143,31 +143,25 @@ void CLog::Log(
     {
         if (s_MessageSpamCount > 0)
         {
+            fprintf(stdout, "[%s-%s]: '%s' x%lu\n", s_MessageType, timeStamp,
+                    s_MessageSpam, s_MessageSpamCount);
+            fflush(stdout);
             if (m_bActive)
             {
                 fprintf(m_pFile, "[%s-%s]: '%s' x%lu\n", s_MessageType,
                         timeStamp, s_MessageSpam, s_MessageSpamCount);
                 fflush(m_pFile);
             }
-            else
-            {
-                fprintf(stdout, "[%s-%s]: '%s' x%lu\n", s_MessageType,
-                        timeStamp, s_MessageSpam, s_MessageSpamCount);
-                fflush(stdout);
-            }
         }
         else
         {
-            if (!m_bActive)
-            {
-                //	Not active/attached, dump to stdout.
-                // fprintf( stdout, "[%s]: %s - %s[%s(%d)]: '%s'\n", _pType,
-                // timeStamp, _file, _pFunc, m_Line, _pStr );
-                fprintf(stdout, "[%s-%s]: '%s'\n", s_MessageType, timeStamp,
-                        s_MessageSpam);
-                fflush(stdout);
-            }
-            else
+            //	Not active/attached, dump to stdout.
+            // fprintf( stdout, "[%s]: %s - %s[%s(%d)]: '%s'\n", _pType,
+            // timeStamp, _file, _pFunc, m_Line, _pStr );
+            fprintf(stdout, "[%s-%s]: '%s'\n", s_MessageType, timeStamp,
+                    s_MessageSpam);
+            fflush(stdout);
+            if (m_bActive)
             {
                 // fprintf( m_pFile, "[%s]: %s - %s[%s(%d)]: '%s'\n", _pType,
                 // timeStamp, _file, _pFunc, m_Line, _pStr );

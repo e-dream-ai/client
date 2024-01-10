@@ -58,7 +58,6 @@
 		2160FABA0F30F45100B2C27A /* ContentDecoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19400E8E59E700CE185C /* ContentDecoder.cpp */; };
 		2160FABC0F30F45100B2C27A /* Player.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19600E8E5CCE00CE185C /* Player.cpp */; };
 		2160FABD0F30F45100B2C27A /* Voting.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19610E8E5CCE00CE185C /* Voting.cpp */; };
-		2160FACA0F30F45100B2C27A /* diriterator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19F20E8E639400CE185C /* diriterator.cpp */; };
 		2160FACC0F30F45100B2C27A /* storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19F40E8E639400CE185C /* storage.cpp */; };
 		2160FACD0F30F45100B2C27A /* DisplayOutput.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A100E8E646D00CE185C /* DisplayOutput.cpp */; };
 		2160FACE0F30F45100B2C27A /* Image.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A110E8E646D00CE185C /* Image.cpp */; };
@@ -105,7 +104,6 @@
 		218878DC0EC6CDE2001ABD2E /* ContentDecoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19400E8E59E700CE185C /* ContentDecoder.cpp */; };
 		218878DE0EC6CDE2001ABD2E /* Player.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19600E8E5CCE00CE185C /* Player.cpp */; };
 		218878DF0EC6CDE2001ABD2E /* Voting.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19610E8E5CCE00CE185C /* Voting.cpp */; };
-		218878EC0EC6CDE2001ABD2E /* diriterator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19F20E8E639400CE185C /* diriterator.cpp */; };
 		218878EE0EC6CDE2001ABD2E /* storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19F40E8E639400CE185C /* storage.cpp */; };
 		218878EF0EC6CDE2001ABD2E /* DisplayOutput.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A100E8E646D00CE185C /* DisplayOutput.cpp */; };
 		218878F00EC6CDE2001ABD2E /* Image.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A110E8E646D00CE185C /* Image.cpp */; };
@@ -294,7 +292,6 @@
 		12478A672B03B194006A8669 /* Networking.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Networking.h; sourceTree = "<group>"; };
 		12478A682B03B1A4006A8669 /* DisplayOutput.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = DisplayOutput.h; path = ../DisplayOutput/DisplayOutput.h; sourceTree = "<group>"; };
 		12478A692B03B1AB006A8669 /* Image.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Image.h; path = ../DisplayOutput/Image.h; sourceTree = "<group>"; };
-		12478A732B03B262006A8669 /* diriterator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = diriterator.h; path = ../TupleStorage/diriterator.h; sourceTree = "<group>"; };
 		12478A752B03B26D006A8669 /* Settings.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Settings.h; path = ../TupleStorage/Settings.h; sourceTree = "<group>"; };
 		12478A762B03B275006A8669 /* storage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = storage.h; path = ../TupleStorage/storage.h; sourceTree = "<group>"; };
 		12478A772B03B2D0006A8669 /* client.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = client.h; path = ../Client/client.h; sourceTree = "<group>"; };
@@ -374,7 +371,6 @@
 		212B19610E8E5CCE00CE185C /* Voting.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Voting.cpp; path = ../Client/Voting.cpp; sourceTree = SOURCE_ROOT; };
 		212B196C0E8E5D0800CE185C /* GLUT.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLUT.framework; path = System/Library/Frameworks/GLUT.framework; sourceTree = SDKROOT; };
 		212B19850E8E5E9200CE185C /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
-		212B19F20E8E639400CE185C /* diriterator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = diriterator.cpp; path = ../TupleStorage/diriterator.cpp; sourceTree = SOURCE_ROOT; };
 		212B19F40E8E639400CE185C /* storage.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = storage.cpp; path = ../TupleStorage/storage.cpp; sourceTree = SOURCE_ROOT; };
 		212B1A100E8E646D00CE185C /* DisplayOutput.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = DisplayOutput.cpp; path = ../DisplayOutput/DisplayOutput.cpp; sourceTree = SOURCE_ROOT; };
 		212B1A110E8E646D00CE185C /* Image.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Image.cpp; path = ../DisplayOutput/Image.cpp; sourceTree = SOURCE_ROOT; };
@@ -771,8 +767,6 @@
 		212B19F80E8E639E00CE185C /* TupleStorage */ = {
 			isa = PBXGroup;
 			children = (
-				212B19F20E8E639400CE185C /* diriterator.cpp */,
-				12478A732B03B262006A8669 /* diriterator.h */,
 				212B19F40E8E639400CE185C /* storage.cpp */,
 				12478A762B03B275006A8669 /* storage.h */,
 				12478A752B03B26D006A8669 /* Settings.h */,
@@ -1125,7 +1119,6 @@
 				46D2E8FE2AFBBBF50054049D /* TextMetal.mm in Sources */,
 				2160FABD0F30F45100B2C27A /* Voting.cpp in Sources */,
 				46FA9E1B2B03CB0B00708000 /* ShaderMetal.mm in Sources */,
-				2160FACA0F30F45100B2C27A /* diriterator.cpp in Sources */,
 				2160FACC0F30F45100B2C27A /* storage.cpp in Sources */,
 				2160FACD0F30F45100B2C27A /* DisplayOutput.cpp in Sources */,
 				46ED5CB22AF5326A00AF8F45 /* MetalShaders.metal in Sources */,
@@ -1182,7 +1175,6 @@
 				461C9D7C2B28BA50000C44E9 /* JSONStorage.cpp in Sources */,
 				218878DE0EC6CDE2001ABD2E /* Player.cpp in Sources */,
 				218878DF0EC6CDE2001ABD2E /* Voting.cpp in Sources */,
-				218878EC0EC6CDE2001ABD2E /* diriterator.cpp in Sources */,
 				218878EE0EC6CDE2001ABD2E /* storage.cpp in Sources */,
 				218878EF0EC6CDE2001ABD2E /* DisplayOutput.cpp in Sources */,
 				218878F00EC6CDE2001ABD2E /* Image.cpp in Sources */,
