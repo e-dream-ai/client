@@ -630,8 +630,12 @@ bool CPlayer::PlayClip(std::string_view _clipPath, double _startTime, int64_t _s
 {
     auto du = m_displayUnits[0];
     int32_t displayMode = g_Settings()->Get("settings.player.DisplayMode", 2);
-    ContentDownloader::sDreamMetadata* dream;
+    ContentDownloader::sDreamMetadata* dream = nullptr;
     m_spPlaylist->GetDreamMetadata(_clipPath, &dream);
+
+    if (!dream)
+        return false;
+
     spCClip clip = std::make_shared<CClip>(
         sClipMetadata{std::string{_clipPath}, *dream}, du->spRenderer,
         displayMode, du->spDisplay->Width(), du->spDisplay->Height(),
