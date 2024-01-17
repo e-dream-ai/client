@@ -55,53 +55,54 @@ bool JSONStorage::Initialise(std::string_view _sRoot,
 bool JSONStorage::Finalise() { return false; }
 
 template <typename T>
-bool JSONStorage::GetOrSetValue(std::string_view _entry, T& _val,
-                                std::function<T(json::value*)> callback,
-                                bool set)
+bool JSONStorage::GetOrSetValue(
+    std::string_view _entry, T& _targetValue,
+    std::function<T(json::value*)> callback, bool set,
+    std::function<void(json::object*, std::string_view, T)> _emplace)
 {
     std::istringstream f(_entry.data());
     std::string token;
     json::object* dict = &m_JSON;
     while (std::getline(f, token, '.'))
     {
-        json::value* val = dict->if_contains(token);
+        json::value* currentValue = dict->if_contains(token);
         if (f.eof())
         {
-            if (val)
+            if (currentValue)
             {
                 if constexpr (std::is_same<T, double>::value ||
                               std::is_same<T, uint64_t>::value)
                 {
                     //A whole number will always get parsed as an int, fix that
-                    if (val->is_int64())
+                    if (currentValue->is_int64())
                     {
                         if (set)
                         {
-                            json::value newVal(_val);
+                            json::value newVal(_targetValue);
                             dict->at(token) = newVal;
-                            val = &dict->at(token);
+                            currentValue = &dict->at(token);
                         }
                         else
                         {
-                            int64_t intVal = val->as_int64();
-                            _val = static_cast<T>(intVal);
+                            int64_t intVal = currentValue->as_int64();
+                            _targetValue = static_cast<T>(intVal);
                             return true;
                         }
                     }
                 }
-                _val = callback(val);
+                _targetValue = callback(currentValue);
             }
             else
             {
-                dict->emplace(token, _val);
+                _emplace(dict, token, _targetValue);
                 return false;
             }
         }
         else
         {
-            if (val)
+            if (currentValue)
             {
-                dict = &val->as_object();
+                dict = &currentValue->as_object();
             }
             else
             {
@@ -113,21 +114,17 @@ bool JSONStorage::GetOrSetValue(std::string_view _entry, T& _val,
     return true;
 }
 
-template bool JSONStorage::GetOrSetValue(std::string_view _entry, bool&,
-                                         std::function<bool(json::value*)>,
-                                         bool);
-template bool JSONStorage::GetOrSetValue(std::string_view _entry, int32_t&,
-                                         std::function<int32_t(json::value*)>,
-                                         bool);
-template bool JSONStorage::GetOrSetValue(std::string_view _entry, double&,
-                                         std::function<double(json::value*)>,
-                                         bool);
-template bool JSONStorage::GetOrSetValue(std::string_view _entry, uint64_t&,
-                                         std::function<uint64_t(json::value*)>,
-                                         bool);
-template bool
-JSONStorage::GetOrSetValue(std::string_view _entry, std::string&,
-                           std::function<std::string(json::value*)>, bool);
+static void EmplaceStringVectorInDictionary(json::object* _dict,
+                                            std::string_view _token,
+                                            std::vector<std::string> _val)
+{
+    json::array arr;
+    for (std::string_view it : _val)
+    {
+        arr.push_back(it.data());
+    }
+    _dict->emplace(_token.data(), arr);
+}
 
 bool JSONStorage::Set(std::string_view _entry, bool _val)
 {
@@ -183,7 +180,24 @@ bool JSONStorage::Set(std::string_view _entry, std::string_view _str)
     Dirty(true);
     return true;
 }
-
+bool JSONStorage::Set(std::string_view _entry, std::vector<std::string> _val)
+{
+    GetOrSetValue<std::vector<std::string>>(
+        _entry, _val,
+        [=](json::value* jsonVal) -> std::vector<std::string>
+        {
+            json::array arr;
+            for (auto it : _val)
+            {
+                arr.push_back(it.data());
+            }
+            jsonVal->as_array() = arr;
+            return _val;
+        },
+        true, EmplaceStringVectorInDictionary);
+    Dirty(true);
+    return true;
+}
 //    Get values.
 bool JSONStorage::Get(std::string_view _entry, bool& _ret)
 {
@@ -221,6 +235,22 @@ bool JSONStorage::Get(std::string_view _entry, std::string& _ret)
         [=](json::value* jsonVal) -> std::string
         { return jsonVal->as_string().data(); },
         false);
+}
+bool JSONStorage::Get(std::string_view _entry, std::vector<std::string>& _ret)
+{
+    return GetOrSetValue<std::vector<std::string>>(
+        _entry, _ret,
+        [=](json::value* jsonVal) -> std::vector<std::string>
+        {
+            json::array arr = jsonVal->as_array();
+            std::vector<std::string> vec;
+            for (auto it : arr)
+            {
+                vec.push_back(it.as_string().data());
+            }
+            return vec;
+        },
+        false, EmplaceStringVectorInDictionary);
 }
 
 //    Remove node from storage.

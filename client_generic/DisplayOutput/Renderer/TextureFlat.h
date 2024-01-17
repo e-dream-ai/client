@@ -34,8 +34,11 @@ class CTextureFlat : public CTexture
 
     virtual bool Reupload(void) { return Upload(m_spImage); };
     virtual bool Upload(spCImage _spImage) = PureVirtual;
-    virtual bool Bind(const uint32_t _index) = PureVirtual;
-    virtual bool Unbind(const uint32_t _index) = PureVirtual;
+    virtual bool Bind([[maybe_unused]] const uint32_t _index) { return true; };
+    virtual bool Unbind([[maybe_unused]] const uint32_t _index)
+    {
+        return true;
+    };
     virtual bool BindFrame(ContentDecoder::spCVideoFrame _pFrame) = PureVirtual;
 
     virtual bool Dirty(void) { return m_bDirty; };

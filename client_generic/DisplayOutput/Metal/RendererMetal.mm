@@ -23,8 +23,6 @@ static const NSUInteger MaxFramesInFlight = 3;
   @public
     MTKView* metalView;
   @public
-    std::map<uint32_t, DisplayOutput::CTextureFlatMetal*> boundTextures;
-  @public
     id<MTLCommandQueue> commandQueue;
   @public
     id<MTLCommandBuffer> currentCommandBuffer;
@@ -155,46 +153,28 @@ bool CRendererMetal::Initialize(spCDisplayOutput _spDisplay)
     return true;
 }
 
-//
 void CRendererMetal::Defaults() {}
 
-void CRendererMetal::SetBoundSlot(uint32_t _slot, CTextureFlatMetal* _texture)
-{
-    RendererContext* rendererContext =
-        (__bridge RendererContext*)m_pRendererContext;
-    rendererContext->boundTextures[_slot] = _texture;
-}
-
-/*
- */
 void CRendererMetal::Apply() { CRenderer::Apply(); }
 
-/*
- */
 void CRendererMetal::Reset(const uint32_t _flags) { CRenderer::Reset(_flags); }
 
-/*
- */
 spCTextureFlat CRendererMetal::NewTextureFlat(spCImage _spImage,
                                               const uint32_t _flags)
 {
-    spCTextureFlat spTex = std::make_shared<CTextureFlatMetal>(
-        m_spDisplay->GetContext(), _flags, this);
+    spCTextureFlat spTex =
+        std::make_shared<CTextureFlatMetal>(m_spDisplay->GetContext(), _flags);
     spTex->Upload(_spImage);
     return spTex;
 }
 
-/*
- */
 spCTextureFlat CRendererMetal::NewTextureFlat(const uint32_t _flags)
 {
-    spCTextureFlat spTex = std::make_shared<CTextureFlatMetal>(
-        m_spDisplay->GetContext(), _flags, this);
+    spCTextureFlat spTex =
+        std::make_shared<CTextureFlatMetal>(m_spDisplay->GetContext(), _flags);
     return spTex;
 }
 
-/*
- */
 spCShader CRendererMetal::NewShader(
     const char* _pVertexShader, const char* _pFragmentShader,
     std::vector<std::pair<std::string, eUniformType>> _uniforms)
@@ -212,8 +192,6 @@ spCShader CRendererMetal::NewShader(
                                           _uniforms);
 }
 
-/*
- */
 spCBaseFont CRendererMetal::GetFont(CFontDescription& _desc)
 {
     auto it = m_fontPool.find(_desc.TypeFace());
@@ -248,8 +226,6 @@ Base::Math::CVector2 CRendererMetal::GetTextExtent(spCBaseFont _spFont,
     return Base::Math::CVector2(0, 0.05f);
 }
 
-/*
- */
 bool CRendererMetal::BeginFrame(void)
 {
     RendererContext* rendererContext =
@@ -265,8 +241,6 @@ bool CRendererMetal::BeginFrame(void)
     return true;
 }
 
-/*
- */
 bool CRendererMetal::EndFrame(bool drawn)
 {
     CRenderer::EndFrame(drawn);
@@ -423,6 +397,39 @@ void CRendererMetal::DrawText(spCBaseText _text,
 #endif /*USE_SYSTEM_UI*/
 }
 
+bool CRendererMetal::CreateMetalTextureFromDecoderFrame(
+    CVPixelBufferRef pixelBuffer, CVMetalTextureRef* _outMetalTextureRef,
+    uint32_t plane)
+{
+    RendererContext* rendererContext =
+        (__bridge RendererContext*)m_pRendererContext;
+
+    CVReturn ret;
+
+    ret = CVMetalTextureCacheCreateTextureFromImage(
+        NULL, rendererContext->textureCache, pixelBuffer, NULL,
+        plane == 0 ? MTLPixelFormatR8Unorm : MTLPixelFormatRG8Unorm,
+        CVPixelBufferGetWidthOfPlane(pixelBuffer, plane),
+        CVPixelBufferGetHeightOfPlane(pixelBuffer, plane), plane,
+        _outMetalTextureRef);
+    if (ret != kCVReturnSuccess)
+    {
+        g_Log->Error("Failed to create CVMetalTexture from image: %d", ret);
+        return false;
+    }
+    return true;
+}
+
+bool CRendererMetal::GetYUVMetalTextures(spCTextureFlatMetal _texture,
+                                         CVMetalTextureRef* _outYTexture,
+                                         CVMetalTextureRef* _outUVTexture)
+{
+    CVPixelBufferRef pixelBuffer = _texture->GetPixelBuffer();
+    CreateMetalTextureFromDecoderFrame(pixelBuffer, _outYTexture, 0);
+    CreateMetalTextureFromDecoderFrame(pixelBuffer, _outUVTexture, 1);
+    return true;
+}
+
 void CRendererMetal::DrawQuad(const Base::Math::CRect& _rect,
                               const Base::Math::CVector4& _color,
                               const Base::Math::CRect& _uvrect)
@@ -470,8 +477,6 @@ void CRendererMetal::DrawQuad(const Base::Math::CRect& _rect,
             [rendererContext->currentCommandBuffer
                 renderCommandEncoderWithDescriptor:passDescriptor];
         [renderEncoder setRenderPipelineState:renderPipelineState];
-        std::map<uint32_t, CTextureFlatMetal*> boundTextures(
-            rendererContext->boundTextures);
         std::vector<CVMetalTextureRef>& metalTexturesUsed =
             rendererContext
                 ->metalTexturesUsed[rendererContext->currentFrameIndex];
@@ -487,8 +492,8 @@ void CRendererMetal::DrawQuad(const Base::Math::CRect& _rect,
                 {
                     CVMetalTextureRef yTextureRef;
                     CVMetalTextureRef uvTextureRef;
-                    if (selectedTexture->GetYUVMetalTextures(&yTextureRef,
-                                                             &uvTextureRef))
+                    if (GetYUVMetalTextures(selectedTexture, &yTextureRef,
+                                            &uvTextureRef))
                     {
                         id<MTLTexture> yTexture =
                             CVMetalTextureGetTexture(yTextureRef);
@@ -568,29 +573,6 @@ void CRendererMetal::BuildDepthTexture()
 
     rendererContext->depthTexture =
         [device newTextureWithDescriptor:depthTextureDescriptor];
-}
-
-bool CRendererMetal::CreateMetalTextureFromDecoderFrame(
-    CVPixelBufferRef pixelBuffer, CVMetalTextureRef* _outMetalTextureRef,
-    uint32_t plane)
-{
-    RendererContext* rendererContext =
-        (__bridge RendererContext*)m_pRendererContext;
-
-    CVReturn ret;
-
-    ret = CVMetalTextureCacheCreateTextureFromImage(
-        NULL, rendererContext->textureCache, pixelBuffer, NULL,
-        plane == 0 ? MTLPixelFormatR8Unorm : MTLPixelFormatRG8Unorm,
-        CVPixelBufferGetWidthOfPlane(pixelBuffer, plane),
-        CVPixelBufferGetHeightOfPlane(pixelBuffer, plane), plane,
-        _outMetalTextureRef);
-    if (ret != kCVReturnSuccess)
-    {
-        g_Log->Error("Failed to create CVMetalTexture from image: %d", ret);
-        return false;
-    }
-    return true;
 }
 
 } // namespace DisplayOutput

@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		121FCCB72B484B8B00F58DD5 /* Clip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 121FCCB52B484B8B00F58DD5 /* Clip.cpp */; };
+		121FCCB82B484B8B00F58DD5 /* Clip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 121FCCB52B484B8B00F58DD5 /* Clip.cpp */; };
 		1220B5392B3DC64D00D68410 /* StringFormat.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1220B5382B3DC64D00D68410 /* StringFormat.cpp */; };
 		1220B53A2B3DC64D00D68410 /* StringFormat.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1220B5382B3DC64D00D68410 /* StringFormat.cpp */; };
 		1243576C2B31FC1B00CCD62A /* BuildData.json in Resources */ = {isa = PBXBuildFile; fileRef = 1243576B2B31FC1B00CCD62A /* BuildData.json */; };
@@ -285,6 +287,8 @@
 
 /* Begin PBXFileReference section */
 		09AB6884FE841BABC02AAC07 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
+		121FCCB52B484B8B00F58DD5 /* Clip.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Clip.cpp; path = ../ContentDecoder/Clip.cpp; sourceTree = "<group>"; };
+		121FCCB62B484B8B00F58DD5 /* Clip.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Clip.h; path = ../ContentDecoder/Clip.h; sourceTree = "<group>"; };
 		1220B5372B3DC4F700D68410 /* StringFormat.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StringFormat.h; path = ../Client/StringFormat.h; sourceTree = "<group>"; };
 		1220B5382B3DC64D00D68410 /* StringFormat.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = StringFormat.cpp; path = ../Client/StringFormat.cpp; sourceTree = "<group>"; };
 		1243576B2B31FC1B00CCD62A /* BuildData.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = BuildData.json; sourceTree = "<group>"; };
@@ -710,6 +714,8 @@
 		212B19420E8E59ED00CE185C /* ContentDecoder */ = {
 			isa = PBXGroup;
 			children = (
+				121FCCB52B484B8B00F58DD5 /* Clip.cpp */,
+				121FCCB62B484B8B00F58DD5 /* Clip.h */,
 				212B19400E8E59E700CE185C /* ContentDecoder.cpp */,
 				12478A882B03B60A006A8669 /* ContentDecoder.h */,
 				12478A8C2B03B61B006A8669 /* Frame.h */,
@@ -1114,6 +1120,7 @@
 				2160FAB50F30F45100B2C27A /* Log.cpp in Sources */,
 				2160FAB90F30F45100B2C27A /* pool.cpp in Sources */,
 				2160FABA0F30F45100B2C27A /* ContentDecoder.cpp in Sources */,
+				121FCCB82B484B8B00F58DD5 /* Clip.cpp in Sources */,
 				2160FABC0F30F45100B2C27A /* Player.cpp in Sources */,
 				467230C92AC1AE9D00017C51 /* TextureFlatMetal.mm in Sources */,
 				46D2E8FE2AFBBBF50054049D /* TextMetal.mm in Sources */,
@@ -1191,6 +1198,7 @@
 				1220B5392B3DC64D00D68410 /* StringFormat.cpp in Sources */,
 				218878FB0EC6CDE2001ABD2E /* TextureFlat.cpp in Sources */,
 				218878FD0EC6CDE2001ABD2E /* Hud.cpp in Sources */,
+				121FCCB72B484B8B00F58DD5 /* Clip.cpp in Sources */,
 				218878FE0EC6CDE2001ABD2E /* Rect.cpp in Sources */,
 				46ED5CB12AF5326A00AF8F45 /* MetalShaders.metal in Sources */,
 				467230B72AC17A9E00017C51 /* ESMetalView.m in Sources */,

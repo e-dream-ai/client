@@ -16,7 +16,6 @@ class CCrossFade : public CHudEntry
     DisplayOutput::spCTextureFlat m_spTexture;
     bool m_bSkipped;
     bool m_bSkipToNext;
-    uint32_t m_currID;
 
   public:
     CCrossFade(uint32_t width, uint32_t height, bool skipToNext)
@@ -46,11 +45,7 @@ class CCrossFade : public CHudEntry
     //	Override to make it always visible.
     virtual bool Visible() const { return true; };
 
-    void Reset()
-    {
-        m_bSkipped = false;
-        m_currID = g_Player().GetCurrentPlayingID();
-    }
+    void Reset() { m_bSkipped = false; }
 
     virtual bool Render(const double _time,
                         DisplayOutput::spCRenderer _spRenderer)
@@ -75,11 +70,6 @@ class CCrossFade : public CHudEntry
         {
             if (!m_bSkipped && m_bSkipToNext)
             {
-                // skip to another only if we are still in the same sheep as at
-                // the beginning.
-                if (m_currID == g_Player().GetCurrentPlayingID())
-                    g_Player().SkipToNext();
-
                 m_bSkipped = true;
             }
 

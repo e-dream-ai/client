@@ -71,7 +71,7 @@ class CMTimer : public ITimer
 
     void Reset() { m_DeltaStart = m_Start = realTime(); }
 
-    double Time() { return realTime() - m_Start; }
+    double Time() const { return realTime() - m_Start; }
 
     double Delta()
     {

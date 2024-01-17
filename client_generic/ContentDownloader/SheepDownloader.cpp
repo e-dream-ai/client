@@ -109,7 +109,6 @@ SheepDownloader::SheepDownloader()
     parseSheepList();
     updateCachedSheep();
     deleteCached(0, 0);
-    deleteCached(0, 1);
 }
 
 /*
@@ -171,20 +170,17 @@ void SheepDownloader::Abort(void)
 
 //	Downloads the given sheep from the server and supplies a unique name for
 // it based on it's ids.
-bool SheepDownloader::downloadSheep(Dream* sheep)
+bool SheepDownloader::downloadSheep(sDreamMetadata* sheep)
 {
-    if (sheep->downloaded())
+    if (sheep->flags & DREAM_FLAG_DOWNLOADED)
         return false;
 
-    char tmp[32];
-    //	To identify transfer.
-    snprintf(tmp, 32, "Sheep #%d.%05d", sheep->generation(), sheep->id());
-
-    m_spSheepDownloader = std::make_shared<Network::CFileDownloader>(tmp);
+    m_spSheepDownloader =
+        std::make_shared<Network::CFileDownloader>(sheep->uuid);
 
     Network::spCFileDownloader spDownload = m_spSheepDownloader;
 
-    bool dlded = spDownload->Perform(sheep->URL());
+    bool dlded = spDownload->Perform(sheep->url);
 
     m_spSheepDownloader = NULL;
 
@@ -197,7 +193,7 @@ bool SheepDownloader::downloadSheep(Dream* sheep)
 
     if (!dlded)
     {
-        g_Log->Warning("Failed to download %s.\n", sheep->URL());
+        g_Log->Warning("Failed to download %s.\n", sheep->url.data());
 
         if (spDownload->ResponseCode() == 401)
             g_ContentDownloader().ServerFallback();
@@ -205,18 +201,14 @@ bool SheepDownloader::downloadSheep(Dream* sheep)
         return false;
     }
 
-    //	Save file.
-    char filename[MAXBUF];
-    snprintf(filename, MAXBUF, "%s%s.mp4", Shepherd::mp4Path(), sheep->uuid());
+    std::string fileName{
+        string_format("%s%s.mp4", Shepherd::mp4Path(), sheep->uuid.data())};
+    if (!spDownload->Save(fileName))
     {
-        boost::unique_lock<boost::shared_mutex> lock();
-        if (!spDownload->Save(filename))
-        {
-            g_Log->Error("Unable to save %s\n", filename);
-            return false;
-        }
-        g_Player().Add(filename);
+        g_Log->Error("Unable to save %s\n", fileName.data());
+        return false;
     }
+    g_Player().Add(fileName);
 
     return true;
 }
@@ -277,19 +269,19 @@ void SheepDownloader::parseSheepList()
                 try
                 {
                     //    Create a new dream and parse the attributes.
-                    Dream* newDream = new Dream();
-                    newDream->setId((uint32_t)dream.at("id").as_int64());
-                    newDream->setUuid(dream.at("uuid").as_string().data());
-                    newDream->setURL(video.as_string().data());
+                    sDreamMetadata* newDream = new sDreamMetadata();
+                    newDream->id = (uint32_t)dream.at("id").as_int64();
+                    newDream->url = video.as_string();
+                    newDream->uuid = dream.at("uuid").as_string();
+                    newDream->activityLevel =
+                        std::stof(dream.at("activityLevel").as_string().data());
                     fServerFlock.push_back(newDream);
-
-                    //these can fail
+                    boost::json::value user = dream.at("user");
+                    newDream->author = user.at("email").as_string();
+                    newDream->name = dream.at("name").as_string();
                     newDream->setFileWriteTime(
                         dream.at("updated_at").as_string().data());
-                    newDream->setRating(atoi("5"));
-                    boost::json::value user = dream.at("user");
-                    newDream->setAuthor(user.at("email").as_string().data());
-                    newDream->setName(dream.at("name").as_string().data());
+                    newDream->rating = atoi("5");
                 }
                 catch (const boost::system::system_error& e)
                 {
@@ -327,10 +319,10 @@ void SheepDownloader::updateCachedSheep()
         for (uint32_t i = 0; i < fClientFlock.size(); i++)
         {
             //	Get the current sheep.
-            Dream* currentSheep = fClientFlock[i];
+            sDreamMetadata* currentSheep = fClientFlock[i];
 
             //	Check if it is deleted.
-            if (currentSheep->deleted() && fGotList)
+            if ((currentSheep->flags & DREAM_FLAG_DELETED) && fGotList)
             {
                 //	If it is than run through the server flock to see if it
                 // is still
@@ -338,9 +330,7 @@ void SheepDownloader::updateCachedSheep()
                 uint32_t j;
                 for (j = 0; j < fServerFlock.size(); j++)
                 {
-                    if (fServerFlock[j]->id() == currentSheep->id() &&
-                        fServerFlock[j]->generation() ==
-                            currentSheep->generation())
+                    if (fServerFlock[j]->uuid == currentSheep->uuid)
                         break;
                 }
 
@@ -349,28 +339,18 @@ void SheepDownloader::updateCachedSheep()
                 // file.
                 if (j == fServerFlock.size())
                 {
-                    g_Log->Info("Deleting %s", currentSheep->fileName());
-                    if (remove(currentSheep->fileName()) != 0)
+                    g_Log->Info("Deleting %s", currentSheep->fileName.data());
+                    if (remove(currentSheep->fileName.data()) != 0)
                         g_Log->Warning("Failed to remove %s",
-                                       currentSheep->fileName());
+                                       currentSheep->fileName.data());
                     else
                     {
-                        Shepherd::subClientFlockBytes(
-                            currentSheep->fileSize(),
-                            currentSheep->getGenerationType());
-                        Shepherd::subClientFlockCount(
-                            currentSheep->getGenerationType());
+                        Shepherd::subClientFlockBytes(currentSheep->fileSize,
+                                                      0);
+                        Shepherd::subClientFlockCount(0);
                     }
                     continue;
                 }
-                continue;
-            }
-            else if (currentSheep->isTemp())
-            {
-                g_Log->Info("Deleting %s", currentSheep->fileName());
-                if (remove(currentSheep->fileName()) != 0)
-                    g_Log->Warning("Failed to remove %s",
-                                   currentSheep->fileName());
                 continue;
             }
 
@@ -379,22 +359,19 @@ void SheepDownloader::updateCachedSheep()
                 //	Update the sheep rating from the server.
                 for (uint32_t j = 0; j < fServerFlock.size(); j++)
                 {
-                    Dream* shp = fServerFlock[j];
-                    if (shp->id() == currentSheep->id() &&
-                        shp->generation() == currentSheep->generation())
-                        if (shp->firstId() == currentSheep->firstId())
-                            if (shp->lastId() == currentSheep->lastId())
-                            {
-                                currentSheep->setRating(shp->rating());
-                                break;
-                            }
+                    sDreamMetadata* shp = fServerFlock[j];
+                    if (shp->uuid == currentSheep->uuid)
+                    {
+                        currentSheep->rating = shp->rating;
+                        break;
+                    }
                 }
             }
 
             //	Should use win native call but i don't know what it is.
             struct stat stat_buf;
-            if (-1 != stat(currentSheep->fileName(), &stat_buf))
-                currentSheep->setFileWriteTime(stat_buf.st_mtime);
+            if (-1 != stat(currentSheep->fileName.data(), &stat_buf))
+                currentSheep->writeTime = stat_buf.st_mtime;
         }
 
         //		fRenderer->updateClientFlock( fClientFlock );
@@ -448,34 +425,33 @@ void SheepDownloader::deleteCached(const uint64_t& size,
             //	Iterate the client flock to get the oldest and worst_rated file.
             for (uint32_t i = 0; i < fClientFlock.size(); i++)
             {
-                Dream* curSheep = fClientFlock[i];
+                sDreamMetadata* curSheep = fClientFlock[i];
                 //	If the file is allready deleted than skip.
-                if (curSheep->deleted() || curSheep->isTemp() ||
-                    curSheep->getGenerationType() != getGenerationType)
+                if (curSheep->flags & DREAM_FLAG_DELETED)
                     continue;
 
                 //	Store the file size.
-                total += curSheep->fileSize();
+                total += curSheep->fileSize;
 
                 if (oldest_sheep_time == 0 ||
-                    oldest_sheep_time > curSheep->fileWriteTime())
+                    oldest_sheep_time > curSheep->writeTime)
                 {
                     oldest = i;
-                    oldest_sheep_time = curSheep->fileWriteTime();
+                    oldest_sheep_time = curSheep->writeTime;
                 }
 
-                uint16_t curPlayCount = g_PlayCounter().PlayCount(
-                    curSheep->generation(), curSheep->id());
+                uint16_t curPlayCount =
+                    g_PlayCounter().PlayCount(0, curSheep->id);
 
                 if (oldest_time == 0 || (curPlayCount > highest_playcount) ||
                     ((curPlayCount == highest_playcount) &&
-                     (curSheep->fileWriteTime() < oldest_time)))
+                     (curSheep->writeTime < oldest_time)))
                 {
                     //	Update this as the file to delete if necessary.
                     best = i;
-                    oldest_time = curSheep->fileWriteTime();
-                    highest_playcount = g_PlayCounter().PlayCount(
-                        curSheep->generation(), curSheep->id());
+                    oldest_time = curSheep->writeTime;
+                    highest_playcount =
+                        g_PlayCounter().PlayCount(0, curSheep->id);
                 }
             }
 
@@ -492,7 +468,7 @@ void SheepDownloader::deleteCached(const uint64_t& size,
                 else
                     g_Log->Info("Deleting most played sheep");
 
-                std::string filename(fClientFlock[best]->fileName());
+                std::string filename = fClientFlock[best]->fileName;
                 if (filename.find_last_of("/\\") != filename.npos)
                     filename.erase(
                         filename.begin(),
@@ -502,9 +478,7 @@ void SheepDownloader::deleteCached(const uint64_t& size,
                             1);
 
                 uint16_t playcount =
-                    g_PlayCounter().PlayCount(fClientFlock[best]->generation(),
-                                              fClientFlock[best]->id()) -
-                    1;
+                    g_PlayCounter().PlayCount(0, fClientFlock[best]->id) - 1;
                 std::stringstream temp;
                 std::string temptime = ctime(&oldest_time);
                 temptime.erase(temptime.size() - 1);
@@ -528,49 +502,29 @@ void SheepDownloader::deleteCached(const uint64_t& size,
         deleteSheep().
 
 */
-void SheepDownloader::deleteSheep(Dream* sheep)
+void SheepDownloader::deleteSheep(sDreamMetadata* sheep)
 {
-    if (remove(sheep->fileName()) != 0)
-        g_Log->Warning("Failed to remove %s", sheep->fileName());
+    if (remove(sheep->fileName.data()) != 0)
+        g_Log->Warning("Failed to remove %s", sheep->fileName.data());
     else
     {
-        Shepherd::subClientFlockBytes(sheep->fileSize(),
-                                      sheep->getGenerationType());
-        Shepherd::subClientFlockCount(sheep->getGenerationType());
+        Shepherd::subClientFlockBytes(sheep->fileSize, 0);
+        Shepherd::subClientFlockCount(0);
     }
-    sheep->setDeleted(true);
+    sheep->flags |= DREAM_FLAG_DELETED;
 
     //	Create the filename with an xxx extension.
-    size_t len = strlen(sheep->fileName());
-    char* deletedFile = new char[len + 1];
-    strcpy(deletedFile, sheep->fileName());
+    size_t len = sheep->fileName.length();
+    std::string deletedFile = sheep->fileName;
 
     deletedFile[len - 3] = 'x';
     deletedFile[len - 2] = 'x';
     deletedFile[len - 1] = 'x';
 
     //	Open the deleted file and save the zero length file.
-    FILE* out = fopen(deletedFile, "wb");
-    if (out != NULL)
+    FILE* out = fopen(deletedFile.data(), "wb");
+    if (out != nullptr)
         fclose(out);
-
-    SAFE_DELETE_ARRAY(deletedFile);
-
-    /*if( sheep->firstId() == sheep->lastId() )
-    {
-            //	It's a loop so you might as well delete the edges as well.
-            for( uint32_t i=0; i<fClientFlock.size(); i++ )
-            {
-                    Sheep *curSheep = fClientFlock[i];
-
-                    //	If the file is allready deleted than skip.
-                    if( curSheep->deleted() || curSheep->isTemp() )
-                            continue;
-
-                    if( curSheep->firstId() == sheep->id() || curSheep->lastId()
-    == sheep->id() ) deleteSheep( curSheep );
-            }
-    }*/
 }
 
 /*
@@ -579,11 +533,11 @@ void SheepDownloader::deleteSheepId(uint32_t sheepId)
 {
     for (uint32_t i = 0; i < fClientFlock.size(); i++)
     {
-        Dream* curSheep = fClientFlock[i];
-        if (curSheep->deleted() || curSheep->isTemp())
+        sDreamMetadata* curSheep = fClientFlock[i];
+        if (curSheep->flags & DREAM_FLAG_DOWNLOADED)
             continue;
 
-        if (curSheep->id() == sheepId)
+        if (curSheep->id == sheepId)
             deleteSheep(curSheep);
     }
 }
@@ -764,10 +718,7 @@ void SheepDownloader::findSheepToDownload()
                             // the cache.
                             for (j = 0; j < fClientFlock.size(); j++)
                             {
-                                if ((fServerFlock[i]->id() ==
-                                     fClientFlock[j]->id()) &&
-                                    (fServerFlock[i]->generation() ==
-                                     fClientFlock[j]->generation()))
+                                if (fServerFlock[i]->id == fClientFlock[j]->id)
                                 {
                                     downloadedcount++;
                                     break;
@@ -783,10 +734,7 @@ void SheepDownloader::findSheepToDownload()
                             // the cache.
                             for (j = 0; j < fClientFlock.size(); j++)
                             {
-                                if ((fServerFlock[i]->id() ==
-                                     fClientFlock[j]->id()) &&
-                                    (fServerFlock[i]->generation() ==
-                                     fClientFlock[j]->generation()))
+                                if (fServerFlock[i]->id == fClientFlock[j]->id)
                                     break;
                             }
 
@@ -797,18 +745,16 @@ void SheepDownloader::findSheepToDownload()
                             // rating and server file write time.
                             if ((j == fClientFlock.size()) &&
                                 !cacheOverflow(
-                                    (double)fServerFlock[i]->fileSize(),
-                                    fServerFlock[i]->getGenerationType()))
+                                    (double)fServerFlock[i]->fileSize, 0))
                             {
                                 //	Check if it is the best file to
                                 // download.
                                 if ((best_ctime == 0 && best_ctime_old == 0) ||
-                                    (fServerFlock[i]->rating() > best_rating &&
-                                     fServerFlock[i]->rating() <=
+                                    (fServerFlock[i]->rating > best_rating &&
+                                     fServerFlock[i]->rating <=
                                          best_rating_old) ||
-                                    (fServerFlock[i]->rating() == best_rating &&
-                                     fServerFlock[i]->fileWriteTime() <
-                                         best_ctime))
+                                    (fServerFlock[i]->rating == best_rating &&
+                                     fServerFlock[i]->writeTime < best_ctime))
                                 {
                                     bool timeCheck = false;
                                     // if (useDreamAI)
@@ -819,19 +765,17 @@ void SheepDownloader::findSheepToDownload()
                                     }
                                     // else
                                     {
-                                        timeCheck =
-                                            fServerFlock[i]->fileWriteTime() >
-                                            best_ctime_old;
+                                        timeCheck = fServerFlock[i]->writeTime >
+                                                    best_ctime_old;
                                     }
-                                    if (fServerFlock[i]->rating() !=
+                                    if (fServerFlock[i]->rating !=
                                             best_rating_old ||
-                                        (fServerFlock[i]->rating() ==
+                                        (fServerFlock[i]->rating ==
                                              best_rating_old &&
                                          timeCheck))
                                     {
-                                        best_rating = fServerFlock[i]->rating();
-                                        best_ctime =
-                                            fServerFlock[i]->fileWriteTime();
+                                        best_rating = fServerFlock[i]->rating;
+                                        best_ctime = fServerFlock[i]->writeTime;
                                         best_anim = static_cast<int>(i);
                                     }
                                 }
@@ -846,9 +790,8 @@ void SheepDownloader::findSheepToDownload()
                             //	Make enough room in the cache for it.
                             deleteCached(
                                 fServerFlock[static_cast<size_t>(best_anim)]
-                                    ->fileSize(),
-                                fServerFlock[static_cast<size_t>(best_anim)]
-                                    ->getGenerationType());
+                                    ->fileSize,
+                                0);
 
                             std::stringstream downloadingsheepstr;
                             downloadingsheepstr
@@ -857,7 +800,7 @@ void SheepDownloader::findSheepToDownload()
                             Shepherd::setDownloadState(
                                 downloadingsheepstr.str() +
                                 fServerFlock[static_cast<size_t>(best_anim)]
-                                    ->URL());
+                                    ->url);
 
                             g_Log->Info("Best sheep to download rating=%d, "
                                         "fServerFlock "
@@ -876,7 +819,7 @@ void SheepDownloader::findSheepToDownload()
                                 best_anim_old_url =
                                     fServerFlock[static_cast<size_t>(
                                                      best_anim_old)]
-                                        ->URL();
+                                        ->url;
                             }
                         }
                         boost::this_thread::interruption_point();

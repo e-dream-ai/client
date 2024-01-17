@@ -10,26 +10,16 @@ namespace DisplayOutput
 
 /*
  */
-CRenderer::CRenderer()
-{
-    m_aspActiveTextures = new spCTexture[MAX_TEXUNIT];
-    m_aspSelectedTextures = new spCTexture[MAX_TEXUNIT];
-
-    m_bDirtyMatrices = 0;
-}
+CRenderer::CRenderer() { m_bDirtyMatrices = 0; }
 
 /*
  */
 CRenderer::~CRenderer()
 {
-    if (m_aspSelectedTextures != NULL)
-        for (uint32_t i = 0; i < MAX_TEXUNIT; i++)
-            m_aspSelectedTextures[i] = NULL;
-    if (m_aspActiveTextures != NULL)
-        for (uint32_t i = 0; i < MAX_TEXUNIT; i++)
-            m_aspActiveTextures[i] = NULL;
-    SAFE_DELETE_ARRAY(m_aspActiveTextures);
-    SAFE_DELETE_ARRAY(m_aspSelectedTextures);
+    for (uint32_t i = 0; i < MAX_TEXUNIT; i++)
+        m_aspSelectedTextures[i] = nullptr;
+    for (uint32_t i = 0; i < MAX_TEXUNIT; i++)
+        m_aspActiveTextures[i] = nullptr;
 }
 
 /*

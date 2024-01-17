@@ -4,22 +4,23 @@
 #include "Rect.h"
 #include "Shader.h"
 #include "Vector4.h"
+#include "FrameDisplay.h"
 
-/*
+/**
         CLinearFrameDisplay().
         Does a piecewise linear interpolation between two frames.
 */
 class CLinearFrameDisplay : public CFrameDisplay
 {
-    static const uint32_t kMaxFrames = 2;
+    static const uint32_t kFramesPerState = 2;
 
     float m_LastAlpha;
     //	Pixelshader.
     DisplayOutput::spCShader m_spShader;
 
     //	The two frames.
-    DisplayOutput::spCTextureFlat m_spFrames[2 * kMaxFrames];
-    uint32_t m_State;
+    DisplayOutput::spCTextureFlat m_spFrames[kFramesPerState];
+    uint8_t m_State;
 
     bool m_bWaitNextFrame;
 
@@ -28,52 +29,6 @@ class CLinearFrameDisplay : public CFrameDisplay
         : CFrameDisplay(_spRenderer)
     {
         m_State = 0;
-
-        //	Pixelshader to lerp between two textures.
-        static const char* linear_pixelshaderGL2D = "\
-					uniform float delta;\
-					uniform sampler2D texUnit1;	\
-					uniform sampler2D texUnit2;	\
-					uniform sampler2D texUnit3; \
-					uniform sampler2D texUnit4; \
-					uniform float newalpha;\
-					uniform float transPct;\
-					void main(void)\
-					{\
-						vec4 c1 = texture2D( texUnit1, gl_TexCoord[0].st );\
-						vec4 c2 = texture2D( texUnit2, gl_TexCoord[0].st );\
-						vec4 fc1 = mix( c1, c2, delta );\
-						\
-						c1 = texture2D( texUnit3, gl_TexCoord[0].st );\
-						c2 = texture2D( texUnit4, gl_TexCoord[0].st );\
-						vec4 fc2 = mix( c1, c2, delta );\
-						\
-						gl_FragColor = mix( fc1, fc2, transPct / 100.0 );\
-						gl_FragColor.a = newalpha;\
-					}";
-
-        //	Pixelshader to lerp between two textures.
-        static const char* linear_pixelshaderGL2DRect = "\
-					uniform float delta;\
-					uniform sampler2DRect texUnit1;	\
-					uniform sampler2DRect texUnit2;	\
-					uniform sampler2DRect texUnit3; \
-					uniform sampler2DRect texUnit4; \
-					uniform float newalpha;\
-					uniform float transPct;\
-					void main(void)\
-					{\
-						vec4 c1 = texture2DRect( texUnit1, gl_TexCoord[0].st );\
-						vec4 c2 = texture2DRect( texUnit2, gl_TexCoord[0].st );\
-						vec4 fc1 = mix( c1, c2, delta );\
-						\
-						c1 = texture2DRect( texUnit3, gl_TexCoord[0].st );\
-						c2 = texture2DRect( texUnit4, gl_TexCoord[0].st );\
-						vec4 fc2 = mix( c1, c2, delta );\
-						\
-						gl_FragColor = mix( fc1, fc2, transPct / 100.0 );\
-						gl_FragColor.a = newalpha;\
-					}";
 
         //	vertexshader...
         static const char* linear_vertexshader = "\
@@ -121,13 +76,6 @@ class CLinearFrameDisplay : public CFrameDisplay
             m_spShader = _spRenderer->NewShader(linear_vertexshader,
                                                 linear_pixelshaderDX);
             break;
-        case DisplayOutput::eGL:
-            m_spShader = _spRenderer->NewShader(
-                NULL, (_spRenderer->GetTextureTargetType() ==
-                       DisplayOutput::eTexture2DRect)
-                          ? linear_pixelshaderGL2DRect
-                          : linear_pixelshaderGL2D);
-            break;
         case DisplayOutput::eMetal:
             m_spShader = _spRenderer->NewShader(
                 "quadPassVertex", "drawDecodedFrameLinearFrameBlendFragment",
@@ -143,123 +91,44 @@ class CLinearFrameDisplay : public CFrameDisplay
 
     virtual ~CLinearFrameDisplay() {}
 
-    //	Decode a frame every 1/_fpsCap seconds, store the previous frame, and
-    // lerp between them.
-    virtual bool Update(ContentDecoder::spCContentDecoder _spDecoder,
-                        const double _decodeFps, const double /*_displayFps*/,
-                        ContentDecoder::sMetaData& _metadata)
+    virtual spCTextureFlat& RequestTargetTexture() override
     {
-        float currentalpha = m_LastAlpha;
-        bool frameGrabbed = false;
-        bool isSeam = false;
+        m_State ^= 1;
+        return m_spFrames[m_State];
+    }
 
-        if (m_bWaitNextFrame)
-        {
-            frameGrabbed =
-                GrabFrame(_spDecoder, m_spFrames[m_State],
-                          m_spFrames[m_State + kMaxFrames], _metadata);
-#if !defined(WIN32) && !defined(_MSC_VER) //@TODO: why is this check here?
-            if (!frameGrabbed)
-            {
-                return false;
-            }
-#endif
+    virtual uint32_t StartAtFrame() const override { return 1; }
 
-            if (frameGrabbed)
-            {
-                Reset();
-                m_bWaitNextFrame = false;
-            }
-        }
-        else
-        {
-            if (UpdateInterframeDelta(_decodeFps))
-            {
-                m_State ^= 1;
-
-                if (!GrabFrame(_spDecoder, m_spFrames[m_State],
-                               m_spFrames[m_State + kMaxFrames], _metadata))
-                {
-                    m_bWaitNextFrame = true;
-#if !defined(WIN32) && !defined(_MSC_VER)
-                    return false;
-#endif
-                }
-                else
-                    frameGrabbed = true;
-            }
-            else
-            {
-                currentalpha = (float)Base::Math::Clamped(
-                    m_LastAlpha +
-                        Base::Math::Clamped(m_InterframeDelta / m_FadeCount, 0.,
-                                            1. / m_FadeCount),
-                    0., 1.);
-            }
-        }
-
-        if (frameGrabbed)
-        {
-            m_MetaData = _metadata;
-            m_LastAlpha = m_MetaData.m_Fade;
-            currentalpha = m_LastAlpha;
-
-            isSeam = _metadata.m_IsSeam;
-        }
-
-        if (m_spFrames[m_State] != NULL)
+    virtual bool Draw(DisplayOutput::spCRenderer _spRenderer, float _alpha,
+                      double _interframeDelta) override
+    {
+        if (m_spFrames[m_State] != nullptr)
         {
             Base::Math::CRect texRect;
 
-            if (isSeam)
-            {
-                m_spFrames[!m_State] = m_spFrames[!m_State + kMaxFrames];
-
-                m_spFrames[!m_State + kMaxFrames] = NULL;
-            }
-
-            m_spRenderer->SetShader(m_spShader);
-            m_spRenderer->SetBlend("alphablend");
+            _spRenderer->SetShader(m_spShader);
+            _spRenderer->SetBlend("alphablend");
 
             //	Only one frame so far, let's display it normally.
-            if (m_spFrames[m_State ^ 1] == NULL)
+            if (m_spFrames[m_State ^ 1] == nullptr)
             {
                 //	Bind texture and render a quad covering the screen.
-                m_spRenderer->SetTexture(m_spFrames[m_State], 1);
-                m_spRenderer->SetTexture(m_spFrames[m_State], 2);
-
-                if (m_spFrames[m_State + kMaxFrames])
-                {
-                    m_spRenderer->SetTexture(m_spFrames[m_State + kMaxFrames],
-                                             2);
-                    m_spRenderer->SetTexture(m_spFrames[m_State + kMaxFrames],
-                                             3);
-                }
+                _spRenderer->SetTexture(m_spFrames[m_State], 1);
+                _spRenderer->SetTexture(m_spFrames[m_State], 2);
             }
             else
             {
-                m_spRenderer->SetTexture(m_spFrames[0], (m_State ^ 1) + 1);
-                m_spRenderer->SetTexture(m_spFrames[1], m_State + 1);
-
-                if (m_spFrames[m_State + kMaxFrames])
-                {
-                    m_spRenderer->SetTexture(m_spFrames[2],
-                                             (m_State ^ 1) + kMaxFrames + 1);
-                    m_spRenderer->SetTexture(m_spFrames[3],
-                                             m_State + kMaxFrames + 1);
-                }
+                _spRenderer->SetTexture(m_spFrames[0], (m_State ^ 1) + 1);
+                _spRenderer->SetTexture(m_spFrames[1], m_State + 1);
             }
             texRect = m_spFrames[m_State]->GetRect();
-            m_spShader->Set("delta", (float)m_InterframeDelta);
-            m_spShader->Set("newalpha", (float)currentalpha);
-            m_spShader->Set("transPct", m_MetaData.m_TransitionProgress);
-            m_spRenderer->Apply();
+            m_spShader->Set("delta", (float)_interframeDelta);
+            _spRenderer->Apply();
 
-            UpdateTexRect(texRect);
+            ScrollVideoForNonMatchingAspectRatio(texRect);
 
-            m_spRenderer->DrawQuad(m_texRect,
-                                   Base::Math::CVector4(1, 1, 1, currentalpha),
-                                   texRect);
+            _spRenderer->DrawQuad(
+                m_texRect, Base::Math::CVector4(1, 1, 1, _alpha), texRect);
         }
 
         return true;

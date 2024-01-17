@@ -32,195 +32,34 @@
 namespace ContentDownloader
 {
 
-//
-// Description:
-//		This class will represent a sheep as it exists
-// on the server or on the client. It has methods to
-// get and set different aspects of a sheep
-//
-class Dream
+enum eDreamFlags : uint8_t
 {
-  public:
-    // Default constructor
-    //
-    Dream();
+    DREAM_FLAG_NONE = 0,
+    DREAM_FLAG_DOWNLOADED = 1,
+    DREAM_FLAG_DELETED = 2
+};
+DEFINE_ENUM_FLAG_OPERATORS(eDreamFlags);
 
-    // Copy Constructor
-    //
-    Dream(const Dream& sheep);
-
-    // Destructor
-    //
-    ~Dream();
-
-    // sets the URL that this sheep lives at
-    //
-    void setURL(const char* url);
-
-    // returns the URL that the sheep lives at
-    //
-    const char* URL() const { return fURL; }
-
-    // Sets the current rating of the sheep on the server
-    //
-    void setRating(const int& rating) { fRating = rating; }
-
-    // gets the current rating of the sheep
-    //
-    int rating() const { return fRating; }
-
-    // Sets the sheep file size on the server
-    //
-    void setFileSize(const uint64_t& size) { fFileSize = size; }
-
-    // gets the sheep file size
-    //
-    uint64_t fileSize() const { return fFileSize; }
-
-    // Sets the sheep file name
-    //
-    void setFileName(const char* name);
-
-    // gets the sheep file name
-    //
-    const char* fileName() const { return fFileName; }
-
-    // Sets the sheep UUID
-    //
-    void setUuid(const char* uuid);
-
-    // gets the sheep UUID
-    //
-    const char* uuid() const { return fUuid; }
-
-    // Sets the sheep author
-    //
-    void setAuthor(const char* author);
-
-    // gets the sheep author
-    //
-    const char* author() const { return fAuthor; }
-
-    // Sets the sheep name
-    //
-    void setName(const char* _name);
-
-    // gets the sheep name
-    //
-    const char* name() const { return fName; }
-
-    // sets the file write time
-    //
-    void setFileWriteTime(const time_t& time) { fWriteTime = time; }
-
-    void setFileWriteTime(const char* timeString);
-
-    // gets the file write time
-    //
-    time_t fileWriteTime() const { return fWriteTime; }
-
-    // sets the sheep id
-    //
-    void setId(const uint32_t& id) { fSheepId = id; }
-
-    // gets the sheep id
-    //
-    uint32_t id() const { return fSheepId; }
-
-    // sets the the sheep that transitions into this sheep
-    //
-    void setFirstId(const uint32_t& first) { fFirst = first; }
-
-    // gets the sheep that transitions into this sheep
-    //
-    uint32_t firstId() const { return fFirst; }
-
-    // sets the sheep that this sheep should transistion
-    // into
-    //
-    void setLastId(const uint32_t& last) { fLast = last; }
-
-    // gets the sheep that this sheep should transition into
-    //
-    uint32_t lastId() const { return fLast; }
-
-    // sets whether or not this sheep has been deleted from the
-    // server
-    //
-    void setDeleted(const bool& state) { fDeleted = state; }
-
-    // gets if the sheep has been deleted from the server
-    //
-    bool deleted() const { return fDeleted; }
-
-    // set the sheep type
-    //
-    void setType(const int& type) { fType = type; }
-
-    // returns the sheep type
-    //
-    int type() const { return fType; }
-
-    // sets whether or not the sheep has been downloaded
-    //
-    void setDownloaded(const bool& state) { fDownloaded = state; }
-
-    // returns if the sheep has been downloaded
-    //
-    bool downloaded() const { return fDownloaded; }
-
-    // set the sheep generation
-    //
-    void setGeneration(const uint32_t& gen) { fGeneration = gen; }
-
-    // returns the sheep generation
-    //
-    uint32_t generation() const { return fGeneration; }
-
-    // returns sheep generation type (currently 0 - normal, 1 - gold)
-    int getGenerationType() const
-    {
-        if (generation() < 10000)
-            return 0;
-        else
-            return 1;
-    }
-
-    // sets if the sheep is a tmp file
-    // which means it is either being downloaded
-    // or was left from the last download process
-    //
-    void setIsTemp(const bool& isTemp) { fIsTemp = isTemp; }
-
-    // returns if the sheep is a tmp sheep
-    //
-    bool isTemp() const { return fIsTemp; }
-
-  private:
-    // private memeber data
-    //
-    char* fURL;
-    char* fFileName;
-    char* fUuid;
-    char* fAuthor;
-    char* fName;
-    uint64_t fFileSize;
-    time_t fWriteTime;
-    int fRating;
-    uint32_t fSheepId;
-    uint32_t fFirst;
-    uint32_t fLast;
-    int fType;
-    bool fDeleted;
-    bool fDownloaded;
-    uint32_t fGeneration;
-    bool fIsTemp;
+struct sDreamMetadata
+{
+    std::string url;
+    std::string fileName;
+    std::string uuid;
+    std::string author;
+    std::string name;
+    uint64_t fileSize;
+    uint32_t id;
+    time_t writeTime;
+    eDreamFlags flags = DREAM_FLAG_NONE;
+    float activityLevel = 1.f;
+    int rating;
+    void setFileWriteTime(const std::string& timeString);
 };
 
 struct SheepArray
 {
     typedef std::string_view key_type;
-    typedef Dream* mapped_type;
+    typedef sDreamMetadata* mapped_type;
     typedef std::vector<mapped_type>::iterator iterator;
 
     std::vector<mapped_type> vecData;
@@ -230,11 +69,11 @@ struct SheepArray
     iterator end() { return vecData.end(); }
     size_t size() { return vecData.size(); }
 
-    Dream*& operator[](size_t i) { return vecData[i]; }
+    sDreamMetadata*& operator[](size_t i) { return vecData[i]; }
 
-    Dream* operator[](key_type key) { return mapData[key]; }
+    sDreamMetadata* operator[](key_type key) { return mapData[key]; }
 
-    bool tryGetSheepWithUuid(key_type key, Dream*& outSheep) const
+    bool tryGetSheepWithUuid(key_type key, sDreamMetadata*& outSheep) const
     {
         auto i = mapData.find(key);
         if (i == mapData.end())
@@ -243,9 +82,9 @@ struct SheepArray
         return true;
     }
 
-    void push_back(Dream* sheep)
+    void push_back(sDreamMetadata* sheep)
     {
-        key_type key{sheep->uuid()};
+        key_type key{sheep->uuid};
         mapData[key] = sheep;
         vecData.push_back(sheep);
     }

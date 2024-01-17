@@ -10,6 +10,7 @@
 #include "Networking.h"
 #include "PlayCounter.h"
 #include "Player.h"
+#include "Clip.h"
 #include "Settings.h"
 #include "base.h"
 #include "clientversion.h"
@@ -29,6 +30,7 @@
 #include "Timer.h"
 #include "Voting.h"
 #include "PlatformUtils.h"
+#include "StringFormat.h"
 
 #if defined(WIN32) && defined(_MSC_VER)
 #include "../msvc/cpu_usage_win32.h"
@@ -100,10 +102,6 @@ class CElectricSheep
     Hud::spCCrossFade m_spCrossFade;
 
     std::deque<std::string> m_ConnectionErrors;
-
-    uint32_t m_curPlayingID;
-    uint32_t m_curPlayingGen;
-    uint64_t m_lastPlayedSeconds;
 
 #ifdef DO_THREAD_UPDATE
     boost::barrier* m_pUpdateBarrier;
@@ -212,10 +210,6 @@ class CElectricSheep
 #ifdef DO_THREAD_UPDATE
         CreateUpdateThreads();
 #endif
-
-        m_curPlayingID = 0;
-        m_curPlayingGen = 0;
-        m_lastPlayedSeconds = 0;
 
         //	Set framerate.
         m_PlayerFps = g_Settings()->Get("settings.player.player_fps", 20.);
@@ -837,72 +831,41 @@ class CElectricSheep
                 else
                     ContentDownloader::Shepherd::SetRenderingAllowed(true);
 
+                const ContentDecoder::CClip::sClipMetadata* metadata =
+                    g_Player().GetCurrentPlayingClipMetadata();
+
                 //	Update some stats.
                 Hud::spCStatsConsole spStats =
                     std::dynamic_pointer_cast<Hud::CStatsConsole>(
                         m_HudManager->Get("dreamstats"));
                 std::stringstream decodefpsstr;
                 decodefpsstr.precision(2);
-                decodefpsstr << std::fixed << m_CurrentFps << " fps";
+                double realFps = m_CurrentFps;
+                std::string activityLevelString;
+                if (metadata)
+                {
+                    realFps /= metadata->dreamData.activityLevel;
+                    activityLevelString =
+                        string_format("\nActivity level: %.2f",
+                                      metadata->dreamData.activityLevel);
+                }
+                decodefpsstr << std::fixed << realFps << " fps"
+                             << activityLevelString;
                 ((Hud::CStringStat*)spStats->Get("decodefps"))
                     ->SetSample(decodefpsstr.str());
                 ((Hud::CIntCounter*)spStats->Get("displayfps"))->AddSample(1);
 
-                uint32_t playingID = g_Player().GetCurrentPlayingSheepID();
-                uint32_t playingGen =
-                    g_Player().GetCurrentPlayingSheepGeneration();
-                uint16_t playCnt =
-                    g_PlayCounter().PlayCount(playingGen, playingID) - 1;
-
-                char strCurID[256];
-                if (m_curPlayingID != playingID ||
-                    m_curPlayingGen != playingGen)
-                {
-                    if (playCnt > 0)
-                    {
-                        time_t lastatime = g_Player().GetCurrentPlayingatime();
-                        time_t currenttime = time(NULL);
-                        m_lastPlayedSeconds =
-                            (uint64_t)floor(difftime(currenttime, lastatime));
-                    }
-                    else
-                        m_lastPlayedSeconds = 0;
-
-                    m_curPlayingID = playingID;
-                    m_curPlayingGen = playingGen;
-                }
-
-                char playCntStr[128];
-
-                if (playCnt > 0)
-                    sprintf(playCntStr,
-                            "Played: %hu time%s %s\nLast time: %s ago", playCnt,
-                            (playCnt == 1) ? "" : "s",
-                            (g_PlayCounter().ReadOnlyPlayCounts())
-                                ? " (not updated, read-only instance)"
-                                : "",
-                            FormatTimeDiff(m_lastPlayedSeconds, false).c_str());
-                else
-                    strcpy(playCntStr, "Playing for the first time");
-
-                snprintf(strCurID, 256, "#%d.%05d (%s)\n%s\n",
-                         g_Player().GetCurrentPlayingGeneration(), playingID,
-                         g_Player().IsCurrentPlayingEdge() ? "edge" : "loop",
-                         playCntStr);
-                if (playingID != 0)
-                    ((Hud::CStringStat*)spStats->Get("currentid"))
-                        ->SetSample(strCurID);
-
                 spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
                     m_HudManager->Get("dreamcredits"));
-                std::string dreamName = g_Player().GetCurrentPlayingDreamName();
-                std::string dreamAuthor =
-                    g_Player().GetCurrentPlayingDreamAuthor();
-
-                char buf[1024];
-                snprintf(buf, sizeof(buf), "%s - %s", dreamAuthor.c_str(),
-                         dreamName.c_str());
-                ((Hud::CStringStat*)spStats->Get("credits"))->SetSample(buf);
+                if (metadata)
+                {
+                    ((Hud::CStringStat*)spStats->Get("credits"))
+                        ->SetSample(
+                            string_format("%s - %s",
+                                          metadata->dreamData.author.data(),
+                                          metadata->dreamData.name.data())
+                                .data());
+                }
                 //	Serverstats.
                 spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
                     m_HudManager->Get("dreamstats"));
@@ -910,50 +873,21 @@ class CElectricSheep
                 //    Prettify uptime.
                 uint64_t uptime = (uint64_t)m_Timer.Time();
 
-                char strHP[128];
-                snprintf(strHP, 127, "%s",
-                         FormatTimeDiff(uptime, true).c_str());
-                ((Hud::CStringStat*)spStats->Get("uptime"))->SetSample(strHP);
+                ((Hud::CStringStat*)spStats->Get("uptime"))
+                    ->SetSample(FormatTimeDiff(uptime, true));
                 if (m_CpuUsageTotal != -1 && m_CpuUsageES != -1)
                 {
-                    std::stringstream temp;
-                    temp << m_CpuUsageES << "%/" << m_CpuUsageTotal << "% ";
                     ((Hud::CStringStat*)spStats->Get("zzacpu"))
-                        ->SetSample(temp.str());
+                        ->SetSample(string_format("%i\%/%i\%", m_CpuUsageES,
+                                                  m_CpuUsageTotal));
                     EDreamClient::SetCPUUsage(m_CpuUsageES);
                 }
 
                 std::stringstream tmpstr;
-                uint64_t flockcount = 0;
-                uint64_t flockmbs = 0;
-                uint64_t flockcountfree =
+                uint64_t flockcount =
                     ContentDownloader::Shepherd::getClientFlockCount(0);
-                uint64_t flockcountgold =
-                    ContentDownloader::Shepherd::getClientFlockCount(1);
-                uint64_t flockmbsfree =
+                uint64_t flockmbs =
                     ContentDownloader::Shepherd::getClientFlockMBs(0);
-                uint64_t flockmbsgold =
-                    ContentDownloader::Shepherd::getClientFlockMBs(1);
-                switch (g_Player().UsedSheepType())
-                {
-                case 0: // only gold, if any
-                {
-                    flockcount = flockcountgold;
-                    flockmbs = flockmbsgold;
-
-                    flockcount += flockcountfree;
-                    flockmbs += flockmbsfree;
-                }
-                break;
-                case 1: // free sheep only
-                    flockcount = flockcountfree;
-                    flockmbs = flockmbsfree;
-                    break;
-                case 2: // all sheep
-                    flockcount = flockcountfree + flockcountgold;
-                    flockmbs = flockmbsfree + flockmbsgold;
-                    break;
-                };
                 tmpstr << flockcount << " dream" << (flockcount > 1 ? "s" : "")
                        << ", " << flockmbs << "MB";
                 ((Hud::CStringStat*)spStats->Get("all"))
@@ -1069,14 +1003,14 @@ class CElectricSheep
             {
                 //	Vote for sheep.
             case DisplayOutput::CKeyEvent::KEY_UP:
-                if (m_pVoter != NULL &&
+                /*if (m_pVoter != NULL &&
                     m_pVoter->Vote(g_Player().GetCurrentPlayingID(), true,
                                    voteDelaySeconds))
                     m_HudManager->Add("splash_pos", m_spSplashPos,
-                                      voteDelaySeconds * 0.9f);
+                                      voteDelaySeconds * 0.9f);*/
                 break;
             case DisplayOutput::CKeyEvent::KEY_DOWN:
-                if (m_pVoter != NULL &&
+                /*if (m_pVoter != NULL &&
                     m_pVoter->Vote(g_Player().GetCurrentPlayingID(), false,
                                    voteDelaySeconds))
                 {
@@ -1090,7 +1024,7 @@ class CElectricSheep
 
                     m_HudManager->Add("splash_pos", m_spSplashNeg,
                                       voteDelaySeconds * 0.9f);
-                }
+                }*/
                 break;
                 //	Repeat current sheep
             case DisplayOutput::CKeyEvent::KEY_LEFT:
@@ -1102,7 +1036,7 @@ class CElectricSheep
                 break;
                 //	Repeat sheep
             case DisplayOutput::CKeyEvent::KEY_F8:
-                g_Player().RepeatSheep();
+                g_Player().RepeatClip();
                 break;
             case DisplayOutput::CKeyEvent::KEY_A:
                 g_Player().SkipForward(-10);

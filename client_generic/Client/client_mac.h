@@ -162,7 +162,7 @@ class CElectricSheep_Mac : public CElectricSheep
             DestroyUpdateThreads();
 #endif
 
-            g_Player().AddDisplay(_context);
+            g_Player().AddDisplay(0, _context);
 
 #ifdef DO_THREAD_UPDATE
             CreateUpdateThreads();
@@ -208,29 +208,16 @@ class CElectricSheep_Mac : public CElectricSheep
 
         std::vector<CGraphicsContext>::const_iterator it =
             m_graphicsContextList.begin();
-
+        uint32_t i = 0;
         for (; it != m_graphicsContextList.end(); it++)
         {
-            g_Player().AddDisplay(*it);
+            g_Player().AddDisplay(i++, *it);
         }
 
         m_graphicsContextList.clear();
 
         // check the exclusive file lock to see if we are running alone...
         std::string lockfile = m_AppData + ".instance-lock";
-    /*
-        NSTask *task = [[NSTask alloc] init];
-        [task setLaunchPath:@"/usr/bin/pkill"];
-        [task setArguments:@[processName]];
-
-        // Launch the task
-        [task launch];
-        [task waitUntilExit];
-     // Check the exit status
-        int status = [task terminationStatus];*/
-        
-        //kill(55432, SIGTERM);
-
 
         m_lckFile =
             open(lockfile.c_str(), O_WRONLY + O_EXLOCK + O_NONBLOCK + O_CREAT,
@@ -259,8 +246,6 @@ class CElectricSheep_Mac : public CElectricSheep
         using namespace DisplayOutput;
 
         PROFILER_BEGIN("Render Frame");
-
-        g_Player().Framerate(m_CurrentFps);
 
         if (!CElectricSheep::Update(_beginFrameBarrier, _endFrameBarrier))
             return false;

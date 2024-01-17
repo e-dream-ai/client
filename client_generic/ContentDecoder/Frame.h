@@ -34,21 +34,19 @@ class CVideoFrame;
 
 MakeSmartPointers(CVideoFrame);
 
-struct sMetaData
+struct sFrameMetadata
 {
-    float m_Fade;
-    std::string m_FileName;
-    std::string m_Name;
-    std::string m_Author;
-    uint32_t m_SheepID;
-    uint32_t m_SheepGeneration;
-    time_t m_LastAccessTime;
-    bool m_IsEdge;
-    spCVideoFrame m_SecondFrame;
-    bool m_IsSeam;
-    float m_TransitionProgress;
-    uint32_t m_FrameIdx;
-    uint32_t m_MaxFrameIdx;
+    float fade;
+    std::string fileName;
+    std::string name;
+    std::string author;
+    uint32_t sheepID;
+    uint32_t sheepGeneration;
+    bool isSeam;
+    float transitionProgress;
+    float decodeFps;
+    uint32_t frameIdx;
+    uint32_t maxFrameIdx;
 };
 
 /*
@@ -63,7 +61,7 @@ class CVideoFrame
     uint32_t m_Height;
     int64_t m_FrameNumber;
 
-    sMetaData m_MetaData;
+    sFrameMetadata m_MetaData;
 
     Base::spCAlignedBuffer m_spBuffer;
     AVFrame* m_pFrame;
@@ -77,17 +75,14 @@ class CVideoFrame
         if (_pCodecContext == NULL)
             g_Log->Info("_pCodecContext == NULL");
 
-        m_MetaData.m_Fade = 1.f;
-        m_MetaData.m_FileName = _filename;
-        m_MetaData.m_LastAccessTime = 0;
-        m_MetaData.m_SheepID = 0;
-        m_MetaData.m_SheepGeneration = 0;
-        m_MetaData.m_Name = "";
-        m_MetaData.m_Author = "";
-        m_MetaData.m_IsEdge = false;
-        m_MetaData.m_IsSeam = false;
-        m_MetaData.m_SecondFrame = NULL;
-        m_MetaData.m_TransitionProgress = 0.f;
+        m_MetaData.fade = 1.f;
+        m_MetaData.fileName = _filename;
+        m_MetaData.sheepID = 0;
+        m_MetaData.sheepGeneration = 0;
+        m_MetaData.name = "";
+        m_MetaData.author = "";
+        m_MetaData.isSeam = false;
+        m_MetaData.transitionProgress = 0.f;
 
         m_Width = static_cast<uint32_t>(_pCodecContext->width);
         m_Height = static_cast<uint32_t>(_pCodecContext->height);
@@ -122,17 +117,14 @@ class CVideoFrame
         m_pFrame = av_frame_alloc();
         m_FrameNumber = _frameNumber;
         av_frame_ref(m_pFrame, _pFrame);
-        m_MetaData.m_Fade = 1.f;
-        m_MetaData.m_FileName = _filename;
-        m_MetaData.m_LastAccessTime = 0;
-        m_MetaData.m_SheepID = 0;
-        m_MetaData.m_SheepGeneration = 0;
-        m_MetaData.m_Name = "";
-        m_MetaData.m_Author = "";
-        m_MetaData.m_IsEdge = false;
-        m_MetaData.m_IsSeam = false;
-        m_MetaData.m_SecondFrame = NULL;
-        m_MetaData.m_TransitionProgress = 0.f;
+        m_MetaData.fade = 1.f;
+        m_MetaData.fileName = _filename;
+        m_MetaData.sheepID = 0;
+        m_MetaData.sheepGeneration = 0;
+        m_MetaData.name = "";
+        m_MetaData.author = "";
+        m_MetaData.isSeam = false;
+        m_MetaData.transitionProgress = 0.f;
         m_Width = static_cast<uint32_t>(_pFrame->width);
         m_Height = static_cast<uint32_t>(_pFrame->height);
         m_spBuffer = nullptr;
@@ -155,68 +147,53 @@ class CVideoFrame
 
     int64_t GetFrameNumber() const { return m_FrameNumber; }
 
-    inline void GetMetaData(sMetaData& _metadata) { _metadata = m_MetaData; }
+    inline const sFrameMetadata& GetMetaData() { return m_MetaData; }
 
-    inline void SetMetaData_Fade(float _fade) { m_MetaData.m_Fade = _fade; }
+    inline void SetMetaData_Fade(float _fade) { m_MetaData.fade = _fade; }
 
     inline void SetMetaData_FileName(std::string _filename)
     {
-        m_MetaData.m_FileName = _filename;
+        m_MetaData.fileName = _filename;
     }
 
     inline void SetMetaData_SheepID(uint32_t _sheepid)
     {
-        m_MetaData.m_SheepID = _sheepid;
+        m_MetaData.sheepID = _sheepid;
     }
 
-    inline void SetMetaData_SheepGeneration(uint32_t _sheepgeneration)
+    inline void SetMetaData_DecodeFps(float _decodeFps)
     {
-        m_MetaData.m_SheepGeneration = _sheepgeneration;
+        m_MetaData.decodeFps = _decodeFps;
     }
 
     inline void SetMetaData_DreamName(const std::string& _name)
     {
-        m_MetaData.m_Name = _name;
+        m_MetaData.name = _name;
     }
 
     inline void SetMetaData_DreamAuthor(const std::string& _author)
     {
-        m_MetaData.m_Author = _author;
-    }
-
-    inline void SetMetaData_IsEdge(bool _isedge)
-    {
-        m_MetaData.m_IsEdge = _isedge;
-    }
-
-    inline void SetMetaData_atime(time_t _atime)
-    {
-        m_MetaData.m_LastAccessTime = _atime;
-    }
-
-    inline void SetMetaData_SecondFrame(CVideoFrame* pSecondFrame)
-    {
-        m_MetaData.m_SecondFrame = spCVideoFrame{pSecondFrame};
+        m_MetaData.author = _author;
     }
 
     inline void SetMetaData_IsSeam(bool bIsSeam)
     {
-        m_MetaData.m_IsSeam = bIsSeam;
+        m_MetaData.isSeam = bIsSeam;
     }
 
     inline void SetMetaData_TransitionProgress(float progress)
     {
-        m_MetaData.m_TransitionProgress = progress;
+        m_MetaData.transitionProgress = progress;
     }
 
     inline void SetMetaData_FrameIdx(uint32_t idx)
     {
-        m_MetaData.m_FrameIdx = idx;
+        m_MetaData.frameIdx = idx;
     }
 
     inline void SetMetaData_MaxFrameIdx(uint32_t idx)
     {
-        m_MetaData.m_MaxFrameIdx = idx;
+        m_MetaData.maxFrameIdx = idx;
     }
 
     inline uint32_t Width() { return m_Width; };

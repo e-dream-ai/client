@@ -42,6 +42,8 @@ class IStorageInterface
     virtual bool Set(std::string_view _entry, uint64_t _val) = PureVirtual;
     virtual bool Set(std::string_view _entry,
                      std::string_view _str) = PureVirtual;
+    virtual bool Set(std::string_view _entry,
+                     std::vector<std::string> _val) = PureVirtual;
 
     //	Get values.
     virtual bool Get(std::string_view _entry, bool& _ret) = PureVirtual;
@@ -49,6 +51,8 @@ class IStorageInterface
     virtual bool Get(std::string_view _entry, double& _ret) = PureVirtual;
     virtual bool Get(std::string_view _entry, uint64_t& _ret) = PureVirtual;
     virtual bool Get(std::string_view _entry, std::string& _ret) = PureVirtual;
+    virtual bool Get(std::string_view _entry,
+                     std::vector<std::string>& _ret) = PureVirtual;
 
     //	Remove node from storage.
     virtual bool Remove(std::string_view _entry) = PureVirtual;

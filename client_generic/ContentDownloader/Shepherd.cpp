@@ -378,16 +378,8 @@ bool Shepherd::getClientFlock(SheepArray* sheep)
     getSheep(mp4Path(), sheep, serverFlock);
     for (iter = sheep->begin(); iter != sheep->end(); ++iter)
     {
-        if ((*iter)->getGenerationType() == 0)
-        {
-            clientFlockBytes += (*iter)->fileSize();
-            ++clientFlockCount;
-        }
-        else if ((*iter)->getGenerationType() == 1)
-        {
-            clientFlockGoldBytes += (*iter)->fileSize();
-            ++clientFlockGoldCount;
-        }
+        clientFlockBytes += (*iter)->fileSize;
+        ++clientFlockCount;
     }
 
     s_ClientFlockBytes = clientFlockBytes;
@@ -444,13 +436,14 @@ bool Shepherd::getSheep(const char* path, SheepArray* sheep,
                 if (fileName.extension() == ".mp4")
                 {
                     std::string uuid = fileName.stem().string();
-                    Dream* serverSheep = nullptr;
+                    sDreamMetadata* serverSheep = nullptr;
                     if (serverFlock.tryGetSheepWithUuid(uuid, serverSheep))
                     {
-                        Dream* newSheep = new Dream(*serverSheep);
-                        newSheep->setFileName(itr->path().c_str());
-                        newSheep->setFileSize(
-                            boost::filesystem::file_size(itr->path()));
+                        sDreamMetadata* newSheep =
+                            new sDreamMetadata(*serverSheep);
+                        newSheep->fileName = itr->path().string();
+                        newSheep->fileSize =
+                            boost::filesystem::file_size(itr->path());
                         sheep->push_back(newSheep);
                         gotSheep = true;
                     }

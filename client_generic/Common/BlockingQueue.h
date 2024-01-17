@@ -21,6 +21,15 @@ template <typename T> class CBlockingQueue
 
     CBlockingQueue() { m_maxQueueElements = 0xFFFFFFFF; }
 
+    typename std::deque<T>::iterator begin() { return m_queue.begin(); }
+    typename std::deque<T>::const_iterator begin() const
+    {
+        return m_queue.begin();
+    }
+
+    typename std::deque<T>::iterator end() { return m_queue.end(); }
+    typename std::deque<T>::const_iterator end() const { return m_queue.end(); }
+
     bool push(const T& el, bool pushBack = true, bool checkMax = true)
     {
         writer_lock lock(m_mutex);
@@ -40,7 +49,7 @@ template <typename T> class CBlockingQueue
         return true;
     }
 
-    bool peek(T& el, bool wait = false, bool popFront = true)
+    bool peek(T& el, bool wait = false, bool peekFront = true)
     {
         upg_reader_lock lock(m_mutex);
 
@@ -58,7 +67,7 @@ template <typename T> class CBlockingQueue
                 return false;
         }
 
-        if (popFront)
+        if (peekFront)
         {
             el = m_queue.front();
             // m_queue.pop_front();
@@ -83,6 +92,12 @@ template <typename T> class CBlockingQueue
         reader_lock lock(m_mutex);
 
         el = m_queue[n];
+    }
+
+    bool pop(bool wait = false, bool popFront = true)
+    {
+        T el;
+        return pop(el, wait, popFront);
     }
 
     bool pop(T& el, bool wait = false, bool popFront = true)
@@ -171,6 +186,12 @@ template <typename T> class CBlockingQueue
 
         m_maxQueueElements = max;
     }
+    
+    size_t getMaxQueueElements() const
+    {
+        reader_lock lock(m_mutex);
+        return m_maxQueueElements;
+    }
 
     bool waitForEmpty()
     {
@@ -187,7 +208,7 @@ template <typename T> class CBlockingQueue
     }
 
   private:
-    boost::shared_mutex m_mutex;
+    mutable boost::shared_mutex m_mutex;
     boost::condition m_fullCond;
     boost::condition m_emptyCond;
     boost::condition m_nonEmptyCond;

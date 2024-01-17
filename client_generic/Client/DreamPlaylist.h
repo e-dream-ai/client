@@ -83,8 +83,7 @@ class CDreamPlaylist : public CPlaylist
     }
 
   public:
-    CDreamPlaylist(const std::string& _watchFolder)
-        : CPlaylist() /*, m_UsedSheepType(_usedsheeptype)*/
+    CDreamPlaylist(const std::string& _watchFolder) : CPlaylist()
     {
         m_NormalInterval =
             double(g_Settings()->Get("settings.player.NormalInterval", 100));
@@ -162,23 +161,34 @@ class CDreamPlaylist : public CPlaylist
             m_Clock = m_Timer.Time();
             auto allSheep =
                 ContentDownloader::SheepDownloader::getClientFlock();
-            std::vector<ContentDownloader::Dream*> sheepList;
+            std::vector<ContentDownloader::sDreamMetadata*> sheepList;
             for (auto it = allSheep.begin(); it != allSheep.end(); ++it)
             {
-                ContentDownloader::Dream* sheep = *it;
+                ContentDownloader::sDreamMetadata* sheep = *it;
                 sheepList.push_back(sheep);
             }
 
-            std::sort(
-                sheepList.begin(), sheepList.end(),
-                [](ContentDownloader::Dream* a, ContentDownloader::Dream* b)
-                { return a->fileWriteTime() > b->fileWriteTime(); });
+            std::sort(sheepList.begin(), sheepList.end(),
+                      [](ContentDownloader::sDreamMetadata* a,
+                         ContentDownloader::sDreamMetadata* b)
+                      { return a->writeTime > b->writeTime; });
             for (auto it = sheepList.begin(); it != sheepList.end(); ++it)
             {
-                ContentDownloader::Dream* sheep = *it;
-                std::string fileName = sheep->fileName();
-                m_List.push(fileName);
+                ContentDownloader::sDreamMetadata* sheep = *it;
+                m_List.push(sheep->fileName);
             }
+#ifdef DEBUG
+            std::vector<std::string> testVideos = g_Settings()->Get(
+                "settings.debug.test_playlist", std::vector<std::string>{});
+            if (testVideos.size() > 0)
+            {
+                Clear();
+                for (auto vid : testVideos)
+                {
+                    m_List.push(vid);
+                }
+            }
+#endif
         }
 
         if (m_List.empty())
@@ -192,34 +202,25 @@ class CDreamPlaylist : public CPlaylist
         return true;
     }
 
-    virtual bool GetDreamNameAndAuthor(const std::string& _filePath,
-                                       std::string* _outDreamName,
-                                       std::string* _outDreamAuthor)
+    virtual bool
+    GetDreamMetadata(std::string_view _filePath,
+                     ContentDownloader::sDreamMetadata** _outDreamPtr)
     {
-        auto allSheep = ContentDownloader::SheepDownloader::getClientFlock();
-        std::vector<ContentDownloader::Dream*> sheepList;
-        for (auto it = allSheep.begin(); it != allSheep.end(); ++it)
+        auto allDreams = ContentDownloader::SheepDownloader::getClientFlock();
+        for (auto it = allDreams.begin(); it != allDreams.end(); ++it)
         {
-            ContentDownloader::Dream* sheep = *it;
-            if (sheep->fileName() == _filePath)
+            ContentDownloader::sDreamMetadata* dream = *it;
+            if (dream->fileName == _filePath)
             {
-                *_outDreamName = sheep->name();
-                *_outDreamAuthor = sheep->author();
+                *_outDreamPtr = dream;
                 return true;
             }
         }
         return false;
     }
 
-    virtual bool ChooseSheepForPlaying(uint32_t curGen, uint32_t curID)
-    {
-        g_PlayCounter().IncPlayCount(curGen, curID);
-
-        return true;
-    }
-
     //	Overrides the playlist to play _id next time.
-    void Override(const uint32_t _id)
+    void Override(const uint32_t /*_id*/)
     {
         boost::mutex::scoped_lock locker(m_Lock);
         // m_pState->Pop( Base::Script::Call( m_pState->GetState(), "Override",
@@ -227,7 +228,7 @@ class CDreamPlaylist : public CPlaylist
     }
 
     //	Queues _id to be deleted.
-    void Delete(const uint32_t _id)
+    void Delete(const uint32_t /*_id*/)
     {
         boost::mutex::scoped_lock locker(m_Lock);
         // m_pState->Pop( Base::Script::Call( m_pState->GetState(), "Delete",

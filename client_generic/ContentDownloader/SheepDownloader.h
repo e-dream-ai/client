@@ -60,7 +60,7 @@ class SheepDownloader
 
   protected:
     //	Downloads the given sheep and queues it up for rendering.
-    bool downloadSheep(Dream* sheep);
+    bool downloadSheep(sDreamMetadata* sheep);
 
     //	Function to parse the cache and find a sheep to download.
     void findSheepToDownload();
@@ -94,7 +94,7 @@ class SheepDownloader
     //	Function to initialize the downloader threads
     static void initializeDownloader();
 
-    void deleteSheep(Dream* sheep);
+    void deleteSheep(sDreamMetadata* sheep);
 
     static bool fGotList;
 

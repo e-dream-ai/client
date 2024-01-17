@@ -1,6 +1,8 @@
 #ifndef _PLAYER_H_
 #define _PLAYER_H_
 
+#include <queue>
+
 #ifdef WIN32
 #include <d3d9.h>
 #include <d3dx9.h>
@@ -9,9 +11,11 @@
 #include "DisplayOutput.h"
 #include "FrameDisplay.h"
 #include "Renderer.h"
+#include "Playlist.h"
 #include "Settings.h"
 #include "Singleton.h"
 #include "Timer.h"
+#include "Clip.h"
 
 /**
         CPlayer.
@@ -19,6 +23,9 @@
 */
 class CPlayer : public Base::CSingleton<CPlayer>
 {
+    using sOpenVideoInfo = ContentDecoder::sOpenVideoInfo;
+    using sClipMetadata = ContentDecoder::CClip::sClipMetadata;
+
   public:
     typedef enum
     {
@@ -32,13 +39,11 @@ class CPlayer : public Base::CSingleton<CPlayer>
     {
         DisplayOutput::spCDisplayOutput spDisplay;
         DisplayOutput::spCRenderer spRenderer;
-        ContentDecoder::spCContentDecoder spDecoder;
-        spCFrameDisplay spFrameDisplay;
-        ContentDecoder::sMetaData m_MetaData; // current frame meta data
+        std::vector<ContentDecoder::spCClip> spClips;
     } DisplayUnit;
 
-    typedef std::vector<DisplayUnit*> DisplayUnitList;
-    typedef std::vector<DisplayUnit*>::iterator DisplayUnitIterator;
+    typedef std::vector<std::shared_ptr<DisplayUnit>> DisplayUnitList;
+    typedef DisplayUnitList::iterator DisplayUnitIterator;
 
     boost::mutex m_displayListMutex;
 
@@ -50,36 +55,28 @@ class CPlayer : public Base::CSingleton<CPlayer>
     //	No copy constructor or assignment operator.
     NO_CLASS_STANDARDS(CPlayer);
 
-    //	Videodecoder & framedisplay object.
-    ContentDecoder::spCContentDecoder m_spDecoder;
-
     DisplayUnitList m_displayUnits;
-
-    //	Playlist.
     ContentDecoder::spCPlaylist m_spPlaylist;
-
-    //	Timer.
     Base::CTimer m_Timer;
-
-    //	Goal decoding framerate.
-    double m_PlayerFps;
-
-    //	Goal display framerate;
+    double m_DecoderFps;
     double m_DisplayFps;
-
-    //	Fullscreen or not.
+    double m_TimelineTime;
+    double m_LastFrameRealTime;
     bool m_bFullscreen;
-
     bool m_InitPlayCounts;
+    Base::CBlockingQueue<std::string> m_NextClipInfoQueue;
+    Base::CBlockingQueue<std::string> m_ClipInfoHistoryQueue;
+    std::vector<ContentDecoder::spCClip> m_CurrentClips;
+    boost::mutex m_CurrentClipsMutex;
+    boost::thread* m_pNextClipThread;
+    boost::thread* m_pPlayQueuedClipsThread;
 
     MultiDisplayMode m_MultiDisplayMode;
 
-    bool m_bStarted;
+    boost::atomic<bool> m_bStarted;
 
     //	Used to keep track of elapsed time since last frame.
     double m_CapClock;
-
-    int m_UsedSheepType;
 
     boost::mutex m_updateMutex;
 
@@ -95,9 +92,6 @@ class CPlayer : public Base::CSingleton<CPlayer>
   private:
 #endif
 
-    ContentDecoder::CContentDecoder*
-    CreateContentDecoder(bool _bStartByRandom = false);
-
     void FpsCap(const double _cap);
 
   public:
@@ -111,9 +105,9 @@ class CPlayer : public Base::CSingleton<CPlayer>
     {
         DisplayOutput::spCDisplayOutput spDisplay = Display();
 
-        if (spDisplay == NULL)
+        if (spDisplay == nullptr)
         {
-            g_Log->Warning("m_spDisplay is NULL");
+            g_Log->Warning("m_spDisplay is nullptr");
             return true;
         }
 
@@ -127,20 +121,16 @@ class CPlayer : public Base::CSingleton<CPlayer>
     bool Update(uint32_t displayUnit, bool& bPlayNoSheepIntro);
     void Start();
     void Stop();
+    bool NextClipForPlaying(int32_t _forceNext);
+    void CalculateNextClipThread();
+    void PlayQueuedClipsThread();
+    sOpenVideoInfo* GetNextClipInfo();
 
-#ifdef MAC
-    bool AddDisplay(CGraphicsContext _grapicsContext);
-#else
-#ifdef WIN32
-    bool AddDisplay(uint32_t screen, IDirect3D9* _pIDirect3D9 = NULL,
+    bool AddDisplay(uint32_t screen, CGraphicsContext _grapicsContext,
                     bool _blank = false);
-#else
-    bool AddDisplay(uint32_t screen);
-#endif
-#endif
 
     inline void PlayCountsInitOff() { m_InitPlayCounts = false; };
-    inline void Framerate(const double _fps) { m_PlayerFps = _fps; };
+    void Framerate(const double _fps);
     inline void Fullscreen(const bool _bState) { m_bFullscreen = _bState; };
     inline bool Stopped() { return !m_bStarted; };
 
@@ -149,7 +139,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
         boost::mutex::scoped_lock lockthis(m_displayListMutex);
 
         if (du >= m_displayUnits.size())
-            return NULL;
+            return nullptr;
 
         return m_displayUnits[du]->spDisplay;
     }
@@ -158,67 +148,11 @@ class CPlayer : public Base::CSingleton<CPlayer>
     {
         boost::mutex::scoped_lock lockthis(m_displayListMutex);
 
-        return m_displayUnits.empty() ? NULL : m_displayUnits[0]->spRenderer;
+        return m_displayUnits.empty() ? nullptr : m_displayUnits[0]->spRenderer;
     }
 
-    inline ContentDecoder::spCContentDecoder Decoder()
-    {
-        boost::mutex::scoped_lock lockthis(m_displayListMutex);
-
-        if (m_MultiDisplayMode == kMDSharedMode)
-            return m_spDecoder;
-        else
-            return m_displayUnits.empty() ? NULL : m_displayUnits[0]->spDecoder;
-    }
-
-    //	Playlist stuff.
-    inline std::string GetCurrentPlayingSheepFile()
-    {
-        return m_displayUnits[0]->m_MetaData.m_FileName;
-    }
-    inline std::string GetCurrentPlayingDreamName()
-    {
-        return m_displayUnits[0]->m_MetaData.m_Name;
-    }
-    inline std::string GetCurrentPlayingDreamAuthor()
-    {
-        return m_displayUnits[0]->m_MetaData.m_Author;
-    }
-    inline uint32_t GetCurrentPlayingSheepID()
-    {
-        return m_displayUnits[0]->m_MetaData.m_SheepID;
-    };
-    inline uint32_t GetCurrentPlayingSheepGeneration()
-    {
-        return m_displayUnits[0]->m_MetaData.m_SheepGeneration;
-    };
-    inline time_t GetCurrentPlayingatime()
-    {
-        return m_displayUnits[0]->m_MetaData.m_LastAccessTime;
-    };
-    inline time_t IsCurrentPlayingEdge()
-    {
-        return m_displayUnits[0]->m_MetaData.m_IsEdge;
-    };
-    inline uint32_t GetCurrentPlayingID()
-    {
-        ContentDecoder::spCContentDecoder decoder = Decoder();
-
-        if (!decoder)
-            return 0;
-
-        return decoder->GetCurrentPlayingID();
-    };
-
-    inline uint32_t GetCurrentPlayingGeneration()
-    {
-        ContentDecoder::spCContentDecoder decoder = Decoder();
-
-        if (!decoder)
-            return 0;
-
-        return decoder->GetCurrentPlayingGeneration();
-    };
+    const ContentDecoder::CClip::sClipMetadata*
+    GetCurrentPlayingClipMetadata() const;
 
     inline void Add(const std::string& _fileName)
     {
@@ -230,57 +164,23 @@ class CPlayer : public Base::CSingleton<CPlayer>
         if (m_spPlaylist)
             m_spPlaylist->Delete(_id);
     };
-    inline void SkipToNext(void)
-    {
-        ContentDecoder::spCContentDecoder decoder = Decoder();
 
-        if (!decoder)
-            return;
-
-        decoder->ForceNext();
-    }
-
-    inline void ReturnToPrevious(void)
-    {
-        ContentDecoder::spCContentDecoder decoder = Decoder();
-
-        if (!decoder)
-            return;
-
-        decoder->ForceNext(-2);
-    }
-
-    inline void SkipForward(float _seconds)
-    {
-        ContentDecoder::spCContentDecoder decoder = Decoder();
-
-        if (!decoder)
-            return;
-
-        decoder->SkipForward(_seconds);
-    }
-
-    inline void RepeatSheep(void)
-    {
-        ContentDecoder::spCContentDecoder decoder = Decoder();
-
-        if (!decoder)
-            return;
-
-        decoder->ForceNext(-1);
-    }
-
-    inline void SetMultiDisplayMode(MultiDisplayMode mode)
+    void SkipToNext();
+    void ReturnToPrevious();
+    void SkipForward(float _seconds);
+    void RepeatClip() {}
+    /// Sets up a clip for playing, that will start playing at startTimelineTime
+    /// Returns true if the file was loaded successfully
+    bool PlayClip(std::string_view _clipPath, double _startTimelineTime,
+                  int64_t _seekFrame = 1);
+    void SetMultiDisplayMode(MultiDisplayMode mode)
     {
         m_MultiDisplayMode = mode;
     }
-    inline int UsedSheepType() { return m_UsedSheepType; }
-
-    inline uint32_t GetDisplayCount()
+    uint32_t GetDisplayCount()
     {
         return static_cast<uint32_t>(m_displayUnits.size());
     }
-
     void ForceWidthAndHeight(uint32_t du, uint32_t _w, uint32_t _h);
 };
 

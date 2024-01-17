@@ -48,7 +48,6 @@ enum eRenderLimits
 enum eRenderType
 {
     eDX9,
-    eGL,
     eMetal,
 };
 
@@ -109,7 +108,8 @@ MakeSmartPointers(CBlend);
 class CRenderer
 {
   protected:
-    spCTexture *m_aspActiveTextures, *m_aspSelectedTextures;
+    spCTexture m_aspActiveTextures[MAX_TEXUNIT];
+    spCTexture m_aspSelectedTextures[MAX_TEXUNIT];
     spCShader m_spActiveShader, m_spSelectedShader;
     spCBlend m_spActiveBlend, m_spSelectedBlend, m_spDefaultBlend;
 

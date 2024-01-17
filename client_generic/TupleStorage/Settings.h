@@ -20,8 +20,6 @@ class CSettings : public Base::CSingleton<CSettings>
 {
     friend class Base::CSingleton<CSettings>;
 
-    boost::mutex m_Lock;
-
     //	Private constructor accessible only to CSingleton.
     CSettings() { m_pStorage = NULL; }
 
@@ -79,43 +77,35 @@ class CSettings : public Base::CSingleton<CSettings>
     {
         if (!m_pStorage)
             return;
-        boost::mutex::scoped_lock locker(m_Lock);
         m_pStorage->Set(_url, _value);
     }
     void Set(std::string_view _url, const int32_t _value)
     {
         if (!m_pStorage)
             return;
-        boost::mutex::scoped_lock locker(m_Lock);
         m_pStorage->Set(_url, _value);
     }
     void Set(std::string_view _url, const double _value)
     {
         if (!m_pStorage)
             return;
-        boost::mutex::scoped_lock locker(m_Lock);
         m_pStorage->Set(_url, _value);
     }
     void Set(std::string_view _url, const uint64_t _value)
     {
         if (!m_pStorage)
             return;
-        boost::mutex::scoped_lock locker(m_Lock);
         m_pStorage->Set(_url, _value);
     }
     void Set(std::string_view _url, std::string_view _value)
     {
         if (!m_pStorage)
             return;
-        boost::mutex::scoped_lock locker(m_Lock);
         m_pStorage->Set(_url, _value);
     }
 
-    //	Return boolean.
     bool Get(std::string_view _url, const bool _default = false)
     {
-        boost::mutex::scoped_lock locker(m_Lock);
-
         bool ret = _default;
         if (m_pStorage && !m_pStorage->Get(_url, ret))
         {
@@ -126,11 +116,8 @@ class CSettings : public Base::CSingleton<CSettings>
         return ret;
     }
 
-    //	Return 32bit integer.
     int32_t Get(std::string_view _url, const int32_t _default = 0)
     {
-        boost::mutex::scoped_lock locker(m_Lock);
-
         int32_t ret = _default;
         if (m_pStorage && !m_pStorage->Get(_url, ret))
         {
@@ -141,11 +128,8 @@ class CSettings : public Base::CSingleton<CSettings>
         return ret;
     }
 
-    //	Return double precision floating point.
     double Get(std::string_view _url, const double _default = 0.0)
     {
-        boost::mutex::scoped_lock locker(m_Lock);
-
         double ret = _default;
         if (m_pStorage && !m_pStorage->Get(_url, ret))
         {
@@ -156,11 +140,8 @@ class CSettings : public Base::CSingleton<CSettings>
         return ret;
     }
 
-    //    Return 64bit unsigned integer.
     uint64_t Get(std::string_view _url, const uint64_t _default = 0)
     {
-        boost::mutex::scoped_lock locker(m_Lock);
-
         uint64_t ret = _default;
         if (m_pStorage && !m_pStorage->Get(_url, ret))
         {
@@ -171,12 +152,9 @@ class CSettings : public Base::CSingleton<CSettings>
         return ret;
     }
 
-    //	Return string.
     std::string Get(std::string_view _url,
                     const std::string_view _default = nullptr)
     {
-        boost::mutex::scoped_lock locker(m_Lock);
-
         std::string ret;
         if (m_pStorage && !m_pStorage->Get(_url, ret))
         {
@@ -187,10 +165,22 @@ class CSettings : public Base::CSingleton<CSettings>
         return ret;
     }
 
-    //	Direct access to storage.
+    std::vector<std::string> Get(std::string_view _url,
+                                 const std::vector<std::string> _default = {})
+    {
+        std::vector<std::string> ret = _default;
+        if (m_pStorage && !m_pStorage->Get(_url, ret))
+        {
+            m_pStorage->Set(_url, _default);
+            m_pStorage->Commit();
+        }
+        return ret;
+    }
+
+    ///	Direct access to storage.
     TupleStorage::IStorageInterface* Storage() { return m_pStorage; }
 
-    //	Singleton instance method.
+    ///	Singleton instance method.
     __attribute__((no_instrument_function)) static CSettings* Instance()
     {
         static CSettings storage;

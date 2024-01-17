@@ -9,7 +9,6 @@
 #include "Exception.h"
 #include "Log.h"
 #include "MathBase.h"
-#include "RendererMetal.h"
 #include "TextureFlatMetal.h"
 #include "base.h"
 
@@ -34,13 +33,9 @@
 namespace DisplayOutput
 {
 
-/*
- */
 CTextureFlatMetal::CTextureFlatMetal(CGraphicsContext _graphicsContext,
-                                     const uint32_t _flags,
-                                     CRendererMetal* _pRenderer)
-    : CTextureFlat(_flags), m_pGraphicsContext(_graphicsContext),
-      m_pRenderer(_pRenderer)
+                                     const uint32_t _flags)
+    : CTextureFlat(_flags), m_pGraphicsContext(_graphicsContext)
 {
     TextureFlatMetalContext* textureContext = [[TextureFlatMetalContext alloc]
         init]; //@TODO: check what all these textures are
@@ -164,38 +159,6 @@ bool CTextureFlatMetal::Upload(const uint8_t* _data, CImageFormat _format,
     return true;
 }
 
-/*
- */
-bool CTextureFlatMetal::Bind(const uint32_t _index)
-{
-    m_pRenderer->SetBoundSlot(_index, this);
-    return true;
-}
-
-/*
- */
-bool CTextureFlatMetal::Unbind(const uint32_t _index) { return true; }
-
-bool CTextureFlatMetal::GetYUVMetalTextures(CVMetalTextureRef* _outYTexture,
-                                            CVMetalTextureRef* _outUVTexture)
-{
-    if (m_spBoundFrame == NULL)
-        return false;
-    MTKView* view = (__bridge MTKView*)m_pGraphicsContext;
-    const uint32_t kAVFrameDataPixelBufferIndex = 3;
-    if (m_spBoundFrame->Frame() == NULL)
-    {
-        g_Log->Error("THIS SHOULDN'T BE NULL");
-    }
-    CVPixelBufferRef pixelBuffer = (CVPixelBufferRef)m_spBoundFrame->Frame()
-                                       ->data[kAVFrameDataPixelBufferIndex];
-    m_pRenderer->CreateMetalTextureFromDecoderFrame(pixelBuffer, _outYTexture,
-                                                    0);
-    m_pRenderer->CreateMetalTextureFromDecoderFrame(pixelBuffer, _outUVTexture,
-                                                    1);
-    return true;
-}
-
 id<MTLTexture> CTextureFlatMetal::GetRGBMetalTexture()
 {
     TextureFlatMetalContext* textureContext =
@@ -210,14 +173,22 @@ CVMetalTextureRef CTextureFlatMetal::GetCVMetalTextureRef()
     return textureContext->decoderFrameYTextureRef;
 }
 
+CVPixelBufferRef CTextureFlatMetal::GetPixelBuffer()
+{
+    if (!m_spBoundFrame)
+        return nullptr;
+    const uint32_t kAVFrameDataPixelBufferIndex = 3;
+    ASSERT(m_spBoundFrame->Frame());
+    CVPixelBufferRef pixelBuffer = (CVPixelBufferRef)m_spBoundFrame->Frame()
+                                       ->data[kAVFrameDataPixelBufferIndex];
+    return pixelBuffer;
+}
+
 bool CTextureFlatMetal::BindFrame(ContentDecoder::spCVideoFrame _spFrame)
 {
     m_Flags |= eTextureFlags::TEXTURE_YUV;
     m_spBoundFrame = _spFrame;
-    if (m_spBoundFrame->Frame() == NULL)
-    {
-        g_Log->Error("THIS SHOULDN'T BE NULL");
-    }
+    ASSERT(m_spBoundFrame->Frame());
     return true;
 }
 
