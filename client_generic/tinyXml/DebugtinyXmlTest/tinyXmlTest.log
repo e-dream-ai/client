@@ -1,4 +1,0 @@
-﻿cl : command line  warning D9035: option 'Gm' has been deprecated and will be removed in a future release
-  xmltest.cpp
-xmltest.obj : warning LNK4075: ignoring '/EDITANDCONTINUE' due to '/SAFESEH' specification
-  tinyXmlTest.vcxproj -> C:\Users\hencz\Documents\GitHub\e-dream-ai-client\client_generic\tinyXml\DebugtinyXmlTest\tinyXmlTestd.exe
