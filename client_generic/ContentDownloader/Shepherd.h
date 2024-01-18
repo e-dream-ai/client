@@ -47,10 +47,10 @@
 #define DREAM_SERVER_PRODUCTION "https://creative-rugelach-b78ab4.netlify.app/"
 
 #define API_VERSION "/api/v1"
-#define DREAM_ENDPOINT "/dream"
-#define LOGIN_ENDPOINT "/auth/login"
-#define REFRESH_ENDPOINT "/auth/refresh"
-#define USER_ENDPOINT "/auth/user"
+#define DREAM_ENDPOINT API_VERSION "/dream"
+#define LOGIN_ENDPOINT API_VERSION "/auth/login"
+#define REFRESH_ENDPOINT API_VERSION "/auth/refresh"
+#define USER_ENDPOINT API_VERSION "/auth/user"
 
 enum eServerEndpoint
 {
