@@ -24,6 +24,7 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <vector>
+#include <map>
 #include <zlib.h>
 #if defined(WIN32) && defined(_MSC_VER)
 #include "../msvc/msvc_fix.h"
@@ -546,6 +547,34 @@ void Shepherd::FrameCompleted()
         ++(*totalRenderedFrames);
     g_Settings()->Set("settings.generator.totalFramesRendered",
                       totalRenderedFrames ? (int32_t)*totalRenderedFrames : 0);
+}
+
+const char* Shepherd::GetDreamServer()
+{
+    static std::string dreamServer;
+    if (dreamServer.empty())
+    {
+#ifdef DEBUG
+        int server = g_Settings()->Get("settings.debug.server", 0);
+        if (server == 0)
+            dreamServer = DREAM_SERVER_STAGING;
+        else
+            dreamServer = DREAM_SERVER_PRODUCTION;
+#else
+        dreamServer = DREAM_SERVER_PRODUCTION;
+#endif
+    }
+    return dreamServer.data();
+}
+
+const char* Shepherd::GetEndpoint(eServerEndpoint _endpoint)
+{
+    static std::map<eServerEndpoint, std::string> endpoints;
+    if (!endpoints.size())
+    {
+        endpoints = {SERVER_ENDPOINT_DEFINITIONS};
+    }
+    return endpoints[_endpoint].data();
 }
 
 }; // namespace ContentDownloader

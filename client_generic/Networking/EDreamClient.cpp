@@ -23,6 +23,7 @@ static void OnWebSocketClose(websocketpp::connection_hdl);
 static void OnWebSocketFail(websocketpp::connection_hdl);
 
 namespace json = boost::json;
+using namespace ContentDownloader;
 
 static ShowPreferencesCallback_t gShowPreferencesCallback = nullptr;
 void ESSetShowPreferencesCallback(ShowPreferencesCallback_t _callback)
@@ -110,7 +111,7 @@ bool EDreamClient::Authenticate()
         string_format("Authorization: Bearer %s", GetAccessToken())};
 
     spDownload->AppendHeader(authHeader);
-    bool success = spDownload->Perform(USER_ENDPOINT);
+    bool success = spDownload->Perform(Shepherd::GetEndpoint(ENDPOINT_USER));
     if (!success && spDownload->ResponseCode() == 401)
     {
         success = RefreshAccessToken();
@@ -158,7 +159,7 @@ bool EDreamClient::RefreshAccessToken()
     spDownload->AppendHeader("Content-Type: application/json");
     spDownload->AppendHeader("Accept: application/json");
     spDownload->SetPostFields(body.data());
-    if (spDownload->Perform(REFRESH_ENDPOINT))
+    if (spDownload->Perform(Shepherd::GetEndpoint(ENDPOINT_REFRESH)))
     {
         json::error_code ec;
         json::value response = json::parse(spDownload->Data(), ec);
@@ -189,7 +190,7 @@ bool EDreamClient::GetDreams()
 {
     int page = g_Settings()->Get("settings.content.dreams_page", 0);
     Network::spCFileDownloader spDownload;
-    const char* jsonPath = ContentDownloader::Shepherd::jsonPath();
+    const char* jsonPath = Shepherd::jsonPath();
 
     int maxAttempts = 3;
     int currentAttempt = 0;
@@ -201,9 +202,9 @@ bool EDreamClient::GetDreams()
             string_format("Authorization: Bearer %s", GetAccessToken())};
         spDownload->AppendHeader(authHeader);
         constexpr int DREAMS_PER_PAGE = 10;
-        if (spDownload->Perform(string_format("%s?take=%i&skip=%i",
-                                              DREAM_ENDPOINT, DREAMS_PER_PAGE,
-                                              DREAMS_PER_PAGE * page)))
+        if (spDownload->Perform(string_format(
+                "%s?take=%i&skip=%i", Shepherd::GetEndpoint(ENDPOINT_DREAM),
+                DREAMS_PER_PAGE, DREAMS_PER_PAGE * page)))
         {
             break;
         }

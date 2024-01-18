@@ -25,6 +25,7 @@
 
 #include <queue>
 #include <string_view>
+#include <string_view>
 
 #include "BlockingQueue.h"
 #include "Dream.h"
@@ -41,6 +42,37 @@
 #else
 #define PATH_SEPARATOR_C '/'
 #endif
+
+#define DREAM_SERVER_STAGING "https://e-dream-76c98b08cc5d.herokuapp.com"
+#define DREAM_SERVER_PRODUCTION "https://creative-rugelach-b78ab4.netlify.app/"
+
+#define API_VERSION "/api/v1"
+#define DREAM_ENDPOINT "/dream"
+#define LOGIN_ENDPOINT "/auth/login"
+#define REFRESH_ENDPOINT "/auth/refresh"
+#define USER_ENDPOINT "/auth/user"
+
+enum eServerEndpoint
+{
+    ENDPOINT_DREAM,
+    ENDPOINT_LOGIN,
+    ENDPOINT_REFRESH,
+    ENDPOINT_USER
+};
+
+#define SERVER_ENDPOINT_DEFINITIONS                                            \
+    {ENDPOINT_DREAM,                                                           \
+     {std::string(Shepherd::GetDreamServer()) + DREAM_ENDPOINT}},              \
+        {ENDPOINT_LOGIN,                                                       \
+         {std::string(Shepherd::GetDreamServer()) + LOGIN_ENDPOINT}},          \
+        {ENDPOINT_REFRESH,                                                     \
+         {std::string(Shepherd::GetDreamServer()) + REFRESH_ENDPOINT}},        \
+    {                                                                          \
+        ENDPOINT_USER,                                                         \
+        {                                                                      \
+            std::string(Shepherd::GetDreamServer()) + USER_ENDPOINT            \
+        }                                                                      \
+    }
 
 namespace ContentDownloader
 {
@@ -279,6 +311,8 @@ class Shepherd
     static void SetRenderingAllowed(bool _yesno);
     static void SetNickName(const char* nick);
     static const char* GetNickName();
+    static const char* GetDreamServer();
+    static const char* GetEndpoint(eServerEndpoint _endpoint);
 
     static bool AddOverflowMessage(const std::string _msg)
     {

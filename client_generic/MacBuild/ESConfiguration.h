@@ -41,6 +41,9 @@
 
     IBOutlet NSButton* signInButton;
 
+    IBOutlet NSTextField* serverLabel;
+    IBOutlet NSPopUpButton* serverSelector;
+
     IBOutlet NSButton* okButton;
     IBOutlet NSButton* cancelButton;
 

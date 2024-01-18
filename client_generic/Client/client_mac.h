@@ -120,6 +120,8 @@ class CElectricSheep_Mac : public CElectricSheep
             CFRelease(bundle);
         }
 
+        InitStorage();
+
         GetClientProxy();
     }
 
@@ -143,9 +145,9 @@ class CElectricSheep_Mac : public CElectricSheep
     void GetClientProxy(void)
     {
         m_proxyEnabled = get_proxy_for_server105(
-            (const UInt8*)DREAM_SERVER, m_proxyHost, sizeof(m_proxyHost) - 1,
-            m_proxyUser, sizeof(m_proxyUser) - 1, m_proxyPass,
-            sizeof(m_proxyPass) - 1);
+            (const UInt8*)ContentDownloader::Shepherd::GetDreamServer(),
+            m_proxyHost, sizeof(m_proxyHost) - 1, m_proxyUser,
+            sizeof(m_proxyUser) - 1, m_proxyPass, sizeof(m_proxyPass) - 1);
     }
 
     void AddGraphicsContext(CGraphicsContext _context)
@@ -172,7 +174,7 @@ class CElectricSheep_Mac : public CElectricSheep
 
     void SetIsPreview(bool _isPreview) { m_bIsPreview = _isPreview; }
 
-    void SetUpConfig(void) { InitStorage(); }
+    void SetUpConfig() { InitStorage(); }
 
     //
     virtual bool Startup()
@@ -181,7 +183,8 @@ class CElectricSheep_Mac : public CElectricSheep
 
         printf("Startup()\n");
 
-        InitStorage();
+        //@TODO: remove if unnecessary
+        //InitStorage();
 
         AttachLog();
 

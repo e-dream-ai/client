@@ -37,7 +37,7 @@ static void ShowPreferencesCallback()
 
     mBlackingWindows = nil;
 
-    ESScreensaver_InitClientStorage();
+    //ESScreensaver_InitClientStorage();
 
     frame.size.width = 1280;
     frame.size.height = 720;

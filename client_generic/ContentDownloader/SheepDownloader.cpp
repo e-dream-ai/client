@@ -290,12 +290,13 @@ void SheepDownloader::ParseDreamsPage(int _page)
                     //@TODO: remove when fixed
                     if (dream.at("activityLevel").is_string())
                     {
-                        newDream->activityLevel =
-                            std::stof(dream.at("activityLevel").as_string().data());
+                        newDream->activityLevel = std::stof(
+                            dream.at("activityLevel").as_string().data());
                     }
                     else
                     {
-                        newDream->activityLevel = (float)dream.at("activityLevel").as_double();
+                        newDream->activityLevel =
+                            (float)dream.at("activityLevel").as_double();
                     }
                     fServerFlock.push_back(newDream);
                     boost::json::value user = dream.at("user");

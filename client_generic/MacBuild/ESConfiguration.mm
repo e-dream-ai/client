@@ -420,6 +420,8 @@
     cacheSize.intValue = cache_size;
 
     debugLog.state = ESScreensaver_GetBoolSetting("settings.app.log", false);
+    
+    [serverSelector selectItem: serverSelector.itemArray[(NSUInteger)ESScreensaver_GetIntSetting("settings.debug.server", 0)]];
 
     contentFldr.stringValue =
         ((__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting(
@@ -427,6 +429,11 @@
             .stringByAbbreviatingWithTildeInPath;
 
     version.stringValue = (__bridge NSString*)ESScreensaver_GetVersion();
+    
+#ifndef DEBUG
+    serverLabel.hidden = YES;
+    serverSelector.hidden = YES;
+#endif
 
     [self fixFlockSize];
 
@@ -501,6 +508,8 @@
     ESScreensaver_SetIntSetting("settings.content.cache_size", cache_size);
 
     ESScreensaver_SetBoolSetting("settings.app.log", debugLog.state);
+    
+    ESScreensaver_SetIntSetting("settings.debug.server", (int)serverSelector.indexOfSelectedItem);
 }
 
 - (IBAction)goToCreateAccountPage:(id)__unused sender

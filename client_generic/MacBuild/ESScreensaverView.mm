@@ -167,10 +167,11 @@ bool bStarted = false;
     //}
     if (view != NULL)
     {
-        ESScreensaver_InitClientStorage();
+        //@TODO: remove these if unnecessary
+        //ESScreensaver_InitClientStorage();
 
         ESScreenSaver_AddGraphicsContext((__bridge void*)view);
-        ESScreensaver_DeinitClientStorage();
+        //ESScreensaver_DeinitClientStorage();
     }
 
     uint32_t width = (uint32_t)theRect.size.width;
