@@ -287,8 +287,16 @@ void SheepDownloader::ParseDreamsPage(int _page)
                     newDream->id = (uint32_t)dream.at("id").as_int64();
                     newDream->url = video.as_string();
                     newDream->uuid = dream.at("uuid").as_string();
-                    newDream->activityLevel =
-                        std::stof(dream.at("activityLevel").as_string().data());
+                    //@TODO: remove when fixed
+                    if (dream.at("activityLevel").is_string())
+                    {
+                        newDream->activityLevel =
+                            std::stof(dream.at("activityLevel").as_string().data());
+                    }
+                    else
+                    {
+                        newDream->activityLevel = (float)dream.at("activityLevel").as_double();
+                    }
                     fServerFlock.push_back(newDream);
                     boost::json::value user = dream.at("user");
                     newDream->author = user.at("email").as_string();
