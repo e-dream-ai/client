@@ -103,12 +103,11 @@ const char* EDreamClient::GetAccessToken()
 
 bool EDreamClient::Authenticate()
 {
-    char authHeader[ACCESS_TOKEN_MAX_LENGTH + 22];
     Network::spCFileDownloader spDownload =
         std::make_shared<Network::CFileDownloader>("Authenticate");
     spDownload->AppendHeader("Content-Type: application/json");
-    snprintf(authHeader, ACCESS_TOKEN_MAX_LENGTH, "Authorization: Bearer %s",
-             GetAccessToken());
+    std::string authHeader{
+        string_format("Authorization: Bearer %s", GetAccessToken())};
 
     spDownload->AppendHeader(authHeader);
     bool success = spDownload->Perform(USER_ENDPOINT);
@@ -152,14 +151,13 @@ bool EDreamClient::IsLoggedIn()
 
 bool EDreamClient::RefreshAccessToken()
 {
-    char body[REFRESH_TOKEN_MAX_LENGTH + 17];
-    snprintf(body, REFRESH_TOKEN_MAX_LENGTH, "{\"refreshToken\":\"%s\"}",
-             fRefreshToken.load());
+    std::string body{
+        string_format("{\"refreshToken\":\"%s\"}", fRefreshToken.load())};
     Network::spCFileDownloader spDownload =
         std::make_shared<Network::CFileDownloader>("Refresh token");
     spDownload->AppendHeader("Content-Type: application/json");
     spDownload->AppendHeader("Accept: application/json");
-    spDownload->SetPostFields(body);
+    spDownload->SetPostFields(body.data());
     if (spDownload->Perform(REFRESH_ENDPOINT))
     {
         json::error_code ec;
@@ -189,21 +187,23 @@ bool EDreamClient::RefreshAccessToken()
 
 bool EDreamClient::GetDreams()
 {
+    int page = g_Settings()->Get("settings.content.dreams_page", 0);
     Network::spCFileDownloader spDownload;
     const char* jsonPath = ContentDownloader::Shepherd::jsonPath();
-    char filename[MAX_PATH];
 
-    char authHeader[ACCESS_TOKEN_MAX_LENGTH + 22];
     int maxAttempts = 3;
     int currentAttempt = 0;
     while (currentAttempt++ < maxAttempts)
     {
         spDownload = std::make_shared<Network::CFileDownloader>("Dreams list");
         spDownload->AppendHeader("Content-Type: application/json");
-        snprintf(authHeader, ACCESS_TOKEN_MAX_LENGTH,
-                 "Authorization: Bearer %s", GetAccessToken());
+        std::string authHeader{
+            string_format("Authorization: Bearer %s", GetAccessToken())};
         spDownload->AppendHeader(authHeader);
-        if (spDownload->Perform(DREAM_ENDPOINT))
+        constexpr int DREAMS_PER_PAGE = 10;
+        if (spDownload->Perform(string_format("%s?take=%i&skip=%i",
+                                              DREAM_ENDPOINT, DREAMS_PER_PAGE,
+                                              DREAMS_PER_PAGE * page)))
         {
             break;
         }
@@ -226,10 +226,10 @@ bool EDreamClient::GetDreams()
         }
     }
 
-    snprintf(filename, MAX_PATH, "%sdreams.json", jsonPath);
+    std::string filename{string_format("%sdreams_%i.json", jsonPath, page)};
     if (!spDownload->Save(filename))
     {
-        g_Log->Error("Unable to save %s\n", filename);
+        g_Log->Error("Unable to save %s\n", filename.data());
         return false;
     }
     return true;

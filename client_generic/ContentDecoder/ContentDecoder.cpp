@@ -484,7 +484,8 @@ void CContentDecoder::ReadFramesThread()
                                          ->streams[m_CurrentVideoInfo
                                                        ->m_VideoStreamID]
                                          ->avg_frame_rate));
-                m_CurrentVideoInfo->m_SeekTargetFrame = std::max(m_CurrentVideoInfo->m_SeekTargetFrame, (int64_t)0);
+                m_CurrentVideoInfo->m_SeekTargetFrame =
+                    std::max(m_CurrentVideoInfo->m_SeekTargetFrame, (int64_t)0);
                 m_SkipForward.exchange(0.f);
             }
 

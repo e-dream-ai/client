@@ -186,7 +186,7 @@ template <typename T> class CBlockingQueue
 
         m_maxQueueElements = max;
     }
-    
+
     size_t getMaxQueueElements() const
     {
         reader_lock lock(m_mutex);

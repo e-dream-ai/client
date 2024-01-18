@@ -30,22 +30,22 @@ namespace ContentDownloader
 {
 class SheepRenderer;
 
-/*
+/**
 
         This class is responsible for downloading and queueing new sheep to the
    renderer..
 */
 class SheepDownloader
 {
-    // number of sheep that the downloader has downloaded
+    /// number of sheep that the downloader has downloaded
     static int fDownloadedSheep;
 
-    // sheep flocks
+    /// sheep flocks
     static SheepArray fServerFlock;
     static SheepArray fClientFlock;
     SheepRenderer* fRenderer;
 
-    // boolean for message checks
+    /// boolean for message checks
     bool fHasMessage;
 
     static time_t fLastListTime;
@@ -59,39 +59,40 @@ class SheepDownloader
     boost::mutex m_AbortMutex;
 
   protected:
-    //	Downloads the given sheep and queues it up for rendering.
+    ///	Downloads the given sheep and queues it up for rendering.
     bool downloadSheep(sDreamMetadata* sheep);
 
-    //	Function to parse the cache and find a sheep to download.
+    ///	Function to parse the cache and find a sheep to download.
     void findSheepToDownload();
 
-    //	Ipdate the cached sheep and make sure there is enough room for a second
-    // sheep.
+    ///	Ipdate the cached sheep and make sure there is enough room for a second
+    /// sheep.
     void updateCachedSheep();
 
-    //	Clears the flock list being maintained
+    ///	Clears the flock list being maintained
     void clearFlocks();
 
-    //	Delete enough sheep to clear enough room for the given amount of bytes.
+    ///	Delete enough sheep to clear enough room for the given amount of bytes.
     void deleteCached(const uint64_t& bytes, const int getGenerationType);
 
     bool isFolderAccessible(const char* folder);
 
-    //	This methods parses the sheep list and intializes the array of server
-    // sheep.
-    void parseSheepList();
+    ///	This methods parses the sheep lists and intializes the array of server
+    /// sheep.
+    void ParseServerDreams();
+    void ParseDreamsPage(int _page);
 
-    //	Message retrival from server.
+    ///	Message retrival from server.
     void setHasMessage(const bool& hasMessage) { fHasMessage = hasMessage; }
     bool hasMessage() const { return fHasMessage; }
 
-    //	Checks the disk space to make sure the cache is not being overflowed.
+    ///	Checks the disk space to make sure the cache is not being overflowed.
     int cacheOverflow(const double& bytes, const int getGenerationType) const;
 
-    // Clean global and static data for the downloader threads.
+    /// Clean global and static data for the downloader threads.
     static void closeDownloader();
 
-    //	Function to initialize the downloader threads
+    ///	Function to initialize the downloader threads
     static void initializeDownloader();
 
     void deleteSheep(sDreamMetadata* sheep);
@@ -112,15 +113,15 @@ class SheepDownloader
     static const SheepArray& getServerFlock() { return fServerFlock; }
     static const SheepArray& getClientFlock() { return fClientFlock; }
 
-    // add to the number of downloaded sheep (called by torrent)
+    /// add to the number of downloaded sheep (called by torrent)
     static void addDownloadedSheep(int sheep) { fDownloadedSheep += sheep; }
 
     void deleteSheepId(uint32_t sheepId);
 
-    // Aborts the working thread
+    /// Aborts the working thread
     void Abort(void);
 
-    //	Declare friend classes for protected data accesss.
+    ///	Declare friend classes for protected data accesss.
     friend class Shepherd;
 };
 

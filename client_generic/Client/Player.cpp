@@ -580,8 +580,8 @@ void CPlayer::PlayQueuedClipsThread()
         if (lastPlayedFile != "")
         {
             int64_t seekFrame;
-            seekFrame = (int64_t)g_Settings()->Get("settings.content.last_played_frame",
-                                          uint64_t{});
+            seekFrame = (int64_t)g_Settings()->Get(
+                "settings.content.last_played_frame", uint64_t{});
             PlayClip(lastPlayedFile, m_TimelineTime, seekFrame);
         }
 
@@ -626,7 +626,8 @@ void CPlayer::PlayQueuedClipsThread()
     }
 }
 
-bool CPlayer::PlayClip(std::string_view _clipPath, double _startTime, int64_t _seekFrame)
+bool CPlayer::PlayClip(std::string_view _clipPath, double _startTime,
+                       int64_t _seekFrame)
 {
     auto du = m_displayUnits[0];
     int32_t displayMode = g_Settings()->Get("settings.player.DisplayMode", 2);

@@ -106,7 +106,7 @@ SheepDownloader::SheepDownloader()
     fGotList = false;
     fListDirty = true;
 
-    parseSheepList();
+    ParseServerDreams();
     updateCachedSheep();
     deleteCached(0, 0);
 }
@@ -216,26 +216,48 @@ bool SheepDownloader::downloadSheep(sDreamMetadata* sheep)
 static void LogException(const std::exception& e, size_t dreamIndex,
                          std::string_view fileStr)
 {
-    auto str = string_format("Exception during parsing dreams list:%s "
-                             "contents:\"%s\" dreamIndex:%d",
-                             e.what(), fileStr.data(), dreamIndex);
+    auto str = string_format(
+        "Exception during parsing dreams list:%s contents:\"%s\" dreamIndex:%d",
+        e.what(), fileStr.data(), dreamIndex);
     //ContentDownloader::Shepherd::addMessageText(str.str().c_str(), 180);
     g_Log->Error(str);
 }
 
-//	Parse the sheep list and create the server sheep.
-void SheepDownloader::parseSheepList()
+void SheepDownloader::ParseServerDreams()
 {
     boost::mutex::scoped_lock lockthis(s_DownloaderMutex);
+    SheepArray::iterator it = fServerFlock.begin();
+    while (it != fServerFlock.end())
+    {
+        delete *it;
+        it++;
+    }
+    fServerFlock.clear();
+    int maxPage = g_Settings()->Get("settings.content.dreams_page", 0);
+    for (int i = 0; i <= maxPage; ++i)
+    {
+        ParseDreamsPage(i);
+    }
+}
 
-    std::vector<char> pbuf(MAX_PATH);
-    snprintf(pbuf.data(), MAX_PATH, "%sdreams.json", Shepherd::jsonPath());
-    std::ifstream file(pbuf.data());
+void SheepDownloader::ParseDreamsPage(int _page)
+{
+    std::string filePath{
+        string_format("%sdreams_%i.json", Shepherd::jsonPath(), _page)};
+    std::ifstream file(filePath);
+    if (!file.is_open())
+    {
+        g_Log->Error("Error opening file: %s", filePath.data());
+        return;
+    }
+    std::string contents{(std::istreambuf_iterator<char>(file)),
+                         (std::istreambuf_iterator<char>())};
+    file.close();
     size_t dreamIndex = 0;
     try
     {
         boost::json::error_code ec;
-        boost::json::value response = boost::json::parse(file, ec);
+        boost::json::value response = boost::json::parse(contents, ec);
 
         bool success = response.at("success").as_bool();
         if (!success)
@@ -251,14 +273,6 @@ void SheepDownloader::parseSheepList()
 
         if (count)
         {
-            SheepArray::iterator it = fServerFlock.begin();
-            while (it != fServerFlock.end())
-            {
-                delete *it;
-                it++;
-            }
-            fServerFlock.clear();
-
             do
             {
 
@@ -293,13 +307,8 @@ void SheepDownloader::parseSheepList()
     }
     catch (const std::exception& e)
     {
-        file.seekg(0, std::ios::beg);
-        std::stringstream buffer;
-        buffer << file.rdbuf();
-        auto fileStr = buffer.str();
-        LogException(e, dreamIndex, fileStr);
+        LogException(e, dreamIndex, contents);
     }
-    file.close();
     fGotList = true;
     fListDirty = false;
 }
@@ -479,14 +488,15 @@ void SheepDownloader::deleteCached(const uint64_t& size,
 
                 uint16_t playcount =
                     g_PlayCounter().PlayCount(0, fClientFlock[best]->id) - 1;
-                std::stringstream temp;
                 std::string temptime = ctime(&oldest_time);
                 temptime.erase(temptime.size() - 1);
 
-                temp << "Deleted: " << filename << ", played:" << playcount
-                     << " time" << ((playcount == 1) ? "," : "s,") << temptime;
-                Shepherd::AddOverflowMessage(temp.str());
-                g_Log->Info("%s", temp.str().c_str());
+                std::string msg{string_format(
+                    "Deleted: %s, played:%i time%s %s", filename.data(),
+                    playcount, ((playcount == 1) ? "," : "s,"),
+                    temptime.data())};
+                Shepherd::AddOverflowMessage(msg);
+                g_Log->Info("%s", msg.data());
                 deleteSheep(fClientFlock[best]);
             }
             else
@@ -590,10 +600,9 @@ void SheepDownloader::findSheepToDownload()
         // sleep, otherwise start to download immediately
         if (fClientFlock.size() > 3)
         {
-            std::stringstream tmp;
-
-            tmp << "Downloading starts in {"
-                << (int32_t)ContentDownloader::INIT_DELAY << "}...";
+            std::string msg{
+                string_format("Downloading starts in {%i}...",
+                              (int32_t)ContentDownloader::INIT_DELAY)};
 
             Shepherd::setDownloadState(tmp.str());
 
@@ -690,7 +699,7 @@ void SheepDownloader::findSheepToDownload()
                     if (fListDirty)
                     {
                         // clearFlocks();
-                        parseSheepList();
+                        ParseServerDreams();
                     }
                     else
                     {
@@ -793,18 +802,14 @@ void SheepDownloader::findSheepToDownload()
                                     ->fileSize,
                                 0);
 
-                            std::stringstream downloadingsheepstr;
-                            downloadingsheepstr
-                                << "Downloading sheep " << downloadedcount + 1
-                                << "/" << fServerFlock.size() << "...\n";
-                            Shepherd::setDownloadState(
-                                downloadingsheepstr.str() +
+                            Shepherd::setDownloadState(string_format(
+                                "Downloading dream %i/%i...\n%s",
+                                downloadedcount + 1, fServerFlock.size(),
                                 fServerFlock[static_cast<size_t>(best_anim)]
-                                    ->url);
+                                    ->url.data()));
 
-                            g_Log->Info("Best sheep to download rating=%d, "
-                                        "fServerFlock "
-                                        "index=%d, write time=%s",
+                            g_Log->Info("Best dream to download rating=%d, "
+                                        "fServerFlock index=%d, write time=%s",
                                         best_rating, best_anim,
                                         ctime(&best_ctime));
                             if (downloadSheep(fServerFlock[static_cast<size_t>(
@@ -827,19 +832,19 @@ void SheepDownloader::findSheepToDownload()
 
                     if (best_anim_old == -1)
                     {
-                        failureSleepDuration = badSheepSleepDuration;
-
-                        badSheepSleepDuration = Base::Math::Clamped(
-                            badSheepSleepDuration * 2, TIMEOUT, MAX_TIMEOUT);
-
-                        std::stringstream tmp;
-
-                        tmp << "All available dreams downloaded, will retry in "
-                               "{"
-                            << std::fixed << std::setprecision(0)
-                            << failureSleepDuration << "}...";
-
-                        Shepherd::setDownloadState(tmp.str());
+                        int maxPage = g_Settings()->Get(
+                            "settings.content.dreams_page", 0);
+                        g_Settings()->Set("settings.content.dreams_page",
+                                          maxPage + 1);
+                        //                        failureSleepDuration = badSheepSleepDuration;
+                        //
+                        //                        badSheepSleepDuration = Base::Math::Clamped(
+                        //                            badSheepSleepDuration * 2, TIMEOUT, MAX_TIMEOUT);
+                        //
+                        //                        Shepherd::setDownloadState(
+                        //                            string_format("All available dreams downloaded, "
+                        //                                          "will retry in {%i}...",
+                        //                                          failureSleepDuration));
                     }
                     else
                     {
@@ -851,13 +856,9 @@ void SheepDownloader::findSheepToDownload()
                         badSheepSleepDuration = Base::Math::Clamped(
                             badSheepSleepDuration * 2, TIMEOUT, MAX_TIMEOUT);
 
-                        std::stringstream tmp;
-
-                        tmp << "Downloading failed, will retry in {"
-                            << std::fixed << std::setprecision(0)
-                            << failureSleepDuration << "}...\n"
-                            << best_anim_old_url;
-                        Shepherd::setDownloadState(tmp.str());
+                        Shepherd::setDownloadState(string_format(
+                            "Downloading failed, will retry in {%i}...\n%s",
+                            failureSleepDuration, best_anim_old_url.data()));
                     }
                 }
                 else
@@ -882,7 +883,7 @@ void SheepDownloader::findSheepToDownload()
     }
 }
 
-/*
+/**
         getSheepList().
         This method will download the sheep list and uncompress it.
 */
@@ -892,7 +893,7 @@ bool SheepDownloader::getSheepList()
     return fListDirty;
 }
 
-/*
+/**
         shepherdCallback().
         This method is also in charge of downling the sheep in their
    transitional order.

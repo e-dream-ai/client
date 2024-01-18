@@ -29,7 +29,6 @@
 namespace ContentDownloader
 {
 
-
 void sDreamMetadata::setFileWriteTime(const std::string& timeString)
 {
     struct tm timeinfo = {};
