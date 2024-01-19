@@ -149,6 +149,7 @@ class CElectricSheep
   public:
     CElectricSheep()
     {
+        PlatformUtils::SetThreadName("Main");
         m_CpuUsageTotal = -1;
         m_CpuUsageES = -1;
         m_CpuUsageThreshold = 50;

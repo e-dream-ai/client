@@ -104,6 +104,7 @@ const char* EDreamClient::GetAccessToken()
 
 bool EDreamClient::Authenticate()
 {
+    PlatformUtils::SetThreadName("Authenticate");
     bool success = false;
     if (GetAccessToken() && strlen(GetAccessToken()))
     {
@@ -327,6 +328,7 @@ static void OnWebSocketFail(websocketpp::connection_hdl handle)
 
 void EDreamClient::ConnectRemoteControlSocket()
 {
+    PlatformUtils::SetThreadName("ConnectRemoteControl");
     try
     {
         websocketpp::lib::error_code ec;

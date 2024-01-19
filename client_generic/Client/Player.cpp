@@ -40,6 +40,7 @@
 #include "PlayCounter.h"
 #include "Settings.h"
 #include "storage.h"
+#include "PlatformUtils.h"
 
 #include "boost/filesystem/convenience.hpp"
 #include "boost/filesystem/operations.hpp"
@@ -571,6 +572,7 @@ bool CPlayer::NextClipForPlaying(int32_t _forceNext)
 
 void CPlayer::PlayQueuedClipsThread()
 {
+    PlatformUtils::SetThreadName("PlayQueuedClips");
     try
     {
         std::string lastPlayedFile = g_Settings()->Get(
@@ -661,6 +663,7 @@ void CPlayer::Framerate(const double _fps)
 
 void CPlayer::CalculateNextClipThread()
 {
+    PlatformUtils::SetThreadName("CalculateNextClip");
     try
     {
         uint32_t curID = 0;

@@ -70,6 +70,7 @@
 #include "../msvc/msvc_fix.h"
 #endif
 #include "EDreamClient.h"
+#include "PlatformUtils.h"
 
 namespace ContentDownloader
 {
@@ -579,12 +580,13 @@ bool SheepDownloader::isFolderAccessible(const char* folder)
 }
 
 /*
-        findSheepToDownload().
+        FindSheepToDownload().
         This method loads all of the sheep that are cached on disk and deletes
    any files in the cache that no longer exist on the server
 */
-void SheepDownloader::findSheepToDownload()
+void SheepDownloader::FindSheepToDownload()
 {
+    PlatformUtils::SetThreadName("FindSheepToDownload");
     int best_rating;
     time_t best_ctime;
     int best_anim;
@@ -900,7 +902,7 @@ bool SheepDownloader::getSheepList()
 */
 void SheepDownloader::shepherdCallback(void* data)
 {
-    ((SheepDownloader*)data)->findSheepToDownload();
+    ((SheepDownloader*)data)->FindSheepToDownload();
 }
 
 }; // namespace ContentDownloader

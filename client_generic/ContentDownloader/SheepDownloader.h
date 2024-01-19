@@ -63,7 +63,7 @@ class SheepDownloader
     bool downloadSheep(sDreamMetadata* sheep);
 
     ///	Function to parse the cache and find a sheep to download.
-    void findSheepToDownload();
+    void FindSheepToDownload();
 
     ///	Ipdate the cached sheep and make sure there is enough room for a second
     /// sheep.

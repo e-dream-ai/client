@@ -9,6 +9,7 @@
 #include "libgen.h"
 #include "Log.h"
 #include "DisplayOutput.h"
+#include "PlatformUtils.h"
 
 bool bStarted = false;
 
@@ -285,6 +286,7 @@ static void signnal_handler(int signal)
     std::signal(SIGSEGV, signnal_handler);
 
     dispatch_async(m_frameUpdateQueue, ^{
+        PlatformUtils::SetThreadName("FrameUpdate");
         dispatch_group_enter(self->m_animationDispatchGroup);
         [self _animationThread];
         dispatch_group_leave(self->m_animationDispatchGroup);

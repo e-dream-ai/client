@@ -15,6 +15,7 @@
 #include "Settings.h"
 #include "Shepherd.h"
 #include "Voting.h"
+#include "PlatformUtils.h"
 #if defined(WIN32) && defined(_MSC_VER)
 #include "../msvc/msvc_fix.h"
 #endif
@@ -50,6 +51,7 @@ CVote::~CVote()
  */
 void CVote::ThreadFunc()
 {
+    PlatformUtils::SetThreadName("VotingThread");
     try
     {
         VotingInfo vi;

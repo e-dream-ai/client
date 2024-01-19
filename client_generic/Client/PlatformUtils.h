@@ -14,6 +14,10 @@
 
 class PlatformUtils
 {
+  private:
+    PlatformUtils() = delete;
+    ~PlatformUtils() = delete;
+
   public:
     static bool IsInternetReachable();
     static std::string GetBuildDate();
@@ -22,6 +26,7 @@ class PlatformUtils
     static void SetCursorHidden(bool _hidden);
     static void
     SetOnMouseMovedCallback(std::function<void(int, int)> _callback);
+    static void SetThreadName(std::string_view _name);
 };
 
 class CDelayedDispatch

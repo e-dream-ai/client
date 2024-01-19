@@ -28,6 +28,7 @@
 
 #include "ContentDecoder.h"
 #include "Log.h"
+#include "PlatformUtils.h"
 
 using namespace boost;
 
@@ -464,7 +465,7 @@ void CContentDecoder::ReadFramesThread()
 {
     try
     {
-
+        PlatformUtils::SetThreadName("ReadFrames");
         g_Log->Info("Main video frame reading thread started...");
 
         while (true)

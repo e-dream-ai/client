@@ -11,6 +11,7 @@
 #import "ESScreensaverView.h"
 
 #include <string_view>
+#include <pthread.h>
 
 #include "Log.h"
 #include "PlatformUtils.h"
@@ -107,6 +108,14 @@ void PlatformUtils::SetOnMouseMovedCallback(
                                              return event;
                                          }];
     }
+}
+
+void PlatformUtils::SetThreadName(std::string_view _name)
+{
+    if (_name.end())
+        pthread_setname_np(std::string{_name}.data());
+    else
+        pthread_setname_np(_name.data());
 }
 
 CDelayedDispatch::CDelayedDispatch(std::function<void()> _func)
