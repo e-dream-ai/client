@@ -308,7 +308,7 @@ class CElectricSheep
             new Hud::CStringStat("decodefps", "Decoding video at ", "? fps"));
 
         int32_t displayMode =
-            g_Settings()->Get("settings.player.DisplayMode", 0);
+            g_Settings()->Get("settings.player.DisplayMode", 2);
         if (displayMode == 2)
             spStats->Add(
                 new Hud::CAverageCounter("displayfps",
