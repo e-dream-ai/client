@@ -319,7 +319,8 @@ void CPlayer::Start()
 
 void CPlayer::Stop()
 {
-    if (m_bStarted)
+    boost::mutex::scoped_lock l(m_updateMutex);
+    if (m_bStarted && m_CurrentClips.size())
     {
         g_Settings()->Set("settings.content.last_played_file",
                           m_CurrentClips[0]->GetClipMetadata().path);
@@ -382,10 +383,7 @@ bool CPlayer::BeginFrameUpdate()
 
     for (spCClip clip : m_CurrentClips)
     {
-        if (!clip->Update(m_TimelineTime))
-        {
-            //                bPlayNoSheepIntro = true;
-        }
+        clip->Update(m_TimelineTime);
     }
 
     if (m_CurrentClips.size())
@@ -465,7 +463,6 @@ void CPlayer::FpsCap(const double _cap)
 
 bool CPlayer::Update(uint32_t displayUnit, bool& bPlayNoSheepIntro)
 {
-    bPlayNoSheepIntro = false;
 
     std::shared_ptr<DisplayUnit> du;
 
@@ -483,6 +480,7 @@ bool CPlayer::Update(uint32_t displayUnit, bool& bPlayNoSheepIntro)
     du->spRenderer->Apply();
 
     boost::mutex::scoped_lock l(m_updateMutex);
+    bPlayNoSheepIntro = !m_CurrentClips.size();
     //for (auto it : du->spClips)
     for (spCClip clip : m_CurrentClips)
     {
@@ -610,7 +608,7 @@ void CPlayer::PlayQueuedClipsThread()
                 if (loadNextClip)
                 {
                     std::string nextClip;
-                    if (m_NextClipInfoQueue.pop(nextClip, true))
+                    if (m_NextClipInfoQueue.pop(nextClip, false))
                     {
                         PlayClip(nextClip, startTime);
                     }

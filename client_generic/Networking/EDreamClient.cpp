@@ -104,17 +104,36 @@ const char* EDreamClient::GetAccessToken()
 
 bool EDreamClient::Authenticate()
 {
-    Network::spCFileDownloader spDownload =
-        std::make_shared<Network::CFileDownloader>("Authenticate");
-    spDownload->AppendHeader("Content-Type: application/json");
-    std::string authHeader{
-        string_format("Authorization: Bearer %s", GetAccessToken())};
-
-    spDownload->AppendHeader(authHeader);
-    bool success = spDownload->Perform(Shepherd::GetEndpoint(ENDPOINT_USER));
-    if (!success && spDownload->ResponseCode() == 401)
+    bool success = false;
+    if (GetAccessToken() && strlen(GetAccessToken()))
     {
-        success = RefreshAccessToken();
+        Network::spCFileDownloader spDownload =
+            std::make_shared<Network::CFileDownloader>("Authenticate");
+        spDownload->AppendHeader("Content-Type: application/json");
+
+        std::string authHeader{
+            string_format("Authorization: Bearer %s", GetAccessToken())};
+
+        spDownload->AppendHeader(authHeader);
+        success = spDownload->Perform(Shepherd::GetEndpoint(ENDPOINT_USER));
+        if (!success)
+        {
+            if (spDownload->ResponseCode() == 401)
+            {
+                success = RefreshAccessToken();
+            }
+            else
+            {
+                g_Log->Error("Authentication failed. Server returned %i: %s",
+                             spDownload->ResponseCode(),
+                             spDownload->Data().c_str());
+            }
+        }
+    }
+    else
+    {
+
+        g_Log->Error("Authentication failed. Access token was not set.");
     }
     fIsLoggedIn.exchange(success);
     fAuthMutex.unlock();
