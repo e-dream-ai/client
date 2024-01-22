@@ -75,7 +75,13 @@ CClip::CClip(const sClipMetadata& _metadata, spCRenderer _spRenderer,
 
 bool CClip::Start(int64_t _seekFrame)
 {
+    m_DecoderClock = {};
     return m_spDecoder->Start(m_ClipMetadata.path, _seekFrame);
+}
+
+void CClip::Stop()
+{
+    m_spDecoder->Stop();
 }
 
 //    Do some math to figure out the delta between frames...
@@ -129,6 +135,7 @@ bool CClip::Update(double _timelineTime)
             return false;
         }
     }
+
     uint32_t idx = m_spFrameData->GetMetaData().frameIdx;
     uint32_t maxIdx = m_spFrameData->GetMetaData().maxFrameIdx;
     double delta = m_DecoderClock.interframeDelta / m_DecodeFps;
@@ -228,7 +235,7 @@ const sFrameMetadata& CClip::GetCurrentFrameMetadata() const
 
 uint32_t CClip::GetFrameCount() const
 {
-    return m_spDecoder->GetVideoInfo()->m_totalFrameCount;
+    return m_spDecoder->GetVideoInfo()->m_TotalFrameCount;
 }
 
 void CClip::SetStartTime(double _startTime)

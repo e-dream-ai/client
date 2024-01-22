@@ -60,6 +60,7 @@ class SheepDownloader
 
   protected:
     ///	Downloads the given sheep and queues it up for rendering.
+    /// Returns true if succeeds
     bool downloadSheep(sDreamMetadata* sheep);
 
     ///	Function to parse the cache and find a sheep to download.
@@ -80,7 +81,8 @@ class SheepDownloader
     ///	This methods parses the sheep lists and intializes the array of server
     /// sheep.
     void ParseServerDreams();
-    void ParseDreamsPage(int _page);
+    /// Returns the amount of dreams for all the pages
+    int ParseDreamsPage(int _page);
 
     ///	Message retrival from server.
     void setHasMessage(const bool& hasMessage) { fHasMessage = hasMessage; }

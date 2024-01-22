@@ -396,9 +396,17 @@ bool CPlayer::BeginFrameUpdate()
             {
                 if ((currentClip->GetFlags() & CClip::eClipFlags::Discarded) ==
                     0)
+                {
                     m_ClipInfoHistoryQueue.push(
                         std::string{currentClip->GetClipMetadata().path});
-                m_CurrentClips.erase(it--);
+                }
+                auto next = it + (decltype(m_CurrentClips)::difference_type)1;
+                next->get()->SetStartTime(std::fmin(next->get()->GetStartTime(), m_TimelineTime));
+                boost::thread([=]() {
+                    currentClip->Stop();
+                    boost::mutex::scoped_lock l(m_updateMutex);
+                    m_CurrentClips.erase(it);
+                });
             }
         }
     }

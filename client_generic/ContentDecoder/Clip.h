@@ -74,6 +74,7 @@ class CClip
           int32_t _displayMode, uint32_t _displayWidth, uint32_t _displayHeight,
           float _decodeFps);
     bool Start(int64_t _seekFrame = -1);
+    void Stop();
     bool Update(double _timelineTime);
     bool DrawFrame(spCRenderer _spRenderer);
     void SetDisplaySize(uint32_t _displayWidth, uint32_t _displayHeight);

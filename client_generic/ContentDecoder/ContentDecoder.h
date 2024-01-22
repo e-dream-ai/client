@@ -55,7 +55,7 @@ struct sOpenVideoInfo
     sOpenVideoInfo()
         : m_pFrame(NULL), m_pFormatContext(NULL), m_pVideoCodecContext(NULL),
           m_pVideoCodec(NULL), m_pVideoStream(NULL), m_VideoStreamID(-1),
-          m_totalFrameCount(0), m_CurrentFileFrameCount(0),
+          m_TotalFrameCount(0), m_CurrentFrameIndex(0),
           m_SeekTargetFrame(0), m_NextIsSeam(false),
           m_ReadingTrailingFrames(false)
 
@@ -77,8 +77,8 @@ struct sOpenVideoInfo
     const AVCodec* m_pVideoCodec;
     AVStream* m_pVideoStream;
     int32_t m_VideoStreamID;
-    uint32_t m_totalFrameCount;
-    int64_t m_CurrentFileFrameCount;
+    uint32_t m_TotalFrameCount;
+    int64_t m_CurrentFrameIndex;
     int64_t m_SeekTargetFrame;
     float m_DecodeFps;
     std::string m_Path;

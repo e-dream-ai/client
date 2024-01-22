@@ -16,7 +16,7 @@ class EDreamClient
 
   public:
     static void InitializeClient();
-    static bool GetDreams();
+    static bool GetDreams(int _page = 0, int _count = -1);
     static const char* GetAccessToken();
     static bool RefreshAccessToken();
     static bool IsLoggedIn();
@@ -24,6 +24,7 @@ class EDreamClient
     static void SignOut();
     static void DidSignIn(const std::string& _authToken,
                           const std::string& _refreshToken);
+    static constexpr int DREAMS_PER_PAGE = 10;
 
   public:
     static void ConnectRemoteControlSocket();
