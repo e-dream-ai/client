@@ -252,5 +252,6 @@ void CClip::FadeOut(double _currentTimelineTime)
 void CClip::SkipTime(float _secondsForward)
 {
     m_spDecoder->SkipTime(_secondsForward);
+    m_DecoderClock.started = false;
 }
 } // namespace ContentDecoder
