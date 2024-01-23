@@ -451,8 +451,7 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
         //        pVideoFrame->SetMetaData_DreamName(name);
         //        pVideoFrame->SetMetaData_DreamAuthor(author);
         pVideoFrame->SetMetaData_IsSeam(ovi->m_NextIsSeam);
-        pVideoFrame->SetMetaData_FrameIdx(
-            (uint32_t)ovi->m_CurrentFrameIndex);
+        pVideoFrame->SetMetaData_FrameIdx((uint32_t)ovi->m_CurrentFrameIndex);
         pVideoFrame->SetMetaData_MaxFrameIdx(ovi->m_TotalFrameCount);
     }
 
@@ -469,7 +468,8 @@ void CContentDecoder::ReadFramesThread()
         PlatformUtils::SetThreadName("ReadFrames");
         g_Log->Info("Main video frame reading thread started...");
 
-        while (m_CurrentVideoInfo->m_CurrentFrameIndex < m_CurrentVideoInfo->m_TotalFrameCount - 1)
+        while (m_CurrentVideoInfo->m_CurrentFrameIndex <
+               m_CurrentVideoInfo->m_TotalFrameCount - 1)
         {
             this_thread::interruption_point();
 

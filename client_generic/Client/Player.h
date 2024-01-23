@@ -172,7 +172,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     /// Sets up a clip for playing, that will start playing at startTimelineTime
     /// Returns true if the file was loaded successfully
     bool PlayClip(std::string_view _clipPath, double _startTimelineTime,
-                  int64_t _seekFrame = 1);
+                  int64_t _seekFrame = -1);
     void SetMultiDisplayMode(MultiDisplayMode mode)
     {
         m_MultiDisplayMode = mode;

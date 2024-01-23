@@ -79,10 +79,7 @@ bool CClip::Start(int64_t _seekFrame)
     return m_spDecoder->Start(m_ClipMetadata.path, _seekFrame);
 }
 
-void CClip::Stop()
-{
-    m_spDecoder->Stop();
-}
+void CClip::Stop() { m_spDecoder->Stop(); }
 
 //    Do some math to figure out the delta between frames...
 bool CClip::NeedsNewFrame(DecoderClock* _decoderClock) const
@@ -131,7 +128,6 @@ bool CClip::Update(double _timelineTime)
     {
         if (!GrabVideoFrame())
         {
-            m_HasFinished.exchange(true);
             return false;
         }
     }

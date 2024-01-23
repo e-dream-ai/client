@@ -50,6 +50,17 @@
 #define HONOR_VBL_SYNC
 #endif
 
+#ifdef DEBUG
+#define PRINTQUEUE(x, y, z, w) PrintQueue(x, y, z, w)
+#else
+#define PRINTQUEUE(x, y, z, w)
+#endif
+static void
+PrintQueue(std::string_view _str,
+           const Base::CBlockingQueue<std::string>& _history,
+           const Base::CBlockingQueue<std::string>& _next,
+           const std::vector<ContentDecoder::spCClip>& _currentClips);
+
 const double kTransitionLengthSeconds = 1;
 
 using boost::filesystem::directory_iterator;
@@ -377,6 +388,9 @@ bool CPlayer::BeginFrameUpdate()
     if (m_LastFrameRealTime == 0.0)
         m_LastFrameRealTime = newTime;
     double delta = newTime - m_LastFrameRealTime;
+    //Avoid huge timesteps when debugging
+    constexpr double SLOWEST_FRAMES_PER_SECOND = 10.0;
+    delta = std::fmin(delta, 1.0 / SLOWEST_FRAMES_PER_SECOND);
     m_LastFrameRealTime = newTime;
     m_TimelineTime += delta;
 
@@ -394,19 +408,31 @@ bool CPlayer::BeginFrameUpdate()
             spCClip currentClip = *it;
             if (currentClip->HasFinished())
             {
-                if ((currentClip->GetFlags() & CClip::eClipFlags::Discarded) ==
-                    0)
+                if ((currentClip->GetFlags() &
+                     CClip::eClipFlags::ReverseHistory))
+                {
+                    m_NextClipInfoQueue.push(
+                        std::string{currentClip->GetClipMetadata().path}, false,
+                        false);
+                }
+                else
                 {
                     m_ClipInfoHistoryQueue.push(
                         std::string{currentClip->GetClipMetadata().path});
                 }
+                m_CurrentClips.erase(it--);
                 auto next = it + (decltype(m_CurrentClips)::difference_type)1;
-                next->get()->SetStartTime(std::fmin(next->get()->GetStartTime(), m_TimelineTime));
-                boost::thread([=]() {
-                    currentClip->Stop();
-                    boost::mutex::scoped_lock l(m_updateMutex);
-                    m_CurrentClips.erase(it);
-                });
+                next->get()->SetStartTime(
+                    std::fmin(next->get()->GetStartTime(), m_TimelineTime));
+                boost::thread([=]() { currentClip->Stop(); });
+
+                if ((currentClip->GetFlags() &
+                     CClip::eClipFlags::ReverseHistory) == 1)
+                    PRINTQUEUE("FIN_REVERSED", m_ClipInfoHistoryQueue,
+                               m_NextClipInfoQueue, m_CurrentClips);
+                else
+                    PRINTQUEUE("FIN_NORMAL", m_ClipInfoHistoryQueue,
+                               m_NextClipInfoQueue, m_CurrentClips);
             }
         }
     }
@@ -499,85 +525,6 @@ bool CPlayer::Update(uint32_t displayUnit, bool& bPlayNoSheepIntro)
     return true;
 }
 
-bool CPlayer::NextClipForPlaying(int32_t _forceNext)
-{
-    if (m_spPlaylist == nullptr)
-    {
-        g_Log->Warning("Playlist == nullptr");
-        return (false);
-    }
-
-    if (_forceNext != 0)
-    {
-        if (_forceNext < 0)
-        {
-            uint32_t _numPrevious = (uint32_t)(-_forceNext);
-            if (m_ClipInfoHistoryQueue.size() > 0)
-            {
-                std::string name;
-                for (uint32_t i = 0; i < _numPrevious; i++)
-                {
-                    while (m_ClipInfoHistoryQueue.pop(name, false, false))
-                    {
-                        m_NextClipInfoQueue.push(name, false, false);
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    //    if (m_MainVideoInfo == nullptr)
-    //    {
-    //        m_MainVideoInfo = GetNextSheepInfo();
-    //        m_MainVideoInfo->m_DecodeFps = 0.9;
-    //        if (m_MainVideoInfo == nullptr)
-    //            return false;
-    //    }
-    //
-    //    if (m_SecondVideoInfo == nullptr)
-    //    {
-    //        m_SecondVideoInfo = GetNextSheepInfo();
-    //        m_SecondVideoInfo->m_DecodeFps = 1;
-    //    }
-    //
-    //    if (!m_MainVideoInfo->IsOpen())
-    //    {
-    //        if (!Open(m_MainVideoInfo))
-    //            return false;
-    //    }
-    //    else
-    //    {
-    //        // if the video was already open (m_SecondVideoInfo previously),
-    //        // we need to assure seamless continuation
-    //        //m_MainVideoInfo->m_NextIsSeam = true;
-    //    }
-    //
-    //    if (m_MainVideoInfo->IsOpen())
-    //    {
-    //        while (m_SheepHistoryQueue.size() > 50)
-    //        {
-    //            std::string tmpstr;
-    //
-    //            m_SheepHistoryQueue.pop(tmpstr);
-    //        }
-    //
-    //        m_SheepHistoryQueue.push(m_MainVideoInfo->m_Path);
-    //
-    //        m_NoSheeps = false;
-    //    }
-    //    else
-    //        return false;
-    //
-    //    if (m_bCalculateTransitions && m_SecondVideoInfo != nullptr &&
-    //        !m_SecondVideoInfo->IsOpen())
-    //    {
-    //        Open(m_SecondVideoInfo);
-    //    }
-
-    return true;
-}
-
 void CPlayer::PlayQueuedClipsThread()
 {
     PlatformUtils::SetThreadName("PlayQueuedClips");
@@ -621,6 +568,8 @@ void CPlayer::PlayQueuedClipsThread()
                     if (m_NextClipInfoQueue.pop(nextClip, false))
                     {
                         PlayClip(nextClip, startTime);
+                        PRINTQUEUE("PLAYCLIPTHREAD", m_ClipInfoHistoryQueue,
+                                   m_NextClipInfoQueue, m_CurrentClips);
                     }
                 }
             }
@@ -639,16 +588,16 @@ bool CPlayer::PlayClip(std::string_view _clipPath, double _startTime,
 {
     auto du = m_displayUnits[0];
     int32_t displayMode = g_Settings()->Get("settings.player.DisplayMode", 2);
-    ContentDownloader::sDreamMetadata* dream = nullptr;
+    ContentDownloader::sDreamMetadata dream{};
     m_spPlaylist->GetDreamMetadata(_clipPath, &dream);
 
-    if (!dream)
-        return false;
+    //    if (!dream)
+    //        return false;
 
     spCClip clip = std::make_shared<CClip>(
-        sClipMetadata{std::string{_clipPath}, *dream}, du->spRenderer,
+        sClipMetadata{std::string{_clipPath}, dream}, du->spRenderer,
         displayMode, du->spDisplay->Width(), du->spDisplay->Height(),
-        m_DecoderFps / dream->activityLevel);
+        m_DecoderFps / dream.activityLevel);
 
     if (!clip->Start(_seekFrame))
         return false;
@@ -726,36 +675,6 @@ void CPlayer::CalculateNextClipThread()
     }
 }
 
-ContentDecoder::sOpenVideoInfo* CPlayer::GetNextClipInfo()
-{
-    std::string name;
-
-    sOpenVideoInfo* retOVI = nullptr;
-
-    if (m_spPlaylist->PopFreshlyDownloadedSheep(name))
-    {
-        retOVI = new sOpenVideoInfo;
-        retOVI->m_Path.assign(name);
-        return retOVI;
-    }
-
-    bool clipfound = false;
-
-    while (!clipfound && m_NextClipInfoQueue.pop(name, true))
-    {
-        if (name.empty())
-            break;
-
-        clipfound = true;
-
-        retOVI = new sOpenVideoInfo;
-
-        retOVI->m_Path.assign(name);
-    }
-
-    return retOVI;
-}
-
 void CPlayer::SkipToNext()
 {
     write_lock l(m_updateMutex);
@@ -770,9 +689,19 @@ void CPlayer::SkipToNext()
             std::string{currentClip->GetClipMetadata().path});
         m_CurrentClips[0] = m_CurrentClips[1];
         m_CurrentClips.erase(m_CurrentClips.begin() + 1);
+        std::string nextClip;
+        if (m_NextClipInfoQueue.pop(nextClip, false))
+        {
+            PlayClip(nextClip, m_TimelineTime);
+        }
+        PRINTQUEUE("DOUBLESKIP", m_ClipInfoHistoryQueue, m_NextClipInfoQueue,
+                   m_CurrentClips);
+    }
+    else
+    {
+        m_CurrentClips[1]->SetStartTime(m_TimelineTime);
     }
     m_CurrentClips[0]->FadeOut(m_TimelineTime);
-    m_CurrentClips[1]->SetStartTime(m_TimelineTime);
 }
 
 void CPlayer::ReturnToPrevious()
@@ -786,29 +715,26 @@ void CPlayer::ReturnToPrevious()
     auto [_, out] = currentClip->GetTransitionLength();
     if (m_TimelineTime > currentClip->GetEndTime() - out)
     {
-        m_NextClipInfoQueue.push(
-            std::string{m_CurrentClips[1]->GetClipMetadata().path}, false,
-            false);
         clipName = m_CurrentClips[0]->GetClipMetadata().path;
-        m_CurrentClips[0] = m_CurrentClips[1];
-        m_CurrentClips.erase(m_CurrentClips.begin() + 1);
-        m_CurrentClips[0]->FadeOut(m_TimelineTime);
-        m_CurrentClips[0]->SetFlags(CClip::eClipFlags::Discarded);
+        std::string clipName2 = m_CurrentClips[1]->GetClipMetadata().path;
+        m_CurrentClips.clear();
         PlayClip(clipName, m_TimelineTime);
-        return;
+        PlayClip(clipName2, m_TimelineTime);
+        PRINTQUEUE("PREV_FADING", m_ClipInfoHistoryQueue, m_NextClipInfoQueue,
+                   m_CurrentClips);
     }
-    if (m_ClipInfoHistoryQueue.pop(clipName, false, false))
+    else if (m_ClipInfoHistoryQueue.pop(clipName, false, false))
     {
         m_NextClipInfoQueue.push(
             std::string{m_CurrentClips[1]->GetClipMetadata().path}, false,
             false);
-        m_NextClipInfoQueue.push(
-            std::string{m_CurrentClips[0]->GetClipMetadata().path}, false,
-            false);
-        m_CurrentClips[0]->SetFlags(CClip::eClipFlags::Discarded);
+        m_CurrentClips[0]->SetFlags(CClip::eClipFlags::ReverseHistory);
         m_CurrentClips[0]->FadeOut(m_TimelineTime);
         m_CurrentClips.erase(m_CurrentClips.begin() + 1);
         PlayClip(clipName, m_TimelineTime);
+        std::swap(m_CurrentClips[0], m_CurrentClips[1]);
+        PRINTQUEUE("PREV_NORMAL", m_ClipInfoHistoryQueue, m_NextClipInfoQueue,
+                   m_CurrentClips);
     }
 }
 
@@ -824,4 +750,30 @@ const CClip::sClipMetadata* CPlayer::GetCurrentPlayingClipMetadata() const
     if (!m_CurrentClips.size())
         return nullptr;
     return &m_CurrentClips[0]->GetClipMetadata();
+}
+
+static void
+PrintQueue(std::string_view _str,
+           const Base::CBlockingQueue<std::string>& _history,
+           const Base::CBlockingQueue<std::string>& _next,
+           const std::vector<ContentDecoder::spCClip>& _currentClips)
+{
+    g_Log->Info("\n\n\n%s history:\n", _str.data());
+    for (auto t : _history)
+    {
+        g_Log->Info("%s\n", t.data());
+    }
+
+    g_Log->Info("%s current:\n", _str.data());
+    for (auto t : _currentClips)
+    {
+        g_Log->Info("%s\n", t->GetClipMetadata().path.data());
+    }
+
+    g_Log->Info("%s next:\n", _str.data());
+    for (auto t : _next)
+    {
+        g_Log->Info("%s\n", t.data());
+    }
+    g_Log->Info("end\n\n\n\n");
 }

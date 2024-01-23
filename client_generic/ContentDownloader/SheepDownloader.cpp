@@ -838,10 +838,10 @@ void SheepDownloader::FindSheepToDownload()
 
                     if (best_anim_old == -1)
                     {
-//                        int maxPage = g_Settings()->Get(
-//                            "settings.content.dreams_page", 0);
-//                        g_Settings()->Set("settings.content.dreams_page",
-//                                          maxPage + 1);
+                        //                        int maxPage = g_Settings()->Get(
+                        //                            "settings.content.dreams_page", 0);
+                        //                        g_Settings()->Set("settings.content.dreams_page",
+                        //                                          maxPage + 1);
                         //
                         //                        badSheepSleepDuration = Base::Math::Clamped(
                         //                            badSheepSleepDuration * 2, TIMEOUT, MAX_TIMEOUT);

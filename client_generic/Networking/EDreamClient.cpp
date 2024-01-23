@@ -206,16 +206,14 @@ bool EDreamClient::RefreshAccessToken()
     }
 }
 
-
 static void LogException(const std::exception& e, std::string_view fileStr)
 {
-    auto str = string_format(
-        "Exception during parsing dreams list:%s contents:\"%s\"",
-        e.what(), fileStr.data());
+    auto str =
+        string_format("Exception during parsing dreams list:%s contents:\"%s\"",
+                      e.what(), fileStr.data());
     //ContentDownloader::Shepherd::addMessageText(str.str().c_str(), 180);
     g_Log->Error(str);
 }
-
 
 bool EDreamClient::GetDreams(int _page, int _count)
 {

@@ -202,9 +202,8 @@ class CDreamPlaylist : public CPlaylist
         return true;
     }
 
-    virtual bool
-    GetDreamMetadata(std::string_view _filePath,
-                     ContentDownloader::sDreamMetadata** _outDreamPtr)
+    virtual bool GetDreamMetadata(std::string_view _filePath,
+                                  ContentDownloader::sDreamMetadata* _outDream)
     {
         auto allDreams = ContentDownloader::SheepDownloader::getClientFlock();
         for (auto it = allDreams.begin(); it != allDreams.end(); ++it)
@@ -212,7 +211,7 @@ class CDreamPlaylist : public CPlaylist
             ContentDownloader::sDreamMetadata* dream = *it;
             if (dream->fileName == _filePath)
             {
-                *_outDreamPtr = dream;
+                *_outDream = *dream;
                 return true;
             }
         }

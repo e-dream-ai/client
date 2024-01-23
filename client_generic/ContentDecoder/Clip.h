@@ -28,7 +28,8 @@ class CClip
     enum eClipFlags
     {
         None = 0,
-        Discarded = 1
+        Discarded = 1,
+        ReverseHistory = 2
     };
     struct sClipMetadata
     {
