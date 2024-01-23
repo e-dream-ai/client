@@ -138,7 +138,7 @@ bool CContentDecoder::Open()
 
     boost::filesystem::path sys_name(ovi->m_Path);
     std::string _filename = sys_name.string();
-    ovi->m_totalFrameCount = 0;
+    ovi->m_TotalFrameCount = 0;
     g_Log->Info("Opening: %s", _filename.c_str());
     // Destroy()
     if (DumpError(avformat_open_input(&ovi->m_pFormatContext, _filename.c_str(),
@@ -221,10 +221,10 @@ bool CContentDecoder::Open()
     }
     ovi->m_pFrame = av_frame_alloc();
     if (ovi->m_pVideoStream->nb_frames > 0)
-        ovi->m_totalFrameCount =
+        ovi->m_TotalFrameCount =
             static_cast<uint32_t>(ovi->m_pVideoStream->nb_frames);
     else
-        ovi->m_totalFrameCount = uint32_t((
+        ovi->m_TotalFrameCount = uint32_t((
             (((double)ovi->m_pFormatContext->duration / (double)AV_TIME_BASE)) /
                 av_q2d(ovi->m_pVideoStream->avg_frame_rate) +
             .5));
@@ -336,6 +336,7 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
             {
                 av_packet_free(&packet);
                 av_packet_free(&filteredPacket);
+                ovi->m_CurrentFrameIndex = ovi->m_TotalFrameCount - 1;
                 return nullptr;
             }
             g_Log->Error("FFmpeg Error sending packet for decoding: %i:%s", ret,
@@ -347,7 +348,7 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
 
             frameNumber =
                 (int64_t)((pFrame->pts * frameRate) * av_q2d(timeBase));
-            ovi->m_CurrentFileFrameCount = frameNumber;
+            ovi->m_CurrentFrameIndex = frameNumber;
 
             if (ret == AVERROR(EAGAIN))
             {
@@ -373,7 +374,7 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
 
         if (frameDecoded != 0 || ovi->m_ReadingTrailingFrames)
         {
-            if (ovi->m_CurrentFileFrameCount >= ovi->m_SeekTargetFrame)
+            if (ovi->m_CurrentFrameIndex >= ovi->m_SeekTargetFrame)
             {
                 break;
             }
@@ -450,9 +451,8 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
         //        pVideoFrame->SetMetaData_DreamName(name);
         //        pVideoFrame->SetMetaData_DreamAuthor(author);
         pVideoFrame->SetMetaData_IsSeam(ovi->m_NextIsSeam);
-        pVideoFrame->SetMetaData_FrameIdx(
-            (uint32_t)ovi->m_CurrentFileFrameCount);
-        pVideoFrame->SetMetaData_MaxFrameIdx(ovi->m_totalFrameCount);
+        pVideoFrame->SetMetaData_FrameIdx((uint32_t)ovi->m_CurrentFrameIndex);
+        pVideoFrame->SetMetaData_MaxFrameIdx(ovi->m_TotalFrameCount);
     }
 
     av_packet_free(&packet);
@@ -468,7 +468,8 @@ void CContentDecoder::ReadFramesThread()
         PlatformUtils::SetThreadName("ReadFrames");
         g_Log->Info("Main video frame reading thread started...");
 
-        while (true)
+        while (m_CurrentVideoInfo->m_CurrentFrameIndex <
+               m_CurrentVideoInfo->m_TotalFrameCount - 1)
         {
             this_thread::interruption_point();
 
@@ -479,7 +480,7 @@ void CContentDecoder::ReadFramesThread()
             if (fpclassify(skipTime) != FP_ZERO)
             {
                 m_CurrentVideoInfo->m_SeekTargetFrame =
-                    m_CurrentVideoInfo->m_CurrentFileFrameCount +
+                    m_CurrentVideoInfo->m_CurrentFrameIndex +
                     (int64_t)(skipTime *
                               av_q2d(m_CurrentVideoInfo->m_pFormatContext
                                          ->streams[m_CurrentVideoInfo
@@ -524,9 +525,9 @@ void CContentDecoder::ReadFramesThread()
             if (pMainVideoFrame)
             {
                 m_FrameQueue.push(pMainVideoFrame);
-                if (m_CurrentVideoInfo->m_SeekTargetFrame != -1)
-                    m_FrameQueueMutex.unlock();
             }
+            if (m_CurrentVideoInfo->m_SeekTargetFrame != -1)
+                m_FrameQueueMutex.unlock();
             m_CurrentVideoInfo->m_SeekTargetFrame = -1;
         }
     }
@@ -557,16 +558,6 @@ bool CContentDecoder::Start(std::string_view _path, int64_t _seekFrame)
     m_bStop = false;
     m_pDecoderThread =
         new thread(bind(&CContentDecoder::ReadFramesThread, this));
-
-    int retry = 0;
-    CVideoFrame* tmp = nullptr;
-    while (retry < 10 && !m_FrameQueue.peek(tmp, false) && !m_bStop)
-    {
-        thread::sleep(get_system_time() + posix_time::milliseconds(100));
-        retry++;
-    }
-    if (tmp == nullptr)
-        return false;
 
     return true;
 }

@@ -206,9 +206,18 @@ bool EDreamClient::RefreshAccessToken()
     }
 }
 
-bool EDreamClient::GetDreams()
+static void LogException(const std::exception& e, std::string_view fileStr)
 {
-    int page = g_Settings()->Get("settings.content.dreams_page", 0);
+    auto str =
+        string_format("Exception during parsing dreams list:%s contents:\"%s\"",
+                      e.what(), fileStr.data());
+    //ContentDownloader::Shepherd::addMessageText(str.str().c_str(), 180);
+    g_Log->Error(str);
+}
+
+bool EDreamClient::GetDreams(int _page, int _count)
+{
+    //int page = g_Settings()->Get("settings.content.dreams_page", 0);
     Network::spCFileDownloader spDownload;
     const char* jsonPath = Shepherd::jsonPath();
 
@@ -221,10 +230,9 @@ bool EDreamClient::GetDreams()
         std::string authHeader{
             string_format("Authorization: Bearer %s", GetAccessToken())};
         spDownload->AppendHeader(authHeader);
-        constexpr int DREAMS_PER_PAGE = 10;
         if (spDownload->Perform(string_format(
                 "%s?take=%i&skip=%i", Shepherd::GetEndpoint(ENDPOINT_DREAM),
-                DREAMS_PER_PAGE, DREAMS_PER_PAGE * page)))
+                DREAMS_PER_PAGE, DREAMS_PER_PAGE * _page)))
         {
             break;
         }
@@ -247,11 +255,29 @@ bool EDreamClient::GetDreams()
         }
     }
 
-    std::string filename{string_format("%sdreams_%i.json", jsonPath, page)};
+    std::string filename{string_format("%sdreams_%i.json", jsonPath, _page)};
     if (!spDownload->Save(filename))
     {
         g_Log->Error("Unable to save %s\n", filename.data());
         return false;
+    }
+    if (_count == -1)
+    {
+        try
+        {
+            json::value response = json::parse(spDownload->Data());
+            json::value data = response.at("data");
+            _count = (int)data.at("count").as_int64();
+        }
+        catch (const boost::system::system_error& e)
+        {
+            LogException(e, spDownload->Data());
+        }
+    }
+    if ((_page + 1) * DREAMS_PER_PAGE < _count)
+    {
+        if (!GetDreams(_page + 1, _count))
+            return false;
     }
     return true;
 }

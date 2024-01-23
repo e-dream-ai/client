@@ -31,6 +31,8 @@ namespace ContentDownloader
 
 void sDreamMetadata::setFileWriteTime(const std::string& timeString)
 {
+    if (timeString.empty())
+        return;
     struct tm timeinfo = {};
     strptime(timeString.data(), "%Y-%m-%dT%H:%M:%S", &timeinfo);
     timeinfo.tm_isdst = 0; // Set daylight saving time to 0

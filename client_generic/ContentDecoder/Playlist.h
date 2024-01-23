@@ -36,7 +36,7 @@ class CPlaylist
     virtual bool HasFreshlyDownloadedSheep() { return false; }
     virtual bool GetDreamMetadata(
         [[maybe_unused]] std::string_view _filePath,
-        [[maybe_unused]] ContentDownloader::sDreamMetadata** _outDreamPtr)
+        [[maybe_unused]] ContentDownloader::sDreamMetadata* _outDream)
     {
         return false;
     }

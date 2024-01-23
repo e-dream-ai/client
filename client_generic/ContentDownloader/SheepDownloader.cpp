@@ -220,7 +220,7 @@ static void LogException(const std::exception& e, size_t dreamIndex,
     auto str = string_format(
         "Exception during parsing dreams list:%s contents:\"%s\" dreamIndex:%d",
         e.what(), fileStr.data(), dreamIndex);
-    //ContentDownloader::Shepherd::addMessageText(str.str().c_str(), 180);
+    ContentDownloader::Shepherd::addMessageText(str, 180);
     g_Log->Error(str);
 }
 
@@ -234,14 +234,88 @@ void SheepDownloader::ParseServerDreams()
         it++;
     }
     fServerFlock.clear();
-    int maxPage = g_Settings()->Get("settings.content.dreams_page", 0);
-    for (int i = 0; i <= maxPage; ++i)
+    int numDreams = ParseDreamsPage(0);
+    int maxPage = (numDreams - 1) / EDreamClient::DREAMS_PER_PAGE;
+    for (int i = 1; i <= maxPage; ++i)
     {
         ParseDreamsPage(i);
     }
+    printf("");
 }
 
-void SheepDownloader::ParseDreamsPage(int _page)
+static std::string TryParseString(uint32_t _id, const json::object& _obj,
+                                  std::string_view _key)
+{
+    json::error_code parseError;
+    auto it = _obj.find(_key);
+    auto val = it != _obj.end() ? &it->value() : nullptr;
+    const char* kinds[] = {"null",   "bool",   "int64", "uint64",
+                           "double", "string", "array", "object"};
+    if (val && val->is_string())
+        return (std::string)val->as_string();
+    else if (val)
+        ContentDownloader::Shepherd::addMessageText(
+            string_format(
+                "Key \"%s\" inside dream %u was %s, but expected a string.",
+                _key.data(), _id, kinds[(int)val->kind()]),
+            180);
+    else
+        ContentDownloader::Shepherd::addMessageText(
+            string_format("Key \"%s\" inside dream %u was null.", _key.data(),
+                          _id),
+            180);
+    return "";
+}
+
+static const json::object*
+TryParseObject(uint32_t _id, const json::object& _obj, std::string_view _key)
+{
+    json::error_code parseError;
+    auto it = _obj.find(_key);
+    auto val = it != _obj.end() ? &it->value() : nullptr;
+    const char* kinds[] = {"null",   "bool",   "int64", "uint64",
+                           "double", "string", "array", "object"};
+    if (val && val->is_object())
+        return &val->as_object();
+    else if (val)
+        ContentDownloader::Shepherd::addMessageText(
+            string_format(
+                "Key \"%s\" inside dream %u was %s, but expected an object.",
+                _key.data(), _id, kinds[(int)val->kind()]),
+            180);
+    else
+        ContentDownloader::Shepherd::addMessageText(
+            string_format("Key \"%s\" inside dream %u was null.", _key.data(),
+                          _id),
+            180);
+    return nullptr;
+}
+
+static float TryParseFloat(uint32_t _id, const json::object& _obj,
+                           std::string_view _key)
+{
+    json::error_code parseError;
+    auto it = _obj.find(_key);
+    auto val = it != _obj.end() ? &it->value() : nullptr;
+    const char* kinds[] = {"null",   "bool",   "int64", "uint64",
+                           "double", "string", "array", "object"};
+    if (val && val->is_number())
+        return val->to_number<float>();
+    else if (val)
+        ContentDownloader::Shepherd::addMessageText(
+            string_format(
+                "Key \"%s\" inside dream %u was %s, but expected a float.",
+                _key.data(), _id, kinds[(int)val->kind()]),
+            180);
+    else
+        ContentDownloader::Shepherd::addMessageText(
+            string_format("Key \"%s\" inside dream %u was null.", _key.data(),
+                          _id),
+            180);
+    return 0.f;
+}
+
+int SheepDownloader::ParseDreamsPage(int _page)
 {
     std::string filePath{
         string_format("%sdreams_%i.json", Shepherd::jsonPath(), _page)};
@@ -249,12 +323,13 @@ void SheepDownloader::ParseDreamsPage(int _page)
     if (!file.is_open())
     {
         g_Log->Error("Error opening file: %s", filePath.data());
-        return;
+        return 0;
     }
     std::string contents{(std::istreambuf_iterator<char>(file)),
                          (std::istreambuf_iterator<char>())};
     file.close();
     size_t dreamIndex = 0;
+    int numDreams = 0;
     try
     {
         boost::json::error_code ec;
@@ -265,37 +340,46 @@ void SheepDownloader::ParseDreamsPage(int _page)
         {
             g_Log->Error("Fetching dreams from API was unsuccessful: %s",
                          response.at("message").as_string().data());
-            return;
+            return 0;
         }
         boost::json::value data = response.at("data");
         boost::json::value dreams = data.at("dreams");
         boost::json::array dreamsArray = dreams.get_array();
+        numDreams = (int)data.at("count").as_int64();
         size_t count = dreamsArray.size();
 
         if (count)
         {
             do
             {
-
-                boost::json::value dream = dreamsArray.at(dreamIndex);
-                boost::json::value video = dream.at("video");
-                if (video.is_null())
-                    continue;
+                boost::json::object dream =
+                    dreamsArray.at(dreamIndex).as_object();
                 try
                 {
+                    boost::json::value video = dream.at("video");
+                    if (video.is_null() || !video.is_string())
+                        continue;
+
                     //    Create a new dream and parse the attributes.
                     sDreamMetadata* newDream = new sDreamMetadata();
                     newDream->id = (uint32_t)dream.at("id").as_int64();
+
                     newDream->url = video.as_string();
-                    newDream->uuid = dream.at("uuid").as_string();
+                    newDream->uuid =
+                        TryParseString(newDream->id, dream, "uuid");
                     newDream->activityLevel =
-                        dream.at("activityLevel").to_number<float>();
+                        TryParseFloat(newDream->id, dream, "activityLevel");
                     fServerFlock.push_back(newDream);
-                    boost::json::value user = dream.at("user");
-                    newDream->author = user.at("email").as_string();
-                    newDream->name = dream.at("name").as_string();
+                    const boost::json::object* user =
+                        TryParseObject(newDream->id, dream, "user");
+                    newDream->name =
+                        TryParseString(newDream->id, dream, "name");
+                    if (!user)
+                        continue;
+                    newDream->author =
+                        TryParseString(newDream->id, *user, "email");
                     newDream->setFileWriteTime(
-                        dream.at("updated_at").as_string().data());
+                        TryParseString(newDream->id, dream, "updated_at"));
                     newDream->rating = atoi("5");
                 }
                 catch (const boost::system::system_error& e)
@@ -312,6 +396,7 @@ void SheepDownloader::ParseDreamsPage(int _page)
     }
     fGotList = true;
     fListDirty = false;
+    return numDreams;
 }
 
 /*
@@ -834,19 +919,19 @@ void SheepDownloader::FindSheepToDownload()
 
                     if (best_anim_old == -1)
                     {
-                        int maxPage = g_Settings()->Get(
-                            "settings.content.dreams_page", 0);
-                        g_Settings()->Set("settings.content.dreams_page",
-                                          maxPage + 1);
-                        //                        failureSleepDuration = badSheepSleepDuration;
+                        //                        int maxPage = g_Settings()->Get(
+                        //                            "settings.content.dreams_page", 0);
+                        //                        g_Settings()->Set("settings.content.dreams_page",
+                        //                                          maxPage + 1);
                         //
                         //                        badSheepSleepDuration = Base::Math::Clamped(
                         //                            badSheepSleepDuration * 2, TIMEOUT, MAX_TIMEOUT);
                         //
-                        //                        Shepherd::setDownloadState(
-                        //                            string_format("All available dreams downloaded, "
-                        //                                          "will retry in {%i}...",
-                        //                                          failureSleepDuration));
+                        failureSleepDuration = badSheepSleepDuration;
+                        Shepherd::setDownloadState(
+                            string_format("All available dreams downloaded, "
+                                          "will retry in {%i}...",
+                                          failureSleepDuration));
                     }
                     else
                     {

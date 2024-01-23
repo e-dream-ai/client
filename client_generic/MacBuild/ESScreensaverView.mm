@@ -355,7 +355,7 @@ static void signnal_handler(int signal)
     BOOL handled = NO;
 
     NSString* characters = ev.charactersIgnoringModifiers;
-    NSLog(@"char: %@ - %@", ev.charactersIgnoringModifiers, ev.characters);
+    //NSLog(@"char: %@ - %@", ev.charactersIgnoringModifiers, ev.characters);
     unsigned int characterIndex,
         characterCount = (unsigned int)characters.length;
 
