@@ -243,6 +243,78 @@ void SheepDownloader::ParseServerDreams()
     printf("");
 }
 
+static std::string TryParseString(uint32_t _id, const json::object& _obj,
+                                  std::string_view _key)
+{
+    json::error_code parseError;
+    auto it = _obj.find(_key);
+    auto val = it != _obj.end() ? &it->value() : nullptr;
+    const char* kinds[] = {"null",   "bool",   "int64", "uint64",
+                           "double", "string", "array", "object"};
+    if (val && val->is_string())
+        return (std::string)val->as_string();
+    else if (val)
+        ContentDownloader::Shepherd::addMessageText(
+            string_format(
+                "Key \"%s\" inside dream %u was %s, but expected a string.",
+                _key.data(), _id, kinds[(int)val->kind()]),
+            180);
+    else
+        ContentDownloader::Shepherd::addMessageText(
+            string_format("Key \"%s\" inside dream %u was null.", _key.data(),
+                          _id),
+            180);
+    return "";
+}
+
+static const json::object*
+TryParseObject(uint32_t _id, const json::object& _obj, std::string_view _key)
+{
+    json::error_code parseError;
+    auto it = _obj.find(_key);
+    auto val = it != _obj.end() ? &it->value() : nullptr;
+    const char* kinds[] = {"null",   "bool",   "int64", "uint64",
+                           "double", "string", "array", "object"};
+    if (val && val->is_object())
+        return &val->as_object();
+    else if (val)
+        ContentDownloader::Shepherd::addMessageText(
+            string_format(
+                "Key \"%s\" inside dream %u was %s, but expected an object.",
+                _key.data(), _id, kinds[(int)val->kind()]),
+            180);
+    else
+        ContentDownloader::Shepherd::addMessageText(
+            string_format("Key \"%s\" inside dream %u was null.", _key.data(),
+                          _id),
+            180);
+    return nullptr;
+}
+
+static float TryParseFloat(uint32_t _id, const json::object& _obj,
+                           std::string_view _key)
+{
+    json::error_code parseError;
+    auto it = _obj.find(_key);
+    auto val = it != _obj.end() ? &it->value() : nullptr;
+    const char* kinds[] = {"null",   "bool",   "int64", "uint64",
+                           "double", "string", "array", "object"};
+    if (val && val->is_number())
+        return val->to_number<float>();
+    else if (val)
+        ContentDownloader::Shepherd::addMessageText(
+            string_format(
+                "Key \"%s\" inside dream %u was %s, but expected a float.",
+                _key.data(), _id, kinds[(int)val->kind()]),
+            180);
+    else
+        ContentDownloader::Shepherd::addMessageText(
+            string_format("Key \"%s\" inside dream %u was null.", _key.data(),
+                          _id),
+            180);
+    return 0.f;
+}
+
 int SheepDownloader::ParseDreamsPage(int _page)
 {
     std::string filePath{
@@ -280,25 +352,34 @@ int SheepDownloader::ParseDreamsPage(int _page)
         {
             do
             {
-                boost::json::value dream = dreamsArray.at(dreamIndex);
+                boost::json::object dream =
+                    dreamsArray.at(dreamIndex).as_object();
                 try
                 {
                     boost::json::value video = dream.at("video");
-                    if (video.is_null())
+                    if (video.is_null() || !video.is_string())
                         continue;
+
                     //    Create a new dream and parse the attributes.
                     sDreamMetadata* newDream = new sDreamMetadata();
                     newDream->id = (uint32_t)dream.at("id").as_int64();
+
                     newDream->url = video.as_string();
-                    newDream->uuid = dream.at("uuid").as_string();
+                    newDream->uuid =
+                        TryParseString(newDream->id, dream, "uuid");
                     newDream->activityLevel =
-                        dream.at("activityLevel").to_number<float>();
+                        TryParseFloat(newDream->id, dream, "activityLevel");
                     fServerFlock.push_back(newDream);
-                    boost::json::value user = dream.at("user");
-                    newDream->author = user.at("email").as_string();
-                    newDream->name = dream.at("name").as_string();
+                    const boost::json::object* user =
+                        TryParseObject(newDream->id, dream, "user");
+                    newDream->name =
+                        TryParseString(newDream->id, dream, "name");
+                    if (!user)
+                        continue;
+                    newDream->author =
+                        TryParseString(newDream->id, *user, "email");
                     newDream->setFileWriteTime(
-                        dream.at("updated_at").as_string().data());
+                        TryParseString(newDream->id, dream, "updated_at"));
                     newDream->rating = atoi("5");
                 }
                 catch (const boost::system::system_error& e)
