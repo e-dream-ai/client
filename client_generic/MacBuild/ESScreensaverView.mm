@@ -363,83 +363,77 @@ static void signnal_handler(int signal)
     {
         unichar c = [characters characterAtIndex:characterIndex];
         using namespace DisplayOutput;
-        switch (c)
+
+        std::map<unichar, CKeyEvent::eKeyCode> keyMap = {
+            {NSRightArrowFunctionKey, CKeyEvent::eKeyCode::KEY_RIGHT},
+            {NSLeftArrowFunctionKey, CKeyEvent::eKeyCode::KEY_LEFT},
+            {NSUpArrowFunctionKey, CKeyEvent::eKeyCode::KEY_UP},
+            {NSDownArrowFunctionKey, CKeyEvent::eKeyCode::KEY_DOWN},
+            {NSF1FunctionKey, CKeyEvent::eKeyCode::KEY_F1},
+            {NSF2FunctionKey, CKeyEvent::eKeyCode::KEY_F2},
+            {NSF3FunctionKey, CKeyEvent::eKeyCode::KEY_F3},
+            {NSF4FunctionKey, CKeyEvent::eKeyCode::KEY_F4},
+            {NSF5FunctionKey, CKeyEvent::eKeyCode::KEY_F5},
+            {NSF6FunctionKey, CKeyEvent::eKeyCode::KEY_F6},
+            {NSF7FunctionKey, CKeyEvent::eKeyCode::KEY_F7},
+            {NSF8FunctionKey, CKeyEvent::eKeyCode::KEY_F8},
+            {NSF9FunctionKey, CKeyEvent::eKeyCode::KEY_F9},
+            {NSF10FunctionKey, CKeyEvent::eKeyCode::KEY_F10},
+            {NSF11FunctionKey, CKeyEvent::eKeyCode::KEY_F11},
+            {NSF12FunctionKey, CKeyEvent::eKeyCode::KEY_F12},
+            {NSDeleteFunctionKey, CKeyEvent::eKeyCode::KEY_DELETE},
+            {NSHomeFunctionKey, CKeyEvent::eKeyCode::KEY_HOME},
+            {NSEndFunctionKey, CKeyEvent::eKeyCode::KEY_END},
+            {NSPageUpFunctionKey, CKeyEvent::eKeyCode::KEY_PAGEUP},
+            {NSPageDownFunctionKey, CKeyEvent::eKeyCode::KEY_PAGEDOWN},
+            {'0', CKeyEvent::eKeyCode::KEY_0},
+            {'1', CKeyEvent::eKeyCode::KEY_1},
+            {'2', CKeyEvent::eKeyCode::KEY_2},
+            {'3', CKeyEvent::eKeyCode::KEY_3},
+            {'4', CKeyEvent::eKeyCode::KEY_4},
+            {'5', CKeyEvent::eKeyCode::KEY_5},
+            {'6', CKeyEvent::eKeyCode::KEY_6},
+            {'7', CKeyEvent::eKeyCode::KEY_7},
+            {'8', CKeyEvent::eKeyCode::KEY_8},
+            {'9', CKeyEvent::eKeyCode::KEY_9},
+            {'\b', CKeyEvent::eKeyCode::KEY_BACKSPACE},
+            {'\r', CKeyEvent::eKeyCode::KEY_ENTER},
+            {'\t', CKeyEvent::eKeyCode::KEY_TAB},
+            {' ', CKeyEvent::eKeyCode::KEY_SPACE},
+            {'a', CKeyEvent::eKeyCode::KEY_A},
+            {'b', CKeyEvent::eKeyCode::KEY_B},
+            {'c', CKeyEvent::eKeyCode::KEY_C},
+            {'d', CKeyEvent::eKeyCode::KEY_D},
+            {'e', CKeyEvent::eKeyCode::KEY_E},
+            {'f', CKeyEvent::eKeyCode::KEY_F},
+            {'g', CKeyEvent::eKeyCode::KEY_G},
+            {'h', CKeyEvent::eKeyCode::KEY_H},
+            {'i', CKeyEvent::eKeyCode::KEY_I},
+            {'j', CKeyEvent::eKeyCode::KEY_J},
+            {'k', CKeyEvent::eKeyCode::KEY_K},
+            {'l', CKeyEvent::eKeyCode::KEY_L},
+            {'m', CKeyEvent::eKeyCode::KEY_M},
+            {'n', CKeyEvent::eKeyCode::KEY_N},
+            {'o', CKeyEvent::eKeyCode::KEY_O},
+            {'p', CKeyEvent::eKeyCode::KEY_P},
+            {'q', CKeyEvent::eKeyCode::KEY_Q},
+            {'r', CKeyEvent::eKeyCode::KEY_R},
+            {'s', CKeyEvent::eKeyCode::KEY_S},
+            {'t', CKeyEvent::eKeyCode::KEY_T},
+            {'u', CKeyEvent::eKeyCode::KEY_U},
+            {'v', CKeyEvent::eKeyCode::KEY_V},
+            {'w', CKeyEvent::eKeyCode::KEY_W},
+            {'x', CKeyEvent::eKeyCode::KEY_X},
+            {'y', CKeyEvent::eKeyCode::KEY_Y},
+            {'z', CKeyEvent::eKeyCode::KEY_Z}};
+        // Assuming 'keyCode' is the key code received
+        auto it = keyMap.find(c);
+        if (it != keyMap.end())
         {
-        case NSRightArrowFunctionKey:
-            ESScreensaver_AppendKeyEvent(CKeyEvent::eKeyCode::KEY_RIGHT);
+            ESScreensaver_AppendKeyEvent(it->second);
             handled = YES;
-            break;
-
-        case NSLeftArrowFunctionKey:
-            ESScreensaver_AppendKeyEvent(CKeyEvent::eKeyCode::KEY_LEFT);
-            handled = YES;
-            break;
-
-        case NSUpArrowFunctionKey:
-            ESScreensaver_AppendKeyEvent(CKeyEvent::eKeyCode::KEY_UP);
-            handled = YES;
-            break;
-
-        case NSDownArrowFunctionKey:
-            ESScreensaver_AppendKeyEvent(CKeyEvent::eKeyCode::KEY_DOWN);
-            handled = YES;
-            break;
-
-        case NSF1FunctionKey:
-            ESScreensaver_AppendKeyEvent(CKeyEvent::eKeyCode::KEY_F1);
-            handled = YES;
-            break;
-
-        case NSF2FunctionKey:
-            ESScreensaver_AppendKeyEvent(CKeyEvent::eKeyCode::KEY_F2);
-            handled = YES;
-            break;
-
-        case NSF3FunctionKey:
-            ESScreensaver_AppendKeyEvent(CKeyEvent::eKeyCode::KEY_F3);
-            handled = YES;
-            break;
-
-        case NSF4FunctionKey:
-            ESScreensaver_AppendKeyEvent(CKeyEvent::eKeyCode::KEY_F4);
-            handled = YES;
-            break;
-
-        case NSF8FunctionKey:
-            ESScreensaver_AppendKeyEvent(CKeyEvent::eKeyCode::KEY_F8);
-            handled = YES;
-            break;
-
-        case u',':
-            ESScreensaver_AppendKeyEvent(CKeyEvent::eKeyCode::KEY_Comma);
-            handled = YES;
-            break;
-
-        case u'.':
-            ESScreensaver_AppendKeyEvent(CKeyEvent::eKeyCode::KEY_Period);
-            handled = YES;
-            break;
-
-        case u'c':
-            ESScreensaver_AppendKeyEvent(CKeyEvent::eKeyCode::KEY_C);
-            handled = YES;
-            break;
-
-        case u'a':
-            ESScreensaver_AppendKeyEvent(CKeyEvent::eKeyCode::KEY_A);
-            handled = YES;
-            break;
-
-        case u'd':
-            ESScreensaver_AppendKeyEvent(CKeyEvent::eKeyCode::KEY_D);
-            handled = YES;
-            break;
-
-        default:
-            break;
         }
     }
-
     // If we didn't handle the key press, send it to the parent class
     if (handled == NO)
         [super keyDown:ev];

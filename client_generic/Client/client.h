@@ -1014,7 +1014,7 @@ class CElectricSheep
 
     virtual bool HandleOneEvent(DisplayOutput::spCEvent& _event)
     {
-        static const float voteDelaySeconds = 1;
+        //        static const float voteDelaySeconds = 1;
 
         if (_event->Type() == DisplayOutput::CEvent::Event_KEY)
         {
@@ -1060,10 +1060,12 @@ class CElectricSheep
                 g_Player().RepeatClip();
                 break;
             case DisplayOutput::CKeyEvent::KEY_A:
-                g_Player().SkipForward(-10);
+                m_F1F4Timer.Reset();
+                g_Player().Framerate(m_CurrentFps *= (1.f / 1.1f));
                 break;
             case DisplayOutput::CKeyEvent::KEY_D:
-                g_Player().SkipForward(10);
+                m_F1F4Timer.Reset();
+                g_Player().Framerate(m_CurrentFps *= (1.1f));
                 break;
                 //	OSD info.
             case DisplayOutput::CKeyEvent::KEY_F1:
@@ -1074,13 +1076,11 @@ class CElectricSheep
                 m_F1F4Timer.Reset();
                 m_HudManager->Toggle("dreamstats");
                 break;
-            case DisplayOutput::CKeyEvent::KEY_Comma:
-                m_F1F4Timer.Reset();
-                g_Player().Framerate(m_CurrentFps *= (1.f / 1.1f));
+            case DisplayOutput::CKeyEvent::KEY_J:
+                g_Player().SkipForward(-10);
                 break;
-            case DisplayOutput::CKeyEvent::KEY_Period:
-                m_F1F4Timer.Reset();
-                g_Player().Framerate(m_CurrentFps *= (1.1f));
+            case DisplayOutput::CKeyEvent::KEY_L:
+                g_Player().SkipForward(10);
                 break;
             case DisplayOutput::CKeyEvent::KEY_C:
                 m_HudManager->Toggle("dreamcredits");
