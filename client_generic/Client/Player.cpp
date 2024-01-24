@@ -72,7 +72,10 @@ using namespace DisplayOutput;
 
 using CClip = ContentDecoder::CClip;
 using spCClip = ContentDecoder::spCClip;
-using write_lock = boost::mutex::scoped_lock;
+typedef boost::shared_lock<boost::shared_mutex> reader_lock;
+typedef boost::unique_lock<boost::shared_mutex> writer_lock;
+typedef boost::upgrade_lock<boost::shared_mutex> upg_reader_lock;
+typedef boost::upgrade_to_unique_lock<boost::shared_mutex> upgrade_to_writer;
 
 /*
  */
@@ -331,7 +334,7 @@ void CPlayer::Start()
 
 void CPlayer::Stop()
 {
-    boost::mutex::scoped_lock l(m_updateMutex);
+    writer_lock l(m_UpdateMutex);
     if (m_bStarted && m_CurrentClips.size())
     {
         g_Settings()->Set("settings.content.last_played_file",
@@ -394,7 +397,7 @@ bool CPlayer::BeginFrameUpdate()
     m_LastFrameRealTime = newTime;
     m_TimelineTime += delta;
 
-    boost::mutex::scoped_lock l(m_updateMutex);
+    writer_lock l(m_UpdateMutex);
 
     for (spCClip clip : m_CurrentClips)
     {
@@ -514,7 +517,7 @@ bool CPlayer::Update(uint32_t displayUnit, bool& bPlayNoSheepIntro)
     du->spRenderer->Orthographic();
     du->spRenderer->Apply();
 
-    boost::mutex::scoped_lock l(m_updateMutex);
+    writer_lock l(m_UpdateMutex);
     bPlayNoSheepIntro = !m_CurrentClips.size();
     //for (auto it : du->spClips)
     for (spCClip clip : m_CurrentClips)
@@ -544,7 +547,7 @@ void CPlayer::PlayQueuedClipsThread()
         {
             boost::this_thread::interruption_point();
             {
-                boost::mutex::scoped_lock l(m_updateMutex);
+                writer_lock l(m_UpdateMutex);
                 bool loadNextClip = false;
                 double startTime;
                 if (m_CurrentClips.size() == 0)
@@ -607,13 +610,14 @@ bool CPlayer::PlayClip(std::string_view _clipPath, double _startTime,
                                                     : 0,
                               kTransitionLengthSeconds);
     m_CurrentClips.push_back(clip);
+    m_PlayCond.notify_all();
     return true;
 }
 
 void CPlayer::Framerate(const double _fps)
 {
     m_DecoderFps = _fps;
-    boost::mutex::scoped_lock l(m_updateMutex);
+    reader_lock l(m_UpdateMutex);
     if (m_CurrentClips.size())
         m_CurrentClips[0]->SetFps(_fps);
 }
@@ -677,7 +681,7 @@ void CPlayer::CalculateNextClipThread()
 
 void CPlayer::SkipToNext()
 {
-    write_lock l(m_updateMutex);
+    writer_lock l(m_UpdateMutex);
     if (m_CurrentClips.size() < 2)
         return;
     // If the current clip is fading out already, remove it immediately
@@ -706,7 +710,7 @@ void CPlayer::SkipToNext()
 
 void CPlayer::ReturnToPrevious()
 {
-    write_lock l(m_updateMutex);
+    writer_lock l(m_UpdateMutex);
     std::string clipName;
     if (m_CurrentClips.size() < 2)
         return;
@@ -740,7 +744,12 @@ void CPlayer::ReturnToPrevious()
 
 void CPlayer::SkipForward(float _seconds)
 {
-    write_lock l(m_updateMutex);
+    upg_reader_lock l(m_UpdateMutex);
+    while (m_CurrentClips.size() < 2)
+    {
+        upgrade_to_writer wlock(l);
+        m_PlayCond.wait(m_UpdateMutex);
+    }
     m_CurrentClips[0]->SkipTime(_seconds);
     m_CurrentClips[1]->SetStartTime(m_CurrentClips[1]->GetStartTime() -
                                     _seconds);
@@ -749,14 +758,14 @@ void CPlayer::SkipForward(float _seconds)
 const ContentDecoder::sClipMetadata*
 CPlayer::GetCurrentPlayingClipMetadata() const
 {
-    write_lock l(m_updateMutex);
+    reader_lock l(m_UpdateMutex);
     if (!m_CurrentClips.size())
         return nullptr;
     return &m_CurrentClips[0]->GetClipMetadata();
 }
 const ContentDecoder::sFrameMetadata* CPlayer::GetCurrentFrameMetadata() const
 {
-    write_lock l(m_updateMutex);
+    reader_lock l(m_UpdateMutex);
     if (!m_CurrentClips.size())
         return nullptr;
     return &m_CurrentClips[0]->GetCurrentFrameMetadata();

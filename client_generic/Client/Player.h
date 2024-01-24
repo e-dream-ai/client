@@ -78,7 +78,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
     //	Used to keep track of elapsed time since last frame.
     double m_CapClock;
 
-    mutable boost::mutex m_updateMutex;
+    mutable boost::shared_mutex m_UpdateMutex;
+    boost::condition m_PlayCond;
 
 #ifdef WIN32
     HWND m_hWnd;

@@ -684,7 +684,7 @@ void SheepDownloader::FindSheepToDownload()
                 string_format("Downloading starts in {%i}...",
                               (int32_t)ContentDownloader::INIT_DELAY)};
 
-            Shepherd::setDownloadState(tmp.str());
+            Shepherd::setDownloadState(msg);
 
             //	Make sure we are really deeply settled asleep, avoids lots of
             // timed out frames.
