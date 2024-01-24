@@ -307,6 +307,9 @@ class CElectricSheep
             new Hud::CStringStat("uptime", "\nClient uptime: ", "...."));
         spStats->Add(
             new Hud::CStringStat("decodefps", "Decoding video at ", "? fps"));
+        spStats->Add(
+            new Hud::CStringStat("activityLevel", "Activity level: ", "1.00"));
+        spStats->Add(new Hud::CStringStat("playHead", "", "00m00s/00m00s"));
 
         int32_t displayMode =
             g_Settings()->Get("settings.player.DisplayMode", 2);
@@ -504,7 +507,7 @@ class CElectricSheep
         return true;
     }
 
-    std::string FormatTimeDiff(uint64_t timediff, bool showseconds)
+    static std::string FormatTimeDiff(uint64_t timediff, bool showseconds)
     {
         std::stringstream ss;
 
@@ -559,6 +562,14 @@ class CElectricSheep
         }
 
         return ss.str();
+    }
+
+    static std::string FrameNumberToMinutesAndSecondsString(int64_t _frames,
+                                                            float _fps)
+    {
+        double seconds = _frames / _fps;
+        uint64_t timeDiff = (uint64_t)seconds;
+        return FormatTimeDiff(timeDiff, true);
     }
 
 #ifdef DO_THREAD_UPDATE
@@ -832,39 +843,48 @@ class CElectricSheep
                 else
                     ContentDownloader::Shepherd::SetRenderingAllowed(true);
 
-                const ContentDecoder::CClip::sClipMetadata* metadata =
-                    g_Player().GetCurrentPlayingClipMetadata();
-
                 //	Update some stats.
                 Hud::spCStatsConsole spStats =
                     std::dynamic_pointer_cast<Hud::CStatsConsole>(
                         m_HudManager->Get("dreamstats"));
-                std::stringstream decodefpsstr;
-                decodefpsstr.precision(2);
-                double realFps = m_CurrentFps;
-                std::string activityLevelString;
-                if (metadata)
+                float activityLevel = 1.f;
+                const ContentDecoder::sClipMetadata* clipMetadata =
+                    g_Player().GetCurrentPlayingClipMetadata();
+                if (clipMetadata)
                 {
-                    realFps /= metadata->dreamData.activityLevel;
-                    activityLevelString =
-                        string_format("\nActivity level: %.2f",
-                                      metadata->dreamData.activityLevel);
+                    activityLevel = clipMetadata->dreamData.activityLevel;
                 }
-                decodefpsstr << std::fixed << realFps << " fps"
-                             << activityLevelString;
+                float realFps = (float)m_CurrentFps / activityLevel;
+
+                const ContentDecoder::sFrameMetadata* frameMetadata =
+                    g_Player().GetCurrentFrameMetadata();
+                if (frameMetadata)
+                {
+                    ((Hud::CStringStat*)spStats->Get("playHead"))
+                        ->SetSample(string_format(
+                            "%s/%s",
+                            FrameNumberToMinutesAndSecondsString(
+                                frameMetadata->frameIdx, realFps)
+                                .data(),
+                            FrameNumberToMinutesAndSecondsString(
+                                frameMetadata->maxFrameIdx, realFps)
+                                .data()));
+                }
                 ((Hud::CStringStat*)spStats->Get("decodefps"))
-                    ->SetSample(decodefpsstr.str());
+                    ->SetSample(string_format(" %.2f fps", realFps));
+                ((Hud::CStringStat*)spStats->Get("activityLevel"))
+                    ->SetSample(string_format(" %.2f", activityLevel));
                 ((Hud::CIntCounter*)spStats->Get("displayfps"))->AddSample(1);
 
                 spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
                     m_HudManager->Get("dreamcredits"));
-                if (metadata)
+                if (clipMetadata)
                 {
                     ((Hud::CStringStat*)spStats->Get("credits"))
                         ->SetSample(
                             string_format("%s - %s",
-                                          metadata->dreamData.author.data(),
-                                          metadata->dreamData.name.data())
+                                          clipMetadata->dreamData.author.data(),
+                                          clipMetadata->dreamData.name.data())
                                 .data());
                 }
                 //	Serverstats.

@@ -107,6 +107,7 @@ class CContentDecoder
     std::unique_ptr<sOpenVideoInfo> m_CurrentVideoInfo;
     AVPixelFormat m_WantedPixelFormat;
     boost::atomic<float> m_SkipForward;
+    boost::atomic<bool> m_HasEnded;
 
     void Destroy();
     bool Open();
@@ -126,6 +127,7 @@ class CContentDecoder
         return m_CurrentVideoInfo.get();
     }
     spCVideoFrame PopVideoFrame();
+    bool HasEnded() const { return m_HasEnded.load() && !m_FrameQueue.size(); }
     bool Stopped() { return m_bStop; };
     uint32_t QueueLength();
     void ClearQueue(uint32_t leave = 0);

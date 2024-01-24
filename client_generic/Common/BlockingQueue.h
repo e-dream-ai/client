@@ -49,7 +49,7 @@ template <typename T> class CBlockingQueue
         return true;
     }
 
-    bool peek(T& el, bool wait = false, bool peekFront = true)
+    bool peek(T& el, bool wait = false, bool peekFront = true) const
     {
         upg_reader_lock lock(m_mutex);
 
@@ -143,13 +143,13 @@ template <typename T> class CBlockingQueue
         return true;
     }
 
-    bool empty()
+    bool empty() const
     {
         reader_lock lock(m_mutex);
         return m_queue.empty();
     }
 
-    size_t size()
+    size_t size() const
     {
         reader_lock lock(m_mutex);
         return m_queue.size();

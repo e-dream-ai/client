@@ -83,6 +83,7 @@ using namespace boost;
 static const int32_t MAX_TIMEOUT = 24 * 60 * 60; // 1 day
 #define MIN_MEGABYTES 1024
 #define MIN_READ_INTERVAL 3600
+#define PRINT_TO_SCREEN 0
 
 #ifndef DEBUG
 static const uint32_t INIT_DELAY = 60;
@@ -214,14 +215,21 @@ bool SheepDownloader::downloadSheep(sDreamMetadata* sheep)
     return true;
 }
 
+static void PrintMessage(std::string_view _msg)
+{
+    g_Log->Error(_msg);
+#if PRINT_TO_SCREEN
+    ContentDownloader::Shepherd::addMessageText(_msg, 180);
+#endif
+}
+
 static void LogException(const std::exception& e, size_t dreamIndex,
                          std::string_view fileStr)
 {
     auto str = string_format(
         "Exception during parsing dreams list:%s contents:\"%s\" dreamIndex:%d",
         e.what(), fileStr.data(), dreamIndex);
-    ContentDownloader::Shepherd::addMessageText(str, 180);
-    g_Log->Error(str);
+    PrintMessage(str);
 }
 
 void SheepDownloader::ParseServerDreams()
@@ -246,7 +254,6 @@ void SheepDownloader::ParseServerDreams()
 static std::string TryParseString(uint32_t _id, const json::object& _obj,
                                   std::string_view _key)
 {
-    json::error_code parseError;
     auto it = _obj.find(_key);
     auto val = it != _obj.end() ? &it->value() : nullptr;
     const char* kinds[] = {"null",   "bool",   "int64", "uint64",
@@ -254,23 +261,18 @@ static std::string TryParseString(uint32_t _id, const json::object& _obj,
     if (val && val->is_string())
         return (std::string)val->as_string();
     else if (val)
-        ContentDownloader::Shepherd::addMessageText(
-            string_format(
-                "Key \"%s\" inside dream %u was %s, but expected a string.",
-                _key.data(), _id, kinds[(int)val->kind()]),
-            180);
+        PrintMessage(string_format(
+            "Key \"%s\" inside dream %u was %s, but expected a string.",
+            _key.data(), _id, kinds[(int)val->kind()]));
     else
-        ContentDownloader::Shepherd::addMessageText(
-            string_format("Key \"%s\" inside dream %u was null.", _key.data(),
-                          _id),
-            180);
+        PrintMessage(string_format("Key \"%s\" inside dream %u was null.",
+                                   _key.data(), _id));
     return "";
 }
 
 static const json::object*
 TryParseObject(uint32_t _id, const json::object& _obj, std::string_view _key)
 {
-    json::error_code parseError;
     auto it = _obj.find(_key);
     auto val = it != _obj.end() ? &it->value() : nullptr;
     const char* kinds[] = {"null",   "bool",   "int64", "uint64",
@@ -278,23 +280,18 @@ TryParseObject(uint32_t _id, const json::object& _obj, std::string_view _key)
     if (val && val->is_object())
         return &val->as_object();
     else if (val)
-        ContentDownloader::Shepherd::addMessageText(
-            string_format(
-                "Key \"%s\" inside dream %u was %s, but expected an object.",
-                _key.data(), _id, kinds[(int)val->kind()]),
-            180);
+        PrintMessage(string_format(
+            "Key \"%s\" inside dream %u was %s, but expected an object.",
+            _key.data(), _id, kinds[(int)val->kind()]));
     else
-        ContentDownloader::Shepherd::addMessageText(
-            string_format("Key \"%s\" inside dream %u was null.", _key.data(),
-                          _id),
-            180);
+        PrintMessage(string_format("Key \"%s\" inside dream %u was null.",
+                                   _key.data(), _id));
     return nullptr;
 }
 
 static float TryParseFloat(uint32_t _id, const json::object& _obj,
                            std::string_view _key)
 {
-    json::error_code parseError;
     auto it = _obj.find(_key);
     auto val = it != _obj.end() ? &it->value() : nullptr;
     const char* kinds[] = {"null",   "bool",   "int64", "uint64",
@@ -302,16 +299,12 @@ static float TryParseFloat(uint32_t _id, const json::object& _obj,
     if (val && val->is_number())
         return val->to_number<float>();
     else if (val)
-        ContentDownloader::Shepherd::addMessageText(
-            string_format(
-                "Key \"%s\" inside dream %u was %s, but expected a float.",
-                _key.data(), _id, kinds[(int)val->kind()]),
-            180);
+        PrintMessage(string_format(
+            "Key \"%s\" inside dream %u was %s, but expected a float.",
+            _key.data(), _id, kinds[(int)val->kind()]));
     else
-        ContentDownloader::Shepherd::addMessageText(
-            string_format("Key \"%s\" inside dream %u was null.", _key.data(),
-                          _id),
-            180);
+        PrintMessage(string_format("Key \"%s\" inside dream %u was null.",
+                                   _key.data(), _id));
     return 0.f;
 }
 

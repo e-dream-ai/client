@@ -19,6 +19,13 @@
 
 namespace ContentDecoder
 {
+
+struct sClipMetadata
+{
+    std::string path;
+    ContentDownloader::sDreamMetadata dreamData;
+};
+
 class CClip
 {
     using spCTextureFlat = DisplayOutput::spCTextureFlat;
@@ -30,11 +37,6 @@ class CClip
         None = 0,
         Discarded = 1,
         ReverseHistory = 2
-    };
-    struct sClipMetadata
-    {
-        std::string path;
-        ContentDownloader::sDreamMetadata dreamData;
     };
 
   private:

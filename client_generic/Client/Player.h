@@ -24,7 +24,7 @@
 class CPlayer : public Base::CSingleton<CPlayer>
 {
     using sOpenVideoInfo = ContentDecoder::sOpenVideoInfo;
-    using sClipMetadata = ContentDecoder::CClip::sClipMetadata;
+    using sClipMetadata = ContentDecoder::sClipMetadata;
 
   public:
     typedef enum
@@ -78,7 +78,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     //	Used to keep track of elapsed time since last frame.
     double m_CapClock;
 
-    boost::mutex m_updateMutex;
+    mutable boost::mutex m_updateMutex;
 
 #ifdef WIN32
     HWND m_hWnd;
@@ -151,8 +151,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
         return m_displayUnits.empty() ? nullptr : m_displayUnits[0]->spRenderer;
     }
 
-    const ContentDecoder::CClip::sClipMetadata*
-    GetCurrentPlayingClipMetadata() const;
+    const ContentDecoder::sClipMetadata* GetCurrentPlayingClipMetadata() const;
+    const ContentDecoder::sFrameMetadata* GetCurrentFrameMetadata() const;
 
     inline void Add(const std::string& _fileName)
     {

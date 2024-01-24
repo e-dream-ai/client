@@ -117,7 +117,7 @@ bool CClip::NeedsNewFrame(DecoderClock* _decoderClock) const
 bool CClip::Update(double _timelineTime)
 {
     m_Alpha = 0.f;
-    if (_timelineTime > m_EndTime)
+    if (_timelineTime > m_EndTime || m_spDecoder->HasEnded())
     {
         m_HasFinished.exchange(true);
         return false;

@@ -297,6 +297,8 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
                 {
                     av_packet_free(&packet);
                     av_packet_free(&filteredPacket);
+                    m_HasEnded.exchange(true);
+                    ovi->m_CurrentFrameIndex = ovi->m_TotalFrameCount - 1;
                     return nullptr;
                 }
                 g_Log->Error(
@@ -336,6 +338,7 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
             {
                 av_packet_free(&packet);
                 av_packet_free(&filteredPacket);
+                m_HasEnded.exchange(true);
                 ovi->m_CurrentFrameIndex = ovi->m_TotalFrameCount - 1;
                 return nullptr;
             }
@@ -446,10 +449,6 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
         av_frame_unref(pFrame);
 
         pVideoFrame->SetMetaData_DecodeFps(ovi->m_DecodeFps);
-        //        std::string name, author;
-        //        m_spPlaylist->GetDreamNameAndAuthor(ovi->m_Path, &name, &author);
-        //        pVideoFrame->SetMetaData_DreamName(name);
-        //        pVideoFrame->SetMetaData_DreamAuthor(author);
         pVideoFrame->SetMetaData_IsSeam(ovi->m_NextIsSeam);
         pVideoFrame->SetMetaData_FrameIdx((uint32_t)ovi->m_CurrentFrameIndex);
         pVideoFrame->SetMetaData_MaxFrameIdx(ovi->m_TotalFrameCount);
@@ -550,6 +549,7 @@ bool CContentDecoder::Start(std::string_view _path, int64_t _seekFrame)
     m_CurrentVideoInfo = std::make_unique<sOpenVideoInfo>();
     m_CurrentVideoInfo->m_Path = _path;
     m_CurrentVideoInfo->m_SeekTargetFrame = _seekFrame;
+    m_HasEnded.exchange(false);
 
     if (!Open())
         return false;

@@ -740,16 +740,26 @@ void CPlayer::ReturnToPrevious()
 
 void CPlayer::SkipForward(float _seconds)
 {
+    write_lock l(m_updateMutex);
     m_CurrentClips[0]->SkipTime(_seconds);
     m_CurrentClips[1]->SetStartTime(m_CurrentClips[1]->GetStartTime() -
                                     _seconds);
 }
 
-const CClip::sClipMetadata* CPlayer::GetCurrentPlayingClipMetadata() const
+const ContentDecoder::sClipMetadata*
+CPlayer::GetCurrentPlayingClipMetadata() const
 {
+    write_lock l(m_updateMutex);
     if (!m_CurrentClips.size())
         return nullptr;
     return &m_CurrentClips[0]->GetClipMetadata();
+}
+const ContentDecoder::sFrameMetadata* CPlayer::GetCurrentFrameMetadata() const
+{
+    write_lock l(m_updateMutex);
+    if (!m_CurrentClips.size())
+        return nullptr;
+    return &m_CurrentClips[0]->GetCurrentFrameMetadata();
 }
 
 static void
