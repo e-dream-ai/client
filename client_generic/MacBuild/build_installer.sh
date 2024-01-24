@@ -1,4 +1,5 @@
-WD=build/Release
+#WD=build/Release
+WD=build/Debug
 
 VERSION=$1
 DEST=$2
@@ -15,25 +16,25 @@ cd "$BASE_DIR"
 
 mkdir -p "$DEST_TMP" "$SAVER_TMP" "$APP_TMP"
 
-cp -PR "$WD/Electric Sheep.app" "$APP_TMP"
+cp -PR "$WD/e-dream.app" "$APP_TMP"
 
-cp -PR "$WD/Electric Sheep.saver" "$SAVER_TMP"
+cp -PR "$WD/e-dream.saver" "$SAVER_TMP"
 
 pkgbuild --root "$APP_TMP" \
-    --component-plist "Package/ElectricSheepAppComponents.plist" \
+    --component-plist "Package/e-dreamAppComponents.plist" \
     --scripts "Package/Scripts" \
-    --identifier "org.electricsheep.electricSheep.app.pkg" \
+    --identifier "com.spotworks.e-dream.app.pkg" \
     --version "$VERSION" \
     --install-location "/Applications" \
-    "$DEST_TMP/ElectricSheepApp.pkg"
+    "$DEST_TMP/e-dreamApp.pkg"
 
 pkgbuild --root "$SAVER_TMP" \
-    --component-plist "Package/ElectricSheepSaverComponents.plist" \
+    --component-plist "Package/e-dreamSaverComponents.plist" \
     --scripts "Package/Scripts" \
-    --identifier "org.electricsheep.electricSheep.pkg" \
+    --identifier "com.spotworks.e-dream.pkg" \
     --version "$VERSION" \
     --install-location "/Library/Screen Savers" \
-    "$DEST_TMP/ElectricSheepSaver.pkg"
+    "$DEST_TMP/e-dreamSaver.pkg"
     
 cp Package/Distribution-template.xml Package/Distribution.xml
 
@@ -44,7 +45,7 @@ productbuild --distribution "Package/Distribution.xml"  \
     --package-path "$DEST_TMP" \
     --resources "../Runtime" \
     --sign "Developer ID Installer: Scott Draves (D7639HSC8D)" \
-    "$DEST/Electric Sheep.pkg"
+    "$DEST/e-dream.pkg"
     
 rm -f Package/Distribution.xml
 

@@ -16,7 +16,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "2160FAAC0F30F43600B2C27A"
                BuildableName = "e-dream.app"
-               BlueprintName = "ElectricSheepTestApp"
+               BlueprintName = "e-dream TestApp"
                ReferencedContainer = "container:e-dream.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -31,7 +31,7 @@
       </Testables>
    </TestAction>
    <LaunchAction
-      buildConfiguration = "Debug"
+      buildConfiguration = "Release"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       enableASanStackUseAfterReturn = "YES"
@@ -50,7 +50,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "2160FAAC0F30F43600B2C27A"
             BuildableName = "e-dream.app"
-            BlueprintName = "ElectricSheepTestApp"
+            BlueprintName = "e-dream TestApp"
             ReferencedContainer = "container:e-dream.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -67,7 +67,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "2160FAAC0F30F43600B2C27A"
             BuildableName = "e-dream.app"
-            BlueprintName = "ElectricSheepTestApp"
+            BlueprintName = "e-dream TestApp"
             ReferencedContainer = "container:e-dream.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

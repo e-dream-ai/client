@@ -936,9 +936,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		2160FAAC0F30F43600B2C27A /* ElectricSheepTestApp */ = {
+		2160FAAC0F30F43600B2C27A /* e-dream TestApp */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 2160FAB20F30F43800B2C27A /* Build configuration list for PBXNativeTarget "ElectricSheepTestApp" */;
+			buildConfigurationList = 2160FAB20F30F43800B2C27A /* Build configuration list for PBXNativeTarget "e-dream TestApp" */;
 			buildPhases = (
 				1243576A2B31E89000CCD62A /* ShellScript */,
 				21EE636610139D86000CE53E /* Resources */,
@@ -951,7 +951,7 @@
 			);
 			dependencies = (
 			);
-			name = ElectricSheepTestApp;
+			name = "e-dream TestApp";
 			productName = ElectricSheep;
 			productReference = 2160FAAD0F30F43600B2C27A /* e-dream.app */;
 			productType = "com.apple.product-type.application";
@@ -1010,7 +1010,7 @@
 			projectRoot = "";
 			targets = (
 				218878CF0EC6CD7E001ABD2E /* ScreenSaver */,
-				2160FAAC0F30F43600B2C27A /* ElectricSheepTestApp */,
+				2160FAAC0F30F43600B2C27A /* e-dream TestApp */,
 			);
 		};
 /* End PBXProject section */
@@ -1623,7 +1623,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		2160FAB20F30F43800B2C27A /* Build configuration list for PBXNativeTarget "ElectricSheepTestApp" */ = {
+		2160FAB20F30F43800B2C27A /* Build configuration list for PBXNativeTarget "e-dream TestApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				2160FAB00F30F43700B2C27A /* Debug */,
