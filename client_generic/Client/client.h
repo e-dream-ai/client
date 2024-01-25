@@ -1085,7 +1085,9 @@ class CElectricSheep
             case DisplayOutput::CKeyEvent::KEY_C:
                 m_HudManager->Toggle("dreamcredits");
                 break;
-
+            case DisplayOutput::CKeyEvent::KEY_V:
+                PlatformUtils::OpenURLExternally("https://www.apple.com");
+                break;
             //	All other keys needs to be ignored, they are handled somewhere
             // else...
             default:
