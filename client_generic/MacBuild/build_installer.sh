@@ -20,6 +20,10 @@ cp -PR "$WD/e-dream.app" "$APP_TMP"
 
 cp -PR "$WD/e-dream.saver" "$SAVER_TMP"
 
+APP_CERT="Developer ID Application: Spotworks LLC (FCG855WTXV)"
+
+codesign --deep --force --verbose --sign "$APP_CERT" "$APP_TMP/e-dream.app"
+
 pkgbuild --root "$APP_TMP" \
     --component-plist "Package/e-dreamAppComponents.plist" \
     --scripts "Package/Scripts" \
@@ -44,8 +48,8 @@ sed -i '' -e "s/##VER##/$VERSION/g" Package/Distribution.xml
 productbuild --distribution "Package/Distribution.xml"  \
     --package-path "$DEST_TMP" \
     --resources "../Runtime" \
-    "$DEST/e-dream.pkg"
     --sign "Developer ID Installer: Spotworks LLC (FCG855WTXV)" \
+    "$DEST/e-dream.pkg"
     
 rm -f Package/Distribution.xml
 
