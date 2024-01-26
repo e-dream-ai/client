@@ -44,7 +44,7 @@
 #endif
 
 #define DREAM_SERVER_STAGING "https://e-dream-76c98b08cc5d.herokuapp.com"
-#define DREAM_SERVER_PRODUCTION "https://creative-rugelach-b78ab4.netlify.app/"
+#define DREAM_SERVER_PRODUCTION "https://creative-rugelach-b78ab4.netlify.app"
 
 #define API_VERSION "/api/v1"
 #define DREAM_ENDPOINT API_VERSION "/dream"

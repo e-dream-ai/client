@@ -44,8 +44,8 @@ sed -i '' -e "s/##VER##/$VERSION/g" Package/Distribution.xml
 productbuild --distribution "Package/Distribution.xml"  \
     --package-path "$DEST_TMP" \
     --resources "../Runtime" \
-    --sign "Developer ID Installer: Scott Draves (D7639HSC8D)" \
     "$DEST/e-dream.pkg"
+    --sign "Developer ID Installer: Spotworks LLC (FCG855WTXV)" \
     
 rm -f Package/Distribution.xml
 

@@ -110,6 +110,15 @@ void PlatformUtils::SetOnMouseMovedCallback(
     }
 }
 
+void PlatformUtils::OpenURLExternally(std::string_view _url)
+{
+    NSString* str = [[NSString alloc] initWithBytes:_url.data()
+                                             length:_url.length()
+                                           encoding:NSUTF8StringEncoding];
+    NSURL* linkURL = [NSURL URLWithString:str];
+    [[NSWorkspace sharedWorkspace] openURL:linkURL];
+}
+
 void PlatformUtils::SetThreadName(std::string_view _name)
 {
     if (_name.end())

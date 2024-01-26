@@ -230,9 +230,10 @@ bool EDreamClient::GetDreams(int _page, int _count)
         std::string authHeader{
             string_format("Authorization: Bearer %s", GetAccessToken())};
         spDownload->AppendHeader(authHeader);
-        if (spDownload->Perform(string_format(
-                "%s?take=%i&skip=%i", Shepherd::GetEndpoint(ENDPOINT_DREAM),
-                DREAMS_PER_PAGE, DREAMS_PER_PAGE * _page)))
+        std::string url{string_format(
+            "%s?take=%i&skip=%i", Shepherd::GetEndpoint(ENDPOINT_DREAM),
+            DREAMS_PER_PAGE, DREAMS_PER_PAGE * _page)};
+        if (spDownload->Perform(url))
         {
             break;
         }
