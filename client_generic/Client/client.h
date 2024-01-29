@@ -44,6 +44,12 @@
 #endif
 #endif
 
+#ifdef MAC
+#define FULLSCREEN_MODIFIER_KEY "Cmd"
+#else
+#define FULLSCREEN_MODIFIER_KEY "Control"
+#endif
+
 typedef void (*ShowPreferencesCallback_t)();
 extern void ESSetShowPreferencesCallback(ShowPreferencesCallback_t);
 extern void ESShowPreferences();
@@ -250,23 +256,21 @@ class CElectricSheep
                 m_HudManager->Get("helpmessage"));
         spHelpMessage->Add(new Hud::CStringStat(
             "message",
-            "e-dream\n\nA platform for gen AI visuals, see e-dream.ai to learn "
-            "more.\n\nKeyboard Commands\nUp-arrow: vote for this "
-            "dream\nDown-arrow: vote against this dream and delete "
-            "it\nLeft-arrow: "
-            "go back to play previous dream\nRight-arrow: go forward through "
-            "history\nComma: playback slower\nPeriod: playback faster\nSlash: "
-            "show "
-            "credit\n"
-#ifdef MAC
-            "Cmd"
-#else
-            "Control"
-#endif
-            "-F: toggle full screen\nF1: help (this page)\nF2: status "
-            "overlay\n\nby Scott Draves and open source programmers all over "
-            "the "
-            "world",
+            "e-dream\n\n"
+            "A platform for gen AI visuals, see e-dream.ai to learn more.\n\n"
+            "Keyboard Commands\n"
+            "Up-arrow: vote for this dream\n"
+            "Down-arrow: vote against this dream and delete it\n"
+            "Left-arrow: go back to play previous dream\n"
+            "Right-arrow: go forward through history\n"
+            "A: playback slower\nD: playback faster\n"
+            "C: show credit\n"
+            "L: skip 10 seconds forward\n"
+            "J: skip 10 seconds back\n"
+            "V: open web source                       "
+            "\n" FULLSCREEN_MODIFIER_KEY "-F: toggle full screen\n"
+            "F1: help (this page)\nF2: status overlay\n\n"
+            "by Scott Draves and open source programmers all over the world",
             ""));
 
         std::string ver = GetVersion();
@@ -1029,7 +1033,7 @@ class CElectricSheep
                                    voteDelaySeconds))
                     m_HudManager->Add("splash_pos", m_spSplashPos,
                                       voteDelaySeconds * 0.9f);*/
-                break;
+                return true;
             case DisplayOutput::CKeyEvent::KEY_DOWN:
                 /*if (m_pVoter != NULL &&
                     m_pVoter->Vote(g_Player().GetCurrentPlayingID(), false,
@@ -1046,57 +1050,54 @@ class CElectricSheep
                     m_HudManager->Add("splash_pos", m_spSplashNeg,
                                       voteDelaySeconds * 0.9f);
                 }*/
-                break;
+                return true;
                 //	Repeat current sheep
             case DisplayOutput::CKeyEvent::KEY_LEFT:
                 g_Player().ReturnToPrevious();
-                break;
+                return true;
                 //  Force Next Sheep
             case DisplayOutput::CKeyEvent::KEY_RIGHT:
                 g_Player().SkipToNext();
-                break;
+                return true;
                 //	Repeat sheep
             case DisplayOutput::CKeyEvent::KEY_F8:
                 g_Player().RepeatClip();
-                break;
+                return true;
             case DisplayOutput::CKeyEvent::KEY_A:
                 m_F1F4Timer.Reset();
                 g_Player().Framerate(m_CurrentFps *= (1.f / 1.1f));
-                break;
+                return true;
             case DisplayOutput::CKeyEvent::KEY_D:
                 m_F1F4Timer.Reset();
                 g_Player().Framerate(m_CurrentFps *= (1.1f));
-                break;
+                return true;
                 //	OSD info.
             case DisplayOutput::CKeyEvent::KEY_F1:
                 m_F1F4Timer.Reset();
                 m_HudManager->Toggle("helpmessage");
-                break;
+                return true;
             case DisplayOutput::CKeyEvent::KEY_F2:
                 m_F1F4Timer.Reset();
                 m_HudManager->Toggle("dreamstats");
-                break;
+                return true;
             case DisplayOutput::CKeyEvent::KEY_J:
                 g_Player().SkipForward(-10);
-                break;
+                return true;
             case DisplayOutput::CKeyEvent::KEY_L:
                 g_Player().SkipForward(10);
-                break;
+                return true;
             case DisplayOutput::CKeyEvent::KEY_C:
                 m_HudManager->Toggle("dreamcredits");
-                break;
+                return true;
             case DisplayOutput::CKeyEvent::KEY_V:
                 PlatformUtils::OpenURLExternally("https://www.apple.com");
-                break;
+                return true;
             //	All other keys needs to be ignored, they are handled somewhere
             // else...
             default:
-            {
                 g_Log->Info("Key event, ignoring");
                 return false;
             }
-            }
-            return true;
         }
         return false;
     }
