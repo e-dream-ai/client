@@ -133,8 +133,11 @@ bool EDreamClient::Authenticate()
     }
     else
     {
-
         g_Log->Error("Authentication failed. Access token was not set.");
+    }
+    if (!success)
+    {
+        ESShowPreferences();
     }
     fIsLoggedIn.exchange(success);
     fAuthMutex.unlock();

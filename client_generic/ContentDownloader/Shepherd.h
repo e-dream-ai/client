@@ -37,14 +37,16 @@
 #include "boost/detail/atomic_count.hpp"
 #include "boost/thread/mutex.hpp"
 
+using namespace std::string_view_literals;
+
 #ifdef WIN32
 #define PATH_SEPARATOR_C '\\'
 #else
 #define PATH_SEPARATOR_C '/'
 #endif
 
-#define DREAM_SERVER_STAGING "https://e-dream-76c98b08cc5d.herokuapp.com"
-#define DREAM_SERVER_PRODUCTION "https://creative-rugelach-b78ab4.netlify.app"
+constexpr const std::string_view DEFAULT_DREAM_SERVER =
+    "https://creative-rugelach-b78ab4.netlify.app"sv;
 
 #define API_VERSION "/api/v1"
 #define DREAM_ENDPOINT API_VERSION "/dream"

@@ -145,7 +145,7 @@ CFStringRef ESScreensaver_CopyGetRoot(void)
 }
 
 CFStringRef ESScreensaver_CopyGetStringSetting(const char* url,
-                                               const char* defval)
+                                               std::string_view defval)
 {
     std::string val = g_Settings()->Get(std::string(url), std::string(defval));
 

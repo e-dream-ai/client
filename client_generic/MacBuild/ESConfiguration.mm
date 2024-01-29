@@ -422,11 +422,7 @@ using namespace ContentDownloader;
     cacheSize.intValue = cache_size;
 
     debugLog.state = ESScreensaver_GetBoolSetting("settings.app.log", false);
-
-    [serverSelector
-        selectItem:serverSelector
-                       .itemArray[(NSUInteger)ESScreensaver_GetIntSetting(
-                           "settings.debug.server", 0)]];
+    serverField.stringValue = (__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting("settings.content.server", DEFAULT_DREAM_SERVER);
 
     contentFldr.stringValue =
         ((__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting(
@@ -437,7 +433,7 @@ using namespace ContentDownloader;
 
 #ifndef DEBUG
     serverLabel.hidden = YES;
-    serverSelector.hidden = YES;
+    serverField.hidden = YES;
 #endif
 
     [self fixFlockSize];
@@ -514,8 +510,7 @@ using namespace ContentDownloader;
 
     ESScreensaver_SetBoolSetting("settings.app.log", debugLog.state);
 
-    ESScreensaver_SetIntSetting("settings.debug.server",
-                                (int)serverSelector.indexOfSelectedItem);
+    ESScreensaver_SetStringSetting("settings.content.server", serverField.stringValue.UTF8String);
 }
 
 - (IBAction)goToCreateAccountPage:(id)__unused sender
