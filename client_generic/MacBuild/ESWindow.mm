@@ -1,8 +1,16 @@
+#import <IOKit/IOMapTypes.h>
+#import <IOKit/pwr_mgt/IOPMLib.h>
 #import "ESWindow.h"
 #import "ESScreensaver.h"
+
+
 #include "client.h"
 
 @implementation ESWindow
+{
+    IOPMAssertionID noSleepAssertionIDUser;
+    IOPMAssertionID noSleepAssertionIDSystem;
+};
 
 static __weak ESWindow* s_pWindow = nil;
 static void ShowPreferencesCallback()
@@ -75,6 +83,27 @@ static void ShowPreferencesCallback()
 - (void)switchFullScreen:(id)sender
 {
     [self toggleFullScreen:sender];
+}
+
+-(void)toggleFullScreen:(id)sender
+{
+        //NSWorkspace *workspace = [NSWorkspace sharedWorkspace];
+                //[workspace setIdleTimerDisabled:self.isFullScreen];
+    if ([self isFullScreen])
+    {
+        IOPMAssertionRelease(noSleepAssertionIDUser);
+        IOPMAssertionRelease(noSleepAssertionIDSystem);
+    }
+    else
+    {
+        IOPMAssertionCreateWithName(kIOPMAssertPreventUserIdleDisplaySleep,
+                                    IOPMAssertionLevel(kIOPMAssertionLevelOn),
+                                    CFSTR("Full Screen Video (e-dream)"),
+                                    &noSleepAssertionIDUser);
+        IOPMAssertionCreateWithName(kIOPMAssertPreventUserIdleSystemSleep,
+                                    kIOPMAssertionLevelOn, CFSTR("Full Screen Video (e-dream)"), &noSleepAssertionIDSystem);
+    }
+    [super toggleFullScreen:sender];
 }
 
 /*
