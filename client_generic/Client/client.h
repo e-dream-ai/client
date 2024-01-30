@@ -1019,7 +1019,7 @@ class CElectricSheep
     virtual bool HandleOneEvent(DisplayOutput::spCEvent& _event)
     {
         //        static const float voteDelaySeconds = 1;
-
+        float voteDelaySeconds = 2;
         if (_event->Type() == DisplayOutput::CEvent::Event_KEY)
         {
             DisplayOutput::spCKeyEvent spKey =
@@ -1028,28 +1028,28 @@ class CElectricSheep
             {
                 //	Vote for sheep.
             case DisplayOutput::CKeyEvent::KEY_UP:
-                /*if (m_pVoter != NULL &&
-                    m_pVoter->Vote(g_Player().GetCurrentPlayingID(), true,
+                if (m_pVoter != NULL &&
+                    m_pVoter->Vote(0, true,
                                    voteDelaySeconds))
                     m_HudManager->Add("splash_pos", m_spSplashPos,
-                                      voteDelaySeconds * 0.9f);*/
+                                      voteDelaySeconds * 0.9f);
                 return true;
             case DisplayOutput::CKeyEvent::KEY_DOWN:
-                /*if (m_pVoter != NULL &&
-                    m_pVoter->Vote(g_Player().GetCurrentPlayingID(), false,
+                if (m_pVoter != NULL &&
+                    m_pVoter->Vote(0, false,
                                    voteDelaySeconds))
                 {
-                    if (g_Settings()->Get("settings.content.negvotedeletes",
-                                          true))
-                    {
-                        // g_Player().Stop();
-                        m_spCrossFade->Reset();
-                        m_HudManager->Add("fade", m_spCrossFade, 1.5);
-                    }
+//                    if (g_Settings()->Get("settings.content.negvotedeletes",
+//                                          true))
+//                    {
+//                        // g_Player().Stop();
+//                        m_spCrossFade->Reset();
+//                        m_HudManager->Add("fade", m_spCrossFade, 1.5);
+//                    }
 
                     m_HudManager->Add("splash_pos", m_spSplashNeg,
                                       voteDelaySeconds * 0.9f);
-                }*/
+                }
                 return true;
                 //	Repeat current sheep
             case DisplayOutput::CKeyEvent::KEY_LEFT:
