@@ -344,10 +344,10 @@ class CElectricSheep
         //	Vote splash.
         m_spSplashPos = std::make_shared<Hud::CSplash>(
             0.2f, g_Settings()->Get("settings.app.InstallDir", defaultDir) +
-                      "electricsheep-smile.png");
+                      "vote-up.png");
         m_spSplashNeg = std::make_shared<Hud::CSplash>(
             0.2f, g_Settings()->Get("settings.app.InstallDir", defaultDir) +
-                      "electricsheep-frown.png");
+                      "vote-down.png");
 
         // PNG splash
         m_SplashFilename = g_Settings()->Get(
@@ -1018,8 +1018,7 @@ class CElectricSheep
 
     virtual bool HandleOneEvent(DisplayOutput::spCEvent& _event)
     {
-        //        static const float voteDelaySeconds = 1;
-        float voteDelaySeconds = 2;
+        static const float voteDelaySeconds = 1;
         if (_event->Type() == DisplayOutput::CEvent::Event_KEY)
         {
             DisplayOutput::spCKeyEvent spKey =
@@ -1039,13 +1038,14 @@ class CElectricSheep
                     m_pVoter->Vote(0, false,
                                    voteDelaySeconds))
                 {
-//                    if (g_Settings()->Get("settings.content.negvotedeletes",
-//                                          true))
-//                    {
-//                        // g_Player().Stop();
-//                        m_spCrossFade->Reset();
-//                        m_HudManager->Add("fade", m_spCrossFade, 1.5);
-//                    }
+                    if (g_Settings()->Get("settings.content.negvotedeletes",
+                                          true))
+                    {
+                        // g_Player().Stop();
+                        g_Player().SkipToNext();
+                        m_spCrossFade->Reset();
+                        m_HudManager->Add("fade", m_spCrossFade, 1.5);
+                    }
 
                     m_HudManager->Add("splash_pos", m_spSplashNeg,
                                       voteDelaySeconds * 0.9f);

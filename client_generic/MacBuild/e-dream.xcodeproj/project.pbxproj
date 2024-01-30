@@ -85,12 +85,12 @@
 		2160FCAB0F30F48200B2C27A /* libz.1.2.5.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1AD90E8E6E0100CE185C /* libz.1.2.5.dylib */; };
 		2160FCAC0F30F48200B2C27A /* libbz2.1.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1ADD0E8E6E5000CE185C /* libbz2.1.0.dylib */; };
 		2160FCAF0F30F48200B2C27A /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2135D2670EC70571005E246D /* AppKit.framework */; };
-		2160FE7C0F30F8A000B2C27A /* electricsheep-frown.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE190F30F82800B2C27A /* electricsheep-frown.png */; };
-		2160FE7D0F30F8A000B2C27A /* electricsheep-smile.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE1A0F30F82800B2C27A /* electricsheep-smile.png */; };
+		2160FE7C0F30F8A000B2C27A /* vote-down.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE190F30F82800B2C27A /* vote-down.png */; };
+		2160FE7D0F30F8A000B2C27A /* vote-up.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE1A0F30F82800B2C27A /* vote-up.png */; };
 		2160FE7F0F30F8A000B2C27A /* License.rtf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE230F30F82800B2C27A /* License.rtf */; };
 		2160FE800F30F8A000B2C27A /* logo.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE240F30F82800B2C27A /* logo.png */; };
-		2160FEE90F30F9FB00B2C27A /* electricsheep-frown.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE190F30F82800B2C27A /* electricsheep-frown.png */; };
-		2160FEEA0F30F9FB00B2C27A /* electricsheep-smile.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE1A0F30F82800B2C27A /* electricsheep-smile.png */; };
+		2160FEE90F30F9FB00B2C27A /* vote-down.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE190F30F82800B2C27A /* vote-down.png */; };
+		2160FEEA0F30F9FB00B2C27A /* vote-up.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE1A0F30F82800B2C27A /* vote-up.png */; };
 		2160FEEC0F30F9FB00B2C27A /* License.rtf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE230F30F82800B2C27A /* License.rtf */; };
 		2160FEED0F30F9FB00B2C27A /* logo.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE240F30F82800B2C27A /* logo.png */; };
 		2161F1940ECF8CEF00FE48E9 /* libz.1.2.5.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1AD90E8E6E0100CE185C /* libz.1.2.5.dylib */; };
@@ -255,8 +255,8 @@
 				21DE7CD91019020600E77D68 /* Instructions.rtf in CopyFiles */,
 				212CAF841141CA3F009DA85A /* TrebuchetMS-20.glf in CopyFiles */,
 				2187F3870F463AB50004F8F9 /* TrebuchetMS-24.glf in CopyFiles */,
-				2160FE7C0F30F8A000B2C27A /* electricsheep-frown.png in CopyFiles */,
-				2160FE7D0F30F8A000B2C27A /* electricsheep-smile.png in CopyFiles */,
+				2160FE7C0F30F8A000B2C27A /* vote-down.png in CopyFiles */,
+				2160FE7D0F30F8A000B2C27A /* vote-up.png in CopyFiles */,
 				2160FE7F0F30F8A000B2C27A /* License.rtf in CopyFiles */,
 				2160FE800F30F8A000B2C27A /* logo.png in CopyFiles */,
 				21006FC81017BC4B004A6511 /* Credits.html in CopyFiles */,
@@ -271,8 +271,8 @@
 			files = (
 				212CAF851141CA3F009DA85A /* TrebuchetMS-20.glf in CopyFiles */,
 				2187F3860F463AA20004F8F9 /* TrebuchetMS-24.glf in CopyFiles */,
-				2160FEE90F30F9FB00B2C27A /* electricsheep-frown.png in CopyFiles */,
-				2160FEEA0F30F9FB00B2C27A /* electricsheep-smile.png in CopyFiles */,
+				2160FEE90F30F9FB00B2C27A /* vote-down.png in CopyFiles */,
+				2160FEEA0F30F9FB00B2C27A /* vote-up.png in CopyFiles */,
 				2160FEEC0F30F9FB00B2C27A /* License.rtf in CopyFiles */,
 				2160FEED0F30F9FB00B2C27A /* logo.png in CopyFiles */,
 			);
@@ -400,8 +400,8 @@
 		215545A812620D3000AB51BF /* dsa_pub.pem */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = dsa_pub.pem; sourceTree = "<group>"; };
 		2160FAAD0F30F43600B2C27A /* e-dream.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "e-dream.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		2160FAAF0F30F43600B2C27A /* e-dream-App-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "e-dream-App-Info.plist"; sourceTree = "<group>"; };
-		2160FE190F30F82800B2C27A /* electricsheep-frown.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "electricsheep-frown.png"; sourceTree = "<group>"; };
-		2160FE1A0F30F82800B2C27A /* electricsheep-smile.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "electricsheep-smile.png"; sourceTree = "<group>"; };
+		2160FE190F30F82800B2C27A /* vote-down.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "vote-down.png"; sourceTree = "<group>"; };
+		2160FE1A0F30F82800B2C27A /* vote-up.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "vote-up.png"; sourceTree = "<group>"; };
 		2160FE230F30F82800B2C27A /* License.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; path = License.rtf; sourceTree = "<group>"; };
 		2160FE240F30F82800B2C27A /* logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = logo.png; sourceTree = "<group>"; };
 		2181FAEF0ECF42820078FDDA /* libswscale.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswscale.a; path = ../ffmpeg/osx/lib/libswscale.a; sourceTree = SOURCE_ROOT; };
@@ -842,8 +842,8 @@
 				12A00CD02B0D22A4001C0792 /* Trebuchet MS.sddf */,
 				12A00CD42B0D31E6001C0792 /* Lato.sddf */,
 				4628A55D2B0F84EF001C3078 /* Lato-Regular.ttf */,
-				2160FE190F30F82800B2C27A /* electricsheep-frown.png */,
-				2160FE1A0F30F82800B2C27A /* electricsheep-smile.png */,
+				2160FE190F30F82800B2C27A /* vote-down.png */,
+				2160FE1A0F30F82800B2C27A /* vote-up.png */,
 				2160FE230F30F82800B2C27A /* License.rtf */,
 				2160FE240F30F82800B2C27A /* logo.png */,
 				21ADBB211305D380000A9F20 /* green.tif */,
