@@ -16,7 +16,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "2160FAAC0F30F43600B2C27A"
                BuildableName = "e-dream.app"
-               BlueprintName = "e-dream TestApp"
+               BlueprintName = "e-dream App"
                ReferencedContainer = "container:e-dream.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -50,7 +50,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "2160FAAC0F30F43600B2C27A"
             BuildableName = "e-dream.app"
-            BlueprintName = "e-dream TestApp"
+            BlueprintName = "e-dream App"
             ReferencedContainer = "container:e-dream.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -67,7 +67,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "2160FAAC0F30F43600B2C27A"
             BuildableName = "e-dream.app"
-            BlueprintName = "e-dream TestApp"
+            BlueprintName = "e-dream App"
             ReferencedContainer = "container:e-dream.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

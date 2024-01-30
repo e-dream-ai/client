@@ -28,6 +28,9 @@
                                     <action selector="showPreferences:" target="371" id="454"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Check for Updates..." id="9hp-8M-FFX" userLabel="Check for Updates">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="144">
                                 <modifierMask key="keyEquivalentModifierMask" command="YES"/>
                             </menuItem>

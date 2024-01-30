@@ -38,26 +38,9 @@ bool bStarted = false;
     // if (isPreview)
 #endif
     {
-        CFBundleRef bndl = CopyDLBundle_ex();
-        NSBundle* nsbndl;
-
-        if (bndl != NULL)
-        {
-            NSURL* url = (NSURL*)CFBridgingRelease(CFBundleCopyBundleURL(bndl));
-
-            nsbndl = [NSBundle bundleWithPath:url.path];
-
-            m_updater = [SUUpdater updaterForBundle:nsbndl];
-
-            m_updater.delegate = self;
-
-            if (m_updater && m_updater.automaticallyChecksForUpdates)
-            {
-                [m_updater checkForUpdateInformation];
-            }
-
-            CFRelease(bndl);
-        }
+        
+        m_updater = [[SPUStandardUpdaterController alloc] initWithStartingUpdater:YES updaterDelegate:nil userDriverDelegate:nil];
+        [m_updater startUpdater];
     }
 
     if (self)
@@ -441,7 +424,7 @@ static void signnal_handler(int signal)
 }
 
 // Called immediately before relaunching.
-- (void)updaterWillRelaunchApplication:(SUUpdater*)__unused updater
+- (void)updaterWillRelaunchApplication:(SPUUpdater*)__unused updater
 {
     if (m_config != NULL)
         [NSApp endSheet:m_config.window];
@@ -452,14 +435,14 @@ static void signnal_handler(int signal)
     SUAppcastItem* update = timer.userInfo;
 
     if (!m_isFullScreen)
-        [m_updater checkForUpdatesInBackground];
+        [m_updater checkForUpdates:nil];
     else
         ESScreensaver_SetUpdateAvailable(
             update.displayVersionString.UTF8String);
 }
 
 // Sent when a valid update is found by the update driver.
-- (void)updater:(SUUpdater*)__unused updater
+- (void)updater:(SPUUpdater*)__unused updater
     didFindValidUpdate:(SUAppcastItem*)update
 {
     [NSTimer scheduledTimerWithTimeInterval:1.0
