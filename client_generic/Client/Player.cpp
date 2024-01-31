@@ -698,6 +698,10 @@ void CPlayer::SkipToNext()
         {
             PlayClip(nextClip, m_TimelineTime);
         }
+        else
+        {
+            m_PlayCond.notify_all();
+        }
         PRINTQUEUE("DOUBLESKIP", m_ClipInfoHistoryQueue, m_NextClipInfoQueue,
                    m_CurrentClips);
     }
@@ -745,7 +749,7 @@ void CPlayer::ReturnToPrevious()
 void CPlayer::SkipForward(float _seconds)
 {
     upg_reader_lock l(m_UpdateMutex);
-    while (m_CurrentClips.size() < 2)
+    while (m_CurrentClips.size() < 2 && !m_NextClipInfoQueue.empty())
     {
         upgrade_to_writer wlock(l);
         m_PlayCond.wait(m_UpdateMutex);
