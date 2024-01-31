@@ -248,7 +248,6 @@ void SheepDownloader::ParseServerDreams()
     {
         ParseDreamsPage(i);
     }
-    printf("");
 }
 
 static std::string TryParseString(uint32_t _id, const json::object& _obj,
@@ -363,6 +362,7 @@ int SheepDownloader::ParseDreamsPage(int _page)
                     newDream->activityLevel =
                         TryParseFloat(newDream->id, dream, "activityLevel");
                     fServerFlock.push_back(newDream);
+                    newDream->frontendUrl = TryParseString(newDream->id, dream, "frontendUrl");
                     const boost::json::object* user =
                         TryParseObject(newDream->id, dream, "user");
                     newDream->name =

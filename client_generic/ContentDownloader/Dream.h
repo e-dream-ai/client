@@ -47,6 +47,7 @@ struct sDreamMetadata
     std::string uuid;
     std::string author;
     std::string name;
+    std::string frontendUrl;
     uint64_t fileSize;
     uint32_t id;
     time_t writeTime;

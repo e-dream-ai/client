@@ -1023,6 +1023,7 @@ class CElectricSheep
         {
             DisplayOutput::spCKeyEvent spKey =
                 std::dynamic_pointer_cast<DisplayOutput::CKeyEvent>(_event);
+            const ContentDecoder::sClipMetadata* data = g_Player().GetCurrentPlayingClipMetadata();
             switch (spKey->m_Code)
             {
                 //	Vote for sheep.
@@ -1090,7 +1091,10 @@ class CElectricSheep
                 m_HudManager->Toggle("dreamcredits");
                 return true;
             case DisplayOutput::CKeyEvent::KEY_V:
-                PlatformUtils::OpenURLExternally("https://www.apple.com");
+                if (data)
+                {
+                    PlatformUtils::OpenURLExternally(data->dreamData.frontendUrl);
+                }
                 return true;
             //	All other keys needs to be ignored, they are handled somewhere
             // else...
