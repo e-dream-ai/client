@@ -46,13 +46,22 @@ using namespace std::string_view_literals;
 #endif
 
 constexpr const std::string_view DEFAULT_DREAM_SERVER =
-    "https://creative-rugelach-b78ab4.netlify.app"sv;
+    "https://e-dream-prod-84baba5507ee.herokuapp.com"sv;
 
 #define API_VERSION "/api/v1"
-#define DREAM_ENDPOINT API_VERSION "/dream"
-#define LOGIN_ENDPOINT API_VERSION "/auth/login"
-#define REFRESH_ENDPOINT API_VERSION "/auth/refresh"
-#define USER_ENDPOINT API_VERSION "/auth/user"
+
+#define DEFINE_ENDPOINT(name, path)                                            \
+    {                                                                          \
+        ENDPOINT_##name,                                                       \
+        {                                                                      \
+            std::string(Shepherd::GetDreamServer()) + API_VERSION + path       \
+        }                                                                      \
+    }
+
+#define SERVER_ENDPOINT_DEFINITIONS                                            \
+    DEFINE_ENDPOINT(DREAM, "/dream"), DEFINE_ENDPOINT(LOGIN, "/auth/login"),   \
+        DEFINE_ENDPOINT(REFRESH, "/auth/refresh"),                             \
+        DEFINE_ENDPOINT(USER, "/auth/user")
 
 enum eServerEndpoint
 {
@@ -61,20 +70,6 @@ enum eServerEndpoint
     ENDPOINT_REFRESH,
     ENDPOINT_USER
 };
-
-#define SERVER_ENDPOINT_DEFINITIONS                                            \
-    {ENDPOINT_DREAM,                                                           \
-     {std::string(Shepherd::GetDreamServer()) + DREAM_ENDPOINT}},              \
-        {ENDPOINT_LOGIN,                                                       \
-         {std::string(Shepherd::GetDreamServer()) + LOGIN_ENDPOINT}},          \
-        {ENDPOINT_REFRESH,                                                     \
-         {std::string(Shepherd::GetDreamServer()) + REFRESH_ENDPOINT}},        \
-    {                                                                          \
-        ENDPOINT_USER,                                                         \
-        {                                                                      \
-            std::string(Shepherd::GetDreamServer()) + USER_ENDPOINT            \
-        }                                                                      \
-    }
 
 namespace ContentDownloader
 {
