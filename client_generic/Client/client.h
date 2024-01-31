@@ -1023,21 +1023,20 @@ class CElectricSheep
         {
             DisplayOutput::spCKeyEvent spKey =
                 std::dynamic_pointer_cast<DisplayOutput::CKeyEvent>(_event);
-            const ContentDecoder::sClipMetadata* data = g_Player().GetCurrentPlayingClipMetadata();
+            const ContentDecoder::sClipMetadata* data =
+                g_Player().GetCurrentPlayingClipMetadata();
             switch (spKey->m_Code)
             {
                 //	Vote for sheep.
             case DisplayOutput::CKeyEvent::KEY_UP:
                 if (m_pVoter != NULL &&
-                    m_pVoter->Vote(0, true,
-                                   voteDelaySeconds))
+                    m_pVoter->Vote(0, true, voteDelaySeconds))
                     m_HudManager->Add("splash_pos", m_spSplashPos,
                                       voteDelaySeconds * 0.9f);
                 return true;
             case DisplayOutput::CKeyEvent::KEY_DOWN:
                 if (m_pVoter != NULL &&
-                    m_pVoter->Vote(0, false,
-                                   voteDelaySeconds))
+                    m_pVoter->Vote(0, false, voteDelaySeconds))
                 {
                     if (g_Settings()->Get("settings.content.negvotedeletes",
                                           true))
@@ -1091,9 +1090,10 @@ class CElectricSheep
                 m_HudManager->Toggle("dreamcredits");
                 return true;
             case DisplayOutput::CKeyEvent::KEY_V:
-                if (data)
+                if (data && !data->dreamData.frontendUrl.empty())
                 {
-                    PlatformUtils::OpenURLExternally(data->dreamData.frontendUrl);
+                    PlatformUtils::OpenURLExternally(
+                        data->dreamData.frontendUrl);
                 }
                 return true;
             //	All other keys needs to be ignored, they are handled somewhere
