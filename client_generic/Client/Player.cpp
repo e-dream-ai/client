@@ -755,8 +755,11 @@ void CPlayer::SkipForward(float _seconds)
         m_PlayCond.wait(m_UpdateMutex);
     }
     m_CurrentClips[0]->SkipTime(_seconds);
-    m_CurrentClips[1]->SetStartTime(m_CurrentClips[1]->GetStartTime() -
-                                    _seconds);
+    if (m_CurrentClips.size() > 1)
+    {
+        m_CurrentClips[1]->SetStartTime(m_CurrentClips[1]->GetStartTime() -
+                                        _seconds);
+    }
 }
 
 const ContentDecoder::sClipMetadata*
