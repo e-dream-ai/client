@@ -341,6 +341,8 @@ void CPlayer::Stop()
                           m_CurrentClips[0]->GetClipMetadata().path);
         g_Settings()->Set("settings.content.last_played_frame",
                           (uint64_t)m_CurrentClips[0]->GetCurrentFrameIdx());
+        g_Settings()->Set("settings.content.last_played_fps",
+                          m_DecoderFps);
     }
 
     m_bStarted = false;
@@ -540,6 +542,7 @@ void CPlayer::PlayQueuedClipsThread()
             int64_t seekFrame;
             seekFrame = (int64_t)g_Settings()->Get(
                 "settings.content.last_played_frame", uint64_t{});
+            m_DecoderFps = g_Settings()->Get("settings.content.last_played_fps", m_DecoderFps);
             PlayClip(lastPlayedFile, m_TimelineTime, seekFrame);
         }
 
@@ -598,9 +601,8 @@ bool CPlayer::PlayClip(std::string_view _clipPath, double _startTime,
     //        return false;
 
     spCClip clip = std::make_shared<CClip>(
-        sClipMetadata{std::string{_clipPath}, dream}, du->spRenderer,
-        displayMode, du->spDisplay->Width(), du->spDisplay->Height(),
-        m_DecoderFps / dream.activityLevel);
+        sClipMetadata{std::string{_clipPath}, m_DecoderFps / dream.activityLevel, dream}, du->spRenderer,
+        displayMode, du->spDisplay->Width(), du->spDisplay->Height());
 
     if (!clip->Start(_seekFrame))
         return false;
@@ -614,12 +616,12 @@ bool CPlayer::PlayClip(std::string_view _clipPath, double _startTime,
     return true;
 }
 
-void CPlayer::Framerate(const double _fps)
+void CPlayer::MultiplyFramerate(const double _multiplier)
 {
-    m_DecoderFps = _fps;
+    m_DecoderFps *= _multiplier;
     reader_lock l(m_UpdateMutex);
     if (m_CurrentClips.size())
-        m_CurrentClips[0]->SetFps(_fps);
+        m_CurrentClips[0]->SetFps(m_CurrentClips[0]->GetClipMetadata().fps * _multiplier);
 }
 
 void CPlayer::CalculateNextClipThread()

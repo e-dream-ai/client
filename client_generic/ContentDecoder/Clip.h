@@ -23,6 +23,7 @@ namespace ContentDecoder
 struct sClipMetadata
 {
     std::string path;
+    double fps;
     ContentDownloader::sDreamMetadata dreamData;
 };
 
@@ -56,7 +57,6 @@ class CClip
     ContentDecoder::spCVideoFrame m_spFrameData;
     DisplayOutput::spCImage m_spImageRef;
     sFrameMetadata m_CurrentFrameMetadata;
-    double m_DecodeFps;
     Base::CTimer m_Timer;
     mutable boost::shared_mutex m_CurrentFrameMetadataLock;
     double m_StartTime;
@@ -74,8 +74,7 @@ class CClip
 
   public:
     CClip(const sClipMetadata& _metadata, spCRenderer _spRenderer,
-          int32_t _displayMode, uint32_t _displayWidth, uint32_t _displayHeight,
-          float _decodeFps);
+          int32_t _displayMode, uint32_t _displayWidth, uint32_t _displayHeight);
     bool Start(int64_t _seekFrame = -1);
     void Stop();
     bool Update(double _timelineTime);
@@ -92,7 +91,7 @@ class CClip
     uint32_t GetFrameCount() const;
     void SetStartTime(double _startTime);
     double GetStartTime() const { return m_StartTime; }
-    double GetLength() const { return GetFrameCount() / m_DecodeFps; }
+    double GetLength() const { return GetFrameCount() / m_ClipMetadata.fps; }
     bool HasFinished() const { return m_HasFinished.load(); }
     void SetTransitionLength(float _fadeInSeconds, float _fadeOutSeconds)
     {
@@ -108,7 +107,7 @@ class CClip
     void SetFlags(eClipFlags _flags) { m_ClipFlags = _flags; }
     eClipFlags GetFlags() const { return m_ClipFlags; }
     void SkipTime(float _secondsForward);
-    void SetFps(double _fps) { m_DecodeFps = _fps; }
+    void SetFps(double _fps) { m_ClipMetadata.fps = _fps; }
 };
 MakeSmartPointers(CClip);
 } // namespace ContentDecoder

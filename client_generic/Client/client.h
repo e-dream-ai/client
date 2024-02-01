@@ -223,9 +223,8 @@ class CElectricSheep
         if (m_PlayerFps < 0.1)
             m_PlayerFps = 1.;
         m_OriginalFps = m_PlayerFps;
-        m_CurrentFps = m_PlayerFps;
 
-        g_Player().Framerate(m_CurrentFps);
+        g_Player().SetFramerate(m_PlayerFps);
 
         //	Get hud font size.
         std::string hudFontName = g_Settings()->Get(
@@ -852,13 +851,14 @@ class CElectricSheep
                     std::dynamic_pointer_cast<Hud::CStatsConsole>(
                         m_HudManager->Get("dreamstats"));
                 float activityLevel = 1.f;
+                float realFps = 20;
                 const ContentDecoder::sClipMetadata* clipMetadata =
                     g_Player().GetCurrentPlayingClipMetadata();
                 if (clipMetadata)
                 {
                     activityLevel = clipMetadata->dreamData.activityLevel;
+                    realFps = clipMetadata->fps;
                 }
-                float realFps = (float)m_CurrentFps / activityLevel;
 
                 const ContentDecoder::sFrameMetadata* frameMetadata =
                     g_Player().GetCurrentFrameMetadata();
@@ -1065,11 +1065,11 @@ class CElectricSheep
                 return true;
             case DisplayOutput::CKeyEvent::KEY_A:
                 m_F1F4Timer.Reset();
-                g_Player().Framerate(m_CurrentFps *= (1.f / 1.1f));
+                g_Player().MultiplyFramerate(1.f / 1.1f);
                 return true;
             case DisplayOutput::CKeyEvent::KEY_D:
                 m_F1F4Timer.Reset();
-                g_Player().Framerate(m_CurrentFps *= (1.1f));
+                g_Player().MultiplyFramerate(1.1f);
                 return true;
                 //	OSD info.
             case DisplayOutput::CKeyEvent::KEY_F1:
