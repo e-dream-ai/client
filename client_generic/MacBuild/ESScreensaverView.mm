@@ -38,26 +38,9 @@ bool bStarted = false;
     // if (isPreview)
 #endif
     {
-        CFBundleRef bndl = CopyDLBundle_ex();
-        NSBundle* nsbndl;
-
-        if (bndl != NULL)
-        {
-            NSURL* url = (NSURL*)CFBridgingRelease(CFBundleCopyBundleURL(bndl));
-
-            nsbndl = [NSBundle bundleWithPath:url.path];
-
-            m_updater = [SUUpdater updaterForBundle:nsbndl];
-
-            m_updater.delegate = self;
-
-            if (m_updater && m_updater.automaticallyChecksForUpdates)
-            {
-                [m_updater checkForUpdateInformation];
-            }
-
-            CFRelease(bndl);
-        }
+        
+        m_updater = [[SPUStandardUpdaterController alloc] initWithStartingUpdater:YES updaterDelegate:nil userDriverDelegate:nil];
+        [m_updater startUpdater];
     }
 
     if (self)
@@ -371,61 +354,62 @@ static void signnal_handler(int signal)
             {NSDownArrowFunctionKey, CKeyEvent::eKeyCode::KEY_DOWN},
             {NSF1FunctionKey, CKeyEvent::eKeyCode::KEY_F1},
             {NSF2FunctionKey, CKeyEvent::eKeyCode::KEY_F2},
-            {NSF3FunctionKey, CKeyEvent::eKeyCode::KEY_F3},
-            {NSF4FunctionKey, CKeyEvent::eKeyCode::KEY_F4},
-            {NSF5FunctionKey, CKeyEvent::eKeyCode::KEY_F5},
-            {NSF6FunctionKey, CKeyEvent::eKeyCode::KEY_F6},
-            {NSF7FunctionKey, CKeyEvent::eKeyCode::KEY_F7},
-            {NSF8FunctionKey, CKeyEvent::eKeyCode::KEY_F8},
-            {NSF9FunctionKey, CKeyEvent::eKeyCode::KEY_F9},
-            {NSF10FunctionKey, CKeyEvent::eKeyCode::KEY_F10},
-            {NSF11FunctionKey, CKeyEvent::eKeyCode::KEY_F11},
-            {NSF12FunctionKey, CKeyEvent::eKeyCode::KEY_F12},
-            {NSDeleteFunctionKey, CKeyEvent::eKeyCode::KEY_DELETE},
-            {NSHomeFunctionKey, CKeyEvent::eKeyCode::KEY_HOME},
-            {NSEndFunctionKey, CKeyEvent::eKeyCode::KEY_END},
-            {NSPageUpFunctionKey, CKeyEvent::eKeyCode::KEY_PAGEUP},
-            {NSPageDownFunctionKey, CKeyEvent::eKeyCode::KEY_PAGEDOWN},
-            {'0', CKeyEvent::eKeyCode::KEY_0},
-            {'1', CKeyEvent::eKeyCode::KEY_1},
-            {'2', CKeyEvent::eKeyCode::KEY_2},
-            {'3', CKeyEvent::eKeyCode::KEY_3},
-            {'4', CKeyEvent::eKeyCode::KEY_4},
-            {'5', CKeyEvent::eKeyCode::KEY_5},
-            {'6', CKeyEvent::eKeyCode::KEY_6},
-            {'7', CKeyEvent::eKeyCode::KEY_7},
-            {'8', CKeyEvent::eKeyCode::KEY_8},
-            {'9', CKeyEvent::eKeyCode::KEY_9},
-            {'\b', CKeyEvent::eKeyCode::KEY_BACKSPACE},
-            {'\r', CKeyEvent::eKeyCode::KEY_ENTER},
-            {'\t', CKeyEvent::eKeyCode::KEY_TAB},
-            {' ', CKeyEvent::eKeyCode::KEY_SPACE},
+            //            {NSF3FunctionKey, CKeyEvent::eKeyCode::KEY_F3},
+            //            {NSF4FunctionKey, CKeyEvent::eKeyCode::KEY_F4},
+            //            {NSF5FunctionKey, CKeyEvent::eKeyCode::KEY_F5},
+            //            {NSF6FunctionKey, CKeyEvent::eKeyCode::KEY_F6},
+            //            {NSF7FunctionKey, CKeyEvent::eKeyCode::KEY_F7},
+            //            {NSF8FunctionKey, CKeyEvent::eKeyCode::KEY_F8},
+            //            {NSF9FunctionKey, CKeyEvent::eKeyCode::KEY_F9},
+            //            {NSF10FunctionKey, CKeyEvent::eKeyCode::KEY_F10},
+            //            {NSF11FunctionKey, CKeyEvent::eKeyCode::KEY_F11},
+            //            {NSF12FunctionKey, CKeyEvent::eKeyCode::KEY_F12},
+            //            {NSDeleteFunctionKey, CKeyEvent::eKeyCode::KEY_DELETE},
+            //            {NSHomeFunctionKey, CKeyEvent::eKeyCode::KEY_HOME},
+            //            {NSEndFunctionKey, CKeyEvent::eKeyCode::KEY_END},
+            //            {NSPageUpFunctionKey, CKeyEvent::eKeyCode::KEY_PAGEUP},
+            //            {NSPageDownFunctionKey, CKeyEvent::eKeyCode::KEY_PAGEDOWN},
+            //            {'0', CKeyEvent::eKeyCode::KEY_0},
+            //            {'1', CKeyEvent::eKeyCode::KEY_1},
+            //            {'2', CKeyEvent::eKeyCode::KEY_2},
+            //            {'3', CKeyEvent::eKeyCode::KEY_3},
+            //            {'4', CKeyEvent::eKeyCode::KEY_4},
+            //            {'5', CKeyEvent::eKeyCode::KEY_5},
+            //            {'6', CKeyEvent::eKeyCode::KEY_6},
+            //            {'7', CKeyEvent::eKeyCode::KEY_7},
+            //            {'8', CKeyEvent::eKeyCode::KEY_8},
+            //            {'9', CKeyEvent::eKeyCode::KEY_9},
+            //            {'\b', CKeyEvent::eKeyCode::KEY_BACKSPACE},
+            //            {'\r', CKeyEvent::eKeyCode::KEY_ENTER},
+            //            {'\t', CKeyEvent::eKeyCode::KEY_TAB},
+            //            {' ', CKeyEvent::eKeyCode::KEY_SPACE},
             {'a', CKeyEvent::eKeyCode::KEY_A},
-            {'b', CKeyEvent::eKeyCode::KEY_B},
+            //            {'b', CKeyEvent::eKeyCode::KEY_B},
             {'c', CKeyEvent::eKeyCode::KEY_C},
             {'d', CKeyEvent::eKeyCode::KEY_D},
-            {'e', CKeyEvent::eKeyCode::KEY_E},
-            {'f', CKeyEvent::eKeyCode::KEY_F},
-            {'g', CKeyEvent::eKeyCode::KEY_G},
-            {'h', CKeyEvent::eKeyCode::KEY_H},
-            {'i', CKeyEvent::eKeyCode::KEY_I},
+            //            {'e', CKeyEvent::eKeyCode::KEY_E},
+            //            {'f', CKeyEvent::eKeyCode::KEY_F},
+            //            {'g', CKeyEvent::eKeyCode::KEY_G},
+            //            {'h', CKeyEvent::eKeyCode::KEY_H},
+            //            {'i', CKeyEvent::eKeyCode::KEY_I},
             {'j', CKeyEvent::eKeyCode::KEY_J},
-            {'k', CKeyEvent::eKeyCode::KEY_K},
+            //            {'k', CKeyEvent::eKeyCode::KEY_K},
             {'l', CKeyEvent::eKeyCode::KEY_L},
-            {'m', CKeyEvent::eKeyCode::KEY_M},
-            {'n', CKeyEvent::eKeyCode::KEY_N},
-            {'o', CKeyEvent::eKeyCode::KEY_O},
-            {'p', CKeyEvent::eKeyCode::KEY_P},
-            {'q', CKeyEvent::eKeyCode::KEY_Q},
-            {'r', CKeyEvent::eKeyCode::KEY_R},
-            {'s', CKeyEvent::eKeyCode::KEY_S},
-            {'t', CKeyEvent::eKeyCode::KEY_T},
-            {'u', CKeyEvent::eKeyCode::KEY_U},
+            //            {'m', CKeyEvent::eKeyCode::KEY_M},
+            //            {'n', CKeyEvent::eKeyCode::KEY_N},
+            //            {'o', CKeyEvent::eKeyCode::KEY_O},
+            //            {'p', CKeyEvent::eKeyCode::KEY_P},
+            //            {'q', CKeyEvent::eKeyCode::KEY_Q},
+            //            {'r', CKeyEvent::eKeyCode::KEY_R},
+            //            {'s', CKeyEvent::eKeyCode::KEY_S},
+            //            {'t', CKeyEvent::eKeyCode::KEY_T},
+            //            {'u', CKeyEvent::eKeyCode::KEY_U},
             {'v', CKeyEvent::eKeyCode::KEY_V},
             {'w', CKeyEvent::eKeyCode::KEY_W},
-            {'x', CKeyEvent::eKeyCode::KEY_X},
-            {'y', CKeyEvent::eKeyCode::KEY_Y},
-            {'z', CKeyEvent::eKeyCode::KEY_Z}};
+            //            {'x', CKeyEvent::eKeyCode::KEY_X},
+            //            {'y', CKeyEvent::eKeyCode::KEY_Y},
+            //            {'z', CKeyEvent::eKeyCode::KEY_Z}
+        };
         // Assuming 'keyCode' is the key code received
         auto it = keyMap.find(c);
         if (it != keyMap.end())
@@ -440,7 +424,7 @@ static void signnal_handler(int signal)
 }
 
 // Called immediately before relaunching.
-- (void)updaterWillRelaunchApplication:(SUUpdater*)__unused updater
+- (void)updaterWillRelaunchApplication:(SPUUpdater*)__unused updater
 {
     if (m_config != NULL)
         [NSApp endSheet:m_config.window];
@@ -451,14 +435,14 @@ static void signnal_handler(int signal)
     SUAppcastItem* update = timer.userInfo;
 
     if (!m_isFullScreen)
-        [m_updater checkForUpdatesInBackground];
+        [m_updater checkForUpdates:nil];
     else
         ESScreensaver_SetUpdateAvailable(
             update.displayVersionString.UTF8String);
 }
 
 // Sent when a valid update is found by the update driver.
-- (void)updater:(SUUpdater*)__unused updater
+- (void)updater:(SPUUpdater*)__unused updater
     didFindValidUpdate:(SUAppcastItem*)update
 {
     [NSTimer scheduledTimerWithTimeInterval:1.0

@@ -10,7 +10,7 @@
     <domains enable_localSystem="true" enable_currentUserHome="true"/>
     <background file="logo.png" mime-type="image/png" alignment="bottomleft" scaling="proportional"/>
     <!--<license file="License.rtf" mime-type="text/enriched"/>/-->
-    <welcome file="Instructions.rtf" mime-type="text/enriched"/>
+    <!--<welcome file="Instructions.rtf" mime-type="text/enriched"/>-->
     <choices-outline>
         <line choice="choice0"/>
         <line choice="choice2"/>

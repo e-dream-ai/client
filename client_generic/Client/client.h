@@ -44,6 +44,12 @@
 #endif
 #endif
 
+#ifdef MAC
+#define FULLSCREEN_MODIFIER_KEY "Cmd"
+#else
+#define FULLSCREEN_MODIFIER_KEY "Control"
+#endif
+
 typedef void (*ShowPreferencesCallback_t)();
 extern void ESSetShowPreferencesCallback(ShowPreferencesCallback_t);
 extern void ESShowPreferences();
@@ -217,9 +223,8 @@ class CElectricSheep
         if (m_PlayerFps < 0.1)
             m_PlayerFps = 1.;
         m_OriginalFps = m_PlayerFps;
-        m_CurrentFps = m_PlayerFps;
 
-        g_Player().Framerate(m_CurrentFps);
+        g_Player().SetFramerate(m_PlayerFps);
 
         //	Get hud font size.
         std::string hudFontName = g_Settings()->Get(
@@ -250,23 +255,21 @@ class CElectricSheep
                 m_HudManager->Get("helpmessage"));
         spHelpMessage->Add(new Hud::CStringStat(
             "message",
-            "e-dream\n\nA platform for gen AI visuals, see e-dream.ai to learn "
-            "more.\n\nKeyboard Commands\nUp-arrow: vote for this "
-            "dream\nDown-arrow: vote against this dream and delete "
-            "it\nLeft-arrow: "
-            "go back to play previous dream\nRight-arrow: go forward through "
-            "history\nComma: playback slower\nPeriod: playback faster\nSlash: "
-            "show "
-            "credit\n"
-#ifdef MAC
-            "Cmd"
-#else
-            "Control"
-#endif
-            "-F: toggle full screen\nF1: help (this page)\nF2: status "
-            "overlay\n\nby Scott Draves and open source programmers all over "
-            "the "
-            "world",
+            "e-dream\n\n"
+            "A platform for gen AI visuals, see e-dream.ai to learn more.\n\n"
+            "Keyboard Commands\n"
+            "Up-arrow: vote for this dream\n"
+            "Down-arrow: vote against this dream and delete it\n"
+            "Left-arrow: go back to play previous dream\n"
+            "Right-arrow: go forward through history\n"
+            "A: playback slower\nD: playback faster\n"
+            "C: show credit\n"
+            "L: skip 10 seconds forward\n"
+            "J: skip 10 seconds back\n"
+            "V: open web source                       "
+            "\n" FULLSCREEN_MODIFIER_KEY "-F: toggle full screen\n"
+            "F1: help (this page)\nF2: status overlay\n\n"
+            "by Scott Draves and open source programmers all over the world",
             ""));
 
         std::string ver = GetVersion();
@@ -340,10 +343,10 @@ class CElectricSheep
         //	Vote splash.
         m_spSplashPos = std::make_shared<Hud::CSplash>(
             0.2f, g_Settings()->Get("settings.app.InstallDir", defaultDir) +
-                      "electricsheep-smile.png");
+                      "vote-up.png");
         m_spSplashNeg = std::make_shared<Hud::CSplash>(
             0.2f, g_Settings()->Get("settings.app.InstallDir", defaultDir) +
-                      "electricsheep-frown.png");
+                      "vote-down.png");
 
         // PNG splash
         m_SplashFilename = g_Settings()->Get(
@@ -848,13 +851,14 @@ class CElectricSheep
                     std::dynamic_pointer_cast<Hud::CStatsConsole>(
                         m_HudManager->Get("dreamstats"));
                 float activityLevel = 1.f;
+                float realFps = 20;
                 const ContentDecoder::sClipMetadata* clipMetadata =
                     g_Player().GetCurrentPlayingClipMetadata();
                 if (clipMetadata)
                 {
                     activityLevel = clipMetadata->dreamData.activityLevel;
+                    realFps = clipMetadata->fps;
                 }
-                float realFps = (float)m_CurrentFps / activityLevel;
 
                 const ContentDecoder::sFrameMetadata* frameMetadata =
                     g_Player().GetCurrentFrameMetadata();
@@ -1014,89 +1018,90 @@ class CElectricSheep
 
     virtual bool HandleOneEvent(DisplayOutput::spCEvent& _event)
     {
-        //        static const float voteDelaySeconds = 1;
-
+        static const float voteDelaySeconds = 1;
         if (_event->Type() == DisplayOutput::CEvent::Event_KEY)
         {
             DisplayOutput::spCKeyEvent spKey =
                 std::dynamic_pointer_cast<DisplayOutput::CKeyEvent>(_event);
+            const ContentDecoder::sClipMetadata* data =
+                g_Player().GetCurrentPlayingClipMetadata();
             switch (spKey->m_Code)
             {
                 //	Vote for sheep.
             case DisplayOutput::CKeyEvent::KEY_UP:
-                /*if (m_pVoter != NULL &&
-                    m_pVoter->Vote(g_Player().GetCurrentPlayingID(), true,
-                                   voteDelaySeconds))
+                if (m_pVoter != NULL &&
+                    m_pVoter->Vote(0, true, voteDelaySeconds))
                     m_HudManager->Add("splash_pos", m_spSplashPos,
-                                      voteDelaySeconds * 0.9f);*/
-                break;
+                                      voteDelaySeconds * 0.9f);
+                return true;
             case DisplayOutput::CKeyEvent::KEY_DOWN:
-                /*if (m_pVoter != NULL &&
-                    m_pVoter->Vote(g_Player().GetCurrentPlayingID(), false,
-                                   voteDelaySeconds))
+                if (m_pVoter != NULL &&
+                    m_pVoter->Vote(0, false, voteDelaySeconds))
                 {
                     if (g_Settings()->Get("settings.content.negvotedeletes",
                                           true))
                     {
                         // g_Player().Stop();
+                        g_Player().SkipToNext();
                         m_spCrossFade->Reset();
                         m_HudManager->Add("fade", m_spCrossFade, 1.5);
                     }
 
                     m_HudManager->Add("splash_pos", m_spSplashNeg,
                                       voteDelaySeconds * 0.9f);
-                }*/
-                break;
+                }
+                return true;
                 //	Repeat current sheep
             case DisplayOutput::CKeyEvent::KEY_LEFT:
                 g_Player().ReturnToPrevious();
-                break;
+                return true;
                 //  Force Next Sheep
             case DisplayOutput::CKeyEvent::KEY_RIGHT:
                 g_Player().SkipToNext();
-                break;
+                return true;
                 //	Repeat sheep
             case DisplayOutput::CKeyEvent::KEY_F8:
                 g_Player().RepeatClip();
-                break;
+                return true;
             case DisplayOutput::CKeyEvent::KEY_A:
                 m_F1F4Timer.Reset();
-                g_Player().Framerate(m_CurrentFps *= (1.f / 1.1f));
-                break;
+                g_Player().MultiplyFramerate(1.f / 1.1f);
+                return true;
             case DisplayOutput::CKeyEvent::KEY_D:
                 m_F1F4Timer.Reset();
-                g_Player().Framerate(m_CurrentFps *= (1.1f));
-                break;
+                g_Player().MultiplyFramerate(1.1f);
+                return true;
                 //	OSD info.
             case DisplayOutput::CKeyEvent::KEY_F1:
                 m_F1F4Timer.Reset();
                 m_HudManager->Toggle("helpmessage");
-                break;
+                return true;
             case DisplayOutput::CKeyEvent::KEY_F2:
                 m_F1F4Timer.Reset();
                 m_HudManager->Toggle("dreamstats");
-                break;
+                return true;
             case DisplayOutput::CKeyEvent::KEY_J:
                 g_Player().SkipForward(-10);
-                break;
+                return true;
             case DisplayOutput::CKeyEvent::KEY_L:
                 g_Player().SkipForward(10);
-                break;
+                return true;
             case DisplayOutput::CKeyEvent::KEY_C:
                 m_HudManager->Toggle("dreamcredits");
-                break;
+                return true;
             case DisplayOutput::CKeyEvent::KEY_V:
-                PlatformUtils::OpenURLExternally("https://www.apple.com");
-                break;
+                if (data && !data->dreamData.frontendUrl.empty())
+                {
+                    PlatformUtils::OpenURLExternally(
+                        data->dreamData.frontendUrl);
+                }
+                return true;
             //	All other keys needs to be ignored, they are handled somewhere
             // else...
             default:
-            {
                 g_Log->Info("Key event, ignoring");
                 return false;
             }
-            }
-            return true;
         }
         return false;
     }

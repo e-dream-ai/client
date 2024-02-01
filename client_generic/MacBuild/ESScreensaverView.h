@@ -11,13 +11,15 @@
 #import "ESConfiguration.h"
 #import "Sparkle/Sparkle.h"
 
+@class EDreamUpdaterDelegate;
+
 @interface ESScreensaverView
 #ifdef SCREEN_SAVER
     : ScreenSaverView
 #else
     : NSView
 #endif
-      <SUUpdaterDelegate
+      <SPUUpdaterDelegate
 #ifdef USE_METAL
        ,
        MTKViewDelegate
@@ -47,7 +49,7 @@
 
     ESConfiguration* m_config;
 
-    SUUpdater* m_updater;
+    SPUStandardUpdaterController* m_updater;
     std::unique_ptr<boost::barrier> m_beginFrameBarrier;
     std::unique_ptr<boost::barrier> m_endFrameBarrier;
 }
@@ -68,8 +70,8 @@
 
 - (void)windowDidResize;
 
-- (void)updaterWillRelaunchApplication:(SUUpdater*)updater;
-- (void)updater:(SUUpdater*)updater didFindValidUpdate:(SUAppcastItem*)update;
+- (void)updaterWillRelaunchApplication:(SPUUpdater*)updater;
+- (void)updater:(SPUUpdater*)updater didFindValidUpdate:(SUAppcastItem*)update;
 
 - (BOOL)fullscreen;
 - (void)setFullScreen:(BOOL)fullscreen;

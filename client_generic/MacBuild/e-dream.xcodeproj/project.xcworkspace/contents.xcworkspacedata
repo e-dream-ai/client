@@ -2,6 +2,6 @@
 <Workspace
    version = "1.0">
    <FileRef
-      location = "self:/Users/tibi/Documents/GitHub/client/client_generic/MacBuild/e-dream.xcodeproj">
+      location = "self:">
    </FileRef>
 </Workspace>

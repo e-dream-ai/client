@@ -554,15 +554,8 @@ const char* Shepherd::GetDreamServer()
     static std::string dreamServer;
     if (dreamServer.empty())
     {
-#ifdef DEBUG
-        int server = g_Settings()->Get("settings.debug.server", 0);
-        if (server == 0)
-            dreamServer = DREAM_SERVER_STAGING;
-        else
-            dreamServer = DREAM_SERVER_PRODUCTION;
-#else
-        dreamServer = DREAM_SERVER_PRODUCTION;
-#endif
+        dreamServer =
+            g_Settings()->Get("settings.content.server", DEFAULT_DREAM_SERVER);
     }
     return dreamServer.data();
 }
