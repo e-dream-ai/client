@@ -6,6 +6,21 @@
 	objectVersion = 54;
 	objects = {
 
+/* Begin PBXAggregateTarget section */
+		12726C1F2B6BF43C003C0FF6 /* All */ = {
+			isa = PBXAggregateTarget;
+			buildConfigurationList = 12726C222B6BF43D003C0FF6 /* Build configuration list for PBXAggregateTarget "All" */;
+			buildPhases = (
+			);
+			dependencies = (
+				12726C242B6BF538003C0FF6 /* PBXTargetDependency */,
+				12726C262B6BF53B003C0FF6 /* PBXTargetDependency */,
+			);
+			name = All;
+			productName = All;
+		};
+/* End PBXAggregateTarget section */
+
 /* Begin PBXBuildFile section */
 		121FCCB72B484B8B00F58DD5 /* Clip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 121FCCB52B484B8B00F58DD5 /* Clip.cpp */; };
 		121FCCB82B484B8B00F58DD5 /* Clip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 121FCCB52B484B8B00F58DD5 /* Clip.cpp */; };
@@ -222,6 +237,23 @@
 			script = "";
 		};
 /* End PBXBuildRule section */
+
+/* Begin PBXContainerItemProxy section */
+		12726C232B6BF538003C0FF6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 08FB7793FE84155DC02AAC07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 218878CF0EC6CD7E001ABD2E;
+			remoteInfo = ScreenSaver;
+		};
+		12726C252B6BF53B003C0FF6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 08FB7793FE84155DC02AAC07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2160FAAC0F30F43600B2C27A;
+			remoteInfo = "e-dream App";
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		215542511261FE2100AB51BF /* CopyFiles */ = {
@@ -977,6 +1009,9 @@
 			attributes = {
 				LastUpgradeCheck = 1320;
 				TargetAttributes = {
+					12726C1F2B6BF43C003C0FF6 = {
+						CreatedOnToolsVersion = 15.2;
+					};
 					2160FAAC0F30F43600B2C27A = {
 						DevelopmentTeam = FCG855WTXV;
 						ProvisioningStyle = Manual;
@@ -1005,6 +1040,7 @@
 			targets = (
 				218878CF0EC6CD7E001ABD2E /* ScreenSaver */,
 				2160FAAC0F30F43600B2C27A /* e-dream App */,
+				12726C1F2B6BF43C003C0FF6 /* All */,
 			);
 		};
 /* End PBXProject section */
@@ -1204,6 +1240,19 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		12726C242B6BF538003C0FF6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 218878CF0EC6CD7E001ABD2E /* ScreenSaver */;
+			targetProxy = 12726C232B6BF538003C0FF6 /* PBXContainerItemProxy */;
+		};
+		12726C262B6BF53B003C0FF6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2160FAAC0F30F43600B2C27A /* e-dream App */;
+			targetProxy = 12726C252B6BF53B003C0FF6 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin PBXVariantGroup section */
 		21AAA09E0F70400D00AC23A8 /* ElectricSheep.nib */ = {
 			isa = PBXVariantGroup;
@@ -1225,6 +1274,22 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		12726C202B6BF43D003C0FF6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		12726C212B6BF43D003C0FF6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		1DEB924C08733DCA0010E9CD /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1592,6 +1657,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		12726C222B6BF43D003C0FF6 /* Build configuration list for PBXAggregateTarget "All" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				12726C202B6BF43D003C0FF6 /* Debug */,
+				12726C212B6BF43D003C0FF6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		1DEB924B08733DCA0010E9CD /* Build configuration list for PBXProject "e-dream" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

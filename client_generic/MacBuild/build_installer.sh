@@ -1,8 +1,21 @@
-#WD=build/Release
-WD=build/Debug
+#!/bin/bash
 
 VERSION=$1
 DEST=$2
+CONFIGURATION=$3
+
+WD=build/${CONFIGURATION}
+
+
+# Function to print the error message and exit
+handle_error() {
+    local exit_code="$?"
+    echo "Error: Command '$BASH_COMMAND' failed with exit code $exit_code"
+    exit "$exit_code"
+}
+
+# Set the trap to call the error-handling function
+trap 'handle_error' ERR
 
 DEST_TMP=$DEST/tmp
 
@@ -55,7 +68,9 @@ rm -f Package/Distribution.xml
 
 rm -rf "$DEST_TMP"
 
-hdiutil create -fs HFS+ -srcfolder "$DEST" "$DEST"
+hdiutil create -fs HFS+ -srcfolder "$DEST" build/"$DEST"
+
+rm -rf "$DEST"
 
 cd -
 
