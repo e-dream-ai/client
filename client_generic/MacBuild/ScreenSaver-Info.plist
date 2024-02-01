@@ -46,14 +46,14 @@
 	<string>ESScreensaverView</string>
 	<key>NSSupportsAutomaticGraphicsSwitching</key>
 	<true/>
+	<key>SUEnableDownloaderService</key>
+	<true/>
+	<key>SUEnableInstallerLauncherService</key>
+	<true/>
 	<key>SUFeedURL</key>
 	<string>https://sparkle.electricsheep.org/appcast.xml</string>
 	<key>SUPublicDSAKeyFile</key>
 	<string>dsa_pub.pem</string>
-	<key>SUEnableInstallerLauncherService</key>
-	<true/>
-	<key>SUEnableDownloaderService</key>
-	<true/>
 	<key>SUPublicEDKey</key>
 	<string>pkDT5qmpWtyaZxw5X6Ca7DPHueEfBEKrxkrKzSN/qS0=</string>
 	<key>UIAppFonts</key>

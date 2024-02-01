@@ -15,6 +15,7 @@
 		1243576D2B31FC1B00CCD62A /* BuildData.json in Resources */ = {isa = PBXBuildFile; fileRef = 1243576B2B31FC1B00CCD62A /* BuildData.json */; };
 		1270D0EF2B28975500E1DCE3 /* PlatformUtils_Mac.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1270D0EE2B28975400E1DCE3 /* PlatformUtils_Mac.mm */; };
 		1270D0F02B28975500E1DCE3 /* PlatformUtils_Mac.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1270D0EE2B28975400E1DCE3 /* PlatformUtils_Mac.mm */; };
+		12726C1E2B6BCC55003C0FF6 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 12726C1D2B6BCC55003C0FF6 /* Sparkle */; };
 		129AC5D02B69348E00E2E3E8 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 129AC5CF2B69348E00E2E3E8 /* Sparkle */; };
 		12A00CD12B0D22A4001C0792 /* Trebuchet MS.sddf in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD02B0D22A4001C0792 /* Trebuchet MS.sddf */; };
 		12A00CD32B0D22B4001C0792 /* Trebuchet MS.sddf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 12A00CD02B0D22A4001C0792 /* Trebuchet MS.sddf */; };
@@ -87,11 +88,9 @@
 		2160FCAF0F30F48200B2C27A /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2135D2670EC70571005E246D /* AppKit.framework */; };
 		2160FE7C0F30F8A000B2C27A /* vote-down.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE190F30F82800B2C27A /* vote-down.png */; };
 		2160FE7D0F30F8A000B2C27A /* vote-up.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE1A0F30F82800B2C27A /* vote-up.png */; };
-		2160FE7F0F30F8A000B2C27A /* License.rtf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE230F30F82800B2C27A /* License.rtf */; };
 		2160FE800F30F8A000B2C27A /* logo.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE240F30F82800B2C27A /* logo.png */; };
 		2160FEE90F30F9FB00B2C27A /* vote-down.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE190F30F82800B2C27A /* vote-down.png */; };
 		2160FEEA0F30F9FB00B2C27A /* vote-up.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE1A0F30F82800B2C27A /* vote-up.png */; };
-		2160FEEC0F30F9FB00B2C27A /* License.rtf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE230F30F82800B2C27A /* License.rtf */; };
 		2160FEED0F30F9FB00B2C27A /* logo.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE240F30F82800B2C27A /* logo.png */; };
 		2161F1940ECF8CEF00FE48E9 /* libz.1.2.5.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1AD90E8E6E0100CE185C /* libz.1.2.5.dylib */; };
 		2187F3860F463AA20004F8F9 /* TrebuchetMS-24.glf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2187F3850F463A740004F8F9 /* TrebuchetMS-24.glf */; };
@@ -151,7 +150,6 @@
 		21CE8E3E0F6EE12B00DDF96A /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 21CE8E3B0F6EE12B00DDF96A /* SystemConfiguration.framework */; };
 		21DC0CA91263B98200D60C6A /* libcurl.4.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 211CDDEB0ED0BE8300EB9394 /* libcurl.4.dylib */; };
 		21DC0CAC1263B99000D60C6A /* libcurl.4.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 211CDDEB0ED0BE8300EB9394 /* libcurl.4.dylib */; };
-		21DE7CD91019020600E77D68 /* Instructions.rtf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 21DE7CA6101901E900E77D68 /* Instructions.rtf */; };
 		21EE633510139BCC000CE53E /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 21EE633410139BCC000CE53E /* main.m */; };
 		21EE636210139D68000CE53E /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 21EE634D10139BEF000CE53E /* MainMenu.xib */; };
 		21EE636310139D68000CE53E /* ElectricSheep.nib in Resources */ = {isa = PBXBuildFile; fileRef = 21AAA09E0F70400D00AC23A8 /* ElectricSheep.nib */; };
@@ -252,12 +250,10 @@
 			files = (
 				12A00CD72B0D31F9001C0792 /* Lato.sddf in CopyFiles */,
 				12A00CD32B0D22B4001C0792 /* Trebuchet MS.sddf in CopyFiles */,
-				21DE7CD91019020600E77D68 /* Instructions.rtf in CopyFiles */,
 				212CAF841141CA3F009DA85A /* TrebuchetMS-20.glf in CopyFiles */,
 				2187F3870F463AB50004F8F9 /* TrebuchetMS-24.glf in CopyFiles */,
 				2160FE7C0F30F8A000B2C27A /* vote-down.png in CopyFiles */,
 				2160FE7D0F30F8A000B2C27A /* vote-up.png in CopyFiles */,
-				2160FE7F0F30F8A000B2C27A /* License.rtf in CopyFiles */,
 				2160FE800F30F8A000B2C27A /* logo.png in CopyFiles */,
 				21006FC81017BC4B004A6511 /* Credits.html in CopyFiles */,
 			);
@@ -273,7 +269,6 @@
 				2187F3860F463AA20004F8F9 /* TrebuchetMS-24.glf in CopyFiles */,
 				2160FEE90F30F9FB00B2C27A /* vote-down.png in CopyFiles */,
 				2160FEEA0F30F9FB00B2C27A /* vote-up.png in CopyFiles */,
-				2160FEEC0F30F9FB00B2C27A /* License.rtf in CopyFiles */,
 				2160FEED0F30F9FB00B2C27A /* logo.png in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -402,7 +397,6 @@
 		2160FAAF0F30F43600B2C27A /* e-dream-App-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "e-dream-App-Info.plist"; sourceTree = "<group>"; };
 		2160FE190F30F82800B2C27A /* vote-down.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "vote-down.png"; sourceTree = "<group>"; };
 		2160FE1A0F30F82800B2C27A /* vote-up.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "vote-up.png"; sourceTree = "<group>"; };
-		2160FE230F30F82800B2C27A /* License.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; path = License.rtf; sourceTree = "<group>"; };
 		2160FE240F30F82800B2C27A /* logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = logo.png; sourceTree = "<group>"; };
 		2181FAEF0ECF42820078FDDA /* libswscale.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswscale.a; path = ../ffmpeg/osx/lib/libswscale.a; sourceTree = SOURCE_ROOT; };
 		2187F3850F463A740004F8F9 /* TrebuchetMS-24.glf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "TrebuchetMS-24.glf"; sourceTree = "<group>"; };
@@ -431,7 +425,6 @@
 		21D90D010EA1D52000F8E5D5 /* Hud.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Hud.cpp; path = ../Client/Hud.cpp; sourceTree = SOURCE_ROOT; };
 		21D944A90E8F6245001C141E /* client_mac.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = client_mac.h; path = ../Client/client_mac.h; sourceTree = SOURCE_ROOT; };
 		21DD8C6F0EA9BA5F00BB9EC7 /* Splash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Splash.h; path = ../Client/Splash.h; sourceTree = SOURCE_ROOT; };
-		21DE7CA6101901E900E77D68 /* Instructions.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; path = Instructions.rtf; sourceTree = "<group>"; };
 		21EE633410139BCC000CE53E /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		21EE633610139BD8000CE53E /* English */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = English; path = ElectricSheep.nib; sourceTree = "<group>"; };
 		21EE634E10139BEF000CE53E /* English */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = English; path = English.lproj/MainMenu.xib; sourceTree = "<group>"; };
@@ -555,6 +548,7 @@
 				464A49E52AB89CEB00C77F6D /* AudioToolbox.framework in Frameworks */,
 				2161F1940ECF8CEF00FE48E9 /* libz.1.2.5.dylib in Frameworks */,
 				21887A240EC6CDF9001ABD2E /* libbz2.1.0.dylib in Frameworks */,
+				12726C1E2B6BCC55003C0FF6 /* Sparkle in Frameworks */,
 				21A8AFBB18416ECA00F77369 /* libiconv.2.dylib in Frameworks */,
 				21DC0CAC1263B99000D60C6A /* libcurl.4.dylib in Frameworks */,
 				2135D2690EC70571005E246D /* AppKit.framework in Frameworks */,
@@ -835,7 +829,6 @@
 				21934CB819F3C2430096E7D7 /* thumbnail.tif */,
 				12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */,
 				21006FBD1017BC2C004A6511 /* Credits.html */,
-				21DE7CA6101901E900E77D68 /* Instructions.rtf */,
 				12A00CD82B0FCA39001C0792 /* e-dream.icns */,
 				212CAF831141CA3F009DA85A /* TrebuchetMS-20.glf */,
 				2187F3850F463A740004F8F9 /* TrebuchetMS-24.glf */,
@@ -844,7 +837,6 @@
 				4628A55D2B0F84EF001C3078 /* Lato-Regular.ttf */,
 				2160FE190F30F82800B2C27A /* vote-down.png */,
 				2160FE1A0F30F82800B2C27A /* vote-up.png */,
-				2160FE230F30F82800B2C27A /* License.rtf */,
 				2160FE240F30F82800B2C27A /* logo.png */,
 				21ADBB211305D380000A9F20 /* green.tif */,
 				21ADBB221305D380000A9F20 /* red.tif */,
@@ -970,6 +962,9 @@
 			dependencies = (
 			);
 			name = ScreenSaver;
+			packageProductDependencies = (
+				12726C1D2B6BCC55003C0FF6 /* Sparkle */,
+			);
 			productName = ScreenSaver;
 			productReference = 218878D00EC6CD7E001ABD2E /* e-dream.saver */;
 			productType = "com.apple.product-type.bundle";
@@ -1638,6 +1633,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		12726C1D2B6BCC55003C0FF6 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 129AC5CE2B69348E00E2E3E8 /* XCRemoteSwiftPackageReference "sparkle" */;
+			productName = Sparkle;
+		};
 		129AC5CF2B69348E00E2E3E8 /* Sparkle */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 129AC5CE2B69348E00E2E3E8 /* XCRemoteSwiftPackageReference "sparkle" */;
