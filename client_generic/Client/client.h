@@ -70,6 +70,7 @@ class CElectricSheep
     bool m_MultipleInstancesMode;
     bool m_bConfigMode;
     bool m_SeamlessPlayback;
+    bool m_bPaused;
     Base::CTimer m_Timer;
     Base::CTimer m_F1F4Timer;
 
@@ -164,7 +165,7 @@ class CElectricSheep
         m_MultipleInstancesMode = false;
         printf("CElectricSheep()\n");
 
-        m_pVoter = NULL;
+        m_pVoter = nullptr;
 #ifndef LINUX_GNU
         m_AppData = "./.ElectricSheep/";
         m_WorkingDir = "./";
@@ -173,8 +174,8 @@ class CElectricSheep
         m_WorkingDir = SHAREDIR;
 #endif
 #ifdef DO_THREAD_UPDATE
-        m_pUpdateBarrier = NULL;
-        m_pUpdateThreads = NULL;
+        m_pUpdateBarrier = nullptr;
+        m_pUpdateThreads = nullptr;
 #endif
     }
 
@@ -387,7 +388,7 @@ class CElectricSheep
             {
                 FILE* test = fopen(m_SplashFilename.c_str(), "r");
 
-                if (test != NULL)
+                if (test != nullptr)
                 {
                     splashFound = true;
                     fclose(test);
@@ -469,14 +470,15 @@ class CElectricSheep
         DestroyUpdateThreads();
 #endif
 
-        m_spSplashPos = NULL;
-        m_spSplashNeg = NULL;
-        m_spSplashPNG = NULL;
+        m_spSplashPos = nullptr;
+        m_spSplashNeg = nullptr;
+        m_spSplashPNG = nullptr;
         m_nSplashes = 0;
         m_SplashFilename = std::string();
-        m_spCrossFade = NULL;
-        m_StartupScreen = NULL;
-        m_HudManager = NULL;
+        m_spCrossFade = nullptr;
+        m_StartupScreen = nullptr;
+        m_HudManager = nullptr;
+        m_bPaused = false;
 
         if (!m_bConfigMode)
         {
@@ -607,7 +609,7 @@ class CElectricSheep
     //
     virtual void DestroyUpdateThreads()
     {
-        if (m_pUpdateThreads != NULL)
+        if (m_pUpdateThreads != nullptr)
         {
             m_pUpdateThreads->interrupt_all();
             m_pUpdateThreads->join_all();
@@ -747,7 +749,7 @@ class CElectricSheep
                 if (ContentDownloader::Shepherd::PopMessage(msg, duration))
                 {
                     bool addtohud = true;
-                    time_t lt = time(NULL);
+                    time_t lt = time(nullptr);
 
                     if ((msg == "error connecting to server") ||
                         (msg == "server request failed, using free one"))
@@ -1029,13 +1031,13 @@ class CElectricSheep
             {
                 //	Vote for sheep.
             case DisplayOutput::CKeyEvent::KEY_UP:
-                if (m_pVoter != NULL &&
+                if (m_pVoter != nullptr &&
                     m_pVoter->Vote(0, true, voteDelaySeconds))
                     m_HudManager->Add("splash_pos", m_spSplashPos,
                                       voteDelaySeconds * 0.9f);
                 return true;
             case DisplayOutput::CKeyEvent::KEY_DOWN:
-                if (m_pVoter != NULL &&
+                if (m_pVoter != nullptr &&
                     m_pVoter->Vote(0, false, voteDelaySeconds))
                 {
                     if (g_Settings()->Get("settings.content.negvotedeletes",
@@ -1085,6 +1087,9 @@ class CElectricSheep
                 return true;
             case DisplayOutput::CKeyEvent::KEY_L:
                 g_Player().SkipForward(10);
+                return true;
+            case DisplayOutput::CKeyEvent::KEY_K:
+                g_Player().SetPaused(m_bPaused = !m_bPaused);
                 return true;
             case DisplayOutput::CKeyEvent::KEY_C:
                 m_HudManager->Toggle("dreamcredits");

@@ -38,8 +38,11 @@ bool bStarted = false;
     // if (isPreview)
 #endif
     {
-        
-        m_updater = [[SPUStandardUpdaterController alloc] initWithStartingUpdater:YES updaterDelegate:nil userDriverDelegate:nil];
+
+        m_updater =
+            [[SPUStandardUpdaterController alloc] initWithStartingUpdater:YES
+                                                          updaterDelegate:nil
+                                                       userDriverDelegate:nil];
         [m_updater startUpdater];
     }
 
@@ -393,7 +396,7 @@ static void signnal_handler(int signal)
             //            {'h', CKeyEvent::eKeyCode::KEY_H},
             //            {'i', CKeyEvent::eKeyCode::KEY_I},
             {'j', CKeyEvent::eKeyCode::KEY_J},
-            //            {'k', CKeyEvent::eKeyCode::KEY_K},
+            {'k', CKeyEvent::eKeyCode::KEY_K},
             {'l', CKeyEvent::eKeyCode::KEY_L},
             //            {'m', CKeyEvent::eKeyCode::KEY_M},
             //            {'n', CKeyEvent::eKeyCode::KEY_N},

@@ -137,7 +137,7 @@ bool CClip::Update(double _timelineTime)
     double delta = m_DecoderClock.interframeDelta / m_ClipMetadata.fps;
     double secondsIn =
         std::fmax((int)idx - (int)m_spFrameDisplay->StartAtFrame(), 0) /
-    m_ClipMetadata.fps +
+            m_ClipMetadata.fps +
         delta;
     double secondsOut = (maxIdx - idx) / m_ClipMetadata.fps - delta;
     secondsOut = std::fmin(secondsOut, (m_EndTime - _timelineTime));

@@ -74,7 +74,8 @@ class CClip
 
   public:
     CClip(const sClipMetadata& _metadata, spCRenderer _spRenderer,
-          int32_t _displayMode, uint32_t _displayWidth, uint32_t _displayHeight);
+          int32_t _displayMode, uint32_t _displayWidth,
+          uint32_t _displayHeight);
     bool Start(int64_t _seekFrame = -1);
     void Stop();
     bool Update(double _timelineTime);
