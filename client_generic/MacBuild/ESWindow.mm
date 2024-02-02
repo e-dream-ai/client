@@ -3,7 +3,6 @@
 #import "ESWindow.h"
 #import "ESScreensaver.h"
 
-
 #include "client.h"
 
 @implementation ESWindow
@@ -85,10 +84,10 @@ static void ShowPreferencesCallback()
     [self toggleFullScreen:sender];
 }
 
--(void)toggleFullScreen:(id)sender
+- (void)toggleFullScreen:(id)sender
 {
-        //NSWorkspace *workspace = [NSWorkspace sharedWorkspace];
-                //[workspace setIdleTimerDisabled:self.isFullScreen];
+    //NSWorkspace *workspace = [NSWorkspace sharedWorkspace];
+    //[workspace setIdleTimerDisabled:self.isFullScreen];
     if ([self isFullScreen])
     {
         IOPMAssertionRelease(noSleepAssertionIDUser);
@@ -100,9 +99,12 @@ static void ShowPreferencesCallback()
                                     IOPMAssertionLevel(kIOPMAssertionLevelOn),
                                     CFSTR("Full Screen Video (e-dream)"),
                                     &noSleepAssertionIDUser);
-        IOPMAssertionCreateWithName(kIOPMAssertPreventUserIdleSystemSleep,
-                                    kIOPMAssertionLevelOn, CFSTR("Full Screen Video (e-dream)"), &noSleepAssertionIDSystem);
+        IOPMAssertionCreateWithName(
+            kIOPMAssertPreventUserIdleSystemSleep, kIOPMAssertionLevelOn,
+            CFSTR("Full Screen Video (e-dream)"), &noSleepAssertionIDSystem);
     }
+    mIsFullScreen = !mIsFullScreen;
+    ESScreensaver_SetIsFullScreen(mIsFullScreen);
     [super toggleFullScreen:sender];
 }
 
@@ -212,7 +214,7 @@ static void ShowPreferencesCallback()
     }
 }
 
-- (void)showPreferences:(id)__unused sender
+- (BOOL)showPreferences:(id)__unused sender
 {
     //@TODO: is the full screen check needed? disabling for now
     if (/*!mIsFullScreen &&*/ mESView && [mESView hasConfigureSheet])
@@ -231,6 +233,7 @@ static void ShowPreferencesCallback()
             didEndSelector: @selector(didEndSheet:returnCode:contextInfo:)
             contextInfo: nil];*/
     }
+    return YES;
 }
 
 - (void)didEndSheet:(NSWindow*)sheet

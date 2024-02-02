@@ -171,7 +171,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     void SkipToNext();
     void ReturnToPrevious();
     void SkipForward(float _seconds);
-    void RepeatClip() {}
+    void RepeatClip();
     /// Sets up a clip for playing, that will start playing at startTimelineTime
     /// Returns true if the file was loaded successfully
     bool PlayClip(std::string_view _clipPath, double _startTimelineTime,

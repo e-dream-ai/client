@@ -71,6 +71,7 @@ class CElectricSheep
     bool m_bConfigMode;
     bool m_SeamlessPlayback;
     bool m_bPaused;
+    bool m_bFullScreen;
     Base::CTimer m_Timer;
     Base::CTimer m_F1F4Timer;
 
@@ -442,7 +443,11 @@ class CElectricSheep
         ContentDownloader::Shepherd::GetFlockSizeMBsRecount(1);
         spCDelayedDispatch hideCursorDispatch =
             std::make_shared<CDelayedDispatch>(
-                []() -> void { PlatformUtils::SetCursorHidden(true); });
+                [this]() -> void
+                {
+                    if (this->m_bFullScreen)
+                        PlatformUtils::SetCursorHidden(true);
+                });
         hideCursorDispatch->DispatchAfter(5);
         PlatformUtils::SetOnMouseMovedCallback(
             [=](int, int) -> void
@@ -495,6 +500,8 @@ class CElectricSheep
             g_Settings()->Shutdown();
         }
     }
+
+    void SetIsFullScreen(bool _bFullScreen) { m_bFullScreen = _bFullScreen; }
 
     bool Run()
     {
@@ -859,7 +866,7 @@ class CElectricSheep
                 if (clipMetadata)
                 {
                     activityLevel = clipMetadata->dreamData.activityLevel;
-                    realFps = clipMetadata->fps;
+                    realFps = clipMetadata->decodeFps;
                 }
 
                 const ContentDecoder::sFrameMetadata* frameMetadata =
@@ -1062,7 +1069,7 @@ class CElectricSheep
                 g_Player().SkipToNext();
                 return true;
                 //	Repeat sheep
-            case DisplayOutput::CKeyEvent::KEY_F8:
+            case DisplayOutput::CKeyEvent::KEY_R:
                 g_Player().RepeatClip();
                 return true;
             case DisplayOutput::CKeyEvent::KEY_A:
@@ -1083,10 +1090,10 @@ class CElectricSheep
                 m_HudManager->Toggle("dreamstats");
                 return true;
             case DisplayOutput::CKeyEvent::KEY_J:
-                g_Player().SkipForward(-10);
+                g_Player().SkipForward(-15);
                 return true;
             case DisplayOutput::CKeyEvent::KEY_L:
-                g_Player().SkipForward(10);
+                g_Player().SkipForward(15);
                 return true;
             case DisplayOutput::CKeyEvent::KEY_K:
                 g_Player().SetPaused(m_bPaused = !m_bPaused);
@@ -1100,6 +1107,14 @@ class CElectricSheep
                     PlatformUtils::OpenURLExternally(
                         data->dreamData.frontendUrl);
                 }
+                return true;
+            case DisplayOutput::CKeyEvent::KEY_W:
+                g_Player().Renderer()->SetBrightness(
+                    g_Player().Renderer()->GetBrightness() + 0.05f);
+                return true;
+            case DisplayOutput::CKeyEvent::KEY_S:
+                g_Player().Renderer()->SetBrightness(
+                    g_Player().Renderer()->GetBrightness() - 0.05f);
                 return true;
             //	All other keys needs to be ignored, they are handled somewhere
             // else...

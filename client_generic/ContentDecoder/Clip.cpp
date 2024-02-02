@@ -97,7 +97,7 @@ bool CClip::NeedsNewFrame(DecoderClock* _decoderClock) const
     }
     _decoderClock->acc += deltaTime;
 
-    const double dt = 1.0 / m_ClipMetadata.fps;
+    const double dt = 1.0 / m_ClipMetadata.decodeFps;
     bool bCrossedFrame = false;
 
     //    Accumulated time is longer than the requested framerate, we
@@ -134,12 +134,12 @@ bool CClip::Update(double _timelineTime)
 
     uint32_t idx = m_spFrameData->GetMetaData().frameIdx;
     uint32_t maxIdx = m_spFrameData->GetMetaData().maxFrameIdx;
-    double delta = m_DecoderClock.interframeDelta / m_ClipMetadata.fps;
+    double delta = m_DecoderClock.interframeDelta / m_ClipMetadata.decodeFps;
     double secondsIn =
         std::fmax((int)idx - (int)m_spFrameDisplay->StartAtFrame(), 0) /
-            m_ClipMetadata.fps +
+            m_ClipMetadata.decodeFps +
         delta;
-    double secondsOut = (maxIdx - idx) / m_ClipMetadata.fps - delta;
+    double secondsOut = (maxIdx - idx) / m_ClipMetadata.decodeFps - delta;
     secondsOut = std::fmin(secondsOut, (m_EndTime - _timelineTime));
     float alpha = (float)std::fmin(secondsIn / m_FadeInSeconds, 1.f) *
                   (float)std::fmin(secondsOut / m_FadeOutSeconds, 1.f);

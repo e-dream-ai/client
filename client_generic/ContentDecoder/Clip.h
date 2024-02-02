@@ -23,7 +23,7 @@ namespace ContentDecoder
 struct sClipMetadata
 {
     std::string path;
-    double fps;
+    double decodeFps;
     ContentDownloader::sDreamMetadata dreamData;
 };
 
@@ -92,7 +92,11 @@ class CClip
     uint32_t GetFrameCount() const;
     void SetStartTime(double _startTime);
     double GetStartTime() const { return m_StartTime; }
-    double GetLength() const { return GetFrameCount() / m_ClipMetadata.fps; }
+    double GetLength() const
+    {
+        return GetFrameCount() / m_ClipMetadata.decodeFps;
+    }
+    double GetLength(float _atFps) const { return GetFrameCount() / _atFps; }
     bool HasFinished() const { return m_HasFinished.load(); }
     void SetTransitionLength(float _fadeInSeconds, float _fadeOutSeconds)
     {
@@ -108,7 +112,7 @@ class CClip
     void SetFlags(eClipFlags _flags) { m_ClipFlags = _flags; }
     eClipFlags GetFlags() const { return m_ClipFlags; }
     void SkipTime(float _secondsForward);
-    void SetFps(double _fps) { m_ClipMetadata.fps = _fps; }
+    void SetFps(double _fps) { m_ClipMetadata.decodeFps = _fps; }
 };
 MakeSmartPointers(CClip);
 } // namespace ContentDecoder

@@ -625,8 +625,8 @@ void CPlayer::MultiplyFramerate(const double _multiplier)
     m_DecoderFps *= _multiplier;
     reader_lock l(m_UpdateMutex);
     if (m_CurrentClips.size())
-        m_CurrentClips[0]->SetFps(m_CurrentClips[0]->GetClipMetadata().fps *
-                                  _multiplier);
+        m_CurrentClips[0]->SetFps(
+            m_CurrentClips[0]->GetClipMetadata().decodeFps * _multiplier);
 }
 
 void CPlayer::CalculateNextClipThread()
@@ -725,7 +725,7 @@ void CPlayer::ReturnToPrevious()
     std::string clipName;
     if (m_CurrentClips.size() < 2)
         return;
-    // If the current clip is fading out already, remove it immediately
+    // If the current clip is fading out already, empty the clips and queue both again
     spCClip currentClip = m_CurrentClips[0];
     auto [_, out] = currentClip->GetTransitionLength();
     if (m_TimelineTime > currentClip->GetEndTime() - out)
@@ -749,6 +749,36 @@ void CPlayer::ReturnToPrevious()
         PlayClip(clipName, m_TimelineTime);
         std::swap(m_CurrentClips[0], m_CurrentClips[1]);
         PRINTQUEUE("PREV_NORMAL", m_ClipInfoHistoryQueue, m_NextClipInfoQueue,
+                   m_CurrentClips);
+    }
+}
+
+void CPlayer::RepeatClip()
+{
+    writer_lock l(m_UpdateMutex);
+    std::string clipName;
+    // If the current clip is fading out already, remove it immediately
+    spCClip currentClip = m_CurrentClips[0];
+    auto [_, out] = currentClip->GetTransitionLength();
+    if (m_TimelineTime > currentClip->GetEndTime() - out)
+    {
+        clipName = m_CurrentClips[0]->GetClipMetadata().path;
+        std::string clipName2 = m_CurrentClips[1]->GetClipMetadata().path;
+        m_CurrentClips.clear();
+        PlayClip(clipName, m_TimelineTime);
+        PlayClip(clipName2, m_TimelineTime);
+        PRINTQUEUE("REPEAT_FADING", m_ClipInfoHistoryQueue, m_NextClipInfoQueue,
+                   m_CurrentClips);
+    }
+    else
+    {
+        double clipLength = currentClip->GetLength(20);
+        currentClip->SkipTime(-(float)clipLength);
+        if (m_CurrentClips.size() > 1)
+        {
+            m_CurrentClips[1]->SetStartTime(m_TimelineTime + clipLength);
+        }
+        PRINTQUEUE("REPEAT_NORMAL", m_ClipInfoHistoryQueue, m_NextClipInfoQueue,
                    m_CurrentClips);
     }
 }

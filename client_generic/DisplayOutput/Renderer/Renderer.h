@@ -120,6 +120,7 @@ class CRenderer
     //	Matrices.
     Base::Math::CMatrix4x4 m_WorldMat, m_ViewMat, m_ProjMat;
     uint32_t m_bDirtyMatrices;
+    float m_Brightness;
 
   public:
     CRenderer();
@@ -182,6 +183,11 @@ class CRenderer
     virtual void Apply();
     virtual void SetTexture(spCTexture _spTex, const uint32_t _index);
     virtual void SetShader(spCShader _spShader);
+    virtual float GetBrightness() const { return m_Brightness; }
+    virtual void SetBrightness(float _brightness)
+    {
+        m_Brightness = _brightness;
+    }
 
     virtual eTextureTargetType GetTextureTargetType(void)
     {

@@ -8,7 +8,7 @@ struct QuadUniforms
     vector_float4 rect;
     vector_float4 uvRect;
     vector_float4 color;
-    float halfSmooth;
+    float brightness;
 };
 
 struct TextUniforms

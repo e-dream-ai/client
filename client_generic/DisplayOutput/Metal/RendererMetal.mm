@@ -220,8 +220,8 @@ spCBaseText CRendererMetal::NewText(spCBaseFont _font, const std::string& _text)
     return spCBaseText(text);
 }
 
-Base::Math::CVector2 CRendererMetal::GetTextExtent(spCBaseFont _spFont,
-                                                   const std::string& _text)
+Base::Math::CVector2 CRendererMetal::GetTextExtent(spCBaseFont /*_spFont*/,
+                                                   const std::string& /*_text*/)
 {
     return Base::Math::CVector2(0, 0.05f);
 }
@@ -314,8 +314,9 @@ void CRendererMetal::Clear()
     }
 }
 
-void CRendererMetal::DrawText(spCBaseText _text,
-                              const Base::Math::CVector4& _color)
+void CRendererMetal::DrawText(
+    [[maybe_unused]] spCBaseText _text,
+    [[maybe_unused]] const Base::Math::CVector4& _color)
 {
 #if !USE_SYSTEM_UI
     RendererContext* rendererContext =
@@ -531,6 +532,7 @@ void CRendererMetal::DrawQuad(const Base::Math::CRect& _rect,
         uniforms.uvRect = vector_float4{_uvrect.m_X0, _uvrect.m_Y0,
                                         _uvrect.m_X1 - _uvrect.m_X0,
                                         _uvrect.m_Y1 - _uvrect.m_Y0};
+        uniforms.brightness = m_Brightness;
 
         [renderEncoder setFragmentBytes:&uniforms
                                  length:sizeof(uniforms)
@@ -552,7 +554,7 @@ void CRendererMetal::DrawQuad(const Base::Math::CRect& _rect,
 
 void CRendererMetal::DrawSoftQuad(const Base::Math::CRect& _rect,
                                   const Base::Math::CVector4& _color,
-                                  const float _width)
+                                  const float /*_width*/)
 {
     DrawQuad(_rect, _color, Base::Math::CRect{0, 0, 1, 1});
 }

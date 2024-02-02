@@ -56,6 +56,7 @@ fragment float4 drawTextureFragment(ColorInOut vert [[stage_in]],
     float alpha = uniforms.color.a * all(adjustedUV > 0 && adjustedUV < 1);
     adjustedUV = (adjustedUV.xy + uniforms.uvRect.xy) * uniforms.uvRect.zw;
     float4 color = texture.sample(s, adjustedUV).zyxw;
+    color.rgb += uniforms.brightness;
     return float4(color.rgb * uniforms.color.rgb, alpha * color.a);
 }
 
@@ -94,8 +95,9 @@ fragment float4 drawDecodedFrameNoBlendingFragment(
     texture2d<float, access::sample> uvTexture1 [[texture(1)]],
     constant QuadUniforms& uniforms [[buffer(0)]])
 {
-    float4 rgba = SampleYUVTexturesRGBA(vert.uv, yTexture1, uvTexture1);
-    return rgba * uniforms.color;
+    float4 color = SampleYUVTexturesRGBA(vert.uv, yTexture1, uvTexture1);
+    color.rgb += uniforms.brightness;
+    return color * uniforms.color;
 }
 
 struct LinearFrameBlendParameters
@@ -116,9 +118,10 @@ fragment float4 drawDecodedFrameLinearFrameBlendFragment(
 {
     float4 frame1RGBA = SampleYUVTexturesRGBA(vert.uv, frame1Y, frame1UV);
     float4 frame2RGBA = SampleYUVTexturesRGBA(vert.uv, frame2Y, frame2UV);
-    float4 result = mix(frame1RGBA, frame2RGBA, frameBlend.delta);
-    result.a = uniforms.color.a;
-    return result;
+    float4 color = mix(frame1RGBA, frame2RGBA, frameBlend.delta);
+    color.a = uniforms.color.a;
+    color.rgb += uniforms.brightness;
+    return color;
 }
 
 struct CubicFrameBlendParameters
@@ -205,11 +208,12 @@ fragment float4 drawDecodedFrameCubicFrameBlendFragment(
     float4 c2 = SampleYUVTexturesRGBA(vert.uv, frame2Y, frame2UV);
     float4 c3 = SampleYUVTexturesRGBA(vert.uv, frame3Y, frame3UV);
     float4 c4 = SampleYUVTexturesRGBA(vert.uv, frame4Y, frame4UV);
-    float4 c5 = (c1 * frameBlend.weights.x) + (c2 * frameBlend.weights.y) +
-                (c3 * frameBlend.weights.z) + (c4 * frameBlend.weights.w);
+    float4 color = (c1 * frameBlend.weights.x) + (c2 * frameBlend.weights.y) +
+                   (c3 * frameBlend.weights.z) + (c4 * frameBlend.weights.w);
 
-    c5.a = uniforms.color.a;
-    return c5;
+    color.a = uniforms.color.a;
+    color.rgb += uniforms.brightness;
+    return color;
 }
 
 struct TransformedVertex
