@@ -256,10 +256,10 @@ class CElectricSheep
         spHelpMessage->Add(new Hud::CStringStat(
             "message",
             "e-dream\n\n"
-            "A platform for gen AI visuals, see e-dream.ai to learn more.\n\n"
-            "Keyboard Commands\n"
-            "Up-arrow: vote for this dream\n"
-            "Down-arrow: vote against this dream and delete it\n"
+            "A platform for generative AI visuals, see e-dream.ai to learn more.\n\n"
+            "Keyboard Commands:\n"
+            "Up-arrow: like this dream\n"
+            "Down-arrow: dislike this dream and delete it\n"
             "Left-arrow: go back to play previous dream\n"
             "Right-arrow: go forward through history\n"
             "A: playback slower\nD: playback faster\n"
@@ -268,8 +268,7 @@ class CElectricSheep
             "J: skip 10 seconds back\n"
             "V: open web source                       "
             "\n" FULLSCREEN_MODIFIER_KEY "-F: toggle full screen\n"
-            "F1: help (this page)\nF2: status overlay\n\n"
-            "by Scott Draves and open source programmers all over the world",
+            "F1: help (this page)\nF2: status overlay",
             ""));
 
         std::string ver = GetVersion();
