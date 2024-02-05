@@ -197,6 +197,11 @@ void ESScreensaver_SetUpdateAvailable(const char* verinfo)
     gClient.SetUpdateAvailable(verinfo);
 }
 
+void ESScreensaver_SetIsFullScreen(bool _bFullScreen)
+{
+    gClient.SetIsFullScreen(_bFullScreen);
+}
+
 #include <boost/filesystem.hpp>
 using namespace boost::filesystem;
 

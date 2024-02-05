@@ -362,15 +362,16 @@ int SheepDownloader::ParseDreamsPage(int _page)
                     newDream->activityLevel =
                         TryParseFloat(newDream->id, dream, "activityLevel");
                     fServerFlock.push_back(newDream);
-                    newDream->frontendUrl = TryParseString(newDream->id, dream, "frontendUrl");
-                    const boost::json::object* user =
-                        TryParseObject(newDream->id, dream, "user");
+                    newDream->frontendUrl =
+                        TryParseString(newDream->id, dream, "frontendUrl");
                     newDream->name =
                         TryParseString(newDream->id, dream, "name");
+                    const boost::json::object* user =
+                        TryParseObject(newDream->id, dream, "user");
                     if (!user)
                         continue;
                     newDream->author =
-                        TryParseString(newDream->id, *user, "email");
+                        TryParseString(newDream->id, *user, "name");
                     newDream->setFileWriteTime(
                         TryParseString(newDream->id, dream, "updated_at"));
                     newDream->rating = atoi("5");

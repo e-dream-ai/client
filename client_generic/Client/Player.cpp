@@ -341,8 +341,7 @@ void CPlayer::Stop()
                           m_CurrentClips[0]->GetClipMetadata().path);
         g_Settings()->Set("settings.content.last_played_frame",
                           (uint64_t)m_CurrentClips[0]->GetCurrentFrameIdx());
-        g_Settings()->Set("settings.content.last_played_fps",
-                          m_DecoderFps);
+        g_Settings()->Set("settings.content.last_played_fps", m_DecoderFps);
     }
 
     m_bStarted = false;
@@ -389,6 +388,9 @@ CPlayer::~CPlayer()
 
 bool CPlayer::BeginFrameUpdate()
 {
+    if (m_bPaused)
+        return true;
+
     double newTime = m_Timer.Time();
     if (m_LastFrameRealTime == 0.0)
         m_LastFrameRealTime = newTime;
@@ -542,7 +544,8 @@ void CPlayer::PlayQueuedClipsThread()
             int64_t seekFrame;
             seekFrame = (int64_t)g_Settings()->Get(
                 "settings.content.last_played_frame", uint64_t{});
-            m_DecoderFps = g_Settings()->Get("settings.content.last_played_fps", m_DecoderFps);
+            m_DecoderFps = g_Settings()->Get("settings.content.last_played_fps",
+                                             m_DecoderFps);
             PlayClip(lastPlayedFile, m_TimelineTime, seekFrame);
         }
 
@@ -601,8 +604,10 @@ bool CPlayer::PlayClip(std::string_view _clipPath, double _startTime,
     //        return false;
 
     spCClip clip = std::make_shared<CClip>(
-        sClipMetadata{std::string{_clipPath}, m_DecoderFps / dream.activityLevel, dream}, du->spRenderer,
-        displayMode, du->spDisplay->Width(), du->spDisplay->Height());
+        sClipMetadata{std::string{_clipPath},
+                      m_DecoderFps / dream.activityLevel, dream},
+        du->spRenderer, displayMode, du->spDisplay->Width(),
+        du->spDisplay->Height());
 
     if (!clip->Start(_seekFrame))
         return false;
@@ -621,7 +626,8 @@ void CPlayer::MultiplyFramerate(const double _multiplier)
     m_DecoderFps *= _multiplier;
     reader_lock l(m_UpdateMutex);
     if (m_CurrentClips.size())
-        m_CurrentClips[0]->SetFps(m_CurrentClips[0]->GetClipMetadata().fps * _multiplier);
+        m_CurrentClips[0]->SetFps(
+            m_CurrentClips[0]->GetClipMetadata().decodeFps * _multiplier);
 }
 
 void CPlayer::CalculateNextClipThread()
@@ -720,7 +726,7 @@ void CPlayer::ReturnToPrevious()
     std::string clipName;
     if (m_CurrentClips.size() < 2)
         return;
-    // If the current clip is fading out already, remove it immediately
+    // If the current clip is fading out already, empty the clips and queue both again
     spCClip currentClip = m_CurrentClips[0];
     auto [_, out] = currentClip->GetTransitionLength();
     if (m_TimelineTime > currentClip->GetEndTime() - out)
@@ -744,6 +750,36 @@ void CPlayer::ReturnToPrevious()
         PlayClip(clipName, m_TimelineTime);
         std::swap(m_CurrentClips[0], m_CurrentClips[1]);
         PRINTQUEUE("PREV_NORMAL", m_ClipInfoHistoryQueue, m_NextClipInfoQueue,
+                   m_CurrentClips);
+    }
+}
+
+void CPlayer::RepeatClip()
+{
+    writer_lock l(m_UpdateMutex);
+    std::string clipName;
+    // If the current clip is fading out already, remove it immediately
+    spCClip currentClip = m_CurrentClips[0];
+    auto [_, out] = currentClip->GetTransitionLength();
+    if (m_TimelineTime > currentClip->GetEndTime() - out)
+    {
+        clipName = m_CurrentClips[0]->GetClipMetadata().path;
+        std::string clipName2 = m_CurrentClips[1]->GetClipMetadata().path;
+        m_CurrentClips.clear();
+        PlayClip(clipName, m_TimelineTime);
+        PlayClip(clipName2, m_TimelineTime);
+        PRINTQUEUE("REPEAT_FADING", m_ClipInfoHistoryQueue, m_NextClipInfoQueue,
+                   m_CurrentClips);
+    }
+    else
+    {
+        double clipLength = currentClip->GetLength(20);
+        currentClip->SkipTime(-(float)clipLength);
+        if (m_CurrentClips.size() > 1)
+        {
+            m_CurrentClips[1]->SetStartTime(m_TimelineTime + clipLength);
+        }
+        PRINTQUEUE("REPEAT_NORMAL", m_ClipInfoHistoryQueue, m_NextClipInfoQueue,
                    m_CurrentClips);
     }
 }

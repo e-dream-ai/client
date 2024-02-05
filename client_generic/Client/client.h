@@ -70,6 +70,8 @@ class CElectricSheep
     bool m_MultipleInstancesMode;
     bool m_bConfigMode;
     bool m_SeamlessPlayback;
+    bool m_bPaused;
+    bool m_bFullScreen;
     Base::CTimer m_Timer;
     Base::CTimer m_F1F4Timer;
 
@@ -164,7 +166,7 @@ class CElectricSheep
         m_MultipleInstancesMode = false;
         printf("CElectricSheep()\n");
 
-        m_pVoter = NULL;
+        m_pVoter = nullptr;
 #ifndef LINUX_GNU
         m_AppData = "./.ElectricSheep/";
         m_WorkingDir = "./";
@@ -173,8 +175,8 @@ class CElectricSheep
         m_WorkingDir = SHAREDIR;
 #endif
 #ifdef DO_THREAD_UPDATE
-        m_pUpdateBarrier = NULL;
-        m_pUpdateThreads = NULL;
+        m_pUpdateBarrier = nullptr;
+        m_pUpdateThreads = nullptr;
 #endif
     }
 
@@ -244,7 +246,7 @@ class CElectricSheep
             std::dynamic_pointer_cast<Hud::CStatsConsole>(
                 m_HudManager->Get("dreamcredits"));
         m_HudManager->Hide("dreamcredits");
-        spStats->Add(new Hud::CStringStat("credits", "", "Artist - Title"));
+        spStats->Add(new Hud::CStringStat("credits", "", "Title - Artist"));
 
         m_HudManager->Add("helpmessage", std::make_shared<Hud::CStatsConsole>(
                                              Base::Math::CRect(1, 1),
@@ -386,7 +388,7 @@ class CElectricSheep
             {
                 FILE* test = fopen(m_SplashFilename.c_str(), "r");
 
-                if (test != NULL)
+                if (test != nullptr)
                 {
                     splashFound = true;
                     fclose(test);
@@ -440,7 +442,11 @@ class CElectricSheep
         ContentDownloader::Shepherd::GetFlockSizeMBsRecount(1);
         spCDelayedDispatch hideCursorDispatch =
             std::make_shared<CDelayedDispatch>(
-                []() -> void { PlatformUtils::SetCursorHidden(true); });
+                [this]() -> void
+                {
+                    if (this->m_bFullScreen)
+                        PlatformUtils::SetCursorHidden(true);
+                });
         hideCursorDispatch->DispatchAfter(5);
         PlatformUtils::SetOnMouseMovedCallback(
             [=](int, int) -> void
@@ -468,14 +474,15 @@ class CElectricSheep
         DestroyUpdateThreads();
 #endif
 
-        m_spSplashPos = NULL;
-        m_spSplashNeg = NULL;
-        m_spSplashPNG = NULL;
+        m_spSplashPos = nullptr;
+        m_spSplashNeg = nullptr;
+        m_spSplashPNG = nullptr;
         m_nSplashes = 0;
         m_SplashFilename = std::string();
-        m_spCrossFade = NULL;
-        m_StartupScreen = NULL;
-        m_HudManager = NULL;
+        m_spCrossFade = nullptr;
+        m_StartupScreen = nullptr;
+        m_HudManager = nullptr;
+        m_bPaused = false;
 
         if (!m_bConfigMode)
         {
@@ -492,6 +499,8 @@ class CElectricSheep
             g_Settings()->Shutdown();
         }
     }
+
+    void SetIsFullScreen(bool _bFullScreen) { m_bFullScreen = _bFullScreen; }
 
     bool Run()
     {
@@ -606,7 +615,7 @@ class CElectricSheep
     //
     virtual void DestroyUpdateThreads()
     {
-        if (m_pUpdateThreads != NULL)
+        if (m_pUpdateThreads != nullptr)
         {
             m_pUpdateThreads->interrupt_all();
             m_pUpdateThreads->join_all();
@@ -746,7 +755,7 @@ class CElectricSheep
                 if (ContentDownloader::Shepherd::PopMessage(msg, duration))
                 {
                     bool addtohud = true;
-                    time_t lt = time(NULL);
+                    time_t lt = time(nullptr);
 
                     if ((msg == "error connecting to server") ||
                         (msg == "server request failed, using free one"))
@@ -856,7 +865,7 @@ class CElectricSheep
                 if (clipMetadata)
                 {
                     activityLevel = clipMetadata->dreamData.activityLevel;
-                    realFps = clipMetadata->fps;
+                    realFps = clipMetadata->decodeFps;
                 }
 
                 const ContentDecoder::sFrameMetadata* frameMetadata =
@@ -886,8 +895,8 @@ class CElectricSheep
                     ((Hud::CStringStat*)spStats->Get("credits"))
                         ->SetSample(
                             string_format("%s - %s",
-                                          clipMetadata->dreamData.author.data(),
-                                          clipMetadata->dreamData.name.data())
+                                          clipMetadata->dreamData.name.data(),
+                                          clipMetadata->dreamData.author.data())
                                 .data());
                 }
                 //	Serverstats.
@@ -1028,13 +1037,13 @@ class CElectricSheep
             {
                 //	Vote for sheep.
             case DisplayOutput::CKeyEvent::KEY_UP:
-                if (m_pVoter != NULL &&
+                if (m_pVoter != nullptr &&
                     m_pVoter->Vote(0, true, voteDelaySeconds))
                     m_HudManager->Add("splash_pos", m_spSplashPos,
                                       voteDelaySeconds * 0.9f);
                 return true;
             case DisplayOutput::CKeyEvent::KEY_DOWN:
-                if (m_pVoter != NULL &&
+                if (m_pVoter != nullptr &&
                     m_pVoter->Vote(0, false, voteDelaySeconds))
                 {
                     if (g_Settings()->Get("settings.content.negvotedeletes",
@@ -1059,7 +1068,7 @@ class CElectricSheep
                 g_Player().SkipToNext();
                 return true;
                 //	Repeat sheep
-            case DisplayOutput::CKeyEvent::KEY_F8:
+            case DisplayOutput::CKeyEvent::KEY_R:
                 g_Player().RepeatClip();
                 return true;
             case DisplayOutput::CKeyEvent::KEY_A:
@@ -1080,10 +1089,13 @@ class CElectricSheep
                 m_HudManager->Toggle("dreamstats");
                 return true;
             case DisplayOutput::CKeyEvent::KEY_J:
-                g_Player().SkipForward(-10);
+                g_Player().SkipForward(-15);
                 return true;
             case DisplayOutput::CKeyEvent::KEY_L:
-                g_Player().SkipForward(10);
+                g_Player().SkipForward(15);
+                return true;
+            case DisplayOutput::CKeyEvent::KEY_K:
+                g_Player().SetPaused(m_bPaused = !m_bPaused);
                 return true;
             case DisplayOutput::CKeyEvent::KEY_C:
                 m_HudManager->Toggle("dreamcredits");
@@ -1094,6 +1106,14 @@ class CElectricSheep
                     PlatformUtils::OpenURLExternally(
                         data->dreamData.frontendUrl);
                 }
+                return true;
+            case DisplayOutput::CKeyEvent::KEY_W:
+                g_Player().Renderer()->SetBrightness(
+                    g_Player().Renderer()->GetBrightness() + 0.05f);
+                return true;
+            case DisplayOutput::CKeyEvent::KEY_S:
+                g_Player().Renderer()->SetBrightness(
+                    g_Player().Renderer()->GetBrightness() - 0.05f);
                 return true;
             //	All other keys needs to be ignored, they are handled somewhere
             // else...

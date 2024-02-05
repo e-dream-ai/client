@@ -37,6 +37,7 @@ void ESScreensaver_SaveSettings(void);
 void ESScreensaver_InitClientStorage(void);
 CFStringRef ESScreensaver_CopyGetRoot(void);
 void ESScreensaver_DeinitClientStorage(void);
+void ESScreensaver_SetIsFullScreen(bool);
 
 void ESScreensaver_SetUpdateAvailable(const char* verinfo);
 

@@ -10,7 +10,7 @@ namespace DisplayOutput
 
 /*
  */
-CRenderer::CRenderer() { m_bDirtyMatrices = 0; }
+CRenderer::CRenderer() : m_Brightness(0) { m_bDirtyMatrices = 0; }
 
 /*
  */

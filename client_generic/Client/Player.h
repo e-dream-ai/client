@@ -64,6 +64,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     double m_LastFrameRealTime;
     bool m_bFullscreen;
     bool m_InitPlayCounts;
+    bool m_bPaused;
     Base::CBlockingQueue<std::string> m_NextClipInfoQueue;
     Base::CBlockingQueue<std::string> m_ClipInfoHistoryQueue;
     std::vector<ContentDecoder::spCClip> m_CurrentClips;
@@ -170,7 +171,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     void SkipToNext();
     void ReturnToPrevious();
     void SkipForward(float _seconds);
-    void RepeatClip() {}
+    void RepeatClip();
     /// Sets up a clip for playing, that will start playing at startTimelineTime
     /// Returns true if the file was loaded successfully
     bool PlayClip(std::string_view _clipPath, double _startTimelineTime,
@@ -184,6 +185,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
         return static_cast<uint32_t>(m_displayUnits.size());
     }
     void ForceWidthAndHeight(uint32_t du, uint32_t _w, uint32_t _h);
+    void SetPaused(bool _bPaused) { m_bPaused = _bPaused; }
 };
 
 /*
