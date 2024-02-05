@@ -82,14 +82,14 @@ bool CClip::Start(int64_t _seekFrame)
 void CClip::Stop() { m_spDecoder->Stop(); }
 
 //    Do some math to figure out the delta between frames...
-bool CClip::NeedsNewFrame(DecoderClock* _decoderClock) const
+bool CClip::NeedsNewFrame(double _timelineTime,
+                          DecoderClock* _decoderClock) const
 {
     if (m_CurrentFrameMetadata.frameIdx < m_spFrameDisplay->StartAtFrame())
         return true;
 
-    double newTime = m_Timer.Time();
-    double deltaTime = newTime - _decoderClock->clock;
-    _decoderClock->clock = newTime;
+    double deltaTime = _timelineTime - _decoderClock->clock;
+    _decoderClock->clock = _timelineTime;
     if (!_decoderClock->started)
     {
         _decoderClock->started = true;
@@ -124,7 +124,7 @@ bool CClip::Update(double _timelineTime)
     }
     if (_timelineTime < m_StartTime)
         return false;
-    if (NeedsNewFrame(&m_DecoderClock))
+    if (NeedsNewFrame(_timelineTime, &m_DecoderClock))
     {
         if (!GrabVideoFrame())
         {

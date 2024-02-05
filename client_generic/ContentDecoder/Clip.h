@@ -57,7 +57,6 @@ class CClip
     ContentDecoder::spCVideoFrame m_spFrameData;
     DisplayOutput::spCImage m_spImageRef;
     sFrameMetadata m_CurrentFrameMetadata;
-    Base::CTimer m_Timer;
     mutable boost::shared_mutex m_CurrentFrameMetadataLock;
     double m_StartTime;
     double m_EndTime;
@@ -68,7 +67,7 @@ class CClip
     eClipFlags m_ClipFlags = eClipFlags::None;
 
   private:
-    bool NeedsNewFrame(DecoderClock* _decoderClock) const;
+    bool NeedsNewFrame(double _timelineTime, DecoderClock* _decoderClock) const;
     ///    Grab a frame from the decoder and use it as a texture.
     bool GrabVideoFrame();
 

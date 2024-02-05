@@ -399,6 +399,7 @@ bool CPlayer::BeginFrameUpdate()
     constexpr double SLOWEST_FRAMES_PER_SECOND = 10.0;
     delta = std::fmin(delta, 1.0 / SLOWEST_FRAMES_PER_SECOND);
     m_LastFrameRealTime = newTime;
+    m_TimelineTime += delta;
 
     writer_lock l(m_UpdateMutex);
 
