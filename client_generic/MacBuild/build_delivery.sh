@@ -2,6 +2,7 @@
 #set -x
 
 CONFIGURATION=Debug
+CERT_ID=$1
 
 WD=build/${CONFIGURATION}
 
@@ -27,6 +28,6 @@ xcodebuild -scheme All -configuration "$CONFIGURATION" -project e-dream.xcodepro
 #VERSION=$(defaults read "`pwd`/$WD/e-dream.saver/Contents/Info" CFBundleVersion)
 VERSION=$(git describe --tags --abbrev=0)
 
-./build_installer.sh "$VERSION" "e-dream-$VERSION" "$CONFIGURATION"
+./build_installer.sh "$VERSION" "e-dream-$VERSION" "$CONFIGURATION" "$CERT_ID"
 
 cd -

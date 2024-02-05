@@ -3,6 +3,7 @@
 VERSION=$1
 DEST=$2
 CONFIGURATION=$3
+CERT_ID=$4
 
 WD=build/${CONFIGURATION}
 
@@ -33,7 +34,7 @@ cp -PR "$WD/e-dream.app" "$APP_TMP"
 
 cp -PR "$WD/e-dream.saver" "$SAVER_TMP"
 
-APP_CERT="Developer ID Application: Spotworks LLC (FCG855WTXV)"
+APP_CERT="Developer ID Application: $CERT_ID"
 
 codesign --deep --force --verbose --sign "$APP_CERT" "$APP_TMP/e-dream.app"
 
@@ -61,7 +62,7 @@ sed -i '' -e "s/##VER##/$VERSION/g" Package/Distribution.xml
 productbuild --distribution "Package/Distribution.xml"  \
     --package-path "$DEST_TMP" \
     --resources "../Runtime" \
-    --sign "Developer ID Installer: Spotworks LLC (FCG855WTXV)" \
+    --sign "Developer ID Installer: $CERT_ID" \
     "$DEST/e-dream.pkg"
     
 rm -f Package/Distribution.xml
