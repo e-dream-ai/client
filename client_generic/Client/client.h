@@ -246,7 +246,7 @@ class CElectricSheep
             std::dynamic_pointer_cast<Hud::CStatsConsole>(
                 m_HudManager->Get("dreamcredits"));
         m_HudManager->Hide("dreamcredits");
-        spStats->Add(new Hud::CStringStat("credits", "", "Artist - Title"));
+        spStats->Add(new Hud::CStringStat("credits", "", "Title - Artist"));
 
         m_HudManager->Add("helpmessage", std::make_shared<Hud::CStatsConsole>(
                                              Base::Math::CRect(1, 1),
@@ -896,8 +896,8 @@ class CElectricSheep
                     ((Hud::CStringStat*)spStats->Get("credits"))
                         ->SetSample(
                             string_format("%s - %s",
-                                          clipMetadata->dreamData.author.data(),
-                                          clipMetadata->dreamData.name.data())
+                                          clipMetadata->dreamData.name.data(),
+                                          clipMetadata->dreamData.author.data())
                                 .data());
                 }
                 //	Serverstats.
