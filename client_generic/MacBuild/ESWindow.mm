@@ -103,11 +103,19 @@ static void ShowPreferencesCallback()
             kIOPMAssertPreventUserIdleSystemSleep, kIOPMAssertionLevelOn,
             CFSTR("Full Screen Video (e-dream)"), &noSleepAssertionIDSystem);
     }
-    mIsFullScreen = !mIsFullScreen;
-    ESScreensaver_SetIsFullScreen(mIsFullScreen);
     [super toggleFullScreen:sender];
 }
+-(void)windowDidEnterFullScreen:(NSNotification *)notification
+{
+    mIsFullScreen = true;
+    ESScreensaver_SetIsFullScreen(mIsFullScreen);
+}
 
+-(void)windowDidExitFullScreen:(NSNotification *)notification
+{
+    mIsFullScreen = false;
+    ESScreensaver_SetIsFullScreen(mIsFullScreen);
+}
 /*
         Black out all screens except fullscreen screen
  */
