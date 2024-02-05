@@ -442,9 +442,9 @@ class CElectricSheep
         ContentDownloader::Shepherd::GetFlockSizeMBsRecount(1);
         spCDelayedDispatch hideCursorDispatch =
             std::make_shared<CDelayedDispatch>(
-                [this]() -> void
+                [&, this]() -> void
                 {
-                    if (this->m_bFullScreen)
+                    if (m_bFullScreen)
                         PlatformUtils::SetCursorHidden(true);
                 });
         hideCursorDispatch->DispatchAfter(5);
