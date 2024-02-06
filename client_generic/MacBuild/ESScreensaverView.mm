@@ -39,11 +39,11 @@ bool bStarted = false;
 #endif
     {
 
-        m_updater =
-            [[SPUStandardUpdaterController alloc] initWithStartingUpdater:YES
-                                                          updaterDelegate:nil
-                                                       userDriverDelegate:nil];
-        [m_updater startUpdater];
+//        m_updater =
+//            [[SPUStandardUpdaterController alloc] initWithStartingUpdater:YES
+//                                                          updaterDelegate:nil
+//                                                       userDriverDelegate:nil];
+//        [m_updater startUpdater];
     }
 
     if (self)
@@ -437,11 +437,11 @@ static void signnal_handler(int signal)
 {
     SUAppcastItem* update = timer.userInfo;
 
-    if (!m_isFullScreen)
-        [m_updater checkForUpdates:nil];
-    else
-        ESScreensaver_SetUpdateAvailable(
-            update.displayVersionString.UTF8String);
+//    if (!m_isFullScreen)
+//        [m_updater checkForUpdates:nil];
+//    else
+//        ESScreensaver_SetUpdateAvailable(
+//            update.displayVersionString.UTF8String);
 }
 
 // Sent when a valid update is found by the update driver.

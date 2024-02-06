@@ -859,7 +859,7 @@ class CElectricSheep
                     std::dynamic_pointer_cast<Hud::CStatsConsole>(
                         m_HudManager->Get("dreamstats"));
                 float activityLevel = 1.f;
-                float realFps = 20;
+                double realFps = 20;
                 const ContentDecoder::sClipMetadata* clipMetadata =
                     g_Player().GetCurrentPlayingClipMetadata();
                 if (clipMetadata)
@@ -876,10 +876,10 @@ class CElectricSheep
                         ->SetSample(string_format(
                             "%s/%s",
                             FrameNumberToMinutesAndSecondsString(
-                                frameMetadata->frameIdx, realFps)
+                                frameMetadata->frameIdx, 20)
                                 .data(),
                             FrameNumberToMinutesAndSecondsString(
-                                frameMetadata->maxFrameIdx, realFps)
+                                frameMetadata->maxFrameIdx, 20)
                                 .data()));
                 }
                 ((Hud::CStringStat*)spStats->Get("decodefps"))
