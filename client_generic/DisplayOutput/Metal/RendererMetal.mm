@@ -234,10 +234,11 @@ bool CRendererMetal::BeginFrame(void)
         rendererContext->frameCounter++ % MaxFramesInFlight;
     dispatch_semaphore_wait(rendererContext->inFlightSemaphore,
                             DISPATCH_TIME_FOREVER);
+    PROFILER_BEGIN_F("Metal Frame", "%d", rendererContext->frameCounter);
     id<MTLCommandQueue> commandQueue = rendererContext->commandQueue;
     rendererContext->currentCommandBuffer = [commandQueue commandBuffer];
     rendererContext->currentLoadAction = MTLLoadActionClear;
-    PROFILER_BEGIN_F("Metal Frame", "%d", rendererContext->frameCounter);
+    Clear();
     return true;
 }
 
