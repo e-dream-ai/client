@@ -410,7 +410,7 @@ bool Shepherd::getSheep(const char* path, SheepArray* sheep,
     try
     {
         boost::filesystem::path p(path);
-
+        std::vector<boost::filesystem::path> filesToRemove;
         directory_iterator end_itr; // default construction yields past-the-end
         for (directory_iterator itr(p); itr != end_itr; ++itr)
         {
@@ -448,8 +448,20 @@ bool Shepherd::getSheep(const char* path, SheepArray* sheep,
                         sheep->push_back(newSheep);
                         gotSheep = true;
                     }
+                    else
+                    {
+                        filesToRemove.push_back(itr->path());
+                    }
+                }
+                else
+                {
+                    filesToRemove.push_back(itr->path());
                 }
             }
+        }
+        for (auto removePath : filesToRemove)
+        {
+            remove_all(removePath);
         }
     }
     catch (boost::filesystem::filesystem_error& err)
