@@ -12,13 +12,14 @@ WD=build/${CONFIGURATION}
 handle_error() {
     local exit_code="$?"
     echo "Error: Command '$BASH_COMMAND' failed with exit code $exit_code"
+    rm -rf "build/$DEST"
     exit "$exit_code"
 }
 
 # Set the trap to call the error-handling function
 trap 'handle_error' ERR
 
-DEST_TMP=$DEST/tmp
+DEST_TMP=build/$DEST/tmp
 
 SAVER_TMP=$DEST_TMP/Saver
 
@@ -29,6 +30,8 @@ BASE_DIR=`dirname "$0"`
 cd "$BASE_DIR"
 
 mkdir -p "$DEST_TMP" "$SAVER_TMP" "$APP_TMP"
+
+rm -f build/"$DEST.dmg"
 
 cp -PR "$WD/e-dream.app" "$APP_TMP"
 
@@ -63,15 +66,15 @@ productbuild --distribution "Package/Distribution.xml"  \
     --package-path "$DEST_TMP" \
     --resources "../Runtime" \
     --sign "Developer ID Installer: $CERT_ID" \
-    "$DEST/e-dream.pkg"
+    "build/$DEST/e-dream.pkg"
     
 rm -f Package/Distribution.xml
 
 rm -rf "$DEST_TMP"
 
-hdiutil create -fs HFS+ -srcfolder "$DEST" build/"$DEST"
+hdiutil create -fs HFS+ -srcfolder "build/$DEST" build/"$DEST"
 
-rm -rf "$DEST"
+rm -rf "build/$DEST"
 
 cd -
 
