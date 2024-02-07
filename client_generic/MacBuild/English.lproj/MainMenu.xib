@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="22505" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="22155" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="22505"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="22155"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -64,9 +64,14 @@
                 <menuItem title="File" id="83">
                     <menu key="submenu" title="File" id="81">
                         <items>
-                            <menuItem title="Close" keyEquivalent="w" id="73" userLabel="1">
+                            <menuItem title="New Window" keyEquivalent="n" id="73">
                                 <connections>
-                                    <action selector="performClose:" target="-1" id="193"/>
+                                    <action selector="newWindow:" target="-1" id="b0f-vY-u11"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Close" keyEquivalent="w" id="BYB-2i-0J5">
+                                <connections>
+                                    <action selector="performClose:" target="-1" id="m3Y-kg-DlK"/>
                                 </connections>
                             </menuItem>
                         </items>
@@ -152,14 +157,10 @@
                         </items>
                     </menu>
                 </menuItem>
-                <menuItem title="Help" id="486" userLabel="1">
-                    <menu key="submenu" title="Help" id="487" userLabel="2">
+                <menuItem title="Help" id="486">
+                    <menu key="submenu" title="Help" id="487">
                         <items>
-                            <menuItem title="Instructions" keyEquivalent="?" id="488">
-                                <connections>
-                                    <action selector="showHelpFile:" target="371" id="7wE-hN-cyB"/>
-                                </connections>
-                            </menuItem>
+                            <menuItem title="Instructions" keyEquivalent="?" id="488"/>
                         </items>
                     </menu>
                 </menuItem>
@@ -170,7 +171,7 @@
             <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="335" y="390" width="480" height="360"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1680" height="1025"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1415"/>
             <view key="contentView" id="372">
                 <rect key="frame" x="0.0" y="0.0" width="480" height="360"/>
                 <autoresizingMask key="autoresizingMask"/>

@@ -25,6 +25,8 @@
 
 - (void)awakeFromNib;
 
+- (void)initWindowProperties;
+
 //- (void)windowWillClose:(NSNotification *)notification;
 
 - (BOOL)showPreferences:(id)sender;
@@ -53,5 +55,7 @@
 - (void)unblackScreens;
 
 - (void)fadeWindow:(NSWindow*)window withEffect:(NSString*)effect;
+
+- (IBAction)newWindow:(id)sender;
 
 @end
