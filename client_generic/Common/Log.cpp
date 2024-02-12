@@ -209,14 +209,6 @@ void CLog::Fatal(std::string_view _pFmt, ...)
                     /*m_File.c_str(), m_Line, m_Function.c_str(),*/ pTempStr);
 }
 
-void DebugPrintImmediate(const char* text)
-{
-    FILE* fptr;
-    fptr = fopen("/Users/Shared/e-dream.ai/Logs/debug.txt", "a");
-    fprintf(fptr, "%s\n", text);
-    fclose(fptr);
-}
-
 }; // namespace Base
 
 os_log_t g_SignpostHandle = os_log_create("com.spotworks.e-dream.app",
