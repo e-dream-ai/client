@@ -10,6 +10,11 @@ this repository has the native client.
 dev docs
 ========
 
+this repository uses git LFS, be sure to run
+
+    brew install git-lfs
+    git lfs install
+
 on Mac, open client_generic/MacBuild/e-dream.xcodeproj
 
 to make a release, build the screensaver, then build the app, then run the script like this:
