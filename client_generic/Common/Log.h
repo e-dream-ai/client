@@ -18,6 +18,8 @@
 #include "base.h"
 #include "boost/thread.hpp"
 
+#if 0
+
 #ifdef DEBUG
 // Define a macro for logging
 #define DEBUG_LOG(fmt, ...)                                                    \
@@ -33,6 +35,9 @@
                 ##__VA_ARGS__);                                                \
         fclose(fptr);                                                          \
     } while (0)
+#endif
+#else
+#define DEBUG_LOG(fmt, ...)
 #endif
 
 extern void ProfilerBegin(const char* name);

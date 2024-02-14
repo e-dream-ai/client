@@ -32,6 +32,7 @@
                                                       selector:@selector(redraw)
                                                       userInfo:nil
                                                        repeats:YES];
+        [self viewDidEndLiveResize];
         [self redraw];
     }
     [self setNeedsDisplay:YES];
@@ -54,6 +55,16 @@
 - (void)redraw
 {
     [self setNeedsDisplay:YES];
+}
+
+- (void)viewDidEndLiveResize
+{
+    [super viewDidEndLiveResize];
+    CAMetalLayer* metalLayer = (CAMetalLayer*)self.layer.sublayers[0];
+    CGSize size = self.bounds.size;
+    size.width *= [NSScreen mainScreen].backingScaleFactor;
+    size.height *= [NSScreen mainScreen].backingScaleFactor;
+    metalLayer.drawableSize = size;
 }
 
 - (void)drawRect:(NSRect)dirtyRect
