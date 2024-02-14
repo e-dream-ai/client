@@ -18,6 +18,28 @@
 #include "base.h"
 #include "boost/thread.hpp"
 
+#if 0
+
+#ifdef DEBUG
+// Define a macro for logging
+#define DEBUG_LOG(fmt, ...)                                                    \
+    do                                                                         \
+    {                                                                          \
+        time_t current_time = time(NULL);                                      \
+        char* time_str = ctime(&current_time);                                 \
+        time_str[strlen(time_str) - 1] =                                       \
+            '\0'; /* Removing newline from ctime output */                     \
+        FILE* fptr;                                                            \
+        fptr = fopen("/Users/Shared/e-dream.ai/Logs/debug.log", "a");          \
+        fprintf(fptr, "[%s] [%s:%d] " fmt "\n", time_str, __FILE__, __LINE__,  \
+                ##__VA_ARGS__);                                                \
+        fclose(fptr);                                                          \
+    } while (0)
+#endif
+#else
+#define DEBUG_LOG(fmt, ...)
+#endif
+
 extern void ProfilerBegin(const char* name);
 extern void ProfilerEnd(const char* name);
 

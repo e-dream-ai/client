@@ -12,18 +12,13 @@
 };
 
 static __weak ESWindow* s_pWindow = nil;
+static NSMutableArray<ESWindow*>* s_ExtraWindows;
+
 static void ShowPreferencesCallback()
 {
     dispatch_async(dispatch_get_main_queue(), ^{
         [s_pWindow showPreferences:nil];
     });
-}
-
-- (IBAction)showHelpFile:(NSMenuItem*)sender
-{
-    [[NSWorkspace sharedWorkspace]
-        openFile:[[NSBundle mainBundle] pathForResource:@"Instructions"
-                                                 ofType:@"rtf"]];
 }
 
 - (void)awakeFromNib // was - (NSWindow *)window
@@ -55,28 +50,49 @@ static void ShowPreferencesCallback()
 
     ESScreensaver_DeinitClientStorage();
 
-    [self setFrame:[self frameRectForContentRect:frame] display:NO];
+    //[self setFrame:[self frameRectForContentRect:frame] display:NO];
+    //[self setFrame:NSScreen.mainScreen.visibleFrame display:NO];
+    frame.origin.x = [NSScreen mainScreen].frame.size.width / 2 - 640;
+    frame.origin.y = [NSScreen mainScreen].frame.size.height / 2 - 360;
 
     [self makeKeyWindow];
 
     self.collectionBehavior = NSWindowCollectionBehaviorFullScreenPrimary;
 
-    mESView = [[ESScreensaverView alloc] initWithFrame:frame isPreview:NO];
+    s_ExtraWindows = [[NSMutableArray alloc] init];
+    [s_ExtraWindows addObject:self];
 
-    if (mESView != nil)
-    {
-        self.contentView = mESView;
-
-        mESView.autoresizingMask = (NSViewWidthSizable | NSViewHeightSizable);
-
-        [mESView setAutoresizesSubviews:YES];
-
-        [self makeFirstResponder:mESView];
-
-        [mESView startAnimation];
-    }
     s_pWindow = self;
+    [self initWindowProperties];
     ESSetShowPreferencesCallback(ShowPreferencesCallback);
+}
+
+- (void)initWindowProperties
+{
+    //    NSWindowCollectionBehavior behavior = [self collectionBehavior];
+    //    behavior &= ~NSWindowCollectionBehaviorFullScreenAuxiliary;
+    //    [self setCollectionBehavior:behavior];
+    //    NSRect winFrame = frame;
+    //    winFrame.origin = CGPointMake(winFrame.origin.x + screen.frame.origin.x, winFrame.origin.y + screen.frame.origin.y);
+    //    [window setFrame:winFrame display:YES];
+    ESScreensaverView* esView =
+        [[ESScreensaverView alloc] initWithFrame:self.frame isPreview:NO];
+
+    if (esView != nil)
+    {
+        self.contentView = esView;
+
+        esView.autoresizingMask = (NSViewWidthSizable | NSViewHeightSizable);
+
+        [esView setAutoresizesSubviews:YES];
+
+        [self makeFirstResponder:esView];
+
+        [self makeKeyAndOrderFront:nil];
+
+        [esView startAnimation];
+    }
+    self->mESView = esView;
 }
 
 - (void)switchFullScreen:(id)sender
@@ -105,13 +121,32 @@ static void ShowPreferencesCallback()
     }
     [super toggleFullScreen:sender];
 }
--(void)windowDidEnterFullScreen:(NSNotification *)notification
+
+- (void)windowWillEnterFullScreen:(NSNotification*)notification
+{
+    for (ESWindow* win in s_ExtraWindows)
+    {
+        [win toggleFullScreen:notification];
+        [win windowDidResize:notification];
+    }
+}
+
+- (void)windowWillExitFullScreen:(NSNotification*)notification
+{
+    for (ESWindow* win in s_ExtraWindows)
+    {
+        [win toggleFullScreen:notification];
+        [win windowDidResize:notification];
+    }
+}
+
+- (void)windowDidEnterFullScreen:(NSNotification*)notification
 {
     mIsFullScreen = true;
     ESScreensaver_SetIsFullScreen(mIsFullScreen);
 }
 
--(void)windowDidExitFullScreen:(NSNotification *)notification
+- (void)windowDidExitFullScreen:(NSNotification*)notification
 {
     mIsFullScreen = false;
     ESScreensaver_SetIsFullScreen(mIsFullScreen);
@@ -150,7 +185,7 @@ static void ShowPreferencesCallback()
         fs_rect = actScreen.frame;
         fs_rect.origin = NSZeroPoint;
         win = [[NSWindow alloc] initWithContentRect:fs_rect
-                                          styleMask:NSBorderlessWindowMask
+                                          styleMask:NSWindowStyleMaskBorderless
                                             backing:NSBackingStoreBuffered
                                               defer:NO
                                              screen:NSScreen.screens[i]];
@@ -331,4 +366,19 @@ static void ShowPreferencesCallback()
         [super keyDown:ev];
 }
 
+- (IBAction)newWindow:(id)sender
+{
+    ESWindow* window = [[ESWindow alloc]
+        initWithContentRect:CGRectMake(self.frame.origin.x + 50,
+                                       self.frame.origin.y - 50, 1280, 720)
+                  styleMask:NSWindowStyleMaskTitled |
+                            NSWindowStyleMaskResizable |
+                            NSWindowStyleMaskClosable |
+                            NSWindowStyleMaskMiniaturizable |
+                            NSWindowStyleMaskFullSizeContentView
+                    backing:NSBackingStoreBuffered
+                      defer:NO];
+    [window initWindowProperties];
+    [s_ExtraWindows addObject:window];
+}
 @end

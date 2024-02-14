@@ -33,17 +33,18 @@ bool bStarted = false;
     m_endFrameBarrier = std::make_unique<boost::barrier>(2);
     m_animationDispatchGroup = dispatch_group_create();
     m_frameUpdateQueue = dispatch_queue_create("Frame Update", NULL);
+    DEBUG_LOG("INIT");
 
 #ifdef SCREEN_SAVER
     // if (isPreview)
 #endif
     {
 
-//        m_updater =
-//            [[SPUStandardUpdaterController alloc] initWithStartingUpdater:YES
-//                                                          updaterDelegate:nil
-//                                                       userDriverDelegate:nil];
-//        [m_updater startUpdater];
+        //        m_updater =
+        //            [[SPUStandardUpdaterController alloc] initWithStartingUpdater:YES
+        //                                                          updaterDelegate:nil
+        //                                                       userDriverDelegate:nil];
+        //        [m_updater startUpdater];
     }
 
     if (self)
@@ -58,33 +59,14 @@ bool bStarted = false;
         newFrame.origin.y = 0.0;
 
         theRect = newFrame;
-        // Now alloc and init the view, right from within the screen saver's
-        // initWithFrame:
-
-        // If the view is valid, we continue
-        // if(view)
         {
             // Make sure we autoresize
             [self setAutoresizesSubviews:YES];
-            // So if our view is valid...
-
             view = NULL;
-
-            // Do some setup on our context and view
-            //[view prepareOpenGL];
-            // Then we set our animation loop timer
-            //[self setAnimationTimeInterval:1/60.0];
 #ifdef SCREEN_SAVER
             [self setAnimationTimeInterval:-1];
 #endif
-            // Since our BasicOpenGLView class does it's setup in awakeFromNib,
-            // we call that here. Note that this could be any method you want to
-            // use as the setup routine for your view.
-            //[view awakeFromNib];
         }
-        // else // Log an error if we fail here
-        //  NSLog(@"Error: e-dream Screen Saver failed to initialize
-        //  NSOpenGLView!");
     }
     // Finally return our newly-initialized self
     return self;
@@ -92,51 +74,8 @@ bool bStarted = false;
 
 - (void)startAnimation
 {
-    /*NSMutableArray *displays = [NSMutableArray arrayWithCapacity:5];
-
-    [displays addObject:[NSScreen mainScreen]];
-
-    uint32_t cnt = [[NSScreen screens] count];
-
-    for (int i=0; i<cnt; i++)
-    {
-            NSScreen *scr = [[NSScreen screens] objectAtIndex:i];
-
-             if (scr !=  [NSScreen mainScreen])
-                    [displays addObject:scr];
-    }
-
-    ESScreensaver_InitClientStorage();
-
-    Sint32_t scr = ESScreensaver_GetIntSetting("settings.player.screen", 0);
-
-    ESScreensaver_DeinitClientStorage();
-
-    if (scr >= cnt)
-            scr = cnt - 1;
-
-    //main screen only for now?
-    if (!m_isPreview && [[self window] screen] != [displays objectAtIndex:scr])
-    {
-   return;
-    }
-    else
-    {*/
     if (view == NULL)
     {
-        /*NSRect newRect;
-
-        newRect.size.height = theRect.size.height;
-
-        newRect.size.width = 800.0 * ( theRect.size.height / 592.0 );
-
-        newRect.origin.x = theRect.origin.x + ( theRect.size.width -
-        newRect.size.width ) / 2.0;
-
-        newRect.origin.y = theRect.origin.y;
-
-        theRect = newRect;*/
-
         ESMetalView* metalView =
 
             [[ESMetalView alloc] initWithFrame:theRect];
@@ -151,7 +90,6 @@ bool bStarted = false;
             [self addSubview:view];
         }
     }
-    //}
     if (view != NULL)
     {
         //@TODO: remove these if unnecessary
@@ -220,7 +158,7 @@ bool bStarted = false;
 
 - (void)_animationThread
 {
-
+    DEBUG_LOG("ANIMATIONTHREAD");
     while (!m_isStopped && !ESScreensaver_Stopped())
     {
         @autoreleasepool
@@ -257,7 +195,7 @@ static void signnal_handler(int signal)
 - (void)_beginThread
 {
     //[animationLock lock];
-
+    DEBUG_LOG("BEGINTHREAD");
     m_isStopped = NO;
     [NSWorkspace.sharedWorkspace.notificationCenter
         addObserver:self
@@ -437,11 +375,11 @@ static void signnal_handler(int signal)
 {
     SUAppcastItem* update = timer.userInfo;
 
-//    if (!m_isFullScreen)
-//        [m_updater checkForUpdates:nil];
-//    else
-//        ESScreensaver_SetUpdateAvailable(
-//            update.displayVersionString.UTF8String);
+    //    if (!m_isFullScreen)
+    //        [m_updater checkForUpdates:nil];
+    //    else
+    //        ESScreensaver_SetUpdateAvailable(
+    //            update.displayVersionString.UTF8String);
 }
 
 // Sent when a valid update is found by the update driver.
@@ -469,8 +407,9 @@ static void signnal_handler(int signal)
 {
 }
 
-- (void)drawInMTKView:(nonnull MTKView*)view
+- (void)drawInMetalView:(ESMetalView*)view
 {
+    DEBUG_LOG("DRAW_IN_METAL_VIEW");
     if (!m_isStopped)
     {
         m_beginFrameBarrier->wait();

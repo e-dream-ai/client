@@ -22,7 +22,7 @@
       <SPUUpdaterDelegate
 #ifdef USE_METAL
        ,
-       MTKViewDelegate
+       ESMetalViewDelegate
 #endif
        >
 {
