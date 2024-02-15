@@ -71,17 +71,17 @@ static void SetNewAndDeleteOldString(
 
 void EDreamClient::InitializeClient()
 {
-    // g_Settings()->Set("settings.content.access_token", std::string(""));
-    //    s_WebSocketClient.set_access_channels(websocketpp::log::alevel::all);
-    //    s_WebSocketClient.clear_access_channels(
-    //        websocketpp::log::alevel::frame_payload);
-    //    s_WebSocketClient.set_error_channels(websocketpp::log::elevel::all);
-    //    s_WebSocketClient.init_asio();
-    //    s_WebSocketClient.set_message_handler(&OnWebSocketMessage);
-    //    s_WebSocketClient.set_open_handler(&OnWebSocketOpen);
-    //    s_WebSocketClient.set_close_handler(&OnWebSocketClose);
-    //    s_WebSocketClient.set_fail_handler(&OnWebSocketFail);
+    s_WebSocketClient.set_access_channels(websocketpp::log::alevel::all);
+    s_WebSocketClient.clear_access_channels(
+        websocketpp::log::alevel::frame_payload);
+    s_WebSocketClient.set_error_channels(websocketpp::log::elevel::all);
+    s_WebSocketClient.init_asio();
+    s_WebSocketClient.set_message_handler(&OnWebSocketMessage);
+    s_WebSocketClient.set_open_handler(&OnWebSocketOpen);
+    s_WebSocketClient.set_close_handler(&OnWebSocketClose);
+    s_WebSocketClient.set_fail_handler(&OnWebSocketFail);
 
+    g_Settings()->Set("settings.content.access_token", std::string(""));
     SetNewAndDeleteOldString(
         fAccessToken,
         g_Settings()
@@ -94,7 +94,7 @@ void EDreamClient::InitializeClient()
             .c_str());
     fAuthMutex.lock();
     boost::thread authThread(&EDreamClient::Authenticate);
-    //boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
+    boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
 }
 
 const char* EDreamClient::GetAccessToken()
