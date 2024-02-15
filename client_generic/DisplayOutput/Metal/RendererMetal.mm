@@ -75,11 +75,11 @@ CRendererMetal::CRendererMetal() : CRenderer() {}
 CRendererMetal::~CRendererMetal()
 {
     RendererContext* rendererContext = CFBridgingRelease(m_pRendererContext);
-    while (rendererContext->framesStarted.load() !=
-           rendererContext->framesFinished.load())
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
+    //    while (rendererContext->framesStarted.load() !=
+    //           rendererContext->framesFinished.load())
+    //    {
+    //        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    //    }
     if (rendererContext->textureCache)
     {
         CFRelease(rendererContext->textureCache);
