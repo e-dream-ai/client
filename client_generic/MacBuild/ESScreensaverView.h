@@ -21,19 +21,28 @@
 #endif
       <SPUUpdaterDelegate
 #ifdef USE_METAL
+#ifdef SCREEN_SAVER
        ,
        ESMetalViewDelegate
-#endif
+#else  /*SCREEN_SAVER*/
+       ,
+       MTKViewDelegate
+#endif /*SCREEN_SAVER*/
+#endif /*USE_METAL*/
        >
 {
     // So what do you need to make an OpenGL screen saver? Just an NSOpenGLView
     // (or subclass thereof) So we'll put one in here.
     NSRect theRect;
 #if USE_METAL
+#ifdef SCREEN_SAVER
     ESMetalView* view;
 #else
+    MTKView* view;
+#endif /*SCREEN_SAVER*/
+#else  /*USE_METAL*/
     ESOpenGLView* view;
-#endif
+#endif /*USE_METAL*/
     NSTimer* animationTimer;
     dispatch_group_t m_animationDispatchGroup;
     dispatch_queue_t m_frameUpdateQueue;

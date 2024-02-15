@@ -76,9 +76,28 @@ bool bStarted = false;
 {
     if (view == NULL)
     {
+#ifdef SCREEN_SAVER
         ESMetalView* metalView =
 
             [[ESMetalView alloc] initWithFrame:theRect];
+#else
+        NSArray<id<MTLDevice>>* devices = MTLCopyAllDevices();
+        id<MTLDevice> selectedDevice = nil;
+        for (id<MTLDevice> device in devices)
+        {
+            if (!device.isLowPower)
+            {
+                selectedDevice = device;
+                break; // Found the discrete GPU, exit the loop
+            }
+        }
+        if (selectedDevice == nil)
+            selectedDevice = devices[0];
+
+        MTKView* metalView =
+
+            [[MTKView alloc] initWithFrame:theRect device:selectedDevice];
+#endif
         metalView.delegate = self;
         metalView.preferredFramesPerSecond = 60;
 
@@ -406,8 +425,11 @@ static void signnal_handler(int signal)
 - (void)mtkView:(MTKView*)view drawableSizeWillChange:(CGSize)size
 {
 }
-
+#ifdef SCREEN_SAVER
 - (void)drawInMetalView:(ESMetalView*)view
+#else
+- (void)drawInMTKView:(MTKView*)view
+#endif
 {
     DEBUG_LOG("DRAW_IN_METAL_VIEW");
     if (!m_isStopped)
