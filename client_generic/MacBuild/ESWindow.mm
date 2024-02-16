@@ -43,6 +43,7 @@ static void ShowPreferencesCallback()
 
     frame.size.width = 1280;
     frame.size.height = 720;
+    self.minSize = NSMakeSize(100, 100);
     self.contentAspectRatio = CGSizeMake(16.f, 9.f);
 
     mBlackouMonitors =
@@ -54,6 +55,7 @@ static void ShowPreferencesCallback()
     //[self setFrame:NSScreen.mainScreen.visibleFrame display:NO];
     frame.origin.x = [NSScreen mainScreen].frame.size.width / 2 - 640;
     frame.origin.y = [NSScreen mainScreen].frame.size.height / 2 - 360;
+    [self setFrame:frame display:YES];
 
     [self makeKeyWindow];
 
