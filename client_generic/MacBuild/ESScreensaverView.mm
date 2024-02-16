@@ -11,7 +11,7 @@
 #include "DisplayOutput.h"
 #include "PlatformUtils.h"
 
-bool bStarted = false;
+int nStarted = 0;
 
 @implementation ESScreensaverView
 
@@ -29,10 +29,6 @@ bool bStarted = false;
     m_isStopped = YES;
 
     m_isPreview = isPreview;
-    m_beginFrameBarrier = std::make_unique<boost::barrier>(2);
-    m_endFrameBarrier = std::make_unique<boost::barrier>(2);
-    m_animationDispatchGroup = dispatch_group_create();
-    m_frameUpdateQueue = dispatch_queue_create("Frame Update", NULL);
     DEBUG_LOG("INIT");
 
 #ifdef SCREEN_SAVER
@@ -125,16 +121,15 @@ bool bStarted = false;
     m_isHidden = NO;
 #endif
 
-    if (!bStarted)
+    if (!nStarted)
     {
 
         if (!ESScreensaver_Start(m_isPreview, width, height))
             return;
 
-        bStarted = true;
-
         [self _beginThread];
     }
+    nStarted++;
 #ifdef SCREEN_SAVER
     [super startAnimation];
 #endif
@@ -145,16 +140,16 @@ bool bStarted = false;
 #ifdef SCREEN_SAVER
     [NSCursor unhide];
 #endif
-    if (bStarted)
+    if (nStarted == 1)
     {
         [self _endThread];
 
         ESScreensaver_Stop();
 
         ESScreensaver_Deinit();
-
-        bStarted = false;
     }
+    
+    nStarted--;
 
 #ifdef SCREEN_SAVER
     if (m_isHidden)
@@ -216,6 +211,10 @@ static void signnal_handler(int signal)
     //[animationLock lock];
     DEBUG_LOG("BEGINTHREAD");
     m_isStopped = NO;
+    m_beginFrameBarrier = std::make_unique<boost::barrier>(2);
+    m_endFrameBarrier = std::make_unique<boost::barrier>(2);
+    m_animationDispatchGroup = dispatch_group_create();
+    m_frameUpdateQueue = dispatch_queue_create("Frame Update", NULL);
     [NSWorkspace.sharedWorkspace.notificationCenter
         addObserver:self
            selector:@selector(willStop:)
@@ -254,8 +253,8 @@ static void signnal_handler(int signal)
 
 - (void)_endThread
 {
-    m_isStopped = YES;
     m_beginFrameBarrier->wait();
+    m_isStopped = YES;
     m_endFrameBarrier->wait();
 
     dispatch_group_wait(m_animationDispatchGroup, DISPATCH_TIME_FOREVER);

@@ -258,7 +258,8 @@ class CElectricSheep
         spHelpMessage->Add(new Hud::CStringStat(
             "message",
             "e-dream\n\n"
-            "A platform for generative AI visuals, see e-dream.ai to learn more.\n\n"
+            "A platform for generative AI visuals, see e-dream.ai to learn "
+            "more.\n\n"
             "Keyboard Commands:\n"
             "Up-arrow: like this dream\n"
             "Down-arrow: dislike this dream and delete it\n"
@@ -643,17 +644,18 @@ class CElectricSheep
         }
 #else
         uint32_t displayCnt = g_Player().GetDisplayCount();
+        
+        _beginFrameBarrier.wait();
 
         bool ret = true;
         for (uint32_t i = 0; i < displayCnt; i++)
         {
-            _beginFrameBarrier.wait();
             ret &= DoRealFrameUpdate(i);
-            _endFrameBarrier.wait();
-
+            printf("G2\n");
             if (!ret)
                 break;
         }
+        _endFrameBarrier.wait();
 #endif
 
         g_Player().EndFrameUpdate();
@@ -873,14 +875,14 @@ class CElectricSheep
                 if (frameMetadata)
                 {
                     ((Hud::CStringStat*)spStats->Get("playHead"))
-                        ->SetSample(string_format(
-                            "%s/%s",
-                            FrameNumberToMinutesAndSecondsString(
-                                frameMetadata->frameIdx, 20)
-                                .data(),
-                            FrameNumberToMinutesAndSecondsString(
-                                frameMetadata->maxFrameIdx, 20)
-                                .data()));
+                        ->SetSample(
+                            string_format("%s/%s",
+                                          FrameNumberToMinutesAndSecondsString(
+                                              frameMetadata->frameIdx, 20)
+                                              .data(),
+                                          FrameNumberToMinutesAndSecondsString(
+                                              frameMetadata->maxFrameIdx, 20)
+                                              .data()));
                 }
                 ((Hud::CStringStat*)spStats->Get("decodefps"))
                     ->SetSample(string_format(" %.2f fps", realFps));

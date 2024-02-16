@@ -92,6 +92,7 @@ static void ShowPreferencesCallback()
 
         [esView startAnimation];
     }
+    self.delegate = self;
     self->mESView = esView;
 }
 
