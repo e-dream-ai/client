@@ -51,9 +51,9 @@ CFBundleRef CopyDLBundle_ex(void)
     return (bundle);
 }
 
-void ESScreenSaver_AddGraphicsContext(void* _glContext)
+int ESScreenSaver_AddGraphicsContext(void* _glContext)
 {
-    gClient.AddGraphicsContext((CGraphicsContext)_glContext);
+    return gClient.AddGraphicsContext((CGraphicsContext)_glContext);
 }
 
 bool ESScreensaver_Start(bool _bPreview, uint32 _width, uint32 _height)
@@ -85,12 +85,13 @@ bool ESScreensaver_Start(bool _bPreview, uint32 _width, uint32 _height)
     return true;
 }
 
-bool ESScreensaver_DoFrame(boost::barrier& _beginFrameBarrier,
+bool ESScreensaver_DoFrame(int _displayIdx, boost::barrier& _beginFrameBarrier,
                            boost::barrier& _endFrameBarrier)
 {
     bool retval = true;
 
-    if (gClient.Update(_beginFrameBarrier, _endFrameBarrier) == false)
+    if (gClient.Update(_displayIdx, _beginFrameBarrier, _endFrameBarrier) ==
+        false)
     {
         retval = false;
     }

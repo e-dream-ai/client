@@ -7,10 +7,10 @@
 
 CFBundleRef CopyDLBundle_ex(void);
 
-void ESScreenSaver_AddGraphicsContext(void* _graphicsContext);
+int ESScreenSaver_AddGraphicsContext(void* _graphicsContext);
 
 bool ESScreensaver_Start(bool _bPreview, uint32_t _width, uint32_t _height);
-bool ESScreensaver_DoFrame(boost::barrier& _beginFrameBarrier,
+bool ESScreensaver_DoFrame(int _displayIdx, boost::barrier& _beginFrameBarrier,
                            boost::barrier& _endFrameBarrier);
 void ESScreensaver_Stop(void);
 bool ESScreensaver_Stopped(void);

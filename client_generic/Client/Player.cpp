@@ -107,9 +107,9 @@ void CPlayer::SetHWND(HWND _hWnd)
 };
 #endif
 
-bool CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
-                         CGraphicsContext _graphicsContext,
-                         [[maybe_unused]] bool _blank)
+int CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
+                        CGraphicsContext _graphicsContext,
+                        [[maybe_unused]] bool _blank)
 {
     DisplayOutput::spCDisplayOutput spDisplay;
     DisplayOutput::spCRenderer spRenderer;
@@ -153,7 +153,7 @@ bool CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
     )
     {
         g_Log->Error("Unable to open display");
-        return false;
+        return -1;
     }
 #ifndef _WIN64
     if (bDirectDraw)
@@ -164,10 +164,10 @@ bool CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
     if (m_hWnd)
     {
         if (!spDisplay->Initialize(m_hWnd, true))
-            return false;
+            return -1;
     }
     else if (!spDisplay->Initialize(w, h, m_bFullscreen))
-        return false;
+        return -1;
 #ifndef _WIN64
     if (bDirectDraw)
         spRenderer = new CRendererDD();
@@ -180,19 +180,19 @@ bool CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
     spDisplay = std::make_shared<CDisplayMetal>();
 
     if (spDisplay == nullptr)
-        return false;
+        return -1;
 
 #if defined(MAC)
     if (_graphicsContext != nullptr)
     {
         if (!spDisplay->Initialize(_graphicsContext, true))
-            return false;
+            return -1;
 
         spDisplay->ForceWidthAndHeight(w, h);
     }
 #else
     if (!spDisplay->Initialize(w, h, m_bFullscreen))
-        return false;
+        return -1;
 #endif //! MAC
 
     spRenderer = std::make_shared<CRendererMetal>();
@@ -201,7 +201,7 @@ bool CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
 
     //	Start renderer & set window title.
     if (spRenderer->Initialize(spDisplay) == false)
-        return false;
+        return -1;
     spDisplay->Title("e-dream");
 
     {
@@ -218,7 +218,7 @@ bool CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
             m_displayUnits.push_back(du);
     }
 
-    return true;
+    return (int)m_displayUnits.size() - 1;
 }
 
 /*

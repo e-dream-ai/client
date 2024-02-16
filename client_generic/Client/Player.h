@@ -128,8 +128,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
     void PlayQueuedClipsThread();
     sOpenVideoInfo* GetNextClipInfo();
 
-    bool AddDisplay(uint32_t screen, CGraphicsContext _grapicsContext,
-                    bool _blank = false);
+    int AddDisplay(uint32_t screen, CGraphicsContext _grapicsContext,
+                   bool _blank = false);
 
     inline void PlayCountsInitOff() { m_InitPlayCounts = false; };
     void MultiplyFramerate(const double _multiplier);

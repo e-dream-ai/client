@@ -629,7 +629,7 @@ class CElectricSheep
 #endif
 
     //
-    virtual bool Update(boost::barrier& _beginFrameBarrier,
+    virtual bool Update(int _displayIdx, boost::barrier& _beginFrameBarrier,
                         boost::barrier& _endFrameBarrier)
     {
         g_Player().BeginFrameUpdate();
@@ -646,15 +646,7 @@ class CElectricSheep
         uint32_t displayCnt = g_Player().GetDisplayCount();
         
         _beginFrameBarrier.wait();
-
-        bool ret = true;
-        for (uint32_t i = 0; i < displayCnt; i++)
-        {
-            ret &= DoRealFrameUpdate(i);
-            printf("G2\n");
-            if (!ret)
-                break;
-        }
+        bool ret = DoRealFrameUpdate(_displayIdx);
         _endFrameBarrier.wait();
 #endif
 
