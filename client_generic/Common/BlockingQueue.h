@@ -17,7 +17,7 @@ template <typename T> class CBlockingQueue
     typedef boost::upgrade_to_unique_lock<boost::shared_mutex>
         upgrade_to_writer;
 
-    // typedef boost::mutex::scoped_lock   scoped_lock;
+    // typedef std::scoped_lock   scoped_lock;
 
     CBlockingQueue() { m_maxQueueElements = 0xFFFFFFFF; }
 

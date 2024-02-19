@@ -102,7 +102,7 @@ class CContentDecoder
 
     //	Queue for decoded frames.
     Base::CBlockingQueue<CVideoFrame*> m_FrameQueue;
-    boost::mutex m_FrameQueueMutex;
+    std::mutex m_FrameQueueMutex;
     //	Codec context & working objects.
     std::unique_ptr<sOpenVideoInfo> m_CurrentVideoInfo;
     AVPixelFormat m_WantedPixelFormat;

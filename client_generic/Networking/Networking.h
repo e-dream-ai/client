@@ -129,7 +129,7 @@ class CManager : public Base::CSingleton<CManager>
 {
     friend class Base::CSingleton<CManager>;
 
-    boost::mutex m_Lock;
+    std::mutex m_Lock;
 
     //	Private constructor accessible only to CSingleton.
     CManager();

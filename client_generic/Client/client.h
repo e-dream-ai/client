@@ -116,7 +116,7 @@ class CElectricSheep
 
     boost::thread_group* m_pUpdateThreads;
 
-    boost::mutex m_BarrierMutex;
+    std::mutex m_BarrierMutex;
 #endif
 
     //	Init tuplestorage.
@@ -636,7 +636,7 @@ class CElectricSheep
 
 #ifdef DO_THREAD_UPDATE
         {
-            boost::mutex::scoped_lock lock(m_BarrierMutex);
+            std::scoped_lock lock(m_BarrierMutex);
 
             m_pUpdateBarrier->wait();
 

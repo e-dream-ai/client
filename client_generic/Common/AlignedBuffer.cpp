@@ -72,7 +72,7 @@ CReusableAlignedBuffers::~CReusableAlignedBuffers()
 uint8_t* CReusableAlignedBuffers::Allocate(uint32_t size)
 {
     {
-        boost::mutex::scoped_lock locker(m_CacheLock);
+        std::scoped_lock locker(m_CacheLock);
 
         for (uint32_t i = 0; i < sizeof(m_BufferCache) / sizeof(*m_BufferCache);
              i++)
@@ -105,7 +105,7 @@ void CReusableAlignedBuffers::Free(uint8_t* buffer, uint32_t size)
     if (buffer == NULL)
         return;
 
-    boost::mutex::scoped_lock locker(m_CacheLock);
+    std::scoped_lock locker(m_CacheLock);
 
     uint32_t minseed = 0xFFFFFFFF;
     uint32_t mini = 0;

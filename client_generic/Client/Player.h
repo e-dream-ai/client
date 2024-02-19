@@ -45,7 +45,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     typedef std::vector<std::shared_ptr<DisplayUnit>> DisplayUnitList;
     typedef DisplayUnitList::iterator DisplayUnitIterator;
 
-    boost::mutex m_displayListMutex;
+    std::mutex m_displayListMutex;
 
     friend class Base::CSingleton<CPlayer>;
 
@@ -68,7 +68,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     Base::CBlockingQueue<std::string> m_NextClipInfoQueue;
     Base::CBlockingQueue<std::string> m_ClipInfoHistoryQueue;
     std::vector<ContentDecoder::spCClip> m_CurrentClips;
-    boost::mutex m_CurrentClipsMutex;
+    std::mutex m_CurrentClipsMutex;
     boost::thread* m_pNextClipThread;
     boost::thread* m_pPlayQueuedClipsThread;
 
@@ -139,7 +139,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
 
     inline DisplayOutput::spCDisplayOutput Display(uint32_t du = 0)
     {
-        boost::mutex::scoped_lock lockthis(m_displayListMutex);
+        std::scoped_lock lockthis(m_displayListMutex);
 
         if (du >= m_displayUnits.size())
             return nullptr;
@@ -149,7 +149,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
 
     inline DisplayOutput::spCRenderer Renderer()
     {
-        boost::mutex::scoped_lock lockthis(m_displayListMutex);
+        std::scoped_lock lockthis(m_displayListMutex);
 
         return m_displayUnits.empty() ? nullptr : m_displayUnits[0]->spRenderer;
     }

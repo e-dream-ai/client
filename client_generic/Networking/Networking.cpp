@@ -139,7 +139,7 @@ void CManager::Proxy(const std::string& _url, const std::string& _userName,
     if (_url == "")
         return;
 
-    boost::mutex::scoped_lock locker(m_Lock);
+    std::scoped_lock locker(m_Lock);
 
     //  Set proxy url now, which will allow a non-user/pass proxy to be used, as
     //  reported on the forum.
@@ -426,7 +426,7 @@ CURLcode CManager::Prepare(CURL* _pCurl)
 {
     g_Log->Info("Prepare()");
 
-    boost::mutex::scoped_lock locker(m_Lock);
+    std::scoped_lock locker(m_Lock);
 
     CURLcode code = CURLE_OK;
 
@@ -451,7 +451,7 @@ CURLcode CManager::Prepare(CURL* _pCurl)
 */
 void CManager::Abort(void)
 {
-    boost::mutex::scoped_lock locker(m_Lock);
+    std::scoped_lock locker(m_Lock);
 
     m_Aborted = true;
 }
@@ -462,7 +462,7 @@ void CManager::Abort(void)
 */
 bool CManager::IsAborted(void)
 {
-    boost::mutex::scoped_lock locker(m_Lock);
+    std::scoped_lock locker(m_Lock);
 
     return m_Aborted;
 }
@@ -476,7 +476,7 @@ void CManager::UpdateProgress(CCurlTransfer* _pTransfer,
                               const double _percentComplete,
                               const double _bytesTransferred)
 {
-    boost::mutex::scoped_lock locker(m_Lock);
+    std::scoped_lock locker(m_Lock);
 
     // g_Log->Info( "UpdateProgress()" );
 
@@ -509,7 +509,7 @@ void CManager::UpdateProgress(CCurlTransfer* _pTransfer,
 */
 std::string CManager::Status()
 {
-    boost::mutex::scoped_lock locker(m_Lock);
+    std::scoped_lock locker(m_Lock);
 
     std::string res = "";
 
@@ -548,7 +548,7 @@ std::string CManager::Status()
 void CManager::Remove(CCurlTransfer* _pTransfer)
 {
     g_Log->Info("Remove()");
-    boost::mutex::scoped_lock locker(m_Lock);
+    std::scoped_lock locker(m_Lock);
     m_ProgressMap.erase(_pTransfer->Name());
 }
 

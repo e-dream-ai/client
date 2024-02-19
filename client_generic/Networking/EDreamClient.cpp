@@ -42,8 +42,9 @@ std::atomic<char*> EDreamClient::fAccessToken(nullptr);
 std::atomic<char*> EDreamClient::fRefreshToken(nullptr);
 std::atomic<bool> EDreamClient::fIsLoggedIn(false);
 std::atomic<int> EDreamClient::fCpuUsage(0);
-boost::mutex EDreamClient::fAuthMutex;
+std::mutex EDreamClient::fAuthMutex;
 static WebSocketClient s_WebSocketClient;
+bool fIsWebSocketConnected = true;
 
 static void SetNewAndDeleteOldString(std::atomic<char*>& str, char* newval)
 {
@@ -98,7 +99,6 @@ void EDreamClient::InitializeClient()
             .c_str());
     fAuthMutex.lock();
     boost::thread authThread(&EDreamClient::Authenticate);
-    boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
 }
 
 const char* EDreamClient::GetAccessToken() { return fAccessToken.load(); }
@@ -142,12 +142,16 @@ bool EDreamClient::Authenticate()
     }
     fIsLoggedIn.exchange(success);
     fAuthMutex.unlock();
+    if (success)
+    {
+        boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
+    }
     return success;
 }
 
 void EDreamClient::SignOut()
 {
-    boost::lock_guard<boost::mutex> lock(fAuthMutex);
+    std::lock_guard<std::mutex> lock(fAuthMutex);
     fIsLoggedIn.exchange(false);
     SetNewAndDeleteOldString(fAccessToken, "");
     SetNewAndDeleteOldString(fRefreshToken, "");
@@ -159,18 +163,19 @@ void EDreamClient::SignOut()
 void EDreamClient::DidSignIn(const std::string& _authToken,
                              const std::string& _refreshToken)
 {
-    boost::lock_guard<boost::mutex> lock(fAuthMutex);
+    std::lock_guard<std::mutex> lock(fAuthMutex);
     fIsLoggedIn.exchange(true);
     SetNewAndDeleteOldString(fAccessToken, _authToken.c_str());
     SetNewAndDeleteOldString(fRefreshToken, _refreshToken.c_str());
     g_Settings()->Set("settings.content.access_token", _authToken);
     g_Settings()->Set("settings.content.refresh_token", _refreshToken);
     g_Settings()->Storage()->Commit();
+    boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
 }
 
 bool EDreamClient::IsLoggedIn()
 {
-    boost::lock_guard<boost::mutex> lock(fAuthMutex);
+    std::lock_guard<std::mutex> lock(fAuthMutex);
     return fIsLoggedIn.load();
 }
 
@@ -212,7 +217,6 @@ bool EDreamClient::RefreshAccessToken()
 
 bool EDreamClient::GetDreams(int _page, int _count)
 {
-    //int page = g_Settings()->Get("settings.content.dreams_page", 0);
     Network::spCFileDownloader spDownload;
     const char* jsonPath = Shepherd::jsonPath();
 
@@ -349,6 +353,7 @@ static void OnWebSocketFail(websocketpp::connection_hdl handle)
 void EDreamClient::ConnectRemoteControlSocket()
 {
     PlatformUtils::SetThreadName("ConnectRemoteControl");
+    
     try
     {
         websocketpp::lib::error_code ec;

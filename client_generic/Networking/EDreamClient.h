@@ -3,7 +3,7 @@
 
 #include <memory>
 #include <atomic>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 
 class EDreamClient
 {
@@ -12,7 +12,9 @@ class EDreamClient
     static std::atomic<char*> fRefreshToken;
     static std::atomic<bool> fIsLoggedIn;
     static std::atomic<int> fCpuUsage;
-    static boost::mutex fAuthMutex;
+    static std::mutex fAuthMutex;
+    static std::mutex fWebSocketMutex;
+    static bool fIsWebSocketConnected;
 
   public:
     static void InitializeClient();

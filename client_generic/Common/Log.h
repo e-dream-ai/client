@@ -56,7 +56,7 @@ class CLog : public CSingleton<CLog>
 {
     friend class CSingleton<CLog>;
 
-    boost::mutex m_Lock;
+    std::mutex m_Lock;
 
     static const uint32_t m_MaxMessageLength = 4096;
     static char s_MessageSpam[m_MaxMessageLength];

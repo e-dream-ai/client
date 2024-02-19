@@ -101,7 +101,7 @@ void CLog::Detach(void)
 void CLog::SetInfo(const char* _pFileStr, const uint32_t _line,
                    const char* _pFunc)
 {
-    // boost::mutex::scoped_lock locker( m_Lock );
+    // std::scoped_lock locker( m_Lock );
 
     std::string tmp = _pFileStr;
     size_t offs = tmp.find_last_of("/\\", tmp.size());
@@ -123,7 +123,7 @@ void CLog::Log(
     /*const char *_file, const uint32_t _line, const char *_pFunc,*/ const char*
         _pStr)
 {
-    boost::mutex::scoped_lock locker(m_Lock);
+    std::scoped_lock locker(m_Lock);
 
     // if (m_pFile == NULL)
     // return;

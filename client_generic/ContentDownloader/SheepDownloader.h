@@ -50,13 +50,13 @@ class SheepDownloader
 
     static time_t fLastListTime;
 
-    static boost::mutex s_DownloaderMutex;
+    static std::mutex s_DownloaderMutex;
 
     bool m_bAborted;
 
     Network::spCFileDownloader m_spSheepDownloader;
 
-    boost::mutex m_AbortMutex;
+    std::mutex m_AbortMutex;
 
   protected:
     ///	Downloads the given sheep and queues it up for rendering.

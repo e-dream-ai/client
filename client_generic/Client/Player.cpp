@@ -210,7 +210,7 @@ int CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
         du->spRenderer = spRenderer;
         du->spDisplay = spDisplay;
 
-        boost::mutex::scoped_lock lockthis(m_displayListMutex);
+        std::scoped_lock lockthis(m_displayListMutex);
 
         if (g_Settings()->Get("settings.player.reversedisplays", false) == true)
             m_displayUnits.insert(m_displayUnits.begin(), du);
@@ -276,7 +276,7 @@ bool CPlayer::Startup()
 
 void CPlayer::ForceWidthAndHeight(uint32_t du, uint32_t _w, uint32_t _h)
 {
-    boost::mutex::scoped_lock lockthis(m_displayListMutex);
+    std::scoped_lock lockthis(m_displayListMutex);
 
     if (du >= m_displayUnits.size())
         return;
@@ -463,7 +463,7 @@ bool CPlayer::BeginDisplayFrame(uint32_t displayUnit)
     std::shared_ptr<DisplayUnit> du;
 
     {
-        boost::mutex::scoped_lock lockthis(m_displayListMutex);
+        std::scoped_lock lockthis(m_displayListMutex);
 
         if (displayUnit >= m_displayUnits.size())
             return false;
@@ -482,7 +482,7 @@ bool CPlayer::EndDisplayFrame(uint32_t displayUnit, bool drawn)
     std::shared_ptr<DisplayUnit> du;
 
     {
-        boost::mutex::scoped_lock lockthis(m_displayListMutex);
+        std::scoped_lock lockthis(m_displayListMutex);
 
         if (displayUnit >= m_displayUnits.size())
             return false;
@@ -509,7 +509,7 @@ bool CPlayer::Update(uint32_t displayUnit, bool& bPlayNoSheepIntro)
     std::shared_ptr<DisplayUnit> du;
 
     {
-        boost::mutex::scoped_lock lockthis(m_displayListMutex);
+        std::scoped_lock lockthis(m_displayListMutex);
 
         if (displayUnit >= m_displayUnits.size())
             return false;

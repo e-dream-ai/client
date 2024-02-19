@@ -80,19 +80,19 @@ boost::detail::atomic_count* Shepherd::totalRenderedFrames = NULL;
 bool Shepherd::m_RenderingAllowed = true;
 
 std::queue<spCMessageBody> Shepherd::m_MessageQueue;
-boost::mutex Shepherd::m_MessageQueueMutex;
+std::mutex Shepherd::m_MessageQueueMutex;
 
 std::vector<spCTimedMessageBody> Shepherd::m_OverflowMessageQueue;
-boost::mutex Shepherd::s_OverflowMessageQueueMutex;
+std::mutex Shepherd::s_OverflowMessageQueueMutex;
 
-boost::mutex Shepherd::s_ShepherdMutex;
+std::mutex Shepherd::s_ShepherdMutex;
 
 boost::shared_mutex Shepherd::s_DownloadStateMutex;
 boost::shared_mutex Shepherd::s_RenderStateMutex;
 
 boost::shared_mutex Shepherd::s_GetServerNameMutex;
 
-boost::mutex Shepherd::s_ComputeServerNameMutex;
+std::mutex Shepherd::s_ComputeServerNameMutex;
 
 bool Shepherd::fShutdown = false;
 int Shepherd::fChangeRes = 0;
@@ -140,7 +140,7 @@ void Shepherd::notifyShepherdOfHisUntimleyDeath()
 
     SheepDownloader::closeDownloader();
 
-    // boost::mutex::scoped_lock lockthis( s_ShepherdMutex );
+    // std::scoped_lock lockthis( s_ShepherdMutex );
 
     SAFE_DELETE_ARRAY(fRootPath);
     SAFE_DELETE_ARRAY(fMp4Path);
