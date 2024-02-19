@@ -6,6 +6,7 @@ find . -name '*.cpp' -o -name '*.h' -o -name '*.m' -o -name '*.mm' -name '*.meta
 | grep -v "./client_generic/ffmpeg/*" \
 | grep -v "./client_generic/curl/*" \
 | grep -v "./client_generic/curlTest/*" \
+| grep -v "./client_generic/openssl-1.0.2k/*" \
 | grep -v "./client_generic/zlib/*" \
 | grep -v "./client_generic/openssl*" \
 | grep -v "./client_generic/tinyXml/*" \

@@ -44,8 +44,8 @@ using namespace std::string_view_literals;
 #define PATH_SEPARATOR_C '/'
 #endif
 
-constexpr const char* ENDPOINT_REMOTECONTROL =
-    "wss://e-dream-76c98b08cc5d.herokuapp.com/remote-control";
+constexpr const std::string_view ENDPOINT_REMOTECONTROL =
+    "wss://e-dream-76c98b08cc5d.herokuapp.com/remote-control"sv;
 
 constexpr const std::string_view DEFAULT_DREAM_SERVER =
     "https://e-dream-prod-84baba5507ee.herokuapp.com"sv;
@@ -180,13 +180,13 @@ class Shepherd
 
     static std::mutex s_ShepherdMutex;
 
-    static boost::shared_mutex s_DownloadStateMutex;
+    static std::shared_mutex s_DownloadStateMutex;
 
-    static boost::shared_mutex s_RenderStateMutex;
+    static std::shared_mutex s_RenderStateMutex;
 
     static std::mutex s_ComputeServerNameMutex;
 
-    static boost::shared_mutex s_GetServerNameMutex;
+    static std::shared_mutex s_GetServerNameMutex;
 
     static time_t s_LastRequestTime;
 

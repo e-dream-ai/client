@@ -172,7 +172,7 @@ bool CClip::GrabVideoFrame()
     {
         m_spFrameData = frame;
         {
-            boost::unique_lock<boost::shared_mutex> lock(
+            std::unique_lock<std::shared_mutex> lock(
                 m_CurrentFrameMetadataLock);
             m_CurrentFrameMetadata = m_spFrameData->GetMetaData();
         }
@@ -219,13 +219,13 @@ bool CClip::GrabVideoFrame()
 
 uint32_t CClip::GetCurrentFrameIdx() const
 {
-    boost::shared_lock<boost::shared_mutex> lock(m_CurrentFrameMetadataLock);
+    std::shared_lock<std::shared_mutex> lock(m_CurrentFrameMetadataLock);
     return m_CurrentFrameMetadata.frameIdx;
 }
 
 const sFrameMetadata& CClip::GetCurrentFrameMetadata() const
 {
-    boost::shared_lock<boost::shared_mutex> lock(m_CurrentFrameMetadataLock);
+    std::shared_lock<std::shared_mutex> lock(m_CurrentFrameMetadataLock);
     return m_CurrentFrameMetadata;
 }
 

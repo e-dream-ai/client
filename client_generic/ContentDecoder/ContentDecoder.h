@@ -28,7 +28,6 @@
 #include <string_view>
 #include <memory>
 #include <boost/bind.hpp>
-#include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/thread/xtime.hpp>
 

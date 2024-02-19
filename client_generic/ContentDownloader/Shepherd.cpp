@@ -87,10 +87,10 @@ std::mutex Shepherd::s_OverflowMessageQueueMutex;
 
 std::mutex Shepherd::s_ShepherdMutex;
 
-boost::shared_mutex Shepherd::s_DownloadStateMutex;
-boost::shared_mutex Shepherd::s_RenderStateMutex;
+std::shared_mutex Shepherd::s_DownloadStateMutex;
+std::shared_mutex Shepherd::s_RenderStateMutex;
 
-boost::shared_mutex Shepherd::s_GetServerNameMutex;
+std::shared_mutex Shepherd::s_GetServerNameMutex;
 
 std::mutex Shepherd::s_ComputeServerNameMutex;
 
@@ -491,7 +491,7 @@ const char* Shepherd::uniqueID()
 
 void Shepherd::setDownloadState(const std::string& state)
 {
-    boost::upgrade_lock<boost::shared_mutex> lockthis(s_DownloadStateMutex);
+    std::unique_lock<std::shared_mutex> lockthis(s_DownloadStateMutex);
 
     s_DownloadState.assign(state);
 
@@ -500,7 +500,7 @@ void Shepherd::setDownloadState(const std::string& state)
 
 std::string Shepherd::downloadState(bool& isnew)
 {
-    boost::shared_lock<boost::shared_mutex> lockthis(s_DownloadStateMutex);
+    std::shared_lock<std::shared_mutex> lockthis(s_DownloadStateMutex);
 
     isnew = s_IsDownloadStateNew;
 
@@ -511,7 +511,7 @@ std::string Shepherd::downloadState(bool& isnew)
 
 void Shepherd::setRenderState(const std::string& state)
 {
-    boost::upgrade_lock<boost::shared_mutex> lockthis(s_RenderStateMutex);
+    std::unique_lock<std::shared_mutex> lockthis(s_RenderStateMutex);
 
     s_RenderState.assign(state);
 
@@ -520,7 +520,7 @@ void Shepherd::setRenderState(const std::string& state)
 
 std::string Shepherd::renderState(bool& isnew)
 {
-    boost::shared_lock<boost::shared_mutex> lockthis(s_RenderStateMutex);
+    std::shared_lock<std::shared_mutex> lockthis(s_RenderStateMutex);
 
     isnew = s_IsRenderStateNew;
 

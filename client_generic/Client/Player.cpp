@@ -1,8 +1,6 @@
-
+#include <shared_mutex>
 #include <boost/bind.hpp>
 #include <boost/thread.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/shared_mutex.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/thread/xtime.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -72,10 +70,8 @@ using namespace DisplayOutput;
 
 using CClip = ContentDecoder::CClip;
 using spCClip = ContentDecoder::spCClip;
-typedef boost::shared_lock<boost::shared_mutex> reader_lock;
-typedef boost::unique_lock<boost::shared_mutex> writer_lock;
-typedef boost::upgrade_lock<boost::shared_mutex> upg_reader_lock;
-typedef boost::upgrade_to_unique_lock<boost::shared_mutex> upgrade_to_writer;
+typedef std::shared_lock<std::shared_mutex> reader_lock;
+typedef std::unique_lock<std::shared_mutex> writer_lock;
 
 /*
  */
@@ -784,10 +780,11 @@ void CPlayer::RepeatClip()
 
 void CPlayer::SkipForward(float _seconds)
 {
-    upg_reader_lock l(m_UpdateMutex);
+    std::shared_lock<std::shared_mutex> l(m_UpdateMutex);
     while (m_CurrentClips.size() < 2 && !m_NextClipInfoQueue.empty())
     {
-        upgrade_to_writer wlock(l);
+        l.unlock();
+        std::unique_lock<std::shared_mutex> wlock(m_UpdateMutex);
         m_PlayCond.wait(m_UpdateMutex);
     }
     m_CurrentClips[0]->SkipTime(_seconds);

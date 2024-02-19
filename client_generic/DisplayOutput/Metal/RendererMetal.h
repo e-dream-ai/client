@@ -3,6 +3,7 @@
 
 #include <map>
 #include <string>
+#include <shared_mutex>
 
 #include "Font.h"
 #include "Image.h"
@@ -22,7 +23,7 @@ class CRendererMetal : public CRenderer
     spCTextureFlat m_spTextTexture;
     Base::Math::CRect m_textRect;
     CFTypeRef m_pRendererContext;
-    boost::shared_mutex m_textureMutex;
+    std::shared_mutex m_textureMutex;
     std::map<std::string, spCBaseFont> m_fontPool;
 #ifdef __OBJC__
     bool

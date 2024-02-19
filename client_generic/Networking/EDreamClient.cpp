@@ -1,5 +1,9 @@
+#include <websocketpp/config/asio_client.hpp>
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_no_tls_client.hpp>
+
+#include <boost/asio.hpp>
+#include <boost/asio/ssl.hpp>
 #include <boost/json.hpp>
 #include <boost/json/src.hpp>
 #include <cstdio>
@@ -16,12 +20,15 @@
 #include "EDreamClient.h"
 #include "JSONUtil.h"
 
-typedef websocketpp::client<websocketpp::config::asio_client> WebSocketClient;
+typedef websocketpp::client<websocketpp::config::asio_tls_client>
+    WebSocketClient;
+typedef std::shared_ptr<boost::asio::ssl::context> AsioContext;
 static void OnWebSocketMessage(websocketpp::connection_hdl,
                                WebSocketClient::message_ptr message);
 static void OnWebSocketOpen(websocketpp::connection_hdl);
 static void OnWebSocketClose(websocketpp::connection_hdl);
 static void OnWebSocketFail(websocketpp::connection_hdl);
+static AsioContext OnTLSInit(websocketpp::connection_hdl);
 
 namespace json = boost::json;
 using namespace ContentDownloader;
@@ -81,6 +88,7 @@ void EDreamClient::InitializeClient()
                 websocketpp::log::alevel::frame_payload);
             s_WebSocketClient.set_error_channels(websocketpp::log::elevel::all);
             s_WebSocketClient.init_asio();
+            s_WebSocketClient.set_tls_init_handler(&OnTLSInit);
             s_WebSocketClient.set_message_handler(&OnWebSocketMessage);
             s_WebSocketClient.set_open_handler(&OnWebSocketOpen);
             s_WebSocketClient.set_close_handler(&OnWebSocketClose);
@@ -144,7 +152,8 @@ bool EDreamClient::Authenticate()
     fAuthMutex.unlock();
     if (success)
     {
-        boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
+        boost::thread webSocketThread(
+            &EDreamClient::ConnectRemoteControlSocket);
     }
     return success;
 }
@@ -263,14 +272,16 @@ bool EDreamClient::GetDreams(int _page, int _count)
     }
     if (_count == -1)
     {
-        boost::json::error_code ec;
-        CHK(json::value response = json::parse(spDownload->Data(), ec),
-            spDownload->Data());
-        CHK(json::value* data = response.find_pointer("data", ec),
-            spDownload->Data());
-        CHK(json::value* count = data->find_pointer("count", ec),
-            spDownload->Data());
-        _count = (int)JSONUtil::ParseInt64(*count, spDownload->Data());
+        try
+        {
+            json::value response = json::parse(spDownload->Data());
+            json::value data = response.at("data");
+            _count = (int)data.at("count").as_int64();
+        }
+        catch (const boost::system::system_error& e)
+        {
+            JSONUtil::LogException(e, spDownload->Data());
+        }
     }
     if ((_page + 1) * DREAMS_PER_PAGE < _count)
     {
@@ -279,7 +290,25 @@ bool EDreamClient::GetDreams(int _page, int _count)
     }
     return true;
 }
+static AsioContext OnTLSInit(websocketpp::connection_hdl)
+{
+    // establishes a SSL connection
+    AsioContext ctx = std::make_shared<boost::asio::ssl::context>(
+        boost::asio::ssl::context::sslv23);
 
+    try
+    {
+        ctx->set_options(boost::asio::ssl::context::default_workarounds |
+                         boost::asio::ssl::context::no_sslv2 |
+                         boost::asio::ssl::context::no_sslv3 |
+                         boost::asio::ssl::context::single_dh_use);
+    }
+    catch (std::exception& e)
+    {
+        g_Log->Error("Error in context pointer: %s", e.what());
+    }
+    return ctx;
+}
 static void OnWebSocketMessage(websocketpp::connection_hdl,
                                WebSocketClient::message_ptr _pMessage)
 {
@@ -353,34 +382,39 @@ static void OnWebSocketFail(websocketpp::connection_hdl handle)
 void EDreamClient::ConnectRemoteControlSocket()
 {
     PlatformUtils::SetThreadName("ConnectRemoteControl");
-    
+
     try
     {
         websocketpp::lib::error_code ec;
+        std::string uri =
+            string_format("%s/?token=Bearer%20%s",
+                          ENDPOINT_REMOTECONTROL.data(), fAccessToken.load());
         WebSocketClient::connection_ptr connection =
-            s_WebSocketClient.get_connection(ENDPOINT_REMOTECONTROL, ec);
+            s_WebSocketClient.get_connection(uri, ec);
         if (ec)
         {
             g_Log->Error("Error creating WebSocket connection: %s",
                          ec.message().c_str());
             return;
         }
+        //42/remote-control,["remote_control_event", {event: "next"}]
         s_WebSocketClient.connect(connection);
-        std::string payload = "{\"event\":\"authentication\",\"client_id\":"
-                              "\"client\",\"client_mode\":\"desktop\"}";
-        connection->send(payload);
-        boost::thread cpuUsageThread(
-            [=]() -> void
-            {
-                while (true)
-                {
-                    boost::thread::sleep(boost::get_system_time() +
-                                         boost::posix_time::seconds(1));
-                    int cpuUsage = fCpuUsage.load();
-                    connection->send(string_format(
-                        "{\"event\":\"cpu\",\"value\":%d}", cpuUsage));
-                }
-            });
+        std::string payload =
+            ""; /*"{\"event\":\"authentication\",\"client_id\":"
+            "\"client\",\"client_mode\":\"desktop\"}";*/
+        //connection->send(payload);
+        //        boost::thread cpuUsageThread(
+        //            [=]() -> void
+        //            {
+        //                while (true)
+        //                {
+        //                    boost::thread::sleep(boost::get_system_time() +
+        //                                         boost::posix_time::seconds(1));
+        //                    int cpuUsage = fCpuUsage.load();
+        //                    connection->send(string_format(
+        //                        "{\"event\":\"cpu\",\"value\":%d}", cpuUsage));
+        //                }
+        //            });
         s_WebSocketClient.run();
     }
     catch (websocketpp::exception const& ex)
@@ -390,3 +424,7 @@ void EDreamClient::ConnectRemoteControlSocket()
 }
 
 void EDreamClient::SetCPUUsage(int _cpuUsage) { fCpuUsage.exchange(_cpuUsage); }
+
+const char* ERR_lib_error_string(unsigned long e) { return NULL; }
+
+const char* ERR_reason_error_string(unsigned long e) { return NULL; }

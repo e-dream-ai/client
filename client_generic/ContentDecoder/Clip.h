@@ -57,7 +57,7 @@ class CClip
     ContentDecoder::spCVideoFrame m_spFrameData;
     DisplayOutput::spCImage m_spImageRef;
     sFrameMetadata m_CurrentFrameMetadata;
-    mutable boost::shared_mutex m_CurrentFrameMetadataLock;
+    mutable std::shared_mutex m_CurrentFrameMetadataLock;
     double m_StartTime;
     double m_EndTime;
     boost::atomic<bool> m_HasFinished;
