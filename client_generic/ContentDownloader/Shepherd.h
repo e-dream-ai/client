@@ -45,6 +45,9 @@ using namespace std::string_view_literals;
 #define PATH_SEPARATOR_C '/'
 #endif
 
+#define ENDPOINT_REMOTECONTROL                                                 \
+    "wss://e-dream-76c98b08cc5d.herokuapp.com/remote-control"
+
 constexpr const std::string_view DEFAULT_DREAM_SERVER =
     "https://e-dream-prod-84baba5507ee.herokuapp.com"sv;
 
@@ -202,9 +205,10 @@ class Shepherd
     Shepherd();
     ~Shepherd();
 
+    /// Description:
+    ///        Initialize global data for the shepherd and his heard.
     static void initializeShepherd();
 
-    //
     static void setUseProxy(const int& useProxy) { fUseProxy = useProxy; }
     static int useProxy() { return fUseProxy; }
 

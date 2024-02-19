@@ -7,6 +7,8 @@
 #ifndef _BASE_H_
 #define _BASE_H_
 
+#include <atomic>
+
 #ifdef LINUX_GNU
 #include <inttypes.h>
 #endif
@@ -14,6 +16,16 @@
 #ifdef MAC
 #include <os/signpost.h>
 #endif
+
+#define DISPATCH_ONCE(flag, lambda)                                            \
+    do                                                                         \
+    {                                                                          \
+        static std::atomic_flag once_flag = ATOMIC_FLAG_INIT;                  \
+        if (!once_flag.test_and_set())                                         \
+        {                                                                      \
+            lambda();                                                          \
+        }                                                                      \
+    } while (0)
 
 //	Lazy.
 #define isBit(v, b) ((v) & (b))

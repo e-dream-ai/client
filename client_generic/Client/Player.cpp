@@ -636,9 +636,7 @@ void CPlayer::CalculateNextClipThread()
     try
     {
         uint32_t curID = 0;
-
         bool bRebuild = true;
-
         while (m_bStarted)
         {
             boost::this_thread::interruption_point();

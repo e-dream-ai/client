@@ -14,6 +14,7 @@
 #include "client.h"
 #include "clientversion.h"
 #include "EDreamClient.h"
+#include "JSONUtil.h"
 
 typedef websocketpp::client<websocketpp::config::asio_client> WebSocketClient;
 static void OnWebSocketMessage(websocketpp::connection_hdl,
@@ -37,25 +38,23 @@ void ESShowPreferences()
         gShowPreferencesCallback();
     }
 }
-boost::atomic<char*> EDreamClient::fAccessToken(nullptr);
-boost::atomic<char*> EDreamClient::fRefreshToken(nullptr);
-boost::atomic<bool> EDreamClient::fIsLoggedIn(false);
-boost::atomic<int> EDreamClient::fCpuUsage(0);
+std::atomic<char*> EDreamClient::fAccessToken(nullptr);
+std::atomic<char*> EDreamClient::fRefreshToken(nullptr);
+std::atomic<bool> EDreamClient::fIsLoggedIn(false);
+std::atomic<int> EDreamClient::fCpuUsage(0);
 boost::mutex EDreamClient::fAuthMutex;
-WebSocketClient s_WebSocketClient;
+static WebSocketClient s_WebSocketClient;
 
-static void SetNewAndDeleteOldString(
-    boost::atomic<char*>& str, char* newval,
-    boost::memory_order mem_ord = boost::memory_order_relaxed)
+static void SetNewAndDeleteOldString(std::atomic<char*>& str, char* newval)
 {
-    char* toDelete = str.exchange(newval, mem_ord);
+    char* toDelete = str.exchange(newval);
 
     if (toDelete != nullptr)
         delete[] toDelete;
 }
 
 static void SetNewAndDeleteOldString(
-    boost::atomic<char*>& str, const char* newval,
+    std::atomic<char*>& str, const char* newval,
     boost::memory_order mem_ord = boost::memory_order_relaxed)
 {
     if (newval == nullptr)
@@ -71,17 +70,22 @@ static void SetNewAndDeleteOldString(
 
 void EDreamClient::InitializeClient()
 {
-    s_WebSocketClient.set_access_channels(websocketpp::log::alevel::all);
-    s_WebSocketClient.clear_access_channels(
-        websocketpp::log::alevel::frame_payload);
-    s_WebSocketClient.set_error_channels(websocketpp::log::elevel::all);
-    s_WebSocketClient.init_asio();
-    s_WebSocketClient.set_message_handler(&OnWebSocketMessage);
-    s_WebSocketClient.set_open_handler(&OnWebSocketOpen);
-    s_WebSocketClient.set_close_handler(&OnWebSocketClose);
-    s_WebSocketClient.set_fail_handler(&OnWebSocketFail);
+    DISPATCH_ONCE(
+        initWebSocket,
+        []()
+        {
+            s_WebSocketClient.set_access_channels(
+                websocketpp::log::alevel::all);
+            s_WebSocketClient.clear_access_channels(
+                websocketpp::log::alevel::frame_payload);
+            s_WebSocketClient.set_error_channels(websocketpp::log::elevel::all);
+            s_WebSocketClient.init_asio();
+            s_WebSocketClient.set_message_handler(&OnWebSocketMessage);
+            s_WebSocketClient.set_open_handler(&OnWebSocketOpen);
+            s_WebSocketClient.set_close_handler(&OnWebSocketClose);
+            s_WebSocketClient.set_fail_handler(&OnWebSocketFail);
+        });
 
-    g_Settings()->Set("settings.content.access_token", std::string(""));
     SetNewAndDeleteOldString(
         fAccessToken,
         g_Settings()
@@ -97,10 +101,7 @@ void EDreamClient::InitializeClient()
     boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
 }
 
-const char* EDreamClient::GetAccessToken()
-{
-    return fAccessToken.load(boost::memory_order_relaxed);
-}
+const char* EDreamClient::GetAccessToken() { return fAccessToken.load(); }
 
 bool EDreamClient::Authenticate()
 {
@@ -209,15 +210,6 @@ bool EDreamClient::RefreshAccessToken()
     }
 }
 
-static void LogException(const std::exception& e, std::string_view fileStr)
-{
-    auto str =
-        string_format("Exception during parsing dreams list:%s contents:\"%s\"",
-                      e.what(), fileStr.data());
-    //ContentDownloader::Shepherd::addMessageText(str.str().c_str(), 180);
-    g_Log->Error(str);
-}
-
 bool EDreamClient::GetDreams(int _page, int _count)
 {
     //int page = g_Settings()->Get("settings.content.dreams_page", 0);
@@ -267,16 +259,14 @@ bool EDreamClient::GetDreams(int _page, int _count)
     }
     if (_count == -1)
     {
-        try
-        {
-            json::value response = json::parse(spDownload->Data());
-            json::value data = response.at("data");
-            _count = (int)data.at("count").as_int64();
-        }
-        catch (const boost::system::system_error& e)
-        {
-            LogException(e, spDownload->Data());
-        }
+        boost::json::error_code ec;
+        CHK(json::value response = json::parse(spDownload->Data(), ec),
+            spDownload->Data());
+        CHK(json::value* data = response.find_pointer("data", ec),
+            spDownload->Data());
+        CHK(json::value* count = data->find_pointer("count", ec),
+            spDownload->Data());
+        _count = (int)JSONUtil::ParseInt64(*count, spDownload->Data());
     }
     if ((_page + 1) * DREAMS_PER_PAGE < _count)
     {
@@ -363,7 +353,7 @@ void EDreamClient::ConnectRemoteControlSocket()
     {
         websocketpp::lib::error_code ec;
         WebSocketClient::connection_ptr connection =
-            s_WebSocketClient.get_connection("ws://localhost:9000/ws", ec);
+            s_WebSocketClient.get_connection(ENDPOINT_REMOTECONTROL, ec);
         if (ec)
         {
             g_Log->Error("Error creating WebSocket connection: %s",

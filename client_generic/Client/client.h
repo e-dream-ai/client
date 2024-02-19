@@ -644,7 +644,7 @@ class CElectricSheep
         }
 #else
         uint32_t displayCnt = g_Player().GetDisplayCount();
-        
+
         _beginFrameBarrier.wait();
         bool ret = DoRealFrameUpdate(_displayIdx);
         _endFrameBarrier.wait();

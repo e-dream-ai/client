@@ -119,10 +119,6 @@ Shepherd::~Shepherd()
 }
 
 void Shepherd::initializeShepherd(/*HINSTANCE hInst, HWND hWnd*/)
-//
-// Description:
-//		Initialize global data for the shepherd and his heard.
-//
 {
     SheepDownloader::initializeDownloader();
     EDreamClient::InitializeClient();

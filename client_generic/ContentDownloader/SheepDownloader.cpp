@@ -326,8 +326,10 @@ int SheepDownloader::ParseDreamsPage(int _page)
     {
         boost::json::error_code ec;
         boost::json::value response = boost::json::parse(contents, ec);
-
-        bool success = response.at("success").as_bool();
+        boost::json::value* successValue = response.find_pointer("success", ec);
+        if (!successValue)
+            return 0;
+        bool success = successValue->as_bool();
         if (!success)
         {
             g_Log->Error("Fetching dreams from API was unsuccessful: %s",

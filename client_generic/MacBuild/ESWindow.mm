@@ -65,8 +65,8 @@ static void ShowPreferencesCallback()
     [s_ExtraWindows addObject:self];
 
     s_pWindow = self;
-    [self initWindowProperties];
     ESSetShowPreferencesCallback(ShowPreferencesCallback);
+    [self initWindowProperties];
 }
 
 - (void)initWindowProperties

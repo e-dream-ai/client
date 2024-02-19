@@ -47,6 +47,8 @@
     IBOutlet NSButton* okButton;
     IBOutlet NSButton* cancelButton;
 
+    IBOutlet NSTabView* tabView;
+
     NSString* m_origNickname;
 
     NSMutableData* m_httpData;
