@@ -1,0 +1,9 @@
+libdir=/Users/tibi/Downloads/openssl-build/lib
+includedir=/Users/tibi/Downloads/openssl-build/include
+
+Name: OpenSSL-libssl
+Description: Secure Sockets Layer and cryptography libraries
+Version: 3.3.0-dev
+Requires.private: libcrypto
+Libs: -L${libdir} -lssl
+Cflags: -I${includedir}
