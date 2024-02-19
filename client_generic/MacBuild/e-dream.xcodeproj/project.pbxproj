@@ -42,6 +42,7 @@
 		12A00CDA2B0FCA39001C0792 /* e-dream.icns in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD82B0FCA39001C0792 /* e-dream.icns */; };
 		12A00CDC2B0FCA6C001C0792 /* e-dream-attr.png in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */; };
 		12A00CDD2B0FCA6C001C0792 /* e-dream-attr.png in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */; };
+		12CA4A462B83DE3D00A2EAD6 /* libsioclient_tls.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 12CA4A452B83DE3D00A2EAD6 /* libsioclient_tls.a */; };
 		21006FC81017BC4B004A6511 /* Credits.html in CopyFiles */ = {isa = PBXBuildFile; fileRef = 21006FBD1017BC2C004A6511 /* Credits.html */; };
 		210335040F549BEF00A83F17 /* AlignedBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 210335030F549BEF00A83F17 /* AlignedBuffer.cpp */; };
 		210335050F549BEF00A83F17 /* AlignedBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 210335030F549BEF00A83F17 /* AlignedBuffer.cpp */; };
@@ -375,6 +376,7 @@
 		12A00CD42B0D31E6001C0792 /* Lato.sddf */ = {isa = PBXFileReference; lastKnownFileType = file.bplist; path = Lato.sddf; sourceTree = "<group>"; };
 		12A00CD82B0FCA39001C0792 /* e-dream.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = "e-dream.icns"; sourceTree = SOURCE_ROOT; };
 		12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "e-dream-attr.png"; sourceTree = "<group>"; };
+		12CA4A452B83DE3D00A2EAD6 /* libsioclient_tls.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libsioclient_tls.a; path = "../socket.io-client-cpp/lib/libsioclient_tls.a"; sourceTree = "<group>"; };
 		12D020022B83C86C0036357D /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = "../openssl-1.0.2k/MacOS/lib/libssl.a"; sourceTree = "<group>"; };
 		21006FBD1017BC2C004A6511 /* Credits.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = Credits.html; sourceTree = SOURCE_ROOT; };
 		21008B760EB7D69900E64796 /* Console.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Console.h; path = ../Client/Console.h; sourceTree = SOURCE_ROOT; };
@@ -539,6 +541,7 @@
 				21A8AFBC18416ECA00F77369 /* libiconv.2.dylib in Frameworks */,
 				4665198F2ACC8C5100ADB56E /* IOSurface.framework in Frameworks */,
 				12579D492B83C98D00604B41 /* libcrypto.a in Frameworks */,
+				12CA4A462B83DE3D00A2EAD6 /* libsioclient_tls.a in Frameworks */,
 				12579D4A2B83C99100604B41 /* libssl.a in Frameworks */,
 				2197D56619B06FC300EFA1F2 /* libswresample.a in Frameworks */,
 				2160FCA50F30F48200B2C27A /* libboost_system.a in Frameworks */,
@@ -901,6 +904,7 @@
 		464A49D92AB8864600C77F6D /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				12CA4A452B83DE3D00A2EAD6 /* libsioclient_tls.a */,
 				12579D482B83C91E00604B41 /* libcrypto.a */,
 				12D020022B83C86C0036357D /* libssl.a */,
 				466C2AA92AFA5B8600ED939F /* libpng_universal.a */,
@@ -1353,12 +1357,14 @@
 					../boost/include,
 					"../openssl-1.0.2k/MacOS/include",
 					..,
+					"../socket.io-client-cpp/include",
 				);
 				LIBRARY_SEARCH_PATHS = (
 					"\"$(SRCROOT)/../boost/osx/lib\"",
 					"\"$(SRCROOT)/../libpng/osx/lib\"",
 					"\"$(SRCROOT)/../ffmpeg/osx/lib\"",
 					"\"$(SRCROOT)/../openssl-1.0.2k/MacOS/lib\"",
+					"\"$(SRCROOT)/../socket.io-client-cpp/lib\"",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				ONLY_ACTIVE_ARCH = NO;
@@ -1433,12 +1439,14 @@
 					../boost/include,
 					"../openssl-1.0.2k/MacOS/include",
 					..,
+					"../socket.io-client-cpp/include",
 				);
 				LIBRARY_SEARCH_PATHS = (
 					"\"$(SRCROOT)/../boost/osx/lib\"",
 					"\"$(SRCROOT)/../libpng/osx/lib\"",
 					"\"$(SRCROOT)/../ffmpeg/osx/lib\"",
 					"\"$(SRCROOT)/../openssl-1.0.2k/MacOS/lib\"",
+					"\"$(SRCROOT)/../socket.io-client-cpp/lib\"",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				OTHER_LDFLAGS = "";

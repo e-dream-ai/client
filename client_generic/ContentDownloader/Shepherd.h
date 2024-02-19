@@ -45,7 +45,7 @@ using namespace std::string_view_literals;
 #endif
 
 constexpr const std::string_view ENDPOINT_REMOTECONTROL =
-    "wss://e-dream-76c98b08cc5d.herokuapp.com/remote-control"sv;
+    "wss://e-dream-76c98b08cc5d.herokuapp.com"sv;
 
 constexpr const std::string_view DEFAULT_DREAM_SERVER =
     "https://e-dream-prod-84baba5507ee.herokuapp.com"sv;

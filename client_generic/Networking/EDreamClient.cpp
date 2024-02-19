@@ -1,7 +1,7 @@
 #include <websocketpp/config/asio_client.hpp>
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_no_tls_client.hpp>
-
+#include <sio_client.h>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/json.hpp>
@@ -20,15 +20,7 @@
 #include "EDreamClient.h"
 #include "JSONUtil.h"
 
-typedef websocketpp::client<websocketpp::config::asio_tls_client>
-    WebSocketClient;
-typedef std::shared_ptr<boost::asio::ssl::context> AsioContext;
-static void OnWebSocketMessage(websocketpp::connection_hdl,
-                               WebSocketClient::message_ptr message);
-static void OnWebSocketOpen(websocketpp::connection_hdl);
-static void OnWebSocketClose(websocketpp::connection_hdl);
-static void OnWebSocketFail(websocketpp::connection_hdl);
-static AsioContext OnTLSInit(websocketpp::connection_hdl);
+static sio::client s_SIOClient;
 
 namespace json = boost::json;
 using namespace ContentDownloader;
@@ -50,7 +42,6 @@ std::atomic<char*> EDreamClient::fRefreshToken(nullptr);
 std::atomic<bool> EDreamClient::fIsLoggedIn(false);
 std::atomic<int> EDreamClient::fCpuUsage(0);
 std::mutex EDreamClient::fAuthMutex;
-static WebSocketClient s_WebSocketClient;
 bool fIsWebSocketConnected = true;
 
 static void SetNewAndDeleteOldString(std::atomic<char*>& str, char* newval)
@@ -76,24 +67,150 @@ static void SetNewAndDeleteOldString(
     SetNewAndDeleteOldString(str, newStr);
 }
 
+static void BindWebSocketCallbacks()
+{
+    auto socket = s_SIOClient.socket();
+    socket->on("login",
+               sio::socket::event_listener_aux(
+                   [&](std::string const& name, sio::message::ptr const& data,
+                       bool isAck, sio::message::list& ack_resp)
+                   { std::cout << "Received login from server: "; }));
+    g_Log->Info("WebSocket connection open.");
+    socket->on("remote_control_event",
+               [&](sio::event& event)
+               {
+                   std::string message = event.get_message()->get_string();
+                   std::cout << "Received message from server: " << message
+                             << std::endl;
+               });
+
+    socket->on("remote_control_event",
+               [&](sio::event& event)
+               {
+                   std::string message = event.get_message()->get_string();
+                   std::cout << "Received message from server: " << message
+                             << std::endl;
+               });
+    socket->on("event",
+               [&](sio::event& event)
+               {
+                   std::string message = event.get_message()->get_string();
+                   std::cout << "Received message from server: " << message
+                             << std::endl;
+               });
+    s_SIOClient.socket("/remote-control")
+        ->on("next",
+             [&](sio::event& event)
+             {
+                 std::string message = event.get_message()->get_string();
+                 std::cout << "Received message from server: " << message
+                           << std::endl;
+             });
+    s_SIOClient.socket("/remote-control")
+        ->on_any(
+            [&](sio::event& event)
+            {
+                std::string message = event.get_message()->get_string();
+                std::cout << "Received message from server: " << message
+                          << std::endl;
+            });
+    s_SIOClient.socket("remote-control")
+        ->on_any(
+            [&](sio::event& event)
+            {
+                std::string message = event.get_message()->get_string();
+                std::cout << "Received message from server: " << message
+                          << std::endl;
+            });
+    s_SIOClient.socket("")->on_any(
+        [&](sio::event& event)
+        {
+            std::string message = event.get_message()->get_string();
+            std::cout << "Received message from server: " << message
+                      << std::endl;
+        });
+    socket->on_any(
+        [&](sio::event& event)
+        {
+            std::string message = event.get_message()->get_string();
+            std::cout << "Received message from server: " << message
+                      << std::endl;
+        });
+}
+
+static void OnWebSocketConnected()
+{
+
+    //    std::map<std::string, std::string> params;
+    //    params["event"] = "next";
+    s_SIOClient.socket("/remote-control")
+        ->emit("remote_control_event", std::string("{\"event\":\"next\"}"));
+    s_SIOClient.socket("/remote-control")
+        ->emit("new_remote_control_event", std::string("{\"event\":\"next\"}"));
+    s_SIOClient.socket("remote-control")
+        ->emit("remote_control_event", std::string("{\"event\":\"next\"}"));
+    s_SIOClient.socket("remote-control")
+        ->emit("new_remote_control_event", std::string("{\"event\":\"next\"}"));
+    s_SIOClient.socket()->emit("remote_control_event",
+                               std::string("{\"event\":\"next\"}"));
+    s_SIOClient.socket()->emit("new_remote_control_event",
+                               std::string("{\"event\":\"next\"}"));
+    s_SIOClient.socket()->emit("event", std::string("next"));
+    s_SIOClient.socket("/remote-control")->emit("event", std::string("next"));
+    s_SIOClient.socket("remote-control")->emit("event", std::string("next"));
+}
+
+static void OnWebSocketClosed(const sio::client::close_reason& _reason)
+{
+    g_Log->Info("WebSocket connection closed.");
+}
+
+static void OnWebSocketFail() { g_Log->Error("WebSocket connection failed."); }
+
+static void OnWebSocketReconnecting()
+{
+    g_Log->Error("WebSocket connection failed.");
+}
+
+static void OnWebSocketReconnect(unsigned _num, unsigned _delay)
+{
+    g_Log->Error("WebSocket connection failed.");
+}
+
 void EDreamClient::InitializeClient()
 {
-    DISPATCH_ONCE(
-        initWebSocket,
-        []()
-        {
-            s_WebSocketClient.set_access_channels(
-                websocketpp::log::alevel::all);
-            s_WebSocketClient.clear_access_channels(
-                websocketpp::log::alevel::frame_payload);
-            s_WebSocketClient.set_error_channels(websocketpp::log::elevel::all);
-            s_WebSocketClient.init_asio();
-            s_WebSocketClient.set_tls_init_handler(&OnTLSInit);
-            s_WebSocketClient.set_message_handler(&OnWebSocketMessage);
-            s_WebSocketClient.set_open_handler(&OnWebSocketOpen);
-            s_WebSocketClient.set_close_handler(&OnWebSocketClose);
-            s_WebSocketClient.set_fail_handler(&OnWebSocketFail);
-        });
+    //    DISPATCH_ONCE(
+    //        initWebSocket,
+    //        []()
+    //        {
+    //            s_WebSocketClient.set_access_channels(
+    //                websocketpp::log::alevel::all);
+    //            s_WebSocketClient.clear_access_channels(
+    //                websocketpp::log::alevel::frame_payload);
+    //            s_WebSocketClient.set_error_channels(websocketpp::log::elevel::all);
+    //            s_WebSocketClient.init_asio();
+    //            s_WebSocketClient.set_tls_init_handler(&OnTLSInit);
+    //            s_WebSocketClient.set_message_handler(&OnWebSocketMessage);
+    //            s_WebSocketClient.set_open_handler(&OnWebSocketOpen);
+    //            s_WebSocketClient.set_close_handler(&OnWebSocketClose);
+    //            s_WebSocketClient.set_fail_handler(&OnWebSocketFail);
+    s_SIOClient.set_open_listener(&OnWebSocketConnected);
+
+    s_SIOClient.set_close_listener(&OnWebSocketClosed);
+
+    s_SIOClient.set_fail_listener(&OnWebSocketFail);
+    s_SIOClient.set_reconnecting_listener(&OnWebSocketReconnecting);
+    s_SIOClient.set_reconnect_listener(&OnWebSocketReconnect);
+
+    //            s_SIOClient.set_socket_open_listener([&]() {
+    //                std::cout << "Socket connection opened" << std::endl;
+    //            });
+    //
+    //            s_SIOClient.set_socket_close_listener([&](sio::client::socket::close_reason const& reason) {
+    //                std::cout << "Socket connection closed: " << reason << std::endl;
+    //            });
+
+    //        });
 
     SetNewAndDeleteOldString(
         fAccessToken,
@@ -290,137 +407,56 @@ bool EDreamClient::GetDreams(int _page, int _count)
     }
     return true;
 }
-static AsioContext OnTLSInit(websocketpp::connection_hdl)
-{
-    // establishes a SSL connection
-    AsioContext ctx = std::make_shared<boost::asio::ssl::context>(
-        boost::asio::ssl::context::sslv23);
-
-    try
-    {
-        ctx->set_options(boost::asio::ssl::context::default_workarounds |
-                         boost::asio::ssl::context::no_sslv2 |
-                         boost::asio::ssl::context::no_sslv3 |
-                         boost::asio::ssl::context::single_dh_use);
-    }
-    catch (std::exception& e)
-    {
-        g_Log->Error("Error in context pointer: %s", e.what());
-    }
-    return ctx;
-}
-static void OnWebSocketMessage(websocketpp::connection_hdl,
-                               WebSocketClient::message_ptr _pMessage)
-{
-    std::string_view message = _pMessage->get_payload();
-    g_Log->Info("Received WebSocket message: %s", message.data());
-    try
-    {
-
-        json::error_code ec;
-        json::value response = json::parse(message, ec);
-        std::string_view event = response.at("event").as_string().data();
-        if (event == "next")
-        {
-            g_Player().SkipToNext();
-        }
-        else if (event == "previous")
-        {
-            g_Player().ReturnToPrevious();
-        }
-        else if (event == "skip_fw")
-        {
-            g_Player().SkipForward(10);
-        }
-        else if (event == "skip_bw")
-        {
-            g_Player().SkipForward(-10);
-        }
-        else
-        {
-            g_Log->Error("Unknown event type received: %s (message was:%s)",
-                         event.data(), message.data());
-        }
-    }
-    catch (std::exception const& e)
-    {
-        g_Log->Error(
-            "Exception while parsing WebSocket message: %s (message was:%s)",
-            e.what(), message.data());
-    }
-}
-
-static void OnWebSocketOpen(websocketpp::connection_hdl handle)
-{
-    try
-    {
-        s_WebSocketClient.send(handle,
-                               "{\"event\":\"authentication\",\"client_id\":"
-                               "\"client\",\"client_mode\":\"desktop\"}",
-                               websocketpp::frame::opcode::value::TEXT);
-    }
-    catch (websocketpp::exception const& ex)
-    {
-        g_Log->Error("WebSocket exception: %s", ex.what());
-    }
-}
-
-static void OnWebSocketClose(websocketpp::connection_hdl handle)
-{
-    std::string reason =
-        s_WebSocketClient.get_con_from_hdl(handle)->get_remote_close_reason();
-    g_Log->Error("WebSocket closed. Reason: %s", reason.data());
-}
-
-static void OnWebSocketFail(websocketpp::connection_hdl handle)
-{
-    std::string reason =
-        s_WebSocketClient.get_con_from_hdl(handle)->get_remote_close_reason();
-    g_Log->Error("WebSocket failure. Reason: %s", reason.data());
-}
+//
+//static void OnWebSocketMessage(websocketpp::connection_hdl,
+//                               WebSocketClient::message_ptr _pMessage)
+//{
+//    std::string_view message = _pMessage->get_payload();
+//    g_Log->Info("Received WebSocket message: %s", message.data());
+//    try
+//    {
+//
+//        json::error_code ec;
+//        json::value response = json::parse(message, ec);
+//        std::string_view event = response.at("event").as_string().data();
+//        if (event == "next")
+//        {
+//            g_Player().SkipToNext();
+//        }
+//        else if (event == "previous")
+//        {
+//            g_Player().ReturnToPrevious();
+//        }
+//        else if (event == "skip_fw")
+//        {
+//            g_Player().SkipForward(10);
+//        }
+//        else if (event == "skip_bw")
+//        {
+//            g_Player().SkipForward(-10);
+//        }
+//        else
+//        {
+//            g_Log->Error("Unknown event type received: %s (message was:%s)",
+//                         event.data(), message.data());
+//        }
+//    }
+//    catch (std::exception const& e)
+//    {
+//        g_Log->Error(
+//            "Exception while parsing WebSocket message: %s (message was:%s)",
+//            e.what(), message.data());
+//    }
+//}
 
 void EDreamClient::ConnectRemoteControlSocket()
 {
     PlatformUtils::SetThreadName("ConnectRemoteControl");
-
-    try
-    {
-        websocketpp::lib::error_code ec;
-        std::string uri =
-            string_format("%s/?token=Bearer%20%s",
-                          ENDPOINT_REMOTECONTROL.data(), fAccessToken.load());
-        WebSocketClient::connection_ptr connection =
-            s_WebSocketClient.get_connection(uri, ec);
-        if (ec)
-        {
-            g_Log->Error("Error creating WebSocket connection: %s",
-                         ec.message().c_str());
-            return;
-        }
-        //42/remote-control,["remote_control_event", {event: "next"}]
-        s_WebSocketClient.connect(connection);
-        std::string payload =
-            ""; /*"{\"event\":\"authentication\",\"client_id\":"
-            "\"client\",\"client_mode\":\"desktop\"}";*/
-        //connection->send(payload);
-        //        boost::thread cpuUsageThread(
-        //            [=]() -> void
-        //            {
-        //                while (true)
-        //                {
-        //                    boost::thread::sleep(boost::get_system_time() +
-        //                                         boost::posix_time::seconds(1));
-        //                    int cpuUsage = fCpuUsage.load();
-        //                    connection->send(string_format(
-        //                        "{\"event\":\"cpu\",\"value\":%d}", cpuUsage));
-        //                }
-        //            });
-        s_WebSocketClient.run();
-    }
-    catch (websocketpp::exception const& ex)
-    {
-        g_Log->Error("WebSocket exception: %s", ex.what());
-    }
+    BindWebSocketCallbacks();
+    std::map<std::string, std::string> query;
+    query["token"] = GetAccessToken();
+    s_SIOClient.connect(ENDPOINT_REMOTECONTROL.data(), query);
+    return;
 }
 
 void EDreamClient::SetCPUUsage(int _cpuUsage) { fCpuUsage.exchange(_cpuUsage); }
