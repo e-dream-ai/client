@@ -109,16 +109,12 @@ static void OnWebSocketReconnect(unsigned _num, unsigned _delay)
 
 void EDreamClient::InitializeClient()
 {
-    DISPATCH_ONCE(initWebSocket,
-                  []()
-                  {
-                      s_SIOClient.set_open_listener(&OnWebSocketConnected);
-                      s_SIOClient.set_close_listener(&OnWebSocketClosed);
-                      s_SIOClient.set_fail_listener(&OnWebSocketFail);
-                      s_SIOClient.set_reconnecting_listener(
-                          &OnWebSocketReconnecting);
-                      s_SIOClient.set_reconnect_listener(&OnWebSocketReconnect);
-                  });
+    s_SIOClient.set_open_listener(&OnWebSocketConnected);
+    s_SIOClient.set_close_listener(&OnWebSocketClosed);
+    s_SIOClient.set_fail_listener(&OnWebSocketFail);
+    s_SIOClient.set_reconnecting_listener(
+      &OnWebSocketReconnecting);
+    s_SIOClient.set_reconnect_listener(&OnWebSocketReconnect);
 
     SetNewAndDeleteOldString(
         fAccessToken,
@@ -132,6 +128,15 @@ void EDreamClient::InitializeClient()
             .c_str());
     fAuthMutex.lock();
     boost::thread authThread(&EDreamClient::Authenticate);
+}
+
+void EDreamClient::DeinitializeClient()
+{
+    s_SIOClient.set_open_listener(nullptr);
+    s_SIOClient.set_close_listener(nullptr);
+    s_SIOClient.set_fail_listener(nullptr);
+    s_SIOClient.set_reconnecting_listener(nullptr);
+    s_SIOClient.set_reconnect_listener(nullptr);
 }
 
 const char* EDreamClient::GetAccessToken() { return fAccessToken.load(); }
