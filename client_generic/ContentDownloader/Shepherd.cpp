@@ -41,6 +41,7 @@
 #include "base.h"
 #include "clientversion.h"
 #include "md5.h"
+#include "StringFormat.h"
 
 namespace ContentDownloader
 {
@@ -563,9 +564,26 @@ const char* Shepherd::GetDreamServer()
     if (dreamServer.empty())
     {
         dreamServer =
-            g_Settings()->Get("settings.content.server", DEFAULT_DREAM_SERVER);
+            string_format("https://%s", g_Settings()
+                                            ->Get("settings.content.server",
+                                                  DEFAULT_DREAM_SERVER)
+                                            .data());
     }
     return dreamServer.data();
+}
+
+const char* Shepherd::GetWebsocketServer()
+{
+    static std::string wssServer;
+    if (wssServer.empty())
+    {
+        wssServer =
+            string_format("wss://%s", g_Settings()
+                                          ->Get("settings.content.server",
+                                                DEFAULT_DREAM_SERVER)
+                                          .data());
+    }
+    return wssServer.data();
 }
 
 const char* Shepherd::GetEndpoint(eServerEndpoint _endpoint)
