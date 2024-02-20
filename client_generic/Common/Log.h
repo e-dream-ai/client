@@ -8,6 +8,7 @@
 #define _LOG_H_
 
 #include <string_view>
+#include <mutex>
 
 #ifdef LINUX_GNU
 #include <cstdio>
@@ -16,7 +17,6 @@
 #include "Singleton.h"
 #include "SmartPtr.h"
 #include "base.h"
-#include "boost/thread.hpp"
 
 #if 0
 
@@ -72,16 +72,19 @@ class CLog : public CSingleton<CLog>
     bool m_bActive;
 
     FILE* m_pFile;
-    // FILE *m_pStdout;
 
     //	Temporary storage vars.
     std::string m_File;
     std::string m_Function;
     uint32_t m_Line;
+    int m_OriginalSTDOUT;
+    int m_PipeReader;
+    class std::thread* m_pPipeReaderThread;
 
     void Log(const char* _pType,
              /*const char *_file, const uint32_t _line, const char *_pFunc,*/
              const char* _pStr);
+    void PipeReaderThread();
 
   public:
     bool Startup();
@@ -101,6 +104,7 @@ class CLog : public CSingleton<CLog>
     void Warning(std::string_view _pFmt, ...);
     void Error(std::string_view _pFmt, ...);
     void Fatal(std::string_view _pFmt, ...);
+    
 
     //	Provides singleton access.
     __attribute__((no_instrument_function)) static CLog*

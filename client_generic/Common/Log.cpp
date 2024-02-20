@@ -4,9 +4,12 @@
 #include <cstdarg>
 #include <string>
 #include <time.h>
+#include <thread>
 
 #include "Log.h"
 #include "base.h"
+
+#define BUFFER_SIZE 1024 * 128
 
 namespace Base
 {
@@ -15,7 +18,7 @@ namespace Base
         CLog().
 
 */
-CLog::CLog() : m_bActive(false), m_pFile(NULL) {}
+CLog::CLog() : m_bActive(false), m_pFile(NULL), m_PipeReader(0), m_pPipeReaderThread(nullptr) {}
 
 /*
         ~CLog().
@@ -33,10 +36,6 @@ CLog::~CLog()
 */
 bool CLog::Startup()
 {
-    // if( (
-    // m_pStdout = freopen( "debug.txt", "a+", stdout );
-    //) == NULL )
-    // exit(-1);
     m_pFile = NULL;
     return (true);
 }
@@ -51,26 +50,72 @@ bool CLog::Shutdown(void)
     Info("dummy");
     Detach();
 
-    // if( m_pStdout )
-    // fclose( m_pStdout );
-
     return (true);
 }
 
-/*
- */
+void CLog::PipeReaderThread()
+{
+    while (1)
+    {
+        char buffer[BUFFER_SIZE];
+        ssize_t bytes_read = read(m_PipeReader, buffer, BUFFER_SIZE);
+        if (bytes_read > 0)
+        {
+            // Do something with the data read from stdout
+            //fwrite(buffer, 1, bytes_read, log_);
+            write(m_OriginalSTDOUT, buffer, (size_t)bytes_read);
+            fprintf(m_pFile, "%s", buffer);
+            fflush(m_pFile);
+        }
+        else
+        {
+            break;
+        }
+    }
+}
+
 void CLog::Attach(const std::string& _location, const uint32_t /*_level*/)
 {
+    if (m_bActive)
+        return;
+
     time_t curTime;
     time(&curTime);
 
     char timeStamp[32] = {0};
     strftime(timeStamp, sizeof(timeStamp), "%Y_%m_%d", localtime(&curTime));
+    
+    // Create a pipe
+    int pipefd[2];
+    if (pipe(pipefd) == -1)
+    {
+        perror("Unable to create pipe.");
+        exit(EXIT_FAILURE);
+    }
+
+    // Save the original stdout file descriptor
+    m_OriginalSTDOUT = dup(fileno(stdout));
+    if (m_OriginalSTDOUT == -1)
+    {
+        perror("dup failed");
+        exit(EXIT_FAILURE);
+    }
+
+    // Redirect stdout to the write end of the pipe
+    if (dup2(pipefd[1], fileno(stdout)) == -1)
+    {
+        perror("dup2 failed");
+        exit(EXIT_FAILURE);
+    }
+
+    // Close the write end of the pipe
+    close(pipefd[1]);
+    m_PipeReader = pipefd[0];
 
     std::stringstream s;
     s << _location << timeStamp << ".log";
     std::string f = s.str();
-    if ((m_pFile = freopen(f.c_str(), "a+", stdout)) == NULL)
+    if ((m_pFile = fopen(f.c_str(), "a+")) == NULL)
     {
 #ifdef WIN32
         MessageBoxA(NULL,
@@ -80,7 +125,7 @@ void CLog::Attach(const std::string& _location, const uint32_t /*_level*/)
 #endif
         exit(-1);
     }
-
+    m_pPipeReaderThread = new std::thread(std::bind(&CLog::PipeReaderThread, this));
     m_bActive = true;
 }
 
@@ -88,10 +133,20 @@ void CLog::Attach(const std::string& _location, const uint32_t /*_level*/)
  */
 void CLog::Detach(void)
 {
+    fflush(stdout);
     m_bActive = false;
+    if (m_PipeReader)
+        close(m_PipeReader);
+    m_pPipeReaderThread->join();
+    m_pPipeReaderThread = nullptr;
     fflush(m_pFile);
     if (m_pFile)
         fclose(m_pFile);
+    if (dup2(m_OriginalSTDOUT, fileno(stdout)) == -1)
+    {
+        perror("dup2 failed");
+        exit(EXIT_FAILURE);
+    }
 }
 
 /*
@@ -145,12 +200,6 @@ void CLog::Log(
         {
             printf("[%s-%s]: '%s' x%lu\n", s_MessageType, timeStamp,
                    s_MessageSpam, s_MessageSpamCount);
-            if (m_bActive)
-            {
-                fprintf(m_pFile, "[%s-%s]: '%s' x%lu\n", s_MessageType,
-                        timeStamp, s_MessageSpam, s_MessageSpamCount);
-                fflush(m_pFile);
-            }
         }
         else
         {
@@ -158,14 +207,6 @@ void CLog::Log(
             // fprintf( stdout, "[%s]: %s - %s[%s(%d)]: '%s'\n", _pType,
             // timeStamp, _file, _pFunc, m_Line, _pStr );
             printf("[%s-%s]: '%s'\n", s_MessageType, timeStamp, s_MessageSpam);
-            if (m_bActive)
-            {
-                // fprintf( m_pFile, "[%s]: %s - %s[%s(%d)]: '%s'\n", _pType,
-                // timeStamp, _file, _pFunc, m_Line, _pStr );
-                fprintf(m_pFile, "[%s-%s]: '%s'\n", s_MessageType, timeStamp,
-                        s_MessageSpam);
-                fflush(m_pFile);
-            }
         }
 
         s_MessageSpamCount = 0;
