@@ -25,6 +25,7 @@ class CRendererMetal : public CRenderer
     CFTypeRef m_pRendererContext;
     std::shared_mutex m_textureMutex;
     std::map<std::string, spCBaseFont> m_fontPool;
+    bool* m_pIsAlive;
 #ifdef __OBJC__
     bool
     CreateMetalTextureFromDecoderFrame(CVPixelBufferRef pixelBuffer,

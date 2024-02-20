@@ -44,11 +44,8 @@ using namespace std::string_view_literals;
 #define PATH_SEPARATOR_C '/'
 #endif
 
-constexpr const std::string_view ENDPOINT_REMOTECONTROL =
-    "wss://e-dream-76c98b08cc5d.herokuapp.com"sv;
-
 constexpr const std::string_view DEFAULT_DREAM_SERVER =
-    "https://e-dream-prod-84baba5507ee.herokuapp.com"sv;
+    "e-dream-prod-84baba5507ee.herokuapp.com"sv;
 
 #define API_VERSION "/api/v1"
 
@@ -312,6 +309,7 @@ class Shepherd
     static void SetNickName(const char* nick);
     static const char* GetNickName();
     static const char* GetDreamServer();
+    static const char* GetWebsocketServer();
     static const char* GetEndpoint(eServerEndpoint _endpoint);
 
     static bool AddOverflowMessage(const std::string _msg)

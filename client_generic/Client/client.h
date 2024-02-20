@@ -499,6 +499,7 @@ class CElectricSheep
             g_Player().Shutdown();
             g_Settings()->Shutdown();
         }
+        EDreamClient::DeinitializeClient();
     }
 
     void SetIsFullScreen(bool _bFullScreen) { m_bFullScreen = _bFullScreen; }
