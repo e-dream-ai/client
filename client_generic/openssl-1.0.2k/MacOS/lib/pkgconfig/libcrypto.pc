@@ -1,0 +1,11 @@
+libdir=/Users/tibi/Downloads/openssl-build/lib
+includedir=/Users/tibi/Downloads/openssl-build/include
+enginesdir=/Users/tibi/Downloads/openssl-build/lib/engines-3
+modulesdir=/Users/tibi/Downloads/openssl-build/lib/ossl-modules
+
+Name: OpenSSL-libcrypto
+Description: OpenSSL cryptography library
+Version: 3.3.0-dev
+Libs: -L${libdir} -lcrypto
+Libs.private: 
+Cflags: -I${includedir}

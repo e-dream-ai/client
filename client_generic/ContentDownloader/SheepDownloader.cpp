@@ -97,7 +97,7 @@ time_t SheepDownloader::fLastListTime = 0;
 SheepArray SheepDownloader::fServerFlock;
 SheepArray SheepDownloader::fClientFlock;
 
-boost::mutex SheepDownloader::s_DownloaderMutex;
+std::mutex SheepDownloader::s_DownloaderMutex;
 
 /*
  */
@@ -131,7 +131,7 @@ void SheepDownloader::closeDownloader() {}
 */
 int SheepDownloader::numberOfDownloadedSheep()
 {
-    boost::mutex::scoped_lock lockthis(s_DownloaderMutex);
+    std::scoped_lock lockthis(s_DownloaderMutex);
 
     int returnVal;
     returnVal = fDownloadedSheep;
@@ -145,7 +145,7 @@ int SheepDownloader::numberOfDownloadedSheep()
 */
 void SheepDownloader::clearFlocks()
 {
-    boost::mutex::scoped_lock lockthis(s_DownloaderMutex);
+    std::scoped_lock lockthis(s_DownloaderMutex);
     //	Clear the server flock.
     for (uint32_t i = 0; i < fServerFlock.size(); i++)
         SAFE_DELETE(fServerFlock[i]);
@@ -165,7 +165,7 @@ void SheepDownloader::clearFlocks()
 
 void SheepDownloader::Abort(void)
 {
-    boost::mutex::scoped_lock lockthis(m_AbortMutex);
+    std::scoped_lock lockthis(m_AbortMutex);
 
     m_bAborted = true;
 }
@@ -187,7 +187,7 @@ bool SheepDownloader::downloadSheep(sDreamMetadata* sheep)
     m_spSheepDownloader = NULL;
 
     {
-        boost::mutex::scoped_lock lockthis(m_AbortMutex);
+        std::scoped_lock lockthis(m_AbortMutex);
 
         if (m_bAborted)
             return false;
@@ -234,7 +234,7 @@ static void LogException(const std::exception& e, size_t dreamIndex,
 
 void SheepDownloader::ParseServerDreams()
 {
-    boost::mutex::scoped_lock lockthis(s_DownloaderMutex);
+    std::scoped_lock lockthis(s_DownloaderMutex);
     SheepArray::iterator it = fServerFlock.begin();
     while (it != fServerFlock.end())
     {
@@ -326,7 +326,6 @@ int SheepDownloader::ParseDreamsPage(int _page)
     {
         boost::json::error_code ec;
         boost::json::value response = boost::json::parse(contents, ec);
-
         bool success = response.at("success").as_bool();
         if (!success)
         {
@@ -399,7 +398,7 @@ int SheepDownloader::ParseDreamsPage(int _page)
 */
 void SheepDownloader::updateCachedSheep()
 {
-    boost::mutex::scoped_lock lockthis(s_DownloaderMutex);
+    std::scoped_lock lockthis(s_DownloaderMutex);
 
     //	Get the client flock.
     if (Shepherd::getClientFlock(&fClientFlock))
@@ -758,7 +757,7 @@ void SheepDownloader::FindSheepToDownload()
                     boost::thread::sleep(get_system_time() +
                                          posix_time::seconds(TIMEOUT));
 
-                    boost::mutex::scoped_lock lockthis(s_DownloaderMutex);
+                    std::scoped_lock lockthis(s_DownloaderMutex);
 
                     deleteCached(0, 0);
                     deleteCached(0, 1);
@@ -795,7 +794,7 @@ void SheepDownloader::FindSheepToDownload()
 
                         updateCachedSheep();
 
-                        boost::mutex::scoped_lock lockthis(s_DownloaderMutex);
+                        std::scoped_lock lockthis(s_DownloaderMutex);
 
                         unsigned int i;
                         unsigned int j;

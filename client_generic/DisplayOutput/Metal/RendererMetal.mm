@@ -63,8 +63,8 @@ static const NSUInteger MaxFramesInFlight = 3;
 namespace DisplayOutput
 {
 
-typedef boost::shared_lock<boost::shared_mutex> reader_lock;
-typedef boost::unique_lock<boost::shared_mutex> writer_lock;
+typedef std::shared_lock<std::shared_mutex> reader_lock;
+typedef std::unique_lock<std::shared_mutex> writer_lock;
 
 /*
  */

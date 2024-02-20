@@ -534,7 +534,7 @@ void CContentDecoder::ReadFramesThread()
 
 spCVideoFrame CContentDecoder::PopVideoFrame()
 {
-    boost::mutex::scoped_lock l(m_FrameQueueMutex);
+    std::scoped_lock l(m_FrameQueueMutex);
     CVideoFrame* tmp = nullptr;
     m_FrameQueue.pop(tmp, false);
     return spCVideoFrame{tmp};

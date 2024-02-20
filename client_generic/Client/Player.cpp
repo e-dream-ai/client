@@ -1,8 +1,6 @@
-
+#include <shared_mutex>
 #include <boost/bind.hpp>
 #include <boost/thread.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/shared_mutex.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/thread/xtime.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -72,10 +70,8 @@ using namespace DisplayOutput;
 
 using CClip = ContentDecoder::CClip;
 using spCClip = ContentDecoder::spCClip;
-typedef boost::shared_lock<boost::shared_mutex> reader_lock;
-typedef boost::unique_lock<boost::shared_mutex> writer_lock;
-typedef boost::upgrade_lock<boost::shared_mutex> upg_reader_lock;
-typedef boost::upgrade_to_unique_lock<boost::shared_mutex> upgrade_to_writer;
+typedef std::shared_lock<std::shared_mutex> reader_lock;
+typedef std::unique_lock<std::shared_mutex> writer_lock;
 
 /*
  */
@@ -107,9 +103,9 @@ void CPlayer::SetHWND(HWND _hWnd)
 };
 #endif
 
-bool CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
-                         CGraphicsContext _graphicsContext,
-                         [[maybe_unused]] bool _blank)
+int CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
+                        CGraphicsContext _graphicsContext,
+                        [[maybe_unused]] bool _blank)
 {
     DisplayOutput::spCDisplayOutput spDisplay;
     DisplayOutput::spCRenderer spRenderer;
@@ -153,7 +149,7 @@ bool CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
     )
     {
         g_Log->Error("Unable to open display");
-        return false;
+        return -1;
     }
 #ifndef _WIN64
     if (bDirectDraw)
@@ -164,10 +160,10 @@ bool CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
     if (m_hWnd)
     {
         if (!spDisplay->Initialize(m_hWnd, true))
-            return false;
+            return -1;
     }
     else if (!spDisplay->Initialize(w, h, m_bFullscreen))
-        return false;
+        return -1;
 #ifndef _WIN64
     if (bDirectDraw)
         spRenderer = new CRendererDD();
@@ -180,19 +176,19 @@ bool CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
     spDisplay = std::make_shared<CDisplayMetal>();
 
     if (spDisplay == nullptr)
-        return false;
+        return -1;
 
 #if defined(MAC)
     if (_graphicsContext != nullptr)
     {
         if (!spDisplay->Initialize(_graphicsContext, true))
-            return false;
+            return -1;
 
         spDisplay->ForceWidthAndHeight(w, h);
     }
 #else
     if (!spDisplay->Initialize(w, h, m_bFullscreen))
-        return false;
+        return -1;
 #endif //! MAC
 
     spRenderer = std::make_shared<CRendererMetal>();
@@ -201,7 +197,7 @@ bool CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
 
     //	Start renderer & set window title.
     if (spRenderer->Initialize(spDisplay) == false)
-        return false;
+        return -1;
     spDisplay->Title("e-dream");
 
     {
@@ -210,7 +206,7 @@ bool CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
         du->spRenderer = spRenderer;
         du->spDisplay = spDisplay;
 
-        boost::mutex::scoped_lock lockthis(m_displayListMutex);
+        std::scoped_lock lockthis(m_displayListMutex);
 
         if (g_Settings()->Get("settings.player.reversedisplays", false) == true)
             m_displayUnits.insert(m_displayUnits.begin(), du);
@@ -218,7 +214,7 @@ bool CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
             m_displayUnits.push_back(du);
     }
 
-    return true;
+    return (int)m_displayUnits.size() - 1;
 }
 
 /*
@@ -276,7 +272,7 @@ bool CPlayer::Startup()
 
 void CPlayer::ForceWidthAndHeight(uint32_t du, uint32_t _w, uint32_t _h)
 {
-    boost::mutex::scoped_lock lockthis(m_displayListMutex);
+    std::scoped_lock lockthis(m_displayListMutex);
 
     if (du >= m_displayUnits.size())
         return;
@@ -463,7 +459,7 @@ bool CPlayer::BeginDisplayFrame(uint32_t displayUnit)
     std::shared_ptr<DisplayUnit> du;
 
     {
-        boost::mutex::scoped_lock lockthis(m_displayListMutex);
+        std::scoped_lock lockthis(m_displayListMutex);
 
         if (displayUnit >= m_displayUnits.size())
             return false;
@@ -482,7 +478,7 @@ bool CPlayer::EndDisplayFrame(uint32_t displayUnit, bool drawn)
     std::shared_ptr<DisplayUnit> du;
 
     {
-        boost::mutex::scoped_lock lockthis(m_displayListMutex);
+        std::scoped_lock lockthis(m_displayListMutex);
 
         if (displayUnit >= m_displayUnits.size())
             return false;
@@ -509,7 +505,7 @@ bool CPlayer::Update(uint32_t displayUnit, bool& bPlayNoSheepIntro)
     std::shared_ptr<DisplayUnit> du;
 
     {
-        boost::mutex::scoped_lock lockthis(m_displayListMutex);
+        std::scoped_lock lockthis(m_displayListMutex);
 
         if (displayUnit >= m_displayUnits.size())
             return false;
@@ -636,9 +632,7 @@ void CPlayer::CalculateNextClipThread()
     try
     {
         uint32_t curID = 0;
-
         bool bRebuild = true;
-
         while (m_bStarted)
         {
             boost::this_thread::interruption_point();
@@ -786,10 +780,11 @@ void CPlayer::RepeatClip()
 
 void CPlayer::SkipForward(float _seconds)
 {
-    upg_reader_lock l(m_UpdateMutex);
+    std::shared_lock<std::shared_mutex> l(m_UpdateMutex);
     while (m_CurrentClips.size() < 2 && !m_NextClipInfoQueue.empty())
     {
-        upgrade_to_writer wlock(l);
+        l.unlock();
+        std::unique_lock<std::shared_mutex> wlock(m_UpdateMutex);
         m_PlayCond.wait(m_UpdateMutex);
     }
     m_CurrentClips[0]->SkipTime(_seconds);

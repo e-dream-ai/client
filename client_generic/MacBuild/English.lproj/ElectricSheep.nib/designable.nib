@@ -9,6 +9,7 @@
         <customObject id="-2" userLabel="File's Owner" customClass="ESConfiguration">
             <connections>
                 <outlet property="blackoutMonitors" destination="1185" id="1187"/>
+                <outlet property="cancelButton" destination="416" id="rCB-Uj-hyI"/>
                 <outlet property="contentFldr" destination="482" id="754"/>
                 <outlet property="debugLog" destination="921" id="923"/>
                 <outlet property="display" destination="662" id="925"/>
@@ -22,6 +23,7 @@
                 <outlet property="loginTestStatusText" destination="1099" id="1108"/>
                 <outlet property="membershipText" destination="1155" id="1168"/>
                 <outlet property="multiDisplayMode" destination="911" id="926"/>
+                <outlet property="okButton" destination="331" id="Qns-8w-LN7"/>
                 <outlet property="passwordLabel" destination="712" id="pEF-OY-jg9"/>
                 <outlet property="playerFPS" destination="1029" id="1049"/>
                 <outlet property="preserveAR" destination="1191" id="1193"/>

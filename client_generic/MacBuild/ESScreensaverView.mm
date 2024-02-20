@@ -11,9 +11,11 @@
 #include "DisplayOutput.h"
 #include "PlatformUtils.h"
 
-int nStarted = 0;
-
 @implementation ESScreensaverView
+{
+    BOOL m_bStarted;
+    int m_displayIdx;
+}
 
 - (instancetype)initWithFrame:(NSRect)frame isPreview:(BOOL)isPreview
 {
@@ -110,7 +112,7 @@ int nStarted = 0;
         //@TODO: remove these if unnecessary
         //ESScreensaver_InitClientStorage();
 
-        ESScreenSaver_AddGraphicsContext((__bridge void*)view);
+        m_displayIdx = ESScreenSaver_AddGraphicsContext((__bridge void*)view);
         //ESScreensaver_DeinitClientStorage();
     }
 
@@ -121,15 +123,15 @@ int nStarted = 0;
     m_isHidden = NO;
 #endif
 
-    if (!nStarted)
+    if (!m_bStarted)
     {
 
         if (!ESScreensaver_Start(m_isPreview, width, height))
             return;
 
         [self _beginThread];
+        m_bStarted = YES;
     }
-    nStarted++;
 #ifdef SCREEN_SAVER
     [super startAnimation];
 #endif
@@ -140,16 +142,15 @@ int nStarted = 0;
 #ifdef SCREEN_SAVER
     [NSCursor unhide];
 #endif
-    if (nStarted == 1)
+    if (m_bStarted)
     {
         [self _endThread];
 
         ESScreensaver_Stop();
 
         ESScreensaver_Deinit();
+        m_bStarted = NO;
     }
-    
-    nStarted--;
 
 #ifdef SCREEN_SAVER
     if (m_isHidden)
@@ -177,7 +178,7 @@ int nStarted = 0;
     {
         @autoreleasepool
         {
-            if (!ESScreensaver_DoFrame(*m_beginFrameBarrier,
+            if (!ESScreensaver_DoFrame(m_displayIdx, *m_beginFrameBarrier,
                                        *m_endFrameBarrier))
                 break;
 #ifdef SCREEN_SAVER

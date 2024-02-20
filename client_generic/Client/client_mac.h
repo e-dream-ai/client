@@ -150,25 +150,27 @@ class CElectricSheep_Mac : public CElectricSheep
             sizeof(m_proxyUser) - 1, m_proxyPass, sizeof(m_proxyPass) - 1);
     }
 
-    void AddGraphicsContext(CGraphicsContext _context)
+    int AddGraphicsContext(CGraphicsContext _context)
     {
         if (g_Player().Display() == NULL)
         {
             m_graphicsContextList.push_back(_context);
+            return (int)m_graphicsContextList.size() - 1;
         }
         else
         {
 #ifdef DO_THREAD_UPDATE
-            boost::mutex::scoped_lock lock(m_BarrierMutex);
+            std::scoped_lock lock(m_BarrierMutex);
 
             DestroyUpdateThreads();
 #endif
 
-            g_Player().AddDisplay(0, _context);
+            int display = g_Player().AddDisplay(0, _context);
 
 #ifdef DO_THREAD_UPDATE
             CreateUpdateThreads();
 #endif
+            return display;
         }
     }
 
@@ -243,18 +245,22 @@ class CElectricSheep_Mac : public CElectricSheep
     }
 
     //
-    virtual bool Update(boost::barrier& _beginFrameBarrier,
+    virtual bool Update(int _displayIdx, boost::barrier& _beginFrameBarrier,
                         boost::barrier& _endFrameBarrier)
     {
         using namespace DisplayOutput;
 
         PROFILER_BEGIN("Render Frame");
 
-        if (!CElectricSheep::Update(_beginFrameBarrier, _endFrameBarrier))
+        if (!CElectricSheep::Update(_displayIdx, _beginFrameBarrier,
+                                    _endFrameBarrier))
             return false;
 
         //	Update display events.
-        g_Player().Display()->Update();
+        DisplayOutput::spCDisplayOutput display =
+            g_Player().Display(_displayIdx);
+        if (display)
+            display->Update();
 
         HandleEvents();
 

@@ -1,5 +1,4 @@
 #import "ESMetalView.h"
-#import "base.h"
 #import <Cocoa/Cocoa.h>
 
 @implementation ESMetalView

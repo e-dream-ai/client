@@ -35,7 +35,6 @@
 #include "base.h"
 #include "boost/atomic.hpp"
 #include "boost/detail/atomic_count.hpp"
-#include "boost/thread/mutex.hpp"
 
 using namespace std::string_view_literals;
 
@@ -44,6 +43,9 @@ using namespace std::string_view_literals;
 #else
 #define PATH_SEPARATOR_C '/'
 #endif
+
+constexpr const std::string_view ENDPOINT_REMOTECONTROL =
+    "wss://e-dream-76c98b08cc5d.herokuapp.com"sv;
 
 constexpr const std::string_view DEFAULT_DREAM_SERVER =
     "https://e-dream-prod-84baba5507ee.herokuapp.com"sv;
@@ -171,20 +173,20 @@ class Shepherd
     static bool m_RenderingAllowed;
 
     static std::queue<spCMessageBody> m_MessageQueue;
-    static boost::mutex m_MessageQueueMutex;
+    static std::mutex m_MessageQueueMutex;
 
     static std::vector<spCTimedMessageBody> m_OverflowMessageQueue;
-    static boost::mutex s_OverflowMessageQueueMutex;
+    static std::mutex s_OverflowMessageQueueMutex;
 
-    static boost::mutex s_ShepherdMutex;
+    static std::mutex s_ShepherdMutex;
 
-    static boost::shared_mutex s_DownloadStateMutex;
+    static std::shared_mutex s_DownloadStateMutex;
 
-    static boost::shared_mutex s_RenderStateMutex;
+    static std::shared_mutex s_RenderStateMutex;
 
-    static boost::mutex s_ComputeServerNameMutex;
+    static std::mutex s_ComputeServerNameMutex;
 
-    static boost::shared_mutex s_GetServerNameMutex;
+    static std::shared_mutex s_GetServerNameMutex;
 
     static time_t s_LastRequestTime;
 
@@ -202,9 +204,10 @@ class Shepherd
     Shepherd();
     ~Shepherd();
 
+    /// Description:
+    ///        Initialize global data for the shepherd and his heard.
     static void initializeShepherd();
 
-    //
     static void setUseProxy(const int& useProxy) { fUseProxy = useProxy; }
     static int useProxy() { return fUseProxy; }
 
@@ -313,14 +316,14 @@ class Shepherd
 
     static bool AddOverflowMessage(const std::string _msg)
     {
-        boost::mutex::scoped_lock lockthis(s_OverflowMessageQueueMutex);
+        std::scoped_lock lockthis(s_OverflowMessageQueueMutex);
         m_OverflowMessageQueue.emplace_back(new CTimedMessageBody(_msg, 60.));
         return true;
     }
 
     static bool PopOverflowMessage(std::string& _dst)
     {
-        boost::mutex::scoped_lock lockthis(s_OverflowMessageQueueMutex);
+        std::scoped_lock lockthis(s_OverflowMessageQueueMutex);
         if (m_OverflowMessageQueue.size() > 10)
         {
             m_OverflowMessageQueue.erase(
@@ -378,14 +381,14 @@ class Shepherd
 
     static bool QueueMessage(std::string_view _msg, const double _duration)
     {
-        boost::mutex::scoped_lock lockthis(m_MessageQueueMutex);
+        std::scoped_lock lockthis(m_MessageQueueMutex);
         m_MessageQueue.emplace(new CMessageBody(_msg, _duration));
         return true;
     }
 
     static bool PopMessage(std::string& _dst, double& _duration)
     {
-        boost::mutex::scoped_lock lockthis(m_MessageQueueMutex);
+        std::scoped_lock lockthis(m_MessageQueueMutex);
         if (m_MessageQueue.size() > 0)
         {
             spCMessageBody msg = m_MessageQueue.front();

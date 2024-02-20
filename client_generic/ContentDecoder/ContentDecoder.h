@@ -28,7 +28,6 @@
 #include <string_view>
 #include <memory>
 #include <boost/bind.hpp>
-#include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/thread/xtime.hpp>
 
@@ -102,7 +101,7 @@ class CContentDecoder
 
     //	Queue for decoded frames.
     Base::CBlockingQueue<CVideoFrame*> m_FrameQueue;
-    boost::mutex m_FrameQueueMutex;
+    std::mutex m_FrameQueueMutex;
     //	Codec context & working objects.
     std::unique_ptr<sOpenVideoInfo> m_CurrentVideoInfo;
     AVPixelFormat m_WantedPixelFormat;

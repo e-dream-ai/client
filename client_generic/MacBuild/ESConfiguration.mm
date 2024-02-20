@@ -11,6 +11,8 @@ using namespace ContentDownloader;
 
 - (IBAction)ok:(id)__unused sender
 {
+    if (!okButton.isEnabled)
+        return;
     if (m_checkingLogin)
         return;
 
@@ -25,6 +27,8 @@ using namespace ContentDownloader;
 
 - (IBAction)cancel:(id)__unused sender
 {
+    if (!cancelButton.isEnabled)
+        return;
     [NSApp endSheet:self.window returnCode:m_loginWasSuccessful];
 }
 
@@ -100,6 +104,9 @@ using namespace ContentDownloader;
             [NSString stringWithFormat:@"Logged in as %@", m_origNickname];
         m_loginWasSuccessful = YES;
         signInButton.title = @"Sign Out";
+        [cancelButton setEnabled:YES];
+        [okButton setEnabled:YES];
+        [tabView setHidden:NO];
         [passwordLabel setHidden:YES];
         [emailLabel setHidden:YES];
         [drupalPassword setTarget:nil];
@@ -116,6 +123,9 @@ using namespace ContentDownloader;
         loginTestStatusText.stringValue = failMessage;
         m_loginWasSuccessful = NO;
         signInButton.title = @"Sign In";
+        [cancelButton setEnabled:NO];
+        [okButton setEnabled:NO];
+        [tabView setHidden:YES];
         [passwordLabel setHidden:NO];
         [emailLabel setHidden:NO];
         drupalPassword.target = self;
@@ -199,6 +209,7 @@ using namespace ContentDownloader;
 
     [okButton setEnabled:NO];
     [cancelButton setEnabled:NO];
+    [tabView setHidden:YES];
     m_checkingLogin = YES;
 
     [m_checkTimer invalidate];
@@ -293,10 +304,6 @@ using namespace ContentDownloader;
                           [self updateAuthUI:@"Login Failed :("];
                       }
                       self->m_checkingLogin = NO;
-                      [self->okButton setEnabled:YES];
-                      [self->cancelButton setEnabled:YES];
-
-                      [self->signInButton setEnabled:YES];
                   }
               });
           }];

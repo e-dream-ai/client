@@ -48,7 +48,7 @@ class CReusableAlignedBuffers : public CSingleton<CReusableAlignedBuffers>
 
     static uint32_t s_PageSize;
 
-    boost::mutex m_CacheLock;
+    std::mutex m_CacheLock;
 
   public:
     CReusableAlignedBuffers();

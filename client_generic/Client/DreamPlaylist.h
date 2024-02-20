@@ -28,9 +28,9 @@ namespace ContentDecoder
 
 class CDreamPlaylist : public CPlaylist
 {
-    boost::mutex m_Lock;
+    std::mutex m_Lock;
 
-    boost::mutex m_CurrentPlayingLock;
+    std::mutex m_CurrentPlayingLock;
 
     //	Path to folder to monitor & update interval in seconds.
     path m_Path;
@@ -98,14 +98,14 @@ class CDreamPlaylist : public CPlaylist
     //
     virtual bool Add(const std::string& _file)
     {
-        boost::mutex::scoped_lock locker(m_Lock);
+        std::scoped_lock locker(m_Lock);
         m_FreshList.push(_file);
         return true;
     }
 
     virtual uint32_t Size()
     {
-        boost::mutex::scoped_lock locker(m_Lock);
+        std::scoped_lock locker(m_Lock);
         uint32_t ret = 0;
         ret = static_cast<uint32_t>(m_List.size());
         return (uint32_t)ret;
@@ -119,7 +119,7 @@ class CDreamPlaylist : public CPlaylist
 
     virtual bool PopFreshlyDownloadedSheep(std::string& _result)
     {
-        boost::mutex::scoped_lock locker(m_Lock);
+        std::scoped_lock locker(m_Lock);
         if (!m_FreshList.empty())
         {
             _result = m_FreshList.front();
@@ -131,7 +131,7 @@ class CDreamPlaylist : public CPlaylist
 
     virtual bool HasFreshlyDownloadedSheep()
     {
-        boost::mutex::scoped_lock locker(m_Lock);
+        std::scoped_lock locker(m_Lock);
         return !m_FreshList.empty();
     }
 
@@ -139,7 +139,7 @@ class CDreamPlaylist : public CPlaylist
                       uint32_t _curID, bool& _playFreshSheep,
                       const bool _bRebuild = false, bool _bStartByRandom = true)
     {
-        boost::mutex::scoped_lock locker(m_Lock);
+        std::scoped_lock locker(m_Lock);
 
         // if ((_playFreshSheep = PlayFreshOnesFirst(_result)))
         // return true;
@@ -221,7 +221,7 @@ class CDreamPlaylist : public CPlaylist
     //	Overrides the playlist to play _id next time.
     void Override(const uint32_t /*_id*/)
     {
-        boost::mutex::scoped_lock locker(m_Lock);
+        std::scoped_lock locker(m_Lock);
         // m_pState->Pop( Base::Script::Call( m_pState->GetState(), "Override",
         // "i", _id ) );
     }
@@ -229,7 +229,7 @@ class CDreamPlaylist : public CPlaylist
     //	Queues _id to be deleted.
     void Delete(const uint32_t /*_id*/)
     {
-        boost::mutex::scoped_lock locker(m_Lock);
+        std::scoped_lock locker(m_Lock);
         // m_pState->Pop( Base::Script::Call( m_pState->GetState(), "Delete",
         // "i", _id ) );
     }

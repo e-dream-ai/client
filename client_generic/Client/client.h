@@ -116,7 +116,7 @@ class CElectricSheep
 
     boost::thread_group* m_pUpdateThreads;
 
-    boost::mutex m_BarrierMutex;
+    std::mutex m_BarrierMutex;
 #endif
 
     //	Init tuplestorage.
@@ -629,14 +629,14 @@ class CElectricSheep
 #endif
 
     //
-    virtual bool Update(boost::barrier& _beginFrameBarrier,
+    virtual bool Update(int _displayIdx, boost::barrier& _beginFrameBarrier,
                         boost::barrier& _endFrameBarrier)
     {
         g_Player().BeginFrameUpdate();
 
 #ifdef DO_THREAD_UPDATE
         {
-            boost::mutex::scoped_lock lock(m_BarrierMutex);
+            std::scoped_lock lock(m_BarrierMutex);
 
             m_pUpdateBarrier->wait();
 
@@ -644,17 +644,9 @@ class CElectricSheep
         }
 #else
         uint32_t displayCnt = g_Player().GetDisplayCount();
-        
-        _beginFrameBarrier.wait();
 
-        bool ret = true;
-        for (uint32_t i = 0; i < displayCnt; i++)
-        {
-            ret &= DoRealFrameUpdate(i);
-            printf("G2\n");
-            if (!ret)
-                break;
-        }
+        _beginFrameBarrier.wait();
+        bool ret = DoRealFrameUpdate(_displayIdx);
         _endFrameBarrier.wait();
 #endif
 

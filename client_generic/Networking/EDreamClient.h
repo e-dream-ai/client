@@ -2,17 +2,19 @@
 #define _EDREAMCLIENT_H_
 
 #include <memory>
-#include <boost/atomic.hpp>
-#include <boost/thread/mutex.hpp>
+#include <atomic>
+#include <mutex>
 
 class EDreamClient
 {
   private:
-    static boost::atomic<char*> fAccessToken;
-    static boost::atomic<char*> fRefreshToken;
-    static boost::atomic<bool> fIsLoggedIn;
-    static boost::atomic<int> fCpuUsage;
-    static boost::mutex fAuthMutex;
+    static std::atomic<char*> fAccessToken;
+    static std::atomic<char*> fRefreshToken;
+    static std::atomic<bool> fIsLoggedIn;
+    static std::atomic<int> fCpuUsage;
+    static std::mutex fAuthMutex;
+    static std::mutex fWebSocketMutex;
+    static bool fIsWebSocketConnected;
 
   public:
     static void InitializeClient();

@@ -12,11 +12,44 @@
 #include <string>
 #include <boost/json.hpp>
 
+#include "Log.h"
+#include "StringFormat.h"
+
 namespace json = boost::json;
+
+#define CHK(x, y)                                                              \
+    x;                                                                         \
+    if (JSONUtil::DumpError(ec, y))                                            \
+        return false;
+
+static constexpr const char* s_JSONKinds[] = {
+    "null", "bool", "int64", "uint64", "double", "string", "array", "object"};
 
 class JSONUtil
 {
   public:
+    static void LogException(const std::exception& e, std::string_view fileStr)
+    {
+        auto str = string_format(
+            "Exception during parsing dreams list:%s contents:\"%s\"", e.what(),
+            fileStr.data());
+        //ContentDownloader::Shepherd::addMessageText(str.str().c_str(), 180);
+        g_Log->Error(str);
+    }
+
+    static bool DumpError(const boost::json::error_code& e,
+                          std::string_view fileStr)
+    {
+        if (!e)
+            return false;
+        auto str = string_format(
+            "Exception during parsing dreams list:%s contents:\"%s\"",
+            e.what().data(), fileStr.data());
+        //ContentDownloader::Shepherd::addMessageText(str.str().c_str(), 180);
+        g_Log->Error(str);
+        return true;
+    }
+
     static std::string PrintJSON(json::value const& jv)
     {
         return json::serialize(jv);
@@ -115,6 +148,17 @@ class JSONUtil
 
         if (indent->empty())
             os << "\n";
+    }
+
+    static int64_t ParseInt64(const json::value& v,
+                              std::string_view _originalString)
+    {
+        if (!v.is_int64())
+        {
+            g_Log->Error("Expected an Integer but got %s in %s",
+                         s_JSONKinds[(int)v.kind()], _originalString.data());
+        }
+        return v.as_int64();
     }
 };
 
