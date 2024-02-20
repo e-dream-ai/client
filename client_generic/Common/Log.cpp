@@ -8,6 +8,7 @@
 
 #include "Log.h"
 #include "base.h"
+#include "PlatformUtils.h"
 
 #define BUFFER_SIZE 1024 * 128
 
@@ -18,7 +19,11 @@ namespace Base
         CLog().
 
 */
-CLog::CLog() : m_bActive(false), m_pFile(NULL), m_PipeReader(0), m_pPipeReaderThread(nullptr) {}
+CLog::CLog()
+    : m_bActive(false), m_pFile(NULL), m_PipeReader(0),
+      m_pPipeReaderThread(nullptr)
+{
+}
 
 /*
         ~CLog().
@@ -55,6 +60,7 @@ bool CLog::Shutdown(void)
 
 void CLog::PipeReaderThread()
 {
+    PlatformUtils::SetThreadName("Log");
     while (1)
     {
         char buffer[BUFFER_SIZE];
@@ -84,7 +90,7 @@ void CLog::Attach(const std::string& _location, const uint32_t /*_level*/)
 
     char timeStamp[32] = {0};
     strftime(timeStamp, sizeof(timeStamp), "%Y_%m_%d", localtime(&curTime));
-    
+
     // Create a pipe
     int pipefd[2];
     if (pipe(pipefd) == -1)
@@ -125,7 +131,8 @@ void CLog::Attach(const std::string& _location, const uint32_t /*_level*/)
 #endif
         exit(-1);
     }
-    m_pPipeReaderThread = new std::thread(std::bind(&CLog::PipeReaderThread, this));
+    m_pPipeReaderThread =
+        new std::thread(std::bind(&CLog::PipeReaderThread, this));
     m_bActive = true;
 }
 
@@ -137,6 +144,7 @@ void CLog::Detach(void)
     m_bActive = false;
     if (m_PipeReader)
         close(m_PipeReader);
+    m_PipeReader = 0;
     m_pPipeReaderThread->join();
     m_pPipeReaderThread = nullptr;
     fflush(m_pFile);

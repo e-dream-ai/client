@@ -17,7 +17,6 @@
 #include "TextureFlatMetal.h"
 
 static const NSUInteger MaxFramesInFlight = 3;
-
 @interface RendererContext : NSObject
 {
   @public
@@ -75,6 +74,13 @@ CRendererMetal::CRendererMetal() : CRenderer() {}
 CRendererMetal::~CRendererMetal()
 {
     RendererContext* rendererContext = CFBridgingRelease(m_pRendererContext);
+    //Make sure that all the semaphores are unblocked before letting ARC release the object
+    dispatch_semaphore_signal(rendererContext->inFlightSemaphore);
+    dispatch_semaphore_signal(rendererContext->inFlightSemaphore);
+    dispatch_semaphore_signal(rendererContext->inFlightSemaphore);
+    usleep(1000);
+    
+    *m_pIsAlive = false;
     //    while (rendererContext->framesStarted.load() !=
     //           rendererContext->framesFinished.load())
     //    {
@@ -84,6 +90,7 @@ CRendererMetal::~CRendererMetal()
     {
         CFRelease(rendererContext->textureCache);
     }
+    m_pRendererContext = nullptr;
 }
 
 static MTLVertexDescriptor* CreateTextVertexDescriptor()
@@ -150,6 +157,7 @@ bool CRendererMetal::Initialize(spCDisplayOutput _spDisplay)
             g_Log->Error("Error creating CVTextureCache:%d", textureCacheError);
         }
     }
+    m_pIsAlive = new bool(true);
     return true;
 }
 
@@ -254,9 +262,12 @@ bool CRendererMetal::EndFrame(bool drawn)
     __block std::atomic<uint8_t>& framesFinished =
         rendererContext->framesFinished;
     rendererContext->framesStarted++;
+    bool* isAlivePtr = m_pIsAlive;
     [rendererContext->currentCommandBuffer
         addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
             {
+                if (!*isAlivePtr)
+                    return;
                 writer_lock lock(m_textureMutex);
                 for (auto it = metalTexturesUsed.begin();
                      it != metalTexturesUsed.end(); ++it)

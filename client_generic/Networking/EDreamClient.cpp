@@ -112,8 +112,7 @@ void EDreamClient::InitializeClient()
     s_SIOClient.set_open_listener(&OnWebSocketConnected);
     s_SIOClient.set_close_listener(&OnWebSocketClosed);
     s_SIOClient.set_fail_listener(&OnWebSocketFail);
-    s_SIOClient.set_reconnecting_listener(
-      &OnWebSocketReconnecting);
+    s_SIOClient.set_reconnecting_listener(&OnWebSocketReconnecting);
     s_SIOClient.set_reconnect_listener(&OnWebSocketReconnect);
 
     SetNewAndDeleteOldString(
