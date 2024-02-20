@@ -25,6 +25,8 @@ static sio::client s_SIOClient;
 namespace json = boost::json;
 using namespace ContentDownloader;
 
+static void OnWebSocketMessage(sio::event& event);
+
 static ShowPreferencesCallback_t gShowPreferencesCallback = nullptr;
 void ESSetShowPreferencesCallback(ShowPreferencesCallback_t _callback)
 {
@@ -69,95 +71,23 @@ static void SetNewAndDeleteOldString(
 
 static void BindWebSocketCallbacks()
 {
-    auto socket = s_SIOClient.socket();
-    socket->on("login",
-               sio::socket::event_listener_aux(
-                   [&](std::string const& name, sio::message::ptr const& data,
-                       bool isAck, sio::message::list& ack_resp)
-                   { std::cout << "Received login from server: "; }));
-    g_Log->Info("WebSocket connection open.");
-    socket->on("remote_control_event",
-               [&](sio::event& event)
-               {
-                   std::string message = event.get_message()->get_string();
-                   std::cout << "Received message from server: " << message
-                             << std::endl;
-               });
-
-    socket->on("remote_control_event",
-               [&](sio::event& event)
-               {
-                   std::string message = event.get_message()->get_string();
-                   std::cout << "Received message from server: " << message
-                             << std::endl;
-               });
-    socket->on("event",
-               [&](sio::event& event)
-               {
-                   std::string message = event.get_message()->get_string();
-                   std::cout << "Received message from server: " << message
-                             << std::endl;
-               });
     s_SIOClient.socket("/remote-control")
-        ->on("next",
-             [&](sio::event& event)
-             {
-                 std::string message = event.get_message()->get_string();
-                 std::cout << "Received message from server: " << message
-                           << std::endl;
-             });
-    s_SIOClient.socket("/remote-control")
-        ->on_any(
-            [&](sio::event& event)
-            {
-                std::string message = event.get_message()->get_string();
-                std::cout << "Received message from server: " << message
-                          << std::endl;
-            });
-    s_SIOClient.socket("remote-control")
-        ->on_any(
-            [&](sio::event& event)
-            {
-                std::string message = event.get_message()->get_string();
-                std::cout << "Received message from server: " << message
-                          << std::endl;
-            });
-    s_SIOClient.socket("")->on_any(
-        [&](sio::event& event)
-        {
-            std::string message = event.get_message()->get_string();
-            std::cout << "Received message from server: " << message
-                      << std::endl;
-        });
-    socket->on_any(
-        [&](sio::event& event)
-        {
-            std::string message = event.get_message()->get_string();
-            std::cout << "Received message from server: " << message
-                      << std::endl;
-        });
+        ->on("new_remote_control_event", &OnWebSocketMessage);
 }
 
 static void OnWebSocketConnected()
 {
 
     //    std::map<std::string, std::string> params;
-    //    params["event"] = "next";
+    //    params["event"] = "next
+    std::shared_ptr<sio::object_message> ms =
+        std::dynamic_pointer_cast<sio::object_message>(
+            sio::object_message::create());
+    ms->insert("event", "next");
+    sio::message::list list;
+    list.push(ms);
     s_SIOClient.socket("/remote-control")
-        ->emit("remote_control_event", std::string("{\"event\":\"next\"}"));
-    s_SIOClient.socket("/remote-control")
-        ->emit("new_remote_control_event", std::string("{\"event\":\"next\"}"));
-    s_SIOClient.socket("remote-control")
-        ->emit("remote_control_event", std::string("{\"event\":\"next\"}"));
-    s_SIOClient.socket("remote-control")
-        ->emit("new_remote_control_event", std::string("{\"event\":\"next\"}"));
-    s_SIOClient.socket()->emit("remote_control_event",
-                               std::string("{\"event\":\"next\"}"));
-    s_SIOClient.socket()->emit("new_remote_control_event",
-                               std::string("{\"event\":\"next\"}"));
-    s_SIOClient.socket()->emit("event", std::string("next"));
-    s_SIOClient.socket("/remote-control")->emit("event", std::string("next"));
-    s_SIOClient.socket("remote-control")->emit("event", std::string("next"));
+        ->emit("new_remote_control_event", list);
 }
 
 static void OnWebSocketClosed(const sio::client::close_reason& _reason)
@@ -179,38 +109,16 @@ static void OnWebSocketReconnect(unsigned _num, unsigned _delay)
 
 void EDreamClient::InitializeClient()
 {
-    //    DISPATCH_ONCE(
-    //        initWebSocket,
-    //        []()
-    //        {
-    //            s_WebSocketClient.set_access_channels(
-    //                websocketpp::log::alevel::all);
-    //            s_WebSocketClient.clear_access_channels(
-    //                websocketpp::log::alevel::frame_payload);
-    //            s_WebSocketClient.set_error_channels(websocketpp::log::elevel::all);
-    //            s_WebSocketClient.init_asio();
-    //            s_WebSocketClient.set_tls_init_handler(&OnTLSInit);
-    //            s_WebSocketClient.set_message_handler(&OnWebSocketMessage);
-    //            s_WebSocketClient.set_open_handler(&OnWebSocketOpen);
-    //            s_WebSocketClient.set_close_handler(&OnWebSocketClose);
-    //            s_WebSocketClient.set_fail_handler(&OnWebSocketFail);
-    s_SIOClient.set_open_listener(&OnWebSocketConnected);
-
-    s_SIOClient.set_close_listener(&OnWebSocketClosed);
-
-    s_SIOClient.set_fail_listener(&OnWebSocketFail);
-    s_SIOClient.set_reconnecting_listener(&OnWebSocketReconnecting);
-    s_SIOClient.set_reconnect_listener(&OnWebSocketReconnect);
-
-    //            s_SIOClient.set_socket_open_listener([&]() {
-    //                std::cout << "Socket connection opened" << std::endl;
-    //            });
-    //
-    //            s_SIOClient.set_socket_close_listener([&](sio::client::socket::close_reason const& reason) {
-    //                std::cout << "Socket connection closed: " << reason << std::endl;
-    //            });
-
-    //        });
+    DISPATCH_ONCE(initWebSocket,
+                  []()
+                  {
+                      s_SIOClient.set_open_listener(&OnWebSocketConnected);
+                      s_SIOClient.set_close_listener(&OnWebSocketClosed);
+                      s_SIOClient.set_fail_listener(&OnWebSocketFail);
+                      s_SIOClient.set_reconnecting_listener(
+                          &OnWebSocketReconnecting);
+                      s_SIOClient.set_reconnect_listener(&OnWebSocketReconnect);
+                  });
 
     SetNewAndDeleteOldString(
         fAccessToken,
@@ -407,54 +315,47 @@ bool EDreamClient::GetDreams(int _page, int _count)
     }
     return true;
 }
-//
-//static void OnWebSocketMessage(websocketpp::connection_hdl,
-//                               WebSocketClient::message_ptr _pMessage)
-//{
-//    std::string_view message = _pMessage->get_payload();
-//    g_Log->Info("Received WebSocket message: %s", message.data());
-//    try
-//    {
-//
-//        json::error_code ec;
-//        json::value response = json::parse(message, ec);
-//        std::string_view event = response.at("event").as_string().data();
-//        if (event == "next")
-//        {
-//            g_Player().SkipToNext();
-//        }
-//        else if (event == "previous")
-//        {
-//            g_Player().ReturnToPrevious();
-//        }
-//        else if (event == "skip_fw")
-//        {
-//            g_Player().SkipForward(10);
-//        }
-//        else if (event == "skip_bw")
-//        {
-//            g_Player().SkipForward(-10);
-//        }
-//        else
-//        {
-//            g_Log->Error("Unknown event type received: %s (message was:%s)",
-//                         event.data(), message.data());
-//        }
-//    }
-//    catch (std::exception const& e)
-//    {
-//        g_Log->Error(
-//            "Exception while parsing WebSocket message: %s (message was:%s)",
-//            e.what(), message.data());
-//    }
-//}
+
+static void OnWebSocketMessage(sio::event& _wsEvent)
+{
+
+    std::shared_ptr<sio::object_message> objectMessage =
+        std::dynamic_pointer_cast<sio::object_message>(_wsEvent.get_message());
+    std::map<std::string, sio::message::ptr> response =
+        objectMessage->get_map();
+    std::shared_ptr<sio::string_message> eventObj =
+        std::dynamic_pointer_cast<sio::string_message>(response["event"]);
+    std::string_view event = eventObj->get_string();
+
+    g_Log->Info("Received WebSocket message: %s", event.data());
+    if (event == "next")
+    {
+        g_Player().SkipToNext();
+    }
+    else if (event == "previous")
+    {
+        g_Player().ReturnToPrevious();
+    }
+    else if (event == "playback_slower")
+    {
+        g_Player().SkipForward(10);
+    }
+    else if (event == "playback_faster")
+    {
+        g_Player().SkipForward(-10);
+    }
+    else
+    {
+        g_Log->Error("Unknown event type received: %s", event.data());
+    }
+}
 
 void EDreamClient::ConnectRemoteControlSocket()
 {
     PlatformUtils::SetThreadName("ConnectRemoteControl");
     BindWebSocketCallbacks();
     std::map<std::string, std::string> query;
-    query["token"] = GetAccessToken();
+    query["token"] = string_format("Bearer %s", GetAccessToken());
     s_SIOClient.connect(ENDPOINT_REMOTECONTROL.data(), query);
     return;
 }
