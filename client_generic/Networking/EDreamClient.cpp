@@ -20,11 +20,9 @@
 #include "EDreamClient.h"
 #include "JSONUtil.h"
 
-#include "client_mac.h"
+#include "client.h"
 
 static sio::client s_SIOClient;
-//@TODO:replace
-extern CElectricSheep_Mac gClient;
 
 namespace json = boost::json;
 using namespace ContentDownloader;
@@ -183,6 +181,7 @@ bool EDreamClient::Authenticate()
     }
     fIsLoggedIn.exchange(success);
     fAuthMutex.unlock();
+    g_Log->Info("Login success:%s", success ? "true" : "false");
     if (success)
     {
         boost::thread webSocketThread(
@@ -336,26 +335,77 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
     std::string_view event = eventObj->get_string();
 
     g_Log->Info("Received WebSocket message: %s", event.data());
-    if (event == "next")
+    if (event == "like")
     {
-        g_Player().SkipToNext();
-    }
-    else if (event == "previous")
-    {
-        g_Player().ReturnToPrevious();
-    }
-    else if (event == "playback_slower")
-    {
-        g_Player().SkipForward(10);
-    }
-    else if (event == "playback_faster")
-    {
-        g_Player().SkipForward(-10);
+        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_LIKE);
     }
     else if (event == "dislike")
     {
-        g_Player().SkipForward(-10);
-        gClient.GetHudManager()->Toggle("dreamstats");
+        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_DISLIKE);
+    }
+    else if (event == "next")
+    {
+        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_NEXT);
+    }
+    else if (event == "previous")
+    {
+        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_PREVIOUS);
+    }
+    else if (event == "repeat")
+    {
+        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_REPEAT);
+    }
+    else if (event == "skip_fw")
+    {
+        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_SKIP_FW);
+    }
+    else if (event == "skip_bw")
+    {
+        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_SKIP_BW);
+    }
+    else if (event == "playback_slower")
+    {
+        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_PLAYBACK_SLOWER);
+    }
+    else if (event == "playback_faster")
+    {
+        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_PLAYBACK_FASTER);
+    }
+    else if (event == "repeat")
+    {
+        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_REPEAT);
+    }
+    else if (event == "f1")
+    {
+        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_F1);
+    }
+    else if (event == "f2")
+    {
+        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_F2);
+    }
+    else if (event == "skip_fw")
+    {
+        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_SKIP_FW);
+    }
+    else if (event == "pause")
+    {
+        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_PAUSE);
+    }
+    else if (event == "credit")
+    {
+        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_CREDIT);
+    }
+    else if (event == "webpage")
+    {
+        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_WEBPAGE);
+    }
+    else if (event == "brightness_up")
+    {
+        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_BRIGHTNESS_UP);
+    }
+    else if (event == "brightness_down")
+    {
+        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_BRIGHTNESS_DOWN);
     }
     else
     {
@@ -366,6 +416,7 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
 void EDreamClient::ConnectRemoteControlSocket()
 {
     PlatformUtils::SetThreadName("ConnectRemoteControl");
+    g_Log->Info("Performing remote control connect.");
     BindWebSocketCallbacks();
     std::map<std::string, std::string> query;
     query["token"] = string_format("Bearer %s", GetAccessToken());

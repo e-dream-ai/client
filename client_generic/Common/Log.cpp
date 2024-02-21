@@ -186,6 +186,8 @@ void CLog::Log(
     /*const char *_file, const uint32_t _line, const char *_pFunc,*/ const char*
         _pStr)
 {
+    if (!m_bSingletonActive)
+        return;
     std::scoped_lock locker(m_Lock);
 
     // if (m_pFile == NULL)

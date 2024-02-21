@@ -53,6 +53,9 @@
 #else
 #define PRINTQUEUE(x, y, z, w)
 #endif
+
+class CElectricSheep* gClientInstance = nullptr;
+
 static void
 PrintQueue(std::string_view _str,
            const Base::CBlockingQueue<std::string>& _history,

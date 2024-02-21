@@ -122,7 +122,8 @@ template <typename T> class CBlockingQueue
             }
         }
 
-        lock.unlock();
+        if (lock.owns_lock())
+            lock.unlock();
         std::unique_lock<std::shared_mutex> wlock(m_mutex);
 
         if (popFront)
