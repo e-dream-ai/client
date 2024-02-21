@@ -181,6 +181,8 @@ class CElectricSheep
     }
 
     virtual ~CElectricSheep() {}
+    
+    Hud::spCHudManager GetHudManager() const { return m_HudManager; }
 
     //
     virtual bool Startup()

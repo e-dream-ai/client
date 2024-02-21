@@ -244,12 +244,13 @@ static void signnal_handler(int signal)
     exit(0);
 }
 
-- (void)onSleepNote:(NSNotification*)NSNotification
+- (void)onSleepNote:(NSNotification*)notif
 {
-    g_Log->Info("Killed by system from onSleepNote");
-    g_Log->Shutdown();
-    ESScreensaver_Deinit();
-    exit(0);
+    g_Log->Info("Killed by system from onSleepNote %s", notif.name.UTF8String);
+    NSLog(@"notif.object:%@", notif.object);
+//    g_Log->Shutdown();
+//    ESScreensaver_Deinit();
+//    exit(0);
 }
 
 - (void)_endThread

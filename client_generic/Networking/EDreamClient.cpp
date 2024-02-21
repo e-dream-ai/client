@@ -20,7 +20,10 @@
 #include "EDreamClient.h"
 #include "JSONUtil.h"
 
+
 static sio::client s_SIOClient;
+//@TODO:replace
+extern CElectricSheep_Mac gClient;
 
 namespace json = boost::json;
 using namespace ContentDownloader;
@@ -348,6 +351,11 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
     {
         g_Player().SkipForward(-10);
     }
+    else if (event == "dislike")
+    {
+        g_Player().SkipForward(-10);
+        gClient.GetHudManager()->Toggle("dreamstats");
+    }
     else
     {
         g_Log->Error("Unknown event type received: %s", event.data());
@@ -361,7 +369,6 @@ void EDreamClient::ConnectRemoteControlSocket()
     std::map<std::string, std::string> query;
     query["token"] = string_format("Bearer %s", GetAccessToken());
     s_SIOClient.connect(Shepherd::GetWebsocketServer(), query);
-    return;
 }
 
 void EDreamClient::SetCPUUsage(int _cpuUsage) { fCpuUsage.exchange(_cpuUsage); }
