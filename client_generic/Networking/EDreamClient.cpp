@@ -20,6 +20,7 @@
 #include "EDreamClient.h"
 #include "JSONUtil.h"
 
+#include "client_mac.h"
 
 static sio::client s_SIOClient;
 //@TODO:replace
