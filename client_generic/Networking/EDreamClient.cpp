@@ -365,7 +365,3 @@ void EDreamClient::ConnectRemoteControlSocket()
 }
 
 void EDreamClient::SetCPUUsage(int _cpuUsage) { fCpuUsage.exchange(_cpuUsage); }
-
-const char* ERR_lib_error_string(unsigned long) { return NULL; }
-
-const char* ERR_reason_error_string(unsigned long) { return NULL; }

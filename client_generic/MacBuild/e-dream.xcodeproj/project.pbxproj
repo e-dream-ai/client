@@ -28,6 +28,9 @@
 		1220B53A2B3DC64D00D68410 /* StringFormat.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1220B5382B3DC64D00D68410 /* StringFormat.cpp */; };
 		1243576C2B31FC1B00CCD62A /* BuildData.json in Resources */ = {isa = PBXBuildFile; fileRef = 1243576B2B31FC1B00CCD62A /* BuildData.json */; };
 		1243576D2B31FC1B00CCD62A /* BuildData.json in Resources */ = {isa = PBXBuildFile; fileRef = 1243576B2B31FC1B00CCD62A /* BuildData.json */; };
+		12440CBB2B85F49B00A23253 /* libsioclient_tls.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 12CA4A452B83DE3D00A2EAD6 /* libsioclient_tls.a */; };
+		12440CBC2B85F4DF00A23253 /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 12D020022B83C86C0036357D /* libssl.a */; };
+		12440CBD2B85F52500A23253 /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 12579D482B83C91E00604B41 /* libcrypto.a */; };
 		12579D492B83C98D00604B41 /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 12579D482B83C91E00604B41 /* libcrypto.a */; };
 		12579D4A2B83C99100604B41 /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 12D020022B83C86C0036357D /* libssl.a */; };
 		1270D0EF2B28975500E1DCE3 /* PlatformUtils_Mac.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1270D0EE2B28975400E1DCE3 /* PlatformUtils_Mac.mm */; };
@@ -566,6 +569,7 @@
 			files = (
 				467A64942B1F730500510BEE /* libswscale.a in Frameworks */,
 				467A64922B1F722E00510BEE /* libpng_universal.a in Frameworks */,
+				12440CBC2B85F4DF00A23253 /* libssl.a in Frameworks */,
 				464A49DE2AB88E1A00C77F6D /* Security.framework in Frameworks */,
 				46C427BB2AF8F575009C3879 /* Metal.framework in Frameworks */,
 				213D535111F79C8D00CF500D /* IOKit.framework in Frameworks */,
@@ -590,8 +594,10 @@
 				2161F1940ECF8CEF00FE48E9 /* libz.1.2.5.dylib in Frameworks */,
 				21887A240EC6CDF9001ABD2E /* libbz2.1.0.dylib in Frameworks */,
 				12726C1E2B6BCC55003C0FF6 /* Sparkle in Frameworks */,
+				12440CBB2B85F49B00A23253 /* libsioclient_tls.a in Frameworks */,
 				21A8AFBB18416ECA00F77369 /* libiconv.2.dylib in Frameworks */,
 				21DC0CAC1263B99000D60C6A /* libcurl.4.dylib in Frameworks */,
+				12440CBD2B85F52500A23253 /* libcrypto.a in Frameworks */,
 				2135D2690EC70571005E246D /* AppKit.framework in Frameworks */,
 				2197D56219B06F4600EFA1F2 /* VideoDecodeAcceleration.framework in Frameworks */,
 				212316960F50636700702B2C /* libboost_filesystem.a in Frameworks */,
