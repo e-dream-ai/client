@@ -411,7 +411,7 @@ class CElectricSheep
         // if multiple splashes are found then they are loaded when the timer
         // goes off, not here
         if (m_SplashFilename.empty() == false &&
-            g_Settings()->Get("settings.app.attributionpng", true) == true)
+            g_Settings()->Get("settings.app.attributionpng", false) == true)
             m_spSplashPNG = std::make_shared<Hud::CSplashImage>(
                 0.2f, m_SplashFilename.c_str(),
                 float(g_Settings()->Get("settings.app.pngfadein", 10)),
@@ -725,7 +725,7 @@ class CElectricSheep
                                      rand() % m_nSplashes);
                             if (m_SplashFilename.empty() == false &&
                                 g_Settings()->Get("settings.app.attributionpng",
-                                                  true) == true)
+                                                  false) == true)
                                 m_spSplashPNG =
                                     std::make_shared<Hud::CSplashImage>(
                                         0.2f, fNameFormatted,

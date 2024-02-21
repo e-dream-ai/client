@@ -386,7 +386,7 @@ using namespace ContentDownloader;
 #endif
 
     showAttribution.state =
-        ESScreensaver_GetBoolSetting("settings.app.attributionpng", true);
+        ESScreensaver_GetBoolSetting("settings.app.attributionpng", false);
 
     useProxy.state =
         ESScreensaver_GetBoolSetting("settings.content.use_proxy", false);
