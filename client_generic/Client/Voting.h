@@ -1,6 +1,9 @@
 #ifndef _VOTING_H_
 #define _VOTING_H_
 
+#include <string>
+#include <string_view>
+
 #include "BlockingQueue.h"
 #include "Timer.h"
 #include "base.h"
@@ -13,7 +16,7 @@ class CVote
 {
     typedef struct
     {
-        uint32_t vid;
+        std::string uuid;
         uint8_t vtype;
     } VotingInfo;
 
@@ -30,7 +33,8 @@ class CVote
     CVote();
     virtual ~CVote();
 
-    bool Vote(const uint32_t _id, const uint8_t _type, const float _duration);
+    bool Vote(std::string_view _uuid, const uint8_t _type,
+              const float _duration);
 };
 
 #endif

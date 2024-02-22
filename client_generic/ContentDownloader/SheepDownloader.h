@@ -73,7 +73,13 @@ class SheepDownloader
     ///	Clears the flock list being maintained
     void clearFlocks();
 
-    ///	Delete enough sheep to clear enough room for the given amount of bytes.
+    /**	Delete enough sheep to clear enough room for the given amount of bytes.
+
+            deleteCached().
+            This function will make sure there is enough room in the cache for any
+       newly downloaded files. If the cache is to large than the oldest and worst
+       rated files will be deleted.
+    */
     void deleteCached(const uint64_t& bytes, const int getGenerationType);
 
     bool isFolderAccessible(const char* folder);
@@ -97,8 +103,6 @@ class SheepDownloader
     ///	Function to initialize the downloader threads
     static void initializeDownloader();
 
-    void deleteSheep(sDreamMetadata* sheep);
-
     static bool fGotList;
 
     static bool fListDirty;
@@ -106,11 +110,18 @@ class SheepDownloader
   public:
     SheepDownloader();
     virtual ~SheepDownloader();
-
+    /**
+            shepherdCallback().
+            This method is also in charge of downling the sheep in their
+       transitional order.
+    */
     static void shepherdCallback(void* data);
 
     static int numberOfDownloadedSheep();
-
+    /**
+            getSheepList().
+            This method will download the sheep list and uncompress it.
+    */
     static bool getSheepList();
     static const SheepArray& getServerFlock() { return fServerFlock; }
     static const SheepArray& getClientFlock() { return fClientFlock; }
@@ -118,7 +129,9 @@ class SheepDownloader
     /// add to the number of downloaded sheep (called by torrent)
     static void addDownloadedSheep(int sheep) { fDownloadedSheep += sheep; }
 
-    void deleteSheepId(uint32_t sheepId);
+    static void deleteSheep(std::string_view _uuid);
+
+    static void deleteSheep(sDreamMetadata* sheep);
 
     /// Aborts the working thread
     void Abort(void);

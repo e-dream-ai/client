@@ -27,7 +27,7 @@ class CPlaylist
                       const bool _bRebuild = false,
                       bool _bStartByRandom = true) = PureVirtual;
     virtual void Override(const uint32_t _id) = PureVirtual;
-    virtual void Delete(const uint32_t _id) = PureVirtual;
+    virtual void Delete(std::string_view _uuid) = PureVirtual;
     virtual bool
     PopFreshlyDownloadedSheep([[maybe_unused]] std::string& _result)
     {

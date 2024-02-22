@@ -64,7 +64,7 @@
                 <menuItem title="File" id="83">
                     <menu key="submenu" title="File" id="81">
                         <items>
-                            <menuItem title="New Window" keyEquivalent="n" id="73">
+                            <menuItem title="New Window" hidden="YES" enabled="NO" keyEquivalent="n" id="73">
                                 <connections>
                                     <action selector="newWindow:" target="-1" id="b0f-vY-u11"/>
                                 </connections>

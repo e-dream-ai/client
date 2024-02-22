@@ -402,8 +402,6 @@ bool Shepherd::getSheep(const char* path, SheepArray* sheep,
         return false;
 
     bool gotSheep = false;
-    char fbuf[MAXBUF];
-
     try
     {
         boost::filesystem::path p(path);
@@ -411,13 +409,6 @@ bool Shepherd::getSheep(const char* path, SheepArray* sheep,
         directory_iterator end_itr; // default construction yields past-the-end
         for (directory_iterator itr(p); itr != end_itr; ++itr)
         {
-            uint32_t id = 0;
-            uint32_t first = 0;
-            uint32_t last = 0;
-            uint32_t generation = 0;
-            bool isTemp = false;
-            bool isDeleted = false;
-
             if (is_directory(itr->status()))
             {
                 bool gotSheepSubfolder = getSheep(
@@ -431,7 +422,8 @@ bool Shepherd::getSheep(const char* path, SheepArray* sheep,
             else
             {
                 auto fileName = itr->path().filename();
-                if (fileName.extension() == ".mp4")
+                if (fileName.extension() == ".mp4" ||
+                    fileName.extension() == ".xxx")
                 {
                     std::string uuid = fileName.stem().string();
                     sDreamMetadata* serverSheep = nullptr;
@@ -458,7 +450,7 @@ bool Shepherd::getSheep(const char* path, SheepArray* sheep,
         }
         for (auto removePath : filesToRemove)
         {
-            remove_all(removePath);
+            //remove_all(removePath);
         }
     }
     catch (boost::filesystem::filesystem_error& err)

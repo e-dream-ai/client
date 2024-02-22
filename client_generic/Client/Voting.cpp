@@ -75,7 +75,8 @@ void CVote::ThreadFunc()
         {
             static const char* votedesc[] = {"Negative", "Positive"};
 
-            g_Log->Info("%s vote for sheep %d", votedesc[vi.vtype], vi.vid);
+            g_Log->Info("%s vote for dream %s", votedesc[vi.vtype],
+                        vi.uuid.data());
 
             Network::CCurlTransfer* spRequest = new Network::CCurlTransfer(
                 std::string(votedesc[vi.vtype]) + " vote");
@@ -86,8 +87,9 @@ void CVote::ThreadFunc()
             if (vi.vtype == 1)
                 voteDir = 1;
 
-            snprintf(url, MAX_PATH, "%scgi/vote.cgi?id=%d&vote=%d&u=%s",
-                     serverName.c_str(), vi.vid, voteDir, uniqueID.c_str());
+            snprintf(url, MAX_PATH, "%scgi/vote.cgi?id=%s&vote=%d&u=%s",
+                     serverName.c_str(), vi.uuid.data(), voteDir,
+                     uniqueID.c_str());
 
             //	Server responds (correctly) with a "302 Moved", so we need to
             // allow that.
@@ -121,7 +123,8 @@ void CVote::ThreadFunc()
         Vote().
         Spawn a thread which sends a vote to the sheep server.
 */
-bool CVote::Vote(const uint32_t _id, const uint8_t _type, const float _duration)
+bool CVote::Vote(std::string_view _uuid, const uint8_t _type,
+                 const float _duration)
 {
     const double time = m_Timer.Time();
 
@@ -132,7 +135,7 @@ bool CVote::Vote(const uint32_t _id, const uint8_t _type, const float _duration)
             g_Settings()->Get("settings.content.negvotedeletes", true))
         {
             //	Queue this sheep to be deleted.
-            g_Player().Delete(_id);
+            g_Player().Delete(_uuid);
         }
 
         m_Clock = time;
@@ -145,7 +148,7 @@ bool CVote::Vote(const uint32_t _id, const uint8_t _type, const float _duration)
 
     VotingInfo vi;
 
-    vi.vid = _id;
+    vi.uuid = _uuid;
     vi.vtype = _type;
 
     m_Votings.push(vi);

@@ -56,10 +56,7 @@ extern void ESShowPreferences();
 
 extern class CElectricSheep* gClientInstance;
 
-inline class CElectricSheep* g_Client()
-{
-    return gClientInstance;
-}
+inline class CElectricSheep* g_Client() { return gClientInstance; }
 
 /*
         CElectricSheep().
@@ -1058,13 +1055,13 @@ class CElectricSheep
         {
         case CLIENT_COMMAND_LIKE:
             if (m_pVoter != nullptr &&
-                m_pVoter->Vote(0, true, voteDelaySeconds))
+                m_pVoter->Vote(data->dreamData.uuid, true, voteDelaySeconds))
                 m_HudManager->Add("splash_pos", m_spSplashPos,
                                   voteDelaySeconds * 0.9f);
             return true;
         case CLIENT_COMMAND_DISLIKE:
             if (m_pVoter != nullptr &&
-                m_pVoter->Vote(0, false, voteDelaySeconds))
+                m_pVoter->Vote(data->dreamData.uuid, false, voteDelaySeconds))
             {
                 if (g_Settings()->Get("settings.content.negvotedeletes", true))
                 {

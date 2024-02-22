@@ -162,10 +162,10 @@ class CPlayer : public Base::CSingleton<CPlayer>
         if (m_spPlaylist)
             m_spPlaylist->Add(_fileName);
     }
-    inline void Delete(const uint32_t _id)
+    inline void Delete(std::string_view _uuid)
     {
         if (m_spPlaylist)
-            m_spPlaylist->Delete(_id);
+            m_spPlaylist->Delete(_uuid);
     };
 
     void SkipToNext();

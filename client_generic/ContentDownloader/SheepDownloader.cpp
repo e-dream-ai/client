@@ -32,6 +32,7 @@
 // #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/json.hpp>
+#include <boost/filesystem/operations.hpp>
 
 #include <math.h>
 #include <time.h>
@@ -71,6 +72,8 @@
 #endif
 #include "EDreamClient.h"
 #include "PlatformUtils.h"
+
+using path = boost::filesystem::path;
 
 namespace ContentDownloader
 {
@@ -480,12 +483,6 @@ int SheepDownloader::cacheOverflow(const double& bytes,
         (bytes > (1024.0 * 1024.0 * Shepherd::cacheSize(getGenerationType))));
 }
 
-/*
-        deleteCached().
-        This function will make sure there is enough room in the cache for any
-   newly downloaded files. If the cache is to large than the oldest and worst
-   rated files will be deleted.
-*/
 void SheepDownloader::deleteCached(const uint64_t& size,
                                    const int getGenerationType)
 {
@@ -587,10 +584,6 @@ void SheepDownloader::deleteCached(const uint64_t& size,
     }
 }
 
-/*
-        deleteSheep().
-
-*/
 void SheepDownloader::deleteSheep(sDreamMetadata* sheep)
 {
     if (remove(sheep->fileName.data()) != 0)
@@ -616,9 +609,7 @@ void SheepDownloader::deleteSheep(sDreamMetadata* sheep)
         fclose(out);
 }
 
-/*
- */
-void SheepDownloader::deleteSheepId(uint32_t sheepId)
+void SheepDownloader::deleteSheep(std::string_view _uuid)
 {
     for (uint32_t i = 0; i < fClientFlock.size(); i++)
     {
@@ -626,7 +617,7 @@ void SheepDownloader::deleteSheepId(uint32_t sheepId)
         if (curSheep->flags & DREAM_FLAG_DOWNLOADED)
             continue;
 
-        if (curSheep->id == sheepId)
+        if (curSheep->uuid == _uuid)
             deleteSheep(curSheep);
     }
 }
@@ -846,13 +837,6 @@ void SheepDownloader::FindSheepToDownload()
                                      fServerFlock[i]->writeTime < best_ctime))
                                 {
                                     bool timeCheck = false;
-                                    // if (useDreamAI)
-                                    {
-                                        //  timeCheck =
-                                        //  fServerFlock[i]->fileWriteTime() !=
-                                        //  best_ctime_old;
-                                    }
-                                    // else
                                     {
                                         timeCheck = fServerFlock[i]->writeTime >
                                                     best_ctime_old;
@@ -963,21 +947,12 @@ void SheepDownloader::FindSheepToDownload()
     }
 }
 
-/**
-        getSheepList().
-        This method will download the sheep list and uncompress it.
-*/
 bool SheepDownloader::getSheepList()
 {
     fListDirty = EDreamClient::GetDreams();
     return fListDirty;
 }
 
-/**
-        shepherdCallback().
-        This method is also in charge of downling the sheep in their
-   transitional order.
-*/
 void SheepDownloader::shepherdCallback(void* data)
 {
     ((SheepDownloader*)data)->FindSheepToDownload();

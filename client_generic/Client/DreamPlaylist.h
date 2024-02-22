@@ -17,11 +17,14 @@
 #include "SheepDownloader.h"
 #include "Shepherd.h"
 #include "Timer.h"
+#include "StringFormat.h"
 
 using boost::filesystem::directory_iterator;
 using boost::filesystem::exists;
 using boost::filesystem::extension;
 using boost::filesystem::path;
+using Shepherd = ContentDownloader::Shepherd;
+using path = boost::filesystem::path;
 
 namespace ContentDecoder
 {
@@ -175,7 +178,8 @@ class CDreamPlaylist : public CPlaylist
             for (auto it = sheepList.begin(); it != sheepList.end(); ++it)
             {
                 ContentDownloader::sDreamMetadata* sheep = *it;
-                m_List.push(sheep->fileName);
+                if (exists(sheep->fileName))
+                    m_List.push(sheep->fileName);
             }
 #ifdef DEBUG
             std::vector<std::string> testVideos = g_Settings()->Get(
@@ -227,9 +231,16 @@ class CDreamPlaylist : public CPlaylist
     }
 
     //	Queues _id to be deleted.
-    void Delete(const uint32_t /*_id*/)
+    void Delete(std::string_view _uuid)
     {
         std::scoped_lock locker(m_Lock);
+        //ContentDownloader::SheepDownloader::deleteSheep(_uuid);
+        path filePath =
+            path(Shepherd::mp4Path()) / path(string_format("%s.mp4", _uuid));
+        if (exists(filePath))
+            rename(filePath, path(Shepherd::mp4Path()) /
+                                 path(string_format("%s.xxx", _uuid)));
+
         // m_pState->Pop( Base::Script::Call( m_pState->GetState(), "Delete",
         // "i", _id ) );
     }
