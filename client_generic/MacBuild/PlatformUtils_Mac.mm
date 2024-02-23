@@ -127,6 +127,13 @@ void PlatformUtils::SetThreadName(std::string_view _name)
         pthread_setname_np(_name.data());
 }
 
+void PlatformUtils::DispatchOnMainThread(std::function<void()> _func)
+{
+    dispatch_async(dispatch_get_main_queue(), ^{
+        _func();
+    });
+}
+
 CDelayedDispatch::CDelayedDispatch(std::function<void()> _func)
     : m_DispatchTime(0), m_Func(_func)
 {

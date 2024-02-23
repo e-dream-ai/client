@@ -337,75 +337,93 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
     g_Log->Info("Received WebSocket message: %s", event.data());
     if (event == "like")
     {
-        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_LIKE);
+        g_Client()->ExecuteCommand(
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_LIKE);
     }
     else if (event == "dislike")
     {
-        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_DISLIKE);
+        g_Client()->ExecuteCommand(
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_DISLIKE);
     }
     else if (event == "next")
     {
-        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_NEXT);
+        g_Client()->ExecuteCommand(
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_NEXT);
     }
     else if (event == "previous")
     {
-        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_PREVIOUS);
+        g_Client()->ExecuteCommand(
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_PREVIOUS);
     }
     else if (event == "repeat")
     {
-        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_REPEAT);
+        g_Client()->ExecuteCommand(
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_REPEAT);
     }
     else if (event == "skip_fw")
     {
-        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_SKIP_FW);
+        g_Client()->ExecuteCommand(
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_SKIP_FW);
     }
     else if (event == "skip_bw")
     {
-        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_SKIP_BW);
+        g_Client()->ExecuteCommand(
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_SKIP_BW);
     }
     else if (event == "playback_slower")
     {
-        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_PLAYBACK_SLOWER);
+        g_Client()->ExecuteCommand(
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_PLAYBACK_SLOWER);
     }
     else if (event == "playback_faster")
     {
-        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_PLAYBACK_FASTER);
+        g_Client()->ExecuteCommand(
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_PLAYBACK_FASTER);
     }
     else if (event == "repeat")
     {
-        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_REPEAT);
+        g_Client()->ExecuteCommand(
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_REPEAT);
     }
     else if (event == "f1")
     {
-        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_F1);
+        g_Client()->ExecuteCommand(
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_F1);
     }
     else if (event == "f2")
     {
-        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_F2);
+        g_Client()->ExecuteCommand(
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_F2);
     }
     else if (event == "skip_fw")
     {
-        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_SKIP_FW);
+        g_Client()->ExecuteCommand(
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_SKIP_FW);
     }
     else if (event == "pause")
     {
-        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_PAUSE);
+        g_Client()->ExecuteCommand(
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_PAUSE);
     }
     else if (event == "credit")
     {
-        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_CREDIT);
+        g_Client()->ExecuteCommand(
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_CREDIT);
     }
     else if (event == "webpage")
     {
-        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_WEBPAGE);
+        g_Client()->ExecuteCommand(
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_WEBPAGE);
     }
     else if (event == "brightness_up")
     {
-        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_BRIGHTNESS_UP);
+        g_Client()->ExecuteCommand(
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_BRIGHTNESS_UP);
     }
     else if (event == "brightness_down")
     {
-        g_Client()->ExecuteCommand(CElectricSheep::eClientCommand::CLIENT_COMMAND_BRIGHTNESS_DOWN);
+        g_Client()->ExecuteCommand(
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_BRIGHTNESS_DOWN);
     }
     else
     {

@@ -140,8 +140,8 @@ Base::Math::CVector2 CTextMetal::GetExtent()
             return;
         NSRect frame = textLayer.frame;
         NSRect parentFrame = textLayer.superlayer.frame;
-        extents = {(float)frame.size.width / (float)parentFrame.size.width,
-                   (float)frame.size.height / (float)parentFrame.size.height};
+        extents = {102.f / (float)parentFrame.size.width,
+                   72.f / (float)parentFrame.size.height};
     });
     return extents;
 #else  /*USE_SYSTEM_UI*/
