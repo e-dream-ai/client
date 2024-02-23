@@ -765,7 +765,14 @@ class CElectricSheep
                     std::string serverStatus = g_NetworkManager->Status();
                     if (drawNoSheepIntro)
                     {
-                        pTmp->SetSample(string_format("Downloading %s", serverStatus.data()));
+                        if (EDreamClient::IsLoggedIn())
+                        {
+                            pTmp->SetSample(string_format("Downloading %s", serverStatus.data()));
+                        }
+                        else
+                        {
+                            pTmp->SetSample("Logged out. Please use the standalone app to log in.");
+                        }
                         pTmp->Visible(true);
                     }
                     else
