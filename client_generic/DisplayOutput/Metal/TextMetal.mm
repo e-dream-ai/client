@@ -51,8 +51,11 @@ CTextMetal::CTextMetal(spCFontMetal _font, MTKView* _view,
         [textLayer display];
         textLayer.autoresizingMask = NSViewMaxYMargin;
         [textLayer setHidden:YES];
-
+#ifdef SCREEN_SAVER
+        [[view.layer.sublayers objectAtIndex:0] addSublayer:textLayer];
+#else
         [view.layer addSublayer:textLayer];
+#endif
         [view setAutoresizesSubviews:NO];
         [view setContentHuggingPriority:NSLayoutPriorityRequired
                          forOrientation:NSLayoutConstraintOrientationVertical];

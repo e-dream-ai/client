@@ -109,11 +109,14 @@ class CElectricSheep
     Hud::spCSplashImage m_spSplashPNG;
     Base::CTimer m_SplashPNGDelayTimer;
     int m_nSplashes;
+    int m_StatsCodeCounter;
     std::string m_SplashFilename;
 
     Hud::spCCrossFade m_spCrossFade;
 
     std::deque<std::string> m_ConnectionErrors;
+    std::string m_HudFontName;
+    int m_HudFontSize;
 
 #ifdef DO_THREAD_UPDATE
     boost::barrier* m_pUpdateBarrier;
@@ -166,6 +169,7 @@ class CElectricSheep
         m_CpuUsageES = -1;
         m_CpuUsageThreshold = 50;
         m_HighCpuUsageCounter = 0;
+        m_StatsCodeCounter = 0;
         m_bConfigMode = false;
         m_MultipleInstancesMode = false;
         printf("CElectricSheep()\n");
@@ -188,76 +192,26 @@ class CElectricSheep
     virtual ~CElectricSheep() {}
 
     Hud::spCHudManager GetHudManager() const { return m_HudManager; }
-
-    //
-    virtual bool Startup()
+    
+    void CreateHud()
     {
-        m_CpuUsageThreshold =
-            g_Settings()->Get("settings.player.cpuusagethreshold", 50);
-
-        if (m_MultipleInstancesMode == false)
-        {
-            g_NetworkManager->Startup();
-
-            //	Set proxy info.
-            if (g_Settings()->Get("settings.content.use_proxy", false))
-            {
-                g_Log->Info("Using proxy server...");
-                g_NetworkManager->Proxy(
-                    g_Settings()->Get("settings.content.proxy",
-                                      std::string("")),
-                    g_Settings()->Get("settings.content.proxy_username",
-                                      std::string("")),
-                    g_Settings()->Get("settings.content.proxy_password",
-                                      std::string("")));
-            }
-
-            m_pVoter = new CVote();
-        }
-
-        g_Player().SetMultiDisplayMode(
-            (CPlayer::MultiDisplayMode)g_Settings()->Get(
-                "settings.player.MultiDisplayMode", 0));
-
-        //	Init the display and create decoder.
-        if (!g_Player().Startup())
-            return false;
-
-#ifdef DO_THREAD_UPDATE
-        CreateUpdateThreads();
-#endif
-
-        //	Set framerate.
-        m_PlayerFps = g_Settings()->Get("settings.player.player_fps", 20.);
-        if (m_PlayerFps < 0.1)
-            m_PlayerFps = 1.;
-        m_OriginalFps = m_PlayerFps;
-
-        g_Player().SetFramerate(m_PlayerFps);
-
-        //	Get hud font size.
-        std::string hudFontName = g_Settings()->Get(
-            "settings.player.hudFontName", std::string("Lato"));
-        uint32_t hudFontSize = static_cast<uint32_t>(
-            g_Settings()->Get("settings.player.hudFontSize", 24));
+        //    Get hud font size.
+        m_HudFontName = g_Settings()->Get(
+            "settings.player.m_HudFontName", std::string("Lato"));
+        m_HudFontSize = static_cast<uint32_t>(
+            g_Settings()->Get("settings.player.m_HudFontSize", 24));
 
         m_PNGDelayTimer =
             g_Settings()->Get("settings.player.pngdelaytimer", 600);
 
         m_HudManager = std::make_shared<Hud::CHudManager>();
-
-        m_HudManager->Add("dreamcredits", std::make_shared<Hud::CStatsConsole>(
-                                              Base::Math::CRect(1, 1),
-                                              hudFontName, hudFontSize));
-        Hud::spCStatsConsole spStats =
-            std::dynamic_pointer_cast<Hud::CStatsConsole>(
-                m_HudManager->Get("dreamcredits"));
-        m_HudManager->Hide("dreamcredits");
-        spStats->Add(new Hud::CStringStat("credits", "", "Title - Artist"));
-
+    }
+    
+    void AddHelpHud()
+    {
         m_HudManager->Add("helpmessage", std::make_shared<Hud::CStatsConsole>(
                                              Base::Math::CRect(1, 1),
-                                             hudFontName, hudFontSize));
+                                             m_HudFontName, m_HudFontSize));
         m_HudManager->Hide("helpmessage");
         Hud::spCStatsConsole spHelpMessage =
             std::dynamic_pointer_cast<Hud::CStatsConsole>(
@@ -287,16 +241,15 @@ class CElectricSheep
             new Hud::CStringStat("version", "\nVersion: ",
                                  ver + " " + PlatformUtils::GetGitRevision() +
                                      " " + PlatformUtils::GetBuildDate()));
-
-        m_SeamlessPlayback =
-            g_Settings()->Get("settings.player.SeamlessPlayback", false);
-
-        //	Add some server stats.
+    }
+    
+    void AddDreamStatsHud()
+    {
         m_HudManager->Add("dreamstats", std::make_shared<Hud::CStatsConsole>(
                                             Base::Math::CRect(1, 1),
-                                            hudFontName, hudFontSize));
+                                            m_HudFontName, m_HudFontSize));
         m_HudManager->Hide("dreamstats");
-        spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
+        Hud::spCStatsConsole spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
             m_HudManager->Get("dreamstats"));
         spStats->Add(new Hud::CStringStat("loginstatus", "", "Not logged in"));
         spStats->Add(
@@ -343,13 +296,28 @@ class CElectricSheep
                 g_Player().Renderer()->Description() + " display at ", " fps",
                 1.0));
         spStats->Add(new Hud::CStringStat(std::string("zconnerror"), "", ""));
-
+    }
+    
+    void AddCreditsHud()
+    {
+        m_HudManager->Add("dreamcredits", std::make_shared<Hud::CStatsConsole>(
+                                              Base::Math::CRect(1, 1),
+                                              m_HudFontName, m_HudFontSize));
+        Hud::spCStatsConsole spStats =
+            std::dynamic_pointer_cast<Hud::CStatsConsole>(
+                m_HudManager->Get("dreamcredits"));
+        m_HudManager->Hide("dreamcredits");
+        spStats->Add(new Hud::CStringStat("credits", "", "Title - Artist"));
+    }
+    
+    void AddSplashHud()
+    {
 #ifndef LINUX_GNU
         std::string defaultDir = std::string(".\\");
 #else
         std::string defaultDir = std::string("");
 #endif
-        //	Vote splash.
+        //    Vote splash.
         m_spSplashPos = std::make_shared<Hud::CSplash>(
             0.2f, g_Settings()->Get("settings.app.InstallDir", defaultDir) +
                       "vote-up.png");
@@ -422,10 +390,85 @@ class CElectricSheep
                 float(g_Settings()->Get("settings.app.pngfadein", 10)),
                 float(g_Settings()->Get("settings.app.pnghold", 10)),
                 float(g_Settings()->Get("settings.app.pngfadeout", 10)));
+    }
+    
+    void AddProgressHud()
+    {
+        m_HudManager->Add("progress", std::make_shared<Hud::CStatsConsole>(
+                                            Base::Math::CRect(1, 1),
+                                            m_HudFontName, m_HudFontSize));
+        Hud::spCStatsConsole spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
+            m_HudManager->Get("progress"));
+        spStats->Add(new Hud::CStringStat("downloadprogress", "", ""));
+    }
+    
+    void SetupFramerate()
+    {
+        //    Set framerate.
+        m_PlayerFps = g_Settings()->Get("settings.player.player_fps", 20.);
+        if (m_PlayerFps < 0.1)
+            m_PlayerFps = 1.;
+        m_OriginalFps = m_PlayerFps;
+
+        g_Player().SetFramerate(m_PlayerFps);
+    }
+    
+    void SetupProxy()
+    {
+        if (g_Settings()->Get("settings.content.use_proxy", false))
+        {
+            g_Log->Info("Using proxy server...");
+            g_NetworkManager->Proxy(
+                g_Settings()->Get("settings.content.proxy",
+                                  std::string("")),
+                g_Settings()->Get("settings.content.proxy_username",
+                                  std::string("")),
+                g_Settings()->Get("settings.content.proxy_password",
+                                  std::string("")));
+        }
+    }
+
+    //
+    virtual bool Startup()
+    {
+        m_CpuUsageThreshold =
+            g_Settings()->Get("settings.player.cpuusagethreshold", 50);
+
+        if (m_MultipleInstancesMode == false)
+        {
+            g_NetworkManager->Startup();
+
+            //	Set proxy info.
+            SetupProxy();
+
+            m_pVoter = new CVote();
+        }
+
+        g_Player().SetMultiDisplayMode(
+            (CPlayer::MultiDisplayMode)g_Settings()->Get(
+                "settings.player.MultiDisplayMode", 0));
+
+        //	Init the display and create decoder.
+        if (!g_Player().Startup())
+            return false;
+
+#ifdef DO_THREAD_UPDATE
+        CreateUpdateThreads();
+#endif
+
+        SetupFramerate();
+
+        CreateHud();
+        AddCreditsHud();
+        AddHelpHud();
+        AddDreamStatsHud();
+        AddProgressHud();
+        AddSplashHud();
 
         m_spCrossFade = std::make_shared<Hud::CCrossFade>(
             g_Player().Display()->Width(), g_Player().Display()->Height(),
             true);
+        
 
         //	For testing...
         /*ContentDownloader::Shepherd::addMessageText(
@@ -709,6 +752,24 @@ class CElectricSheep
                         m_StartupScreen = std::make_shared<Hud::CStartupScreen>(
                             Base::Math::CRect(0, 0, 1., 1.), "Lato", 24);
                     m_StartupScreen->Render(0., g_Player().Renderer());
+                    
+                }
+                
+                Hud::spCStatsConsole spStats =
+                    std::dynamic_pointer_cast<Hud::CStatsConsole>(
+                        m_HudManager->Get("progress"));
+                Hud::CStringStat* pTmp =
+                    (Hud::CStringStat*)spStats->Get("downloadprogress");
+                if (pTmp)
+                {
+                    std::string serverStatus = g_NetworkManager->Status();
+                    if (drawNoSheepIntro)
+                    {
+                        pTmp->SetSample(string_format("Downloading %s", serverStatus.data()));
+                        pTmp->Visible(true);
+                    }
+                    else
+                        pTmp->Visible(false);
                 }
                 //	Process any server messages.
                 std::string msg;
@@ -857,7 +918,7 @@ class CElectricSheep
                     ContentDownloader::Shepherd::SetRenderingAllowed(true);
 
                 //	Update some stats.
-                Hud::spCStatsConsole spStats =
+                spStats =
                     std::dynamic_pointer_cast<Hud::CStatsConsole>(
                         m_HudManager->Get("dreamstats"));
                 float activityLevel = 1.f;
@@ -928,7 +989,7 @@ class CElectricSheep
                 ((Hud::CStringStat*)spStats->Get("all"))
                     ->SetSample(tmpstr.str());
 
-                Hud::CStringStat* pTmp =
+                pTmp =
                     (Hud::CStringStat*)spStats->Get("transfers");
                 if (pTmp)
                 {
@@ -1051,9 +1112,17 @@ class CElectricSheep
         static const float voteDelaySeconds = 1;
         const ContentDecoder::sClipMetadata* data =
             g_Player().GetCurrentPlayingClipMetadata();
+        if ((int)_command && (int)_command != 5 && (int)_command != 6)
+            m_StatsCodeCounter = 0;
         switch (_command)
         {
         case CLIENT_COMMAND_LIKE:
+            if (m_StatsCodeCounter == 4)
+            {
+                m_HudManager->Toggle("dreamstats");
+                m_StatsCodeCounter = 0;
+                return true;
+            }
             if (m_pVoter != nullptr &&
                 m_pVoter->Vote(data->dreamData.uuid, true, voteDelaySeconds))
                 m_HudManager->Add("splash_pos", m_spSplashPos,
@@ -1090,10 +1159,14 @@ class CElectricSheep
         case CLIENT_COMMAND_PLAYBACK_SLOWER:
             m_F1F4Timer.Reset();
             g_Player().MultiplyFramerate(1.f / 1.1f);
+                if (m_StatsCodeCounter == 1 || m_StatsCodeCounter == 3)
+                    m_StatsCodeCounter++;
             return true;
         case CLIENT_COMMAND_PLAYBACK_FASTER:
             m_F1F4Timer.Reset();
             g_Player().MultiplyFramerate(1.1f);
+            if (m_StatsCodeCounter == 0 || m_StatsCodeCounter == 2)
+                m_StatsCodeCounter++;
             return true;
             //    OSD info.
         case CLIENT_COMMAND_F1:

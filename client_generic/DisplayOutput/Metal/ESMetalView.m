@@ -26,6 +26,7 @@
         metalLayer.framebufferOnly = NO;
         metalLayer.shouldRasterize = NO;
         [self.layer addSublayer:metalLayer];
+        
         _redrawTimer = [NSTimer scheduledTimerWithTimeInterval:(1.0 / 60.0)
                                                         target:self
                                                       selector:@selector(redraw)
