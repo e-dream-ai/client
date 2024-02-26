@@ -321,74 +321,80 @@ class CStatsConsole : public CConsole
         }
     }
 
-    bool Render(const double _time, DisplayOutput::spCRenderer _spRenderer)
+    bool Render(const double _time,
+                DisplayOutput::spCRenderer _spRenderer) override
     {
         CHudEntry::Render(_time, _spRenderer);
-
         PlatformUtils::DispatchOnMainThread(
             [=, this]()
             {
-                float heightStep = (float)m_Desc.Height() /
-                                   (float)_spRenderer->Display()->Height();
-                float yPos = 0;
-                float edgeOffset = 24 / (float)_spRenderer->Display()->Width();
+                if (g_Player().Stopped())
+                    return;
+                float step = (float)m_Desc.Height() /
+                             (float)_spRenderer->Display()->Height();
+                float pos = 0;
+                float edge = 24 / (float)_spRenderer->Display()->Width();
 
-                std::queue<Base::Math::CVector2> textSizeQueue;
-                for (auto iter = m_Stats.begin(); iter != m_Stats.end(); ++iter)
+                //	Figure out text extent for all strings.
+                std::queue<Base::Math::CVector2> sizeq;
+                m_TotalExtent = {0, 0, 0, 0};
+                for (auto i = m_Stats.begin(); i != m_Stats.end(); ++i)
                 {
-                    CStat* stat = iter->second.stat;
-                    DisplayOutput::spCBaseText& textObj = iter->second.text;
-                    if (textObj)
+                    CStat* e = i->second.stat;
+                    DisplayOutput::spCBaseText& text = i->second.text;
+                    if (text)
                     {
-                        textObj->SetEnabled(stat->Visible());
+                        text->SetEnabled(e->Visible());
                     }
-                    if (stat && stat->Visible())
+                    if (e && e->Visible())
                     {
-                        textObj->SetText(stat->Report(_time));
-                        textSizeQueue.push(textObj->GetExtent());
+                        text->SetText(e->Report(_time));
+                        sizeq.push(text->GetExtent());
                         m_TotalExtent = m_TotalExtent.Union(Base::Math::CRect(
-                            0, yPos,
-                            textSizeQueue.back().m_X + (edgeOffset * 2),
-                            textSizeQueue.back().m_Y + (yPos) +
-                                (edgeOffset * 2)));
-                        yPos += textSizeQueue.back().m_Y;
+                            0, pos, sizeq.back().m_X + (edge * 2),
+                            sizeq.back().m_Y + (pos) + (edge * 2)));
+                        pos += sizeq.back().m_Y;
                     }
                 }
 
+                // align soft quad at bottom
                 m_TotalExtent.m_Y0 = 1.f - m_TotalExtent.m_Y1;
                 m_TotalExtent.m_Y1 = 1.f;
-
-                yPos = m_TotalExtent.m_Y0 + edgeOffset;
-
-                for (auto iter = m_Stats.begin(); iter != m_Stats.end(); ++iter)
+                // align text at bottom
+                pos = m_TotalExtent.m_Y0 + edge;
+                for (auto i = m_Stats.begin(); i != m_Stats.end(); ++i)
                 {
-                    CStat* stat = iter->second.stat;
-                    if (stat && stat->Visible())
+                    CStat* e = i->second.stat;
+                    if (e && e->Visible())
                     {
-                        Base::Math::CVector2 textSize = textSizeQueue.front();
-                        textSizeQueue.pop();
-                        DisplayOutput::spCBaseText& textObj = iter->second.text;
-                        textObj->SetRect(Base::Math::CRect(edgeOffset, yPos, 1,
-                                                           textSize.m_Y + yPos +
-                                                               heightStep));
-                        yPos += textSize.m_Y;
+                        Base::Math::CVector2 size = sizeq.front();
+                        sizeq.pop();
+                        DisplayOutput::spCBaseText& text = i->second.text;
+                        text->SetRect(Base::Math::CRect(edge, pos, 1,
+                                                        size.m_Y + pos + step));
+                        pos += size.m_Y;
                     }
                 }
             });
+
+        //	Draw quad.
         _spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader |
                            DisplayOutput::eBlend);
         _spRenderer->SetBlend("alphablend");
         _spRenderer->Apply();
         _spRenderer->DrawSoftQuad(m_TotalExtent,
                                   Base::Math::CVector4(0, 0, 0, 0.375f), 16);
-        for (auto iter = m_Stats.begin(); iter != m_Stats.end(); ++iter)
+
+        //_spRenderer->NewText(m_spFont)
+
+        // align text at bottom
+        for (auto i = m_Stats.begin(); i != m_Stats.end(); ++i)
         {
-            CStat* stat = iter->second.stat;
-            if (stat && stat->Visible())
+            CStat* e = i->second.stat;
+            if (e && e->Visible())
             {
-                DisplayOutput::spCBaseText& textObj = iter->second.text;
-                _spRenderer->DrawText(textObj,
-                                      Base::Math::CVector4(1, 1, 1, 1));
+                DisplayOutput::spCBaseText& text = i->second.text;
+                _spRenderer->DrawText(text, Base::Math::CVector4(1, 1, 1, 1));
             }
         }
 

@@ -241,8 +241,6 @@ static NSString* const MBEGlyphDescriptorsKey = @"glyphDescriptors";
                                             _fontPointSize, NULL);
     _parentFont = [NSFont fontWithName:font.fontName size:_fontPointSize];
 
-    CFIndex fontGlyphCount = CTFontGetGlyphCount(ctFont);
-
     CGFloat glyphMargin = [self estimatedLineWidthForFont:_parentFont];
 
     // Set fill color so that glyphs are solid white

@@ -80,6 +80,7 @@ bool CTextureFlatMetal::Upload(spCImage _spImage)
                mipMapLevel);
         mipMapLevel++;
     }
+    return true;
 }
 
 bool CTextureFlatMetal::Upload(const uint8_t* _data, CImageFormat _format,

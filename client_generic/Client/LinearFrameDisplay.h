@@ -13,16 +13,12 @@
 class CLinearFrameDisplay : public CFrameDisplay
 {
     static const uint32_t kFramesPerState = 2;
-
-    float m_LastAlpha;
     //	Pixelshader.
     DisplayOutput::spCShader m_spShader;
 
     //	The two frames.
     DisplayOutput::spCTextureFlat m_spFrames[kFramesPerState];
     uint8_t m_State;
-
-    bool m_bWaitNextFrame;
 
   public:
     CLinearFrameDisplay(DisplayOutput::spCRenderer _spRenderer)
@@ -134,7 +130,7 @@ class CLinearFrameDisplay : public CFrameDisplay
         return true;
     }
 
-    virtual double GetFps(double /*_decodeFps*/, double _displayFps)
+    virtual double GetFps(double /*_decodeFps*/, double _displayFps) override
     {
         return _displayFps;
     }

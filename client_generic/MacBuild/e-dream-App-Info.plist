@@ -2,11 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>bugsnag</key>
-  <dict>
-    <key>apiKey</key>
-    <string>e5c13907fcb8f0ddd59710529b2507e1</string>
-  </dict>
 	<key>ATSApplicationFontsPath</key>
 	<string></string>
 	<key>CFBundleDevelopmentRegion</key>
@@ -70,5 +65,10 @@
 	<array>
 		<string>Lato-Regular.ttf</string>
 	</array>
+	<key>bugsnag</key>
+	<dict>
+		<key>apiKey</key>
+		<string>e5c13907fcb8f0ddd59710529b2507e1</string>
+	</dict>
 </dict>
 </plist>

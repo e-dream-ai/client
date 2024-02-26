@@ -146,7 +146,7 @@ bool EDreamClient::Authenticate()
 {
     PlatformUtils::SetThreadName("Authenticate");
     bool success = false;
-    if (GetAccessToken() && strlen(GetAccessToken()))
+    if (strlen(GetAccessToken()))
     {
         Network::spCFileDownloader spDownload =
             std::make_shared<Network::CFileDownloader>("Authenticate");

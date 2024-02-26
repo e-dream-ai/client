@@ -48,8 +48,6 @@ class CSettings : public Base::CSingleton<CSettings>
         if (m_pStorage)
         {
             m_pStorage->Commit();
-            m_pStorage->Finalise();
-            SAFE_DELETE(m_pStorage);
         }
 
         return true;

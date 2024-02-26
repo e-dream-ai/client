@@ -50,6 +50,12 @@ CTextMetal::CTextMetal(spCFontMetal _font, MTKView* _view,
         textLayer.shadowRadius = 0;
         [textLayer display];
         textLayer.autoresizingMask = NSViewMaxYMargin;
+        NSMutableDictionary* newActions =
+            [NSMutableDictionary dictionaryWithDictionary:textLayer.actions];
+        [newActions setObject:[NSNull null] forKey:@"position"];
+        [newActions setObject:[NSNull null] forKey:@"content"];
+        [newActions setObject:[NSNull null] forKey:@"sublayers"];
+        textLayer.actions = newActions;
         [textLayer setHidden:YES];
 #ifdef SCREEN_SAVER
         [[view.layer.sublayers objectAtIndex:0] addSublayer:textLayer];
@@ -80,7 +86,7 @@ CTextMetal::~CTextMetal()
 
 void CTextMetal::SetText(const std::string& _text)
 {
-    if (_text != m_Text)
+    //if (_text != m_Text)
     {
         m_Text = _text;
 #if USE_SYSTEM_UI
@@ -119,7 +125,10 @@ void CTextMetal::SetRect(const Base::Math::CRect& _rect)
     ExecuteOnMainThread(^{
         if (g_Player().Stopped())
             return;
-        NSRect frame = textLayer.frame;
+
+        NSSize contentSize = [textLayer preferredFrameSize];
+        NSRect frame = NSMakeRect(0, 0, contentSize.width, contentSize.height);
+
         NSRect parentFrame = textLayer.superlayer.frame;
         textLayer.frame = NSMakeRect(rect.m_X0 * parentFrame.size.width,
                                      ((1 - rect.m_Y0) - extents.m_Y) *
@@ -140,8 +149,12 @@ Base::Math::CVector2 CTextMetal::GetExtent()
             return;
         NSRect frame = textLayer.frame;
         NSRect parentFrame = textLayer.superlayer.frame;
-        extents = {102.f / (float)parentFrame.size.width,
-                   72.f / (float)parentFrame.size.height};
+        extents = {
+            0.04f,
+            0.05f,
+        };
+        extents = {(float)frame.size.width / (float)parentFrame.size.width,
+                   (float)frame.size.height / (float)parentFrame.size.height};
     });
     return extents;
 #else  /*USE_SYSTEM_UI*/

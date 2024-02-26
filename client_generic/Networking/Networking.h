@@ -4,9 +4,11 @@
 #include <map>
 #include <vector>
 
+#ifdef WIN32
 #pragma comment(lib, "wldap32.lib")
 #pragma comment(lib, "crypt32.lib")
 #pragma comment(lib, "Ws2_32.lib")
+#endif
 
 #include <boost/thread.hpp>
 #include <curl/curl.h>
