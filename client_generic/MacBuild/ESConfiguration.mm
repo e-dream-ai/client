@@ -4,6 +4,7 @@
 
 #include "EDreamClient.h"
 #include "Shepherd.h"
+#include "PlatformUtils.h"
 
 using namespace ContentDownloader;
 
@@ -436,7 +437,11 @@ using namespace ContentDownloader;
              "settings.content.sheepdir", ""))
             .stringByAbbreviatingWithTildeInPath;
 
-    version.stringValue = (__bridge NSString*)ESScreensaver_GetVersion();
+    // Put full version with git + date
+    version.stringValue = [NSString stringWithFormat:@"%@ %@ %@",
+                           (__bridge NSString*)ESScreensaver_GetVersion(),
+                           [NSString stringWithUTF8String:PlatformUtils::GetGitRevision().c_str()],
+                           [NSString stringWithUTF8String:PlatformUtils::GetBuildDate().c_str()]];
 
 #ifndef DEBUG
     serverLabel.hidden = YES;
