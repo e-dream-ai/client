@@ -28,6 +28,7 @@ namespace json = boost::json;
 using namespace ContentDownloader;
 
 static void OnWebSocketMessage(sio::event& event);
+static bool shownSettingsOnce = false;
 
 static ShowPreferencesCallback_t gShowPreferencesCallback = nullptr;
 void ESSetShowPreferencesCallback(ShowPreferencesCallback_t _callback)
@@ -175,10 +176,11 @@ bool EDreamClient::Authenticate()
     {
         g_Log->Error("Authentication failed. Access token was not set.");
     }
-    if (!success)
+    // Don't loop open settings
+    /*if (!success)
     {
         ESShowPreferences();
-    }
+    }*/
     fIsLoggedIn.exchange(success);
     fAuthMutex.unlock();
     g_Log->Info("Login success:%s", success ? "true" : "false");
@@ -246,7 +248,11 @@ bool EDreamClient::RefreshAccessToken()
         if (spDownload->ResponseCode() == 400)
         {
             g_Settings()->Set("settings.content.access_token", std::string(""));
-            ESShowPreferences();
+            // Only show once at startup, we don't want to loop
+            if (!shownSettingsOnce) {
+                shownSettingsOnce = true;
+                ESShowPreferences();
+            }
             g_Settings()->Storage()->Commit();
             return false;
         }

@@ -771,7 +771,11 @@ class CElectricSheep
                         }
                         else
                         {
+#ifdef SCREEN_SAVER
                             pTmp->SetSample("Logged out. Please use the standalone app to log in.");
+#else
+                            pTmp->SetSample("Logged out. Please open settings again to log in.");
+#endif
                         }
                         pTmp->Visible(true);
                     }
