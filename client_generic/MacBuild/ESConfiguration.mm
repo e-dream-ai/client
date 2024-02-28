@@ -26,6 +26,7 @@ using namespace ContentDownloader;
     [NSApp endSheet:self.window returnCode:m_loginWasSuccessful];
 }
 
+// TODO : deprecated
 - (IBAction)cancel:(id)__unused sender
 {
     if (!cancelButton.isEnabled)
@@ -37,34 +38,27 @@ using namespace ContentDownloader;
 {
     CFBundleRef bndl = CopyDLBundle_ex();
 
-    NSURL* imgUrl = (NSURL*)CFBridgingRelease(
-        CFBundleCopyResourceURL(bndl, CFSTR("red.tif"), NULL, NULL));
-
-    redImage = [[NSImage alloc] initWithContentsOfURL:imgUrl];
-
-    imgUrl = (NSURL*)CFBridgingRelease(
-        CFBundleCopyResourceURL(bndl, CFSTR("yellow.tif"), NULL, NULL));
-
-    yellowImage = [[NSImage alloc] initWithContentsOfURL:imgUrl];
-
-    imgUrl = (NSURL*)CFBridgingRelease(
-        CFBundleCopyResourceURL(bndl, CFSTR("green.tif"), NULL, NULL));
-
-    greenImage = [[NSImage alloc] initWithContentsOfURL:imgUrl];
+    // We preload system images, this gives us flat design in modern macOS
+    redImage = [NSImage imageNamed:NSImageNameStatusUnavailable];
+    yellowImage = [NSImage imageNamed:NSImageNameStatusPartiallyAvailable];
+    greenImage = [NSImage imageNamed:NSImageNameStatusAvailable];
 
     CFRelease(bndl);
 
     m_checkTimer = nil;
 
+    // We initially load the settings here, this avoid flickering of the ui
     ESScreensaver_InitClientStorage();
 
     [self loadSettings];
 
     ESScreensaver_DeinitClientStorage();
 
-    drupalPassword.target = self;
-    drupalPassword.action = @selector(doSignIn:);
+    // CLEANUP : Remove automatic login via password
+    //drupalPassword.target = self;
+    //drupalPassword.action = @selector(doSignIn:);
 }
+
 
 - (void)fixFlockSize
 {
@@ -105,6 +99,7 @@ using namespace ContentDownloader;
             [NSString stringWithFormat:@"Logged in as %@", m_origNickname];
         m_loginWasSuccessful = YES;
         signInButton.title = @"Sign Out";
+        [signInButton setEnabled:true];
         // Never disable close button
         //[cancelButton setEnabled:YES];
         //[okButton setEnabled:YES];
@@ -115,9 +110,9 @@ using namespace ContentDownloader;
         [drupalPassword setAction:nil];
         [drupalPassword setHidden:YES];
         [drupalLogin setHidden:YES];
-        loginTestStatusText.frame = NSMakeRect(158, 56, 204, 18);
+        /*loginTestStatusText.frame = NSMakeRect(158, 56, 204, 18);
         loginStatusImage.frame = NSMakeRect(137, 59, 16, 16);
-        signInButton.frame = NSMakeRect(197, 23, 101, 32);
+        signInButton.frame = NSMakeRect(197, 23, 101, 32);*/
     }
     else
     {
@@ -125,6 +120,7 @@ using namespace ContentDownloader;
         loginTestStatusText.stringValue = failMessage;
         m_loginWasSuccessful = NO;
         signInButton.title = @"Sign In";
+        [signInButton setEnabled:true];
         //[cancelButton setEnabled:NO];
         //[okButton setEnabled:NO];
         [tabView setHidden:YES];
@@ -134,9 +130,9 @@ using namespace ContentDownloader;
         drupalPassword.action = @selector(doSignIn:);
         [drupalPassword setHidden:NO];
         [drupalLogin setHidden:NO];
-        loginTestStatusText.frame = NSMakeRect(120, 11, 204, 18);
+        /*loginTestStatusText.frame = NSMakeRect(120, 11, 204, 18);
         loginStatusImage.frame = NSMakeRect(99, 14, 16, 16);
-        signInButton.frame = NSMakeRect(338, 5, 101, 32);
+        signInButton.frame = NSMakeRect(338, 5, 101, 32);*/
     }
 }
 
@@ -219,8 +215,9 @@ using namespace ContentDownloader;
 
     [loginStatusImage setImage:nil];
 
-    loginTestStatusText.stringValue = @"Testing Login...";
-
+    loginTestStatusText.stringValue = @"Please wait...";
+    loginStatusImage.image = self->yellowImage;
+    
     m_httpData = [NSMutableData dataWithCapacity:10];
 
     NSString* newNickname = drupalLogin.stringValue;
@@ -303,7 +300,7 @@ using namespace ContentDownloader;
                               EDreamClient::DidSignIn(accessToken.UTF8String,
                                                       refreshToken.UTF8String);
                           }
-                          [self updateAuthUI:@"Login Failed :("];
+                          [self updateAuthUI:@"Login error"];
                       }
                       self->m_checkingLogin = NO;
                   }
