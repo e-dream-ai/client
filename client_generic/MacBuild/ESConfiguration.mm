@@ -209,8 +209,8 @@ using namespace ContentDownloader;
 {
     [signInButton setEnabled:NO];
 
-    [okButton setEnabled:NO];
-    [cancelButton setEnabled:NO];
+    //[okButton setEnabled:NO];
+    //[cancelButton setEnabled:NO];
     [tabView setHidden:YES];
     m_checkingLogin = YES;
 
