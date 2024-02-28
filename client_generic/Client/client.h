@@ -1189,10 +1189,10 @@ class CElectricSheep
             m_HudManager->Toggle("dreamstats");
             return true;
         case CLIENT_COMMAND_SKIP_FW:
-            g_Player().SkipForward(-15);
+            g_Player().SkipForward(10);
             return true;
         case CLIENT_COMMAND_SKIP_BW:
-            g_Player().SkipForward(15);
+            g_Player().SkipForward(-10);
             return true;
         case CLIENT_COMMAND_PAUSE:
             g_Player().SetPaused(m_bPaused = !m_bPaused);
