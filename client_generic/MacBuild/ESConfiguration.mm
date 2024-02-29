@@ -467,8 +467,8 @@ using namespace ContentDownloader;
 
     ESScreensaver_SetDoubleSetting("settings.player.display_fps", display_fps);
 
-    ESScreensaver_SetIntSetting("settings.player.DisplayMode",
-                                (SInt32)displayMode.selectedCell.tag);
+    // Hardcode displaymode for now to Cubic as we have removed the setting
+    ESScreensaver_SetIntSetting("settings.player.DisplayMode",2);
 
     ESScreensaver_SetBoolSetting("settings.player.vbl_sync",
                                  synchronizeVBL.state);
