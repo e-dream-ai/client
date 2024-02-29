@@ -28,6 +28,8 @@ namespace json = boost::json;
 using namespace ContentDownloader;
 
 static void OnWebSocketMessage(sio::event& event);
+
+// TODO: this is imperfect, temporary until we clean up the connection callback thing
 static bool shownSettingsOnce = false;
 
 static ShowPreferencesCallback_t gShowPreferencesCallback = nullptr;
