@@ -43,7 +43,7 @@ static void ShowPreferencesCallback()
 
     frame.size.width = 1280;
     frame.size.height = 720;
-    self.minSize = NSMakeSize(100, 100);
+    //self.minSize = NSMakeSize(100, 100);
     self.contentAspectRatio = CGSizeMake(16.f, 9.f);
 
     mBlackouMonitors =

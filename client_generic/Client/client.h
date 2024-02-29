@@ -771,7 +771,11 @@ class CElectricSheep
                         }
                         else
                         {
+#ifdef SCREEN_SAVER
                             pTmp->SetSample("Logged out. Please use the standalone app to log in.");
+#else
+                            pTmp->SetSample("Logged out. Please open settings again to log in.");
+#endif
                         }
                         pTmp->Visible(true);
                     }
@@ -1185,10 +1189,10 @@ class CElectricSheep
             m_HudManager->Toggle("dreamstats");
             return true;
         case CLIENT_COMMAND_SKIP_FW:
-            g_Player().SkipForward(-15);
+            g_Player().SkipForward(10);
             return true;
         case CLIENT_COMMAND_SKIP_BW:
-            g_Player().SkipForward(15);
+            g_Player().SkipForward(-10);
             return true;
         case CLIENT_COMMAND_PAUSE:
             g_Player().SetPaused(m_bPaused = !m_bPaused);

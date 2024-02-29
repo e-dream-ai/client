@@ -3,7 +3,7 @@
 
 @interface ESConfiguration : NSWindowController
 {
-    IBOutlet NSMatrix* displayMode;
+    // IBOutlet NSMatrix* displayMode;
 
     IBOutlet NSTextField* playerFPS;
     IBOutlet NSTextField* displayFPS;

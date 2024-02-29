@@ -4,6 +4,7 @@
 
 #include "EDreamClient.h"
 #include "Shepherd.h"
+#include "PlatformUtils.h"
 
 using namespace ContentDownloader;
 
@@ -25,6 +26,7 @@ using namespace ContentDownloader;
     [NSApp endSheet:self.window returnCode:m_loginWasSuccessful];
 }
 
+// TODO : deprecated
 - (IBAction)cancel:(id)__unused sender
 {
     if (!cancelButton.isEnabled)
@@ -36,34 +38,23 @@ using namespace ContentDownloader;
 {
     CFBundleRef bndl = CopyDLBundle_ex();
 
-    NSURL* imgUrl = (NSURL*)CFBridgingRelease(
-        CFBundleCopyResourceURL(bndl, CFSTR("red.tif"), NULL, NULL));
-
-    redImage = [[NSImage alloc] initWithContentsOfURL:imgUrl];
-
-    imgUrl = (NSURL*)CFBridgingRelease(
-        CFBundleCopyResourceURL(bndl, CFSTR("yellow.tif"), NULL, NULL));
-
-    yellowImage = [[NSImage alloc] initWithContentsOfURL:imgUrl];
-
-    imgUrl = (NSURL*)CFBridgingRelease(
-        CFBundleCopyResourceURL(bndl, CFSTR("green.tif"), NULL, NULL));
-
-    greenImage = [[NSImage alloc] initWithContentsOfURL:imgUrl];
+    // We preload system images, this gives us flat design in modern macOS
+    redImage = [NSImage imageNamed:NSImageNameStatusUnavailable];
+    yellowImage = [NSImage imageNamed:NSImageNameStatusPartiallyAvailable];
+    greenImage = [NSImage imageNamed:NSImageNameStatusAvailable];
 
     CFRelease(bndl);
 
     m_checkTimer = nil;
 
+    // We initially load the settings here, this avoid flickering of the ui
     ESScreensaver_InitClientStorage();
 
     [self loadSettings];
 
     ESScreensaver_DeinitClientStorage();
-
-    drupalPassword.target = self;
-    drupalPassword.action = @selector(doSignIn:);
 }
+
 
 - (void)fixFlockSize
 {
@@ -104,18 +95,18 @@ using namespace ContentDownloader;
             [NSString stringWithFormat:@"Logged in as %@", m_origNickname];
         m_loginWasSuccessful = YES;
         signInButton.title = @"Sign Out";
-        [cancelButton setEnabled:YES];
-        [okButton setEnabled:YES];
+        [signInButton setEnabled:true];
+
         [tabView setHidden:NO];
         [passwordLabel setHidden:YES];
         [emailLabel setHidden:YES];
-        [drupalPassword setTarget:nil];
-        [drupalPassword setAction:nil];
         [drupalPassword setHidden:YES];
         [drupalLogin setHidden:YES];
-        loginTestStatusText.frame = NSMakeRect(158, 56, 204, 18);
-        loginStatusImage.frame = NSMakeRect(137, 59, 16, 16);
-        signInButton.frame = NSMakeRect(197, 23, 101, 32);
+
+        NSLog(@"const %f",drupalLogin.topAnchor.constraintsAffectingLayout.firstObject.constant);
+        drupalLogin.topAnchor.constraintsAffectingLayout.firstObject.constant = -10;
+
+        [signInButton.superview setNeedsLayout:true];
     }
     else
     {
@@ -123,18 +114,16 @@ using namespace ContentDownloader;
         loginTestStatusText.stringValue = failMessage;
         m_loginWasSuccessful = NO;
         signInButton.title = @"Sign In";
-        [cancelButton setEnabled:NO];
-        [okButton setEnabled:NO];
+        [signInButton setEnabled:true];
         [tabView setHidden:YES];
         [passwordLabel setHidden:NO];
         [emailLabel setHidden:NO];
-        drupalPassword.target = self;
-        drupalPassword.action = @selector(doSignIn:);
+
         [drupalPassword setHidden:NO];
         [drupalLogin setHidden:NO];
-        loginTestStatusText.frame = NSMakeRect(120, 11, 204, 18);
-        loginStatusImage.frame = NSMakeRect(99, 14, 16, 16);
-        signInButton.frame = NSMakeRect(338, 5, 101, 32);
+        drupalLogin.topAnchor.constraintsAffectingLayout.firstObject.constant = 16;
+
+        [signInButton.superview setNeedsLayout:true];
     }
 }
 
@@ -207,8 +196,8 @@ using namespace ContentDownloader;
 {
     [signInButton setEnabled:NO];
 
-    [okButton setEnabled:NO];
-    [cancelButton setEnabled:NO];
+    //[okButton setEnabled:NO];
+    //[cancelButton setEnabled:NO];
     [tabView setHidden:YES];
     m_checkingLogin = YES;
 
@@ -217,8 +206,9 @@ using namespace ContentDownloader;
 
     [loginStatusImage setImage:nil];
 
-    loginTestStatusText.stringValue = @"Testing Login...";
-
+    loginTestStatusText.stringValue = @"Please wait...";
+    loginStatusImage.image = self->yellowImage;
+    
     m_httpData = [NSMutableData dataWithCapacity:10];
 
     NSString* newNickname = drupalLogin.stringValue;
@@ -301,7 +291,7 @@ using namespace ContentDownloader;
                               EDreamClient::DidSignIn(accessToken.UTF8String,
                                                       refreshToken.UTF8String);
                           }
-                          [self updateAuthUI:@"Login Failed :("];
+                          [self updateAuthUI:@"Login error"];
                       }
                       self->m_checkingLogin = NO;
                   }
@@ -346,10 +336,6 @@ using namespace ContentDownloader;
 
     displayFPS.doubleValue =
         ESScreensaver_GetDoubleSetting("settings.player.display_fps", 60.0);
-
-    SInt32 dm = ESScreensaver_GetIntSetting("settings.player.DisplayMode", 2);
-
-    [displayMode selectCellWithTag:dm];
 
     UInt32 scr =
         (UInt32)abs(ESScreensaver_GetIntSetting("settings.player.screen", 0));
@@ -436,7 +422,11 @@ using namespace ContentDownloader;
              "settings.content.sheepdir", ""))
             .stringByAbbreviatingWithTildeInPath;
 
-    version.stringValue = (__bridge NSString*)ESScreensaver_GetVersion();
+    // Put full version with git + date
+    version.stringValue = [NSString stringWithFormat:@"%@ %@ %@",
+                           (__bridge NSString*)ESScreensaver_GetVersion(),
+                           [NSString stringWithUTF8String:PlatformUtils::GetGitRevision().c_str()],
+                           [NSString stringWithUTF8String:PlatformUtils::GetBuildDate().c_str()]];
 
 #ifndef DEBUG
     serverLabel.hidden = YES;
@@ -464,8 +454,8 @@ using namespace ContentDownloader;
 
     ESScreensaver_SetDoubleSetting("settings.player.display_fps", display_fps);
 
-    ESScreensaver_SetIntSetting("settings.player.DisplayMode",
-                                (SInt32)displayMode.selectedCell.tag);
+    // Hardcode displaymode for now to Cubic as we have removed the setting
+    ESScreensaver_SetIntSetting("settings.player.DisplayMode",2);
 
     ESScreensaver_SetBoolSetting("settings.player.vbl_sync",
                                  synchronizeVBL.state);
