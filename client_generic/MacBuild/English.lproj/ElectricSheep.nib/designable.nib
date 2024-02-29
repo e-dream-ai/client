@@ -170,16 +170,16 @@ DQ
                                                     <constraint firstItem="1119" firstAttribute="leading" secondItem="750" secondAttribute="leading" id="D5T-2W-KLt"/>
                                                     <constraint firstItem="696" firstAttribute="leading" secondItem="JqF-GJ-vEJ" secondAttribute="leading" constant="100" id="Ehy-cu-DOw"/>
                                                     <constraint firstItem="750" firstAttribute="leading" secondItem="696" secondAttribute="leading" id="Gyz-bE-59d"/>
-                                                    <constraint firstItem="1097" firstAttribute="top" secondItem="1119" secondAttribute="top" id="Q2W-qJ-Q1W"/>
                                                     <constraint firstItem="1099" firstAttribute="leading" secondItem="1119" secondAttribute="trailing" constant="8" symbolic="YES" id="Shd-DS-hoD"/>
-                                                    <constraint firstItem="1097" firstAttribute="firstBaseline" secondItem="1099" secondAttribute="firstBaseline" id="VjW-ul-no3"/>
                                                     <constraint firstItem="696" firstAttribute="leading" secondItem="697" secondAttribute="trailing" constant="8" symbolic="YES" id="YVJ-3O-hvt"/>
                                                     <constraint firstAttribute="trailing" secondItem="696" secondAttribute="trailing" constant="40" id="cFl-tD-nXB"/>
                                                     <constraint firstItem="696" firstAttribute="firstBaseline" secondItem="697" secondAttribute="firstBaseline" id="eB0-JA-4HC"/>
                                                     <constraint firstItem="750" firstAttribute="leading" secondItem="712" secondAttribute="trailing" constant="8" symbolic="YES" id="f06-Wg-vGW"/>
+                                                    <constraint firstItem="1119" firstAttribute="top" secondItem="750" secondAttribute="bottom" constant="16" id="iTc-Kr-agW"/>
                                                     <constraint firstItem="750" firstAttribute="firstBaseline" secondItem="712" secondAttribute="firstBaseline" id="lsb-Ms-Gep"/>
                                                     <constraint firstItem="696" firstAttribute="top" secondItem="JqF-GJ-vEJ" secondAttribute="top" constant="16" id="nCy-Hp-cww"/>
                                                     <constraint firstItem="1097" firstAttribute="top" secondItem="750" secondAttribute="bottom" constant="16" id="wlb-ms-dPx"/>
+                                                    <constraint firstItem="1099" firstAttribute="top" secondItem="750" secondAttribute="bottom" constant="17" id="zCO-8U-f9c"/>
                                                 </constraints>
                                             </view>
                                             <constraints>
@@ -361,7 +361,7 @@ room for new ones</string>
                                             <rect key="frame" x="197" y="69" width="104" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Primary" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" enabled="NO" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="665" id="663">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="system"/>
+                                                <font key="font" metaFont="menu"/>
                                                 <menu key="menu" title="OtherViews" id="664">
                                                     <items>
                                                         <menuItem title="Primary" state="on" id="665"/>
@@ -391,7 +391,7 @@ room for new ones</string>
                                             <rect key="frame" x="197" y="39" width="97" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Shared" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="920" id="914">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="system"/>
+                                                <font key="font" metaFont="menu"/>
                                                 <menu key="menu" title="OtherViews" id="915">
                                                     <items>
                                                         <menuItem title="Shared" state="on" id="920"/>

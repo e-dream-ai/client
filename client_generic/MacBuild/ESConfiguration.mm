@@ -53,10 +53,6 @@ using namespace ContentDownloader;
     [self loadSettings];
 
     ESScreensaver_DeinitClientStorage();
-
-    // CLEANUP : Remove automatic login via password
-    //drupalPassword.target = self;
-    //drupalPassword.action = @selector(doSignIn:);
 }
 
 
@@ -100,19 +96,17 @@ using namespace ContentDownloader;
         m_loginWasSuccessful = YES;
         signInButton.title = @"Sign Out";
         [signInButton setEnabled:true];
-        // Never disable close button
-        //[cancelButton setEnabled:YES];
-        //[okButton setEnabled:YES];
+
         [tabView setHidden:NO];
         [passwordLabel setHidden:YES];
         [emailLabel setHidden:YES];
-        [drupalPassword setTarget:nil];
-        [drupalPassword setAction:nil];
         [drupalPassword setHidden:YES];
         [drupalLogin setHidden:YES];
-        /*loginTestStatusText.frame = NSMakeRect(158, 56, 204, 18);
-        loginStatusImage.frame = NSMakeRect(137, 59, 16, 16);
-        signInButton.frame = NSMakeRect(197, 23, 101, 32);*/
+
+        NSLog(@"const %f",drupalLogin.topAnchor.constraintsAffectingLayout.firstObject.constant);
+        drupalLogin.topAnchor.constraintsAffectingLayout.firstObject.constant = -10;
+
+        [signInButton.superview setNeedsLayout:true];
     }
     else
     {
@@ -121,18 +115,15 @@ using namespace ContentDownloader;
         m_loginWasSuccessful = NO;
         signInButton.title = @"Sign In";
         [signInButton setEnabled:true];
-        //[cancelButton setEnabled:NO];
-        //[okButton setEnabled:NO];
         [tabView setHidden:YES];
         [passwordLabel setHidden:NO];
         [emailLabel setHidden:NO];
-        drupalPassword.target = self;
-        drupalPassword.action = @selector(doSignIn:);
+
         [drupalPassword setHidden:NO];
         [drupalLogin setHidden:NO];
-        /*loginTestStatusText.frame = NSMakeRect(120, 11, 204, 18);
-        loginStatusImage.frame = NSMakeRect(99, 14, 16, 16);
-        signInButton.frame = NSMakeRect(338, 5, 101, 32);*/
+        drupalLogin.topAnchor.constraintsAffectingLayout.firstObject.constant = 16;
+
+        [signInButton.superview setNeedsLayout:true];
     }
 }
 
@@ -345,10 +336,6 @@ using namespace ContentDownloader;
 
     displayFPS.doubleValue =
         ESScreensaver_GetDoubleSetting("settings.player.display_fps", 60.0);
-
-    SInt32 dm = ESScreensaver_GetIntSetting("settings.player.DisplayMode", 2);
-
-    [displayMode selectCellWithTag:dm];
 
     UInt32 scr =
         (UInt32)abs(ESScreensaver_GetIntSetting("settings.player.screen", 0));
