@@ -330,20 +330,20 @@ static void signnal_handler(int signal)
             //            {NSEndFunctionKey, CKeyEvent::eKeyCode::KEY_END},
             //            {NSPageUpFunctionKey, CKeyEvent::eKeyCode::KEY_PAGEUP},
             //            {NSPageDownFunctionKey, CKeyEvent::eKeyCode::KEY_PAGEDOWN},
-            //            {'0', CKeyEvent::eKeyCode::KEY_0},
-            //            {'1', CKeyEvent::eKeyCode::KEY_1},
-            //            {'2', CKeyEvent::eKeyCode::KEY_2},
-            //            {'3', CKeyEvent::eKeyCode::KEY_3},
-            //            {'4', CKeyEvent::eKeyCode::KEY_4},
-            //            {'5', CKeyEvent::eKeyCode::KEY_5},
-            //            {'6', CKeyEvent::eKeyCode::KEY_6},
-            //            {'7', CKeyEvent::eKeyCode::KEY_7},
-            //            {'8', CKeyEvent::eKeyCode::KEY_8},
-            //            {'9', CKeyEvent::eKeyCode::KEY_9},
-            //            {'\b', CKeyEvent::eKeyCode::KEY_BACKSPACE},
-            //            {'\r', CKeyEvent::eKeyCode::KEY_ENTER},
-            //            {'\t', CKeyEvent::eKeyCode::KEY_TAB},
-            //            {' ', CKeyEvent::eKeyCode::KEY_SPACE},
+            {'0', CKeyEvent::eKeyCode::KEY_0},
+            {'1', CKeyEvent::eKeyCode::KEY_1},
+            {'2', CKeyEvent::eKeyCode::KEY_2},
+            {'3', CKeyEvent::eKeyCode::KEY_3},
+            {'4', CKeyEvent::eKeyCode::KEY_4},
+            {'5', CKeyEvent::eKeyCode::KEY_5},
+            {'6', CKeyEvent::eKeyCode::KEY_6},
+            {'7', CKeyEvent::eKeyCode::KEY_7},
+            {'8', CKeyEvent::eKeyCode::KEY_8},
+            {'9', CKeyEvent::eKeyCode::KEY_9},
+            //{'\b', CKeyEvent::eKeyCode::KEY_BACKSPACE},
+            //{'\r', CKeyEvent::eKeyCode::KEY_ENTER},
+            //{'\t', CKeyEvent::eKeyCode::KEY_TAB},
+            //{' ', CKeyEvent::eKeyCode::KEY_SPACE},
             {'a', CKeyEvent::eKeyCode::KEY_A},
             //            {'b', CKeyEvent::eKeyCode::KEY_B},
             {'c', CKeyEvent::eKeyCode::KEY_C},
@@ -393,7 +393,7 @@ static void signnal_handler(int signal)
 
 - (void)doUpdate:(NSTimer*)timer
 {
-    SUAppcastItem* update = timer.userInfo;
+    // SUAppcastItem* update = timer.userInfo;
 
     //    if (!m_isFullScreen)
     //        [m_updater checkForUpdates:nil];

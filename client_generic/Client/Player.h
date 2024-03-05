@@ -133,7 +133,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
 
     inline void PlayCountsInitOff() { m_InitPlayCounts = false; };
     void MultiplyFramerate(const double _multiplier);
-    void SetFramerate(const double _fps) { m_DecoderFps = _fps; }
+    void SetFramerate(const double _fps);
     inline void Fullscreen(const bool _bState) { m_bFullscreen = _bState; };
     inline bool Stopped() { return !m_bStarted; };
 

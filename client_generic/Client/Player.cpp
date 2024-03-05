@@ -620,13 +620,23 @@ bool CPlayer::PlayClip(std::string_view _clipPath, double _startTime,
     return true;
 }
 
+void CPlayer::SetFramerate(const double _fps) {
+    m_DecoderFps = _fps;
+    reader_lock l(m_UpdateMutex);
+    if (m_CurrentClips.size())
+        m_CurrentClips[0]->SetFps(m_DecoderFps);
+}
+
 void CPlayer::MultiplyFramerate(const double _multiplier)
 {
     m_DecoderFps *= _multiplier;
+    //printf("fps : %f", m_DecoderFps);
     reader_lock l(m_UpdateMutex);
     if (m_CurrentClips.size())
-        m_CurrentClips[0]->SetFps(
-            m_CurrentClips[0]->GetClipMetadata().decodeFps * _multiplier);
+        m_CurrentClips[0]->SetFps(m_DecoderFps);
+/*  TODO : is there a point to clipmetadata with activity levels?
+ m_CurrentClips[0]->SetFps(
+            m_CurrentClips[0]->GetClipMetadata().decodeFps * _multiplier);*/
 }
 
 void CPlayer::CalculateNextClipThread()

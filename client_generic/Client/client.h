@@ -58,6 +58,9 @@ extern class CElectricSheep* gClientInstance;
 
 inline class CElectricSheep* g_Client() { return gClientInstance; }
 
+inline double ActivityToFPS(double activity) {
+    return pow(2.0, (activity+1)/2);
+}
 /*
         CElectricSheep().
         Prime mover for the client, used from main.cpp...
@@ -1115,7 +1118,16 @@ class CElectricSheep
         CLIENT_COMMAND_CREDIT,
         CLIENT_COMMAND_WEBPAGE,
         CLIENT_COMMAND_BRIGHTNESS_UP,
-        CLIENT_COMMAND_BRIGHTNESS_DOWN
+        CLIENT_COMMAND_BRIGHTNESS_DOWN,
+        CLIENT_COMMAND_ACTIVITY_1,
+        CLIENT_COMMAND_ACTIVITY_2,
+        CLIENT_COMMAND_ACTIVITY_3,
+        CLIENT_COMMAND_ACTIVITY_4,
+        CLIENT_COMMAND_ACTIVITY_5,
+        CLIENT_COMMAND_ACTIVITY_6,
+        CLIENT_COMMAND_ACTIVITY_7,
+        CLIENT_COMMAND_ACTIVITY_8,
+        CLIENT_COMMAND_ACTIVITY_9
     };
 
     virtual bool ExecuteCommand(eClientCommand _command)
@@ -1159,6 +1171,36 @@ class CElectricSheep
         case CLIENT_COMMAND_PREVIOUS:
             g_Player().ReturnToPrevious();
             return true;
+                
+            // Activity levels
+        case CLIENT_COMMAND_ACTIVITY_1:
+            g_Player().SetFramerate(ActivityToFPS(1));
+            return true;
+        case CLIENT_COMMAND_ACTIVITY_2:
+            g_Player().SetFramerate(ActivityToFPS(2));
+            return true;
+        case CLIENT_COMMAND_ACTIVITY_3:
+            g_Player().SetFramerate(ActivityToFPS(3));
+            return true;
+        case CLIENT_COMMAND_ACTIVITY_4:
+            g_Player().SetFramerate(ActivityToFPS(4));
+            return true;
+        case CLIENT_COMMAND_ACTIVITY_5:
+            g_Player().SetFramerate(ActivityToFPS(5));
+            return true;
+        case CLIENT_COMMAND_ACTIVITY_6:
+            g_Player().SetFramerate(ActivityToFPS(6));
+            return true;
+        case CLIENT_COMMAND_ACTIVITY_7:
+            g_Player().SetFramerate(ActivityToFPS(7));
+            return true;
+        case CLIENT_COMMAND_ACTIVITY_8:
+            g_Player().SetFramerate(ActivityToFPS(8));
+            return true;
+        case CLIENT_COMMAND_ACTIVITY_9:
+            g_Player().SetFramerate(ActivityToFPS(9));
+            return true;
+
             //  Force Next Sheep
         case CLIENT_COMMAND_NEXT:
             g_Player().SkipToNext();
@@ -1244,6 +1286,27 @@ class CElectricSheep
                 return ExecuteCommand(CLIENT_COMMAND_PLAYBACK_SLOWER);
             case DisplayOutput::CKeyEvent::KEY_D:
                 return ExecuteCommand(CLIENT_COMMAND_PLAYBACK_FASTER);
+                // Set activity level
+            case DisplayOutput::CKeyEvent::KEY_0:
+                return ExecuteCommand(CLIENT_COMMAND_PAUSE);
+            case DisplayOutput::CKeyEvent::KEY_1:
+                return ExecuteCommand(CLIENT_COMMAND_ACTIVITY_1);
+            case DisplayOutput::CKeyEvent::KEY_2:
+                return ExecuteCommand(CLIENT_COMMAND_ACTIVITY_2);
+            case DisplayOutput::CKeyEvent::KEY_3:
+                return ExecuteCommand(CLIENT_COMMAND_ACTIVITY_3);
+            case DisplayOutput::CKeyEvent::KEY_4:
+                return ExecuteCommand(CLIENT_COMMAND_ACTIVITY_4);
+            case DisplayOutput::CKeyEvent::KEY_5:
+                return ExecuteCommand(CLIENT_COMMAND_ACTIVITY_5);
+            case DisplayOutput::CKeyEvent::KEY_6:
+                return ExecuteCommand(CLIENT_COMMAND_ACTIVITY_6);
+            case DisplayOutput::CKeyEvent::KEY_7:
+                return ExecuteCommand(CLIENT_COMMAND_ACTIVITY_7);
+            case DisplayOutput::CKeyEvent::KEY_8:
+                return ExecuteCommand(CLIENT_COMMAND_ACTIVITY_8);
+            case DisplayOutput::CKeyEvent::KEY_9:
+                return ExecuteCommand(CLIENT_COMMAND_ACTIVITY_9);
                 //	OSD info.
             case DisplayOutput::CKeyEvent::KEY_F1:
                 return ExecuteCommand(CLIENT_COMMAND_F1);
