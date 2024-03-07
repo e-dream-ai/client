@@ -37,7 +37,9 @@ class CHudEntry
         {
             m_Delta = (_time - m_StartTime) / m_Duration;
             if (m_Delta > 1.0)
+            {
                 return false;
+            }
         }
 
         return true;

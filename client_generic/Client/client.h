@@ -24,6 +24,7 @@
 #include "ServerMessage.h"
 #include "Shepherd.h"
 #include "Splash.h"
+#include "OSD.hpp"
 #include "StartupScreen.h"
 #include "StatsConsole.h"
 #include "TextureFlat.h"
@@ -107,6 +108,9 @@ class CElectricSheep
     //	Splash images.
     Hud::spCSplash m_spSplashPos;
     Hud::spCSplash m_spSplashNeg;
+
+    // Activity level indicator
+    Hud::spCOSD m_spOSD;
 
     // Splash PNG
     Hud::spCSplashImage m_spSplashPNG;
@@ -313,6 +317,12 @@ class CElectricSheep
         spStats->Add(new Hud::CStringStat("credits", "", "Title - Artist"));
     }
     
+    void AddActivityLevelHud()
+    {
+        // Kinda cheating on min here to get a dot
+        m_spOSD = std::make_shared<Hud::COSD>(Base::Math::CRect(1, 1), Hud::ActivityLevel, 0.9, 9);
+    }
+    
     void AddSplashHud()
     {
 #ifndef LINUX_GNU
@@ -467,6 +477,7 @@ class CElectricSheep
         AddDreamStatsHud();
         AddProgressHud();
         AddSplashHud();
+        AddActivityLevelHud();
 
         m_spCrossFade = std::make_shared<Hud::CCrossFade>(
             g_Player().Display()->Width(), g_Player().Display()->Height(),
@@ -965,6 +976,10 @@ class CElectricSheep
                     ->SetSample(string_format(" %.2f", activityLevel));
                 ((Hud::CIntCounter*)spStats->Get("displayfps"))->AddSample(1);
 
+                // Update OSD
+                m_spOSD->SetValue(realFps);
+                
+                // Update credits
                 spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
                     m_HudManager->Get("dreamcredits"));
                 if (clipMetadata)
@@ -976,6 +991,11 @@ class CElectricSheep
                                           clipMetadata->dreamData.author.data())
                                 .data());
                 }
+                // FPS counter
+                /*((Hud::CStringStat*)m_spActivityLevel->Get("decodefps"))
+                    ->SetSample(string_format(" %.2f", realFps));
+                */
+                
                 //	Serverstats.
                 spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
                     m_HudManager->Get("dreamstats"));
@@ -1130,6 +1150,17 @@ class CElectricSheep
         CLIENT_COMMAND_ACTIVITY_9
     };
 
+    void popOSD(Hud::OSDType type) {
+        switch (type) {
+            case Hud::ActivityLevel:
+                m_HudManager->Add("osd-activity", m_spOSD, 3);
+                break;
+            case Hud::Brightness:
+                printf("TODO: Hud brightness\n");
+                break;
+        }
+    }
+    
     virtual bool ExecuteCommand(eClientCommand _command)
     {
         static const float voteDelaySeconds = 1;
@@ -1174,30 +1205,39 @@ class CElectricSheep
                 
             // Activity levels
         case CLIENT_COMMAND_ACTIVITY_1:
+            popOSD(Hud::ActivityLevel);
             g_Player().SetFramerate(ActivityToFPS(1));
             return true;
         case CLIENT_COMMAND_ACTIVITY_2:
+            popOSD(Hud::ActivityLevel);
             g_Player().SetFramerate(ActivityToFPS(2));
             return true;
         case CLIENT_COMMAND_ACTIVITY_3:
+            popOSD(Hud::ActivityLevel);
             g_Player().SetFramerate(ActivityToFPS(3));
             return true;
         case CLIENT_COMMAND_ACTIVITY_4:
+            popOSD(Hud::ActivityLevel);
             g_Player().SetFramerate(ActivityToFPS(4));
             return true;
         case CLIENT_COMMAND_ACTIVITY_5:
+            popOSD(Hud::ActivityLevel);
             g_Player().SetFramerate(ActivityToFPS(5));
             return true;
         case CLIENT_COMMAND_ACTIVITY_6:
+            popOSD(Hud::ActivityLevel);
             g_Player().SetFramerate(ActivityToFPS(6));
             return true;
         case CLIENT_COMMAND_ACTIVITY_7:
+            popOSD(Hud::ActivityLevel);
             g_Player().SetFramerate(ActivityToFPS(7));
             return true;
         case CLIENT_COMMAND_ACTIVITY_8:
+            popOSD(Hud::ActivityLevel);
             g_Player().SetFramerate(ActivityToFPS(8));
             return true;
         case CLIENT_COMMAND_ACTIVITY_9:
+            popOSD(Hud::ActivityLevel);
             g_Player().SetFramerate(ActivityToFPS(9));
             return true;
 
@@ -1211,12 +1251,14 @@ class CElectricSheep
             return true;
         case CLIENT_COMMAND_PLAYBACK_SLOWER:
             m_F1F4Timer.Reset();
+            popOSD(Hud::ActivityLevel);
             g_Player().MultiplyFramerate(1.f / 1.1f);
                 if (m_StatsCodeCounter == 1 || m_StatsCodeCounter == 3)
                     m_StatsCodeCounter++;
             return true;
         case CLIENT_COMMAND_PLAYBACK_FASTER:
             m_F1F4Timer.Reset();
+            popOSD(Hud::ActivityLevel);
             g_Player().MultiplyFramerate(1.1f);
             if (m_StatsCodeCounter == 0 || m_StatsCodeCounter == 2)
                 m_StatsCodeCounter++;
