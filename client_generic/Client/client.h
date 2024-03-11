@@ -320,7 +320,7 @@ class CElectricSheep
     void AddActivityLevelHud()
     {
         // Kinda cheating on min here to get a dot
-        m_spOSD = std::make_shared<Hud::COSD>(Base::Math::CRect(1, 1), Hud::ActivityLevel, 0.9, 9);
+        m_spOSD = std::make_shared<Hud::COSD>(Base::Math::CRect(1, 1), 0.9, 9, -1, 1);
     }
     
     void AddSplashHud()
@@ -977,7 +977,7 @@ class CElectricSheep
                 ((Hud::CIntCounter*)spStats->Get("displayfps"))->AddSample(1);
 
                 // Update OSD
-                m_spOSD->SetValue(realFps);
+                m_spOSD->SetFPS(realFps);
                 
                 // Update credits
                 spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
@@ -1153,12 +1153,14 @@ class CElectricSheep
     void popOSD(Hud::OSDType type) {
         switch (type) {
             case Hud::ActivityLevel:
-                m_HudManager->Add("osd-activity", m_spOSD, 3);
+                m_spOSD->SetType(Hud::ActivityLevel);
                 break;
             case Hud::Brightness:
-                printf("TODO: Hud brightness\n");
+                m_spOSD->SetType(Hud::Brightness);
+                m_spOSD->SetBrightness(g_Player().Renderer()->GetBrightness());
                 break;
         }
+        m_HudManager->Add("osd-activity", m_spOSD, 3);
     }
     
     virtual bool ExecuteCommand(eClientCommand _command)
@@ -1291,12 +1293,18 @@ class CElectricSheep
             }
             return true;
         case CLIENT_COMMAND_BRIGHTNESS_UP:
-            g_Player().Renderer()->SetBrightness(
-                g_Player().Renderer()->GetBrightness() + 0.05f);
+            if (g_Player().Renderer()->GetBrightness() < 1) {
+                g_Player().Renderer()->SetBrightness(
+                    g_Player().Renderer()->GetBrightness() + 0.05f);
+            }
+            popOSD(Hud::Brightness);
             return true;
         case CLIENT_COMMAND_BRIGHTNESS_DOWN:
-            g_Player().Renderer()->SetBrightness(
-                g_Player().Renderer()->GetBrightness() - 0.05f);
+            if (g_Player().Renderer()->GetBrightness() > -1) {
+                g_Player().Renderer()->SetBrightness(
+                    g_Player().Renderer()->GetBrightness() - 0.05f);
+            }
+            popOSD(Hud::Brightness);
             return true;
         }
         return false;

@@ -232,6 +232,12 @@
 		46ED5CB42AF5326A00AF8F45 /* DisplayMetal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 46ED5CB02AF5326A00AF8F45 /* DisplayMetal.cpp */; };
 		46FA9E1A2B03CB0500708000 /* ShaderMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 46FA9E192B03CB0500708000 /* ShaderMetal.mm */; };
 		46FA9E1B2B03CB0B00708000 /* ShaderMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 46FA9E192B03CB0500708000 /* ShaderMetal.mm */; };
+		F059942A2B9F465000B018C7 /* osd-dot-r.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994292B9F465000B018C7 /* osd-dot-r.png */; };
+		F059942B2B9F465000B018C7 /* osd-dot-r.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994292B9F465000B018C7 /* osd-dot-r.png */; };
+		F059942D2B9F46F500B018C7 /* osd-dot-u.png in Resources */ = {isa = PBXBuildFile; fileRef = F059942C2B9F46F500B018C7 /* osd-dot-u.png */; };
+		F059942E2B9F46F500B018C7 /* osd-dot-u.png in Resources */ = {isa = PBXBuildFile; fileRef = F059942C2B9F46F500B018C7 /* osd-dot-u.png */; };
+		F05994302B9F53D800B018C7 /* osd-brightness.png in Resources */ = {isa = PBXBuildFile; fileRef = F059942F2B9F53D800B018C7 /* osd-brightness.png */; };
+		F05994312B9F53D800B018C7 /* osd-brightness.png in Resources */ = {isa = PBXBuildFile; fileRef = F059942F2B9F53D800B018C7 /* osd-brightness.png */; };
 		F0CCD24C2B99F9F90070314F /* osd-dot.png in Resources */ = {isa = PBXBuildFile; fileRef = F0CCD2492B99F9F90070314F /* osd-dot.png */; };
 		F0CCD24D2B99F9F90070314F /* osd-dot.png in Resources */ = {isa = PBXBuildFile; fileRef = F0CCD2492B99F9F90070314F /* osd-dot.png */; };
 		F0CCD24E2B99F9F90070314F /* osd-speed.png in Resources */ = {isa = PBXBuildFile; fileRef = F0CCD24A2B99F9F90070314F /* osd-speed.png */; };
@@ -529,6 +535,9 @@
 		46ED5CB02AF5326A00AF8F45 /* DisplayMetal.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = DisplayMetal.cpp; path = ../../DisplayOutput/Metal/DisplayMetal.cpp; sourceTree = "<group>"; };
 		46FA9E182B03CB0500708000 /* ShaderMetal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShaderMetal.h; sourceTree = "<group>"; };
 		46FA9E192B03CB0500708000 /* ShaderMetal.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ShaderMetal.mm; sourceTree = "<group>"; };
+		F05994292B9F465000B018C7 /* osd-dot-r.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-dot-r.png"; sourceTree = "<group>"; };
+		F059942C2B9F46F500B018C7 /* osd-dot-u.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-dot-u.png"; sourceTree = "<group>"; };
+		F059942F2B9F53D800B018C7 /* osd-brightness.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-brightness.png"; sourceTree = "<group>"; };
 		F0CCD23D2B98CF530070314F /* OSD.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = OSD.hpp; sourceTree = "<group>"; };
 		F0CCD2492B99F9F90070314F /* osd-dot.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-dot.png"; sourceTree = "<group>"; };
 		F0CCD24A2B99F9F90070314F /* osd-speed.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-speed.png"; sourceTree = "<group>"; };
@@ -905,7 +914,10 @@
 				21ADBB231305D380000A9F20 /* yellow.tif */,
 				F0CCD24B2B99F9F90070314F /* osd-bg.png */,
 				F0CCD2492B99F9F90070314F /* osd-dot.png */,
+				F059942C2B9F46F500B018C7 /* osd-dot-u.png */,
+				F05994292B9F465000B018C7 /* osd-dot-r.png */,
 				F0CCD24A2B99F9F90070314F /* osd-speed.png */,
+				F059942F2B9F53D800B018C7 /* osd-brightness.png */,
 			);
 			name = Runtime;
 			path = ../Runtime;
@@ -1094,14 +1106,17 @@
 				12A00CD92B0FCA39001C0792 /* e-dream.icns in Resources */,
 				215545AA12620D3000AB51BF /* dsa_pub.pem in Resources */,
 				F0CCD24E2B99F9F90070314F /* osd-speed.png in Resources */,
+				F05994302B9F53D800B018C7 /* osd-brightness.png in Resources */,
 				12A00CD12B0D22A4001C0792 /* Trebuchet MS.sddf in Resources */,
 				4628A55E2B0F84EF001C3078 /* Lato-Regular.ttf in Resources */,
 				21934CB919F3C2430096E7D7 /* thumbnail.tif in Resources */,
 				21ADBB271305D380000A9F20 /* green.tif in Resources */,
 				F0CCD2502B99F9F90070314F /* osd-bg.png in Resources */,
+				F059942A2B9F465000B018C7 /* osd-dot-r.png in Resources */,
 				21ADBB281305D380000A9F20 /* red.tif in Resources */,
 				12A00CDC2B0FCA6C001C0792 /* e-dream-attr.png in Resources */,
 				21ADBB291305D380000A9F20 /* yellow.tif in Resources */,
+				F059942D2B9F46F500B018C7 /* osd-dot-u.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1110,6 +1125,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				21EE636310139D68000CE53E /* ElectricSheep.nib in Resources */,
+				F05994312B9F53D800B018C7 /* osd-brightness.png in Resources */,
 				123A0C8A2B87B1E600A616E3 /* MainMenu.xib in Resources */,
 				12A00CDA2B0FCA39001C0792 /* e-dream.icns in Resources */,
 				215545A912620D3000AB51BF /* dsa_pub.pem in Resources */,
@@ -1117,11 +1133,13 @@
 				F0CCD2512B99F9F90070314F /* osd-bg.png in Resources */,
 				21ADBB241305D380000A9F20 /* green.tif in Resources */,
 				4628A55F2B0F84EF001C3078 /* Lato-Regular.ttf in Resources */,
+				F059942E2B9F46F500B018C7 /* osd-dot-u.png in Resources */,
 				F0CCD24D2B99F9F90070314F /* osd-dot.png in Resources */,
 				F0CCD24F2B99F9F90070314F /* osd-speed.png in Resources */,
 				21ADBB251305D380000A9F20 /* red.tif in Resources */,
 				1243576D2B31FC1B00CCD62A /* BuildData.json in Resources */,
 				21ADBB261305D380000A9F20 /* yellow.tif in Resources */,
+				F059942B2B9F465000B018C7 /* osd-dot-r.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
