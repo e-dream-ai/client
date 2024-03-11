@@ -320,7 +320,7 @@ class CElectricSheep
     void AddActivityLevelHud()
     {
         // Kinda cheating on min here to get a dot
-        m_spOSD = std::make_shared<Hud::COSD>(Base::Math::CRect(1, 1), 0.9, 9, -1, 1);
+        m_spOSD = std::make_shared<Hud::COSD>(Base::Math::CRect(1, 1), 0, 9, -1, 1);
     }
     
     void AddSplashHud()
@@ -1153,6 +1153,7 @@ class CElectricSheep
     void popOSD(Hud::OSDType type) {
         switch (type) {
             case Hud::ActivityLevel:
+                printf("fps : %f\n", g_Player().GetCurrentPlayingClipMetadata()->decodeFps);
                 m_spOSD->SetType(Hud::ActivityLevel);
                 break;
             case Hud::Brightness:
@@ -1254,14 +1255,14 @@ class CElectricSheep
         case CLIENT_COMMAND_PLAYBACK_SLOWER:
             m_F1F4Timer.Reset();
             popOSD(Hud::ActivityLevel);
-            g_Player().MultiplyFramerate(1.f / 1.1f);
+            g_Player().MultiplyFramerate(1.f / 1.1224f);
                 if (m_StatsCodeCounter == 1 || m_StatsCodeCounter == 3)
                     m_StatsCodeCounter++;
             return true;
         case CLIENT_COMMAND_PLAYBACK_FASTER:
             m_F1F4Timer.Reset();
             popOSD(Hud::ActivityLevel);
-            g_Player().MultiplyFramerate(1.1f);
+            g_Player().MultiplyFramerate(1.1224f);
             if (m_StatsCodeCounter == 0 || m_StatsCodeCounter == 2)
                 m_StatsCodeCounter++;
             return true;

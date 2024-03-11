@@ -49,7 +49,7 @@ public:
         // Grab our background texture
         DisplayOutput::spCImage tmpBg(new DisplayOutput::CImage());
         if (tmpBg->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
-                           "osd-bg.png", false))
+                           "osd-bg-700.png", false))
         {
             m_spBgTexture = g_Player().Renderer()->NewTextureFlat();
             m_spBgTexture->Upload(tmpBg);
@@ -58,7 +58,7 @@ public:
         // Grab our dot classic texture
         DisplayOutput::spCImage tmpDot(new DisplayOutput::CImage());
         if (tmpDot->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
-                           "osd-dot.png", false))
+                           "osd-pill.png", false))
         {
             m_spDotTexture = g_Player().Renderer()->NewTextureFlat();
             m_spDotTexture->Upload(tmpDot);
@@ -67,7 +67,7 @@ public:
         // Grab our dot unselected texture
         DisplayOutput::spCImage tmpDotU(new DisplayOutput::CImage());
         if (tmpDotU->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
-                           "osd-dot-u.png", false))
+                           "osd-pill-u.png", false))
         {
             m_spDotTexture_u = g_Player().Renderer()->NewTextureFlat();
             m_spDotTexture_u->Upload(tmpDotU);
@@ -76,7 +76,7 @@ public:
         // Grab our dot red texture
         DisplayOutput::spCImage tmpDotR(new DisplayOutput::CImage());
         if (tmpDotR->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
-                           "osd-dot-r.png", false))
+                           "osd-pill-r.png", false))
         {
             m_spDotTexture_r = g_Player().Renderer()->NewTextureFlat();
             m_spDotTexture_r->Upload(tmpDotR);
@@ -102,12 +102,12 @@ public:
 
         // Set Background size
         //
-        // Compensate screen aspect ratio + aspect ratio of our image 16/9, 600x210
+        // Compensate screen aspect ratio + aspect ratio of our image 16/9, 700x210
         float aspect = g_Player().Display()->Aspect();
         m_Rect.m_X0 = 0;
         m_Rect.m_X1 = rect.m_X1 * aspect;
         m_Rect.m_Y0 = 0;
-        m_Rect.m_Y1 = rect.m_Y1 * 0.35f;
+        m_Rect.m_Y1 = rect.m_Y1 * 0.3f;
 
         m_BgCRect = m_Rect;
         const float s = 0.15f;  // This can be changed to adjust the overall scale of the OSD
@@ -122,21 +122,23 @@ public:
         // Compensate screen aspect ratio (image is squared)
         m_DotCRect = rect;
         m_DotCRect.m_X1 *= aspect;
+        //m_DotCRect.m_Y1 *= 45 / 16;
 
         auto w = m_DotCRect.Width();
         auto h = m_DotCRect.Height();
 
-        // Scale our dot relative to our bg (45w vs 600w)
-        const float s2 = s * 45 / 600 ;
-
-        // Position as the first dot (45x45), 30px left, 30px bottom to our main rect (600x210)
-        m_DotCRect.m_X0 = 0.5 - m_BgCRect.Width() / 2 + m_BgCRect.Width() / 20;
+        // Scale our dot relative to our bg (16w vs 700w)
+        const float s2_w = s * 16 / 700 ;
+        const float s2_h = s * 45 / 700;
+        
+        // Position as the first dot (16x45), 30px left, 30px bottom to our main rect (700x210)
+        m_DotCRect.m_X0 = 0.5 - m_BgCRect.Width() / 2 + m_BgCRect.Width() * 30 / 700;
         m_DotCRect.m_Y0 = 0.75f + m_BgCRect.Height() * 30 / 210;
-        m_DotCRect.m_X1 = m_DotCRect.m_X0 + (2 * w * s2);
-        m_DotCRect.m_Y1 = m_DotCRect.m_Y0 + (2 * h * s2);
+        m_DotCRect.m_X1 = m_DotCRect.m_X0 + (2 * w * s2_w);
+        m_DotCRect.m_Y1 = m_DotCRect.m_Y0 + (2 * h * s2_h);
 
-        // We precalc our gap for the dot drawing, 45w + 10px margin
-        dotGap = m_BgCRect.Width() * 55 / 600;
+        // We precalc our gap for the dot drawing, 16 + 8px margin
+        dotGap = m_BgCRect.Width() * 24 / 700;
         
         // Set Symbol size
         //
@@ -146,8 +148,8 @@ public:
         w = m_SymbolCRect.Width();
         h = m_SymbolCRect.Height();
         
-        // Scale our dot relative to our bg (45w vs 600w)
-        const float s3 = s * 65 / 600 ;
+        // Scale our symbol relative to our bg (65w vs 700w)
+        const float s3 = s * 65 / 700 ;
 
         // Position symbol (65x65) 100px left, 30px top to our main rect (600x210)
         //m_SymbolCRect.m_X0 = 0.5 - m_BgCRect.Width() / 2 + m_BgCRect.Width() / 6;
@@ -159,13 +161,13 @@ public:
 
          
         // Font initialization
-        m_FontDesc.AntiAliased(true);
+        /*m_FontDesc.AntiAliased(true);
         m_FontDesc.Height(72 * g_Player().Display()->Height() / 2000);
         m_FontDesc.Style(DisplayOutput::CFontDescription::Normal);
         m_FontDesc.Italic(false);
         m_FontDesc.TypeFace("Leto");
 
-        m_spFont = g_Player().Renderer()->GetFont(m_FontDesc);
+        m_spFont = g_Player().Renderer()->GetFont(m_FontDesc);*/
         
         tmpBg = NULL;
         tmpDot = NULL;
@@ -196,7 +198,6 @@ public:
         
         // Setup & Draw symbol
         switch (type) {
-                
             case ActivityLevel:
                 spRenderer->SetTexture(m_spSymbolActivityTexture, 0);
                 break;
@@ -216,16 +217,16 @@ public:
         double scaledValue = 0;
         switch (type) {
             case ActivityLevel:
-                scaledValue = (FPSToActivity(currentFps) - minFps) * 10 / (maxFps - minFps);
+                // We cheat a bit to align our rough fps to dots
+                scaledValue = (FPSToActivity(currentFps - 0.01) - minFps) * 27 / (maxFps - minFps);
                 break;
             case Brightness:
-                scaledValue = (currentBrightness - minBrightness) * 10 / (maxBrightness - minBrightness);
+                scaledValue = (currentBrightness - minBrightness) * 27 / (maxBrightness - minBrightness);
                 break;
         }
 
-        //printf("VAL %f %f %f\n", currentValue, FPSToActivity(currentValue), scaledValue);
-        for (int i = 0 ; i < 10 ; i++) {
-            if (scaledValue > 10 && i == 9) {
+        for (int i = 0 ; i < 27 ; i++) {
+            if (scaledValue > 27 && i == 26) {
                 // over
                 spRenderer->SetTexture(m_spDotTexture_r, 0);
                 spRenderer->SetBlend("alphablend");
