@@ -1159,16 +1159,11 @@ class CElectricSheep
     };
 
     void popOSD(Hud::OSDType type) {
-        switch (type) {
-            case Hud::ActivityLevel:
-                printf("fps : %f\n", g_Player().GetCurrentPlayingClipMetadata()->decodeFps);
-                m_spOSD->SetType(Hud::ActivityLevel);
-                break;
-            case Hud::Brightness:
-                m_spOSD->SetType(Hud::Brightness);
-                m_spOSD->SetBrightness(m_Brightness);
-                break;
+        if (type == Hud::Brightness) {
+            m_spOSD->SetBrightness(m_Brightness);
         }
+        m_spOSD->SetType(type);
+
         m_HudManager->Add("osd-activity", m_spOSD, 3);
     }
     
@@ -1211,6 +1206,8 @@ class CElectricSheep
                 return true;
                 //    Repeat current sheep
             case CLIENT_COMMAND_PREVIOUS:
+                popOSD(Hud::Previous);
+
                 g_Player().ReturnToPrevious();
                 return true;
                     
@@ -1254,6 +1251,7 @@ class CElectricSheep
 
                 //  Force Next Sheep
             case CLIENT_COMMAND_NEXT:
+                popOSD(Hud::Next);
                 g_Player().SkipToNext();
                 return true;
                 //    Repeat sheep
@@ -1278,12 +1276,19 @@ class CElectricSheep
                 m_HudManager->Toggle("dreamstats");
                 return true;
             case CLIENT_COMMAND_SKIP_FW:
+                popOSD(Hud::Forward10);
                 g_Player().SkipForward(10);
                 return true;
             case CLIENT_COMMAND_SKIP_BW:
+                popOSD(Hud::Back10);
                 g_Player().SkipForward(-10);
                 return true;
             case CLIENT_COMMAND_PAUSE:
+                if (m_bPaused) {
+                    popOSD(Hud::Play);
+                } else {
+                    popOSD(Hud::Pause);
+                }
                 g_Player().SetPaused(m_bPaused = !m_bPaused);
                 return true;
             case CLIENT_COMMAND_CREDIT:

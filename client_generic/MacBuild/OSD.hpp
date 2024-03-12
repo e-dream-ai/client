@@ -30,7 +30,13 @@ inline double FPSToActivity(double fps) {
 
 enum OSDType {
     ActivityLevel,
-    Brightness
+    Brightness,
+    Pause,
+    Play,
+    Previous,
+    Next,
+    Back10,
+    Forward10
 };
 
 class COSD : public CHudEntry {
@@ -110,17 +116,107 @@ public:
             m_spSymbolBrightnessTexture->Upload(tmpSymbolBrightness);
         }
 
+        // Mini hud + symbols (play, pause, back/forward 10s, prev/next
+        DisplayOutput::spCImage tmpBgSq(new DisplayOutput::CImage());
+        if (tmpBgSq->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
+                           "osd-bg-sq.png", false))
+        {
+            m_spBgSqTexture = g_Player().Renderer()->NewTextureFlat();
+            m_spBgSqTexture->Upload(tmpBgSq);
+        }
+        
+        DisplayOutput::spCImage tmpPlay(new DisplayOutput::CImage());
+        if (tmpPlay->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
+                           "osd-play.png", false))
+        {
+            m_spPlayTexture = g_Player().Renderer()->NewTextureFlat();
+            m_spPlayTexture->Upload(tmpPlay);
+        }
+
+        DisplayOutput::spCImage tmpPause(new DisplayOutput::CImage());
+        if (tmpPause->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
+                           "osd-pause.png", false))
+        {
+            m_spPauseTexture = g_Player().Renderer()->NewTextureFlat();
+            m_spPauseTexture->Upload(tmpPause);
+        }
+
+        
+        DisplayOutput::spCImage tmpBack(new DisplayOutput::CImage());
+        if (tmpBack->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
+                           "osd-back.png", false))
+        {
+            m_spBackTexture = g_Player().Renderer()->NewTextureFlat();
+            m_spBackTexture->Upload(tmpBack);
+        }
+
+        
+        DisplayOutput::spCImage tmpForward(new DisplayOutput::CImage());
+        if (tmpForward->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
+                           "osd-forward.png", false))
+        {
+            m_spForwardTexture = g_Player().Renderer()->NewTextureFlat();
+            m_spForwardTexture->Upload(tmpForward);
+        }
+
+        
+        DisplayOutput::spCImage tmpBack10(new DisplayOutput::CImage());
+        if (tmpBack10->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
+                           "osd-back10.png", false))
+        {
+            m_spBack10Texture = g_Player().Renderer()->NewTextureFlat();
+            m_spBack10Texture->Upload(tmpBack10);
+        }
+
+        
+        DisplayOutput::spCImage tmpForward10(new DisplayOutput::CImage());
+        if (tmpForward10->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
+                           "osd-forward10.png", false))
+        {
+            m_spForward10Texture = g_Player().Renderer()->NewTextureFlat();
+            m_spForward10Texture->Upload(tmpForward10);
+        }
+
+        // Set mini BG size
+        // Fix A/R
+        float aspect = g_Player().Display()->Aspect();
+        const float s_mini = 0.045f;  // This can be changed to adjust the overall scale of the mini OSD
+
+        m_BgSqCRect = rect;
+        m_BgSqCRect.m_X1 *= aspect;
+
+        auto w_bgsq = m_BgSqCRect.Width();
+        auto h_bgsq = m_BgSqCRect.Height();
+        
+        m_BgSqCRect.m_X0 = 0.5f - (w_bgsq * s_mini);
+        m_BgSqCRect.m_Y0 = 0.75f - (h_bgsq * s_mini);
+        m_BgSqCRect.m_X1 = 0.5f + (w_bgsq * s_mini);
+        m_BgSqCRect.m_Y1 = 0.75f + (h_bgsq * s_mini);
+
+        m_LargeSymbolCRect = rect;
+        m_LargeSymbolCRect.m_X1 *= aspect;
+
+        auto w_lgs = m_LargeSymbolCRect.Width();
+        auto h_lgs = m_LargeSymbolCRect.Height();
+        const float s_lgs = s_mini * 135 / 210 ;
+
+        // Position as the first dot (16x45), 30px left, 30px bottom to our main rect (700x210)
+        m_LargeSymbolCRect.m_X0 = 0.5f - (w_lgs) * s_lgs;
+        m_LargeSymbolCRect.m_Y0 = 0.75f - (h_lgs) * s_lgs;
+        m_LargeSymbolCRect.m_X1 = m_LargeSymbolCRect.m_X0 + (2 * w_lgs * s_lgs);
+        m_LargeSymbolCRect.m_Y1 = m_LargeSymbolCRect.m_Y0 + (2 * h_lgs * s_lgs);
+
+        
         // Set Background size
         //
         // Compensate screen aspect ratio + aspect ratio of our image 16/9, 700x210
-        float aspect = g_Player().Display()->Aspect();
         m_Rect.m_X0 = 0;
         m_Rect.m_X1 = rect.m_X1 * aspect;
         m_Rect.m_Y0 = 0;
         m_Rect.m_Y1 = rect.m_Y1 * 0.3f;
 
-        m_BgCRect = m_Rect;
         const float s = 0.15f;  // This can be changed to adjust the overall scale of the OSD
+        m_BgCRect = m_Rect;
         m_BgCRect.m_X0 = 0.5f - (m_Rect.Width() * s);
         m_BgCRect.m_Y0 = 0.75f - (m_Rect.Height() * s);
         m_BgCRect.m_X1 = 0.5f + (m_Rect.Width() * s);
@@ -179,6 +275,7 @@ public:
 
         m_spFont = g_Player().Renderer()->GetFont(m_FontDesc);*/
         
+        // Large HUD
         tmpBg = NULL;
         tmpDot = NULL;
         tmpDotR = NULL;
@@ -186,6 +283,15 @@ public:
         tmpDotU = NULL;
         tmpSymbolActivity = NULL;
         tmpSymbolBrightness = NULL;
+
+        // Mini HUD
+        tmpBgSq = NULL;
+        tmpPlay = NULL;
+        tmpPause = NULL;
+        tmpBack = NULL;
+        tmpForward = NULL;
+        tmpBack10 = NULL;
+        tmpForward10 = NULL;
     };
     
     bool Render(const double _time, DisplayOutput::spCRenderer _spRenderer)
@@ -198,81 +304,124 @@ public:
 
         DisplayOutput::spCRenderer spRenderer = g_Player().Renderer();
 
-        // Setup & Draw background
-        spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader);
-        spRenderer->SetTexture(m_spBgTexture, 0);
-        spRenderer->SetBlend("alphablend");
-        spRenderer->SetShader(NULL);
-        spRenderer->Apply();
+        if (type == ActivityLevel || type == Brightness) {
+            // Setup & Draw background
+            spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader);
+            spRenderer->SetTexture(m_spBgTexture, 0);
+            spRenderer->SetBlend("alphablend");
+            spRenderer->SetShader(NULL);
+            spRenderer->Apply();
 
-        spRenderer->DrawQuad(m_BgCRect, Base::Math::CVector4(1, 1, 1, 1), m_spBgTexture->GetRect());
-        
-        // Setup & Draw symbol
-        switch (type) {
-            case ActivityLevel:
+            spRenderer->DrawQuad(m_BgCRect, Base::Math::CVector4(1, 1, 1, 1), m_spBgTexture->GetRect());
+            
+            // Setup & Draw symbol
+            if (type == ActivityLevel) {
                 spRenderer->SetTexture(m_spSymbolActivityTexture, 0);
-                break;
-            case Brightness:
-                spRenderer->SetTexture(m_spSymbolBrightnessTexture, 0);
-                break;
-        }
-        spRenderer->SetBlend("alphablend");
-        spRenderer->SetShader(NULL);
-        spRenderer->Apply();
-
-        spRenderer->DrawQuad(m_SymbolCRect, Base::Math::CVector4(1, 1, 1, 1), m_spSymbolActivityTexture->GetRect());
-        
-        // Setup & Draw dots
-
-        // Scale back linearly min-max to 0-10
-        double scaledValue = 0;
-        switch (type) {
-            case ActivityLevel:
-                // We cheat a bit to align our rough fps to dots
-                scaledValue = (FPSToActivity(currentFps - 0.01) - minFps) * 27 / (maxFps - minFps);
-                break;
-            case Brightness:
-                scaledValue = (currentBrightness - minBrightness) * 27 / (maxBrightness - minBrightness);
-                break;
-        }
-
-        for (int i = 0 ; i < 27 ; i++) {
-            if (scaledValue > 27 && i < (scaledValue - 27)) {
-                // over
-                spRenderer->SetTexture(m_spDotTexture_r, 0);
-                spRenderer->SetBlend("alphablend");
-                spRenderer->SetShader(NULL);
-                spRenderer->Apply();
-            } else if (scaledValue < 0.9 && i > (scaledValue + 27)) {
-                // under
-                spRenderer->SetTexture(m_spDotTexture_b, 0);
-                spRenderer->SetBlend("alphablend");
-                spRenderer->SetShader(NULL);
-                spRenderer->Apply();
-            } else if (i < scaledValue) {
-                // classic
-                spRenderer->SetTexture(m_spDotTexture, 0);
-                spRenderer->SetBlend("alphablend");
-                spRenderer->SetShader(NULL);
-                spRenderer->Apply();
             } else {
-                // unselected
-                spRenderer->SetTexture(m_spDotTexture_u, 0);
-                spRenderer->SetBlend("alphablend");
-                spRenderer->SetShader(NULL);
-                spRenderer->Apply();
+                spRenderer->SetTexture(m_spSymbolBrightnessTexture, 0);
+            }
+            spRenderer->SetBlend("alphablend");
+            spRenderer->SetShader(NULL);
+            spRenderer->Apply();
+
+            spRenderer->DrawQuad(m_SymbolCRect, Base::Math::CVector4(1, 1, 1, 1), m_spSymbolActivityTexture->GetRect());
+            
+            // Setup & Draw dots
+
+            // Scale back linearly min-max to 0-10
+            double scaledValue = 0;
+            switch (type) {
+                case ActivityLevel:
+                    // We cheat a bit to align our rough fps to dots
+                    scaledValue = (FPSToActivity(currentFps - 0.01) - minFps) * 27 / (maxFps - minFps);
+                    break;
+                case Brightness:
+                    scaledValue = (currentBrightness - minBrightness) * 27 / (maxBrightness - minBrightness);
+                    break;
             }
 
-            spRenderer->DrawQuad(
-                                Base::Math::CRect(
-                                    m_DotCRect.m_X0 + i*dotGap,
-                                    m_DotCRect.m_Y0,
-                                    m_DotCRect.m_X1 + i*dotGap,
-                                    m_DotCRect.m_Y1),
-                                Base::Math::CVector4(1, 1, 1, 1),
-                                m_spDotTexture->GetRect()
-                                 );
+            for (int i = 0 ; i < 27 ; i++) {
+                if (scaledValue > 27 && i < (scaledValue - 27)) {
+                    // over
+                    spRenderer->SetTexture(m_spDotTexture_r, 0);
+                    spRenderer->SetBlend("alphablend");
+                    spRenderer->SetShader(NULL);
+                    spRenderer->Apply();
+                } else if (scaledValue < 0.9 && i > (scaledValue + 27)) {
+                    // under
+                    spRenderer->SetTexture(m_spDotTexture_b, 0);
+                    spRenderer->SetBlend("alphablend");
+                    spRenderer->SetShader(NULL);
+                    spRenderer->Apply();
+                } else if (i < scaledValue) {
+                    // classic
+                    spRenderer->SetTexture(m_spDotTexture, 0);
+                    spRenderer->SetBlend("alphablend");
+                    spRenderer->SetShader(NULL);
+                    spRenderer->Apply();
+                } else {
+                    // unselected
+                    spRenderer->SetTexture(m_spDotTexture_u, 0);
+                    spRenderer->SetBlend("alphablend");
+                    spRenderer->SetShader(NULL);
+                    spRenderer->Apply();
+                }
+
+                spRenderer->DrawQuad(
+                                    Base::Math::CRect(
+                                        m_DotCRect.m_X0 + i*dotGap,
+                                        m_DotCRect.m_Y0,
+                                        m_DotCRect.m_X1 + i*dotGap,
+                                        m_DotCRect.m_Y1),
+                                    Base::Math::CVector4(1, 1, 1, 1),
+                                    m_spDotTexture->GetRect()
+                                     );
+            }
+        } else {
+            // Show mini hud!
+            
+            // Setup & Draw background
+            spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader);
+            spRenderer->SetTexture(m_spBgSqTexture, 0);
+            spRenderer->SetBlend("alphablend");
+            spRenderer->SetShader(NULL);
+            spRenderer->Apply();
+
+            spRenderer->DrawQuad(m_BgSqCRect, Base::Math::CVector4(1, 1, 1, 1), m_spBgSqTexture->GetRect());
+            
+            // Setup & Draw symbol
+            switch (type) {
+                case Pause:
+                    spRenderer->SetTexture(m_spPauseTexture, 0);
+                    break;
+                case Play:
+                    spRenderer->SetTexture(m_spPlayTexture, 0);
+                    break;
+                case Previous:
+                    spRenderer->SetTexture(m_spBackTexture, 0);
+                    break;
+                case Next:
+                    spRenderer->SetTexture(m_spForwardTexture, 0);
+                    break;
+                case Back10:
+                    spRenderer->SetTexture(m_spBack10Texture, 0);
+                    break;
+                case Forward10:
+                    spRenderer->SetTexture(m_spForward10Texture, 0);
+                    break;
+                default:
+                    spRenderer->SetTexture(m_spPauseTexture, 0);
+                    printf("Shouldn't be here");
+                    break;
+            }
+
+            spRenderer->SetBlend("alphablend");
+            spRenderer->SetShader(NULL);
+            spRenderer->Apply();
+
+            spRenderer->DrawQuad(m_LargeSymbolCRect, Base::Math::CVector4(1, 1, 1, 1), m_spPlayTexture->GetRect());
         }
+        
         
         // Draw FPS counter
         /*
@@ -321,15 +470,21 @@ private:
 
     OSDType type;
 
-    // Textures and coordinates
+    // Textures and coordinates for main hud (large 700px)
     DisplayOutput::spCTextureFlat m_spBgTexture, m_spDotTexture, m_spDotTexture_u, m_spDotTexture_r, m_spDotTexture_b, m_spSymbolActivityTexture, m_spSymbolBrightnessTexture;
     Base::Math::CRect m_BgCRect, m_DotCRect, m_SymbolCRect;
-        
+    
+    // Textures and coordinates for mini hud (210sq)
+    DisplayOutput::spCTextureFlat m_spBgSqTexture, m_spPlayTexture, m_spPauseTexture, m_spBackTexture, m_spForwardTexture, m_spBack10Texture, m_spForward10Texture;
+
+    Base::Math::CRect m_BgSqCRect, m_LargeSymbolCRect;
+
+    
     // FPS Counter
-    DisplayOutput::CFontDescription m_FontDesc;
+/*    DisplayOutput::CFontDescription m_FontDesc;
     Base::Math::CRect m_TextRect;
     DisplayOutput::spCBaseFont m_spFont;
-    DisplayOutput::spCBaseText m_spText;
+    DisplayOutput::spCBaseText m_spText;*/
     
     // Precalculations for rendering
     float dotGap;
