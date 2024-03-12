@@ -1164,7 +1164,7 @@ class CElectricSheep
         }
         m_spOSD->SetType(type);
 
-        m_HudManager->Add("osd-activity", m_spOSD, 3);
+        m_HudManager->Add("osd-activity", m_spOSD, 1);
     }
     
     virtual bool ExecuteCommand(eClientCommand _command)

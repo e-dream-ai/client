@@ -39,12 +39,19 @@ static void ShowPreferencesCallback()
 
     mBlackingWindows = nil;
 
-    //ESScreensaver_InitClientStorage();
-
+    
     frame.size.width = 1280;
     frame.size.height = 720;
-    //self.minSize = NSMakeSize(100, 100);
-    self.contentAspectRatio = CGSizeMake(16.f, 9.f);
+    
+    // tmp
+
+    ESScreensaver_InitClientStorage();
+    
+    // Force window aspect ratio only if set in settings
+    // TODO: reset window ar when setting change, currently requires a restart
+    if (ESScreensaver_GetBoolSetting("settings.player.preserve_AR", true)) {
+        self.contentAspectRatio = CGSizeMake(16.f, 9.f);
+    }
 
     mBlackouMonitors =
         ESScreensaver_GetBoolSetting("settings.player.blackout_monitors", true);
@@ -88,11 +95,22 @@ static void ShowPreferencesCallback()
 
         [esView setAutoresizesSubviews:YES];
 
+/*        float aspectRatio = 16.0 / 9.0;
+        float desiredWidth = 300.0;
+        float desiredHeight = desiredWidth / aspectRatio;
+        NSLayoutConstraint *heightConstraint = [NSLayoutConstraint constraintWithItem:esView attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeNotAnAttribute multiplier:1.0 constant:desiredHeight];
+        NSLayoutConstraint *widthConstraint = [NSLayoutConstraint constraintWithItem:esView attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeNotAnAttribute multiplier:1.0 constant:desiredWidth];
+        NSLayoutConstraint *aspectRatioConstraint = [NSLayoutConstraint constraintWithItem:esView attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:esView attribute:NSLayoutAttributeHeight multiplier:aspectRatio constant:0];
+        [esView.superview addConstraints:@[heightConstraint, widthConstraint, aspectRatioConstraint]];*/
+        
         [self makeFirstResponder:esView];
 
         [self makeKeyAndOrderFront:nil];
 
+        
         [esView startAnimation];
+
+
     }
     self.delegate = self;
     self->mESView = esView;
