@@ -49,9 +49,9 @@ static void ShowPreferencesCallback()
     
     // Force window aspect ratio only if set in settings
     // TODO: reset window ar when setting change, currently requires a restart
-    if (ESScreensaver_GetBoolSetting("settings.player.preserve_AR", true)) {
-        self.contentAspectRatio = CGSizeMake(16.f, 9.f);
-    }
+    //if (ESScreensaver_GetBoolSetting("settings.player.preserve_AR", true)) {
+    self.contentAspectRatio = CGSizeMake(16.f, 9.f);
+    //}
 
     mBlackouMonitors =
         ESScreensaver_GetBoolSetting("settings.player.blackout_monitors", true);
@@ -73,6 +73,7 @@ static void ShowPreferencesCallback()
 
     s_pWindow = self;
     ESSetShowPreferencesCallback(ShowPreferencesCallback);
+    
     [self initWindowProperties];
 }
 
@@ -95,19 +96,11 @@ static void ShowPreferencesCallback()
 
         [esView setAutoresizesSubviews:YES];
 
-/*        float aspectRatio = 16.0 / 9.0;
-        float desiredWidth = 300.0;
-        float desiredHeight = desiredWidth / aspectRatio;
-        NSLayoutConstraint *heightConstraint = [NSLayoutConstraint constraintWithItem:esView attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeNotAnAttribute multiplier:1.0 constant:desiredHeight];
-        NSLayoutConstraint *widthConstraint = [NSLayoutConstraint constraintWithItem:esView attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeNotAnAttribute multiplier:1.0 constant:desiredWidth];
-        NSLayoutConstraint *aspectRatioConstraint = [NSLayoutConstraint constraintWithItem:esView attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:esView attribute:NSLayoutAttributeHeight multiplier:aspectRatio constant:0];
-        [esView.superview addConstraints:@[heightConstraint, widthConstraint, aspectRatioConstraint]];*/
         
         [self makeFirstResponder:esView];
 
         [self makeKeyAndOrderFront:nil];
 
-        
         [esView startAnimation];
 
 
@@ -123,6 +116,18 @@ static void ShowPreferencesCallback()
 
 - (void)toggleFullScreen:(id)sender
 {
+    // Calculate current screen aspect ratio
+    float screenAR = self.screen.frame.size.width / self.screen.frame.size.height;
+    
+    // set a fixed ratio on full screen
+    if (screenAR < (16.0f/9.0f))
+    {
+        [self setMaxFullScreenContentSize:CGSizeMake(self.screen.frame.size.width, self.screen.frame.size.width * 9 / 16)];
+
+    } else {
+        [self setMaxFullScreenContentSize:CGSizeMake(self.screen.frame.size.height * 16 / 9, self.screen.frame.size.height)];
+    }
+    
     //NSWorkspace *workspace = [NSWorkspace sharedWorkspace];
     //[workspace setIdleTimerDisabled:self.isFullScreen];
     if ([self isFullScreen])
