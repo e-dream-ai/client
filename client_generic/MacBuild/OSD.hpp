@@ -26,6 +26,8 @@ inline double FPSToActivity(double fps) {
     return (2 * log(fps)) / log(2) - 1;
 }
 
+
+
 enum OSDType {
     ActivityLevel,
     Brightness

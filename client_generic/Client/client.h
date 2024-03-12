@@ -62,6 +62,11 @@ inline class CElectricSheep* g_Client() { return gClientInstance; }
 inline double ActivityToFPS(double activity) {
     return pow(2.0, (activity+1)/2);
 }
+
+inline float TapsToBrightness(double taps) {
+    return pow(2.0, (taps/40)) - 1 ;
+}
+
 /*
         CElectricSheep().
         Prime mover for the client, used from main.cpp...
@@ -96,6 +101,9 @@ class CElectricSheep
 
     double m_OriginalFps;
 
+    // internal brightness counter
+    int m_Brightness = 0;
+    
     //	Voting object.
     CVote* m_pVoter;
 
@@ -320,7 +328,7 @@ class CElectricSheep
     void AddActivityLevelHud()
     {
         // Kinda cheating on min here to get a dot
-        m_spOSD = std::make_shared<Hud::COSD>(Base::Math::CRect(1, 1), 0, 9, -1, 1);
+        m_spOSD = std::make_shared<Hud::COSD>(Base::Math::CRect(1, 1), 0, 9, -13, 13);
     }
     
     void AddSplashHud()
@@ -1158,7 +1166,7 @@ class CElectricSheep
                 break;
             case Hud::Brightness:
                 m_spOSD->SetType(Hud::Brightness);
-                m_spOSD->SetBrightness(g_Player().Renderer()->GetBrightness());
+                m_spOSD->SetBrightness(m_Brightness);
                 break;
         }
         m_HudManager->Add("osd-activity", m_spOSD, 3);
@@ -1289,15 +1297,15 @@ class CElectricSheep
                 return true;
             case CLIENT_COMMAND_BRIGHTNESS_UP:
                 if (g_Player().Renderer()->GetBrightness() < 1) {
-                    g_Player().Renderer()->SetBrightness(
-                        g_Player().Renderer()->GetBrightness() + 0.05f);
+                    m_Brightness++;
+                    g_Player().Renderer()->SetBrightness(TapsToBrightness(m_Brightness));
                 }
                 popOSD(Hud::Brightness);
                 return true;
             case CLIENT_COMMAND_BRIGHTNESS_DOWN:
                 if (g_Player().Renderer()->GetBrightness() > -1) {
-                    g_Player().Renderer()->SetBrightness(
-                        g_Player().Renderer()->GetBrightness() - 0.05f);
+                    m_Brightness--;
+                    g_Player().Renderer()->SetBrightness(TapsToBrightness(m_Brightness));
                 }
                 popOSD(Hud::Brightness);
                 return true;
