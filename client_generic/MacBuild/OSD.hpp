@@ -82,6 +82,14 @@ public:
             m_spDotTexture_r->Upload(tmpDotR);
         }
 
+        // Grab our dot blue texture
+        DisplayOutput::spCImage tmpDotB(new DisplayOutput::CImage());
+        if (tmpDotB->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
+                           "osd-pill-b.png", false))
+        {
+            m_spDotTexture_b = g_Player().Renderer()->NewTextureFlat();
+            m_spDotTexture_b->Upload(tmpDotB);
+        }
         
         // Grab our symbols texture
         DisplayOutput::spCImage tmpSymbolActivity(new DisplayOutput::CImage());
@@ -172,6 +180,7 @@ public:
         tmpBg = NULL;
         tmpDot = NULL;
         tmpDotR = NULL;
+        tmpDotB = NULL;
         tmpDotU = NULL;
         tmpSymbolActivity = NULL;
         tmpSymbolBrightness = NULL;
@@ -226,9 +235,15 @@ public:
         }
 
         for (int i = 0 ; i < 27 ; i++) {
-            if (scaledValue > 27 && i == 26) {
+            if (scaledValue > 27 && i < (scaledValue - 27)) {
                 // over
                 spRenderer->SetTexture(m_spDotTexture_r, 0);
+                spRenderer->SetBlend("alphablend");
+                spRenderer->SetShader(NULL);
+                spRenderer->Apply();
+            } else if (scaledValue < 0.9 && i > (scaledValue + 27)) {
+                // under
+                spRenderer->SetTexture(m_spDotTexture_b, 0);
                 spRenderer->SetBlend("alphablend");
                 spRenderer->SetShader(NULL);
                 spRenderer->Apply();
@@ -305,7 +320,7 @@ private:
     OSDType type;
 
     // Textures and coordinates
-    DisplayOutput::spCTextureFlat m_spBgTexture, m_spDotTexture, m_spDotTexture_u, m_spDotTexture_r, m_spSymbolActivityTexture, m_spSymbolBrightnessTexture;
+    DisplayOutput::spCTextureFlat m_spBgTexture, m_spDotTexture, m_spDotTexture_u, m_spDotTexture_r, m_spDotTexture_b, m_spSymbolActivityTexture, m_spSymbolBrightnessTexture;
     Base::Math::CRect m_BgCRect, m_DotCRect, m_SymbolCRect;
         
     // FPS Counter

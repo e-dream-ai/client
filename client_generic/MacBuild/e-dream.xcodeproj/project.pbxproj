@@ -234,14 +234,16 @@
 		46FA9E1B2B03CB0B00708000 /* ShaderMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 46FA9E192B03CB0500708000 /* ShaderMetal.mm */; };
 		F05994302B9F53D800B018C7 /* osd-brightness.png in Resources */ = {isa = PBXBuildFile; fileRef = F059942F2B9F53D800B018C7 /* osd-brightness.png */; };
 		F05994312B9F53D800B018C7 /* osd-brightness.png in Resources */ = {isa = PBXBuildFile; fileRef = F059942F2B9F53D800B018C7 /* osd-brightness.png */; };
-		F05994342B9F709800B018C7 /* osd-pill.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994322B9F709800B018C7 /* osd-pill.png */; };
-		F05994352B9F709800B018C7 /* osd-pill.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994322B9F709800B018C7 /* osd-pill.png */; };
-		F05994362B9F709800B018C7 /* osd-bg-700.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994332B9F709800B018C7 /* osd-bg-700.png */; };
-		F05994372B9F709800B018C7 /* osd-bg-700.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994332B9F709800B018C7 /* osd-bg-700.png */; };
-		F059943A2B9F7D7900B018C7 /* osd-pill-u.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994382B9F7D7900B018C7 /* osd-pill-u.png */; };
-		F059943B2B9F7D7900B018C7 /* osd-pill-u.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994382B9F7D7900B018C7 /* osd-pill-u.png */; };
-		F059943C2B9F7D7900B018C7 /* osd-pill-r.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994392B9F7D7900B018C7 /* osd-pill-r.png */; };
-		F059943D2B9F7D7900B018C7 /* osd-pill-r.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994392B9F7D7900B018C7 /* osd-pill-r.png */; };
+		F05994582BA0912300B018C7 /* osd-pill-r.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994532BA0912200B018C7 /* osd-pill-r.png */; };
+		F05994592BA0912300B018C7 /* osd-pill-r.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994532BA0912200B018C7 /* osd-pill-r.png */; };
+		F059945A2BA0912300B018C7 /* osd-pill-u.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994542BA0912200B018C7 /* osd-pill-u.png */; };
+		F059945B2BA0912300B018C7 /* osd-pill-u.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994542BA0912200B018C7 /* osd-pill-u.png */; };
+		F059945C2BA0912300B018C7 /* osd-pill.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994552BA0912200B018C7 /* osd-pill.png */; };
+		F059945D2BA0912300B018C7 /* osd-pill.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994552BA0912200B018C7 /* osd-pill.png */; };
+		F059945E2BA0912300B018C7 /* osd-bg-700.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994562BA0912300B018C7 /* osd-bg-700.png */; };
+		F059945F2BA0912300B018C7 /* osd-bg-700.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994562BA0912300B018C7 /* osd-bg-700.png */; };
+		F05994602BA0912300B018C7 /* osd-pill-b.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994572BA0912300B018C7 /* osd-pill-b.png */; };
+		F05994612BA0912300B018C7 /* osd-pill-b.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994572BA0912300B018C7 /* osd-pill-b.png */; };
 		F0CCD24E2B99F9F90070314F /* osd-speed.png in Resources */ = {isa = PBXBuildFile; fileRef = F0CCD24A2B99F9F90070314F /* osd-speed.png */; };
 		F0CCD24F2B99F9F90070314F /* osd-speed.png in Resources */ = {isa = PBXBuildFile; fileRef = F0CCD24A2B99F9F90070314F /* osd-speed.png */; };
 /* End PBXBuildFile section */
@@ -536,10 +538,11 @@
 		46FA9E182B03CB0500708000 /* ShaderMetal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShaderMetal.h; sourceTree = "<group>"; };
 		46FA9E192B03CB0500708000 /* ShaderMetal.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ShaderMetal.mm; sourceTree = "<group>"; };
 		F059942F2B9F53D800B018C7 /* osd-brightness.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-brightness.png"; sourceTree = "<group>"; };
-		F05994322B9F709800B018C7 /* osd-pill.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-pill.png"; sourceTree = "<group>"; };
-		F05994332B9F709800B018C7 /* osd-bg-700.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-bg-700.png"; sourceTree = "<group>"; };
-		F05994382B9F7D7900B018C7 /* osd-pill-u.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-pill-u.png"; sourceTree = "<group>"; };
-		F05994392B9F7D7900B018C7 /* osd-pill-r.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-pill-r.png"; sourceTree = "<group>"; };
+		F05994532BA0912200B018C7 /* osd-pill-r.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-pill-r.png"; sourceTree = "<group>"; };
+		F05994542BA0912200B018C7 /* osd-pill-u.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-pill-u.png"; sourceTree = "<group>"; };
+		F05994552BA0912200B018C7 /* osd-pill.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-pill.png"; sourceTree = "<group>"; };
+		F05994562BA0912300B018C7 /* osd-bg-700.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-bg-700.png"; sourceTree = "<group>"; };
+		F05994572BA0912300B018C7 /* osd-pill-b.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-pill-b.png"; sourceTree = "<group>"; };
 		F0CCD23D2B98CF530070314F /* OSD.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = OSD.hpp; sourceTree = "<group>"; };
 		F0CCD24A2B99F9F90070314F /* osd-speed.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-speed.png"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -912,10 +915,11 @@
 				21ADBB211305D380000A9F20 /* green.tif */,
 				21ADBB221305D380000A9F20 /* red.tif */,
 				21ADBB231305D380000A9F20 /* yellow.tif */,
-				F05994332B9F709800B018C7 /* osd-bg-700.png */,
-				F05994322B9F709800B018C7 /* osd-pill.png */,
-				F05994392B9F7D7900B018C7 /* osd-pill-r.png */,
-				F05994382B9F7D7900B018C7 /* osd-pill-u.png */,
+				F05994562BA0912300B018C7 /* osd-bg-700.png */,
+				F05994572BA0912300B018C7 /* osd-pill-b.png */,
+				F05994532BA0912200B018C7 /* osd-pill-r.png */,
+				F05994542BA0912200B018C7 /* osd-pill-u.png */,
+				F05994552BA0912200B018C7 /* osd-pill.png */,
 				F0CCD24A2B99F9F90070314F /* osd-speed.png */,
 				F059942F2B9F53D800B018C7 /* osd-brightness.png */,
 			);
@@ -1099,20 +1103,21 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F05994362B9F709800B018C7 /* osd-bg-700.png in Resources */,
-				F059943A2B9F7D7900B018C7 /* osd-pill-u.png in Resources */,
+				F05994582BA0912300B018C7 /* osd-pill-r.png in Resources */,
 				1243576C2B31FC1B00CCD62A /* BuildData.json in Resources */,
 				12A00CD52B0D31E6001C0792 /* Lato.sddf in Resources */,
 				21AAA0BD0F7040B500AC23A8 /* ElectricSheep.nib in Resources */,
 				12A00CD92B0FCA39001C0792 /* e-dream.icns in Resources */,
 				215545AA12620D3000AB51BF /* dsa_pub.pem in Resources */,
 				F0CCD24E2B99F9F90070314F /* osd-speed.png in Resources */,
+				F059945A2BA0912300B018C7 /* osd-pill-u.png in Resources */,
+				F05994602BA0912300B018C7 /* osd-pill-b.png in Resources */,
 				F05994302B9F53D800B018C7 /* osd-brightness.png in Resources */,
+				F059945E2BA0912300B018C7 /* osd-bg-700.png in Resources */,
 				12A00CD12B0D22A4001C0792 /* Trebuchet MS.sddf in Resources */,
 				4628A55E2B0F84EF001C3078 /* Lato-Regular.ttf in Resources */,
+				F059945C2BA0912300B018C7 /* osd-pill.png in Resources */,
 				21934CB919F3C2430096E7D7 /* thumbnail.tif in Resources */,
-				F059943C2B9F7D7900B018C7 /* osd-pill-r.png in Resources */,
-				F05994342B9F709800B018C7 /* osd-pill.png in Resources */,
 				21ADBB271305D380000A9F20 /* green.tif in Resources */,
 				21ADBB281305D380000A9F20 /* red.tif in Resources */,
 				12A00CDC2B0FCA6C001C0792 /* e-dream-attr.png in Resources */,
@@ -1124,18 +1129,19 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F059943B2B9F7D7900B018C7 /* osd-pill-u.png in Resources */,
+				F05994592BA0912300B018C7 /* osd-pill-r.png in Resources */,
+				F059945F2BA0912300B018C7 /* osd-bg-700.png in Resources */,
 				21EE636310139D68000CE53E /* ElectricSheep.nib in Resources */,
 				F05994312B9F53D800B018C7 /* osd-brightness.png in Resources */,
 				123A0C8A2B87B1E600A616E3 /* MainMenu.xib in Resources */,
-				F059943D2B9F7D7900B018C7 /* osd-pill-r.png in Resources */,
 				12A00CDA2B0FCA39001C0792 /* e-dream.icns in Resources */,
 				215545A912620D3000AB51BF /* dsa_pub.pem in Resources */,
 				12A00CDD2B0FCA6C001C0792 /* e-dream-attr.png in Resources */,
+				F059945D2BA0912300B018C7 /* osd-pill.png in Resources */,
+				F059945B2BA0912300B018C7 /* osd-pill-u.png in Resources */,
 				21ADBB241305D380000A9F20 /* green.tif in Resources */,
 				4628A55F2B0F84EF001C3078 /* Lato-Regular.ttf in Resources */,
-				F05994372B9F709800B018C7 /* osd-bg-700.png in Resources */,
-				F05994352B9F709800B018C7 /* osd-pill.png in Resources */,
+				F05994612BA0912300B018C7 /* osd-pill-b.png in Resources */,
 				F0CCD24F2B99F9F90070314F /* osd-speed.png in Resources */,
 				21ADBB251305D380000A9F20 /* red.tif in Resources */,
 				1243576D2B31FC1B00CCD62A /* BuildData.json in Resources */,

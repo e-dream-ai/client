@@ -1173,140 +1173,134 @@ class CElectricSheep
             m_StatsCodeCounter = 0;
         switch (_command)
         {
-        case CLIENT_COMMAND_LIKE:
-            if (m_StatsCodeCounter == 4)
-            {
-                m_HudManager->Toggle("dreamstats");
-                m_StatsCodeCounter = 0;
-                return true;
-            }
-            if (m_pVoter != nullptr &&
-                m_pVoter->Vote(data->dreamData.uuid, true, voteDelaySeconds))
-                m_HudManager->Add("splash_pos", m_spSplashPos,
-                                  voteDelaySeconds * 0.9f);
-            return true;
-        case CLIENT_COMMAND_DISLIKE:
-            if (m_pVoter != nullptr &&
-                m_pVoter->Vote(data->dreamData.uuid, false, voteDelaySeconds))
-            {
-                if (g_Settings()->Get("settings.content.negvotedeletes", true))
+            case CLIENT_COMMAND_LIKE:
+                if (m_StatsCodeCounter == 4)
                 {
-                    // g_Player().Stop();
-                    g_Player().SkipToNext();
-                    m_spCrossFade->Reset();
-                    m_HudManager->Add("fade", m_spCrossFade, 1.5);
+                    m_HudManager->Toggle("dreamstats");
+                    m_StatsCodeCounter = 0;
+                    return true;
                 }
+                if (m_pVoter != nullptr &&
+                    m_pVoter->Vote(data->dreamData.uuid, true, voteDelaySeconds))
+                    m_HudManager->Add("splash_pos", m_spSplashPos,
+                                      voteDelaySeconds * 0.9f);
+                return true;
+            case CLIENT_COMMAND_DISLIKE:
+                if (m_pVoter != nullptr &&
+                    m_pVoter->Vote(data->dreamData.uuid, false, voteDelaySeconds))
+                {
+                    if (g_Settings()->Get("settings.content.negvotedeletes", true))
+                    {
+                        // g_Player().Stop();
+                        g_Player().SkipToNext();
+                        m_spCrossFade->Reset();
+                        m_HudManager->Add("fade", m_spCrossFade, 1.5);
+                    }
 
-                m_HudManager->Add("splash_pos", m_spSplashNeg,
-                                  voteDelaySeconds * 0.9f);
-            }
-            return true;
-            //    Repeat current sheep
-        case CLIENT_COMMAND_PREVIOUS:
-            g_Player().ReturnToPrevious();
-            return true;
-                
-            // Activity levels
-        case CLIENT_COMMAND_ACTIVITY_1:
-            popOSD(Hud::ActivityLevel);
-            g_Player().SetFramerate(ActivityToFPS(1));
-            return true;
-        case CLIENT_COMMAND_ACTIVITY_2:
-            popOSD(Hud::ActivityLevel);
-            g_Player().SetFramerate(ActivityToFPS(2));
-            return true;
-        case CLIENT_COMMAND_ACTIVITY_3:
-            popOSD(Hud::ActivityLevel);
-            g_Player().SetFramerate(ActivityToFPS(3));
-            return true;
-        case CLIENT_COMMAND_ACTIVITY_4:
-            popOSD(Hud::ActivityLevel);
-            g_Player().SetFramerate(ActivityToFPS(4));
-            return true;
-        case CLIENT_COMMAND_ACTIVITY_5:
-            popOSD(Hud::ActivityLevel);
-            g_Player().SetFramerate(ActivityToFPS(5));
-            return true;
-        case CLIENT_COMMAND_ACTIVITY_6:
-            popOSD(Hud::ActivityLevel);
-            g_Player().SetFramerate(ActivityToFPS(6));
-            return true;
-        case CLIENT_COMMAND_ACTIVITY_7:
-            popOSD(Hud::ActivityLevel);
-            g_Player().SetFramerate(ActivityToFPS(7));
-            return true;
-        case CLIENT_COMMAND_ACTIVITY_8:
-            popOSD(Hud::ActivityLevel);
-            g_Player().SetFramerate(ActivityToFPS(8));
-            return true;
-        case CLIENT_COMMAND_ACTIVITY_9:
-            popOSD(Hud::ActivityLevel);
-            g_Player().SetFramerate(ActivityToFPS(9));
-            return true;
+                    m_HudManager->Add("splash_pos", m_spSplashNeg,
+                                      voteDelaySeconds * 0.9f);
+                }
+                return true;
+                //    Repeat current sheep
+            case CLIENT_COMMAND_PREVIOUS:
+                g_Player().ReturnToPrevious();
+                return true;
+                    
+                // Activity levels
+            case CLIENT_COMMAND_ACTIVITY_1:
+                popOSD(Hud::ActivityLevel);
+                g_Player().SetFramerate(ActivityToFPS(1));
+                return true;
+            case CLIENT_COMMAND_ACTIVITY_2:
+                popOSD(Hud::ActivityLevel);
+                g_Player().SetFramerate(ActivityToFPS(2));
+                return true;
+            case CLIENT_COMMAND_ACTIVITY_3:
+                popOSD(Hud::ActivityLevel);
+                g_Player().SetFramerate(ActivityToFPS(3));
+                return true;
+            case CLIENT_COMMAND_ACTIVITY_4:
+                popOSD(Hud::ActivityLevel);
+                g_Player().SetFramerate(ActivityToFPS(4));
+                return true;
+            case CLIENT_COMMAND_ACTIVITY_5:
+                popOSD(Hud::ActivityLevel);
+                g_Player().SetFramerate(ActivityToFPS(5));
+                return true;
+            case CLIENT_COMMAND_ACTIVITY_6:
+                popOSD(Hud::ActivityLevel);
+                g_Player().SetFramerate(ActivityToFPS(6));
+                return true;
+            case CLIENT_COMMAND_ACTIVITY_7:
+                popOSD(Hud::ActivityLevel);
+                g_Player().SetFramerate(ActivityToFPS(7));
+                return true;
+            case CLIENT_COMMAND_ACTIVITY_8:
+                popOSD(Hud::ActivityLevel);
+                g_Player().SetFramerate(ActivityToFPS(8));
+                return true;
+            case CLIENT_COMMAND_ACTIVITY_9:
+                popOSD(Hud::ActivityLevel);
+                g_Player().SetFramerate(ActivityToFPS(9));
+                return true;
 
-            //  Force Next Sheep
-        case CLIENT_COMMAND_NEXT:
-            g_Player().SkipToNext();
-            return true;
-            //    Repeat sheep
-        case CLIENT_COMMAND_REPEAT:
-            g_Player().RepeatClip();
-            return true;
-        case CLIENT_COMMAND_PLAYBACK_SLOWER:
-            m_F1F4Timer.Reset();
-            popOSD(Hud::ActivityLevel);
-            g_Player().MultiplyFramerate(1.f / 1.1224f);
-                if (m_StatsCodeCounter == 1 || m_StatsCodeCounter == 3)
-                    m_StatsCodeCounter++;
-            return true;
-        case CLIENT_COMMAND_PLAYBACK_FASTER:
-            m_F1F4Timer.Reset();
-            popOSD(Hud::ActivityLevel);
-            g_Player().MultiplyFramerate(1.1224f);
-            if (m_StatsCodeCounter == 0 || m_StatsCodeCounter == 2)
-                m_StatsCodeCounter++;
-            return true;
-            //    OSD info.
-        case CLIENT_COMMAND_F1:
-            m_F1F4Timer.Reset();
-            m_HudManager->Toggle("helpmessage");
-            return true;
-        case CLIENT_COMMAND_F2:
-            m_F1F4Timer.Reset();
-            m_HudManager->Toggle("dreamstats");
-            return true;
-        case CLIENT_COMMAND_SKIP_FW:
-            g_Player().SkipForward(10);
-            return true;
-        case CLIENT_COMMAND_SKIP_BW:
-            g_Player().SkipForward(-10);
-            return true;
-        case CLIENT_COMMAND_PAUSE:
-            g_Player().SetPaused(m_bPaused = !m_bPaused);
-            return true;
-        case CLIENT_COMMAND_CREDIT:
-            m_HudManager->Toggle("dreamcredits");
-            return true;
-        case CLIENT_COMMAND_WEBPAGE:
-            if (data && !data->dreamData.frontendUrl.empty())
-            {
-                PlatformUtils::OpenURLExternally(data->dreamData.frontendUrl);
-            }
-            return true;
-        case CLIENT_COMMAND_BRIGHTNESS_UP:
-            if (g_Player().Renderer()->GetBrightness() < 1) {
-                g_Player().Renderer()->SetBrightness(
-                    g_Player().Renderer()->GetBrightness() + 0.05f);
-            }
-            popOSD(Hud::Brightness);
-            return true;
-        case CLIENT_COMMAND_BRIGHTNESS_DOWN:
-            if (g_Player().Renderer()->GetBrightness() > -1) {
-                g_Player().Renderer()->SetBrightness(
-                    g_Player().Renderer()->GetBrightness() - 0.05f);
-            }
-            popOSD(Hud::Brightness);
-            return true;
+                //  Force Next Sheep
+            case CLIENT_COMMAND_NEXT:
+                g_Player().SkipToNext();
+                return true;
+                //    Repeat sheep
+            case CLIENT_COMMAND_REPEAT:
+                g_Player().RepeatClip();
+                return true;
+            case CLIENT_COMMAND_PLAYBACK_SLOWER:
+                popOSD(Hud::ActivityLevel);
+                g_Player().MultiplyFramerate(1.f / 1.1224f);
+                return true;
+            case CLIENT_COMMAND_PLAYBACK_FASTER:
+                popOSD(Hud::ActivityLevel);
+                g_Player().MultiplyFramerate(1.1224f);
+                return true;
+                //    OSD info.
+            case CLIENT_COMMAND_F1:
+                m_F1F4Timer.Reset();
+                m_HudManager->Toggle("helpmessage");
+                return true;
+            case CLIENT_COMMAND_F2:
+                m_F1F4Timer.Reset();
+                m_HudManager->Toggle("dreamstats");
+                return true;
+            case CLIENT_COMMAND_SKIP_FW:
+                g_Player().SkipForward(10);
+                return true;
+            case CLIENT_COMMAND_SKIP_BW:
+                g_Player().SkipForward(-10);
+                return true;
+            case CLIENT_COMMAND_PAUSE:
+                g_Player().SetPaused(m_bPaused = !m_bPaused);
+                return true;
+            case CLIENT_COMMAND_CREDIT:
+                m_HudManager->Toggle("dreamcredits");
+                return true;
+            case CLIENT_COMMAND_WEBPAGE:
+                if (data && !data->dreamData.frontendUrl.empty())
+                {
+                    PlatformUtils::OpenURLExternally(data->dreamData.frontendUrl);
+                }
+                return true;
+            case CLIENT_COMMAND_BRIGHTNESS_UP:
+                if (g_Player().Renderer()->GetBrightness() < 1) {
+                    g_Player().Renderer()->SetBrightness(
+                        g_Player().Renderer()->GetBrightness() + 0.05f);
+                }
+                popOSD(Hud::Brightness);
+                return true;
+            case CLIENT_COMMAND_BRIGHTNESS_DOWN:
+                if (g_Player().Renderer()->GetBrightness() > -1) {
+                    g_Player().Renderer()->SetBrightness(
+                        g_Player().Renderer()->GetBrightness() - 0.05f);
+                }
+                popOSD(Hud::Brightness);
+                return true;
         }
         return false;
     }
