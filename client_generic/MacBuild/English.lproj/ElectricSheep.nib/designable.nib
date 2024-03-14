@@ -22,7 +22,6 @@
                 <outlet property="multiDisplayMode" destination="911" id="926"/>
                 <outlet property="okButton" destination="331" id="Qns-8w-LN7"/>
                 <outlet property="passwordLabel" destination="712" id="pEF-OY-jg9"/>
-                <outlet property="playerFPS" destination="1029" id="1049"/>
                 <outlet property="preserveAR" destination="1191" id="1193"/>
                 <outlet property="proxyHost" destination="Q3k-U6-7Ad" id="ALD-hu-lzP"/>
                 <outlet property="proxyLogin" destination="gY4-Mj-Ffb" id="vlU-Ky-EMd"/>
@@ -358,7 +357,7 @@ room for new ones</string>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <popUpButton toolTip="Comming soon." verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="662">
-                                            <rect key="frame" x="197" y="69" width="104" height="25"/>
+                                            <rect key="frame" x="197" y="108" width="104" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Primary" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" enabled="NO" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="665" id="663">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
@@ -380,7 +379,7 @@ room for new ones</string>
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="668">
-                                            <rect key="frame" x="91" y="76" width="103" height="16"/>
+                                            <rect key="frame" x="91" y="115" width="103" height="16"/>
                                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Display Monitor:" id="669">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
@@ -388,7 +387,7 @@ room for new ones</string>
                                             </textFieldCell>
                                         </textField>
                                         <popUpButton toolTip="In Shared mode, all displays will render exactly the same sheep. In Individual each display will render its own." verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="911">
-                                            <rect key="frame" x="197" y="39" width="97" height="25"/>
+                                            <rect key="frame" x="197" y="78" width="97" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Shared" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="920" id="914">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
@@ -401,42 +400,15 @@ room for new ones</string>
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="912">
-                                            <rect key="frame" x="50" y="46" width="144" height="16"/>
+                                            <rect key="frame" x="50" y="85" width="144" height="16"/>
                                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Multiple Monitor Mode:" id="913">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
-                                        <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="1027">
-                                            <rect key="frame" x="89" y="237" width="105" height="16"/>
-                                            <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Playback Speed:" id="1028">
-                                                <font key="font" metaFont="system"/>
-                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                                            </textFieldCell>
-                                        </textField>
-                                        <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="1029">
-                                            <rect key="frame" x="200" y="234" width="40" height="21"/>
-                                            <constraints>
-                                                <constraint firstAttribute="width" constant="40" id="lxU-St-wd4"/>
-                                            </constraints>
-                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" drawsBackground="YES" id="1030">
-                                                <font key="font" metaFont="system"/>
-                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                            </textFieldCell>
-                                        </textField>
-                                        <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="1031">
-                                            <rect key="frame" x="246" y="237" width="28" height="16"/>
-                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="FPS" id="1032">
-                                                <font key="font" metaFont="system"/>
-                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                                            </textFieldCell>
-                                        </textField>
                                         <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="1040">
-                                            <rect key="frame" x="99" y="208" width="95" height="16"/>
+                                            <rect key="frame" x="99" y="247" width="95" height="16"/>
                                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Display Speed:" id="1045">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
@@ -444,7 +416,10 @@ room for new ones</string>
                                             </textFieldCell>
                                         </textField>
                                         <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="1041">
-                                            <rect key="frame" x="200" y="205" width="40" height="21"/>
+                                            <rect key="frame" x="200" y="244" width="40" height="21"/>
+                                            <constraints>
+                                                <constraint firstAttribute="width" constant="40" id="0uF-zA-7yQ"/>
+                                            </constraints>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" drawsBackground="YES" id="1044">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
@@ -452,7 +427,7 @@ room for new ones</string>
                                             </textFieldCell>
                                         </textField>
                                         <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="1042">
-                                            <rect key="frame" x="246" y="208" width="28" height="16"/>
+                                            <rect key="frame" x="246" y="247" width="28" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="FPS" id="1043">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
@@ -460,7 +435,7 @@ room for new ones</string>
                                             </textFieldCell>
                                         </textField>
                                         <button translatesAutoresizingMaskIntoConstraints="NO" id="933">
-                                            <rect key="frame" x="198" y="116" width="173" height="18"/>
+                                            <rect key="frame" x="198" y="155" width="173" height="18"/>
                                             <string key="toolTip">When selected each frame will be rendered in sync with Vertical Blank Line (display refresh rate). This option can cause significant drop of FPS when using multiple display.</string>
                                             <buttonCell key="cell" type="check" title="Vertical Synchronization" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="934">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -468,14 +443,14 @@ room for new ones</string>
                                             </buttonCell>
                                         </button>
                                         <button toolTip="When selected all monitors except the display monitor will be blacked out while in fullscreen mode" translatesAutoresizingMaskIntoConstraints="NO" id="1185">
-                                            <rect key="frame" x="198" y="164" width="260" height="18"/>
+                                            <rect key="frame" x="198" y="203" width="260" height="18"/>
                                             <buttonCell key="cell" type="check" title="Black Out Other Monitors In Fullscreen" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="1186">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
                                         </button>
                                         <button toolTip="When selected all monitors except the display monitor will be blacked out while in fullscreen mode" translatesAutoresizingMaskIntoConstraints="NO" id="1191">
-                                            <rect key="frame" x="198" y="140" width="160" height="18"/>
+                                            <rect key="frame" x="198" y="179" width="160" height="18"/>
                                             <buttonCell key="cell" type="check" title="Preserve Aspect Ratio" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="1192">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
@@ -483,33 +458,26 @@ room for new ones</string>
                                         </button>
                                     </subviews>
                                     <constraints>
-                                        <constraint firstItem="1029" firstAttribute="leading" secondItem="324" secondAttribute="leading" constant="200" id="0or-DY-oua"/>
-                                        <constraint firstItem="1031" firstAttribute="firstBaseline" secondItem="1027" secondAttribute="firstBaseline" id="4Jh-Px-n9k"/>
                                         <constraint firstItem="662" firstAttribute="firstBaseline" secondItem="668" secondAttribute="firstBaseline" id="66u-MN-PkT"/>
                                         <constraint firstItem="911" firstAttribute="leading" secondItem="933" secondAttribute="leading" id="6fj-lJ-0dQ"/>
-                                        <constraint firstItem="1029" firstAttribute="leading" secondItem="1027" secondAttribute="trailing" constant="8" symbolic="YES" id="8AP-Fm-SS6"/>
-                                        <constraint firstItem="1029" firstAttribute="top" secondItem="324" secondAttribute="top" constant="30" id="8dW-hu-Tc8"/>
                                         <constraint firstItem="662" firstAttribute="leading" secondItem="668" secondAttribute="trailing" constant="8" symbolic="YES" id="BNO-kj-YOK"/>
                                         <constraint firstItem="911" firstAttribute="firstBaseline" secondItem="912" secondAttribute="firstBaseline" id="DHs-au-g4z"/>
+                                        <constraint firstItem="1041" firstAttribute="leading" secondItem="1040" secondAttribute="trailing" constant="8" symbolic="YES" id="EFn-CA-1Gv"/>
                                         <constraint firstItem="911" firstAttribute="top" secondItem="662" secondAttribute="bottom" constant="10" symbolic="YES" id="FeU-QH-Af7"/>
                                         <constraint firstItem="911" firstAttribute="leading" secondItem="912" secondAttribute="trailing" constant="8" symbolic="YES" id="J7E-kH-syL"/>
-                                        <constraint firstItem="1041" firstAttribute="top" secondItem="1029" secondAttribute="bottom" constant="8" id="KfD-ip-v6k"/>
                                         <constraint firstItem="933" firstAttribute="leading" secondItem="1185" secondAttribute="leading" id="Mn2-NU-Vah"/>
                                         <constraint firstItem="1042" firstAttribute="firstBaseline" secondItem="1040" secondAttribute="firstBaseline" id="Nlx-ot-duM"/>
-                                        <constraint firstItem="1029" firstAttribute="firstBaseline" secondItem="1027" secondAttribute="firstBaseline" id="act-ml-bHc"/>
+                                        <constraint firstItem="1041" firstAttribute="leading" secondItem="324" secondAttribute="leading" constant="200" id="VGU-mb-A73"/>
                                         <constraint firstItem="1041" firstAttribute="firstBaseline" secondItem="1040" secondAttribute="firstBaseline" id="ctL-e2-R5i"/>
-                                        <constraint firstItem="1041" firstAttribute="leading" secondItem="1029" secondAttribute="leading" id="jKR-p1-d88"/>
                                         <constraint firstItem="1191" firstAttribute="leading" secondItem="1185" secondAttribute="leading" id="m1n-dn-ySm"/>
                                         <constraint firstItem="1185" firstAttribute="top" secondItem="1041" secondAttribute="bottom" constant="24" id="m7d-8w-pdm"/>
                                         <constraint firstItem="933" firstAttribute="top" secondItem="1191" secondAttribute="bottom" constant="8" id="mYm-6P-5kG"/>
                                         <constraint firstItem="662" firstAttribute="top" secondItem="933" secondAttribute="bottom" constant="24" id="nRQ-BX-iRT"/>
-                                        <constraint firstItem="1031" firstAttribute="leading" secondItem="1029" secondAttribute="trailing" constant="8" symbolic="YES" id="oMQ-5R-jFU"/>
-                                        <constraint firstItem="1042" firstAttribute="leading" secondItem="1041" secondAttribute="trailing" constant="8" symbolic="YES" id="os5-BE-O9Z"/>
                                         <constraint firstItem="1191" firstAttribute="top" secondItem="1185" secondAttribute="bottom" constant="8" id="pGU-aw-jVg"/>
                                         <constraint firstItem="1185" firstAttribute="leading" secondItem="324" secondAttribute="leading" constant="200" id="pOq-Gj-AEO"/>
-                                        <constraint firstItem="1041" firstAttribute="trailing" secondItem="1029" secondAttribute="trailing" id="qJ9-J1-Ubo"/>
-                                        <constraint firstItem="1041" firstAttribute="leading" secondItem="1040" secondAttribute="trailing" constant="8" symbolic="YES" id="vEj-Wg-bf1"/>
+                                        <constraint firstItem="1041" firstAttribute="top" secondItem="324" secondAttribute="top" constant="20" symbolic="YES" id="s1g-o7-r9g"/>
                                         <constraint firstItem="662" firstAttribute="leading" secondItem="933" secondAttribute="leading" id="vTf-B7-xSJ"/>
+                                        <constraint firstItem="1042" firstAttribute="leading" secondItem="1041" secondAttribute="trailing" constant="8" symbolic="YES" id="w17-ko-z5a"/>
                                     </constraints>
                                 </view>
                             </tabViewItem>

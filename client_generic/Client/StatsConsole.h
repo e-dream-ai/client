@@ -324,7 +324,9 @@ class CStatsConsole : public CConsole
     bool Render(const double _time,
                 DisplayOutput::spCRenderer _spRenderer) override
     {
-        CHudEntry::Render(_time, _spRenderer);
+        if (!CHudEntry::Render(_time, _spRenderer))
+            return false;
+        //CHudEntry::Render(_time, _spRenderer);
         PlatformUtils::DispatchOnMainThread(
             [=, this]()
             {
