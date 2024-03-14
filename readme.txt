@@ -17,10 +17,12 @@ this repository uses git LFS, be sure to run
 
 on Mac, open client_generic/MacBuild/e-dream.xcodeproj
 
-to make a release, build the screensaver, then build the app, then run the script like this:
+to make a release: archive the app, archive the screensaver, upload as zip files.
 
-% cd client_generic/MacBuild
-% ./build_installer.sh 0.1.0 e-dream-0.1.0.dmg
+to test with staging server, visit
+https://creative-rugelach-b78ab4.netlify.app/ and create an account,
+and then in the advanced settings change the backend server to:
 
-on GitHub, make a branch and PR for each change.
-Test then squash-merge each PR.
+    e-dream-76c98b08cc5d.herokuapp.com
+
+and then enter your credentials.
