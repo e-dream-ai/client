@@ -58,15 +58,20 @@
         newFrame.origin.x = 0.0;
         newFrame.origin.y = 0.0;
 
-        if (newFrame.size.width/newFrame.size.height < (16.0f / 9.0f) )
-        {
-            newFrame.size = CGSizeMake(newFrame.size.width, newFrame.size.width * 9.0f / 16.0f);
-            newFrame.origin.y = (frame.size.height - newFrame.size.height) / 2;
-        } else {
-            newFrame.size = CGSizeMake(newFrame.size.height * 16.0f / 9.0f, newFrame.size.height);
-            newFrame.origin.x = (frame.size.width - newFrame.size.width) / 2;
+        ESScreensaver_InitClientStorage();
+
+        if (ESScreensaver_GetBoolSetting("settings.player.preserve_AR", true)) {
+            if (newFrame.size.width/newFrame.size.height < (16.0f / 9.0f) )
+            {
+                newFrame.size = CGSizeMake(newFrame.size.width, newFrame.size.width * 9.0f / 16.0f);
+                newFrame.origin.y = (frame.size.height - newFrame.size.height) / 2;
+            } else {
+                newFrame.size = CGSizeMake(newFrame.size.height * 16.0f / 9.0f, newFrame.size.height);
+                newFrame.origin.x = (frame.size.width - newFrame.size.width) / 2;
+            }
         }
-        //os_log(OS_LOG_DEFAULT, "EDTEST AVanewFrame %f %f", newFrame.size.width, newFrame.size.height);
+
+        ESScreensaver_DeinitClientStorage();
 
         theRect = newFrame;
         {

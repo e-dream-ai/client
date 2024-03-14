@@ -49,9 +49,9 @@ static void ShowPreferencesCallback()
     
     // Force window aspect ratio only if set in settings
     // TODO: reset window ar when setting change, currently requires a restart
-    //if (ESScreensaver_GetBoolSetting("settings.player.preserve_AR", true)) {
-    self.contentAspectRatio = CGSizeMake(16.f, 9.f);
-    //}
+    if (ESScreensaver_GetBoolSetting("settings.player.preserve_AR", true)) {
+        self.contentAspectRatio = CGSizeMake(16.f, 9.f);
+    }
 
     mBlackouMonitors =
         ESScreensaver_GetBoolSetting("settings.player.blackout_monitors", true);
@@ -116,17 +116,23 @@ static void ShowPreferencesCallback()
 
 - (void)toggleFullScreen:(id)sender
 {
-    // Calculate current screen aspect ratio
-    float screenAR = self.screen.frame.size.width / self.screen.frame.size.height;
-    
-    // set a fixed ratio on full screen
-    if (screenAR < (16.0f/9.0f))
-    {
-        [self setMaxFullScreenContentSize:CGSizeMake(self.screen.frame.size.width, self.screen.frame.size.width * 9 / 16)];
+    ESScreensaver_InitClientStorage();
 
-    } else {
-        [self setMaxFullScreenContentSize:CGSizeMake(self.screen.frame.size.height * 16 / 9, self.screen.frame.size.height)];
+    if (ESScreensaver_GetBoolSetting("settings.player.preserve_AR", true)) {
+        // Calculate current screen aspect ratio
+        float screenAR = self.screen.frame.size.width / self.screen.frame.size.height;
+        
+        // set a fixed ratio on full screen
+        if (screenAR < (16.0f/9.0f))
+        {
+            [self setMaxFullScreenContentSize:CGSizeMake(self.screen.frame.size.width, self.screen.frame.size.width * 9 / 16)];
+
+        } else {
+            [self setMaxFullScreenContentSize:CGSizeMake(self.screen.frame.size.height * 16 / 9, self.screen.frame.size.height)];
+        }
     }
+
+    ESScreensaver_DeinitClientStorage();
     
     //NSWorkspace *workspace = [NSWorkspace sharedWorkspace];
     //[workspace setIdleTimerDisabled:self.isFullScreen];
