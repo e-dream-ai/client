@@ -431,50 +431,48 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
     else if (event == "set_speed_1")
     {
         g_Client()->ExecuteCommand(
-            CElectricSheep::eClientCommand::CLIENT_COMMAND_ACTIVITY_1);
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_1);
     }
     else if (event == "set_speed_2")
     {
         g_Client()->ExecuteCommand(
-            CElectricSheep::eClientCommand::CLIENT_COMMAND_ACTIVITY_2);
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_2);
     }
     else if (event == "set_speed_3")
     {
         g_Client()->ExecuteCommand(
-            CElectricSheep::eClientCommand::CLIENT_COMMAND_ACTIVITY_3);
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_3);
     }
     else if (event == "set_speed_4")
     {
         g_Client()->ExecuteCommand(
-            CElectricSheep::eClientCommand::CLIENT_COMMAND_ACTIVITY_4);
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_4);
     }
     else if (event == "set_speed_5")
     {
         g_Client()->ExecuteCommand(
-            CElectricSheep::eClientCommand::CLIENT_COMMAND_ACTIVITY_5);
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_5);
     }
     else if (event == "set_speed_6")
     {
         g_Client()->ExecuteCommand(
-            CElectricSheep::eClientCommand::CLIENT_COMMAND_ACTIVITY_6);
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_6);
     }
     else if (event == "set_speed_7")
     {
         g_Client()->ExecuteCommand(
-            CElectricSheep::eClientCommand::CLIENT_COMMAND_ACTIVITY_7);
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_7);
     }
     else if (event == "set_speed_8")
     {
         g_Client()->ExecuteCommand(
-            CElectricSheep::eClientCommand::CLIENT_COMMAND_ACTIVITY_8);
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_8);
     }
     else if (event == "set_speed_9")
     {
         g_Client()->ExecuteCommand(
-            CElectricSheep::eClientCommand::CLIENT_COMMAND_ACTIVITY_9);
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_9);
     }
-
-    
     else
     {
         g_Log->Error("Unknown event type received: %s", event.data());

@@ -21,15 +21,14 @@
 
 namespace Hud {
 
-// Helper to map FPS to Activity Level
-inline double FPSToActivity(double fps) {
+// Helper to map Perceptual FPS to Speed
+inline double PerceptualFPSToSpeed(double fps) {
     return (2 * log(fps)) / log(2) - 1;
 }
 
 
-
 enum OSDType {
-    ActivityLevel,
+    Speed,
     Brightness,
     Pause,
     Play,
@@ -100,12 +99,12 @@ public:
         }
         
         // Grab our symbols texture
-        DisplayOutput::spCImage tmpSymbolActivity(new DisplayOutput::CImage());
-        if (tmpSymbolActivity->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
+        DisplayOutput::spCImage tmpSymbolSpeed(new DisplayOutput::CImage());
+        if (tmpSymbolSpeed->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
                            "osd-speed.png", false))
         {
-            m_spSymbolActivityTexture = g_Player().Renderer()->NewTextureFlat();
-            m_spSymbolActivityTexture->Upload(tmpSymbolActivity);
+            m_spSymbolSpeedTexture = g_Player().Renderer()->NewTextureFlat();
+            m_spSymbolSpeedTexture->Upload(tmpSymbolSpeed);
         }
         
         DisplayOutput::spCImage tmpSymbolBrightness(new DisplayOutput::CImage());
@@ -281,7 +280,7 @@ public:
         tmpDotR = NULL;
         tmpDotB = NULL;
         tmpDotU = NULL;
-        tmpSymbolActivity = NULL;
+        tmpSymbolSpeed = NULL;
         tmpSymbolBrightness = NULL;
 
         // Mini HUD
@@ -304,7 +303,7 @@ public:
 
         DisplayOutput::spCRenderer spRenderer = g_Player().Renderer();
 
-        if (type == ActivityLevel || type == Brightness) {
+        if (type == Speed || type == Brightness) {
             // Setup & Draw background
             spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader);
             spRenderer->SetTexture(m_spBgTexture, 0);
@@ -315,8 +314,8 @@ public:
             spRenderer->DrawQuad(m_BgCRect, Base::Math::CVector4(1, 1, 1, 1), m_spBgTexture->GetRect());
             
             // Setup & Draw symbol
-            if (type == ActivityLevel) {
-                spRenderer->SetTexture(m_spSymbolActivityTexture, 0);
+            if (type == Speed) {
+                spRenderer->SetTexture(m_spSymbolSpeedTexture, 0);
             } else {
                 spRenderer->SetTexture(m_spSymbolBrightnessTexture, 0);
             }
@@ -324,20 +323,20 @@ public:
             spRenderer->SetShader(NULL);
             spRenderer->Apply();
 
-            spRenderer->DrawQuad(m_SymbolCRect, Base::Math::CVector4(1, 1, 1, 1), m_spSymbolActivityTexture->GetRect());
+            spRenderer->DrawQuad(m_SymbolCRect, Base::Math::CVector4(1, 1, 1, 1), m_spSymbolSpeedTexture->GetRect());
             
             // Setup & Draw dots
 
             // Scale back linearly min-max to 0-10
             double scaledValue = 0;
-            switch (type) {
-                case ActivityLevel:
-                    // We cheat a bit to align our rough fps to dots
-                    scaledValue = (FPSToActivity(currentFps - 0.01) - minFps) * 27 / (maxFps - minFps);
-                    break;
-                case Brightness:
-                    scaledValue = (currentBrightness - minBrightness) * 27 / (maxBrightness - minBrightness);
-                    break;
+            
+            if (type == Speed) {
+                // We cheat a bit to align our rough fps to dots
+                scaledValue = (PerceptualFPSToSpeed(currentFps - 0.01) - minFps) * 27 / (maxFps - minFps);
+
+            } else {
+                scaledValue = (currentBrightness - minBrightness) * 27 / (maxBrightness - minBrightness);
+
             }
 
             for (int i = 0 ; i < 27 ; i++) {
@@ -471,7 +470,7 @@ private:
     OSDType type;
 
     // Textures and coordinates for main hud (large 700px)
-    DisplayOutput::spCTextureFlat m_spBgTexture, m_spDotTexture, m_spDotTexture_u, m_spDotTexture_r, m_spDotTexture_b, m_spSymbolActivityTexture, m_spSymbolBrightnessTexture;
+    DisplayOutput::spCTextureFlat m_spBgTexture, m_spDotTexture, m_spDotTexture_u, m_spDotTexture_r, m_spDotTexture_b, m_spSymbolSpeedTexture, m_spSymbolBrightnessTexture;
     Base::Math::CRect m_BgCRect, m_DotCRect, m_SymbolCRect;
     
     // Textures and coordinates for mini hud (210sq)
