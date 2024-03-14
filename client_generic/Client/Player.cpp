@@ -82,6 +82,7 @@ CPlayer::CPlayer()
 {
     m_spPlaylist = nullptr;
     m_DecoderFps = 23; //	http://en.wikipedia.org/wiki/23_(numerology)
+    m_PerceptualFPS = 20;
     m_DisplayFps = 60;
     m_bFullscreen = true;
     m_InitPlayCounts = true;
@@ -340,7 +341,11 @@ void CPlayer::Stop()
                           m_CurrentClips[0]->GetClipMetadata().path);
         g_Settings()->Set("settings.content.last_played_frame",
                           (uint64_t)m_CurrentClips[0]->GetCurrentFrameIdx());
+
         g_Settings()->Set("settings.content.last_played_fps", m_DecoderFps);
+
+        g_Settings()->Set("settings.player.perceptual_fps", m_PerceptualFPS);
+
     }
 
     m_bStarted = false;
@@ -543,8 +548,9 @@ void CPlayer::PlayQueuedClipsThread()
             int64_t seekFrame;
             seekFrame = (int64_t)g_Settings()->Get(
                 "settings.content.last_played_frame", uint64_t{});
-            m_DecoderFps = g_Settings()->Get("settings.content.last_played_fps",
-                                             m_DecoderFps);
+            // Grab perceptual FPS here
+            m_PerceptualFPS = g_Settings()->Get("settings.player.perceptual_fps",
+                                                m_PerceptualFPS);
             PlayClip(lastPlayedFile, m_TimelineTime, seekFrame);
         }
 
@@ -604,9 +610,12 @@ bool CPlayer::PlayClip(std::string_view _clipPath, double _startTime,
 
     spCClip clip = std::make_shared<CClip>(
         sClipMetadata{std::string{_clipPath},
-                      m_DecoderFps / dream.activityLevel, dream},
+                      m_PerceptualFPS / dream.activityLevel, dream},
         du->spRenderer, displayMode, du->spDisplay->Width(),
         du->spDisplay->Height());
+
+    // Update internal decoder fps counter
+    m_DecoderFps = m_PerceptualFPS / dream.activityLevel;
 
     if (!clip->Start(_seekFrame))
         return false;
@@ -620,14 +629,43 @@ bool CPlayer::PlayClip(std::string_view _clipPath, double _startTime,
     return true;
 }
 
-void CPlayer::MultiplyFramerate(const double _multiplier)
-{
-    m_DecoderFps *= _multiplier;
+void CPlayer::MultiplyPerceptualFPS(const double _multiplier) {
+    m_PerceptualFPS *= _multiplier;
+    
     reader_lock l(m_UpdateMutex);
-    if (m_CurrentClips.size())
-        m_CurrentClips[0]->SetFps(
-            m_CurrentClips[0]->GetClipMetadata().decodeFps * _multiplier);
+    if (m_CurrentClips.size()) {
+        // Grab the activity level of the dream
+        float dreamActivityLevel = m_CurrentClips[0]->GetClipMetadata().dreamData.activityLevel;
+        // Update decoder speed
+        m_DecoderFps = m_PerceptualFPS / dreamActivityLevel;
+        // This seems to be what actually changes the speed
+        m_CurrentClips[0]->SetFps(m_DecoderFps);
+    }
 }
+
+void CPlayer::SetPerceptualFPS(const double _fps) {
+    m_PerceptualFPS = _fps;
+    
+    reader_lock l(m_UpdateMutex);
+    if (m_CurrentClips.size()) {
+        // Grab the activity level of the dream
+        float dreamActivityLevel = m_CurrentClips[0]->GetClipMetadata().dreamData.activityLevel;
+        // Update decoder speed
+        m_DecoderFps = m_PerceptualFPS / dreamActivityLevel;
+        // This seems to be what actually changes the speed
+        m_CurrentClips[0]->SetFps(m_DecoderFps);
+    }
+}
+
+// Getters for both perceptual FPS and true decoder FPS
+double CPlayer::GetPerceptualFPS() {
+    return m_PerceptualFPS;
+}
+
+double CPlayer::GetDecoderFPS() {
+    return m_DecoderFps;
+}
+
 
 void CPlayer::CalculateNextClipThread()
 {

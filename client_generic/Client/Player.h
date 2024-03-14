@@ -59,6 +59,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     ContentDecoder::spCPlaylist m_spPlaylist;
     Base::CTimer m_Timer;
     double m_DecoderFps;
+    double m_PerceptualFPS;
     double m_DisplayFps;
     double m_TimelineTime;
     double m_LastFrameRealTime;
@@ -132,8 +133,11 @@ class CPlayer : public Base::CSingleton<CPlayer>
                    bool _blank = false);
 
     inline void PlayCountsInitOff() { m_InitPlayCounts = false; };
-    void MultiplyFramerate(const double _multiplier);
-    void SetFramerate(const double _fps) { m_DecoderFps = _fps; }
+
+    void MultiplyPerceptualFPS(const double _multiplier);
+    void SetPerceptualFPS(const double _fps);
+    double GetPerceptualFPS();
+    double GetDecoderFPS();
     inline void Fullscreen(const bool _bState) { m_bFullscreen = _bState; };
     inline bool Stopped() { return !m_bStarted; };
 

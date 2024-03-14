@@ -24,6 +24,7 @@
 #include "ServerMessage.h"
 #include "Shepherd.h"
 #include "Splash.h"
+#include "OSD.hpp"
 #include "StartupScreen.h"
 #include "StatsConsole.h"
 #include "TextureFlat.h"
@@ -58,6 +59,14 @@ extern class CElectricSheep* gClientInstance;
 
 inline class CElectricSheep* g_Client() { return gClientInstance; }
 
+inline double SpeedToPerceptualFPS(double speed) {
+    return pow(2.0, (speed + 1) / 2);
+}
+
+inline float TapsToBrightness(double taps) {
+    return pow(2.0, (taps / 40)) - 1 ;
+}
+
 /*
         CElectricSheep().
         Prime mover for the client, used from main.cpp...
@@ -89,9 +98,15 @@ class CElectricSheep
 
     //	Potentially adjusted framerate(from <- and -> keys)
     double m_CurrentFps;
-
     double m_OriginalFps;
 
+    // We use perceptual FPS here which don't take into account per dream activity level
+    double m_PerceptualFPS;
+    
+    
+    // internal brightness counter
+    int m_Brightness = 0;
+    
     //	Voting object.
     CVote* m_pVoter;
 
@@ -104,6 +119,9 @@ class CElectricSheep
     //	Splash images.
     Hud::spCSplash m_spSplashPos;
     Hud::spCSplash m_spSplashNeg;
+
+    // Our OSD
+    Hud::spCOSD m_spOSD;
 
     // Splash PNG
     Hud::spCSplashImage m_spSplashPNG;
@@ -273,6 +291,9 @@ class CElectricSheep
         spStats->Add(
             new Hud::CStringStat("decodefps", "Decoding video at ", "? fps"));
         spStats->Add(
+            new Hud::CStringStat("perceptualfps", "Perceptual speed ", "? fps"));
+
+        spStats->Add(
             new Hud::CStringStat("activityLevel", "Activity level: ", "1.00"));
         spStats->Add(new Hud::CStringStat("playHead", "", "00m00s/00m00s"));
 
@@ -308,6 +329,12 @@ class CElectricSheep
                 m_HudManager->Get("dreamcredits"));
         m_HudManager->Hide("dreamcredits");
         spStats->Add(new Hud::CStringStat("credits", "", "Title - Artist"));
+    }
+    
+    void AddOSDHud()
+    {
+        // We pass min max values for speed and brightness
+        m_spOSD = std::make_shared<Hud::COSD>(Base::Math::CRect(1, 1), 0, 9, -13, 13);
     }
     
     void AddSplashHud()
@@ -404,13 +431,10 @@ class CElectricSheep
     
     void SetupFramerate()
     {
-        //    Set framerate.
-        m_PlayerFps = g_Settings()->Get("settings.player.player_fps", 20.);
-        if (m_PlayerFps < 0.1)
-            m_PlayerFps = 1.;
-        m_OriginalFps = m_PlayerFps;
+        m_PerceptualFPS = g_Settings()->Get("settings.player.perceptual_fps", 20.);
 
-        g_Player().SetFramerate(m_PlayerFps);
+        // We give the perceptual FPS to the player, and it is its job to adjust it with dream level
+        g_Player().SetPerceptualFPS(m_PerceptualFPS);
     }
     
     void SetupProxy()
@@ -464,6 +488,7 @@ class CElectricSheep
         AddDreamStatsHud();
         AddProgressHud();
         AddSplashHud();
+        AddOSDHud();
 
         m_spCrossFade = std::make_shared<Hud::CCrossFade>(
             g_Player().Display()->Width(), g_Player().Display()->Height(),
@@ -956,12 +981,23 @@ class CElectricSheep
                                               frameMetadata->maxFrameIdx, 20)
                                               .data()));
                 }
+                
+                // Grab Perceptual FPS from player
+                double pFPS = g_Player().GetPerceptualFPS();
+                
                 ((Hud::CStringStat*)spStats->Get("decodefps"))
                     ->SetSample(string_format(" %.2f fps", realFps));
+                ((Hud::CStringStat*)spStats->Get("perceptualfps"))
+                    ->SetSample(string_format(" %.2f fps", pFPS));
+
                 ((Hud::CStringStat*)spStats->Get("activityLevel"))
                     ->SetSample(string_format(" %.2f", activityLevel));
                 ((Hud::CIntCounter*)spStats->Get("displayfps"))->AddSample(1);
 
+                // Update OSD
+                m_spOSD->SetFPS(pFPS);
+                
+                // Update credits
                 spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
                     m_HudManager->Get("dreamcredits"));
                 if (clipMetadata)
@@ -973,6 +1009,7 @@ class CElectricSheep
                                           clipMetadata->dreamData.author.data())
                                 .data());
                 }
+                
                 //	Serverstats.
                 spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
                     m_HudManager->Get("dreamstats"));
@@ -1115,9 +1152,27 @@ class CElectricSheep
         CLIENT_COMMAND_CREDIT,
         CLIENT_COMMAND_WEBPAGE,
         CLIENT_COMMAND_BRIGHTNESS_UP,
-        CLIENT_COMMAND_BRIGHTNESS_DOWN
+        CLIENT_COMMAND_BRIGHTNESS_DOWN,
+        CLIENT_COMMAND_SPEED_1,
+        CLIENT_COMMAND_SPEED_2,
+        CLIENT_COMMAND_SPEED_3,
+        CLIENT_COMMAND_SPEED_4,
+        CLIENT_COMMAND_SPEED_5,
+        CLIENT_COMMAND_SPEED_6,
+        CLIENT_COMMAND_SPEED_7,
+        CLIENT_COMMAND_SPEED_8,
+        CLIENT_COMMAND_SPEED_9
     };
 
+    void popOSD(Hud::OSDType type) {
+        if (type == Hud::Brightness) {
+            m_spOSD->SetBrightness(m_Brightness);
+        }
+        m_spOSD->SetType(type);
+
+        m_HudManager->Add("osd-common", m_spOSD, 1);
+    }
+    
     virtual bool ExecuteCommand(eClientCommand _command)
     {
         static const float voteDelaySeconds = 1;
@@ -1127,93 +1182,144 @@ class CElectricSheep
             m_StatsCodeCounter = 0;
         switch (_command)
         {
-        case CLIENT_COMMAND_LIKE:
-            if (m_StatsCodeCounter == 4)
-            {
-                m_HudManager->Toggle("dreamstats");
-                m_StatsCodeCounter = 0;
-                return true;
-            }
-            if (m_pVoter != nullptr &&
-                m_pVoter->Vote(data->dreamData.uuid, true, voteDelaySeconds))
-                m_HudManager->Add("splash_pos", m_spSplashPos,
-                                  voteDelaySeconds * 0.9f);
-            return true;
-        case CLIENT_COMMAND_DISLIKE:
-            if (m_pVoter != nullptr &&
-                m_pVoter->Vote(data->dreamData.uuid, false, voteDelaySeconds))
-            {
-                if (g_Settings()->Get("settings.content.negvotedeletes", true))
+            case CLIENT_COMMAND_LIKE:
+                if (m_StatsCodeCounter == 4)
                 {
-                    // g_Player().Stop();
-                    g_Player().SkipToNext();
-                    m_spCrossFade->Reset();
-                    m_HudManager->Add("fade", m_spCrossFade, 1.5);
+                    m_HudManager->Toggle("dreamstats");
+                    m_StatsCodeCounter = 0;
+                    return true;
                 }
+                if (m_pVoter != nullptr &&
+                    m_pVoter->Vote(data->dreamData.uuid, true, voteDelaySeconds))
+                    m_HudManager->Add("splash_pos", m_spSplashPos,
+                                      voteDelaySeconds * 0.9f);
+                return true;
+            case CLIENT_COMMAND_DISLIKE:
+                if (m_pVoter != nullptr &&
+                    m_pVoter->Vote(data->dreamData.uuid, false, voteDelaySeconds))
+                {
+                    if (g_Settings()->Get("settings.content.negvotedeletes", true))
+                    {
+                        // g_Player().Stop();
+                        g_Player().SkipToNext();
+                        m_spCrossFade->Reset();
+                        m_HudManager->Add("fade", m_spCrossFade, 1.5);
+                    }
 
-                m_HudManager->Add("splash_pos", m_spSplashNeg,
-                                  voteDelaySeconds * 0.9f);
-            }
-            return true;
-            //    Repeat current sheep
-        case CLIENT_COMMAND_PREVIOUS:
-            g_Player().ReturnToPrevious();
-            return true;
-            //  Force Next Sheep
-        case CLIENT_COMMAND_NEXT:
-            g_Player().SkipToNext();
-            return true;
-            //    Repeat sheep
-        case CLIENT_COMMAND_REPEAT:
-            g_Player().RepeatClip();
-            return true;
-        case CLIENT_COMMAND_PLAYBACK_SLOWER:
-            m_F1F4Timer.Reset();
-            g_Player().MultiplyFramerate(1.f / 1.1f);
-                if (m_StatsCodeCounter == 1 || m_StatsCodeCounter == 3)
-                    m_StatsCodeCounter++;
-            return true;
-        case CLIENT_COMMAND_PLAYBACK_FASTER:
-            m_F1F4Timer.Reset();
-            g_Player().MultiplyFramerate(1.1f);
-            if (m_StatsCodeCounter == 0 || m_StatsCodeCounter == 2)
-                m_StatsCodeCounter++;
-            return true;
-            //    OSD info.
-        case CLIENT_COMMAND_F1:
-            m_F1F4Timer.Reset();
-            m_HudManager->Toggle("helpmessage");
-            return true;
-        case CLIENT_COMMAND_F2:
-            m_F1F4Timer.Reset();
-            m_HudManager->Toggle("dreamstats");
-            return true;
-        case CLIENT_COMMAND_SKIP_FW:
-            g_Player().SkipForward(10);
-            return true;
-        case CLIENT_COMMAND_SKIP_BW:
-            g_Player().SkipForward(-10);
-            return true;
-        case CLIENT_COMMAND_PAUSE:
-            g_Player().SetPaused(m_bPaused = !m_bPaused);
-            return true;
-        case CLIENT_COMMAND_CREDIT:
-            m_HudManager->Toggle("dreamcredits");
-            return true;
-        case CLIENT_COMMAND_WEBPAGE:
-            if (data && !data->dreamData.frontendUrl.empty())
-            {
-                PlatformUtils::OpenURLExternally(data->dreamData.frontendUrl);
-            }
-            return true;
-        case CLIENT_COMMAND_BRIGHTNESS_UP:
-            g_Player().Renderer()->SetBrightness(
-                g_Player().Renderer()->GetBrightness() + 0.05f);
-            return true;
-        case CLIENT_COMMAND_BRIGHTNESS_DOWN:
-            g_Player().Renderer()->SetBrightness(
-                g_Player().Renderer()->GetBrightness() - 0.05f);
-            return true;
+                    m_HudManager->Add("splash_pos", m_spSplashNeg,
+                                      voteDelaySeconds * 0.9f);
+                }
+                return true;
+                //    Repeat current sheep
+            case CLIENT_COMMAND_PREVIOUS:
+                popOSD(Hud::Previous);
+
+                g_Player().ReturnToPrevious();
+                return true;
+                    
+                // Speed
+            case CLIENT_COMMAND_SPEED_1:
+                popOSD(Hud::Speed);
+                g_Player().SetPerceptualFPS(SpeedToPerceptualFPS(1));
+                return true;
+            case CLIENT_COMMAND_SPEED_2:
+                popOSD(Hud::Speed);
+                g_Player().SetPerceptualFPS(SpeedToPerceptualFPS(2));
+                return true;
+            case CLIENT_COMMAND_SPEED_3:
+                popOSD(Hud::Speed);
+                g_Player().SetPerceptualFPS(SpeedToPerceptualFPS(3));
+                return true;
+            case CLIENT_COMMAND_SPEED_4:
+                popOSD(Hud::Speed);
+                g_Player().SetPerceptualFPS(SpeedToPerceptualFPS(4));
+                return true;
+            case CLIENT_COMMAND_SPEED_5:
+                popOSD(Hud::Speed);
+                g_Player().SetPerceptualFPS(SpeedToPerceptualFPS(5));
+                return true;
+            case CLIENT_COMMAND_SPEED_6:
+                popOSD(Hud::Speed);
+                g_Player().SetPerceptualFPS(SpeedToPerceptualFPS(6));
+                return true;
+            case CLIENT_COMMAND_SPEED_7:
+                popOSD(Hud::Speed);
+                g_Player().SetPerceptualFPS(SpeedToPerceptualFPS(7));
+                return true;
+            case CLIENT_COMMAND_SPEED_8:
+                popOSD(Hud::Speed);
+                g_Player().SetPerceptualFPS(SpeedToPerceptualFPS(8));
+                return true;
+            case CLIENT_COMMAND_SPEED_9:
+                popOSD(Hud::Speed);
+                g_Player().SetPerceptualFPS(SpeedToPerceptualFPS(9));
+                return true;
+
+                //  Force Next Sheep
+            case CLIENT_COMMAND_NEXT:
+                popOSD(Hud::Next);
+                g_Player().SkipToNext();
+                return true;
+                //    Repeat sheep
+            case CLIENT_COMMAND_REPEAT:
+                g_Player().RepeatClip();
+                return true;
+            case CLIENT_COMMAND_PLAYBACK_SLOWER:
+                popOSD(Hud::Speed);
+                g_Player().MultiplyPerceptualFPS(1.f / 1.1224f);
+                return true;
+            case CLIENT_COMMAND_PLAYBACK_FASTER:
+                popOSD(Hud::Speed);
+                g_Player().MultiplyPerceptualFPS(1.1224f);
+                return true;
+                //    OSD info.
+            case CLIENT_COMMAND_F1:
+                m_F1F4Timer.Reset();
+                m_HudManager->Toggle("helpmessage");
+                return true;
+            case CLIENT_COMMAND_F2:
+                m_F1F4Timer.Reset();
+                m_HudManager->Toggle("dreamstats");
+                return true;
+            case CLIENT_COMMAND_SKIP_FW:
+                popOSD(Hud::Forward10);
+                g_Player().SkipForward(10);
+                return true;
+            case CLIENT_COMMAND_SKIP_BW:
+                popOSD(Hud::Back10);
+                g_Player().SkipForward(-10);
+                return true;
+            case CLIENT_COMMAND_PAUSE:
+                if (m_bPaused) {
+                    popOSD(Hud::Play);
+                } else {
+                    popOSD(Hud::Pause);
+                }
+                g_Player().SetPaused(m_bPaused = !m_bPaused);
+                return true;
+            case CLIENT_COMMAND_CREDIT:
+                m_HudManager->Toggle("dreamcredits");
+                return true;
+            case CLIENT_COMMAND_WEBPAGE:
+                if (data && !data->dreamData.frontendUrl.empty())
+                {
+                    PlatformUtils::OpenURLExternally(data->dreamData.frontendUrl);
+                }
+                return true;
+            case CLIENT_COMMAND_BRIGHTNESS_UP:
+                if (g_Player().Renderer()->GetBrightness() < 1) {
+                    m_Brightness++;
+                    g_Player().Renderer()->SetBrightness(TapsToBrightness(m_Brightness));
+                }
+                popOSD(Hud::Brightness);
+                return true;
+            case CLIENT_COMMAND_BRIGHTNESS_DOWN:
+                if (g_Player().Renderer()->GetBrightness() > -1) {
+                    m_Brightness--;
+                    g_Player().Renderer()->SetBrightness(TapsToBrightness(m_Brightness));
+                }
+                popOSD(Hud::Brightness);
+                return true;
         }
         return false;
     }
@@ -1226,48 +1332,70 @@ class CElectricSheep
                 std::dynamic_pointer_cast<DisplayOutput::CKeyEvent>(_event);
             switch (spKey->m_Code)
             {
-                //	Vote for sheep.
-            case DisplayOutput::CKeyEvent::KEY_UP:
-                return ExecuteCommand(CLIENT_COMMAND_LIKE);
-            case DisplayOutput::CKeyEvent::KEY_DOWN:
-                return ExecuteCommand(CLIENT_COMMAND_DISLIKE);
-                //	Repeat current sheep
-            case DisplayOutput::CKeyEvent::KEY_LEFT:
-                return ExecuteCommand(CLIENT_COMMAND_PREVIOUS);
-                //  Force Next Sheep
-            case DisplayOutput::CKeyEvent::KEY_RIGHT:
-                return ExecuteCommand(CLIENT_COMMAND_NEXT);
-                //	Repeat sheep
-            case DisplayOutput::CKeyEvent::KEY_R:
-                return ExecuteCommand(CLIENT_COMMAND_REPEAT);
-            case DisplayOutput::CKeyEvent::KEY_A:
-                return ExecuteCommand(CLIENT_COMMAND_PLAYBACK_SLOWER);
-            case DisplayOutput::CKeyEvent::KEY_D:
-                return ExecuteCommand(CLIENT_COMMAND_PLAYBACK_FASTER);
-                //	OSD info.
-            case DisplayOutput::CKeyEvent::KEY_F1:
-                return ExecuteCommand(CLIENT_COMMAND_F1);
-            case DisplayOutput::CKeyEvent::KEY_F2:
-                return ExecuteCommand(CLIENT_COMMAND_F2);
-            case DisplayOutput::CKeyEvent::KEY_J:
-                return ExecuteCommand(CLIENT_COMMAND_SKIP_BW);
-            case DisplayOutput::CKeyEvent::KEY_L:
-                return ExecuteCommand(CLIENT_COMMAND_SKIP_FW);
-            case DisplayOutput::CKeyEvent::KEY_K:
-                return ExecuteCommand(CLIENT_COMMAND_PAUSE);
-            case DisplayOutput::CKeyEvent::KEY_C:
-                return ExecuteCommand(CLIENT_COMMAND_CREDIT);
-            case DisplayOutput::CKeyEvent::KEY_V:
-                return ExecuteCommand(CLIENT_COMMAND_WEBPAGE);
-            case DisplayOutput::CKeyEvent::KEY_W:
-                return ExecuteCommand(CLIENT_COMMAND_BRIGHTNESS_UP);
-            case DisplayOutput::CKeyEvent::KEY_S:
-                return ExecuteCommand(CLIENT_COMMAND_BRIGHTNESS_DOWN);
-            //	All other keys needs to be ignored, they are handled somewhere
-            // else...
-            default:
-                g_Log->Info("Key event, ignoring");
-                return false;
+                    // Vote for sheep.
+                case DisplayOutput::CKeyEvent::KEY_UP:
+                    return ExecuteCommand(CLIENT_COMMAND_LIKE);
+                case DisplayOutput::CKeyEvent::KEY_DOWN:
+                    return ExecuteCommand(CLIENT_COMMAND_DISLIKE);
+                    // Repeat current sheep
+                case DisplayOutput::CKeyEvent::KEY_LEFT:
+                    return ExecuteCommand(CLIENT_COMMAND_PREVIOUS);
+                    // Force Next Sheep
+                case DisplayOutput::CKeyEvent::KEY_RIGHT:
+                    return ExecuteCommand(CLIENT_COMMAND_NEXT);
+                    // Repeat sheep
+                case DisplayOutput::CKeyEvent::KEY_R:
+                    return ExecuteCommand(CLIENT_COMMAND_REPEAT);
+                case DisplayOutput::CKeyEvent::KEY_A:
+                    return ExecuteCommand(CLIENT_COMMAND_PLAYBACK_SLOWER);
+                case DisplayOutput::CKeyEvent::KEY_D:
+                    return ExecuteCommand(CLIENT_COMMAND_PLAYBACK_FASTER);
+                    // Set Speed
+                case DisplayOutput::CKeyEvent::KEY_0:
+                    return ExecuteCommand(CLIENT_COMMAND_PAUSE);
+                case DisplayOutput::CKeyEvent::KEY_1:
+                    return ExecuteCommand(CLIENT_COMMAND_SPEED_1);
+                case DisplayOutput::CKeyEvent::KEY_2:
+                    return ExecuteCommand(CLIENT_COMMAND_SPEED_2);
+                case DisplayOutput::CKeyEvent::KEY_3:
+                    return ExecuteCommand(CLIENT_COMMAND_SPEED_3);
+                case DisplayOutput::CKeyEvent::KEY_4:
+                    return ExecuteCommand(CLIENT_COMMAND_SPEED_4);
+                case DisplayOutput::CKeyEvent::KEY_5:
+                    return ExecuteCommand(CLIENT_COMMAND_SPEED_5);
+                case DisplayOutput::CKeyEvent::KEY_6:
+                    return ExecuteCommand(CLIENT_COMMAND_SPEED_6);
+                case DisplayOutput::CKeyEvent::KEY_7:
+                    return ExecuteCommand(CLIENT_COMMAND_SPEED_7);
+                case DisplayOutput::CKeyEvent::KEY_8:
+                    return ExecuteCommand(CLIENT_COMMAND_SPEED_8);
+                case DisplayOutput::CKeyEvent::KEY_9:
+                    return ExecuteCommand(CLIENT_COMMAND_SPEED_9);
+                    // Help and stats info.
+                case DisplayOutput::CKeyEvent::KEY_F1:
+                    return ExecuteCommand(CLIENT_COMMAND_F1);
+                case DisplayOutput::CKeyEvent::KEY_F2:
+                    return ExecuteCommand(CLIENT_COMMAND_F2);
+                    // prev/next
+                case DisplayOutput::CKeyEvent::KEY_J:
+                    return ExecuteCommand(CLIENT_COMMAND_SKIP_BW);
+                case DisplayOutput::CKeyEvent::KEY_L:
+                    return ExecuteCommand(CLIENT_COMMAND_SKIP_FW);
+                case DisplayOutput::CKeyEvent::KEY_K:
+                    return ExecuteCommand(CLIENT_COMMAND_PAUSE);
+                case DisplayOutput::CKeyEvent::KEY_C:
+                    return ExecuteCommand(CLIENT_COMMAND_CREDIT);
+                case DisplayOutput::CKeyEvent::KEY_V:
+                    return ExecuteCommand(CLIENT_COMMAND_WEBPAGE);
+                case DisplayOutput::CKeyEvent::KEY_W:
+                    return ExecuteCommand(CLIENT_COMMAND_BRIGHTNESS_UP);
+                case DisplayOutput::CKeyEvent::KEY_S:
+                    return ExecuteCommand(CLIENT_COMMAND_BRIGHTNESS_DOWN);
+                //    All other keys needs to be ignored, they are handled somewhere
+                // else...
+                default:
+                    g_Log->Info("Key event, ignoring");
+                    return false;
             }
         }
         return false;
@@ -1277,7 +1405,7 @@ class CElectricSheep
     {
         DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
 
-        //	Handle events.
+        // Handle events.
         DisplayOutput::spCEvent spEvent;
         while (spDisplay->GetEvent(spEvent))
         {
