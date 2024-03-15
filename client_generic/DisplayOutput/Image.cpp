@@ -283,8 +283,8 @@ bool CImage::Load(const std::string& _fileName, const bool _calcMipmaps)
         m_nMipMaps = 1;
 
     //	Done!
-    g_Log->Info("CImage::Load( %s ): (%d x %d, %d MipMaps)",
-                (const char*)_fileName.c_str(), m_Width, m_Height, m_nMipMaps);
+    /*g_Log->Info("CImage::Load( %s ): (%d x %d, %d MipMaps)",
+                (const char*)_fileName.c_str(), m_Width, m_Height, m_nMipMaps);*/
     return (true);
 }
 

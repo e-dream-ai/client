@@ -450,7 +450,7 @@ bool Shepherd::getSheep(const char* path, SheepArray* sheep,
         }
         for (auto removePath : filesToRemove)
         {
-            //remove_all(removePath);
+            remove_all(removePath);
         }
     }
     catch (boost::filesystem::filesystem_error& err)

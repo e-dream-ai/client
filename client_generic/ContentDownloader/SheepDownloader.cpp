@@ -220,7 +220,7 @@ bool SheepDownloader::downloadSheep(sDreamMetadata* sheep)
 
 static void PrintMessage(std::string_view _msg)
 {
-    g_Log->Error(_msg);
+    // TMP g_Log->Error(_msg);
 #if PRINT_TO_SCREEN
     ContentDownloader::Shepherd::addMessageText(_msg, 180);
 #endif
