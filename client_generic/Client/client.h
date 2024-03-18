@@ -1178,6 +1178,9 @@ class CElectricSheep
         static const float voteDelaySeconds = 1;
         const ContentDecoder::sClipMetadata* data =
             g_Player().GetCurrentPlayingClipMetadata();
+        
+        std::string currentDreamUUID = data->dreamData.uuid;
+
         if ((int)_command && (int)_command != 5 && (int)_command != 6)
             m_StatsCodeCounter = 0;
         switch (_command)
@@ -1204,6 +1207,9 @@ class CElectricSheep
                         g_Player().SkipToNext();
                         m_spCrossFade->Reset();
                         m_HudManager->Add("fade", m_spCrossFade, 1.5);
+
+                        // We need to move to something else before deleting
+                        g_Player().Delete(currentDreamUUID);
                     }
 
                     m_HudManager->Add("splash_pos", m_spSplashNeg,

@@ -131,12 +131,14 @@ bool CVote::Vote(std::string_view _uuid, const uint8_t _type,
     //	Check frequency.
     if (time - m_Clock > _duration)
     {
-        if (_type == 0 &&
+        /*
+         VOTING != deleting.
+         if (_type == 0 &&
             g_Settings()->Get("settings.content.negvotedeletes", true))
         {
             //	Queue this sheep to be deleted.
             g_Player().Delete(_uuid);
-        }
+        }*/
 
         m_Clock = time;
     }

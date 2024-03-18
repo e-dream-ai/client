@@ -19,6 +19,9 @@
 #include "Timer.h"
 #include "StringFormat.h"
 
+// TODOWINDOWS POSIX ONLY
+#include <unistd.h>
+
 using boost::filesystem::directory_iterator;
 using boost::filesystem::exists;
 using boost::filesystem::extension;
@@ -234,12 +237,7 @@ class CDreamPlaylist : public CPlaylist
     void Delete(std::string_view _uuid)
     {
         std::scoped_lock locker(m_Lock);
-        //ContentDownloader::SheepDownloader::deleteSheep(_uuid);
-        path filePath =
-            path(Shepherd::mp4Path()) / path(string_format("%s.mp4", _uuid));
-        if (exists(filePath))
-            rename(filePath, path(Shepherd::mp4Path()) /
-                                 path(string_format("%s.xxx", _uuid)));
+        ContentDownloader::SheepDownloader::deleteSheep(_uuid);
 
         // m_pState->Pop( Base::Script::Call( m_pState->GetState(), "Delete",
         // "i", _id ) );

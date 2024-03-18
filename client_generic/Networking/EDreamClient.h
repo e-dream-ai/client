@@ -31,6 +31,7 @@ class EDreamClient
 
   public:
     static void ConnectRemoteControlSocket();
+    static void SendPlayingDream(std::string uuid);
 
   public:
     static void SetCPUUsage(int _cpuUsage);

@@ -479,6 +479,11 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
     }
 }
 
+void EDreamClient::SendPlayingDream(std::string uuid) {// ) {
+    std::cout << "Sending UUID " << uuid;
+    s_SIOClient.socket()->emit("play_dream", uuid);
+}
+
 void EDreamClient::ConnectRemoteControlSocket()
 {
     PlatformUtils::SetThreadName("ConnectRemoteControl");
@@ -490,3 +495,4 @@ void EDreamClient::ConnectRemoteControlSocket()
 }
 
 void EDreamClient::SetCPUUsage(int _cpuUsage) { fCpuUsage.exchange(_cpuUsage); }
+

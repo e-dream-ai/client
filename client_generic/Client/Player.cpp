@@ -39,6 +39,7 @@
 #include "Settings.h"
 #include "storage.h"
 #include "PlatformUtils.h"
+#include "EDreamClient.h"
 
 #include "boost/filesystem/convenience.hpp"
 #include "boost/filesystem/operations.hpp"
@@ -616,6 +617,9 @@ bool CPlayer::PlayClip(std::string_view _clipPath, double _startTime,
 
     // Update internal decoder fps counter
     m_DecoderFps = m_PerceptualFPS / dream.activityLevel;
+    
+    // Send info back to server
+    EDreamClient::SendPlayingDream(dream.uuid); //); // TODO : Will later need more context eg screen, isScreenSaver, hardware id, etc
 
     if (!clip->Start(_seekFrame))
         return false;
