@@ -412,7 +412,7 @@ bool CPlayer::BeginFrameUpdate()
     {
         clip->Update(m_TimelineTime);
     }
-
+    
     if (m_CurrentClips.size())
     {
         for (auto it = m_CurrentClips.begin(); it != m_CurrentClips.end(); ++it)
@@ -445,6 +445,8 @@ bool CPlayer::BeginFrameUpdate()
                 else
                     PRINTQUEUE("FIN_NORMAL", m_ClipInfoHistoryQueue,
                                m_NextClipInfoQueue, m_CurrentClips);
+                
+                
             }
         }
     }
@@ -737,6 +739,8 @@ void CPlayer::PlayDreamNow(std::string_view _uuid) {
     
     if (path != "") {
         PlayClip(path, m_TimelineTime);
+        m_CurrentClips[0]->FadeOut(m_TimelineTime);
+        m_CurrentClips[1]->FadeOut(m_TimelineTime);
     } else {
         printf("Can't find path for uuid");
     }
