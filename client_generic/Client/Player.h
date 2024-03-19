@@ -172,6 +172,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
             m_spPlaylist->Delete(_uuid);
     };
 
+    void PlayDreamNow(std::string_view _uuid);
     void SkipToNext();
     void ReturnToPrevious();
     void SkipForward(float _seconds);

@@ -343,7 +343,18 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
     std::string_view event = eventObj->get_string();
 
     g_Log->Info("Received WebSocket message: %s", event.data());
-    if (event == "like")
+    printf("Received websocket message: %s", event.data());
+    
+    if (event == "play_dream") {
+        std::shared_ptr<sio::string_message> uuidObj =
+            std::dynamic_pointer_cast<sio::string_message>(response["uuid"]);
+        std::string_view uuid = uuidObj->get_string();
+        printf("should play : %s", uuid.data());
+
+        g_Player().PlayDreamNow(uuid.data());
+
+    }
+    else if (event == "like")
     {
         g_Client()->ExecuteCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_LIKE);
@@ -481,7 +492,19 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
 
 void EDreamClient::SendPlayingDream(std::string uuid) {// ) {
     std::cout << "Sending UUID " << uuid;
-    s_SIOClient.socket()->emit("play_dream", uuid);
+    //s_SIOClient.socket()->emit("playing", uuid);
+    
+    
+    std::shared_ptr<sio::object_message> ms =
+        std::dynamic_pointer_cast<sio::object_message>(
+            sio::object_message::create());
+    ms->insert("event", "playing");
+    ms->insert("uuid", uuid);
+    //ms->insert("name", "not sending that.");
+    sio::message::list list;
+    list.push(ms);
+    s_SIOClient.socket("/remote-control")
+        ->emit("new_remote_control_event", list);
 }
 
 void EDreamClient::ConnectRemoteControlSocket()

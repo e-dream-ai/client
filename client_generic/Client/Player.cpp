@@ -606,6 +606,11 @@ bool CPlayer::PlayClip(std::string_view _clipPath, double _startTime,
     ContentDownloader::sDreamMetadata dream{};
     m_spPlaylist->GetDreamMetadata(_clipPath, &dream);
 
+    // Send info back to server
+    printf("PLAYCLIP\n");
+    /*    EDreamClient::SendPlayingDream(dream.uuid); //); // TODO : Will later need more context eg screen, isScreenSaver, hardware id, etc
+*/
+    
     //    if (!dream)
     //        return false;
 
@@ -618,12 +623,12 @@ bool CPlayer::PlayClip(std::string_view _clipPath, double _startTime,
     // Update internal decoder fps counter
     m_DecoderFps = m_PerceptualFPS / dream.activityLevel;
     
-    // Send info back to server
-    EDreamClient::SendPlayingDream(dream.uuid); //); // TODO : Will later need more context eg screen, isScreenSaver, hardware id, etc
 
     if (!clip->Start(_seekFrame))
         return false;
 
+
+    
     clip->SetStartTime(_startTime);
     clip->SetTransitionLength(m_CurrentClips.size() ? kTransitionLengthSeconds
                                                     : 0,
@@ -724,6 +729,19 @@ void CPlayer::CalculateNextClipThread()
     catch (boost::thread_interrupted const&)
     {
     }
+}
+void CPlayer::PlayDreamNow(std::string_view _uuid) {
+    writer_lock l(m_UpdateMutex);
+    
+    auto path = ContentDownloader::SheepDownloader::findSheepPath(_uuid);
+    
+    if (path != "") {
+        PlayClip(path, m_TimelineTime);
+    } else {
+        printf("Can't find path for uuid");
+    }
+    
+    
 }
 
 void CPlayer::SkipToNext()
