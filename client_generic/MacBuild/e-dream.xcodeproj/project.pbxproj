@@ -1764,7 +1764,7 @@
 				SDKROOT = macosx;
 				SEPARATE_STRIP = NO;
 				STRIP_INSTALLED_PRODUCT = YES;
-				STRIP_STYLE = all;
+				STRIP_STYLE = debugging;
 				VALID_ARCHS = "arm64 arm64e i386 x86_64";
 				WRAPPER_EXTENSION = saver;
 			};
