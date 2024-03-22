@@ -264,6 +264,87 @@ bool EDreamClient::RefreshAccessToken()
     }
 }
 
+bool EDreamClient::EnqueuePlaylist(int id) {
+    Network::spCFileDownloader spDownload;
+    const char* jsonPath = Shepherd::jsonPath();
+
+    int maxAttempts = 3;
+    int currentAttempt = 0;
+    while (currentAttempt++ < maxAttempts)
+    {
+        spDownload = std::make_shared<Network::CFileDownloader>("Playlist");
+        spDownload->AppendHeader("Content-Type: application/json");
+        std::string authHeader{
+            string_format("Authorization: Bearer %s", GetAccessToken())};
+        spDownload->AppendHeader(authHeader);
+        
+        
+        std::string url{string_format(
+            "%s/%i", Shepherd::GetEndpoint(ENDPOINT_PLAYLIST), id)};
+        
+        printf("url : %s\n", url.c_str());
+        
+        if (spDownload->Perform(url))
+        {
+            break;
+        }
+        else
+        {
+            if (spDownload->ResponseCode() == 400 ||
+                spDownload->ResponseCode() == 401)
+            {
+                if (currentAttempt == maxAttempts)
+                    return false;
+                if (!RefreshAccessToken())
+                    return false;
+            }
+            else
+            {
+                g_Log->Error("Failed to get playlist. Server returned %i: %s",
+                             spDownload->ResponseCode(),
+                             spDownload->Data().c_str());
+            }
+        }
+    }
+
+    std::string filename{string_format("%splaylist_%i.json", jsonPath, id)};
+    if (!spDownload->Save(filename))
+    {
+        g_Log->Error("Unable to save %s\n", filename.data());
+        return false;
+    }
+    
+    std::vector<std::string> uuids;
+    try
+    {
+        json::value response = json::parse(spDownload->Data());
+        json::value data = response.at("data");
+        json::value playlist = data.at("playlist");
+        json::value items = playlist.at("items");
+
+        if (items.is_array()) {
+            for (auto& item : items.as_array()) {
+                json::value dreamItem = item.at("dreamItem");
+                json::value uuid = dreamItem.at("uuid");
+                
+                printf("uuid : %s\n", uuid.as_string().c_str());
+                uuids.push_back(uuid.as_string().c_str());
+            }
+        }
+    }
+    catch (const boost::system::system_error& e)
+    {
+        JSONUtil::LogException(e, spDownload->Data());
+    }
+    
+    if (uuids.size() > 0) {
+        printf("Enqueuing to player");
+        g_Player().PlayDreamsNow(uuids);
+    }
+    
+    return true;
+}
+
 bool EDreamClient::GetDreams(int _page, int _count)
 {
     Network::spCFileDownloader spDownload;
@@ -353,6 +434,13 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
 
         g_Player().PlayDreamNow(uuid.data());
 
+    } else if (event == "play_playlist") {
+        std::shared_ptr<sio::int_message> idObj =
+            std::dynamic_pointer_cast<sio::int_message>(response["id"]);
+        auto id = idObj->get_int();
+        printf("should play : %lld", id);
+        
+        EDreamClient::EnqueuePlaylist(id);
     }
     else if (event == "like")
     {

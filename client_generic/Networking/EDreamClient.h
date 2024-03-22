@@ -19,6 +19,7 @@ class EDreamClient
   public:
     static void InitializeClient();
     static void DeinitializeClient();
+    static bool EnqueuePlaylist(int id);
     static bool GetDreams(int _page = 0, int _count = -1);
     static const char* GetAccessToken();
     static bool RefreshAccessToken();
