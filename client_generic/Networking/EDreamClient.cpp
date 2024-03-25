@@ -7,6 +7,8 @@
 #include <boost/json.hpp>
 #include <boost/json/src.hpp>
 #include <cstdio>
+#include <fstream>
+#include <iostream>
 
 #include "ContentDownloader.h"
 #include "StringFormat.h"
@@ -264,7 +266,12 @@ bool EDreamClient::RefreshAccessToken()
     }
 }
 
-bool EDreamClient::EnqueuePlaylist(int id) {
+/*
+SheepArray EDreamClient::GetPlaylistFlock(int id) {
+    
+}*/
+
+bool EDreamClient::FetchPlaylist(int id) {
     Network::spCFileDownloader spDownload;
     const char* jsonPath = Shepherd::jsonPath();
 
@@ -314,35 +321,70 @@ bool EDreamClient::EnqueuePlaylist(int id) {
         return false;
     }
     
+    return true;
+}
+
+std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
+    // Collect all UUIDS from the json
     std::vector<std::string> uuids;
+
+
+    // Open playlist and grab content
+    std::string filePath{
+        string_format("%splaylist_%i.json", Shepherd::jsonPath(), id)};
+    std::ifstream file(filePath);
+    if (!file.is_open())
+    {
+        g_Log->Error("Error opening file: %s", filePath.data());
+        return uuids;
+    }
+    std::string contents{(std::istreambuf_iterator<char>(file)),
+        (std::istreambuf_iterator<char>())};
+    file.close();
+    
+    
     try
     {
-        json::value response = json::parse(spDownload->Data());
+        json::error_code ec;
+        json::value response = json::parse(contents, ec);
         json::value data = response.at("data");
         json::value playlist = data.at("playlist");
         json::value items = playlist.at("items");
-
+        
         if (items.is_array()) {
             for (auto& item : items.as_array()) {
                 json::value dreamItem = item.at("dreamItem");
                 json::value uuid = dreamItem.at("uuid");
-                
-                printf("uuid : %s\n", uuid.as_string().c_str());
                 uuids.push_back(uuid.as_string().c_str());
             }
         }
     }
     catch (const boost::system::system_error& e)
     {
-        JSONUtil::LogException(e, spDownload->Data());
+        JSONUtil::LogException(e, contents);
     }
     
-    if (uuids.size() > 0) {
-        printf("Enqueuing to player");
-        g_Player().PlayDreamsNow(uuids);
+    return uuids;
+}
+
+bool EDreamClient::EnqueuePlaylist(int id) {
+    // Fetch the playlist and save it to disk
+    if (EDreamClient::FetchPlaylist(id)) {
+        // Parse the playlist
+        auto uuids = EDreamClient::ParsePlaylist(id);
+
+        printf("count : %zu\n", uuids.size());
+
+        if (uuids.size() > 0) {
+            // save the current playlist id, this will get reused at next startup
+            g_Settings()->Set("settings.content.current_playlist", id);
+            printf("Enqueuing to player\n");
+            g_Player().PlayDreamsNow(uuids);
+            return true;
+        }
     }
-    
-    return true;
+
+    return false;
 }
 
 bool EDreamClient::GetDreams(int _page, int _count)
@@ -511,6 +553,11 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
     {
         g_Client()->ExecuteCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_CREDIT);
+    }
+    else if (event == "reset_playlist")
+    {
+        g_Client()->ExecuteCommand(
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_RESET_PLAYLIST);
     }
     else if (event == "web")
     {

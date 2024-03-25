@@ -265,7 +265,7 @@ bool CPlayer::Startup()
     m_spPlaylist =
         std::make_shared<ContentDecoder::CDreamPlaylist>(watchPath.string());
 
-    m_NextClipInfoQueue.setMaxQueueElements(100);
+    m_NextClipInfoQueue.setMaxQueueElements(100);   // TODO ??
 
     //	Create decoder last.
     g_Log->Info("Starting decoder...");
@@ -779,6 +779,10 @@ void CPlayer::PlayDreamsNow(std::vector<std::string> uuids) {
     }
 }
 
+void CPlayer::ResetPlaylist() {
+    m_spPlaylist->Clear();
+    m_NextClipInfoQueue.empty();
+}
 
 void CPlayer::SkipToNext()
 {

@@ -1161,7 +1161,8 @@ class CElectricSheep
         CLIENT_COMMAND_SPEED_6,
         CLIENT_COMMAND_SPEED_7,
         CLIENT_COMMAND_SPEED_8,
-        CLIENT_COMMAND_SPEED_9
+        CLIENT_COMMAND_SPEED_9,
+        CLIENT_COMMAND_RESET_PLAYLIST
     };
 
     void popOSD(Hud::OSDType type) {
@@ -1260,7 +1261,13 @@ class CElectricSheep
                 popOSD(Hud::Speed);
                 g_Player().SetPerceptualFPS(SpeedToPerceptualFPS(9));
                 return true;
-
+            case CLIENT_COMMAND_RESET_PLAYLIST:
+                printf("RESET PLAYLIST\n");
+                g_Settings()->Set("settings.content.current_playlist", 0);
+                g_Player().ResetPlaylist();
+                g_Player().SkipToNext();
+                g_Player().SkipToNext();
+                return true;
                 //  Force Next Sheep
             case CLIENT_COMMAND_NEXT:
                 popOSD(Hud::Next);
@@ -1382,6 +1389,10 @@ class CElectricSheep
                     return ExecuteCommand(CLIENT_COMMAND_F1);
                 case DisplayOutput::CKeyEvent::KEY_F2:
                     return ExecuteCommand(CLIENT_COMMAND_F2);
+
+                    // Reset playlist
+                case DisplayOutput::CKeyEvent::KEY_N:
+                    return ExecuteCommand(CLIENT_COMMAND_RESET_PLAYLIST);
                     // prev/next
                 case DisplayOutput::CKeyEvent::KEY_J:
                     return ExecuteCommand(CLIENT_COMMAND_SKIP_BW);
