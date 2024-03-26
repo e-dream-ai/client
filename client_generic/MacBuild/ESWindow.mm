@@ -48,7 +48,7 @@ static void ShowPreferencesCallback()
     ESScreensaver_InitClientStorage();
     
     // Force window aspect ratio only if set in settings
-    // TODO: reset window ar when setting change, currently requires a restart
+    // @TODO: reset window ar when setting change, currently requires a restart
     if (ESScreensaver_GetBoolSetting("settings.player.preserve_AR", true)) {
         self.contentAspectRatio = CGSizeMake(16.f, 9.f);
     }

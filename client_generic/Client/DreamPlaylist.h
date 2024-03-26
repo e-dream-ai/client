@@ -78,8 +78,13 @@ class CDreamPlaylist : public CPlaylist
         }
     }
 
+    // @TODO: UNUSED
     bool PlayFreshOnesFirst(std::string& _result)
     {
+        // Disable fresh if playlist mode
+        if (g_Settings()->Get("settings.content.current_playlist", 0) > 0)
+            return false;
+        
         if (!m_FreshList.empty())
         {
             _result = m_FreshList.front();
@@ -167,7 +172,7 @@ class CDreamPlaylist : public CPlaylist
                 m_FlockGoldMBs =
                     ContentDownloader::Shepherd::GetFlockSizeMBsRecount(1);
                 
-                // TODO gold ??
+                // @TODO: gold ??
             }
             m_Clock = m_Timer.Time();
             

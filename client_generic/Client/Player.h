@@ -174,7 +174,6 @@ class CPlayer : public Base::CSingleton<CPlayer>
     };
 
     void PlayDreamNow(std::string_view _uuid);
-    void PlayDreamsNow(std::vector<std::string> uuids);
     void ResetPlaylist();
     
     void SkipToNext();

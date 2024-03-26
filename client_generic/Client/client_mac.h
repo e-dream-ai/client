@@ -221,7 +221,7 @@ class CElectricSheep_Mac : public CElectricSheep
 
         m_graphicsContextList.clear();
 
-        // TODO, we need to clean that up, this will not work with client + saver
+        // @TODO, we need to clean that up, this will not work with client + saver
         //
         // check the exclusive file lock to see if we are running alone...
         std::string lockfile = m_AppData + ".instance-lock";

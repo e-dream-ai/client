@@ -265,7 +265,7 @@ bool CPlayer::Startup()
     m_spPlaylist =
         std::make_shared<ContentDecoder::CDreamPlaylist>(watchPath.string());
 
-    m_NextClipInfoQueue.setMaxQueueElements(100);   // TODO ??
+    m_NextClipInfoQueue.setMaxQueueElements(10);
 
     //	Create decoder last.
     g_Log->Info("Starting decoder...");
@@ -610,7 +610,7 @@ bool CPlayer::PlayClip(std::string_view _clipPath, double _startTime,
 
     // Send info back to server
     printf("PLAYCLIP\n");
-    /*    EDreamClient::SendPlayingDream(dream.uuid); //); // TODO : Will later need more context eg screen, isScreenSaver, hardware id, etc
+    /*    EDreamClient::SendPlayingDream(dream.uuid); //); // @TODO : Will later need more context eg screen, isScreenSaver, hardware id, etc
 */
     
     //    if (!dream)
@@ -732,6 +732,7 @@ void CPlayer::CalculateNextClipThread()
     {
     }
 }
+
 void CPlayer::PlayDreamNow(std::string_view _uuid) {
     writer_lock l(m_UpdateMutex);
     
@@ -747,41 +748,15 @@ void CPlayer::PlayDreamNow(std::string_view _uuid) {
     }
 }
 
-void CPlayer::PlayDreamsNow(std::vector<std::string> uuids) {
+void CPlayer::ResetPlaylist() {
     writer_lock l(m_UpdateMutex);
 
-    // TODO : cleanup all the queue stuff
-    m_NextClipInfoQueue.empty();
-    
-    for (auto &uuid : uuids) {
-        printf("queuing uuid %s", uuid.c_str());
-
-        auto path = ContentDownloader::SheepDownloader::findSheepPath(uuid);
-        
-        if (path != "") {
-            m_NextClipInfoQueue.push(std::string{path});
-        } else {
-            printf("Can't find path for uuid");
-        }
-    }
-
-    // Queue reallly needs cleanup, this makes 0 sense
-    if (m_CurrentClips.size() > 1)
-        m_CurrentClips.erase(m_CurrentClips.begin() + 1);
-
-    m_CurrentClips[0]->FadeOut(m_TimelineTime);
-    
-    std::string nextClip;
-    m_NextClipInfoQueue.pop(nextClip, false);   // We shouldn't have to pop 2
-    if (m_NextClipInfoQueue.pop(nextClip, false))
-    {
-        PlayClip(nextClip, m_TimelineTime);
-    }
-}
-
-void CPlayer::ResetPlaylist() {
     m_spPlaylist->Clear();
-    m_NextClipInfoQueue.empty();
+    m_NextClipInfoQueue.clear(0);
+    m_CurrentClips.clear();
+    m_NextClipInfoQueue.clear(0);
+
+    //printf("MN %d MC %d\n", m_NextClipInfoQueue.size(), m_CurrentClips.size());
 }
 
 void CPlayer::SkipToNext()

@@ -373,13 +373,10 @@ bool EDreamClient::EnqueuePlaylist(int id) {
         // Parse the playlist
         auto uuids = EDreamClient::ParsePlaylist(id);
 
-        printf("count : %zu\n", uuids.size());
-
         if (uuids.size() > 0) {
             // save the current playlist id, this will get reused at next startup
             g_Settings()->Set("settings.content.current_playlist", id);
-            printf("Enqueuing to player\n");
-            g_Player().PlayDreamsNow(uuids);
+            g_Player().ResetPlaylist();
             return true;
         }
     }

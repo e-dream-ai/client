@@ -1265,8 +1265,6 @@ class CElectricSheep
                 printf("RESET PLAYLIST\n");
                 g_Settings()->Set("settings.content.current_playlist", 0);
                 g_Player().ResetPlaylist();
-                g_Player().SkipToNext();
-                g_Player().SkipToNext();
                 return true;
                 //  Force Next Sheep
             case CLIENT_COMMAND_NEXT:

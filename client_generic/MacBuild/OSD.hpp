@@ -424,7 +424,7 @@ public:
         
         // Draw FPS counter
         /*
-         // TODO, check why text ALWAYS appear bottom left and never disappear
+         // @TODO : check why text ALWAYS appear bottom left and never disappear
          
         m_FontDesc.Height(72 * g_Player().Display()->Height() / 2000);
         m_spFont = g_Player().Renderer()->GetFont(m_FontDesc);
@@ -489,7 +489,7 @@ private:
     float dotGap;
 };
 
-// TODO : clean those old pointers at some point
+// @TODO : clean those old pointers at some point
 MakeSmartPointers(COSD);
 
 }
