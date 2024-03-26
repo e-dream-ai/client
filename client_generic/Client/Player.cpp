@@ -39,6 +39,7 @@
 #include "Settings.h"
 #include "storage.h"
 #include "PlatformUtils.h"
+#include "EDreamClient.h"
 
 #include "boost/filesystem/convenience.hpp"
 #include "boost/filesystem/operations.hpp"
@@ -411,7 +412,7 @@ bool CPlayer::BeginFrameUpdate()
     {
         clip->Update(m_TimelineTime);
     }
-
+    
     if (m_CurrentClips.size())
     {
         for (auto it = m_CurrentClips.begin(); it != m_CurrentClips.end(); ++it)
@@ -444,6 +445,8 @@ bool CPlayer::BeginFrameUpdate()
                 else
                     PRINTQUEUE("FIN_NORMAL", m_ClipInfoHistoryQueue,
                                m_NextClipInfoQueue, m_CurrentClips);
+                
+                
             }
         }
     }
@@ -605,6 +608,11 @@ bool CPlayer::PlayClip(std::string_view _clipPath, double _startTime,
     ContentDownloader::sDreamMetadata dream{};
     m_spPlaylist->GetDreamMetadata(_clipPath, &dream);
 
+    // Send info back to server
+    printf("PLAYCLIP\n");
+    /*    EDreamClient::SendPlayingDream(dream.uuid); //); // @TODO : Will later need more context eg screen, isScreenSaver, hardware id, etc
+*/
+    
     //    if (!dream)
     //        return false;
 
@@ -616,10 +624,13 @@ bool CPlayer::PlayClip(std::string_view _clipPath, double _startTime,
 
     // Update internal decoder fps counter
     m_DecoderFps = m_PerceptualFPS / dream.activityLevel;
+    
 
     if (!clip->Start(_seekFrame))
         return false;
 
+
+    
     clip->SetStartTime(_startTime);
     clip->SetTransitionLength(m_CurrentClips.size() ? kTransitionLengthSeconds
                                                     : 0,
@@ -720,6 +731,32 @@ void CPlayer::CalculateNextClipThread()
     catch (boost::thread_interrupted const&)
     {
     }
+}
+
+void CPlayer::PlayDreamNow(std::string_view _uuid) {
+    writer_lock l(m_UpdateMutex);
+    
+    auto path = ContentDownloader::SheepDownloader::findSheepPath(_uuid);
+    
+    if (path != "") {
+        PlayClip(path, m_TimelineTime);
+        m_CurrentClips[0]->FadeOut(m_TimelineTime);
+        if (m_CurrentClips.size() > 1)
+            m_CurrentClips[1]->FadeOut(m_TimelineTime);
+    } else {
+        printf("Can't find path for uuid");
+    }
+}
+
+void CPlayer::ResetPlaylist() {
+    writer_lock l(m_UpdateMutex);
+
+    m_spPlaylist->Clear();
+    m_NextClipInfoQueue.clear(0);
+    m_CurrentClips.clear();
+    m_NextClipInfoQueue.clear(0);
+
+    //printf("MN %d MC %d\n", m_NextClipInfoQueue.size(), m_CurrentClips.size());
 }
 
 void CPlayer::SkipToNext()

@@ -18,6 +18,10 @@
 #include "Shepherd.h"
 #include "Timer.h"
 #include "StringFormat.h"
+#include "EDreamClient.h"
+
+// TODOWINDOWS POSIX ONLY
+#include <unistd.h>
 
 using boost::filesystem::directory_iterator;
 using boost::filesystem::exists;
@@ -74,8 +78,13 @@ class CDreamPlaylist : public CPlaylist
         }
     }
 
+    // @TODO: UNUSED
     bool PlayFreshOnesFirst(std::string& _result)
     {
+        // Disable fresh if playlist mode
+        if (g_Settings()->Get("settings.content.current_playlist", 0) > 0)
+            return false;
+        
         if (!m_FreshList.empty())
         {
             _result = m_FreshList.front();
@@ -93,6 +102,7 @@ class CDreamPlaylist : public CPlaylist
         m_EmptyInterval = 10.0f;
         m_Clock = 0.0f;
         m_Path = _watchFolder.c_str();
+        
     }
 
     //
@@ -151,6 +161,7 @@ class CDreamPlaylist : public CPlaylist
 
         //	Update from directory if enough time has passed, or we're asked
         // to.
+        // Also rebuild if the list is empty...
         if (_bRebuild) // || ((m_Timer.Time() - m_Clock) > interval) )
         {
             if (g_PlayCounter().ReadOnlyPlayCounts())
@@ -160,29 +171,50 @@ class CDreamPlaylist : public CPlaylist
                     ContentDownloader::Shepherd::GetFlockSizeMBsRecount(0);
                 m_FlockGoldMBs =
                     ContentDownloader::Shepherd::GetFlockSizeMBsRecount(1);
+                
+                // @TODO: gold ??
             }
             m_Clock = m_Timer.Time();
-            auto allSheep =
-                ContentDownloader::SheepDownloader::getClientFlock();
-            std::vector<ContentDownloader::sDreamMetadata*> sheepList;
-            for (auto it = allSheep.begin(); it != allSheep.end(); ++it)
-            {
-                ContentDownloader::sDreamMetadata* sheep = *it;
-                sheepList.push_back(sheep);
-            }
+            
+            
+            // Are we in playlist mode ? If so we add that list, sorted default
+            auto playlistId = g_Settings()->Get("settings.content.current_playlist", 0);
+            if (playlistId > 0) {
+                auto uuids = EDreamClient::ParsePlaylist(playlistId);
+               
+                for (auto uuid : uuids) {
+                    std::string fileName{
+                        string_format("%s%s.mp4", Shepherd::mp4Path(), uuid.c_str())};
+                    
+                    if (exists(fileName))
+                        m_List.push(fileName);
+                }
+            } else {
+                auto allSheep =
+                    ContentDownloader::SheepDownloader::getClientFlock();
 
-            std::sort(sheepList.begin(), sheepList.end(),
-                      [](ContentDownloader::sDreamMetadata* a,
-                         ContentDownloader::sDreamMetadata* b)
-                      { return a->writeTime > b->writeTime; });
-            for (auto it = sheepList.begin(); it != sheepList.end(); ++it)
-            {
-                ContentDownloader::sDreamMetadata* sheep = *it;
-                if (exists(sheep->fileName))
-                    m_List.push(sheep->fileName);
+                std::vector<ContentDownloader::sDreamMetadata*> sheepList;
+                for (auto it = allSheep.begin(); it != allSheep.end(); ++it)
+                {
+                    ContentDownloader::sDreamMetadata* sheep = *it;
+                    printf("%s\n",sheep->fileName.c_str());
+                    sheepList.push_back(sheep);
+                }
+
+                std::sort(sheepList.begin(), sheepList.end(),
+                          [](ContentDownloader::sDreamMetadata* a,
+                             ContentDownloader::sDreamMetadata* b)
+                          { return a->writeTime > b->writeTime; });
+                for (auto it = sheepList.begin(); it != sheepList.end(); ++it)
+                {
+                    ContentDownloader::sDreamMetadata* sheep = *it;
+                    if (exists(sheep->fileName))
+                        m_List.push(sheep->fileName);
+                }
             }
+            
 #ifdef DEBUG
-            std::vector<std::string> testVideos = g_Settings()->Get(
+/*            std::vector<std::string> testVideos = g_Settings()->Get(
                 "settings.debug.test_playlist", std::vector<std::string>{});
             if (testVideos.size() > 0)
             {
@@ -191,9 +223,10 @@ class CDreamPlaylist : public CPlaylist
                 {
                     m_List.push(vid);
                 }
-            }
+            }*/
 #endif
         }
+        printf("ML COUNT %zu", m_List.size());
 
         if (m_List.empty())
             return false;
@@ -234,12 +267,7 @@ class CDreamPlaylist : public CPlaylist
     void Delete(std::string_view _uuid)
     {
         std::scoped_lock locker(m_Lock);
-        //ContentDownloader::SheepDownloader::deleteSheep(_uuid);
-        path filePath =
-            path(Shepherd::mp4Path()) / path(string_format("%s.mp4", _uuid));
-        if (exists(filePath))
-            rename(filePath, path(Shepherd::mp4Path()) /
-                                 path(string_format("%s.xxx", _uuid)));
+        ContentDownloader::SheepDownloader::deleteSheep(_uuid);
 
         // m_pState->Pop( Base::Script::Call( m_pState->GetState(), "Delete",
         // "i", _id ) );

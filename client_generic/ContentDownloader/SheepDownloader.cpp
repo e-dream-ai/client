@@ -622,6 +622,17 @@ void SheepDownloader::deleteSheep(std::string_view _uuid)
     }
 }
 
+
+std::string_view SheepDownloader::findSheepPath(std::string_view _uuid) {
+    sDreamMetadata* clientSheep = nullptr;
+    if (fClientFlock.tryGetSheepWithUuid(_uuid, clientSheep))
+    {
+        return clientSheep->fileName;
+    } else {
+        return "";
+    }
+}
+
 bool SheepDownloader::isFolderAccessible(const char* folder)
 {
     if (folder == NULL)

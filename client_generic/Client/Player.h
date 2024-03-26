@@ -12,6 +12,7 @@
 #include "FrameDisplay.h"
 #include "Renderer.h"
 #include "Playlist.h"
+#include "DreamPlaylist.h"
 #include "Settings.h"
 #include "Singleton.h"
 #include "Timer.h"
@@ -56,7 +57,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     NO_CLASS_STANDARDS(CPlayer);
 
     DisplayUnitList m_displayUnits;
-    ContentDecoder::spCPlaylist m_spPlaylist;
+    ContentDecoder::spCDreamPlaylist m_spPlaylist;
     Base::CTimer m_Timer;
     double m_DecoderFps;
     double m_PerceptualFPS;
@@ -172,6 +173,9 @@ class CPlayer : public Base::CSingleton<CPlayer>
             m_spPlaylist->Delete(_uuid);
     };
 
+    void PlayDreamNow(std::string_view _uuid);
+    void ResetPlaylist();
+    
     void SkipToNext();
     void ReturnToPrevious();
     void SkipForward(float _seconds);

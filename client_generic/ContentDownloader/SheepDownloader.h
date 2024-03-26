@@ -131,6 +131,8 @@ class SheepDownloader
 
     static void deleteSheep(std::string_view _uuid);
 
+    static std::string_view findSheepPath(std::string_view _uuid);
+    
     static void deleteSheep(sDreamMetadata* sheep);
 
     /// Aborts the working thread

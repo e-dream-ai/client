@@ -7,6 +7,8 @@
 #include <boost/json.hpp>
 #include <boost/json/src.hpp>
 #include <cstdio>
+#include <fstream>
+#include <iostream>
 
 #include "ContentDownloader.h"
 #include "StringFormat.h"
@@ -264,6 +266,124 @@ bool EDreamClient::RefreshAccessToken()
     }
 }
 
+/*
+SheepArray EDreamClient::GetPlaylistFlock(int id) {
+    
+}*/
+
+bool EDreamClient::FetchPlaylist(int id) {
+    Network::spCFileDownloader spDownload;
+    const char* jsonPath = Shepherd::jsonPath();
+
+    int maxAttempts = 3;
+    int currentAttempt = 0;
+    while (currentAttempt++ < maxAttempts)
+    {
+        spDownload = std::make_shared<Network::CFileDownloader>("Playlist");
+        spDownload->AppendHeader("Content-Type: application/json");
+        std::string authHeader{
+            string_format("Authorization: Bearer %s", GetAccessToken())};
+        spDownload->AppendHeader(authHeader);
+        
+        
+        std::string url{string_format(
+            "%s/%i", Shepherd::GetEndpoint(ENDPOINT_PLAYLIST), id)};
+        
+        printf("url : %s\n", url.c_str());
+        
+        if (spDownload->Perform(url))
+        {
+            break;
+        }
+        else
+        {
+            if (spDownload->ResponseCode() == 400 ||
+                spDownload->ResponseCode() == 401)
+            {
+                if (currentAttempt == maxAttempts)
+                    return false;
+                if (!RefreshAccessToken())
+                    return false;
+            }
+            else
+            {
+                g_Log->Error("Failed to get playlist. Server returned %i: %s",
+                             spDownload->ResponseCode(),
+                             spDownload->Data().c_str());
+            }
+        }
+    }
+
+    std::string filename{string_format("%splaylist_%i.json", jsonPath, id)};
+    if (!spDownload->Save(filename))
+    {
+        g_Log->Error("Unable to save %s\n", filename.data());
+        return false;
+    }
+    
+    return true;
+}
+
+std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
+    // Collect all UUIDS from the json
+    std::vector<std::string> uuids;
+
+
+    // Open playlist and grab content
+    std::string filePath{
+        string_format("%splaylist_%i.json", Shepherd::jsonPath(), id)};
+    std::ifstream file(filePath);
+    if (!file.is_open())
+    {
+        g_Log->Error("Error opening file: %s", filePath.data());
+        return uuids;
+    }
+    std::string contents{(std::istreambuf_iterator<char>(file)),
+        (std::istreambuf_iterator<char>())};
+    file.close();
+    
+    
+    try
+    {
+        json::error_code ec;
+        json::value response = json::parse(contents, ec);
+        json::value data = response.at("data");
+        json::value playlist = data.at("playlist");
+        json::value items = playlist.at("items");
+        
+        if (items.is_array()) {
+            for (auto& item : items.as_array()) {
+                json::value dreamItem = item.at("dreamItem");
+                json::value uuid = dreamItem.at("uuid");
+                uuids.push_back(uuid.as_string().c_str());
+            }
+        }
+    }
+    catch (const boost::system::system_error& e)
+    {
+        JSONUtil::LogException(e, contents);
+    }
+    
+    return uuids;
+}
+
+bool EDreamClient::EnqueuePlaylist(int id) {
+    // Fetch the playlist and save it to disk
+    if (EDreamClient::FetchPlaylist(id)) {
+        // Parse the playlist
+        auto uuids = EDreamClient::ParsePlaylist(id);
+
+        if (uuids.size() > 0) {
+            // save the current playlist id, this will get reused at next startup
+            g_Settings()->Set("settings.content.current_playlist", id);
+            g_Player().ResetPlaylist();
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool EDreamClient::GetDreams(int _page, int _count)
 {
     Network::spCFileDownloader spDownload;
@@ -343,7 +463,25 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
     std::string_view event = eventObj->get_string();
 
     g_Log->Info("Received WebSocket message: %s", event.data());
-    if (event == "like")
+    printf("Received websocket message: %s", event.data());
+    
+    if (event == "play_dream") {
+        std::shared_ptr<sio::string_message> uuidObj =
+            std::dynamic_pointer_cast<sio::string_message>(response["uuid"]);
+        std::string_view uuid = uuidObj->get_string();
+        printf("should play : %s", uuid.data());
+
+        g_Player().PlayDreamNow(uuid.data());
+
+    } else if (event == "play_playlist") {
+        std::shared_ptr<sio::int_message> idObj =
+            std::dynamic_pointer_cast<sio::int_message>(response["id"]);
+        auto id = idObj->get_int();
+        printf("should play : %lld", id);
+        
+        EDreamClient::EnqueuePlaylist(id);
+    }
+    else if (event == "like")
     {
         g_Client()->ExecuteCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_LIKE);
@@ -413,6 +551,11 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
         g_Client()->ExecuteCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_CREDIT);
     }
+    else if (event == "reset_playlist")
+    {
+        g_Client()->ExecuteCommand(
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_RESET_PLAYLIST);
+    }
     else if (event == "web")
     {
         g_Client()->ExecuteCommand(
@@ -479,6 +622,23 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
     }
 }
 
+void EDreamClient::SendPlayingDream(std::string uuid) {// ) {
+    std::cout << "Sending UUID " << uuid;
+    //s_SIOClient.socket()->emit("playing", uuid);
+    
+    
+    std::shared_ptr<sio::object_message> ms =
+        std::dynamic_pointer_cast<sio::object_message>(
+            sio::object_message::create());
+    ms->insert("event", "playing");
+    ms->insert("uuid", uuid);
+    //ms->insert("name", "not sending that.");
+    sio::message::list list;
+    list.push(ms);
+    s_SIOClient.socket("/remote-control")
+        ->emit("new_remote_control_event", list);
+}
+
 void EDreamClient::ConnectRemoteControlSocket()
 {
     PlatformUtils::SetThreadName("ConnectRemoteControl");
@@ -490,3 +650,4 @@ void EDreamClient::ConnectRemoteControlSocket()
 }
 
 void EDreamClient::SetCPUUsage(int _cpuUsage) { fCpuUsage.exchange(_cpuUsage); }
+

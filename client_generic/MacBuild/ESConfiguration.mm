@@ -26,7 +26,7 @@ using namespace ContentDownloader;
     [NSApp endSheet:self.window returnCode:m_loginWasSuccessful];
 }
 
-// TODO : deprecated
+// @TODO : deprecated
 - (IBAction)cancel:(id)__unused sender
 {
     if (!cancelButton.isEnabled)
