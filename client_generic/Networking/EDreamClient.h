@@ -33,6 +33,8 @@ class EDreamClient
     static void ConnectRemoteControlSocket();
 
   public:
+    static void Upvote(std::string uuid);
+    static void Downvote(std::string uuid);
     static void SetCPUUsage(int _cpuUsage);
 };
 

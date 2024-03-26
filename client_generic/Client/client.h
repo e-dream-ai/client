@@ -29,7 +29,6 @@
 #include "StatsConsole.h"
 #include "TextureFlat.h"
 #include "Timer.h"
-#include "Voting.h"
 #include "PlatformUtils.h"
 #include "StringFormat.h"
 
@@ -107,9 +106,6 @@ class CElectricSheep
     // internal brightness counter
     int m_Brightness = 0;
     
-    //	Voting object.
-    CVote* m_pVoter;
-
     //	Default root directory, ie application data.
     std::string m_AppData;
 
@@ -192,7 +188,6 @@ class CElectricSheep
         m_MultipleInstancesMode = false;
         printf("CElectricSheep()\n");
 
-        m_pVoter = nullptr;
 #ifndef LINUX_GNU
         m_AppData = "./.ElectricSheep/";
         m_WorkingDir = "./";
@@ -464,8 +459,6 @@ class CElectricSheep
 
             //	Set proxy info.
             SetupProxy();
-
-            m_pVoter = new CVote();
         }
 
         g_Player().SetMultiDisplayMode(
@@ -567,8 +560,6 @@ class CElectricSheep
             //	This stuff was never started in config mode.
             if (m_MultipleInstancesMode == false)
             {
-                SAFE_DELETE(m_pVoter);
-
                 g_NetworkManager->Shutdown();
             }
             g_Player().Shutdown();
@@ -1189,26 +1180,26 @@ class CElectricSheep
                     m_StatsCodeCounter = 0;
                     return true;
                 }
-                if (m_pVoter != nullptr &&
-                    m_pVoter->Vote(data->dreamData.uuid, true, voteDelaySeconds))
-                    m_HudManager->Add("splash_pos", m_spSplashPos,
+/*                if (m_pVoter != nullptr &&
+                    m_pVoter->Vote(data->dreamData.uuid, true, voteDelaySeconds))*/
+
+                EDreamClient::Upvote(data->dreamData.uuid);
+                m_HudManager->Add("splash_pos", m_spSplashPos,
                                       voteDelaySeconds * 0.9f);
                 return true;
             case CLIENT_COMMAND_DISLIKE:
-                if (m_pVoter != nullptr &&
-                    m_pVoter->Vote(data->dreamData.uuid, false, voteDelaySeconds))
-                {
-                    if (g_Settings()->Get("settings.content.negvotedeletes", true))
-                    {
-                        // g_Player().Stop();
-                        g_Player().SkipToNext();
-                        m_spCrossFade->Reset();
-                        m_HudManager->Add("fade", m_spCrossFade, 1.5);
-                    }
+                EDreamClient::Downvote(data->dreamData.uuid);
 
-                    m_HudManager->Add("splash_pos", m_spSplashNeg,
-                                      voteDelaySeconds * 0.9f);
+                if (g_Settings()->Get("settings.content.negvotedeletes", true))
+                {
+                    // g_Player().Stop();
+                    g_Player().SkipToNext();
+                    m_spCrossFade->Reset();
+                    m_HudManager->Add("fade", m_spCrossFade, 1.5);
                 }
+
+                m_HudManager->Add("splash_pos", m_spSplashNeg,
+                                  voteDelaySeconds * 0.9f);
                 return true;
                 //    Repeat current sheep
             case CLIENT_COMMAND_PREVIOUS:
