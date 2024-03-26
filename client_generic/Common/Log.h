@@ -9,6 +9,7 @@
 
 #include <string_view>
 #include <mutex>
+#include <thread>
 
 #ifdef LINUX_GNU
 #include <cstdio>
