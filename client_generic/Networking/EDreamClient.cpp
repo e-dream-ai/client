@@ -266,10 +266,74 @@ bool EDreamClient::RefreshAccessToken()
     }
 }
 
-/*
-SheepArray EDreamClient::GetPlaylistFlock(int id) {
+
+int EDreamClient::GetCurrentServerPlaylist() {
+    Network::spCFileDownloader spDownload;
+    const char* jsonPath = Shepherd::jsonPath();
+
+    int maxAttempts = 3;
+    int currentAttempt = 0;
+    while (currentAttempt++ < maxAttempts)
+    {
+        spDownload = std::make_shared<Network::CFileDownloader>("CurrentPlaylist");
+        spDownload->AppendHeader("Content-Type: application/json");
+        std::string authHeader{
+            string_format("Authorization: Bearer %s", GetAccessToken())};
+        spDownload->AppendHeader(authHeader);
+        
+        
+        std::string url{ Shepherd::GetEndpoint(ENDPOINT_CURRENTPLAYLIST) };
+        
+        if (spDownload->Perform(url))
+        {
+            break;
+        }
+        else
+        {
+            if (spDownload->ResponseCode() == 400 ||
+                spDownload->ResponseCode() == 401)
+            {
+                if (currentAttempt == maxAttempts)
+                    return -1;
+                if (!RefreshAccessToken())
+                    return -1;
+            }
+            else
+            {
+                g_Log->Error("Failed to get playlist. Server returned %i: %s",
+                             spDownload->ResponseCode(),
+                             spDownload->Data().c_str());
+            }
+        }
+    }
+
+    // Grab the ID from the playlist
+    try
+    {
+        json::value response = json::parse(spDownload->Data());
+        json::value data = response.at("data");
+        json::value playlist = data.at("playlist");
+        json::value id = playlist.at("id");
+
+        auto idint = id.as_int64();
+        
+        std::string filename{string_format("%splaylist_%i.json", jsonPath, idint)};
+        if (!spDownload->Save(filename))
+        {
+            g_Log->Error("Unable to save %s\n", filename.data());
+            return -1;
+        }
+        
+        return idint;
+    }
+    catch (const boost::system::system_error& e)
+    {
+        JSONUtil::LogException(e, spDownload->Data());
+    }
     
-}*/
+    return 0;
+
+}
 
 bool EDreamClient::FetchPlaylist(int id) {
     Network::spCFileDownloader spDownload;

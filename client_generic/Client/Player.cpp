@@ -551,16 +551,33 @@ void CPlayer::PlayQueuedClipsThread()
     PlatformUtils::SetThreadName("PlayQueuedClips");
     try
     {
+
+        // Grab perceptual FPS
+        m_PerceptualFPS = g_Settings()->Get("settings.player.perceptual_fps",
+                                            m_PerceptualFPS);
+
         std::string lastPlayedFile = g_Settings()->Get(
             "settings.content.last_played_file", std::string{});
+        
+        auto clientPlaylistId = g_Settings()->Get("settings.content.current_playlist", 0);
+        auto serverPlaylistId = EDreamClient::GetCurrentServerPlaylist();
+
+        // Network error will give us a negative number. 0 = no playlist
+        if (serverPlaylistId >= 0) {
+            // Override if there's a mismatch, and don't try to resume previous file as
+            // it may not be part of the new playlist
+            if (serverPlaylistId != clientPlaylistId) {
+                g_Settings()->Set("settings.content.current_playlist", serverPlaylistId);
+                lastPlayedFile = "";
+                ResetPlaylist();    // Don't forget to reset the playlist that was already generated
+            }
+        }
+        
         if (lastPlayedFile != "")
         {
             int64_t seekFrame;
             seekFrame = (int64_t)g_Settings()->Get(
                 "settings.content.last_played_frame", uint64_t{});
-            // Grab perceptual FPS here
-            m_PerceptualFPS = g_Settings()->Get("settings.player.perceptual_fps",
-                                                m_PerceptualFPS);
             PlayClip(lastPlayedFile, m_TimelineTime, seekFrame);
         }
 

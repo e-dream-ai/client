@@ -61,7 +61,8 @@ constexpr const std::string_view DEFAULT_DREAM_SERVER =
     DEFINE_ENDPOINT(DREAM, "/dream"), DEFINE_ENDPOINT(LOGIN, "/auth/login"),   \
         DEFINE_ENDPOINT(REFRESH, "/auth/refresh"),                             \
         DEFINE_ENDPOINT(USER, "/auth/user"),                                   \
-        DEFINE_ENDPOINT(PLAYLIST, "/playlist")
+        DEFINE_ENDPOINT(PLAYLIST, "/playlist"),                                \
+        DEFINE_ENDPOINT(CURRENTPLAYLIST, "/user/current/playlist")
 
 enum eServerEndpoint
 {
@@ -69,7 +70,8 @@ enum eServerEndpoint
     ENDPOINT_LOGIN,
     ENDPOINT_REFRESH,
     ENDPOINT_USER,
-    ENDPOINT_PLAYLIST
+    ENDPOINT_PLAYLIST,
+    ENDPOINT_CURRENTPLAYLIST
 };
 
 namespace ContentDownloader
