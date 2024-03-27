@@ -1183,12 +1183,12 @@ class CElectricSheep
 /*                if (m_pVoter != nullptr &&
                     m_pVoter->Vote(data->dreamData.uuid, true, voteDelaySeconds))*/
 
-                EDreamClient::Upvote(data->dreamData.uuid);
+                EDreamClient::Like(data->dreamData.uuid);
                 m_HudManager->Add("splash_pos", m_spSplashPos,
                                       voteDelaySeconds * 0.9f);
                 return true;
             case CLIENT_COMMAND_DISLIKE:
-                EDreamClient::Downvote(data->dreamData.uuid);
+                EDreamClient::Dislike(data->dreamData.uuid);
 
                 if (g_Settings()->Get("settings.content.negvotedeletes", true))
                 {
