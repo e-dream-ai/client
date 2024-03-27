@@ -1002,12 +1002,24 @@ class CElectricSheep
                     m_HudManager->Get("dreamcredits"));
                 if (clipMetadata)
                 {
-                    ((Hud::CStringStat*)spStats->Get("credits"))
-                        ->SetSample(
-                            string_format("%s - %s",
-                                          clipMetadata->dreamData.name.data(),
-                                          clipMetadata->dreamData.author.data())
-                                .data());
+                    if (g_Player().m_spPlaylist->playlistId > 0) {
+                        ((Hud::CStringStat*)spStats->Get("credits"))
+                            ->SetSample(
+                                string_format("%s by %s (from %s)",
+                                              clipMetadata->dreamData.name.data(),
+                                              clipMetadata->dreamData.author.data(),
+                                              g_Player().m_spPlaylist->playlistName.data())
+                                    .data());
+
+                    } else {
+                        ((Hud::CStringStat*)spStats->Get("credits"))
+                            ->SetSample(
+                                string_format("%s by %s",
+                                              clipMetadata->dreamData.name.data(),
+                                              clipMetadata->dreamData.author.data())
+                                    .data());
+
+                    }
                 }
                 
                 //	Serverstats.

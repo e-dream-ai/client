@@ -34,6 +34,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
         kMDIndividualMode,
         kMDSingleScreen
     } MultiDisplayMode;
+    ContentDecoder::spCDreamPlaylist m_spPlaylist;
 
   private:
     typedef struct
@@ -57,7 +58,6 @@ class CPlayer : public Base::CSingleton<CPlayer>
     NO_CLASS_STANDARDS(CPlayer);
 
     DisplayUnitList m_displayUnits;
-    ContentDecoder::spCDreamPlaylist m_spPlaylist;
     Base::CTimer m_Timer;
     double m_DecoderFps;
     double m_PerceptualFPS;
@@ -84,6 +84,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
     mutable std::shared_mutex m_UpdateMutex;
     boost::condition m_PlayCond;
 
+    // Last uuid reported to server
+    std::string lastReportedUUID;
 #ifdef WIN32
     HWND m_hWnd;
 

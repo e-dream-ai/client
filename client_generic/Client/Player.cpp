@@ -415,6 +415,13 @@ bool CPlayer::BeginFrameUpdate()
     
     if (m_CurrentClips.size())
     {
+        // Check if we need to report the clip to server
+        if (lastReportedUUID != m_CurrentClips[0]->GetClipMetadata().dreamData.uuid) {
+            lastReportedUUID = m_CurrentClips[0]->GetClipMetadata().dreamData.uuid;
+            // @TODO : Will later need more context eg screen, isScreenSaver, hardware id, etc
+            EDreamClient::SendPlayingDream(lastReportedUUID);
+        }
+        
         for (auto it = m_CurrentClips.begin(); it != m_CurrentClips.end(); ++it)
         {
             spCClip currentClip = *it;
@@ -585,8 +592,8 @@ void CPlayer::PlayQueuedClipsThread()
                     if (m_NextClipInfoQueue.pop(nextClip, false))
                     {
                         PlayClip(nextClip, startTime);
-                        PRINTQUEUE("PLAYCLIPTHREAD", m_ClipInfoHistoryQueue,
-                                   m_NextClipInfoQueue, m_CurrentClips);
+                        //PRINTQUEUE("PLAYCLIPTHREAD", m_ClipInfoHistoryQueue,
+                        //           m_NextClipInfoQueue, m_CurrentClips);
                     }
                 }
             }
@@ -608,11 +615,6 @@ bool CPlayer::PlayClip(std::string_view _clipPath, double _startTime,
     ContentDownloader::sDreamMetadata dream{};
     m_spPlaylist->GetDreamMetadata(_clipPath, &dream);
 
-    // Send info back to server
-    printf("PLAYCLIP\n");
-    /*    EDreamClient::SendPlayingDream(dream.uuid); //); // @TODO : Will later need more context eg screen, isScreenSaver, hardware id, etc
-*/
-    
     //    if (!dream)
     //        return false;
 
@@ -755,8 +757,6 @@ void CPlayer::ResetPlaylist() {
     m_NextClipInfoQueue.clear(0);
     m_CurrentClips.clear();
     m_NextClipInfoQueue.clear(0);
-
-    //printf("MN %d MC %d\n", m_NextClipInfoQueue.size(), m_CurrentClips.size());
 }
 
 void CPlayer::SkipToNext()

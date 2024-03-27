@@ -4,6 +4,7 @@
 #include <memory>
 #include <atomic>
 #include <mutex>
+#include <tuple>
 
 class EDreamClient
 {
@@ -21,7 +22,8 @@ class EDreamClient
     static void DeinitializeClient();
     static bool FetchPlaylist(int id);
     static std::vector<std::string> ParsePlaylist(int id);
-    
+    static std::tuple<std::string, std::string> ParsePlaylistCredits(int id);
+
     static bool EnqueuePlaylist(int id);
     static bool GetDreams(int _page = 0, int _count = -1);
     static const char* GetAccessToken();

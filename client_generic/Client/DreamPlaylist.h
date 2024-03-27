@@ -54,7 +54,13 @@ class CDreamPlaylist : public CPlaylist
     uint64_t m_FlockGoldMBs;
     std::queue<std::string> m_List;
     std::queue<std::string> m_FreshList;
-
+    
+    // Infos fetched from remote playlist
+public:
+    int playlistId = 0;
+    std::string playlistName;
+    std::string playlistUserName;
+    
     void AutoMedianLevel(uint64_t megabytes)
     {
         if (megabytes < 100)
@@ -178,10 +184,14 @@ class CDreamPlaylist : public CPlaylist
             
             
             // Are we in playlist mode ? If so we add that list, sorted default
-            auto playlistId = g_Settings()->Get("settings.content.current_playlist", 0);
+            playlistId = g_Settings()->Get("settings.content.current_playlist", 0);
             if (playlistId > 0) {
                 auto uuids = EDreamClient::ParsePlaylist(playlistId);
-               
+ 
+                auto [name, userName] = EDreamClient::ParsePlaylistCredits(playlistId);
+                playlistName = name;
+                playlistUserName = userName;
+                
                 for (auto uuid : uuids) {
                     std::string fileName{
                         string_format("%s%s.mp4", Shepherd::mp4Path(), uuid.c_str())};

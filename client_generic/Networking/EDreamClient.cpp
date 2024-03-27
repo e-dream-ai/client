@@ -367,6 +367,42 @@ std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
     return uuids;
 }
 
+std::tuple<std::string, std::string> EDreamClient::ParsePlaylistCredits(int id) {
+    // Open playlist and grab content
+    std::string filePath{
+        string_format("%splaylist_%i.json", Shepherd::jsonPath(), id)};
+    std::ifstream file(filePath);
+    if (!file.is_open())
+    {
+        g_Log->Error("Error opening file: %s", filePath.data());
+        return {"",""};
+    }
+    std::string contents{(std::istreambuf_iterator<char>(file)),
+        (std::istreambuf_iterator<char>())};
+    file.close();
+    
+    try
+    {
+        json::error_code ec;
+        json::value response = json::parse(contents, ec);
+        json::value data = response.at("data");
+        json::value playlist = data.at("playlist");
+        
+        json::value name = playlist.at("name");
+        json::value user = playlist.at("user");
+        json::value userName = user.at("name");
+
+        return {name.as_string().c_str(), userName.as_string().c_str()};
+    }
+    catch (const boost::system::system_error& e)
+    {
+        JSONUtil::LogException(e, contents);
+    }
+    
+    return {"",""};
+}
+
+
 bool EDreamClient::EnqueuePlaylist(int id) {
     // Fetch the playlist and save it to disk
     if (EDreamClient::FetchPlaylist(id)) {
@@ -624,7 +660,6 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
 
 void EDreamClient::SendPlayingDream(std::string uuid) {// ) {
     std::cout << "Sending UUID " << uuid;
-    //s_SIOClient.socket()->emit("playing", uuid);
     
     
     std::shared_ptr<sio::object_message> ms =
@@ -632,7 +667,7 @@ void EDreamClient::SendPlayingDream(std::string uuid) {// ) {
             sio::object_message::create());
     ms->insert("event", "playing");
     ms->insert("uuid", uuid);
-    //ms->insert("name", "not sending that.");
+
     sio::message::list list;
     list.push(ms);
     s_SIOClient.socket("/remote-control")
