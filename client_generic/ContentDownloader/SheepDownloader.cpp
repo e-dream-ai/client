@@ -251,6 +251,10 @@ void SheepDownloader::ParseServerDreams()
     {
         ParseDreamsPage(i);
     }
+    
+    // Only then the list is considered gotten
+    fGotList = true;
+    fListDirty = false;
 }
 
 static std::string TryParseString(uint32_t _id, const json::object& _obj,
@@ -390,8 +394,8 @@ int SheepDownloader::ParseDreamsPage(int _page)
     {
         LogException(e, dreamIndex, contents);
     }
-    fGotList = true;
-    fListDirty = false;
+    //fGotList = true;
+    //fListDirty = false;
     return numDreams;
 }
 
