@@ -842,15 +842,20 @@ void SheepDownloader::FindSheepToDownload()
                                 !cacheOverflow(
                                     (double)fServerFlock[i]->fileSize, 0))
                             {
+                                //printf("FSD bct %d bcto %d rating %d wtime %d\n ", best_ctime, best_ctime_old, fServerFlock[i]->rating,  fServerFlock[i]->writeTime);
                                 //	Check if it is the best file to
                                 // download.
+                                // @TODO: rating is unused currently, and on staging multiple files may have the same writetime, so simplifying the conditions
+                                // We probably need to rethink all that when rating is properly implemented.
+
                                 if ((best_ctime == 0 && best_ctime_old == 0) ||
-                                    (fServerFlock[i]->rating > best_rating &&
+                                    (fServerFlock[i]->rating >= best_rating &&
                                      fServerFlock[i]->rating <=
-                                         best_rating_old) ||
+                                         best_rating_old) /*||
                                     (fServerFlock[i]->rating == best_rating &&
-                                     fServerFlock[i]->writeTime < best_ctime))
+                                     fServerFlock[i]->writeTime < best_ctime )*/)
                                 {
+                                    /*
                                     bool timeCheck = false;
                                     {
                                         timeCheck = fServerFlock[i]->writeTime >
@@ -861,11 +866,11 @@ void SheepDownloader::FindSheepToDownload()
                                         (fServerFlock[i]->rating ==
                                              best_rating_old &&
                                          timeCheck))
-                                    {
+                                    { */
                                         best_rating = fServerFlock[i]->rating;
                                         best_ctime = fServerFlock[i]->writeTime;
                                         best_anim = static_cast<int>(i);
-                                    }
+                                    //}
                                 }
                             }
                         }
