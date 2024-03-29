@@ -668,6 +668,7 @@ bool SheepDownloader::isFolderAccessible(const char* folder)
         This method loads all of the sheep that are cached on disk and deletes
    any files in the cache that no longer exist on the server
 */
+/// MARK: - Thread: FindSheepToDownload
 void SheepDownloader::FindSheepToDownload()
 {
     PlatformUtils::SetThreadName("FindSheepToDownload");
@@ -802,79 +803,92 @@ void SheepDownloader::FindSheepToDownload()
 
                         std::scoped_lock lockthis(s_DownloaderMutex);
 
+                        auto clientPlaylistId = g_Settings()->Get("settings.content.current_playlist", 0);
+
+                        // If we are on a playlist, prioritize caching those first
+                        if (clientPlaylistId > 0) {
+                            auto uuids = EDreamClient::ParsePlaylist(clientPlaylistId);
+                            
+                            for (auto uuid : uuids) {
+                                std::string fileName{ string_format("%s%s.mp4", Shepherd::mp4Path(), uuid.c_str()) };
+                                
+                                unsigned int k;
+                                for (k = 0; k < fServerFlock.size(); k++) {
+                                    if (fServerFlock[k]->uuid.compare(uuid) == 0) {
+                                        if (!exists(fileName)) {
+                                            printf("playlist queuing %d\n", k);
+                                            best_anim = static_cast<int>(k);
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         unsigned int i;
                         unsigned int j;
 
                         size_t downloadedcount = 0;
-                        for (i = 0; i < fServerFlock.size(); i++)
-                        {
-                            //	Iterate the client flock to see if it allready
-                            // exists in
-                            // the cache.
-                            for (j = 0; j < fClientFlock.size(); j++)
+
+                        // If we don't have anything to download at this point, revert to the old ways, caching everything
+                        if (best_anim == -1) {
+                            for (i = 0; i < fServerFlock.size(); i++)
                             {
-                                if (fServerFlock[i]->id == fClientFlock[j]->id)
+                                //	Iterate the client flock to see if it allready
+                                // exists in
+                                // the cache.
+                                for (j = 0; j < fClientFlock.size(); j++)
                                 {
-                                    downloadedcount++;
-                                    break;
+                                    if (fServerFlock[i]->id == fClientFlock[j]->id)
+                                    {
+                                        downloadedcount++;
+                                        break;
+                                    }
                                 }
                             }
-                        }
-                        //	Iterate the server flock to find the next sheep
-                        // to download.
-                        for (i = 0; i < fServerFlock.size(); i++)
-                        {
-                            //	Iterate the client flock to see if it allready
-                            // exists in
-                            // the cache.
-                            for (j = 0; j < fClientFlock.size(); j++)
+                            
+                            //	Iterate the server flock to find the next sheep
+                            // to download.
+                            for (i = 0; i < fServerFlock.size(); i++)
                             {
-                                if (fServerFlock[i]->id == fClientFlock[j]->id)
-                                    break;
-                            }
-
-                            //@TODO: is this correct?
-                            //	If it is not found and the cache is ok to store
-                            // than
-                            // check if the file should be downloaded based on
-                            // rating and server file write time.
-                            if ((j == fClientFlock.size()) &&
-                                !cacheOverflow(
-                                    (double)fServerFlock[i]->fileSize, 0))
-                            {
-                                //printf("FSD bct %d bcto %d rating %d wtime %d\n ", best_ctime, best_ctime_old, fServerFlock[i]->rating,  fServerFlock[i]->writeTime);
-                                //	Check if it is the best file to
-                                // download.
-                                // @TODO: rating is unused currently, and on staging multiple files may have the same writetime, so simplifying the conditions
-                                // We probably need to rethink all that when rating is properly implemented.
-
-                                if ((best_ctime == 0 && best_ctime_old == 0) ||
-                                    (fServerFlock[i]->rating >= best_rating &&
-                                     fServerFlock[i]->rating <=
-                                         best_rating_old) /*||
-                                    (fServerFlock[i]->rating == best_rating &&
-                                     fServerFlock[i]->writeTime < best_ctime )*/)
+                                //	Iterate the client flock to see if it allready
+                                // exists in
+                                // the cache.
+                                for (j = 0; j < fClientFlock.size(); j++)
                                 {
-                                    /*
-                                    bool timeCheck = false;
+                                    if (fServerFlock[i]->id == fClientFlock[j]->id)
+                                        break;
+                                }
+
+                                //@TODO: is this correct?
+                                //	If it is not found and the cache is ok to store
+                                // than
+                                // check if the file should be downloaded based on
+                                // rating and server file write time.
+                                if ((j == fClientFlock.size()) &&
+                                    !cacheOverflow(
+                                        (double)fServerFlock[i]->fileSize, 0))
+                                {
+                                    //printf("FSD bct %d bcto %d rating %d wtime %d\n ", best_ctime, best_ctime_old, fServerFlock[i]->rating,  fServerFlock[i]->writeTime);
+                                    //	Check if it is the best file to
+                                    // download.
+                                    // @TODO: rating is unused currently, and on staging multiple files may have the same writetime, so simplifying the conditions
+                                    // We probably need to rethink all that when rating is properly implemented.
+
+                                    if ((best_ctime == 0 && best_ctime_old == 0) ||
+                                        (fServerFlock[i]->rating >= best_rating &&
+                                         fServerFlock[i]->rating <=
+                                             best_rating_old))
                                     {
-                                        timeCheck = fServerFlock[i]->writeTime >
-                                                    best_ctime_old;
-                                    }
-                                    if (fServerFlock[i]->rating !=
-                                            best_rating_old ||
-                                        (fServerFlock[i]->rating ==
-                                             best_rating_old &&
-                                         timeCheck))
-                                    { */
                                         best_rating = fServerFlock[i]->rating;
                                         best_ctime = fServerFlock[i]->writeTime;
                                         best_anim = static_cast<int>(i);
-                                    //}
+                                    }
                                 }
                             }
                         }
 
+                            
                         //	Found a valid sheep so download it.
                         if (best_anim != -1)
                         {
