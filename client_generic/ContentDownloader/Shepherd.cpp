@@ -439,6 +439,10 @@ bool Shepherd::getSheep(const char* path, SheepArray* sheep,
                         newSheep->fileName = itr->path().string();
                         newSheep->fileSize =
                             boost::filesystem::file_size(itr->path());
+                        
+                        // Set time to write time on disk
+                        newSheep->writeTime = boost::filesystem::last_write_time(itr->path());
+                        
                         sheep->push_back(newSheep);
                         gotSheep = true;
                     }

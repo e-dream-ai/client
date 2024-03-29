@@ -160,15 +160,15 @@ public:
     {
         std::scoped_lock locker(m_Lock);
 
-        // if ((_playFreshSheep = PlayFreshOnesFirst(_result)))
-        // return true;
+        if ((_playFreshSheep = PlayFreshOnesFirst(_result)))
+            return true;
 
         double interval = m_EmptyInterval;
 
         //	Update from directory if enough time has passed, or we're asked
         // to.
         // Also rebuild if the list is empty...
-        if (_bRebuild) // || ((m_Timer.Time() - m_Clock) > interval) )
+        if (_bRebuild || m_List.empty()) // || ((m_Timer.Time() - m_Clock) > interval) )
         {
             if (g_PlayCounter().ReadOnlyPlayCounts())
             {
@@ -200,14 +200,13 @@ public:
                         m_List.push(fileName);
                 }
             } else {
-                auto allSheep =
-                    ContentDownloader::SheepDownloader::getClientFlock();
-
+                ContentDownloader::SheepArray allSheep;
+                Shepherd::getClientFlock(&allSheep);    // Grab a truly fresh list
+                
                 std::vector<ContentDownloader::sDreamMetadata*> sheepList;
                 for (auto it = allSheep.begin(); it != allSheep.end(); ++it)
                 {
                     ContentDownloader::sDreamMetadata* sheep = *it;
-                    printf("%s\n",sheep->fileName.c_str());
                     sheepList.push_back(sheep);
                 }
 
@@ -218,8 +217,9 @@ public:
                 for (auto it = sheepList.begin(); it != sheepList.end(); ++it)
                 {
                     ContentDownloader::sDreamMetadata* sheep = *it;
-                    if (exists(sheep->fileName))
+                    if (exists(sheep->fileName)) {
                         m_List.push(sheep->fileName);
+                    }
                 }
             }
             
@@ -244,7 +244,8 @@ public:
         _result = m_List.front();
         m_List.pop();
 
-        _bEnoughSheep = false;
+        //_bEnoughSheep = false;
+        _bEnoughSheep = true;
 
         return true;
     }
