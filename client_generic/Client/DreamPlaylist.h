@@ -265,6 +265,11 @@ public:
         return false;
     }
 
+    void SetPlaylist(int id) {
+        std::scoped_lock locker(m_Lock);
+        playlistId = id;
+    }
+    
     //	Overrides the playlist to play _id next time.
     void Override(const uint32_t /*_id*/)
     {

@@ -546,6 +546,7 @@ bool CPlayer::Update(uint32_t displayUnit, bool& bPlayNoSheepIntro)
     return true;
 }
 
+/// MARK: - Thread code
 void CPlayer::PlayQueuedClipsThread()
 {
     PlatformUtils::SetThreadName("PlayQueuedClips");
@@ -562,14 +563,17 @@ void CPlayer::PlayQueuedClipsThread()
         auto clientPlaylistId = g_Settings()->Get("settings.content.current_playlist", 0);
         auto serverPlaylistId = EDreamClient::GetCurrentServerPlaylist();
 
+        
         // Network error will give us a negative number. 0 = no playlist
         if (serverPlaylistId >= 0) {
             // Override if there's a mismatch, and don't try to resume previous file as
             // it may not be part of the new playlist
             if (serverPlaylistId != clientPlaylistId) {
                 g_Settings()->Set("settings.content.current_playlist", serverPlaylistId);
+                m_spPlaylist->SetPlaylist(serverPlaylistId);
                 lastPlayedFile = "";
                 ResetPlaylist();    // Don't forget to reset the playlist that was already generated
+                
             }
         }
         
@@ -606,11 +610,12 @@ void CPlayer::PlayQueuedClipsThread()
                 if (loadNextClip)
                 {
                     std::string nextClip;
+
                     if (m_NextClipInfoQueue.pop(nextClip, false))
                     {
                         PlayClip(nextClip, startTime);
-                        //PRINTQUEUE("PLAYCLIPTHREAD", m_ClipInfoHistoryQueue,
-                        //           m_NextClipInfoQueue, m_CurrentClips);
+                        PRINTQUEUE("PLAYCLIPTHREAD", m_ClipInfoHistoryQueue,
+                                   m_NextClipInfoQueue, m_CurrentClips);
                     }
                 }
             }
@@ -719,27 +724,30 @@ void CPlayer::CalculateNextClipThread()
             bool enoughClips = true;
             bool playFreshClips = false;
             {
+                if (!enoughClips)
+                {
+                    while (!m_NextClipInfoQueue.empty())
+                    {
+                        if (!m_NextClipInfoQueue.waitForEmpty())
+                        {
+                            break;
+                        }
+                    }
+                }
+                
                 if (m_spPlaylist->Next(spath, enoughClips, curID,
                                        playFreshClips, bRebuild, true))
                 {
                     bRebuild = false;
-
-                    if (!enoughClips)
-                    {
-                        while (!m_NextClipInfoQueue.empty())
-                        {
-                            if (!m_NextClipInfoQueue.waitForEmpty())
-                            {
-                                break;
-                            }
-                        }
-                    }
+                    
                     // if (playFreshClips)
                     // m_NextClipQueue.clear(0);
                     m_NextClipInfoQueue.push(spath);
                 }
                 else
+                {
                     bRebuild = true;
+                }
             }
 
             boost::thread::sleep(boost::get_system_time() +
