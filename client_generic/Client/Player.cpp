@@ -415,6 +415,25 @@ bool CPlayer::BeginFrameUpdate()
     
     if (m_CurrentClips.size())
     {
+        // Check if we need to report the clip to server
+        if (lastReportedUUID != m_CurrentClips[0]->GetClipMetadata().dreamData.uuid) {
+            lastReportedUUID = m_CurrentClips[0]->GetClipMetadata().dreamData.uuid;
+            // @TODO : Will later need more context eg screen, isScreenSaver, hardware id, etc
+            EDreamClient::SendPlayingDream(lastReportedUUID);
+        }
+        
+
+        // This is imperfect but on startup this avoid too many repeats.
+        // @TODO: We need to rethink having always 2 clips right now in m_CurrentClips to properly handle those cases
+        if (m_CurrentClips.size() > 1) {
+            if (m_CurrentClips[0]->HasFinished()) {
+                if (m_CurrentClips[0]->GetClipMetadata().dreamData.uuid == m_CurrentClips[1]->GetClipMetadata().dreamData.uuid && m_spPlaylist->HasFreshlyDownloadedSheep()) {
+                    m_CurrentClips[1]->FadeOut(m_TimelineTime);
+                    m_NextClipInfoQueue.clear(0);
+                }
+            }
+        }
+        
         for (auto it = m_CurrentClips.begin(); it != m_CurrentClips.end(); ++it)
         {
             spCClip currentClip = *it;
@@ -432,6 +451,8 @@ bool CPlayer::BeginFrameUpdate()
                     m_ClipInfoHistoryQueue.push(
                         std::string{currentClip->GetClipMetadata().path});
                 }
+             
+                
                 m_CurrentClips.erase(it--);
                 auto next = it + (decltype(m_CurrentClips)::difference_type)1;
                 next->get()->SetStartTime(
@@ -539,21 +560,42 @@ bool CPlayer::Update(uint32_t displayUnit, bool& bPlayNoSheepIntro)
     return true;
 }
 
+/// MARK: - Thread: PlayQueuedClips
 void CPlayer::PlayQueuedClipsThread()
 {
     PlatformUtils::SetThreadName("PlayQueuedClips");
     try
     {
+
+        // Grab perceptual FPS
+        m_PerceptualFPS = g_Settings()->Get("settings.player.perceptual_fps",
+                                            m_PerceptualFPS);
+
         std::string lastPlayedFile = g_Settings()->Get(
             "settings.content.last_played_file", std::string{});
+        
+        auto clientPlaylistId = g_Settings()->Get("settings.content.current_playlist", 0);
+        auto serverPlaylistId = EDreamClient::GetCurrentServerPlaylist();
+
+        
+        // Network error will give us a negative number. 0 = no playlist
+        if (serverPlaylistId >= 0) {
+            // Override if there's a mismatch, and don't try to resume previous file as
+            // it may not be part of the new playlist
+            if (serverPlaylistId != clientPlaylistId) {
+                g_Settings()->Set("settings.content.current_playlist", serverPlaylistId);
+                m_spPlaylist->SetPlaylist(serverPlaylistId);
+                lastPlayedFile = "";
+                ResetPlaylist();    // Don't forget to reset the playlist that was already generated
+                
+            }
+        }
+        
         if (lastPlayedFile != "")
         {
             int64_t seekFrame;
             seekFrame = (int64_t)g_Settings()->Get(
                 "settings.content.last_played_frame", uint64_t{});
-            // Grab perceptual FPS here
-            m_PerceptualFPS = g_Settings()->Get("settings.player.perceptual_fps",
-                                                m_PerceptualFPS);
             PlayClip(lastPlayedFile, m_TimelineTime, seekFrame);
         }
 
@@ -582,6 +624,7 @@ void CPlayer::PlayQueuedClipsThread()
                 if (loadNextClip)
                 {
                     std::string nextClip;
+
                     if (m_NextClipInfoQueue.pop(nextClip, false))
                     {
                         PlayClip(nextClip, startTime);
@@ -608,11 +651,6 @@ bool CPlayer::PlayClip(std::string_view _clipPath, double _startTime,
     ContentDownloader::sDreamMetadata dream{};
     m_spPlaylist->GetDreamMetadata(_clipPath, &dream);
 
-    // Send info back to server
-    printf("PLAYCLIP\n");
-    /*    EDreamClient::SendPlayingDream(dream.uuid); //); // @TODO : Will later need more context eg screen, isScreenSaver, hardware id, etc
-*/
-    
     //    if (!dream)
     //        return false;
 
@@ -677,7 +715,7 @@ double CPlayer::GetDecoderFPS() {
     return m_DecoderFps;
 }
 
-
+/// MARK: - Thread: CalculateNextClip
 void CPlayer::CalculateNextClipThread()
 {
     PlatformUtils::SetThreadName("CalculateNextClip");
@@ -685,6 +723,9 @@ void CPlayer::CalculateNextClipThread()
     {
         uint32_t curID = 0;
         bool bRebuild = true;
+        bool enoughClips = true;
+        bool playFreshClips = false;
+
         while (m_bStarted)
         {
             boost::this_thread::interruption_point();
@@ -697,30 +738,37 @@ void CPlayer::CalculateNextClipThread()
             }
 
             std::string spath;
-            bool enoughClips = true;
-            bool playFreshClips = false;
-            {
-                if (m_spPlaylist->Next(spath, enoughClips, curID,
-                                       playFreshClips, bRebuild, true))
-                {
-                    bRebuild = false;
 
-                    if (!enoughClips)
+            if (enoughClips)
+            {
+                while (!m_NextClipInfoQueue.empty())
+                {
+                    if (!m_NextClipInfoQueue.waitForEmpty())
                     {
-                        while (!m_NextClipInfoQueue.empty())
-                        {
-                            if (!m_NextClipInfoQueue.waitForEmpty())
-                            {
-                                break;
-                            }
-                        }
+                        break;
                     }
-                    // if (playFreshClips)
-                    // m_NextClipQueue.clear(0);
+                }
+            }
+                
+            if (m_spPlaylist->Next(spath, enoughClips, curID,
+                                   playFreshClips, bRebuild, true))
+            {
+                bRebuild = false;
+                
+                if (playFreshClips) {
+                    m_NextClipInfoQueue.clear(0);
+                    if (m_CurrentClips.size() > 1)
+                    {
+                        m_CurrentClips[1]->FadeOut(m_TimelineTime);
+                    }
+                    m_NextClipInfoQueue.clear(0);
+                } else {
                     m_NextClipInfoQueue.push(spath);
                 }
-                else
-                    bRebuild = true;
+            }
+            else
+            {
+                bRebuild = true;
             }
 
             boost::thread::sleep(boost::get_system_time() +
@@ -755,8 +803,6 @@ void CPlayer::ResetPlaylist() {
     m_NextClipInfoQueue.clear(0);
     m_CurrentClips.clear();
     m_NextClipInfoQueue.clear(0);
-
-    //printf("MN %d MC %d\n", m_NextClipInfoQueue.size(), m_CurrentClips.size());
 }
 
 void CPlayer::SkipToNext()

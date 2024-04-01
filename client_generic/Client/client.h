@@ -1002,12 +1002,24 @@ class CElectricSheep
                     m_HudManager->Get("dreamcredits"));
                 if (clipMetadata)
                 {
-                    ((Hud::CStringStat*)spStats->Get("credits"))
-                        ->SetSample(
-                            string_format("%s - %s",
-                                          clipMetadata->dreamData.name.data(),
-                                          clipMetadata->dreamData.author.data())
-                                .data());
+                    if (g_Player().m_spPlaylist->playlistId > 0) {
+                        ((Hud::CStringStat*)spStats->Get("credits"))
+                            ->SetSample(
+                                string_format("%s by %s (from %s)",
+                                              clipMetadata->dreamData.name.data(),
+                                              clipMetadata->dreamData.author.data(),
+                                              g_Player().m_spPlaylist->playlistName.data())
+                                    .data());
+
+                    } else {
+                        ((Hud::CStringStat*)spStats->Get("credits"))
+                            ->SetSample(
+                                string_format("%s by %s",
+                                              clipMetadata->dreamData.name.data(),
+                                              clipMetadata->dreamData.author.data())
+                                    .data());
+
+                    }
                 }
                 
                 //	Serverstats.
@@ -1180,7 +1192,10 @@ class CElectricSheep
         const ContentDecoder::sClipMetadata* data =
             g_Player().GetCurrentPlayingClipMetadata();
         
-        std::string currentDreamUUID = data->dreamData.uuid;
+        std::string currentDreamUUID;
+        if (data != nullptr) {
+            currentDreamUUID = data->dreamData.uuid;
+        }
 
         if ((int)_command && (int)_command != 5 && (int)_command != 6)
             m_StatsCodeCounter = 0;
@@ -1193,28 +1208,32 @@ class CElectricSheep
                     m_StatsCodeCounter = 0;
                     return true;
                 }
-                if (m_pVoter != nullptr &&
-                    m_pVoter->Vote(data->dreamData.uuid, true, voteDelaySeconds))
-                    m_HudManager->Add("splash_pos", m_spSplashPos,
-                                      voteDelaySeconds * 0.9f);
+                if (data != nullptr) {
+                    if (m_pVoter != nullptr &&
+                        m_pVoter->Vote(data->dreamData.uuid, true, voteDelaySeconds))
+                        m_HudManager->Add("splash_pos", m_spSplashPos,
+                                          voteDelaySeconds * 0.9f);
+                }
                 return true;
             case CLIENT_COMMAND_DISLIKE:
-                if (m_pVoter != nullptr &&
-                    m_pVoter->Vote(data->dreamData.uuid, false, voteDelaySeconds))
-                {
-                    if (g_Settings()->Get("settings.content.negvotedeletes", true))
+                if (data != nullptr) {
+                    if (m_pVoter != nullptr &&
+                        m_pVoter->Vote(data->dreamData.uuid, false, voteDelaySeconds))
                     {
-                        // g_Player().Stop();
-                        g_Player().SkipToNext();
-                        m_spCrossFade->Reset();
-                        m_HudManager->Add("fade", m_spCrossFade, 1.5);
+                        if (g_Settings()->Get("settings.content.negvotedeletes", true))
+                        {
+                            // g_Player().Stop();
+                            g_Player().SkipToNext();
+                            m_spCrossFade->Reset();
+                            m_HudManager->Add("fade", m_spCrossFade, 1.5);
 
-                        // We need to move to something else before deleting
-                        g_Player().Delete(currentDreamUUID);
+                            // We need to move to something else before deleting
+                            g_Player().Delete(currentDreamUUID);
+                        }
+
+                        m_HudManager->Add("splash_pos", m_spSplashNeg,
+                                          voteDelaySeconds * 0.9f);
                     }
-
-                    m_HudManager->Add("splash_pos", m_spSplashNeg,
-                                      voteDelaySeconds * 0.9f);
                 }
                 return true;
                 //    Repeat current sheep

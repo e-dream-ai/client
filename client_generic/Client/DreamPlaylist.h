@@ -54,7 +54,13 @@ class CDreamPlaylist : public CPlaylist
     uint64_t m_FlockGoldMBs;
     std::queue<std::string> m_List;
     std::queue<std::string> m_FreshList;
-
+    
+    // Infos fetched from remote playlist
+public:
+    int playlistId = 0;
+    std::string playlistName;
+    std::string playlistUserName;
+    
     void AutoMedianLevel(uint64_t megabytes)
     {
         if (megabytes < 100)
@@ -154,15 +160,15 @@ class CDreamPlaylist : public CPlaylist
     {
         std::scoped_lock locker(m_Lock);
 
-        // if ((_playFreshSheep = PlayFreshOnesFirst(_result)))
-        // return true;
+        if ((_playFreshSheep = PlayFreshOnesFirst(_result)))
+            return true;
 
         double interval = m_EmptyInterval;
 
         //	Update from directory if enough time has passed, or we're asked
         // to.
         // Also rebuild if the list is empty...
-        if (_bRebuild) // || ((m_Timer.Time() - m_Clock) > interval) )
+        if (_bRebuild || m_List.empty()) // || ((m_Timer.Time() - m_Clock) > interval) )
         {
             if (g_PlayCounter().ReadOnlyPlayCounts())
             {
@@ -178,10 +184,14 @@ class CDreamPlaylist : public CPlaylist
             
             
             // Are we in playlist mode ? If so we add that list, sorted default
-            auto playlistId = g_Settings()->Get("settings.content.current_playlist", 0);
+            playlistId = g_Settings()->Get("settings.content.current_playlist", 0);
             if (playlistId > 0) {
                 auto uuids = EDreamClient::ParsePlaylist(playlistId);
-               
+ 
+                auto [name, userName] = EDreamClient::ParsePlaylistCredits(playlistId);
+                playlistName = name;
+                playlistUserName = userName;
+                
                 for (auto uuid : uuids) {
                     std::string fileName{
                         string_format("%s%s.mp4", Shepherd::mp4Path(), uuid.c_str())};
@@ -190,14 +200,13 @@ class CDreamPlaylist : public CPlaylist
                         m_List.push(fileName);
                 }
             } else {
-                auto allSheep =
-                    ContentDownloader::SheepDownloader::getClientFlock();
-
+                ContentDownloader::SheepArray allSheep;
+                Shepherd::getClientFlock(&allSheep);    // Grab a truly fresh list
+                
                 std::vector<ContentDownloader::sDreamMetadata*> sheepList;
                 for (auto it = allSheep.begin(); it != allSheep.end(); ++it)
                 {
                     ContentDownloader::sDreamMetadata* sheep = *it;
-                    printf("%s\n",sheep->fileName.c_str());
                     sheepList.push_back(sheep);
                 }
 
@@ -208,8 +217,9 @@ class CDreamPlaylist : public CPlaylist
                 for (auto it = sheepList.begin(); it != sheepList.end(); ++it)
                 {
                     ContentDownloader::sDreamMetadata* sheep = *it;
-                    if (exists(sheep->fileName))
+                    if (exists(sheep->fileName)) {
                         m_List.push(sheep->fileName);
+                    }
                 }
             }
             
@@ -226,7 +236,7 @@ class CDreamPlaylist : public CPlaylist
             }*/
 #endif
         }
-        printf("ML COUNT %zu", m_List.size());
+        //printf("ML COUNT %zu", m_List.size());
 
         if (m_List.empty())
             return false;
@@ -234,7 +244,8 @@ class CDreamPlaylist : public CPlaylist
         _result = m_List.front();
         m_List.pop();
 
-        _bEnoughSheep = false;
+        //_bEnoughSheep = false;
+        _bEnoughSheep = true;
 
         return true;
     }
@@ -255,6 +266,11 @@ class CDreamPlaylist : public CPlaylist
         return false;
     }
 
+    void SetPlaylist(int id) {
+        std::scoped_lock locker(m_Lock);
+        playlistId = id;
+    }
+    
     //	Overrides the playlist to play _id next time.
     void Override(const uint32_t /*_id*/)
     {

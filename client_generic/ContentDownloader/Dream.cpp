@@ -40,4 +40,11 @@ void sDreamMetadata::setFileWriteTime(const std::string& timeString)
     writeTime = time;
 }
 
+// Set current time to now
+void sDreamMetadata::setFileWriteTimeToNow()
+{
+    time_t time = std::time(0);
+    writeTime = time;
+}
+
 }; // namespace ContentDownloader

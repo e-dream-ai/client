@@ -266,10 +266,74 @@ bool EDreamClient::RefreshAccessToken()
     }
 }
 
-/*
-SheepArray EDreamClient::GetPlaylistFlock(int id) {
+
+int EDreamClient::GetCurrentServerPlaylist() {
+    Network::spCFileDownloader spDownload;
+    const char* jsonPath = Shepherd::jsonPath();
+
+    int maxAttempts = 3;
+    int currentAttempt = 0;
+    while (currentAttempt++ < maxAttempts)
+    {
+        spDownload = std::make_shared<Network::CFileDownloader>("CurrentPlaylist");
+        spDownload->AppendHeader("Content-Type: application/json");
+        std::string authHeader{
+            string_format("Authorization: Bearer %s", GetAccessToken())};
+        spDownload->AppendHeader(authHeader);
+        
+        
+        std::string url{ Shepherd::GetEndpoint(ENDPOINT_CURRENTPLAYLIST) };
+        
+        if (spDownload->Perform(url))
+        {
+            break;
+        }
+        else
+        {
+            if (spDownload->ResponseCode() == 400 ||
+                spDownload->ResponseCode() == 401)
+            {
+                if (currentAttempt == maxAttempts)
+                    return -1;
+                if (!RefreshAccessToken())
+                    return -1;
+            }
+            else
+            {
+                g_Log->Error("Failed to get playlist. Server returned %i: %s",
+                             spDownload->ResponseCode(),
+                             spDownload->Data().c_str());
+            }
+        }
+    }
+
+    // Grab the ID from the playlist
+    try
+    {
+        json::value response = json::parse(spDownload->Data());
+        json::value data = response.at("data");
+        json::value playlist = data.at("playlist");
+        json::value id = playlist.at("id");
+
+        auto idint = id.as_int64();
+        
+        std::string filename{string_format("%splaylist_%i.json", jsonPath, idint)};
+        if (!spDownload->Save(filename))
+        {
+            g_Log->Error("Unable to save %s\n", filename.data());
+            return -1;
+        }
+        
+        return idint;
+    }
+    catch (const boost::system::system_error& e)
+    {
+        JSONUtil::LogException(e, spDownload->Data());
+    }
     
-}*/
+    return 0;
+
+}
 
 bool EDreamClient::FetchPlaylist(int id) {
     Network::spCFileDownloader spDownload;
@@ -366,6 +430,42 @@ std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
     
     return uuids;
 }
+
+std::tuple<std::string, std::string> EDreamClient::ParsePlaylistCredits(int id) {
+    // Open playlist and grab content
+    std::string filePath{
+        string_format("%splaylist_%i.json", Shepherd::jsonPath(), id)};
+    std::ifstream file(filePath);
+    if (!file.is_open())
+    {
+        g_Log->Error("Error opening file: %s", filePath.data());
+        return {"",""};
+    }
+    std::string contents{(std::istreambuf_iterator<char>(file)),
+        (std::istreambuf_iterator<char>())};
+    file.close();
+    
+    try
+    {
+        json::error_code ec;
+        json::value response = json::parse(contents, ec);
+        json::value data = response.at("data");
+        json::value playlist = data.at("playlist");
+        
+        json::value name = playlist.at("name");
+        json::value user = playlist.at("user");
+        json::value userName = user.at("name");
+
+        return {name.as_string().c_str(), userName.as_string().c_str()};
+    }
+    catch (const boost::system::system_error& e)
+    {
+        JSONUtil::LogException(e, contents);
+    }
+    
+    return {"",""};
+}
+
 
 bool EDreamClient::EnqueuePlaylist(int id) {
     // Fetch the playlist and save it to disk
@@ -624,7 +724,6 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
 
 void EDreamClient::SendPlayingDream(std::string uuid) {// ) {
     std::cout << "Sending UUID " << uuid;
-    //s_SIOClient.socket()->emit("playing", uuid);
     
     
     std::shared_ptr<sio::object_message> ms =
@@ -632,7 +731,7 @@ void EDreamClient::SendPlayingDream(std::string uuid) {// ) {
             sio::object_message::create());
     ms->insert("event", "playing");
     ms->insert("uuid", uuid);
-    //ms->insert("name", "not sending that.");
+
     sio::message::list list;
     list.push(ms);
     s_SIOClient.socket("/remote-control")
