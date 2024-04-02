@@ -40,7 +40,6 @@
 		12579D4A2B83C99100604B41 /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 12D020022B83C86C0036357D /* libssl.a */; };
 		1270D0EF2B28975500E1DCE3 /* PlatformUtils_Mac.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1270D0EE2B28975400E1DCE3 /* PlatformUtils_Mac.mm */; };
 		1270D0F02B28975500E1DCE3 /* PlatformUtils_Mac.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1270D0EE2B28975400E1DCE3 /* PlatformUtils_Mac.mm */; };
-		12726C1E2B6BCC55003C0FF6 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 12726C1D2B6BCC55003C0FF6 /* Sparkle */; };
 		129AC5D02B69348E00E2E3E8 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 129AC5CF2B69348E00E2E3E8 /* Sparkle */; };
 		12A00CD12B0D22A4001C0792 /* Trebuchet MS.sddf in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD02B0D22A4001C0792 /* Trebuchet MS.sddf */; };
 		12A00CD32B0D22B4001C0792 /* Trebuchet MS.sddf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 12A00CD02B0D22A4001C0792 /* Trebuchet MS.sddf */; };
@@ -641,7 +640,6 @@
 				464A49E52AB89CEB00C77F6D /* AudioToolbox.framework in Frameworks */,
 				2161F1940ECF8CEF00FE48E9 /* libz.1.2.5.dylib in Frameworks */,
 				21887A240EC6CDF9001ABD2E /* libbz2.1.0.dylib in Frameworks */,
-				12726C1E2B6BCC55003C0FF6 /* Sparkle in Frameworks */,
 				12440CBB2B85F49B00A23253 /* libsioclient_tls.a in Frameworks */,
 				21A8AFBB18416ECA00F77369 /* libiconv.2.dylib in Frameworks */,
 				21DC0CAC1263B99000D60C6A /* libcurl.4.dylib in Frameworks */,
@@ -1077,7 +1075,6 @@
 			);
 			name = ScreenSaver;
 			packageProductDependencies = (
-				12726C1D2B6BCC55003C0FF6 /* Sparkle */,
 			);
 			productName = ScreenSaver;
 			productReference = 218878D00EC6CD7E001ABD2E /* e-dream.saver */;
@@ -1840,11 +1837,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 0397FD582B8C915A00C5D640 /* XCRemoteSwiftPackageReference "bugsnag-cocoa" */;
 			productName = BugsnagNetworkRequestPlugin;
-		};
-		12726C1D2B6BCC55003C0FF6 /* Sparkle */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 129AC5CE2B69348E00E2E3E8 /* XCRemoteSwiftPackageReference "sparkle" */;
-			productName = Sparkle;
 		};
 		129AC5CF2B69348E00E2E3E8 /* Sparkle */ = {
 			isa = XCSwiftPackageProductDependency;
