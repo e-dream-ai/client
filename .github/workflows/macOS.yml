@@ -9,7 +9,7 @@ jobs:
           - macOS
         xcode:
           - 15.3
-    runs-on: macos-14-arm64
+    runs-on: macos-14
     steps:
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
       - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
