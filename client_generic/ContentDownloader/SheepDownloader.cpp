@@ -785,8 +785,9 @@ void SheepDownloader::FindSheepToDownload()
 
                     if (fListDirty)
                     {
-                        // clearFlocks();
                         ParseServerDreams();
+                        // Trigger deletion of removed dreams here
+                        Shepherd::removeNonExistingDreams(fServerFlock);
                     }
                     else
                     {
