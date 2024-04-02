@@ -23,5 +23,5 @@ jobs:
           platform: ${{ matrix.platform }}
           action: build 
           working-directory: /Users/runner/work/client/client/client_generic/MacBuild/
-          configuration: release 
+          configuration: debug 
           scheme: ScreenSaver
