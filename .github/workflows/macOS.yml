@@ -19,6 +19,6 @@ jobs:
           xcode: ${{ matrix.xcode }}
           platform: ${{ matrix.platform }}
           action: build 
-          working-directory: /client_generic/MacBuild/
+          working-directory: /Users/runner/work/client/client/client_generic/MacBuild/
           configuration: release 
           scheme: ScreenSaver
