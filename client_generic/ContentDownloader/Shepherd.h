@@ -141,6 +141,7 @@ class Shepherd
     static bool getSheep(const char* path, SheepArray* sheep,
                          const SheepArray& serverFlock);
 
+    
     static uint64_t s_ClientFlockBytes;
     static uint64_t s_ClientFlockCount;
 
@@ -209,6 +210,10 @@ class Shepherd
     ///        Initialize global data for the shepherd and his heard.
     static void initializeShepherd();
 
+    // This cleans up sheeps that are on disk but not present in master manifest
+    static void removeNonExistingDreams(const SheepArray& serverFlock);
+
+    
     static void setUseProxy(const int& useProxy) { fUseProxy = useProxy; }
     static int useProxy() { return fUseProxy; }
 
