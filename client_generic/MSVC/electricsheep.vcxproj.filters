@@ -21,12 +21,6 @@
     <Filter Include="Common\Code">
       <UniqueIdentifier>{e8275963-7410-4e9f-a801-5b022bba66b0}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Common\Headers">
-      <UniqueIdentifier>{c9094536-c2f4-4759-b096-987386c83854}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Common\ISAAC">
-      <UniqueIdentifier>{a868cbca-1716-40c5-b6c0-019d9743219b}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ContentDecoder">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
@@ -70,21 +64,15 @@
     <Filter Include="TupleStorage">
       <UniqueIdentifier>{214405d8-9f27-415c-ac3d-bd713518b582}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Common\Headers">
+      <UniqueIdentifier>{c9094536-c2f4-4759-b096-987386c83854}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\ContentDownloader\ContentDownloader.cpp">
       <Filter>ContentDownloader\Code</Filter>
     </ClCompile>
-    <ClCompile Include="..\ContentDownloader\Sheep.cpp">
-      <Filter>ContentDownloader\Code</Filter>
-    </ClCompile>
     <ClCompile Include="..\ContentDownloader\SheepDownloader.cpp">
-      <Filter>ContentDownloader\Code</Filter>
-    </ClCompile>
-    <ClCompile Include="..\ContentDownloader\SheepGenerator.cpp">
-      <Filter>ContentDownloader\Code</Filter>
-    </ClCompile>
-    <ClCompile Include="..\ContentDownloader\SheepUploader.cpp">
       <Filter>ContentDownloader\Code</Filter>
     </ClCompile>
     <ClCompile Include="..\ContentDownloader\Shepherd.cpp">
@@ -105,20 +93,11 @@
     <ClCompile Include="..\Common\Log.cpp">
       <Filter>Common\Code</Filter>
     </ClCompile>
-    <ClCompile Include="..\Common\LuaState.cpp">
-      <Filter>Common\Code</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Common\luaxml.cpp">
-      <Filter>Common\Code</Filter>
-    </ClCompile>
     <ClCompile Include="..\Common\md5.c">
       <Filter>Common\Code</Filter>
     </ClCompile>
     <ClCompile Include="..\Common\pool.cpp">
       <Filter>Common\Code</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Common\isaac.cpp">
-      <Filter>Common\ISAAC</Filter>
     </ClCompile>
     <ClCompile Include="..\ContentDecoder\ContentDecoder.cpp">
       <Filter>ContentDecoder\Code</Filter>
@@ -213,12 +192,6 @@
     <ClCompile Include="..\Networking\Upload.cpp">
       <Filter>Networking</Filter>
     </ClCompile>
-    <ClCompile Include="..\TupleStorage\diriterator.cpp">
-      <Filter>TupleStorage</Filter>
-    </ClCompile>
-    <ClCompile Include="..\TupleStorage\luastorage.cpp">
-      <Filter>TupleStorage</Filter>
-    </ClCompile>
     <ClCompile Include="..\TupleStorage\storage.cpp">
       <Filter>TupleStorage</Filter>
     </ClCompile>
@@ -239,16 +212,7 @@
     <ClInclude Include="..\ContentDownloader\ContentDownloader.h">
       <Filter>ContentDownloader\Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\ContentDownloader\Sheep.h">
-      <Filter>ContentDownloader\Headers</Filter>
-    </ClInclude>
     <ClInclude Include="..\ContentDownloader\SheepDownloader.h">
-      <Filter>ContentDownloader\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ContentDownloader\SheepGenerator.h">
-      <Filter>ContentDownloader\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ContentDownloader\SheepUploader.h">
       <Filter>ContentDownloader\Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\ContentDownloader\Shepherd.h">
@@ -350,12 +314,6 @@
     <ClInclude Include="..\Common\XTimer.h">
       <Filter>Common\Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\isaac.h">
-      <Filter>Common\ISAAC</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\isaacs.h">
-      <Filter>Common\ISAAC</Filter>
-    </ClInclude>
     <ClInclude Include="..\ContentDecoder\ContentDecoder.h">
       <Filter>ContentDecoder\Headers</Filter>
     </ClInclude>
@@ -399,9 +357,6 @@
       <Filter>Client\Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\Client\LinearFrameDisplay.h">
-      <Filter>Client\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Client\lua_playlist.h">
       <Filter>Client\Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\Client\MonoInstance.h">
@@ -472,12 +427,6 @@
     </ClInclude>
     <ClInclude Include="..\Networking\Networking.h">
       <Filter>Networking</Filter>
-    </ClInclude>
-    <ClInclude Include="..\TupleStorage\diriterator.h">
-      <Filter>TupleStorage</Filter>
-    </ClInclude>
-    <ClInclude Include="..\TupleStorage\luastorage.h">
-      <Filter>TupleStorage</Filter>
     </ClInclude>
     <ClInclude Include="..\TupleStorage\Settings.h">
       <Filter>TupleStorage</Filter>
