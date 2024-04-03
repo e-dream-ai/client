@@ -36,7 +36,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>Windows7.1SDK</PlatformToolset>
+    <PlatformToolset>ClangCL</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -46,7 +46,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>ClangCL</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -167,6 +167,7 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc /y
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <AdditionalDependencies>avcodec.lib;avutil.lib;avfilter.lib;swscale.lib;avdevice.lib;avformat.lib;user32.lib;shlwapi.lib;wxzlibd.lib;wxpngd.lib;tinyxmld.lib;lua5.1d.lib;d3d9.lib;ws2_32.lib;wldap32.lib;dxguid.lib;psapi.lib;delayimp.lib;libpng16.lib;curlu-d.lib;msvcrtd.lib;libcmtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -301,6 +302,7 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <ResourceCompile>
       <Culture>0x0409</Culture>
@@ -357,7 +359,9 @@ copy .\release\es.scr ..\RuntimeMSVC\esx64.exe /y
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CompileAsCpp</CompileAs>
     </ClCompile>
     <ClCompile Include="..\ContentDecoder\ContentDecoder.cpp" />
-    <ClCompile Include="..\Client\Hud.cpp" />
+    <ClCompile Include="..\Client\Hud.cpp">
+      <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdcpp20</LanguageStandard>
+    </ClCompile>
     <ClCompile Include="..\Client\main.cpp" />
     <ClCompile Include="BackBufDD.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -448,6 +452,7 @@ copy .\release\es.scr ..\RuntimeMSVC\esx64.exe /y
     <ClCompile Include="..\TupleStorage\storage.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Client\OSD.hpp" />
     <ClInclude Include="..\ContentDownloader\ContentDownloader.h" />
     <ClInclude Include="..\ContentDownloader\Sheep.h" />
     <ClInclude Include="..\ContentDownloader\SheepDownloader.h" />

@@ -21,7 +21,7 @@
 #include "EDreamClient.h"
 
 // TODOWINDOWS POSIX ONLY
-#include <unistd.h>
+//#include <unistd.h>
 
 using boost::filesystem::directory_iterator;
 using boost::filesystem::exists;

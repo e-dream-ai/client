@@ -6,3 +6,5 @@ client_generic/MacBuild/e-dream.xcodeproj/project.xcworkspace/xcuserdata/*
 client_generic/MacBuild/e-dream.xcodeproj/xcuserdata/*
 client_generic/MacBuild/gitversion.h
 client_generic/MacBuild/BuildData.json
+/client_generic/MSVC/.vs
+/client_generic/MSVC/Debugx64d
