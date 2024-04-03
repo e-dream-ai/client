@@ -509,6 +509,9 @@
     <ClInclude Include="RendererDD.h">
       <Filter>DisplayOutput\DirectX7</Filter>
     </ClInclude>
+    <ClInclude Include="..\Client\OSD.hpp">
+      <Filter>Client\Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Client\app.ico">

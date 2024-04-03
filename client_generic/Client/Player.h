@@ -5,7 +5,7 @@
 
 #ifdef WIN32
 #include <d3d9.h>
-#include <d3dx9.h>
+//#include <d3dx9.h>
 #endif
 #include "ContentDecoder.h"
 #include "DisplayOutput.h"

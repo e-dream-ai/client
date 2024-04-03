@@ -11,3 +11,5 @@ client_generic/MacBuild/BuildData.json
 /vcpkg_installed
 /vcpkg_x86
 
+/client_generic/MSVC/.vs
+/client_generic/MSVC/Debugx64d
