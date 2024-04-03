@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectName>es</ProjectName>
+    <ProjectName>e-dream</ProjectName>
     <ProjectGuid>{C117F50C-4724-48CF-8C5C-193FB1A0F26A}</ProjectGuid>
     <RootNamespace>electricsheep</RootNamespace>
     <Keyword>Win32Proj</Keyword>
@@ -340,24 +340,15 @@ copy .\release\es.scr ..\RuntimeMSVC\esx64.exe /y
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\ContentDownloader\ContentDownloader.cpp" />
-    <ClCompile Include="..\ContentDownloader\Sheep.cpp" />
     <ClCompile Include="..\ContentDownloader\SheepDownloader.cpp" />
-    <ClCompile Include="..\ContentDownloader\SheepGenerator.cpp" />
-    <ClCompile Include="..\ContentDownloader\SheepUploader.cpp" />
     <ClCompile Include="..\ContentDownloader\Shepherd.cpp" />
     <ClCompile Include="..\Common\Math\Rect.cpp" />
     <ClCompile Include="..\Common\AlignedBuffer.cpp" />
     <ClCompile Include="..\Common\Common.cpp" />
     <ClCompile Include="..\Common\Exception.cpp" />
     <ClCompile Include="..\Common\Log.cpp" />
-    <ClCompile Include="..\Common\LuaState.cpp" />
-    <ClCompile Include="..\Common\luaxml.cpp" />
     <ClCompile Include="..\Common\md5.c" />
     <ClCompile Include="..\Common\pool.cpp" />
-    <ClCompile Include="..\Common\isaac.cpp">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CompileAsCpp</CompileAs>
-    </ClCompile>
     <ClCompile Include="..\ContentDecoder\ContentDecoder.cpp" />
     <ClCompile Include="..\Client\Hud.cpp">
       <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdcpp20</LanguageStandard>
@@ -447,17 +438,12 @@ copy .\release\es.scr ..\RuntimeMSVC\esx64.exe /y
     <ClCompile Include="..\Networking\Download.cpp" />
     <ClCompile Include="..\Networking\Networking.cpp" />
     <ClCompile Include="..\Networking\Upload.cpp" />
-    <ClCompile Include="..\TupleStorage\diriterator.cpp" />
-    <ClCompile Include="..\TupleStorage\luastorage.cpp" />
     <ClCompile Include="..\TupleStorage\storage.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Client\OSD.hpp" />
     <ClInclude Include="..\ContentDownloader\ContentDownloader.h" />
-    <ClInclude Include="..\ContentDownloader\Sheep.h" />
     <ClInclude Include="..\ContentDownloader\SheepDownloader.h" />
-    <ClInclude Include="..\ContentDownloader\SheepGenerator.h" />
-    <ClInclude Include="..\ContentDownloader\SheepUploader.h" />
     <ClInclude Include="..\ContentDownloader\Shepherd.h" />
     <ClInclude Include="BackBufDD.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -512,8 +498,6 @@ copy .\release\es.scr ..\RuntimeMSVC\esx64.exe /y
     <ClInclude Include="..\Common\Timer.h" />
     <ClInclude Include="..\Common\WTimer.h" />
     <ClInclude Include="..\Common\XTimer.h" />
-    <ClInclude Include="..\Common\isaac.h" />
-    <ClInclude Include="..\Common\isaacs.h" />
     <ClInclude Include="..\ContentDecoder\ContentDecoder.h" />
     <ClInclude Include="..\ContentDecoder\DirectoryPlaylist.h" />
     <ClInclude Include="..\ContentDecoder\Frame.h" />
@@ -529,7 +513,6 @@ copy .\release\es.scr ..\RuntimeMSVC\esx64.exe /y
     <ClInclude Include="..\Client\FrameDisplay.h" />
     <ClInclude Include="..\Client\Hud.h" />
     <ClInclude Include="..\Client\LinearFrameDisplay.h" />
-    <ClInclude Include="..\Client\lua_playlist.h" />
     <ClInclude Include="..\Client\MonoInstance.h" />
     <ClInclude Include="msvc_fix.h" />
     <ClInclude Include="..\Client\PlayCounter.h" />
@@ -609,8 +592,6 @@ copy .\release\es.scr ..\RuntimeMSVC\esx64.exe /y
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </CustomBuildStep>
     <ClInclude Include="..\Networking\Networking.h" />
-    <ClInclude Include="..\TupleStorage\diriterator.h" />
-    <ClInclude Include="..\TupleStorage\luastorage.h" />
     <ClInclude Include="..\TupleStorage\Settings.h" />
     <ClInclude Include="..\TupleStorage\storage.h" />
   </ItemGroup>
