@@ -9,6 +9,10 @@
 #include <string>
 #include <string_view>
 #include <stdexcept>
+#ifdef WIN32
+#include <cstdarg>
+#endif // WIN32
+
 
 std::string string_format(std::string_view _format, ...)
 {

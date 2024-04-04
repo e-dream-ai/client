@@ -478,7 +478,11 @@ class SmartPtr : public SmartPtrBase
     SmartPtr& operator=(const SmartPtrBase& ptr);
 
     //	Operators.
+    #ifdef MAC
     _LIBCPP_INLINE_VISIBILITY ACCESS operator->();
+    #else
+    ACCESS operator->();
+    #endif
     T& operator*();
 
     //	Casting operator.
@@ -577,12 +581,22 @@ SmartPtr<T, REP, ACCESS>::operator=(const SmartPtrBase& ptr)
 }
 
 //
+#ifdef MAC
 template <class T, class REP, class ACCESS>
 ACCESS _LIBCPP_INLINE_VISIBILITY SmartPtr<T, REP, ACCESS>::operator->()
 {
     ASSERT(!IsNull());
     return (GetRepPtr()->getPointer());
 }
+#else
+template <class T, class REP, class ACCESS>
+ACCESS __attribute__((__always_inline__)) SmartPtr<T, REP, ACCESS>::operator->()
+{
+    ASSERT(!IsNull());
+    return (GetRepPtr()->getRealPointer());
+}
+#endif // MAC
+
 
 //
 template <class T, class REP, class ACCESS>

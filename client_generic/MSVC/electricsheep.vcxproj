@@ -166,8 +166,10 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc /y
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions</EnableEnhancedInstructionSet>
       <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <BuildStlModules>true</BuildStlModules>
     </ClCompile>
     <Link>
       <AdditionalDependencies>avcodec.lib;avutil.lib;avfilter.lib;swscale.lib;avdevice.lib;avformat.lib;user32.lib;shlwapi.lib;wxzlibd.lib;wxpngd.lib;tinyxmld.lib;lua5.1d.lib;d3d9.lib;ws2_32.lib;wldap32.lib;dxguid.lib;psapi.lib;delayimp.lib;libpng16.lib;curlu-d.lib;msvcrtd.lib;libcmtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -295,7 +297,7 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>false</FunctionLevelLinking>
-      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
       <FloatingPointModel>Precise</FloatingPointModel>
       <PrecompiledHeader>
       </PrecompiledHeader>
@@ -303,6 +305,8 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <BuildStlModules>true</BuildStlModules>
     </ClCompile>
     <ResourceCompile>
       <Culture>0x0409</Culture>
@@ -339,7 +343,10 @@ copy .\release\es.scr ..\RuntimeMSVC\esx64.exe /y
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Client\StringFormat.cpp" />
+    <ClCompile Include="..\ContentDecoder\Clip.cpp" />
     <ClCompile Include="..\ContentDownloader\ContentDownloader.cpp" />
+    <ClCompile Include="..\ContentDownloader\Dream.cpp" />
     <ClCompile Include="..\ContentDownloader\SheepDownloader.cpp" />
     <ClCompile Include="..\ContentDownloader\Shepherd.cpp" />
     <ClCompile Include="..\Common\Math\Rect.cpp" />
@@ -354,21 +361,16 @@ copy .\release\es.scr ..\RuntimeMSVC\esx64.exe /y
       <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdcpp20</LanguageStandard>
     </ClCompile>
     <ClCompile Include="..\Client\main.cpp" />
-    <ClCompile Include="BackBufDD.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="DisplayDD.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="..\DisplayOutput\DirectX\DisplayDX.cpp" />
+    <ClCompile Include="..\DisplayOutput\DirectX\FontDX.cpp" />
+    <ClCompile Include="..\DisplayOutput\DirectX\RendererDX.cpp" />
+    <ClCompile Include="..\DisplayOutput\DirectX\ShaderDX.cpp" />
+    <ClCompile Include="..\DisplayOutput\DirectX\TextureFlatDX.cpp" />
+    <ClCompile Include="..\Networking\EDreamClient.cpp" />
+    <ClCompile Include="..\TupleStorage\JSONStorage.cpp" />
     <ClCompile Include="msvc_fix.cpp" />
     <ClCompile Include="..\Client\Player.cpp" />
     <ClCompile Include="..\Client\Voting.cpp" />
-    <ClCompile Include="RendererDD.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="SettingsGUI\config.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -381,10 +383,6 @@ copy .\release\es.scr ..\RuntimeMSVC\esx64.exe /y
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="TextureFlatDD.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="wxApp_main.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -395,77 +393,34 @@ copy .\release\es.scr ..\RuntimeMSVC\esx64.exe /y
     <ClCompile Include="..\DisplayOutput\Image.cpp" />
     <ClCompile Include="..\DisplayOutput\LoadDDS.cpp" />
     <ClCompile Include="..\DisplayOutput\LoadPNG.cpp" />
-    <ClCompile Include="..\DisplayOutput\DirectX\DisplayDX.cpp" />
-    <ClCompile Include="..\DisplayOutput\DirectX\FontDX.cpp" />
-    <ClCompile Include="..\DisplayOutput\DirectX\RendererDX.cpp" />
-    <ClCompile Include="..\DisplayOutput\DirectX\ShaderDX.cpp" />
-    <ClCompile Include="..\DisplayOutput\DirectX\TextureFlatDX.cpp" />
     <ClCompile Include="..\DisplayOutput\Renderer\Font.cpp" />
     <ClCompile Include="..\DisplayOutput\Renderer\Renderer.cpp" />
     <ClCompile Include="..\DisplayOutput\Renderer\Shader.cpp" />
     <ClCompile Include="..\DisplayOutput\Renderer\Texture.cpp" />
     <ClCompile Include="..\DisplayOutput\Renderer\TextureFlat.cpp" />
-    <ClCompile Include="..\DisplayOutput\DirectX\DisplayDX10.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\DisplayOutput\DirectX\FontDX10.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\DisplayOutput\DirectX\RendererDX10.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\DisplayOutput\DirectX\ShaderDX10.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\DisplayOutput\DirectX\TextureFlatDX10.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="..\Networking\Download.cpp" />
     <ClCompile Include="..\Networking\Networking.cpp" />
     <ClCompile Include="..\Networking\Upload.cpp" />
     <ClCompile Include="..\TupleStorage\storage.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Client\DreamPlaylist.h" />
     <ClInclude Include="..\Client\OSD.hpp" />
+    <ClInclude Include="..\Client\StringFormat.h" />
+    <ClInclude Include="..\Common\JSONUtil.h" />
+    <ClInclude Include="..\ContentDecoder\Clip.h" />
     <ClInclude Include="..\ContentDownloader\ContentDownloader.h" />
+    <ClInclude Include="..\ContentDownloader\Dream.h" />
     <ClInclude Include="..\ContentDownloader\SheepDownloader.h" />
     <ClInclude Include="..\ContentDownloader\Shepherd.h" />
-    <ClInclude Include="BackBufDD.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClInclude>
+    <ClInclude Include="..\DisplayOutput\DirectX\DisplayDX.h" />
+    <ClInclude Include="..\DisplayOutput\DirectX\FontDX.h" />
+    <ClInclude Include="..\DisplayOutput\DirectX\RendererDX.h" />
+    <ClInclude Include="..\DisplayOutput\DirectX\ShaderDX.h" />
+    <ClInclude Include="..\DisplayOutput\DirectX\TextureFlatDX.h" />
+    <ClInclude Include="..\Networking\EDreamClient.h" />
+    <ClInclude Include="..\TupleStorage\JSONStorage.h" />
     <ClInclude Include="cpu_usage_win32.h" />
-    <ClInclude Include="DirDrawErrs.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="DisplayDD.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="FontDD.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="RendererDD.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="resource.h" />
     <ClInclude Include="..\Common\Math\fastbez.h" />
     <ClInclude Include="..\Common\Math\Matrix.h" />
@@ -486,8 +441,6 @@ copy .\release\es.scr ..\RuntimeMSVC\esx64.exe /y
     <ClInclude Include="..\Common\Exception.h" />
     <ClInclude Include="..\Common\linkpool.h" />
     <ClInclude Include="..\Common\Log.h" />
-    <ClInclude Include="..\Common\LuaState.h" />
-    <ClInclude Include="..\Common\luaxml.h" />
     <ClInclude Include="..\Common\MathBase.h" />
     <ClInclude Include="..\Common\md5.h" />
     <ClInclude Include="..\Common\MTimer.h" />
@@ -499,9 +452,7 @@ copy .\release\es.scr ..\RuntimeMSVC\esx64.exe /y
     <ClInclude Include="..\Common\WTimer.h" />
     <ClInclude Include="..\Common\XTimer.h" />
     <ClInclude Include="..\ContentDecoder\ContentDecoder.h" />
-    <ClInclude Include="..\ContentDecoder\DirectoryPlaylist.h" />
     <ClInclude Include="..\ContentDecoder\Frame.h" />
-    <ClInclude Include="..\ContentDecoder\graph_playlist.h" />
     <ClInclude Include="..\ContentDecoder\LoopingPlaylist.h" />
     <ClInclude Include="..\ContentDecoder\Playlist.h" />
     <ClInclude Include="..\ContentDecoder\SimplePlaylist.h" />
@@ -522,14 +473,6 @@ copy .\release\es.scr ..\RuntimeMSVC\esx64.exe /y
     <ClInclude Include="..\Client\StartupScreen.h" />
     <ClInclude Include="..\Client\StatsConsole.h" />
     <ClInclude Include="..\Client\Voting.h" />
-    <ClInclude Include="TextureFlatDD.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="WObject.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClInclude>
     <CustomBuildStep Include="SettingsGUI\config.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -550,47 +493,11 @@ copy .\release\es.scr ..\RuntimeMSVC\esx64.exe /y
     </CustomBuildStep>
     <ClInclude Include="..\DisplayOutput\DisplayOutput.h" />
     <ClInclude Include="..\DisplayOutput\Image.h" />
-    <ClInclude Include="DirectX_DLL_functions.h" />
-    <ClInclude Include="..\DisplayOutput\DirectX\DisplayDX.h" />
-    <ClInclude Include="..\DisplayOutput\DirectX\FontDX.h" />
-    <ClInclude Include="..\DisplayOutput\DirectX\RendererDX.h" />
-    <ClInclude Include="..\DisplayOutput\DirectX\ShaderDX.h" />
-    <ClInclude Include="..\DisplayOutput\DirectX\TextureFlatDX.h" />
     <ClInclude Include="..\DisplayOutput\Renderer\Font.h" />
     <ClInclude Include="..\DisplayOutput\Renderer\Renderer.h" />
     <ClInclude Include="..\DisplayOutput\Renderer\Shader.h" />
     <ClInclude Include="..\DisplayOutput\Renderer\Texture.h" />
     <ClInclude Include="..\DisplayOutput\Renderer\TextureFlat.h" />
-    <CustomBuildStep Include="..\DisplayOutput\DirectX\DisplayDX10.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </CustomBuildStep>
-    <CustomBuildStep Include="..\DisplayOutput\DirectX\FontDX10.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </CustomBuildStep>
-    <CustomBuildStep Include="..\DisplayOutput\DirectX\RendererDX10.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </CustomBuildStep>
-    <CustomBuildStep Include="..\DisplayOutput\DirectX\ShaderDX10.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </CustomBuildStep>
-    <CustomBuildStep Include="..\DisplayOutput\DirectX\TextureFlatDX10.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </CustomBuildStep>
     <ClInclude Include="..\Networking\Networking.h" />
     <ClInclude Include="..\TupleStorage\Settings.h" />
     <ClInclude Include="..\TupleStorage\storage.h" />
