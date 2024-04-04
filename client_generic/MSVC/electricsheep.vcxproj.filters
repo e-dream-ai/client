@@ -46,17 +46,8 @@
     <Filter Include="DisplayOutput">
       <UniqueIdentifier>{5eda84c0-acc4-4c73-bf03-416303ebc56a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="DisplayOutput\DirectX9">
-      <UniqueIdentifier>{6d7dfb46-f151-4d2f-95d4-ca8a56c5a53a}</UniqueIdentifier>
-    </Filter>
     <Filter Include="DisplayOutput\Renderer">
       <UniqueIdentifier>{8cc0b87d-45a9-4f88-9375-6132e691a22a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="DisplayOutput\DirectX7">
-      <UniqueIdentifier>{15840962-d6d6-4d0d-bff5-d532373704ee}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="DisplayOutput\DirectX10">
-      <UniqueIdentifier>{a3f74fc0-9096-490e-800a-57cd695420fc}</UniqueIdentifier>
     </Filter>
     <Filter Include="Networking">
       <UniqueIdentifier>{e83ae6a5-d039-44d4-af4c-b18df9a0f110}</UniqueIdentifier>
@@ -66,6 +57,9 @@
     </Filter>
     <Filter Include="Common\Headers">
       <UniqueIdentifier>{c9094536-c2f4-4759-b096-987386c83854}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DisplayOutput\DirectX">
+      <UniqueIdentifier>{e6568873-7a46-4f56-b3c1-c66496a8c7e3}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -138,21 +132,6 @@
     <ClCompile Include="..\DisplayOutput\LoadPNG.cpp">
       <Filter>DisplayOutput</Filter>
     </ClCompile>
-    <ClCompile Include="..\DisplayOutput\DirectX\DisplayDX.cpp">
-      <Filter>DisplayOutput\DirectX9</Filter>
-    </ClCompile>
-    <ClCompile Include="..\DisplayOutput\DirectX\FontDX.cpp">
-      <Filter>DisplayOutput\DirectX9</Filter>
-    </ClCompile>
-    <ClCompile Include="..\DisplayOutput\DirectX\RendererDX.cpp">
-      <Filter>DisplayOutput\DirectX9</Filter>
-    </ClCompile>
-    <ClCompile Include="..\DisplayOutput\DirectX\ShaderDX.cpp">
-      <Filter>DisplayOutput\DirectX9</Filter>
-    </ClCompile>
-    <ClCompile Include="..\DisplayOutput\DirectX\TextureFlatDX.cpp">
-      <Filter>DisplayOutput\DirectX9</Filter>
-    </ClCompile>
     <ClCompile Include="..\DisplayOutput\Renderer\Font.cpp">
       <Filter>DisplayOutput\Renderer</Filter>
     </ClCompile>
@@ -168,21 +147,6 @@
     <ClCompile Include="..\DisplayOutput\Renderer\TextureFlat.cpp">
       <Filter>DisplayOutput\Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="..\DisplayOutput\DirectX\DisplayDX10.cpp">
-      <Filter>DisplayOutput\DirectX10</Filter>
-    </ClCompile>
-    <ClCompile Include="..\DisplayOutput\DirectX\FontDX10.cpp">
-      <Filter>DisplayOutput\DirectX10</Filter>
-    </ClCompile>
-    <ClCompile Include="..\DisplayOutput\DirectX\RendererDX10.cpp">
-      <Filter>DisplayOutput\DirectX10</Filter>
-    </ClCompile>
-    <ClCompile Include="..\DisplayOutput\DirectX\ShaderDX10.cpp">
-      <Filter>DisplayOutput\DirectX10</Filter>
-    </ClCompile>
-    <ClCompile Include="..\DisplayOutput\DirectX\TextureFlatDX10.cpp">
-      <Filter>DisplayOutput\DirectX10</Filter>
-    </ClCompile>
     <ClCompile Include="..\Networking\Download.cpp">
       <Filter>Networking</Filter>
     </ClCompile>
@@ -195,17 +159,35 @@
     <ClCompile Include="..\TupleStorage\storage.cpp">
       <Filter>TupleStorage</Filter>
     </ClCompile>
-    <ClCompile Include="TextureFlatDD.cpp">
-      <Filter>DisplayOutput\DirectX7</Filter>
+    <ClCompile Include="..\TupleStorage\JSONStorage.cpp">
+      <Filter>TupleStorage</Filter>
     </ClCompile>
-    <ClCompile Include="BackBufDD.cpp">
-      <Filter>DisplayOutput\DirectX7</Filter>
+    <ClCompile Include="..\ContentDecoder\Clip.cpp">
+      <Filter>ContentDecoder\Code</Filter>
     </ClCompile>
-    <ClCompile Include="DisplayDD.cpp">
-      <Filter>DisplayOutput\DirectX7</Filter>
+    <ClCompile Include="..\DisplayOutput\DirectX\DisplayDX.cpp">
+      <Filter>DisplayOutput\DirectX</Filter>
     </ClCompile>
-    <ClCompile Include="RendererDD.cpp">
-      <Filter>DisplayOutput\DirectX7</Filter>
+    <ClCompile Include="..\DisplayOutput\DirectX\FontDX.cpp">
+      <Filter>DisplayOutput\DirectX</Filter>
+    </ClCompile>
+    <ClCompile Include="..\DisplayOutput\DirectX\RendererDX.cpp">
+      <Filter>DisplayOutput\DirectX</Filter>
+    </ClCompile>
+    <ClCompile Include="..\DisplayOutput\DirectX\ShaderDX.cpp">
+      <Filter>DisplayOutput\DirectX</Filter>
+    </ClCompile>
+    <ClCompile Include="..\DisplayOutput\DirectX\TextureFlatDX.cpp">
+      <Filter>DisplayOutput\DirectX</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ContentDownloader\Dream.cpp">
+      <Filter>ContentDownloader\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Networking\EDreamClient.cpp">
+      <Filter>Networking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Client\StringFormat.cpp">
+      <Filter>Common\Code</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -278,12 +260,6 @@
     <ClInclude Include="..\Common\Log.h">
       <Filter>Common\Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\LuaState.h">
-      <Filter>Common\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\luaxml.h">
-      <Filter>Common\Headers</Filter>
-    </ClInclude>
     <ClInclude Include="..\Common\MathBase.h">
       <Filter>Common\Headers</Filter>
     </ClInclude>
@@ -317,13 +293,7 @@
     <ClInclude Include="..\ContentDecoder\ContentDecoder.h">
       <Filter>ContentDecoder\Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\ContentDecoder\DirectoryPlaylist.h">
-      <Filter>ContentDecoder\Headers</Filter>
-    </ClInclude>
     <ClInclude Include="..\ContentDecoder\Frame.h">
-      <Filter>ContentDecoder\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ContentDecoder\graph_playlist.h">
       <Filter>ContentDecoder\Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\ContentDecoder\LoopingPlaylist.h">
@@ -392,24 +362,6 @@
     <ClInclude Include="..\DisplayOutput\Image.h">
       <Filter>DisplayOutput</Filter>
     </ClInclude>
-    <ClInclude Include="DirectX_DLL_functions.h">
-      <Filter>DisplayOutput\DirectX9</Filter>
-    </ClInclude>
-    <ClInclude Include="..\DisplayOutput\DirectX\DisplayDX.h">
-      <Filter>DisplayOutput\DirectX9</Filter>
-    </ClInclude>
-    <ClInclude Include="..\DisplayOutput\DirectX\FontDX.h">
-      <Filter>DisplayOutput\DirectX9</Filter>
-    </ClInclude>
-    <ClInclude Include="..\DisplayOutput\DirectX\RendererDX.h">
-      <Filter>DisplayOutput\DirectX9</Filter>
-    </ClInclude>
-    <ClInclude Include="..\DisplayOutput\DirectX\ShaderDX.h">
-      <Filter>DisplayOutput\DirectX9</Filter>
-    </ClInclude>
-    <ClInclude Include="..\DisplayOutput\DirectX\TextureFlatDX.h">
-      <Filter>DisplayOutput\DirectX9</Filter>
-    </ClInclude>
     <ClInclude Include="..\DisplayOutput\Renderer\Font.h">
       <Filter>DisplayOutput\Renderer</Filter>
     </ClInclude>
@@ -437,29 +389,44 @@
     <ClInclude Include="cpu_usage_win32.h">
       <Filter>Client\Headers</Filter>
     </ClInclude>
-    <ClInclude Include="TextureFlatDD.h">
-      <Filter>DisplayOutput\DirectX7</Filter>
-    </ClInclude>
-    <ClInclude Include="WObject.h">
-      <Filter>DisplayOutput\DirectX7</Filter>
-    </ClInclude>
-    <ClInclude Include="BackBufDD.h">
-      <Filter>DisplayOutput\DirectX7</Filter>
-    </ClInclude>
-    <ClInclude Include="DirDrawErrs.h">
-      <Filter>DisplayOutput\DirectX7</Filter>
-    </ClInclude>
-    <ClInclude Include="DisplayDD.h">
-      <Filter>DisplayOutput\DirectX7</Filter>
-    </ClInclude>
-    <ClInclude Include="FontDD.h">
-      <Filter>DisplayOutput\DirectX7</Filter>
-    </ClInclude>
-    <ClInclude Include="RendererDD.h">
-      <Filter>DisplayOutput\DirectX7</Filter>
-    </ClInclude>
     <ClInclude Include="..\Client\OSD.hpp">
       <Filter>Client\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\TupleStorage\JSONStorage.h">
+      <Filter>TupleStorage</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ContentDecoder\Clip.h">
+      <Filter>ContentDecoder\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\DisplayOutput\DirectX\DisplayDX.h">
+      <Filter>DisplayOutput\DirectX</Filter>
+    </ClInclude>
+    <ClInclude Include="..\DisplayOutput\DirectX\FontDX.h">
+      <Filter>DisplayOutput\DirectX</Filter>
+    </ClInclude>
+    <ClInclude Include="..\DisplayOutput\DirectX\RendererDX.h">
+      <Filter>DisplayOutput\DirectX</Filter>
+    </ClInclude>
+    <ClInclude Include="..\DisplayOutput\DirectX\ShaderDX.h">
+      <Filter>DisplayOutput\DirectX</Filter>
+    </ClInclude>
+    <ClInclude Include="..\DisplayOutput\DirectX\TextureFlatDX.h">
+      <Filter>DisplayOutput\DirectX</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ContentDownloader\Dream.h">
+      <Filter>ContentDownloader\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Client\DreamPlaylist.h">
+      <Filter>Client\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Networking\EDreamClient.h">
+      <Filter>Networking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\JSONUtil.h">
+      <Filter>Common\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Client\StringFormat.h">
+      <Filter>Common\Headers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -484,21 +451,6 @@
     </CustomBuildStep>
     <CustomBuildStep Include="wxApp_main.h">
       <Filter>Client\SettingsGUI</Filter>
-    </CustomBuildStep>
-    <CustomBuildStep Include="..\DisplayOutput\DirectX\DisplayDX10.h">
-      <Filter>DisplayOutput\DirectX10</Filter>
-    </CustomBuildStep>
-    <CustomBuildStep Include="..\DisplayOutput\DirectX\FontDX10.h">
-      <Filter>DisplayOutput\DirectX10</Filter>
-    </CustomBuildStep>
-    <CustomBuildStep Include="..\DisplayOutput\DirectX\RendererDX10.h">
-      <Filter>DisplayOutput\DirectX10</Filter>
-    </CustomBuildStep>
-    <CustomBuildStep Include="..\DisplayOutput\DirectX\ShaderDX10.h">
-      <Filter>DisplayOutput\DirectX10</Filter>
-    </CustomBuildStep>
-    <CustomBuildStep Include="..\DisplayOutput\DirectX\TextureFlatDX10.h">
-      <Filter>DisplayOutput\DirectX10</Filter>
     </CustomBuildStep>
   </ItemGroup>
 </Project>

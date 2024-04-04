@@ -154,6 +154,7 @@ extern os_log_t g_SignpostHandle;
 #endif
 
 #ifdef __cplusplus
+/* TODO: verify if this is needed under macOS
 extern "C++"
 {
     template <size_t S> struct _ENUM_FLAG_INTEGER_FOR_SIZE;
@@ -179,7 +180,7 @@ extern "C++"
     {
         typedef typename _ENUM_FLAG_INTEGER_FOR_SIZE<sizeof(T)>::type type;
     };
-}
+}*/
 
 #define DEFINE_ENUM_FLAG_OPERATORS(ENUMTYPE)                                   \
     extern "C++"                                                               \

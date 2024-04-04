@@ -150,6 +150,7 @@ class CSettings : public Base::CSingleton<CSettings>
         return ret;
     }
 
+#ifdef MAC
     std::string Get(std::string_view _url,
                     const std::string_view _default = nullptr)
     {
@@ -162,6 +163,21 @@ class CSettings : public Base::CSingleton<CSettings>
         }
         return ret;
     }
+#else
+    std::string Get(std::string_view _url, const std::string_view _default = {})
+    {
+        std::string ret;
+        if (m_pStorage && !m_pStorage->Get(_url, ret))
+        {
+            m_pStorage->Set(_url, _default);
+            m_pStorage->Commit();
+            return std::string(_default);
+        }
+        return ret;
+    }
+#endif 
+
+
 
     std::vector<std::string> Get(std::string_view _url,
                                  const std::vector<std::string> _default = {})
@@ -197,8 +213,13 @@ class CSettings : public Base::CSingleton<CSettings>
         Helper for less typing...
 
 */
+#ifdef MAC
 __attribute__((no_instrument_function))
 _LIBCPP_INLINE_VISIBILITY inline tpCSettings
+#else
+__attribute__((no_instrument_function)) // ?
+__attribute__((always_inline)) inline tpCSettings
+#endif
 g_Settings(void)
 {
     return (CSettings::Instance());

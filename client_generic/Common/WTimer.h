@@ -4,7 +4,7 @@
 #ifdef _TIMER_H_
 #error "WTimer.h included not from Timer.h"
 #endif
-
+#include <cstdint>
 #include <Windows.h>
 
 namespace Base
@@ -15,8 +15,8 @@ namespace Base
 */
 class CWTimer : public ITimer
 {
-    double m_Time;          //	Current time in seconds.
-    int64_t m_TimeCounter;  //	Raw 64bit timer counter for time.
+    static double m_Time;          //	Current time in seconds.
+    static int64_t m_TimeCounter;  //	Raw 64bit timer counter for time.
     int64_t m_DeltaCounter; //	Raw 64bit timer counter for delta.
     int64_t m_Frequency;    //	Raw 64bit timer frequency.
 
@@ -33,8 +33,8 @@ class CWTimer : public ITimer
         m_DeltaCounter = m_TimeCounter;
         m_Time = 0;
     }
-
-    double Time()
+    // TODO: somewhere this got changed to const, make sure this still works under Windows
+    double Time() const
     {
         int64_t counter;
         QueryPerformanceCounter((LARGE_INTEGER*)&counter);

@@ -7,6 +7,10 @@
 
 #include "Vector3_X86.h"
 
+#ifdef WIN32
+#include "MathBase.h"
+#endif
+
 namespace Base
 {
 
