@@ -4,13 +4,16 @@
 
 #import <Cocoa/Cocoa.h>
 
-// MacOS Platform helpers that run at startup to handle apps launched after being
-// unzipped in Downloads folder
+// MacOS Platform helpers that run at Client App startup to handle :
+// - apps launched after being unzipped in Downloads folder
+// - ScreenSaver installation
 void EnsureNotInDownloadFolder();
 NSString *ShellQuotedString(NSString *string);
 void Relaunch(NSString *destinationPath);
 
-/// MARK: - MacOS app client entry point
+void InstallScreenSaver();
+
+// MARK: - MacOS app client entry point
 int main(int argc, char* argv[])
 {
     // Ensure we are not launching from App folder, if so move to /Applications and relaunch
@@ -19,7 +22,7 @@ int main(int argc, char* argv[])
     return NSApplicationMain(argc, (const char**)argv);
 }
 
-// Helpers
+// MARK: - Not in download folder Helpers
 void EnsureNotInDownloadFolder() {
     // Get current launch URL
     NSString *currentPath = [[NSBundle mainBundle] bundlePath];
@@ -84,4 +87,9 @@ void Relaunch(NSString *destinationPath) {
     NSString *script = [NSString stringWithFormat:@"(while /bin/kill -0 %d >&/dev/null; do /bin/sleep 0.1; done; %@; /usr/bin/open %@) &", pid, preOpenCmd, quotedDestinationPath];
 
     [NSTask launchedTaskWithLaunchPath:@"/bin/sh" arguments:[NSArray arrayWithObjects:@"-c", script, nil]];
+}
+
+// MARK: - ScreenSaver installer helpers
+void InstallScreenSaver() {
+    
 }
