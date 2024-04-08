@@ -328,7 +328,9 @@ class CElectricSheep
             std::dynamic_pointer_cast<Hud::CStatsConsole>(
                 m_HudManager->Get("dreamcredits"));
         m_HudManager->Hide("dreamcredits");
-        spStats->Add(new Hud::CStringStat("credits", "", "Title - Artist"));
+        spStats->Add(new Hud::CStringStat("credits-line1", "", "1"));
+        spStats->Add(new Hud::CStringStat("credits-line2", "", "2"));
+        spStats->Add(new Hud::CStringStat("credits-line3", "", "3"));
     }
     
     void AddOSDHud()
@@ -1003,22 +1005,19 @@ class CElectricSheep
                 if (clipMetadata)
                 {
                     if (g_Player().m_spPlaylist->playlistId > 0) {
-                        ((Hud::CStringStat*)spStats->Get("credits"))
-                            ->SetSample(
-                                string_format("%s by %s (from %s)",
-                                              clipMetadata->dreamData.name.data(),
-                                              clipMetadata->dreamData.author.data(),
-                                              g_Player().m_spPlaylist->playlistName.data())
-                                    .data());
-
+                        ((Hud::CStringStat*)spStats->Get("credits-line1"))
+                        ->SetSample(clipMetadata->dreamData.name);
+                        ((Hud::CStringStat*)spStats->Get("credits-line2"))
+                        ->SetSample(clipMetadata->dreamData.author);
+                        ((Hud::CStringStat*)spStats->Get("credits-line3"))
+                        ->SetSample(g_Player().m_spPlaylist->playlistName);
                     } else {
-                        ((Hud::CStringStat*)spStats->Get("credits"))
-                            ->SetSample(
-                                string_format("%s by %s",
-                                              clipMetadata->dreamData.name.data(),
-                                              clipMetadata->dreamData.author.data())
-                                    .data());
-
+                        ((Hud::CStringStat*)spStats->Get("credits-line1"))
+                        ->SetSample("");
+                        ((Hud::CStringStat*)spStats->Get("credits-line2"))
+                        ->SetSample(clipMetadata->dreamData.name);
+                        ((Hud::CStringStat*)spStats->Get("credits-line3"))
+                        ->SetSample(clipMetadata->dreamData.author);
                     }
                 }
                 
