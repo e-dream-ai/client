@@ -590,10 +590,10 @@ ACCESS _LIBCPP_INLINE_VISIBILITY SmartPtr<T, REP, ACCESS>::operator->()
 }
 #else
 template <class T, class REP, class ACCESS>
-ACCESS __attribute__((__always_inline__)) SmartPtr<T, REP, ACCESS>::operator->()
+ACCESS SmartPtr<T, REP, ACCESS>::operator->()
 {
     ASSERT(!IsNull());
-    return (GetRepPtr()->getRealPointer());
+    return (GetRepPtr()->getPointer());
 }
 #endif // MAC
 

@@ -17,6 +17,7 @@
 #include <os/signpost.h>
 #endif
 
+
 #define DISPATCH_ONCE(flag, lambda)                                            \
     do                                                                         \
     {                                                                          \
@@ -152,9 +153,9 @@ extern os_log_t g_SignpostHandle;
 #else
 #define ASSERT(b) (b)
 #endif
-
+/*
 #ifdef __cplusplus
-/* TODO: verify if this is needed under macOS
+
 extern "C++"
 {
     template <size_t S> struct _ENUM_FLAG_INTEGER_FOR_SIZE;
@@ -180,7 +181,7 @@ extern "C++"
     {
         typedef typename _ENUM_FLAG_INTEGER_FOR_SIZE<sizeof(T)>::type type;
     };
-}*/
+}
 
 #define DEFINE_ENUM_FLAG_OPERATORS(ENUMTYPE)                                   \
     extern "C++"                                                               \
@@ -225,6 +226,6 @@ extern "C++"
     }
 #else
 #define DEFINE_ENUM_FLAG_OPERATORS(ENUMTYPE) // NOP, C allows these operators.
-#endif
+#endif*/
 
 #endif /*_BASE_H_*/

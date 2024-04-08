@@ -2,19 +2,11 @@
 #include <inttypes.h>
 
 #ifdef MAC
+
+#ifdef MAC
 #include <os/signpost.h>
-#endif
+#endif 
 
-#ifdef WIN32
-#include <io.h> // Import read/write in msvc
-#endif;
-
-#if defined(_MSC_VER)
-#include <BaseTsd.h>
-typedef SSIZE_T ssize_t;
-#endif
-
-#include <stdio.h>
 #include <sstream>
 #include <cstdarg>
 #include <string>
@@ -76,7 +68,7 @@ bool CLog::Shutdown(void)
 
 void CLog::PipeReaderThread()
 {
-
+#ifdef MAC
     PlatformUtils::SetThreadName("Log");
     while (1)
     {
@@ -95,31 +87,15 @@ void CLog::PipeReaderThread()
             break;
         }
     }
-
+#endif
 }
 
-void CLog::Attach(const std::string& _location, bool multipleInstance)
+void CLog::Attach(const std::string& _location, const uint32_t /*_level*/)
 {
-    // Add console sink
-    boost::shared_ptr<boost::log::sinks::text_ostream_backend> console_backend =
-        boost::make_shared<boost::log::sinks::text_ostream_backend>();
-    console_backend->add_stream(
-        boost::shared_ptr<std::ostream>(&std::cout, boost::null_deleter()));
+    #ifdef MAC
+    if (m_bActive)
+        return;
 
-    m_ConsoleSink = boost::make_shared<
-        boost::log::sinks::synchronous_sink<boost::log::sinks::text_ostream_backend>>(
-        console_backend);
-
-    m_ConsoleSink->set_formatter(
-        boost::log::expressions::stream
-        << "[" << boost::log::expressions::attr<boost::posix_time::ptime>("TimeStamp")
-        << " - " << boost::log::trivial::severity
-        << "]: " << boost::log::expressions::smessage);
-
-    boost::log::core::get()->add_sink(m_ConsoleSink);
-
-    
-    // Create filename with timestamp
     time_t curTime;
     time(&curTime);
 
@@ -207,35 +183,30 @@ void CLog::Attach(const std::string& _location, bool multipleInstance)
 //    m_pPipeReaderThread =
 //        new std::thread(std::bind(&CLog::PipeReaderThread, this));
     m_bActive = true;
-
+#endif
 }
 
 /*
  */
 void CLog::Detach(void)
 {
-    if (m_ConsoleSink)
+    #ifdef MAC
+    fflush(stdout);
+    m_bActive = false;
+    if (m_PipeReader)
+        close(m_PipeReader);
+    m_PipeReader = 0;
+    m_pPipeReaderThread->join();
+    m_pPipeReaderThread = nullptr;
+    fflush(m_pFile);
+    if (m_pFile)
+        fclose(m_pFile);
+    if (dup2(m_OriginalSTDOUT, fileno(stdout)) == -1)
     {
-        boost::log::core::get()->remove_sink(m_ConsoleSink);
-        m_ConsoleSink.reset();
+        perror("dup2 failed");
+        exit(EXIT_FAILURE);
     }
-
-    //fflush(stdout);
-    //m_bActive = false;
-    //if (m_PipeReader)
-    //    close(m_PipeReader);
-    //m_PipeReader = 0;
-    //m_pPipeReaderThread->join();
-    //m_pPipeReaderThread = nullptr;
-    //fflush(m_pFile);
-    //if (m_pFile)
-    //    fclose(m_pFile);
-    //if (dup2(m_OriginalSTDOUT, fileno(stdout)) == -1)
-    //{
-    //    perror("dup2 failed");
-    //    exit(EXIT_FAILURE);
-    //}
-
+    #endif
 }
 
 /*
@@ -245,16 +216,16 @@ void CLog::Detach(void)
 void CLog::SetInfo(const char* _pFileStr, const uint32_t _line,
                    const char* _pFunc)
 {
-
+    #ifdef MAC
     // std::scoped_lock locker( m_Lock );
 
     //std::string tmp = _pFileStr;
     //size_t offs = tmp.find_last_of("/\\", tmp.size());
 
-    //m_File = tmp.substr(offs + 1, tmp.size());
-    //m_Function = std::string(_pFunc);
-    //m_Line = _line;
-
+    m_File = tmp.substr(offs + 1, tmp.size());
+    m_Function = std::string(_pFunc);
+    m_Line = _line;
+    #endif
 }
 
 /*
@@ -269,7 +240,7 @@ void CLog::Log(
     /*const char *_file, const uint32_t _line, const char *_pFunc,*/ const char*
         _pStr)
 {
-
+    #ifdef MAC
     if (!m_bSingletonActive)
         return;
     //    std::scoped_lock locker(m_Lock);
@@ -334,12 +305,12 @@ void CLog::Log(
     //        printf("[%s-%s]: '%s'\n", s_MessageType, timeStamp, s_MessageSpam);
     //    }
 
-    //    s_MessageSpamCount = 0;
-    //    memcpy(s_MessageSpam, _pStr, m_MaxMessageLength);
-    //    strcpy(s_MessageType, _pType);
-    //}
-    ///* log spam end */
-
+        s_MessageSpamCount = 0;
+        memcpy(s_MessageSpam, _pStr, m_MaxMessageLength);
+        strcpy(s_MessageType, _pType);
+    }
+    /* log spam end */
+    #endif
 }
 
 #define grabvarargs                                                            \
@@ -379,6 +350,7 @@ void CLog::Fatal(std::string_view _pFmt, ...)
 
 }; // namespace Base
 
+#ifdef MAC
 #ifdef MAC
 os_log_t g_SignpostHandle = os_log_create("com.spotworks.e-dream.app",
                                           OS_LOG_CATEGORY_POINTS_OF_INTEREST);
