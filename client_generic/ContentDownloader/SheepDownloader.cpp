@@ -597,7 +597,11 @@ void SheepDownloader::deleteSheep(sDreamMetadata* sheep)
         Shepherd::subClientFlockBytes(sheep->fileSize, 0);
         Shepherd::subClientFlockCount(0);
     }
+    #ifdef WIN32
+    sheep->flags = DREAM_FLAG_DELETED;
+    #else 
     sheep->flags |= DREAM_FLAG_DELETED;
+    #endif
 
     //	Create the filename with an xxx extension.
     size_t len = sheep->fileName.length();

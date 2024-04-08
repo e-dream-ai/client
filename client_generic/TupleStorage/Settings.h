@@ -216,13 +216,14 @@ class CSettings : public Base::CSingleton<CSettings>
 #ifdef MAC
 __attribute__((no_instrument_function))
 _LIBCPP_INLINE_VISIBILITY inline tpCSettings
+
 #else
 __attribute__((no_instrument_function)) // ?
-__attribute__((always_inline)) inline tpCSettings
-#endif
+__attribute__((__exclude_from_explicit_instantiation__)) inline tpCSettings
 g_Settings(void)
 {
     return (CSettings::Instance());
 }
+#endif 
 
 #endif

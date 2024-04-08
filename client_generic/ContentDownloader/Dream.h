@@ -38,7 +38,10 @@ enum eDreamFlags : uint8_t
     DREAM_FLAG_DOWNLOADED = 1,
     DREAM_FLAG_DELETED = 2
 };
+// TODO: theres an issue between our declaration of DEFINE_ENUM_FLAG_OPERATORS and the one in winnt.h with clang on windows
+#if MAC
 DEFINE_ENUM_FLAG_OPERATORS(eDreamFlags);
+#endif
 
 struct sDreamMetadata
 {
