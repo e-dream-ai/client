@@ -231,6 +231,7 @@
 		46ED5CB42AF5326A00AF8F45 /* DisplayMetal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 46ED5CB02AF5326A00AF8F45 /* DisplayMetal.cpp */; };
 		46FA9E1A2B03CB0500708000 /* ShaderMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 46FA9E192B03CB0500708000 /* ShaderMetal.mm */; };
 		46FA9E1B2B03CB0B00708000 /* ShaderMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 46FA9E192B03CB0500708000 /* ShaderMetal.mm */; };
+		F03151722BC824C4006C8C0E /* InstallerHelper.m in Sources */ = {isa = PBXBuildFile; fileRef = F03151712BC824C4006C8C0E /* InstallerHelper.m */; };
 		F05994582BA0912300B018C7 /* osd-pill-r.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994532BA0912200B018C7 /* osd-pill-r.png */; };
 		F05994592BA0912300B018C7 /* osd-pill-r.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994532BA0912200B018C7 /* osd-pill-r.png */; };
 		F059945A2BA0912300B018C7 /* osd-pill-u.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994542BA0912200B018C7 /* osd-pill-u.png */; };
@@ -259,6 +260,7 @@
 		F059947A2BA0A07300B018C7 /* osd-back.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994692BA0A07300B018C7 /* osd-back.png */; };
 		F059947B2BA0A07300B018C7 /* osd-bg-sq.png in Resources */ = {isa = PBXBuildFile; fileRef = F059946A2BA0A07300B018C7 /* osd-bg-sq.png */; };
 		F059947C2BA0A07300B018C7 /* osd-bg-sq.png in Resources */ = {isa = PBXBuildFile; fileRef = F059946A2BA0A07300B018C7 /* osd-bg-sq.png */; };
+		F0BF02822BC81F2B005FA0FC /* e-dream.saver.zip in Resources */ = {isa = PBXBuildFile; fileRef = F0BF02812BC81F2B005FA0FC /* e-dream.saver.zip */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -550,6 +552,8 @@
 		46ED5CB02AF5326A00AF8F45 /* DisplayMetal.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = DisplayMetal.cpp; path = ../../DisplayOutput/Metal/DisplayMetal.cpp; sourceTree = "<group>"; };
 		46FA9E182B03CB0500708000 /* ShaderMetal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShaderMetal.h; sourceTree = "<group>"; };
 		46FA9E192B03CB0500708000 /* ShaderMetal.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ShaderMetal.mm; sourceTree = "<group>"; };
+		F03151702BC824C4006C8C0E /* InstallerHelper.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = InstallerHelper.h; sourceTree = "<group>"; };
+		F03151712BC824C4006C8C0E /* InstallerHelper.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = InstallerHelper.m; sourceTree = "<group>"; };
 		F03F92D62BBDCC84009F8F91 /* base.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = base.h; path = ../Common/base.h; sourceTree = "<group>"; };
 		F05994532BA0912200B018C7 /* osd-pill-r.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-pill-r.png"; sourceTree = "<group>"; };
 		F05994542BA0912200B018C7 /* osd-pill-u.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-pill-u.png"; sourceTree = "<group>"; };
@@ -565,6 +569,7 @@
 		F05994682BA0A07300B018C7 /* osd-pause.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-pause.png"; sourceTree = "<group>"; };
 		F05994692BA0A07300B018C7 /* osd-back.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-back.png"; sourceTree = "<group>"; };
 		F059946A2BA0A07300B018C7 /* osd-bg-sq.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-bg-sq.png"; sourceTree = "<group>"; };
+		F0BF02812BC81F2B005FA0FC /* e-dream.saver.zip */ = {isa = PBXFileReference; lastKnownFileType = archive.zip; path = "e-dream.saver.zip"; sourceTree = "<group>"; };
 		F0CCD23D2B98CF530070314F /* OSD.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = OSD.hpp; sourceTree = "<group>"; };
 		F0CCD2532B9A59320070314F /* e-dream AppRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "e-dream AppRelease.entitlements"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -658,6 +663,7 @@
 		08FB7794FE84155DC02AAC07 /* ElectricSheep */ = {
 			isa = PBXGroup;
 			children = (
+				F0BF02802BC81F0D005FA0FC /* ScreenSaver */,
 				F0CCD2532B9A59320070314F /* e-dream AppRelease.entitlements */,
 				2160FE160F30F82800B2C27A /* Runtime */,
 				08FB7795FE84155DC02AAC07 /* Source */,
@@ -814,6 +820,8 @@
 			children = (
 				21EE633410139BCC000CE53E /* main.m */,
 				212B195F0E8E5CCE00CE185C /* main.cpp */,
+				F03151702BC824C4006C8C0E /* InstallerHelper.h */,
+				F03151712BC824C4006C8C0E /* InstallerHelper.m */,
 				21C5D0930F9CF6D9001657E7 /* md5.c */,
 				21C5D0920F9CF6D9001657E7 /* md5.h */,
 				21AAA0EE0F70453200AC23A8 /* ESConfiguration.mm */,
@@ -1033,6 +1041,14 @@
 			path = ../../DisplayOutput/Metal/TextRendering;
 			sourceTree = "<group>";
 		};
+		F0BF02802BC81F0D005FA0FC /* ScreenSaver */ = {
+			isa = PBXGroup;
+			children = (
+				F0BF02812BC81F2B005FA0FC /* e-dream.saver.zip */,
+			);
+			path = ScreenSaver;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -1181,6 +1197,7 @@
 				21ADBB251305D380000A9F20 /* red.tif in Resources */,
 				1243576D2B31FC1B00CCD62A /* BuildData.json in Resources */,
 				F05994702BA0A07300B018C7 /* osd-play.png in Resources */,
+				F0BF02822BC81F2B005FA0FC /* e-dream.saver.zip in Resources */,
 				21ADBB261305D380000A9F20 /* yellow.tif in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1265,6 +1282,7 @@
 				2160FADB0F30F45100B2C27A /* Hud.cpp in Sources */,
 				1220B53A2B3DC64D00D68410 /* StringFormat.cpp in Sources */,
 				2160FADC0F30F45100B2C27A /* Rect.cpp in Sources */,
+				F03151722BC824C4006C8C0E /* InstallerHelper.m in Sources */,
 				467230BA2AC17E4600017C51 /* ESMetalView.m in Sources */,
 				2160FADE0F30F45100B2C27A /* Download.cpp in Sources */,
 				2160FADF0F30F45100B2C27A /* Networking.cpp in Sources */,
