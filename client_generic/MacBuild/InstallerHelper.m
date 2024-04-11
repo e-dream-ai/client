@@ -7,7 +7,6 @@
 
 #import "InstallerHelper.h"
 #import <Cocoa/Cocoa.h>
-#import <ZipArchive.h>
 
 NSString *ShellQuotedString(NSString *string) {
     return [NSString stringWithFormat:@"'%@'", [string stringByReplacingOccurrencesOfString:@"'" withString:@"'\\''"]];
@@ -86,13 +85,13 @@ NSString *ShellQuotedString(NSString *string) {
     NSString* saverAllUsersPath = [self saverAllUsersPath];
     NSError *error;
     
-    // First make sure it's not installed for a single user
-    if ([[NSFileManager defaultManager] fileExistsAtPath:saverUserPath]) {
+    // First make sure it's not installed for all users
+    if ([[NSFileManager defaultManager] fileExistsAtPath:saverAllUsersPath]) {
         NSLog(@"Removing installed saver");
-        if (![[NSFileManager defaultManager] removeItemAtPath:saverUserPath error:&error]) {
+        if (![[NSFileManager defaultManager] removeItemAtPath:saverAllUsersPath error:&error]) {
             NSLog(@"Could not delete old saver");
         } else {
-            NSLog(@"Saver removed from user folder");
+            NSLog(@"Saver removed from all users folder");
         }
     }
     
@@ -105,10 +104,10 @@ NSString *ShellQuotedString(NSString *string) {
     NSString *bundleVersion = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleVersion"];
     NSLog(@"Bundle Version: %@", bundleVersion);
 
-    // Now we check if the saver is installed for all users
-    if ([[NSFileManager defaultManager] fileExistsAtPath:saverAllUsersPath]) {
+    // Now we check if the saver is installed for current users
+    if ([[NSFileManager defaultManager] fileExistsAtPath:saverUserPath]) {
         // Ok, now compare the version to this bundles version
-        NSDictionary *infoDictionary = [[NSFileManager defaultManager] attributesOfItemAtPath:saverAllUsersPath error:nil];
+        NSDictionary *infoDictionary = [[NSFileManager defaultManager] attributesOfItemAtPath:saverUserPath error:nil];
         NSString *installedVersion = [infoDictionary objectForKey:@"NSFileVersionNumber"];
         NSLog(@"Installed Version: %@", installedVersion);
        
@@ -118,12 +117,12 @@ NSString *ShellQuotedString(NSString *string) {
             shouldInstall = false;
         } else {
             // Delete the old version
-            if (![[NSFileManager defaultManager] removeItemAtPath:saverAllUsersPath error:&error]) {
+            if (![[NSFileManager defaultManager] removeItemAtPath:saverUserPath error:&error]) {
                 NSLog(@"Could not delete old saver");
                 //@TODO report in bugsnag
                 return;
             } else {
-                NSLog(@"Old saver removed from all user folder");
+                NSLog(@"Old saver removed from user folder");
             }
         }
     }
@@ -131,25 +130,6 @@ NSString *ShellQuotedString(NSString *string) {
     if (shouldInstall) {
         NSLog(@"Installing saver");
         
-        // Make sure we have a tmp path in Application Support
-        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES);
-        NSString *applicationSupportDirectory = [[paths firstObject] stringByAppendingPathComponent:@"e-dream"];
-        NSLog(@"applicationSupportDirectory: '%@'", applicationSupportDirectory);
-        
-        if (![[NSFileManager defaultManager] fileExistsAtPath:applicationSupportDirectory]) {
-            if (![[NSFileManager defaultManager] createDirectoryAtPath:applicationSupportDirectory
-              withIntermediateDirectories:true
-                               attributes:nil
-                                    error:&error]) {
-                NSLog(@"Couldn't create e-dream folder in app support, aborting");
-                //@TODO report in bugsnag
-                return;
-            } else {
-                NSLog(@"Application folder created");
-            }
-        } else {
-            NSLog(@"Application folder already exists");
-        }
         
         NSString* localZip = [[NSBundle mainBundle] pathForResource:@"e-dream.saver" ofType:@".zip"];
         if (localZip == nil) {
@@ -158,14 +138,12 @@ NSString *ShellQuotedString(NSString *string) {
             return;
         }
         NSLog(@"Local zip : %@", localZip);
-        if (![[NSFileManager defaultManager] copyItemAtPath:localZip toPath:[applicationSupportDirectory stringByAppendingPathComponent:@"e-dream.saver.zip"] error:&error]) {
-            NSLog(@"Could not copy zip to app support");
-            //@TODO report in bugsnag
-            return;
-        }
+
+        // Unzip file
+        NSString *myCommandString =
+        [NSString stringWithFormat:@"unzip -u -d '%@' '%@'", saverUserPath, localZip];
+        system([myCommandString UTF8String]);
     }
-    
-    [SSZipArchive unzipFileAtPath:localZip toDestination:saverAllUsersPath];
     
     return;
 }

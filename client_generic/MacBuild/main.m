@@ -8,11 +8,13 @@
 // MARK: - MacOS app client entry point
 int main(int argc, char* argv[])
 {
+#ifndef DEBUG
     // Ensure we are not launching from App folder, if so move to /Applications and relaunch
     [InstallerHelper ensureNotInDownloadFolder];
     
     // Then install the screensaver if needed and cleanup any manual install
     [InstallerHelper installScreenSaver];
+#endif
     
     // After that, launch the app
     return NSApplicationMain(argc, (const char**)argv);
