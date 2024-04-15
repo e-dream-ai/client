@@ -1006,18 +1006,18 @@ class CElectricSheep
                 {
                     if (g_Player().m_spPlaylist->playlistId > 0) {
                         ((Hud::CStringStat*)spStats->Get("credits-line1"))
-                        ->SetSample(clipMetadata->dreamData.name);
+                        ->SetSample(string_format("title: %s",clipMetadata->dreamData.name.c_str()));
                         ((Hud::CStringStat*)spStats->Get("credits-line2"))
-                        ->SetSample(clipMetadata->dreamData.author);
+                        ->SetSample(string_format("artist: %s",clipMetadata->dreamData.author.c_str()));
                         ((Hud::CStringStat*)spStats->Get("credits-line3"))
-                        ->SetSample(g_Player().m_spPlaylist->playlistName);
+                        ->SetSample(string_format("playlist: %s",g_Player().m_spPlaylist->playlistName.c_str()));
                     } else {
                         ((Hud::CStringStat*)spStats->Get("credits-line1"))
                         ->SetSample("");
                         ((Hud::CStringStat*)spStats->Get("credits-line2"))
-                        ->SetSample(clipMetadata->dreamData.name);
+                        ->SetSample(string_format("title: %s",clipMetadata->dreamData.name.c_str()));
                         ((Hud::CStringStat*)spStats->Get("credits-line3"))
-                        ->SetSample(clipMetadata->dreamData.author);
+                        ->SetSample(string_format("artist: %s",clipMetadata->dreamData.author.c_str()));
                     }
                 }
                 
