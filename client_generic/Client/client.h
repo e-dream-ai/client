@@ -116,10 +116,6 @@ class CElectricSheep
     //	Default application working directory.
     std::string m_WorkingDir;
 
-    //	Splash images.
-    Hud::spCSplash m_spSplashPos;
-    Hud::spCSplash m_spSplashNeg;
-
     // Our OSD
     Hud::spCOSD m_spOSD;
 
@@ -344,14 +340,6 @@ class CElectricSheep
 #else
         std::string defaultDir = std::string("");
 #endif
-        //    Vote splash.
-        m_spSplashPos = std::make_shared<Hud::CSplash>(
-            0.2f, g_Settings()->Get("settings.app.InstallDir", defaultDir) +
-                      "vote-up.png");
-        m_spSplashNeg = std::make_shared<Hud::CSplash>(
-            0.2f, g_Settings()->Get("settings.app.InstallDir", defaultDir) +
-                      "vote-down.png");
-
         // PNG splash
         m_SplashFilename = g_Settings()->Get(
             "settings.player.attrpngfilename",
@@ -550,8 +538,6 @@ class CElectricSheep
         DestroyUpdateThreads();
 #endif
 
-        m_spSplashPos = nullptr;
-        m_spSplashNeg = nullptr;
         m_spSplashPNG = nullptr;
         m_nSplashes = 0;
         m_SplashFilename = std::string();
@@ -1211,8 +1197,7 @@ class CElectricSheep
                 if (data != nullptr) {
                     if (m_pVoter != nullptr &&
                         m_pVoter->Vote(data->dreamData.uuid, true, voteDelaySeconds))
-                        m_HudManager->Add("splash_pos", m_spSplashPos,
-                                          voteDelaySeconds * 0.9f);
+                        popOSD(Hud::Like);
                 }
                 return true;
             case CLIENT_COMMAND_DISLIKE:
@@ -1231,8 +1216,7 @@ class CElectricSheep
                             g_Player().Delete(currentDreamUUID);
                         }
 
-                        m_HudManager->Add("splash_pos", m_spSplashNeg,
-                                          voteDelaySeconds * 0.9f);
+                        popOSD(Hud::Dislike);
                     }
                 }
                 return true;
