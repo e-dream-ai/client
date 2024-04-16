@@ -1,5 +1,6 @@
 #ifdef WIN32
 
+#include <memory>
 #include <Windows.h>
 #include <commctrl.h>
 #include <ctype.h>
@@ -300,8 +301,8 @@ LRESULT CALLBACK CDisplayDX::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
             break;
         }
 
-        spCEvent e = spEvent;
-        m_EventQueue.push(e);
+        //spCEvent e = std::dynamic_pointer_cast<DisplayOutput::CEvent>(spEvent);
+        //m_EventQueue.push(e);
     }
     break;
 
@@ -311,8 +312,8 @@ LRESULT CALLBACK CDisplayDX::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
         spEvent->m_Code = CMouseEvent::Mouse_LEFT;
         spEvent->m_X = MAKEPOINTS(lParam).x;
         spEvent->m_Y = MAKEPOINTS(lParam).y;
-        spCEvent e = spEvent;
-        m_EventQueue.push(e);
+        //spCEvent e = spEvent;
+        //m_EventQueue.push(e);
     }
     break;
 
@@ -322,8 +323,8 @@ LRESULT CALLBACK CDisplayDX::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
         spEvent->m_Code = CMouseEvent::Mouse_RIGHT;
         spEvent->m_X = MAKEPOINTS(lParam).x;
         spEvent->m_Y = MAKEPOINTS(lParam).y;
-        spCEvent e = spEvent;
-        m_EventQueue.push(e);
+        //spCEvent e = spEvent;
+        //m_EventQueue.push(e);
     }
     break;
 
@@ -335,8 +336,8 @@ LRESULT CALLBACK CDisplayDX::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
         spEvent->m_X = MAKEPOINTS(lParam).x;
         spEvent->m_Y = MAKEPOINTS(lParam).y;
 
-        spCEvent e = spEvent;
-        m_EventQueue.push(e);
+        //spCEvent e = spEvent;
+        //m_EventQueue.push(e);
     }
     break;
 
@@ -347,8 +348,8 @@ LRESULT CALLBACK CDisplayDX::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
         case PBT_APMSUSPEND:
         {
             CPowerEvent* spEvent = new CPowerEvent();
-            spCEvent e = spEvent;
-            m_EventQueue.push(e);
+            //spCEvent e = spEvent;
+            //m_EventQueue.push(e);
         }
         }
         break;

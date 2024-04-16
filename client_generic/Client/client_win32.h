@@ -25,9 +25,10 @@
 #include "Settings.h"
 #include "base.h"
 #include "storage.h"
-#if defined(WIN32) && defined(_MSC_VER)
+/* #if defined (WIN32) && defined(_MSC_VER)
 #include "../msvc/msvc_fix.h"
 #endif
+*/
 
 /*
         CElectricSheep_Win32().
@@ -127,10 +128,13 @@ class CElectricSheep_Win32 : public CElectricSheep
   public:
     CElectricSheep_Win32()
         : CElectricSheep(),
-          g_SingleInstanceObj("Global\\{" CLIENT_VERSION_PRETTY "}"),
-          m_bAllowFKey(false), m_pD3D9(NULL)
+          g_SingleInstanceObj("Global\\{" CLIENT_VERSION_PRETTY "}")
     {
         printf("CElectricSheep_Win32()\n");
+        //g_SingleInstanceObj = CMonoInstance("Global\\{" CLIENT_VERSION_PRETTY "}");
+        m_bAllowFKey = false;
+        m_pD3D9 = NULL;
+
 
         //	Windows spawns a screensaver process with idle priority, which
         // will
@@ -493,6 +497,8 @@ class CElectricSheep_Win32 : public CElectricSheep
         return true;
     }
 
+    // @TODO : Might no longer be needed, need to triple check as there is a lot of code moved to client already
+    /*
     virtual bool HandleOneEvent(DisplayOutput::spCEvent& _event)
     {
         //	Handle events.
@@ -611,8 +617,8 @@ class CElectricSheep_Win32 : public CElectricSheep
                     return true;
                 }
         return false;
-    }
-
+    }*/
+    /*
     virtual bool HandleEvents()
     {
         DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
@@ -629,13 +635,15 @@ class CElectricSheep_Win32 : public CElectricSheep
         }
 
         return true;
-    }
+    }*/
     //
-    bool Update()
-    {
-        g_Player().Framerate(m_CurrentFps);
 
-        if (!CElectricSheep::Update())
+
+    virtual bool Update(int _displayIdx, boost::barrier& _beginFrameBarrier, boost::barrier& _endFrameBarrier)
+    {
+        //g_Player().Framerate(m_CurrentFps);
+
+        if (!CElectricSheep::Update(_displayIdx, _beginFrameBarrier, _endFrameBarrier))
             return false;
 
         DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
@@ -647,7 +655,8 @@ class CElectricSheep_Win32 : public CElectricSheep
             return true;
         }
 
-        static const float voteDelaySeconds = 1;
+        //static const float voteDelaySeconds = 1;
+        // @TODO: Might need to return true here and not HandleEvents, like mac client does now?
         return HandleEvents();
     }
 
