@@ -29,6 +29,11 @@ static sio::client s_SIOClient;
 namespace json = boost::json;
 using namespace ContentDownloader;
 
+class ParserHelper {
+public:
+    static std::vector<std::string> ParseSubPlaylist(boost::json::object item);
+};
+
 static void OnWebSocketMessage(sio::event& event);
 
 // TODO: this is imperfect, temporary until we clean up the connection callback thing
@@ -392,7 +397,6 @@ std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
     // Collect all UUIDS from the json
     std::vector<std::string> uuids;
 
-
     // Open playlist and grab content
     std::string filePath{
         string_format("%splaylist_%i.json", Shepherd::jsonPath(), id)};
@@ -406,21 +410,16 @@ std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
         (std::istreambuf_iterator<char>())};
     file.close();
     
-    
     try
     {
         json::error_code ec;
-        json::value response = json::parse(contents, ec);
-        json::value data = response.at("data");
-        json::value playlist = data.at("playlist");
-        json::value items = playlist.at("items");
-        
-        if (items.is_array()) {
-            for (auto& item : items.as_array()) {
-                json::value dreamItem = item.at("dreamItem");
-                json::value uuid = dreamItem.at("uuid");
-                uuids.push_back(uuid.as_string().c_str());
-            }
+        auto response = json::parse(contents, ec).as_object();
+        auto data = response["data"].as_object();
+        auto playlist = data["playlist"].as_object();
+    
+        for (auto& item : playlist["items"].as_array()) {
+            std::vector<std::string> sub_uuids = ParserHelper::ParseSubPlaylist(item.as_object());
+            uuids.insert(uuids.end(), sub_uuids.begin(), sub_uuids.end());
         }
     }
     catch (const boost::system::system_error& e)
@@ -428,6 +427,34 @@ std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
         JSONUtil::LogException(e, contents);
     }
     
+    return uuids;
+}
+
+// For recursive playlists, we eval items here to see if they are dreams
+// or playlists and if so, recurse accordingly
+std::vector<std::string> ParserHelper::ParseSubPlaylist(json::object item) {
+    // Collect all UUIDS from the json
+    std::vector<std::string> uuids;
+
+    // Boost::JSON Exception is catched upward, not here in the recursion
+    auto type = item["type"];
+    
+    if (item["type"] == "dream") {
+        auto dreamItem = item["dreamItem"].as_object();
+        uuids.push_back(dreamItem["uuid"].as_string().c_str());
+    } else if (item["type"] == "playlist") {
+        
+        auto playlistItem = item["playlistItem"].as_object();
+        
+        for (auto& sub_item : playlistItem["items"].as_array()) {
+                std::vector<std::string> sub_uuids = ParserHelper::ParseSubPlaylist(sub_item.as_object());
+                uuids.insert(uuids.end(), sub_uuids.begin(), sub_uuids.end());
+        }
+    } else {
+        // @TODO something unknown here, report
+        printf("ERROR : something unknown in playlist");
+    }
+
     return uuids;
 }
 
