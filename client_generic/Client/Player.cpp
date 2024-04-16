@@ -138,9 +138,18 @@ void CPlayer::SetHWND(HWND _hWnd)
 };
 #endif
 
+
+#ifdef MAC
 int CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
                         CGraphicsContext _graphicsContext,
                         [[maybe_unused]] bool _blank)
+#else
+#ifdef WIN32
+int CPlayer::AddDisplay(uint32_t screen, IDirect3D9* _pIDirect3D9, bool _blank)
+#else
+int CPlayer::AddDisplay(uint32 screen)
+#endif
+#endif
 {
     DisplayOutput::spCDisplayOutput spDisplay;
     DisplayOutput::spCRenderer spRenderer;

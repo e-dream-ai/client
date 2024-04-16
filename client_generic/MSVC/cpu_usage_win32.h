@@ -18,7 +18,7 @@ class ESCpuUsage
     FILETIME m_LastESKernelTime;
     FILETIME m_LastESUserTime;
     Base::CTimer m_Timer;
-    fp8 m_LastCPUCheckTime;
+    double m_LastCPUCheckTime;
 
   public:
     ESCpuUsage() : m_LastCPUCheckTime(0)
@@ -41,7 +41,7 @@ class ESCpuUsage
         SYSTEM_INFO sysinfo;
         GetSystemInfo(&sysinfo);
 
-        fp8 newtime = m_Timer.Time();
+        double newtime = m_Timer.Time();
         if (GetProcessTimes(GetCurrentProcess(), &dummy1, &dummy2, &kernelTime,
                             &userTime) != 0)
         {
@@ -54,7 +54,7 @@ class ESCpuUsage
             ker.HighPart =
                 kernelTime.dwHighDateTime - m_LastESKernelTime.dwHighDateTime;
 
-            fp8 period = newtime - m_LastCPUCheckTime;
+            double period = newtime - m_LastCPUCheckTime;
             if (period > 0.)
             {
                 _es = int((ker.QuadPart + usr.QuadPart) * 100. /

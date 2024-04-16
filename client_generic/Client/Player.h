@@ -5,7 +5,7 @@
 
 #ifdef WIN32
 #include <d3d9.h>
-//#include <d3dx9.h>
+#include <d3dx9.h>
 #endif
 #include "ContentDecoder.h"
 #include "DisplayOutput.h"
@@ -154,8 +154,15 @@ class CPlayer : public Base::CSingleton<CPlayer>
     //void PlayQueuedClipsThread();
     sOpenVideoInfo* GetNextClipInfo();
 
+
+#ifdef MAC
     int AddDisplay(uint32_t screen, CGraphicsContext _grapicsContext,
                    bool _blank = false);
+#endif
+
+#ifdef WIN32
+	int AddDisplay( uint32_t screen, IDirect3D9 *_pIDirect3D9 = NULL, bool _blank = false );
+#endif
 
     inline void PlayCountsInitOff() { m_InitPlayCounts = false; };
 
