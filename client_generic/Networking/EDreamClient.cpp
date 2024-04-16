@@ -410,9 +410,8 @@ std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
         (std::istreambuf_iterator<char>())};
     file.close();
     
-    
-    /*try
-    {*/
+    try
+    {
         json::error_code ec;
         auto response = json::parse(contents, ec).as_object();
         auto data = response["data"].as_object();
@@ -420,49 +419,42 @@ std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
     
         for (auto& item : playlist["items"].as_array()) {
             std::vector<std::string> sub_uuids = ParserHelper::ParseSubPlaylist(item.as_object());
-            printf("insertO : %zu\n", sub_uuids.size());
             uuids.insert(uuids.end(), sub_uuids.begin(), sub_uuids.end());
         }
-/*    }
+    }
     catch (const boost::system::system_error& e)
     {
         JSONUtil::LogException(e, contents);
-    }*/
+    }
     
     return uuids;
 }
 
-// For recursive playlist, start with an item containing a playlist
+// For recursive playlists, we eval items here to see if they are dreams
+// or playlists and if so, recurse accordingly
 std::vector<std::string> ParserHelper::ParseSubPlaylist(json::object item) {
     // Collect all UUIDS from the json
     std::vector<std::string> uuids;
+
+    // Boost::JSON Exception is catched upward, not here in the recursion
+    auto type = item["type"];
     
-    /*try
-    {*/
-        auto type = item["type"];
+    if (item["type"] == "dream") {
+        auto dreamItem = item["dreamItem"].as_object();
+        uuids.push_back(dreamItem["uuid"].as_string().c_str());
+    } else if (item["type"] == "playlist") {
         
-        if (item["type"] == "dream") {
-            auto dreamItem = item["dreamItem"].as_object();
-            uuids.push_back(dreamItem["uuid"].as_string().c_str());
-        } else if (item["type"] == "playlist") {
-            /*
-            auto playlistItem = item["playlistItem"].as_object();
-            std::cout << "playlistItem" << item["playlistItem"];
-            
-            for (auto& sub_item : playlistItem["items"].as_array()) {
-                    std::vector<std::string> sub_uuids = ParserHelper::ParseSubPlaylist(sub_item.as_object());
-                    printf("insertI : %zu\n", sub_uuids.size());
-                    uuids.insert(uuids.end(), sub_uuids.begin(), sub_uuids.end());
-            }*/
-        } else {
-            // @TODO something unknown here, report
-            printf("ERROR : something unknown in playlist");
+        auto playlistItem = item["playlistItem"].as_object();
+        
+        for (auto& sub_item : playlistItem["items"].as_array()) {
+                std::vector<std::string> sub_uuids = ParserHelper::ParseSubPlaylist(sub_item.as_object());
+                uuids.insert(uuids.end(), sub_uuids.begin(), sub_uuids.end());
         }
-    /*}
-    catch (const boost::system::system_error& e)
-    {
-        JSONUtil::LogException(e, "");
-    }*/
+    } else {
+        // @TODO something unknown here, report
+        printf("ERROR : something unknown in playlist");
+    }
+
     return uuids;
 }
 
