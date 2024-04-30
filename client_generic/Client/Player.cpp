@@ -142,26 +142,27 @@ int CPlayer::AddDisplay(uint32 screen)
         g_Log->Info("Attempting to open %s...", CDisplayDX::Description());
 
         spDisplay = std::make_shared<CDisplayDX>(_blank, _pIDirect3D9);
-        //pDisplayDX = new CDisplayDX(_blank, _pIDirect3D9);
-        //spDisplay->SetScreen(screen); <- TODO : NEED TO VIRTUAL THIS
+        spDisplay->SetScreen(screen); 
 
     }
 
-/* if (pDisplayDX == nullptr)
+    if (spDisplay == nullptr)
     {
         g_Log->Error("Unable to open display");
         return -1;
-    }*/
+    }
 
-    //spDisplay = std::shared_ptr<CDisplayDX>(pDisplayDX);
     if (m_hWnd)
     {
         if (!spDisplay->Initialize(m_hWnd, true))
             return -1;
     }
     else if (!spDisplay->Initialize(w, h, m_bFullscreen))
+    {
         return -1;
-      //spRenderer = new CRendererDX();
+    }
+
+    //spRenderer = new CRendererDX();
     spRenderer = std::make_shared<CRendererDX>();
 #else // !WIN32
 
