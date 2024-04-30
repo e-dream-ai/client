@@ -51,6 +51,7 @@
 
 #include <boost/filesystem.hpp>
 
+#include "boost/filesystem.hpp"
 #if defined(MAC) || defined(WIN32)
 #define HONOR_VBL_SYNC
 #endif
@@ -158,9 +159,9 @@ int CPlayer::AddDisplay(uint32 screen)
     if (detectgold)
     {
         detectgold = false;
-        std::string content = g_Settings()->Root() + "content/";
+        std::string content = g_Settings()->Root() + "content";
         std::string watchFolder =
-            g_Settings()->Get("settings.content.sheepdir", content) + "/mp4/";
+            g_Settings()->Get("settings.content.sheepdir", content) + PATH_SEPARATOR + "mp4" + PATH_SEPARATOR;
     }
     // modify aspect ratio and/or window size hint
     uint32_t w = 1280;
@@ -256,7 +257,9 @@ bool CPlayer::Startup()
 
     //	Grab some paths for the decoder.
     std::string content = g_Settings()->Root() + "content/";
+
 #ifndef LINUX_GNU
+    // Common for mac & win
     std::string scriptRoot =
         g_Settings()->Get("settings.app.InstallDir", std::string("./")) +
         "Scripts";
@@ -265,18 +268,26 @@ bool CPlayer::Startup()
         g_Settings()->Get("settings.app.InstallDir", std::string(SHAREDIR)) +
         "Scripts";
 #endif
-    std::string watchFolder =
-        g_Settings()->Get("settings.content.sheepdir", content) + "/mp4/";
+    std::string watchFolder = g_Settings()->Get("settings.content.sheepdir", content) +
+         "/mp4/";
 
     if (TupleStorage::IStorageInterface::CreateFullDirectory(content.c_str()))
     {
-        if (m_InitPlayCounts)
-            g_PlayCounter().SetDirectory(content);
+        // TODO is this still used ?
+        //if (m_InitPlayCounts)
+        //    g_PlayCounter().SetDirectory(content);
     }
 
     //  Tidy up the paths.
+//    #ifdef MAC
     path scriptPath = scriptRoot;
     path watchPath = watchFolder;
+
+    //	Create playlist.
+    g_Log->Info("Creating playlist...");
+
+    m_spPlaylist =
+        std::make_shared<ContentDecoder::CDreamPlaylist>(watchPath.string());
 
     m_NextClipInfoQueue.setMaxQueueElements(10);
 
