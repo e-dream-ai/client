@@ -129,6 +129,9 @@ void CContentDecoder::abortFutures() {
 
 int CContentDecoder::DumpError(int _err)
 {
+    // @TODO define issue with MSVC
+    #ifdef MAC
+
     if (_err < 0)
     {
         switch (_err)
@@ -469,6 +472,7 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
                     ovi->m_CurrentFrameIndex = ovi->m_TotalFrameCount - 1;
                     return nullptr;
                 }
+                #ifdef MAC
                 g_Log->Error(
                              "Error receiving packet from bit stream filter: %s",
                              UNFFERRTAG(ret));
@@ -513,8 +517,12 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
                 ovi->m_CurrentFrameIndex = ovi->m_TotalFrameCount - 1;
                 return nullptr;
             }
+            #ifdef MAC
             g_Log->Error("FFmpeg Error sending packet for decoding: %i:%s", ret,
                          UNFFERRTAG(ret));
+            #else 
+            g_Log->Error("FFmpeg Error sending packet for decoding: %i", ret);
+            #endif
         }
         if (ret >= 0)
         {
@@ -539,7 +547,11 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
             }
             else if (ret < 0)
             {
+                #ifdef MAC
                 g_Log->Error("FFmpeg Error decoding: %s", UNFFERRTAG(ret));
+                #else 
+                g_Log->Error("FFmpeg Error decoding");
+                #endif
             }
             frameDecoded = 1;
         }

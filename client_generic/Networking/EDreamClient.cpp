@@ -1,7 +1,7 @@
 #include <websocketpp/config/asio_client.hpp>
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_no_tls_client.hpp>
-#include <sio_client.h>
+//#include <sio_client.h>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/json.hpp>
@@ -26,7 +26,7 @@
 
 #include "client.h"
 
-static sio::client s_SIOClient;
+//static sio::client s_SIOClient;
 
 namespace json = boost::json;
 using namespace ContentDownloader;
@@ -120,8 +120,9 @@ void EDreamClient::SendGoodbye()
 
 static void BindWebSocketCallbacks()
 {
+    /*
     s_SIOClient.socket("/remote-control")
-        ->on("new_remote_control_event", &OnWebSocketMessage);
+        ->on("new_remote_control_event", &OnWebSocketMessage);*/
 }
 
 static void OnWebSocketConnected()
@@ -129,20 +130,21 @@ static void OnWebSocketConnected()
 
     //    std::map<std::string, std::string> params;
     //    params["event"] = "next
-    std::shared_ptr<sio::object_message> ms =
+    /* std::shared_ptr<sio::object_message> ms =
         std::dynamic_pointer_cast<sio::object_message>(
             sio::object_message::create());
     ms->insert("event", "next");
     sio::message::list list;
     list.push(ms);
     s_SIOClient.socket("/remote-control")
-        ->emit("new_remote_control_event", list);
+        ->emit("new_remote_control_event", list);*/
 }
 
+/*
 static void OnWebSocketClosed(const sio::client::close_reason& _reason)
 {
     g_Log->Info("WebSocket connection closed.");
-}
+}*/
 
 static void OnWebSocketFail() { g_Log->Error("WebSocket connection failed."); }
 
@@ -1339,6 +1341,7 @@ bool EDreamClient::EnqueuePlaylist(std::string_view uuid) {
     return true;
 }
 
+/*
 static void OnWebSocketMessage(sio::event& _wsEvent)
 {
 
@@ -1529,10 +1532,12 @@ void EDreamClient::SendPlayingDream(std::string uuid)
     list.push(ms);
     s_SIOClient.socket("/remote-control")
         ->emit("new_remote_control_event", list);
+        */
 }
 
 void EDreamClient::ConnectRemoteControlSocket()
 {
+    /*
     PlatformUtils::SetThreadName("ConnectRemoteControl");
     g_Log->Info("Performing remote control connect.");
     BindWebSocketCallbacks();

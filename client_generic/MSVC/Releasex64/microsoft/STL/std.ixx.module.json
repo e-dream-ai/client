@@ -1,0 +1,22 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Releasex64\\microsoft/STL\\std.ixx.obj",
+            "outputs": [
+                "C:\\Users\\Jack\\Documents\\GitHub\\client\\client_generic\\MSVC\\Releasex64\\vc143.pdb",
+                "Releasex64\\microsoft/STL\\",
+                "C:\\Users\\Jack\\Documents\\GitHub\\client\\client_generic\\MSVC\\Releasex64\\microsoft\\STL\\std.ixx.ifc"
+            ],
+            "provides": [
+                {
+                    "logical-name": "std",
+                    "source-path": "c:\\program files\\microsoft visual studio\\2022\\preview\\vc\\tools\\msvc\\14.40.33807\\modules\\std.ixx",
+                    "is-interface": true
+                }
+            ],
+            "requires": []
+        }
+    ]
+}

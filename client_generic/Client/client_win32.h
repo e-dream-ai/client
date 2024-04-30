@@ -253,6 +253,9 @@ class CElectricSheep_Win32 : public CElectricSheep
             }
         }
 
+        // TMP
+        m_ScrMode = eWindowed;
+
         //	Check for multiple instances if we're not specifically asked not
         // to.
         if (m_ScrMode != eWindowed_AllowMultipleInstances &&
@@ -367,7 +370,7 @@ class CElectricSheep_Win32 : public CElectricSheep
         g_Log->Info("Commandline: %s", GetCommandLineA());
 
         _chdir(m_WorkingDir.c_str());
-
+        /*
         //	Run gui.
         if (m_ScrMode == eConfig)
         {
@@ -399,7 +402,7 @@ class CElectricSheep_Win32 : public CElectricSheep
             if (IsUserAnAdmin())
                 sei.lpVerb = "open";
             else
-                sei.lpVerb = "runas";
+                sei.lpVerb = "runas";.ex
             sei.lpFile = "settingsgui.exe";
             sei.lpParameters = NULL;
             sei.lpDirectory = m_WorkingDir.c_str();
@@ -412,14 +415,14 @@ class CElectricSheep_Win32 : public CElectricSheep
             m_bConfigMode = true;
 
             return false;
-        }
-
+        }*/
+        /*
         //	Exit if we're not supposed to render anything...
         if (m_ScrMode != eSaver && m_ScrMode != eFullScreenStandalone &&
             m_ScrMode != ePreview && m_ScrMode != eWindowed &&
             m_ScrMode != eWindowed_AllowMultipleInstances)
             return false;
-
+            */
         //	A window was provided, let's use it.
         if (hwnd)
             g_Player().SetHWND(hwnd);

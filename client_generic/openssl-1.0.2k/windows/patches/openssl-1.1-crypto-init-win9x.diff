@@ -1,0 +1,23 @@
+diff -ur openssl-1.1.1o.orig/crypto/threads_win.c openssl-1.1.1o/crypto/threads_win.c
+--- openssl-1.1.1o.orig/crypto/threads_win.c	2022-05-03 15:41:15.000000000 +0200
++++ openssl-1.1.1o/crypto/threads_win.c	2022-06-16 19:23:01.610092891 +0200
+@@ -27,8 +27,17 @@
+ # if !defined(_WIN32_WCE)
+     /* 0x400 is the spin count value suggested in the documentation */
+     if (!InitializeCriticalSectionAndSpinCount(lock, 0x400)) {
+-        OPENSSL_free(lock);
+-        return NULL;
++        /* check if win9x */
++        OSVERSIONINFOA osv;
++        osv.dwOSVersionInfoSize = sizeof(OSVERSIONINFOA);
++
++        if (!GetVersionExA(&osv) || (osv.dwPlatformId & VER_PLATFORM_WIN32_NT)) {
++            OPENSSL_free(lock);
++            return NULL;
++        }
++
++        /* let's hope it works */
++        InitializeCriticalSection(lock);
+     }
+ # else
+     InitializeCriticalSection(lock);

@@ -36,7 +36,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>ClangCL</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -46,7 +46,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>ClangCL</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -158,7 +158,7 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc /y
     </PreBuildEvent>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\boost\include;..\ffmpeg\include;..\curl\include;..\ContentDownloader;..\Client;..\Common;..\Common\Math;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\libxml\include;..\lua5.1\include;..\Networking;..\zlib;..\libpng\include;..\tinyXml;..\TupleStorage;..\DisplayOutput\DirectX;..\DisplayOutput\OpenGL;C:\wxWidgets-2.9.1-x64\include;C:\wxWidgets-2.9.1-x64\include\msvc;C:\wxWidgets-2.9.1-x64\src\zlib;C:\wxWidgets-2.9.1-x64\src\png;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\boost\include;..\ffmpeg\include;..\curl\include;..\ContentDownloader;..\Client;..\Common;..\Common\Math;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\libxml\include;..\lua5.1\include;..\Networking;..\zlib;..\libpng\include;..\TupleStorage;..\DisplayOutput\DirectX;..\DisplayOutput\OpenGL;C:\wxWidgets-2.9.1-x64\include;C:\wxWidgets-2.9.1-x64\include\msvc;C:\wxWidgets-2.9.1-x64\src\zlib;C:\wxWidgets-2.9.1-x64\src\png;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include;..\socket.io-client-cpp\include;..\websocketpp;..\;C:\Users\Jack\Documents\openssl\openssl1_1-win-build\build-VS2022-MT\x64\Debug\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WIN64;_DEBUG;_WINDOWS;NOMINMAX;_CRT_SECURE_NO_WARNINGS;WIN32_LEAN_AND_MEAN;CURL_STATICLIB;VC_EXTRALEAN;D3D_DEBUG_INFO;COMPILE_MULTIMON_STUBS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -166,15 +166,16 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc /y
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <EnableEnhancedInstructionSet>AdvancedVectorExtensions</EnableEnhancedInstructionSet>
+      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <BuildStlModules>true</BuildStlModules>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>avcodec.lib;avutil.lib;avfilter.lib;swscale.lib;avdevice.lib;avformat.lib;user32.lib;shlwapi.lib;wxzlibd.lib;wxpngd.lib;tinyxmld.lib;lua5.1d.lib;d3d9.lib;ws2_32.lib;wldap32.lib;dxguid.lib;psapi.lib;delayimp.lib;libpng16.lib;curlu-d.lib;msvcrtd.lib;libcmtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>avcodec.lib;avutil.lib;avfilter.lib;swscale.lib;avdevice.lib;avformat.lib;user32.lib;shlwapi.lib;wxzlibd.lib;wxpngd.lib;d3d9.lib;ws2_32.lib;wldap32.lib;dxguid.lib;psapi.lib;delayimp.lib;libpng16.lib;msvcrtd.lib;libcmtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(ProjectName)d.exe</OutputFile>
-      <AdditionalLibraryDirectories>..\curl\lib\debug-ssl-zlib;..\tinyXml\x64\Debug;..\lua5.1\lib\static\x64;..\ffmpeg\win32\ffmpeg-static\lib;..\boost\win32\lib;..\wxWidgets\lib\vc120_x64_dll;..\libpng\win32\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\curl\lib\debug-ssl-zlib;..\tinyXml\x64\Debug;..\lua5.1\lib\static\;..\ffmpeg\win32\ffmpeg-6.1.1-93\lib;..\boost\win32\lib;..\wxWidgets\lib\vc120_x64_dll;..\libpng\win32\x64;C:\Users\Jack\Documents\openssl\openssl1_1-win-build\build-VS2022-MT\x64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <DelayLoadDLLs>d3d9.dll;wldap32.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -292,7 +293,7 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
       <OmitFramePointers>false</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <WholeProgramOptimization>true</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>..\ffmpeg\ffmpeg-static\include;..\curl-x64\include;..\ContentDownloader;..\Client;..\Common;..\Common\Math;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\lua5.1-x64\include;..\Networking;..\tinyXml-x64;..\TupleStorage;..\DisplayOutput\DirectX;..\DisplayOutput\OpenGL;C:\wxWidgets-2.9.1-x64\include\msvc;C:\wxWidgets-2.9.1-x64\include;C:\wxWidgets-2.9.1-x64\src\png;C:\wxWidgets-2.9.1-x64\src\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\boost\include;..\socket.io-client-cpp\include;..\libpng\include;..\ffmpeg\include;..\curl-x64\include;..\ContentDownloader;..\Client;..\Common;..\Common\Math;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\Networking;..\TupleStorage;..\DisplayOutput\DirectX;..\DisplayOutput\OpenGL;C:\wxWidgets-2.9.1-x64\include\msvc;C:\wxWidgets-2.9.1-x64\include;C:\wxWidgets-2.9.1-x64\src\png;C:\wxWidgets-2.9.1-x64\src\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WIN64;NDEBUG;_WINDOWS;NOMINMAX;_CRT_SECURE_NO_WARNINGS;CURL_STATICLIB;WIN32_LEAN_AND_MEAN;VC_EXTRALEAN;COMPILE_MULTIMON_STUBS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -312,10 +313,10 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>avcodec.lib;avformat.lib;swscale.lib;avdevice.lib;avutil.lib;wxzlib.lib;wxpng.lib;kernel32.lib;user32.lib;shlwapi.lib;libcurl.lib;tinyxml.lib;lua5.1.lib;d3d9.lib;ws2_32.lib;wldap32.lib;dxguid.lib;psapi.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>avcodec.lib;avformat.lib;swscale.lib;avdevice.lib;avutil.lib;wxzlib.lib;wxpng.lib;kernel32.lib;user32.lib;shlwapi.lib;libcurl.lib;d3d9.lib;ws2_32.lib;wldap32.lib;dxguid.lib;psapi.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ShowProgress>NotSet</ShowProgress>
       <OutputFile>$(OutDir)$(ProjectName).scr</OutputFile>
-      <AdditionalLibraryDirectories>..\curl-x64\lib\release-zlib;..\tinyXml-x64\Release;..\lua5.1-x64\lib\static;..\ffmpeg\ffmpeg-static\libx64;C:\wxWidgets-2.9.1-x64\lib\vc_lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\socket.io-client-cpp\lib\Release;..\wxWidgets\lib\vc120_x64_dll;..\curl-x64\lib\release-zlib;..\ffmpeg\ffmpeg-static\libx64;C:\wxWidgets-2.9.1-x64\lib\vc_lib;..\boost\win32\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
@@ -371,6 +372,7 @@ copy .\release\es.scr ..\RuntimeMSVC\esx64.exe /y
     <ClCompile Include="msvc_fix.cpp" />
     <ClCompile Include="..\Client\Player.cpp" />
     <ClCompile Include="..\Client\Voting.cpp" />
+    <ClCompile Include="PlatformUtils_win.cpp" />
     <ClCompile Include="SettingsGUI\config.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -406,6 +408,7 @@ copy .\release\es.scr ..\RuntimeMSVC\esx64.exe /y
   <ItemGroup>
     <ClInclude Include="..\Client\DreamPlaylist.h" />
     <ClInclude Include="..\Client\OSD.hpp" />
+    <ClInclude Include="..\Client\PlatformUtils.h" />
     <ClInclude Include="..\Client\StringFormat.h" />
     <ClInclude Include="..\Common\JSONUtil.h" />
     <ClInclude Include="..\ContentDecoder\Clip.h" />

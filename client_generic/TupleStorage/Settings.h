@@ -195,7 +195,7 @@ class CSettings : public Base::CSingleton<CSettings>
     TupleStorage::IStorageInterface* Storage() { return m_pStorage; }
 
     ///	Singleton instance method.
-    __attribute__((no_instrument_function)) static CSettings* Instance()
+    /* __attribute__((no_instrument_function))*/ static CSettings* Instance()
     {
         static CSettings storage;
 
@@ -218,9 +218,9 @@ __attribute__((no_instrument_function))
 _LIBCPP_INLINE_VISIBILITY inline tpCSettings
 
 #else
-__attribute__((no_instrument_function)) // ?
-__attribute__((__exclude_from_explicit_instantiation__)) inline tpCSettings
-g_Settings(void)
+/* __attribute__((no_instrument_function)) // ?
+__attribute__((__exclude_from_explicit_instantiation__)) */
+inline tpCSettings g_Settings(void)
 {
     return (CSettings::Instance());
 }

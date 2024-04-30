@@ -68,8 +68,11 @@ bool CRendererDX::Initialize(spCDisplayOutput _spDisplay)
     if (g_DLLFun->Init() == false)
         return false;
 
-    spCDisplayDX spDisplay = (spCDisplayDX)_spDisplay;
+    auto rpDisplay = &_spDisplay;
 
+    CDisplayDX* spDisplay = (CDisplayDX*)rpDisplay;
+    //auto spDisplay = static_pointer_cast<CDisplayDX>(_rpDisplay);
+    
     m_WindowHandle = spDisplay->WindowHandle();
 
     m_pDevice = spDisplay->Device();
@@ -292,17 +295,23 @@ void CRendererDX::Reset(const uint32_t _flags) { CRenderer::Reset(_flags); }
 spCTextureFlat CRendererDX::NewTextureFlat(spCImage _spImage,
                                            const uint32_t _flags)
 {
-    spCTextureFlat spTex = new CTextureFlatDX(m_pDevice, _flags);
+    std::string q = "test";
+
+    //spCTextureFlat spTex = new CTextureFlatDX(m_pDevice, _flags);
+    /* auto spTex = std::make_shared<CTextureFlatDX>(m_pDevice, _flags);
     spTex->Upload(_spImage);
-    return spTex;
+    return spTex;*/
+    return NULL;
 }
 
 /*
  */
 spCTextureFlat CRendererDX::NewTextureFlat(const uint32_t _flags)
 {
-    spCTextureFlat spTex = new CTextureFlatDX(m_pDevice, _flags);
-    return spTex;
+    //spCTextureFlat spTex = new CTextureFlatDX(m_pDevice, _flags);
+    /* auto spTex = std::make_shared<CTextureFlatDX>(m_pDevice, _flags);
+    return spTex;*/
+    return NULL;
 }
 
 /*
@@ -310,8 +319,12 @@ spCTextureFlat CRendererDX::NewTextureFlat(const uint32_t _flags)
 spCShader CRendererDX::NewShader(const char* _pVertexShader,
                                  const char* _pFragmentShader)
 {
-    spCShader spShader = new CShaderDX(m_pDevice, float(m_spDisplay->Width()),
+    //spCShader spShader = new CShaderDX(m_pDevice, float(m_spDisplay->Width()),
+    //                                   float(m_spDisplay->Height()));
+    spCShader spShader = std::make_shared<CShaderDX>(m_pDevice, float(m_spDisplay->Width()),
                                        float(m_spDisplay->Height()));
+
+
     if (!spShader->Build(_pVertexShader, _pFragmentShader))
         return NULL;
 
@@ -325,6 +338,8 @@ spCShader CRendererDX::NewShader(const char* _pVertexShader,
  */
 spCBaseFont CRendererDX::NewFont(CFontDescription& _desc)
 {
+    //spCFontDX spDXFont = std::dynamic_pointer_cast<CFontDX>(_spFont);
+    /* 
     CBaseFont* pFont = new CFontDX(m_pDevice);
     pFont->FontDescription(_desc);
     pFont->Create();
@@ -332,6 +347,17 @@ spCBaseFont CRendererDX::NewFont(CFontDescription& _desc)
     font->AddRef();
     m_Fonts.push_back(font);
     return pFont;
+    */
+
+    auto pFont = new CFontDX(m_pDevice);
+    pFont->FontDescription(_desc);
+    pFont->Create();
+    ID3DXFont* font = pFont->GetDXFont();
+    font->AddRef();
+    m_Fonts.push_back(font);
+
+    //auto p = std::dynamic_pointer_cast<CBaseFont*>(pFont);
+    return (spCBaseFont)pFont;
 }
 
 /*
@@ -383,7 +409,7 @@ void CRendererDX::Text(spCBaseFont _spFont, const std::string& _text,
     DWORD d3dColor =
         D3DCOLOR_COLORVALUE(_color.m_X, _color.m_Y, _color.m_Z, _color.m_W);
 
-    spCFontDX spDXFont = _spFont;
+    spCFontDX spDXFont = std::dynamic_pointer_cast<CFontDX>(_spFont);
     ID3DXFont* pDXFont = spDXFont->GetDXFont();
     ASSERT(pDXFont);
 
@@ -412,7 +438,8 @@ Base::Math::CVector2 CRendererDX::GetTextExtent(spCBaseFont _spFont,
     float dispWidth = (float)m_spDisplay->Width();
     float dispHeight = (float)m_spDisplay->Height();
 
-    spCFontDX spDXFont = _spFont;
+    spCFontDX spDXFont = std::dynamic_pointer_cast<CFontDX>(_spFont);
+    //spCFontDX spDXFont = _spFont;
     ID3DXFont* pDXFont = spDXFont->GetDXFont();
     ASSERT(pDXFont);
 
@@ -518,7 +545,8 @@ void CRendererDX::DrawSoftQuad(const Base::Math::CRect& _rect,
 {
     if (m_spSoftCorner == NULL)
     {
-        DisplayOutput::spCImage tmpImage = new DisplayOutput::CImage();
+        //DisplayOutput::spCImage tmpImage = new DisplayOutput::CImage();
+        DisplayOutput::spCImage tmpImage = std::make_shared<DisplayOutput::CImage>();
         tmpImage->Create(32, 32, DisplayOutput::eImage_RGBA8);
 
         for (uint32_t y = 0; y < 32; y++)

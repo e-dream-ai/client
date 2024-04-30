@@ -189,6 +189,9 @@
     <ClCompile Include="..\Client\StringFormat.cpp">
       <Filter>Common\Code</Filter>
     </ClCompile>
+    <ClCompile Include="PlatformUtils_win.cpp">
+      <Filter>Client\Code</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ContentDownloader\ContentDownloader.h">
@@ -427,6 +430,9 @@
     </ClInclude>
     <ClInclude Include="..\Client\StringFormat.h">
       <Filter>Common\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Client\PlatformUtils.h">
+      <Filter>Client\Headers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

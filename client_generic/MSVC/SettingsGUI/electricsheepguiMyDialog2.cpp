@@ -13,7 +13,7 @@
 #include "../../Common/clientversion.h"
 #include "../../Common/md5.h"
 #include "../../TupleStorage/Settings.h"
-#include "../../tinyXml/tinyxml.h"
+//#include "../../tinyXml/tinyxml.h"
 
 #include <curl/curl.h>
 #include <curl/easy.h>

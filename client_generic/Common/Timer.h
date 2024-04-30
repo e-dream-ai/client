@@ -13,7 +13,11 @@ class ITimer
   public:
     virtual ~ITimer(){};
     virtual void Reset() = PureVirtual;
+#ifdef WIN32
+    virtual double Time() = PureVirtual;
+#else
     virtual double Time() const = PureVirtual;
+#endif
     virtual double Delta() = PureVirtual;
     virtual double Resolution() = PureVirtual;
     // virtual void	Wait( double seconds ) = PureVirtual;
