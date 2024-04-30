@@ -74,7 +74,7 @@ class CDisplayDX : public CDisplayOutput
     static LRESULT CALLBACK wndProc(HWND hWnd, UINT msg, WPARAM wParam,
                                     LPARAM lParam);
 
-    static char* Description() { return "Windows DirectX display"; };
+    static const char* Description() { return "Windows DirectX display"; };
     virtual HWND Initialize(const uint32_t _width, const uint32_t _height,
                             const bool _bFullscreen);
 

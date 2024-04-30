@@ -624,7 +624,7 @@ HWND CDisplayDX::createwindow(uint32_t _w, uint32_t _h, const bool _bFullscreen)
     }
 
     HWND hWnd =
-        CreateWindowEx(exStyle, L"ElectricsheepWndClass", L"Electricsheep",
+        CreateWindowEx(exStyle, L"ElectricsheepWndClass", L"e-dream",
                        style, xx, yy, ww, hh, NULL, NULL, hInstance, NULL);
     BlankUnusedMonitors(wndclass, hWnd, hInstance);
     return hWnd;
@@ -801,7 +801,7 @@ HWND CDisplayDX::Initialize(const uint32_t _width, const uint32_t _height,
     }
 
     if (!InitDX9())
-        return false;
+        return nullptr;
 
     return m_WindowHandle;
 }

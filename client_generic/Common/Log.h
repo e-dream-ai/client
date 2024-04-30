@@ -107,7 +107,7 @@ class CLog : public CSingleton<CLog>
     void Fatal(std::string_view _pFmt, ...);
 
     //	Provides singleton access.
-    __attribute__((no_instrument_function)) static CLog*
+    /* __attribute__((no_instrument_function)) */static CLog*
     Instance(const char* /*_pFileStr*/, const uint32_t /*_line*/,
              const char* /*_pFunc*/)
     {

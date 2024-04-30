@@ -8,6 +8,9 @@
 #ifndef PlatformUtils_h
 #define PlatformUtils_h
 
+#ifdef WIN32
+#include <SmartPtr.h>
+#endif // WIN
 #include <cstdio>
 #include <string>
 #include <functional>

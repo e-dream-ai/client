@@ -221,8 +221,12 @@ bool CShaderDX::Build(const char* _pVertexShader, const char* _pFragmentShader)
                 }
             }
 
-            m_Uniforms[cDesc.Name] = new CShaderUniformDX(
-                m_pDevice, cDesc.Name, eType, cDesc.RegisterIndex);
+            // m_Uniforms[cDesc.Name] = new CShaderUniformDX(
+            //    m_pDevice, cDesc.Name, eType, cDesc.RegisterIndex);
+
+            spCShaderUniformDX uniform = std::make_shared<CShaderUniformDX>(
+				m_pDevice, cDesc.Name, eType, cDesc.RegisterIndex);
+            m_Uniforms[cDesc.Name] = uniform;
         }
     }
 
@@ -239,9 +243,12 @@ bool CShaderDX::Build(const char* _pVertexShader, const char* _pFragmentShader)
 
             if (cDesc.Type >= D3DXPT_SAMPLER &&
                 cDesc.Type <= D3DXPT_SAMPLERCUBE)
-                m_Samplers[cDesc.Name] =
-                    new CShaderUniformDX(m_pDevice, cDesc.Name,
-                                         eUniform_Sampler, cDesc.RegisterIndex);
+                //m_Samplers[cDesc.Name] =
+                //    new CShaderUniformDX(m_pDevice, cDesc.Name,
+                //                         eUniform_Sampler, cDesc.RegisterIndex);
+
+                m_Samplers[cDesc.Name] = std::make_shared<CShaderUniformDX>(
+					m_pDevice, cDesc.Name, eUniform_Sampler, cDesc.RegisterIndex);
             else
             {
                 //	Already from vs?
@@ -291,7 +298,10 @@ bool CShaderDX::Build(const char* _pVertexShader, const char* _pFragmentShader)
                         }
                     }
 
-                    m_Uniforms[cDesc.Name] = new CShaderUniformDX(
+                    //m_Uniforms[cDesc.Name] = new CShaderUniformDX(
+                    //    m_pDevice, cDesc.Name, eType, cDesc.RegisterIndex);
+
+                    m_Uniforms[cDesc.Name] = std::make_shared<CShaderUniformDX>(
                         m_pDevice, cDesc.Name, eType, cDesc.RegisterIndex);
                 }
             }

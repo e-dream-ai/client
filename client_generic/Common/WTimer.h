@@ -15,8 +15,8 @@ namespace Base
 */
 class CWTimer : public ITimer
 {
-    static double m_Time;          //	Current time in seconds.
-    static int64_t m_TimeCounter;  //	Raw 64bit timer counter for time.
+    double m_Time;          //	Current time in seconds.
+    int64_t m_TimeCounter;  //	Raw 64bit timer counter for time.
     int64_t m_DeltaCounter; //	Raw 64bit timer counter for delta.
     int64_t m_Frequency;    //	Raw 64bit timer frequency.
 
@@ -34,7 +34,7 @@ class CWTimer : public ITimer
         m_Time = 0;
     }
     // TODO: somewhere this got changed to const, make sure this still works under Windows
-    double Time() const
+    double Time() 
     {
         int64_t counter;
         QueryPerformanceCounter((LARGE_INTEGER*)&counter);

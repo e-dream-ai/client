@@ -86,7 +86,7 @@ class CMonoInstance
         return false;
     }
 
-    CMonoInstance(char* strMutexName)
+    CMonoInstance(const char* strMutexName)
     {
         m_hMutex = CreateMutexA(NULL, FALSE, strMutexName); //	Do early.
         if (m_hMutex != NULL)

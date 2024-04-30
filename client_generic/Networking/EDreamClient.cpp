@@ -1,7 +1,7 @@
 #include <websocketpp/config/asio_client.hpp>
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_no_tls_client.hpp>
-#include <sio_client.h>
+//#include <sio_client.h>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/json.hpp>
@@ -24,12 +24,12 @@
 
 #include "client.h"
 
-static sio::client s_SIOClient;
+//static sio::client s_SIOClient;
 
 namespace json = boost::json;
 using namespace ContentDownloader;
 
-static void OnWebSocketMessage(sio::event& event);
+//static void OnWebSocketMessage(sio::event& event);
 
 // TODO: this is imperfect, temporary until we clean up the connection callback thing
 static bool shownSettingsOnce = false;
@@ -78,8 +78,9 @@ static void SetNewAndDeleteOldString(
 
 static void BindWebSocketCallbacks()
 {
+    /*
     s_SIOClient.socket("/remote-control")
-        ->on("new_remote_control_event", &OnWebSocketMessage);
+        ->on("new_remote_control_event", &OnWebSocketMessage);*/
 }
 
 static void OnWebSocketConnected()
@@ -87,20 +88,21 @@ static void OnWebSocketConnected()
 
     //    std::map<std::string, std::string> params;
     //    params["event"] = "next
-    std::shared_ptr<sio::object_message> ms =
+    /* std::shared_ptr<sio::object_message> ms =
         std::dynamic_pointer_cast<sio::object_message>(
             sio::object_message::create());
     ms->insert("event", "next");
     sio::message::list list;
     list.push(ms);
     s_SIOClient.socket("/remote-control")
-        ->emit("new_remote_control_event", list);
+        ->emit("new_remote_control_event", list);*/
 }
 
+/*
 static void OnWebSocketClosed(const sio::client::close_reason& _reason)
 {
     g_Log->Info("WebSocket connection closed.");
-}
+}*/
 
 static void OnWebSocketFail() { g_Log->Error("WebSocket connection failed."); }
 
@@ -116,12 +118,12 @@ static void OnWebSocketReconnect(unsigned _num, unsigned _delay)
 
 void EDreamClient::InitializeClient()
 {
-    s_SIOClient.set_open_listener(&OnWebSocketConnected);
+    /* s_SIOClient.set_open_listener(&OnWebSocketConnected);
     s_SIOClient.set_close_listener(&OnWebSocketClosed);
     s_SIOClient.set_fail_listener(&OnWebSocketFail);
     s_SIOClient.set_reconnecting_listener(&OnWebSocketReconnecting);
     s_SIOClient.set_reconnect_listener(&OnWebSocketReconnect);
-
+    */
     SetNewAndDeleteOldString(
         fAccessToken,
         g_Settings()
@@ -138,11 +140,12 @@ void EDreamClient::InitializeClient()
 
 void EDreamClient::DeinitializeClient()
 {
+    /*
     s_SIOClient.set_open_listener(nullptr);
     s_SIOClient.set_close_listener(nullptr);
     s_SIOClient.set_fail_listener(nullptr);
     s_SIOClient.set_reconnecting_listener(nullptr);
-    s_SIOClient.set_reconnect_listener(nullptr);
+    s_SIOClient.set_reconnect_listener(nullptr);*/
 }
 
 const char* EDreamClient::GetAccessToken() { return fAccessToken.load(); }
@@ -551,6 +554,7 @@ bool EDreamClient::GetDreams(int _page, int _count)
     return true;
 }
 
+/*
 static void OnWebSocketMessage(sio::event& _wsEvent)
 {
 
@@ -721,11 +725,11 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
         g_Log->Error("Unknown event type received: %s", event.data());
     }
 }
-
+*/
 void EDreamClient::SendPlayingDream(std::string uuid) {// ) {
     std::cout << "Sending UUID " << uuid;
     
-    
+    /*
     std::shared_ptr<sio::object_message> ms =
         std::dynamic_pointer_cast<sio::object_message>(
             sio::object_message::create());
@@ -736,16 +740,19 @@ void EDreamClient::SendPlayingDream(std::string uuid) {// ) {
     list.push(ms);
     s_SIOClient.socket("/remote-control")
         ->emit("new_remote_control_event", list);
+        */
 }
 
 void EDreamClient::ConnectRemoteControlSocket()
 {
+    /*
     PlatformUtils::SetThreadName("ConnectRemoteControl");
     g_Log->Info("Performing remote control connect.");
     BindWebSocketCallbacks();
     std::map<std::string, std::string> query;
     query["token"] = string_format("Bearer %s", GetAccessToken());
     s_SIOClient.connect(Shepherd::GetWebsocketServer(), query);
+    */
 }
 
 void EDreamClient::SetCPUUsage(int _cpuUsage) { fCpuUsage.exchange(_cpuUsage); }

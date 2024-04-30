@@ -137,40 +137,23 @@ int CPlayer::AddDisplay(uint32 screen)
     uint32_t h = 720;
 
 #ifdef WIN32
-#ifndef _WIN64
-    bool bDirectDraw = g_Settings()->Get("settings.player.directdraw", false);
-    CDisplayDD* pDisplayDD = nullptr;
-#endif
     CDisplayDX* pDisplayDX = nullptr;
-#ifndef _WIN64
-    if (bDirectDraw)
-    {
-        g_Log->Info("Attempting to open %s...", CDisplayDD::Description());
-        pDisplayDD = new CDisplayDD();
-    }
-    else
-#endif
     {
         g_Log->Info("Attempting to open %s...", CDisplayDX::Description());
-        pDisplayDX = new CDisplayDX(_blank, _graphicsContext);
-        pDisplayDX->SetScreen(screen);
+
+        spDisplay = std::make_shared<CDisplayDX>();
+        //pDisplayDX = new CDisplayDX(_blank, _pIDirect3D9);
+        //spDisplay->SetScreen(screen);
+
     }
 
-    if (pDisplayDX == nullptr
-#ifndef _WIN64
-        && pDisplayDD == nullptr
-#endif
-    )
+/* if (pDisplayDX == nullptr)
     {
         g_Log->Error("Unable to open display");
         return -1;
-    }
-#ifndef _WIN64
-    if (bDirectDraw)
-        spDisplay = pDisplayDD;
-    else
-#endif
-        spDisplay = pDisplayDX;
+    }*/
+
+    //spDisplay = std::shared_ptr<CDisplayDX>(pDisplayDX);
     if (m_hWnd)
     {
         if (!spDisplay->Initialize(m_hWnd, true))
@@ -178,12 +161,8 @@ int CPlayer::AddDisplay(uint32 screen)
     }
     else if (!spDisplay->Initialize(w, h, m_bFullscreen))
         return -1;
-#ifndef _WIN64
-    if (bDirectDraw)
-        spRenderer = new CRendererDD();
-    else
-#endif
-        spRenderer = new CRendererDX();
+      //spRenderer = new CRendererDX();
+    //spRenderer = std::make_shared<CRendererDX>();
 #else // !WIN32
 
     g_Log->Info("Attempting to open %s...", CDisplayMetal::Description());
@@ -328,9 +307,9 @@ void CPlayer::Start()
             boost::bind(&CPlayer::PlayQueuedClipsThread, this));
 
 #ifdef WIN32
-        SetThreadPriority((HANDLE)m_pNextSheepThread->native_handle(),
+        SetThreadPriority((HANDLE)m_pNextClipThread->native_handle(),
                           THREAD_PRIORITY_BELOW_NORMAL);
-        SetThreadPriorityBoost((HANDLE)m_pNextSheepThread->native_handle(),
+        SetThreadPriorityBoost((HANDLE)m_pNextClipThread->native_handle(),
                                TRUE);
 #else
         struct sched_param sp;
@@ -487,9 +466,9 @@ bool CPlayer::BeginFrameUpdate()
 bool CPlayer::EndFrameUpdate()
 {
 #ifndef USE_METAL
-    double capFPS = spFD->GetFps(m_PlayerFps, m_DisplayFps);
+    /* double capFPS = spFD->GetFps(m_PlayerFps, m_DisplayFps);
     if (spFD && capFPS > 0.000001)
-        FpsCap(capFPS);
+        FpsCap(capFPS);*/
 #endif
 
     return true;
