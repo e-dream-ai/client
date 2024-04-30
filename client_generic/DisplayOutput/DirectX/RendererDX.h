@@ -61,7 +61,7 @@ class CRendererDX : public CRenderer
     spCTextureFlat NewTextureFlat(const uint32_t flags = 0);
     spCTextureFlat NewTextureFlat(spCImage _spImage, const uint32_t flags = 0);
 
-    //
+    // Font functions.
     spCBaseFont NewFont(CFontDescription& _desc);
     void Text(spCBaseFont _spFont, const std::string& _text,
               const Base::Math::CVector4& _color,
@@ -69,9 +69,33 @@ class CRendererDX : public CRenderer
     Base::Math::CVector2 GetTextExtent(spCBaseFont _spFont,
                                        const std::string& _text);
 
-    //
+    // Virtual functions added for Metal, we don't use them here
+    spCBaseFont GetFont(CFontDescription& _desc) 
+    { 
+        return nullptr; 
+    };
+    spCBaseText NewText(spCBaseFont _font, const std::string& _text)
+    {
+        return nullptr;
+    };
+    
+    void DrawText(spCBaseText _text, const Base::Math::CVector4& _color)
+    {
+        return;
+    };
+    
+
+    // Shaders.
     spCShader NewShader(const char* _pVertexShader,
                         const char* _pFragmentShader);
+
+    // Virtual shared functions added for Metal, we don't use them here
+    spCShader
+    NewShader(const char* _pVertexShader, const char* _pFragmentShader,
+              std::vector<std::pair<std::string, eUniformType>> _uniforms = {})
+    {
+        return nullptr;
+    };
 
     //	Aux functions.
     void DrawLine(const Base::Math::CVector2& _start,
