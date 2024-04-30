@@ -6,6 +6,12 @@
 #include "linkpool.h"
 #include <queue>
 
+#ifdef WIN32
+
+#include <d3d9.h>
+#include <d3dx9.h>
+#endif
+
 #ifdef __OBJC__
 typedef void* CGraphicsContext;
 #else
@@ -209,7 +215,14 @@ class CDisplayOutput
     virtual HWND Initialize(const uint32_t _width, const uint32_t _height,
                             const bool _bFullscreen) = PureVirtual;
     virtual HWND WindowHandle(void) = PureVirtual;
-    virtual DWORD GetNumMonitors() { return 1; }
+
+    virtual IDirect3DDevice9* Device() = PureVirtual;
+    virtual D3DPRESENT_PARAMETERS PresentParameters() = PureVirtual;
+
+    virtual void SetScreen(const uint32_t _screen) = PureVirtual;
+
+    virtual DWORD GetNumMonitors() { return 1; };
+
 #else
 #ifdef MAC
     virtual bool Initialize(CGraphicsContext _graphicsContext,

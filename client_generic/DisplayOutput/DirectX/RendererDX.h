@@ -69,7 +69,7 @@ class CRendererDX : public CRenderer
     Base::Math::CVector2 GetTextExtent(spCBaseFont _spFont,
                                        const std::string& _text);
 
-    // Virtual functions added for Metal, we don't use them here
+    // Virtual functions added for Metal, we don't use them here yet but will likely be needed
     spCBaseFont GetFont(CFontDescription& _desc) 
     { 
         return nullptr; 
@@ -89,10 +89,10 @@ class CRendererDX : public CRenderer
     spCShader NewShader(const char* _pVertexShader,
                         const char* _pFragmentShader);
 
-    // Virtual shared functions added for Metal, we don't use them here
-    spCShader
-    NewShader(const char* _pVertexShader, const char* _pFragmentShader,
-              std::vector<std::pair<std::string, eUniformType>> _uniforms = {})
+    // Virtual shared functions added for Metal, we don't use them here yet but will likely be needed
+    spCShader NewShader(
+        const char* _pVertexShader, const char* _pFragmentShader,
+        std::vector<std::pair<std::string, eUniformType>> _uniforms = {}) 
     {
         return nullptr;
     };

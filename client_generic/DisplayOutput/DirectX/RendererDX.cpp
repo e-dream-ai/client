@@ -68,16 +68,11 @@ bool CRendererDX::Initialize(spCDisplayOutput _spDisplay)
     if (g_DLLFun->Init() == false)
         return false;
 
-    auto rpDisplay = &_spDisplay;
+    m_WindowHandle = _spDisplay->WindowHandle();
 
-    CDisplayDX* spDisplay = (CDisplayDX*)rpDisplay;
-    //auto spDisplay = static_pointer_cast<CDisplayDX>(_rpDisplay);
-    
-    m_WindowHandle = spDisplay->WindowHandle();
+    m_pDevice = _spDisplay->Device();
 
-    m_pDevice = spDisplay->Device();
-
-    m_PresentationParams = spDisplay->PresentParameters();
+    m_PresentationParams = _spDisplay->PresentParameters();
 
     D3DVIEWPORT9 vp = {0,    0,   _spDisplay->Width(), _spDisplay->Height(),
                        0.0f, 1.0f};
