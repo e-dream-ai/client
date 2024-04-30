@@ -17,7 +17,11 @@
 #include <os/signpost.h>
 #endif
 
-
+#ifdef WIN32
+#define PATH_SEPARATOR "\\"
+#else 
+#define PATH_SEPARATOR "/"
+#endif
 
 
 #define DISPATCH_ONCE(flag, lambda)                                            \

@@ -194,10 +194,10 @@ class CElectricSheep
 
         m_pVoter = nullptr;
 #ifndef LINUX_GNU
-        m_AppData = "./.ElectricSheep/";
+        m_AppData = "./.e-dream/";
         m_WorkingDir = "./";
 #else
-        m_AppData = std::string(getenv("HOME")) + "/.electricsheep/";
+        m_AppData = std::string(getenv("HOME")) + "/.e-dream/";
         m_WorkingDir = SHAREDIR;
 #endif
 #ifdef DO_THREAD_UPDATE

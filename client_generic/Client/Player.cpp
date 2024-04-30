@@ -41,10 +41,12 @@
 #include "PlatformUtils.h"
 #include "EDreamClient.h"
 
+/*
 #include "boost/filesystem/convenience.hpp"
 #include "boost/filesystem/operations.hpp"
-#include "boost/filesystem/path.hpp"
+#include "boost/filesystem/path.hpp" */
 
+#include "boost/filesystem.hpp"
 #if defined(MAC) || defined(WIN32)
 #define HONOR_VBL_SYNC
 #endif
@@ -67,7 +69,7 @@ const double kTransitionLengthSeconds = 1;
 
 using boost::filesystem::directory_iterator;
 using boost::filesystem::exists;
-using boost::filesystem::extension;
+//using boost::filesystem::extension;
 using boost::filesystem::path;
 
 using namespace DisplayOutput;
@@ -128,9 +130,9 @@ int CPlayer::AddDisplay(uint32 screen)
     if (detectgold)
     {
         detectgold = false;
-        std::string content = g_Settings()->Root() + "content/";
+        std::string content = g_Settings()->Root() + "content";
         std::string watchFolder =
-            g_Settings()->Get("settings.content.sheepdir", content) + "/mp4/";
+            g_Settings()->Get("settings.content.sheepdir", content) + PATH_SEPARATOR + "mp4" + PATH_SEPARATOR;
     }
     // modify aspect ratio and/or window size hint
     uint32_t w = 1280;
@@ -226,7 +228,9 @@ bool CPlayer::Startup()
 
     //	Grab some paths for the decoder.
     std::string content = g_Settings()->Root() + "content/";
+
 #ifndef LINUX_GNU
+    // Common for mac & win
     std::string scriptRoot =
         g_Settings()->Get("settings.app.InstallDir", std::string("./")) +
         "Scripts";
@@ -235,18 +239,31 @@ bool CPlayer::Startup()
         g_Settings()->Get("settings.app.InstallDir", std::string(SHAREDIR)) +
         "Scripts";
 #endif
-    std::string watchFolder =
-        g_Settings()->Get("settings.content.sheepdir", content) + "/mp4/";
+    std::string watchFolder = g_Settings()->Get("settings.content.sheepdir", content) +
+         "/mp4/";
 
     if (TupleStorage::IStorageInterface::CreateFullDirectory(content.c_str()))
     {
-        if (m_InitPlayCounts)
-            g_PlayCounter().SetDirectory(content);
+        // TODO is this still used ?
+        //if (m_InitPlayCounts)
+        //    g_PlayCounter().SetDirectory(content);
     }
 
     //  Tidy up the paths.
+//    #ifdef MAC
     path scriptPath = scriptRoot;
     path watchPath = watchFolder;
+//    #else
+
+/* path::codecvt();
+    boost::filesystem::path test = path("c:\\dev\\");
+    auto test2 = test.string();
+
+    path test3 = "c:\\dev\\";
+    path watchPath(watchFolder);
+    path scriptPath(scriptRoot);
+    
+    #endif*/
 
     //	Create playlist.
     g_Log->Info("Creating playlist...");
