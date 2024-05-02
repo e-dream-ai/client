@@ -583,6 +583,8 @@ class CElectricSheep
     {
         while (true)
         {
+            // TODO : Some renderer changes have happened here
+#ifdef MAC
             // g_Player().Renderer()->BeginFrame();
 
             // if( !Update() )
@@ -590,6 +592,16 @@ class CElectricSheep
                 g_Player().Renderer()->EndFrame();
                 return false;
             }
+#else 
+            g_Player().Renderer()->BeginFrame();
+
+            if( !Update() )
+            {
+                g_Player().Renderer()->EndFrame();
+                return false;
+            }
+
+#endif 
         }
 
         return true;
@@ -703,6 +715,37 @@ class CElectricSheep
         SAFE_DELETE(m_pUpdateBarrier);
     }
 #endif
+
+
+    // WIN32 only for now 
+    virtual bool Update()
+    {
+        g_Player().BeginFrameUpdate();
+
+#ifdef DO_THREAD_UPDATE
+        {
+            boost::mutex::scoped_lock lock(m_BarrierMutex);
+
+            m_pUpdateBarrier->wait();
+
+            m_pUpdateBarrier->wait();
+        }
+#else
+        uint32_t displayCnt = g_Player().GetDisplayCount();
+
+        bool ret = true;
+        for (uint32_t i = 0; i < displayCnt; i++)
+        {
+            ret &= DoRealFrameUpdate(i);
+            if (!ret)
+                break;
+        }
+#endif
+
+        g_Player().EndFrameUpdate();
+
+        return ret;
+    }
 
     //
     virtual bool Update(int _displayIdx, boost::barrier& _beginFrameBarrier,

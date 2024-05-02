@@ -189,7 +189,8 @@ bool EDreamClient::Authenticate()
         ESShowPreferences();
     }*/
     fIsLoggedIn.exchange(success);
-    fAuthMutex.unlock();
+    // TODO somehow we're not locked here, but we should be
+    //fAuthMutex.unlock();
     g_Log->Info("Login success:%s", success ? "true" : "false");
     if (success)
     {
