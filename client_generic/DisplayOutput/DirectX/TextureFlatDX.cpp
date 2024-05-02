@@ -125,6 +125,11 @@ bool CTextureFlatDX::Upload(spCImage _spImage)
     return true;
 }
 
+// TODO: Implement this, seems only needed on Mac ?
+bool CTextureFlatDX::BindFrame(ContentDecoder::spCVideoFrame _pFrame) {
+    return true;
+}
+
 /*
  */
 bool CTextureFlatDX::Bind(const uint32_t _index)
