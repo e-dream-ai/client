@@ -41,7 +41,7 @@ void CImage::Copy(const CImage& _image, const uint32_t _mipLevel)
         {
             uint32_t size = getMipMappedSize(0, m_nMipMaps);
             m_spData = std::make_shared<Base::CAlignedBuffer>(size);
-            if (m_spData->IsValid())
+            if (m_spData->IsValid())    
                 memcpy(m_spData->GetBufferPtr(), _image.GetData(0), size);
         }
     }
