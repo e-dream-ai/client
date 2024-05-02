@@ -7,6 +7,16 @@
 #include <os/signpost.h>
 #endif 
 
+#ifdef WIN32
+#include <io.h> // Import read/write in msvc
+#endif;
+
+#if defined(_MSC_VER)
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#endif
+
+#include <stdio.h>
 #include <sstream>
 #include <cstdarg>
 #include <string>
@@ -68,7 +78,7 @@ bool CLog::Shutdown(void)
 
 void CLog::PipeReaderThread()
 {
-#ifdef MAC
+
     PlatformUtils::SetThreadName("Log");
     while (1)
     {
@@ -87,15 +97,12 @@ void CLog::PipeReaderThread()
             break;
         }
     }
-#endif
+
 }
 
 void CLog::Attach(const std::string& _location, const uint32_t /*_level*/)
 {
-    #ifdef MAC
-    if (m_bActive)
-        return;
-
+    // Create filename with timestamp
     time_t curTime;
     time(&curTime);
 
@@ -183,30 +190,30 @@ void CLog::Attach(const std::string& _location, const uint32_t /*_level*/)
 //    m_pPipeReaderThread =
 //        new std::thread(std::bind(&CLog::PipeReaderThread, this));
     m_bActive = true;
-#endif
+
 }
 
 /*
  */
 void CLog::Detach(void)
 {
-    #ifdef MAC
-    fflush(stdout);
-    m_bActive = false;
-    if (m_PipeReader)
-        close(m_PipeReader);
-    m_PipeReader = 0;
-    m_pPipeReaderThread->join();
-    m_pPipeReaderThread = nullptr;
-    fflush(m_pFile);
-    if (m_pFile)
-        fclose(m_pFile);
-    if (dup2(m_OriginalSTDOUT, fileno(stdout)) == -1)
-    {
-        perror("dup2 failed");
-        exit(EXIT_FAILURE);
-    }
-    #endif
+
+    //fflush(stdout);
+    //m_bActive = false;
+    //if (m_PipeReader)
+    //    close(m_PipeReader);
+    //m_PipeReader = 0;
+    //m_pPipeReaderThread->join();
+    //m_pPipeReaderThread = nullptr;
+    //fflush(m_pFile);
+    //if (m_pFile)
+    //    fclose(m_pFile);
+    //if (dup2(m_OriginalSTDOUT, fileno(stdout)) == -1)
+    //{
+    //    perror("dup2 failed");
+    //    exit(EXIT_FAILURE);
+    //}
+
 }
 
 /*
@@ -216,16 +223,16 @@ void CLog::Detach(void)
 void CLog::SetInfo(const char* _pFileStr, const uint32_t _line,
                    const char* _pFunc)
 {
-    #ifdef MAC
+
     // std::scoped_lock locker( m_Lock );
 
     //std::string tmp = _pFileStr;
     //size_t offs = tmp.find_last_of("/\\", tmp.size());
 
-    m_File = tmp.substr(offs + 1, tmp.size());
-    m_Function = std::string(_pFunc);
-    m_Line = _line;
-    #endif
+    //m_File = tmp.substr(offs + 1, tmp.size());
+    //m_Function = std::string(_pFunc);
+    //m_Line = _line;
+
 }
 
 /*
@@ -240,7 +247,7 @@ void CLog::Log(
     /*const char *_file, const uint32_t _line, const char *_pFunc,*/ const char*
         _pStr)
 {
-    #ifdef MAC
+
     if (!m_bSingletonActive)
         return;
     //    std::scoped_lock locker(m_Lock);
@@ -305,12 +312,12 @@ void CLog::Log(
     //        printf("[%s-%s]: '%s'\n", s_MessageType, timeStamp, s_MessageSpam);
     //    }
 
-        s_MessageSpamCount = 0;
-        memcpy(s_MessageSpam, _pStr, m_MaxMessageLength);
-        strcpy(s_MessageType, _pType);
-    }
-    /* log spam end */
-    #endif
+    //    s_MessageSpamCount = 0;
+    //    memcpy(s_MessageSpam, _pStr, m_MaxMessageLength);
+    //    strcpy(s_MessageType, _pType);
+    //}
+    ///* log spam end */
+
 }
 
 #define grabvarargs                                                            \
