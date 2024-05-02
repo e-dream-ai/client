@@ -290,13 +290,10 @@ void CRendererDX::Reset(const uint32_t _flags) { CRenderer::Reset(_flags); }
 spCTextureFlat CRendererDX::NewTextureFlat(spCImage _spImage,
                                            const uint32_t _flags)
 {
-    std::string q = "test";
-
     //spCTextureFlat spTex = new CTextureFlatDX(m_pDevice, _flags);
-    /* auto spTex = std::make_shared<CTextureFlatDX>(m_pDevice, _flags);
+    auto spTex = std::make_shared<CTextureFlatDX>(m_pDevice, _flags);
     spTex->Upload(_spImage);
-    return spTex;*/
-    return NULL;
+    return spTex;
 }
 
 /*
@@ -304,9 +301,8 @@ spCTextureFlat CRendererDX::NewTextureFlat(spCImage _spImage,
 spCTextureFlat CRendererDX::NewTextureFlat(const uint32_t _flags)
 {
     //spCTextureFlat spTex = new CTextureFlatDX(m_pDevice, _flags);
-    /* auto spTex = std::make_shared<CTextureFlatDX>(m_pDevice, _flags);
-    return spTex;*/
-    return NULL;
+    auto spTex = std::make_shared<CTextureFlatDX>(m_pDevice, _flags);
+    return spTex;
 }
 
 /*

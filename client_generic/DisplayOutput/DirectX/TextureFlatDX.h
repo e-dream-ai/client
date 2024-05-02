@@ -27,6 +27,7 @@ class CTextureFlatDX : public CTextureFlat
     virtual bool Upload(spCImage _spImage);
     virtual bool Bind(const uint32_t _index);
     virtual bool Unbind(const uint32_t _index);
+    bool BindFrame(ContentDecoder::spCVideoFrame _pFrame);
 };
 
 MakeSmartPointers(CTextureFlatDX);

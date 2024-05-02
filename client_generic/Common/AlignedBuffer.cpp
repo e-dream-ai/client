@@ -150,7 +150,12 @@ uint8_t* CReusableAlignedBuffers::Reallocate(uint8_t* buffer, uint32_t size)
 
 void CReusableAlignedBuffers::RealFree(uint8_t* buffer, uint32_t /*size*/)
 {
+#ifdef WIN32
+    _aligned_free(buffer);
+#else
     free(buffer);
+#endif // WIN32
+
 }
 
 /*
