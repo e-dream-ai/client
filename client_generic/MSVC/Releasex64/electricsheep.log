@@ -15,9 +15,3 @@
           1 fichier(s) copié(s).
   Scanning sources for module dependencies...
   electricsheep.vcxproj -> C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\Release\e-dream.scr
-  Le fichier spécifié est introuvable.
-  Le fichier spécifié est introuvable.
-C:\Program Files\Microsoft Visual Studio\2022\Preview\MSBuild\Microsoft\VC\v170\Microsoft.CppCommon.targets(166,5): error MSB3073: The command "copy .\release\es.scr ..\RuntimeMSVC\esx64.scr /y
-C:\Program Files\Microsoft Visual Studio\2022\Preview\MSBuild\Microsoft\VC\v170\Microsoft.CppCommon.targets(166,5): error MSB3073: copy .\release\es.scr ..\RuntimeMSVC\esx64.exe /y
-C:\Program Files\Microsoft Visual Studio\2022\Preview\MSBuild\Microsoft\VC\v170\Microsoft.CppCommon.targets(166,5): error MSB3073: 
-C:\Program Files\Microsoft Visual Studio\2022\Preview\MSBuild\Microsoft\VC\v170\Microsoft.CppCommon.targets(166,5): error MSB3073: :VCEnd" exited with code 1.

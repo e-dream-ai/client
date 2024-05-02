@@ -89,10 +89,13 @@ uint8_t* CReusableAlignedBuffers::Allocate(uint32_t size)
             }
         }
     }
-
+    
 #ifdef WIN32
     // no valloc so malloc for now on WIN32. Needs to be implemented properly
-    return (uint8_t*)malloc(size + GetPageSize() - 1);
+    //return (uint8_t*)malloc(size + GetPageSize() - 1);
+
+    // Using instead alternative _aligned_malloc for now
+    return (uint8_t*)_aligned_malloc(size, GetPageSize());
 #else
     return (uint8_t*)valloc(size);
     // m_Buffer = (uint8_t *)mmap( NULL, size, PROT_WRITE, MAP_ANON | MAP_SHARED,
@@ -184,10 +187,13 @@ bool CAlignedBuffer::Allocate(uint32_t size)
 
     m_Buffer = rab->Allocate(size);
 
+#ifdef WIN32 
+    // We've switched to _aligned_malloc from mvsc which are directly paged align. 
+    m_BufferAlignedStart = m_Buffer;
+#else
     unsigned long mask = CReusableAlignedBuffers::GetPageSize() - 1;
-
     m_BufferAlignedStart = (uint8_t*)((unsigned long)(m_Buffer + mask) & ~mask);
-
+#endif     
     m_Size = size;
 
     return (m_Buffer != NULL);

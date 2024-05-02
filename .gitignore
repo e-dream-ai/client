@@ -14,3 +14,7 @@ client_generic/MacBuild/BuildData.json
 /client_generic/MSVC/.vs
 /client_generic/MSVC/Debugx64d
 /client_generic/MSVC/Debug
+/client_generic/MSVC/Releasex64
+/client_generic/MSVC/Release
+/client_generic/MSVC/Release
+/client_generic/MSVC/Releasex64
