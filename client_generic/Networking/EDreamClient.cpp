@@ -134,7 +134,10 @@ void EDreamClient::InitializeClient()
         g_Settings()
             ->Get("settings.content.refresh_token", std::string(""))
             .c_str());
+    // TODO : Mutex in another thread does crash the MSVC runtime. Not thread safe mutex impl?
+ #ifndef WIN32
     fAuthMutex.lock();
+ #endif
     boost::thread authThread(&EDreamClient::Authenticate);
 }
 
@@ -189,8 +192,10 @@ bool EDreamClient::Authenticate()
         ESShowPreferences();
     }*/
     fIsLoggedIn.exchange(success);
-    // TODO somehow we're not locked here, but we should be
-    //fAuthMutex.unlock();
+    // TODO : Mutex in another thread does crash the MSVC runtime. Not thread safe mutex impl?
+#ifndef WIN32
+    fAuthMutex.unlock();
+#endif
     g_Log->Info("Login success:%s", success ? "true" : "false");
     if (success)
     {
