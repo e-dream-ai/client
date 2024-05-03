@@ -129,9 +129,6 @@ void CContentDecoder::abortFutures() {
 
 int CContentDecoder::DumpError(int _err)
 {
-    // @TODO define issue with MSVC
-    #ifdef MAC
-
     if (_err < 0)
     {
         switch (_err)

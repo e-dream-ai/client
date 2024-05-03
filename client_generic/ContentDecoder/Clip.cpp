@@ -134,6 +134,13 @@ bool CClip::Update(double _timelineTime)
         }
     }
 
+    // Triple check that we have a frame to display. Seems like an issue on WIN32 somehow ?
+    if (m_spFrameData == nullptr)
+	{
+        g_Log->Error("GrabVideoFrame() returned true but no frame data available?");
+		return false;
+	}
+
     uint32_t idx = m_spFrameData->GetMetaData().frameIdx;
     uint32_t maxIdx = m_spFrameData->GetMetaData().maxFrameIdx;
     double delta = m_DecoderClock.interframeDelta / m_ClipMetadata.decodeFps;

@@ -4,9 +4,13 @@
 #include <windows.h>
 #include <wininet.h>
 #include <shellapi.h>
+#include "Log.h"
 
 bool PlatformUtils::IsInternetReachable()
-{ return true; }
+{ 
+	// TODO: Implement this
+	return true; 
+}
 
 
 std::string PlatformUtils::GetBuildDate()
@@ -32,6 +36,7 @@ void PlatformUtils::SetCursorHidden(bool _hidden)
 void PlatformUtils::SetOnMouseMovedCallback(std::function<void(int, int)> _callback)
 {
 	// Not implemented
+    g_Log->Error("SetOnMouseMovedCallback not implemented yet on WIN32");
 }
 
 void PlatformUtils::OpenURLExternally(std::string_view _url)
@@ -41,12 +46,18 @@ void PlatformUtils::OpenURLExternally(std::string_view _url)
 
 void PlatformUtils::SetThreadName(std::string_view _name)
 {
-	// Not implemented
+	// Convert to WSTR 
+	std::wstring stemp = std::wstring(_name.begin(), _name.end());
+    LPCWSTR sw = stemp.c_str(); 
+	
+    HRESULT r;
+    r = SetThreadDescription(GetCurrentThread(), sw);
 }
 
 void PlatformUtils::DispatchOnMainThread(std::function<void()> _func)
 {
 	// Not implemented
+    g_Log->Error("DispatchOnMainThread not implemented yet on WIN32");
 }
 
 CDelayedDispatch::CDelayedDispatch(std::function<void()> _func)
@@ -61,6 +72,7 @@ void CDelayedDispatch::Cancel()
 
 void CDelayedDispatch::DispatchAfter(uint64_t _seconds)
 {
+    g_Log->Error("DispatchAfter not implemented yet on WIN32");
 	// Not implemented, just launch now
 	m_Func();
 }
