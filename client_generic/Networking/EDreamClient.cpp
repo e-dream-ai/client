@@ -172,6 +172,7 @@ void EDreamClient::InitializeClient()
     s_SIOClient.set_reconnect_listener(&OnWebSocketReconnect);
 
     fAuthMutex.lock();
+ #endif
     boost::thread authThread(&EDreamClient::Authenticate);
 }
 
