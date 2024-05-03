@@ -100,40 +100,59 @@ void CContentDecoder::Destroy()
 
 int CContentDecoder::DumpError(int _err)
 {
-    // @TODO define issue with MSVC
-    #ifdef MAC
-
     if (_err < 0)
     {
         switch (_err)
         {
         case AVERROR_INVALIDDATA:
+#ifdef WIN32
+			g_Log->Error("FFmpeg error %d: Error while parsing header",
+						 _err);
+#else
             g_Log->Error("FFmpeg error %s: Error while parsing header",
                          UNFFERRTAG(_err));
+#endif
             break;
         case AVERROR(EIO):
+#ifdef WIN32
+            g_Log->Error(
+                "FFmpeg error %d: I/O error occured. Usually that means "
+                "that input file is truncated and/or corrupted.", _err);
+#else
             g_Log->Error(
                 "FFmpeg error %s: I/O error occured. Usually that means "
                 "that input file is truncated and/or corrupted.",
                 UNFFERRTAG(_err));
+#endif
             break;
         case AVERROR(ENOMEM):
+#ifdef WIN32
+            g_Log->Error("FFmpeg error %d: Memory allocation error occured",
+                         _err);
+#else
             g_Log->Error("FFmpeg error %s: Memory allocation error occured",
                          UNFFERRTAG(_err));
+#endif
             break;
         case AVERROR(ENOENT):
+#ifdef WIN32
+            g_Log->Error("FFmpeg error %d: ENOENT", _err);
+#else
             g_Log->Error("FFmpeg error %s: ENOENT", UNFFERRTAG(_err));
+#endif
             break;
         default:
+#ifdef WIN32
+            g_Log->Error("FFmpeg error %d: Error while opening file",
+                         _err);
+#else
             g_Log->Error("FFmpeg error %s: Error while opening file",
                          UNFFERRTAG(_err));
+#endif
             break;
         }
     }
     return _err;
-    #else
-    return _err;
-    #endif
 }
 
 bool CContentDecoder::Open()
@@ -145,6 +164,7 @@ bool CContentDecoder::Open()
     boost::filesystem::path sys_name(ovi->m_Path);
     std::string _filename = sys_name.string();
     ovi->m_TotalFrameCount = 0;
+    g_Log->Info("Opening: %s", _filename.c_str());
     g_Log->Info("Opening: %s", _filename.c_str());
     // Destroy()
     if (DumpError(avformat_open_input(&ovi->m_pFormatContext, _filename.c_str(),

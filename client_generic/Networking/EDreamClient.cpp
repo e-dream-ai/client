@@ -196,6 +196,7 @@ bool EDreamClient::Authenticate()
 #ifndef WIN32
     fAuthMutex.unlock();
 #endif
+
     g_Log->Info("Login success:%s", success ? "true" : "false");
     if (success)
     {

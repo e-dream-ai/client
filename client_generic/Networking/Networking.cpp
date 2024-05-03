@@ -71,7 +71,7 @@ CCurlTransfer::~CCurlTransfer()
 */
 bool CCurlTransfer::Verify(CURLcode _code)
 {
-    g_Log->Info("Verify(%d)", _code);
+    g_Log->Debug("Verify(%d)", _code);
 
     if (_code != CURLE_OK)
     {
@@ -88,7 +88,7 @@ bool CCurlTransfer::Verify(CURLcode _code)
 */
 bool CCurlTransfer::VerifyM(CURLMcode _code)
 {
-    g_Log->Info("VerifyM(%d)", _code);
+    g_Log->Debug("VerifyM(%d)", _code);
 
     if (_code != CURLM_OK && _code != CURLM_CALL_MULTI_PERFORM)
     {
