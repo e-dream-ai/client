@@ -63,6 +63,7 @@ void PlatformUtils::DispatchOnMainThread(std::function<void()> _func)
 CDelayedDispatch::CDelayedDispatch(std::function<void()> _func)
     : m_DispatchTime(0), m_Func(_func)
 {
+    g_Log->Error("DelayedDispatch not implemented yet on WIN32");
 }
 
 void CDelayedDispatch::Cancel()
@@ -74,5 +75,7 @@ void CDelayedDispatch::DispatchAfter(uint64_t _seconds)
 {
     g_Log->Error("DispatchAfter not implemented yet on WIN32");
 	// Not implemented, just launch now
-	m_Func();
+	// m_Func();
+
+	// TODO: TMP disabled this to stop the downloads during debugging 
 }
