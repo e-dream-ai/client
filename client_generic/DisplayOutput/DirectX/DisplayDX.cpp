@@ -15,6 +15,7 @@
 #include "DisplayDX.h"
 #include "Log.h"
 #include "settings.h"
+#include "client.h"
 
 #include "Exception.h"
 
@@ -246,7 +247,8 @@ LRESULT CALLBACK CDisplayDX::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
 
     case WM_KEYUP:
     {
-        CKeyEvent* spEvent = new CKeyEvent();
+        spCKeyEvent spEvent = std::make_shared<CKeyEvent>();
+        //CKeyEvent* spEvent = new CKeyEvent();
         spEvent->m_bPressed = true;
 
         switch (wParam)
@@ -300,20 +302,17 @@ LRESULT CALLBACK CDisplayDX::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
             spEvent->m_Code = CKeyEvent::KEY_Esc;
             break;
         }
-
-        //spCEvent e = std::dynamic_pointer_cast<DisplayOutput::CEvent>(spEvent);
-        //m_EventQueue.push(e);
+        g_Player().Display()->AppendEvent(spEvent);
     }
     break;
 
     case WM_LBUTTONUP:
     {
-        CMouseEvent* spEvent = new CMouseEvent();
+        auto spEvent = std::make_shared<CMouseEvent>();
         spEvent->m_Code = CMouseEvent::Mouse_LEFT;
         spEvent->m_X = MAKEPOINTS(lParam).x;
         spEvent->m_Y = MAKEPOINTS(lParam).y;
-        //spCEvent e = spEvent;
-        //m_EventQueue.push(e);
+        g_Player().Display()->AppendEvent(spEvent);
     }
     break;
 
