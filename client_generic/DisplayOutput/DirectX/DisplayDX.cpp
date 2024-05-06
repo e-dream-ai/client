@@ -318,25 +318,23 @@ LRESULT CALLBACK CDisplayDX::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
 
     case WM_RBUTTONUP:
     {
-        CMouseEvent* spEvent = new CMouseEvent();
+        auto spEvent = std::make_shared<CMouseEvent>();
         spEvent->m_Code = CMouseEvent::Mouse_RIGHT;
         spEvent->m_X = MAKEPOINTS(lParam).x;
         spEvent->m_Y = MAKEPOINTS(lParam).y;
-        //spCEvent e = spEvent;
-        //m_EventQueue.push(e);
+        g_Player().Display()->AppendEvent(spEvent);
     }
     break;
 
     case WM_MOUSEMOVE:
     {
-        CMouseEvent* spEvent = new CMouseEvent();
+        auto spEvent = std::make_shared<CMouseEvent>();
         spEvent->m_Code = CMouseEvent::Mouse_MOVE;
 
         spEvent->m_X = MAKEPOINTS(lParam).x;
         spEvent->m_Y = MAKEPOINTS(lParam).y;
+        g_Player().Display()->AppendEvent(spEvent);
 
-        //spCEvent e = spEvent;
-        //m_EventQueue.push(e);
     }
     break;
 
@@ -346,9 +344,8 @@ LRESULT CALLBACK CDisplayDX::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
         case PBT_APMBATTERYLOW:
         case PBT_APMSUSPEND:
         {
-            CPowerEvent* spEvent = new CPowerEvent();
-            //spCEvent e = spEvent;
-            //m_EventQueue.push(e);
+            auto spEvent = std::make_shared<CPowerEvent>();
+            g_Player().Display()->AppendEvent(spEvent);
         }
         }
         break;
