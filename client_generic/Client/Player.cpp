@@ -279,7 +279,6 @@ bool CPlayer::Startup()
     }
 
     //  Tidy up the paths.
-//    #ifdef MAC
     path scriptPath = scriptRoot;
     path watchPath = watchFolder;
 
