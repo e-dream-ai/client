@@ -253,7 +253,7 @@ class CElectricSheep_Win32 : public CElectricSheep
         }
 
         // TMP
-        //m_ScrMode = eWindowed;
+        m_ScrMode = eWindowed;
 
         //	Check for multiple instances if we're not specifically asked not
         // to.
