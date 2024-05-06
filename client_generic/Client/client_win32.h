@@ -131,7 +131,6 @@ class CElectricSheep_Win32 : public CElectricSheep
           g_SingleInstanceObj("Global\\{" CLIENT_VERSION_PRETTY "}")
     {
         printf("CElectricSheep_Win32()\n");
-        //g_SingleInstanceObj = CMonoInstance("Global\\{" CLIENT_VERSION_PRETTY "}");
         m_bAllowFKey = false;
         m_pD3D9 = NULL;
 
@@ -286,7 +285,7 @@ class CElectricSheep_Win32 : public CElectricSheep
         if (SUCCEEDED(
                 SHGetFolderPathA(NULL, CSIDL_COMMON_APPDATA, NULL, 0, szPath)))
         {
-            PathAppendA(szPath, "\\ElectricSheep\\");
+            PathAppendA(szPath, "\\e-dream\\");
             m_AppData = szPath;
         }
 
@@ -296,7 +295,7 @@ class CElectricSheep_Win32 : public CElectricSheep
         m_WorkingDir = ".\\";
 
         HKEY key;
-        if (!RegOpenKeyA(HKEY_LOCAL_MACHINE, "SOFTWARE\\ElectricSheep", &key))
+        if (!RegOpenKeyA(HKEY_LOCAL_MACHINE, "SOFTWARE\\e-dream", &key))
         {
             LPSTR temp;
             if (RegGetString(key, "InstallDir", &temp) == NOERROR)

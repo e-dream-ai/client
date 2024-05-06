@@ -250,20 +250,8 @@ bool CPlayer::Startup()
     }
 
     //  Tidy up the paths.
-//    #ifdef MAC
     path scriptPath = scriptRoot;
     path watchPath = watchFolder;
-//    #else
-
-/* path::codecvt();
-    boost::filesystem::path test = path("c:\\dev\\");
-    auto test2 = test.string();
-
-    path test3 = "c:\\dev\\";
-    path watchPath(watchFolder);
-    path scriptPath(scriptRoot);
-    
-    #endif*/
 
     //	Create playlist.
     g_Log->Info("Creating playlist...");
