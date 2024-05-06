@@ -253,7 +253,7 @@ class CElectricSheep_Win32 : public CElectricSheep
         }
 
         // TMP
-        m_ScrMode = eWindowed;
+        //m_ScrMode = eWindowed;
 
         //	Check for multiple instances if we're not specifically asked not
         // to.
@@ -500,7 +500,7 @@ class CElectricSheep_Win32 : public CElectricSheep
     }
 
     // @TODO : Might no longer be needed, need to triple check as there is a lot of code moved to client already
-    /*
+    
     virtual bool HandleOneEvent(DisplayOutput::spCEvent& _event)
     {
         //	Handle events.
@@ -514,7 +514,7 @@ class CElectricSheep_Win32 : public CElectricSheep
             if (_event->Type() == DisplayOutput::CEvent::Event_KEY)
             {
                 DisplayOutput::spCKeyEvent spKey =
-                    static_cast<DisplayOutput::spCKeyEvent>(_event);
+                    std::dynamic_pointer_cast<DisplayOutput::CKeyEvent>(_event);
 
                 switch (spKey->m_Code)
                 {
@@ -579,7 +579,7 @@ class CElectricSheep_Win32 : public CElectricSheep
                         m_ScrMode != eFullScreenStandalone)
                     {
                         DisplayOutput::spCMouseEvent spMouse =
-                            static_cast<DisplayOutput::spCMouseEvent>(_event);
+                            std::dynamic_pointer_cast<DisplayOutput::CMouseEvent>(_event);
 
                         if (spMouse->m_Code ==
                             DisplayOutput::CMouseEvent::Mouse_MOVE)
@@ -619,8 +619,8 @@ class CElectricSheep_Win32 : public CElectricSheep
                     return true;
                 }
         return false;
-    }*/
-    /*
+    }
+    
     virtual bool HandleEvents()
     {
         DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
@@ -637,10 +637,31 @@ class CElectricSheep_Win32 : public CElectricSheep
         }
 
         return true;
-    }*/
+    }
     //
 
+    virtual bool Update()
+    {
+        //g_Player().Framerate(m_CurrentFps);
 
+        if (!CElectricSheep::Update())
+            return false;
+
+        DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
+
+        //	We ignore events in preview mode.
+        if (m_ScrMode == ePreview)
+        {
+            spDisplay->ClearEvents();
+            return true;
+        }
+
+        //static const float voteDelaySeconds = 1;
+        // @TODO: Might need to return true here and not HandleEvents, like mac client does now?
+        return HandleEvents();
+    }
+
+    // TODO : Never called ?
     virtual bool Update(int _displayIdx, boost::barrier& _beginFrameBarrier, boost::barrier& _endFrameBarrier)
     {
         //g_Player().Framerate(m_CurrentFps);

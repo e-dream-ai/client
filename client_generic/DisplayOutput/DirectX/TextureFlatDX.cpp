@@ -127,6 +127,7 @@ bool CTextureFlatDX::Upload(spCImage _spImage)
 
 // TODO: Implement this, seems only needed on Mac ?
 bool CTextureFlatDX::BindFrame(ContentDecoder::spCVideoFrame _pFrame) {
+    g_Log->Warning("CTextureFlatDX::BindFrame not implemented yet on WIN");
     return true;
 }
 
