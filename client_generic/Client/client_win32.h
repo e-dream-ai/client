@@ -450,7 +450,7 @@ class CElectricSheep_Win32 : public CElectricSheep
                 g_Settings()->Get("settings.player.MultiDisplayMode", 0) ==
                         CPlayer::kMDSingleScreen &&
                     m_ScrMode != eFullScreenStandalone &&
-                    m_ScrMode != eWindowed) == false)
+                    m_ScrMode != eWindowed) == -1)
         {
             bool foundfirstmon = false;
             g_Log->Error("AddDisplay failed for screen %d", monnum);
