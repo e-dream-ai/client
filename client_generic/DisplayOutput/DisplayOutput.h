@@ -211,17 +211,17 @@ class CDisplayOutput
     virtual ~CDisplayOutput();
 
 #ifdef WIN32
-    virtual bool Initialize(HWND _hWnd, bool _bPreview) = PureVirtual;
+    //virtual bool Initialize(HWND _hWnd, bool _bPreview) = PureVirtual;
     virtual HWND Initialize(const uint32_t _width, const uint32_t _height,
                             const bool _bFullscreen) = PureVirtual;
-    virtual HWND WindowHandle(void) = PureVirtual;
+    //virtual HWND WindowHandle(void) = PureVirtual;
 
-    virtual IDirect3DDevice9* Device() = PureVirtual;
-    virtual D3DPRESENT_PARAMETERS PresentParameters() = PureVirtual;
+    //virtual IDirect3DDevice9* Device() = PureVirtual;
+    //virtual D3DPRESENT_PARAMETERS PresentParameters() = PureVirtual;
 
-    virtual void SetScreen(const uint32_t _screen) = PureVirtual;
+    //virtual void SetScreen(const uint32_t _screen) = PureVirtual;
 
-    virtual DWORD GetNumMonitors() { return 1; };
+    //virtual DWORD GetNumMonitors() { return 1; };
 
 #else
 #ifdef MAC

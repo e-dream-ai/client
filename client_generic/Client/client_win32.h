@@ -477,7 +477,7 @@ class CElectricSheep_Win32 : public CElectricSheep
         else
             g_Log->Info("AddDisplay succeeded for screen %d",
                         g_Settings()->Get("settings.player.screen", 0));
-        if (m_ScrMode != eWindowed &&
+        /* if (m_ScrMode != eWindowed &&
             m_ScrMode != eWindowed_AllowMultipleInstances &&
             g_Settings()->Get("settings.player.MultiDisplayMode", 0) !=
                 CPlayer::kMDSingleScreen)
@@ -488,7 +488,7 @@ class CElectricSheep_Win32 : public CElectricSheep
                     g_Log->Info("AddDisplay succeeded for screen %d", dw);
                 else
                     g_Log->Error("AddDisplay failed for screen %d", dw);
-            }
+            }*/
         //
         if (CElectricSheep::Startup() == false)
             return false;

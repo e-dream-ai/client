@@ -61,6 +61,9 @@
     <Filter Include="DisplayOutput\DirectX">
       <UniqueIdentifier>{e6568873-7a46-4f56-b3c1-c66496a8c7e3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="DisplayOutput\D3D12">
+      <UniqueIdentifier>{7ffa8fad-b8c2-4051-ab70-6c1cf9268ebe}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\ContentDownloader\ContentDownloader.cpp">
@@ -191,6 +194,12 @@
     </ClCompile>
     <ClCompile Include="PlatformUtils_win.cpp">
       <Filter>Client\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="..\DisplayOutput\D3D12\DisplayD3D12.cpp">
+      <Filter>DisplayOutput\D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="..\DisplayOutput\D3D12\RendererD3D12.cpp">
+      <Filter>DisplayOutput\D3D12</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -433,6 +442,12 @@
     </ClInclude>
     <ClInclude Include="..\Client\PlatformUtils.h">
       <Filter>Client\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\DisplayOutput\D3D12\DisplayD3D12.h">
+      <Filter>DisplayOutput\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\DisplayOutput\D3D12\RendererD3D12.h">
+      <Filter>DisplayOutput\D3D12</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

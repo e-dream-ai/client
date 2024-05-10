@@ -67,13 +67,13 @@ bool CRendererDX::Initialize(spCDisplayOutput _spDisplay)
 
     if (g_DLLFun->Init() == false)
         return false;
-
+    /*
     m_WindowHandle = _spDisplay->WindowHandle();
 
     m_pDevice = _spDisplay->Device();
 
     m_PresentationParams = _spDisplay->PresentParameters();
-
+    */
     D3DVIEWPORT9 vp = {0,    0,   _spDisplay->Width(), _spDisplay->Height(),
                        0.0f, 1.0f};
     m_pDevice->SetViewport(&vp);
@@ -200,10 +200,17 @@ bool CRendererDX::BeginFrame(void)
 
     m_pDevice->Clear(0, NULL, D3DCLEAR_TARGET, 0, 0., 0);
 
-    if (FAILED(m_pDevice->BeginScene()))
+    auto bs = m_pDevice->BeginScene(); 
+    if (bs != D3D_OK)
     {
         return false;
     }
+    
+    // Failed seems to think S_OK (0) is bad ??
+    /* if (FAILED(m_pDevice->BeginScene()))
+    {
+        return false;
+    }*/
 
     return true;
 }
