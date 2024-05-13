@@ -11,20 +11,12 @@
 #include <D3Dcompiler.h>
 #include <DirectXMath.h>
 #include <d3dx12.h>
-
+#include "D3D12Helpers.h"
 
 using Microsoft::WRL::ComPtr;
 
 
-// Misc helpers
 
-inline void ThrowIfFailed(HRESULT hr)
-{
-    if (FAILED(hr))
-    {
-        //throw HrException(hr);
-    }
-}
 
 
 namespace DisplayOutput

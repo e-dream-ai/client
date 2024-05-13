@@ -1,4 +1,5 @@
 #include "DisplayD3D12.h"
+
 #include "client.h"
 #include "Log.h"
 #include "Player.h"
