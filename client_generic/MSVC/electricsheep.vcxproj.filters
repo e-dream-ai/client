@@ -202,7 +202,7 @@
       <Filter>DisplayOutput\D3D12</Filter>
     </ClCompile>
     <ClCompile Include="..\DisplayOutput\D3D12\TextureFlatD3D12.cpp">
-      <Filter>ContentDownloader</Filter>
+      <Filter>DisplayOutput\D3D12</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -453,7 +453,7 @@
       <Filter>DisplayOutput\D3D12</Filter>
     </ClInclude>
     <ClInclude Include="..\DisplayOutput\D3D12\TextureFlatD3D12.h">
-      <Filter>Common</Filter>
+      <Filter>DisplayOutput\D3D12</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
