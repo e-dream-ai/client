@@ -422,6 +422,9 @@
     <ClInclude Include="..\DisplayOutput\D3D12\TextureFlatD3D12.h">
       <Filter>DisplayOutput\D3D12</Filter>
     </ClInclude>
+    <ClInclude Include="..\DisplayOutput\D3D12\D3D12Helpers.h">
+      <Filter>DisplayOutput\D3D12</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Client\app.ico">

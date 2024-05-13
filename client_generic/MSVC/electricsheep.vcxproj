@@ -613,6 +613,7 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
     <ClInclude Include="..\ContentDownloader\Dream.h" />
     <ClInclude Include="..\ContentDownloader\SheepDownloader.h" />
     <ClInclude Include="..\ContentDownloader\Shepherd.h" />
+    <ClInclude Include="..\DisplayOutput\D3D12\D3D12Helpers.h" />
     <ClInclude Include="..\DisplayOutput\D3D12\DisplayD3D12.h" />
     <ClInclude Include="..\DisplayOutput\D3D12\RendererD3D12.h" />
     <ClInclude Include="..\DisplayOutput\D3D12\TextureFlatD3D12.h" />
