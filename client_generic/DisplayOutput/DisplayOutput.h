@@ -8,8 +8,8 @@
 
 #ifdef WIN32
 
-#include <d3d9.h>
-#include <d3dx9.h>
+#include <d3d12.h>
+#include <d3dx12.h>
 #endif
 
 #ifdef __OBJC__

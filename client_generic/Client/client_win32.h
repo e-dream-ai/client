@@ -5,8 +5,8 @@
 #error This file is not supposed to be used for this platform...
 #endif
 
-#include <d3d9.h>
-#include <d3dx9.h>
+#include <d3d12.h>
+#include <d3dx12.h>
 #include <fstream>
 #include <iostream>
 #include <shellapi.h>
@@ -15,6 +15,8 @@
 #include <string>
 #include <tchar.h>
 #include <windows.h>
+#include <wrl.h>
+
 // #include "../msvc/wxApp_main.h"
 #include "Exception.h"
 #include "Log.h"
@@ -25,6 +27,9 @@
 #include "Settings.h"
 #include "base.h"
 #include "storage.h"
+
+using Microsoft::WRL::ComPtr;
+
 /* #if defined (WIN32) && defined(_MSC_VER)
 #include "../msvc/msvc_fix.h"
 #endif
@@ -52,7 +57,7 @@ class CElectricSheep_Win32 : public CElectricSheep
 
     //	Mode deduced from cmdline parsing.
     eScrMode m_ScrMode;
-    IDirect3D9* m_pD3D9;
+    ComPtr<ID3D12Device> m_pD3D12;
 
     //	Previous mouse pos, for movement calcs.
     bool m_bMouseUnknown;
@@ -132,7 +137,7 @@ class CElectricSheep_Win32 : public CElectricSheep
     {
         printf("CElectricSheep_Win32()\n");
         m_bAllowFKey = false;
-        m_pD3D9 = NULL;
+        //m_pD3D12 = NULL;
 
 
         //	Windows spawns a screensaver process with idle priority, which
@@ -146,9 +151,9 @@ class CElectricSheep_Win32 : public CElectricSheep
 
     virtual ~CElectricSheep_Win32()
     {
-        if (m_pD3D9 != NULL)
+        if (m_pD3D12 != NULL)
         {
-            m_pD3D9->Release();
+            m_pD3D12->Release();
         }
         if (m_ScrMode == eSaver || m_ScrMode == eFullScreenStandalone)
         {
@@ -443,10 +448,10 @@ class CElectricSheep_Win32 : public CElectricSheep
 
         uint32_t monnum = g_Settings()->Get("settings.player.screen", 0);
 
-        m_pD3D9 = Direct3DCreate9(D3D_SDK_VERSION);
+        // m_pD3D9 = Direct3DCreate9(D3D_SDK_VERSION);
 
         if (g_Player().AddDisplay(
-                g_Settings()->Get("settings.player.screen", 0), m_pD3D9,
+                g_Settings()->Get("settings.player.screen", 0), /* m_pD3D12,*/
                 g_Settings()->Get("settings.player.MultiDisplayMode", 0) ==
                         CPlayer::kMDSingleScreen &&
                     m_ScrMode != eFullScreenStandalone &&
@@ -459,7 +464,7 @@ class CElectricSheep_Win32 : public CElectricSheep
             while (monnum < 9)
             {
                 g_Log->Info("Trying monitor %d", monnum);
-                if (g_Player().AddDisplay(monnum, m_pD3D9) == true)
+                if (g_Player().AddDisplay(monnum, m_pD3D12) == true)
                 {
                     foundfirstmon = true;
                     g_Log->Info("Monitor %d ok", monnum);

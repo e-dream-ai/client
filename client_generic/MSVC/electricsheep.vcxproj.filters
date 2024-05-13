@@ -58,9 +58,6 @@
     <Filter Include="Common\Headers">
       <UniqueIdentifier>{c9094536-c2f4-4759-b096-987386c83854}</UniqueIdentifier>
     </Filter>
-    <Filter Include="DisplayOutput\DirectX">
-      <UniqueIdentifier>{e6568873-7a46-4f56-b3c1-c66496a8c7e3}</UniqueIdentifier>
-    </Filter>
     <Filter Include="DisplayOutput\D3D12">
       <UniqueIdentifier>{7ffa8fad-b8c2-4051-ab70-6c1cf9268ebe}</UniqueIdentifier>
     </Filter>
@@ -167,21 +164,6 @@
     </ClCompile>
     <ClCompile Include="..\ContentDecoder\Clip.cpp">
       <Filter>ContentDecoder\Code</Filter>
-    </ClCompile>
-    <ClCompile Include="..\DisplayOutput\DirectX\DisplayDX.cpp">
-      <Filter>DisplayOutput\DirectX</Filter>
-    </ClCompile>
-    <ClCompile Include="..\DisplayOutput\DirectX\FontDX.cpp">
-      <Filter>DisplayOutput\DirectX</Filter>
-    </ClCompile>
-    <ClCompile Include="..\DisplayOutput\DirectX\RendererDX.cpp">
-      <Filter>DisplayOutput\DirectX</Filter>
-    </ClCompile>
-    <ClCompile Include="..\DisplayOutput\DirectX\ShaderDX.cpp">
-      <Filter>DisplayOutput\DirectX</Filter>
-    </ClCompile>
-    <ClCompile Include="..\DisplayOutput\DirectX\TextureFlatDX.cpp">
-      <Filter>DisplayOutput\DirectX</Filter>
     </ClCompile>
     <ClCompile Include="..\ContentDownloader\Dream.cpp">
       <Filter>ContentDownloader\Code</Filter>
@@ -412,21 +394,6 @@
     </ClInclude>
     <ClInclude Include="..\ContentDecoder\Clip.h">
       <Filter>ContentDecoder\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\DisplayOutput\DirectX\DisplayDX.h">
-      <Filter>DisplayOutput\DirectX</Filter>
-    </ClInclude>
-    <ClInclude Include="..\DisplayOutput\DirectX\FontDX.h">
-      <Filter>DisplayOutput\DirectX</Filter>
-    </ClInclude>
-    <ClInclude Include="..\DisplayOutput\DirectX\RendererDX.h">
-      <Filter>DisplayOutput\DirectX</Filter>
-    </ClInclude>
-    <ClInclude Include="..\DisplayOutput\DirectX\ShaderDX.h">
-      <Filter>DisplayOutput\DirectX</Filter>
-    </ClInclude>
-    <ClInclude Include="..\DisplayOutput\DirectX\TextureFlatDX.h">
-      <Filter>DisplayOutput\DirectX</Filter>
     </ClInclude>
     <ClInclude Include="..\ContentDownloader\Dream.h">
       <Filter>ContentDownloader\Headers</Filter>
