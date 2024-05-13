@@ -201,6 +201,9 @@
     <ClCompile Include="..\DisplayOutput\D3D12\RendererD3D12.cpp">
       <Filter>DisplayOutput\D3D12</Filter>
     </ClCompile>
+    <ClCompile Include="..\DisplayOutput\D3D12\TextureFlatD3D12.cpp">
+      <Filter>ContentDownloader</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ContentDownloader\ContentDownloader.h">
@@ -449,6 +452,9 @@
     <ClInclude Include="..\DisplayOutput\D3D12\RendererD3D12.h">
       <Filter>DisplayOutput\D3D12</Filter>
     </ClInclude>
+    <ClInclude Include="..\DisplayOutput\D3D12\TextureFlatD3D12.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Client\app.ico">
@@ -457,6 +463,7 @@
     <None Include="..\RuntimeMSVC\logo256256.png">
       <Filter>Common</Filter>
     </None>
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="sheepicon.rc">
