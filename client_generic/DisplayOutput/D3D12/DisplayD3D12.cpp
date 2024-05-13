@@ -482,7 +482,8 @@ CDisplayD3D12::GetHardwareAdapter(IDXGIFactory1* pFactory,
             }
         }
     }
-
+    g_Log->Info("CDisplayD3D12::GetHardwareAdapter() adapter.Get() = %p",
+                adapter.Get());
     *ppAdapter = adapter.Detach();
 }
 

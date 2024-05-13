@@ -7,7 +7,9 @@
 #include "base.h"
 #include <d3d12.h>
 #include <windows.h>
+#include <wrl.h>
 
+using namespace Microsoft::WRL;
 
 namespace DisplayOutput
 {
@@ -15,20 +17,20 @@ namespace DisplayOutput
 class CRendererD3D12 : public CRenderer
 {
 	HWND m_WindowHandle;
-	D3DPRESENT_PARAMETERS m_PresentationParams;
-	IDirect3DDevice9* m_pDevice;
+	//D3DPRESENT_PARAMETERS m_PresentationParams;
+    ComPtr<ID3D12Device> m_pDevice;
 
 	// ID3DXLine			*m_pLine;
-	ID3DXSprite* m_pSprite;
+	//ID3DXSprite* m_pSprite;
 
-	std::vector<ID3DXFont*> m_Fonts;
+	//std::vector<ID3DXFont*> m_Fonts;
 	spCTextureFlat m_spSoftCorner;
 
   public:
 	CRendererD3D12();
 	virtual ~CRendererD3D12();
 
-	IDirect3DDevice9* Device() { return m_pDevice; };
+	ComPtr<ID3D12Device> Device() { return m_pDevice; };
 
 	virtual eRenderType Type(void) const { return eDX9; };
 	virtual const std::string Description(void) const { return "DirectX 12"; };
@@ -90,21 +92,22 @@ class CRendererD3D12 : public CRenderer
 	void SetWindowHandle(HWND _hWnd) { m_WindowHandle = _hWnd; };
 	HWND GetWindowHandle() { return m_WindowHandle; };
 
-	//
-	void SetPresentationParams(D3DPRESENT_PARAMETERS _params) { m_PresentationParams = _params; };
-	D3DPRESENT_PARAMETERS GetPresentationParams() { return m_PresentationParams; };
+	////
+	//void SetPresentationParams(D3DPRESENT_PARAMETERS _params) { m_PresentationParams = _params; };
+	//D3DPRESENT_PARAMETERS GetPresentationParams() { return m_PresentationParams; };
+
+	////
+	//void SetDevice(IDirect3DDevice9* _pDevice) { m_pDevice = _pDevice; };
+	//IDirect3DDevice9* GetDevice() { return m_pDevice; };
 
 	//
-	void SetDevice(IDirect3DDevice9* _pDevice) { m_pDevice = _pDevice; };
-	IDirect3DDevice9* GetDevice() { return m_pDevice; };
+	////
+	//void SetSprite(ID3DXSprite* _pSprite) { m_pSprite = _pSprite; };
+	//ID3DXSprite* GetSprite() { return m_pSprite; };
 
-	//
-	void SetSprite(ID3DXSprite* _pSprite) { m_pSprite = _pSprite; };
-	ID3DXSprite* GetSprite() { return m_pSprite; };
-
-	//
-	void SetFonts(std::vector<ID3DXFont*> _fonts) { m_Fonts = _fonts; };
-	std::vector<ID3DXFont*> GetFonts() { return m_Fonts; };
+	////
+	//void SetFonts(std::vector<ID3DXFont*> _fonts) { m_Fonts = _fonts; };
+	//std::vector<ID3DXFont*> GetFonts() { return m_Fonts; };
 
 	//
 	void SetSoftCorner(spCTextureFlat _spSoftCorner) { m_spSoftCorner = _spSoftCorner; };

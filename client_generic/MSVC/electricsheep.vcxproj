@@ -486,7 +486,7 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
       <OmitFramePointers>false</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>..\DirectX-Headers-1.613.1\include\directx;..\;c:\local\boost_1_85_0;..\socket.io-client-cpp\include;..\libpng\include;..\ffmpeg\include;..\curl-x64\include;..\ContentDownloader;..\Client;..\Common;..\Common\Math;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\Networking;..\TupleStorage;..\DisplayOutput\DirectX;..\DisplayOutput\D3D12;C:\wxWidgets-2.9.1-x64\include\msvc;C:\wxWidgets-2.9.1-x64\include;C:\wxWidgets-2.9.1-x64\src\png;C:\wxWidgets-2.9.1-x64\src\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\DirectX-Headers-1.613.1\include\directx;..\;c:\local\boost_1_85_0;..\socket.io-client-cpp\include;..\libpng\include;..\ffmpeg\include;..\curl-x64\include;..\ContentDownloader;..\Client;..\Common;..\Common\Math;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\Networking;..\TupleStorage;..\DisplayOutput\D3D12;C:\wxWidgets-2.9.1-x64\include\msvc;C:\wxWidgets-2.9.1-x64\include;C:\wxWidgets-2.9.1-x64\src\png;C:\wxWidgets-2.9.1-x64\src\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WIN64;NDEBUG;_WINDOWS;NOMINMAX;_CRT_SECURE_NO_WARNINGS;CURL_STATICLIB;WIN32_LEAN_AND_MEAN;VC_EXTRALEAN;COMPILE_MULTIMON_STUBS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -558,11 +558,6 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
     <ClCompile Include="..\DisplayOutput\D3D12\DisplayD3D12.cpp" />
     <ClCompile Include="..\DisplayOutput\D3D12\RendererD3D12.cpp" />
     <ClCompile Include="..\DisplayOutput\D3D12\TextureFlatD3D12.cpp" />
-    <ClCompile Include="..\DisplayOutput\DirectX\DisplayDX.cpp" />
-    <ClCompile Include="..\DisplayOutput\DirectX\FontDX.cpp" />
-    <ClCompile Include="..\DisplayOutput\DirectX\RendererDX.cpp" />
-    <ClCompile Include="..\DisplayOutput\DirectX\ShaderDX.cpp" />
-    <ClCompile Include="..\DisplayOutput\DirectX\TextureFlatDX.cpp" />
     <ClCompile Include="..\Networking\EDreamClient.cpp" />
     <ClCompile Include="..\TupleStorage\JSONStorage.cpp" />
     <ClCompile Include="msvc_fix.cpp" />
@@ -621,11 +616,6 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
     <ClInclude Include="..\DisplayOutput\D3D12\DisplayD3D12.h" />
     <ClInclude Include="..\DisplayOutput\D3D12\RendererD3D12.h" />
     <ClInclude Include="..\DisplayOutput\D3D12\TextureFlatD3D12.h" />
-    <ClInclude Include="..\DisplayOutput\DirectX\DisplayDX.h" />
-    <ClInclude Include="..\DisplayOutput\DirectX\FontDX.h" />
-    <ClInclude Include="..\DisplayOutput\DirectX\RendererDX.h" />
-    <ClInclude Include="..\DisplayOutput\DirectX\ShaderDX.h" />
-    <ClInclude Include="..\DisplayOutput\DirectX\TextureFlatDX.h" />
     <ClInclude Include="..\Networking\EDreamClient.h" />
     <ClInclude Include="..\TupleStorage\JSONStorage.h" />
     <ClInclude Include="cpu_usage_win32.h" />

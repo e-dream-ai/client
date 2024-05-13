@@ -17,11 +17,6 @@ C:\Users\Jack\Documents\GitHub\client\client_generic\Client\main.cpp;C:\Users\Ja
 C:\Users\Jack\Documents\GitHub\client\client_generic\DisplayOutput\D3D12\DisplayD3D12.cpp;C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMDx64\DisplayD3D12.obj
 C:\Users\Jack\Documents\GitHub\client\client_generic\DisplayOutput\D3D12\RendererD3D12.cpp;C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMDx64\RendererD3D12.obj
 C:\Users\Jack\Documents\GitHub\client\client_generic\DisplayOutput\D3D12\TextureFlatD3D12.cpp;C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMDx64\TextureFlatD3D12.obj
-C:\Users\Jack\Documents\GitHub\client\client_generic\DisplayOutput\DirectX\DisplayDX.cpp;C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMDx64\DisplayDX.obj
-C:\Users\Jack\Documents\GitHub\client\client_generic\DisplayOutput\DirectX\FontDX.cpp;C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMDx64\FontDX.obj
-C:\Users\Jack\Documents\GitHub\client\client_generic\DisplayOutput\DirectX\RendererDX.cpp;C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMDx64\RendererDX.obj
-C:\Users\Jack\Documents\GitHub\client\client_generic\DisplayOutput\DirectX\ShaderDX.cpp;C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMDx64\ShaderDX.obj
-C:\Users\Jack\Documents\GitHub\client\client_generic\DisplayOutput\DirectX\TextureFlatDX.cpp;C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMDx64\TextureFlatDX.obj
 C:\Users\Jack\Documents\GitHub\client\client_generic\Networking\EDreamClient.cpp;C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMDx64\EDreamClient.obj
 C:\Users\Jack\Documents\GitHub\client\client_generic\TupleStorage\JSONStorage.cpp;C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMDx64\JSONStorage.obj
 C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\msvc_fix.cpp;C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMDx64\msvc_fix.obj

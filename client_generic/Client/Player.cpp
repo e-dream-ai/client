@@ -113,7 +113,9 @@ int CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
                         [[maybe_unused]] bool _blank)
 #else
 #ifdef WIN32
-int CPlayer::AddDisplay(uint32_t screen, IDirect3D9* _pIDirect3D9, bool _blank)
+int CPlayer::AddDisplay(uint32_t screen,
+                        /*  ComPtr<ID3D12Device> _pIDirect3D12,*/ 
+                        bool _blank)
 #else
 int CPlayer::AddDisplay(uint32 screen)
 #endif

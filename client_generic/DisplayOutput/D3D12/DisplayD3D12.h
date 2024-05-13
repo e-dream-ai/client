@@ -92,6 +92,7 @@ class CDisplayD3D12 : public CDisplayOutput
     virtual HWND Initialize(const uint32_t _width, const uint32_t _height,
                                 const bool _bFullscreen);
 
+    ComPtr<ID3D12Device> GetDevice() { return m_device; }
 
     virtual void Title(const std::string& _title);
     virtual void Update();
