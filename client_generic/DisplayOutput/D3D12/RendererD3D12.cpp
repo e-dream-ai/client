@@ -1,5 +1,6 @@
 #include "RendererD3D12.h"
 #include "DisplayD3D12.h"
+#include "TextureFlatD3D12.h"
 
 namespace DisplayOutput
 {
@@ -9,7 +10,13 @@ CRendererD3D12::CRendererD3D12() {
 
 CRendererD3D12::~CRendererD3D12() {}
 
-bool CRendererD3D12::Initialize(spCDisplayOutput _spDisplay) { return true; }
+bool CRendererD3D12::Initialize(spCDisplayOutput _spDisplay) 
+{ 
+    m_spDisplay = _spDisplay;
+    m_pDevice = m_spDisplay->GetDevice();   // Grab DX12 device from display, it's created there
+
+    return true; 
+}
 
 void CRendererD3D12::Defaults() {}
 
@@ -22,8 +29,21 @@ void CRendererD3D12::Reset(const uint32_t _flags) {}
 
 bool CRendererD3D12::TestResetDevice() { return true; }
 
-spCTextureFlat CRendererD3D12::NewTextureFlat(const uint32_t flags) { return spCTextureFlat(); }
-spCTextureFlat CRendererD3D12::NewTextureFlat(spCImage _spImage, const uint32_t flags) { return spCTextureFlat(); }
+spCTextureFlat CRendererD3D12::NewTextureFlat(const uint32_t flags) 
+{
+    spCTextureFlat texture = std::make_shared<CTextureFlatD3D12>(m_pDevice, flags);
+
+    return texture;
+}
+
+spCTextureFlat CRendererD3D12::NewTextureFlat(spCImage _spImage, const uint32_t flags) 
+{
+    spCTextureFlat texture =
+        std::make_shared<CTextureFlatD3D12>(m_pDevice, flags);
+    texture->Upload(_spImage);
+
+    return texture;
+}
 
 spCBaseFont CRendererD3D12::NewFont(CFontDescription& _desc) { return spCBaseFont(); }
 

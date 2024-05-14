@@ -1,97 +1,94 @@
 #include "TextureFlatD3D12.h"
+
+#include "ResourceUploadBatch.h"
+
 #include "Log.h"
+
 
 namespace DisplayOutput
 {
 
-	CTextureFlatD3D12::CTextureFlatD3D12(ComPtr<ID3D12Device> _m_device,
-                                   const uint32_t _flags)
-	{
-        if (_m_device != nullptr)
+    CTextureFlatD3D12::CTextureFlatD3D12(std::unique_ptr<DeviceResources> _m_deviceResources, const uint32_t _flags)
+    {
+        if (_m_deviceResources != nullptr)
         {
-			m_device = _m_device;
-		}
-		else
-		{
-			g_Log->Error("CTextureFlatD3D12: Device is nullptr");
+            m_deviceResources = _m_deviceResources;
         }
-	}
+        else
+        {
+            g_Log->Error("CTextureFlatD3D12: Device is nullptr");
+        }
+    }
 
-	CTextureFlatD3D12::~CTextureFlatD3D12()
-	{ 
-	}
-	
-	bool CTextureFlatD3D12::Upload(spCImage _spImage)
+    CTextureFlatD3D12::~CTextureFlatD3D12()
+    {
+    }
+
+    bool CTextureFlatD3D12::Upload(spCImage _spImage)
     {
         m_spImage = _spImage;
 
         CImageFormat format = m_spImage->GetFormat();
 
+        D3D12_RESOURCE_DESC txtDesc = {};
+        txtDesc.MipLevels = txtDesc.DepthOrArraySize = 1;
+        txtDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        txtDesc.Width = m_spImage->GetWidth();
+        txtDesc.Height = m_spImage->GetHeight();
+        txtDesc.SampleDesc.Count = 1;
+        txtDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 
-		//// Create the texture
-		//D3D12_RESOURCE_DESC textureDesc = {};
-		//textureDesc.MipLevels = 1;
-		//textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-  //      textureDesc.Width = m_Size.iWidth();
-  //      textureDesc.Height = m_Size.iHeight();
-		//textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-		//textureDesc.DepthOrArraySize = 1;
-		//textureDesc.SampleDesc.Count = 1;
-		//textureDesc.SampleDesc.Quality = 0;
-		//textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+        CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
 
-		//// Create the texture resource
-		//ThrowIfFailed(m_device->CreateCommittedResource(
-		//	&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-		//	D3D12_HEAP_FLAG_NONE,
-		//	&textureDesc,
-		//	D3D12_RESOURCE_STATE_COPY_DEST,
-		//	nullptr,
-		//	IID_PPV_ARGS(&m_texture)));
+        ComPtr<ID3D12Resource> texture;
+        ThrowIfFailed(
+            m_deviceResources->GetD3DDevice()->CreateCommittedResource(
+            &heapProps, D3D12_HEAP_FLAG_NONE, &txtDesc,
+            D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
+            IID_PPV_ARGS(texture.ReleaseAndGetAddressOf())));
 
-		//const UINT64 uploadBufferSize = GetRequiredIntermediateSize(m_texture.Get(), 0, 1);
+        // Make our subresource fro
+        D3D12_SUBRESOURCE_DATA textureData = {};
+        textureData.pData = m_spImage->GetData(1);
+        textureData.RowPitch = m_spImage->GetWidth() * 4;
+        textureData.SlicePitch = textureData.RowPitch * m_spImage->GetHeight();
 
-		//// Create the GPU upload buffer.
-		//ThrowIfFailed(m_device->CreateCommittedResource(
-		//	&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-		//	D3D12_HEAP_FLAG_NONE,
-		//	&CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize),
-		//	D3D12_RESOURCE_STATE_GENERIC_READ,
-		//	nullptr,
-		//	IID_PPV_ARGS(&m_textureUploadHeap)));
+        DirectX::ResourceUploadBatch resourceUpload(
+            m_deviceResources->GetD3DDevice());
 
-		//// Copy data to the intermediate upload heap and then schedule a copy from the upload heap to the Texture2D.
-		//std::vector<UINT8> texture = GenerateTextureData();
+        resourceUpload.Begin();
 
-		//D3D12_SUBRESOURCE_DATA textureData = {};
-		//textureData.pData = &texture[0];
-		//textureData.RowPitch = m_width * 4;
-		//textureData.SlicePitch = textureData.RowPitch * m_height;
+        resourceUpload.Upload(texture.Get(), 0, &textureData, 1);
 
-		//UpdateSubresources(m_commandList.Get(), m_texture.Get(), m_textureUploadHeap.Get(), 0, 0, 1, &textureData);
-		//m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_texture.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
+        resourceUpload.Transition(texture.Get(), D3D12_RESOURCE_STATE_COPY_DEST,
+            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
-		//// Describe and create a SRV for the texture.
-		//D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+        auto uploadResourcesFinished =
+            resourceUpload.End(m_deviceResources->GetCommandQueue());
+
+        uploadResourcesFinished.wait();
 
 
-		return true; 
-	}
 
-	bool CTextureFlatD3D12::Bind(uint32_t _slot)
-	{
-		return true;
-	}
 
-	bool CTextureFlatD3D12::Unbind(uint32_t _slot)
-	{ 
-		return true;
-	}
+        return true;
+    }
 
-	bool CTextureFlatD3D12::BindFrame(ContentDecoder::spCVideoFrame _pFrame)
+    bool CTextureFlatD3D12::Bind(uint32_t _slot)
+    {
+        return true;
+    }
+
+    bool CTextureFlatD3D12::Unbind(uint32_t _slot)
+    {
+        return true;
+    }
+
+    bool CTextureFlatD3D12::BindFrame(ContentDecoder::spCVideoFrame _pFrame)
     {
 
         return true;
     }
 
- } // namespace DisplayOutput
+} // namespace DisplayOutput
+

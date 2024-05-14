@@ -186,6 +186,9 @@
     <ClCompile Include="..\DisplayOutput\D3D12\TextureFlatD3D12.cpp">
       <Filter>DisplayOutput\D3D12</Filter>
     </ClCompile>
+    <ClCompile Include="..\DisplayOutput\D3D12\DeviceResources.cpp">
+      <Filter>DisplayOutput\D3D12</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ContentDownloader\ContentDownloader.h">
@@ -423,6 +426,9 @@
       <Filter>DisplayOutput\D3D12</Filter>
     </ClInclude>
     <ClInclude Include="..\DisplayOutput\D3D12\D3D12Helpers.h">
+      <Filter>DisplayOutput\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\DisplayOutput\D3D12\DeviceResources.h">
       <Filter>DisplayOutput\D3D12</Filter>
     </ClInclude>
   </ItemGroup>

@@ -14,6 +14,7 @@ C:\Users\Jack\Documents\GitHub\client\client_generic\Common\pool.cpp;C:\Users\Ja
 C:\Users\Jack\Documents\GitHub\client\client_generic\ContentDecoder\ContentDecoder.cpp;C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMDx64\ContentDecoder.obj
 C:\Users\Jack\Documents\GitHub\client\client_generic\Client\Hud.cpp;C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMDx64\Hud.obj
 C:\Users\Jack\Documents\GitHub\client\client_generic\Client\main.cpp;C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMDx64\main.obj
+C:\Users\Jack\Documents\GitHub\client\client_generic\DisplayOutput\D3D12\DeviceResources.cpp;C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMDx64\DeviceResources.obj
 C:\Users\Jack\Documents\GitHub\client\client_generic\DisplayOutput\D3D12\DisplayD3D12.cpp;C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMDx64\DisplayD3D12.obj
 C:\Users\Jack\Documents\GitHub\client\client_generic\DisplayOutput\D3D12\RendererD3D12.cpp;C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMDx64\RendererD3D12.obj
 C:\Users\Jack\Documents\GitHub\client\client_generic\DisplayOutput\D3D12\TextureFlatD3D12.cpp;C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMDx64\TextureFlatD3D12.obj

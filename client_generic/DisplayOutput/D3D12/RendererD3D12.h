@@ -6,6 +6,7 @@
 #include "Vector4.h"
 #include "base.h"
 #include <d3d12.h>
+#include "DeviceResources.h"
 #include <windows.h>
 #include <wrl.h>
 
@@ -19,6 +20,7 @@ class CRendererD3D12 : public CRenderer
 	HWND m_WindowHandle;
 	//D3DPRESENT_PARAMETERS m_PresentationParams;
     ComPtr<ID3D12Device> m_pDevice;
+    std::unique_ptr<DeviceResources> m_deviceResources;
 
 	// ID3DXLine			*m_pLine;
 	//ID3DXSprite* m_pSprite;
@@ -30,7 +32,7 @@ class CRendererD3D12 : public CRenderer
 	CRendererD3D12();
 	virtual ~CRendererD3D12();
 
-	ComPtr<ID3D12Device> Device() { return m_pDevice; };
+	virtual ComPtr<ID3D12Device> Device() { return m_pDevice; };
 
 	virtual eRenderType Type(void) const { return eDX9; };
 	virtual const std::string Description(void) const { return "DirectX 12"; };
