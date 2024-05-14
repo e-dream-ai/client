@@ -12,49 +12,27 @@
 #include <DirectXMath.h>
 #include <d3dx12.h>
 #include "D3D12Helpers.h"
+#include "DeviceResources.h"
 
 using Microsoft::WRL::ComPtr;
-
-
-
 
 
 namespace DisplayOutput
 {
 
-class CDisplayD3D12 : public CDisplayOutput
+class CDisplayD3D12 : public CDisplayOutput, IDeviceNotify
 {
     HWND m_WindowHandle;
 
-    // DirectX 12 objects.
-    bool m_useWarpDevice;	// This is used to determine if we are using the WARP device (software rasterizer)
+    // Device resources. This contains everuthing D3D12 needs to know about the device
+    std::unique_ptr<DeviceResources> m_deviceResources;
 
-    // From DXSample. Is that double buffering ?
-    static const UINT FrameCount = 2;
+    // IDeviceNotify
+    // This is called when the Win32 window is created (or re-created).
+    void OnDeviceLost() override;
+    void OnDeviceRestored() override;
 
-	// Pipeline objects.
-    CD3DX12_VIEWPORT m_viewport;
-    CD3DX12_RECT m_scissorRect;
-    ComPtr<IDXGISwapChain3> m_swapChain;
-    ComPtr<ID3D12Device> m_device;
-    ComPtr<ID3D12Resource> m_renderTargets[FrameCount];
-    ComPtr<ID3D12CommandAllocator> m_commandAllocator;
-    ComPtr<ID3D12CommandQueue> m_commandQueue;
-    ComPtr<ID3D12RootSignature> m_rootSignature;
-    ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
-    ComPtr<ID3D12PipelineState> m_pipelineState;
-    ComPtr<ID3D12GraphicsCommandList> m_commandList;
-    UINT m_rtvDescriptorSize;
 
-    // App resources.
-    ComPtr<ID3D12Resource> m_vertexBuffer;
-    D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView;
-
-    // Synchronization objects.
-    UINT m_frameIndex;
-    HANDLE m_fenceEvent;
-    ComPtr<ID3D12Fence> m_fence;
-    UINT64 m_fenceValue;
 
 
 	// Creates a window, used mostly for testing. We are provided a HWND when screensavering
@@ -63,12 +41,6 @@ class CDisplayD3D12 : public CDisplayOutput
 	// Window event handler
 	static LRESULT CALLBACK wndProc(HWND hWnd, UINT msg, WPARAM wParam,
                                         LPARAM lParam);
-	bool InitD3D12();
-
-    void GetHardwareAdapter(_In_ IDXGIFactory1* pFactory,
-                           _Outptr_result_maybenull_ IDXGIAdapter1** ppAdapter,
-                           bool requestHighPerformanceAdapter = false);
-
 
 	public:
 	CDisplayD3D12();
@@ -84,7 +56,7 @@ class CDisplayD3D12 : public CDisplayOutput
     virtual HWND Initialize(const uint32_t _width, const uint32_t _height,
                                 const bool _bFullscreen);
 
-    ComPtr<ID3D12Device> GetDevice() { return m_device; }
+    virtual ComPtr<ID3D12Device> GetDevice() { return m_deviceResources->GetD3DDevice(); }
 
     virtual void Title(const std::string& _title);
     virtual void Update();

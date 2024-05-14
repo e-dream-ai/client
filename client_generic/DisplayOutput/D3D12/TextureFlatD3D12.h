@@ -1,8 +1,11 @@
 #pragma once
 #include "TextureFlat.h"
 #include <d3d12.h>
+#include <d3dx12.h>
+#include <windows.h>
 #include <wrl.h>
 #include "D3D12Helpers.h"
+#include "DeviceResources.h"
 
 using Microsoft::WRL::ComPtr;
  
@@ -11,8 +14,8 @@ namespace DisplayOutput
 
 class CTextureFlatD3D12 : public CTextureFlat
 {
-    ComPtr<ID3D12Device> m_device;
     ComPtr<ID3D12Resource> m_resource;
+    std::unique_ptr<DeviceResources> m_deviceResources;
 
     //	Internal to keep track if size or format changed.
     DisplayOutput::eImageFormat m_Format;
@@ -20,7 +23,8 @@ class CTextureFlatD3D12 : public CTextureFlat
   public:
     Base::Math::CRect m_Size;
 
-    CTextureFlatD3D12(ComPtr<ID3D12Device> _m_device, const uint32_t _flags = 0);
+    CTextureFlatD3D12(std::unique_ptr<DeviceResources> _m_deviceResources,
+                      const uint32_t _flags = 0);
     virtual ~CTextureFlatD3D12();
 
     virtual bool Upload(spCImage _spImage);

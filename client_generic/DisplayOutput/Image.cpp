@@ -72,7 +72,7 @@ void CImage::Create(const uint32_t _w, const uint32_t _h,
                     const eImageFormat _format, const bool _bMipmaps,
                     const bool _bRef)
 {
-    //	g_Log->Info( "Create( %d, %d, 0x%x )", _w, _h, _format );
+    g_Log->Info( "CImage Create( %d, %d, 0x%x )", _w, _h, _format );
 
     m_Width = _w;
     m_Height = _h;

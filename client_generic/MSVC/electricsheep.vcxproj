@@ -555,6 +555,7 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
       <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdcpp20</LanguageStandard>
     </ClCompile>
     <ClCompile Include="..\Client\main.cpp" />
+    <ClCompile Include="..\DisplayOutput\D3D12\DeviceResources.cpp" />
     <ClCompile Include="..\DisplayOutput\D3D12\DisplayD3D12.cpp" />
     <ClCompile Include="..\DisplayOutput\D3D12\RendererD3D12.cpp" />
     <ClCompile Include="..\DisplayOutput\D3D12\TextureFlatD3D12.cpp" />
@@ -614,6 +615,7 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
     <ClInclude Include="..\ContentDownloader\SheepDownloader.h" />
     <ClInclude Include="..\ContentDownloader\Shepherd.h" />
     <ClInclude Include="..\DisplayOutput\D3D12\D3D12Helpers.h" />
+    <ClInclude Include="..\DisplayOutput\D3D12\DeviceResources.h" />
     <ClInclude Include="..\DisplayOutput\D3D12\DisplayD3D12.h" />
     <ClInclude Include="..\DisplayOutput\D3D12\RendererD3D12.h" />
     <ClInclude Include="..\DisplayOutput\D3D12\TextureFlatD3D12.h" />

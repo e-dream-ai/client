@@ -161,8 +161,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
 #endif
 
 #ifdef WIN32
-    int AddDisplay(uint32_t screen, /* ComPtr<ID3D12Device> _pIDirect3D12,*/
-                   bool _blank = false);
+    int AddDisplay(uint32_t screen, bool _blank = false);
 #endif
 
     inline void PlayCountsInitOff() { m_InitPlayCounts = false; };
