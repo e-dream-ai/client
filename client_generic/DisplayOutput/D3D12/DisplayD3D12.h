@@ -57,6 +57,8 @@ class CDisplayD3D12 : public CDisplayOutput, IDeviceNotify
                                 const bool _bFullscreen);
 
     virtual ComPtr<ID3D12Device> GetDevice() { return m_deviceResources->GetD3DDevice(); }
+    virtual ComPtr<ID3D12CommandQueue> GetCommandQueue() { return m_deviceResources->GetCommandQueue(); }
+	virtual ComPtr<ID3D12CommandAllocator> GetCommandAllocator() { return m_deviceResources->GetCommandAllocator(); }
 
     virtual void Title(const std::string& _title);
     virtual void Update();

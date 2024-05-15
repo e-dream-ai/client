@@ -20,7 +20,7 @@ class CRendererD3D12 : public CRenderer
 	HWND m_WindowHandle;
 	//D3DPRESENT_PARAMETERS m_PresentationParams;
     ComPtr<ID3D12Device> m_pDevice;
-    std::unique_ptr<DeviceResources> m_deviceResources;
+    std::shared_ptr<DeviceResources> m_deviceResources;
 
 	// ID3DXLine			*m_pLine;
 	//ID3DXSprite* m_pSprite;

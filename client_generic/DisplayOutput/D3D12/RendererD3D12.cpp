@@ -31,15 +31,14 @@ bool CRendererD3D12::TestResetDevice() { return true; }
 
 spCTextureFlat CRendererD3D12::NewTextureFlat(const uint32_t flags) 
 {
-    spCTextureFlat texture = std::make_shared<CTextureFlatD3D12>(m_pDevice, flags);
+    spCTextureFlat texture = std::make_shared<CTextureFlatD3D12>(m_spDisplay, flags);
 
     return texture;
 }
 
 spCTextureFlat CRendererD3D12::NewTextureFlat(spCImage _spImage, const uint32_t flags) 
 {
-    spCTextureFlat texture =
-        std::make_shared<CTextureFlatD3D12>(m_pDevice, flags);
+    spCTextureFlat texture = std::make_shared<CTextureFlatD3D12>(m_spDisplay, flags);
     texture->Upload(_spImage);
 
     return texture;
