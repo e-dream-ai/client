@@ -12,31 +12,10 @@ namespace DisplayOutput
     CDisplayD3D12::CDisplayD3D12() : CDisplayOutput()
     {
         g_Log->Info("CDisplayD3D12()");
-        m_deviceResources = std::make_unique<DeviceResources>();
-        // TODO: Provide parameters for swapchain format, depth/stencil format, and backbuffer count.
-        //   Add DX::DeviceResources::c_AllowTearing to opt-in to variable rate displays.
-        //   Add DX::DeviceResources::c_EnableHDR for HDR10 display.
-        //   Add DX::DeviceResources::c_ReverseDepth to optimize depth buffer clears for 0 instead of 1.
-        m_deviceResources->RegisterDeviceNotify(this);
-
     }
 
     CDisplayD3D12::~CDisplayD3D12() { g_Log->Info("~CDisplayD3D12()"); }
 
-    // IDeviceNotify
-    void CDisplayD3D12::OnDeviceLost()
-    {
-        // TODO: Add Direct3D resource cleanup here.
-
-        // If using the DirectX Tool Kit for DX12, uncomment this line:
-        // m_graphicsMemory.reset();
-    }
-
-    void CDisplayD3D12::OnDeviceRestored()
-    {
-        //CreateDeviceDependentResources();
-        //CreateWindowSizeDependentResources();
-    }
 
 /*
     wndProc().
@@ -317,14 +296,6 @@ HWND CDisplayD3D12::Initialize(const uint32_t _width, const uint32_t _height,
         SetFocus(m_WindowHandle);
     }*/
 
-    // Initialize Direct3D
-    m_deviceResources->SetWindow(m_WindowHandle, _width, _height);
-
-    m_deviceResources->CreateDeviceResources();
-    //CreateDeviceDependentResources();
-
-    m_deviceResources->CreateWindowSizeDependentResources();
-    //CreateWindowSizeDependentResources();
 
     // TODO: Change the timer settings if you want something other than the default variable timestep mode.
     // e.g. for 60 FPS fixed timestep update logic, call:

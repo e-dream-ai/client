@@ -338,45 +338,46 @@ class CStatsConsole : public CConsole
                 float edge = 24 / (float)_spRenderer->Display()->Width();
 
                 //	Figure out text extent for all strings.
-                std::queue<Base::Math::CVector2> sizeq;
-                m_TotalExtent = {0, 0, 0, 0};
-                for (auto i = m_Stats.begin(); i != m_Stats.end(); ++i)
-                {
-                    CStat* e = i->second.stat;
-                    DisplayOutput::spCBaseText& text = i->second.text;
-                    if (text)
-                    {
-                        text->SetEnabled(e->Visible());
-                    }
-                    if (e && e->Visible())
-                    {
-                        text->SetText(e->Report(_time));
-                        sizeq.push(text->GetExtent());
-                        m_TotalExtent = m_TotalExtent.Union(Base::Math::CRect(
-                            0, pos, sizeq.back().m_X + (edge * 2),
-                            sizeq.back().m_Y + (pos) + (edge * 2)));
-                        pos += sizeq.back().m_Y;
-                    }
-                }
+                // TODO: TEXT
+                //std::queue<Base::Math::CVector2> sizeq;
+                //m_TotalExtent = {0, 0, 0, 0};
+                //for (auto i = m_Stats.begin(); i != m_Stats.end(); ++i)
+                //{
+                //    CStat* e = i->second.stat;
+                //    DisplayOutput::spCBaseText& text = i->second.text;
+                //    if (text)
+                //    {
+                //        text->SetEnabled(e->Visible());
+                //    }
+                //    if (e && e->Visible())
+                //    {
+                //        text->SetText(e->Report(_time));
+                //        sizeq.push(text->GetExtent());
+                //        m_TotalExtent = m_TotalExtent.Union(Base::Math::CRect(
+                //            0, pos, sizeq.back().m_X + (edge * 2),
+                //            sizeq.back().m_Y + (pos) + (edge * 2)));
+                //        pos += sizeq.back().m_Y;
+                //    }
+                //}
 
-                // align soft quad at bottom
-                m_TotalExtent.m_Y0 = 1.f - m_TotalExtent.m_Y1;
-                m_TotalExtent.m_Y1 = 1.f;
-                // align text at bottom
-                pos = m_TotalExtent.m_Y0 + edge;
-                for (auto i = m_Stats.begin(); i != m_Stats.end(); ++i)
-                {
-                    CStat* e = i->second.stat;
-                    if (e && e->Visible())
-                    {
-                        Base::Math::CVector2 size = sizeq.front();
-                        sizeq.pop();
-                        DisplayOutput::spCBaseText& text = i->second.text;
-                        text->SetRect(Base::Math::CRect(edge, pos, 1,
-                                                        size.m_Y + pos + step));
-                        pos += size.m_Y;
-                    }
-                }
+                //// align soft quad at bottom
+                //m_TotalExtent.m_Y0 = 1.f - m_TotalExtent.m_Y1;
+                //m_TotalExtent.m_Y1 = 1.f;
+                //// align text at bottom
+                //pos = m_TotalExtent.m_Y0 + edge;
+                //for (auto i = m_Stats.begin(); i != m_Stats.end(); ++i)
+                //{
+                //    CStat* e = i->second.stat;
+                //    if (e && e->Visible())
+                //    {
+                //        Base::Math::CVector2 size = sizeq.front();
+                //        sizeq.pop();
+                //        DisplayOutput::spCBaseText& text = i->second.text;
+                //        text->SetRect(Base::Math::CRect(edge, pos, 1,
+                //                                        size.m_Y + pos + step));
+                //        pos += size.m_Y;
+                //    }
+                //}
             });
 
         //	Draw quad.

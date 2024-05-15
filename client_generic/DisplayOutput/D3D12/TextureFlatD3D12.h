@@ -6,6 +6,7 @@
 #include <wrl.h>
 #include "D3D12Helpers.h"
 #include "DisplayOutput.h"
+#include "RendererD3D12.h"
 #include "DeviceResources.h"
 
 using Microsoft::WRL::ComPtr;
@@ -15,7 +16,8 @@ namespace DisplayOutput
 
 class CTextureFlatD3D12 : public CTextureFlat
 {
-    spCDisplayOutput m_spDisplay;
+    ComPtr<ID3D12Device> device;
+    ComPtr<ID3D12CommandQueue> commandQueue;
 
     ComPtr<ID3D12Resource> m_resource;
 
@@ -25,7 +27,8 @@ class CTextureFlatD3D12 : public CTextureFlat
   public:
     Base::Math::CRect m_Size;
 
-    CTextureFlatD3D12(spCDisplayOutput m_spDisplay,
+    CTextureFlatD3D12(ComPtr<ID3D12Device> _device,
+                      ComPtr<ID3D12CommandQueue> _commandQueue, 
                       const uint32_t _flags = 0);
     virtual ~CTextureFlatD3D12();
 

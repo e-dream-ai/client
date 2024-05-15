@@ -219,11 +219,7 @@ class CDisplayOutput
     virtual HWND Initialize(const uint32_t _width, const uint32_t _height,
                             const bool _bFullscreen) = PureVirtual;
 
-    virtual ComPtr<ID3D12Device> GetDevice() = PureVirtual;         
-    virtual ComPtr<ID3D12CommandQueue> GetCommandQueue() = PureVirtual; 
-    virtual ComPtr<ID3D12CommandAllocator> GetCommandAllocator() = PureVirtual;
-
-    //virtual HWND WindowHandle(void) = PureVirtual;
+    virtual HWND GetWindowHandle(void) = PureVirtual;
     //virtual D3DPRESENT_PARAMETERS PresentParameters() = PureVirtual;
     //virtual void SetScreen(const uint32_t _screen) = PureVirtual;
     //virtual DWORD GetNumMonitors() { return 1; };

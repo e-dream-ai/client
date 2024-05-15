@@ -56,8 +56,9 @@ void PlatformUtils::SetThreadName(std::string_view _name)
 
 void PlatformUtils::DispatchOnMainThread(std::function<void()> _func)
 {
-	// Not implemented
-    g_Log->Error("DispatchOnMainThread not implemented yet on WIN32");
+	// Not implemented, launch on same thread
+    //g_Log->Error("DispatchOnMainThread not implemented yet on WIN32");
+    _func();
 }
 
 CDelayedDispatch::CDelayedDispatch(std::function<void()> _func)

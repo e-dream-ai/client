@@ -8,17 +8,12 @@
 namespace DisplayOutput
 {
 
-    CTextureFlatD3D12::CTextureFlatD3D12(spCDisplayOutput _m_spDisplay,
+    CTextureFlatD3D12::CTextureFlatD3D12(ComPtr<ID3D12Device> _device,
+                                     ComPtr<ID3D12CommandQueue> _commandQueue,
                                      const uint32_t _flags)
     {
-        if (_m_spDisplay != nullptr)
-        {
-            m_spDisplay = _m_spDisplay;
-        }
-        else
-        {
-            g_Log->Error("CTextureFlatD3D12: Display is nullptr");
-        }
+        device = _device;
+		commandQueue = _commandQueue;
     }
 
     CTextureFlatD3D12::~CTextureFlatD3D12()
@@ -42,8 +37,7 @@ namespace DisplayOutput
         CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
 
         ComPtr<ID3D12Resource> texture;
-        ThrowIfFailed(
-            m_spDisplay->GetDevice()->CreateCommittedResource(
+        ThrowIfFailed(device->CreateCommittedResource(
             &heapProps, D3D12_HEAP_FLAG_NONE, &txtDesc,
             D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
             IID_PPV_ARGS(texture.ReleaseAndGetAddressOf())));
@@ -55,7 +49,7 @@ namespace DisplayOutput
         textureData.SlicePitch = textureData.RowPitch * m_spImage->GetHeight();
 
         DirectX::ResourceUploadBatch resourceUpload(
-            m_spDisplay->GetDevice().Get());
+            device.Get());
 
         resourceUpload.Begin();
 
@@ -65,12 +59,9 @@ namespace DisplayOutput
             D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
         auto uploadResourcesFinished =
-            resourceUpload.End(m_spDisplay->GetCommandQueue().Get());
+            resourceUpload.End(commandQueue.Get());
 
         uploadResourcesFinished.wait();
-
-
-
 
         return true;
     }
