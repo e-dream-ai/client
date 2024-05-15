@@ -8,15 +8,16 @@
 namespace DisplayOutput
 {
 
-    CTextureFlatD3D12::CTextureFlatD3D12(std::unique_ptr<DeviceResources> _m_deviceResources, const uint32_t _flags)
+    CTextureFlatD3D12::CTextureFlatD3D12(spCDisplayOutput _m_spDisplay,
+                                     const uint32_t _flags)
     {
-        if (_m_deviceResources != nullptr)
+        if (_m_spDisplay != nullptr)
         {
-            m_deviceResources = _m_deviceResources;
+            m_spDisplay = _m_spDisplay;
         }
         else
         {
-            g_Log->Error("CTextureFlatD3D12: Device is nullptr");
+            g_Log->Error("CTextureFlatD3D12: Display is nullptr");
         }
     }
 
@@ -42,19 +43,19 @@ namespace DisplayOutput
 
         ComPtr<ID3D12Resource> texture;
         ThrowIfFailed(
-            m_deviceResources->GetD3DDevice()->CreateCommittedResource(
+            m_spDisplay->GetDevice()->CreateCommittedResource(
             &heapProps, D3D12_HEAP_FLAG_NONE, &txtDesc,
             D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
             IID_PPV_ARGS(texture.ReleaseAndGetAddressOf())));
 
         // Make our subresource fro
         D3D12_SUBRESOURCE_DATA textureData = {};
-        textureData.pData = m_spImage->GetData(1);
+        textureData.pData = m_spImage->GetData(0);
         textureData.RowPitch = m_spImage->GetWidth() * 4;
         textureData.SlicePitch = textureData.RowPitch * m_spImage->GetHeight();
 
         DirectX::ResourceUploadBatch resourceUpload(
-            m_deviceResources->GetD3DDevice());
+            m_spDisplay->GetDevice().Get());
 
         resourceUpload.Begin();
 
@@ -64,7 +65,7 @@ namespace DisplayOutput
             D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
         auto uploadResourcesFinished =
-            resourceUpload.End(m_deviceResources->GetCommandQueue());
+            resourceUpload.End(m_spDisplay->GetCommandQueue().Get());
 
         uploadResourcesFinished.wait();
 

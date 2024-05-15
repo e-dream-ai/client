@@ -10,6 +10,7 @@
 
 #include <d3d12.h>
 #include <d3dx12.h>
+#include <DeviceResources.h>
 #include <wrl.h>
 
 using Microsoft::WRL::ComPtr;
@@ -218,7 +219,9 @@ class CDisplayOutput
     virtual HWND Initialize(const uint32_t _width, const uint32_t _height,
                             const bool _bFullscreen) = PureVirtual;
 
-    virtual ComPtr<ID3D12Device> GetDevice() = PureVirtual;
+    virtual ComPtr<ID3D12Device> GetDevice() = PureVirtual;         
+    virtual ComPtr<ID3D12CommandQueue> GetCommandQueue() = PureVirtual; 
+    virtual ComPtr<ID3D12CommandAllocator> GetCommandAllocator() = PureVirtual;
 
     //virtual HWND WindowHandle(void) = PureVirtual;
     //virtual D3DPRESENT_PARAMETERS PresentParameters() = PureVirtual;
