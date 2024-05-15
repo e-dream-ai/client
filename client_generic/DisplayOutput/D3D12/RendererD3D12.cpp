@@ -157,6 +157,7 @@ bool CRendererD3D12::EndFrame(bool drawn)
 void CRendererD3D12::Apply() {}
 void CRendererD3D12::Reset(const uint32_t _flags) {}
 
+// We probably can get rid of that...
 bool CRendererD3D12::TestResetDevice() { return false; }
 
 spCTextureFlat CRendererD3D12::NewTextureFlat(const uint32_t flags) 
@@ -185,6 +186,27 @@ void CRendererD3D12::Text(spCBaseFont _spFont, const std::string& _text,
 }
 
 Base::Math::CVector2 CRendererD3D12::GetTextExtent(spCBaseFont _spFont, const std::string& _text) { return Base::Math::CVector2(); }
+
+
+void CRendererD3D12::DrawQuad(const Base::Math::CRect& /*_rect*/,
+                              const Base::Math::CVector4& /*_color*/)
+{
+    g_Log->Info("CRendererD3D12::DrawQuad1 not impl");
+}
+
+void CRendererD3D12::DrawQuad(const Base::Math::CRect& /*_rect*/,
+    const Base::Math::CVector4& /*_color*/,
+    const Base::Math::CRect& /*_uvRect*/)
+{
+    g_Log->Info("CRendererD3D12::DrawQuad2 not impl");
+}
+void CRendererD3D12::DrawSoftQuad(const Base::Math::CRect& /*_rect*/,
+                          const Base::Math::CVector4& /*_color*/,
+                                  const float /*_width*/)
+{
+    g_Log->Info("CRendererD3D12::DrawSoftQuad not impl");
+}
+
 
 
 
