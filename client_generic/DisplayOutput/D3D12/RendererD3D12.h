@@ -5,10 +5,14 @@
 #include "TextureFlat.h"
 #include "Vector4.h"
 #include "base.h"
+
 #include <d3d12.h>
 #include <d3dx12.h>
 #include <DirectXColors.h>
+// From DirectX Tool Kit
 #include <GraphicsMemory.h>
+#include <PrimitiveBatch.h>
+
 #include "DeviceResources.h"
 #include <windows.h>
 #include <wrl.h>
@@ -110,6 +114,17 @@ class CRendererD3D12 : public CRenderer, IDeviceNotify
 	void SetWindowHandle(HWND _hWnd) { m_WindowHandle = _hWnd; };
 	HWND GetWindowHandle() { return m_WindowHandle; };
 
+    virtual void DrawQuad(const Base::Math::CRect& /*_rect*/,
+                          const Base::Math::CVector4& /*_color*/);
+    virtual void DrawQuad(const Base::Math::CRect& /*_rect*/,
+                          const Base::Math::CVector4& /*_color*/,
+                          const Base::Math::CRect& /*_uvRect*/);
+    virtual void DrawSoftQuad(const Base::Math::CRect& /*_rect*/,
+                              const Base::Math::CVector4& /*_color*/,
+                              const float /*_width*/);
+
+
+
 	////
 	//void SetPresentationParams(D3DPRESENT_PARAMETERS _params) { m_PresentationParams = _params; };
 	//D3DPRESENT_PARAMETERS GetPresentationParams() { return m_PresentationParams; };
@@ -127,7 +142,7 @@ class CRendererD3D12 : public CRenderer, IDeviceNotify
 	//void SetFonts(std::vector<ID3DXFont*> _fonts) { m_Fonts = _fonts; };
 	//std::vector<ID3DXFont*> GetFonts() { return m_Fonts; };
 
-	//
+	// ??
 	void SetSoftCorner(spCTextureFlat _spSoftCorner) { m_spSoftCorner = _spSoftCorner; };
 	spCTextureFlat GetSoftCorner() { return m_spSoftCorner; };
 };
