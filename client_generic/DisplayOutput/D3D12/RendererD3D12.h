@@ -6,36 +6,51 @@
 #include "Vector4.h"
 #include "base.h"
 #include <d3d12.h>
+#include <d3dx12.h>
+#include <DirectXColors.h>
+#include <GraphicsMemory.h>
 #include "DeviceResources.h"
 #include <windows.h>
 #include <wrl.h>
+#include <pix.h>
 
 using namespace Microsoft::WRL;
 
 namespace DisplayOutput
 {
 
-class CRendererD3D12 : public CRenderer
+class CRendererD3D12 : public CRenderer, IDeviceNotify
 {
 	HWND m_WindowHandle;
-	//D3DPRESENT_PARAMETERS m_PresentationParams;
-    ComPtr<ID3D12Device> m_pDevice;
-    std::shared_ptr<DeviceResources> m_deviceResources;
 
-	// ID3DXLine			*m_pLine;
-	//ID3DXSprite* m_pSprite;
+	// Device resources. This contains everuthing D3D12 needs to know about the device
+    std::unique_ptr<DeviceResources> m_deviceResources;
+    std::unique_ptr<DirectX::GraphicsMemory> m_graphicsMemory;
 
-	//std::vector<ID3DXFont*> m_Fonts;
+    // IDeviceNotify
+    // This is called when the Win32 window is created (or re-created).
+    void OnDeviceLost() override;
+    void OnDeviceRestored() override;
+
+
+
+
 	spCTextureFlat m_spSoftCorner;
 
   public:
 	CRendererD3D12();
 	virtual ~CRendererD3D12();
 
-	virtual ComPtr<ID3D12Device> Device() { return m_pDevice; };
+	virtual ComPtr<ID3D12Device> GetDevice() { return m_deviceResources->GetD3DDevice(); };
+	virtual ComPtr<ID3D12GraphicsCommandList> GetCommandList() { return m_deviceResources->GetCommandList(); };
+	virtual ComPtr<ID3D12CommandQueue> GetCommandQueue() { return m_deviceResources->GetCommandQueue(); };
+
 
 	virtual eRenderType Type(void) const { return eDX9; };
 	virtual const std::string Description(void) const { return "DirectX 12"; };
+
+	void CreateDeviceDependentResources();
+    void CreateWindowSizeDependentResources();
 
 	//
 	bool Initialize(spCDisplayOutput _spDisplay);
@@ -43,6 +58,7 @@ class CRendererD3D12 : public CRenderer
 	//
 	void Defaults();
 
+	void Clear();
 	//
 	bool BeginFrame(void);
 	bool EndFrame(bool drawn);

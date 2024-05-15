@@ -1,8 +1,10 @@
 //
 // DeviceResources.cpp - A wrapper for the Direct3D 12 device and swapchain
 //
+// Modified to handle log library, and moved to DisplayOutput namespace
 
 #include "DeviceResources.h"
+#include "Log.h"
 
 using namespace DisplayOutput;
 
@@ -152,6 +154,7 @@ void DeviceResources::CreateDeviceResources()
         );
     ThrowIfFailed(hr);
 
+    g_Log->Info("D3D12CreateDevice succeeded");
     m_d3dDevice->SetName(L"DeviceResources");
 
 #ifndef NDEBUG
@@ -664,11 +667,14 @@ void DeviceResources::GetAdapter(IDXGIAdapter1** ppAdapter)
             // Check to see if the adapter supports Direct3D 12, but don't create the actual device yet.
             if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), m_d3dMinFeatureLevel, __uuidof(ID3D12Device), nullptr)))
             {
-#ifdef _DEBUG
                 wchar_t buff[256] = {};
                 swprintf_s(buff, L"Direct3D Adapter (%u): VID:%04X, PID:%04X - %ls\n", adapterIndex, desc.VendorId, desc.DeviceId, desc.Description);
                 OutputDebugStringW(buff);
-#endif
+
+                g_Log->Info("Direct3D Adapter (%u): VID:%04X, PID:%04X - %ls",
+                            adapterIndex, desc.VendorId, desc.DeviceId,
+                            desc.Description);
+
                 break;
             }
         }
@@ -694,11 +700,12 @@ void DeviceResources::GetAdapter(IDXGIAdapter1** ppAdapter)
             // Check to see if the adapter supports Direct3D 12, but don't create the actual device yet.
             if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), m_d3dMinFeatureLevel, __uuidof(ID3D12Device), nullptr)))
             {
-#ifdef _DEBUG
                 wchar_t buff[256] = {};
                 swprintf_s(buff, L"Direct3D Adapter (%u): VID:%04X, PID:%04X - %ls\n", adapterIndex, desc.VendorId, desc.DeviceId, desc.Description);
                 OutputDebugStringW(buff);
-#endif
+                g_Log->Info("Direct3D Adapter (%u): VID:%04X, PID:%04X - %ls",
+                            adapterIndex, desc.VendorId, desc.DeviceId,
+                            desc.Description);
                 break;
             }
         }

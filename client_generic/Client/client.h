@@ -595,7 +595,7 @@ class CElectricSheep
                 return false;
             }
 #else 
-            g_Player().Renderer()->BeginFrame();
+            //g_Player().Renderer()->BeginFrame();
 
             if( !Update() )
             {

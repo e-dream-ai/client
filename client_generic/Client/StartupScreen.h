@@ -117,39 +117,42 @@ class CStartupScreen : public CHudEntry
         // (float)_spRenderer->Display()->Height();
         float edge = 24 / (float)_spRenderer->Display()->Width();
 
-        Base::Math::CRect extent;
-        Base::Math::CVector2 size = m_spText->GetExtent();
-        extent = extent.Union(Base::Math::CRect(0, 0, size.m_X + (edge * 2),
-                                                size.m_Y + (edge * 2)));
 
-        boost::posix_time::time_duration td =
-            boost::posix_time::second_clock::local_time() -
-            m_ServerMessageStartTimer;
-        if (td.hours() >= 1)
-        {
-            m_MoveMessageCounter += 0.0005f;
-            if (m_MoveMessageCounter >= 1.f)
-                m_MoveMessageCounter -= 1.f + edge * 2 + float(size.m_Y);
-        }
+
+        // TODO: DTEXT
+        //Base::Math::CRect extent;
+        //Base::Math::CVector2 size = m_spText->GetExtent();
+        //extent = extent.Union(Base::Math::CRect(0, 0, size.m_X + (edge * 2),
+        //                                        size.m_Y + (edge * 2)));
+
+        //boost::posix_time::time_duration td =
+        //    boost::posix_time::second_clock::local_time() -
+        //    m_ServerMessageStartTimer;
+        //if (td.hours() >= 1)
+        //{
+        //    m_MoveMessageCounter += 0.0005f;
+        //    if (m_MoveMessageCounter >= 1.f)
+        //        m_MoveMessageCounter -= 1.f + edge * 2 + float(size.m_Y);
+        //}
 
         //	Draw quad.
-        _spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader |
-                           DisplayOutput::eBlend);
+        //_spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader |
+        //                   DisplayOutput::eBlend);
 
-        Base::Math::CRect r(
-            0.5f - (extent.Width() * 0.5f), extent.m_Y0 + m_MoveMessageCounter,
-            0.5f + (extent.Width() * 0.5f), extent.m_Y1 + m_MoveMessageCounter);
+        //Base::Math::CRect r(
+        //    0.5f - (extent.Width() * 0.5f), extent.m_Y0 + m_MoveMessageCounter,
+        //    0.5f + (extent.Width() * 0.5f), extent.m_Y1 + m_MoveMessageCounter);
 
-        _spRenderer->SetBlend("alphablend");
-        _spRenderer->Apply();
-        _spRenderer->DrawSoftQuad(r, Base::Math::CVector4(0, 0, 0, 0.5f), 16);
+        //_spRenderer->SetBlend("alphablend");
+        //_spRenderer->Apply();
+        //_spRenderer->DrawSoftQuad(r, Base::Math::CVector4(0, 0, 0, 0.5f), 16);
 
         // dasvo - terrible hack - redo!!
-        if (m_spFont)
-            m_spFont->Reupload();
-        m_spText->SetRect(
-            Base::Math::CRect(r.m_X0 + edge, r.m_Y0 + edge, r.m_X1, r.m_Y1));
-        _spRenderer->DrawText(m_spText, Base::Math::CVector4(1, 1, 1, 1));
+        //if (m_spFont)
+        //    m_spFont->Reupload();
+        //m_spText->SetRect(
+        //    Base::Math::CRect(r.m_X0 + edge, r.m_Y0 + edge, r.m_X1, r.m_Y1));
+        //_spRenderer->DrawText(m_spText, Base::Math::CVector4(1, 1, 1, 1));
 
         return true;
     }

@@ -4,41 +4,173 @@
 
 namespace DisplayOutput
 {
-CRendererD3D12::CRendererD3D12() { 
+    using namespace DirectX;
+CRendererD3D12::CRendererD3D12() 
+{ 
 	m_WindowHandle = NULL; 
+
+    // Create the device resources object. This object owns the Direct3D device and all of the resources that are associated with it.
+    m_deviceResources = std::make_unique<DeviceResources>();
+    // TODO: Provide parameters for swapchain format, depth/stencil format, and backbuffer count.
+    //   Add DX::DeviceResources::c_AllowTearing to opt-in to variable rate displays.
+    //   Add DX::DeviceResources::c_EnableHDR for HDR10 display.
+    //   Add DX::DeviceResources::c_ReverseDepth to optimize depth buffer clears for 0 instead of 1.
+    m_deviceResources->RegisterDeviceNotify(this);  // Register to be notified if the device is lost or created.
+
 }
 
-CRendererD3D12::~CRendererD3D12() {}
+CRendererD3D12::~CRendererD3D12() 
+{
+    if (m_deviceResources)
+    {
+        m_deviceResources->WaitForGpu();
+    }
+}
+
+// IDeviceNotify
+void CRendererD3D12::OnDeviceLost()
+{
+    // TODO: Add Direct3D resource cleanup here.
+
+    m_graphicsMemory.reset();
+}
+
+void CRendererD3D12::OnDeviceRestored()
+{
+    CreateDeviceDependentResources();
+    CreateWindowSizeDependentResources();
+}
+
+
+// These are the resources that depend on the device.
+void CRendererD3D12::CreateDeviceDependentResources()
+{
+    auto device = m_deviceResources->GetD3DDevice();
+
+    // Check Shader Model 6 support
+    D3D12_FEATURE_DATA_SHADER_MODEL shaderModel = {D3D_SHADER_MODEL_6_0};
+    if (FAILED(device->CheckFeatureSupport(
+            D3D12_FEATURE_SHADER_MODEL, &shaderModel, sizeof(shaderModel))) ||
+        (shaderModel.HighestShaderModel < D3D_SHADER_MODEL_6_0))
+    {
+        g_Log->Error("ERROR: Shader Model 6.0 is not supported!");
+        throw std::runtime_error("Shader Model 6.0 is not supported!");
+    }
+
+    m_graphicsMemory = std::make_unique<GraphicsMemory>(device);
+
+    // TODO: Initialize device dependent objects here (independent of window size).
+}
+
+// Allocate all memory resources that change on a window SizeChanged event.
+void CRendererD3D12::CreateWindowSizeDependentResources()
+{
+    // TODO: Initialize windows-size dependent objects here.
+}
+
 
 bool CRendererD3D12::Initialize(spCDisplayOutput _spDisplay) 
 { 
     m_spDisplay = _spDisplay;
-    m_pDevice = m_spDisplay->GetDevice();   // Grab DX12 device from display, it's created there
+	m_WindowHandle = m_spDisplay->GetWindowHandle();
+
+    // Initialize Direct3D
+    m_deviceResources->SetWindow(m_WindowHandle, m_spDisplay->Width(),
+                                     m_spDisplay->Height());
+
+    m_deviceResources->CreateDeviceResources();
+    CreateDeviceDependentResources();
+
+    m_deviceResources->CreateWindowSizeDependentResources();
+    CreateWindowSizeDependentResources();
+
 
     return true; 
 }
 
 void CRendererD3D12::Defaults() {}
 
-bool CRendererD3D12::BeginFrame(void) { return true;  }
-bool CRendererD3D12::EndFrame(bool drawn) { return true; }
+void CRendererD3D12::Clear()
+{
+    auto commandList = m_deviceResources->GetCommandList();
+    PIXBeginEvent(commandList, PIX_COLOR_DEFAULT, L"Clear");
+
+    // Clear the views.
+    auto const rtvDescriptor = m_deviceResources->GetRenderTargetView();
+    auto const dsvDescriptor = m_deviceResources->GetDepthStencilView();
+
+    commandList->OMSetRenderTargets(1, &rtvDescriptor, FALSE, &dsvDescriptor);
+    commandList->ClearRenderTargetView(rtvDescriptor, Colors::CornflowerBlue, 0,
+                                       nullptr);
+    commandList->ClearDepthStencilView(dsvDescriptor, D3D12_CLEAR_FLAG_DEPTH,
+                                       1.0f, 0, 0, nullptr);
+
+    // Set the viewport and scissor rect.
+    auto const viewport = m_deviceResources->GetScreenViewport();
+    auto const scissorRect = m_deviceResources->GetScissorRect();
+    commandList->RSSetViewports(1, &viewport);
+    commandList->RSSetScissorRects(1, &scissorRect);
+
+    PIXEndEvent(commandList);
+}
+
+bool CRendererD3D12::BeginFrame(void) {
+    if (!CRenderer::BeginFrame())
+        return false;
+
+    if (TestResetDevice())
+        return false;
+
+    // Prepare the command list to render a new frame.
+    m_deviceResources->Prepare();
+    Clear();
+
+    auto commandList = m_deviceResources->GetCommandList();
+    PIXBeginEvent(commandList, PIX_COLOR_DEFAULT, L"Render");
+    PIXEndEvent(commandList);
+
+    
+    return true;  
+}
+
+bool CRendererD3D12::EndFrame(bool drawn) 
+{ 
+    if (!CRenderer::EndFrame())
+        return false;
+
+    if (TestResetDevice())
+        return false;
+
+    // Show the new frame.
+    PIXBeginEvent(PIX_COLOR_DEFAULT, L"Present");
+    m_deviceResources->Present();
+
+    // If using the DirectX Tool Kit for DX12, uncomment this line:
+    // m_graphicsMemory->Commit(m_deviceResources->GetCommandQueue());
+
+    PIXEndEvent();
+
+    return true; 
+}
 
 
 void CRendererD3D12::Apply() {}
 void CRendererD3D12::Reset(const uint32_t _flags) {}
 
-bool CRendererD3D12::TestResetDevice() { return true; }
+bool CRendererD3D12::TestResetDevice() { return false; }
 
 spCTextureFlat CRendererD3D12::NewTextureFlat(const uint32_t flags) 
 {
-    spCTextureFlat texture = std::make_shared<CTextureFlatD3D12>(m_spDisplay, flags);
+    spCTextureFlat texture = std::make_shared<CTextureFlatD3D12>(
+        GetDevice(), GetCommandQueue(), flags);
 
     return texture;
 }
 
 spCTextureFlat CRendererD3D12::NewTextureFlat(spCImage _spImage, const uint32_t flags) 
 {
-    spCTextureFlat texture = std::make_shared<CTextureFlatD3D12>(m_spDisplay, flags);
+    spCTextureFlat texture = std::make_shared<CTextureFlatD3D12>(
+        GetDevice(), GetCommandQueue(), flags);
     texture->Upload(_spImage);
 
     return texture;
