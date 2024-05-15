@@ -662,9 +662,9 @@ class CElectricSheep_Win32 : public CElectricSheep
         }
 
         //static const float voteDelaySeconds = 1;
-        // @TODO: Might need to return true here and not HandleEvents, like mac client does now?
-        return HandleEvents();
-    }
+        HandleEvents();
+        return true;
+    } 
 
     // TODO : Never called ?
     virtual bool Update(int _displayIdx, boost::barrier& _beginFrameBarrier, boost::barrier& _endFrameBarrier)
