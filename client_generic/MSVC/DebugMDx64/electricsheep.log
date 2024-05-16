@@ -32,22 +32,16 @@
          18 fichier(s) copié(s).
           1 fichier(s) copié(s).
   Scanning sources for module dependencies...
-  Player.cpp
   RendererD3D12.cpp
-  TextureFlatD3D12.cpp
-c:\local\boost_1_85_0\boost\bind.hpp(41): message : The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
 C:\Users\Jack\Documents\GitHub\client\client_generic\DisplayOutput\D3D12\D3D12Helpers.h(29,9): warning C4005: 'SAFE_RELEASE': macro redefinition
-C:\Users\Jack\Documents\GitHub\client\client_generic\DisplayOutput\D3D12\D3D12Helpers.h(29,9): warning C4005: 'SAFE_RELEASE': macro redefinition
-C:\Users\Jack\Documents\GitHub\client\client_generic\DisplayOutput\D3D12\D3D12Helpers.h(29,9): warning C4005: 'SAFE_RELEASE': macro redefinition
-C:\Users\Jack\Documents\GitHub\client\client_generic\Client\FrameDisplay.h(67,44): warning C4244: 'argument': conversion from 'const uint32_t' to 'float', possible loss of data
-C:\Users\Jack\Documents\GitHub\client\client_generic\Client\FrameDisplay.h(67,40): warning C4244: 'argument': conversion from 'const uint32_t' to 'float', possible loss of data
-C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.40.33807\include\xutility(374,75): warning C4267: 'argument': conversion from 'size_t' to 'uint32_t', possible loss of data
-C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.40.33807\include\xutility(388,82): warning C4267: 'argument': conversion from 'size_t' to 'uint32_t', possible loss of data
-C:\Users\Jack\Documents\GitHub\client\client_generic\Client\Player.cpp(663,50): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.40.33807\include\xutility(375,90): warning C4267: 'argument': conversion from 'size_t' to 'uint32_t', possible loss of data
-C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.40.33807\include\xutility(374,75): warning C4267: 'argument': conversion from 'size_t' to 'uint32_t', possible loss of data
-C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.40.33807\include\xutility(388,82): warning C4267: 'argument': conversion from 'size_t' to 'uint32_t', possible loss of data
-C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.40.33807\include\xutility(375,90): warning C4267: 'argument': conversion from 'size_t' to 'uint32_t', possible loss of data
+C:\Users\Jack\Documents\GitHub\client\client_generic\DisplayOutput\D3D12\RendererD3D12.cpp(287,67): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\Jack\Documents\GitHub\client\client_generic\DisplayOutput\D3D12\RendererD3D12.cpp(287,49): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\Jack\Documents\GitHub\client\client_generic\DisplayOutput\D3D12\RendererD3D12.cpp(286,67): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\Jack\Documents\GitHub\client\client_generic\DisplayOutput\D3D12\RendererD3D12.cpp(286,49): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\Jack\Documents\GitHub\client\client_generic\DisplayOutput\D3D12\RendererD3D12.cpp(285,66): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\Jack\Documents\GitHub\client\client_generic\DisplayOutput\D3D12\RendererD3D12.cpp(285,48): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\Jack\Documents\GitHub\client\client_generic\DisplayOutput\D3D12\RendererD3D12.cpp(284,78): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\Jack\Documents\GitHub\client\client_generic\DisplayOutput\D3D12\RendererD3D12.cpp(284,60): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
 C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.40.33807\include\xutility(374,75): warning C4267: 'argument': conversion from 'size_t' to 'uint32_t', possible loss of data
 C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.40.33807\include\xutility(388,82): warning C4267: 'argument': conversion from 'size_t' to 'uint32_t', possible loss of data
 C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.40.33807\include\xutility(375,90): warning C4267: 'argument': conversion from 'size_t' to 'uint32_t', possible loss of data

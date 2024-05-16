@@ -9,9 +9,13 @@
 #include <d3d12.h>
 #include <d3dx12.h>
 #include <DirectXColors.h>
+
 // From DirectX Tool Kit
 #include <GraphicsMemory.h>
+#include <VertexTypes.h>
 #include <PrimitiveBatch.h>
+#include <Effects.h>
+#include <CommonStates.h>
 
 #include "DeviceResources.h"
 #include <windows.h>
@@ -22,6 +26,7 @@ using namespace Microsoft::WRL;
 
 namespace DisplayOutput
 {
+    using namespace DirectX;
 
 class CRendererD3D12 : public CRenderer, IDeviceNotify
 {
@@ -29,7 +34,11 @@ class CRendererD3D12 : public CRenderer, IDeviceNotify
 
 	// Device resources. This contains everuthing D3D12 needs to know about the device
     std::unique_ptr<DeviceResources> m_deviceResources;
-    std::unique_ptr<DirectX::GraphicsMemory> m_graphicsMemory;
+    std::unique_ptr<GraphicsMemory> m_graphicsMemory;
+
+    std::unique_ptr<PrimitiveBatch<VertexPositionColor>> primitiveBatch;
+    std::unique_ptr<BasicEffect> m_lineEffect;
+    std::unique_ptr<PrimitiveBatch<VertexPositionColor>> m_batch;
 
     // IDeviceNotify
     // This is called when the Win32 window is created (or re-created).
@@ -37,7 +46,9 @@ class CRendererD3D12 : public CRenderer, IDeviceNotify
     void OnDeviceRestored() override;
 
 
-
+    void XM_CALLCONV DrawGrid(FXMVECTOR xAxis, FXMVECTOR yAxis,
+                                              FXMVECTOR origin, size_t xdivs,
+                                              size_t ydivs, GXMVECTOR color);
 
 	spCTextureFlat m_spSoftCorner;
 

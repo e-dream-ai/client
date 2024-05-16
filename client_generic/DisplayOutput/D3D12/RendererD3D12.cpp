@@ -5,6 +5,7 @@
 namespace DisplayOutput
 {
     using namespace DirectX;
+
 CRendererD3D12::CRendererD3D12() 
 { 
 	m_WindowHandle = NULL; 
@@ -16,6 +17,7 @@ CRendererD3D12::CRendererD3D12()
     //   Add DX::DeviceResources::c_EnableHDR for HDR10 display.
     //   Add DX::DeviceResources::c_ReverseDepth to optimize depth buffer clears for 0 instead of 1.
     m_deviceResources->RegisterDeviceNotify(this);  // Register to be notified if the device is lost or created.
+
 
 }
 
@@ -60,6 +62,24 @@ void CRendererD3D12::CreateDeviceDependentResources()
     m_graphicsMemory = std::make_unique<GraphicsMemory>(device);
 
     // TODO: Initialize device dependent objects here (independent of window size).
+    
+    // Create our batch renderer for drawing primitives.
+    primitiveBatch = std::make_unique<PrimitiveBatch<VertexPositionColor>>(device);
+
+    m_batch = std::make_unique<PrimitiveBatch<VertexPositionColor>>(device);
+
+    const RenderTargetState rtState(m_deviceResources->GetBackBufferFormat(),
+                                    m_deviceResources->GetDepthBufferFormat());
+
+    {
+        EffectPipelineStateDescription pd(
+            &VertexPositionColor::InputLayout, CommonStates::Opaque,
+            CommonStates::DepthNone, CommonStates::CullNone, rtState,
+            D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE);
+
+        m_lineEffect =
+            std::make_unique<BasicEffect>(device, EffectFlags::VertexColor, pd);
+    }
 }
 
 // Allocate all memory resources that change on a window SizeChanged event.
@@ -115,6 +135,7 @@ void CRendererD3D12::Clear()
 }
 
 bool CRendererD3D12::BeginFrame(void) {
+
     if (!CRenderer::BeginFrame())
         return false;
 
@@ -129,9 +150,57 @@ bool CRendererD3D12::BeginFrame(void) {
     PIXBeginEvent(commandList, PIX_COLOR_DEFAULT, L"Render");
     PIXEndEvent(commandList);
 
+    // Draw procedurally generated dynamic grid
+    //const XMVECTORF32 xaxis = {20.f, 0.f, 0.f};
+    //const XMVECTORF32 yaxis = {0.f, 0.f, 20.f};
+    //DrawGrid(xaxis, yaxis, g_XMZero, 20, 20, Colors::Gray);
     
     return true;  
 }
+
+void XM_CALLCONV CRendererD3D12::DrawGrid(FXMVECTOR xAxis, FXMVECTOR yAxis,
+                                FXMVECTOR origin, size_t xdivs, size_t ydivs,
+                                GXMVECTOR color)
+{
+    auto commandList = m_deviceResources->GetCommandList();
+    PIXBeginEvent(commandList, PIX_COLOR_DEFAULT, L"Draw grid");
+
+    m_lineEffect->Apply(commandList);
+
+    m_batch->Begin(commandList);
+
+    xdivs = std::max<size_t>(1, xdivs);
+    ydivs = std::max<size_t>(1, ydivs);
+
+    for (size_t i = 0; i <= xdivs; ++i)
+    {
+        float fPercent = float(i) / float(xdivs);
+        fPercent = (fPercent * 2.0f) - 1.0f;
+        XMVECTOR vScale = XMVectorScale(xAxis, fPercent);
+        vScale = XMVectorAdd(vScale, origin);
+
+        const VertexPositionColor v1(XMVectorSubtract(vScale, yAxis), color);
+        const VertexPositionColor v2(XMVectorAdd(vScale, yAxis), color);
+        m_batch->DrawLine(v1, v2);
+    }
+
+    for (size_t i = 0; i <= ydivs; i++)
+    {
+        float fPercent = float(i) / float(ydivs);
+        fPercent = (fPercent * 2.0f) - 1.0f;
+        XMVECTOR vScale = XMVectorScale(yAxis, fPercent);
+        vScale = XMVectorAdd(vScale, origin);
+
+        const VertexPositionColor v1(XMVectorSubtract(vScale, xAxis), color);
+        const VertexPositionColor v2(XMVectorAdd(vScale, xAxis), color);
+        m_batch->DrawLine(v1, v2);
+    }
+
+    m_batch->End();
+
+    PIXEndEvent(commandList);
+}
+
 
 bool CRendererD3D12::EndFrame(bool drawn) 
 { 
@@ -188,17 +257,41 @@ void CRendererD3D12::Text(spCBaseFont _spFont, const std::string& _text,
 Base::Math::CVector2 CRendererD3D12::GetTextExtent(spCBaseFont _spFont, const std::string& _text) { return Base::Math::CVector2(); }
 
 
-void CRendererD3D12::DrawQuad(const Base::Math::CRect& /*_rect*/,
-                              const Base::Math::CVector4& /*_color*/)
+void CRendererD3D12::DrawQuad(const Base::Math::CRect& _rect,
+                              const Base::Math::CVector4& _color)
 {
     g_Log->Info("CRendererD3D12::DrawQuad1 not impl");
 }
 
-void CRendererD3D12::DrawQuad(const Base::Math::CRect& /*_rect*/,
-    const Base::Math::CVector4& /*_color*/,
-    const Base::Math::CRect& /*_uvRect*/)
+void CRendererD3D12::DrawQuad(const Base::Math::CRect& _rect,
+    const Base::Math::CVector4& _color,
+    const Base::Math::CRect& _uvRect)
 {
     g_Log->Info("CRendererD3D12::DrawQuad2 not impl");
+    auto commandList = m_deviceResources->GetCommandList();
+    PIXBeginEvent(commandList, PIX_COLOR_DEFAULT, L"Draw quad2");
+
+    m_lineEffect->Apply(commandList);
+
+    primitiveBatch->Begin(commandList);
+
+    auto color = XMFLOAT4(_color.m_X, _color.m_Y, _color.m_Z, _color.m_W);
+
+
+
+
+    primitiveBatch
+        ->DrawQuad(VertexPositionColor(XMFLOAT3(_rect.m_X0 - 0.5, _rect.m_Y0 - 0.5 , 0.f), color),
+				   VertexPositionColor(XMFLOAT3(_rect.m_X1 - 0.5, _rect.m_Y0 - 0.5, 0.f), color),
+        VertexPositionColor(XMFLOAT3(_rect.m_X1 - 0.5, _rect.m_Y1 - 0.5, 0.f), color),
+        VertexPositionColor(XMFLOAT3(_rect.m_X0 - 0.5, _rect.m_Y1 - 0.5, 0.f), color));
+
+
+
+    primitiveBatch->End();
+
+    PIXEndEvent(commandList);
+
 }
 void CRendererD3D12::DrawSoftQuad(const Base::Math::CRect& /*_rect*/,
                           const Base::Math::CVector4& /*_color*/,
