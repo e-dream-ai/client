@@ -61,25 +61,66 @@ void CRendererD3D12::CreateDeviceDependentResources()
 
     m_graphicsMemory = std::make_unique<GraphicsMemory>(device);
 
+    m_states = std::make_unique<CommonStates>(device);
+
+    m_resourceDescriptors = std::make_shared<DescriptorHeap>(device, Descriptors::Count);
+
+
+
+    ResourceUploadBatch resourceUpload(device);
+
+    resourceUpload.Begin();
+
+    ThrowIfFailed(
+        CreateWICTextureFromFile(device, resourceUpload, L"logo.png",
+                                 m_texture.ReleaseAndGetAddressOf()));
+
+    device->CreateShaderResourceView(
+        m_texture.Get(), nullptr,
+        m_resourceDescriptors->GetCpuHandle(Descriptors::Font));
+
+    auto uploadResourcesFinished =
+        resourceUpload.End(m_deviceResources->GetCommandQueue());
+
+    uploadResourcesFinished.wait();
+
+
+
     // TODO: Initialize device dependent objects here (independent of window size).
     
     // Create our batch renderer for drawing primitives.
     primitiveBatch = std::make_unique<PrimitiveBatch<VertexPositionColor>>(device);
+    texturedBatch = std::make_unique<PrimitiveBatch<VertexPositionNormalTexture>>(device);
 
     m_batch = std::make_unique<PrimitiveBatch<VertexPositionColor>>(device);
 
     const RenderTargetState rtState(m_deviceResources->GetBackBufferFormat(),
                                     m_deviceResources->GetDepthBufferFormat());
 
+    //{
+    //    EffectPipelineStateDescription pd(
+    //        &VertexPositionColor::InputLayout, CommonStates::Opaque,
+    //        CommonStates::DepthNone, CommonStates::CullNone, rtState,
+    //        D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE);
+
+    //    m_lineEffect = std::make_unique<BasicEffect>(
+    //        device, EffectFlags::VertexColor, pd);
+    //}
+
     {
         EffectPipelineStateDescription pd(
-            &VertexPositionColor::InputLayout, CommonStates::Opaque,
-            CommonStates::DepthNone, CommonStates::CullNone, rtState,
-            D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE);
+            &VertexPositionNormalTexture::InputLayout, CommonStates::Opaque,
+            CommonStates::DepthDefault, CommonStates::CullNone, rtState);
 
-        m_lineEffect =
-            std::make_unique<BasicEffect>(device, EffectFlags::VertexColor, pd);
+        m_textureEffect = std::make_unique<BasicEffect>(
+            device, EffectFlags::PerPixelLighting | EffectFlags::Texture, pd);
+        m_textureEffect->EnableDefaultLighting();
+        m_textureEffect->SetDiffuseColor(Colors::Red);
+        m_textureEffect->SetTexture(
+            m_resourceDescriptors->GetGpuHandle(Descriptors::Font),
+            m_states->LinearWrap());
     }
+
 }
 
 // Allocate all memory resources that change on a window SizeChanged event.
@@ -215,7 +256,7 @@ bool CRendererD3D12::EndFrame(bool drawn)
     m_deviceResources->Present();
 
     // If using the DirectX Tool Kit for DX12, uncomment this line:
-    // m_graphicsMemory->Commit(m_deviceResources->GetCommandQueue());
+    m_graphicsMemory->Commit(m_deviceResources->GetCommandQueue());
 
     PIXEndEvent();
 
@@ -223,24 +264,32 @@ bool CRendererD3D12::EndFrame(bool drawn)
 }
 
 
-void CRendererD3D12::Apply() {}
-void CRendererD3D12::Reset(const uint32_t _flags) {}
+void CRendererD3D12::Apply() { 
+    CRenderer::Apply(); 
+}
+void CRendererD3D12::Reset(const uint32_t _flags) {
+    CRenderer::Reset(_flags);
+}
 
 // We probably can get rid of that...
 bool CRendererD3D12::TestResetDevice() { return false; }
 
 spCTextureFlat CRendererD3D12::NewTextureFlat(const uint32_t flags) 
 {
+    g_Log->Info("CRendererD3D12::NewTextureFlat");
+
     spCTextureFlat texture = std::make_shared<CTextureFlatD3D12>(
-        GetDevice(), GetCommandQueue(), flags);
+        GetDevice(), GetCommandQueue(), GetResourceDescriptors(), flags);
 
     return texture;
 }
 
 spCTextureFlat CRendererD3D12::NewTextureFlat(spCImage _spImage, const uint32_t flags) 
 {
+    g_Log->Info("CRendererD3D12::NewTextureFlat2");
+
     spCTextureFlat texture = std::make_shared<CTextureFlatD3D12>(
-        GetDevice(), GetCommandQueue(), flags);
+        GetDevice(), GetCommandQueue(), GetResourceDescriptors(), flags);
     texture->Upload(_spImage);
 
     return texture;
@@ -267,28 +316,45 @@ void CRendererD3D12::DrawQuad(const Base::Math::CRect& _rect,
     const Base::Math::CVector4& _color,
     const Base::Math::CRect& _uvRect)
 {
-    g_Log->Info("CRendererD3D12::DrawQuad2 not impl");
+    g_Log->Info("CRendererD3D12::DrawQuad2");
     auto commandList = m_deviceResources->GetCommandList();
     PIXBeginEvent(commandList, PIX_COLOR_DEFAULT, L"Draw quad2");
 
-    m_lineEffect->Apply(commandList);
+    // Bind textures 
+    ID3D12DescriptorHeap* heaps[] = {m_resourceDescriptors->Heap()};
+    commandList->SetDescriptorHeaps(static_cast<UINT>(std::size(heaps)), heaps);
 
-    primitiveBatch->Begin(commandList);
+    /*
+    m_textureEffect->SetTexture(
+    m_resourceDescriptors->GetGpuHandle(Descriptors::Texture), m_states->LinearWrap());
+    */
+    texturedBatch->Begin(commandList);
 
-    auto color = XMFLOAT4(_color.m_X, _color.m_Y, _color.m_Z, _color.m_W);
+
+    m_textureEffect->Apply(commandList);
 
 
+    //auto color = XMFLOAT4(_color.m_X, _color.m_Y, _color.m_Z, _color.m_W);
 
 
-    primitiveBatch
+    auto t =
+        VertexPositionNormalTexture(XMFLOAT3(_rect.m_X0, _rect.m_Y0, 0.f), XMFLOAT3(0, 0, -1), XMFLOAT2(_uvRect.m_X0, _uvRect.m_Y0));
+
+
+    texturedBatch
+        ->DrawQuad(VertexPositionNormalTexture(XMFLOAT3(_rect.m_X0, _rect.m_Y0, 0.f), XMFLOAT3(0, 0, -1), XMFLOAT2(_uvRect.m_X0, _uvRect.m_Y0)),
+            VertexPositionNormalTexture(XMFLOAT3(_rect.m_X1, _rect.m_Y0, 0.f), XMFLOAT3(0, 0, -1), XMFLOAT2(_uvRect.m_X1, _uvRect.m_Y0)),
+			VertexPositionNormalTexture(XMFLOAT3(_rect.m_X1, _rect.m_Y1, 0.f), XMFLOAT3(0, 0, -1), XMFLOAT2(_uvRect.m_X1, _uvRect.m_Y1)),
+            VertexPositionNormalTexture(XMFLOAT3(_rect.m_X0, _rect.m_Y1, 0.f), XMFLOAT3(0, 0, -1), XMFLOAT2(_uvRect.m_X0, _uvRect.m_Y1)));
+    /*primitiveBatch
         ->DrawQuad(VertexPositionColor(XMFLOAT3(_rect.m_X0 - 0.5, _rect.m_Y0 - 0.5 , 0.f), color),
 				   VertexPositionColor(XMFLOAT3(_rect.m_X1 - 0.5, _rect.m_Y0 - 0.5, 0.f), color),
         VertexPositionColor(XMFLOAT3(_rect.m_X1 - 0.5, _rect.m_Y1 - 0.5, 0.f), color),
         VertexPositionColor(XMFLOAT3(_rect.m_X0 - 0.5, _rect.m_Y1 - 0.5, 0.f), color));
+        */
 
 
-
-    primitiveBatch->End();
+    texturedBatch->End();
 
     PIXEndEvent(commandList);
 

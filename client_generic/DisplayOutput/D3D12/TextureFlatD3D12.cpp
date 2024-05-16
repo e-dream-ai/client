@@ -10,10 +10,12 @@ namespace DisplayOutput
 
     CTextureFlatD3D12::CTextureFlatD3D12(ComPtr<ID3D12Device> _device,
                                      ComPtr<ID3D12CommandQueue> _commandQueue,
+                                     std::shared_ptr<DescriptorHeap> _heap,
                                      const uint32_t _flags)
     {
         device = _device;
 		commandQueue = _commandQueue;
+        heap = _heap;
     }
 
     CTextureFlatD3D12::~CTextureFlatD3D12()
@@ -62,17 +64,23 @@ namespace DisplayOutput
             resourceUpload.End(commandQueue.Get());
 
         uploadResourcesFinished.wait();
+        
+        device.Get()->CreateShaderResourceView(texture.Get(), nullptr,
+			heap->GetCpuHandle(CRendererD3D12::Descriptors::Texture));
 
         return true;
     }
 
-    bool CTextureFlatD3D12::Bind(uint32_t _slot)
-    {
+    bool CTextureFlatD3D12::Bind(uint32_t _slot) { 
+        g_Log->Info("CTextureFlatD3D12::Bind");
+        
+
         return true;
     }
 
     bool CTextureFlatD3D12::Unbind(uint32_t _slot)
     {
+        g_Log->Info("CTextureFlatD3D12::UnBind");
         return true;
     }
 
