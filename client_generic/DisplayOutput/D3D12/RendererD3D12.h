@@ -12,10 +12,13 @@
 
 // From DirectX Tool Kit
 #include <GraphicsMemory.h>
+#include "DescriptorHeap.h"
 #include <VertexTypes.h>
 #include <PrimitiveBatch.h>
 #include <Effects.h>
 #include <CommonStates.h>
+#include "ResourceUploadBatch.h"
+#include "WICTextureLoader.h"
 
 #include "DeviceResources.h"
 #include <windows.h>
@@ -35,8 +38,16 @@ class CRendererD3D12 : public CRenderer, IDeviceNotify
 	// Device resources. This contains everuthing D3D12 needs to know about the device
     std::unique_ptr<DeviceResources> m_deviceResources;
     std::unique_ptr<GraphicsMemory> m_graphicsMemory;
+    std::shared_ptr<DescriptorHeap> m_resourceDescriptors;
+    std::unique_ptr<CommonStates> m_states;
 
     std::unique_ptr<PrimitiveBatch<VertexPositionColor>> primitiveBatch;
+    std::unique_ptr<PrimitiveBatch<VertexPositionNormalTexture>> texturedBatch;
+
+    std::unique_ptr<BasicEffect> m_textureEffect;
+
+    Microsoft::WRL::ComPtr<ID3D12Resource> m_texture; // tmp
+
     std::unique_ptr<BasicEffect> m_lineEffect;
     std::unique_ptr<PrimitiveBatch<VertexPositionColor>> m_batch;
 
@@ -59,7 +70,7 @@ class CRendererD3D12 : public CRenderer, IDeviceNotify
 	virtual ComPtr<ID3D12Device> GetDevice() { return m_deviceResources->GetD3DDevice(); };
 	virtual ComPtr<ID3D12GraphicsCommandList> GetCommandList() { return m_deviceResources->GetCommandList(); };
 	virtual ComPtr<ID3D12CommandQueue> GetCommandQueue() { return m_deviceResources->GetCommandQueue(); };
-
+    virtual std::shared_ptr<DescriptorHeap> GetResourceDescriptors() { return m_resourceDescriptors; };
 
 	virtual eRenderType Type(void) const { return eDX9; };
 	virtual const std::string Description(void) const { return "DirectX 12"; };
@@ -156,6 +167,14 @@ class CRendererD3D12 : public CRenderer, IDeviceNotify
 	// ??
 	void SetSoftCorner(spCTextureFlat _spSoftCorner) { m_spSoftCorner = _spSoftCorner; };
 	spCTextureFlat GetSoftCorner() { return m_spSoftCorner; };
+
+    // Descriptors
+    enum Descriptors
+    {
+        Texture,
+        Font,
+        Count = 256
+    };
 };
 
 }

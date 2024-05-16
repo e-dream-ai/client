@@ -18,7 +18,9 @@ class CTextureFlatD3D12 : public CTextureFlat
 {
     ComPtr<ID3D12Device> device;
     ComPtr<ID3D12CommandQueue> commandQueue;
+    std::shared_ptr<DescriptorHeap> heap;
 
+    // Our texture resource
     ComPtr<ID3D12Resource> m_resource;
 
     //	Internal to keep track if size or format changed.
@@ -28,7 +30,8 @@ class CTextureFlatD3D12 : public CTextureFlat
     Base::Math::CRect m_Size;
 
     CTextureFlatD3D12(ComPtr<ID3D12Device> _device,
-                      ComPtr<ID3D12CommandQueue> _commandQueue, 
+                      ComPtr<ID3D12CommandQueue> _commandQueue,
+                      std::shared_ptr<DescriptorHeap> _heap,
                       const uint32_t _flags = 0);
     virtual ~CTextureFlatD3D12();
 
