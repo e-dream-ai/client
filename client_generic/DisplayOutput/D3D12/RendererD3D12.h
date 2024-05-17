@@ -36,13 +36,10 @@ class CRendererD3D12 : public CRenderer, IDeviceNotify
 	HWND m_WindowHandle;
 
 	// Device resources. This contains everuthing D3D12 needs to know about the device
-    std::unique_ptr<DeviceResources> m_deviceResources;
-    std::unique_ptr<GraphicsMemory> m_graphicsMemory;
-    std::shared_ptr<DescriptorHeap> m_resourceDescriptors;
-    std::unique_ptr<CommonStates> m_states;
+
 
     std::unique_ptr<PrimitiveBatch<VertexPositionColor>> primitiveBatch;
-    std::unique_ptr<PrimitiveBatch<VertexPositionNormalTexture>> texturedBatch;
+    std::unique_ptr<PrimitiveBatch<VertexPositionTexture>> texturedBatch;
 
     std::unique_ptr<BasicEffect> m_textureEffect;
 
@@ -64,10 +61,19 @@ class CRendererD3D12 : public CRenderer, IDeviceNotify
 	spCTextureFlat m_spSoftCorner;
 
   public:
-	CRendererD3D12();
+    // Device resources. This contains everuthing D3D12 needs to know about the device
+    //std::unique_ptr<DeviceResources> m_deviceResources;
+    std::unique_ptr<DeviceResources> m_deviceResources;
+    std::unique_ptr<GraphicsMemory> m_graphicsMemory;
+    std::shared_ptr<DescriptorHeap> m_resourceDescriptors;
+    std::unique_ptr<CommonStates> m_states;
+    
+    CRendererD3D12();
 	virtual ~CRendererD3D12();
 
-	virtual ComPtr<ID3D12Device> GetDevice() { return m_deviceResources->GetD3DDevice(); };
+    static int textureIndex;
+
+    virtual ComPtr<ID3D12Device> GetDevice() { return m_deviceResources->GetD3DDevice(); };
 	virtual ComPtr<ID3D12GraphicsCommandList> GetCommandList() { return m_deviceResources->GetCommandList(); };
 	virtual ComPtr<ID3D12CommandQueue> GetCommandQueue() { return m_deviceResources->GetCommandQueue(); };
     virtual std::shared_ptr<DescriptorHeap> GetResourceDescriptors() { return m_resourceDescriptors; };
