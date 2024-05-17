@@ -16,9 +16,14 @@ namespace DisplayOutput
 
 class CTextureFlatD3D12 : public CTextureFlat
 {
+    int textureIndex;
+
     ComPtr<ID3D12Device> device;
     ComPtr<ID3D12CommandQueue> commandQueue;
     std::shared_ptr<DescriptorHeap> heap;
+
+    ComPtr<ID3D12Resource> m_texture; 
+
 
     // Our texture resource
     ComPtr<ID3D12Resource> m_resource;
@@ -28,10 +33,12 @@ class CTextureFlatD3D12 : public CTextureFlat
 
   public:
     Base::Math::CRect m_Size;
+    static int hasUploaded;
 
     CTextureFlatD3D12(ComPtr<ID3D12Device> _device,
                       ComPtr<ID3D12CommandQueue> _commandQueue,
-                      std::shared_ptr<DescriptorHeap> _heap,
+                      std::shared_ptr<DescriptorHeap> _heap, 
+                      int _textureIndex,
                       const uint32_t _flags = 0);
     virtual ~CTextureFlatD3D12();
 
