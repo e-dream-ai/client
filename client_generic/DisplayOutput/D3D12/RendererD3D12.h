@@ -73,10 +73,14 @@ class CRendererD3D12 : public CRenderer, IDeviceNotify
 
     static int textureIndex;
 
+
+
     virtual ComPtr<ID3D12Device> GetDevice() { return m_deviceResources->GetD3DDevice(); };
 	virtual ComPtr<ID3D12GraphicsCommandList> GetCommandList() { return m_deviceResources->GetCommandList(); };
 	virtual ComPtr<ID3D12CommandQueue> GetCommandQueue() { return m_deviceResources->GetCommandQueue(); };
     virtual std::shared_ptr<DescriptorHeap> GetResourceDescriptors() { return m_resourceDescriptors; };
+
+    void BindTexture(int index);
 
 	virtual eRenderType Type(void) const { return eDX9; };
 	virtual const std::string Description(void) const { return "DirectX 12"; };

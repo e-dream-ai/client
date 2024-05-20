@@ -75,15 +75,15 @@ LRESULT CALLBACK CDisplayD3D12::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
 
         switch (wParam)
         {
-        case VK_TAB:
-            spEvent->m_Code = CKeyEvent::KEY_TAB;
-            break;
-        case VK_LWIN:
-            spEvent->m_Code = CKeyEvent::KEY_LALT;
-            break;
-        case VK_MENU:
-            spEvent->m_Code = CKeyEvent::KEY_MENU;
-            break;
+        //case VK_TAB:
+        //    spEvent->m_Code = CKeyEvent::KEY_TAB;
+        //    break;
+        //case VK_LWIN:
+        //    spEvent->m_Code = CKeyEvent::KEY_LALT;
+        //    break;
+        //case VK_MENU:
+        //    spEvent->m_Code = CKeyEvent::KEY_MENU;
+        //    break;
         case VK_LEFT:
             spEvent->m_Code = CKeyEvent::KEY_LEFT;
             break;
@@ -99,34 +99,94 @@ LRESULT CALLBACK CDisplayD3D12::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
         case VK_SPACE:
             spEvent->m_Code = CKeyEvent::KEY_SPACE;
             break;
-        case 0x46:
-            spEvent->m_Code = CKeyEvent::KEY_F;
+        case 0x30:
+            spEvent->m_Code = CKeyEvent::KEY_0;
             break;
-        case VK_CONTROL:
-            spEvent->m_Code = CKeyEvent::KEY_CTRL;
+        case 0x31:
+            spEvent->m_Code = CKeyEvent::KEY_1;
             break;
-        case VK_F1:
-            spEvent->m_Code = CKeyEvent::KEY_F1;
+		case 0x32:
+			spEvent->m_Code = CKeyEvent::KEY_2;
+			break;
+		case 0x33:
+			spEvent->m_Code = CKeyEvent::KEY_3;
+			break;
+		case 0x34:
+            spEvent->m_Code = CKeyEvent::KEY_4;
+	        break;
+        case 0x35:
+	        spEvent->m_Code = CKeyEvent::KEY_5;
+	        break;
+        case 0x36:
+	        spEvent->m_Code = CKeyEvent::KEY_6;
+	        break;
+		case 0x37:
+	        spEvent->m_Code = CKeyEvent::KEY_7;
+	        break;
+		case 0x38:
+	        spEvent->m_Code = CKeyEvent::KEY_8;
+	        break;
+		case 0x39:
+	        spEvent->m_Code = CKeyEvent::KEY_9;
+	        break;
+		case 0x41:
+			spEvent->m_Code = CKeyEvent::KEY_A;
+			break;
+		case 0x43:
+			spEvent->m_Code = CKeyEvent::KEY_C;
+			break;
+		case 0x44:
+			spEvent->m_Code = CKeyEvent::KEY_D;
+			break;
+		case 0x4A:
+			spEvent->m_Code = CKeyEvent::KEY_J;
+			break;
+        case 0x4B:
+            spEvent->m_Code = CKeyEvent::KEY_K;
             break;
-        case VK_F2:
-            spEvent->m_Code = CKeyEvent::KEY_F2;
+        case 0x4C:
+			spEvent->m_Code = CKeyEvent::KEY_L;
             break;
-        case VK_F3:
-            spEvent->m_Code = CKeyEvent::KEY_F3;
+        case 0x4E:
+			spEvent->m_Code = CKeyEvent::KEY_N;
+			break;
+        case 0x52:
+            spEvent->m_Code = CKeyEvent::KEY_R;
+			break;
+		case 0x53:
+			spEvent->m_Code = CKeyEvent::KEY_S;
+			break;
+		case 0x56:
+			spEvent->m_Code = CKeyEvent::KEY_V;
             break;
-        case VK_F4:
-            spEvent->m_Code = CKeyEvent::KEY_F4;
-            break;
-        case VK_F8:
-            spEvent->m_Code = CKeyEvent::KEY_F8;
-            break;
-        case VK_ESCAPE:
-            spEvent->m_Code = CKeyEvent::KEY_Esc;
-            break;
-        }
-        g_Player().Display()->AppendEvent(spEvent);
-    }
-    break;
+		case 0x57:
+			spEvent->m_Code = CKeyEvent::KEY_W;
+			break;
+		//case VK_CONTROL:
+		//    spEvent->m_Code = CKeyEvent::KEY_CTRL;
+		//    break;
+		case VK_F1:
+			spEvent->m_Code = CKeyEvent::KEY_F1;
+			break;
+		case VK_F2:
+			spEvent->m_Code = CKeyEvent::KEY_F2;
+			break;
+		//case VK_F3:
+		//    spEvent->m_Code = CKeyEvent::KEY_F3;
+		//    break;
+		//case VK_F4:
+		//    spEvent->m_Code = CKeyEvent::KEY_F4;
+		//    break;
+		//case VK_F8:
+		//    spEvent->m_Code = CKeyEvent::KEY_F8;
+		//    break;
+		case VK_ESCAPE:
+			spEvent->m_Code = CKeyEvent::KEY_Esc;
+			break;
+		}
+		g_Player().Display()->AppendEvent(spEvent);
+	}        
+	break;
 
     case WM_LBUTTONUP:
     {

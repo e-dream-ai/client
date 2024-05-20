@@ -178,8 +178,8 @@ bool CRendererD3D12::BeginFrame(void) {
     if (!CRenderer::BeginFrame())
         return false;
 
-    if (TestResetDevice())
-        return false;
+    //if (TestResetDevice())
+    //    return false;
 
     // Prepare the command list to render a new frame.
     m_deviceResources->Prepare();
@@ -243,11 +243,12 @@ void XM_CALLCONV CRendererD3D12::DrawGrid(FXMVECTOR xAxis, FXMVECTOR yAxis,
 
 bool CRendererD3D12::EndFrame(bool drawn) 
 { 
+    g_Log->Info("CRendererD3D12::EndFrame %d", drawn);
     if (!CRenderer::EndFrame())
         return false;
 
-    if (TestResetDevice())
-        return false;
+    //if (TestResetDevice())
+    //    return false;
 
     // Show the new frame.
     PIXBeginEvent(PIX_COLOR_DEFAULT, L"Present");
@@ -280,7 +281,7 @@ spCTextureFlat CRendererD3D12::NewTextureFlat(const uint32_t flags)
                 CRendererD3D12::textureIndex);
 
     spCTextureFlat texture = std::make_shared<CTextureFlatD3D12>(
-        GetDevice(), GetCommandQueue(), GetResourceDescriptors(),
+        GetDevice(), GetCommandQueue(), GetResourceDescriptors(), this,
         CRendererD3D12::textureIndex, flags);
 
     return texture;
@@ -294,12 +295,38 @@ spCTextureFlat CRendererD3D12::NewTextureFlat(spCImage _spImage, const uint32_t 
                 CRendererD3D12::textureIndex);
 
     spCTextureFlat texture = std::make_shared<CTextureFlatD3D12>(
-        GetDevice(), GetCommandQueue(), GetResourceDescriptors(),
+        GetDevice(), GetCommandQueue(), GetResourceDescriptors(), this,
         CRendererD3D12::textureIndex, flags);
     texture->Upload(_spImage);
 
     return texture;
 }
+
+void CRendererD3D12::BindTexture(int index) 
+{
+    g_Log->Info("CRendererD3D12::BindTexture %d", index);
+
+    auto device = m_deviceResources->GetD3DDevice();
+
+    const RenderTargetState rtState(m_deviceResources->GetBackBufferFormat(),
+                                m_deviceResources->GetDepthBufferFormat());
+
+    EffectPipelineStateDescription pd(
+        &VertexPositionTexture::InputLayout, CommonStates::Opaque,
+        CommonStates::DepthNone, CommonStates::CullNone, rtState);
+
+    auto textureEffect =
+        std::make_unique<BasicEffect>(device, EffectFlags::Texture, pd);
+
+    auto commandList = m_deviceResources->GetCommandList();
+
+    textureEffect->SetTexture(
+        m_resourceDescriptors->GetGpuHandle(textureIndex),
+        m_states->LinearWrap());
+
+    textureEffect->Apply(commandList);
+}
+
 
 spCBaseFont CRendererD3D12::NewFont(CFontDescription& _desc) { return spCBaseFont(); }
 
@@ -332,12 +359,10 @@ void CRendererD3D12::DrawQuad(const Base::Math::CRect& _rect,
     commandList->SetDescriptorHeaps(_countof(heaps), heaps);
 
     
-    m_textureEffect->SetTexture(m_resourceDescriptors->GetGpuHandle(textureIndex),
-                                m_states->LinearWrap());
+    // set texture is done in BindTexture
     
+
     texturedBatch->Begin(commandList);
- 
-    m_textureEffect->Apply(commandList);
  
     // TODO redo worldview
     // Y texture axis inverted on DX from whatever we get passed to us

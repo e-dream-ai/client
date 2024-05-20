@@ -1423,6 +1423,7 @@ class CElectricSheep
                 g_Player().SkipForward(-10);
                 return true;
             case CLIENT_COMMAND_PAUSE:
+                g_Log->Info("Pause command");
                 if (m_bPaused) {
                     popOSD(Hud::Play);
                 } else {
@@ -1463,6 +1464,8 @@ class CElectricSheep
         {
             DisplayOutput::spCKeyEvent spKey =
                 std::dynamic_pointer_cast<DisplayOutput::CKeyEvent>(_event);
+
+            g_Log->Info("Key event: %d", spKey->m_Code);
             switch (spKey->m_Code)
             {
                     // Vote for sheep.

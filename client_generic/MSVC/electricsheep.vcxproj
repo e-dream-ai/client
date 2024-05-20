@@ -487,7 +487,7 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <AdditionalIncludeDirectories>..\DirectX-Headers-1.613.1\include\directx;..\;c:\local\boost_1_85_0;..\socket.io-client-cpp\include;..\libpng\include;..\ffmpeg\include;..\curl-x64\include;..\ContentDownloader;..\Client;..\Common;..\Common\Math;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\Networking;..\TupleStorage;..\DisplayOutput\D3D12;C:\wxWidgets-2.9.1-x64\include\msvc;C:\wxWidgets-2.9.1-x64\include;C:\wxWidgets-2.9.1-x64\src\png;C:\wxWidgets-2.9.1-x64\src\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_WIN64;NDEBUG;_WINDOWS;NOMINMAX;_CRT_SECURE_NO_WARNINGS;CURL_STATICLIB;WIN32_LEAN_AND_MEAN;VC_EXTRALEAN;COMPILE_MULTIMON_STUBS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>DEBUG;WIN32;_WIN64;_WINDOWS;NOMINMAX;_CRT_SECURE_NO_WARNINGS;CURL_STATICLIB;WIN32_LEAN_AND_MEAN;VC_EXTRALEAN;COMPILE_MULTIMON_STUBS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>false</FunctionLevelLinking>

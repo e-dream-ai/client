@@ -10,10 +10,12 @@ namespace DisplayOutput
 
     CTextureFlatD3D12::CTextureFlatD3D12(ComPtr<ID3D12Device> _device,
                                      ComPtr<ID3D12CommandQueue> _commandQueue,
-                                     std::shared_ptr<DescriptorHeap> _heap,  
+                                     std::shared_ptr<DescriptorHeap> _heap, 
+                                     CRendererD3D12* _m_renderer,
                                      int _textureIndex,
                                      const uint32_t _flags)
     {
+        m_renderer = _m_renderer;
         device = _device;
         commandQueue = _commandQueue;
         heap = std::move(_heap);
@@ -68,32 +70,13 @@ namespace DisplayOutput
 
         uploadResourcesFinished.wait();
         device.Get()->CreateShaderResourceView(m_texture.Get(), nullptr, heap->GetCpuHandle(textureIndex));
-        
-
-        
-        
-        
-        //DirectX::ResourceUploadBatch resourceUpload(device.Get());
-
-        //resourceUpload.Begin();
-
-        //ThrowIfFailed(
-        //    CreateWICTextureFromFile(device.Get(), resourceUpload, L"logo.png",
-        //                             m_texture.ReleaseAndGetAddressOf()));
-
-        //device.Get()->CreateShaderResourceView(
-        //    m_texture.Get(), nullptr,
-        //    heap->GetCpuHandle(textureIndex));
-
-        //auto uploadResourcesFinished = resourceUpload.End(commandQueue.Get());
-
-        //uploadResourcesFinished.wait();
 
         return true;
     }
 
     bool CTextureFlatD3D12::Bind(uint32_t _slot) { 
         g_Log->Info("CTextureFlatD3D12::Bind %d", textureIndex);
+        m_renderer->BindTexture(textureIndex);
 
         return true;
     }
