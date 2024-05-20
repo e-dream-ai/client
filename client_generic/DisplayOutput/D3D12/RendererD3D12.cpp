@@ -305,26 +305,7 @@ spCTextureFlat CRendererD3D12::NewTextureFlat(spCImage _spImage, const uint32_t 
 void CRendererD3D12::BindTexture(int index) 
 {
     g_Log->Info("CRendererD3D12::BindTexture %d", index);
-
-    auto device = m_deviceResources->GetD3DDevice();
-
-    const RenderTargetState rtState(m_deviceResources->GetBackBufferFormat(),
-                                m_deviceResources->GetDepthBufferFormat());
-
-    EffectPipelineStateDescription pd(
-        &VertexPositionTexture::InputLayout, CommonStates::Opaque,
-        CommonStates::DepthNone, CommonStates::CullNone, rtState);
-
-    auto textureEffect =
-        std::make_unique<BasicEffect>(device, EffectFlags::Texture, pd);
-
-    auto commandList = m_deviceResources->GetCommandList();
-
-    textureEffect->SetTexture(
-        m_resourceDescriptors->GetGpuHandle(textureIndex),
-        m_states->LinearWrap());
-
-    textureEffect->Apply(commandList);
+    m_currentTextureIndex = index;
 }
 
 
@@ -359,25 +340,44 @@ void CRendererD3D12::DrawQuad(const Base::Math::CRect& _rect,
     commandList->SetDescriptorHeaps(_countof(heaps), heaps);
 
     
-    // set texture is done in BindTexture
-    
+    // Looks like we need to create a new BasicEffect for each texture?
+    auto device = m_deviceResources->GetD3DDevice();
 
+    const RenderTargetState rtState(m_deviceResources->GetBackBufferFormat(),
+                                    m_deviceResources->GetDepthBufferFormat());
+
+    EffectPipelineStateDescription pd(
+        &VertexPositionTexture::InputLayout, CommonStates::Opaque,
+        CommonStates::DepthNone, CommonStates::CullNone, rtState);
+
+    auto textureEffect =
+        std::make_unique<BasicEffect>(device, EffectFlags::Texture, pd);
+
+    // Index got from BindTexture
+    textureEffect->SetTexture(m_resourceDescriptors->GetGpuHandle(m_currentTextureIndex),
+                              m_states->LinearWrap());
+
+    textureEffect->Apply(commandList);
+    //
+
+
+    // Maybe we should not reuse batch either?
     texturedBatch->Begin(commandList);
  
     // TODO redo worldview
     // Y texture axis inverted on DX from whatever we get passed to us
     VertexPositionTexture v1(
-        XMFLOAT3(_rect.m_X0 * 2 - 1, _rect.m_Y0 * 2 - 1, 0),
-        XMFLOAT2(_uvRect.m_X0, _uvRect.m_Y1));
-    VertexPositionTexture v2(
-        XMFLOAT3(_rect.m_X1 * 2 - 1, _rect.m_Y0 * 2 - 1, 0),
-        XMFLOAT2(_uvRect.m_X1, _uvRect.m_Y1));
-    VertexPositionTexture v3(
-        XMFLOAT3(_rect.m_X1 * 2 - 1, _rect.m_Y1 * 2 - 1, 0),
-        XMFLOAT2(_uvRect.m_X1, _uvRect.m_Y0));
-    VertexPositionTexture v4(
-        XMFLOAT3(_rect.m_X0 * 2 - 1, _rect.m_Y1 * 2 - 1, 0),
+        XMFLOAT3(_rect.m_X0 * 2 - 1, 1 - _rect.m_Y0 * 2, 0),
         XMFLOAT2(_uvRect.m_X0, _uvRect.m_Y0));
+    VertexPositionTexture v2(
+        XMFLOAT3(_rect.m_X1 * 2 - 1, 1 - _rect.m_Y0 * 2, 0),
+        XMFLOAT2(_uvRect.m_X1, _uvRect.m_Y0));
+    VertexPositionTexture v3(
+        XMFLOAT3(_rect.m_X1 * 2 - 1, 1 - _rect.m_Y1 * 2, 0),
+        XMFLOAT2(_uvRect.m_X1, _uvRect.m_Y1));
+    VertexPositionTexture v4(
+        XMFLOAT3(_rect.m_X0 * 2 - 1, 1 - _rect.m_Y1 * 2, 0),
+        XMFLOAT2(_uvRect.m_X0, _uvRect.m_Y1));
     /*
     VertexPositionTexture v1(XMFLOAT3(0, 0, 0), XMFLOAT2(0, 1));
     VertexPositionTexture v2(XMFLOAT3(1, 0, 0), XMFLOAT2(1, 1));

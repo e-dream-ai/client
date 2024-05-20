@@ -59,6 +59,8 @@ class CRendererD3D12 : public CRenderer, IDeviceNotify
                                               size_t ydivs, GXMVECTOR color);
 
 	spCTextureFlat m_spSoftCorner;
+    
+    int m_currentTextureIndex = 0; 
 
   public:
     // Device resources. This contains everuthing D3D12 needs to know about the device
