@@ -347,7 +347,7 @@ void CRendererD3D12::DrawQuad(const Base::Math::CRect& _rect,
                                     m_deviceResources->GetDepthBufferFormat());
 
     EffectPipelineStateDescription pd(
-        &VertexPositionTexture::InputLayout, CommonStates::Opaque,
+        &VertexPositionTexture::InputLayout, CommonStates::AlphaBlend,
         CommonStates::DepthNone, CommonStates::CullNone, rtState);
 
     auto textureEffect =
