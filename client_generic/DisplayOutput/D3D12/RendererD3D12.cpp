@@ -340,7 +340,7 @@ void CRendererD3D12::DrawQuad(const Base::Math::CRect& _rect,
     commandList->SetDescriptorHeaps(_countof(heaps), heaps);
 
     
-    // Looks like we need to create a new BasicEffect for each texture?
+    // Looks like we need to create a new BasicEffect for each texture in the same pass?
     auto device = m_deviceResources->GetD3DDevice();
 
     const RenderTargetState rtState(m_deviceResources->GetBackBufferFormat(),
@@ -360,11 +360,11 @@ void CRendererD3D12::DrawQuad(const Base::Math::CRect& _rect,
     textureEffect->Apply(commandList);
     //
 
-
+    auto l_texturedBatch =
+        std::make_unique<PrimitiveBatch<VertexPositionTexture>>(device);
     // Maybe we should not reuse batch either?
-    texturedBatch->Begin(commandList);
+    l_texturedBatch->Begin(commandList);
  
-    // TODO redo worldview
     // Y texture axis inverted on DX from whatever we get passed to us
     VertexPositionTexture v1(
         XMFLOAT3(_rect.m_X0 * 2 - 1, 1 - _rect.m_Y0 * 2, 0),
@@ -378,15 +378,10 @@ void CRendererD3D12::DrawQuad(const Base::Math::CRect& _rect,
     VertexPositionTexture v4(
         XMFLOAT3(_rect.m_X0 * 2 - 1, 1 - _rect.m_Y1 * 2, 0),
         XMFLOAT2(_uvRect.m_X0, _uvRect.m_Y1));
-    /*
-    VertexPositionTexture v1(XMFLOAT3(0, 0, 0), XMFLOAT2(0, 1));
-    VertexPositionTexture v2(XMFLOAT3(1, 0, 0), XMFLOAT2(1, 1));
-    VertexPositionTexture v3(XMFLOAT3(1, 1, 0), XMFLOAT2(1, 0));
-    VertexPositionTexture v4(XMFLOAT3(0, 1, 0), XMFLOAT2(0, 0));
-    */
-    texturedBatch->DrawQuad(v1, v2, v3, v4);
 
-    texturedBatch->End();
+    l_texturedBatch->DrawQuad(v1, v2, v3, v4);
+
+    l_texturedBatch->End();
 
     PIXEndEvent(commandList);
 
@@ -396,6 +391,7 @@ void CRendererD3D12::DrawSoftQuad(const Base::Math::CRect& /*_rect*/,
                                   const float /*_width*/)
 {
     g_Log->Info("CRendererD3D12::DrawSoftQuad not impl");
+    // TODO : used by text rendering
 }
 
 

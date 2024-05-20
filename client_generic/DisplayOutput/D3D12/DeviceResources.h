@@ -11,6 +11,9 @@
 #include <wrl.h>
 #include "D3D12Helpers.h"
 
+#ifdef _DEBUG
+#include <dxgidebug.h>
+#endif
 
 namespace DisplayOutput
 {
