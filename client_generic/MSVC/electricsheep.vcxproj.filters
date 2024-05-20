@@ -189,6 +189,9 @@
     <ClCompile Include="..\DisplayOutput\D3D12\DeviceResources.cpp">
       <Filter>DisplayOutput\D3D12</Filter>
     </ClCompile>
+    <ClCompile Include="..\DisplayOutput\D3D12\ShaderD3D12.cpp">
+      <Filter>ContentDownloader</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ContentDownloader\ContentDownloader.h">
@@ -430,6 +433,9 @@
     </ClInclude>
     <ClInclude Include="..\DisplayOutput\D3D12\DeviceResources.h">
       <Filter>DisplayOutput\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\DisplayOutput\D3D12\ShaderD3D12.h">
+      <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

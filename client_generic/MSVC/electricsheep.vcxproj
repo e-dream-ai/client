@@ -558,6 +558,7 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
     <ClCompile Include="..\DisplayOutput\D3D12\DeviceResources.cpp" />
     <ClCompile Include="..\DisplayOutput\D3D12\DisplayD3D12.cpp" />
     <ClCompile Include="..\DisplayOutput\D3D12\RendererD3D12.cpp" />
+    <ClCompile Include="..\DisplayOutput\D3D12\ShaderD3D12.cpp" />
     <ClCompile Include="..\DisplayOutput\D3D12\TextureFlatD3D12.cpp" />
     <ClCompile Include="..\Networking\EDreamClient.cpp" />
     <ClCompile Include="..\TupleStorage\JSONStorage.cpp" />
@@ -618,6 +619,7 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
     <ClInclude Include="..\DisplayOutput\D3D12\DeviceResources.h" />
     <ClInclude Include="..\DisplayOutput\D3D12\DisplayD3D12.h" />
     <ClInclude Include="..\DisplayOutput\D3D12\RendererD3D12.h" />
+    <ClInclude Include="..\DisplayOutput\D3D12\ShaderD3D12.h" />
     <ClInclude Include="..\DisplayOutput\D3D12\TextureFlatD3D12.h" />
     <ClInclude Include="..\Networking\EDreamClient.h" />
     <ClInclude Include="..\TupleStorage\JSONStorage.h" />

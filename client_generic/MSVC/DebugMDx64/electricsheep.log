@@ -32,11 +32,7 @@
          18 fichier(s) copié(s).
           1 fichier(s) copié(s).
   Scanning sources for module dependencies...
-  RendererD3D12.cpp
-C:\Users\Jack\Documents\GitHub\client\client_generic\DisplayOutput\D3D12\D3D12Helpers.h(29,9): warning C4005: 'SAFE_RELEASE': macro redefinition
-C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.40.33807\include\xutility(374,75): warning C4267: 'argument': conversion from 'size_t' to 'uint32_t', possible loss of data
-C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.40.33807\include\xutility(388,82): warning C4267: 'argument': conversion from 'size_t' to 'uint32_t', possible loss of data
-C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.40.33807\include\xutility(375,90): warning C4267: 'argument': conversion from 'size_t' to 'uint32_t', possible loss of data
+  ShaderD3D12.cpp
   LINK : /LTCG specified but no code generation required; remove /LTCG from the link command line to improve linker performance
 LINK : warning LNK4199: /DELAYLOAD:d3d9.dll ignored; no imports found from d3d9.dll
 LINK : warning LNK4199: /DELAYLOAD:wldap32.dll ignored; no imports found from wldap32.dll
