@@ -197,10 +197,10 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc /y
     </PreBuildEvent>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>C:\local\boost_1_85_0;..\ffmpeg\include;..\curl\include;..\ContentDownloader;..\Client;..\Common;..\Common\Math;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\libxml\include;..\lua5.1\include;..\Networking;..\zlib;..\libpng\include;..\TupleStorage;..\DisplayOutput\DirectX;..\DisplayOutput\OpenGL;C:\wxWidgets-2.9.1-x64\include;C:\wxWidgets-2.9.1-x64\include\msvc;C:\wxWidgets-2.9.1-x64\src\zlib;C:\wxWidgets-2.9.1-x64\src\png;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include;..\socket.io-client-cpp\include;..\websocketpp;..\;C:\Users\Jack\Documents\openssl\openssl1_1-win-build\build-VS2022-MT\x64\Debug\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\DirectX-Headers-1.613.1\include\directx;C:\local\boost_1_85_0;..\ffmpeg\include;..\curl\include;..\ContentDownloader;..\Client;..\Common;..\Common\Math;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\libxml\include;..\lua5.1\include;..\Networking;..\zlib;..\libpng\include;..\TupleStorage;..\DisplayOutput\D3D12;C:\wxWidgets-2.9.1-x64\include;C:\wxWidgets-2.9.1-x64\include\msvc;C:\wxWidgets-2.9.1-x64\src\zlib;C:\wxWidgets-2.9.1-x64\src\png;..\socket.io-client-cpp\include;..\websocketpp;..\;C:\Users\Jack\Documents\openssl\openssl1_1-win-build\build-VS2022-MT\x64\Debug\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WIN64;_DEBUG;_WINDOWS;NOMINMAX;_CRT_SECURE_NO_WARNINGS;WIN32_LEAN_AND_MEAN;CURL_STATICLIB;VC_EXTRALEAN;D3D_DEBUG_INFO;COMPILE_MULTIMON_STUBS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
@@ -210,13 +210,14 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc /y
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <BuildStlModules>true</BuildStlModules>
       <IntrinsicFunctions>true</IntrinsicFunctions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>avcodec.lib;avutil.lib;avfilter.lib;swscale.lib;avdevice.lib;avformat.lib;user32.lib;shlwapi.lib;wxzlibd.lib;wxpngd.lib;d3d9.lib;ws2_32.lib;wldap32.lib;dxguid.lib;psapi.lib;delayimp.lib;libpng16.lib;msvcrtd.lib;libcmtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>avcodec.lib;avformat.lib;swscale.lib;avdevice.lib;avutil.lib;wxzlib.lib;wxpng.lib;kernel32.lib;user32.lib;shlwapi.lib;libcurl.lib;d3d9.lib;d3d12.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;ws2_32.lib;wldap32.lib;psapi.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(ProjectName)d.exe</OutputFile>
       <AdditionalLibraryDirectories>..\curl\lib\debug-ssl-zlib;..\ffmpeg\win32\ffmpeg-6.1.1-93\lib;C:\local\boost_1_85_0\lib64-msvc-14.3;..\wxWidgets\lib\vc120_x64_dll;..\libpng\win32\x64;C:\Users\Jack\Documents\openssl\openssl1_1-win-build\build-VS2022-MT\x64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
-      <DelayLoadDLLs>d3d9.dll;wldap32.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>wldap32.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
