@@ -137,12 +137,9 @@ class CRendererD3D12 : public CRenderer, IDeviceNotify
                         const char* _pFragmentShader);
 
     // Virtual shared functions added for Metal, we don't use them here yet but will likely be needed
-    spCShader NewShader(
-        const char* _pVertexShader, const char* _pFragmentShader,
-        std::vector<std::pair<std::string, eUniformType>> _uniforms = {})
-    {
-        return nullptr;
-    };
+    spCShader
+    NewShader(const char* _pVertexShader, const char* _pFragmentShader,
+              std::vector<std::pair<std::string, eUniformType>> _uniforms = {});
 
 	//
 	void SetWindowHandle(HWND _hWnd) { m_WindowHandle = _hWnd; };

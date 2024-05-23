@@ -159,8 +159,8 @@ void CRendererD3D12::Clear()
     auto const dsvDescriptor = m_deviceResources->GetDepthStencilView();
 
     commandList->OMSetRenderTargets(1, &rtvDescriptor, FALSE, &dsvDescriptor);
-    commandList->ClearRenderTargetView(rtvDescriptor, Colors::Black, 0,
-                                       nullptr);
+    //commandList->ClearRenderTargetView(rtvDescriptor, Colors::Black, 0,
+    //                                   nullptr);
     commandList->ClearDepthStencilView(dsvDescriptor, D3D12_CLEAR_FLAG_DEPTH,
                                        1.0f, 0, 0, nullptr);
 
@@ -394,6 +394,21 @@ void CRendererD3D12::DrawSoftQuad(const Base::Math::CRect& /*_rect*/,
     // TODO : used by text rendering
 }
 
+spCShader CRendererD3D12::NewShader(const char* _pVertexShader,
+                                    const char* _pFragmentShader)
+{
+    g_Log->Info("CRendererD3D12::NewShader not impl");
+
+    return nullptr;
+}
+
+spCShader CRendererD3D12::NewShader(const char* _pVertexShader, const char* _pFragmentShader,
+    std::vector<std::pair<std::string, eUniformType>> _uniforms)
+{
+    g_Log->Info("CRendererD3D12::NewShader2 not impl");
+
+    return nullptr;
+}
 
 
 
