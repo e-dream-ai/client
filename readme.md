@@ -48,9 +48,9 @@ bootstrap-vcpkg.bat -disableMetrics
 ``` 
 
 - Open client_generic\MSVC\e-dream.sln in Visual Studio
-- Select target DebugMD and build. This will take a *very* long time the first time, as every dependency will get built twice (vcpkg automatically builds from source both debug and release libraries).
+- Select target DebugMD and build. This will take a *very* long time the first time, as every dependency will get built twice (vcpkg automatically builds from source both debug *and* release libraries).
 
-- **DO NOT INSTALL DirectX9 SDK**. DirectX 12 SDK is now bundled with the Windows 10 SDK and will be used automatically.   
+- **DO NOT INSTALL DirectX9 SDK**. DirectX 12 SDK is now bundled with the Windows 10 SDK and will be used automatically.
 
 First launches, setup
 ===
