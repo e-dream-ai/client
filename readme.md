@@ -40,7 +40,8 @@ The client project requires Visual Studio to build. It is compiled with MSVC (no
 - Integrate vcpkg (cmd from repo base) :
 
 ```
-cd vcpkg && bootstrap-vcpkg.bat
+cd vcpkg
+bootstrap-vcpkg.bat -disableMetrics
 .\vcpkg.exe integrate install
 ``` 
 
@@ -81,5 +82,7 @@ TODO/known code issues :
 - Video hardware decoding + passthrough is not implemented (currently uses ffmpeg + copy to texture which is slow).
 - Text rendering is not implemented. 
 - Shaders are not ported/implemented.
-- socket.io is temporarily disabled.
+~~- socket.io is temporarily disabled.~~
 - There is no UI for configuration.
+
+- Some includes and manually linked libraries still need cleanup
