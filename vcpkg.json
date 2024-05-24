@@ -4,6 +4,7 @@
     "ffmpeg",
     "openssl",
     "curl",
-    "libpng"
+    "libpng",
+    "socket-io-client"
   ]
 }
