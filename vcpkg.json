@@ -5,6 +5,7 @@
     "openssl",
     "curl",
     "libpng",
+    "directxtk12",
     "socket-io-client"
   ]
 }

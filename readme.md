@@ -33,6 +33,8 @@ Windows build
 
 The client project requires Visual Studio to build. It is compiled with MSVC (not clang) and compiled/linked against the MSVC Runtime. 
 
+Assuming a Windows 10 (or 11) x86-64 machine, this won't work on Windows 7.
+
 - Install VS Community 2022 v17.10+. As of writing, only available as preview : https://visualstudio.microsoft.com/vs/preview/ (see known setup issues below)
 
 **During installation, make sure "C++ desktop development" and "C++ game develoment" are selected.**
@@ -47,6 +49,8 @@ bootstrap-vcpkg.bat -disableMetrics
 
 - Open client_generic\MSVC\e-dream.sln in Visual Studio
 - Select target DebugMD and build. This will take a *very* long time the first time, as every dependency will get built twice (vcpkg automatically builds from source both debug and release libraries).
+
+- **DO NOT INSTALL DirectX9 SDK**. DirectX 12 SDK is now bundled with the Windows 10 SDK and will be used automatically.   
 
 First launches, setup
 ===
@@ -82,7 +86,9 @@ TODO/known code issues :
 - Video hardware decoding + passthrough is not implemented (currently uses ffmpeg + copy to texture which is slow).
 - Text rendering is not implemented. 
 - Shaders are not ported/implemented.
-~~- socket.io is temporarily disabled.~~
+- ~~socket.io is temporarily disabled.~~
 - There is no UI for configuration.
 
 - Some includes and manually linked libraries still need cleanup
+
+- Build folders can be gitignored
