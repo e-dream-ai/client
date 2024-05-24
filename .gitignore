@@ -18,3 +18,4 @@ client_generic/MacBuild/BuildData.json
 /client_generic/MSVC/DebugMDx64
 /client_generic/MSVC/DebugMD
 /client_generic/MSVC/DebugMDx64
+client_generic/MSVC/es.map
