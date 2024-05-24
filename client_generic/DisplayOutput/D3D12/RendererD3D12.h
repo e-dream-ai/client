@@ -182,7 +182,7 @@ class CRendererD3D12 : public CRenderer, IDeviceNotify
     {
         Texture,
         Font,
-        Count = 256
+        Count = 25600
     };
 };
 
