@@ -140,4 +140,6 @@ TODO/known code issues :
 
 - Some includes and manually linked libraries still need cleanup
 
-- Build folders can be gitignored
+- ~~Build folders can be gitignored~~
+
+- DirectX headers are still manually included, the vcpkg version may not be up to date, and produce issues while building. Using the manual ones in the meantime.
