@@ -482,6 +482,7 @@ copy ..\runtime\flam3-animate.exe ..\runtimemsvc
 copy ..\runtime\Instructions.rtf ..\runtimemsvc
 copy ..\runtime\License.rtf ..\runtimemsvc
 copy ..\runtime\*.png ..\runtimemsvc
+copy ..\runtime\*.png ..\MSVC\DebugMD
 copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
 </Command>
     </PreBuildEvent>

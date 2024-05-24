@@ -74,9 +74,9 @@ void CDelayedDispatch::Cancel()
 
 void CDelayedDispatch::DispatchAfter(uint64_t _seconds)
 {
-    g_Log->Error("DispatchAfter not implemented yet on WIN32");
+    g_Log->Error("DispatchAfter not implemented yet on WIN32, launching immediately");
 	// Not implemented, just launch now
-	// m_Func();
+	m_Func();
 
 	// TODO: TMP disabled this to stop the downloads during debugging 
 }
