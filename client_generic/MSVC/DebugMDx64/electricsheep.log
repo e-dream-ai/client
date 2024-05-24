@@ -32,23 +32,22 @@
          18 fichier(s) copié(s).
           1 fichier(s) copié(s).
   Scanning sources for module dependencies...
-  EDreamClient.cpp
-C:\Users\Jack\Documents\GitHub\client\client_generic\websocketpp\frame.hpp(834,13): warning C4267: '=': conversion from 'size_t' to 'uint32_t', possible loss of data
-C:\Users\Jack\Documents\GitHub\client\client_generic\websocketpp\common\md5.hpp(367,29): warning C4267: '+=': conversion from 'size_t' to 'websocketpp::md5::md5_word_t', possible loss of data
-C:\Users\Jack\Documents\GitHub\client\client_generic\websocketpp\sha1\sha1.hpp(176,24): warning C4267: '=': conversion from 'size_t' to 'unsigned int', possible loss of data
+  Player.cpp
+  RendererD3D12.cpp
+  TextureFlatD3D12.cpp
 C:\Users\Jack\Documents\GitHub\client\vcpkg_installed\x64-windows\x64-windows\include\boost\bind.hpp(41): message : The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+C:\Users\Jack\Documents\GitHub\client\client_generic\DisplayOutput\D3D12\D3D12Helpers.h(29,9): warning C4005: 'SAFE_RELEASE': macro redefinition
+C:\Users\Jack\Documents\GitHub\client\client_generic\DisplayOutput\D3D12\D3D12Helpers.h(29,9): warning C4005: 'SAFE_RELEASE': macro redefinition
 C:\Users\Jack\Documents\GitHub\client\client_generic\DisplayOutput\D3D12\D3D12Helpers.h(29,9): warning C4005: 'SAFE_RELEASE': macro redefinition
 C:\Users\Jack\Documents\GitHub\client\client_generic\Client\FrameDisplay.h(67,44): warning C4244: 'argument': conversion from 'const uint32_t' to 'float', possible loss of data
 C:\Users\Jack\Documents\GitHub\client\client_generic\Client\FrameDisplay.h(67,40): warning C4244: 'argument': conversion from 'const uint32_t' to 'float', possible loss of data
-C:\Users\Jack\Documents\GitHub\client\client_generic\Client\OSD.hpp(240,55): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-C:\Users\Jack\Documents\GitHub\client\client_generic\Client\client.h(67,34): warning C4244: 'return': conversion from 'double' to 'float', possible loss of data
-C:\Users\Jack\Documents\GitHub\client\client_generic\Client\client.h(1080,51): warning C4129: '%': unrecognized character escape sequence
-C:\Users\Jack\Documents\GitHub\client\client_generic\Common\JSONUtil.h(40,27): warning C4996: 'boost::json::error_code': Use boost::system::error_code instead
-C:\Users\Jack\Documents\GitHub\client\client_generic\Networking\EDreamClient.cpp(247,15): warning C4996: 'boost::json::error_code': Use boost::system::error_code instead
-C:\Users\Jack\Documents\GitHub\client\client_generic\Networking\EDreamClient.cpp(334,16): warning C4244: 'return': conversion from 'int64_t' to 'int', possible loss of data
-C:\Users\Jack\Documents\GitHub\client\client_generic\Networking\EDreamClient.cpp(419,15): warning C4996: 'boost::json::error_code': Use boost::system::error_code instead
-C:\Users\Jack\Documents\GitHub\client\client_generic\Networking\EDreamClient.cpp(457,15): warning C4996: 'boost::json::error_code': Use boost::system::error_code instead
-C:\Users\Jack\Documents\GitHub\client\client_generic\Networking\EDreamClient.cpp(590,39): warning C4244: 'argument': conversion from 'int64_t' to 'int', possible loss of data
+C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.40.33807\include\xutility(374,75): warning C4267: 'argument': conversion from 'size_t' to 'uint32_t', possible loss of data
+C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.40.33807\include\xutility(388,82): warning C4267: 'argument': conversion from 'size_t' to 'uint32_t', possible loss of data
+C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.40.33807\include\xutility(375,90): warning C4267: 'argument': conversion from 'size_t' to 'uint32_t', possible loss of data
+C:\Users\Jack\Documents\GitHub\client\client_generic\Client\Player.cpp(663,50): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.40.33807\include\xutility(374,75): warning C4267: 'argument': conversion from 'size_t' to 'uint32_t', possible loss of data
+C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.40.33807\include\xutility(388,82): warning C4267: 'argument': conversion from 'size_t' to 'uint32_t', possible loss of data
+C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.40.33807\include\xutility(375,90): warning C4267: 'argument': conversion from 'size_t' to 'uint32_t', possible loss of data
 C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.40.33807\include\xutility(374,75): warning C4267: 'argument': conversion from 'size_t' to 'uint32_t', possible loss of data
 C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.40.33807\include\xutility(388,82): warning C4267: 'argument': conversion from 'size_t' to 'uint32_t', possible loss of data
 C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Tools\MSVC\14.40.33807\include\xutility(375,90): warning C4267: 'argument': conversion from 'size_t' to 'uint32_t', possible loss of data
