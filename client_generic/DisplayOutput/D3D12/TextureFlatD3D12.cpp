@@ -1,6 +1,6 @@
 #include "TextureFlatD3D12.h"
 
-#include "ResourceUploadBatch.h"
+#include "directxtk12/ResourceUploadBatch.h"
 
 #include "Log.h"
 

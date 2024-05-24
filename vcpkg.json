@@ -9,6 +9,7 @@
         "openssl",
         "curl",
         "libpng",
+        "directxtk12",
         "ffmpeg"
     ]
 }

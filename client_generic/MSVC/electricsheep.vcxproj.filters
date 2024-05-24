@@ -445,7 +445,6 @@
     <None Include="..\RuntimeMSVC\logo256256.png">
       <Filter>Common</Filter>
     </None>
-    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="sheepicon.rc">

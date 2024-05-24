@@ -11,14 +11,14 @@
 #include <DirectXColors.h>
 
 // From DirectX Tool Kit
-#include <GraphicsMemory.h>
-#include "DescriptorHeap.h"
-#include <VertexTypes.h>
-#include <PrimitiveBatch.h>
-#include <Effects.h>
-#include <CommonStates.h>
-#include "ResourceUploadBatch.h"
-#include "WICTextureLoader.h"
+#include <directxtk12/GraphicsMemory.h>
+#include "directxtk12/DescriptorHeap.h"
+#include <directxtk12/VertexTypes.h>
+#include <directxtk12/PrimitiveBatch.h>
+#include <directxtk12/Effects.h>
+#include <directxtk12/CommonStates.h>
+#include "directxtk12/ResourceUploadBatch.h"
+#include "directxtk12/WICTextureLoader.h"
 
 #include "DeviceResources.h"
 #include <windows.h>
