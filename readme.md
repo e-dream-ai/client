@@ -44,4 +44,4 @@ Known issues/Workarounds :
 - Ranges won't compile on MSVC : https://developercommunity.visualstudio.com/t/MSVC-ranges-wont-compile-under-std:c/10532125?sort=newest
 -> Install VS Community preview instead
 - Libpng requires /MD and crashes on /MDd (debug)f) : https://stackoverflow.com/questions/22774265/libpng-crashes-on-png-read-info
-This is why DebugMD exists, it's a "debug" build in /MD mode (instead of /MDd). Will need a workaround for proper DX12 dev, this prevents using debug mode with DirectX (warp renderer + akk assicuated debug stuff).
+This is why DebugMD exists, it's a "debug" build in /MD mode (instead of /MDd). Will need a workaround for proper DX12 dev, this prevents using debug mode with DirectX (warp renderer + akk associated debug stuff).
