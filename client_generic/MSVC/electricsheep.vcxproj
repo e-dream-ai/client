@@ -493,7 +493,7 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
       <OmitFramePointers>false</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>..\DirectX-Headers-1.613.1\include\directx;..\;..\socket.io-client-cpp\include;..\libpng\include;..\ffmpeg\include;..\curl-x64\include;..\ContentDownloader;..\Client;..\Common;..\Common\Math;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\Networking;..\TupleStorage;..\DisplayOutput\D3D12;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\DirectX-Headers-1.613.1\include\directx;..\;..\ContentDownloader;..\Client;..\Common;..\Common\Math;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\Networking;..\TupleStorage;..\DisplayOutput\D3D12;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>DEBUG;WIN32;_WIN64;_WINDOWS;NOMINMAX;_CRT_SECURE_NO_WARNINGS;CURL_STATICLIB;WIN32_LEAN_AND_MEAN;VC_EXTRALEAN;COMPILE_MULTIMON_STUBS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -514,10 +514,10 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>avcodec.lib;avformat.lib;swscale.lib;avdevice.lib;avutil.lib;wxzlib.lib;wxpng.lib;kernel32.lib;user32.lib;shlwapi.lib;d3d9.lib;d3d12.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;ws2_32.lib;wldap32.lib;psapi.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>avcodec.lib;avformat.lib;swscale.lib;avdevice.lib;avutil.lib;kernel32.lib;user32.lib;shlwapi.lib;d3d9.lib;d3d12.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;ws2_32.lib;wldap32.lib;psapi.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ShowProgress>NotSet</ShowProgress>
       <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
-      <AdditionalLibraryDirectories>..\socket.io-client-cpp\lib\Release;..\wxWidgets\lib\vc120_x64_dll;C:\wxWidgets-2.9.1-x64\lib\vc_lib;c:\local\boost_1_85_0\lib64-msvc-14.4;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
