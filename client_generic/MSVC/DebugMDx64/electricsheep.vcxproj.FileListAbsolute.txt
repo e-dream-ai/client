@@ -3,9 +3,13 @@ C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMD\swresample-4.d
 C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMD\avutil-58.dll
 C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMD\avformat-60.dll
 C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMD\swscale-7.dll
-C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMD\libcurl.dll
-C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMD\libssl-3-x64.dll
+C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMD\boost_filesystem-vc143-mt-x64-1_85.dll
+C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMD\boost_json-vc143-mt-x64-1_85.dll
+C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMD\boost_log-vc143-mt-x64-1_85.dll
+C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMD\boost_thread-vc143-mt-x64-1_85.dll
+C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMD\boost_log_setup-vc143-mt-x64-1_85.dll
 C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMD\libcrypto-3-x64.dll
+C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMD\libcurl.dll
 C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMD\zlib1.dll
 C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMD\libpng16.dll
 C:\Users\Jack\Documents\GitHub\client\client_generic\MSVC\DebugMDx64\electric.E09FDCB6.Up2Date

@@ -1,0 +1,9 @@
+{
+  "dependencies": [
+    "boost",
+    "ffmpeg",
+    "openssl",
+    "curl",
+    "libpng"
+  ]
+}

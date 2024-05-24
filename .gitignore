@@ -13,3 +13,4 @@ client_generic/MacBuild/BuildData.json
 /client_generic/MSVC/Release
 /client_generic/MSVC/Release
 /client_generic/MSVC/Releasex64
+/vcpkg_installed
