@@ -88,11 +88,17 @@ Assuming a Windows 10 (or 11) x86-64 machine, this won't work on Windows 7.
 
 **During installation, make sure "C++ desktop development" and "C++ game develoment" are selected.**
 
+- Checkout submodules (cmd from repo base) :
+
+```
+git submodule update --init --recursive
+```
+
 - Integrate vcpkg (cmd from repo base) :
 
 ```
 cd vcpkg
-bootstrap-vcpkg.bat -disableMetrics
+.\bootstrap-vcpkg.bat -disableMetrics
 .\vcpkg.exe integrate install
 ``` 
 
