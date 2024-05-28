@@ -315,6 +315,7 @@ void CRendererD3D12::Text(spCBaseFont _spFont, const std::string& _text,
                           const Base::Math::CVector4& _color,
                           const Base::Math::CRect& _rect, uint32_t _flags)
 {
+	g_Log->Info("CRendererD3D12::TEXT : %s", _text);
 }
 
 Base::Math::CVector2 CRendererD3D12::GetTextExtent(spCBaseFont _spFont, const std::string& _text) { return Base::Math::CVector2(); }
