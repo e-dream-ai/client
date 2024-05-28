@@ -124,6 +124,7 @@ class CRendererD3D12 : public CRenderer, IDeviceNotify
     spCBaseFont GetFont(CFontDescription& _desc) { return nullptr; };
     spCBaseText NewText(spCBaseFont _font, const std::string& _text)
     {
+        g_Log->Info("*** %s ***", _text.c_str());
         return nullptr;
     };
 
