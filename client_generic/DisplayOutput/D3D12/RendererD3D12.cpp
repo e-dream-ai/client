@@ -350,15 +350,28 @@ void CRendererD3D12::DrawQuad(const Base::Math::CRect& _rect,
         &VertexPositionTexture::InputLayout, CommonStates::AlphaBlend,
         CommonStates::DepthNone, CommonStates::CullNone, rtState);
 
-    auto textureEffect =
+    // Local new textureEffect 
+    //auto textureEffect =
+    //    std::make_unique<BasicEffect>(device, EffectFlags::Texture, pd);
+
+    //// Index got from BindTexture
+    //textureEffect->SetTexture(m_resourceDescriptors->GetGpuHandle(m_currentTextureIndex),
+    //                          m_states->LinearWrap());
+
+    //textureEffect->Apply(commandList);
+    //
+    // reuse m_textureEffect
+    m_textureEffect =
         std::make_unique<BasicEffect>(device, EffectFlags::Texture, pd);
 
     // Index got from BindTexture
-    textureEffect->SetTexture(m_resourceDescriptors->GetGpuHandle(m_currentTextureIndex),
-                              m_states->LinearWrap());
+    m_textureEffect->SetTexture(
+        m_resourceDescriptors->GetGpuHandle(m_currentTextureIndex),
+        m_states->LinearWrap());
 
-    textureEffect->Apply(commandList);
-    //
+    m_textureEffect->Apply(commandList);
+
+    // /
 
     auto l_texturedBatch =
         std::make_unique<PrimitiveBatch<VertexPositionTexture>>(device);
