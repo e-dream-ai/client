@@ -41,7 +41,7 @@ class CRendererD3D12 : public CRenderer, IDeviceNotify
     std::unique_ptr<PrimitiveBatch<VertexPositionColor>> primitiveBatch;
     std::unique_ptr<PrimitiveBatch<VertexPositionTexture>> texturedBatch;
 
-    std::unique_ptr<BasicEffect> m_textureEffect;
+    //std::unique_ptr<BasicEffect> m_textureEffect;
 
     Microsoft::WRL::ComPtr<ID3D12Resource> m_texture; // tmp
 

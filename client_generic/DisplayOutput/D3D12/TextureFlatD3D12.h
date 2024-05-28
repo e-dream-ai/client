@@ -9,10 +9,20 @@
 #include "RendererD3D12.h"
 #include "DeviceResources.h"
 
+#include <directxtk12/GraphicsMemory.h>
+#include "directxtk12/DescriptorHeap.h"
+#include <directxtk12/VertexTypes.h>
+#include <directxtk12/PrimitiveBatch.h>
+#include <directxtk12/Effects.h>
+#include <directxtk12/CommonStates.h>
+#include "directxtk12/ResourceUploadBatch.h"
+#include "directxtk12/WICTextureLoader.h"
+
 using Microsoft::WRL::ComPtr;
  
 namespace DisplayOutput
 {
+    using namespace DirectX;
 
 class CTextureFlatD3D12 : public CTextureFlat
 {
@@ -31,6 +41,8 @@ class CTextureFlatD3D12 : public CTextureFlat
 
     //	Internal to keep track if size or format changed.
     DisplayOutput::eImageFormat m_Format;
+
+    std::unique_ptr<BasicEffect> m_textureEffect;
 
   public:
     Base::Math::CRect m_Size;

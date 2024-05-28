@@ -89,7 +89,9 @@ class CStartupScreen : public CHudEntry
             std::make_shared<DisplayOutput::CImage>();
         if (m_spImageRef)
         {
-            m_spVideoTexture = _spRenderer->NewTextureFlat();
+            // Only create the texture if we don't have one, if we do, reuse it
+            if (!m_spVideoTexture)
+                m_spVideoTexture = _spRenderer->NewTextureFlat();
             m_spVideoTexture->Upload(m_spImageRef);
         }
 
