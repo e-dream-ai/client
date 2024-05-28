@@ -20,10 +20,24 @@ namespace DisplayOutput
         commandQueue = _commandQueue;
         heap = std::move(_heap);
         textureIndex = _textureIndex;
+
+        // We create our texture effect here 
+        const RenderTargetState rtState(
+            m_renderer->m_deviceResources->GetBackBufferFormat(),
+            m_renderer->m_deviceResources->GetDepthBufferFormat());
+
+        EffectPipelineStateDescription pd(
+            &VertexPositionTexture::InputLayout, CommonStates::AlphaBlend,
+            CommonStates::DepthNone, CommonStates::CullNone, rtState);
+
+        auto l_Device = m_renderer->m_deviceResources->GetD3DDevice();
+        // Allocate it here
+        m_textureEffect =
+            std::make_unique<BasicEffect>(l_Device, EffectFlags::Texture, pd);
     }
 
-    CTextureFlatD3D12::~CTextureFlatD3D12()
-    {
+    CTextureFlatD3D12::~CTextureFlatD3D12() { 
+        g_Log->Info("CTextureFlatD3D12::~CTextureFlatD3D12 %d", textureIndex);
     }
 
     bool CTextureFlatD3D12::Upload(spCImage _spImage)
@@ -76,7 +90,21 @@ namespace DisplayOutput
 
     bool CTextureFlatD3D12::Bind(uint32_t _slot) { 
         g_Log->Info("CTextureFlatD3D12::Bind %d", textureIndex);
-        m_renderer->BindTexture(textureIndex);
+        //m_renderer->BindTexture(textureIndex);
+
+        auto commandList = m_renderer->m_deviceResources->GetCommandList();
+
+        // Set the descriptor heaps
+        ID3D12DescriptorHeap* heaps[] = {
+            m_renderer->m_resourceDescriptors->Heap(),
+            m_renderer->m_states->Heap()};
+        commandList->SetDescriptorHeaps(_countof(heaps), heaps);
+
+        m_textureEffect->SetTexture(
+            m_renderer->m_resourceDescriptors->GetGpuHandle(textureIndex),
+            m_renderer->m_states->LinearWrap());
+
+        m_textureEffect->Apply(commandList);
 
         return true;
     }

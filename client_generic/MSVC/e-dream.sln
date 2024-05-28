@@ -11,6 +11,8 @@ Global
 		Debug|x64 = Debug|x64
 		DebugMD|Win32 = DebugMD|Win32
 		DebugMD|x64 = DebugMD|x64
+		DebugMDd|Win32 = DebugMDd|Win32
+		DebugMDd|x64 = DebugMDd|x64
 		Release|Win32 = Release|Win32
 		Release|x64 = Release|x64
 	EndGlobalSection
@@ -23,6 +25,10 @@ Global
 		{C117F50C-4724-48CF-8C5C-193FB1A0F26A}.DebugMD|Win32.Build.0 = DebugMD|Win32
 		{C117F50C-4724-48CF-8C5C-193FB1A0F26A}.DebugMD|x64.ActiveCfg = DebugMD|x64
 		{C117F50C-4724-48CF-8C5C-193FB1A0F26A}.DebugMD|x64.Build.0 = DebugMD|x64
+		{C117F50C-4724-48CF-8C5C-193FB1A0F26A}.DebugMDd|Win32.ActiveCfg = DebugMDd|Win32
+		{C117F50C-4724-48CF-8C5C-193FB1A0F26A}.DebugMDd|Win32.Build.0 = DebugMDd|Win32
+		{C117F50C-4724-48CF-8C5C-193FB1A0F26A}.DebugMDd|x64.ActiveCfg = DebugMDd|x64
+		{C117F50C-4724-48CF-8C5C-193FB1A0F26A}.DebugMDd|x64.Build.0 = DebugMDd|x64
 		{C117F50C-4724-48CF-8C5C-193FB1A0F26A}.Release|Win32.ActiveCfg = Release|Win32
 		{C117F50C-4724-48CF-8C5C-193FB1A0F26A}.Release|Win32.Build.0 = Release|Win32
 		{C117F50C-4724-48CF-8C5C-193FB1A0F26A}.Release|x64.ActiveCfg = Release|x64

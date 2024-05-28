@@ -103,7 +103,7 @@ cd vcpkg
 ``` 
 
 - Open client_generic\MSVC\e-dream.sln in Visual Studio
-- Select target DebugMD and build. This will take a *very* long time the first time, as every dependency will get built twice (vcpkg automatically builds from source both debug *and* release libraries).
+- Select target `DebugMD` for low overhead debug, or `DebugMDd` for full DirectX12 debugging, and build. This will take a *very* long time the first time, as every dependency will get built twice (vcpkg automatically builds from source both debug *and* release libraries).
 
 - **DO NOT INSTALL DirectX9 SDK**. DirectX 12 SDK is now bundled with the Windows 10 SDK and will be used automatically.
 
@@ -131,8 +131,8 @@ Known setup issues/Workarounds :
 
 - Ranges won't compile on MSVC : https://developercommunity.visualstudio.com/t/MSVC-ranges-wont-compile-under-std:c/10532125?sort=newest
 -> Install VS Community **preview** instead
-- Libpng requires /MD and crashes on /MDd (debug) : https://stackoverflow.com/questions/22774265/libpng-crashes-on-png-read-info
-This is why DebugMD exists, it's a "debug" build in /MD mode (instead of /MDd). Will need a workaround for proper DX12 dev, this prevents using debug mode with DirectX (warp renderer + all associated debug stuff).
+- ~~Libpng requires /MD and crashes on /MDd (debug) : https://stackoverflow.com/questions/22774265/libpng-crashes-on-png-read-info
+This is why DebugMD exists, it's a "debug" build in /MD mode (instead of /MDd). Will need a workaround for proper DX12 dev, this prevents using debug mode with DirectX (warp renderer + all associated debug stuff).~~
 
 TODO/known code issues : 
 ===

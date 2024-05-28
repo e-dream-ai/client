@@ -95,8 +95,8 @@ void CRendererD3D12::CreateDeviceDependentResources()
 
     m_batch = std::make_unique<PrimitiveBatch<VertexPositionColor>>(device);
 
-    const RenderTargetState rtState(m_deviceResources->GetBackBufferFormat(),
-                                    m_deviceResources->GetDepthBufferFormat());
+    //const RenderTargetState rtState(m_deviceResources->GetBackBufferFormat(),
+    //                                m_deviceResources->GetDepthBufferFormat());
 
     //{
     //    EffectPipelineStateDescription pd(
@@ -108,17 +108,17 @@ void CRendererD3D12::CreateDeviceDependentResources()
     //        device, EffectFlags::VertexColor, pd);
     //}
 
-    {
-        EffectPipelineStateDescription pd(
-            &VertexPositionTexture::InputLayout, CommonStates::Opaque,
-            CommonStates::DepthNone, CommonStates::CullNone, rtState);
+    //{
+    //    EffectPipelineStateDescription pd(
+    //        &VertexPositionTexture::InputLayout, CommonStates::Opaque,
+    //        CommonStates::DepthNone, CommonStates::CullNone, rtState);
 
-        m_textureEffect =
-            std::make_unique<BasicEffect>(device, EffectFlags::Texture, pd);
-        m_textureEffect->SetTexture(
-            m_resourceDescriptors->GetGpuHandle(Descriptors::Font),
-            m_states->LinearWrap());
-    }
+    //    m_textureEffect =
+    //        std::make_unique<BasicEffect>(device, EffectFlags::Texture, pd);
+    //    m_textureEffect->SetTexture(
+    //        m_resourceDescriptors->GetGpuHandle(Descriptors::Font),
+    //        m_states->LinearWrap());
+    //}
 }
 
 // Allocate all memory resources that change on a window SizeChanged event.
@@ -334,10 +334,7 @@ void CRendererD3D12::DrawQuad(const Base::Math::CRect& _rect,
     auto commandList = m_deviceResources->GetCommandList();
     PIXBeginEvent(commandList, PIX_COLOR_DEFAULT, L"Draw quad2");
 
-    // Set the descriptor heaps
-    ID3D12DescriptorHeap* heaps[] = {m_resourceDescriptors->Heap(),
-                                     m_states->Heap()};
-    commandList->SetDescriptorHeaps(_countof(heaps), heaps);
+
 
     
     // Looks like we need to create a new BasicEffect for each texture in the same pass?
@@ -346,9 +343,9 @@ void CRendererD3D12::DrawQuad(const Base::Math::CRect& _rect,
     const RenderTargetState rtState(m_deviceResources->GetBackBufferFormat(),
                                     m_deviceResources->GetDepthBufferFormat());
 
-    EffectPipelineStateDescription pd(
-        &VertexPositionTexture::InputLayout, CommonStates::AlphaBlend,
-        CommonStates::DepthNone, CommonStates::CullNone, rtState);
+    //EffectPipelineStateDescription pd(
+    //    &VertexPositionTexture::InputLayout, CommonStates::AlphaBlend,
+    //    CommonStates::DepthNone, CommonStates::CullNone, rtState);
 
     // Local new textureEffect 
     //auto textureEffect =
@@ -361,15 +358,15 @@ void CRendererD3D12::DrawQuad(const Base::Math::CRect& _rect,
     //textureEffect->Apply(commandList);
     //
     // reuse m_textureEffect
-    m_textureEffect =
-        std::make_unique<BasicEffect>(device, EffectFlags::Texture, pd);
+    //m_textureEffect =
+    //    std::make_unique<BasicEffect>(device, EffectFlags::Texture, pd);
 
-    // Index got from BindTexture
-    m_textureEffect->SetTexture(
-        m_resourceDescriptors->GetGpuHandle(m_currentTextureIndex),
-        m_states->LinearWrap());
+    //// Index got from BindTexture
+    //m_textureEffect->SetTexture(
+    //    m_resourceDescriptors->GetGpuHandle(m_currentTextureIndex),
+    //    m_states->LinearWrap());
 
-    m_textureEffect->Apply(commandList);
+    //m_textureEffect->Apply(commandList);
 
     // /
 
