@@ -4,10 +4,12 @@
 #include <sstream>
 #include <sys/stat.h>
 #include <boost/thread.hpp>
+/*
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
-
+*/
+#include <boost/filesystem.hpp>
 #include "Common.h"
 #include "ContentDownloader.h"
 #include "Log.h"
@@ -25,7 +27,7 @@
 
 using boost::filesystem::directory_iterator;
 using boost::filesystem::exists;
-using boost::filesystem::extension;
+//using boost::filesystem::extension;
 using boost::filesystem::path;
 using Shepherd = ContentDownloader::Shepherd;
 using path = boost::filesystem::path;

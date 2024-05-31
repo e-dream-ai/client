@@ -41,9 +41,12 @@
 #include "PlatformUtils.h"
 #include "EDreamClient.h"
 
+/*
 #include "boost/filesystem/convenience.hpp"
 #include "boost/filesystem/operations.hpp"
-#include "boost/filesystem/path.hpp"
+#include "boost/filesystem/path.hpp" */
+
+#include <boost/filesystem.hpp>
 
 #if defined(MAC) || defined(WIN32)
 #define HONOR_VBL_SYNC
@@ -67,7 +70,7 @@ const double kTransitionLengthSeconds = 1;
 
 using boost::filesystem::directory_iterator;
 using boost::filesystem::exists;
-using boost::filesystem::extension;
+//using boost::filesystem::extension;
 using boost::filesystem::path;
 
 using namespace DisplayOutput;

@@ -7,6 +7,16 @@
 #ifndef _LOG_H_
 #define _LOG_H_
 
+#include <boost/log/core.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/log/expressions.hpp>
+#include <boost/log/sinks/text_file_backend.hpp>
+#include <boost/log/utility/setup/file.hpp>
+#include <boost/log/utility/setup/common_attributes.hpp>
+#include <boost/log/sources/severity_logger.hpp>
+#include <boost/log/sources/record_ostream.hpp>
+#include <boost/date_time/posix_time/posix_time_io.hpp>
+
 #include <string_view>
 #include <mutex>
 #include <thread>
@@ -64,23 +74,28 @@ class CLog : public CSingleton<CLog>
     static char s_MessageType[m_MaxMessageLength];
     static size_t s_MessageSpamCount;
 
-    //	Private constructor accessible only to CSingleton.
+    
+    //    Private constructor accessible only to CSingleton.
     CLog();
 
-    //	No copy constructor or assignment operator.
+    //    No copy constructor or assignment operator.
     NO_CLASS_STANDARDS(CLog);
 
     bool m_bActive;
 
     FILE* m_pFile;
 
-    //	Temporary storage vars.
+    //    Temporary storage vars.
     std::string m_File;
     std::string m_Function;
     uint32_t m_Line;
     int m_OriginalSTDOUT;
     int m_PipeReader;
     class std::thread* m_pPipeReaderThread;
+
+    boost::shared_ptr<boost::log::sinks::synchronous_sink<
+        boost::log::sinks::text_file_backend>>
+        m_Sink;
 
     void Log(const char* _pType,
              /*const char *_file, const uint32_t _line, const char *_pFunc,*/
@@ -106,8 +121,8 @@ class CLog : public CSingleton<CLog>
     void Error(std::string_view _pFmt, ...);
     void Fatal(std::string_view _pFmt, ...);
 
-    //	Provides singleton access.
-    __attribute__((no_instrument_function)) static CLog*
+    //    Provides singleton access.
+    /* __attribute__((no_instrument_function)) */static CLog*
     Instance(const char* /*_pFileStr*/, const uint32_t /*_line*/,
              const char* /*_pFunc*/)
     {
@@ -117,7 +132,7 @@ class CLog : public CSingleton<CLog>
             printf("Trying to access shutdown singleton %s\n",
                    log.Description());
 
-        //	Annoying, smartpointer lock&unlock the mutex, then return to
+        //    Annoying, smartpointer lock&unlock the mutex, then return to
         // someone who
         // will do the same... log.SetInfo( _pFileStr, _line, _pFunc );
         return (&log);
