@@ -228,12 +228,6 @@
 		46ED5CB42AF5326A00AF8F45 /* DisplayMetal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 46ED5CB02AF5326A00AF8F45 /* DisplayMetal.cpp */; };
 		46FA9E1A2B03CB0500708000 /* ShaderMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 46FA9E192B03CB0500708000 /* ShaderMetal.mm */; };
 		46FA9E1B2B03CB0B00708000 /* ShaderMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 46FA9E192B03CB0500708000 /* ShaderMetal.mm */; };
-		F04592362C0A09F300FF2F82 /* libboost_filesystem.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F04592332C0A06BD00FF2F82 /* libboost_filesystem.a */; };
-		F04592372C0A09F300FF2F82 /* libboost_json.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F04592312C0A06BD00FF2F82 /* libboost_json.a */; };
-		F04592382C0A09F300FF2F82 /* libboost_log.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F04592322C0A06BD00FF2F82 /* libboost_log.a */; };
-		F04592392C0A09F300FF2F82 /* libboost_log_setup.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F04592342C0A06BD00FF2F82 /* libboost_log_setup.a */; };
-		F045923A2C0A09F300FF2F82 /* libboost_system.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F04592352C0A06BD00FF2F82 /* libboost_system.a */; };
-		F045923B2C0A09F300FF2F82 /* libboost_thread.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F04592302C0A06BD00FF2F82 /* libboost_thread.a */; };
 		F05994582BA0912300B018C7 /* osd-pill-r.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994532BA0912200B018C7 /* osd-pill-r.png */; };
 		F05994592BA0912300B018C7 /* osd-pill-r.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994532BA0912200B018C7 /* osd-pill-r.png */; };
 		F059945A2BA0912300B018C7 /* osd-pill-u.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994542BA0912200B018C7 /* osd-pill-u.png */; };
@@ -262,6 +256,12 @@
 		F059947A2BA0A07300B018C7 /* osd-back.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994692BA0A07300B018C7 /* osd-back.png */; };
 		F059947B2BA0A07300B018C7 /* osd-bg-sq.png in Resources */ = {isa = PBXBuildFile; fileRef = F059946A2BA0A07300B018C7 /* osd-bg-sq.png */; };
 		F059947C2BA0A07300B018C7 /* osd-bg-sq.png in Resources */ = {isa = PBXBuildFile; fileRef = F059946A2BA0A07300B018C7 /* osd-bg-sq.png */; };
+		F07071D42C0E05DA008219A4 /* libboost_filesystem.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071D12C0E052A008219A4 /* libboost_filesystem.a */; };
+		F07071D52C0E05DA008219A4 /* libboost_json.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071D02C0E052A008219A4 /* libboost_json.a */; };
+		F07071D62C0E05DA008219A4 /* libboost_log_setup.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071CE2C0E052A008219A4 /* libboost_log_setup.a */; };
+		F07071D72C0E05DA008219A4 /* libboost_log.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071CF2C0E052A008219A4 /* libboost_log.a */; };
+		F07071D82C0E05DA008219A4 /* libboost_thread.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071D32C0E052B008219A4 /* libboost_thread.a */; };
+		F07071D92C0E05DA008219A4 /* libboost_system.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071D22C0E052B008219A4 /* libboost_system.a */; };
 		F0F6D4262BCD504500222647 /* osd-like.png in Resources */ = {isa = PBXBuildFile; fileRef = F0F6D4242BCD504500222647 /* osd-like.png */; };
 		F0F6D4272BCD504500222647 /* osd-like.png in Resources */ = {isa = PBXBuildFile; fileRef = F0F6D4242BCD504500222647 /* osd-like.png */; };
 		F0F6D4282BCD504500222647 /* osd-dislike.png in Resources */ = {isa = PBXBuildFile; fileRef = F0F6D4252BCD504500222647 /* osd-dislike.png */; };
@@ -557,12 +557,6 @@
 		46ED5CB02AF5326A00AF8F45 /* DisplayMetal.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = DisplayMetal.cpp; path = ../../DisplayOutput/Metal/DisplayMetal.cpp; sourceTree = "<group>"; };
 		46FA9E182B03CB0500708000 /* ShaderMetal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShaderMetal.h; sourceTree = "<group>"; };
 		46FA9E192B03CB0500708000 /* ShaderMetal.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ShaderMetal.mm; sourceTree = "<group>"; };
-		F04592302C0A06BD00FF2F82 /* libboost_thread.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_thread.a; path = "../../vcpkg_installed/univ-osx/lib/libboost_thread.a"; sourceTree = "<group>"; };
-		F04592312C0A06BD00FF2F82 /* libboost_json.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_json.a; path = "../../vcpkg_installed/univ-osx/lib/libboost_json.a"; sourceTree = "<group>"; };
-		F04592322C0A06BD00FF2F82 /* libboost_log.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_log.a; path = "../../vcpkg_installed/univ-osx/lib/libboost_log.a"; sourceTree = "<group>"; };
-		F04592332C0A06BD00FF2F82 /* libboost_filesystem.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_filesystem.a; path = "../../vcpkg_installed/univ-osx/lib/libboost_filesystem.a"; sourceTree = "<group>"; };
-		F04592342C0A06BD00FF2F82 /* libboost_log_setup.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_log_setup.a; path = "../../vcpkg_installed/univ-osx/lib/libboost_log_setup.a"; sourceTree = "<group>"; };
-		F04592352C0A06BD00FF2F82 /* libboost_system.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_system.a; path = "../../vcpkg_installed/univ-osx/lib/libboost_system.a"; sourceTree = "<group>"; };
 		F05994532BA0912200B018C7 /* osd-pill-r.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-pill-r.png"; sourceTree = "<group>"; };
 		F05994542BA0912200B018C7 /* osd-pill-u.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-pill-u.png"; sourceTree = "<group>"; };
 		F05994552BA0912200B018C7 /* osd-pill.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-pill.png"; sourceTree = "<group>"; };
@@ -577,6 +571,12 @@
 		F05994682BA0A07300B018C7 /* osd-pause.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-pause.png"; sourceTree = "<group>"; };
 		F05994692BA0A07300B018C7 /* osd-back.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-back.png"; sourceTree = "<group>"; };
 		F059946A2BA0A07300B018C7 /* osd-bg-sq.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-bg-sq.png"; sourceTree = "<group>"; };
+		F07071CE2C0E052A008219A4 /* libboost_log_setup.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_log_setup.a; path = "../../cache/univ-osx/lib/libboost_log_setup.a"; sourceTree = "<group>"; };
+		F07071CF2C0E052A008219A4 /* libboost_log.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_log.a; path = "../../cache/univ-osx/lib/libboost_log.a"; sourceTree = "<group>"; };
+		F07071D02C0E052A008219A4 /* libboost_json.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_json.a; path = "../../cache/univ-osx/lib/libboost_json.a"; sourceTree = "<group>"; };
+		F07071D12C0E052A008219A4 /* libboost_filesystem.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_filesystem.a; path = "../../cache/univ-osx/lib/libboost_filesystem.a"; sourceTree = "<group>"; };
+		F07071D22C0E052B008219A4 /* libboost_system.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_system.a; path = "../../cache/univ-osx/lib/libboost_system.a"; sourceTree = "<group>"; };
+		F07071D32C0E052B008219A4 /* libboost_thread.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_thread.a; path = "../../cache/univ-osx/lib/libboost_thread.a"; sourceTree = "<group>"; };
 		F0CCD23D2B98CF530070314F /* OSD.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = OSD.hpp; sourceTree = "<group>"; };
 		F0CCD2532B9A59320070314F /* e-dream AppRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "e-dream AppRelease.entitlements"; sourceTree = "<group>"; };
 		F0F6D4242BCD504500222647 /* osd-like.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-like.png"; sourceTree = "<group>"; };
@@ -588,28 +588,29 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F04592382C0A09F300FF2F82 /* libboost_log.a in Frameworks */,
-				F045923B2C0A09F300FF2F82 /* libboost_thread.a in Frameworks */,
 				466C2AAA2AFA5B8600ED939F /* libpng_universal.a in Frameworks */,
 				467230BD2AC17EAA00017C51 /* Metal.framework in Frameworks */,
+				F07071D62C0E05DA008219A4 /* libboost_log_setup.a in Frameworks */,
 				467230BB2AC17E9A00017C51 /* MetalKit.framework in Frameworks */,
 				213D540311F79C9800CF500D /* IOKit.framework in Frameworks */,
+				F07071D72C0E05DA008219A4 /* libboost_log.a in Frameworks */,
 				2160FC9D0F30F48200B2C27A /* CoreFoundation.framework in Frameworks */,
-				F045923A2C0A09F300FF2F82 /* libboost_system.a in Frameworks */,
 				2160FC9E0F30F48200B2C27A /* GLUT.framework in Frameworks */,
-				F04592362C0A09F300FF2F82 /* libboost_filesystem.a in Frameworks */,
+				F07071D42C0E05DA008219A4 /* libboost_filesystem.a in Frameworks */,
 				464A49E22AB89C5F00C77F6D /* CoreMedia.framework in Frameworks */,
 				2160FC9F0F30F48200B2C27A /* OpenGL.framework in Frameworks */,
 				2160FCA10F30F48200B2C27A /* libavcodec.a in Frameworks */,
-				F04592372C0A09F300FF2F82 /* libboost_json.a in Frameworks */,
+				F07071D52C0E05DA008219A4 /* libboost_json.a in Frameworks */,
 				2197D56319B06F4600EFA1F2 /* VideoDecodeAcceleration.framework in Frameworks */,
 				2160FCA20F30F48200B2C27A /* libavdevice.a in Frameworks */,
 				464A49E82AB89D9100C77F6D /* liblzma.tbd in Frameworks */,
 				2197D56019B06ED300EFA1F2 /* CoreVideo.framework in Frameworks */,
+				F07071D82C0E05DA008219A4 /* libboost_thread.a in Frameworks */,
 				2160FCA30F30F48200B2C27A /* libavutil.a in Frameworks */,
 				464A49E62AB89CFC00C77F6D /* AudioToolbox.framework in Frameworks */,
 				21A8AFBC18416ECA00F77369 /* libiconv.2.dylib in Frameworks */,
 				4665198F2ACC8C5100ADB56E /* IOSurface.framework in Frameworks */,
+				F07071D92C0E05DA008219A4 /* libboost_system.a in Frameworks */,
 				12579D492B83C98D00604B41 /* libcrypto.a in Frameworks */,
 				12CA4A462B83DE3D00A2EAD6 /* libsioclient_tls.a in Frameworks */,
 				12579D4A2B83C99100604B41 /* libssl.a in Frameworks */,
@@ -617,7 +618,6 @@
 				2160FCA90F30F48200B2C27A /* libavformat.a in Frameworks */,
 				2160FCAA0F30F48200B2C27A /* libswscale.a in Frameworks */,
 				2160FCAB0F30F48200B2C27A /* libz.1.2.5.dylib in Frameworks */,
-				F04592392C0A09F300FF2F82 /* libboost_log_setup.a in Frameworks */,
 				2160FCAC0F30F48200B2C27A /* libbz2.1.0.dylib in Frameworks */,
 				464A49E02AB89C1A00C77F6D /* Security.framework in Frameworks */,
 				129AC5D02B69348E00E2E3E8 /* Sparkle in Frameworks */,
@@ -992,12 +992,12 @@
 		464A49D92AB8864600C77F6D /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				F04592332C0A06BD00FF2F82 /* libboost_filesystem.a */,
-				F04592312C0A06BD00FF2F82 /* libboost_json.a */,
-				F04592342C0A06BD00FF2F82 /* libboost_log_setup.a */,
-				F04592322C0A06BD00FF2F82 /* libboost_log.a */,
-				F04592352C0A06BD00FF2F82 /* libboost_system.a */,
-				F04592302C0A06BD00FF2F82 /* libboost_thread.a */,
+				F07071D12C0E052A008219A4 /* libboost_filesystem.a */,
+				F07071D02C0E052A008219A4 /* libboost_json.a */,
+				F07071CE2C0E052A008219A4 /* libboost_log_setup.a */,
+				F07071CF2C0E052A008219A4 /* libboost_log.a */,
+				F07071D22C0E052B008219A4 /* libboost_system.a */,
+				F07071D32C0E052B008219A4 /* libboost_thread.a */,
 				12CA4A452B83DE3D00A2EAD6 /* libsioclient_tls.a */,
 				12579D482B83C91E00604B41 /* libcrypto.a */,
 				12D020022B83C86C0036357D /* libssl.a */,
@@ -1231,7 +1231,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Get the latest Git tag\nlatest_tag=$(git describe --tags --abbrev=0)\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" ${INFOPLIST_FILE}\nsh generate_builddata.sh\n";
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Get the latest Git tag\nlatest_tag=$(git describe --tags --abbrev=0)\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" ${INFOPLIST_FILE}\nsh generate_builddata.sh\n\n# go to root of repo and run vcpkg\n# todo : somehow fails with openssl, feels like a path issue, unclear, could be the build environment from the toolchain setting unexpected stuff that trips vcpkg. For now : run manually once in a while to generate the cache of universal libs. That cache is also temporarirly committed to repo for github integration\n#cd ../../\n#sh build_mac_libs_vcpkg.sh\n";
 		};
 		12B37C892B308A6300E86D2E /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -1457,7 +1457,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
-					"../../vcpkg_installed/arm64-osx/include",
+					"../../cache/univ-osx/include",
 					../Client,
 					../Common/Math,
 					../Common,
@@ -1478,13 +1478,11 @@
 					"../socket.io-client-cpp/include",
 				);
 				LIBRARY_SEARCH_PATHS = (
-					"\"$(SRCROOT)/../boost/osx/lib\"",
+					"../../cache/univ-osx/lib",
 					"\"$(SRCROOT)/../libpng/osx/lib\"",
 					"\"$(SRCROOT)/../ffmpeg/osx/lib\"",
 					"\"$(SRCROOT)/../openssl-1.0.2k/MacOS/lib\"",
 					"\"$(SRCROOT)/../socket.io-client-cpp/lib\"",
-					"\"$(SRCROOT)/../../vcpkg_installed/arm64-osx/lib\"",
-					"\"$(SRCROOT)/../../vcpkg_installed/x64-osx/lib\"",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				ONLY_ACTIVE_ARCH = NO;
@@ -1540,7 +1538,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
-					"../../vcpkg_installed/arm64-osx/include",
+					"../../cache/univ-osx/include",
 					../Client,
 					../Common/Math,
 					../Common,
@@ -1561,13 +1559,11 @@
 					"../socket.io-client-cpp/include",
 				);
 				LIBRARY_SEARCH_PATHS = (
-					"\"$(SRCROOT)/../boost/osx/lib\"",
+					"../../cache/univ-osx/lib",
 					"\"$(SRCROOT)/../libpng/osx/lib\"",
 					"\"$(SRCROOT)/../ffmpeg/osx/lib\"",
 					"\"$(SRCROOT)/../openssl-1.0.2k/MacOS/lib\"",
 					"\"$(SRCROOT)/../socket.io-client-cpp/lib\"",
-					"\"$(SRCROOT)/../../vcpkg_installed/arm64-osx/lib\"",
-					"\"$(SRCROOT)/../../vcpkg_installed/x64-osx/lib\"",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				OTHER_LDFLAGS = "";
@@ -1622,38 +1618,10 @@
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				HEADER_SEARCH_PATHS = (
-					"../../vcpkg_installed/arm64-osx/include",
-					../Client,
-					../Common/Math,
-					../Common,
-					../DisplayOutput,
-					../ContentDecoder,
-					"../Torrents/libtorrent-0.12/include",
-					"../Torrents/libtorrent-0.12/include/libtorrent",
-					../ContentDownloader,
-					../TupleStorage,
-					../DisplayOutput/FTGL/include,
-					../Curl/include,
-					../DisplayOutput/OpenGL,
-					../DisplayOutput/Renderer,
-					../ffmpeg/include,
-					../Networking,
-					../libpng/include,
-					..,
-					"../socket.io-client-cpp/include",
-				);
 				INFOPLIST_FILE = "e-dream-App-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "e-dream";
 				INSTALL_PATH = "$(HOME)/Applications";
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../Frameworks";
-				LIBRARY_SEARCH_PATHS = (
-					"\"../../vcpkg_installed/univ-osx/lib\"",
-					"\"$(SRCROOT)/../libpng/osx/lib\"",
-					"\"$(SRCROOT)/../ffmpeg/osx/lib\"",
-					"\"$(SRCROOT)/../openssl-1.0.2k/MacOS/lib\"",
-					"\"$(SRCROOT)/../socket.io-client-cpp/lib\"",
-				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 0.3.4test;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1683,7 +1651,7 @@
 				COPY_PHASE_STRIP = YES;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = FCG855WTXV;
+				DEVELOPMENT_TEAM = 3L54M5L5KK;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
@@ -1703,38 +1671,10 @@
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				HEADER_SEARCH_PATHS = (
-					"../../vcpkg_installed/arm64-osx/include",
-					../Client,
-					../Common/Math,
-					../Common,
-					../DisplayOutput,
-					../ContentDecoder,
-					"../Torrents/libtorrent-0.12/include",
-					"../Torrents/libtorrent-0.12/include/libtorrent",
-					../ContentDownloader,
-					../TupleStorage,
-					../DisplayOutput/FTGL/include,
-					../Curl/include,
-					../DisplayOutput/OpenGL,
-					../DisplayOutput/Renderer,
-					../ffmpeg/include,
-					../Networking,
-					../libpng/include,
-					..,
-					"../socket.io-client-cpp/include",
-				);
 				INFOPLIST_FILE = "e-dream-App-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "e-dream";
 				INSTALL_PATH = "$(HOME)/Applications";
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../Frameworks";
-				LIBRARY_SEARCH_PATHS = (
-					"\"../../vcpkg_installed/univ-osx/lib\"",
-					"\"$(SRCROOT)/../libpng/osx/lib\"",
-					"\"$(SRCROOT)/../ffmpeg/osx/lib\"",
-					"\"$(SRCROOT)/../openssl-1.0.2k/MacOS/lib\"",
-					"\"$(SRCROOT)/../socket.io-client-cpp/lib\"",
-				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 0.3.4test;
 				ONLY_ACTIVE_ARCH = YES;
