@@ -66,7 +66,7 @@ PrintQueue(std::string_view _str,
            const Base::CBlockingQueue<std::string>& _next,
            const std::vector<ContentDecoder::spCClip>& _currentClips);
 
-const double kTransitionLengthSeconds = 1;
+const double kTransitionLengthSeconds = 5;
 
 using boost::filesystem::directory_iterator;
 using boost::filesystem::exists;
@@ -673,9 +673,9 @@ bool CPlayer::PlayClip(std::string_view _clipPath, double _startTime,
 
     
     clip->SetStartTime(_startTime);
-    clip->SetTransitionLength(m_CurrentClips.size() ? kTransitionLengthSeconds
+    clip->SetTransitionLength(m_CurrentClips.size() ? (kTransitionLengthSeconds / dream.activityLevel)
                                                     : 0,
-                              kTransitionLengthSeconds);
+                              (kTransitionLengthSeconds / dream.activityLevel));
     m_CurrentClips.push_back(clip);
     m_PlayCond.notify_all();
     return true;
