@@ -47,6 +47,8 @@
 			</dict>
 		</dict>
 	</dict>
+	<key>NSConstraintBasedLayoutVisualizeMutuallyExclusiveConstraints</key>
+	<true/>
 	<key>NSMainNibFile</key>
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
