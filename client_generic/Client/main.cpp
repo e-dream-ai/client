@@ -67,7 +67,7 @@ int32_t main(int argc, char* argv[])
 
     client.Shutdown();
 
-    g_Log->Shutdown();
+    //g_Log->Shutdown();
 
     return 0;
 }
