@@ -653,7 +653,7 @@ void CPlayer::PlayQueuedClipsThread()
 }
 
 bool CPlayer::PlayClip(std::string_view _clipPath, double _startTime,
-                       int64_t _seekFrame)
+                       int64_t _seekFrame, bool fastFade)
 {
     auto du = m_displayUnits[0];
     int32_t displayMode = g_Settings()->Get("settings.player.DisplayMode", 2);
@@ -679,9 +679,14 @@ bool CPlayer::PlayClip(std::string_view _clipPath, double _startTime,
 
     
     clip->SetStartTime(_startTime);
-    clip->SetTransitionLength(m_CurrentClips.size() ? (kTransitionLengthSeconds / dream.activityLevel)
-                                                    : 0,
-                              (kTransitionLengthSeconds / dream.activityLevel));
+    if (fastFade) {
+        clip->SetTransitionLength(0, 1);
+    } else {
+        clip->SetTransitionLength(m_CurrentClips.size() ? (kTransitionLengthSeconds / dream.activityLevel)
+                                                        : 0,
+                                  (kTransitionLengthSeconds / dream.activityLevel));
+    }
+
     m_CurrentClips.push_back(clip);
     m_PlayCond.notify_all();
     return true;
@@ -886,7 +891,13 @@ void CPlayer::ReturnToPrevious()
         m_CurrentClips[0]->SetFlags(CClip::eClipFlags::ReverseHistory);
         m_CurrentClips[0]->FadeOut(m_TimelineTime);
         m_CurrentClips.erase(m_CurrentClips.begin() + 1);
-        PlayClip(clipName, m_TimelineTime);
+
+        // force fade to 1s on current clip
+        auto [fadeInTime, _] = m_CurrentClips[0]->GetTransitionLength();
+        m_CurrentClips[0]->SetTransitionLength(fadeInTime, 1);
+        
+        // Ask PlayClip to fast fade too
+        PlayClip(clipName, m_TimelineTime, -1, true);
         std::swap(m_CurrentClips[0], m_CurrentClips[1]);
         PRINTQUEUE("PREV_NORMAL", m_ClipInfoHistoryQueue, m_NextClipInfoQueue,
                    m_CurrentClips);

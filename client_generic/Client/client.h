@@ -1210,7 +1210,7 @@ class CElectricSheep
                             g_Player().MarkForDeletion(currentDreamUUID);
                             g_Player().SkipToNext();
                             m_spCrossFade->Reset();
-                            m_HudManager->Add("fade", m_spCrossFade, 1.5);
+                            m_HudManager->Add("fade", m_spCrossFade, 1);
 
                             // We need to move to something else before deleting
                             // We wait 5s to delete
@@ -1226,7 +1226,7 @@ class CElectricSheep
                         } else {
                             g_Player().SkipToNext();
                             m_spCrossFade->Reset();
-                            m_HudManager->Add("fade", m_spCrossFade, 1.5);
+                            m_HudManager->Add("fade", m_spCrossFade, 1);
                         }
 
                         popOSD(Hud::Dislike);
@@ -1285,6 +1285,19 @@ class CElectricSheep
                 //  Force Next Sheep
             case CLIENT_COMMAND_NEXT:
                 popOSD(Hud::Next);
+                
+                if (g_Player().m_CurrentClips.size() > 1) {
+                    auto [fadeInTime, _] =
+                    g_Player().m_CurrentClips[0]->GetTransitionLength();
+                    auto [__ , fadeOutTime] =
+                    g_Player().m_CurrentClips[1]->GetTransitionLength();
+
+
+                    g_Player().m_CurrentClips[0]->SetTransitionLength(fadeInTime, 1);
+                    g_Player().m_CurrentClips[1]->SetTransitionLength(1,fadeOutTime);
+
+                }
+                
                 g_Player().SkipToNext();
                 return true;
                 //    Repeat sheep
