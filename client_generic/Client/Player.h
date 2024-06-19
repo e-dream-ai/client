@@ -70,6 +70,9 @@ class CPlayer : public Base::CSingleton<CPlayer>
     Base::CBlockingQueue<std::string> m_NextClipInfoQueue;
     Base::CBlockingQueue<std::string> m_ClipInfoHistoryQueue;
     std::vector<ContentDecoder::spCClip> m_CurrentClips;
+    
+    std::vector<std::string> m_evictedUUIDs;    // List of dreams that have been disliked this session
+    
     std::mutex m_CurrentClipsMutex;
     boost::thread* m_pNextClipThread;
     boost::thread* m_pPlayQueuedClipsThread;
@@ -178,6 +181,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     void PlayDreamNow(std::string_view _uuid);
     void ResetPlaylist();
     
+    void MarkForDeletion(std::string_view _uuid);
     void SkipToNext();
     void ReturnToPrevious();
     void SkipForward(float _seconds);

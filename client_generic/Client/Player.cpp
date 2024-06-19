@@ -14,6 +14,7 @@
 #endif
 #include <math.h>
 #include <string>
+#include <algorithm>
 
 #include "Log.h"
 #include "MathBase.h"
@@ -451,8 +452,13 @@ bool CPlayer::BeginFrameUpdate()
                 }
                 else
                 {
-                    m_ClipInfoHistoryQueue.push(
-                        std::string{currentClip->GetClipMetadata().path});
+                    // we need to make sure the clip isn't on its way to deletion
+                    if ( std::find(m_evictedUUIDs.begin(), m_evictedUUIDs.end(), currentClip->GetClipMetadata().dreamData.uuid) != m_evictedUUIDs.end() ) {
+                        g_Log->Info("Clip was evicted, not adding it to history: %s", currentClip->GetClipMetadata().dreamData.uuid);
+                    } else {
+                        m_ClipInfoHistoryQueue.push(
+                            std::string{currentClip->GetClipMetadata().path});
+                    }
                 }
              
                 
@@ -806,6 +812,18 @@ void CPlayer::ResetPlaylist() {
     m_NextClipInfoQueue.clear(0);
     m_CurrentClips.clear();
     m_NextClipInfoQueue.clear(0);
+}
+
+// We maintain an array of dreams that have been downvoted this session
+// This is used to make sure we don't add them to our history and we don't
+// mistakenly try to play a deleted dream (and crash)
+void CPlayer::MarkForDeletion(std::string_view _uuid)
+{
+    // Make sure it's not already in the vector, then add it
+    if ( std::find(m_evictedUUIDs.begin(), m_evictedUUIDs.end(), _uuid) == m_evictedUUIDs.end() ) {
+        g_Log->Info("Evicting UUID: %s", _uuid);
+        m_evictedUUIDs.push_back(std::string(_uuid));
+    }
 }
 
 void CPlayer::SkipToNext()

@@ -1207,12 +1207,26 @@ class CElectricSheep
                         if (g_Settings()->Get("settings.content.negvotedeletes", true))
                         {
                             // g_Player().Stop();
+                            g_Player().MarkForDeletion(currentDreamUUID);
                             g_Player().SkipToNext();
                             m_spCrossFade->Reset();
                             m_HudManager->Add("fade", m_spCrossFade, 1.5);
 
                             // We need to move to something else before deleting
-                            g_Player().Delete(currentDreamUUID);
+                            // We wait 5s to delete
+                            auto deleteDispatch =
+                                std::make_shared<CDelayedDispatch>(
+                                    [&, this]() -> void
+                                    {
+                                        g_Player().Delete(currentDreamUUID);
+
+                                    });
+                            deleteDispatch->DispatchAfter(5);
+
+                        } else {
+                            g_Player().SkipToNext();
+                            m_spCrossFade->Reset();
+                            m_HudManager->Add("fade", m_spCrossFade, 1.5);
                         }
 
                         popOSD(Hud::Dislike);
