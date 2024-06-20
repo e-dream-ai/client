@@ -671,7 +671,6 @@ bool CPlayer::PlayClip(std::string_view _clipPath, double _startTime,
 
     // Update internal decoder fps counter
     m_DecoderFps = m_PerceptualFPS / dream.activityLevel;
-    
 
     if (!clip->Start(_seekFrame))
         return false;
@@ -715,8 +714,11 @@ void CPlayer::SetPerceptualFPS(const double _fps) {
         float dreamActivityLevel = m_CurrentClips[0]->GetClipMetadata().dreamData.activityLevel;
         // Update decoder speed
         m_DecoderFps = m_PerceptualFPS / dreamActivityLevel;
-        // This seems to be what actually changes the speed
-        m_CurrentClips[0]->SetFps(m_DecoderFps);
+        // This seems to be what actually changes the speed, we need to do it
+        // for every clip here as the next clip is already hot-loaded
+        for (auto clip : m_CurrentClips) {
+            clip->SetFps(m_DecoderFps);
+        }
     }
 }
 
