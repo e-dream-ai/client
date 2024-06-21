@@ -674,8 +674,6 @@ bool CPlayer::PlayClip(std::string_view _clipPath, double _startTime,
 
     if (!clip->Start(_seekFrame))
         return false;
-
-
     
     clip->SetStartTime(_startTime);
     if (fastFade) {
@@ -701,7 +699,9 @@ void CPlayer::MultiplyPerceptualFPS(const double _multiplier) {
         // Update decoder speed
         m_DecoderFps = m_PerceptualFPS / dreamActivityLevel;
         // This seems to be what actually changes the speed
-        m_CurrentClips[0]->SetFps(m_DecoderFps);
+        for (auto clip : m_CurrentClips) {
+            clip->SetFps(m_DecoderFps);
+        }
     }
 }
 
