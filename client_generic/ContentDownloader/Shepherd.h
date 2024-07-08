@@ -69,7 +69,12 @@ constexpr const std::string_view DEFAULT_DREAM_SERVER =
         DEFINE_ENDPOINT(REFRESH, "/auth/refresh"),                             \
         DEFINE_ENDPOINT(USER, "/auth/user"),                                   \
         DEFINE_ENDPOINT(PLAYLIST, "/playlist"),                                \
-        DEFINE_ENDPOINT(CURRENTPLAYLIST, "/user/current/playlist")
+        DEFINE_ENDPOINT(CURRENTPLAYLIST, "/user/current/playlist"),            \
+        DEFINE_ENDPOINT(HELLO,"/client/hello"),                                \
+        DEFINE_ENDPOINT(GETPLAYLIST,"/client/playlist"),                       \
+        DEFINE_ENDPOINT(GETDEFAULTPLAYLIST,"/client/playlist/default"),        \
+        DEFINE_ENDPOINT(GETDREAM,"/client/dream")
+
 
 enum eServerEndpoint
 {
@@ -78,7 +83,11 @@ enum eServerEndpoint
     ENDPOINT_REFRESH,
     ENDPOINT_USER,
     ENDPOINT_PLAYLIST,
-    ENDPOINT_CURRENTPLAYLIST
+    ENDPOINT_CURRENTPLAYLIST,
+    ENDPOINT_HELLO,
+    ENDPOINT_GETPLAYLIST,
+    ENDPOINT_GETDEFAULTPLAYLIST,
+    ENDPOINT_GETDREAM
 };
 
 namespace ContentDownloader
@@ -157,7 +166,8 @@ class Shepherd
 
     static atomic_char_ptr fRootPath;
     static atomic_char_ptr fMp4Path;
-    static atomic_char_ptr fJsonPath;
+    static atomic_char_ptr fJsonDreamPath;
+    static atomic_char_ptr fJsonPlaylistPath;
     static atomic_char_ptr fRedirectServerName;
     static atomic_char_ptr fServerName;
     static atomic_char_ptr fVoteServerName;
@@ -305,7 +315,8 @@ class Shepherd
     static void setRootPath(const char* path);
     static const char* rootPath();
     static const char* mp4Path();
-    static const char* jsonPath();
+    static const char* jsonDreamPath();
+    static const char* jsonPlaylistPath();
     static const char* videoExtension() { return ".mp4"; }
 
     ///	Gets/sets the registration password.

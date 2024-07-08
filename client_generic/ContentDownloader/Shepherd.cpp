@@ -61,7 +61,8 @@ uint64_t Shepherd::s_ClientFlockCount = 0;
 uint64_t Shepherd::s_ClientFlockGoldCount = 0;
 atomic_char_ptr Shepherd::fRootPath(NULL);
 atomic_char_ptr Shepherd::fMp4Path(NULL);
-atomic_char_ptr Shepherd::fJsonPath(NULL);
+atomic_char_ptr Shepherd::fJsonDreamPath(NULL);
+atomic_char_ptr Shepherd::fJsonPlaylistPath(NULL);
 atomic_char_ptr Shepherd::fServerName(NULL);
 atomic_char_ptr Shepherd::fVoteServerName(NULL);
 atomic_char_ptr Shepherd::fRenderServerName(NULL);
@@ -145,7 +146,8 @@ void Shepherd::notifyShepherdOfHisUntimleyDeath()
 
     SAFE_DELETE_ARRAY(fRootPath);
     SAFE_DELETE_ARRAY(fMp4Path);
-    SAFE_DELETE_ARRAY(fJsonPath);
+    SAFE_DELETE_ARRAY(fJsonDreamPath);
+    SAFE_DELETE_ARRAY(fJsonPlaylistPath);
     SAFE_DELETE_ARRAY(fServerName);
     SAFE_DELETE_ARRAY(fVoteServerName);
     SAFE_DELETE_ARRAY(fRenderServerName);
@@ -200,13 +202,13 @@ void Shepherd::setRootPath(const char* path)
         len--;
         runner--;
     }
-
+    
     // we need space for trailing \ character
     char* newRootPath = new char[len + 2];
-
+    
     // copy the data
     memcpy(newRootPath, path, len);
-
+    
     // check for the trailing \ character
     if (*runner != PATH_SEPARATOR_C)
     {
@@ -215,36 +217,60 @@ void Shepherd::setRootPath(const char* path)
     }
     else
         newRootPath[len] = '\0';
-
-        // create the directory for the path
+    
+    // create the directory for the path
 #ifdef WIN32
     CreateDirectoryA(newRootPath, NULL);
 #else
     mkdir(newRootPath, 0755);
 #endif
-
+    
     setNewAndDeleteOldString(fRootPath, newRootPath);
-
+    
     char* newMpegPath = new char[(len + 12)];
-
+    
     snprintf(newMpegPath, len + 12, "%smp4%c", newRootPath, PATH_SEPARATOR_C);
 #ifdef WIN32
     CreateDirectoryA(newMpegPath, NULL);
 #else
     mkdir(newMpegPath, 0755);
 #endif
-
+    
     setNewAndDeleteOldString(fMp4Path, newMpegPath);
 
-    char* newJsonPath = new char[(len + 12)];
-    snprintf(newJsonPath, len + 12, "%sjson%c", newRootPath, PATH_SEPARATOR_C);
+    // Make the json/ path
+    char* newJsonPath = new char[(len + 20)];
+    snprintf(newJsonPath, len + 20, "%sjson%c", newRootPath, PATH_SEPARATOR_C);
 #ifdef WIN32
     CreateDirectoryA(newJsonPath, NULL);
 #else
     mkdir(newJsonPath, 0755);
 #endif
 
-    setNewAndDeleteOldString(fJsonPath, newJsonPath);
+    // Make the json/dream path
+    char* newJsonDreamPath = new char[(len + 20)];
+    snprintf(newJsonDreamPath, len + 20, "%sjson%cdream%c", newRootPath, PATH_SEPARATOR_C, PATH_SEPARATOR_C);
+#ifdef WIN32
+    CreateDirectoryA(newJsonPath, NULL);
+#else
+    mkdir(newJsonDreamPath, 0755);
+#endif
+    
+    setNewAndDeleteOldString(fJsonDreamPath, newJsonDreamPath);
+    
+    // Make the json/playlist path
+    char* newJsonPlaylistPath = new char[(len + 20)];
+    snprintf(newJsonPlaylistPath, len + 20, "%sjson%cplaylist%c", newRootPath, PATH_SEPARATOR_C, PATH_SEPARATOR_C);
+    
+    
+#ifdef WIN32
+    CreateDirectoryA(newJsonPath, NULL);
+#else
+    mkdir(newJsonPlaylistPath, 0755);
+#endif
+
+    setNewAndDeleteOldString(fJsonPlaylistPath, newJsonPlaylistPath);
+    
 }
 
 void Shepherd::setProxy(const char* proxy)
@@ -292,9 +318,14 @@ const char* Shepherd::mp4Path()
     return fMp4Path.load(boost::memory_order_relaxed);
 }
 
-const char* Shepherd::jsonPath()
+const char* Shepherd::jsonDreamPath()
 {
-    return fJsonPath.load(boost::memory_order_relaxed);
+    return fJsonDreamPath.load(boost::memory_order_relaxed);
+}
+
+const char* Shepherd::jsonPlaylistPath()
+{
+    return fJsonPlaylistPath.load(boost::memory_order_relaxed);
 }
 
 const char* Shepherd::proxy()

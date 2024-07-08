@@ -16,7 +16,9 @@ class EDreamClient
     static std::mutex fAuthMutex;
     static std::mutex fWebSocketMutex;
     static bool fIsWebSocketConnected;
-
+    static int Hello();
+    static uint64_t remainingQuota;
+    
   public:
     static void InitializeClient();
     static void DeinitializeClient();

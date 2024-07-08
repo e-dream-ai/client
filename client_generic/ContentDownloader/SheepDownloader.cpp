@@ -317,7 +317,7 @@ static float TryParseFloat(uint32_t _id, const json::object& _obj,
 int SheepDownloader::ParseDreamsPage(int _page)
 {
     std::string filePath{
-        string_format("%sdreams_%i.json", Shepherd::jsonPath(), _page)};
+        string_format("%sdreams_%i.json", Shepherd::jsonPlaylistPath(), _page)};
     std::ifstream file(filePath);
     if (!file.is_open())
     {
@@ -730,7 +730,7 @@ void SheepDownloader::FindSheepToDownload()
                 incorrect_folder = true;
 #else
             struct statfs buf;
-            if (statfs(Shepherd::jsonPath(), &buf) >= 0)
+            if (statfs(Shepherd::jsonPlaylistPath(), &buf) >= 0)
             {
                 lpFreeBytesAvailable = (boost::uintmax_t)buf.f_bavail *
                                        (boost::uintmax_t)buf.f_bsize;
@@ -740,7 +740,7 @@ void SheepDownloader::FindSheepToDownload()
 #endif
 
             incorrect_folder = incorrect_folder ||
-                               (!isFolderAccessible(Shepherd::jsonPath()) ||
+                               (!isFolderAccessible(Shepherd::jsonPlaylistPath()) ||
                                 !isFolderAccessible(Shepherd::mp4Path()));
             if (lpFreeBytesAvailable <
                     ((boost::uintmax_t)MIN_MEGABYTES * 1024 * 1024) ||

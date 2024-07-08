@@ -51,6 +51,8 @@ void ESShowPreferences()
         gShowPreferencesCallback();
     }
 }
+
+uint64_t EDreamClient::remainingQuota = 0;
 std::atomic<char*> EDreamClient::fAccessToken(nullptr);
 std::atomic<char*> EDreamClient::fRefreshToken(nullptr);
 std::atomic<bool> EDreamClient::fIsLoggedIn(false);
@@ -272,22 +274,26 @@ bool EDreamClient::RefreshAccessToken()
 }
 
 
-int EDreamClient::GetCurrentServerPlaylist() {
+// Post auth initial handshake with server
+//
+//
+// Returns a JSON with a data structure containing
+//      "quota": int,   // in bytes
+//      "currentPlaylistId": int    // playlistID
+int EDreamClient::Hello() {
     Network::spCFileDownloader spDownload;
-    const char* jsonPath = Shepherd::jsonPath();
 
     int maxAttempts = 3;
     int currentAttempt = 0;
     while (currentAttempt++ < maxAttempts)
     {
-        spDownload = std::make_shared<Network::CFileDownloader>("CurrentPlaylist");
+        spDownload = std::make_shared<Network::CFileDownloader>("Hello");
         spDownload->AppendHeader("Content-Type: application/json");
         std::string authHeader{
             string_format("Authorization: Bearer %s", GetAccessToken())};
         spDownload->AppendHeader(authHeader);
         
-        
-        std::string url{ Shepherd::GetEndpoint(ENDPOINT_CURRENTPLAYLIST) };
+        std::string url{ Shepherd::GetEndpoint(ENDPOINT_HELLO) };
         
         if (spDownload->Perform(url))
         {
@@ -305,29 +311,25 @@ int EDreamClient::GetCurrentServerPlaylist() {
             }
             else
             {
-                g_Log->Error("Failed to get playlist. Server returned %i: %s",
+                g_Log->Error("Failed to handshake. Server returned %i: %s",
                              spDownload->ResponseCode(),
                              spDownload->Data().c_str());
             }
         }
     }
-
-    // Grab the ID from the playlist
+    
+    // Grab the ID and quota
     try
     {
         json::value response = json::parse(spDownload->Data());
         json::value data = response.at("data");
-        json::value playlist = data.at("playlist");
-        json::value id = playlist.at("id");
+        json::value quota = data.at("quota");
+        json::value currentPlaylistId = data.at("currentPlaylistId");
 
-        auto idint = id.as_int64();
+        auto idint = currentPlaylistId.as_int64();
+        remainingQuota = quota.as_int64();
         
-        std::string filename{string_format("%splaylist_%i.json", jsonPath, idint)};
-        if (!spDownload->Save(filename))
-        {
-            g_Log->Error("Unable to save %s\n", filename.data());
-            return -1;
-        }
+        g_Log->Info("Handshake with client successful, playlist id : %lld, remaining quota : %lld", idint, remainingQuota);
         
         return idint;
     }
@@ -336,13 +338,27 @@ int EDreamClient::GetCurrentServerPlaylist() {
         JSONUtil::LogException(e, spDownload->Data());
     }
     
-    return 0;
+    return -1;
+}
 
+
+
+int EDreamClient::GetCurrentServerPlaylist() {
+    // Handshake server and get quota and current playlist ID
+    auto playlistId = Hello();
+    
+    // Assuming for now we always
+    if (playlistId > 0) {
+        // Network fetch and save to disk the playlist
+        FetchPlaylist(playlistId);
+    }
+
+    return playlistId;
 }
 
 bool EDreamClient::FetchPlaylist(int id) {
     Network::spCFileDownloader spDownload;
-    const char* jsonPath = Shepherd::jsonPath();
+    const char* jsonPath = Shepherd::jsonPlaylistPath();
 
     int maxAttempts = 3;
     int currentAttempt = 0;
@@ -356,7 +372,7 @@ bool EDreamClient::FetchPlaylist(int id) {
         
         
         std::string url{string_format(
-            "%s/%i", Shepherd::GetEndpoint(ENDPOINT_PLAYLIST), id)};
+            "%s/%i", Shepherd::GetEndpoint(ENDPOINT_GETPLAYLIST), id)};
         
         printf("url : %s\n", url.c_str());
         
@@ -399,7 +415,7 @@ std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
 
     // Open playlist and grab content
     std::string filePath{
-        string_format("%splaylist_%i.json", Shepherd::jsonPath(), id)};
+        string_format("%splaylist_%i.json", Shepherd::jsonPlaylistPath(), id)};
     std::ifstream file(filePath);
     if (!file.is_open())
     {
@@ -461,7 +477,7 @@ std::vector<std::string> ParserHelper::ParseSubPlaylist(json::object item) {
 std::tuple<std::string, std::string> EDreamClient::ParsePlaylistCredits(int id) {
     // Open playlist and grab content
     std::string filePath{
-        string_format("%splaylist_%i.json", Shepherd::jsonPath(), id)};
+        string_format("%splaylist_%i.json", Shepherd::jsonPlaylistPath(), id)};
     std::ifstream file(filePath);
     if (!file.is_open())
     {
@@ -514,7 +530,7 @@ bool EDreamClient::EnqueuePlaylist(int id) {
 bool EDreamClient::GetDreams(int _page, int _count)
 {
     Network::spCFileDownloader spDownload;
-    const char* jsonPath = Shepherd::jsonPath();
+    const char* jsonPath = Shepherd::jsonPlaylistPath();
 
     int maxAttempts = 3;
     int currentAttempt = 0;
