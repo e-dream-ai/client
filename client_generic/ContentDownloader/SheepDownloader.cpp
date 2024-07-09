@@ -111,9 +111,9 @@ SheepDownloader::SheepDownloader()
     fGotList = false;
     fListDirty = true;
 
-    ParseServerDreams();
+    /*ParseServerDreams();
     updateCachedSheep();
-    deleteCached(0, 0);
+    deleteCached(0, 0);*/
 }
 
 /*
@@ -986,6 +986,7 @@ bool SheepDownloader::getSheepList()
 {
     fListDirty = EDreamClient::GetDreams();
     return fListDirty;
+    return false;
 }
 
 void SheepDownloader::shepherdCallback(void* data)

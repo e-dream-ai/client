@@ -324,14 +324,22 @@ int EDreamClient::Hello() {
         json::value response = json::parse(spDownload->Data());
         json::value data = response.at("data");
         json::value quota = data.at("quota");
-        json::value currentPlaylistId = data.at("currentPlaylistId");
 
-        auto idint = currentPlaylistId.as_int64();
         remainingQuota = quota.as_int64();
-        
-        g_Log->Info("Handshake with client successful, playlist id : %lld, remaining quota : %lld", idint, remainingQuota);
-        
-        return idint;
+
+        if (data.as_object().if_contains("currentPlaylistId")) {
+            json::value currentPlaylistId = data.at("currentPlaylistId");
+            auto idint = currentPlaylistId.as_int64();
+
+            g_Log->Info("Handshake with client successful, playlist id : %lld, remaining quota : %lld", idint, remainingQuota);
+
+            return idint;
+
+        } else {
+            g_Log->Info("Handshake with client successful, no playlist, remaining quota : %lld", remainingQuota);
+
+            return 0;
+        }
     }
     catch (const boost::system::system_error& e)
     {
@@ -347,12 +355,13 @@ int EDreamClient::GetCurrentServerPlaylist() {
     // Handshake server and get quota and current playlist ID
     auto playlistId = Hello();
     
-    // Assuming for now we always
+    // Fetch playlist if we have one and save it to disk
     if (playlistId > 0) {
-        // Network fetch and save to disk the playlist
         FetchPlaylist(playlistId);
+    } else {
+        FetchDefaultPlaylist();
     }
-
+    
     return playlistId;
 }
 
@@ -409,6 +418,58 @@ bool EDreamClient::FetchPlaylist(int id) {
     return true;
 }
 
+bool EDreamClient::FetchDefaultPlaylist() {
+    Network::spCFileDownloader spDownload;
+    const char* jsonPath = Shepherd::jsonPlaylistPath();
+
+    int maxAttempts = 3;
+    int currentAttempt = 0;
+    while (currentAttempt++ < maxAttempts)
+    {
+        spDownload = std::make_shared<Network::CFileDownloader>("DefaultPlaylist");
+        spDownload->AppendHeader("Content-Type: application/json");
+        std::string authHeader{
+            string_format("Authorization: Bearer %s", GetAccessToken())};
+        spDownload->AppendHeader(authHeader);
+        
+        std::string url{ Shepherd::GetEndpoint(ENDPOINT_GETDEFAULTPLAYLIST) };
+        
+        printf("url : %s\n", url.c_str());
+        
+        if (spDownload->Perform(url))
+        {
+            break;
+        }
+        else
+        {
+            if (spDownload->ResponseCode() == 400 ||
+                spDownload->ResponseCode() == 401)
+            {
+                if (currentAttempt == maxAttempts)
+                    return false;
+                if (!RefreshAccessToken())
+                    return false;
+            }
+            else
+            {
+                g_Log->Error("Failed to get playlist. Server returned %i: %s",
+                             spDownload->ResponseCode(),
+                             spDownload->Data().c_str());
+            }
+        }
+    }
+
+    std::string filename{string_format("%splaylist_0.json", jsonPath)};
+    if (!spDownload->Save(filename))
+    {
+        g_Log->Error("Unable to save %s\n", filename.data());
+        return false;
+    }
+    
+    return true;
+}
+
+
 std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
     // Collect all UUIDS from the json
     std::vector<std::string> uuids;
@@ -445,34 +506,6 @@ std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
         JSONUtil::LogException(e, contents);
     }
     
-    return uuids;
-}
-
-// For recursive playlists, we eval items here to see if they are dreams
-// or playlists and if so, recurse accordingly
-std::vector<std::string> ParserHelper::ParseSubPlaylist(json::object item) {
-    // Collect all UUIDS from the json
-    std::vector<std::string> uuids;
-
-    // Boost::JSON Exception is catched upward, not here in the recursion
-    auto type = item["type"];
-    
-    if (item["type"] == "dream") {
-        auto dreamItem = item["dreamItem"].as_object();
-        uuids.push_back(dreamItem["uuid"].as_string().c_str());
-    } else if (item["type"] == "playlist") {
-        
-        auto playlistItem = item["playlistItem"].as_object();
-        
-        for (auto& sub_item : playlistItem["items"].as_array()) {
-                std::vector<std::string> sub_uuids = ParserHelper::ParseSubPlaylist(sub_item.as_object());
-                uuids.insert(uuids.end(), sub_uuids.begin(), sub_uuids.end());
-        }
-    } else {
-        // @TODO something unknown here, report
-        printf("ERROR : something unknown in playlist");
-    }
-
     return uuids;
 }
 
