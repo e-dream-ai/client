@@ -428,14 +428,16 @@ std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
     
     try
     {
-        json::error_code ec;
+        boost::system::error_code ec;
         auto response = json::parse(contents, ec).as_object();
         auto data = response["data"].as_object();
         auto playlist = data["playlist"].as_object();
     
-        for (auto& item : playlist["items"].as_array()) {
-            std::vector<std::string> sub_uuids = ParserHelper::ParseSubPlaylist(item.as_object());
-            uuids.insert(uuids.end(), sub_uuids.begin(), sub_uuids.end());
+        for (auto& item : playlist["contents"].as_array()) {
+            auto itemObj = item.as_object();
+            
+            auto uuid = itemObj["uuid"];
+            uuids.push_back(uuid.as_string().c_str());
         }
     }
     catch (const boost::system::system_error& e)

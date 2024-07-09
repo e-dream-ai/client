@@ -225,6 +225,10 @@
 		46ED5CB42AF5326A00AF8F45 /* DisplayMetal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 46ED5CB02AF5326A00AF8F45 /* DisplayMetal.cpp */; };
 		46FA9E1A2B03CB0500708000 /* ShaderMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 46FA9E192B03CB0500708000 /* ShaderMetal.mm */; };
 		46FA9E1B2B03CB0B00708000 /* ShaderMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 46FA9E192B03CB0500708000 /* ShaderMetal.mm */; };
+		F01CCF172C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */; };
+		F01CCF182C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */; };
+		F01CCF192C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */; };
+		F01CCF1A2C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */; };
 		F05994582BA0912300B018C7 /* osd-pill-r.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994532BA0912200B018C7 /* osd-pill-r.png */; };
 		F05994592BA0912300B018C7 /* osd-pill-r.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994532BA0912200B018C7 /* osd-pill-r.png */; };
 		F059945A2BA0912300B018C7 /* osd-pill-u.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994542BA0912200B018C7 /* osd-pill-u.png */; };
@@ -863,6 +867,8 @@
 		46ED5CB02AF5326A00AF8F45 /* DisplayMetal.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = DisplayMetal.cpp; path = ../../DisplayOutput/Metal/DisplayMetal.cpp; sourceTree = "<group>"; };
 		46FA9E182B03CB0500708000 /* ShaderMetal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShaderMetal.h; sourceTree = "<group>"; };
 		46FA9E192B03CB0500708000 /* ShaderMetal.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ShaderMetal.mm; sourceTree = "<group>"; };
+		F01CCF152C3D5E9D004E6DE9 /* CacheManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CacheManager.h; sourceTree = "<group>"; };
+		F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CacheManager.cpp; sourceTree = "<group>"; };
 		F05994532BA0912200B018C7 /* osd-pill-r.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-pill-r.png"; sourceTree = "<group>"; };
 		F05994542BA0912200B018C7 /* osd-pill-u.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-pill-u.png"; sourceTree = "<group>"; };
 		F05994552BA0912200B018C7 /* osd-pill.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-pill.png"; sourceTree = "<group>"; };
@@ -1170,6 +1176,8 @@
 				2123131E0F503C4500702B2C /* SheepDownloader.h */,
 				212313230F503C4500702B2C /* Shepherd.cpp */,
 				212313240F503C4500702B2C /* Shepherd.h */,
+				F01CCF152C3D5E9D004E6DE9 /* CacheManager.h */,
+				F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */,
 			);
 			name = ContentDownloader;
 			path = ../ContentDownloader;
@@ -1840,6 +1848,7 @@
 				1270D0F02B28975500E1DCE3 /* PlatformUtils_Mac.mm in Sources */,
 				2160FAD70F30F45100B2C27A /* Shader.cpp in Sources */,
 				2160FAD80F30F45100B2C27A /* Texture.cpp in Sources */,
+				F01CCF192C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */,
 				46D2E8F22AFBA64B0054049D /* MBEFontAtlas.m in Sources */,
 				46D2E9062AFBF8F70054049D /* MBEMathUtilities.m in Sources */,
 				2160FAD90F30F45100B2C27A /* TextureFlat.cpp in Sources */,
@@ -1885,6 +1894,7 @@
 				218878EF0EC6CDE2001ABD2E /* DisplayOutput.cpp in Sources */,
 				218878F00EC6CDE2001ABD2E /* Image.cpp in Sources */,
 				218878F10EC6CDE2001ABD2E /* LoadDDS.cpp in Sources */,
+				F01CCF182C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */,
 				218878F20EC6CDE2001ABD2E /* LoadPNG.cpp in Sources */,
 				46D2E9012AFBC3720054049D /* Text.cpp in Sources */,
 				218878F70EC6CDE2001ABD2E /* Font.cpp in Sources */,
@@ -1942,6 +1952,7 @@
 				F0C1002C2C1372EF007FA505 /* DisplayOutput.cpp in Sources */,
 				F0C1002D2C1372EF007FA505 /* Image.cpp in Sources */,
 				F0C1002E2C1372EF007FA505 /* LoadDDS.cpp in Sources */,
+				F01CCF1A2C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */,
 				F0C1002F2C1372EF007FA505 /* LoadPNG.cpp in Sources */,
 				F0C100302C1372EF007FA505 /* Text.cpp in Sources */,
 				F0C100312C1372EF007FA505 /* Font.cpp in Sources */,
@@ -2013,6 +2024,7 @@
 				F0E9CE632C136B0500C4D694 /* PlatformUtils_Mac.mm in Sources */,
 				F0E9CE642C136B0500C4D694 /* Shader.cpp in Sources */,
 				F0E9CE652C136B0500C4D694 /* Texture.cpp in Sources */,
+				F01CCF172C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */,
 				F0E9CE662C136B0500C4D694 /* MBEFontAtlas.m in Sources */,
 				F0E9CE672C136B0500C4D694 /* MBEMathUtilities.m in Sources */,
 				F0E9CE682C136B0500C4D694 /* TextureFlat.cpp in Sources */,
