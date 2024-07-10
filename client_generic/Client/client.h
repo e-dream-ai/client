@@ -32,6 +32,7 @@
 #include "Voting.h"
 #include "PlatformUtils.h"
 #include "StringFormat.h"
+#include "CacheManager.h"
 
 #if defined(WIN32) && defined(_MSC_VER)
 #include "../msvc/cpu_usage_win32.h"
@@ -503,6 +504,12 @@ class CElectricSheep
         g_ContentDownloader().Startup(false, m_MultipleInstancesMode ||
                                                  !internetReachable);
 
+        
+        // Also load our local cache
+        // Grab the CacheManager
+        CacheManager& cm = CacheManager::getInstance();
+        cm.loadCachedMetadata();
+        
         // call static method to fill sheep counts
         ContentDownloader::Shepherd::GetFlockSizeMBsRecount(0);
         ContentDownloader::Shepherd::GetFlockSizeMBsRecount(1);

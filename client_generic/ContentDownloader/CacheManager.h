@@ -40,13 +40,15 @@ public:
     static CacheManager& getInstance();
 
     // Json loading
+    void loadCachedMetadata();
+    
     void loadJsonFile(const std::string& filename);
     const std::unordered_map<std::string, Dream>& getDreams() const;
     
     // 
-    bool isCached(std::string uuid);
-    bool needsMetadata(std::string uuid, int timeStamp);
-    bool fetchMetadata(std::string uuid);
+    bool areMetadataCached(std::string uuid);
+    bool needsMetadata(std::string uuid, long long timeStamp);
+    void reloadMetadata(std::string uuid);
 
 private:
     // Private constructor

@@ -593,6 +593,7 @@ std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
     // This will require a Fetch that can split the results in multiple files though TODO
     for (const auto& needsMetadata : needsMetadataUuids) {
         FetchDreamMetadata(needsMetadata);
+        cm.reloadMetadata(needsMetadata);
     }
     
     return uuids;

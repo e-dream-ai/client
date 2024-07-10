@@ -11,8 +11,13 @@
 #include <iostream>
 #include <mutex>
 #include <boost/json.hpp>
+#include <boost/filesystem.hpp>
 
+#include "StringFormat.h"
+#include "Shepherd.h"
 #include "Log.h"
+
+using boost::filesystem::exists;
 
 std::unique_ptr<CacheManager> CacheManager::instance;
 
@@ -66,22 +71,45 @@ const std::unordered_map<std::string, Dream>& CacheManager::getDreams() const {
     return dreams;
 }
 
+void CacheManager::loadCachedMetadata() {
+    std::string dest = ContentDownloader::Shepherd::jsonDreamPath();
+    boost::filesystem::path dir(dest);
+        
+    if (!boost::filesystem::exists(dir) || !boost::filesystem::is_directory(dir)) {
+        g_Log->Error("loadCachedMetadata, cannot find directory");
+        return;
+    }
 
+    for (const auto& entry : boost::filesystem::directory_iterator(dir)) {
+        const auto& path = entry.path();
+        if (boost::filesystem::is_regular_file(path) && path.extension() == ".json") {
+            g_Log->Debug("Processing JSON file: %s", path.filename().c_str());
 
-
-bool CacheManager::isCached(std::string uuid) {
-
-
-    return false;
+            loadJsonFile(path.c_str());
+        }
+    }
+    
+    g_Log->Info("Local metadata cache initialized with %i dreams", dreams.size());
 }
 
-bool CacheManager::needsMetadata(std::string uuid, int timeStamp) {
+
+bool CacheManager::areMetadataCached(std::string uuid) {
+    std::string filename{string_format("%s%s.json", ContentDownloader::Shepherd::jsonDreamPath(), uuid.c_str())};
+
+    return exists(filename);
+}
+
+bool CacheManager::needsMetadata(std::string uuid, long long timeStamp) {
     
     
     return true;
 }
 
-bool CacheManager::fetchMetadata(std::string uuid) {
+void CacheManager::reloadMetadata(std::string uuid) {
 
-    return true;
+    std::string filename{string_format("%s%s.json", ContentDownloader::Shepherd::jsonDreamPath(), uuid.c_str())};
+    
+    loadJsonFile(filename);
+    
+    return;
 }
