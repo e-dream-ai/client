@@ -252,6 +252,7 @@ public:
         return true;
     }
 
+    // TODO : use CacheManager instead to get metadata
     virtual bool GetDreamMetadata(std::string_view _filePath,
                                   ContentDownloader::sDreamMetadata* _outDream)
     {
