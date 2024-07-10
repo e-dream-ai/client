@@ -53,7 +53,7 @@ void ESShowPreferences()
     }
 }
 
-uint64_t EDreamClient::remainingQuota = 0;
+long long EDreamClient::remainingQuota = 0;
 std::atomic<char*> EDreamClient::fAccessToken(nullptr);
 std::atomic<char*> EDreamClient::fRefreshToken(nullptr);
 std::atomic<bool> EDreamClient::fIsLoggedIn(false);
