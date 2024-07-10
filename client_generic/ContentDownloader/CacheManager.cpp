@@ -40,7 +40,7 @@ void CacheManager::loadJsonFile(const std::string& filename) {
 
     std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
     
-    boost::json::error_code ec;
+    boost::system::error_code ec;
     boost::json::value jv = boost::json::parse(content, ec);
     if (ec) {
         g_Log->Error("Failed to parse JSON: %s", ec.message().c_str());

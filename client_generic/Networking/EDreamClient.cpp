@@ -245,7 +245,7 @@ bool EDreamClient::RefreshAccessToken()
     spDownload->SetPostFields(body.data());
     if (spDownload->Perform(Shepherd::GetEndpoint(ENDPOINT_REFRESH)))
     {
-        json::error_code ec;
+        boost::system::error_code ec;
         json::value response = json::parse(spDownload->Data(), ec);
         json::value data = response.at("data");
         const char* accessToken = data.at("AccessToken").as_string().data();
@@ -615,7 +615,7 @@ std::tuple<std::string, std::string> EDreamClient::ParsePlaylistCredits(int id) 
     
     try
     {
-        json::error_code ec;
+        boost::system::error_code ec;
         json::value response = json::parse(contents, ec);
         json::value data = response.at("data");
         json::value playlist = data.at("playlist");

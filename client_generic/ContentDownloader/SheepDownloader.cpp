@@ -331,7 +331,7 @@ int SheepDownloader::ParseDreamsPage(int _page)
     int numDreams = 0;
     try
     {
-        boost::json::error_code ec;
+        boost::system::error_code ec;
         boost::json::value response = boost::json::parse(contents, ec);
         bool success = response.at("success").as_bool();
         if (!success)
