@@ -9,6 +9,26 @@
 #define CACHE_MANAGER_H
 
 #include <memory>
+#include <string>
+#include <unordered_map>
+
+struct Dream {
+    std::string uuid;
+    std::string name;
+    std::string artist;
+    std::string size;
+    std::string status;
+    std::string fps;
+    int frames;
+    std::string thumbnail;
+    int upvotes;
+    int downvotes;
+    bool nsfw;
+    std::string frontendUrl;
+    long long video_timestamp;
+    long long timestamp;
+};
+
 
 class CacheManager {
 public:
@@ -19,9 +39,14 @@ public:
     // Get the singleton instance
     static CacheManager& getInstance();
 
+    // Json loading
+    void loadJsonFile(const std::string& filename);
+    const std::unordered_map<std::string, Dream>& getDreams() const;
     
+    // 
     bool isCached(std::string uuid);
-    
+    bool needsMetadata(std::string uuid, int timeStamp);
+    bool fetchMetadata(std::string uuid);
 
 private:
     // Private constructor
@@ -29,6 +54,7 @@ private:
 
     // The singleton instance
     static std::unique_ptr<CacheManager> instance;
+    std::unordered_map<std::string, Dream> dreams;
 };
 
 #endif // CACHE_MANAGER_H

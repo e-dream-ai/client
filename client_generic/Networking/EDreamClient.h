@@ -25,6 +25,7 @@ class EDreamClient
     static int GetCurrentServerPlaylist();
     static bool FetchPlaylist(int id);
     static bool FetchDefaultPlaylist();
+    static bool FetchDreamMetadata(std::string uuid);
     static std::vector<std::string> ParsePlaylist(int id);
     static std::tuple<std::string, std::string> ParsePlaylistCredits(int id);
 

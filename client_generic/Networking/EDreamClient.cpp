@@ -5,7 +5,7 @@
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/json.hpp>
-#include <boost/json/src.hpp>
+//#include <boost/json/src.hpp>
 #include <cstdio>
 #include <fstream>
 #include <iostream>
@@ -21,6 +21,7 @@
 #include "clientversion.h"
 #include "EDreamClient.h"
 #include "JSONUtil.h"
+#include "CacheManager.h"
 
 #include "client.h"
 
@@ -469,10 +470,70 @@ bool EDreamClient::FetchDefaultPlaylist() {
     return true;
 }
 
+bool EDreamClient::FetchDreamMetadata(std::string uuid) {
+    Network::spCFileDownloader spDownload;
+    const char* jsonPath = Shepherd::jsonDreamPath();
+
+    int maxAttempts = 3;
+    int currentAttempt = 0;
+    while (currentAttempt++ < maxAttempts)
+    {
+        spDownload = std::make_shared<Network::CFileDownloader>("FetchMetadata");
+        spDownload->AppendHeader("Content-Type: application/json");
+        std::string authHeader{
+            string_format("Authorization: Bearer %s", GetAccessToken())};
+        spDownload->AppendHeader(authHeader);
+        
+        
+        std::string url{string_format(
+            "%s?uuids=%s", Shepherd::GetEndpoint(ENDPOINT_GETDREAM), uuid.c_str())};
+        
+        printf("url : %s\n", url.c_str());
+        
+        if (spDownload->Perform(url))
+        {
+            break;
+        }
+        else
+        {
+            if (spDownload->ResponseCode() == 400 ||
+                spDownload->ResponseCode() == 401)
+            {
+                if (currentAttempt == maxAttempts)
+                    return false;
+                if (!RefreshAccessToken())
+                    return false;
+            }
+            else
+            {
+                g_Log->Error("Failed to get playlist. Server returned %i: %s",
+                             spDownload->ResponseCode(),
+                             spDownload->Data().c_str());
+            }
+        }
+    }
+
+    std::string filename{string_format("%s%s.json", jsonPath, uuid.c_str())};
+    if (!spDownload->Save(filename))
+    {
+        g_Log->Error("Unable to save %s\n", filename.data());
+        return false;
+    }
+    
+    return true;
+}
+
+
+
 
 std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
-    // Collect all UUIDS from the json
+    // Grab the CacheManager
+    CacheManager& cm = CacheManager::getInstance();
+
+    // Collect all UUIDs from the json, and UUIDs where metadata is missing
     std::vector<std::string> uuids;
+    std::vector<std::string> needsMetadataUuids;
+
 
     // Open playlist and grab content
     std::string filePath{
@@ -497,13 +558,41 @@ std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
         for (auto& item : playlist["contents"].as_array()) {
             auto itemObj = item.as_object();
             
-            auto uuid = itemObj["uuid"];
-            uuids.push_back(uuid.as_string().c_str());
+            auto uuid = std::string(itemObj["uuid"].as_string());
+            auto timestamp = itemObj["timestamp"].as_int64();
+            
+            
+            if (cm.needsMetadata(uuid, timestamp)) {
+                needsMetadataUuids.push_back(uuid.c_str());
+            }
+            uuids.push_back(uuid.c_str());
         }
     }
     catch (const boost::system::system_error& e)
     {
         JSONUtil::LogException(e, contents);
+    }
+
+    /*
+    // Now we fetch metadata that needs fetching, if any
+    // We transform our vector into a comma separated string to be fetched
+    if (!needsMetadataUuids.empty()) {
+        std::ostringstream oss;
+        
+        // Copy all elements except the last one, followed by the delimiter
+        std::copy(needsMetadataUuids.begin(), needsMetadataUuids.end() - 1,
+                  std::ostream_iterator<std::string>(oss, ","));
+        
+        // Add the last element without the delimiter
+        oss << needsMetadataUuids.back();
+
+        g_Log->Info("Needs metadata for : %s",oss.str().c_str());
+    }
+    */
+    // TMP we fetch each individually, we'll move to multiple with the code above.
+    // This will require a Fetch that can split the results in multiple files though TODO
+    for (const auto& needsMetadata : needsMetadataUuids) {
+        FetchDreamMetadata(needsMetadata);
     }
     
     return uuids;
