@@ -27,6 +27,10 @@ CacheManager& CacheManager::getInstance() {
     return *instance;
 }
 
+bool CacheManager::hasDream(const std::string& uuid) const {
+    return dreams.find(uuid) != dreams.end();
+}
+
 void CacheManager::loadJsonFile(const std::string& filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
@@ -100,9 +104,13 @@ bool CacheManager::areMetadataCached(std::string uuid) {
 }
 
 bool CacheManager::needsMetadata(std::string uuid, long long timeStamp) {
-    
-    
-    return true;
+    // Is it cached ?
+    if (!hasDream(uuid)) {
+        return true;
+    } else {
+        // Is the playlist timestamp newer ?
+        return dreams[uuid].timestamp < timeStamp;
+    }
 }
 
 void CacheManager::reloadMetadata(std::string uuid) {

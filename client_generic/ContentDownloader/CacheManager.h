@@ -39,6 +39,8 @@ public:
     // Get the singleton instance
     static CacheManager& getInstance();
 
+    bool hasDream(const std::string& uuid) const;
+    
     // Json loading
     void loadCachedMetadata();
     
