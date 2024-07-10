@@ -332,12 +332,12 @@ int EDreamClient::Hello() {
             json::value currentPlaylistId = data.at("currentPlaylistId");
             auto idint = currentPlaylistId.as_int64();
 
-            g_Log->Info("Handshake with client successful, playlist id : %lld, remaining quota : %lld", idint, remainingQuota);
+            g_Log->Info("Handshake with server successful, playlist id : %lld, remaining quota : %lld", idint, remainingQuota);
 
             return idint;
 
         } else {
-            g_Log->Info("Handshake with client successful, no playlist, remaining quota : %lld", remainingQuota);
+            g_Log->Info("Handshake with server successful, no playlist, remaining quota : %lld", remainingQuota);
 
             return 0;
         }
