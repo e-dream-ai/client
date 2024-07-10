@@ -620,18 +620,17 @@ std::tuple<std::string, std::string> EDreamClient::ParsePlaylistCredits(int id) 
         json::value data = response.at("data");
         json::value playlist = data.at("playlist");
         
-        json::value name = playlist.at("name");
-        json::value user = playlist.at("user");
-        json::value userName = user.at("name");
+        auto name = playlist.at("name").as_string().c_str();
+        auto artist = playlist.at("artist").as_string().c_str();
 
-        return {name.as_string().c_str(), userName.as_string().c_str()};
+        return {name, artist};
     }
     catch (const boost::system::system_error& e)
     {
         JSONUtil::LogException(e, contents);
     }
     
-    return {"",""};
+    return {"Popular dreams", "Various artists"};
 }
 
 
