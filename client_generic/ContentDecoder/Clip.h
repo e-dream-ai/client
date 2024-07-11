@@ -16,6 +16,7 @@
 #include "FrameDisplay.h"
 #include "ContentDecoder.h"
 #include "Dream.h"
+#include "CacheManager.h"
 
 namespace ContentDecoder
 {
@@ -24,7 +25,8 @@ struct sClipMetadata
 {
     std::string path;
     double decodeFps;
-    ContentDownloader::sDreamMetadata dreamData;
+    Cache::Dream dreamData;
+    //ContentDownloader::sDreamMetadata dreamData;
 };
 
 class CClip

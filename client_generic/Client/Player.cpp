@@ -656,7 +656,8 @@ bool CPlayer::PlayClip(std::string_view _clipPath, double _startTime,
 {
     auto du = m_displayUnits[0];
     int32_t displayMode = g_Settings()->Get("settings.player.DisplayMode", 2);
-    ContentDownloader::sDreamMetadata dream{};
+    //ContentDownloader::sDreamMetadata dream{};
+    Cache::Dream dream{};
     m_spPlaylist->GetDreamMetadata(_clipPath, &dream);
 
     //    if (!dream)

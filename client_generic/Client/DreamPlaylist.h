@@ -21,6 +21,7 @@
 #include "Timer.h"
 #include "StringFormat.h"
 #include "EDreamClient.h"
+#include "CacheManager.h"
 
 // TODOWINDOWS POSIX ONLY
 #include <unistd.h>
@@ -268,6 +269,25 @@ public:
         }
         return false;
     }
+    
+    virtual bool GetDreamMetadata(std::string_view _filePath, Cache::Dream* _outDream)
+    {
+        Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+
+        // Create a path object to extract the UUID from the path
+        std::string pathStr(_filePath);
+        boost::filesystem::path path(pathStr);
+        
+        auto dream = cm.getDream(path.stem().string());
+        
+        if (dream) {
+            *_outDream = *dream;
+            return true;
+        }
+        
+        return false;
+    }
+    
 
     void SetPlaylist(int id) {
         std::scoped_lock locker(m_Lock);

@@ -507,7 +507,7 @@ class CElectricSheep
         
         // Also load our local cache
         // Grab the CacheManager
-        CacheManager& cm = CacheManager::getInstance();
+        Cache::CacheManager& cm = Cache::CacheManager::getInstance();
         cm.loadCachedMetadata();
         
         // call static method to fill sheep counts
@@ -1001,7 +1001,7 @@ class CElectricSheep
                         ((Hud::CStringStat*)spStats->Get("credits-line1"))
                         ->SetSample(string_format("title: %s",clipMetadata->dreamData.name.c_str()));
                         ((Hud::CStringStat*)spStats->Get("credits-line2"))
-                        ->SetSample(string_format("artist: %s",clipMetadata->dreamData.author.c_str()));
+                        ->SetSample(string_format("artist: %s",clipMetadata->dreamData.artist.c_str()));
                         ((Hud::CStringStat*)spStats->Get("credits-line3"))
                         ->SetSample(string_format("playlist: %s",g_Player().m_spPlaylist->playlistName.c_str()));
                     } else {
@@ -1010,7 +1010,7 @@ class CElectricSheep
                         ((Hud::CStringStat*)spStats->Get("credits-line2"))
                         ->SetSample(string_format("title: %s",clipMetadata->dreamData.name.c_str()));
                         ((Hud::CStringStat*)spStats->Get("credits-line3"))
-                        ->SetSample(string_format("artist: %s",clipMetadata->dreamData.author.c_str()));
+                        ->SetSample(string_format("artist: %s",clipMetadata->dreamData.artist.c_str()));
                     }
                 }
                 

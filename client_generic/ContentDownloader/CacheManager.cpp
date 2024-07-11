@@ -17,6 +17,8 @@
 #include "Shepherd.h"
 #include "Log.h"
 
+namespace Cache {
+
 using boost::filesystem::exists;
 
 std::unique_ptr<CacheManager> CacheManager::instance;
@@ -29,6 +31,14 @@ CacheManager& CacheManager::getInstance() {
 
 bool CacheManager::hasDream(const std::string& uuid) const {
     return dreams.find(uuid) != dreams.end();
+}
+
+const Dream* CacheManager::getDream(const std::string& uuid) const {
+    auto it = dreams.find(uuid);
+    if (it != dreams.end()) {
+        return &(it->second);
+    }
+    return nullptr;
 }
 
 void CacheManager::loadJsonFile(const std::string& filename) {
@@ -121,3 +131,5 @@ void CacheManager::reloadMetadata(std::string uuid) {
     
     return;
 }
+
+} // Namespace

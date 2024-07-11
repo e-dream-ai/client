@@ -528,7 +528,7 @@ bool EDreamClient::FetchDreamMetadata(std::string uuid) {
 
 std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
     // Grab the CacheManager
-    CacheManager& cm = CacheManager::getInstance();
+    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
 
     // Collect all UUIDs from the json, and UUIDs where metadata is missing
     std::vector<std::string> uuids;
