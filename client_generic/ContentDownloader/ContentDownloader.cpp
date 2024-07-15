@@ -110,6 +110,16 @@ bool CContentDownloader::Startup(const bool _bPreview, bool _bReadOnlyInstance)
             ->Get("settings.generator.nickname", std::string(""))
             .c_str());
 
+    
+    // Initialize new downloader
+    if (_bReadOnlyInstance == false)
+    {
+        m_gDownloader.FindDreamsToDownload();
+    } 
+    else 
+    {
+        g_Log->Warning("Downloading disabled.");
+    }
     /*
     m_gDownloader = new SheepDownloader();
 
@@ -149,7 +159,7 @@ bool CContentDownloader::Shutdown(void)
 
     g_NetworkManager->Abort();
 
-    if (m_gDownloadThread && m_gDownloader)
+/*    if (m_gDownloadThread && m_gDownloader)
     {
         m_gDownloader->Abort();
         m_gDownloadThread->interrupt();
@@ -157,9 +167,9 @@ bool CContentDownloader::Shutdown(void)
         m_gDownloadThread->timed_join(boost::posix_time::seconds(3));
 
         SAFE_DELETE(m_gDownloadThread);
-    }
+    }*/
 
-    SAFE_DELETE(m_gDownloader);
+    //SAFE_DELETE(m_gDownloader);
 
     //	Notify the shepherd that the app is about to close so that he can
     // properly clean up his threads

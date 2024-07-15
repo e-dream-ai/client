@@ -5,6 +5,7 @@
 #include "SmartPtr.h"
 #include "base.h"
 #include "boost/thread/thread.hpp"
+#include "DreamDownloader.h"
 
 #ifndef MAX_PATH
 #define MAX_PATH 4096
@@ -28,8 +29,9 @@ class CContentDownloader : public Base::CSingleton<CContentDownloader>
     NO_CLASS_STANDARDS(CContentDownloader);
 
     //	Downloader.
-    class SheepDownloader* m_gDownloader;
-    boost::thread* m_gDownloadThread;
+    DreamDownloader m_gDownloader;
+    //class SheepDownloader* m_gDownloader;
+    //boost::thread* m_gDownloadThread;
 
   public:
     bool Startup(const bool _bPreview, bool _bReadOnlyInstance = false);

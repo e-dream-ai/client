@@ -229,6 +229,10 @@
 		F01CCF182C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */; };
 		F01CCF192C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */; };
 		F01CCF1A2C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */; };
+		F02A5C3D2C453FEF00B57FBD /* DreamDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F02A5C3C2C453FEF00B57FBD /* DreamDownloader.cpp */; };
+		F02A5C3E2C453FEF00B57FBD /* DreamDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F02A5C3C2C453FEF00B57FBD /* DreamDownloader.cpp */; };
+		F02A5C3F2C453FEF00B57FBD /* DreamDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F02A5C3C2C453FEF00B57FBD /* DreamDownloader.cpp */; };
+		F02A5C402C453FEF00B57FBD /* DreamDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F02A5C3C2C453FEF00B57FBD /* DreamDownloader.cpp */; };
 		F05994582BA0912300B018C7 /* osd-pill-r.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994532BA0912200B018C7 /* osd-pill-r.png */; };
 		F05994592BA0912300B018C7 /* osd-pill-r.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994532BA0912200B018C7 /* osd-pill-r.png */; };
 		F059945A2BA0912300B018C7 /* osd-pill-u.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994542BA0912200B018C7 /* osd-pill-u.png */; };
@@ -869,6 +873,8 @@
 		46FA9E192B03CB0500708000 /* ShaderMetal.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ShaderMetal.mm; sourceTree = "<group>"; };
 		F01CCF152C3D5E9D004E6DE9 /* CacheManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CacheManager.h; sourceTree = "<group>"; };
 		F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CacheManager.cpp; sourceTree = "<group>"; };
+		F02A5C3B2C453FEF00B57FBD /* DreamDownloader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DreamDownloader.h; sourceTree = "<group>"; };
+		F02A5C3C2C453FEF00B57FBD /* DreamDownloader.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DreamDownloader.cpp; sourceTree = "<group>"; };
 		F05994532BA0912200B018C7 /* osd-pill-r.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-pill-r.png"; sourceTree = "<group>"; };
 		F05994542BA0912200B018C7 /* osd-pill-u.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-pill-u.png"; sourceTree = "<group>"; };
 		F05994552BA0912200B018C7 /* osd-pill.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-pill.png"; sourceTree = "<group>"; };
@@ -1174,10 +1180,12 @@
 				2123131C0F503C4500702B2C /* Dream.h */,
 				2123131D0F503C4500702B2C /* SheepDownloader.cpp */,
 				2123131E0F503C4500702B2C /* SheepDownloader.h */,
+				F02A5C3C2C453FEF00B57FBD /* DreamDownloader.cpp */,
+				F02A5C3B2C453FEF00B57FBD /* DreamDownloader.h */,
 				212313230F503C4500702B2C /* Shepherd.cpp */,
 				212313240F503C4500702B2C /* Shepherd.h */,
-				F01CCF152C3D5E9D004E6DE9 /* CacheManager.h */,
 				F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */,
+				F01CCF152C3D5E9D004E6DE9 /* CacheManager.h */,
 			);
 			name = ContentDownloader;
 			path = ../ContentDownloader;
@@ -1822,6 +1830,7 @@
 			files = (
 				2197D56719B07FCF00EFA1F2 /* proximus.c in Sources */,
 				461C9D7D2B28BA50000C44E9 /* JSONStorage.cpp in Sources */,
+				F02A5C3D2C453FEF00B57FBD /* DreamDownloader.cpp in Sources */,
 				2160FAB30F30F45100B2C27A /* Common.cpp in Sources */,
 				2160FAB40F30F45100B2C27A /* Exception.cpp in Sources */,
 				2160FAB50F30F45100B2C27A /* Log.cpp in Sources */,
@@ -1920,6 +1929,7 @@
 				211CDDDD0ED0BD9200EB9394 /* Upload.cpp in Sources */,
 				46ED5CB32AF5326A00AF8F45 /* DisplayMetal.cpp in Sources */,
 				212313270F503C4500702B2C /* ContentDownloader.cpp in Sources */,
+				F02A5C3F2C453FEF00B57FBD /* DreamDownloader.cpp in Sources */,
 				46FA9E1A2B03CB0500708000 /* ShaderMetal.mm in Sources */,
 				212313280F503C4500702B2C /* Dream.cpp in Sources */,
 				212313290F503C4500702B2C /* SheepDownloader.cpp in Sources */,
@@ -1978,6 +1988,7 @@
 				F0C100452C1372EF007FA505 /* Upload.cpp in Sources */,
 				F0C100462C1372EF007FA505 /* DisplayMetal.cpp in Sources */,
 				F0C100472C1372EF007FA505 /* ContentDownloader.cpp in Sources */,
+				F02A5C3E2C453FEF00B57FBD /* DreamDownloader.cpp in Sources */,
 				F0C100482C1372EF007FA505 /* ShaderMetal.mm in Sources */,
 				F0C100492C1372EF007FA505 /* Dream.cpp in Sources */,
 				F0C1004A2C1372EF007FA505 /* SheepDownloader.cpp in Sources */,
@@ -1998,6 +2009,7 @@
 			files = (
 				F0E9CE4A2C136B0500C4D694 /* proximus.c in Sources */,
 				F0E9CE4B2C136B0500C4D694 /* JSONStorage.cpp in Sources */,
+				F02A5C402C453FEF00B57FBD /* DreamDownloader.cpp in Sources */,
 				F0E9CE4C2C136B0500C4D694 /* Common.cpp in Sources */,
 				F0E9CE4D2C136B0500C4D694 /* Exception.cpp in Sources */,
 				F0E9CE4E2C136B0500C4D694 /* Log.cpp in Sources */,
