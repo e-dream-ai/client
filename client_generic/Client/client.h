@@ -1187,13 +1187,12 @@ class CElectricSheep
 /*                if (m_pVoter != nullptr &&
                     m_pVoter->Vote(data->dreamData.uuid, true, voteDelaySeconds))*/
 
+                popOSD(Hud::Like);
                 EDreamClient::Like(data->dreamData.uuid);
-                m_HudManager->Add("splash_pos", m_spSplashPos,
-                                      voteDelaySeconds * 0.9f);
                 return true;
             case CLIENT_COMMAND_DISLIKE:
                 EDreamClient::Dislike(data->dreamData.uuid);
-
+                popOSD(Hud::Dislike);
                 if (g_Settings()->Get("settings.content.negvotedeletes", true))
                 {
                     // g_Player().Stop();
@@ -1202,8 +1201,6 @@ class CElectricSheep
                     m_HudManager->Add("fade", m_spCrossFade, 1.5);
                 }
 
-                m_HudManager->Add("splash_pos", m_spSplashNeg,
-                                  voteDelaySeconds * 0.9f);
                 return true;
                 //    Repeat current sheep
             case CLIENT_COMMAND_PREVIOUS:
