@@ -112,10 +112,6 @@ class CElectricSheep
     //	Default application working directory.
     std::string m_WorkingDir;
 
-    //	Splash images.
-    Hud::spCSplash m_spSplashPos;
-    Hud::spCSplash m_spSplashNeg;
-
     // Our OSD
     Hud::spCOSD m_spOSD;
 
@@ -323,7 +319,9 @@ class CElectricSheep
             std::dynamic_pointer_cast<Hud::CStatsConsole>(
                 m_HudManager->Get("dreamcredits"));
         m_HudManager->Hide("dreamcredits");
-        spStats->Add(new Hud::CStringStat("credits", "", "Title - Artist"));
+        spStats->Add(new Hud::CStringStat("credits-line1", "", "1"));
+        spStats->Add(new Hud::CStringStat("credits-line2", "", "2"));
+        spStats->Add(new Hud::CStringStat("credits-line3", "", "3"));
     }
     
     void AddOSDHud()
@@ -339,14 +337,6 @@ class CElectricSheep
 #else
         std::string defaultDir = std::string("");
 #endif
-        //    Vote splash.
-        m_spSplashPos = std::make_shared<Hud::CSplash>(
-            0.2f, g_Settings()->Get("settings.app.InstallDir", defaultDir) +
-                      "vote-up.png");
-        m_spSplashNeg = std::make_shared<Hud::CSplash>(
-            0.2f, g_Settings()->Get("settings.app.InstallDir", defaultDir) +
-                      "vote-down.png");
-
         // PNG splash
         m_SplashFilename = g_Settings()->Get(
             "settings.player.attrpngfilename",
@@ -543,8 +533,6 @@ class CElectricSheep
         DestroyUpdateThreads();
 #endif
 
-        m_spSplashPos = nullptr;
-        m_spSplashNeg = nullptr;
         m_spSplashPNG = nullptr;
         m_nSplashes = 0;
         m_SplashFilename = std::string();
@@ -993,12 +981,21 @@ class CElectricSheep
                     m_HudManager->Get("dreamcredits"));
                 if (clipMetadata)
                 {
-                    ((Hud::CStringStat*)spStats->Get("credits"))
-                        ->SetSample(
-                            string_format("%s - %s",
-                                          clipMetadata->dreamData.name.data(),
-                                          clipMetadata->dreamData.author.data())
-                                .data());
+                    if (g_Player().m_spPlaylist->playlistId > 0) {
+                        ((Hud::CStringStat*)spStats->Get("credits-line1"))
+                        ->SetSample(string_format("title: %s",clipMetadata->dreamData.name.c_str()));
+                        ((Hud::CStringStat*)spStats->Get("credits-line2"))
+                        ->SetSample(string_format("artist: %s",clipMetadata->dreamData.author.c_str()));
+                        ((Hud::CStringStat*)spStats->Get("credits-line3"))
+                        ->SetSample(string_format("playlist: %s",g_Player().m_spPlaylist->playlistName.c_str()));
+                    } else {
+                        ((Hud::CStringStat*)spStats->Get("credits-line1"))
+                        ->SetSample("");
+                        ((Hud::CStringStat*)spStats->Get("credits-line2"))
+                        ->SetSample(string_format("title: %s",clipMetadata->dreamData.name.c_str()));
+                        ((Hud::CStringStat*)spStats->Get("credits-line3"))
+                        ->SetSample(string_format("artist: %s",clipMetadata->dreamData.author.c_str()));
+                    }
                 }
                 
                 //	Serverstats.
@@ -1152,7 +1149,8 @@ class CElectricSheep
         CLIENT_COMMAND_SPEED_6,
         CLIENT_COMMAND_SPEED_7,
         CLIENT_COMMAND_SPEED_8,
-        CLIENT_COMMAND_SPEED_9
+        CLIENT_COMMAND_SPEED_9,
+        CLIENT_COMMAND_RESET_PLAYLIST
     };
 
     void popOSD(Hud::OSDType type) {
@@ -1169,6 +1167,12 @@ class CElectricSheep
         static const float voteDelaySeconds = 1;
         const ContentDecoder::sClipMetadata* data =
             g_Player().GetCurrentPlayingClipMetadata();
+        
+        std::string currentDreamUUID;
+        if (data != nullptr) {
+            currentDreamUUID = data->dreamData.uuid;
+        }
+
         if ((int)_command && (int)_command != 5 && (int)_command != 6)
             m_StatsCodeCounter = 0;
         switch (_command)
@@ -1245,7 +1249,11 @@ class CElectricSheep
                 popOSD(Hud::Speed);
                 g_Player().SetPerceptualFPS(SpeedToPerceptualFPS(9));
                 return true;
-
+            case CLIENT_COMMAND_RESET_PLAYLIST:
+                printf("RESET PLAYLIST\n");
+                g_Settings()->Set("settings.content.current_playlist", 0);
+                g_Player().ResetPlaylist();
+                return true;
                 //  Force Next Sheep
             case CLIENT_COMMAND_NEXT:
                 popOSD(Hud::Next);
@@ -1367,6 +1375,10 @@ class CElectricSheep
                     return ExecuteCommand(CLIENT_COMMAND_F1);
                 case DisplayOutput::CKeyEvent::KEY_F2:
                     return ExecuteCommand(CLIENT_COMMAND_F2);
+
+                    // Reset playlist
+                case DisplayOutput::CKeyEvent::KEY_N:
+                    return ExecuteCommand(CLIENT_COMMAND_RESET_PLAYLIST);
                     // prev/next
                 case DisplayOutput::CKeyEvent::KEY_J:
                     return ExecuteCommand(CLIENT_COMMAND_SKIP_BW);

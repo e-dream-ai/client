@@ -221,6 +221,8 @@ class CElectricSheep_Mac : public CElectricSheep
 
         m_graphicsContextList.clear();
 
+        // @TODO, we need to clean that up, this will not work with client + saver
+        //
         // check the exclusive file lock to see if we are running alone...
         std::string lockfile = m_AppData + ".instance-lock";
 
@@ -228,7 +230,7 @@ class CElectricSheep_Mac : public CElectricSheep
             open(lockfile.c_str(), O_WRONLY + O_EXLOCK + O_NONBLOCK + O_CREAT,
                  S_IWUSR + S_IWGRP + S_IWOTH);
 
-        m_MultipleInstancesMode = (m_lckFile < 0);
+        m_MultipleInstancesMode = false; // (m_lckFile < 0);
 
         return CElectricSheep::Startup();
     }

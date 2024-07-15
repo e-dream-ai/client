@@ -258,6 +258,10 @@
 		F059947A2BA0A07300B018C7 /* osd-back.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994692BA0A07300B018C7 /* osd-back.png */; };
 		F059947B2BA0A07300B018C7 /* osd-bg-sq.png in Resources */ = {isa = PBXBuildFile; fileRef = F059946A2BA0A07300B018C7 /* osd-bg-sq.png */; };
 		F059947C2BA0A07300B018C7 /* osd-bg-sq.png in Resources */ = {isa = PBXBuildFile; fileRef = F059946A2BA0A07300B018C7 /* osd-bg-sq.png */; };
+		F0F6D4262BCD504500222647 /* osd-like.png in Resources */ = {isa = PBXBuildFile; fileRef = F0F6D4242BCD504500222647 /* osd-like.png */; };
+		F0F6D4272BCD504500222647 /* osd-like.png in Resources */ = {isa = PBXBuildFile; fileRef = F0F6D4242BCD504500222647 /* osd-like.png */; };
+		F0F6D4282BCD504500222647 /* osd-dislike.png in Resources */ = {isa = PBXBuildFile; fileRef = F0F6D4252BCD504500222647 /* osd-dislike.png */; };
+		F0F6D4292BCD504500222647 /* osd-dislike.png in Resources */ = {isa = PBXBuildFile; fileRef = F0F6D4252BCD504500222647 /* osd-dislike.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -563,6 +567,8 @@
 		F059946A2BA0A07300B018C7 /* osd-bg-sq.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-bg-sq.png"; sourceTree = "<group>"; };
 		F0CCD23D2B98CF530070314F /* OSD.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = OSD.hpp; sourceTree = "<group>"; };
 		F0CCD2532B9A59320070314F /* e-dream AppRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "e-dream AppRelease.entitlements"; sourceTree = "<group>"; };
+		F0F6D4242BCD504500222647 /* osd-like.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-like.png"; sourceTree = "<group>"; };
+		F0F6D4252BCD504500222647 /* osd-dislike.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-dislike.png"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -946,6 +952,8 @@
 				F05994632BA0A07100B018C7 /* osd-forward.png */,
 				F05994622BA0A07100B018C7 /* osd-back10.png */,
 				F05994662BA0A07200B018C7 /* osd-forward10.png */,
+				F0F6D4252BCD504500222647 /* osd-dislike.png */,
+				F0F6D4242BCD504500222647 /* osd-like.png */,
 			);
 			name = Runtime;
 			path = ../Runtime;
@@ -1125,10 +1133,12 @@
 				12A00CD52B0D31E6001C0792 /* Lato.sddf in Resources */,
 				F05994732BA0A07300B018C7 /* osd-forward10.png in Resources */,
 				F05994752BA0A07300B018C7 /* osd-brightness.png in Resources */,
+				F0F6D4262BCD504500222647 /* osd-like.png in Resources */,
 				21AAA0BD0F7040B500AC23A8 /* ElectricSheep.nib in Resources */,
 				12A00CD92B0FCA39001C0792 /* e-dream.icns in Resources */,
 				215545AA12620D3000AB51BF /* dsa_pub.pem in Resources */,
 				F059946B2BA0A07300B018C7 /* osd-back10.png in Resources */,
+				F0F6D4282BCD504500222647 /* osd-dislike.png in Resources */,
 				F05994772BA0A07300B018C7 /* osd-pause.png in Resources */,
 				F059945A2BA0912300B018C7 /* osd-pill-u.png in Resources */,
 				F05994792BA0A07300B018C7 /* osd-back.png in Resources */,
@@ -1161,6 +1171,7 @@
 				123A0C8A2B87B1E600A616E3 /* MainMenu.xib in Resources */,
 				F059947A2BA0A07300B018C7 /* osd-back.png in Resources */,
 				12A00CDA2B0FCA39001C0792 /* e-dream.icns in Resources */,
+				F0F6D4272BCD504500222647 /* osd-like.png in Resources */,
 				215545A912620D3000AB51BF /* dsa_pub.pem in Resources */,
 				F05994762BA0A07300B018C7 /* osd-brightness.png in Resources */,
 				F059946E2BA0A07300B018C7 /* osd-forward.png in Resources */,
@@ -1176,6 +1187,7 @@
 				21ADBB251305D380000A9F20 /* red.tif in Resources */,
 				1243576D2B31FC1B00CCD62A /* BuildData.json in Resources */,
 				F05994702BA0A07300B018C7 /* osd-play.png in Resources */,
+				F0F6D4292BCD504500222647 /* osd-dislike.png in Resources */,
 				21ADBB261305D380000A9F20 /* yellow.tif in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

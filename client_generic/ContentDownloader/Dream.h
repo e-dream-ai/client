@@ -55,6 +55,7 @@ struct sDreamMetadata
     float activityLevel = 1.f;
     int rating;
     void setFileWriteTime(const std::string& timeString);
+    void setFileWriteTimeToNow();
 };
 
 struct SheepArray

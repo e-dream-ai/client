@@ -365,28 +365,33 @@ bool Shepherd::getClientFlock(SheepArray* sheep)
     uint64_t clientFlockGoldBytes = 0;
     uint64_t clientFlockGoldCount = 0;
     const SheepArray& serverFlock = SheepDownloader::getServerFlock();
+    
+    // Ensure we actually have a server flock before trying to do something 
+    if (serverFlock.vecData.size()) {
+        SheepArray::iterator iter;
+        for (iter = sheep->begin(); iter != sheep->end(); ++iter)
+            delete *iter;
 
-    SheepArray::iterator iter;
-    for (iter = sheep->begin(); iter != sheep->end(); ++iter)
-        delete *iter;
+        sheep->clear();
 
-    sheep->clear();
+        //    Get the sheep in fMp4Path.
+        getSheep(mp4Path(), sheep, serverFlock);
+        for (iter = sheep->begin(); iter != sheep->end(); ++iter)
+        {
+            clientFlockBytes += (*iter)->fileSize;
+            ++clientFlockCount;
+        }
 
-    //	Get the sheep in fMp4Path.
-    getSheep(mp4Path(), sheep, serverFlock);
-    for (iter = sheep->begin(); iter != sheep->end(); ++iter)
-    {
-        clientFlockBytes += (*iter)->fileSize;
-        ++clientFlockCount;
+        s_ClientFlockBytes = clientFlockBytes;
+        s_ClientFlockCount = clientFlockCount;
+
+        s_ClientFlockGoldBytes = clientFlockGoldBytes;
+        s_ClientFlockGoldCount = clientFlockGoldCount;
+
+        return true;
     }
-
-    s_ClientFlockBytes = clientFlockBytes;
-    s_ClientFlockCount = clientFlockCount;
-
-    s_ClientFlockGoldBytes = clientFlockGoldBytes;
-    s_ClientFlockGoldCount = clientFlockGoldCount;
-
-    return true;
+    
+    return false;
 }
 
 using namespace boost::filesystem;
@@ -405,7 +410,6 @@ bool Shepherd::getSheep(const char* path, SheepArray* sheep,
     try
     {
         boost::filesystem::path p(path);
-        std::vector<boost::filesystem::path> filesToRemove;
         directory_iterator end_itr; // default construction yields past-the-end
         for (directory_iterator itr(p); itr != end_itr; ++itr)
         {
@@ -434,16 +438,55 @@ bool Shepherd::getSheep(const char* path, SheepArray* sheep,
                         newSheep->fileName = itr->path().string();
                         newSheep->fileSize =
                             boost::filesystem::file_size(itr->path());
+                        
+                        // Set time to write time on disk
+                        newSheep->writeTime = boost::filesystem::last_write_time(itr->path());
+                        
                         sheep->push_back(newSheep);
                         gotSheep = true;
                     }
-                    else
+                }
+            }
+        }
+    }
+    catch (boost::filesystem::filesystem_error& err)
+    {
+        g_Log->Error("Path enumeration threw error: %s", err.what());
+    }
+
+    return gotSheep;
+}
+
+
+void Shepherd::removeNonExistingDreams(const SheepArray& serverFlock) {
+    try
+    {
+        boost::filesystem::path p(mp4Path());
+        std::vector<boost::filesystem::path> filesToRemove;
+        directory_iterator end_itr; // default construction yields past-the-end
+        for (directory_iterator itr(p); itr != end_itr; ++itr)
+        {
+            if (is_directory(itr->status()))
+            {
+                printf("Directory in mp4 dir");
+            }
+            else
+            {
+                auto fileName = itr->path().filename();
+                if (fileName.extension() == ".mp4" ||
+                    fileName.extension() == ".xxx")
+                {
+                    std::string uuid = fileName.stem().string();
+                    sDreamMetadata* serverSheep = nullptr;
+                    if (!serverFlock.tryGetSheepWithUuid(uuid, serverSheep))
                     {
+                        // Remove mp4 or xxx that have no corresponding uuid on server
                         filesToRemove.push_back(itr->path());
                     }
                 }
                 else
                 {
+                    // Remove anything not .mp4 or .xxx
                     filesToRemove.push_back(itr->path());
                 }
             }
@@ -458,7 +501,7 @@ bool Shepherd::getSheep(const char* path, SheepArray* sheep,
         g_Log->Error("Path enumeration threw error: %s", err.what());
     }
 
-    return gotSheep;
+    return;
 }
 
 //	Sets the unique id for this Shepherd.

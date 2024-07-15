@@ -60,14 +60,18 @@ constexpr const std::string_view DEFAULT_DREAM_SERVER =
 #define SERVER_ENDPOINT_DEFINITIONS                                            \
     DEFINE_ENDPOINT(DREAM, "/dream"), DEFINE_ENDPOINT(LOGIN, "/auth/login"),   \
         DEFINE_ENDPOINT(REFRESH, "/auth/refresh"),                             \
-        DEFINE_ENDPOINT(USER, "/auth/user")
+        DEFINE_ENDPOINT(USER, "/auth/user"),                                   \
+        DEFINE_ENDPOINT(PLAYLIST, "/playlist"),                                \
+        DEFINE_ENDPOINT(CURRENTPLAYLIST, "/user/current/playlist")
 
 enum eServerEndpoint
 {
     ENDPOINT_DREAM,
     ENDPOINT_LOGIN,
     ENDPOINT_REFRESH,
-    ENDPOINT_USER
+    ENDPOINT_USER,
+    ENDPOINT_PLAYLIST,
+    ENDPOINT_CURRENTPLAYLIST
 };
 
 namespace ContentDownloader
@@ -137,6 +141,7 @@ class Shepherd
     static bool getSheep(const char* path, SheepArray* sheep,
                          const SheepArray& serverFlock);
 
+    
     static uint64_t s_ClientFlockBytes;
     static uint64_t s_ClientFlockCount;
 
@@ -205,6 +210,10 @@ class Shepherd
     ///        Initialize global data for the shepherd and his heard.
     static void initializeShepherd();
 
+    // This cleans up sheeps that are on disk but not present in master manifest
+    static void removeNonExistingDreams(const SheepArray& serverFlock);
+
+    
     static void setUseProxy(const int& useProxy) { fUseProxy = useProxy; }
     static int useProxy() { return fUseProxy; }
 

@@ -35,7 +35,9 @@ enum OSDType {
     Previous,
     Next,
     Back10,
-    Forward10
+    Forward10,
+    Like,
+    Dislike
 };
 
 class COSD : public CHudEntry {
@@ -115,7 +117,7 @@ public:
             m_spSymbolBrightnessTexture->Upload(tmpSymbolBrightness);
         }
 
-        // Mini hud + symbols (play, pause, back/forward 10s, prev/next
+        // Mini hud + symbols (play, pause, back/forward 10s, prev/next, like/dislike
         DisplayOutput::spCImage tmpBgSq(new DisplayOutput::CImage());
         if (tmpBgSq->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
                            "osd-bg-sq.png", false))
@@ -140,7 +142,6 @@ public:
             m_spPauseTexture->Upload(tmpPause);
         }
 
-        
         DisplayOutput::spCImage tmpBack(new DisplayOutput::CImage());
         if (tmpBack->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
                            "osd-back.png", false))
@@ -148,7 +149,6 @@ public:
             m_spBackTexture = g_Player().Renderer()->NewTextureFlat();
             m_spBackTexture->Upload(tmpBack);
         }
-
         
         DisplayOutput::spCImage tmpForward(new DisplayOutput::CImage());
         if (tmpForward->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
@@ -157,7 +157,6 @@ public:
             m_spForwardTexture = g_Player().Renderer()->NewTextureFlat();
             m_spForwardTexture->Upload(tmpForward);
         }
-
         
         DisplayOutput::spCImage tmpBack10(new DisplayOutput::CImage());
         if (tmpBack10->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
@@ -166,7 +165,6 @@ public:
             m_spBack10Texture = g_Player().Renderer()->NewTextureFlat();
             m_spBack10Texture->Upload(tmpBack10);
         }
-
         
         DisplayOutput::spCImage tmpForward10(new DisplayOutput::CImage());
         if (tmpForward10->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
@@ -176,6 +174,22 @@ public:
             m_spForward10Texture->Upload(tmpForward10);
         }
 
+        DisplayOutput::spCImage tmpLike(new DisplayOutput::CImage());
+        if (tmpLike->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
+                           "osd-like.png", false))
+        {
+            m_spLikeTexture = g_Player().Renderer()->NewTextureFlat();
+            m_spLikeTexture->Upload(tmpLike);
+        }
+        
+        DisplayOutput::spCImage tmpDislike(new DisplayOutput::CImage());
+        if (tmpDislike->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
+                           "osd-dislike.png", false))
+        {
+            m_spDislikeTexture = g_Player().Renderer()->NewTextureFlat();
+            m_spDislikeTexture->Upload(tmpDislike);
+        }
+        
         // Set mini BG size
         // Fix A/R
         float aspect = g_Player().Display()->Aspect();
@@ -408,6 +422,12 @@ public:
                 case Forward10:
                     spRenderer->SetTexture(m_spForward10Texture, 0);
                     break;
+                case Like:
+                    spRenderer->SetTexture(m_spLikeTexture, 0);
+                    break;
+                case Dislike:
+                    spRenderer->SetTexture(m_spDislikeTexture, 0);
+                    break;
                 default:
                     spRenderer->SetTexture(m_spPauseTexture, 0);
                     printf("Shouldn't be here");
@@ -424,7 +444,7 @@ public:
         
         // Draw FPS counter
         /*
-         // TODO, check why text ALWAYS appear bottom left and never disappear
+         // @TODO : check why text ALWAYS appear bottom left and never disappear
          
         m_FontDesc.Height(72 * g_Player().Display()->Height() / 2000);
         m_spFont = g_Player().Renderer()->GetFont(m_FontDesc);
@@ -474,7 +494,7 @@ private:
     Base::Math::CRect m_BgCRect, m_DotCRect, m_SymbolCRect;
     
     // Textures and coordinates for mini hud (210sq)
-    DisplayOutput::spCTextureFlat m_spBgSqTexture, m_spPlayTexture, m_spPauseTexture, m_spBackTexture, m_spForwardTexture, m_spBack10Texture, m_spForward10Texture;
+    DisplayOutput::spCTextureFlat m_spBgSqTexture, m_spPlayTexture, m_spPauseTexture, m_spBackTexture, m_spForwardTexture, m_spBack10Texture, m_spForward10Texture, m_spLikeTexture, m_spDislikeTexture;
 
     Base::Math::CRect m_BgSqCRect, m_LargeSymbolCRect;
 
@@ -489,7 +509,7 @@ private:
     float dotGap;
 };
 
-// TODO : clean those old pointers at some point
+// @TODO : clean those old pointers at some point
 MakeSmartPointers(COSD);
 
 }

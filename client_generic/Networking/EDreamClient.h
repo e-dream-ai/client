@@ -4,6 +4,7 @@
 #include <memory>
 #include <atomic>
 #include <mutex>
+#include <tuple>
 
 class EDreamClient
 {
@@ -19,6 +20,12 @@ class EDreamClient
   public:
     static void InitializeClient();
     static void DeinitializeClient();
+    static int GetCurrentServerPlaylist();
+    static bool FetchPlaylist(int id);
+    static std::vector<std::string> ParsePlaylist(int id);
+    static std::tuple<std::string, std::string> ParsePlaylistCredits(int id);
+
+    static bool EnqueuePlaylist(int id);
     static bool GetDreams(int _page = 0, int _count = -1);
     static const char* GetAccessToken();
     static bool RefreshAccessToken();
@@ -31,6 +38,7 @@ class EDreamClient
 
   public:
     static void ConnectRemoteControlSocket();
+    static void SendPlayingDream(std::string uuid);
 
   public:
     static void Like(std::string uuid);

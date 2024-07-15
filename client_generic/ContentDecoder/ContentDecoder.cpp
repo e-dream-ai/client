@@ -194,6 +194,30 @@ bool CContentDecoder::Open()
             g_Log->Error("FFmpeg error: av_bsf_init() failed");
             return false;
         }
+    } else if (codecPar->codec_id == AV_CODEC_ID_HEVC) {
+        const AVBitStreamFilter* bsf = av_bsf_get_by_name("hevc_mp4toannexb");
+        
+        if (!bsf)
+        {
+            g_Log->Error("FFmpeg error: av_bsf_get_by_name() failed");
+            return false;
+        }
+        if (DumpError(av_bsf_alloc(bsf, &ovi->m_pBsfContext)))
+        {
+            g_Log->Error("FFmpeg error: av_bsf_alloc() failed");
+            return false;
+        }
+        avcodec_parameters_copy(ovi->m_pBsfContext->par_in, codecPar);
+        if (DumpError(av_bsf_init(ovi->m_pBsfContext)))
+        {
+            g_Log->Error("FFmpeg error: av_bsf_init() failed");
+            return false;
+        }
+
+    } else {
+        printf("unknown codec?");
+        g_Log->Error("unknown codec? ");
+        return false;
     }
     if (USE_HW_ACCELERATION)
     {
