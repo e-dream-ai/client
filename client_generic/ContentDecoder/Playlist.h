@@ -7,6 +7,7 @@
 #include "SmartPtr.h"
 #include "base.h"
 #include "Dream.h"
+#include "CacheManager.h"
 
 namespace ContentDecoder
 {
@@ -36,7 +37,7 @@ class CPlaylist
     virtual bool HasFreshlyDownloadedSheep() { return false; }
     virtual bool GetDreamMetadata(
         [[maybe_unused]] std::string_view _filePath,
-        [[maybe_unused]] ContentDownloader::sDreamMetadata* _outDream)
+        [[maybe_unused]] Cache::Dream* _outDream)
     {
         return false;
     }

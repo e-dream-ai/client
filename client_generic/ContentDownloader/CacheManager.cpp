@@ -75,7 +75,10 @@ void CacheManager::loadJsonFile(const std::string& filename) {
             dream.frontendUrl = dream_json.as_object().at("frontendUrl").as_string().c_str();
             dream.video_timestamp = dream_json.as_object().at("video_timestamp").as_int64();
             dream.timestamp = dream_json.as_object().at("timestamp").as_int64();
-
+            
+            if (dream_json.as_object().at("activityLevel").is_number()) {
+                dream.activityLevel = dream_json.as_object().at("activityLevel").to_number<float>();
+            }
             dreams[dream.uuid] = dream;
         }
     }

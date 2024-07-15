@@ -254,7 +254,7 @@ public:
     }
 
     // TODO : use CacheManager instead to get metadata
-    virtual bool GetDreamMetadata(std::string_view _filePath,
+    /*virtual bool GetDreamMetadata(std::string_view _filePath,
                                   ContentDownloader::sDreamMetadata* _outDream)
     {
         auto allDreams = ContentDownloader::SheepDownloader::getClientFlock();
@@ -268,7 +268,7 @@ public:
             }
         }
         return false;
-    }
+    }*/
     
     virtual bool GetDreamMetadata(std::string_view _filePath, Cache::Dream* _outDream)
     {
