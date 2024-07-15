@@ -9,6 +9,10 @@
 #define DreamDownloader_h
 
 #include <stdio.h>
+#include <vector>
+#include <string>
+#include <set>
+#include <mutex>
 #include <boost/thread.hpp>
 
 namespace ContentDownloader
@@ -30,7 +34,8 @@ public:
         }
     }
     
-    
+    void AddDreamUUIDs(const std::vector<std::string>& uuids);
+    size_t GetDreamUUIDCount() const;
 
 
 private:
@@ -38,6 +43,8 @@ private:
     
     boost::thread thread;
     std::atomic<bool> isRunning;
+    std::set<std::string> m_dreamUUIDs;
+    mutable std::mutex m_mutex;
 };
 
 }

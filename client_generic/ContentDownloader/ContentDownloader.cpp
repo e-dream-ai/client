@@ -114,6 +114,7 @@ bool CContentDownloader::Startup(const bool _bPreview, bool _bReadOnlyInstance)
     // Initialize new downloader
     if (_bReadOnlyInstance == false)
     {
+        // Thread is self contained here
         m_gDownloader.FindDreamsToDownload();
     } 
     else 
