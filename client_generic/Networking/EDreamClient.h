@@ -41,7 +41,10 @@ class EDreamClient
     static void SendPlayingDream(std::string uuid);
 
   public:
+    static void Like(std::string uuid);
+    static void Dislike(std::string uuid);
     static void SetCPUUsage(int _cpuUsage);
+    
 };
 
 #endif /* _EDREAMCLIENT_H_ */

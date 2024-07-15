@@ -775,5 +775,34 @@ void EDreamClient::ConnectRemoteControlSocket()
     s_SIOClient.connect(Shepherd::GetWebsocketServer(), query);
 }
 
+void EDreamClient::Like(std::string uuid) {
+    std::cout << "Sending like for UUID " << uuid;
+    
+    std::shared_ptr<sio::object_message> ms =
+        std::dynamic_pointer_cast<sio::object_message>(
+            sio::object_message::create());
+    ms->insert("event", "like");
+    ms->insert("uuid", uuid);
+    sio::message::list list;
+    list.push(ms);
+    s_SIOClient.socket("/remote-control")
+        ->emit("new_remote_control_event", list);
+}
+
+void EDreamClient::Dislike(std::string uuid) {
+    std::cout << "Sending dislike for UUID " << uuid;
+    
+    std::shared_ptr<sio::object_message> ms =
+        std::dynamic_pointer_cast<sio::object_message>(
+            sio::object_message::create());
+    ms->insert("event", "dislike");
+    ms->insert("uuid", uuid);
+    sio::message::list list;
+    list.push(ms);
+    s_SIOClient.socket("/remote-control")
+        ->emit("new_remote_control_event", list);
+}
+
+
 void EDreamClient::SetCPUUsage(int _cpuUsage) { fCpuUsage.exchange(_cpuUsage); }
 
