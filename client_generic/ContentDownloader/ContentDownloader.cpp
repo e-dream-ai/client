@@ -110,6 +110,7 @@ bool CContentDownloader::Startup(const bool _bPreview, bool _bReadOnlyInstance)
             ->Get("settings.generator.nickname", std::string(""))
             .c_str());
 
+    /*
     m_gDownloader = new SheepDownloader();
 
     if (_bReadOnlyInstance == false)
@@ -133,6 +134,7 @@ bool CContentDownloader::Startup(const bool _bPreview, bool _bReadOnlyInstance)
     else
         g_Log->Warning("Downloading disabled.");
 
+     */
     g_Log->Info("...success");
 
     return true;

@@ -504,7 +504,6 @@ class CElectricSheep
         g_ContentDownloader().Startup(false, m_MultipleInstancesMode ||
                                                  !internetReachable);
 
-        
         // Also load our local cache
         // Grab the CacheManager
         Cache::CacheManager& cm = Cache::CacheManager::getInstance();
