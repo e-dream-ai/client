@@ -282,6 +282,9 @@ bool EDreamClient::RefreshAccessToken()
 //      "quota": int,   // in bytes
 //      "currentPlaylistId": int    // playlistID
 int EDreamClient::Hello() {
+    // Grab the CacheManager
+    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+
     Network::spCFileDownloader spDownload;
 
     int maxAttempts = 3;
@@ -328,6 +331,9 @@ int EDreamClient::Hello() {
 
         remainingQuota = quota.as_int64();
 
+        // Update CacheManager with that info
+        cm.setRemainingQuota(remainingQuota);
+        
         if (data.as_object().if_contains("currentPlaylistId")) {
             json::value currentPlaylistId = data.at("currentPlaylistId");
             auto idint = currentPlaylistId.as_int64();

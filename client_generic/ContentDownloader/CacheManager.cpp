@@ -15,13 +15,16 @@
 
 #include "StringFormat.h"
 #include "Shepherd.h"
+#include "Settings.h"
 #include "Log.h"
 
 namespace Cache {
 
 using boost::filesystem::exists;
+namespace fs = boost::filesystem;
 
 std::unique_ptr<CacheManager> CacheManager::instance;
+long long CacheManager::remainingQuota = 0;
 
 CacheManager& CacheManager::getInstance() {
     static std::once_flag flag;
@@ -42,7 +45,7 @@ const Dream* CacheManager::getDream(const std::string& uuid) const {
 }
 
 int CacheManager::dreamCount() const {
-    return dreams.size();
+    return (int)dreams.size();
 }
 
 
@@ -139,5 +142,62 @@ void CacheManager::reloadMetadata(std::string uuid) {
     
     return;
 }
+
+// MARK: - Disk space management
+std::uintmax_t CacheManager::getUsedSpace(const char* path) {
+    try {
+        fs::path p(path);
+        if (!fs::exists(p)) {
+            throw std::runtime_error("Path does not exist");
+        }
+        
+        if (fs::is_directory(p)) {
+            return fs::file_size(p);
+        } else {
+            std::uintmax_t size = 0;
+            fs::recursive_directory_iterator end;
+            for (fs::recursive_directory_iterator it(p); it != end; ++it) {
+                if (!fs::is_directory(*it)) {
+                    size += fs::file_size(*it);
+                }
+            }
+            return size;
+        }
+    } catch (const fs::filesystem_error& e) {
+        throw std::runtime_error(std::string("Filesystem error: ") + e.what());
+    }
+}
+
+// Function to get the remaining free space on the disk
+std::uintmax_t CacheManager::getFreeSpace(const char* path) {
+    try {
+        fs::path p(path);
+        if (!fs::exists(p)) {
+            throw std::runtime_error("Path does not exist");
+        }
+        
+        fs::space_info space = fs::space(p);
+        return space.available;
+    } catch (const fs::filesystem_error& e) {
+        throw std::runtime_error(std::string("Filesystem error: ") + e.what());
+    }
+}
+
+// Calculate remaining cache space
+std::uintmax_t CacheManager::getRemainingCacheSpace() {
+    auto freeSpace = getFreeSpace(ContentDownloader::Shepherd::mp4Path());
+    
+    if (g_Settings()->Get("settings.content.unlimited_cache", true) == true) {
+        // Cache can be set to unlimited, which is default
+        return freeSpace;
+    } else {
+        // if not unlimited, default cache is 2 GB
+        auto cacheSize = 1024 * 1024 * g_Settings()->Get("settings.content.cache_size", 2000);
+        auto usedSpace = getUsedSpace(ContentDownloader::Shepherd::mp4Path());
+
+        return (cacheSize - usedSpace);
+    }
+}
+
 
 } // Namespace

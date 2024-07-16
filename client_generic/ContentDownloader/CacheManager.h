@@ -57,6 +57,22 @@ public:
     bool needsMetadata(std::string uuid, long long timeStamp);
     void reloadMetadata(std::string uuid);
     
+    // Quota getter/setter
+    long long getRemainingQuota() const {
+       return remainingQuota;
+    }
+
+    void setRemainingQuota(long long newQuota) {
+       remainingQuota = newQuota;
+    }
+    
+    // Used space by a path
+    std::uintmax_t getUsedSpace(const char* path);
+    // Underlying disk free space to that path
+    std::uintmax_t getFreeSpace(const char* path);
+    // Computed remaining cache space base on user settings
+    std::uintmax_t getRemainingCacheSpace();
+
 private:
     // Private constructor
     CacheManager() = default;
@@ -64,6 +80,7 @@ private:
     // The singleton instance
     static std::unique_ptr<CacheManager> instance;
     std::unordered_map<std::string, Dream> dreams;
+    static long long remainingQuota;
 };
 
 } // Namespace

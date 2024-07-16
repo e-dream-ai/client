@@ -8,6 +8,7 @@
 #include "DreamDownloader.h"
 #include "CacheManager.h"
 #include "PlatformUtils.h"
+#include "Shepherd.h"
 #include "Log.h"
 
 namespace ContentDownloader
@@ -47,15 +48,45 @@ void DreamDownloader::FindDreamsThread() {
     while (isRunning.load()) {
         g_Log->Info("Searching for dreams to download...");
 
+        // Make sure we have a properly initialized CacheManager
         if (cm.dreamCount() < 1) {
             g_Log->Info("CacheManager isn't primed yet");
             boost::this_thread::sleep(boost::get_system_time() +
                                  boost::posix_time::seconds(5));
             continue;
         }
-
+        
+        
+        
         while (true) {
+            // Preflight checklist
+            
+            // Minimum disk space : 10 GB (TODO: this can be lowered or pref'd later)
+            std::uintmax_t minDiskSpace =  (std::uintmax_t)1024 * 1024 * 1024 * 10;
+            // Minimum space in cache/quota to consider downloading (10 MB)
+            std::uintmax_t minSpaceForDream = 1024 * 1024 * 10;
+ 
+            // Make sure we have some remaining quota
+            if (cm.getRemainingQuota() < (long long)minSpaceForDream) {
+                g_Log->Info("Quota too low to grab new videos %ll", cm.getRemainingQuota());
+                break;
+            }
+            
+            // Do we even have some disk space available ?
+            if (cm.getFreeSpace(Shepherd::mp4Path()) < minDiskSpace) {
+                g_Log->Info("Disk space too low %ll", cm.getFreeSpace(Shepherd::mp4Path()));
+                break;
+            }
 
+            // Is our cache full ?
+            if (cm.getRemainingCacheSpace() < minSpaceForDream) {
+                // TODO: add trigger to cache cleanup and decision process
+                g_Log->Info("Not enough space in cache remaining %ll", cm.getRemainingCacheSpace());
+                break;
+            }
+            // /Preflight
+            
+            
             // We look through the list of uuids we've been given
             std::string current_uuid;
             {
