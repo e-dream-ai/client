@@ -103,8 +103,9 @@ using namespace ContentDownloader;
         [drupalPassword setHidden:YES];
         [drupalLogin setHidden:YES];
 
-        NSLog(@"const %f",drupalLogin.topAnchor.constraintsAffectingLayout.firstObject.constant);
-        drupalLogin.topAnchor.constraintsAffectingLayout.firstObject.constant = -10;
+        
+/*        NSLog(@"const %f",drupalLogin.topAnchor.constraintsAffectingLayout.firstObject.constant);
+        drupalLogin.topAnchor.constraintsAffectingLayout.firstObject.constant = -10;*/
 
         [signInButton.superview setNeedsLayout:true];
     }
@@ -121,7 +122,6 @@ using namespace ContentDownloader;
 
         [drupalPassword setHidden:NO];
         [drupalLogin setHidden:NO];
-        drupalLogin.topAnchor.constraintsAffectingLayout.firstObject.constant = 16;
 
         [signInButton.superview setNeedsLayout:true];
     }
@@ -253,6 +253,8 @@ using namespace ContentDownloader;
                   {
                       NSLog(@"Request failed with error: %@", sessionError);
                       self->m_loginWasSuccessful = NO;
+                      m_checkingLogin = NO;
+                      [self updateAuthUI:@"Login error"];
                   }
                   else
                   {
@@ -273,6 +275,9 @@ using namespace ContentDownloader;
                           NSLog(@"Unknown response type: %@", response);
 #endif
                           self->m_loginWasSuccessful = NO;
+                          m_checkingLogin = NO;
+
+                          [self updateAuthUI:@"Login error"];
                       }
                       else
                       {

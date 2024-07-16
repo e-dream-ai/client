@@ -36,6 +36,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
     } MultiDisplayMode;
     ContentDecoder::spCDreamPlaylist m_spPlaylist;
 
+    std::vector<ContentDecoder::spCClip> m_CurrentClips;
+
   private:
     typedef struct
     {
@@ -69,7 +71,9 @@ class CPlayer : public Base::CSingleton<CPlayer>
     bool m_bPaused;
     Base::CBlockingQueue<std::string> m_NextClipInfoQueue;
     Base::CBlockingQueue<std::string> m_ClipInfoHistoryQueue;
-    std::vector<ContentDecoder::spCClip> m_CurrentClips;
+    
+    std::vector<std::string> m_evictedUUIDs;    // List of dreams that have been disliked this session
+    
     std::mutex m_CurrentClipsMutex;
     boost::thread* m_pNextClipThread;
     boost::thread* m_pPlayQueuedClipsThread;
@@ -178,6 +182,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     void PlayDreamNow(std::string_view _uuid);
     void ResetPlaylist();
     
+    void MarkForDeletion(std::string_view _uuid);
     void SkipToNext();
     void ReturnToPrevious();
     void SkipForward(float _seconds);
@@ -185,7 +190,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     /// Sets up a clip for playing, that will start playing at startTimelineTime
     /// Returns true if the file was loaded successfully
     bool PlayClip(std::string_view _clipPath, double _startTimelineTime,
-                  int64_t _seekFrame = -1);
+                  int64_t _seekFrame = -1, bool fastFade = false);
     void SetMultiDisplayMode(MultiDisplayMode mode)
     {
         m_MultiDisplayMode = mode;

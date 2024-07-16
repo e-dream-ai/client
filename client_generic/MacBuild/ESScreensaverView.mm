@@ -221,7 +221,7 @@ static void signnal_handler(int signal)
     if (signal == SIGSEGV || signal == SIGTERM || signal == SIGKILL)
     {
         g_Log->Info("RECEIVED SIGSEGV");
-        g_Log->Shutdown();
+        //g_Log->Shutdown();
         exit(0);
     }
 }
@@ -258,7 +258,7 @@ static void signnal_handler(int signal)
 - (void)willStop:(NSNotification*)notification
 {
     g_Log->Info("Killed by system from willStop");
-    g_Log->Shutdown();
+    //g_Log->Shutdown();
     ESScreensaver_Deinit();
     exit(0);
 }

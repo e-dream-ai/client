@@ -44,8 +44,15 @@ using namespace std::string_view_literals;
 #define PATH_SEPARATOR_C '/'
 #endif
 
+#ifdef STAGE
+constexpr const std::string_view DEFAULT_DREAM_SERVER =
+    "e-dream-76c98b08cc5d.herokuapp.com"sv;
+#else
 constexpr const std::string_view DEFAULT_DREAM_SERVER =
     "e-dream-prod-84baba5507ee.herokuapp.com"sv;
+
+#endif
+
 
 #define API_VERSION "/api/v1"
 

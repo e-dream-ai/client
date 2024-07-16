@@ -89,7 +89,7 @@ static const int32_t MAX_TIMEOUT = 24 * 60 * 60; // 1 day
 #define PRINT_TO_SCREEN 0
 
 #ifndef DEBUG
-static const uint32_t INIT_DELAY = 60;
+static const uint32_t INIT_DELAY = 1;
 #endif
 
 // Initialize the class data

@@ -10,3 +10,4 @@ client_generic/MacBuild/BuildData.json
 /vcpkg
 /vcpkg_installed
 /vcpkg_x86
+/cache/univ-osx/share

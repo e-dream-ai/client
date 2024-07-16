@@ -14,6 +14,7 @@
 #endif
 #include <math.h>
 #include <string>
+#include <algorithm>
 
 #include "Log.h"
 #include "MathBase.h"
@@ -41,9 +42,12 @@
 #include "PlatformUtils.h"
 #include "EDreamClient.h"
 
+/*
 #include "boost/filesystem/convenience.hpp"
 #include "boost/filesystem/operations.hpp"
-#include "boost/filesystem/path.hpp"
+#include "boost/filesystem/path.hpp" */
+
+#include <boost/filesystem.hpp>
 
 #if defined(MAC) || defined(WIN32)
 #define HONOR_VBL_SYNC
@@ -63,11 +67,11 @@ PrintQueue(std::string_view _str,
            const Base::CBlockingQueue<std::string>& _next,
            const std::vector<ContentDecoder::spCClip>& _currentClips);
 
-const double kTransitionLengthSeconds = 1;
+const double kTransitionLengthSeconds = 5;
 
 using boost::filesystem::directory_iterator;
 using boost::filesystem::exists;
-using boost::filesystem::extension;
+//using boost::filesystem::extension;
 using boost::filesystem::path;
 
 using namespace DisplayOutput;
@@ -448,8 +452,13 @@ bool CPlayer::BeginFrameUpdate()
                 }
                 else
                 {
-                    m_ClipInfoHistoryQueue.push(
-                        std::string{currentClip->GetClipMetadata().path});
+                    // we need to make sure the clip isn't on its way to deletion
+                    if ( std::find(m_evictedUUIDs.begin(), m_evictedUUIDs.end(), currentClip->GetClipMetadata().dreamData.uuid) != m_evictedUUIDs.end() ) {
+                        g_Log->Debug("Clip was evicted, not adding it to history");
+                    } else {
+                        m_ClipInfoHistoryQueue.push(
+                            std::string{currentClip->GetClipMetadata().path});
+                    }
                 }
              
                 
@@ -644,7 +653,7 @@ void CPlayer::PlayQueuedClipsThread()
 }
 
 bool CPlayer::PlayClip(std::string_view _clipPath, double _startTime,
-                       int64_t _seekFrame)
+                       int64_t _seekFrame, bool fastFade)
 {
     auto du = m_displayUnits[0];
     int32_t displayMode = g_Settings()->Get("settings.player.DisplayMode", 2);
@@ -662,17 +671,19 @@ bool CPlayer::PlayClip(std::string_view _clipPath, double _startTime,
 
     // Update internal decoder fps counter
     m_DecoderFps = m_PerceptualFPS / dream.activityLevel;
-    
 
     if (!clip->Start(_seekFrame))
         return false;
-
-
     
     clip->SetStartTime(_startTime);
-    clip->SetTransitionLength(m_CurrentClips.size() ? kTransitionLengthSeconds
-                                                    : 0,
-                              kTransitionLengthSeconds);
+    if (fastFade) {
+        clip->SetTransitionLength(0, 1);
+    } else {
+        clip->SetTransitionLength(m_CurrentClips.size() ? (kTransitionLengthSeconds / dream.activityLevel)
+                                                        : 0,
+                                  (kTransitionLengthSeconds / dream.activityLevel));
+    }
+
     m_CurrentClips.push_back(clip);
     m_PlayCond.notify_all();
     return true;
@@ -688,7 +699,9 @@ void CPlayer::MultiplyPerceptualFPS(const double _multiplier) {
         // Update decoder speed
         m_DecoderFps = m_PerceptualFPS / dreamActivityLevel;
         // This seems to be what actually changes the speed
-        m_CurrentClips[0]->SetFps(m_DecoderFps);
+        for (auto clip : m_CurrentClips) {
+            clip->SetFps(m_DecoderFps);
+        }
     }
 }
 
@@ -701,8 +714,11 @@ void CPlayer::SetPerceptualFPS(const double _fps) {
         float dreamActivityLevel = m_CurrentClips[0]->GetClipMetadata().dreamData.activityLevel;
         // Update decoder speed
         m_DecoderFps = m_PerceptualFPS / dreamActivityLevel;
-        // This seems to be what actually changes the speed
-        m_CurrentClips[0]->SetFps(m_DecoderFps);
+        // This seems to be what actually changes the speed, we need to do it
+        // for every clip here as the next clip is already hot-loaded
+        for (auto clip : m_CurrentClips) {
+            clip->SetFps(m_DecoderFps);
+        }
     }
 }
 
@@ -805,6 +821,18 @@ void CPlayer::ResetPlaylist() {
     m_NextClipInfoQueue.clear(0);
 }
 
+// We maintain an array of dreams that have been downvoted this session
+// This is used to make sure we don't add them to our history and we don't
+// mistakenly try to play a deleted dream (and crash)
+void CPlayer::MarkForDeletion(std::string_view _uuid)
+{
+    // Make sure it's not already in the vector, then add it
+    if ( std::find(m_evictedUUIDs.begin(), m_evictedUUIDs.end(), _uuid) == m_evictedUUIDs.end() ) {
+        g_Log->Debug("Evicting UUID: %s", _uuid);
+        m_evictedUUIDs.push_back(std::string(_uuid));
+    }
+}
+
 void CPlayer::SkipToNext()
 {
     writer_lock l(m_UpdateMutex);
@@ -865,7 +893,13 @@ void CPlayer::ReturnToPrevious()
         m_CurrentClips[0]->SetFlags(CClip::eClipFlags::ReverseHistory);
         m_CurrentClips[0]->FadeOut(m_TimelineTime);
         m_CurrentClips.erase(m_CurrentClips.begin() + 1);
-        PlayClip(clipName, m_TimelineTime);
+
+        // force fade to 1s on current clip
+        auto [fadeInTime, _] = m_CurrentClips[0]->GetTransitionLength();
+        m_CurrentClips[0]->SetTransitionLength(fadeInTime, 1);
+        
+        // Ask PlayClip to fast fade too
+        PlayClip(clipName, m_TimelineTime, -1, true);
         std::swap(m_CurrentClips[0], m_CurrentClips[1]);
         PRINTQUEUE("PREV_NORMAL", m_ClipInfoHistoryQueue, m_NextClipInfoQueue,
                    m_CurrentClips);

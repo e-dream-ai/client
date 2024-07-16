@@ -1,0 +1,11 @@
+{
+    "dependencies":
+    [
+        "boost-log",
+        "boost-filesystem",
+        "boost-json",
+        "boost-format",
+        "boost-thread",
+        "openssl"
+    ]
+}
