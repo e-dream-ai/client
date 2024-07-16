@@ -6,6 +6,8 @@
 //
 
 #include "DreamDownloader.h"
+#include "CacheManager.h"
+#include "PlatformUtils.h"
 #include "Log.h"
 
 namespace ContentDownloader
@@ -36,11 +38,25 @@ size_t DreamDownloader::GetDreamUUIDCount() const {
 
 // MARK: Thread function
 void DreamDownloader::FindDreamsThread() {
+    PlatformUtils::SetThreadName("FindDreamsToDownload");
+    int delayTime = 30; // Set a default delay
+    // Grab the CacheManager
+    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+
+    
     while (isRunning.load()) {
         g_Log->Info("Searching for dreams to download...");
 
-        // We look through the list of uuids we've been given
+        if (cm.dreamCount() < 1) {
+            g_Log->Info("CacheManager isn't primed yet");
+            boost::this_thread::sleep(boost::get_system_time() +
+                                 boost::posix_time::seconds(5));
+            continue;
+        }
+
         while (true) {
+
+            // We look through the list of uuids we've been given
             std::string current_uuid;
             {
                 std::lock_guard<std::mutex> lock(m_mutex);
@@ -60,10 +76,6 @@ void DreamDownloader::FindDreamsThread() {
         // Sleep for a while before the next iteration
         boost::this_thread::sleep(boost::get_system_time() +
                              boost::posix_time::seconds(30));
-
-        // TODO : check vcpkg for missing boost::chrono? that would be cleaner
-        //boost::this_thread::sleep_for(boost::chrono::seconds(30));
-
     }
     g_Log->Info("Exiting FindDreamsThreads()");
 }

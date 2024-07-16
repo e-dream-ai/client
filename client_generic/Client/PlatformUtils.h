@@ -8,6 +8,7 @@
 #ifndef PlatformUtils_h
 #define PlatformUtils_h
 
+#include "SmartPtr.h"
 #include <cstdio>
 #include <string>
 #include <functional>

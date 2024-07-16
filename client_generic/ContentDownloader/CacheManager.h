@@ -44,6 +44,7 @@ public:
     
     bool hasDream(const std::string& uuid) const;
     const Dream* getDream(const std::string& uuid) const;
+    int dreamCount() const;
     
     // Json loading
     void loadCachedMetadata();
