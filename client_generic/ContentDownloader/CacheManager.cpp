@@ -88,6 +88,25 @@ void CacheManager::loadJsonFile(const std::string& filename) {
                 dream.activityLevel = dream_json.as_object().at("activityLevel").to_number<float>();
             }
             dreams[dream.uuid] = dream;
+
+            /*
+            // TEST CODE
+            DiskCachedItem newDiskItem;
+            newDiskItem.uuid = dream.uuid;
+            newDiskItem.version = dream.video_timestamp;
+            newDiskItem.downloadDate = dream.video_timestamp;
+
+            addDiskCachedItem(newDiskItem);
+            
+            HistoryItem newHistoryItem;
+            newHistoryItem.uuid = dream.uuid;
+            newHistoryItem.version = dream.video_timestamp;
+            newHistoryItem.downloadDate = dream.video_timestamp;
+            newHistoryItem.deletedDate = dream.video_timestamp;
+            addHistoryItem(newHistoryItem);
+            // /TEST CODE
+             */
+            
         }
     }
 }
@@ -97,6 +116,11 @@ const std::unordered_map<std::string, Dream>& CacheManager::getDreams() const {
 }
 
 void CacheManager::loadCachedMetadata() {
+    // Also load our internal Caches here !
+    loadDiskCachedFromJson();
+    loadHistoryFromJson();
+    
+    
     std::string dest = ContentDownloader::Shepherd::jsonDreamPath();
     boost::filesystem::path dir(dest);
         
@@ -197,6 +221,148 @@ std::uintmax_t CacheManager::getRemainingCacheSpace() {
 
         return (cacheSize - usedSpace);
     }
+}
+
+
+// MARK: - DiskCacheItem/HistoryItem
+
+void CacheManager::addDiskCachedItem(const DiskCachedItem& item) {
+    auto it = std::find_if(diskCached.begin(), diskCached.end(),
+        [&item](const DiskCachedItem& existingItem) {
+            return existingItem.uuid == item.uuid;
+        });
+
+    if (it != diskCached.end()) {
+        // UUID already exists, replace the existing item
+        *it = item;
+    } else {
+        // UUID doesn't exist, add new item
+        diskCached.push_back(item);
+    }
+
+    saveDiskCachedToJson();
+}
+
+void CacheManager::removeDiskCachedItem(const std::string& uuid) {
+    auto it = std::find_if(diskCached.begin(), diskCached.end(),
+        [&uuid](const DiskCachedItem& item) {
+            return item.uuid == uuid;
+        });
+
+    if (it != diskCached.end()) {
+        diskCached.erase(it);
+        saveDiskCachedToJson();
+    } else {
+        throw std::runtime_error("Item with specified UUID not found in disk cache");
+    }
+}
+
+void CacheManager::addHistoryItem(const HistoryItem& item) {
+    history.push_back(item);
+    saveHistoryToJson();
+}
+
+void CacheManager::saveDiskCachedToJson() const {
+    boost::property_tree::ptree root;
+    boost::property_tree::ptree items;
+
+    for (const auto& item : diskCached) {
+        items.push_back(std::make_pair("", serializeDiskCachedItem(item)));
+    }
+
+    root.add_child("diskCached", items);
+    
+    std::string fileName{
+        string_format("%s%s.json", ContentDownloader::Shepherd::rootPath(), "diskcached")};
+    
+    boost::property_tree::write_json(fileName, root);
+}
+
+void CacheManager::saveHistoryToJson() const {
+    boost::property_tree::ptree root;
+    boost::property_tree::ptree items;
+
+    for (const auto& item : history) {
+        items.push_back(std::make_pair("", serializeHistoryItem(item)));
+    }
+
+    root.add_child("history", items);
+    
+    std::string fileName{
+        string_format("%s%s.json", ContentDownloader::Shepherd::rootPath(), "history")};
+
+    boost::property_tree::write_json(fileName, root);
+}
+
+void CacheManager::loadDiskCachedFromJson() {
+    try {
+        boost::property_tree::ptree root;
+        std::string fileName{
+            string_format("%s%s.json", ContentDownloader::Shepherd::rootPath(), "diskcached")};
+
+        boost::property_tree::read_json(fileName, root);
+
+        diskCached.clear();
+        for (const auto& item : root.get_child("diskCached")) {
+            diskCached.push_back(deserializeDiskCachedItem(item.second));
+        }
+    } catch (const std::exception& e) {
+        // If file doesn't exist or is invalid, start with an empty vector
+        diskCached.clear();
+    }
+}
+
+void CacheManager::loadHistoryFromJson() {
+    try {
+        boost::property_tree::ptree root;
+
+        std::string fileName{
+            string_format("%s%s.json", ContentDownloader::Shepherd::rootPath(), "history")};
+
+        boost::property_tree::read_json(fileName, root);
+
+        history.clear();
+        for (const auto& item : root.get_child("history")) {
+            history.push_back(deserializeHistoryItem(item.second));
+        }
+    } catch (const std::exception& e) {
+        // If file doesn't exist or is invalid, start with an empty vector
+        history.clear();
+    }
+}
+
+boost::property_tree::ptree CacheManager::serializeDiskCachedItem(const DiskCachedItem& item) const {
+    boost::property_tree::ptree pt;
+    pt.put("uuid", item.uuid);
+    pt.put("version", item.version);
+    pt.put("downloadDate", item.downloadDate);
+    return pt;
+}
+
+boost::property_tree::ptree CacheManager::serializeHistoryItem(const HistoryItem& item) const {
+    boost::property_tree::ptree pt;
+    pt.put("uuid", item.uuid);
+    pt.put("version", item.version);
+    pt.put("downloadDate", item.downloadDate);
+    pt.put("deletedDate", item.deletedDate);
+    return pt;
+}
+
+CacheManager::DiskCachedItem CacheManager::deserializeDiskCachedItem(const boost::property_tree::ptree& pt) const {
+    DiskCachedItem item;
+    item.uuid = pt.get<std::string>("uuid");
+    item.version = pt.get<long long>("version");
+    item.downloadDate = pt.get<long long>("downloadDate");
+    return item;
+}
+
+CacheManager::HistoryItem CacheManager::deserializeHistoryItem(const boost::property_tree::ptree& pt) const {
+    HistoryItem item;
+    item.uuid = pt.get<std::string>("uuid");
+    item.version = pt.get<long long>("version");
+    item.downloadDate = pt.get<long long>("downloadDate");
+    item.deletedDate = pt.get<long long>("deletedDate");
+    return item;
 }
 
 
