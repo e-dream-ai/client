@@ -10,6 +10,7 @@
 #include "PlatformUtils.h"
 #include "Shepherd.h"
 #include "EDreamClient.h"
+#include "Networking.h"
 #include "Log.h"
 
 namespace ContentDownloader
@@ -46,11 +47,17 @@ size_t DreamDownloader::GetDreamUUIDCount() const {
 // MARK: Thread function
 void DreamDownloader::FindDreamsThread() {
     PlatformUtils::SetThreadName("FindDreamsToDownload");
-    int delayTime = 30; // Set a default delay
     // Grab the CacheManager
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
 
+    // Set a default delay (30 seconds)
+    int delayTime = 30;
     
+    // Minimum disk space : 5 GB (TODO: this can be lowered or pref'd later)
+    std::uintmax_t minDiskSpace =  (std::uintmax_t)1024 * 1024 * 1024 * 5;
+    // Minimum space in cache/quota to consider downloading (10 MB)
+    std::uintmax_t minSpaceForDream = 1024 * 1024 * 10;
+
     while (isRunning.load()) {
         g_Log->Info("Searching for dreams to download...");
 
@@ -66,11 +73,6 @@ void DreamDownloader::FindDreamsThread() {
         
         while (true) {
             // Preflight checklist
-            
-            // Minimum disk space : 10 GB (TODO: this can be lowered or pref'd later)
-            std::uintmax_t minDiskSpace =  (std::uintmax_t)1024 * 1024 * 1024 * 10;
-            // Minimum space in cache/quota to consider downloading (10 MB)
-            std::uintmax_t minSpaceForDream = 1024 * 1024 * 10;
  
             // Make sure we have some remaining quota
             if (cm.getRemainingQuota() < (long long)minSpaceForDream) {
@@ -111,6 +113,11 @@ void DreamDownloader::FindDreamsThread() {
                 
                 if (!link.empty()) {
                     g_Log->Error("Download link received: %s", link.c_str());
+                    DownloadDream(current_uuid, link);
+                    
+                    // Wait 30s
+                    boost::this_thread::sleep(boost::get_system_time() +
+                                         boost::posix_time::seconds(30));
                 } else {
                     g_Log->Error("Download link denied");
                 }
@@ -126,5 +133,68 @@ void DreamDownloader::FindDreamsThread() {
     g_Log->Info("Exiting FindDreamsThreads()");
 }
 
+
+bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& downloadLink) {
+    std::string saveFolder = Shepherd::mp4Path();
+
+    if (uuid.empty() || downloadLink.empty() || saveFolder.empty()) {
+        g_Log->Error("Invalid input parameters for DownloadDream");
+        return false;
+    }
+
+    Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>("DownloadDream");
+    
+    // Set up headers if needed
+    //spDownload->AppendHeader("Content-Type: application/octet-stream");
+    //std::string authHeader{string_format("Authorization: Bearer %s", GetAccessToken())};
+    //spDownload->AppendHeader(authHeader);
+
+    // Perform the download
+    if (!spDownload->Perform(downloadLink)) {
+        g_Log->Error("Failed to download dream. Server returned %i: %s",
+                     spDownload->ResponseCode(),
+                     spDownload->Data().c_str());
+        return false;
+    }
+
+    // Ensure the save folder exists
+    std::filesystem::path savePath(saveFolder);
+    try {
+        if (!std::filesystem::exists(savePath)) {
+            std::filesystem::create_directories(savePath);
+        }
+    } catch (const std::filesystem::filesystem_error& e) {
+        g_Log->Error("Failed to create mp4 directory: %s", e.what());
+        return false;
+    }
+
+    // Determine file extension
+    std::string fileExtension = ".mp4";
+
+    // Construct the full save path
+    std::string fullSavePath = (savePath / (uuid + fileExtension)).string();
+
+    // Save the downloaded content to file
+    if (!spDownload->Save(fullSavePath)) {
+        g_Log->Error("Failed to save downloaded dream to %s", fullSavePath.c_str());
+        return false;
+    }
+
+    g_Log->Info("Successfully downloaded and saved dream to %s", fullSavePath.c_str());
+    
+    // Now make sure we update our cache
+    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+
+    auto dream = cm.getDream(uuid);
+
+    Cache::CacheManager::DiskCachedItem newDiskItem;
+    newDiskItem.uuid = uuid;
+    newDiskItem.version = dream->video_timestamp;
+    newDiskItem.downloadDate = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
+    cm.addDiskCachedItem(newDiskItem);
+    
+    return true;
+}
 
 }

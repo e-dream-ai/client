@@ -37,6 +37,8 @@ public:
     void AddDreamUUID(const std::string& uuid);
     void AddDreamUUIDs(const std::vector<std::string>& uuids);
     size_t GetDreamUUIDCount() const;
+    
+    bool DownloadDream(const std::string& uuid, const std::string& downloadLink);
 
 
 private:
