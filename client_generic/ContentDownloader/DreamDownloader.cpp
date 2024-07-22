@@ -45,6 +45,11 @@ size_t DreamDownloader::GetDreamUUIDCount() const {
     return m_dreamUUIDs.size();
 }
 
+bool DreamDownloader::isDreamUUIDQueued(const std::string& uuid) const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_dreamUUIDs.find(uuid) != m_dreamUUIDs.end();
+}
+
 // MARK: Thread function
 void DreamDownloader::FindDreamsThread() {
     PlatformUtils::SetThreadName("FindDreamsToDownload");
@@ -136,6 +141,9 @@ void DreamDownloader::FindDreamsThread() {
 
 
 bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& downloadLink) {
+    // Grab the CacheManager
+    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+    
     std::string saveFolder = Shepherd::mp4Path();
 
     if (uuid.empty() || downloadLink.empty() || saveFolder.empty()) {
@@ -143,7 +151,9 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
         return false;
     }
 
-    Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>("DownloadDream");
+    auto dream = cm.getDream(uuid);
+    
+    Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>(dream->name);
     
     // Set up headers if needed (not needed if we stay on S3)
     //spDownload->AppendHeader("Content-Type: application/octet-stream");
@@ -183,11 +193,6 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
 
     g_Log->Info("Successfully downloaded and saved dream to %s", fullSavePath.c_str());
     
-    // Now make sure we update our cache
-    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
-
-    auto dream = cm.getDream(uuid);
-
     Cache::CacheManager::DiskCachedItem newDiskItem;
     newDiskItem.uuid = uuid;
     newDiskItem.version = dream->video_timestamp;

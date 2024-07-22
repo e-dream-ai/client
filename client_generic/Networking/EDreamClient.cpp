@@ -162,7 +162,7 @@ bool EDreamClient::Authenticate()
     if (strlen(GetAccessToken()))
     {
         Network::spCFileDownloader spDownload =
-            std::make_shared<Network::CFileDownloader>("Authenticate");
+            std::make_shared<Network::CFileDownloader>("Authentication");
         spDownload->AppendHeader("Content-Type: application/json");
 
         std::string authHeader{
@@ -291,7 +291,7 @@ int EDreamClient::Hello() {
     int currentAttempt = 0;
     while (currentAttempt++ < maxAttempts)
     {
-        spDownload = std::make_shared<Network::CFileDownloader>("Hello");
+        spDownload = std::make_shared<Network::CFileDownloader>("Hello!");
         spDownload->AppendHeader("Content-Type: application/json");
         std::string authHeader{
             string_format("Authorization: Bearer %s", GetAccessToken())};
@@ -433,7 +433,7 @@ bool EDreamClient::FetchDefaultPlaylist() {
     int currentAttempt = 0;
     while (currentAttempt++ < maxAttempts)
     {
-        spDownload = std::make_shared<Network::CFileDownloader>("DefaultPlaylist");
+        spDownload = std::make_shared<Network::CFileDownloader>("Default Playlist");
         spDownload->AppendHeader("Content-Type: application/json");
         std::string authHeader{
             string_format("Authorization: Bearer %s", GetAccessToken())};
@@ -484,7 +484,7 @@ bool EDreamClient::FetchDreamMetadata(std::string uuid) {
     int currentAttempt = 0;
     while (currentAttempt++ < maxAttempts)
     {
-        spDownload = std::make_shared<Network::CFileDownloader>("FetchMetadata");
+        spDownload = std::make_shared<Network::CFileDownloader>("Metadata");
         spDownload->AppendHeader("Content-Type: application/json");
         std::string authHeader{
             string_format("Authorization: Bearer %s", GetAccessToken())};
@@ -535,7 +535,7 @@ std::string EDreamClient::GetDreamDownloadLink(const std::string& uuid) {
     int currentAttempt = 0;
 
     while (currentAttempt++ < maxAttempts) {
-        spDownload = std::make_shared<Network::CFileDownloader>("GetDreamDownloadLink");
+        spDownload = std::make_shared<Network::CFileDownloader>("Dream Link");
         spDownload->AppendHeader("Content-Type: application/json");
         std::string authHeader{
             string_format("Authorization: Bearer %s", GetAccessToken())};
@@ -662,8 +662,10 @@ std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
 
     // Then enqueue our missing videos
     for (const auto& needsDownload : needsDownloadUuids) {
-        g_Log->Info("Add %s to download queue", needsDownload.c_str());
-        g_ContentDownloader().m_gDownloader.AddDreamUUID(needsDownload);
+        if (!g_ContentDownloader().m_gDownloader.isDreamUUIDQueued(needsDownload)) {
+            g_Log->Info("Add %s to download queue", needsDownload.c_str());
+            g_ContentDownloader().m_gDownloader.AddDreamUUID(needsDownload);
+        }
     }
     
     return uuids;
