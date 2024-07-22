@@ -28,12 +28,13 @@ class CContentDownloader : public Base::CSingleton<CContentDownloader>
     //	No copy constructor or assignment operator.
     NO_CLASS_STANDARDS(CContentDownloader);
 
-    //	Downloader.
-    DreamDownloader m_gDownloader;
     //class SheepDownloader* m_gDownloader;
     //boost::thread* m_gDownloadThread;
 
   public:
+    //    Downloader
+    DreamDownloader m_gDownloader;
+
     bool Startup(const bool _bPreview, bool _bReadOnlyInstance = false);
     bool Shutdown(void);
 
@@ -44,6 +45,7 @@ class CContentDownloader : public Base::CSingleton<CContentDownloader>
     //	Called if network said unauthorized, will fallback everything to
     // unregistered server.
     void ServerFallback();
+    
 
     virtual ~CContentDownloader();
 };

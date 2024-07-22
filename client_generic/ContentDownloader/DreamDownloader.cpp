@@ -25,6 +25,11 @@ void DreamDownloader::FindDreamsToDownload() {
     
 }
 
+void DreamDownloader::AddDreamUUID(const std::string& uuid) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_dreamUUIDs.insert(uuid);
+}
+
 void DreamDownloader::AddDreamUUIDs(const std::vector<std::string>& uuids) {
     std::lock_guard<std::mutex> lock(m_mutex);
     for (const auto& uuid : uuids) {
@@ -100,7 +105,10 @@ void DreamDownloader::FindDreamsThread() {
             }
             
             g_Log->Info("Processing dream with UUID: %s", current_uuid.c_str());
-            // TODO : add our cache check + download initialisation here
+            if (!cm.hasDiskCachedItem(current_uuid.c_str()) {
+                // TODO : add our download initialisation here
+                
+            }
             
         }
 

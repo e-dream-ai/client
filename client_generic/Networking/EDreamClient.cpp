@@ -539,6 +539,7 @@ std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
     // Collect all UUIDs from the json, and UUIDs where metadata is missing
     std::vector<std::string> uuids;
     std::vector<std::string> needsMetadataUuids;
+    std::vector<std::string> needsDownloadUuids;
 
 
     // Open playlist and grab content
@@ -567,10 +568,17 @@ std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
             auto uuid = std::string(itemObj["uuid"].as_string());
             auto timestamp = itemObj["timestamp"].as_int64();
             
-            
+            // Do we have the metadata?
             if (cm.needsMetadata(uuid, timestamp)) {
                 needsMetadataUuids.push_back(uuid.c_str());
             }
+            
+            // Do we have the video?
+            if (!cm.hasDiskCachedItem(uuid.c_str()))
+            {
+                needsDownloadUuids.push_back(uuid.c_str());
+            }
+            
             uuids.push_back(uuid.c_str());
         }
     }
@@ -600,7 +608,12 @@ std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
     for (const auto& needsMetadata : needsMetadataUuids) {
         FetchDreamMetadata(needsMetadata);
         cm.reloadMetadata(needsMetadata);
-        
+    }
+
+    // Then enqueue our missing videos
+    for (const auto& needsDownload : needsDownloadUuids) {
+        g_Log->Info("Add %s to download queue", needsDownload.c_str());
+        g_ContentDownloader().m_gDownloader.AddDreamUUID(needsDownload);
     }
     
     return uuids;

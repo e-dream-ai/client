@@ -145,6 +145,9 @@ void CacheManager::cleanupDiskCache() {
         historyItem.deletedDate = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
         addHistoryItem(historyItem);
+        
+        // And delete the metadata from disk too
+        deleteMetadata(item.uuid);
     }
 
     // Save changes
@@ -326,6 +329,13 @@ void CacheManager::removeDiskCachedItem(const std::string& uuid) {
     } else {
         throw std::runtime_error("Item with specified UUID not found in disk cache");
     }
+}
+
+bool CacheManager::hasDiskCachedItem(const std::string& uuid) const {
+    return std::any_of(diskCached.begin(), diskCached.end(),
+        [&uuid](const DiskCachedItem& item) {
+            return item.uuid == uuid;
+        });
 }
 
 void CacheManager::addHistoryItem(const HistoryItem& item) {

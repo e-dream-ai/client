@@ -34,6 +34,7 @@ public:
         }
     }
     
+    void AddDreamUUID(const std::string& uuid);
     void AddDreamUUIDs(const std::vector<std::string>& uuids);
     size_t GetDreamUUIDCount() const;
 

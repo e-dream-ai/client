@@ -97,6 +97,8 @@ public:
     void removeDiskCachedItem(const std::string& uuid);
     void addHistoryItem(const HistoryItem& item);
 
+    bool hasDiskCachedItem(const std::string& uuid) const;
+    
     void saveDiskCachedToJson() const;
     void saveHistoryToJson() const;
 
