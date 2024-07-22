@@ -156,7 +156,42 @@ void CacheManager::cleanupDiskCache() {
     }
 }
 
+void CacheManager::removeUnknownVideos() {
+    std::string dest = ContentDownloader::Shepherd::mp4Path();
+    boost::filesystem::path folderPath(dest);
+    
+    if (!boost::filesystem::exists(folderPath) || !boost::filesystem::is_directory(folderPath)) {
+        throw std::runtime_error("Invalid folder path");
+    }
 
+    std::vector<boost::filesystem::path> filesToRemove;
+
+    for (const auto& entry : boost::filesystem::directory_iterator(folderPath)) {
+        if (boost::filesystem::is_regular_file(entry) && entry.path().extension() == ".mp4") {
+            std::string filename = entry.path().stem().string();
+            
+            // Check if the filename (without extension) exists in diskCached
+            auto it = std::find_if(diskCached.begin(), diskCached.end(),
+                [&filename](const DiskCachedItem& item) {
+                    return item.uuid == filename;
+                });
+
+            if (it == diskCached.end()) {
+                filesToRemove.push_back(entry.path());
+            }
+        }
+    }
+
+    // Remove the unknown files
+    for (const auto& file : filesToRemove) {
+        try {
+            boost::filesystem::remove(file);
+            g_Log->Info("Removed unknown file: %s", file.string().c_str());
+        } catch (const boost::filesystem::filesystem_error& e) {
+            g_Log->Error("Error removing file: %s", file.string().c_str());
+        }
+    }
+}
 
 const std::unordered_map<std::string, Dream>& CacheManager::getDreams() const {
     return dreams;
@@ -166,7 +201,10 @@ void CacheManager::loadCachedMetadata() {
     // Also load our internal Caches here !
     loadDiskCachedFromJson();
     loadHistoryFromJson();
-    
+    // Make sure our cache is clean, we start by removing metadata no longer linked to files
+    cleanupDiskCache();
+    // Also remove unknown videos
+    removeUnknownVideos();
     
     std::string dest = ContentDownloader::Shepherd::jsonDreamPath();
     boost::filesystem::path dir(dest);

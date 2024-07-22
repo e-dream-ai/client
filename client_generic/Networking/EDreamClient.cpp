@@ -582,6 +582,7 @@ std::string EDreamClient::GetDreamDownloadLink(const std::string& uuid) {
 
 
 std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
+    g_Log->Info("Parse Playlist %d", id);
     // Grab the CacheManager
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
 

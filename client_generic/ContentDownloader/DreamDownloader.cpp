@@ -11,6 +11,7 @@
 #include "Shepherd.h"
 #include "EDreamClient.h"
 #include "Networking.h"
+#include "Player.h"
 #include "Log.h"
 
 namespace ContentDownloader
@@ -144,7 +145,7 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
 
     Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>("DownloadDream");
     
-    // Set up headers if needed
+    // Set up headers if needed (not needed if we stay on S3)
     //spDownload->AppendHeader("Content-Type: application/octet-stream");
     //std::string authHeader{string_format("Authorization: Bearer %s", GetAccessToken())};
     //spDownload->AppendHeader(authHeader);
@@ -193,6 +194,10 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
     newDiskItem.downloadDate = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
     cm.addDiskCachedItem(newDiskItem);
+    
+    // Add the file to the player too
+    g_Player().Add(fullSavePath.c_str());
+
     
     return true;
 }
