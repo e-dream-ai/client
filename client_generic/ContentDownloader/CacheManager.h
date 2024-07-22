@@ -73,6 +73,7 @@ public:
     bool areMetadataCached(std::string uuid);
     bool needsMetadata(std::string uuid, long long timeStamp);
     void reloadMetadata(std::string uuid);
+    bool deleteMetadata(const std::string& uuid);
     
     // Quota getter/setter
     long long getRemainingQuota() const {
@@ -102,6 +103,8 @@ public:
     void loadDiskCachedFromJson();
     void loadHistoryFromJson();
     
+    void cleanupDiskCache();
+    void removeUnknownVideos();
 private:
     // Private constructor
     CacheManager() = default;

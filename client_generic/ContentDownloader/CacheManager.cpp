@@ -111,6 +111,50 @@ void CacheManager::loadJsonFile(const std::string& filename) {
     }
 }
 
+void CacheManager::cleanupDiskCache() {
+    std::vector<DiskCachedItem> itemsToRemove;
+
+    std::string dest = ContentDownloader::Shepherd::mp4Path();
+    boost::filesystem::path folderPath(dest);
+    
+    // Look for files that may have been deleted
+    for (const auto& item : diskCached) {
+        boost::filesystem::path filePath = folderPath / (item.uuid + ".mp4");
+        
+        if (!boost::filesystem::exists(filePath)) {
+            itemsToRemove.push_back(item);
+        }
+    }
+
+    for (const auto& item : itemsToRemove) {
+        // Remove from diskCached
+        auto it = std::find_if(diskCached.begin(), diskCached.end(),
+            [&item](const DiskCachedItem& cachedItem) {
+                return cachedItem.uuid == item.uuid;
+            });
+        
+        if (it != diskCached.end()) {
+            diskCached.erase(it);
+        }
+
+        // Add to history
+        HistoryItem historyItem;
+        historyItem.uuid = item.uuid;
+        historyItem.version = item.version;
+        historyItem.downloadDate = item.downloadDate;
+        historyItem.deletedDate = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
+        addHistoryItem(historyItem);
+    }
+
+    // Save changes
+    if (!itemsToRemove.empty()) {
+        saveDiskCachedToJson();
+    }
+}
+
+
+
 const std::unordered_map<std::string, Dream>& CacheManager::getDreams() const {
     return dreams;
 }
@@ -166,6 +210,33 @@ void CacheManager::reloadMetadata(std::string uuid) {
     
     return;
 }
+
+bool CacheManager::deleteMetadata(const std::string& uuid) {
+    std::string dest = ContentDownloader::Shepherd::jsonDreamPath();
+    boost::filesystem::path metadataPath(dest);
+    
+    if (!boost::filesystem::exists(metadataPath) || !boost::filesystem::is_directory(metadataPath)) {
+        g_Log->Error("Invalid metadata path: %s", metadataPath.c_str());
+        return false;
+    }
+
+    boost::filesystem::path filePath = metadataPath / (uuid + ".json");
+    
+    if (!boost::filesystem::exists(filePath)) {
+        g_Log->Error("Metadata file does not exist: %s", filePath.c_str());
+        return false;
+    }
+
+    try {
+        boost::filesystem::remove(filePath);
+        g_Log->Info("Metadata file removed: %s", filePath.c_str());
+        return true;
+    } catch (const boost::filesystem::filesystem_error& e) {
+        g_Log->Error("Metadata file does not exist: %s %s", filePath.c_str(), e.what());
+        return false;
+    }
+}
+
 
 // MARK: - Disk space management
 std::uintmax_t CacheManager::getUsedSpace(const char* path) {

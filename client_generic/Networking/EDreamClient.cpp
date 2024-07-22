@@ -600,6 +600,7 @@ std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
     for (const auto& needsMetadata : needsMetadataUuids) {
         FetchDreamMetadata(needsMetadata);
         cm.reloadMetadata(needsMetadata);
+        
     }
     
     return uuids;
