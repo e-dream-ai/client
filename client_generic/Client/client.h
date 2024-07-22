@@ -1192,8 +1192,8 @@ class CElectricSheep
                 return true;
             case CLIENT_COMMAND_DISLIKE:
                 if (data != nullptr) {
-                    if (m_pVoter != nullptr &&
-                        m_pVoter->Vote(data->dreamData.uuid, false, voteDelaySeconds))
+		  if (1 /* m_pVoter != nullptr &&
+			   m_pVoter->Vote(data->dreamData.uuid, false, voteDelaySeconds)*/)
                     {
                         if (g_Settings()->Get("settings.content.negvotedeletes", true))
                         {
@@ -1221,6 +1221,7 @@ class CElectricSheep
                         }
 
                         popOSD(Hud::Dislike);
+			EDreamClient::Dislike(data->dreamData.uuid);
                     }
                 }
 
