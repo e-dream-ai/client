@@ -9,6 +9,7 @@
 #include "CacheManager.h"
 #include "PlatformUtils.h"
 #include "Shepherd.h"
+#include "EDreamClient.h"
 #include "Log.h"
 
 namespace ContentDownloader
@@ -105,9 +106,15 @@ void DreamDownloader::FindDreamsThread() {
             }
             
             g_Log->Info("Processing dream with UUID: %s", current_uuid.c_str());
-            if (!cm.hasDiskCachedItem(current_uuid.c_str()) {
-                // TODO : add our download initialisation here
+            if (!cm.hasDiskCachedItem(current_uuid.c_str())) {
+                auto link = EDreamClient::GetDreamDownloadLink(current_uuid);
                 
+                if (!link.empty()) {
+                    g_Log->Error("Download link received: %s", link.c_str());
+                } else {
+                    g_Log->Error("Download link denied");
+                }
+
             }
             
         }

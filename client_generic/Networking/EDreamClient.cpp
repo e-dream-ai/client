@@ -529,7 +529,56 @@ bool EDreamClient::FetchDreamMetadata(std::string uuid) {
     return true;
 }
 
+std::string EDreamClient::GetDreamDownloadLink(const std::string& uuid) {
+    Network::spCFileDownloader spDownload;
+    int maxAttempts = 3;
+    int currentAttempt = 0;
 
+    while (currentAttempt++ < maxAttempts) {
+        spDownload = std::make_shared<Network::CFileDownloader>("GetDreamDownloadLink");
+        spDownload->AppendHeader("Content-Type: application/json");
+        std::string authHeader{
+            string_format("Authorization: Bearer %s", GetAccessToken())};
+        spDownload->AppendHeader(authHeader);
+
+        std::string url{string_format(
+            "%s/%s/url", Shepherd::GetEndpoint(ENDPOINT_GETDREAM), uuid.c_str())};
+
+        printf("url : %s\n", url.c_str());
+
+        if (spDownload->Perform(url)) {
+            try {
+                boost::property_tree::ptree pt;
+                std::istringstream is(spDownload->Data());
+                boost::property_tree::read_json(is, pt);
+
+                bool success = pt.get<bool>("success", false);
+                if (success) {
+                    return pt.get<std::string>("data.url", "");
+                } else {
+                    g_Log->Error("JSON response indicates failure");
+                    return "";
+                }
+            } catch (const boost::property_tree::json_parser_error& e) {
+                g_Log->Error("Failed to parse JSON response: %s", e.what());
+                return "";
+            }
+        } else {
+            if (spDownload->ResponseCode() == 400 || spDownload->ResponseCode() == 401) {
+                if (currentAttempt == maxAttempts)
+                    return "";
+                if (!RefreshAccessToken())
+                    return "";
+            } else {
+                g_Log->Error("Failed to get dream download link. Server returned %i: %s",
+                             spDownload->ResponseCode(),
+                             spDownload->Data().c_str());
+            }
+        }
+    }
+
+    return "";
+}
 
 
 std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
