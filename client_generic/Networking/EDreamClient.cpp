@@ -544,8 +544,6 @@ std::string EDreamClient::GetDreamDownloadLink(const std::string& uuid) {
         std::string url{string_format(
             "%s/%s/url", Shepherd::GetEndpoint(ENDPOINT_GETDREAM), uuid.c_str())};
 
-        printf("url : %s\n", url.c_str());
-
         if (spDownload->Perform(url)) {
             try {
                 boost::property_tree::ptree pt;

@@ -160,6 +160,8 @@ bool CContentDownloader::Shutdown(void)
 
     g_NetworkManager->Abort();
 
+    m_gDownloader.StopFindingDreams();
+    
 /*    if (m_gDownloadThread && m_gDownloader)
     {
         m_gDownloader->Abort();
