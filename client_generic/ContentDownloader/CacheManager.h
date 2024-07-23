@@ -62,6 +62,8 @@ public:
     
     bool hasDream(const std::string& uuid) const;
     const Dream* getDream(const std::string& uuid) const;
+    std::string getDreamPath(const std::string& uuid) const;
+
     int dreamCount() const;
     
     // Individual json loading

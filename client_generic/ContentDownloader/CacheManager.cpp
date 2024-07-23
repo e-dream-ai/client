@@ -44,6 +44,18 @@ const Dream* CacheManager::getDream(const std::string& uuid) const {
     return nullptr;
 }
 
+std::string CacheManager::getDreamPath(const std::string& uuid) const {
+    if (!hasDiskCachedItem(uuid)) {
+        return "";
+    }
+    
+    std::string dest = ContentDownloader::Shepherd::mp4Path();
+    boost::filesystem::path folderPath(dest);
+    boost::filesystem::path filePath = folderPath / (uuid + ".mp4");
+
+    return filePath.string();
+}
+
 int CacheManager::dreamCount() const {
     return (int)dreams.size();
 }

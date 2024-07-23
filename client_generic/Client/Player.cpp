@@ -34,6 +34,7 @@
 #include "RendererMetal.h"
 #endif
 
+#include "CacheManager.h"
 #include "ContentDownloader.h"
 #include "DreamPlaylist.h"
 #include "PlayCounter.h"
@@ -800,7 +801,9 @@ void CPlayer::CalculateNextClipThread()
 void CPlayer::PlayDreamNow(std::string_view _uuid) {
     writer_lock l(m_UpdateMutex);
     
-    auto path = ContentDownloader::SheepDownloader::findSheepPath(_uuid);
+    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+    
+    auto path = cm.getDreamPath(std::string(_uuid));
     
     if (path != "") {
         PlayClip(path, m_TimelineTime);
@@ -808,7 +811,7 @@ void CPlayer::PlayDreamNow(std::string_view _uuid) {
         if (m_CurrentClips.size() > 1)
             m_CurrentClips[1]->FadeOut(m_TimelineTime);
     } else {
-        printf("Can't find path for uuid");
+        printf("Dream isn't cached");
     }
 }
 
