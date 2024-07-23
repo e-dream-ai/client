@@ -608,9 +608,17 @@ std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
         boost::system::error_code ec;
         auto response = json::parse(contents, ec).as_object();
         auto data = response["data"].as_object();
-        auto playlist = data["playlist"].as_object();
-    
-        for (auto& item : playlist["contents"].as_array()) {
+        
+        // Urgggghh, default playlist doesn't use the same format...
+        boost::json::array itemArray;
+        if (id == 0) {
+            itemArray = data["playlist"].as_array();
+        } else {
+            auto playlist = data["playlist"].as_object();
+            itemArray = playlist["contents"].as_array();
+        }
+
+        for (auto& item : itemArray) {
             auto itemObj = item.as_object();
             
             auto uuid = std::string(itemObj["uuid"].as_string());

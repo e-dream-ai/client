@@ -188,7 +188,7 @@ public:
             
             // Are we in playlist mode ? If so we add that list, sorted default
             playlistId = g_Settings()->Get("settings.content.current_playlist", 0);
-            if (playlistId > 0) {
+            if (playlistId >= 0) {
                 auto uuids = EDreamClient::ParsePlaylist(playlistId);
  
                 auto [name, userName] = EDreamClient::ParsePlaylistCredits(playlistId);
@@ -202,7 +202,7 @@ public:
                     if (exists(fileName))
                         m_List.push(fileName);
                 }
-            } else {
+            } /*else {
                 ContentDownloader::SheepArray allSheep;
                 Shepherd::getClientFlock(&allSheep);    // Grab a truly fresh list
                 
@@ -224,7 +224,7 @@ public:
                         m_List.push(sheep->fileName);
                     }
                 }
-            }
+            }*/
             
 #ifdef DEBUG
 /*            std::vector<std::string> testVideos = g_Settings()->Get(
