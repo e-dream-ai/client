@@ -68,45 +68,37 @@ void CacheManager::loadJsonFile(const std::string& filename) {
     if (jv.as_object().at("success").as_bool() && jv.as_object().at("data").as_object().contains("dreams")) {
         const auto& dreams_array = jv.as_object().at("data").as_object().at("dreams").as_array();
         for (const auto& dream_json : dreams_array) {
-            Dream dream;
-            dream.uuid = dream_json.as_object().at("uuid").as_string().c_str();
-            dream.name = dream_json.as_object().at("name").as_string().c_str();
-            dream.artist = dream_json.as_object().at("artist").as_string().c_str();
-            dream.size = dream_json.as_object().at("size").as_string().c_str();
-            dream.status = dream_json.as_object().at("status").as_string().c_str();
-            dream.fps = dream_json.as_object().at("fps").as_string().c_str();
-            dream.frames = dream_json.as_object().at("frames").as_int64();
-            dream.thumbnail = dream_json.as_object().at("thumbnail").as_string().c_str();
-            dream.upvotes = dream_json.as_object().at("upvotes").as_int64();
-            dream.downvotes = dream_json.as_object().at("downvotes").as_int64();
-            dream.nsfw = dream_json.as_object().at("nsfw").as_bool();
-            dream.frontendUrl = dream_json.as_object().at("frontendUrl").as_string().c_str();
-            dream.video_timestamp = dream_json.as_object().at("video_timestamp").as_int64();
-            dream.timestamp = dream_json.as_object().at("timestamp").as_int64();
-            
-            if (dream_json.as_object().at("activityLevel").is_number()) {
-                dream.activityLevel = dream_json.as_object().at("activityLevel").to_number<float>();
+            if (!dream_json.is_object()) {
+                g_Log->Warning("Skipping invalid dream entry: not an object");
+                continue;
             }
+
+            const auto& dream_obj = dream_json.as_object();
+            
+            Dream dream;
+            
+            dream.uuid = safe_get_string(dream_obj, "uuid");
+            if (dream.uuid.empty()) {
+                g_Log->Warning("Skipping dream with empty UUID");
+                continue;
+            }
+            
+            dream.name = safe_get_string(dream_obj, "name");
+            dream.artist = safe_get_string(dream_obj, "artist");
+            dream.size = safe_get_string(dream_obj, "size");
+            dream.status = safe_get_string(dream_obj, "status");
+            dream.fps = safe_get_string(dream_obj, "fps");
+            dream.frames = safe_get_int64(dream_obj, "frames");
+            dream.thumbnail = safe_get_string(dream_obj, "thumbnail");
+            dream.upvotes = safe_get_int64(dream_obj, "upvotes");
+            dream.downvotes = safe_get_int64(dream_obj, "downvotes");
+            dream.nsfw = safe_get_bool(dream_obj, "nsfw");
+            dream.frontendUrl = safe_get_string(dream_obj, "frontendUrl");
+            dream.video_timestamp = safe_get_int64(dream_obj, "video_timestamp");
+            dream.timestamp = safe_get_int64(dream_obj, "timestamp");
+            dream.activityLevel = safe_get_float(dream_obj, "activityLevel");
+            
             dreams[dream.uuid] = dream;
-
-            /*
-            // TEST CODE
-            DiskCachedItem newDiskItem;
-            newDiskItem.uuid = dream.uuid;
-            newDiskItem.version = dream.video_timestamp;
-            newDiskItem.downloadDate = dream.video_timestamp;
-
-            addDiskCachedItem(newDiskItem);
-            
-            HistoryItem newHistoryItem;
-            newHistoryItem.uuid = dream.uuid;
-            newHistoryItem.version = dream.video_timestamp;
-            newHistoryItem.downloadDate = dream.video_timestamp;
-            newHistoryItem.deletedDate = dream.video_timestamp;
-            addHistoryItem(newHistoryItem);
-            // /TEST CODE
-             */
-            
         }
     }
 }

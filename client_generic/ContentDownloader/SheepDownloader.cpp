@@ -230,7 +230,7 @@ static void LogException(const std::exception& e, size_t dreamIndex,
                          std::string_view fileStr)
 {
     auto str = string_format(
-        "Exception during parsing dreams list:%s contents:\"%s\" dreamIndex:%d",
+        "Exception during parsing sheep list:%s contents:\"%s\" dreamIndex:%d",
         e.what(), fileStr.data(), dreamIndex);
     PrintMessage(str);
 }

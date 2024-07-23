@@ -14,6 +14,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/json.hpp>
 
 namespace Cache {
 
@@ -125,6 +126,40 @@ private:
 
     DiskCachedItem deserializeDiskCachedItem(const boost::property_tree::ptree& pt) const;
     HistoryItem deserializeHistoryItem(const boost::property_tree::ptree& pt) const;
+    
+    // JSON Parser helpers
+    std::string safe_get_string(const boost::json::object& obj, const char* key, const std::string& default_value = "") {
+        auto it = obj.find(key);
+        if (it != obj.end() && it->value().is_string()) {
+            return it->value().as_string().c_str();
+        }
+        return default_value;
+    }
+
+    int64_t safe_get_int64(const boost::json::object& obj, const char* key, int64_t default_value = 0) {
+        auto it = obj.find(key);
+        if (it != obj.end() && it->value().is_int64()) {
+            return it->value().as_int64();
+        }
+        return default_value;
+    }
+
+    bool safe_get_bool(const boost::json::object& obj, const char* key, bool default_value = false) {
+        auto it = obj.find(key);
+        if (it != obj.end() && it->value().is_bool()) {
+            return it->value().as_bool();
+        }
+        return default_value;
+    }
+
+    float safe_get_float(const boost::json::object& obj, const char* key, float default_value = 1.0f) {
+        auto it = obj.find(key);
+        if (it != obj.end() && it->value().is_number()) {
+            return it->value().to_number<float>();
+        }
+        return default_value;
+    }
+    
 };
 
 } // Namespace

@@ -678,6 +678,11 @@ std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
 }
 
 std::tuple<std::string, std::string> EDreamClient::ParsePlaylistCredits(int id) {
+    // Default playlist doesn't have any credits right now, hardcoding this
+    if (id == 0) {
+        return {"Popular dreams", "Various artists"};
+    }
+    
     // Open playlist and grab content
     std::string filePath{
         string_format("%splaylist_%i.json", Shepherd::jsonPlaylistPath(), id)};
