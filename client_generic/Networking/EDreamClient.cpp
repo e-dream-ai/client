@@ -959,10 +959,8 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
     }
 }
 
-void EDreamClient::SendPlayingDream(std::string uuid) {// ) {
-    std::cout << "Sending UUID " << uuid;
-    
-    
+void EDreamClient::SendPlayingDream(std::string uuid) 
+{
     std::shared_ptr<sio::object_message> ms =
         std::dynamic_pointer_cast<sio::object_message>(
             sio::object_message::create());

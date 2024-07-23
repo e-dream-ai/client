@@ -181,7 +181,7 @@ bool SheepDownloader::downloadSheep(sDreamMetadata* sheep)
         return false;
 
     m_spSheepDownloader =
-        std::make_shared<Network::CFileDownloader>(sheep->uuid);
+        std::make_shared<Network::CFileDownloader>("sheep " + sheep->uuid);
 
     Network::spCFileDownloader spDownload = m_spSheepDownloader;
 

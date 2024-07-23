@@ -153,7 +153,7 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
 
     auto dream = cm.getDream(uuid);
     
-    Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>(dream->name);
+    Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>("dream " + dream->name);
     
     // Set up headers if needed (not needed if we stay on S3)
     //spDownload->AppendHeader("Content-Type: application/octet-stream");
