@@ -122,7 +122,7 @@ Shepherd::~Shepherd()
 
 void Shepherd::initializeShepherd(/*HINSTANCE hInst, HWND hWnd*/)
 {
-    SheepDownloader::initializeDownloader();
+    //SheepDownloader::initializeDownloader();
     EDreamClient::InitializeClient();
 
     totalRenderedFrames =
@@ -140,7 +140,7 @@ void Shepherd::notifyShepherdOfHisUntimleyDeath()
 {
     g_Log->Info("notifyShepherdOfHisUntimleyDeath...");
 
-    SheepDownloader::closeDownloader();
+    //SheepDownloader::closeDownloader();
 
     // std::scoped_lock lockthis( s_ShepherdMutex );
 

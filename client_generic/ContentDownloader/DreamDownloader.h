@@ -31,6 +31,7 @@ public:
     void StopFindingDreams()  {
         isRunning.store(false);
         if (thread.joinable()) {
+            thread.interrupt();
             thread.join();
         }
     }
