@@ -139,8 +139,15 @@ void DreamDownloader::FindDreamsThread() {
     g_Log->Info("Exiting FindDreamsThreads()");
 }
 
+std::future<bool> DreamDownloader::DownloadImmediately(const std::string& uuid, std::function<void(bool, const std::string&)> callback) {
+    return std::async(std::launch::async,
+        [this, uuid, callback]() {
+            return this->DownloadDreamNow(uuid, callback);
+        }
+    );
+}
 
-bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& downloadLink) {
+bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& downloadLink, bool enqueue) {
     // Grab the CacheManager
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
     
@@ -200,11 +207,48 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
 
     cm.addDiskCachedItem(newDiskItem);
     
-    // Add the file to the player too
-    g_Player().Add(fullSavePath.c_str());
+    if (enqueue) {
+        // Add the file to the player too
+        g_Player().Add(fullSavePath.c_str());
+    }
 
     
     return true;
 }
+
+// This is used in instant download context, it's run asynchronously above
+// Multiple actions are required to grab the link and download the file
+// Then a callback will start playing the dream immediately on the correct thread
+bool DreamDownloader::DownloadDreamNow(const std::string& uuid, std::function<void(bool, const std::string&)> callback) {
+    g_Log->Info("Immediately downloading dream with UUID: %s", uuid.c_str());
+    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+    
+    if (!cm.hasDiskCachedItem(uuid.c_str())) {
+        auto link = EDreamClient::GetDreamDownloadLink(uuid);
+        
+        if (!link.empty()) {
+            g_Log->Error("Download link received: %s", link.c_str());
+            bool success = DownloadDream(uuid, link, false);
+            
+            if (success) {
+                g_Log->Info("Successfully immediately downloaded dream with UUID: %s", uuid.c_str());
+            } else {
+                g_Log->Info("Failed to immediately download dream with UUID: %s", uuid.c_str());
+            }
+            
+            // Execute the callback if provided
+            if (callback) {
+                callback(true, uuid);
+            }
+            
+            return success;
+        } else {
+            g_Log->Error("Download link denied");
+        }
+    }
+    
+    return false;
+}
+
 
 }

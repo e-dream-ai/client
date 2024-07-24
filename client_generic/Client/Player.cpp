@@ -799,19 +799,18 @@ void CPlayer::CalculateNextClipThread()
 }
 
 void CPlayer::PlayDreamNow(std::string_view _uuid) {
-    writer_lock l(m_UpdateMutex);
-    
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
     
     auto path = cm.getDreamPath(std::string(_uuid));
     
     if (path != "") {
+        writer_lock l(m_UpdateMutex);
         PlayClip(path, m_TimelineTime);
         m_CurrentClips[0]->FadeOut(m_TimelineTime);
         if (m_CurrentClips.size() > 1)
             m_CurrentClips[1]->FadeOut(m_TimelineTime);
     } else {
-        printf("Dream isn't cached");
+        cm.cacheAndPlayImmediately(std::string(_uuid));
     }
 }
 

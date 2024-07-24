@@ -14,8 +14,11 @@
 #include <boost/filesystem.hpp>
 
 #include "StringFormat.h"
+#include "EDreamClient.h"
+#include "ContentDownloader.h"
 #include "Shepherd.h"
 #include "Settings.h"
+#include "Player.h"
 #include "Log.h"
 
 namespace Cache {
@@ -280,6 +283,26 @@ bool CacheManager::deleteMetadata(const std::string& uuid) {
         g_Log->Error("Metadata file does not exist: %s %s", filePath.c_str(), e.what());
         return false;
     }
+}
+
+// MARK: Immediate playback
+void CacheManager::cacheAndPlayImmediately(const std::string& uuid) {
+    // First we may need the metadata
+    if (!areMetadataCached(uuid)) {
+        EDreamClient::FetchDreamMetadata(uuid);
+        reloadMetadata(uuid);
+    }
+    
+    // Then we need to downlaod the file asynchronously
+    // We provide a callback so we can playthedream as soon as it's there
+    auto future = g_ContentDownloader().m_gDownloader.DownloadImmediately(uuid, [](bool success, const std::string& uuid) {
+        if (success) {
+            g_Log->Info("Immediate download completed successfully for UUID: ", uuid.c_str());
+            g_Player().PlayDreamNow(uuid);
+        } else {
+            g_Log->Error("Immediate download failed for UUID: ", uuid.c_str());
+        }
+    });
 }
 
 

@@ -13,6 +13,7 @@
 #include <string>
 #include <set>
 #include <mutex>
+#include <future>
 #include <boost/thread.hpp>
 
 namespace ContentDownloader
@@ -39,8 +40,10 @@ public:
     size_t GetDreamUUIDCount() const;
     bool isDreamUUIDQueued(const std::string& uuid) const; 
     
-    bool DownloadDream(const std::string& uuid, const std::string& downloadLink);
+    std::future<bool> DownloadImmediately(const std::string& uuid, std::function<void(bool, const std::string&)> callback = nullptr);
 
+    bool DownloadDream(const std::string& uuid, const std::string& downloadLink, bool enqueue = true);
+    bool DownloadDreamNow(const std::string& uuid, std::function<void(bool, const std::string&)> callback = nullptr);
 
 private:
     void FindDreamsThread();
