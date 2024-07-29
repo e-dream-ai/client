@@ -113,6 +113,10 @@ public:
     
     void cleanupDiskCache();
     void removeUnknownVideos();
+    
+    size_t getCachedDreamCount() const {
+        return diskCached.size();
+    }
 private:
     // Private constructor
     CacheManager() = default;

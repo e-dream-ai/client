@@ -46,6 +46,9 @@ public:
     bool DownloadDream(const std::string& uuid, const std::string& downloadLink, bool enqueue = true);
     bool DownloadDreamNow(const std::string& uuid, std::function<void(bool, const std::string&)> callback = nullptr);
 
+    void SetDownloadStatus(const std::string& status);
+    std::string GetDownloadStatus() const;
+    
 private:
     void FindDreamsThread();
     
@@ -53,6 +56,10 @@ private:
     std::atomic<bool> isRunning;
     std::set<std::string> m_dreamUUIDs;
     mutable std::mutex m_mutex;
+
+    // Download status
+    mutable std::mutex m_statusMutex;
+    std::string m_downloadStatus;
 };
 
 }

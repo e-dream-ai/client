@@ -81,6 +81,7 @@ class CElectricSheep
     int m_CpuUsageES;
     int m_HighCpuUsageCounter;
     int m_CpuUsageThreshold;
+    std::string m_PreviousDlState; // Track download status
     bool m_MultipleInstancesMode;
     bool m_bConfigMode;
     bool m_SeamlessPlayback;
@@ -744,7 +745,7 @@ class CElectricSheep
         }
     }
 #endif
-
+// MARK: Main per frame update loop
     virtual bool DoRealFrameUpdate(uint32_t displayUnit)
     {
         if (g_Player().BeginDisplayFrame(displayUnit))
@@ -1025,7 +1026,7 @@ class CElectricSheep
                 // Make sure the cache is primed before using those
                 if (cm.dreamCount() > 0) {
                     std::stringstream tmpstr;
-                    auto dreamCount = cm.dreamCount();
+                    auto dreamCount = cm.getCachedDreamCount();
                     
                     auto cacheSizeGB = cm.getCacheSize();
                     std::stringstream stream;
@@ -1112,15 +1113,14 @@ class CElectricSheep
                     (Hud::CTimeCountDownStat*)spStats->Get("svstat");
                 if (pTcd)
                 {
-                    bool isnew = false;
-
                     std::string dlState =
-                        ContentDownloader::Shepherd::downloadState(isnew);
+                                        g_ContentDownloader().m_gDownloader.GetDownloadStatus();
 
-                    if (isnew)
+                    if (dlState != m_PreviousDlState)
                     {
                         pTcd->SetSample(dlState);
                         pTcd->Visible(true);
+                        m_PreviousDlState = dlState;
                     }
                 }
 

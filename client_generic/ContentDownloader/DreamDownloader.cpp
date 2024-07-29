@@ -49,10 +49,21 @@ bool DreamDownloader::isDreamUUIDQueued(const std::string& uuid) const {
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_dreamUUIDs.find(uuid) != m_dreamUUIDs.end();
 }
+// MARK: Download status
+void DreamDownloader::SetDownloadStatus(const std::string& status) {
+    std::lock_guard<std::mutex> lock(m_statusMutex);
+    m_downloadStatus = status;
+}
+
+std::string DreamDownloader::GetDownloadStatus() const {
+    std::lock_guard<std::mutex> lock(m_statusMutex);
+    return m_downloadStatus;
+}
 
 // MARK: Thread function
 void DreamDownloader::FindDreamsThread() {
     PlatformUtils::SetThreadName("FindDreamsToDownload");
+    
     // Grab the CacheManager
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
 
@@ -66,10 +77,13 @@ void DreamDownloader::FindDreamsThread() {
 
     while (isRunning.load()) {
         g_Log->Info("Searching for dreams to download...");
+        SetDownloadStatus("Searching for dreams to download...");
 
         // Make sure we have a properly initialized CacheManager
         if (cm.dreamCount() < 1) {
-            g_Log->Info("CacheManager isn't primed yet");
+            g_Log->Info("Initializing...");
+            SetDownloadStatus("Initializing...");
+
             boost::this_thread::sleep(boost::get_system_time() +
                                  boost::posix_time::seconds(5));
             continue;
@@ -83,12 +97,17 @@ void DreamDownloader::FindDreamsThread() {
             // Make sure we have some remaining quota
             if (cm.getRemainingQuota() < (long long)minSpaceForDream) {
                 g_Log->Info("Quota too low to grab new videos %ll", cm.getRemainingQuota());
+                // TODO : some user funnel to add quota, later on
+                SetDownloadStatus("Your quota is expired");
+
                 break;
             }
             
             // Do we even have some disk space available ?
             if (cm.getFreeSpace(Shepherd::mp4Path()) < minDiskSpace) {
-                g_Log->Info("Disk space too low %ll", cm.getFreeSpace(Shepherd::mp4Path()));
+                g_Log->Info("Not enough disk space %ll", cm.getFreeSpace(Shepherd::mp4Path()));
+                SetDownloadStatus("Not enough disk space");
+
                 break;
             }
 
@@ -96,6 +115,7 @@ void DreamDownloader::FindDreamsThread() {
             if (cm.getRemainingCacheSpace() < minSpaceForDream) {
                 // TODO: add trigger to cache cleanup and decision process
                 g_Log->Info("Not enough space in cache remaining %ll", cm.getRemainingCacheSpace());
+                SetDownloadStatus("Your cache is full");
                 break;
             }
             // /Preflight
@@ -129,6 +149,7 @@ void DreamDownloader::FindDreamsThread() {
             
         }
 
+        SetDownloadStatus("Everything queued, will check again in a few seconds");
         // Sleep for a while before the next iteration
         boost::this_thread::sleep(boost::get_system_time() +
                              boost::posix_time::seconds(10));
@@ -157,7 +178,7 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
 
     auto dream = cm.getDream(uuid);
     
-    Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>("dream " + dream->name);
+    Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>("Downloading dream " + dream->name);
     
     // Set up headers if needed (not needed if we stay on S3)
     //spDownload->AppendHeader("Content-Type: application/octet-stream");
@@ -166,6 +187,7 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
 
     // Perform the download
     if (!spDownload->Perform(downloadLink)) {
+        SetDownloadStatus("Download failed for " + dream->name);
         g_Log->Error("Failed to download dream. Server returned %i: %s",
                      spDownload->ResponseCode(),
                      spDownload->Data().c_str());
@@ -196,7 +218,7 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
     }
 
     g_Log->Info("Successfully downloaded and saved dream to %s", fullSavePath.c_str());
-    
+    SetDownloadStatus("Download complete " + dream->name);
     Cache::CacheManager::DiskCachedItem newDiskItem;
     newDiskItem.uuid = uuid;
     newDiskItem.version = dream->video_timestamp;
