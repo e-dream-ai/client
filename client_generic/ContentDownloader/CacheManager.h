@@ -22,7 +22,7 @@ struct Dream {
     std::string uuid;
     std::string name;
     std::string artist;
-    std::string size;
+    long long size;
     std::string status;
     std::string fps;
     int frames;
