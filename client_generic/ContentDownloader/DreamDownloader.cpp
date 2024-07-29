@@ -139,6 +139,14 @@ void DreamDownloader::FindDreamsThread() {
                 
                 if (!link.empty()) {
                     g_Log->Error("Download link received: %s", link.c_str());
+                    auto queueSize = m_dreamUUIDs.size() + 1;
+                    if (queueSize == 1) {
+                        SetDownloadStatus("Downloading 1 dream ");
+                    } else {
+                        std::string status = "Downloading " + std::to_string(queueSize) + " dreams";
+                        SetDownloadStatus(status);
+                    }
+
                     DownloadDream(current_uuid, link);
                     
                 } else {
