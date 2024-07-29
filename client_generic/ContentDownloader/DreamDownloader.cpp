@@ -121,9 +121,6 @@ void DreamDownloader::FindDreamsThread() {
                     g_Log->Error("Download link received: %s", link.c_str());
                     DownloadDream(current_uuid, link);
                     
-                    // Wait 30s
-                    boost::this_thread::sleep(boost::get_system_time() +
-                                         boost::posix_time::seconds(30));
                 } else {
                     g_Log->Error("Download link denied");
                 }
@@ -134,7 +131,7 @@ void DreamDownloader::FindDreamsThread() {
 
         // Sleep for a while before the next iteration
         boost::this_thread::sleep(boost::get_system_time() +
-                             boost::posix_time::seconds(30));
+                             boost::posix_time::seconds(10));
     }
     g_Log->Info("Exiting FindDreamsThreads()");
 }
@@ -205,13 +202,13 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
     newDiskItem.version = dream->video_timestamp;
     newDiskItem.downloadDate = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
-    cm.addDiskCachedItem(newDiskItem);
+    cm.addDiskCachedItem(newDiskItem);      // Make sure we maintain our cache log
+    cm.decreaseRemainingQuota(dream->size); // Also update our internal quota counter
     
     if (enqueue) {
         // Add the file to the player too
         g_Player().Add(fullSavePath.c_str());
     }
-
     
     return true;
 }

@@ -88,6 +88,7 @@ public:
     void setRemainingQuota(long long newQuota) {
        remainingQuota = newQuota;
     }
+    void decreaseRemainingQuota(long long amount);
     
     // Used space by a path
     std::uintmax_t getUsedSpace(const char* path);

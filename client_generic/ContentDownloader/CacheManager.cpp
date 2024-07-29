@@ -204,6 +204,18 @@ const std::unordered_map<std::string, Dream>& CacheManager::getDreams() const {
     return dreams;
 }
 
+// MARK: - Quota
+
+void CacheManager::decreaseRemainingQuota(long long amount) {
+    if (amount > remainingQuota) {
+        remainingQuota = 0;
+    } else {
+        remainingQuota -= amount;
+    }
+}
+
+// MARK: - Metadata
+
 void CacheManager::loadCachedMetadata() {
     // Also load our internal Caches here !
     loadDiskCachedFromJson();
