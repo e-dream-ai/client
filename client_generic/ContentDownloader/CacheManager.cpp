@@ -325,32 +325,43 @@ void CacheManager::cacheAndPlayImmediately(const std::string& uuid) {
 
 
 // MARK: - Disk space management
-std::uintmax_t CacheManager::getUsedSpace(const char* path) {
+std::uintmax_t CacheManager::getUsedSpace(const char* path) const{
     try {
         fs::path p(path);
         if (!fs::exists(p)) {
-            throw std::runtime_error("Path does not exist");
+            g_Log->Error("Path does not exist: %s", path);
+            return 0;
         }
         
-        if (fs::is_directory(p)) {
-            return fs::file_size(p);
-        } else {
-            std::uintmax_t size = 0;
-            fs::recursive_directory_iterator end;
-            for (fs::recursive_directory_iterator it(p); it != end; ++it) {
-                if (!fs::is_directory(*it)) {
+        if (!fs::is_directory(p)) {
+            g_Log->Error("Path is not a directory: %s", path);
+            return 0;
+        }
+
+        std::uintmax_t size = 0;
+        fs::recursive_directory_iterator end;
+        for (fs::recursive_directory_iterator it(p); it != end; ++it) {
+            try {
+                if (!fs::is_directory(*it) && fs::is_regular_file(*it)) {
                     size += fs::file_size(*it);
                 }
+            } catch (const fs::filesystem_error& e) {
+                // Log the error and continue with the next file
+                g_Log->Warning("Error reading file size: %s. Error: %s", it->path().string().c_str(), e.what());
             }
-            return size;
         }
+        return size;
     } catch (const fs::filesystem_error& e) {
-        throw std::runtime_error(std::string("Filesystem error: ") + e.what());
+        g_Log->Error("Filesystem error in getUsedSpace: %s", e.what());
+        return 0;
+    } catch (const std::exception& e) {
+        g_Log->Error("Unexpected error in getUsedSpace: %s", e.what());
+        return 0;
     }
 }
 
 // Function to get the remaining free space on the disk
-std::uintmax_t CacheManager::getFreeSpace(const char* path) {
+std::uintmax_t CacheManager::getFreeSpace(const char* path) const {
     try {
         fs::path p(path);
         if (!fs::exists(p)) {
@@ -380,6 +391,14 @@ std::uintmax_t CacheManager::getRemainingCacheSpace() {
     }
 }
 
+double CacheManager::getCacheSize() const {
+    const char* mp4Path = ContentDownloader::Shepherd::mp4Path();
+    auto totalSizeBytes = getUsedSpace(mp4Path);
+
+    // Convert bytes to GB
+    constexpr double bytesPerGB = 1024.0 * 1024.0 * 1024.0;
+    return static_cast<double>(totalSizeBytes) / bytesPerGB;
+}
 
 // MARK: - DiskCacheItem/HistoryItem
 

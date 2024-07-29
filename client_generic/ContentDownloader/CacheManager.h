@@ -91,12 +91,12 @@ public:
     void decreaseRemainingQuota(long long amount);
     
     // Used space by a path
-    std::uintmax_t getUsedSpace(const char* path);
+    std::uintmax_t getUsedSpace(const char* path) const;
     // Underlying disk free space to that path
-    std::uintmax_t getFreeSpace(const char* path);
+    std::uintmax_t getFreeSpace(const char* path) const;
     // Computed remaining cache space base on user settings
     std::uintmax_t getRemainingCacheSpace();
-
+    double getCacheSize() const;
     
     // diskCachedItem/historyItem
     void addDiskCachedItem(const DiskCachedItem& item);

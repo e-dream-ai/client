@@ -1021,16 +1021,24 @@ class CElectricSheep
                     EDreamClient::SetCPUUsage(m_CpuUsageES);
                 }
 
-                std::stringstream tmpstr;
-                uint64_t flockcount =
-                    ContentDownloader::Shepherd::getClientFlockCount(0);
-                uint64_t flockmbs =
-                    ContentDownloader::Shepherd::getClientFlockMBs(0);
-                tmpstr << flockcount << " dream" << (flockcount > 1 ? "s" : "")
-                       << ", " << flockmbs << "MB";
-                ((Hud::CStringStat*)spStats->Get("all"))
+                Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+                // Make sure the cache is primed before using those
+                if (cm.dreamCount() > 0) {
+                    std::stringstream tmpstr;
+                    auto dreamCount = cm.dreamCount();
+                    
+                    auto cacheSizeGB = cm.getCacheSize();
+                    std::stringstream stream;
+                    stream << std::fixed << std::setprecision(1) << cacheSizeGB;
+                    // std::string cacheSizeString = stream.str() + " GB";
+                    
+                    
+                    tmpstr << dreamCount << " dream" << (dreamCount > 1 ? "s" : "")
+                    << ", " << stream.str() << " GB";
+                    ((Hud::CStringStat*)spStats->Get("all"))
                     ->SetSample(tmpstr.str());
-
+                }
+                
                 pTmp =
                     (Hud::CStringStat*)spStats->Get("transfers");
                 if (pTmp)
