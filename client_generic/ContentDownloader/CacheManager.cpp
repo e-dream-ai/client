@@ -100,7 +100,13 @@ void CacheManager::loadJsonFile(const std::string& filename) {
             
             dream.name = safe_get_string(dream_obj, "name");
             dream.artist = safe_get_string(dream_obj, "artist");
-            dream.size = safe_get_int64(dream_obj, "size");
+
+            auto sizeString = safe_get_string(dream_obj, "size");
+            std::istringstream iss(sizeString);
+            if (!(iss >> dream.size)) {
+                g_Log->Warning("Couldn't parse dream size");
+                dream.size = 0;
+            }
             dream.status = safe_get_string(dream_obj, "status");
             dream.fps = safe_get_string(dream_obj, "fps");
             dream.frames = safe_get_int64(dream_obj, "frames");
