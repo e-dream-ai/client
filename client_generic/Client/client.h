@@ -29,7 +29,7 @@
 #include "StatsConsole.h"
 #include "TextureFlat.h"
 #include "Timer.h"
-#include "Voting.h"
+//#include "Voting.h"
 #include "PlatformUtils.h"
 #include "StringFormat.h"
 #include "CacheManager.h"
@@ -110,7 +110,7 @@ class CElectricSheep
     int m_Brightness = 0;
     
     //	Voting object.
-    CVote* m_pVoter;
+    //CVote* m_pVoter;
 
     //	Default root directory, ie application data.
     std::string m_AppData;
@@ -190,7 +190,7 @@ class CElectricSheep
         m_MultipleInstancesMode = false;
         printf("CElectricSheep()\n");
 
-        m_pVoter = nullptr;
+        //m_pVoter = nullptr;
 #ifndef LINUX_GNU
         m_AppData = "./.ElectricSheep/";
         m_WorkingDir = "./";
@@ -457,7 +457,7 @@ class CElectricSheep
             //	Set proxy info.
             SetupProxy();
 
-            m_pVoter = new CVote();
+            //m_pVoter = new CVote();
         }
 
         g_Player().SetMultiDisplayMode(
@@ -562,7 +562,7 @@ class CElectricSheep
             //	This stuff was never started in config mode.
             if (m_MultipleInstancesMode == false)
             {
-                SAFE_DELETE(m_pVoter);
+                //SAFE_DELETE(m_pVoter);
 
                 g_NetworkManager->Shutdown();
             }
@@ -1199,43 +1199,37 @@ class CElectricSheep
                     return true;
                 }
                 if (data != nullptr) {
-                    if (m_pVoter != nullptr &&
-                        m_pVoter->Vote(data->dreamData.uuid, true, voteDelaySeconds))
-                        popOSD(Hud::Like);
+                    popOSD(Hud::Like);
                 }
                 return true;
             case CLIENT_COMMAND_DISLIKE:
                 if (data != nullptr) {
-                    if (m_pVoter != nullptr &&
-                        m_pVoter->Vote(data->dreamData.uuid, false, voteDelaySeconds))
+                    if (g_Settings()->Get("settings.content.negvotedeletes", true))
                     {
-                        if (g_Settings()->Get("settings.content.negvotedeletes", true))
-                        {
-                            // g_Player().Stop();
-                            g_Player().MarkForDeletion(currentDreamUUID);
-                            g_Player().SkipToNext();
-                            m_spCrossFade->Reset();
-                            m_HudManager->Add("fade", m_spCrossFade, 1);
+                        // g_Player().Stop();
+                        g_Player().MarkForDeletion(currentDreamUUID);
+                        g_Player().SkipToNext();
+                        m_spCrossFade->Reset();
+                        m_HudManager->Add("fade", m_spCrossFade, 1);
 
-                            // We need to move to something else before deleting
-                            // We wait 5s to delete
-                            auto deleteDispatch =
-                                std::make_shared<CDelayedDispatch>(
-                                    [&, this]() -> void
-                                    {
-                                        g_Player().Delete(currentDreamUUID);
+                        // We need to move to something else before deleting
+                        // We wait 5s to delete
+                        auto deleteDispatch =
+                            std::make_shared<CDelayedDispatch>(
+                                [&]() -> void
+                                {
+                                    g_Player().Delete(currentDreamUUID);
 
-                                    });
-                            deleteDispatch->DispatchAfter(5);
+                                });
+                        deleteDispatch->DispatchAfter(5);
 
-                        } else {
-                            g_Player().SkipToNext();
-                            m_spCrossFade->Reset();
-                            m_HudManager->Add("fade", m_spCrossFade, 1);
-                        }
-
-                        popOSD(Hud::Dislike);
+                    } else {
+                        g_Player().SkipToNext();
+                        m_spCrossFade->Reset();
+                        m_HudManager->Add("fade", m_spCrossFade, 1);
                     }
+
+                    popOSD(Hud::Dislike);
                 }
                 return true;
                 //    Repeat current sheep

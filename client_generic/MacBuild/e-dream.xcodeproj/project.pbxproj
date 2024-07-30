@@ -80,7 +80,6 @@
 		2160FAB90F30F45100B2C27A /* pool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19300E8E591000CE185C /* pool.cpp */; };
 		2160FABA0F30F45100B2C27A /* ContentDecoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19400E8E59E700CE185C /* ContentDecoder.cpp */; };
 		2160FABC0F30F45100B2C27A /* Player.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19600E8E5CCE00CE185C /* Player.cpp */; };
-		2160FABD0F30F45100B2C27A /* Voting.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19610E8E5CCE00CE185C /* Voting.cpp */; };
 		2160FACC0F30F45100B2C27A /* storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19F40E8E639400CE185C /* storage.cpp */; };
 		2160FACD0F30F45100B2C27A /* DisplayOutput.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A100E8E646D00CE185C /* DisplayOutput.cpp */; };
 		2160FACE0F30F45100B2C27A /* Image.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A110E8E646D00CE185C /* Image.cpp */; };
@@ -122,7 +121,6 @@
 		218878DB0EC6CDE2001ABD2E /* pool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19300E8E591000CE185C /* pool.cpp */; };
 		218878DC0EC6CDE2001ABD2E /* ContentDecoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19400E8E59E700CE185C /* ContentDecoder.cpp */; };
 		218878DE0EC6CDE2001ABD2E /* Player.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19600E8E5CCE00CE185C /* Player.cpp */; };
-		218878DF0EC6CDE2001ABD2E /* Voting.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19610E8E5CCE00CE185C /* Voting.cpp */; };
 		218878EE0EC6CDE2001ABD2E /* storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19F40E8E639400CE185C /* storage.cpp */; };
 		218878EF0EC6CDE2001ABD2E /* DisplayOutput.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A100E8E646D00CE185C /* DisplayOutput.cpp */; };
 		218878F00EC6CDE2001ABD2E /* Image.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A110E8E646D00CE185C /* Image.cpp */; };
@@ -313,7 +311,6 @@
 		F0C100272C1372EF007FA505 /* ContentDecoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19400E8E59E700CE185C /* ContentDecoder.cpp */; };
 		F0C100282C1372EF007FA505 /* JSONStorage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 461C9D7A2B28BA50000C44E9 /* JSONStorage.cpp */; };
 		F0C100292C1372EF007FA505 /* Player.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19600E8E5CCE00CE185C /* Player.cpp */; };
-		F0C1002A2C1372EF007FA505 /* Voting.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19610E8E5CCE00CE185C /* Voting.cpp */; };
 		F0C1002B2C1372EF007FA505 /* storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19F40E8E639400CE185C /* storage.cpp */; };
 		F0C1002C2C1372EF007FA505 /* DisplayOutput.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A100E8E646D00CE185C /* DisplayOutput.cpp */; };
 		F0C1002D2C1372EF007FA505 /* Image.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A110E8E646D00CE185C /* Image.cpp */; };
@@ -438,7 +435,6 @@
 		F0E9CE522C136B0500C4D694 /* Player.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19600E8E5CCE00CE185C /* Player.cpp */; };
 		F0E9CE532C136B0500C4D694 /* TextureFlatMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C72AC1AE9D00017C51 /* TextureFlatMetal.mm */; };
 		F0E9CE542C136B0500C4D694 /* TextMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 46D2E8FC2AFBBBF50054049D /* TextMetal.mm */; };
-		F0E9CE552C136B0500C4D694 /* Voting.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19610E8E5CCE00CE185C /* Voting.cpp */; };
 		F0E9CE562C136B0500C4D694 /* ShaderMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 46FA9E192B03CB0500708000 /* ShaderMetal.mm */; };
 		F0E9CE572C136B0500C4D694 /* storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19F40E8E639400CE185C /* storage.cpp */; };
 		F0E9CE582C136B0500C4D694 /* DisplayOutput.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A100E8E646D00CE185C /* DisplayOutput.cpp */; };
@@ -699,7 +695,6 @@
 		12478A842B03B5BB006A8669 /* MonoInstance.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MonoInstance.h; path = ../Client/MonoInstance.h; sourceTree = "<group>"; };
 		12478A852B03B5C8006A8669 /* ServerMessage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ServerMessage.h; path = ../Client/ServerMessage.h; sourceTree = "<group>"; };
 		12478A862B03B5EF006A8669 /* StatsConsole.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StatsConsole.h; path = ../Client/StatsConsole.h; sourceTree = "<group>"; };
-		12478A872B03B5F9006A8669 /* Voting.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Voting.h; path = ../Client/Voting.h; sourceTree = "<group>"; };
 		12478A882B03B60A006A8669 /* ContentDecoder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ContentDecoder.h; path = ../ContentDecoder/ContentDecoder.h; sourceTree = "<group>"; };
 		12478A892B03B61B006A8669 /* SimplePlaylist.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SimplePlaylist.h; path = ../ContentDecoder/SimplePlaylist.h; sourceTree = "<group>"; };
 		12478A8B2B03B61B006A8669 /* LoopingPlaylist.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = LoopingPlaylist.h; path = ../ContentDecoder/LoopingPlaylist.h; sourceTree = "<group>"; };
@@ -764,7 +759,6 @@
 		212B19400E8E59E700CE185C /* ContentDecoder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ContentDecoder.cpp; path = ../ContentDecoder/ContentDecoder.cpp; sourceTree = SOURCE_ROOT; };
 		212B195F0E8E5CCE00CE185C /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = main.cpp; path = ../Client/main.cpp; sourceTree = SOURCE_ROOT; };
 		212B19600E8E5CCE00CE185C /* Player.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Player.cpp; path = ../Client/Player.cpp; sourceTree = SOURCE_ROOT; };
-		212B19610E8E5CCE00CE185C /* Voting.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Voting.cpp; path = ../Client/Voting.cpp; sourceTree = SOURCE_ROOT; };
 		212B196C0E8E5D0800CE185C /* GLUT.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLUT.framework; path = System/Library/Frameworks/GLUT.framework; sourceTree = SDKROOT; };
 		212B19850E8E5E9200CE185C /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
 		212B19F40E8E639400CE185C /* storage.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = storage.cpp; path = ../TupleStorage/storage.cpp; sourceTree = SOURCE_ROOT; };
@@ -1289,8 +1283,6 @@
 				21D944A90E8F6245001C141E /* client_mac.h */,
 				212B19600E8E5CCE00CE185C /* Player.cpp */,
 				12478A832B03B584006A8669 /* Player.h */,
-				212B19610E8E5CCE00CE185C /* Voting.cpp */,
-				12478A872B03B5F9006A8669 /* Voting.h */,
 				467B6FC72AE6CFFB001C80CB /* EDreamClient.h */,
 				467B6FC82AE6D031001C80CB /* EDreamClient.cpp */,
 				12478A772B03B2D0006A8669 /* client.h */,
@@ -1856,7 +1848,6 @@
 				2160FABC0F30F45100B2C27A /* Player.cpp in Sources */,
 				467230C92AC1AE9D00017C51 /* TextureFlatMetal.mm in Sources */,
 				46D2E8FE2AFBBBF50054049D /* TextMetal.mm in Sources */,
-				2160FABD0F30F45100B2C27A /* Voting.cpp in Sources */,
 				46FA9E1B2B03CB0B00708000 /* ShaderMetal.mm in Sources */,
 				2160FACC0F30F45100B2C27A /* storage.cpp in Sources */,
 				2160FACD0F30F45100B2C27A /* DisplayOutput.cpp in Sources */,
@@ -1916,7 +1907,6 @@
 				218878DC0EC6CDE2001ABD2E /* ContentDecoder.cpp in Sources */,
 				461C9D7C2B28BA50000C44E9 /* JSONStorage.cpp in Sources */,
 				218878DE0EC6CDE2001ABD2E /* Player.cpp in Sources */,
-				218878DF0EC6CDE2001ABD2E /* Voting.cpp in Sources */,
 				218878EE0EC6CDE2001ABD2E /* storage.cpp in Sources */,
 				218878EF0EC6CDE2001ABD2E /* DisplayOutput.cpp in Sources */,
 				F0141B7B2C5925C900DBA60E /* ServerConfig.cpp in Sources */,
@@ -1977,7 +1967,6 @@
 				F0C100272C1372EF007FA505 /* ContentDecoder.cpp in Sources */,
 				F0C100282C1372EF007FA505 /* JSONStorage.cpp in Sources */,
 				F0C100292C1372EF007FA505 /* Player.cpp in Sources */,
-				F0C1002A2C1372EF007FA505 /* Voting.cpp in Sources */,
 				F0C1002B2C1372EF007FA505 /* storage.cpp in Sources */,
 				F0C1002C2C1372EF007FA505 /* DisplayOutput.cpp in Sources */,
 				F0141B7D2C5925C900DBA60E /* ServerConfig.cpp in Sources */,
@@ -2041,7 +2030,6 @@
 				F0E9CE522C136B0500C4D694 /* Player.cpp in Sources */,
 				F0E9CE532C136B0500C4D694 /* TextureFlatMetal.mm in Sources */,
 				F0E9CE542C136B0500C4D694 /* TextMetal.mm in Sources */,
-				F0E9CE552C136B0500C4D694 /* Voting.cpp in Sources */,
 				F0E9CE562C136B0500C4D694 /* ShaderMetal.mm in Sources */,
 				F0E9CE572C136B0500C4D694 /* storage.cpp in Sources */,
 				F0E9CE582C136B0500C4D694 /* DisplayOutput.cpp in Sources */,
