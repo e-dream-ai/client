@@ -8,6 +8,7 @@
 #ifndef CACHE_MANAGER_H
 #define CACHE_MANAGER_H
 
+#include <fstream>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -91,9 +92,9 @@ public:
     void decreaseRemainingQuota(long long amount);
     
     // Used space by a path
-    std::uintmax_t getUsedSpace(const char* path) const;
+    std::uintmax_t getUsedSpace(const std::filesystem::path& path) const;
     // Underlying disk free space to that path
-    std::uintmax_t getFreeSpace(const char* path) const;
+    std::uintmax_t getFreeSpace(const std::filesystem::path& path) const;
     // Computed remaining cache space base on user settings
     std::uintmax_t getRemainingCacheSpace();
     double getCacheSize() const;

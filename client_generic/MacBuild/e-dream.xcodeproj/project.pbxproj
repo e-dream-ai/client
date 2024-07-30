@@ -225,6 +225,10 @@
 		46ED5CB42AF5326A00AF8F45 /* DisplayMetal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 46ED5CB02AF5326A00AF8F45 /* DisplayMetal.cpp */; };
 		46FA9E1A2B03CB0500708000 /* ShaderMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 46FA9E192B03CB0500708000 /* ShaderMetal.mm */; };
 		46FA9E1B2B03CB0B00708000 /* ShaderMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 46FA9E192B03CB0500708000 /* ShaderMetal.mm */; };
+		F0141B742C59115400DBA60E /* PathManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B732C59115400DBA60E /* PathManager.cpp */; };
+		F0141B752C59115500DBA60E /* PathManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B732C59115400DBA60E /* PathManager.cpp */; };
+		F0141B762C59115500DBA60E /* PathManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B732C59115400DBA60E /* PathManager.cpp */; };
+		F0141B772C59115500DBA60E /* PathManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B732C59115400DBA60E /* PathManager.cpp */; };
 		F01CCF172C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */; };
 		F01CCF182C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */; };
 		F01CCF192C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */; };
@@ -871,6 +875,8 @@
 		46ED5CB02AF5326A00AF8F45 /* DisplayMetal.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = DisplayMetal.cpp; path = ../../DisplayOutput/Metal/DisplayMetal.cpp; sourceTree = "<group>"; };
 		46FA9E182B03CB0500708000 /* ShaderMetal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShaderMetal.h; sourceTree = "<group>"; };
 		46FA9E192B03CB0500708000 /* ShaderMetal.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ShaderMetal.mm; sourceTree = "<group>"; };
+		F0141B722C59115400DBA60E /* PathManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PathManager.h; sourceTree = "<group>"; };
+		F0141B732C59115400DBA60E /* PathManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PathManager.cpp; sourceTree = "<group>"; };
 		F01CCF152C3D5E9D004E6DE9 /* CacheManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CacheManager.h; sourceTree = "<group>"; };
 		F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CacheManager.cpp; sourceTree = "<group>"; };
 		F02A5C3B2C453FEF00B57FBD /* DreamDownloader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DreamDownloader.h; sourceTree = "<group>"; };
@@ -1186,6 +1192,8 @@
 				212313240F503C4500702B2C /* Shepherd.h */,
 				F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */,
 				F01CCF152C3D5E9D004E6DE9 /* CacheManager.h */,
+				F0141B732C59115400DBA60E /* PathManager.cpp */,
+				F0141B722C59115400DBA60E /* PathManager.h */,
 			);
 			name = ContentDownloader;
 			path = ../ContentDownloader;
@@ -1866,6 +1874,7 @@
 				2160FADB0F30F45100B2C27A /* Hud.cpp in Sources */,
 				1220B53A2B3DC64D00D68410 /* StringFormat.cpp in Sources */,
 				2160FADC0F30F45100B2C27A /* Rect.cpp in Sources */,
+				F0141B772C59115500DBA60E /* PathManager.cpp in Sources */,
 				467230BA2AC17E4600017C51 /* ESMetalView.m in Sources */,
 				2160FADE0F30F45100B2C27A /* Download.cpp in Sources */,
 				2160FADF0F30F45100B2C27A /* Networking.cpp in Sources */,
@@ -1904,6 +1913,7 @@
 				218878F00EC6CDE2001ABD2E /* Image.cpp in Sources */,
 				218878F10EC6CDE2001ABD2E /* LoadDDS.cpp in Sources */,
 				F01CCF182C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */,
+				F0141B742C59115400DBA60E /* PathManager.cpp in Sources */,
 				218878F20EC6CDE2001ABD2E /* LoadPNG.cpp in Sources */,
 				46D2E9012AFBC3720054049D /* Text.cpp in Sources */,
 				218878F70EC6CDE2001ABD2E /* Font.cpp in Sources */,
@@ -1963,6 +1973,7 @@
 				F0C1002D2C1372EF007FA505 /* Image.cpp in Sources */,
 				F0C1002E2C1372EF007FA505 /* LoadDDS.cpp in Sources */,
 				F01CCF1A2C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */,
+				F0141B762C59115500DBA60E /* PathManager.cpp in Sources */,
 				F0C1002F2C1372EF007FA505 /* LoadPNG.cpp in Sources */,
 				F0C100302C1372EF007FA505 /* Text.cpp in Sources */,
 				F0C100312C1372EF007FA505 /* Font.cpp in Sources */,
@@ -2045,6 +2056,7 @@
 				F0E9CE6B2C136B0500C4D694 /* Hud.cpp in Sources */,
 				F0E9CE6C2C136B0500C4D694 /* StringFormat.cpp in Sources */,
 				F0E9CE6D2C136B0500C4D694 /* Rect.cpp in Sources */,
+				F0141B752C59115500DBA60E /* PathManager.cpp in Sources */,
 				F0E9CE6E2C136B0500C4D694 /* ESMetalView.m in Sources */,
 				F0E9CE6F2C136B0500C4D694 /* Download.cpp in Sources */,
 				F0E9CE702C136B0500C4D694 /* Networking.cpp in Sources */,

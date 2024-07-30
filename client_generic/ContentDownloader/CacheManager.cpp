@@ -7,16 +7,14 @@
 //  This class manages the local cache and makes sure we have the correct associated metadata
 
 #include "CacheManager.h"
-#include <fstream>
 #include <iostream>
 #include <mutex>
 #include <boost/json.hpp>
-#include <boost/filesystem.hpp>
 
+#include "PathManager.h"
 #include "StringFormat.h"
 #include "EDreamClient.h"
 #include "ContentDownloader.h"
-#include "Shepherd.h"
 #include "Settings.h"
 #include "Player.h"
 #include "Log.h"
@@ -24,7 +22,7 @@
 namespace Cache {
 
 using boost::filesystem::exists;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 std::unique_ptr<CacheManager> CacheManager::instance;
 long long CacheManager::remainingQuota = 0;
@@ -52,10 +50,9 @@ std::string CacheManager::getDreamPath(const std::string& uuid) const {
         return "";
     }
     
-    std::string dest = ContentDownloader::Shepherd::mp4Path();
-    boost::filesystem::path folderPath(dest);
-    boost::filesystem::path filePath = folderPath / (uuid + ".mp4");
-
+    fs::path folderPath = PathManager::getInstance().mp4Path();
+    fs::path filePath = folderPath / (uuid + ".mp4");
+    
     return filePath.string();
 }
 
@@ -126,43 +123,42 @@ void CacheManager::loadJsonFile(const std::string& filename) {
 
 void CacheManager::cleanupDiskCache() {
     std::vector<DiskCachedItem> itemsToRemove;
-
-    std::string dest = ContentDownloader::Shepherd::mp4Path();
-    boost::filesystem::path folderPath(dest);
+    
+    fs::path folderPath = PathManager::getInstance().mp4Path();
     
     // Look for files that may have been deleted
     for (const auto& item : diskCached) {
-        boost::filesystem::path filePath = folderPath / (item.uuid + ".mp4");
+        fs::path filePath = folderPath / (item.uuid + ".mp4");
         
-        if (!boost::filesystem::exists(filePath)) {
+        if (!fs::exists(filePath)) {
             itemsToRemove.push_back(item);
         }
     }
-
+    
     for (const auto& item : itemsToRemove) {
         // Remove from diskCached
         auto it = std::find_if(diskCached.begin(), diskCached.end(),
-            [&item](const DiskCachedItem& cachedItem) {
-                return cachedItem.uuid == item.uuid;
-            });
+                               [&item](const DiskCachedItem& cachedItem) {
+            return cachedItem.uuid == item.uuid;
+        });
         
         if (it != diskCached.end()) {
             diskCached.erase(it);
         }
-
+        
         // Add to history
         HistoryItem historyItem;
         historyItem.uuid = item.uuid;
         historyItem.version = item.version;
         historyItem.downloadDate = item.downloadDate;
         historyItem.deletedDate = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-
+        
         addHistoryItem(historyItem);
         
         // And delete the metadata from disk too
         deleteMetadata(item.uuid);
     }
-
+    
     // Save changes
     if (!itemsToRemove.empty()) {
         saveDiskCachedToJson();
@@ -170,37 +166,36 @@ void CacheManager::cleanupDiskCache() {
 }
 
 void CacheManager::removeUnknownVideos() {
-    std::string dest = ContentDownloader::Shepherd::mp4Path();
-    boost::filesystem::path folderPath(dest);
+    fs::path folderPath = PathManager::getInstance().mp4Path();
     
-    if (!boost::filesystem::exists(folderPath) || !boost::filesystem::is_directory(folderPath)) {
+    if (!fs::exists(folderPath) || !fs::is_directory(folderPath)) {
         throw std::runtime_error("Invalid folder path");
     }
-
-    std::vector<boost::filesystem::path> filesToRemove;
-
-    for (const auto& entry : boost::filesystem::directory_iterator(folderPath)) {
-        if (boost::filesystem::is_regular_file(entry) && entry.path().extension() == ".mp4") {
+    
+    std::vector<fs::path> filesToRemove;
+    
+    for (const auto& entry : fs::directory_iterator(folderPath)) {
+        if (fs::is_regular_file(entry) && entry.path().extension() == ".mp4") {
             std::string filename = entry.path().stem().string();
             
             // Check if the filename (without extension) exists in diskCached
             auto it = std::find_if(diskCached.begin(), diskCached.end(),
-                [&filename](const DiskCachedItem& item) {
-                    return item.uuid == filename;
-                });
-
+                                   [&filename](const DiskCachedItem& item) {
+                return item.uuid == filename;
+            });
+            
             if (it == diskCached.end()) {
                 filesToRemove.push_back(entry.path());
             }
         }
     }
-
+    
     // Remove the unknown files
     for (const auto& file : filesToRemove) {
         try {
-            boost::filesystem::remove(file);
+            fs::remove(file);
             g_Log->Info("Removed unknown file: %s", file.string().c_str());
-        } catch (const boost::filesystem::filesystem_error& e) {
+        } catch (const fs::filesystem_error& e) {
             g_Log->Error("Error removing file: %s", file.string().c_str());
         }
     }
@@ -231,20 +226,19 @@ void CacheManager::loadCachedMetadata() {
     // Also remove unknown videos
     removeUnknownVideos();
     
-    std::string dest = ContentDownloader::Shepherd::jsonDreamPath();
-    boost::filesystem::path dir(dest);
-        
-    if (!boost::filesystem::exists(dir) || !boost::filesystem::is_directory(dir)) {
+    fs::path dir = PathManager::getInstance().jsonDreamPath();
+            
+    if (!fs::exists(dir) || !fs::is_directory(dir)) {
         g_Log->Error("loadCachedMetadata, cannot find directory");
         return;
     }
 
-    for (const auto& entry : boost::filesystem::directory_iterator(dir)) {
+    for (const auto& entry : fs::directory_iterator(dir)) {
         const auto& path = entry.path();
-        if (boost::filesystem::is_regular_file(path) && path.extension() == ".json") {
+        if (fs::is_regular_file(path) && path.extension() == ".json") {
             g_Log->Debug("Processing JSON file: %s", path.filename().c_str());
 
-            loadJsonFile(path.c_str());
+            loadJsonFile(path.string());
         }
     }
     
@@ -253,9 +247,8 @@ void CacheManager::loadCachedMetadata() {
 
 
 bool CacheManager::areMetadataCached(std::string uuid) {
-    std::string filename{string_format("%s%s.json", ContentDownloader::Shepherd::jsonDreamPath(), uuid.c_str())};
-
-    return exists(filename);
+    fs::path filename = PathManager::getInstance().jsonDreamPath() / (uuid + ".json");
+    return fs::exists(filename);
 }
 
 bool CacheManager::needsMetadata(std::string uuid, long long timeStamp) {
@@ -269,36 +262,33 @@ bool CacheManager::needsMetadata(std::string uuid, long long timeStamp) {
 }
 
 void CacheManager::reloadMetadata(std::string uuid) {
-
-    std::string filename{string_format("%s%s.json", ContentDownloader::Shepherd::jsonDreamPath(), uuid.c_str())};
-    
-    loadJsonFile(filename);
+    fs::path filename = PathManager::getInstance().jsonDreamPath() / (uuid + ".json");
+    loadJsonFile(filename.string());
     
     return;
 }
 
 bool CacheManager::deleteMetadata(const std::string& uuid) {
-    std::string dest = ContentDownloader::Shepherd::jsonDreamPath();
-    boost::filesystem::path metadataPath(dest);
-    
-    if (!boost::filesystem::exists(metadataPath) || !boost::filesystem::is_directory(metadataPath)) {
+    fs::path metadataPath = PathManager::getInstance().jsonDreamPath();
+        
+    if (!fs::exists(metadataPath) || !fs::is_directory(metadataPath)) {
         g_Log->Error("Invalid metadata path: %s", metadataPath.c_str());
         return false;
     }
 
-    boost::filesystem::path filePath = metadataPath / (uuid + ".json");
+    fs::path filePath = metadataPath / (uuid + ".json");
     
-    if (!boost::filesystem::exists(filePath)) {
+    if (!fs::exists(filePath)) {
         g_Log->Error("Metadata file does not exist: %s", filePath.c_str());
         return false;
     }
 
     try {
-        boost::filesystem::remove(filePath);
-        g_Log->Info("Metadata file removed: %s", filePath.c_str());
+        fs::remove(filePath);
+        g_Log->Info("Metadata file removed: %s", filePath.string().c_str());
         return true;
-    } catch (const boost::filesystem::filesystem_error& e) {
-        g_Log->Error("Metadata file does not exist: %s %s", filePath.c_str(), e.what());
+    } catch (const fs::filesystem_error& e) {
+        g_Log->Error("Error removing metadata file: %s %s", filePath.string().c_str(), e.what());
         return false;
     }
 }
@@ -325,29 +315,22 @@ void CacheManager::cacheAndPlayImmediately(const std::string& uuid) {
 
 
 // MARK: - Disk space management
-std::uintmax_t CacheManager::getUsedSpace(const char* path) const{
+std::uintmax_t CacheManager::getUsedSpace(const fs::path& path) const {
     try {
-        fs::path p(path);
-        if (!fs::exists(p)) {
-            g_Log->Error("Path does not exist: %s", path);
+        if (!fs::exists(path)) {
+            g_Log->Error("Path does not exist: %s", path.string().c_str());
             return 0;
         }
         
-        if (!fs::is_directory(p)) {
-            g_Log->Error("Path is not a directory: %s", path);
+        if (!fs::is_directory(path)) {
+            g_Log->Error("Path is not a directory: %s", path.string().c_str());
             return 0;
         }
 
         std::uintmax_t size = 0;
-        fs::recursive_directory_iterator end;
-        for (fs::recursive_directory_iterator it(p); it != end; ++it) {
-            try {
-                if (!fs::is_directory(*it) && fs::is_regular_file(*it)) {
-                    size += fs::file_size(*it);
-                }
-            } catch (const fs::filesystem_error& e) {
-                // Log the error and continue with the next file
-                g_Log->Warning("Error reading file size: %s. Error: %s", it->path().string().c_str(), e.what());
+        for (const auto& entry : fs::recursive_directory_iterator(path)) {
+            if (fs::is_regular_file(entry)) {
+                size += fs::file_size(entry);
             }
         }
         return size;
@@ -360,24 +343,26 @@ std::uintmax_t CacheManager::getUsedSpace(const char* path) const{
     }
 }
 
-// Function to get the remaining free space on the disk
-std::uintmax_t CacheManager::getFreeSpace(const char* path) const {
+std::uintmax_t CacheManager::getFreeSpace(const fs::path& path) const {
     try {
-        fs::path p(path);
-        if (!fs::exists(p)) {
+        if (!fs::exists(path)) {
             throw std::runtime_error("Path does not exist");
         }
         
-        fs::space_info space = fs::space(p);
+        fs::space_info space = fs::space(path);
         return space.available;
     } catch (const fs::filesystem_error& e) {
-        throw std::runtime_error(std::string("Filesystem error: ") + e.what());
+        g_Log->Error("Filesystem error in getFreeSpace: %s", e.what());
+        return 0;
+    } catch (const std::exception& e) {
+        g_Log->Error("Unexpected error in getFreeSpace: %s", e.what());
+        return 0;
     }
 }
 
 // Calculate remaining cache space
 std::uintmax_t CacheManager::getRemainingCacheSpace() {
-    auto freeSpace = getFreeSpace(ContentDownloader::Shepherd::mp4Path());
+    auto freeSpace = getFreeSpace(PathManager::getInstance().mp4Path());
     
     if (g_Settings()->Get("settings.content.unlimited_cache", true) == true) {
         // Cache can be set to unlimited, which is default
@@ -385,14 +370,14 @@ std::uintmax_t CacheManager::getRemainingCacheSpace() {
     } else {
         // if not unlimited, default cache is 2 GB
         auto cacheSize = 1024 * 1024 * g_Settings()->Get("settings.content.cache_size", 2000);
-        auto usedSpace = getUsedSpace(ContentDownloader::Shepherd::mp4Path());
+        auto usedSpace = getUsedSpace(PathManager::getInstance().mp4Path());
 
-        return (cacheSize - usedSpace);
+        return (cacheSize > usedSpace) ? (cacheSize - usedSpace) : 0;
     }
 }
 
 double CacheManager::getCacheSize() const {
-    const char* mp4Path = ContentDownloader::Shepherd::mp4Path();
+    const fs::path mp4Path = PathManager::getInstance().mp4Path();
     auto totalSizeBytes = getUsedSpace(mp4Path);
 
     // Convert bytes to GB
@@ -455,10 +440,9 @@ void CacheManager::saveDiskCachedToJson() const {
 
     root.add_child("diskCached", items);
     
-    std::string fileName{
-        string_format("%s%s.json", ContentDownloader::Shepherd::rootPath(), "diskcached")};
+    fs::path fileName = PathManager::getInstance().rootPath() / "diskcached.json";
     
-    boost::property_tree::write_json(fileName, root);
+    boost::property_tree::write_json(fileName.string(), root);
 }
 
 void CacheManager::saveHistoryToJson() const {
@@ -471,26 +455,33 @@ void CacheManager::saveHistoryToJson() const {
 
     root.add_child("history", items);
     
-    std::string fileName{
-        string_format("%s%s.json", ContentDownloader::Shepherd::rootPath(), "history")};
+    fs::path fileName = PathManager::getInstance().rootPath() / "history.json";
 
-    boost::property_tree::write_json(fileName, root);
+    boost::property_tree::write_json(fileName.string(), root);
 }
 
 void CacheManager::loadDiskCachedFromJson() {
     try {
         boost::property_tree::ptree root;
-        std::string fileName{
-            string_format("%s%s.json", ContentDownloader::Shepherd::rootPath(), "diskcached")};
+        fs::path filePath = PathManager::getInstance().rootPath() / "diskcached.json";
 
-        boost::property_tree::read_json(fileName, root);
+        if (!fs::exists(filePath)) {
+            g_Log->Info("Disk cached file does not exist: %s", filePath.string().c_str());
+            diskCached.clear();
+            return;
+        }
+
+        boost::property_tree::read_json(filePath.string(), root);
 
         diskCached.clear();
         for (const auto& item : root.get_child("diskCached")) {
             diskCached.push_back(deserializeDiskCachedItem(item.second));
         }
+    } catch (const boost::property_tree::json_parser_error& e) {
+        g_Log->Error("JSON parsing error in loadDiskCachedFromJson: %s", e.what());
+        diskCached.clear();
     } catch (const std::exception& e) {
-        // If file doesn't exist or is invalid, start with an empty vector
+        g_Log->Error("Unexpected error in loadDiskCachedFromJson: %s", e.what());
         diskCached.clear();
     }
 }
@@ -498,18 +489,25 @@ void CacheManager::loadDiskCachedFromJson() {
 void CacheManager::loadHistoryFromJson() {
     try {
         boost::property_tree::ptree root;
+        fs::path filePath = PathManager::getInstance().rootPath() / "history.json";
 
-        std::string fileName{
-            string_format("%s%s.json", ContentDownloader::Shepherd::rootPath(), "history")};
+        if (!fs::exists(filePath)) {
+            g_Log->Info("History file does not exist: %s", filePath.string().c_str());
+            history.clear();
+            return;
+        }
 
-        boost::property_tree::read_json(fileName, root);
+        boost::property_tree::read_json(filePath.string(), root);
 
         history.clear();
         for (const auto& item : root.get_child("history")) {
             history.push_back(deserializeHistoryItem(item.second));
         }
+    } catch (const boost::property_tree::json_parser_error& e) {
+        g_Log->Error("JSON parsing error in loadHistoryFromJson: %s", e.what());
+        history.clear();
     } catch (const std::exception& e) {
-        // If file doesn't exist or is invalid, start with an empty vector
+        g_Log->Error("Unexpected error in loadHistoryFromJson: %s", e.what());
         history.clear();
     }
 }
