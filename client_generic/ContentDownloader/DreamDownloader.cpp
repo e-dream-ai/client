@@ -137,7 +137,7 @@ void DreamDownloader::FindDreamsThread() {
                 auto link = EDreamClient::GetDreamDownloadLink(current_uuid);
                 
                 if (!link.empty()) {
-                    g_Log->Error("Download link received: %s", link.c_str());
+                    g_Log->Info("Download link received: %s", link.c_str());
                     auto queueSize = m_dreamUUIDs.size() + 1;
                     if (queueSize == 1) {
                         SetDownloadStatus("Downloading 1 dream ");
@@ -241,7 +241,7 @@ bool DreamDownloader::DownloadDreamNow(const std::string& uuid, std::function<vo
         auto link = EDreamClient::GetDreamDownloadLink(uuid);
         
         if (!link.empty()) {
-            g_Log->Error("Download link received: %s", link.c_str());
+            g_Log->Info("Download link received: %s", link.c_str());
             bool success = DownloadDream(uuid, link, false);
             
             if (success) {
