@@ -8,7 +8,7 @@
 #include "DreamDownloader.h"
 #include "CacheManager.h"
 #include "PlatformUtils.h"
-#include "Shepherd.h"
+#include "PathManager.h"
 #include "EDreamClient.h"
 #include "Networking.h"
 #include "Player.h"
@@ -104,10 +104,9 @@ void DreamDownloader::FindDreamsThread() {
             }
             
             // Do we even have some disk space available ?
-            if (cm.getFreeSpace(Shepherd::mp4Path()) < minDiskSpace) {
-                g_Log->Info("Not enough disk space %ll", cm.getFreeSpace(Shepherd::mp4Path()));
+            if (cm.getFreeSpace(Cache::PathManager::getInstance().mp4Path()) < minDiskSpace) {
+                g_Log->Info("Not enough disk space %ll", cm.getFreeSpace(Cache::PathManager::getInstance().mp4Path()));
                 SetDownloadStatus("Not enough disk space");
-
                 break;
             }
 
@@ -177,9 +176,9 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
     // Grab the CacheManager
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
     
-    std::string saveFolder = Shepherd::mp4Path();
+    fs::path savePath = Cache::PathManager::getInstance().mp4Path();
 
-    if (uuid.empty() || downloadLink.empty() || saveFolder.empty()) {
+    if (uuid.empty() || downloadLink.empty() || savePath.empty()) {
         g_Log->Error("Invalid input parameters for DownloadDream");
         return false;
     }
@@ -188,12 +187,6 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
     
     Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>("Downloading dream " + dream->name);
     
-    // Set up headers if needed (not needed if we stay on S3)
-    //spDownload->AppendHeader("Content-Type: application/octet-stream");
-    //std::string authHeader{string_format("Authorization: Bearer %s", GetAccessToken())};
-    //spDownload->AppendHeader(authHeader);
-
-    // Perform the download
     if (!spDownload->Perform(downloadLink)) {
         SetDownloadStatus("Download failed for " + dream->name);
         g_Log->Error("Failed to download dream. Server returned %i: %s",
@@ -202,42 +195,36 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
         return false;
     }
 
-    // Ensure the save folder exists
-    std::filesystem::path savePath(saveFolder);
     try {
-        if (!std::filesystem::exists(savePath)) {
-            std::filesystem::create_directories(savePath);
+        if (!fs::exists(savePath)) {
+            fs::create_directories(savePath);
         }
-    } catch (const std::filesystem::filesystem_error& e) {
+    } catch (const fs::filesystem_error& e) {
         g_Log->Error("Failed to create mp4 directory: %s", e.what());
         return false;
     }
 
-    // Determine file extension
     std::string fileExtension = ".mp4";
+    fs::path fullSavePath = savePath / (uuid + fileExtension);
 
-    // Construct the full save path
-    std::string fullSavePath = (savePath / (uuid + fileExtension)).string();
-
-    // Save the downloaded content to file
-    if (!spDownload->Save(fullSavePath)) {
-        g_Log->Error("Failed to save downloaded dream to %s", fullSavePath.c_str());
+    if (!spDownload->Save(fullSavePath.string())) {
+        g_Log->Error("Failed to save downloaded dream to %s", fullSavePath.string().c_str());
         return false;
     }
 
-    g_Log->Info("Successfully downloaded and saved dream to %s", fullSavePath.c_str());
+    g_Log->Info("Successfully downloaded and saved dream to %s", fullSavePath.string().c_str());
     SetDownloadStatus("Download complete " + dream->name);
+    
     Cache::CacheManager::DiskCachedItem newDiskItem;
     newDiskItem.uuid = uuid;
     newDiskItem.version = dream->video_timestamp;
     newDiskItem.downloadDate = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
-    cm.addDiskCachedItem(newDiskItem);      // Make sure we maintain our cache log
-    cm.decreaseRemainingQuota(dream->size); // Also update our internal quota counter
+    cm.addDiskCachedItem(newDiskItem);
+    cm.decreaseRemainingQuota(dream->size);
     
     if (enqueue) {
-        // Add the file to the player too
-        g_Player().Add(fullSavePath.c_str());
+        g_Player().Add(fullSavePath.string().c_str());
     }
     
     return true;

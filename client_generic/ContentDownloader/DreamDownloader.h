@@ -15,6 +15,9 @@
 #include <mutex>
 #include <future>
 #include <boost/thread.hpp>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 namespace ContentDownloader
 {
