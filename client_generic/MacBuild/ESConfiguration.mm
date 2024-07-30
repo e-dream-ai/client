@@ -4,6 +4,7 @@
 
 #include "EDreamClient.h"
 #include "Shepherd.h"
+#include "ServerConfig.h"
 #include "PlatformUtils.h"
 
 using namespace ContentDownloader;
@@ -219,7 +220,8 @@ using namespace ContentDownloader;
     NSMutableURLRequest* request =
         [NSMutableURLRequest requestWithURL:[NSURL URLWithString:urlstr]];
 
-    urlstr = @(Shepherd::GetEndpoint(ENDPOINT_LOGIN));
+    urlstr = @(ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::LOGIN).c_str());
+    //urlstr = @(Shepherd::GetEndpoint(ENDPOINT_LOGIN));
     httpMethod = @"POST";
     // Set request body data
     NSDictionary* parameters =

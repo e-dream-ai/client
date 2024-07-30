@@ -170,7 +170,7 @@ bool EDreamClient::Authenticate()
             string_format("Authorization: Bearer %s", GetAccessToken())};
 
         spDownload->AppendHeader(authHeader);
-        success = spDownload->Perform(Shepherd::GetEndpoint(ENDPOINT_USER));
+        success = spDownload->Perform(ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::USER));
         if (!success)
         {
             if (spDownload->ResponseCode() == 401)
@@ -244,7 +244,7 @@ bool EDreamClient::RefreshAccessToken()
     spDownload->AppendHeader("Content-Type: application/json");
     spDownload->AppendHeader("Accept: application/json");
     spDownload->SetPostFields(body.data());
-    if (spDownload->Perform(Shepherd::GetEndpoint(ENDPOINT_REFRESH)))
+    if (spDownload->Perform(ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::REFRESH)))
     {
         boost::system::error_code ec;
         json::value response = json::parse(spDownload->Data(), ec);
@@ -298,7 +298,7 @@ int EDreamClient::Hello() {
             string_format("Authorization: Bearer %s", GetAccessToken())};
         spDownload->AppendHeader(authHeader);
         
-        std::string url{ Shepherd::GetEndpoint(ENDPOINT_HELLO) };
+        std::string url{ ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::HELLO) };
         
         if (spDownload->Perform(url))
         {
@@ -389,7 +389,7 @@ bool EDreamClient::FetchPlaylist(int id) {
         
         
         std::string url{string_format(
-            "%s/%i", Shepherd::GetEndpoint(ENDPOINT_GETPLAYLIST), id)};
+            "%s/%i", ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::GETPLAYLIST).c_str(), id)};
         
         printf("url : %s\n", url.c_str());
         
@@ -440,7 +440,7 @@ bool EDreamClient::FetchDefaultPlaylist() {
             string_format("Authorization: Bearer %s", GetAccessToken())};
         spDownload->AppendHeader(authHeader);
         
-        std::string url{ Shepherd::GetEndpoint(ENDPOINT_GETDEFAULTPLAYLIST) };
+        std::string url{ ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::GETDEFAULTPLAYLIST) };
         
         printf("url : %s\n", url.c_str());
         
@@ -492,9 +492,9 @@ bool EDreamClient::FetchDreamMetadata(std::string uuid) {
         spDownload->AppendHeader(authHeader);
         
         
-        std::string url{string_format(
-            "%s?uuids=%s", Shepherd::GetEndpoint(ENDPOINT_GETDREAM), uuid.c_str())};
-        
+        std::string url = ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::GETDREAM) +
+        "?uuids=" + uuid;
+       
         printf("url : %s\n", url.c_str());
         
         if (spDownload->Perform(url))
@@ -542,8 +542,8 @@ std::string EDreamClient::GetDreamDownloadLink(const std::string& uuid) {
             string_format("Authorization: Bearer %s", GetAccessToken())};
         spDownload->AppendHeader(authHeader);
 
-        std::string url{string_format(
-            "%s/%s/url", Shepherd::GetEndpoint(ENDPOINT_GETDREAM), uuid.c_str())};
+        std::string url = ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::GETDREAM) +
+                          "/" + uuid + "/url";
 
         if (spDownload->Perform(url)) {
             try {
@@ -749,9 +749,13 @@ bool EDreamClient::GetDreams(int _page, int _count)
         std::string authHeader{
             string_format("Authorization: Bearer %s", GetAccessToken())};
         spDownload->AppendHeader(authHeader);
-        std::string url{string_format(
-            "%s?take=%i&skip=%i", Shepherd::GetEndpoint(ENDPOINT_DREAM),
-            DREAMS_PER_PAGE, DREAMS_PER_PAGE * _page)};
+        
+        std::string url = ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::DREAM) +
+                          "?take=" + std::to_string(DREAMS_PER_PAGE) +
+                          "&skip=" + std::to_string(DREAMS_PER_PAGE * _page);
+/*        std::string url{string_format(
+                                      "%s?take=%i&skip=%i", ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::DREAM).c_str(),
+            DREAMS_PER_PAGE, DREAMS_PER_PAGE * _page)};*/
         if (spDownload->Perform(url))
         {
             break;
