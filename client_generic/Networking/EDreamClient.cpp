@@ -16,8 +16,8 @@
 #include "Player.h"
 #include "Networking.h"
 #include "Settings.h"
-#include "Shepherd.h"
 #include "ServerConfig.h"
+#include "PathManager.h"
 #include "client.h"
 #include "clientversion.h"
 #include "EDreamClient.h"
@@ -375,7 +375,7 @@ int EDreamClient::GetCurrentServerPlaylist() {
 
 bool EDreamClient::FetchPlaylist(int id) {
     Network::spCFileDownloader spDownload;
-    const char* jsonPath = Shepherd::jsonPlaylistPath();
+    auto jsonPath = Cache::PathManager::getInstance().jsonPlaylistPath();
 
     int maxAttempts = 3;
     int currentAttempt = 0;
@@ -416,10 +416,10 @@ bool EDreamClient::FetchPlaylist(int id) {
         }
     }
 
-    std::string filename{string_format("%splaylist_%i.json", jsonPath, id)};
-    if (!spDownload->Save(filename))
+    auto filename = jsonPath / ("playlist_" + std::to_string(id) + ".json");
+    if (!spDownload->Save(filename.string()))
     {
-        g_Log->Error("Unable to save %s\n", filename.data());
+        g_Log->Error("Unable to save %s\n", filename.string().c_str());
         return false;
     }
     
@@ -428,7 +428,7 @@ bool EDreamClient::FetchPlaylist(int id) {
 
 bool EDreamClient::FetchDefaultPlaylist() {
     Network::spCFileDownloader spDownload;
-    const char* jsonPath = Shepherd::jsonPlaylistPath();
+    auto jsonPath = Cache::PathManager::getInstance().jsonPlaylistPath();
 
     int maxAttempts = 3;
     int currentAttempt = 0;
@@ -467,10 +467,9 @@ bool EDreamClient::FetchDefaultPlaylist() {
         }
     }
 
-    std::string filename{string_format("%splaylist_0.json", jsonPath)};
-    if (!spDownload->Save(filename))
-    {
-        g_Log->Error("Unable to save %s\n", filename.data());
+    auto filename = jsonPath / "playlist_0.json";
+    if (!spDownload->Save(filename.string())) {
+        g_Log->Error("Unable to save %s\n", filename.string().c_str());
         return false;
     }
     
@@ -479,7 +478,7 @@ bool EDreamClient::FetchDefaultPlaylist() {
 
 bool EDreamClient::FetchDreamMetadata(std::string uuid) {
     Network::spCFileDownloader spDownload;
-    const char* jsonPath = Shepherd::jsonDreamPath();
+    auto jsonPath = Cache::PathManager::getInstance().jsonDreamPath();
 
     int maxAttempts = 3;
     int currentAttempt = 0;
@@ -520,10 +519,10 @@ bool EDreamClient::FetchDreamMetadata(std::string uuid) {
         }
     }
 
-    std::string filename{string_format("%s%s.json", jsonPath, uuid.c_str())};
-    if (!spDownload->Save(filename))
+    auto filename = jsonPath / (uuid + ".json");
+    if (!spDownload->Save(filename.string()))
     {
-        g_Log->Error("Unable to save %s\n", filename.data());
+        g_Log->Error("Unable to save %s\n", filename.string().c_str());
         return false;
     }
     
@@ -592,12 +591,11 @@ std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
 
 
     // Open playlist and grab content
-    std::string filePath{
-        string_format("%splaylist_%i.json", Shepherd::jsonPlaylistPath(), id)};
+    fs::path filePath = Cache::PathManager::getInstance().jsonPlaylistPath() / ("playlist_" + std::to_string(id) + ".json");
     std::ifstream file(filePath);
     if (!file.is_open())
     {
-        g_Log->Error("Error opening file: %s", filePath.data());
+        g_Log->Error("Error opening file: %s", filePath.string().c_str());
         return uuids;
     }
     std::string contents{(std::istreambuf_iterator<char>(file)),
@@ -685,12 +683,11 @@ std::tuple<std::string, std::string> EDreamClient::ParsePlaylistCredits(int id) 
     }
     
     // Open playlist and grab content
-    std::string filePath{
-        string_format("%splaylist_%i.json", Shepherd::jsonPlaylistPath(), id)};
+    fs::path filePath = Cache::PathManager::getInstance().jsonPlaylistPath() / ("playlist_" + std::to_string(id) + ".json");
     std::ifstream file(filePath);
     if (!file.is_open())
     {
-        g_Log->Error("Error opening file: %s", filePath.data());
+        g_Log->Error("Error opening file: %s", filePath.string().c_str());
         return {"",""};
     }
     std::string contents{(std::istreambuf_iterator<char>(file)),
@@ -733,77 +730,6 @@ bool EDreamClient::EnqueuePlaylist(int id) {
     }
 
     return false;
-}
-
-bool EDreamClient::GetDreams(int _page, int _count)
-{
-    Network::spCFileDownloader spDownload;
-    const char* jsonPath = Shepherd::jsonPlaylistPath();
-
-    int maxAttempts = 3;
-    int currentAttempt = 0;
-    while (currentAttempt++ < maxAttempts)
-    {
-        spDownload = std::make_shared<Network::CFileDownloader>("Dreams list");
-        spDownload->AppendHeader("Content-Type: application/json");
-        std::string authHeader{
-            string_format("Authorization: Bearer %s", GetAccessToken())};
-        spDownload->AppendHeader(authHeader);
-        
-        std::string url = ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::DREAM) +
-                          "?take=" + std::to_string(DREAMS_PER_PAGE) +
-                          "&skip=" + std::to_string(DREAMS_PER_PAGE * _page);
-/*        std::string url{string_format(
-                                      "%s?take=%i&skip=%i", ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::DREAM).c_str(),
-            DREAMS_PER_PAGE, DREAMS_PER_PAGE * _page)};*/
-        if (spDownload->Perform(url))
-        {
-            break;
-        }
-        else
-        {
-            if (spDownload->ResponseCode() == 400 ||
-                spDownload->ResponseCode() == 401)
-            {
-                if (currentAttempt == maxAttempts)
-                    return false;
-                if (!RefreshAccessToken())
-                    return false;
-            }
-            else
-            {
-                g_Log->Error("Failed to get dreams. Server returned %i: %s",
-                             spDownload->ResponseCode(),
-                             spDownload->Data().c_str());
-            }
-        }
-    }
-
-    std::string filename{string_format("%sdreams_%i.json", jsonPath, _page)};
-    if (!spDownload->Save(filename))
-    {
-        g_Log->Error("Unable to save %s\n", filename.data());
-        return false;
-    }
-    if (_count == -1)
-    {
-        try
-        {
-            json::value response = json::parse(spDownload->Data());
-            json::value data = response.at("data");
-            _count = (int)data.at("count").as_int64();
-        }
-        catch (const boost::system::system_error& e)
-        {
-            JSONUtil::LogException(e, spDownload->Data());
-        }
-    }
-    if ((_page + 1) * DREAMS_PER_PAGE < _count)
-    {
-        if (!GetDreams(_page + 1, _count))
-            return false;
-    }
-    return true;
 }
 
 static void OnWebSocketMessage(sio::event& _wsEvent)

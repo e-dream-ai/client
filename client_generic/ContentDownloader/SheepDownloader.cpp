@@ -984,8 +984,8 @@ void SheepDownloader::FindSheepToDownload()
 
 bool SheepDownloader::getSheepList()
 {
-    fListDirty = EDreamClient::GetDreams();
-    return fListDirty;
+    //fListDirty = EDreamClient::GetDreams();
+    //return fListDirty;
     return false;
 }
 
