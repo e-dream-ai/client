@@ -17,6 +17,7 @@
 #include "Networking.h"
 #include "Settings.h"
 #include "Shepherd.h"
+#include "ServerConfig.h"
 #include "client.h"
 #include "clientversion.h"
 #include "EDreamClient.h"
@@ -993,7 +994,7 @@ void EDreamClient::ConnectRemoteControlSocket()
     BindWebSocketCallbacks();
     std::map<std::string, std::string> query;
     query["token"] = string_format("Bearer %s", GetAccessToken());
-    s_SIOClient.connect(Shepherd::GetWebsocketServer(), query);
+    s_SIOClient.connect(ServerConfig::ServerConfigManager::getInstance().getWebsocketServer(), query);
 }
 
 void EDreamClient::SetCPUUsage(int _cpuUsage) { fCpuUsage.exchange(_cpuUsage); }

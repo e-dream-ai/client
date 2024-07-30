@@ -54,13 +54,13 @@ constexpr const std::string_view DEFAULT_DREAM_SERVER =
 #endif
 
 
-#define API_VERSION "/api/v1"
+#define AAPI_VERSION "/api/v1"
 
 #define DEFINE_ENDPOINT(name, path)                                            \
     {                                                                          \
         ENDPOINT_##name,                                                       \
         {                                                                      \
-            std::string(Shepherd::GetDreamServer()) + API_VERSION + path       \
+            std::string(Shepherd::GetDreamServer()) + AAPI_VERSION + path       \
         }                                                                      \
     }
 
