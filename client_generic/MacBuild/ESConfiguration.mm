@@ -3,11 +3,10 @@
 #import "clientversion.h"
 
 #include "EDreamClient.h"
-#include "Shepherd.h"
 #include "ServerConfig.h"
 #include "PlatformUtils.h"
 
-using namespace ContentDownloader;
+//using namespace ContentDownloader;
 
 @implementation ESConfiguration
 
@@ -422,7 +421,7 @@ using namespace ContentDownloader;
     cacheSize.intValue = cache_size;
 
     debugLog.state = ESScreensaver_GetBoolSetting("settings.app.log", false);
-    serverField.stringValue = (__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting("settings.content.server", DEFAULT_DREAM_SERVER);
+    serverField.stringValue = (__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting("settings.content.server", ServerConfig::DEFAULT_DREAM_SERVER);
 
     contentFldr.stringValue =
         ((__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting(
