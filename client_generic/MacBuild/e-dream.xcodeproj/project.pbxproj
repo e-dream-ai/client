@@ -231,6 +231,10 @@
 		F0141B7B2C5925C900DBA60E /* ServerConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B792C5925C900DBA60E /* ServerConfig.cpp */; };
 		F0141B7C2C5925C900DBA60E /* ServerConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B792C5925C900DBA60E /* ServerConfig.cpp */; };
 		F0141B7D2C5925C900DBA60E /* ServerConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B792C5925C900DBA60E /* ServerConfig.cpp */; };
+		F0141B802C594A2D00DBA60E /* MessageQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B7F2C594A2D00DBA60E /* MessageQueue.cpp */; };
+		F0141B812C594A2D00DBA60E /* MessageQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B7F2C594A2D00DBA60E /* MessageQueue.cpp */; };
+		F0141B822C594A2D00DBA60E /* MessageQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B7F2C594A2D00DBA60E /* MessageQueue.cpp */; };
+		F0141B832C594A2D00DBA60E /* MessageQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B7F2C594A2D00DBA60E /* MessageQueue.cpp */; };
 		F01CCF172C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */; };
 		F01CCF182C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */; };
 		F01CCF192C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */; };
@@ -877,6 +881,8 @@
 		F0141B732C59115400DBA60E /* PathManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PathManager.cpp; sourceTree = "<group>"; };
 		F0141B782C5925C900DBA60E /* ServerConfig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ServerConfig.h; sourceTree = "<group>"; };
 		F0141B792C5925C900DBA60E /* ServerConfig.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ServerConfig.cpp; sourceTree = "<group>"; };
+		F0141B7E2C594A2D00DBA60E /* MessageQueue.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MessageQueue.h; sourceTree = "<group>"; };
+		F0141B7F2C594A2D00DBA60E /* MessageQueue.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MessageQueue.cpp; sourceTree = "<group>"; };
 		F01CCF152C3D5E9D004E6DE9 /* CacheManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CacheManager.h; sourceTree = "<group>"; };
 		F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CacheManager.cpp; sourceTree = "<group>"; };
 		F02A5C3B2C453FEF00B57FBD /* DreamDownloader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DreamDownloader.h; sourceTree = "<group>"; };
@@ -1196,6 +1202,8 @@
 				F0141B722C59115400DBA60E /* PathManager.h */,
 				F0141B792C5925C900DBA60E /* ServerConfig.cpp */,
 				F0141B782C5925C900DBA60E /* ServerConfig.h */,
+				F0141B7F2C594A2D00DBA60E /* MessageQueue.cpp */,
+				F0141B7E2C594A2D00DBA60E /* MessageQueue.h */,
 			);
 			name = ContentDownloader;
 			path = ../ContentDownloader;
@@ -1863,6 +1871,7 @@
 				2160FAD60F30F45100B2C27A /* Renderer.cpp in Sources */,
 				1270D0F02B28975500E1DCE3 /* PlatformUtils_Mac.mm in Sources */,
 				2160FAD70F30F45100B2C27A /* Shader.cpp in Sources */,
+				F0141B822C594A2D00DBA60E /* MessageQueue.cpp in Sources */,
 				2160FAD80F30F45100B2C27A /* Texture.cpp in Sources */,
 				F01CCF192C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */,
 				46D2E8F22AFBA64B0054049D /* MBEFontAtlas.m in Sources */,
@@ -1911,6 +1920,7 @@
 				218878EF0EC6CDE2001ABD2E /* DisplayOutput.cpp in Sources */,
 				F0141B7B2C5925C900DBA60E /* ServerConfig.cpp in Sources */,
 				218878F00EC6CDE2001ABD2E /* Image.cpp in Sources */,
+				F0141B802C594A2D00DBA60E /* MessageQueue.cpp in Sources */,
 				218878F10EC6CDE2001ABD2E /* LoadDDS.cpp in Sources */,
 				F01CCF182C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */,
 				F0141B742C59115400DBA60E /* PathManager.cpp in Sources */,
@@ -1971,6 +1981,7 @@
 				F0C1002C2C1372EF007FA505 /* DisplayOutput.cpp in Sources */,
 				F0141B7D2C5925C900DBA60E /* ServerConfig.cpp in Sources */,
 				F0C1002D2C1372EF007FA505 /* Image.cpp in Sources */,
+				F0141B832C594A2D00DBA60E /* MessageQueue.cpp in Sources */,
 				F0C1002E2C1372EF007FA505 /* LoadDDS.cpp in Sources */,
 				F01CCF1A2C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */,
 				F0141B762C59115500DBA60E /* PathManager.cpp in Sources */,
@@ -2045,6 +2056,7 @@
 				F0E9CE622C136B0500C4D694 /* Renderer.cpp in Sources */,
 				F0E9CE632C136B0500C4D694 /* PlatformUtils_Mac.mm in Sources */,
 				F0E9CE642C136B0500C4D694 /* Shader.cpp in Sources */,
+				F0141B812C594A2D00DBA60E /* MessageQueue.cpp in Sources */,
 				F0E9CE652C136B0500C4D694 /* Texture.cpp in Sources */,
 				F01CCF172C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */,
 				F0E9CE662C136B0500C4D694 /* MBEFontAtlas.m in Sources */,

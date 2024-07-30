@@ -22,7 +22,7 @@
 #include "Hud.h"
 #include "Matrix.h"
 #include "ServerMessage.h"
-#include "Shepherd.h"
+#include "MessageQueue.h"
 #include "Splash.h"
 #include "OSD.hpp"
 #include "StartupScreen.h"
@@ -74,6 +74,9 @@ inline float TapsToBrightness(double taps) {
 */
 class CElectricSheep
 {
+  private:
+    Cache::MessageQueue m_MessageQueue;
+
   protected:
     ESCpuUsage m_CpuUsage;
     double m_LastCPUCheckTime;
@@ -496,8 +499,7 @@ class CElectricSheep
         bool internetReachable = PlatformUtils::IsInternetReachable();
         if (!internetReachable)
         {
-            ContentDownloader::Shepherd::addMessageText(
-                "No Internet Connection.", 180);
+            m_MessageQueue.QueueMessage("No Internet Connection.", 180);
         }
         //    Start downloader.
         g_Log->Info("Starting downloader...");
@@ -846,7 +848,7 @@ class CElectricSheep
                     }
                 }
 
-                if (ContentDownloader::Shepherd::PopMessage(msg, duration))
+                if (m_MessageQueue.PopMessage(msg, duration))
                 {
                     bool addtohud = true;
                     time_t lt = time(nullptr);
@@ -855,15 +857,12 @@ class CElectricSheep
                         (msg == "server request failed, using free one"))
                     {
                         std::string temptime = ctime(&lt);
-                        msg = temptime.substr(0, temptime.length() -
-                                                     strlen("\n")) +
-                              " " + msg;
+                        msg = temptime.substr(0, temptime.length() - strlen("\n")) + " " + msg;
                         g_Log->Error(msg.c_str());
                         if (m_ConnectionErrors.size() > 20)
                             m_ConnectionErrors.pop_front();
                         m_ConnectionErrors.push_back(msg);
-                        if (g_Settings()->Get("settings.player.quiet_mode",
-                                              true) == true)
+                        if (g_Settings()->Get("settings.player.quiet_mode", true) == true)
                             addtohud = false;
                     }
 
@@ -908,9 +907,9 @@ class CElectricSheep
                             }
                         }
                 }
-                if (m_HighCpuUsageCounter > 0 &&
+                /*if (m_HighCpuUsageCounter > 0 &&
                     ContentDownloader::Shepherd::RenderingAllowed() == false)
-                    blockRendering = true;
+                    blockRendering = true;*/
 
                 switch (GetACLineStatus())
                 {
@@ -943,11 +942,12 @@ class CElectricSheep
                 }
                 }
 
-                if (blockRendering)
+/*                if (blockRendering)
                     ContentDownloader::Shepherd::SetRenderingAllowed(false);
                 else
                     ContentDownloader::Shepherd::SetRenderingAllowed(true);
-
+*/
+                
                 //	Update some stats.
                 spStats =
                     std::dynamic_pointer_cast<Hud::CStatsConsole>(
@@ -1063,8 +1063,7 @@ class CElectricSheep
                     {
                         std::stringstream loginstatusstr;
                         loginstatusstr
-                            << "Logged in as "
-                            << ContentDownloader::Shepherd::GetNickName();
+                        << "Logged in!";
                         pTmp->SetSample(loginstatusstr.str());
                     }
                     else
@@ -1078,9 +1077,7 @@ class CElectricSheep
                 if (pTmp)
                 {
                     std::string deleted;
-                    if (ContentDownloader::Shepherd::PopOverflowMessage(
-                            deleted) &&
-                        (deleted != ""))
+                    if (m_MessageQueue.PopOverflowMessage(deleted) && !deleted.empty())
                     {
                         pTmp->SetSample(deleted);
                         pTmp->Visible(true);
@@ -1474,7 +1471,7 @@ class CElectricSheep
             " Relaunch e-dream application or preference pane to update.";
 #endif
 
-        ContentDownloader::Shepherd::QueueMessage(message, 30.0);
+        m_MessageQueue.QueueMessage(message, 30.0);
     }
 };
 

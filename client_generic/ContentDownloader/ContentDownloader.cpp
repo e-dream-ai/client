@@ -105,11 +105,11 @@ bool CContentDownloader::Startup(const bool _bPreview, bool _bReadOnlyInstance)
 
     Shepherd::setSaveFrames(
         g_Settings()->Get("settings.generator.save_frames", false));
-    Shepherd::SetNickName(
+    /*Shepherd::SetNickName(
         g_Settings()
             ->Get("settings.generator.nickname", std::string(""))
             .c_str());
-
+*/
     
     // Initialize new downloader
     if (_bReadOnlyInstance == false)
