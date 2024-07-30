@@ -11,7 +11,6 @@
 #include <boost/format.hpp>
 
 #include "clientversion.h"
-#include "Shepherd.h"
 #include "StringFormat.h"
 #include "Log.h"
 #include "JSONUtil.h"
@@ -44,7 +43,7 @@ bool JSONStorage::Initialise(std::string_view _sRoot,
             auto str = string_format("Exception during parsing config:%s "
                                      "contents:\"%s\"",
                                      e.what(), fileStr.data());
-            ContentDownloader::Shepherd::addMessageText(str.data(), 180);
+            //ContentDownloader::Shepherd::addMessageText(str.data(), 180);
             g_Log->Error(str.data());
         }
     }

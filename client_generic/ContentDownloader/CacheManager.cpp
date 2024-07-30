@@ -201,6 +201,58 @@ void CacheManager::removeUnknownVideos() {
     }
 }
 
+bool CacheManager::deleteDream(const std::string& uuid) {
+    // Check if the dream exists in diskCached
+    if (!hasDiskCachedItem(uuid)) {
+        g_Log->Warning("Attempt to delete non-existent dream: %s", uuid.c_str());
+        return false;
+    }
+
+    // Get the dream's file path
+    std::string filePath = getDreamPath(uuid);
+    if (filePath.empty()) {
+        g_Log->Error("Unable to get file path for dream: %s", uuid.c_str());
+        return false;
+    }
+
+    // Remove the file
+    try {
+        boost::filesystem::remove(filePath);
+        g_Log->Info("Deleted dream file: %s", filePath.c_str());
+    } catch (const boost::filesystem::filesystem_error& e) {
+        g_Log->Error("Failed to delete dream file: %s. Error: %s", filePath.c_str(), e.what());
+        return false;
+    }
+
+    // Remove from diskCached
+    DiskCachedItem item;
+    for (const auto& cachedItem : diskCached) {
+        if (cachedItem.uuid == uuid) {
+            item = cachedItem;
+            break;
+        }
+    }
+    removeDiskCachedItem(uuid);
+
+    // Add to history
+    HistoryItem historyItem;
+    historyItem.uuid = item.uuid;
+    historyItem.version = item.version;
+    historyItem.downloadDate = item.downloadDate;
+    historyItem.deletedDate = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    addHistoryItem(historyItem);
+
+    // Delete the metadata file
+    deleteMetadata(uuid);
+
+    // Save changes to disk
+    saveDiskCachedToJson();
+    saveHistoryToJson();
+
+    g_Log->Info("Successfully deleted dream: %s", uuid.c_str());
+    return true;
+}
+
 const std::unordered_map<std::string, Dream>& CacheManager::getDreams() const {
     return dreams;
 }

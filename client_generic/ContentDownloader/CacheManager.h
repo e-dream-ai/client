@@ -114,6 +114,7 @@ public:
     
     void cleanupDiskCache();
     void removeUnknownVideos();
+    bool deleteDream(const std::string& uuid);
     
     size_t getCachedDreamCount() const {
         return diskCached.size();

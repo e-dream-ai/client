@@ -16,8 +16,7 @@
 #include "PlayCounter.h"
 #include "Playlist.h"
 #include "Settings.h"
-#include "SheepDownloader.h"
-#include "Shepherd.h"
+#include "PathManager.h"
 #include "Timer.h"
 #include "StringFormat.h"
 #include "EDreamClient.h"
@@ -30,7 +29,6 @@ using boost::filesystem::directory_iterator;
 using boost::filesystem::exists;
 //using boost::filesystem::extension;
 using boost::filesystem::path;
-using Shepherd = ContentDownloader::Shepherd;
 using path = boost::filesystem::path;
 
 namespace ContentDecoder
@@ -173,7 +171,7 @@ public:
         // Also rebuild if the list is empty...
         if (_bRebuild || m_List.empty()) // || ((m_Timer.Time() - m_Clock) > interval) )
         {
-            if (g_PlayCounter().ReadOnlyPlayCounts())
+            /*if (g_PlayCounter().ReadOnlyPlayCounts())
             {
                 g_PlayCounter().ClosePlayCounts();
                 m_FlockMBs =
@@ -182,7 +180,7 @@ public:
                     ContentDownloader::Shepherd::GetFlockSizeMBsRecount(1);
                 
                 // @TODO: gold ??
-            }
+            }*/
             m_Clock = m_Timer.Time();
             
             
@@ -196,11 +194,10 @@ public:
                 playlistUserName = userName;
                 
                 for (auto uuid : uuids) {
-                    std::string fileName{
-                        string_format("%s%s.mp4", Shepherd::mp4Path(), uuid.c_str())};
+                    auto fileName = Cache::PathManager::getInstance().mp4Path() / (uuid + ".mp4");
                     
                     if (exists(fileName))
-                        m_List.push(fileName);
+                        m_List.push(fileName.string());
                 }
             } /*else {
                 ContentDownloader::SheepArray allSheep;
@@ -306,10 +303,8 @@ public:
     void Delete(std::string_view _uuid)
     {
         std::scoped_lock locker(m_Lock);
-        ContentDownloader::SheepDownloader::deleteSheep(_uuid);
-
-        // m_pState->Pop( Base::Script::Call( m_pState->GetState(), "Delete",
-        // "i", _id ) );
+        Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+        cm.deleteDream(std::string(_uuid));
     }
 };
 

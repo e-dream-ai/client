@@ -511,8 +511,8 @@ class CElectricSheep
         cm.loadCachedMetadata();
         
         // call static method to fill sheep counts
-        ContentDownloader::Shepherd::GetFlockSizeMBsRecount(0);
-        ContentDownloader::Shepherd::GetFlockSizeMBsRecount(1);
+        //ContentDownloader::Shepherd::GetFlockSizeMBsRecount(0);
+        //ContentDownloader::Shepherd::GetFlockSizeMBsRecount(1);
         spCDelayedDispatch hideCursorDispatch =
             std::make_shared<CDelayedDispatch>(
                 [&, this]() -> void
