@@ -670,9 +670,7 @@ bool CPlayer::PlayClip(const Cache::Dream& dream, double _startTime,
     auto du = m_displayUnits[0];
     int32_t displayMode = g_Settings()->Get("settings.player.DisplayMode", 2);
     
-    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
-    
-    auto path = cm.getDreamPath(dream.uuid);
+    auto path = dream.getCachedPath();
 
     if (path == "") {
         // TODO : Handle grabbing the URL

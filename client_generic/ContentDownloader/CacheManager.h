@@ -17,27 +17,10 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/json.hpp>
 
+#include "PathManager.h"
+#include "Dream.h"
+
 namespace Cache {
-
-struct Dream {
-    std::string uuid;
-    std::string name;
-    std::string artist;
-    long long size;
-    std::string status;
-    std::string fps;
-    int frames;
-    std::string thumbnail;
-    int upvotes;
-    int downvotes;
-    bool nsfw;
-    std::string frontendUrl;
-    long long video_timestamp;
-    long long timestamp;
-    float activityLevel = 1.f;
-};
-
-
 
 class CacheManager {
 public:
@@ -172,6 +155,22 @@ private:
     }
     
 };
+
+// MARK: Extra dream functions that require CacheManager
+inline std::string Dream::getCachedPath() const {
+    const CacheManager& cacheManager = CacheManager::getInstance();
+    
+    if (!cacheManager.hasDiskCachedItem(uuid)) {
+        return "";
+    }
+    
+    std::filesystem::path folderPath = PathManager::getInstance().mp4Path();
+    std::filesystem::path filePath = folderPath / (uuid + ".mp4");
+    
+    return filePath.string();
+}
+
+
 
 } // Namespace
 
