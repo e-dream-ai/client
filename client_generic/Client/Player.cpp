@@ -605,7 +605,14 @@ void CPlayer::PlayQueuedClipsThread()
             int64_t seekFrame;
             seekFrame = (int64_t)g_Settings()->Get(
                 "settings.content.last_played_frame", uint64_t{});
-            PlayClip(lastPlayedFile, m_TimelineTime, seekFrame);
+            
+            
+            // We need to get the Dream object for the last played file
+            Cache::Dream lastPlayedDream;
+            if (m_spPlaylist->GetDreamMetadata(lastPlayedFile, &lastPlayedDream))
+            {
+                PlayClip(lastPlayedDream, m_TimelineTime, seekFrame);
+            }
         }
 
         while (m_bStarted)
@@ -636,7 +643,12 @@ void CPlayer::PlayQueuedClipsThread()
 
                     if (m_NextClipInfoQueue.pop(nextClip, false))
                     {
-                        PlayClip(nextClip, startTime);
+                        Cache::Dream nextDream;
+                        if (m_spPlaylist->GetDreamMetadata(nextClip, &nextDream))
+                        {
+                            PlayClip(nextDream, startTime);
+                        }
+
                         PRINTQUEUE("PLAYCLIPTHREAD", m_ClipInfoHistoryQueue,
                                    m_NextClipInfoQueue, m_CurrentClips);
                     }
@@ -652,32 +664,23 @@ void CPlayer::PlayQueuedClipsThread()
     }
 }
 
-bool CPlayer::PlayClip(std::string_view _clipPath, double _startTime,
+bool CPlayer::PlayClip(const Cache::Dream& dream, double _startTime,
                        int64_t _seekFrame, bool fastFade)
 {
     auto du = m_displayUnits[0];
     int32_t displayMode = g_Settings()->Get("settings.player.DisplayMode", 2);
-    //ContentDownloader::sDreamMetadata dream{};
-    Cache::Dream dream{};
-    m_spPlaylist->GetDreamMetadata(_clipPath, &dream);
-
-    //    if (!dream)
-    //        return false;
-
-    /*
-    // Primitive hardcoded test of streaming
     
-    auto testurl = "https://sylvan.apple.com/Videos/comp_DB_D001_C005_COMP_PSNK_v12_SDR_PS_20180912_SDR_2K_AVC.mov";
+    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+    
+    auto path = cm.getDreamPath(dream.uuid);
+
+    if (path == "") {
+        // TODO : Handle grabbing the URL
+        path = "https://sylvan.apple.com/Videos/comp_DB_D001_C005_COMP_PSNK_v12_SDR_PS_20180912_SDR_2K_AVC.mov";
+    }
     
     spCClip clip = std::make_shared<CClip>(
-        sClipMetadata{testurl,
-                      m_PerceptualFPS / dream.activityLevel, dream},
-        du->spRenderer, displayMode, du->spDisplay->Width(),
-        du->spDisplay->Height());
-     */
-    
-    spCClip clip = std::make_shared<CClip>(
-        sClipMetadata{std::string{_clipPath},
+        sClipMetadata{path,
                       m_PerceptualFPS / dream.activityLevel, dream},
         du->spRenderer, displayMode, du->spDisplay->Width(),
         du->spDisplay->Height());
@@ -817,10 +820,14 @@ void CPlayer::PlayDreamNow(std::string_view _uuid) {
     
     if (path != "") {
         writer_lock l(m_UpdateMutex);
-        PlayClip(path, m_TimelineTime);
-        m_CurrentClips[0]->FadeOut(m_TimelineTime);
-        if (m_CurrentClips.size() > 1)
-            m_CurrentClips[1]->FadeOut(m_TimelineTime);
+        Cache::Dream dream;
+        if (m_spPlaylist->GetDreamMetadata(path, &dream))
+        {
+            PlayClip(dream, m_TimelineTime);
+            m_CurrentClips[0]->FadeOut(m_TimelineTime);
+            if (m_CurrentClips.size() > 1)
+                m_CurrentClips[1]->FadeOut(m_TimelineTime);
+        }
     } else {
         cm.cacheAndPlayImmediately(std::string(_uuid));
     }
@@ -864,7 +871,11 @@ void CPlayer::SkipToNext()
         std::string nextClip;
         if (m_NextClipInfoQueue.pop(nextClip, false))
         {
-            PlayClip(nextClip, m_TimelineTime);
+            Cache::Dream nextDream;
+            if (m_spPlaylist->GetDreamMetadata(nextClip, &nextDream))
+            {
+                PlayClip(nextDream, m_TimelineTime);
+            }
         }
         else
         {
@@ -894,8 +905,17 @@ void CPlayer::ReturnToPrevious()
         clipName = m_CurrentClips[0]->GetClipMetadata().path;
         std::string clipName2 = m_CurrentClips[1]->GetClipMetadata().path;
         m_CurrentClips.clear();
-        PlayClip(clipName, m_TimelineTime);
-        PlayClip(clipName2, m_TimelineTime);
+        
+        Cache::Dream clipDream;
+        Cache::Dream clipDream2;
+        if (m_spPlaylist->GetDreamMetadata(clipName, &clipDream))
+        {
+            PlayClip(clipDream, m_TimelineTime, -1, true);
+        }
+        if (m_spPlaylist->GetDreamMetadata(clipName2, &clipDream2))
+        {
+            PlayClip(clipDream2, m_TimelineTime, -1, true);
+        }
         PRINTQUEUE("PREV_FADING", m_ClipInfoHistoryQueue, m_NextClipInfoQueue,
                    m_CurrentClips);
     }
@@ -913,7 +933,12 @@ void CPlayer::ReturnToPrevious()
         m_CurrentClips[0]->SetTransitionLength(fadeInTime, 1);
         
         // Ask PlayClip to fast fade too
-        PlayClip(clipName, m_TimelineTime, -1, true);
+        Cache::Dream previousDream;
+        if (m_spPlaylist->GetDreamMetadata(clipName, &previousDream))
+        {
+            PlayClip(previousDream, m_TimelineTime, -1, true);
+        }
+
         std::swap(m_CurrentClips[0], m_CurrentClips[1]);
         PRINTQUEUE("PREV_NORMAL", m_ClipInfoHistoryQueue, m_NextClipInfoQueue,
                    m_CurrentClips);
@@ -931,9 +956,12 @@ void CPlayer::RepeatClip()
     {
         clipName = m_CurrentClips[0]->GetClipMetadata().path;
         std::string clipName2 = m_CurrentClips[1]->GetClipMetadata().path;
+        const Cache::Dream& currentDream = m_CurrentClips[0]->GetClipMetadata().dreamData;
+        const Cache::Dream& nextDream = m_CurrentClips[1]->GetClipMetadata().dreamData;
+
         m_CurrentClips.clear();
-        PlayClip(clipName, m_TimelineTime);
-        PlayClip(clipName2, m_TimelineTime);
+        PlayClip(currentDream, m_TimelineTime);
+        PlayClip(nextDream, m_TimelineTime);
         PRINTQUEUE("REPEAT_FADING", m_ClipInfoHistoryQueue, m_NextClipInfoQueue,
                    m_CurrentClips);
     }
