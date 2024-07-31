@@ -179,6 +179,10 @@ inline std::string Dream::getCachedPath() const {
     return filePath.string();
 }
 
+inline bool Dream::isCached() const {
+    const CacheManager& cacheManager = CacheManager::getInstance();
+    return cacheManager.hasDiskCachedItem(uuid);
+}
 
 
 } // Namespace

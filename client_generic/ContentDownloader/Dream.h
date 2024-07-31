@@ -51,8 +51,9 @@ struct Dream {
         }
     }
     
-    // 
+    // Those are implemented in CacheManager.h
     std::string getCachedPath() const;
+    bool isCached() const;
 };
 
 } // namespace Cache

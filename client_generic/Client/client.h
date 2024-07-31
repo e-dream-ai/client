@@ -954,12 +954,14 @@ class CElectricSheep
                         m_HudManager->Get("dreamstats"));
                 float activityLevel = 1.f;
                 double realFps = 20;
+                bool isStreaming = false;
                 const ContentDecoder::sClipMetadata* clipMetadata =
                     g_Player().GetCurrentPlayingClipMetadata();
                 if (clipMetadata)
                 {
                     activityLevel = clipMetadata->dreamData.activityLevel;
                     realFps = clipMetadata->decodeFps;
+                    isStreaming = !(clipMetadata->dreamData.isCached());
                 }
 
                 const ContentDecoder::sFrameMetadata* frameMetadata =
@@ -979,9 +981,15 @@ class CElectricSheep
                 
                 // Grab Perceptual FPS from player
                 double pFPS = g_Player().GetPerceptualFPS();
-                
-                ((Hud::CStringStat*)spStats->Get("decodefps"))
-                    ->SetSample(string_format(" %.2f fps", realFps));
+                if (isStreaming) {
+                    ((Hud::CStringStat*)spStats->Get("decodefps"))
+                        ->SetSample(string_format(" %.2f fps (streaming)", realFps));
+
+                } else {
+                    ((Hud::CStringStat*)spStats->Get("decodefps"))
+                        ->SetSample(string_format(" %.2f fps", realFps));
+                }
+
                 ((Hud::CStringStat*)spStats->Get("perceptualfps"))
                     ->SetSample(string_format(" %.2f fps", pFPS));
 

@@ -672,10 +672,17 @@ bool CPlayer::PlayClip(const Cache::Dream& dream, double _startTime,
     
     auto path = dream.getCachedPath();
 
+    // If we don't have a file, try and grab the url to stream it
+    // This may get denied based on quota
     if (path == "") {
         // TODO : Handle grabbing the URL
-        path = "https://sylvan.apple.com/Videos/comp_DB_D001_C005_COMP_PSNK_v12_SDR_PS_20180912_SDR_2K_AVC.mov";
+        // path = "https://sylvan.apple.com/Videos/comp_DB_D001_C005_COMP_PSNK_v12_SDR_PS_20180912_SDR_2K_AVC.mov";
+
+        path = EDreamClient::GetDreamDownloadLink(dream.uuid);
     }
+
+    if (path == "")
+        return false;
     
     spCClip clip = std::make_shared<CClip>(
         sClipMetadata{path,
@@ -814,20 +821,37 @@ void CPlayer::CalculateNextClipThread()
 void CPlayer::PlayDreamNow(std::string_view _uuid) {
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
     
-    auto path = cm.getDreamPath(std::string(_uuid));
-    
-    if (path != "") {
-        writer_lock l(m_UpdateMutex);
-        Cache::Dream dream;
-        if (m_spPlaylist->GetDreamMetadata(path, &dream))
-        {
-            PlayClip(dream, m_TimelineTime);
+    if (cm.hasDream(std::string(_uuid))) {
+        auto dream = cm.getDream(std::string(_uuid));
+
+        if (dream->isCached()) {
+            writer_lock l(m_UpdateMutex);
+            PlayClip(*dream, m_TimelineTime);
+            m_CurrentClips[0]->FadeOut(m_TimelineTime);
+            if (m_CurrentClips.size() > 1)
+                m_CurrentClips[1]->FadeOut(m_TimelineTime);
+        } else {
+            //cm.cacheAndPlayImmediately(std::string(_uuid));
+            writer_lock l(m_UpdateMutex);
+            PlayClip(*dream, m_TimelineTime);
             m_CurrentClips[0]->FadeOut(m_TimelineTime);
             if (m_CurrentClips.size() > 1)
                 m_CurrentClips[1]->FadeOut(m_TimelineTime);
         }
     } else {
-        cm.cacheAndPlayImmediately(std::string(_uuid));
+        // We need the metadata before we
+        EDreamClient::FetchDreamMetadata(std::string(_uuid));
+        cm.reloadMetadata(std::string(_uuid));
+
+        auto dream = cm.getDream(std::string(_uuid));
+        if (!dream) {
+            g_Log->Error("Can't get dream metadata, aborting PlayDreamNow");
+        }
+        writer_lock l(m_UpdateMutex);
+        PlayClip(*dream, m_TimelineTime);
+        m_CurrentClips[0]->FadeOut(m_TimelineTime);
+        if (m_CurrentClips.size() > 1)
+            m_CurrentClips[1]->FadeOut(m_TimelineTime);
     }
 }
 
