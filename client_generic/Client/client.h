@@ -1063,7 +1063,8 @@ class CElectricSheep
                     {
                         std::stringstream loginstatusstr;
                         loginstatusstr
-                        << "Logged in!";
+                        << "Logged in! Remaining quota: " << cm.getRemainingQuotaAsString();
+                        
                         pTmp->SetSample(loginstatusstr.str());
                     }
                     else

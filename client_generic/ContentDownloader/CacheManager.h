@@ -68,7 +68,16 @@ public:
     long long getRemainingQuota() const {
        return remainingQuota;
     }
+    
+    std::string getRemainingQuotaAsString() const {
+        const double GB = 1024.0 * 1024.0 * 1024.0;
+        double remainingGB = static_cast<double>(remainingQuota) / GB;
 
+        std::ostringstream oss;
+        oss << std::fixed << std::setprecision(1) << remainingGB << " GB";
+        return oss.str();
+    }
+    
     void setRemainingQuota(long long newQuota) {
        remainingQuota = newQuota;
     }
