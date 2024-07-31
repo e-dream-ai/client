@@ -6,7 +6,6 @@
 
 #include "SmartPtr.h"
 #include "base.h"
-#include "Dream.h"
 #include "CacheManager.h"
 
 namespace ContentDecoder

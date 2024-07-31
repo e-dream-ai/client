@@ -15,7 +15,6 @@
 #include "SmartPtr.h"
 #include "FrameDisplay.h"
 #include "ContentDecoder.h"
-#include "Dream.h"
 #include "CacheManager.h"
 
 namespace ContentDecoder

@@ -57,9 +57,7 @@
 		211CDDDC0ED0BD9200EB9394 /* Networking.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDD80ED0BD9200EB9394 /* Networking.cpp */; };
 		211CDDDD0ED0BD9200EB9394 /* Upload.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDDA0ED0BD9200EB9394 /* Upload.cpp */; };
 		212313270F503C4500702B2C /* ContentDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212313190F503C4500702B2C /* ContentDownloader.cpp */; };
-		212313280F503C4500702B2C /* Dream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2123131B0F503C4500702B2C /* Dream.cpp */; };
 		2123132E0F503C4500702B2C /* ContentDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212313190F503C4500702B2C /* ContentDownloader.cpp */; };
-		2123132F0F503C4500702B2C /* Dream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2123131B0F503C4500702B2C /* Dream.cpp */; };
 		212CAF841141CA3F009DA85A /* TrebuchetMS-20.glf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 212CAF831141CA3F009DA85A /* TrebuchetMS-20.glf */; };
 		212CAF851141CA3F009DA85A /* TrebuchetMS-20.glf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 212CAF831141CA3F009DA85A /* TrebuchetMS-20.glf */; };
 		2135D2690EC70571005E246D /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2135D2670EC70571005E246D /* AppKit.framework */; };
@@ -341,7 +339,6 @@
 		F0C100462C1372EF007FA505 /* DisplayMetal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 46ED5CB02AF5326A00AF8F45 /* DisplayMetal.cpp */; };
 		F0C100472C1372EF007FA505 /* ContentDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212313190F503C4500702B2C /* ContentDownloader.cpp */; };
 		F0C100482C1372EF007FA505 /* ShaderMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 46FA9E192B03CB0500708000 /* ShaderMetal.mm */; };
-		F0C100492C1372EF007FA505 /* Dream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2123131B0F503C4500702B2C /* Dream.cpp */; };
 		F0C1004C2C1372EF007FA505 /* MBEFontAtlas.m in Sources */ = {isa = PBXBuildFile; fileRef = 46D2E8E92AFBA64B0054049D /* MBEFontAtlas.m */; };
 		F0C1004D2C1372EF007FA505 /* AlignedBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 210335030F549BEF00A83F17 /* AlignedBuffer.cpp */; };
 		F0C1004E2C1372EF007FA505 /* TextureFlatMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C72AC1AE9D00017C51 /* TextureFlatMetal.mm */; };
@@ -462,7 +459,6 @@
 		F0E9CE702C136B0500C4D694 /* Networking.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDD80ED0BD9200EB9394 /* Networking.cpp */; };
 		F0E9CE712C136B0500C4D694 /* Upload.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDDA0ED0BD9200EB9394 /* Upload.cpp */; };
 		F0E9CE722C136B0500C4D694 /* ContentDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212313190F503C4500702B2C /* ContentDownloader.cpp */; };
-		F0E9CE732C136B0500C4D694 /* Dream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2123131B0F503C4500702B2C /* Dream.cpp */; };
 		F0E9CE762C136B0500C4D694 /* AlignedBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 210335030F549BEF00A83F17 /* AlignedBuffer.cpp */; };
 		F0E9CE772C136B0500C4D694 /* md5.c in Sources */ = {isa = PBXBuildFile; fileRef = 21C5D0930F9CF6D9001657E7 /* md5.c */; };
 		F0E9CE782C136B0500C4D694 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 21EE633410139BCC000CE53E /* main.m */; };
@@ -741,8 +737,6 @@
 		211CDDEB0ED0BE8300EB9394 /* libcurl.4.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libcurl.4.dylib; path = usr/lib/libcurl.4.dylib; sourceTree = SDKROOT; };
 		212313190F503C4500702B2C /* ContentDownloader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ContentDownloader.cpp; sourceTree = "<group>"; };
 		2123131A0F503C4500702B2C /* ContentDownloader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ContentDownloader.h; sourceTree = "<group>"; };
-		2123131B0F503C4500702B2C /* Dream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Dream.cpp; sourceTree = "<group>"; };
-		2123131C0F503C4500702B2C /* Dream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Dream.h; sourceTree = "<group>"; };
 		212316950F50636700702B2C /* libboost_filesystem.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_filesystem.a; path = ../boost/osx/lib/libboost_filesystem.a; sourceTree = SOURCE_ROOT; };
 		212B192A0E8E591000CE185C /* Common.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Common.cpp; path = ../Common/Common.cpp; sourceTree = SOURCE_ROOT; };
 		212B192B0E8E591000CE185C /* Exception.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Exception.cpp; path = ../Common/Exception.cpp; sourceTree = SOURCE_ROOT; };
@@ -1176,8 +1170,6 @@
 			children = (
 				212313190F503C4500702B2C /* ContentDownloader.cpp */,
 				2123131A0F503C4500702B2C /* ContentDownloader.h */,
-				2123131B0F503C4500702B2C /* Dream.cpp */,
-				2123131C0F503C4500702B2C /* Dream.h */,
 				F02A5C3C2C453FEF00B57FBD /* DreamDownloader.cpp */,
 				F02A5C3B2C453FEF00B57FBD /* DreamDownloader.h */,
 				F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */,
@@ -1872,7 +1864,6 @@
 				2160FADF0F30F45100B2C27A /* Networking.cpp in Sources */,
 				2160FAE00F30F45100B2C27A /* Upload.cpp in Sources */,
 				2123132E0F503C4500702B2C /* ContentDownloader.cpp in Sources */,
-				2123132F0F503C4500702B2C /* Dream.cpp in Sources */,
 				210335050F549BEF00A83F17 /* AlignedBuffer.cpp in Sources */,
 				21C5D0950F9CF6D9001657E7 /* md5.c in Sources */,
 				21EE633510139BCC000CE53E /* main.m in Sources */,
@@ -1933,7 +1924,6 @@
 				212313270F503C4500702B2C /* ContentDownloader.cpp in Sources */,
 				F02A5C3F2C453FEF00B57FBD /* DreamDownloader.cpp in Sources */,
 				46FA9E1A2B03CB0500708000 /* ShaderMetal.mm in Sources */,
-				212313280F503C4500702B2C /* Dream.cpp in Sources */,
 				46D2E8F12AFBA64B0054049D /* MBEFontAtlas.m in Sources */,
 				210335040F549BEF00A83F17 /* AlignedBuffer.cpp in Sources */,
 				467230C82AC1AE9D00017C51 /* TextureFlatMetal.mm in Sources */,
@@ -1992,7 +1982,6 @@
 				F0C100472C1372EF007FA505 /* ContentDownloader.cpp in Sources */,
 				F02A5C3E2C453FEF00B57FBD /* DreamDownloader.cpp in Sources */,
 				F0C100482C1372EF007FA505 /* ShaderMetal.mm in Sources */,
-				F0C100492C1372EF007FA505 /* Dream.cpp in Sources */,
 				F0C1004C2C1372EF007FA505 /* MBEFontAtlas.m in Sources */,
 				F0C1004D2C1372EF007FA505 /* AlignedBuffer.cpp in Sources */,
 				F0C1004E2C1372EF007FA505 /* TextureFlatMetal.mm in Sources */,
@@ -2051,7 +2040,6 @@
 				F0E9CE702C136B0500C4D694 /* Networking.cpp in Sources */,
 				F0E9CE712C136B0500C4D694 /* Upload.cpp in Sources */,
 				F0E9CE722C136B0500C4D694 /* ContentDownloader.cpp in Sources */,
-				F0E9CE732C136B0500C4D694 /* Dream.cpp in Sources */,
 				F0E9CE762C136B0500C4D694 /* AlignedBuffer.cpp in Sources */,
 				F0E9CE772C136B0500C4D694 /* md5.c in Sources */,
 				F0E9CE782C136B0500C4D694 /* main.m in Sources */,
