@@ -664,12 +664,24 @@ bool CPlayer::PlayClip(std::string_view _clipPath, double _startTime,
     //    if (!dream)
     //        return false;
 
+    /*
+    // Primitive hardcoded test of streaming
+    
+    auto testurl = "https://sylvan.apple.com/Videos/comp_DB_D001_C005_COMP_PSNK_v12_SDR_PS_20180912_SDR_2K_AVC.mov";
+    
+    spCClip clip = std::make_shared<CClip>(
+        sClipMetadata{testurl,
+                      m_PerceptualFPS / dream.activityLevel, dream},
+        du->spRenderer, displayMode, du->spDisplay->Width(),
+        du->spDisplay->Height());
+     */
+    
     spCClip clip = std::make_shared<CClip>(
         sClipMetadata{std::string{_clipPath},
                       m_PerceptualFPS / dream.activityLevel, dream},
         du->spRenderer, displayMode, du->spDisplay->Width(),
         du->spDisplay->Height());
-
+    
     // Update internal decoder fps counter
     m_DecoderFps = m_PerceptualFPS / dream.activityLevel;
 

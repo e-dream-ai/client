@@ -134,6 +134,13 @@ class CContentDecoder
     {
         m_SkipForward.exchange(_secondsForward);
     }
+    
+  private:
+    bool IsURL(const std::string& path);
+    AVIOContext* m_pIOContext;
+    unsigned char* m_pIOBuffer;
+    const int kIOBufferSize = 32768;  // 32 KB buffer
+
 };
 
 MakeSmartPointers(CContentDecoder);

@@ -130,16 +130,40 @@ int CContentDecoder::DumpError(int _err)
     return _err;
 }
 
+bool CContentDecoder::IsURL(const std::string& path)
+{
+    return path.substr(0, 7) == "http://" || path.substr(0, 8) == "https://";
+}
+
 bool CContentDecoder::Open()
 {
     auto ovi = m_CurrentVideoInfo.get();
     if (ovi == nullptr)
         return false;
 
-    boost::filesystem::path sys_name(ovi->m_Path);
-    std::string _filename = sys_name.string();
+    std::string _filename = ovi->m_Path;
     ovi->m_TotalFrameCount = 0;
     g_Log->Info("Opening: %s", _filename.c_str());
+
+    avformat_network_init();  // Initialize network
+    
+    int ret;
+    if (IsURL(_filename))
+    {
+        // For URLs, we use avio_open2
+        m_pIOBuffer = (unsigned char*)av_malloc(kIOBufferSize);
+        ret = avio_open2(&m_pIOContext, _filename.c_str(), AVIO_FLAG_READ, nullptr, nullptr);
+        if (ret < 0)
+        {
+            g_Log->Warning("Failed to open URL %s...", _filename.c_str());
+            return false;
+        }
+
+        ovi->m_pFormatContext = avformat_alloc_context();
+        ovi->m_pFormatContext->pb = m_pIOContext;
+    }
+    
+    
     // Destroy()
     if (DumpError(avformat_open_input(&ovi->m_pFormatContext, _filename.c_str(),
                                       nullptr, nullptr)) < 0)
@@ -267,6 +291,20 @@ void CContentDecoder::Close()
     Stop();
     ClearQueue();
     Destroy();
+    
+    if (m_pIOContext)
+    {
+        avio_close(m_pIOContext);
+        m_pIOContext = nullptr;
+    }
+
+    if (m_pIOBuffer)
+    {
+        av_free(m_pIOBuffer);
+        m_pIOBuffer = nullptr;
+    }
+
+    avformat_network_deinit();
     g_Log->Info("closed...");
 }
 
