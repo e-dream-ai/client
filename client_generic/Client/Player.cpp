@@ -343,8 +343,14 @@ void CPlayer::Stop()
     writer_lock l(m_UpdateMutex);
     if (m_bStarted && m_CurrentClips.size())
     {
-        g_Settings()->Set("settings.content.last_played_file",
-                          m_CurrentClips[0]->GetClipMetadata().path);
+        // Don't save the path if it's a link
+        auto path = m_CurrentClips[0]->GetClipMetadata().path;
+        if (!(path.substr(0, 7) == "http://" || path.substr(0, 8) == "https://")) {
+            g_Settings()->Set("settings.content.last_played_file",
+                              path);
+        }
+            
+
         g_Settings()->Set("settings.content.last_played_frame",
                           (uint64_t)m_CurrentClips[0]->GetCurrentFrameIdx());
 
