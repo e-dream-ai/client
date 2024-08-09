@@ -217,10 +217,6 @@
 		F0141B812C594A2D00DBA60E /* MessageQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B7F2C594A2D00DBA60E /* MessageQueue.cpp */; };
 		F0141B822C594A2D00DBA60E /* MessageQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B7F2C594A2D00DBA60E /* MessageQueue.cpp */; };
 		F0141B832C594A2D00DBA60E /* MessageQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B7F2C594A2D00DBA60E /* MessageQueue.cpp */; };
-		F0141B872C5D3DA200DBA60E /* StreamingCache.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B862C5D3DA200DBA60E /* StreamingCache.cpp */; };
-		F0141B882C5D3DA200DBA60E /* StreamingCache.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B862C5D3DA200DBA60E /* StreamingCache.cpp */; };
-		F0141B892C5D3DA200DBA60E /* StreamingCache.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B862C5D3DA200DBA60E /* StreamingCache.cpp */; };
-		F0141B8A2C5D3DA200DBA60E /* StreamingCache.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B862C5D3DA200DBA60E /* StreamingCache.cpp */; };
 		F0141B922C663E2700DBA60E /* libswresample.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B902C663DEF00DBA60E /* libswresample.a */; };
 		F0141B932C663E2700DBA60E /* libavdevice.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8C2C663DE800DBA60E /* libavdevice.a */; };
 		F0141B942C663E2700DBA60E /* libavformat.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8E2C663DE800DBA60E /* libavformat.a */; };
@@ -860,8 +856,6 @@
 		F0141B7E2C594A2D00DBA60E /* MessageQueue.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MessageQueue.h; sourceTree = "<group>"; };
 		F0141B7F2C594A2D00DBA60E /* MessageQueue.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MessageQueue.cpp; sourceTree = "<group>"; };
 		F0141B842C5A79F800DBA60E /* Dream.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Dream.h; sourceTree = "<group>"; };
-		F0141B852C5D3DA200DBA60E /* StreamingCache.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = StreamingCache.h; sourceTree = "<group>"; };
-		F0141B862C5D3DA200DBA60E /* StreamingCache.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = StreamingCache.cpp; sourceTree = "<group>"; };
 		F0141B8B2C663DE800DBA60E /* libavcodec.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavcodec.a; path = "../../cache/univ-osx/lib/libavcodec.a"; sourceTree = "<group>"; };
 		F0141B8C2C663DE800DBA60E /* libavdevice.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavdevice.a; path = "../../cache/univ-osx/lib/libavdevice.a"; sourceTree = "<group>"; };
 		F0141B8D2C663DE800DBA60E /* libavfilter.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavfilter.a; path = "../../cache/univ-osx/lib/libavfilter.a"; sourceTree = "<group>"; };
@@ -1238,8 +1232,6 @@
 				12478A8B2B03B61B006A8669 /* LoopingPlaylist.h */,
 				12478A8D2B03B61B006A8669 /* Playlist.h */,
 				12478A892B03B61B006A8669 /* SimplePlaylist.h */,
-				F0141B862C5D3DA200DBA60E /* StreamingCache.cpp */,
-				F0141B852C5D3DA200DBA60E /* StreamingCache.h */,
 			);
 			name = ContentDecoder;
 			sourceTree = "<group>";
@@ -1873,7 +1865,6 @@
 				2160FAD90F30F45100B2C27A /* TextureFlat.cpp in Sources */,
 				46D2E8F42AFBA64B0054049D /* MBETextMesh.m in Sources */,
 				467230C62AC18FDB00017C51 /* FontMetal.mm in Sources */,
-				F0141B882C5D3DA200DBA60E /* StreamingCache.cpp in Sources */,
 				2160FADB0F30F45100B2C27A /* Hud.cpp in Sources */,
 				1220B53A2B3DC64D00D68410 /* StringFormat.cpp in Sources */,
 				2160FADC0F30F45100B2C27A /* Rect.cpp in Sources */,
@@ -1904,7 +1895,6 @@
 				218878D60EC6CDE2001ABD2E /* Exception.cpp in Sources */,
 				218878D70EC6CDE2001ABD2E /* Log.cpp in Sources */,
 				46D2E8F32AFBA64B0054049D /* MBETextMesh.m in Sources */,
-				F0141B8A2C5D3DA200DBA60E /* StreamingCache.cpp in Sources */,
 				218878DB0EC6CDE2001ABD2E /* pool.cpp in Sources */,
 				218878DC0EC6CDE2001ABD2E /* ContentDecoder.cpp in Sources */,
 				461C9D7C2B28BA50000C44E9 /* JSONStorage.cpp in Sources */,
@@ -1963,7 +1953,6 @@
 				F0C100232C1372EF007FA505 /* Exception.cpp in Sources */,
 				F0C100242C1372EF007FA505 /* Log.cpp in Sources */,
 				F0C100252C1372EF007FA505 /* MBETextMesh.m in Sources */,
-				F0141B872C5D3DA200DBA60E /* StreamingCache.cpp in Sources */,
 				F0C100262C1372EF007FA505 /* pool.cpp in Sources */,
 				F0C100272C1372EF007FA505 /* ContentDecoder.cpp in Sources */,
 				F0C100282C1372EF007FA505 /* JSONStorage.cpp in Sources */,
@@ -2052,7 +2041,6 @@
 				F0E9CE682C136B0500C4D694 /* TextureFlat.cpp in Sources */,
 				F0E9CE692C136B0500C4D694 /* MBETextMesh.m in Sources */,
 				F0E9CE6A2C136B0500C4D694 /* FontMetal.mm in Sources */,
-				F0141B892C5D3DA200DBA60E /* StreamingCache.cpp in Sources */,
 				F0E9CE6B2C136B0500C4D694 /* Hud.cpp in Sources */,
 				F0E9CE6C2C136B0500C4D694 /* StringFormat.cpp in Sources */,
 				F0E9CE6D2C136B0500C4D694 /* Rect.cpp in Sources */,
