@@ -16,21 +16,21 @@ class EDreamClient
     static std::mutex fAuthMutex;
     static std::mutex fWebSocketMutex;
     static bool fIsWebSocketConnected;
-    static int Hello();
+    static std::string Hello();
     static long long remainingQuota;
     
   public:
     static void InitializeClient();
     static void DeinitializeClient();
-    static int GetCurrentServerPlaylist();
-    static bool FetchPlaylist(int id);
+    static std::string GetCurrentServerPlaylist();
+    static bool FetchPlaylist(std::string_view uuid);
     static bool FetchDefaultPlaylist();
     static bool FetchDreamMetadata(std::string uuid);
     static std::string GetDreamDownloadLink(const std::string& uuid);
-    static std::vector<std::string> ParsePlaylist(int id);
-    static std::tuple<std::string, std::string> ParsePlaylistCredits(int id);
+    static std::vector<std::string> ParsePlaylist(std::string_view uuid);
+    static std::tuple<std::string, std::string> ParsePlaylistCredits(std::string_view uuid);
 
-    static bool EnqueuePlaylist(int id);
+    static bool EnqueuePlaylist(std::string_view uuid);
     static bool GetDreams(int _page = 0, int _count = -1);
     static const char* GetAccessToken();
     static bool RefreshAccessToken();

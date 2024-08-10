@@ -282,7 +282,7 @@ bool EDreamClient::RefreshAccessToken()
 // Returns a JSON with a data structure containing
 //      "quota": int,   // in bytes
 //      "currentPlaylistId": int    // playlistID
-int EDreamClient::Hello() {
+std::string EDreamClient::Hello() {
     // Grab the CacheManager
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
 
@@ -310,9 +310,9 @@ int EDreamClient::Hello() {
                 spDownload->ResponseCode() == 401)
             {
                 if (currentAttempt == maxAttempts)
-                    return -1;
+                    return "";
                 if (!RefreshAccessToken())
-                    return -1;
+                    return "";
             }
             else
             {
@@ -337,16 +337,16 @@ int EDreamClient::Hello() {
         
         if (data.as_object().if_contains("currentPlaylistId")) {
             json::value currentPlaylistId = data.at("currentPlaylistId");
-            auto idint = currentPlaylistId.as_int64();
+            //auto idint = currentPlaylistId.as_int64();
 
-            g_Log->Info("Handshake with server successful, playlist id : %lld, remaining quota : %lld", idint, remainingQuota);
-
-            return idint;
+            //g_Log->Info("Handshake with server successful, playlist id : %lld, remaining quota : %lld", idint, remainingQuota);
+            // TODO: needs update server side
+            return "";
 
         } else {
             g_Log->Info("Handshake with server successful, no playlist, remaining quota : %lld", remainingQuota);
 
-            return 0;
+            return "";
         }
     }
     catch (const boost::system::system_error& e)
@@ -354,17 +354,17 @@ int EDreamClient::Hello() {
         JSONUtil::LogException(e, spDownload->Data());
     }
     
-    return -1;
+    return "";
 }
 
 
 
-int EDreamClient::GetCurrentServerPlaylist() {
+std::string EDreamClient::GetCurrentServerPlaylist() {
     // Handshake server and get quota and current playlist ID
     auto playlistId = Hello();
     
     // Fetch playlist if we have one and save it to disk
-    if (playlistId > 0) {
+    if (playlistId != "") {
         FetchPlaylist(playlistId);
     } else {
         FetchDefaultPlaylist();
@@ -373,7 +373,7 @@ int EDreamClient::GetCurrentServerPlaylist() {
     return playlistId;
 }
 
-bool EDreamClient::FetchPlaylist(int id) {
+bool EDreamClient::FetchPlaylist(std::string_view uuid) {
     Network::spCFileDownloader spDownload;
     auto jsonPath = Cache::PathManager::getInstance().jsonPlaylistPath();
 
@@ -389,7 +389,7 @@ bool EDreamClient::FetchPlaylist(int id) {
         
         
         std::string url{string_format(
-            "%s/%i", ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::GETPLAYLIST).c_str(), id)};
+            "%s/%s", ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::GETPLAYLIST).c_str(), uuid)};
         
         printf("url : %s\n", url.c_str());
         
@@ -416,7 +416,7 @@ bool EDreamClient::FetchPlaylist(int id) {
         }
     }
 
-    auto filename = jsonPath / ("playlist_" + std::to_string(id) + ".json");
+    auto filename = jsonPath / ("playlist_" + std::string(uuid) + ".json");
     if (!spDownload->Save(filename.string()))
     {
         g_Log->Error("Unable to save %s\n", filename.string().c_str());
@@ -579,8 +579,8 @@ std::string EDreamClient::GetDreamDownloadLink(const std::string& uuid) {
 }
 
 
-std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
-    g_Log->Info("Parse Playlist %d", id);
+std::vector<std::string> EDreamClient::ParsePlaylist(std::string_view uuid) {
+    g_Log->Info("Parse Playlist %s", uuid);
     // Grab the CacheManager
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
 
@@ -591,7 +591,7 @@ std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
 
 
     // Open playlist and grab content
-    fs::path filePath = Cache::PathManager::getInstance().jsonPlaylistPath() / ("playlist_" + std::to_string(id) + ".json");
+    fs::path filePath = Cache::PathManager::getInstance().jsonPlaylistPath() / ("playlist_" + std::string(uuid) + ".json");
     std::ifstream file(filePath);
     if (!file.is_open())
     {
@@ -610,7 +610,7 @@ std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
         
         // Urgggghh, default playlist doesn't use the same format...
         boost::json::array itemArray;
-        if (id == 0) {
+        if (uuid == "") {
             itemArray = data["playlist"].as_array();
         } else {
             auto playlist = data["playlist"].as_object();
@@ -676,14 +676,14 @@ std::vector<std::string> EDreamClient::ParsePlaylist(int id) {
     return uuids;
 }
 
-std::tuple<std::string, std::string> EDreamClient::ParsePlaylistCredits(int id) {
+std::tuple<std::string, std::string> EDreamClient::ParsePlaylistCredits(std::string_view uuid) {
     // Default playlist doesn't have any credits right now, hardcoding this
-    if (id == 0) {
+    if (uuid == "") {
         return {"Popular dreams", "Various artists"};
     }
     
     // Open playlist and grab content
-    fs::path filePath = Cache::PathManager::getInstance().jsonPlaylistPath() / ("playlist_" + std::to_string(id) + ".json");
+    fs::path filePath = Cache::PathManager::getInstance().jsonPlaylistPath() / ("playlist_" + std::string(uuid) + ".json");
     std::ifstream file(filePath);
     if (!file.is_open())
     {
@@ -715,15 +715,15 @@ std::tuple<std::string, std::string> EDreamClient::ParsePlaylistCredits(int id) 
 }
 
 
-bool EDreamClient::EnqueuePlaylist(int id) {
+bool EDreamClient::EnqueuePlaylist(std::string_view uuid) {
     // Fetch the playlist and save it to disk
-    if (EDreamClient::FetchPlaylist(id)) {
+    if (EDreamClient::FetchPlaylist(uuid)) {
         // Parse the playlist
-        auto uuids = EDreamClient::ParsePlaylist(id);
+        auto uuids = EDreamClient::ParsePlaylist(uuid);
 
         if (uuids.size() > 0) {
             // save the current playlist id, this will get reused at next startup
-            g_Settings()->Set("settings.content.current_playlist", id);
+            g_Settings()->Set("settings.content.current_playlist", uuid);
             g_Player().ResetPlaylist();
             return true;
         }
@@ -755,12 +755,12 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
         g_Player().PlayDreamNow(uuid.data());
 
     } else if (event == "play_playlist") {
-        std::shared_ptr<sio::int_message> idObj =
-            std::dynamic_pointer_cast<sio::int_message>(response["id"]);
-        auto id = idObj->get_int();
-        printf("should play : %lld", id);
+        std::shared_ptr<sio::string_message> uuidObj =
+            std::dynamic_pointer_cast<sio::string_message>(response["uuid"]);
+        std::string_view uuid = uuidObj->get_string();
+        printf("should play : %s", uuid.data());
         
-        EDreamClient::EnqueuePlaylist(id);
+        EDreamClient::EnqueuePlaylist(uuid.data());
     }
     else if (event == "like")
     {

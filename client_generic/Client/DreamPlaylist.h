@@ -58,7 +58,7 @@ class CDreamPlaylist : public CPlaylist
     
     // Infos fetched from remote playlist
 public:
-    int playlistId = 0;
+    std::string playlistId = "";
     std::string playlistName;
     std::string playlistUserName;
     
@@ -89,7 +89,7 @@ public:
     bool PlayFreshOnesFirst(std::string& _result)
     {
         // Disable fresh if playlist mode
-        if (g_Settings()->Get("settings.content.current_playlist", 0) > 0)
+        if (g_Settings()->Get("settings.content.current_playlist", std::string("")) != "")
             return false;
         
         if (!m_FreshList.empty())
@@ -185,8 +185,8 @@ public:
             
             
             // Are we in playlist mode ? If so we add that list, sorted default
-            playlistId = g_Settings()->Get("settings.content.current_playlist", 0);
-            if (playlistId >= 0) {
+            playlistId = g_Settings()->Get("settings.content.current_playlist", std::string(""));
+            if (playlistId != "") {
                 auto uuids = EDreamClient::ParsePlaylist(playlistId);
  
                 auto [name, userName] = EDreamClient::ParsePlaylistCredits(playlistId);
@@ -269,9 +269,9 @@ public:
     }
     
 
-    void SetPlaylist(int id) {
+    void SetPlaylist(std::string_view uuid) {
         std::scoped_lock locker(m_Lock);
-        playlistId = id;
+        playlistId = uuid;
     }
     
     //	Overrides the playlist to play _id next time.
