@@ -335,13 +335,13 @@ std::string EDreamClient::Hello() {
         // Update CacheManager with that info
         cm.setRemainingQuota(remainingQuota);
         
-        if (data.as_object().if_contains("currentPlaylistId")) {
-            json::value currentPlaylistId = data.at("currentPlaylistId");
-            //auto idint = currentPlaylistId.as_int64();
+        if (data.as_object().if_contains("currentPlaylistUUID")) {
+            json::value currentPlaylistId = data.at("currentPlaylistUUID");
+            auto uuid = currentPlaylistId.as_string();
 
-            //g_Log->Info("Handshake with server successful, playlist id : %lld, remaining quota : %lld", idint, remainingQuota);
+            g_Log->Info("Handshake with server successful, playlist id : %s, remaining quota : %lld", uuid.c_str(), remainingQuota);
             // TODO: needs update server side
-            return "";
+            return std::string(uuid);
 
         } else {
             g_Log->Info("Handshake with server successful, no playlist, remaining quota : %lld", remainingQuota);
