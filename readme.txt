@@ -10,19 +10,23 @@ this repository has the native client.
 dev docs
 ========
 
-this repository uses git LFS, be sure to run
+install dependencies:
 
     brew install git-lfs
     git lfs install
+
+
+dependencies for package management:
+
+    brew install nasm
+    git submodule update --init --recursive
+    ./vcpkg/bootstrap-vcpkg.sh
+    ./build_mac_libs_vcpkg.sh
 
 on Mac, open client_generic/MacBuild/e-dream.xcodeproj
 
 to make a release: archive the app, archive the screensaver, upload as zip files.
 
-to test with staging server, visit
-https://creative-rugelach-b78ab4.netlify.app/ and create an account,
-and then in the advanced settings change the backend server to:
-
-    e-dream-76c98b08cc5d.herokuapp.com
-
-and then enter your credentials.
+there are two configurations, one that connects to the staging server,
+and another to the alpha production server. the apps have different
+names and storage, so they can coexist.
