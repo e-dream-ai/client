@@ -590,7 +590,7 @@ void CPlayer::PlayQueuedClipsThread()
         std::string lastPlayedFile = g_Settings()->Get(
             "settings.content.last_played_file", std::string{});
         
-        auto clientPlaylistId = g_Settings()->Get("settings.content.current_playlist", std::string(""));
+        auto clientPlaylistId = g_Settings()->Get("settings.content.current_playlist_uuid", std::string(""));
         auto serverPlaylistId = EDreamClient::GetCurrentServerPlaylist();
 
         
@@ -599,7 +599,7 @@ void CPlayer::PlayQueuedClipsThread()
             // Override if there's a mismatch, and don't try to resume previous file as
             // it may not be part of the new playlist
             if (serverPlaylistId != clientPlaylistId) {
-                g_Settings()->Set("settings.content.current_playlist", serverPlaylistId);
+                g_Settings()->Set("settings.content.current_playlist_uuid", serverPlaylistId);
                 m_spPlaylist->SetPlaylist(serverPlaylistId);
                 lastPlayedFile = "";
                 ResetPlaylist();    // Don't forget to reset the playlist that was already generated

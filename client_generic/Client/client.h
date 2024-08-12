@@ -1284,7 +1284,7 @@ class CElectricSheep
                 return true;
             case CLIENT_COMMAND_RESET_PLAYLIST:
                 printf("RESET PLAYLIST\n");
-                g_Settings()->Set("settings.content.current_playlist", std::string(""));
+                g_Settings()->Set("settings.content.current_playlist_uuid", std::string(""));
                 g_Player().ResetPlaylist();
                 return true;
                 //  Force Next Sheep

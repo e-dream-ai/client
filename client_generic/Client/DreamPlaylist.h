@@ -89,7 +89,7 @@ public:
     bool PlayFreshOnesFirst(std::string& _result)
     {
         // Disable fresh if playlist mode
-        if (g_Settings()->Get("settings.content.current_playlist", std::string("")) != "")
+        if (g_Settings()->Get("settings.content.current_playlist_uuid", std::string("")) != "")
             return false;
         
         if (!m_FreshList.empty())
@@ -185,7 +185,7 @@ public:
             
             
             // Are we in playlist mode ? If so we add that list, sorted default
-            playlistId = g_Settings()->Get("settings.content.current_playlist", std::string(""));
+            playlistId = g_Settings()->Get("settings.content.current_playlist_uuid", std::string(""));
             if (playlistId != "") {
                 auto uuids = EDreamClient::ParsePlaylist(playlistId);
  
