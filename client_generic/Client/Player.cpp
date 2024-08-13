@@ -438,7 +438,7 @@ bool CPlayer::BeginFrameUpdate()
         // @TODO: We need to rethink having always 2 clips right now in m_CurrentClips to properly handle those cases
         if (m_CurrentClips.size() > 1) {
             if (m_CurrentClips[0]->HasFinished()) {
-                if (m_CurrentClips[0]->GetClipMetadata().dreamData.uuid == m_CurrentClips[1]->GetClipMetadata().dreamData.uuid && m_spPlaylist->HasFreshlyDownloadedSheep()) {
+                if (m_CurrentClips[0]->GetClipMetadata().dreamData.uuid == m_CurrentClips[1]->GetClipMetadata().dreamData.uuid /*&& m_spPlaylist->HasFreshlyDownloadedSheep() */) {
                     m_CurrentClips[1]->FadeOut(m_TimelineTime);
                     m_NextClipInfoQueue.clear(0);
                 }
