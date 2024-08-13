@@ -1,0 +1,9 @@
+The package boost-odeint is compatible with built-in CMake targets of FindBoost.cmake:
+
+    find_package(Boost REQUIRED COMPONENTS numeric_odeint)
+    target_link_libraries(main PRIVATE Boost::numeric_odeint)
+
+or the generated cmake configs via:
+
+    find_package(boost_odeint REQUIRED CONFIG)
+    target_link_libraries(main PRIVATE Boost::numeric_odeint)

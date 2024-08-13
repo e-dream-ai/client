@@ -1,0 +1,9 @@
+The package boost-parameter is compatible with built-in CMake targets of FindBoost.cmake:
+
+    find_package(Boost REQUIRED COMPONENTS parameter)
+    target_link_libraries(main PRIVATE Boost::parameter)
+
+or the generated cmake configs via:
+
+    find_package(boost_parameter REQUIRED CONFIG)
+    target_link_libraries(main PRIVATE Boost::parameter)

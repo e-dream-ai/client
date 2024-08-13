@@ -1,0 +1,9 @@
+The package boost-foreach is compatible with built-in CMake targets of FindBoost.cmake:
+
+    find_package(Boost REQUIRED COMPONENTS foreach)
+    target_link_libraries(main PRIVATE Boost::foreach)
+
+or the generated cmake configs via:
+
+    find_package(boost_foreach REQUIRED CONFIG)
+    target_link_libraries(main PRIVATE Boost::foreach)

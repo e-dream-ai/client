@@ -1,0 +1,9 @@
+The package boost-iostreams is compatible with built-in CMake targets of FindBoost.cmake:
+
+    find_package(Boost REQUIRED COMPONENTS iostreams)
+    target_link_libraries(main PRIVATE Boost::iostreams)
+
+or the generated cmake configs via:
+
+    find_package(boost_iostreams REQUIRED CONFIG)
+    target_link_libraries(main PRIVATE Boost::iostreams)

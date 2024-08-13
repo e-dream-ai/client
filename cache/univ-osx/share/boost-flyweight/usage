@@ -1,0 +1,9 @@
+The package boost-flyweight is compatible with built-in CMake targets of FindBoost.cmake:
+
+    find_package(Boost REQUIRED COMPONENTS flyweight)
+    target_link_libraries(main PRIVATE Boost::flyweight)
+
+or the generated cmake configs via:
+
+    find_package(boost_flyweight REQUIRED CONFIG)
+    target_link_libraries(main PRIVATE Boost::flyweight)

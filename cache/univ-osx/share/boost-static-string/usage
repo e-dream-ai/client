@@ -1,0 +1,9 @@
+The package boost-static-string is compatible with built-in CMake targets of FindBoost.cmake:
+
+    find_package(Boost REQUIRED COMPONENTS static_string)
+    target_link_libraries(main PRIVATE Boost::static_string)
+
+or the generated cmake configs via:
+
+    find_package(boost_static_string REQUIRED CONFIG)
+    target_link_libraries(main PRIVATE Boost::static_string)

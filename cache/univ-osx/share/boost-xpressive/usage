@@ -1,0 +1,9 @@
+The package boost-xpressive is compatible with built-in CMake targets of FindBoost.cmake:
+
+    find_package(Boost REQUIRED COMPONENTS xpressive)
+    target_link_libraries(main PRIVATE Boost::xpressive)
+
+or the generated cmake configs via:
+
+    find_package(boost_xpressive REQUIRED CONFIG)
+    target_link_libraries(main PRIVATE Boost::xpressive)

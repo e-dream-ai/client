@@ -1,0 +1,9 @@
+The package boost-bimap is compatible with built-in CMake targets of FindBoost.cmake:
+
+    find_package(Boost REQUIRED COMPONENTS bimap)
+    target_link_libraries(main PRIVATE Boost::bimap)
+
+or the generated cmake configs via:
+
+    find_package(boost_bimap REQUIRED CONFIG)
+    target_link_libraries(main PRIVATE Boost::bimap)

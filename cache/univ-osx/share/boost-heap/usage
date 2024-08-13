@@ -1,0 +1,9 @@
+The package boost-heap is compatible with built-in CMake targets of FindBoost.cmake:
+
+    find_package(Boost REQUIRED COMPONENTS heap)
+    target_link_libraries(main PRIVATE Boost::heap)
+
+or the generated cmake configs via:
+
+    find_package(boost_heap REQUIRED CONFIG)
+    target_link_libraries(main PRIVATE Boost::heap)

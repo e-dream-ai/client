@@ -1,0 +1,9 @@
+The package boost-statechart is compatible with built-in CMake targets of FindBoost.cmake:
+
+    find_package(Boost REQUIRED COMPONENTS statechart)
+    target_link_libraries(main PRIVATE Boost::statechart)
+
+or the generated cmake configs via:
+
+    find_package(boost_statechart REQUIRED CONFIG)
+    target_link_libraries(main PRIVATE Boost::statechart)

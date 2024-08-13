@@ -1,0 +1,9 @@
+The package boost-asio is compatible with built-in CMake targets of FindBoost.cmake:
+
+    find_package(Boost REQUIRED COMPONENTS asio)
+    target_link_libraries(main PRIVATE Boost::asio)
+
+or the generated cmake configs via:
+
+    find_package(boost_asio REQUIRED CONFIG)
+    target_link_libraries(main PRIVATE Boost::asio)

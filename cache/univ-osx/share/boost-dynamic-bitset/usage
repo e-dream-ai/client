@@ -1,0 +1,9 @@
+The package boost-dynamic-bitset is compatible with built-in CMake targets of FindBoost.cmake:
+
+    find_package(Boost REQUIRED COMPONENTS dynamic_bitset)
+    target_link_libraries(main PRIVATE Boost::dynamic_bitset)
+
+or the generated cmake configs via:
+
+    find_package(boost_dynamic_bitset REQUIRED CONFIG)
+    target_link_libraries(main PRIVATE Boost::dynamic_bitset)
