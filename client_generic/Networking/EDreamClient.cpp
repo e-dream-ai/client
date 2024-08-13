@@ -340,9 +340,8 @@ std::string EDreamClient::Hello() {
             auto uuid = currentPlaylistId.as_string();
 
             g_Log->Info("Handshake with server successful, playlist id : %s, remaining quota : %lld", uuid.c_str(), remainingQuota);
-            // TODO: needs update server side
-            return std::string(uuid);
 
+            return std::string(uuid);
         } else {
             g_Log->Info("Handshake with server successful, no playlist, remaining quota : %lld", remainingQuota);
 
@@ -580,7 +579,7 @@ std::string EDreamClient::GetDreamDownloadLink(const std::string& uuid) {
 
 
 std::vector<std::string> EDreamClient::ParsePlaylist(std::string_view uuid) {
-    g_Log->Info("Parse Playlist %s", uuid);
+    g_Log->Info("Parse Playlist %s", (uuid == "" ? "default playlist" : uuid));
     // Grab the CacheManager
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
 
@@ -589,9 +588,9 @@ std::vector<std::string> EDreamClient::ParsePlaylist(std::string_view uuid) {
     std::vector<std::string> needsMetadataUuids;
     std::vector<std::string> needsDownloadUuids;
 
+    // Open playlist and grab content. Default playlist is named playlist_0
+    fs::path filePath = Cache::PathManager::getInstance().jsonPlaylistPath() / (uuid == "" ? "playlist_0.json" : "playlist_" + std::string(uuid) + ".json");
 
-    // Open playlist and grab content
-    fs::path filePath = Cache::PathManager::getInstance().jsonPlaylistPath() / ("playlist_" + std::string(uuid) + ".json");
     std::ifstream file(filePath);
     if (!file.is_open())
     {

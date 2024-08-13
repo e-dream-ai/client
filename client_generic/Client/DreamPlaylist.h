@@ -106,21 +106,20 @@ public:
         {
             m_Clock = m_Timer.Time();
             
-            // Are we in playlist mode ? If so we add that list, sorted default
             playlistId = g_Settings()->Get("settings.content.current_playlist_uuid", std::string(""));
-            if (playlistId != "") {
-                auto uuids = EDreamClient::ParsePlaylist(playlistId);
- 
-                auto [name, userName] = EDreamClient::ParsePlaylistCredits(playlistId);
-                playlistName = name;
-                playlistUserName = userName;
+            
+            // if playlistID is empty, we use the default playlist file (playlist_0.json)
+            auto uuids = EDreamClient::ParsePlaylist(playlistId);
+
+            auto [name, userName] = EDreamClient::ParsePlaylistCredits(playlistId);
+            playlistName = name;
+            playlistUserName = userName;
+            
+            for (auto uuid : uuids) {
+                auto fileName = Cache::PathManager::getInstance().mp4Path() / (uuid + ".mp4");
                 
-                for (auto uuid : uuids) {
-                    auto fileName = Cache::PathManager::getInstance().mp4Path() / (uuid + ".mp4");
-                    
-                    if (exists(fileName))
-                        m_List.push(fileName.string());
-                }
+                if (exists(fileName))
+                    m_List.push(fileName.string());
             }
         }
 
