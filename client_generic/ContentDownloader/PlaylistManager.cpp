@@ -7,6 +7,7 @@
 
 #include "PlaylistManager.h"
 #include "EDreamClient.h"
+#include "Log.h"
 #include <algorithm>
 #include <random>
 
@@ -15,10 +16,29 @@ PlaylistManager::PlaylistManager()
 
 PlaylistManager::~PlaylistManager() = default;
 
-void PlaylistManager::initializePlaylist(const std::vector<std::string>& dreamUUIDs) {
-    m_playlist = dreamUUIDs;
+bool PlaylistManager::initializePlaylist(const std::string& playlistUUID) {
+    // Fetch the dream UUIDs for the playlist
+    std::vector<std::string> dreamUUIDs = EDreamClient::ParsePlaylist(playlistUUID);
+    
+    if (dreamUUIDs.empty()) {
+           g_Log->Error("Failed to parse playlist or playlist is empty. UUID: %s", playlistUUID.c_str());
+           return false;
+       }
+
+    m_playlist = std::move(dreamUUIDs);
+
+    m_currentPlaylistUUID = playlistUUID;
     m_currentPosition = 0;
     m_started = false;
+    
+    // Get the playlist info (name and artist)
+    auto [playlistName, playlistArtist] = EDreamClient::ParsePlaylistCredits(playlistUUID);
+    m_currentPlaylistName = playlistName;
+    
+    g_Log->Info("Initialized playlist: %s (UUID: %s) with %zu dreams",
+                m_currentPlaylistName.c_str(), m_currentPlaylistUUID.c_str(), m_playlist.size());
+
+    return true;
 }
 
 Cache::Dream PlaylistManager::getNextDream() {
@@ -82,6 +102,14 @@ void PlaylistManager::setCurrentPosition(size_t position) {
     if (position < m_playlist.size()) {
         m_currentPosition = position;
     }
+}
+
+std::string PlaylistManager::getPlaylistName() const {
+    return m_currentPlaylistName.empty() ? "No playlist loaded" : m_currentPlaylistName;
+}
+
+std::string PlaylistManager::getPlaylistUUID() const {
+    return m_currentPlaylistUUID;
 }
 
 size_t PlaylistManager::getPlaylistSize() const {

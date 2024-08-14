@@ -360,14 +360,11 @@ void CPlayer::Start()
             ResetPlaylist();    // Don't forget to reset the playlist that was already generated
         }
         
-        // Parse the playlist
-        auto uuids = EDreamClient::ParsePlaylist(serverPlaylistId);
-
-        // Start the playlist and playback at start or at given position
+        // Start the playlist and playback at the start, or at a given position
         if (lastPlayedUUID.empty()) {
-            SetPlaylist(uuids);
+            SetPlaylist(serverPlaylistId);
         } else {
-            SetPlaylistAtDream(uuids, lastPlayedUUID);
+            SetPlaylistAtDream(serverPlaylistId, lastPlayedUUID);
         }
     }
 }
@@ -840,28 +837,46 @@ void CPlayer::PlayDreamNow(std::string_view _uuid) {
     }
 }
 
-void CPlayer::SetPlaylist(const std::vector<std::string>& dreamUUIDs) {
-    m_playlistManager->initializePlaylist(dreamUUIDs);
+std::string CPlayer::GetPlaylistName() const
+{
+    return m_playlistManager->getPlaylistName();
+}
+
+bool CPlayer::SetPlaylist(const std::string& playlistUUID) {
+    if (!m_playlistManager->initializePlaylist(playlistUUID)) {
+        g_Log->Error("Failed to set playlist with UUID: %s", playlistUUID.c_str());
+        return false;
+    }
+    
     // Start playing the first dream if not already playing
     if (!m_currentClip) {
         PlayNextDream();
     }
+
+    return true;
 }
 
-void CPlayer::SetPlaylistAtDream(const std::vector<std::string>& dreamUUIDs, const std::string &dreamUUID) {
-    m_playlistManager->initializePlaylist(dreamUUIDs);
 
-    auto optionalDream = m_playlistManager->getDreamByUUID(dreamUUID);
-    
-    if (!optionalDream) {
-       g_Log->Error("Dream with UUID %s not found in playlist, starting from the top", dreamUUID.c_str());
-       PlayNextDream();
-       return;
+bool CPlayer::SetPlaylistAtDream(const std::string& playlistUUID, const std::string& dreamUUID) {
+    // First, set the new playlist
+    if (!m_playlistManager->initializePlaylist(playlistUUID)) {
+        g_Log->Error("Failed to set playlist with UUID: %s", playlistUUID.c_str());
+        return false;
     }
-    
+
+    // Now, try to position the playlist at the specified dream
+    auto optionalDream = m_playlistManager->getDreamByUUID(dreamUUID);
+    if (!optionalDream) {
+        g_Log->Error("Dream with UUID %s not found in playlist %s", dreamUUID.c_str(), playlistUUID.c_str());
+        return false;
+    }
+
+    // If we've reached here, the playlist is set and positioned at the correct dream
+    // Now we can start playing this dream
     StartTransition();
-    PlayClip(*optionalDream, m_TimelineTime);
+    return PlayClip(*optionalDream, m_TimelineTime);
 }
+
 
 void CPlayer::ResetPlaylist() {
     writer_lock l(m_UpdateMutex);

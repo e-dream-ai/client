@@ -717,16 +717,12 @@ std::tuple<std::string, std::string> EDreamClient::ParsePlaylistCredits(std::str
 bool EDreamClient::EnqueuePlaylist(std::string_view uuid) {
     // Fetch the playlist and save it to disk
     if (EDreamClient::FetchPlaylist(uuid)) {
-        // Parse the playlist
-        auto uuids = EDreamClient::ParsePlaylist(uuid);
+        // save the current playlist id, this will get reused at next startup
+        g_Settings()->Set("settings.content.current_playlist_uuid", uuid);
+        g_Player().SetPlaylist(std::string(uuid));
+        g_Player().PlayNextDream();
 
-        if (uuids.size() > 0) {
-            // save the current playlist id, this will get reused at next startup
-            g_Settings()->Set("settings.content.current_playlist_uuid", uuid);
-            g_Player().SetPlaylist(uuids);
-            g_Player().PlayNextDream();
-            return true;
-        }
+        return true;
     }
 
     return false;

@@ -194,15 +194,18 @@ class CPlayer : public Base::CSingleton<CPlayer>
     bool IsTransitioning() const { return m_isTransitioning; }
     void SetTransitionDuration(float duration) { m_transitionDuration = duration; }
 
-    
+    // Get the name of the current playlist
+    std::string GetPlaylistName() const;
     
     void PlayDreamNow(std::string_view _uuid);
     void ResetPlaylist();
-    // Set playlist from the start
-    void SetPlaylist(const std::vector<std::string>& dreamUUIDs);
-    // Set playlist at a given dream. Used to resume
-    void SetPlaylistAtDream(const std::vector<std::string>& dreamUUIDs, const std::string& dreamUUID);
     
+    // Set playlist from the start
+    bool SetPlaylist(const std::string& playlistUUID);
+
+    // Set playlist at a given dream. Used to resume
+    bool SetPlaylistAtDream(const std::string& playlistUUID, const std::string& dreamUUID);
+   
     void MarkForDeletion(std::string_view _uuid);
     void SkipToNext();
     void ReturnToPrevious();
