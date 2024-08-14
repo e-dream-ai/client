@@ -11,20 +11,27 @@
 #include <random>
 
 PlaylistManager::PlaylistManager()
-    : m_currentPosition(0), m_cacheManager(Cache::CacheManager::getInstance()) {}
+    : m_currentPosition(0), m_started(false),  m_cacheManager(Cache::CacheManager::getInstance()) {}
 
 PlaylistManager::~PlaylistManager() = default;
 
 void PlaylistManager::initializePlaylist(const std::vector<std::string>& dreamUUIDs) {
     m_playlist = dreamUUIDs;
     m_currentPosition = 0;
+    m_started = false;
 }
 
 Cache::Dream PlaylistManager::getNextDream() {
-    if (m_currentPosition < m_playlist.size() - 1) {
-        m_currentPosition++;
+    if (!m_started) {
+        // This path is called the first time we ask for a dream. Make sure we give the first one
+        m_started = true;
+        m_currentPosition = 0;
     } else {
-        m_currentPosition = 0; // Loop back to the beginning
+        if (m_currentPosition < m_playlist.size() - 1) {
+            m_currentPosition++;
+        } else {
+            m_currentPosition = 0; // Loop back to the beginning
+        }
     }
 
     return getDreamMetadata(m_playlist[m_currentPosition]);

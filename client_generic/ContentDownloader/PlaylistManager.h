@@ -53,6 +53,7 @@ public:
 private:
     std::vector<std::string> m_playlist;
     size_t m_currentPosition;
+    bool m_started;
     std::string m_currentPlaylistUUID;
     Cache::CacheManager& m_cacheManager;
 

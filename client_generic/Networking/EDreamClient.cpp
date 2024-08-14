@@ -723,7 +723,8 @@ bool EDreamClient::EnqueuePlaylist(std::string_view uuid) {
         if (uuids.size() > 0) {
             // save the current playlist id, this will get reused at next startup
             g_Settings()->Set("settings.content.current_playlist_uuid", uuid);
-            g_Player().ResetPlaylist();
+            g_Player().SetPlaylist(uuids);
+            g_Player().PlayNextDream();
             return true;
         }
     }
