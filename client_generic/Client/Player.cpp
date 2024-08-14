@@ -400,21 +400,6 @@ bool CPlayer::Shutdown(void)
 
     Stop();
 
-    if (m_pNextClipThread)
-    {
-        m_pNextClipThread->interrupt();
-        m_pNextClipThread->join();
-        SAFE_DELETE(m_pNextClipThread);
-    }
-    if (m_pPlayQueuedClipsThread)
-    {
-        m_pPlayQueuedClipsThread->interrupt();
-        m_pPlayQueuedClipsThread->join();
-        SAFE_DELETE(m_pPlayQueuedClipsThread);
-    }
-
-    //m_CurrentClips.clear();
-
     m_spPlaylist = nullptr;
 
     m_displayUnits.clear();
@@ -831,10 +816,13 @@ void CPlayer::PlayDreamNow(std::string_view _uuid) {
 
         if (dream->isCached()) {
             writer_lock l(m_UpdateMutex);
+            //StartTransition();
             PlayClip(*dream, m_TimelineTime);
         } else {
+            // Uncomment below to disable streaming
             //cm.cacheAndPlayImmediately(std::string(_uuid));
             writer_lock l(m_UpdateMutex);
+            //StartTransition();
             PlayClip(*dream, m_TimelineTime);
         }
     } else {
@@ -847,6 +835,7 @@ void CPlayer::PlayDreamNow(std::string_view _uuid) {
             g_Log->Error("Can't get dream metadata, aborting PlayDreamNow");
         }
         writer_lock l(m_UpdateMutex);
+        //StartTransition();
         PlayClip(*dream, m_TimelineTime);
     }
 }

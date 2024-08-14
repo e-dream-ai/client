@@ -84,8 +84,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
     std::vector<std::string> m_evictedUUIDs;    // List of dreams that have been disliked this session
     
     std::mutex m_CurrentClipsMutex;
-    boost::thread* m_pNextClipThread;
-    boost::thread* m_pPlayQueuedClipsThread;
+    //boost::thread* m_pNextClipThread;
+    //boost::thread* m_pPlayQueuedClipsThread;
 
     MultiDisplayMode m_MultiDisplayMode;
 
@@ -141,8 +141,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
     void Start();
     void Stop();
     bool NextClipForPlaying(int32_t _forceNext);
-    void CalculateNextClipThread();
-    void PlayQueuedClipsThread();
+    //void CalculateNextClipThread();
+    //void PlayQueuedClipsThread();
     sOpenVideoInfo* GetNextClipInfo();
 
     int AddDisplay(uint32_t screen, CGraphicsContext _grapicsContext,
