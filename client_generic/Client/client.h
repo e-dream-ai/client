@@ -1291,7 +1291,7 @@ class CElectricSheep
             case CLIENT_COMMAND_NEXT:
                 popOSD(Hud::Next);
                 
-                if (g_Player().m_CurrentClips.size() > 1) {
+                /*if (g_Player().m_CurrentClips.size() > 1) {
                     auto [fadeInTime, _] =
                     g_Player().m_CurrentClips[0]->GetTransitionLength();
                     auto [__ , fadeOutTime] =
@@ -1301,7 +1301,7 @@ class CElectricSheep
                     g_Player().m_CurrentClips[0]->SetTransitionLength(fadeInTime, 1);
                     g_Player().m_CurrentClips[1]->SetTransitionLength(1,fadeOutTime);
 
-                }
+                }*/
                 
                 g_Player().SkipToNext();
                 return true;

@@ -17,6 +17,7 @@
 #include "Singleton.h"
 #include "Timer.h"
 #include "Clip.h"
+#include "PlaylistManager.h"
 
 /**
         CPlayer.
@@ -36,9 +37,17 @@ class CPlayer : public Base::CSingleton<CPlayer>
     } MultiDisplayMode;
     ContentDecoder::spCDreamPlaylist m_spPlaylist;
 
-    std::vector<ContentDecoder::spCClip> m_CurrentClips;
+    //std::vector<ContentDecoder::spCClip> m_CurrentClips;
 
   private:
+    std::unique_ptr<PlaylistManager> m_playlistManager;
+    ContentDecoder::spCClip m_currentClip;
+    ContentDecoder::spCClip m_nextClip;
+    
+    double m_transitionStartTime;
+    bool m_isTransitioning;
+    float m_transitionDuration;
+    
     typedef struct
     {
         DisplayOutput::spCDisplayOutput spDisplay;
@@ -179,8 +188,17 @@ class CPlayer : public Base::CSingleton<CPlayer>
             m_spPlaylist->Delete(_uuid);
     };
 
+    void PlayNextDream();
+    void StartTransition();
+    void UpdateTransition(double currentTime);
+    bool IsTransitioning() const { return m_isTransitioning; }
+    void SetTransitionDuration(float duration) { m_transitionDuration = duration; }
+
+    
+    
     void PlayDreamNow(std::string_view _uuid);
     void ResetPlaylist();
+    void SetPlaylist(const std::vector<std::string>& dreamUUIDs);
     
     void MarkForDeletion(std::string_view _uuid);
     void SkipToNext();

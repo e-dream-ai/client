@@ -237,6 +237,10 @@
 		F0141BAA2C663F1500DBA60E /* libavutil.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B9F2C663EDA00DBA60E /* libavutil.a */; };
 		F0141BAB2C663F1500DBA60E /* libswresample.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141BA52C663EDA00DBA60E /* libswresample.a */; };
 		F0141BAC2C663F1500DBA60E /* libswscale.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141BA42C663EDA00DBA60E /* libswscale.a */; };
+		F0141BB02C6BBB9D00DBA60E /* PlaylistManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141BAF2C6BBB9D00DBA60E /* PlaylistManager.cpp */; };
+		F0141BB12C6BBB9D00DBA60E /* PlaylistManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141BAF2C6BBB9D00DBA60E /* PlaylistManager.cpp */; };
+		F0141BB22C6BBB9D00DBA60E /* PlaylistManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141BAF2C6BBB9D00DBA60E /* PlaylistManager.cpp */; };
+		F0141BB32C6BBB9D00DBA60E /* PlaylistManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141BAF2C6BBB9D00DBA60E /* PlaylistManager.cpp */; };
 		F01CCF172C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */; };
 		F01CCF182C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */; };
 		F01CCF192C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */; };
@@ -870,6 +874,8 @@
 		F0141BA32C663EDA00DBA60E /* libavfilter.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavfilter.a; path = "../../cache/univ-osx/debug/lib/libavfilter.a"; sourceTree = "<group>"; };
 		F0141BA42C663EDA00DBA60E /* libswscale.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswscale.a; path = "../../cache/univ-osx/debug/lib/libswscale.a"; sourceTree = "<group>"; };
 		F0141BA52C663EDA00DBA60E /* libswresample.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswresample.a; path = "../../cache/univ-osx/debug/lib/libswresample.a"; sourceTree = "<group>"; };
+		F0141BAE2C6BBB9D00DBA60E /* PlaylistManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PlaylistManager.h; sourceTree = "<group>"; };
+		F0141BAF2C6BBB9D00DBA60E /* PlaylistManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PlaylistManager.cpp; sourceTree = "<group>"; };
 		F01CCF152C3D5E9D004E6DE9 /* CacheManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CacheManager.h; sourceTree = "<group>"; };
 		F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CacheManager.cpp; sourceTree = "<group>"; };
 		F02A5C3B2C453FEF00B57FBD /* DreamDownloader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DreamDownloader.h; sourceTree = "<group>"; };
@@ -1176,6 +1182,8 @@
 				F0141B7F2C594A2D00DBA60E /* MessageQueue.cpp */,
 				F0141B7E2C594A2D00DBA60E /* MessageQueue.h */,
 				F0141B842C5A79F800DBA60E /* Dream.h */,
+				F0141BAE2C6BBB9D00DBA60E /* PlaylistManager.h */,
+				F0141BAF2C6BBB9D00DBA60E /* PlaylistManager.cpp */,
 			);
 			name = ContentDownloader;
 			path = ../ContentDownloader;
@@ -1865,6 +1873,7 @@
 				2160FAD90F30F45100B2C27A /* TextureFlat.cpp in Sources */,
 				46D2E8F42AFBA64B0054049D /* MBETextMesh.m in Sources */,
 				467230C62AC18FDB00017C51 /* FontMetal.mm in Sources */,
+				F0141BB22C6BBB9D00DBA60E /* PlaylistManager.cpp in Sources */,
 				2160FADB0F30F45100B2C27A /* Hud.cpp in Sources */,
 				1220B53A2B3DC64D00D68410 /* StringFormat.cpp in Sources */,
 				2160FADC0F30F45100B2C27A /* Rect.cpp in Sources */,
@@ -1891,6 +1900,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2197D56819B0806F00EFA1F2 /* proximus.c in Sources */,
+				F0141BB12C6BBB9D00DBA60E /* PlaylistManager.cpp in Sources */,
 				218878D50EC6CDE2001ABD2E /* Common.cpp in Sources */,
 				218878D60EC6CDE2001ABD2E /* Exception.cpp in Sources */,
 				218878D70EC6CDE2001ABD2E /* Log.cpp in Sources */,
@@ -1949,6 +1959,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F0C100212C1372EF007FA505 /* proximus.c in Sources */,
+				F0141BB32C6BBB9D00DBA60E /* PlaylistManager.cpp in Sources */,
 				F0C100222C1372EF007FA505 /* Common.cpp in Sources */,
 				F0C100232C1372EF007FA505 /* Exception.cpp in Sources */,
 				F0C100242C1372EF007FA505 /* Log.cpp in Sources */,
@@ -2041,6 +2052,7 @@
 				F0E9CE682C136B0500C4D694 /* TextureFlat.cpp in Sources */,
 				F0E9CE692C136B0500C4D694 /* MBETextMesh.m in Sources */,
 				F0E9CE6A2C136B0500C4D694 /* FontMetal.mm in Sources */,
+				F0141BB02C6BBB9D00DBA60E /* PlaylistManager.cpp in Sources */,
 				F0E9CE6B2C136B0500C4D694 /* Hud.cpp in Sources */,
 				F0E9CE6C2C136B0500C4D694 /* StringFormat.cpp in Sources */,
 				F0E9CE6D2C136B0500C4D694 /* Rect.cpp in Sources */,
