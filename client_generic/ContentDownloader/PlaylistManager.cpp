@@ -37,6 +37,26 @@ Cache::Dream PlaylistManager::getNextDream() {
     return getDreamMetadata(m_playlist[m_currentPosition]);
 }
 
+std::optional<Cache::Dream> PlaylistManager::getDreamByUUID(const std::string& dreamUUID) {
+    // First, check if the dream is in the playlist
+    auto it = std::find(m_playlist.begin(), m_playlist.end(), dreamUUID);
+    if (it == m_playlist.end()) {
+        // Dream is not in the playlist
+        return std::nullopt;
+    }
+
+    // Playlist is now playing
+    m_started = true;
+    
+    // Dream is in the playlist, update the position
+    size_t newPosition = std::distance(m_playlist.begin(), it);
+    setCurrentPosition(newPosition);
+
+    // Return metatada
+    return getDreamMetadata(m_playlist[m_currentPosition]);
+}
+
+
 Cache::Dream PlaylistManager::getPreviousDream() {
     if (m_currentPosition > 0) {
         m_currentPosition--;

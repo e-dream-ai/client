@@ -198,7 +198,10 @@ class CPlayer : public Base::CSingleton<CPlayer>
     
     void PlayDreamNow(std::string_view _uuid);
     void ResetPlaylist();
+    // Set playlist from the start
     void SetPlaylist(const std::vector<std::string>& dreamUUIDs);
+    // Set playlist at a given dream. Used to resume
+    void SetPlaylistAtDream(const std::vector<std::string>& dreamUUIDs, const std::string& dreamUUID);
     
     void MarkForDeletion(std::string_view _uuid);
     void SkipToNext();

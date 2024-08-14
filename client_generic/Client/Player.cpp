@@ -343,8 +343,8 @@ void CPlayer::Start()
         m_PerceptualFPS = g_Settings()->Get("settings.player.perceptual_fps",
                                             m_PerceptualFPS);
 
-        std::string lastPlayedFile = g_Settings()->Get(
-            "settings.content.last_played_file", std::string{});
+        std::string lastPlayedUUID = g_Settings()->Get(
+            "settings.content.last_played_uuid", std::string{});
         
         auto clientPlaylistId = g_Settings()->Get("settings.content.current_playlist_uuid", std::string(""));
         auto serverPlaylistId = EDreamClient::GetCurrentServerPlaylist();
@@ -356,15 +356,19 @@ void CPlayer::Start()
             g_Settings()->Set("settings.content.current_playlist_uuid", serverPlaylistId);
             m_spPlaylist->SetPlaylist(serverPlaylistId);
             
-            lastPlayedFile = "";
+            lastPlayedUUID = "";
             ResetPlaylist();    // Don't forget to reset the playlist that was already generated
         }
         
         // Parse the playlist
         auto uuids = EDreamClient::ParsePlaylist(serverPlaylistId);
-        SetPlaylist(uuids);
-        
-        // TODO set position
+
+        // Start the playlist and playback at start or at given position
+        if (lastPlayedUUID.empty()) {
+            SetPlaylist(uuids);
+        } else {
+            SetPlaylistAtDream(uuids, lastPlayedUUID);
+        }
     }
 }
 
@@ -374,12 +378,8 @@ void CPlayer::Stop()
     if (m_bStarted && m_currentClip)
     {
         // Don't save the path if it's a link
-        auto path = m_currentClip->GetClipMetadata().path;
-        if (!(path.substr(0, 7) == "http://" || path.substr(0, 8) == "https://")) {
-            g_Settings()->Set("settings.content.last_played_file",
-                              path);
-        }
-            
+        auto uuid = m_currentClip->GetClipMetadata().dreamData.uuid;
+        g_Settings()->Set("settings.content.last_played_uuid", uuid);
 
         g_Settings()->Set("settings.content.last_played_frame",
                           (uint64_t)m_currentClip->GetCurrentFrameIdx());
@@ -857,6 +857,21 @@ void CPlayer::SetPlaylist(const std::vector<std::string>& dreamUUIDs) {
     if (!m_currentClip) {
         PlayNextDream();
     }
+}
+
+void CPlayer::SetPlaylistAtDream(const std::vector<std::string>& dreamUUIDs, const std::string &dreamUUID) {
+    m_playlistManager->initializePlaylist(dreamUUIDs);
+
+    auto optionalDream = m_playlistManager->getDreamByUUID(dreamUUID);
+    
+    if (!optionalDream) {
+       g_Log->Error("Dream with UUID %s not found in playlist, starting from the top", dreamUUID.c_str());
+       PlayNextDream();
+       return;
+    }
+    
+    StartTransition();
+    PlayClip(*optionalDream, m_TimelineTime);
 }
 
 void CPlayer::ResetPlaylist() {

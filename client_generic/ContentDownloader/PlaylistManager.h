@@ -23,6 +23,10 @@ public:
     // Initialize the playlist with a list of dream UUIDs
     void initializePlaylist(const std::vector<std::string>& dreamUUIDs);
 
+    // Get a dream by its UUID, set position if found in playlist, return nullopt if not in playlist
+    std::optional<Cache::Dream> getDreamByUUID(const std::string& dreamUUID);
+
+
     // Get the next dream in the playlist
     Cache::Dream getNextDream();
 
