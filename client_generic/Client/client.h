@@ -1010,7 +1010,7 @@ class CElectricSheep
                     ((Hud::CStringStat*)spStats->Get("credits-line2"))
                     ->SetSample(string_format("artist: %s",clipMetadata->dreamData.artist.c_str()));
                     ((Hud::CStringStat*)spStats->Get("credits-line3"))
-                    ->SetSample(string_format("playlist: %s",g_Player().m_spPlaylist->playlistName.c_str()));
+                    ->SetSample(string_format("playlist: %s",g_Player().GetPlaylistName().c_str()));
                 }
                 
                 //	Serverstats.
