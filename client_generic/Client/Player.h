@@ -35,7 +35,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
         kMDIndividualMode,
         kMDSingleScreen
     } MultiDisplayMode;
-    ContentDecoder::spCDreamPlaylist m_spPlaylist;
+    //ContentDecoder::spCDreamPlaylist m_spPlaylist;
 
     //std::vector<ContentDecoder::spCClip> m_CurrentClips;
 
@@ -177,7 +177,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     const ContentDecoder::sClipMetadata* GetCurrentPlayingClipMetadata() const;
     const ContentDecoder::sFrameMetadata* GetCurrentFrameMetadata() const;
 
-    inline void Add(const std::string& _fileName)
+    /*inline void Add(const std::string& _fileName)
     {
         if (m_spPlaylist)
             m_spPlaylist->Add(_fileName);
@@ -186,7 +186,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     {
         if (m_spPlaylist)
             m_spPlaylist->Delete(_uuid);
-    };
+    };*/
 
     void PlayNextDream();
     void StartTransition();

@@ -86,7 +86,6 @@ typedef std::unique_lock<std::shared_mutex> writer_lock;
  */
 CPlayer::CPlayer()
 {
-    m_spPlaylist = nullptr;
     m_DecoderFps = 23; //	http://en.wikipedia.org/wiki/23_(numerology)
     m_PerceptualFPS = 20;
     m_DisplayFps = 60;
@@ -96,6 +95,7 @@ CPlayer::CPlayer()
     m_bStarted = false;
     m_CapClock = 0.0;
     m_TimelineTime = 0.0;
+    m_transitionDuration = 5.0;
 #ifdef WIN32
     m_hWnd = nullptr;
 #endif
@@ -269,8 +269,8 @@ bool CPlayer::Startup()
     //	Create playlist.
     g_Log->Info("Creating playlist...");
 
-    m_spPlaylist =
-        std::make_shared<ContentDecoder::CDreamPlaylist>(watchPath.string());
+    /*m_spPlaylist =
+        std::make_shared<ContentDecoder::CDreamPlaylist>(watchPath.string());*/
 
     m_NextClipInfoQueue.setMaxQueueElements(10);
 
@@ -354,10 +354,10 @@ void CPlayer::Start()
         // it may not be part of the new playlist
         if (serverPlaylistId != clientPlaylistId) {
             g_Settings()->Set("settings.content.current_playlist_uuid", serverPlaylistId);
-            m_spPlaylist->SetPlaylist(serverPlaylistId);
+            //m_spPlaylist->SetPlaylist(serverPlaylistId);
             
             lastPlayedUUID = "";
-            ResetPlaylist();    // Don't forget to reset the playlist that was already generated
+            //ResetPlaylist();    // Don't forget to reset the playlist that was already generated
         }
         
         // Start the playlist and playback at the start, or at a given position
@@ -397,7 +397,7 @@ bool CPlayer::Shutdown(void)
 
     Stop();
 
-    m_spPlaylist = nullptr;
+    //m_spPlaylist = nullptr;
 
     m_displayUnits.clear();
 
@@ -881,10 +881,8 @@ bool CPlayer::SetPlaylistAtDream(const std::string& playlistUUID, const std::str
 void CPlayer::ResetPlaylist() {
     writer_lock l(m_UpdateMutex);
 
-    m_spPlaylist->Clear();
-    m_NextClipInfoQueue.clear(0);
     m_currentClip = nullptr;
-    m_NextClipInfoQueue.clear(0);
+    SetPlaylist("");
 }
 
 // MARK: - Transition
@@ -1060,20 +1058,7 @@ void CPlayer::RepeatClip()
 
 void CPlayer::SkipForward(float _seconds)
 {
-    // TODO : fix this
-/*    std::shared_lock<std::shared_mutex> l(m_UpdateMutex);
-    while (m_CurrentClips.size() < 2 && !m_NextClipInfoQueue.empty())
-    {
-        l.unlock();
-        std::unique_lock<std::shared_mutex> wlock(m_UpdateMutex);
-        m_PlayCond.wait(m_UpdateMutex);
-    }
-    m_CurrentClips[0]->SkipTime(_seconds);
-    if (m_CurrentClips.size() > 1)
-    {
-        m_CurrentClips[1]->SetStartTime(m_CurrentClips[1]->GetStartTime() -
-                                        _seconds);
-    }*/
+    m_currentClip->SkipTime(_seconds);
 }
 
 const ContentDecoder::sClipMetadata*

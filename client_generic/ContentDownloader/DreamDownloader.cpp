@@ -224,7 +224,7 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
     cm.decreaseRemainingQuota(dream->size);
     
     if (enqueue) {
-        g_Player().Add(fullSavePath.string().c_str());
+        // g_Player().Add(fullSavePath.string().c_str());
     }
     
     return true;

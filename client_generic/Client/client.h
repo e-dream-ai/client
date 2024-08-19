@@ -1220,11 +1220,13 @@ class CElectricSheep
 
                         // We need to move to something else before deleting
                         // We wait 5s to delete
+                        
+                        // TODO fix dislike
                         auto deleteDispatch =
                             std::make_shared<CDelayedDispatch>(
                                 [&]() -> void
                                 {
-                                    g_Player().Delete(currentDreamUUID);
+                                    //g_Player().Delete(currentDreamUUID);
 
                                 });
                         deleteDispatch->DispatchAfter(5);
