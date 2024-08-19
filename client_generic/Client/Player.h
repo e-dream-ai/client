@@ -35,19 +35,17 @@ class CPlayer : public Base::CSingleton<CPlayer>
         kMDIndividualMode,
         kMDSingleScreen
     } MultiDisplayMode;
-    //ContentDecoder::spCDreamPlaylist m_spPlaylist;
-
-    //std::vector<ContentDecoder::spCClip> m_CurrentClips;
 
   private:
     std::unique_ptr<PlaylistManager> m_playlistManager;
     ContentDecoder::spCClip m_currentClip;
     ContentDecoder::spCClip m_nextClip;
     
-    double m_transitionStartTime;
     bool m_isTransitioning;
+    double m_transitionStartTime;
     float m_transitionDuration;
-    
+    bool m_isFirstPlay;
+
     typedef struct
     {
         DisplayOutput::spCDisplayOutput spDisplay;
@@ -138,6 +136,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
     bool BeginDisplayFrame(uint32_t displayUnit);
     bool EndDisplayFrame(uint32_t displayUnit, bool drawn = true);
     bool Update(uint32_t displayUnit, bool& bPlayNoSheepIntro);
+    void RenderFrame(DisplayOutput::spCRenderer renderer);
+    
     void Start();
     void Stop();
     bool NextClipForPlaying(int32_t _forceNext);
@@ -176,17 +176,6 @@ class CPlayer : public Base::CSingleton<CPlayer>
 
     const ContentDecoder::sClipMetadata* GetCurrentPlayingClipMetadata() const;
     const ContentDecoder::sFrameMetadata* GetCurrentFrameMetadata() const;
-
-    /*inline void Add(const std::string& _fileName)
-    {
-        if (m_spPlaylist)
-            m_spPlaylist->Add(_fileName);
-    }
-    inline void Delete(std::string_view _uuid)
-    {
-        if (m_spPlaylist)
-            m_spPlaylist->Delete(_uuid);
-    };*/
 
     void PlayNextDream();
     void StartTransition();

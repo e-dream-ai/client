@@ -152,12 +152,10 @@ bool CClip::Update(double _timelineTime)
     return true;
 }
 
-bool CClip::DrawFrame(spCRenderer _spRenderer)
-{
+bool CClip::DrawFrame(spCRenderer _spRenderer, float alpha) {
     if (!m_spFrameData)
         return false;
-    return m_spFrameDisplay->Draw(_spRenderer, m_Alpha,
-                                  m_DecoderClock.interframeDelta);
+    return m_spFrameDisplay->Draw(_spRenderer, alpha * m_Alpha, m_DecoderClock.interframeDelta);
 }
 
 void CClip::SetDisplaySize(uint32_t _displayWidth, uint32_t _displayHeight)

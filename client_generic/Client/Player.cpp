@@ -84,7 +84,7 @@ typedef std::unique_lock<std::shared_mutex> writer_lock;
 
 /*
  */
-CPlayer::CPlayer()
+CPlayer::CPlayer() : m_isFirstPlay(true)
 {
     m_DecoderFps = 23; //	http://en.wikipedia.org/wiki/23_(numerology)
     m_PerceptualFPS = 20;
@@ -95,12 +95,13 @@ CPlayer::CPlayer()
     m_bStarted = false;
     m_CapClock = 0.0;
     m_TimelineTime = 0.0;
-    m_transitionDuration = 5.0;
+    m_transitionDuration = 2.0;
 #ifdef WIN32
     m_hWnd = nullptr;
 #endif
     
     m_playlistManager = std::make_unique<PlaylistManager>();
+    
 }
 
 /*
@@ -526,7 +527,23 @@ bool CPlayer::Update(uint32_t displayUnit, bool& bPlayNoSheepIntro)
 
     writer_lock l(m_UpdateMutex);
     
-    if (m_currentClip) {
+    /*
+    if (m_isTransitioning) {
+        UpdateTransition(m_TimelineTime);
+    } else if (m_currentClip && m_currentClip->HasFinished()) {
+        StartTransition();
+    }*/
+    if (m_isTransitioning) {
+        UpdateTransition(m_TimelineTime);
+    } else if (m_currentClip && m_currentClip->HasFinished()) {
+        PlayNextDream();
+    } else if (!m_currentClip && m_isFirstPlay) {
+        PlayNextDream();
+    }
+
+    RenderFrame(du->spRenderer);
+    
+/*    if (m_currentClip) {
         m_currentClip->Update(m_TimelineTime);
         m_currentClip->DrawFrame(du->spRenderer);
 
@@ -541,10 +558,30 @@ bool CPlayer::Update(uint32_t displayUnit, bool& bPlayNoSheepIntro)
             m_nextClip->Update(m_TimelineTime);
             m_nextClip->DrawFrame(du->spRenderer);
         }
-    }
+    }*/
 
     return true;
 }
+
+void CPlayer::RenderFrame(DisplayOutput::spCRenderer renderer) {
+    if (m_isTransitioning && m_currentClip && m_nextClip) {
+        double transitionProgress = (m_TimelineTime - m_transitionStartTime) / m_transitionDuration;
+        float currentAlpha = 1.0f - static_cast<float>(transitionProgress);
+        float nextAlpha = static_cast<float>(transitionProgress);
+
+        // Render current clip
+        m_currentClip->Update(m_TimelineTime);
+        m_currentClip->DrawFrame(renderer, currentAlpha);
+
+        // Render next clip
+        m_nextClip->Update(m_TimelineTime);
+        m_nextClip->DrawFrame(renderer, nextAlpha);
+    } else if (m_currentClip) {
+        m_currentClip->Update(m_TimelineTime);
+        m_currentClip->DrawFrame(renderer);
+    }
+}
+
 
 /// MARK: - Thread: PlayQueuedClips
 /*
@@ -639,7 +676,7 @@ void CPlayer::PlayQueuedClipsThread()
 }
 */
 bool CPlayer::PlayClip(const Cache::Dream& dream, double _startTime,
-                       int64_t _seekFrame, bool fastFade)
+                       int64_t _seekFrame, bool isTransition)
 {
     auto du = m_displayUnits[0];
     int32_t displayMode = g_Settings()->Get("settings.player.DisplayMode", 2);
@@ -671,11 +708,14 @@ bool CPlayer::PlayClip(const Cache::Dream& dream, double _startTime,
     
     newClip->SetStartTime(_startTime);
     
-    if (m_isTransitioning) {
-        m_nextClip = newClip;
-    } else {
+    if (m_isFirstPlay || !isTransition) {
         m_currentClip = newClip;
+        m_isTransitioning = false;
+    } else if (isTransition) {
+        m_nextClip = newClip;
     }
+
+    m_isFirstPlay = false;
 
     // Verify what this does
     // m_PlayCond.notify_all();
@@ -685,8 +725,18 @@ bool CPlayer::PlayClip(const Cache::Dream& dream, double _startTime,
 void CPlayer::PlayNextDream()
 {
     Cache::Dream nextDream = m_playlistManager->getNextDream();
-    StartTransition();
-    PlayClip(nextDream, m_TimelineTime);
+    if (!nextDream.uuid.empty()) {
+        if (m_isFirstPlay) {
+            // For the first play, start immediately without transition
+            PlayClip(nextDream, m_TimelineTime);
+            m_isFirstPlay = false;
+        } else {
+            StartTransition();
+            PlayClip(nextDream, m_TimelineTime, -1, true);  // The true flag indicates this is for transition
+        }
+    } else {
+        g_Log->Error("No next dream available to play");
+    }
 }
 
 void CPlayer::MultiplyPerceptualFPS(const double _multiplier) {
@@ -850,6 +900,7 @@ bool CPlayer::SetPlaylist(const std::string& playlistUUID) {
     
     // Start playing the first dream if not already playing
     if (!m_currentClip) {
+        m_isFirstPlay = true;  // Reset the first play flag when setting a new playlist
         PlayNextDream();
     }
 
@@ -871,6 +922,8 @@ bool CPlayer::SetPlaylistAtDream(const std::string& playlistUUID, const std::str
         return false;
     }
 
+    m_isFirstPlay = true;  // Treat this as a first play to avoid transition
+
     // If we've reached here, the playlist is set and positioned at the correct dream
     // Now we can start playing this dream
     StartTransition();
@@ -888,11 +941,14 @@ void CPlayer::ResetPlaylist() {
 // MARK: - Transition
 void CPlayer::StartTransition()
 {
+    if (m_isFirstPlay) {
+        m_isFirstPlay = false;
+        return;  // Don't start a transition for the first play
+    }
+
     m_isTransitioning = true;
     m_transitionStartTime = m_TimelineTime;
-    if (m_currentClip) {
-        m_currentClip->FadeOut(m_TimelineTime);
-    }
+    m_nextClip = nullptr;  // We'll set this when we have the next clip ready
 }
 
 void CPlayer::UpdateTransition(double currentTime)
@@ -900,10 +956,18 @@ void CPlayer::UpdateTransition(double currentTime)
     if (!m_isTransitioning) return;
 
     double transitionProgress = (currentTime - m_transitionStartTime) / m_transitionDuration;
+
     if (transitionProgress >= 1.0) {
+        // Transition complete
         m_isTransitioning = false;
         m_currentClip = m_nextClip;
         m_nextClip = nullptr;
+    } else if (!m_nextClip) {
+        // If we don't have a next clip yet, try to get one
+        Cache::Dream nextDream = m_playlistManager->getNextDream();
+        if (!nextDream.uuid.empty()) {
+            PlayClip(nextDream, currentTime, -1, true);  // The true flag indicates this is for transition
+        }
     }
 }
 

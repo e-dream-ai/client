@@ -79,7 +79,7 @@ class CClip
     bool Start(int64_t _seekFrame = -1);
     void Stop();
     bool Update(double _timelineTime);
-    bool DrawFrame(spCRenderer _spRenderer);
+    bool DrawFrame(spCRenderer _spRenderer, float alpha = 1.0f);
     void SetDisplaySize(uint32_t _displayWidth, uint32_t _displayHeight);
     const sClipMetadata& GetClipMetadata() const { return m_ClipMetadata; }
     void SetClipMetadata(const sClipMetadata& _metadata)
