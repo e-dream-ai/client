@@ -709,7 +709,10 @@ bool CPlayer::SetPlaylistAtDream(const std::string& playlistUUID, const std::str
 void CPlayer::ResetPlaylist() {
     writer_lock l(m_UpdateMutex);
 
-    m_currentClip = nullptr;
+    
+    // Grab the default playlist again & set it
+    EDreamClient::FetchDefaultPlaylist();
+    m_currentClip = nullptr;    // Fetch is synchronous, avoids black screen
     SetPlaylist("");
 }
 
