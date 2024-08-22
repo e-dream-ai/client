@@ -972,10 +972,10 @@ class CElectricSheep
                         ->SetSample(
                             string_format("%s/%s",
                                           FrameNumberToMinutesAndSecondsString(
-                                              frameMetadata->frameIdx, 20)
+                                              frameMetadata->frameIdx, realFps)
                                               .data(),
                                           FrameNumberToMinutesAndSecondsString(
-                                              frameMetadata->maxFrameIdx, 20)
+                                              frameMetadata->maxFrameIdx, realFps)
                                               .data()));
                 }
                 
