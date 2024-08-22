@@ -500,7 +500,7 @@ bool CPlayer::Update(uint32_t displayUnit, bool& bPlayNoSheepIntro)
     
     if (m_isTransitioning) {
         UpdateTransition(m_TimelineTime);
-    } else if (m_currentClip && m_currentClip->HasFinished()) {
+    } else if (m_currentClip && m_currentClip->IsFadingOut()) {
         PlayNextDream();
     } else if (!m_currentClip && m_isFirstPlay) {
         PlayNextDream();
@@ -577,7 +577,7 @@ bool CPlayer::PlayClip(const Cache::Dream& dream, double _startTime,
     return true;
 }
 
-void CPlayer::PlayNextDream()
+void CPlayer::PlayNextDream(bool quickFade)
 {
     Cache::Dream nextDream = m_playlistManager->getNextDream();
     if (!nextDream.uuid.empty()) {
@@ -587,7 +587,13 @@ void CPlayer::PlayNextDream()
             m_isFirstPlay = false;
         } else {
             StartTransition();
+            if (quickFade)
+                m_currentClip->SetTransitionLength(5.0f, 1.0f);
+            
             PlayClip(nextDream, m_TimelineTime, -1, true);  // The true flag indicates this is for transition
+            
+            if (quickFade)
+                m_nextClip->SetTransitionLength(1.0f, 5.0f);
         }
     } else {
         g_Log->Error("No next dream available to play");
@@ -763,7 +769,7 @@ void CPlayer::MarkForDeletion(std::string_view _uuid)
 
 void CPlayer::SkipToNext()
 {
-    PlayNextDream();
+    PlayNextDream(true);
 }
 
 void CPlayer::ReturnToPrevious()
@@ -771,6 +777,8 @@ void CPlayer::ReturnToPrevious()
     Cache::Dream previousDream = m_playlistManager->getPreviousDream();
     StartTransition();
     PlayClip(previousDream, m_TimelineTime);
+    // Shorten fade in
+    m_currentClip->SetTransitionLength(1.0f, 5.0f);
 }
 
 void CPlayer::RepeatClip()
@@ -778,6 +786,8 @@ void CPlayer::RepeatClip()
     Cache::Dream currentDream = m_playlistManager->getCurrentDream();
     StartTransition();
     PlayClip(currentDream, m_TimelineTime);
+    // Shorten fade in
+    m_currentClip->SetTransitionLength(1.0f, 5.0f);
 }
 
 void CPlayer::SkipForward(float _seconds)

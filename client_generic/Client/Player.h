@@ -177,7 +177,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     const ContentDecoder::sClipMetadata* GetCurrentPlayingClipMetadata() const;
     const ContentDecoder::sFrameMetadata* GetCurrentFrameMetadata() const;
 
-    void PlayNextDream();
+    void PlayNextDream(bool quickFade = false);
     void StartTransition();
     void UpdateTransition(double currentTime);
     bool IsTransitioning() const { return m_isTransitioning; }

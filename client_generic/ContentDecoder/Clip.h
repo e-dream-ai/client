@@ -62,8 +62,9 @@ class CClip
     double m_StartTime;
     double m_EndTime;
     boost::atomic<bool> m_HasFinished;
-    float m_FadeInSeconds = 1.f;
-    float m_FadeOutSeconds = 1.f;
+    boost::atomic<bool> m_IsFadingOut;
+    float m_FadeInSeconds = 5.f;
+    float m_FadeOutSeconds = 5.f;
     float m_Alpha;
     eClipFlags m_ClipFlags = eClipFlags::None;
 
@@ -98,6 +99,8 @@ class CClip
     }
     double GetLength(float _atFps) const { return GetFrameCount() / _atFps; }
     bool HasFinished() const { return m_HasFinished.load(); }
+    bool IsFadingOut() const { return m_IsFadingOut.load(); }
+
     void SetTransitionLength(float _fadeInSeconds, float _fadeOutSeconds)
     {
         m_FadeInSeconds = _fadeInSeconds;
