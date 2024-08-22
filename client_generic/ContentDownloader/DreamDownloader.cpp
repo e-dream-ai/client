@@ -156,7 +156,7 @@ void DreamDownloader::FindDreamsThread() {
             
         }
 
-        SetDownloadStatus("Everything queued, will check again in a few seconds");
+        //SetDownloadStatus("Everything queued");
         // Sleep for a while before the next iteration
         boost::this_thread::sleep(boost::get_system_time() +
                              boost::posix_time::seconds(10));

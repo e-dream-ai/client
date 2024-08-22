@@ -12,6 +12,7 @@
 #include <vector>
 #include <queue>
 #include <memory>
+#include <thread>
 #include "CacheManager.h"
 #include "Dream.h"
 
@@ -58,6 +59,8 @@ public:
     // Get playlist information (e.g., name, artist)
     std::pair<std::string, std::string> getPlaylistInfo() const;
 
+    void startPeriodicChecking();
+    void stopPeriodicChecking();
 private:
     std::vector<std::string> m_playlist;
     size_t m_currentPosition;
@@ -69,6 +72,14 @@ private:
 
     // Helper function to get dream metadata
     Cache::Dream getDreamMetadata(const std::string& dreamUUID) const;
+    
+    std::atomic<bool> m_isCheckingActive;
+    std::thread m_checkingThread;
+    std::chrono::minutes m_checkInterval{10};
+
+    void periodicCheckThread();
+    bool checkForPlaylistChanges();
+    void updatePlaylist(const std::string& newPlaylistId);
 };
 
 #endif // PLAYLIST_MANAGER_H

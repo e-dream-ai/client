@@ -8,13 +8,17 @@
 #include "PlaylistManager.h"
 #include "EDreamClient.h"
 #include "Log.h"
+#include "PlatformUtils.h"
 #include <algorithm>
 #include <random>
 
 PlaylistManager::PlaylistManager()
     : m_currentPosition(0), m_started(false),  m_cacheManager(Cache::CacheManager::getInstance()) {}
 
-PlaylistManager::~PlaylistManager() = default;
+PlaylistManager::~PlaylistManager() {
+    stopPeriodicChecking();
+}
+
 
 bool PlaylistManager::initializePlaylist(const std::string& playlistUUID) {
     // Fetch the dream UUIDs for the playlist
@@ -141,3 +145,36 @@ Cache::Dream PlaylistManager::getDreamMetadata(const std::string& dreamUUID) con
     return dream;
 }
 
+// MARK: Periodic playlist checks
+void PlaylistManager::startPeriodicChecking() {
+    if (!m_isCheckingActive.exchange(true)) {
+        m_checkingThread = std::thread(&PlaylistManager::periodicCheckThread, this);
+    }
+}
+
+void PlaylistManager::stopPeriodicChecking() {
+    if (m_isCheckingActive.exchange(false)) {
+        if (m_checkingThread.joinable()) {
+            m_checkingThread.join();
+        }
+    }
+}
+
+void PlaylistManager::periodicCheckThread() {
+    PlatformUtils::SetThreadName("PeriodicPlaylistCheck");
+    while (m_isCheckingActive) {
+        if (checkForPlaylistChanges()) {
+            // Handle playlist changes if needed
+        }
+        std::this_thread::sleep_for(m_checkInterval);
+    }
+}
+
+bool PlaylistManager::checkForPlaylistChanges() {
+    // TODO: Implement the actual checking logic
+    return false; // Placeholder return
+}
+
+void PlaylistManager::updatePlaylist(const std::string& newPlaylistId) {
+    // TODO: Implement the logic to update the playlist
+}

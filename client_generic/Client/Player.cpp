@@ -93,7 +93,7 @@ CPlayer::CPlayer() : m_isFirstPlay(true)
     m_bStarted = false;
     m_CapClock = 0.0;
     m_TimelineTime = 0.0;
-    m_transitionDuration = 1.0;
+    m_transitionDuration = 5.0;
 #ifdef WIN32
     m_hWnd = nullptr;
 #endif
@@ -746,6 +746,7 @@ void CPlayer::UpdateTransition(double currentTime)
         m_isTransitioning = false;
         m_currentClip = m_nextClip;
         m_nextClip = nullptr;
+        m_transitionDuration = 5.0f;
     } else if (!m_nextClip) {
         // If we don't have a next clip yet, try to get one
         Cache::Dream nextDream = m_playlistManager->getNextDream();
@@ -769,11 +770,13 @@ void CPlayer::MarkForDeletion(std::string_view _uuid)
 
 void CPlayer::SkipToNext()
 {
+    m_transitionDuration = 1.0f;
     PlayNextDream(true);
 }
 
 void CPlayer::ReturnToPrevious()
 {
+    m_transitionDuration = 1.0f;
     Cache::Dream previousDream = m_playlistManager->getPreviousDream();
     StartTransition();
     PlayClip(previousDream, m_TimelineTime);
@@ -783,6 +786,7 @@ void CPlayer::ReturnToPrevious()
 
 void CPlayer::RepeatClip()
 {
+    m_transitionDuration = 1.0f;
     Cache::Dream currentDream = m_playlistManager->getCurrentDream();
     StartTransition();
     PlayClip(currentDream, m_TimelineTime);
