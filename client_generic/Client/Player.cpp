@@ -93,7 +93,7 @@ CPlayer::CPlayer() : m_isFirstPlay(true)
     m_bStarted = false;
     m_CapClock = 0.0;
     m_TimelineTime = 0.0;
-    m_transitionDuration = 2.0;
+    m_transitionDuration = 1.0;
 #ifdef WIN32
     m_hWnd = nullptr;
 #endif
