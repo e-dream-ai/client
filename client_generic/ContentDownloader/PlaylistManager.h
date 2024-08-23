@@ -46,10 +46,12 @@ public:
     // Get the total number of dreams in the playlist
     size_t getPlaylistSize() const;
 
-    // Get the name & UUID of the current playlist
+    // Get various metadata of the current playlist
     std::string getPlaylistName() const;
     std::string getPlaylistUUID() const;
-    
+    bool isPlaylistNSFW() const { return m_isPlaylistNSFW; }
+    int64_t getPlaylistTimestamp() const { return m_playlistTimestamp; }
+
     // Clear the current playlist
     void clearPlaylist();
 
@@ -57,17 +59,25 @@ public:
     void shufflePlaylist();
 
     // Get playlist information (e.g., name, artist)
-    std::pair<std::string, std::string> getPlaylistInfo() const;
+    std::tuple<std::string, std::string, bool, int64_t> getPlaylistInfo() const;
 
     void startPeriodicChecking();
     void stopPeriodicChecking();
+    
+    std::chrono::seconds getTimeUntilNextCheck() const;
 private:
     std::vector<std::string> m_playlist;
-    size_t m_currentPosition;
     bool m_started;
+
     std::string m_currentPlaylistUUID;
     std::string m_currentPlaylistName;
+    std::string m_currentPlaylistArtist;
+    bool m_isPlaylistNSFW;
+    int64_t m_playlistTimestamp;
     
+    size_t m_currentPosition;
+    std::string m_currentDreamUUID;  // Store the UUID of the currently playing dream
+
     Cache::CacheManager& m_cacheManager;
 
     // Helper function to get dream metadata
@@ -76,10 +86,20 @@ private:
     std::atomic<bool> m_isCheckingActive;
     std::thread m_checkingThread;
     std::chrono::minutes m_checkInterval{10};
-
+    std::condition_variable m_cv;
+    std::mutex m_cvMutex;
+    
+    
     void periodicCheckThread();
     bool checkForPlaylistChanges();
-    void updatePlaylist(const std::string& newPlaylistId);
+    bool updatePlaylist(bool alreadyFetched = false);
+
+    bool parsePlaylist(const std::string& playlistUUID);
+    size_t findPositionOfDream(const std::string& dreamUUID) const;
+    
+    std::atomic<std::chrono::steady_clock::time_point> m_nextCheckTime;
+
+    void updateNextCheckTime();
 };
 
 #endif // PLAYLIST_MANAGER_H

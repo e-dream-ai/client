@@ -747,6 +747,33 @@ class CElectricSheep
         }
     }
 #endif
+    
+    void updateNextCheckTimeDisplay() {
+        auto timeUntilNextCheck = g_Player().m_playlistManager->getTimeUntilNextCheck();
+        int minutes = std::chrono::duration_cast<std::chrono::minutes>(timeUntilNextCheck).count();
+
+        std::stringstream ss;
+        if (minutes == 0) {
+            ss << "Next playlist check in less than a minute";
+
+        } else {
+            ss << "Next playlist check in " << minutes << " minute" << (minutes != 1 ? "s" : "");
+        }
+
+        // Update the HUD with this information
+        Hud::spCStatsConsole spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(m_HudManager->Get("dreamstats"));
+        if (spStats) {
+            auto pNextCheckStat = static_cast<Hud::CStringStat*>(spStats->Get("next_check_time"));
+            if (!pNextCheckStat) {
+                // If the stat doesn't exist, create it
+                pNextCheckStat = new Hud::CStringStat("next_check_time", "", "");
+                spStats->Add(pNextCheckStat);
+            }
+            pNextCheckStat->SetSample(ss.str());
+        }
+    }
+
+    
 // MARK: Main per frame update loop
     virtual bool DoRealFrameUpdate(uint32_t displayUnit)
     {
@@ -947,6 +974,9 @@ class CElectricSheep
                 else
                     ContentDownloader::Shepherd::SetRenderingAllowed(true);
 */
+                
+                // Update and display the time until next playlist check
+                updateNextCheckTimeDisplay();
                 
                 //	Update some stats.
                 spStats =

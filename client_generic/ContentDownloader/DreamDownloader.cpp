@@ -76,7 +76,7 @@ void DreamDownloader::FindDreamsThread() {
     std::uintmax_t minSpaceForDream = 1024 * 1024 * 10;
 
     while (isRunning.load()) {
-        g_Log->Info("Searching for dreams to download...");
+        //g_Log->Info("Searching for dreams to download...");
         SetDownloadStatus("Searching for dreams to download...");
 
         // Make sure we have a properly initialized CacheManager
@@ -156,7 +156,7 @@ void DreamDownloader::FindDreamsThread() {
             
         }
 
-        //SetDownloadStatus("Everything queued");
+        SetDownloadStatus("No dream to download");
         // Sleep for a while before the next iteration
         boost::this_thread::sleep(boost::get_system_time() +
                              boost::posix_time::seconds(10));

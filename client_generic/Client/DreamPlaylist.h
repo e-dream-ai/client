@@ -111,7 +111,7 @@ public:
             // if playlistID is empty, we use the default playlist file (playlist_0.json)
             auto uuids = EDreamClient::ParsePlaylist(playlistId);
 
-            auto [name, userName] = EDreamClient::ParsePlaylistCredits(playlistId);
+            auto [name, userName, nsfw, timestamp] = EDreamClient::ParsePlaylistMetadata(playlistId);
             playlistName = name;
             playlistUserName = userName;
             

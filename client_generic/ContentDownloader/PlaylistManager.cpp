@@ -19,32 +19,59 @@ PlaylistManager::~PlaylistManager() {
     stopPeriodicChecking();
 }
 
-
+// MARK: Init
 bool PlaylistManager::initializePlaylist(const std::string& playlistUUID) {
-    // Fetch the dream UUIDs for the playlist
+    m_currentPlaylistUUID = playlistUUID;
+    
+    if (!EDreamClient::FetchPlaylist(playlistUUID)) {
+        g_Log->Error("Failed to fetch playlist. UUID: %s", playlistUUID.c_str());
+        return false;
+    }
+    
+    if (!parsePlaylist(playlistUUID)) {
+        return false;
+    }
+
+    m_currentPosition = 0;
+    m_started = false;
+    m_currentDreamUUID = m_playlist.empty() ? "" : m_playlist[0];
+
+    // Start periodic checking if it's not already running
+    if (!m_isCheckingActive) {
+        startPeriodicChecking();
+    }
+    
+    return true;
+}
+
+bool PlaylistManager::parsePlaylist(const std::string& playlistUUID) {
+    // Parse the playlist
     std::vector<std::string> dreamUUIDs = EDreamClient::ParsePlaylist(playlistUUID);
     
     if (dreamUUIDs.empty()) {
-           g_Log->Error("Failed to parse playlist or playlist is empty. UUID: %s", playlistUUID.c_str());
-           return false;
-       }
+        g_Log->Error("Failed to parse playlist or playlist is empty. UUID: %s", playlistUUID.c_str());
+        return false;
+    }
 
+    // Get the playlist metadata
+    auto [playlistName, playlistArtist, isNSFW, timestamp] = EDreamClient::ParsePlaylistMetadata(playlistUUID);
+
+    // Update member variables
     m_playlist = std::move(dreamUUIDs);
-
-    m_currentPlaylistUUID = playlistUUID;
-    m_currentPosition = 0;
-    m_started = false;
-    
-    // Get the playlist info (name and artist)
-    auto [playlistName, playlistArtist] = EDreamClient::ParsePlaylistCredits(playlistUUID);
     m_currentPlaylistName = playlistName;
-    
-    g_Log->Info("Initialized playlist: %s (UUID: %s) with %zu dreams",
-                m_currentPlaylistName.c_str(), m_currentPlaylistUUID.c_str(), m_playlist.size());
+    m_currentPlaylistArtist = playlistArtist;
+    m_isPlaylistNSFW = isNSFW;
+    m_playlistTimestamp = timestamp;
+
+    g_Log->Info("Updated playlist: %s by %s (UUID: %s, NSFW: %s, Timestamp: %lld) with %zu dreams",
+                m_currentPlaylistName.c_str(), m_currentPlaylistArtist.c_str(),
+                m_currentPlaylistUUID.c_str(), m_isPlaylistNSFW ? "Yes" : "No",
+                m_playlistTimestamp, m_playlist.size());
 
     return true;
 }
 
+// MARK: Getters
 Cache::Dream PlaylistManager::getNextDream() {
     if (!m_started) {
         // This path is called the first time we ask for a dream. Make sure we give the first one
@@ -58,7 +85,8 @@ Cache::Dream PlaylistManager::getNextDream() {
         }
     }
 
-    return getDreamMetadata(m_playlist[m_currentPosition]);
+    m_currentDreamUUID = m_playlist[m_currentPosition];
+    return getDreamMetadata(m_currentDreamUUID);
 }
 
 std::optional<Cache::Dream> PlaylistManager::getDreamByUUID(const std::string& dreamUUID) {
@@ -125,14 +153,15 @@ void PlaylistManager::clearPlaylist() {
     m_currentPosition = 0;
 }
 
+// maybe someday?
 void PlaylistManager::shufflePlaylist() {
     auto rng = std::default_random_engine {};
     std::shuffle(std::begin(m_playlist), std::end(m_playlist), rng);
     m_currentPosition = 0;
 }
 
-std::pair<std::string, std::string> PlaylistManager::getPlaylistInfo() const {
-    return EDreamClient::ParsePlaylistCredits(m_currentPlaylistUUID);
+std::tuple<std::string, std::string, bool, int64_t> PlaylistManager::getPlaylistInfo() const {
+    return {m_currentPlaylistName, m_currentPlaylistArtist, m_isPlaylistNSFW, m_playlistTimestamp};
 }
 
 Cache::Dream PlaylistManager::getDreamMetadata(const std::string& dreamUUID) const {
@@ -148,33 +177,116 @@ Cache::Dream PlaylistManager::getDreamMetadata(const std::string& dreamUUID) con
 // MARK: Periodic playlist checks
 void PlaylistManager::startPeriodicChecking() {
     if (!m_isCheckingActive.exchange(true)) {
+        updateNextCheckTime();
+
         m_checkingThread = std::thread(&PlaylistManager::periodicCheckThread, this);
     }
 }
 
 void PlaylistManager::stopPeriodicChecking() {
     if (m_isCheckingActive.exchange(false)) {
+        m_cv.notify_one(); // Wake up the thread if it's sleeping
         if (m_checkingThread.joinable()) {
             m_checkingThread.join();
         }
     }
 }
 
+void PlaylistManager::updateNextCheckTime() {
+    m_nextCheckTime.store(std::chrono::steady_clock::now() + m_checkInterval);
+}
+
 void PlaylistManager::periodicCheckThread() {
     PlatformUtils::SetThreadName("PeriodicPlaylistCheck");
+    
     while (m_isCheckingActive) {
-        if (checkForPlaylistChanges()) {
-            // Handle playlist changes if needed
-        }
-        std::this_thread::sleep_for(m_checkInterval);
+        updateNextCheckTime();
+        // Use a condition variable to wait, allowing for interruption
+        std::unique_lock<std::mutex> lock(m_cvMutex);
+        m_cv.wait_for(lock, m_checkInterval, [this] { return !m_isCheckingActive; });
+        
+        checkForPlaylistChanges();
     }
 }
 
 bool PlaylistManager::checkForPlaylistChanges() {
-    // TODO: Implement the actual checking logic
-    return false; // Placeholder return
+    // First, fetch the playlist to ensure we have the latest version
+    if (!EDreamClient::FetchPlaylist(m_currentPlaylistUUID)) {
+        g_Log->Error("Failed to fetch playlist for checking changes. UUID: %s", m_currentPlaylistUUID.c_str());
+        return false;
+    }
+
+    // Then parse the metadata to get the new timestamp
+    auto [newName, newArtist, newNSFW, newTimestamp] = EDreamClient::ParsePlaylistMetadata(m_currentPlaylistUUID);
+    
+    g_Log->Info("Old timestamp: %lld, New timestamp: %lld",
+                m_playlistTimestamp, newTimestamp);
+    
+    if (newTimestamp > m_playlistTimestamp) {
+        g_Log->Info("Playlist change detected. Old timestamp: %lld, New timestamp: %lld",
+                    m_playlistTimestamp, newTimestamp);
+        
+        // Update the playlist
+        if (updatePlaylist()) {
+            g_Log->Info("Playlist updated successfully");
+            return true;
+        } else {
+            g_Log->Error("Failed to update playlist");
+        }
+    } else {
+        g_Log->Info("No playlist changes detected");
+    }
+    
+    return false;
 }
 
-void PlaylistManager::updatePlaylist(const std::string& newPlaylistId) {
-    // TODO: Implement the logic to update the playlist
+bool PlaylistManager::updatePlaylist(bool alreadyFetched) {
+    std::string currentDreamUUID = m_currentDreamUUID;
+    size_t oldPosition = m_currentPosition;
+
+    if (!alreadyFetched) {
+        if (!EDreamClient::FetchPlaylist(m_currentPlaylistUUID)) {
+            g_Log->Error("Failed to fetch playlist. UUID: %s", m_currentPlaylistUUID.c_str());
+            return false;
+        }
+    }
+
+    if (!parsePlaylist(m_currentPlaylistUUID)) {
+        return false;
+    }
+
+    // Try to find the position of the current dream in the updated playlist
+    size_t newPosition = findPositionOfDream(currentDreamUUID);
+
+    if (newPosition != std::string::npos) {
+        // If found, update the current position
+        m_currentPosition = newPosition;
+    } else {
+        // If not found, try to keep a similar relative position
+        m_currentPosition = std::min(oldPosition, m_playlist.size() - 1);
+    }
+
+    // Update the current dream UUID
+    m_currentDreamUUID = m_playlist[m_currentPosition];
+
+    g_Log->Info("Playlist updated. New position: %zu, Current dream UUID: %s",
+                m_currentPosition, m_currentDreamUUID.c_str());
+
+    return true;
+}
+
+
+size_t PlaylistManager::findPositionOfDream(const std::string& dreamUUID) const {
+    auto it = std::find(m_playlist.begin(), m_playlist.end(), dreamUUID);
+    if (it != m_playlist.end()) {
+        return std::distance(m_playlist.begin(), it);
+    }
+    return std::string::npos;
+}
+
+std::chrono::seconds PlaylistManager::getTimeUntilNextCheck() const {
+    auto now = std::chrono::steady_clock::now();
+    auto next = m_nextCheckTime.load();
+    auto timeUntilNext = std::chrono::duration_cast<std::chrono::seconds>(next - now);
+    return std::max(timeUntilNext, std::chrono::seconds(0));
 }

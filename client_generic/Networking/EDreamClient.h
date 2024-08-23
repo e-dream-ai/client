@@ -28,8 +28,8 @@ class EDreamClient
     static bool FetchDreamMetadata(std::string uuid);
     static std::string GetDreamDownloadLink(const std::string& uuid);
     static std::vector<std::string> ParsePlaylist(std::string_view uuid);
-    static std::tuple<std::string, std::string> ParsePlaylistCredits(std::string_view uuid);
-
+    static std::tuple<std::string, std::string, bool, int64_t> ParsePlaylistMetadata(std::string_view uuid);
+    
     static bool EnqueuePlaylist(std::string_view uuid);
     static bool GetDreams(int _page = 0, int _count = -1);
     static const char* GetAccessToken();

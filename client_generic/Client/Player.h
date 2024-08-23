@@ -36,8 +36,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
         kMDSingleScreen
     } MultiDisplayMode;
 
-  private:
     std::unique_ptr<PlaylistManager> m_playlistManager;
+  private:
     ContentDecoder::spCClip m_currentClip;
     ContentDecoder::spCClip m_nextClip;
     

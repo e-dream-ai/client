@@ -373,6 +373,12 @@ std::string EDreamClient::GetCurrentServerPlaylist() {
 }
 
 bool EDreamClient::FetchPlaylist(std::string_view uuid) {
+    // Lets make it simpler
+    if (uuid.empty()) {
+        g_Log->Info("Rerouting to fetching default playlist");
+        return FetchDefaultPlaylist();
+    }
+    
     Network::spCFileDownloader spDownload;
     auto jsonPath = Cache::PathManager::getInstance().jsonPlaylistPath();
 
@@ -459,7 +465,7 @@ bool EDreamClient::FetchDefaultPlaylist() {
             }
             else
             {
-                g_Log->Error("Failed to get playlist. Server returned %i: %s",
+                g_Log->Error("Failed to get default playlist. Server returned %i: %s",
                              spDownload->ResponseCode(),
                              spDownload->Data().c_str());
             }
@@ -675,10 +681,10 @@ std::vector<std::string> EDreamClient::ParsePlaylist(std::string_view uuid) {
     return uuids;
 }
 
-std::tuple<std::string, std::string> EDreamClient::ParsePlaylistCredits(std::string_view uuid) {
-    // Default playlist doesn't have any credits right now, hardcoding this
-    if (uuid == "") {
-        return {"Popular dreams", "Various artists"};
+std::tuple<std::string, std::string, bool, int64_t> EDreamClient::ParsePlaylistMetadata(std::string_view uuid) {
+    // Default playlist doesn't have any metadata right now, hardcoding this
+    if (uuid.empty()) {
+        return {"Popular dreams", "Various artists", false, 0};
     }
     
     // Open playlist and grab content
@@ -687,7 +693,7 @@ std::tuple<std::string, std::string> EDreamClient::ParsePlaylistCredits(std::str
     if (!file.is_open())
     {
         g_Log->Error("Error opening file: %s", filePath.string().c_str());
-        return {"",""};
+        return {"", "", false, 0};
     }
     std::string contents{(std::istreambuf_iterator<char>(file)),
         (std::istreambuf_iterator<char>())};
@@ -695,22 +701,30 @@ std::tuple<std::string, std::string> EDreamClient::ParsePlaylistCredits(std::str
     
     try
     {
-        boost::system::error_code ec;
-        json::value response = json::parse(contents, ec);
-        json::value data = response.at("data");
-        json::value playlist = data.at("playlist");
-        
-        auto name = playlist.at("name").as_string().c_str();
-        auto artist = playlist.at("artist").as_string().c_str();
+        boost::property_tree::ptree pt;
+        std::istringstream is(contents);
+        boost::property_tree::read_json(is, pt);
 
-        return {name, artist};
+        auto data = pt.get_child("data");
+        auto playlist = data.get_child("playlist");
+        
+        std::string name = playlist.get<std::string>("name", "");
+        std::string artist = playlist.get<std::string>("artist", "");
+        bool nsfw = playlist.get<bool>("nsfw", false);
+        int64_t timestamp = playlist.get<int64_t>("timestamp", 0);
+
+        return {name, artist, nsfw, timestamp};
     }
-    catch (const boost::system::system_error& e)
+    catch (const boost::property_tree::json_parser_error& e)
     {
-        JSONUtil::LogException(e, contents);
+        g_Log->Error("JSON parsing error: %s", e.what());
+    }
+    catch (const std::exception& e)
+    {
+        g_Log->Error("Error parsing playlist metadata: %s", e.what());
     }
     
-    return {"Popular dreams", "Various artists"};
+    return {"", "", false, 0};
 }
 
 
