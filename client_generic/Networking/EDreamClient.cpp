@@ -92,13 +92,8 @@ std::unique_ptr<boost::asio::steady_timer> EDreamClient::ping_timer = std::make_
 // MARK: Ping via websocket
 void EDreamClient::SendPing()
 {
-    std::shared_ptr<sio::object_message> ms = std::dynamic_pointer_cast<sio::object_message>(sio::object_message::create());
-    ms->insert("event", "ping");
-
-    sio::message::list list;
-    list.push(ms);
-    s_SIOClient.socket("/remote-control")->emit("new_remote_control_event", list);
-    //g_Log->Info("Ping sent");
+    s_SIOClient.socket("/remote-control")->emit("ping");
+    g_Log->Info("Ping sent");
     ScheduleNextPing();
 }
 
