@@ -987,11 +987,13 @@ class CElectricSheep
                 bool isStreaming = false;
                 const ContentDecoder::sClipMetadata* clipMetadata =
                     g_Player().GetCurrentPlayingClipMetadata();
+                double baseFps = 1;
                 if (clipMetadata)
                 {
                     activityLevel = clipMetadata->dreamData.activityLevel;
                     realFps = clipMetadata->decodeFps;
                     isStreaming = !(clipMetadata->dreamData.isCached());
+                    baseFps = std::stod(clipMetadata->dreamData.fps);
                 }
 
                 const ContentDecoder::sFrameMetadata* frameMetadata =
@@ -1002,10 +1004,10 @@ class CElectricSheep
                         ->SetSample(
                             string_format("%s/%s",
                                           FrameNumberToMinutesAndSecondsString(
-                                              frameMetadata->frameIdx, realFps)
+                                              frameMetadata->frameIdx, baseFps)
                                               .data(),
                                           FrameNumberToMinutesAndSecondsString(
-                                              frameMetadata->maxFrameIdx, realFps)
+                                              frameMetadata->maxFrameIdx, baseFps)
                                               .data()));
                 }
                 
