@@ -963,8 +963,8 @@ void EDreamClient::ConnectRemoteControlSocket()
     query["token"] = string_format("Bearer %s", GetAccessToken());
     s_SIOClient.connect(ServerConfig::ServerConfigManager::getInstance().getWebsocketServer(), query);
     
-    // Start the ping timer
-    ScheduleNextPing();
+    // Send first ping immediately so frontend knows we're here
+    SendPing();
 
     // Run the io_context in a separate thread
     std::thread([&]() {
