@@ -85,6 +85,34 @@ static void SetNewAndDeleteOldString(
     SetNewAndDeleteOldString(str, newStr);
 }
 
+
+std::unique_ptr<boost::asio::io_context> EDreamClient::io_context = std::make_unique<boost::asio::io_context>();
+std::unique_ptr<boost::asio::steady_timer> EDreamClient::ping_timer = std::make_unique<boost::asio::steady_timer>(*io_context);
+
+// MARK: Ping via websocket
+void EDreamClient::SendPing()
+{
+    std::shared_ptr<sio::object_message> ms = std::dynamic_pointer_cast<sio::object_message>(sio::object_message::create());
+    ms->insert("event", "ping");
+
+    sio::message::list list;
+    list.push(ms);
+    s_SIOClient.socket("/remote-control")->emit("new_remote_control_event", list);
+    //g_Log->Info("Ping sent");
+    ScheduleNextPing();
+}
+
+void EDreamClient::ScheduleNextPing()
+{
+    ping_timer->expires_after(std::chrono::seconds(30));
+    ping_timer->async_wait([](const boost::system::error_code& ec) {
+        if (!ec) {
+            SendPing();
+        }
+    });
+}
+
+
 static void BindWebSocketCallbacks()
 {
     s_SIOClient.socket("/remote-control")
@@ -152,6 +180,10 @@ void EDreamClient::DeinitializeClient()
     s_SIOClient.set_fail_listener(nullptr);
     s_SIOClient.set_reconnecting_listener(nullptr);
     s_SIOClient.set_reconnect_listener(nullptr);
+    
+    // Stop the timer and io_context
+    ping_timer->cancel();
+    io_context->stop();
 }
 
 const char* EDreamClient::GetAccessToken() { return fAccessToken.load(); }
@@ -935,6 +967,14 @@ void EDreamClient::ConnectRemoteControlSocket()
     std::map<std::string, std::string> query;
     query["token"] = string_format("Bearer %s", GetAccessToken());
     s_SIOClient.connect(ServerConfig::ServerConfigManager::getInstance().getWebsocketServer(), query);
+    
+    // Start the ping timer
+    ScheduleNextPing();
+
+    // Run the io_context in a separate thread
+    std::thread([&]() {
+        io_context->run();
+    }).detach();
 }
 
 void EDreamClient::SetCPUUsage(int _cpuUsage) { fCpuUsage.exchange(_cpuUsage); }

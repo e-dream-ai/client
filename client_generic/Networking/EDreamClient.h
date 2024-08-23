@@ -5,6 +5,8 @@
 #include <atomic>
 #include <mutex>
 #include <tuple>
+#include <boost/asio.hpp>
+#include <boost/asio/steady_timer.hpp>
 
 class EDreamClient
 {
@@ -44,9 +46,15 @@ class EDreamClient
   public:
     static void ConnectRemoteControlSocket();
     static void SendPlayingDream(std::string uuid);
+    static void SendPing();
 
-  public:
     static void SetCPUUsage(int _cpuUsage);
+
+  private:
+    static std::unique_ptr<boost::asio::io_context> io_context;
+    static std::unique_ptr<boost::asio::steady_timer> ping_timer;
+    static void ScheduleNextPing();
+
 };
 
 #endif /* _EDREAMCLIENT_H_ */
