@@ -85,7 +85,7 @@ private:
     
     std::atomic<bool> m_isCheckingActive;
     std::thread m_checkingThread;
-    std::chrono::minutes m_checkInterval{10};
+    std::chrono::minutes m_checkInterval{2};
     std::condition_variable m_cv;
     std::mutex m_cvMutex;
     

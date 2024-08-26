@@ -86,6 +86,9 @@ Cache::Dream PlaylistManager::getNextDream() {
     }
 
     m_currentDreamUUID = m_playlist[m_currentPosition];
+    
+    g_Log->Info("getNextDream : %s (pos: %zu)", m_currentDreamUUID.c_str() , m_currentPosition);
+    
     return getDreamMetadata(m_currentDreamUUID);
 }
 
@@ -93,6 +96,7 @@ std::optional<Cache::Dream> PlaylistManager::getDreamByUUID(const std::string& d
     // First, check if the dream is in the playlist
     auto it = std::find(m_playlist.begin(), m_playlist.end(), dreamUUID);
     if (it == m_playlist.end()) {
+        g_Log->Error("Dream isn't in the playlist %s", dreamUUID.c_str());
         // Dream is not in the playlist
         return std::nullopt;
     }
@@ -115,6 +119,9 @@ Cache::Dream PlaylistManager::getPreviousDream() {
     } else {
         m_currentPosition = m_playlist.size() - 1; // Loop to the end
     }
+
+    g_Log->Info("getPreviousDream : %s (pos: %zu)", m_playlist[m_currentPosition].c_str() , m_currentPosition);
+
     return getDreamMetadata(m_playlist[m_currentPosition]);
 }
 
@@ -124,8 +131,11 @@ bool PlaylistManager::hasMoreDreams() const {
 
 Cache::Dream PlaylistManager::getCurrentDream() const {
     if (m_playlist.empty()) {
+        g_Log->Error("EMPTY PLAYLIST");
         return Cache::Dream(); // Return an empty dream if playlist is empty
     }
+
+    g_Log->Info("getCurrentDream : %s %s (pos: %zu)", m_playlist[m_currentPosition].c_str(), m_currentDreamUUID.c_str() , m_currentPosition);
 
     return getDreamMetadata(m_playlist[m_currentPosition]);
 }
@@ -269,8 +279,8 @@ bool PlaylistManager::updatePlaylist(bool alreadyFetched) {
     // Update the current dream UUID
     m_currentDreamUUID = m_playlist[m_currentPosition];
 
-    g_Log->Info("Playlist updated. New position: %zu, Current dream UUID: %s",
-                m_currentPosition, m_currentDreamUUID.c_str());
+    g_Log->Info("Playlist updated. New position: %zu, Current dream UUID: %s (old position: %zu, old uuid : %s)",
+                m_currentPosition, m_currentDreamUUID.c_str(), oldPosition, currentDreamUUID.c_str());
 
     return true;
 }
