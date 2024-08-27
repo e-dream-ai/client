@@ -107,6 +107,17 @@ void EDreamClient::ScheduleNextPing()
     });
 }
 
+void EDreamClient::SendGoodbye()
+{
+    if (!s_SIOClient.opened())
+    {
+        g_Log->Info("WebSocket not connected, skipping goodbye message");
+        return;
+    }
+
+    s_SIOClient.socket("/remote-control")->emit("goodbye");
+    g_Log->Info("Goodbye message sent");
+}
 
 static void BindWebSocketCallbacks()
 {
@@ -170,15 +181,21 @@ void EDreamClient::InitializeClient()
 
 void EDreamClient::DeinitializeClient()
 {
+    // Stop the timer and io_context
+    ping_timer->cancel();
+    io_context->stop();
+
+    // Send goodbye message
+    SendGoodbye();
+
+    // Close the WebSocket connection
+    s_SIOClient.close();
+    
     s_SIOClient.set_open_listener(nullptr);
     s_SIOClient.set_close_listener(nullptr);
     s_SIOClient.set_fail_listener(nullptr);
     s_SIOClient.set_reconnecting_listener(nullptr);
     s_SIOClient.set_reconnect_listener(nullptr);
-    
-    // Stop the timer and io_context
-    ping_timer->cancel();
-    io_context->stop();
 }
 
 const char* EDreamClient::GetAccessToken() { return fAccessToken.load(); }

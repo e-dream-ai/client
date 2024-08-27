@@ -54,6 +54,7 @@ class EDreamClient
     static std::unique_ptr<boost::asio::io_context> io_context;
     static std::unique_ptr<boost::asio::steady_timer> ping_timer;
     static void ScheduleNextPing();
+    static void SendGoodbye();
 
 };
 
