@@ -754,10 +754,13 @@ class CElectricSheep
 
         std::stringstream ss;
         if (minutes == 0) {
-            ss << "Next playlist check in less than a minute";
-
+            ss << "Next playlist check in less than a minute"
+            << " | (Playing video " << (g_Player().m_playlistManager->getCurrentPosition() + 1) // +1 for human-readable indexing
+            << "/" << g_Player().m_playlistManager->getPlaylistSize() << ")";
         } else {
-            ss << "Next playlist check in " << minutes << " minute" << (minutes != 1 ? "s" : "");
+            ss << "Next playlist check in " << minutes << " minute" << (minutes != 1 ? "s" : "")
+            << " | (Playing video " << (g_Player().m_playlistManager->getCurrentPosition() + 1) // +1 for human-readable indexing
+            << "/" << g_Player().m_playlistManager->getPlaylistSize() << ")";
         }
 
         // Update the HUD with this information

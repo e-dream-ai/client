@@ -42,7 +42,8 @@ public:
 
     // Set the current position in the playlist
     void setCurrentPosition(size_t position);
-
+    size_t getCurrentPosition() const { return m_currentPosition; }
+    
     // Get the total number of dreams in the playlist
     size_t getPlaylistSize() const;
 
@@ -65,6 +66,7 @@ public:
     void stopPeriodicChecking();
     
     std::chrono::seconds getTimeUntilNextCheck() const;
+
 private:
     std::vector<std::string> m_playlist;
     bool m_started;
