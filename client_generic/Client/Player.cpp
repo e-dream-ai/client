@@ -787,10 +787,10 @@ void CPlayer::ReturnToPrevious()
 {
     m_transitionDuration = 1.0f;
     Cache::Dream previousDream = m_playlistManager->getPreviousDream();
+    
     StartTransition();
-    PlayClip(previousDream, m_TimelineTime);
-    // Shorten fade in
-    m_currentClip->SetTransitionLength(1.0f, 5.0f);
+    PlayClip(previousDream, m_TimelineTime, -1, true);
+    m_nextClip->SetTransitionLength(1.0f, 5.0f);
 }
 
 void CPlayer::RepeatClip()
@@ -798,9 +798,8 @@ void CPlayer::RepeatClip()
     m_transitionDuration = 1.0f;
     Cache::Dream currentDream = m_playlistManager->getCurrentDream();
     StartTransition();
-    PlayClip(currentDream, m_TimelineTime);
-    // Shorten fade in
-    m_currentClip->SetTransitionLength(1.0f, 5.0f);
+    PlayClip(currentDream, m_TimelineTime, -1, true);
+    m_nextClip->SetTransitionLength(1.0f, 5.0f);
 }
 
 void CPlayer::SkipForward(float _seconds)
