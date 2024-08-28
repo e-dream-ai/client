@@ -644,14 +644,20 @@ void CPlayer::PlayDreamNow(std::string_view _uuid) {
 
         if (dream->isCached()) {
             writer_lock l(m_UpdateMutex);
-            //StartTransition();
-            PlayClip(*dream, m_TimelineTime);
+
+            m_transitionDuration = 1.0f;
+            StartTransition();
+            PlayClip(*dream, m_TimelineTime, -1, true);
+            m_nextClip->SetTransitionLength(1.0f, 5.0f);
         } else {
             // Uncomment below to disable streaming
             //cm.cacheAndPlayImmediately(std::string(_uuid));
             writer_lock l(m_UpdateMutex);
-            //StartTransition();
-            PlayClip(*dream, m_TimelineTime);
+
+            m_transitionDuration = 1.0f;
+            StartTransition();
+            PlayClip(*dream, m_TimelineTime, -1, true);
+            m_nextClip->SetTransitionLength(1.0f, 5.0f);
         }
     } else {
         // We need the metadata before we
@@ -663,8 +669,11 @@ void CPlayer::PlayDreamNow(std::string_view _uuid) {
             g_Log->Error("Can't get dream metadata, aborting PlayDreamNow");
         }
         writer_lock l(m_UpdateMutex);
-        //StartTransition();
-        PlayClip(*dream, m_TimelineTime);
+
+        m_transitionDuration = 1.0f;
+        StartTransition();
+        PlayClip(*dream, m_TimelineTime, -1, true);
+        m_nextClip->SetTransitionLength(1.0f, 5.0f);
     }
 }
 
