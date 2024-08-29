@@ -1,6 +1,7 @@
 #ifndef _EDREAMCLIENT_H_
 #define _EDREAMCLIENT_H_
 
+#include <future>
 #include <memory>
 #include <atomic>
 #include <mutex>
@@ -21,6 +22,12 @@ class EDreamClient
     static std::string Hello();
     static long long remainingQuota;
     
+    static std::future<bool> FetchPlaylistAsync(const std::string& uuid);
+    static std::future<bool> FetchDefaultPlaylistAsync();
+    static std::future<bool> FetchDreamMetadataAsync(const std::string& uuid);
+    static std::future<std::string> GetDreamDownloadLinkAsync(const std::string& uuid);
+    static std::future<void> SendPlayingDreamAsync(const std::string& uuid);
+    
   public:
     static void InitializeClient();
     static void DeinitializeClient();
@@ -32,6 +39,7 @@ class EDreamClient
     static std::vector<std::string> ParsePlaylist(std::string_view uuid);
     static std::tuple<std::string, std::string, bool, int64_t> ParsePlaylistMetadata(std::string_view uuid);
     
+    static std::future<bool> EnqueuePlaylistAsync(const std::string& uuid);
     static bool EnqueuePlaylist(std::string_view uuid);
     static bool GetDreams(int _page = 0, int _count = -1);
     static const char* GetAccessToken();

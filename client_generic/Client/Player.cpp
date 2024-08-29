@@ -660,20 +660,22 @@ void CPlayer::PlayDreamNow(std::string_view _uuid) {
             m_nextClip->SetTransitionLength(1.0f, 5.0f);
         }
     } else {
-        // We need the metadata before we
-        EDreamClient::FetchDreamMetadata(std::string(_uuid));
-        cm.reloadMetadata(std::string(_uuid));
+        std::async(std::launch::async, [_uuid, &cm, this](){
+            // We need the metadata before we do anything
+            EDreamClient::FetchDreamMetadata(std::string(_uuid));
+            cm.reloadMetadata(std::string(_uuid));
 
-        auto dream = cm.getDream(std::string(_uuid));
-        if (!dream) {
-            g_Log->Error("Can't get dream metadata, aborting PlayDreamNow");
-        }
-        writer_lock l(m_UpdateMutex);
+            auto dream = cm.getDream(std::string(_uuid));
+            if (!dream) {
+                g_Log->Error("Can't get dream metadata, aborting PlayDreamNow");
+            }
+            writer_lock l(m_UpdateMutex);
 
-        m_transitionDuration = 1.0f;
-        StartTransition();
-        PlayClip(*dream, m_TimelineTime, -1, true);
-        m_nextClip->SetTransitionLength(1.0f, 5.0f);
+            m_transitionDuration = 1.0f;
+            StartTransition();
+            PlayClip(*dream, m_TimelineTime, -1, true);
+            m_nextClip->SetTransitionLength(1.0f, 5.0f);
+        });
     }
 }
 

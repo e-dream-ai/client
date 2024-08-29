@@ -416,6 +416,87 @@ std::string EDreamClient::GetCurrentServerPlaylist() {
     return playlistId;
 }
 
+// MARK: - Async funtions
+std::future<bool> EDreamClient::FetchPlaylistAsync(const std::string& uuid) {
+    return std::async(std::launch::async, [uuid]() {
+        bool result = FetchPlaylist(uuid);
+        if (!result) {
+            g_Log->Error("Failed to fetch playlist. UUID: %s", uuid.c_str());
+        }
+        return result;
+    });
+}
+
+std::future<bool> EDreamClient::FetchDefaultPlaylistAsync() {
+    return std::async(std::launch::async, []() {
+        bool result = FetchDefaultPlaylist();
+        if (!result) {
+            g_Log->Error("Failed to fetch default playlist.");
+        }
+        return result;
+    });
+}
+
+std::future<bool> EDreamClient::FetchDreamMetadataAsync(const std::string& uuid) {
+    return std::async(std::launch::async, [uuid]() {
+        bool result = FetchDreamMetadata(uuid);
+        if (!result) {
+            g_Log->Error("Failed to fetch dream metadata. UUID: %s", uuid.c_str());
+        }
+        return result;
+    });
+}
+
+std::future<std::string> EDreamClient::GetDreamDownloadLinkAsync(const std::string& uuid) {
+    return std::async(std::launch::async, [uuid]() {
+        std::string link = GetDreamDownloadLink(uuid);
+        if (link.empty()) {
+            g_Log->Error("Failed to get dream download link. UUID: %s", uuid.c_str());
+        }
+        return link;
+    });
+}
+
+std::future<void> EDreamClient::SendPlayingDreamAsync(const std::string& uuid) {
+    return std::async(std::launch::async, [uuid]() {
+        SendPlayingDream(uuid);
+        g_Log->Info("Sent playing dream information. UUID: %s", uuid.c_str());
+    });
+}
+
+std::future<bool> EDreamClient::EnqueuePlaylistAsync(const std::string& uuid) {
+    return std::async(std::launch::async, [uuid]() {
+        // First, fetch the playlist asynchronously
+        auto fetchFuture = FetchPlaylistAsync(uuid);
+        
+        // Wait for the fetch to complete
+        bool fetchSuccess = fetchFuture.get();
+        
+        if (!fetchSuccess) {
+            g_Log->Error("Failed to fetch playlist. UUID: %s", uuid.c_str());
+            return false;
+        }
+
+        // Parse the playlist, we do this here as, in cascade, it will also fetch any dream metadata we need
+        auto uuids = ParsePlaylist(uuid);
+        
+        if (uuids.empty()) {
+            g_Log->Error("Failed to parse playlist or playlist is empty. UUID: %s", uuid.c_str());
+            return false;
+        }
+
+        // save the current playlist id, this will get reused at next startup
+        g_Settings()->Set("settings.content.current_playlist_uuid", uuid);
+        g_Player().SetPlaylist(std::string(uuid));
+        
+        g_Player().SetTransitionDuration(1.0f);
+        g_Player().PlayNextDream(true);
+        
+        return true;
+    });
+}
+
+// MARK: - Synchroneous functions
 bool EDreamClient::FetchPlaylist(std::string_view uuid) {
     // Lets make it simpler
     if (uuid.empty()) {
@@ -774,18 +855,20 @@ std::tuple<std::string, std::string, bool, int64_t> EDreamClient::ParsePlaylistM
 
 bool EDreamClient::EnqueuePlaylist(std::string_view uuid) {
     // Fetch the playlist and save it to disk
-    if (EDreamClient::FetchPlaylist(uuid)) {
-        // save the current playlist id, this will get reused at next startup
-        g_Settings()->Set("settings.content.current_playlist_uuid", uuid);
-        g_Player().SetPlaylist(std::string(uuid));
-        
-        g_Player().SetTransitionDuration(1.0f);
-        g_Player().PlayNextDream(true);
 
-        return true;
-    }
-
-    return false;
+/*
+    to_experimental(EDreamClient::FetchPlaylistAsync(std::string(uuid))).then([uuid](bool success) {
+        if (success) {
+            // save the current playlist id, this will get reused at next startup
+            g_Settings()->Set("settings.content.current_playlist_uuid", uuid);
+            g_Player().SetPlaylist(std::string(uuid));
+            
+            g_Player().SetTransitionDuration(1.0f);
+            g_Player().PlayNextDream(true);
+        }
+    });
+    */
+    return true;
 }
 
 static void OnWebSocketMessage(sio::event& _wsEvent)
@@ -809,14 +892,13 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
         printf("should play : %s", uuid.data());
 
         g_Player().PlayDreamNow(uuid.data());
-
     } else if (event == "play_playlist") {
         std::shared_ptr<sio::string_message> uuidObj =
             std::dynamic_pointer_cast<sio::string_message>(response["uuid"]);
         std::string_view uuid = uuidObj->get_string();
         printf("should play : %s", uuid.data());
         
-        EDreamClient::EnqueuePlaylist(uuid.data());
+        EDreamClient::EnqueuePlaylistAsync(uuid.data());
     }
     else if (event == "like")
     {
