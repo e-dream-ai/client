@@ -37,6 +37,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
     } MultiDisplayMode;
 
     std::unique_ptr<PlaylistManager> m_playlistManager;
+    double m_TimelineTime;
+
   private:
     ContentDecoder::spCClip m_currentClip;
     ContentDecoder::spCClip m_nextClip;
@@ -71,7 +73,6 @@ class CPlayer : public Base::CSingleton<CPlayer>
     double m_DecoderFps;
     double m_PerceptualFPS;
     double m_DisplayFps;
-    double m_TimelineTime;
     double m_LastFrameRealTime;
     bool m_bFullscreen;
     bool m_InitPlayCounts;

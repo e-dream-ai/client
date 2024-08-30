@@ -763,6 +763,7 @@ void CPlayer::UpdateTransition(double currentTime)
         Cache::Dream nextDream = m_playlistManager->getNextDream();
         if (!nextDream.uuid.empty()) {
             PlayClip(nextDream, currentTime, -1, true);  // The true flag indicates this is for transition
+            m_nextClip->SetTransitionLength(m_transitionDuration, 5.0f);
         }
     }
 }

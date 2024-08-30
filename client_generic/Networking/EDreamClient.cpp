@@ -490,7 +490,8 @@ std::future<bool> EDreamClient::EnqueuePlaylistAsync(const std::string& uuid) {
         g_Player().SetPlaylist(std::string(uuid));
         
         g_Player().SetTransitionDuration(1.0f);
-        g_Player().PlayNextDream(true);
+        g_Player().StartTransition();
+
         
         return true;
     });
