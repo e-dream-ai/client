@@ -656,11 +656,11 @@ void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
 
             m_transitionDuration = 1.0f;
             StartTransition();
-            PlayClip(*dream, m_TimelineTime, -1, true);
+            PlayClip(*dream, m_TimelineTime, frameNumber, true);
             m_nextClip->SetTransitionLength(1.0f, 5.0f);
         }
     } else {
-        std::async(std::launch::async, [_uuid, &cm, this](){
+        std::async(std::launch::async, [_uuid, &cm, this, frameNumber](){
             // We need the metadata before we do anything
             EDreamClient::FetchDreamMetadata(std::string(_uuid));
             cm.reloadMetadata(std::string(_uuid));
@@ -673,7 +673,7 @@ void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
 
             m_transitionDuration = 1.0f;
             StartTransition();
-            PlayClip(*dream, m_TimelineTime, -1, true);
+            PlayClip(*dream, m_TimelineTime, frameNumber, true);
             m_nextClip->SetTransitionLength(1.0f, 5.0f);
         });
     }
