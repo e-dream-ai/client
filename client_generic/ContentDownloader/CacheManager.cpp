@@ -358,7 +358,7 @@ void CacheManager::cacheAndPlayImmediately(const std::string& uuid) {
     auto future = g_ContentDownloader().m_gDownloader.DownloadImmediately(uuid, [](bool success, const std::string& uuid) {
         if (success) {
             g_Log->Info("Immediate download completed successfully for UUID: ", uuid.c_str());
-            g_Player().PlayDreamNow(uuid);
+            g_Player().PlayDreamNow(uuid, -1);
         } else {
             g_Log->Error("Immediate download failed for UUID: ", uuid.c_str());
         }

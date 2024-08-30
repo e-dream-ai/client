@@ -636,7 +636,7 @@ double CPlayer::GetDecoderFPS() {
     return m_DecoderFps;
 }
 
-void CPlayer::PlayDreamNow(std::string_view _uuid) {
+void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
     
     if (cm.hasDream(std::string(_uuid))) {
@@ -647,7 +647,7 @@ void CPlayer::PlayDreamNow(std::string_view _uuid) {
 
             m_transitionDuration = 1.0f;
             StartTransition();
-            PlayClip(*dream, m_TimelineTime, -1, true);
+            PlayClip(*dream, m_TimelineTime, frameNumber, true);
             m_nextClip->SetTransitionLength(1.0f, 5.0f);
         } else {
             // Uncomment below to disable streaming

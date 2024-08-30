@@ -491,7 +491,6 @@ std::future<bool> EDreamClient::EnqueuePlaylistAsync(const std::string& uuid) {
         
         g_Player().SetTransitionDuration(1.0f);
         g_Player().StartTransition();
-
         
         return true;
     });
@@ -890,9 +889,18 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
         std::shared_ptr<sio::string_message> uuidObj =
             std::dynamic_pointer_cast<sio::string_message>(response["uuid"]);
         std::string_view uuid = uuidObj->get_string();
+        
+        int64_t frameNumber = -1;
+        if (response.find("frameNumber") != response.end()) {
+            std::shared_ptr<sio::int_message> frameNumberObj =
+                        std::dynamic_pointer_cast<sio::int_message>(response["frameNumber"]);
+            frameNumber = frameNumberObj->get_int();
+            printf("Frame number: %" PRId64, frameNumber);
+        }
+        
         printf("should play : %s", uuid.data());
 
-        g_Player().PlayDreamNow(uuid.data());
+        g_Player().PlayDreamNow(uuid.data(), frameNumber);
     } else if (event == "play_playlist") {
         std::shared_ptr<sio::string_message> uuidObj =
             std::dynamic_pointer_cast<sio::string_message>(response["uuid"]);
