@@ -1249,23 +1249,13 @@ class CElectricSheep
                     {
                         // g_Player().Stop();
                         g_Player().MarkForDeletion(currentDreamUUID);
+                        if (g_Player().m_playlistManager) {
+                            g_Player().m_playlistManager->removeCurrentDream();
+                        }
+
                         g_Player().SkipToNext();
                         m_spCrossFade->Reset();
                         m_HudManager->Add("fade", m_spCrossFade, 1);
-
-                        // We need to move to something else before deleting
-                        // We wait 5s to delete
-                        
-                        // TODO fix dislike
-                        auto deleteDispatch =
-                            std::make_shared<CDelayedDispatch>(
-                                [&]() -> void
-                                {
-                                    //g_Player().Delete(currentDreamUUID);
-
-                                });
-                        deleteDispatch->DispatchAfter(5);
-
                     } else {
                         g_Player().SkipToNext();
                         m_spCrossFade->Reset();

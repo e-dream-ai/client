@@ -8,6 +8,7 @@
 #include "PlaylistManager.h"
 #include "EDreamClient.h"
 #include "Log.h"
+#include "Player.h"
 #include "PlatformUtils.h"
 #include <algorithm>
 #include <random>
@@ -56,8 +57,10 @@ bool PlaylistManager::parsePlaylist(const std::string& playlistUUID) {
     // Get the playlist metadata
     auto [playlistName, playlistArtist, isNSFW, timestamp] = EDreamClient::ParsePlaylistMetadata(playlistUUID);
 
+    // Filter out evicted UUIDs
+    m_playlist = filterEvictedUUIDs(dreamUUIDs);
+
     // Update member variables
-    m_playlist = std::move(dreamUUIDs);
     m_currentPlaylistName = playlistName;
     m_currentPlaylistArtist = playlistArtist;
     m_isPlaylistNSFW = isNSFW;
@@ -69,6 +72,38 @@ bool PlaylistManager::parsePlaylist(const std::string& playlistUUID) {
                 m_playlistTimestamp, m_playlist.size());
 
     return true;
+}
+
+std::vector<std::string> PlaylistManager::filterEvictedUUIDs(const std::vector<std::string>& dreamUUIDs) const {
+    std::vector<std::string> filteredUUIDs;
+    for (const auto& uuid : dreamUUIDs) {
+        if (std::find(g_Player().m_evictedUUIDs.begin(), g_Player().m_evictedUUIDs.end(), uuid) == g_Player().m_evictedUUIDs.end()) {
+            filteredUUIDs.push_back(uuid);
+        }
+    }
+    return filteredUUIDs;
+}
+
+void PlaylistManager::removeCurrentDream() {
+    if (m_playlist.empty()) {
+        return; // Nothing to remove
+    }
+
+    // Remove the current dream
+    m_playlist.erase(m_playlist.begin() + m_currentPosition);
+
+    // Adjust the current position if necessary
+    if (m_currentPosition >= m_playlist.size()) {
+        m_currentPosition = m_playlist.empty() ? 0 : m_playlist.size() - 1;
+    }
+
+    g_Log->Info("Removed dream at position %zu. New playlist size: %zu",
+                m_currentPosition, m_playlist.size());
+
+    // If the playlist is now empty, reset the started flag
+    if (m_playlist.empty()) {
+        m_started = false;
+    }
 }
 
 // MARK: Getters

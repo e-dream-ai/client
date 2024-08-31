@@ -38,6 +38,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
 
     std::unique_ptr<PlaylistManager> m_playlistManager;
     double m_TimelineTime;
+    std::vector<std::string> m_evictedUUIDs;    // List of dreams that have been disliked this session
 
   private:
     ContentDecoder::spCClip m_currentClip;
@@ -79,8 +80,6 @@ class CPlayer : public Base::CSingleton<CPlayer>
     bool m_bPaused;
     Base::CBlockingQueue<std::string> m_NextClipInfoQueue;
     Base::CBlockingQueue<std::string> m_ClipInfoHistoryQueue;
-    
-    std::vector<std::string> m_evictedUUIDs;    // List of dreams that have been disliked this session
     
     std::mutex m_CurrentClipsMutex;
     //boost::thread* m_pNextClipThread;
