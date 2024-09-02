@@ -308,10 +308,12 @@ void CPlayer::Start()
 {
     if (!m_bStarted)
     {
+        // Load evicted UUIDs
+        Cache::CacheManager::getInstance().loadEvictedUUIDsFromJson();
+
         m_CapClock = 0.0;
 
         m_bStarted.exchange(true);
-
 
         // Prepare to start the first video here
         
@@ -360,6 +362,9 @@ void CPlayer::Stop()
     }
 
     m_bStarted = false;
+    
+    // Save evicted UUIDs
+    Cache::CacheManager::getInstance().saveEvictedUUIDsToJson();
 }
 
 /*
@@ -773,10 +778,10 @@ void CPlayer::UpdateTransition(double currentTime)
 // mistakenly try to play a deleted dream (and crash)
 void CPlayer::MarkForDeletion(std::string_view _uuid)
 {
-    // Make sure it's not already in the vector, then add it
-    if ( std::find(m_evictedUUIDs.begin(), m_evictedUUIDs.end(), _uuid) == m_evictedUUIDs.end() ) {
+    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+    if (!cm.isUUIDEvicted(std::string(_uuid))) {
         g_Log->Debug("Evicting UUID: %s", _uuid);
-        m_evictedUUIDs.push_back(std::string(_uuid));
+        cm.addEvictedUUID(std::string(_uuid));
     }
 }
 

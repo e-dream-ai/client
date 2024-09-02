@@ -111,6 +111,16 @@ public:
     size_t getCachedDreamCount() const {
         return diskCached.size();
     }
+    
+    // Methods for managing evicted UUIDs
+    void addEvictedUUID(const std::string& uuid);
+    bool isUUIDEvicted(const std::string& uuid) const;
+    const std::vector<std::string>& getEvictedUUIDs() const;
+    void clearEvictedUUIDs();
+
+    // Save and load evicted UUIDs
+    void saveEvictedUUIDsToJson() const;
+    void loadEvictedUUIDsFromJson();
 private:
     // Private constructor
     CacheManager() = default;
@@ -124,12 +134,16 @@ private:
     std::vector<DiskCachedItem> diskCached;
     std::vector<HistoryItem> history;
 
+    std::vector<std::string> m_evictedUUIDs;
+
     boost::property_tree::ptree serializeDiskCachedItem(const DiskCachedItem& item) const;
     boost::property_tree::ptree serializeHistoryItem(const HistoryItem& item) const;
+    boost::property_tree::ptree serializeEvictedUUIDs() const;
 
     DiskCachedItem deserializeDiskCachedItem(const boost::property_tree::ptree& pt) const;
     HistoryItem deserializeHistoryItem(const boost::property_tree::ptree& pt) const;
-    
+    void deserializeEvictedUUIDs(const boost::property_tree::ptree& pt);
+
     // JSON Parser helpers
     std::string safe_get_string(const boost::json::object& obj, const char* key, const std::string& default_value = "") {
         auto it = obj.find(key);

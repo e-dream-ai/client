@@ -600,5 +600,74 @@ CacheManager::HistoryItem CacheManager::deserializeHistoryItem(const boost::prop
     return item;
 }
 
+// MARK: Dislike/evicted UUIDs
+void CacheManager::addEvictedUUID(const std::string& uuid) {
+    if (std::find(m_evictedUUIDs.begin(), m_evictedUUIDs.end(), uuid) == m_evictedUUIDs.end()) {
+        m_evictedUUIDs.push_back(uuid);
+        saveEvictedUUIDsToJson();
+    }
+}
+
+bool CacheManager::isUUIDEvicted(const std::string& uuid) const {
+    return std::find(m_evictedUUIDs.begin(), m_evictedUUIDs.end(), uuid) != m_evictedUUIDs.end();
+}
+
+const std::vector<std::string>& CacheManager::getEvictedUUIDs() const {
+    return m_evictedUUIDs;
+}
+
+void CacheManager::clearEvictedUUIDs() {
+    m_evictedUUIDs.clear();
+    saveEvictedUUIDsToJson();
+}
+
+void CacheManager::saveEvictedUUIDsToJson() const {
+    boost::property_tree::ptree root;
+    root.add_child("evictedUUIDs", serializeEvictedUUIDs());
+    
+    fs::path fileName = PathManager::getInstance().rootPath() / "evicted_uuids.json";
+    
+    boost::property_tree::write_json(fileName.string(), root);
+}
+
+void CacheManager::loadEvictedUUIDsFromJson() {
+    try {
+        boost::property_tree::ptree root;
+        fs::path filePath = PathManager::getInstance().rootPath() / "evicted_uuids.json";
+
+        if (!fs::exists(filePath)) {
+            g_Log->Info("Evicted UUIDs file does not exist: %s", filePath.string().c_str());
+            m_evictedUUIDs.clear();
+            return;
+        }
+
+        boost::property_tree::read_json(filePath.string(), root);
+
+        deserializeEvictedUUIDs(root.get_child("evictedUUIDs"));
+    } catch (const boost::property_tree::json_parser_error& e) {
+        g_Log->Error("JSON parsing error in loadEvictedUUIDsFromJson: %s", e.what());
+        m_evictedUUIDs.clear();
+    } catch (const std::exception& e) {
+        g_Log->Error("Unexpected error in loadEvictedUUIDsFromJson: %s", e.what());
+        m_evictedUUIDs.clear();
+    }
+}
+
+boost::property_tree::ptree CacheManager::serializeEvictedUUIDs() const {
+    boost::property_tree::ptree pt;
+    for (const auto& uuid : m_evictedUUIDs) {
+        boost::property_tree::ptree uuid_node;
+        uuid_node.put("", uuid);
+        pt.push_back(std::make_pair("", uuid_node));
+    }
+    return pt;
+}
+
+void CacheManager::deserializeEvictedUUIDs(const boost::property_tree::ptree& pt) {
+    m_evictedUUIDs.clear();
+    for (const auto& item : pt) {
+        m_evictedUUIDs.push_back(item.second.get_value<std::string>());
+    }
+}
 
 } // Namespace

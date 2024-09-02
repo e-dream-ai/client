@@ -38,7 +38,6 @@ class CPlayer : public Base::CSingleton<CPlayer>
 
     std::unique_ptr<PlaylistManager> m_playlistManager;
     double m_TimelineTime;
-    std::vector<std::string> m_evictedUUIDs;    // List of dreams that have been disliked this session
 
   private:
     ContentDecoder::spCClip m_currentClip;

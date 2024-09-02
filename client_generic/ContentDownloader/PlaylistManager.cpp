@@ -77,7 +77,7 @@ bool PlaylistManager::parsePlaylist(const std::string& playlistUUID) {
 std::vector<std::string> PlaylistManager::filterEvictedUUIDs(const std::vector<std::string>& dreamUUIDs) const {
     std::vector<std::string> filteredUUIDs;
     for (const auto& uuid : dreamUUIDs) {
-        if (std::find(g_Player().m_evictedUUIDs.begin(), g_Player().m_evictedUUIDs.end(), uuid) == g_Player().m_evictedUUIDs.end()) {
+        if (!Cache::CacheManager::getInstance().isUUIDEvicted(uuid)) {
             filteredUUIDs.push_back(uuid);
         }
     }
