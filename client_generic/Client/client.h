@@ -1240,11 +1240,14 @@ class CElectricSheep
                     return true;
                 }
                 if (data != nullptr) {
+                    EDreamClient::Like(data->dreamData.uuid);
                     popOSD(Hud::Like);
                 }
                 return true;
             case CLIENT_COMMAND_DISLIKE:
                 if (data != nullptr) {
+                    EDreamClient::Dislike(data->dreamData.uuid);
+                    
                     if (g_Settings()->Get("settings.content.negvotedeletes", true))
                     {
                         // g_Player().Stop();

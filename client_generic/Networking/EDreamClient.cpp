@@ -373,11 +373,28 @@ std::string EDreamClient::Hello() {
         json::value response = json::parse(spDownload->Data());
         json::value data = response.at("data");
         json::value quota = data.at("quota");
+        json::value dislikesCount = data.at("dislikesCount");
 
         remainingQuota = quota.as_int64();
-
+        int serverDislikes = dislikesCount.as_int64();
+        
         // Update CacheManager with that info
         cm.setRemainingQuota(remainingQuota);
+        
+        // Get the count of evicted UUIDs from CacheManager
+        size_t localEvictedCount = Cache::CacheManager::getInstance().getEvictedUUIDsCount();
+
+        // Compare the counts
+        if (serverDislikes != localEvictedCount) {
+            g_Log->Info("Mismatch between server dislikes (%d) and local evicted UUIDs (%zu)",
+                        serverDislikes, localEvictedCount);
+            // TODO: Decide what to do with this mismatch.
+            // For now, we'll just log it. You might want to synchronize these later.
+        } else {
+            g_Log->Info("Server dislikes (%d) match local evicted UUIDs count", serverDislikes);
+        }
+        
+        
         
         if (data.as_object().if_contains("currentPlaylistUUID")) {
             json::value currentPlaylistId = data.at("currentPlaylistUUID");
@@ -1080,6 +1097,34 @@ void EDreamClient::ConnectRemoteControlSocket()
     std::thread([&]() {
         io_context->run();
     }).detach();
+}
+
+void EDreamClient::Like(std::string uuid) {
+    std::cout << "Sending like for UUID " << uuid;
+    
+    std::shared_ptr<sio::object_message> ms =
+        std::dynamic_pointer_cast<sio::object_message>(
+            sio::object_message::create());
+    ms->insert("event", "like");
+    ms->insert("uuid", uuid);
+    sio::message::list list;
+    list.push(ms);
+    s_SIOClient.socket("/remote-control")
+        ->emit("new_remote_control_event", list);
+}
+
+void EDreamClient::Dislike(std::string uuid) {
+    std::cout << "Sending dislike for UUID " << uuid;
+    
+    std::shared_ptr<sio::object_message> ms =
+        std::dynamic_pointer_cast<sio::object_message>(
+            sio::object_message::create());
+    ms->insert("event", "dislike");
+    ms->insert("uuid", uuid);
+    sio::message::list list;
+    list.push(ms);
+    s_SIOClient.socket("/remote-control")
+        ->emit("new_remote_control_event", list);
 }
 
 void EDreamClient::SetCPUUsage(int _cpuUsage) { fCpuUsage.exchange(_cpuUsage); }

@@ -117,7 +117,10 @@ public:
     bool isUUIDEvicted(const std::string& uuid) const;
     const std::vector<std::string>& getEvictedUUIDs() const;
     void clearEvictedUUIDs();
-
+    size_t getEvictedUUIDsCount() const {
+        return m_evictedUUIDs.size();
+    }
+    
     // Save and load evicted UUIDs
     void saveEvictedUUIDsToJson() const;
     void loadEvictedUUIDsFromJson();
