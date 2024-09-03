@@ -28,7 +28,9 @@ void ServerConfigManager::initializeEndpoints() {
         {Endpoint::HELLO, m_dreamServer + apiVersion + "/client/hello"},
         {Endpoint::GETPLAYLIST, m_dreamServer + apiVersion + "/client/playlist"},
         {Endpoint::GETDEFAULTPLAYLIST, m_dreamServer + apiVersion + "/client/playlist/default"},
-        {Endpoint::GETDREAM, m_dreamServer + apiVersion + "/client/dream"}
+        {Endpoint::GETDREAM, m_dreamServer + apiVersion + "/client/dream"},
+        {Endpoint::GETDISLIKES, m_dreamServer + apiVersion + "/client/user/dislikes"}
+
     };
 }
 

@@ -388,8 +388,25 @@ std::string EDreamClient::Hello() {
         if (serverDislikes != localEvictedCount) {
             g_Log->Info("Mismatch between server dislikes (%d) and local evicted UUIDs (%zu)",
                         serverDislikes, localEvictedCount);
-            // TODO: Decide what to do with this mismatch.
-            // For now, we'll just log it. You might want to synchronize these later.
+
+            // Fetch the full list of dislikes from the server
+            std::vector<std::string> serverDislikesList = FetchUserDislikes();
+            
+            if (!serverDislikesList.empty()) {
+                // Update CacheManager with the new list of evicted UUIDs
+                Cache::CacheManager::getInstance().clearEvictedUUIDs();
+                for (const auto& uuid : serverDislikesList) {
+                    Cache::CacheManager::getInstance().addEvictedUUID(uuid);
+                }
+                
+                // Save the updated evicted UUIDs
+                Cache::CacheManager::getInstance().saveEvictedUUIDsToJson();
+                
+                g_Log->Info("Updated local evicted UUIDs with server dislikes. New count: %zu", serverDislikesList.size());
+            } else {
+                g_Log->Error("Failed to fetch server dislikes list. Local evicted UUIDs remain unchanged.");
+            }
+
         } else {
             g_Log->Info("Server dislikes (%d) match local evicted UUIDs count", serverDislikes);
         }
@@ -514,6 +531,65 @@ std::future<bool> EDreamClient::EnqueuePlaylistAsync(const std::string& uuid) {
 }
 
 // MARK: - Synchroneous functions
+std::vector<std::string> EDreamClient::FetchUserDislikes() {
+    std::vector<std::string> dislikes;
+    Network::spCFileDownloader spDownload;
+
+    int maxAttempts = 3;
+    int currentAttempt = 0;
+    while (currentAttempt++ < maxAttempts)
+    {
+        spDownload = std::make_shared<Network::CFileDownloader>("Fetch User Dislikes");
+        spDownload->AppendHeader("Content-Type: application/json");
+        std::string authHeader{
+            string_format("Authorization: Bearer %s", GetAccessToken())};
+        spDownload->AppendHeader(authHeader);
+        
+        std::string url = ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::GETDISLIKES);
+        
+        if (spDownload->Perform(url))
+        {
+            try
+            {
+                json::value response = json::parse(spDownload->Data());
+                json::value data = response.at("data");
+                json::array dislikesArray = data.at("dislikes").as_array();
+
+                for (const auto& dislike : dislikesArray) {
+                    dislikes.push_back(dislike.as_string().c_str());
+                }
+
+                return dislikes;
+            }
+            catch (const boost::system::system_error& e)
+            {
+                JSONUtil::LogException(e, spDownload->Data());
+            }
+            break;
+        }
+        else
+        {
+            if (spDownload->ResponseCode() == 400 ||
+                spDownload->ResponseCode() == 401)
+            {
+                if (currentAttempt == maxAttempts)
+                    return dislikes;
+                if (!RefreshAccessToken())
+                    return dislikes;
+            }
+            else
+            {
+                g_Log->Error("Failed to fetch user dislikes. Server returned %i: %s",
+                             spDownload->ResponseCode(),
+                             spDownload->Data().c_str());
+            }
+        }
+    }
+    
+    return dislikes;
+}
+
+
 bool EDreamClient::FetchPlaylist(std::string_view uuid) {
     // Lets make it simpler
     if (uuid.empty()) {

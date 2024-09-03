@@ -32,6 +32,8 @@ class EDreamClient
     static void InitializeClient();
     static void DeinitializeClient();
     static std::string GetCurrentServerPlaylist();
+
+    static std::vector<std::string> FetchUserDislikes();
     static bool FetchPlaylist(std::string_view uuid);
     static bool FetchDefaultPlaylist();
     static bool FetchDreamMetadata(std::string uuid);

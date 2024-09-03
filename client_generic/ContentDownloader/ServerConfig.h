@@ -33,7 +33,8 @@ enum class Endpoint {
     HELLO,
     GETPLAYLIST,
     GETDEFAULTPLAYLIST,
-    GETDREAM
+    GETDREAM,
+    GETDISLIKES
 };
 
 class ServerConfigManager {
