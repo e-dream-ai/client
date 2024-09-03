@@ -411,8 +411,6 @@ std::string EDreamClient::Hello() {
             g_Log->Info("Server dislikes (%d) match local evicted UUIDs count", serverDislikes);
         }
         
-        
-        
         if (data.as_object().if_contains("currentPlaylistUUID")) {
             json::value currentPlaylistId = data.at("currentPlaylistUUID");
             auto uuid = currentPlaylistId.as_string();
