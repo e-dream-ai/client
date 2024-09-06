@@ -886,6 +886,7 @@ std::vector<std::string> EDreamClient::ParsePlaylist(std::string_view uuid) {
         cm.reloadMetadata(needsMetadata);
     }
 
+    // TODO : Don't enqueue 1st video, we will stream it if we have to
     // Then enqueue our missing videos
     for (const auto& needsDownload : needsDownloadUuids) {
         if (!g_ContentDownloader().m_gDownloader.isDreamUUIDQueued(needsDownload)) {

@@ -645,7 +645,7 @@ double CPlayer::GetDecoderFPS() {
 
 void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
-    
+    // NOTE : This is the only path that currently streams 
     if (cm.hasDream(std::string(_uuid))) {
         auto dream = cm.getDream(std::string(_uuid));
 
