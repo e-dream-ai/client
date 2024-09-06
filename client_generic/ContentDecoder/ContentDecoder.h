@@ -141,6 +141,19 @@ class CContentDecoder
     unsigned char* m_pIOBuffer;
     const int kIOBufferSize = 32768;  // 32 KB buffer
 
+    int64_t m_CacheWritePosition;
+    std::mutex m_CacheMutex;
+    
+    std::string m_CachePath;
+    FILE* m_CacheFile;
+    bool m_IsStreaming;
+    static int ReadPacket(void* opaque, uint8_t* buf, int buf_size);
+    static int64_t SeekPacket(void* opaque, int64_t offset, int whence);
+    void SetCachePath(const std::string& path);
+    bool OpenCacheFile();
+    void CloseCacheFile();
+    void WriteToCache(const uint8_t* buf, int buf_size, int64_t position);
+    std::string GenerateCacheFileName(const std::string& url);
 };
 
 MakeSmartPointers(CContentDecoder);
