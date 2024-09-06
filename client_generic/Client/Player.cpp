@@ -543,6 +543,8 @@ bool CPlayer::PlayClip(const Cache::Dream& dream, double _startTime,
     
     auto path = dream.getCachedPath();
 
+    
+    // TODO : Need to make this async, this is currently locking when streaming
     // If we don't have a file, try and grab the url to stream it
     // This may get denied based on quota
     if (path.empty()) {

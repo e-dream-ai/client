@@ -786,12 +786,10 @@ void CContentDecoder::WriteToCache(const uint8_t* buf, int buf_size, int64_t pos
 }
 
 std::string CContentDecoder::GenerateCacheFileName(const std::string& url) {
-    // Generate a unique filename based on the URL
-    // This is a simple example, you might want to use a more robust method
+    // TODO, use uuid.tmp, at close rename to mp4 + call cachemanager to integrate to cache
     const fs::path mp4Path = Cache::PathManager::getInstance().mp4Path() / "test.mp4";
 
     return mp4Path.string();
-    //return "/path/to/cache/directory/" + filename + ".mp4";
 }
 
 } // namespace ContentDecoder
