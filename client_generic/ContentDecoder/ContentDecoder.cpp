@@ -330,7 +330,7 @@ void CContentDecoder::Close()
     g_Log->Info("Closing...");
     Stop();
     ClearQueue();
-    Destroy();
+    FinalizeCacheFile();
     
     if (m_CurrentVideoInfo && m_CurrentVideoInfo->m_pFormatContext)
     {
@@ -342,10 +342,12 @@ void CContentDecoder::Close()
         avformat_close_input(&m_CurrentVideoInfo->m_pFormatContext);
     }
 
+
     CloseCacheFile();
     m_CacheWritePosition = 0;
 
-    
+    Destroy();
+
     
     if (m_pIOContext)
     {
@@ -663,10 +665,19 @@ void CContentDecoder::ReadFramesThread()
             {
                 m_FrameQueue.push(pMainVideoFrame);
             }
+            else
+            {
+                // We've reached the end of the stream
+                m_HasEnded.store(true);
+                break;
+            }
+        
             if (m_CurrentVideoInfo->m_SeekTargetFrame != -1)
                 m_FrameQueueMutex.unlock();
             m_CurrentVideoInfo->m_SeekTargetFrame = -1;
         }
+        
+        m_HasEnded.store(true);
     }
     catch (thread_interrupted const&)
     {
@@ -792,6 +803,36 @@ std::string CContentDecoder::GenerateCacheFileName() {
     std::string uuid = m_Metadata.dreamData.uuid;
     fs::path mp4Path = Cache::PathManager::getInstance().mp4Path();
     return (mp4Path / (uuid + ".tmp")).string();
+}
+
+bool CContentDecoder::IsDownloadComplete() const
+{
+    if (!m_IsStreaming || !m_CurrentVideoInfo)
+        return false;
+
+    // Check if we've reached the end of the stream
+    return m_HasEnded.load() && (m_CacheWritePosition >= avio_size(m_pIOContext));
+}
+
+void CContentDecoder::FinalizeCacheFile()
+{
+    if (m_IsStreaming && IsDownloadComplete())
+    {
+        CloseCacheFile();  // Close the current .tmp file
+
+        fs::path tmpPath(m_CachePath);
+        fs::path finalPath = tmpPath.parent_path() / (tmpPath.stem().string() + ".mp4");
+
+        try
+        {
+            fs::rename(tmpPath, finalPath);
+            g_Log->Info("Successfully renamed cache file from %s to %s", tmpPath.string().c_str(), finalPath.string().c_str());
+        }
+        catch (const fs::filesystem_error& e)
+        {
+            g_Log->Error("Failed to rename cache file: %s", e.what());
+        }
+    }
 }
 
 } // namespace ContentDecoder
