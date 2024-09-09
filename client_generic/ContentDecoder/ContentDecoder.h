@@ -162,7 +162,8 @@ class CContentDecoder
     bool OpenCacheFile();
     void CloseCacheFile();
     void WriteToCache(const uint8_t* buf, int buf_size, int64_t position);
-    std::string GenerateCacheFileName(const std::string& url);
+    std::string GenerateCacheFileName();
+    
 };
 
 MakeSmartPointers(CContentDecoder);

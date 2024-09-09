@@ -158,7 +158,7 @@ bool CContentDecoder::Open()
         m_CacheWritePosition = 0;
         
         // Generate a cache file path
-        std::string cacheFileName = GenerateCacheFileName(_filename);
+        std::string cacheFileName = GenerateCacheFileName();
         SetCachePath(cacheFileName);
         
         if (!OpenCacheFile())
@@ -195,6 +195,8 @@ bool CContentDecoder::Open()
         ovi->m_pFormatContext = avformat_alloc_context();
         ovi->m_pFormatContext->pb = custom_io;
         ovi->m_pFormatContext->flags |= AVFMT_FLAG_CUSTOM_IO;
+    } else {
+        m_IsStreaming = false;
     }
     
     // Open input, whether it's a file or URL
@@ -786,11 +788,10 @@ void CContentDecoder::WriteToCache(const uint8_t* buf, int buf_size, int64_t pos
     }
 }
 
-std::string CContentDecoder::GenerateCacheFileName(const std::string& url) {
-    // TODO, use uuid.tmp, at close rename to mp4 + call cachemanager to integrate to cache
-    const fs::path mp4Path = Cache::PathManager::getInstance().mp4Path() / "test.mp4";
-
-    return mp4Path.string();
+std::string CContentDecoder::GenerateCacheFileName() {
+    std::string uuid = m_Metadata.dreamData.uuid;
+    fs::path mp4Path = Cache::PathManager::getInstance().mp4Path();
+    return (mp4Path / (uuid + ".tmp")).string();
 }
 
 } // namespace ContentDecoder
