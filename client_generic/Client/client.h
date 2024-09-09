@@ -795,6 +795,10 @@ class CElectricSheep
             bool drawNoSheepIntro = false;
             bool drawn = g_Player().Update(displayUnit, drawNoSheepIntro);
 
+            if (!EDreamClient::IsLoggedIn()) {
+                drawNoSheepIntro = true;
+            }
+            
             if ((drawNoSheepIntro && displayUnit == 0) ||
                 (drawn && displayUnit == 0))
             {

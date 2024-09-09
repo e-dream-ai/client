@@ -325,21 +325,24 @@ void CPlayer::Start()
             "settings.content.last_played_uuid", std::string{});
         
         auto clientPlaylistId = g_Settings()->Get("settings.content.current_playlist_uuid", std::string(""));
-        auto serverPlaylistId = EDreamClient::GetCurrentServerPlaylist();
 
-        
-        // Override if there's a mismatch, and don't try to resume previous file as
-        // it may not be part of the new playlist
-        if (serverPlaylistId != clientPlaylistId) {
-            g_Settings()->Set("settings.content.current_playlist_uuid", serverPlaylistId);
-            lastPlayedUUID = "";
-        }
-        
-        // Start the playlist and playback at the start, or at a given position
-        if (lastPlayedUUID.empty()) {
-            SetPlaylist(serverPlaylistId);
-        } else {
-            SetPlaylistAtDream(serverPlaylistId, lastPlayedUUID);
+        if (EDreamClient::IsLoggedIn()) {
+            auto serverPlaylistId = EDreamClient::GetCurrentServerPlaylist();
+            
+            
+            // Override if there's a mismatch, and don't try to resume previous file as
+            // it may not be part of the new playlist
+            if (serverPlaylistId != clientPlaylistId) {
+                g_Settings()->Set("settings.content.current_playlist_uuid", serverPlaylistId);
+                lastPlayedUUID = "";
+            }
+            
+            // Start the playlist and playback at the start, or at a given position
+            if (lastPlayedUUID.empty()) {
+                SetPlaylist(serverPlaylistId);
+            } else {
+                SetPlaylistAtDream(serverPlaylistId, lastPlayedUUID);
+            }
         }
     }
 }
@@ -503,12 +506,14 @@ bool CPlayer::Update(uint32_t displayUnit, bool& bPlayNoSheepIntro)
 
     writer_lock l(m_UpdateMutex);
     
-    if (m_isTransitioning) {
-        UpdateTransition(m_TimelineTime);
-    } else if (m_currentClip && m_currentClip->IsFadingOut()) {
-        PlayNextDream();
-    } else if (!m_currentClip && m_isFirstPlay) {
-        PlayNextDream();
+    if (EDreamClient::IsLoggedIn()) {
+        if (m_isTransitioning) {
+            UpdateTransition(m_TimelineTime);
+        } else if (m_currentClip && m_currentClip->IsFadingOut()) {
+            PlayNextDream();
+        } else if (!m_currentClip && m_isFirstPlay) {
+            PlayNextDream();
+        }
     }
 
     RenderFrame(du->spRenderer);
