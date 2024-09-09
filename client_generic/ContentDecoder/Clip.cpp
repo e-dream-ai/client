@@ -76,7 +76,7 @@ m_CurrentFrameMetadata{}, m_HasFinished(false), m_IsFadingOut(false)
 bool CClip::Start(int64_t _seekFrame)
 {
     m_DecoderClock = {};
-    return m_spDecoder->Start(m_ClipMetadata.path, _seekFrame);
+    return m_spDecoder->Start(m_ClipMetadata, _seekFrame);
 }
 
 void CClip::Stop() { m_spDecoder->Stop(); }

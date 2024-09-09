@@ -45,9 +45,17 @@ extern "C"
 #include "base.h"
 #include "BlockingQueue.h"
 #include "Frame.h"
+#include "CacheManager.h"
 
 namespace ContentDecoder
 {
+
+struct sClipMetadata
+{
+    std::string path;
+    double decodeFps;
+    Cache::Dream dreamData;
+};
 
 struct sOpenVideoInfo
 {
@@ -119,7 +127,7 @@ class CContentDecoder
     virtual ~CContentDecoder();
 
     void Close();
-    bool Start(std::string_view _path, int64_t _seekFrame = -1);
+    bool Start(const sClipMetadata& metadata, int64_t _seekFrame = -1);
     void Stop();
     const sOpenVideoInfo* GetVideoInfo() const
     {
@@ -136,6 +144,7 @@ class CContentDecoder
     }
     
   private:
+    sClipMetadata m_Metadata;
     bool IsURL(const std::string& path);
     AVIOContext* m_pIOContext;
     unsigned char* m_pIOBuffer;

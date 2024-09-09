@@ -680,10 +680,11 @@ spCVideoFrame CContentDecoder::PopVideoFrame()
     return spCVideoFrame{tmp};
 }
 
-bool CContentDecoder::Start(std::string_view _path, int64_t _seekFrame)
+bool CContentDecoder::Start(const sClipMetadata& metadata, int64_t _seekFrame)
 {
+    m_Metadata = metadata;
     m_CurrentVideoInfo = std::make_unique<sOpenVideoInfo>();
-    m_CurrentVideoInfo->m_Path = _path;
+    m_CurrentVideoInfo->m_Path = metadata.path;
     m_CurrentVideoInfo->m_SeekTargetFrame = _seekFrame;
     m_HasEnded.exchange(false);
     

@@ -20,13 +20,6 @@
 namespace ContentDecoder
 {
 
-struct sClipMetadata
-{
-    std::string path;
-    double decodeFps;
-    Cache::Dream dreamData;
-    //ContentDownloader::sDreamMetadata dreamData;
-};
 
 class CClip
 {
