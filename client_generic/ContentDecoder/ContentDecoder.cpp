@@ -26,7 +26,7 @@
 #include <sys/stat.h>
 #include <algorithm>
 #include <filesystem>
-
+#include <future>
 
 #include "ContentDecoder.h"
 #include "Log.h"
@@ -82,6 +82,14 @@ CContentDecoder::CContentDecoder(const uint32_t _queueLenght,
 CContentDecoder::~CContentDecoder()
 {
     Stop();
+
+    // Make sure we wait for our futures here
+    g_Log->Info("Ensuring futures are closed");
+    for (auto& future : m_futures) {
+        future.wait();
+    }
+    g_Log->Info("Futures are closed");
+    
     Destroy();
 }
 
@@ -686,21 +694,47 @@ void CContentDecoder::ReadFramesThread()
                 WriteToCache(buffer, bytesRead, avio_tell(m_pIOContext) - bytesRead);
             }
         }
-        
+
         m_HasEnded.store(true);
+        
+        FinalizeCacheFile();
+
+        g_Log->Info("Ending main video frame reading thread for %s", m_Metadata.dreamData.uuid.c_str());
     }
     catch (thread_interrupted const&)
     {
         g_Log->Info("Read frames thread interrupted.");
+        
+        /*
+        // NOTE : This works for fetching remaining data, but still locks as it looks like we're waiting
+        // upstream in the code for the content decoder to be destroyed.
+        //
+        // So right now uncommenting this will block in the destructor.
+        // TODO : Consider revisiting this later and see what effectively blocks.
+         
+        g_Log->Info("Read frames thread interrupted, trying to fetch remaining data asynchronously.");
+
+        if (m_IsStreaming) {
+            m_futures.emplace_back(std::async(std::launch::async, [this]() {
+                // Try to read any remaining data
+                unsigned char buffer[4096];
+                int bytesRead;
+                while ((bytesRead = avio_read(m_pIOContext, buffer, sizeof(buffer))) > 0) {
+                    WriteToCache(buffer, bytesRead, avio_tell(m_pIOContext) - bytesRead);
+                }
+                
+                m_HasEnded.store(true);
+                
+                FinalizeCacheFile();
+            }));
+        }*/
+    
+        g_Log->Info("Ending main video frame reading thread for %s", m_Metadata.dreamData.uuid.c_str());
     }
     catch (std::exception const& e)
     {
         g_Log->Error("Exception in read frames thread: %s", e.what());
     }
-    
-    FinalizeCacheFile();
-
-    g_Log->Info("Ending main video frame reading thread for %s", m_Metadata.dreamData.uuid.c_str());
 }
 
 spCVideoFrame CContentDecoder::PopVideoFrame()

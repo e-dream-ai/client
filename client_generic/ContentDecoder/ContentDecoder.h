@@ -30,6 +30,7 @@
 #include <boost/bind.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/thread/xtime.hpp>
+#include <future>
 
 //	FFmpeg headers.
 extern "C"
@@ -144,6 +145,7 @@ class CContentDecoder
     }
     
   private:
+    std::vector<std::future<void>> m_futures;
     sClipMetadata m_Metadata;
     bool IsURL(const std::string& path);
     AVIOContext* m_pIOContext;
