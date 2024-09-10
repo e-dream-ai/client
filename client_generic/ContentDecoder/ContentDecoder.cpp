@@ -604,12 +604,13 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
     return pVideoFrame;
 }
 
+// MARK: Read Frames Thread
 void CContentDecoder::ReadFramesThread()
 {
     try
     {
         PlatformUtils::SetThreadName("ReadFrames");
-        g_Log->Info("Main video frame reading thread started...");
+        g_Log->Info("Main video frame reading thread started for %s", m_Metadata.dreamData.uuid.c_str());
         
         while (m_CurrentVideoInfo->m_CurrentFrameIndex <
                m_CurrentVideoInfo->m_TotalFrameCount - 1)
@@ -671,18 +672,35 @@ void CContentDecoder::ReadFramesThread()
                 m_HasEnded.store(true);
                 break;
             }
-        
+            
             if (m_CurrentVideoInfo->m_SeekTargetFrame != -1)
                 m_FrameQueueMutex.unlock();
             m_CurrentVideoInfo->m_SeekTargetFrame = -1;
+        }
+        
+        if (m_IsStreaming) {
+            // Try to read any remaining data
+            unsigned char buffer[4096];
+            int bytesRead;
+            while ((bytesRead = avio_read(m_pIOContext, buffer, sizeof(buffer))) > 0) {
+                WriteToCache(buffer, bytesRead, avio_tell(m_pIOContext) - bytesRead);
+            }
         }
         
         m_HasEnded.store(true);
     }
     catch (thread_interrupted const&)
     {
+        g_Log->Info("Read frames thread interrupted.");
     }
-    g_Log->Info("Ending main video frame reading thread...");
+    catch (std::exception const& e)
+    {
+        g_Log->Error("Exception in read frames thread: %s", e.what());
+    }
+    
+    FinalizeCacheFile();
+
+    g_Log->Info("Ending main video frame reading thread for %s", m_Metadata.dreamData.uuid.c_str());
 }
 
 spCVideoFrame CContentDecoder::PopVideoFrame()
@@ -810,13 +828,20 @@ bool CContentDecoder::IsDownloadComplete() const
     if (!m_IsStreaming || !m_CurrentVideoInfo)
         return false;
 
-    // Check if we've reached the end of the stream
-    return m_HasEnded.load() && (m_CacheWritePosition >= avio_size(m_pIOContext));
+    // Check if we've reached the end of the stream, avio_size can be innacurate in some cases
+    int64_t totalSize = avio_size(m_pIOContext);
+    constexpr int64_t threshold = 16 * 1024;  // 16 KB threshold
+
+    //g_Log->Info("POS : %lld %lld", m_CacheWritePosition, totalSize);
+
+    return m_HasEnded.load() && (m_CacheWritePosition >= totalSize - threshold);
 }
 
 void CContentDecoder::FinalizeCacheFile()
 {
-    if (m_IsStreaming && IsDownloadComplete())
+    std::lock_guard<std::mutex> lock(m_CacheMutex);
+
+    if (m_IsStreaming && IsDownloadComplete() && !m_CachePath.empty())
     {
         CloseCacheFile();  // Close the current .tmp file
 
@@ -825,8 +850,21 @@ void CContentDecoder::FinalizeCacheFile()
 
         try
         {
-            fs::rename(tmpPath, finalPath);
-            g_Log->Info("Successfully renamed cache file from %s to %s", tmpPath.string().c_str(), finalPath.string().c_str());
+            if (fs::exists(tmpPath) && !fs::exists(finalPath))
+            {
+                fs::rename(tmpPath, finalPath);
+                g_Log->Info("Successfully renamed cache file from %s to %s", tmpPath.string().c_str(), finalPath.string().c_str());
+                m_CachePath.clear();  // Clear the cache path to indicate we've finalized
+                
+                // Now we let our cache know the file is there
+                Cache::CacheManager::DiskCachedItem newDiskItem;
+                newDiskItem.uuid = m_Metadata.dreamData.uuid;
+                newDiskItem.version = m_Metadata.dreamData.video_timestamp;
+                newDiskItem.downloadDate = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
+                Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+                cm.addDiskCachedItem(newDiskItem);
+            }
         }
         catch (const fs::filesystem_error& e)
         {
