@@ -29,7 +29,8 @@ struct Dream {
     long long video_timestamp;
     long long timestamp;
     float activityLevel = 1.f;
-
+    mutable std::string streamingUrl;
+    
     // Possibly useful helpers
     double getDuration() const {
         return frames / std::stod(fps);
@@ -54,6 +55,14 @@ struct Dream {
     // Those are implemented in CacheManager.h
     std::string getCachedPath() const;
     bool isCached() const;
+    
+    std::string getStreamingUrl() const {
+        return streamingUrl;
+    }
+
+    void setStreamingUrl(const std::string& url) const {
+        streamingUrl = url;
+    }
 };
 
 } // namespace Cache

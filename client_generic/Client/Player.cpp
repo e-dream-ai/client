@@ -15,6 +15,7 @@
 #include <math.h>
 #include <string>
 #include <algorithm>
+#include <thread>
 
 #include "Log.h"
 #include "MathBase.h"
@@ -321,29 +322,33 @@ void CPlayer::Start()
         m_PerceptualFPS = g_Settings()->Get("settings.player.perceptual_fps",
                                             m_PerceptualFPS);
 
-        std::string lastPlayedUUID = g_Settings()->Get(
-            "settings.content.last_played_uuid", std::string{});
-        
-        auto clientPlaylistId = g_Settings()->Get("settings.content.current_playlist_uuid", std::string(""));
+        std::thread([this]{
+            std::string lastPlayedUUID = g_Settings()->Get(
+                "settings.content.last_played_uuid", std::string{});
+            
+            auto clientPlaylistId = g_Settings()->Get("settings.content.current_playlist_uuid", std::string(""));
 
-        if (EDreamClient::IsLoggedIn()) {
-            auto serverPlaylistId = EDreamClient::GetCurrentServerPlaylist();
-            
-            
-            // Override if there's a mismatch, and don't try to resume previous file as
-            // it may not be part of the new playlist
-            if (serverPlaylistId != clientPlaylistId) {
-                g_Settings()->Set("settings.content.current_playlist_uuid", serverPlaylistId);
-                lastPlayedUUID = "";
-            }
-            
-            // Start the playlist and playback at the start, or at a given position
-            if (lastPlayedUUID.empty()) {
-                SetPlaylist(serverPlaylistId);
-            } else {
-                SetPlaylistAtDream(serverPlaylistId, lastPlayedUUID);
-            }
-        }
+            if (EDreamClient::IsLoggedIn()) {
+                auto serverPlaylistId = EDreamClient::GetCurrentServerPlaylist();
+                
+                
+                // Override if there's a mismatch, and don't try to resume previous file as
+                // it may not be part of the new playlist
+                if (serverPlaylistId != clientPlaylistId) {
+                    g_Settings()->Set("settings.content.current_playlist_uuid", serverPlaylistId);
+                    lastPlayedUUID = "";
+                }
+                
+                // Start the playlist and playback at the start, or at a given position
+                if (lastPlayedUUID.empty()) {
+                    SetPlaylist(serverPlaylistId);
+                } else {
+                    SetPlaylistAtDream(serverPlaylistId, lastPlayedUUID);
+                }
+                
+                m_hasStarted = true;
+            }            
+        }).detach();
     }
 }
 
@@ -506,7 +511,8 @@ bool CPlayer::Update(uint32_t displayUnit, bool& bPlayNoSheepIntro)
 
     writer_lock l(m_UpdateMutex);
     
-    if (EDreamClient::IsLoggedIn()) {
+    // Make sure we are both logged in and have already a playlist ready before going in
+    if (EDreamClient::IsLoggedIn() && m_hasStarted) {
         if (m_isTransitioning) {
             UpdateTransition(m_TimelineTime);
         } else if (m_currentClip && m_currentClip->IsFadingOut()) {
@@ -548,15 +554,14 @@ bool CPlayer::PlayClip(const Cache::Dream& dream, double _startTime,
     
     auto path = dream.getCachedPath();
 
-    
-    // TODO : Need to make this async, this is currently locking when streaming
-    // If we don't have a file, try and grab the url to stream it
-    // This may get denied based on quota
     if (path.empty()) {
-        // Test url for streaming
-        // path = "https://sylvan.apple.com/Videos/comp_DB_D001_C005_COMP_PSNK_v12_SDR_PS_20180912_SDR_2K_AVC.mov";
+        // Try streamingUrl that's been prefetched
+        path = dream.getStreamingUrl();
 
-        path = EDreamClient::GetDreamDownloadLink(dream.uuid);
+        if (path.empty()) {
+            // Last resort blocking call
+            path = EDreamClient::GetDreamDownloadLink(dream.uuid);
+        }
     }
 
     if (path.empty())
@@ -662,17 +667,22 @@ void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
             PlayClip(*dream, m_TimelineTime, frameNumber, true);
             m_nextClip->SetTransitionLength(1.0f, 5.0f);
         } else {
-            // Uncomment below to disable streaming
-            //cm.cacheAndPlayImmediately(std::string(_uuid));
-            writer_lock l(m_UpdateMutex);
-
-            m_transitionDuration = 1.0f;
-            StartTransition();
-            PlayClip(*dream, m_TimelineTime, frameNumber, true);
-            m_nextClip->SetTransitionLength(1.0f, 5.0f);
+            auto future = std::async(std::launch::async, [this, frameNumber, &dream](){
+                // Grab URL and save it for later use
+                auto path = EDreamClient::GetDreamDownloadLink(dream->uuid);
+                dream->setStreamingUrl(path);
+                
+                writer_lock l(m_UpdateMutex);
+                
+                m_transitionDuration = 1.0f;
+                StartTransition();
+                
+                PlayClip(*dream, m_TimelineTime, frameNumber, true);
+                m_nextClip->SetTransitionLength(1.0f, 5.0f);
+            });
         }
     } else {
-        std::async(std::launch::async, [_uuid, &cm, this, frameNumber](){
+        auto future = std::async(std::launch::async, [_uuid, &cm, this, frameNumber](){
             // We need the metadata before we do anything
             EDreamClient::FetchDreamMetadata(std::string(_uuid));
             cm.reloadMetadata(std::string(_uuid));
@@ -681,6 +691,10 @@ void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
             if (!dream) {
                 g_Log->Error("Can't get dream metadata, aborting PlayDreamNow");
             }
+            // Grab URL and save it for later use
+            auto path = EDreamClient::GetDreamDownloadLink(dream->uuid);
+            dream->setStreamingUrl(path);
+
             writer_lock l(m_UpdateMutex);
 
             m_transitionDuration = 1.0f;

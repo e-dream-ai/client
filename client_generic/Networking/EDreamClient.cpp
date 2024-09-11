@@ -9,6 +9,7 @@
 #include <cstdio>
 #include <fstream>
 #include <iostream>
+#include <future>
 
 #include "ContentDownloader.h"
 #include "StringFormat.h"
@@ -823,6 +824,9 @@ std::vector<std::string> EDreamClient::ParsePlaylist(std::string_view uuid) {
         (std::istreambuf_iterator<char>())};
     file.close();
     
+
+    std::string needsStreamingUuid;
+
     try
     {
         boost::system::error_code ec;
@@ -838,6 +842,8 @@ std::vector<std::string> EDreamClient::ParsePlaylist(std::string_view uuid) {
             itemArray = playlist["contents"].as_array();
         }
 
+        bool isFirst = true;
+        
         for (auto& item : itemArray) {
             auto itemObj = item.as_object();
             
@@ -852,10 +858,17 @@ std::vector<std::string> EDreamClient::ParsePlaylist(std::string_view uuid) {
             // Do we have the video?
             if (!cm.hasDiskCachedItem(uuid.c_str()))
             {
-                needsDownloadUuids.push_back(uuid.c_str());
+                if (!isFirst) {
+                    needsDownloadUuids.push_back(uuid.c_str());
+                } else {
+                    // Prefetch download link for 1st video from playlist if we don't have it
+                    // We don't push it to our download thread
+                    needsStreamingUuid = uuid;
+                }
             }
             
             uuids.push_back(uuid.c_str());
+            isFirst = false;
         }
     }
     catch (const boost::system::system_error& e)
@@ -886,13 +899,22 @@ std::vector<std::string> EDreamClient::ParsePlaylist(std::string_view uuid) {
         cm.reloadMetadata(needsMetadata);
     }
 
-    // TODO : Don't enqueue 1st video, we will stream it if we have to
     // Then enqueue our missing videos
     for (const auto& needsDownload : needsDownloadUuids) {
         if (!g_ContentDownloader().m_gDownloader.isDreamUUIDQueued(needsDownload)) {
             g_Log->Info("Add %s to download queue", needsDownload.c_str());
             g_ContentDownloader().m_gDownloader.AddDreamUUID(needsDownload);
         }
+    }
+
+    // Finally, if needed fetch streaming link for 1st video
+    if (!needsStreamingUuid.empty()) {
+        // Grab a pointer to the dream metadata
+        auto dream = cm.getDream(needsStreamingUuid);
+
+        // Grab streaming URL and save it for later use
+        auto path = EDreamClient::GetDreamDownloadLink(dream->uuid);
+        dream->setStreamingUrl(path);
     }
     
     return uuids;
@@ -991,7 +1013,6 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
         }
         
         printf("should play : %s", uuid.data());
-
         g_Player().PlayDreamNow(uuid.data(), frameNumber);
     } else if (event == "play_playlist") {
         std::shared_ptr<sio::string_message> uuidObj =

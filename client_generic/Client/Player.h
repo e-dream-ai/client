@@ -40,6 +40,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
     double m_TimelineTime;
 
   private:
+    bool m_hasStarted = false;
+    
     ContentDecoder::spCClip m_currentClip;
     ContentDecoder::spCClip m_nextClip;
     
@@ -137,6 +139,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     bool Update(uint32_t displayUnit, bool& bPlayNoSheepIntro);
     void RenderFrame(DisplayOutput::spCRenderer renderer);
     
+    bool HasStarted() { return m_hasStarted; };
     void Start();
     void Stop();
     bool NextClipForPlaying(int32_t _forceNext);
