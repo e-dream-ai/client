@@ -24,8 +24,7 @@ public:
     // Initialize the playlist with it's uuid and a list of dream UUIDs
     bool initializePlaylist(const std::string& playlistUUID);
 
-    std::vector<std::string> filterEvictedUUIDs(const std::vector<std::string>& dreamUUIDs) const;
-    
+    std::vector<std::string> filterActiveAndProcessedDreams(const std::vector<std::string>& dreamUUIDs) const;
     // Get a dream by its UUID, set position if found in playlist, return nullopt if not in playlist
     std::optional<const Cache::Dream*> getDreamByUUID(const std::string& dreamUUID);
 
@@ -86,6 +85,8 @@ private:
 
     // Helper function to get dream metadata
     const Cache::Dream* getDreamMetadata(const std::string& dreamUUID) const;
+    
+    bool isDreamProcessed(const std::string& uuid) const;
     
     std::atomic<bool> m_isCheckingActive;
     std::thread m_checkingThread;

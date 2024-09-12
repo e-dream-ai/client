@@ -610,13 +610,23 @@ void CPlayer::PlayNextDream(bool quickFade)
             PlayClip(nextDream, m_TimelineTime);
             m_isFirstPlay = false;
         } else {
-            std::thread([this, nextDream, quickFade]{
-                // Prefetch streaming link if needed
-                if (!nextDream->isCached() && nextDream->getStreamingUrl().empty()) {
+            // Prefetch streaming link if needed, but do it in a thread
+            if (!nextDream->isCached() && nextDream->getStreamingUrl().empty()) {
+                std::thread([this, nextDream, quickFade]{
                     auto path = EDreamClient::GetDreamDownloadLink(nextDream->uuid);
                     nextDream->setStreamingUrl(path);
-                }
-                
+                    
+                    StartTransition();
+                    if (quickFade)
+                        m_currentClip->SetTransitionLength(5.0f, 1.0f);
+                    
+                    PlayClip(nextDream, m_TimelineTime, -1, true);  // The true flag indicates this is for transition
+                    
+                    if (quickFade && m_nextClip)
+                        m_nextClip->SetTransitionLength(1.0f, 5.0f);
+                }).detach();
+            } else {
+                // Do the same thing in the player thread instead
                 StartTransition();
                 if (quickFade)
                     m_currentClip->SetTransitionLength(5.0f, 1.0f);
@@ -625,7 +635,7 @@ void CPlayer::PlayNextDream(bool quickFade)
                 
                 if (quickFade && m_nextClip)
                     m_nextClip->SetTransitionLength(1.0f, 5.0f);
-            }).detach();
+            }
         }
     } else {
         g_Log->Error("No next dream available to play");
@@ -841,6 +851,7 @@ void CPlayer::MarkForDeletion(std::string_view _uuid)
 
 void CPlayer::SkipToNext()
 {
+    g_Log->Info("Next");
     m_transitionDuration = 1.0f;
     PlayNextDream(true);
 }

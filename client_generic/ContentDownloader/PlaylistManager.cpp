@@ -57,8 +57,8 @@ bool PlaylistManager::parsePlaylist(const std::string& playlistUUID) {
     // Get the playlist metadata
     auto [playlistName, playlistArtist, isNSFW, timestamp] = EDreamClient::ParsePlaylistMetadata(playlistUUID);
 
-    // Filter out evicted UUIDs
-    m_playlist = filterEvictedUUIDs(dreamUUIDs);
+    // Filter out evicted UUIDs and unprocessed dreams
+    m_playlist = filterActiveAndProcessedDreams(dreamUUIDs);
 
     // Update member variables
     m_currentPlaylistName = playlistName;
@@ -74,14 +74,27 @@ bool PlaylistManager::parsePlaylist(const std::string& playlistUUID) {
     return true;
 }
 
-std::vector<std::string> PlaylistManager::filterEvictedUUIDs(const std::vector<std::string>& dreamUUIDs) const {
+std::vector<std::string> PlaylistManager::filterActiveAndProcessedDreams(const std::vector<std::string>& dreamUUIDs) const {
     std::vector<std::string> filteredUUIDs;
+    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+    
     for (const auto& uuid : dreamUUIDs) {
-        if (!Cache::CacheManager::getInstance().isUUIDEvicted(uuid)) {
+        if (!cm.isUUIDEvicted(uuid) && isDreamProcessed(uuid)) {
             filteredUUIDs.push_back(uuid);
         }
     }
     return filteredUUIDs;
+}
+
+bool PlaylistManager::isDreamProcessed(const std::string& uuid) const {
+    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+    if (cm.hasDream(uuid)) {
+        const Cache::Dream* dream = cm.getDream(uuid);
+        if (dream) {
+            return dream->status == "processed";
+        }
+    }
+    return false;
 }
 
 void PlaylistManager::removeCurrentDream() {
