@@ -564,7 +564,8 @@ bool CPlayer::PlayClip(const Cache::Dream* dream, double _startTime, int64_t _se
         path = dream->getStreamingUrl();
 
         if (path.empty()) {
-            // Last resort blocking call
+            // Last resort blocking call this should never get called ideally
+            // but keeping it for resiliancy
             path = EDreamClient::GetDreamDownloadLink(dream->uuid);
         }
     }
@@ -819,21 +820,24 @@ void CPlayer::UpdateTransition(double currentTime)
         m_nextClip = nullptr;
         m_transitionDuration = 5.0f;
     } else if (!m_nextClip) {
-        std::thread([this, &currentTime]{
-            // If we don't have a next clip yet, try to get one
-            auto nextDream = m_playlistManager->getNextDream();
-
-            if (!nextDream->uuid.empty()) {
-                // We may need to prefetch the url
-                if (!nextDream->isCached() && nextDream->getStreamingUrl().empty()) {
+        // If we don't have a next clip yet, try to get one
+        auto nextDream = m_playlistManager->getNextDream();
+        
+        if (!nextDream->uuid.empty()) {
+            // We may need to prefetch the url, if so, do it all in a thread
+            if (!nextDream->isCached() && nextDream->getStreamingUrl().empty()) {
+                std::thread([this, &currentTime, nextDream]{
                     auto path = EDreamClient::GetDreamDownloadLink(nextDream->uuid);
                     nextDream->setStreamingUrl(path);
-                }
 
+                    PlayClip(nextDream, currentTime, -1, true);  // The true flag indicates this is for transition
+                    m_nextClip->SetTransitionLength(m_transitionDuration, 5.0f);
+                }).detach();
+            } else {
                 PlayClip(nextDream, currentTime, -1, true);  // The true flag indicates this is for transition
                 m_nextClip->SetTransitionLength(m_transitionDuration, 5.0f);
             }
-        }).detach();
+        }
     }
 }
 
