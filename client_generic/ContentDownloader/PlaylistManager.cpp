@@ -107,7 +107,7 @@ void PlaylistManager::removeCurrentDream() {
 }
 
 // MARK: Getters
-Cache::Dream PlaylistManager::getNextDream() {
+const Cache::Dream* PlaylistManager::getNextDream() {
     if (!m_started) {
         // This path is called the first time we ask for a dream. Make sure we give the first one
         m_started = true;
@@ -121,18 +121,17 @@ Cache::Dream PlaylistManager::getNextDream() {
     }
 
     m_currentDreamUUID = m_playlist[m_currentPosition];
+    m_currentDream = m_cacheManager.getDream(m_currentDreamUUID);
     
-    g_Log->Info("getNextDream : %s (pos: %zu)", m_currentDreamUUID.c_str() , m_currentPosition);
+    g_Log->Info("getNextDream : %s (pos: %zu)", m_currentDreamUUID.c_str(), m_currentPosition);
     
-    return getDreamMetadata(m_currentDreamUUID);
+    return m_currentDream;
 }
 
-std::optional<Cache::Dream> PlaylistManager::getDreamByUUID(const std::string& dreamUUID) {
-    // First, check if the dream is in the playlist
+std::optional<const Cache::Dream*> PlaylistManager::getDreamByUUID(const std::string& dreamUUID) {
     auto it = std::find(m_playlist.begin(), m_playlist.end(), dreamUUID);
     if (it == m_playlist.end()) {
         g_Log->Error("Dream isn't in the playlist %s", dreamUUID.c_str());
-        // Dream is not in the playlist
         return std::nullopt;
     }
 
@@ -143,36 +142,38 @@ std::optional<Cache::Dream> PlaylistManager::getDreamByUUID(const std::string& d
     size_t newPosition = std::distance(m_playlist.begin(), it);
     setCurrentPosition(newPosition);
 
-    // Return metatada
-    return getDreamMetadata(m_playlist[m_currentPosition]);
+    // Return metadata pointer
+    m_currentDream = m_cacheManager.getDream(m_playlist[m_currentPosition]);
+    return m_currentDream;
 }
 
-
-Cache::Dream PlaylistManager::getPreviousDream() {
+const Cache::Dream* PlaylistManager::getPreviousDream() {
     if (m_currentPosition > 0) {
         m_currentPosition--;
     } else {
         m_currentPosition = m_playlist.size() - 1; // Loop to the end
     }
 
-    g_Log->Info("getPreviousDream : %s (pos: %zu)", m_playlist[m_currentPosition].c_str() , m_currentPosition);
+    g_Log->Info("getPreviousDream : %s (pos: %zu)", m_playlist[m_currentPosition].c_str(), m_currentPosition);
 
-    return getDreamMetadata(m_playlist[m_currentPosition]);
+    m_currentDreamUUID = m_playlist[m_currentPosition];
+    m_currentDream = m_cacheManager.getDream(m_currentDreamUUID);
+    return m_currentDream;
 }
 
 bool PlaylistManager::hasMoreDreams() const {
     return !m_playlist.empty();
 }
 
-Cache::Dream PlaylistManager::getCurrentDream() const {
+const Cache::Dream* PlaylistManager::getCurrentDream() const {
     if (m_playlist.empty()) {
         g_Log->Error("EMPTY PLAYLIST");
-        return Cache::Dream(); // Return an empty dream if playlist is empty
+        return nullptr;
     }
 
-    g_Log->Info("getCurrentDream : %s %s (pos: %zu)", m_playlist[m_currentPosition].c_str(), m_currentDreamUUID.c_str() , m_currentPosition);
+    g_Log->Info("getCurrentDream : %s %s (pos: %zu)", m_playlist[m_currentPosition].c_str(), m_currentDreamUUID.c_str(), m_currentPosition);
 
-    return getDreamMetadata(m_playlist[m_currentPosition]);
+    return m_currentDream;
 }
 
 void PlaylistManager::setCurrentPosition(size_t position) {
@@ -209,15 +210,22 @@ std::tuple<std::string, std::string, bool, int64_t> PlaylistManager::getPlaylist
     return {m_currentPlaylistName, m_currentPlaylistArtist, m_isPlaylistNSFW, m_playlistTimestamp};
 }
 
-Cache::Dream PlaylistManager::getDreamMetadata(const std::string& dreamUUID) const {
-    Cache::Dream dream;
-    if (!m_cacheManager.hasDream(dreamUUID) || m_cacheManager.needsMetadata(dreamUUID, 0)) {
-        EDreamClient::FetchDreamMetadata(dreamUUID);
-        m_cacheManager.reloadMetadata(dreamUUID);
+const Cache::Dream* PlaylistManager::getDreamMetadata(const std::string& dreamUUID) const {
+    auto it = std::find_if(m_playlist.begin(), m_playlist.end(),
+        [&dreamUUID](const std::string& uuid) {
+            return uuid == dreamUUID;
+        });
+
+    if (it != m_playlist.end()) {
+        const Cache::Dream* dream = m_cacheManager.getDream(dreamUUID);
+        if (dream) {
+            return dream;
+        }
     }
-    dream = *m_cacheManager.getDream(dreamUUID);
-    return dream;
+
+    return nullptr;
 }
+
 
 // MARK: Periodic playlist checks
 void PlaylistManager::startPeriodicChecking() {

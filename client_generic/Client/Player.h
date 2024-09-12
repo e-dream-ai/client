@@ -207,8 +207,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
     /// Returns true if the file was loaded successfully
     /*bool PlayClip(std::string_view _clipPath, double _startTimelineTime,
                   int64_t _seekFrame = -1, bool fastFade = false);*/
-    bool PlayClip(const Cache::Dream& dream, double _startTime, int64_t _seekFrame = -1, bool fastFade = false);
-
+    //bool PlayClip(const Cache::Dream& dream, double _startTime, int64_t _seekFrame = -1, bool fastFade = false);
+    bool PlayClip(const Cache::Dream* dream, double _startTime, int64_t _seekFrame = -1, bool isTransition = false);
     
     void SetMultiDisplayMode(MultiDisplayMode mode)
     {

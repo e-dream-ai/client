@@ -970,18 +970,32 @@ std::tuple<std::string, std::string, bool, int64_t> EDreamClient::ParsePlaylistM
 bool EDreamClient::EnqueuePlaylist(std::string_view uuid) {
     // Fetch the playlist and save it to disk
 
-/*
-    to_experimental(EDreamClient::FetchPlaylistAsync(std::string(uuid))).then([uuid](bool success) {
-        if (success) {
-            // save the current playlist id, this will get reused at next startup
-            g_Settings()->Set("settings.content.current_playlist_uuid", uuid);
-            g_Player().SetPlaylist(std::string(uuid));
-            
-            g_Player().SetTransitionDuration(1.0f);
-            g_Player().PlayNextDream(true);
-        }
-    });
-    */
+    // First, fetch the playlist asynchronously
+    auto fetchFuture = FetchPlaylistAsync(std::string(uuid));
+    
+    // Wait for the fetch to complete
+    bool fetchSuccess = fetchFuture.get();
+    
+    if (!fetchSuccess) {
+        g_Log->Error("Failed to fetch playlist. UUID: %s", std::string(uuid).c_str());
+        return false;
+    }
+
+    // Parse the playlist, we do this here as, in cascade, it will also fetch any dream metadata we need
+    auto uuids = ParsePlaylist(uuid);
+    
+    if (uuids.empty()) {
+        g_Log->Error("Failed to parse playlist or playlist is empty. UUID: %s", std::string(uuid).c_str());
+        return false;
+    }
+
+    // save the current playlist id, this will get reused at next startup
+    g_Settings()->Set("settings.content.current_playlist_uuid", uuid);
+    g_Player().SetPlaylist(std::string(uuid));
+    
+    g_Player().SetTransitionDuration(1.0f);
+    g_Player().StartTransition();
+    
     return true;
 }
 

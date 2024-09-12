@@ -27,20 +27,19 @@ public:
     std::vector<std::string> filterEvictedUUIDs(const std::vector<std::string>& dreamUUIDs) const;
     
     // Get a dream by its UUID, set position if found in playlist, return nullopt if not in playlist
-    std::optional<Cache::Dream> getDreamByUUID(const std::string& dreamUUID);
+    std::optional<const Cache::Dream*> getDreamByUUID(const std::string& dreamUUID);
 
-    
     // Get the next dream in the playlist
-    Cache::Dream getNextDream();
+    const Cache::Dream* getNextDream();
 
     // Get the previous dream in the playlist
-    Cache::Dream getPreviousDream();
+    const Cache::Dream* getPreviousDream();
 
     // Check if there are more dreams in the playlist
     bool hasMoreDreams() const;
 
     // Get the current dream without advancing the playlist
-    Cache::Dream getCurrentDream() const;
+    const Cache::Dream* getCurrentDream() const;
 
     // Set the current position in the playlist
     void setCurrentPosition(size_t position);
@@ -80,12 +79,13 @@ private:
     int64_t m_playlistTimestamp;
     
     size_t m_currentPosition;
+    const Cache::Dream* m_currentDream;
     std::string m_currentDreamUUID;  // Store the UUID of the currently playing dream
 
     Cache::CacheManager& m_cacheManager;
 
     // Helper function to get dream metadata
-    Cache::Dream getDreamMetadata(const std::string& dreamUUID) const;
+    const Cache::Dream* getDreamMetadata(const std::string& dreamUUID) const;
     
     std::atomic<bool> m_isCheckingActive;
     std::thread m_checkingThread;

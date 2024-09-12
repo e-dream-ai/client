@@ -322,6 +322,7 @@ void CPlayer::Start()
         m_PerceptualFPS = g_Settings()->Get("settings.player.perceptual_fps",
                                             m_PerceptualFPS);
 
+        // We do this async, so client rendering loop doesn't lock
         std::thread([this]{
             std::string lastPlayedUUID = g_Settings()->Get(
                 "settings.content.last_played_uuid", std::string{});
@@ -347,7 +348,7 @@ void CPlayer::Start()
                 }
                 
                 m_hasStarted = true;
-            }            
+            }
         }).detach();
     }
 }
@@ -546,34 +547,40 @@ void CPlayer::RenderFrame(DisplayOutput::spCRenderer renderer) {
     }
 }
 
-bool CPlayer::PlayClip(const Cache::Dream& dream, double _startTime,
-                       int64_t _seekFrame, bool isTransition)
+bool CPlayer::PlayClip(const Cache::Dream* dream, double _startTime, int64_t _seekFrame, bool isTransition)
 {
+    if (!dream) {
+        g_Log->Error("Attempted to play a null dream");
+        return false;
+    }
+    
     auto du = m_displayUnits[0];
     int32_t displayMode = g_Settings()->Get("settings.player.DisplayMode", 2);
     
-    auto path = dream.getCachedPath();
+    auto path = dream->getCachedPath();
 
     if (path.empty()) {
         // Try streamingUrl that's been prefetched
-        path = dream.getStreamingUrl();
+        path = dream->getStreamingUrl();
 
         if (path.empty()) {
             // Last resort blocking call
-            path = EDreamClient::GetDreamDownloadLink(dream.uuid);
+            path = EDreamClient::GetDreamDownloadLink(dream->uuid);
         }
     }
 
-    if (path.empty())
+    if (path.empty()) {
+        g_Log->Error("Failed to get path for dream: %s", dream->uuid.c_str());
         return false;
+    }
     
     auto newClip = std::make_shared<ContentDecoder::CClip>(
-        ContentDecoder::sClipMetadata{path, m_PerceptualFPS / dream.activityLevel, dream},
+        ContentDecoder::sClipMetadata{path, m_PerceptualFPS / dream->activityLevel, *dream},
         du->spRenderer, displayMode, du->spDisplay->Width(),
         du->spDisplay->Height());
     
     // Update internal decoder fps counter
-    m_DecoderFps = m_PerceptualFPS / dream.activityLevel;
+    m_DecoderFps = m_PerceptualFPS / dream->activityLevel;
 
     if (!newClip->Start(_seekFrame))
         return false;
@@ -596,21 +603,29 @@ bool CPlayer::PlayClip(const Cache::Dream& dream, double _startTime,
 
 void CPlayer::PlayNextDream(bool quickFade)
 {
-    Cache::Dream nextDream = m_playlistManager->getNextDream();
-    if (!nextDream.uuid.empty()) {
+    auto nextDream = m_playlistManager->getNextDream();
+    if (!nextDream->uuid.empty()) {
         if (m_isFirstPlay) {
             // For the first play, start immediately without transition
             PlayClip(nextDream, m_TimelineTime);
             m_isFirstPlay = false;
         } else {
-            StartTransition();
-            if (quickFade)
-                m_currentClip->SetTransitionLength(5.0f, 1.0f);
-            
-            PlayClip(nextDream, m_TimelineTime, -1, true);  // The true flag indicates this is for transition
-            
-            if (quickFade)
-                m_nextClip->SetTransitionLength(1.0f, 5.0f);
+            std::thread([this, nextDream, quickFade]{
+                // Prefetch streaming link if needed
+                if (!nextDream->isCached() && nextDream->getStreamingUrl().empty()) {
+                    auto path = EDreamClient::GetDreamDownloadLink(nextDream->uuid);
+                    nextDream->setStreamingUrl(path);
+                }
+                
+                StartTransition();
+                if (quickFade)
+                    m_currentClip->SetTransitionLength(5.0f, 1.0f);
+                
+                PlayClip(nextDream, m_TimelineTime, -1, true);  // The true flag indicates this is for transition
+                
+                if (quickFade && m_nextClip)
+                    m_nextClip->SetTransitionLength(1.0f, 5.0f);
+            }).detach();
         }
     } else {
         g_Log->Error("No next dream available to play");
@@ -664,7 +679,7 @@ void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
 
             m_transitionDuration = 1.0f;
             StartTransition();
-            PlayClip(*dream, m_TimelineTime, frameNumber, true);
+            PlayClip(dream, m_TimelineTime, frameNumber, true);
             m_nextClip->SetTransitionLength(1.0f, 5.0f);
         } else {
             auto future = std::async(std::launch::async, [this, frameNumber, &dream](){
@@ -677,7 +692,7 @@ void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
                 m_transitionDuration = 1.0f;
                 StartTransition();
                 
-                PlayClip(*dream, m_TimelineTime, frameNumber, true);
+                PlayClip(dream, m_TimelineTime, frameNumber, true);
                 m_nextClip->SetTransitionLength(1.0f, 5.0f);
             });
         }
@@ -699,7 +714,7 @@ void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
 
             m_transitionDuration = 1.0f;
             StartTransition();
-            PlayClip(*dream, m_TimelineTime, frameNumber, true);
+            PlayClip(dream, m_TimelineTime, frameNumber, true);
             m_nextClip->SetTransitionLength(1.0f, 5.0f);
         });
     }
@@ -750,13 +765,22 @@ bool CPlayer::SetPlaylistAtDream(const std::string& playlistUUID, const std::str
 
 
 void CPlayer::ResetPlaylist() {
-    writer_lock l(m_UpdateMutex);
+    //writer_lock l(m_UpdateMutex);
 
-    
     // Grab the default playlist again & set it
+    g_Log->Info("PreReset");
+    std::thread([this]{
+        SetPlaylist("");
+        SetTransitionDuration(1.0f);
+        StartTransition();
+    }).detach();
+    g_Log->Info("PostReset");
+/*
     EDreamClient::FetchDefaultPlaylist();
     m_currentClip = nullptr;    // Fetch is synchronous, avoids black screen
     SetPlaylist("");
+ */
+    
 }
 
 // MARK: - Transition
@@ -785,12 +809,21 @@ void CPlayer::UpdateTransition(double currentTime)
         m_nextClip = nullptr;
         m_transitionDuration = 5.0f;
     } else if (!m_nextClip) {
-        // If we don't have a next clip yet, try to get one
-        Cache::Dream nextDream = m_playlistManager->getNextDream();
-        if (!nextDream.uuid.empty()) {
-            PlayClip(nextDream, currentTime, -1, true);  // The true flag indicates this is for transition
-            m_nextClip->SetTransitionLength(m_transitionDuration, 5.0f);
-        }
+        std::thread([this, &currentTime]{
+            // If we don't have a next clip yet, try to get one
+            auto nextDream = m_playlistManager->getNextDream();
+
+            if (!nextDream->uuid.empty()) {
+                // We may need to prefetch the url
+                if (!nextDream->isCached() && nextDream->getStreamingUrl().empty()) {
+                    auto path = EDreamClient::GetDreamDownloadLink(nextDream->uuid);
+                    nextDream->setStreamingUrl(path);
+                }
+
+                PlayClip(nextDream, currentTime, -1, true);  // The true flag indicates this is for transition
+                m_nextClip->SetTransitionLength(m_transitionDuration, 5.0f);
+            }
+        }).detach();
     }
 }
 
@@ -815,7 +848,7 @@ void CPlayer::SkipToNext()
 void CPlayer::ReturnToPrevious()
 {
     m_transitionDuration = 1.0f;
-    Cache::Dream previousDream = m_playlistManager->getPreviousDream();
+    auto previousDream = m_playlistManager->getPreviousDream();
     
     StartTransition();
     PlayClip(previousDream, m_TimelineTime, -1, true);
@@ -825,7 +858,7 @@ void CPlayer::ReturnToPrevious()
 void CPlayer::RepeatClip()
 {
     m_transitionDuration = 1.0f;
-    Cache::Dream currentDream = m_playlistManager->getCurrentDream();
+    auto currentDream = m_playlistManager->getCurrentDream();
     StartTransition();
     PlayClip(currentDream, m_TimelineTime, -1, true);
     m_nextClip->SetTransitionLength(1.0f, 5.0f);
