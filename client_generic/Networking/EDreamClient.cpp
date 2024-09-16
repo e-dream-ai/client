@@ -320,7 +320,127 @@ bool EDreamClient::RefreshAccessToken()
     }
 }
 
+// MARK: - Auth v2
+bool EDreamClient::SendCode()
+{
+    std::string email = g_Settings()->Get("settings.generator.nickname", std::string(""));
+    
+    if (email.empty())
+    {
+        g_Log->Error("Email address not found in settings");
+        return false;
+    }
+    
+    Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>("Send Login Code");
+    spDownload->AppendHeader("Content-Type: application/json");
+    
+    // Prepare the JSON payload
+    boost::json::object payload;
+    payload["email"] = email;
+    std::string body = boost::json::serialize(payload);
+    
+    spDownload->SetPostFields(body.data());
+    g_Log->Info("server : %s", ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::LOGIN_MAGIC).c_str());
+    
+    if (spDownload->Perform(ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::LOGIN_MAGIC)))
+    {
+        if (spDownload->ResponseCode() == 200)
+        {
+            g_Log->Info("Login code sent successfully to %s", email.c_str());
+            return true;
+        }
+        else
+        {
+            g_Log->Error("Failed to send login code. Server returned %i: %s",
+                         spDownload->ResponseCode(), spDownload->Data().c_str());
+            return false;
+        }
+    }
+    else
+    {
+        g_Log->Error("Network error while sending login code");
+        return false;
+    }
+}
 
+bool EDreamClient::ValidateCode(const std::string& code)
+{
+    std::string email = g_Settings()->Get("settings.generator.nickname", std::string(""));
+    
+    if (email.empty())
+    {
+        g_Log->Error("Email address not found in settings");
+        return false;
+    }
+
+    Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>("Validate Login Code");
+    spDownload->AppendHeader("Content-Type: application/json");
+
+    // Prepare the JSON payload
+    boost::json::object payload;
+    payload["email"] = email;
+    payload["code"] = code; 
+    std::string body = boost::json::serialize(payload);
+
+    spDownload->SetPostFields(body.data());
+
+    if (spDownload->Perform(ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::LOGIN_MAGIC)))
+    {
+        if (spDownload->ResponseCode() == 200)
+        {
+            try
+            {
+                boost::json::value response = boost::json::parse(spDownload->Data());
+                boost::json::object responseObj = response.as_object();
+
+                if (responseObj.contains("sealedSession") && responseObj["sealedSession"].is_string())
+                {
+                    std::string sealedSession = responseObj["sealedSession"].as_string().c_str();
+                    g_Settings()->Set("settings.content.sealed_session", sealedSession);
+                    g_Settings()->Storage()->Commit();  // Save the settings
+
+                    g_Log->Info("Sealed session saved successfully");
+                }
+                else
+                {
+                    g_Log->Error("sealedSession not found in the response");
+                    return false;
+                }
+
+                if (responseObj.contains("user") && responseObj["user"].is_object())
+                {
+                    boost::json::object userObj = responseObj["user"].as_object();
+                    g_Log->Info("User object received: %s", boost::json::serialize(userObj).c_str());
+                }
+                else
+                {
+                    g_Log->Warning("User object not found in the response");
+                }
+
+                return true;
+            }
+            catch (const boost::json::system_error& e)
+            {
+                g_Log->Error("JSON parsing error: %s", e.what());
+                return false;
+            }
+        }
+        else
+        {
+            g_Log->Error("Failed to validate login code. Server returned %i: %s",
+                         spDownload->ResponseCode(), spDownload->Data().c_str());
+            return false;
+        }
+    }
+    else
+    {
+        g_Log->Error("Network error while validating login code");
+        return false;
+    }
+}
+
+
+// MARK: - Hello call
 // Post auth initial handshake with server
 //
 //

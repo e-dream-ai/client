@@ -51,6 +51,10 @@ class EDreamClient
     static void SignOut();
     static void DidSignIn(const std::string& _authToken,
                           const std::string& _refreshToken);
+    // Auth v2
+    static bool SendCode();
+    static bool ValidateCode(const std::string& code);
+    
     static constexpr int DREAMS_PER_PAGE = 10;
 
   public:

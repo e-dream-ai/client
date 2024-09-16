@@ -294,7 +294,7 @@ static void ShowPreferencesCallback()
     //@TODO: is the full screen check needed? disabling for now
     if (/*!mIsFullScreen &&*/ mESView && [mESView hasConfigureSheet])
     {
-        [mESView stopAnimation];
+        // [mESView stopAnimation];
         mInSheet = YES;
         [self beginSheet:[mESView configureSheet]
             completionHandler:^(NSModalResponse returnCode) {

@@ -563,7 +563,7 @@
 
 - (IBAction)doSignIn:(id)__unused sender
 {
-    ESScreensaver_InitClientStorage();
+    /*ESScreensaver_InitClientStorage();
     if (EDreamClient::IsLoggedIn())
     {
         EDreamClient::SignOut();
@@ -573,12 +573,26 @@
     else
     {
         [self startTest:NO];
+    }*/
+    
+    // Try validating code
+    // Ask for the code to be sent
+    if (EDreamClient::ValidateCode(drupalPassword.stringValue.UTF8String)) {
+        // Login successful
+    } else {
+        // Code validation failed
     }
+    
 }
 
 - (IBAction)sendCode:(id)__unused sender
 {
-    //EDreamClient::SendCode();
+    // Save email
+    ESScreensaver_SetStringSetting("settings.generator.nickname",
+                                   drupalLogin.stringValue.UTF8String);
+    
+    // Ask for the code to be sent
+    EDreamClient::SendCode();
 }
 
 - (IBAction)goToHelpPage:(id)__unused sender
