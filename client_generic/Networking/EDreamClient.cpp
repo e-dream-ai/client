@@ -392,31 +392,49 @@ bool EDreamClient::ValidateCode(const std::string& code)
             {
                 boost::json::value response = boost::json::parse(spDownload->Data());
                 boost::json::object responseObj = response.as_object();
-
-                if (responseObj.contains("sealedSession") && responseObj["sealedSession"].is_string())
+                
+                // Check if the response was successful
+                if (!responseObj.contains("success") || !responseObj["success"].as_bool())
                 {
-                    std::string sealedSession = responseObj["sealedSession"].as_string().c_str();
+                    g_Log->Error("Validation failed: %s", responseObj.contains("message") ? responseObj["message"].as_string().c_str() : "Unknown error");
+                    return false;
+                }
+                
+                // Check for the data object
+                if (!responseObj.contains("data") || !responseObj["data"].is_object())
+                {
+                    g_Log->Error("Response doesn't contain data object");
+                    return false;
+                }
+                
+                boost::json::object dataObj = responseObj["data"].as_object();
+                
+                // Retrieve and save the sealedSession
+                if (dataObj.contains("sealedSession") && dataObj["sealedSession"].is_string())
+                {
+                    std::string sealedSession = dataObj["sealedSession"].as_string().c_str();
                     g_Settings()->Set("settings.content.sealed_session", sealedSession);
                     g_Settings()->Storage()->Commit();  // Save the settings
-
+                    
                     g_Log->Info("Sealed session saved successfully");
                 }
                 else
                 {
-                    g_Log->Error("sealedSession not found in the response");
+                    g_Log->Error("sealedSession not found in the response data");
                     return false;
                 }
-
-                if (responseObj.contains("user") && responseObj["user"].is_object())
+                
+                // Log the user object if present
+                if (dataObj.contains("user") && dataObj["user"].is_object())
                 {
-                    boost::json::object userObj = responseObj["user"].as_object();
+                    boost::json::object userObj = dataObj["user"].as_object();
                     g_Log->Info("User object received: %s", boost::json::serialize(userObj).c_str());
                 }
                 else
                 {
-                    g_Log->Warning("User object not found in the response");
+                    g_Log->Warning("User object not found in the response data");
                 }
-
+                
                 return true;
             }
             catch (const boost::json::system_error& e)
