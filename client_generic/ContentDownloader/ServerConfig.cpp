@@ -17,19 +17,24 @@ ServerConfigManager::ServerConfigManager() {
 }
 
 void ServerConfigManager::initializeEndpoints() {
-    std::string apiVersion(API_VERSION);
+    std::string apiVersionV1(API_VERSION_V1);
+    std::string apiVersionV2(API_VERSION_V2);
+    
     m_endpoints = {
-        {Endpoint::DREAM, m_dreamServer + apiVersion + "/dream"},
-        {Endpoint::LOGIN, m_dreamServer + apiVersion + "/auth/login"},
-        {Endpoint::REFRESH, m_dreamServer + apiVersion + "/auth/refresh"},
-        {Endpoint::USER, m_dreamServer + apiVersion + "/auth/user"},
-        {Endpoint::PLAYLIST, m_dreamServer + apiVersion + "/playlist"},
-        {Endpoint::CURRENTPLAYLIST, m_dreamServer + apiVersion + "/user/current/playlist"},
-        {Endpoint::HELLO, m_dreamServer + apiVersion + "/client/hello"},
-        {Endpoint::GETPLAYLIST, m_dreamServer + apiVersion + "/client/playlist"},
-        {Endpoint::GETDEFAULTPLAYLIST, m_dreamServer + apiVersion + "/client/playlist/default"},
-        {Endpoint::GETDREAM, m_dreamServer + apiVersion + "/client/dream"},
-        {Endpoint::GETDISLIKES, m_dreamServer + apiVersion + "/client/user/dislikes"}
+        {Endpoint::DREAM, m_dreamServer + apiVersionV1 + "/dream"},
+        {Endpoint::LOGIN, m_dreamServer + apiVersionV1 + "/auth/login"},
+        {Endpoint::REFRESH, m_dreamServer + apiVersionV1 + "/auth/refresh"},
+        {Endpoint::USER, m_dreamServer + apiVersionV1 + "/auth/user"},
+        {Endpoint::PLAYLIST, m_dreamServer + apiVersionV1 + "/playlist"},
+        {Endpoint::CURRENTPLAYLIST, m_dreamServer + apiVersionV1 + "/user/current/playlist"},
+        {Endpoint::HELLO, m_dreamServer + apiVersionV1 + "/client/hello"},
+        {Endpoint::GETPLAYLIST, m_dreamServer + apiVersionV1 + "/client/playlist"},
+        {Endpoint::GETDEFAULTPLAYLIST, m_dreamServer + apiVersionV1 + "/client/playlist/default"},
+        {Endpoint::GETDREAM, m_dreamServer + apiVersionV1 + "/client/dream"},
+        // New V2 endpoints
+        {Endpoint::LOGIN_MAGIC, m_dreamServer + apiVersionV2 + "/auth/magic"},
+        {Endpoint::LOGIN_AUTHENTICATE, m_dreamServer + apiVersionV2 + "/auth/authenticate"},
+        {Endpoint::LOGIN_REFRESH, m_dreamServer + apiVersionV2 + "/auth/refresh"}
 
     };
 }

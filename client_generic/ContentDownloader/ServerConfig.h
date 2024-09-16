@@ -21,7 +21,8 @@ constexpr std::string_view DEFAULT_DREAM_SERVER =
     "e-dream-prod-84baba5507ee.herokuapp.com";
 #endif
 
-constexpr std::string_view API_VERSION = "/api/v1";
+constexpr std::string_view API_VERSION_V1 = "/api/v1";
+constexpr std::string_view API_VERSION_V2 = "/api/v2";
 
 enum class Endpoint {
     DREAM,
@@ -34,7 +35,11 @@ enum class Endpoint {
     GETPLAYLIST,
     GETDEFAULTPLAYLIST,
     GETDREAM,
-    GETDISLIKES
+    GETDISLIKES,
+    // work-os compatible endpoints on /v2
+    LOGIN_MAGIC,
+    LOGIN_AUTHENTICATE,
+    LOGIN_REFRESH
 };
 
 class ServerConfigManager {

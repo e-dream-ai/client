@@ -576,6 +576,11 @@
     }
 }
 
+- (IBAction)sendCode:(id)__unused sender
+{
+    //EDreamClient::SendCode();
+}
+
 - (IBAction)goToHelpPage:(id)__unused sender
 {
     NSString* urlStr = [NSString

@@ -69,6 +69,8 @@
 - (IBAction)goToHelpPage:(id)sender;
 - (IBAction)chooseContentFolder:(id)sender;
 - (IBAction)doSignIn:(id)sender;
+- (IBAction)sendCode:(id)sender;
+
 
 - (void)fixFlockSize;
 - (void)awakeFromNib;
