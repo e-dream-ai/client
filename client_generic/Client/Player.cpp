@@ -807,6 +807,13 @@ void CPlayer::StartTransition()
     m_nextClip = nullptr;  // We'll set this when we have the next clip ready
 }
 
+void destroyClipAsync(ContentDecoder::spCClip clip) {
+    std::thread([clip = std::move(clip)]() mutable {
+        // This should call the destructor now
+        clip = nullptr;
+    }).detach();
+}
+
 void CPlayer::UpdateTransition(double currentTime)
 {
     if (!m_isTransitioning) return;
@@ -816,6 +823,12 @@ void CPlayer::UpdateTransition(double currentTime)
     if (transitionProgress >= 1.0) {
         // Transition complete
         m_isTransitioning = false;
+        
+        // Start the asynchronous destruction of the current clip
+        if (m_currentClip) {
+            destroyClipAsync(std::move(m_currentClip));
+        }
+        
         m_currentClip = m_nextClip;
         m_nextClip = nullptr;
         m_transitionDuration = 5.0f;

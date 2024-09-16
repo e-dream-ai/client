@@ -705,7 +705,7 @@ void CContentDecoder::ReadFramesThread()
     {
         g_Log->Info("Read frames thread interrupted.");
         
-        /*
+        
         // NOTE : This works for fetching remaining data, but still locks as it looks like we're waiting
         // upstream in the code for the content decoder to be destroyed.
         //
@@ -727,7 +727,7 @@ void CContentDecoder::ReadFramesThread()
                 
                 FinalizeCacheFile();
             }));
-        }*/
+        }
     
         g_Log->Info("Ending main video frame reading thread for %s", m_Metadata.dreamData.uuid.c_str());
     }
