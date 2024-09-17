@@ -127,7 +127,7 @@ Gw
                                                         <constraints>
                                                             <constraint firstAttribute="height" constant="21" id="zGN-ea-a5u"/>
                                                         </constraints>
-                                                        <secureTextFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" placeholderString="6 digit code" drawsBackground="YES" id="751">
+                                                        <secureTextFieldCell key="cell" controlSize="large" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" placeholderString="6 digit code" drawsBackground="YES" id="751">
                                                             <font key="font" metaFont="system"/>
                                                             <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>

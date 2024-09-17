@@ -54,6 +54,7 @@ class EDreamClient
     // Auth v2
     static bool SendCode();
     static bool ValidateCode(const std::string& code);
+    static bool RefreshSealedSession();
     
     static constexpr int DREAMS_PER_PAGE = 10;
 

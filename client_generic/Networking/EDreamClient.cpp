@@ -203,50 +203,46 @@ const char* EDreamClient::GetAccessToken() { return fAccessToken.load(); }
 
 bool EDreamClient::Authenticate()
 {
+    g_Log->Info("Starting Authentication...");
     PlatformUtils::SetThreadName("Authenticate");
+    //std::lock_guard<std::mutex> lock(fAuthMutex);
+    
+    // Check if we have a sealed session
+    std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
+
     bool success = false;
-    if (strlen(GetAccessToken()))
+    if (!sealedSession.empty())
     {
-        Network::spCFileDownloader spDownload =
-            std::make_shared<Network::CFileDownloader>("Authentication");
-        spDownload->AppendHeader("Content-Type: application/json");
-
-        std::string authHeader{
-            string_format("Authorization: Bearer %s", GetAccessToken())};
-
-        spDownload->AppendHeader(authHeader);
-        success = spDownload->Perform(ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::USER));
-        if (!success)
+        // Attempt to refresh the sealed session
+        if (RefreshSealedSession())
         {
-            if (spDownload->ResponseCode() == 401)
-            {
-                success = RefreshAccessToken();
-            }
-            else
-            {
-                g_Log->Error("Authentication failed. Server returned %i: %s",
-                             spDownload->ResponseCode(),
-                             spDownload->Data().c_str());
-            }
+            g_Log->Info("Successfully refreshed sealed session");
+            success = true;
+        }
+        else
+        {
+            g_Log->Warning("Failed to refresh sealed session");
         }
     }
     else
     {
-        g_Log->Error("Authentication failed. Access token was not set.");
+        g_Log->Warning("No sealed session found");
     }
-    // Don't loop open settings
-    /*if (!success)
-    {
-        ESShowPreferences();
-    }*/
+
     fIsLoggedIn.exchange(success);
     fAuthMutex.unlock();
-    g_Log->Info("Login success:%s", success ? "true" : "false");
+    g_Log->Info("Login success: %s", success ? "true" : "false");
+
     if (success)
     {
         boost::thread webSocketThread(
             &EDreamClient::ConnectRemoteControlSocket);
+    } else {
+        // Clear the sealed session as it's no longer valid
+        g_Settings()->Set("settings.content.sealed_session", std::string(""));
+        g_Settings()->Storage()->Commit();
     }
+
     return success;
 }
 
@@ -457,6 +453,88 @@ bool EDreamClient::ValidateCode(const std::string& code)
     }
 }
 
+bool EDreamClient::RefreshSealedSession()
+{
+    // Retrieve the current sealed session from settings
+    std::string currentSealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
+    
+    if (currentSealedSession.empty())
+    {
+        g_Log->Error("No current sealed session found in settings");
+        return false;
+    }
+
+    Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>("Refresh Sealed Session");
+    spDownload->AppendHeader("Content-Type: application/json");
+    
+    // Set the cookie with the current sealed session
+    std::string cookieHeader = "Cookie: wos-session=" + currentSealedSession;
+    spDownload->AppendHeader(cookieHeader);
+
+    // Prepare an empty POST body
+    const char* emptyBody = "{}";
+    spDownload->SetPostFields(emptyBody);
+
+    if (spDownload->Perform(ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::LOGIN_REFRESH)))
+    {
+        if (spDownload->ResponseCode() == 200)
+        {
+            try
+            {
+                boost::json::value response = boost::json::parse(spDownload->Data());
+                boost::json::object responseObj = response.as_object();
+
+                // Check if the response was successful
+                if (!responseObj.contains("success") || !responseObj["success"].as_bool())
+                {
+                    g_Log->Error("Sealed session refresh failed: %s", responseObj.contains("message") ? responseObj["message"].as_string().c_str() : "Unknown error");
+                    return false;
+                }
+
+                // Check for the data object
+                if (!responseObj.contains("data") || !responseObj["data"].is_object())
+                {
+                    g_Log->Error("Response doesn't contain data object");
+                    return false;
+                }
+
+                boost::json::object dataObj = responseObj["data"].as_object();
+
+                // Retrieve and save the new sealedSession
+                if (dataObj.contains("sealedSession") && dataObj["sealedSession"].is_string())
+                {
+                    std::string newSealedSession = dataObj["sealedSession"].as_string().c_str();
+                    g_Settings()->Set("settings.content.sealed_session", newSealedSession);
+                    g_Settings()->Storage()->Commit();  // Save the settings
+
+                    g_Log->Info("New sealed session saved successfully");
+                    return true;
+                }
+                else
+                {
+                    g_Log->Error("New sealedSession not found in the response data");
+                    return false;
+                }
+            }
+            catch (const boost::json::system_error& e)
+            {
+                g_Log->Error("JSON parsing error: %s", e.what());
+                return false;
+            }
+        }
+        else
+        {
+            g_Log->Error("Failed to refresh sealed session. Server returned %i: %s",
+                         spDownload->ResponseCode(), spDownload->Data().c_str());
+            return false;
+        }
+    }
+    else
+    {
+        g_Log->Error("Network error while refreshing sealed session");
+        return false;
+    }
+}
 
 // MARK: - Hello call
 // Post auth initial handshake with server
@@ -477,10 +555,19 @@ std::string EDreamClient::Hello() {
     {
         spDownload = std::make_shared<Network::CFileDownloader>("Hello!");
         spDownload->AppendHeader("Content-Type: application/json");
-        std::string authHeader{
-            string_format("Authorization: Bearer %s", GetAccessToken())};
-        spDownload->AppendHeader(authHeader);
         
+        // Retrieve the sealed session from settings
+        std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
+        
+        if (sealedSession.empty()) {
+            g_Log->Error("Sealed session not found in settings");
+            return "";
+        }
+        
+        // Set the cookie with the sealed session
+        std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
+        spDownload->AppendHeader(cookieHeader);
+       
         std::string url{ ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::HELLO) };
         
         if (spDownload->Perform(url))
@@ -494,7 +581,7 @@ std::string EDreamClient::Hello() {
             {
                 if (currentAttempt == maxAttempts)
                     return "";
-                if (!RefreshAccessToken())
+                if (!RefreshSealedSession())
                     return "";
             }
             else
@@ -678,9 +765,17 @@ std::vector<std::string> EDreamClient::FetchUserDislikes() {
     {
         spDownload = std::make_shared<Network::CFileDownloader>("Fetch User Dislikes");
         spDownload->AppendHeader("Content-Type: application/json");
-        std::string authHeader{
-            string_format("Authorization: Bearer %s", GetAccessToken())};
-        spDownload->AppendHeader(authHeader);
+        // Retrieve the sealed session from settings
+        std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
+        
+        if (sealedSession.empty()) {
+            g_Log->Error("Sealed session not found in settings");
+            return dislikes;
+        }
+        
+        // Set the cookie with the sealed session
+        std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
+        spDownload->AppendHeader(cookieHeader);
         
         std::string url = ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::GETDISLIKES);
         
@@ -711,7 +806,7 @@ std::vector<std::string> EDreamClient::FetchUserDislikes() {
             {
                 if (currentAttempt == maxAttempts)
                     return dislikes;
-                if (!RefreshAccessToken())
+                if (!RefreshSealedSession())
                     return dislikes;
             }
             else
@@ -743,10 +838,18 @@ bool EDreamClient::FetchPlaylist(std::string_view uuid) {
     {
         spDownload = std::make_shared<Network::CFileDownloader>("Playlist");
         spDownload->AppendHeader("Content-Type: application/json");
-        std::string authHeader{
-            string_format("Authorization: Bearer %s", GetAccessToken())};
-        spDownload->AppendHeader(authHeader);
         
+        // Retrieve the sealed session from settings
+        std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
+        
+        if (sealedSession.empty()) {
+            g_Log->Error("Sealed session not found in settings");
+            return "";
+        }
+        
+        // Set the cookie with the sealed session
+        std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
+        spDownload->AppendHeader(cookieHeader);
         
         std::string url{string_format(
             "%s/%s", ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::GETPLAYLIST).c_str(), uuid)};
@@ -764,7 +867,7 @@ bool EDreamClient::FetchPlaylist(std::string_view uuid) {
             {
                 if (currentAttempt == maxAttempts)
                     return false;
-                if (!RefreshAccessToken())
+                if (!RefreshSealedSession())
                     return false;
             }
             else
@@ -796,9 +899,18 @@ bool EDreamClient::FetchDefaultPlaylist() {
     {
         spDownload = std::make_shared<Network::CFileDownloader>("Default Playlist");
         spDownload->AppendHeader("Content-Type: application/json");
-        std::string authHeader{
-            string_format("Authorization: Bearer %s", GetAccessToken())};
-        spDownload->AppendHeader(authHeader);
+        
+        // Retrieve the sealed session from settings
+        std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
+        
+        if (sealedSession.empty()) {
+            g_Log->Error("Sealed session not found in settings");
+            return "";
+        }
+        
+        // Set the cookie with the sealed session
+        std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
+        spDownload->AppendHeader(cookieHeader);
         
         std::string url{ ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::GETDEFAULTPLAYLIST) };
         
@@ -815,7 +927,7 @@ bool EDreamClient::FetchDefaultPlaylist() {
             {
                 if (currentAttempt == maxAttempts)
                     return false;
-                if (!RefreshAccessToken())
+                if (!RefreshSealedSession())
                     return false;
             }
             else
@@ -846,9 +958,18 @@ bool EDreamClient::FetchDreamMetadata(std::string uuid) {
     {
         spDownload = std::make_shared<Network::CFileDownloader>("Metadata");
         spDownload->AppendHeader("Content-Type: application/json");
-        std::string authHeader{
-            string_format("Authorization: Bearer %s", GetAccessToken())};
-        spDownload->AppendHeader(authHeader);
+        
+        // Retrieve the sealed session from settings
+        std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
+        
+        if (sealedSession.empty()) {
+            g_Log->Error("Sealed session not found in settings");
+            return false;
+        }
+        
+        // Set the cookie with the sealed session
+        std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
+        spDownload->AppendHeader(cookieHeader);
         
         
         std::string url = ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::GETDREAM) +
@@ -867,7 +988,7 @@ bool EDreamClient::FetchDreamMetadata(std::string uuid) {
             {
                 if (currentAttempt == maxAttempts)
                     return false;
-                if (!RefreshAccessToken())
+                if (!RefreshSealedSession())
                     return false;
             }
             else
@@ -897,9 +1018,17 @@ std::string EDreamClient::GetDreamDownloadLink(const std::string& uuid) {
     while (currentAttempt++ < maxAttempts) {
         spDownload = std::make_shared<Network::CFileDownloader>("Dream Link");
         spDownload->AppendHeader("Content-Type: application/json");
-        std::string authHeader{
-            string_format("Authorization: Bearer %s", GetAccessToken())};
-        spDownload->AppendHeader(authHeader);
+        // Retrieve the sealed session from settings
+        std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
+        
+        if (sealedSession.empty()) {
+            g_Log->Error("Sealed session not found in settings");
+            return "";
+        }
+        
+        // Set the cookie with the sealed session
+        std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
+        spDownload->AppendHeader(cookieHeader);
 
         std::string url = ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::GETDREAM) +
                           "/" + uuid + "/url";
@@ -925,7 +1054,7 @@ std::string EDreamClient::GetDreamDownloadLink(const std::string& uuid) {
             if (spDownload->ResponseCode() == 400 || spDownload->ResponseCode() == 401) {
                 if (currentAttempt == maxAttempts)
                     return "";
-                if (!RefreshAccessToken())
+                if (!RefreshSealedSession())
                     return "";
             } else {
                 g_Log->Error("Failed to get dream download link. Server returned %i: %s",
