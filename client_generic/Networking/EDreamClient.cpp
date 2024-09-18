@@ -199,7 +199,7 @@ void EDreamClient::DeinitializeClient()
     s_SIOClient.set_reconnect_listener(nullptr);
 }
 
-const char* EDreamClient::GetAccessToken() { return fAccessToken.load(); }
+// const char* EDreamClient::GetAccessToken() { return fAccessToken.load(); }
 
 bool EDreamClient::Authenticate()
 {
@@ -276,45 +276,6 @@ bool EDreamClient::IsLoggedIn()
     return fIsLoggedIn.load();
 }
 
-bool EDreamClient::RefreshAccessToken()
-{
-    std::string body{
-        string_format("{\"refreshToken\":\"%s\"}", fRefreshToken.load())};
-    Network::spCFileDownloader spDownload =
-        std::make_shared<Network::CFileDownloader>("Refresh token");
-    spDownload->AppendHeader("Content-Type: application/json");
-    spDownload->AppendHeader("Accept: application/json");
-    spDownload->SetPostFields(body.data());
-    if (spDownload->Perform(ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::REFRESH)))
-    {
-        boost::system::error_code ec;
-        json::value response = json::parse(spDownload->Data(), ec);
-        json::value data = response.at("data");
-        const char* accessToken = data.at("AccessToken").as_string().data();
-        g_Settings()->Set("settings.content.access_token",
-                          std::string(accessToken));
-        SetNewAndDeleteOldString(fAccessToken, accessToken);
-        g_Settings()->Storage()->Commit();
-        return true;
-    }
-    else
-    {
-        if (spDownload->ResponseCode() == 400)
-        {
-            g_Settings()->Set("settings.content.access_token", std::string(""));
-            // Only show once at startup, we don't want to loop
-            if (!shownSettingsOnce) {
-                shownSettingsOnce = true;
-                ESShowPreferences();
-            }
-            g_Settings()->Storage()->Commit();
-            return false;
-        }
-        g_Log->Error("Refreshing access token failed. Server returned %i: %s",
-                     spDownload->ResponseCode(), spDownload->Data().c_str());
-        return false;
-    }
-}
 
 // MARK: - Auth v2
 bool EDreamClient::SendCode()
@@ -1464,8 +1425,11 @@ void EDreamClient::ConnectRemoteControlSocket()
     g_Log->Info("Performing remote control connect.");
     BindWebSocketCallbacks();
     std::map<std::string, std::string> query;
-    query["token"] = string_format("Bearer %s", GetAccessToken());
-    s_SIOClient.connect(ServerConfig::ServerConfigManager::getInstance().getWebsocketServer(), query);
+    
+    std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
+    
+    query["Cookie"] = string_format("wos-session=%s", sealedSession.c_str());
+    s_SIOClient.connect(ServerConfig::ServerConfigManager::getInstance().getWebsocketServer(), query, query);
     
     // Send first ping immediately so frontend knows we're here
     SendPing();

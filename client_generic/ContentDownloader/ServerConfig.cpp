@@ -21,12 +21,6 @@ void ServerConfigManager::initializeEndpoints() {
     std::string apiVersionV2(API_VERSION_V2);
     
     m_endpoints = {
-        {Endpoint::DREAM, m_dreamServer + apiVersionV1 + "/dream"},
-        {Endpoint::LOGIN, m_dreamServer + apiVersionV1 + "/auth/login"},
-        {Endpoint::REFRESH, m_dreamServer + apiVersionV1 + "/auth/refresh"},
-        {Endpoint::USER, m_dreamServer + apiVersionV1 + "/auth/user"},
-        {Endpoint::PLAYLIST, m_dreamServer + apiVersionV1 + "/playlist"},
-        {Endpoint::CURRENTPLAYLIST, m_dreamServer + apiVersionV1 + "/user/current/playlist"},
         {Endpoint::HELLO, m_dreamServer + apiVersionV1 + "/client/hello"},
         {Endpoint::GETPLAYLIST, m_dreamServer + apiVersionV1 + "/client/playlist"},
         {Endpoint::GETDEFAULTPLAYLIST, m_dreamServer + apiVersionV1 + "/client/playlist/default"},

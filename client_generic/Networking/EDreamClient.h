@@ -44,8 +44,8 @@ class EDreamClient
     static std::future<bool> EnqueuePlaylistAsync(const std::string& uuid);
     static bool EnqueuePlaylist(std::string_view uuid);
     static bool GetDreams(int _page = 0, int _count = -1);
-    static const char* GetAccessToken();
-    static bool RefreshAccessToken();
+//    static const char* GetAccessToken();
+//    static bool RefreshAccessToken();
     static bool IsLoggedIn();
     static bool Authenticate();
     static void SignOut();

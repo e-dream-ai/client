@@ -219,7 +219,7 @@
     NSMutableURLRequest* request =
         [NSMutableURLRequest requestWithURL:[NSURL URLWithString:urlstr]];
 
-    urlstr = @(ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::LOGIN).c_str());
+    urlstr = @(ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::LOGIN_REFRESH).c_str());
     //urlstr = @(Shepherd::GetEndpoint(ENDPOINT_LOGIN));
     httpMethod = @"POST";
     // Set request body data

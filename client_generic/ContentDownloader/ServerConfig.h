@@ -16,7 +16,9 @@ namespace ServerConfig {
 
 constexpr std::string_view DEFAULT_DREAM_SERVER =
 #ifdef STAGE
-    "e-dream-76c98b08cc5d.herokuapp.com";
+        "api-stage.e-dream.ai";
+
+//    "e-dream-76c98b08cc5d.herokuapp.com";
 #else
     "e-dream-prod-84baba5507ee.herokuapp.com";
 #endif
@@ -25,12 +27,7 @@ constexpr std::string_view API_VERSION_V1 = "/api/v1";
 constexpr std::string_view API_VERSION_V2 = "/api/v2";
 
 enum class Endpoint {
-    DREAM,
-    LOGIN,
-    REFRESH,
-    USER,
-    PLAYLIST,
-    CURRENTPLAYLIST,
+    // modern client endpoints
     HELLO,
     GETPLAYLIST,
     GETDEFAULTPLAYLIST,
