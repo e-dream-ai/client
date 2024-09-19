@@ -15,10 +15,22 @@
     IBOutlet NSButton* showAttribution;
     IBOutlet NSButton* preserveAR;
 
-    IBOutlet NSTextField* drupalLogin;
-    IBOutlet NSSecureTextField* drupalPassword;
-    IBOutlet NSTextField* passwordLabel;
+    // login buttons
+    IBOutlet NSButton* signInButton;
+    __weak IBOutlet NSButton *retryLoginButton;
+
+    // login fields
+    IBOutlet NSTextField* emailTextField;
+    __weak IBOutlet NSTextField *digitCodeTextField;
+    
+    
+    __weak IBOutlet NSButton *createAccountButton;
+    
+    // login labels
     IBOutlet NSTextField* emailLabel;
+    IBOutlet NSTextField* digitCodeLabel;
+
+    // needs cheking, this definitely changed in modern macOS
     IBOutlet NSButton* useProxy;
     IBOutlet NSTextField* proxyHost;
     IBOutlet NSTextField* proxyLogin;
@@ -39,7 +51,6 @@
 
     IBOutlet NSImageView* loginStatusImage;
 
-    IBOutlet NSButton* signInButton;
 
     IBOutlet NSTextField* serverLabel;
     IBOutlet NSTextField* serverField;
@@ -61,6 +72,8 @@
 
     BOOL m_checkingLogin;
     BOOL m_loginWasSuccessful;
+    
+    BOOL m_sentCode;
 }
 
 - (IBAction)ok:(id)sender;
@@ -68,8 +81,8 @@
 - (IBAction)goToLearnMorePage:(id)sender;
 - (IBAction)goToHelpPage:(id)sender;
 - (IBAction)chooseContentFolder:(id)sender;
-- (IBAction)doSignIn:(id)sender;
-- (IBAction)sendCode:(id)sender;
+- (IBAction)restartLogin:(id)sender;
+- (IBAction)validateLogin:(id)sender;
 
 
 - (void)fixFlockSize;

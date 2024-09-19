@@ -12,8 +12,6 @@
 class EDreamClient
 {
   private:
-    static std::atomic<char*> fAccessToken;
-    static std::atomic<char*> fRefreshToken;
     static std::atomic<bool> fIsLoggedIn;
     static std::atomic<int> fCpuUsage;
     static std::mutex fAuthMutex;
@@ -44,13 +42,11 @@ class EDreamClient
     static std::future<bool> EnqueuePlaylistAsync(const std::string& uuid);
     static bool EnqueuePlaylist(std::string_view uuid);
     static bool GetDreams(int _page = 0, int _count = -1);
-//    static const char* GetAccessToken();
-//    static bool RefreshAccessToken();
+
     static bool IsLoggedIn();
     static bool Authenticate();
     static void SignOut();
-    static void DidSignIn(const std::string& _authToken,
-                          const std::string& _refreshToken);
+    static void DidSignIn();
     // Auth v2
     static bool SendCode();
     static bool ValidateCode(const std::string& code);

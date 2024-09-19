@@ -47,6 +47,8 @@
 
     m_checkTimer = nil;
 
+    m_sentCode = false;
+
     // We initially load the settings here, this avoid flickering of the ui
     ESScreensaver_InitClientStorage();
 
@@ -97,11 +99,15 @@
         signInButton.title = @"Sign Out";
         [signInButton setEnabled:true];
 
+        [retryLoginButton setHidden:true];
+        [createAccountButton setHidden:YES];
         [tabView setHidden:NO];
-        [passwordLabel setHidden:YES];
+
         [emailLabel setHidden:YES];
-        [drupalPassword setHidden:YES];
-        [drupalLogin setHidden:YES];
+        [digitCodeLabel setHidden:YES];
+
+        [emailTextField setHidden:YES];
+        [digitCodeTextField setHidden:YES];
 
         
 /*        NSLog(@"const %f",drupalLogin.topAnchor.constraintsAffectingLayout.firstObject.constant);
@@ -111,19 +117,51 @@
     }
     else
     {
-        loginStatusImage.image = self->redImage;
-        loginTestStatusText.stringValue = failMessage;
-        m_loginWasSuccessful = NO;
-        signInButton.title = @"Sign In";
-        [signInButton setEnabled:true];
-        [tabView setHidden:YES];
-        [passwordLabel setHidden:NO];
-        [emailLabel setHidden:NO];
+        if (!m_sentCode) {
+            loginStatusImage.image = self->redImage;
+            loginTestStatusText.stringValue = failMessage;
+            m_loginWasSuccessful = NO;
+            
+            signInButton.title = @"Send code";
+            [signInButton setEnabled:true];
 
-        [drupalPassword setHidden:NO];
-        [drupalLogin setHidden:NO];
+            [retryLoginButton setHidden:false];
+            [retryLoginButton setEnabled:false];
+            [createAccountButton setHidden:false];
 
-        [signInButton.superview setNeedsLayout:true];
+            [tabView setHidden:YES];
+
+            [emailLabel setHidden:NO];
+            [digitCodeLabel setHidden:NO];
+
+            [emailTextField setHidden:NO];
+            [emailTextField setEnabled:YES];
+            [digitCodeTextField setHidden:NO];
+            [digitCodeTextField setEnabled:NO];
+            
+            //[signInButton.superview setNeedsLayout:true];
+        } else {
+            loginStatusImage.image = self->yellowImage;
+            loginTestStatusText.stringValue = @"Check your e-mail for confirmation code";
+            m_loginWasSuccessful = NO;
+            
+            signInButton.title = @"Validate";
+            [signInButton setEnabled:true];
+
+            [retryLoginButton setHidden:false];
+            [retryLoginButton setEnabled:true];
+            [createAccountButton setHidden:false];
+
+            [tabView setHidden:YES];
+
+            [emailLabel setHidden:NO];
+            [digitCodeLabel setHidden:NO];
+
+            [emailTextField setHidden:NO];
+            [emailTextField setEnabled:NO];
+            [digitCodeTextField setHidden:NO];
+            [digitCodeTextField setEnabled:YES];
+        }
     }
 }
 
@@ -192,6 +230,7 @@
         continueWithoutCredentialForAuthenticationChallenge:challenge];
 }
 
+// MARK: startTest (OLD LOGIN TO REMOVE)
 - (void)startTest:(BOOL)useToken
 {
     [signInButton setEnabled:NO];
@@ -211,8 +250,8 @@
     
     m_httpData = [NSMutableData dataWithCapacity:10];
 
-    NSString* newNickname = drupalLogin.stringValue;
-    NSString* newPassword = drupalPassword.stringValue;
+    NSString* newNickname = emailTextField.stringValue;
+    NSString* newPassword = digitCodeTextField.stringValue;
 
     NSString* urlstr;
     NSString* httpMethod;
@@ -294,8 +333,7 @@
                                   [tokenDict valueForKey:@"AccessToken"];
                               NSString* refreshToken =
                                   [tokenDict valueForKey:@"RefreshToken"];
-                              EDreamClient::DidSignIn(accessToken.UTF8String,
-                                                      refreshToken.UTF8String);
+                              EDreamClient::DidSignIn();
                           }
                           [self updateAuthUI:@"Login error"];
                       }
@@ -391,9 +429,9 @@
         (__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting(
             "settings.generator.nickname", "");
 
-    drupalLogin.stringValue = m_origNickname;
+    emailTextField.stringValue = m_origNickname;
 
-    drupalPassword.stringValue = @"";
+    digitCodeTextField.stringValue = @"";
 
     proxyLogin.stringValue =
         (__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting(
@@ -439,6 +477,7 @@
     serverField.hidden = YES;
 #endif
 
+    
     [self fixFlockSize];
 
     [self updateAuthUI];
@@ -494,7 +533,7 @@
         contentFldr.stringValue.stringByStandardizingPath.UTF8String);
 
     ESScreensaver_SetStringSetting("settings.generator.nickname",
-                                   drupalLogin.stringValue.UTF8String);
+                                   emailTextField.stringValue.UTF8String);
 
     ESScreensaver_SetStringSetting("settings.content.proxy_username",
                                    proxyLogin.stringValue.UTF8String);
@@ -561,38 +600,56 @@
     [self fixFlockSize];
 }
 
-- (IBAction)doSignIn:(id)__unused sender
+- (IBAction)restartLogin:(id)__unused sender
 {
-    /*ESScreensaver_InitClientStorage();
+    //ESScreensaver_InitClientStorage();
+    // Restart validation
+    m_loginWasSuccessful = false;
+    m_sentCode = false;
+    [self updateAuthUI];
+}
+
+- (IBAction)validateLogin:(id)__unused sender
+{
     if (EDreamClient::IsLoggedIn())
     {
         EDreamClient::SignOut();
-        drupalPassword.stringValue = @"";
+
+        m_sentCode = false;
+        digitCodeTextField.stringValue = @"";
         [self updateAuthUI];
     }
     else
     {
-        [self startTest:NO];
-    }*/
-    
-    // Try validating code
-    // Ask for the code to be sent
-    if (EDreamClient::ValidateCode(drupalPassword.stringValue.UTF8String)) {
-        // Login successful
-    } else {
-        // Code validation failed
-    }
-    
-}
+        if (!m_sentCode) {
+            // Save email
+            ESScreensaver_SetStringSetting("settings.generator.nickname",
+                                           emailTextField.stringValue.UTF8String);
+            
+            // Ask for the code to be sent
+            EDreamClient::SendCode();
 
-- (IBAction)sendCode:(id)__unused sender
-{
-    // Save email
-    ESScreensaver_SetStringSetting("settings.generator.nickname",
-                                   drupalLogin.stringValue.UTF8String);
-    
-    // Ask for the code to be sent
-    EDreamClient::SendCode();
+            m_sentCode = true;
+            [self updateAuthUI];
+        } else {
+            // Try validating code
+            // Ask for the code to be sent
+            if (EDreamClient::ValidateCode(digitCodeTextField.stringValue.UTF8String)) {
+                // Login successful
+                m_sentCode = false;
+                m_loginWasSuccessful = true;
+                EDreamClient::DidSignIn(); // Let client know we signed in
+                
+                [self updateAuthUI];
+            } else {
+                // Code validation failed
+                m_loginWasSuccessful = false;
+                m_sentCode = false;
+                [self updateAuthUI];
+            }
+        }
+    }
+
 }
 
 - (IBAction)goToHelpPage:(id)__unused sender
@@ -607,8 +664,8 @@
 
 - (void)dealloc
 {
-    [drupalLogin setDelegate:nil];
-    [drupalPassword setDelegate:nil];
+    [emailTextField setDelegate:nil];
+    [digitCodeTextField setDelegate:nil];
 }
 
 @end

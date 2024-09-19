@@ -56,8 +56,7 @@ void ESShowPreferences()
 }
 
 long long EDreamClient::remainingQuota = 0;
-std::atomic<char*> EDreamClient::fAccessToken(nullptr);
-std::atomic<char*> EDreamClient::fRefreshToken(nullptr);
+
 std::atomic<bool> EDreamClient::fIsLoggedIn(false);
 std::atomic<int> EDreamClient::fCpuUsage(0);
 std::mutex EDreamClient::fAuthMutex;
@@ -166,16 +165,6 @@ void EDreamClient::InitializeClient()
     s_SIOClient.set_reconnecting_listener(&OnWebSocketReconnecting);
     s_SIOClient.set_reconnect_listener(&OnWebSocketReconnect);
 
-    SetNewAndDeleteOldString(
-        fAccessToken,
-        g_Settings()
-            ->Get("settings.content.access_token", std::string(""))
-            .c_str());
-    SetNewAndDeleteOldString(
-        fRefreshToken,
-        g_Settings()
-            ->Get("settings.content.refresh_token", std::string(""))
-            .c_str());
     fAuthMutex.lock();
     boost::thread authThread(&EDreamClient::Authenticate);
 }
@@ -201,6 +190,7 @@ void EDreamClient::DeinitializeClient()
 
 // const char* EDreamClient::GetAccessToken() { return fAccessToken.load(); }
 
+// MARK : Auth (via refresh)
 bool EDreamClient::Authenticate()
 {
     g_Log->Info("Starting Authentication...");
@@ -246,28 +236,23 @@ bool EDreamClient::Authenticate()
     return success;
 }
 
+// MARK: - Sign-in/out status, used externally
+void EDreamClient::DidSignIn()
+{
+    std::lock_guard<std::mutex> lock(fAuthMutex);
+    fIsLoggedIn.exchange(true);
+    boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
+    // g_Player().Start();
+}
+
 void EDreamClient::SignOut()
 {
     std::lock_guard<std::mutex> lock(fAuthMutex);
     fIsLoggedIn.exchange(false);
-    SetNewAndDeleteOldString(fAccessToken, "");
-    SetNewAndDeleteOldString(fRefreshToken, "");
-    g_Settings()->Set("settings.content.access_token", std::string(""));
+    g_Settings()->Set("settings.content.sealed_session", std::string(""));
     g_Settings()->Set("settings.content.refresh_token", std::string(""));
     g_Settings()->Storage()->Commit();
-}
-
-void EDreamClient::DidSignIn(const std::string& _authToken,
-                             const std::string& _refreshToken)
-{
-    std::lock_guard<std::mutex> lock(fAuthMutex);
-    fIsLoggedIn.exchange(true);
-    SetNewAndDeleteOldString(fAccessToken, _authToken.c_str());
-    SetNewAndDeleteOldString(fRefreshToken, _refreshToken.c_str());
-    g_Settings()->Set("settings.content.access_token", _authToken);
-    g_Settings()->Set("settings.content.refresh_token", _refreshToken);
-    g_Settings()->Storage()->Commit();
-    boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
+    // g_Player().Stop();
 }
 
 bool EDreamClient::IsLoggedIn()
