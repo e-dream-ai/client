@@ -36,8 +36,14 @@
     IBOutlet NSTextField* proxyLogin;
     IBOutlet NSSecureTextField* proxyPassword;
 
-    IBOutlet NSMatrix* cacheType;
-    IBOutlet NSFormCell* cacheSize;
+    //IBOutlet NSMatrix* cacheType;
+    //IBOutlet NSFormCell* cacheSize;
+    
+    
+    __weak IBOutlet NSMatrix *cacheTypeMatrix;
+    __weak IBOutlet NSFormCell *cacheSizeFormCell;
+    
+    
     IBOutlet NSTextField* contentFldr;
     IBOutlet NSButton* debugLog;
 

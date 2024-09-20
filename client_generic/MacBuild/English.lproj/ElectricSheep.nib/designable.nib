@@ -8,6 +8,8 @@
         <customObject id="-2" userLabel="File's Owner" customClass="ESConfiguration">
             <connections>
                 <outlet property="blackoutMonitors" destination="1185" id="1187"/>
+                <outlet property="cacheSizeFormCell" destination="r1v-za-Tze" id="Ebs-2t-N1p"/>
+                <outlet property="cacheTypeMatrix" destination="c6g-Pr-R99" id="OcX-he-dHp"/>
                 <outlet property="contentFldr" destination="482" id="754"/>
                 <outlet property="createAccountButton" destination="7I2-lU-FvA" id="7oz-sW-VR3"/>
                 <outlet property="debugLog" destination="921" id="923"/>
@@ -241,11 +243,11 @@ DQ
                             </tabViewItem>
                             <tabViewItem label="Disk" identifier="Item 5" id="1011">
                                 <view key="view" id="1012">
-                                    <rect key="frame" x="10" y="33" width="495" height="285"/>
+                                    <rect key="frame" x="10" y="33" width="495" height="298"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <box autoresizesSubviews="NO" fixedFrame="YES" borderType="line" title="Content Folder" translatesAutoresizingMaskIntoConstraints="NO" id="706">
-                                            <rect key="frame" x="7" y="30" width="483" height="87"/>
+                                            <rect key="frame" x="7" y="43" width="483" height="87"/>
                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                             <view key="contentView" id="LU7-TS-BoS">
                                                 <rect key="frame" x="4" y="5" width="475" height="65"/>
@@ -276,11 +278,11 @@ DQ
                                             <font key="titleFont" textStyle="headline" name=".SFNS-Bold"/>
                                         </box>
                                         <view id="Ka6-iZ-f1h">
-                                            <rect key="frame" x="10" y="134" width="477" height="148"/>
+                                            <rect key="frame" x="10" y="134" width="477" height="161"/>
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <subviews>
                                                 <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="pzr-ms-FUU">
-                                                    <rect key="frame" x="18" y="86" width="441" height="32"/>
+                                                    <rect key="frame" x="18" y="99" width="441" height="32"/>
                                                     <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" title="Dreams are stored on your local disk so they can be played many times without redownloading." id="VFp-cJ-9Zc">
                                                         <font key="font" metaFont="system"/>
                                                         <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
@@ -288,7 +290,7 @@ DQ
                                                     </textFieldCell>
                                                 </textField>
                                                 <matrix verticalHuggingPriority="750" allowsEmptySelection="NO" translatesAutoresizingMaskIntoConstraints="NO" id="c6g-Pr-R99">
-                                                    <rect key="frame" x="331" y="21" width="139" height="48"/>
+                                                    <rect key="frame" x="331" y="34" width="139" height="48"/>
                                                     <constraints>
                                                         <constraint firstAttribute="height" constant="48" id="BDf-9C-4rj"/>
                                                         <constraint firstAttribute="width" constant="139" id="CTV-dh-eoN"/>
@@ -314,7 +316,7 @@ DQ
                                                     </cells>
                                                 </matrix>
                                                 <form verticalHuggingPriority="750" mode="track" allowsEmptySelection="NO" autosizesCells="NO" translatesAutoresizingMaskIntoConstraints="NO" id="SKn-Zz-5rv">
-                                                    <rect key="frame" x="350" y="22" width="80" height="21"/>
+                                                    <rect key="frame" x="350" y="35" width="80" height="21"/>
                                                     <string key="toolTip">After the maximum is reached,
 old sheep are deleted to make
 room for new ones</string>
@@ -342,7 +344,7 @@ room for new ones</string>
                                                     </cells>
                                                 </form>
                                                 <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="eU7-0Z-v70">
-                                                    <rect key="frame" x="219" y="50" width="105" height="16"/>
+                                                    <rect key="frame" x="219" y="63" width="105" height="16"/>
                                                     <textFieldCell key="cell" sendsActionOnEndEditing="YES" title="Max. disk space:" id="SzH-1M-JuE">
                                                         <font key="font" metaFont="system"/>
                                                         <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
@@ -350,7 +352,7 @@ room for new ones</string>
                                                     </textFieldCell>
                                                 </textField>
                                                 <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="B6q-XX-CjP">
-                                                    <rect key="frame" x="18" y="50" width="165" height="16"/>
+                                                    <rect key="frame" x="18" y="63" width="165" height="16"/>
                                                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="It is currently using ^1 MB." id="mby-UY-ffY">
                                                         <font key="font" metaFont="system"/>
                                                         <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
@@ -358,8 +360,8 @@ room for new ones</string>
                                                     </textFieldCell>
                                                 </textField>
                                                 <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="q4z-Zp-Qb9">
-                                                    <rect key="frame" x="436" y="24" width="24" height="16"/>
-                                                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="MB" id="6ba-QI-Gni">
+                                                    <rect key="frame" x="436" y="37" width="23" height="16"/>
+                                                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="GB" id="6ba-QI-Gni">
                                                         <font key="font" metaFont="system"/>
                                                         <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>

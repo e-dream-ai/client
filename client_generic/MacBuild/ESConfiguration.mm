@@ -445,18 +445,18 @@
         ESScreensaver_GetBoolSetting("settings.content.unlimited_cache", true);
 
     SInt32 cache_size =
-        ESScreensaver_GetIntSetting("settings.content.cache_size", 2000);
+        ESScreensaver_GetIntSetting("settings.content.cache_size", 5);
 
     if (cache_size == 0)
     {
         unlimited_cache = true;
 
-        cache_size = 2000;
+        cache_size = 5;
     }
 
-    [cacheType selectCellWithTag:(unlimited_cache ? 0 : 1)];
+    [cacheTypeMatrix selectCellWithTag:(unlimited_cache ? 0 : 1)];
 
-    cacheSize.intValue = cache_size;
+    cacheSizeFormCell.intValue = cache_size;
 
     debugLog.state = ESScreensaver_GetBoolSetting("settings.app.log", false);
     serverField.stringValue = (__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting("settings.content.server", ServerConfig::DEFAULT_DREAM_SERVER);
@@ -541,12 +541,12 @@
     ESScreensaver_SetStringSetting("settings.content.proxy_password",
                                    proxyPassword.stringValue.UTF8String);
 
-    bool unlimited_cache = (cacheType.selectedCell.tag == 0);
+    bool unlimited_cache = (cacheTypeMatrix.selectedCell.tag == 0);
 
     ESScreensaver_SetBoolSetting("settings.content.unlimited_cache",
                                  unlimited_cache);
 
-    SInt32 cache_size = cacheSize.intValue;
+    SInt32 cache_size = cacheSizeFormCell.intValue;
 
     ESScreensaver_SetIntSetting("settings.content.cache_size", cache_size);
 
