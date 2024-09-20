@@ -113,7 +113,7 @@ void DreamDownloader::FindDreamsThread() {
             // Is our cache full ?
             if (cm.getRemainingCacheSpace() < minSpaceForDream) {
                 // TODO: add trigger to cache cleanup and decision process
-                g_Log->Info("Not enough space in cache remaining %ll", cm.getRemainingCacheSpace());
+                g_Log->Info("Not enough space in cache remaining : %ju", cm.getRemainingCacheSpace());
                 SetDownloadStatus("Your cache is full");
                 break;
             }
@@ -156,7 +156,7 @@ void DreamDownloader::FindDreamsThread() {
             
         }
 
-        SetDownloadStatus("No dream to download");
+        //SetDownloadStatus("No dream to download");
         // Sleep for a while before the next iteration
         boost::this_thread::sleep(boost::get_system_time() +
                              boost::posix_time::seconds(10));

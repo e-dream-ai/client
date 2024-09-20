@@ -423,8 +423,8 @@ std::uintmax_t CacheManager::getRemainingCacheSpace() {
         return freeSpace;
     } else {
         // if not unlimited, default cache is 5 GB
-        auto cacheSize = 1024 * 1024 * 1024 * g_Settings()->Get("settings.content.cache_size", 5);
-        auto usedSpace = getUsedSpace(PathManager::getInstance().mp4Path());
+        std::uintmax_t cacheSize = (std::uintmax_t)g_Settings()->Get("settings.content.cache_size", 5) * 1024 * 1024 * 1024;
+        std::uintmax_t usedSpace = getUsedSpace(PathManager::getInstance().mp4Path());
 
         return (cacheSize > usedSpace) ? (cacheSize - usedSpace) : 0;
     }
