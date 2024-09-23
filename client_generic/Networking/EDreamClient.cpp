@@ -242,7 +242,6 @@ void EDreamClient::DidSignIn()
     std::lock_guard<std::mutex> lock(fAuthMutex);
     fIsLoggedIn.exchange(true);
     boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
-    // g_Player().Start();
 }
 
 void EDreamClient::SignOut()
@@ -257,7 +256,7 @@ void EDreamClient::SignOut()
     if (currentSealedSession.empty())
     {
         g_Log->Error("No current sealed session found in settings");
-        return ;
+        return;
     }
 
     Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>("Logout Sealed Session");
@@ -271,31 +270,18 @@ void EDreamClient::SignOut()
     {
         if (spDownload->ResponseCode() == 200)
         {
-            try
-            {
-                boost::json::value response = boost::json::parse(spDownload->Data());
-
-                g_Log->Info("%s", response.as_string().c_str());
-            }
-            catch (const boost::system::system_error& e)
-            {
-                g_Log->Error("JSON parsing error: %s", e.what());
-                return;
-            }
+            g_Log->Info("Logged out successful");
         }
         else
         {
             g_Log->Error("Failed to logout. Server returned %i: %s",
                          spDownload->ResponseCode(), spDownload->Data().c_str());
-            return;
         }
     }
     else
     {
         g_Log->Error("Network error while logout");
-        return;
     }
-    
     
     fIsLoggedIn.exchange(false);
     g_Settings()->Set("settings.content.sealed_session", std::string(""));
@@ -313,6 +299,13 @@ bool EDreamClient::IsLoggedIn()
 
 
 // MARK: - Auth v2
+// Callback function to write response data
+static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
+{
+    ((std::string*)userp)->append((char*)contents, size * nmemb);
+    return size * nmemb;
+}
+
 bool EDreamClient::SendCode()
 {
     std::string email = g_Settings()->Get("settings.generator.nickname", std::string(""));
@@ -322,37 +315,53 @@ bool EDreamClient::SendCode()
         g_Log->Error("Email address not found in settings");
         return false;
     }
-    
-    Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>("Send Login Code");
-    spDownload->AppendHeader("Content-Type: application/json");
-    
-    // Prepare the JSON payload
-    boost::json::object payload;
-    payload["email"] = email;
-    std::string body = boost::json::serialize(payload);
-    
-    spDownload->SetPostFields(body.data());
-    g_Log->Info("server : %s", ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::LOGIN_MAGIC).c_str());
-    
-    if (spDownload->Perform(ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::LOGIN_MAGIC)))
-    {
-        if (spDownload->ResponseCode() == 200)
-        {
+
+    CURL *curl;
+    CURLcode res;
+    std::string readBuffer;
+
+    curl = curl_easy_init();
+    if(curl) {
+        std::string url = ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::LOGIN_MAGIC);
+        
+        // Prepare JSON payload
+        boost::json::object payload;
+        payload["email"] = email;
+        std::string jsonBody = boost::json::serialize(payload);
+
+        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, jsonBody.c_str());
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+
+        // Set headers
+        struct curl_slist *headers = NULL;
+        headers = curl_slist_append(headers, "Content-Type: application/json");
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+
+        res = curl_easy_perform(curl);
+        curl_slist_free_all(headers);
+        curl_easy_cleanup(curl);
+
+        if(res != CURLE_OK) {
+            g_Log->Error("Failed to send login code. Curl error: %s", curl_easy_strerror(res));
+            return false;
+        }
+
+        long http_code = 0;
+        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+
+        if (http_code == 200) {
             g_Log->Info("Login code sent successfully to %s", email.c_str());
             return true;
-        }
-        else
-        {
-            g_Log->Error("Failed to send login code. Server returned %i: %s",
-                         spDownload->ResponseCode(), spDownload->Data().c_str());
+        } else {
+            g_Log->Error("Failed to send login code. Server returned %ld: %s", http_code, readBuffer.c_str());
             return false;
         }
     }
-    else
-    {
-        g_Log->Error("Network error while sending login code");
-        return false;
-    }
+
+    g_Log->Error("Failed to initialize curl");
+    return false;
 }
 
 bool EDreamClient::ValidateCode(const std::string& code)
@@ -365,88 +374,90 @@ bool EDreamClient::ValidateCode(const std::string& code)
         return false;
     }
 
-    Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>("Validate Login Code");
-    spDownload->AppendHeader("Content-Type: application/json");
+    CURL *curl;
+    CURLcode res;
+    std::string readBuffer;
 
-    // Prepare the JSON payload
-    boost::json::object payload;
-    payload["email"] = email;
-    payload["code"] = code; 
-    std::string body = boost::json::serialize(payload);
+    curl = curl_easy_init();
+    if(curl) {
+        std::string url = ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::LOGIN_MAGIC);
+        
+        // Prepare JSON payload
+        boost::json::object payload;
+        payload["email"] = email;
+        payload["code"] = code;
+        std::string jsonBody = boost::json::serialize(payload);
 
-    spDownload->SetPostFields(body.data());
+        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, jsonBody.c_str());
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
 
-    if (spDownload->Perform(ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::LOGIN_MAGIC)))
-    {
-        if (spDownload->ResponseCode() == 200)
-        {
-            try
-            {
-                boost::json::value response = boost::json::parse(spDownload->Data());
+        // Set headers
+        struct curl_slist *headers = NULL;
+        headers = curl_slist_append(headers, "Content-Type: application/json");
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+
+        res = curl_easy_perform(curl);
+        curl_slist_free_all(headers);
+        curl_easy_cleanup(curl);
+
+        if(res != CURLE_OK) {
+            g_Log->Error("Failed to validate login code. Curl error: %s", curl_easy_strerror(res));
+            return false;
+        }
+
+        long http_code = 0;
+        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+
+        if (http_code == 200) {
+            try {
+                boost::json::value response = boost::json::parse(readBuffer);
                 boost::json::object responseObj = response.as_object();
                 
-                // Check if the response was successful
-                if (!responseObj.contains("success") || !responseObj["success"].as_bool())
-                {
+                if (!responseObj.contains("success") || !responseObj["success"].as_bool()) {
                     g_Log->Error("Validation failed: %s", responseObj.contains("message") ? responseObj["message"].as_string().c_str() : "Unknown error");
                     return false;
                 }
                 
-                // Check for the data object
-                if (!responseObj.contains("data") || !responseObj["data"].is_object())
-                {
+                if (!responseObj.contains("data") || !responseObj["data"].is_object()) {
                     g_Log->Error("Response doesn't contain data object");
                     return false;
                 }
                 
                 boost::json::object dataObj = responseObj["data"].as_object();
                 
-                // Retrieve and save the sealedSession
-                if (dataObj.contains("sealedSession") && dataObj["sealedSession"].is_string())
-                {
+                if (dataObj.contains("sealedSession") && dataObj["sealedSession"].is_string()) {
                     std::string sealedSession = dataObj["sealedSession"].as_string().c_str();
                     g_Settings()->Set("settings.content.sealed_session", sealedSession);
-                    g_Settings()->Storage()->Commit();  // Save the settings
+                    g_Settings()->Storage()->Commit();
                     
                     g_Log->Info("Sealed session saved successfully");
-                }
-                else
-                {
+                } else {
                     g_Log->Error("sealedSession not found in the response data");
                     return false;
                 }
                 
-                // Log the user object if present
-                if (dataObj.contains("user") && dataObj["user"].is_object())
-                {
+                if (dataObj.contains("user") && dataObj["user"].is_object()) {
                     boost::json::object userObj = dataObj["user"].as_object();
                     g_Log->Info("User object received: %s", boost::json::serialize(userObj).c_str());
-                }
-                else
-                {
+                } else {
                     g_Log->Warning("User object not found in the response data");
                 }
                 
                 return true;
-            }
-            catch (const boost::json::system_error& e)
-            {
+            } catch (const boost::json::system_error& e) {
                 g_Log->Error("JSON parsing error: %s", e.what());
                 return false;
             }
-        }
-        else
-        {
-            g_Log->Error("Failed to validate login code. Server returned %i: %s",
-                         spDownload->ResponseCode(), spDownload->Data().c_str());
+        } else {
+            g_Log->Error("Failed to validate login code. Server returned %ld: %s", http_code, readBuffer.c_str());
             return false;
         }
     }
-    else
-    {
-        g_Log->Error("Network error while validating login code");
-        return false;
-    }
+
+    g_Log->Error("Failed to initialize curl");
+    return false;
 }
 
 bool EDreamClient::RefreshSealedSession()

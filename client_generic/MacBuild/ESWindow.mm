@@ -294,7 +294,8 @@ static void ShowPreferencesCallback()
     //@TODO: is the full screen check needed? disabling for now
     if (/*!mIsFullScreen &&*/ mESView && [mESView hasConfigureSheet])
     {
-        //[mESView stopAnimation];
+        [mESView stopAnimation];
+
         mInSheet = YES;
         [self beginSheet:[mESView configureSheet]
             completionHandler:^(NSModalResponse returnCode) {
@@ -302,11 +303,6 @@ static void ShowPreferencesCallback()
                        returnCode:returnCode
                       contextInfo:nil];
             }];
-        /*[NSApp beginSheet: [mESView configureSheet]
-            modalForWindow: self
-            modalDelegate: self
-            didEndSelector: @selector(didEndSheet:returnCode:contextInfo:)
-            contextInfo: nil];*/
     }
     return YES;
 }
@@ -321,7 +317,6 @@ static void ShowPreferencesCallback()
 
     if (mESView != nil)
     {
-        [mESView stopAnimation];
         [mESView startAnimation];
         [mESView windowDidResize];
     }
