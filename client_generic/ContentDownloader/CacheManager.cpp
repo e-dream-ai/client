@@ -126,6 +126,18 @@ void CacheManager::cleanupDiskCache() {
     
     fs::path folderPath = PathManager::getInstance().mp4Path();
     
+    // Look for temporary files
+    for (const auto& entry : fs::directory_iterator(folderPath)) {
+        const auto& path = entry.path();
+        if (fs::is_regular_file(path)) {
+            if (path.extension() == ".tmp") {
+                // Remove any .tmp file
+                fs::remove(path);
+                g_Log->Info("Removed temporary file: %s", path.string().c_str());
+            }
+        }
+    }
+    
     // Look for files that may have been deleted
     for (const auto& item : diskCached) {
         fs::path filePath = folderPath / (item.uuid + ".mp4");
@@ -668,6 +680,78 @@ void CacheManager::deserializeEvictedUUIDs(const boost::property_tree::ptree& pt
     for (const auto& item : pt) {
         m_evictedUUIDs.push_back(item.second.get_value<std::string>());
     }
+}
+
+// MARK: - Cache cleanup
+bool CacheManager::removeOldestVideo(bool respectPlaylist) {
+    auto& playlistManager = g_Player().m_playlistManager;
+    if (!playlistManager) {
+        g_Log->Error("PlaylistManager not available in Player");
+        return false;
+    }
+
+    std::vector<DiskCachedItem> itemsToConsider = diskCached;
+
+    if (respectPlaylist) {
+        // Filter out items that are in the playlist
+        auto playlistUUIDs = playlistManager->getCurrentPlaylistUUIDs();
+        itemsToConsider.erase(
+            std::remove_if(itemsToConsider.begin(), itemsToConsider.end(),
+                [&playlistUUIDs](const DiskCachedItem& item) {
+                    return std::find(playlistUUIDs.begin(), playlistUUIDs.end(), item.uuid) != playlistUUIDs.end();
+                }),
+            itemsToConsider.end());
+    }
+
+    if (itemsToConsider.empty()) {
+        return false; // No items to remove
+    }
+
+    // Find the oldest item
+    auto oldestItem = std::min_element(itemsToConsider.begin(), itemsToConsider.end(),
+        [](const DiskCachedItem& a, const DiskCachedItem& b) {
+            return a.downloadDate < b.downloadDate;
+        });
+
+    // Remove the oldest item
+    std::string filePath = getDreamPath(oldestItem->uuid);
+    if (std::filesystem::remove(filePath)) {
+        removeDiskCachedItem(oldestItem->uuid);
+        g_Log->Info("Removed oldest video: %s", oldestItem->uuid.c_str());
+        return true;
+    } else {
+        g_Log->Error("Failed to remove file: %s", filePath.c_str());
+        return false;
+    }
+}
+
+void CacheManager::resizeCache(std::uintmax_t targetSize) {
+    std::uintmax_t currentSize = getUsedSpace(PathManager::getInstance().mp4Path());
+
+    while (currentSize > targetSize) {
+        bool removed = removeOldestVideo(true);
+        if (!removed) {
+            // If we couldn't remove a non-playlist video, try removing any video
+            removed = removeOldestVideo(false);
+        }
+        
+        if (!removed) {
+            g_Log->Warning("Cannot resize cache further. No more videos to remove.");
+            break;
+        }
+        
+        currentSize = getUsedSpace(PathManager::getInstance().mp4Path());
+    }
+
+    g_Log->Info("Cache resized. Current size: %llu bytes", currentSize);
+}
+
+std::uintmax_t CacheManager::getVideoFileSize(const std::string& uuid) const {
+    std::filesystem::path filePath = PathManager::getInstance().mp4Path() / (uuid + ".mp4");
+    if (std::filesystem::exists(filePath)) {
+        return std::filesystem::file_size(filePath);
+    }
+    return 0;
 }
 
 } // Namespace

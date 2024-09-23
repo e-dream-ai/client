@@ -5,6 +5,7 @@
 #include "EDreamClient.h"
 #include "ServerConfig.h"
 #include "PlatformUtils.h"
+#include "CacheManager.h"
 
 //using namespace ContentDownloader;
 
@@ -550,6 +551,14 @@
 
     ESScreensaver_SetIntSetting("settings.content.cache_size", cache_size);
 
+    if (!unlimited_cache) {
+        std::uintmax_t cacheSize = (std::uintmax_t)cache_size * 1024 * 1024 * 1024;
+
+        Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+        cm.resizeCache(cacheSize);
+    }
+    
+    
     ESScreensaver_SetBoolSetting("settings.app.log", debugLog.state);
 
     ESScreensaver_SetStringSetting("settings.content.server", serverField.stringValue.UTF8String);

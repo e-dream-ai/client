@@ -124,6 +124,10 @@ public:
     // Save and load evicted UUIDs
     void saveEvictedUUIDsToJson() const;
     void loadEvictedUUIDsFromJson();
+    
+    bool removeOldestVideo(bool respectPlaylist = true);
+    void resizeCache(std::uintmax_t targetSize);
+
 private:
     // Private constructor
     CacheManager() = default;
@@ -147,6 +151,8 @@ private:
     HistoryItem deserializeHistoryItem(const boost::property_tree::ptree& pt) const;
     void deserializeEvictedUUIDs(const boost::property_tree::ptree& pt);
 
+    std::uintmax_t getVideoFileSize(const std::string& uuid) const;
+    
     // JSON Parser helpers
     std::string safe_get_string(const boost::json::object& obj, const char* key, const std::string& default_value = "") {
         auto it = obj.find(key);

@@ -45,6 +45,10 @@ bool PlaylistManager::initializePlaylist(const std::string& playlistUUID) {
     return true;
 }
 
+std::vector<std::string> PlaylistManager::getCurrentPlaylistUUIDs() const {
+    return m_playlist;
+}
+
 bool PlaylistManager::parsePlaylist(const std::string& playlistUUID) {
     // Parse the playlist
     std::vector<std::string> dreamUUIDs = EDreamClient::ParsePlaylist(playlistUUID);
