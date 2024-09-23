@@ -36,7 +36,8 @@ enum class Endpoint {
     // work-os compatible endpoints on /v2
     LOGIN_MAGIC,
     LOGIN_AUTHENTICATE,
-    LOGIN_REFRESH
+    LOGIN_REFRESH,
+    LOGOUT
 };
 
 class ServerConfigManager {

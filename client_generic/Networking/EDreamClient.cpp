@@ -248,10 +248,60 @@ void EDreamClient::DidSignIn()
 void EDreamClient::SignOut()
 {
     std::lock_guard<std::mutex> lock(fAuthMutex);
+    
+    g_Log->Info("Logout initiated");
+    
+    // Retrieve the current sealed session from settings
+    std::string currentSealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
+    
+    if (currentSealedSession.empty())
+    {
+        g_Log->Error("No current sealed session found in settings");
+        return ;
+    }
+
+    Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>("Logout Sealed Session");
+    spDownload->AppendHeader("Content-Type: application/json");
+    
+    // Set the cookie with the current sealed session
+    std::string cookieHeader = "Cookie: wos-session=" + currentSealedSession;
+    spDownload->AppendHeader(cookieHeader);
+
+    if (spDownload->Perform(ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::LOGOUT)))
+    {
+        if (spDownload->ResponseCode() == 200)
+        {
+            try
+            {
+                boost::json::value response = boost::json::parse(spDownload->Data());
+
+                g_Log->Info("%s", response.as_string().c_str());
+            }
+            catch (const boost::system::system_error& e)
+            {
+                g_Log->Error("JSON parsing error: %s", e.what());
+                return;
+            }
+        }
+        else
+        {
+            g_Log->Error("Failed to logout. Server returned %i: %s",
+                         spDownload->ResponseCode(), spDownload->Data().c_str());
+            return;
+        }
+    }
+    else
+    {
+        g_Log->Error("Network error while logout");
+        return;
+    }
+    
+    
     fIsLoggedIn.exchange(false);
     g_Settings()->Set("settings.content.sealed_session", std::string(""));
     g_Settings()->Set("settings.content.refresh_token", std::string(""));
     g_Settings()->Storage()->Commit();
+
     // g_Player().Stop();
 }
 

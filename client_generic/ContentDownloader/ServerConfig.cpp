@@ -28,7 +28,8 @@ void ServerConfigManager::initializeEndpoints() {
         // New V2 endpoints
         {Endpoint::LOGIN_MAGIC, m_dreamServer + apiVersionV2 + "/auth/magic"},
         {Endpoint::LOGIN_AUTHENTICATE, m_dreamServer + apiVersionV2 + "/auth/authenticate"},
-        {Endpoint::LOGIN_REFRESH, m_dreamServer + apiVersionV2 + "/auth/refresh"}
+        {Endpoint::LOGIN_REFRESH, m_dreamServer + apiVersionV2 + "/auth/refresh"},
+        {Endpoint::LOGOUT, m_dreamServer + apiVersionV2 + "/auth/logout"}
 
     };
 }
