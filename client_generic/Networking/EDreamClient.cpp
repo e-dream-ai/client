@@ -15,7 +15,6 @@
 #include "StringFormat.h"
 #include "Log.h"
 #include "Player.h"
-#include "Networking.h"
 #include "Settings.h"
 #include "ServerConfig.h"
 #include "PathManager.h"
@@ -543,6 +542,43 @@ bool EDreamClient::RefreshSealedSession()
     }
 }
 
+void EDreamClient::ParseAndSaveCookies(const Network::spCFileDownloader& spDownload) {
+    std::string setCookieHeader = spDownload->GetResponseHeader("Set-Cookie");
+    if (!setCookieHeader.empty()) {
+        std::istringstream stream(setCookieHeader);
+        std::string cookie;
+        while (std::getline(stream, cookie, ',')) {
+            size_t pos = cookie.find('=');
+            if (pos != std::string::npos) {
+                std::string name = cookie.substr(0, pos);
+                std::string value = cookie.substr(pos + 1);
+                
+                // Remove any additional attributes after the value
+                pos = value.find(';');
+                if (pos != std::string::npos) {
+                    value = value.substr(0, pos);
+                }
+                
+                // Trim whitespace
+                name.erase(0, name.find_first_not_of(" \t"));
+                name.erase(name.find_last_not_of(" \t") + 1);
+                value.erase(0, value.find_first_not_of(" \t"));
+                value.erase(value.find_last_not_of(" \t") + 1);
+                
+                if (name == "wos-session") {
+                    g_Settings()->Set("settings.content.sealed_session", value);
+                    g_Log->Info("Updated wos-session cookie");
+                } else if (name == "connect.sid") {
+                    g_Settings()->Set("settings.content.connect_sid", value);
+                    g_Log->Info("Updated connect.sid cookie");
+                }
+            }
+        }
+        g_Settings()->Storage()->Commit();
+    }
+}
+
+
 // MARK: - Hello call
 // Post auth initial handshake with server
 //
@@ -599,6 +635,8 @@ std::string EDreamClient::Hello() {
             }
         }
     }
+    
+    ParseAndSaveCookies(spDownload);
     
     // Grab the ID and quota
     try
@@ -788,6 +826,8 @@ std::vector<std::string> EDreamClient::FetchUserDislikes() {
         
         if (spDownload->Perform(url))
         {
+            ParseAndSaveCookies(spDownload);
+            
             try
             {
                 json::value response = json::parse(spDownload->Data());
@@ -886,6 +926,8 @@ bool EDreamClient::FetchPlaylist(std::string_view uuid) {
         }
     }
 
+    ParseAndSaveCookies(spDownload);
+    
     auto filename = jsonPath / ("playlist_" + std::string(uuid) + ".json");
     if (!spDownload->Save(filename.string()))
     {
@@ -946,6 +988,8 @@ bool EDreamClient::FetchDefaultPlaylist() {
         }
     }
 
+    ParseAndSaveCookies(spDownload);
+    
     auto filename = jsonPath / "playlist_0.json";
     if (!spDownload->Save(filename.string())) {
         g_Log->Error("Unable to save %s\n", filename.string().c_str());
@@ -1007,6 +1051,8 @@ bool EDreamClient::FetchDreamMetadata(std::string uuid) {
         }
     }
 
+    ParseAndSaveCookies(spDownload);
+    
     auto filename = jsonPath / (uuid + ".json");
     if (!spDownload->Save(filename.string()))
     {
@@ -1041,6 +1087,8 @@ std::string EDreamClient::GetDreamDownloadLink(const std::string& uuid) {
                           "/" + uuid + "/url";
 
         if (spDownload->Perform(url)) {
+            ParseAndSaveCookies(spDownload);
+            
             try {
                 boost::property_tree::ptree pt;
                 std::istringstream is(spDownload->Data());

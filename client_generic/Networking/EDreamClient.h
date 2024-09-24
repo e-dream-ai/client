@@ -6,8 +6,10 @@
 #include <atomic>
 #include <mutex>
 #include <tuple>
+#include <sstream>
 #include <boost/asio.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include "Networking.h"
 
 class EDreamClient
 {
@@ -26,6 +28,8 @@ class EDreamClient
     static std::future<std::string> GetDreamDownloadLinkAsync(const std::string& uuid);
     static std::future<void> SendPlayingDreamAsync(const std::string& uuid);
     
+    static void ParseAndSaveCookies(const Network::spCFileDownloader& spDownload); 
+
   public:
     static void InitializeClient();
     static void DeinitializeClient();
