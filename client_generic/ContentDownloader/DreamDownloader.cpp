@@ -68,12 +68,12 @@ void DreamDownloader::FindDreamsThread() {
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
 
     // Set a default delay (30 seconds)
-    int delayTime = 30;
+    // int delayTime = 30;
     
     // Minimum disk space : 5 GB (TODO: this can be lowered or pref'd later)
     std::uintmax_t minDiskSpace =  (std::uintmax_t)1024 * 1024 * 1024 * 5;
-    // Minimum space in cache/quota to consider downloading (10 MB)
-    std::uintmax_t minSpaceForDream = 1024 * 1024 * 10;
+    // Minimum space in cache/quota to consider downloading (100 MB)
+    std::uintmax_t minSpaceForDream = (std::uintmax_t)1024 * 1024 * 100;
 
     while (isRunning.load()) {
         //g_Log->Info("Searching for dreams to download...");
@@ -112,10 +112,12 @@ void DreamDownloader::FindDreamsThread() {
 
             // Is our cache full ?
             if (cm.getRemainingCacheSpace() < minSpaceForDream) {
-                // TODO: add trigger to cache cleanup and decision process
-                g_Log->Info("Not enough space in cache remaining : %ju", cm.getRemainingCacheSpace());
-                SetDownloadStatus("Your cache is full");
-                break;
+                // we try to remove the oldest video that's not part of the playlist. if that fails, bails
+                if (!cm.removeOldestVideo(true)) {
+                    g_Log->Info("Not enough space in cache remaining : %ju, no video to remove outside playlist", cm.getRemainingCacheSpace());
+                    SetDownloadStatus("Your cache is full");
+                    break;
+                }
             }
             // /Preflight
             

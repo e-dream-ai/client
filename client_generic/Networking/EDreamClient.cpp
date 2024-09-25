@@ -522,7 +522,7 @@ bool EDreamClient::RefreshSealedSession()
                     return false;
                 }
             }
-            catch (const boost::json::system_error& e)
+            catch (const boost::system::system_error& e)
             {
                 g_Log->Error("JSON parsing error: %s", e.what());
                 return false;
