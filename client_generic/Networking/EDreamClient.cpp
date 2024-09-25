@@ -543,37 +543,39 @@ bool EDreamClient::RefreshSealedSession()
 }
 
 void EDreamClient::ParseAndSaveCookies(const Network::spCFileDownloader& spDownload) {
-    std::string setCookieHeader = spDownload->GetResponseHeader("Set-Cookie");
-    if (!setCookieHeader.empty()) {
-        std::istringstream stream(setCookieHeader);
-        std::string cookie;
-        while (std::getline(stream, cookie, ',')) {
-            size_t pos = cookie.find('=');
+    std::vector<std::string> setCookieHeaders = spDownload->GetResponseHeaders("set-cookie");
+
+    for (const auto& setCookieHeader : setCookieHeaders) {
+        size_t pos = setCookieHeader.find('=');
+        if (pos != std::string::npos) {
+            std::string name = setCookieHeader.substr(0, pos);
+            std::string value = setCookieHeader.substr(pos + 1);
+            
+            // Remove any additional attributes after the value
+            pos = value.find(';');
             if (pos != std::string::npos) {
-                std::string name = cookie.substr(0, pos);
-                std::string value = cookie.substr(pos + 1);
-                
-                // Remove any additional attributes after the value
-                pos = value.find(';');
-                if (pos != std::string::npos) {
-                    value = value.substr(0, pos);
-                }
-                
-                // Trim whitespace
-                name.erase(0, name.find_first_not_of(" \t"));
-                name.erase(name.find_last_not_of(" \t") + 1);
-                value.erase(0, value.find_first_not_of(" \t"));
-                value.erase(value.find_last_not_of(" \t") + 1);
-                
-                if (name == "wos-session") {
-                    g_Settings()->Set("settings.content.sealed_session", value);
-                    g_Log->Info("Updated wos-session cookie");
-                } else if (name == "connect.sid") {
-                    g_Settings()->Set("settings.content.connect_sid", value);
-                    g_Log->Info("Updated connect.sid cookie");
-                }
+                value = value.substr(0, pos);
+            }
+            
+            // Trim whitespace
+            name.erase(0, name.find_first_not_of(" \t"));
+            name.erase(name.find_last_not_of(" \t") + 1);
+            value.erase(0, value.find_first_not_of(" \t"));
+            value.erase(value.find_last_not_of(" \t") + 1);
+            
+            if (name == "wos-session") {
+                g_Settings()->Set("settings.content.sealed_session", value);
+                g_Log->Info("Updated wos-session cookie");
+            } else if (name == "connect.sid") {
+                g_Settings()->Set("settings.content.connect_sid", value);
+                g_Log->Info("Updated connect.sid cookie");
+            } else {
+                g_Log->Info("Other cookie : %s", name.c_str());
             }
         }
+    }
+
+    if (!setCookieHeaders.empty()) {
         g_Settings()->Storage()->Commit();
     }
 }

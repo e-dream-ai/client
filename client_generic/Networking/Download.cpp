@@ -88,6 +88,21 @@ std::string CFileDownloader::GetResponseHeader(const std::string& headerName) co
     return "";
 }
 
+std::vector<std::string> CFileDownloader::GetResponseHeaders(const std::string& headerName) const
+{
+    std::string lowerHeaderName = headerName;
+    std::transform(lowerHeaderName.begin(), lowerHeaderName.end(), lowerHeaderName.begin(),
+                   [](unsigned char c){ return std::tolower(c); });
+    
+    std::vector<std::string> headers;
+    auto range = m_ResponseHeaders.equal_range(lowerHeaderName);
+    for (auto it = range.first; it != range.second; ++it)
+    {
+        headers.push_back(it->second);
+    }
+    return headers;
+}
+
 size_t CFileDownloader::headerCallback(char* buffer, size_t size, size_t nitems, void* userdata)
 {
     size_t realsize = size * nitems;
@@ -110,7 +125,7 @@ size_t CFileDownloader::headerCallback(char* buffer, size_t size, size_t nitems,
         std::transform(key.begin(), key.end(), key.begin(),
                        [](unsigned char c){ return std::tolower(c); });
         
-        downloader->m_ResponseHeaders[key] = value;
+        downloader->m_ResponseHeaders.insert(std::make_pair(key, value));
     }
     
     return realsize;

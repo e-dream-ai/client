@@ -80,7 +80,7 @@ class CCurlTransfer
 class CFileDownloader : public CCurlTransfer
 {
     std::string m_Data;
-    std::map<std::string, std::string> m_ResponseHeaders;
+    std::multimap<std::string, std::string> m_ResponseHeaders;
     
   public:
     static int32_t customWrite(void* _pBuffer, size_t _size, size_t _nmemb,
@@ -96,6 +96,7 @@ class CFileDownloader : public CCurlTransfer
     const std::string& Data() { return m_Data; };
     
     std::string GetResponseHeader(const std::string& headerName) const;
+    std::vector<std::string> GetResponseHeaders(const std::string& headerName) const;
     static size_t headerCallback(char* buffer, size_t size, size_t nitems, void* userdata);
 };
 
