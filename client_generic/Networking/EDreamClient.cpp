@@ -187,8 +187,6 @@ void EDreamClient::DeinitializeClient()
     s_SIOClient.set_reconnect_listener(nullptr);
 }
 
-// const char* EDreamClient::GetAccessToken() { return fAccessToken.load(); }
-
 // MARK : Auth (via refresh)
 bool EDreamClient::Authenticate()
 {

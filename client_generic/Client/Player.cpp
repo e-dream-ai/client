@@ -606,6 +606,13 @@ bool CPlayer::PlayClip(const Cache::Dream* dream, double _startTime, int64_t _se
 void CPlayer::PlayNextDream(bool quickFade)
 {
     auto nextDream = m_playlistManager->getNextDream();
+    
+    // Ensure we have one
+    if (!nextDream) {
+        g_Log->Error("No next dream available to play");
+        return;
+    }
+    
     if (!nextDream->uuid.empty()) {
         if (m_isFirstPlay) {
             // For the first play, start immediately without transition
@@ -837,20 +844,21 @@ void CPlayer::UpdateTransition(double currentTime)
     } else if (!m_nextClip) {
         // If we don't have a next clip yet, try to get one
         auto nextDream = m_playlistManager->getNextDream();
-        
-        if (!nextDream->uuid.empty()) {
-            // We may need to prefetch the url, if so, do it all in a thread
-            if (!nextDream->isCached() && nextDream->getStreamingUrl().empty()) {
-                std::thread([this, &currentTime, nextDream]{
-                    auto path = EDreamClient::GetDreamDownloadLink(nextDream->uuid);
-                    nextDream->setStreamingUrl(path);
+        if (nextDream) {
+            if (!nextDream->uuid.empty()) {
+                // We may need to prefetch the url, if so, do it all in a thread
+                if (!nextDream->isCached() && nextDream->getStreamingUrl().empty()) {
+                    std::thread([this, &currentTime, nextDream]{
+                        auto path = EDreamClient::GetDreamDownloadLink(nextDream->uuid);
+                        nextDream->setStreamingUrl(path);
 
+                        PlayClip(nextDream, currentTime, -1, true);  // The true flag indicates this is for transition
+                        m_nextClip->SetTransitionLength(m_transitionDuration, 5.0f);
+                    }).detach();
+                } else {
                     PlayClip(nextDream, currentTime, -1, true);  // The true flag indicates this is for transition
                     m_nextClip->SetTransitionLength(m_transitionDuration, 5.0f);
-                }).detach();
-            } else {
-                PlayClip(nextDream, currentTime, -1, true);  // The true flag indicates this is for transition
-                m_nextClip->SetTransitionLength(m_transitionDuration, 5.0f);
+                }
             }
         }
     }

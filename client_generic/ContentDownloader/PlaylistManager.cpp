@@ -136,7 +136,13 @@ const Cache::Dream* PlaylistManager::getNextDream() {
             m_currentPosition = 0; // Loop back to the beginning
         }
     }
-
+    
+    // make sure we have a playlist, bail if not
+    if (m_playlist.size() <= 0)
+    {
+        return nullptr;
+    }
+        
     m_currentDreamUUID = m_playlist[m_currentPosition];
     m_currentDream = m_cacheManager.getDream(m_currentDreamUUID);
     
