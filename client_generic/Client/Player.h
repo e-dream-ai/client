@@ -42,6 +42,9 @@ class CPlayer : public Base::CSingleton<CPlayer>
   private:
     bool m_hasStarted = false;
     
+    std::atomic<bool> m_shutdownFlag{false};
+    std::shared_ptr<std::thread> m_startupThread;
+    
     ContentDecoder::spCClip m_currentClip;
     ContentDecoder::spCClip m_nextClip;
     

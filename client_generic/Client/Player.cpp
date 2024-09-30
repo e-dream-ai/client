@@ -323,24 +323,28 @@ void CPlayer::Start()
                                             m_PerceptualFPS);
 
         // We do this async, so client rendering loop doesn't lock
-        std::thread([this]{
+        m_startupThread = std::make_shared<std::thread>([this]{
+            if (m_shutdownFlag) return;
+
             std::string lastPlayedUUID = g_Settings()->Get(
                 "settings.content.last_played_uuid", std::string{});
             
             auto clientPlaylistId = g_Settings()->Get("settings.content.current_playlist_uuid", std::string(""));
 
             if (EDreamClient::IsLoggedIn()) {
+                if (m_shutdownFlag) return;
                 auto serverPlaylistId = EDreamClient::GetCurrentServerPlaylist();
-                
                 
                 // Override if there's a mismatch, and don't try to resume previous file as
                 // it may not be part of the new playlist
+                if (m_shutdownFlag) return;
                 if (serverPlaylistId != clientPlaylistId) {
                     g_Settings()->Set("settings.content.current_playlist_uuid", serverPlaylistId);
                     lastPlayedUUID = "";
                 }
                 
                 // Start the playlist and playback at the start, or at a given position
+                if (m_shutdownFlag) return;
                 if (lastPlayedUUID.empty()) {
                     SetPlaylist(serverPlaylistId);
                 } else {
@@ -349,12 +353,18 @@ void CPlayer::Start()
                 
                 m_hasStarted = true;
             }
-        }).detach();
+        });
     }
 }
 
 void CPlayer::Stop()
 {
+    m_shutdownFlag = true;
+    
+    if (m_startupThread && m_startupThread->joinable()) {
+        m_startupThread->join();
+    }
+    
     writer_lock l(m_UpdateMutex);
     if (m_bStarted && m_currentClip)
     {
@@ -387,6 +397,7 @@ bool CPlayer::Shutdown(void)
     m_displayUnits.clear();
 
     m_bStarted = false;
+    m_shutdownFlag = true;  
 
     return true;
 }
