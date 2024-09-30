@@ -478,11 +478,14 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
             ret = avcodec_send_packet(pVideoCodecContext, packetToSend);
         }
         
-        if (packet->stream_index != ovi->m_VideoStreamID)
-        {
-            g_Log->Error("FFmpeg Mismatching stream ID");
-            break;
+        if (packet) {
+            if (packet->stream_index != ovi->m_VideoStreamID)
+            {
+                g_Log->Error("FFmpeg Mismatching stream ID");
+                break;
+            }
         }
+            
         
         if (ret < 0)
         {

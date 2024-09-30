@@ -270,12 +270,12 @@ void PlaylistManager::periodicCheckThread() {
     PlatformUtils::SetThreadName("PeriodicPlaylistCheck");
     
     while (m_isCheckingActive) {
+        checkForPlaylistChanges();
+
         updateNextCheckTime();
         // Use a condition variable to wait, allowing for interruption
         std::unique_lock<std::mutex> lock(m_cvMutex);
         m_cv.wait_for(lock, m_checkInterval, [this] { return !m_isCheckingActive; });
-        
-        checkForPlaylistChanges();
     }
 }
 

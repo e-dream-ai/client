@@ -49,6 +49,7 @@ class CElectricSheep_Mac : public CElectricSheep
   public:
     CElectricSheep_Mac() : CElectricSheep()
     {
+        
         printf("CElectricSheep_Mac()\n");
 
         m_bIsPreview = false;

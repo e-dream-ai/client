@@ -2795,8 +2795,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/bugsnag/bugsnag-cocoa";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 6.28.0;
+				kind = exactVersion;
+				version = 6.30.1;
 			};
 		};
 		129AC5CE2B69348E00E2E3E8 /* XCRemoteSwiftPackageReference "sparkle" */ = {

@@ -716,7 +716,8 @@ class CElectricSheep
             m_pUpdateBarrier->wait();
         }
 #else
-        uint32_t displayCnt = g_Player().GetDisplayCount();
+        // No longer used ?
+        // uint32_t displayCnt = g_Player().GetDisplayCount();
 
         _beginFrameBarrier.wait();
         bool ret = DoRealFrameUpdate(_displayIdx);
@@ -916,7 +917,7 @@ class CElectricSheep
                 }
 
                 std::string batteryStatus = "Unknown";
-                bool blockRendering = false;
+                /*bool blockRendering = false;
                 if (m_Timer.Time() > m_LastCPUCheckTime + 3.)
                 {
                     m_LastCPUCheckTime = m_Timer.Time();
@@ -940,7 +941,7 @@ class CElectricSheep
                                     --m_HighCpuUsageCounter;
                             }
                         }
-                }
+                }*/
                 /*if (m_HighCpuUsageCounter > 0 &&
                     ContentDownloader::Shepherd::RenderingAllowed() == false)
                     blockRendering = true;*/
@@ -961,7 +962,7 @@ class CElectricSheep
                     /*m_PlayerFps = m_OriginalFps/2; // half speed on battery
                     power m_CurrentFps = m_PlayerFps; g_Player().Framerate(
                     m_CurrentFps );*/
-                    blockRendering = true;
+                    //blockRendering = true;
                     break;
                 }
                 case 255:

@@ -393,6 +393,7 @@ bool CPlayer::Shutdown(void)
 
 CPlayer::~CPlayer()
 {
+    m_playlistManager = nullptr;
     //	Mark singleton as properly shutdown, to track unwanted access after this
     // point.
     SingletonActive(false);
@@ -716,6 +717,7 @@ void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
             auto dream = cm.getDream(std::string(_uuid));
             if (!dream) {
                 g_Log->Error("Can't get dream metadata, aborting PlayDreamNow");
+                return;
             }
             // Grab URL and save it for later use
             auto path = EDreamClient::GetDreamDownloadLink(dream->uuid);
