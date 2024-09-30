@@ -178,13 +178,14 @@ void EDreamClient::DeinitializeClient()
     SendGoodbye();
 
     // Close the WebSocket connection
-    s_SIOClient.close();
-    
+    //s_SIOClient.close();
+  
+    /*
     s_SIOClient.set_open_listener(nullptr);
     s_SIOClient.set_close_listener(nullptr);
     s_SIOClient.set_fail_listener(nullptr);
     s_SIOClient.set_reconnecting_listener(nullptr);
-    s_SIOClient.set_reconnect_listener(nullptr);
+    s_SIOClient.set_reconnect_listener(nullptr);*/
 }
 
 // MARK : Auth (via refresh)
