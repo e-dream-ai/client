@@ -14,7 +14,7 @@
 #include <random>
 
 PlaylistManager::PlaylistManager()
-    : m_currentPosition(0), m_started(false),  m_cacheManager(Cache::CacheManager::getInstance()) {}
+    : m_currentPosition(0), m_started(false), m_shouldTerminate(false),  m_cacheManager(Cache::CacheManager::getInstance()) {}
 
 PlaylistManager::~PlaylistManager() {
     stopPeriodicChecking();
@@ -247,6 +247,10 @@ const Cache::Dream* PlaylistManager::getDreamMetadata(const std::string& dreamUU
 // MARK: Periodic playlist checks
 void PlaylistManager::startPeriodicChecking() {
     if (!m_isCheckingActive.exchange(true)) {
+        {
+            std::lock_guard<std::mutex> lock(m_cvMutex);
+            m_shouldTerminate = false;
+        }
         updateNextCheckTime();
 
         m_checkingThread = std::thread(&PlaylistManager::periodicCheckThread, this);
@@ -255,6 +259,11 @@ void PlaylistManager::startPeriodicChecking() {
 
 void PlaylistManager::stopPeriodicChecking() {
     if (m_isCheckingActive.exchange(false)) {
+        {
+            std::lock_guard<std::mutex> lock(m_cvMutex);
+            m_shouldTerminate = true;
+        }
+
         m_cv.notify_one(); // Wake up the thread if it's sleeping
         if (m_checkingThread.joinable()) {
             m_checkingThread.join();
@@ -269,13 +278,21 @@ void PlaylistManager::updateNextCheckTime() {
 void PlaylistManager::periodicCheckThread() {
     PlatformUtils::SetThreadName("PeriodicPlaylistCheck");
     
-    while (m_isCheckingActive) {
-        checkForPlaylistChanges();
-
+    while (!m_shouldTerminate) {
         updateNextCheckTime();
-        // Use a condition variable to wait, allowing for interruption
-        std::unique_lock<std::mutex> lock(m_cvMutex);
-        m_cv.wait_for(lock, m_checkInterval, [this] { return !m_isCheckingActive; });
+        {
+            std::unique_lock<std::mutex> lock(m_cvMutex);
+            if (m_cv.wait_for(lock, m_checkInterval, [this] { return m_shouldTerminate; })) {
+                // If m_shouldTerminate is true, exit the thread
+                break;
+            }
+        }
+        
+        if (!m_isCheckingActive.load()) {
+            break;
+        }
+        
+        checkForPlaylistChanges();
     }
 }
 

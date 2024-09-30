@@ -91,6 +91,8 @@ private:
     bool isDreamProcessed(const std::string& uuid) const;
     
     std::atomic<bool> m_isCheckingActive;
+    bool m_shouldTerminate;
+    
     std::thread m_checkingThread;
     std::chrono::minutes m_checkInterval{60};
     std::condition_variable m_cv;
