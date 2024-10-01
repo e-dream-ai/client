@@ -286,7 +286,7 @@ void EDreamClient::SignOut()
     g_Settings()->Set("settings.content.refresh_token", std::string(""));
     g_Settings()->Storage()->Commit();
 
-    // g_Player().Stop();
+    g_Player().Stop();
 }
 
 bool EDreamClient::IsLoggedIn()
@@ -431,6 +431,7 @@ bool EDreamClient::ValidateCode(const std::string& code)
                     g_Settings()->Storage()->Commit();
                     
                     g_Log->Info("Sealed session saved successfully");
+                    //g_Player().Start();
                 } else {
                     g_Log->Error("sealedSession not found in the response data");
                     return false;

@@ -322,6 +322,10 @@ void CPlayer::Start()
         m_PerceptualFPS = g_Settings()->Get("settings.player.perceptual_fps",
                                             m_PerceptualFPS);
 
+        // Make sure this is reset before we start the thread
+        // This matters on changing accounts and disconnected starts
+        m_shutdownFlag = false;
+        
         // We do this async, so client rendering loop doesn't lock
         m_startupThread = std::make_shared<std::thread>([this]{
             if (m_shutdownFlag) return;
@@ -342,7 +346,10 @@ void CPlayer::Start()
                     g_Settings()->Set("settings.content.current_playlist_uuid", serverPlaylistId);
                     lastPlayedUUID = "";
                 }
-                
+
+                // Make sure we remove the current clip before enqueuing the new playlist
+                m_currentClip = nullptr;
+
                 // Start the playlist and playback at the start, or at a given position
                 if (m_shutdownFlag) return;
                 if (lastPlayedUUID.empty()) {

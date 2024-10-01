@@ -110,10 +110,6 @@
         [emailTextField setHidden:YES];
         [digitCodeTextField setHidden:YES];
 
-        
-/*        NSLog(@"const %f",drupalLogin.topAnchor.constraintsAffectingLayout.firstObject.constant);
-        drupalLogin.topAnchor.constraintsAffectingLayout.firstObject.constant = -10;*/
-
         [signInButton.superview setNeedsLayout:true];
     }
     else
@@ -635,6 +631,9 @@
             ESScreensaver_SetStringSetting("settings.generator.nickname",
                                            emailTextField.stringValue.UTF8String);
             
+            // Make sure we save that locally 
+            m_origNickname = emailTextField.stringValue;
+            
             // Ask for the code to be sent
             EDreamClient::SendCode();
 
@@ -658,7 +657,6 @@
             }
         }
     }
-
 }
 
 - (IBAction)goToHelpPage:(id)__unused sender
