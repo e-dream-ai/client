@@ -209,7 +209,7 @@ bool CContentDecoder::Open()
     
     // Open input, whether it's a file or URL
     AVDictionary* options = nullptr;
-    av_dict_set(&options, "probesize", "50000", 0);  // 
+    av_dict_set(&options, "probesize", "50000", 0);  //
     av_dict_set(&options, "analyzeduration", "0", 0);
     if (DumpError(avformat_open_input(&ovi->m_pFormatContext, m_IsStreaming ? nullptr : _filename.c_str(), nullptr, &options)) < 0)
     {
@@ -638,6 +638,9 @@ void CContentDecoder::ReadFramesThread()
                 (int64_t)(skipTime * 20);
                 m_CurrentVideoInfo->m_SeekTargetFrame =
                 std::max(m_CurrentVideoInfo->m_SeekTargetFrame, (int64_t)0);
+
+                // never go beyond last frame, keep 20 frames so decoder doesn't stall
+                m_CurrentVideoInfo->m_SeekTargetFrame = std::min(m_CurrentVideoInfo->m_SeekTargetFrame, (int64_t)m_CurrentVideoInfo->m_TotalFrameCount - 20);
                 m_SkipForward.exchange(0.f);
             }
             
