@@ -871,11 +871,15 @@ void CPlayer::UpdateTransition(double currentTime)
                         nextDream->setStreamingUrl(path);
 
                         PlayClip(nextDream, currentTime, -1, true);  // The true flag indicates this is for transition
-                        m_nextClip->SetTransitionLength(m_transitionDuration, 5.0f);
+                        if (m_nextClip) {
+                            m_nextClip->SetTransitionLength(m_transitionDuration, 5.0f);
+                        }
                     }).detach();
                 } else {
                     PlayClip(nextDream, currentTime, -1, true);  // The true flag indicates this is for transition
-                    m_nextClip->SetTransitionLength(m_transitionDuration, 5.0f);
+                    if (m_nextClip) {
+                        m_nextClip->SetTransitionLength(m_transitionDuration, 5.0f);
+                    }
                 }
             }
         }
