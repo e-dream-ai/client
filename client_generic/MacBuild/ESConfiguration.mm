@@ -421,8 +421,11 @@
 // MARK: Create Account
 - (IBAction)goToCreateAccountPage:(id)__unused sender
 {
-    NSURL* helpURL = [NSURL URLWithString:@"https://e-dream.ai/register"];
-
+#ifdef STAGE
+    NSURL* helpURL = [NSURL URLWithString:@"https://stage.e-dream.ai/signup"];
+#else
+    NSURL* helpURL = [NSURL URLWithString:@"https://alpha.e-dream.ai/signup"];
+#endif
     [[NSWorkspace sharedWorkspace] openURL:helpURL];
 }
 
