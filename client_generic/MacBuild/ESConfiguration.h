@@ -67,7 +67,8 @@
     IBOutlet NSTabView* tabView;
 
     NSString* m_origNickname;
-
+    NSString* m_previousLoginEmail;
+    
     NSMutableData* m_httpData;
 
     NSImage* redImage;
@@ -83,7 +84,8 @@
 }
 
 - (IBAction)ok:(id)sender;
-- (IBAction)cancel:(id)sender;
+//- (IBAction)cancel:(id)sender;
+- (IBAction)goToCreateAccountPage:(id)sender;
 - (IBAction)goToLearnMorePage:(id)sender;
 - (IBAction)goToHelpPage:(id)sender;
 - (IBAction)chooseContentFolder:(id)sender;
@@ -97,5 +99,7 @@
 - (void)saveSettings;
 
 - (void)dealloc;
+- (void)showRestartMessageAndRelaunch;
+- (void)relaunchApplication;
 
 @end

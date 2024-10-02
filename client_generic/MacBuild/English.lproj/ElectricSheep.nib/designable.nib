@@ -194,6 +194,9 @@ DQ
                                                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES" changeBackground="YES" changeGray="YES"/>
                                                             <font key="font" metaFont="system"/>
                                                         </buttonCell>
+                                                        <connections>
+                                                            <action selector="goToCreateAccountPage:" target="-2" id="eR3-0w-gNt"/>
+                                                        </connections>
                                                     </button>
                                                 </subviews>
                                                 <constraints>

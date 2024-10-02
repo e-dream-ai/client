@@ -177,6 +177,10 @@ void EDreamClient::DeinitializeClient()
     // Send goodbye message
     SendGoodbye();
 
+    // WARNING, enabling this causes socket.io to crash. There's a workaround but
+    // it's messy, see here
+    // https://github.com/socketio/socket.io-client-cpp/issues/404
+    // IF we fix this, we can reenable connection closing and enable account switwching
     // Close the WebSocket connection
     //s_SIOClient.close();
   
@@ -286,6 +290,9 @@ void EDreamClient::SignOut()
     g_Settings()->Set("settings.content.refresh_token", std::string(""));
     g_Settings()->Storage()->Commit();
 
+    // Shutdown websocket
+    DeinitializeClient();
+    
     g_Player().Stop();
 }
 

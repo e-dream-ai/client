@@ -227,148 +227,6 @@
         continueWithoutCredentialForAuthenticationChallenge:challenge];
 }
 
-// MARK: startTest (OLD LOGIN TO REMOVE)
-- (void)startTest:(BOOL)useToken
-{
-    [signInButton setEnabled:NO];
-
-    //[okButton setEnabled:NO];
-    //[cancelButton setEnabled:NO];
-    [tabView setHidden:YES];
-    m_checkingLogin = YES;
-
-    [m_checkTimer invalidate];
-    m_checkTimer = nil;
-
-    [loginStatusImage setImage:nil];
-
-    loginTestStatusText.stringValue = @"Please wait...";
-    loginStatusImage.image = self->yellowImage;
-    
-    m_httpData = [NSMutableData dataWithCapacity:10];
-
-    NSString* newNickname = emailTextField.stringValue;
-    NSString* newPassword = digitCodeTextField.stringValue;
-
-    NSString* urlstr;
-    NSString* httpMethod;
-    NSMutableURLRequest* request =
-        [NSMutableURLRequest requestWithURL:[NSURL URLWithString:urlstr]];
-
-    urlstr = @(ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::LOGIN_REFRESH).c_str());
-    //urlstr = @(Shepherd::GetEndpoint(ENDPOINT_LOGIN));
-    httpMethod = @"POST";
-    // Set request body data
-    NSDictionary* parameters =
-        @{@"username" : newNickname, @"password" : newPassword};
-    NSError* serializationError;
-    NSData* postData =
-        [NSJSONSerialization dataWithJSONObject:parameters
-                                        options:0
-                                          error:&serializationError];
-    request.HTTPBody = postData;
-
-    // Set the HTTP method to POST
-    request.HTTPMethod = httpMethod;
-    request.URL = [NSURL URLWithString:urlstr];
-
-    // Set request headers
-    [request setValue:@"application/json, text/plain, */*"
-        forHTTPHeaderField:@"Accept"];
-    [request setValue:@"application/json; charset=UTF-8"
-        forHTTPHeaderField:@"Content-Type"];
-
-    NSURLSession* session = [NSURLSession sharedSession];
-
-    // Create a data task to send the request
-    NSURLSessionDataTask* dataTask = [session
-        dataTaskWithRequest:request
-          completionHandler:^(NSData* data, NSURLResponse* response,
-                              NSError* sessionError) {
-              dispatch_async(dispatch_get_main_queue(), ^{
-                  if (sessionError)
-                  {
-                      NSLog(@"Request failed with error: %@", sessionError);
-                      self->m_loginWasSuccessful = NO;
-                      m_checkingLogin = NO;
-                      [self updateAuthUI:@"Login error"];
-                  }
-                  else
-                  {
-                      NSError* dictionaryError;
-
-                      // Convert JSON data to an NSDictionary
-                      NSDictionary* jsonDictionary = [NSJSONSerialization
-                          JSONObjectWithData:data
-                                     options:0
-                                       error:&dictionaryError];
-                      NSString* responseString =
-                          [[NSString alloc] initWithData:data
-                                                encoding:NSUTF8StringEncoding];
-                      NSLog(@"Response: %@", responseString);
-                      if (dictionaryError)
-                      {
-#ifdef DEBUG
-                          NSLog(@"Unknown response type: %@", response);
-#endif
-                          self->m_loginWasSuccessful = NO;
-                          m_checkingLogin = NO;
-
-                          [self updateAuthUI:@"Login error"];
-                      }
-                      else
-                      {
-                          NSNumber* success =
-                              [jsonDictionary valueForKey:@"success"];
-                          if (success.boolValue)
-                          {
-                              NSDictionary* dataEntry =
-                                  [jsonDictionary valueForKey:@"data"];
-                              NSDictionary* tokenDict =
-                                  [dataEntry valueForKey:@"token"];
-                              NSString* accessToken =
-                                  [tokenDict valueForKey:@"AccessToken"];
-                              NSString* refreshToken =
-                                  [tokenDict valueForKey:@"RefreshToken"];
-                              EDreamClient::DidSignIn();
-                          }
-                          [self updateAuthUI:@"Login error"];
-                      }
-                      self->m_checkingLogin = NO;
-                  }
-              });
-          }];
-
-    // Start the data task
-    [dataTask resume];
-
-    /*CFHTTPMessageRef dummyRequest =
-            CFHTTPMessageCreateRequest(
-                    kCFAllocatorDefault,
-                    CFSTR("GET"),
-                    (CFURLRef)[request URL],
-                    kCFHTTPVersion1_1);
-
-    CFHTTPMessageAddAuthentication(
-            dummyRequest,
-            nil,
-            (CFStringRef)[drupalLogin stringValue],
-            (CFStringRef)[drupalPassword stringValue],
-            kCFHTTPAuthenticationSchemeBasic,
-            FALSE);
-
-    NSString *authorizationString =
-            (NSString *)CFHTTPMessageCopyHeaderFieldValue(
-                    dummyRequest,
-                    CFSTR("Authorization"));
-
-    CFRelease(dummyRequest);
-
-    [request setValue:authorizationString
-    forHTTPHeaderField:@"Authorization"];*/
-
-    //[NSURLConnection connectionWithRequest:request delegate:self];
-}
 
 - (void)loadSettings
 {
@@ -560,6 +418,7 @@
     ESScreensaver_SetStringSetting("settings.content.server", serverField.stringValue.UTF8String);
 }
 
+// MARK: Create Account
 - (IBAction)goToCreateAccountPage:(id)__unused sender
 {
     NSURL* helpURL = [NSURL URLWithString:@"https://e-dream.ai/register"];
@@ -567,12 +426,12 @@
     [[NSWorkspace sharedWorkspace] openURL:helpURL];
 }
 
-- (IBAction)goToLearnMorePage:(id)__unused sender
+/*- (IBAction)goToLearnMorePage:(id)__unused sender
 {
     NSURL* helpURL = [NSURL URLWithString:@"https://e-dream.ai/learnmore"];
 
     [[NSWorkspace sharedWorkspace] openURL:helpURL];
-}
+}*/
 
 - (IBAction)chooseContentFolder:(id)__unused sender
 {
@@ -614,10 +473,14 @@
     [self updateAuthUI];
 }
 
+// MARK: Validate login
 - (IBAction)validateLogin:(id)__unused sender
 {
     if (EDreamClient::IsLoggedIn())
     {
+        // Store the current email before signing out
+        m_previousLoginEmail = [emailTextField.stringValue copy];
+        
         EDreamClient::SignOut();
 
         m_sentCode = false;
@@ -646,6 +509,14 @@
                 // Login successful
                 m_sentCode = false;
                 m_loginWasSuccessful = true;
+                
+                // Check if the email has changed from the previous login
+                if (m_previousLoginEmail && ![m_previousLoginEmail isEqualToString:emailTextField.stringValue]) {
+
+                    [self showRestartMessageAndRelaunch];
+                }
+                
+                
                 EDreamClient::DidSignIn(); // Let client know we signed in
                 
                 [self updateAuthUI];
@@ -673,6 +544,46 @@
 {
     [emailTextField setDelegate:nil];
     [digitCodeTextField setDelegate:nil];
+}
+
+- (void)showRestartMessageAndRelaunch
+{
+    NSAlert *alert = [[NSAlert alloc] init];
+    [alert setMessageText:@"Account Change Detected"];
+    [alert setInformativeText:@"e-dream will now exit. Please restart the application to take your new settings into account."];
+    [alert addButtonWithTitle:@"OK"];
+    
+    [alert beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse returnCode) {
+        if (returnCode == NSAlertFirstButtonReturn) {
+            std::exit(0);
+        }
+    }];
+}
+
+- (void)relaunchApplication
+{
+    std::exit(0);
+    
+    NSString *appPath = [NSString stringWithUTF8String:PlatformUtils::GetAppPath().c_str()];
+    NSURL *appURL = [NSURL fileURLWithPath:appPath];
+    
+    NSWorkspace *workspace = [NSWorkspace sharedWorkspace];
+    NSError *error = nil;
+    
+    // Launch the new instance
+    [workspace openApplicationAtURL:appURL
+                      configuration:[NSWorkspaceOpenConfiguration configuration]
+              completionHandler:^(NSRunningApplication * _Nullable app, NSError * _Nullable error) {
+                  if (app) {
+                      // The new instance was launched successfully, now we can exit the current instance
+                      dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                          std::exit(0);
+                      });
+                  } else {
+                      // If the launch failed, log an error and don't exit
+                      g_Log->Error("Failed to relaunch the application. Error: %s", error.localizedDescription.UTF8String);
+                  }
+              }];
 }
 
 @end

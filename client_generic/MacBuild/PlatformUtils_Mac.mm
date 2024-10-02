@@ -12,6 +12,7 @@
 
 #include <string_view>
 #include <pthread.h>
+#include <CoreFoundation/CoreFoundation.h>
 
 #include "Log.h"
 #include "PlatformUtils.h"
@@ -133,6 +134,18 @@ void PlatformUtils::DispatchOnMainThread(std::function<void()> _func)
         _func();
     });
 }
+
+std::string PlatformUtils::GetAppPath() {
+    CFURLRef bundleURL = CFBundleCopyBundleURL(CFBundleGetMainBundle());
+    CFStringRef cfPath = CFURLCopyFileSystemPath(bundleURL, kCFURLPOSIXPathStyle);
+    std::string path(CFStringGetCStringPtr(cfPath, kCFStringEncodingUTF8));
+    
+    CFRelease(cfPath);
+    CFRelease(bundleURL);
+    
+    return path;
+}
+
 
 CDelayedDispatch::CDelayedDispatch(std::function<void()> _func)
     : m_DispatchTime(0), m_Func(_func)
