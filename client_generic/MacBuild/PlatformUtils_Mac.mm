@@ -7,6 +7,7 @@
 
 #import <Foundation/Foundation.h>
 #import <SystemConfiguration/SystemConfiguration.h>
+#import <Bugsnag/Bugsnag.h>
 
 #import "ESScreensaverView.h"
 
@@ -147,6 +148,14 @@ std::string PlatformUtils::GetAppPath() {
 }
 
 
+void PlatformUtils::NotifyError(std::string_view errorMessage) {
+    NSString *nsErrorMessage = [NSString stringWithUTF8String:errorMessage.data()];
+
+    // Report the error to Bugsnag
+    [Bugsnag notify:[NSException exceptionWithName:@"Error" reason:nsErrorMessage userInfo:nil]];
+}
+
+
 CDelayedDispatch::CDelayedDispatch(std::function<void()> _func)
     : m_DispatchTime(0), m_Func(_func)
 {
@@ -166,3 +175,4 @@ void CDelayedDispatch::DispatchAfter(uint64_t seconds)
         }
     });
 }
+

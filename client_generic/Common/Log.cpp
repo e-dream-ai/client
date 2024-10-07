@@ -359,6 +359,7 @@ void CLog::Warning(std::string_view _pFmt, ...)
 }
 void CLog::Error(std::string_view _pFmt, ...)
 {
+    PlatformUtils::NotifyError(_pFmt);
     grabvarargs Log("ERROR",
                     /*m_File.c_str(), m_Line, m_Function.c_str(),*/ pTempStr);
 }

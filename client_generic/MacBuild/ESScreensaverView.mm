@@ -2,7 +2,7 @@
 
 #import "ESScreensaverView.h"
 #import "ESScreensaver.h"
-//#import <Bugsnag/Bugsnag.h>
+#import <Bugsnag/Bugsnag.h>
 //#import <Sparkle/Sparkle.h>
 #include <csignal>
 
@@ -95,6 +95,7 @@
 
 - (void)startAnimation
 {
+    g_Log->Error("Test error 2");
     if (view == NULL)
     {
 #ifdef SCREEN_SAVER
