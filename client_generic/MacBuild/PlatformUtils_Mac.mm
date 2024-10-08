@@ -152,7 +152,7 @@ void PlatformUtils::NotifyError(std::string_view errorMessage) {
     NSString *nsErrorMessage = [NSString stringWithUTF8String:errorMessage.data()];
 
     // Report the error to Bugsnag
-    [Bugsnag notify:[NSException exceptionWithName:@"Error" reason:nsErrorMessage userInfo:nil]];
+    //[Bugsnag notify:[NSException exceptionWithName:@"Error" reason:nsErrorMessage userInfo:nil]];
 }
 
 

@@ -539,6 +539,8 @@ bool CPlayer::Update(uint32_t displayUnit, bool& bPlayNoSheepIntro)
             PlayNextDream();
         } else if (!m_currentClip && m_isFirstPlay) {
             PlayNextDream();
+        } else if (m_currentClip->HasFinished()) {
+            PlayNextDream();
         }
     }
 

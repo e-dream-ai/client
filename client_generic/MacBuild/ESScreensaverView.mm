@@ -95,7 +95,7 @@
 
 - (void)startAnimation
 {
-    g_Log->Error("Test error 2");
+    //g_Log->Error("Test error 2");
     if (view == NULL)
     {
 #ifdef SCREEN_SAVER
