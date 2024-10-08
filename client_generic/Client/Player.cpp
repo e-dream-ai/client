@@ -82,6 +82,15 @@ using spCClip = ContentDecoder::spCClip;
 typedef std::shared_lock<std::shared_mutex> reader_lock;
 typedef std::unique_lock<std::shared_mutex> writer_lock;
 
+// Async destruction of a clip. The destructor may be delayed by a
+// catch up streaming mechanism for caching
+void destroyClipAsync(ContentDecoder::spCClip clip) {
+    std::thread([clip = std::move(clip)]() mutable {
+        // This should call the destructor now
+        clip = nullptr;
+    }).detach();
+}
+
 // MARK: - Setup & lifecycle
 CPlayer::CPlayer() : m_isFirstPlay(true)
 {
@@ -610,9 +619,17 @@ bool CPlayer::PlayClip(const Cache::Dream* dream, double _startTime, int64_t _se
     newClip->SetStartTime(_startTime);
     
     if (m_isFirstPlay || !isTransition) {
+        // Start the asynchronous destruction of the current clip
+        if (m_currentClip) {
+            destroyClipAsync(std::move(m_currentClip));
+        }
+        
         m_currentClip = newClip;
         m_isTransitioning = false;
     } else if (isTransition) {
+        if (m_nextClip) {
+            destroyClipAsync(std::move(m_nextClip));
+        }
         m_nextClip = newClip;
     }
 
@@ -844,14 +861,11 @@ void CPlayer::StartTransition()
 
     m_isTransitioning = true;
     m_transitionStartTime = m_TimelineTime;
+    
+    if (m_nextClip) {
+        destroyClipAsync(std::move(m_nextClip));
+    }
     m_nextClip = nullptr;  // We'll set this when we have the next clip ready
-}
-
-void destroyClipAsync(ContentDecoder::spCClip clip) {
-    std::thread([clip = std::move(clip)]() mutable {
-        // This should call the destructor now
-        clip = nullptr;
-    }).detach();
 }
 
 void CPlayer::UpdateTransition(double currentTime)
@@ -870,6 +884,7 @@ void CPlayer::UpdateTransition(double currentTime)
         }
         
         m_currentClip = m_nextClip;
+        
         m_nextClip = nullptr;
         m_transitionDuration = 5.0f;
     } else if (!m_nextClip) {
