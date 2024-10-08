@@ -22,14 +22,17 @@ PlaylistManager::~PlaylistManager() {
 
 // MARK: Init
 bool PlaylistManager::initializePlaylist(const std::string& playlistUUID) {
+    m_initializeInProgress = true;
     m_currentPlaylistUUID = playlistUUID;
     
     if (!EDreamClient::FetchPlaylist(playlistUUID)) {
         g_Log->Error("Failed to fetch playlist. UUID: %s", playlistUUID.c_str());
+        m_initializeInProgress = false;
         return false;
     }
     
     if (!parsePlaylist(playlistUUID)) {
+        m_initializeInProgress = false;
         return false;
     }
 
@@ -41,7 +44,8 @@ bool PlaylistManager::initializePlaylist(const std::string& playlistUUID) {
     if (!m_isCheckingActive) {
         startPeriodicChecking();
     }
-    
+
+    m_initializeInProgress = false;
     return true;
 }
 

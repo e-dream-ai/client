@@ -539,7 +539,7 @@ bool CPlayer::Update(uint32_t displayUnit, bool& bPlayNoSheepIntro)
             PlayNextDream();
         } else if (!m_currentClip && m_isFirstPlay) {
             PlayNextDream();
-        } else if (m_currentClip->HasFinished()) {
+        } else if (m_currentClip && m_currentClip->HasFinished()) {
             PlayNextDream();
         }
     }
@@ -629,7 +629,18 @@ void CPlayer::PlayNextDream(bool quickFade)
     
     // Ensure we have one
     if (!nextDream) {
-        g_Log->Error("No next dream available to play");
+        // Make sure playlist manager is ready
+        if (!m_playlistManager->isReady())
+        {
+            g_Log->Info("Playlist manager still warming up, waiting");
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            return;
+        }
+        
+        // Last resort, revert to default playlist
+        // this could be triggered by an empty playlist
+        g_Log->Error("No next dream available to play, reseting to default playlist");
+        ResetPlaylist();
         return;
     }
     
@@ -667,7 +678,7 @@ void CPlayer::PlayNextDream(bool quickFade)
             }
         }
     } else {
-        g_Log->Error("No next dream available to play");
+        g_Log->Error("No next dream available to play (empty uuid)");
     }
 }
 

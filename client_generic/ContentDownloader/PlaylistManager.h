@@ -69,10 +69,14 @@ public:
     
     std::chrono::seconds getTimeUntilNextCheck() const;
     void removeCurrentDream();
+    bool isReady() { return !m_initializeInProgress; };
+
 private:
     std::vector<std::string> m_playlist;
     bool m_started;
 
+    bool m_initializeInProgress = false;
+    
     std::string m_currentPlaylistUUID;
     std::string m_currentPlaylistName;
     std::string m_currentPlaylistArtist;
