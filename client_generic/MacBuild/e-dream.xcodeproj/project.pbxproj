@@ -249,6 +249,10 @@
 		F02A5C3E2C453FEF00B57FBD /* DreamDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F02A5C3C2C453FEF00B57FBD /* DreamDownloader.cpp */; };
 		F02A5C3F2C453FEF00B57FBD /* DreamDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F02A5C3C2C453FEF00B57FBD /* DreamDownloader.cpp */; };
 		F02A5C402C453FEF00B57FBD /* DreamDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F02A5C3C2C453FEF00B57FBD /* DreamDownloader.cpp */; };
+		F0351BEA2CB5BB4F0055091F /* Bugsnag in Frameworks */ = {isa = PBXBuildFile; productRef = F0351BE92CB5BB4F0055091F /* Bugsnag */; };
+		F0351BEC2CB5BBF10055091F /* Bugsnag in Frameworks */ = {isa = PBXBuildFile; productRef = F0351BEB2CB5BBF10055091F /* Bugsnag */; };
+		F0351BEE2CB5BBF90055091F /* Bugsnag in Frameworks */ = {isa = PBXBuildFile; productRef = F0351BED2CB5BBF90055091F /* Bugsnag */; };
+		F0351BF02CB5BBFF0055091F /* Bugsnag in Frameworks */ = {isa = PBXBuildFile; productRef = F0351BEF2CB5BBFF0055091F /* Bugsnag */; };
 		F05994582BA0912300B018C7 /* osd-pill-r.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994532BA0912200B018C7 /* osd-pill-r.png */; };
 		F05994592BA0912300B018C7 /* osd-pill-r.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994532BA0912200B018C7 /* osd-pill-r.png */; };
 		F059945A2BA0912300B018C7 /* osd-pill-u.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994542BA0912200B018C7 /* osd-pill-u.png */; };
@@ -942,6 +946,7 @@
 				F07071D92C0E05DA008219A4 /* libboost_system.a in Frameworks */,
 				F0141B9B2C663E8900DBA60E /* libavformat.a in Frameworks */,
 				12579D492B83C98D00604B41 /* libcrypto.a in Frameworks */,
+				F0351BEC2CB5BBF10055091F /* Bugsnag in Frameworks */,
 				12CA4A462B83DE3D00A2EAD6 /* libsioclient_tls.a in Frameworks */,
 				12579D4A2B83C99100604B41 /* libssl.a in Frameworks */,
 				2160FCAB0F30F48200B2C27A /* libz.1.2.5.dylib in Frameworks */,
@@ -978,6 +983,7 @@
 				F0C1FFFC2C1372C4007FA505 /* libboost_json.a in Frameworks */,
 				464A49E92AB89D9D00C77F6D /* liblzma.tbd in Frameworks */,
 				2135DB250EC75133005E246D /* ScreenSaver.framework in Frameworks */,
+				F0351BEA2CB5BB4F0055091F /* Bugsnag in Frameworks */,
 				21887A130EC6CDF9001ABD2E /* CoreFoundation.framework in Frameworks */,
 				F0141B962C663E2700DBA60E /* libavutil.a in Frameworks */,
 				21887A140EC6CDF9001ABD2E /* GLUT.framework in Frameworks */,
@@ -1018,6 +1024,7 @@
 				F0C100612C1372EF007FA505 /* CoreMedia.framework in Frameworks */,
 				F0C100622C1372EF007FA505 /* libboost_json.a in Frameworks */,
 				F0C100632C1372EF007FA505 /* liblzma.tbd in Frameworks */,
+				F0351BF02CB5BBFF0055091F /* Bugsnag in Frameworks */,
 				F0C100642C1372EF007FA505 /* ScreenSaver.framework in Frameworks */,
 				F0C100652C1372EF007FA505 /* CoreFoundation.framework in Frameworks */,
 				F0C100662C1372EF007FA505 /* GLUT.framework in Frameworks */,
@@ -1069,6 +1076,7 @@
 				F0E9CE952C136B0500C4D694 /* libboost_system.a in Frameworks */,
 				F0141BA92C663F1500DBA60E /* libavformat.a in Frameworks */,
 				F0E9CE962C136B0500C4D694 /* libcrypto.a in Frameworks */,
+				F0351BEE2CB5BBF90055091F /* Bugsnag in Frameworks */,
 				F0E9CE972C136B0500C4D694 /* libsioclient_tls.a in Frameworks */,
 				F0E9CE982C136B0500C4D694 /* libssl.a in Frameworks */,
 				F0E9CE9C2C136B0500C4D694 /* libz.1.2.5.dylib in Frameworks */,
@@ -1509,6 +1517,7 @@
 			name = "e-dream App Prod";
 			packageProductDependencies = (
 				129AC5CF2B69348E00E2E3E8 /* Sparkle */,
+				F0351BEB2CB5BBF10055091F /* Bugsnag */,
 			);
 			productName = ElectricSheep;
 			productReference = 2160FAAD0F30F43600B2C27A /* e-dream.app */;
@@ -1532,6 +1541,7 @@
 			);
 			name = ScreenSaver;
 			packageProductDependencies = (
+				F0351BE92CB5BB4F0055091F /* Bugsnag */,
 			);
 			productName = ScreenSaver;
 			productReference = 218878D00EC6CD7E001ABD2E /* e-dream.saver */;
@@ -1555,6 +1565,7 @@
 			);
 			name = "ScreenSaver stage";
 			packageProductDependencies = (
+				F0351BEF2CB5BBFF0055091F /* Bugsnag */,
 			);
 			productName = ScreenSaver;
 			productReference = F0C100842C1372EF007FA505 /* e-dream-stage.saver */;
@@ -1578,6 +1589,7 @@
 			name = "e-dream Stage";
 			packageProductDependencies = (
 				F0E9CE2B2C136B0500C4D694 /* Sparkle */,
+				F0351BED2CB5BBF90055091F /* Bugsnag */,
 			);
 			productName = ElectricSheep;
 			productReference = F0E9CEB12C136B0500C4D694 /* e-dream Stage.app */;
@@ -2402,7 +2414,6 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CONFIGURATION_BUILD_DIR = build/Debug;
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
@@ -2456,7 +2467,6 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Developer ID Application";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CONFIGURATION_BUILD_DIR = build/Release;
 				COPY_PHASE_STRIP = YES;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
@@ -2516,7 +2526,6 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CONFIGURATION_BUILD_DIR = build/Debug;
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
@@ -2571,7 +2580,6 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Developer ID Application";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CONFIGURATION_BUILD_DIR = build/Release;
 				COPY_PHASE_STRIP = YES;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
@@ -2830,6 +2838,26 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 129AC5CE2B69348E00E2E3E8 /* XCRemoteSwiftPackageReference "sparkle" */;
 			productName = Sparkle;
+		};
+		F0351BE92CB5BB4F0055091F /* Bugsnag */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0397FD582B8C915A00C5D640 /* XCRemoteSwiftPackageReference "bugsnag-cocoa" */;
+			productName = Bugsnag;
+		};
+		F0351BEB2CB5BBF10055091F /* Bugsnag */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0397FD582B8C915A00C5D640 /* XCRemoteSwiftPackageReference "bugsnag-cocoa" */;
+			productName = Bugsnag;
+		};
+		F0351BED2CB5BBF90055091F /* Bugsnag */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0397FD582B8C915A00C5D640 /* XCRemoteSwiftPackageReference "bugsnag-cocoa" */;
+			productName = Bugsnag;
+		};
+		F0351BEF2CB5BBFF0055091F /* Bugsnag */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0397FD582B8C915A00C5D640 /* XCRemoteSwiftPackageReference "bugsnag-cocoa" */;
+			productName = Bugsnag;
 		};
 		F0E9CE2B2C136B0500C4D694 /* Sparkle */ = {
 			isa = XCSwiftPackageProductDependency;
