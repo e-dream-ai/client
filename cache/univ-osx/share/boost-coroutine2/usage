@@ -1,0 +1,9 @@
+The package boost-coroutine2 is compatible with built-in CMake targets of FindBoost.cmake:
+
+    find_package(Boost REQUIRED COMPONENTS coroutine2)
+    target_link_libraries(main PRIVATE Boost::coroutine2)
+
+or the generated cmake configs via:
+
+    find_package(boost_coroutine2 REQUIRED CONFIG)
+    target_link_libraries(main PRIVATE Boost::coroutine2)

@@ -8,7 +8,6 @@
 
 #include "Networking.h"
 #include "Log.h"
-#include "Shepherd.h"
 
 namespace Network
 {

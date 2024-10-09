@@ -1,0 +1,72 @@
+//
+//  DreamDownloader.h
+//  ScreenSaver
+//
+//  Created by Guillaume Louel on 15/07/2024.
+//
+
+#ifndef DreamDownloader_h
+#define DreamDownloader_h
+
+#include <stdio.h>
+#include <vector>
+#include <string>
+#include <set>
+#include <mutex>
+#include <future>
+#include <boost/thread.hpp>
+#include <filesystem>
+
+namespace fs = std::filesystem;
+
+namespace ContentDownloader
+{
+
+class DreamDownloader {
+public:
+    DreamDownloader() : isRunning(false) {}
+    ~DreamDownloader() {
+        StopFindingDreams();
+    }
+
+    void FindDreamsToDownload(); 
+
+    void StopFindingDreams()  {
+        isRunning.store(false);
+        if (thread.joinable()) {
+            thread.interrupt();
+            thread.join();
+        }
+    }
+    
+    void AddDreamUUID(const std::string& uuid);
+    void AddDreamUUIDs(const std::vector<std::string>& uuids);
+    size_t GetDreamUUIDCount() const;
+    bool isDreamUUIDQueued(const std::string& uuid) const; 
+    
+    std::future<bool> DownloadImmediately(const std::string& uuid, std::function<void(bool, const std::string&)> callback = nullptr);
+
+    bool DownloadDream(const std::string& uuid, const std::string& downloadLink, bool enqueue = true);
+    bool DownloadDreamNow(const std::string& uuid, std::function<void(bool, const std::string&)> callback = nullptr);
+
+    void SetDownloadStatus(const std::string& status);
+    std::string GetDownloadStatus() const;
+    
+private:
+    void FindDreamsThread();
+    
+    boost::thread thread;
+    std::atomic<bool> isRunning;
+    std::set<std::string> m_dreamUUIDs;
+    mutable std::mutex m_mutex;
+
+    // Download status
+    mutable std::mutex m_statusMutex;
+    std::string m_downloadStatus;
+};
+
+}
+
+
+
+#endif /* DreamDownloader_h */

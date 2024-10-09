@@ -1,0 +1,9 @@
+The package boost-safe-numerics is compatible with built-in CMake targets of FindBoost.cmake:
+
+    find_package(Boost REQUIRED COMPONENTS safe_numerics)
+    target_link_libraries(main PRIVATE Boost::safe_numerics)
+
+or the generated cmake configs via:
+
+    find_package(boost_safe_numerics REQUIRED CONFIG)
+    target_link_libraries(main PRIVATE Boost::safe_numerics)

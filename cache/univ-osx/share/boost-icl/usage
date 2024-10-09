@@ -1,0 +1,9 @@
+The package boost-icl is compatible with built-in CMake targets of FindBoost.cmake:
+
+    find_package(Boost REQUIRED COMPONENTS icl)
+    target_link_libraries(main PRIVATE Boost::icl)
+
+or the generated cmake configs via:
+
+    find_package(boost_icl REQUIRED CONFIG)
+    target_link_libraries(main PRIVATE Boost::icl)

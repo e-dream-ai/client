@@ -22,15 +22,17 @@
 #include "Hud.h"
 #include "Matrix.h"
 #include "ServerMessage.h"
-#include "Shepherd.h"
+#include "MessageQueue.h"
 #include "Splash.h"
 #include "OSD.hpp"
 #include "StartupScreen.h"
 #include "StatsConsole.h"
 #include "TextureFlat.h"
 #include "Timer.h"
+
 #include "PlatformUtils.h"
 #include "StringFormat.h"
+#include "CacheManager.h"
 
 #if defined(WIN32) && defined(_MSC_VER)
 #include "../msvc/cpu_usage_win32.h"
@@ -72,6 +74,9 @@ inline float TapsToBrightness(double taps) {
 */
 class CElectricSheep
 {
+  private:
+    Cache::MessageQueue m_MessageQueue;
+
   protected:
     ESCpuUsage m_CpuUsage;
     double m_LastCPUCheckTime;
@@ -79,6 +84,7 @@ class CElectricSheep
     int m_CpuUsageES;
     int m_HighCpuUsageCounter;
     int m_CpuUsageThreshold;
+    std::string m_PreviousDlState; // Track download status
     bool m_MultipleInstancesMode;
     bool m_bConfigMode;
     bool m_SeamlessPlayback;
@@ -487,8 +493,7 @@ class CElectricSheep
         bool internetReachable = PlatformUtils::IsInternetReachable();
         if (!internetReachable)
         {
-            ContentDownloader::Shepherd::addMessageText(
-                "No Internet Connection.", 180);
+            m_MessageQueue.QueueMessage("No Internet Connection.", 180);
         }
         //    Start downloader.
         g_Log->Info("Starting downloader...");
@@ -496,9 +501,14 @@ class CElectricSheep
         g_ContentDownloader().Startup(false, m_MultipleInstancesMode ||
                                                  !internetReachable);
 
+        // Also load our local cache
+        // Grab the CacheManager
+        Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+        cm.loadCachedMetadata();
+        
         // call static method to fill sheep counts
-        ContentDownloader::Shepherd::GetFlockSizeMBsRecount(0);
-        ContentDownloader::Shepherd::GetFlockSizeMBsRecount(1);
+        //ContentDownloader::Shepherd::GetFlockSizeMBsRecount(0);
+        //ContentDownloader::Shepherd::GetFlockSizeMBsRecount(1);
         spCDelayedDispatch hideCursorDispatch =
             std::make_shared<CDelayedDispatch>(
                 [&, this]() -> void
@@ -698,7 +708,8 @@ class CElectricSheep
             m_pUpdateBarrier->wait();
         }
 #else
-        uint32_t displayCnt = g_Player().GetDisplayCount();
+        // No longer used ?
+        // uint32_t displayCnt = g_Player().GetDisplayCount();
 
         _beginFrameBarrier.wait();
         bool ret = DoRealFrameUpdate(_displayIdx);
@@ -729,7 +740,37 @@ class CElectricSheep
         }
     }
 #endif
+    
+    void updateNextCheckTimeDisplay() {
+        auto timeUntilNextCheck = g_Player().m_playlistManager->getTimeUntilNextCheck();
+        int minutes = std::chrono::duration_cast<std::chrono::minutes>(timeUntilNextCheck).count();
 
+        std::stringstream ss;
+        if (minutes == 0) {
+            ss << "Next playlist check in less than a minute"
+            << " | (Playing video " << (g_Player().m_playlistManager->getCurrentPosition() + 1) // +1 for human-readable indexing
+            << "/" << g_Player().m_playlistManager->getPlaylistSize() << ")";
+        } else {
+            ss << "Next playlist check in " << minutes << " minute" << (minutes != 1 ? "s" : "")
+            << " | (Playing video " << (g_Player().m_playlistManager->getCurrentPosition() + 1) // +1 for human-readable indexing
+            << "/" << g_Player().m_playlistManager->getPlaylistSize() << ")";
+        }
+
+        // Update the HUD with this information
+        Hud::spCStatsConsole spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(m_HudManager->Get("dreamstats"));
+        if (spStats) {
+            auto pNextCheckStat = static_cast<Hud::CStringStat*>(spStats->Get("next_check_time"));
+            if (!pNextCheckStat) {
+                // If the stat doesn't exist, create it
+                pNextCheckStat = new Hud::CStringStat("next_check_time", "", "");
+                spStats->Add(pNextCheckStat);
+            }
+            pNextCheckStat->SetSample(ss.str());
+        }
+    }
+
+    
+// MARK: Main per frame update loop
     virtual bool DoRealFrameUpdate(uint32_t displayUnit)
     {
         if (g_Player().BeginDisplayFrame(displayUnit))
@@ -747,6 +788,10 @@ class CElectricSheep
             bool drawNoSheepIntro = false;
             bool drawn = g_Player().Update(displayUnit, drawNoSheepIntro);
 
+            if (!EDreamClient::IsLoggedIn() || !g_Player().HasStarted()) {
+                drawNoSheepIntro = true;
+            }
+            
             if ((drawNoSheepIntro && displayUnit == 0) ||
                 (drawn && displayUnit == 0))
             {
@@ -830,7 +875,7 @@ class CElectricSheep
                     }
                 }
 
-                if (ContentDownloader::Shepherd::PopMessage(msg, duration))
+                if (m_MessageQueue.PopMessage(msg, duration))
                 {
                     bool addtohud = true;
                     time_t lt = time(nullptr);
@@ -839,15 +884,12 @@ class CElectricSheep
                         (msg == "server request failed, using free one"))
                     {
                         std::string temptime = ctime(&lt);
-                        msg = temptime.substr(0, temptime.length() -
-                                                     strlen("\n")) +
-                              " " + msg;
+                        msg = temptime.substr(0, temptime.length() - strlen("\n")) + " " + msg;
                         g_Log->Error(msg.c_str());
                         if (m_ConnectionErrors.size() > 20)
                             m_ConnectionErrors.pop_front();
                         m_ConnectionErrors.push_back(msg);
-                        if (g_Settings()->Get("settings.player.quiet_mode",
-                                              true) == true)
+                        if (g_Settings()->Get("settings.player.quiet_mode", true) == true)
                             addtohud = false;
                     }
 
@@ -867,7 +909,7 @@ class CElectricSheep
                 }
 
                 std::string batteryStatus = "Unknown";
-                bool blockRendering = false;
+                /*bool blockRendering = false;
                 if (m_Timer.Time() > m_LastCPUCheckTime + 3.)
                 {
                     m_LastCPUCheckTime = m_Timer.Time();
@@ -891,10 +933,10 @@ class CElectricSheep
                                     --m_HighCpuUsageCounter;
                             }
                         }
-                }
-                if (m_HighCpuUsageCounter > 0 &&
+                }*/
+                /*if (m_HighCpuUsageCounter > 0 &&
                     ContentDownloader::Shepherd::RenderingAllowed() == false)
-                    blockRendering = true;
+                    blockRendering = true;*/
 
                 switch (GetACLineStatus())
                 {
@@ -912,7 +954,7 @@ class CElectricSheep
                     /*m_PlayerFps = m_OriginalFps/2; // half speed on battery
                     power m_CurrentFps = m_PlayerFps; g_Player().Framerate(
                     m_CurrentFps );*/
-                    blockRendering = true;
+                    //blockRendering = true;
                     break;
                 }
                 case 255:
@@ -927,23 +969,31 @@ class CElectricSheep
                 }
                 }
 
-                if (blockRendering)
+/*                if (blockRendering)
                     ContentDownloader::Shepherd::SetRenderingAllowed(false);
                 else
                     ContentDownloader::Shepherd::SetRenderingAllowed(true);
-
+*/
+                
+                // Update and display the time until next playlist check
+                updateNextCheckTimeDisplay();
+                
                 //	Update some stats.
                 spStats =
                     std::dynamic_pointer_cast<Hud::CStatsConsole>(
                         m_HudManager->Get("dreamstats"));
                 float activityLevel = 1.f;
                 double realFps = 20;
+                bool isStreaming = false;
                 const ContentDecoder::sClipMetadata* clipMetadata =
                     g_Player().GetCurrentPlayingClipMetadata();
+                double baseFps = 1;
                 if (clipMetadata)
                 {
                     activityLevel = clipMetadata->dreamData.activityLevel;
                     realFps = clipMetadata->decodeFps;
+                    isStreaming = !(clipMetadata->dreamData.isCached());
+                    baseFps = std::stod(clipMetadata->dreamData.fps);
                 }
 
                 const ContentDecoder::sFrameMetadata* frameMetadata =
@@ -954,18 +1004,24 @@ class CElectricSheep
                         ->SetSample(
                             string_format("%s/%s",
                                           FrameNumberToMinutesAndSecondsString(
-                                              frameMetadata->frameIdx, 20)
+                                              frameMetadata->frameIdx, baseFps)
                                               .data(),
                                           FrameNumberToMinutesAndSecondsString(
-                                              frameMetadata->maxFrameIdx, 20)
+                                              frameMetadata->maxFrameIdx, baseFps)
                                               .data()));
                 }
                 
                 // Grab Perceptual FPS from player
                 double pFPS = g_Player().GetPerceptualFPS();
-                
-                ((Hud::CStringStat*)spStats->Get("decodefps"))
-                    ->SetSample(string_format(" %.2f fps", realFps));
+                if (isStreaming) {
+                    ((Hud::CStringStat*)spStats->Get("decodefps"))
+                        ->SetSample(string_format(" %.2f fps (streaming)", realFps));
+
+                } else {
+                    ((Hud::CStringStat*)spStats->Get("decodefps"))
+                        ->SetSample(string_format(" %.2f fps", realFps));
+                }
+
                 ((Hud::CStringStat*)spStats->Get("perceptualfps"))
                     ->SetSample(string_format(" %.2f fps", pFPS));
 
@@ -981,21 +1037,12 @@ class CElectricSheep
                     m_HudManager->Get("dreamcredits"));
                 if (clipMetadata)
                 {
-                    if (g_Player().m_spPlaylist->playlistId > 0) {
-                        ((Hud::CStringStat*)spStats->Get("credits-line1"))
-                        ->SetSample(string_format("title: %s",clipMetadata->dreamData.name.c_str()));
-                        ((Hud::CStringStat*)spStats->Get("credits-line2"))
-                        ->SetSample(string_format("artist: %s",clipMetadata->dreamData.author.c_str()));
-                        ((Hud::CStringStat*)spStats->Get("credits-line3"))
-                        ->SetSample(string_format("playlist: %s",g_Player().m_spPlaylist->playlistName.c_str()));
-                    } else {
-                        ((Hud::CStringStat*)spStats->Get("credits-line1"))
-                        ->SetSample("");
-                        ((Hud::CStringStat*)spStats->Get("credits-line2"))
-                        ->SetSample(string_format("title: %s",clipMetadata->dreamData.name.c_str()));
-                        ((Hud::CStringStat*)spStats->Get("credits-line3"))
-                        ->SetSample(string_format("artist: %s",clipMetadata->dreamData.author.c_str()));
-                    }
+                    ((Hud::CStringStat*)spStats->Get("credits-line1"))
+                    ->SetSample(string_format("title: %s",clipMetadata->dreamData.name.c_str()));
+                    ((Hud::CStringStat*)spStats->Get("credits-line2"))
+                    ->SetSample(string_format("artist: %s",clipMetadata->dreamData.artist.c_str()));
+                    ((Hud::CStringStat*)spStats->Get("credits-line3"))
+                    ->SetSample(string_format("playlist: %s",g_Player().GetPlaylistName().c_str()));
                 }
                 
                 //	Serverstats.
@@ -1015,16 +1062,24 @@ class CElectricSheep
                     EDreamClient::SetCPUUsage(m_CpuUsageES);
                 }
 
-                std::stringstream tmpstr;
-                uint64_t flockcount =
-                    ContentDownloader::Shepherd::getClientFlockCount(0);
-                uint64_t flockmbs =
-                    ContentDownloader::Shepherd::getClientFlockMBs(0);
-                tmpstr << flockcount << " dream" << (flockcount > 1 ? "s" : "")
-                       << ", " << flockmbs << "MB";
-                ((Hud::CStringStat*)spStats->Get("all"))
+                Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+                // Make sure the cache is primed before using those
+                if (cm.dreamCount() > 0) {
+                    std::stringstream tmpstr;
+                    auto dreamCount = cm.getCachedDreamCount();
+                    
+                    auto cacheSizeGB = cm.getCacheSize();
+                    std::stringstream stream;
+                    stream << std::fixed << std::setprecision(1) << cacheSizeGB;
+                    // std::string cacheSizeString = stream.str() + " GB";
+                    
+                    
+                    tmpstr << dreamCount << " dream" << (dreamCount > 1 ? "s" : "")
+                    << ", " << stream.str() << " GB";
+                    ((Hud::CStringStat*)spStats->Get("all"))
                     ->SetSample(tmpstr.str());
-
+                }
+                
                 pTmp =
                     (Hud::CStringStat*)spStats->Get("transfers");
                 if (pTmp)
@@ -1048,8 +1103,8 @@ class CElectricSheep
                     {
                         std::stringstream loginstatusstr;
                         loginstatusstr
-                            << "Logged in as "
-                            << ContentDownloader::Shepherd::GetNickName();
+                        << "Logged in! Remaining quota: " << cm.getRemainingQuotaAsString();
+                        
                         pTmp->SetSample(loginstatusstr.str());
                     }
                     else
@@ -1063,9 +1118,7 @@ class CElectricSheep
                 if (pTmp)
                 {
                     std::string deleted;
-                    if (ContentDownloader::Shepherd::PopOverflowMessage(
-                            deleted) &&
-                        (deleted != ""))
+                    if (m_MessageQueue.PopOverflowMessage(deleted) && !deleted.empty())
                     {
                         pTmp->SetSample(deleted);
                         pTmp->Visible(true);
@@ -1098,15 +1151,14 @@ class CElectricSheep
                     (Hud::CTimeCountDownStat*)spStats->Get("svstat");
                 if (pTcd)
                 {
-                    bool isnew = false;
-
                     std::string dlState =
-                        ContentDownloader::Shepherd::downloadState(isnew);
+                                        g_ContentDownloader().m_gDownloader.GetDownloadStatus();
 
-                    if (isnew)
+                    if (dlState != m_PreviousDlState)
                     {
                         pTcd->SetSample(dlState);
                         pTcd->Visible(true);
+                        m_PreviousDlState = dlState;
                     }
                 }
 
@@ -1184,45 +1236,32 @@ class CElectricSheep
                     m_StatsCodeCounter = 0;
                     return true;
                 }
-/*                if (m_pVoter != nullptr &&
-                    m_pVoter->Vote(data->dreamData.uuid, true, voteDelaySeconds))*/
-
-                popOSD(Hud::Like);
-                EDreamClient::Like(data->dreamData.uuid);
+                if (data != nullptr) {
+                    EDreamClient::Like(data->dreamData.uuid);
+                    popOSD(Hud::Like);
+                }
                 return true;
             case CLIENT_COMMAND_DISLIKE:
                 if (data != nullptr) {
-		  if (1 /* m_pVoter != nullptr &&
-			   m_pVoter->Vote(data->dreamData.uuid, false, voteDelaySeconds)*/)
+                    EDreamClient::Dislike(data->dreamData.uuid);
+                    
+                    if (g_Settings()->Get("settings.content.negvotedeletes", true))
                     {
-                        if (g_Settings()->Get("settings.content.negvotedeletes", true))
-                        {
-                            // g_Player().Stop();
-                            g_Player().MarkForDeletion(currentDreamUUID);
-                            g_Player().SkipToNext();
-                            m_spCrossFade->Reset();
-                            m_HudManager->Add("fade", m_spCrossFade, 1);
-
-                            // We need to move to something else before deleting
-                            // We wait 5s to delete
-                            auto deleteDispatch =
-                                std::make_shared<CDelayedDispatch>(
-                                    [&, this]() -> void
-                                    {
-                                        g_Player().Delete(currentDreamUUID);
-
-                                    });
-                            deleteDispatch->DispatchAfter(5);
-
-                        } else {
-                            g_Player().SkipToNext();
-                            m_spCrossFade->Reset();
-                            m_HudManager->Add("fade", m_spCrossFade, 1);
+                        // g_Player().Stop();
+                        g_Player().MarkForDeletion(currentDreamUUID);
+                        if (g_Player().m_playlistManager) {
+                            g_Player().m_playlistManager->removeCurrentDream();
                         }
-
-                        popOSD(Hud::Dislike);
-			EDreamClient::Dislike(data->dreamData.uuid);
+                        g_Player().SkipToNext();
+                        m_spCrossFade->Reset();
+                        m_HudManager->Add("fade", m_spCrossFade, 1);
+                    } else {
+                        g_Player().SkipToNext();
+                        m_spCrossFade->Reset();
+                        m_HudManager->Add("fade", m_spCrossFade, 1);
                     }
+
+                    popOSD(Hud::Dislike);
                 }
 
                 return true;
@@ -1272,14 +1311,14 @@ class CElectricSheep
                 return true;
             case CLIENT_COMMAND_RESET_PLAYLIST:
                 printf("RESET PLAYLIST\n");
-                g_Settings()->Set("settings.content.current_playlist", 0);
+                g_Settings()->Set("settings.content.current_playlist_uuid", std::string(""));
                 g_Player().ResetPlaylist();
                 return true;
                 //  Force Next Sheep
             case CLIENT_COMMAND_NEXT:
                 popOSD(Hud::Next);
                 
-                if (g_Player().m_CurrentClips.size() > 1) {
+                /*if (g_Player().m_CurrentClips.size() > 1) {
                     auto [fadeInTime, _] =
                     g_Player().m_CurrentClips[0]->GetTransitionLength();
                     auto [__ , fadeOutTime] =
@@ -1289,7 +1328,7 @@ class CElectricSheep
                     g_Player().m_CurrentClips[0]->SetTransitionLength(fadeInTime, 1);
                     g_Player().m_CurrentClips[1]->SetTransitionLength(1,fadeOutTime);
 
-                }
+                }*/
                 
                 g_Player().SkipToNext();
                 return true;
@@ -1468,7 +1507,7 @@ class CElectricSheep
             " Relaunch e-dream application or preference pane to update.";
 #endif
 
-        ContentDownloader::Shepherd::QueueMessage(message, 30.0);
+        m_MessageQueue.QueueMessage(message, 30.0);
     }
 };
 

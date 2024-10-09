@@ -7,15 +7,18 @@
 #ifndef _LOG_H_
 #define _LOG_H_
 
+#include <boost/core/null_deleter.hpp>
 #include <boost/log/core.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/sinks/text_file_backend.hpp>
+#include <boost/log/sinks/text_ostream_backend.hpp>
 #include <boost/log/utility/setup/file.hpp>
 #include <boost/log/utility/setup/common_attributes.hpp>
 #include <boost/log/sources/severity_logger.hpp>
 #include <boost/log/sources/record_ostream.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>
+#include <iostream>
 
 #include <string_view>
 #include <mutex>
@@ -97,6 +100,9 @@ class CLog : public CSingleton<CLog>
         boost::log::sinks::text_file_backend>>
         m_Sink;
 
+    boost::shared_ptr<boost::log::sinks::synchronous_sink<
+        boost::log::sinks::text_ostream_backend>> m_ConsoleSink;
+    
     void Log(const char* _pType,
              /*const char *_file, const uint32_t _line, const char *_pFunc,*/
              const char* _pStr);

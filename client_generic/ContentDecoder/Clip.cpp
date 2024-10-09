@@ -19,7 +19,7 @@ CClip::CClip(const sClipMetadata& _metadata, spCRenderer _spRenderer,
              int32_t _displayMode, uint32_t _displayWidth,
              uint32_t _displayHeight)
     : m_ClipMetadata(_metadata), m_spRenderer(_spRenderer),
-      m_CurrentFrameMetadata{}, m_HasFinished(false)
+m_CurrentFrameMetadata{}, m_HasFinished(false), m_IsFadingOut(false)
 {
     //    Create frame display.
     if (_displayMode == 2)
@@ -76,7 +76,7 @@ CClip::CClip(const sClipMetadata& _metadata, spCRenderer _spRenderer,
 bool CClip::Start(int64_t _seekFrame)
 {
     m_DecoderClock = {};
-    return m_spDecoder->Start(m_ClipMetadata.path, _seekFrame);
+    return m_spDecoder->Start(m_ClipMetadata, _seekFrame);
 }
 
 void CClip::Stop() { m_spDecoder->Stop(); }
@@ -120,6 +120,8 @@ bool CClip::Update(double _timelineTime)
     if (_timelineTime > m_EndTime || m_spDecoder->HasEnded())
     {
         m_HasFinished.exchange(true);
+        m_IsFadingOut.exchange(false);
+        
         return false;
     }
     if (_timelineTime < m_StartTime)
@@ -141,6 +143,11 @@ bool CClip::Update(double _timelineTime)
         delta;
     double secondsOut = (maxIdx - idx) / m_ClipMetadata.decodeFps - delta;
     secondsOut = std::fmin(secondsOut, (m_EndTime - _timelineTime));
+    
+    if (secondsOut < m_FadeOutSeconds) {
+        m_IsFadingOut.exchange(true);
+    }
+
     float alpha = (float)std::fmin(secondsIn / m_FadeInSeconds, 1.f) *
                   (float)std::fmin(secondsOut / m_FadeOutSeconds, 1.f);
     if (secondsOut <= 0)
@@ -152,12 +159,10 @@ bool CClip::Update(double _timelineTime)
     return true;
 }
 
-bool CClip::DrawFrame(spCRenderer _spRenderer)
-{
+bool CClip::DrawFrame(spCRenderer _spRenderer, float alpha) {
     if (!m_spFrameData)
         return false;
-    return m_spFrameDisplay->Draw(_spRenderer, m_Alpha,
-                                  m_DecoderClock.interframeDelta);
+    return m_spFrameDisplay->Draw(_spRenderer, m_Alpha, m_DecoderClock.interframeDelta);
 }
 
 void CClip::SetDisplaySize(uint32_t _displayWidth, uint32_t _displayHeight)

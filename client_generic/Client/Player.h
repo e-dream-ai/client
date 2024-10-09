@@ -17,6 +17,7 @@
 #include "Singleton.h"
 #include "Timer.h"
 #include "Clip.h"
+#include "PlaylistManager.h"
 
 /**
         CPlayer.
@@ -34,11 +35,24 @@ class CPlayer : public Base::CSingleton<CPlayer>
         kMDIndividualMode,
         kMDSingleScreen
     } MultiDisplayMode;
-    ContentDecoder::spCDreamPlaylist m_spPlaylist;
 
-    std::vector<ContentDecoder::spCClip> m_CurrentClips;
+    std::unique_ptr<PlaylistManager> m_playlistManager;
+    double m_TimelineTime;
 
   private:
+    bool m_hasStarted = false;
+    
+    std::atomic<bool> m_shutdownFlag{false};
+    std::shared_ptr<std::thread> m_startupThread;
+    
+    ContentDecoder::spCClip m_currentClip;
+    ContentDecoder::spCClip m_nextClip;
+    
+    bool m_isTransitioning;
+    double m_transitionStartTime;
+    float m_transitionDuration;
+    bool m_isFirstPlay;
+
     typedef struct
     {
         DisplayOutput::spCDisplayOutput spDisplay;
@@ -64,7 +78,6 @@ class CPlayer : public Base::CSingleton<CPlayer>
     double m_DecoderFps;
     double m_PerceptualFPS;
     double m_DisplayFps;
-    double m_TimelineTime;
     double m_LastFrameRealTime;
     bool m_bFullscreen;
     bool m_InitPlayCounts;
@@ -72,11 +85,9 @@ class CPlayer : public Base::CSingleton<CPlayer>
     Base::CBlockingQueue<std::string> m_NextClipInfoQueue;
     Base::CBlockingQueue<std::string> m_ClipInfoHistoryQueue;
     
-    std::vector<std::string> m_evictedUUIDs;    // List of dreams that have been disliked this session
-    
     std::mutex m_CurrentClipsMutex;
-    boost::thread* m_pNextClipThread;
-    boost::thread* m_pPlayQueuedClipsThread;
+    //boost::thread* m_pNextClipThread;
+    //boost::thread* m_pPlayQueuedClipsThread;
 
     MultiDisplayMode m_MultiDisplayMode;
 
@@ -129,11 +140,14 @@ class CPlayer : public Base::CSingleton<CPlayer>
     bool BeginDisplayFrame(uint32_t displayUnit);
     bool EndDisplayFrame(uint32_t displayUnit, bool drawn = true);
     bool Update(uint32_t displayUnit, bool& bPlayNoSheepIntro);
+    void RenderFrame(DisplayOutput::spCRenderer renderer);
+    
+    bool HasStarted() { return m_hasStarted; };
     void Start();
     void Stop();
     bool NextClipForPlaying(int32_t _forceNext);
-    void CalculateNextClipThread();
-    void PlayQueuedClipsThread();
+    //void CalculateNextClipThread();
+    //void PlayQueuedClipsThread();
     sOpenVideoInfo* GetNextClipInfo();
 
     int AddDisplay(uint32_t screen, CGraphicsContext _grapicsContext,
@@ -168,29 +182,37 @@ class CPlayer : public Base::CSingleton<CPlayer>
     const ContentDecoder::sClipMetadata* GetCurrentPlayingClipMetadata() const;
     const ContentDecoder::sFrameMetadata* GetCurrentFrameMetadata() const;
 
-    inline void Add(const std::string& _fileName)
-    {
-        if (m_spPlaylist)
-            m_spPlaylist->Add(_fileName);
-    }
-    inline void Delete(std::string_view _uuid)
-    {
-        if (m_spPlaylist)
-            m_spPlaylist->Delete(_uuid);
-    };
+    void PlayNextDream(bool quickFade = false);
+    void StartTransition();
+    void UpdateTransition(double currentTime);
+    bool IsTransitioning() const { return m_isTransitioning; }
+    void SetTransitionDuration(float duration) { m_transitionDuration = duration; }
 
-    void PlayDreamNow(std::string_view _uuid);
+    // Get the name of the current playlist
+    std::string GetPlaylistName() const;
+    
+    void PlayDreamNow(std::string_view _uuid, int64_t frameNumber);
     void ResetPlaylist();
     
+    // Set playlist from the start
+    bool SetPlaylist(const std::string& playlistUUID);
+
+    // Set playlist at a given dream. Used to resume
+    bool SetPlaylistAtDream(const std::string& playlistUUID, const std::string& dreamUUID);
+   
     void MarkForDeletion(std::string_view _uuid);
     void SkipToNext();
     void ReturnToPrevious();
     void SkipForward(float _seconds);
     void RepeatClip();
+    
     /// Sets up a clip for playing, that will start playing at startTimelineTime
     /// Returns true if the file was loaded successfully
-    bool PlayClip(std::string_view _clipPath, double _startTimelineTime,
-                  int64_t _seekFrame = -1, bool fastFade = false);
+    /*bool PlayClip(std::string_view _clipPath, double _startTimelineTime,
+                  int64_t _seekFrame = -1, bool fastFade = false);*/
+    //bool PlayClip(const Cache::Dream& dream, double _startTime, int64_t _seekFrame = -1, bool fastFade = false);
+    bool PlayClip(const Cache::Dream* dream, double _startTime, int64_t _seekFrame = -1, bool isTransition = false);
+    
     void SetMultiDisplayMode(MultiDisplayMode mode)
     {
         m_MultiDisplayMode = mode;

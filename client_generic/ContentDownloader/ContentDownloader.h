@@ -5,6 +5,7 @@
 #include "SmartPtr.h"
 #include "base.h"
 #include "boost/thread/thread.hpp"
+#include "DreamDownloader.h"
 
 #ifndef MAX_PATH
 #define MAX_PATH 4096
@@ -27,11 +28,13 @@ class CContentDownloader : public Base::CSingleton<CContentDownloader>
     //	No copy constructor or assignment operator.
     NO_CLASS_STANDARDS(CContentDownloader);
 
-    //	Downloader.
-    class SheepDownloader* m_gDownloader;
-    boost::thread* m_gDownloadThread;
+    //class SheepDownloader* m_gDownloader;
+    //boost::thread* m_gDownloadThread;
 
   public:
+    //    Downloader
+    DreamDownloader m_gDownloader;
+
     bool Startup(const bool _bPreview, bool _bReadOnlyInstance = false);
     bool Shutdown(void);
 
@@ -42,6 +45,7 @@ class CContentDownloader : public Base::CSingleton<CContentDownloader>
     //	Called if network said unauthorized, will fallback everything to
     // unregistered server.
     void ServerFallback();
+    
 
     virtual ~CContentDownloader();
 };

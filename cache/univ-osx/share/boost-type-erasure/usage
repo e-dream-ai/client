@@ -1,0 +1,9 @@
+The package boost-type-erasure is compatible with built-in CMake targets of FindBoost.cmake:
+
+    find_package(Boost REQUIRED COMPONENTS type_erasure)
+    target_link_libraries(main PRIVATE Boost::type_erasure)
+
+or the generated cmake configs via:
+
+    find_package(boost_type_erasure REQUIRED CONFIG)
+    target_link_libraries(main PRIVATE Boost::type_erasure)

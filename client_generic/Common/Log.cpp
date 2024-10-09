@@ -100,6 +100,25 @@ void CLog::PipeReaderThread()
 
 void CLog::Attach(const std::string& _location, const uint32_t /*_level*/)
 {
+    // Add console sink
+    boost::shared_ptr<boost::log::sinks::text_ostream_backend> console_backend =
+        boost::make_shared<boost::log::sinks::text_ostream_backend>();
+    console_backend->add_stream(
+        boost::shared_ptr<std::ostream>(&std::cout, boost::null_deleter()));
+
+    m_ConsoleSink = boost::make_shared<
+        boost::log::sinks::synchronous_sink<boost::log::sinks::text_ostream_backend>>(
+        console_backend);
+
+    m_ConsoleSink->set_formatter(
+        boost::log::expressions::stream
+        << "[" << boost::log::expressions::attr<boost::posix_time::ptime>("TimeStamp")
+        << " - " << boost::log::trivial::severity
+        << "]: " << boost::log::expressions::smessage);
+
+    boost::log::core::get()->add_sink(m_ConsoleSink);
+
+    
     // Create filename with timestamp
     time_t curTime;
     time(&curTime);
@@ -187,6 +206,11 @@ void CLog::Attach(const std::string& _location, const uint32_t /*_level*/)
  */
 void CLog::Detach(void)
 {
+    if (m_ConsoleSink)
+    {
+        boost::log::core::get()->remove_sink(m_ConsoleSink);
+        m_ConsoleSink.reset();
+    }
 
     //fflush(stdout);
     //m_bActive = false;
@@ -335,6 +359,7 @@ void CLog::Warning(std::string_view _pFmt, ...)
 }
 void CLog::Error(std::string_view _pFmt, ...)
 {
+    PlatformUtils::NotifyError(_pFmt);
     grabvarargs Log("ERROR",
                     /*m_File.c_str(), m_Line, m_Function.c_str(),*/ pTempStr);
 }

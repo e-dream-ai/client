@@ -1,104 +1,70 @@
-///////////////////////////////////////////////////////////////////////////////
 //
-//    electricsheep for windows - collaborative screensaver
-//    Copyright 2003 Nicholas Long <nlong@cox.net>
-//	  electricsheep for windows is based of software
-//	  written by Scott Draves <source@electricsheep.org>
+//  Dream.h
+//  e-dream
 //
-//    This program is free software; you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation; either version 2 of the License, or
-//    (at your option) any later version.
+//  Created by Guillaume Louel on 31/07/2024.
 //
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program; if not, write to the Free Software
-//    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-//
-///////////////////////////////////////////////////////////////////////////////
-#ifndef _SHEEP_H_
-#define _SHEEP_H_
+
+#ifndef DREAM_H
+#define DREAM_H
 
 #include <string>
-#include <string_view>
-#include <unordered_map>
+#include <cmath>
 
-#include "base.h"
+namespace Cache {
 
-namespace ContentDownloader
-{
-
-enum eDreamFlags : uint8_t
-{
-    DREAM_FLAG_NONE = 0,
-    DREAM_FLAG_DOWNLOADED = 1,
-    DREAM_FLAG_DELETED = 2
-};
-DEFINE_ENUM_FLAG_OPERATORS(eDreamFlags);
-
-struct sDreamMetadata
-{
-    std::string url;
-    std::string fileName;
+struct Dream {
     std::string uuid;
-    std::string author;
     std::string name;
+    std::string artist;
+    long long size;
+    std::string status;
+    std::string fps;
+    int frames;
+    std::string thumbnail;
+    int upvotes;
+    int downvotes;
+    bool nsfw;
     std::string frontendUrl;
-    uint64_t fileSize;
-    uint32_t id;
-    time_t writeTime;
-    eDreamFlags flags = DREAM_FLAG_NONE;
+    long long video_timestamp;
+    long long timestamp;
     float activityLevel = 1.f;
-    int rating;
-    void setFileWriteTime(const std::string& timeString);
-    void setFileWriteTimeToNow();
-};
-
-struct SheepArray
-{
-    typedef std::string_view key_type;
-    typedef sDreamMetadata* mapped_type;
-    typedef std::vector<mapped_type>::iterator iterator;
-
-    std::vector<mapped_type> vecData;
-    std::unordered_map<key_type, mapped_type> mapData;
-
-    iterator begin() { return vecData.begin(); }
-    iterator end() { return vecData.end(); }
-    size_t size() { return vecData.size(); }
-
-    sDreamMetadata*& operator[](size_t i) { return vecData[i]; }
-
-    sDreamMetadata* operator[](key_type key) { return mapData[key]; }
-
-    bool tryGetSheepWithUuid(key_type key, sDreamMetadata*& outSheep) const
-    {
-        auto i = mapData.find(key);
-        if (i == mapData.end())
-            return false;
-        outSheep = i->second;
-        return true;
+    mutable std::string streamingUrl;
+    
+    // Possibly useful helpers
+    double getDuration() const {
+        return frames / std::stod(fps);
     }
 
-    void push_back(sDreamMetadata* sheep)
-    {
-        key_type key{sheep->uuid};
-        mapData[key] = sheep;
-        vecData.push_back(sheep);
+    std::string getFormattedSize() const {
+        const double KB = 1024.0;
+        const double MB = KB * 1024.0;
+        const double GB = MB * 1024.0;
+
+        if (size > GB) {
+            return std::to_string(size / GB) + " GB";
+        } else if (size > MB) {
+            return std::to_string(size / MB) + " MB";
+        } else if (size > KB) {
+            return std::to_string(size / KB) + " KB";
+        } else {
+            return std::to_string(size) + " bytes";
+        }
+    }
+    
+    // Those are implemented in CacheManager.h
+    std::string getCachedPath() const;
+    bool isCached() const;
+    
+    std::string getStreamingUrl() const {
+        return streamingUrl;
     }
 
-    void clear()
-    {
-        mapData.clear();
-        vecData.clear();
+    void setStreamingUrl(const std::string& url) const {
+        streamingUrl = url;
     }
 };
-// typedef vecmap<std::string, Sheep *> SheepArray;
 
-}; // namespace ContentDownloader
+} // namespace Cache
 
-#endif
+#endif // DREAM_H

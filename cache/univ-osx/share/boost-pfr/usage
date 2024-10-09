@@ -1,0 +1,9 @@
+The package boost-pfr is compatible with built-in CMake targets of FindBoost.cmake:
+
+    find_package(Boost REQUIRED COMPONENTS pfr)
+    target_link_libraries(main PRIVATE Boost::pfr)
+
+or the generated cmake configs via:
+
+    find_package(boost_pfr REQUIRED CONFIG)
+    target_link_libraries(main PRIVATE Boost::pfr)

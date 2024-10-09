@@ -25,6 +25,7 @@
 #include "storage.h"
 #include "dlfcn.h"
 #include "libgen.h"
+#include "ServerConfig.h"
 
 #include "../MacBuild/ESScreensaver.h"
 
@@ -48,6 +49,7 @@ class CElectricSheep_Mac : public CElectricSheep
   public:
     CElectricSheep_Mac() : CElectricSheep()
     {
+        
         printf("CElectricSheep_Mac()\n");
 
         m_bIsPreview = false;
@@ -150,8 +152,9 @@ class CElectricSheep_Mac : public CElectricSheep
 
     void GetClientProxy(void)
     {
-        m_proxyEnabled = get_proxy_for_server105(
-            (const UInt8*)ContentDownloader::Shepherd::GetDreamServer(),
+        const UInt8* dreamServer = reinterpret_cast<const UInt8*>(ServerConfig::ServerConfigManager::getInstance().getDreamServer().c_str());
+        
+        m_proxyEnabled = get_proxy_for_server105(dreamServer,
             m_proxyHost, sizeof(m_proxyHost) - 1, m_proxyUser,
             sizeof(m_proxyUser) - 1, m_proxyPass, sizeof(m_proxyPass) - 1);
     }

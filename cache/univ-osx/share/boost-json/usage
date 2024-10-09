@@ -1,0 +1,9 @@
+The package boost-json is compatible with built-in CMake targets of FindBoost.cmake:
+
+    find_package(Boost REQUIRED COMPONENTS json)
+    target_link_libraries(main PRIVATE Boost::json)
+
+or the generated cmake configs via:
+
+    find_package(boost_json REQUIRED CONFIG)
+    target_link_libraries(main PRIVATE Boost::json)

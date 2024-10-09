@@ -2,7 +2,8 @@
 
 #import "ESScreensaverView.h"
 #import "ESScreensaver.h"
-
+#import <Bugsnag/Bugsnag.h>
+//#import <Sparkle/Sparkle.h>
 #include <csignal>
 
 #include "dlfcn.h"
@@ -22,6 +23,9 @@
 #ifdef SCREEN_SAVER
     self = [super initWithFrame:frame isPreview:isPreview];
 #else
+    //[SPUStandardUpdaterController init];
+    
+    //[Bugsnag start];
     self = [super initWithFrame:frame];
 #endif
     //os_log(OS_LOG_DEFAULT, "EDTEST  INIT");
@@ -91,6 +95,7 @@
 
 - (void)startAnimation
 {
+    //g_Log->Error("Test error 2");
     if (view == NULL)
     {
 #ifdef SCREEN_SAVER

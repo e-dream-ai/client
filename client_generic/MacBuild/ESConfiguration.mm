@@ -3,10 +3,11 @@
 #import "clientversion.h"
 
 #include "EDreamClient.h"
-#include "Shepherd.h"
+#include "ServerConfig.h"
 #include "PlatformUtils.h"
+#include "CacheManager.h"
 
-using namespace ContentDownloader;
+//using namespace ContentDownloader;
 
 @implementation ESConfiguration
 
@@ -46,6 +47,8 @@ using namespace ContentDownloader;
     CFRelease(bndl);
 
     m_checkTimer = nil;
+
+    m_sentCode = false;
 
     // We initially load the settings here, this avoid flickering of the ui
     ESScreensaver_InitClientStorage();
@@ -97,33 +100,65 @@ using namespace ContentDownloader;
         signInButton.title = @"Sign Out";
         [signInButton setEnabled:true];
 
+        [retryLoginButton setHidden:true];
+        [createAccountButton setHidden:YES];
         [tabView setHidden:NO];
-        [passwordLabel setHidden:YES];
-        [emailLabel setHidden:YES];
-        [drupalPassword setHidden:YES];
-        [drupalLogin setHidden:YES];
 
-        
-/*        NSLog(@"const %f",drupalLogin.topAnchor.constraintsAffectingLayout.firstObject.constant);
-        drupalLogin.topAnchor.constraintsAffectingLayout.firstObject.constant = -10;*/
+        [emailLabel setHidden:YES];
+        [digitCodeLabel setHidden:YES];
+
+        [emailTextField setHidden:YES];
+        [digitCodeTextField setHidden:YES];
 
         [signInButton.superview setNeedsLayout:true];
     }
     else
     {
-        loginStatusImage.image = self->redImage;
-        loginTestStatusText.stringValue = failMessage;
-        m_loginWasSuccessful = NO;
-        signInButton.title = @"Sign In";
-        [signInButton setEnabled:true];
-        [tabView setHidden:YES];
-        [passwordLabel setHidden:NO];
-        [emailLabel setHidden:NO];
+        if (!m_sentCode) {
+            loginStatusImage.image = self->redImage;
+            loginTestStatusText.stringValue = failMessage;
+            m_loginWasSuccessful = NO;
+            
+            signInButton.title = @"Send code";
+            [signInButton setEnabled:true];
 
-        [drupalPassword setHidden:NO];
-        [drupalLogin setHidden:NO];
+            [retryLoginButton setHidden:false];
+            [retryLoginButton setEnabled:false];
+            [createAccountButton setHidden:false];
 
-        [signInButton.superview setNeedsLayout:true];
+            [tabView setHidden:YES];
+
+            [emailLabel setHidden:NO];
+            [digitCodeLabel setHidden:NO];
+
+            [emailTextField setHidden:NO];
+            [emailTextField setEnabled:YES];
+            [digitCodeTextField setHidden:NO];
+            [digitCodeTextField setEnabled:NO];
+            
+            //[signInButton.superview setNeedsLayout:true];
+        } else {
+            loginStatusImage.image = self->yellowImage;
+            loginTestStatusText.stringValue = @"Check your e-mail for confirmation code";
+            m_loginWasSuccessful = NO;
+            
+            signInButton.title = @"Validate";
+            [signInButton setEnabled:true];
+
+            [retryLoginButton setHidden:false];
+            [retryLoginButton setEnabled:true];
+            [createAccountButton setHidden:false];
+
+            [tabView setHidden:YES];
+
+            [emailLabel setHidden:NO];
+            [digitCodeLabel setHidden:NO];
+
+            [emailTextField setHidden:NO];
+            [emailTextField setEnabled:NO];
+            [digitCodeTextField setHidden:NO];
+            [digitCodeTextField setEnabled:YES];
+        }
     }
 }
 
@@ -192,147 +227,6 @@ using namespace ContentDownloader;
         continueWithoutCredentialForAuthenticationChallenge:challenge];
 }
 
-- (void)startTest:(BOOL)useToken
-{
-    [signInButton setEnabled:NO];
-
-    //[okButton setEnabled:NO];
-    //[cancelButton setEnabled:NO];
-    [tabView setHidden:YES];
-    m_checkingLogin = YES;
-
-    [m_checkTimer invalidate];
-    m_checkTimer = nil;
-
-    [loginStatusImage setImage:nil];
-
-    loginTestStatusText.stringValue = @"Please wait...";
-    loginStatusImage.image = self->yellowImage;
-    
-    m_httpData = [NSMutableData dataWithCapacity:10];
-
-    NSString* newNickname = drupalLogin.stringValue;
-    NSString* newPassword = drupalPassword.stringValue;
-
-    NSString* urlstr;
-    NSString* httpMethod;
-    NSMutableURLRequest* request =
-        [NSMutableURLRequest requestWithURL:[NSURL URLWithString:urlstr]];
-
-    urlstr = @(Shepherd::GetEndpoint(ENDPOINT_LOGIN));
-    httpMethod = @"POST";
-    // Set request body data
-    NSDictionary* parameters =
-        @{@"username" : newNickname, @"password" : newPassword};
-    NSError* serializationError;
-    NSData* postData =
-        [NSJSONSerialization dataWithJSONObject:parameters
-                                        options:0
-                                          error:&serializationError];
-    request.HTTPBody = postData;
-
-    // Set the HTTP method to POST
-    request.HTTPMethod = httpMethod;
-    request.URL = [NSURL URLWithString:urlstr];
-
-    // Set request headers
-    [request setValue:@"application/json, text/plain, */*"
-        forHTTPHeaderField:@"Accept"];
-    [request setValue:@"application/json; charset=UTF-8"
-        forHTTPHeaderField:@"Content-Type"];
-
-    NSURLSession* session = [NSURLSession sharedSession];
-
-    // Create a data task to send the request
-    NSURLSessionDataTask* dataTask = [session
-        dataTaskWithRequest:request
-          completionHandler:^(NSData* data, NSURLResponse* response,
-                              NSError* sessionError) {
-              dispatch_async(dispatch_get_main_queue(), ^{
-                  if (sessionError)
-                  {
-                      NSLog(@"Request failed with error: %@", sessionError);
-                      self->m_loginWasSuccessful = NO;
-                      m_checkingLogin = NO;
-                      [self updateAuthUI:@"Login error"];
-                  }
-                  else
-                  {
-                      NSError* dictionaryError;
-
-                      // Convert JSON data to an NSDictionary
-                      NSDictionary* jsonDictionary = [NSJSONSerialization
-                          JSONObjectWithData:data
-                                     options:0
-                                       error:&dictionaryError];
-                      NSString* responseString =
-                          [[NSString alloc] initWithData:data
-                                                encoding:NSUTF8StringEncoding];
-                      NSLog(@"Response: %@", responseString);
-                      if (dictionaryError)
-                      {
-#ifdef DEBUG
-                          NSLog(@"Unknown response type: %@", response);
-#endif
-                          self->m_loginWasSuccessful = NO;
-                          m_checkingLogin = NO;
-
-                          [self updateAuthUI:@"Login error"];
-                      }
-                      else
-                      {
-                          NSNumber* success =
-                              [jsonDictionary valueForKey:@"success"];
-                          if (success.boolValue)
-                          {
-                              NSDictionary* dataEntry =
-                                  [jsonDictionary valueForKey:@"data"];
-                              NSDictionary* tokenDict =
-                                  [dataEntry valueForKey:@"token"];
-                              NSString* accessToken =
-                                  [tokenDict valueForKey:@"AccessToken"];
-                              NSString* refreshToken =
-                                  [tokenDict valueForKey:@"RefreshToken"];
-                              EDreamClient::DidSignIn(accessToken.UTF8String,
-                                                      refreshToken.UTF8String);
-                          }
-                          [self updateAuthUI:@"Login error"];
-                      }
-                      self->m_checkingLogin = NO;
-                  }
-              });
-          }];
-
-    // Start the data task
-    [dataTask resume];
-
-    /*CFHTTPMessageRef dummyRequest =
-            CFHTTPMessageCreateRequest(
-                    kCFAllocatorDefault,
-                    CFSTR("GET"),
-                    (CFURLRef)[request URL],
-                    kCFHTTPVersion1_1);
-
-    CFHTTPMessageAddAuthentication(
-            dummyRequest,
-            nil,
-            (CFStringRef)[drupalLogin stringValue],
-            (CFStringRef)[drupalPassword stringValue],
-            kCFHTTPAuthenticationSchemeBasic,
-            FALSE);
-
-    NSString *authorizationString =
-            (NSString *)CFHTTPMessageCopyHeaderFieldValue(
-                    dummyRequest,
-                    CFSTR("Authorization"));
-
-    CFRelease(dummyRequest);
-
-    [request setValue:authorizationString
-    forHTTPHeaderField:@"Authorization"];*/
-
-    //[NSURLConnection connectionWithRequest:request delegate:self];
-}
 
 - (void)loadSettings
 {
@@ -390,9 +284,9 @@ using namespace ContentDownloader;
         (__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting(
             "settings.generator.nickname", "");
 
-    drupalLogin.stringValue = m_origNickname;
+    emailTextField.stringValue = m_origNickname;
 
-    drupalPassword.stringValue = @"";
+    digitCodeTextField.stringValue = @"";
 
     proxyLogin.stringValue =
         (__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting(
@@ -406,21 +300,21 @@ using namespace ContentDownloader;
         ESScreensaver_GetBoolSetting("settings.content.unlimited_cache", true);
 
     SInt32 cache_size =
-        ESScreensaver_GetIntSetting("settings.content.cache_size", 2000);
+        ESScreensaver_GetIntSetting("settings.content.cache_size", 5);
 
     if (cache_size == 0)
     {
         unlimited_cache = true;
 
-        cache_size = 2000;
+        cache_size = 5;
     }
 
-    [cacheType selectCellWithTag:(unlimited_cache ? 0 : 1)];
+    [cacheTypeMatrix selectCellWithTag:(unlimited_cache ? 0 : 1)];
 
-    cacheSize.intValue = cache_size;
+    cacheSizeFormCell.intValue = cache_size;
 
     debugLog.state = ESScreensaver_GetBoolSetting("settings.app.log", false);
-    serverField.stringValue = (__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting("settings.content.server", DEFAULT_DREAM_SERVER);
+    serverField.stringValue = (__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting("settings.content.server", ServerConfig::DEFAULT_DREAM_SERVER);
 
     contentFldr.stringValue =
         ((__bridge_transfer NSString*)ESScreensaver_CopyGetStringSetting(
@@ -438,6 +332,7 @@ using namespace ContentDownloader;
     serverField.hidden = YES;
 #endif
 
+    
     [self fixFlockSize];
 
     [self updateAuthUI];
@@ -493,7 +388,7 @@ using namespace ContentDownloader;
         contentFldr.stringValue.stringByStandardizingPath.UTF8String);
 
     ESScreensaver_SetStringSetting("settings.generator.nickname",
-                                   drupalLogin.stringValue.UTF8String);
+                                   emailTextField.stringValue.UTF8String);
 
     ESScreensaver_SetStringSetting("settings.content.proxy_username",
                                    proxyLogin.stringValue.UTF8String);
@@ -501,33 +396,45 @@ using namespace ContentDownloader;
     ESScreensaver_SetStringSetting("settings.content.proxy_password",
                                    proxyPassword.stringValue.UTF8String);
 
-    bool unlimited_cache = (cacheType.selectedCell.tag == 0);
+    bool unlimited_cache = (cacheTypeMatrix.selectedCell.tag == 0);
 
     ESScreensaver_SetBoolSetting("settings.content.unlimited_cache",
                                  unlimited_cache);
 
-    SInt32 cache_size = cacheSize.intValue;
+    SInt32 cache_size = cacheSizeFormCell.intValue;
 
     ESScreensaver_SetIntSetting("settings.content.cache_size", cache_size);
 
+    if (!unlimited_cache) {
+        std::uintmax_t cacheSize = (std::uintmax_t)cache_size * 1024 * 1024 * 1024;
+
+        Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+        cm.resizeCache(cacheSize);
+    }
+    
+    
     ESScreensaver_SetBoolSetting("settings.app.log", debugLog.state);
 
     ESScreensaver_SetStringSetting("settings.content.server", serverField.stringValue.UTF8String);
 }
 
+// MARK: Create Account
 - (IBAction)goToCreateAccountPage:(id)__unused sender
 {
-    NSURL* helpURL = [NSURL URLWithString:@"https://e-dream.ai/register"];
-
+#ifdef STAGE
+    NSURL* helpURL = [NSURL URLWithString:@"https://stage.e-dream.ai/signup"];
+#else
+    NSURL* helpURL = [NSURL URLWithString:@"https://alpha.e-dream.ai/signup"];
+#endif
     [[NSWorkspace sharedWorkspace] openURL:helpURL];
 }
 
-- (IBAction)goToLearnMorePage:(id)__unused sender
+/*- (IBAction)goToLearnMorePage:(id)__unused sender
 {
     NSURL* helpURL = [NSURL URLWithString:@"https://e-dream.ai/learnmore"];
 
     [[NSWorkspace sharedWorkspace] openURL:helpURL];
-}
+}*/
 
 - (IBAction)chooseContentFolder:(id)__unused sender
 {
@@ -560,18 +467,69 @@ using namespace ContentDownloader;
     [self fixFlockSize];
 }
 
-- (IBAction)doSignIn:(id)__unused sender
+- (IBAction)restartLogin:(id)__unused sender
 {
-    ESScreensaver_InitClientStorage();
+    //ESScreensaver_InitClientStorage();
+    // Restart validation
+    m_loginWasSuccessful = false;
+    m_sentCode = false;
+    [self updateAuthUI];
+}
+
+// MARK: Validate login
+- (IBAction)validateLogin:(id)__unused sender
+{
     if (EDreamClient::IsLoggedIn())
     {
+        // Store the current email before signing out
+        m_previousLoginEmail = [emailTextField.stringValue copy];
+        
         EDreamClient::SignOut();
-        drupalPassword.stringValue = @"";
+
+        m_sentCode = false;
+        digitCodeTextField.stringValue = @"";
         [self updateAuthUI];
     }
     else
     {
-        [self startTest:NO];
+        if (!m_sentCode) {
+            // Save email
+            ESScreensaver_SetStringSetting("settings.generator.nickname",
+                                           emailTextField.stringValue.UTF8String);
+            
+            // Make sure we save that locally 
+            m_origNickname = emailTextField.stringValue;
+            
+            // Ask for the code to be sent
+            EDreamClient::SendCode();
+
+            m_sentCode = true;
+            [self updateAuthUI];
+        } else {
+            // Try validating code
+            // Ask for the code to be sent
+            if (EDreamClient::ValidateCode(digitCodeTextField.stringValue.UTF8String)) {
+                // Login successful
+                m_sentCode = false;
+                m_loginWasSuccessful = true;
+                
+                // Check if the email has changed from the previous login
+                if (m_previousLoginEmail && ![m_previousLoginEmail isEqualToString:emailTextField.stringValue]) {
+
+                    [self showRestartMessageAndRelaunch];
+                }
+                
+                
+                EDreamClient::DidSignIn(); // Let client know we signed in
+                
+                [self updateAuthUI];
+            } else {
+                // Code validation failed
+                m_loginWasSuccessful = false;
+                m_sentCode = false;
+                [self updateAuthUI];
+            }
+        }
     }
 }
 
@@ -587,8 +545,48 @@ using namespace ContentDownloader;
 
 - (void)dealloc
 {
-    [drupalLogin setDelegate:nil];
-    [drupalPassword setDelegate:nil];
+    [emailTextField setDelegate:nil];
+    [digitCodeTextField setDelegate:nil];
+}
+
+- (void)showRestartMessageAndRelaunch
+{
+    NSAlert *alert = [[NSAlert alloc] init];
+    [alert setMessageText:@"Account Change Detected"];
+    [alert setInformativeText:@"e-dream will now exit. Please restart the application to take your new settings into account."];
+    [alert addButtonWithTitle:@"OK"];
+    
+    [alert beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse returnCode) {
+        if (returnCode == NSAlertFirstButtonReturn) {
+            std::exit(0);
+        }
+    }];
+}
+
+- (void)relaunchApplication
+{
+    std::exit(0);
+    
+    NSString *appPath = [NSString stringWithUTF8String:PlatformUtils::GetAppPath().c_str()];
+    NSURL *appURL = [NSURL fileURLWithPath:appPath];
+    
+    NSWorkspace *workspace = [NSWorkspace sharedWorkspace];
+    NSError *error = nil;
+    
+    // Launch the new instance
+    [workspace openApplicationAtURL:appURL
+                      configuration:[NSWorkspaceOpenConfiguration configuration]
+              completionHandler:^(NSRunningApplication * _Nullable app, NSError * _Nullable error) {
+                  if (app) {
+                      // The new instance was launched successfully, now we can exit the current instance
+                      dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                          std::exit(0);
+                      });
+                  } else {
+                      // If the launch failed, log an error and don't exit
+                      g_Log->Error("Failed to relaunch the application. Error: %s", error.localizedDescription.UTF8String);
+                  }
+              }];
 }
 
 @end

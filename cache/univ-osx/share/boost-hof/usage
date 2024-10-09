@@ -1,0 +1,9 @@
+The package boost-hof is compatible with built-in CMake targets of FindBoost.cmake:
+
+    find_package(Boost REQUIRED COMPONENTS hof)
+    target_link_libraries(main PRIVATE Boost::hof)
+
+or the generated cmake configs via:
+
+    find_package(boost_hof REQUIRED CONFIG)
+    target_link_libraries(main PRIVATE Boost::hof)

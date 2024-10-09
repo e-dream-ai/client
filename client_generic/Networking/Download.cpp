@@ -58,16 +58,78 @@ bool CFileDownloader::SetPostFields(const char* postFields)
 bool CFileDownloader::Perform(const std::string& _url)
 {
     m_Data = "";
+    m_ResponseHeaders.clear();
 
     if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_WRITEDATA, this)))
         return false;
     if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_WRITEFUNCTION,
                                  &CFileDownloader::customWrite)))
         return false;
-
+    if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_HEADERFUNCTION,
+                                 &CFileDownloader::headerCallback)))
+        return false;
+    if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_HEADERDATA, this)))
+        return false;
+    
     return CCurlTransfer::Perform(_url);
 }
 
+std::string CFileDownloader::GetResponseHeader(const std::string& headerName) const
+{
+    std::string lowerHeaderName = headerName;
+    std::transform(lowerHeaderName.begin(), lowerHeaderName.end(), lowerHeaderName.begin(),
+                   [](unsigned char c){ return std::tolower(c); });
+    
+    auto it = m_ResponseHeaders.find(lowerHeaderName);
+    if (it != m_ResponseHeaders.end())
+    {
+        return it->second;
+    }
+    return "";
+}
+
+std::vector<std::string> CFileDownloader::GetResponseHeaders(const std::string& headerName) const
+{
+    std::string lowerHeaderName = headerName;
+    std::transform(lowerHeaderName.begin(), lowerHeaderName.end(), lowerHeaderName.begin(),
+                   [](unsigned char c){ return std::tolower(c); });
+    
+    std::vector<std::string> headers;
+    auto range = m_ResponseHeaders.equal_range(lowerHeaderName);
+    for (auto it = range.first; it != range.second; ++it)
+    {
+        headers.push_back(it->second);
+    }
+    return headers;
+}
+
+size_t CFileDownloader::headerCallback(char* buffer, size_t size, size_t nitems, void* userdata)
+{
+    size_t realsize = size * nitems;
+    CFileDownloader* downloader = static_cast<CFileDownloader*>(userdata);
+    
+    std::string header(buffer, realsize);
+    size_t colonPos = header.find(':');
+    if (colonPos != std::string::npos)
+    {
+        std::string key = header.substr(0, colonPos);
+        std::string value = header.substr(colonPos + 1);
+        
+        // Trim whitespace
+        key.erase(0, key.find_first_not_of(" \t"));
+        key.erase(key.find_last_not_of(" \t") + 1);
+        value.erase(0, value.find_first_not_of(" \t"));
+        value.erase(value.find_last_not_of(" \t") + 1);
+        
+        // Convert key to lowercase for case-insensitive comparison
+        std::transform(key.begin(), key.end(), key.begin(),
+                       [](unsigned char c){ return std::tolower(c); });
+        
+        downloader->m_ResponseHeaders.insert(std::make_pair(key, value));
+    }
+    
+    return realsize;
+}
 /*
         Save().
         Saves completed data to file.

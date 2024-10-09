@@ -21,16 +21,20 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <boost/filesystem.hpp>
+#include <boost/filesystem.hpp> // TODO: We need to unify to std::fs someday
 #include <string>
 #include <sys/stat.h>
 #include <algorithm>
+#include <filesystem>
+#include <future>
 
 #include "ContentDecoder.h"
 #include "Log.h"
 #include "PlatformUtils.h"
+#include "PathManager.h"
 
 using namespace boost;
+namespace fs = std::filesystem;
 
 namespace ContentDecoder
 {
@@ -55,9 +59,9 @@ static void AVCodecLogCallback(void* /*_avcl*/, int _level, const char* _fmt,
     }
 }
 /*
-        CContentDecoder.
-
-*/
+ CContentDecoder.
+ 
+ */
 CContentDecoder::CContentDecoder(const uint32_t _queueLenght,
                                  AVPixelFormat _wantedFormat)
 {
@@ -78,6 +82,14 @@ CContentDecoder::CContentDecoder(const uint32_t _queueLenght,
 CContentDecoder::~CContentDecoder()
 {
     Stop();
+
+    // Make sure we wait for our futures here
+    g_Log->Info("Ensuring futures are closed");
+    for (auto& future : m_futures) {
+        future.wait();
+    }
+    g_Log->Info("Futures are closed");
+    
     Destroy();
 }
 
@@ -104,30 +116,35 @@ int CContentDecoder::DumpError(int _err)
     {
         switch (_err)
         {
-        case AVERROR_INVALIDDATA:
-            g_Log->Error("FFmpeg error %s: Error while parsing header",
-                         UNFFERRTAG(_err));
-            break;
-        case AVERROR(EIO):
-            g_Log->Error(
-                "FFmpeg error %s: I/O error occured. Usually that means "
-                "that input file is truncated and/or corrupted.",
-                UNFFERRTAG(_err));
-            break;
-        case AVERROR(ENOMEM):
-            g_Log->Error("FFmpeg error %s: Memory allocation error occured",
-                         UNFFERRTAG(_err));
-            break;
-        case AVERROR(ENOENT):
-            g_Log->Error("FFmpeg error %s: ENOENT", UNFFERRTAG(_err));
-            break;
-        default:
-            g_Log->Error("FFmpeg error %s: Error while opening file",
-                         UNFFERRTAG(_err));
-            break;
+            case AVERROR_INVALIDDATA:
+                g_Log->Error("FFmpeg error %s: Error while parsing header",
+                             UNFFERRTAG(_err));
+                break;
+            case AVERROR(EIO):
+                g_Log->Error(
+                             "FFmpeg error %s: I/O error occured. Usually that means "
+                             "that input file is truncated and/or corrupted.",
+                             UNFFERRTAG(_err));
+                break;
+            case AVERROR(ENOMEM):
+                g_Log->Error("FFmpeg error %s: Memory allocation error occured",
+                             UNFFERRTAG(_err));
+                break;
+            case AVERROR(ENOENT):
+                g_Log->Error("FFmpeg error %s: ENOENT", UNFFERRTAG(_err));
+                break;
+            default:
+                g_Log->Error("FFmpeg error %s: Error while opening file",
+                             UNFFERRTAG(_err));
+                break;
         }
     }
     return _err;
+}
+
+bool CContentDecoder::IsURL(const std::string& path)
+{
+    return path.substr(0, 7) == "http://" || path.substr(0, 8) == "https://";
 }
 
 bool CContentDecoder::Open()
@@ -135,25 +152,79 @@ bool CContentDecoder::Open()
     auto ovi = m_CurrentVideoInfo.get();
     if (ovi == nullptr)
         return false;
-
-    boost::filesystem::path sys_name(ovi->m_Path);
-    std::string _filename = sys_name.string();
+    
+    std::string _filename = ovi->m_Path;
     ovi->m_TotalFrameCount = 0;
     g_Log->Info("Opening: %s", _filename.c_str());
-    // Destroy()
-    if (DumpError(avformat_open_input(&ovi->m_pFormatContext, _filename.c_str(),
-                                      nullptr, nullptr)) < 0)
+    
+    avformat_network_init();  // Initialize network
+    
+    int ret;
+    if (IsURL(_filename))
+    {
+        m_IsStreaming = true;
+        m_CacheWritePosition = 0;
+        
+        // Generate a cache file path
+        std::string cacheFileName = GenerateCacheFileName();
+        SetCachePath(cacheFileName);
+        
+        if (!OpenCacheFile())
+        {
+            g_Log->Warning("Failed to open cache file for writing");
+            m_IsStreaming = false;
+        }
+        
+        // For URLs, we use avio_open2
+        ret = avio_open2(&m_pIOContext, _filename.c_str(), AVIO_FLAG_READ, nullptr, nullptr);
+        if (ret < 0)
+        {
+            g_Log->Warning("Failed to open URL %s...", _filename.c_str());
+            return false;
+        }
+
+        // Create a new AVIOContext that wraps the original one
+        constexpr int kIOBufferSize = 32768;
+        unsigned char* buffer = static_cast<unsigned char*>(av_malloc(kIOBufferSize));
+        if (!buffer) {
+            g_Log->Error("Failed to allocate I/O buffer");
+            return false;
+        }
+
+        AVIOContext* custom_io = avio_alloc_context(
+            buffer, kIOBufferSize, 0, this, &CContentDecoder::ReadPacket, nullptr, &CContentDecoder::SeekPacket);
+
+        if (!custom_io) {
+            g_Log->Error("Failed to allocate custom I/O context");
+            av_free(buffer);
+            return false;
+        }
+
+        ovi->m_pFormatContext = avformat_alloc_context();
+        ovi->m_pFormatContext->pb = custom_io;
+        ovi->m_pFormatContext->flags |= AVFMT_FLAG_CUSTOM_IO;
+    } else {
+        m_IsStreaming = false;
+    }
+    
+    // Open input, whether it's a file or URL
+    AVDictionary* options = nullptr;
+    av_dict_set(&options, "probesize", "50000", 0);  //
+    av_dict_set(&options, "analyzeduration", "0", 0);
+    if (DumpError(avformat_open_input(&ovi->m_pFormatContext, m_IsStreaming ? nullptr : _filename.c_str(), nullptr, &options)) < 0)
     {
         g_Log->Warning("Failed to open %s...", _filename.c_str());
         return false;
     }
-    if (DumpError(avformat_find_stream_info(ovi->m_pFormatContext, nullptr)) <
-        0)
+
+    av_dict_free(&options);
+
+    if (DumpError(avformat_find_stream_info(ovi->m_pFormatContext, nullptr)) < 0)
     {
-        g_Log->Error("av_find_stream_info failed with %s...",
-                     _filename.c_str());
+        g_Log->Error("av_find_stream_info failed with %s...", _filename.c_str());
         return false;
     }
+
     //	Find video stream;
     ovi->m_VideoStreamID = -1;
     for (uint32_t i = 0; i < ovi->m_pFormatContext->nb_streams; i++)
@@ -172,7 +243,7 @@ bool CContentDecoder::Open()
         return false;
     }
     const auto& codecPar =
-        ovi->m_pFormatContext->streams[ovi->m_VideoStreamID]->codecpar;
+    ovi->m_pFormatContext->streams[ovi->m_VideoStreamID]->codecpar;
     ovi->m_pVideoCodec = avcodec_find_decoder(codecPar->codec_id);
     ovi->m_pVideoCodecContext = avcodec_alloc_context3(ovi->m_pVideoCodec);
     if (codecPar->codec_id == AV_CODEC_ID_H264)
@@ -213,7 +284,7 @@ bool CContentDecoder::Open()
             g_Log->Error("FFmpeg error: av_bsf_init() failed");
             return false;
         }
-
+        
     } else {
         printf("unknown codec?");
         g_Log->Error("unknown codec? ");
@@ -225,7 +296,7 @@ bool CContentDecoder::Open()
         if (hw_type != AV_HWDEVICE_TYPE_NONE)
         {
             ovi->m_pVideoCodecContext->hw_device_ctx =
-                av_hwdevice_ctx_alloc(hw_type);
+            av_hwdevice_ctx_alloc(hw_type);
             av_hwdevice_ctx_init(ovi->m_pVideoCodecContext->hw_device_ctx);
         }
         else
@@ -246,16 +317,16 @@ bool CContentDecoder::Open()
     ovi->m_pFrame = av_frame_alloc();
     if (ovi->m_pVideoStream->nb_frames > 0)
         ovi->m_TotalFrameCount =
-            static_cast<uint32_t>(ovi->m_pVideoStream->nb_frames);
+        static_cast<uint32_t>(ovi->m_pVideoStream->nb_frames);
     else
         ovi->m_TotalFrameCount = uint32_t((
-            (((double)ovi->m_pFormatContext->duration / (double)AV_TIME_BASE)) /
-                av_q2d(ovi->m_pVideoStream->avg_frame_rate) +
-            .5));
-
+                                           (((double)ovi->m_pFormatContext->duration / (double)AV_TIME_BASE)) /
+                                           av_q2d(ovi->m_pVideoStream->avg_frame_rate) +
+                                           .5));
+    
     ovi->m_ReadingTrailingFrames = false;
     g_Log->Info("Open done()");
-
+    
     return true;
 }
 
@@ -266,8 +337,64 @@ void CContentDecoder::Close()
     g_Log->Info("Closing...");
     Stop();
     ClearQueue();
+    FinalizeCacheFile();
+    
+    if (m_CurrentVideoInfo && m_CurrentVideoInfo->m_pFormatContext)
+    {
+        if (m_IsStreaming && m_CurrentVideoInfo->m_pFormatContext->pb)
+        {
+            av_freep(&m_CurrentVideoInfo->m_pFormatContext->pb->buffer);
+            avio_context_free(&m_CurrentVideoInfo->m_pFormatContext->pb);
+        }
+        avformat_close_input(&m_CurrentVideoInfo->m_pFormatContext);
+    }
+
+
+    CloseCacheFile();
+    m_CacheWritePosition = 0;
+
     Destroy();
+
+    
+    if (m_pIOContext)
+    {
+        avio_close(m_pIOContext);
+        m_pIOContext = nullptr;
+    }
+    
+    if (m_pIOBuffer)
+    {
+        av_free(m_pIOBuffer);
+        m_pIOBuffer = nullptr;
+    }
+    
+    avformat_network_deinit();
     g_Log->Info("closed...");
+}
+
+int CContentDecoder::ReadPacket(void* opaque, uint8_t* buf, int buf_size)
+{
+    CContentDecoder* decoder = static_cast<CContentDecoder*>(opaque);
+    int bytesRead = avio_read(decoder->m_pIOContext, buf, buf_size);
+    if (bytesRead > 0 && decoder->m_IsStreaming) {
+        int64_t currentPos = avio_tell(decoder->m_pIOContext) - bytesRead;
+        decoder->WriteToCache(buf, bytesRead, currentPos);
+    }
+    return bytesRead;
+}
+
+int64_t CContentDecoder::SeekPacket(void* opaque, int64_t offset, int whence)
+{
+    CContentDecoder* decoder = static_cast<CContentDecoder*>(opaque);
+    if (whence & AVSEEK_SIZE) {
+        return avio_size(decoder->m_pIOContext);
+    }
+    int64_t ret = avio_seek(decoder->m_pIOContext, offset, whence);
+    if (ret >= 0) {
+        std::lock_guard<std::mutex> lock(decoder->m_CacheMutex);
+        decoder->m_CacheWritePosition = ret;
+    }
+    return ret;
 }
 
 CVideoFrame* CContentDecoder::ReadOneFrame()
@@ -275,16 +402,16 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
     sOpenVideoInfo* ovi = m_CurrentVideoInfo.get();
     if (ovi == nullptr)
         return nullptr;
-
+    
     AVFormatContext* pFormatContext = ovi->m_pFormatContext;
-
+    
     if (!pFormatContext)
         return nullptr;
-
+    
     AVRational timeBase =
-        pFormatContext->streams[ovi->m_VideoStreamID]->time_base;
+    pFormatContext->streams[ovi->m_VideoStreamID]->time_base;
     int64_t frameRate = (int64_t)av_q2d(
-        pFormatContext->streams[ovi->m_VideoStreamID]->avg_frame_rate);
+                                        pFormatContext->streams[ovi->m_VideoStreamID]->avg_frame_rate);
     AVPacket* packet;
     AVPacket* filteredPacket;
     int frameDecoded = 0;
@@ -292,12 +419,12 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
     AVCodecContext* pVideoCodecContext = ovi->m_pVideoCodecContext;
     CVideoFrame* pVideoFrame = nullptr;
     int64_t frameNumber = 0;
-
+    
     while (true)
     {
         packet = av_packet_alloc();
         filteredPacket = av_packet_alloc();
-
+        
         if (!ovi->m_ReadingTrailingFrames)
         {
             if (av_read_frame(pFormatContext, packet) < 0)
@@ -308,7 +435,7 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
                 continue;
             }
         }
-
+        
         int ret = 0;
         AVPacket* packetToSend = nullptr;
         if (ovi->m_pBsfContext)
@@ -326,8 +453,8 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
                     return nullptr;
                 }
                 g_Log->Error(
-                    "Error receiving packet from bit stream filter: %s",
-                    UNFFERRTAG(ret));
+                             "Error receiving packet from bit stream filter: %s",
+                             UNFFERRTAG(ret));
             }
             if (filteredPacket->size)
             {
@@ -344,18 +471,21 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
         {
             packetToSend = packet;
         }
-
+        
         if (packetToSend)
         {
             ret = avcodec_send_packet(pVideoCodecContext, packetToSend);
         }
-
-        if (packet->stream_index != ovi->m_VideoStreamID)
-        {
-            g_Log->Error("FFmpeg Mismatching stream ID");
-            break;
+        
+        if (packet) {
+            if (packet->stream_index != ovi->m_VideoStreamID)
+            {
+                g_Log->Error("FFmpeg Mismatching stream ID");
+                break;
+            }
         }
-
+            
+        
         if (ret < 0)
         {
             if (ret == AVERROR_EOF)
@@ -372,11 +502,11 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
         if (ret >= 0)
         {
             ret = avcodec_receive_frame(pVideoCodecContext, pFrame);
-
+            
             frameNumber =
-                (int64_t)((pFrame->pts * frameRate) * av_q2d(timeBase));
+            (int64_t)((pFrame->pts * frameRate) * av_q2d(timeBase));
             ovi->m_CurrentFrameIndex = frameNumber;
-
+            
             if (ret == AVERROR(EAGAIN))
             {
                 av_packet_free(&packet);
@@ -388,7 +518,7 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
                 av_packet_free(&packet);
                 av_packet_free(&filteredPacket);
                 return nullptr; // the codec has been fully flushed, and there will
-                                // be no more output frames
+                // be no more output frames
             }
             else if (ret < 0)
             {
@@ -398,7 +528,7 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
         }
         av_packet_unref(packet);
         av_packet_unref(filteredPacket);
-
+        
         if (frameDecoded != 0 || ovi->m_ReadingTrailingFrames)
         {
             if (ovi->m_CurrentFrameIndex >= ovi->m_SeekTargetFrame)
@@ -410,16 +540,16 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
                 av_frame_unref(pFrame);
             }
         }
-
+        
         av_packet_free(&packet);
         av_packet_free(&filteredPacket);
     }
-
+    
     //	Do we have a fresh frame?
     if (frameDecoded != 0)
     {
         // g_Log->Info( "frame decoded" );
-
+        
         if (USE_HW_ACCELERATION)
         {
             pVideoFrame = new CVideoFrame(pFrame, frameNumber,
@@ -433,7 +563,7 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
                 m_ScalerHeight != (uint32_t)pVideoCodecContext->height)
             {
                 g_Log->Info("size doesn't match, recreating");
-
+                
                 if (m_pScaler)
                 {
                     g_Log->Info("deleting m_pScalar");
@@ -445,94 +575,98 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
             if (m_pScaler == nullptr)
             {
                 g_Log->Info("creating m_pScaler");
-
+                
                 m_pScaler = sws_getContext(
-                    pVideoCodecContext->width, pVideoCodecContext->height,
-                    pVideoCodecContext->pix_fmt, pVideoCodecContext->width,
-                    pVideoCodecContext->height, m_WantedPixelFormat,
-                    SWS_BICUBIC, nullptr, nullptr, nullptr);
-
+                                           pVideoCodecContext->width, pVideoCodecContext->height,
+                                           pVideoCodecContext->pix_fmt, pVideoCodecContext->width,
+                                           pVideoCodecContext->height, m_WantedPixelFormat,
+                                           SWS_BICUBIC, nullptr, nullptr, nullptr);
+                
                 //    Store width & height now...
                 m_ScalerWidth =
-                    static_cast<uint32_t>(pVideoCodecContext->width);
+                static_cast<uint32_t>(pVideoCodecContext->width);
                 m_ScalerHeight = (uint32_t)pVideoCodecContext->height;
-
+                
                 if (m_pScaler == nullptr)
                     g_Log->Warning("scaler == null");
             }
             pVideoFrame =
-                new CVideoFrame(pVideoCodecContext, m_WantedPixelFormat,
-                                std::string(pFormatContext->url));
+            new CVideoFrame(pVideoCodecContext, m_WantedPixelFormat,
+                            std::string(pFormatContext->url));
             AVFrame* pDest = pVideoFrame->Frame();
-
+            
             // printf( "calling sws_scale()" );
             sws_scale(m_pScaler, pFrame->data, pFrame->linesize, 0,
                       pVideoCodecContext->height, pDest->data, pDest->linesize);
         }
-
+        
         av_frame_unref(pFrame);
-
+        
         pVideoFrame->SetMetaData_DecodeFps(ovi->m_DecodeFps);
         pVideoFrame->SetMetaData_IsSeam(ovi->m_NextIsSeam);
         pVideoFrame->SetMetaData_FrameIdx((uint32_t)ovi->m_CurrentFrameIndex);
         pVideoFrame->SetMetaData_MaxFrameIdx(ovi->m_TotalFrameCount);
     }
-
+    
     av_packet_free(&packet);
     av_packet_free(&filteredPacket);
-
+    
     return pVideoFrame;
 }
 
+// MARK: Read Frames Thread
 void CContentDecoder::ReadFramesThread()
 {
     try
     {
         PlatformUtils::SetThreadName("ReadFrames");
-        g_Log->Info("Main video frame reading thread started...");
-
+        g_Log->Info("Main video frame reading thread started for %s", m_Metadata.dreamData.uuid.c_str());
+        
         while (m_CurrentVideoInfo->m_CurrentFrameIndex <
                m_CurrentVideoInfo->m_TotalFrameCount - 1)
         {
             this_thread::interruption_point();
-
+            
             PROFILER_BEGIN("Main Video Decoder Frame");
-
+            
             float skipTime = m_SkipForward.load();
-
+            
             if (fpclassify(skipTime) != FP_ZERO)
             {
                 m_CurrentVideoInfo->m_SeekTargetFrame =
-                    m_CurrentVideoInfo->m_CurrentFrameIndex +
-                    (int64_t)(skipTime * 20);
+                m_CurrentVideoInfo->m_CurrentFrameIndex +
+                (int64_t)(skipTime * 20);
                 m_CurrentVideoInfo->m_SeekTargetFrame =
-                    std::max(m_CurrentVideoInfo->m_SeekTargetFrame, (int64_t)0);
+                std::max(m_CurrentVideoInfo->m_SeekTargetFrame, (int64_t)0);
+
+                // never go beyond last frame, keep 20 frames so decoder doesn't stall
+                m_CurrentVideoInfo->m_SeekTargetFrame = std::min(m_CurrentVideoInfo->m_SeekTargetFrame, (int64_t)m_CurrentVideoInfo->m_TotalFrameCount - 20);
                 m_SkipForward.exchange(0.f);
             }
-
+            
             if (m_CurrentVideoInfo->m_SeekTargetFrame != -1)
             {
                 m_FrameQueueMutex.lock();
                 ClearQueue();
                 AVRational timeBase =
-                    m_CurrentVideoInfo->m_pFormatContext
-                        ->streams[m_CurrentVideoInfo->m_VideoStreamID]
-                        ->time_base;
+                m_CurrentVideoInfo->m_pFormatContext
+                ->streams[m_CurrentVideoInfo->m_VideoStreamID]
+                ->time_base;
                 int64_t frameRate = (int64_t)av_q2d(
-                    m_CurrentVideoInfo->m_pFormatContext
-                        ->streams[m_CurrentVideoInfo->m_VideoStreamID]
-                        ->avg_frame_rate);
-
+                                                    m_CurrentVideoInfo->m_pFormatContext
+                                                    ->streams[m_CurrentVideoInfo->m_VideoStreamID]
+                                                    ->avg_frame_rate);
+                
                 // Calculate target timestamp in stream time base
                 int64_t targetTimestamp =
-                    (int64_t)(m_CurrentVideoInfo->m_SeekTargetFrame /
-                              (frameRate * av_q2d(timeBase)));
-
+                (int64_t)(m_CurrentVideoInfo->m_SeekTargetFrame /
+                          (frameRate * av_q2d(timeBase)));
+                
                 // Seek to the target timestamp
                 int seek =
-                    avformat_seek_file(m_CurrentVideoInfo->m_pFormatContext,
-                                       m_CurrentVideoInfo->m_VideoStreamID, 0,
-                                       targetTimestamp, targetTimestamp, 0);
+                avformat_seek_file(m_CurrentVideoInfo->m_pFormatContext,
+                                   m_CurrentVideoInfo->m_VideoStreamID, 0,
+                                   targetTimestamp, targetTimestamp, 0);
                 avcodec_flush_buffers(m_CurrentVideoInfo->m_pVideoCodecContext);
                 if (seek < 0)
                 {
@@ -545,15 +679,67 @@ void CContentDecoder::ReadFramesThread()
             {
                 m_FrameQueue.push(pMainVideoFrame);
             }
+            else
+            {
+                // We've reached the end of the stream
+                m_HasEnded.store(true);
+                break;
+            }
+            
             if (m_CurrentVideoInfo->m_SeekTargetFrame != -1)
                 m_FrameQueueMutex.unlock();
             m_CurrentVideoInfo->m_SeekTargetFrame = -1;
         }
+        
+        if (m_IsStreaming) {
+            // Try to read any remaining data
+            unsigned char buffer[4096];
+            int bytesRead;
+            while ((bytesRead = avio_read(m_pIOContext, buffer, sizeof(buffer))) > 0) {
+                WriteToCache(buffer, bytesRead, avio_tell(m_pIOContext) - bytesRead);
+            }
+        }
+
+        m_HasEnded.store(true);
+        
+        FinalizeCacheFile();
+
+        g_Log->Info("Ending main video frame reading thread for %s", m_Metadata.dreamData.uuid.c_str());
     }
     catch (thread_interrupted const&)
     {
+        g_Log->Info("Read frames thread interrupted.");
+        
+        
+        // NOTE : This works for fetching remaining data, but still locks as it looks like we're waiting
+        // upstream in the code for the content decoder to be destroyed.
+        //
+        // So right now uncommenting this will block in the destructor.
+        // TODO : Consider revisiting this later and see what effectively blocks.
+         
+        g_Log->Info("Read frames thread interrupted, trying to fetch remaining data asynchronously.");
+
+        if (m_IsStreaming) {
+            m_futures.emplace_back(std::async(std::launch::async, [this]() {
+                // Try to read any remaining data
+                unsigned char buffer[4096];
+                int bytesRead;
+                while ((bytesRead = avio_read(m_pIOContext, buffer, sizeof(buffer))) > 0) {
+                    WriteToCache(buffer, bytesRead, avio_tell(m_pIOContext) - bytesRead);
+                }
+                
+                m_HasEnded.store(true);
+                
+                FinalizeCacheFile();
+            }));
+        }
+    
+        g_Log->Info("Ending main video frame reading thread for %s", m_Metadata.dreamData.uuid.c_str());
     }
-    g_Log->Info("Ending main video frame reading thread...");
+    catch (std::exception const& e)
+    {
+        g_Log->Error("Exception in read frames thread: %s", e.what());
+    }
 }
 
 spCVideoFrame CContentDecoder::PopVideoFrame()
@@ -564,28 +750,29 @@ spCVideoFrame CContentDecoder::PopVideoFrame()
     return spCVideoFrame{tmp};
 }
 
-bool CContentDecoder::Start(std::string_view _path, int64_t _seekFrame)
+bool CContentDecoder::Start(const sClipMetadata& metadata, int64_t _seekFrame)
 {
+    m_Metadata = metadata;
     m_CurrentVideoInfo = std::make_unique<sOpenVideoInfo>();
-    m_CurrentVideoInfo->m_Path = _path;
+    m_CurrentVideoInfo->m_Path = metadata.path;
     m_CurrentVideoInfo->m_SeekTargetFrame = _seekFrame;
     m_HasEnded.exchange(false);
-
+    
     if (!Open())
         return false;
-
+    
     //	Start by opening, so we have a context to work with.
     m_bStop = false;
     m_pDecoderThread =
-        new thread(bind(&CContentDecoder::ReadFramesThread, this));
-
+    new thread(bind(&CContentDecoder::ReadFramesThread, this));
+    
     return true;
 }
 
 void CContentDecoder::Stop()
 {
     m_bStop = true;
-
+    
     if (m_pDecoderThread)
     {
         m_pDecoderThread->interrupt();
@@ -599,7 +786,7 @@ void CContentDecoder::ClearQueue(uint32_t leave)
     while (m_FrameQueue.size() > leave)
     {
         CVideoFrame* vf;
-
+        
         if (m_FrameQueue.pop(vf, false, false))
         {
             delete vf;
@@ -619,12 +806,12 @@ sOpenVideoInfo::~sOpenVideoInfo()
         avcodec_close(m_pVideoCodecContext);
         m_pVideoCodecContext = nullptr;
     }
-
+    
     if (m_pFormatContext)
     {
         avformat_close_input(&m_pFormatContext);
     }
-
+    
     if (m_pFrame)
     {
         av_frame_free(&m_pFrame);
@@ -634,6 +821,94 @@ sOpenVideoInfo::~sOpenVideoInfo()
     {
         av_bsf_flush(m_pBsfContext);
         av_bsf_free(&m_pBsfContext);
+    }
+}
+// MARK: - Stream caching
+void CContentDecoder::SetCachePath(const std::string& path) {
+    m_CachePath = path;
+}
+
+bool CContentDecoder::OpenCacheFile() {
+    if (m_CachePath.empty()) {
+        return false;
+    }
+    m_CacheFile = fopen(m_CachePath.c_str(), "wb");
+    return m_CacheFile != nullptr;
+}
+
+void CContentDecoder::CloseCacheFile() {
+    if (m_CacheFile) {
+        fclose(m_CacheFile);
+        m_CacheFile = nullptr;
+    }
+}
+
+void CContentDecoder::WriteToCache(const uint8_t* buf, int buf_size, int64_t position)
+{
+    if (m_CacheFile && buf && buf_size > 0) {
+        std::lock_guard<std::mutex> lock(m_CacheMutex);
+        if (position == m_CacheWritePosition) {
+            fseek(m_CacheFile, m_CacheWritePosition, SEEK_SET);
+            fwrite(buf, 1, buf_size, m_CacheFile);
+            fflush(m_CacheFile);
+            m_CacheWritePosition += buf_size;
+        }
+    }
+}
+
+std::string CContentDecoder::GenerateCacheFileName() {
+    std::string uuid = m_Metadata.dreamData.uuid;
+    fs::path mp4Path = Cache::PathManager::getInstance().mp4Path();
+    return (mp4Path / (uuid + ".tmp")).string();
+}
+
+bool CContentDecoder::IsDownloadComplete() const
+{
+    if (!m_IsStreaming || !m_CurrentVideoInfo)
+        return false;
+
+    // Check if we've reached the end of the stream, avio_size can be innacurate in some cases
+    int64_t totalSize = avio_size(m_pIOContext);
+    constexpr int64_t threshold = 16 * 1024;  // 16 KB threshold
+
+    //g_Log->Info("POS : %lld %lld", m_CacheWritePosition, totalSize);
+
+    return m_HasEnded.load() && (m_CacheWritePosition >= totalSize - threshold);
+}
+
+void CContentDecoder::FinalizeCacheFile()
+{
+    std::lock_guard<std::mutex> lock(m_CacheMutex);
+
+    if (m_IsStreaming && IsDownloadComplete() && !m_CachePath.empty())
+    {
+        CloseCacheFile();  // Close the current .tmp file
+
+        fs::path tmpPath(m_CachePath);
+        fs::path finalPath = tmpPath.parent_path() / (tmpPath.stem().string() + ".mp4");
+
+        try
+        {
+            if (fs::exists(tmpPath) && !fs::exists(finalPath))
+            {
+                fs::rename(tmpPath, finalPath);
+                g_Log->Info("Successfully renamed cache file from %s to %s", tmpPath.string().c_str(), finalPath.string().c_str());
+                m_CachePath.clear();  // Clear the cache path to indicate we've finalized
+                
+                // Now we let our cache know the file is there
+                Cache::CacheManager::DiskCachedItem newDiskItem;
+                newDiskItem.uuid = m_Metadata.dreamData.uuid;
+                newDiskItem.version = m_Metadata.dreamData.video_timestamp;
+                newDiskItem.downloadDate = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
+                Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+                cm.addDiskCachedItem(newDiskItem);
+            }
+        }
+        catch (const fs::filesystem_error& e)
+        {
+            g_Log->Error("Failed to rename cache file: %s", e.what());
+        }
     }
 }
 

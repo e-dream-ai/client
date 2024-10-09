@@ -330,7 +330,7 @@ class CStatsConsole : public CConsole
         PlatformUtils::DispatchOnMainThread(
             [=, this]()
             {
-                if (g_Player().Stopped())
+                if (g_Player().Stopped() || m_Stats.empty())
                     return;
                 float step = (float)m_Desc.Height() /
                              (float)_spRenderer->Display()->Height();

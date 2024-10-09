@@ -8,6 +8,7 @@
 #ifndef PlatformUtils_h
 #define PlatformUtils_h
 
+#include "SmartPtr.h"
 #include <cstdio>
 #include <string>
 #include <functional>
@@ -29,6 +30,8 @@ class PlatformUtils
     SetOnMouseMovedCallback(std::function<void(int, int)> _callback);
     static void SetThreadName(std::string_view _name);
     static void DispatchOnMainThread(std::function<void()> _func);
+    static std::string GetAppPath();
+    static void NotifyError(std::string_view errorMessage);
 };
 
 class CDelayedDispatch

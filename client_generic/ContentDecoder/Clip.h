@@ -15,17 +15,11 @@
 #include "SmartPtr.h"
 #include "FrameDisplay.h"
 #include "ContentDecoder.h"
-#include "Dream.h"
+#include "CacheManager.h"
 
 namespace ContentDecoder
 {
 
-struct sClipMetadata
-{
-    std::string path;
-    double decodeFps;
-    ContentDownloader::sDreamMetadata dreamData;
-};
 
 class CClip
 {
@@ -61,8 +55,9 @@ class CClip
     double m_StartTime;
     double m_EndTime;
     boost::atomic<bool> m_HasFinished;
-    float m_FadeInSeconds = 1.f;
-    float m_FadeOutSeconds = 1.f;
+    boost::atomic<bool> m_IsFadingOut;
+    float m_FadeInSeconds = 5.f;
+    float m_FadeOutSeconds = 5.f;
     float m_Alpha;
     eClipFlags m_ClipFlags = eClipFlags::None;
 
@@ -78,7 +73,7 @@ class CClip
     bool Start(int64_t _seekFrame = -1);
     void Stop();
     bool Update(double _timelineTime);
-    bool DrawFrame(spCRenderer _spRenderer);
+    bool DrawFrame(spCRenderer _spRenderer, float alpha = 1.0f);
     void SetDisplaySize(uint32_t _displayWidth, uint32_t _displayHeight);
     const sClipMetadata& GetClipMetadata() const { return m_ClipMetadata; }
     void SetClipMetadata(const sClipMetadata& _metadata)
@@ -97,6 +92,8 @@ class CClip
     }
     double GetLength(float _atFps) const { return GetFrameCount() / _atFps; }
     bool HasFinished() const { return m_HasFinished.load(); }
+    bool IsFadingOut() const { return m_IsFadingOut.load(); }
+
     void SetTransitionLength(float _fadeInSeconds, float _fadeOutSeconds)
     {
         m_FadeInSeconds = _fadeInSeconds;
