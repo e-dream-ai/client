@@ -29,7 +29,7 @@
 #include "StatsConsole.h"
 #include "TextureFlat.h"
 #include "Timer.h"
-//#include "Voting.h"
+
 #include "PlatformUtils.h"
 #include "StringFormat.h"
 #include "CacheManager.h"
@@ -112,9 +112,6 @@ class CElectricSheep
     // internal brightness counter
     int m_Brightness = 0;
     
-    //	Voting object.
-    //CVote* m_pVoter;
-
     //	Default root directory, ie application data.
     std::string m_AppData;
 
@@ -193,7 +190,6 @@ class CElectricSheep
         m_MultipleInstancesMode = false;
         printf("CElectricSheep()\n");
 
-        //m_pVoter = nullptr;
 #ifndef LINUX_GNU
         m_AppData = "./.ElectricSheep/";
         m_WorkingDir = "./";
@@ -459,8 +455,6 @@ class CElectricSheep
 
             //	Set proxy info.
             SetupProxy();
-
-            //m_pVoter = new CVote();
         }
 
         g_Player().SetMultiDisplayMode(
@@ -564,8 +558,6 @@ class CElectricSheep
             //	This stuff was never started in config mode.
             if (m_MultipleInstancesMode == false)
             {
-                //SAFE_DELETE(m_pVoter);
-
                 g_NetworkManager->Shutdown();
             }
             g_Player().Shutdown();
@@ -1260,7 +1252,6 @@ class CElectricSheep
                         if (g_Player().m_playlistManager) {
                             g_Player().m_playlistManager->removeCurrentDream();
                         }
-
                         g_Player().SkipToNext();
                         m_spCrossFade->Reset();
                         m_HudManager->Add("fade", m_spCrossFade, 1);
@@ -1272,6 +1263,7 @@ class CElectricSheep
 
                     popOSD(Hud::Dislike);
                 }
+
                 return true;
                 //    Repeat current sheep
             case CLIENT_COMMAND_PREVIOUS:
