@@ -825,10 +825,14 @@ bool CPlayer::SetPlaylistAtDream(const std::string& playlistUUID, const std::str
 
     m_isFirstPlay = true;  // Treat this as a first play to avoid transition
 
+    int64_t seekFrame;
+    seekFrame = (int64_t)g_Settings()->Get(
+        "settings.content.last_played_frame", uint64_t{});
+    
     // If we've reached here, the playlist is set and positioned at the correct dream
     // Now we can start playing this dream
     StartTransition();
-    return PlayClip(*optionalDream, m_TimelineTime);
+    return PlayClip(*optionalDream, m_TimelineTime, seekFrame);
 }
 
 
