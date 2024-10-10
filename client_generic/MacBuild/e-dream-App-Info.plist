@@ -31,13 +31,6 @@
 	<dict>
 		<key>NSExceptionDomains</key>
 		<dict>
-			<key>electricsheep.org</key>
-			<dict>
-				<key>NSExceptionAllowsInsecureHTTPLoads</key>
-				<true/>
-				<key>NSIncludesSubdomains</key>
-				<true/>
-			</dict>
 			<key>sheepserver.net</key>
 			<dict>
 				<key>NSExceptionAllowsInsecureHTTPLoads</key>
