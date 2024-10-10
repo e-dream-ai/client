@@ -253,6 +253,14 @@
 		F0351BEC2CB5BBF10055091F /* Bugsnag in Frameworks */ = {isa = PBXBuildFile; productRef = F0351BEB2CB5BBF10055091F /* Bugsnag */; };
 		F0351BEE2CB5BBF90055091F /* Bugsnag in Frameworks */ = {isa = PBXBuildFile; productRef = F0351BED2CB5BBF90055091F /* Bugsnag */; };
 		F0351BF02CB5BBFF0055091F /* Bugsnag in Frameworks */ = {isa = PBXBuildFile; productRef = F0351BEF2CB5BBFF0055091F /* Bugsnag */; };
+		F03CF26D2CB7F578009F51D8 /* libswscale.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B912C663DEF00DBA60E /* libswscale.a */; };
+		F03CF26E2CB7F5FC009F51D8 /* libavcodec.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8B2C663DE800DBA60E /* libavcodec.a */; };
+		F03CF26F2CB7F5FC009F51D8 /* libavdevice.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8C2C663DE800DBA60E /* libavdevice.a */; };
+		F03CF2702CB7F5FC009F51D8 /* libavfilter.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8D2C663DE800DBA60E /* libavfilter.a */; };
+		F03CF2712CB7F5FC009F51D8 /* libavformat.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8E2C663DE800DBA60E /* libavformat.a */; };
+		F03CF2722CB7F5FC009F51D8 /* libavutil.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8F2C663DE800DBA60E /* libavutil.a */; };
+		F03CF2732CB7F5FC009F51D8 /* libswresample.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B902C663DEF00DBA60E /* libswresample.a */; };
+		F03CF2742CB7F5FC009F51D8 /* libswscale.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B912C663DEF00DBA60E /* libswscale.a */; };
 		F05994582BA0912300B018C7 /* osd-pill-r.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994532BA0912200B018C7 /* osd-pill-r.png */; };
 		F05994592BA0912300B018C7 /* osd-pill-r.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994532BA0912200B018C7 /* osd-pill-r.png */; };
 		F059945A2BA0912300B018C7 /* osd-pill-u.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994542BA0912200B018C7 /* osd-pill-u.png */; };
@@ -1001,6 +1009,7 @@
 				21DC0CAC1263B99000D60C6A /* libcurl.4.dylib in Frameworks */,
 				12440CBD2B85F52500A23253 /* libcrypto.a in Frameworks */,
 				2135D2690EC70571005E246D /* AppKit.framework in Frameworks */,
+				F03CF26D2CB7F578009F51D8 /* libswscale.a in Frameworks */,
 				2197D56219B06F4600EFA1F2 /* VideoDecodeAcceleration.framework in Frameworks */,
 				21CE8E3D0F6EE12B00DDF96A /* SystemConfiguration.framework in Frameworks */,
 			);
@@ -1018,13 +1027,17 @@
 				F0C1005A2C1372EF007FA505 /* libboost_log.a in Frameworks */,
 				F0C1005B2C1372EF007FA505 /* libboost_system.a in Frameworks */,
 				F0C1005C2C1372EF007FA505 /* Metal.framework in Frameworks */,
+				F03CF2732CB7F5FC009F51D8 /* libswresample.a in Frameworks */,
+				F03CF26E2CB7F5FC009F51D8 /* libavcodec.a in Frameworks */,
 				F0C1005D2C1372EF007FA505 /* IOKit.framework in Frameworks */,
 				F0C1005E2C1372EF007FA505 /* libboost_filesystem.a in Frameworks */,
 				F0C100602C1372EF007FA505 /* ApplicationServices.framework in Frameworks */,
 				F0C100612C1372EF007FA505 /* CoreMedia.framework in Frameworks */,
 				F0C100622C1372EF007FA505 /* libboost_json.a in Frameworks */,
 				F0C100632C1372EF007FA505 /* liblzma.tbd in Frameworks */,
+				F03CF2712CB7F5FC009F51D8 /* libavformat.a in Frameworks */,
 				F0351BF02CB5BBFF0055091F /* Bugsnag in Frameworks */,
+				F03CF26F2CB7F5FC009F51D8 /* libavdevice.a in Frameworks */,
 				F0C100642C1372EF007FA505 /* ScreenSaver.framework in Frameworks */,
 				F0C100652C1372EF007FA505 /* CoreFoundation.framework in Frameworks */,
 				F0C100662C1372EF007FA505 /* GLUT.framework in Frameworks */,
@@ -1034,12 +1047,15 @@
 				F0C1006C2C1372EF007FA505 /* VideoToolbox.framework in Frameworks */,
 				F0C1006F2C1372EF007FA505 /* AudioToolbox.framework in Frameworks */,
 				F0C100702C1372EF007FA505 /* libz.1.2.5.dylib in Frameworks */,
+				F03CF2722CB7F5FC009F51D8 /* libavutil.a in Frameworks */,
 				F0C100712C1372EF007FA505 /* libbz2.1.0.dylib in Frameworks */,
 				F0C100722C1372EF007FA505 /* libsioclient_tls.a in Frameworks */,
 				F0C100732C1372EF007FA505 /* libiconv.2.dylib in Frameworks */,
 				F0C100742C1372EF007FA505 /* libcurl.4.dylib in Frameworks */,
 				F0C100752C1372EF007FA505 /* libcrypto.a in Frameworks */,
+				F03CF2702CB7F5FC009F51D8 /* libavfilter.a in Frameworks */,
 				F0C100762C1372EF007FA505 /* AppKit.framework in Frameworks */,
+				F03CF2742CB7F5FC009F51D8 /* libswscale.a in Frameworks */,
 				F0C100772C1372EF007FA505 /* VideoDecodeAcceleration.framework in Frameworks */,
 				F0C100782C1372EF007FA505 /* SystemConfiguration.framework in Frameworks */,
 			);
@@ -1523,9 +1539,9 @@
 			productReference = 2160FAAD0F30F43600B2C27A /* e-dream.app */;
 			productType = "com.apple.product-type.application";
 		};
-		218878CF0EC6CD7E001ABD2E /* ScreenSaver */ = {
+		218878CF0EC6CD7E001ABD2E /* ScreenSaver Prod */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 218878D40EC6CD80001ABD2E /* Build configuration list for PBXNativeTarget "ScreenSaver" */;
+			buildConfigurationList = 218878D40EC6CD80001ABD2E /* Build configuration list for PBXNativeTarget "ScreenSaver Prod" */;
 			buildPhases = (
 				12B37C892B308A6300E86D2E /* ShellScript */,
 				21AAA0C80F7040ED00AC23A8 /* Resources */,
@@ -1539,7 +1555,7 @@
 			);
 			dependencies = (
 			);
-			name = ScreenSaver;
+			name = "ScreenSaver Prod";
 			packageProductDependencies = (
 				F0351BE92CB5BB4F0055091F /* Bugsnag */,
 			);
@@ -1626,7 +1642,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				218878CF0EC6CD7E001ABD2E /* ScreenSaver */,
+				218878CF0EC6CD7E001ABD2E /* ScreenSaver Prod */,
 				2160FAAC0F30F43600B2C27A /* e-dream App Prod */,
 				F0C100012C1372EF007FA505 /* ScreenSaver stage */,
 				F0E9CE2A2C136B0500C4D694 /* e-dream Stage */,
@@ -2091,7 +2107,7 @@
 /* Begin PBXTargetDependency section */
 		12726C242B6BF538003C0FF6 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 218878CF0EC6CD7E001ABD2E /* ScreenSaver */;
+			target = 218878CF0EC6CD7E001ABD2E /* ScreenSaver Prod */;
 			targetProxy = 12726C232B6BF538003C0FF6 /* PBXContainerItemProxy */;
 		};
 		12726C262B6BF53B003C0FF6 /* PBXTargetDependency */ = {
@@ -2767,7 +2783,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		218878D40EC6CD80001ABD2E /* Build configuration list for PBXNativeTarget "ScreenSaver" */ = {
+		218878D40EC6CD80001ABD2E /* Build configuration list for PBXNativeTarget "ScreenSaver Prod" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				218878D20EC6CD7F001ABD2E /* Debug */,
