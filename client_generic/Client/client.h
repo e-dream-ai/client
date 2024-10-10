@@ -174,7 +174,7 @@ class CElectricSheep
         g_Log->Info("AttachLog()");
 
         g_Log->Info("******************* %s (Built %s / %s)...\n",
-                    CLIENT_VERSION_PRETTY, __DATE__, __TIME__);
+                    PlatformUtils::GetAppVersion().c_str(), __DATE__, __TIME__);
     }
 
   public:
