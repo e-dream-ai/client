@@ -7,8 +7,7 @@ Copyright e-dream, inc
 e-dream is a platform for generative visuals.
 this repository has the native client.
 
-dev docs
-========
+# dev docs
 
 this repository uses git LFS, be sure to run
 
@@ -56,7 +55,10 @@ mv Products/Users/{username}/Library/Screen\ Savers/e-dream.saver/ ./
 ```
 
 4) Assuming  you have created a keychain profile called "e-dream", this will launch the notarization process and wait until it's done
+
+```
 xcrun notarytool submit e-dream.zip --keychain-profile "e-dream" --wait
+```
 
 5) if successful staple the receipt (this lets people install the screensaver without connecting to apple servers for verification of the notarization)
 
