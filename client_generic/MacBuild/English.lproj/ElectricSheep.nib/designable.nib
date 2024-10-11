@@ -293,7 +293,7 @@ DQ
                                                     </textFieldCell>
                                                 </textField>
                                                 <matrix verticalHuggingPriority="750" allowsEmptySelection="NO" translatesAutoresizingMaskIntoConstraints="NO" id="c6g-Pr-R99">
-                                                    <rect key="frame" x="331" y="34" width="139" height="48"/>
+                                                    <rect key="frame" x="316" y="34" width="139" height="48"/>
                                                     <constraints>
                                                         <constraint firstAttribute="height" constant="48" id="BDf-9C-4rj"/>
                                                         <constraint firstAttribute="width" constant="139" id="CTV-dh-eoN"/>
@@ -347,7 +347,7 @@ room for new ones</string>
                                                     </cells>
                                                 </form>
                                                 <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="eU7-0Z-v70">
-                                                    <rect key="frame" x="219" y="63" width="105" height="16"/>
+                                                    <rect key="frame" x="204" y="63" width="105" height="16"/>
                                                     <textFieldCell key="cell" sendsActionOnEndEditing="YES" title="Max. disk space:" id="SzH-1M-JuE">
                                                         <font key="font" metaFont="system"/>
                                                         <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
@@ -373,7 +373,7 @@ room for new ones</string>
                                             </subviews>
                                             <constraints>
                                                 <constraint firstItem="pzr-ms-FUU" firstAttribute="leading" secondItem="Ka6-iZ-f1h" secondAttribute="leading" constant="20" symbolic="YES" id="6sB-8O-vvk"/>
-                                                <constraint firstItem="eU7-0Z-v70" firstAttribute="leading" secondItem="B6q-XX-CjP" secondAttribute="trailing" constant="40" id="CpA-Yu-jHI"/>
+                                                <constraint firstItem="eU7-0Z-v70" firstAttribute="leading" secondItem="B6q-XX-CjP" secondAttribute="trailing" constant="25" id="CpA-Yu-jHI"/>
                                                 <constraint firstItem="SKn-Zz-5rv" firstAttribute="leading" secondItem="Ka6-iZ-f1h" secondAttribute="leading" constant="350" id="IJT-Av-Loj"/>
                                                 <constraint firstItem="q4z-Zp-Qb9" firstAttribute="top" secondItem="pzr-ms-FUU" secondAttribute="bottom" constant="46" id="Ief-aw-k5Q"/>
                                                 <constraint firstItem="pzr-ms-FUU" firstAttribute="centerX" secondItem="Ka6-iZ-f1h" secondAttribute="centerX" id="Kg4-wZ-Dz1"/>
