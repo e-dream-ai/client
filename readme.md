@@ -69,3 +69,6 @@ xcrun stapler staple e-dream.saver
 ```
 /usr/bin/ditto -c -k --keepParent "e-dream.saver" "e-dream-master-notarized+stapled.zip"
 ```
+
+see https://developer.apple.com/documentation/security/customizing-the-notarization-workflow
+and https://support.apple.com/en-us/102654
