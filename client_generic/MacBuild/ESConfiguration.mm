@@ -50,6 +50,10 @@
 
     m_sentCode = false;
 
+    emailTextField.cell.scrollable = NO;
+    emailTextField.cell.wraps = NO;
+    [emailTextField.cell setUsesSingleLineMode:YES];
+
     // We initially load the settings here, this avoid flickering of the ui
     ESScreensaver_InitClientStorage();
 
@@ -493,13 +497,20 @@
     else
     {
         if (!m_sentCode) {
+            // Also trim the email address just in case here, AppKit is unpredictible
+             NSString *trimmedEmail = [emailTextField.stringValue stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+ 
+
             // Save email
             ESScreensaver_SetStringSetting("settings.generator.nickname",
-                                           emailTextField.stringValue.UTF8String);
+                                           trimmedEmail.UTF8String);
             
-            // Make sure we save that locally 
-            m_origNickname = emailTextField.stringValue;
+            // Make sure we save that locally
+            m_origNickname = trimmedEmail;
             
+            // Update the text field with the trimmed value for consistency
+            emailTextField.stringValue = trimmedEmail;
+
             // Ask for the code to be sent
             EDreamClient::SendCode();
 
