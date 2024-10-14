@@ -153,9 +153,14 @@
         if (!ESScreensaver_Start(m_isPreview, width, height))
             return;
 
+#ifdef SCREEN_SAVER
+        g_Log->Info("Saver startAnimation on %f %f ", self.frame.size.width, self.frame.size.height);
+#endif
+       
         [self _beginThread];
         m_bStarted = YES;
     }
+    
 #ifdef SCREEN_SAVER
     [super startAnimation];
 #endif
