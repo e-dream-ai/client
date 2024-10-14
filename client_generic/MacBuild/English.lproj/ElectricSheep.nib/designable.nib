@@ -393,11 +393,11 @@ room for new ones</string>
                             </tabViewItem>
                             <tabViewItem label="Playback" identifier="2" id="325">
                                 <view key="view" id="324">
-                                    <rect key="frame" x="10" y="33" width="495" height="285"/>
+                                    <rect key="frame" x="10" y="33" width="495" height="298"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <popUpButton toolTip="Comming soon." verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="662">
-                                            <rect key="frame" x="197" y="108" width="104" height="25"/>
+                                            <rect key="frame" x="197" y="121" width="104" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Primary" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" enabled="NO" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="665" id="663">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="message"/>
@@ -419,7 +419,7 @@ room for new ones</string>
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="668">
-                                            <rect key="frame" x="91" y="115" width="103" height="16"/>
+                                            <rect key="frame" x="91" y="128" width="103" height="16"/>
                                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Display Monitor:" id="669">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
@@ -427,7 +427,7 @@ room for new ones</string>
                                             </textFieldCell>
                                         </textField>
                                         <popUpButton toolTip="In Shared mode, all displays will render exactly the same sheep. In Individual each display will render its own." verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="911">
-                                            <rect key="frame" x="197" y="78" width="97" height="25"/>
+                                            <rect key="frame" x="197" y="91" width="97" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Shared" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="920" id="914">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="message"/>
@@ -440,23 +440,23 @@ room for new ones</string>
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="912">
-                                            <rect key="frame" x="50" y="85" width="144" height="16"/>
+                                            <rect key="frame" x="50" y="98" width="144" height="16"/>
                                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Multiple Monitor Mode:" id="913">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
-                                        <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="1040">
-                                            <rect key="frame" x="99" y="247" width="95" height="16"/>
+                                        <textField hidden="YES" focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="1040">
+                                            <rect key="frame" x="99" y="260" width="95" height="16"/>
                                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Display Speed:" id="1045">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
-                                        <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="1041">
-                                            <rect key="frame" x="200" y="244" width="40" height="21"/>
+                                        <textField hidden="YES" focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="1041">
+                                            <rect key="frame" x="200" y="257" width="40" height="21"/>
                                             <constraints>
                                                 <constraint firstAttribute="width" constant="40" id="0uF-zA-7yQ"/>
                                             </constraints>
@@ -466,31 +466,31 @@ room for new ones</string>
                                                 <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
-                                        <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="1042">
-                                            <rect key="frame" x="246" y="247" width="28" height="16"/>
+                                        <textField hidden="YES" focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="1042">
+                                            <rect key="frame" x="246" y="260" width="28" height="16"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="FPS" id="1043">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
-                                        <button translatesAutoresizingMaskIntoConstraints="NO" id="933">
-                                            <rect key="frame" x="198" y="155" width="173" height="18"/>
+                                        <button hidden="YES" translatesAutoresizingMaskIntoConstraints="NO" id="933">
+                                            <rect key="frame" x="198" y="168" width="173" height="18"/>
                                             <string key="toolTip">When selected each frame will be rendered in sync with Vertical Blank Line (display refresh rate). This option can cause significant drop of FPS when using multiple display.</string>
                                             <buttonCell key="cell" type="check" title="Vertical Synchronization" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="934">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
                                         </button>
-                                        <button toolTip="When selected all monitors except the display monitor will be blacked out while in fullscreen mode" translatesAutoresizingMaskIntoConstraints="NO" id="1185">
-                                            <rect key="frame" x="198" y="203" width="260" height="18"/>
+                                        <button hidden="YES" toolTip="When selected all monitors except the display monitor will be blacked out while in fullscreen mode" translatesAutoresizingMaskIntoConstraints="NO" id="1185">
+                                            <rect key="frame" x="198" y="216" width="260" height="18"/>
                                             <buttonCell key="cell" type="check" title="Black Out Other Monitors In Fullscreen" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="1186">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
                                         </button>
                                         <button toolTip="When selected all monitors except the display monitor will be blacked out while in fullscreen mode" translatesAutoresizingMaskIntoConstraints="NO" id="1191">
-                                            <rect key="frame" x="198" y="179" width="160" height="18"/>
+                                            <rect key="frame" x="198" y="192" width="160" height="18"/>
                                             <buttonCell key="cell" type="check" title="Preserve Aspect Ratio" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="1192">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
@@ -523,15 +523,15 @@ room for new ones</string>
                             </tabViewItem>
                             <tabViewItem label="Advanced" identifier="3" id="329">
                                 <view key="view" id="330">
-                                    <rect key="frame" x="10" y="33" width="495" height="285"/>
+                                    <rect key="frame" x="10" y="33" width="495" height="298"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <box verticalHuggingPriority="750" fixedFrame="YES" boxType="separator" translatesAutoresizingMaskIntoConstraints="NO" id="705">
-                                            <rect key="frame" x="188" y="177" width="96" height="5"/>
+                                            <rect key="frame" x="188" y="190" width="96" height="5"/>
                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         </box>
                                         <box autoresizesSubviews="NO" borderType="line" title="Proxy" translatesAutoresizingMaskIntoConstraints="NO" id="EBg-xh-hZV" userLabel="Proxy">
-                                            <rect key="frame" x="5" y="1" width="485" height="159"/>
+                                            <rect key="frame" x="5" y="14" width="485" height="159"/>
                                             <view key="contentView" id="PmZ-TH-ktJ">
                                                 <rect key="frame" x="4" y="5" width="477" height="137"/>
                                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
@@ -620,29 +620,29 @@ room for new ones</string>
                                             </constraints>
                                             <font key="titleFont" textStyle="headline" name=".SFNS-Bold"/>
                                         </box>
-                                        <button toolTip="Logs all debug messages into dated log file. The log file can become quite big." translatesAutoresizingMaskIntoConstraints="NO" id="921">
-                                            <rect key="frame" x="178" y="248" width="157" height="18"/>
+                                        <button hidden="YES" toolTip="Logs all debug messages into dated log file. The log file can become quite big." translatesAutoresizingMaskIntoConstraints="NO" id="921">
+                                            <rect key="frame" x="178" y="261" width="157" height="18"/>
                                             <buttonCell key="cell" type="check" title="Log Debug Messages" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="922">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
                                         </button>
-                                        <button toolTip="When selected a watermark for attribution will be shown every 10 minutes" translatesAutoresizingMaskIntoConstraints="NO" id="936">
-                                            <rect key="frame" x="178" y="224" width="127" height="18"/>
+                                        <button hidden="YES" toolTip="When selected a watermark for attribution will be shown every 10 minutes" translatesAutoresizingMaskIntoConstraints="NO" id="936">
+                                            <rect key="frame" x="178" y="237" width="127" height="18"/>
                                             <buttonCell key="cell" type="check" title="Show Attribution" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="937">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
                                         </button>
-                                        <button toolTip="When selected a watermark for attribution will be shown every 10 minutes" translatesAutoresizingMaskIntoConstraints="NO" id="12F-7x-0pF">
-                                            <rect key="frame" x="178" y="200" width="97" height="18"/>
+                                        <button hidden="YES" toolTip="When selected a watermark for attribution will be shown every 10 minutes" translatesAutoresizingMaskIntoConstraints="NO" id="12F-7x-0pF">
+                                            <rect key="frame" x="178" y="213" width="97" height="18"/>
                                             <buttonCell key="cell" type="check" title="Quiet Mode" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="FAS-nz-8sM">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
                                         </button>
-                                        <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="0CM-8A-V8W">
-                                            <rect key="frame" x="180" y="168" width="250" height="21"/>
+                                        <textField hidden="YES" focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="0CM-8A-V8W">
+                                            <rect key="frame" x="180" y="181" width="250" height="21"/>
                                             <constraints>
                                                 <constraint firstAttribute="height" constant="21" id="E9w-nu-mkj"/>
                                                 <constraint firstAttribute="width" constant="250" id="Q5d-cg-H90"/>
@@ -653,8 +653,8 @@ room for new ones</string>
                                                 <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
-                                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="zTr-up-fzK">
-                                            <rect key="frame" x="126" y="171" width="48" height="16"/>
+                                        <textField hidden="YES" focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="zTr-up-fzK">
+                                            <rect key="frame" x="126" y="184" width="48" height="16"/>
                                             <textFieldCell key="cell" lineBreakMode="clipping" title="Server:" id="bfa-2J-6Pa">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
