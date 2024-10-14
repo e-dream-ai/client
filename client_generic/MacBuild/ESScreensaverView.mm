@@ -264,8 +264,10 @@ static void signnal_handler(int signal)
 {
     g_Log->Info("Killed by system from willStop");
     if (@available(macOS 14.0, *)) {
-        g_Log->Shutdown();
+        g_Log->Info("Deinit");
         ESScreensaver_Deinit();
+        g_Log->Info("Log shutdown, will exit");
+        g_Log->Shutdown();
         exit(0);
     }
 }
@@ -276,8 +278,10 @@ static void signnal_handler(int signal)
     NSLog(@"notif.object:%@", notif.object);
 
     if (@available(macOS 14.0, *)) {
-        g_Log->Shutdown();
+        g_Log->Info("Deinit");
         ESScreensaver_Deinit();
+        g_Log->Info("Log shutdown, will exit");
+        g_Log->Shutdown();
         exit(0);
     }
 }
