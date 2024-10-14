@@ -21,9 +21,10 @@ dependencies.
 
 The C++ dependencies are handled by vcpkg...
 
-There are four targets, app, screensaver, staging app, and staging
-screensaver. The staging targets have their own directory in
-/Users/Shared so they coexist.
+There are four targets: app, screensaver, staging app, and staging
+screensaver. The staging targets have their own directory
+/Users/Shared/e-dream.ai-stage that can coexist with the normal one
+/Users/Shared/e-dream.ai
 
 # to release
 
