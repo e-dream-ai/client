@@ -21,11 +21,11 @@
 - (instancetype)initWithFrame:(NSRect)frame isPreview:(BOOL)isPreview
 {
 #ifdef SCREEN_SAVER
+    //[Bugsnag start];
     self = [super initWithFrame:frame isPreview:isPreview];
 #else
     //[SPUStandardUpdaterController init];
     
-    //[Bugsnag start];
     self = [super initWithFrame:frame];
 #endif
     //os_log(OS_LOG_DEFAULT, "EDTEST  INIT");
@@ -263,18 +263,23 @@ static void signnal_handler(int signal)
 - (void)willStop:(NSNotification*)notification
 {
     g_Log->Info("Killed by system from willStop");
-    //g_Log->Shutdown();
-    ESScreensaver_Deinit();
-    exit(0);
+    if (@available(macOS 14.0, *)) {
+        g_Log->Shutdown();
+        ESScreensaver_Deinit();
+        exit(0);
+    }
 }
 
 - (void)onSleepNote:(NSNotification*)notif
 {
     g_Log->Info("Killed by system from onSleepNote %s", notif.name.UTF8String);
     NSLog(@"notif.object:%@", notif.object);
-//    g_Log->Shutdown();
-//    ESScreensaver_Deinit();
-//    exit(0);
+
+    if (@available(macOS 14.0, *)) {
+        g_Log->Shutdown();
+        ESScreensaver_Deinit();
+        exit(0);
+    }
 }
 
 - (void)_endThread

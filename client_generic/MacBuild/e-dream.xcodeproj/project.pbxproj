@@ -249,7 +249,6 @@
 		F02A5C3E2C453FEF00B57FBD /* DreamDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F02A5C3C2C453FEF00B57FBD /* DreamDownloader.cpp */; };
 		F02A5C3F2C453FEF00B57FBD /* DreamDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F02A5C3C2C453FEF00B57FBD /* DreamDownloader.cpp */; };
 		F02A5C402C453FEF00B57FBD /* DreamDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F02A5C3C2C453FEF00B57FBD /* DreamDownloader.cpp */; };
-		F0351BEA2CB5BB4F0055091F /* Bugsnag in Frameworks */ = {isa = PBXBuildFile; productRef = F0351BE92CB5BB4F0055091F /* Bugsnag */; };
 		F0351BEC2CB5BBF10055091F /* Bugsnag in Frameworks */ = {isa = PBXBuildFile; productRef = F0351BEB2CB5BBF10055091F /* Bugsnag */; };
 		F0351BEE2CB5BBF90055091F /* Bugsnag in Frameworks */ = {isa = PBXBuildFile; productRef = F0351BED2CB5BBF90055091F /* Bugsnag */; };
 		F0351BF02CB5BBFF0055091F /* Bugsnag in Frameworks */ = {isa = PBXBuildFile; productRef = F0351BEF2CB5BBFF0055091F /* Bugsnag */; };
@@ -295,6 +294,7 @@
 		F07071D72C0E05DA008219A4 /* libboost_log.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071CF2C0E052A008219A4 /* libboost_log.a */; };
 		F07071D82C0E05DA008219A4 /* libboost_thread.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071D32C0E052B008219A4 /* libboost_thread.a */; };
 		F07071D92C0E05DA008219A4 /* libboost_system.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071D22C0E052B008219A4 /* libboost_system.a */; };
+		F082D4412CBD5CA4001934FB /* Bugsnag in Frameworks */ = {isa = PBXBuildFile; productRef = F0351BE92CB5BB4F0055091F /* Bugsnag */; };
 		F0C100002C1372C4007FA505 /* libboost_thread.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071D32C0E052B008219A4 /* libboost_thread.a */; };
 		F0C100042C1372EF007FA505 /* osd-pill-r.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994532BA0912200B018C7 /* osd-pill-r.png */; };
 		F0C100052C1372EF007FA505 /* BuildData.json in Resources */ = {isa = PBXBuildFile; fileRef = 1243576B2B31FC1B00CCD62A /* BuildData.json */; };
@@ -973,6 +973,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F082D4412CBD5CA4001934FB /* Bugsnag in Frameworks */,
 				F0C100002C1372C4007FA505 /* libboost_thread.a in Frameworks */,
 				F0141B972C663E2700DBA60E /* libavfilter.a in Frameworks */,
 				467A64922B1F722E00510BEE /* libpng_universal.a in Frameworks */,
@@ -991,7 +992,6 @@
 				F0C1FFFC2C1372C4007FA505 /* libboost_json.a in Frameworks */,
 				464A49E92AB89D9D00C77F6D /* liblzma.tbd in Frameworks */,
 				2135DB250EC75133005E246D /* ScreenSaver.framework in Frameworks */,
-				F0351BEA2CB5BB4F0055091F /* Bugsnag in Frameworks */,
 				21887A130EC6CDF9001ABD2E /* CoreFoundation.framework in Frameworks */,
 				F0141B962C663E2700DBA60E /* libavutil.a in Frameworks */,
 				21887A140EC6CDF9001ABD2E /* GLUT.framework in Frameworks */,
