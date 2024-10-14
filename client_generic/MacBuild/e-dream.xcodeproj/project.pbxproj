@@ -2357,7 +2357,7 @@
 				MARKETING_VERSION = 0.4.0;
 				ONLY_ACTIVE_ARCH = YES;
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.spotworks.e-dream-dev";
+				PRODUCT_BUNDLE_IDENTIFIER = "ai.e-dream.alpha.app";
 				PRODUCT_NAME = "e-dream";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=macosx*]" = "";
@@ -2410,7 +2410,7 @@
 				MARKETING_VERSION = 0.4.0;
 				ONLY_ACTIVE_ARCH = YES;
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.spotworks.e-dream-dev";
+				PRODUCT_BUNDLE_IDENTIFIER = "ai.e-dream.alpha.app";
 				PRODUCT_NAME = "e-dream";
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -2464,7 +2464,7 @@
 					suppress,
 				);
 				"OTHER_LDFLAGS[arch=x86_64]" = "";
-				PRODUCT_BUNDLE_IDENTIFIER = "com.spotworks.e-dream-dev";
+				PRODUCT_BUNDLE_IDENTIFIER = "ai.e-dream.alpha.screensaver";
 				PRODUCT_NAME = "e-dream";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
@@ -2519,7 +2519,7 @@
 				);
 				"OTHER_LDFLAGS[arch=x86_64]" = "";
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.spotworks.e-dream-dev-gl";
+				PRODUCT_BUNDLE_IDENTIFIER = "ai.e-dream.alpha.screensaver";
 				PRODUCT_NAME = "e-dream";
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -2577,7 +2577,7 @@
 					suppress,
 				);
 				"OTHER_LDFLAGS[arch=x86_64]" = "";
-				PRODUCT_BUNDLE_IDENTIFIER = "com.spotworks.e-dream-dev";
+				PRODUCT_BUNDLE_IDENTIFIER = "ai.e-dream.stage.screensaver";
 				PRODUCT_NAME = "e-dream-stage";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
@@ -2633,7 +2633,7 @@
 				);
 				"OTHER_LDFLAGS[arch=x86_64]" = "";
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.spotworks.e-dream-dev-gl";
+				PRODUCT_BUNDLE_IDENTIFIER = "ai.e-dream.stage.screensaver";
 				PRODUCT_NAME = "e-dream-stage";
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -2743,7 +2743,7 @@
 				MARKETING_VERSION = 0.3.4test;
 				ONLY_ACTIVE_ARCH = YES;
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.spotworks.e-dream-dev";
+				PRODUCT_BUNDLE_IDENTIFIER = "ai.e-dream.stage.app";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
