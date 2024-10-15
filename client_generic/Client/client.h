@@ -273,7 +273,7 @@ class CElectricSheep
         spStats->Add(new Hud::CStringStat("deleted", "", ""));
         if (m_MultipleInstancesMode == true)
             spStats->Add(new Hud::CTimeCountDownStat(
-                "svstat", "", "Downloading disabled, read-only mode"));
+                "svstat", "", "Downloading disabled, offline mode mode"));
         else if (g_Settings()->Get("settings.content.download_mode", true) ==
                  false)
             spStats->Add(new Hud::CTimeCountDownStat("svstat", "",

@@ -239,7 +239,7 @@ class CElectricSheep_Mac : public CElectricSheep
             open(lockfile.c_str(), O_WRONLY + O_EXLOCK + O_NONBLOCK + O_CREAT,
                  S_IWUSR + S_IWGRP + S_IWOTH);
 
-        m_MultipleInstancesMode = false; // (m_lckFile < 0);
+        m_MultipleInstancesMode = (m_lckFile < 0);
 
         return CElectricSheep::Startup();
     }
