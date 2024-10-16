@@ -92,7 +92,7 @@ void destroyClipAsync(ContentDecoder::spCClip clip) {
 }
 
 // MARK: - Setup & lifecycle
-CPlayer::CPlayer() : m_isFirstPlay(true)
+CPlayer::CPlayer() : m_isFirstPlay(true), m_offlineMode(false)
 {
     m_DecoderFps = 23; //	http://en.wikipedia.org/wiki/23_(numerology)
     m_PerceptualFPS = 20;
@@ -109,7 +109,21 @@ CPlayer::CPlayer() : m_isFirstPlay(true)
 #endif
     
     m_playlistManager = std::make_unique<PlaylistManager>();
-    
+}
+
+void CPlayer::SetOfflineMode(bool offline)
+{
+    m_offlineMode = offline;
+    if (m_playlistManager)
+    {
+        m_playlistManager->setOfflineMode(offline);
+    }
+    g_Log->Info("Player offline mode set to: %s", offline ? "true" : "false");
+}
+
+bool CPlayer::IsOfflineMode() const
+{
+    return m_offlineMode;
 }
 
 /*
@@ -368,6 +382,20 @@ void CPlayer::Start()
                 }
                 
                 m_hasStarted = true;
+            } else {
+                if (m_shutdownFlag) return;
+
+                // Make sure we remove the current clip before enqueuing the new playlist
+
+                m_currentClip = nullptr;
+
+                if (lastPlayedUUID.empty()) {
+                    SetPlaylist(clientPlaylistId);
+                } else {
+                    SetPlaylistAtDream(clientPlaylistId, lastPlayedUUID);
+                }
+
+                m_hasStarted = true;
             }
         });
     }
@@ -540,8 +568,10 @@ bool CPlayer::Update(uint32_t displayUnit, bool& bPlayNoSheepIntro)
 
     writer_lock l(m_UpdateMutex);
     
-    // Make sure we are both logged in and have already a playlist ready before going in
-    if (EDreamClient::IsLoggedIn() && m_hasStarted) {
+    // Make sure we are :
+    // - either logged in, or in offline mode
+    // - have a playlist ready before going in
+    if ((EDreamClient::IsLoggedIn() || true /* g_Client->IsMultipleInstancesMode() */) && m_hasStarted) {
         if (m_isTransitioning) {
             UpdateTransition(m_TimelineTime);
         } else if (m_currentClip && m_currentClip->IsFadingOut()) {

@@ -240,7 +240,11 @@ class CElectricSheep_Mac : public CElectricSheep
                  S_IWUSR + S_IWGRP + S_IWOTH);
 
         m_MultipleInstancesMode = (m_lckFile < 0);
-
+        
+        if (m_MultipleInstancesMode) {
+            g_Log->Info("⛓️‍💥⛓️‍💥⛓️‍💥 Running in offline mode ⛓️‍💥⛓️‍💥⛓️‍💥");
+        }
+        
         return CElectricSheep::Startup();
     }
 

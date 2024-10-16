@@ -14,10 +14,14 @@
 #include <random>
 
 PlaylistManager::PlaylistManager()
-    : m_currentPosition(0), m_started(false), m_shouldTerminate(false),  m_cacheManager(Cache::CacheManager::getInstance()) {}
+    : m_currentPosition(0), m_started(false), m_shouldTerminate(false), m_offlineMode(false),  m_cacheManager(Cache::CacheManager::getInstance()) {}
 
 PlaylistManager::~PlaylistManager() {
     stopPeriodicChecking();
+}
+
+void PlaylistManager::setOfflineMode(bool offline) {
+    m_offlineMode = offline;
 }
 
 // MARK: Init
@@ -25,29 +29,70 @@ bool PlaylistManager::initializePlaylist(const std::string& playlistUUID) {
     m_initializeInProgress = true;
     m_currentPlaylistUUID = playlistUUID;
     
-    if (!EDreamClient::FetchPlaylist(playlistUUID)) {
-        g_Log->Error("Failed to fetch playlist. UUID: %s", playlistUUID.c_str());
-        m_initializeInProgress = false;
-        return false;
+
+    if (!m_offlineMode) {
+        if (!EDreamClient::FetchPlaylist(playlistUUID)) {
+            g_Log->Error("Failed to fetch playlist. UUID: %s", playlistUUID.c_str());
+            m_initializeInProgress = false;
+            return false;
+        }
     }
     
     if (!parsePlaylist(playlistUUID)) {
-        m_initializeInProgress = false;
-        return false;
+        if (m_offlineMode) {
+            g_Log->Warning("Failed to parse playlist in offline mode. Falling back to offline playlist.");
+            initializeOfflinePlaylist();
+        } else {
+            m_initializeInProgress = false;
+            return false;
+        }
     }
 
+    if (m_playlist.empty() && m_offlineMode) {
+        g_Log->Warning("Parsed playlist is empty in offline mode. Falling back to offline playlist.");
+        initializeOfflinePlaylist();
+    }
+    
     m_currentPosition = 0;
     m_started = false;
     m_currentDreamUUID = m_playlist.empty() ? "" : m_playlist[0];
 
-    // Start periodic checking if it's not already running
-    if (!m_isCheckingActive) {
+    // Start periodic checking if it's not already running. Don't in offline mode though!
+    if (!m_isCheckingActive && !m_offlineMode) {
         startPeriodicChecking();
     }
 
     m_initializeInProgress = false;
     return true;
 }
+
+void PlaylistManager::initializeOfflinePlaylist() {
+    g_Log->Info("Initializing offline playlist");
+    m_playlist.clear();
+    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+    
+    // Get all cached dreams
+    auto cachedDreams = cm.getAllCachedDreams();
+    
+    for (const auto& dream : cachedDreams) {
+        if (isDreamProcessed(dream.uuid)) {
+            m_playlist.push_back(dream.uuid);
+        }
+    }
+    
+    g_Log->Info("Offline playlist initialized with %zu dreams", m_playlist.size());
+    
+    m_currentPosition = 0;
+    m_started = false;
+    m_currentDreamUUID = m_playlist.empty() ? "" : m_playlist[0];
+    
+    // Set offline playlist metadata
+    m_currentPlaylistName = "Offline Playlist";
+    m_currentPlaylistArtist = "Local";
+    m_isPlaylistNSFW = false;
+    m_playlistTimestamp = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+}
+
 
 std::vector<std::string> PlaylistManager::getCurrentPlaylistUUIDs() const {
     return m_playlist;
@@ -66,8 +111,13 @@ bool PlaylistManager::parsePlaylist(const std::string& playlistUUID) {
     auto [playlistName, playlistArtist, isNSFW, timestamp] = EDreamClient::ParsePlaylistMetadata(playlistUUID);
 
     // Filter out evicted UUIDs and unprocessed dreams
-    m_playlist = filterActiveAndProcessedDreams(dreamUUIDs);
+    if (!m_offlineMode) {
+        m_playlist = filterActiveAndProcessedDreams(dreamUUIDs);
+    } else {
+        m_playlist = filterUncachedDreams(dreamUUIDs);
+    }
 
+    
     // Update member variables
     m_currentPlaylistName = playlistName;
     m_currentPlaylistArtist = playlistArtist;
@@ -88,6 +138,18 @@ std::vector<std::string> PlaylistManager::filterActiveAndProcessedDreams(const s
     
     for (const auto& uuid : dreamUUIDs) {
         if (!cm.isUUIDEvicted(uuid) && isDreamProcessed(uuid)) {
+            filteredUUIDs.push_back(uuid);
+        }
+    }
+    return filteredUUIDs;
+}
+
+std::vector<std::string> PlaylistManager::filterUncachedDreams(const std::vector<std::string>& dreamUUIDs) const {
+    std::vector<std::string> filteredUUIDs;
+    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+    
+    for (const auto& uuid : dreamUUIDs) {
+        if (cm.hasDiskCachedItem(uuid)) {
             filteredUUIDs.push_back(uuid);
         }
     }
@@ -252,7 +314,6 @@ const Cache::Dream* PlaylistManager::getDreamMetadata(const std::string& dreamUU
 
     return nullptr;
 }
-
 
 // MARK: Periodic playlist checks
 void PlaylistManager::startPeriodicChecking() {

@@ -208,6 +208,10 @@ class CElectricSheep
 
     Hud::spCHudManager GetHudManager() const { return m_HudManager; }
     
+    bool IsMultipleInstancesMode() {
+        return m_MultipleInstancesMode;
+    }
+    
     void CreateHud()
     {
         //    Get hud font size.
@@ -273,7 +277,7 @@ class CElectricSheep
         spStats->Add(new Hud::CStringStat("deleted", "", ""));
         if (m_MultipleInstancesMode == true)
             spStats->Add(new Hud::CTimeCountDownStat(
-                "svstat", "", "Downloading disabled, offline mode mode"));
+                "svstat", "", "Downloading disabled, offline mode"));
         else if (g_Settings()->Get("settings.content.download_mode", true) ==
                  false)
             spStats->Add(new Hud::CTimeCountDownStat("svstat", "",
@@ -494,6 +498,11 @@ class CElectricSheep
         if (!internetReachable)
         {
             m_MessageQueue.QueueMessage("No Internet Connection.", 180);
+            m_MultipleInstancesMode = true;  // set offline mode
+        } else if (m_MultipleInstancesMode) {
+            g_Log->Info("Forcing offline mode with multiple instances");
+            internetReachable = false;
+            m_MessageQueue.QueueMessage("Running in Offline mode", 180);
         }
         //    Start downloader.
         g_Log->Info("Starting downloader...");
@@ -505,6 +514,10 @@ class CElectricSheep
         // Grab the CacheManager
         Cache::CacheManager& cm = Cache::CacheManager::getInstance();
         cm.loadCachedMetadata();
+        
+        if (m_MultipleInstancesMode) {
+            g_Player().SetOfflineMode(true);
+        }
         
         // call static method to fill sheep counts
         //ContentDownloader::Shepherd::GetFlockSizeMBsRecount(0);
@@ -788,7 +801,8 @@ class CElectricSheep
             bool drawNoSheepIntro = false;
             bool drawn = g_Player().Update(displayUnit, drawNoSheepIntro);
 
-            if (!EDreamClient::IsLoggedIn() || !g_Player().HasStarted()) {
+            
+            if ((!EDreamClient::IsLoggedIn() && !m_MultipleInstancesMode) || !g_Player().HasStarted()) {
                 drawNoSheepIntro = true;
             }
             
@@ -820,11 +834,15 @@ class CElectricSheep
                         }
                         else
                         {
+                            if (m_MultipleInstancesMode) {
+                                pTmp->SetSample("Starting in offline mode.");
+                            } else {
 #ifdef SCREEN_SAVER
-                            pTmp->SetSample("Logged out. Please use the standalone app to log in.");
+                                pTmp->SetSample("Logged out. Please use the standalone app to log in.");
 #else
-                            pTmp->SetSample("Logged out. Please open settings again to log in.");
+                                pTmp->SetSample("Logged out. Please open settings again to log in.");
 #endif
+                            }
                         }
                         pTmp->Visible(true);
                     }
@@ -1109,7 +1127,11 @@ class CElectricSheep
                     }
                     else
                     {
-                        pTmp->SetSample("Not logged in");
+                        if (m_MultipleInstancesMode) {
+                            pTmp->SetSample("Offline mode, please close other instances of e-dream");
+                        } else {
+                            pTmp->SetSample("Not logged in");
+                        }
                     }
                     pTmp->Visible(visible);
                 }
