@@ -170,9 +170,9 @@ class CElectricSheep
         TupleStorage::IStorageInterface::CreateFullDirectory(m_AppData +
                                                              "Logs/");
         if (g_Settings()->Get("settings.app.log", true))
-            g_Log->Attach(m_AppData + "Logs/");
-        g_Log->Info("AttachLog()");
+            g_Log->Attach(m_AppData + "Logs/", m_MultipleInstancesMode);
 
+        g_Log->Info("AttachLog()");
         g_Log->Info("******************* %s (Built %s / %s)...\n",
                     PlatformUtils::GetAppVersion().c_str(), __DATE__, __TIME__);
     }

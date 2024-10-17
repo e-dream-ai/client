@@ -115,7 +115,7 @@ class CLog : public CSingleton<CLog>
 
     const char* Description() { return "Logger"; };
 
-    void Attach(const std::string& _location, const uint32_t _level = 0);
+    void Attach(const std::string& _location, bool multipleInstance = false);
     void Detach(void);
 
     void SetInfo(const char* _pFileStr, const uint32_t _line,
