@@ -175,6 +175,10 @@ void EDreamClient::InitializeClient()
 
 void EDreamClient::DeinitializeClient()
 {
+    // Multiple instances do not connect to websocket, just return
+    if (g_Client()->IsMultipleInstancesMode()) {
+        return;
+    }
     // Stop the timer and io_context
     ping_timer->cancel();
     io_context->stop();
