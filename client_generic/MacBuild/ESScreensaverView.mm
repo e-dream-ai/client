@@ -267,6 +267,7 @@ static void signnal_handler(int signal)
 
 - (void)willStop:(NSNotification*)notification
 {
+#ifdef SCREEN_SAVER
     g_Log->Info("Killed by system from willStop");
     if (@available(macOS 14.0, *)) {
         g_Log->Info("Deinit");
@@ -275,10 +276,12 @@ static void signnal_handler(int signal)
         g_Log->Shutdown();
         exit(0);
     }
+#endif
 }
 
 - (void)onSleepNote:(NSNotification*)notif
 {
+#ifdef SCREEN_SAVER
     g_Log->Info("Killed by system from onSleepNote %s", notif.name.UTF8String);
     NSLog(@"notif.object:%@", notif.object);
 
@@ -289,6 +292,7 @@ static void signnal_handler(int signal)
         g_Log->Shutdown();
         exit(0);
     }
+#endif
 }
 
 - (void)_endThread
