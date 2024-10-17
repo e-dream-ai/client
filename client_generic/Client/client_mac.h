@@ -128,7 +128,17 @@ class CElectricSheep_Mac : public CElectricSheep
             CFRelease(bundle);
         }
 
-        InitStorage();
+        // check the exclusive file lock to see if we are running alone...
+        std::string lockfile = m_AppData + ".instance-lock";
+
+        m_lckFile =
+            open(lockfile.c_str(), O_WRONLY + O_EXLOCK + O_NONBLOCK + O_CREAT,
+                 S_IWUSR + S_IWGRP + S_IWOTH);
+
+        m_MultipleInstancesMode = (m_lckFile < 0);
+        
+        // Make sure we are in read only mode in that case !
+        InitStorage(m_MultipleInstancesMode);
 
         GetClientProxy();
     }
@@ -199,6 +209,12 @@ class CElectricSheep_Mac : public CElectricSheep
 
         AttachLog();
 
+        // This is determined now in constructor, but we log it here
+        // as we now have logging up and running
+        if (m_MultipleInstancesMode) {
+            g_Log->Info("⛓️‍💥⛓️‍💥⛓️‍💥 Running in offline mode ⛓️‍💥⛓️‍💥⛓️‍💥");
+        }
+        
         // if m_proxyHost is set, the proxy resolver found one. If not, we
         // should not override preferences.
         if (*m_proxyHost)
@@ -230,21 +246,6 @@ class CElectricSheep_Mac : public CElectricSheep
 
         m_graphicsContextList.clear();
 
-        // @TODO, we need to clean that up, this will not work with client + saver
-        //
-        // check the exclusive file lock to see if we are running alone...
-        std::string lockfile = m_AppData + ".instance-lock";
-
-        m_lckFile =
-            open(lockfile.c_str(), O_WRONLY + O_EXLOCK + O_NONBLOCK + O_CREAT,
-                 S_IWUSR + S_IWGRP + S_IWOTH);
-
-        m_MultipleInstancesMode = (m_lckFile < 0);
-        
-        if (m_MultipleInstancesMode) {
-            g_Log->Info("⛓️‍💥⛓️‍💥⛓️‍💥 Running in offline mode ⛓️‍💥⛓️‍💥⛓️‍💥");
-        }
-        
         return CElectricSheep::Startup();
     }
 

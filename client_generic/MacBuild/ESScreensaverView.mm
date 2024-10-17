@@ -62,8 +62,6 @@
         newFrame.origin.x = 0.0;
         newFrame.origin.y = 0.0;
 
-        ESScreensaver_InitClientStorage();
-
         if (ESScreensaver_GetBoolSetting("settings.player.preserve_AR", true)) {
             if (newFrame.size.width/newFrame.size.height < (16.0f / 9.0f) )
             {
@@ -74,8 +72,6 @@
                 newFrame.origin.x = (frame.size.width - newFrame.size.width) / 2;
             }
         }
-
-        ESScreensaver_DeinitClientStorage();
 
         theRect = newFrame;
         {
@@ -133,11 +129,7 @@
     }
     if (view != NULL)
     {
-        //@TODO: remove these if unnecessary
-        //ESScreensaver_InitClientStorage();
-
         m_displayIdx = ESScreenSaver_AddGraphicsContext((__bridge void*)view);
-        //ESScreensaver_DeinitClientStorage();
     }
 
     uint32_t width = (uint32_t)theRect.size.width;
