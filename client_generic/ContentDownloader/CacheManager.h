@@ -48,6 +48,8 @@ public:
     const Dream* getDream(const std::string& uuid) const;
     std::string getDreamPath(const std::string& uuid) const;
 
+    std::vector<Dream> getAllCachedDreams() const;
+    
     void cacheAndPlayImmediately(const std::string& uuid);
     
     int dreamCount() const;

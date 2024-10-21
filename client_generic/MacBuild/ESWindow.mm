@@ -43,10 +43,6 @@ static void ShowPreferencesCallback()
     frame.size.width = 1280;
     frame.size.height = 720;
     
-    // tmp
-
-    ESScreensaver_InitClientStorage();
-    
     // Force window aspect ratio only if set in settings
     // @TODO: reset window ar when setting change, currently requires a restart
     if (ESScreensaver_GetBoolSetting("settings.player.preserve_AR", true)) {
@@ -55,8 +51,6 @@ static void ShowPreferencesCallback()
 
     mBlackouMonitors =
         ESScreensaver_GetBoolSetting("settings.player.blackout_monitors", true);
-
-    ESScreensaver_DeinitClientStorage();
 
     //[self setFrame:[self frameRectForContentRect:frame] display:NO];
     //[self setFrame:NSScreen.mainScreen.visibleFrame display:NO];
@@ -116,7 +110,7 @@ static void ShowPreferencesCallback()
 
 - (void)toggleFullScreen:(id)sender
 {
-    ESScreensaver_InitClientStorage();
+    //ESScreensaver_InitClientStorage();
 
     if (ESScreensaver_GetBoolSetting("settings.player.preserve_AR", true)) {
         // Calculate current screen aspect ratio
@@ -132,7 +126,7 @@ static void ShowPreferencesCallback()
         }
     }
 
-    ESScreensaver_DeinitClientStorage();
+    //ESScreensaver_DeinitClientStorage();
     
     //NSWorkspace *workspace = [NSWorkspace sharedWorkspace];
     //[workspace setIdleTimerDisabled:self.isFullScreen];

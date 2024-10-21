@@ -18,11 +18,7 @@
     if (m_checkingLogin)
         return;
 
-    ESScreensaver_InitClientStorage();
-
     [self saveSettings];
-
-    ESScreensaver_DeinitClientStorage();
 
     [NSApp endSheet:self.window returnCode:m_loginWasSuccessful];
 }
@@ -55,11 +51,7 @@
     [emailTextField.cell setUsesSingleLineMode:YES];
 
     // We initially load the settings here, this avoid flickering of the ui
-    ESScreensaver_InitClientStorage();
-
     [self loadSettings];
-
-    ESScreensaver_DeinitClientStorage();
 }
 
 
@@ -473,7 +465,6 @@
 
 - (IBAction)restartLogin:(id)__unused sender
 {
-    //ESScreensaver_InitClientStorage();
     // Restart validation
     m_loginWasSuccessful = false;
     m_sentCode = false;

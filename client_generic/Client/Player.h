@@ -39,8 +39,12 @@ class CPlayer : public Base::CSingleton<CPlayer>
     std::unique_ptr<PlaylistManager> m_playlistManager;
     double m_TimelineTime;
 
+    void SetOfflineMode(bool offline);
+    bool IsOfflineMode() const;
   private:
     bool m_hasStarted = false;
+    
+    bool m_offlineMode;
     
     std::atomic<bool> m_shutdownFlag{false};
     std::shared_ptr<std::thread> m_startupThread;

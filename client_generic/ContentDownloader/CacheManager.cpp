@@ -56,6 +56,19 @@ std::string CacheManager::getDreamPath(const std::string& uuid) const {
     return filePath.string();
 }
 
+std::vector<Dream> CacheManager::getAllCachedDreams() const {
+    std::vector<Dream> cachedDreams;
+    
+    for (const auto& item : diskCached) {
+        const Dream* dream = getDream(item.uuid);
+        if (dream) {
+            cachedDreams.push_back(*dream);
+        }
+    }
+
+    return cachedDreams;
+}
+
 int CacheManager::dreamCount() const {
     return (int)dreams.size();
 }

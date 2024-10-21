@@ -129,7 +129,7 @@ CFStringRef ESScreensaver_GetVersion(void)
     return gClient.GetBundleVersion();
 }
 
-void ESScreensaver_InitClientStorage(void) { gClient.SetUpConfig(); }
+//void ESScreensaver_InitClientStorage(void) { gClient.SetUpConfig(); }
 
 CFStringRef ESScreensaver_CopyGetRoot(void)
 {
@@ -188,10 +188,10 @@ void ESScreensaver_SetDoubleSetting(const char* url, const double val)
     g_Settings()->Set(std::string(url), val);
 }
 
-void ESScreensaver_DeinitClientStorage(void)
+/*void ESScreensaver_DeinitClientStorage(void)
 {
     g_Settings()->Storage()->Commit();
-}
+}*/
 
 void ESScreensaver_SetUpdateAvailable(const char* verinfo)
 {

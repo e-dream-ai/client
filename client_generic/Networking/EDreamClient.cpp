@@ -158,6 +158,11 @@ static void OnWebSocketReconnect(unsigned _num, unsigned _delay)
 
 void EDreamClient::InitializeClient()
 {
+    if (g_Client()->IsMultipleInstancesMode()) {
+        g_Log->Info("Disabling auth in multiple instance mode");
+        return;
+    }
+
     s_SIOClient.set_open_listener(&OnWebSocketConnected);
     s_SIOClient.set_close_listener(&OnWebSocketClosed);
     s_SIOClient.set_fail_listener(&OnWebSocketFail);
@@ -170,6 +175,10 @@ void EDreamClient::InitializeClient()
 
 void EDreamClient::DeinitializeClient()
 {
+    // Multiple instances do not connect to websocket, just return
+    if (g_Client()->IsMultipleInstancesMode()) {
+        return;
+    }
     // Stop the timer and io_context
     ping_timer->cancel();
     io_context->stop();
@@ -195,8 +204,8 @@ void EDreamClient::DeinitializeClient()
 // MARK : Auth (via refresh)
 bool EDreamClient::Authenticate()
 {
-    g_Log->Info("Starting Authentication...");
     PlatformUtils::SetThreadName("Authenticate");
+    g_Log->Info("Starting Authentication...");
     //std::lock_guard<std::mutex> lock(fAuthMutex);
     
     // Check if we have a sealed session

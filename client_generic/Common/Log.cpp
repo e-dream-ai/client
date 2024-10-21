@@ -98,7 +98,7 @@ void CLog::PipeReaderThread()
 
 }
 
-void CLog::Attach(const std::string& _location, const uint32_t /*_level*/)
+void CLog::Attach(const std::string& _location, bool multipleInstance)
 {
     // Add console sink
     boost::shared_ptr<boost::log::sinks::text_ostream_backend> console_backend =
@@ -127,7 +127,15 @@ void CLog::Attach(const std::string& _location, const uint32_t /*_level*/)
     strftime(timeStamp, sizeof(timeStamp), "%Y_%m_%d", localtime(&curTime));
 
     std::stringstream s;
-    s << _location << timeStamp << ".log";
+    s << _location << timeStamp;
+    
+    if (multipleInstance)
+    {
+        pid_t pid = getpid();
+        s << "_pid" << pid;
+    }
+    
+    s << ".log";
     std::string f = s.str();
 
     m_Sink = boost::log::add_file_log(f, boost::log::keywords::format =

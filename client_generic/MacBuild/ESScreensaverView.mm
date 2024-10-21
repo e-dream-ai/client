@@ -62,8 +62,6 @@
         newFrame.origin.x = 0.0;
         newFrame.origin.y = 0.0;
 
-        ESScreensaver_InitClientStorage();
-
         if (ESScreensaver_GetBoolSetting("settings.player.preserve_AR", true)) {
             if (newFrame.size.width/newFrame.size.height < (16.0f / 9.0f) )
             {
@@ -74,8 +72,6 @@
                 newFrame.origin.x = (frame.size.width - newFrame.size.width) / 2;
             }
         }
-
-        ESScreensaver_DeinitClientStorage();
 
         theRect = newFrame;
         {
@@ -133,11 +129,7 @@
     }
     if (view != NULL)
     {
-        //@TODO: remove these if unnecessary
-        //ESScreensaver_InitClientStorage();
-
         m_displayIdx = ESScreenSaver_AddGraphicsContext((__bridge void*)view);
-        //ESScreensaver_DeinitClientStorage();
     }
 
     uint32_t width = (uint32_t)theRect.size.width;
@@ -267,6 +259,7 @@ static void signnal_handler(int signal)
 
 - (void)willStop:(NSNotification*)notification
 {
+#ifdef SCREEN_SAVER
     g_Log->Info("Killed by system from willStop");
     if (@available(macOS 14.0, *)) {
         g_Log->Info("Deinit");
@@ -275,10 +268,12 @@ static void signnal_handler(int signal)
         g_Log->Shutdown();
         exit(0);
     }
+#endif
 }
 
 - (void)onSleepNote:(NSNotification*)notif
 {
+#ifdef SCREEN_SAVER
     g_Log->Info("Killed by system from onSleepNote %s", notif.name.UTF8String);
     NSLog(@"notif.object:%@", notif.object);
 
@@ -289,6 +284,7 @@ static void signnal_handler(int signal)
         g_Log->Shutdown();
         exit(0);
     }
+#endif
 }
 
 - (void)_endThread
