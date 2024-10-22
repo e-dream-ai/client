@@ -779,42 +779,67 @@ void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
             PlayClip(dream, m_TimelineTime, frameNumber, true);
             m_nextClip->SetTransitionLength(1.0f, 5.0f);
         } else {
-            auto future = std::async(std::launch::async, [this, frameNumber, &dream](){
-                // Grab URL and save it for later use
+            std::thread([this, frameNumber, dream = dream]() {
+                // Fetch URL first
                 auto path = EDreamClient::GetDreamDownloadLink(dream->uuid);
                 dream->setStreamingUrl(path);
                 
-                writer_lock l(m_UpdateMutex);
+                // Prepare the clip outside the lock
+                auto du = m_displayUnits[0];
+                int32_t displayMode = g_Settings()->Get("settings.player.DisplayMode", 2);
                 
-                m_transitionDuration = 1.0f;
-                StartTransition();
+                auto newClip = std::make_shared<ContentDecoder::CClip>(
+                    ContentDecoder::sClipMetadata{path, m_PerceptualFPS / dream->activityLevel, *dream},
+                    du->spRenderer, displayMode, du->spDisplay->Width(),
+                    du->spDisplay->Height());
                 
-                PlayClip(dream, m_TimelineTime, frameNumber, true);
-                m_nextClip->SetTransitionLength(1.0f, 5.0f);
-            });
+                // Start the clip before taking the lock, this replaces PlayClip
+                if (newClip->Start(frameNumber)) {
+                    // Only take the lock once everything is ready
+                    writer_lock l(m_UpdateMutex);
+                    m_transitionDuration = 1.0f;
+                    StartTransition();
+                    
+                    // Set the start time and store the clip
+                    newClip->SetStartTime(m_TimelineTime);
+                    m_nextClip = newClip;
+                    m_nextClip->SetTransitionLength(1.0f, 5.0f);
+                }
+            }).detach();
         }
     } else {
-        auto future = std::async(std::launch::async, [_uuid, &cm, this, frameNumber](){
-            // We need the metadata before we do anything
-            EDreamClient::FetchDreamMetadata(std::string(_uuid));
-            cm.reloadMetadata(std::string(_uuid));
-
-            auto dream = cm.getDream(std::string(_uuid));
+        std::thread([uuid = std::string(_uuid), &cm, this, frameNumber]() {
+            EDreamClient::FetchDreamMetadata(uuid);
+            cm.reloadMetadata(uuid);
+            
+            auto dream = cm.getDream(uuid);
             if (!dream) {
                 g_Log->Error("Can't get dream metadata, aborting PlayDreamNow");
                 return;
             }
-            // Grab URL and save it for later use
+            
             auto path = EDreamClient::GetDreamDownloadLink(dream->uuid);
             dream->setStreamingUrl(path);
-
-            writer_lock l(m_UpdateMutex);
-
-            m_transitionDuration = 1.0f;
-            StartTransition();
-            PlayClip(dream, m_TimelineTime, frameNumber, true);
-            m_nextClip->SetTransitionLength(1.0f, 5.0f);
-        });
+            
+            // Prepare clip outside lock, this replaces PlayClip
+            auto du = m_displayUnits[0];
+            int32_t displayMode = g_Settings()->Get("settings.player.DisplayMode", 2);
+            
+            auto newClip = std::make_shared<ContentDecoder::CClip>(
+                                                                   ContentDecoder::sClipMetadata{path, m_PerceptualFPS / dream->activityLevel, *dream},
+                                                                   du->spRenderer, displayMode, du->spDisplay->Width(),
+                                                                   du->spDisplay->Height());
+            
+            if (newClip->Start(frameNumber)) {
+                writer_lock l(m_UpdateMutex);
+                m_transitionDuration = 1.0f;
+                StartTransition();
+                
+                newClip->SetStartTime(m_TimelineTime);
+                m_nextClip = newClip;
+                m_nextClip->SetTransitionLength(1.0f, 5.0f);
+            }
+        }).detach();
     }
 }
 
