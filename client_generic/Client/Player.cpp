@@ -437,6 +437,22 @@ bool CPlayer::Shutdown(void)
     g_Log->Info("CPlayer::Shutdown()\n");
 
     Stop();
+    
+    // Signal any current clips to abort immediately
+    if (m_currentClip) {
+        writer_lock l(m_UpdateMutex);
+        if (m_currentClip->GetClipMetadata().path.substr(0, 4) == "http") {
+            // Get the decoder and signal shutdown
+            m_currentClip->GetDecoder()->signalShutdown();
+        }
+    }
+
+    if (m_nextClip) {
+        writer_lock l(m_UpdateMutex);
+        if (m_nextClip->GetClipMetadata().path.substr(0, 4) == "http") {
+            m_nextClip->GetDecoder()->signalShutdown();
+        }
+    }
 
     m_displayUnits.clear();
 

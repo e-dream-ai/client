@@ -122,11 +122,16 @@ class CContentDecoder
     CVideoFrame* ReadOneFrame();
     static int DumpError(int _err);
 
+    std::atomic<bool> m_isShuttingDown{false};
+    void abortFutures();
+
   public:
     CContentDecoder(const uint32_t _queueLenght,
                     AVPixelFormat _wantedPixelFormat = AV_PIX_FMT_RGB24);
     virtual ~CContentDecoder();
 
+    void signalShutdown() { m_isShuttingDown.store(true); abortFutures(); }
+    
     void Close();
     bool Start(const sClipMetadata& metadata, int64_t _seekFrame = -1);
     void Stop();

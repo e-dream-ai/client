@@ -83,12 +83,17 @@ CContentDecoder::~CContentDecoder()
 {
     Stop();
 
-    // Make sure we wait for our futures here
-    g_Log->Info("Ensuring futures are closed");
-    for (auto& future : m_futures) {
-        future.wait();
+    // Only wait for futures if we're not in a shutdown state
+    if (!m_isShuttingDown.load()) {
+        g_Log->Info("Ensuring futures are closed normally");
+        for (auto& future : m_futures) {
+            future.wait();
+        }
+        g_Log->Info("Futures are closed");
+    } else {
+        g_Log->Info("Shutdown detected, aborting futures");
+        abortFutures();
     }
-    g_Log->Info("Futures are closed");
     
     Destroy();
 }
@@ -109,6 +114,18 @@ void CContentDecoder::Destroy()
         m_CurrentVideoInfo->m_pVideoCodecContext = nullptr;
     }
 }
+
+void CContentDecoder::abortFutures() {
+    // First mark all operations as needing to stop
+    m_HasEnded.store(true);
+    
+    // Close cache file immediately if open
+    CloseCacheFile();
+    
+    // Clear any pending futures
+    m_futures.clear();
+}
+
 
 int CContentDecoder::DumpError(int _err)
 {
@@ -625,6 +642,12 @@ void CContentDecoder::ReadFramesThread()
         while (m_CurrentVideoInfo->m_CurrentFrameIndex <
                m_CurrentVideoInfo->m_TotalFrameCount - 1)
         {
+            // Check for shutdown
+            if (m_isShuttingDown.load()) {
+                g_Log->Info("Shutdown detected in read frames thread");
+                return;
+            }
+
             this_thread::interruption_point();
             
             PROFILER_BEGIN("Main Video Decoder Frame");
@@ -708,18 +731,10 @@ void CContentDecoder::ReadFramesThread()
     }
     catch (thread_interrupted const&)
     {
-        g_Log->Info("Read frames thread interrupted.");
-        
-        
-        // NOTE : This works for fetching remaining data, but still locks as it looks like we're waiting
-        // upstream in the code for the content decoder to be destroyed.
-        //
-        // So right now uncommenting this will block in the destructor.
-        // TODO : Consider revisiting this later and see what effectively blocks.
-         
-        g_Log->Info("Read frames thread interrupted, trying to fetch remaining data asynchronously.");
+        g_Log->Info("Ending main video frame reading thread for %s", m_Metadata.dreamData.uuid.c_str());
 
-        if (m_IsStreaming) {
+        if (!m_isShuttingDown.load() && m_IsStreaming) {
+            g_Log->Info("Read frames thread interrupted, trying to fetch remaining data asynchronously.");
             m_futures.emplace_back(std::async(std::launch::async, [this]() {
                 // Try to read any remaining data
                 unsigned char buffer[4096];
@@ -729,12 +744,9 @@ void CContentDecoder::ReadFramesThread()
                 }
                 
                 m_HasEnded.store(true);
-                
                 FinalizeCacheFile();
             }));
         }
-    
-        g_Log->Info("Ending main video frame reading thread for %s", m_Metadata.dreamData.uuid.c_str());
     }
     catch (std::exception const& e)
     {
@@ -878,6 +890,11 @@ bool CContentDecoder::IsDownloadComplete() const
 
 void CContentDecoder::FinalizeCacheFile()
 {
+    // Don't try to finalize during shutdown
+    if (m_isShuttingDown.load()) {
+        return;
+    }
+    
     std::lock_guard<std::mutex> lock(m_CacheMutex);
 
     if (m_IsStreaming && IsDownloadComplete() && !m_CachePath.empty())
