@@ -238,9 +238,9 @@ class CElectricSheep
         spHelpMessage->Add(new Hud::CStringStat(
             "message",
             "e-dream\n\n"
-            "A platform for generative AI visuals, see e-dream.ai to learn "
-            "more.\n\n"
-            "Keyboard Commands:\n"
+            "The evolution of art. See e-dream.ai to learn more.\n\n"
+            "Use the remote control or keyboard to interact.\n\n"
+            "Commands:\n"
             "Up-arrow: like this dream\n"
             "Down-arrow: dislike this dream and delete it\n"
             "Left-arrow: go back to play previous dream\n"
@@ -836,7 +836,7 @@ class CElectricSheep
 #ifdef SCREEN_SAVER
                                 pTmp->SetSample("Logged out. Please use the standalone app to log in.");
 #else
-                                pTmp->SetSample("Logged out. Please open settings again to log in.");
+                                pTmp->SetSample("Logged out. Please open settings to log in.");
 #endif
                             }
                         }
