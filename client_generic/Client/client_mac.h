@@ -128,14 +128,20 @@ class CElectricSheep_Mac : public CElectricSheep
             CFRelease(bundle);
         }
 
-        // check the exclusive file lock to see if we are running alone...
-        std::string lockfile = m_AppData + ".instance-lock";
-
-        m_lckFile =
+        bool exists = std::filesystem::exists(m_AppData);
+        
+        if (exists) {
+            // check the exclusive file lock to see if we are running alone...
+            std::string lockfile = m_AppData + ".instance-lock";
+            
+            m_lckFile =
             open(lockfile.c_str(), O_WRONLY + O_EXLOCK + O_NONBLOCK + O_CREAT,
                  S_IWUSR + S_IWGRP + S_IWOTH);
-
-        m_MultipleInstancesMode = (m_lckFile < 0);
+            
+            m_MultipleInstancesMode = (m_lckFile < 0);
+        } else {
+            m_MultipleInstancesMode = false;
+        }
         
         // Make sure we are in read only mode in that case !
         InitStorage(m_MultipleInstancesMode);

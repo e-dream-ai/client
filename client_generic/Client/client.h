@@ -828,11 +828,7 @@ class CElectricSheep
                     std::string serverStatus = g_NetworkManager->Status();
                     if (drawNoSheepIntro)
                     {
-                        if (EDreamClient::IsLoggedIn())
-                        {
-                            pTmp->SetSample(string_format("Downloading %s", serverStatus.data()));
-                        }
-                        else
+                        if (!EDreamClient::IsLoggedIn())
                         {
                             if (m_MultipleInstancesMode) {
                                 pTmp->SetSample("Starting in offline mode.");

@@ -918,12 +918,6 @@ void CPlayer::ResetPlaylist() {
         StartTransition();
     }).detach();
     g_Log->Info("PostReset");
-/*
-    EDreamClient::FetchDefaultPlaylist();
-    m_currentClip = nullptr;    // Fetch is synchronous, avoids black screen
-    SetPlaylist("");
- */
-    
 }
 
 // MARK: - Transition
