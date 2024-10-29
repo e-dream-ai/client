@@ -91,9 +91,9 @@
     {
         loginStatusImage.image = self->greenImage;
         loginTestStatusText.stringValue =
-            [NSString stringWithFormat:@"Logged in as %@", m_origNickname];
+            [NSString stringWithFormat:@"Signed in as %@", m_origNickname];
         m_loginWasSuccessful = YES;
-        signInButton.title = @"Sign Out";
+        signInButton.title = @"Sign out";
         [signInButton setEnabled:true];
 
         [retryLoginButton setHidden:true];
@@ -187,7 +187,7 @@
     else
     {
         loginStatusImage.image = redImage;
-        loginTestStatusText.stringValue = @"Login Failed :(";
+        loginTestStatusText.stringValue = @"Sign-in Failed :(";
     }
 }
 

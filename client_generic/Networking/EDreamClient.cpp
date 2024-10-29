@@ -232,7 +232,7 @@ bool EDreamClient::Authenticate()
 
     fIsLoggedIn.exchange(success);
     fAuthMutex.unlock();
-    g_Log->Info("Login success: %s", success ? "true" : "false");
+    g_Log->Info("Sign in success: %s", success ? "true" : "false");
 
     if (success)
     {
@@ -358,7 +358,7 @@ bool EDreamClient::SendCode()
         curl_easy_cleanup(curl);
 
         if(res != CURLE_OK) {
-            g_Log->Error("Failed to send login code. Curl error: %s", curl_easy_strerror(res));
+            g_Log->Error("Failed to send verification code. Curl error: %s", curl_easy_strerror(res));
             return false;
         }
 
@@ -366,10 +366,10 @@ bool EDreamClient::SendCode()
         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
 
         if (http_code == 200) {
-            g_Log->Info("Login code sent successfully to %s", email.c_str());
+            g_Log->Info("Verification code sent successfully to %s", email.c_str());
             return true;
         } else {
-            g_Log->Error("Failed to send login code. Server returned %ld: %s", http_code, readBuffer.c_str());
+            g_Log->Error("Failed to send verification code. Server returned %ld: %s", http_code, readBuffer.c_str());
             return false;
         }
     }
@@ -417,7 +417,7 @@ bool EDreamClient::ValidateCode(const std::string& code)
         curl_easy_cleanup(curl);
 
         if(res != CURLE_OK) {
-            g_Log->Error("Failed to validate login code. Curl error: %s", curl_easy_strerror(res));
+            g_Log->Error("Failed to validate code. Curl error: %s", curl_easy_strerror(res));
             return false;
         }
 
@@ -466,7 +466,7 @@ bool EDreamClient::ValidateCode(const std::string& code)
                 return false;
             }
         } else {
-            g_Log->Error("Failed to validate login code. Server returned %ld: %s", http_code, readBuffer.c_str());
+            g_Log->Error("Failed to validate code. Server returned %ld: %s", http_code, readBuffer.c_str());
             return false;
         }
     }

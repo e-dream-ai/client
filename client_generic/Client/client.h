@@ -270,7 +270,7 @@ class CElectricSheep
         m_HudManager->Hide("dreamstats");
         Hud::spCStatsConsole spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
             m_HudManager->Get("dreamstats"));
-        spStats->Add(new Hud::CStringStat("loginstatus", "", "Not logged in"));
+        spStats->Add(new Hud::CStringStat("loginstatus", "", "Not signed in"));
         spStats->Add(
             new Hud::CStringStat("all", "Content cache: ", "unknown..."));
         spStats->Add(new Hud::CStringStat("transfers", "", ""));
@@ -834,9 +834,9 @@ class CElectricSheep
                                 pTmp->SetSample("Starting in offline mode.");
                             } else {
 #ifdef SCREEN_SAVER
-                                pTmp->SetSample("Logged out. Please use the standalone app to log in.");
+                                pTmp->SetSample("Please open settings to sign in.");
 #else
-                                pTmp->SetSample("Logged out. Please open settings to log in.");
+                                pTmp->SetSample("Please open settings to sign in.");
 #endif
                             }
                         }
@@ -1117,7 +1117,7 @@ class CElectricSheep
                     {
                         std::stringstream loginstatusstr;
                         loginstatusstr
-                        << "Logged in! Remaining quota: " << cm.getRemainingQuotaAsString();
+                        << "Signed in! Remaining quota: " << cm.getRemainingQuotaAsString();
                         
                         pTmp->SetSample(loginstatusstr.str());
                     }
@@ -1126,7 +1126,7 @@ class CElectricSheep
                         if (m_MultipleInstancesMode) {
                             pTmp->SetSample("Offline mode, please close other instances of e-dream");
                         } else {
-                            pTmp->SetSample("Not logged in");
+                            pTmp->SetSample("Not signed in");
                         }
                     }
                     pTmp->Visible(visible);
