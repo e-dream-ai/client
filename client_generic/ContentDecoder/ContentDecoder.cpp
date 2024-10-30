@@ -226,7 +226,7 @@ bool CContentDecoder::Open()
     
     // Open input, whether it's a file or URL
     AVDictionary* options = nullptr;
-    av_dict_set(&options, "probesize", "50000", 0);  //
+    av_dict_set(&options, "probesize", "10000000", 0);  //
     av_dict_set(&options, "analyzeduration", "0", 0);
     if (DumpError(avformat_open_input(&ovi->m_pFormatContext, m_IsStreaming ? nullptr : _filename.c_str(), nullptr, &options)) < 0)
     {
