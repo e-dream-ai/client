@@ -259,7 +259,7 @@ void EDreamClient::SignOut()
 {
     std::lock_guard<std::mutex> lock(fAuthMutex);
     
-    g_Log->Info("Logout initiated");
+    g_Log->Info("Sign out initiated");
     
     // Retrieve the current sealed session from settings
     std::string currentSealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
@@ -270,7 +270,7 @@ void EDreamClient::SignOut()
         return;
     }
 
-    Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>("Logout Sealed Session");
+    Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>("Sign out Sealed Session");
     spDownload->AppendHeader("Content-Type: application/json");
     
     // Set the cookie with the current sealed session
@@ -285,13 +285,13 @@ void EDreamClient::SignOut()
         }
         else
         {
-            g_Log->Error("Failed to logout. Server returned %i: %s",
+            g_Log->Error("Failed to sign out. Server returned %i: %s",
                          spDownload->ResponseCode(), spDownload->Data().c_str());
         }
     }
     else
     {
-        g_Log->Error("Network error while logout");
+        g_Log->Error("Network error while signing out");
     }
     
     fIsLoggedIn.exchange(false);
