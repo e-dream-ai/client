@@ -10,6 +10,7 @@
 #include <iostream>
 #include <mutex>
 #include <boost/json.hpp>
+#include <unordered_set>
 
 #include "PathManager.h"
 #include "StringFormat.h"
@@ -463,6 +464,32 @@ double CacheManager::getCacheSize() const {
     constexpr double bytesPerGB = 1024.0 * 1024.0 * 1024.0;
     return static_cast<double>(totalSizeBytes) / bytesPerGB;
 }
+
+bool CacheManager::isPlaylistFillingCache(const std::vector<std::string>& playlistUUIDs) {
+    // First check if we're in unlimited cache mode
+    if (g_Settings()->Get("settings.content.unlimited_cache", true)) {
+        return false;
+    }
+
+    // No cached dreams means cache isn't full
+    if (diskCached.empty()) {
+        return false;
+    }
+
+    std::unordered_set<std::string> playlistDreams(playlistUUIDs.begin(), playlistUUIDs.end());
+
+    // Check if all cached dreams belong to the current playlist
+    for (const auto& cachedItem : diskCached) {
+        if (playlistDreams.find(cachedItem.uuid) == playlistDreams.end()) {
+            return false; // Found a cached dream not in the playlist, so we can still evict/stream stuff
+        }
+    }
+
+    // If we get here, all cached items are from the playlist
+    // Now check if the cache is actually full
+    return (getRemainingCacheSpace() < (1024 * 1024 * 10)); // 10MB threshold
+}
+
 
 // MARK: - DiskCacheItem/HistoryItem
 
