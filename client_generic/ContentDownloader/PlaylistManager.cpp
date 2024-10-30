@@ -208,6 +208,30 @@ const Cache::Dream* PlaylistManager::getNextDream() {
     {
         return nullptr;
     }
+    
+    // Check if our cache is already filled up for the current playlist
+    if (m_cacheManager.isPlaylistFillingCache(m_playlist)) {
+        g_Log->Info("Cache is already filled up with current playlist, thrashing protection");
+        // Find next cached dream
+        size_t startPosition = m_currentPosition;
+        do {
+            if (m_cacheManager.hasDiskCachedItem(m_playlist[m_currentPosition])) {
+                break;
+            }
+            
+            if (m_currentPosition < m_playlist.size() - 1) {
+                m_currentPosition++;
+            } else {
+                m_currentPosition = 0;
+            }
+        } while (m_currentPosition != startPosition);
+        
+        // If we couldn't find any cached dream, return to original position
+        if (m_currentPosition == startPosition && !m_cacheManager.hasDiskCachedItem(m_playlist[m_currentPosition])) {
+            g_Log->Warning("No cached dreams found in playlist after full scan");
+        }
+    }
+    
         
     m_currentDreamUUID = m_playlist[m_currentPosition];
     m_currentDream = m_cacheManager.getDream(m_currentDreamUUID);
@@ -237,12 +261,38 @@ std::optional<const Cache::Dream*> PlaylistManager::getDreamByUUID(const std::st
 }
 
 const Cache::Dream* PlaylistManager::getPreviousDream() {
+    if (m_playlist.empty()) {
+        return nullptr;
+    }
+    
     if (m_currentPosition > 0) {
         m_currentPosition--;
     } else {
         m_currentPosition = m_playlist.size() - 1; // Loop to the end
     }
 
+    if (m_cacheManager.isPlaylistFillingCache(m_playlist)) {
+        g_Log->Info("Cache is already filled up with current playlist, thrashing protection");
+
+        size_t startPosition = m_currentPosition;
+        do {
+            if (m_cacheManager.hasDiskCachedItem(m_playlist[m_currentPosition])) {
+                break;
+            }
+            
+            if (m_currentPosition > 0) {
+                m_currentPosition--;
+            } else {
+                m_currentPosition = m_playlist.size() - 1;
+            }
+        } while (m_currentPosition != startPosition);
+        
+        if (m_currentPosition == startPosition && !m_cacheManager.hasDiskCachedItem(m_playlist[m_currentPosition])) {
+            g_Log->Warning("No cached dreams found in playlist after full scan");
+        }
+    }
+    
+    
     g_Log->Info("getPreviousDream : %s (pos: %zu)", m_playlist[m_currentPosition].c_str(), m_currentPosition);
 
     m_currentDreamUUID = m_playlist[m_currentPosition];

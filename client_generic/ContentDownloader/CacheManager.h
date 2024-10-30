@@ -93,6 +93,9 @@ public:
     std::uintmax_t getRemainingCacheSpace();
     double getCacheSize() const;
     
+    bool isPlaylistFillingCache(const std::vector<std::string>& playlistUUIDs);
+
+    
     // diskCachedItem/historyItem
     void addDiskCachedItem(const DiskCachedItem& item);
     void removeDiskCachedItem(const std::string& uuid);
