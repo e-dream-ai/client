@@ -82,7 +82,7 @@
 
 - (void)updateAuthUI
 {
-    [self updateAuthUI:@"Please log in."];
+    [self updateAuthUI:@"Please sign in."];
 }
 
 - (void)updateAuthUI:(NSString*)failMessage
@@ -418,9 +418,9 @@
 - (IBAction)goToCreateAccountPage:(id)__unused sender
 {
 #ifdef STAGE
-    NSURL* helpURL = [NSURL URLWithString:@"https://stage.e-dream.ai/signup"];
+    NSURL* helpURL = [NSURL URLWithString:@"https://stage.e-dream.ai/account"];
 #else
-    NSURL* helpURL = [NSURL URLWithString:@"https://alpha.e-dream.ai/signup"];
+    NSURL* helpURL = [NSURL URLWithString:@"https://alpha.e-dream.ai/account"];
 #endif
     [[NSWorkspace sharedWorkspace] openURL:helpURL];
 }
