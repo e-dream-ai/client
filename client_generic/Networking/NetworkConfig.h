@@ -16,7 +16,7 @@ namespace Network {
 // Network request headers configuration
 struct NetworkHeaders {
     static std::string getClientType() {
-        return "Edream-Client-Type: native";
+        return "Edream-Client-Type: " + PlatformUtils::GetPlatformName();
     }
     
     static std::string getClientVersion() {

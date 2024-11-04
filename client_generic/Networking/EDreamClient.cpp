@@ -1550,6 +1550,9 @@ void EDreamClient::ConnectRemoteControlSocket()
     std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
     
     query["Cookie"] = string_format("wos-session=%s", sealedSession.c_str());
+    query["Edream-Client-Type"] = PlatformUtils::GetPlatformName();
+    query["Edream-Client-Version"] = PlatformUtils::GetAppVersion();
+
     s_SIOClient.connect(ServerConfig::ServerConfigManager::getInstance().getWebsocketServer(), query, query);
     
     // Send first ping immediately so frontend knows we're here
