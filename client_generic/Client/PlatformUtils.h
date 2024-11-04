@@ -24,6 +24,7 @@ class PlatformUtils
     static std::string GetBuildDate();
     static std::string GetGitRevision();
     static std::string GetAppVersion();
+    static std::string GetPlatformName();
     static void OpenURLExternally(std::string_view _url);
     static void SetCursorHidden(bool _hidden);
     static void

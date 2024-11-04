@@ -82,6 +82,11 @@ std::string PlatformUtils::GetAppVersion()
     return str.UTF8String;
 }
 
+std::string PlatformUtils::GetPlatformName() {
+    return "native macOS";
+}
+
+
 void PlatformUtils::SetCursorHidden(bool _hidden)
 {
     if (_hidden)

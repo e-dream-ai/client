@@ -912,6 +912,7 @@
 		F07071D12C0E052A008219A4 /* libboost_filesystem.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_filesystem.a; path = "../../cache/univ-osx/lib/libboost_filesystem.a"; sourceTree = "<group>"; };
 		F07071D22C0E052B008219A4 /* libboost_system.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_system.a; path = "../../cache/univ-osx/lib/libboost_system.a"; sourceTree = "<group>"; };
 		F07071D32C0E052B008219A4 /* libboost_thread.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_thread.a; path = "../../cache/univ-osx/lib/libboost_thread.a"; sourceTree = "<group>"; };
+		F08A7DC42CD507BC00D43977 /* NetworkConfig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NetworkConfig.h; sourceTree = "<group>"; };
 		F0C100842C1372EF007FA505 /* e-dream-stage.saver */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "e-dream-stage.saver"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F0C100852C1372F0007FA505 /* ScreenSaver copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "ScreenSaver copy-Info.plist"; path = "/Users/guillaume/dev/client/client_generic/MacBuild/ScreenSaver copy-Info.plist"; sourceTree = "<absolute>"; };
 		F0CCD23D2B98CF530070314F /* OSD.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = OSD.hpp; sourceTree = "<group>"; };
@@ -1185,6 +1186,7 @@
 				211CDDD80ED0BD9200EB9394 /* Networking.cpp */,
 				12478A672B03B194006A8669 /* Networking.h */,
 				211CDDDA0ED0BD9200EB9394 /* Upload.cpp */,
+				F08A7DC42CD507BC00D43977 /* NetworkConfig.h */,
 			);
 			name = Networking;
 			path = ../Networking;

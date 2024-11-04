@@ -17,6 +17,7 @@
 #include "Player.h"
 #include "Settings.h"
 #include "ServerConfig.h"
+#include "NetworkConfig.h"
 #include "PathManager.h"
 #include "client.h"
 #include "clientversion.h"
@@ -271,6 +272,7 @@ void EDreamClient::SignOut()
     }
 
     Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>("Sign out Sealed Session");
+    Network::NetworkHeaders::addStandardHeaders(spDownload);
     spDownload->AppendHeader("Content-Type: application/json");
     
     // Set the cookie with the current sealed session
@@ -487,6 +489,7 @@ bool EDreamClient::RefreshSealedSession()
     }
 
     Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>("Refresh Sealed Session");
+    Network::NetworkHeaders::addStandardHeaders(spDownload);
     spDownload->AppendHeader("Content-Type: application/json");
     
     // Set the cookie with the current sealed session
@@ -615,6 +618,7 @@ std::string EDreamClient::Hello() {
     while (currentAttempt++ < maxAttempts)
     {
         spDownload = std::make_shared<Network::CFileDownloader>("Hello!");
+        Network::NetworkHeaders::addStandardHeaders(spDownload);
         spDownload->AppendHeader("Content-Type: application/json");
         
         // Retrieve the sealed session from settings
@@ -827,6 +831,7 @@ std::vector<std::string> EDreamClient::FetchUserDislikes() {
     while (currentAttempt++ < maxAttempts)
     {
         spDownload = std::make_shared<Network::CFileDownloader>("Fetch User Dislikes");
+        Network::NetworkHeaders::addStandardHeaders(spDownload);
         spDownload->AppendHeader("Content-Type: application/json");
         // Retrieve the sealed session from settings
         std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
@@ -902,6 +907,7 @@ bool EDreamClient::FetchPlaylist(std::string_view uuid) {
     while (currentAttempt++ < maxAttempts)
     {
         spDownload = std::make_shared<Network::CFileDownloader>("Playlist");
+        Network::NetworkHeaders::addStandardHeaders(spDownload);
         spDownload->AppendHeader("Content-Type: application/json");
         
         // Retrieve the sealed session from settings
@@ -965,6 +971,7 @@ bool EDreamClient::FetchDefaultPlaylist() {
     while (currentAttempt++ < maxAttempts)
     {
         spDownload = std::make_shared<Network::CFileDownloader>("Default Playlist");
+        Network::NetworkHeaders::addStandardHeaders(spDownload);
         spDownload->AppendHeader("Content-Type: application/json");
         
         // Retrieve the sealed session from settings
@@ -1026,6 +1033,7 @@ bool EDreamClient::FetchDreamMetadata(std::string uuid) {
     while (currentAttempt++ < maxAttempts)
     {
         spDownload = std::make_shared<Network::CFileDownloader>("Metadata");
+        Network::NetworkHeaders::addStandardHeaders(spDownload);
         spDownload->AppendHeader("Content-Type: application/json");
         
         // Retrieve the sealed session from settings
@@ -1088,6 +1096,7 @@ std::string EDreamClient::GetDreamDownloadLink(const std::string& uuid) {
 
     while (currentAttempt++ < maxAttempts) {
         spDownload = std::make_shared<Network::CFileDownloader>("Dream Link");
+        Network::NetworkHeaders::addStandardHeaders(spDownload);
         spDownload->AppendHeader("Content-Type: application/json");
         // Retrieve the sealed session from settings
         std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
@@ -1541,6 +1550,9 @@ void EDreamClient::ConnectRemoteControlSocket()
     std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
     
     query["Cookie"] = string_format("wos-session=%s", sealedSession.c_str());
+    query["Edream-Client-Type"] = PlatformUtils::GetPlatformName();
+    query["Edream-Client-Version"] = PlatformUtils::GetAppVersion();
+
     s_SIOClient.connect(ServerConfig::ServerConfigManager::getInstance().getWebsocketServer(), query, query);
     
     // Send first ping immediately so frontend knows we're here
