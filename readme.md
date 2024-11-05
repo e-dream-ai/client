@@ -37,6 +37,12 @@ git push --tags
 archive the app and export with automatic notarization. zip the
 results and rename. upload to google drive.
 
+Upload the symbols to bugsnag, on a terminal: 
+- if first time install the upload tool `brew install bugsnag/tap/bugsnag-dsym-upload`
+- Go to https://app.bugsnag.com/settings/e-dream-dot-ai/projects/client-macos/missing-dsyms and copy the first missing UUID corresponding to the tag
+- run `mdfind YOUR_UUID_HERE`. This will output a path to the dsym `path/to/dsyms/MyApp.dSYM`
+- run `bugsnag-dsym-upload path/to/dsyms` (note that it's the path TO the dsyms)
+
 the screensaver is more complicated because Xcode can't automatically
 manage the signing. So
 
