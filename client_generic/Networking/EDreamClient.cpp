@@ -1385,12 +1385,12 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
         
         EDreamClient::EnqueuePlaylistAsync(uuid.data());
     }
-    else if (event == "like")
+    else if (event == "like_current_dream")
     {
         g_Client()->ExecuteCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_LIKE);
     }
-    else if (event == "dislike")
+    else if (event == "dislike_current_dream")
     {
         g_Client()->ExecuteCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_DISLIKE);
