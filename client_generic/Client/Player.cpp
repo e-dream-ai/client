@@ -615,8 +615,13 @@ void CPlayer::RenderFrame(DisplayOutput::spCRenderer renderer) {
         m_currentClip->DrawFrame(renderer, currentAlpha);
 
         // Render next clip
-        m_nextClip->Update(m_TimelineTime);
-        m_nextClip->DrawFrame(renderer, nextAlpha);
+        // Somehow sometimes we reach here with no m_nextClip, not 100% clear why
+        if (m_nextClip) {
+            m_nextClip->Update(m_TimelineTime);
+            m_nextClip->DrawFrame(renderer, nextAlpha);
+        } else {
+            g_Log->Error("Render frame has null nextClip despite checking for it earlier");
+        }
     } else if (m_currentClip) {
         m_currentClip->Update(m_TimelineTime);
         m_currentClip->DrawFrame(renderer);
