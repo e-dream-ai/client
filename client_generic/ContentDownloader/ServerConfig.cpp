@@ -25,6 +25,8 @@ void ServerConfigManager::initializeEndpoints() {
         {Endpoint::GETPLAYLIST, m_dreamServer + apiVersionV1 + "/client/playlist"},
         {Endpoint::GETDEFAULTPLAYLIST, m_dreamServer + apiVersionV1 + "/client/playlist/default"},
         {Endpoint::GETDREAM, m_dreamServer + apiVersionV1 + "/client/dream"},
+        {Endpoint::GETDISLIKES, m_dreamServer + apiVersionV1 + "/client/user/dislikes"},
+        
         // New V2 endpoints
         {Endpoint::LOGIN_MAGIC, m_dreamServer + apiVersionV2 + "/auth/magic"},
         {Endpoint::LOGIN_AUTHENTICATE, m_dreamServer + apiVersionV2 + "/auth/authenticate"},
