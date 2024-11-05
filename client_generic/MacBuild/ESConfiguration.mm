@@ -293,16 +293,16 @@
             "settings.content.proxy_password", "");
 
     bool unlimited_cache =
-        ESScreensaver_GetBoolSetting("settings.content.unlimited_cache", true);
+        ESScreensaver_GetBoolSetting("settings.content.unlimited_cache", false);
 
     SInt32 cache_size =
-        ESScreensaver_GetIntSetting("settings.content.cache_size", 5);
+        ESScreensaver_GetIntSetting("settings.content.cache_size", 10);
 
     if (cache_size == 0)
     {
         unlimited_cache = true;
 
-        cache_size = 5;
+        cache_size = 10;
     }
 
     [cacheTypeMatrix selectCellWithTag:(unlimited_cache ? 0 : 1)];

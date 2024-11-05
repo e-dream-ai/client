@@ -444,12 +444,12 @@ std::uintmax_t CacheManager::getFreeSpace(const fs::path& path) const {
 std::uintmax_t CacheManager::getRemainingCacheSpace() {
     auto freeSpace = getFreeSpace(PathManager::getInstance().mp4Path());
     
-    if (g_Settings()->Get("settings.content.unlimited_cache", true) == true) {
+    if (g_Settings()->Get("settings.content.unlimited_cache", false) == true) {
         // Cache can be set to unlimited, which is default
         return freeSpace;
     } else {
         // if not unlimited, default cache is 5 GB
-        std::uintmax_t cacheSize = (std::uintmax_t)g_Settings()->Get("settings.content.cache_size", 5) * 1024 * 1024 * 1024;
+        std::uintmax_t cacheSize = (std::uintmax_t)g_Settings()->Get("settings.content.cache_size", 10) * 1024 * 1024 * 1024;
         std::uintmax_t usedSpace = getUsedSpace(PathManager::getInstance().mp4Path());
 
         return (cacheSize > usedSpace) ? (cacheSize - usedSpace) : 0;
@@ -467,7 +467,7 @@ double CacheManager::getCacheSize() const {
 
 bool CacheManager::isPlaylistFillingCache(const std::vector<std::string>& playlistUUIDs) {
     // First check if we're in unlimited cache mode
-    if (g_Settings()->Get("settings.content.unlimited_cache", true)) {
+    if (g_Settings()->Get("settings.content.unlimited_cache", false)) {
         return false;
     }
 
