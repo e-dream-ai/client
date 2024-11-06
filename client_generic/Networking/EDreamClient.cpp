@@ -1213,6 +1213,8 @@ std::vector<std::string> EDreamClient::ParsePlaylist(std::string_view uuid) {
                     // Prefetch download link for 1st video from playlist if we don't have it
                     // We don't push it to our download thread
                     needsStreamingUuid = uuid;
+                    // TMP, we also add the first video to the download list
+                    needsDownloadUuids.push_back(uuid.c_str());
                 }
             }
             
