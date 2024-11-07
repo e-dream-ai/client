@@ -895,8 +895,13 @@ bool CPlayer::SetPlaylistAtDream(const std::string& playlistUUID, const std::str
     // Now, try to position the playlist at the specified dream
     auto optionalDream = m_playlistManager->getDreamByUUID(dreamUUID);
     if (!optionalDream) {
-        g_Log->Error("Dream with UUID %s not found in playlist %s", dreamUUID.c_str(), playlistUUID.c_str());
-        return false;
+        g_Log->Error("Dream with UUID %s not found in playlist %s defaulting to the first dream", dreamUUID.c_str(), playlistUUID.c_str());
+        
+        if (!m_currentClip) {
+            m_isFirstPlay = true;  // Reset the first play flag when setting a new playlist
+            PlayNextDream();
+        }
+        return true;
     }
 
     m_isFirstPlay = true;  // Treat this as a first play to avoid transition
