@@ -847,6 +847,7 @@ bool CContentDecoder::OpenCacheFile() {
     }
     m_CacheFile = fopen(m_CachePath.c_str(), "wb");
     return m_CacheFile != nullptr;*/
+    return true;
 }
 
 void CContentDecoder::CloseCacheFile() {
