@@ -31,6 +31,15 @@
     [NSApp endSheet:self.window returnCode:m_loginWasSuccessful];
 }
 
+// Helper to show a message box
+- (void)showErrorAlert:(NSString *)message {
+    NSAlert *alert = [[NSAlert alloc] init];
+    [alert setMessageText:@"Authentication Error"];
+    [alert setInformativeText:message];
+    [alert addButtonWithTitle:@"OK"];
+    [alert beginSheetModalForWindow:self.window completionHandler:nil];
+}
+
 - (void)awakeFromNib // was - (NSWindow *)window
 {
     CFBundleRef bndl = CopyDLBundle_ex();
@@ -503,10 +512,23 @@
             emailTextField.stringValue = trimmedEmail;
 
             // Ask for the code to be sent
-            EDreamClient::SendCode();
+            auto result = EDreamClient::SendCode();
 
-            m_sentCode = true;
-            [self updateAuthUI];
+            if (result.success) {
+                m_sentCode = true;
+                //loginTestStatusText.stringValue = @(result.message.c_str());
+                [self updateAuthUI];
+            } else {
+                m_sentCode = false;
+                loginStatusImage.image = redImage;
+                [self showErrorAlert:@(result.message.c_str())];
+                //loginTestStatusText.stringValue = @(result.message.c_str());
+                // Keep email field enabled and reset the UI state
+                [emailTextField setEnabled:YES];
+                [digitCodeTextField setEnabled:NO];
+
+                [self updateAuthUI];
+            }
         } else {
             // Try validating code
             // Ask for the code to be sent

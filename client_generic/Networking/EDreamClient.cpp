@@ -322,62 +322,74 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
     return size * nmemb;
 }
 
-bool EDreamClient::SendCode()
-{
+EDreamClient::AuthResult EDreamClient::SendCode() {
     std::string email = g_Settings()->Get("settings.generator.nickname", std::string(""));
     
     if (email.empty())
     {
         g_Log->Error("Email address not found in settings");
-        return false;
+        return AuthResult(false, "Email address not provided");
     }
-
+    
     CURL *curl;
     CURLcode res;
     std::string readBuffer;
-
+    
     curl = curl_easy_init();
-    if(curl) {
+    if (curl) {
         std::string url = ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::LOGIN_MAGIC);
         
         // Prepare JSON payload
         boost::json::object payload;
         payload["email"] = email;
         std::string jsonBody = boost::json::serialize(payload);
-
+        
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, jsonBody.c_str());
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-
+        
         // Set headers
         struct curl_slist *headers = NULL;
         headers = curl_slist_append(headers, "Content-Type: application/json");
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-
+        
         res = curl_easy_perform(curl);
         curl_slist_free_all(headers);
         curl_easy_cleanup(curl);
-
+        
         if(res != CURLE_OK) {
             g_Log->Error("Failed to send verification code. Curl error: %s", curl_easy_strerror(res));
-            return false;
+            return AuthResult(false, std::string("Error: ") + curl_easy_strerror(res));
         }
-
+        
         long http_code = 0;
         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
-
+        
         if (http_code == 200) {
             g_Log->Info("Verification code sent successfully to %s", email.c_str());
-            return true;
+            return AuthResult(true, "Verification code sent successfully");
         } else {
             g_Log->Error("Failed to send verification code. Server returned %ld: %s", http_code, readBuffer.c_str());
-            return false;
+            
+            std::string errorMessage;
+            try {
+                boost::json::value response = boost::json::parse(readBuffer);
+                if (response.is_object() && response.as_object().contains("message")) {
+                    // Extract just the error message from the JSON
+                    errorMessage = response.as_object()["message"].as_string().c_str();
+                } else {
+                    errorMessage = readBuffer; // Use full response if not in expected format
+                }
+            } catch (...) {
+                errorMessage = readBuffer; // Use raw response if JSON parsing fails
+            }
+            
+            return AuthResult(false, errorMessage);
         }
     }
 
-    g_Log->Error("Failed to initialize curl");
-    return false;
+    return AuthResult(false, "Cannot access Network");
 }
 
 bool EDreamClient::ValidateCode(const std::string& code)

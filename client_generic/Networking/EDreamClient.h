@@ -13,6 +13,15 @@
 
 class EDreamClient
 {
+    // Used by SendCode (for now), so we can propagate error messages from the server
+    struct AuthResult {
+        bool success;
+        std::string message;
+        
+        // Constructor for convenient initialization
+        AuthResult(bool s, std::string m = "") : success(s), message(m) {}
+    };
+    
   private:
     static std::atomic<bool> fIsLoggedIn;
     static std::atomic<int> fCpuUsage;
@@ -52,7 +61,7 @@ class EDreamClient
     static void SignOut();
     static void DidSignIn();
     // Auth v2
-    static bool SendCode();
+    static AuthResult SendCode();
     static bool ValidateCode(const std::string& code);
     static bool RefreshSealedSession();
     
