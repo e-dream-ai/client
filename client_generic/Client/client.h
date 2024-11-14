@@ -350,7 +350,7 @@ class CElectricSheep
         // PNG splash
         m_SplashFilename = g_Settings()->Get(
             "settings.player.attrpngfilename",
-            g_Settings()->Get("settings.app.InstallDir", defaultDir) +
+            g_Settings()->Get("settings.app.InstallDir", PlatformUtils::GetWorkingDir()) +
                 "e-dream-attr.png");
 
         bool splashFound = false;
@@ -397,7 +397,7 @@ class CElectricSheep
         if (!splashFound)
         {
             m_SplashFilename =
-                g_Settings()->Get("settings.app.InstallDir", defaultDir) +
+                g_Settings()->Get("settings.app.InstallDir", PlatformUtils::GetWorkingDir()) +
                 "e-dream-attr.png";
             g_Settings()->Set("settings.player.attrpngfilename",
                               m_SplashFilename);

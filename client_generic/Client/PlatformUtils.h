@@ -25,6 +25,7 @@ class PlatformUtils
     static std::string GetGitRevision();
     static std::string GetAppVersion();
     static std::string GetPlatformName();
+    static std::string GetWorkingDir();
     static void OpenURLExternally(std::string_view _url);
     static void SetCursorHidden(bool _hidden);
     static void

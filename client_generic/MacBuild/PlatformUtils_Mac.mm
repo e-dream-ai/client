@@ -86,6 +86,12 @@ std::string PlatformUtils::GetPlatformName() {
     return "native macOS";
 }
 
+std::string PlatformUtils::GetWorkingDir() {
+    // We have to access the bundle this way so it works in screensaver mode
+    NSBundle* bundle = [NSBundle bundleForClass:ESScreensaverView.class];
+    NSString* resourcePath = [[bundle resourcePath] stringByAppendingString:@"/"];
+    return std::string([resourcePath UTF8String]);
+}
 
 void PlatformUtils::SetCursorHidden(bool _hidden)
 {

@@ -264,12 +264,11 @@ bool CPlayer::Startup()
         m_DisplayFps = 0.0;
     }
 #endif
-
     //	Grab some paths for the decoder.
     std::string content = g_Settings()->Root() + "content/";
 #ifndef LINUX_GNU
     std::string scriptRoot =
-        g_Settings()->Get("settings.app.InstallDir", std::string("./")) +
+        g_Settings()->Get("settings.app.InstallDir", PlatformUtils::GetWorkingDir()) +
         "Scripts";
 #else
     std::string scriptRoot =
