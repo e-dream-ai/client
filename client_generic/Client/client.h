@@ -155,12 +155,14 @@ class CElectricSheep
 #endif
             return false;
 
-            //	Trigger this to exist in the settings.
+        //	Trigger this to exist in the settings.
+        // We reset the installdir at launch here, ensuring the bundle can be moved around
 #ifndef LINUX_GNU
         g_Settings()->Set("settings.app.InstallDir", m_WorkingDir);
 #else
         g_Settings()->Set("settings.app.InstallDir", SHAREDIR);
 #endif
+        g_Settings()->Storage()->Commit();
         return true;
     }
 
