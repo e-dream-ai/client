@@ -243,6 +243,11 @@ bool EDreamClient::Authenticate()
         // Clear the sealed session as it's no longer valid
         g_Settings()->Set("settings.content.sealed_session", std::string(""));
         g_Settings()->Storage()->Commit();
+        // Only show once at startup, we don't want to loop
+        if (!shownSettingsOnce) {
+            shownSettingsOnce = true;
+            ESShowPreferences();
+        }
     }
 
     return success;
