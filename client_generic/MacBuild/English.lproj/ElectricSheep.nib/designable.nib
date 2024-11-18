@@ -93,7 +93,7 @@ Gw
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <box autoresizesSubviews="NO" borderType="line" title="Sign In" translatesAutoresizingMaskIntoConstraints="NO" id="715">
-                                            <rect key="frame" x="5" y="13" width="485" height="214"/>
+                                            <rect key="frame" x="5" y="54" width="485" height="214"/>
                                             <view key="contentView" id="JqF-GJ-vEJ">
                                                 <rect key="frame" x="4" y="5" width="477" height="192"/>
                                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
@@ -226,21 +226,11 @@ DQ
                                             </constraints>
                                             <font key="titleFont" textStyle="headline" name=".SFNS-Bold"/>
                                         </box>
-                                        <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="1023">
-                                            <rect key="frame" x="33" y="252" width="430" height="16"/>
-                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="center" title="When dreams are playing, press F1 for onscreen help with interaction." id="1024">
-                                                <font key="font" metaFont="system"/>
-                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                                            </textFieldCell>
-                                        </textField>
                                     </subviews>
                                     <constraints>
                                         <constraint firstAttribute="trailing" secondItem="715" secondAttribute="trailing" constant="8" id="6dw-va-k93"/>
-                                        <constraint firstItem="1023" firstAttribute="top" secondItem="326" secondAttribute="top" constant="30" id="8RQ-BC-7pT"/>
                                         <constraint firstItem="715" firstAttribute="leading" secondItem="326" secondAttribute="leading" constant="8" id="Ggc-5a-QkS"/>
-                                        <constraint firstItem="715" firstAttribute="top" secondItem="1023" secondAttribute="bottom" constant="25" id="akU-nA-lEw"/>
-                                        <constraint firstItem="1023" firstAttribute="centerX" secondItem="326" secondAttribute="centerX" id="t0s-7Q-Vvg"/>
+                                        <constraint firstItem="715" firstAttribute="top" secondItem="326" secondAttribute="top" constant="30" id="ViB-bf-Juo"/>
                                     </constraints>
                                 </view>
                             </tabViewItem>
