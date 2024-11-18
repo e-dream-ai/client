@@ -223,6 +223,7 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
         if (downloadedMd5 != dream->md5) {
             g_Log->Error("md5 mismatch for %s. Expected: %s, Got: %s",
                          uuid.c_str(), dream->md5.c_str(), downloadedMd5.c_str());
+            EDreamClient::ReportMD5Failure(uuid, downloadedMd5, false);
             fs::remove(tmpPath);
             return false;
         }

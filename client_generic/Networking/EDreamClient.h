@@ -9,6 +9,7 @@
 #include <sstream>
 #include <boost/asio.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/json.hpp>
 #include "Networking.h"
 
 class EDreamClient
@@ -51,6 +52,10 @@ class EDreamClient
     static std::string GetDreamDownloadLink(const std::string& uuid);
     static std::vector<std::string> ParsePlaylist(std::string_view uuid);
     static std::tuple<std::string, std::string, bool, int64_t> ParsePlaylistMetadata(std::string_view uuid);
+
+    // Telemetry reporting
+    static void SendTelemetry(const std::string& eventType, const boost::json::object& eventData);
+    static void ReportMD5Failure(const std::string& uuid, const std::string& foundMd5, bool isStreaming);
     
     static std::future<bool> EnqueuePlaylistAsync(const std::string& uuid);
     static bool EnqueuePlaylist(std::string_view uuid);

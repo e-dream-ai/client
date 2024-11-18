@@ -32,6 +32,7 @@
 #include "Log.h"
 #include "PlatformUtils.h"
 #include "PathManager.h"
+#include "EDreamClient.h"
 
 using namespace boost;
 namespace fs = std::filesystem;
@@ -915,12 +916,14 @@ void CContentDecoder::FinalizeCacheFile()
                              m_Metadata.dreamData.uuid.c_str(),
                              m_Metadata.dreamData.md5.c_str(),
                              downloadedMd5.c_str());
+                EDreamClient::ReportMD5Failure(m_Metadata.dreamData.uuid, downloadedMd5, true);
                 fs::remove(tmpPath);
                 m_CachePath.clear();
                 return;
             }
         } else {
             // No MD5 available, don't save the file
+            g_Log->Info("No md5 available for verification, discarding stream.");
             fs::remove(tmpPath);
             m_CachePath.clear();
             return;
