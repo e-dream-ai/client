@@ -393,11 +393,11 @@ int CContentDecoder::ReadPacket(void* opaque, uint8_t* buf, int buf_size)
 {
     CContentDecoder* decoder = static_cast<CContentDecoder*>(opaque);
     int bytesRead = avio_read(decoder->m_pIOContext, buf, buf_size);
-    /*
+    
     if (bytesRead > 0 && decoder->m_IsStreaming) {
         int64_t currentPos = avio_tell(decoder->m_pIOContext) - bytesRead;
         decoder->WriteToCache(buf, bytesRead, currentPos);
-    }*/
+    }
     return bytesRead;
 }
 
@@ -714,27 +714,29 @@ void CContentDecoder::ReadFramesThread()
                 m_FrameQueueMutex.unlock();
             m_CurrentVideoInfo->m_SeekTargetFrame = -1;
         }
-        /*
-        if (m_IsStreaming) {
+        
+        // Only try grabbing the remainder of the video if we have a md5 to verify it
+        if (m_IsStreaming && !m_Metadata.dreamData.md5.empty()) {
             // Try to read any remaining data
             unsigned char buffer[4096];
             int bytesRead;
             while ((bytesRead = avio_read(m_pIOContext, buffer, sizeof(buffer))) > 0) {
                 WriteToCache(buffer, bytesRead, avio_tell(m_pIOContext) - bytesRead);
             }
-        }*/
+        }
 
         m_HasEnded.store(true);
         
-        //FinalizeCacheFile();
+        FinalizeCacheFile();
 
         g_Log->Info("Ending main video frame reading thread for %s", m_Metadata.dreamData.uuid.c_str());
     }
     catch (thread_interrupted const&)
     {
         g_Log->Info("Ending main video frame reading thread for %s", m_Metadata.dreamData.uuid.c_str());
-/*
-        if (!m_isShuttingDown.load() && m_IsStreaming) {
+
+        // Before opening a thread to grab the remainder of the video ,make sure we intend to save it
+        if (!m_isShuttingDown.load() && m_IsStreaming && !m_Metadata.dreamData.md5.empty()) {
             g_Log->Info("Read frames thread interrupted, trying to fetch remaining data asynchronously.");
             m_futures.emplace_back(std::async(std::launch::async, [this]() {
                 // Try to read any remaining data
@@ -747,7 +749,7 @@ void CContentDecoder::ReadFramesThread()
                 m_HasEnded.store(true);
                 FinalizeCacheFile();
             }));
-        }*/
+        }
     }
     catch (std::exception const& e)
     {
@@ -842,24 +844,22 @@ void CContentDecoder::SetCachePath(const std::string& path) {
 }
 
 bool CContentDecoder::OpenCacheFile() {
-    /*if (m_CachePath.empty()) {
+    if (m_CachePath.empty()) {
         return false;
     }
     m_CacheFile = fopen(m_CachePath.c_str(), "wb");
-    return m_CacheFile != nullptr;*/
-    return true;
+    return m_CacheFile != nullptr;
 }
 
 void CContentDecoder::CloseCacheFile() {
-    /*if (m_CacheFile) {
+    if (m_CacheFile) {
         fclose(m_CacheFile);
         m_CacheFile = nullptr;
-    }*/
+    }
 }
 
 void CContentDecoder::WriteToCache(const uint8_t* buf, int buf_size, int64_t position)
 {
-    /*
     if (m_CacheFile && buf && buf_size > 0) {
         std::lock_guard<std::mutex> lock(m_CacheMutex);
         if (position == m_CacheWritePosition) {
@@ -868,7 +868,7 @@ void CContentDecoder::WriteToCache(const uint8_t* buf, int buf_size, int64_t pos
             fflush(m_CacheFile);
             m_CacheWritePosition += buf_size;
         }
-    }*/
+    }
 }
 
 std::string CContentDecoder::GenerateCacheFileName() {
@@ -893,7 +893,6 @@ bool CContentDecoder::IsDownloadComplete() const
 
 void CContentDecoder::FinalizeCacheFile()
 {
-    /*
     // Don't try to finalize during shutdown
     if (m_isShuttingDown.load()) {
         return;
@@ -908,6 +907,25 @@ void CContentDecoder::FinalizeCacheFile()
         fs::path tmpPath(m_CachePath);
         fs::path finalPath = tmpPath.parent_path() / (tmpPath.stem().string() + ".mp4");
 
+        // Only proceed with verification if we have an MD5 hash
+        if (!m_Metadata.dreamData.md5.empty()) {
+            std::string downloadedMd5 = PlatformUtils::CalculateFileMD5(tmpPath.string());
+            if (downloadedMd5 != m_Metadata.dreamData.md5) {
+                g_Log->Error("Streaming MD5 mismatch for %s. Expected: %s, Got: %s",
+                             m_Metadata.dreamData.uuid.c_str(),
+                             m_Metadata.dreamData.md5.c_str(),
+                             downloadedMd5.c_str());
+                fs::remove(tmpPath);
+                m_CachePath.clear();
+                return;
+            }
+        } else {
+            // No MD5 available, don't save the file
+            fs::remove(tmpPath);
+            m_CachePath.clear();
+            return;
+        }
+        
         try
         {
             if (fs::exists(tmpPath) && !fs::exists(finalPath))
@@ -931,7 +949,6 @@ void CContentDecoder::FinalizeCacheFile()
             g_Log->Error("Failed to rename cache file: %s", e.what());
         }
     }
-     */
 }
 
 } // namespace ContentDecoder
