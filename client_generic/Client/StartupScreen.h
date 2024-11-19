@@ -45,12 +45,12 @@ class CStartupScreen : public CHudEntry
                              true);
 #ifndef LINUX_GNU
         m_spImageRef->Load(
-            g_Settings()->Get("settings.app.InstallDir", std::string(".\\")) +
+            g_Settings()->Get("settings.app.InstallDir", PlatformUtils::GetWorkingDir()) +
                 "logo.png",
             false);
 #else
         m_spImageRef->Load(
-            g_Settings()->Get("settings.app.InstallDir", std::string("")) +
+            g_Settings()->Get("settings.app.InstallDir", PlatformUtils::GetWorkingDir()) +
                 "logo.png",
             false);
 #endif

@@ -50,7 +50,7 @@ public:
         currentBrightness = minBrightness;
         
 #ifndef LINUX_GNU
-        std::string defaultDir = std::string(".\\");
+        std::string defaultDir = PlatformUtils::GetWorkingDir();
 #else
         std::string defaultDir = std::string("");
 #endif
