@@ -160,7 +160,13 @@ class CSettings : public Base::CSingleton<CSettings>
             m_pStorage->Commit();
             return std::string(_default);
         }
-        return std::string(_default);
+        
+        if (ret.empty()) {
+            return std::string(_default);
+        } else {
+            return ret;
+        }
+            
     }
 
     std::vector<std::string> Get(std::string_view _url,
