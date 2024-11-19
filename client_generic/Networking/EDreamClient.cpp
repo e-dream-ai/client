@@ -1136,6 +1136,103 @@ bool EDreamClient::FetchDreamMetadata(std::string uuid) {
     return true;
 }
 
+bool EDreamClient::FetchDreamsMetadata(const std::vector<std::string>& uuids) {
+    if (uuids.empty()) {
+        return false;
+    }
+    
+    auto jsonPath = Cache::PathManager::getInstance().jsonDreamPath();
+    Network::spCFileDownloader spDownload;
+    int maxAttempts = 3;
+    int currentAttempt = 0;
+        
+    while (currentAttempt++ < maxAttempts) {
+        spDownload = std::make_shared<Network::CFileDownloader>("Metadata");
+        Network::NetworkHeaders::addStandardHeaders(spDownload);
+        spDownload->AppendHeader("Content-Type: application/json");
+        
+        // Retrieve the sealed session from settings
+        std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
+        
+        if (sealedSession.empty()) {
+            g_Log->Error("Sealed session not found in settings");
+            return false;
+        }
+        
+        // Set the cookie with the sealed session
+        std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
+        spDownload->AppendHeader(cookieHeader);
+        
+        // Create request body
+        boost::json::object requestBody;
+        boost::json::array uuidArray;
+        for (const auto& uuid : uuids) {
+            uuidArray.emplace_back(boost::json::string(uuid));
+        }
+        requestBody["uuids"] = uuidArray;
+        std::string jsonBody = boost::json::serialize(requestBody);
+        spDownload->SetPostFields(jsonBody.c_str());
+       
+        std::string url = ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::GETDREAM);
+        g_Log->Info("Fetching metadata for %zu dreams", uuids.size());
+               
+        if (spDownload->Perform(url)) {
+            break;
+        } else {
+            if (spDownload->ResponseCode() == 400 ||
+                spDownload->ResponseCode() == 401) {
+                if (currentAttempt == maxAttempts)
+                    return false;
+                if (!RefreshSealedSession())
+                    return false;
+            } else {
+                g_Log->Error("Failed to get metadata. Server returned %i: %s",
+                             spDownload->ResponseCode(),
+                             spDownload->Data().c_str());
+            }
+        }
+    }
+
+    ParseAndSaveCookies(spDownload);
+        
+    try {
+        boost::json::value response = boost::json::parse(spDownload->Data());
+        auto dreams = response.as_object()["data"].as_object()["dreams"].as_array();
+        
+        for (const auto& dream : dreams) {
+            // Create individual dream response
+            boost::json::object individual_response;
+            individual_response["success"] = true;
+            
+            boost::json::object data;
+            boost::json::array dreams_array;
+            dreams_array.push_back(dream);
+            data["dreams"] = dreams_array;
+            individual_response["data"] = data;
+            
+            // Get UUID for filename
+            const auto& dream_obj = dream.as_object();
+            std::string uuid = dream_obj.at("uuid").as_string().c_str();
+            
+            // Save to file
+            auto filename = jsonPath / (uuid + ".json");
+            std::ofstream file(filename);
+            if (file.is_open()) {
+                file << boost::json::serialize(individual_response);
+                file.close();
+                g_Log->Info("Saved metadata for dream: %s", uuid.c_str());
+            } else {
+                g_Log->Error("Unable to save metadata file for %s", uuid.c_str());
+            }
+        }
+    } catch (const boost::system::system_error& e) {
+        JSONUtil::LogException(e, spDownload->Data());
+        return false;
+    }
+    
+    return true;
+}
+
 std::string EDreamClient::GetDreamDownloadLink(const std::string& uuid) {
     Network::spCFileDownloader spDownload;
     int maxAttempts = 3;
@@ -1272,27 +1369,15 @@ std::vector<std::string> EDreamClient::ParsePlaylist(std::string_view uuid) {
         JSONUtil::LogException(e, contents);
     }
 
-    /*
-    // Now we fetch metadata that needs fetching, if any
-    // We transform our vector into a comma separated string to be fetched
+    // Do we need to fetch metadata?
     if (!needsMetadataUuids.empty()) {
-        std::ostringstream oss;
-        
-        // Copy all elements except the last one, followed by the delimiter
-        std::copy(needsMetadataUuids.begin(), needsMetadataUuids.end() - 1,
-                  std::ostream_iterator<std::string>(oss, ","));
-        
-        // Add the last element without the delimiter
-        oss << needsMetadataUuids.back();
+        // send that array and try to fetch all at once
+        FetchDreamsMetadata(needsMetadataUuids);
 
-        g_Log->Info("Needs metadata for : %s",oss.str().c_str());
-    }
-    */
-    // TMP we fetch each individually, we'll move to multiple with the code above.
-    // This will require a Fetch that can split the results in multiple files though TODO
-    for (const auto& needsMetadata : needsMetadataUuids) {
-        FetchDreamMetadata(needsMetadata);
-        cm.reloadMetadata(needsMetadata);
+        // Then reload metadata for each of the uuids
+        for (const auto& needsMetadata : needsMetadataUuids) {
+            cm.reloadMetadata(needsMetadata);
+        }
     }
 
     // Then enqueue our missing videos
