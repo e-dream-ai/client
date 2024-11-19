@@ -30,6 +30,7 @@ struct Dream {
     long long timestamp;
     float activityLevel = 1.f;
     mutable std::string streamingUrl;
+    std::string md5;
     
     // Possibly useful helpers
     double getDuration() const {

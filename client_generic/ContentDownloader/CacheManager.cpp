@@ -129,6 +129,7 @@ void CacheManager::loadJsonFile(const std::string& filename) {
             dream.video_timestamp = safe_get_int64(dream_obj, "video_timestamp");
             dream.timestamp = safe_get_int64(dream_obj, "timestamp");
             dream.activityLevel = safe_get_float(dream_obj, "activityLevel");
+            dream.md5 = safe_get_string(dream_obj, "md5");
             
             dreams[dream.uuid] = dream;
         }

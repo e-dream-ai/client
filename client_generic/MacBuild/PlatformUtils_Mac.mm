@@ -18,6 +18,11 @@
 #include "Log.h"
 #include "PlatformUtils.h"
 
+#include <openssl/md5.h>
+#include <fstream>
+#include <sstream>
+#include <iomanip>
+
 bool PlatformUtils::IsInternetReachable()
 {
     // Create a reachability reference
@@ -181,3 +186,33 @@ void CDelayedDispatch::DispatchAfter(uint64_t seconds)
     });
 }
 
+// This uses OpenSSL implementation of md5.
+// Note : should we have issues on other platforms, boost also has an implementation
+std::string PlatformUtils::CalculateFileMD5(const std::string& filepath) {
+    std::ifstream file(filepath, std::ios::binary);
+    if (!file) {
+        return "";
+    }
+
+    MD5_CTX context;
+    MD5_Init(&context);
+
+    char buffer[1024];
+    while (file.read(buffer, sizeof(buffer))) {
+        MD5_Update(&context, buffer, file.gcount());
+    }
+    if (file.gcount() > 0) {
+        MD5_Update(&context, buffer, file.gcount());
+    }
+
+    unsigned char digest[MD5_DIGEST_LENGTH];
+    MD5_Final(digest, &context);
+
+    std::stringstream ss;
+    for (int i = 0; i < MD5_DIGEST_LENGTH; i++) {
+        ss << std::hex << std::setw(2) << std::setfill('0')
+           << static_cast<int>(digest[i]);
+    }
+    
+    return ss.str();
+}

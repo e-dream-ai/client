@@ -4,8 +4,6 @@
 #include <sio_client.h>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
-#include <boost/json.hpp>
-//#include <boost/json/src.hpp>
 #include <cstdio>
 #include <fstream>
 #include <iostream>
@@ -753,6 +751,43 @@ std::string EDreamClient::GetCurrentServerPlaylist() {
     return playlistId;
 }
 
+// MARK: - Telemetry functions
+void EDreamClient::SendTelemetry(const std::string& eventType, const boost::json::object& eventData) {
+    Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>("Telemetry");
+    Network::NetworkHeaders::addStandardHeaders(spDownload);
+    spDownload->AppendHeader("Content-Type: application/json");
+    
+    std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
+    if (!sealedSession.empty()) {
+        std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
+        spDownload->AppendHeader(cookieHeader);
+    }
+
+    boost::json::object payload;
+    payload["eventType"] = eventType;
+    payload["eventData"] = eventData;
+    payload["clientVersion"] = PlatformUtils::GetAppVersion();
+    payload["clientPlatform"] = PlatformUtils::GetPlatformName();
+    
+    std::string jsonBody = boost::json::serialize(payload);
+    spDownload->SetPostFields(jsonBody.c_str());
+
+    std::string url = ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::TELEMETRY);
+    
+    if (!spDownload->Perform(url)) {
+        g_Log->Error("Failed to send telemetry. Server returned %i", spDownload->ResponseCode());
+    }
+}
+
+void EDreamClient::ReportMD5Failure(const std::string& uuid, const std::string& foundMd5, bool isStreaming) {
+    boost::json::object eventData;
+    eventData["uuid"] = uuid;
+    eventData["foundMd5"] = foundMd5;
+    eventData["isStreaming"] = isStreaming;
+    
+    SendTelemetry("md5-mismatch", eventData);
+}
+
 // MARK: - Async funtions
 std::future<bool> EDreamClient::FetchPlaylistAsync(const std::string& uuid) {
     return std::async(std::launch::async, [uuid]() {
@@ -1225,8 +1260,6 @@ std::vector<std::string> EDreamClient::ParsePlaylist(std::string_view uuid) {
                     // Prefetch download link for 1st video from playlist if we don't have it
                     // We don't push it to our download thread
                     needsStreamingUuid = uuid;
-                    // TMP, we also add the first video to the download list
-                    needsDownloadUuids.push_back(uuid.c_str());
                 }
             }
             
