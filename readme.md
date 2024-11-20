@@ -30,12 +30,20 @@ screensaver. The staging targets have their own directory
 
 make a git tag with the version
 ```
-git tag 0.4.0
+git tag X.Y.Z
 git push --tags
 ```
 
 archive the app and export with automatic notarization. zip the
-results and rename. upload to google drive.
+results, then clean out the resource forks:
+
+```
+zip -d e-dream.app.zip
+```
+
+then rename it to e-dream-app-X.Y.Z.zip. The release image is
+complete. Continue with the release in the [public
+repository](https://github.com/e-dream-ai/public).
 
 Upload the symbols to bugsnag, on a terminal: 
 - if first time install the upload tool `brew install bugsnag/tap/bugsnag-dsym-upload`
