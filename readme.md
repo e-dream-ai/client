@@ -38,7 +38,7 @@ archive the app and export with automatic notarization. zip the
 results, then clean out the resource forks:
 
 ```
-zip -d e-dream.app.zip
+zip -d e-dream.app.zip '__MACOSX/*'
 ```
 
 then rename it to e-dream-app-X.Y.Z.zip. The release image is
