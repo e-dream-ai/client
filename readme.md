@@ -35,14 +35,13 @@ git push --tags
 ```
 
 archive the app and export with automatic notarization. zip the
-results, then clean out the resource forks:
+results with:
 
 ```
-zip -d e-dream.app.zip '__MACOSX/*'
+ditto -c -k --keepParent e-dream.app e-dream-app-X.Y.Z.zip
 ```
 
-then rename it to e-dream-app-X.Y.Z.zip. The release image is
-complete. Continue with the release in the [public
+The release image is now complete. Continue the release in the [public
 repository](https://github.com/e-dream-ai/public).
 
 Upload the symbols to bugsnag, on a terminal: 
