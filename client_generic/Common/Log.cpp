@@ -2,10 +2,8 @@
 #include <inttypes.h>
 
 #ifdef MAC
-
-#ifdef MAC
 #include <os/signpost.h>
-#endif 
+#endif
 
 #ifdef WIN32
 #include <io.h> // Import read/write in msvc
@@ -38,7 +36,7 @@ namespace Base
 */
 CLog::CLog()
     : m_bActive(false), m_pFile(NULL), m_PipeReader(0),
-    m_pPipeReaderThread(nullptr)
+      m_pPipeReaderThread(nullptr)
 {
 }
 
@@ -97,12 +95,12 @@ void CLog::PipeReaderThread()
             break;
         }
     }
-
 }
 
-void CLog::Attach(const std::string& _location, const uint32_t /*_level*/)
+void CLog::Attach(const std::string& _location, bool multipleInstance)
 {
-    if (m_bActive) {
+    if (m_bActive)
+    {
         return;
     }
 
@@ -112,18 +110,17 @@ void CLog::Attach(const std::string& _location, const uint32_t /*_level*/)
     console_backend->add_stream(
         boost::shared_ptr<std::ostream>(&std::cout, boost::null_deleter()));
 
-    m_ConsoleSink = boost::make_shared<
-        boost::log::sinks::synchronous_sink<boost::log::sinks::text_ostream_backend>>(
-        console_backend);
+    m_ConsoleSink = boost::make_shared<boost::log::sinks::synchronous_sink<
+        boost::log::sinks::text_ostream_backend>>(console_backend);
 
     m_ConsoleSink->set_formatter(
         boost::log::expressions::stream
-        << "[" << boost::log::expressions::attr<boost::posix_time::ptime>("TimeStamp")
+        << "["
+        << boost::log::expressions::attr<boost::posix_time::ptime>("TimeStamp")
         << " - " << boost::log::trivial::severity
         << "]: " << boost::log::expressions::smessage);
 
     boost::log::core::get()->add_sink(m_ConsoleSink);
-
 
     // Create filename with timestamp
     time_t curTime;
@@ -134,18 +131,19 @@ void CLog::Attach(const std::string& _location, const uint32_t /*_level*/)
 
     std::stringstream s;
     s << _location << timeStamp;
-    
+
     if (multipleInstance)
     {
         pid_t pid = getpid();
         s << "_pid" << pid;
     }
-    
+
     s << ".log";
     std::string f = s.str();
 
-    m_Sink = boost::log::add_file_log(f, boost::log::keywords::format =
-                                             "[%TimeStamp% - %Severity%]: %Message%");
+    m_Sink = boost::log::add_file_log(
+        f,
+        boost::log::keywords::format = "[%TimeStamp% - %Severity%]: %Message%");
 
     boost::log::core::get()->set_filter(boost::log::trivial::severity >=
                                         boost::log::trivial::info);
@@ -165,6 +163,11 @@ void CLog::Attach(const std::string& _location, const uint32_t /*_level*/)
  */
 void CLog::Detach(void)
 {
+    if (m_ConsoleSink)
+    {
+        boost::log::core::get()->remove_sink(m_ConsoleSink);
+        m_ConsoleSink.reset();
+    }
 
     //fflush(stdout);
     //m_bActive = false;
@@ -181,7 +184,6 @@ void CLog::Detach(void)
     //    perror("dup2 failed");
     //    exit(EXIT_FAILURE);
     //}
-
 }
 
 /*
@@ -200,7 +202,6 @@ void CLog::SetInfo(const char* _pFileStr, const uint32_t _line,
     //m_File = tmp.substr(offs + 1, tmp.size());
     //m_Function = std::string(_pFunc);
     //m_Line = _line;
-
 }
 
 /*
@@ -243,13 +244,12 @@ void CLog::Log(
     }
 
     // Flush the sink in debug mode so we can see the logs in real time
-//#ifdef DEBUG
-//    m_Sink->flush();
-//#endif
+    //#ifdef DEBUG
+    //    m_Sink->flush();
+    //#endif
 
     if (m_Sink != nullptr)
         m_Sink->flush();
-
 
     // if (m_pFile == NULL)
     // return;
@@ -285,7 +285,6 @@ void CLog::Log(
     //    strcpy(s_MessageType, _pType);
     //}
     ///* log spam end */
-
 }
 
 #define grabvarargs                                                            \
@@ -325,7 +324,6 @@ void CLog::Fatal(std::string_view _pFmt, ...)
 
 }; // namespace Base
 
-#ifdef MAC
 #ifdef MAC
 os_log_t g_SignpostHandle = os_log_create("com.spotworks.e-dream.app",
                                           OS_LOG_CATEGORY_POINTS_OF_INTEREST);

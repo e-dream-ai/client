@@ -691,7 +691,7 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
       <OmitFramePointers>false</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>..\DirectX-Headers-1.613.1\include\directx;..\;..\Client;..\Common;..\Common\Math;..\ContentDownloader;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\Networking;..\TupleStorage;..\DisplayOutput\D3D12;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\DirectX-Headers-1.613.1\include\directx;..\;..\Client;..\Common;..\Common\Math;..\ContentDownloader;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\Networking;..\TupleStorage;..\DisplayOutput\D3D12;..\MacBuild;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>DEBUG;WIN32;_WIN64;_WINDOWS;NOMINMAX;_CRT_SECURE_NO_WARNINGS;CURL_STATICLIB;WIN32_LEAN_AND_MEAN;VC_EXTRALEAN;COMPILE_MULTIMON_STUBS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -746,8 +746,6 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
     <ClCompile Include="..\ContentDecoder\Clip.cpp" />
     <ClCompile Include="..\ContentDownloader\ContentDownloader.cpp" />
     <ClCompile Include="..\ContentDownloader\Dream.cpp" />
-    <ClCompile Include="..\ContentDownloader\SheepDownloader.cpp" />
-    <ClCompile Include="..\ContentDownloader\Shepherd.cpp" />
     <ClCompile Include="..\Common\Math\Rect.cpp" />
     <ClCompile Include="..\Common\AlignedBuffer.cpp" />
     <ClCompile Include="..\Common\Common.cpp" />
@@ -769,7 +767,6 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
     <ClCompile Include="..\TupleStorage\JSONStorage.cpp" />
     <ClCompile Include="msvc_fix.cpp" />
     <ClCompile Include="..\Client\Player.cpp" />
-    <ClCompile Include="..\Client\Voting.cpp" />
     <ClCompile Include="PlatformUtils_win.cpp" />
     <ClCompile Include="SettingsGUI\config.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -817,21 +814,19 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Client\DreamPlaylist.h" />
-    <ClInclude Include="..\Client\OSD.hpp" />
     <ClInclude Include="..\Client\PlatformUtils.h" />
     <ClInclude Include="..\Client\StringFormat.h" />
     <ClInclude Include="..\Common\JSONUtil.h" />
     <ClInclude Include="..\ContentDecoder\Clip.h" />
     <ClInclude Include="..\ContentDownloader\ContentDownloader.h" />
     <ClInclude Include="..\ContentDownloader\Dream.h" />
-    <ClInclude Include="..\ContentDownloader\SheepDownloader.h" />
-    <ClInclude Include="..\ContentDownloader\Shepherd.h" />
     <ClInclude Include="..\DisplayOutput\D3D12\D3D12Helpers.h" />
     <ClInclude Include="..\DisplayOutput\D3D12\DeviceResources.h" />
     <ClInclude Include="..\DisplayOutput\D3D12\DisplayD3D12.h" />
     <ClInclude Include="..\DisplayOutput\D3D12\RendererD3D12.h" />
     <ClInclude Include="..\DisplayOutput\D3D12\ShaderD3D12.h" />
     <ClInclude Include="..\DisplayOutput\D3D12\TextureFlatD3D12.h" />
+    <ClInclude Include="..\MacBuild\OSD.hpp" />
     <ClInclude Include="..\Networking\EDreamClient.h" />
     <ClInclude Include="..\TupleStorage\JSONStorage.h" />
     <ClInclude Include="cpu_usage_win32.h" />
@@ -886,7 +881,6 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
     <ClInclude Include="..\Client\Splash.h" />
     <ClInclude Include="..\Client\StartupScreen.h" />
     <ClInclude Include="..\Client\StatsConsole.h" />
-    <ClInclude Include="..\Client\Voting.h" />
     <CustomBuildStep Include="SettingsGUI\config.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>

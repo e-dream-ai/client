@@ -66,12 +66,6 @@
     <ClCompile Include="..\ContentDownloader\ContentDownloader.cpp">
       <Filter>ContentDownloader\Code</Filter>
     </ClCompile>
-    <ClCompile Include="..\ContentDownloader\SheepDownloader.cpp">
-      <Filter>ContentDownloader\Code</Filter>
-    </ClCompile>
-    <ClCompile Include="..\ContentDownloader\Shepherd.cpp">
-      <Filter>ContentDownloader\Code</Filter>
-    </ClCompile>
     <ClCompile Include="..\Common\Math\Rect.cpp">
       <Filter>Common\Math</Filter>
     </ClCompile>
@@ -106,9 +100,6 @@
       <Filter>Client\Code</Filter>
     </ClCompile>
     <ClCompile Include="..\Client\Player.cpp">
-      <Filter>Client\Code</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Client\Voting.cpp">
       <Filter>Client\Code</Filter>
     </ClCompile>
     <ClCompile Include="SettingsGUI\config.cpp">
@@ -195,12 +186,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ContentDownloader\ContentDownloader.h">
-      <Filter>ContentDownloader\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ContentDownloader\SheepDownloader.h">
-      <Filter>ContentDownloader\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ContentDownloader\Shepherd.h">
       <Filter>ContentDownloader\Headers</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
@@ -356,9 +341,6 @@
     <ClInclude Include="..\Client\StatsConsole.h">
       <Filter>Client\Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\Client\Voting.h">
-      <Filter>Client\Headers</Filter>
-    </ClInclude>
     <ClInclude Include="..\DisplayOutput\DisplayOutput.h">
       <Filter>DisplayOutput</Filter>
     </ClInclude>
@@ -390,9 +372,6 @@
       <Filter>TupleStorage</Filter>
     </ClInclude>
     <ClInclude Include="cpu_usage_win32.h">
-      <Filter>Client\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Client\OSD.hpp">
       <Filter>Client\Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\TupleStorage\JSONStorage.h">
@@ -436,6 +415,9 @@
     </ClInclude>
     <ClInclude Include="..\DisplayOutput\D3D12\ShaderD3D12.h">
       <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MacBuild\OSD.hpp">
+      <Filter>Client\Headers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
