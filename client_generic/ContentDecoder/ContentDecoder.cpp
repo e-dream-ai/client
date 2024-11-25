@@ -132,28 +132,35 @@ int CContentDecoder::DumpError(int _err)
 {
     if (_err < 0)
     {
+#ifdef MAC
+        const char* errStr = UNFFERRTAG(_err);
+#else
+        std::string numStr = std::to_string(_err);
+        const char* errStr = numStr.c_str();
+#endif
         switch (_err)
         {
+
             case AVERROR_INVALIDDATA:
                 g_Log->Error("FFmpeg error %s: Error while parsing header",
-                             UNFFERRTAG(_err));
+                             errStr);
                 break;
             case AVERROR(EIO):
                 g_Log->Error(
                              "FFmpeg error %s: I/O error occured. Usually that means "
                              "that input file is truncated and/or corrupted.",
-                             UNFFERRTAG(_err));
+                    errStr);
                 break;
             case AVERROR(ENOMEM):
                 g_Log->Error("FFmpeg error %s: Memory allocation error occured",
-                             UNFFERRTAG(_err));
+                             errStr);
                 break;
             case AVERROR(ENOENT):
-                g_Log->Error("FFmpeg error %s: ENOENT", UNFFERRTAG(_err));
+                g_Log->Error("FFmpeg error %s: ENOENT", errStr);
                 break;
             default:
                 g_Log->Error("FFmpeg error %s: Error while opening file",
-                             UNFFERRTAG(_err));
+                             errStr);
                 break;
         }
     }
@@ -471,10 +478,9 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
                     ovi->m_CurrentFrameIndex = ovi->m_TotalFrameCount - 1;
                     return nullptr;
                 }
-                #ifdef MAC
                 g_Log->Error(
-                             "Error receiving packet from bit stream filter: %s",
-                             UNFFERRTAG(ret));
+                             "Error receiving packet from bit stream filter: %i",
+                             ret);
             }
             if (filteredPacket->size)
             {

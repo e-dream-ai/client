@@ -14,7 +14,7 @@ class ITimer
     virtual ~ITimer(){};
     virtual void Reset() = PureVirtual;
 #ifdef WIN32
-    virtual double Time() = PureVirtual;
+    virtual double Time() const = PureVirtual;
 #else
     virtual double Time() const = PureVirtual;
 #endif

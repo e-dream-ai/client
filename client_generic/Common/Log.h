@@ -28,6 +28,10 @@
 #include <cstdio>
 #endif
 
+#ifdef _WIN32
+typedef int pid_t;
+#endif
+
 #include "Singleton.h"
 #include "SmartPtr.h"
 #include "base.h"

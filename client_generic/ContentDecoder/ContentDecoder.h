@@ -23,6 +23,7 @@
 #ifndef _CONTENTDECODER_H
 #define _CONTENTDECODER_H
 
+#include <future>
 #include <queue>
 #include <string>
 #include <string_view>

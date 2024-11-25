@@ -156,9 +156,6 @@
     <ClCompile Include="..\ContentDecoder\Clip.cpp">
       <Filter>ContentDecoder\Code</Filter>
     </ClCompile>
-    <ClCompile Include="..\ContentDownloader\Dream.cpp">
-      <Filter>ContentDownloader\Code</Filter>
-    </ClCompile>
     <ClCompile Include="..\Networking\EDreamClient.cpp">
       <Filter>Networking</Filter>
     </ClCompile>
