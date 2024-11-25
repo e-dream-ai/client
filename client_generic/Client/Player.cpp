@@ -277,12 +277,6 @@ bool CPlayer::Startup()
     path scriptPath = scriptRoot;
     path watchPath = watchFolder;
 
-    //	Create playlist.
-    g_Log->Info("Creating playlist...");
-
-    m_spPlaylist =
-        std::make_shared<ContentDecoder::CDreamPlaylist>(watchPath.string());
-
     m_NextClipInfoQueue.setMaxQueueElements(10);
 
     //	Create decoder last.

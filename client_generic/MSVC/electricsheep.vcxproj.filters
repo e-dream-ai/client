@@ -81,9 +81,6 @@
     <ClCompile Include="..\Common\Log.cpp">
       <Filter>Common\Code</Filter>
     </ClCompile>
-    <ClCompile Include="..\Common\md5.c">
-      <Filter>Common\Code</Filter>
-    </ClCompile>
     <ClCompile Include="..\Common\pool.cpp">
       <Filter>Common\Code</Filter>
     </ClCompile>

@@ -750,7 +750,6 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
     <ClCompile Include="..\Common\Common.cpp" />
     <ClCompile Include="..\Common\Exception.cpp" />
     <ClCompile Include="..\Common\Log.cpp" />
-    <ClCompile Include="..\Common\md5.c" />
     <ClCompile Include="..\Common\pool.cpp" />
     <ClCompile Include="..\ContentDecoder\ContentDecoder.cpp" />
     <ClCompile Include="..\Client\Hud.cpp">
