@@ -250,14 +250,13 @@ bool CPlayer::Startup()
         m_DisplayFps = 0.0;
     }
 #endif
-
     //	Grab some paths for the decoder.
     std::string content = g_Settings()->Root() + "content/";
 
 #ifndef LINUX_GNU
     // Common for mac & win
     std::string scriptRoot =
-        g_Settings()->Get("settings.app.InstallDir", std::string("./")) +
+        g_Settings()->Get("settings.app.InstallDir", PlatformUtils::GetWorkingDir()) +
         "Scripts";
 #else
     std::string scriptRoot =
@@ -610,8 +609,13 @@ void CPlayer::RenderFrame(DisplayOutput::spCRenderer renderer) {
         m_currentClip->DrawFrame(renderer, currentAlpha);
 
         // Render next clip
-        m_nextClip->Update(m_TimelineTime);
-        m_nextClip->DrawFrame(renderer, nextAlpha);
+        // Somehow sometimes we reach here with no m_nextClip, not 100% clear why
+        if (m_nextClip) {
+            m_nextClip->Update(m_TimelineTime);
+            m_nextClip->DrawFrame(renderer, nextAlpha);
+        } else {
+            g_Log->Error("Render frame has null nextClip despite checking for it earlier");
+        }
     } else if (m_currentClip) {
         m_currentClip->Update(m_TimelineTime);
         m_currentClip->DrawFrame(renderer);
@@ -885,8 +889,13 @@ bool CPlayer::SetPlaylistAtDream(const std::string& playlistUUID, const std::str
     // Now, try to position the playlist at the specified dream
     auto optionalDream = m_playlistManager->getDreamByUUID(dreamUUID);
     if (!optionalDream) {
-        g_Log->Error("Dream with UUID %s not found in playlist %s", dreamUUID.c_str(), playlistUUID.c_str());
-        return false;
+        g_Log->Error("Dream with UUID %s not found in playlist %s defaulting to the first dream", dreamUUID.c_str(), playlistUUID.c_str());
+        
+        if (!m_currentClip) {
+            m_isFirstPlay = true;  // Reset the first play flag when setting a new playlist
+            PlayNextDream();
+        }
+        return true;
     }
 
     m_isFirstPlay = true;  // Treat this as a first play to avoid transition

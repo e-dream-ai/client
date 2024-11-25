@@ -13,6 +13,7 @@
 #include "Networking.h"
 #include "Player.h"
 #include "Log.h"
+#include "NetworkConfig.h"
 
 namespace ContentDownloader
 {
@@ -188,6 +189,7 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
     auto dream = cm.getDream(uuid);
     
     Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>("Downloading dream " + dream->name);
+    Network::NetworkHeaders::addStandardHeaders(spDownload);
     
     if (!spDownload->Perform(downloadLink)) {
         SetDownloadStatus("Download failed for " + dream->name);
@@ -206,15 +208,41 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
         return false;
     }
 
-    std::string fileExtension = ".mp4";
-    fs::path fullSavePath = savePath / (uuid + fileExtension);
+    // Save with .tmp extension first
+    fs::path tmpPath = savePath / (uuid + ".tmp");
+    fs::path finalPath = savePath / (uuid + ".mp4");
 
-    if (!spDownload->Save(fullSavePath.string())) {
-        g_Log->Error("Failed to save downloaded dream to %s", fullSavePath.string().c_str());
+    if (!spDownload->Save(tmpPath.string())) {
+        g_Log->Error("Failed to save downloaded dream to %s", tmpPath.string().c_str());
         return false;
     }
 
-    g_Log->Info("Successfully downloaded and saved dream to %s", fullSavePath.string().c_str());
+    // If we have an MD5 hash in the metadata, verify it
+    if (!dream->md5.empty()) {
+        std::string downloadedMd5 = PlatformUtils::CalculateFileMD5(tmpPath.string());
+        if (downloadedMd5 != dream->md5) {
+            g_Log->Error("md5 mismatch for %s. Expected: %s, Got: %s",
+                         uuid.c_str(), dream->md5.c_str(), downloadedMd5.c_str());
+            EDreamClient::ReportMD5Failure(uuid, downloadedMd5, false);
+            fs::remove(tmpPath);
+            return false;
+        }
+        // TODO : remove that from log at some point
+        g_Log->Info(std::string("md5 match ") + dream->md5);
+    } else {
+        // TODO : remove that from log at some point
+        g_Log->Info("No md5 in metadata");
+    }
+
+    // Rename tmp to mp4
+    try {
+        fs::rename(tmpPath, finalPath);
+    } catch (const fs::filesystem_error& e) {
+        g_Log->Error("Failed to rename tmp file to mp4: %s", e.what());
+        return false;
+    }
+
+    g_Log->Info("Successfully downloaded and saved dream to %s", finalPath.string().c_str());
     SetDownloadStatus("Download complete " + dream->name);
     
     Cache::CacheManager::DiskCachedItem newDiskItem;

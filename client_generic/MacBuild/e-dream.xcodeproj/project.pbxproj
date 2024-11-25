@@ -144,8 +144,6 @@
 		21ADBB271305D380000A9F20 /* green.tif in Resources */ = {isa = PBXBuildFile; fileRef = 21ADBB211305D380000A9F20 /* green.tif */; };
 		21ADBB281305D380000A9F20 /* red.tif in Resources */ = {isa = PBXBuildFile; fileRef = 21ADBB221305D380000A9F20 /* red.tif */; };
 		21ADBB291305D380000A9F20 /* yellow.tif in Resources */ = {isa = PBXBuildFile; fileRef = 21ADBB231305D380000A9F20 /* yellow.tif */; };
-		21C5D0940F9CF6D9001657E7 /* md5.c in Sources */ = {isa = PBXBuildFile; fileRef = 21C5D0930F9CF6D9001657E7 /* md5.c */; };
-		21C5D0950F9CF6D9001657E7 /* md5.c in Sources */ = {isa = PBXBuildFile; fileRef = 21C5D0930F9CF6D9001657E7 /* md5.c */; };
 		21CE8E3D0F6EE12B00DDF96A /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 21CE8E3B0F6EE12B00DDF96A /* SystemConfiguration.framework */; };
 		21CE8E3E0F6EE12B00DDF96A /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 21CE8E3B0F6EE12B00DDF96A /* SystemConfiguration.framework */; };
 		21DC0CA91263B98200D60C6A /* libcurl.4.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 211CDDEB0ED0BE8300EB9394 /* libcurl.4.dylib */; };
@@ -368,7 +366,6 @@
 		F0C1004E2C1372EF007FA505 /* TextureFlatMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C72AC1AE9D00017C51 /* TextureFlatMetal.mm */; };
 		F0C1004F2C1372EF007FA505 /* TextMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 46D2E8FC2AFBBBF50054049D /* TextMetal.mm */; };
 		F0C100502C1372EF007FA505 /* ESConfiguration.mm in Sources */ = {isa = PBXBuildFile; fileRef = 21AAA0EE0F70453200AC23A8 /* ESConfiguration.mm */; };
-		F0C100512C1372EF007FA505 /* md5.c in Sources */ = {isa = PBXBuildFile; fileRef = 21C5D0930F9CF6D9001657E7 /* md5.c */; };
 		F0C100522C1372EF007FA505 /* RendererMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C12AC1817500017C51 /* RendererMetal.mm */; };
 		F0C100552C1372EF007FA505 /* libboost_thread.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071D32C0E052B008219A4 /* libboost_thread.a */; };
 		F0C100562C1372EF007FA505 /* libpng_universal.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 466C2AA92AFA5B8600ED939F /* libpng_universal.a */; };
@@ -478,7 +475,6 @@
 		F0E9CE712C136B0500C4D694 /* Upload.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDDA0ED0BD9200EB9394 /* Upload.cpp */; };
 		F0E9CE722C136B0500C4D694 /* ContentDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212313190F503C4500702B2C /* ContentDownloader.cpp */; };
 		F0E9CE762C136B0500C4D694 /* AlignedBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 210335030F549BEF00A83F17 /* AlignedBuffer.cpp */; };
-		F0E9CE772C136B0500C4D694 /* md5.c in Sources */ = {isa = PBXBuildFile; fileRef = 21C5D0930F9CF6D9001657E7 /* md5.c */; };
 		F0E9CE782C136B0500C4D694 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 21EE633410139BCC000CE53E /* main.m */; };
 		F0E9CE792C136B0500C4D694 /* ESWindow.mm in Sources */ = {isa = PBXBuildFile; fileRef = 21EE63951013A674000CE53E /* ESWindow.mm */; };
 		F0E9CE7A2C136B0500C4D694 /* ESScreensaverView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA520EC7479A005E246D /* ESScreensaverView.mm */; };
@@ -803,8 +799,6 @@
 		21ADBB211305D380000A9F20 /* green.tif */ = {isa = PBXFileReference; lastKnownFileType = image.tiff; path = green.tif; sourceTree = SOURCE_ROOT; };
 		21ADBB221305D380000A9F20 /* red.tif */ = {isa = PBXFileReference; lastKnownFileType = image.tiff; path = red.tif; sourceTree = SOURCE_ROOT; };
 		21ADBB231305D380000A9F20 /* yellow.tif */ = {isa = PBXFileReference; lastKnownFileType = image.tiff; path = yellow.tif; sourceTree = SOURCE_ROOT; };
-		21C5D0920F9CF6D9001657E7 /* md5.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = md5.h; path = ../Common/md5.h; sourceTree = SOURCE_ROOT; };
-		21C5D0930F9CF6D9001657E7 /* md5.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = md5.c; path = ../Common/md5.c; sourceTree = SOURCE_ROOT; };
 		21CE8B8D0F6ECFFC00DDF96A /* proximus.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = proximus.h; sourceTree = "<group>"; };
 		21CE8B8E0F6ECFFC00DDF96A /* proximus.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = proximus.c; sourceTree = "<group>"; };
 		21CE8B950F6ED0F200DDF96A /* CoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreServices.framework; path = System/Library/Frameworks/CoreServices.framework; sourceTree = SDKROOT; };
@@ -912,6 +906,7 @@
 		F07071D12C0E052A008219A4 /* libboost_filesystem.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_filesystem.a; path = "../../cache/univ-osx/lib/libboost_filesystem.a"; sourceTree = "<group>"; };
 		F07071D22C0E052B008219A4 /* libboost_system.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_system.a; path = "../../cache/univ-osx/lib/libboost_system.a"; sourceTree = "<group>"; };
 		F07071D32C0E052B008219A4 /* libboost_thread.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_thread.a; path = "../../cache/univ-osx/lib/libboost_thread.a"; sourceTree = "<group>"; };
+		F08A7DC42CD507BC00D43977 /* NetworkConfig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NetworkConfig.h; sourceTree = "<group>"; };
 		F0C100842C1372EF007FA505 /* e-dream-stage.saver */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "e-dream-stage.saver"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F0C100852C1372F0007FA505 /* ScreenSaver copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "ScreenSaver copy-Info.plist"; path = "/Users/guillaume/dev/client/client_generic/MacBuild/ScreenSaver copy-Info.plist"; sourceTree = "<absolute>"; };
 		F0CCD23D2B98CF530070314F /* OSD.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = OSD.hpp; sourceTree = "<group>"; };
@@ -1185,6 +1180,7 @@
 				211CDDD80ED0BD9200EB9394 /* Networking.cpp */,
 				12478A672B03B194006A8669 /* Networking.h */,
 				211CDDDA0ED0BD9200EB9394 /* Upload.cpp */,
+				F08A7DC42CD507BC00D43977 /* NetworkConfig.h */,
 			);
 			name = Networking;
 			path = ../Networking;
@@ -1273,8 +1269,6 @@
 			children = (
 				21EE633410139BCC000CE53E /* main.m */,
 				212B195F0E8E5CCE00CE185C /* main.cpp */,
-				21C5D0930F9CF6D9001657E7 /* md5.c */,
-				21C5D0920F9CF6D9001657E7 /* md5.h */,
 				21AAA0EE0F70453200AC23A8 /* ESConfiguration.mm */,
 				21AAA0ED0F70453200AC23A8 /* ESConfiguration.h */,
 				2135DA520EC7479A005E246D /* ESScreensaverView.mm */,
@@ -1912,7 +1906,6 @@
 				2160FAE00F30F45100B2C27A /* Upload.cpp in Sources */,
 				2123132E0F503C4500702B2C /* ContentDownloader.cpp in Sources */,
 				210335050F549BEF00A83F17 /* AlignedBuffer.cpp in Sources */,
-				21C5D0950F9CF6D9001657E7 /* md5.c in Sources */,
 				21EE633510139BCC000CE53E /* main.m in Sources */,
 				21EE63961013A674000CE53E /* ESWindow.mm in Sources */,
 				21EE63C21013A879000CE53E /* ESScreensaverView.mm in Sources */,
@@ -1977,7 +1970,6 @@
 				467230C82AC1AE9D00017C51 /* TextureFlatMetal.mm in Sources */,
 				46D2E8FD2AFBBBF50054049D /* TextMetal.mm in Sources */,
 				21AAA0EF0F70453200AC23A8 /* ESConfiguration.mm in Sources */,
-				21C5D0940F9CF6D9001657E7 /* md5.c in Sources */,
 				467230C22AC1817500017C51 /* RendererMetal.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -2036,7 +2028,6 @@
 				F0C1004E2C1372EF007FA505 /* TextureFlatMetal.mm in Sources */,
 				F0C1004F2C1372EF007FA505 /* TextMetal.mm in Sources */,
 				F0C100502C1372EF007FA505 /* ESConfiguration.mm in Sources */,
-				F0C100512C1372EF007FA505 /* md5.c in Sources */,
 				F0C100522C1372EF007FA505 /* RendererMetal.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -2091,7 +2082,6 @@
 				F0E9CE712C136B0500C4D694 /* Upload.cpp in Sources */,
 				F0E9CE722C136B0500C4D694 /* ContentDownloader.cpp in Sources */,
 				F0E9CE762C136B0500C4D694 /* AlignedBuffer.cpp in Sources */,
-				F0E9CE772C136B0500C4D694 /* md5.c in Sources */,
 				F0E9CE782C136B0500C4D694 /* main.m in Sources */,
 				F0E9CE792C136B0500C4D694 /* ESWindow.mm in Sources */,
 				F0E9CE7A2C136B0500C4D694 /* ESScreensaverView.mm in Sources */,
@@ -2387,7 +2377,7 @@
 				ENABLE_NS_ASSERTIONS = NO;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_ENABLE_BUILTIN_FUNCTIONS = NO;
-				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
 				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
 				GCC_OPTIMIZATION_LEVEL = s;
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;

@@ -210,9 +210,6 @@ class CElectricSheep_Mac : public CElectricSheep
 
         printf("Startup()\n");
 
-        //@TODO: remove if unnecessary
-        //InitStorage();
-
         AttachLog();
 
         // This is determined now in constructor, but we log it here

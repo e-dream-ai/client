@@ -4,8 +4,6 @@
 #include <sio_client.h>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
-#include <boost/json.hpp>
-//#include <boost/json/src.hpp> // We can't use this, as we are already linking the full boost json library
 #include <cstdio>
 #include <fstream>
 #include <iostream>
@@ -17,6 +15,7 @@
 #include "Player.h"
 #include "Settings.h"
 #include "ServerConfig.h"
+#include "NetworkConfig.h"
 #include "PathManager.h"
 #include "client.h"
 #include "clientversion.h"
@@ -242,6 +241,11 @@ bool EDreamClient::Authenticate()
         // Clear the sealed session as it's no longer valid
         g_Settings()->Set("settings.content.sealed_session", std::string(""));
         g_Settings()->Storage()->Commit();
+        // Only show once at startup, we don't want to loop
+        if (!shownSettingsOnce) {
+            shownSettingsOnce = true;
+            ESShowPreferences();
+        }
     }
 
     return success;
@@ -271,6 +275,7 @@ void EDreamClient::SignOut()
     }
 
     Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>("Sign out Sealed Session");
+    Network::NetworkHeaders::addStandardHeaders(spDownload);
     spDownload->AppendHeader("Content-Type: application/json");
     
     // Set the cookie with the current sealed session
@@ -320,62 +325,74 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
     return size * nmemb;
 }
 
-bool EDreamClient::SendCode()
-{
+EDreamClient::AuthResult EDreamClient::SendCode() {
     std::string email = g_Settings()->Get("settings.generator.nickname", std::string(""));
     
     if (email.empty())
     {
         g_Log->Error("Email address not found in settings");
-        return false;
+        return AuthResult(false, "Email address not provided");
     }
-
+    
     CURL *curl;
     CURLcode res;
     std::string readBuffer;
-
+    
     curl = curl_easy_init();
-    if(curl) {
+    if (curl) {
         std::string url = ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::LOGIN_MAGIC);
         
         // Prepare JSON payload
         boost::json::object payload;
         payload["email"] = email;
         std::string jsonBody = boost::json::serialize(payload);
-
+        
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, jsonBody.c_str());
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-
+        
         // Set headers
         struct curl_slist *headers = NULL;
         headers = curl_slist_append(headers, "Content-Type: application/json");
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-
+        
         res = curl_easy_perform(curl);
         curl_slist_free_all(headers);
         curl_easy_cleanup(curl);
-
+        
         if(res != CURLE_OK) {
             g_Log->Error("Failed to send verification code. Curl error: %s", curl_easy_strerror(res));
-            return false;
+            return AuthResult(false, std::string("Error: ") + curl_easy_strerror(res));
         }
-
+        
         long http_code = 0;
         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
-
+        
         if (http_code == 200) {
             g_Log->Info("Verification code sent successfully to %s", email.c_str());
-            return true;
+            return AuthResult(true, "Verification code sent successfully");
         } else {
             g_Log->Error("Failed to send verification code. Server returned %ld: %s", http_code, readBuffer.c_str());
-            return false;
+            
+            std::string errorMessage;
+            try {
+                boost::json::value response = boost::json::parse(readBuffer);
+                if (response.is_object() && response.as_object().contains("message")) {
+                    // Extract just the error message from the JSON
+                    errorMessage = response.as_object()["message"].as_string().c_str();
+                } else {
+                    errorMessage = readBuffer; // Use full response if not in expected format
+                }
+            } catch (...) {
+                errorMessage = readBuffer; // Use raw response if JSON parsing fails
+            }
+            
+            return AuthResult(false, errorMessage);
         }
     }
 
-    g_Log->Error("Failed to initialize curl");
-    return false;
+    return AuthResult(false, "Cannot access Network");
 }
 
 bool EDreamClient::ValidateCode(const std::string& code)
@@ -487,6 +504,7 @@ bool EDreamClient::RefreshSealedSession()
     }
 
     Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>("Refresh Sealed Session");
+    Network::NetworkHeaders::addStandardHeaders(spDownload);
     spDownload->AppendHeader("Content-Type: application/json");
     
     // Set the cookie with the current sealed session
@@ -615,6 +633,7 @@ std::string EDreamClient::Hello() {
     while (currentAttempt++ < maxAttempts)
     {
         spDownload = std::make_shared<Network::CFileDownloader>("Hello!");
+        Network::NetworkHeaders::addStandardHeaders(spDownload);
         spDownload->AppendHeader("Content-Type: application/json");
         
         // Retrieve the sealed session from settings
@@ -737,6 +756,43 @@ std::string EDreamClient::GetCurrentServerPlaylist() {
     return playlistId;
 }
 
+// MARK: - Telemetry functions
+void EDreamClient::SendTelemetry(const std::string& eventType, const boost::json::object& eventData) {
+    Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>("Telemetry");
+    Network::NetworkHeaders::addStandardHeaders(spDownload);
+    spDownload->AppendHeader("Content-Type: application/json");
+    
+    std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
+    if (!sealedSession.empty()) {
+        std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
+        spDownload->AppendHeader(cookieHeader);
+    }
+
+    boost::json::object payload;
+    payload["eventType"] = eventType;
+    payload["eventData"] = eventData;
+    payload["clientVersion"] = PlatformUtils::GetAppVersion();
+    payload["clientPlatform"] = PlatformUtils::GetPlatformName();
+    
+    std::string jsonBody = boost::json::serialize(payload);
+    spDownload->SetPostFields(jsonBody.c_str());
+
+    std::string url = ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::TELEMETRY);
+    
+    if (!spDownload->Perform(url)) {
+        g_Log->Error("Failed to send telemetry. Server returned %i", spDownload->ResponseCode());
+    }
+}
+
+void EDreamClient::ReportMD5Failure(const std::string& uuid, const std::string& foundMd5, bool isStreaming) {
+    boost::json::object eventData;
+    eventData["uuid"] = uuid;
+    eventData["foundMd5"] = foundMd5;
+    eventData["isStreaming"] = isStreaming;
+    
+    SendTelemetry("md5-mismatch", eventData);
+}
+
 // MARK: - Async funtions
 std::future<bool> EDreamClient::FetchPlaylistAsync(const std::string& uuid) {
     return std::async(std::launch::async, [uuid]() {
@@ -827,6 +883,7 @@ std::vector<std::string> EDreamClient::FetchUserDislikes() {
     while (currentAttempt++ < maxAttempts)
     {
         spDownload = std::make_shared<Network::CFileDownloader>("Fetch User Dislikes");
+        Network::NetworkHeaders::addStandardHeaders(spDownload);
         spDownload->AppendHeader("Content-Type: application/json");
         // Retrieve the sealed session from settings
         std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
@@ -902,6 +959,7 @@ bool EDreamClient::FetchPlaylist(std::string_view uuid) {
     while (currentAttempt++ < maxAttempts)
     {
         spDownload = std::make_shared<Network::CFileDownloader>("Playlist");
+        Network::NetworkHeaders::addStandardHeaders(spDownload);
         spDownload->AppendHeader("Content-Type: application/json");
         
         // Retrieve the sealed session from settings
@@ -965,6 +1023,7 @@ bool EDreamClient::FetchDefaultPlaylist() {
     while (currentAttempt++ < maxAttempts)
     {
         spDownload = std::make_shared<Network::CFileDownloader>("Default Playlist");
+        Network::NetworkHeaders::addStandardHeaders(spDownload);
         spDownload->AppendHeader("Content-Type: application/json");
         
         // Retrieve the sealed session from settings
@@ -1026,6 +1085,7 @@ bool EDreamClient::FetchDreamMetadata(std::string uuid) {
     while (currentAttempt++ < maxAttempts)
     {
         spDownload = std::make_shared<Network::CFileDownloader>("Metadata");
+        Network::NetworkHeaders::addStandardHeaders(spDownload);
         spDownload->AppendHeader("Content-Type: application/json");
         
         // Retrieve the sealed session from settings
@@ -1081,6 +1141,103 @@ bool EDreamClient::FetchDreamMetadata(std::string uuid) {
     return true;
 }
 
+bool EDreamClient::FetchDreamsMetadata(const std::vector<std::string>& uuids) {
+    if (uuids.empty()) {
+        return false;
+    }
+    
+    auto jsonPath = Cache::PathManager::getInstance().jsonDreamPath();
+    Network::spCFileDownloader spDownload;
+    int maxAttempts = 3;
+    int currentAttempt = 0;
+        
+    while (currentAttempt++ < maxAttempts) {
+        spDownload = std::make_shared<Network::CFileDownloader>("Metadata");
+        Network::NetworkHeaders::addStandardHeaders(spDownload);
+        spDownload->AppendHeader("Content-Type: application/json");
+        
+        // Retrieve the sealed session from settings
+        std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
+        
+        if (sealedSession.empty()) {
+            g_Log->Error("Sealed session not found in settings");
+            return false;
+        }
+        
+        // Set the cookie with the sealed session
+        std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
+        spDownload->AppendHeader(cookieHeader);
+        
+        // Create request body
+        boost::json::object requestBody;
+        boost::json::array uuidArray;
+        for (const auto& uuid : uuids) {
+            uuidArray.emplace_back(boost::json::string(uuid));
+        }
+        requestBody["uuids"] = uuidArray;
+        std::string jsonBody = boost::json::serialize(requestBody);
+        spDownload->SetPostFields(jsonBody.c_str());
+       
+        std::string url = ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::GETDREAM);
+        g_Log->Info("Fetching metadata for %zu dreams", uuids.size());
+               
+        if (spDownload->Perform(url)) {
+            break;
+        } else {
+            if (spDownload->ResponseCode() == 400 ||
+                spDownload->ResponseCode() == 401) {
+                if (currentAttempt == maxAttempts)
+                    return false;
+                if (!RefreshSealedSession())
+                    return false;
+            } else {
+                g_Log->Error("Failed to get metadata. Server returned %i: %s",
+                             spDownload->ResponseCode(),
+                             spDownload->Data().c_str());
+            }
+        }
+    }
+
+    ParseAndSaveCookies(spDownload);
+        
+    try {
+        boost::json::value response = boost::json::parse(spDownload->Data());
+        auto dreams = response.as_object()["data"].as_object()["dreams"].as_array();
+        
+        for (const auto& dream : dreams) {
+            // Create individual dream response
+            boost::json::object individual_response;
+            individual_response["success"] = true;
+            
+            boost::json::object data;
+            boost::json::array dreams_array;
+            dreams_array.push_back(dream);
+            data["dreams"] = dreams_array;
+            individual_response["data"] = data;
+            
+            // Get UUID for filename
+            const auto& dream_obj = dream.as_object();
+            std::string uuid = dream_obj.at("uuid").as_string().c_str();
+            
+            // Save to file
+            auto filename = jsonPath / (uuid + ".json");
+            std::ofstream file(filename);
+            if (file.is_open()) {
+                file << boost::json::serialize(individual_response);
+                file.close();
+                g_Log->Info("Saved metadata for dream: %s", uuid.c_str());
+            } else {
+                g_Log->Error("Unable to save metadata file for %s", uuid.c_str());
+            }
+        }
+    } catch (const boost::system::system_error& e) {
+        JSONUtil::LogException(e, spDownload->Data());
+        return false;
+    }
+    
+    return true;
+}
+
 std::string EDreamClient::GetDreamDownloadLink(const std::string& uuid) {
     Network::spCFileDownloader spDownload;
     int maxAttempts = 3;
@@ -1088,6 +1245,7 @@ std::string EDreamClient::GetDreamDownloadLink(const std::string& uuid) {
 
     while (currentAttempt++ < maxAttempts) {
         spDownload = std::make_shared<Network::CFileDownloader>("Dream Link");
+        Network::NetworkHeaders::addStandardHeaders(spDownload);
         spDownload->AppendHeader("Content-Type: application/json");
         // Retrieve the sealed session from settings
         std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
@@ -1216,27 +1374,15 @@ std::vector<std::string> EDreamClient::ParsePlaylist(std::string_view uuid) {
         JSONUtil::LogException(e, contents);
     }
 
-    /*
-    // Now we fetch metadata that needs fetching, if any
-    // We transform our vector into a comma separated string to be fetched
+    // Do we need to fetch metadata?
     if (!needsMetadataUuids.empty()) {
-        std::ostringstream oss;
-        
-        // Copy all elements except the last one, followed by the delimiter
-        std::copy(needsMetadataUuids.begin(), needsMetadataUuids.end() - 1,
-                  std::ostream_iterator<std::string>(oss, ","));
-        
-        // Add the last element without the delimiter
-        oss << needsMetadataUuids.back();
+        // send that array and try to fetch all at once
+        FetchDreamsMetadata(needsMetadataUuids);
 
-        g_Log->Info("Needs metadata for : %s",oss.str().c_str());
-    }
-    */
-    // TMP we fetch each individually, we'll move to multiple with the code above.
-    // This will require a Fetch that can split the results in multiple files though TODO
-    for (const auto& needsMetadata : needsMetadataUuids) {
-        FetchDreamMetadata(needsMetadata);
-        cm.reloadMetadata(needsMetadata);
+        // Then reload metadata for each of the uuids
+        for (const auto& needsMetadata : needsMetadataUuids) {
+            cm.reloadMetadata(needsMetadata);
+        }
     }
 
     // Then enqueue our missing videos
@@ -1377,12 +1523,12 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
         
         EDreamClient::EnqueuePlaylistAsync(uuid.data());
     }
-    else if (event == "like")
+    else if (event == "like_current_dream")
     {
         g_Client()->ExecuteCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_LIKE);
     }
-    else if (event == "dislike")
+    else if (event == "dislike_current_dream")
     {
         g_Client()->ExecuteCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_DISLIKE);
@@ -1542,6 +1688,9 @@ void EDreamClient::ConnectRemoteControlSocket()
     std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
     
     query["Cookie"] = string_format("wos-session=%s", sealedSession.c_str());
+    query["Edream-Client-Type"] = PlatformUtils::GetPlatformName();
+    query["Edream-Client-Version"] = PlatformUtils::GetAppVersion();
+
     s_SIOClient.connect(ServerConfig::ServerConfigManager::getInstance().getWebsocketServer(), query, query);
     
     // Send first ping immediately so frontend knows we're here

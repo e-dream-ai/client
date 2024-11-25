@@ -38,7 +38,7 @@ namespace Base
 */
 CLog::CLog()
     : m_bActive(false), m_pFile(NULL), m_PipeReader(0),
-      m_pPipeReaderThread(nullptr)
+    m_pPipeReaderThread(nullptr)
 {
 }
 
@@ -102,6 +102,29 @@ void CLog::PipeReaderThread()
 
 void CLog::Attach(const std::string& _location, const uint32_t /*_level*/)
 {
+    if (m_bActive) {
+        return;
+    }
+
+    // Add console sink
+    boost::shared_ptr<boost::log::sinks::text_ostream_backend> console_backend =
+        boost::make_shared<boost::log::sinks::text_ostream_backend>();
+    console_backend->add_stream(
+        boost::shared_ptr<std::ostream>(&std::cout, boost::null_deleter()));
+
+    m_ConsoleSink = boost::make_shared<
+        boost::log::sinks::synchronous_sink<boost::log::sinks::text_ostream_backend>>(
+        console_backend);
+
+    m_ConsoleSink->set_formatter(
+        boost::log::expressions::stream
+        << "[" << boost::log::expressions::attr<boost::posix_time::ptime>("TimeStamp")
+        << " - " << boost::log::trivial::severity
+        << "]: " << boost::log::expressions::smessage);
+
+    boost::log::core::get()->add_sink(m_ConsoleSink);
+
+
     // Create filename with timestamp
     time_t curTime;
     time(&curTime);
@@ -134,63 +157,8 @@ void CLog::Attach(const std::string& _location, const uint32_t /*_level*/)
 
     BOOST_LOG_TRIVIAL(info) << "Attaching Log";
     m_Sink->flush();
-    //    if (m_bActive)
-//        return;
-//
-//    time_t curTime;
-//    time(&curTime);
-//
-//    char timeStamp[32] = {0};
-//    strftime(timeStamp, sizeof(timeStamp), "%Y_%m_%d", localtime(&curTime));
-//
-//    // Create a pipe
-//    int pipefd[2];
-//    #if WIN32
-//    if (_pipe(pipefd, 100, 0) == -1)
-//    #else
-//    if (pipe(pipefd) == -1)
-//    #endif
-//    {
-//        perror("Unable to create pipe.");
-//        exit(EXIT_FAILURE);
-//    }
-//
-//    // Save the original stdout file descriptor
-//    m_OriginalSTDOUT = dup(fileno(stdout));
-//    if (m_OriginalSTDOUT == -1)
-//    {
-//        perror("dup failed");
-//        exit(EXIT_FAILURE);
-//    }
-//
-//    // Redirect stdout to the write end of the pipe
-//    if (dup2(pipefd[1], fileno(stdout)) == -1)
-//    {
-//        perror("dup2 failed");
-//        exit(EXIT_FAILURE);
-//    }
-//
-//    // Close the write end of the pipe
-//    close(pipefd[1]);
-//    m_PipeReader = pipefd[0];
-//
-//    std::stringstream s;
-//    s << _location << timeStamp << ".log";
-//    std::string f = s.str();
-//    if ((m_pFile = fopen(f.c_str(), "a+")) == NULL)
-//    {
-//#ifdef WIN32
-//        MessageBoxA(NULL,
-//                    "Unable to create log file, exiting. Please check file "
-//                    "permissions for electricsheep folder.",
-//                    "Log error", MB_OK);
-//#endif
-//        exit(-1);
-//    }
-//    m_pPipeReaderThread =
-//        new std::thread(std::bind(&CLog::PipeReaderThread, this));
-    m_bActive = true;
 
+    m_bActive = true;
 }
 
 /*

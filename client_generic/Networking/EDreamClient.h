@@ -9,10 +9,20 @@
 #include <sstream>
 #include <boost/asio.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/json.hpp>
 #include "Networking.h"
 
 class EDreamClient
 {
+    // Used by SendCode (for now), so we can propagate error messages from the server
+    struct AuthResult {
+        bool success;
+        std::string message;
+        
+        // Constructor for convenient initialization
+        AuthResult(bool s, std::string m = "") : success(s), message(m) {}
+    };
+    
   private:
     static std::atomic<bool> fIsLoggedIn;
     static std::atomic<int> fCpuUsage;
@@ -39,9 +49,14 @@ class EDreamClient
     static bool FetchPlaylist(std::string_view uuid);
     static bool FetchDefaultPlaylist();
     static bool FetchDreamMetadata(std::string uuid);
+    static bool FetchDreamsMetadata(const std::vector<std::string>& uuids);
     static std::string GetDreamDownloadLink(const std::string& uuid);
     static std::vector<std::string> ParsePlaylist(std::string_view uuid);
     static std::tuple<std::string, std::string, bool, int64_t> ParsePlaylistMetadata(std::string_view uuid);
+
+    // Telemetry reporting
+    static void SendTelemetry(const std::string& eventType, const boost::json::object& eventData);
+    static void ReportMD5Failure(const std::string& uuid, const std::string& foundMd5, bool isStreaming);
     
     static std::future<bool> EnqueuePlaylistAsync(const std::string& uuid);
     static bool EnqueuePlaylist(std::string_view uuid);
@@ -52,7 +67,7 @@ class EDreamClient
     static void SignOut();
     static void DidSignIn();
     // Auth v2
-    static bool SendCode();
+    static AuthResult SendCode();
     static bool ValidateCode(const std::string& code);
     static bool RefreshSealedSession();
     
