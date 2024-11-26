@@ -177,6 +177,21 @@
     <ClCompile Include="..\DisplayOutput\D3D12\ShaderD3D12.cpp">
       <Filter>ContentDownloader</Filter>
     </ClCompile>
+    <ClCompile Include="..\ContentDownloader\CacheManager.cpp">
+      <Filter>ContentDownloader\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ContentDownloader\DreamDownloader.cpp">
+      <Filter>ContentDownloader\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ContentDownloader\PathManager.cpp">
+      <Filter>ContentDownloader\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ContentDownloader\PlaylistManager.cpp">
+      <Filter>ContentDownloader\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ContentDownloader\ServerConfig.cpp">
+      <Filter>ContentDownloader\Code</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ContentDownloader\ContentDownloader.h">
@@ -412,6 +427,21 @@
     </ClInclude>
     <ClInclude Include="..\MacBuild\OSD.hpp">
       <Filter>Client\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ContentDownloader\ServerConfig.h">
+      <Filter>ContentDownloader\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ContentDownloader\CacheManager.h">
+      <Filter>ContentDownloader\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ContentDownloader\DreamDownloader.h">
+      <Filter>ContentDownloader\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ContentDownloader\PathManager.h">
+      <Filter>ContentDownloader\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ContentDownloader\PlaylistManager.h">
+      <Filter>ContentDownloader\Headers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

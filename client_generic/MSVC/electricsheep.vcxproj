@@ -744,6 +744,7 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
   <ItemGroup>
     <ClCompile Include="..\Client\StringFormat.cpp" />
     <ClCompile Include="..\ContentDecoder\Clip.cpp" />
+    <ClCompile Include="..\ContentDownloader\CacheManager.cpp" />
     <ClCompile Include="..\ContentDownloader\ContentDownloader.cpp" />
     <ClCompile Include="..\Common\Math\Rect.cpp" />
     <ClCompile Include="..\Common\AlignedBuffer.cpp" />
@@ -756,6 +757,10 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
       <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdcpp20</LanguageStandard>
     </ClCompile>
     <ClCompile Include="..\Client\main.cpp" />
+    <ClCompile Include="..\ContentDownloader\DreamDownloader.cpp" />
+    <ClCompile Include="..\ContentDownloader\PathManager.cpp" />
+    <ClCompile Include="..\ContentDownloader\PlaylistManager.cpp" />
+    <ClCompile Include="..\ContentDownloader\ServerConfig.cpp" />
     <ClCompile Include="..\DisplayOutput\D3D12\DeviceResources.cpp" />
     <ClCompile Include="..\DisplayOutput\D3D12\DisplayD3D12.cpp" />
     <ClCompile Include="..\DisplayOutput\D3D12\RendererD3D12.cpp" />
@@ -816,8 +821,13 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
     <ClInclude Include="..\Client\StringFormat.h" />
     <ClInclude Include="..\Common\JSONUtil.h" />
     <ClInclude Include="..\ContentDecoder\Clip.h" />
+    <ClInclude Include="..\ContentDownloader\CacheManager.h" />
     <ClInclude Include="..\ContentDownloader\ContentDownloader.h" />
     <ClInclude Include="..\ContentDownloader\Dream.h" />
+    <ClInclude Include="..\ContentDownloader\DreamDownloader.h" />
+    <ClInclude Include="..\ContentDownloader\PathManager.h" />
+    <ClInclude Include="..\ContentDownloader\PlaylistManager.h" />
+    <ClInclude Include="..\ContentDownloader\ServerConfig.h" />
     <ClInclude Include="..\DisplayOutput\D3D12\D3D12Helpers.h" />
     <ClInclude Include="..\DisplayOutput\D3D12\DeviceResources.h" />
     <ClInclude Include="..\DisplayOutput\D3D12\DisplayD3D12.h" />
