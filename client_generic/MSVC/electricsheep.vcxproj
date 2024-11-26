@@ -758,6 +758,7 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
     </ClCompile>
     <ClCompile Include="..\Client\main.cpp" />
     <ClCompile Include="..\ContentDownloader\DreamDownloader.cpp" />
+    <ClCompile Include="..\ContentDownloader\MessageQueue.cpp" />
     <ClCompile Include="..\ContentDownloader\PathManager.cpp" />
     <ClCompile Include="..\ContentDownloader\PlaylistManager.cpp" />
     <ClCompile Include="..\ContentDownloader\ServerConfig.cpp" />
@@ -825,6 +826,7 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
     <ClInclude Include="..\ContentDownloader\ContentDownloader.h" />
     <ClInclude Include="..\ContentDownloader\Dream.h" />
     <ClInclude Include="..\ContentDownloader\DreamDownloader.h" />
+    <ClInclude Include="..\ContentDownloader\MessageQueue.h" />
     <ClInclude Include="..\ContentDownloader\PathManager.h" />
     <ClInclude Include="..\ContentDownloader\PlaylistManager.h" />
     <ClInclude Include="..\ContentDownloader\ServerConfig.h" />

@@ -192,6 +192,9 @@
     <ClCompile Include="..\ContentDownloader\ServerConfig.cpp">
       <Filter>ContentDownloader\Code</Filter>
     </ClCompile>
+    <ClCompile Include="..\ContentDownloader\MessageQueue.cpp">
+      <Filter>ContentDownloader\Code</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ContentDownloader\ContentDownloader.h">
@@ -441,6 +444,9 @@
       <Filter>ContentDownloader\Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\ContentDownloader\PlaylistManager.h">
+      <Filter>ContentDownloader\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ContentDownloader\MessageQueue.h">
       <Filter>ContentDownloader\Headers</Filter>
     </ClInclude>
   </ItemGroup>
