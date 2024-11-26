@@ -599,7 +599,7 @@ class CElectricSheep
 #else 
             //g_Player().Renderer()->BeginFrame();
 
-            if( !Update() )
+//            if( !Update() )
             {
                 g_Player().Renderer()->EndFrame();
                 return false;
