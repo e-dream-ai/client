@@ -24,8 +24,10 @@
 #include "clientversion.h"
 
 #ifdef WIN32
-#include "DisplayD3D12.h"
-#include "RendererD3D12.h"
+//#include "DisplayD3D12.h"
+//#include "RendererD3D12.h"
+#include "DisplayDX11.h"
+#include "RendererDX11.h"
 #else
 #include "DisplayMetal.h"
 #include "RendererMetal.h"
@@ -164,14 +166,11 @@ int CPlayer::AddDisplay(uint32 screen)
     uint32_t h = 720;
 
 #ifdef WIN32
-    CDisplayD3D12* pDisplayD3D12 = nullptr;
-    {
-        g_Log->Info("Attempting to open %s...", CDisplayD3D12::Description());
+    g_Log->Info("Attempting to open %s...", CDisplayDX11::Description());
 
-        spDisplay = std::make_shared<CDisplayD3D12>();
-        // spDisplay->SetScreen(screen); 
+    spDisplay = std::make_shared<CDisplayDX11>();
+    // spDisplay->SetScreen(screen); 
 
-    }
 
     if (spDisplay == nullptr)
     {
@@ -179,18 +178,18 @@ int CPlayer::AddDisplay(uint32 screen)
         return -1;
     }
 
-    if (m_hWnd)
+    /* if (m_hWnd)
     {
-        // if (!spDisplay->Initialize(m_hWnd, true))
+        if (!spDisplay->Initialize(m_hWnd, true))
             return -1;
     }
-    else if (!spDisplay->Initialize(w, h, m_bFullscreen))
+    else */
+    if (!spDisplay->Initialize(w, h, m_bFullscreen))
     {
         return -1;
     }
 
-    //spRenderer = new CRendererDX();
-    spRenderer = std::make_shared<CRendererD3D12>();
+    spRenderer = std::make_shared<CRendererDX11>();
 #else // !WIN32
 
     g_Log->Info("Attempting to open %s...", CDisplayMetal::Description());

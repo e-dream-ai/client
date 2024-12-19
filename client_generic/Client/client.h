@@ -496,7 +496,7 @@ class CElectricSheep
             "eiusmod tempor incididunt ut labore et dolore magna aliqua",
             180);*/
 
-        bool internetReachable = PlatformUtils::IsInternetReachable();
+        bool internetReachable = false; // PlatformUtils::IsInternetReachable();
         if (!internetReachable)
         {
             m_MessageQueue.QueueMessage("No Internet Connection.", 180);

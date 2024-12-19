@@ -131,9 +131,10 @@ class CRenderer
     virtual ~CRenderer();
 
     #ifdef WIN32
-    virtual ComPtr<ID3D12Device> GetDevice() = PureVirtual;
+    /* virtual ComPtr<ID3D12Device> GetDevice() = PureVirtual;
     virtual ComPtr<ID3D12GraphicsCommandList> GetCommandList() = PureVirtual;
     virtual ComPtr<ID3D12CommandQueue> GetCommandQueue() = PureVirtual;
+    */
     #endif
 
     virtual eRenderType Type(void) const = PureVirtual;

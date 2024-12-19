@@ -58,8 +58,8 @@
     <Filter Include="Common\Headers">
       <UniqueIdentifier>{c9094536-c2f4-4759-b096-987386c83854}</UniqueIdentifier>
     </Filter>
-    <Filter Include="DisplayOutput\D3D12">
-      <UniqueIdentifier>{7ffa8fad-b8c2-4051-ab70-6c1cf9268ebe}</UniqueIdentifier>
+    <Filter Include="DisplayOutput\D3D11">
+      <UniqueIdentifier>{55b5ee93-d357-4b3d-bc19-998a3c9c138d}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -162,18 +162,6 @@
     <ClCompile Include="PlatformUtils_win.cpp">
       <Filter>Client\Code</Filter>
     </ClCompile>
-    <ClCompile Include="..\DisplayOutput\D3D12\DisplayD3D12.cpp">
-      <Filter>DisplayOutput\D3D12</Filter>
-    </ClCompile>
-    <ClCompile Include="..\DisplayOutput\D3D12\RendererD3D12.cpp">
-      <Filter>DisplayOutput\D3D12</Filter>
-    </ClCompile>
-    <ClCompile Include="..\DisplayOutput\D3D12\TextureFlatD3D12.cpp">
-      <Filter>DisplayOutput\D3D12</Filter>
-    </ClCompile>
-    <ClCompile Include="..\DisplayOutput\D3D12\DeviceResources.cpp">
-      <Filter>DisplayOutput\D3D12</Filter>
-    </ClCompile>
     <ClCompile Include="..\DisplayOutput\D3D12\ShaderD3D12.cpp">
       <Filter>ContentDownloader</Filter>
     </ClCompile>
@@ -194,6 +182,18 @@
     </ClCompile>
     <ClCompile Include="..\ContentDownloader\MessageQueue.cpp">
       <Filter>ContentDownloader\Code</Filter>
+    </ClCompile>
+    <ClCompile Include="..\DisplayOutput\D3D11\RendererDX11.cpp">
+      <Filter>DisplayOutput\D3D11</Filter>
+    </ClCompile>
+    <ClCompile Include="..\DisplayOutput\D3D11\ShaderDX11.cpp">
+      <Filter>DisplayOutput\D3D11</Filter>
+    </ClCompile>
+    <ClCompile Include="..\DisplayOutput\D3D11\TextureFlatDX11.cpp">
+      <Filter>DisplayOutput\D3D11</Filter>
+    </ClCompile>
+    <ClCompile Include="..\DisplayOutput\D3D11\DisplayDX11.cpp">
+      <Filter>DisplayOutput\D3D11</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -410,21 +410,6 @@
     <ClInclude Include="..\Client\PlatformUtils.h">
       <Filter>Client\Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\DisplayOutput\D3D12\DisplayD3D12.h">
-      <Filter>DisplayOutput\D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="..\DisplayOutput\D3D12\RendererD3D12.h">
-      <Filter>DisplayOutput\D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="..\DisplayOutput\D3D12\TextureFlatD3D12.h">
-      <Filter>DisplayOutput\D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="..\DisplayOutput\D3D12\D3D12Helpers.h">
-      <Filter>DisplayOutput\D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="..\DisplayOutput\D3D12\DeviceResources.h">
-      <Filter>DisplayOutput\D3D12</Filter>
-    </ClInclude>
     <ClInclude Include="..\DisplayOutput\D3D12\ShaderD3D12.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -448,6 +433,18 @@
     </ClInclude>
     <ClInclude Include="..\ContentDownloader\MessageQueue.h">
       <Filter>ContentDownloader\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\DisplayOutput\D3D11\RendererDX11.h">
+      <Filter>DisplayOutput\D3D11</Filter>
+    </ClInclude>
+    <ClInclude Include="..\DisplayOutput\D3D11\ShaderDX11.h">
+      <Filter>DisplayOutput\D3D11</Filter>
+    </ClInclude>
+    <ClInclude Include="..\DisplayOutput\D3D11\TextureFlatDX11.h">
+      <Filter>DisplayOutput\D3D11</Filter>
+    </ClInclude>
+    <ClInclude Include="..\DisplayOutput\D3D11\DisplayDX11.h">
+      <Filter>DisplayOutput\D3D11</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

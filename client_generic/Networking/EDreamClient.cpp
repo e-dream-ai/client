@@ -312,9 +312,9 @@ void EDreamClient::SignOut()
 bool EDreamClient::IsLoggedIn()
 {
     // TODO WIN
-    #ifdef MAC
+    //#ifdef MAC
     std::lock_guard<std::mutex> lock(fAuthMutex);
-    #endif
+    //#endif
     return fIsLoggedIn.load();
 }
 

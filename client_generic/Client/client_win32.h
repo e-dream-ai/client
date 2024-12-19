@@ -5,8 +5,6 @@
 #error This file is not supposed to be used for this platform...
 #endif
 
-#include <d3d12.h>
-#include <d3dx12.h>
 #include <fstream>
 #include <iostream>
 #include <shellapi.h>
@@ -57,7 +55,7 @@ class CElectricSheep_Win32 : public CElectricSheep
 
     //	Mode deduced from cmdline parsing.
     eScrMode m_ScrMode;
-    ComPtr<ID3D12Device> m_pD3D12;
+    ComPtr<ID3D11Device> m_pD3D11;
 
     //	Previous mouse pos, for movement calcs.
     bool m_bMouseUnknown;
@@ -151,9 +149,9 @@ class CElectricSheep_Win32 : public CElectricSheep
 
     virtual ~CElectricSheep_Win32()
     {
-        if (m_pD3D12 != NULL)
+        if (m_pD3D11 != NULL)
         {
-            m_pD3D12->Release();
+            m_pD3D11->Release();
         }
         if (m_ScrMode == eSaver || m_ScrMode == eFullScreenStandalone)
         {
@@ -464,7 +462,7 @@ class CElectricSheep_Win32 : public CElectricSheep
             while (monnum < 9)
             {
                 g_Log->Info("Trying monitor %d", monnum);
-                if (g_Player().AddDisplay(monnum, m_pD3D12) == true)
+                if (g_Player().AddDisplay(monnum, m_pD3D11) == true)
                 {
                     foundfirstmon = true;
                     g_Log->Info("Monitor %d ok", monnum);

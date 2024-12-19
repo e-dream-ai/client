@@ -4,8 +4,8 @@
 #include <queue>
 
 #ifdef WIN32
-#include <d3d12.h>
-#include <d3dx12.h>
+//#include <d3d12.h>
+//#include <d3dx12.h>
 #endif
 #include "ContentDecoder.h"
 #include "DisplayOutput.h"

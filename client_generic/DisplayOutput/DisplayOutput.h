@@ -7,10 +7,9 @@
 #include <queue>
 
 #ifdef WIN32
+#include <d3d11.h>
+#include <dxgi.h>
 
-#include <directx/d3d12.h>
-#include <directx/d3dx12.h>
-#include <DeviceResources.h>
 #include <wrl.h>
 
 using Microsoft::WRL::ComPtr;
@@ -220,6 +219,8 @@ class CDisplayOutput
                             const bool _bFullscreen) = PureVirtual;
 
     virtual HWND GetWindowHandle(void) = PureVirtual;
+    void* GetDevice() const { return nullptr; }
+    virtual IDXGISwapChain* GetSwapChain() const { return nullptr; }
     //virtual D3DPRESENT_PARAMETERS PresentParameters() = PureVirtual;
     //virtual void SetScreen(const uint32_t _screen) = PureVirtual;
     //virtual DWORD GetNumMonitors() { return 1; };

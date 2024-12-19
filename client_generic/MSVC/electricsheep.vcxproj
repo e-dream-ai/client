@@ -613,7 +613,7 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
       <OmitFramePointers>false</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>..\DirectX-Headers-1.613.1\include\directx;..\;..\Client;..\Common;..\Common\Math;..\ContentDownloader;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\Networking;..\TupleStorage;..\DisplayOutput\D3D12;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\DirectX-Headers-1.613.1\include\directx;..\;..\Client;..\Common;..\Common\Math;..\ContentDownloader;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\Networking;..\TupleStorage;..\DisplayOutput\D3D11;..\MacBuild;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>DEBUG;WIN32;_WIN64;_WINDOWS;NOMINMAX;_CRT_SECURE_NO_WARNINGS;CURL_STATICLIB;WIN32_LEAN_AND_MEAN;VC_EXTRALEAN;COMPILE_MULTIMON_STUBS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -634,7 +634,7 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>avcodec.lib;avformat.lib;swscale.lib;avdevice.lib;avutil.lib;kernel32.lib;user32.lib;shlwapi.lib;d3d9.lib;d3d12.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;ws2_32.lib;wldap32.lib;psapi.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>avcodec.lib;avformat.lib;swscale.lib;avdevice.lib;avutil.lib;kernel32.lib;user32.lib;shlwapi.lib;d3d9.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;ws2_32.lib;wldap32.lib;psapi.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ShowProgress>NotSet</ShowProgress>
       <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -691,7 +691,7 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
       <OmitFramePointers>false</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>..\DirectX-Headers-1.613.1\include\directx;..\;..\Client;..\Common;..\Common\Math;..\ContentDownloader;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\Networking;..\TupleStorage;..\DisplayOutput\D3D12;..\MacBuild;..\socket.io-client-cpp;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\;..\Client;..\Common;..\Common\Math;..\ContentDownloader;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\Networking;..\TupleStorage;..\DisplayOutput\D3D11;..\MacBuild;..\socket.io-client-cpp;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>DEBUG;WIN32;_WIN64;_WINDOWS;NOMINMAX;_CRT_SECURE_NO_WARNINGS;CURL_STATICLIB;WIN32_LEAN_AND_MEAN;VC_EXTRALEAN;COMPILE_MULTIMON_STUBS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -712,7 +712,7 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>avcodec.lib;avformat.lib;swscale.lib;avdevice.lib;avutil.lib;kernel32.lib;user32.lib;shlwapi.lib;d3d9.lib;d3d12.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;ws2_32.lib;wldap32.lib;psapi.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>avcodec.lib;avformat.lib;swscale.lib;avdevice.lib;avutil.lib;kernel32.lib;user32.lib;shlwapi.lib;d3d9.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;ws2_32.lib;wldap32.lib;psapi.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ShowProgress>NotSet</ShowProgress>
       <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -762,11 +762,11 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
     <ClCompile Include="..\ContentDownloader\PathManager.cpp" />
     <ClCompile Include="..\ContentDownloader\PlaylistManager.cpp" />
     <ClCompile Include="..\ContentDownloader\ServerConfig.cpp" />
-    <ClCompile Include="..\DisplayOutput\D3D12\DeviceResources.cpp" />
-    <ClCompile Include="..\DisplayOutput\D3D12\DisplayD3D12.cpp" />
-    <ClCompile Include="..\DisplayOutput\D3D12\RendererD3D12.cpp" />
+    <ClCompile Include="..\DisplayOutput\D3D11\DisplayDX11.cpp" />
+    <ClCompile Include="..\DisplayOutput\D3D11\RendererDX11.cpp" />
+    <ClCompile Include="..\DisplayOutput\D3D11\ShaderDX11.cpp" />
+    <ClCompile Include="..\DisplayOutput\D3D11\TextureFlatDX11.cpp" />
     <ClCompile Include="..\DisplayOutput\D3D12\ShaderD3D12.cpp" />
-    <ClCompile Include="..\DisplayOutput\D3D12\TextureFlatD3D12.cpp" />
     <ClCompile Include="..\Networking\EDreamClient.cpp" />
     <ClCompile Include="..\TupleStorage\JSONStorage.cpp" />
     <ClCompile Include="msvc_fix.cpp" />
@@ -830,12 +830,11 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
     <ClInclude Include="..\ContentDownloader\PathManager.h" />
     <ClInclude Include="..\ContentDownloader\PlaylistManager.h" />
     <ClInclude Include="..\ContentDownloader\ServerConfig.h" />
-    <ClInclude Include="..\DisplayOutput\D3D12\D3D12Helpers.h" />
-    <ClInclude Include="..\DisplayOutput\D3D12\DeviceResources.h" />
-    <ClInclude Include="..\DisplayOutput\D3D12\DisplayD3D12.h" />
-    <ClInclude Include="..\DisplayOutput\D3D12\RendererD3D12.h" />
+    <ClInclude Include="..\DisplayOutput\D3D11\DisplayDX11.h" />
+    <ClInclude Include="..\DisplayOutput\D3D11\RendererDX11.h" />
+    <ClInclude Include="..\DisplayOutput\D3D11\ShaderDX11.h" />
+    <ClInclude Include="..\DisplayOutput\D3D11\TextureFlatDX11.h" />
     <ClInclude Include="..\DisplayOutput\D3D12\ShaderD3D12.h" />
-    <ClInclude Include="..\DisplayOutput\D3D12\TextureFlatD3D12.h" />
     <ClInclude Include="..\MacBuild\OSD.hpp" />
     <ClInclude Include="..\Networking\EDreamClient.h" />
     <ClInclude Include="..\TupleStorage\JSONStorage.h" />
