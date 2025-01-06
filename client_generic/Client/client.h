@@ -496,7 +496,7 @@ class CElectricSheep
             "eiusmod tempor incididunt ut labore et dolore magna aliqua",
             180);*/
 
-        bool internetReachable = false; // PlatformUtils::IsInternetReachable();
+        bool internetReachable = true; // PlatformUtils::IsInternetReachable();
         if (!internetReachable)
         {
             m_MessageQueue.QueueMessage("No Internet Connection.", 180);
@@ -585,6 +585,8 @@ class CElectricSheep
 
     bool Run()
     {
+        Sleep(5000);
+
         while (true)
         {
             // TODO : Some renderer changes have happened here
@@ -597,9 +599,9 @@ class CElectricSheep
                 return false;
             }
 #else 
-            //g_Player().Renderer()->BeginFrame();
+            g_Player().Renderer()->BeginFrame();
 
-//            if( !Update() )
+            if( !Update() )
             {
                 g_Player().Renderer()->EndFrame();
                 return false;

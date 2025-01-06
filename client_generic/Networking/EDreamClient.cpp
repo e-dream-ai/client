@@ -976,9 +976,11 @@ bool EDreamClient::FetchPlaylist(std::string_view uuid) {
         std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
         spDownload->AppendHeader(cookieHeader);
         
-        std::string url{string_format(
-            "%s/%s", ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::GETPLAYLIST).c_str(), uuid)};
-        
+        std::string url =
+            ServerConfig::ServerConfigManager::getInstance().getEndpoint(
+                ServerConfig::Endpoint::GETPLAYLIST) +
+            "/" + std::string(uuid);
+
         printf("url : %s\n", url.c_str());
         
         if (spDownload->Perform(url))
@@ -1302,7 +1304,8 @@ std::string EDreamClient::GetDreamDownloadLink(const std::string& uuid) {
 
 
 std::vector<std::string> EDreamClient::ParsePlaylist(std::string_view uuid) {
-    g_Log->Info("Parse Playlist %s", (uuid == "" ? "default playlist" : uuid));
+    g_Log->Info("Parse Playlist %s",
+                (uuid == "" ? "default playlist" : uuid.data()));
     // Grab the CacheManager
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
 
@@ -1689,7 +1692,7 @@ void EDreamClient::ConnectRemoteControlSocket()
     
     std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
     
-    query["Cookie"] = string_format("wos-session=%s", sealedSession.c_str());
+    query["Cookie"] = "wos-session=" + sealedSession; 
     query["Edream-Client-Type"] = PlatformUtils::GetPlatformName();
     query["Edream-Client-Version"] = PlatformUtils::GetAppVersion();
 

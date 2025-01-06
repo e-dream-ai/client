@@ -30,11 +30,11 @@ class JSONUtil
   public:
     static void LogException(const std::exception& e, std::string_view fileStr)
     {
-        auto str = string_format(
-            "Exception during parsing dreams list:%s contents:\"%s\"", e.what(),
-            fileStr.data());
-        //ContentDownloader::Shepherd::addMessageText(str.str().c_str(), 180);
-        g_Log->Error(str);
+        std::string str = "Exception during parsing dreams list: ";
+        str += e.what();
+        str += " contents: ";
+        str += fileStr;
+        g_Log->Error(str.c_str());
     }
 
     static bool DumpError(const boost::json::error_code& e,
@@ -42,11 +42,12 @@ class JSONUtil
     {
         if (!e)
             return false;
-        auto str = string_format(
-            "Exception during parsing dreams list:%s contents:\"%s\"",
-            e.what().data(), fileStr.data());
-        //ContentDownloader::Shepherd::addMessageText(str.str().c_str(), 180);
-        g_Log->Error(str);
+        std::string str = "Exception during parsing dreams list: ";
+        str += e.what();
+        str += " contents: ";
+        str += fileStr;
+        g_Log->Error(str.c_str());
+
         return true;
     }
 
