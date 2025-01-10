@@ -37,6 +37,8 @@ bool CRendererDX11::Initialize(spCDisplayOutput _spDisplay) {
 
 bool CRendererDX11::CreateRenderTargets()
 {
+    g_Log->Info("Creating render targets, display dimensions: %dx%d",
+                m_spDisplay->Width(), m_spDisplay->Height());
     // Get the backbuffer texture
     ComPtr<ID3D11Texture2D> backBuffer;
     HRESULT hr =
@@ -53,6 +55,13 @@ bool CRendererDX11::CreateRenderTargets()
         g_Log->Error("Null backbuffer obtained from swap chain");
         return false;
     }
+
+    // Log back buffer properties
+    D3D11_TEXTURE2D_DESC backBufferDesc;
+    backBuffer->GetDesc(&backBufferDesc);
+    g_Log->Info("Back buffer format: %d, dimensions: %dx%d",
+                backBufferDesc.Format, backBufferDesc.Width,
+                backBufferDesc.Height);
 
     // Create render target view
     hr = m_device->CreateRenderTargetView(backBuffer.Get(), nullptr,
@@ -134,6 +143,13 @@ void CRendererDX11::Defaults() {
 }
 
 bool CRendererDX11::BeginFrame() {
+    D3D11_VIEWPORT viewport = {};
+    viewport.Width = static_cast<float>(m_spDisplay->Width());
+    viewport.Height = static_cast<float>(m_spDisplay->Height());
+    viewport.MinDepth = 0.0f;
+    viewport.MaxDepth = 1.0f;
+    m_context->RSSetViewports(1, &viewport);
+
     // Clear render target and depth buffer
     if (m_context && m_renderTargetView) {
         float clearColor[4] = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -244,6 +260,13 @@ void CRendererDX11::DrawQuad(const Base::Math::CRect& _rect,
                              const Base::Math::CVector4& _color,
                              const Base::Math::CRect& _uvRect)
 {
+    if (!m_renderTargetView)
+    {
+        g_Log->Error("No render target view");
+        return;
+    }
+
+
     if (!m_quadVertexBuffer || !m_quadIndexBuffer)
     {
         if (!CreateQuadBuffers())
