@@ -12,7 +12,8 @@ CTextureFlatDX11::CTextureFlatDX11(ComPtr<ID3D11Device> device,
     CreateSampler();
 }
 
-CTextureFlatDX11::~CTextureFlatDX11() {
+CTextureFlatDX11::~CTextureFlatDX11() { 
+    g_Log->Info("Destroying texture"); 
 }
 
 bool CTextureFlatDX11::CreateSampler() {
@@ -53,7 +54,10 @@ DXGI_FORMAT CTextureFlatDX11::GetDXGIFormat(CImageFormat format) {
         DXGI_FORMAT_R32G32B32A32_FLOAT, // eImage_RGB32F
         DXGI_FORMAT_R32G32B32A32_FLOAT  // eImage_RGBA32F
     };
-    return dxgiFormats[format.getFormatEnum()];
+    DXGI_FORMAT dxgiFormat = dxgiFormats[format.getFormatEnum()];
+    g_Log->Info("Converting format %d to DXGI format %d",
+                format.getFormatEnum(), dxgiFormat);
+    return dxgiFormat;
 }
 
 bool CTextureFlatDX11::Upload(spCImage _spImage) {
@@ -77,58 +81,100 @@ bool CTextureFlatDX11::Upload(spCImage _spImage) {
 }
 
 bool CTextureFlatDX11::Upload(const uint8_t* _data, CImageFormat _format,
-                             uint32_t _width, uint32_t _height, uint32_t _bytesPerRow,
-                             bool _mipMapped, uint32_t _mipMapLevel) {
-    if (!m_texture || _mipMapLevel == 0) {
-        D3D11_TEXTURE2D_DESC desc = {};
-        desc.Width = _width;
-        desc.Height = _height;
-        desc.MipLevels = _mipMapped ? 0 : 1;
-        desc.ArraySize = 1;
-        desc.Format = GetDXGIFormat(_format);
-        desc.SampleDesc.Count = 1;
-        desc.Usage = D3D11_USAGE_DEFAULT;
-        desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-        if (_mipMapped) desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
-        desc.CPUAccessFlags = 0;
-        desc.MiscFlags = _mipMapped ? D3D11_RESOURCE_MISC_GENERATE_MIPS : 0;
+                              uint32_t _width, uint32_t _height,
+                              uint32_t _bytesPerRow, bool _mipMapped,
+                              uint32_t _mipMapLevel)
+{
+    try
+    {
+        // Create new texture only if needed
+        if (!m_texture || _mipMapLevel == 0)
+        {
+            // Release previous resources first
+            m_srv.Reset();
+            m_texture.Reset();
 
-        HRESULT hr = m_device->CreateTexture2D(&desc, nullptr, &m_texture);
-        if (FAILED(hr)) {
-            g_Log->Error("Failed to create texture: %08X", hr);
-            return false;
+            D3D11_TEXTURE2D_DESC desc = {};
+            desc.Width = _width;
+            desc.Height = _height;
+            desc.MipLevels = 1;
+            desc.ArraySize = 1;
+            desc.Format = GetDXGIFormat(_format);
+            desc.SampleDesc.Count = 1;
+            desc.Usage = D3D11_USAGE_DEFAULT; // Changed from DYNAMIC
+            desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+            desc.CPUAccessFlags = 0; // No CPU access needed
+
+            // For video frames, create a staging texture for upload
+            D3D11_TEXTURE2D_DESC stagingDesc = desc;
+            stagingDesc.Usage = D3D11_USAGE_STAGING;
+            stagingDesc.BindFlags = 0;
+            stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+            ComPtr<ID3D11Texture2D> stagingTexture;
+            HRESULT hr = m_device->CreateTexture2D(&stagingDesc, nullptr,
+                                                   &stagingTexture);
+            if (FAILED(hr))
+            {
+                g_Log->Error("Failed to create staging texture: %08X", hr);
+                return false;
+            }
+
+            // Create main texture
+            hr = m_device->CreateTexture2D(&desc, nullptr, &m_texture);
+            if (FAILED(hr))
+            {
+                g_Log->Error("Failed to create main texture: %08X", hr);
+                return false;
+            }
+
+            // Create SRV
+            D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+            srvDesc.Format = desc.Format;
+            srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+            srvDesc.Texture2D.MipLevels = 1;
+
+            hr = m_device->CreateShaderResourceView(m_texture.Get(), &srvDesc,
+                                                    &m_srv);
+            if (FAILED(hr))
+            {
+                g_Log->Error("Failed to create SRV: %08X", hr);
+                return false;
+            }
+
+            // Upload data through staging texture
+            if (_data)
+            {
+                D3D11_MAPPED_SUBRESOURCE mapped;
+                hr = m_context->Map(stagingTexture.Get(), 0, D3D11_MAP_WRITE, 0,
+                                    &mapped);
+                if (SUCCEEDED(hr))
+                {
+                    const uint8_t* srcRow = _data;
+                    uint8_t* dstRow = (uint8_t*)mapped.pData;
+                    for (uint32_t y = 0; y < _height; y++)
+                    {
+                        memcpy(dstRow, srcRow, _bytesPerRow);
+                        srcRow += _bytesPerRow;
+                        dstRow += mapped.RowPitch;
+                    }
+                    m_context->Unmap(stagingTexture.Get(), 0);
+
+                    // Copy from staging to main texture
+                    m_context->CopyResource(m_texture.Get(),
+                                            stagingTexture.Get());
+                }
+            }
         }
 
-        D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-        srvDesc.Format = desc.Format;
-        srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-        srvDesc.Texture2D.MostDetailedMip = 0;
-        srvDesc.Texture2D.MipLevels = _mipMapped ? -1 : 1;
-
-        hr = m_device->CreateShaderResourceView(m_texture.Get(), &srvDesc, &m_srv);
-        if (FAILED(hr)) {
-            g_Log->Error("Failed to create shader resource view: %08X", hr);
-            return false;
-        }
+        m_bDirty = true;
+        return true;
     }
-
-    D3D11_BOX box = {};
-    box.left = 0;
-    box.right = _width;
-    box.top = 0;
-    box.bottom = _height;
-    box.front = 0;
-    box.back = 1;
-
-    m_context->UpdateSubresource(m_texture.Get(), _mipMapLevel, &box, 
-                                _data, _bytesPerRow, 0);
-
-    if (_mipMapped && _mipMapLevel == 0) {
-        m_context->GenerateMips(m_srv.Get());
+    catch (...)
+    {
+        g_Log->Error("Exception in CTextureFlatDX11::Upload");
+        return false;
     }
-
-    m_bDirty = true;
-    return true;
 }
 
 bool CTextureFlatDX11::BindFrame(ContentDecoder::spCVideoFrame _spFrame) {
@@ -151,5 +197,6 @@ bool CTextureFlatDX11::Unbind(const uint32_t _index) {
     m_context->PSSetShaderResources(_index, 1, &nullSRV);
     return true;
 }
+
 
 } // namespace DisplayOutput

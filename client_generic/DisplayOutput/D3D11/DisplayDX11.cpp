@@ -152,8 +152,18 @@ void CDisplayDX11::Update() {
     }
 }
 
-void CDisplayDX11::SwapBuffers() {
-    m_swapChain->Present(1, 0);
+void CDisplayDX11::SwapBuffers()
+{
+    HRESULT hr = m_swapChain->Present(1, 0); // Use vsync
+    if (FAILED(hr))
+    {
+        if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_HUNG)
+        {
+            g_Log->Warning("Device lost during present");
+            // Handle device lost
+        }
+    }
 }
+
 
 } // namespace DisplayOutput

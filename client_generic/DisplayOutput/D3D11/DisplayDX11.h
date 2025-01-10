@@ -21,8 +21,10 @@ private:
     HWND CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen);
     static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
     bool CreateDeviceAndSwapChain();
+    void ResetDevice(); // Handle device lost scenarios
+    bool m_deviceValid;
 
-public:
+  public:
     CDisplayDX11();
     virtual ~CDisplayDX11();
 

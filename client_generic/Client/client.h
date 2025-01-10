@@ -1074,20 +1074,21 @@ class CElectricSheep
                 
                 // Grab Perceptual FPS from player
                 double pFPS = g_Player().GetPerceptualFPS();
-                if (isStreaming) {
+                if (isStreaming)
+                {
                     ((Hud::CStringStat*)spStats->Get("decodefps"))
-                        ->SetSample(string_format(" %.2f fps (streaming)", realFps));
-
-                } else {
-                    ((Hud::CStringStat*)spStats->Get("decodefps"))
-                        ->SetSample(string_format(" %.2f fps", realFps));
+                        ->SetSample(
+                            std::format(" {:.2f} fps (streaming)", realFps));
                 }
-
+                else
+                {
+                    ((Hud::CStringStat*)spStats->Get("decodefps"))
+                        ->SetSample(std::format(" {:.2f} fps", realFps));
+                }
                 ((Hud::CStringStat*)spStats->Get("perceptualfps"))
-                    ->SetSample(string_format(" %.2f fps", pFPS));
-
+                    ->SetSample(std::format(" {:.2f} fps", pFPS));
                 ((Hud::CStringStat*)spStats->Get("activityLevel"))
-                    ->SetSample(string_format(" %.2f", activityLevel));
+                    ->SetSample(std::format(" {:.2f}", activityLevel));
                 ((Hud::CIntCounter*)spStats->Get("displayfps"))->AddSample(1);
 
                 // Update OSD
@@ -1099,11 +1100,14 @@ class CElectricSheep
                 if (clipMetadata)
                 {
                     ((Hud::CStringStat*)spStats->Get("credits-line1"))
-                    ->SetSample(string_format("title: %s",clipMetadata->dreamData.name.c_str()));
+                        ->SetSample(std::format("title: {}",
+                                                clipMetadata->dreamData.name));
                     ((Hud::CStringStat*)spStats->Get("credits-line2"))
-                    ->SetSample(string_format("artist: %s",clipMetadata->dreamData.artist.c_str()));
+                        ->SetSample(std::format(
+                            "artist: {}", clipMetadata->dreamData.artist));
                     ((Hud::CStringStat*)spStats->Get("credits-line3"))
-                    ->SetSample(string_format("playlist: %s",g_Player().GetPlaylistName().c_str()));
+                        ->SetSample(std::format("playlist: {}",
+                                                g_Player().GetPlaylistName()));
                 }
                 
                 //	Serverstats.
@@ -1118,8 +1122,8 @@ class CElectricSheep
                 if (m_CpuUsageTotal != -1 && m_CpuUsageES != -1)
                 {
                     ((Hud::CStringStat*)spStats->Get("zzacpu"))
-                        ->SetSample(string_format("%i\%/%i\%", m_CpuUsageES,
-                                                  m_CpuUsageTotal));
+                        ->SetSample(std::format("{}%/{}%", m_CpuUsageES,
+                                                m_CpuUsageTotal));
                     EDreamClient::SetCPUUsage(m_CpuUsageES);
                 }
 
