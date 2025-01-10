@@ -156,9 +156,6 @@
     <ClCompile Include="..\Networking\EDreamClient.cpp">
       <Filter>Networking</Filter>
     </ClCompile>
-    <ClCompile Include="..\Client\StringFormat.cpp">
-      <Filter>Common\Code</Filter>
-    </ClCompile>
     <ClCompile Include="PlatformUtils_win.cpp">
       <Filter>Client\Code</Filter>
     </ClCompile>
@@ -402,9 +399,6 @@
       <Filter>Networking</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\JSONUtil.h">
-      <Filter>Common\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Client\StringFormat.h">
       <Filter>Common\Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\Client\PlatformUtils.h">

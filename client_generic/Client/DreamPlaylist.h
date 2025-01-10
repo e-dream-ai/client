@@ -18,7 +18,6 @@
 #include "Settings.h"
 #include "PathManager.h"
 #include "Timer.h"
-#include "StringFormat.h"
 #include "EDreamClient.h"
 #include "CacheManager.h"
 

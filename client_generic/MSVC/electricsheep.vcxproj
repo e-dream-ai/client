@@ -742,7 +742,6 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\Client\StringFormat.cpp" />
     <ClCompile Include="..\ContentDecoder\Clip.cpp" />
     <ClCompile Include="..\ContentDownloader\CacheManager.cpp" />
     <ClCompile Include="..\ContentDownloader\ContentDownloader.cpp" />
@@ -819,7 +818,6 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
   <ItemGroup>
     <ClInclude Include="..\Client\DreamPlaylist.h" />
     <ClInclude Include="..\Client\PlatformUtils.h" />
-    <ClInclude Include="..\Client\StringFormat.h" />
     <ClInclude Include="..\Common\JSONUtil.h" />
     <ClInclude Include="..\ContentDecoder\Clip.h" />
     <ClInclude Include="..\ContentDownloader\CacheManager.h" />

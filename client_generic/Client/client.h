@@ -31,7 +31,6 @@
 #include "Timer.h"
 
 #include "PlatformUtils.h"
-#include "StringFormat.h"
 #include "CacheManager.h"
 
 #if defined(WIN32) && defined(_MSC_VER)
@@ -1062,14 +1061,12 @@ class CElectricSheep
                 if (frameMetadata)
                 {
                     ((Hud::CStringStat*)spStats->Get("playHead"))
-                        ->SetSample(
-                            string_format("%s/%s",
-                                          FrameNumberToMinutesAndSecondsString(
-                                              frameMetadata->frameIdx, baseFps)
-                                              .data(),
-                                          FrameNumberToMinutesAndSecondsString(
-                                              frameMetadata->maxFrameIdx, baseFps)
-                                              .data()));
+                        ->SetSample(std::format(
+                            "{}/{}",
+                            FrameNumberToMinutesAndSecondsString(
+                                frameMetadata->frameIdx, baseFps),
+                            FrameNumberToMinutesAndSecondsString(
+                                frameMetadata->maxFrameIdx, baseFps)));
                 }
                 
                 // Grab Perceptual FPS from player

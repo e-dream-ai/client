@@ -11,7 +11,6 @@
 #include <boost/format.hpp>
 
 #include "clientversion.h"
-#include "StringFormat.h"
 #include "Log.h"
 #include "JSONUtil.h"
 #include "JSONStorage.h"

@@ -13,7 +13,6 @@
 #include <unordered_set>
 
 #include "PathManager.h"
-#include "StringFormat.h"
 #include "EDreamClient.h"
 #include "ContentDownloader.h"
 #include "Settings.h"

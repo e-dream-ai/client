@@ -10,7 +10,6 @@
 #include <future>
 
 #include "ContentDownloader.h"
-#include "StringFormat.h"
 #include "Log.h"
 #include "Player.h"
 #include "Settings.h"

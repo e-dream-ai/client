@@ -13,7 +13,6 @@
 #include <boost/json.hpp>
 
 #include "Log.h"
-#include "StringFormat.h"
 
 namespace json = boost::json;
 
