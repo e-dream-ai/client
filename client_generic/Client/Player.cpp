@@ -794,6 +794,9 @@ void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
         if (dream->isCached()) {
             writer_lock l(m_UpdateMutex);
 
+            // Check if the dream is in the current playlist and update position
+            m_playlistManager->getDreamByUUID(std::string(_uuid));
+            
             m_transitionDuration = 1.0f;
             StartTransition();
             PlayClip(dream, m_TimelineTime, frameNumber, true);
@@ -804,6 +807,9 @@ void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
                 auto path = EDreamClient::GetDreamDownloadLink(dream->uuid);
                 dream->setStreamingUrl(path);
                 
+                // Check if the dream is in the current playlist and update position
+                m_playlistManager->getDreamByUUID(dream->uuid);
+
                 // Prepare the clip outside the lock
                 auto du = m_displayUnits[0];
                 int32_t displayMode = g_Settings()->Get("settings.player.DisplayMode", 2);
