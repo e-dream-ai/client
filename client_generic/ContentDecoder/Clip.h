@@ -61,6 +61,10 @@ class CClip
     float m_Alpha;
     eClipFlags m_ClipFlags = eClipFlags::None;
 
+    // We need these to handle resumes
+    double m_ResumeStartTime = 0.0;
+    bool m_IsResume = false;
+    
   private:
     bool NeedsNewFrame(double _timelineTime, DecoderClock* _decoderClock) const;
     ///    Grab a frame from the decoder and use it as a texture.
@@ -112,6 +116,11 @@ class CClip
     eClipFlags GetFlags() const { return m_ClipFlags; }
     void SkipTime(float _secondsForward);
     void SetFps(double _fps) { m_ClipMetadata.decodeFps = _fps; }
+    
+    void SetResumeTime(double startTime) {
+        m_ResumeStartTime = startTime;
+        m_IsResume = true;
+    }
 };
 MakeSmartPointers(CClip);
 } // namespace ContentDecoder

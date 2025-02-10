@@ -137,10 +137,16 @@ bool CClip::Update(double _timelineTime)
     uint32_t idx = m_spFrameData->GetMetaData().frameIdx;
     uint32_t maxIdx = m_spFrameData->GetMetaData().maxFrameIdx;
     double delta = m_DecoderClock.interframeDelta / m_ClipMetadata.decodeFps;
-    double secondsIn =
-        std::fmax((int)idx - (int)m_spFrameDisplay->StartAtFrame(), 0) /
-            m_ClipMetadata.decodeFps +
-        delta;
+    
+    // Calculate secondsIn based on timeline for resume cases
+    double secondsIn;
+    if (m_IsResume) {
+        secondsIn = _timelineTime - m_ResumeStartTime;
+    } else {
+        secondsIn = std::fmax((int)idx - (int)m_spFrameDisplay->StartAtFrame(), 0) /
+            m_ClipMetadata.decodeFps + delta;
+    }
+    
     double secondsOut = (maxIdx - idx) / m_ClipMetadata.decodeFps - delta;
     secondsOut = std::fmin(secondsOut, (m_EndTime - _timelineTime));
     

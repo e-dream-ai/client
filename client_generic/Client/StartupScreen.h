@@ -21,6 +21,11 @@ class CStartupScreen : public CHudEntry
     Base::Math::CRect m_LogoSize;
     float m_MoveMessageCounter;
 
+    float m_Alpha = 1.0f;
+    bool m_IsFading = false;
+    double m_FadeStartTime = 0.0;
+    const double m_FadeDuration = 5.0; 
+    
   public:
     CStartupScreen(Base::Math::CRect _rect, const std::string& _FontName,
                    const uint32_t _fontHeight)
@@ -66,6 +71,14 @@ class CStartupScreen : public CHudEntry
 
     virtual ~CStartupScreen() { m_spVideoTexture = NULL; }
 
+    void StartFadeOut(double currentTime) {
+        m_IsFading = true;
+        m_FadeStartTime = currentTime;
+    }
+
+    bool IsFadingOut() const { return m_IsFading; }
+    bool IsFullyFaded() const { return m_Alpha <= 0.0f; }
+    
     virtual void Visible(const bool _bState) override
     {
         CHudEntry::Visible(_bState);
@@ -74,6 +87,16 @@ class CStartupScreen : public CHudEntry
 
     bool Render(const double _time, DisplayOutput::spCRenderer _spRenderer)
     {
+        // Update fade if needed
+        if (m_IsFading) {
+            double fadeProgress = (_time - m_FadeStartTime) / m_FadeDuration;
+            m_Alpha = std::max(0.0f, 1.0f - static_cast<float>(fadeProgress));
+            
+            if (m_Alpha <= 0.0f) {
+                return false; // Skip rendering when fully transparent
+            }
+        }
+        
         CHudEntry::Render(_time, _spRenderer);
 
         if (m_bServerMessageStartTimer == false)
@@ -108,7 +131,7 @@ class CStartupScreen : public CHudEntry
         rr.m_X1 = 0.5f + (m_LogoSize.Width());
         rr.m_Y1 = 0.5f + (m_LogoSize.Height()) + m_MoveMessageCounter;
 
-        _spRenderer->DrawQuad(rr, Base::Math::CVector4(1, 1, 1, 1),
+        _spRenderer->DrawQuad(rr, Base::Math::CVector4(1, 1, 1, m_Alpha),
                               m_spVideoTexture->GetRect());
 
         // draw text

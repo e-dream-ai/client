@@ -713,8 +713,11 @@ void CPlayer::PlayNextDream(bool quickFade)
     
     if (!nextDream->uuid.empty()) {
         if (m_isFirstPlay) {
-            // For the first play, start immediately without transition
             PlayClip(nextDream, m_TimelineTime);
+            // Add a 5 second fade-in for the first video
+            if (m_currentClip) {
+                m_currentClip->SetTransitionLength(5.0f, 5.0f);
+            }
             m_isFirstPlay = false;
         } else {
             // Prefetch streaming link if needed, but do it in a thread
@@ -918,7 +921,15 @@ bool CPlayer::SetPlaylistAtDream(const std::string& playlistUUID, const std::str
     // If we've reached here, the playlist is set and positioned at the correct dream
     // Now we can start playing this dream
     StartTransition();
-    return PlayClip(*optionalDream, m_TimelineTime, seekFrame);
+    if (PlayClip(*optionalDream, m_TimelineTime, seekFrame)) {
+        if (m_currentClip) {
+            m_currentClip->SetResumeTime(m_TimelineTime);
+            m_currentClip->SetTransitionLength(5.0, 5.0);
+        }
+        return true;
+    }
+    return false;
+   
 }
 
 
