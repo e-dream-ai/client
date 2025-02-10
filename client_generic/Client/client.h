@@ -850,12 +850,12 @@ class CElectricSheep
                 //	Process any server messages.
                 std::string msg;
                 double duration;
-
+/*
+                // TODO : Is that some old splash screen mechanism ?
                 if (m_spSplashPNG)
                 {
                     if (m_SplashPNGDelayTimer.Time() > m_PNGDelayTimer)
                     {
-
                         // update m_spSplashPNG here, so every time it is shown,
                         // it is randomized among our shuffle group.
 
@@ -890,7 +890,7 @@ class CElectricSheep
                         m_SplashPNGDelayTimer.Reset();
                     }
                 }
-
+*/
                 if (m_MessageQueue.PopMessage(msg, duration))
                 {
                     bool addtohud = true;
