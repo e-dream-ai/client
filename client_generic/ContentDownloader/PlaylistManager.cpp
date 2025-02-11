@@ -207,22 +207,60 @@ void PlaylistManager::removeCurrentDream() {
 
 // MARK: Getters
 const Cache::Dream* PlaylistManager::getNextDream() {
+    if (m_playlist.empty()) {
+        return nullptr;
+    }
+
     if (!m_started) {
         // This path is called the first time we ask for a dream. Make sure we give the first one
         m_started = true;
         m_currentPosition = 0;
+        addToHistory(m_currentPosition);
     } else {
-        if (m_currentPosition < m_playlist.size() - 1) {
-            m_currentPosition++;
+        // Check if current dream has an end keyframe
+        const auto& currentEntry = m_playlist[m_currentPosition];
+        if (currentEntry.endKeyframe) {
+            // Look for dreams with matching start keyframe
+            std::vector<size_t> candidates;
+            for (size_t i = 0; i < m_playlist.size(); i++) {
+                const auto& entry = m_playlist[i];
+                if (entry.startKeyframe && *entry.startKeyframe == *currentEntry.endKeyframe
+                    && !isDreamPlayed(entry.uuid)) {
+                    candidates.push_back(i);
+                }
+            }
+
+            if (!candidates.empty()) {
+                // Randomly select one of the candidates
+                size_t randomIndex = rand() % candidates.size();
+                m_currentPosition = candidates[randomIndex];
+                addToHistory(m_currentPosition);
+            } else {
+                // No matching keyframe - check for any unplayed dreams
+                if (hasUnplayedDreams()) {
+                    m_currentPosition = findFirstUnplayedPosition();
+                    addToHistory(m_currentPosition);
+                } else {
+                    // Everything's been played, reset and start from beginning
+                    resetPlayHistory();
+                    m_currentPosition = 0;
+                    addToHistory(m_currentPosition);
+                }
+            }
         } else {
-            m_currentPosition = 0; // Loop back to the beginning
+            // No end keyframe - check for any unplayed dreams
+            if (hasUnplayedDreams()) {
+                // If current position has next unplayed dream, use that
+                size_t nextUnplayed = findFirstUnplayedPosition();
+                m_currentPosition = nextUnplayed;
+                addToHistory(m_currentPosition);
+            } else {
+                // Everything's been played, reset and start from beginning
+                resetPlayHistory();
+                m_currentPosition = 0;
+                addToHistory(m_currentPosition);
+            }
         }
-    }
-    
-    // make sure we have a playlist, bail if not
-    if (m_playlist.size() <= 0)
-    {
-        return nullptr;
     }
     
     // Check if our cache is already filled up for the current playlist
@@ -295,10 +333,22 @@ const Cache::Dream* PlaylistManager::getPreviousDream() {
         return nullptr;
     }
     
-    if (m_currentPosition > 0) {
-        m_currentPosition--;
+    // Remove current dream from history if it's the last one
+    if (!m_playHistory.empty() && m_playHistory.back() == m_currentPosition) {
+        removeLastFromHistory();
+    }
+    
+    // Get previous position from history
+    if (!m_playHistory.empty()) {
+        m_currentPosition = m_playHistory.back();
+        g_Log->Info("Going back to previous dream in history: %s (pos: %zu)",
+                    m_playlist[m_currentPosition].uuid.c_str(), m_currentPosition);
     } else {
-        m_currentPosition = m_playlist.size() - 1; // Loop to the end
+        // If history is empty, go to end of playlist
+        m_currentPosition = m_playlist.size() - 1;
+        addToHistory(m_currentPosition);
+        g_Log->Info("History empty, wrapping to end: %s (pos: %zu)",
+                    m_playlist[m_currentPosition].uuid.c_str(), m_currentPosition);
     }
 
     if (m_cacheManager.isPlaylistFillingCache(getCurrentPlaylistUUIDs())) {
@@ -310,8 +360,10 @@ const Cache::Dream* PlaylistManager::getPreviousDream() {
                 break;
             }
             
-            if (m_currentPosition > 0) {
-                m_currentPosition--;
+            removeLastFromHistory();
+            
+            if (!m_playHistory.empty()) {
+                m_currentPosition = m_playHistory.back();
             } else {
                 m_currentPosition = m_playlist.size() - 1;
             }
@@ -322,11 +374,11 @@ const Cache::Dream* PlaylistManager::getPreviousDream() {
         }
     }
     
-    
-    g_Log->Info("getPreviousDream : %s (pos: %zu)", m_playlist[m_currentPosition].uuid.c_str(), m_currentPosition);
-
     m_currentDreamUUID = m_playlist[m_currentPosition].uuid;
     m_currentDream = m_cacheManager.getDream(m_currentDreamUUID);
+    
+    g_Log->Info("getPreviousDream : %s (pos: %zu)", m_currentDreamUUID.c_str(), m_currentPosition);
+    
     return m_currentDream;
 }
 
@@ -550,3 +602,14 @@ bool PlaylistManager::isDreamPlayed(const std::string& uuid) const {
 bool PlaylistManager::hasUnplayedDreams() const {
     return m_playHistory.size() < m_playlist.size();
 }
+
+
+size_t PlaylistManager::findFirstUnplayedPosition() const {
+    for (size_t i = 0; i < m_playlist.size(); i++) {
+        if (!isDreamPlayed(m_playlist[i].uuid)) {
+            return i;
+        }
+    }
+    return 0;  // Return 0 if all dreams played
+}
+

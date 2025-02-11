@@ -157,6 +157,7 @@ private:
     void resetPlayHistory();
     bool isDreamPlayed(const std::string& uuid) const;
     bool hasUnplayedDreams() const;
+    size_t findFirstUnplayedPosition() const;
 };
 
 #endif // PLAYLIST_MANAGER_H
