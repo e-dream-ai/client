@@ -16,11 +16,31 @@
 #include "CacheManager.h"
 #include "Dream.h"
 
+// This represent one item in our playlist. Includes dream uuid and keyframes
+struct PlaylistEntry {
+    std::string uuid;
+    std::optional<std::string> startKeyframe;  // Optional start keyframe UUID
+    std::optional<std::string> endKeyframe;    // Optional end keyframe UUID
+
+    // Constructor for easy creation from just a UUID
+    explicit PlaylistEntry(std::string uuid_) : uuid(std::move(uuid_)) {}
+    
+    // Constructor for full initialization
+    PlaylistEntry(std::string uuid_,
+                 std::optional<std::string> start = std::nullopt,
+                 std::optional<std::string> end = std::nullopt)
+        : uuid(std::move(uuid_))
+        , startKeyframe(std::move(start))
+        , endKeyframe(std::move(end)) {}
+};
+
 class PlaylistManager {
 public:
     PlaylistManager();
     ~PlaylistManager();
 
+
+    
     // Initialize the playlist with it's uuid and a list of dream UUIDs
     bool initializePlaylist(const std::string& playlistUUID);
 
@@ -29,11 +49,17 @@ public:
     
     std::vector<std::string> getCurrentPlaylistUUIDs() const;
     
-    std::vector<std::string> filterActiveAndProcessedDreams(const std::vector<std::string>& dreamUUIDs) const;
-    std::vector<std::string> filterUncachedDreams(const std::vector<std::string>& dreamUUIDs) const;
+    std::vector<PlaylistEntry> filterActiveAndProcessedDreams(const std::vector<PlaylistEntry>& entries) const;
+    std::vector<PlaylistEntry> filterUncachedDreams(const std::vector<PlaylistEntry>& entries) const;
+   
     
     // Get a dream by its UUID, set position if found in playlist, return nullopt if not in playlist
-    std::optional<const Cache::Dream*> getDreamByUUID(const std::string& dreamUUID);
+    struct DreamLookupResult {
+        const Cache::Dream* dream;
+        std::optional<std::string> startKeyframe;
+        std::optional<std::string> endKeyframe;
+    };
+    std::optional<DreamLookupResult> getDreamByUUID(const std::string& dreamUUID);
 
     // Get the next dream in the playlist
     const Cache::Dream* getNextDream();
@@ -77,7 +103,7 @@ public:
     bool isReady() { return !m_initializeInProgress; };
 
 private:
-    std::vector<std::string> m_playlist;
+    std::vector<PlaylistEntry> m_playlist;
     bool m_started;
 
     bool m_initializeInProgress = false;

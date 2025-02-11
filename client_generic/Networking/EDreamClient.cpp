@@ -1299,13 +1299,14 @@ std::string EDreamClient::GetDreamDownloadLink(const std::string& uuid) {
 }
 
 
-std::vector<std::string> EDreamClient::ParsePlaylist(std::string_view uuid) {
+std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
     g_Log->Info("Parse Playlist %s", (uuid == "" ? "default playlist" : uuid));
     // Grab the CacheManager
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
 
-    // Collect all UUIDs from the json, and UUIDs where metadata is missing
-    std::vector<std::string> uuids;
+    // Collect all UUIDs/keyframes from the json for individual dreams
+    // We also check via our cache if we have metadata or need to download
+    std::vector<PlaylistEntry> entries;
     std::vector<std::string> needsMetadataUuids;
     std::vector<std::string> needsDownloadUuids;
 
@@ -1316,7 +1317,7 @@ std::vector<std::string> EDreamClient::ParsePlaylist(std::string_view uuid) {
     if (!file.is_open())
     {
         g_Log->Error("Error opening file: %s", filePath.string().c_str());
-        return uuids;
+        return entries;
     }
     std::string contents{(std::istreambuf_iterator<char>(file)),
         (std::istreambuf_iterator<char>())};
@@ -1345,27 +1346,49 @@ std::vector<std::string> EDreamClient::ParsePlaylist(std::string_view uuid) {
         for (auto& item : itemArray) {
             auto itemObj = item.as_object();
             
-            auto uuid = std::string(itemObj["uuid"].as_string());
+            auto dreamUuid = std::string(itemObj["uuid"].as_string());
             auto timestamp = itemObj["timestamp"].as_int64();
             
-            // Do we have the metadata?
-            if (cm.needsMetadata(uuid, timestamp)) {
-                needsMetadataUuids.push_back(uuid.c_str());
+            // Create PlaylistEntry with optional keyframe fields
+            std::optional<std::string> startKeyframe;
+            std::optional<std::string> endKeyframe;
+
+            // Check for optional keyframe fields
+            if (itemObj.contains("start_keyframe")) {
+                auto& startVal = itemObj["start_keyframe"];
+                if (!startVal.is_null()) {
+                    startKeyframe = std::string(startVal.as_string());
+                }
             }
-            
-            // Do we have the video?
-            if (!cm.hasDiskCachedItem(uuid.c_str()))
-            {
-                if (!isFirst) {
-                    needsDownloadUuids.push_back(uuid.c_str());
-                } else {
-                    // Prefetch download link for 1st video from playlist if we don't have it
-                    // We don't push it to our download thread
-                    needsStreamingUuid = uuid;
+            if (itemObj.contains("end_keyframe")) {
+                auto& endVal = itemObj["end_keyframe"];
+                if (!endVal.is_null()) {
+                    endKeyframe = std::string(endVal.as_string());
                 }
             }
             
-            uuids.push_back(uuid.c_str());
+            // Create the entry
+            PlaylistEntry entry(dreamUuid, startKeyframe, endKeyframe);
+            
+            
+            // Do we have the metadata?
+            if (cm.needsMetadata(dreamUuid, timestamp)) {
+                needsMetadataUuids.push_back(dreamUuid.c_str());
+            }
+            
+            // Do we have the video?
+            if (!cm.hasDiskCachedItem(dreamUuid.c_str()))
+            {
+                if (!isFirst) {
+                    needsDownloadUuids.push_back(dreamUuid.c_str());
+                } else {
+                    // Prefetch download link for 1st video from playlist if we don't have it
+                    // We don't push it to our download thread
+                    needsStreamingUuid = dreamUuid;
+                }
+            }
+            
+            entries.push_back(std::move(entry));
             isFirst = false;
         }
     }
@@ -1403,7 +1426,7 @@ std::vector<std::string> EDreamClient::ParsePlaylist(std::string_view uuid) {
         dream->setStreamingUrl(path);
     }
     
-    return uuids;
+    return entries;
 }
 
 std::tuple<std::string, std::string, bool, int64_t> EDreamClient::ParsePlaylistMetadata(std::string_view uuid) {

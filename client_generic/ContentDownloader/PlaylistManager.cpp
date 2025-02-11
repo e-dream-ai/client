@@ -14,7 +14,7 @@
 #include <random>
 
 PlaylistManager::PlaylistManager()
-    : m_currentPosition(0), m_started(false), m_shouldTerminate(false), m_offlineMode(false),  m_cacheManager(Cache::CacheManager::getInstance()) {}
+: m_started(false), m_offlineMode(false), m_currentPosition(0), m_cacheManager(Cache::CacheManager::getInstance()),  m_shouldTerminate(false) {}
 
 PlaylistManager::~PlaylistManager() {
     stopPeriodicChecking();
@@ -55,7 +55,7 @@ bool PlaylistManager::initializePlaylist(const std::string& playlistUUID) {
     
     m_currentPosition = 0;
     m_started = false;
-    m_currentDreamUUID = m_playlist.empty() ? "" : m_playlist[0];
+    m_currentDreamUUID = m_playlist.empty() ? "" : m_playlist[0].uuid;
 
     // Start periodic checking if it's not already running. Don't in offline mode though!
     if (!m_isCheckingActive && !m_offlineMode) {
@@ -84,7 +84,7 @@ void PlaylistManager::initializeOfflinePlaylist() {
     
     m_currentPosition = 0;
     m_started = false;
-    m_currentDreamUUID = m_playlist.empty() ? "" : m_playlist[0];
+    m_currentDreamUUID = m_playlist.empty() ? "" : m_playlist[0].uuid;
     
     // Set offline playlist metadata
     m_currentPlaylistName = "Offline Playlist";
@@ -95,14 +95,19 @@ void PlaylistManager::initializeOfflinePlaylist() {
 
 
 std::vector<std::string> PlaylistManager::getCurrentPlaylistUUIDs() const {
-    return m_playlist;
+    std::vector<std::string> uuids;
+    uuids.reserve(m_playlist.size());
+    for (const auto& entry : m_playlist) {
+        uuids.push_back(entry.uuid);
+    }
+    return uuids;
 }
 
 bool PlaylistManager::parsePlaylist(const std::string& playlistUUID) {
     // Parse the playlist
-    std::vector<std::string> dreamUUIDs = EDreamClient::ParsePlaylist(playlistUUID);
+    std::vector<PlaylistEntry> entries = EDreamClient::ParsePlaylist(playlistUUID);
     
-    if (dreamUUIDs.empty()) {
+    if (entries.empty()) {
         g_Log->Error("Failed to parse playlist or playlist is empty. UUID: %s", playlistUUID.c_str());
         return false;
     }
@@ -112,9 +117,9 @@ bool PlaylistManager::parsePlaylist(const std::string& playlistUUID) {
 
     // Filter out evicted UUIDs and unprocessed dreams
     if (!m_offlineMode) {
-        m_playlist = filterActiveAndProcessedDreams(dreamUUIDs);
+        m_playlist = filterActiveAndProcessedDreams(entries);
     } else {
-        m_playlist = filterUncachedDreams(dreamUUIDs);
+        m_playlist = filterUncachedDreams(entries);
     }
 
     
@@ -132,28 +137,39 @@ bool PlaylistManager::parsePlaylist(const std::string& playlistUUID) {
     return true;
 }
 
-std::vector<std::string> PlaylistManager::filterActiveAndProcessedDreams(const std::vector<std::string>& dreamUUIDs) const {
-    std::vector<std::string> filteredUUIDs;
+std::vector<PlaylistEntry> PlaylistManager::filterActiveAndProcessedDreams(const std::vector<PlaylistEntry>& entries) const {
+    std::vector<PlaylistEntry> filteredEntries;
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
     
-    for (const auto& uuid : dreamUUIDs) {
-        if (!cm.isUUIDEvicted(uuid) && isDreamProcessed(uuid)) {
-            filteredUUIDs.push_back(uuid);
+    for (const auto& entry : entries) {
+        if (!cm.isUUIDEvicted(entry.uuid) && isDreamProcessed(entry.uuid)) {
+            filteredEntries.push_back(entry);
         }
     }
-    return filteredUUIDs;
+    return filteredEntries;
 }
 
-std::vector<std::string> PlaylistManager::filterUncachedDreams(const std::vector<std::string>& dreamUUIDs) const {
-    std::vector<std::string> filteredUUIDs;
+std::vector<PlaylistEntry> PlaylistManager::filterUncachedDreams(const std::vector<PlaylistEntry>& entries) const {
+    std::vector<PlaylistEntry> filteredEntries;
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
     
-    for (const auto& uuid : dreamUUIDs) {
-        if (cm.hasDiskCachedItem(uuid)) {
-            filteredUUIDs.push_back(uuid);
+    for (const auto& entry : entries) {
+        if (cm.hasDiskCachedItem(entry.uuid)) {
+            filteredEntries.push_back(entry);
         }
     }
-    return filteredUUIDs;
+    return filteredEntries;
+}
+
+size_t PlaylistManager::findPositionOfDream(const std::string& dreamUUID) const {
+    auto it = std::find_if(m_playlist.begin(), m_playlist.end(),
+                          [&dreamUUID](const PlaylistEntry& entry) {
+                              return entry.uuid == dreamUUID;
+                          });
+    if (it != m_playlist.end()) {
+        return std::distance(m_playlist.begin(), it);
+    }
+    return std::string::npos;
 }
 
 bool PlaylistManager::isDreamProcessed(const std::string& uuid) const {
@@ -210,12 +226,12 @@ const Cache::Dream* PlaylistManager::getNextDream() {
     }
     
     // Check if our cache is already filled up for the current playlist
-    if (m_cacheManager.isPlaylistFillingCache(m_playlist)) {
+    if (m_cacheManager.isPlaylistFillingCache(getCurrentPlaylistUUIDs())) {
         g_Log->Info("Cache is already filled up with current playlist, thrashing protection");
         // Find next cached dream
         size_t startPosition = m_currentPosition;
         do {
-            if (m_cacheManager.hasDiskCachedItem(m_playlist[m_currentPosition])) {
+            if (m_cacheManager.hasDiskCachedItem(m_playlist[m_currentPosition].uuid)) {
                 break;
             }
             
@@ -227,13 +243,13 @@ const Cache::Dream* PlaylistManager::getNextDream() {
         } while (m_currentPosition != startPosition);
         
         // If we couldn't find any cached dream, return to original position
-        if (m_currentPosition == startPosition && !m_cacheManager.hasDiskCachedItem(m_playlist[m_currentPosition])) {
+        if (m_currentPosition == startPosition && !m_cacheManager.hasDiskCachedItem(m_playlist[m_currentPosition].uuid)) {
             g_Log->Warning("No cached dreams found in playlist after full scan");
         }
     }
     
         
-    m_currentDreamUUID = m_playlist[m_currentPosition];
+    m_currentDreamUUID = m_playlist[m_currentPosition].uuid;
     m_currentDream = m_cacheManager.getDream(m_currentDreamUUID);
     
     g_Log->Info("getNextDream : %s (pos: %zu)", m_currentDreamUUID.c_str(), m_currentPosition);
@@ -241,8 +257,13 @@ const Cache::Dream* PlaylistManager::getNextDream() {
     return m_currentDream;
 }
 
-std::optional<const Cache::Dream*> PlaylistManager::getDreamByUUID(const std::string& dreamUUID) {
-    auto it = std::find(m_playlist.begin(), m_playlist.end(), dreamUUID);
+
+std::optional<PlaylistManager::DreamLookupResult> PlaylistManager::getDreamByUUID(const std::string& dreamUUID) {
+    auto it = std::find_if(m_playlist.begin(), m_playlist.end(),
+                          [&dreamUUID](const PlaylistEntry& entry) {
+                              return entry.uuid == dreamUUID;
+                          });
+
     if (it == m_playlist.end()) {
         g_Log->Error("Dream isn't in the playlist %s", dreamUUID.c_str());
         return std::nullopt;
@@ -252,12 +273,21 @@ std::optional<const Cache::Dream*> PlaylistManager::getDreamByUUID(const std::st
     m_started = true;
     
     // Dream is in the playlist, update the position
-    size_t newPosition = std::distance(m_playlist.begin(), it);
-    setCurrentPosition(newPosition);
-
-    // Return metadata pointer
-    m_currentDream = m_cacheManager.getDream(m_playlist[m_currentPosition]);
-    return m_currentDream;
+    m_currentPosition = std::distance(m_playlist.begin(), it);
+    m_currentDreamUUID = dreamUUID;
+    m_currentDream = m_cacheManager.getDream(dreamUUID);
+    
+    if (!m_currentDream) {
+        g_Log->Error("Failed to get dream metadata for %s", dreamUUID.c_str());
+        return std::nullopt;
+    }
+    
+    // Return both the dream pointer and any keyframe information
+    return DreamLookupResult{
+        m_currentDream,
+        it->startKeyframe,
+        it->endKeyframe
+    };
 }
 
 const Cache::Dream* PlaylistManager::getPreviousDream() {
@@ -271,12 +301,12 @@ const Cache::Dream* PlaylistManager::getPreviousDream() {
         m_currentPosition = m_playlist.size() - 1; // Loop to the end
     }
 
-    if (m_cacheManager.isPlaylistFillingCache(m_playlist)) {
+    if (m_cacheManager.isPlaylistFillingCache(getCurrentPlaylistUUIDs())) {
         g_Log->Info("Cache is already filled up with current playlist, thrashing protection");
 
         size_t startPosition = m_currentPosition;
         do {
-            if (m_cacheManager.hasDiskCachedItem(m_playlist[m_currentPosition])) {
+            if (m_cacheManager.hasDiskCachedItem(m_playlist[m_currentPosition].uuid)) {
                 break;
             }
             
@@ -287,15 +317,15 @@ const Cache::Dream* PlaylistManager::getPreviousDream() {
             }
         } while (m_currentPosition != startPosition);
         
-        if (m_currentPosition == startPosition && !m_cacheManager.hasDiskCachedItem(m_playlist[m_currentPosition])) {
+        if (m_currentPosition == startPosition && !m_cacheManager.hasDiskCachedItem(m_playlist[m_currentPosition].uuid)) {
             g_Log->Warning("No cached dreams found in playlist after full scan");
         }
     }
     
     
-    g_Log->Info("getPreviousDream : %s (pos: %zu)", m_playlist[m_currentPosition].c_str(), m_currentPosition);
+    g_Log->Info("getPreviousDream : %s (pos: %zu)", m_playlist[m_currentPosition].uuid.c_str(), m_currentPosition);
 
-    m_currentDreamUUID = m_playlist[m_currentPosition];
+    m_currentDreamUUID = m_playlist[m_currentPosition].uuid;
     m_currentDream = m_cacheManager.getDream(m_currentDreamUUID);
     return m_currentDream;
 }
@@ -310,7 +340,7 @@ const Cache::Dream* PlaylistManager::getCurrentDream() const {
         return nullptr;
     }
 
-    g_Log->Info("getCurrentDream : %s %s (pos: %zu)", m_playlist[m_currentPosition].c_str(), m_currentDreamUUID.c_str(), m_currentPosition);
+    g_Log->Info("getCurrentDream : %s %s (pos: %zu)", m_playlist[m_currentPosition].uuid.c_str(), m_currentDreamUUID.c_str(), m_currentPosition);
 
     return m_currentDream;
 }
@@ -351,8 +381,8 @@ std::tuple<std::string, std::string, bool, int64_t> PlaylistManager::getPlaylist
 
 const Cache::Dream* PlaylistManager::getDreamMetadata(const std::string& dreamUUID) const {
     auto it = std::find_if(m_playlist.begin(), m_playlist.end(),
-        [&dreamUUID](const std::string& uuid) {
-            return uuid == dreamUUID;
+        [&dreamUUID](const PlaylistEntry& entry) {
+            return entry.uuid == dreamUUID;
         });
 
     if (it != m_playlist.end()) {
@@ -475,21 +505,12 @@ bool PlaylistManager::updatePlaylist(bool alreadyFetched) {
     }
 
     // Update the current dream UUID
-    m_currentDreamUUID = m_playlist[m_currentPosition];
+    m_currentDreamUUID = m_playlist[m_currentPosition].uuid;
 
     g_Log->Info("Playlist updated. New position: %zu, Current dream UUID: %s (old position: %zu, old uuid : %s)",
                 m_currentPosition, m_currentDreamUUID.c_str(), oldPosition, currentDreamUUID.c_str());
 
     return true;
-}
-
-
-size_t PlaylistManager::findPositionOfDream(const std::string& dreamUUID) const {
-    auto it = std::find(m_playlist.begin(), m_playlist.end(), dreamUUID);
-    if (it != m_playlist.end()) {
-        return std::distance(m_playlist.begin(), it);
-    }
-    return std::string::npos;
 }
 
 std::chrono::seconds PlaylistManager::getTimeUntilNextCheck() const {

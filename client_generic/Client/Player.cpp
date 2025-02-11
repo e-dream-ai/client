@@ -921,7 +921,7 @@ bool CPlayer::SetPlaylistAtDream(const std::string& playlistUUID, const std::str
     // If we've reached here, the playlist is set and positioned at the correct dream
     // Now we can start playing this dream
     StartTransition();
-    if (PlayClip(*optionalDream, m_TimelineTime, seekFrame)) {
+    if (PlayClip(optionalDream->dream, m_TimelineTime, seekFrame)) {
         if (m_currentClip) {
             m_currentClip->SetResumeTime(m_TimelineTime);
             m_currentClip->SetTransitionLength(5.0, 5.0);

@@ -11,6 +11,7 @@
 #include <boost/asio/steady_timer.hpp>
 #include <boost/json.hpp>
 #include "Networking.h"
+#include "PlaylistManager.h"
 
 class EDreamClient
 {
@@ -51,7 +52,10 @@ class EDreamClient
     static bool FetchDreamMetadata(std::string uuid);
     static bool FetchDreamsMetadata(const std::vector<std::string>& uuids);
     static std::string GetDreamDownloadLink(const std::string& uuid);
-    static std::vector<std::string> ParsePlaylist(std::string_view uuid);
+    
+    static std::vector<PlaylistEntry> ParsePlaylist(std::string_view uuid);
+
+
     static std::tuple<std::string, std::string, bool, int64_t> ParsePlaylistMetadata(std::string_view uuid);
 
     // Telemetry reporting
