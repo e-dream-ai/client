@@ -519,3 +519,34 @@ std::chrono::seconds PlaylistManager::getTimeUntilNextCheck() const {
     auto timeUntilNext = std::chrono::duration_cast<std::chrono::seconds>(next - now);
     return std::max(timeUntilNext, std::chrono::seconds(0));
 }
+
+// MARK: History stack
+void PlaylistManager::addToHistory(size_t position) {
+    m_playHistory.push_back(position);
+    g_Log->Info("Added to history: %s (position %zu)", m_playlist[position].uuid.c_str(), position);
+}
+
+void PlaylistManager::removeLastFromHistory() {
+    if (!m_playHistory.empty()) {
+        size_t lastPosition = m_playHistory.back();
+        m_playHistory.pop_back();
+        g_Log->Info("Removed from history: %s (position %zu)",
+                    m_playlist[lastPosition].uuid.c_str(), lastPosition);
+    }
+}
+
+void PlaylistManager::resetPlayHistory() {
+    m_playHistory.clear();
+    g_Log->Info("Play history reset");
+}
+
+bool PlaylistManager::isDreamPlayed(const std::string& uuid) const {
+    return std::find_if(m_playHistory.begin(), m_playHistory.end(),
+                       [this, &uuid](size_t pos) {
+                           return m_playlist[pos].uuid == uuid;
+                       }) != m_playHistory.end();
+}
+
+bool PlaylistManager::hasUnplayedDreams() const {
+    return m_playHistory.size() < m_playlist.size();
+}

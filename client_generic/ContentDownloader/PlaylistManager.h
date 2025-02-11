@@ -146,6 +146,17 @@ private:
     std::atomic<std::chrono::steady_clock::time_point> m_nextCheckTime;
 
     void updateNextCheckTime();
+    
+    // History stack
+    // Just keep track of the play order using positions
+    std::vector<size_t> m_playHistory;  // Positions in playlist order of play
+    
+    // Helper methods for history management
+    void addToHistory(size_t position);
+    void removeLastFromHistory();
+    void resetPlayHistory();
+    bool isDreamPlayed(const std::string& uuid) const;
+    bool hasUnplayedDreams() const;
 };
 
 #endif // PLAYLIST_MANAGER_H
