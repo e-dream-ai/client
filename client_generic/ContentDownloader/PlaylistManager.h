@@ -16,6 +16,7 @@
 #include "CacheManager.h"
 #include "Dream.h"
 
+
 // This represent one item in our playlist. Includes dream uuid and keyframes
 struct PlaylistEntry {
     std::string uuid;
@@ -59,14 +60,51 @@ public:
         std::optional<std::string> startKeyframe;
         std::optional<std::string> endKeyframe;
     };
+
+    // Different kinds of transitions we use
+    enum class TransitionType {
+        None,
+        StandardCrossfade,  // 5 second fade
+        QuickCrossfade,     // 1 second fade
+        Seamless            // No fade, keyframe based
+    };
+    
+    // Structure to hold next dream decision
+    struct NextDreamDecision {
+        size_t position;            // Position we'll move to
+        TransitionType transition;  // How we should transition
+        const Cache::Dream* dream;  // The dream metadata
+        std::optional<std::string> startKeyframe;
+        std::optional<std::string> endKeyframe;
+    };
+    
+
+    
     std::optional<DreamLookupResult> getDreamByUUID(const std::string& dreamUUID);
 
-    // Get the next dream in the playlist
-    const Cache::Dream* getNextDream();
+    // Calculate what will be played next without changing state
+    std::optional<NextDreamDecision> preflightNextDream() const;
+    
+    // Actually move to the next dream based on preflight decision
+    const Cache::Dream* moveToNextDream(const NextDreamDecision& decision);
 
+    
+/*    // Get the next dream in the playlist
+    const Cache::Dream* getNextDream();
+    // peek at what would come next with our logic, handles keyframe transitions
+    std::optional<DreamLookupResult> peekNextDream() const;
+*/
     // Get the previous dream in the playlist
     const Cache::Dream* getPreviousDream();
+    
+private:
+    // Keep track of preflight decision
+    std::optional<NextDreamDecision> m_lastPreflight;
 
+    // Helper to determine transition type
+    TransitionType determineTransitionType(const PlaylistEntry& current, const PlaylistEntry& next) const;
+
+public:
     // Check if there are more dreams in the playlist
     bool hasMoreDreams() const;
 
@@ -159,5 +197,6 @@ private:
     bool hasUnplayedDreams() const;
     size_t findFirstUnplayedPosition() const;
 };
+
 
 #endif // PLAYLIST_MANAGER_H

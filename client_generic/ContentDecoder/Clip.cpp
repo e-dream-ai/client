@@ -75,11 +75,50 @@ m_CurrentFrameMetadata{}, m_HasFinished(false), m_IsFadingOut(false)
 
 bool CClip::Start(int64_t _seekFrame)
 {
-    m_DecoderClock = {};
-    return m_spDecoder->Start(m_ClipMetadata, _seekFrame);
+/*    m_DecoderClock = {};
+    return m_spDecoder->Start(m_ClipMetadata, _seekFrame);*/
+    
+    // First preload the clip
+    if (!Preload()) {
+        return false;
+    }
+    
+    // Then start playback
+    return StartPlayback(_seekFrame);
 }
 
 void CClip::Stop() { m_spDecoder->Stop(); }
+
+bool CClip::Preload()
+{
+    // Reset flags
+    m_HasFinished.exchange(false);
+    m_IsFadingOut.exchange(false);
+    m_IsPreloaded = false;
+    
+    // Initialize the decoder without starting playback
+    if (!m_spDecoder->Start(m_ClipMetadata)) {
+        g_Log->Error("Failed to initialize decoder for %s", m_ClipMetadata.path.c_str());
+        return false;
+    }
+    
+    m_IsPreloaded = true;
+    return true;
+}
+
+bool CClip::StartPlayback(int64_t _seekFrame)
+{
+    if (!m_IsPreloaded) {
+        g_Log->Error("Cannot start playback - clip not preloaded");
+        return false;
+    }
+    
+    m_DecoderClock = {};
+    return true;
+    //return m_spDecoder->Start(m_ClipMetadata, _seekFrame);
+}
+
+
 
 //    Do some math to figure out the delta between frames...
 bool CClip::NeedsNewFrame(double _timelineTime,

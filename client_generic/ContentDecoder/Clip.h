@@ -65,17 +65,23 @@ class CClip
     double m_ResumeStartTime = 0.0;
     bool m_IsResume = false;
     
+    bool m_IsPreloaded = false;
+    
   private:
     bool NeedsNewFrame(double _timelineTime, DecoderClock* _decoderClock) const;
     ///    Grab a frame from the decoder and use it as a texture.
     bool GrabVideoFrame();
-
+    
   public:
     CClip(const sClipMetadata& _metadata, spCRenderer _spRenderer,
           int32_t _displayMode, uint32_t _displayWidth,
           uint32_t _displayHeight);
     bool Start(int64_t _seekFrame = -1);
     void Stop();
+    
+    bool Preload();
+    bool StartPlayback(int64_t _seekFrame = -1);
+    
     bool Update(double _timelineTime);
     bool DrawFrame(spCRenderer _spRenderer, float alpha = 1.0f);
     void SetDisplaySize(uint32_t _displayWidth, uint32_t _displayHeight);

@@ -143,7 +143,9 @@ class CPlayer : public Base::CSingleton<CPlayer>
     bool EndFrameUpdate();
     bool BeginDisplayFrame(uint32_t displayUnit);
     bool EndDisplayFrame(uint32_t displayUnit, bool drawn = true);
-    bool Update(uint32_t displayUnit, bool& bPlayNoSheepIntro);
+    bool Update(uint32_t displayUnit); //, bool& bPlayNoSheepIntro);
+    //bool Update(double _timelineTime);
+
     void RenderFrame(DisplayOutput::spCRenderer renderer);
     
     bool HasStarted() { return m_hasStarted; };
@@ -227,6 +229,18 @@ class CPlayer : public Base::CSingleton<CPlayer>
     }
     void ForceWidthAndHeight(uint32_t du, uint32_t _w, uint32_t _h);
     void SetPaused(bool _bPaused) { m_bPaused = _bPaused; }
+    
+
+    // Keep track of preflight decision
+    std::optional<PlaylistManager::NextDreamDecision> m_nextDreamDecision;
+    
+    // Check if we need to prepare for transition
+    bool shouldPrepareTransition(const ContentDecoder::spCClip& clip) const;
+    
+    // Prepare next clip for seamless transition
+    void prepareSeamlessTransition();
+    
+    bool PreloadClip(const Cache::Dream* dream);
 };
 
 /*

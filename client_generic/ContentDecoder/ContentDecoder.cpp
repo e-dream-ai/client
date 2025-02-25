@@ -768,6 +768,13 @@ spCVideoFrame CContentDecoder::PopVideoFrame()
 
 bool CContentDecoder::Start(const sClipMetadata& metadata, int64_t _seekFrame)
 {
+    if (m_HasStarted.load()) {
+        g_Log->Info("decoder already started");
+        return true;
+    }
+    
+    m_HasStarted.exchange(true);
+    
     m_Metadata = metadata;
     m_CurrentVideoInfo = std::make_unique<sOpenVideoInfo>();
     m_CurrentVideoInfo->m_Path = metadata.path;
