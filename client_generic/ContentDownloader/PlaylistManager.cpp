@@ -243,7 +243,7 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
         std::vector<size_t> candidates;
         for (size_t i = 0; i < m_playlist.size(); i++) {
             const auto& entry = m_playlist[i];
-            if (entry.startKeyframe && *entry.startKeyframe == *currentEntry.endKeyframe
+            if (i != m_currentPosition && entry.startKeyframe && *entry.startKeyframe == *currentEntry.endKeyframe
                 && !isDreamPlayed(entry.uuid)) {
                 candidates.push_back(i);
             }
