@@ -302,6 +302,8 @@ const Cache::Dream* PlaylistManager::moveToNextDream(const NextDreamDecision& de
     // If this is the first play, mark as started
     if (!m_started) {
         m_started = true;
+    } else {
+        addToHistory(m_currentPosition);
     }
 
     // If we're starting over, reset history
@@ -309,9 +311,8 @@ const Cache::Dream* PlaylistManager::moveToNextDream(const NextDreamDecision& de
         resetPlayHistory();
     }
 
-    // Update position and add to history
+    // Update position
     m_currentPosition = decision.position;
-    addToHistory(m_currentPosition);
     
     // Update current dream info
     m_currentDreamUUID = m_playlist[m_currentPosition].uuid;
