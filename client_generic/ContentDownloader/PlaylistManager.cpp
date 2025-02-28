@@ -217,7 +217,10 @@ PlaylistManager::TransitionType PlaylistManager::determineTransitionType(const P
 }
 
 std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNextDream() const {
+    g_Log->Info("Preflight : start");
+
     if (m_playlist.empty()) {
+        g_Log->Info("Preflight : no playlist");
         return std::nullopt;
     }
 
@@ -233,12 +236,15 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
             firstEntry.startKeyframe,
             firstEntry.endKeyframe
         };
+        g_Log->Info("Preflight : startup with a crossfade");
         return decision;
     }
 
     // Check if current dream has an end keyframe
     const auto& currentEntry = m_playlist[m_currentPosition];
     if (currentEntry.endKeyframe) {
+        g_Log->Info("Preflight : has endKeyframe, looking for match");
+
         // Look for dreams with matching start keyframe
         std::vector<size_t> candidates;
         for (size_t i = 0; i < m_playlist.size(); i++) {
@@ -246,10 +252,15 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
             if (i != m_currentPosition && entry.startKeyframe && *entry.startKeyframe == *currentEntry.endKeyframe
                 && !isDreamPlayed(entry.uuid)) {
                 candidates.push_back(i);
+                g_Log->Info("Preflight : adding candidate : %zu (current: %zu)", i, m_currentPosition);
+
             }
         }
 
+
         if (!candidates.empty()) {
+            g_Log->Info("Preflight : candidates : %zu", candidates.size());
+
             // Randomly select one of the candidates
             size_t nextPos = candidates[rand() % candidates.size()];
             const auto& nextEntry = m_playlist[nextPos];
@@ -264,10 +275,14 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
         }
     }
 
+    g_Log->Info("Preflight : either no endkeyframe or no match found");
+
     // No keyframe match - find next unplayed dream
     if (hasUnplayedDreams()) {
+        g_Log->Info("Preflight : has unplayed dreams");
+
         for (size_t i = 0; i < m_playlist.size(); i++) {
-            if (!isDreamPlayed(m_playlist[i].uuid)) {
+            if (i != m_currentPosition && !isDreamPlayed(m_playlist[i].uuid)) {
                 const auto& nextEntry = m_playlist[i];
                 decision = {
                     i,
@@ -276,6 +291,8 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
                     nextEntry.startKeyframe,
                     nextEntry.endKeyframe
                 };
+
+                g_Log->Info("Preflight : returning first unplayed : %zu", i);
                 return decision;
             }
         }
@@ -290,7 +307,8 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
         firstEntry.startKeyframe,
         firstEntry.endKeyframe
     };
-    
+    g_Log->Info("Preflight : fallback to first dream");
+
     return decision;
 }
 
