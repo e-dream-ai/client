@@ -325,7 +325,7 @@ const Cache::Dream* PlaylistManager::moveToNextDream(const NextDreamDecision& de
     }
 
     // If we're starting over, reset history
-    if (decision.position == 0 && m_currentPosition == m_playlist.size() - 1) {
+    if (decision.position == 0 && !hasUnplayedDreams()) {
         resetPlayHistory();
     }
 
