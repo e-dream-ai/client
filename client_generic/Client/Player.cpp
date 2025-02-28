@@ -931,6 +931,23 @@ bool CPlayer::SetPlaylistAtDream(const std::string& playlistUUID, const std::str
         
         if (!m_currentClip) {
             m_isFirstPlay = true;  // Reset the first play flag when setting a new playlist
+            
+            // Get the first dream directly instead of using PlayNextDream()
+            auto nextDecision = m_playlistManager->preflightNextDream();
+            if (nextDecision) {
+                // Load the clip directly without transition
+                if (PlayClip(nextDecision->dream, m_TimelineTime, -1, false)) {
+                    m_playlistManager->moveToNextDream(*nextDecision);
+                    
+                    // Explicitly set the fade-in and fade-out lengths
+                    if (m_currentClip) {
+                        m_currentClip->SetTransitionLength(5.0, 5.0);
+                    }
+                    return true;
+                }
+            }
+
+            // Fallback (maybe not needed)
             PlayNextDream();
         }
         return true;
