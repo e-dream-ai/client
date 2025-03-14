@@ -7,7 +7,7 @@ if(CMAKE_VERSION VERSION_LESS "3.0.0")
    message(FATAL_ERROR "CMake >= 3.0.0 required")
 endif()
 cmake_policy(PUSH)
-cmake_policy(VERSION 3.0.0...3.27)
+cmake_policy(VERSION 3.0.0...3.28)
 #----------------------------------------------------------------
 # Generated CMake target import file.
 #----------------------------------------------------------------
@@ -58,6 +58,7 @@ endif()
 add_library(Boost::format INTERFACE IMPORTED)
 
 set_target_properties(Boost::format PROPERTIES
+  INTERFACE_COMPILE_FEATURES "cxx_std_11"
   INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/include"
   INTERFACE_LINK_LIBRARIES "Boost::assert;Boost::config;Boost::core;Boost::optional;Boost::smart_ptr;Boost::throw_exception;Boost::utility"
 )

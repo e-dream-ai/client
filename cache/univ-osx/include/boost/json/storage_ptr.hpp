@@ -12,11 +12,9 @@
 
 #include <boost/container/pmr/polymorphic_allocator.hpp>
 #include <boost/json/detail/config.hpp>
-#include <boost/json/memory_resource.hpp>
 #include <boost/json/detail/shared_resource.hpp>
 #include <boost/json/detail/default_resource.hpp>
 #include <boost/json/is_deallocate_trivial.hpp>
-#include <cstddef>
 #include <new>
 #include <type_traits>
 #include <utility>
@@ -74,8 +72,8 @@ namespace json {
 
     @see
         @ref make_shared_resource,
-       [`boost::container::pmr::polymorphic_allocator`](https://www.boost.org/doc/libs/release/doc/html/boost/container/pmr/polymorphic_allocator.html).
-       [`boost::container::pmr::memory_resource`](https://www.boost.org/doc/libs/release/doc/html/boost/container/pmr/memory_resource.html).
+        @ref boost::container::pmr::polymorphic_allocator,
+        @ref boost::container::pmr::memory_resource.
 
 */
 class storage_ptr

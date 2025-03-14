@@ -3,13 +3,13 @@
   "spdxVersion": "SPDX-2.2",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "documentNamespace": "https://spdx.org/spdxdocs/boost-cmake-arm64-osx-1.85.0#1-a3cc8f0b-935d-4bf5-8a99-a7531e8b306d",
-  "name": "boost-cmake:arm64-osx@1.85.0#1 cae1e12bc056e91938ce53e60e6241d2373b5fe3d09f9e0b2e9080f885b9ed02",
+  "documentNamespace": "https://spdx.org/spdxdocs/boost-cmake-arm64-osx-1.87.0-2efbe31b-d11a-4071-8cdb-1bc5e1a11a6c",
+  "name": "boost-cmake:arm64-osx@1.87.0 418f7f10a96ea346fc9f6ae004b2d28f387dca2335babc38e3ca0d5a9c8708c3",
   "creationInfo": {
     "creators": [
-      "Tool: vcpkg-d6945642ee5c3076addd1a42c331bbf4cfc97457"
+      "Tool: vcpkg-2025-02-11-bec4296bf5289dc9ce83b4f5095943e44162f9c2"
     ],
-    "created": "2024-08-08T16:30:35Z"
+    "created": "2025-03-13T17:57:15Z"
   },
   "relationships": [
     {
@@ -147,7 +147,7 @@
     {
       "name": "boost-cmake",
       "SPDXID": "SPDXRef-port",
-      "versionInfo": "1.85.0#1",
+      "versionInfo": "1.87.0",
       "downloadLocation": "NOASSERTION",
       "homepage": "https://github.com/boostorg/cmake",
       "licenseConcluded": "BSL-1.0",
@@ -159,7 +159,7 @@
     {
       "name": "boost-cmake:arm64-osx",
       "SPDXID": "SPDXRef-binary",
-      "versionInfo": "cae1e12bc056e91938ce53e60e6241d2373b5fe3d09f9e0b2e9080f885b9ed02",
+      "versionInfo": "418f7f10a96ea346fc9f6ae004b2d28f387dca2335babc38e3ca0d5a9c8708c3",
       "downloadLocation": "NONE",
       "licenseConcluded": "BSL-1.0",
       "licenseDeclared": "NOASSERTION",
@@ -167,7 +167,7 @@
       "comment": "This is a binary package built by vcpkg."
     },
     {
-      "SPDXID": "SPDXRef-resource-1",
+      "SPDXID": "SPDXRef-resource-0",
       "name": "boostorg/boost",
       "downloadLocation": "git+https://github.com/boostorg/boost@${boost_boost_ref}",
       "licenseConcluded": "NOASSERTION",
@@ -177,6 +177,20 @@
         {
           "algorithm": "SHA512",
           "checksumValue": "${boost_boost_sha512}"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-resource-1",
+      "name": "boostorg/cmake",
+      "downloadLocation": "git+https://github.com/boostorg/cmake@${boost_cmake_ref}",
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA512",
+          "checksumValue": "${boost_cmake_sha512}"
         }
       ]
     }
@@ -224,7 +238,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "c994c9a100784338806c8c015fe8238c61a16fec94ebdb056d5f948f098a3854"
+          "checksumValue": "e3d74ec0329ed49ee3a51de89ab5c0d617dc9e50ce6a01e01e7729e62023549e"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -236,7 +250,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "dad4d6dd3fdd691e76d718b1d8c25ecb5a89e05ee0915c6090df02b53bf736e0"
+          "checksumValue": "4f5320bf4547aaf1b2ec3967af06a246159b8e6e1f2ba8e9d93c7aa4c4bf3f1a"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -248,7 +262,19 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "baed83d54c9212d18b32c185023da576f050f8464bc61bc683e1a6e3a62c942a"
+          "checksumValue": "2d86ac26a6dde0375c719d9380db2c3ad2e5731fb71a4a0fdb3a0c61bf5d1a6b"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/boost-cmake/no-config-suffix.diff",
+      "SPDXID": "SPDXRef-file-6",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "d5b75b03ac07c9f48ecfae6d3d08e74ed1983f794816467d75ce8e2255e85f78"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -256,23 +282,11 @@
     },
     {
       "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/boost-cmake/add-optional-deps.diff",
-      "SPDXID": "SPDXRef-file-6",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "efa3c1453bfeb0b86d8d2f266e9c6aaa10ae5b91ded7c7d9d33c8daaf6d7b94b"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
-      "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/boost-cmake/fix-missing-archs.diff",
       "SPDXID": "SPDXRef-file-7",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "7834b2d3e3ca1b7215c00f6a3d151ddf9e6832a104c32b259b9ed730423ea0e0"
+          "checksumValue": "e7f5128a4fdd3d8195a4caf4aa2daec9223d14814eff2ed2cae2b094ebb6661f"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -284,7 +298,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "172a8e6a1af9a2b83acdc7db2ac5b7e3e4b7c3943ed4fa0a14220f5980e6dc1c"
+          "checksumValue": "20eaaf461900aafccc5f8278292a5394410856bb6dd075fdbb31dfc51b183043"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -308,19 +322,19 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "68b95edc52681b8997c2052f2438febf611ffabd52250892d15bd6f96b36f72a"
+          "checksumValue": "d97a5b86b95df1f8a8eae3091fcd765b264e69ff1d1990820aedbf041f305bf7"
         }
       ],
       "licenseConcluded": "NOASSERTION",
       "copyrightText": "NOASSERTION"
     },
     {
-      "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/boost-cmake/zstd.diff",
+      "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/boost-cmake/no-honor-static.diff",
       "SPDXID": "SPDXRef-file-11",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "3c16a315ef06a614b06cba88b5c725cfdb5989a6e67258d933eaaf0eeb4b97ef"
+          "checksumValue": "b5f34407c74c89819aee2b29e373f3a48cbfb81ed0e6e56b14a16d47378cfac3"
         }
       ],
       "licenseConcluded": "NOASSERTION",

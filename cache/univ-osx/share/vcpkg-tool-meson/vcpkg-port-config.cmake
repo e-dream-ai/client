@@ -1,19 +1,20 @@
+include("${CURRENT_HOST_INSTALLED_DIR}/share/vcpkg-cmake-get-vars/vcpkg-port-config.cmake")
 # Overwrite builtin scripts
 include("${CMAKE_CURRENT_LIST_DIR}/vcpkg_configure_meson.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/vcpkg_install_meson.cmake")
 
-set(meson_short_hash aa4767)
+set(meson_short_hash 6779de)
 
 # Setup meson:
 set(program MESON)
-set(program_version 1.3.2)
+set(program_version 1.6.1)
 set(program_name meson)
 set(search_names meson meson.py)
-set(ref 614d436232d3a86518164cbe2b8af12db3bde009)
+set(ref "${program_version}")
 set(path_to_search "${DOWNLOADS}/tools/meson-${program_version}-${meson_short_hash}")
 set(download_urls "https://github.com/mesonbuild/meson/archive/${ref}.tar.gz")
 set(download_filename "meson-${ref}.tar.gz")
-set(download_sha512 c087da0113e76501fff66e68ac9ef7aede5e6672f1dc7201608cce9e5e1d202d3f4bf92beec1a5e4e8169f6ed1cedbb44b57ede2753437a61a13578de8d22040)
+set(download_sha512 541a610a7b49bfcf63502403c9b987178234cddddc181fad588c99f773a68a9fd91cf0629ec6bb424b3c931afee90b96f979ce7e8d990d53f644ac457d342b7f)
 
 find_program(SCRIPT_MESON NAMES ${search_names} PATHS "${path_to_search}" NO_DEFAULT_PATH) # NO_DEFAULT_PATH due top patching
 
@@ -37,7 +38,6 @@ if(NOT SCRIPT_MESON)
             "${CMAKE_CURRENT_LIST_DIR}/adjust-python-dep.patch"
             "${CMAKE_CURRENT_LIST_DIR}/adjust-args.patch"
             "${CMAKE_CURRENT_LIST_DIR}/remove-freebsd-pcfile-specialization.patch"
-            "${CMAKE_CURRENT_LIST_DIR}/meson-1.4-llvm-18.diff"
     )
     file(MAKE_DIRECTORY "${path_to_search}")
     file(RENAME "${path_to_search}-tmp/meson-${ref}/meson.py" "${path_to_search}/meson.py")
@@ -48,11 +48,11 @@ endif()
 
 # Check required python version
 vcpkg_find_acquire_program(PYTHON3)
-vcpkg_execute_required_process(COMMAND "${PYTHON3}" --version
-            WORKING_DIRECTORY "${CURRENT_BUILDTREES_DIR}"
-            LOGNAME "python3-version-${TARGET_TRIPLET}")
-
-file(READ "${CURRENT_BUILDTREES_DIR}/python3-version-${TARGET_TRIPLET}-out.log" version_contents)
+vcpkg_execute_in_download_mode(
+    COMMAND "${PYTHON3}" --version
+    OUTPUT_VARIABLE version_contents
+    WORKING_DIRECTORY "${CURRENT_BUILDTREES_DIR}"
+)
 string(REGEX MATCH [[[0-9]+\.[0-9]+\.[0-9]+]] python_ver "${version_contents}")
 
 set(min_required 3.7)

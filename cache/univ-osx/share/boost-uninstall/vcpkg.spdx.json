@@ -3,13 +3,13 @@
   "spdxVersion": "SPDX-2.2",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "documentNamespace": "https://spdx.org/spdxdocs/boost-uninstall-arm64-osx-1.85.0#1-87891cf4-00a1-4ce8-a631-47be59b667b5",
-  "name": "boost-uninstall:arm64-osx@1.85.0#1 fbbe1f78e6b4ef39d4dc71d3301ea0ef938e81fad2ffab96ba6be764ce83534e",
+  "documentNamespace": "https://spdx.org/spdxdocs/boost-uninstall-arm64-osx-1.87.0-48229f59-da08-405c-a3df-f79cd82f2ce0",
+  "name": "boost-uninstall:arm64-osx@1.87.0 d20d35ae6a28e3ac3370b417303ac8d2d363993ffc2051ce44a017152ba954c8",
   "creationInfo": {
     "creators": [
-      "Tool: vcpkg-d6945642ee5c3076addd1a42c331bbf4cfc97457"
+      "Tool: vcpkg-2025-02-11-bec4296bf5289dc9ce83b4f5095943e44162f9c2"
     ],
-    "created": "2024-08-08T16:30:34Z"
+    "created": "2025-03-13T17:57:13Z"
   },
   "relationships": [
     {
@@ -57,7 +57,7 @@
     {
       "name": "boost-uninstall",
       "SPDXID": "SPDXRef-port",
-      "versionInfo": "1.85.0#1",
+      "versionInfo": "1.87.0",
       "downloadLocation": "NOASSERTION",
       "licenseConcluded": "MIT",
       "licenseDeclared": "NOASSERTION",
@@ -68,7 +68,7 @@
     {
       "name": "boost-uninstall:arm64-osx",
       "SPDXID": "SPDXRef-binary",
-      "versionInfo": "fbbe1f78e6b4ef39d4dc71d3301ea0ef938e81fad2ffab96ba6be764ce83534e",
+      "versionInfo": "d20d35ae6a28e3ac3370b417303ac8d2d363993ffc2051ce44a017152ba954c8",
       "downloadLocation": "NONE",
       "licenseConcluded": "MIT",
       "licenseDeclared": "NOASSERTION",
@@ -95,7 +95,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "d109e7b54e296d6a78ab43d5ef77ec20dbfcca04fb60921380ad06aa1b0cbfad"
+          "checksumValue": "28351aa0c6c18179f7bcd8f389926318bacfaa2bd1d4b12791c38fb6a3726fcb"
         }
       ],
       "licenseConcluded": "NOASSERTION",

@@ -3,13 +3,13 @@
   "spdxVersion": "SPDX-2.2",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "documentNamespace": "https://spdx.org/spdxdocs/boost-predef-arm64-osx-1.85.0#1-f62235b6-9ccc-451b-a6dc-7ab3a0d1df16",
-  "name": "boost-predef:arm64-osx@1.85.0#1 69f2277cca08a3ecd97d16af9e1fa0f43cc5ea5a4c800c8d367b95fab94803eb",
+  "documentNamespace": "https://spdx.org/spdxdocs/boost-predef-arm64-osx-1.87.0-5b667417-9d57-43c1-b103-9ae8c87e6bad",
+  "name": "boost-predef:arm64-osx@1.87.0 7c9556efb17e370a6562d93024560024fb96ef9d9c2505ccd72e2e7f51127ac9",
   "creationInfo": {
     "creators": [
-      "Tool: vcpkg-d6945642ee5c3076addd1a42c331bbf4cfc97457"
+      "Tool: vcpkg-2025-02-11-bec4296bf5289dc9ce83b4f5095943e44162f9c2"
     ],
-    "created": "2024-08-08T16:30:37Z"
+    "created": "2025-03-13T17:57:18Z"
   },
   "relationships": [
     {
@@ -47,7 +47,7 @@
     {
       "name": "boost-predef",
       "SPDXID": "SPDXRef-port",
-      "versionInfo": "1.85.0#1",
+      "versionInfo": "1.87.0",
       "downloadLocation": "NOASSERTION",
       "homepage": "https://www.boost.org/libs/predef",
       "licenseConcluded": "BSL-1.0",
@@ -59,7 +59,7 @@
     {
       "name": "boost-predef:arm64-osx",
       "SPDXID": "SPDXRef-binary",
-      "versionInfo": "69f2277cca08a3ecd97d16af9e1fa0f43cc5ea5a4c800c8d367b95fab94803eb",
+      "versionInfo": "7c9556efb17e370a6562d93024560024fb96ef9d9c2505ccd72e2e7f51127ac9",
       "downloadLocation": "NONE",
       "licenseConcluded": "BSL-1.0",
       "licenseDeclared": "NOASSERTION",
@@ -67,16 +67,16 @@
       "comment": "This is a binary package built by vcpkg."
     },
     {
-      "SPDXID": "SPDXRef-resource-1",
+      "SPDXID": "SPDXRef-resource-0",
       "name": "boostorg/predef",
-      "downloadLocation": "git+https://github.com/boostorg/predef@boost-1.85.0",
+      "downloadLocation": "git+https://github.com/boostorg/predef@boost-1.87.0",
       "licenseConcluded": "NOASSERTION",
       "licenseDeclared": "NOASSERTION",
       "copyrightText": "NOASSERTION",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "8e15aa2ad79e0c567aa02f77edc3a80ece2e0e751f486d3feb3c70f1073dd5481ec01aa37a8137d00b2d7b002b8b51ef9229d07d5a744ccd6f26b4c83b6383a0"
+          "checksumValue": "2a54459d3facf18f5ca859d6b4e884a86b5f2082fcb5353f373996916d9815d8cc9964216d924031aa18aada7d49c030871da7dfd302912261d1fc57df3d1875"
         }
       ]
     }
@@ -88,7 +88,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "dadad74d09faf5f5d1ba25b96f24f0a46640a206ef99742afcfebd14fb12b7df"
+          "checksumValue": "8eebed870109975ecac571842a5e12da42d0e97d9c4d04763fbcdc0b902b0762"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -100,7 +100,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "1891b1293f79cb9cc41b031a1fc122d21cd88fec8db2cc63191c78c24a717d93"
+          "checksumValue": "88e4e34afb49cf8ad3e31d6b626b0307944e75796db82147cc7ddfbb4f32816c"
         }
       ],
       "licenseConcluded": "NOASSERTION",

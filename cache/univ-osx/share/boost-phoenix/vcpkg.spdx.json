@@ -3,13 +3,13 @@
   "spdxVersion": "SPDX-2.2",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "documentNamespace": "https://spdx.org/spdxdocs/boost-phoenix-arm64-osx-1.85.0#1-93b388e1-a02a-49ca-bfbf-f696e29ff74c",
-  "name": "boost-phoenix:arm64-osx@1.85.0#1 9fe0e3e24e2dddee22dea090626d6d748d90ce8c719bef885caccfcf17a91aed",
+  "documentNamespace": "https://spdx.org/spdxdocs/boost-phoenix-arm64-osx-1.87.0-99f81add-15ec-463f-8cf5-706b0289d35b",
+  "name": "boost-phoenix:arm64-osx@1.87.0 a31ac215f193271e450c9375217b4948ebf64085a5b61fad360ce307f56cbb36",
   "creationInfo": {
     "creators": [
-      "Tool: vcpkg-d6945642ee5c3076addd1a42c331bbf4cfc97457"
+      "Tool: vcpkg-2025-02-11-bec4296bf5289dc9ce83b4f5095943e44162f9c2"
     ],
-    "created": "2024-08-08T16:31:25Z"
+    "created": "2025-03-13T17:58:27Z"
   },
   "relationships": [
     {
@@ -47,7 +47,7 @@
     {
       "name": "boost-phoenix",
       "SPDXID": "SPDXRef-port",
-      "versionInfo": "1.85.0#1",
+      "versionInfo": "1.87.0",
       "downloadLocation": "NOASSERTION",
       "homepage": "https://www.boost.org/libs/phoenix",
       "licenseConcluded": "BSL-1.0",
@@ -59,7 +59,7 @@
     {
       "name": "boost-phoenix:arm64-osx",
       "SPDXID": "SPDXRef-binary",
-      "versionInfo": "9fe0e3e24e2dddee22dea090626d6d748d90ce8c719bef885caccfcf17a91aed",
+      "versionInfo": "a31ac215f193271e450c9375217b4948ebf64085a5b61fad360ce307f56cbb36",
       "downloadLocation": "NONE",
       "licenseConcluded": "BSL-1.0",
       "licenseDeclared": "NOASSERTION",
@@ -67,16 +67,16 @@
       "comment": "This is a binary package built by vcpkg."
     },
     {
-      "SPDXID": "SPDXRef-resource-1",
+      "SPDXID": "SPDXRef-resource-0",
       "name": "boostorg/phoenix",
-      "downloadLocation": "git+https://github.com/boostorg/phoenix@boost-1.85.0",
+      "downloadLocation": "git+https://github.com/boostorg/phoenix@boost-1.87.0",
       "licenseConcluded": "NOASSERTION",
       "licenseDeclared": "NOASSERTION",
       "copyrightText": "NOASSERTION",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "3bd9a2cb2f2b3cb9428166e96474fdc8772c8f7c8b8265513a31ca7fb0c7e2039577e369488a612c64ac3061a6cc75962a38a9885adb892d5f82ab635c113585"
+          "checksumValue": "4be09f1ac66e7e7ab172e1f2d0d9ec8b50a6b8c34aa0a79676fcfbada8effc89fa0094fca6a2ba77014fa0238ac7579253e5fa31dd74850a757ebfd70d3a5a53"
         }
       ]
     }
@@ -88,7 +88,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "19cdac7ac874842b95bc80251f7e4f9ff67971e4c654eb56d578b286ad3b3f4d"
+          "checksumValue": "227a7708f39909cd83800835350ce5634d433a72d4c5272b11c63618f00e1df1"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -100,7 +100,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "f76797f33e0f931426201b121fa0383307b989a9b4d7d9a0e3f2f0e3ad5d845e"
+          "checksumValue": "9563347fcc7ebe9a439b0d40750ade77351cc210addefee46872aa59232d4a2f"
         }
       ],
       "licenseConcluded": "NOASSERTION",

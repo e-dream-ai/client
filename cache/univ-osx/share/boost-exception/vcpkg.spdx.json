@@ -3,13 +3,13 @@
   "spdxVersion": "SPDX-2.2",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "documentNamespace": "https://spdx.org/spdxdocs/boost-exception-arm64-osx-1.85.0#1-6ed3a13d-5e6e-4e2c-9da1-5fb09fde9638",
-  "name": "boost-exception:arm64-osx@1.85.0#1 46bb2c2dd88d65a121b668a6fc7ab877c5af208634af75008e0733ca6d8c4fc8",
+  "documentNamespace": "https://spdx.org/spdxdocs/boost-exception-arm64-osx-1.87.0-5b3843e4-ec49-4996-b2e8-3e362aaa55ef",
+  "name": "boost-exception:arm64-osx@1.87.0 e4a895908170da079304d0a9cae0619e5275d3002f433f6099bc64c57d9ded30",
   "creationInfo": {
     "creators": [
-      "Tool: vcpkg-d6945642ee5c3076addd1a42c331bbf4cfc97457"
+      "Tool: vcpkg-2025-02-11-bec4296bf5289dc9ce83b4f5095943e44162f9c2"
     ],
-    "created": "2024-08-08T16:31:10Z"
+    "created": "2025-03-13T17:58:08Z"
   },
   "relationships": [
     {
@@ -28,6 +28,11 @@
       "relatedSpdxElement": "SPDXRef-file-1"
     },
     {
+      "spdxElementId": "SPDXRef-port",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-file-2"
+    },
+    {
       "spdxElementId": "SPDXRef-binary",
       "relationshipType": "GENERATED_FROM",
       "relatedSpdxElement": "SPDXRef-port"
@@ -41,13 +46,18 @@
       "spdxElementId": "SPDXRef-file-1",
       "relationshipType": "CONTAINED_BY",
       "relatedSpdxElement": "SPDXRef-port"
+    },
+    {
+      "spdxElementId": "SPDXRef-file-2",
+      "relationshipType": "CONTAINED_BY",
+      "relatedSpdxElement": "SPDXRef-port"
     }
   ],
   "packages": [
     {
       "name": "boost-exception",
       "SPDXID": "SPDXRef-port",
-      "versionInfo": "1.85.0#1",
+      "versionInfo": "1.87.0",
       "downloadLocation": "NOASSERTION",
       "homepage": "https://www.boost.org/libs/exception",
       "licenseConcluded": "BSL-1.0",
@@ -59,7 +69,7 @@
     {
       "name": "boost-exception:arm64-osx",
       "SPDXID": "SPDXRef-binary",
-      "versionInfo": "46bb2c2dd88d65a121b668a6fc7ab877c5af208634af75008e0733ca6d8c4fc8",
+      "versionInfo": "e4a895908170da079304d0a9cae0619e5275d3002f433f6099bc64c57d9ded30",
       "downloadLocation": "NONE",
       "licenseConcluded": "BSL-1.0",
       "licenseDeclared": "NOASSERTION",
@@ -67,28 +77,40 @@
       "comment": "This is a binary package built by vcpkg."
     },
     {
-      "SPDXID": "SPDXRef-resource-1",
+      "SPDXID": "SPDXRef-resource-0",
       "name": "boostorg/exception",
-      "downloadLocation": "git+https://github.com/boostorg/exception@boost-1.85.0",
+      "downloadLocation": "git+https://github.com/boostorg/exception@boost-1.87.0",
       "licenseConcluded": "NOASSERTION",
       "licenseDeclared": "NOASSERTION",
       "copyrightText": "NOASSERTION",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "7ba040497aa0e0384a7e37df918baf2886735312a0e0f1406cf31568aad4f3d6b99cf38faa907cf7132b3f50905a071df5325d23c0a609ab8856371ba146b8ee"
+          "checksumValue": "ea1c971da699001b4946f1336edd18fe5225b1d6ac9db50a7640fb39ec31b7596159c1769aa36e949dc887ec228150487718cb1249895dac9503a30e8240f448"
         }
       ]
     }
   ],
   "files": [
     {
-      "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/boost-exception/portfile.cmake",
+      "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/boost-exception/features.cmake",
       "SPDXID": "SPDXRef-file-0",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "d98167bbb071ffb81443fed888587c3a9c5c5455e412de8693ed1cba4ca203b0"
+          "checksumValue": "2f1215b74121b1b8ed4b0ff081fc28e794471e51e21b75920e22a71bfd72a14d"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/boost-exception/portfile.cmake",
+      "SPDXID": "SPDXRef-file-1",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "d44e1652a8d2310b8ac239ccc2d84c522910f00379d8493f73d709726700344f"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -96,11 +118,11 @@
     },
     {
       "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/boost-exception/vcpkg.json",
-      "SPDXID": "SPDXRef-file-1",
+      "SPDXID": "SPDXRef-file-2",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "d0eb576417cfa1cfadf7bbbe4cdc6280476f14f085073a4820ea8db67acc9241"
+          "checksumValue": "fd480f0f4399226e167b3f178222c696691f74cbb8d9cf0296fa1575b29a47e9"
         }
       ],
       "licenseConcluded": "NOASSERTION",

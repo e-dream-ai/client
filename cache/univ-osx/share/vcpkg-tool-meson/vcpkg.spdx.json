@@ -3,13 +3,13 @@
   "spdxVersion": "SPDX-2.2",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "documentNamespace": "https://spdx.org/spdxdocs/vcpkg-tool-meson-arm64-osx-1.3.2#3-4f23cd13-f0d7-426a-af31-84dc9aedc403",
-  "name": "vcpkg-tool-meson:arm64-osx@1.3.2#3 43242e11fb0c0eb1c4acd58524feb45b359b779a9c849520852abc7497404fba",
+  "documentNamespace": "https://spdx.org/spdxdocs/vcpkg-tool-meson-arm64-osx-1.6.1-d64ca9ad-619b-43cf-89ba-cb5524d9b5e9",
+  "name": "vcpkg-tool-meson:arm64-osx@1.6.1 719e2f74c7c04253c584799b578a0fe06b07ec4f1908b7f371d9420c8be026fc",
   "creationInfo": {
     "creators": [
-      "Tool: vcpkg-d6945642ee5c3076addd1a42c331bbf4cfc97457"
+      "Tool: vcpkg-2025-02-11-bec4296bf5289dc9ce83b4f5095943e44162f9c2"
     ],
-    "created": "2024-08-08T16:31:59Z"
+    "created": "2025-03-13T17:59:00Z"
   },
   "relationships": [
     {
@@ -73,11 +73,6 @@
       "relatedSpdxElement": "SPDXRef-file-10"
     },
     {
-      "spdxElementId": "SPDXRef-port",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-file-11"
-    },
-    {
       "spdxElementId": "SPDXRef-binary",
       "relationshipType": "GENERATED_FROM",
       "relatedSpdxElement": "SPDXRef-port"
@@ -136,18 +131,13 @@
       "spdxElementId": "SPDXRef-file-10",
       "relationshipType": "CONTAINED_BY",
       "relatedSpdxElement": "SPDXRef-port"
-    },
-    {
-      "spdxElementId": "SPDXRef-file-11",
-      "relationshipType": "CONTAINED_BY",
-      "relatedSpdxElement": "SPDXRef-port"
     }
   ],
   "packages": [
     {
       "name": "vcpkg-tool-meson",
       "SPDXID": "SPDXRef-port",
-      "versionInfo": "1.3.2#3",
+      "versionInfo": "1.6.1",
       "downloadLocation": "NOASSERTION",
       "homepage": "https://github.com/mesonbuild/meson",
       "licenseConcluded": "Apache-2.0",
@@ -159,7 +149,7 @@
     {
       "name": "vcpkg-tool-meson:arm64-osx",
       "SPDXID": "SPDXRef-binary",
-      "versionInfo": "43242e11fb0c0eb1c4acd58524feb45b359b779a9c849520852abc7497404fba",
+      "versionInfo": "719e2f74c7c04253c584799b578a0fe06b07ec4f1908b7f371d9420c8be026fc",
       "downloadLocation": "NONE",
       "licenseConcluded": "Apache-2.0",
       "licenseDeclared": "NOASSERTION",
@@ -167,7 +157,7 @@
       "comment": "This is a binary package built by vcpkg."
     },
     {
-      "SPDXID": "SPDXRef-resource-1",
+      "SPDXID": "SPDXRef-resource-0",
       "name": "${download_filename}",
       "packageFileName": "${download_filename}",
       "downloadLocation": "${download_urls}",
@@ -189,7 +179,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "73cb3d452bde8ffbfb5430c419da540a51d974d549f5ca0b4fac806cfea57985"
+          "checksumValue": "a1c243f02b678100cfe34d3503a93f4a36750288b68140332349fb0145a599bd"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -213,7 +203,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "2ac48aa0c51f72bdb799097ab41f501a38ef8ffc36202660c7d95f00c0a01812"
+          "checksumValue": "8d48025a72e03c52058c43964b436a837e83a35be5f569111f0686d8dc53a495"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -225,7 +215,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "20abf0600880698dfc6558f2e741ec93c2f027418394f48cea165e5dae873800"
+          "checksumValue": "ac3482e0dcbab04eb53c8c4cd5ed75dae9ee387908d45e185b6e262aeb502c37"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -237,7 +227,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "6d89905c2be4b36f8d686951ed256b33548806b242969e731e9dbeb1463a6f7f"
+          "checksumValue": "3344668dc4f4ef5c2be9e1bf14860d8afea2321aef0a3cec6ef8ea44b01568f0"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -249,7 +239,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "579b865b5dc0b41a7d1dbc05b122659d083eb5cef111003cdfce9e962d8d094b"
+          "checksumValue": "a30278bc5be8f8bd18cddb241eede6ad2eb43be1093695fc9875a84cdb91c86e"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -261,7 +251,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "c4ece3e1ad789c23e0da7a25305f85b5b9cde1a484ff9f2e08f1b43fb453694f"
+          "checksumValue": "09729abd1e2695c10d0b4edd72b4e10da005b09019a4d66bf18f8799b288e9c2"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -280,24 +270,12 @@
       "copyrightText": "NOASSERTION"
     },
     {
-      "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/vcpkg-tool-meson/meson-1.4-llvm-18.diff",
+      "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/vcpkg-tool-meson/adjust-python-dep.patch",
       "SPDXID": "SPDXRef-file-8",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "eda5fb99fb8694fc91323c113be8b7f613ab387e51e2f5aa4b6eca6c6aabe9d8"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
-      "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/vcpkg-tool-meson/adjust-python-dep.patch",
-      "SPDXID": "SPDXRef-file-9",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "2a2715c62a61cc830881ffb8108855b90b92201df84cfec1038236f91a752fdd"
+          "checksumValue": "b334a262ff9687da0d39a7b1aceda866db9fe9229964263939f37edcb2006bc7"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -305,11 +283,11 @@
     },
     {
       "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/vcpkg-tool-meson/vcpkg-port-config.cmake",
-      "SPDXID": "SPDXRef-file-10",
+      "SPDXID": "SPDXRef-file-9",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "e63e6ada9c60ba46a936f8749d8cfa09d30d4a24c111a2f79b2eb39df0d68afb"
+          "checksumValue": "3deb169fb6eb7a5eb75baa76d7260ab817f83eb6e959cb9ce710645d7aeb61c1"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -317,11 +295,11 @@
     },
     {
       "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/vcpkg-tool-meson/vcpkg_install_meson.cmake",
-      "SPDXID": "SPDXRef-file-11",
+      "SPDXID": "SPDXRef-file-10",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "715cf59e78124dcc0823803544dc12ca4ced4f46ebc43681f4f6cd23d3e99d92"
+          "checksumValue": "cc77e0248f5e935134c9061e5d424bc6533b561eeeac6f72d1788837cd5d0384"
         }
       ],
       "licenseConcluded": "NOASSERTION",

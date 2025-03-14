@@ -19,12 +19,10 @@
 #include <boost/json/detail/except.hpp>
 #include <boost/json/detail/string_impl.hpp>
 #include <boost/json/detail/value.hpp>
-#include <algorithm>
+#include <boost/system/result.hpp>
 #include <cstring>
-#include <initializer_list>
 #include <iosfwd>
 #include <iterator>
-#include <limits>
 #include <new>
 #include <type_traits>
 #include <utility>
@@ -84,16 +82,8 @@ class string
         storage_ptr sp);
 
 public:
-    /** Associated [Allocator](https://en.cppreference.com/w/cpp/named_req/Allocator)
-
-        This type is a `boost::container::pmr::polymorphic_allocator<value>`.
-    */
-#ifdef BOOST_JSON_DOCS
-    using allocator_type = __see_below__;
-#else
-    // VFALCO doc toolchain renders this incorrectly
+    /// Associated [Allocator](https://en.cppreference.com/w/cpp/named_req/Allocator)
     using allocator_type = container::pmr::polymorphic_allocator<value>;
-#endif
 
     /// The type of a character
     using value_type        = char;
@@ -884,6 +874,30 @@ public:
 
     /** Return a character with bounds checking.
 
+        Returns `boost::system::result` containing a reference to the character
+        specified at location `pos`, if `pos` is within the range of the
+        string. Otherwise the result contains an `error_code`.
+
+        @par Exception Safety
+        Strong guarantee.
+
+        @param pos A zero-based index to access.
+
+        @par Complexity
+        Constant.
+    */
+    /** @{ */
+    BOOST_JSON_DECL
+    system::result<char&>
+    try_at(std::size_t pos) noexcept;
+
+    BOOST_JSON_DECL
+    system::result<char const&>
+    try_at(std::size_t pos) const noexcept;
+    /** @} */
+
+    /** Return a character with bounds checking.
+
         Returns a reference to the character specified at
         location `pos`.
 
@@ -897,27 +911,23 @@ public:
 
         @param pos A zero-based index to access.
 
+        @param loc `source_location` to use in thrown exception; the source
+            location of the call site by default.
+
         @throw `boost::system::system_error` `pos >= size()`.
     */
     /** @{ */
+    inline
     char&
-    at(std::size_t pos)
-    {
+    at(
+        std::size_t pos,
+        source_location const& loc = BOOST_CURRENT_LOCATION);
 
-        auto const& self = *this;
-        return const_cast< char& >( self.at(pos) );
-    }
-
+    BOOST_JSON_DECL
     char const&
-    at(std::size_t pos) const
-    {
-        if(pos >= size())
-        {
-            BOOST_STATIC_CONSTEXPR source_location loc = BOOST_CURRENT_LOCATION;
-            detail::throw_system_error( error::out_of_range, &loc );
-        }
-        return impl_.data()[pos];
-    }
+    at(
+        std::size_t pos,
+        source_location const& loc = BOOST_CURRENT_LOCATION) const;
     /** @} */
 
     /** Return a character without bounds checking.
@@ -1107,7 +1117,7 @@ public:
         return impl_.data();
     }
 
-    /** Convert to a `string_view` referring to the string.
+    /** Convert to a @ref string_view referring to the string.
 
         Returns a string view to the
         underlying character string. The size of the view
@@ -2240,8 +2250,7 @@ public:
         Returns a view of the whole string.
 
         @par Exception Safety
-
-        `noexcept`
+        No-throw guarantee.
 
         @return `string_view(this->data(), this->size())`.
     */
