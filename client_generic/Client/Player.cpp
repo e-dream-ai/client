@@ -492,7 +492,9 @@ bool CPlayer::BeginFrameUpdate()
     }
 
     if (m_nextClip) {
-        m_nextClip->Update(m_TimelineTime);
+        if (!m_nextClip->HasFinished()) {
+            m_nextClip->Update(m_TimelineTime);
+        }
     }
     
     if (m_currentClip)
@@ -605,7 +607,9 @@ bool CPlayer::Update(uint32_t displayUnit)
     }
     
     if (m_nextClip) {
-        m_nextClip->Update(m_TimelineTime);
+        if (!m_nextClip->HasFinished()) {
+            m_nextClip->Update(m_TimelineTime);
+        }
     }
     
     // Make sure we are :

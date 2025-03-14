@@ -156,22 +156,36 @@ bool CClip::NeedsNewFrame(double _timelineTime,
 bool CClip::Update(double _timelineTime)
 {
     m_Alpha = 0.f;
-    if (_timelineTime > m_EndTime || m_spDecoder->HasEnded())
+    
+    if ((m_CurrentFrameMetadata.maxFrameIdx > 0 &&
+         m_CurrentFrameMetadata.frameIdx >= m_CurrentFrameMetadata.maxFrameIdx - 2)
+        /*_timelineTime > m_EndTime || m_spDecoder->HasEnded() */)
     {
         m_HasFinished.exchange(true);
         m_IsFadingOut.exchange(false);
         
         return false;
     }
+    
     if (_timelineTime < m_StartTime)
         return false;
+
+    
+
+    
     if (NeedsNewFrame(_timelineTime, &m_DecoderClock))
     {
+       
         if (!GrabVideoFrame())
         {
             return false;
         }
     }
+    
+    // temporarily needed by basic per frame renderer at startup, we should avoid this path in the future
+    // Cubic/linear don't need this
+    if (m_spFrameData == nullptr)
+        return false;
 
     uint32_t idx = m_spFrameData->GetMetaData().frameIdx;
     uint32_t maxIdx = m_spFrameData->GetMetaData().maxFrameIdx;
@@ -189,18 +203,24 @@ bool CClip::Update(double _timelineTime)
     double secondsOut = (maxIdx - idx) / m_ClipMetadata.decodeFps - delta;
     secondsOut = std::fmin(secondsOut, (m_EndTime - _timelineTime));
     
-    if (secondsOut < m_FadeOutSeconds) {
+    if (m_FadeOutSeconds > 0 && secondsOut < m_FadeOutSeconds) {
         m_IsFadingOut.exchange(true);
     }
 
-    float alpha = (float)std::fmin(secondsIn / m_FadeInSeconds, 1.f) *
-                  (float)std::fmin(secondsOut / m_FadeOutSeconds, 1.f);
-    if (secondsOut <= 0)
+    if (m_FadeOutSeconds > 0)
     {
-        m_HasFinished.exchange(true);
-        return false;
+        float alpha = (float)std::fmin(secondsIn / m_FadeInSeconds, 1.f) *
+                      (float)std::fmin(secondsOut / m_FadeOutSeconds, 1.f);
+        if (secondsOut <= 0)
+        {
+            m_HasFinished.exchange(true);
+            return false;
+        }
+        m_Alpha = alpha;
+    } else {
+        m_Alpha = 1.f;
     }
-    m_Alpha = alpha;
+
     return true;
 }
 

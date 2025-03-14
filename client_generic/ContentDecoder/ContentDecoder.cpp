@@ -525,7 +525,8 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
             frameNumber =
             (int64_t)((pFrame->pts * frameRate) * av_q2d(timeBase));
             ovi->m_CurrentFrameIndex = frameNumber;
-            
+            g_Log->Info("Read : %d", frameNumber);
+
             if (ret == AVERROR(EAGAIN))
             {
                 av_packet_free(&packet);
@@ -668,7 +669,7 @@ void CContentDecoder::ReadFramesThread()
                 m_CurrentVideoInfo->m_SeekTargetFrame = std::min(m_CurrentVideoInfo->m_SeekTargetFrame, (int64_t)m_CurrentVideoInfo->m_TotalFrameCount - 20);
                 m_SkipForward.exchange(0.f);
             }
-            
+
             if (m_CurrentVideoInfo->m_SeekTargetFrame != -1)
             {
                 m_FrameQueueMutex.lock();
@@ -763,6 +764,11 @@ spCVideoFrame CContentDecoder::PopVideoFrame()
     std::scoped_lock l(m_FrameQueueMutex);
     CVideoFrame* tmp = nullptr;
     m_FrameQueue.pop(tmp, false);
+    
+    if (tmp == nullptr) {
+        g_Log->Info("can't pop");
+    }
+    
     return spCVideoFrame{tmp};
 }
 
