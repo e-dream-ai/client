@@ -525,7 +525,7 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
             frameNumber =
             (int64_t)((pFrame->pts * frameRate) * av_q2d(timeBase));
             ovi->m_CurrentFrameIndex = frameNumber;
-            g_Log->Info("Read : %d", frameNumber);
+            // g_Log->Info("Read : %d ret : %d", frameNumber, ret);
 
             if (ret == AVERROR(EAGAIN))
             {
@@ -643,7 +643,7 @@ void CContentDecoder::ReadFramesThread()
         g_Log->Info("Main video frame reading thread started for %s", m_Metadata.dreamData.uuid.c_str());
         
         while (m_CurrentVideoInfo->m_CurrentFrameIndex <
-               m_CurrentVideoInfo->m_TotalFrameCount - 1)
+               m_CurrentVideoInfo->m_TotalFrameCount )
         {
             // Check for shutdown
             if (m_isShuttingDown.load()) {
@@ -714,7 +714,7 @@ void CContentDecoder::ReadFramesThread()
             
             if (m_CurrentVideoInfo->m_SeekTargetFrame != -1)
                 m_FrameQueueMutex.unlock();
-            m_CurrentVideoInfo->m_SeekTargetFrame = -1;
+            //m_CurrentVideoInfo->m_SeekTargetFrame = -1;
         }
         
         // Only try grabbing the remainder of the video if we have a md5 to verify it

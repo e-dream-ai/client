@@ -50,7 +50,9 @@ class CClip
     spCContentDecoder m_spDecoder;
     ContentDecoder::spCVideoFrame m_spFrameData;
     DisplayOutput::spCImage m_spImageRef;
+public: // tmp public for debug
     sFrameMetadata m_CurrentFrameMetadata;
+private: // tmp
     mutable std::shared_mutex m_CurrentFrameMetadataLock;
     double m_StartTime;
     double m_EndTime;
