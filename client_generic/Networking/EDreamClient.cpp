@@ -1,6 +1,6 @@
-#include <websocketpp/config/asio_client.hpp>
+/*#include <websocketpp/config/asio_client.hpp>
 #include <websocketpp/client.hpp>
-#include <websocketpp/config/asio_no_tls_client.hpp>
+#include <websocketpp/config/asio_no_tls_client.hpp>*/
 #include <sio_client.h>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
@@ -478,7 +478,7 @@ bool EDreamClient::ValidateCode(const std::string& code)
                 }
                 
                 return true;
-            } catch (const boost::json::system_error& e) {
+            } catch (const boost::system::system_error& e) {
                 g_Log->Error("JSON parsing error: %s", e.what());
                 return false;
             }
