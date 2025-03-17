@@ -631,6 +631,11 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
     av_packet_free(&packet);
     av_packet_free(&filteredPacket);
     
+    g_Log->Info("Decoder produced frame %d/%d for %s",
+                (uint32_t)ovi->m_CurrentFrameIndex,
+                ovi->m_TotalFrameCount,
+                ovi->m_Path.c_str());
+    
     return pVideoFrame;
 }
 
@@ -643,7 +648,7 @@ void CContentDecoder::ReadFramesThread()
         g_Log->Info("Main video frame reading thread started for %s", m_Metadata.dreamData.uuid.c_str());
         
         while (m_CurrentVideoInfo->m_CurrentFrameIndex <
-               m_CurrentVideoInfo->m_TotalFrameCount )
+               m_CurrentVideoInfo->m_TotalFrameCount - 2)
         {
             // Check for shutdown
             if (m_isShuttingDown.load()) {

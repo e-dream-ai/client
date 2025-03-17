@@ -44,7 +44,9 @@ class CClip
     };
 
     sClipMetadata m_ClipMetadata;
+public: // tmp public for debug
     DecoderClock m_DecoderClock;
+private: //tmp
     spCFrameDisplay m_spFrameDisplay;
     spCRenderer m_spRenderer;
     spCContentDecoder m_spDecoder;

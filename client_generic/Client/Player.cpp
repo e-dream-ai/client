@@ -648,7 +648,7 @@ void CPlayer::RenderFrame(DisplayOutput::spCRenderer renderer) {
         // Somehow sometimes we reach here with no m_nextClip, not 100% clear why
         if (m_nextClip) {
             m_nextClip->Update(m_TimelineTime);
-            g_Log->Info("render next frame %d", m_currentClip->m_CurrentFrameMetadata.frameIdx);
+            g_Log->Info("render next frame %d", m_nextClip->m_CurrentFrameMetadata.frameIdx);
            m_nextClip->DrawFrame(renderer, nextAlpha);
         } else {
             g_Log->Error("Render frame has null nextClip despite checking for it earlier");
@@ -753,11 +753,29 @@ void CPlayer::PlayNextDream(bool quickFade) {
         if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::Seamless) {
             // For seamless, next clip should already be prepared
             if (m_nextClip) {
-                m_nextClip->SetTransitionLength(0.0, 5);
-                // Start playback now and switch clips
-                m_nextClip->Start(-1);  // Start from beginning
-                m_nextClip->SetStartTime(m_TimelineTime);
                 
+                m_nextClip->SetTransitionLength(0.0, 5);
+
+                // Calculate exactly how many frames remain
+                uint32_t lastFrameIdx = m_currentClip->GetCurrentFrameIdx();
+                uint32_t maxFrameIdx = m_currentClip->GetFrameCount() - 1;
+                uint32_t framesRemaining = maxFrameIdx - lastFrameIdx;
+                
+                m_nextClip->StartPlayback(0);
+                /*if (m_nextClip) {
+                    // Force immediate update to grab frame 0
+                    m_nextClip->m_DecoderClock.started = false;
+                    m_nextClip->m_DecoderClock.acc = 0.0;
+                    
+                    // Manually trigger the first frame grab before switching
+                    double currentTime = m_TimelineTime + (framesRemaining / m_DecoderFps);
+                    m_nextClip->Update(currentTime);
+                    
+                    g_Log->Info("Pre-loaded next clip frame: %d", m_nextClip->GetCurrentFrameIdx());
+                }*/
+                
+                m_nextClip->SetStartTime(m_TimelineTime + (framesRemaining / m_DecoderFps));
+
                 // Start the asynchronous destruction of the current clip
                 destroyClipAsync(std::move(m_currentClip));
                 

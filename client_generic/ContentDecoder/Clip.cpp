@@ -157,9 +157,11 @@ bool CClip::Update(double _timelineTime)
 {
     m_Alpha = 0.f;
     
+/*    if ((m_CurrentFrameMetadata.maxFrameIdx > 0 &&
+         m_CurrentFrameMetadata.frameIdx >= m_CurrentFrameMetadata.maxFrameIdx - 2)*/
+        /*_timelineTime > m_EndTime || m_spDecoder->HasEnded() */
     if ((m_CurrentFrameMetadata.maxFrameIdx > 0 &&
-         m_CurrentFrameMetadata.frameIdx >= m_CurrentFrameMetadata.maxFrameIdx - 2)
-        /*_timelineTime > m_EndTime || m_spDecoder->HasEnded() */)
+         m_CurrentFrameMetadata.frameIdx >= m_CurrentFrameMetadata.maxFrameIdx - 2))
     {
         m_HasFinished.exchange(true);
         m_IsFadingOut.exchange(false);
