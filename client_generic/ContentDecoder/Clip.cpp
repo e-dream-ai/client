@@ -160,9 +160,12 @@ bool CClip::Update(double _timelineTime)
 /*    if ((m_CurrentFrameMetadata.maxFrameIdx > 0 &&
          m_CurrentFrameMetadata.frameIdx >= m_CurrentFrameMetadata.maxFrameIdx - 2)*/
         /*_timelineTime > m_EndTime || m_spDecoder->HasEnded() */
-    if ((m_CurrentFrameMetadata.maxFrameIdx > 0 &&
-         m_CurrentFrameMetadata.frameIdx >= m_CurrentFrameMetadata.maxFrameIdx - 2))
+    //if ((m_CurrentFrameMetadata.maxFrameIdx > 0 &&
+    //     m_CurrentFrameMetadata.frameIdx >= m_CurrentFrameMetadata.maxFrameIdx - 2))
+    if (m_CurrentFrameMetadata.maxFrameIdx > 0 && _timelineTime > m_EndTime)
     {
+        g_Log->Info("marking dream %s as finished", m_ClipMetadata.dreamData.uuid.c_str());
+        
         m_HasFinished.exchange(true);
         m_IsFadingOut.exchange(false);
         
@@ -172,15 +175,21 @@ bool CClip::Update(double _timelineTime)
     if (_timelineTime < m_StartTime)
         return false;
 
-    
-
-    
     if (NeedsNewFrame(_timelineTime, &m_DecoderClock))
     {
        
         if (!GrabVideoFrame())
         {
-            return false;
+            // If we're near the end, don't fail as we used to
+            if (m_LastValidFrame && IsNearEnd())
+            {
+                // Just keep using the last valid frame
+                m_spFrameData = m_LastValidFrame;
+            }
+            else
+            {
+                return false;
+            }
         }
     }
     
@@ -243,6 +252,10 @@ bool CClip::GrabVideoFrame()
     if (frame)
     {
         m_spFrameData = frame;
+
+        // Store this as our last valid frame
+        m_LastValidFrame = frame;
+        
         {
             std::unique_lock<std::shared_mutex> lock(
                 m_CurrentFrameMetadataLock);
@@ -282,11 +295,28 @@ bool CClip::GrabVideoFrame()
     }
     else
     {
+        // If we're near the end and have a cached frame, use it instead of failing
+        if (m_LastValidFrame && IsNearEnd())
+        {
+            g_Log->Info("Using cached frame %d for seamless transition",
+                        m_LastValidFrame->GetMetaData().frameIdx);
+            m_spFrameData = m_LastValidFrame;
+            return true;
+        }
+        
         g_Log->Warning("failed to get frame...");
         return false;
     }
 
     return true;
+}
+
+bool CClip::IsNearEnd() const
+{
+    if (!m_CurrentFrameMetadata.maxFrameIdx) return false;
+    
+    uint32_t framesRemaining = m_CurrentFrameMetadata.maxFrameIdx - m_CurrentFrameMetadata.frameIdx;
+    return framesRemaining < 10; // We might adjust that, good start point. might need push to 25+
 }
 
 uint32_t CClip::GetCurrentFrameIdx() const

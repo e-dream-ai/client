@@ -43,8 +43,8 @@ class CClip
         bool started;
     };
 
-    sClipMetadata m_ClipMetadata;
 public: // tmp public for debug
+    sClipMetadata m_ClipMetadata;
     DecoderClock m_DecoderClock;
 private: //tmp
     spCFrameDisplay m_spFrameDisplay;
@@ -75,8 +75,9 @@ private: // tmp
     bool NeedsNewFrame(double _timelineTime, DecoderClock* _decoderClock) const;
     ///    Grab a frame from the decoder and use it as a texture.
     bool GrabVideoFrame();
-    
-  public:
+    spCVideoFrame m_LastValidFrame;  // Store the last successfully decoded frame
+
+public:
     CClip(const sClipMetadata& _metadata, spCRenderer _spRenderer,
           int32_t _displayMode, uint32_t _displayWidth,
           uint32_t _displayHeight);
@@ -131,6 +132,8 @@ private: // tmp
         m_ResumeStartTime = startTime;
         m_IsResume = true;
     }
+    bool IsNearEnd() const;
+
 };
 MakeSmartPointers(CClip);
 } // namespace ContentDecoder

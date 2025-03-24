@@ -511,9 +511,18 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
             {
                 av_packet_free(&packet);
                 av_packet_free(&filteredPacket);
-                m_HasEnded.exchange(true);
+                // Only mark as ended if we've already processed the last frame
+                if (ovi->m_CurrentFrameIndex >= ovi->m_TotalFrameCount - 1) {
+                    m_HasEnded.exchange(true);
+                    return nullptr;
+                }
+                
+                // Otherwise, try to read the last frame
+                ovi->m_ReadingTrailingFrames = true;
+                continue;
+                /*m_HasEnded.exchange(true);
                 ovi->m_CurrentFrameIndex = ovi->m_TotalFrameCount - 1;
-                return nullptr;
+                return nullptr;*/
             }
             g_Log->Error("FFmpeg Error sending packet for decoding: %i:%s", ret,
                          UNFFERRTAG(ret));
@@ -525,7 +534,8 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
             frameNumber =
             (int64_t)((pFrame->pts * frameRate) * av_q2d(timeBase));
             ovi->m_CurrentFrameIndex = frameNumber;
-            // g_Log->Info("Read : %d ret : %d", frameNumber, ret);
+
+            g_Log->Info("Read : %d ret : %d", frameNumber, ret);
 
             if (ret == AVERROR(EAGAIN))
             {
@@ -535,10 +545,26 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
             }
             if (ret == AVERROR_EOF)
             {
+                if (ovi->m_CurrentFrameIndex < ovi->m_TotalFrameCount - 1) {
+                    g_Log->Info("Got EOF but expecting more frames, trying to flush decoder");
+                    ovi->m_ReadingTrailingFrames = true;
+                    av_packet_free(&packet);
+                    av_packet_free(&filteredPacket);
+                    
+                    // Send a NULL packet to flush the decoder
+                    avcodec_send_packet(pVideoCodecContext, nullptr);
+                    continue;
+                } else {
+                    // Normal EOF handling
+                    m_HasEnded.exchange(true);
+                    return nullptr;
+                }
+
+                /*
                 av_packet_free(&packet);
                 av_packet_free(&filteredPacket);
                 return nullptr; // the codec has been fully flushed, and there will
-                // be no more output frames
+                // be no more output frames */
             }
             else if (ret < 0)
             {
@@ -647,6 +673,16 @@ void CContentDecoder::ReadFramesThread()
         PlatformUtils::SetThreadName("ReadFrames");
         g_Log->Info("Main video frame reading thread started for %s", m_Metadata.dreamData.uuid.c_str());
         
+        // Force decoder to start at frame 0
+        m_CurrentVideoInfo->m_CurrentFrameIndex = 0;
+        //m_CurrentVideoInfo->m_SeekTargetFrame = 0;
+        
+        // Force a seek to beginning to ensure we get frame 0
+        avformat_seek_file(m_CurrentVideoInfo->m_pFormatContext,
+                           m_CurrentVideoInfo->m_VideoStreamID, 0, 0, 0, 0);
+        avcodec_flush_buffers(m_CurrentVideoInfo->m_pVideoCodecContext);
+
+        
         while (m_CurrentVideoInfo->m_CurrentFrameIndex <
                m_CurrentVideoInfo->m_TotalFrameCount - 2)
         {
@@ -687,6 +723,8 @@ void CContentDecoder::ReadFramesThread()
                                                     m_CurrentVideoInfo->m_pFormatContext
                                                     ->streams[m_CurrentVideoInfo->m_VideoStreamID]
                                                     ->avg_frame_rate);
+                
+
                 
                 // Calculate target timestamp in stream time base
                 int64_t targetTimestamp =

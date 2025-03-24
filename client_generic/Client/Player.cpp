@@ -487,7 +487,7 @@ bool CPlayer::BeginFrameUpdate()
 
     writer_lock l(m_UpdateMutex);
 
-    if (m_currentClip) {
+/*    if (m_currentClip) {
         m_currentClip->Update(m_TimelineTime);
     }
 
@@ -495,7 +495,7 @@ bool CPlayer::BeginFrameUpdate()
         if (!m_nextClip->HasFinished()) {
             m_nextClip->Update(m_TimelineTime);
         }
-    }
+    }*/
     
     if (m_currentClip)
     {
@@ -619,7 +619,10 @@ bool CPlayer::Update(uint32_t displayUnit)
         if (m_isTransitioning) {
             UpdateTransition(m_TimelineTime);
         } else if (m_currentClip && m_currentClip->IsFadingOut()) {
-            PlayNextDream();
+            // Make sure we're not seamless transitionning
+            /*if (!m_nextDreamDecision || m_nextDreamDecision->transition != PlaylistManager::TransitionType::Seamless) {
+                //PlayNextDream();
+            }*/
         } else if (!m_currentClip && m_isFirstPlay) {
             PlayNextDream();
         } else if (m_currentClip && m_currentClip->HasFinished()) {
@@ -639,25 +642,29 @@ void CPlayer::RenderFrame(DisplayOutput::spCRenderer renderer) {
         float nextAlpha = static_cast<float>(transitionProgress);
 
         // Render current clip
-        m_currentClip->Update(m_TimelineTime);
-        g_Log->Info("render current frame %d", m_currentClip->m_CurrentFrameMetadata.frameIdx);
+        // TODO: tmplog
+        g_Log->Info("render current frame %d of %s", m_currentClip->m_CurrentFrameMetadata.frameIdx, m_currentClip->m_ClipMetadata.dreamData.uuid.c_str());
 
         m_currentClip->DrawFrame(renderer, currentAlpha);
 
         // Render next clip
         // Somehow sometimes we reach here with no m_nextClip, not 100% clear why
         if (m_nextClip) {
-            m_nextClip->Update(m_TimelineTime);
-            g_Log->Info("render next frame %d", m_nextClip->m_CurrentFrameMetadata.frameIdx);
+            // TODO: tmplog
+            g_Log->Info("render next frame %d of %s", m_nextClip->m_CurrentFrameMetadata.frameIdx, m_nextClip->m_ClipMetadata.dreamData.uuid.c_str());
            m_nextClip->DrawFrame(renderer, nextAlpha);
         } else {
             g_Log->Error("Render frame has null nextClip despite checking for it earlier");
         }
     } else if (m_currentClip) {
-        m_currentClip->Update(m_TimelineTime);
-        g_Log->Info("render frame %d", m_currentClip->m_CurrentFrameMetadata.frameIdx);
+        // TODO: tmplog
+        g_Log->Info("render frame %d of %s", m_currentClip->m_CurrentFrameMetadata.frameIdx, m_currentClip->m_ClipMetadata.dreamData.uuid.c_str());
         
         m_currentClip->DrawFrame(renderer);
+        if (m_currentClip->m_CurrentFrameMetadata.frameIdx == 1) {
+            //
+        }
+            
     }
 }
 
@@ -753,7 +760,27 @@ void CPlayer::PlayNextDream(bool quickFade) {
         if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::Seamless) {
             // For seamless, next clip should already be prepared
             if (m_nextClip) {
+                // Make sure current clip won't transition early
+                m_currentClip->SetTransitionLength(0.0, 0.0);
                 
+                // Get the next clip ready with a slight delay to ensure we've
+                // shown all frames from the first clip
+                uint32_t frameCount = m_currentClip->GetFrameCount();
+                uint32_t currentFrame = m_currentClip->GetCurrentFrameIdx();
+                double timeToEnd = (frameCount - 1 - currentFrame) / m_DecoderFps;
+                
+                // Start next clip in sync with the end of current clip
+                m_nextClip->SetTransitionLength(0.0, 0.0);
+                m_nextClip->StartPlayback(0);
+                m_nextClip->SetStartTime(m_TimelineTime + timeToEnd);
+                
+                // Perform the clip switch
+                destroyClipAsync(std::move(m_currentClip));
+                m_currentClip = m_nextClip;
+                m_nextClip = nullptr;
+                m_playlistManager->moveToNextDream(*m_nextDreamDecision);
+        
+                /*
                 m_nextClip->SetTransitionLength(0.0, 5);
 
                 // Calculate exactly how many frames remain
@@ -761,27 +788,29 @@ void CPlayer::PlayNextDream(bool quickFade) {
                 uint32_t maxFrameIdx = m_currentClip->GetFrameCount() - 1;
                 uint32_t framesRemaining = maxFrameIdx - lastFrameIdx;
                 
-                m_nextClip->StartPlayback(0);
-                /*if (m_nextClip) {
-                    // Force immediate update to grab frame 0
-                    m_nextClip->m_DecoderClock.started = false;
-                    m_nextClip->m_DecoderClock.acc = 0.0;
-                    
-                    // Manually trigger the first frame grab before switching
-                    double currentTime = m_TimelineTime + (framesRemaining / m_DecoderFps);
-                    m_nextClip->Update(currentTime);
-                    
-                    g_Log->Info("Pre-loaded next clip frame: %d", m_nextClip->GetCurrentFrameIdx());
-                }*/
+                double timeToFinish = framesRemaining / m_DecoderFps;
                 
-                m_nextClip->SetStartTime(m_TimelineTime + (framesRemaining / m_DecoderFps));
+                g_Log->Info("Seamless transition planning: current frame %d/%d, remaining frames: %d",
+                            lastFrameIdx, maxFrameIdx, framesRemaining);
+
+                
+                m_nextClip->StartPlayback(0);
+                // Force a frame grab to ensure frame 0 is loaded
+                m_nextClip->m_DecoderClock = {};
+                m_nextClip->m_DecoderClock.started = false;
+                m_nextClip->Update(m_TimelineTime);
+                
+                double exactTransitionTime = m_TimelineTime + timeToFinish;
+                m_nextClip->SetStartTime(exactTransitionTime);
+                
+                //m_nextClip->SetStartTime(m_TimelineTime + (framesRemaining / m_DecoderFps));
 
                 // Start the asynchronous destruction of the current clip
                 destroyClipAsync(std::move(m_currentClip));
                 
                 m_currentClip = m_nextClip;
                 m_nextClip = nullptr;
-                m_playlistManager->moveToNextDream(*m_nextDreamDecision);
+                m_playlistManager->moveToNextDream(*m_nextDreamDecision); */
             }
 
         } else {
@@ -1175,6 +1204,12 @@ bool CPlayer::shouldPrepareTransition(const ContentDecoder::spCClip& clip) const
     if (!clip) return false;
     
     const auto& metadata = clip->GetCurrentFrameMetadata();
+    
+    // Make sure the clip is properly loaded before we look for transition
+    if (metadata.maxFrameIdx <= 0) {
+        return false;
+    }
+    
     uint32_t framesRemaining = metadata.maxFrameIdx - metadata.frameIdx;
     double timeRemaining = framesRemaining / clip->GetClipMetadata().decodeFps;
     
