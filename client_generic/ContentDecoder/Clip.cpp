@@ -114,6 +114,10 @@ bool CClip::StartPlayback(int64_t _seekFrame)
     }
     
     m_DecoderClock = {};
+    m_DecoderClock.started = false;
+    m_DecoderClock.acc = 0.0;
+    m_DecoderClock.interframeDelta = 0.0;
+    
     return true;
     //return m_spDecoder->Start(m_ClipMetadata, _seekFrame);
 }
@@ -156,13 +160,10 @@ bool CClip::NeedsNewFrame(double _timelineTime,
 bool CClip::Update(double _timelineTime)
 {
     m_Alpha = 0.f;
-    
-/*    if ((m_CurrentFrameMetadata.maxFrameIdx > 0 &&
-         m_CurrentFrameMetadata.frameIdx >= m_CurrentFrameMetadata.maxFrameIdx - 2)*/
-        /*_timelineTime > m_EndTime || m_spDecoder->HasEnded() */
-    //if ((m_CurrentFrameMetadata.maxFrameIdx > 0 &&
-    //     m_CurrentFrameMetadata.frameIdx >= m_CurrentFrameMetadata.maxFrameIdx - 2))
-    if (m_CurrentFrameMetadata.maxFrameIdx > 0 && _timelineTime > m_EndTime)
+
+    // We always push until the last frame is rendered. We may fake it
+    if (m_CurrentFrameMetadata.maxFrameIdx > 0 &&
+        m_CurrentFrameMetadata.frameIdx > m_CurrentFrameMetadata.maxFrameIdx - 1)
     {
         g_Log->Info("marking dream %s as finished", m_ClipMetadata.dreamData.uuid.c_str());
         
@@ -183,8 +184,10 @@ bool CClip::Update(double _timelineTime)
             // If we're near the end, don't fail as we used to
             if (m_LastValidFrame && IsNearEnd())
             {
+                g_Log->Info("Reusing last valid, faking increment count");
                 // Just keep using the last valid frame
                 m_spFrameData = m_LastValidFrame;
+                m_CurrentFrameMetadata.frameIdx++;
             }
             else
             {
@@ -298,8 +301,10 @@ bool CClip::GrabVideoFrame()
         // If we're near the end and have a cached frame, use it instead of failing
         if (m_LastValidFrame && IsNearEnd())
         {
-            g_Log->Info("Using cached frame %d for seamless transition",
-                        m_LastValidFrame->GetMetaData().frameIdx);
+            m_CurrentFrameMetadata.frameIdx++;
+            g_Log->Info("Using cached frame %d for seamless transition, masquarading as %d",
+                        m_LastValidFrame->GetMetaData().frameIdx,
+                        m_CurrentFrameMetadata.frameIdx);
             m_spFrameData = m_LastValidFrame;
             return true;
         }

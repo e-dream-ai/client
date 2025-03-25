@@ -662,7 +662,7 @@ void CPlayer::RenderFrame(DisplayOutput::spCRenderer renderer) {
         
         m_currentClip->DrawFrame(renderer);
         if (m_currentClip->m_CurrentFrameMetadata.frameIdx == 1) {
-            //
+            // TMP breakpoint
         }
             
     }
@@ -760,61 +760,21 @@ void CPlayer::PlayNextDream(bool quickFade) {
         if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::Seamless) {
             // For seamless, next clip should already be prepared
             if (m_nextClip) {
-                // Make sure current clip won't transition early
+                g_Log->Info("Executing seamless transition now");
+                destroyClipAsync(std::move(m_currentClip));
+
+                m_currentClip = m_nextClip;
+                m_nextClip = nullptr;
+
                 m_currentClip->SetTransitionLength(0.0, 0.0);
-                
-                // Get the next clip ready with a slight delay to ensure we've
-                // shown all frames from the first clip
-                uint32_t frameCount = m_currentClip->GetFrameCount();
-                uint32_t currentFrame = m_currentClip->GetCurrentFrameIdx();
-                double timeToEnd = (frameCount - 1 - currentFrame) / m_DecoderFps;
-                
-                // Start next clip in sync with the end of current clip
-                m_nextClip->SetTransitionLength(0.0, 0.0);
-                m_nextClip->StartPlayback(0);
-                m_nextClip->SetStartTime(m_TimelineTime + timeToEnd);
-                
-                // Perform the clip switch
-                destroyClipAsync(std::move(m_currentClip));
-                m_currentClip = m_nextClip;
-                m_nextClip = nullptr;
+
                 m_playlistManager->moveToNextDream(*m_nextDreamDecision);
-        
-                /*
-                m_nextClip->SetTransitionLength(0.0, 5);
-
-                // Calculate exactly how many frames remain
-                uint32_t lastFrameIdx = m_currentClip->GetCurrentFrameIdx();
-                uint32_t maxFrameIdx = m_currentClip->GetFrameCount() - 1;
-                uint32_t framesRemaining = maxFrameIdx - lastFrameIdx;
-                
-                double timeToFinish = framesRemaining / m_DecoderFps;
-                
-                g_Log->Info("Seamless transition planning: current frame %d/%d, remaining frames: %d",
-                            lastFrameIdx, maxFrameIdx, framesRemaining);
-
-                
-                m_nextClip->StartPlayback(0);
-                // Force a frame grab to ensure frame 0 is loaded
-                m_nextClip->m_DecoderClock = {};
-                m_nextClip->m_DecoderClock.started = false;
-                m_nextClip->Update(m_TimelineTime);
-                
-                double exactTransitionTime = m_TimelineTime + timeToFinish;
-                m_nextClip->SetStartTime(exactTransitionTime);
-                
-                //m_nextClip->SetStartTime(m_TimelineTime + (framesRemaining / m_DecoderFps));
-
-                // Start the asynchronous destruction of the current clip
-                destroyClipAsync(std::move(m_currentClip));
-                
-                m_currentClip = m_nextClip;
-                m_nextClip = nullptr;
-                m_playlistManager->moveToNextDream(*m_nextDreamDecision); */
+                m_nextDreamDecision = std::nullopt;
             }
-
         } else {
             // Standard transition
+            g_Log->Info("Regular transitionning");
+
             StartTransition();
             PlayClip(m_nextDreamDecision->dream, m_TimelineTime, -1, true);
             m_playlistManager->moveToNextDream(*m_nextDreamDecision);
@@ -1230,6 +1190,7 @@ void CPlayer::prepareSeamlessTransition() {
     PreloadClip(m_nextDreamDecision->dream);
     
     if (m_nextClip) {
+        m_nextClip->StartPlayback(0);
         g_Log->Info("Prepared seamless transition to: %s", m_nextDreamDecision->dream->uuid.c_str());
     }
 }
