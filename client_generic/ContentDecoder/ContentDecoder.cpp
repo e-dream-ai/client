@@ -806,8 +806,10 @@ spCVideoFrame CContentDecoder::PopVideoFrame()
 {
     std::scoped_lock l(m_FrameQueueMutex);
     CVideoFrame* tmp = nullptr;
+    g_Log->Info("FrameQueue : %d", m_FrameQueue.size());
+
     m_FrameQueue.pop(tmp, false);
-    
+   
     if (tmp == nullptr) {
         g_Log->Info("can't pop");
     }
