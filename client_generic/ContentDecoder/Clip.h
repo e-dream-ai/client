@@ -34,6 +34,13 @@ class CClip
         ReverseHistory = 2
     };
 
+    enum class BufferingState {
+        NotBuffering,  // Normal playback
+        Buffering,     // Initial buffering before playback starts
+        Rebuffering    // Paused playback to rebuild buffer
+    };
+
+    
   private:
     struct DecoderClock
     {
@@ -70,6 +77,15 @@ private: // tmp
     bool m_IsResume = false;
     
     bool m_IsPreloaded = false;
+ 
+    // Buffering-related fields
+    BufferingState m_BufferingState = BufferingState::NotBuffering;
+    double m_RequestedStartTime = 0.0;  // When clip was requested to start
+    double m_ActualStartTime = 0.0;     // When clip actually started playing
+    double m_RebufferingStartTime = 0.0; // When rebuffering began
+    double m_TotalBufferingTime = 0.0;   // Accumulated buffering time
+    bool m_HasStartedPlaying = false;    // Whether playback has actually begun
+    
     
   private:
     bool NeedsNewFrame(double _timelineTime, DecoderClock* _decoderClock) const;
@@ -134,6 +150,11 @@ public:
     }
     bool IsNearEnd() const;
 
+    bool IsBuffering() const { return m_BufferingState != BufferingState::NotBuffering; }
+    double GetActualStartTime() const { return m_ActualStartTime; }
+    double GetTotalBufferingTime() const { return m_TotalBufferingTime; }
+    bool HasStartedPlaying() const { return m_HasStartedPlaying; }
+   
 };
 MakeSmartPointers(CClip);
 } // namespace ContentDecoder

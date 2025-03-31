@@ -1030,6 +1030,11 @@ void CPlayer::UpdateTransition(double currentTime)
 {
     if (!m_isTransitioning) return;
 
+    // If next clip is still buffering, don't advance transition progress
+    if (m_nextClip && m_nextClip->IsBuffering()) {
+        // Hold transition until next clip is ready to play
+        return;
+    }
     
     // If we have preflight decision and it's seamless, but we're transitioning,
     // that means it was interrupted - convert to quick fade

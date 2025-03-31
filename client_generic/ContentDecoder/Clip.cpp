@@ -78,13 +78,23 @@ bool CClip::Start(int64_t _seekFrame)
 /*    m_DecoderClock = {};
     return m_spDecoder->Start(m_ClipMetadata, _seekFrame);*/
     
+    // Reset buffering state and timing values
+    m_BufferingState = BufferingState::Buffering;
+    m_RequestedStartTime = m_StartTime;
+    m_ActualStartTime = 0.0;
+    m_TotalBufferingTime = 0.0;
+    m_HasStartedPlaying = false;
+    
     // First preload the clip
     if (!Preload()) {
         return false;
     }
     
     // Then start playback
-    return StartPlayback(_seekFrame);
+    //return StartPlayback(_seekFrame);
+    
+    // Just initialize the decoder and start filling the frame queue
+    return m_spDecoder->Start(m_ClipMetadata, _seekFrame);
 }
 
 void CClip::Stop() { m_spDecoder->Stop(); }
@@ -118,6 +128,8 @@ bool CClip::StartPlayback(int64_t _seekFrame)
     m_DecoderClock.acc = 0.0;
     m_DecoderClock.interframeDelta = 0.0;
     
+    m_HasStartedPlaying = true;
+
     return true;
     //return m_spDecoder->Start(m_ClipMetadata, _seekFrame);
 }
@@ -159,6 +171,56 @@ bool CClip::NeedsNewFrame(double _timelineTime,
 
 bool CClip::Update(double _timelineTime)
 {
+    // Check buffering state
+    if (m_BufferingState != BufferingState::NotBuffering) {
+        uint32_t queueLength = m_spDecoder->QueueLength();
+        
+        // Check if we have enough frames to start/resume playback
+        if (m_BufferingState == BufferingState::Buffering && queueLength >= 10) {
+            // Initial buffer filled, start playback
+            g_Log->Info("Initial buffer filled (%d frames), starting playback for %s",
+                        queueLength, m_ClipMetadata.dreamData.uuid.c_str());
+            m_BufferingState = BufferingState::NotBuffering;
+            
+            // Set the actual start time when playback begins
+            if (!m_HasStartedPlaying) {
+                m_ActualStartTime = _timelineTime;
+                m_HasStartedPlaying = true;
+                
+                // Update the clip's timeline position
+                SetStartTime(m_ActualStartTime);
+                
+                // Start actual playback
+                StartPlayback(m_spDecoder->GetVideoInfo()->m_SeekTargetFrame);
+            }
+        }
+        else if (m_BufferingState == BufferingState::Rebuffering && queueLength >= 5) {
+            // Rebuffer filled, resume playback
+            g_Log->Info("Buffer refilled (%d frames), resuming playback for %s",
+                        queueLength, m_ClipMetadata.dreamData.uuid.c_str());
+            
+            // Track how long we were buffering
+            double bufferingDuration = _timelineTime - m_RebufferingStartTime;
+            m_TotalBufferingTime += bufferingDuration;
+            
+            m_BufferingState = BufferingState::NotBuffering;
+        }
+        else {
+            // Still buffering, don't update the frame
+            m_Alpha = 0.5f; // Semi-transparent during buffering
+            return true;    // Return true so player knows we're still active
+        }
+    }
+    
+    // Check if we need to rebuffer (unless we're near the end or fading out)
+    if (m_spDecoder->QueueLength() < 2 && !IsNearEnd() && !m_IsFadingOut.load()) {
+        g_Log->Info("Buffer too low (%d frames), entering rebuffering state for %s",
+                    m_spDecoder->QueueLength(), m_ClipMetadata.dreamData.uuid.c_str());
+        m_BufferingState = BufferingState::Rebuffering;
+        m_RebufferingStartTime = _timelineTime;
+        return true;
+    }
+    
     m_Alpha = 0.f;
 
     // We always push until the last frame is rendered. We may fake it
@@ -239,6 +301,16 @@ bool CClip::Update(double _timelineTime)
 }
 
 bool CClip::DrawFrame(spCRenderer _spRenderer, float alpha) {
+    // If we're buffering, draw the last valid frame with reduced opacity
+    if (IsBuffering()) {
+        if (m_LastValidFrame) {
+            // Use the last valid frame while buffering
+            m_spFrameData = m_LastValidFrame;
+            return m_spFrameDisplay->Draw(_spRenderer, alpha * 0.5f, m_DecoderClock.interframeDelta);
+        }
+        return false; // No frame yet
+    }
+    
     if (!m_spFrameData)
         return false;
     return m_spFrameDisplay->Draw(_spRenderer, m_Alpha, m_DecoderClock.interframeDelta);
