@@ -85,6 +85,9 @@ bool CClip::Start(int64_t _seekFrame)
     m_TotalBufferingTime = 0.0;
     m_HasStartedPlaying = false;
     
+    g_Log->Info("Starting clip %s in buffering mode, waiting for frames...",
+                m_ClipMetadata.dreamData.uuid.c_str());
+
     // First preload the clip
     if (!Preload()) {
         return false;
@@ -171,6 +174,9 @@ bool CClip::NeedsNewFrame(double _timelineTime,
 
 bool CClip::Update(double _timelineTime)
 {
+    m_Alpha = 0.f;
+
+    
     // Check buffering state
     if (m_BufferingState != BufferingState::NotBuffering) {
         uint32_t queueLength = m_spDecoder->QueueLength();
@@ -221,7 +227,6 @@ bool CClip::Update(double _timelineTime)
         return true;
     }
     
-    m_Alpha = 0.f;
 
     // We always push until the last frame is rendered. We may fake it
     if (m_CurrentFrameMetadata.maxFrameIdx > 0 &&
@@ -301,6 +306,12 @@ bool CClip::Update(double _timelineTime)
 }
 
 bool CClip::DrawFrame(spCRenderer _spRenderer, float alpha) {
+    if (m_BufferingState == BufferingState::Buffering) {
+        // Could display a loading indicator here
+        g_Log->Info("Buffering, nothing to display yet");
+        return false; // Nothing to draw yet
+    }
+    
     // If we're buffering, draw the last valid frame with reduced opacity
     if (IsBuffering()) {
         if (m_LastValidFrame) {

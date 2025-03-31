@@ -657,14 +657,29 @@ void CPlayer::RenderFrame(DisplayOutput::spCRenderer renderer) {
             g_Log->Error("Render frame has null nextClip despite checking for it earlier");
         }
     } else if (m_currentClip) {
-        // TODO: tmplog
-        g_Log->Info("render frame %d of %s", m_currentClip->m_CurrentFrameMetadata.frameIdx, m_currentClip->m_ClipMetadata.dreamData.uuid.c_str());
-        
-        m_currentClip->DrawFrame(renderer);
-        if (m_currentClip->m_CurrentFrameMetadata.frameIdx == 1) {
-            // TMP breakpoint
-        }
+        if (m_currentClip->IsBuffering()) {
+            // We're still buffering, show appropriate UI
+            g_Log->Info("Buffering clip %s, frame queue: %d",
+                m_currentClip->GetClipMetadata().dreamData.uuid.c_str(),
+                m_currentClip->GetDecoder()->QueueLength());
             
+            // Still call DrawFrame which will handle buffering visualization
+            m_currentClip->DrawFrame(renderer);
+
+            // TODO : we need to impl that 
+            // renderer->DrawBufferingIndicator();
+        } else {
+            // Normal playback
+            g_Log->Info("render frame %d of %s",
+                m_currentClip->m_CurrentFrameMetadata.frameIdx,
+                m_currentClip->m_ClipMetadata.dreamData.uuid.c_str());
+            
+            m_currentClip->DrawFrame(renderer);
+
+            if (m_currentClip->m_CurrentFrameMetadata.frameIdx == 1) {
+                // TMP breakpoint
+            }
+        }
     }
 }
 

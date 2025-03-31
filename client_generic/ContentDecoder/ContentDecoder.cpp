@@ -541,6 +541,9 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
             {
                 av_packet_free(&packet);
                 av_packet_free(&filteredPacket);
+                
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                
                 continue;
             }
             if (ret == AVERROR_EOF)
@@ -682,6 +685,8 @@ void CContentDecoder::ReadFramesThread()
                            m_CurrentVideoInfo->m_VideoStreamID, 0, 0, 0, 0);
         avcodec_flush_buffers(m_CurrentVideoInfo->m_pVideoCodecContext);
 
+        // tmp
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
         
         while (m_CurrentVideoInfo->m_CurrentFrameIndex <
                m_CurrentVideoInfo->m_TotalFrameCount - 2)
