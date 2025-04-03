@@ -590,7 +590,7 @@ bool CPlayer::Update(uint32_t displayUnit)
 
     if (m_currentClip) {
         m_currentClip->Update(m_TimelineTime);
-        
+
         // Check if we need to prepare for transition
         if (!m_isTransitioning && !m_nextDreamDecision && shouldPrepareTransition(m_currentClip)) {
             // Get the next dream decision
@@ -629,7 +629,11 @@ bool CPlayer::Update(uint32_t displayUnit)
             PlayNextDream();
         }
     }
-
+    if (m_currentClip && m_currentClip->m_Alpha == 0.0f) {
+        g_Log->Info("Fixing null alpha");
+        m_currentClip->m_Alpha = 1.0f;
+    }
+    
     RenderFrame(du->spRenderer);
 
     return true;

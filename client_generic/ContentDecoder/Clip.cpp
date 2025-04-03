@@ -234,6 +234,7 @@ bool CClip::Update(double _timelineTime)
     {
         g_Log->Info("marking dream %s as finished", m_ClipMetadata.dreamData.uuid.c_str());
         
+        m_Alpha = 1.f;
         m_HasFinished.exchange(true);
         m_IsFadingOut.exchange(false);
         
@@ -312,6 +313,8 @@ bool CClip::DrawFrame(spCRenderer _spRenderer, float alpha) {
         return false; // Nothing to draw yet
     }
     
+    //g_Log->Info("alpha %f", m_Alpha);
+
     // If we're buffering, draw the last valid frame with reduced opacity
     if (IsBuffering()) {
         if (m_LastValidFrame) {

@@ -69,7 +69,9 @@ private: // tmp
     boost::atomic<bool> m_IsFadingOut;
     float m_FadeInSeconds = 5.f;
     float m_FadeOutSeconds = 5.f;
+public:
     float m_Alpha;
+private:
     eClipFlags m_ClipFlags = eClipFlags::None;
 
     // We need these to handle resumes
