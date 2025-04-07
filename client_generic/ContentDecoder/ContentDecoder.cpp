@@ -762,7 +762,7 @@ void CContentDecoder::ReadFramesThread()
             
             if (m_CurrentVideoInfo->m_SeekTargetFrame != -1)
                 m_FrameQueueMutex.unlock();
-            //m_CurrentVideoInfo->m_SeekTargetFrame = -1;
+            m_CurrentVideoInfo->m_SeekTargetFrame = -1;
         }
         
         // Only try grabbing the remainder of the video if we have a md5 to verify it

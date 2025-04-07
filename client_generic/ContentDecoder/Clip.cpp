@@ -442,5 +442,15 @@ void CClip::SkipTime(float _secondsForward)
 {
     m_spDecoder->SkipTime(_secondsForward);
     m_DecoderClock.started = false;
+    
+    // If we were in buffering state, reset it to ensure proper rebuffering
+    // This matters on successive skips
+    if (m_BufferingState == BufferingState::Rebuffering) {
+        m_BufferingState = BufferingState::NotBuffering;
+    }
+
+    g_Log->Info("Skipped %f seconds in clip %s", _secondsForward,
+                m_ClipMetadata.dreamData.uuid.c_str());
 }
+
 } // namespace ContentDecoder
