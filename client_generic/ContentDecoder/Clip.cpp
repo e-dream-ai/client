@@ -234,7 +234,9 @@ bool CClip::Update(double _timelineTime)
     {
         g_Log->Info("marking dream %s as finished", m_ClipMetadata.dreamData.uuid.c_str());
         
-        m_Alpha = 1.f;
+        if (m_FadeOutSeconds == 0.f)
+            m_Alpha = 1.f;
+        
         m_HasFinished.exchange(true);
         m_IsFadingOut.exchange(false);
         
