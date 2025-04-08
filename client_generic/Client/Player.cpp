@@ -647,15 +647,15 @@ void CPlayer::RenderFrame(DisplayOutput::spCRenderer renderer) {
 
         // Render current clip
         // TODO: tmplog
-        g_Log->Info("render current frame %d of %s", m_currentClip->m_CurrentFrameMetadata.frameIdx, m_currentClip->m_ClipMetadata.dreamData.uuid.c_str());
-
+        /*g_Log->Info("render current frame %d of %s", m_currentClip->m_CurrentFrameMetadata.frameIdx, m_currentClip->m_ClipMetadata.dreamData.uuid.c_str());
+         */
         m_currentClip->DrawFrame(renderer, currentAlpha);
 
         // Render next clip
         // Somehow sometimes we reach here with no m_nextClip, not 100% clear why
         if (m_nextClip) {
             // TODO: tmplog
-            g_Log->Info("render next frame %d of %s", m_nextClip->m_CurrentFrameMetadata.frameIdx, m_nextClip->m_ClipMetadata.dreamData.uuid.c_str());
+            /*g_Log->Info("render next frame %d of %s", m_nextClip->m_CurrentFrameMetadata.frameIdx, m_nextClip->m_ClipMetadata.dreamData.uuid.c_str());*/
            m_nextClip->DrawFrame(renderer, nextAlpha);
         } else {
             g_Log->Error("Render frame has null nextClip despite checking for it earlier");
@@ -663,9 +663,9 @@ void CPlayer::RenderFrame(DisplayOutput::spCRenderer renderer) {
     } else if (m_currentClip) {
         if (m_currentClip->IsBuffering()) {
             // We're still buffering, show appropriate UI
-            g_Log->Info("Buffering clip %s, frame queue: %d",
+            /*g_Log->Info("Buffering clip %s, frame queue: %d",
                 m_currentClip->GetClipMetadata().dreamData.uuid.c_str(),
-                m_currentClip->GetDecoder()->QueueLength());
+                m_currentClip->GetDecoder()->QueueLength());*/
             
             // Still call DrawFrame which will handle buffering visualization
             m_currentClip->DrawFrame(renderer);
@@ -674,10 +674,10 @@ void CPlayer::RenderFrame(DisplayOutput::spCRenderer renderer) {
             // renderer->DrawBufferingIndicator();
         } else {
             // Normal playback
-            g_Log->Info("render frame %d of %s",
+            /*g_Log->Info("render frame %d of %s",
                 m_currentClip->m_CurrentFrameMetadata.frameIdx,
                 m_currentClip->m_ClipMetadata.dreamData.uuid.c_str());
-            
+            */
             m_currentClip->DrawFrame(renderer);
 
             if (m_currentClip->m_CurrentFrameMetadata.frameIdx == 1) {

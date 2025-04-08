@@ -407,7 +407,7 @@ bool CClip::IsNearEnd() const
     if (!m_CurrentFrameMetadata.maxFrameIdx) return false;
     
     uint32_t framesRemaining = m_CurrentFrameMetadata.maxFrameIdx - m_CurrentFrameMetadata.frameIdx;
-    return framesRemaining < 10; // We might adjust that, good start point. might need push to 25+
+    return framesRemaining < 50; // We might adjust that, good start point. might need push to 25+
 }
 
 uint32_t CClip::GetCurrentFrameIdx() const
