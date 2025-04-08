@@ -67,9 +67,9 @@ private: // tmp
     double m_EndTime;
     boost::atomic<bool> m_HasFinished;
     boost::atomic<bool> m_IsFadingOut;
+public:
     float m_FadeInSeconds = 5.f;
     float m_FadeOutSeconds = 5.f;
-public:
     float m_Alpha;
 private:
     eClipFlags m_ClipFlags = eClipFlags::None;

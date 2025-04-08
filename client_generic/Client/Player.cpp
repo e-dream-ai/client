@@ -629,7 +629,7 @@ bool CPlayer::Update(uint32_t displayUnit)
             PlayNextDream();
         }
     }
-    if (m_currentClip && m_currentClip->m_Alpha == 0.0f) {
+    if (m_currentClip && m_currentClip->m_Alpha == 0.0f && m_currentClip->m_FadeInSeconds == 0.f) {
         g_Log->Info("Fixing null alpha");
         m_currentClip->m_Alpha = 1.0f;
     }
