@@ -102,7 +102,7 @@ public:
     bool Start(int64_t _seekFrame = -1);
     void Stop();
     
-    bool Preload();
+    bool Preload(int64_t _seekFrame = -1);
     bool StartPlayback(int64_t _seekFrame = -1);
     
     bool Update(double _timelineTime);

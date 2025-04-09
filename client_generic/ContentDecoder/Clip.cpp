@@ -85,11 +85,11 @@ bool CClip::Start(int64_t _seekFrame)
     m_TotalBufferingTime = 0.0;
     m_HasStartedPlaying = false;
     
-    g_Log->Info("Starting clip %s in buffering mode, waiting for frames...",
-                m_ClipMetadata.dreamData.uuid.c_str());
+    g_Log->Info("Starting clip %s in buffering mode (seek: %d), waiting for frames...",
+                m_ClipMetadata.dreamData.uuid.c_str(), _seekFrame);
 
     // First preload the clip
-    if (!Preload()) {
+    if (!Preload(_seekFrame)) {
         return false;
     }
     
@@ -102,15 +102,17 @@ bool CClip::Start(int64_t _seekFrame)
 
 void CClip::Stop() { m_spDecoder->Stop(); }
 
-bool CClip::Preload()
+bool CClip::Preload(int64_t _seekFrame)
 {
+    g_Log->Info("Starting preloading %s at %d", m_ClipMetadata.path.c_str(), _seekFrame);
+ 
     // Reset flags
     m_HasFinished.exchange(false);
     m_IsFadingOut.exchange(false);
     m_IsPreloaded = false;
     
     // Initialize the decoder without starting playback
-    if (!m_spDecoder->Start(m_ClipMetadata)) {
+    if (!m_spDecoder->Start(m_ClipMetadata, _seekFrame)) {
         g_Log->Error("Failed to initialize decoder for %s", m_ClipMetadata.path.c_str());
         return false;
     }
