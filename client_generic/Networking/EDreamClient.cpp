@@ -1555,6 +1555,11 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
         g_Client()->ExecuteCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_DISLIKE);
     }
+    else if (event == "report_current_dream")
+    {
+        g_Client()->ExecuteCommand(
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_REPORT);
+    }
     else if (event == "next")
     {
         g_Client()->ExecuteCommand(
@@ -1725,7 +1730,7 @@ void EDreamClient::ConnectRemoteControlSocket()
 }
 
 void EDreamClient::Like(std::string uuid) {
-    std::cout << "Sending like for UUID " << uuid;
+    g_Log->Info("Sending like for UUID %s", uuid.c_str());
     
     std::shared_ptr<sio::object_message> ms =
         std::dynamic_pointer_cast<sio::object_message>(
@@ -1739,7 +1744,7 @@ void EDreamClient::Like(std::string uuid) {
 }
 
 void EDreamClient::Dislike(std::string uuid) {
-    std::cout << "Sending dislike for UUID " << uuid;
+    g_Log->Info("Sending dislike for UUID %s", uuid.c_str());
     
     std::shared_ptr<sio::object_message> ms =
         std::dynamic_pointer_cast<sio::object_message>(
@@ -1752,8 +1757,19 @@ void EDreamClient::Dislike(std::string uuid) {
         ->emit("new_remote_control_event", list);
 }
 
-
-
+void EDreamClient::Report(std::string uuid) {
+    g_Log->Info("Sending report for UUID %s", uuid.c_str());
+    
+    std::shared_ptr<sio::object_message> ms =
+        std::dynamic_pointer_cast<sio::object_message>(
+            sio::object_message::create());
+    ms->insert("event", "report");
+    ms->insert("uuid", uuid);
+    sio::message::list list;
+    list.push(ms);
+    s_SIOClient.socket("/remote-control")
+        ->emit("new_remote_control_event", list);
+}
 
 
 

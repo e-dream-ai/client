@@ -84,6 +84,7 @@ class EDreamClient
 
     static void Like(std::string uuid);
     static void Dislike(std::string uuid);
+    static void Report(std::string uuid);
     static void SetCPUUsage(int _cpuUsage);
 
   private:
