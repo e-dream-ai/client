@@ -1305,7 +1305,7 @@ class CElectricSheep
             case CLIENT_COMMAND_REPORT:
                 if (data != nullptr) {
                     EDreamClient::Report(data->dreamData.uuid);
-                    popOSD(Hud::Dislike);   // tmp change to report osd
+                    popOSD(Hud::Report);
                 }
                 return true;
             case CLIENT_COMMAND_PREVIOUS:

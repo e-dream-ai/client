@@ -286,6 +286,10 @@
 		F059947A2BA0A07300B018C7 /* osd-back.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994692BA0A07300B018C7 /* osd-back.png */; };
 		F059947B2BA0A07300B018C7 /* osd-bg-sq.png in Resources */ = {isa = PBXBuildFile; fileRef = F059946A2BA0A07300B018C7 /* osd-bg-sq.png */; };
 		F059947C2BA0A07300B018C7 /* osd-bg-sq.png in Resources */ = {isa = PBXBuildFile; fileRef = F059946A2BA0A07300B018C7 /* osd-bg-sq.png */; };
+		F06C22AB2DA6CAE500D54DB2 /* osd-report.png in Resources */ = {isa = PBXBuildFile; fileRef = F06C22AA2DA6CAE500D54DB2 /* osd-report.png */; };
+		F06C22AC2DA6CAE500D54DB2 /* osd-report.png in Resources */ = {isa = PBXBuildFile; fileRef = F06C22AA2DA6CAE500D54DB2 /* osd-report.png */; };
+		F06C22AD2DA6CAE500D54DB2 /* osd-report.png in Resources */ = {isa = PBXBuildFile; fileRef = F06C22AA2DA6CAE500D54DB2 /* osd-report.png */; };
+		F06C22AE2DA6CAE500D54DB2 /* osd-report.png in Resources */ = {isa = PBXBuildFile; fileRef = F06C22AA2DA6CAE500D54DB2 /* osd-report.png */; };
 		F07071D42C0E05DA008219A4 /* libboost_filesystem.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071D12C0E052A008219A4 /* libboost_filesystem.a */; };
 		F07071D52C0E05DA008219A4 /* libboost_json.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071D02C0E052A008219A4 /* libboost_json.a */; };
 		F07071D62C0E05DA008219A4 /* libboost_log_setup.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071CE2C0E052A008219A4 /* libboost_log_setup.a */; };
@@ -900,6 +904,7 @@
 		F05994682BA0A07300B018C7 /* osd-pause.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-pause.png"; sourceTree = "<group>"; };
 		F05994692BA0A07300B018C7 /* osd-back.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-back.png"; sourceTree = "<group>"; };
 		F059946A2BA0A07300B018C7 /* osd-bg-sq.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-bg-sq.png"; sourceTree = "<group>"; };
+		F06C22AA2DA6CAE500D54DB2 /* osd-report.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-report.png"; sourceTree = "<group>"; };
 		F07071CE2C0E052A008219A4 /* libboost_log_setup.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_log_setup.a; path = "../../cache/univ-osx/lib/libboost_log_setup.a"; sourceTree = "<group>"; };
 		F07071CF2C0E052A008219A4 /* libboost_log.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_log.a; path = "../../cache/univ-osx/lib/libboost_log.a"; sourceTree = "<group>"; };
 		F07071D02C0E052A008219A4 /* libboost_json.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_json.a; path = "../../cache/univ-osx/lib/libboost_json.a"; sourceTree = "<group>"; };
@@ -1405,6 +1410,7 @@
 				F05994662BA0A07200B018C7 /* osd-forward10.png */,
 				F0F6D4252BCD504500222647 /* osd-dislike.png */,
 				F0F6D4242BCD504500222647 /* osd-like.png */,
+				F06C22AA2DA6CAE500D54DB2 /* osd-report.png */,
 			);
 			name = Runtime;
 			path = ../Runtime;
@@ -1669,6 +1675,7 @@
 				F059945E2BA0912300B018C7 /* osd-bg-700.png in Resources */,
 				12A00CD12B0D22A4001C0792 /* Trebuchet MS.sddf in Resources */,
 				F059946F2BA0A07300B018C7 /* osd-play.png in Resources */,
+				F06C22AC2DA6CAE500D54DB2 /* osd-report.png in Resources */,
 				4628A55E2B0F84EF001C3078 /* Lato-Regular.ttf in Resources */,
 				F059945C2BA0912300B018C7 /* osd-pill.png in Resources */,
 				21934CB919F3C2430096E7D7 /* thumbnail.tif in Resources */,
@@ -1699,6 +1706,7 @@
 				F059946E2BA0A07300B018C7 /* osd-forward.png in Resources */,
 				F059946C2BA0A07300B018C7 /* osd-back10.png in Resources */,
 				F05994742BA0A07300B018C7 /* osd-forward10.png in Resources */,
+				F06C22AD2DA6CAE500D54DB2 /* osd-report.png in Resources */,
 				F059947C2BA0A07300B018C7 /* osd-bg-sq.png in Resources */,
 				12A00CDD2B0FCA6C001C0792 /* e-dream-attr.png in Resources */,
 				F059945D2BA0912300B018C7 /* osd-pill.png in Resources */,
@@ -1737,6 +1745,7 @@
 				F0C100142C1372EF007FA505 /* osd-bg-700.png in Resources */,
 				F0C100152C1372EF007FA505 /* Trebuchet MS.sddf in Resources */,
 				F0C100162C1372EF007FA505 /* osd-play.png in Resources */,
+				F06C22AE2DA6CAE500D54DB2 /* osd-report.png in Resources */,
 				F0C100172C1372EF007FA505 /* Lato-Regular.ttf in Resources */,
 				F0C100182C1372EF007FA505 /* osd-pill.png in Resources */,
 				F0C100192C1372EF007FA505 /* thumbnail.tif in Resources */,
@@ -1767,6 +1776,7 @@
 				F0E9CE3A2C136B0500C4D694 /* osd-forward.png in Resources */,
 				F0E9CE3B2C136B0500C4D694 /* osd-back10.png in Resources */,
 				F0E9CE3C2C136B0500C4D694 /* osd-forward10.png in Resources */,
+				F06C22AB2DA6CAE500D54DB2 /* osd-report.png in Resources */,
 				F0E9CE3D2C136B0500C4D694 /* osd-bg-sq.png in Resources */,
 				F0E9CE3E2C136B0500C4D694 /* e-dream-attr.png in Resources */,
 				F0E9CE3F2C136B0500C4D694 /* osd-pill.png in Resources */,
