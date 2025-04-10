@@ -317,7 +317,7 @@ bool CClip::DrawFrame(spCRenderer _spRenderer, float alpha) {
         return false; // Nothing to draw yet
     }
     
-    //g_Log->Info("alpha %f", m_Alpha);
+    // g_Log->Info("alpha %f", m_Alpha);
 
     // If we're buffering, draw the last valid frame with reduced opacity
     if (IsBuffering()) {
