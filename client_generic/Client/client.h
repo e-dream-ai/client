@@ -249,6 +249,7 @@ class CElectricSheep
             "Right-arrow: go forward through history\n"
             "A: playback slower\nD: playback faster\n"
             "C: show credit\n"
+            "B: report this dream\n"
             "L: skip 10 seconds forward\n"
             "J: skip 10 seconds back\n"
             "V: open web source                       "
