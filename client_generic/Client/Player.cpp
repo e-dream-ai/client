@@ -1067,10 +1067,13 @@ void CPlayer::UpdateTransition(double currentTime)
 {
     if (!m_isTransitioning) return;
 
-    // If next clip is still buffering, don't advance transition progress
-    if (m_nextClip && m_nextClip->IsBuffering()) {
-        // Hold transition until next clip is ready to play
-        return;
+    double transitionProgress = (currentTime - m_transitionStartTime) / m_transitionDuration;
+
+    bool nextClipBuffering = (m_nextClip && m_nextClip->IsBuffering());
+        
+    if (nextClipBuffering) {
+        g_Log->Info("Next clip still buffering during transition (progress: %.2f)",
+                    transitionProgress);
     }
     
     // If we have preflight decision and it's seamless, but we're transitioning,
@@ -1082,7 +1085,6 @@ void CPlayer::UpdateTransition(double currentTime)
         m_nextDreamDecision = std::nullopt;
     }
     
-    double transitionProgress = (currentTime - m_transitionStartTime) / m_transitionDuration;
 
     if (transitionProgress >= 1.0) {
         // Transition complete
