@@ -599,7 +599,24 @@ bool CPlayer::Update(uint32_t displayUnit)
             if (m_nextDreamDecision) {
                 if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::Seamless) {
                     prepareSeamlessTransition();
-                } else if (m_currentClip->IsFadingOut()) {
+                }
+            }
+        }
+        
+        if (m_isTransitioning) {
+            UpdateTransition(m_TimelineTime);
+        }
+        
+        if (m_nextDreamDecision) {
+            if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::Seamless) {
+                if (m_currentClip && m_currentClip->HasFinished()) {
+                    g_Log->Info("PND : Launching on finished current");
+                    PlayNextDream();
+                }
+            } else if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::StandardCrossfade) {
+                //
+                if (m_currentClip && m_currentClip->IsFadingOut()) {
+                    g_Log->Info("PND : Standard crossfading");
                     PlayNextDream();
                 }
             }
@@ -616,19 +633,12 @@ bool CPlayer::Update(uint32_t displayUnit)
     // - either logged in, or in offline mode
     // - have a playlist ready before going in
     if ((EDreamClient::IsLoggedIn() /*|| g_Client->IsMultipleInstancesMode()*/ ) && m_hasStarted) {
-        if (m_isTransitioning) {
-            UpdateTransition(m_TimelineTime);
-        } else if (m_currentClip && m_currentClip->IsFadingOut()) {
-            // Make sure we're not seamless transitionning
-            /*if (!m_nextDreamDecision || m_nextDreamDecision->transition != PlaylistManager::TransitionType::Seamless) {
-                //PlayNextDream();
-            }*/
-        } else if (!m_currentClip && m_isFirstPlay) {
-            PlayNextDream();
-        } else if (m_currentClip && m_currentClip->HasFinished()) {
+        if (!m_currentClip && m_isFirstPlay) {
+            g_Log->Info("PND : First play");
             PlayNextDream();
         }
     }
+    
     if (m_currentClip && m_currentClip->m_Alpha == 0.0f && m_currentClip->m_FadeInSeconds == 0.f) {
         g_Log->Info("Fixing null alpha");
         m_currentClip->m_Alpha = 1.0f;
