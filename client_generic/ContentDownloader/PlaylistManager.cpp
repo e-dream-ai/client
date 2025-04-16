@@ -643,7 +643,7 @@ void PlaylistManager::resetPlayHistory() {
 bool PlaylistManager::isDreamPlayed(const std::string& uuid) const {
     return std::find_if(m_playHistory.begin(), m_playHistory.end(),
                        [this, &uuid](size_t pos) {
-                           return m_playlist[pos].uuid == uuid;
+                            return pos < m_playlist.size() && m_playlist[pos].uuid == uuid;
                        }) != m_playHistory.end();
 }
 
