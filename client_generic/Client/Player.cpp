@@ -599,6 +599,8 @@ bool CPlayer::Update(uint32_t displayUnit)
             if (m_nextDreamDecision) {
                 if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::Seamless) {
                     prepareSeamlessTransition();
+                } else if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::StandardCrossfade) {
+                    prepareCrossfadeTransition();
                 }
             }
         }
@@ -686,8 +688,8 @@ void CPlayer::RenderFrame(DisplayOutput::spCRenderer renderer) {
             // Normal playback
             /*g_Log->Info("render frame %d of %s",
                 m_currentClip->m_CurrentFrameMetadata.frameIdx,
-                m_currentClip->m_ClipMetadata.dreamData.uuid.c_str());
-            */
+                m_currentClip->m_ClipMetadata.dreamData.uuid.c_str());*/
+            
             m_currentClip->DrawFrame(renderer);
 
             if (m_currentClip->m_CurrentFrameMetadata.frameIdx == 1) {
@@ -805,7 +807,19 @@ void CPlayer::PlayNextDream(bool quickFade) {
             g_Log->Info("Regular transitionning");
 
             StartTransition();
-            PlayClip(m_nextDreamDecision->dream, m_TimelineTime, -1, true);
+            
+            if (m_nextClip) {
+                g_Log->Info("Starting preloaded clip");
+                // Set the start time for the preloaded clip
+                m_nextClip->SetStartTime(m_TimelineTime);
+                m_nextClip->SetTransitionLength(5.0f, 5.0f);
+                
+                m_nextClip->Start(0);
+            } else {
+                // Fallback to direct load if preloading didn't complete
+                PlayClip(m_nextDreamDecision->dream, m_TimelineTime, -1, true);
+            }
+            
             m_playlistManager->moveToNextDream(*m_nextDreamDecision);
         }
         m_nextDreamDecision = std::nullopt;
@@ -1067,10 +1081,18 @@ void CPlayer::StartTransition()
     m_isTransitioning = true;
     m_transitionStartTime = m_TimelineTime;
     
-    if (m_nextClip && m_nextClip != m_currentClip) {
+    // Verify if the nextclip is the correct one
+    bool plannedTransition = (m_nextDreamDecision && m_nextClip &&
+                             m_nextClip->GetClipMetadata().dreamData.uuid == m_nextDreamDecision->dream->uuid);
+
+    
+    if (!plannedTransition && m_nextClip && m_nextClip != m_currentClip) {
+        g_Log->Info("Destroying previous next clip during transition start");
         destroyClipAsync(std::move(m_nextClip));
+        m_nextClip = nullptr;  // We'll set this again when we have the correct next clip ready
+    } else {
+        g_Log->Info("Preloaded clip is the correct one, using for transition");
     }
-    m_nextClip = nullptr;  // We'll set this when we have the next clip ready
 }
 
 void CPlayer::UpdateTransition(double currentTime)
@@ -1228,7 +1250,7 @@ bool CPlayer::shouldPrepareTransition(const ContentDecoder::spCClip& clip) const
     double timeRemaining = framesRemaining / clip->GetClipMetadata().decodeFps;
     
     // Start preparing transition when we're within 6 seconds of the end
-    return timeRemaining <= 6.0;
+    return timeRemaining <= 8.0;
 }
 
 void CPlayer::prepareSeamlessTransition() {
@@ -1249,6 +1271,50 @@ void CPlayer::prepareSeamlessTransition() {
     }
 }
 
+void CPlayer::prepareCrossfadeTransition() {
+    if (!m_playlistManager || !m_nextDreamDecision) return;
+    
+    // We only want to prepare once
+    if (m_nextClip) return;
+
+    // Make sure current clip won't transition
+    //m_currentClip->SetTransitionLength(0.0, 0.0);
+
+    const Cache::Dream* dream = m_nextDreamDecision->dream;
+    if (!dream) return;
+    
+    // Check if we already have the path
+    auto path = dream->getCachedPath();
+    if (!path.empty()) {
+        // Direct load if cached
+        PreloadClip(dream);
+        g_Log->Info("Prepared crossfade transition to: %s (cached)", dream->uuid.c_str());
+        return;
+    }
+    
+    // Check if we have streaming URL
+    path = dream->getStreamingUrl();
+    if (!path.empty()) {
+        // Direct load if streaming URL exists
+        PreloadClip(dream);
+        g_Log->Info("Prepared crossfade transition to: %s (streaming URL)", dream->uuid.c_str());
+        return;
+    }
+
+    // We need to fetch async
+    std::thread([this, dream]() {
+        auto path = EDreamClient::GetDreamDownloadLink(dream->uuid);
+        dream->setStreamingUrl(path);
+        
+        if (!path.empty()) {
+            PreloadClip(dream);
+            g_Log->Info("Prepared crossfade transition to: %s (async fetch)", dream->uuid.c_str());
+        }
+    }).detach();
+    
+    g_Log->Info("Initiated async preparation for: %s", dream->uuid.c_str());
+}
+
 bool CPlayer::PreloadClip(const Cache::Dream* dream) {
     if (!dream) {
         g_Log->Error("Attempted to preload a null dream");
@@ -1264,6 +1330,7 @@ bool CPlayer::PreloadClip(const Cache::Dream* dream) {
         path = dream->getStreamingUrl();
         if (path.empty()) {
             // Last resort blocking call
+            g_Log->Info("Blocking call");
             path = EDreamClient::GetDreamDownloadLink(dream->uuid);
         }
     }

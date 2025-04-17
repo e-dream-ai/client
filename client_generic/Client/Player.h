@@ -237,9 +237,10 @@ class CPlayer : public Base::CSingleton<CPlayer>
     // Check if we need to prepare for transition
     bool shouldPrepareTransition(const ContentDecoder::spCClip& clip) const;
     
-    // Prepare next clip for seamless transition
+    // Prepare next clip for seamless/crossfade transition
     void prepareSeamlessTransition();
-    
+    void prepareCrossfadeTransition();
+
     bool PreloadClip(const Cache::Dream* dream);
 };
 
