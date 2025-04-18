@@ -252,7 +252,7 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
             if (i != m_currentPosition && entry.startKeyframe && *entry.startKeyframe == *currentEntry.endKeyframe
                 && !isDreamPlayed(entry.uuid)) {
                 candidates.push_back(i);
-                g_Log->Info("Preflight : adding candidate : %zu (current: %zu)", i, m_currentPosition);
+                g_Log->Info("Preflight : adding candidate : %s %zu (current: %zu)", entry.uuid.c_str(), i, m_currentPosition);
 
             }
         }
