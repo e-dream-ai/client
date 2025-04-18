@@ -797,8 +797,10 @@ void CPlayer::PlayNextDream(bool quickFade) {
                 m_currentClip = m_nextClip;
                 m_nextClip = nullptr;
 
+                m_currentClip->SetStartTime(m_TimelineTime);
                 m_currentClip->SetTransitionLength(0.0, 0.0);
-
+                m_currentClip->ResetFinished();
+                
                 m_playlistManager->moveToNextDream(*m_nextDreamDecision);
                 m_nextDreamDecision = std::nullopt;
             }
@@ -813,6 +815,7 @@ void CPlayer::PlayNextDream(bool quickFade) {
                 // Set the start time for the preloaded clip
                 m_nextClip->SetStartTime(m_TimelineTime);
                 m_nextClip->SetTransitionLength(5.0f, 5.0f);
+                m_nextClip->ResetFinished();
                 
                 m_nextClip->Start(0);
             } else {

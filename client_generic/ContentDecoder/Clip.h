@@ -128,6 +128,9 @@ public:
     }
     double GetLength(float _atFps) const { return GetFrameCount() / _atFps; }
     bool HasFinished() const { return m_HasFinished.load(); }
+    void ResetFinished() {
+        m_HasFinished.exchange(false);
+    }
     bool IsFadingOut() const { return m_IsFadingOut.load(); }
 
     void SetTransitionLength(float _fadeInSeconds, float _fadeOutSeconds)
