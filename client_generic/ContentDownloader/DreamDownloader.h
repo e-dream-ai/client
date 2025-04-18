@@ -41,6 +41,8 @@ public:
     
     void AddDreamUUID(const std::string& uuid);
     void AddDreamUUIDs(const std::vector<std::string>& uuids);
+    void ClearDreamUUIDs();
+    
     size_t GetDreamUUIDCount() const;
     bool isDreamUUIDQueued(const std::string& uuid) const; 
     

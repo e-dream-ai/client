@@ -1304,6 +1304,9 @@ std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
     // Grab the CacheManager
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
 
+    // Clear the existing download queue before we begin
+    g_ContentDownloader().m_gDownloader.ClearDreamUUIDs();
+
     // Collect all UUIDs/keyframes from the json for individual dreams
     // We also check via our cache if we have metadata or need to download
     std::vector<PlaylistEntry> entries;
