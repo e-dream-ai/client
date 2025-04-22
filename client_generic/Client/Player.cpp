@@ -1265,13 +1265,52 @@ void CPlayer::prepareSeamlessTransition() {
     // Make sure current clip won't transition
     m_currentClip->SetTransitionLength(0.0, 0.0);
 
-    // Start loading the next clip but don't start transition yet
-    PreloadClip(m_nextDreamDecision->dream);
+    const Cache::Dream* dream = m_nextDreamDecision->dream;
+    if (!dream) return;
     
-    if (m_nextClip) {
-        m_nextClip->StartPlayback(0);
-        g_Log->Info("Prepared seamless transition to: %s", m_nextDreamDecision->dream->uuid.c_str());
+    // Check if we already have the path
+    auto path = dream->getCachedPath();
+    if (!path.empty()) {
+        // Direct load if cached
+        PreloadClip(dream);
+        if (m_nextClip) {
+            m_nextClip->StartPlayback(0);
+            g_Log->Info("Prepared seamless transition to: %s (cached)", dream->uuid.c_str());
+        }
+        return;
     }
+
+    // Check if we have streaming URL
+    path = dream->getStreamingUrl();
+    if (!path.empty()) {
+        // Direct load if streaming URL exists
+        PreloadClip(dream);
+        if (m_nextClip) {
+            m_nextClip->StartPlayback(0);
+            g_Log->Info("Prepared seamless transition to: %s (streaming URL)", dream->uuid.c_str());
+        }
+        return;
+    }
+
+    // We need to fetch async
+    std::thread([this, dream]() {
+        auto path = EDreamClient::GetDreamDownloadLink(dream->uuid);
+        if (path.empty()) {
+            g_Log->Error("Failed to get download link for seamless transition: %s", dream->uuid.c_str());
+            return;
+        }
+        
+        dream->setStreamingUrl(path);
+        
+        if (PreloadClip(dream)) {
+            if (m_nextClip) {
+                m_nextClip->StartPlayback(0);
+                g_Log->Info("Prepared seamless transition to: %s (async fetch)", dream->uuid.c_str());
+            }
+        }
+    }).detach();
+    
+    g_Log->Info("Initiated async preparation for seamless transition to: %s", dream->uuid.c_str());
 }
 
 void CPlayer::prepareCrossfadeTransition() {
