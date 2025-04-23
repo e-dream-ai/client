@@ -1206,15 +1206,79 @@ void CPlayer::MarkForDeletion(std::string_view _uuid)
 void CPlayer::SkipToNext()
 {
     g_Log->Info("Next");
+    
+    // Get the next dream decision
+    auto nextDecision = m_playlistManager->preflightNextDream();
+    if (!nextDecision) {
+        g_Log->Error("No next dream available");
+        return;
+    }
+    
+    // If already transitioning, change the target
+    if (m_isTransitioning && m_nextClip) {
+        g_Log->Info("Skip during transition - changing target destination");
+        
+        // Save the current transition progress
+        double currentProgress = (m_TimelineTime - m_transitionStartTime) / m_transitionDuration;
+        
+        // Destroy the current target clip
+        destroyClipAsync(std::move(m_nextClip));
+        m_nextClip = nullptr;
+        
+        // Create a new target clip
+        PlayClip(nextDecision->dream, m_TimelineTime, -1, true);
+        
+        // Update the playlist position
+        m_playlistManager->moveToNextDream(*nextDecision);
+        
+        if (m_nextClip) {
+            m_nextClip->SetTransitionLength(1.0f, 5.0f);
+            
+            // To maintain visual continuity, we should keep the same fade progress
+            // This will immediately update the opacity of the new clip to match where the previous one was
+            // Optional, but creates a smoother visual experience during rapid skips
+            if (currentProgress > 0.1) {  // Only do this if we're meaningfully into the transition
+                m_nextClip->m_Alpha = static_cast<float>(currentProgress);
+            }
+        }
+        
+        return;
+    }
+    
     m_transitionDuration = 1.0f;
     PlayNextDream(true);
 }
 
 void CPlayer::ReturnToPrevious()
 {
-    m_transitionDuration = 1.0f;
     auto previousDream = m_playlistManager->getPreviousDream();
     
+    if (m_isTransitioning && m_nextClip) {
+        g_Log->Info("Previous during transition - changing target");
+        
+        // Save the current transition progress
+        double currentProgress = (m_TimelineTime - m_transitionStartTime) / m_transitionDuration;
+        
+        // Destroy the current target clip
+        destroyClipAsync(std::move(m_nextClip));
+        m_nextClip = nullptr;
+        
+        // Create a new target clip
+        PlayClip(previousDream, m_TimelineTime, -1, true);
+        
+        if (m_nextClip) {
+            m_nextClip->SetTransitionLength(1.0f, 5.0f);
+            
+            // Maintain visual continuity
+            if (currentProgress > 0.1) {
+                m_nextClip->m_Alpha = static_cast<float>(currentProgress);
+            }
+        }
+        
+        return;
+    }
+
+    m_transitionDuration = 1.0f;
     StartTransition();
     PlayClip(previousDream, m_TimelineTime, -1, true);
     m_nextClip->SetTransitionLength(1.0f, 5.0f);
