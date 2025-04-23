@@ -864,10 +864,13 @@ std::future<bool> EDreamClient::EnqueuePlaylistAsync(const std::string& uuid) {
 
         // save the current playlist id, this will get reused at next startup
         g_Settings()->Set("settings.content.current_playlist_uuid", uuid);
-        g_Player().SetPlaylist(std::string(uuid));
         
-        g_Player().SetTransitionDuration(1.0f);
-        g_Player().StartTransition();
+        std::thread([uuid]() {
+            // These operations must happen on the main/UI thread
+            g_Player().SetPlaylist(std::string(uuid), false);
+            g_Player().SetTransitionDuration(1.0f);
+            g_Player().StartTransition();
+        }).detach();
         
         return true;
     });
@@ -1503,7 +1506,7 @@ bool EDreamClient::EnqueuePlaylist(std::string_view uuid) {
 
     // save the current playlist id, this will get reused at next startup
     g_Settings()->Set("settings.content.current_playlist_uuid", uuid);
-    g_Player().SetPlaylist(std::string(uuid));
+    g_Player().SetPlaylist(std::string(uuid), false);
     
     g_Player().SetTransitionDuration(1.0f);
     g_Player().StartTransition();

@@ -375,9 +375,9 @@ void CPlayer::Start()
                 // Start the playlist and playback at the start, or at a given position
                 if (m_shutdownFlag) return;
                 if (lastPlayedUUID.empty()) {
-                    SetPlaylist(serverPlaylistId);
+                    SetPlaylist(serverPlaylistId, false);
                 } else {
-                    SetPlaylistAtDream(serverPlaylistId, lastPlayedUUID);
+                    SetPlaylistAtDream(serverPlaylistId, lastPlayedUUID, false);
                 }
                 
                 m_hasStarted = true;
@@ -389,9 +389,9 @@ void CPlayer::Start()
                 m_currentClip = nullptr;
 
                 if (lastPlayedUUID.empty()) {
-                    SetPlaylist(clientPlaylistId);
+                    SetPlaylist(clientPlaylistId, false);
                 } else {
-                    SetPlaylistAtDream(clientPlaylistId, lastPlayedUUID);
+                    SetPlaylistAtDream(clientPlaylistId, lastPlayedUUID, false);
                 }
 
                 m_hasStarted = true;
@@ -966,11 +966,11 @@ std::string CPlayer::GetPlaylistName() const
     return m_playlistManager->getPlaylistName();
 }
 
-bool CPlayer::SetPlaylist(const std::string& playlistUUID) {
+bool CPlayer::SetPlaylist(const std::string& playlistUUID, bool fetchPlaylist = true) {
     // Reset any pending transition decision
     m_nextDreamDecision = std::nullopt;
     
-    if (!m_playlistManager->initializePlaylist(playlistUUID)) {
+    if (!m_playlistManager->initializePlaylist(playlistUUID, fetchPlaylist)) {
         g_Log->Error("Failed to set playlist with UUID: %s", playlistUUID.c_str());
         return false;
     }
@@ -1003,12 +1003,12 @@ bool CPlayer::SetPlaylist(const std::string& playlistUUID) {
 }
 
 
-bool CPlayer::SetPlaylistAtDream(const std::string& playlistUUID, const std::string& dreamUUID) {
+bool CPlayer::SetPlaylistAtDream(const std::string& playlistUUID, const std::string& dreamUUID, bool fetchPlaylist = true) {
     // Reset any pending transition decision
     m_nextDreamDecision = std::nullopt;
     
     // First, set the new playlist
-    if (!m_playlistManager->initializePlaylist(playlistUUID)) {
+    if (!m_playlistManager->initializePlaylist(playlistUUID, fetchPlaylist)) {
         g_Log->Error("Failed to set playlist with UUID: %s", playlistUUID.c_str());
         return false;
     }

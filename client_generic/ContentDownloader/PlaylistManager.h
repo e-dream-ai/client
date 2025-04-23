@@ -43,7 +43,7 @@ public:
 
     
     // Initialize the playlist with it's uuid and a list of dream UUIDs
-    bool initializePlaylist(const std::string& playlistUUID);
+    bool initializePlaylist(const std::string& playlistUUID, bool fetchPlaylist);
 
     void setOfflineMode(bool offline);
     bool isOfflineMode() const { return m_offlineMode; }

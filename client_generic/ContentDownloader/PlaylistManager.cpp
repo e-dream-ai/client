@@ -25,12 +25,12 @@ void PlaylistManager::setOfflineMode(bool offline) {
 }
 
 // MARK: Init
-bool PlaylistManager::initializePlaylist(const std::string& playlistUUID) {
+bool PlaylistManager::initializePlaylist(const std::string& playlistUUID, bool fetchPlaylist = true) {
     m_initializeInProgress = true;
     m_currentPlaylistUUID = playlistUUID;
     
 
-    if (!m_offlineMode) {
+    if (!m_offlineMode && fetchPlaylist) {
         if (!EDreamClient::FetchPlaylist(playlistUUID)) {
             g_Log->Error("Failed to fetch playlist. UUID: %s", playlistUUID.c_str());
             m_initializeInProgress = false;

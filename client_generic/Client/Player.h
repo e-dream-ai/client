@@ -201,10 +201,10 @@ class CPlayer : public Base::CSingleton<CPlayer>
     void ResetPlaylist();
     
     // Set playlist from the start
-    bool SetPlaylist(const std::string& playlistUUID);
+    bool SetPlaylist(const std::string& playlistUUID, bool fetchPlaylist);
 
     // Set playlist at a given dream. Used to resume
-    bool SetPlaylistAtDream(const std::string& playlistUUID, const std::string& dreamUUID);
+    bool SetPlaylistAtDream(const std::string& playlistUUID, const std::string& dreamUUID, bool fetchPlaylist);
    
     void MarkForDeletion(std::string_view _uuid);
     void SkipToNext();
