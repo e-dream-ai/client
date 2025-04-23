@@ -875,6 +875,9 @@ double CPlayer::GetDecoderFPS() {
 }
 
 void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
+    // Reset any pending transition decision
+    m_nextDreamDecision = std::nullopt;
+    
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
     // NOTE : This is the only path that currently streams 
     if (cm.hasDream(std::string(_uuid))) {
@@ -964,6 +967,9 @@ std::string CPlayer::GetPlaylistName() const
 }
 
 bool CPlayer::SetPlaylist(const std::string& playlistUUID) {
+    // Reset any pending transition decision
+    m_nextDreamDecision = std::nullopt;
+    
     if (!m_playlistManager->initializePlaylist(playlistUUID)) {
         g_Log->Error("Failed to set playlist with UUID: %s", playlistUUID.c_str());
         return false;
@@ -998,6 +1004,9 @@ bool CPlayer::SetPlaylist(const std::string& playlistUUID) {
 
 
 bool CPlayer::SetPlaylistAtDream(const std::string& playlistUUID, const std::string& dreamUUID) {
+    // Reset any pending transition decision
+    m_nextDreamDecision = std::nullopt;
+    
     // First, set the new playlist
     if (!m_playlistManager->initializePlaylist(playlistUUID)) {
         g_Log->Error("Failed to set playlist with UUID: %s", playlistUUID.c_str());
@@ -1055,6 +1064,9 @@ bool CPlayer::SetPlaylistAtDream(const std::string& playlistUUID, const std::str
 
 
 void CPlayer::ResetPlaylist() {
+    // Reset any pending transition decision
+    m_nextDreamDecision = std::nullopt;
+
     //writer_lock l(m_UpdateMutex);
 
     // Grab the default playlist again & set it
