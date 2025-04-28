@@ -38,7 +38,8 @@ enum OSDType {
     Forward10,
     Like,
     Dislike,
-    Report
+    Report,
+    Buffering
 };
 
 class COSD : public CHudEntry {
@@ -199,6 +200,14 @@ public:
             m_spReportTexture->Upload(tmpReport);
         }
         
+        DisplayOutput::spCImage tmpBuffering(new DisplayOutput::CImage());
+        if (tmpBuffering->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
+                               "network.png", false))
+        {
+            m_spBufferingTexture = g_Player().Renderer()->NewTextureFlat();
+            m_spBufferingTexture->Upload(tmpBuffering);
+        }
+        
         // Set mini BG size
         // Fix A/R
         float aspect = g_Player().Display()->Aspect();
@@ -317,6 +326,23 @@ public:
         tmpLike = NULL;
         tmpDislike = NULL;
         tmpReport = NULL;
+        
+        // Set buffering icon position in top left
+        m_BufferingCRect = rect;
+        m_BufferingCRect.m_X1 *= aspect;
+
+        auto w_buffering = m_BufferingCRect.Width();
+        auto h_buffering = m_BufferingCRect.Height();
+        const float s_buffering = 0.05f;  // Scale for buffering icon
+
+        // Position in top left with padding
+        m_BufferingCRect.m_X0 = 0.02f;  // 2% from left edge
+        m_BufferingCRect.m_Y0 = 0.04f;  // 4% from top edge
+        m_BufferingCRect.m_X1 = m_BufferingCRect.m_X0 + (w_buffering * s_buffering);
+        m_BufferingCRect.m_Y1 = m_BufferingCRect.m_Y0 + (h_buffering * s_buffering);
+
+        // Remember to clean up the temporary image
+        tmpBuffering = NULL;
     };
     
     bool Render(const double _time, DisplayOutput::spCRenderer _spRenderer)
@@ -329,7 +355,27 @@ public:
 
         DisplayOutput::spCRenderer spRenderer = g_Player().Renderer();
 
-        if (type == Speed || type == Brightness) {
+        if (type == Buffering) {
+            // Use a sine wave for smooth pulsing
+            float pulse = (sin(_time * m_BufferingPulseSpeed) + 1.0f) * 0.5f; // Produces 0.0 to 1.0
+            float alpha = m_BufferingMinAlpha + pulse * (m_BufferingMaxAlpha - m_BufferingMinAlpha);
+            
+            // Draw just the buffering icon without background
+            spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader);
+            spRenderer->SetTexture(m_spBufferingTexture, 0);
+            spRenderer->SetBlend("alphablend");
+            spRenderer->SetShader(NULL);
+            spRenderer->Apply();
+            
+            // Draw with pulsing alpha
+            spRenderer->DrawQuad(
+                m_BufferingCRect,
+                Base::Math::CVector4(1, 1, 1, alpha),
+                m_spBufferingTexture->GetRect()
+            );
+            
+            return true;
+        } else if (type == Speed || type == Brightness) {
             // Setup & Draw background
             spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader);
             spRenderer->SetTexture(m_spBgTexture, 0);
@@ -513,6 +559,14 @@ private:
 
     Base::Math::CRect m_BgSqCRect, m_LargeSymbolCRect;
 
+    // Buffering indicator
+    DisplayOutput::spCTextureFlat m_spBufferingTexture;
+    Base::Math::CRect m_BufferingCRect;
+    float m_BufferingPulseSpeed = 2.0f; // Speed of pulsing (adjust as needed)
+    float m_BufferingMinAlpha = 0.3f;   // Minimum alpha value
+    float m_BufferingMaxAlpha = 1.0f;   // Maximum alpha value
+    
+    
     
     // FPS Counter
 /*    DisplayOutput::CFontDescription m_FontDesc;

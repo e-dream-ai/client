@@ -297,6 +297,10 @@
 		F07071D82C0E05DA008219A4 /* libboost_thread.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071D32C0E052B008219A4 /* libboost_thread.a */; };
 		F07071D92C0E05DA008219A4 /* libboost_system.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071D22C0E052B008219A4 /* libboost_system.a */; };
 		F082D4412CBD5CA4001934FB /* Bugsnag in Frameworks */ = {isa = PBXBuildFile; productRef = F0351BE92CB5BB4F0055091F /* Bugsnag */; };
+		F0B754512DBFCE4400C59D7A /* network.png in Resources */ = {isa = PBXBuildFile; fileRef = F0B754502DBFCE4400C59D7A /* network.png */; };
+		F0B754522DBFCE4400C59D7A /* network.png in Resources */ = {isa = PBXBuildFile; fileRef = F0B754502DBFCE4400C59D7A /* network.png */; };
+		F0B754532DBFCE4400C59D7A /* network.png in Resources */ = {isa = PBXBuildFile; fileRef = F0B754502DBFCE4400C59D7A /* network.png */; };
+		F0B754542DBFCE4400C59D7A /* network.png in Resources */ = {isa = PBXBuildFile; fileRef = F0B754502DBFCE4400C59D7A /* network.png */; };
 		F0C100002C1372C4007FA505 /* libboost_thread.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071D32C0E052B008219A4 /* libboost_thread.a */; };
 		F0C100042C1372EF007FA505 /* osd-pill-r.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994532BA0912200B018C7 /* osd-pill-r.png */; };
 		F0C100052C1372EF007FA505 /* BuildData.json in Resources */ = {isa = PBXBuildFile; fileRef = 1243576B2B31FC1B00CCD62A /* BuildData.json */; };
@@ -912,6 +916,7 @@
 		F07071D22C0E052B008219A4 /* libboost_system.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_system.a; path = "../../cache/univ-osx/lib/libboost_system.a"; sourceTree = "<group>"; };
 		F07071D32C0E052B008219A4 /* libboost_thread.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_thread.a; path = "../../cache/univ-osx/lib/libboost_thread.a"; sourceTree = "<group>"; };
 		F08A7DC42CD507BC00D43977 /* NetworkConfig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NetworkConfig.h; sourceTree = "<group>"; };
+		F0B754502DBFCE4400C59D7A /* network.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = network.png; sourceTree = "<group>"; };
 		F0C100842C1372EF007FA505 /* e-dream-stage.saver */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "e-dream-stage.saver"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F0C100852C1372F0007FA505 /* ScreenSaver copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "ScreenSaver copy-Info.plist"; path = "/Users/guillaume/dev/client/client_generic/MacBuild/ScreenSaver copy-Info.plist"; sourceTree = "<absolute>"; };
 		F0CCD23D2B98CF530070314F /* OSD.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = OSD.hpp; sourceTree = "<group>"; };
@@ -1394,6 +1399,7 @@
 				21ADBB211305D380000A9F20 /* green.tif */,
 				21ADBB221305D380000A9F20 /* red.tif */,
 				21ADBB231305D380000A9F20 /* yellow.tif */,
+				F0B754502DBFCE4400C59D7A /* network.png */,
 				F05994562BA0912300B018C7 /* osd-bg-700.png */,
 				F05994652BA0A07200B018C7 /* osd-speed.png */,
 				F05994672BA0A07300B018C7 /* osd-brightness.png */,
@@ -1670,6 +1676,7 @@
 				F05994772BA0A07300B018C7 /* osd-pause.png in Resources */,
 				F059945A2BA0912300B018C7 /* osd-pill-u.png in Resources */,
 				F05994792BA0A07300B018C7 /* osd-back.png in Resources */,
+				F0B754542DBFCE4400C59D7A /* network.png in Resources */,
 				F05994602BA0912300B018C7 /* osd-pill-b.png in Resources */,
 				F059946D2BA0A07300B018C7 /* osd-forward.png in Resources */,
 				F059945E2BA0912300B018C7 /* osd-bg-700.png in Resources */,
@@ -1692,6 +1699,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F0B754512DBFCE4400C59D7A /* network.png in Resources */,
 				F05994722BA0A07300B018C7 /* osd-speed.png in Resources */,
 				F05994592BA0912300B018C7 /* osd-pill-r.png in Resources */,
 				F059945F2BA0912300B018C7 /* osd-bg-700.png in Resources */,
@@ -1740,6 +1748,7 @@
 				F0C1000F2C1372EF007FA505 /* osd-pause.png in Resources */,
 				F0C100102C1372EF007FA505 /* osd-pill-u.png in Resources */,
 				F0C100112C1372EF007FA505 /* osd-back.png in Resources */,
+				F0B754522DBFCE4400C59D7A /* network.png in Resources */,
 				F0C100122C1372EF007FA505 /* osd-pill-b.png in Resources */,
 				F0C100132C1372EF007FA505 /* osd-forward.png in Resources */,
 				F0C100142C1372EF007FA505 /* osd-bg-700.png in Resources */,
@@ -1762,6 +1771,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F0B754532DBFCE4400C59D7A /* network.png in Resources */,
 				F0E9CE2F2C136B0500C4D694 /* osd-speed.png in Resources */,
 				F0E9CE302C136B0500C4D694 /* osd-pill-r.png in Resources */,
 				F0E9CE312C136B0500C4D694 /* osd-bg-700.png in Resources */,

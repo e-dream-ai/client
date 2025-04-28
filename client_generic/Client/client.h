@@ -76,7 +76,8 @@ class CElectricSheep
 {
   private:
     Cache::MessageQueue m_MessageQueue;
-
+    bool wasBuffering = false;
+    
   protected:
     ESCpuUsage m_CpuUsage;
     double m_LastCPUCheckTime;
@@ -1063,6 +1064,18 @@ class CElectricSheep
 
                 // Update OSD
                 m_spOSD->SetFPS(pFPS);
+                
+                bool isBuffering = g_Player().IsCurrentClipBuffering();
+
+                if (isBuffering && !wasBuffering) {
+                    // Buffering just started - show the icon
+                    m_spOSD->SetType(Hud::Buffering);
+                    m_HudManager->Add("osd-buffering", m_spOSD, 60); // Long timeout - will be removed when buffering ends
+                } else if (!isBuffering && wasBuffering) {
+                    // Buffering just ended - hide the icon
+                    m_HudManager->Hide("osd-buffering");
+                }
+                wasBuffering = isBuffering;
                 
                 // Update credits
                 spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(

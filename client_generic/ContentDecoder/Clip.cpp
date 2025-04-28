@@ -215,7 +215,6 @@ bool CClip::Update(double _timelineTime)
         }
         else {
             // Still buffering, don't update the frame
-            m_Alpha = 0.5f; // Semi-transparent during buffering
             return true;    // Return true so player knows we're still active
         }
     }
@@ -319,12 +318,12 @@ bool CClip::DrawFrame(spCRenderer _spRenderer, float alpha) {
     
     // g_Log->Info("alpha %f", m_Alpha);
 
-    // If we're buffering, draw the last valid frame with reduced opacity
+    // If we're buffering, draw the last valid frame again
     if (IsBuffering()) {
         if (m_LastValidFrame) {
             // Use the last valid frame while buffering
             m_spFrameData = m_LastValidFrame;
-            return m_spFrameDisplay->Draw(_spRenderer, alpha * 0.5f, m_DecoderClock.interframeDelta);
+            return m_spFrameDisplay->Draw(_spRenderer, alpha, m_DecoderClock.interframeDelta);
         }
         return false; // No frame yet
     }
