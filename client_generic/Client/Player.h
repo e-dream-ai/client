@@ -242,6 +242,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
     void prepareCrossfadeTransition();
 
     bool PreloadClip(const Cache::Dream* dream);
+    
+    bool IsCurrentClipBuffering() const;
 };
 
 /*
