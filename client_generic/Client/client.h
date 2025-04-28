@@ -240,7 +240,7 @@ class CElectricSheep
         spHelpMessage->Add(new Hud::CStringStat(
             "message",
             "e-dream\n\n"
-            "The evolution of art. See e-dream.ai to learn more.\n\n"
+            "Visuals for your vibe. See e-dream.ai to learn more.\n\n"
             "Use the remote control or keyboard to interact.\n\n"
             "Commands:\n"
             "Up-arrow: like this dream\n"
