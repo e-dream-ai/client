@@ -7,7 +7,7 @@ if(CMAKE_VERSION VERSION_LESS "2.8.12")
    message(FATAL_ERROR "CMake >= 2.8.12 required")
 endif()
 cmake_policy(PUSH)
-cmake_policy(VERSION 2.8.12...3.27)
+cmake_policy(VERSION 2.8.12...3.28)
 #----------------------------------------------------------------
 # Generated CMake target import file.
 #----------------------------------------------------------------
@@ -61,7 +61,7 @@ set_target_properties(Boost::log PROPERTIES
   INTERFACE_COMPILE_DEFINITIONS "BOOST_LOG_NO_LIB;BOOST_LOG_STATIC_LINK"
   INTERFACE_COMPILE_FEATURES "cxx_static_assert"
   INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/include"
-  INTERFACE_LINK_LIBRARIES "Boost::array;Boost::assert;Boost::config;Boost::container;Boost::core;Boost::date_time;Boost::filesystem;Boost::function_types;Boost::fusion;Boost::intrusive;Boost::move;Boost::mpl;Boost::parameter;Boost::phoenix;Boost::predef;Boost::preprocessor;Boost::proto;Boost::range;Boost::smart_ptr;Boost::static_assert;Boost::system;Boost::throw_exception;Boost::type_index;Boost::type_traits;Boost::utility;Boost::winapi;\$<LINK_ONLY:Boost::align>;\$<LINK_ONLY:Boost::asio>;\$<LINK_ONLY:Boost::bind>;\$<LINK_ONLY:Boost::exception>;\$<LINK_ONLY:Boost::interprocess>;\$<LINK_ONLY:Boost::optional>;\$<LINK_ONLY:Boost::random>;\$<LINK_ONLY:Boost::spirit>;\$<LINK_ONLY:Boost::regex>;Boost::atomic;Boost::thread"
+  INTERFACE_LINK_LIBRARIES "Boost::assert;Boost::config;Boost::core;Boost::date_time;Boost::filesystem;Boost::function_types;Boost::fusion;Boost::intrusive;Boost::move;Boost::mpl;Boost::parameter;Boost::phoenix;Boost::predef;Boost::preprocessor;Boost::proto;Boost::range;Boost::smart_ptr;Boost::system;Boost::throw_exception;Boost::type_index;Boost::type_traits;Boost::utility;\$<LINK_ONLY:Boost::align>;\$<LINK_ONLY:Boost::asio>;\$<LINK_ONLY:Boost::bind>;\$<LINK_ONLY:Boost::exception>;\$<LINK_ONLY:Boost::interprocess>;\$<LINK_ONLY:Boost::optional>;\$<LINK_ONLY:Boost::random>;\$<LINK_ONLY:Boost::spirit>;\$<LINK_ONLY:Boost::regex>;Boost::atomic;Boost::thread"
 )
 
 # Load information for each installed configuration.

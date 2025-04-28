@@ -41,6 +41,12 @@ void DreamDownloader::AddDreamUUIDs(const std::vector<std::string>& uuids) {
     }
 }
 
+void DreamDownloader::ClearDreamUUIDs() {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    g_Log->Info("Clearing download queue of %zu dreams", m_dreamUUIDs.size());
+    m_dreamUUIDs.clear();
+}
+
 size_t DreamDownloader::GetDreamUUIDCount() const {
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_dreamUUIDs.size();

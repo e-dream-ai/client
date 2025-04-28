@@ -6,7 +6,6 @@ client_generic/MacBuild/e-dream.xcodeproj/project.xcworkspace/xcuserdata/*
 client_generic/MacBuild/e-dream.xcodeproj/xcuserdata/*
 client_generic/MacBuild/gitversion.h
 client_generic/MacBuild/BuildData.json
-/cache
 /vcpkg
 /vcpkg_installed
 /vcpkg_x86

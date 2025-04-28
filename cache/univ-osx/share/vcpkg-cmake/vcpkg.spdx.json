@@ -3,13 +3,13 @@
   "spdxVersion": "SPDX-2.2",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "documentNamespace": "https://spdx.org/spdxdocs/vcpkg-cmake-arm64-osx-2024-04-18-8b7600eb-5cb4-422a-ae20-239d54bb9889",
-  "name": "vcpkg-cmake:arm64-osx@2024-04-18 cec958e8f80e71572c02583079d82461a43f6de1b44e4e1887adaf47e2879e4e",
+  "documentNamespace": "https://spdx.org/spdxdocs/vcpkg-cmake-arm64-osx-2024-04-23-e074528d-f326-4bc3-9ce5-02effdbd768c",
+  "name": "vcpkg-cmake:arm64-osx@2024-04-23 6e3c0cf5583ba8fceda3eb08f3f69cff252111f0eebe1ca9f97517f3c52e80ad",
   "creationInfo": {
     "creators": [
-      "Tool: vcpkg-d6945642ee5c3076addd1a42c331bbf4cfc97457"
+      "Tool: vcpkg-2025-02-11-bec4296bf5289dc9ce83b4f5095943e44162f9c2"
     ],
-    "created": "2024-08-08T16:30:34Z"
+    "created": "2025-03-13T17:57:13Z"
   },
   "relationships": [
     {
@@ -87,7 +87,7 @@
     {
       "name": "vcpkg-cmake",
       "SPDXID": "SPDXRef-port",
-      "versionInfo": "2024-04-18",
+      "versionInfo": "2024-04-23",
       "downloadLocation": "NOASSERTION",
       "licenseConcluded": "MIT",
       "licenseDeclared": "NOASSERTION",
@@ -97,7 +97,7 @@
     {
       "name": "vcpkg-cmake:arm64-osx",
       "SPDXID": "SPDXRef-binary",
-      "versionInfo": "cec958e8f80e71572c02583079d82461a43f6de1b44e4e1887adaf47e2879e4e",
+      "versionInfo": "6e3c0cf5583ba8fceda3eb08f3f69cff252111f0eebe1ca9f97517f3c52e80ad",
       "downloadLocation": "NONE",
       "licenseConcluded": "MIT",
       "licenseDeclared": "NOASSERTION",
@@ -148,7 +148,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "71bab009312d339cbde0ab593433dc52194d932acaab118b6309e2383db6c986"
+          "checksumValue": "6fd546b781a1aa5df572bdd31672cf222e55698aa5bf7d3e5c11abf1ae56a45b"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -160,7 +160,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "f9cdeb9a51a415bfeb22573b20fe832b66e8c297a1c70a06d74c621f5812757e"
+          "checksumValue": "a8bc92be2faf621d6183ed1f3eb2ac3b103f4418b95f8695cf0dc7f7c5e8f724"
         }
       ],
       "licenseConcluded": "NOASSERTION",

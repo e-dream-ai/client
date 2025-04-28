@@ -143,7 +143,9 @@ class CPlayer : public Base::CSingleton<CPlayer>
     bool EndFrameUpdate();
     bool BeginDisplayFrame(uint32_t displayUnit);
     bool EndDisplayFrame(uint32_t displayUnit, bool drawn = true);
-    bool Update(uint32_t displayUnit, bool& bPlayNoSheepIntro);
+    bool Update(uint32_t displayUnit); //, bool& bPlayNoSheepIntro);
+    //bool Update(double _timelineTime);
+
     void RenderFrame(DisplayOutput::spCRenderer renderer);
     
     bool HasStarted() { return m_hasStarted; };
@@ -199,10 +201,10 @@ class CPlayer : public Base::CSingleton<CPlayer>
     void ResetPlaylist();
     
     // Set playlist from the start
-    bool SetPlaylist(const std::string& playlistUUID);
+    bool SetPlaylist(const std::string& playlistUUID, bool fetchPlaylist);
 
     // Set playlist at a given dream. Used to resume
-    bool SetPlaylistAtDream(const std::string& playlistUUID, const std::string& dreamUUID);
+    bool SetPlaylistAtDream(const std::string& playlistUUID, const std::string& dreamUUID, bool fetchPlaylist);
    
     void MarkForDeletion(std::string_view _uuid);
     void SkipToNext();
@@ -227,6 +229,19 @@ class CPlayer : public Base::CSingleton<CPlayer>
     }
     void ForceWidthAndHeight(uint32_t du, uint32_t _w, uint32_t _h);
     void SetPaused(bool _bPaused) { m_bPaused = _bPaused; }
+    
+
+    // Keep track of preflight decision
+    std::optional<PlaylistManager::NextDreamDecision> m_nextDreamDecision;
+    
+    // Check if we need to prepare for transition
+    bool shouldPrepareTransition(const ContentDecoder::spCClip& clip) const;
+    
+    // Prepare next clip for seamless/crossfade transition
+    void prepareSeamlessTransition();
+    void prepareCrossfadeTransition();
+
+    bool PreloadClip(const Cache::Dream* dream);
 };
 
 /*

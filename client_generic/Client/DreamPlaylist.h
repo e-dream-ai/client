@@ -109,14 +109,14 @@ public:
             playlistId = g_Settings()->Get("settings.content.current_playlist_uuid", std::string(""));
             
             // if playlistID is empty, we use the default playlist file (playlist_0.json)
-            auto uuids = EDreamClient::ParsePlaylist(playlistId);
+            auto dreams = EDreamClient::ParsePlaylist(playlistId);
 
             auto [name, userName, nsfw, timestamp] = EDreamClient::ParsePlaylistMetadata(playlistId);
             playlistName = name;
             playlistUserName = userName;
             
-            for (auto uuid : uuids) {
-                auto fileName = Cache::PathManager::getInstance().mp4Path() / (uuid + ".mp4");
+            for (auto dream : dreams) {
+                auto fileName = Cache::PathManager::getInstance().mp4Path() / (dream.uuid + ".mp4");
                 
                 if (exists(fileName))
                     m_List.push(fileName.string());

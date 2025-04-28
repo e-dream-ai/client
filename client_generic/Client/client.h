@@ -249,6 +249,7 @@ class CElectricSheep
             "Right-arrow: go forward through history\n"
             "A: playback slower\nD: playback faster\n"
             "C: show credit\n"
+            "B: report this dream\n"
             "L: skip 10 seconds forward\n"
             "J: skip 10 seconds back\n"
             "V: open web source                       "
@@ -801,7 +802,7 @@ class CElectricSheep
             }
 
             bool drawNoSheepIntro = false;
-            bool drawn = g_Player().Update(displayUnit, drawNoSheepIntro);
+            bool drawn = g_Player().Update(displayUnit); // , drawNoSheepIntro);
 
             
             if ((!EDreamClient::IsLoggedIn() && !m_MultipleInstancesMode) || !g_Player().HasStarted()) {
@@ -1214,6 +1215,7 @@ class CElectricSheep
     {
         CLIENT_COMMAND_LIKE,
         CLIENT_COMMAND_DISLIKE,
+        CLIENT_COMMAND_REPORT,
         CLIENT_COMMAND_PREVIOUS,
         CLIENT_COMMAND_NEXT,
         CLIENT_COMMAND_REPEAT,
@@ -1301,6 +1303,12 @@ class CElectricSheep
 
                 return true;
                 //    Repeat current sheep
+            case CLIENT_COMMAND_REPORT:
+                if (data != nullptr) {
+                    EDreamClient::Report(data->dreamData.uuid);
+                    popOSD(Hud::Report);
+                }
+                return true;
             case CLIENT_COMMAND_PREVIOUS:
                 popOSD(Hud::Previous);
 
@@ -1444,6 +1452,10 @@ class CElectricSheep
                     return ExecuteCommand(CLIENT_COMMAND_LIKE);
                 case DisplayOutput::CKeyEvent::KEY_DOWN:
                     return ExecuteCommand(CLIENT_COMMAND_DISLIKE);
+                    // Report
+                case DisplayOutput::CKeyEvent::KEY_B:
+                    return ExecuteCommand(CLIENT_COMMAND_REPORT);
+
                     // Repeat current sheep
                 case DisplayOutput::CKeyEvent::KEY_LEFT:
                     return ExecuteCommand(CLIENT_COMMAND_PREVIOUS);

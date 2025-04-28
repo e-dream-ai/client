@@ -75,11 +75,71 @@ m_CurrentFrameMetadata{}, m_HasFinished(false), m_IsFadingOut(false)
 
 bool CClip::Start(int64_t _seekFrame)
 {
-    m_DecoderClock = {};
+/*    m_DecoderClock = {};
+    return m_spDecoder->Start(m_ClipMetadata, _seekFrame);*/
+    
+    // Reset buffering state and timing values
+    m_BufferingState = BufferingState::Buffering;
+    m_RequestedStartTime = m_StartTime;
+    m_ActualStartTime = 0.0;
+    m_TotalBufferingTime = 0.0;
+    m_HasStartedPlaying = false;
+    
+    g_Log->Info("Starting clip %s in buffering mode (seek: %d), waiting for frames...",
+                m_ClipMetadata.dreamData.uuid.c_str(), _seekFrame);
+
+    // First preload the clip
+    if (!Preload(_seekFrame)) {
+        return false;
+    }
+    
+    // Then start playback
+    //return StartPlayback(_seekFrame);
+    
+    // Just initialize the decoder and start filling the frame queue
     return m_spDecoder->Start(m_ClipMetadata, _seekFrame);
 }
 
 void CClip::Stop() { m_spDecoder->Stop(); }
+
+bool CClip::Preload(int64_t _seekFrame)
+{
+    g_Log->Info("Starting preloading %s at %d", m_ClipMetadata.path.c_str(), _seekFrame);
+ 
+    // Reset flags
+    m_HasFinished.exchange(false);
+    m_IsFadingOut.exchange(false);
+    m_IsPreloaded = false;
+    
+    // Initialize the decoder without starting playback
+    if (!m_spDecoder->Start(m_ClipMetadata, _seekFrame)) {
+        g_Log->Error("Failed to initialize decoder for %s", m_ClipMetadata.path.c_str());
+        return false;
+    }
+    
+    m_IsPreloaded = true;
+    return true;
+}
+
+bool CClip::StartPlayback(int64_t _seekFrame)
+{
+    if (!m_IsPreloaded) {
+        g_Log->Error("Cannot start playback - clip not preloaded");
+        return false;
+    }
+    
+    m_DecoderClock = {};
+    m_DecoderClock.started = false;
+    m_DecoderClock.acc = 0.0;
+    m_DecoderClock.interframeDelta = 0.0;
+    
+    m_HasStartedPlaying = true;
+
+    return true;
+    //return m_spDecoder->Start(m_ClipMetadata, _seekFrame);
+}
+
+
 
 //    Do some math to figure out the delta between frames...
 bool CClip::NeedsNewFrame(double _timelineTime,
@@ -117,22 +177,101 @@ bool CClip::NeedsNewFrame(double _timelineTime,
 bool CClip::Update(double _timelineTime)
 {
     m_Alpha = 0.f;
-    if (_timelineTime > m_EndTime || m_spDecoder->HasEnded())
+
+    
+    // Check buffering state
+    if (m_BufferingState != BufferingState::NotBuffering) {
+        uint32_t queueLength = m_spDecoder->QueueLength();
+        
+        // Check if we have enough frames to start/resume playback
+        if (m_BufferingState == BufferingState::Buffering && queueLength >= 10) {
+            // Initial buffer filled, start playback
+            g_Log->Info("Initial buffer filled (%d frames), starting playback for %s",
+                        queueLength, m_ClipMetadata.dreamData.uuid.c_str());
+            m_BufferingState = BufferingState::NotBuffering;
+            
+            // Set the actual start time when playback begins
+            if (!m_HasStartedPlaying) {
+                m_ActualStartTime = _timelineTime;
+                m_HasStartedPlaying = true;
+                
+                // Update the clip's timeline position
+                SetStartTime(m_ActualStartTime);
+                
+                // Start actual playback
+                StartPlayback(m_spDecoder->GetVideoInfo()->m_SeekTargetFrame);
+            }
+        }
+        else if (m_BufferingState == BufferingState::Rebuffering && queueLength >= 5) {
+            // Rebuffer filled, resume playback
+            g_Log->Info("Buffer refilled (%d frames), resuming playback for %s",
+                        queueLength, m_ClipMetadata.dreamData.uuid.c_str());
+            
+            // Track how long we were buffering
+            double bufferingDuration = _timelineTime - m_RebufferingStartTime;
+            m_TotalBufferingTime += bufferingDuration;
+            
+            m_BufferingState = BufferingState::NotBuffering;
+        }
+        else {
+            // Still buffering, don't update the frame
+            m_Alpha = 0.5f; // Semi-transparent during buffering
+            return true;    // Return true so player knows we're still active
+        }
+    }
+    
+    // Check if we need to rebuffer (unless we're near the end or fading out)
+    if (m_spDecoder->QueueLength() < 2 && !IsNearEnd() && !m_IsFadingOut.load()) {
+        g_Log->Info("Buffer too low (%d frames), entering rebuffering state for %s",
+                    m_spDecoder->QueueLength(), m_ClipMetadata.dreamData.uuid.c_str());
+        m_BufferingState = BufferingState::Rebuffering;
+        m_RebufferingStartTime = _timelineTime;
+        return true;
+    }
+    
+
+    // We always push until the last frame is rendered. We may fake it
+    if (m_CurrentFrameMetadata.maxFrameIdx > 0 &&
+        m_CurrentFrameMetadata.frameIdx > m_CurrentFrameMetadata.maxFrameIdx - 1)
     {
+        g_Log->Info("marking dream %s as finished", m_ClipMetadata.dreamData.uuid.c_str());
+        
+        if (m_FadeOutSeconds == 0.f)
+            m_Alpha = 1.f;
+        
         m_HasFinished.exchange(true);
         m_IsFadingOut.exchange(false);
         
         return false;
     }
+    
     if (_timelineTime < m_StartTime)
         return false;
+
     if (NeedsNewFrame(_timelineTime, &m_DecoderClock))
     {
+       
         if (!GrabVideoFrame())
         {
-            return false;
+            // If we're near the end, don't fail as we used to
+            if (m_LastValidFrame && IsNearEnd())
+            {
+                g_Log->Info("Reusing last valid, faking increment count");
+                // Just keep using the last valid frame
+                m_spFrameData = m_LastValidFrame;
+                m_CurrentFrameMetadata.frameIdx++;
+            }
+            else
+            {
+                return false;
+            }
         }
     }
+    
+    // temporarily needed by basic per frame renderer at startup, we should avoid this path in the future
+    // Cubic/linear don't need this
+    if (m_spFrameData == nullptr)
+        return false;
 
     uint32_t idx = m_spFrameData->GetMetaData().frameIdx;
     uint32_t maxIdx = m_spFrameData->GetMetaData().maxFrameIdx;
@@ -150,22 +289,46 @@ bool CClip::Update(double _timelineTime)
     double secondsOut = (maxIdx - idx) / m_ClipMetadata.decodeFps - delta;
     secondsOut = std::fmin(secondsOut, (m_EndTime - _timelineTime));
     
-    if (secondsOut < m_FadeOutSeconds) {
+    if (m_FadeOutSeconds > 0 && secondsOut < m_FadeOutSeconds) {
         m_IsFadingOut.exchange(true);
     }
 
-    float alpha = (float)std::fmin(secondsIn / m_FadeInSeconds, 1.f) *
-                  (float)std::fmin(secondsOut / m_FadeOutSeconds, 1.f);
-    if (secondsOut <= 0)
+    if (m_FadeOutSeconds > 0)
     {
-        m_HasFinished.exchange(true);
-        return false;
+        float alpha = (float)std::fmin(secondsIn / m_FadeInSeconds, 1.f) *
+                      (float)std::fmin(secondsOut / m_FadeOutSeconds, 1.f);
+        if (secondsOut <= 0)
+        {
+            m_HasFinished.exchange(true);
+            return false;
+        }
+        m_Alpha = alpha;
+    } else {
+        m_Alpha = 1.f;
     }
-    m_Alpha = alpha;
+
     return true;
 }
 
 bool CClip::DrawFrame(spCRenderer _spRenderer, float alpha) {
+    if (m_BufferingState == BufferingState::Buffering) {
+        // Could display a loading indicator here
+        g_Log->Info("Buffering, nothing to display yet");
+        return false; // Nothing to draw yet
+    }
+    
+    // g_Log->Info("alpha %f", m_Alpha);
+
+    // If we're buffering, draw the last valid frame with reduced opacity
+    if (IsBuffering()) {
+        if (m_LastValidFrame) {
+            // Use the last valid frame while buffering
+            m_spFrameData = m_LastValidFrame;
+            return m_spFrameDisplay->Draw(_spRenderer, alpha * 0.5f, m_DecoderClock.interframeDelta);
+        }
+        return false; // No frame yet
+    }
+    
     if (!m_spFrameData)
         return false;
     return m_spFrameDisplay->Draw(_spRenderer, m_Alpha, m_DecoderClock.interframeDelta);
@@ -182,6 +345,10 @@ bool CClip::GrabVideoFrame()
     if (frame)
     {
         m_spFrameData = frame;
+
+        // Store this as our last valid frame
+        m_LastValidFrame = frame;
+        
         {
             std::unique_lock<std::shared_mutex> lock(
                 m_CurrentFrameMetadataLock);
@@ -221,11 +388,30 @@ bool CClip::GrabVideoFrame()
     }
     else
     {
+        // If we're near the end and have a cached frame, use it instead of failing
+        if (m_LastValidFrame && IsNearEnd())
+        {
+            m_CurrentFrameMetadata.frameIdx++;
+            g_Log->Info("Using cached frame %d for seamless transition, masquarading as %d",
+                        m_LastValidFrame->GetMetaData().frameIdx,
+                        m_CurrentFrameMetadata.frameIdx);
+            m_spFrameData = m_LastValidFrame;
+            return true;
+        }
+        
         g_Log->Warning("failed to get frame...");
         return false;
     }
 
     return true;
+}
+
+bool CClip::IsNearEnd() const
+{
+    if (!m_CurrentFrameMetadata.maxFrameIdx) return false;
+    
+    uint32_t framesRemaining = m_CurrentFrameMetadata.maxFrameIdx - m_CurrentFrameMetadata.frameIdx;
+    return framesRemaining < 50; // We might adjust that, good start point. might need push to 25+
 }
 
 uint32_t CClip::GetCurrentFrameIdx() const
@@ -260,5 +446,15 @@ void CClip::SkipTime(float _secondsForward)
 {
     m_spDecoder->SkipTime(_secondsForward);
     m_DecoderClock.started = false;
+    
+    // If we were in buffering state, reset it to ensure proper rebuffering
+    // This matters on successive skips
+    if (m_BufferingState == BufferingState::Rebuffering) {
+        m_BufferingState = BufferingState::NotBuffering;
+    }
+
+    g_Log->Info("Skipped %f seconds in clip %s", _secondsForward,
+                m_ClipMetadata.dreamData.uuid.c_str());
 }
+
 } // namespace ContentDecoder

@@ -379,7 +379,7 @@ static void signnal_handler(int signal)
             //{'\t', CKeyEvent::eKeyCode::KEY_TAB},
             //{' ', CKeyEvent::eKeyCode::KEY_SPACE},
             {'a', CKeyEvent::eKeyCode::KEY_A},
-            //            {'b', CKeyEvent::eKeyCode::KEY_B},
+            {'b', CKeyEvent::eKeyCode::KEY_B},
             {'c', CKeyEvent::eKeyCode::KEY_C},
             {'d', CKeyEvent::eKeyCode::KEY_D},
             //            {'e', CKeyEvent::eKeyCode::KEY_E},

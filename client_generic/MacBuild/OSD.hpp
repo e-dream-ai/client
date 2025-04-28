@@ -37,7 +37,8 @@ enum OSDType {
     Back10,
     Forward10,
     Like,
-    Dislike
+    Dislike,
+    Report
 };
 
 class COSD : public CHudEntry {
@@ -190,6 +191,14 @@ public:
             m_spDislikeTexture->Upload(tmpDislike);
         }
         
+        DisplayOutput::spCImage tmpReport(new DisplayOutput::CImage());
+        if (tmpReport->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
+                               "osd-report.png", false))
+        {
+            m_spReportTexture = g_Player().Renderer()->NewTextureFlat();
+            m_spReportTexture->Upload(tmpReport);
+        }
+        
         // Set mini BG size
         // Fix A/R
         float aspect = g_Player().Display()->Aspect();
@@ -305,6 +314,9 @@ public:
         tmpForward = NULL;
         tmpBack10 = NULL;
         tmpForward10 = NULL;
+        tmpLike = NULL;
+        tmpDislike = NULL;
+        tmpReport = NULL;
     };
     
     bool Render(const double _time, DisplayOutput::spCRenderer _spRenderer)
@@ -428,6 +440,9 @@ public:
                 case Dislike:
                     spRenderer->SetTexture(m_spDislikeTexture, 0);
                     break;
+                case Report:
+                    spRenderer->SetTexture(m_spReportTexture, 0);
+                    break;
                 default:
                     spRenderer->SetTexture(m_spPauseTexture, 0);
                     printf("Shouldn't be here");
@@ -494,7 +509,7 @@ private:
     Base::Math::CRect m_BgCRect, m_DotCRect, m_SymbolCRect;
     
     // Textures and coordinates for mini hud (210sq)
-    DisplayOutput::spCTextureFlat m_spBgSqTexture, m_spPlayTexture, m_spPauseTexture, m_spBackTexture, m_spForwardTexture, m_spBack10Texture, m_spForward10Texture, m_spLikeTexture, m_spDislikeTexture;
+    DisplayOutput::spCTextureFlat m_spBgSqTexture, m_spPlayTexture, m_spPauseTexture, m_spBackTexture, m_spForwardTexture, m_spBack10Texture, m_spForward10Texture, m_spLikeTexture, m_spDislikeTexture, m_spReportTexture;
 
     Base::Math::CRect m_BgSqCRect, m_LargeSymbolCRect;
 

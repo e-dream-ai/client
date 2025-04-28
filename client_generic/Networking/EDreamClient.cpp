@@ -1,6 +1,6 @@
-#include <websocketpp/config/asio_client.hpp>
+/*#include <websocketpp/config/asio_client.hpp>
 #include <websocketpp/client.hpp>
-#include <websocketpp/config/asio_no_tls_client.hpp>
+#include <websocketpp/config/asio_no_tls_client.hpp>*/
 #include <sio_client.h>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
@@ -478,7 +478,7 @@ bool EDreamClient::ValidateCode(const std::string& code)
                 }
                 
                 return true;
-            } catch (const boost::json::system_error& e) {
+            } catch (const boost::system::system_error& e) {
                 g_Log->Error("JSON parsing error: %s", e.what());
                 return false;
             }
@@ -864,10 +864,13 @@ std::future<bool> EDreamClient::EnqueuePlaylistAsync(const std::string& uuid) {
 
         // save the current playlist id, this will get reused at next startup
         g_Settings()->Set("settings.content.current_playlist_uuid", uuid);
-        g_Player().SetPlaylist(std::string(uuid));
         
-        g_Player().SetTransitionDuration(1.0f);
-        g_Player().StartTransition();
+        std::thread([uuid]() {
+            // These operations must happen on the main/UI thread
+            g_Player().SetPlaylist(std::string(uuid), false);
+            g_Player().SetTransitionDuration(1.0f);
+            g_Player().StartTransition();
+        }).detach();
         
         return true;
     });
@@ -1299,13 +1302,17 @@ std::string EDreamClient::GetDreamDownloadLink(const std::string& uuid) {
 }
 
 
-std::vector<std::string> EDreamClient::ParsePlaylist(std::string_view uuid) {
+std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
     g_Log->Info("Parse Playlist %s", (uuid == "" ? "default playlist" : uuid));
     // Grab the CacheManager
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
 
-    // Collect all UUIDs from the json, and UUIDs where metadata is missing
-    std::vector<std::string> uuids;
+    // Clear the existing download queue before we begin
+    g_ContentDownloader().m_gDownloader.ClearDreamUUIDs();
+
+    // Collect all UUIDs/keyframes from the json for individual dreams
+    // We also check via our cache if we have metadata or need to download
+    std::vector<PlaylistEntry> entries;
     std::vector<std::string> needsMetadataUuids;
     std::vector<std::string> needsDownloadUuids;
 
@@ -1316,7 +1323,7 @@ std::vector<std::string> EDreamClient::ParsePlaylist(std::string_view uuid) {
     if (!file.is_open())
     {
         g_Log->Error("Error opening file: %s", filePath.string().c_str());
-        return uuids;
+        return entries;
     }
     std::string contents{(std::istreambuf_iterator<char>(file)),
         (std::istreambuf_iterator<char>())};
@@ -1345,27 +1352,49 @@ std::vector<std::string> EDreamClient::ParsePlaylist(std::string_view uuid) {
         for (auto& item : itemArray) {
             auto itemObj = item.as_object();
             
-            auto uuid = std::string(itemObj["uuid"].as_string());
+            auto dreamUuid = std::string(itemObj["uuid"].as_string());
             auto timestamp = itemObj["timestamp"].as_int64();
             
-            // Do we have the metadata?
-            if (cm.needsMetadata(uuid, timestamp)) {
-                needsMetadataUuids.push_back(uuid.c_str());
+            // Create PlaylistEntry with optional keyframe fields
+            std::optional<std::string> startKeyframe;
+            std::optional<std::string> endKeyframe;
+
+            // Check for optional keyframe fields
+            if (itemObj.contains("start_keyframe")) {
+                auto& startVal = itemObj["start_keyframe"];
+                if (!startVal.is_null()) {
+                    startKeyframe = std::string(startVal.as_string());
+                }
             }
-            
-            // Do we have the video?
-            if (!cm.hasDiskCachedItem(uuid.c_str()))
-            {
-                if (!isFirst) {
-                    needsDownloadUuids.push_back(uuid.c_str());
-                } else {
-                    // Prefetch download link for 1st video from playlist if we don't have it
-                    // We don't push it to our download thread
-                    needsStreamingUuid = uuid;
+            if (itemObj.contains("end_keyframe")) {
+                auto& endVal = itemObj["end_keyframe"];
+                if (!endVal.is_null()) {
+                    endKeyframe = std::string(endVal.as_string());
                 }
             }
             
-            uuids.push_back(uuid.c_str());
+            // Create the entry
+            PlaylistEntry entry(dreamUuid, startKeyframe, endKeyframe);
+            
+            
+            // Do we have the metadata?
+            if (cm.needsMetadata(dreamUuid, timestamp)) {
+                needsMetadataUuids.push_back(dreamUuid.c_str());
+            }
+            
+            // Do we have the video?
+            if (!cm.hasDiskCachedItem(dreamUuid.c_str()))
+            {
+                if (!isFirst) {
+                    needsDownloadUuids.push_back(dreamUuid.c_str());
+                } else {
+                    // Prefetch download link for 1st video from playlist if we don't have it
+                    // We don't push it to our download thread
+                    needsStreamingUuid = dreamUuid;
+                }
+            }
+            
+            entries.push_back(std::move(entry));
             isFirst = false;
         }
     }
@@ -1403,7 +1432,7 @@ std::vector<std::string> EDreamClient::ParsePlaylist(std::string_view uuid) {
         dream->setStreamingUrl(path);
     }
     
-    return uuids;
+    return entries;
 }
 
 std::tuple<std::string, std::string, bool, int64_t> EDreamClient::ParsePlaylistMetadata(std::string_view uuid) {
@@ -1477,7 +1506,7 @@ bool EDreamClient::EnqueuePlaylist(std::string_view uuid) {
 
     // save the current playlist id, this will get reused at next startup
     g_Settings()->Set("settings.content.current_playlist_uuid", uuid);
-    g_Player().SetPlaylist(std::string(uuid));
+    g_Player().SetPlaylist(std::string(uuid), false);
     
     g_Player().SetTransitionDuration(1.0f);
     g_Player().StartTransition();
@@ -1531,6 +1560,11 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
     {
         g_Client()->ExecuteCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_DISLIKE);
+    }
+    else if (event == "report_current_dream")
+    {
+        g_Client()->ExecuteCommand(
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_REPORT);
     }
     else if (event == "next")
     {
@@ -1702,7 +1736,7 @@ void EDreamClient::ConnectRemoteControlSocket()
 }
 
 void EDreamClient::Like(std::string uuid) {
-    std::cout << "Sending like for UUID " << uuid;
+    g_Log->Info("Sending like for UUID %s", uuid.c_str());
     
     std::shared_ptr<sio::object_message> ms =
         std::dynamic_pointer_cast<sio::object_message>(
@@ -1716,7 +1750,7 @@ void EDreamClient::Like(std::string uuid) {
 }
 
 void EDreamClient::Dislike(std::string uuid) {
-    std::cout << "Sending dislike for UUID " << uuid;
+    g_Log->Info("Sending dislike for UUID %s", uuid.c_str());
     
     std::shared_ptr<sio::object_message> ms =
         std::dynamic_pointer_cast<sio::object_message>(
@@ -1729,8 +1763,19 @@ void EDreamClient::Dislike(std::string uuid) {
         ->emit("new_remote_control_event", list);
 }
 
-
-
+void EDreamClient::Report(std::string uuid) {
+    g_Log->Info("Sending report for UUID %s", uuid.c_str());
+    
+    std::shared_ptr<sio::object_message> ms =
+        std::dynamic_pointer_cast<sio::object_message>(
+            sio::object_message::create());
+    ms->insert("event", "report");
+    ms->insert("uuid", uuid);
+    sio::message::list list;
+    list.push(ms);
+    s_SIOClient.socket("/remote-control")
+        ->emit("new_remote_control_event", list);
+}
 
 
 

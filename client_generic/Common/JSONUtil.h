@@ -37,7 +37,7 @@ class JSONUtil
         g_Log->Error(str);
     }
 
-    static bool DumpError(const boost::json::error_code& e,
+    static bool DumpError(const boost::system::error_code& e,
                           std::string_view fileStr)
     {
         if (!e)

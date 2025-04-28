@@ -115,6 +115,7 @@ class CContentDecoder
     std::unique_ptr<sOpenVideoInfo> m_CurrentVideoInfo;
     AVPixelFormat m_WantedPixelFormat;
     boost::atomic<float> m_SkipForward;
+    boost::atomic<bool> m_HasStarted{false};
     boost::atomic<bool> m_HasEnded;
 
     void Destroy();

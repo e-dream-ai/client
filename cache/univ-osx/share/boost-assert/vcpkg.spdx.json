@@ -3,13 +3,13 @@
   "spdxVersion": "SPDX-2.2",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "documentNamespace": "https://spdx.org/spdxdocs/boost-assert-arm64-osx-1.85.0#1-e8a9fecb-f975-4561-8feb-f60d6e0cf00c",
-  "name": "boost-assert:arm64-osx@1.85.0#1 2de96d380b70e35fc6658bdf4f9dc5be6b26b3bf6612eda94a84de40ea00c412",
+  "documentNamespace": "https://spdx.org/spdxdocs/boost-assert-arm64-osx-1.87.0-5ff65bec-5832-415a-84cd-05174f399ffa",
+  "name": "boost-assert:arm64-osx@1.87.0 3a5495ed54f838ce74d23c02674e8c017a8037d34a3786c36eddfde76fb6a5c1",
   "creationInfo": {
     "creators": [
-      "Tool: vcpkg-d6945642ee5c3076addd1a42c331bbf4cfc97457"
+      "Tool: vcpkg-2025-02-11-bec4296bf5289dc9ce83b4f5095943e44162f9c2"
     ],
-    "created": "2024-08-08T16:30:39Z"
+    "created": "2025-03-13T17:57:22Z"
   },
   "relationships": [
     {
@@ -47,7 +47,7 @@
     {
       "name": "boost-assert",
       "SPDXID": "SPDXRef-port",
-      "versionInfo": "1.85.0#1",
+      "versionInfo": "1.87.0",
       "downloadLocation": "NOASSERTION",
       "homepage": "https://www.boost.org/libs/assert",
       "licenseConcluded": "BSL-1.0",
@@ -59,7 +59,7 @@
     {
       "name": "boost-assert:arm64-osx",
       "SPDXID": "SPDXRef-binary",
-      "versionInfo": "2de96d380b70e35fc6658bdf4f9dc5be6b26b3bf6612eda94a84de40ea00c412",
+      "versionInfo": "3a5495ed54f838ce74d23c02674e8c017a8037d34a3786c36eddfde76fb6a5c1",
       "downloadLocation": "NONE",
       "licenseConcluded": "BSL-1.0",
       "licenseDeclared": "NOASSERTION",
@@ -67,16 +67,16 @@
       "comment": "This is a binary package built by vcpkg."
     },
     {
-      "SPDXID": "SPDXRef-resource-1",
+      "SPDXID": "SPDXRef-resource-0",
       "name": "boostorg/assert",
-      "downloadLocation": "git+https://github.com/boostorg/assert@boost-1.85.0",
+      "downloadLocation": "git+https://github.com/boostorg/assert@boost-1.87.0",
       "licenseConcluded": "NOASSERTION",
       "licenseDeclared": "NOASSERTION",
       "copyrightText": "NOASSERTION",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "ef6f7f8d4f7826df15134f4ffbd117f534b5d4ebf278de9f2ea3a5f81fe64727f98892bc4d6094700cca694970093f8f1c7991da0c47d1a415bbc0294d56b847"
+          "checksumValue": "da141f67e0c8926e21d4fae6a1665f1706b300b1a85c1d870546eb74d7382369148846bb939d1d23b84fb0dfc542fdc1dafed613f34adacc5931df7655406276"
         }
       ]
     }
@@ -88,7 +88,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "ac0024274592345c2ceaf2d4d93911116445340edee37c095a6353c297ac058c"
+          "checksumValue": "bf3aac9e9a7340f8d67548e6d2584a46cdca167d2f6848cfa4fa9a1d6a846a45"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -100,7 +100,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "16deee0ee5bf91c88d943038744cd83b445d036401e63a27d7fa5085b01434f8"
+          "checksumValue": "f6cfc747e4fb327664e628c91655bc6a3328a4ae0f50b0cd62d0f61595ab0609"
         }
       ],
       "licenseConcluded": "NOASSERTION",
