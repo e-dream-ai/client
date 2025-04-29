@@ -1477,7 +1477,7 @@ bool CPlayer::PreloadClip(const Cache::Dream* dream) {
     return true;
 }
 
-bool CPlayer::IsCurrentClipBuffering() const {
+bool CPlayer::IsCurrentClipRebuffering() const {
     reader_lock l(m_UpdateMutex);
-    return m_currentClip && m_currentClip->IsBuffering();
+    return m_currentClip && m_currentClip->IsRebuffering();
 }

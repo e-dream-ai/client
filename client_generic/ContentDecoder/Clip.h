@@ -156,6 +156,7 @@ public:
     bool IsNearEnd() const;
 
     bool IsBuffering() const { return m_BufferingState != BufferingState::NotBuffering; }
+    bool IsRebuffering() const { return m_BufferingState == BufferingState::Rebuffering; }
     double GetActualStartTime() const { return m_ActualStartTime; }
     double GetTotalBufferingTime() const { return m_TotalBufferingTime; }
     bool HasStartedPlaying() const { return m_HasStartedPlaying; }

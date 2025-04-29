@@ -243,7 +243,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
 
     bool PreloadClip(const Cache::Dream* dream);
     
-    bool IsCurrentClipBuffering() const;
+    bool IsCurrentClipRebuffering() const;
 };
 
 /*
