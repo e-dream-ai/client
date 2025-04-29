@@ -57,6 +57,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
     float m_transitionDuration;
     bool m_isFirstPlay;
 
+    bool m_PausedForRebuffering = false;
+    
     typedef struct
     {
         DisplayOutput::spCDisplayOutput spDisplay;
@@ -243,7 +245,19 @@ class CPlayer : public Base::CSingleton<CPlayer>
 
     bool PreloadClip(const Cache::Dream* dream);
     
+    // Handle buffering states
     bool IsCurrentClipRebuffering() const;
+    
+    // These lets us track separately user pauses from rebuffering induced pauses
+    // so we don't unpause when we shouldn't
+    void SetPausedForRebuffering(bool pausedForRebuffering) {
+        m_PausedForRebuffering = pausedForRebuffering;
+    }
+
+    bool WasPausedForRebuffering() const {
+        return m_PausedForRebuffering;
+    }
+
 };
 
 /*

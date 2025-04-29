@@ -1065,16 +1065,29 @@ class CElectricSheep
                 // Update OSD
                 m_spOSD->SetFPS(pFPS);
                 
+                // Handle rebuffering from player
                 bool isRebuffering = g_Player().IsCurrentClipRebuffering();
 
                 if (isRebuffering && !wasRebuffering) {
-                    // Buffering just started - show the icon
+                    // Rebuffering just started - show the icon
                     g_Log->Info("hs : %d", g_Player().HasStarted());
                     m_spOSD->SetType(Hud::Buffering);
-                    m_HudManager->Add("osd-buffering", m_spOSD, 60); // Long timeout - will be removed when buffering ends
+                    m_HudManager->Add("osd-buffering", m_spOSD, 60); // Long timeout - will be removed when we switch away to local mode if it persists
+                    
+                    // Only pause if we're not already paused
+                    if (!m_bPaused) {
+                        g_Player().SetPausedForRebuffering(true);
+                        g_Player().SetPaused(true);
+                    }
                 } else if (!isRebuffering && wasRebuffering) {
                     // Buffering just ended - hide the icon
                     m_HudManager->Hide("osd-buffering");
+                    
+                    // Only unpause if we paused specifically for rebuffering
+                    if (g_Player().WasPausedForRebuffering()) {
+                        g_Player().SetPausedForRebuffering(false);
+                        g_Player().SetPaused(false);
+                    }
                 }
                 wasRebuffering = isRebuffering;
                 
