@@ -620,6 +620,10 @@ bool CPlayer::Update(uint32_t displayUnit)
                 if (m_currentClip && m_currentClip->IsFadingOut()) {
                     g_Log->Info("PND : Standard crossfading");
                     PlayNextDream();
+                } else if (m_currentClip && m_currentClip->HasFinished() && !m_isTransitioning) {
+                    // Safety catch: clip finished without proper fading
+                    g_Log->Error("Clip finished without fading out state, forcing transition");
+                    PlayNextDream();
                 }
             }
         }
