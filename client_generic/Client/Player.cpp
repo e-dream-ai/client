@@ -590,41 +590,63 @@ bool CPlayer::Update(uint32_t displayUnit)
 
     if (m_currentClip) {
         m_currentClip->Update(m_TimelineTime);
-
-        // Check if we need to prepare for transition
-        if (!m_isTransitioning && !m_nextDreamDecision && shouldPrepareTransition(m_currentClip)) {
-            // Get the next dream decision
-            g_Log->Info("Update will preflight");
-            m_nextDreamDecision = m_playlistManager->preflightNextDream();
-            
-            if (m_nextDreamDecision) {
-                if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::Seamless) {
-                    prepareSeamlessTransition();
-                } else if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::StandardCrossfade) {
-                    prepareCrossfadeTransition();
-                }
+        
+        // Check for initial buffering separately from rebuffering
+        bool isInInitialBuffering = m_currentClip->IsBuffering() && !m_currentClip->HasStartedPlaying();
+        
+        if (isInInitialBuffering && !m_PausedForInitialBuffering) {
+            // Pause the timeline during initial buffering
+            m_PausedForInitialBuffering = true;
+            // No need to call SetPaused since we're just freezing the timeline
+            g_Log->Info("Pausing timeline for initial buffering");
+        } else if (!isInInitialBuffering && m_PausedForInitialBuffering) {
+            // Initial buffering complete, resume timeline
+            m_PausedForInitialBuffering = false;
+            // Update the actual start time now that buffering is complete
+            if (m_currentClip) {
+                m_currentClip->SetStartTime(m_TimelineTime);
+                g_Log->Info("Resuming timeline after initial buffering, adjusted start time");
             }
         }
         
-        if (m_isTransitioning) {
-            UpdateTransition(m_TimelineTime);
-        }
         
-        if (m_nextDreamDecision) {
-            if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::Seamless) {
-                if (m_currentClip && m_currentClip->HasFinished()) {
-                    g_Log->Info("PND : Launching on finished current");
-                    PlayNextDream();
+        // Only check for transition if we're not in initial buffering
+        if (!isInInitialBuffering) {
+            // Check if we need to prepare for transition
+            if (!m_isTransitioning && !m_nextDreamDecision && shouldPrepareTransition(m_currentClip)) {
+                // Get the next dream decision
+                g_Log->Info("Update will preflight");
+                m_nextDreamDecision = m_playlistManager->preflightNextDream();
+                
+                if (m_nextDreamDecision) {
+                    if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::Seamless) {
+                        prepareSeamlessTransition();
+                    } else if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::StandardCrossfade) {
+                        prepareCrossfadeTransition();
+                    }
                 }
-            } else if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::StandardCrossfade) {
-                //
-                if (m_currentClip && m_currentClip->IsFadingOut()) {
-                    g_Log->Info("PND : Standard crossfading");
-                    PlayNextDream();
-                } else if (m_currentClip && m_currentClip->HasFinished() && !m_isTransitioning) {
-                    // Safety catch: clip finished without proper fading
-                    g_Log->Error("Clip finished without fading out state, forcing transition");
-                    PlayNextDream();
+            }
+            
+            if (m_isTransitioning) {
+                UpdateTransition(m_TimelineTime);
+            }
+            
+            if (m_nextDreamDecision) {
+                if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::Seamless) {
+                    if (m_currentClip && m_currentClip->HasFinished()) {
+                        g_Log->Info("PND : Launching on finished current");
+                        PlayNextDream();
+                    }
+                } else if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::StandardCrossfade) {
+                    //
+                    if (m_currentClip && m_currentClip->IsFadingOut()) {
+                        g_Log->Info("PND : Standard crossfading");
+                        PlayNextDream();
+                    } else if (m_currentClip && m_currentClip->HasFinished() && !m_isTransitioning) {
+                        // Safety catch: clip finished without proper fading
+                        g_Log->Error("Clip finished without fading out state, forcing transition");
+                        PlayNextDream();
+                    }
                 }
             }
         }

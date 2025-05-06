@@ -57,6 +57,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
     float m_transitionDuration;
     bool m_isFirstPlay;
 
+    // Track if we paused for buffering, either initially or in rebuffering scenarios
+    bool m_PausedForInitialBuffering = false;
     bool m_PausedForRebuffering = false;
     
     typedef struct

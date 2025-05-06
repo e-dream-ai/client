@@ -312,7 +312,7 @@ bool CClip::Update(double _timelineTime)
 bool CClip::DrawFrame(spCRenderer _spRenderer, float alpha) {
     if (m_BufferingState == BufferingState::Buffering) {
         // Could display a loading indicator here
-        g_Log->Info("Buffering, nothing to display yet");
+        g_Log->Info("Buffering, nothing to display yet (ql: %d)", m_spDecoder->QueueLength());
         return false; // Nothing to draw yet
     }
     
