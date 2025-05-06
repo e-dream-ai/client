@@ -854,14 +854,6 @@ std::future<bool> EDreamClient::EnqueuePlaylistAsync(const std::string& uuid) {
             return false;
         }
 
-        // Parse the playlist, we do this here as, in cascade, it will also fetch any dream metadata we need
-        auto uuids = ParsePlaylist(uuid);
-        
-        if (uuids.empty()) {
-            g_Log->Error("Failed to parse playlist or playlist is empty. UUID: %s", uuid.c_str());
-            return false;
-        }
-
         // save the current playlist id, this will get reused at next startup
         g_Settings()->Set("settings.content.current_playlist_uuid", uuid);
         
@@ -1414,20 +1406,24 @@ std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
         }
     }
 
+    auto queuedDreams = 0;
     // Then enqueue our missing videos
     for (const auto& needsDownload : needsDownloadUuids) {
         if (!g_ContentDownloader().m_gDownloader.isDreamUUIDQueued(needsDownload)) {
-            g_Log->Info("Add %s to download queue", needsDownload.c_str());
+            queuedDreams++;
             g_ContentDownloader().m_gDownloader.AddDreamUUID(needsDownload);
         }
     }
 
+    g_Log->Info("Added %d dreams to download queue", queuedDreams);
+    
     // Finally, if needed fetch streaming link for 1st video
     if (!needsStreamingUuid.empty()) {
         // Grab a pointer to the dream metadata
         auto dream = cm.getDream(needsStreamingUuid);
 
         // Grab streaming URL and save it for later use
+        g_Log->Info("Parse playlist blocking call for download link");
         auto path = EDreamClient::GetDreamDownloadLink(dream->uuid);
         dream->setStreamingUrl(path);
     }

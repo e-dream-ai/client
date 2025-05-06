@@ -594,6 +594,7 @@ bool CPlayer::Update(uint32_t displayUnit)
         // Check if we need to prepare for transition
         if (!m_isTransitioning && !m_nextDreamDecision && shouldPrepareTransition(m_currentClip)) {
             // Get the next dream decision
+            g_Log->Info("Update will preflight");
             m_nextDreamDecision = m_playlistManager->preflightNextDream();
             
             if (m_nextDreamDecision) {
@@ -638,12 +639,12 @@ bool CPlayer::Update(uint32_t displayUnit)
     // Make sure we are :
     // - either logged in, or in offline mode
     // - have a playlist ready before going in
-    if ((EDreamClient::IsLoggedIn() /*|| g_Client->IsMultipleInstancesMode()*/ ) && m_hasStarted) {
-        if (!m_currentClip && m_isFirstPlay) {
-            g_Log->Info("PND : First play");
-            PlayNextDream();
-        }
-    }
+//    if ((EDreamClient::IsLoggedIn() /*|| g_Client->IsMultipleInstancesMode()*/ ) && m_hasStarted) {
+//        if (!m_currentClip && m_isFirstPlay) {
+//            g_Log->Info("PND : First play");
+//            PlayNextDream();
+//        }
+//    }
     
     if (m_currentClip && m_currentClip->m_Alpha == 0.0f && m_currentClip->m_FadeInSeconds == 0.f) {
         g_Log->Info("Fixing null alpha");
@@ -722,6 +723,7 @@ bool CPlayer::PlayClip(const Cache::Dream* dream, double _startTime, int64_t _se
         if (path.empty()) {
             // Last resort blocking call this should never get called ideally
             // but keeping it for resiliancy
+            g_Log->Warning("Last resort blocking call to get streaming link (Player:PlayClip)");
             path = EDreamClient::GetDreamDownloadLink(dream->uuid);
         }
     }
@@ -1452,7 +1454,7 @@ bool CPlayer::PreloadClip(const Cache::Dream* dream) {
         path = dream->getStreamingUrl();
         if (path.empty()) {
             // Last resort blocking call
-            g_Log->Info("Blocking call");
+            g_Log->Warning("Last resort blocking call (Player:Preload clip)");
             path = EDreamClient::GetDreamDownloadLink(dream->uuid);
         }
     }
