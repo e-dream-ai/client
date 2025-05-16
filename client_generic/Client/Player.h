@@ -57,10 +57,6 @@ class CPlayer : public Base::CSingleton<CPlayer>
     float m_transitionDuration;
     bool m_isFirstPlay;
 
-    // Track if we paused for buffering, either initially or in rebuffering scenarios
-    bool m_PausedForInitialBuffering = false;
-    bool m_PausedForRebuffering = false;
-    
     typedef struct
     {
         DisplayOutput::spCDisplayOutput spDisplay;
@@ -89,7 +85,10 @@ class CPlayer : public Base::CSingleton<CPlayer>
     double m_LastFrameRealTime;
     bool m_bFullscreen;
     bool m_InitPlayCounts;
-    bool m_bPaused;
+    bool m_bPaused = false;
+    bool m_UserPaused = false;
+    bool m_PausedForBuffering = false;
+
     Base::CBlockingQueue<std::string> m_NextClipInfoQueue;
     Base::CBlockingQueue<std::string> m_ClipInfoHistoryQueue;
     
@@ -232,8 +231,17 @@ class CPlayer : public Base::CSingleton<CPlayer>
         return static_cast<uint32_t>(m_displayUnits.size());
     }
     void ForceWidthAndHeight(uint32_t du, uint32_t _w, uint32_t _h);
-    void SetPaused(bool _bPaused) { m_bPaused = _bPaused; }
     
+    void SetPaused(bool _bPaused, bool isUserInitiated = false) {
+        m_bPaused = _bPaused;
+        
+        // Set on pause when manually initiated, or unset
+        if (isUserInitiated && _bPaused) {
+            m_UserPaused = _bPaused;
+        } else {
+            m_UserPaused = false;
+        }
+    }
 
     // Keep track of preflight decision
     std::optional<PlaylistManager::NextDreamDecision> m_nextDreamDecision;
@@ -248,18 +256,19 @@ class CPlayer : public Base::CSingleton<CPlayer>
     bool PreloadClip(const Cache::Dream* dream);
     
     // Handle buffering states
-    bool IsCurrentClipRebuffering() const;
-    
-    // These lets us track separately user pauses from rebuffering induced pauses
-    // so we don't unpause when we shouldn't
-    void SetPausedForRebuffering(bool pausedForRebuffering) {
-        m_PausedForRebuffering = pausedForRebuffering;
+    void SetPausedForBuffering(bool paused) {
+        m_PausedForBuffering = paused;
     }
 
-    bool WasPausedForRebuffering() const {
-        return m_PausedForRebuffering;
+    bool IsPausedForBuffering() const {
+        return m_PausedForBuffering;
     }
 
+    bool IsUserPaused() const {
+        return m_UserPaused;
+    }
+
+    bool IsAnyClipBuffering() const;
 };
 
 /*

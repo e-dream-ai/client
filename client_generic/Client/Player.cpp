@@ -591,27 +591,8 @@ bool CPlayer::Update(uint32_t displayUnit)
     if (m_currentClip) {
         m_currentClip->Update(m_TimelineTime);
         
-        // Check for initial buffering separately from rebuffering
-        bool isInInitialBuffering = m_currentClip->IsBuffering() && !m_currentClip->HasStartedPlaying();
-        
-        if (isInInitialBuffering && !m_PausedForInitialBuffering) {
-            // Pause the timeline during initial buffering
-            m_PausedForInitialBuffering = true;
-            // No need to call SetPaused since we're just freezing the timeline
-            g_Log->Info("Pausing timeline for initial buffering");
-        } else if (!isInInitialBuffering && m_PausedForInitialBuffering) {
-            // Initial buffering complete, resume timeline
-            m_PausedForInitialBuffering = false;
-            // Update the actual start time now that buffering is complete
-            if (m_currentClip) {
-                m_currentClip->SetStartTime(m_TimelineTime);
-                g_Log->Info("Resuming timeline after initial buffering, adjusted start time");
-            }
-        }
-        
-        
-        // Only check for transition if we're not in initial buffering
-        if (!isInInitialBuffering) {
+        // Only check for transition if we're not buffering anything
+        if (!IsAnyClipBuffering()) {
             // Check if we need to prepare for transition
             if (!m_isTransitioning && !m_nextDreamDecision && shouldPrepareTransition(m_currentClip)) {
                 // Get the next dream decision
@@ -1505,7 +1486,27 @@ bool CPlayer::PreloadClip(const Cache::Dream* dream) {
     return true;
 }
 
-bool CPlayer::IsCurrentClipRebuffering() const {
-    reader_lock l(m_UpdateMutex);
-    return m_currentClip && m_currentClip->IsRebuffering();
+
+// MARK: Buffering logic
+bool CPlayer::IsAnyClipBuffering() const {
+    //reader_lock l(m_UpdateMutex);
+    
+    // Current clip initial buffering
+    if (m_currentClip && m_currentClip->IsBuffering() && !m_currentClip->HasStartedPlaying()) {
+        return true;
+    }
+    
+    // Current clip rebuffering
+    if (m_currentClip && m_currentClip->IsBuffering() && m_currentClip->HasStartedPlaying()) {
+        return true;
+    }
+    
+    // Next clip buffering during transition
+    if (m_isTransitioning && m_nextClip && m_nextClip->IsBuffering()) {
+        // For transitions, require more buffer before saying "not buffering"
+        uint32_t bufferSize = m_nextClip->GetDecoder()->QueueLength();
+        return bufferSize < 15;  // Only consider "not buffering" when we have enough frames
+    }
+    
+    return false;
 }

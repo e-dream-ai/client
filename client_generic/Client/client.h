@@ -76,8 +76,8 @@ class CElectricSheep
 {
   private:
     Cache::MessageQueue m_MessageQueue;
-    bool wasRebuffering = false;
-    
+    bool wasBuffering = false;
+
   protected:
     ESCpuUsage m_CpuUsage;
     double m_LastCPUCheckTime;
@@ -1064,32 +1064,36 @@ class CElectricSheep
 
                 // Update OSD
                 m_spOSD->SetFPS(pFPS);
-                
-                // Handle rebuffering from player
-                bool isRebuffering = g_Player().IsCurrentClipRebuffering();
 
-                if (isRebuffering && !wasRebuffering) {
-                    // Rebuffering just started - show the icon
-                    g_Log->Info("hs : %d", g_Player().HasStarted());
+                // Buffering
+                bool isBuffering = g_Player().IsAnyClipBuffering();
+
+                // Manage the buffering icon
+                if (isBuffering && !wasBuffering) {
+                    // Any buffering started - show the icon
                     m_spOSD->SetType(Hud::Buffering);
-                    m_HudManager->Add("osd-buffering", m_spOSD, 60); // Long timeout - will be removed when we switch away to local mode if it persists
-                    
-                    // Only pause if we're not already paused
+                    m_HudManager->Add("osd-rebuffering", m_spOSD, 60);
+                } else if (!isBuffering && wasBuffering) {
+                    // Buffering just ended - hide the icon
+                    m_HudManager->Hide("osd-rebuffering");
+                }
+
+                // Simple pause/unpause logic - any buffering means pause
+                if (isBuffering && !g_Player().IsPausedForBuffering()) {
+                    g_Log->Info("Pausing for buffering");
+                    g_Player().SetPausedForBuffering(true);
                     if (!m_bPaused) {
-                        g_Player().SetPausedForRebuffering(true);
                         g_Player().SetPaused(true);
                     }
-                } else if (!isRebuffering && wasRebuffering) {
-                    // Buffering just ended - hide the icon
-                    m_HudManager->Hide("osd-buffering");
-                    
-                    // Only unpause if we paused specifically for rebuffering
-                    if (g_Player().WasPausedForRebuffering()) {
-                        g_Player().SetPausedForRebuffering(false);
+                } else if (!isBuffering && g_Player().IsPausedForBuffering()) {
+                    g_Log->Info("Buffering complete, unpausing");
+                    g_Player().SetPausedForBuffering(false);
+                    if (!m_bPaused || !g_Player().IsUserPaused()) {
                         g_Player().SetPaused(false);
                     }
                 }
-                wasRebuffering = isRebuffering;
+
+                wasBuffering = isBuffering;
                 
                 // Update credits
                 spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
@@ -1437,7 +1441,7 @@ class CElectricSheep
                 } else {
                     popOSD(Hud::Pause);
                 }
-                g_Player().SetPaused(m_bPaused = !m_bPaused);
+                g_Player().SetPaused(m_bPaused = !m_bPaused, true);
                 return true;
             case CLIENT_COMMAND_CREDIT:
                 m_HudManager->Toggle("dreamcredits");
