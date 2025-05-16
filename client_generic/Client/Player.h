@@ -88,6 +88,9 @@ class CPlayer : public Base::CSingleton<CPlayer>
     bool m_bPaused = false;
     bool m_UserPaused = false;
     bool m_PausedForBuffering = false;
+    
+    bool m_PreloadingNextClip = false;
+    std::string m_PreloadingDreamUUID;
 
     Base::CBlockingQueue<std::string> m_NextClipInfoQueue;
     Base::CBlockingQueue<std::string> m_ClipInfoHistoryQueue;

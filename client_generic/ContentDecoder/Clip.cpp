@@ -121,6 +121,13 @@ bool CClip::Preload(int64_t _seekFrame)
     return true;
 }
 
+bool CClip::IsPreloadComplete() const {
+    // Consider a clip preload complete if:
+    // 1. It has been explicitly marked as preloaded
+    // 2. It has loaded enough frames to start playback
+    return m_IsPreloaded && m_spDecoder && m_spDecoder->QueueLength() >= 10;
+}
+
 bool CClip::StartPlayback(int64_t _seekFrame)
 {
     if (!m_IsPreloaded) {

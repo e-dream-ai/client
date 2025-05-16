@@ -689,9 +689,6 @@ void CPlayer::RenderFrame(DisplayOutput::spCRenderer renderer) {
             
             // Still call DrawFrame which will handle buffering visualization
             m_currentClip->DrawFrame(renderer);
-
-            // TODO : we need to impl that 
-            // renderer->DrawBufferingIndicator();
         } else {
             // Normal playback
             /*g_Log->Info("render frame %d of %s",
@@ -812,6 +809,9 @@ void CPlayer::PlayNextDream(bool quickFade) {
                 
                 m_playlistManager->moveToNextDream(*m_nextDreamDecision);
                 m_nextDreamDecision = std::nullopt;
+                
+                m_PreloadingNextClip = false;
+                m_PreloadingDreamUUID = "";
             }
         } else {
             // Standard transition
@@ -826,13 +826,16 @@ void CPlayer::PlayNextDream(bool quickFade) {
                 m_nextClip->SetTransitionLength(5.0f, 5.0f);
                 m_nextClip->ResetFinished();
                 
-                m_nextClip->Start(0);
+                m_nextClip->StartPlayback(0);
             } else {
                 // Fallback to direct load if preloading didn't complete
+                g_Log->Info("Fallback as we didn't preload fully");
                 PlayClip(m_nextDreamDecision->dream, m_TimelineTime, -1, true);
             }
             
             m_playlistManager->moveToNextDream(*m_nextDreamDecision);
+            m_PreloadingNextClip = false;
+            m_PreloadingDreamUUID = "";
         }
         m_nextDreamDecision = std::nullopt;
     } else {
@@ -1105,6 +1108,13 @@ void CPlayer::StartTransition()
     m_isTransitioning = true;
     m_transitionStartTime = m_TimelineTime;
     
+    // Check if the next clip is ready or still preloading
+    if (m_PreloadingNextClip && !m_nextClip) {
+        g_Log->Info("Next clip still preloading, transition will wait for it to complete");
+        return; // Let IsAnyClipBuffering handle the pause
+    }
+    
+    
     // Verify if the nextclip is the correct one
     bool plannedTransition = (m_nextDreamDecision && m_nextClip &&
                              m_nextClip->GetClipMetadata().dreamData.uuid == m_nextDreamDecision->dream->uuid);
@@ -1145,6 +1155,8 @@ void CPlayer::UpdateTransition(double currentTime)
     if (transitionProgress >= 1.0) {
         // Transition complete
         m_isTransitioning = false;
+        m_PreloadingNextClip = false;
+        m_PreloadingDreamUUID = "";
         
         // Start the asynchronous destruction of the current clip
         if (m_currentClip) {
@@ -1402,10 +1414,16 @@ void CPlayer::prepareCrossfadeTransition() {
     if (!m_playlistManager || !m_nextDreamDecision) return;
     
     // We only want to prepare once
-    if (m_nextClip) return;
-
-    // Make sure current clip won't transition
-    //m_currentClip->SetTransitionLength(0.0, 0.0);
+    if (m_nextClip && m_nextClip->IsPreloadComplete()) {
+        g_Log->Info("Already have a preloaded clip ready for transition");
+        return;
+    }
+    
+    // Check if we're already preloading
+    if (m_PreloadingNextClip) {
+        g_Log->Info("Preload already in progress for %s", m_PreloadingDreamUUID.c_str());
+        return;
+    }
 
     const Cache::Dream* dream = m_nextDreamDecision->dream;
     if (!dream) return;
@@ -1448,6 +1466,9 @@ bool CPlayer::PreloadClip(const Cache::Dream* dream) {
         return false;
     }
     
+    m_PreloadingNextClip = true;
+    m_PreloadingDreamUUID = dream->uuid;
+    
     auto du = m_displayUnits[0];
     int32_t displayMode = g_Settings()->Get("settings.player.DisplayMode", 2);
     
@@ -1475,15 +1496,17 @@ bool CPlayer::PreloadClip(const Cache::Dream* dream) {
     // Update internal decoder fps counter
     m_DecoderFps = m_PerceptualFPS / dream->activityLevel;
 
-    // Load the clip but don't start playback yet - this is key
-    if (!newClip->Preload()) {
-        return false;
+    // If preload succeeds, set the clip
+    if (newClip->Preload()) {
+        m_nextClip = newClip;
+        g_Log->Info("Preloading initiated for %s", dream->uuid.c_str());
+        return true;
     }
     
-    // Store the clip but don't set its start time yet
-    m_nextClip = newClip;
-    
-    return true;
+    // Failed to preload
+    m_PreloadingNextClip = false;
+    m_PreloadingDreamUUID = "";
+    return false;
 }
 
 
@@ -1502,10 +1525,10 @@ bool CPlayer::IsAnyClipBuffering() const {
     }
     
     // Next clip buffering during transition
-    if (m_isTransitioning && m_nextClip && m_nextClip->IsBuffering()) {
-        // For transitions, require more buffer before saying "not buffering"
-        uint32_t bufferSize = m_nextClip->GetDecoder()->QueueLength();
-        return bufferSize < 15;  // Only consider "not buffering" when we have enough frames
+    if (m_PreloadingNextClip && (m_nextClip == nullptr || !m_nextClip->IsPreloadComplete())) {
+        g_Log->Info("Detected pending preload for %s as buffering state",
+                   m_PreloadingDreamUUID.c_str());
+        return true;
     }
     
     return false;

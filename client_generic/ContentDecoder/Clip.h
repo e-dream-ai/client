@@ -103,6 +103,8 @@ public:
     void Stop();
     
     bool Preload(int64_t _seekFrame = -1);
+    bool IsPreloadComplete() const;
+
     bool StartPlayback(int64_t _seekFrame = -1);
     
     bool Update(double _timelineTime);
