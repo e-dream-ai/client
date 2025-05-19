@@ -589,7 +589,7 @@ bool CPlayer::Update(uint32_t displayUnit)
     writer_lock l(m_UpdateMutex);
 
     if (m_currentClip) {
-        m_currentClip->Update(m_TimelineTime);
+        m_currentClip->Update(m_TimelineTime, m_bPaused);
         
         // Only check for transition if we're not buffering anything
         if (!IsAnyClipBuffering()) {
@@ -635,7 +635,7 @@ bool CPlayer::Update(uint32_t displayUnit)
     
     if (m_nextClip) {
         if (!m_nextClip->HasFinished()) {
-            m_nextClip->Update(m_TimelineTime);
+            m_nextClip->Update(m_TimelineTime, m_bPaused);
         }
     }
     
@@ -1148,10 +1148,10 @@ void CPlayer::UpdateTransition(double currentTime)
 
     bool nextClipBuffering = (m_nextClip && m_nextClip->IsBuffering());
         
-    if (nextClipBuffering) {
+    /*if (nextClipBuffering) {
         g_Log->Info("Next clip still buffering during transition (progress: %.2f)",
                     transitionProgress);
-    }
+    }*/
     
     // If we have preflight decision and it's seamless, but we're transitioning,
     // that means it was interrupted - convert to quick fade
