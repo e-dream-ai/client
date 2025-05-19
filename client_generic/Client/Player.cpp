@@ -1544,3 +1544,23 @@ bool CPlayer::IsAnyClipBuffering() const {
     
     return false;
 }
+
+bool CPlayer::IsAnyClipStreaming() const {
+    // Check if current clip is streaming
+    if (m_currentClip) {
+        const auto& metadata = m_currentClip->GetClipMetadata();
+        if (!metadata.dreamData.streamingUrl.empty()) {
+            return true;
+        }
+    }
+    
+    // Check if next clip is streaming
+    if (m_nextClip) {
+        const auto& metadata = m_nextClip->GetClipMetadata();
+        if (!metadata.dreamData.streamingUrl.empty()) {
+            return true;
+        }
+    }
+    
+    return false;
+}

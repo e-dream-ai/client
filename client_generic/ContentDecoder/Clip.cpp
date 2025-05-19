@@ -195,8 +195,7 @@ bool CClip::NeedsNewFrame(double _timelineTime,
 
 bool CClip::Update(double _timelineTime, bool isPaused)
 {
-    //m_Alpha = 0.f;
-
+    m_Alpha = 0.f;
     
     // Check buffering state
     if (m_BufferingState != BufferingState::NotBuffering) {
@@ -352,7 +351,7 @@ bool CClip::DrawFrame(spCRenderer _spRenderer, float alpha) {
         return false; // Nothing to draw yet
     }
     
-    // g_Log->Info("alpha %f", m_Alpha);
+    // g_Log->Info("alpha %f %f", m_Alpha, alpha);
 
     // If we're buffering, draw the last valid frame again
     if (IsBuffering()) {

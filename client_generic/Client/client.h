@@ -76,7 +76,7 @@ class CElectricSheep
 {
   private:
     Cache::MessageQueue m_MessageQueue;
-    bool wasBuffering = false;
+    bool wasShowingBufferIndicator = false;
 
   protected:
     ESCpuUsage m_CpuUsage;
@@ -1017,7 +1017,7 @@ class CElectricSheep
                         m_HudManager->Get("dreamstats"));
                 float activityLevel = 1.f;
                 double realFps = 20;
-                bool isStreaming = false;
+                bool isStreamingCurrent = false;
                 const ContentDecoder::sClipMetadata* clipMetadata =
                     g_Player().GetCurrentPlayingClipMetadata();
                 double baseFps = 1;
@@ -1025,7 +1025,7 @@ class CElectricSheep
                 {
                     activityLevel = clipMetadata->dreamData.activityLevel;
                     realFps = clipMetadata->decodeFps;
-                    isStreaming = !(clipMetadata->dreamData.isCached());
+                    isStreamingCurrent = !(clipMetadata->dreamData.isCached());
                     baseFps = std::stod(clipMetadata->dreamData.fps);
                 }
 
@@ -1046,7 +1046,7 @@ class CElectricSheep
                 
                 // Grab Perceptual FPS from player
                 double pFPS = g_Player().GetPerceptualFPS();
-                if (isStreaming) {
+                if (isStreamingCurrent) {
                     ((Hud::CStringStat*)spStats->Get("decodefps"))
                         ->SetSample(string_format(" %.2f fps (streaming)", realFps));
 
@@ -1067,14 +1067,16 @@ class CElectricSheep
 
                 // Buffering
                 bool isBuffering = g_Player().IsAnyClipBuffering();
+                bool isStreaming = g_Player().IsAnyClipStreaming();
+                bool shouldShowBufferIndicator = isBuffering && isStreaming;
 
-                // Manage the buffering icon
-                if (isBuffering && !wasBuffering) {
-                    // Any buffering started - show the icon
+                // Manage the buffering icon - only show if both buffering AND streaming
+                if (shouldShowBufferIndicator && !wasShowingBufferIndicator) {
+                    // Buffering started on a streaming clip - show the icon
                     m_spOSD->SetType(Hud::Buffering);
                     m_HudManager->Add("osd-rebuffering", m_spOSD, 60);
-                } else if (!isBuffering && wasBuffering) {
-                    // Buffering just ended - hide the icon
+                } else if (!shouldShowBufferIndicator && wasShowingBufferIndicator) {
+                    // Buffering ended or not streaming anymore - hide the icon
                     m_HudManager->Hide("osd-rebuffering");
                 }
 
@@ -1093,7 +1095,7 @@ class CElectricSheep
                     }
                 }
 
-                wasBuffering = isBuffering;
+                wasShowingBufferIndicator = shouldShowBufferIndicator;
                 
                 // Update credits
                 spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
