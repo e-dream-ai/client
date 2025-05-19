@@ -122,10 +122,22 @@ bool CClip::Preload(int64_t _seekFrame)
 }
 
 bool CClip::IsPreloadComplete() const {
-    // Consider a clip preload complete if:
-    // 1. It has been explicitly marked as preloaded
-    // 2. It has loaded enough frames to start playback
-    return m_IsPreloaded && m_spDecoder && m_spDecoder->QueueLength() >= 10;
+    if (!m_IsPreloaded || !m_spDecoder) {
+        return false;
+    }
+    
+    // Require a minimum number of frames to consider preloading complete
+    uint32_t queueLength = m_spDecoder->QueueLength();
+    uint32_t minFramesRequired = 10;  // Require at least 10 frames
+    
+    bool complete = queueLength >= minFramesRequired;
+    
+    if (complete && (queueLength < 25)) {
+        g_Log->Info("Clip %s preload complete with %d frames",
+                  m_ClipMetadata.dreamData.uuid.c_str(), queueLength);
+    }
+    
+    return complete;
 }
 
 bool CClip::StartPlayback(int64_t _seekFrame)
@@ -226,15 +238,24 @@ bool CClip::Update(double _timelineTime)
         }
     }
     
-    // Check if we need to rebuffer (unless we're near the end or fading out)
-    if (m_spDecoder->QueueLength() < 2 && !IsNearEnd() && !m_IsFadingOut.load()) {
-        g_Log->Info("Buffer too low (%d frames), entering rebuffering state for %s",
-                    m_spDecoder->QueueLength(), m_ClipMetadata.dreamData.uuid.c_str());
-        m_BufferingState = BufferingState::Rebuffering;
-        m_RebufferingStartTime = _timelineTime;
-        return true;
-    }
+    // Check if we need to rebuffer (unless we're near the end)
+    bool nearEnd = IsNearEnd();
     
+    if (m_spDecoder->QueueLength() < 2) {
+        // Log state for debugging
+        g_Log->Info("Buffer low check: nearEnd=%d, queue=%d, for %s",
+                  nearEnd ? 1 : 0, 
+                  m_spDecoder->QueueLength(), m_ClipMetadata.dreamData.uuid.c_str());
+        
+        // During transitions, we're more conservative about what we consider "near end"
+        if (!nearEnd) {
+            g_Log->Info("Buffer too low (%d frames), entering rebuffering state for %s",
+                      m_spDecoder->QueueLength(), m_ClipMetadata.dreamData.uuid.c_str());
+            m_BufferingState = BufferingState::Rebuffering;
+            m_RebufferingStartTime = _timelineTime;
+            return true;
+        }
+    }
 
     // We always push until the last frame is rendered. We may fake it
     if (m_CurrentFrameMetadata.maxFrameIdx > 0 &&
@@ -405,7 +426,7 @@ bool CClip::GrabVideoFrame()
             return true;
         }
         
-        g_Log->Warning("failed to get frame...");
+        g_Log->Warning("failed to get frame %d for %s", m_CurrentFrameMetadata.frameIdx, m_ClipMetadata.dreamData.uuid.c_str());
         return false;
     }
 

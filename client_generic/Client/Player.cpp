@@ -819,8 +819,19 @@ void CPlayer::PlayNextDream(bool quickFade) {
 
             StartTransition();
             
-            if (m_nextClip) {
-                g_Log->Info("Starting preloaded clip");
+            if (m_nextClip && m_nextClip->IsPreloadComplete()) {
+                // Double check for frames before proceeding
+                uint32_t queueLength = m_nextClip->GetDecoder()->QueueLength();
+                if (queueLength < 5) {
+                    g_Log->Warning("Next clip marked as preloaded but has only %d frames, pausing for more frames",
+                                 queueLength);
+                    // Force back into buffering state
+                    //m_nextClip->SetBufferingState(BufferingState::Buffering);
+                    return;  // Don't proceed with the transition yet
+                }
+                
+                g_Log->Info("Starting preloaded clip with %d frames", queueLength);
+                
                 // Set the start time for the preloaded clip
                 m_nextClip->SetStartTime(m_TimelineTime);
                 m_nextClip->SetTransitionLength(5.0f, 5.0f);
@@ -1526,8 +1537,8 @@ bool CPlayer::IsAnyClipBuffering() const {
     
     // Next clip buffering during transition
     if (m_PreloadingNextClip && (m_nextClip == nullptr || !m_nextClip->IsPreloadComplete())) {
-        g_Log->Info("Detected pending preload for %s as buffering state",
-                   m_PreloadingDreamUUID.c_str());
+        /*g_Log->Info("Detected pending preload for %s as buffering state",
+                   m_PreloadingDreamUUID.c_str());*/
         return true;
     }
     
