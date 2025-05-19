@@ -272,6 +272,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     }
 
     bool IsAnyClipBuffering() const;
+    bool IsPreloading() const;
     bool IsAnyClipStreaming() const;
 };
 

@@ -595,15 +595,22 @@ bool CPlayer::Update(uint32_t displayUnit)
         if (!IsAnyClipBuffering()) {
             // Check if we need to prepare for transition
             if (!m_isTransitioning && !m_nextDreamDecision && shouldPrepareTransition(m_currentClip)) {
-                // Get the next dream decision
-                g_Log->Info("Update will preflight");
-                m_nextDreamDecision = m_playlistManager->preflightNextDream();
-                
-                if (m_nextDreamDecision) {
-                    if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::Seamless) {
-                        prepareSeamlessTransition();
-                    } else if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::StandardCrossfade) {
-                        prepareCrossfadeTransition();
+                // If we should transition, but we are already prealoding a manual transition, then we have to pause
+                if (IsPreloading()) {
+                    g_Log->Info("Force pausing as we are already preloading");
+                    SetPausedForBuffering(true);
+                    SetPaused(true);
+                } else {
+                    // Get the next dream decision
+                    g_Log->Info("Update will preflight");
+                    m_nextDreamDecision = m_playlistManager->preflightNextDream();
+                    
+                    if (m_nextDreamDecision) {
+                        if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::Seamless) {
+                            prepareSeamlessTransition();
+                        } else if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::StandardCrossfade) {
+                            prepareCrossfadeTransition();
+                        }
                     }
                 }
             }
@@ -1252,12 +1259,13 @@ void CPlayer::SkipToNext()
               nextDecision->dream->uuid.c_str(),
               isDreamCached ? "" : "not ");
     
-    // Set short transition duration for quick fade
-    m_transitionDuration = 1.0f;
+
     
     // If already transitioning, change the target
     if (m_isTransitioning && m_nextClip) {
         g_Log->Info("Skip during transition - changing target destination");
+        // Set short transition duration for quick fade
+        m_transitionDuration = 1.0f;
         
         // Save the current transition progress
         double currentProgress = (m_TimelineTime - m_transitionStartTime) / m_transitionDuration;
@@ -1336,11 +1344,16 @@ void CPlayer::SkipToNext()
         return;
     }
     
-    // Not already transitioning - start a new transition
-    StartTransition();
+    
+    
+
     
     // For cached dreams, use synchronous approach
     if (isDreamCached) {
+        // Set short transition duration for quick fade
+        m_transitionDuration = 1.0f;
+        StartTransition();
+
         PlayClip(nextDecision->dream, m_TimelineTime, -1, true);
         m_playlistManager->moveToNextDream(*nextDecision);
         
@@ -1350,13 +1363,11 @@ void CPlayer::SkipToNext()
         return;
     }
     
+    g_Log->Info("Starting asynchronous loading for transition");
+
     // If we don't have it, fallback to pausing and async preloading
     m_PreloadingNextClip = true;
     m_PreloadingDreamUUID = nextDecision->dream->uuid;
-    
-    // Start a buffering pause immediately
-    SetPausedForBuffering(true);
-    SetPaused(true);
     
     // Create the clip asynchronously
     std::thread([this, nextDecision]() {
@@ -1386,6 +1397,19 @@ void CPlayer::SkipToNext()
         
         // Switch to main thread for player state updates
         writer_lock l(m_UpdateMutex);
+        
+        // Skip if we've already moved on to something else
+        if (!m_PreloadingNextClip || m_PreloadingDreamUUID != dream->uuid) {
+           g_Log->Info("Preloading aborted, user likely pressed next again");
+           return;
+        }
+
+        g_Log->Info("Async preloading complete, starting transition now");
+
+        // Now start the transition (this was previously at the beginning)
+        m_transitionDuration = 1.0f;
+        StartTransition();
+        
         m_nextClip = newClip;
         m_nextClip->SetStartTime(m_TimelineTime);
         m_nextClip->SetTransitionLength(1.0f, 5.0f);
@@ -1393,11 +1417,10 @@ void CPlayer::SkipToNext()
         // Update playlist position
         m_playlistManager->moveToNextDream(*nextDecision);
         
-        g_Log->Info("Async preloading complete for manually triggered transition");
+        // Clear preloading state
+        m_PreloadingNextClip = false;
+        m_PreloadingDreamUUID = "";
     }).detach();
-    
-    
-    //PlayNextDream(true);
 }
 
 void CPlayer::ReturnToPrevious()
@@ -1655,9 +1678,19 @@ bool CPlayer::IsAnyClipBuffering() const {
     }
     
     // Next clip buffering during transition
+    /*if (m_PreloadingNextClip && (m_nextClip == nullptr || !m_nextClip->IsPreloadComplete())) {
+        g_Log->Info("Detected pending preload for %s as buffering state",
+                   m_PreloadingDreamUUID.c_str());
+        return true;
+    }*/
+    
+    return false;
+}
+
+bool CPlayer::IsPreloading() const {
     if (m_PreloadingNextClip && (m_nextClip == nullptr || !m_nextClip->IsPreloadComplete())) {
-        /*g_Log->Info("Detected pending preload for %s as buffering state",
-                   m_PreloadingDreamUUID.c_str());*/
+        g_Log->Info("Detected pending preload for %s as buffering state",
+                   m_PreloadingDreamUUID.c_str());
         return true;
     }
     
@@ -1680,6 +1713,14 @@ bool CPlayer::IsAnyClipStreaming() const {
             return true;
         }
     }
+    
+    // Also return true if we are preloading
+    /*if (m_PreloadingNextClip && (m_nextClip == nullptr || !m_nextClip->IsPreloadComplete())) {
+        g_Log->Info("Manual transition preloading in progress for %s",
+                  m_PreloadingDreamUUID.c_str());
+        return true;
+    }*/
+
     
     return false;
 }
