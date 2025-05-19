@@ -195,7 +195,7 @@ bool CClip::NeedsNewFrame(double _timelineTime,
 
 bool CClip::Update(double _timelineTime, bool isPaused)
 {
-    m_Alpha = 0.f;
+    m_Alpha = m_LastCalculatedAlpha;
     
     // Check buffering state
     if (m_BufferingState != BufferingState::NotBuffering) {
@@ -315,7 +315,7 @@ bool CClip::Update(double _timelineTime, bool isPaused)
     double secondsOut = (maxIdx - idx) / m_ClipMetadata.decodeFps - delta;
     secondsOut = std::fmin(secondsOut, (m_EndTime - _timelineTime));
     
-    if (m_FadeOutSeconds > 0 && secondsOut < m_FadeOutSeconds) {
+    if (m_FadeOutSeconds > 0 && secondsOut > 0 && secondsOut < m_FadeOutSeconds) {
         m_IsFadingOut.exchange(true);
     }
 
@@ -351,7 +351,7 @@ bool CClip::DrawFrame(spCRenderer _spRenderer, float alpha) {
         return false; // Nothing to draw yet
     }
     
-    // g_Log->Info("alpha %f %f", m_Alpha, alpha);
+    // g_Log->Info("alpha %f %f %s", m_Alpha, alpha, m_ClipMetadata.dreamData.uuid.c_str());
 
     // If we're buffering, draw the last valid frame again
     if (IsBuffering()) {

@@ -1075,9 +1075,11 @@ class CElectricSheep
                     // Buffering started on a streaming clip - show the icon
                     m_spOSD->SetType(Hud::Buffering);
                     m_HudManager->Add("osd-rebuffering", m_spOSD, 60);
+                    wasShowingBufferIndicator = true;
                 } else if (!shouldShowBufferIndicator && wasShowingBufferIndicator) {
                     // Buffering ended or not streaming anymore - hide the icon
                     m_HudManager->Hide("osd-rebuffering");
+                    wasShowingBufferIndicator = false;
                 }
 
                 // Simple pause/unpause logic - any buffering means pause
@@ -1094,8 +1096,6 @@ class CElectricSheep
                         g_Player().SetPaused(false);
                     }
                 }
-
-                wasShowingBufferIndicator = shouldShowBufferIndicator;
                 
                 // Update credits
                 spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
