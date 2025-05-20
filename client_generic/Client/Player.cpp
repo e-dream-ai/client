@@ -1689,8 +1689,8 @@ bool CPlayer::IsAnyClipBuffering() const {
 
 bool CPlayer::IsPreloading() const {
     if (m_PreloadingNextClip && (m_nextClip == nullptr || !m_nextClip->IsPreloadComplete())) {
-        g_Log->Info("Detected pending preload for %s as buffering state",
-                   m_PreloadingDreamUUID.c_str());
+        /*g_Log->Info("Detected pending preload for %s as buffering state",
+                   m_PreloadingDreamUUID.c_str());*/
         return true;
     }
     
@@ -1715,12 +1715,11 @@ bool CPlayer::IsAnyClipStreaming() const {
     }
     
     // Also return true if we are preloading
-    /*if (m_PreloadingNextClip && (m_nextClip == nullptr || !m_nextClip->IsPreloadComplete())) {
-        g_Log->Info("Manual transition preloading in progress for %s",
-                  m_PreloadingDreamUUID.c_str());
+    if (m_PreloadingNextClip && (m_nextClip == nullptr || !m_nextClip->IsPreloadComplete())) {
+        /*g_Log->Info("Manual transition preloading in progress for %s",
+                  m_PreloadingDreamUUID.c_str());*/
         return true;
-    }*/
-
+    }
     
     return false;
 }
