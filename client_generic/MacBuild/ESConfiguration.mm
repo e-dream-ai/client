@@ -559,8 +559,11 @@
 
 - (IBAction)goToHelpPage:(id)__unused sender
 {
-    NSString* urlStr = [NSString
-        stringWithFormat:@"https://e-dream.ai/help?v=%s", CLIENT_VERSION];
+#ifdef STAGE
+    NSString* urlStr = [NSString stringWithFormat:@"https://stage.e-dream.ai/help?v=%s", CLIENT_VERSION];
+#else
+    NSString* urlStr = [NSString stringWithFormat:@"https://alpha.e-dream.ai/help?v=%s", CLIENT_VERSION];
+#endif
 
     NSURL* helpURL = [NSURL URLWithString:urlStr];
 
