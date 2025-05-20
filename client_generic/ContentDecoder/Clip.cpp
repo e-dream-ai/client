@@ -121,6 +121,25 @@ bool CClip::Preload(int64_t _seekFrame)
     return true;
 }
 
+bool CClip::IsPreloadComplete() const {
+    if (!m_IsPreloaded || !m_spDecoder) {
+        return false;
+    }
+    
+    // Require a minimum number of frames to consider preloading complete
+    uint32_t queueLength = m_spDecoder->QueueLength();
+    uint32_t minFramesRequired = 10;  // Require at least 10 frames
+    
+    bool complete = queueLength >= minFramesRequired;
+    
+    /*if (complete && (queueLength < 25)) {
+        g_Log->Info("Clip %s preload complete with %d frames",
+                  m_ClipMetadata.dreamData.uuid.c_str(), queueLength);
+    }*/
+    
+    return complete;
+}
+
 bool CClip::StartPlayback(int64_t _seekFrame)
 {
     if (!m_IsPreloaded) {
@@ -174,10 +193,9 @@ bool CClip::NeedsNewFrame(double _timelineTime,
     return bCrossedFrame;
 }
 
-bool CClip::Update(double _timelineTime)
+bool CClip::Update(double _timelineTime, bool isPaused)
 {
-    m_Alpha = 0.f;
-
+    m_Alpha = m_LastCalculatedAlpha;
     
     // Check buffering state
     if (m_BufferingState != BufferingState::NotBuffering) {
@@ -219,15 +237,24 @@ bool CClip::Update(double _timelineTime)
         }
     }
     
-    // Check if we need to rebuffer (unless we're near the end or fading out)
-    if (m_spDecoder->QueueLength() < 2 && !IsNearEnd() && !m_IsFadingOut.load()) {
-        g_Log->Info("Buffer too low (%d frames), entering rebuffering state for %s",
-                    m_spDecoder->QueueLength(), m_ClipMetadata.dreamData.uuid.c_str());
-        m_BufferingState = BufferingState::Rebuffering;
-        m_RebufferingStartTime = _timelineTime;
-        return true;
-    }
+    // Check if we need to rebuffer (unless we're near the end)
+    bool nearEnd = IsNearEnd();
     
+    if (m_spDecoder->QueueLength() < 2) {
+        // Log state for debugging
+        /*g_Log->Info("Buffer low check: nearEnd=%d, queue=%d, for %s",
+                  nearEnd ? 1 : 0,
+                  m_spDecoder->QueueLength(), m_ClipMetadata.dreamData.uuid.c_str());
+        */
+        // During transitions, we're more conservative about what we consider "near end"
+        if (!nearEnd) {
+            g_Log->Info("Buffer too low (%d frames), entering rebuffering state for %s",
+                      m_spDecoder->QueueLength(), m_ClipMetadata.dreamData.uuid.c_str());
+            m_BufferingState = BufferingState::Rebuffering;
+            m_RebufferingStartTime = _timelineTime;
+            return true;
+        }
+    }
 
     // We always push until the last frame is rendered. We may fake it
     if (m_CurrentFrameMetadata.maxFrameIdx > 0 &&
@@ -288,10 +315,16 @@ bool CClip::Update(double _timelineTime)
     double secondsOut = (maxIdx - idx) / m_ClipMetadata.decodeFps - delta;
     secondsOut = std::fmin(secondsOut, (m_EndTime - _timelineTime));
     
-    if (m_FadeOutSeconds > 0 && secondsOut < m_FadeOutSeconds) {
+    if (m_FadeOutSeconds > 0 && secondsOut > 0 && secondsOut < m_FadeOutSeconds) {
         m_IsFadingOut.exchange(true);
     }
 
+    if (isPaused) {
+        // If we're paused, use the last calculated alpha value
+        m_Alpha = m_LastCalculatedAlpha;
+        return true;
+    }
+    
     if (m_FadeOutSeconds > 0)
     {
         float alpha = (float)std::fmin(secondsIn / m_FadeInSeconds, 1.f) *
@@ -302,8 +335,10 @@ bool CClip::Update(double _timelineTime)
             return false;
         }
         m_Alpha = alpha;
+        m_LastCalculatedAlpha = m_Alpha;  // Store for pause state
     } else {
         m_Alpha = 1.f;
+        m_LastCalculatedAlpha = m_Alpha;  // Store for pause state
     }
 
     return true;
@@ -312,18 +347,18 @@ bool CClip::Update(double _timelineTime)
 bool CClip::DrawFrame(spCRenderer _spRenderer, float alpha) {
     if (m_BufferingState == BufferingState::Buffering) {
         // Could display a loading indicator here
-        g_Log->Info("Buffering, nothing to display yet");
+        //g_Log->Info("Buffering, nothing to display yet (ql: %d)", m_spDecoder->QueueLength());
         return false; // Nothing to draw yet
     }
     
-    // g_Log->Info("alpha %f", m_Alpha);
+    // g_Log->Info("alpha %f %f %s", m_Alpha, alpha, m_ClipMetadata.dreamData.uuid.c_str());
 
     // If we're buffering, draw the last valid frame again
     if (IsBuffering()) {
         if (m_LastValidFrame) {
             // Use the last valid frame while buffering
             m_spFrameData = m_LastValidFrame;
-            return m_spFrameDisplay->Draw(_spRenderer, alpha, m_DecoderClock.interframeDelta);
+            return m_spFrameDisplay->Draw(_spRenderer, m_Alpha, m_DecoderClock.interframeDelta);
         }
         return false; // No frame yet
     }
@@ -398,7 +433,7 @@ bool CClip::GrabVideoFrame()
             return true;
         }
         
-        g_Log->Warning("failed to get frame...");
+        g_Log->Warning("failed to get frame %d for %s", m_CurrentFrameMetadata.frameIdx, m_ClipMetadata.dreamData.uuid.c_str());
         return false;
     }
 

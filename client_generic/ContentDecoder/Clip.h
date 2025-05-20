@@ -70,7 +70,7 @@ private: // tmp
 public:
     float m_FadeInSeconds = 5.f;
     float m_FadeOutSeconds = 5.f;
-    float m_Alpha;
+    float m_Alpha = 0.f;
 private:
     eClipFlags m_ClipFlags = eClipFlags::None;
 
@@ -87,7 +87,8 @@ private:
     double m_RebufferingStartTime = 0.0; // When rebuffering began
     double m_TotalBufferingTime = 0.0;   // Accumulated buffering time
     bool m_HasStartedPlaying = false;    // Whether playback has actually begun
-    
+    float m_LastCalculatedAlpha = 0.0f;  // Store last calculated alpha (needed when buffering)
+
     
   private:
     bool NeedsNewFrame(double _timelineTime, DecoderClock* _decoderClock) const;
@@ -103,9 +104,11 @@ public:
     void Stop();
     
     bool Preload(int64_t _seekFrame = -1);
+    bool IsPreloadComplete() const;
+
     bool StartPlayback(int64_t _seekFrame = -1);
     
-    bool Update(double _timelineTime);
+    bool Update(double _timelineTime, bool isPaused = false);
     bool DrawFrame(spCRenderer _spRenderer, float alpha = 1.0f);
     void SetDisplaySize(uint32_t _displayWidth, uint32_t _displayHeight);
 

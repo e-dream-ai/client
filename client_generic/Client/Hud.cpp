@@ -90,7 +90,11 @@ void CHudManager::Toggle(const std::string _entry)
 
 void CHudManager::Hide(const std::string _entry)
 {
-    m_EntryMap[_entry]->Visible(false);
+    auto it = m_EntryMap.find(_entry);
+
+    if (it != m_EntryMap.end()) {
+        it->second->Visible(false);
+    }
 }
 
 } // namespace Hud
