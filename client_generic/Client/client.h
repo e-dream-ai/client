@@ -1065,19 +1065,22 @@ class CElectricSheep
                 // Update OSD
                 m_spOSD->SetFPS(pFPS);
 
-                // Buffering
+                // Buffering and preloading checks
                 bool isBuffering = g_Player().IsAnyClipBuffering();
+                bool isPreloading = g_Player().IsPreloading();
                 bool isStreaming = g_Player().IsAnyClipStreaming();
-                bool shouldShowBufferIndicator = isBuffering && isStreaming;
+                
+                // Show indicator if either buffering or preloading a streaming clip
+                bool shouldShowBufferIndicator = isStreaming && (isBuffering || isPreloading);
 
-                // Manage the buffering icon - only show if both buffering AND streaming
+                // Manage the buffering icon
                 if (shouldShowBufferIndicator && !wasShowingBufferIndicator) {
-                    // Buffering started on a streaming clip - show the icon
+                    // Buffering or preloading started on a streaming clip - show the icon
                     m_spOSD->SetType(Hud::Buffering);
                     m_HudManager->Add("osd-rebuffering", m_spOSD, 60);
                     wasShowingBufferIndicator = true;
                 } else if (!shouldShowBufferIndicator && wasShowingBufferIndicator) {
-                    // Buffering ended or not streaming anymore - hide the icon
+                    // Buffering/preloading ended or not streaming anymore - hide the icon
                     m_HudManager->Hide("osd-rebuffering");
                     wasShowingBufferIndicator = false;
                 }
