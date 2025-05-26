@@ -203,6 +203,9 @@ class CPlayer : public Base::CSingleton<CPlayer>
     // Get the name of the current playlist
     std::string GetPlaylistName() const;
     
+    // Get the PlaylistManager
+    PlaylistManager& GetPlaylistManager() { return *m_playlistManager; }
+    
     void PlayDreamNow(std::string_view _uuid, int64_t frameNumber);
     void ResetPlaylist();
     

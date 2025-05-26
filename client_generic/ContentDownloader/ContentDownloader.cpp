@@ -65,9 +65,6 @@ bool CContentDownloader::Shutdown(void)
     //	Terminate the threads.
     g_Log->Info("Terminating download thread.");
     
-    // Clear the queue
-    m_gDownloader.ClearDreamUUIDs();
-    
     // Cut download manager
     g_NetworkManager->Abort();
 

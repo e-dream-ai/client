@@ -52,6 +52,9 @@ public:
     
     std::vector<PlaylistEntry> filterActiveAndProcessedDreams(const std::vector<PlaylistEntry>& entries) const;
     std::vector<PlaylistEntry> filterUncachedDreams(const std::vector<PlaylistEntry>& entries) const;
+    
+    // Get the next uncached dream in the playlist (thread-safe)
+    std::optional<std::string> getNextUncachedDream() const;
    
     
     // Get a dream by its UUID, set position if found in playlist, return nullopt if not in playlist

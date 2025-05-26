@@ -14,6 +14,7 @@
 #include "Player.h"
 #include "Log.h"
 #include "NetworkConfig.h"
+#include "PlaylistManager.h"
 
 namespace ContentDownloader
 {
@@ -29,32 +30,15 @@ void DreamDownloader::FindDreamsToDownload() {
     
 }
 
-void DreamDownloader::AddDreamUUID(const std::string& uuid) {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    m_dreamUUIDs.insert(uuid);
+std::optional<std::string> DreamDownloader::GetNextDreamToDownload() {
+    // Get the next uncached dream from PlaylistManager
+    auto& playlistMgr = g_Player().GetPlaylistManager();
+    return playlistMgr.getNextUncachedDream();
 }
 
-void DreamDownloader::AddDreamUUIDs(const std::vector<std::string>& uuids) {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    for (const auto& uuid : uuids) {
-        m_dreamUUIDs.insert(uuid);
-    }
-}
-
-void DreamDownloader::ClearDreamUUIDs() {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    g_Log->Info("Clearing download queue of %zu dreams", m_dreamUUIDs.size());
-    m_dreamUUIDs.clear();
-}
-
-size_t DreamDownloader::GetDreamUUIDCount() const {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    return m_dreamUUIDs.size();
-}
-
-bool DreamDownloader::isDreamUUIDQueued(const std::string& uuid) const {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    return m_dreamUUIDs.find(uuid) != m_dreamUUIDs.end();
+bool DreamDownloader::IsDreamBeingDownloaded(const std::string& uuid) const {
+    std::lock_guard<std::mutex> lock(m_downloadingMutex);
+    return m_currentlyDownloading.has_value() && m_currentlyDownloading.value() == uuid;
 }
 // MARK: Download status
 void DreamDownloader::SetDownloadStatus(const std::string& status) {
@@ -129,16 +113,19 @@ void DreamDownloader::FindDreamsThread() {
             // /Preflight
             
             
-            // We look through the list of uuids we've been given
-            std::string current_uuid;
+            // Get the next dream to download from PlaylistManager
+            auto nextDream = GetNextDreamToDownload();
+            if (!nextDream.has_value()) {
+                // No more uncached dreams to download
+                break;
+            }
+            
+            std::string current_uuid = nextDream.value();
+            
+            // Mark this dream as being downloaded
             {
-                std::lock_guard<std::mutex> lock(m_mutex);
-                if (m_dreamUUIDs.empty()) {
-                    break;
-                }
-                auto it = m_dreamUUIDs.begin();
-                current_uuid = *it;
-                m_dreamUUIDs.erase(it);
+                std::lock_guard<std::mutex> lock(m_downloadingMutex);
+                m_currentlyDownloading = current_uuid;
             }
             
             g_Log->Info("Processing dream with UUID: %s", current_uuid.c_str());
@@ -147,18 +134,23 @@ void DreamDownloader::FindDreamsThread() {
                 
                 if (!link.empty()) {
                     g_Log->Info("Download link received: %s", link.c_str());
-                    auto queueSize = m_dreamUUIDs.size() + 1;
-                    if (queueSize == 1) {
-                        SetDownloadStatus("Downloading 1 dream ");
-                    } else {
-                        std::string status = "Downloading " + std::to_string(queueSize) + " dreams";
-                        SetDownloadStatus(status);
-                    }
+                    SetDownloadStatus("Downloading dream...");
 
                     DownloadDream(current_uuid, link);
                     
+                    // Clear the currently downloading flag
+                    {
+                        std::lock_guard<std::mutex> lock(m_downloadingMutex);
+                        m_currentlyDownloading.reset();
+                    }
+                    
                 } else {
                     g_Log->Error("Download link denied");
+                    // Clear the currently downloading flag on error
+                    {
+                        std::lock_guard<std::mutex> lock(m_downloadingMutex);
+                        m_currentlyDownloading.reset();
+                    }
                 }
 
             }

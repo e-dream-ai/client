@@ -161,6 +161,32 @@ std::vector<PlaylistEntry> PlaylistManager::filterUncachedDreams(const std::vect
     return filteredEntries;
 }
 
+std::optional<std::string> PlaylistManager::getNextUncachedDream() const {
+    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+    
+    // Get DreamDownloader instance to check if dream is being downloaded
+    auto& downloader = g_ContentDownloader().m_gDownloader;
+    
+    // Iterate through the playlist to find the first uncached dream
+    for (const auto& entry : m_playlist) {
+        // Skip if this dream is already cached
+        if (cm.hasDiskCachedItem(entry.uuid)) {
+            continue;
+        }
+        
+        // Skip if this dream is currently being downloaded
+        if (downloader.IsDreamBeingDownloaded(entry.uuid)) {
+            continue;
+        }
+        
+        // Found an uncached dream that's not being downloaded
+        return entry.uuid;
+    }
+    
+    // No uncached dreams found
+    return std::nullopt;
+}
+
 size_t PlaylistManager::findPositionOfDream(const std::string& dreamUUID) const {
     auto it = std::find_if(m_playlist.begin(), m_playlist.end(),
                           [&dreamUUID](const PlaylistEntry& entry) {

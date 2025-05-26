@@ -1299,14 +1299,12 @@ std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
     // Grab the CacheManager
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
 
-    // Clear the existing download queue before we begin
-    g_ContentDownloader().m_gDownloader.ClearDreamUUIDs();
+    // Note: Download queue is no longer used - downloads are pulled dynamically from PlaylistManager
 
     // Collect all UUIDs/keyframes from the json for individual dreams
     // We also check via our cache if we have metadata or need to download
     std::vector<PlaylistEntry> entries;
     std::vector<std::string> needsMetadataUuids;
-    std::vector<std::string> needsDownloadUuids;
 
     // Open playlist and grab content. Default playlist is named playlist_0
     fs::path filePath = Cache::PathManager::getInstance().jsonPlaylistPath() / (uuid == "" ? "playlist_0.json" : "playlist_" + std::string(uuid) + ".json");
@@ -1377,11 +1375,8 @@ std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
             // Do we have the video?
             if (!cm.hasDiskCachedItem(dreamUuid.c_str()))
             {
-                if (!isFirst) {
-                    needsDownloadUuids.push_back(dreamUuid.c_str());
-                } else {
+                if (isFirst) {
                     // Prefetch download link for 1st video from playlist if we don't have it
-                    // We don't push it to our download thread
                     needsStreamingUuid = dreamUuid;
                 }
             }
@@ -1406,16 +1401,7 @@ std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
         }
     }
 
-    auto queuedDreams = 0;
-    // Then enqueue our missing videos
-    for (const auto& needsDownload : needsDownloadUuids) {
-        if (!g_ContentDownloader().m_gDownloader.isDreamUUIDQueued(needsDownload)) {
-            queuedDreams++;
-            g_ContentDownloader().m_gDownloader.AddDreamUUID(needsDownload);
-        }
-    }
-
-    g_Log->Info("Added %d dreams to download queue", queuedDreams);
+    // Downloads will be pulled dynamically by FindDreamsThread from PlaylistManager
     
     // Finally, if needed fetch streaming link for 1st video
     if (!needsStreamingUuid.empty()) {
