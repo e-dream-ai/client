@@ -227,38 +227,79 @@ std::optional<std::string> PlaylistManager::getNextUncachedDream() const {
         }
     }
     
-    // First check if we have enough cached dreams ahead
-    /*size_t cachedAhead = countCachedDreamsAhead();
-    if (cachedAhead >= m_downloadLookaheadLimit) {
-        // We have enough cached dreams, no need to download more
-        return std::nullopt;
-    }*/
+    // For all other cases (90% of keyframe playlists or no keyframes)
+    // Build a list of successor dreams based on cached dreams
+    std::vector<std::string> successors;
     
-    // If not started yet, start from beginning
-    size_t startPos = m_started ? m_currentPosition + 1 : 0;
-    
-    // Look for the next uncached dream within our lookahead window
-    size_t lookaheadEnd = m_playlist.size(); // std::min(startPos + m_downloadLookaheadLimit, m_playlist.size());
-    
-    for (size_t i = startPos; i < lookaheadEnd; ++i) {
-        const auto& entry = m_playlist[i];
-        
-        // Skip if this dream is already cached
-        if (cm.hasDiskCachedItem(entry.uuid)) {
+    for (const auto& entry : m_playlist) {
+        // Only consider cached dreams as starting points
+        if (!cm.hasDiskCachedItem(entry.uuid)) {
             continue;
         }
         
-        // Skip if this dream is currently being downloaded
-        if (downloader.IsDreamBeingDownloaded(entry.uuid)) {
-            continue;
+        if (entry.endKeyframe.has_value()) {
+            // This dream has an end keyframe, find all dreams with matching start keyframe
+            for (const auto& succ : m_playlist) {
+                if (succ.startKeyframe.has_value() && 
+                    *succ.startKeyframe == *entry.endKeyframe &&
+                    !cm.hasDiskCachedItem(succ.uuid) &&
+                    !downloader.IsDreamBeingDownloaded(succ.uuid)) {
+                    // Found a potential keyframe-based successor
+                    successors.push_back(succ.uuid);
+                }
+            }
+        } else {
+            // No end keyframe, so next dream is the sequential successor
+            auto currentIt = std::find_if(m_playlist.begin(), m_playlist.end(),
+                [&entry](const PlaylistEntry& e) { return e.uuid == entry.uuid; });
+            
+            if (currentIt != m_playlist.end()) {
+                // Calculate next index with wraparound
+                size_t currentIdx = std::distance(m_playlist.begin(), currentIt);
+                size_t nextIdx = (currentIdx + 1) % m_playlist.size();
+                const auto& succ = m_playlist[nextIdx];
+                
+                if (!cm.hasDiskCachedItem(succ.uuid) &&
+                    !downloader.IsDreamBeingDownloaded(succ.uuid)) {
+                    successors.push_back(succ.uuid);
+                }
+            }
         }
-        
-        // Found an uncached dream that's not being downloaded
-        g_Log->Info("Next dream index : %i",i);
-        return entry.uuid;
     }
     
-    // No uncached dreams found within lookahead window
+    // Remove duplicates from successors
+    std::sort(successors.begin(), successors.end());
+    successors.erase(std::unique(successors.begin(), successors.end()), successors.end());
+    
+    // If we have successors, randomly select one
+    if (!successors.empty()) {
+        static std::random_device rd;
+        static std::mt19937 gen(rd());
+        std::uniform_int_distribution<> dis(0, successors.size() - 1);
+        std::string selected = successors[dis(gen)];
+        g_Log->Info("Selected successor dream from %zu candidates", successors.size());
+        return selected;
+    }
+    
+    // No successors found, try to return any random uncached dream
+    std::vector<std::string> allUncachedDreams;
+    for (const auto& entry : m_playlist) {
+        if (!cm.hasDiskCachedItem(entry.uuid) && 
+            !downloader.IsDreamBeingDownloaded(entry.uuid)) {
+            allUncachedDreams.push_back(entry.uuid);
+        }
+    }
+    
+    if (!allUncachedDreams.empty()) {
+        static std::random_device rd;
+        static std::mt19937 gen(rd());
+        std::uniform_int_distribution<> dis(0, allUncachedDreams.size() - 1);
+        std::string selected = allUncachedDreams[dis(gen)];
+        g_Log->Info("No successors found, returning random uncached dream");
+        return selected;
+    }
+    
+    // Everything is cached
     return std::nullopt;
 }
 
