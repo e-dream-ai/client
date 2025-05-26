@@ -55,18 +55,19 @@ std::string DreamDownloader::GetDownloadStatus() const {
 void DreamDownloader::FindDreamsThread() {
     PlatformUtils::SetThreadName("FindDreamsToDownload");
     
-    // Grab the CacheManager
-    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+    try {
+        // Grab the CacheManager
+        Cache::CacheManager& cm = Cache::CacheManager::getInstance();
 
-    // Set a default delay (30 seconds)
-    // int delayTime = 30;
-    
-    // Minimum disk space : 5 GB (TODO: this can be lowered or pref'd later)
-    std::uintmax_t minDiskSpace =  (std::uintmax_t)1024 * 1024 * 1024 * 5;
-    // Minimum space in cache/quota to consider downloading (100 MB)
-    std::uintmax_t minSpaceForDream = (std::uintmax_t)1024 * 1024 * 100;
+        // Set a default delay (30 seconds)
+        // int delayTime = 30;
+        
+        // Minimum disk space : 5 GB (TODO: this can be lowered or pref'd later)
+        std::uintmax_t minDiskSpace =  (std::uintmax_t)1024 * 1024 * 1024 * 5;
+        // Minimum space in cache/quota to consider downloading (100 MB)
+        std::uintmax_t minSpaceForDream = (std::uintmax_t)1024 * 1024 * 100;
 
-    while (isRunning.load()) {
+        while (isRunning.load()) {
         //g_Log->Info("Searching for dreams to download...");
         SetDownloadStatus("Searching for dreams to download...");
 
@@ -82,7 +83,10 @@ void DreamDownloader::FindDreamsThread() {
         
         
         
-        while (true) {
+        while (isRunning.load()) {
+            // Check for thread interruption
+            boost::this_thread::interruption_point();
+            
             // Preflight checklist
  
             // Make sure we have some remaining quota
@@ -130,6 +134,9 @@ void DreamDownloader::FindDreamsThread() {
             
             g_Log->Info("Processing dream with UUID: %s", current_uuid.c_str());
             if (!cm.hasDiskCachedItem(current_uuid.c_str())) {
+                // Check for interruption before making network call
+                boost::this_thread::interruption_point();
+                
                 auto link = EDreamClient::GetDreamDownloadLink(current_uuid);
                 
                 if (!link.empty()) {
@@ -162,6 +169,17 @@ void DreamDownloader::FindDreamsThread() {
         boost::this_thread::sleep(boost::get_system_time() +
                              boost::posix_time::seconds(10));
     }
+    
+    } catch (boost::thread_interrupted&) {
+        g_Log->Info("FindDreamsThread interrupted");
+    }
+    
+    // Clear any currently downloading flag when exiting
+    {
+        std::lock_guard<std::mutex> lock(m_downloadingMutex);
+        m_currentlyDownloading.reset();
+    }
+    
     g_Log->Info("Exiting FindDreamsThreads()");
 }
 

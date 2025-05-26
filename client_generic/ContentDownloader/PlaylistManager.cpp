@@ -161,14 +161,51 @@ std::vector<PlaylistEntry> PlaylistManager::filterUncachedDreams(const std::vect
     return filteredEntries;
 }
 
-std::optional<std::string> PlaylistManager::getNextUncachedDream() const {
-    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+size_t PlaylistManager::countCachedDreamsAhead() const {
+    if (m_playlist.empty() || !m_started) {
+        return 0;
+    }
     
-    // Get DreamDownloader instance to check if dream is being downloaded
+    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+    size_t cachedCount = 0;
+    
+    // Start from the position after current
+    size_t startPos = m_currentPosition + 1;
+    
+    // Count cached dreams from current position onwards
+    for (size_t i = startPos; i < m_playlist.size(); ++i) {
+        if (cm.hasDiskCachedItem(m_playlist[i].uuid)) {
+            cachedCount++;
+        } else {
+            // Stop counting at the first uncached dream
+            break;
+        }
+    }
+    
+    return cachedCount;
+}
+
+
+std::optional<std::string> PlaylistManager::getNextUncachedDream() const {
+    // First check if we have enough cached dreams ahead
+    /*size_t cachedAhead = countCachedDreamsAhead();
+    if (cachedAhead >= m_downloadLookaheadLimit) {
+        // We have enough cached dreams, no need to download more
+        return std::nullopt;
+    }*/
+    
+    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
     auto& downloader = g_ContentDownloader().m_gDownloader;
     
-    // Iterate through the playlist to find the first uncached dream
-    for (const auto& entry : m_playlist) {
+    // If not started yet, start from beginning
+    size_t startPos = m_started ? m_currentPosition + 1 : 0;
+    
+    // Look for the next uncached dream within our lookahead window
+    size_t lookaheadEnd = m_playlist.size(); // std::min(startPos + m_downloadLookaheadLimit, m_playlist.size());
+    
+    for (size_t i = startPos; i < lookaheadEnd; ++i) {
+        const auto& entry = m_playlist[i];
+        
         // Skip if this dream is already cached
         if (cm.hasDiskCachedItem(entry.uuid)) {
             continue;
@@ -180,10 +217,11 @@ std::optional<std::string> PlaylistManager::getNextUncachedDream() const {
         }
         
         // Found an uncached dream that's not being downloaded
+        g_Log->Info("Next dream index : %i",i);
         return entry.uuid;
     }
     
-    // No uncached dreams found
+    // No uncached dreams found within lookahead window
     return std::nullopt;
 }
 

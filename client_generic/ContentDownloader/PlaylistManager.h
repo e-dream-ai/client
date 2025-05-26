@@ -55,6 +55,13 @@ public:
     
     // Get the next uncached dream in the playlist (thread-safe)
     std::optional<std::string> getNextUncachedDream() const;
+    
+    // Count how many dreams are cached ahead of the current position
+    size_t countCachedDreamsAhead() const;
+    
+    // Get the lookahead limit for downloading
+    size_t getDownloadLookaheadLimit() const { return m_downloadLookaheadLimit; }
+    void setDownloadLookaheadLimit(size_t limit) { m_downloadLookaheadLimit = limit; }
    
     
     // Get a dream by its UUID, set position if found in playlist, return nullopt if not in playlist
@@ -199,6 +206,9 @@ private:
     bool isDreamPlayed(const std::string& uuid) const;
     bool hasUnplayedDreams() const;
     size_t findFirstUnplayedPosition() const;
+
+    // Download lookahead configuration
+    size_t m_downloadLookaheadLimit = 5;
 };
 
 
