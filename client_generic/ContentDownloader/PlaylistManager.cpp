@@ -186,16 +186,53 @@ size_t PlaylistManager::countCachedDreamsAhead() const {
 }
 
 
+bool PlaylistManager::hasKeyframes() const {
+    // Check if any dream in the playlist has keyframes (start or end)
+    for (const auto& entry : m_playlist) {
+        if (entry.startKeyframe.has_value() || entry.endKeyframe.has_value()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
 std::optional<std::string> PlaylistManager::getNextUncachedDream() const {
+    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+    auto& downloader = g_ContentDownloader().m_gDownloader;
+    
+    // Check if playlist has keyframes and randomly return an uncached dream 10% of the time
+    if (hasKeyframes()) {
+        // Generate random number between 0 and 99
+        static std::random_device rd;
+        static std::mt19937 gen(rd());
+        static std::uniform_int_distribution<> dis(0, 99);
+        
+        if (dis(gen) < 10) {  // 10% chance
+            // Collect all uncached dreams
+            std::vector<std::string> uncachedDreams;
+            for (const auto& entry : m_playlist) {
+                if (!cm.hasDiskCachedItem(entry.uuid) && 
+                    !downloader.IsDreamBeingDownloaded(entry.uuid)) {
+                    uncachedDreams.push_back(entry.uuid);
+                }
+            }
+            
+            // Return a random uncached dream if any exist
+            if (!uncachedDreams.empty()) {
+                std::uniform_int_distribution<> dreamDis(0, uncachedDreams.size() - 1);
+                g_Log->Info("Randomly selecting uncached dream for keyframe playlist");
+                return uncachedDreams[dreamDis(gen)];
+            }
+        }
+    }
+    
     // First check if we have enough cached dreams ahead
     /*size_t cachedAhead = countCachedDreamsAhead();
     if (cachedAhead >= m_downloadLookaheadLimit) {
         // We have enough cached dreams, no need to download more
         return std::nullopt;
     }*/
-    
-    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
-    auto& downloader = g_ContentDownloader().m_gDownloader;
     
     // If not started yet, start from beginning
     size_t startPos = m_started ? m_currentPosition + 1 : 0;

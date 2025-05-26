@@ -62,6 +62,9 @@ public:
     // Get the lookahead limit for downloading
     size_t getDownloadLookaheadLimit() const { return m_downloadLookaheadLimit; }
     void setDownloadLookaheadLimit(size_t limit) { m_downloadLookaheadLimit = limit; }
+    
+    // Check if any dream in the playlist has keyframes
+    bool hasKeyframes() const;
    
     
     // Get a dream by its UUID, set position if found in playlist, return nullopt if not in playlist
