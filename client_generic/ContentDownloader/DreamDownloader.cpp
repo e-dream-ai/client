@@ -98,6 +98,15 @@ void DreamDownloader::FindDreamsThread() {
                 break;
             }
             
+            // First check if there's a dream to download
+            auto nextDream = GetNextDreamToDownload();
+            if (!nextDream.has_value()) {
+                // No more uncached dreams to download
+                break;
+            }
+            
+            // Preflight checks - only clean cache if we have something to download
+            
             // Do we even have some disk space available ?
             if (cm.getFreeSpace(Cache::PathManager::getInstance().mp4Path()) < minDiskSpace) {
                 g_Log->Info("Not enough disk space %ll", cm.getFreeSpace(Cache::PathManager::getInstance().mp4Path()));
@@ -107,22 +116,18 @@ void DreamDownloader::FindDreamsThread() {
 
             // Is our cache full ?
             if (cm.getRemainingCacheSpace() < minSpaceForDream) {
-                // we try to remove the oldest video that's not part of the playlist. if that fails, bails
+                // First try to remove the oldest video that's not part of the playlist
                 if (!cm.removeOldestVideo(true)) {
-                    g_Log->Info("Not enough space in cache remaining : %ju, no video to remove outside playlist", cm.getRemainingCacheSpace());
-                    SetDownloadStatus("Your cache is full");
-                    break;
+                    // If that fails, try removing oldest from playlist too
+                    if (!cm.removeOldestVideo(false)) {
+                        g_Log->Info("Not enough space in cache remaining : %ju, cannot remove any video", cm.getRemainingCacheSpace());
+                        SetDownloadStatus("Your cache is full");
+                        break;
+                    }
+                    g_Log->Info("Removed oldest dream from playlist to make space");
                 }
             }
             // /Preflight
-            
-            
-            // Get the next dream to download from PlaylistManager
-            auto nextDream = GetNextDreamToDownload();
-            if (!nextDream.has_value()) {
-                // No more uncached dreams to download
-                break;
-            }
             
             std::string current_uuid = nextDream.value();
             
