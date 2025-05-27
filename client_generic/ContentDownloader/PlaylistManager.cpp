@@ -232,8 +232,10 @@ std::optional<std::string> PlaylistManager::getNextUncachedDream() const {
     std::vector<std::string> successors;
     
     for (const auto& entry : m_playlist) {
-        // Only consider cached dreams as starting points
-        if (!cm.hasDiskCachedItem(entry.uuid)) {
+        // Only consider cached dreams as starting points, 
+        // but also consider current position even if it's streaming
+        bool isCurrentPosition = (m_started && entry.uuid == m_currentDreamUUID);
+        if (!cm.hasDiskCachedItem(entry.uuid) && !isCurrentPosition) {
             continue;
         }
         
