@@ -921,7 +921,7 @@
 		F0C100852C1372F0007FA505 /* ScreenSaver copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "ScreenSaver copy-Info.plist"; sourceTree = "<group>"; };
 		F0CCD23D2B98CF530070314F /* OSD.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = OSD.hpp; sourceTree = "<group>"; };
 		F0CCD2532B9A59320070314F /* e-dream AppRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "e-dream AppRelease.entitlements"; sourceTree = "<group>"; };
-		F0E9CEB12C136B0500C4D694 /* e-dream Stage.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "e-dream Stage.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		F0E9CEB12C136B0500C4D694 /* infinidream stage.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "infinidream stage.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F0E9CEB22C136B0600C4D694 /* e-dream App copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "e-dream App copy-Info.plist"; sourceTree = "<group>"; };
 		F0F6D4242BCD504500222647 /* osd-like.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-like.png"; sourceTree = "<group>"; };
 		F0F6D4252BCD504500222647 /* osd-dislike.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-dislike.png"; sourceTree = "<group>"; };
@@ -1175,7 +1175,7 @@
 			children = (
 				218878D00EC6CD7E001ABD2E /* e-dream.saver */,
 				2160FAAD0F30F43600B2C27A /* e-dream.app */,
-				F0E9CEB12C136B0500C4D694 /* e-dream Stage.app */,
+				F0E9CEB12C136B0500C4D694 /* infinidream stage.app */,
 				F0C100842C1372EF007FA505 /* e-dream-stage.saver */,
 			);
 			name = Products;
@@ -1614,7 +1614,7 @@
 				F0351BED2CB5BBF90055091F /* Bugsnag */,
 			);
 			productName = ElectricSheep;
-			productReference = F0E9CEB12C136B0500C4D694 /* e-dream Stage.app */;
+			productReference = F0E9CEB12C136B0500C4D694 /* infinidream stage.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -2700,7 +2700,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "ai.e-dream.stage.app";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = "infinidream stage";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=macosx*]" = "";
 				SDKROOT = macosx;
@@ -2754,7 +2754,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = "ai.e-dream.stage.app";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = "infinidream stage";
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;

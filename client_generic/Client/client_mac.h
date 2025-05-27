@@ -77,7 +77,7 @@ class CElectricSheep_Mac : public CElectricSheep
                                                      sizeof(path) - 1))
                 {
 #ifdef STAGE
-                    m_AppData = "/Users/Shared/e-dream.ai-stage/";
+                    m_AppData = "/Users/Shared/infinidream.ai-stage/";
 #else
                     m_AppData = "/Users/Shared/e-dream.ai/";
 #endif
