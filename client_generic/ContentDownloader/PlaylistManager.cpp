@@ -360,7 +360,7 @@ PlaylistManager::TransitionType PlaylistManager::determineTransitionType(const P
     return TransitionType::StandardCrossfade;
 }
 
-std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNextDream() const {
+std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNextDream(bool canStream) const {
     g_Log->Info("Preflight : start");
 
     if (m_playlist.empty()) {
@@ -373,6 +373,13 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
     // If we haven't started yet, it would be the first dream
     if (!m_started) {
         const auto& firstEntry = m_playlist[0];
+        
+        // If canStream is false, check if the first dream is cached
+        if (!canStream && !m_cacheManager.hasDiskCachedItem(firstEntry.uuid)) {
+            g_Log->Info("Preflight : first dream not cached and canStream=false");
+            return std::nullopt;
+        }
+        
         decision = {
             0,  // Position
             TransitionType::StandardCrossfade,
@@ -395,6 +402,10 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
             const auto& entry = m_playlist[i];
             if (i != m_currentPosition && entry.startKeyframe && *entry.startKeyframe == *currentEntry.endKeyframe
                 && !isDreamPlayed(entry.uuid)) {
+                // If canStream is false, only add cached dreams
+                if (!canStream && !m_cacheManager.hasDiskCachedItem(entry.uuid)) {
+                    continue;
+                }
                 candidates.push_back(i);
                 g_Log->Info("Preflight : adding candidate : %s %zu (current: %zu)", entry.uuid.c_str(), i, m_currentPosition);
 
@@ -427,6 +438,11 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
 
         for (size_t i = 0; i < m_playlist.size(); i++) {
             if (i != m_currentPosition && !isDreamPlayed(m_playlist[i].uuid)) {
+                // If canStream is false, only consider cached dreams
+                if (!canStream && !m_cacheManager.hasDiskCachedItem(m_playlist[i].uuid)) {
+                    continue;
+                }
+                
                 const auto& nextEntry = m_playlist[i];
                 decision = {
                     i,
@@ -444,6 +460,7 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
 
     // If everything's been played, reset and start from beginning
     const auto& firstEntry = m_playlist[0];
+
     decision = {
         0,
         TransitionType::StandardCrossfade,  // Always crossfade when restarting playlist

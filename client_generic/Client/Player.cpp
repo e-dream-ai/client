@@ -603,7 +603,8 @@ bool CPlayer::Update(uint32_t displayUnit)
                 } else {
                     // Get the next dream decision
                     g_Log->Info("Update will preflight");
-                    m_nextDreamDecision = m_playlistManager->preflightNextDream();
+                    // Natural transition - don't allow streaming
+                    m_nextDreamDecision = m_playlistManager->preflightNextDream(false);
                     
                     if (m_nextDreamDecision) {
                         if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::Seamless) {
@@ -787,7 +788,8 @@ void CPlayer::PlayNextDream(bool quickFade) {
             m_currentClip->SetTransitionLength(5.0f, 1.0f);
         }
         
-        auto nextDecision = m_playlistManager->preflightNextDream();
+        // User-initiated quick fade - allow streaming
+        auto nextDecision = m_playlistManager->preflightNextDream(true);
         if (nextDecision) {
             PlayClip(nextDecision->dream, m_TimelineTime, -1, true);
             m_playlistManager->moveToNextDream(*nextDecision);
@@ -858,7 +860,8 @@ void CPlayer::PlayNextDream(bool quickFade) {
         m_nextDreamDecision = std::nullopt;
     } else {
         // No preflight decision, get one now (fallback case)
-        auto nextDecision = m_playlistManager->preflightNextDream();
+        // Natural transition - don't allow streaming
+        auto nextDecision = m_playlistManager->preflightNextDream(false);
         if (nextDecision) {
             StartTransition();
             PlayClip(nextDecision->dream, m_TimelineTime, -1, true);
@@ -1188,7 +1191,8 @@ void CPlayer::UpdateTransition(double currentTime)
         m_nextDreamDecision = std::nullopt;  // Clear any pending decision
     } else if (!m_nextClip) {
         // If we don't have a next clip yet, try to get one
-        auto nextDecision = m_playlistManager->preflightNextDream();
+        // Natural transition fallback - don't allow streaming
+        auto nextDecision = m_playlistManager->preflightNextDream(false);
         if (nextDecision) {
             // We're in mid-transition without a next clip, must be user/network forced
             // Always use quick crossfade
@@ -1247,7 +1251,8 @@ void CPlayer::SkipToNext()
     g_Log->Info("Next");
     
     // Get the next dream decision
-    auto nextDecision = m_playlistManager->preflightNextDream();
+    // User-initiated skip - allow streaming
+    auto nextDecision = m_playlistManager->preflightNextDream(true);
     if (!nextDecision) {
         g_Log->Error("No next dream available");
         return;
