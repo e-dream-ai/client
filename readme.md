@@ -1,10 +1,12 @@
 Copyright e-dream, inc
 
+2025.05     renamed e-dream to infinidream
 2023.07     forked to work with new server and repository, renamed from Electric Sheep to e-dream
 2015.05     moved from code.google.com repo
 2011.01.30  based on revision 1546 on sf.net
 
-e-dream is a platform for generative visuals.
+infinidream: visuals for your vibe.
+a platform for generative visuals.
 this repository has the native client.
 
 # dev docs
@@ -23,8 +25,8 @@ The C++ dependencies are handled by vcpkg...
 
 There are four targets: app, screensaver, staging app, and staging
 screensaver. The staging targets have their own directory
-/Users/Shared/e-dream.ai-stage that can coexist with the normal one
-/Users/Shared/e-dream.ai
+/Users/Shared/infinidream.ai-stage that can coexist with the normal one
+/Users/Shared/infinidream.ai
 
 # to release
 
@@ -38,7 +40,7 @@ archive the app and export with automatic notarization. zip the
 results with:
 
 ```
-ditto -c -k --keepParent e-dream.app e-dream-app-X.Y.Z.zip
+ditto -c -k --keepParent infinidream.app infinidream-app-X.Y.Z.zip
 ```
 
 The release image is now complete. Continue the release in the [public
@@ -55,35 +57,35 @@ manage the signing. So
 
 1) Use Archive in Xcode and export in a folder
 
-2) In that folder, go into the mess of subfolders until you find e-dream.saver. 
+2) In that folder, go into the mess of subfolders until you find infinidream.saver. 
 OR ALTERNATIVELY (replace {username} with the macOS account name that created the build)
 
 ```
-mv Products/Users/{username}/Library/Screen\ Savers/e-dream.saver/ ./
+mv Products/Users/{username}/Library/Screen\ Savers/infinidream.saver/ ./
 ```
 
 3) Zip the saver so it can be submitted
 
 ```
-/usr/bin/ditto -c -k --keepParent "e-dream.saver" "e-dream.zip"
+/usr/bin/ditto -c -k --keepParent "infinidream.saver" "infinidream.zip"
 ```
 
-4) Assuming  you have created a keychain profile called "e-dream", this will launch the notarization process and wait until it's done
+4) Assuming  you have created a keychain profile called "infinidream", this will launch the notarization process and wait until it's done
 
 ```
-xcrun notarytool submit e-dream.zip --keychain-profile "e-dream" --wait
+xcrun notarytool submit infinidream.zip --keychain-profile "infinidream" --wait
 ```
 
 5) if successful staple the receipt (this lets people install the screensaver without connecting to apple servers for verification of the notarization)
 
 ```
-xcrun stapler staple e-dream.saver
+xcrun stapler staple infinidream.saver
 ```
 
 6) Zip the final thing
 
 ```
-/usr/bin/ditto -c -k --keepParent "e-dream.saver" "e-dream-master-notarized+stapled.zip"
+/usr/bin/ditto -c -k --keepParent "infinidream.saver" "infinidream-master-notarized+stapled.zip"
 ```
 
 see https://developer.apple.com/documentation/security/customizing-the-notarization-workflow
