@@ -1582,6 +1582,12 @@ void CPlayer::prepareCrossfadeTransition() {
         g_Log->Info("Preload already in progress for %s", m_PreloadingDreamUUID.c_str());
         return;
     }
+    
+    // Ensure current clip has proper fadeout time for crossfade
+    if (m_currentClip) {
+        float currentFadeIn = m_currentClip->m_FadeInSeconds;
+        m_currentClip->SetTransitionLength(currentFadeIn, 5.0f);
+    }
 
     const Cache::Dream* dream = m_nextDreamDecision->dream;
     if (!dream) return;
