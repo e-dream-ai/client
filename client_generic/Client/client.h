@@ -1068,10 +1068,10 @@ class CElectricSheep
                 // Buffering and preloading checks
                 bool isBuffering = g_Player().IsAnyClipBuffering();
                 bool isPreloading = g_Player().IsPreloading();
-                bool isStreaming = g_Player().IsAnyClipStreaming();
+                bool isCurrentClipStreaming = isStreamingCurrent; // Use existing variable that tracks if current clip is streaming
                 
-                // Show indicator if either buffering or preloading a streaming clip
-                bool shouldShowBufferIndicator = isStreaming && (isBuffering || isPreloading);
+                // Show indicator only if current clip is buffering (not preloading next clip)
+                bool shouldShowBufferIndicator = isCurrentClipStreaming && isBuffering;
 
                 // Manage the buffering icon
                 if (shouldShowBufferIndicator && !wasShowingBufferIndicator) {
