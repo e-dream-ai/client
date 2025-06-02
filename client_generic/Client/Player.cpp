@@ -662,6 +662,21 @@ bool CPlayer::Update(uint32_t displayUnit)
         m_currentClip->m_Alpha = 1.0f;
     }
     
+    // Debug code for transitions when needed
+    /*
+    if (m_currentClip) {
+        g_Log->Info("RENDER Current: alpha=%.3f, fadeOut=%.1f, finished=%d",
+                     m_currentClip->m_Alpha,
+                     m_currentClip->m_FadeOutSeconds,
+                     m_currentClip->HasFinished());
+    }
+
+    if (m_nextClip) {
+        g_Log->Info("RENDER Next: alpha=%.3f, fadeIn=%.1f",
+                     m_nextClip->m_Alpha,
+                     m_nextClip->m_FadeInSeconds);
+    }*/
+    
     RenderFrame(du->spRenderer);
 
     return true;
@@ -1281,6 +1296,13 @@ void CPlayer::SkipToNext()
         
         // For cached dreams, we can use the synchronous approach (it's fast)
         if (isDreamCached) {
+            // Make sure current clip fades out properly
+            if (m_currentClip) {
+                float currentFadeIn = m_currentClip->m_FadeInSeconds;
+                m_currentClip->SetTransitionLength(currentFadeIn, 1.0f);
+                m_currentClip->FadeOut(m_TimelineTime);  // Trigger the fade out
+            }
+            
             PlayClip(nextDecision->dream, m_TimelineTime, -1, true);
             m_playlistManager->moveToNextDream(*nextDecision);
             
@@ -1358,6 +1380,13 @@ void CPlayer::SkipToNext()
         // Set short transition duration for quick fade
         m_transitionDuration = 1.0f;
         StartTransition();
+        
+        // Set current clip to fade out during the transition
+        if (m_currentClip) {
+            float currentFadeIn = m_currentClip->m_FadeInSeconds;
+            m_currentClip->SetTransitionLength(currentFadeIn, 1.0f);  // 1 second fade out to match transition
+            m_currentClip->FadeOut(m_TimelineTime);  // Trigger the fade out
+        }
 
         PlayClip(nextDecision->dream, m_TimelineTime, -1, true);
         m_playlistManager->moveToNextDream(*nextDecision);
@@ -1414,6 +1443,13 @@ void CPlayer::SkipToNext()
         // Now start the transition (this was previously at the beginning)
         m_transitionDuration = 1.0f;
         StartTransition();
+        
+        // Set current clip to fade out
+        if (m_currentClip) {
+            float currentFadeIn = m_currentClip->m_FadeInSeconds;
+            m_currentClip->SetTransitionLength(currentFadeIn, 1.0f);
+            m_currentClip->FadeOut(m_TimelineTime);  // Trigger the fade out
+        }
         
         m_nextClip = newClip;
         m_nextClip->SetStartTime(m_TimelineTime);
