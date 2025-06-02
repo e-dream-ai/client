@@ -225,9 +225,92 @@ std::optional<std::string> PlaylistManager::getNextUncachedDream() const {
                 return uncachedDreams[dreamDis(gen)];
             }
         }
+        
+        // 75% chance: Look for cached dreams that have no cached successors
+        if (dis(gen) < 75) {  // New independent 75% chance
+            std::vector<std::string> orphanedSuccessors;
+            
+            for (const auto& entry : m_playlist) {
+                // Only consider cached dreams with end keyframes
+                if (cm.hasDiskCachedItem(entry.uuid) && entry.endKeyframe.has_value()) {
+                    // Check if any successors with matching start keyframe are cached
+                    bool hasAnyCachedSuccessor = false;
+                    std::vector<std::string> uncachedSuccessors;
+                    
+                    for (const auto& succ : m_playlist) {
+                        if (succ.startKeyframe.has_value() && 
+                            *succ.startKeyframe == *entry.endKeyframe) {
+                            // Found a dream with matching start keyframe
+                            if (cm.hasDiskCachedItem(succ.uuid)) {
+                                hasAnyCachedSuccessor = true;
+                                break;
+                            } else if (!downloader.IsDreamBeingDownloaded(succ.uuid)) {
+                                uncachedSuccessors.push_back(succ.uuid);
+                            }
+                        }
+                    }
+                    
+                    // If this cached dream has no cached successors, add its uncached successors
+                    if (!hasAnyCachedSuccessor && !uncachedSuccessors.empty()) {
+                        orphanedSuccessors.insert(orphanedSuccessors.end(), 
+                                                uncachedSuccessors.begin(), 
+                                                uncachedSuccessors.end());
+                    }
+                }
+            }
+            
+            // Remove duplicates and return a random one
+            if (!orphanedSuccessors.empty()) {
+                std::sort(orphanedSuccessors.begin(), orphanedSuccessors.end());
+                orphanedSuccessors.erase(std::unique(orphanedSuccessors.begin(), orphanedSuccessors.end()), 
+                                       orphanedSuccessors.end());
+                
+                std::uniform_int_distribution<> dreamDis(0, orphanedSuccessors.size() - 1);
+                g_Log->Info("Selecting successor of cached dream with no cached successors (%zu candidates)", 
+                           orphanedSuccessors.size());
+                return orphanedSuccessors[dreamDis(gen)];
+            }
+        }
+        
+        // 50% chance: Look for cached dreams that have no cached predecessors
+        if (dis(gen) < 50) {  // New independent 50% chance
+            std::vector<std::string> orphanedPredecessors;
+            
+            for (const auto& entry : m_playlist) {
+                // Only consider uncached dreams with start keyframes
+                if (!cm.hasDiskCachedItem(entry.uuid) && 
+                    !downloader.IsDreamBeingDownloaded(entry.uuid) &&
+                    entry.startKeyframe.has_value()) {
+                    // Check if any predecessors with matching end keyframe are cached
+                    bool hasAnyCachedPredecessor = false;
+                    
+                    for (const auto& pred : m_playlist) {
+                        if (pred.endKeyframe.has_value() && 
+                            *pred.endKeyframe == *entry.startKeyframe &&
+                            cm.hasDiskCachedItem(pred.uuid)) {
+                            hasAnyCachedPredecessor = true;
+                            break;
+                        }
+                    }
+                    
+                    // If this uncached dream has no cached predecessors, add it
+                    if (!hasAnyCachedPredecessor) {
+                        orphanedPredecessors.push_back(entry.uuid);
+                    }
+                }
+            }
+            
+            // Return a random orphaned dream
+            if (!orphanedPredecessors.empty()) {
+                std::uniform_int_distribution<> dreamDis(0, orphanedPredecessors.size() - 1);
+                g_Log->Info("Selecting uncached dream with no cached predecessors (%zu candidates)", 
+                           orphanedPredecessors.size());
+                return orphanedPredecessors[dreamDis(gen)];
+            }
+        }
     }
     
-    // For all other cases (90% of keyframe playlists or no keyframes)
+    // For all other cases (remaining percentage or no keyframes)
     // Build a list of successor dreams based on cached dreams
     std::vector<std::string> successors;
     
