@@ -14,6 +14,7 @@
 #include "Player.h"
 #include "Log.h"
 #include "NetworkConfig.h"
+#include "PlaylistManager.h"
 
 namespace ContentDownloader
 {
@@ -29,32 +30,15 @@ void DreamDownloader::FindDreamsToDownload() {
     
 }
 
-void DreamDownloader::AddDreamUUID(const std::string& uuid) {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    m_dreamUUIDs.insert(uuid);
+std::optional<std::string> DreamDownloader::GetNextDreamToDownload() {
+    // Get the next uncached dream from PlaylistManager
+    auto& playlistMgr = g_Player().GetPlaylistManager();
+    return playlistMgr.getNextUncachedDream();
 }
 
-void DreamDownloader::AddDreamUUIDs(const std::vector<std::string>& uuids) {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    for (const auto& uuid : uuids) {
-        m_dreamUUIDs.insert(uuid);
-    }
-}
-
-void DreamDownloader::ClearDreamUUIDs() {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    g_Log->Info("Clearing download queue of %zu dreams", m_dreamUUIDs.size());
-    m_dreamUUIDs.clear();
-}
-
-size_t DreamDownloader::GetDreamUUIDCount() const {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    return m_dreamUUIDs.size();
-}
-
-bool DreamDownloader::isDreamUUIDQueued(const std::string& uuid) const {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    return m_dreamUUIDs.find(uuid) != m_dreamUUIDs.end();
+bool DreamDownloader::IsDreamBeingDownloaded(const std::string& uuid) const {
+    std::lock_guard<std::mutex> lock(m_downloadingMutex);
+    return m_currentlyDownloading.has_value() && m_currentlyDownloading.value() == uuid;
 }
 // MARK: Download status
 void DreamDownloader::SetDownloadStatus(const std::string& status) {
@@ -71,18 +55,19 @@ std::string DreamDownloader::GetDownloadStatus() const {
 void DreamDownloader::FindDreamsThread() {
     PlatformUtils::SetThreadName("FindDreamsToDownload");
     
-    // Grab the CacheManager
-    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+    try {
+        // Grab the CacheManager
+        Cache::CacheManager& cm = Cache::CacheManager::getInstance();
 
-    // Set a default delay (30 seconds)
-    // int delayTime = 30;
-    
-    // Minimum disk space : 5 GB (TODO: this can be lowered or pref'd later)
-    std::uintmax_t minDiskSpace =  (std::uintmax_t)1024 * 1024 * 1024 * 5;
-    // Minimum space in cache/quota to consider downloading (100 MB)
-    std::uintmax_t minSpaceForDream = (std::uintmax_t)1024 * 1024 * 100;
+        // Set a default delay (30 seconds)
+        // int delayTime = 30;
+        
+        // Minimum disk space : 5 GB (TODO: this can be lowered or pref'd later)
+        std::uintmax_t minDiskSpace =  (std::uintmax_t)1024 * 1024 * 1024 * 5;
+        // Minimum space in cache/quota to consider downloading (100 MB)
+        std::uintmax_t minSpaceForDream = (std::uintmax_t)1024 * 1024 * 100;
 
-    while (isRunning.load()) {
+        while (isRunning.load()) {
         //g_Log->Info("Searching for dreams to download...");
         SetDownloadStatus("Searching for dreams to download...");
 
@@ -98,7 +83,10 @@ void DreamDownloader::FindDreamsThread() {
         
         
         
-        while (true) {
+        while (isRunning.load()) {
+            // Check for thread interruption
+            boost::this_thread::interruption_point();
+            
             // Preflight checklist
  
             // Make sure we have some remaining quota
@@ -110,6 +98,15 @@ void DreamDownloader::FindDreamsThread() {
                 break;
             }
             
+            // First check if there's a dream to download
+            auto nextDream = GetNextDreamToDownload();
+            if (!nextDream.has_value()) {
+                // No more uncached dreams to download
+                break;
+            }
+            
+            // Preflight checks - only clean cache if we have something to download
+            
             // Do we even have some disk space available ?
             if (cm.getFreeSpace(Cache::PathManager::getInstance().mp4Path()) < minDiskSpace) {
                 g_Log->Info("Not enough disk space %ll", cm.getFreeSpace(Cache::PathManager::getInstance().mp4Path()));
@@ -119,46 +116,53 @@ void DreamDownloader::FindDreamsThread() {
 
             // Is our cache full ?
             if (cm.getRemainingCacheSpace() < minSpaceForDream) {
-                // we try to remove the oldest video that's not part of the playlist. if that fails, bails
+                // First try to remove the oldest video that's not part of the playlist
                 if (!cm.removeOldestVideo(true)) {
-                    g_Log->Info("Not enough space in cache remaining : %ju, no video to remove outside playlist", cm.getRemainingCacheSpace());
-                    SetDownloadStatus("Your cache is full");
-                    break;
+                    // If that fails, try removing oldest from playlist too
+                    if (!cm.removeOldestVideo(false)) {
+                        g_Log->Info("Not enough space in cache remaining : %ju, cannot remove any video", cm.getRemainingCacheSpace());
+                        SetDownloadStatus("Your cache is full");
+                        break;
+                    }
+                    g_Log->Info("Removed oldest dream from playlist to make space");
                 }
             }
             // /Preflight
             
+            std::string current_uuid = nextDream.value();
             
-            // We look through the list of uuids we've been given
-            std::string current_uuid;
+            // Mark this dream as being downloaded
             {
-                std::lock_guard<std::mutex> lock(m_mutex);
-                if (m_dreamUUIDs.empty()) {
-                    break;
-                }
-                auto it = m_dreamUUIDs.begin();
-                current_uuid = *it;
-                m_dreamUUIDs.erase(it);
+                std::lock_guard<std::mutex> lock(m_downloadingMutex);
+                m_currentlyDownloading = current_uuid;
             }
             
             g_Log->Info("Processing dream with UUID: %s", current_uuid.c_str());
             if (!cm.hasDiskCachedItem(current_uuid.c_str())) {
+                // Check for interruption before making network call
+                boost::this_thread::interruption_point();
+                
                 auto link = EDreamClient::GetDreamDownloadLink(current_uuid);
                 
                 if (!link.empty()) {
                     g_Log->Info("Download link received: %s", link.c_str());
-                    auto queueSize = m_dreamUUIDs.size() + 1;
-                    if (queueSize == 1) {
-                        SetDownloadStatus("Downloading 1 dream ");
-                    } else {
-                        std::string status = "Downloading " + std::to_string(queueSize) + " dreams";
-                        SetDownloadStatus(status);
-                    }
+                    SetDownloadStatus("Downloading dream...");
 
                     DownloadDream(current_uuid, link);
                     
+                    // Clear the currently downloading flag
+                    {
+                        std::lock_guard<std::mutex> lock(m_downloadingMutex);
+                        m_currentlyDownloading.reset();
+                    }
+                    
                 } else {
                     g_Log->Error("Download link denied");
+                    // Clear the currently downloading flag on error
+                    {
+                        std::lock_guard<std::mutex> lock(m_downloadingMutex);
+                        m_currentlyDownloading.reset();
+                    }
                 }
 
             }
@@ -170,6 +174,17 @@ void DreamDownloader::FindDreamsThread() {
         boost::this_thread::sleep(boost::get_system_time() +
                              boost::posix_time::seconds(10));
     }
+    
+    } catch (boost::thread_interrupted&) {
+        g_Log->Info("FindDreamsThread interrupted");
+    }
+    
+    // Clear any currently downloading flag when exiting
+    {
+        std::lock_guard<std::mutex> lock(m_downloadingMutex);
+        m_currentlyDownloading.reset();
+    }
+    
     g_Log->Info("Exiting FindDreamsThreads()");
 }
 

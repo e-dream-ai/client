@@ -52,6 +52,19 @@ public:
     
     std::vector<PlaylistEntry> filterActiveAndProcessedDreams(const std::vector<PlaylistEntry>& entries) const;
     std::vector<PlaylistEntry> filterUncachedDreams(const std::vector<PlaylistEntry>& entries) const;
+    
+    // Get the next uncached dream in the playlist (thread-safe)
+    std::optional<std::string> getNextUncachedDream() const;
+    
+    // Count how many dreams are cached ahead of the current position
+    size_t countCachedDreamsAhead() const;
+    
+    // Get the lookahead limit for downloading
+    size_t getDownloadLookaheadLimit() const { return m_downloadLookaheadLimit; }
+    void setDownloadLookaheadLimit(size_t limit) { m_downloadLookaheadLimit = limit; }
+    
+    // Check if any dream in the playlist has keyframes
+    bool hasKeyframes() const;
    
     
     // Get a dream by its UUID, set position if found in playlist, return nullopt if not in playlist
@@ -83,7 +96,9 @@ public:
     std::optional<DreamLookupResult> getDreamByUUID(const std::string& dreamUUID);
 
     // Calculate what will be played next without changing state
-    std::optional<NextDreamDecision> preflightNextDream() const;
+    // canStream: if true, allows selecting dreams that aren't cached (will stream)
+    //            if false, only considers cached dreams
+    std::optional<NextDreamDecision> preflightNextDream(bool canStream = true) const;
     
     // Actually move to the next dream based on preflight decision
     const Cache::Dream* moveToNextDream(const NextDreamDecision& decision);
@@ -196,6 +211,9 @@ private:
     bool isDreamPlayed(const std::string& uuid) const;
     bool hasUnplayedDreams() const;
     size_t findFirstUnplayedPosition() const;
+
+    // Download lookahead configuration
+    size_t m_downloadLookaheadLimit = 5;
 };
 
 

@@ -16,6 +16,7 @@
 #include <future>
 #include <boost/thread.hpp>
 #include <filesystem>
+#include <optional>
 
 namespace fs = std::filesystem;
 
@@ -39,12 +40,11 @@ public:
         }
     }
     
-    void AddDreamUUID(const std::string& uuid);
-    void AddDreamUUIDs(const std::vector<std::string>& uuids);
-    void ClearDreamUUIDs();
+    // Get the next dream to download from PlaylistManager
+    std::optional<std::string> GetNextDreamToDownload();
     
-    size_t GetDreamUUIDCount() const;
-    bool isDreamUUIDQueued(const std::string& uuid) const; 
+    // Check if a dream is currently being downloaded
+    bool IsDreamBeingDownloaded(const std::string& uuid) const; 
     
     std::future<bool> DownloadImmediately(const std::string& uuid, std::function<void(bool, const std::string&)> callback = nullptr);
 
@@ -59,8 +59,10 @@ private:
     
     boost::thread thread;
     std::atomic<bool> isRunning;
-    std::set<std::string> m_dreamUUIDs;
-    mutable std::mutex m_mutex;
+    
+    // Track currently downloading dream
+    mutable std::mutex m_downloadingMutex;
+    std::optional<std::string> m_currentlyDownloading;
 
     // Download status
     mutable std::mutex m_statusMutex;
