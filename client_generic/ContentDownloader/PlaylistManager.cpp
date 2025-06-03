@@ -458,10 +458,10 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
         const auto& firstEntry = m_playlist[0];
         
         // If canStream is false, check if the first dream is cached
-        if (!canStream && !m_cacheManager.hasDiskCachedItem(firstEntry.uuid)) {
+        /*if (!canStream && !m_cacheManager.hasDiskCachedItem(firstEntry.uuid)) {
             g_Log->Info("Preflight : first dream not cached and canStream=false");
             return std::nullopt;
-        }
+        }*/
         
         decision = {
             0,  // Position
