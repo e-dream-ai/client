@@ -429,7 +429,7 @@
 #ifdef STAGE
     NSURL* helpURL = [NSURL URLWithString:@"https://stage.infinidream.ai/account"];
 #else
-    NSURL* helpURL = [NSURL URLWithString:@"https://alpha.e-dream.ai/account"];
+    NSURL* helpURL = [NSURL URLWithString:@"https://alpha.infinidream.ai/account"];
 #endif
     [[NSWorkspace sharedWorkspace] openURL:helpURL];
 }
@@ -562,7 +562,7 @@
 #ifdef STAGE
     NSString* urlStr = [NSString stringWithFormat:@"https://stage.infinidream.ai/help?v=%s", CLIENT_VERSION];
 #else
-    NSString* urlStr = [NSString stringWithFormat:@"https://alpha.e-dream.ai/help?v=%s", CLIENT_VERSION];
+    NSString* urlStr = [NSString stringWithFormat:@"https://alpha.infinidream.ai/help?v=%s", CLIENT_VERSION];
 #endif
 
     NSURL* helpURL = [NSURL URLWithString:urlStr];

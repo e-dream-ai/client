@@ -44,7 +44,7 @@
         time_str[strlen(time_str) - 1] =                                       \
             '\0'; /* Removing newline from ctime output */                     \
         FILE* fptr;                                                            \
-        fptr = fopen("/Users/Shared/e-dream.ai/Logs/debug.log", "a");          \
+        fptr = fopen("/Users/Shared/infinidream.ai/Logs/debug.log", "a");      \
         fprintf(fptr, "[%s] [%s:%d] " fmt "\n", time_str, __FILE__, __LINE__,  \
                 ##__VA_ARGS__);                                                \
         fclose(fptr);                                                          \

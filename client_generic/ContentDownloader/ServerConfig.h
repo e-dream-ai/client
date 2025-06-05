@@ -18,7 +18,7 @@ constexpr std::string_view DEFAULT_DREAM_SERVER =
 #ifdef STAGE
     "api-stage.infinidream.ai";
 #else
-    "api-alpha.e-dream.ai";
+    "api-alpha.infinidream.ai";
 #endif
 
 constexpr std::string_view API_VERSION_V1 = "/api/v1";
