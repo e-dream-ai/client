@@ -786,7 +786,7 @@
 		213D529B11F79B0000CF500D /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		214B75060EBBA78900B5B897 /* Rect.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Rect.cpp; path = ../Common/Math/Rect.cpp; sourceTree = SOURCE_ROOT; };
 		215545A812620D3000AB51BF /* dsa_pub.pem */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = dsa_pub.pem; sourceTree = "<group>"; };
-		2160FAAD0F30F43600B2C27A /* e-dream.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "e-dream.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		2160FAAD0F30F43600B2C27A /* infinidream.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = infinidream.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2160FAAF0F30F43600B2C27A /* e-dream-App-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "e-dream-App-Info.plist"; sourceTree = "<group>"; };
 		2160FE190F30F82800B2C27A /* vote-down.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "vote-down.png"; sourceTree = "<group>"; };
 		2160FE1A0F30F82800B2C27A /* vote-up.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "vote-up.png"; sourceTree = "<group>"; };
@@ -1174,7 +1174,7 @@
 			isa = PBXGroup;
 			children = (
 				218878D00EC6CD7E001ABD2E /* e-dream.saver */,
-				2160FAAD0F30F43600B2C27A /* e-dream.app */,
+				2160FAAD0F30F43600B2C27A /* infinidream.app */,
 				F0E9CEB12C136B0500C4D694 /* infinidream stage.app */,
 				F0C100842C1372EF007FA505 /* e-dream-stage.saver */,
 			);
@@ -1542,7 +1542,7 @@
 				F0351BEB2CB5BBF10055091F /* Bugsnag */,
 			);
 			productName = ElectricSheep;
-			productReference = 2160FAAD0F30F43600B2C27A /* e-dream.app */;
+			productReference = 2160FAAD0F30F43600B2C27A /* infinidream.app */;
 			productType = "com.apple.product-type.application";
 		};
 		218878CF0EC6CD7E001ABD2E /* ScreenSaver Prod */ = {
@@ -2368,7 +2368,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "ai.e-dream.alpha.app";
-				PRODUCT_NAME = "e-dream";
+				PRODUCT_NAME = infinidream;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=macosx*]" = "";
 				SDKROOT = macosx;
@@ -2421,7 +2421,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = ai.infinidream.alpha.app;
-				PRODUCT_NAME = "e-dream";
+				PRODUCT_NAME = infinidream;
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
