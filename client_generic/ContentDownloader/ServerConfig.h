@@ -16,10 +16,9 @@ namespace ServerConfig {
 
 constexpr std::string_view DEFAULT_DREAM_SERVER =
 #ifdef STAGE
-    "api-stage.e-dream.ai";
-//    "e-dream-76c98b08cc5d.herokuapp.com";
+    "api-stage.infinidream.ai";
 #else
-    "api-alpha.e-dream.ai";
+    "api-alpha.infinidream.ai";
 #endif
 
 constexpr std::string_view API_VERSION_V1 = "/api/v1";

@@ -77,16 +77,16 @@ class CElectricSheep_Mac : public CElectricSheep
                                                      sizeof(path) - 1))
                 {
 #ifdef STAGE
-                    m_AppData = "/Users/Shared/e-dream.ai-stage/";
+                    m_AppData = "/Users/Shared/infinidream.ai-stage/";
 #else
-                    m_AppData = "/Users/Shared/e-dream.ai/";
+                    m_AppData = "/Users/Shared/infinidream.ai/";
 #endif
 
 
 #ifndef SCREEN_SAVER
                     //m_AppData += "/Containers/com.apple.ScreenSaver.Engine.legacyScreenSaver/Data/Library";
 #endif
-                    //m_AppData += "/Application Support/e-dream.ai/";
+                    //m_AppData += "/Application Support/infinidream.ai/";
                 }
 
                 CFRelease(appSupportURL);

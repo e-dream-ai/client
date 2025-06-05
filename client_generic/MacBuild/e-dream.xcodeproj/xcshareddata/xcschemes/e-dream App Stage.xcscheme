@@ -16,7 +16,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "F0E9CE2A2C136B0500C4D694"
-               BuildableName = "e-dream Stage.app"
+               BuildableName = "infinidream stage.app"
                BlueprintName = "e-dream Stage"
                ReferencedContainer = "container:e-dream.xcodeproj">
             </BuildableReference>
@@ -45,7 +45,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "F0E9CE2A2C136B0500C4D694"
-            BuildableName = "e-dream Stage.app"
+            BuildableName = "infinidream stage.app"
             BlueprintName = "e-dream Stage"
             ReferencedContainer = "container:e-dream.xcodeproj">
          </BuildableReference>
@@ -62,7 +62,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "F0E9CE2A2C136B0500C4D694"
-            BuildableName = "e-dream Stage.app"
+            BuildableName = "infinidream stage.app"
             BlueprintName = "e-dream Stage"
             ReferencedContainer = "container:e-dream.xcodeproj">
          </BuildableReference>

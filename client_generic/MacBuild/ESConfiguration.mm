@@ -427,16 +427,16 @@
 - (IBAction)goToCreateAccountPage:(id)__unused sender
 {
 #ifdef STAGE
-    NSURL* helpURL = [NSURL URLWithString:@"https://stage.e-dream.ai/account"];
+    NSURL* helpURL = [NSURL URLWithString:@"https://stage.infinidream.ai/account"];
 #else
-    NSURL* helpURL = [NSURL URLWithString:@"https://alpha.e-dream.ai/account"];
+    NSURL* helpURL = [NSURL URLWithString:@"https://alpha.infinidream.ai/account"];
 #endif
     [[NSWorkspace sharedWorkspace] openURL:helpURL];
 }
 
 /*- (IBAction)goToLearnMorePage:(id)__unused sender
 {
-    NSURL* helpURL = [NSURL URLWithString:@"https://e-dream.ai/learnmore"];
+    NSURL* helpURL = [NSURL URLWithString:@"https://infinidream.ai/learnmore"];
 
     [[NSWorkspace sharedWorkspace] openURL:helpURL];
 }*/
@@ -560,9 +560,9 @@
 - (IBAction)goToHelpPage:(id)__unused sender
 {
 #ifdef STAGE
-    NSString* urlStr = [NSString stringWithFormat:@"https://stage.e-dream.ai/help?v=%s", CLIENT_VERSION];
+    NSString* urlStr = [NSString stringWithFormat:@"https://stage.infinidream.ai/help?v=%s", CLIENT_VERSION];
 #else
-    NSString* urlStr = [NSString stringWithFormat:@"https://alpha.e-dream.ai/help?v=%s", CLIENT_VERSION];
+    NSString* urlStr = [NSString stringWithFormat:@"https://alpha.infinidream.ai/help?v=%s", CLIENT_VERSION];
 #endif
 
     NSURL* helpURL = [NSURL URLWithString:urlStr];
@@ -580,7 +580,7 @@
 {
     NSAlert *alert = [[NSAlert alloc] init];
     [alert setMessageText:@"Account Change Detected"];
-    [alert setInformativeText:@"e-dream will now exit. Please restart the application to take your new settings into account."];
+    [alert setInformativeText:@"infinidream will now exit. Please restart the application to take your new settings into account."];
     [alert addButtonWithTitle:@"OK"];
     
     [alert beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse returnCode) {

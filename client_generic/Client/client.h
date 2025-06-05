@@ -240,8 +240,7 @@ class CElectricSheep
                 m_HudManager->Get("helpmessage"));
         spHelpMessage->Add(new Hud::CStringStat(
             "message",
-            "e-dream\n\n"
-            "Visuals for your vibe. See e-dream.ai to learn more.\n\n"
+            "infinidream: visuals for your vibe\n\n"
             "Use the remote control or keyboard to interact.\n\n"
             "Commands:\n"
             "Up-arrow: like this dream\n"
@@ -1178,7 +1177,7 @@ class CElectricSheep
                     else
                     {
                         if (m_MultipleInstancesMode) {
-                            pTmp->SetSample("Offline mode, please close other instances of e-dream");
+                            pTmp->SetSample("Offline mode, please close other instances of infnidream");
                         } else {
                             pTmp->SetSample("Not signed in");
                         }
@@ -1587,7 +1586,7 @@ class CElectricSheep
         message += " is available.";
 #ifdef MAC
         message +=
-            " Relaunch e-dream application or preference pane to update.";
+            " Relaunch infinidream application or preference pane to update.";
 #endif
 
         m_MessageQueue.QueueMessage(message, 30.0);

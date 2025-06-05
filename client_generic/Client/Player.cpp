@@ -233,7 +233,7 @@ int CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
     //	Start renderer & set window title.
     if (spRenderer->Initialize(spDisplay) == false)
         return -1;
-    spDisplay->Title("e-dream");
+    spDisplay->Title("infinidream");
 
     {
         auto du = std::make_shared<DisplayUnit>();
