@@ -792,7 +792,7 @@
 		2160FE1A0F30F82800B2C27A /* vote-up.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "vote-up.png"; sourceTree = "<group>"; };
 		2160FE240F30F82800B2C27A /* logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = logo.png; sourceTree = "<group>"; };
 		2187F3850F463A740004F8F9 /* TrebuchetMS-24.glf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "TrebuchetMS-24.glf"; sourceTree = "<group>"; };
-		218878D00EC6CD7E001ABD2E /* e-dream.saver */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "e-dream.saver"; sourceTree = BUILT_PRODUCTS_DIR; };
+		218878D00EC6CD7E001ABD2E /* infinidream.saver */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = infinidream.saver; sourceTree = BUILT_PRODUCTS_DIR; };
 		218878D10EC6CD7E001ABD2E /* ScreenSaver-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "ScreenSaver-Info.plist"; sourceTree = "<group>"; };
 		2188A6CF17EB94F30078C91C /* ApplicationServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ApplicationServices.framework; path = System/Library/Frameworks/ApplicationServices.framework; sourceTree = SDKROOT; };
 		2191E23719B5111700F5B82D /* FrameDisplay.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = FrameDisplay.h; path = ../Client/FrameDisplay.h; sourceTree = "<group>"; };
@@ -1173,7 +1173,7 @@
 		19C28FBDFE9D53C911CA2CBB /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				218878D00EC6CD7E001ABD2E /* e-dream.saver */,
+				218878D00EC6CD7E001ABD2E /* infinidream.saver */,
 				2160FAAD0F30F43600B2C27A /* infinidream.app */,
 				F0E9CEB12C136B0500C4D694 /* infinidream stage.app */,
 				F0C100842C1372EF007FA505 /* e-dream-stage.saver */,
@@ -1566,7 +1566,7 @@
 				F0351BE92CB5BB4F0055091F /* Bugsnag */,
 			);
 			productName = ScreenSaver;
-			productReference = 218878D00EC6CD7E001ABD2E /* e-dream.saver */;
+			productReference = 218878D00EC6CD7E001ABD2E /* infinidream.saver */;
 			productType = "com.apple.product-type.bundle";
 		};
 		F0C100012C1372EF007FA505 /* ScreenSaver stage */ = {
@@ -2475,7 +2475,7 @@
 				);
 				"OTHER_LDFLAGS[arch=x86_64]" = "";
 				PRODUCT_BUNDLE_IDENTIFIER = "ai.e-dream.alpha.screensaver";
-				PRODUCT_NAME = "e-dream";
+				PRODUCT_NAME = infinidream;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
 				VALID_ARCHS = "arm64 arm64e i386 x86_64";
@@ -2529,8 +2529,8 @@
 				);
 				"OTHER_LDFLAGS[arch=x86_64]" = "";
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = "ai.e-dream.alpha.screensaver";
-				PRODUCT_NAME = "e-dream";
+				PRODUCT_BUNDLE_IDENTIFIER = ai.infinidream.alpha.screensaver;
+				PRODUCT_NAME = infinidream;
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
