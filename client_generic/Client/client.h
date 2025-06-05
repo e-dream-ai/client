@@ -241,7 +241,11 @@ class CElectricSheep
         spHelpMessage->Add(new Hud::CStringStat(
             "message",
             "infinidream: visuals for your vibe\n\n"
+#ifdef SCREEN_SAVER
+            "Use the remote control to interact.\n\n"
+#else
             "Use the remote control or keyboard to interact.\n\n"
+#endif
             "Commands:\n"
             "Up-arrow: like this dream\n"
             "Down-arrow: dislike this dream and delete it\n"
