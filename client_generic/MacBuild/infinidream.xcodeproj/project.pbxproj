@@ -45,8 +45,8 @@
 		12A00CD32B0D22B4001C0792 /* Trebuchet MS.sddf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 12A00CD02B0D22A4001C0792 /* Trebuchet MS.sddf */; };
 		12A00CD52B0D31E6001C0792 /* Lato.sddf in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD42B0D31E6001C0792 /* Lato.sddf */; };
 		12A00CD72B0D31F9001C0792 /* Lato.sddf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 12A00CD42B0D31E6001C0792 /* Lato.sddf */; };
-		12A00CD92B0FCA39001C0792 /* e-dream.icns in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD82B0FCA39001C0792 /* e-dream.icns */; };
-		12A00CDA2B0FCA39001C0792 /* e-dream.icns in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD82B0FCA39001C0792 /* e-dream.icns */; };
+		12A00CD92B0FCA39001C0792 /* infinidream.icns in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD82B0FCA39001C0792 /* infinidream.icns */; };
+		12A00CDA2B0FCA39001C0792 /* infinidream.icns in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD82B0FCA39001C0792 /* infinidream.icns */; };
 		12A00CDC2B0FCA6C001C0792 /* e-dream-attr.png in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */; };
 		12A00CDD2B0FCA6C001C0792 /* e-dream-attr.png in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */; };
 		12CA4A462B83DE3D00A2EAD6 /* libsioclient_tls.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 12CA4A452B83DE3D00A2EAD6 /* libsioclient_tls.a */; };
@@ -286,6 +286,10 @@
 		F059947A2BA0A07300B018C7 /* osd-back.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994692BA0A07300B018C7 /* osd-back.png */; };
 		F059947B2BA0A07300B018C7 /* osd-bg-sq.png in Resources */ = {isa = PBXBuildFile; fileRef = F059946A2BA0A07300B018C7 /* osd-bg-sq.png */; };
 		F059947C2BA0A07300B018C7 /* osd-bg-sq.png in Resources */ = {isa = PBXBuildFile; fileRef = F059946A2BA0A07300B018C7 /* osd-bg-sq.png */; };
+		F0633F492DF1EF500092BCDB /* infinidream-App-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F0633F482DF1EF500092BCDB /* infinidream-App-Info.plist */; };
+		F0633F4A2DF1EF500092BCDB /* infinidream-App-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F0633F482DF1EF500092BCDB /* infinidream-App-Info.plist */; };
+		F0633F4B2DF1EF500092BCDB /* infinidream-App-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F0633F482DF1EF500092BCDB /* infinidream-App-Info.plist */; };
+		F0633F4C2DF1EF500092BCDB /* infinidream-App-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F0633F482DF1EF500092BCDB /* infinidream-App-Info.plist */; };
 		F06C22AB2DA6CAE500D54DB2 /* osd-report.png in Resources */ = {isa = PBXBuildFile; fileRef = F06C22AA2DA6CAE500D54DB2 /* osd-report.png */; };
 		F06C22AC2DA6CAE500D54DB2 /* osd-report.png in Resources */ = {isa = PBXBuildFile; fileRef = F06C22AA2DA6CAE500D54DB2 /* osd-report.png */; };
 		F06C22AD2DA6CAE500D54DB2 /* osd-report.png in Resources */ = {isa = PBXBuildFile; fileRef = F06C22AA2DA6CAE500D54DB2 /* osd-report.png */; };
@@ -309,7 +313,7 @@
 		F0C100082C1372EF007FA505 /* osd-brightness.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994672BA0A07300B018C7 /* osd-brightness.png */; };
 		F0C100092C1372EF007FA505 /* osd-like.png in Resources */ = {isa = PBXBuildFile; fileRef = F0F6D4242BCD504500222647 /* osd-like.png */; };
 		F0C1000A2C1372EF007FA505 /* ElectricSheep.nib in Resources */ = {isa = PBXBuildFile; fileRef = 21AAA09E0F70400D00AC23A8 /* ElectricSheep.nib */; };
-		F0C1000B2C1372EF007FA505 /* e-dream.icns in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD82B0FCA39001C0792 /* e-dream.icns */; };
+		F0C1000B2C1372EF007FA505 /* infinidream.icns in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD82B0FCA39001C0792 /* infinidream.icns */; };
 		F0C1000C2C1372EF007FA505 /* dsa_pub.pem in Resources */ = {isa = PBXBuildFile; fileRef = 215545A812620D3000AB51BF /* dsa_pub.pem */; };
 		F0C1000D2C1372EF007FA505 /* osd-back10.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994622BA0A07100B018C7 /* osd-back10.png */; };
 		F0C1000E2C1372EF007FA505 /* osd-dislike.png in Resources */ = {isa = PBXBuildFile; fileRef = F0F6D4252BCD504500222647 /* osd-dislike.png */; };
@@ -423,7 +427,7 @@
 		F0E9CE332C136B0500C4D694 /* ElectricSheep.nib in Resources */ = {isa = PBXBuildFile; fileRef = 21AAA09E0F70400D00AC23A8 /* ElectricSheep.nib */; };
 		F0E9CE342C136B0500C4D694 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 21EE634D10139BEF000CE53E /* MainMenu.xib */; };
 		F0E9CE352C136B0500C4D694 /* osd-back.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994692BA0A07300B018C7 /* osd-back.png */; };
-		F0E9CE362C136B0500C4D694 /* e-dream.icns in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD82B0FCA39001C0792 /* e-dream.icns */; };
+		F0E9CE362C136B0500C4D694 /* infinidream.icns in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD82B0FCA39001C0792 /* infinidream.icns */; };
 		F0E9CE372C136B0500C4D694 /* osd-like.png in Resources */ = {isa = PBXBuildFile; fileRef = F0F6D4242BCD504500222647 /* osd-like.png */; };
 		F0E9CE382C136B0500C4D694 /* dsa_pub.pem in Resources */ = {isa = PBXBuildFile; fileRef = 215545A812620D3000AB51BF /* dsa_pub.pem */; };
 		F0E9CE392C136B0500C4D694 /* osd-brightness.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994672BA0A07300B018C7 /* osd-brightness.png */; };
@@ -737,10 +741,10 @@
 		12579D482B83C91E00604B41 /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = "../openssl-1.0.2k/MacOS/lib/libcrypto.a"; sourceTree = "<group>"; };
 		1270D0EA2B28960500E1DCE3 /* PlatformUtils.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = PlatformUtils.h; path = ../Client/PlatformUtils.h; sourceTree = "<group>"; };
 		1270D0EE2B28975400E1DCE3 /* PlatformUtils_Mac.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PlatformUtils_Mac.mm; sourceTree = "<group>"; };
-		12726C132B694F36003C0FF6 /* e-dream App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "e-dream App.entitlements"; sourceTree = "<group>"; };
+		12726C132B694F36003C0FF6 /* infinidream App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "infinidream App.entitlements"; sourceTree = "<group>"; };
 		12A00CD02B0D22A4001C0792 /* Trebuchet MS.sddf */ = {isa = PBXFileReference; lastKnownFileType = file.bplist; path = "Trebuchet MS.sddf"; sourceTree = "<group>"; };
 		12A00CD42B0D31E6001C0792 /* Lato.sddf */ = {isa = PBXFileReference; lastKnownFileType = file.bplist; path = Lato.sddf; sourceTree = "<group>"; };
-		12A00CD82B0FCA39001C0792 /* e-dream.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = "e-dream.icns"; sourceTree = SOURCE_ROOT; };
+		12A00CD82B0FCA39001C0792 /* infinidream.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = infinidream.icns; sourceTree = SOURCE_ROOT; };
 		12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "e-dream-attr.png"; sourceTree = "<group>"; };
 		12CA4A452B83DE3D00A2EAD6 /* libsioclient_tls.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libsioclient_tls.a; path = "../socket.io-client-cpp/lib/libsioclient_tls.a"; sourceTree = "<group>"; };
 		12D020022B83C86C0036357D /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = "../openssl-1.0.2k/MacOS/lib/libssl.a"; sourceTree = "<group>"; };
@@ -787,7 +791,6 @@
 		214B75060EBBA78900B5B897 /* Rect.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Rect.cpp; path = ../Common/Math/Rect.cpp; sourceTree = SOURCE_ROOT; };
 		215545A812620D3000AB51BF /* dsa_pub.pem */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = dsa_pub.pem; sourceTree = "<group>"; };
 		2160FAAD0F30F43600B2C27A /* infinidream.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = infinidream.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		2160FAAF0F30F43600B2C27A /* e-dream-App-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "e-dream-App-Info.plist"; sourceTree = "<group>"; };
 		2160FE190F30F82800B2C27A /* vote-down.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "vote-down.png"; sourceTree = "<group>"; };
 		2160FE1A0F30F82800B2C27A /* vote-up.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "vote-up.png"; sourceTree = "<group>"; };
 		2160FE240F30F82800B2C27A /* logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = logo.png; sourceTree = "<group>"; };
@@ -908,6 +911,7 @@
 		F05994682BA0A07300B018C7 /* osd-pause.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-pause.png"; sourceTree = "<group>"; };
 		F05994692BA0A07300B018C7 /* osd-back.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-back.png"; sourceTree = "<group>"; };
 		F059946A2BA0A07300B018C7 /* osd-bg-sq.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-bg-sq.png"; sourceTree = "<group>"; };
+		F0633F482DF1EF500092BCDB /* infinidream-App-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "infinidream-App-Info.plist"; sourceTree = "<group>"; };
 		F06C22AA2DA6CAE500D54DB2 /* osd-report.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-report.png"; sourceTree = "<group>"; };
 		F07071CE2C0E052A008219A4 /* libboost_log_setup.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_log_setup.a; path = "../../cache/univ-osx/lib/libboost_log_setup.a"; sourceTree = "<group>"; };
 		F07071CF2C0E052A008219A4 /* libboost_log.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_log.a; path = "../../cache/univ-osx/lib/libboost_log.a"; sourceTree = "<group>"; };
@@ -917,12 +921,12 @@
 		F07071D32C0E052B008219A4 /* libboost_thread.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_thread.a; path = "../../cache/univ-osx/lib/libboost_thread.a"; sourceTree = "<group>"; };
 		F08A7DC42CD507BC00D43977 /* NetworkConfig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NetworkConfig.h; sourceTree = "<group>"; };
 		F0B754502DBFCE4400C59D7A /* network.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = network.png; sourceTree = "<group>"; };
-		F0C100842C1372EF007FA505 /* e-dream-stage.saver */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "e-dream-stage.saver"; sourceTree = BUILT_PRODUCTS_DIR; };
+		F0C100842C1372EF007FA505 /* infinidream-stage.saver */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "infinidream-stage.saver"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F0C100852C1372F0007FA505 /* ScreenSaver copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "ScreenSaver copy-Info.plist"; sourceTree = "<group>"; };
 		F0CCD23D2B98CF530070314F /* OSD.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = OSD.hpp; sourceTree = "<group>"; };
-		F0CCD2532B9A59320070314F /* e-dream AppRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "e-dream AppRelease.entitlements"; sourceTree = "<group>"; };
+		F0CCD2532B9A59320070314F /* infinidream AppRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "infinidream AppRelease.entitlements"; sourceTree = "<group>"; };
 		F0E9CEB12C136B0500C4D694 /* infinidream stage.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "infinidream stage.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		F0E9CEB22C136B0600C4D694 /* e-dream App copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "e-dream App copy-Info.plist"; sourceTree = "<group>"; };
+		F0E9CEB22C136B0600C4D694 /* infinidream App copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "infinidream App copy-Info.plist"; sourceTree = "<group>"; };
 		F0F6D4242BCD504500222647 /* osd-like.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-like.png"; sourceTree = "<group>"; };
 		F0F6D4252BCD504500222647 /* osd-dislike.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-dislike.png"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -1118,7 +1122,7 @@
 		08FB7794FE84155DC02AAC07 /* ElectricSheep */ = {
 			isa = PBXGroup;
 			children = (
-				F0CCD2532B9A59320070314F /* e-dream AppRelease.entitlements */,
+				F0CCD2532B9A59320070314F /* infinidream AppRelease.entitlements */,
 				2160FE160F30F82800B2C27A /* Runtime */,
 				08FB7795FE84155DC02AAC07 /* Source */,
 				21AAA0390F703FDB00AC23A8 /* Resources */,
@@ -1176,7 +1180,7 @@
 				218878D00EC6CD7E001ABD2E /* infinidream.saver */,
 				2160FAAD0F30F43600B2C27A /* infinidream.app */,
 				F0E9CEB12C136B0500C4D694 /* infinidream stage.app */,
-				F0C100842C1372EF007FA505 /* e-dream-stage.saver */,
+				F0C100842C1372EF007FA505 /* infinidream-stage.saver */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -1385,7 +1389,7 @@
 				21934CB819F3C2430096E7D7 /* thumbnail.tif */,
 				12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */,
 				21006FBD1017BC2C004A6511 /* Credits.html */,
-				12A00CD82B0FCA39001C0792 /* e-dream.icns */,
+				12A00CD82B0FCA39001C0792 /* infinidream.icns */,
 				212CAF831141CA3F009DA85A /* TrebuchetMS-20.glf */,
 				2187F3850F463A740004F8F9 /* TrebuchetMS-24.glf */,
 				12A00CD02B0D22A4001C0792 /* Trebuchet MS.sddf */,
@@ -1423,12 +1427,12 @@
 		21AAA0390F703FDB00AC23A8 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				12726C132B694F36003C0FF6 /* e-dream App.entitlements */,
+				12726C132B694F36003C0FF6 /* infinidream App.entitlements */,
 				215545A812620D3000AB51BF /* dsa_pub.pem */,
 				21EE634D10139BEF000CE53E /* MainMenu.xib */,
-				2160FAAF0F30F43600B2C27A /* e-dream-App-Info.plist */,
+				F0633F482DF1EF500092BCDB /* infinidream-App-Info.plist */,
 				218878D10EC6CD7E001ABD2E /* ScreenSaver-Info.plist */,
-				F0E9CEB22C136B0600C4D694 /* e-dream App copy-Info.plist */,
+				F0E9CEB22C136B0600C4D694 /* infinidream App copy-Info.plist */,
 				F0C100852C1372F0007FA505 /* ScreenSaver copy-Info.plist */,
 				21AAA09E0F70400D00AC23A8 /* ElectricSheep.nib */,
 				1243576B2B31FC1B00CCD62A /* BuildData.json */,
@@ -1521,9 +1525,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		2160FAAC0F30F43600B2C27A /* e-dream App Prod */ = {
+		2160FAAC0F30F43600B2C27A /* infinidream App Prod */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 2160FAB20F30F43800B2C27A /* Build configuration list for PBXNativeTarget "e-dream App Prod" */;
+			buildConfigurationList = 2160FAB20F30F43800B2C27A /* Build configuration list for PBXNativeTarget "infinidream App Prod" */;
 			buildPhases = (
 				1243576A2B31E89000CCD62A /* ShellScript */,
 				21EE636610139D86000CE53E /* Resources */,
@@ -1536,7 +1540,7 @@
 			);
 			dependencies = (
 			);
-			name = "e-dream App Prod";
+			name = "infinidream App Prod";
 			packageProductDependencies = (
 				129AC5CF2B69348E00E2E3E8 /* Sparkle */,
 				F0351BEB2CB5BBF10055091F /* Bugsnag */,
@@ -1590,12 +1594,12 @@
 				F0351BEF2CB5BBFF0055091F /* Bugsnag */,
 			);
 			productName = ScreenSaver;
-			productReference = F0C100842C1372EF007FA505 /* e-dream-stage.saver */;
+			productReference = F0C100842C1372EF007FA505 /* infinidream-stage.saver */;
 			productType = "com.apple.product-type.bundle";
 		};
-		F0E9CE2A2C136B0500C4D694 /* e-dream Stage */ = {
+		F0E9CE2A2C136B0500C4D694 /* infinidream Stage */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = F0E9CEAE2C136B0500C4D694 /* Build configuration list for PBXNativeTarget "e-dream Stage" */;
+			buildConfigurationList = F0E9CEAE2C136B0500C4D694 /* Build configuration list for PBXNativeTarget "infinidream Stage" */;
 			buildPhases = (
 				F0E9CE2D2C136B0500C4D694 /* ShellScript */,
 				F0E9CE2E2C136B0500C4D694 /* Resources */,
@@ -1608,7 +1612,7 @@
 			);
 			dependencies = (
 			);
-			name = "e-dream Stage";
+			name = "infinidream Stage";
 			packageProductDependencies = (
 				F0E9CE2B2C136B0500C4D694 /* Sparkle */,
 				F0351BED2CB5BBF90055091F /* Bugsnag */,
@@ -1630,7 +1634,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 1DEB924B08733DCA0010E9CD /* Build configuration list for PBXProject "e-dream" */;
+			buildConfigurationList = 1DEB924B08733DCA0010E9CD /* Build configuration list for PBXProject "infinidream" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
 			hasScannedForEncodings = 1;
@@ -1649,9 +1653,9 @@
 			projectRoot = "";
 			targets = (
 				218878CF0EC6CD7E001ABD2E /* ScreenSaver Prod */,
-				2160FAAC0F30F43600B2C27A /* e-dream App Prod */,
+				2160FAAC0F30F43600B2C27A /* infinidream App Prod */,
 				F0C100012C1372EF007FA505 /* ScreenSaver stage */,
-				F0E9CE2A2C136B0500C4D694 /* e-dream Stage */,
+				F0E9CE2A2C136B0500C4D694 /* infinidream Stage */,
 				12726C1F2B6BF43C003C0FF6 /* All */,
 			);
 		};
@@ -1669,7 +1673,7 @@
 				F05994752BA0A07300B018C7 /* osd-brightness.png in Resources */,
 				F0F6D4262BCD504500222647 /* osd-like.png in Resources */,
 				21AAA0BD0F7040B500AC23A8 /* ElectricSheep.nib in Resources */,
-				12A00CD92B0FCA39001C0792 /* e-dream.icns in Resources */,
+				12A00CD92B0FCA39001C0792 /* infinidream.icns in Resources */,
 				215545AA12620D3000AB51BF /* dsa_pub.pem in Resources */,
 				F059946B2BA0A07300B018C7 /* osd-back10.png in Resources */,
 				F0F6D4282BCD504500222647 /* osd-dislike.png in Resources */,
@@ -1678,6 +1682,7 @@
 				F05994792BA0A07300B018C7 /* osd-back.png in Resources */,
 				F0B754542DBFCE4400C59D7A /* network.png in Resources */,
 				F05994602BA0912300B018C7 /* osd-pill-b.png in Resources */,
+				F0633F4B2DF1EF500092BCDB /* infinidream-App-Info.plist in Resources */,
 				F059946D2BA0A07300B018C7 /* osd-forward.png in Resources */,
 				F059945E2BA0912300B018C7 /* osd-bg-700.png in Resources */,
 				12A00CD12B0D22A4001C0792 /* Trebuchet MS.sddf in Resources */,
@@ -1707,7 +1712,8 @@
 				21EE636310139D68000CE53E /* ElectricSheep.nib in Resources */,
 				123A0C8A2B87B1E600A616E3 /* MainMenu.xib in Resources */,
 				F059947A2BA0A07300B018C7 /* osd-back.png in Resources */,
-				12A00CDA2B0FCA39001C0792 /* e-dream.icns in Resources */,
+				12A00CDA2B0FCA39001C0792 /* infinidream.icns in Resources */,
+				F0633F4A2DF1EF500092BCDB /* infinidream-App-Info.plist in Resources */,
 				F0F6D4272BCD504500222647 /* osd-like.png in Resources */,
 				215545A912620D3000AB51BF /* dsa_pub.pem in Resources */,
 				F05994762BA0A07300B018C7 /* osd-brightness.png in Resources */,
@@ -1741,7 +1747,7 @@
 				F0C100082C1372EF007FA505 /* osd-brightness.png in Resources */,
 				F0C100092C1372EF007FA505 /* osd-like.png in Resources */,
 				F0C1000A2C1372EF007FA505 /* ElectricSheep.nib in Resources */,
-				F0C1000B2C1372EF007FA505 /* e-dream.icns in Resources */,
+				F0C1000B2C1372EF007FA505 /* infinidream.icns in Resources */,
 				F0C1000C2C1372EF007FA505 /* dsa_pub.pem in Resources */,
 				F0C1000D2C1372EF007FA505 /* osd-back10.png in Resources */,
 				F0C1000E2C1372EF007FA505 /* osd-dislike.png in Resources */,
@@ -1750,6 +1756,7 @@
 				F0C100112C1372EF007FA505 /* osd-back.png in Resources */,
 				F0B754522DBFCE4400C59D7A /* network.png in Resources */,
 				F0C100122C1372EF007FA505 /* osd-pill-b.png in Resources */,
+				F0633F492DF1EF500092BCDB /* infinidream-App-Info.plist in Resources */,
 				F0C100132C1372EF007FA505 /* osd-forward.png in Resources */,
 				F0C100142C1372EF007FA505 /* osd-bg-700.png in Resources */,
 				F0C100152C1372EF007FA505 /* Trebuchet MS.sddf in Resources */,
@@ -1779,7 +1786,8 @@
 				F0E9CE332C136B0500C4D694 /* ElectricSheep.nib in Resources */,
 				F0E9CE342C136B0500C4D694 /* MainMenu.xib in Resources */,
 				F0E9CE352C136B0500C4D694 /* osd-back.png in Resources */,
-				F0E9CE362C136B0500C4D694 /* e-dream.icns in Resources */,
+				F0E9CE362C136B0500C4D694 /* infinidream.icns in Resources */,
+				F0633F4C2DF1EF500092BCDB /* infinidream-App-Info.plist in Resources */,
 				F0E9CE372C136B0500C4D694 /* osd-like.png in Resources */,
 				F0E9CE382C136B0500C4D694 /* dsa_pub.pem in Resources */,
 				F0E9CE392C136B0500C4D694 /* osd-brightness.png in Resources */,
@@ -2122,7 +2130,7 @@
 		};
 		12726C262B6BF53B003C0FF6 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 2160FAAC0F30F43600B2C27A /* e-dream App Prod */;
+			target = 2160FAAC0F30F43600B2C27A /* infinidream App Prod */;
 			targetProxy = 12726C252B6BF53B003C0FF6 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -2329,11 +2337,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD)";
-				ASSETCATALOG_COMPILER_APPICON_NAME = "e-dream";
+				ASSETCATALOG_COMPILER_APPICON_NAME = infinidream;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
 				CLANG_CXX_LIBRARY = "libc++";
-				CODE_SIGN_ENTITLEMENTS = "e-dream App.entitlements";
+				CODE_SIGN_ENTITLEMENTS = "infinidream App.entitlements";
 				CODE_SIGN_IDENTITY = "";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "";
 				CODE_SIGN_STYLE = Manual;
@@ -2359,15 +2367,15 @@
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				INFOPLIST_FILE = "e-dream-App-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "e-dream";
+				INFOPLIST_FILE = "infinidream-App-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = infinidream;
 				INSTALL_PATH = "$(HOME)/Applications";
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 12.4;
 				MARKETING_VERSION = 0.4.0;
 				ONLY_ACTIVE_ARCH = YES;
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = "ai.e-dream.alpha.app";
+				PRODUCT_BUNDLE_IDENTIFIER = ai.infinidream.alpha.app;
 				PRODUCT_NAME = infinidream;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=macosx*]" = "";
@@ -2381,11 +2389,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD)";
-				ASSETCATALOG_COMPILER_APPICON_NAME = "e-dream";
+				ASSETCATALOG_COMPILER_APPICON_NAME = infinidream;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
 				CLANG_CXX_LIBRARY = "libc++";
-				CODE_SIGN_ENTITLEMENTS = "e-dream AppRelease.entitlements";
+				CODE_SIGN_ENTITLEMENTS = "infinidream AppRelease.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -2412,8 +2420,8 @@
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				INFOPLIST_FILE = "e-dream-App-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "e-dream";
+				INFOPLIST_FILE = "infinidream-App-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = infinidream;
 				INSTALL_PATH = "$(HOME)/Applications";
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 12.4;
@@ -2474,7 +2482,7 @@
 					suppress,
 				);
 				"OTHER_LDFLAGS[arch=x86_64]" = "";
-				PRODUCT_BUNDLE_IDENTIFIER = "ai.e-dream.alpha.screensaver";
+				PRODUCT_BUNDLE_IDENTIFIER = ai.infinidream.alpha.screensaver;
 				PRODUCT_NAME = infinidream;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
@@ -2588,7 +2596,7 @@
 				);
 				"OTHER_LDFLAGS[arch=x86_64]" = "";
 				PRODUCT_BUNDLE_IDENTIFIER = ai.infinidream.stage.screensaver;
-				PRODUCT_NAME = "e-dream-stage";
+				PRODUCT_NAME = "infinidream-stage";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
 				VALID_ARCHS = "arm64 arm64e i386 x86_64";
@@ -2644,7 +2652,7 @@
 				"OTHER_LDFLAGS[arch=x86_64]" = "";
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = ai.infinidream.stage.screensaver;
-				PRODUCT_NAME = "e-dream-stage";
+				PRODUCT_NAME = "infinidream-stage";
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
@@ -2660,11 +2668,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD)";
-				ASSETCATALOG_COMPILER_APPICON_NAME = "e-dream";
+				ASSETCATALOG_COMPILER_APPICON_NAME = infinidream;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
 				CLANG_CXX_LIBRARY = "libc++";
-				CODE_SIGN_ENTITLEMENTS = "e-dream App.entitlements";
+				CODE_SIGN_ENTITLEMENTS = "infinidream App.entitlements";
 				CODE_SIGN_IDENTITY = "";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "";
 				CODE_SIGN_STYLE = Manual;
@@ -2691,8 +2699,8 @@
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				INFOPLIST_FILE = "e-dream App copy-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "e-dream-stage";
+				INFOPLIST_FILE = "infinidream App copy-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "infinidream-stage";
 				INSTALL_PATH = "$(HOME)/Applications";
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 12.4;
@@ -2713,11 +2721,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD)";
-				ASSETCATALOG_COMPILER_APPICON_NAME = "e-dream";
+				ASSETCATALOG_COMPILER_APPICON_NAME = infinidream;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
 				CLANG_CXX_LIBRARY = "libc++";
-				CODE_SIGN_ENTITLEMENTS = "e-dream AppRelease.entitlements";
+				CODE_SIGN_ENTITLEMENTS = "infinidream AppRelease.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -2745,8 +2753,8 @@
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				INFOPLIST_FILE = "e-dream App copy-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "e-dream-stage";
+				INFOPLIST_FILE = "infinidream App copy-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "infinidream-stage";
 				INSTALL_PATH = "$(HOME)/Applications";
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 12.4;
@@ -2775,7 +2783,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		1DEB924B08733DCA0010E9CD /* Build configuration list for PBXProject "e-dream" */ = {
+		1DEB924B08733DCA0010E9CD /* Build configuration list for PBXProject "infinidream" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				1DEB924C08733DCA0010E9CD /* Debug */,
@@ -2784,7 +2792,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		2160FAB20F30F43800B2C27A /* Build configuration list for PBXNativeTarget "e-dream App Prod" */ = {
+		2160FAB20F30F43800B2C27A /* Build configuration list for PBXNativeTarget "infinidream App Prod" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				2160FAB00F30F43700B2C27A /* Debug */,
@@ -2811,7 +2819,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		F0E9CEAE2C136B0500C4D694 /* Build configuration list for PBXNativeTarget "e-dream Stage" */ = {
+		F0E9CEAE2C136B0500C4D694 /* Build configuration list for PBXNativeTarget "infinidream Stage" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				F0E9CEAF2C136B0500C4D694 /* Debug */,

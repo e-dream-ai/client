@@ -17,7 +17,7 @@
                BlueprintIdentifier = "218878CF0EC6CD7E001ABD2E"
                BuildableName = "infinidream.saver"
                BlueprintName = "ScreenSaver Prod"
-               ReferencedContainer = "container:e-dream.xcodeproj">
+               ReferencedContainer = "container:infinidream.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -63,7 +63,7 @@
             BlueprintIdentifier = "218878CF0EC6CD7E001ABD2E"
             BuildableName = "infinidream.saver"
             BlueprintName = "ScreenSaver Prod"
-            ReferencedContainer = "container:e-dream.xcodeproj">
+            ReferencedContainer = "container:infinidream.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
    </ProfileAction>

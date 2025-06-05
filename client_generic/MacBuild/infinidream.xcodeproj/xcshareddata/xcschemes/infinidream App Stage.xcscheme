@@ -15,10 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "F0C100012C1372EF007FA505"
-               BuildableName = "e-dream-stage.saver"
-               BlueprintName = "ScreenSaver stage"
-               ReferencedContainer = "container:e-dream.xcodeproj">
+               BlueprintIdentifier = "F0E9CE2A2C136B0500C4D694"
+               BuildableName = "infinidream stage.app"
+               BlueprintName = "infinidream Stage"
+               ReferencedContainer = "container:infinidream.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -40,6 +40,16 @@
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
       allowLocationSimulation = "YES">
+      <BuildableProductRunnable
+         runnableDebuggingMode = "0">
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "F0E9CE2A2C136B0500C4D694"
+            BuildableName = "infinidream stage.app"
+            BlueprintName = "infinidream Stage"
+            ReferencedContainer = "container:infinidream.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
@@ -47,15 +57,16 @@
       savedToolIdentifier = ""
       useCustomWorkingDirectory = "NO"
       debugDocumentVersioning = "YES">
-      <MacroExpansion>
+      <BuildableProductRunnable
+         runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "F0C100012C1372EF007FA505"
-            BuildableName = "e-dream-stage.saver"
-            BlueprintName = "ScreenSaver stage"
-            ReferencedContainer = "container:e-dream.xcodeproj">
+            BlueprintIdentifier = "F0E9CE2A2C136B0500C4D694"
+            BuildableName = "infinidream stage.app"
+            BlueprintName = "infinidream Stage"
+            ReferencedContainer = "container:infinidream.xcodeproj">
          </BuildableReference>
-      </MacroExpansion>
+      </BuildableProductRunnable>
    </ProfileAction>
    <AnalyzeAction
       buildConfiguration = "Debug">
