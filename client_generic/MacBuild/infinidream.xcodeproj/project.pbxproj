@@ -286,9 +286,7 @@
 		F059947A2BA0A07300B018C7 /* osd-back.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994692BA0A07300B018C7 /* osd-back.png */; };
 		F059947B2BA0A07300B018C7 /* osd-bg-sq.png in Resources */ = {isa = PBXBuildFile; fileRef = F059946A2BA0A07300B018C7 /* osd-bg-sq.png */; };
 		F059947C2BA0A07300B018C7 /* osd-bg-sq.png in Resources */ = {isa = PBXBuildFile; fileRef = F059946A2BA0A07300B018C7 /* osd-bg-sq.png */; };
-		F0633F492DF1EF500092BCDB /* infinidream-App-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F0633F482DF1EF500092BCDB /* infinidream-App-Info.plist */; };
 		F0633F4A2DF1EF500092BCDB /* infinidream-App-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F0633F482DF1EF500092BCDB /* infinidream-App-Info.plist */; };
-		F0633F4B2DF1EF500092BCDB /* infinidream-App-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F0633F482DF1EF500092BCDB /* infinidream-App-Info.plist */; };
 		F0633F4C2DF1EF500092BCDB /* infinidream-App-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F0633F482DF1EF500092BCDB /* infinidream-App-Info.plist */; };
 		F06C22AB2DA6CAE500D54DB2 /* osd-report.png in Resources */ = {isa = PBXBuildFile; fileRef = F06C22AA2DA6CAE500D54DB2 /* osd-report.png */; };
 		F06C22AC2DA6CAE500D54DB2 /* osd-report.png in Resources */ = {isa = PBXBuildFile; fileRef = F06C22AA2DA6CAE500D54DB2 /* osd-report.png */; };
@@ -301,6 +299,8 @@
 		F07071D82C0E05DA008219A4 /* libboost_thread.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071D32C0E052B008219A4 /* libboost_thread.a */; };
 		F07071D92C0E05DA008219A4 /* libboost_system.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071D22C0E052B008219A4 /* libboost_system.a */; };
 		F082D4412CBD5CA4001934FB /* Bugsnag in Frameworks */ = {isa = PBXBuildFile; productRef = F0351BE92CB5BB4F0055091F /* Bugsnag */; };
+		F09BCEBC2DF33CBB00EA1BD3 /* ScreenSaver copy-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F0C100852C1372F0007FA505 /* ScreenSaver copy-Info.plist */; };
+		F09BCEBD2DF33CCE00EA1BD3 /* ScreenSaver-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 218878D10EC6CD7E001ABD2E /* ScreenSaver-Info.plist */; };
 		F0B754512DBFCE4400C59D7A /* network.png in Resources */ = {isa = PBXBuildFile; fileRef = F0B754502DBFCE4400C59D7A /* network.png */; };
 		F0B754522DBFCE4400C59D7A /* network.png in Resources */ = {isa = PBXBuildFile; fileRef = F0B754502DBFCE4400C59D7A /* network.png */; };
 		F0B754532DBFCE4400C59D7A /* network.png in Resources */ = {isa = PBXBuildFile; fileRef = F0B754502DBFCE4400C59D7A /* network.png */; };
@@ -1666,6 +1666,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F09BCEBD2DF33CCE00EA1BD3 /* ScreenSaver-Info.plist in Resources */,
 				F05994582BA0912300B018C7 /* osd-pill-r.png in Resources */,
 				1243576C2B31FC1B00CCD62A /* BuildData.json in Resources */,
 				12A00CD52B0D31E6001C0792 /* Lato.sddf in Resources */,
@@ -1682,7 +1683,6 @@
 				F05994792BA0A07300B018C7 /* osd-back.png in Resources */,
 				F0B754542DBFCE4400C59D7A /* network.png in Resources */,
 				F05994602BA0912300B018C7 /* osd-pill-b.png in Resources */,
-				F0633F4B2DF1EF500092BCDB /* infinidream-App-Info.plist in Resources */,
 				F059946D2BA0A07300B018C7 /* osd-forward.png in Resources */,
 				F059945E2BA0912300B018C7 /* osd-bg-700.png in Resources */,
 				12A00CD12B0D22A4001C0792 /* Trebuchet MS.sddf in Resources */,
@@ -1740,6 +1740,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F09BCEBC2DF33CBB00EA1BD3 /* ScreenSaver copy-Info.plist in Resources */,
 				F0C100042C1372EF007FA505 /* osd-pill-r.png in Resources */,
 				F0C100052C1372EF007FA505 /* BuildData.json in Resources */,
 				F0C100062C1372EF007FA505 /* Lato.sddf in Resources */,
@@ -1756,7 +1757,6 @@
 				F0C100112C1372EF007FA505 /* osd-back.png in Resources */,
 				F0B754522DBFCE4400C59D7A /* network.png in Resources */,
 				F0C100122C1372EF007FA505 /* osd-pill-b.png in Resources */,
-				F0633F492DF1EF500092BCDB /* infinidream-App-Info.plist in Resources */,
 				F0C100132C1372EF007FA505 /* osd-forward.png in Resources */,
 				F0C100142C1372EF007FA505 /* osd-bg-700.png in Resources */,
 				F0C100152C1372EF007FA505 /* Trebuchet MS.sddf in Resources */,
