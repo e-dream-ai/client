@@ -1,0 +1,16 @@
+Test Videos Generated:
+======================
+exact_100_frames.mp4  - Exactly 100 frames @ 30fps
+exact_250_frames.mp4  - Exactly 250 frames @ 30fps
+exact_500_frames.mp4  - Exactly 500 frames @ 30fps
+one_second_30fps.mp4  - 30 frames (1 second @ 30fps)
+ten_seconds_30fps.mp4 - 300 frames (10 seconds @ 30fps)
+end_frame_test.mp4    - 102 frames with colored last frames (red & green)
+h264_test.mp4         - 150 frames with H.264 codec
+h265_test.mp4         - 150 frames with H.265 codec
+bframes_test.mp4      - 150 frames with B-frames
+short_5_frames.mp4    - Edge case: only 5 frames
+fps_23976.mp4         - 120 frames @ 23.976fps
+
+To verify frame counts manually:
+ffprobe -v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets -of csv=p=0 <video_file>
