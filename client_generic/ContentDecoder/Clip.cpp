@@ -256,31 +256,30 @@ bool CClip::Update(double _timelineTime, bool isPaused)
         }
     }
 
-    // We always push until the last frame is rendered. We may fake it
-    if (m_CurrentFrameMetadata.maxFrameIdx > 0 &&
-        m_CurrentFrameMetadata.frameIdx > m_CurrentFrameMetadata.maxFrameIdx - 1)
-    {
-        g_Log->Info("marking dream %s as finished", m_ClipMetadata.dreamData.uuid.c_str());
-        
-        if (m_FadeOutSeconds == 0.f)
-            m_Alpha = 1.f;
-        
-        m_HasFinished.exchange(true);
-        m_IsFadingOut.exchange(false);
-        
-        return false;
-    }
     
     if (_timelineTime < m_StartTime)
         return false;
 
     if (NeedsNewFrame(_timelineTime, &m_DecoderClock))
     {
-       
         if (!GrabVideoFrame())
         {
-            // If we're near the end, don't fail as we used to
-            if (m_LastValidFrame && IsNearEnd())
+            // Check if we're at the last frame and should mark as finished
+            if (m_CurrentFrameMetadata.maxFrameIdx > 0 &&
+                m_CurrentFrameMetadata.frameIdx >= m_CurrentFrameMetadata.maxFrameIdx)
+            {
+                g_Log->Info("marking dream %s as finished", m_ClipMetadata.dreamData.uuid.c_str());
+                
+                if (m_FadeOutSeconds == 0.f)
+                    m_Alpha = 1.f;
+                
+                m_HasFinished.exchange(true);
+                m_IsFadingOut.exchange(false);
+                
+                return false;
+            }
+            // If we're near the end, don't fail as we used to (this may no longer be needed)
+            else if (m_LastValidFrame && IsNearEnd())
             {
                 g_Log->Info("Reusing last valid, faking increment count");
                 // Just keep using the last valid frame
@@ -376,6 +375,9 @@ void CClip::SetDisplaySize(uint32_t _displayWidth, uint32_t _displayHeight)
 bool CClip::GrabVideoFrame()
 {
     spCVideoFrame frame = m_spDecoder->PopVideoFrame();
+    if (!frame)
+        return false;
+    
     if (frame)
     {
         m_spFrameData = frame;
@@ -419,22 +421,6 @@ bool CClip::GrabVideoFrame()
                 currentTexture->Upload(m_spImageRef);
             }
         }
-    }
-    else
-    {
-        // If we're near the end and have a cached frame, use it instead of failing
-        if (m_LastValidFrame && IsNearEnd())
-        {
-            m_CurrentFrameMetadata.frameIdx++;
-            g_Log->Info("Using cached frame %d for seamless transition, masquarading as %d",
-                        m_LastValidFrame->GetMetaData().frameIdx,
-                        m_CurrentFrameMetadata.frameIdx);
-            m_spFrameData = m_LastValidFrame;
-            return true;
-        }
-        
-        g_Log->Warning("failed to get frame %d for %s", m_CurrentFrameMetadata.frameIdx, m_ClipMetadata.dreamData.uuid.c_str());
-        return false;
     }
 
     return true;
