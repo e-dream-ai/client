@@ -64,7 +64,7 @@ struct sOpenVideoInfo
         : m_pFrame(NULL), m_pFormatContext(NULL), m_pVideoCodecContext(NULL),
           m_pVideoCodec(NULL), m_pVideoStream(NULL), m_VideoStreamID(-1),
           m_TotalFrameCount(0), m_CurrentFrameIndex(0), m_SeekTargetFrame(0),
-          m_NextIsSeam(false), m_ReadingTrailingFrames(false)
+          m_NextIsSeam(false), m_ReadingTrailingFrames(false), m_ActualFrameCount(0)
 
     {
     }
@@ -91,6 +91,7 @@ struct sOpenVideoInfo
     std::string m_Path;
     bool m_NextIsSeam;
     bool m_ReadingTrailingFrames;
+    int64_t m_ActualFrameCount;
 };
 
 /*

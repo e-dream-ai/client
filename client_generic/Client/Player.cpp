@@ -716,8 +716,8 @@ void CPlayer::RenderFrame(DisplayOutput::spCRenderer renderer) {
             // Normal playback
             /*g_Log->Info("render frame %d of %s",
                 m_currentClip->m_CurrentFrameMetadata.frameIdx,
-                m_currentClip->m_ClipMetadata.dreamData.uuid.c_str());*/
-            
+                m_currentClip->m_ClipMetadata.dreamData.uuid.c_str());
+            */
             m_currentClip->DrawFrame(renderer);
 
             if (m_currentClip->m_CurrentFrameMetadata.frameIdx == 1) {
