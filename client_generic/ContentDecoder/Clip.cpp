@@ -148,10 +148,12 @@ bool CClip::StartPlayback(int64_t _seekFrame)
     }
     
     m_DecoderClock = {};
-    m_DecoderClock.started = false;
+    // Initialize clock to actual start time to avoid frame skipping
+    m_DecoderClock.clock = m_ActualStartTime;
+    m_DecoderClock.started = true;  // Mark as started so first frame doesn't skip timing
     m_DecoderClock.acc = 0.0;
     m_DecoderClock.interframeDelta = 0.0;
-    
+    g_Log->Info("Start playback is reseting decoder clock");
     m_HasStartedPlaying = true;
 
     return true;
@@ -164,9 +166,11 @@ bool CClip::StartPlayback(int64_t _seekFrame)
 bool CClip::NeedsNewFrame(double _timelineTime,
                           DecoderClock* _decoderClock) const
 {
+   /* g_Log->Info("Needs new frame : %d %d",m_CurrentFrameMetadata.frameIdx, m_spFrameDisplay->StartAtFrame());
+    
     if (m_CurrentFrameMetadata.frameIdx < m_spFrameDisplay->StartAtFrame())
         return true;
-
+*/
     double deltaTime = _timelineTime - _decoderClock->clock;
     _decoderClock->clock = _timelineTime;
     if (!_decoderClock->started)
