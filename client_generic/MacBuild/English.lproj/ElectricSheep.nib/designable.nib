@@ -47,7 +47,7 @@
             <windowStyleMask key="styleMask" titled="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="212" y="280" width="541" height="390"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1415"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1409"/>
             <value key="minSize" type="size" width="541" height="377"/>
             <view key="contentView" id="323">
                 <rect key="frame" x="0.0" y="0.0" width="541" height="390"/>
@@ -96,11 +96,11 @@ Gw
                                         <box autoresizesSubviews="NO" borderType="line" title="Sign In" translatesAutoresizingMaskIntoConstraints="NO" id="715">
                                             <rect key="frame" x="5" y="54" width="485" height="214"/>
                                             <view key="contentView" id="JqF-GJ-vEJ">
-                                                <rect key="frame" x="4" y="5" width="477" height="192"/>
+                                                <rect key="frame" x="4" y="5" width="477" height="194"/>
                                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                 <subviews>
                                                     <textField focusRingType="none" verticalHuggingPriority="750" contentType="username" translatesAutoresizingMaskIntoConstraints="NO" id="696">
-                                                        <rect key="frame" x="100" y="153" width="327" height="21"/>
+                                                        <rect key="frame" x="100" y="155" width="327" height="21"/>
                                                         <constraints>
                                                             <constraint firstAttribute="height" constant="21" id="UbJ-yP-0wr"/>
                                                             <constraint firstAttribute="width" constant="327" id="ayl-FU-AUW"/>
@@ -112,7 +112,7 @@ Gw
                                                         </textFieldCell>
                                                     </textField>
                                                     <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="1000" translatesAutoresizingMaskIntoConstraints="NO" id="697">
-                                                        <rect key="frame" x="47" y="156" width="47" height="16"/>
+                                                        <rect key="frame" x="47" y="158" width="47" height="16"/>
                                                         <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="E-mail:" placeholderString="Password:" id="698">
                                                             <font key="font" metaFont="system"/>
                                                             <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
@@ -120,7 +120,7 @@ Gw
                                                         </textFieldCell>
                                                     </textField>
                                                     <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="712">
-                                                        <rect key="frame" x="54" y="127" width="40" height="16"/>
+                                                        <rect key="frame" x="54" y="129" width="40" height="16"/>
                                                         <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Code:" id="713">
                                                             <font key="font" metaFont="system"/>
                                                             <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
@@ -145,7 +145,7 @@ DQ
                                                         </connections>
                                                     </button>
                                                     <textField focusRingType="none" horizontalHuggingPriority="350" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="1099">
-                                                        <rect key="frame" x="71" y="95" width="364" height="16"/>
+                                                        <rect key="frame" x="71" y="97" width="364" height="16"/>
                                                         <constraints>
                                                             <constraint firstAttribute="width" constant="360" id="YYZ-Jt-ERM"/>
                                                             <constraint firstAttribute="height" constant="16" id="v7E-wl-C5F"/>
@@ -157,7 +157,7 @@ DQ
                                                         </textFieldCell>
                                                     </textField>
                                                     <imageView translatesAutoresizingMaskIntoConstraints="NO" id="1119">
-                                                        <rect key="frame" x="49" y="94" width="16" height="18"/>
+                                                        <rect key="frame" x="49" y="96" width="16" height="18"/>
                                                         <constraints>
                                                             <constraint firstAttribute="width" constant="16" id="SwC-oj-F8H"/>
                                                             <constraint firstAttribute="height" constant="18" id="uZl-EC-RrU"/>
@@ -179,7 +179,7 @@ DQ
                                                         </connections>
                                                     </button>
                                                     <textField focusRingType="none" verticalHuggingPriority="750" contentType="oneTimeCode" translatesAutoresizingMaskIntoConstraints="NO" id="4IA-ih-tPf">
-                                                        <rect key="frame" x="100" y="124" width="96" height="21"/>
+                                                        <rect key="frame" x="100" y="126" width="96" height="21"/>
                                                         <constraints>
                                                             <constraint firstAttribute="width" constant="96" id="pMc-we-Wht"/>
                                                         </constraints>
@@ -244,7 +244,7 @@ DQ
                                             <rect key="frame" x="7" y="43" width="483" height="87"/>
                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                             <view key="contentView" id="LU7-TS-BoS">
-                                                <rect key="frame" x="4" y="5" width="475" height="65"/>
+                                                <rect key="frame" x="4" y="5" width="475" height="67"/>
                                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                 <subviews>
                                                     <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="482">
@@ -524,11 +524,11 @@ room for new ones</string>
                                         <box autoresizesSubviews="NO" borderType="line" title="Proxy" translatesAutoresizingMaskIntoConstraints="NO" id="EBg-xh-hZV" userLabel="Proxy">
                                             <rect key="frame" x="5" y="14" width="485" height="159"/>
                                             <view key="contentView" id="PmZ-TH-ktJ">
-                                                <rect key="frame" x="4" y="5" width="477" height="137"/>
+                                                <rect key="frame" x="4" y="5" width="477" height="139"/>
                                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                 <subviews>
                                                     <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="Q3k-U6-7Ad">
-                                                        <rect key="frame" x="100" y="76" width="357" height="21"/>
+                                                        <rect key="frame" x="100" y="78" width="357" height="21"/>
                                                         <textFieldCell key="cell" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" alignment="left" drawsBackground="YES" id="006-lG-KuE">
                                                             <font key="font" metaFont="system"/>
                                                             <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
@@ -536,7 +536,7 @@ room for new ones</string>
                                                         </textFieldCell>
                                                     </textField>
                                                     <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="q0G-o9-Xcv">
-                                                        <rect key="frame" x="57" y="79" width="37" height="16"/>
+                                                        <rect key="frame" x="57" y="81" width="37" height="16"/>
                                                         <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Host:" placeholderString="" id="Gen-gK-bHR">
                                                             <font key="font" metaFont="system"/>
                                                             <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
@@ -544,7 +544,7 @@ room for new ones</string>
                                                         </textFieldCell>
                                                     </textField>
                                                     <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="gY4-Mj-Ffb">
-                                                        <rect key="frame" x="100" y="47" width="357" height="21"/>
+                                                        <rect key="frame" x="100" y="49" width="357" height="21"/>
                                                         <textFieldCell key="cell" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" alignment="left" drawsBackground="YES" id="1Bi-mm-j1F">
                                                             <font key="font" metaFont="system"/>
                                                             <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
@@ -552,7 +552,7 @@ room for new ones</string>
                                                         </textFieldCell>
                                                     </textField>
                                                     <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="CZJ-s1-R5Y">
-                                                        <rect key="frame" x="53" y="50" width="41" height="16"/>
+                                                        <rect key="frame" x="53" y="52" width="41" height="16"/>
                                                         <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Login:" id="oMO-bw-cSy">
                                                             <font key="font" metaFont="system"/>
                                                             <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
@@ -560,14 +560,14 @@ room for new ones</string>
                                                         </textFieldCell>
                                                     </textField>
                                                     <button translatesAutoresizingMaskIntoConstraints="NO" id="ZxS-NK-7el">
-                                                        <rect key="frame" x="98" y="104" width="88" height="18"/>
+                                                        <rect key="frame" x="98" y="106" width="88" height="18"/>
                                                         <buttonCell key="cell" type="check" title="Use Proxy" bezelStyle="regularSquare" imagePosition="left" alignment="left" state="on" inset="2" id="aU4-xb-zte">
                                                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                             <font key="font" metaFont="system"/>
                                                         </buttonCell>
                                                     </button>
                                                     <secureTextField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="q9Y-KC-fux">
-                                                        <rect key="frame" x="100" y="18" width="357" height="21"/>
+                                                        <rect key="frame" x="100" y="20" width="357" height="21"/>
                                                         <secureTextFieldCell key="cell" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" drawsBackground="YES" id="UCP-Zz-CWV">
                                                             <font key="font" metaFont="system"/>
                                                             <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
@@ -578,7 +578,7 @@ room for new ones</string>
                                                         </secureTextFieldCell>
                                                     </secureTextField>
                                                     <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="RFG-vb-i0e">
-                                                        <rect key="frame" x="28" y="21" width="66" height="16"/>
+                                                        <rect key="frame" x="28" y="23" width="66" height="16"/>
                                                         <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Password:" id="XkN-wt-cb6">
                                                             <font key="font" metaFont="system"/>
                                                             <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>

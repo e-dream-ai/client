@@ -403,4 +403,23 @@ static void ShowPreferencesCallback()
     [window initWindowProperties];
     [s_ExtraWindows addObject:window];
 }
+
+- (IBAction)openRemoteControl:(id)sender {
+    g_Log->Info("Open Remote");
+#ifdef STAGE
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://stage.infinidream.ai/rc"]];
+#else
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://alpha.infinidream.ai/rc"]];
+#endif
+}
+
+- (IBAction)openBrowsePlaylist:(id)sender {
+    g_Log->Info("Browse Playlists");
+#ifdef STAGE
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://stage.infinidream.ai/playlists"]];
+#else
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://alpha.infinidream.ai/playlists"]];
+#endif
+}
+
 @end
