@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="23727" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="23727"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="EmailStepViewController">
+            <connections>
+                <outlet property="emailTextField" destination="PPl-Z6-Zgk" id="UgL-fA-uBa"/>
+                <outlet property="errorLabel" destination="9g8-4k-ixO" id="qjm-tY-SEB"/>
+                <outlet property="progressIndicator" destination="sLF-RF-Q4Q" id="zj4-lj-bcZ"/>
+                <outlet property="sendCodeButton" destination="YFp-d0-jC2" id="4yh-Rb-naW"/>
+                <outlet property="view" destination="Hz6-mo-xeY" id="0bl-1N-x8E"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <customView id="Hz6-mo-xeY">
+            <rect key="frame" x="0.0" y="0.0" width="571" height="268"/>
+            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+            <subviews>
+                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="eer-aE-bAi">
+                    <rect key="frame" x="45" y="178" width="473" height="60"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <textFieldCell key="cell" alignment="left" title="Enter the e-mail you used to create your account, we'll send you a confirmation code" id="gYT-yq-4eP">
+                        <font key="font" textStyle="title1" name=".SFNS-Regular"/>
+                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <button toolTip="Send verification code" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="YFp-d0-jC2">
+                    <rect key="frame" x="421" y="119" width="106" height="40"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <buttonCell key="cell" type="push" title="Send code" bezelStyle="rounded" alignment="center" controlSize="large" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="xgY-bY-KH1">
+                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="system" size="15"/>
+                        <string key="keyEquivalent" base64-UTF8="YES">
+DQ
+</string>
+                    </buttonCell>
+                    <connections>
+                        <action selector="sendCode:" target="-2" id="FKe-y6-i5g"/>
+                    </connections>
+                </button>
+                <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="PPl-Z6-Zgk">
+                    <rect key="frame" x="47" y="125" width="364" height="28"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <textFieldCell key="cell" controlSize="large" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" placeholderString="your@email.com" drawsBackground="YES" id="6Ii-m0-N1u">
+                        <font key="font" metaFont="system" size="15"/>
+                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="wGY-eL-Oki">
+                    <rect key="frame" x="124" y="56" width="314" height="40"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <buttonCell key="cell" type="push" title="No account yet ? Click here to create one" bezelStyle="rounded" alignment="center" controlSize="large" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="N9q-jY-x1U">
+                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="system" size="15"/>
+                    </buttonCell>
+                    <connections>
+                        <action selector="openCreateAccount:" target="-2" id="rVj-iB-k1S"/>
+                    </connections>
+                </button>
+                <progressIndicator fixedFrame="YES" maxValue="100" indeterminate="YES" style="spinning" translatesAutoresizingMaskIntoConstraints="NO" id="sLF-RF-Q4Q">
+                    <rect key="frame" x="529" y="123" width="32" height="32"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                </progressIndicator>
+                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="9g8-4k-ixO">
+                    <rect key="frame" x="45" y="101" width="478" height="16"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <textFieldCell key="cell" lineBreakMode="clipping" id="WsW-rO-6mZ">
+                        <font key="font" usesAppearanceFont="YES"/>
+                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+            </subviews>
+            <point key="canvasLocation" x="50.5" y="73"/>
+        </customView>
+    </objects>
+</document>

@@ -2,6 +2,7 @@
 #import <IOKit/pwr_mgt/IOPMLib.h>
 #import "ESWindow.h"
 #import "ESScreensaver.h"
+#import "FirstTimeSetupManager.h"
 
 #include "client.h"
 
@@ -19,6 +20,11 @@ static void ShowPreferencesCallback()
     dispatch_async(dispatch_get_main_queue(), ^{
         [s_pWindow showPreferences:nil];
     });
+}
+
+static void ShowFirstTimeSetupCallback()
+{
+    [[FirstTimeSetupManager sharedManager] showFirstTimeSetupIfNeeded];
 }
 
 - (void)awakeFromNib // was - (NSWindow *)window
@@ -67,7 +73,8 @@ static void ShowPreferencesCallback()
 
     s_pWindow = self;
     ESSetShowPreferencesCallback(ShowPreferencesCallback);
-    
+    ESSetShowFirstTimeSetupCallback(ShowFirstTimeSetupCallback);
+
     [self initWindowProperties];
 }
 
@@ -387,6 +394,7 @@ static void ShowPreferencesCallback()
     if (handled == NO)
         [super keyDown:ev];
 }
+
 
 - (IBAction)newWindow:(id)sender
 {

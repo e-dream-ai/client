@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="23727" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="23727"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="ThanksStepViewController">
+            <connections>
+                <outlet property="view" destination="Hz6-mo-xeY" id="0bl-1N-x8E"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <customView id="Hz6-mo-xeY">
+            <rect key="frame" x="0.0" y="0.0" width="668" height="429"/>
+            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+            <subviews>
+                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="3KU-bv-GQ2">
+                    <rect key="frame" x="46" y="300" width="610" height="38"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <textFieldCell key="cell" id="B5a-EM-Ctv">
+                        <font key="font" metaFont="system" size="15"/>
+                        <string key="title">Press F1 when the app is running to see the shortcuts. You can also use the remote  (and yes, you can use the remote from your phone or any other device!)</string>
+                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="qPR-jz-dEJ">
+                    <rect key="frame" x="244" y="241" width="181" height="40"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <buttonCell key="cell" type="push" title="Open the web remote" bezelStyle="rounded" alignment="center" controlSize="large" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="T0x-7s-ZU4">
+                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="system" size="15"/>
+                    </buttonCell>
+                    <connections>
+                        <action selector="openRemote:" target="-2" id="N7O-uq-QGy"/>
+                    </connections>
+                </button>
+                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="0PL-G4-b8W">
+                    <rect key="frame" x="46" y="182" width="593" height="40"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <textFieldCell key="cell" title="You can browse our dream playlists from the remote too, we have many different styles for you to pick from: " id="V81-sN-HPh">
+                        <font key="font" metaFont="system" size="15"/>
+                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="aJz-2o-GyE">
+                    <rect key="frame" x="231" y="123" width="207" height="40"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <buttonCell key="cell" type="push" title="Open the playlist browser" bezelStyle="rounded" alignment="center" controlSize="large" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="kNX-kE-nnN">
+                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="system" size="15"/>
+                    </buttonCell>
+                    <connections>
+                        <action selector="openPlaylistBrowser:" target="-2" id="LEN-bN-gdi"/>
+                    </connections>
+                </button>
+                <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="bJr-1O-LEd">
+                    <rect key="frame" x="276" y="16" width="118" height="40"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <buttonCell key="cell" type="push" title="Let's dream!" bezelStyle="rounded" alignment="center" controlSize="large" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="fIK-aa-6SJ">
+                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="system" size="15"/>
+                        <string key="keyEquivalent" base64-UTF8="YES">
+DQ
+</string>
+                    </buttonCell>
+                    <connections>
+                        <action selector="closeModal:" target="-2" id="eOP-c0-blO"/>
+                    </connections>
+                </button>
+                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Cbu-Kb-Z64">
+                    <rect key="frame" x="46" y="85" width="599" height="19"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <textFieldCell key="cell" title="Pro tip: Use the View menu to reopen those whenever you want! " id="set-L7-nAt">
+                        <font key="font" metaFont="system" size="15"/>
+                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Yu6-br-bXQ">
+                    <rect key="frame" x="138" y="373" width="393" height="26"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <textFieldCell key="cell" alignment="center" title="All set! Some quick tips to get you going: " id="byu-F2-qmZ">
+                        <font key="font" textStyle="title1" name=".SFNS-Regular"/>
+                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+            </subviews>
+            <point key="canvasLocation" x="108" y="232.5"/>
+        </customView>
+    </objects>
+</document>

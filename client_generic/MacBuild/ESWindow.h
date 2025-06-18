@@ -8,8 +8,10 @@
                       <NSWindowDelegate, NSApplicationDelegate>
 #endif
 {
+@public
     ESScreensaverView* mESView;
 
+@protected
     ESWindow* mFullScreenWindow;
 
     ESWindow* mOriginalWindow;

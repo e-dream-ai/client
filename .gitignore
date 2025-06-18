@@ -10,3 +10,4 @@ client_generic/MacBuild/BuildData.json
 /vcpkg_installed
 /vcpkg_x86
 
+/client_generic/MacBuild/infinidream.xcodeproj/project.xcworkspace

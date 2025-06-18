@@ -7,128 +7,48 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "22A25BD7-4C18-402A-AB71-B6559CB62166"
+            uuid = "251A5D63-63F3-43A3-A556-01FF1C7B513A"
             shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "../ContentDownloader/PlaylistManager.cpp"
+            filePath = "First startup/EmailStepViewController.mm"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "221"
-            endingLineNumber = "221"
-            landmarkName = "PlaylistManager::getNextUncachedDream()"
+            startingLineNumber = "91"
+            endingLineNumber = "91"
+            landmarkName = "-sendCode:"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "905E5809-42B2-488F-9642-4BB914F7BA3B"
+            uuid = "36C7FD95-CDD3-41B0-A7EF-A961B7F1AD3F"
             shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "../ContentDownloader/PlaylistManager.cpp"
+            filePath = "ESConfiguration.mm"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "224"
-            endingLineNumber = "224"
-            landmarkName = "PlaylistManager::getNextUncachedDream()"
-            landmarkType = "7">
+            startingLineNumber = "23"
+            endingLineNumber = "23"
+            landmarkName = "ESConfiguration"
+            landmarkType = "3">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "CE3151C1-E662-4DF1-99B1-59271B733374"
-            shouldBeEnabled = "No"
+            uuid = "6E3D49F0-E1BD-4EE2-AF94-8E77EA6AA16D"
+            shouldBeEnabled = "Yes"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "../ContentDownloader/PlaylistManager.cpp"
+            filePath = "../Client/client_mac.h"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "223"
-            endingLineNumber = "223"
-            landmarkName = "PlaylistManager::getNextUncachedDream()"
-            landmarkType = "7">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            uuid = "80BA2E86-F80C-48E5-8D61-91D52B52B947"
-            shouldBeEnabled = "No"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "../ContentDownloader/PlaylistManager.cpp"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "281"
-            endingLineNumber = "281"
-            landmarkName = "PlaylistManager::getNextUncachedDream()"
-            landmarkType = "7">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            uuid = "21DBE8FB-ADCF-4F69-931F-E83997528623"
-            shouldBeEnabled = "No"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "../ContentDownloader/PlaylistManager.cpp"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "455"
-            endingLineNumber = "455"
-            landmarkName = "PlaylistManager::preflightNextDream(canStream)"
-            landmarkType = "7">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            uuid = "A662A35E-2A28-4FF9-BED4-50A4C26F63B9"
-            shouldBeEnabled = "No"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "../Client/Player.cpp"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "613"
-            endingLineNumber = "613"
-            landmarkName = "CPlayer::Update(displayUnit)"
-            landmarkType = "7">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            uuid = "40D759B6-CD4C-49FE-8142-EB1606419207"
-            shouldBeEnabled = "No"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "../ContentDownloader/PlaylistManager.cpp"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "446"
-            endingLineNumber = "446"
-            landmarkName = "PlaylistManager::preflightNextDream(canStream)"
-            landmarkType = "7">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            uuid = "36128D5E-7C92-4E64-A24C-99A2A8D34BD6"
-            shouldBeEnabled = "No"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "../ContentDownloader/PlaylistManager.cpp"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "466"
-            endingLineNumber = "466"
-            landmarkName = "PlaylistManager::preflightNextDream(canStream)"
+            startingLineNumber = "213"
+            endingLineNumber = "213"
+            landmarkName = "Startup()"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
