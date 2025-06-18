@@ -35,8 +35,8 @@
 }
 
 - (IBAction)closeModal:(id)sender {
-    [NSApp stopModalWithCode:NSModalResponseOK];
-    [self.view.window orderOut:nil];
+    // End the sheet with OK response
+    [self.view.window.sheetParent endSheet:self.view.window returnCode:NSModalResponseOK];
 }
 
 @end

@@ -80,48 +80,56 @@
         [self.startupWindowController.window setWindowController:self.startupWindowController];
     }
     
-    // Make the window key and order front
-    [self.startupWindowController.window makeKeyAndOrderFront:nil];
-    
-    // Delay modal presentation to allow window to fully initialize
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        // Run as modal
-        NSModalResponse response = [NSApp runModalForWindow:self.startupWindowController.window];
-        
-        // Handle completion after modal is dismissed
-        [self handleModalCompletion:response forParentWindow:parentWindow];
-    });
+    // Present as sheet instead of modal
+    [parentWindow beginSheet:self.startupWindowController.window 
+           completionHandler:^(NSModalResponse response) {
+               // Handle completion after sheet is dismissed
+               [self handleSheetCompletion:response forParentWindow:parentWindow];
+           }];
 }
 
-- (void)handleModalCompletion:(NSModalResponse)response forParentWindow:(NSWindow *)parentWindow {
-    // After modal is dismissed, ensure the parent window is visible
-    [parentWindow makeKeyAndOrderFront:nil];
-    
-    // Handle response based on how modal was closed
+- (void)handleSheetCompletion:(NSModalResponse)response forParentWindow:(NSWindow *)parentWindow {
+    // Handle response based on how sheet was closed
     if (response == NSModalResponseOK) {
         g_Log->Info("First-time setup completed successfully");
         
-        // If user completed setup/login successfully, notify the system
+        // If user completed setup/login successfully, restart the player
         if (EDreamClient::IsLoggedIn()) {
             g_Log->Info("User is logged in - restarting player");
-            // TODO: Restart player or refresh content
+            [self restartPlayerForWindow:parentWindow];
         }
     } else if (response == NSModalResponseCancel) {
         g_Log->Info("First-time setup was cancelled by user");
+        [self restartPlayerForWindow:parentWindow];
     } else {
-        g_Log->Info("First-time setup modal closed with response: %ld", (long)response);
-    }
-    
-    // If user completed setup/login, notify the ESScreensaverView to refresh
-    if (EDreamClient::IsLoggedIn() && [parentWindow isKindOfClass:[ESWindow class]]) {
-        ESWindow *esWindow = (ESWindow *)parentWindow;
-        if ([esWindow respondsToSelector:@selector(mESView)] && esWindow->mESView) {
-            [esWindow->mESView windowDidResize];
-        }
+        g_Log->Info("First-time setup sheet closed with response: %ld", (long)response);
     }
     
     // Clean up
     self.startupWindowController = nil;
+}
+
+- (void)restartPlayerForWindow:(NSWindow *)parentWindow {
+    // Restart the player similar to how ESConfiguration does it
+    if ([parentWindow isKindOfClass:[ESWindow class]]) {
+        ESWindow *esWindow = (ESWindow *)parentWindow;
+
+        if (esWindow->mESView) {
+            // Stop current animation
+            [esWindow->mESView stopAnimation];
+            
+            // Refresh window size
+            [esWindow->mESView windowDidResize];
+            
+            // Restart animation
+            [esWindow->mESView startAnimation];
+            
+            // Restore first responder to handle key events
+            [esWindow makeFirstResponder:esWindow->mESView];
+            
+            g_Log->Info("Player restarted successfully");
+        }
+    }
 }
 
 @end

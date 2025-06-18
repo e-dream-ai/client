@@ -141,4 +141,7 @@
     [self switchToViewController:self.thanksStepVC];
 }
 
+- (IBAction)dismissSheet:(id)sender {
+    [self.window.sheetParent endSheet:self.window returnCode:NSModalResponseCancel];
+}
 @end

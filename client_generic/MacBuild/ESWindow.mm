@@ -74,7 +74,7 @@ static void ShowFirstTimeSetupCallback()
     s_pWindow = self;
     ESSetShowPreferencesCallback(ShowPreferencesCallback);
     ESSetShowFirstTimeSetupCallback(ShowFirstTimeSetupCallback);
-
+    [self makeFirstResponder:self->mESView];
     [self initWindowProperties];
 }
 
