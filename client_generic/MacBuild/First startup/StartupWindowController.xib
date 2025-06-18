@@ -17,20 +17,20 @@
         <window title="Welcome to Infinidream" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" animationBehavior="default" id="F0z-JX-Cv5" customClass="StartupWindow">
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="196" y="240" width="879" height="565"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1409"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1470" height="919"/>
             <view key="contentView" id="se5-gp-TjO">
                 <rect key="frame" x="0.0" y="0.0" width="879" height="565"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
-                    <customView translatesAutoresizingMaskIntoConstraints="NO" id="u0i-x2-tkf">
-                        <rect key="frame" x="0.0" y="50" width="879" height="395"/>
+                    <customView misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="u0i-x2-tkf">
+                        <rect key="frame" x="0.0" y="50" width="879" height="376"/>
                     </customView>
-                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="NDv-ai-fEX">
-                        <rect key="frame" x="223" y="465" width="433" height="76"/>
+                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="NDv-ai-fEX">
+                        <rect key="frame" x="260" y="455" width="360" height="76"/>
                         <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" id="rhf-zB-zDd">
                             <font key="font" metaFont="systemSemibold" size="32"/>
-                            <string key="title">Thanks for trying infinidream!
-Let's sign you in</string>
+                            <string key="title">Welcome to Infinidream!
+First, sign in...</string>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>
@@ -50,7 +50,7 @@ Gw
                         </connections>
                     </button>
                     <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="CDn-Bw-w4B">
-                        <rect key="frame" x="0.0" y="444" width="120" height="120"/>
+                        <rect key="frame" x="10" y="434" width="120" height="120"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" image="infinidream" id="kR2-uQ-FQ9"/>
                     </imageView>
@@ -67,7 +67,7 @@ Gw
             <connections>
                 <outlet property="delegate" destination="-2" id="0bl-1N-AYu"/>
             </connections>
-            <point key="canvasLocation" x="60" y="197"/>
+            <point key="canvasLocation" x="59.5" y="196.5"/>
         </window>
     </objects>
     <resources>

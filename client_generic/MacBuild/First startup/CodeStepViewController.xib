@@ -56,9 +56,9 @@ DQ
                     </connections>
                 </button>
                 <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="kL5-M7-C34">
-                    <rect key="frame" x="38" y="209" width="433" height="52"/>
+                    <rect key="frame" x="38" y="209" width="359" height="52"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <textFieldCell key="cell" alignment="left" title="We've sent a verification code to your e-mail, it should arrive shortly" id="v3j-Cs-Jh1">
+                    <textFieldCell key="cell" alignment="left" title="Look in your e-mail for a fresh 6-digit verification code, and enter it below." id="v3j-Cs-Jh1">
                         <font key="font" textStyle="title1" name=".SFNS-Regular"/>
                         <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>

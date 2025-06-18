@@ -18,19 +18,19 @@
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
                 <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="3KU-bv-GQ2">
-                    <rect key="frame" x="46" y="300" width="610" height="38"/>
+                    <rect key="frame" x="46" y="300" width="610" height="57"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <textFieldCell key="cell" id="B5a-EM-Ctv">
                         <font key="font" metaFont="system" size="15"/>
-                        <string key="title">Press F1 when the app is running to see the shortcuts. You can also use the remote  (and yes, you can use the remote from your phone or any other device!)</string>
+                        <string key="title">Press F1 when the app is running to see the keyboard controls. Use the A and D keys to adjust the speed of playback. You can also interact with the remote control installed on your phone, or from a web browser:</string>
                         <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
                 <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="qPR-jz-dEJ">
-                    <rect key="frame" x="244" y="241" width="181" height="40"/>
+                    <rect key="frame" x="258" y="241" width="154" height="40"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <buttonCell key="cell" type="push" title="Open the web remote" bezelStyle="rounded" alignment="center" controlSize="large" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="T0x-7s-ZU4">
+                    <buttonCell key="cell" type="push" title="Open web remote" bezelStyle="rounded" alignment="center" controlSize="large" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="T0x-7s-ZU4">
                         <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                         <font key="font" metaFont="system" size="15"/>
                     </buttonCell>
@@ -41,16 +41,17 @@
                 <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="0PL-G4-b8W">
                     <rect key="frame" x="46" y="182" width="593" height="40"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <textFieldCell key="cell" title="You can browse our dream playlists from the remote too, we have many different styles for you to pick from: " id="V81-sN-HPh">
+                    <textFieldCell key="cell" id="V81-sN-HPh">
                         <font key="font" metaFont="system" size="15"/>
+                        <string key="title">Infinidream starts out with a default playlist with dreams in a variety of styles. Browse and discover more dreams, and pick a playlist with visuals for your vibe:</string>
                         <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
                 <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="aJz-2o-GyE">
-                    <rect key="frame" x="231" y="123" width="207" height="40"/>
+                    <rect key="frame" x="244" y="123" width="181" height="40"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <buttonCell key="cell" type="push" title="Open the playlist browser" bezelStyle="rounded" alignment="center" controlSize="large" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="kNX-kE-nnN">
+                    <buttonCell key="cell" type="push" title="Open playlist browser" bezelStyle="rounded" alignment="center" controlSize="large" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="kNX-kE-nnN">
                         <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                         <font key="font" metaFont="system" size="15"/>
                     </buttonCell>
@@ -59,9 +60,9 @@
                     </connections>
                 </button>
                 <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="bJr-1O-LEd">
-                    <rect key="frame" x="276" y="16" width="118" height="40"/>
+                    <rect key="frame" x="284" y="16" width="103" height="40"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <buttonCell key="cell" type="push" title="Let's dream!" bezelStyle="rounded" alignment="center" controlSize="large" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="fIK-aa-6SJ">
+                    <buttonCell key="cell" type="push" title="Dream on!" bezelStyle="rounded" alignment="center" controlSize="large" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="fIK-aa-6SJ">
                         <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                         <font key="font" metaFont="system" size="15"/>
                         <string key="keyEquivalent" base64-UTF8="YES">
