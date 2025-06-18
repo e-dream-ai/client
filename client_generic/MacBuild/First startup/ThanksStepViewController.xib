@@ -74,18 +74,20 @@ DQ
                     </connections>
                 </button>
                 <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Cbu-Kb-Z64">
-                    <rect key="frame" x="46" y="85" width="599" height="19"/>
+                    <rect key="frame" x="46" y="70" width="599" height="38"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <textFieldCell key="cell" alignment="center" title="Pro tip: Use the View menu to reopen those whenever you want! " id="set-L7-nAt">
+                    <textFieldCell key="cell" alignment="center" id="set-L7-nAt">
                         <font key="font" metaFont="system" size="15"/>
+                        <string key="title">Pro tips: Use the View menu to reopen those whenever needed.
+Use AirPlay to connect to a big screen.</string>
                         <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
                 <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Yu6-br-bXQ">
-                    <rect key="frame" x="138" y="373" width="393" height="26"/>
+                    <rect key="frame" x="246" y="373" width="178" height="26"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <textFieldCell key="cell" alignment="center" title="All set! Some quick tips to get you going: " id="byu-F2-qmZ">
+                    <textFieldCell key="cell" alignment="center" title="All set! Quick tips:" id="byu-F2-qmZ">
                         <font key="font" textStyle="title1" name=".SFNS-Regular"/>
                         <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
