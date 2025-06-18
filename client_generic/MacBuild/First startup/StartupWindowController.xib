@@ -22,21 +22,15 @@
                 <rect key="frame" x="0.0" y="0.0" width="879" height="565"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
-                    <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="u2L-OD-FBo">
-                        <rect key="frame" x="150" y="501" width="48" height="48"/>
-                        <constraints>
-                            <constraint firstAttribute="height" constant="48" id="ICm-ot-LmW"/>
-                            <constraint firstAttribute="width" constant="48" id="miz-JL-9Bx"/>
-                        </constraints>
-                        <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" image="infinidream" id="hAH-8s-prK"/>
-                    </imageView>
                     <customView translatesAutoresizingMaskIntoConstraints="NO" id="u0i-x2-tkf">
-                        <rect key="frame" x="0.0" y="50" width="879" height="442"/>
+                        <rect key="frame" x="0.0" y="50" width="879" height="395"/>
                     </customView>
                     <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="NDv-ai-fEX">
-                        <rect key="frame" x="204" y="512" width="527" height="29"/>
-                        <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" title="Thanks for trying infinidream! Let's sign you in" id="rhf-zB-zDd">
-                            <font key="font" metaFont="systemSemibold" size="25"/>
+                        <rect key="frame" x="223" y="465" width="433" height="76"/>
+                        <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" id="rhf-zB-zDd">
+                            <font key="font" metaFont="systemSemibold" size="32"/>
+                            <string key="title">Thanks for trying infinidream!
+Let's sign you in</string>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>
@@ -55,22 +49,25 @@ Gw
                             <action selector="dismissSheet:" target="-2" id="P57-Fq-Lpm"/>
                         </connections>
                     </button>
+                    <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="CDn-Bw-w4B">
+                        <rect key="frame" x="0.0" y="444" width="120" height="120"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                        <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" image="infinidream" id="kR2-uQ-FQ9"/>
+                    </imageView>
                 </subviews>
                 <constraints>
                     <constraint firstItem="u0i-x2-tkf" firstAttribute="leading" secondItem="se5-gp-TjO" secondAttribute="leading" id="3Td-Jh-9RH"/>
                     <constraint firstItem="NDv-ai-fEX" firstAttribute="top" secondItem="se5-gp-TjO" secondAttribute="top" constant="24" id="E3a-i3-tCx"/>
                     <constraint firstAttribute="trailing" secondItem="u0i-x2-tkf" secondAttribute="trailing" id="EEa-nH-90T"/>
                     <constraint firstAttribute="bottom" secondItem="u0i-x2-tkf" secondAttribute="bottom" constant="50" id="Ekj-sB-UKf"/>
-                    <constraint firstItem="u2L-OD-FBo" firstAttribute="top" secondItem="se5-gp-TjO" secondAttribute="top" constant="16" id="K51-1d-xgL"/>
+                    <constraint firstItem="NDv-ai-fEX" firstAttribute="centerX" secondItem="se5-gp-TjO" secondAttribute="centerX" id="PMW-vR-4Jn"/>
                     <constraint firstItem="u0i-x2-tkf" firstAttribute="top" secondItem="NDv-ai-fEX" secondAttribute="bottom" constant="20" id="REl-7f-ZcA"/>
-                    <constraint firstItem="u2L-OD-FBo" firstAttribute="leading" secondItem="se5-gp-TjO" secondAttribute="leading" constant="150" id="o8S-si-Je3"/>
-                    <constraint firstAttribute="trailing" secondItem="NDv-ai-fEX" secondAttribute="trailing" constant="150" id="ogj-VY-DId"/>
                 </constraints>
             </view>
             <connections>
                 <outlet property="delegate" destination="-2" id="0bl-1N-AYu"/>
             </connections>
-            <point key="canvasLocation" x="-18.5" y="291.5"/>
+            <point key="canvasLocation" x="60" y="197"/>
         </window>
     </objects>
     <resources>

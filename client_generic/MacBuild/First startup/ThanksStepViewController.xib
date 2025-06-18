@@ -75,7 +75,7 @@ DQ
                 <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Cbu-Kb-Z64">
                     <rect key="frame" x="46" y="85" width="599" height="19"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <textFieldCell key="cell" title="Pro tip: Use the View menu to reopen those whenever you want! " id="set-L7-nAt">
+                    <textFieldCell key="cell" alignment="center" title="Pro tip: Use the View menu to reopen those whenever you want! " id="set-L7-nAt">
                         <font key="font" metaFont="system" size="15"/>
                         <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
