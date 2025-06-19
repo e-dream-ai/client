@@ -11,3 +11,4 @@ client_generic/MacBuild/BuildData.json
 /vcpkg_x86
 
 /client_generic/MacBuild/infinidream.xcodeproj/project.xcworkspace
+client_generic/MacBuild/infinidream.xcodeproj/xcuserdata
