@@ -41,12 +41,12 @@
 }
 
 - (IBAction)sendCode:(id)sender {
-    /*
+/*
      // Basic move to next step for testing
     StartupWindowController *windowController = (StartupWindowController *)self.view.window.windowController;
     [windowController showCodeStep];
-    */
-    
+    return;
+  */
     NSString *email = self.emailTextField.stringValue;
     
     // Basic validation
@@ -76,25 +76,36 @@
         self.errorLabel.hidden = YES;
     }
     
-    auto result = EDreamClient::SendCode();
-    
-    // Hide loading state
-    self.sendCodeButton.enabled = YES;
-    if (self.progressIndicator) {
-        [self.progressIndicator stopAnimation:nil];
-        self.progressIndicator.hidden = YES;
-    }
-    
-    if (result.success) {
-        g_Log->Info("Move to code step");
-        // Move to next step
-        StartupWindowController *windowController = (StartupWindowController *)self.view.window.windowController;
-        [windowController showCodeStep];
-    } else {
-        // Show error
-        NSString *errorMessage = [NSString stringWithUTF8String:result.message.c_str()];
-        [self showError:errorMessage ?: @"Failed to send verification code"];
-    }
+    // Run SendCode in background to avoid blocking UI
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        // For testing: 5 second pause instead of actual call
+        //[NSThread sleepForTimeInterval:5.0];
+        // Simulate success for testing
+        //struct { bool success; std::string message; } result = { true, "" };
+
+        auto result = EDreamClient::SendCode();
+        
+        // Return to main thread for UI updates
+        dispatch_async(dispatch_get_main_queue(), ^{
+            // Hide loading state
+            self.sendCodeButton.enabled = YES;
+            if (self.progressIndicator) {
+                [self.progressIndicator stopAnimation:nil];
+                self.progressIndicator.hidden = YES;
+            }
+            
+            if (result.success) {
+                g_Log->Info("Move to code step");
+                // Move to next step
+                StartupWindowController *windowController = (StartupWindowController *)self.view.window.windowController;
+                [windowController showCodeStep];
+            } else {
+                // Show error
+                NSString *errorMessage = [NSString stringWithUTF8String:result.message.c_str()];
+                [self showError:errorMessage ?: @"Failed to send verification code"];
+            }
+        });
+    });
 }
 
 - (void)showError:(NSString *)error {

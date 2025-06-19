@@ -25,7 +25,7 @@
                     <customView translatesAutoresizingMaskIntoConstraints="NO" id="u0i-x2-tkf">
                         <rect key="frame" x="0.0" y="50" width="879" height="376"/>
                     </customView>
-                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="NDv-ai-fEX">
+                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="NDv-ai-fEX">
                         <rect key="frame" x="260" y="455" width="360" height="76"/>
                         <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" id="rhf-zB-zDd">
                             <font key="font" metaFont="systemSemibold" size="32"/>

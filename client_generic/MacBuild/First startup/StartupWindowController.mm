@@ -53,28 +53,24 @@
 }
 
 - (void)switchToViewController:(NSViewController *)newVC {
-    // animation code is causing issues with the completion handler, so removed
-/*    NSViewController *oldVC = self.currentStepVC;
+    // NSAnimationContext version with completion handler
+    NSViewController *oldVC = self.currentStepVC;
     
     if (oldVC) {
-        // Use CATransaction for manual animation management
-        [CATransaction begin];
-        [CATransaction setAnimationDuration:0.2];
-        [CATransaction setCompletionBlock:^{
-            // This completion block should now execute properly
+        [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
+            context.duration = 0.3;
+            context.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
+            [[oldVC.view animator] setAlphaValue:0.0];
+        } completionHandler:^{
             [oldVC.view removeFromSuperview];
             [self addAndCenterNewView:newVC];
         }];
-        
-        // Fade out old view using layer animation
-        oldVC.view.layer.opacity = 0.0;
-        
-        [CATransaction commit];
     } else {
         [self addAndCenterNewView:newVC];
     }
-    */
+    
     // Basic non animated swap
+    /*
     // Remove current view
     if (self.currentStepVC) {
         [self.currentStepVC.view removeFromSuperview];
@@ -96,10 +92,9 @@
     
     newVC.view.frame = centeredFrame;
     [self.containerView addSubview:newVC.view];
+    */
 }
 
-/*
- Part of the non working animation code. The issue is with the completion handler though, not here
 - (void)addAndCenterNewView:(NSViewController *)newVC {
     self.currentStepVC = newVC;
     
@@ -115,19 +110,16 @@
     );
     
     newVC.view.frame = centeredFrame;
+    newVC.view.alphaValue = 0.0; // Start transparent
     [self.containerView addSubview:newVC.view];
     
-    // Fade in new view using CATransaction
-    newVC.view.layer.opacity = 0.0; // Start transparent
-    
-    [CATransaction begin];
-    [CATransaction setAnimationDuration:0.2];
-    // No completion handler needed for fade-in
-    
-    newVC.view.layer.opacity = 1.0; // Animate to opaque
-    
-    [CATransaction commit];
-}*/
+    // Fade in new view using NSAnimationContext
+    [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
+        context.duration = 0.3;
+        context.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
+        [[newVC.view animator] setAlphaValue:1.0];
+    } completionHandler:nil];
+}
 
 - (void)showEmailStep {
     [self switchToViewController:self.emailStepVC];

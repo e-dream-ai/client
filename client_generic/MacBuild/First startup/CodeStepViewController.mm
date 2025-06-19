@@ -55,34 +55,43 @@
         self.errorLabel.hidden = YES;
     }
     
-    bool success = EDreamClient::ValidateCode(std::string(code.UTF8String));
-
-    // Hide loading state
-    self.verifyButton.enabled = YES;
-    self.otpTextField.enabled = YES;
-    if (self.progressIndicator) {
-        [self.progressIndicator stopAnimation:nil];
-        self.progressIndicator.hidden = YES;
-    }
-    
-    if (success) {
-        // Mark first time setup as complete
-        ESScreensaver_SetBoolSetting("settings.app.firsttimesetup", true);
+    // Run ValidateCode in background to avoid blocking UI
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        // For testing: 5 second pause instead of actual call
+        //[NSThread sleepForTimeInterval:5.0];
+        //bool success = true; // Simulate success for testing
+        bool success = EDreamClient::ValidateCode(std::string(code.UTF8String));
         
-        // Notify that we've signed in
-        EDreamClient::DidSignIn();
-        
-        // Move to thanks step
-        StartupWindowController *windowController = (StartupWindowController *)self.view.window.windowController;
-        [windowController showThanksStep];
-    } else {
-        // Show error
-        [self showError:@"Invalid verification code. Please try again."];
-        
-        // Clear the text field for retry
-        self.otpTextField.stringValue = @"";
-        [self.view.window makeFirstResponder:self.otpTextField];
-    }
+        // Return to main thread for UI updates
+        dispatch_async(dispatch_get_main_queue(), ^{
+            // Hide loading state
+            self.verifyButton.enabled = YES;
+            self.otpTextField.enabled = YES;
+            if (self.progressIndicator) {
+                [self.progressIndicator stopAnimation:nil];
+                self.progressIndicator.hidden = YES;
+            }
+            
+            if (success) {
+                // Mark first time setup as complete
+                ESScreensaver_SetBoolSetting("settings.app.firsttimesetup", true);
+                
+                // Notify that we've signed in
+                EDreamClient::DidSignIn();
+                
+                // Move to thanks step
+                StartupWindowController *windowController = (StartupWindowController *)self.view.window.windowController;
+                [windowController showThanksStep];
+            } else {
+                // Show error
+                [self showError:@"Invalid verification code. Please try again."];
+                
+                // Clear the text field for retry
+                self.otpTextField.stringValue = @"";
+                [self.view.window makeFirstResponder:self.otpTextField];
+            }
+        });
+    });
 }
 
 - (void)showError:(NSString *)error {

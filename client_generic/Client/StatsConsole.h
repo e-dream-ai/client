@@ -344,19 +344,21 @@ class CStatsConsole : public CConsole
                 {
                     CStat* e = i->second.stat;
                     DisplayOutput::spCBaseText& text = i->second.text;
-                    if (text)
+                    if (text && e)
                     {
                         text->SetEnabled(e->Visible());
+                        
+                        if (e && e->Visible())
+                        {
+                            text->SetText(e->Report(_time));
+                            sizeq.push(text->GetExtent());
+                            m_TotalExtent = m_TotalExtent.Union(Base::Math::CRect(
+                                0, pos, sizeq.back().m_X + (edge * 2),
+                                sizeq.back().m_Y + (pos) + (edge * 2)));
+                            pos += sizeq.back().m_Y;
+                        }
                     }
-                    if (e && e->Visible())
-                    {
-                        text->SetText(e->Report(_time));
-                        sizeq.push(text->GetExtent());
-                        m_TotalExtent = m_TotalExtent.Union(Base::Math::CRect(
-                            0, pos, sizeq.back().m_X + (edge * 2),
-                            sizeq.back().m_Y + (pos) + (edge * 2)));
-                        pos += sizeq.back().m_Y;
-                    }
+ 
                 }
 
                 // align soft quad at bottom
