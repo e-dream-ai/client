@@ -333,6 +333,8 @@ bool CContentDecoder::Open()
         return false;
     }
     ovi->m_pFrame = av_frame_alloc();
+    
+    
     if (ovi->m_pVideoStream->nb_frames > 0)
         ovi->m_TotalFrameCount =
         static_cast<uint32_t>(ovi->m_pVideoStream->nb_frames);
@@ -429,8 +431,8 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
     
     AVRational timeBase =
     pFormatContext->streams[ovi->m_VideoStreamID]->time_base;
-    int64_t frameRate = (int64_t)av_q2d(
-                                        pFormatContext->streams[ovi->m_VideoStreamID]->avg_frame_rate);
+    double frameRate = av_q2d(
+                             pFormatContext->streams[ovi->m_VideoStreamID]->avg_frame_rate);
     AVPacket* packet;
     AVPacket* filteredPacket;
     int frameDecoded = 0;
@@ -586,10 +588,27 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
             g_Log->Info("Frame %d decoded from flush", (int)frameNumber);
         } else {
             // Normal mode: calculate from PTS, but validate it
-            int64_t calculatedFrame = (int64_t)((pFrame->pts * frameRate) * av_q2d(timeBase));
+            // Get the stream start time
+            int64_t start_time = pFormatContext->streams[ovi->m_VideoStreamID]->start_time;
+            if (start_time == AV_NOPTS_VALUE) {
+                start_time = 0;
+            }
             
+            // PTS is in timebase units, subtract start_time and convert to seconds then to frames
+            double pts_seconds = (pFrame->pts - start_time) * av_q2d(timeBase);
+            int64_t calculatedFrame = (int64_t)round(pts_seconds * frameRate);
+            
+            // Debug logging for frame calculation
+            g_Log->Info("Frame calculation - PTS: %lld, start_time: %lld, PTS_seconds: %.6f, FrameRate: %.2f, Calculated frame: %lld, Current index before: %lld",
+                        (long long)pFrame->pts, (long long)start_time, pts_seconds, frameRate, (long long)calculatedFrame, (long long)ovi->m_CurrentFrameIndex);
+            
+            // If this is the first frame after a seek (CurrentFrameIndex == -1), trust the PTS
+            if (ovi->m_CurrentFrameIndex == -1) {
+                frameNumber = calculatedFrame;
+                ovi->m_CurrentFrameIndex = frameNumber;
+            }
             // Ensure frame numbers are sequential when possible
-            if (calculatedFrame >= ovi->m_CurrentFrameIndex) {
+            else if (calculatedFrame >= ovi->m_CurrentFrameIndex) {
                 frameNumber = calculatedFrame;
                 ovi->m_CurrentFrameIndex = frameNumber;
             } else {
@@ -680,7 +699,7 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
         pVideoFrame->SetMetaData_DecodeFps(ovi->m_DecodeFps);
         pVideoFrame->SetMetaData_IsSeam(ovi->m_NextIsSeam);
         pVideoFrame->SetMetaData_FrameIdx((uint32_t)ovi->m_CurrentFrameIndex);
-        pVideoFrame->SetMetaData_MaxFrameIdx(ovi->m_TotalFrameCount);
+        pVideoFrame->SetMetaData_MaxFrameIdx(ovi->m_TotalFrameCount - 1);
     }
     
     av_packet_free(&packet);
@@ -707,8 +726,9 @@ void CContentDecoder::ReadFramesThread()
         
         // Handle initial seek if specified
         if (m_CurrentVideoInfo->m_SeekTargetFrame > 0) {
-            // Seeking to a specific frame
-            m_CurrentVideoInfo->m_CurrentFrameIndex = m_CurrentVideoInfo->m_SeekTargetFrame;
+            // Seeking to a specific frame - don't set CurrentFrameIndex yet
+            // Let it be determined by the actual PTS of decoded frames
+            m_CurrentVideoInfo->m_CurrentFrameIndex = -1;
         } else {
             // Starting from beginning
             m_CurrentVideoInfo->m_CurrentFrameIndex = 0;
@@ -760,10 +780,10 @@ void CContentDecoder::ReadFramesThread()
                 m_CurrentVideoInfo->m_pFormatContext
                 ->streams[m_CurrentVideoInfo->m_VideoStreamID]
                 ->time_base;
-                int64_t frameRate = (int64_t)av_q2d(
-                                                    m_CurrentVideoInfo->m_pFormatContext
-                                                    ->streams[m_CurrentVideoInfo->m_VideoStreamID]
-                                                    ->avg_frame_rate);
+                double frameRate = av_q2d(
+                                         m_CurrentVideoInfo->m_pFormatContext
+                                         ->streams[m_CurrentVideoInfo->m_VideoStreamID]
+                                         ->avg_frame_rate);
                 
 
                 
@@ -771,6 +791,7 @@ void CContentDecoder::ReadFramesThread()
                 int64_t targetTimestamp =
                 (int64_t)(m_CurrentVideoInfo->m_SeekTargetFrame /
                           (frameRate * av_q2d(timeBase)));
+                
                 
                 // Seek to the target timestamp
                 int seek =
@@ -781,6 +802,10 @@ void CContentDecoder::ReadFramesThread()
                 if (seek < 0)
                 {
                     g_Log->Error("Error seeking:%i", seek);
+                }
+                else
+                {
+                    // Seek successful
                 }
             }
             CVideoFrame* pMainVideoFrame = ReadOneFrame();
