@@ -56,6 +56,10 @@ typedef void (*ShowPreferencesCallback_t)();
 extern void ESSetShowPreferencesCallback(ShowPreferencesCallback_t);
 extern void ESShowPreferences();
 
+typedef void (*ShowFirstTimeSetupCallback_t)();
+extern void ESSetShowFirstTimeSetupCallback(ShowFirstTimeSetupCallback_t);
+extern void ESShowFirstTimeSetup();
+
 extern class CElectricSheep* gClientInstance;
 
 inline class CElectricSheep* g_Client() { return gClientInstance; }

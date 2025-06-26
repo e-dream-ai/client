@@ -2,6 +2,7 @@
 #import <IOKit/pwr_mgt/IOPMLib.h>
 #import "ESWindow.h"
 #import "ESScreensaver.h"
+#import "FirstTimeSetupManager.h"
 
 #include "client.h"
 
@@ -19,6 +20,11 @@ static void ShowPreferencesCallback()
     dispatch_async(dispatch_get_main_queue(), ^{
         [s_pWindow showPreferences:nil];
     });
+}
+
+static void ShowFirstTimeSetupCallback()
+{
+    [[FirstTimeSetupManager sharedManager] showFirstTimeSetupIfNeeded];
 }
 
 - (void)awakeFromNib // was - (NSWindow *)window
@@ -67,7 +73,8 @@ static void ShowPreferencesCallback()
 
     s_pWindow = self;
     ESSetShowPreferencesCallback(ShowPreferencesCallback);
-    
+    ESSetShowFirstTimeSetupCallback(ShowFirstTimeSetupCallback);
+    [self makeFirstResponder:self->mESView];
     [self initWindowProperties];
 }
 
@@ -388,6 +395,7 @@ static void ShowPreferencesCallback()
         [super keyDown:ev];
 }
 
+
 - (IBAction)newWindow:(id)sender
 {
     ESWindow* window = [[ESWindow alloc]
@@ -403,4 +411,23 @@ static void ShowPreferencesCallback()
     [window initWindowProperties];
     [s_ExtraWindows addObject:window];
 }
+
+- (IBAction)openRemoteControl:(id)sender {
+    g_Log->Info("Open Remote");
+#ifdef STAGE
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://stage.infinidream.ai/rc"]];
+#else
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://alpha.infinidream.ai/rc"]];
+#endif
+}
+
+- (IBAction)openBrowsePlaylist:(id)sender {
+    g_Log->Info("Browse Playlists");
+#ifdef STAGE
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://stage.infinidream.ai/playlists"]];
+#else
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://alpha.infinidream.ai/playlists"]];
+#endif
+}
+
 @end
