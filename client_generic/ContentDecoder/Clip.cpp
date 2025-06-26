@@ -188,9 +188,9 @@ bool CClip::NeedsNewFrame(double _timelineTime,
     {
         _decoderClock->started = true;
         _decoderClock->acc = 0.0;  // Initialize accumulator
-        g_Log->Info("First frame timing - reinit acc");
+        g_Log->Info("First frame timing - reinit acc and force grab");
         //deltaTime = 0.0167;
-        //return true;
+        return true;
     }
     _decoderClock->acc += deltaTime;
 
@@ -208,8 +208,8 @@ bool CClip::NeedsNewFrame(double _timelineTime,
     //    This is our inter-frame delta, > 0 < 1 <
     _decoderClock->interframeDelta = _decoderClock->acc / dt;
 
-    g_Log->Info("Frame timing - deltaTime: %.6f, acc: %.6f, dt: %.6f (%.1ffps), crossedFrame: %s", 
-                deltaTime, _decoderClock->acc, dt, m_ClipMetadata.decodeFps, bCrossedFrame ? "YES" : "NO");
+    /*g_Log->Info("Frame timing - deltaTime: %.6f, acc: %.6f, dt: %.6f (%.1ffps), crossedFrame: %s",
+                deltaTime, _decoderClock->acc, dt, m_ClipMetadata.decodeFps, bCrossedFrame ? "YES" : "NO");*/
 
     return bCrossedFrame;
 }
@@ -446,6 +446,7 @@ bool CClip::GrabVideoFrame()
         {
             if (USE_HW_ACCELERATION)
             {
+                //g_Log->Info("BindFrame %d", m_CurrentFrameMetadata.frameIdx);
                 currentTexture->BindFrame(m_spFrameData);
             }
             else

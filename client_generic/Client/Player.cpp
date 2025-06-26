@@ -717,9 +717,9 @@ void CPlayer::RenderFrame(DisplayOutput::spCRenderer renderer) {
             m_currentClip->DrawFrame(renderer);
         } else {
             // Normal playback
-            g_Log->Info("render frame %d of %s",
+            /*g_Log->Info("render frame %d of %s",
                 m_currentClip->m_CurrentFrameMetadata.frameIdx,
-                m_currentClip->m_ClipMetadata.dreamData.uuid.c_str());
+                m_currentClip->m_ClipMetadata.dreamData.uuid.c_str());*/
             
             m_currentClip->DrawFrame(renderer);
 
@@ -825,6 +825,17 @@ void CPlayer::PlayNextDream(bool quickFade) {
             // For seamless, next clip should already be prepared
             if (m_nextClip) {
                 g_Log->Info("Executing seamless transition now");
+                
+                // Transfer frame continuity before destroying old clip
+                if (m_currentClip && m_nextClip) {
+                    auto currentDisplay = m_currentClip->GetFrameDisplay();
+                    auto nextDisplay = m_nextClip->GetFrameDisplay();
+                    if (currentDisplay && nextDisplay) {
+                        nextDisplay->InheritFramesFrom(currentDisplay.get());
+                        g_Log->Info("Inherited frames for seamless transition");
+                    }
+                }
+                
                 destroyClipAsync(std::move(m_currentClip));
 
                 m_currentClip = m_nextClip;
