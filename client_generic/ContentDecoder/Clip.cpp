@@ -149,9 +149,13 @@ bool CClip::StartPlayback(int64_t _seekFrame)
     
     m_DecoderClock = {};
     m_DecoderClock.started = false;
+
+/*    // Initialize clock to actual start time to avoid frame skipping
+    m_DecoderClock.clock = m_ActualStartTime;
+    m_DecoderClock.started = true;  // Mark as started so first frame doesn't skip timing*/
     m_DecoderClock.acc = 0.0;
     m_DecoderClock.interframeDelta = 0.0;
-    
+    g_Log->Info("Start playback is reseting decoder clock");
     m_HasStartedPlaying = true;
 
     return true;
@@ -164,14 +168,28 @@ bool CClip::StartPlayback(int64_t _seekFrame)
 bool CClip::NeedsNewFrame(double _timelineTime,
                           DecoderClock* _decoderClock) const
 {
+   /* g_Log->Info("Needs new frame : %d %d",m_CurrentFrameMetadata.frameIdx, m_spFrameDisplay->StartAtFrame());
+    
     if (m_CurrentFrameMetadata.frameIdx < m_spFrameDisplay->StartAtFrame())
         return true;
-
+*/
     double deltaTime = _timelineTime - _decoderClock->clock;
+    
+    // Detect large time gaps (like clip transitions) and reset timing
+    if (deltaTime > 1.0 && _decoderClock->started) {
+        g_Log->Info("Large time gap detected (%.6f seconds), resetting decoder clock", deltaTime);
+        _decoderClock->started = false;
+        _decoderClock->acc = 0.0;
+        deltaTime = 0.0;
+    }
+    
     _decoderClock->clock = _timelineTime;
     if (!_decoderClock->started)
     {
         _decoderClock->started = true;
+        _decoderClock->acc = 0.0;  // Initialize accumulator
+        g_Log->Info("First frame timing - reinit acc and force grab");
+        //deltaTime = 0.0167;
         return true;
     }
     _decoderClock->acc += deltaTime;
@@ -190,11 +208,15 @@ bool CClip::NeedsNewFrame(double _timelineTime,
     //    This is our inter-frame delta, > 0 < 1 <
     _decoderClock->interframeDelta = _decoderClock->acc / dt;
 
+    /*g_Log->Info("Frame timing - deltaTime: %.6f, acc: %.6f, dt: %.6f (%.1ffps), crossedFrame: %s",
+                deltaTime, _decoderClock->acc, dt, m_ClipMetadata.decodeFps, bCrossedFrame ? "YES" : "NO");*/
+
     return bCrossedFrame;
 }
 
 bool CClip::Update(double _timelineTime, bool isPaused)
 {
+    //g_Log->Info("Update for %s", m_ClipMetadata.dreamData.uuid.c_str());
     m_Alpha = m_LastCalculatedAlpha;
     
     // Check buffering state
@@ -256,31 +278,34 @@ bool CClip::Update(double _timelineTime, bool isPaused)
         }
     }
 
-    // We always push until the last frame is rendered. We may fake it
-    if (m_CurrentFrameMetadata.maxFrameIdx > 0 &&
-        m_CurrentFrameMetadata.frameIdx > m_CurrentFrameMetadata.maxFrameIdx - 1)
-    {
-        g_Log->Info("marking dream %s as finished", m_ClipMetadata.dreamData.uuid.c_str());
-        
-        if (m_FadeOutSeconds == 0.f)
-            m_Alpha = 1.f;
-        
-        m_HasFinished.exchange(true);
-        m_IsFadingOut.exchange(false);
-        
+    if (_timelineTime < m_StartTime) {
         return false;
     }
     
-    if (_timelineTime < m_StartTime)
-        return false;
-
-    if (NeedsNewFrame(_timelineTime, &m_DecoderClock))
+    bool needsFrame = NeedsNewFrame(_timelineTime, &m_DecoderClock);
+    /*g_Log->Info("Update() - NeedsNewFrame returned: %s, current frame: %d",
+                needsFrame ? "YES" : "NO", m_CurrentFrameMetadata.frameIdx); */
+    if (needsFrame)
     {
-       
+        //g_Log->Info("About to call GrabVideoFrame()");
         if (!GrabVideoFrame())
         {
-            // If we're near the end, don't fail as we used to
-            if (m_LastValidFrame && IsNearEnd())
+            // Check if we're at the last frame and should mark as finished
+            if (m_CurrentFrameMetadata.maxFrameIdx > 0 &&
+                m_CurrentFrameMetadata.frameIdx >= m_CurrentFrameMetadata.maxFrameIdx)
+            {
+                g_Log->Info("marking dream %s as finished", m_ClipMetadata.dreamData.uuid.c_str());
+                
+                if (m_FadeOutSeconds == 0.f)
+                    m_Alpha = 1.f;
+                
+                m_HasFinished.exchange(true);
+                m_IsFadingOut.exchange(false);
+                
+                return false;
+            }
+            // If we're near the end, don't fail as we used to (this may no longer be needed)
+            else if (m_LastValidFrame && IsNearEnd())
             {
                 g_Log->Info("Reusing last valid, faking increment count");
                 // Just keep using the last valid frame
@@ -375,7 +400,15 @@ void CClip::SetDisplaySize(uint32_t _displayWidth, uint32_t _displayHeight)
 
 bool CClip::GrabVideoFrame()
 {
+    /*g_Log->Info("GrabVideoFrame() - Attempting to pop frame from queue (size: %d)",
+                m_spDecoder->QueueLength());
+    */
     spCVideoFrame frame = m_spDecoder->PopVideoFrame();
+    if (!frame) {
+        g_Log->Info("GrabVideoFrame() - No frame available, returning false");
+        return false;
+    }
+    
     if (frame)
     {
         m_spFrameData = frame;
@@ -387,6 +420,9 @@ bool CClip::GrabVideoFrame()
             std::unique_lock<std::shared_mutex> lock(
                 m_CurrentFrameMetadataLock);
             m_CurrentFrameMetadata = m_spFrameData->GetMetaData();
+            
+            /*g_Log->Info("GrabVideoFrame() - Successfully grabbed frame %d",
+                        m_CurrentFrameMetadata.frameIdx);*/
         }
 #if !USE_HW_ACCELERATION
         if (m_spImageRef->GetWidth() != m_spFrameData->Width() ||
@@ -410,6 +446,7 @@ bool CClip::GrabVideoFrame()
         {
             if (USE_HW_ACCELERATION)
             {
+                //g_Log->Info("BindFrame %d", m_CurrentFrameMetadata.frameIdx);
                 currentTexture->BindFrame(m_spFrameData);
             }
             else
@@ -419,22 +456,6 @@ bool CClip::GrabVideoFrame()
                 currentTexture->Upload(m_spImageRef);
             }
         }
-    }
-    else
-    {
-        // If we're near the end and have a cached frame, use it instead of failing
-        if (m_LastValidFrame && IsNearEnd())
-        {
-            m_CurrentFrameMetadata.frameIdx++;
-            g_Log->Info("Using cached frame %d for seamless transition, masquarading as %d",
-                        m_LastValidFrame->GetMetaData().frameIdx,
-                        m_CurrentFrameMetadata.frameIdx);
-            m_spFrameData = m_LastValidFrame;
-            return true;
-        }
-        
-        g_Log->Warning("failed to get frame %d for %s", m_CurrentFrameMetadata.frameIdx, m_ClipMetadata.dreamData.uuid.c_str());
-        return false;
     }
 
     return true;

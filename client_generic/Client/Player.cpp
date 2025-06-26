@@ -570,6 +570,7 @@ void CPlayer::FpsCap(const double _cap)
 //bool CPlayer::Update(uint32_t displayUnit, bool& bPlayNoSheepIntro)
 bool CPlayer::Update(uint32_t displayUnit)
 {
+    //g_Log->Info("Player update");
     // todo: need to check this
     std::shared_ptr<DisplayUnit> du;
 
@@ -625,6 +626,8 @@ bool CPlayer::Update(uint32_t displayUnit)
                     if (m_currentClip && m_currentClip->HasFinished()) {
                         g_Log->Info("PND : Launching on finished current");
                         PlayNextDream();
+                        // We need to update the clip here since we switched it!
+                        m_currentClip->Update(m_TimelineTime, m_bPaused);
                     }
                 } else if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::StandardCrossfade) {
                     //
@@ -822,6 +825,17 @@ void CPlayer::PlayNextDream(bool quickFade) {
             // For seamless, next clip should already be prepared
             if (m_nextClip) {
                 g_Log->Info("Executing seamless transition now");
+                
+                // Transfer frame continuity before destroying old clip
+                if (m_currentClip && m_nextClip) {
+                    auto currentDisplay = m_currentClip->GetFrameDisplay();
+                    auto nextDisplay = m_nextClip->GetFrameDisplay();
+                    if (currentDisplay && nextDisplay) {
+                        nextDisplay->InheritFramesFrom(currentDisplay.get());
+                        g_Log->Info("Inherited frames for seamless transition");
+                    }
+                }
+                
                 destroyClipAsync(std::move(m_currentClip));
 
                 m_currentClip = m_nextClip;

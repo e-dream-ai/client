@@ -163,6 +163,9 @@ public:
     double GetActualStartTime() const { return m_ActualStartTime; }
     double GetTotalBufferingTime() const { return m_TotalBufferingTime; }
     bool HasStartedPlaying() const { return m_HasStartedPlaying; }
+    
+    // Get the FrameDisplay for seamless transition frame inheritance
+    spCFrameDisplay GetFrameDisplay() const { return m_spFrameDisplay; }
    
 };
 MakeSmartPointers(CClip);
