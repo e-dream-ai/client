@@ -53,6 +53,19 @@ void ESShowPreferences()
     }
 }
 
+static ShowFirstTimeSetupCallback_t gShowFirstTimeSetupCallback = nullptr;
+void ESSetShowFirstTimeSetupCallback(ShowFirstTimeSetupCallback_t _callback)
+{
+    gShowFirstTimeSetupCallback = _callback;
+}
+void ESShowFirstTimeSetup()
+{
+    if (gShowFirstTimeSetupCallback != nullptr)
+    {
+        gShowFirstTimeSetupCallback();
+    }
+}
+
 long long EDreamClient::remainingQuota = 0;
 
 std::atomic<bool> EDreamClient::fIsLoggedIn(false);
@@ -244,7 +257,15 @@ bool EDreamClient::Authenticate()
         // Only show once at startup, we don't want to loop
         if (!shownSettingsOnce) {
             shownSettingsOnce = true;
-            ESShowPreferences();
+#ifdef __APPLE__
+            // On macOS, check if we should show first-time setup
+            bool firstTimeSetupCompleted = g_Settings()->Get("settings.app.firsttimesetup", false);
+            if (!firstTimeSetupCompleted) {
+                ESShowFirstTimeSetup();
+            }
+#else
+            ESShowPreferences(); // This will trigger the preferences modal
+#endif
         }
     }
 

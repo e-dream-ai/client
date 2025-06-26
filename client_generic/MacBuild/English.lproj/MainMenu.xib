@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="23727" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
     <dependencies>
+        <deployment identifier="macosx"/>
         <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="23727"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
@@ -129,6 +130,17 @@
                                     <action selector="toggleFullScreen:" target="371" id="4ad-Ne-i9d"/>
                                 </connections>
                             </menuItem>
+                            <menuItem isSeparatorItem="YES" id="5V2-l9-vvf"/>
+                            <menuItem title="Remote Control" keyEquivalent="r" id="ENF-d5-6eP" userLabel="Remote control">
+                                <connections>
+                                    <action selector="openRemoteControl:" target="371" id="lGd-fE-aPu"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Browse Playlists" keyEquivalent="b" id="LDc-0w-dlJ">
+                                <connections>
+                                    <action selector="openBrowsePlaylist:" target="371" id="Rbv-DH-sX3"/>
+                                </connections>
+                            </menuItem>
                         </items>
                     </menu>
                 </menuItem>
@@ -170,7 +182,7 @@
             <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES" fullSizeContentView="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="335" y="390" width="480" height="360"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1470" height="919"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1409"/>
             <value key="minSize" type="size" width="720" height="500"/>
             <view key="contentView" id="372">
                 <rect key="frame" x="0.0" y="0.0" width="480" height="360"/>
