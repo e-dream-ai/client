@@ -570,6 +570,7 @@ void CPlayer::FpsCap(const double _cap)
 //bool CPlayer::Update(uint32_t displayUnit, bool& bPlayNoSheepIntro)
 bool CPlayer::Update(uint32_t displayUnit)
 {
+    //g_Log->Info("Player update");
     // todo: need to check this
     std::shared_ptr<DisplayUnit> du;
 
@@ -625,6 +626,8 @@ bool CPlayer::Update(uint32_t displayUnit)
                     if (m_currentClip && m_currentClip->HasFinished()) {
                         g_Log->Info("PND : Launching on finished current");
                         PlayNextDream();
+                        // We need to update the clip here since we switched it!
+                        m_currentClip->Update(m_TimelineTime, m_bPaused);
                     }
                 } else if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::StandardCrossfade) {
                     //

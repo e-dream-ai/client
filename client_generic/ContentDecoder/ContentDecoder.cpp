@@ -599,8 +599,10 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
             int64_t calculatedFrame = (int64_t)round(pts_seconds * frameRate);
             
             // Debug logging for frame calculation
-            g_Log->Info("Frame calculation - PTS: %lld, start_time: %lld, PTS_seconds: %.6f, FrameRate: %.2f, Calculated frame: %lld, Current index before: %lld",
+            // Use that in the future to verify if we decode what we are supposed to !
+            /*g_Log->Info("Frame calculation - PTS: %lld, start_time: %lld, PTS_seconds: %.6f, FrameRate: %.2f, Calculated frame: %lld, Current index before: %lld",
                         (long long)pFrame->pts, (long long)start_time, pts_seconds, frameRate, (long long)calculatedFrame, (long long)ovi->m_CurrentFrameIndex);
+            */
             
             // If this is the first frame after a seek (CurrentFrameIndex == -1), trust the PTS
             if (ovi->m_CurrentFrameIndex == -1) {

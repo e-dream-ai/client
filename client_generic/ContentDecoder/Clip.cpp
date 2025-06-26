@@ -174,11 +174,23 @@ bool CClip::NeedsNewFrame(double _timelineTime,
         return true;
 */
     double deltaTime = _timelineTime - _decoderClock->clock;
+    
+    // Detect large time gaps (like clip transitions) and reset timing
+    if (deltaTime > 1.0 && _decoderClock->started) {
+        g_Log->Info("Large time gap detected (%.6f seconds), resetting decoder clock", deltaTime);
+        _decoderClock->started = false;
+        _decoderClock->acc = 0.0;
+        deltaTime = 0.0;
+    }
+    
     _decoderClock->clock = _timelineTime;
     if (!_decoderClock->started)
     {
         _decoderClock->started = true;
-        return true;
+        _decoderClock->acc = 0.0;  // Initialize accumulator
+        g_Log->Info("First frame timing - reinit acc");
+        //deltaTime = 0.0167;
+        //return true;
     }
     _decoderClock->acc += deltaTime;
 
@@ -196,11 +208,15 @@ bool CClip::NeedsNewFrame(double _timelineTime,
     //    This is our inter-frame delta, > 0 < 1 <
     _decoderClock->interframeDelta = _decoderClock->acc / dt;
 
+    g_Log->Info("Frame timing - deltaTime: %.6f, acc: %.6f, dt: %.6f (%.1ffps), crossedFrame: %s", 
+                deltaTime, _decoderClock->acc, dt, m_ClipMetadata.decodeFps, bCrossedFrame ? "YES" : "NO");
+
     return bCrossedFrame;
 }
 
 bool CClip::Update(double _timelineTime, bool isPaused)
 {
+    //g_Log->Info("Update for %s", m_ClipMetadata.dreamData.uuid.c_str());
     m_Alpha = m_LastCalculatedAlpha;
     
     // Check buffering state
@@ -262,12 +278,16 @@ bool CClip::Update(double _timelineTime, bool isPaused)
         }
     }
 
-    
-    if (_timelineTime < m_StartTime)
+    if (_timelineTime < m_StartTime) {
         return false;
-
-    if (NeedsNewFrame(_timelineTime, &m_DecoderClock))
+    }
+    
+    bool needsFrame = NeedsNewFrame(_timelineTime, &m_DecoderClock);
+    /*g_Log->Info("Update() - NeedsNewFrame returned: %s, current frame: %d",
+                needsFrame ? "YES" : "NO", m_CurrentFrameMetadata.frameIdx); */
+    if (needsFrame)
     {
+        //g_Log->Info("About to call GrabVideoFrame()");
         if (!GrabVideoFrame())
         {
             // Check if we're at the last frame and should mark as finished
@@ -380,9 +400,14 @@ void CClip::SetDisplaySize(uint32_t _displayWidth, uint32_t _displayHeight)
 
 bool CClip::GrabVideoFrame()
 {
+    /*g_Log->Info("GrabVideoFrame() - Attempting to pop frame from queue (size: %d)",
+                m_spDecoder->QueueLength());
+    */
     spCVideoFrame frame = m_spDecoder->PopVideoFrame();
-    if (!frame)
+    if (!frame) {
+        g_Log->Info("GrabVideoFrame() - No frame available, returning false");
         return false;
+    }
     
     if (frame)
     {
@@ -395,6 +420,9 @@ bool CClip::GrabVideoFrame()
             std::unique_lock<std::shared_mutex> lock(
                 m_CurrentFrameMetadataLock);
             m_CurrentFrameMetadata = m_spFrameData->GetMetaData();
+            
+            /*g_Log->Info("GrabVideoFrame() - Successfully grabbed frame %d",
+                        m_CurrentFrameMetadata.frameIdx);*/
         }
 #if !USE_HW_ACCELERATION
         if (m_spImageRef->GetWidth() != m_spFrameData->Width() ||
