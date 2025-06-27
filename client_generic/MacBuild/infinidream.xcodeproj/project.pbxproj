@@ -266,6 +266,8 @@
 		F0351BEC2CB5BBF10055091F /* Bugsnag in Frameworks */ = {isa = PBXBuildFile; productRef = F0351BEB2CB5BBF10055091F /* Bugsnag */; };
 		F0351BEE2CB5BBF90055091F /* Bugsnag in Frameworks */ = {isa = PBXBuildFile; productRef = F0351BED2CB5BBF90055091F /* Bugsnag */; };
 		F0351BF02CB5BBFF0055091F /* Bugsnag in Frameworks */ = {isa = PBXBuildFile; productRef = F0351BEF2CB5BBFF0055091F /* Bugsnag */; };
+		F0387EA02E0EF1D4005410D5 /* ESWindow.mm in Sources */ = {isa = PBXBuildFile; fileRef = 21EE63951013A674000CE53E /* ESWindow.mm */; };
+		F0387EA12E0EF1D4005410D5 /* ESWindow.mm in Sources */ = {isa = PBXBuildFile; fileRef = 21EE63951013A674000CE53E /* ESWindow.mm */; };
 		F03CF26D2CB7F578009F51D8 /* libswscale.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B912C663DEF00DBA60E /* libswscale.a */; };
 		F03CF26E2CB7F5FC009F51D8 /* libavcodec.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8B2C663DE800DBA60E /* libavcodec.a */; };
 		F03CF26F2CB7F5FC009F51D8 /* libavdevice.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8C2C663DE800DBA60E /* libavdevice.a */; };
@@ -2045,6 +2047,7 @@
 				F0141BB12C6BBB9D00DBA60E /* PlaylistManager.cpp in Sources */,
 				218878D50EC6CDE2001ABD2E /* Common.cpp in Sources */,
 				218878D60EC6CDE2001ABD2E /* Exception.cpp in Sources */,
+				F0387EA02E0EF1D4005410D5 /* ESWindow.mm in Sources */,
 				218878D70EC6CDE2001ABD2E /* Log.cpp in Sources */,
 				46D2E8F32AFBA64B0054049D /* MBETextMesh.m in Sources */,
 				218878DB0EC6CDE2001ABD2E /* pool.cpp in Sources */,
@@ -2108,6 +2111,7 @@
 				F0141BB32C6BBB9D00DBA60E /* PlaylistManager.cpp in Sources */,
 				F0C100222C1372EF007FA505 /* Common.cpp in Sources */,
 				F0C100232C1372EF007FA505 /* Exception.cpp in Sources */,
+				F0387EA12E0EF1D4005410D5 /* ESWindow.mm in Sources */,
 				F0C100242C1372EF007FA505 /* Log.cpp in Sources */,
 				F0C100252C1372EF007FA505 /* MBETextMesh.m in Sources */,
 				F0C100262C1372EF007FA505 /* pool.cpp in Sources */,
