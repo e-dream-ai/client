@@ -845,8 +845,18 @@ void CPlayer::PlayNextDream(bool quickFade) {
                 m_currentClip->SetTransitionLength(0.0, 0.0);
                 m_currentClip->ResetFinished();
                 
-                m_playlistManager->moveToNextDream(*m_nextDreamDecision);
+                const Cache::Dream* nextDream = m_playlistManager->moveToNextDream(*m_nextDreamDecision);
                 m_nextDreamDecision = std::nullopt;
+                
+                if (!nextDream) {
+                    g_Log->Error("Failed to move to next dream during seamless transition - playlist may have changed");
+                    // Fall back to standard playback
+                    m_currentClip = nullptr;
+                    m_nextClip = nullptr;
+                    m_PreloadingNextClip = false;
+                    m_PreloadingDreamUUID = "";
+                    return;
+                }
                 
                 m_PreloadingNextClip = false;
                 m_PreloadingDreamUUID = "";
@@ -882,9 +892,15 @@ void CPlayer::PlayNextDream(bool quickFade) {
                 PlayClip(m_nextDreamDecision->dream, m_TimelineTime, -1, true);
             }
             
-            m_playlistManager->moveToNextDream(*m_nextDreamDecision);
+            const Cache::Dream* nextDream = m_playlistManager->moveToNextDream(*m_nextDreamDecision);
             m_PreloadingNextClip = false;
             m_PreloadingDreamUUID = "";
+            
+            if (!nextDream) {
+                g_Log->Error("Failed to move to next dream during standard transition - playlist may have changed");
+                // Clean up any partially loaded clips
+                m_nextClip = nullptr;
+            }
         }
         m_nextDreamDecision = std::nullopt;
     } else {
@@ -1044,6 +1060,7 @@ bool CPlayer::SetPlaylist(const std::string& playlistUUID, bool fetchPlaylist = 
     if (!m_currentClip) {
         m_isFirstPlay = true;  // Reset the first play flag when setting a new playlist
         
+        g_Log->Info("Grabing new next decision in set playlist");
         auto nextDecision = m_playlistManager->preflightNextDream();
         if (nextDecision) {
             // Load the clip directly without transition
@@ -1059,6 +1076,10 @@ bool CPlayer::SetPlaylist(const std::string& playlistUUID, bool fetchPlaylist = 
         }
         
         PlayNextDream();
+    } else {
+        // Current clip is playing, preflight the next dream for smooth transition
+        g_Log->Info("Current clip playing, preflighting next dream for new playlist");
+        m_nextDreamDecision = m_playlistManager->preflightNextDream();
     }
 
     return true;

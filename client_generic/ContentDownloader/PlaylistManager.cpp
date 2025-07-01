@@ -561,6 +561,34 @@ const Cache::Dream* PlaylistManager::moveToNextDream(const NextDreamDecision& de
         return nullptr;
     }
 
+    // Validate that the position is still valid
+    if (decision.position >= m_playlist.size()) {
+        g_Log->Error("moveToNextDream: position %zu is out of bounds (playlist size: %zu)", 
+                     decision.position, m_playlist.size());
+        return nullptr;
+    }
+    
+    // Validate that the dream UUID at this position matches what we expect
+    if (decision.dream && m_playlist[decision.position].uuid != decision.dream->uuid) {
+        g_Log->Warning("moveToNextDream: dream UUID mismatch at position %zu (expected: %s, found: %s)",
+                       decision.position, decision.dream->uuid.c_str(),
+                       m_playlist[decision.position].uuid.c_str());
+        // Try to find the dream in the current playlist
+        auto it = std::find_if(m_playlist.begin(), m_playlist.end(),
+                              [&decision](const PlaylistEntry& entry) {
+                                  return entry.uuid == decision.dream->uuid;
+                              });
+        if (it != m_playlist.end()) {
+            m_currentPosition = std::distance(m_playlist.begin(), it);
+            g_Log->Info("moveToNextDream: found dream at new position %zu", m_currentPosition);
+        } else {
+            g_Log->Error("moveToNextDream: dream %s no longer in playlist", decision.dream->uuid.c_str());
+            return nullptr;
+        }
+    } else {
+        m_currentPosition = decision.position;
+    }
+
     // If this is the first play, mark as started
     if (!m_started) {
         m_started = true;
@@ -569,12 +597,9 @@ const Cache::Dream* PlaylistManager::moveToNextDream(const NextDreamDecision& de
     }
 
     // If we're starting over, reset history
-    if (decision.position == 0 && !hasUnplayedDreams()) {
+    if (m_currentPosition == 0 && !hasUnplayedDreams()) {
         resetPlayHistory();
     }
-
-    // Update position
-    m_currentPosition = decision.position;
     
     // Update current dream info
     m_currentDreamUUID = m_playlist[m_currentPosition].uuid;
