@@ -867,6 +867,7 @@ std::future<bool> EDreamClient::EnqueuePlaylistAsync(const std::string& uuid) {
         // First, fetch the playlist asynchronously
         auto fetchFuture = FetchPlaylistAsync(uuid);
         
+        g_Log->Info("Playlist fetched");
         // Wait for the fetch to complete
         bool fetchSuccess = fetchFuture.get();
         
@@ -880,8 +881,10 @@ std::future<bool> EDreamClient::EnqueuePlaylistAsync(const std::string& uuid) {
         
         std::thread([uuid]() {
             // These operations must happen on the main/UI thread
+            g_Log->Info("Will call set playlist");
             g_Player().SetPlaylist(std::string(uuid), false);
             g_Player().SetTransitionDuration(1.0f);
+            g_Log->Info("Will call start transition");
             g_Player().StartTransition();
         }).detach();
         
@@ -1544,13 +1547,13 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
             printf("Frame number: %" PRId64, frameNumber);
         }
         
-        printf("should play : %s", uuid.data());
+        g_Log->Info("should play : %s", uuid.data());
         g_Player().PlayDreamNow(uuid.data(), frameNumber);
     } else if (event == "play_playlist") {
         std::shared_ptr<sio::string_message> uuidObj =
             std::dynamic_pointer_cast<sio::string_message>(response["uuid"]);
         std::string_view uuid = uuidObj->get_string();
-        printf("should play : %s", uuid.data());
+        g_Log->Info("should play : %s", uuid.data());
         
         EDreamClient::EnqueuePlaylistAsync(uuid.data());
     }
