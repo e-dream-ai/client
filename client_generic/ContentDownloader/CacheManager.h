@@ -12,6 +12,8 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <mutex>
+#include <shared_mutex>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -147,6 +149,9 @@ private:
     std::vector<HistoryItem> history;
 
     std::vector<std::string> m_evictedUUIDs;
+    
+    // Mutex to protect diskCached container from concurrent access
+    mutable std::shared_mutex diskCachedMutex;
 
     boost::property_tree::ptree serializeDiskCachedItem(const DiskCachedItem& item) const;
     boost::property_tree::ptree serializeHistoryItem(const HistoryItem& item) const;

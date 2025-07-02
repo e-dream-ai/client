@@ -332,8 +332,6 @@ bool CClip::Update(double _timelineTime, bool isPaused)
     double secondsIn;
     if (m_IsResume) {
         secondsIn = _timelineTime - m_ResumeStartTime;
-        g_Log->Info("Resume path: timeline=%.3f, resumeStart=%.3f, secondsIn=%.3f",
-                    _timelineTime, m_ResumeStartTime, secondsIn);
     } else {
         // We no longer take into account StartAtFrame from FrameDisplay
         secondsIn = idx / m_ClipMetadata.decodeFps + delta;

@@ -495,6 +495,7 @@ bool CacheManager::isPlaylistFillingCache(const std::vector<std::string>& playli
 // MARK: - DiskCacheItem/HistoryItem
 
 void CacheManager::addDiskCachedItem(const DiskCachedItem& item) {
+    std::unique_lock<std::shared_mutex> lock(diskCachedMutex);
     auto it = std::find_if(diskCached.begin(), diskCached.end(),
         [&item](const DiskCachedItem& existingItem) {
             return existingItem.uuid == item.uuid;
@@ -507,11 +508,13 @@ void CacheManager::addDiskCachedItem(const DiskCachedItem& item) {
         // UUID doesn't exist, add new item
         diskCached.push_back(item);
     }
+    lock.unlock();  // Release lock before potentially slow I/O
 
     saveDiskCachedToJson();
 }
 
 void CacheManager::removeDiskCachedItem(const std::string& uuid) {
+    std::unique_lock<std::shared_mutex> lock(diskCachedMutex);
     auto it = std::find_if(diskCached.begin(), diskCached.end(),
         [&uuid](const DiskCachedItem& item) {
             return item.uuid == uuid;
@@ -519,6 +522,7 @@ void CacheManager::removeDiskCachedItem(const std::string& uuid) {
 
     if (it != diskCached.end()) {
         diskCached.erase(it);
+        lock.unlock();  // Release lock before potentially slow I/O
         saveDiskCachedToJson();
     } else {
         throw std::runtime_error("Item with specified UUID not found in disk cache");
@@ -526,6 +530,7 @@ void CacheManager::removeDiskCachedItem(const std::string& uuid) {
 }
 
 bool CacheManager::hasDiskCachedItem(const std::string& uuid) const {
+    std::shared_lock<std::shared_mutex> lock(diskCachedMutex);  // Make sure our list doesn't change under us
     return std::any_of(diskCached.begin(), diskCached.end(),
         [&uuid](const DiskCachedItem& item) {
             return item.uuid == uuid;
