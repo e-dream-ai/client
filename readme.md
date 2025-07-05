@@ -1,9 +1,11 @@
 Copyright e-dream, inc
 
+```
 2025.05     renamed e-dream to infinidream
 2023.07     forked to work with new server and repository, renamed from Electric Sheep to e-dream
 2015.05     moved from code.google.com repo
 2011.01.30  based on revision 1546 on sf.net
+```
 
 infinidream: visuals for your vibe.
 a platform for generative visuals.
