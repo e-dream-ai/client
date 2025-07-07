@@ -251,6 +251,8 @@ class CElectricSheep
             "Use the remote control or keyboard to interact.\n\n"
 #endif
             "Commands:\n"
+            "Cmd+R: open remote in your web browser\n"
+            "Cmd+B: browse playlists\n"
             "Up-arrow: like this dream\n"
             "Down-arrow: dislike this dream and delete it\n"
             "Left-arrow: go back to play previous dream\n"
