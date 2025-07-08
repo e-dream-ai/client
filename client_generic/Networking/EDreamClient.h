@@ -29,7 +29,9 @@ class EDreamClient
     static std::atomic<int> fCpuUsage;
     static std::mutex fAuthMutex;
     static std::mutex fWebSocketMutex;
-    static bool fIsWebSocketConnected;
+public:
+    static std::atomic<bool> fIsWebSocketConnected;
+private:
     static std::string Hello();
     static long long remainingQuota;
     
