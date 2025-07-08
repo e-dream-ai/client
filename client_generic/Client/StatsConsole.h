@@ -292,6 +292,15 @@ class CStatsConsole : public CConsole
 
     void Add(CStat* _pStat)
     {
+        // Check if stat already exists to prevent duplicates
+        auto it = std::find_if(m_Stats.begin(), m_Stats.end(),
+                               [=](const auto& i) { return i.first == _pStat->m_Name; });
+        if (it != m_Stats.end()) {
+            g_Log->Warning("Stat '%s' already exists, skipping duplicate", _pStat->m_Name.c_str());
+            delete _pStat; // Clean up the duplicate stat
+            return;
+        }
+        
         m_Stats.emplace_back(
             _pStat->m_Name,
             StatText{_pStat, g_Player().Renderer()->NewText(m_spFont, "")});
@@ -330,7 +339,7 @@ class CStatsConsole : public CConsole
         PlatformUtils::DispatchOnMainThread(
             [=, this]()
             {
-                if (g_Player().Stopped() || m_Stats.empty())
+                if (g_Player().Stopped() || m_Stats.empty() || !g_Player().HasStarted())
                     return;
                 float step = (float)m_Desc.Height() /
                              (float)_spRenderer->Display()->Height();
