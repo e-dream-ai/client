@@ -243,6 +243,10 @@
 		F01CCF182C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */; };
 		F01CCF192C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */; };
 		F01CCF1A2C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */; };
+		F02854512E20168D00E3359C /* WritingToolsSafeControls.m in Sources */ = {isa = PBXBuildFile; fileRef = F02854502E20168D00E3359C /* WritingToolsSafeControls.m */; };
+		F02854522E20168D00E3359C /* WritingToolsSafeControls.m in Sources */ = {isa = PBXBuildFile; fileRef = F02854502E20168D00E3359C /* WritingToolsSafeControls.m */; };
+		F02854532E20168D00E3359C /* WritingToolsSafeControls.m in Sources */ = {isa = PBXBuildFile; fileRef = F02854502E20168D00E3359C /* WritingToolsSafeControls.m */; };
+		F02854542E20168D00E3359C /* WritingToolsSafeControls.m in Sources */ = {isa = PBXBuildFile; fileRef = F02854502E20168D00E3359C /* WritingToolsSafeControls.m */; };
 		F02A5C3D2C453FEF00B57FBD /* DreamDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F02A5C3C2C453FEF00B57FBD /* DreamDownloader.cpp */; };
 		F02A5C3E2C453FEF00B57FBD /* DreamDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F02A5C3C2C453FEF00B57FBD /* DreamDownloader.cpp */; };
 		F02A5C3F2C453FEF00B57FBD /* DreamDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F02A5C3C2C453FEF00B57FBD /* DreamDownloader.cpp */; };
@@ -933,6 +937,8 @@
 		F0141BAF2C6BBB9D00DBA60E /* PlaylistManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PlaylistManager.cpp; sourceTree = "<group>"; };
 		F01CCF152C3D5E9D004E6DE9 /* CacheManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CacheManager.h; sourceTree = "<group>"; };
 		F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CacheManager.cpp; sourceTree = "<group>"; };
+		F028544F2E20168D00E3359C /* WritingToolsSafeControls.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WritingToolsSafeControls.h; sourceTree = "<group>"; };
+		F02854502E20168D00E3359C /* WritingToolsSafeControls.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = WritingToolsSafeControls.m; sourceTree = "<group>"; };
 		F02A5C3B2C453FEF00B57FBD /* DreamDownloader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DreamDownloader.h; sourceTree = "<group>"; };
 		F02A5C3C2C453FEF00B57FBD /* DreamDownloader.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DreamDownloader.cpp; sourceTree = "<group>"; };
 		F02C14EC2E01904600BFFFF4 /* StartupWindowController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = StartupWindowController.h; sourceTree = "<group>"; };
@@ -1331,6 +1337,8 @@
 		212B19650E8E5CD800CE185C /* Client */ = {
 			isa = PBXGroup;
 			children = (
+				F028544F2E20168D00E3359C /* WritingToolsSafeControls.h */,
+				F02854502E20168D00E3359C /* WritingToolsSafeControls.m */,
 				F0C16C102E01DE870039EC33 /* FirstTimeSetupManager.h */,
 				F0C16C112E01DE870039EC33 /* FirstTimeSetupManager.mm */,
 				21EE633410139BCC000CE53E /* main.m */,
@@ -2023,6 +2031,7 @@
 				2160FADC0F30F45100B2C27A /* Rect.cpp in Sources */,
 				F0141B772C59115500DBA60E /* PathManager.cpp in Sources */,
 				467230BA2AC17E4600017C51 /* ESMetalView.m in Sources */,
+				F02854532E20168D00E3359C /* WritingToolsSafeControls.m in Sources */,
 				2160FADE0F30F45100B2C27A /* Download.cpp in Sources */,
 				2160FADF0F30F45100B2C27A /* Networking.cpp in Sources */,
 				2160FAE00F30F45100B2C27A /* Upload.cpp in Sources */,
@@ -2046,6 +2055,7 @@
 				2197D56819B0806F00EFA1F2 /* proximus.c in Sources */,
 				F0141BB12C6BBB9D00DBA60E /* PlaylistManager.cpp in Sources */,
 				218878D50EC6CDE2001ABD2E /* Common.cpp in Sources */,
+				F02854512E20168D00E3359C /* WritingToolsSafeControls.m in Sources */,
 				218878D60EC6CDE2001ABD2E /* Exception.cpp in Sources */,
 				F0387EA02E0EF1D4005410D5 /* ESWindow.mm in Sources */,
 				218878D70EC6CDE2001ABD2E /* Log.cpp in Sources */,
@@ -2110,6 +2120,7 @@
 				F0C100212C1372EF007FA505 /* proximus.c in Sources */,
 				F0141BB32C6BBB9D00DBA60E /* PlaylistManager.cpp in Sources */,
 				F0C100222C1372EF007FA505 /* Common.cpp in Sources */,
+				F02854542E20168D00E3359C /* WritingToolsSafeControls.m in Sources */,
 				F0C100232C1372EF007FA505 /* Exception.cpp in Sources */,
 				F0387EA12E0EF1D4005410D5 /* ESWindow.mm in Sources */,
 				F0C100242C1372EF007FA505 /* Log.cpp in Sources */,
@@ -2216,6 +2227,7 @@
 				F0E9CE6D2C136B0500C4D694 /* Rect.cpp in Sources */,
 				F0141B752C59115500DBA60E /* PathManager.cpp in Sources */,
 				F0E9CE6E2C136B0500C4D694 /* ESMetalView.m in Sources */,
+				F02854522E20168D00E3359C /* WritingToolsSafeControls.m in Sources */,
 				F0E9CE6F2C136B0500C4D694 /* Download.cpp in Sources */,
 				F0E9CE702C136B0500C4D694 /* Networking.cpp in Sources */,
 				F0E9CE712C136B0500C4D694 /* Upload.cpp in Sources */,
