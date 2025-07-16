@@ -359,6 +359,13 @@ void CPlayer::Start()
 
             if (EDreamClient::IsLoggedIn()) {
                 if (m_shutdownFlag) return;
+                
+                // Ensure websocket is connected when player starts and user is logged in
+                if (!EDreamClient::fIsWebSocketConnected.load()) {
+                    g_Log->Info("Player starting with logged in user - connecting websocket");
+                    boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
+                }
+                
                 auto serverPlaylistId = EDreamClient::GetCurrentServerPlaylist();
                 
                 // Override if there's a mismatch, and don't try to resume previous file as

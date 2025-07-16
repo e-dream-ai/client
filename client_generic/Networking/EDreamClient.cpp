@@ -71,7 +71,9 @@ long long EDreamClient::remainingQuota = 0;
 std::atomic<bool> EDreamClient::fIsLoggedIn(false);
 std::atomic<int> EDreamClient::fCpuUsage(0);
 std::mutex EDreamClient::fAuthMutex;
-bool fIsWebSocketConnected = true;
+std::mutex EDreamClient::fWebSocketMutex;
+std::atomic<bool> EDreamClient::fIsWebSocketConnected(false);
+std::atomic<int> fWebSocketConnectionAttempts(0);
 
 static void SetNewAndDeleteOldString(std::atomic<char*>& str, char* newval)
 {
@@ -138,6 +140,11 @@ static void BindWebSocketCallbacks()
 
 static void OnWebSocketConnected()
 {
+    g_Log->Info("WebSocket connected successfully.");
+    EDreamClient::fIsWebSocketConnected.exchange(true);
+    
+    // Reset the connection attempt count
+    fWebSocketConnectionAttempts = 0;
 
     //    std::map<std::string, std::string> params;
     //    params["event"] = "next
@@ -153,19 +160,27 @@ static void OnWebSocketConnected()
 
 static void OnWebSocketClosed(const sio::client::close_reason& _reason)
 {
-    g_Log->Info("WebSocket connection closed.");
+    g_Log->Info("WebSocket connection closed. Reason: %d", static_cast<int>(_reason));
+    EDreamClient::fIsWebSocketConnected.exchange(false);
 }
 
-static void OnWebSocketFail() { g_Log->Error("WebSocket connection failed."); }
+static void OnWebSocketFail() 
+{ 
+    g_Log->Error("WebSocket connection failed.");
+    EDreamClient::fIsWebSocketConnected.exchange(false);
+    fWebSocketConnectionAttempts++;
+}
 
 static void OnWebSocketReconnecting()
 {
-    g_Log->Error("WebSocket connection failed.");
+    g_Log->Info("WebSocket reconnecting...");
+    EDreamClient::fIsWebSocketConnected.exchange(false);
 }
 
 static void OnWebSocketReconnect(unsigned _num, unsigned _delay)
 {
-    g_Log->Error("WebSocket connection failed.");
+    g_Log->Info("WebSocket reconnected after %u attempts, delay was %u ms", _num, _delay);
+    EDreamClient::fIsWebSocketConnected.exchange(true);
 }
 
 void EDreamClient::InitializeClient()
@@ -275,9 +290,42 @@ bool EDreamClient::Authenticate()
 // MARK: - Sign-in/out status, used externally
 void EDreamClient::DidSignIn()
 {
+    g_Log->Info("Did Sign-in");
     std::lock_guard<std::mutex> lock(fAuthMutex);
     fIsLoggedIn.exchange(true);
-    boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
+    
+    // Restart the player if it was previously stopped (e.g., after sign-out)
+    if (!g_Player().HasStarted())
+    {
+        g_Log->Info("Restarting player after sign-in");
+        g_Player().Start();
+    }
+    
+    // Add a small delay to allow any pending socket operations to complete
+    // This helps avoid issues with the socket.io client's internal state
+    boost::thread delayedWebSocketThread([]() {
+        boost::this_thread::sleep(boost::posix_time::milliseconds(500));
+        
+        // Restart the io_context if it was stopped during SignOut/DeinitializeClient
+        if (io_context->stopped()) {
+            g_Log->Info("Restarting io_context after sign-in");
+            io_context->restart();
+        }
+        
+        // Reinitialize socket client to fix first-login connection issue
+        // The socket.io client can get into an inconsistent state when listeners
+        // are set during InitializeClient() but no connection is attempted
+        s_SIOClient.set_open_listener(&OnWebSocketConnected);
+        s_SIOClient.set_close_listener(&OnWebSocketClosed);
+        s_SIOClient.set_fail_listener(&OnWebSocketFail);
+        s_SIOClient.set_reconnecting_listener(&OnWebSocketReconnecting);
+        s_SIOClient.set_reconnect_listener(&OnWebSocketReconnect);
+        
+        // Clear any existing socket state before reconnecting
+        s_SIOClient.clear_con_listeners();
+        
+        EDreamClient::ConnectRemoteControlSocket();
+    });
 }
 
 void EDreamClient::SignOut()
@@ -1720,16 +1768,44 @@ void EDreamClient::SendPlayingDream(std::string uuid)
 void EDreamClient::ConnectRemoteControlSocket()
 {
     PlatformUtils::SetThreadName("ConnectRemoteControl");
+    
+    // Use mutex to prevent concurrent connection attempts
+    std::lock_guard<std::mutex> lock(fWebSocketMutex);
+    
     g_Log->Info("Performing remote control connect.");
+    
+    // Check if socket is already connected AND io_context is running
+    if (s_SIOClient.opened() && !io_context->stopped())
+    {
+        g_Log->Info("WebSocket already connected, skipping reconnection.");
+        EDreamClient::fIsWebSocketConnected.exchange(true);
+        return;
+    }
+    
+    // If io_context was stopped, the connection is effectively dead
+    if (io_context->stopped()) {
+        g_Log->Info("WebSocket connection was stopped, reconnecting...");
+        EDreamClient::fIsWebSocketConnected.exchange(false);
+    }
+    
     BindWebSocketCallbacks();
     std::map<std::string, std::string> query;
     
     std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
     
+    if (sealedSession.empty())
+    {
+        g_Log->Error("Cannot connect WebSocket: no sealed session available.");
+        return;
+    }
+    
     query["Cookie"] = string_format("wos-session=%s", sealedSession.c_str());
     query["Edream-Client-Type"] = PlatformUtils::GetPlatformName();
     query["Edream-Client-Version"] = PlatformUtils::GetAppVersion();
 
+    g_Log->Info("Connecting to WebSocket server: %s", 
+                ServerConfig::ServerConfigManager::getInstance().getWebsocketServer().c_str());
+    
     s_SIOClient.connect(ServerConfig::ServerConfigManager::getInstance().getWebsocketServer(), query, query);
     
     // Send first ping immediately so frontend knows we're here
