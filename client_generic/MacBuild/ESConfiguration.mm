@@ -1,6 +1,7 @@
 #import "ESConfiguration.h"
 #import "ESScreensaver.h"
 #import "clientversion.h"
+#import "WritingToolsSafeControls.h"
 
 #include "EDreamClient.h"
 #include "ServerConfig.h"
@@ -58,11 +59,82 @@
     emailTextField.cell.scrollable = NO;
     emailTextField.cell.wraps = NO;
     [emailTextField.cell setUsesSingleLineMode:YES];
+    
+    // Disable Writing tools (Apple Intelligence) 
+    if (@available(macOS 15.2, *)) {
+        emailTextField.allowsWritingTools = NO;
+        digitCodeTextField.allowsWritingTools = NO;
+        proxyHost.allowsWritingTools = NO;
+        proxyLogin.allowsWritingTools = NO;
+        proxyPassword.allowsWritingTools = NO;
+        
+        // Also disable for NSFormCell if it supports the property
+        if ([cacheSizeFormCell respondsToSelector:@selector(setAllowsWritingTools:)]) {
+            [(id)cacheSizeFormCell setAllowsWritingTools:NO];
+        }
+    }
+    
+    // Replace text fields with WritingToolsSafe versions to prevent hangs because it looks like
+    // macOS doesn't respect the flags above
+    emailTextField = [self replaceTextFieldWithSafeVersion:emailTextField];
+    digitCodeTextField = [self replaceTextFieldWithSafeVersion:digitCodeTextField];
+    proxyHost = [self replaceTextFieldWithSafeVersion:proxyHost];
+    proxyLogin = [self replaceTextFieldWithSafeVersion:proxyLogin];
+    proxyPassword = [self replaceTextFieldWithSafeVersion:proxyPassword];
+
 
     // We initially load the settings here, this avoid flickering of the ui
     [self loadSettings];
 }
 
+
+- (NSTextField *)replaceTextFieldWithSafeVersion:(NSTextField *)originalField {
+    if (!originalField) return nil;
+    
+    // Create a new WritingToolsSafe text field with the same properties
+    WritingToolsSafeTextField *safeField = [[WritingToolsSafeTextField alloc] initWithFrame:originalField.frame];
+    
+    // Copy all the important properties
+    safeField.stringValue = originalField.stringValue;
+    safeField.placeholderString = originalField.placeholderString;
+    safeField.font = originalField.font;
+    safeField.textColor = originalField.textColor;
+    safeField.backgroundColor = originalField.backgroundColor;
+    safeField.bordered = originalField.bordered;
+    safeField.bezeled = originalField.bezeled;
+    safeField.editable = originalField.editable;
+    safeField.selectable = originalField.selectable;
+    safeField.enabled = originalField.enabled;
+    safeField.hidden = originalField.hidden;
+    safeField.alignment = originalField.alignment;
+    safeField.tag = originalField.tag;
+    safeField.identifier = originalField.identifier;
+    safeField.toolTip = originalField.toolTip;
+    
+    // Copy cell properties
+    safeField.cell.scrollable = originalField.cell.scrollable;
+    safeField.cell.wraps = originalField.cell.wraps;
+    [safeField.cell setUsesSingleLineMode:[originalField.cell usesSingleLineMode]];
+    
+    // Disable Writing Tools
+    if ([safeField respondsToSelector:@selector(setAllowsWritingTools:)]) {
+        safeField.allowsWritingTools = NO;
+    }
+    
+    // Copy target/action if it exists
+    if (originalField.target && originalField.action) {
+        safeField.target = originalField.target;
+        safeField.action = originalField.action;
+    }
+    
+    // Replace in the view hierarchy
+    NSView *superview = originalField.superview;
+    if (superview) {
+        [superview replaceSubview:originalField with:safeField];
+    }
+    
+    return safeField;
+}
 
 - (void)fixFlockSize
 {

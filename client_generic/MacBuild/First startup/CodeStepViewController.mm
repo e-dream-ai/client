@@ -8,6 +8,7 @@
 #import "CodeStepViewController.h"
 #import "StartupWindowController.h"
 #import "ESScreensaver.h"
+#import "WritingToolsSafeControls.h"
 
 #include "EDreamClient.h"
 #include "Log.h"
@@ -24,6 +25,14 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    
+    // Disable Writing Tools to prevent hangs
+    if (@available(macOS 15.2, *)) {
+        self.otpTextField.allowsWritingTools = NO;
+    }
+    
+    // Replace with WritingToolsSafe version
+    self.otpTextField = [self replaceTextFieldWithSafeVersion:self.otpTextField];
     
     self.otpTextField.delegate = self;
     self.verifyButton.enabled = NO; // Disable until 6 digits entered
@@ -156,6 +165,59 @@
     // Enable/disable verify button
     self.verifyButton.enabled = (numbersOnly.length == 6);
    
+}
+
+- (NSTextField *)replaceTextFieldWithSafeVersion:(NSTextField *)originalField {
+    if (!originalField) return nil;
+    
+    // Create a new WritingToolsSafe text field with the same properties
+    WritingToolsSafeTextField *safeField = [[WritingToolsSafeTextField alloc] initWithFrame:originalField.frame];
+    
+    // Copy all the important properties
+    safeField.stringValue = originalField.stringValue;
+    safeField.placeholderString = originalField.placeholderString;
+    safeField.font = originalField.font;
+    safeField.textColor = originalField.textColor;
+    safeField.backgroundColor = originalField.backgroundColor;
+    safeField.bordered = originalField.bordered;
+    safeField.bezeled = originalField.bezeled;
+    safeField.editable = originalField.editable;
+    safeField.selectable = originalField.selectable;
+    safeField.enabled = originalField.enabled;
+    safeField.hidden = originalField.hidden;
+    safeField.alignment = originalField.alignment;
+    safeField.tag = originalField.tag;
+    safeField.identifier = originalField.identifier;
+    safeField.toolTip = originalField.toolTip;
+    
+    // Copy cell properties
+    safeField.cell.scrollable = originalField.cell.scrollable;
+    safeField.cell.wraps = originalField.cell.wraps;
+    [safeField.cell setUsesSingleLineMode:[originalField.cell usesSingleLineMode]];
+    
+    // Disable Writing Tools
+    if ([safeField respondsToSelector:@selector(setAllowsWritingTools:)]) {
+        safeField.allowsWritingTools = NO;
+    }
+    
+    // Copy target/action if it exists
+    if (originalField.target && originalField.action) {
+        safeField.target = originalField.target;
+        safeField.action = originalField.action;
+    }
+    
+    // Copy delegate if it exists
+    if (originalField.delegate) {
+        safeField.delegate = originalField.delegate;
+    }
+    
+    // Replace in the view hierarchy
+    NSView *superview = originalField.superview;
+    if (superview) {
+        [superview replaceSubview:originalField with:safeField];
+    }
+    
+    return safeField;
 }
 
 @end

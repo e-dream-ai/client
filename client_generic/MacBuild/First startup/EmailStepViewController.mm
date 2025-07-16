@@ -9,6 +9,7 @@
 #import "EmailStepViewController.h"
 #import "StartupWindowController.h"
 #import "ESScreensaver.h"
+#import "WritingToolsSafeControls.h"
 
 #include "EDreamClient.h"
 #include "ServerConfig.h"
@@ -27,6 +28,13 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     
+    // Disable Writing Tools to prevent hangs
+    if (@available(macOS 15.2, *)) {
+        self.emailTextField.allowsWritingTools = NO;
+    }
+    
+    // Replace with WritingToolsSafe version
+    self.emailTextField = [self replaceTextFieldWithSafeVersion:self.emailTextField];
     
     // Load existing email if any
     CFStringRef emailCF = ESScreensaver_CopyGetStringSetting("settings.generator.nickname", "");
@@ -130,6 +138,54 @@
     NSURL* helpURL = [NSURL URLWithString:@"https://alpha.infinidream.ai/account"];
 #endif
     [[NSWorkspace sharedWorkspace] openURL:helpURL];
+}
+
+- (NSTextField *)replaceTextFieldWithSafeVersion:(NSTextField *)originalField {
+    if (!originalField) return nil;
+    
+    // Create a new WritingToolsSafe text field with the same properties
+    WritingToolsSafeTextField *safeField = [[WritingToolsSafeTextField alloc] initWithFrame:originalField.frame];
+    
+    // Copy all the important properties
+    safeField.stringValue = originalField.stringValue;
+    safeField.placeholderString = originalField.placeholderString;
+    safeField.font = originalField.font;
+    safeField.textColor = originalField.textColor;
+    safeField.backgroundColor = originalField.backgroundColor;
+    safeField.bordered = originalField.bordered;
+    safeField.bezeled = originalField.bezeled;
+    safeField.editable = originalField.editable;
+    safeField.selectable = originalField.selectable;
+    safeField.enabled = originalField.enabled;
+    safeField.hidden = originalField.hidden;
+    safeField.alignment = originalField.alignment;
+    safeField.tag = originalField.tag;
+    safeField.identifier = originalField.identifier;
+    safeField.toolTip = originalField.toolTip;
+    
+    // Copy cell properties
+    safeField.cell.scrollable = originalField.cell.scrollable;
+    safeField.cell.wraps = originalField.cell.wraps;
+    [safeField.cell setUsesSingleLineMode:[originalField.cell usesSingleLineMode]];
+    
+    // Disable Writing Tools
+    if ([safeField respondsToSelector:@selector(setAllowsWritingTools:)]) {
+        safeField.allowsWritingTools = NO;
+    }
+    
+    // Copy target/action if it exists
+    if (originalField.target && originalField.action) {
+        safeField.target = originalField.target;
+        safeField.action = originalField.action;
+    }
+    
+    // Replace in the view hierarchy
+    NSView *superview = originalField.superview;
+    if (superview) {
+        [superview replaceSubview:originalField with:safeField];
+    }
+    
+    return safeField;
 }
 
 @end
