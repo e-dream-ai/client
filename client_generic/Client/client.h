@@ -47,7 +47,7 @@
 #endif
 
 #ifdef MAC
-#define FULLSCREEN_MODIFIER_KEY "Cmd"
+#define FULLSCREEN_MODIFIER_KEY "Command"
 #else
 #define FULLSCREEN_MODIFIER_KEY "Control"
 #endif
@@ -250,14 +250,14 @@ class CElectricSheep
 #else
             "Use the remote control or keyboard to interact.\n\n"
 #endif
-            "Commands:\n"
-            "Cmd+R: open remote in your web browser\n"
-            "Cmd+B: browse playlists\n"
+            "Keyboard Commands:\n"
+            "Command-R: open remote control\n"
+            "Command-B: browse playlists\n"
             "Up-arrow: like this dream\n"
             "Down-arrow: dislike this dream and delete it\n"
             "Left-arrow: go back to play previous dream\n"
             "Right-arrow: go forward through history\n"
-            "A: playback slower\nD: playback faster\n"
+            "A: slower playback\nD: faster playback\n"
             "C: show credit\n"
             "B: report this dream\n"
             "L: skip 10 seconds forward\n"
