@@ -398,26 +398,38 @@ void CacheManager::cacheAndPlayImmediately(const std::string& uuid) {
 // MARK: - Disk space management
 std::uintmax_t CacheManager::getUsedSpace(const fs::path& path) const {
     try {
-        if (!fs::exists(path)) {
+        std::error_code ec;
+        
+        if (!fs::exists(path, ec) || ec) {
             g_Log->Error("Path does not exist: %s", path.string().c_str());
             return 0;
         }
         
-        if (!fs::is_directory(path)) {
+        if (!fs::is_directory(path, ec) || ec) {
             g_Log->Error("Path is not a directory: %s", path.string().c_str());
             return 0;
         }
 
         std::uintmax_t size = 0;
-        for (const auto& entry : fs::recursive_directory_iterator(path)) {
-            if (fs::is_regular_file(entry)) {
-                size += fs::file_size(entry);
+        
+        // Use error_code overload to avoid exceptions and prevent file descriptor leaks
+        for (const auto& entry : fs::recursive_directory_iterator(path, ec)) {
+            if (ec) {
+                g_Log->Warning("Error iterating directory %s: %s", path.string().c_str(), ec.message().c_str());
+                break; // Stop iteration to prevent further leaks
+            }
+            
+            if (fs::is_regular_file(entry, ec) && !ec) {
+                auto file_size = fs::file_size(entry, ec);
+                if (!ec) {
+                    size += file_size;
+                } else {
+                    g_Log->Warning("Cannot get file size for %s: %s", entry.path().string().c_str(), ec.message().c_str());
+                }
             }
         }
+        
         return size;
-    } catch (const fs::filesystem_error& e) {
-        g_Log->Error("Filesystem error in getUsedSpace: %s", e.what());
-        return 0;
     } catch (const std::exception& e) {
         g_Log->Error("Unexpected error in getUsedSpace: %s", e.what());
         return 0;
