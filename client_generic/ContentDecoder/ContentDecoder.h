@@ -172,9 +172,13 @@ class CContentDecoder
     void CloseCacheFile();
     void WriteToCache(const uint8_t* buf, int buf_size, int64_t position);
     std::string GenerateCacheFileName();
+    std::string GetFinalFileName() const;
     
     bool IsDownloadComplete() const;
     void FinalizeCacheFile();
+    
+    // Static mutex to ensure atomic file renaming across all instances
+    static std::mutex s_RenameMutex;
 };
 
 MakeSmartPointers(CContentDecoder);

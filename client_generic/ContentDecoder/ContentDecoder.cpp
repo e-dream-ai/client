@@ -27,6 +27,9 @@
 #include <algorithm>
 #include <filesystem>
 #include <future>
+#include <fcntl.h>
+#include <thread>
+#include <sstream>
 
 #include "ContentDecoder.h"
 #include "Log.h"
@@ -39,6 +42,9 @@ namespace fs = std::filesystem;
 
 namespace ContentDecoder
 {
+
+// Static mutex definition
+std::mutex CContentDecoder::s_RenameMutex;
 
 static void AVCodecLogCallback(void* /*_avcl*/, int _level, const char* _fmt,
                                va_list _vl)
@@ -401,6 +407,7 @@ int CContentDecoder::ReadPacket(void* opaque, uint8_t* buf, int buf_size)
         int64_t currentPos = avio_tell(decoder->m_pIOContext) - bytesRead;
         decoder->WriteToCache(buf, bytesRead, currentPos);
     }
+    
     return bytesRead;
 }
 
@@ -980,6 +987,7 @@ bool CContentDecoder::OpenCacheFile() {
 
 void CContentDecoder::CloseCacheFile() {
     if (m_CacheFile) {
+        fflush(m_CacheFile);
         fclose(m_CacheFile);
         m_CacheFile = nullptr;
     }
@@ -989,19 +997,46 @@ void CContentDecoder::WriteToCache(const uint8_t* buf, int buf_size, int64_t pos
 {
     if (m_CacheFile && buf && buf_size > 0) {
         std::lock_guard<std::mutex> lock(m_CacheMutex);
-        if (position == m_CacheWritePosition) {
-            fseek(m_CacheFile, m_CacheWritePosition, SEEK_SET);
-            fwrite(buf, 1, buf_size, m_CacheFile);
-            fflush(m_CacheFile);
-            m_CacheWritePosition += buf_size;
+        
+        // Handle position mismatches (FFmpeg may seek around)
+        if (position != m_CacheWritePosition) {
+            if (position > m_CacheWritePosition) {
+                // Update our write position to match FFmpeg's expectation
+                m_CacheWritePosition = position;
+            }
         }
+        
+        fseek(m_CacheFile, m_CacheWritePosition, SEEK_SET);
+        size_t written = fwrite(buf, 1, buf_size, m_CacheFile);
+        
+        // Check for write errors
+        if (written != (size_t)buf_size) {
+            g_Log->Error("Write mismatch for %s: expected %d, wrote %zu", 
+                         m_Metadata.dreamData.uuid.c_str(), buf_size, written);
+        }
+        
+        fflush(m_CacheFile);
+        m_CacheWritePosition += buf_size;
     }
 }
 
 std::string CContentDecoder::GenerateCacheFileName() {
     std::string uuid = m_Metadata.dreamData.uuid;
     fs::path mp4Path = Cache::PathManager::getInstance().mp4Path();
-    return (mp4Path / (uuid + ".tmp")).string();
+    
+    // Add thread ID to make filename unique per thread to prevent race conditions
+    std::thread::id threadId = std::this_thread::get_id();
+    std::ostringstream oss;
+    oss << threadId;
+    std::string threadIdStr = oss.str();
+    
+    return (mp4Path / (uuid + "_" + threadIdStr + ".tmp")).string();
+}
+
+std::string CContentDecoder::GetFinalFileName() const {
+    std::string uuid = m_Metadata.dreamData.uuid;
+    fs::path mp4Path = Cache::PathManager::getInstance().mp4Path();
+    return (mp4Path / (uuid + ".mp4")).string();
 }
 
 bool CContentDecoder::IsDownloadComplete() const
@@ -1029,19 +1064,49 @@ void CContentDecoder::FinalizeCacheFile()
 
     if (m_IsStreaming && IsDownloadComplete() && !m_CachePath.empty())
     {
-        CloseCacheFile();  // Close the current .tmp file
+        // File integrity checks - ensure file is properly closed and flushed
+        if (m_CacheFile) {
+            fflush(m_CacheFile);
+            
+            // Platform-specific sync to ensure data is written to disk
+            int fd = fileno(m_CacheFile);
+#ifdef __APPLE__
+            // On macOS, use F_BARRIERFSYNC for proper flush
+            if (fcntl(fd, F_BARRIERFSYNC) == -1) {
+                g_Log->Warning("F_BARRIERFSYNC failed for %s", m_Metadata.dreamData.uuid.c_str());
+            }
+#else
+            // On Linux/other platforms, use fsync
+            fsync(fd);
+#endif
+            
+            fclose(m_CacheFile);
+            m_CacheFile = nullptr;
+        }
 
         fs::path tmpPath(m_CachePath);
-        fs::path finalPath = tmpPath.parent_path() / (tmpPath.stem().string() + ".mp4");
+        fs::path finalPath = GetFinalFileName();
 
         // Only proceed with verification if we have an MD5 hash
         if (!m_Metadata.dreamData.md5.empty()) {
+            // Re-open for MD5 calculation to ensure all data is written
+            FILE* verifyHandle = fopen(tmpPath.string().c_str(), "rb");
+            if (!verifyHandle) {
+                g_Log->Error("Failed to re-open file for MD5 verification: %s", tmpPath.string().c_str());
+                fs::remove(tmpPath);
+                m_CachePath.clear();
+                return;
+            }
+            fclose(verifyHandle);
+            
             std::string downloadedMd5 = PlatformUtils::CalculateFileMD5(tmpPath.string());
+            
             if (downloadedMd5 != m_Metadata.dreamData.md5) {
                 g_Log->Error("Streaming MD5 mismatch for %s. Expected: %s, Got: %s",
                              m_Metadata.dreamData.uuid.c_str(),
                              m_Metadata.dreamData.md5.c_str(),
                              downloadedMd5.c_str());
+                
                 EDreamClient::ReportMD5Failure(m_Metadata.dreamData.uuid, downloadedMd5, true);
                 fs::remove(tmpPath);
                 m_CachePath.clear();
@@ -1057,20 +1122,29 @@ void CContentDecoder::FinalizeCacheFile()
         
         try
         {
-            if (fs::exists(tmpPath) && !fs::exists(finalPath))
-            {
-                fs::rename(tmpPath, finalPath);
-                g_Log->Info("Successfully renamed cache file from %s to %s", tmpPath.string().c_str(), finalPath.string().c_str());
-                m_CachePath.clear();  // Clear the cache path to indicate we've finalized
+            if (fs::exists(tmpPath)) {
+                // Use static mutex to ensure atomic rename operation across all threads
+                std::lock_guard<std::mutex> renameLock(s_RenameMutex);
                 
-                // Now we let our cache know the file is there
-                Cache::CacheManager::DiskCachedItem newDiskItem;
-                newDiskItem.uuid = m_Metadata.dreamData.uuid;
-                newDiskItem.version = m_Metadata.dreamData.video_timestamp;
-                newDiskItem.downloadDate = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+                if (!fs::exists(finalPath)) {
+                    fs::rename(tmpPath, finalPath);
+                    g_Log->Info("Successfully renamed cache file from %s to %s", tmpPath.string().c_str(), finalPath.string().c_str());
+                    m_CachePath.clear();  // Clear the cache path to indicate we've finalized
+                    
+                    // Now we let our cache know the file is there
+                    Cache::CacheManager::DiskCachedItem newDiskItem;
+                    newDiskItem.uuid = m_Metadata.dreamData.uuid;
+                    newDiskItem.version = m_Metadata.dreamData.video_timestamp;
+                    newDiskItem.downloadDate = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
-                Cache::CacheManager& cm = Cache::CacheManager::getInstance();
-                cm.addDiskCachedItem(newDiskItem);
+                    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+                    cm.addDiskCachedItem(newDiskItem);
+                } else {
+                    g_Log->Info("Final file %s already exists, removing temporary file %s", 
+                                finalPath.string().c_str(), tmpPath.string().c_str());
+                    fs::remove(tmpPath);
+                    m_CachePath.clear();
+                }
             }
         }
         catch (const fs::filesystem_error& e)
