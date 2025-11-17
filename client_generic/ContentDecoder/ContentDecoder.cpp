@@ -853,7 +853,7 @@ void CContentDecoder::ReadFramesThread()
     }
     catch (thread_interrupted const&)
     {
-        g_Log->Info("Ending main video frame reading thread for %s", m_Metadata.dreamData.uuid.c_str());
+        g_Log->Info("Thread Interrupted: Ending main video frame reading thread for %s", m_Metadata.dreamData.uuid.c_str());
 
         // Before opening a thread to grab the remainder of the video ,make sure we intend to save it
         if (!m_isShuttingDown.load() && m_IsStreaming && !m_Metadata.dreamData.md5.empty()) {

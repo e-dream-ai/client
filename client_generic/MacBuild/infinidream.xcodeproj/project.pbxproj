@@ -40,8 +40,6 @@
 		12579D4A2B83C99100604B41 /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 12D020022B83C86C0036357D /* libssl.a */; };
 		1270D0EF2B28975500E1DCE3 /* PlatformUtils_Mac.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1270D0EE2B28975400E1DCE3 /* PlatformUtils_Mac.mm */; };
 		1270D0F02B28975500E1DCE3 /* PlatformUtils_Mac.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1270D0EE2B28975400E1DCE3 /* PlatformUtils_Mac.mm */; };
-		12A00CD12B0D22A4001C0792 /* Trebuchet MS.sddf in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD02B0D22A4001C0792 /* Trebuchet MS.sddf */; };
-		12A00CD32B0D22B4001C0792 /* Trebuchet MS.sddf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 12A00CD02B0D22A4001C0792 /* Trebuchet MS.sddf */; };
 		12A00CD52B0D31E6001C0792 /* Lato.sddf in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD42B0D31E6001C0792 /* Lato.sddf */; };
 		12A00CD72B0D31F9001C0792 /* Lato.sddf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 12A00CD42B0D31E6001C0792 /* Lato.sddf */; };
 		12A00CD92B0FCA39001C0792 /* infinidream.icns in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD82B0FCA39001C0792 /* infinidream.icns */; };
@@ -61,8 +59,6 @@
 		211CDDDD0ED0BD9200EB9394 /* Upload.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDDA0ED0BD9200EB9394 /* Upload.cpp */; };
 		212313270F503C4500702B2C /* ContentDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212313190F503C4500702B2C /* ContentDownloader.cpp */; };
 		2123132E0F503C4500702B2C /* ContentDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212313190F503C4500702B2C /* ContentDownloader.cpp */; };
-		212CAF841141CA3F009DA85A /* TrebuchetMS-20.glf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 212CAF831141CA3F009DA85A /* TrebuchetMS-20.glf */; };
-		212CAF851141CA3F009DA85A /* TrebuchetMS-20.glf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 212CAF831141CA3F009DA85A /* TrebuchetMS-20.glf */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		2135D2690EC70571005E246D /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2135D2670EC70571005E246D /* AppKit.framework */; };
 		2135DA530EC7479A005E246D /* ESScreensaverView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA520EC7479A005E246D /* ESScreensaverView.mm */; };
 		2135DA550EC74853005E246D /* ESScreensaver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA540EC74853005E246D /* ESScreensaver.cpp */; };
@@ -105,8 +101,6 @@
 		2160FEEA0F30F9FB00B2C27A /* vote-up.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE1A0F30F82800B2C27A /* vote-up.png */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		2160FEED0F30F9FB00B2C27A /* logo.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE240F30F82800B2C27A /* logo.png */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		2161F1940ECF8CEF00FE48E9 /* libz.1.2.5.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1AD90E8E6E0100CE185C /* libz.1.2.5.dylib */; };
-		2187F3860F463AA20004F8F9 /* TrebuchetMS-24.glf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2187F3850F463A740004F8F9 /* TrebuchetMS-24.glf */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		2187F3870F463AB50004F8F9 /* TrebuchetMS-24.glf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2187F3850F463A740004F8F9 /* TrebuchetMS-24.glf */; };
 		218878D50EC6CDE2001ABD2E /* Common.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B192A0E8E591000CE185C /* Common.cpp */; };
 		218878D60EC6CDE2001ABD2E /* Exception.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B192B0E8E591000CE185C /* Exception.cpp */; };
 		218878D70EC6CDE2001ABD2E /* Log.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B192C0E8E591000CE185C /* Log.cpp */; };
@@ -370,7 +364,6 @@
 		F0C100122C1372EF007FA505 /* osd-pill-b.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994572BA0912300B018C7 /* osd-pill-b.png */; };
 		F0C100132C1372EF007FA505 /* osd-forward.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994632BA0A07100B018C7 /* osd-forward.png */; };
 		F0C100142C1372EF007FA505 /* osd-bg-700.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994562BA0912300B018C7 /* osd-bg-700.png */; };
-		F0C100152C1372EF007FA505 /* Trebuchet MS.sddf in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD02B0D22A4001C0792 /* Trebuchet MS.sddf */; };
 		F0C100162C1372EF007FA505 /* osd-play.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994642BA0A07200B018C7 /* osd-play.png */; };
 		F0C100172C1372EF007FA505 /* Lato-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4628A55D2B0F84EF001C3078 /* Lato-Regular.ttf */; };
 		F0C100182C1372EF007FA505 /* osd-pill.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994552BA0912200B018C7 /* osd-pill.png */; };
@@ -457,8 +450,6 @@
 		F0C100762C1372EF007FA505 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2135D2670EC70571005E246D /* AppKit.framework */; };
 		F0C100772C1372EF007FA505 /* VideoDecodeAcceleration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2197D56119B06F4600EFA1F2 /* VideoDecodeAcceleration.framework */; };
 		F0C100782C1372EF007FA505 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 21CE8E3B0F6EE12B00DDF96A /* SystemConfiguration.framework */; };
-		F0C1007A2C1372EF007FA505 /* TrebuchetMS-20.glf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 212CAF831141CA3F009DA85A /* TrebuchetMS-20.glf */; };
-		F0C1007B2C1372EF007FA505 /* TrebuchetMS-24.glf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2187F3850F463A740004F8F9 /* TrebuchetMS-24.glf */; };
 		F0C1007C2C1372EF007FA505 /* vote-down.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE190F30F82800B2C27A /* vote-down.png */; };
 		F0C1007D2C1372EF007FA505 /* vote-up.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE1A0F30F82800B2C27A /* vote-up.png */; };
 		F0C1007E2C1372EF007FA505 /* logo.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE240F30F82800B2C27A /* logo.png */; };
@@ -575,9 +566,6 @@
 		F0E9CEA22C136B0500C4D694 /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49DA2AB8864600C77F6D /* VideoToolbox.framework */; };
 		F0E9CEA32C136B0500C4D694 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 21CE8E3B0F6EE12B00DDF96A /* SystemConfiguration.framework */; };
 		F0E9CEA52C136B0500C4D694 /* Lato.sddf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 12A00CD42B0D31E6001C0792 /* Lato.sddf */; };
-		F0E9CEA62C136B0500C4D694 /* Trebuchet MS.sddf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 12A00CD02B0D22A4001C0792 /* Trebuchet MS.sddf */; };
-		F0E9CEA72C136B0500C4D694 /* TrebuchetMS-20.glf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 212CAF831141CA3F009DA85A /* TrebuchetMS-20.glf */; };
-		F0E9CEA82C136B0500C4D694 /* TrebuchetMS-24.glf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2187F3850F463A740004F8F9 /* TrebuchetMS-24.glf */; };
 		F0E9CEA92C136B0500C4D694 /* vote-down.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE190F30F82800B2C27A /* vote-down.png */; };
 		F0E9CEAA2C136B0500C4D694 /* vote-up.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE1A0F30F82800B2C27A /* vote-up.png */; };
 		F0E9CEAB2C136B0500C4D694 /* logo.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE240F30F82800B2C27A /* logo.png */; };
@@ -658,9 +646,6 @@
 			dstSubfolderSpec = 7;
 			files = (
 				12A00CD72B0D31F9001C0792 /* Lato.sddf in CopyFiles */,
-				12A00CD32B0D22B4001C0792 /* Trebuchet MS.sddf in CopyFiles */,
-				212CAF841141CA3F009DA85A /* TrebuchetMS-20.glf in CopyFiles */,
-				2187F3870F463AB50004F8F9 /* TrebuchetMS-24.glf in CopyFiles */,
 				2160FE7C0F30F8A000B2C27A /* vote-down.png in CopyFiles */,
 				2160FE7D0F30F8A000B2C27A /* vote-up.png in CopyFiles */,
 				2160FE800F30F8A000B2C27A /* logo.png in CopyFiles */,
@@ -674,8 +659,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 7;
 			files = (
-				212CAF851141CA3F009DA85A /* TrebuchetMS-20.glf in CopyFiles */,
-				2187F3860F463AA20004F8F9 /* TrebuchetMS-24.glf in CopyFiles */,
 				2160FEE90F30F9FB00B2C27A /* vote-down.png in CopyFiles */,
 				2160FEEA0F30F9FB00B2C27A /* vote-up.png in CopyFiles */,
 				2160FEED0F30F9FB00B2C27A /* logo.png in CopyFiles */,
@@ -688,8 +671,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 7;
 			files = (
-				F0C1007A2C1372EF007FA505 /* TrebuchetMS-20.glf in CopyFiles */,
-				F0C1007B2C1372EF007FA505 /* TrebuchetMS-24.glf in CopyFiles */,
 				F0C1007C2C1372EF007FA505 /* vote-down.png in CopyFiles */,
 				F0C1007D2C1372EF007FA505 /* vote-up.png in CopyFiles */,
 				F0C1007E2C1372EF007FA505 /* logo.png in CopyFiles */,
@@ -712,9 +693,6 @@
 			dstSubfolderSpec = 7;
 			files = (
 				F0E9CEA52C136B0500C4D694 /* Lato.sddf in CopyFiles */,
-				F0E9CEA62C136B0500C4D694 /* Trebuchet MS.sddf in CopyFiles */,
-				F0E9CEA72C136B0500C4D694 /* TrebuchetMS-20.glf in CopyFiles */,
-				F0E9CEA82C136B0500C4D694 /* TrebuchetMS-24.glf in CopyFiles */,
 				F0E9CEA92C136B0500C4D694 /* vote-down.png in CopyFiles */,
 				F0E9CEAA2C136B0500C4D694 /* vote-up.png in CopyFiles */,
 				F0E9CEAB2C136B0500C4D694 /* logo.png in CopyFiles */,
@@ -794,7 +772,6 @@
 		1270D0EA2B28960500E1DCE3 /* PlatformUtils.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = PlatformUtils.h; path = ../Client/PlatformUtils.h; sourceTree = "<group>"; };
 		1270D0EE2B28975400E1DCE3 /* PlatformUtils_Mac.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PlatformUtils_Mac.mm; sourceTree = "<group>"; };
 		12726C132B694F36003C0FF6 /* infinidream App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "infinidream App.entitlements"; sourceTree = "<group>"; };
-		12A00CD02B0D22A4001C0792 /* Trebuchet MS.sddf */ = {isa = PBXFileReference; lastKnownFileType = file.bplist; path = "Trebuchet MS.sddf"; sourceTree = "<group>"; };
 		12A00CD42B0D31E6001C0792 /* Lato.sddf */ = {isa = PBXFileReference; lastKnownFileType = file.bplist; path = Lato.sddf; sourceTree = "<group>"; };
 		12A00CD82B0FCA39001C0792 /* infinidream.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = infinidream.icns; sourceTree = SOURCE_ROOT; };
 		12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "e-dream-attr.png"; sourceTree = "<group>"; };
@@ -835,7 +812,6 @@
 		212B1ABD0E8E69F700CE185C /* libboost_thread.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_thread.a; path = ../boost/osx/lib/libboost_thread.a; sourceTree = SOURCE_ROOT; };
 		212B1AD90E8E6E0100CE185C /* libz.1.2.5.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.1.2.5.dylib; path = usr/lib/libz.1.2.5.dylib; sourceTree = SDKROOT; };
 		212B1ADD0E8E6E5000CE185C /* libbz2.1.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libbz2.1.0.dylib; path = usr/lib/libbz2.1.0.dylib; sourceTree = SDKROOT; };
-		212CAF831141CA3F009DA85A /* TrebuchetMS-20.glf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "TrebuchetMS-20.glf"; sourceTree = "<group>"; };
 		2135D2670EC70571005E246D /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
 		2135DA520EC7479A005E246D /* ESScreensaverView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ESScreensaverView.mm; sourceTree = "<group>"; };
 		2135DA540EC74853005E246D /* ESScreensaver.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ESScreensaver.cpp; sourceTree = "<group>"; };
@@ -847,7 +823,6 @@
 		2160FE190F30F82800B2C27A /* vote-down.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "vote-down.png"; sourceTree = "<group>"; };
 		2160FE1A0F30F82800B2C27A /* vote-up.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "vote-up.png"; sourceTree = "<group>"; };
 		2160FE240F30F82800B2C27A /* logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = logo.png; sourceTree = "<group>"; };
-		2187F3850F463A740004F8F9 /* TrebuchetMS-24.glf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "TrebuchetMS-24.glf"; sourceTree = "<group>"; };
 		218878D00EC6CD7E001ABD2E /* infinidream.saver */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = infinidream.saver; sourceTree = BUILT_PRODUCTS_DIR; };
 		218878D10EC6CD7E001ABD2E /* ScreenSaver-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "ScreenSaver-Info.plist"; sourceTree = "<group>"; };
 		2188A6CF17EB94F30078C91C /* ApplicationServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ApplicationServices.framework; path = System/Library/Frameworks/ApplicationServices.framework; sourceTree = SDKROOT; };
@@ -1474,9 +1449,6 @@
 				12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */,
 				21006FBD1017BC2C004A6511 /* Credits.html */,
 				12A00CD82B0FCA39001C0792 /* infinidream.icns */,
-				212CAF831141CA3F009DA85A /* TrebuchetMS-20.glf */,
-				2187F3850F463A740004F8F9 /* TrebuchetMS-24.glf */,
-				12A00CD02B0D22A4001C0792 /* Trebuchet MS.sddf */,
 				12A00CD42B0D31E6001C0792 /* Lato.sddf */,
 				4628A55D2B0F84EF001C3078 /* Lato-Regular.ttf */,
 				2160FE190F30F82800B2C27A /* vote-down.png */,
@@ -1797,7 +1769,6 @@
 				F05994602BA0912300B018C7 /* osd-pill-b.png in Resources */,
 				F059946D2BA0A07300B018C7 /* osd-forward.png in Resources */,
 				F059945E2BA0912300B018C7 /* osd-bg-700.png in Resources */,
-				12A00CD12B0D22A4001C0792 /* Trebuchet MS.sddf in Resources */,
 				F02C15172E0194BB00BFFFF4 /* ThanksStepViewController.xib in Resources */,
 				F059946F2BA0A07300B018C7 /* osd-play.png in Resources */,
 				F06C22AC2DA6CAE500D54DB2 /* osd-report.png in Resources */,
@@ -1882,7 +1853,6 @@
 				F0C100122C1372EF007FA505 /* osd-pill-b.png in Resources */,
 				F0C100132C1372EF007FA505 /* osd-forward.png in Resources */,
 				F0C100142C1372EF007FA505 /* osd-bg-700.png in Resources */,
-				F0C100152C1372EF007FA505 /* Trebuchet MS.sddf in Resources */,
 				F02C15112E0194BB00BFFFF4 /* ThanksStepViewController.xib in Resources */,
 				F0C100162C1372EF007FA505 /* osd-play.png in Resources */,
 				F06C22AE2DA6CAE500D54DB2 /* osd-report.png in Resources */,
