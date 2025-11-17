@@ -154,7 +154,7 @@ public:
         
         DisplayOutput::spCImage tmpForward(new DisplayOutput::CImage());
         if (tmpForward->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
-                           "osd-forward.png", false))
+                           "osd-next.png", false))
         {
             m_spForwardTexture = g_Player().Renderer()->NewTextureFlat();
             m_spForwardTexture->Upload(tmpForward);

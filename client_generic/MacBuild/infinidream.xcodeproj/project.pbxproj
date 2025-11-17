@@ -49,6 +49,10 @@
 		12A00CDC2B0FCA6C001C0792 /* e-dream-attr.png in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */; };
 		12A00CDD2B0FCA6C001C0792 /* e-dream-attr.png in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */; };
 		12CA4A462B83DE3D00A2EAD6 /* libsioclient_tls.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 12CA4A452B83DE3D00A2EAD6 /* libsioclient_tls.a */; };
+		1BEBFE3E2ECB6B2B00F39019 /* osd-next.png in Resources */ = {isa = PBXBuildFile; fileRef = 1BEBFE3D2ECB6B2B00F39019 /* osd-next.png */; };
+		1BEBFE3F2ECB6B2B00F39019 /* osd-next.png in Resources */ = {isa = PBXBuildFile; fileRef = 1BEBFE3D2ECB6B2B00F39019 /* osd-next.png */; };
+		1BEBFE402ECB6B2B00F39019 /* osd-next.png in Resources */ = {isa = PBXBuildFile; fileRef = 1BEBFE3D2ECB6B2B00F39019 /* osd-next.png */; };
+		1BEBFE412ECB6B2B00F39019 /* osd-next.png in Resources */ = {isa = PBXBuildFile; fileRef = 1BEBFE3D2ECB6B2B00F39019 /* osd-next.png */; };
 		21006FC81017BC4B004A6511 /* Credits.html in CopyFiles */ = {isa = PBXBuildFile; fileRef = 21006FBD1017BC2C004A6511 /* Credits.html */; };
 		210335040F549BEF00A83F17 /* AlignedBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 210335030F549BEF00A83F17 /* AlignedBuffer.cpp */; };
 		210335050F549BEF00A83F17 /* AlignedBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 210335030F549BEF00A83F17 /* AlignedBuffer.cpp */; };
@@ -796,6 +800,7 @@
 		12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "e-dream-attr.png"; sourceTree = "<group>"; };
 		12CA4A452B83DE3D00A2EAD6 /* libsioclient_tls.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libsioclient_tls.a; path = "../socket.io-client-cpp/lib/libsioclient_tls.a"; sourceTree = "<group>"; };
 		12D020022B83C86C0036357D /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = "../openssl-1.0.2k/MacOS/lib/libssl.a"; sourceTree = "<group>"; };
+		1BEBFE3D2ECB6B2B00F39019 /* osd-next.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-next.png"; sourceTree = "<group>"; };
 		21006FBD1017BC2C004A6511 /* Credits.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = Credits.html; sourceTree = SOURCE_ROOT; };
 		21008B760EB7D69900E64796 /* Console.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Console.h; path = ../Client/Console.h; sourceTree = SOURCE_ROOT; };
 		210335030F549BEF00A83F17 /* AlignedBuffer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AlignedBuffer.cpp; path = ../Common/AlignedBuffer.cpp; sourceTree = SOURCE_ROOT; };
@@ -1464,6 +1469,7 @@
 		2160FE160F30F82800B2C27A /* Runtime */ = {
 			isa = PBXGroup;
 			children = (
+				1BEBFE3D2ECB6B2B00F39019 /* osd-next.png */,
 				21934CB819F3C2430096E7D7 /* thumbnail.tif */,
 				12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */,
 				21006FBD1017BC2C004A6511 /* Credits.html */,
@@ -1775,6 +1781,7 @@
 				1243576C2B31FC1B00CCD62A /* BuildData.json in Resources */,
 				12A00CD52B0D31E6001C0792 /* Lato.sddf in Resources */,
 				F05994732BA0A07300B018C7 /* osd-forward10.png in Resources */,
+				1BEBFE3E2ECB6B2B00F39019 /* osd-next.png in Resources */,
 				F05994752BA0A07300B018C7 /* osd-brightness.png in Resources */,
 				F0F6D4262BCD504500222647 /* osd-like.png in Resources */,
 				21AAA0BD0F7040B500AC23A8 /* ElectricSheep.nib in Resources */,
@@ -1815,6 +1822,7 @@
 				F0B754512DBFCE4400C59D7A /* network.png in Resources */,
 				F02C150B2E0194A000BFFFF4 /* CodeStepViewController.xib in Resources */,
 				F05994722BA0A07300B018C7 /* osd-speed.png in Resources */,
+				1BEBFE3F2ECB6B2B00F39019 /* osd-next.png in Resources */,
 				F05994592BA0912300B018C7 /* osd-pill-r.png in Resources */,
 				F059945F2BA0912300B018C7 /* osd-bg-700.png in Resources */,
 				F05994782BA0A07300B018C7 /* osd-pause.png in Resources */,
@@ -1858,6 +1866,7 @@
 				F0C100052C1372EF007FA505 /* BuildData.json in Resources */,
 				F0C100062C1372EF007FA505 /* Lato.sddf in Resources */,
 				F0C100072C1372EF007FA505 /* osd-forward10.png in Resources */,
+				1BEBFE412ECB6B2B00F39019 /* osd-next.png in Resources */,
 				F0C100082C1372EF007FA505 /* osd-brightness.png in Resources */,
 				F0C100092C1372EF007FA505 /* osd-like.png in Resources */,
 				F0C1000A2C1372EF007FA505 /* ElectricSheep.nib in Resources */,
@@ -1898,6 +1907,7 @@
 				F0B754532DBFCE4400C59D7A /* network.png in Resources */,
 				F02C15082E0194A000BFFFF4 /* CodeStepViewController.xib in Resources */,
 				F0E9CE2F2C136B0500C4D694 /* osd-speed.png in Resources */,
+				1BEBFE402ECB6B2B00F39019 /* osd-next.png in Resources */,
 				F0E9CE302C136B0500C4D694 /* osd-pill-r.png in Resources */,
 				F0E9CE312C136B0500C4D694 /* osd-bg-700.png in Resources */,
 				F0E9CE322C136B0500C4D694 /* osd-pause.png in Resources */,
