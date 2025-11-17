@@ -34,8 +34,6 @@
 #include "StringFormat.h"
 #include "CacheManager.h"
 
-#include <atomic>
-
 #if defined(WIN32) && defined(_MSC_VER)
 #include "../msvc/cpu_usage_win32.h"
 #include "../msvc/msvc_fix.h"
@@ -83,8 +81,6 @@ class CElectricSheep
   private:
     Cache::MessageQueue m_MessageQueue;
     bool wasShowingBufferIndicator = false;
-    // Guard to prevent re-entrancy of the CLIENT_COMMAND_NEXT execution
-    std::atomic_flag m_nextCommandRunning = ATOMIC_FLAG_INIT;
 
   protected:
     ESCpuUsage m_CpuUsage;
@@ -107,10 +103,10 @@ class CElectricSheep
 
     double m_PNGDelayTimer;
 
-    //    The base framerate(from config).
+    //	The base framerate(from config).
     double m_PlayerFps;
 
-    //    Potentially adjusted framerate(from <- and -> keys)
+    //	Potentially adjusted framerate(from <- and -> keys)
     double m_CurrentFps;
     double m_OriginalFps;
 
@@ -121,10 +117,10 @@ class CElectricSheep
     // internal brightness counter
     int m_Brightness = 0;
     
-    //    Default root directory, ie application data.
+    //	Default root directory, ie application data.
     std::string m_AppData;
 
-    //    Default application working directory.
+    //	Default application working directory.
     std::string m_WorkingDir;
 
     // Our OSD
@@ -151,7 +147,7 @@ class CElectricSheep
     std::mutex m_BarrierMutex;
 #endif
 
-    //    Init tuplestorage.
+    //	Init tuplestorage.
     bool InitStorage(bool _bReadOnly = false)
     {
         g_Log->Info("InitStorage()");
@@ -164,7 +160,7 @@ class CElectricSheep
 #endif
             return false;
 
-        //    Trigger this to exist in the settings.
+        //	Trigger this to exist in the settings.
         // We reset the installdir at launch here, ensuring the bundle can be moved around
 #ifndef LINUX_GNU
         g_Settings()->Set("settings.app.InstallDir", m_WorkingDir);
@@ -175,7 +171,7 @@ class CElectricSheep
         return true;
     }
 
-    //    Attach log.
+    //	Attach log.
     void AttachLog()
     {
         TupleStorage::IStorageInterface::CreateFullDirectory(m_AppData +
@@ -216,13 +212,6 @@ class CElectricSheep
     }
 
     virtual ~CElectricSheep() {}
-
-    // Called by the player when a NEXT operation completes (including async path).
-    // This clears the internal NEXT guard so new NEXT commands may be accepted.
-    void NotifyNextCommandCompleted() {
-        m_nextCommandRunning.clear();
-        g_Log->Info("cleared for next command notified");
-    }
 
     Hud::spCHudManager GetHudManager() const { return m_HudManager; }
     
@@ -481,7 +470,7 @@ class CElectricSheep
         {
             g_NetworkManager->Startup();
 
-            //    Set proxy info.
+            //	Set proxy info.
             SetupProxy();
         }
 
@@ -489,7 +478,7 @@ class CElectricSheep
             (CPlayer::MultiDisplayMode)g_Settings()->Get(
                 "settings.player.MultiDisplayMode", 0));
 
-        //    Init the display and create decoder.
+        //	Init the display and create decoder.
         if (!g_Player().Startup())
             return false;
 
@@ -512,7 +501,7 @@ class CElectricSheep
             true);
         
 
-        //    For testing...
+        //	For testing...
         /*ContentDownloader::Shepherd::addMessageText(
             "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do "
             "eiusmod tempor incididunt ut labore et dolore magna aliqua",
@@ -562,7 +551,7 @@ class CElectricSheep
                 hideCursorDispatch->DispatchAfter(5);
             });
 
-        //    And we're off.
+        //	And we're off.
         m_SplashPNGDelayTimer.Reset();
         m_Timer.Reset();
         g_Player().Start();
@@ -592,7 +581,7 @@ class CElectricSheep
         {
             g_ContentDownloader().Shutdown();
 
-            //    This stuff was never started in config mode.
+            //	This stuff was never started in config mode.
             if (m_MultipleInstancesMode == false)
             {
                 g_NetworkManager->Shutdown();
@@ -625,7 +614,7 @@ class CElectricSheep
     {
         std::stringstream ss;
 
-        //    Prettify uptime.
+        //	Prettify uptime.
         uint32_t seconds = (timediff % 60);
         uint32_t minutes = (timediff / 60) % 60;
         uint32_t hours = (timediff / 3600) % 24;
@@ -884,7 +873,7 @@ class CElectricSheep
                     else
                         pTmp->Visible(false);
                 }
-                //    Process any server messages.
+                //	Process any server messages.
                 std::string msg;
                 double duration;
 /*
@@ -1031,7 +1020,7 @@ class CElectricSheep
                 // Update and display the time until next playlist check
                 updateNextCheckTimeDisplay();
                 
-                //    Update some stats.
+                //	Update some stats.
                 spStats =
                     std::dynamic_pointer_cast<Hud::CStatsConsole>(
                         m_HudManager->Get("dreamstats"));
@@ -1133,7 +1122,7 @@ class CElectricSheep
                     ->SetSample(string_format("playlist: %s",g_Player().GetPlaylistName().c_str()));
                 }
                 
-                //    Serverstats.
+                //	Serverstats.
                 spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
                     m_HudManager->Get("dreamstats"));
 
@@ -1254,10 +1243,10 @@ class CElectricSheep
                     }
                 }
 
-                //    Finally render hud.
+                //	Finally render hud.
                 m_HudManager->Render(g_Player().Renderer());
 
-                //    Update display events.
+                //	Update display events.
                 g_Player().Display()->Update();
             }
 
@@ -1415,16 +1404,6 @@ class CElectricSheep
                 return true;
                 //  Force Next Sheep
             case CLIENT_COMMAND_NEXT:
-                // Prevent running NEXT while a previous NEXT is still executing.
-                // We set the guard here and leave it set until the Player signals completion
-                // by calling NotifyNextCommandCompleted(). This ensures NEXT remains blocked
-                // while async work triggered by SkipToNext runs.
-                if (m_nextCommandRunning.test_and_set()) {
-                    // Already running — ignore duplicate request.
-                    g_Log->Info("Skipping next command");
-                    return true;
-                }
-
                 popOSD(Hud::Next);
                 
                 /*if (g_Player().m_CurrentClips.size() > 1) {
