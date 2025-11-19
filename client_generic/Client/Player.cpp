@@ -510,7 +510,7 @@ bool CPlayer::BeginFrameUpdate()
         if (lastReportedUUID != m_currentClip->GetClipMetadata().dreamData.uuid) {
             lastReportedUUID = m_currentClip->GetClipMetadata().dreamData.uuid;
             // @TODO : Will later need more context eg screen, isScreenSaver, hardware id, etc
-            EDreamClient::SendPlayingDream(lastReportedUUID);
+            EDreamClient::SendPlayingDream(lastReportedUUID, m_playlistManager->getPlaylistUUID(), std::to_string(GetPerceptualFPS()), std::to_string(m_TimelineTime));
         }
     }
 

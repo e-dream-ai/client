@@ -81,7 +81,7 @@ private:
 
   public:
     static void ConnectRemoteControlSocket();
-    static void SendPlayingDream(std::string uuid);
+    static void SendPlayingDream(std::string uuid, std::string playlistUUID = "", std::string speed = "", std::string timecode = "");
     static void SendPing();
 
     static void Like(std::string uuid);

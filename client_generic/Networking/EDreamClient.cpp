@@ -1855,13 +1855,16 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
     }
 }
 
-void EDreamClient::SendPlayingDream(std::string uuid) 
+void EDreamClient::SendPlayingDream(std::string uuid, std::string playlistUUID, std::string speed, std::string timecode)
 {
     std::shared_ptr<sio::object_message> ms =
         std::dynamic_pointer_cast<sio::object_message>(
             sio::object_message::create());
     ms->insert("event", "playing");
     ms->insert("uuid", uuid);
+    ms->insert("playlist_uuid", playlistUUID);
+    ms->insert("speed", speed);
+    ms->insert("timecode", timecode);
 
     sio::message::list list;
     list.push(ms);
