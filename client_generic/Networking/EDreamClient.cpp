@@ -654,7 +654,7 @@ EDreamClient::AuthResult EDreamClient::SendCode() {
                 boost::json::value response = boost::json::parse(readBuffer);
                 if (response.is_object() && response.as_object().contains("message")) {
                     // Extract just the error message from the JSON
-                    errorMessage = response.as_object()["message"].as_string();
+                    errorMessage = response.as_object()["message"].as_string().c_str();
                 } else {
                     errorMessage = readBuffer; // Use full response if not in expected format
                 }
