@@ -300,10 +300,41 @@ static void signnal_handler(int signal)
 
 - (void)windowDidResize
 {
-    view.frame = self.frame;
+    // Set background to black for letterboxing/pillarboxing
+    if (self.window) {
+        self.window.backgroundColor = [NSColor blackColor];
+    }
 
-    ESScreensaver_ForceWidthAndHeight((uint32_t)self.frame.size.width,
-                                      (uint32_t)self.frame.size.height);
+    // Calculate 16:9 constrained frame within the window
+    NSRect videoFrame = self.frame;
+    float frameAR = self.frame.size.width / self.frame.size.height;
+    float targetAR = 16.0f / 9.0f;
+
+    // Only adjust if aspect ratio differs significantly from 16:9
+    if (fabsf(frameAR - targetAR) > 0.01f)
+    {
+        NSSize constrainedSize = self.frame.size;
+
+        if (frameAR < targetAR)  // Frame is taller than 16:9 (e.g., 16:10)
+        {
+            // Constrain height and center vertically
+            constrainedSize.height = constrainedSize.width * 9.0f / 16.0f;
+            CGFloat yOffset = (self.frame.size.height - constrainedSize.height) / 2.0f;
+            videoFrame = NSMakeRect(0, yOffset, constrainedSize.width, constrainedSize.height);
+        }
+        else  // Frame is wider than 16:9
+        {
+            // Constrain width and center horizontally
+            constrainedSize.width = constrainedSize.height * 16.0f / 9.0f;
+            CGFloat xOffset = (self.frame.size.width - constrainedSize.width) / 2.0f;
+            videoFrame = NSMakeRect(xOffset, 0, constrainedSize.width, constrainedSize.height);
+        }
+    }
+
+    view.frame = videoFrame;
+
+    ESScreensaver_ForceWidthAndHeight((uint32_t)videoFrame.size.width,
+                                      (uint32_t)videoFrame.size.height);
 }
 
 - (BOOL)hasConfigureSheet
