@@ -667,10 +667,15 @@ class CElectricSheep
         return ss.str();
     }
 
+    static double FrameNumberToSeconds(int64_t _frames, double _fps)
+    {
+        return _frames / _fps;
+    }
+
     static std::string FrameNumberToMinutesAndSecondsString(int64_t _frames,
                                                             float _fps)
     {
-        double seconds = _frames / _fps;
+        double seconds = FrameNumberToSeconds(_frames, _fps);
         uint64_t timeDiff = (uint64_t)seconds;
         return FormatTimeDiff(timeDiff, true);
     }

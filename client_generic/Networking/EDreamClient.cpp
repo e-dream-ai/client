@@ -142,8 +142,12 @@ void EDreamClient::SendPing()
         ms->insert("playlist", playlistUUID);
     }
 
-    // Add current timecode
-    double timecode = g_Player().m_TimelineTime;
+    // Add current timecode (calculated same way as F2 HUD display)
+    double timecode = 0.0;
+    if (frameMetadata && clipMetadata) {
+        double baseFps = std::stod(clipMetadata->dreamData.fps);
+        timecode = CElectricSheep::FrameNumberToSeconds(frameMetadata->frameIdx, baseFps);
+    }
     ms->insert("timecode", std::to_string(timecode));
 
     // Add HUD state
