@@ -179,7 +179,7 @@ void EDreamClient::SendPing()
     socket->emit("state_sync", list);
 
     // Log EXACTLY what was sent to socket
-    g_Log->Info("WebSocket emit: event='state_sync' data={dream_uuid:'%s', playlist:'%s', timecode:%.2f, hud:'%s', paused:'%s', playback_speed:%f}",
+    g_Log->Info("WebSocket emit: event='state_sync' data={dream_uuid:'%s', playlist:'%s', timecode:%g, hud:'%s', paused:'%s', playback_speed:%g}",
                 dreamUUID.c_str(),
                 !playlistUUID.empty() ? playlistUUID.c_str() : "none",
                 timecode,
