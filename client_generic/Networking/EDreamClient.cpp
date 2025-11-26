@@ -142,8 +142,12 @@ void EDreamClient::SendPing()
         ms->insert("playlist", playlistUUID);
     }
 
-    // Add current timecode
-    double timecode = g_Player().m_TimelineTime;
+    // Add current timecode (calculated same way as F2 HUD display)
+    double timecode = 0.0;
+    if (frameMetadata && clipMetadata) {
+        double baseFps = std::stod(clipMetadata->dreamData.fps);
+        timecode = CElectricSheep::FrameNumberToSeconds(frameMetadata->frameIdx, baseFps);
+    }
     ms->insert("timecode", std::to_string(timecode));
 
     // Add HUD state
@@ -175,7 +179,7 @@ void EDreamClient::SendPing()
     socket->emit("state_sync", list);
 
     // Log EXACTLY what was sent to socket
-    g_Log->Info("WebSocket emit: event='state_sync' data={dream_uuid:'%s', playlist:'%s', timecode:%f, hud:'%s', paused:'%s', playback_speed:%f}",
+    g_Log->Info("WebSocket emit: event='state_sync' data={dream_uuid:'%s', playlist:'%s', timecode:%g, hud:'%s', paused:'%s', playback_speed:%g}",
                 dreamUUID.c_str(),
                 !playlistUUID.empty() ? playlistUUID.c_str() : "none",
                 timecode,
