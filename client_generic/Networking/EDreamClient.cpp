@@ -312,21 +312,39 @@ void EDreamClient::SendGoodbye()
         return;
     }
 
-    s_SIOClient.socket("/remote-control")->emit("goodbye");
-    g_Log->Info("Goodbye message sent");
+    auto socket = s_SIOClient.socket("/remote-control");
+    if (socket) {
+        socket->emit("goodbye");
+        g_Log->Info("Goodbye message sent");
+    }
 }
 
 static void BindWebSocketCallbacks()
 {
-    s_SIOClient.socket("/remote-control")
-        ->on("new_remote_control_event", &OnWebSocketMessage);
+    auto socket = s_SIOClient.socket("/remote-control");
+    if (socket) {
+        socket->off("new_remote_control_event");
+        socket->on("new_remote_control_event", &OnWebSocketMessage);
+        EDreamClient::fIsWebSocketConnected.exchange(true);
+    }
+}
+
+static void UnbindWebSocketCallbacks()
+{
+    EDreamClient::fIsWebSocketConnected.exchange(false);
+    auto socket = s_SIOClient.socket("/remote-control");
+    if (socket) {
+        socket->off("new_remote_control_event");
+    }
 }
 
 static void OnWebSocketConnected()
 {
     g_Log->Info("WebSocket connected successfully.");
-    EDreamClient::fIsWebSocketConnected.exchange(true);
-    
+
+    // Bind callbacks only after connection is established
+    BindWebSocketCallbacks();
+
     // Reset the connection attempt count
     fWebSocketConnectionAttempts = 0;
 
@@ -338,33 +356,35 @@ static void OnWebSocketConnected()
     ms->insert("event", "next");
     sio::message::list list;
     list.push(ms);
-    s_SIOClient.socket("/remote-control")
-        ->emit("new_remote_control_event", list);
+    auto socket = s_SIOClient.socket("/remote-control");
+    if (socket) {
+        socket->emit("new_remote_control_event", list);
+    }
 }
 
 static void OnWebSocketClosed(const sio::client::close_reason& _reason)
 {
     g_Log->Info("WebSocket connection closed. Reason: %d", static_cast<int>(_reason));
-    EDreamClient::fIsWebSocketConnected.exchange(false);
+    UnbindWebSocketCallbacks();
 }
 
-static void OnWebSocketFail() 
-{ 
+static void OnWebSocketFail()
+{
     g_Log->Error("WebSocket connection failed.");
-    EDreamClient::fIsWebSocketConnected.exchange(false);
+    UnbindWebSocketCallbacks();
     fWebSocketConnectionAttempts++;
 }
 
 static void OnWebSocketReconnecting()
 {
     g_Log->Info("WebSocket reconnecting...");
-    EDreamClient::fIsWebSocketConnected.exchange(false);
+    UnbindWebSocketCallbacks();
 }
 
 static void OnWebSocketReconnect(unsigned _num, unsigned _delay)
 {
     g_Log->Info("WebSocket reconnected after %u attempts, delay was %u ms", _num, _delay);
-    EDreamClient::fIsWebSocketConnected.exchange(true);
+    BindWebSocketCallbacks();
 }
 
 void EDreamClient::InitializeClient()
@@ -1969,8 +1989,10 @@ void EDreamClient::SendPlayingDream(std::string uuid)
 
     sio::message::list list;
     list.push(ms);
-    s_SIOClient.socket("/remote-control")
-        ->emit("new_remote_control_event", list);
+    auto socket = s_SIOClient.socket("/remote-control");
+    if (socket) {
+        socket->emit("new_remote_control_event", list);
+    }
 }
 
 void EDreamClient::ConnectRemoteControlSocket()
@@ -1986,17 +2008,16 @@ void EDreamClient::ConnectRemoteControlSocket()
     if (s_SIOClient.opened() && !io_context->stopped())
     {
         g_Log->Info("WebSocket already connected, skipping reconnection.");
-        EDreamClient::fIsWebSocketConnected.exchange(true);
+        BindWebSocketCallbacks();
         return;
     }
-    
+
     // If io_context was stopped, the connection is effectively dead
     if (io_context->stopped()) {
         g_Log->Info("WebSocket connection was stopped, reconnecting...");
-        EDreamClient::fIsWebSocketConnected.exchange(false);
+        UnbindWebSocketCallbacks();
     }
-    
-    BindWebSocketCallbacks();
+
     std::map<std::string, std::string> query;
     
     std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
@@ -2035,8 +2056,10 @@ void EDreamClient::Like(std::string uuid) {
     ms->insert("uuid", uuid);
     sio::message::list list;
     list.push(ms);
-    s_SIOClient.socket("/remote-control")
-        ->emit("new_remote_control_event", list);
+    auto socket = s_SIOClient.socket("/remote-control");
+    if (socket) {
+        socket->emit("new_remote_control_event", list);
+    }
 }
 
 void EDreamClient::Dislike(std::string uuid) {
@@ -2049,8 +2072,10 @@ void EDreamClient::Dislike(std::string uuid) {
     ms->insert("uuid", uuid);
     sio::message::list list;
     list.push(ms);
-    s_SIOClient.socket("/remote-control")
-        ->emit("new_remote_control_event", list);
+    auto socket = s_SIOClient.socket("/remote-control");
+    if (socket) {
+        socket->emit("new_remote_control_event", list);
+    }
 }
 
 void EDreamClient::Report(std::string uuid) {
@@ -2063,8 +2088,10 @@ void EDreamClient::Report(std::string uuid) {
     ms->insert("uuid", uuid);
     sio::message::list list;
     list.push(ms);
-    s_SIOClient.socket("/remote-control")
-        ->emit("new_remote_control_event", list);
+    auto socket = s_SIOClient.socket("/remote-control");
+    if (socket) {
+        socket->emit("new_remote_control_event", list);
+    }
 }
 
 
