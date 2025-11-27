@@ -994,6 +994,10 @@ void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
                 m_playlistManager->getDreamByUUID(dream->uuid);
 
                 // Prepare the clip outside the lock
+                if (m_displayUnits.empty()) {
+                    g_Log->Error("Cannot play clip: no display units available");
+                    return false;
+                }
                 auto du = m_displayUnits[0];
                 int32_t displayMode = g_Settings()->Get("settings.player.DisplayMode", 2);
                 
