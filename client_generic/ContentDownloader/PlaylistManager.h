@@ -17,6 +17,19 @@
 #include "Dream.h"
 
 
+// Playback modes
+enum class PlaybackMode {
+    Normal,   // Sequential playback
+    Repeat,   // Repeat current dream
+    Shuffle   // Random selection
+};
+
+// Convert PlaybackMode to string
+inline constexpr const char* to_string(PlaybackMode mode) {
+    constexpr const char* names[] = {"Normal", "Repeat", "Shuffle"};
+    return names[static_cast<int>(mode)];
+}
+
 // This represent one item in our playlist. Includes dream uuid and keyframes
 struct PlaylistEntry {
     std::string uuid;
@@ -25,7 +38,7 @@ struct PlaylistEntry {
 
     // Constructor for easy creation from just a UUID
     explicit PlaylistEntry(std::string uuid_) : uuid(std::move(uuid_)) {}
-    
+
     // Constructor for full initialization
     PlaylistEntry(std::string uuid_,
                  std::optional<std::string> start = std::nullopt,
@@ -129,6 +142,10 @@ public:
     // Set the current position in the playlist
     void setCurrentPosition(size_t position);
     size_t getCurrentPosition() const { return m_currentPosition; }
+
+    // Playback mode control
+    void setPlaybackMode(PlaybackMode mode) { m_playbackMode = mode; }
+    PlaybackMode getPlaybackMode() const { return m_playbackMode; }
     
     // Get the total number of dreams in the playlist
     size_t getPlaylistSize() const;
@@ -158,6 +175,7 @@ public:
 private:
     std::vector<PlaylistEntry> m_playlist;
     bool m_started;
+    PlaybackMode m_playbackMode;
 
     bool m_initializeInProgress = false;
     bool m_offlineMode;

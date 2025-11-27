@@ -418,7 +418,7 @@ static void signnal_handler(int signal)
             //            {'e', CKeyEvent::eKeyCode::KEY_E},
             //            {'f', CKeyEvent::eKeyCode::KEY_F},
             //            {'g', CKeyEvent::eKeyCode::KEY_G},
-            //            {'h', CKeyEvent::eKeyCode::KEY_H},
+            {'h', CKeyEvent::eKeyCode::KEY_H},
             //            {'i', CKeyEvent::eKeyCode::KEY_I},
             {'j', CKeyEvent::eKeyCode::KEY_J},
             {'k', CKeyEvent::eKeyCode::KEY_K},

@@ -307,6 +307,10 @@ class CElectricSheep
         spStats->Add(
             new Hud::CStringStat("perceptualfps", "Perceptual speed ", "? fps"));
 
+        spStats->Add(new Hud::CStringStat("currentplaylist", "\nPlaylist: ", "None"));
+        spStats->Add(new Hud::CStringStat("playlistposition", "Position: ", "None"));
+        spStats->Add(new Hud::CStringStat("playbackmode", "Mode: ", "Normal"));
+
         spStats->Add(
             new Hud::CStringStat("activityLevel", "Activity level: ", "1.00"));
         spStats->Add(new Hud::CStringStat("playHead", "", "00m00s/00m00s"));
@@ -1076,6 +1080,39 @@ class CElectricSheep
                     ->SetSample(string_format(" %.2f", activityLevel));
                 ((Hud::CIntCounter*)spStats->Get("displayfps"))->AddSample(1);
 
+                // Update playlist info
+                static std::string lastPlaylistUUID = "";
+                static size_t prevPosition = -1;
+                static size_t trackedCurrentPosition = -1;
+
+                std::string playlistUUID = g_Player().GetPlaylistManager().getPlaylistUUID();
+                size_t currentPosition = g_Player().GetPlaylistManager().getCurrentPosition();
+                size_t playlistSize = g_Player().GetPlaylistManager().getPlaylistSize();
+                auto currentDream = g_Player().GetPlaylistManager().getCurrentDream();
+                std::string dreamUUID = currentDream ? currentDream->uuid : "None";
+                PlaybackMode mode = g_Player().GetPlaylistManager().getPlaybackMode();
+
+                // If playlist changed, reset prev to -1
+                if (playlistUUID != lastPlaylistUUID) {
+                    prevPosition = -1;
+                    lastPlaylistUUID = playlistUUID;
+                    trackedCurrentPosition = currentPosition;
+                }
+                // If position changed (and not in Repeat mode), update prev to the old current
+                else if (currentPosition != trackedCurrentPosition && mode != PlaybackMode::Repeat) {
+                    prevPosition = trackedCurrentPosition;
+                    trackedCurrentPosition = currentPosition;
+                }
+
+                ((Hud::CStringStat*)spStats->Get("currentplaylist"))
+                    ->SetSample(playlistUUID.empty() ? "None" : playlistUUID);
+                ((Hud::CStringStat*)spStats->Get("playlistposition"))
+                    ->SetSample(string_format("%s [%zu/%zu] prev:%zu", dreamUUID.c_str(), currentPosition, playlistSize, prevPosition));
+
+                // Update playback mode display
+                ((Hud::CStringStat*)spStats->Get("playbackmode"))
+                    ->SetSample(to_string(mode));
+
                 // Update OSD
                 m_spOSD->SetFPS(pFPS);
 
@@ -1269,6 +1306,7 @@ class CElectricSheep
         CLIENT_COMMAND_PREVIOUS,
         CLIENT_COMMAND_NEXT,
         CLIENT_COMMAND_REPEAT,
+        CLIENT_COMMAND_SHUFFLE,
         CLIENT_COMMAND_PLAYBACK_SLOWER,
         CLIENT_COMMAND_PLAYBACK_FASTER,
         CLIENT_COMMAND_F1,
@@ -1438,7 +1476,30 @@ class CElectricSheep
                 return true;
                 //    Repeat sheep
             case CLIENT_COMMAND_REPEAT:
-                g_Player().RepeatClip();
+                {
+                    PlaybackMode currentMode = g_Player().GetPlaylistManager().getPlaybackMode();
+                    if (currentMode == PlaybackMode::Repeat) {
+                        g_Player().GetPlaylistManager().setPlaybackMode(PlaybackMode::Normal);
+                        g_Log->Info("Playback mode: Normal");
+                    } else {
+                        popOSD(Hud::Repeat);
+                        g_Player().GetPlaylistManager().setPlaybackMode(PlaybackMode::Repeat);
+                        g_Log->Info("Playback mode: Repeat");
+                    }
+                }
+                return true;
+            case CLIENT_COMMAND_SHUFFLE:
+                {
+                    PlaybackMode currentMode = g_Player().GetPlaylistManager().getPlaybackMode();
+                    if (currentMode == PlaybackMode::Shuffle) {
+                        g_Player().GetPlaylistManager().setPlaybackMode(PlaybackMode::Normal);
+                        g_Log->Info("Playback mode: Normal");
+                    } else {
+                        popOSD(Hud::Shuffle);
+                        g_Player().GetPlaylistManager().setPlaybackMode(PlaybackMode::Shuffle);
+                        g_Log->Info("Playback mode: Shuffle");
+                    }
+                }
                 return true;
             case CLIENT_COMMAND_PLAYBACK_SLOWER:
                 popOSD(Hud::Speed);
@@ -1536,6 +1597,8 @@ class CElectricSheep
                     // Repeat sheep
                 case DisplayOutput::CKeyEvent::KEY_R:
                     return ExecuteCommand(CLIENT_COMMAND_REPEAT);
+                case DisplayOutput::CKeyEvent::KEY_H:
+                    return ExecuteCommand(CLIENT_COMMAND_SHUFFLE);
                 case DisplayOutput::CKeyEvent::KEY_A:
                     return ExecuteCommand(CLIENT_COMMAND_PLAYBACK_SLOWER);
                 case DisplayOutput::CKeyEvent::KEY_D:

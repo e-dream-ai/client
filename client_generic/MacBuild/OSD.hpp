@@ -39,7 +39,9 @@ enum OSDType {
     Like,
     Dislike,
     Report,
-    Buffering
+    Buffering,
+    Repeat,
+    Shuffle
 };
 
 class COSD : public CHudEntry {
@@ -207,7 +209,23 @@ public:
             m_spBufferingTexture = g_Player().Renderer()->NewTextureFlat();
             m_spBufferingTexture->Upload(tmpBuffering);
         }
-        
+
+        DisplayOutput::spCImage tmpRepeat(new DisplayOutput::CImage());
+        if (tmpRepeat->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
+                               "osd-repeat.png", false))
+        {
+            m_spRepeatTexture = g_Player().Renderer()->NewTextureFlat();
+            m_spRepeatTexture->Upload(tmpRepeat);
+        }
+
+        DisplayOutput::spCImage tmpShuffle(new DisplayOutput::CImage());
+        if (tmpShuffle->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
+                               "osd-shuffle.png", false))
+        {
+            m_spShuffleTexture = g_Player().Renderer()->NewTextureFlat();
+            m_spShuffleTexture->Upload(tmpShuffle);
+        }
+
         // Set mini BG size
         // Fix A/R
         float aspect = g_Player().Display()->Aspect();
@@ -489,6 +507,12 @@ public:
                 case Report:
                     spRenderer->SetTexture(m_spReportTexture, 0);
                     break;
+                case Repeat:
+                    spRenderer->SetTexture(m_spRepeatTexture, 0);
+                    break;
+                case Shuffle:
+                    spRenderer->SetTexture(m_spShuffleTexture, 0);
+                    break;
                 default:
                     spRenderer->SetTexture(m_spPauseTexture, 0);
                     printf("Shouldn't be here");
@@ -555,7 +579,7 @@ private:
     Base::Math::CRect m_BgCRect, m_DotCRect, m_SymbolCRect;
     
     // Textures and coordinates for mini hud (210sq)
-    DisplayOutput::spCTextureFlat m_spBgSqTexture, m_spPlayTexture, m_spPauseTexture, m_spBackTexture, m_spForwardTexture, m_spBack10Texture, m_spForward10Texture, m_spLikeTexture, m_spDislikeTexture, m_spReportTexture;
+    DisplayOutput::spCTextureFlat m_spBgSqTexture, m_spPlayTexture, m_spPauseTexture, m_spBackTexture, m_spForwardTexture, m_spBack10Texture, m_spForward10Texture, m_spLikeTexture, m_spDislikeTexture, m_spReportTexture, m_spRepeatTexture, m_spShuffleTexture;
 
     Base::Math::CRect m_BgSqCRect, m_LargeSymbolCRect;
 

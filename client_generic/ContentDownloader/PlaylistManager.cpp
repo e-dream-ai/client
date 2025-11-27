@@ -14,7 +14,7 @@
 #include <random>
 
 PlaylistManager::PlaylistManager()
-: m_started(false), m_offlineMode(false), m_currentPosition(0), m_cacheManager(Cache::CacheManager::getInstance()),  m_shouldTerminate(false) {}
+: m_started(false), m_playbackMode(PlaybackMode::Normal), m_offlineMode(false), m_currentPosition(0), m_cacheManager(Cache::CacheManager::getInstance()),  m_shouldTerminate(false) {}
 
 PlaylistManager::~PlaylistManager() {
     stopPeriodicChecking();
@@ -444,7 +444,7 @@ PlaylistManager::TransitionType PlaylistManager::determineTransitionType(const P
 }
 
 std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNextDream(bool canStream) const {
-    g_Log->Info("Preflight : start");
+    g_Log->Info("Preflight : start (mode: %d)", static_cast<int>(m_playbackMode));
 
     if (m_playlist.empty()) {
         g_Log->Info("Preflight : no playlist");
@@ -452,7 +452,61 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
     }
 
     NextDreamDecision decision;
-    
+
+    // Handle playback modes
+    if (m_playbackMode == PlaybackMode::Normal) {
+        // Normal mode: sequential playback
+        size_t nextPos = (m_currentPosition + 1) % m_playlist.size();
+        const auto& currentEntry = m_playlist[m_currentPosition];
+        const auto& nextEntry = m_playlist[nextPos];
+
+        g_Log->Info("Preflight : Normal mode - going to position %zu", nextPos);
+
+        decision = {
+            nextPos,
+            determineTransitionType(currentEntry, nextEntry),
+            m_cacheManager.getDream(nextEntry.uuid),
+            nextEntry.startKeyframe,
+            nextEntry.endKeyframe
+        };
+        return decision;
+    }
+    else if (m_playbackMode == PlaybackMode::Repeat) {
+        // Repeat mode: play same dream again
+        const auto& currentEntry = m_playlist[m_currentPosition];
+
+        g_Log->Info("Preflight : Repeat mode - replaying position %zu", m_currentPosition);
+
+        decision = {
+            m_currentPosition,
+            determineTransitionType(currentEntry, currentEntry),
+            m_cacheManager.getDream(currentEntry.uuid),
+            currentEntry.startKeyframe,
+            currentEntry.endKeyframe
+        };
+        return decision;
+    }
+    else if (m_playbackMode == PlaybackMode::Shuffle) {
+        // Shuffle mode: random selection
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<size_t> dist(0, m_playlist.size() - 1);
+        size_t nextPos = dist(gen);
+        const auto& currentEntry = m_playlist[m_currentPosition];
+        const auto& nextEntry = m_playlist[nextPos];
+
+        g_Log->Info("Preflight : Shuffle mode - random position %zu", nextPos);
+
+        decision = {
+            nextPos,
+            determineTransitionType(currentEntry, nextEntry),
+            m_cacheManager.getDream(nextEntry.uuid),
+            nextEntry.startKeyframe,
+            nextEntry.endKeyframe
+        };
+        return decision;
+    }
+
     // If we haven't started yet, it would be the first dream
     if (!m_started) {
         const auto& firstEntry = m_playlist[0];
@@ -637,7 +691,7 @@ std::optional<PlaylistManager::DreamLookupResult> PlaylistManager::getDreamByUUI
 
     // Playlist is now playing
     m_started = true;
-    
+
     // Dream is in the playlist, update the position
     m_currentPosition = std::distance(m_playlist.begin(), it);
     m_currentDreamUUID = dreamUUID;
@@ -719,8 +773,6 @@ const Cache::Dream* PlaylistManager::getCurrentDream() const {
         g_Log->Error("EMPTY PLAYLIST");
         return nullptr;
     }
-
-    g_Log->Info("getCurrentDream : %s %s (pos: %zu)", m_playlist[m_currentPosition].uuid.c_str(), m_currentDreamUUID.c_str(), m_currentPosition);
 
     return m_currentDream;
 }

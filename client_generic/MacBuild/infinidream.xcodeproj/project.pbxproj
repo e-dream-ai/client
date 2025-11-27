@@ -147,6 +147,14 @@
 		21EE63C21013A879000CE53E /* ESScreensaverView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA520EC7479A005E246D /* ESScreensaverView.mm */; };
 		21EE63C31013A87F000CE53E /* ESScreensaver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA540EC74853005E246D /* ESScreensaver.cpp */; };
 		21EE63CF1013A93A000CE53E /* ESConfiguration.mm in Sources */ = {isa = PBXBuildFile; fileRef = 21AAA0EE0F70453200AC23A8 /* ESConfiguration.mm */; };
+		343948532ED6669E00DCF85E /* osd-repeat.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948512ED6669E00DCF85E /* osd-repeat.png */; };
+		343948542ED6669E00DCF85E /* osd-shuffle.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948522ED6669E00DCF85E /* osd-shuffle.png */; };
+		343948552ED6669E00DCF85E /* osd-repeat.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948512ED6669E00DCF85E /* osd-repeat.png */; };
+		343948562ED6669E00DCF85E /* osd-shuffle.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948522ED6669E00DCF85E /* osd-shuffle.png */; };
+		343948572ED6669E00DCF85E /* osd-repeat.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948512ED6669E00DCF85E /* osd-repeat.png */; };
+		343948582ED6669E00DCF85E /* osd-shuffle.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948522ED6669E00DCF85E /* osd-shuffle.png */; };
+		343948592ED6669E00DCF85E /* osd-repeat.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948512ED6669E00DCF85E /* osd-repeat.png */; };
+		3439485A2ED6669E00DCF85E /* osd-shuffle.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948522ED6669E00DCF85E /* osd-shuffle.png */; };
 		461C9D7C2B28BA50000C44E9 /* JSONStorage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 461C9D7A2B28BA50000C44E9 /* JSONStorage.cpp */; };
 		461C9D7D2B28BA50000C44E9 /* JSONStorage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 461C9D7A2B28BA50000C44E9 /* JSONStorage.cpp */; };
 		4628A55E2B0F84EF001C3078 /* Lato-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4628A55D2B0F84EF001C3078 /* Lato-Regular.ttf */; };
@@ -832,6 +840,8 @@
 		21EE634E10139BEF000CE53E /* English */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = English; path = English.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		21EE63941013A674000CE53E /* ESWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ESWindow.h; sourceTree = "<group>"; };
 		21EE63951013A674000CE53E /* ESWindow.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ESWindow.mm; sourceTree = "<group>"; };
+		343948512ED6669E00DCF85E /* osd-repeat.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-repeat.png"; sourceTree = "<group>"; };
+		343948522ED6669E00DCF85E /* osd-shuffle.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-shuffle.png"; sourceTree = "<group>"; };
 		461614182AEBEA57008AC64A /* DreamPlaylist.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DreamPlaylist.h; path = ../Client/DreamPlaylist.h; sourceTree = "<group>"; };
 		461C9D7A2B28BA50000C44E9 /* JSONStorage.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = JSONStorage.cpp; path = ../TupleStorage/JSONStorage.cpp; sourceTree = "<group>"; };
 		461C9D7B2B28BA50000C44E9 /* JSONStorage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = JSONStorage.h; path = ../TupleStorage/JSONStorage.h; sourceTree = "<group>"; };
@@ -1426,6 +1436,8 @@
 		2160FE160F30F82800B2C27A /* Runtime */ = {
 			isa = PBXGroup;
 			children = (
+				343948512ED6669E00DCF85E /* osd-repeat.png */,
+				343948522ED6669E00DCF85E /* osd-shuffle.png */,
 				1BEBFE3D2ECB6B2B00F39019 /* osd-next.png */,
 				21934CB819F3C2430096E7D7 /* thumbnail.tif */,
 				12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */,
@@ -1743,6 +1755,8 @@
 				F0F6D4282BCD504500222647 /* osd-dislike.png in Resources */,
 				F05994772BA0A07300B018C7 /* osd-pause.png in Resources */,
 				F02C14FD2E01948200BFFFF4 /* EmailStepViewController.xib in Resources */,
+				343948592ED6669E00DCF85E /* osd-repeat.png in Resources */,
+				3439485A2ED6669E00DCF85E /* osd-shuffle.png in Resources */,
 				F059945A2BA0912300B018C7 /* osd-pill-u.png in Resources */,
 				F05994792BA0A07300B018C7 /* osd-back.png in Resources */,
 				F0B754542DBFCE4400C59D7A /* network.png in Resources */,
@@ -1785,6 +1799,8 @@
 				12A00CDA2B0FCA39001C0792 /* infinidream.icns in Resources */,
 				F0633F4A2DF1EF500092BCDB /* infinidream-App-Info.plist in Resources */,
 				F0F6D4272BCD504500222647 /* osd-like.png in Resources */,
+				343948532ED6669E00DCF85E /* osd-repeat.png in Resources */,
+				343948542ED6669E00DCF85E /* osd-shuffle.png in Resources */,
 				215545A912620D3000AB51BF /* dsa_pub.pem in Resources */,
 				F05994762BA0A07300B018C7 /* osd-brightness.png in Resources */,
 				F059946E2BA0A07300B018C7 /* osd-forward.png in Resources */,
@@ -1827,6 +1843,8 @@
 				F0C1000E2C1372EF007FA505 /* osd-dislike.png in Resources */,
 				F0C1000F2C1372EF007FA505 /* osd-pause.png in Resources */,
 				F02C15002E01948200BFFFF4 /* EmailStepViewController.xib in Resources */,
+				343948572ED6669E00DCF85E /* osd-repeat.png in Resources */,
+				343948582ED6669E00DCF85E /* osd-shuffle.png in Resources */,
 				F0C100102C1372EF007FA505 /* osd-pill-u.png in Resources */,
 				F0C100112C1372EF007FA505 /* osd-back.png in Resources */,
 				F0B754522DBFCE4400C59D7A /* network.png in Resources */,
@@ -1869,6 +1887,8 @@
 				F0E9CE362C136B0500C4D694 /* infinidream.icns in Resources */,
 				F0633F4C2DF1EF500092BCDB /* infinidream-App-Info.plist in Resources */,
 				F0E9CE372C136B0500C4D694 /* osd-like.png in Resources */,
+				343948552ED6669E00DCF85E /* osd-repeat.png in Resources */,
+				343948562ED6669E00DCF85E /* osd-shuffle.png in Resources */,
 				F0E9CE382C136B0500C4D694 /* dsa_pub.pem in Resources */,
 				F0E9CE392C136B0500C4D694 /* osd-brightness.png in Resources */,
 				F0E9CE3A2C136B0500C4D694 /* osd-forward.png in Resources */,
