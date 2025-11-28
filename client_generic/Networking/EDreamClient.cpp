@@ -1862,10 +1862,10 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
         g_Client()->ExecuteCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_PREVIOUS);
     }
-    else if (event == "repeat")
+    else if (event == "shuffle")
     {
         g_Client()->ExecuteCommand(
-            CElectricSheep::eClientCommand::CLIENT_COMMAND_REPEAT);
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_SHUFFLE);
     }
     else if (event == "forward")
     {
