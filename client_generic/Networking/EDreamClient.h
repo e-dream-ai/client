@@ -86,6 +86,7 @@ private:
     static void SendPlayingDream(std::string uuid);
     static void SendPing();
     static void SendStateUpdate();  // Send state update immediately when values change
+    static void UnbindWebSocketCallbacks();
 
     static void Like(std::string uuid);
     static void Dislike(std::string uuid);
