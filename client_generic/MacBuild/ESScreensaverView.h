@@ -2,6 +2,7 @@
 
 #include <boost/thread.hpp>
 #include <memory>
+#include <atomic>
 
 #if USE_METAL
 #import "ESMetalView.h"
@@ -46,7 +47,7 @@
     NSTimer* animationTimer;
     dispatch_group_t m_animationDispatchGroup;
     dispatch_queue_t m_frameUpdateQueue;
-    BOOL m_isStopped;
+    std::atomic<bool> m_isStopped;
 
     BOOL m_isPreview;
 

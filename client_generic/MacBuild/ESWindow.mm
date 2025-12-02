@@ -37,11 +37,6 @@ static void ShowFirstTimeSetupCallback()
     if (g_Log) g_Log->Info("Awake from nib");
     self.delegate = self;
 
-    // Create and set the app delegate
-    ESAppDelegate *appDelegate = [[ESAppDelegate alloc] init];
-    appDelegate.mainWindow = self;
-    [NSApplication sharedApplication].delegate = appDelegate;
-
     NSRect frame = [self contentRectForFrameRect:self.frame];
 
     mInSheet = NO;

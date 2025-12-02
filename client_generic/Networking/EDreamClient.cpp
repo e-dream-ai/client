@@ -333,9 +333,9 @@ static void BindWebSocketCallbacks()
     }
 }
 
-static void UnbindWebSocketCallbacks()
+void EDreamClient::UnbindWebSocketCallbacks()
 {
-    EDreamClient::fIsWebSocketConnected.exchange(false);
+    fIsWebSocketConnected.exchange(false);
     auto socket = s_SIOClient.socket("/remote-control");
     if (socket) {
         socket->off("new_remote_control_event");
@@ -369,20 +369,20 @@ static void OnWebSocketConnected()
 static void OnWebSocketClosed(const sio::client::close_reason& _reason)
 {
     g_Log->Info("WebSocket connection closed. Reason: %d", static_cast<int>(_reason));
-    UnbindWebSocketCallbacks();
+    EDreamClient::UnbindWebSocketCallbacks();
 }
 
 static void OnWebSocketFail()
 {
     g_Log->Error("WebSocket connection failed.");
-    UnbindWebSocketCallbacks();
+    EDreamClient::UnbindWebSocketCallbacks();
     fWebSocketConnectionAttempts++;
 }
 
 static void OnWebSocketReconnecting()
 {
     g_Log->Info("WebSocket reconnecting...");
-    UnbindWebSocketCallbacks();
+    EDreamClient::UnbindWebSocketCallbacks();
 }
 
 static void OnWebSocketReconnect(unsigned _num, unsigned _delay)
@@ -2019,7 +2019,7 @@ void EDreamClient::ConnectRemoteControlSocket()
     // If io_context was stopped, the connection is effectively dead
     if (io_context->stopped()) {
         g_Log->Info("WebSocket connection was stopped, reconnecting...");
-        UnbindWebSocketCallbacks();
+        EDreamClient::UnbindWebSocketCallbacks();
     }
 
     std::map<std::string, std::string> query;
