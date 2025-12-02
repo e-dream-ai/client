@@ -1,6 +1,9 @@
+#ifdef INFINIDREAM_APP_DELEGATE_DEBUG
+
 #import "ESAppDelegate.h"
 #include <AppKit/AppKit.h>
 #include <signal.h>
+#include <sys/sysctl.h>
 #import "ESWindow.h"
 
 @implementation ESAppDelegate
@@ -13,6 +16,15 @@
 {
     [[NSProcessInfo processInfo] disableSuddenTermination];
     NSLog(@"Sudden termination disabled");
+
+    // Get the main window from the NIB
+    for (NSWindow *window in [[NSApplication sharedApplication] windows]) {
+        if ([window isKindOfClass:[ESWindow class]]) {
+            self.mainWindow = (ESWindow *)window;
+            NSLog(@"ESAppDelegate - mainWindow set: %@", self.mainWindow);
+            break;
+        }
+    }
 
     // Install Apple Event handler to catch quit events from Dock
     [[NSAppleEventManager sharedAppleEventManager]
@@ -28,6 +40,21 @@
 
 - (void)setupSignalHandlers
 {
+    // Check if running under debugger
+    static bool isDebuggerAttached = false;
+    struct kinfo_proc info;
+    size_t info_size = sizeof(info);
+    int name[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid()};
+
+    if (sysctl(name, 4, &info, &info_size, NULL, 0) == 0) {
+        isDebuggerAttached = (info.kp_proc.p_flag & P_TRACED) != 0;
+    }
+
+    if (isDebuggerAttached) {
+        NSLog(@"⚠️ Debugger detected - signal handlers disabled for development");
+        return;
+    }
+
     // Ignore signals - GCD will handle them
     signal(SIGTERM, SIG_IGN);
     signal(SIGINT, SIG_IGN);
@@ -125,3 +152,6 @@
 
 
 @end
+
+
+#endif //INFINIDREAM_APP_DELEGATE_DEBUG

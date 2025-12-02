@@ -1,3 +1,7 @@
+#ifdef INFINIDREAM_APP_DELEGATE_DEBUG
+
+#pragma once
+
 #import <Cocoa/Cocoa.h>
 
 @class ESWindow;
@@ -18,3 +22,5 @@ void signal_handler(int sig);
 - (void)closeWindow;
 
 @end
+
+#endif
