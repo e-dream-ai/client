@@ -255,6 +255,7 @@ class CStatsConsole : public CConsole
     {
         CStat* stat;
         DisplayOutput::spCBaseText text;
+        bool isRightAligned = false;
     };
 
     std::vector<std::pair<std::string, StatText>> m_Stats;
@@ -290,7 +291,7 @@ class CStatsConsole : public CConsole
         m_Stats.clear();
     }
 
-    void Add(CStat* _pStat)
+    void Add(CStat* _pStat, bool _isRightAligned = false)
     {
         // Check if stat already exists to prevent duplicates
         auto it = std::find_if(m_Stats.begin(), m_Stats.end(),
@@ -300,10 +301,10 @@ class CStatsConsole : public CConsole
             delete _pStat; // Clean up the duplicate stat
             return;
         }
-        
+
         m_Stats.emplace_back(
             _pStat->m_Name,
-            StatText{_pStat, g_Player().Renderer()->NewText(m_spFont, "")});
+            StatText{_pStat, g_Player().Renderer()->NewText(m_spFont, ""), _isRightAligned});
     }
 
     CStat* Get(std::string_view _name)
@@ -347,7 +348,7 @@ class CStatsConsole : public CConsole
                 float edge = 24 / (float)_spRenderer->Display()->Width();
 
                 //	Figure out text extent for all strings.
-                std::queue<Base::Math::CVector2> sizeq;
+                std::unordered_map<std::string, Base::Math::CVector2> sizes;
                 m_TotalExtent = {0, 0, 0, 0};
                 for (auto i = m_Stats.begin(); i != m_Stats.end(); ++i)
                 {
@@ -356,36 +357,61 @@ class CStatsConsole : public CConsole
                     if (text && e)
                     {
                         text->SetEnabled(e->Visible());
-                        
+
                         if (e && e->Visible())
                         {
                             text->SetText(e->Report(_time));
-                            sizeq.push(text->GetExtent());
-                            m_TotalExtent = m_TotalExtent.Union(Base::Math::CRect(
-                                0, pos, sizeq.back().m_X + (edge * 2),
-                                sizeq.back().m_Y + (pos) + (edge * 2)));
-                            pos += sizeq.back().m_Y;
+                            Base::Math::CVector2 size = text->GetExtent();
+                            sizes[i->first] = size;
+
+                            if (!i->second.isRightAligned)
+                            {
+                                // Only left-aligned stats contribute to total extent and position
+                                m_TotalExtent = m_TotalExtent.Union(Base::Math::CRect(
+                                    0, pos, size.m_X + (edge * 2),
+                                    size.m_Y + (pos) + (edge * 2)));
+                                pos += size.m_Y;
+                            }
                         }
                     }
- 
+
                 }
 
                 // align soft quad at bottom
                 m_TotalExtent.m_Y0 = 1.f - m_TotalExtent.m_Y1;
                 m_TotalExtent.m_Y1 = 1.f;
+
                 // align text at bottom
                 pos = m_TotalExtent.m_Y0 + edge;
+                std::unordered_map<std::string, float> leftStatPositions;
+
                 for (auto i = m_Stats.begin(); i != m_Stats.end(); ++i)
                 {
                     CStat* e = i->second.stat;
                     if (e && e->Visible())
                     {
-                        Base::Math::CVector2 size = sizeq.front();
-                        sizeq.pop();
+                        Base::Math::CVector2 size = sizes[i->first];
                         DisplayOutput::spCBaseText& text = i->second.text;
-                        text->SetRect(Base::Math::CRect(edge, pos, 1,
-                                                        size.m_Y + pos + step));
-                        pos += size.m_Y;
+
+                        if (i->second.isRightAligned)
+                        {
+                            // Find the corresponding left stat name (remove "-right" suffix)
+                            std::string baseName = i->first.substr(0, i->first.find("-right"));
+                            float baseY = leftStatPositions[baseName];
+
+                            // Position right-aligned text at the right edge, same Y as base
+                            float rightX = 1.0f - edge - size.m_X;
+                            text->SetRect(Base::Math::CRect(rightX, baseY, 1.0f - edge,
+                                                            size.m_Y + baseY + step));
+                        }
+                        else
+                        {
+                            // Regular left-aligned text
+                            leftStatPositions[i->first] = pos;
+                            text->SetRect(Base::Math::CRect(edge, pos, 1,
+                                                            size.m_Y + pos + step));
+                            pos += size.m_Y;
+                        }
                     }
                 }
             });
