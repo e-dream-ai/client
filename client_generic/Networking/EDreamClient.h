@@ -87,6 +87,7 @@ private:
     static void SendPing();
     static void SendStateUpdate();  // Send state update immediately when values change
     static void UnbindWebSocketCallbacks();
+    static bool IsWebSocketConnected();  // Check actual socket connection status
 
     static void Like(std::string uuid);
     static void Dislike(std::string uuid);
