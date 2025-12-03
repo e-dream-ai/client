@@ -439,8 +439,34 @@ PlaylistManager::TransitionType PlaylistManager::determineTransitionType(const P
         *current.endKeyframe == *next.startKeyframe) {
         return TransitionType::Seamless;
     }
-    
+
     return TransitionType::StandardCrossfade;
+}
+
+std::optional<size_t> PlaylistManager::findKeyframeMatch(const PlaylistEntry& currentEntry, bool canStream) const {
+    if (!currentEntry.endKeyframe) {
+        return std::nullopt;
+    }
+
+    std::vector<size_t> candidates;
+    for (size_t i = 0; i < m_playlist.size(); i++) {
+        const auto& entry = m_playlist[i];
+        if (i != m_currentPosition && entry.startKeyframe &&
+            *entry.startKeyframe == *currentEntry.endKeyframe &&
+            !isDreamPlayed(entry.uuid)) {
+            if (!canStream && !m_cacheManager.hasDiskCachedItem(entry.uuid)) {
+                continue;
+            }
+            candidates.push_back(i);
+        }
+    }
+
+    if (candidates.empty()) {
+        return std::nullopt;
+    }
+
+    // Randomly select one of the candidates
+    return candidates[rand() % candidates.size()];
 }
 
 std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNextDream(bool canStream) const {
@@ -454,13 +480,31 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
     NextDreamDecision decision;
 
     // Handle playback modes
-    if (m_playbackMode == PlaybackMode::Normal) {
-        // Normal mode: sequential playback
-        size_t nextPos = (m_currentPosition + 1) % m_playlist.size();
+    if (m_playbackMode == PlaybackMode::Normal && m_started) {
+        // Normal mode: respect keyframes for seamless transitions
         const auto& currentEntry = m_playlist[m_currentPosition];
+
+        // Try to find keyframe match first
+        auto keyframeMatch = findKeyframeMatch(currentEntry, canStream);
+        if (keyframeMatch) {
+            const auto& nextEntry = m_playlist[*keyframeMatch];
+            g_Log->Info("Preflight : Normal mode - keyframe match at position %zu", *keyframeMatch);
+
+            decision = {
+                *keyframeMatch,
+                determineTransitionType(currentEntry, nextEntry),
+                m_cacheManager.getDream(nextEntry.uuid),
+                nextEntry.startKeyframe,
+                nextEntry.endKeyframe
+            };
+            return decision;
+        }
+
+        // No keyframe match - use sequential playback
+        size_t nextPos = (m_currentPosition + 1) % m_playlist.size();
         const auto& nextEntry = m_playlist[nextPos];
 
-        g_Log->Info("Preflight : Normal mode - going to position %zu", nextPos);
+        g_Log->Info("Preflight : Normal mode - sequential to position %zu", nextPos);
 
         decision = {
             nextPos,
@@ -530,41 +574,19 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
 
     // Check if current dream has an end keyframe
     const auto& currentEntry = m_playlist[m_currentPosition];
-    if (currentEntry.endKeyframe) {
-        g_Log->Info("Preflight : has endKeyframe, looking for match");
+    auto keyframeMatch = findKeyframeMatch(currentEntry, canStream);
+    if (keyframeMatch) {
+        const auto& nextEntry = m_playlist[*keyframeMatch];
+        g_Log->Info("Preflight : fallback - keyframe match at position %zu", *keyframeMatch);
 
-        // Look for dreams with matching start keyframe
-        std::vector<size_t> candidates;
-        for (size_t i = 0; i < m_playlist.size(); i++) {
-            const auto& entry = m_playlist[i];
-            if (i != m_currentPosition && entry.startKeyframe && *entry.startKeyframe == *currentEntry.endKeyframe
-                && !isDreamPlayed(entry.uuid)) {
-                // If canStream is false, only add cached dreams
-                if (!canStream && !m_cacheManager.hasDiskCachedItem(entry.uuid)) {
-                    continue;
-                }
-                candidates.push_back(i);
-                g_Log->Info("Preflight : adding candidate : %s %zu (current: %zu)", entry.uuid.c_str(), i, m_currentPosition);
-
-            }
-        }
-
-
-        if (!candidates.empty()) {
-            g_Log->Info("Preflight : candidates : %zu", candidates.size());
-
-            // Randomly select one of the candidates
-            size_t nextPos = candidates[rand() % candidates.size()];
-            const auto& nextEntry = m_playlist[nextPos];
-            decision = {
-                nextPos,
-                determineTransitionType(currentEntry, nextEntry),
-                m_cacheManager.getDream(nextEntry.uuid),
-                nextEntry.startKeyframe,
-                nextEntry.endKeyframe
-            };
-            return decision;
-        }
+        decision = {
+            *keyframeMatch,
+            determineTransitionType(currentEntry, nextEntry),
+            m_cacheManager.getDream(nextEntry.uuid),
+            nextEntry.startKeyframe,
+            nextEntry.endKeyframe
+        };
+        return decision;
     }
 
     g_Log->Info("Preflight : either no endkeyframe or no match found");
