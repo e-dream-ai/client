@@ -342,6 +342,11 @@ void EDreamClient::UnbindWebSocketCallbacks()
     }
 }
 
+bool EDreamClient::IsWebSocketConnected()
+{
+    return s_SIOClient.opened() && fIsWebSocketConnected;
+}
+
 static void OnWebSocketConnected()
 {
     g_Log->Info("WebSocket connected successfully.");

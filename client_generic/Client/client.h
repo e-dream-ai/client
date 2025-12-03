@@ -1203,29 +1203,35 @@ class CElectricSheep
                     ((Hud::CStringStat*)spStats->Get("credits-line2-right"))
                         ->SetSample(string_format("%.2f fps", pFPS));
 
-                    // Add mode indicator (repeat/shuffle) to playlist line
+                    // Add mode indicator to playlist line
                     std::string modeStr = "";
                     PlaybackMode creditsMode = g_Player().GetPlaylistManager().getPlaybackMode();
                     if (creditsMode == PlaybackMode::Repeat) {
                         modeStr = " (repeat)";
                     } else if (creditsMode == PlaybackMode::Shuffle) {
                         modeStr = " (shuffle)";
+                    } else {
+                        modeStr = " (normal)";
                     }
                     ((Hud::CStringStat*)spStats->Get("credits-line3"))
                         ->SetSample(string_format("playlist: %s%s", g_Player().GetPlaylistName().c_str(), modeStr.c_str()));
 
-                    // Add status indicators: WebSocket and downloading
+                    // Add status indicators: Internet, WebSocket, and downloading
                     std::string statusLine = "";
 
-                    // WebSocket status indicator (green dot for connected, red for disconnected)
-                    bool wsConnected = EDreamClient::fIsWebSocketConnected.load();
-                    statusLine += wsConnected ? "\u25CF WS " : "\u25CF WS ";  // ● dot
+                    // Internet status indicator (● for connected, ○ for disconnected)
+                    bool internetConnected = PlatformUtils::IsInternetReachable();
+                    statusLine += internetConnected ? "\u25CF Net " : "\u25CB Net ";  // ● filled / ○ empty
+
+                    // WebSocket status indicator - only show as connected if we have internet AND WS is connected
+                    bool wsConnected = internetConnected && EDreamClient::IsWebSocketConnected();
+                    statusLine += wsConnected ? "\u25CF WS " : "\u25CB WS ";  // ● filled / ○ empty
 
                     // Downloading/streaming indicator
                     if (isStreamingCurrent && isBuffering) {
-                        statusLine += "\u21BB ";  // ↻ spinner/refresh symbol for buffering/streaming
+                        statusLine += "\u21BB buffering/streaming";  // ↻ spinner/refresh symbol for buffering/streaming
                     } else if (isPreloading) {
-                        statusLine += "\u2193 ";  // ↓ download arrow for preloading
+                        statusLine += "\u2193 preloading";  // ↓ download arrow for preloading
                     }
 
                     ((Hud::CStringStat*)spStats->Get("credits-status"))
