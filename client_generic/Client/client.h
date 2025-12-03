@@ -346,14 +346,18 @@ class CElectricSheep
         m_HudManager->Hide("dreamcredits");
 
         // Add left-aligned stats
-        creditsConsole->Add(new Hud::CStringStat("credits-line1", "", ""), false);
-        creditsConsole->Add(new Hud::CStringStat("credits-line2", "", ""), false);
-        creditsConsole->Add(new Hud::CStringStat("credits-line3", "", ""), false);
-        creditsConsole->Add(new Hud::CStringStat("credits-status", "", ""), false);
+        creditsConsole->Add(new Hud::CStringStat("credits-title", "", ""));
+        creditsConsole->Add(new Hud::CStringStat("credits-artist", "", ""));
+        creditsConsole->Add(new Hud::CStringStat("credits-playlist", "", ""));
+        creditsConsole->Add(new Hud::CStringStat("credits-ws-base", "", " "));  // Base for WS line
+        creditsConsole->Add(new Hud::CStringStat("credits-download-base", "", " "));  // Base for download line
 
-        // Add right-aligned stats
-        creditsConsole->Add(new Hud::CStringStat("credits-line1-right", "", ""), true);
-        creditsConsole->Add(new Hud::CStringStat("credits-line2-right", "", ""), true);
+        // Add right-aligned stats with explicit alignment
+        creditsConsole->Add(new Hud::CStringStat("credits-time", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-title");
+        creditsConsole->Add(new Hud::CStringStat("credits-fps", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-artist");
+        creditsConsole->Add(new Hud::CStringStat("credits-net", "", "\u25CF Net"), true, Base::Math::CVector4(1, 1, 1, 1), "credits-playlist");
+        creditsConsole->Add(new Hud::CStringStat("credits-ws", "", "\u25CF WS"), true, Base::Math::CVector4(1, 1, 1, 1), "credits-ws-base");
+        creditsConsole->Add(new Hud::CStringStat("credits-download", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-download-base");
     }
     
     void AddOSDHud()
@@ -1183,6 +1187,27 @@ class CElectricSheep
                 // Update credits
                 spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
                     m_HudManager->Get("dreamcredits"));
+
+                // Update status indicators with dynamic colors (always update, not conditional on metadata)
+                if (spStats)
+                {
+                    bool internetConnected = PlatformUtils::IsInternetReachable();
+                    bool wsConnected = internetConnected && EDreamClient::IsWebSocketConnected();
+
+                    // Set individual status indicators with colors
+                    spStats->SetColor("credits-net", internetConnected ? Base::Math::CVector4(0, 1, 0, 1) : Base::Math::CVector4(1, 0, 0, 1));
+                    spStats->SetColor("credits-ws", wsConnected ? Base::Math::CVector4(0, 1, 0, 1) : Base::Math::CVector4(1, 0, 0, 1));
+
+                    // Update download indicator
+                    if (isStreamingCurrent && isBuffering) {
+                        ((Hud::CStringStat*)spStats->Get("credits-download"))->SetSample("\u21BB buffering");  // ↻
+                    } else if (isPreloading) {
+                        ((Hud::CStringStat*)spStats->Get("credits-download"))->SetSample("\u2193 preloading");  // ↓
+                    } else {
+                        ((Hud::CStringStat*)spStats->Get("credits-download"))->SetSample("");  // Clear
+                    }
+                }
+
                 if (clipMetadata && frameMetadata)
                 {
                     // Calculate current timecode and total duration
@@ -1192,15 +1217,15 @@ class CElectricSheep
                     std::string duration = FormatTimeAsMMSSHundredths(totalTime);
 
                     // Set left-aligned title and right-aligned time info
-                    ((Hud::CStringStat*)spStats->Get("credits-line1"))
+                    ((Hud::CStringStat*)spStats->Get("credits-title"))
                         ->SetSample(string_format("title: %s", clipMetadata->dreamData.name.c_str()));
-                    ((Hud::CStringStat*)spStats->Get("credits-line1-right"))
+                    ((Hud::CStringStat*)spStats->Get("credits-time"))
                         ->SetSample(string_format("%s/%s", timecode.c_str(), duration.c_str()));
 
                     // Set left-aligned artist and right-aligned fps info
-                    ((Hud::CStringStat*)spStats->Get("credits-line2"))
+                    ((Hud::CStringStat*)spStats->Get("credits-artist"))
                         ->SetSample(string_format("artist: %s", clipMetadata->dreamData.artist.c_str()));
-                    ((Hud::CStringStat*)spStats->Get("credits-line2-right"))
+                    ((Hud::CStringStat*)spStats->Get("credits-fps"))
                         ->SetSample(string_format("%.2f fps", pFPS));
 
                     // Add mode indicator to playlist line
@@ -1213,29 +1238,8 @@ class CElectricSheep
                     } else {
                         modeStr = " (normal)";
                     }
-                    ((Hud::CStringStat*)spStats->Get("credits-line3"))
+                    ((Hud::CStringStat*)spStats->Get("credits-playlist"))
                         ->SetSample(string_format("playlist: %s%s", g_Player().GetPlaylistName().c_str(), modeStr.c_str()));
-
-                    // Add status indicators: Internet, WebSocket, and downloading
-                    std::string statusLine = "";
-
-                    // Internet status indicator (● for connected, ○ for disconnected)
-                    bool internetConnected = PlatformUtils::IsInternetReachable();
-                    statusLine += internetConnected ? "\u25CF Net " : "\u25CB Net ";  // ● filled / ○ empty
-
-                    // WebSocket status indicator - only show as connected if we have internet AND WS is connected
-                    bool wsConnected = internetConnected && EDreamClient::IsWebSocketConnected();
-                    statusLine += wsConnected ? "\u25CF WS " : "\u25CB WS ";  // ● filled / ○ empty
-
-                    // Downloading/streaming indicator
-                    if (isStreamingCurrent && isBuffering) {
-                        statusLine += "\u21BB buffering/streaming";  // ↻ spinner/refresh symbol for buffering/streaming
-                    } else if (isPreloading) {
-                        statusLine += "\u2193 preloading";  // ↓ download arrow for preloading
-                    }
-
-                    ((Hud::CStringStat*)spStats->Get("credits-status"))
-                        ->SetSample(statusLine);
                 }
                 
                 //	Serverstats.

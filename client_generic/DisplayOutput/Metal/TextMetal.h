@@ -13,6 +13,7 @@
 #include "Rect.h"
 #include "SmartPtr.h"
 #include "Text.h"
+#include "Vector4.h"
 #include "base.h"
 
 #define USE_SYSTEM_UI 1
@@ -39,6 +40,7 @@ class CTextMetal : public CBaseText
 #endif
     Base::Math::CVector2 m_Extents;
     bool m_Enabled;
+    Base::Math::CVector4 m_Color;
 
   public:
     CTextMetal(spCFontMetal _font, MTKView* _view, float _contextAspect);
@@ -47,6 +49,7 @@ class CTextMetal : public CBaseText
     virtual Base::Math::CVector2 GetExtent();
     virtual void SetRect(const Base::Math::CRect& _rect);
     virtual void SetEnabled(bool _enabled);
+    void SetColor(const Base::Math::CVector4& _color);
 
   public:
     const MBETextMesh* GetTextMesh() const { return m_pTextMesh; }

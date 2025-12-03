@@ -256,6 +256,8 @@ class CStatsConsole : public CConsole
         CStat* stat;
         DisplayOutput::spCBaseText text;
         bool isRightAligned = false;
+        Base::Math::CVector4 color = {1, 1, 1, 1};  // Default white
+        std::string alignWithStat;  // For right-aligned stats, which left stat to align with
     };
 
     std::vector<std::pair<std::string, StatText>> m_Stats;
@@ -291,7 +293,7 @@ class CStatsConsole : public CConsole
         m_Stats.clear();
     }
 
-    void Add(CStat* _pStat, bool _isRightAligned = false)
+    void Add(CStat* _pStat, bool _isRightAligned = false, Base::Math::CVector4 _color = {1, 1, 1, 1}, const std::string& _alignWithStat = "")
     {
         // Check if stat already exists to prevent duplicates
         auto it = std::find_if(m_Stats.begin(), m_Stats.end(),
@@ -304,7 +306,18 @@ class CStatsConsole : public CConsole
 
         m_Stats.emplace_back(
             _pStat->m_Name,
-            StatText{_pStat, g_Player().Renderer()->NewText(m_spFont, ""), _isRightAligned});
+            StatText{_pStat, g_Player().Renderer()->NewText(m_spFont, ""), _isRightAligned, _color, _alignWithStat});
+    }
+
+    void SetColor(std::string_view _name, Base::Math::CVector4 _color)
+    {
+        auto it = std::find_if(m_Stats.begin(), m_Stats.end(),
+                               [=](auto i) { return i.first == _name; });
+        if (it != m_Stats.end()) {
+            it->second.color = _color;
+        } else {
+            g_Log->Warning("SetColor: stat '%s' not found", std::string(_name).c_str());
+        }
     }
 
     CStat* Get(std::string_view _name)
@@ -395,9 +408,8 @@ class CStatsConsole : public CConsole
 
                         if (i->second.isRightAligned)
                         {
-                            // Find the corresponding left stat name (remove "-right" suffix)
-                            std::string baseName = i->first.substr(0, i->first.find("-right"));
-                            float baseY = leftStatPositions[baseName];
+                            // Use explicit alignment stat name
+                            float baseY = leftStatPositions[i->second.alignWithStat];
 
                             // Position right-aligned text at the right edge, same Y as base
                             float rightX = 1.0f - edge - size.m_X;
@@ -433,7 +445,7 @@ class CStatsConsole : public CConsole
             if (e && e->Visible())
             {
                 DisplayOutput::spCBaseText& text = i->second.text;
-                _spRenderer->DrawText(text, Base::Math::CVector4(1, 1, 1, 1));
+                _spRenderer->DrawText(text, i->second.color);
             }
         }
 

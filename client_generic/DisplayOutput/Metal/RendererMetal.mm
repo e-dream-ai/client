@@ -330,12 +330,21 @@ void CRendererMetal::DrawText(
     [[maybe_unused]] spCBaseText _text,
     [[maybe_unused]] const Base::Math::CVector4& _color)
 {
-#if !USE_SYSTEM_UI
+#if USE_SYSTEM_UI
+    // For USE_SYSTEM_UI, set the color on the text layer
+    if (_text) {
+        spCTextMetal textMetal = std::static_pointer_cast<CTextMetal>(_text);
+        if (textMetal) {
+            textMetal->SetColor(_color);
+        }
+    }
+#else
+    // Original custom Metal rendering path
     RendererContext* rendererContext =
         (__bridge RendererContext*)m_pRendererContext;
     @autoreleasepool
     {
-        spCTextMetal textMetal = static_cast<spCTextMetal>(_text);
+        spCTextMetal textMetal = std::static_pointer_cast<CTextMetal>(_text);
         const MBETextMesh* textMesh = textMetal->GetTextMesh();
 
         MTLRenderPassDescriptor* passDescriptor =

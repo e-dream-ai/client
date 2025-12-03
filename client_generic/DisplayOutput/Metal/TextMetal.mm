@@ -186,4 +186,24 @@ void CTextMetal::SetEnabled(bool _enabled)
     }
 }
 
+void CTextMetal::SetColor(const Base::Math::CVector4& _color)
+{
+    // Early exit if color hasn't changed
+    if (m_Color == _color) {
+        return;
+    }
+
+    m_Color = _color;
+#if USE_SYSTEM_UI
+    __weak CATextLayer* textLayer = m_TextLayer;
+    __block CGColorRef color = CGColorCreateGenericRGB(_color.m_X, _color.m_Y, _color.m_Z, _color.m_W);
+    ExecuteOnMainThread(^{
+        if (g_Player().Stopped())
+            return;
+        textLayer.foregroundColor = color;
+        CGColorRelease(color);
+    });
+#endif
+}
+
 } // namespace DisplayOutput
