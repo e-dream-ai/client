@@ -908,11 +908,14 @@ void CPlayer::PlayNextDream(bool quickFade) {
             const Cache::Dream* nextDream = m_playlistManager->moveToNextDream(*m_nextDreamDecision);
             m_PreloadingNextClip = false;
             m_PreloadingDreamUUID = "";
-            
+
             if (!nextDream) {
                 g_Log->Error("Failed to move to next dream during standard transition - playlist may have changed");
                 // Clean up any partially loaded clips
                 m_nextClip = nullptr;
+            } else {
+                g_Log->Info("Standard transition complete, syncing state to server");
+                EDreamClient::SendStateUpdate();
             }
         }
         m_nextDreamDecision = std::nullopt;
@@ -924,6 +927,8 @@ void CPlayer::PlayNextDream(bool quickFade) {
             StartTransition();
             PlayClip(nextDecision->dream, m_TimelineTime, -1, true);
             m_playlistManager->moveToNextDream(*nextDecision);
+            g_Log->Info("Fallback transition complete, syncing state to server");
+            EDreamClient::SendStateUpdate();
         }
     }
 }
