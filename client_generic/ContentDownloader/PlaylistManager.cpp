@@ -444,7 +444,8 @@ PlaylistManager::TransitionType PlaylistManager::determineTransitionType(const P
 }
 
 std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNextDream(bool canStream) const {
-    g_Log->Info("Preflight : start (mode: %d)", static_cast<int>(m_playbackMode));
+    g_Log->Info("Preflight : start (mode: %d, m_started: %d, m_currentPosition: %zu)",
+                static_cast<int>(m_playbackMode), m_started, m_currentPosition);
 
     if (m_playlist.empty()) {
         g_Log->Info("Preflight : no playlist");
@@ -454,13 +455,13 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
     NextDreamDecision decision;
 
     // Handle playback modes
-    if (m_playbackMode == PlaybackMode::Normal) {
+    if (m_playbackMode == PlaybackMode::Normal && m_started) {
         // Normal mode: sequential playback
         size_t nextPos = (m_currentPosition + 1) % m_playlist.size();
         const auto& currentEntry = m_playlist[m_currentPosition];
         const auto& nextEntry = m_playlist[nextPos];
 
-        g_Log->Info("Preflight : Normal mode - going to position %zu", nextPos);
+        g_Log->Info("Preflight : Normal mode (started) - going from pos %zu to %zu", m_currentPosition, nextPos);
 
         decision = {
             nextPos,
