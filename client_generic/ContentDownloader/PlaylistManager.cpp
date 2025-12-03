@@ -530,16 +530,34 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
         };
         return decision;
     }
-    else if (m_playbackMode == PlaybackMode::Shuffle) {
-        // Shuffle mode: random selection
+    else if (m_playbackMode == PlaybackMode::Shuffle && m_started) {
+        // Shuffle mode: random selection from unplayed dreams
+        std::vector<size_t> unplayedPositions;
+        for (size_t i = 0; i < m_playlist.size(); i++) {
+            if (!isDreamPlayed(m_playlist[i].uuid)) {
+                unplayedPositions.push_back(i);
+            }
+        }
+
+        // If all dreams have been played, reset history and start over
+        if (unplayedPositions.empty()) {
+            g_Log->Info("Preflight : Shuffle mode - all dreams played, resetting history");
+            const_cast<PlaylistManager*>(this)->resetPlayHistory();
+            for (size_t i = 0; i < m_playlist.size(); i++) {
+                unplayedPositions.push_back(i);
+            }
+        }
+
+        // Pick random from unplayed dreams
         std::random_device rd;
         std::mt19937 gen(rd());
-        std::uniform_int_distribution<size_t> dist(0, m_playlist.size() - 1);
-        size_t nextPos = dist(gen);
+        std::uniform_int_distribution<size_t> dist(0, unplayedPositions.size() - 1);
+        size_t nextPos = unplayedPositions[dist(gen)];
+
         const auto& currentEntry = m_playlist[m_currentPosition];
         const auto& nextEntry = m_playlist[nextPos];
 
-        g_Log->Info("Preflight : Shuffle mode - random position %zu", nextPos);
+        g_Log->Info("Preflight : Shuffle mode - random position %zu (from %zu unplayed)", nextPos, unplayedPositions.size());
 
         decision = {
             nextPos,
