@@ -1494,6 +1494,7 @@ class CElectricSheep
                 popOSD(Hud::Previous);
 
                 g_Player().ReturnToPrevious();
+                EDreamClient::SendStateUpdate();
                 return true;
                     
                 // Speed
@@ -1550,7 +1551,7 @@ class CElectricSheep
                 //  Force Next Sheep
             case CLIENT_COMMAND_NEXT:
                 popOSD(Hud::Next);
-                
+
                 /*if (g_Player().m_CurrentClips.size() > 1) {
                     auto [fadeInTime, _] =
                     g_Player().m_CurrentClips[0]->GetTransitionLength();
@@ -1562,8 +1563,9 @@ class CElectricSheep
                     g_Player().m_CurrentClips[1]->SetTransitionLength(1,fadeOutTime);
 
                 }*/
-                
+
                 g_Player().SkipToNext();
+                EDreamClient::SendStateUpdate();
                 return true;
                 //    Repeat sheep
             case CLIENT_COMMAND_REPEAT:
