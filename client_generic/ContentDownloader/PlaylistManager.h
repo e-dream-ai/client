@@ -26,7 +26,7 @@ enum class PlaybackMode {
 
 // Convert PlaybackMode to string
 inline constexpr const char* to_string(PlaybackMode mode) {
-    constexpr const char* names[] = {"Normal", "Repeat", "Shuffle"};
+    constexpr const char* names[] = {"sequential", "repeat", "shuffle"};
     return names[static_cast<int>(mode)];
 }
 

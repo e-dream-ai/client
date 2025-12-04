@@ -349,14 +349,14 @@ class CElectricSheep
         creditsConsole->Add(new Hud::CStringStat("credits-title", "", ""));
         creditsConsole->Add(new Hud::CStringStat("credits-artist", "", ""));
         creditsConsole->Add(new Hud::CStringStat("credits-playlist", "", ""));
-        creditsConsole->Add(new Hud::CStringStat("credits-ws-base", "", " "));  // Base for WS line
+        creditsConsole->Add(new Hud::CStringStat("credits-mode", "", ""));
         creditsConsole->Add(new Hud::CStringStat("credits-download-base", "", " "));  // Base for download line
 
         // Add right-aligned stats with explicit alignment
         creditsConsole->Add(new Hud::CStringStat("credits-time", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-title");
         creditsConsole->Add(new Hud::CStringStat("credits-fps", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-artist");
         creditsConsole->Add(new Hud::CStringStat("credits-net", "", "\u25CF Net"), true, Base::Math::CVector4(1, 1, 1, 1), "credits-playlist");
-        creditsConsole->Add(new Hud::CStringStat("credits-ws", "", "\u25CF WS"), true, Base::Math::CVector4(1, 1, 1, 1), "credits-ws-base");
+        creditsConsole->Add(new Hud::CStringStat("credits-ws", "", "\u25CF WS"), true, Base::Math::CVector4(1, 1, 1, 1), "credits-mode");
         creditsConsole->Add(new Hud::CStringStat("credits-download", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-download-base");
     }
     
@@ -1235,18 +1235,14 @@ class CElectricSheep
                     ((Hud::CStringStat*)spStats->Get("credits-fps"))
                         ->SetSample(string_format("%.2f fps", pFPS));
 
-                    // Add mode indicator to playlist line
-                    std::string modeStr = "";
-                    PlaybackMode creditsMode = g_Player().GetPlaylistManager().getPlaybackMode();
-                    if (creditsMode == PlaybackMode::Repeat) {
-                        modeStr = " (repeat)";
-                    } else if (creditsMode == PlaybackMode::Shuffle) {
-                        modeStr = " (shuffle)";
-                    } else {
-                        modeStr = " (normal)";
-                    }
+                    // Set playlist name
                     ((Hud::CStringStat*)spStats->Get("credits-playlist"))
-                        ->SetSample(string_format("playlist: %s%s", g_Player().GetPlaylistName().c_str(), modeStr.c_str()));
+                        ->SetSample(string_format("playlist: %s", g_Player().GetPlaylistName().c_str()));
+
+                    // Set mode on separate line
+                    PlaybackMode creditsMode = g_Player().GetPlaylistManager().getPlaybackMode();
+                    ((Hud::CStringStat*)spStats->Get("credits-mode"))
+                        ->SetSample(string_format("mode: %s", to_string(creditsMode)));
                 }
                 
                 //	Serverstats.
