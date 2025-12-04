@@ -1093,7 +1093,8 @@ class CElectricSheep
                 if (frameMetadata)
                 {
                     // Use new XX:YY.ZZ format for F2 display
-                    double currentTime = FrameNumberToSeconds(frameMetadata->frameIdx, baseFps);
+                    // Use floating point elapsed time for smooth updates
+                    double currentTime = g_Player().GetCurrentClipElapsedTime();
                     double totalTime = MaxFrameIdxToDuration(frameMetadata->maxFrameIdx, baseFps);
                     std::string currentTimeStr = FormatTimeAsMMSSHundredths(currentTime);
                     std::string totalTimeStr = FormatTimeAsMMSSHundredths(totalTime);
@@ -1218,7 +1219,8 @@ class CElectricSheep
                 if (clipMetadata && frameMetadata)
                 {
                     // Calculate current timecode and total duration
-                    double currentTime = FrameNumberToSeconds(frameMetadata->frameIdx, baseFps);
+                    // Use floating point elapsed time for smooth updates
+                    double currentTime = g_Player().GetCurrentClipElapsedTime();
                     double totalTime = MaxFrameIdxToDuration(frameMetadata->maxFrameIdx, baseFps);
                     std::string timecode = FormatTimeAsMMSSHundredths(currentTime);
                     std::string duration = FormatTimeAsMMSSHundredths(totalTime);

@@ -1470,6 +1470,14 @@ const ContentDecoder::sFrameMetadata* CPlayer::GetCurrentFrameMetadata() const
     return &m_currentClip->GetCurrentFrameMetadata();
 }
 
+double CPlayer::GetCurrentClipElapsedTime() const
+{
+    reader_lock l(m_UpdateMutex);
+    if (!m_currentClip)
+        return 0.0;
+    return m_TimelineTime - m_currentClip->GetStartTime();
+}
+
 // MARK: - Transitions
 bool CPlayer::shouldPrepareTransition(const ContentDecoder::spCClip& clip) const {
     if (!clip) return false;
