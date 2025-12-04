@@ -112,7 +112,10 @@ public:
     // canStream: if true, allows selecting dreams that aren't cached (will stream)
     //            if false, only considers cached dreams
     std::optional<NextDreamDecision> preflightNextDream(bool canStream = true) const;
-    
+
+    // Helper to find keyframe matches
+    std::optional<size_t> findKeyframeMatch(const PlaylistEntry& currentEntry, bool canStream) const;
+
     // Actually move to the next dream based on preflight decision
     const Cache::Dream* moveToNextDream(const NextDreamDecision& decision);
 

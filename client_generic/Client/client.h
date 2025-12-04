@@ -339,16 +339,25 @@ class CElectricSheep
     
     void AddCreditsHud()
     {
-        m_HudManager->Add("dreamcredits", std::make_shared<Hud::CStatsConsole>(
+        auto creditsConsole = std::make_shared<Hud::CStatsConsole>(
                                               Base::Math::CRect(1, 1),
-                                              m_HudFontName, m_HudFontSize));
-        Hud::spCStatsConsole spStats =
-            std::dynamic_pointer_cast<Hud::CStatsConsole>(
-                m_HudManager->Get("dreamcredits"));
+                                              m_HudFontName, m_HudFontSize);
+        m_HudManager->Add("dreamcredits", creditsConsole);
         m_HudManager->Hide("dreamcredits");
-        spStats->Add(new Hud::CStringStat("credits-line1", "", "1"));
-        spStats->Add(new Hud::CStringStat("credits-line2", "", "2"));
-        spStats->Add(new Hud::CStringStat("credits-line3", "", "3"));
+
+        // Add left-aligned stats
+        creditsConsole->Add(new Hud::CStringStat("credits-title", "", ""));
+        creditsConsole->Add(new Hud::CStringStat("credits-artist", "", ""));
+        creditsConsole->Add(new Hud::CStringStat("credits-playlist", "", ""));
+        creditsConsole->Add(new Hud::CStringStat("credits-ws-base", "", " "));  // Base for WS line
+        creditsConsole->Add(new Hud::CStringStat("credits-download-base", "", " "));  // Base for download line
+
+        // Add right-aligned stats with explicit alignment
+        creditsConsole->Add(new Hud::CStringStat("credits-time", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-title");
+        creditsConsole->Add(new Hud::CStringStat("credits-fps", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-artist");
+        creditsConsole->Add(new Hud::CStringStat("credits-net", "", "\u25CF Net"), true, Base::Math::CVector4(1, 1, 1, 1), "credits-playlist");
+        creditsConsole->Add(new Hud::CStringStat("credits-ws", "", "\u25CF WS"), true, Base::Math::CVector4(1, 1, 1, 1), "credits-ws-base");
+        creditsConsole->Add(new Hud::CStringStat("credits-download", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-download-base");
     }
     
     void AddOSDHud()
@@ -682,6 +691,31 @@ class CElectricSheep
         double seconds = FrameNumberToSeconds(_frames, _fps);
         uint64_t timeDiff = (uint64_t)seconds;
         return FormatTimeDiff(timeDiff, true);
+    }
+
+    // Format time as XX:YY.ZZ (minutes:seconds.hundredths)
+    // No leading 0 for minutes if <10, but YY and ZZ always have leading zeros
+    static std::string FormatTimeAsMMSSHundredths(double totalSeconds)
+    {
+        if (totalSeconds < 0) totalSeconds = 0;
+
+        int minutes = (int)(totalSeconds / 60.0);
+        double remainingSeconds = totalSeconds - (minutes * 60.0);
+        int seconds = (int)remainingSeconds;
+        int hundredths = (int)((remainingSeconds - seconds) * 100.0);
+
+        std::stringstream ss;
+        if (minutes >= 10) {
+            ss << minutes;
+        } else if (minutes > 0) {
+            ss << minutes;
+        } else {
+            ss << "0";
+        }
+        ss << ":" << std::setfill('0') << std::setw(2) << seconds
+           << "." << std::setfill('0') << std::setw(2) << hundredths;
+
+        return ss.str();
     }
 
 #ifdef DO_THREAD_UPDATE
@@ -1051,15 +1085,14 @@ class CElectricSheep
                     g_Player().GetCurrentFrameMetadata();
                 if (frameMetadata)
                 {
+                    // Use new XX:YY.ZZ format for F2 display
+                    double currentTime = FrameNumberToSeconds(frameMetadata->frameIdx, baseFps);
+                    double totalTime = FrameNumberToSeconds(frameMetadata->maxFrameIdx, baseFps);
+                    std::string currentTimeStr = FormatTimeAsMMSSHundredths(currentTime);
+                    std::string totalTimeStr = FormatTimeAsMMSSHundredths(totalTime);
+
                     ((Hud::CStringStat*)spStats->Get("playHead"))
-                        ->SetSample(
-                            string_format("%s/%s",
-                                          FrameNumberToMinutesAndSecondsString(
-                                              frameMetadata->frameIdx, baseFps)
-                                              .data(),
-                                          FrameNumberToMinutesAndSecondsString(
-                                              frameMetadata->maxFrameIdx, baseFps)
-                                              .data()));
+                        ->SetSample(string_format("%s/%s", currentTimeStr.c_str(), totalTimeStr.c_str()));
                 }
                 
                 // Grab Perceptual FPS from player
@@ -1154,14 +1187,59 @@ class CElectricSheep
                 // Update credits
                 spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
                     m_HudManager->Get("dreamcredits"));
-                if (clipMetadata)
+
+                // Update status indicators with dynamic colors (always update, not conditional on metadata)
+                if (spStats)
                 {
-                    ((Hud::CStringStat*)spStats->Get("credits-line1"))
-                    ->SetSample(string_format("title: %s",clipMetadata->dreamData.name.c_str()));
-                    ((Hud::CStringStat*)spStats->Get("credits-line2"))
-                    ->SetSample(string_format("artist: %s",clipMetadata->dreamData.artist.c_str()));
-                    ((Hud::CStringStat*)spStats->Get("credits-line3"))
-                    ->SetSample(string_format("playlist: %s",g_Player().GetPlaylistName().c_str()));
+                    bool internetConnected = PlatformUtils::IsInternetReachable();
+                    bool wsConnected = internetConnected && EDreamClient::IsWebSocketConnected();
+
+                    // Set individual status indicators with colors
+                    spStats->SetColor("credits-net", internetConnected ? Base::Math::CVector4(0, 1, 0, 1) : Base::Math::CVector4(1, 0, 0, 1));
+                    spStats->SetColor("credits-ws", wsConnected ? Base::Math::CVector4(0, 1, 0, 1) : Base::Math::CVector4(1, 0, 0, 1));
+
+                    // Update download indicator
+                    if (isStreamingCurrent && isBuffering) {
+                        ((Hud::CStringStat*)spStats->Get("credits-download"))->SetSample("\u21BB buffering");  // ↻
+                    } else if (isPreloading) {
+                        ((Hud::CStringStat*)spStats->Get("credits-download"))->SetSample("\u2193 preloading");  // ↓
+                    } else {
+                        ((Hud::CStringStat*)spStats->Get("credits-download"))->SetSample("");  // Clear
+                    }
+                }
+
+                if (clipMetadata && frameMetadata)
+                {
+                    // Calculate current timecode and total duration
+                    double currentTime = FrameNumberToSeconds(frameMetadata->frameIdx, baseFps);
+                    double totalTime = FrameNumberToSeconds(frameMetadata->maxFrameIdx, baseFps);
+                    std::string timecode = FormatTimeAsMMSSHundredths(currentTime);
+                    std::string duration = FormatTimeAsMMSSHundredths(totalTime);
+
+                    // Set left-aligned title and right-aligned time info
+                    ((Hud::CStringStat*)spStats->Get("credits-title"))
+                        ->SetSample(string_format("title: %s", clipMetadata->dreamData.name.c_str()));
+                    ((Hud::CStringStat*)spStats->Get("credits-time"))
+                        ->SetSample(string_format("%s/%s", timecode.c_str(), duration.c_str()));
+
+                    // Set left-aligned artist and right-aligned fps info
+                    ((Hud::CStringStat*)spStats->Get("credits-artist"))
+                        ->SetSample(string_format("artist: %s", clipMetadata->dreamData.artist.c_str()));
+                    ((Hud::CStringStat*)spStats->Get("credits-fps"))
+                        ->SetSample(string_format("%.2f fps", pFPS));
+
+                    // Add mode indicator to playlist line
+                    std::string modeStr = "";
+                    PlaybackMode creditsMode = g_Player().GetPlaylistManager().getPlaybackMode();
+                    if (creditsMode == PlaybackMode::Repeat) {
+                        modeStr = " (repeat)";
+                    } else if (creditsMode == PlaybackMode::Shuffle) {
+                        modeStr = " (shuffle)";
+                    } else {
+                        modeStr = " (normal)";
+                    }
+                    ((Hud::CStringStat*)spStats->Get("credits-playlist"))
+                        ->SetSample(string_format("playlist: %s%s", g_Player().GetPlaylistName().c_str(), modeStr.c_str()));
                 }
                 
                 //	Serverstats.
