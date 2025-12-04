@@ -353,10 +353,11 @@ class CElectricSheep
         creditsConsole->Add(new Hud::CStringStat("credits-download-base", "", " "));  // Base for download line
 
         // Add right-aligned stats with explicit alignment
-        creditsConsole->Add(new Hud::CStringStat("credits-time", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-title");
-        creditsConsole->Add(new Hud::CStringStat("credits-fps", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-artist");
-        creditsConsole->Add(new Hud::CStringStat("credits-net", "", "\u25CF Net"), true, Base::Math::CVector4(1, 1, 1, 1), "credits-playlist");
-        creditsConsole->Add(new Hud::CStringStat("credits-ws", "", "\u25CF WS"), true, Base::Math::CVector4(1, 1, 1, 1), "credits-mode");
+        // Move most stats down one row to avoid overlap with long titles
+        creditsConsole->Add(new Hud::CStringStat("credits-time", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-artist");
+        creditsConsole->Add(new Hud::CStringStat("credits-fps", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-playlist");
+        creditsConsole->Add(new Hud::CStringStat("credits-net", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-mode");
+        creditsConsole->Add(new Hud::CStringStat("credits-ws", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-mode");
         creditsConsole->Add(new Hud::CStringStat("credits-download", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-download-base");
     }
     
@@ -1202,8 +1203,15 @@ class CElectricSheep
                     bool internetConnected = PlatformUtils::IsInternetReachable();
                     bool wsConnected = internetConnected && EDreamClient::IsWebSocketConnected();
 
-                    // Set individual status indicators with colors
+                    // Combine Net and Remote on same line using spacing hack
+                    // We add spaces after "Net" to separate the two indicators on the same right-aligned line
+                    // This allows different colors for each indicator without implementing multi-color string support
+                    ((Hud::CStringStat*)spStats->Get("credits-net"))
+                        ->SetSample("\u25CF Net                   ");  // 19 spaces for separation
                     spStats->SetColor("credits-net", internetConnected ? Base::Math::CVector4(0, 1, 0, 1) : Base::Math::CVector4(1, 0, 0, 1));
+
+                    ((Hud::CStringStat*)spStats->Get("credits-ws"))
+                        ->SetSample("\u25CF Remote");
                     spStats->SetColor("credits-ws", wsConnected ? Base::Math::CVector4(0, 1, 0, 1) : Base::Math::CVector4(1, 0, 0, 1));
 
                     // Update download indicator
