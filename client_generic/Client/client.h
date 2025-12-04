@@ -685,6 +685,13 @@ class CElectricSheep
         return _frames / _fps;
     }
 
+    // Calculate total duration from maxFrameIdx (0-based last frame index)
+    // Adds 1 to convert from index to frame count
+    static double MaxFrameIdxToDuration(uint32_t _maxFrameIdx, double _fps)
+    {
+        return FrameNumberToSeconds(_maxFrameIdx + 1, _fps);
+    }
+
     static std::string FrameNumberToMinutesAndSecondsString(int64_t _frames,
                                                             float _fps)
     {
@@ -1087,7 +1094,7 @@ class CElectricSheep
                 {
                     // Use new XX:YY.ZZ format for F2 display
                     double currentTime = FrameNumberToSeconds(frameMetadata->frameIdx, baseFps);
-                    double totalTime = FrameNumberToSeconds(frameMetadata->maxFrameIdx, baseFps);
+                    double totalTime = MaxFrameIdxToDuration(frameMetadata->maxFrameIdx, baseFps);
                     std::string currentTimeStr = FormatTimeAsMMSSHundredths(currentTime);
                     std::string totalTimeStr = FormatTimeAsMMSSHundredths(totalTime);
 
@@ -1212,7 +1219,7 @@ class CElectricSheep
                 {
                     // Calculate current timecode and total duration
                     double currentTime = FrameNumberToSeconds(frameMetadata->frameIdx, baseFps);
-                    double totalTime = FrameNumberToSeconds(frameMetadata->maxFrameIdx, baseFps);
+                    double totalTime = MaxFrameIdxToDuration(frameMetadata->maxFrameIdx, baseFps);
                     std::string timecode = FormatTimeAsMMSSHundredths(currentTime);
                     std::string duration = FormatTimeAsMMSSHundredths(totalTime);
 
