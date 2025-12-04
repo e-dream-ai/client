@@ -470,7 +470,8 @@ std::optional<size_t> PlaylistManager::findKeyframeMatch(const PlaylistEntry& cu
 }
 
 std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNextDream(bool canStream) const {
-    g_Log->Info("Preflight : start (mode: %d)", static_cast<int>(m_playbackMode));
+    g_Log->Info("Preflight : start (mode: %d, m_started: %d, m_currentPosition: %zu)",
+                static_cast<int>(m_playbackMode), m_started, m_currentPosition);
 
     if (m_playlist.empty()) {
         g_Log->Info("Preflight : no playlist");
