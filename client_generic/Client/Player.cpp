@@ -853,12 +853,12 @@ void CPlayer::PlayNextDream(bool quickFade) {
 
                 m_currentClip->SetStartTime(m_TimelineTime);
                 m_currentClip->SetTransitionLength(0.0, 0.0);
+                m_currentClip->ResetFinished();
+
+                const Cache::Dream* nextDream = m_playlistManager->moveToNextDream(*m_nextDreamDecision);
 
                 g_Log->Info("Seamless transition complete, syncing state to server");
                 EDreamClient::SendStateUpdate();
-                m_currentClip->ResetFinished();
-                
-                const Cache::Dream* nextDream = m_playlistManager->moveToNextDream(*m_nextDreamDecision);
                 m_nextDreamDecision = std::nullopt;
                 
                 if (!nextDream) {
