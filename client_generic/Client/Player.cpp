@@ -908,11 +908,14 @@ void CPlayer::PlayNextDream(bool quickFade) {
             const Cache::Dream* nextDream = m_playlistManager->moveToNextDream(*m_nextDreamDecision);
             m_PreloadingNextClip = false;
             m_PreloadingDreamUUID = "";
-            
+
             if (!nextDream) {
                 g_Log->Error("Failed to move to next dream during standard transition - playlist may have changed");
                 // Clean up any partially loaded clips
                 m_nextClip = nullptr;
+            } else {
+                g_Log->Info("Standard transition complete, syncing state to server");
+                EDreamClient::SendStateUpdate();
             }
         }
         m_nextDreamDecision = std::nullopt;
@@ -924,6 +927,8 @@ void CPlayer::PlayNextDream(bool quickFade) {
             StartTransition();
             PlayClip(nextDecision->dream, m_TimelineTime, -1, true);
             m_playlistManager->moveToNextDream(*nextDecision);
+            g_Log->Info("Fallback transition complete, syncing state to server");
+            EDreamClient::SendStateUpdate();
         }
     }
 }
@@ -1499,18 +1504,20 @@ double CPlayer::GetCurrentClipElapsedTime() const
 // MARK: - Transitions
 bool CPlayer::shouldPrepareTransition(const ContentDecoder::spCClip& clip) const {
     if (!clip) return false;
-    
+
     const auto& metadata = clip->GetCurrentFrameMetadata();
-    
+
     // Make sure the clip is properly loaded before we look for transition
     if (metadata.maxFrameIdx <= 0) {
         return false;
     }
-    
+
     uint32_t framesRemaining = metadata.maxFrameIdx - metadata.frameIdx;
-    double timeRemaining = framesRemaining / clip->GetClipMetadata().decodeFps;
-    
-    // Start preparing transition when we're within 6 seconds of the end
+    // Use base fps (not decode fps) to get actual time remaining regardless of playback speed
+    double baseFps = std::stod(clip->GetClipMetadata().dreamData.fps);
+    double timeRemaining = framesRemaining / baseFps;
+
+    // Start preparing transition when we're within 8 seconds of the end
     return timeRemaining <= 8.0;
 }
 

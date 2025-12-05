@@ -693,6 +693,14 @@ class CElectricSheep
         return FrameNumberToSeconds(_maxFrameIdx + 1, _fps);
     }
 
+    // Calculate proportional elapsed time from current frame position
+    // This accounts for variable playback speed by using frame progress ratio
+    static double FrameIdxToElapsedTime(uint32_t _frameIdx, uint32_t _maxFrameIdx, double _totalDuration)
+    {
+        if (_maxFrameIdx == 0) return 0.0;
+        return (_frameIdx / (double)(_maxFrameIdx + 1)) * _totalDuration;
+    }
+
     static std::string FrameNumberToMinutesAndSecondsString(int64_t _frames,
                                                             float _fps)
     {
@@ -1094,9 +1102,8 @@ class CElectricSheep
                 if (frameMetadata)
                 {
                     // Use new XX:YY.ZZ format for F2 display
-                    // Use floating point elapsed time for smooth updates
-                    double currentTime = g_Player().GetCurrentClipElapsedTime();
                     double totalTime = MaxFrameIdxToDuration(frameMetadata->maxFrameIdx, baseFps);
+                    double currentTime = FrameIdxToElapsedTime(frameMetadata->frameIdx, frameMetadata->maxFrameIdx, totalTime);
                     std::string currentTimeStr = FormatTimeAsMMSSHundredths(currentTime);
                     std::string totalTimeStr = FormatTimeAsMMSSHundredths(totalTime);
 
@@ -1227,9 +1234,8 @@ class CElectricSheep
                 if (clipMetadata && frameMetadata)
                 {
                     // Calculate current timecode and total duration
-                    // Use floating point elapsed time for smooth updates
-                    double currentTime = g_Player().GetCurrentClipElapsedTime();
                     double totalTime = MaxFrameIdxToDuration(frameMetadata->maxFrameIdx, baseFps);
+                    double currentTime = FrameIdxToElapsedTime(frameMetadata->frameIdx, frameMetadata->maxFrameIdx, totalTime);
                     std::string timecode = FormatTimeAsMMSSHundredths(currentTime);
                     std::string duration = FormatTimeAsMMSSHundredths(totalTime);
 
