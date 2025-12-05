@@ -1390,10 +1390,13 @@ void CPlayer::SkipToNext()
 
         PlayClip(nextDecision->dream, m_TimelineTime, -1, true);
         m_playlistManager->moveToNextDream(*nextDecision);
-        
+
         if (m_nextClip) {
             m_nextClip->SetTransitionLength(1.0f, 5.0f);
         }
+
+        g_Log->Info("User skip to next, syncing state to server");
+        EDreamClient::SendStateUpdate();
         return;
     
 }
@@ -1421,16 +1424,18 @@ void CPlayer::ReturnToPrevious()
         
         // Create a new target clip
         PlayClip(previousDream, m_TimelineTime, -1, true);
-        
+
         if (m_nextClip) {
             m_nextClip->SetTransitionLength(1.0f, 5.0f);
-            
+
             // Maintain visual continuity
             if (currentProgress > 0.1) {
                 m_nextClip->m_Alpha = static_cast<float>(currentProgress);
             }
         }
-        
+
+        g_Log->Info("User skip to previous during transition, syncing state to server");
+        EDreamClient::SendStateUpdate();
         return;
     }
 
@@ -1438,6 +1443,9 @@ void CPlayer::ReturnToPrevious()
     StartTransition();
     PlayClip(previousDream, m_TimelineTime, -1, true);
     m_nextClip->SetTransitionLength(1.0f, 5.0f);
+
+    g_Log->Info("User skip to previous, syncing state to server");
+    EDreamClient::SendStateUpdate();
 }
 
 void CPlayer::RepeatClip()
@@ -1458,6 +1466,9 @@ const ContentDecoder::sClipMetadata*
 CPlayer::GetCurrentPlayingClipMetadata() const
 {
     reader_lock l(m_UpdateMutex);
+    // During transition, use next clip metadata (the new dream)
+    if (m_isTransitioning && m_nextClip)
+        return &m_nextClip->GetClipMetadata();
     if (!m_currentClip)
         return nullptr;
     return &m_currentClip->GetClipMetadata();
@@ -1465,6 +1476,9 @@ CPlayer::GetCurrentPlayingClipMetadata() const
 const ContentDecoder::sFrameMetadata* CPlayer::GetCurrentFrameMetadata() const
 {
     reader_lock l(m_UpdateMutex);
+    // During transition, use next clip metadata (the new dream)
+    if (m_isTransitioning && m_nextClip)
+        return &m_nextClip->GetCurrentFrameMetadata();
     if (!m_currentClip)
         return nullptr;
     return &m_currentClip->GetCurrentFrameMetadata();
@@ -1473,6 +1487,10 @@ const ContentDecoder::sFrameMetadata* CPlayer::GetCurrentFrameMetadata() const
 double CPlayer::GetCurrentClipElapsedTime() const
 {
     reader_lock l(m_UpdateMutex);
+    // During transition, use next clip (the new dream), otherwise use current clip
+    if (m_isTransitioning && m_nextClip) {
+        return m_TimelineTime - m_nextClip->GetStartTime();
+    }
     if (!m_currentClip)
         return 0.0;
     return m_TimelineTime - m_currentClip->GetStartTime();
