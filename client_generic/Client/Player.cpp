@@ -853,12 +853,12 @@ void CPlayer::PlayNextDream(bool quickFade) {
 
                 m_currentClip->SetStartTime(m_TimelineTime);
                 m_currentClip->SetTransitionLength(0.0, 0.0);
+                m_currentClip->ResetFinished();
+
+                const Cache::Dream* nextDream = m_playlistManager->moveToNextDream(*m_nextDreamDecision);
 
                 g_Log->Info("Seamless transition complete, syncing state to server");
                 EDreamClient::SendStateUpdate();
-                m_currentClip->ResetFinished();
-                
-                const Cache::Dream* nextDream = m_playlistManager->moveToNextDream(*m_nextDreamDecision);
                 m_nextDreamDecision = std::nullopt;
                 
                 if (!nextDream) {
@@ -908,11 +908,14 @@ void CPlayer::PlayNextDream(bool quickFade) {
             const Cache::Dream* nextDream = m_playlistManager->moveToNextDream(*m_nextDreamDecision);
             m_PreloadingNextClip = false;
             m_PreloadingDreamUUID = "";
-            
+
             if (!nextDream) {
                 g_Log->Error("Failed to move to next dream during standard transition - playlist may have changed");
                 // Clean up any partially loaded clips
                 m_nextClip = nullptr;
+            } else {
+                g_Log->Info("Standard transition complete, syncing state to server");
+                EDreamClient::SendStateUpdate();
             }
         }
         m_nextDreamDecision = std::nullopt;
@@ -924,6 +927,8 @@ void CPlayer::PlayNextDream(bool quickFade) {
             StartTransition();
             PlayClip(nextDecision->dream, m_TimelineTime, -1, true);
             m_playlistManager->moveToNextDream(*nextDecision);
+            g_Log->Info("Fallback transition complete, syncing state to server");
+            EDreamClient::SendStateUpdate();
         }
     }
 }
@@ -1390,10 +1395,13 @@ void CPlayer::SkipToNext()
 
         PlayClip(nextDecision->dream, m_TimelineTime, -1, true);
         m_playlistManager->moveToNextDream(*nextDecision);
-        
+
         if (m_nextClip) {
             m_nextClip->SetTransitionLength(1.0f, 5.0f);
         }
+
+        g_Log->Info("User skip to next, syncing state to server");
+        EDreamClient::SendStateUpdate();
         return;
     
 }
@@ -1421,16 +1429,18 @@ void CPlayer::ReturnToPrevious()
         
         // Create a new target clip
         PlayClip(previousDream, m_TimelineTime, -1, true);
-        
+
         if (m_nextClip) {
             m_nextClip->SetTransitionLength(1.0f, 5.0f);
-            
+
             // Maintain visual continuity
             if (currentProgress > 0.1) {
                 m_nextClip->m_Alpha = static_cast<float>(currentProgress);
             }
         }
-        
+
+        g_Log->Info("User skip to previous during transition, syncing state to server");
+        EDreamClient::SendStateUpdate();
         return;
     }
 
@@ -1438,6 +1448,9 @@ void CPlayer::ReturnToPrevious()
     StartTransition();
     PlayClip(previousDream, m_TimelineTime, -1, true);
     m_nextClip->SetTransitionLength(1.0f, 5.0f);
+
+    g_Log->Info("User skip to previous, syncing state to server");
+    EDreamClient::SendStateUpdate();
 }
 
 void CPlayer::RepeatClip()
@@ -1458,6 +1471,9 @@ const ContentDecoder::sClipMetadata*
 CPlayer::GetCurrentPlayingClipMetadata() const
 {
     reader_lock l(m_UpdateMutex);
+    // During transition, use next clip metadata (the new dream)
+    if (m_isTransitioning && m_nextClip)
+        return &m_nextClip->GetClipMetadata();
     if (!m_currentClip)
         return nullptr;
     return &m_currentClip->GetClipMetadata();
@@ -1465,6 +1481,9 @@ CPlayer::GetCurrentPlayingClipMetadata() const
 const ContentDecoder::sFrameMetadata* CPlayer::GetCurrentFrameMetadata() const
 {
     reader_lock l(m_UpdateMutex);
+    // During transition, use next clip metadata (the new dream)
+    if (m_isTransitioning && m_nextClip)
+        return &m_nextClip->GetCurrentFrameMetadata();
     if (!m_currentClip)
         return nullptr;
     return &m_currentClip->GetCurrentFrameMetadata();
@@ -1473,6 +1492,10 @@ const ContentDecoder::sFrameMetadata* CPlayer::GetCurrentFrameMetadata() const
 double CPlayer::GetCurrentClipElapsedTime() const
 {
     reader_lock l(m_UpdateMutex);
+    // During transition, use next clip (the new dream), otherwise use current clip
+    if (m_isTransitioning && m_nextClip) {
+        return m_TimelineTime - m_nextClip->GetStartTime();
+    }
     if (!m_currentClip)
         return 0.0;
     return m_TimelineTime - m_currentClip->GetStartTime();
@@ -1481,18 +1504,20 @@ double CPlayer::GetCurrentClipElapsedTime() const
 // MARK: - Transitions
 bool CPlayer::shouldPrepareTransition(const ContentDecoder::spCClip& clip) const {
     if (!clip) return false;
-    
+
     const auto& metadata = clip->GetCurrentFrameMetadata();
-    
+
     // Make sure the clip is properly loaded before we look for transition
     if (metadata.maxFrameIdx <= 0) {
         return false;
     }
-    
+
     uint32_t framesRemaining = metadata.maxFrameIdx - metadata.frameIdx;
-    double timeRemaining = framesRemaining / clip->GetClipMetadata().decodeFps;
-    
-    // Start preparing transition when we're within 6 seconds of the end
+    // Use base fps (not decode fps) to get actual time remaining regardless of playback speed
+    double baseFps = std::stod(clip->GetClipMetadata().dreamData.fps);
+    double timeRemaining = framesRemaining / baseFps;
+
+    // Start preparing transition when we're within 8 seconds of the end
     return timeRemaining <= 8.0;
 }
 

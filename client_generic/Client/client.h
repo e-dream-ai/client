@@ -693,6 +693,19 @@ class CElectricSheep
         return FrameNumberToSeconds(_maxFrameIdx + 1, _fps);
     }
 
+    // Calculate current and total time from frame metadata
+    // Returns pair of (currentTime, totalTime)
+    static std::pair<double, double> CalculateTimecode(const ContentDecoder::sFrameMetadata* frameMetadata, double baseFps)
+    {
+        if (!frameMetadata) return {0.0, 0.0};
+
+        double totalTime = MaxFrameIdxToDuration(frameMetadata->maxFrameIdx, baseFps);
+        double currentTime = (frameMetadata->frameIdx / (double)(frameMetadata->maxFrameIdx + 1)) * totalTime;
+        if (currentTime > totalTime) currentTime = totalTime;
+
+        return {currentTime, totalTime};
+    }
+
     static std::string FrameNumberToMinutesAndSecondsString(int64_t _frames,
                                                             float _fps)
     {
@@ -1094,9 +1107,7 @@ class CElectricSheep
                 if (frameMetadata)
                 {
                     // Use new XX:YY.ZZ format for F2 display
-                    // Use floating point elapsed time for smooth updates
-                    double currentTime = g_Player().GetCurrentClipElapsedTime();
-                    double totalTime = MaxFrameIdxToDuration(frameMetadata->maxFrameIdx, baseFps);
+                    auto [currentTime, totalTime] = CalculateTimecode(frameMetadata, baseFps);
                     std::string currentTimeStr = FormatTimeAsMMSSHundredths(currentTime);
                     std::string totalTimeStr = FormatTimeAsMMSSHundredths(totalTime);
 
@@ -1227,9 +1238,7 @@ class CElectricSheep
                 if (clipMetadata && frameMetadata)
                 {
                     // Calculate current timecode and total duration
-                    // Use floating point elapsed time for smooth updates
-                    double currentTime = g_Player().GetCurrentClipElapsedTime();
-                    double totalTime = MaxFrameIdxToDuration(frameMetadata->maxFrameIdx, baseFps);
+                    auto [currentTime, totalTime] = CalculateTimecode(frameMetadata, baseFps);
                     std::string timecode = FormatTimeAsMMSSHundredths(currentTime);
                     std::string duration = FormatTimeAsMMSSHundredths(totalTime);
 
@@ -1494,6 +1503,7 @@ class CElectricSheep
                 popOSD(Hud::Previous);
 
                 g_Player().ReturnToPrevious();
+                EDreamClient::SendStateUpdate();
                 return true;
                     
                 // Speed
@@ -1550,7 +1560,7 @@ class CElectricSheep
                 //  Force Next Sheep
             case CLIENT_COMMAND_NEXT:
                 popOSD(Hud::Next);
-                
+
                 /*if (g_Player().m_CurrentClips.size() > 1) {
                     auto [fadeInTime, _] =
                     g_Player().m_CurrentClips[0]->GetTransitionLength();
@@ -1562,8 +1572,9 @@ class CElectricSheep
                     g_Player().m_CurrentClips[1]->SetTransitionLength(1,fadeOutTime);
 
                 }*/
-                
+
                 g_Player().SkipToNext();
+                EDreamClient::SendStateUpdate();
                 return true;
                 //    Repeat sheep
             case CLIENT_COMMAND_REPEAT:
