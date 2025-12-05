@@ -693,12 +693,17 @@ class CElectricSheep
         return FrameNumberToSeconds(_maxFrameIdx + 1, _fps);
     }
 
-    // Calculate proportional elapsed time from current frame position
-    // This accounts for variable playback speed by using frame progress ratio
-    static double FrameIdxToElapsedTime(uint32_t _frameIdx, uint32_t _maxFrameIdx, double _totalDuration)
+    // Calculate current and total time from frame metadata
+    // Returns pair of (currentTime, totalTime)
+    static std::pair<double, double> CalculateTimecode(const ContentDecoder::sFrameMetadata* frameMetadata, double baseFps)
     {
-        if (_maxFrameIdx == 0) return 0.0;
-        return (_frameIdx / (double)(_maxFrameIdx + 1)) * _totalDuration;
+        if (!frameMetadata) return {0.0, 0.0};
+
+        double totalTime = MaxFrameIdxToDuration(frameMetadata->maxFrameIdx, baseFps);
+        double currentTime = (frameMetadata->frameIdx / (double)(frameMetadata->maxFrameIdx + 1)) * totalTime;
+        if (currentTime > totalTime) currentTime = totalTime;
+
+        return {currentTime, totalTime};
     }
 
     static std::string FrameNumberToMinutesAndSecondsString(int64_t _frames,
@@ -1102,8 +1107,7 @@ class CElectricSheep
                 if (frameMetadata)
                 {
                     // Use new XX:YY.ZZ format for F2 display
-                    double totalTime = MaxFrameIdxToDuration(frameMetadata->maxFrameIdx, baseFps);
-                    double currentTime = FrameIdxToElapsedTime(frameMetadata->frameIdx, frameMetadata->maxFrameIdx, totalTime);
+                    auto [currentTime, totalTime] = CalculateTimecode(frameMetadata, baseFps);
                     std::string currentTimeStr = FormatTimeAsMMSSHundredths(currentTime);
                     std::string totalTimeStr = FormatTimeAsMMSSHundredths(totalTime);
 
@@ -1234,8 +1238,7 @@ class CElectricSheep
                 if (clipMetadata && frameMetadata)
                 {
                     // Calculate current timecode and total duration
-                    double totalTime = MaxFrameIdxToDuration(frameMetadata->maxFrameIdx, baseFps);
-                    double currentTime = FrameIdxToElapsedTime(frameMetadata->frameIdx, frameMetadata->maxFrameIdx, totalTime);
+                    auto [currentTime, totalTime] = CalculateTimecode(frameMetadata, baseFps);
                     std::string timecode = FormatTimeAsMMSSHundredths(currentTime);
                     std::string duration = FormatTimeAsMMSSHundredths(totalTime);
 
