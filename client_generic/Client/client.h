@@ -702,25 +702,24 @@ class CElectricSheep
         double totalTime = MaxFrameIdxToDuration(frameMetadata->maxFrameIdx, baseFps);
         double currentTime = (frameMetadata->frameIdx / (double)(frameMetadata->maxFrameIdx + 1)) * totalTime;
 
-        double currentElapsedTime = g_Player().GetCurrentClipElapsedTime();
+        auto now = std::chrono::steady_clock::now();
+        double currentElapsedTime = std::chrono::duration<double, std::micro>(now.time_since_epoch()).count();
         double lastFrameElapsedTime = g_Player().GetCurrentElapsedTimeForLastFrameUpdate();
-        double expectedNextFrameElapsedTime = lastFrameElapsedTime + (1.0 / baseFps);
-
+        double currentDecoderFps = g_Player().GetDecoderFPS();
+        double expectedNextFrameElapsedTime = lastFrameElapsedTime + ((1.0 / currentDecoderFps) * 1000000.0);
+        double ratio = (currentElapsedTime - lastFrameElapsedTime) / (expectedNextFrameElapsedTime - lastFrameElapsedTime);
         
-        if (expectedNextFrameElapsedTime - lastFrameElapsedTime > 0)
+        double nextFrameTime = ((frameMetadata->frameIdx + 1) / (double)(frameMetadata->maxFrameIdx + 1)) * totalTime;
+        if (ratio > 0 && ratio < 1.0)
         {
-            double ratio = (currentElapsedTime - lastFrameElapsedTime) / (expectedNextFrameElapsedTime - lastFrameElapsedTime);
-
-            if (ratio > 0 && ratio < 1.0)
+            double maybeCurrentTime = currentTime + ratio * (nextFrameTime - currentTime);
+            if (maybeCurrentTime < nextFrameTime)
             {
-                double currentTimeWithInterpolation = ((double(frameMetadata->frameIdx) + ratio) / (double)(frameMetadata->maxFrameIdx + 1)) * totalTime;
-                if (currentTimeWithInterpolation > currentTime && currentTimeWithInterpolation < expectedNextFrameElapsedTime)
-                {
-                    currentTime = currentTimeWithInterpolation;
-                }
-
+                currentTime = maybeCurrentTime;
             }
         }
+        
+         
         
 
 

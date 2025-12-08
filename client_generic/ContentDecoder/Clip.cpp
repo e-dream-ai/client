@@ -421,7 +421,8 @@ bool CClip::GrabVideoFrame()
             std::unique_lock<std::shared_mutex> lock(
                 m_CurrentFrameMetadataLock);
             m_CurrentFrameMetadata = m_spFrameData->GetMetaData();
-            m_CurrentElapsedTimeForLastFrameUpdate = g_Player().GetCurrentClipElapsedTime();
+            auto now = std::chrono::steady_clock::now();
+            m_CurrentElapsedTimeForLastFrameUpdate = std::chrono::duration<double, std::micro>(now.time_since_epoch()).count();
 
             /*g_Log->Info("GrabVideoFrame() - Successfully grabbed frame %d",
                         m_CurrentFrameMetadata.frameIdx);*/
