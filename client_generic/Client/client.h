@@ -695,7 +695,7 @@ class CElectricSheep
 
     // Calculate current and total time from frame metadata
     // Returns pair of (currentTime, totalTime)
-    std::pair<double, double> CalculateTimecode(const ContentDecoder::sFrameMetadata* frameMetadata, double baseFps)
+    static std::pair<double, double> CalculateTimecode(const ContentDecoder::sFrameMetadata* frameMetadata, double baseFps)
     {
         if (!frameMetadata) return {0.0, 0.0};
 
