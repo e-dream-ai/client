@@ -122,7 +122,13 @@ bool PlaylistManager::parsePlaylist(const std::string& playlistUUID) {
         m_playlist = filterUncachedDreams(entries);
     }
 
-    
+    // Clear history if switching to a different playlist
+    if (playlistUUID != m_currentPlaylistUUID) {
+        g_Log->Info("Playlist changed from %s to %s, clearing history",
+                    m_currentPlaylistUUID.c_str(), playlistUUID.c_str());
+        m_playHistory.clear();
+    }
+
     // Update member variables
     m_currentPlaylistName = playlistName;
     m_currentPlaylistArtist = playlistArtist;
@@ -764,6 +770,12 @@ const Cache::Dream* PlaylistManager::getPreviousDream() {
     // Get previous position from history
     if (!m_playHistory.empty()) {
         m_currentPosition = m_playHistory.back();
+        // Validate position is within current playlist bounds
+        if (m_currentPosition >= m_playlist.size()) {
+            g_Log->Warning("History position %zu out of bounds for playlist size %zu, resetting to 0",
+                          m_currentPosition, m_playlist.size());
+            m_currentPosition = 0;
+        }
         g_Log->Info("Going back to previous dream in history: %s (pos: %zu)",
                     m_playlist[m_currentPosition].uuid.c_str(), m_currentPosition);
     } else {
