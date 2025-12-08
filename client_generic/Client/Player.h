@@ -195,6 +195,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     const ContentDecoder::sClipMetadata* GetCurrentPlayingClipMetadata() const;
     const ContentDecoder::sFrameMetadata* GetCurrentFrameMetadata() const;
     double GetCurrentClipElapsedTime() const;
+    double GetCurrentElapsedTimeForLastFrameUpdate() const;
 
     void PlayNextDream(bool quickFade = false);
     void StartTransition();

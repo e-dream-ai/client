@@ -63,6 +63,7 @@ public: // tmp public for debug
     sFrameMetadata m_CurrentFrameMetadata;
 private: // tmp
     mutable std::shared_mutex m_CurrentFrameMetadataLock;
+    double m_CurrentElapsedTimeForLastFrameUpdate;
     double m_StartTime;
     double m_EndTime;
     boost::atomic<bool> m_HasFinished;
@@ -122,6 +123,7 @@ public:
     /// Gets the frame index of the last frame read from the encoder. Thread safe function.
     uint32_t GetCurrentFrameIdx() const;
     const sFrameMetadata& GetCurrentFrameMetadata() const;
+    double GetCurrentElapsedTimeForLastFrameUpdate() const { return m_CurrentElapsedTimeForLastFrameUpdate; }
     uint32_t GetFrameCount() const;
     void SetStartTime(double _startTime);
     double GetStartTime() const { return m_StartTime; }

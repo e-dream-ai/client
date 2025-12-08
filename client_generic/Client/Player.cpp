@@ -1514,6 +1514,18 @@ double CPlayer::GetCurrentClipElapsedTime() const
     return m_TimelineTime - m_currentClip->GetStartTime();
 }
 
+double CPlayer::GetCurrentElapsedTimeForLastFrameUpdate() const
+{
+    reader_lock l(m_UpdateMutex);
+    // During transition, use next clip (the new dream), otherwise use current clip
+    if (m_isTransitioning && m_nextClip) {
+        return m_nextClip->GetCurrentElapsedTimeForLastFrameUpdate();
+    }
+    if (!m_currentClip)
+        return 0.0;
+    return m_currentClip->GetCurrentElapsedTimeForLastFrameUpdate();
+}
+
 // MARK: - Transitions
 bool CPlayer::shouldPrepareTransition(const ContentDecoder::spCClip& clip) const {
     if (!clip) return false;

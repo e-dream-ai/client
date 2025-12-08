@@ -695,15 +695,33 @@ class CElectricSheep
 
     // Calculate current and total time from frame metadata
     // Returns pair of (currentTime, totalTime)
-    static std::pair<double, double> CalculateTimecode(const ContentDecoder::sFrameMetadata* frameMetadata, double baseFps)
+    std::pair<double, double> CalculateTimecode(const ContentDecoder::sFrameMetadata* frameMetadata, double baseFps)
     {
         if (!frameMetadata) return {0.0, 0.0};
 
         double totalTime = MaxFrameIdxToDuration(frameMetadata->maxFrameIdx, baseFps);
-        double currentTime = (frameMetadata->frameIdx / (double)(frameMetadata->maxFrameIdx + 1)) * totalTime;
-        if (currentTime > totalTime) currentTime = totalTime;
+        double currentTimeWithoutInterpolation = (frameMetadata->frameIdx / (double)(frameMetadata->maxFrameIdx + 1)) * totalTime;
 
-        return {currentTime, totalTime};
+        double expectedNextFrameElapsedTime = currentTimeWithoutInterpolation + (1.0 / baseFps);
+        double currentElapsedTime = g_Player().GetCurrentClipElapsedTime();
+        double lastFrameElapsedTime = g_Player().GetCurrentElapsedTimeForLastFrameUpdate();
+        double ratio = (currentElapsedTime - lastFrameElapsedTime) / (expectedNextFrameElapsedTime - lastFrameElapsedTime);
+
+        if (ratio > 0 && ratio < 1.0)
+        {
+            double currentTimeWithInterpolation = ((double(frameMetadata->frameIdx) + ratio) / (double)(frameMetadata->maxFrameIdx + 1)) * totalTime;
+            if (currentTimeWithInterpolation > currentTimeWithoutInterpolation && currentTimeWithInterpolation < expectedNextFrameElapsedTime)
+            {
+                currentTimeWithoutInterpolation = currentTimeWithInterpolation;
+            }
+
+        }
+
+
+
+        if (currentTimeWithoutInterpolation > totalTime) currentTimeWithoutInterpolation = totalTime;
+
+        return {currentTimeWithoutInterpolation, totalTime};
     }
 
     static std::string FrameNumberToMinutesAndSecondsString(int64_t _frames,

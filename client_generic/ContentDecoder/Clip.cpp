@@ -11,6 +11,7 @@
 #include "Clip.h"
 #include "CubicFrameDisplay.h"
 #include "LinearFrameDisplay.h"
+#include "../Client/Player.h"
 
 namespace ContentDecoder
 {
@@ -19,7 +20,7 @@ CClip::CClip(const sClipMetadata& _metadata, spCRenderer _spRenderer,
              int32_t _displayMode, uint32_t _displayWidth,
              uint32_t _displayHeight)
     : m_ClipMetadata(_metadata), m_spRenderer(_spRenderer),
-m_CurrentFrameMetadata{}, m_HasFinished(false), m_IsFadingOut(false)
+m_CurrentFrameMetadata{}, m_CurrentElapsedTimeForLastFrameUpdate(0.0), m_HasFinished(false), m_IsFadingOut(false)
 {
     //    Create frame display.
     if (_displayMode == 2)
@@ -413,14 +414,15 @@ bool CClip::GrabVideoFrame()
     {
         m_spFrameData = frame;
 
-        // Store this as our last valid frame
+        // Store this as zour last valid frame
         m_LastValidFrame = frame;
         
         {
             std::unique_lock<std::shared_mutex> lock(
                 m_CurrentFrameMetadataLock);
             m_CurrentFrameMetadata = m_spFrameData->GetMetaData();
-            
+            m_CurrentElapsedTimeForLastFrameUpdate = g_Player().GetCurrentClipElapsedTime();
+
             /*g_Log->Info("GrabVideoFrame() - Successfully grabbed frame %d",
                         m_CurrentFrameMetadata.frameIdx);*/
         }
