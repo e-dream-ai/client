@@ -700,28 +700,34 @@ class CElectricSheep
         if (!frameMetadata) return {0.0, 0.0};
 
         double totalTime = MaxFrameIdxToDuration(frameMetadata->maxFrameIdx, baseFps);
-        double currentTimeWithoutInterpolation = (frameMetadata->frameIdx / (double)(frameMetadata->maxFrameIdx + 1)) * totalTime;
+        double currentTime = (frameMetadata->frameIdx / (double)(frameMetadata->maxFrameIdx + 1)) * totalTime;
 
-        double expectedNextFrameElapsedTime = currentTimeWithoutInterpolation + (1.0 / baseFps);
         double currentElapsedTime = g_Player().GetCurrentClipElapsedTime();
         double lastFrameElapsedTime = g_Player().GetCurrentElapsedTimeForLastFrameUpdate();
-        double ratio = (currentElapsedTime - lastFrameElapsedTime) / (expectedNextFrameElapsedTime - lastFrameElapsedTime);
+        double expectedNextFrameElapsedTime = lastFrameElapsedTime + (1.0 / baseFps);
 
-        if (ratio > 0 && ratio < 1.0)
+        
+        if (expectedNextFrameElapsedTime - lastFrameElapsedTime > 0)
         {
-            double currentTimeWithInterpolation = ((double(frameMetadata->frameIdx) + ratio) / (double)(frameMetadata->maxFrameIdx + 1)) * totalTime;
-            if (currentTimeWithInterpolation > currentTimeWithoutInterpolation && currentTimeWithInterpolation < expectedNextFrameElapsedTime)
+            double ratio = (currentElapsedTime - lastFrameElapsedTime) / (expectedNextFrameElapsedTime - lastFrameElapsedTime);
+
+            if (ratio > 0 && ratio < 1.0)
             {
-                currentTimeWithoutInterpolation = currentTimeWithInterpolation;
+                double currentTimeWithInterpolation = ((double(frameMetadata->frameIdx) + ratio) / (double)(frameMetadata->maxFrameIdx + 1)) * totalTime;
+                if (currentTimeWithInterpolation > currentTime && currentTimeWithInterpolation < expectedNextFrameElapsedTime)
+                {
+                    currentTime = currentTimeWithInterpolation;
+                }
+
             }
-
         }
+        
 
 
 
-        if (currentTimeWithoutInterpolation > totalTime) currentTimeWithoutInterpolation = totalTime;
+        if (currentTime > totalTime) currentTime = totalTime;
 
-        return {currentTimeWithoutInterpolation, totalTime};
+        return {currentTime, totalTime};
     }
 
     static std::string FrameNumberToMinutesAndSecondsString(int64_t _frames,
