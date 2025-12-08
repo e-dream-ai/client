@@ -487,8 +487,7 @@ bool CPlayer::BeginFrameUpdate()
         m_LastFrameRealTime = newTime;
     double delta = newTime - m_LastFrameRealTime;
     //Avoid huge timesteps when debugging
-    constexpr double SLOWEST_FRAMES_PER_SECOND = 10.0;
-    delta = std::fmin(delta, 1.0 / SLOWEST_FRAMES_PER_SECOND);
+    delta = std::fmin(delta, 1.0 / SlowestFramesPerSecond());
     m_LastFrameRealTime = newTime;
     m_TimelineTime += delta;
 
@@ -936,20 +935,27 @@ void CPlayer::PlayNextDream(bool quickFade) {
 
 void CPlayer::MultiplyPerceptualFPS(const double _multiplier) {
     m_PerceptualFPS *= _multiplier;
-    
+
     reader_lock l(m_UpdateMutex);
     if (m_currentClip) {
         float dreamActivityLevel = m_currentClip->GetClipMetadata().dreamData.activityLevel;
         // Update decoder speed
         m_DecoderFps = m_PerceptualFPS / dreamActivityLevel;
+
+        // Enforce minimum FPS limit to prevent going below SlowestFramesPerSecond()
+        if (m_DecoderFps < SlowestFramesPerSecond()) {
+            m_DecoderFps = SlowestFramesPerSecond();
+            m_PerceptualFPS = m_DecoderFps * dreamActivityLevel;
+        }
+
         m_currentClip->SetFps(m_DecoderFps);
     }
 }
 
 void CPlayer::SetPerceptualFPS(const double _fps) {
-    
+
     m_PerceptualFPS = _fps;
-    
+
     reader_lock l(m_UpdateMutex);
 
     if (m_currentClip) {
@@ -957,6 +963,13 @@ void CPlayer::SetPerceptualFPS(const double _fps) {
         float dreamActivityLevel = m_currentClip->GetClipMetadata().dreamData.activityLevel;
         // Update decoder speed
         m_DecoderFps = m_PerceptualFPS / dreamActivityLevel;
+
+        // Enforce minimum FPS limit to prevent going below SlowestFramesPerSecond()
+        if (m_DecoderFps < SlowestFramesPerSecond()) {
+            m_DecoderFps = SlowestFramesPerSecond();
+            m_PerceptualFPS = m_DecoderFps * dreamActivityLevel;
+        }
+
         m_currentClip->SetFps(m_DecoderFps);
     }
 }

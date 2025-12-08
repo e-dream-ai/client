@@ -171,6 +171,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     void SetPerceptualFPS(const double _fps);
     double GetPerceptualFPS();
     double GetDecoderFPS();
+    static constexpr double SlowestFramesPerSecond() { return 1.0f; }
     inline void Fullscreen(const bool _bState) { m_bFullscreen = _bState; };
     inline bool Stopped() { return !m_bStarted; };
 
