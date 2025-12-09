@@ -1324,21 +1324,33 @@ void CPlayer::MarkForDeletion(std::string_view _uuid)
 void CPlayer::SkipToNext()
 {
     g_Log->Info("Next");
+
+    // Check quota first - if quota is 0, don't allow streaming
+    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+    bool canStream = cm.getRemainingQuota() > 0;
+
+    if (!canStream) {
+        g_Log->Info("Quota is 0, using cache-only mode for Next");
+    }
+
     // Get the next dream decision
-    // User-initiated skip - allow streaming
-    auto nextDecision = m_playlistManager->preflightNextDream(true);
+    auto nextDecision = m_playlistManager->preflightNextDream(canStream);
     if (!nextDecision) {
         g_Log->Error("No next dream available");
         return;
     }
-    
+
     // Check if we are cached or not
     bool isDreamCached = !nextDecision->dream->getCachedPath().empty();
     g_Log->Info("Next dream %s is %scached",
               nextDecision->dream->uuid.c_str(),
               isDreamCached ? "" : "not ");
-    
+
     if (!isDreamCached) {
+        if (!canStream) {
+            g_Log->Warning("Next dream is not cached and quota is 0, cannot stream");
+            return;
+        }
         g_Log->Info("Next dream is not cached, will try loading and playin immediately");
         PlayDreamNow(nextDecision->dream->uuid, -1);
         return;
@@ -1409,10 +1421,16 @@ void CPlayer::SkipToNext()
 void CPlayer::ReturnToPrevious()
 {
     auto previousDream = m_playlistManager->getPreviousDream();
-    
+
     bool isDreamCached = !previousDream->getCachedPath().empty();
     if (!isDreamCached) {
-        g_Log->Info("Next dream is not cached, will try loading and playin immediately");
+        // Check quota before allowing streaming
+        Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+        if (cm.getRemainingQuota() <= 0) {
+            g_Log->Warning("Previous dream is not cached and quota is 0, cannot stream");
+            return;
+        }
+        g_Log->Info("Previous dream is not cached, will try loading and playing immediately");
         PlayDreamNow(previousDream->uuid, -1);
         return;
     }
