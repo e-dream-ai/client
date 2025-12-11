@@ -57,6 +57,9 @@ bool PlaylistManager::initializePlaylist(const std::string& playlistUUID, bool f
     m_started = false;
     m_currentDreamUUID = m_playlist.empty() ? "" : m_playlist[0].uuid;
 
+    // Clear play history when switching playlists to prevent out-of-bounds access
+    resetPlayHistory();
+
     // Start periodic checking if it's not already running. Don't in offline mode though!
     if (!m_isCheckingActive && !m_offlineMode) {
         startPeriodicChecking();
@@ -81,11 +84,14 @@ void PlaylistManager::initializeOfflinePlaylist() {
     }
     
     g_Log->Info("Offline playlist initialized with %zu dreams", m_playlist.size());
-    
+
     m_currentPosition = 0;
     m_started = false;
     m_currentDreamUUID = m_playlist.empty() ? "" : m_playlist[0].uuid;
-    
+
+    // Clear play history when initializing offline playlist
+    resetPlayHistory();
+
     // Set offline playlist metadata
     m_currentPlaylistName = "Offline Playlist";
     m_currentPlaylistArtist = "Local";
