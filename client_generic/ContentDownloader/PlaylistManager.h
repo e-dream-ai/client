@@ -111,7 +111,8 @@ public:
     // Calculate what will be played next without changing state
     // canStream: if true, allows selecting dreams that aren't cached (will stream)
     //            if false, only considers cached dreams
-    std::optional<NextDreamDecision> preflightNextDream(bool canStream = true) const;
+    // forceNext: if true, advances to next dream even in repeat mode (for explicit user "next" command)
+    std::optional<NextDreamDecision> preflightNextDream(bool canStream = true, bool forceNext = false) const;
 
     // Helper to find keyframe matches
     std::optional<size_t> findKeyframeMatch(const PlaylistEntry& currentEntry, bool canStream) const;

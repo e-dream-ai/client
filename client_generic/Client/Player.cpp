@@ -1333,8 +1333,8 @@ void CPlayer::SkipToNext()
         g_Log->Info("Quota is 0, using cache-only mode for Next");
     }
 
-    // Get the next dream decision
-    auto nextDecision = m_playlistManager->preflightNextDream(canStream);
+    // Get the next dream decision - use forceNext=true to advance even in repeat mode
+    auto nextDecision = m_playlistManager->preflightNextDream(canStream, true);
     if (!nextDecision) {
         g_Log->Error("No next dream available");
         return;

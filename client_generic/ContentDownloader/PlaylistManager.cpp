@@ -475,9 +475,9 @@ std::optional<size_t> PlaylistManager::findKeyframeMatch(const PlaylistEntry& cu
     return candidates[rand() % candidates.size()];
 }
 
-std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNextDream(bool canStream) const {
-    g_Log->Info("Preflight : start (mode: %d, m_started: %d, m_currentPosition: %zu)",
-                static_cast<int>(m_playbackMode), m_started, m_currentPosition);
+std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNextDream(bool canStream, bool forceNext) const {
+    g_Log->Info("Preflight : start (mode: %d, m_started: %d, m_currentPosition: %zu, forceNext: %d)",
+                static_cast<int>(m_playbackMode), m_started, m_currentPosition, forceNext);
 
     if (m_playlist.empty()) {
         g_Log->Info("Preflight : no playlist");
@@ -529,19 +529,44 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
         }
     }
     else if (m_playbackMode == PlaybackMode::Repeat) {
-        // Repeat mode: play same dream again
-        const auto& currentEntry = m_playlist[m_currentPosition];
+        // Repeat mode: play same dream again, unless forceNext is true
+        if (forceNext && m_started) {
+            // User explicitly pressed "next" - advance to next dream but stay in repeat mode
+            size_t nextPos = (m_currentPosition + 1) % m_playlist.size();
+            const auto& currentEntry = m_playlist[m_currentPosition];
+            const auto& nextEntry = m_playlist[nextPos];
 
-        g_Log->Info("Preflight : Repeat mode - replaying position %zu", m_currentPosition);
+            // If canStream is false, verify the next dream is cached
+            if (!canStream && !m_cacheManager.hasDiskCachedItem(nextEntry.uuid)) {
+                g_Log->Info("Preflight : Repeat mode with forceNext - next dream not cached and canStream=false");
+                // Fall through to cache-only logic below
+            } else {
+                g_Log->Info("Preflight : Repeat mode with forceNext - advancing to position %zu", nextPos);
 
-        decision = {
-            m_currentPosition,
-            determineTransitionType(currentEntry, currentEntry),
-            m_cacheManager.getDream(currentEntry.uuid),
-            currentEntry.startKeyframe,
-            currentEntry.endKeyframe
-        };
-        return decision;
+                decision = {
+                    nextPos,
+                    determineTransitionType(currentEntry, nextEntry),
+                    m_cacheManager.getDream(nextEntry.uuid),
+                    nextEntry.startKeyframe,
+                    nextEntry.endKeyframe
+                };
+                return decision;
+            }
+        } else {
+            // Normal repeat behavior - replay same dream
+            const auto& currentEntry = m_playlist[m_currentPosition];
+
+            g_Log->Info("Preflight : Repeat mode - replaying position %zu", m_currentPosition);
+
+            decision = {
+                m_currentPosition,
+                determineTransitionType(currentEntry, currentEntry),
+                m_cacheManager.getDream(currentEntry.uuid),
+                currentEntry.startKeyframe,
+                currentEntry.endKeyframe
+            };
+            return decision;
+        }
     }
     else if (m_playbackMode == PlaybackMode::Shuffle && m_started) {
         // Shuffle mode: random selection from unplayed dreams
