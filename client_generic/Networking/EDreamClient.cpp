@@ -145,13 +145,18 @@ void EDreamClient::SendPing()
     // Add current timecode using the same calculation as the HUD display
     // This ensures timecode in state_sync matches what's shown on screen
     double timecode = 0.0;
+    double baseFps = 0.0;
     if (frameMetadata && clipMetadata) {
-        double baseFps = std::stod(clipMetadata->dreamData.fps);
+        baseFps = std::stod(clipMetadata->dreamData.fps);
         auto [currentTime, totalTime] = CElectricSheep::CalculateTimecode(frameMetadata, baseFps);
         timecode = currentTime;
     }
     if (timecode < 0.0) timecode = 0.0;  // Clamp to 0 if negative
     ms->insert("timecode", std::to_string(timecode));
+    
+    if (baseFps > 0.0) {
+        ms->insert("base_fps", std::to_string(baseFps));
+    }
 
     // Add HUD state
     std::string hudState = "none";
@@ -182,13 +187,14 @@ void EDreamClient::SendPing()
     socket->emit("state_sync", list);
 
     // Log EXACTLY what was sent to socket
-    g_Log->Info("WebSocket emit: event='state_sync' data={dream_uuid:'%s', playlist:'%s', timecode:%g, hud:'%s', paused:'%s', playback_speed:%g}",
+    g_Log->Info("WebSocket emit: event='state_sync' data={dream_uuid:'%s', playlist:'%s', timecode:%g, hud:'%s', paused:'%s', playback_speed:%g, base_fps:%g}",
                 dreamUUID.c_str(),
                 !playlistUUID.empty() ? playlistUUID.c_str() : "none",
                 timecode,
                 hudState.c_str(),
                 pausedState.c_str(),
-                playbackSpeed);
+                playbackSpeed,
+                baseFps);
 
     ScheduleNextPing();
 }
