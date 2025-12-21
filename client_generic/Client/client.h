@@ -1,6 +1,8 @@
 #ifndef CLIENT_H_INCLUDED
 #define CLIENT_H_INCLUDED
 
+#include <atomic>
+#include <chrono>
 #include <iomanip>
 #include <sstream>
 #include <string>
@@ -81,6 +83,7 @@ class CElectricSheep
   private:
     Cache::MessageQueue m_MessageQueue;
     bool wasShowingBufferIndicator = false;
+    std::atomic<bool> m_TimecodeUpdaterRunning{false};
 
   protected:
     ESCpuUsage m_CpuUsage;
@@ -509,6 +512,7 @@ class CElectricSheep
         AddProgressHud();
         AddSplashHud();
         AddOSDHud();
+        StartTimecodeUpdater();
 
         m_spCrossFade = std::make_shared<Hud::CCrossFade>(
             g_Player().Display()->Width(), g_Player().Display()->Height(),
@@ -582,6 +586,8 @@ class CElectricSheep
 #ifdef DO_THREAD_UPDATE
         DestroyUpdateThreads();
 #endif
+
+        StopTimecodeUpdater();
 
         m_spSplashPNG = nullptr;
         m_nSplashes = 0;
@@ -737,6 +743,18 @@ class CElectricSheep
            << "." << std::setfill('0') << std::setw(2) << hundredths;
 
         return ss.str();
+    }
+
+    void StartTimecodeUpdater()
+    {
+        if (m_TimecodeUpdaterRunning.exchange(true))
+            return;
+    }
+
+    void StopTimecodeUpdater()
+    {
+        if (!m_TimecodeUpdaterRunning.exchange(false))
+        return;
     }
 
 #ifdef DO_THREAD_UPDATE
