@@ -745,6 +745,41 @@ class CElectricSheep
         return ss.str();
     }
 
+    void updateTimecodeHUD() {
+        if (!m_HudManager)
+            return;
+
+        const ContentDecoder::sClipMetadata* clipMetadata =
+            g_Player().GetCurrentPlayingClipMetadata();
+        const ContentDecoder::sFrameMetadata* frameMetadata =
+            g_Player().GetCurrentFrameMetadata();
+
+        if (!clipMetadata || !frameMetadata)
+            return;
+
+        double baseFps = 1.0;
+        try
+        {
+            baseFps = std::stod(clipMetadata->dreamData.fps);
+        }
+        catch (...)
+        {
+            baseFps = 1.0;
+        }
+
+        if (auto spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
+            m_HudManager->Get("dreamstats")))
+            {
+                // Use new XX:YY.ZZ format for F2 display
+                auto [currentTime, totalTime] = CalculateTimecode(frameMetadata, baseFps);
+                std::string currentTimeStr = FormatTimeAsMMSSHundredths(currentTime);
+                std::string totalTimeStr = FormatTimeAsMMSSHundredths(totalTime);
+
+                ((Hud::CStringStat*)spStats->Get("playHead"))
+                    ->SetSample(string_format("%s/%s", currentTimeStr.c_str(), totalTimeStr.c_str()));
+            }
+    }
+
     void StartTimecodeUpdater()
     {
         if (m_TimecodeUpdaterRunning.exchange(true))
@@ -1122,16 +1157,7 @@ class CElectricSheep
 
                 const ContentDecoder::sFrameMetadata* frameMetadata =
                     g_Player().GetCurrentFrameMetadata();
-                if (frameMetadata)
-                {
-                    // Use new XX:YY.ZZ format for F2 display
-                    auto [currentTime, totalTime] = CalculateTimecode(frameMetadata, baseFps);
-                    std::string currentTimeStr = FormatTimeAsMMSSHundredths(currentTime);
-                    std::string totalTimeStr = FormatTimeAsMMSSHundredths(totalTime);
-
-                    ((Hud::CStringStat*)spStats->Get("playHead"))
-                        ->SetSample(string_format("%s/%s", currentTimeStr.c_str(), totalTimeStr.c_str()));
-                }
+                updateTimecodeHUD();
                 
                 // Grab Perceptual FPS from player
                 double pFPS = g_Player().GetPerceptualFPS();
