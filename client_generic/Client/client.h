@@ -3,9 +3,11 @@
 
 #include <atomic>
 #include <chrono>
+#include <thread>
 #include <iomanip>
 #include <sstream>
 #include <string>
+#include <mutex>
 
 #include "Exception.h"
 #include "Log.h"
@@ -84,6 +86,7 @@ class CElectricSheep
     Cache::MessageQueue m_MessageQueue;
     bool wasShowingBufferIndicator = false;
     std::atomic<bool> m_TimecodeUpdaterRunning{false};
+    std::mutex m_TimecodeHudMutex;
 
   protected:
     ESCpuUsage m_CpuUsage;
@@ -767,17 +770,35 @@ class CElectricSheep
             baseFps = 1.0;
         }
 
-        if (auto spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
-            m_HudManager->Get("dreamstats")))
-            {
-                // Use new XX:YY.ZZ format for F2 display
-                auto [currentTime, totalTime] = CalculateTimecode(frameMetadata, baseFps);
-                std::string currentTimeStr = FormatTimeAsMMSSHundredths(currentTime);
-                std::string totalTimeStr = FormatTimeAsMMSSHundredths(totalTime);
+        auto [currentTime, totalTime] = CalculateTimecode(frameMetadata, baseFps);
+        std::string currentTimeStr = FormatTimeAsMMSSHundredths(currentTime);
+        std::string totalTimeStr = FormatTimeAsMMSSHundredths(totalTime);
 
-                ((Hud::CStringStat*)spStats->Get("playHead"))
-                    ->SetSample(string_format("%s/%s", currentTimeStr.c_str(), totalTimeStr.c_str()));
+        std::lock_guard<std::mutex> lock(m_TimecodeHudMutex);
+
+        if (auto spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
+                m_HudManager->Get("dreamstats")))
+        {
+            if (auto playHead =
+                    static_cast<Hud::CStringStat*>(spStats->Get("playHead")))
+            {
+                playHead->SetSample(
+                    string_format("%s/%s", currentTimeStr.c_str(),
+                                  totalTimeStr.c_str()));
             }
+        }
+
+        if (auto spCredits = std::dynamic_pointer_cast<Hud::CStatsConsole>(
+                m_HudManager->Get("dreamcredits")))
+        {
+            if (auto creditsTime =
+                    static_cast<Hud::CStringStat*>(spCredits->Get("credits-time")))
+            {
+                creditsTime->SetSample(
+                    string_format("%s/%s", currentTimeStr.c_str(),
+                                  totalTimeStr.c_str()));
+            }
+        }
     }
 
     void StartTimecodeUpdater()
