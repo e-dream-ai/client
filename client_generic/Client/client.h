@@ -86,6 +86,7 @@ class CElectricSheep
     Cache::MessageQueue m_MessageQueue;
     bool wasShowingBufferIndicator = false;
     std::atomic<bool> m_TimecodeUpdaterRunning{false};
+    std::thread m_TimecodeUpdaterThread;
     std::mutex m_TimecodeHudMutex;
 
   protected:
@@ -748,7 +749,7 @@ class CElectricSheep
         return ss.str();
     }
 
-    void updateTimecodeHUD() {
+    void UpdateTimecodeHUD() {
         if (!m_HudManager)
             return;
 
@@ -757,7 +758,7 @@ class CElectricSheep
         const ContentDecoder::sFrameMetadata* frameMetadata =
             g_Player().GetCurrentFrameMetadata();
 
-        if (!clipMetadata || !frameMetadata)
+        if (!clipMetadata)
             return;
 
         double baseFps = 1.0;
@@ -770,9 +771,20 @@ class CElectricSheep
             baseFps = 1.0;
         }
 
-        auto [currentTime, totalTime] = CalculateTimecode(frameMetadata, baseFps);
+        double currentTime = g_Player().GetCurrentClipElapsedTime(); // wall/timeline based, not render rate
+
+        double totalTime = 0.0;
+        if (frameMetadata)
+        {
+            totalTime = MaxFrameIdxToDuration(frameMetadata->maxFrameIdx, baseFps);
+        }
+        if (currentTime < 0.0) currentTime = 0.0;
+        if (totalTime > 0.0 && currentTime > totalTime) currentTime = totalTime;
+
         std::string currentTimeStr = FormatTimeAsMMSSHundredths(currentTime);
-        std::string totalTimeStr = FormatTimeAsMMSSHundredths(totalTime);
+        std::string totalTimeStr = (totalTime > 0.0)
+                                       ? FormatTimeAsMMSSHundredths(totalTime)
+                                       : "--:--.--";
 
         std::lock_guard<std::mutex> lock(m_TimecodeHudMutex);
 
@@ -1178,7 +1190,7 @@ class CElectricSheep
 
                 const ContentDecoder::sFrameMetadata* frameMetadata =
                     g_Player().GetCurrentFrameMetadata();
-                updateTimecodeHUD();
+                UpdateTimecodeHUD();
                 
                 // Grab Perceptual FPS from player
                 double pFPS = g_Player().GetPerceptualFPS();
@@ -1300,18 +1312,11 @@ class CElectricSheep
                     }
                 }
 
-                if (clipMetadata && frameMetadata)
+                if (clipMetadata)
                 {
-                    // Calculate current timecode and total duration
-                    auto [currentTime, totalTime] = CalculateTimecode(frameMetadata, baseFps);
-                    std::string timecode = FormatTimeAsMMSSHundredths(currentTime);
-                    std::string duration = FormatTimeAsMMSSHundredths(totalTime);
-
                     // Set left-aligned title and right-aligned time info
                     ((Hud::CStringStat*)spStats->Get("credits-title"))
                         ->SetSample(string_format("title: %s", clipMetadata->dreamData.name.c_str()));
-                    ((Hud::CStringStat*)spStats->Get("credits-time"))
-                        ->SetSample(string_format("%s/%s", timecode.c_str(), duration.c_str()));
 
                     // Set left-aligned artist and right-aligned fps info
                     ((Hud::CStringStat*)spStats->Get("credits-artist"))
