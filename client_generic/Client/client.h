@@ -817,12 +817,33 @@ class CElectricSheep
     {
         if (m_TimecodeUpdaterRunning.exchange(true))
             return;
+        m_TimecodeUpdaterThread = std::thread([this]() {
+            using namespace std::chrono;
+            const auto targetFrame = milliseconds(16); // ~60 Hz
+            while (m_TimecodeUpdaterRunning.load())
+            {
+                auto loopStart = steady_clock::now();
+                UpdateTimecodeHUD();
+                auto elapsed = steady_clock::now() - loopStart;
+                if (elapsed < targetFrame)
+                {
+                    std::this_thread::sleep_for(targetFrame - elapsed);
+                }
+                else
+                {
+                    std::this_thread::yield();
+                }
+            }
+        });
     }
 
     void StopTimecodeUpdater()
     {
         if (!m_TimecodeUpdaterRunning.exchange(false))
         return;
+
+        if (m_TimecodeUpdaterThread.joinable())
+            m_TimecodeUpdaterThread.join();
     }
 
 #ifdef DO_THREAD_UPDATE
