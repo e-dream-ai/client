@@ -104,6 +104,10 @@ class CElectricSheep
     bool m_bFullScreen;
     Base::CTimer m_Timer;
     Base::CTimer m_F1F4Timer;
+    // Track per-frame wall time to derive smooth in-frame timecode without relying on clip elapsed time.
+    double m_FrameStartWallTime = 0.0;
+    uint32_t m_LastFrameIdxForHud = 0;
+    bool m_HaveFrameStartTime = false;
 
     Hud::spCHudManager m_HudManager;
     Hud::spCStartupScreen m_StartupScreen;
@@ -771,13 +775,33 @@ class CElectricSheep
             baseFps = 1.0;
         }
 
-        double currentTime = g_Player().GetCurrentClipElapsedTime(); // wall/timeline based, not render rate
-
+        double currentTime = g_Player().GetCurrentClipElapsedTime(); // fallback if no frame metadata
         double totalTime = 0.0;
+
         if (frameMetadata)
         {
-            totalTime = MaxFrameIdxToDuration(frameMetadata->maxFrameIdx, baseFps);
+            double fps = (frameMetadata->decodeFps > 0.0f) ? frameMetadata->decodeFps : baseFps;
+            if (fps <= 0.0) fps = 1.0;
+
+            // Reset the frame start wall time when the frame index advances.
+            if (!m_HaveFrameStartTime || frameMetadata->frameIdx != m_LastFrameIdxForHud)
+            {
+                m_LastFrameIdxForHud = frameMetadata->frameIdx;
+                m_FrameStartWallTime = m_Timer.Time();
+                m_HaveFrameStartTime = true;
+            }
+
+            double frameStart = FrameNumberToSeconds(frameMetadata->frameIdx, fps);
+            double frameDuration = 1.0 / fps;
+            double sinceFrameStart = (m_Timer.Time() - m_FrameStartWallTime) * g_Player().GetPerceptualFPS() / fps;
+            
+            if (sinceFrameStart < 0.0) sinceFrameStart = 0.0;
+            if (sinceFrameStart > frameDuration) sinceFrameStart = frameDuration;
+
+            currentTime = frameStart + sinceFrameStart;
+            totalTime = MaxFrameIdxToDuration(frameMetadata->maxFrameIdx, fps);
         }
+
         if (currentTime < 0.0) currentTime = 0.0;
         if (totalTime > 0.0 && currentTime > totalTime) currentTime = totalTime;
 
@@ -819,7 +843,7 @@ class CElectricSheep
             return;
         m_TimecodeUpdaterThread = std::thread([this]() {
             using namespace std::chrono;
-            const auto targetFrame = milliseconds(16); // ~60 Hz
+            const auto targetFrame = milliseconds(8); // ~125 Hz
             while (m_TimecodeUpdaterRunning.load())
             {
                 auto loopStart = steady_clock::now();
