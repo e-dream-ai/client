@@ -5,8 +5,6 @@
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <cstdio>
-#include <fstream>
-#include <iostream>
 #include <future>
 
 #include "ContentDownloader.h"
