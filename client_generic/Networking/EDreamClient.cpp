@@ -434,10 +434,18 @@ void EDreamClient::DeinitializeClient()
     if (g_Client()->IsMultipleInstancesMode()) {
         return;
     }
+    // Mark websocket as disconnected immediately
+    UnbindWebSocketCallbacks();
     // Stop the timers and io_context
-    ping_timer->cancel();
-    quota_timer->cancel();
-    io_context->stop();
+    if (ping_timer) {
+        ping_timer->cancel();
+    }
+    if (quota_timer) {
+        quota_timer->cancel();
+    }
+    if (io_context) {
+        io_context->stop();
+    }
 
     // Send goodbye message
     SendGoodbye();
@@ -544,6 +552,9 @@ void EDreamClient::DidSignIn()
         // Start the quota update timer
         ScheduleNextQuotaUpdate();
 
+        // Clear any existing socket state before reconnecting
+        s_SIOClient.clear_con_listeners();
+
         // Reinitialize socket client to fix first-login connection issue
         // The socket.io client can get into an inconsistent state when listeners
         // are set during InitializeClient() but no connection is attempted
@@ -553,10 +564,13 @@ void EDreamClient::DidSignIn()
         s_SIOClient.set_reconnecting_listener(&OnWebSocketReconnecting);
         s_SIOClient.set_reconnect_listener(&OnWebSocketReconnect);
 
-        // Clear any existing socket state before reconnecting
-        s_SIOClient.clear_con_listeners();
-
         EDreamClient::ConnectRemoteControlSocket();
+
+        // Safety: if the socket opened before callbacks bound (race), ensure flags are set
+        if (s_SIOClient.opened() && !fIsWebSocketConnected.load()) {
+            g_Log->Info("WebSocket already open after sign-in; binding callbacks now");
+            BindWebSocketCallbacks();
+        }
     });
 }
 
@@ -2028,6 +2042,7 @@ void EDreamClient::ConnectRemoteControlSocket()
     if (io_context->stopped()) {
         g_Log->Info("WebSocket connection was stopped, reconnecting...");
         EDreamClient::UnbindWebSocketCallbacks();
+        io_context->restart();
     }
 
     std::map<std::string, std::string> query;
