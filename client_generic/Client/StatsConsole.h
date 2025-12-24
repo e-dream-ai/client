@@ -2,6 +2,7 @@
 #define _STATSCONSOLE_H_
 
 #include <iomanip>
+#include <memory>
 #include <sstream>
 #include <unordered_map>
 
@@ -249,7 +250,7 @@ class CTimeCountDownStat : public CStat
         CStatsConsole.
 
 */
-class CStatsConsole : public CConsole
+class CStatsConsole : public CConsole, public std::enable_shared_from_this<CStatsConsole>
 {
     struct StatText
     {
@@ -350,20 +351,30 @@ class CStatsConsole : public CConsole
         if (!CHudEntry::Render(_time, _spRenderer))
             return false;
         //CHudEntry::Render(_time, _spRenderer);
+
+        // Ensure the HUD entry stays alive while the async work runs.
+        std::weak_ptr<CStatsConsole> weakSelf = shared_from_this();
+        std::weak_ptr<DisplayOutput::CRenderer> weakRenderer = _spRenderer;
+
         PlatformUtils::DispatchOnMainThread(
-            [=, this]()
+            [weakSelf, weakRenderer, _time]()
             {
-                if (g_Player().Stopped() || m_Stats.empty() || !g_Player().HasStarted())
+                auto self = weakSelf.lock();
+                auto renderer = weakRenderer.lock();
+                if (!self || !renderer)
                     return;
-                float step = (float)m_Desc.Height() /
-                             (float)_spRenderer->Display()->Height();
+
+                if (g_Player().Stopped() || self->m_Stats.empty() || !g_Player().HasStarted())
+                    return;
+                float step = (float)self->m_Desc.Height() /
+                             (float)renderer->Display()->Height();
                 float pos = 0;
-                float edge = 24 / (float)_spRenderer->Display()->Width();
+                float edge = 24 / (float)renderer->Display()->Width();
 
                 //	Figure out text extent for all strings.
                 std::unordered_map<std::string, Base::Math::CVector2> sizes;
-                m_TotalExtent = {0, 0, 0, 0};
-                for (auto i = m_Stats.begin(); i != m_Stats.end(); ++i)
+                self->m_TotalExtent = {0, 0, 0, 0};
+                for (auto i = self->m_Stats.begin(); i != self->m_Stats.end(); ++i)
                 {
                     CStat* e = i->second.stat;
                     DisplayOutput::spCBaseText& text = i->second.text;
@@ -380,7 +391,7 @@ class CStatsConsole : public CConsole
                             if (!i->second.isRightAligned)
                             {
                                 // Only left-aligned stats contribute to total extent and position
-                                m_TotalExtent = m_TotalExtent.Union(Base::Math::CRect(
+                                self->m_TotalExtent = self->m_TotalExtent.Union(Base::Math::CRect(
                                     0, pos, size.m_X + (edge * 2),
                                     size.m_Y + (pos) + (edge * 2)));
                                 pos += size.m_Y;
@@ -391,14 +402,14 @@ class CStatsConsole : public CConsole
                 }
 
                 // align soft quad at bottom
-                m_TotalExtent.m_Y0 = 1.f - m_TotalExtent.m_Y1;
-                m_TotalExtent.m_Y1 = 1.f;
+                self->m_TotalExtent.m_Y0 = 1.f - self->m_TotalExtent.m_Y1;
+                self->m_TotalExtent.m_Y1 = 1.f;
 
                 // align text at bottom
-                pos = m_TotalExtent.m_Y0 + edge;
+                pos = self->m_TotalExtent.m_Y0 + edge;
                 std::unordered_map<std::string, float> leftStatPositions;
 
-                for (auto i = m_Stats.begin(); i != m_Stats.end(); ++i)
+                for (auto i = self->m_Stats.begin(); i != self->m_Stats.end(); ++i)
                 {
                     CStat* e = i->second.stat;
                     if (e && e->Visible())
