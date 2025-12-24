@@ -116,6 +116,15 @@ void EDreamClient::SendPing()
         return;
     }
 
+    // If socket is available but callbacks aren't bound yet, bind them now
+    // This handles the race condition where namespace becomes ready after OnWebSocketConnected
+    if (!fIsWebSocketConnected.load()) {
+        g_Log->Info("SendPing: Socket available but not marked connected, binding callbacks now");
+        socket->off("new_remote_control_event");
+        socket->on("new_remote_control_event", &OnWebSocketMessage);
+        fIsWebSocketConnected.exchange(true);
+    }
+
     // Send simple ping first (for backwards compatibility / basic keepalive)
     socket->emit("ping");
     g_Log->Info("WebSocket emit: event='ping'");
@@ -328,11 +337,28 @@ void EDreamClient::SendGoodbye()
 
 static void BindWebSocketCallbacks()
 {
+    g_Log->Info("Binding web socket callbacks");
     auto socket = s_SIOClient.socket("/remote-control");
     if (socket) {
+        g_Log->Info("WebSocket socket found, binding callbacks");
         socket->off("new_remote_control_event");
         socket->on("new_remote_control_event", &OnWebSocketMessage);
         EDreamClient::fIsWebSocketConnected.exchange(true);
+    } else {
+        // Namespace socket not ready yet - retry after a short delay
+        g_Log->Warning("WebSocket namespace not ready, scheduling retry...");
+        std::thread([]() {
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+            auto socket = s_SIOClient.socket("/remote-control");
+            if (socket) {
+                g_Log->Info("WebSocket socket found on retry, binding callbacks");
+                socket->off("new_remote_control_event");
+                socket->on("new_remote_control_event", &OnWebSocketMessage);
+                EDreamClient::fIsWebSocketConnected.exchange(true);
+            } else {
+                g_Log->Error("WebSocket namespace still not available after retry");
+            }
+        }).detach();
     }
 }
 
@@ -566,11 +592,7 @@ void EDreamClient::DidSignIn()
 
         EDreamClient::ConnectRemoteControlSocket();
 
-        // Safety: if the socket opened before callbacks bound (race), ensure flags are set
-        if (s_SIOClient.opened() && !fIsWebSocketConnected.load()) {
-            g_Log->Info("WebSocket already open after sign-in; binding callbacks now");
-            BindWebSocketCallbacks();
-        }
+
     });
 }
 
@@ -2030,20 +2052,23 @@ void EDreamClient::ConnectRemoteControlSocket()
     
     g_Log->Info("Performing remote control connect.");
     
-    // Check if socket is already connected AND io_context is running
-    if (s_SIOClient.opened() && !io_context->stopped())
+    // Check if socket is already connected AND io_context is running AND namespace is available
+    auto existingSocket = s_SIOClient.socket("/remote-control");
+    if (s_SIOClient.opened() && !io_context->stopped() && existingSocket)
     {
-        g_Log->Info("WebSocket already connected, skipping reconnection.");
+        g_Log->Info("WebSocket already connected with namespace, skipping reconnection.");
         BindWebSocketCallbacks();
         return;
     }
 
-    // If io_context was stopped, the connection is effectively dead
+    // If io_context was stopped, restart it
     if (io_context->stopped()) {
-        g_Log->Info("WebSocket connection was stopped, reconnecting...");
-        EDreamClient::UnbindWebSocketCallbacks();
+        g_Log->Info("io_context was stopped, restarting...");
         io_context->restart();
     }
+
+    // Unbind old callbacks before reconnecting
+    EDreamClient::UnbindWebSocketCallbacks();
 
     std::map<std::string, std::string> query;
     
@@ -2062,13 +2087,14 @@ void EDreamClient::ConnectRemoteControlSocket()
     g_Log->Info("Connecting to WebSocket server: %s", 
                 ServerConfig::ServerConfigManager::getInstance().getWebsocketServer().c_str());
     
+    // Always call connect() - Socket.IO client will handle reconnection internally
     s_SIOClient.connect(ServerConfig::ServerConfigManager::getInstance().getWebsocketServer(), query, query);
     
     // Send first ping immediately so frontend knows we're here
     SendPing();
 
     // Run the io_context in a separate thread
-    std::thread([&]() {
+    std::thread([]() {
         io_context->run();
     }).detach();
 }
