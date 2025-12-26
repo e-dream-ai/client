@@ -1493,6 +1493,28 @@ void CPlayer::RepeatClip()
 
 void CPlayer::SkipForward(float _seconds)
 {
+    if (!m_currentClip) return;
+    
+    // Check if skipping forward would go past the end of the video
+    if (_seconds > 0) {
+        const auto& metadata = m_currentClip->GetCurrentFrameMetadata();
+        if (metadata.maxFrameIdx > 0) {
+            // Use base fps to calculate time remaining
+            double baseFps = 20.0; // fallback default
+            if (!m_currentClip->GetClipMetadata().dreamData.fps.empty()) {
+                baseFps = std::stod(m_currentClip->GetClipMetadata().dreamData.fps);
+            }
+            
+            uint32_t framesRemaining = metadata.maxFrameIdx - metadata.frameIdx;
+            double timeRemaining = framesRemaining / baseFps;
+            if (timeRemaining <= _seconds) {
+                g_Log->Info("Skip forward would exceed video end (%.1fs remaining), transitioning to next", timeRemaining);
+                SkipToNext();
+                return;
+            }
+        }
+    }
+    
     m_currentClip->SkipTime(_seconds);
 }
 
