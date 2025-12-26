@@ -807,12 +807,21 @@ void CContentDecoder::ReadFramesThread()
                 (int64_t)(m_CurrentVideoInfo->m_SeekTargetFrame /
                           (frameRate * av_q2d(timeBase)));
                 
+                // Determine if this is a backward seek
+                int64_t currentTimestamp =
+                (int64_t)(m_CurrentVideoInfo->m_CurrentFrameIndex /
+                          (frameRate * av_q2d(timeBase)));
+                int seekFlags = (targetTimestamp < currentTimestamp) ? AVSEEK_FLAG_BACKWARD : 0;
+
+                g_Log->Info("Target timestamp: %lld", targetTimestamp);
+                g_Log->Info("Current timestamp: %lld", currentTimestamp);
+                g_Log->Info("Seek flags: %d", seekFlags);
                 
                 // Seek to the target timestamp
                 int seek =
                 avformat_seek_file(m_CurrentVideoInfo->m_pFormatContext,
                                    m_CurrentVideoInfo->m_VideoStreamID, 0,
-                                   targetTimestamp, targetTimestamp, 0);
+                                   targetTimestamp, targetTimestamp, seekFlags);
                 avcodec_flush_buffers(m_CurrentVideoInfo->m_pVideoCodecContext);
                 if (seek < 0)
                 {
@@ -820,7 +829,10 @@ void CContentDecoder::ReadFramesThread()
                 }
                 else
                 {
-                    // Seek successful
+                    // Seek successful - reset trailing frames mode so we can read from new position
+                    m_CurrentVideoInfo->m_ReadingTrailingFrames = false;
+                    // Reset frame index so next decoded frame trusts PTS (needed for backward seeks)
+                    m_CurrentVideoInfo->m_CurrentFrameIndex = -1;
                 }
             }
             CVideoFrame* pMainVideoFrame = ReadOneFrame();
