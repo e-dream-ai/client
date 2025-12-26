@@ -768,9 +768,15 @@ void CContentDecoder::ReadFramesThread()
             
             if (fpclassify(skipTime) != FP_ZERO)
             {
+                // Get base FPS from playlist/dream metadata
+                double baseFps = 20.0; // fallback default
+                if (!m_Metadata.dreamData.fps.empty()) {
+                    baseFps = std::stod(m_Metadata.dreamData.fps);
+                }
+                
                 m_CurrentVideoInfo->m_SeekTargetFrame =
                 m_CurrentVideoInfo->m_CurrentFrameIndex +
-                (int64_t)(skipTime * 20);
+                (int64_t)(skipTime * baseFps);
                 m_CurrentVideoInfo->m_SeekTargetFrame =
                 std::max(m_CurrentVideoInfo->m_SeekTargetFrame, (int64_t)0);
 
