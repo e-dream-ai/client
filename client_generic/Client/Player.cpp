@@ -1495,106 +1495,164 @@ void CPlayer::SkipForward(float _seconds)
 {
     if (!m_currentClip) return;
     
-    const auto& metadata = m_currentClip->GetCurrentFrameMetadata();
-    
-    // Use base fps to calculate positions
-    double baseFps = 20.0; // fallback default
-    if (!m_currentClip->GetClipMetadata().dreamData.fps.empty()) {
-        baseFps = std::stod(m_currentClip->GetClipMetadata().dreamData.fps);
-    }
-    
-    double currentTimeInClip = metadata.frameIdx / baseFps;
     float absSeconds = std::abs(_seconds);
     
-    // Check if skipping backward (J key) would go before the start of the video
+    // During a transition, we have a "from" dream (m_currentClip) and "to" dream (m_nextClip)
+    // The displayed timecode shows the "to" dream position during transition
+    // For J (backward): if in transition, check "to" dream's position to decide if we go to "from" dream
+    // For L (forward): use the "to" dream to calculate position
+    
+    // Check if skipping backward (J key)
     if (_seconds < 0) {
-        if (currentTimeInClip <= absSeconds) {
+        // Determine which clip's position to check based on transition state
+        ContentDecoder::spCClip referenceClip = (m_isTransitioning && m_nextClip) ? m_nextClip : m_currentClip;
+        const auto& refMetadata = referenceClip->GetCurrentFrameMetadata();
+        
+        double refFps = 20.0;
+        if (!referenceClip->GetClipMetadata().dreamData.fps.empty()) {
+            refFps = std::stod(referenceClip->GetClipMetadata().dreamData.fps);
+        }
+        
+        double currentTimeInRefClip = refMetadata.frameIdx / refFps;
+        
+        if (currentTimeInRefClip <= absSeconds) {
             // We're within the first N seconds - jump to previous dream
-            // Seek position: (absSeconds - currentTimeInClip) from the end of previous dream
-            auto previousDream = m_playlistManager->getPreviousDream();
-            if (previousDream) {
-                bool isDreamCached = !previousDream->getCachedPath().empty();
+            // During transition: "previous" is the "from" dream (m_currentClip)
+            // Not transitioning: "previous" is from playlist
+            const Cache::Dream* targetDream = nullptr;
+            
+            if (m_isTransitioning && m_nextClip) {
+                // During transition, go back to the "from" dream (m_currentClip)
+                targetDream = &m_currentClip->GetClipMetadata().dreamData;
+                g_Log->Info("Skip backward during transition - going back to 'from' dream");
+            } else {
+                // Not transitioning, go to playlist's previous dream
+                targetDream = m_playlistManager->getPreviousDream();
+            }
+            
+            if (targetDream) {
+                bool isDreamCached = !targetDream->getCachedPath().empty();
                 if (!isDreamCached) {
                     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
                     if (cm.getRemainingQuota() <= 0) {
-                        g_Log->Warning("Previous dream is not cached and quota is 0, cannot stream");
-                        // Fall back to just seeking to start of current clip
-                        m_currentClip->SkipTime(-static_cast<float>(currentTimeInClip));
+                        g_Log->Warning("Target dream is not cached and quota is 0, cannot stream");
+                        // Fall back to just seeking to start of reference clip
+                        referenceClip->SkipTime(-static_cast<float>(currentTimeInRefClip));
                         return;
                     }
                 }
                 
-                // Calculate seek frame: (absSeconds - currentTimeInClip) from the end of the previous dream
-                double prevFps = std::stod(previousDream->fps);
-                double offsetFromEnd = absSeconds - currentTimeInClip;
-                int64_t seekFrame = previousDream->frames - static_cast<int64_t>(offsetFromEnd * prevFps);
+                // Calculate seek frame: (absSeconds - currentTimeInRefClip) from the end of the target dream
+                double targetFps = std::stod(targetDream->fps);
+                double offsetFromEnd = absSeconds - currentTimeInRefClip;
+                int64_t seekFrame = targetDream->frames - static_cast<int64_t>(offsetFromEnd * targetFps);
                 seekFrame = std::max(seekFrame, static_cast<int64_t>(0));
                 
-                g_Log->Info("Skip backward at %.1fs - jumping to previous dream at frame %lld (%.1fs from end)",
-                            currentTimeInClip, seekFrame, offsetFromEnd);
+                g_Log->Info("Skip backward at %.1fs - jumping to target dream at frame %lld (%.1fs from end)",
+                            currentTimeInRefClip, seekFrame, offsetFromEnd);
+                
+                // Cancel any ongoing transition
+                m_isTransitioning = false;
+                if (m_nextClip) {
+                    destroyClipAsync(std::move(m_nextClip));
+                    m_nextClip = nullptr;
+                }
+                m_nextDreamDecision = std::nullopt;
+                m_PreloadingNextClip = false;
+                m_PreloadingDreamUUID = "";
                 
                 // Immediate jump - no transition
-                m_isFirstPlay = true;  // Prevents StartTransition from doing anything
-                PlayClip(previousDream, m_TimelineTime, seekFrame, false);
+                m_isFirstPlay = true;
+                PlayClip(targetDream, m_TimelineTime, seekFrame, false);
                 if (m_currentClip) {
-                    m_currentClip->SetTransitionLength(0.0f, 5.0f);
+                    m_currentClip->SetTransitionLength(5.0f, 5.0f);  // Restore normal fade in/out for future transitions
                 }
                 EDreamClient::SendStateUpdate();
                 return;
             }
         }
+        
+        // Normal backward skip within current clip
+        referenceClip->SkipTime(_seconds);
+        return;
     }
     
-    // Check if skipping forward (L key) would go past the end of the video
+    // Check if skipping forward (L key)
     if (_seconds > 0) {
-        if (metadata.maxFrameIdx > 0) {
-            uint32_t framesRemaining = metadata.maxFrameIdx - metadata.frameIdx;
-            double timeRemaining = framesRemaining / baseFps;
-            if (timeRemaining <= _seconds) {
-                // We're within the last N seconds - jump to next dream
-                // Seek position: (absSeconds - timeRemaining) from the start of next dream
-                
-                // Get the next dream decision
-                Cache::CacheManager& cm = Cache::CacheManager::getInstance();
-                bool canStream = cm.getRemainingQuota() > 0;
-                auto nextDecision = m_playlistManager->preflightNextDream(canStream, true);
-                
-                if (nextDecision && nextDecision->dream) {
-                    bool isDreamCached = !nextDecision->dream->getCachedPath().empty();
-                    if (!isDreamCached && !canStream) {
-                        g_Log->Warning("Next dream is not cached and quota is 0, cannot stream");
-                        // Just skip to the end of current clip
-                        m_currentClip->SkipTime(static_cast<float>(timeRemaining - 0.5));
-                        return;
-                    }
-                    
-                    // Calculate seek frame: (absSeconds - timeRemaining) from start of next dream
-                    double nextFps = std::stod(nextDecision->dream->fps);
-                    double offsetFromStart = absSeconds - timeRemaining;
-                    int64_t seekFrame = static_cast<int64_t>(offsetFromStart * nextFps);
-                    
-                    g_Log->Info("Skip forward (%.1fs remaining) - jumping to next dream at frame %lld (%.1fs from start)",
-                                timeRemaining, seekFrame, offsetFromStart);
-                    
-                    // Immediate jump - no transition
-                    m_isFirstPlay = true;  // Prevents StartTransition from doing anything
-                    PlayClip(nextDecision->dream, m_TimelineTime, seekFrame, false);
-                    m_playlistManager->moveToNextDream(*nextDecision);
-                    if (m_currentClip) {
-                        m_currentClip->SetTransitionLength(0.0f, 5.0f);
-                    }
-                    EDreamClient::SendStateUpdate();
+        // During transition, use the "to" dream (m_nextClip) for forward skip
+        ContentDecoder::spCClip targetClip = m_isTransitioning && m_nextClip ? m_nextClip : m_currentClip;
+        const auto& toMetadata = targetClip->GetCurrentFrameMetadata();
+        
+        double toFps = 20.0;
+        if (!targetClip->GetClipMetadata().dreamData.fps.empty()) {
+            toFps = std::stod(targetClip->GetClipMetadata().dreamData.fps);
+        }
+        
+        double currentTimeInToClip = toMetadata.frameIdx / toFps;
+        uint32_t framesRemaining = toMetadata.maxFrameIdx > toMetadata.frameIdx ? 
+                                   toMetadata.maxFrameIdx - toMetadata.frameIdx : 0;
+        double timeRemaining = framesRemaining / toFps;
+        
+        if (toMetadata.maxFrameIdx > 0 && timeRemaining <= _seconds) {
+            // We're within the last N seconds of the target dream - jump to next dream
+            // Seek position: (absSeconds - timeRemaining) from the start of next dream
+            
+            // Get the next dream decision
+            Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+            bool canStream = cm.getRemainingQuota() > 0;
+            auto nextDecision = m_playlistManager->preflightNextDream(canStream, true);
+            
+            if (nextDecision && nextDecision->dream) {
+                bool isDreamCached = !nextDecision->dream->getCachedPath().empty();
+                if (!isDreamCached && !canStream) {
+                    g_Log->Warning("Next dream is not cached and quota is 0, cannot stream");
+                    // Just skip to the end of current clip
+                    targetClip->SkipTime(static_cast<float>(timeRemaining - 0.5));
                     return;
                 }
                 
-                // Fallback to original behavior if we couldn't get next dream
-                SkipToNext();
+                // Calculate seek frame: (absSeconds - timeRemaining) from start of next dream
+                double nextFps = std::stod(nextDecision->dream->fps);
+                double offsetFromStart = absSeconds - timeRemaining;
+                int64_t seekFrame = static_cast<int64_t>(offsetFromStart * nextFps);
+                
+                g_Log->Info("Skip forward (%.1fs remaining in %s) - jumping to next dream at frame %lld (%.1fs from start)",
+                            timeRemaining, 
+                            m_isTransitioning ? "to-clip" : "current",
+                            seekFrame, offsetFromStart);
+                
+                // Cancel any ongoing transition
+                m_isTransitioning = false;
+                if (m_nextClip && m_nextClip != targetClip) {
+                    destroyClipAsync(std::move(m_nextClip));
+                    m_nextClip = nullptr;
+                } else if (m_nextClip) {
+                    m_nextClip = nullptr;  // Will be replaced by PlayClip
+                }
+                m_nextDreamDecision = std::nullopt;
+                m_PreloadingNextClip = false;
+                m_PreloadingDreamUUID = "";
+                
+                // Immediate jump - no transition
+                m_isFirstPlay = true;
+                PlayClip(nextDecision->dream, m_TimelineTime, seekFrame, false);
+                m_playlistManager->moveToNextDream(*nextDecision);
+                if (m_currentClip) {
+                    m_currentClip->SetTransitionLength(5.0f, 5.0f);  // Restore normal fade in/out for future transitions
+                }
+                EDreamClient::SendStateUpdate();
                 return;
             }
+            
+            // Fallback to original behavior if we couldn't get next dream
+            SkipToNext();
+            return;
         }
+        
+        // Normal forward skip within the target clip
+        targetClip->SkipTime(_seconds);
+        return;
     }
-    
-    m_currentClip->SkipTime(_seconds);
 }
 
 const ContentDecoder::sClipMetadata*
