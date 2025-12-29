@@ -774,9 +774,20 @@ void CContentDecoder::ReadFramesThread()
                     baseFps = std::stod(m_Metadata.dreamData.fps);
                 }
                 
-                m_CurrentVideoInfo->m_SeekTargetFrame =
-                m_CurrentVideoInfo->m_CurrentFrameIndex +
-                (int64_t)(skipTime * baseFps);
+                // Use the display frame index if available (from SkipToFrame), otherwise use decoder's index
+                // The display frame index is more accurate as it represents what's actually being displayed
+                int64_t currentFrame = m_CurrentVideoInfo->m_CurrentFrameIndex;
+                int64_t skipTargetFrame = m_SkipToFrame.load();
+                
+                if (skipTargetFrame >= 0) {
+                    // We have an explicit target frame from the display layer
+                    m_CurrentVideoInfo->m_SeekTargetFrame = skipTargetFrame + (int64_t)(skipTime * baseFps);
+                    m_SkipToFrame.store(-1);  // Reset
+                } else {
+                    // Fallback to using the decoder's current frame index
+                    m_CurrentVideoInfo->m_SeekTargetFrame = currentFrame + (int64_t)(skipTime * baseFps);
+                }
+                
                 m_CurrentVideoInfo->m_SeekTargetFrame =
                 std::max(m_CurrentVideoInfo->m_SeekTargetFrame, (int64_t)0);
 
