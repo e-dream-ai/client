@@ -499,7 +499,14 @@ void CClip::FadeOut(double _currentTimelineTime)
 
 void CClip::SkipTime(float _secondsForward)
 {
-    m_spDecoder->SkipTime(_secondsForward);
+    // Pass the displayed frame index to the decoder so it uses the correct base
+    // for calculating the seek target, rather than its internal decoder index
+    int64_t displayedFrame = static_cast<int64_t>(m_CurrentFrameMetadata.frameIdx);
+    
+    g_Log->Info("SkipTime: displayed frame %lld, skip %f seconds in clip %s",
+                displayedFrame, _secondsForward, m_ClipMetadata.dreamData.uuid.c_str());
+    
+    m_spDecoder->SkipTime(_secondsForward, displayedFrame);
     m_DecoderClock.started = false;
     
     // If we were in buffering state, reset it to ensure proper rebuffering
@@ -507,9 +514,6 @@ void CClip::SkipTime(float _secondsForward)
     if (m_BufferingState == BufferingState::Rebuffering) {
         m_BufferingState = BufferingState::NotBuffering;
     }
-
-    g_Log->Info("Skipped %f seconds in clip %s", _secondsForward,
-                m_ClipMetadata.dreamData.uuid.c_str());
 }
 
 } // namespace ContentDecoder

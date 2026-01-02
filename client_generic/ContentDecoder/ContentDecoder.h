@@ -116,6 +116,7 @@ class CContentDecoder
     std::unique_ptr<sOpenVideoInfo> m_CurrentVideoInfo;
     AVPixelFormat m_WantedPixelFormat;
     boost::atomic<float> m_SkipForward;
+    std::atomic<int64_t> m_SkipToFrame{-1};  // The displayed frame index to use as base for skip
     boost::atomic<bool> m_HasStarted{false};
     boost::atomic<bool> m_HasEnded;
 
@@ -146,8 +147,13 @@ class CContentDecoder
     bool Stopped() { return m_bStop; };
     uint32_t QueueLength();
     void ClearQueue(uint32_t leave = 0);
-    void SkipTime(float _secondsForward)
+    void SkipTime(float _secondsForward, int64_t _displayedFrameIdx = -1)
     {
+        // Store the displayed frame index first, then the skip time
+        // The decoder thread will pick these up atomically
+        if (_displayedFrameIdx >= 0) {
+            m_SkipToFrame.store(_displayedFrameIdx);
+        }
         m_SkipForward.exchange(_secondsForward);
     }
     

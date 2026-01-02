@@ -768,9 +768,26 @@ void CContentDecoder::ReadFramesThread()
             
             if (fpclassify(skipTime) != FP_ZERO)
             {
-                m_CurrentVideoInfo->m_SeekTargetFrame =
-                m_CurrentVideoInfo->m_CurrentFrameIndex +
-                (int64_t)(skipTime * 20);
+                // Get base FPS from playlist/dream metadata
+                double baseFps = 20.0; // fallback default
+                if (!m_Metadata.dreamData.fps.empty()) {
+                    baseFps = std::stod(m_Metadata.dreamData.fps);
+                }
+                
+                // Use the display frame index if available (from SkipToFrame), otherwise use decoder's index
+                // The display frame index is more accurate as it represents what's actually being displayed
+                int64_t currentFrame = m_CurrentVideoInfo->m_CurrentFrameIndex;
+                int64_t skipTargetFrame = m_SkipToFrame.load();
+                
+                if (skipTargetFrame >= 0) {
+                    // We have an explicit target frame from the display layer
+                    m_CurrentVideoInfo->m_SeekTargetFrame = skipTargetFrame + (int64_t)(skipTime * baseFps);
+                    m_SkipToFrame.store(-1);  // Reset
+                } else {
+                    // Fallback to using the decoder's current frame index
+                    m_CurrentVideoInfo->m_SeekTargetFrame = currentFrame + (int64_t)(skipTime * baseFps);
+                }
+                
                 m_CurrentVideoInfo->m_SeekTargetFrame =
                 std::max(m_CurrentVideoInfo->m_SeekTargetFrame, (int64_t)0);
 
@@ -801,12 +818,21 @@ void CContentDecoder::ReadFramesThread()
                 (int64_t)(m_CurrentVideoInfo->m_SeekTargetFrame /
                           (frameRate * av_q2d(timeBase)));
                 
+                // Determine if this is a backward seek
+                int64_t currentTimestamp =
+                (int64_t)(m_CurrentVideoInfo->m_CurrentFrameIndex /
+                          (frameRate * av_q2d(timeBase)));
+                int seekFlags = (targetTimestamp < currentTimestamp) ? AVSEEK_FLAG_BACKWARD : 0;
+
+                g_Log->Info("Target timestamp: %lld", targetTimestamp);
+                g_Log->Info("Current timestamp: %lld", currentTimestamp);
+                g_Log->Info("Seek flags: %d", seekFlags);
                 
                 // Seek to the target timestamp
                 int seek =
                 avformat_seek_file(m_CurrentVideoInfo->m_pFormatContext,
                                    m_CurrentVideoInfo->m_VideoStreamID, 0,
-                                   targetTimestamp, targetTimestamp, 0);
+                                   targetTimestamp, targetTimestamp, seekFlags);
                 avcodec_flush_buffers(m_CurrentVideoInfo->m_pVideoCodecContext);
                 if (seek < 0)
                 {
@@ -814,7 +840,10 @@ void CContentDecoder::ReadFramesThread()
                 }
                 else
                 {
-                    // Seek successful
+                    // Seek successful - reset trailing frames mode so we can read from new position
+                    m_CurrentVideoInfo->m_ReadingTrailingFrames = false;
+                    // Reset frame index so next decoded frame trusts PTS (needed for backward seeks)
+                    m_CurrentVideoInfo->m_CurrentFrameIndex = -1;
                 }
             }
             CVideoFrame* pMainVideoFrame = ReadOneFrame();
