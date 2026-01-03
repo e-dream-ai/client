@@ -520,7 +520,6 @@ class CElectricSheep
         AddProgressHud();
         AddSplashHud();
         AddOSDHud();
-        StartTimecodeUpdater();
 
         m_spCrossFade = std::make_shared<Hud::CCrossFade>(
             g_Player().Display()->Width(), g_Player().Display()->Height(),
@@ -594,8 +593,6 @@ class CElectricSheep
 #ifdef DO_THREAD_UPDATE
         DestroyUpdateThreads();
 #endif
-
-        StopTimecodeUpdater();
 
         m_spSplashPNG = nullptr;
         m_nSplashes = 0;
@@ -837,38 +834,6 @@ class CElectricSheep
         }
     }
 
-    void StartTimecodeUpdater()
-    {
-        if (m_TimecodeUpdaterRunning.exchange(true))
-            return;
-        m_TimecodeUpdaterThread = std::thread([this]() {
-            using namespace std::chrono;
-            const auto targetFrame = milliseconds(8); // ~125 Hz
-            while (m_TimecodeUpdaterRunning.load())
-            {
-                auto loopStart = steady_clock::now();
-                UpdateTimecodeHUD();
-                auto elapsed = steady_clock::now() - loopStart;
-                if (elapsed < targetFrame)
-                {
-                    std::this_thread::sleep_for(targetFrame - elapsed);
-                }
-                else
-                {
-                    std::this_thread::yield();
-                }
-            }
-        });
-    }
-
-    void StopTimecodeUpdater()
-    {
-        if (!m_TimecodeUpdaterRunning.exchange(false))
-        return;
-
-        if (m_TimecodeUpdaterThread.joinable())
-            m_TimecodeUpdaterThread.join();
-    }
 
 #ifdef DO_THREAD_UPDATE
     //
