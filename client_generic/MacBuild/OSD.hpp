@@ -355,6 +355,16 @@ public:
         m_RabbitCRect.m_Y0 = m_DotCRect.m_Y0 - iconH * 2 - m_BgCRect.Height() * 30 / 210;
         m_RabbitCRect.m_Y1 = m_RabbitCRect.m_Y0 + iconH * 2;
 
+        // Set second turtle icon position (next to first turtle, for slow zone)
+        m_Turtle2CRect = m_TurtleCRect;
+        m_Turtle2CRect.m_X0 = m_TurtleCRect.m_X1 + m_BgCRect.Width() * 5 / 700;  // Small gap between icons
+        m_Turtle2CRect.m_X1 = m_Turtle2CRect.m_X0 + (m_TurtleCRect.m_X1 - m_TurtleCRect.m_X0);
+
+        // Set second rabbit icon position (next to first rabbit, for fast zone)
+        m_Rabbit2CRect = m_RabbitCRect;
+        m_Rabbit2CRect.m_X1 = m_RabbitCRect.m_X0 - m_BgCRect.Width() * 5 / 700;  // Small gap between icons
+        m_Rabbit2CRect.m_X0 = m_Rabbit2CRect.m_X1 - (m_RabbitCRect.m_X1 - m_RabbitCRect.m_X0);
+
         // Set FPS text position (centered, where symbol was)
         m_FpsTextRect = m_SymbolCRect;
          
@@ -461,22 +471,54 @@ public:
             
             // Setup & Draw symbol/text based on type
             if (type == Speed) {
-                // Draw turtle icon (top-left)
-                if (m_spTurtleTexture != NULL) {
-                    spRenderer->SetTexture(m_spTurtleTexture, 0);
-                    spRenderer->SetBlend("alphablend");
-                    spRenderer->SetShader(NULL);
-                    spRenderer->Apply();
-                    spRenderer->DrawQuad(m_TurtleCRect, Base::Math::CVector4(1, 1, 1, 1), m_spTurtleTexture->GetRect());
-                }
+                // Calculate scaled value to determine which zone we're in
+                double scaledValueForIcons = (PerceptualFPSToSpeed(currentFps - 0.01) - minFps) * 27 / (maxFps - minFps);
+                bool isFastZone = scaledValueForIcons > 27;  // Red zone
+                bool isSlowZone = scaledValueForIcons < 0.8; // Blue zone
                 
-                // Draw rabbit icon (top-right)
-                if (m_spRabbitTexture != NULL) {
-                    spRenderer->SetTexture(m_spRabbitTexture, 0);
-                    spRenderer->SetBlend("alphablend");
-                    spRenderer->SetShader(NULL);
-                    spRenderer->Apply();
-                    spRenderer->DrawQuad(m_RabbitCRect, Base::Math::CVector4(1, 1, 1, 1), m_spRabbitTexture->GetRect());
+                if (isFastZone) {
+                    // Fast zone: One rabbit on left, two rabbits on right
+                    if (m_spRabbitTexture != NULL) {
+                        spRenderer->SetTexture(m_spRabbitTexture, 0);
+                        spRenderer->SetBlend("alphablend");
+                        spRenderer->SetShader(NULL);
+                        spRenderer->Apply();
+                        // Draw one rabbit on left (in turtle's position)
+                        spRenderer->DrawQuad(m_TurtleCRect, Base::Math::CVector4(1, 1, 1, 1), m_spRabbitTexture->GetRect());
+                        // Draw two rabbits on right
+                        spRenderer->DrawQuad(m_RabbitCRect, Base::Math::CVector4(1, 1, 1, 1), m_spRabbitTexture->GetRect());
+                        spRenderer->DrawQuad(m_Rabbit2CRect, Base::Math::CVector4(1, 1, 1, 1), m_spRabbitTexture->GetRect());
+                    }
+                } else if (isSlowZone) {
+                    // Slow zone: Two turtles on left, one turtle on right
+                    if (m_spTurtleTexture != NULL) {
+                        spRenderer->SetTexture(m_spTurtleTexture, 0);
+                        spRenderer->SetBlend("alphablend");
+                        spRenderer->SetShader(NULL);
+                        spRenderer->Apply();
+                        // Draw two turtles on left
+                        spRenderer->DrawQuad(m_TurtleCRect, Base::Math::CVector4(1, 1, 1, 1), m_spTurtleTexture->GetRect());
+                        spRenderer->DrawQuad(m_Turtle2CRect, Base::Math::CVector4(1, 1, 1, 1), m_spTurtleTexture->GetRect());
+                        // Draw one turtle on right (in rabbit's position)
+                        spRenderer->DrawQuad(m_RabbitCRect, Base::Math::CVector4(1, 1, 1, 1), m_spTurtleTexture->GetRect());
+                    }
+                } else {
+                    // Normal zone: One turtle on left, one rabbit on right
+                    if (m_spTurtleTexture != NULL) {
+                        spRenderer->SetTexture(m_spTurtleTexture, 0);
+                        spRenderer->SetBlend("alphablend");
+                        spRenderer->SetShader(NULL);
+                        spRenderer->Apply();
+                        spRenderer->DrawQuad(m_TurtleCRect, Base::Math::CVector4(1, 1, 1, 1), m_spTurtleTexture->GetRect());
+                    }
+                    
+                    if (m_spRabbitTexture != NULL) {
+                        spRenderer->SetTexture(m_spRabbitTexture, 0);
+                        spRenderer->SetBlend("alphablend");
+                        spRenderer->SetShader(NULL);
+                        spRenderer->Apply();
+                        spRenderer->DrawQuad(m_RabbitCRect, Base::Math::CVector4(1, 1, 1, 1), m_spRabbitTexture->GetRect());
+                    }
                 }
                 
                 // Draw FPS numeric display (horizontally centered, above the indicator dots)
@@ -704,6 +746,7 @@ private:
     // Turtle and Rabbit icons for speed OSD
     DisplayOutput::spCTextureFlat m_spTurtleTexture, m_spRabbitTexture;
     Base::Math::CRect m_TurtleCRect, m_RabbitCRect;
+    Base::Math::CRect m_Turtle2CRect, m_Rabbit2CRect;  // Second icons for fast/slow zones
     
     // FPS Counter text
     DisplayOutput::CFontDescription m_FontDesc;
