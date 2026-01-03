@@ -578,32 +578,24 @@ public:
 
             }
 
+            bool isFastZone = scaledValue > 27;
+            bool isSlowZone = scaledValue < 0.8;
+            bool isNormalZone = !isFastZone && !isSlowZone;
+
+            spRenderer->SetBlend("alphablend");
+            spRenderer->SetShader(NULL);
             for (int i = 0 ; i < 27 ; i++) {
-                if (scaledValue > 27 && i < (scaledValue - 27)) {
-                    // over
-                    spRenderer->SetTexture(m_spDotTexture_r, 0);
-                    spRenderer->SetBlend("alphablend");
-                    spRenderer->SetShader(NULL);
-                    spRenderer->Apply();
-                } else if (scaledValue < 0.9 && i > (scaledValue + 27)) {
-                    // under
-                    spRenderer->SetTexture(m_spDotTexture_b, 0);
-                    spRenderer->SetBlend("alphablend");
-                    spRenderer->SetShader(NULL);
-                    spRenderer->Apply();
-                } else if (i < scaledValue) {
-                    // classic
+                if (isFastZone && i < (scaledValue - 27)) {
                     spRenderer->SetTexture(m_spDotTexture, 0);
-                    spRenderer->SetBlend("alphablend");
-                    spRenderer->SetShader(NULL);
-                    spRenderer->Apply();
+                } else if (isSlowZone && i < (scaledValue + 27)) {
+                    spRenderer->SetTexture(m_spDotTexture, 0);
+                } else if (isNormalZone && i < scaledValue) {
+                    spRenderer->SetTexture(m_spDotTexture, 0);
                 } else {
-                    // unselected
                     spRenderer->SetTexture(m_spDotTexture_u, 0);
-                    spRenderer->SetBlend("alphablend");
-                    spRenderer->SetShader(NULL);
-                    spRenderer->Apply();
                 }
+                spRenderer->Apply();
+
 
                 spRenderer->DrawQuad(
                                     Base::Math::CRect(
