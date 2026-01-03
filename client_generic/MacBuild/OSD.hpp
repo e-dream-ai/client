@@ -226,6 +226,24 @@ public:
             m_spShuffleTexture->Upload(tmpShuffle);
         }
 
+        // Grab turtle icon (for slower speed indicator)
+        DisplayOutput::spCImage tmpTurtle(new DisplayOutput::CImage());
+        if (tmpTurtle->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
+                               "osd-turtle.png", false))
+        {
+            m_spTurtleTexture = g_Player().Renderer()->NewTextureFlat();
+            m_spTurtleTexture->Upload(tmpTurtle);
+        }
+
+        // Grab rabbit icon (for faster speed indicator)
+        DisplayOutput::spCImage tmpRabbit(new DisplayOutput::CImage());
+        if (tmpRabbit->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
+                               "osd-rabbit.png", false))
+        {
+            m_spRabbitTexture = g_Player().Renderer()->NewTextureFlat();
+            m_spRabbitTexture->Upload(tmpRabbit);
+        }
+
         // Set mini BG size
         // Fix A/R
         float aspect = g_Player().Display()->Aspect();
@@ -314,15 +332,52 @@ public:
         m_SymbolCRect.m_X1 = m_SymbolCRect.m_X0 + (2 * w * s3);
         m_SymbolCRect.m_Y1 = m_SymbolCRect.m_Y0 + (2 * h * s3);
 
+        // Set turtle icon position (top-left corner of OSD background)
+        const float iconScale = s * 70 / 700;  // Scale for turtle/rabbit icons (larger)
+        m_TurtleCRect = rect;
+        m_TurtleCRect.m_X1 *= aspect;
+        float iconW = m_TurtleCRect.Width() * iconScale;
+        float iconH = m_TurtleCRect.Height() * iconScale;
+        
+        // Position turtle in top-left corner of OSD bg - closer to dots
+        m_TurtleCRect.m_X0 = m_BgCRect.m_X0 + m_BgCRect.Width() * 30 / 700;
+        m_TurtleCRect.m_Y0 = m_DotCRect.m_Y0 - iconH * 2 - m_BgCRect.Height() * 30 / 210;
+        m_TurtleCRect.m_X1 = m_TurtleCRect.m_X0 + iconW * 2;
+        m_TurtleCRect.m_Y1 = m_TurtleCRect.m_Y0 + iconH * 2;
+        
+        // Set rabbit icon position (top-right corner of OSD background)
+        m_RabbitCRect = rect;
+        m_RabbitCRect.m_X1 *= aspect;
+        
+        // Position rabbit in top-right corner of OSD bg - closer to dots
+        m_RabbitCRect.m_X1 = m_BgCRect.m_X1 - m_BgCRect.Width() * 30 / 700;
+        m_RabbitCRect.m_X0 = m_RabbitCRect.m_X1 - iconW * 2;
+        m_RabbitCRect.m_Y0 = m_DotCRect.m_Y0 - iconH * 2 - m_BgCRect.Height() * 30 / 210;
+        m_RabbitCRect.m_Y1 = m_RabbitCRect.m_Y0 + iconH * 2;
+
+        // Set second turtle icon position (next to first turtle, for slow zone)
+        m_Turtle2CRect = m_TurtleCRect;
+        m_Turtle2CRect.m_X0 = m_TurtleCRect.m_X1 + m_BgCRect.Width() * 5 / 700;  // Small gap between icons
+        m_Turtle2CRect.m_X1 = m_Turtle2CRect.m_X0 + (m_TurtleCRect.m_X1 - m_TurtleCRect.m_X0);
+
+        // Set second rabbit icon position (next to first rabbit, for fast zone)
+        m_Rabbit2CRect = m_RabbitCRect;
+        m_Rabbit2CRect.m_X1 = m_RabbitCRect.m_X0 - m_BgCRect.Width() * 5 / 700;  // Small gap between icons
+        m_Rabbit2CRect.m_X0 = m_Rabbit2CRect.m_X1 - (m_RabbitCRect.m_X1 - m_RabbitCRect.m_X0);
+
+        // Set FPS text position (centered, where symbol was)
+        m_FpsTextRect = m_SymbolCRect;
          
-        // Font initialization
-        /*m_FontDesc.AntiAliased(true);
-        m_FontDesc.Height(72 * g_Player().Display()->Height() / 2000);
+        // Font initialization for FPS display
+        m_FontDesc.AntiAliased(true);
+        // Scale font size with app size: proportional to OSD bg height in pixels
+        float fontPx = m_BgCRect.Height() * g_Player().Display()->Height() * 0.3f; // tuned for readability
+        m_FontDesc.Height(fontPx);
         m_FontDesc.Style(DisplayOutput::CFontDescription::Normal);
         m_FontDesc.Italic(false);
-        m_FontDesc.TypeFace("Leto");
+        m_FontDesc.TypeFace("Lato");
 
-        m_spFont = g_Player().Renderer()->GetFont(m_FontDesc);*/
+        m_spFont = g_Player().Renderer()->GetFont(m_FontDesc);
         
         // Large HUD
         tmpBg = NULL;
@@ -366,7 +421,13 @@ public:
     bool Render(const double _time, DisplayOutput::spCRenderer _spRenderer)
     {
         if (!CHudEntry::Render(_time, _spRenderer))
+        {
+            // OSD is being hidden, disable FPS text
+            if (m_spFpsText != NULL) {
+                m_spFpsText->SetEnabled(false);
+            }
             return false;
+        }
 
         if (m_spBgTexture == NULL)
             return false;
@@ -374,6 +435,11 @@ public:
         DisplayOutput::spCRenderer spRenderer = g_Player().Renderer();
 
         if (type == Buffering) {
+            // Hide FPS text for non-Speed types
+            if (m_spFpsText != NULL) {
+                m_spFpsText->SetEnabled(false);
+            }
+            
             // Use a sine wave for smooth pulsing
             float pulse = (sin(_time * m_BufferingPulseSpeed) + 1.0f) * 0.5f; // Produces 0.0 to 1.0
             float alpha = m_BufferingMinAlpha + pulse * (m_BufferingMaxAlpha - m_BufferingMinAlpha);
@@ -403,17 +469,100 @@ public:
 
             spRenderer->DrawQuad(m_BgCRect, Base::Math::CVector4(1, 1, 1, 1), m_spBgTexture->GetRect());
             
-            // Setup & Draw symbol
+            // Setup & Draw symbol/text based on type
             if (type == Speed) {
-                spRenderer->SetTexture(m_spSymbolSpeedTexture, 0);
-            } else {
-                spRenderer->SetTexture(m_spSymbolBrightnessTexture, 0);
-            }
-            spRenderer->SetBlend("alphablend");
-            spRenderer->SetShader(NULL);
-            spRenderer->Apply();
+                // Calculate scaled value to determine which zone we're in
+                double scaledValueForIcons = (PerceptualFPSToSpeed(currentFps - 0.01) - minFps) * 27 / (maxFps - minFps);
+                bool isFastZone = scaledValueForIcons > 27;  // Red zone
+                bool isSlowZone = scaledValueForIcons < 0.8; // Blue zone
+                
+                if (isFastZone) {
+                    // Fast zone: One rabbit on left, two rabbits on right
+                    if (m_spRabbitTexture != NULL) {
+                        spRenderer->SetTexture(m_spRabbitTexture, 0);
+                        spRenderer->SetBlend("alphablend");
+                        spRenderer->SetShader(NULL);
+                        spRenderer->Apply();
+                        // Draw one rabbit on left (in turtle's position)
+                        spRenderer->DrawQuad(m_TurtleCRect, Base::Math::CVector4(1, 1, 1, 1), m_spRabbitTexture->GetRect());
+                        // Draw two rabbits on right
+                        spRenderer->DrawQuad(m_RabbitCRect, Base::Math::CVector4(1, 1, 1, 1), m_spRabbitTexture->GetRect());
+                        spRenderer->DrawQuad(m_Rabbit2CRect, Base::Math::CVector4(1, 1, 1, 1), m_spRabbitTexture->GetRect());
+                    }
+                } else if (isSlowZone) {
+                    // Slow zone: Two turtles on left, one turtle on right
+                    if (m_spTurtleTexture != NULL) {
+                        spRenderer->SetTexture(m_spTurtleTexture, 0);
+                        spRenderer->SetBlend("alphablend");
+                        spRenderer->SetShader(NULL);
+                        spRenderer->Apply();
+                        // Draw two turtles on left
+                        spRenderer->DrawQuad(m_TurtleCRect, Base::Math::CVector4(1, 1, 1, 1), m_spTurtleTexture->GetRect());
+                        spRenderer->DrawQuad(m_Turtle2CRect, Base::Math::CVector4(1, 1, 1, 1), m_spTurtleTexture->GetRect());
+                        // Draw one turtle on right (in rabbit's position)
+                        spRenderer->DrawQuad(m_RabbitCRect, Base::Math::CVector4(1, 1, 1, 1), m_spTurtleTexture->GetRect());
+                    }
+                } else {
+                    // Normal zone: One turtle on left, one rabbit on right
+                    if (m_spTurtleTexture != NULL) {
+                        spRenderer->SetTexture(m_spTurtleTexture, 0);
+                        spRenderer->SetBlend("alphablend");
+                        spRenderer->SetShader(NULL);
+                        spRenderer->Apply();
+                        spRenderer->DrawQuad(m_TurtleCRect, Base::Math::CVector4(1, 1, 1, 1), m_spTurtleTexture->GetRect());
+                    }
+                    
+                    if (m_spRabbitTexture != NULL) {
+                        spRenderer->SetTexture(m_spRabbitTexture, 0);
+                        spRenderer->SetBlend("alphablend");
+                        spRenderer->SetShader(NULL);
+                        spRenderer->Apply();
+                        spRenderer->DrawQuad(m_RabbitCRect, Base::Math::CVector4(1, 1, 1, 1), m_spRabbitTexture->GetRect());
+                    }
+                }
+                
+                // Draw FPS numeric display (horizontally centered, above the indicator dots)
+                // Recompute font size each frame to follow current display size
+                float fontPx = m_BgCRect.Height() * g_Player().Display()->Height() * 0.3f;
+                m_FontDesc.Height(fontPx);
+                m_spFont = g_Player().Renderer()->GetFont(m_FontDesc);
+                if (m_spFont != NULL) {
+                    // Create/update text with current FPS value (2 decimal places)
+                    std::string fpsText = string_format("%.2f", currentFps);
+                    m_spFpsText = g_Player().Renderer()->NewText(m_spFont, fpsText);
+                    if (m_spFpsText != NULL) {
+                        // Manual extent estimate (Metal GetExtent is async and may return 0)
+                        // Approx width = charCount * 0.6 * fontPx; height = fontPx
+                        float displayW = (float)g_Player().Display()->Width();
+                        float displayH = (float)g_Player().Display()->Height();
+                        float fontPx   = m_FontDesc.Height();
+                        float approxWidthPx  = (float)fpsText.size() * fontPx * 0.6f;
+                        float approxHeightPx = fontPx;
+                        float textW = approxWidthPx / displayW;
+                        float textH = approxHeightPx / displayH;
 
-            spRenderer->DrawQuad(m_SymbolCRect, Base::Math::CVector4(1, 1, 1, 1), m_spSymbolSpeedTexture->GetRect());
+                        // Position just above the dots with minimal gap
+                        float textY = m_DotCRect.m_Y0 + m_BgCRect.Height() * 0.15f - textH;
+                        // Center horizontally based on estimated width, nudge slightly right to compensate layout
+                        float textX = 0.5f - (textW * 0.5f) + (m_BgCRect.Width() * 0.02f);
+
+                        m_spFpsText->SetRect(Base::Math::CRect(textX, textY, textX + textW, textY + textH));
+                        m_spFpsText->SetEnabled(true);
+                        // Use renderer's DrawText to set color (osd-pill orange)
+                        spRenderer->DrawText(m_spFpsText, Base::Math::CVector4(1.0f, 0.855f, 0.722f, 1.0f));
+                    }
+                }
+            } else {
+                // Brightness - use original symbol, hide FPS text
+                if (m_spFpsText != NULL) {
+                    m_spFpsText->SetEnabled(false);
+                }
+                spRenderer->SetTexture(m_spSymbolBrightnessTexture, 0);
+                spRenderer->SetBlend("alphablend");
+                spRenderer->SetShader(NULL);
+                spRenderer->Apply();
+                spRenderer->DrawQuad(m_SymbolCRect, Base::Math::CVector4(1, 1, 1, 1), m_spSymbolBrightnessTexture->GetRect());
+            }
             
             // Setup & Draw dots
 
@@ -429,32 +578,24 @@ public:
 
             }
 
+            bool isFastZone = scaledValue > 27;
+            bool isSlowZone = scaledValue < 0.8;
+            bool isNormalZone = !isFastZone && !isSlowZone;
+
+            spRenderer->SetBlend("alphablend");
+            spRenderer->SetShader(NULL);
             for (int i = 0 ; i < 27 ; i++) {
-                if (scaledValue > 27 && i < (scaledValue - 27)) {
-                    // over
-                    spRenderer->SetTexture(m_spDotTexture_r, 0);
-                    spRenderer->SetBlend("alphablend");
-                    spRenderer->SetShader(NULL);
-                    spRenderer->Apply();
-                } else if (scaledValue < 0.9 && i > (scaledValue + 27)) {
-                    // under
-                    spRenderer->SetTexture(m_spDotTexture_b, 0);
-                    spRenderer->SetBlend("alphablend");
-                    spRenderer->SetShader(NULL);
-                    spRenderer->Apply();
-                } else if (i < scaledValue) {
-                    // classic
+                if (isFastZone && i < (scaledValue - 27)) {
                     spRenderer->SetTexture(m_spDotTexture, 0);
-                    spRenderer->SetBlend("alphablend");
-                    spRenderer->SetShader(NULL);
-                    spRenderer->Apply();
+                } else if (isSlowZone && i < (scaledValue + 27)) {
+                    spRenderer->SetTexture(m_spDotTexture, 0);
+                } else if (isNormalZone && i < scaledValue) {
+                    spRenderer->SetTexture(m_spDotTexture, 0);
                 } else {
-                    // unselected
                     spRenderer->SetTexture(m_spDotTexture_u, 0);
-                    spRenderer->SetBlend("alphablend");
-                    spRenderer->SetShader(NULL);
-                    spRenderer->Apply();
                 }
+                spRenderer->Apply();
+
 
                 spRenderer->DrawQuad(
                                     Base::Math::CRect(
@@ -468,6 +609,10 @@ public:
             }
         } else {
             // Show mini hud!
+            // Hide FPS text for mini hud types
+            if (m_spFpsText != NULL) {
+                m_spFpsText->SetEnabled(false);
+            }
             
             // Setup & Draw background
             spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader);
@@ -590,13 +735,16 @@ private:
     float m_BufferingMinAlpha = 0.3f;   // Minimum alpha value
     float m_BufferingMaxAlpha = 1.0f;   // Maximum alpha value
     
+    // Turtle and Rabbit icons for speed OSD
+    DisplayOutput::spCTextureFlat m_spTurtleTexture, m_spRabbitTexture;
+    Base::Math::CRect m_TurtleCRect, m_RabbitCRect;
+    Base::Math::CRect m_Turtle2CRect, m_Rabbit2CRect;  // Second icons for fast/slow zones
     
-    
-    // FPS Counter
-/*    DisplayOutput::CFontDescription m_FontDesc;
-    Base::Math::CRect m_TextRect;
+    // FPS Counter text
+    DisplayOutput::CFontDescription m_FontDesc;
     DisplayOutput::spCBaseFont m_spFont;
-    DisplayOutput::spCBaseText m_spText;*/
+    DisplayOutput::spCBaseText m_spFpsText;
+    Base::Math::CRect m_FpsTextRect;
     
     // Precalculations for rendering
     float dotGap;

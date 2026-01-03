@@ -202,7 +202,9 @@ spCShader CRendererMetal::NewShader(
 
 spCBaseFont CRendererMetal::GetFont(CFontDescription& _desc)
 {
-    auto it = m_fontPool.find(_desc.TypeFace());
+    // Key font cache by typeface AND size so size changes take effect.
+    std::string key = _desc.TypeFace() + "#" + std::to_string((int)_desc.Height());
+    auto it = m_fontPool.find(key);
     if (it == m_fontPool.end())
     {
         spCBaseFont font =
@@ -210,7 +212,7 @@ spCBaseFont CRendererMetal::GetFont(CFontDescription& _desc)
         if (!font->Create())
             return NULL;
         font->FontDescription(_desc);
-        m_fontPool[_desc.TypeFace()] = font;
+        m_fontPool[key] = font;
         return font;
     }
     return it->second;
