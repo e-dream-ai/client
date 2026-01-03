@@ -262,20 +262,16 @@ class CElectricSheep
             "Use the remote control or keyboard to interact.\n\n"
 #endif
             "Keyboard Commands:\n"
-            "Command-R: open remote control\n"
-            "Command-B: browse playlists\n"
-            "Up-arrow: like this dream\n"
-            "Down-arrow: dislike this dream and delete it\n"
-            "Left-arrow: go back to play previous dream\n"
-            "Right-arrow: go forward through history\n"
-            "A: slower playback\nD: faster playback\n"
-            "C: show credit\n"
-            "B: report this dream\n"
-            "L: skip 10 seconds forward\n"
-            "J: skip 10 seconds back\n"
-            "V: open web source                       "
-            "\n" FULLSCREEN_MODIFIER_KEY "-F: toggle full screen\n"
-            "F1: help (this page)\nF2: status overlay",
+            "A: slower playback\t\t\t\t\tUp: like this dream\n"
+            "D: faster playback\t\t\t\t\tDown: dislike and delete\n"
+            "J: skip 10 seconds back\t\t\tLeft: previous dream\n"
+            "L: skip 10 seconds forward\tRight: next dream\n"
+            "R: repeat current dream\t\t\tH: shuffle mode\n"
+            "C: show credit\t\t\t\t\t\tB: report this dream\n"
+            "V: open web source\t\t\t\t" FULLSCREEN_MODIFIER_KEY "-F: toggle full screen\n"
+            "F1: help (this page)\t\t\t\tF2: status overlay\n\n"
+
+            FULLSCREEN_MODIFIER_KEY "-R: open remote control\n" FULLSCREEN_MODIFIER_KEY "-B: browse playlists",
             ""));
 
         std::string ver = GetVersion();
