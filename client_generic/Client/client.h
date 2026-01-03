@@ -1,9 +1,13 @@
 #ifndef CLIENT_H_INCLUDED
 #define CLIENT_H_INCLUDED
 
+#include <atomic>
+#include <chrono>
+#include <thread>
 #include <iomanip>
 #include <sstream>
 #include <string>
+#include <mutex>
 
 #include "Exception.h"
 #include "Log.h"
@@ -81,6 +85,9 @@ class CElectricSheep
   private:
     Cache::MessageQueue m_MessageQueue;
     bool wasShowingBufferIndicator = false;
+    std::atomic<bool> m_TimecodeUpdaterRunning{false};
+    std::thread m_TimecodeUpdaterThread;
+    std::mutex m_TimecodeHudMutex;
 
   protected:
     ESCpuUsage m_CpuUsage;
@@ -97,6 +104,10 @@ class CElectricSheep
     bool m_bFullScreen;
     Base::CTimer m_Timer;
     Base::CTimer m_F1F4Timer;
+    // Track per-frame wall time to derive smooth in-frame timecode without relying on clip elapsed time.
+    double m_FrameStartWallTime = 0.0;
+    uint32_t m_LastFrameIdxForHud = 0;
+    bool m_HaveFrameStartTime = false;
 
     Hud::spCHudManager m_HudManager;
     Hud::spCStartupScreen m_StartupScreen;
@@ -739,6 +750,91 @@ class CElectricSheep
         return ss.str();
     }
 
+    void UpdateTimecodeHUD() {
+        if (!m_HudManager)
+            return;
+
+        const ContentDecoder::sClipMetadata* clipMetadata =
+            g_Player().GetCurrentPlayingClipMetadata();
+        const ContentDecoder::sFrameMetadata* frameMetadata =
+            g_Player().GetCurrentFrameMetadata();
+
+        if (!clipMetadata)
+            return;
+
+        double baseFps = 1.0;
+        try
+        {
+            baseFps = std::stod(clipMetadata->dreamData.fps);
+        }
+        catch (...)
+        {
+            baseFps = 1.0;
+        }
+
+        double currentTime = g_Player().GetCurrentClipElapsedTime(); // fallback if no frame metadata
+        double totalTime = 0.0;
+
+        if (frameMetadata)
+        {
+            double fps = (frameMetadata->decodeFps > 0.0f) ? frameMetadata->decodeFps : baseFps;
+            if (fps <= 0.0) fps = 1.0;
+
+            // Reset the frame start wall time when the frame index advances.
+            if (!m_HaveFrameStartTime || frameMetadata->frameIdx != m_LastFrameIdxForHud)
+            {
+                m_LastFrameIdxForHud = frameMetadata->frameIdx;
+                m_FrameStartWallTime = m_Timer.Time();
+                m_HaveFrameStartTime = true;
+            }
+
+            double frameStart = FrameNumberToSeconds(frameMetadata->frameIdx, fps);
+            double frameDuration = 1.0 / fps;
+            double sinceFrameStart = (m_Timer.Time() - m_FrameStartWallTime) * g_Player().GetPerceptualFPS() / fps;
+            
+            if (sinceFrameStart < 0.0) sinceFrameStart = 0.0;
+            if (sinceFrameStart > frameDuration) sinceFrameStart = frameDuration;
+
+            currentTime = frameStart + sinceFrameStart;
+            totalTime = MaxFrameIdxToDuration(frameMetadata->maxFrameIdx, fps);
+        }
+
+        if (currentTime < 0.0) currentTime = 0.0;
+        if (totalTime > 0.0 && currentTime > totalTime) currentTime = totalTime;
+
+        std::string currentTimeStr = FormatTimeAsMMSSHundredths(currentTime);
+        std::string totalTimeStr = (totalTime > 0.0)
+                                       ? FormatTimeAsMMSSHundredths(totalTime)
+                                       : "--:--.--";
+
+        std::lock_guard<std::mutex> lock(m_TimecodeHudMutex);
+
+        if (auto spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
+                m_HudManager->Get("dreamstats")))
+        {
+            if (auto playHead =
+                    static_cast<Hud::CStringStat*>(spStats->Get("playHead")))
+            {
+                playHead->SetSample(
+                    string_format("%s/%s", currentTimeStr.c_str(),
+                                  totalTimeStr.c_str()));
+            }
+        }
+
+        if (auto spCredits = std::dynamic_pointer_cast<Hud::CStatsConsole>(
+                m_HudManager->Get("dreamcredits")))
+        {
+            if (auto creditsTime =
+                    static_cast<Hud::CStringStat*>(spCredits->Get("credits-time")))
+            {
+                creditsTime->SetSample(
+                    string_format("%s/%s", currentTimeStr.c_str(),
+                                  totalTimeStr.c_str()));
+            }
+        }
+    }
+
+
 #ifdef DO_THREAD_UPDATE
     //
     virtual void CreateUpdateThreads()
@@ -1104,16 +1200,7 @@ class CElectricSheep
 
                 const ContentDecoder::sFrameMetadata* frameMetadata =
                     g_Player().GetCurrentFrameMetadata();
-                if (frameMetadata)
-                {
-                    // Use new XX:YY.ZZ format for F2 display
-                    auto [currentTime, totalTime] = CalculateTimecode(frameMetadata, baseFps);
-                    std::string currentTimeStr = FormatTimeAsMMSSHundredths(currentTime);
-                    std::string totalTimeStr = FormatTimeAsMMSSHundredths(totalTime);
-
-                    ((Hud::CStringStat*)spStats->Get("playHead"))
-                        ->SetSample(string_format("%s/%s", currentTimeStr.c_str(), totalTimeStr.c_str()));
-                }
+                UpdateTimecodeHUD();
                 
                 // Grab Perceptual FPS from player
                 double pFPS = g_Player().GetPerceptualFPS();
@@ -1235,18 +1322,11 @@ class CElectricSheep
                     }
                 }
 
-                if (clipMetadata && frameMetadata)
+                if (clipMetadata)
                 {
-                    // Calculate current timecode and total duration
-                    auto [currentTime, totalTime] = CalculateTimecode(frameMetadata, baseFps);
-                    std::string timecode = FormatTimeAsMMSSHundredths(currentTime);
-                    std::string duration = FormatTimeAsMMSSHundredths(totalTime);
-
                     // Set left-aligned title and right-aligned time info
                     ((Hud::CStringStat*)spStats->Get("credits-title"))
                         ->SetSample(string_format("title: %s", clipMetadata->dreamData.name.c_str()));
-                    ((Hud::CStringStat*)spStats->Get("credits-time"))
-                        ->SetSample(string_format("%s/%s", timecode.c_str(), duration.c_str()));
 
                     // Set left-aligned artist and right-aligned fps info
                     ((Hud::CStringStat*)spStats->Get("credits-artist"))
