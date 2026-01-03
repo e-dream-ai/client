@@ -340,8 +340,8 @@ public:
         float iconH = m_TurtleCRect.Height() * iconScale;
         
         // Position turtle in top-left corner of OSD bg - closer to dots
-        m_TurtleCRect.m_X0 = m_BgCRect.m_X0 + m_BgCRect.Width() * 20 / 700;
-        m_TurtleCRect.m_Y0 = m_DotCRect.m_Y0 - iconH * 2 - m_BgCRect.Height() * 10 / 210;
+        m_TurtleCRect.m_X0 = m_BgCRect.m_X0 + m_BgCRect.Width() * 30 / 700;
+        m_TurtleCRect.m_Y0 = m_DotCRect.m_Y0 - iconH * 2 - m_BgCRect.Height() * 30 / 210;
         m_TurtleCRect.m_X1 = m_TurtleCRect.m_X0 + iconW * 2;
         m_TurtleCRect.m_Y1 = m_TurtleCRect.m_Y0 + iconH * 2;
         
@@ -350,9 +350,9 @@ public:
         m_RabbitCRect.m_X1 *= aspect;
         
         // Position rabbit in top-right corner of OSD bg - closer to dots
-        m_RabbitCRect.m_X1 = m_BgCRect.m_X1 - m_BgCRect.Width() * 20 / 700;
+        m_RabbitCRect.m_X1 = m_BgCRect.m_X1 - m_BgCRect.Width() * 30 / 700;
         m_RabbitCRect.m_X0 = m_RabbitCRect.m_X1 - iconW * 2;
-        m_RabbitCRect.m_Y0 = m_DotCRect.m_Y0 - iconH * 2 - m_BgCRect.Height() * 10 / 210;
+        m_RabbitCRect.m_Y0 = m_DotCRect.m_Y0 - iconH * 2 - m_BgCRect.Height() * 30 / 210;
         m_RabbitCRect.m_Y1 = m_RabbitCRect.m_Y0 + iconH * 2;
 
         // Set FPS text position (centered, where symbol was)
