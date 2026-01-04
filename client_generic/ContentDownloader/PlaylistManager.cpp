@@ -882,7 +882,6 @@ bool PlaylistManager::hasMoreDreams() const {
 
 const Cache::Dream* PlaylistManager::getCurrentDream() const {
     if (m_playlist.empty()) {
-        g_Log->Error("EMPTY PLAYLIST");
         return nullptr;
     }
 
