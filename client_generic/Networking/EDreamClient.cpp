@@ -383,19 +383,6 @@ static void OnWebSocketConnected()
 
     // Reset the connection attempt count
     fWebSocketConnectionAttempts = 0;
-
-    //    std::map<std::string, std::string> params;
-    //    params["event"] = "next
-    std::shared_ptr<sio::object_message> ms =
-        std::dynamic_pointer_cast<sio::object_message>(
-            sio::object_message::create());
-    ms->insert("event", "next");
-    sio::message::list list;
-    list.push(ms);
-    auto socket = s_SIOClient.socket("/remote-control");
-    if (socket) {
-        socket->emit("new_remote_control_event", list);
-    }
 }
 
 static void OnWebSocketClosed(const sio::client::close_reason& _reason)
