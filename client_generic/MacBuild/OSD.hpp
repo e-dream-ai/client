@@ -528,7 +528,7 @@ public:
                 m_spFont = g_Player().Renderer()->GetFont(m_FontDesc);
                 if (m_spFont != NULL) {
                     // Create/update text with current FPS value (2 decimal places)
-                    std::string fpsText = string_format("%.2f", currentFps);
+                    std::string fpsText = string_format("%.2f fps", currentFps);
                     m_spFpsText = g_Player().Renderer()->NewText(m_spFont, fpsText);
                     if (m_spFpsText != NULL) {
                         // Manual extent estimate (Metal GetExtent is async and may return 0)
