@@ -378,6 +378,9 @@ bool CClip::Update(double _timelineTime, bool isPaused)
 }
 
 bool CClip::DrawFrame(spCRenderer _spRenderer, float alpha) {
+    // Use passed alpha if valid (>= 0), otherwise fall back to internal m_Alpha
+    float effectiveAlpha = (alpha >= 0.0f) ? alpha : m_Alpha;
+    
     if (m_BufferingState == BufferingState::Buffering) {
         // Could display a loading indicator here
         //g_Log->Info("Buffering, nothing to display yet (ql: %d)", m_spDecoder->QueueLength());
@@ -389,14 +392,14 @@ bool CClip::DrawFrame(spCRenderer _spRenderer, float alpha) {
         if (m_LastValidFrame) {
             // Use the last valid frame while buffering
             m_spFrameData = m_LastValidFrame;
-            return m_spFrameDisplay->Draw(_spRenderer, m_Alpha, m_DecoderClock.interframeDelta);
+            return m_spFrameDisplay->Draw(_spRenderer, effectiveAlpha, m_DecoderClock.interframeDelta);
         }
         return false; // No frame yet
     }
     
     if (!m_spFrameData)
         return false;
-    return m_spFrameDisplay->Draw(_spRenderer, m_Alpha, m_DecoderClock.interframeDelta);
+    return m_spFrameDisplay->Draw(_spRenderer, effectiveAlpha, m_DecoderClock.interframeDelta);
 }
 
 void CClip::SetDisplaySize(uint32_t _displayWidth, uint32_t _displayHeight)

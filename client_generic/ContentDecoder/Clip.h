@@ -109,7 +109,7 @@ public:
     bool StartPlayback(int64_t _seekFrame = -1);
     
     bool Update(double _timelineTime, bool isPaused = false);
-    bool DrawFrame(spCRenderer _spRenderer, float alpha = 1.0f);
+    bool DrawFrame(spCRenderer _spRenderer, float alpha = -1.0f);
     void SetDisplaySize(uint32_t _displayWidth, uint32_t _displayHeight);
 
     spCContentDecoder GetDecoder() const { return m_spDecoder; }

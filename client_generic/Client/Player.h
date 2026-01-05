@@ -56,6 +56,9 @@ class CPlayer : public Base::CSingleton<CPlayer>
     double m_transitionStartTime;
     float m_transitionDuration;
     bool m_isFirstPlay;
+    
+    // Pending seek crossfade - waiting for next clip to buffer before starting transition
+    bool m_pendingSeekCrossfade;
 
     typedef struct
     {

@@ -92,7 +92,7 @@ void destroyClipAsync(ContentDecoder::spCClip clip) {
 }
 
 // MARK: - Setup & lifecycle
-CPlayer::CPlayer() : m_isFirstPlay(true), m_offlineMode(false)
+CPlayer::CPlayer() : m_isFirstPlay(true), m_offlineMode(false), m_pendingSeekCrossfade(false)
 {
     m_DecoderFps = 23; //	http://en.wikipedia.org/wiki/23_(numerology)
     m_PerceptualFPS = 20;
@@ -654,6 +654,21 @@ bool CPlayer::Update(uint32_t displayUnit)
     if (m_nextClip) {
         if (!m_nextClip->HasFinished()) {
             m_nextClip->Update(m_TimelineTime, m_bPaused);
+        }
+        
+        // Check if pending seek crossfade can now start (next clip finished buffering)
+        if (m_pendingSeekCrossfade && !m_nextClip->IsBuffering()) {
+            g_Log->Info("Pending seek crossfade: next clip ready, starting transition");
+            m_pendingSeekCrossfade = false;
+            m_isTransitioning = true;
+            m_transitionStartTime = m_TimelineTime;
+            
+            // Now start the fade out on current clip
+            if (m_currentClip) {
+                float currentFadeIn = m_currentClip->m_FadeInSeconds;
+                m_currentClip->SetTransitionLength(currentFadeIn, m_transitionDuration);
+                m_currentClip->FadeOut(m_TimelineTime);
+            }
         }
     }
     
@@ -1262,6 +1277,7 @@ void CPlayer::UpdateTransition(double currentTime)
     if (transitionProgress >= 1.0) {
         // Transition complete
         m_isTransitioning = false;
+        m_pendingSeekCrossfade = false;
         m_PreloadingNextClip = false;
         m_PreloadingDreamUUID = "";
         
@@ -1504,32 +1520,26 @@ void CPlayer::SkipForward(float _seconds)
     
     // Helper lambda to start a crossfade seek transition within the same dream
     // This keeps the current video playing while fading to the new time position
+    // The actual crossfade starts when the target clip finishes buffering
     auto startSeekCrossfade = [this](const Cache::Dream* dream, int64_t seekFrame) {
-        g_Log->Info("Starting crossfade seek to frame %lld in dream %s", 
+        g_Log->Info("Preparing crossfade seek to frame %lld in dream %s", 
                     seekFrame, dream->uuid.c_str());
         
         // Cancel any ongoing transition/preload
-        if (m_nextClip) {
+        if (m_isTransitioning && m_nextClip) {
             destroyClipAsync(std::move(m_nextClip));
             m_nextClip = nullptr;
         }
+        m_isTransitioning = false;
         m_nextDreamDecision = std::nullopt;
         m_PreloadingNextClip = false;
         m_PreloadingDreamUUID = "";
         
-        // Set up 1-second crossfade transition
+        // Set up transition parameters (but don't start yet - wait for clip to buffer)
         m_transitionDuration = 1.0f;
-        m_isTransitioning = true;
-        m_transitionStartTime = m_TimelineTime;
+        m_pendingSeekCrossfade = true;  // Will start transition when next clip is ready
         
-        // Set current clip to fade out during the transition
-        if (m_currentClip) {
-            float currentFadeIn = m_currentClip->m_FadeInSeconds;
-            m_currentClip->SetTransitionLength(currentFadeIn, 1.0f);
-            m_currentClip->FadeOut(m_TimelineTime);
-        }
-        
-        // Create the new clip at the target position
+        // Create the new clip at the target position (it will start buffering)
         PlayClip(dream, m_TimelineTime, seekFrame, true);
         if (m_nextClip) {
             m_nextClip->SetTransitionLength(1.0f, 5.0f);
