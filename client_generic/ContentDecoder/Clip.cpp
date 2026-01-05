@@ -337,10 +337,16 @@ bool CClip::Update(double _timelineTime, bool isPaused)
         secondsIn = idx / m_ClipMetadata.decodeFps + delta;
     }
     
+    // Calculate remaining time based on actual video frames
+    // This is more accurate than using m_EndTime which may have been set
+    // before the decoder knew the correct frame count
     double secondsOut = (maxIdx - idx) / m_ClipMetadata.decodeFps - delta;
-    secondsOut = std::fmin(secondsOut, (m_EndTime - _timelineTime));
     
     if (m_FadeOutSeconds > 0 && secondsOut > 0 && secondsOut < m_FadeOutSeconds) {
+        if (!m_IsFadingOut.load()) {
+            g_Log->Info("Fade out started for %s: %.1f seconds remaining, idx=%u/%u",
+                        m_ClipMetadata.dreamData.uuid.c_str(), secondsOut, idx, maxIdx);
+        }
         m_IsFadingOut.exchange(true);
     }
 
