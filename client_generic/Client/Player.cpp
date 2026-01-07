@@ -1512,6 +1512,12 @@ void CPlayer::SkipForward(float _seconds)
 {
     if (!m_currentClip) return;
     
+    // Disable jump feature during transitions
+    if (m_isTransitioning || m_pendingSeekCrossfade) {
+        g_Log->Info("Jump feature disabled during transition");
+        return;
+    }
+    
     float absSeconds = std::abs(_seconds);
     
     // During a transition, we have a "from" dream (m_currentClip) and "to" dream (m_nextClip)
