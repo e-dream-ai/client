@@ -1289,6 +1289,18 @@ void CPlayer::UpdateTransition(double currentTime)
         
         m_currentClip = m_nextClip;
         
+        if (m_currentClip) {
+            bool isJumpTransition = !m_nextDreamDecision.has_value();
+            
+            if (isJumpTransition) {
+                double clipStartTime = m_currentClip->GetStartTime();
+                double timeDelta = m_transitionStartTime - clipStartTime;
+                if (std::abs(timeDelta) > 0.01) {
+                    m_currentClip->SetStartTime(m_transitionStartTime);
+                }
+            }
+        }
+        
         m_nextClip = nullptr;
         m_transitionDuration = 5.0f;
         m_nextDreamDecision = std::nullopt;  // Clear any pending decision
