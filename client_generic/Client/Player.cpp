@@ -602,7 +602,8 @@ bool CPlayer::Update(uint32_t displayUnit)
         // Only check for transition if we're not buffering anything
         if (!IsAnyClipBuffering()) {
             // Check if we need to prepare for transition
-            if (!m_isTransitioning && !m_nextDreamDecision && shouldPrepareTransition(m_currentClip)) {
+            // Skip if we have a pending seek crossfade (user-initiated skip with seek offset)
+            if (!m_isTransitioning && !m_nextDreamDecision && !m_pendingSeekCrossfade && shouldPrepareTransition(m_currentClip)) {
                 // If we should transition, but we are already prealoding a manual transition, then we have to pause
                 if (IsPreloading()) {
                     g_Log->Info("Force pausing as we are already preloading");
