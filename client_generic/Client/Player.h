@@ -203,7 +203,10 @@ class CPlayer : public Base::CSingleton<CPlayer>
     void UpdateTransition(double currentTime);
     bool IsTransitioning() const { return m_isTransitioning; }
     void SetTransitionDuration(float duration) { m_transitionDuration = duration; }
-    bool IsJumpDisabled() const { return m_pendingSeekCrossfade; }
+    bool IsJumpDisabled() const { 
+        return m_pendingSeekCrossfade || 
+               (m_isTransitioning && m_transitionDuration == 1.0f && !m_nextDreamDecision);
+    }
 
     // Get the name of the current playlist
     std::string GetPlaylistName() const;
