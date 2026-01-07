@@ -1512,9 +1512,9 @@ void CPlayer::SkipForward(float _seconds)
 {
     if (!m_currentClip) return;
     
-    // Disable jump feature during transitions
-    if (m_isTransitioning || m_pendingSeekCrossfade) {
-        g_Log->Info("Jump feature disabled during transition");
+    // Disable jump feature during seek crossfade transitions (but allow during regular playlist transitions)
+    if (m_pendingSeekCrossfade) {
+        g_Log->Info("Jump feature disabled during seek crossfade transition");
         return;
     }
     
