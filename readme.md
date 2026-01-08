@@ -130,6 +130,31 @@ The release image is now complete.
 * Push and that's it, Github and Cloudflare build automation should deploy
   the change in a few minutes.
 
+## to test (manually)
+
+On stage test with https://stage.infinidream.ai/playlist/ab76a874-928c-45b1-88b6-b059ee54ef94
+and https://stage.infinidream.ai/playlist/c823b48f-9eda-4157-b4d4-64fd2a8702e7
+
+On alpha test with https://alpha.infinidream.ai/playlist/13489b20-cc0b-4923-8ea8-3f64015fe389
+and https://alpha.infinidream.ai/playlist/bd5615c2-5a68-4e33-b9c1-6649fb09dc03
+and https://alpha.infinidream.ai/playlist/d9726526-b8f2-4221-a0bf-67fbacc01f4d
+
+With fully downloaded playlists, go through all navigation acommands:
+next, prev, forward, backward, faster, slower, pause, both from
+keyboard and with remote control. Remote only interactions: switching
+playlists, playing from filmstrip.
+
+Then do it again but after "rm -rf /Users/Shared/infinidream.ai-stage/content/"
+to test while streaming.
+
+Then do a basic test after "rm -rf /Users/Shared/infinidream.ai-stage/"
+to test sign-in flow.
+
+Then uninstall the screen saver, run app and make sure it installs and
+selects the screen saver.
+
+## doc below outdated by build.sh?
+
 Upload the symbols to bugsnag, on a terminal: 
 - if first time install the upload tool `brew install bugsnag/tap/bugsnag-dsym-upload`
 - Go to https://app.bugsnag.com/settings/e-dream-dot-ai/projects/client-macos/missing-dsyms and copy the first missing UUID corresponding to the tag
