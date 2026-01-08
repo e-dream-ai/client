@@ -1001,10 +1001,25 @@ void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
             // Check if the dream is in the current playlist and update position
             m_playlistManager->getDreamByUUID(std::string(_uuid));
             
+            // Cancel any ongoing transition/preload
+            if (m_isTransitioning && m_nextClip) {
+                destroyClipAsync(std::move(m_nextClip));
+                m_nextClip = nullptr;
+            }
+            m_isTransitioning = false;
+            m_nextDreamDecision = std::nullopt;
+            m_PreloadingNextClip = false;
+            m_PreloadingDreamUUID = "";
+            
+            // Set up transition parameters (but don't start yet - wait for clip to buffer)
             m_transitionDuration = 1.0f;
-            StartTransition();
+            m_pendingSeekCrossfade = true;  // Will start transition when next clip is ready
+            
+            // Create the new clip at the target position (it will start buffering)
             PlayClip(dream, m_TimelineTime, frameNumber, true);
-            m_nextClip->SetTransitionLength(1.0f, 5.0f);
+            if (m_nextClip) {
+                m_nextClip->SetTransitionLength(1.0f, 5.0f);
+            }
         } else {
             std::thread([this, frameNumber, dream = dream]() {
                 // Fetch URL first
@@ -1031,13 +1046,27 @@ void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
                 if (newClip->Start(frameNumber)) {
                     // Only take the lock once everything is ready
                     writer_lock l(m_UpdateMutex);
+                    
+                    // Cancel any ongoing transition/preload
+                    if (m_isTransitioning && m_nextClip) {
+                        destroyClipAsync(std::move(m_nextClip));
+                        m_nextClip = nullptr;
+                    }
+                    m_isTransitioning = false;
+                    m_nextDreamDecision = std::nullopt;
+                    m_PreloadingNextClip = false;
+                    m_PreloadingDreamUUID = "";
+                    
+                    // Set up transition parameters (but don't start yet - wait for clip to buffer)
                     m_transitionDuration = 1.0f;
-                    StartTransition();
+                    m_pendingSeekCrossfade = true;  // Will start transition when next clip is ready
                     
                     // Set the start time and store the clip
                     newClip->SetStartTime(m_TimelineTime);
                     m_nextClip = newClip;
-                    m_nextClip->SetTransitionLength(1.0f, 5.0f);
+                    if (m_nextClip) {
+                        m_nextClip->SetTransitionLength(1.0f, 5.0f);
+                    }
                 }
             }).detach();
         }
@@ -1066,12 +1095,26 @@ void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
             
             if (newClip->Start(frameNumber)) {
                 writer_lock l(m_UpdateMutex);
+                
+                // Cancel any ongoing transition/preload
+                if (m_isTransitioning && m_nextClip) {
+                    destroyClipAsync(std::move(m_nextClip));
+                    m_nextClip = nullptr;
+                }
+                m_isTransitioning = false;
+                m_nextDreamDecision = std::nullopt;
+                m_PreloadingNextClip = false;
+                m_PreloadingDreamUUID = "";
+                
+                // Set up transition parameters (but don't start yet - wait for clip to buffer)
                 m_transitionDuration = 1.0f;
-                StartTransition();
+                m_pendingSeekCrossfade = true;  // Will start transition when next clip is ready
                 
                 newClip->SetStartTime(m_TimelineTime);
                 m_nextClip = newClip;
-                m_nextClip->SetTransitionLength(1.0f, 5.0f);
+                if (m_nextClip) {
+                    m_nextClip->SetTransitionLength(1.0f, 5.0f);
+                }
             }
         }).detach();
     }
@@ -1304,6 +1347,9 @@ void CPlayer::UpdateTransition(double currentTime)
         m_nextClip = nullptr;
         m_transitionDuration = 5.0f;
         m_nextDreamDecision = std::nullopt;  // Clear any pending decision
+        
+        // Sync state to server after transition completes
+        EDreamClient::SendStateUpdate();
     } else if (!m_nextClip) {
         // If we don't have a next clip yet, try to get one
         // Natural transition fallback - don't allow streaming
