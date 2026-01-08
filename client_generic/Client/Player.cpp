@@ -92,7 +92,7 @@ void destroyClipAsync(ContentDecoder::spCClip clip) {
 }
 
 // MARK: - Setup & lifecycle
-CPlayer::CPlayer() : m_isFirstPlay(true), m_offlineMode(false)
+CPlayer::CPlayer() : m_isFirstPlay(true), m_offlineMode(false), m_pendingSeekCrossfade(false)
 {
     m_DecoderFps = 23; //	http://en.wikipedia.org/wiki/23_(numerology)
     m_PerceptualFPS = 20;
@@ -602,7 +602,8 @@ bool CPlayer::Update(uint32_t displayUnit)
         // Only check for transition if we're not buffering anything
         if (!IsAnyClipBuffering()) {
             // Check if we need to prepare for transition
-            if (!m_isTransitioning && !m_nextDreamDecision && shouldPrepareTransition(m_currentClip)) {
+            // Skip if we have a pending seek crossfade (user-initiated skip with seek offset)
+            if (!m_isTransitioning && !m_nextDreamDecision && !m_pendingSeekCrossfade && shouldPrepareTransition(m_currentClip)) {
                 // If we should transition, but we are already prealoding a manual transition, then we have to pause
                 if (IsPreloading()) {
                     g_Log->Info("Force pausing as we are already preloading");
@@ -654,6 +655,21 @@ bool CPlayer::Update(uint32_t displayUnit)
     if (m_nextClip) {
         if (!m_nextClip->HasFinished()) {
             m_nextClip->Update(m_TimelineTime, m_bPaused);
+        }
+        
+        // Check if pending seek crossfade can now start (next clip finished buffering)
+        if (m_pendingSeekCrossfade && !m_nextClip->IsBuffering()) {
+            g_Log->Info("Pending seek crossfade: next clip ready, starting transition");
+            m_pendingSeekCrossfade = false;
+            m_isTransitioning = true;
+            m_transitionStartTime = m_TimelineTime;
+            
+            // Now start the fade out on current clip
+            if (m_currentClip) {
+                float currentFadeIn = m_currentClip->m_FadeInSeconds;
+                m_currentClip->SetTransitionLength(currentFadeIn, m_transitionDuration);
+                m_currentClip->FadeOut(m_TimelineTime);
+            }
         }
     }
     
@@ -1262,6 +1278,7 @@ void CPlayer::UpdateTransition(double currentTime)
     if (transitionProgress >= 1.0) {
         // Transition complete
         m_isTransitioning = false;
+        m_pendingSeekCrossfade = false;
         m_PreloadingNextClip = false;
         m_PreloadingDreamUUID = "";
         
@@ -1271,6 +1288,18 @@ void CPlayer::UpdateTransition(double currentTime)
         }
         
         m_currentClip = m_nextClip;
+        
+        if (m_currentClip) {
+            bool isJumpTransition = !m_nextDreamDecision.has_value();
+            
+            if (isJumpTransition) {
+                double clipStartTime = m_currentClip->GetStartTime();
+                double timeDelta = m_transitionStartTime - clipStartTime;
+                if (std::abs(timeDelta) > 0.01) {
+                    m_currentClip->SetStartTime(m_transitionStartTime);
+                }
+            }
+        }
         
         m_nextClip = nullptr;
         m_transitionDuration = 5.0f;
@@ -1495,12 +1524,49 @@ void CPlayer::SkipForward(float _seconds)
 {
     if (!m_currentClip) return;
     
+    // Disable jump feature during seek crossfade transitions (but allow during regular playlist transitions)
+    // Seek crossfades are detected by: pending flag OR (transitioning with 1s duration and no preflight decision)
+    bool isSeekCrossfade = m_pendingSeekCrossfade || 
+                           (m_isTransitioning && m_transitionDuration == 1.0f && !m_nextDreamDecision);
+    if (isSeekCrossfade) {
+        g_Log->Info("Jump feature disabled during seek crossfade transition");
+        return;
+    }
+    
     float absSeconds = std::abs(_seconds);
     
     // During a transition, we have a "from" dream (m_currentClip) and "to" dream (m_nextClip)
     // The displayed timecode shows the "to" dream position during transition
     // For J (backward): if in transition, check "to" dream's position to decide if we go to "from" dream
     // For L (forward): use the "to" dream to calculate position
+    
+    // Helper lambda to start a crossfade seek transition within the same dream
+    // This keeps the current video playing while fading to the new time position
+    // The actual crossfade starts when the target clip finishes buffering
+    auto startSeekCrossfade = [this](const Cache::Dream* dream, int64_t seekFrame) {
+        g_Log->Info("Preparing crossfade seek to frame %lld in dream %s", 
+                    seekFrame, dream->uuid.c_str());
+        
+        // Cancel any ongoing transition/preload
+        if (m_isTransitioning && m_nextClip) {
+            destroyClipAsync(std::move(m_nextClip));
+            m_nextClip = nullptr;
+        }
+        m_isTransitioning = false;
+        m_nextDreamDecision = std::nullopt;
+        m_PreloadingNextClip = false;
+        m_PreloadingDreamUUID = "";
+        
+        // Set up transition parameters (but don't start yet - wait for clip to buffer)
+        m_transitionDuration = 1.0f;
+        m_pendingSeekCrossfade = true;  // Will start transition when next clip is ready
+        
+        // Create the new clip at the target position (it will start buffering)
+        PlayClip(dream, m_TimelineTime, seekFrame, true);
+        if (m_nextClip) {
+            m_nextClip->SetTransitionLength(1.0f, 5.0f);
+        }
+    };
     
     // Check if skipping backward (J key)
     if (_seconds < 0) {
@@ -1536,8 +1602,9 @@ void CPlayer::SkipForward(float _seconds)
                     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
                     if (cm.getRemainingQuota() <= 0) {
                         g_Log->Warning("Target dream is not cached and quota is 0, cannot stream");
-                        // Fall back to just seeking to start of reference clip
-                        referenceClip->SkipTime(-static_cast<float>(currentTimeInRefClip));
+                        // Fall back to crossfade seek to start of current dream
+                        const Cache::Dream* currentDream = &referenceClip->GetClipMetadata().dreamData;
+                        startSeekCrossfade(currentDream, 0);
                         return;
                     }
                 }
@@ -1548,32 +1615,25 @@ void CPlayer::SkipForward(float _seconds)
                 int64_t seekFrame = targetDream->frames - static_cast<int64_t>(offsetFromEnd * targetFps);
                 seekFrame = std::max(seekFrame, static_cast<int64_t>(0));
                 
-                g_Log->Info("Skip backward at %.1fs - jumping to target dream at frame %lld (%.1fs from end)",
+                g_Log->Info("Skip backward at %.1fs - crossfade to target dream at frame %lld (%.1fs from end)",
                             currentTimeInRefClip, seekFrame, offsetFromEnd);
                 
-                // Cancel any ongoing transition
-                m_isTransitioning = false;
-                if (m_nextClip) {
-                    destroyClipAsync(std::move(m_nextClip));
-                    m_nextClip = nullptr;
-                }
-                m_nextDreamDecision = std::nullopt;
-                m_PreloadingNextClip = false;
-                m_PreloadingDreamUUID = "";
-                
-                // Immediate jump - no transition
-                m_isFirstPlay = true;
-                PlayClip(targetDream, m_TimelineTime, seekFrame, false);
-                if (m_currentClip) {
-                    m_currentClip->SetTransitionLength(5.0f, 5.0f);  // Restore normal fade in/out for future transitions
-                }
+                // Use crossfade transition to the previous dream
+                startSeekCrossfade(targetDream, seekFrame);
                 EDreamClient::SendStateUpdate();
                 return;
             }
         }
         
-        // Normal backward skip within current clip
-        referenceClip->SkipTime(_seconds);
+        // Normal backward skip within current clip - use crossfade
+        const Cache::Dream* currentDream = &referenceClip->GetClipMetadata().dreamData;
+        int64_t currentFrame = static_cast<int64_t>(refMetadata.frameIdx);
+        int64_t seekFrame = currentFrame + static_cast<int64_t>(_seconds * refFps);
+        seekFrame = std::max(seekFrame, static_cast<int64_t>(0));
+        
+        g_Log->Info("Skip backward %.1fs - crossfade from frame %lld to frame %lld", 
+                    absSeconds, currentFrame, seekFrame);
+        startSeekCrossfade(currentDream, seekFrame);
         return;
     }
     
@@ -1606,8 +1666,11 @@ void CPlayer::SkipForward(float _seconds)
                 bool isDreamCached = !nextDecision->dream->getCachedPath().empty();
                 if (!isDreamCached && !canStream) {
                     g_Log->Warning("Next dream is not cached and quota is 0, cannot stream");
-                    // Just skip to the end of current clip
-                    targetClip->SkipTime(static_cast<float>(timeRemaining - 0.5));
+                    // Crossfade to end of current clip
+                    const Cache::Dream* currentDream = &targetClip->GetClipMetadata().dreamData;
+                    int64_t nearEndFrame = toMetadata.maxFrameIdx - static_cast<int64_t>(0.5 * toFps);
+                    nearEndFrame = std::max(nearEndFrame, static_cast<int64_t>(0));
+                    startSeekCrossfade(currentDream, nearEndFrame);
                     return;
                 }
                 
@@ -1616,30 +1679,14 @@ void CPlayer::SkipForward(float _seconds)
                 double offsetFromStart = absSeconds - timeRemaining;
                 int64_t seekFrame = static_cast<int64_t>(offsetFromStart * nextFps);
                 
-                g_Log->Info("Skip forward (%.1fs remaining in %s) - jumping to next dream at frame %lld (%.1fs from start)",
+                g_Log->Info("Skip forward (%.1fs remaining in %s) - crossfade to next dream at frame %lld (%.1fs from start)",
                             timeRemaining, 
                             m_isTransitioning ? "to-clip" : "current",
                             seekFrame, offsetFromStart);
                 
-                // Cancel any ongoing transition
-                m_isTransitioning = false;
-                if (m_nextClip && m_nextClip != targetClip) {
-                    destroyClipAsync(std::move(m_nextClip));
-                    m_nextClip = nullptr;
-                } else if (m_nextClip) {
-                    m_nextClip = nullptr;  // Will be replaced by PlayClip
-                }
-                m_nextDreamDecision = std::nullopt;
-                m_PreloadingNextClip = false;
-                m_PreloadingDreamUUID = "";
-                
-                // Immediate jump - no transition
-                m_isFirstPlay = true;
-                PlayClip(nextDecision->dream, m_TimelineTime, seekFrame, false);
+                // Use crossfade transition to the next dream
+                startSeekCrossfade(nextDecision->dream, seekFrame);
                 m_playlistManager->moveToNextDream(*nextDecision);
-                if (m_currentClip) {
-                    m_currentClip->SetTransitionLength(5.0f, 5.0f);  // Restore normal fade in/out for future transitions
-                }
                 EDreamClient::SendStateUpdate();
                 return;
             }
@@ -1649,8 +1696,19 @@ void CPlayer::SkipForward(float _seconds)
             return;
         }
         
-        // Normal forward skip within the target clip
-        targetClip->SkipTime(_seconds);
+        // Normal forward skip within the target clip - use crossfade
+        const Cache::Dream* currentDream = &targetClip->GetClipMetadata().dreamData;
+        int64_t currentFrame = static_cast<int64_t>(toMetadata.frameIdx);
+        int64_t seekFrame = currentFrame + static_cast<int64_t>(_seconds * toFps);
+        
+        // Clamp to not go past end
+        if (toMetadata.maxFrameIdx > 0) {
+            seekFrame = std::min(seekFrame, static_cast<int64_t>(toMetadata.maxFrameIdx));
+        }
+        
+        g_Log->Info("Skip forward %.1fs - crossfade from frame %lld to frame %lld", 
+                    _seconds, currentFrame, seekFrame);
+        startSeekCrossfade(currentDream, seekFrame);
         return;
     }
 }

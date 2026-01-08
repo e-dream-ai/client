@@ -56,6 +56,9 @@ class CPlayer : public Base::CSingleton<CPlayer>
     double m_transitionStartTime;
     float m_transitionDuration;
     bool m_isFirstPlay;
+    
+    // Pending seek crossfade - waiting for next clip to buffer before starting transition
+    bool m_pendingSeekCrossfade;
 
     typedef struct
     {
@@ -200,6 +203,10 @@ class CPlayer : public Base::CSingleton<CPlayer>
     void UpdateTransition(double currentTime);
     bool IsTransitioning() const { return m_isTransitioning; }
     void SetTransitionDuration(float duration) { m_transitionDuration = duration; }
+    bool IsJumpDisabled() const { 
+        return m_pendingSeekCrossfade || 
+               (m_isTransitioning && m_transitionDuration == 1.0f && !m_nextDreamDecision);
+    }
 
     // Get the name of the current playlist
     std::string GetPlaylistName() const;

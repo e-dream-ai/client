@@ -1703,12 +1703,16 @@ class CElectricSheep
                 EDreamClient::SendStateUpdate();
                 return true;
             case CLIENT_COMMAND_SKIP_FW:
-                popOSD(Hud::Forward10);
+                if (!g_Player().IsJumpDisabled()) {
+                    popOSD(Hud::Forward10);
+                }
                 g_Player().SkipForward(10);
                 EDreamClient::SendStateUpdate();
                 return true;
             case CLIENT_COMMAND_SKIP_BW:
-                popOSD(Hud::Back10);
+                if (!g_Player().IsJumpDisabled()) {
+                    popOSD(Hud::Back10);
+                }
                 g_Player().SkipForward(-10);
                 return true;
                 EDreamClient::SendStateUpdate();
