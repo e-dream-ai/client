@@ -3,7 +3,7 @@
 #import "ESScreensaverView.h"
 #import "ESScreensaver.h"
 #import <Bugsnag/Bugsnag.h>
-//#import <Sparkle/Sparkle.h>
+#import <Sparkle/Sparkle.h>
 #include <csignal>
 
 #include "dlfcn.h"
@@ -39,17 +39,15 @@
     m_isPreview = isPreview;
     DEBUG_LOG("INIT");
 
-#ifdef SCREEN_SAVER
-    // if (isPreview)
+#ifndef SCREEN_SAVER
+    // Initialize Sparkle updater for app (not screensaver)
+    m_updater = [[SPUStandardUpdaterController alloc] initWithStartingUpdater:YES
+                                                              updaterDelegate:self
+                                                           userDriverDelegate:nil];
+    
+    // Connect "Check for Updates..." menu item to the updater
+    [self connectCheckForUpdatesMenuItem];
 #endif
-    {
-
-        //        m_updater =
-        //            [[SPUStandardUpdaterController alloc] initWithStartingUpdater:YES
-        //                                                          updaterDelegate:nil
-        //                                                       userDriverDelegate:nil];
-        //        [m_updater startUpdater];
-    }
 
     if (self)
     {
@@ -454,20 +452,67 @@ static void signnal_handler(int signal)
 // Called immediately before relaunching.
 - (void)updaterWillRelaunchApplication:(SPUUpdater*)__unused updater
 {
+    // Close any open configuration sheet
     if (m_config != NULL)
         [NSApp endSheet:m_config.window];
+    
+    // Stop animation and cleanup before relaunch
+    [self stopAnimation];
 }
 
 - (void)doUpdate:(NSTimer*)timer
 {
-    // SUAppcastItem* update = timer.userInfo;
-
-    //    if (!m_isFullScreen)
-    //        [m_updater checkForUpdates:nil];
-    //    else
-    //        ESScreensaver_SetUpdateAvailable(
-    //            update.displayVersionString.UTF8String);
+#ifndef SCREEN_SAVER
+    SUAppcastItem* update = timer.userInfo;
+    
+    if (!m_isFullScreen && m_updater != nil) {
+        // In windowed mode, show the update dialog
+        [m_updater checkForUpdates:nil];
+    } else if (update != nil) {
+        // In fullscreen mode, notify user about available update
+        ESScreensaver_SetUpdateAvailable(update.displayVersionString.UTF8String);
+    }
+#endif
 }
+
+#ifndef SCREEN_SAVER
+- (void)checkForUpdates:(id)sender
+{
+    if (m_updater != nil) {
+        [m_updater checkForUpdates:sender];
+    }
+}
+
+- (SPUStandardUpdaterController*)updaterController
+{
+    return m_updater;
+}
+
+- (void)connectCheckForUpdatesMenuItem
+{
+    // Find the "Check for Updates..." menu item and connect it to the updater
+    NSMenu *mainMenu = [NSApp mainMenu];
+    if (!mainMenu) return;
+    
+    // Search through all menu items
+    for (NSMenuItem *topItem in mainMenu.itemArray) {
+        NSMenu *submenu = topItem.submenu;
+        if (!submenu) continue;
+        
+        for (NSMenuItem *item in submenu.itemArray) {
+            if ([item.title isEqualToString:@"Check for Updates..."] ||
+                [item.title hasPrefix:@"Check for Updates"]) {
+                // Connect to our updater controller
+                item.target = m_updater;
+                item.action = @selector(checkForUpdates:);
+                NSLog(@"Connected 'Check for Updates' menu item to Sparkle updater");
+                return;
+            }
+        }
+    }
+    NSLog(@"Warning: Could not find 'Check for Updates' menu item");
+}
+#endif
 
 // Sent when a valid update is found by the update driver.
 - (void)updater:(SPUUpdater*)__unused updater
