@@ -751,7 +751,7 @@ if [ -n "$APPCAST_PATH" ] && [ -f "$APPCAST_PATH" ]; then
     echo "   ${FINAL_ZIP}"
     echo ""
     echo "3. Upload appcast.xml to your web server:"
-    echo "   ${APPCAST_PATH} → https://infinidream.ai/appcast.xml"
+    echo "   ${APPCAST_PATH} → https://infinidream.ai/alpha/appcast.xml"
     echo ""
 fi
 
