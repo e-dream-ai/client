@@ -63,6 +63,8 @@ cd client_generic/MacBuild
 - `-r` : Build in Release mode (default: Debug)
 - `-s` : Build stage version (default: production)
 - `-n` : Enable notarization (requires `-r`)
+- `-v VERSION` : Set version string (e.g., `0.12.0`) for zip naming and appcast
+- `-a` : Generate appcast.xml for Sparkle auto-updates
 
 ### Code Signing
 Auto-discovers Developer ID certificate and Team ID from keychain.
@@ -90,6 +92,12 @@ Default keychain profile: `infinidream-notarization`
 
 # Release with notarization
 ./build.sh -r -n
+
+# Release with notarization and version (creates infinidream-0.12.0.zip)
+./build.sh -r -n -v 0.12.0
+
+# Full release with appcast generation for Sparkle auto-updates
+./build.sh -r -n -v 0.12.0 -a
 ```
 
 ### Output
@@ -98,37 +106,90 @@ Default keychain profile: `infinidream-notarization`
 
 The app bundle contains the embedded screensaver at `infinidream.app/Contents/Resources/infinidream.saver`.
 
-## to release (manually)
+## to release (with Sparkle auto-update)
 
-make a git tag with the version
-```
+### 1. Tag the version
+```bash
 git tag X.Y.Z
 git push --tags
 ```
 
-Then build to set the version strings in the plists:
+### 2. Build for release with appcast
+```bash
+cd client_generic/MacBuild
+./build.sh -r -n -v X.Y.Z -a
 ```
-./build.sh
+
+This creates:
+- `build/Release/infinidream-X.Y.Z.zip` - the app bundle
+- `build/Release/appcast.xml` - Sparkle update feed
+
+### 3. Upload to GitHub Releases
+
+1. Go to https://github.com/e-dream-ai/client/releases/new
+2. Select tag `X.Y.Z`
+3. Write release notes
+4. Upload `infinidream-X.Y.Z.zip`
+5. Publish
+
+### 4. Upload appcast.xml
+
+Upload `build/Release/appcast.xml` to https://infinidream.ai/appcast.xml
+
+This enables existing users to receive the update automatically via Sparkle.
+
+### 5. Update frontend (for new installs)
+
+Update `APP_VERSION` in the frontend repository:
+`src/components/pages/install/install.page.tsx`
+
+Push and Cloudflare will deploy in a few minutes.
+
+### How Sparkle Auto-Update Works
+
+1. App checks `https://infinidream.ai/appcast.xml` on launch
+2. Compares `sparkle:version` in appcast with app's `CFBundleVersion`
+3. If newer version found, shows update dialog
+4. User clicks "Update Now" → downloads zip from GitHub → installs → relaunches
+
+### Sparkle Tools Setup (one-time)
+
+Download Sparkle tools from https://github.com/sparkle-project/Sparkle/releases
+
+Extract and copy to `client_generic/MacBuild/bin/`:
+- `generate_appcast` - generates appcast.xml with signatures
+- `sign_update` - signs update archives
+- `generate_keys` - generates EdDSA key pair (one-time use)
+
+### EdDSA Key Pair
+
+Sparkle uses EdDSA (Ed25519) signatures to verify updates are authentic.
+
+**Public key** is in `Info.plist`:
+```xml
+<key>SUPublicEDKey</key>
+<string>pkDT5qmpWtyaZxw5X6Ca7DPHueEfBEKrxkrKzSN/qS0=</string>
 ```
-Then build for release:
+
+**Private key** is stored in macOS Keychain under the name `Sparkle EdDSA Key`.
+
+To generate a new key pair (only if needed):
+```bash
+cd client_generic/MacBuild
+./bin/generate_keys
 ```
-./build.sh -r -n
-```
-This creates build/Release/infinidream-$(DATE).zip
 
-The release image is now complete.
+This will:
+1. Create a new EdDSA key pair
+2. Store the private key in Keychain
+3. Print the public key to add to `Info.plist`
 
-* Make a release with the github button, write the notes, and upload
-  the image. If this is a pre-release, click that box to mark that,
-  and you are done. Otherwise, continue with linking as described
-  below.
+**Important**: If you generate new keys, you must update `SUPublicEDKey` in:
+- `infinidream-App-Info.plist`
+- `infinidream App copy-Info.plist`
+- `ScreenSaver-Info.plist`
 
-* Update the link to the current release in the *main branch* of the
-  frontend repository by editing `APP_VERSION` in
-  `src/components/pages/install/install.page.tsx`
-
-* Push and that's it, Github and Cloudflare build automation should deploy
-  the change in a few minutes.
+Existing users won't be able to update if the public key changes, so only regenerate keys if the private key is lost.
 
 ## to test (manually)
 
