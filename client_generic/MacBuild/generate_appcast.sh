@@ -154,6 +154,25 @@ if [ -n "$BUNDLE_VERSION" ] && [ "$BUNDLE_VERSION" != "$VERSION" ]; then
     sed -i '' "s|<sparkle:shortVersionString>${BUNDLE_VERSION}</sparkle:shortVersionString>|<sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>|g" "$GENERATED_APPCAST"
 fi
 
+# Check if signature was added
+if grep -q 'sparkle:edSignature' "$GENERATED_APPCAST"; then
+    echo -e "${GREEN}✓ EdDSA signature found in appcast${NC}"
+else
+    echo -e "${YELLOW}⚠ Warning: No EdDSA signature found in appcast${NC}"
+    echo ""
+    echo "The appcast needs to be signed for Sparkle to accept updates."
+    echo "Make sure the Sparkle private key is in your Keychain."
+    echo ""
+    echo "To set up signing:"
+    echo "  1. Run: $SCRIPT_DIR/bin/generate_keys"
+    echo "  2. This will store the private key in Keychain"
+    echo "  3. Re-run this script"
+    echo ""
+    echo "Or manually sign with:"
+    echo "  $SCRIPT_DIR/bin/sign_update '$ZIP_PATH'"
+    echo ""
+fi
+
 # Copy appcast to output directory
 cp "$GENERATED_APPCAST" "$OUTPUT_DIR/appcast.xml"
 APPCAST_PATH="$OUTPUT_DIR/appcast.xml"

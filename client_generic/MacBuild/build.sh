@@ -209,6 +209,62 @@ fi
 mkdir -p "${BUILD_DIR}/${BUILD_CONFIG}"
 
 # ============================================================================
+# STEP 0: Re-sign Sparkle.framework for Distribution (Release builds only)
+# ============================================================================
+if [ "$BUILD_RELEASE" = true ]; then
+    echo ""
+    echo -e "${BLUE}========================================${NC}"
+    echo -e "${BLUE}STEP 0: Re-signing Sparkle.framework${NC}"
+    echo -e "${BLUE}========================================${NC}"
+    
+    SPARKLE_PATH="Frameworks/Sparkle.framework"
+    
+    if [ -d "$SPARKLE_PATH" ]; then
+        echo -e "${YELLOW}Re-signing Sparkle.framework with Developer ID certificate...${NC}"
+        
+        # Sign XPC services first (innermost components)
+        echo "Signing Installer.xpc..."
+        codesign --force --options runtime --timestamp \
+            --sign "$DEVELOPER_ID_CERT" \
+            "$SPARKLE_PATH/Versions/B/XPCServices/Installer.xpc"
+        
+        echo "Signing Downloader.xpc..."
+        codesign --force --options runtime --timestamp \
+            --sign "$DEVELOPER_ID_CERT" \
+            "$SPARKLE_PATH/Versions/B/XPCServices/Downloader.xpc"
+        
+        # Sign Updater.app
+        echo "Signing Updater.app..."
+        codesign --force --options runtime --timestamp \
+            --sign "$DEVELOPER_ID_CERT" \
+            "$SPARKLE_PATH/Versions/B/Updater.app"
+        
+        # Sign Autoupdate binary
+        echo "Signing Autoupdate..."
+        codesign --force --options runtime --timestamp \
+            --sign "$DEVELOPER_ID_CERT" \
+            "$SPARKLE_PATH/Versions/B/Autoupdate"
+        
+        # Sign the main Sparkle framework
+        echo "Signing Sparkle.framework..."
+        codesign --force --options runtime --timestamp \
+            --sign "$DEVELOPER_ID_CERT" \
+            "$SPARKLE_PATH"
+        
+        # Verify the signature
+        echo -e "${YELLOW}Verifying Sparkle.framework signature...${NC}"
+        if codesign --verify --deep --strict "$SPARKLE_PATH" 2>&1; then
+            echo -e "${GREEN}✓ Sparkle.framework signed successfully${NC}"
+        else
+            echo -e "${RED}✗ Sparkle.framework signature verification failed${NC}"
+            exit 1
+        fi
+    else
+        echo -e "${YELLOW}⚠ Sparkle.framework not found at $SPARKLE_PATH - skipping re-sign${NC}"
+    fi
+fi
+
+# ============================================================================
 # STEP 1: Build Screensaver
 # ============================================================================
 echo ""
