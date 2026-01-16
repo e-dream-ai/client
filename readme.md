@@ -134,7 +134,9 @@ This creates:
 
 ### 4. Upload appcast.xml
 
-Upload `build/Release/appcast.xml` to https://infinidream.ai/appcast.xml
+Upload `build/Release/appcast.xml` to your web server:
+- **Production**: https://infinidream.ai/appcast.xml
+- **Stage**: https://infinidream.ai/stage/appcast.xml
 
 This enables existing users to receive the update automatically via Sparkle.
 
@@ -147,7 +149,9 @@ Push and Cloudflare will deploy in a few minutes.
 
 ### How Sparkle Auto-Update Works
 
-1. App checks `https://infinidream.ai/appcast.xml` on launch
+1. App checks appcast URL on launch:
+   - Production app: `https://infinidream.ai/appcast.xml`
+   - Stage app: `https://infinidream.ai/stage/appcast.xml`
 2. Compares `sparkle:version` in appcast with app's `CFBundleVersion`
 3. If newer version found, shows update dialog
 4. User clicks "Update Now" → downloads zip from GitHub → installs → relaunches
