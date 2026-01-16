@@ -123,6 +123,26 @@ if [ -z "$VERSION" ]; then
     VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "infinidream-App-Info.plist" 2>/dev/null || echo "")
 fi
 
+# Update Info.plist with provided version (if -v was specified)
+if [ -n "$VERSION" ]; then
+    # Determine which Info.plist to update based on stage/prod
+    if [ "$BUILD_STAGE" = true ]; then
+        APP_INFO_PLIST="infinidream App copy-Info.plist"
+    else
+        APP_INFO_PLIST="infinidream-App-Info.plist"
+    fi
+    
+    # Get current version from plist
+    CURRENT_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP_INFO_PLIST" 2>/dev/null || echo "")
+    
+    if [ "$CURRENT_VERSION" != "$VERSION" ]; then
+        echo -e "${YELLOW}Updating $APP_INFO_PLIST version from $CURRENT_VERSION to $VERSION...${NC}"
+        /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$APP_INFO_PLIST"
+        /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" "$APP_INFO_PLIST"
+        echo -e "${GREEN}✓ Version updated in Info.plist${NC}"
+    fi
+fi
+
 # Configuration
 PROJECT="infinidream.xcodeproj"
 BUILD_DIR="build"
@@ -198,7 +218,7 @@ echo -e "${BLUE}========================================${NC}"
 
 if [ "$BUILD_RELEASE" = true ]; then
     # Release build with manual code signing
-    xcodebuild -project "$PROJECT" \
+    BUILD_VERSION="$VERSION" xcodebuild -project "$PROJECT" \
                -scheme "$SCREENSAVER_SCHEME" \
                -configuration "$BUILD_CONFIG" \
                -derivedDataPath "$DERIVED_DATA" \
@@ -208,7 +228,7 @@ if [ "$BUILD_RELEASE" = true ]; then
                OTHER_CODE_SIGN_FLAGS="--timestamp" \
                | xcpretty --color || {
         # Fallback if xcpretty is not installed
-        xcodebuild -project "$PROJECT" \
+        BUILD_VERSION="$VERSION" xcodebuild -project "$PROJECT" \
                    -scheme "$SCREENSAVER_SCHEME" \
                    -configuration "$BUILD_CONFIG" \
                    -derivedDataPath "$DERIVED_DATA" \
@@ -219,7 +239,7 @@ if [ "$BUILD_RELEASE" = true ]; then
     }
 else
     # Debug build without code signing
-    xcodebuild -project "$PROJECT" \
+    BUILD_VERSION="$VERSION" xcodebuild -project "$PROJECT" \
                -scheme "$SCREENSAVER_SCHEME" \
                -configuration "$BUILD_CONFIG" \
                -derivedDataPath "$DERIVED_DATA" \
@@ -412,7 +432,7 @@ APP_ARCHIVE_PATH="${BUILD_DIR}/${BUILD_CONFIG}/${APP_NAME}.xcarchive"
 
 if [ "$BUILD_RELEASE" = true ]; then
     # Release build with manual code signing
-    xcodebuild archive \
+    BUILD_VERSION="$VERSION" xcodebuild archive \
                -project "$PROJECT" \
                -scheme "$APP_SCHEME" \
                -configuration "$BUILD_CONFIG" \
@@ -424,7 +444,7 @@ if [ "$BUILD_RELEASE" = true ]; then
                OTHER_CODE_SIGN_FLAGS="--timestamp" \
                | xcpretty --color || {
         # Fallback if xcpretty is not installed
-        xcodebuild archive \
+        BUILD_VERSION="$VERSION" xcodebuild archive \
                    -project "$PROJECT" \
                    -scheme "$APP_SCHEME" \
                    -configuration "$BUILD_CONFIG" \
@@ -437,7 +457,7 @@ if [ "$BUILD_RELEASE" = true ]; then
     }
 else
     # Debug build without code signing
-    xcodebuild archive \
+    BUILD_VERSION="$VERSION" xcodebuild archive \
                -project "$PROJECT" \
                -scheme "$APP_SCHEME" \
                -configuration "$BUILD_CONFIG" \

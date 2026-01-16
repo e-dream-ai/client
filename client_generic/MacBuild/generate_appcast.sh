@@ -140,6 +140,20 @@ if [ ! -f "$GENERATED_APPCAST" ]; then
     exit 1
 fi
 
+# Update version in appcast.xml to match the -v argument
+# Sparkle's generate_appcast extracts version from the app bundle, but we want to use the -v argument
+echo -e "${YELLOW}Updating appcast version to match -v argument ($VERSION)...${NC}"
+
+# Extract the version that Sparkle found in the app bundle
+BUNDLE_VERSION=$(sed -n 's/.*<sparkle:version>\([^<]*\)<\/sparkle:version>.*/\1/p' "$GENERATED_APPCAST" | head -1)
+if [ -n "$BUNDLE_VERSION" ] && [ "$BUNDLE_VERSION" != "$VERSION" ]; then
+    echo "Bundle version: $BUNDLE_VERSION -> Updating to: $VERSION"
+    # Replace version in title, sparkle:version, and sparkle:shortVersionString
+    sed -i '' "s|<title>${BUNDLE_VERSION}</title>|<title>${VERSION}</title>|g" "$GENERATED_APPCAST"
+    sed -i '' "s|<sparkle:version>${BUNDLE_VERSION}</sparkle:version>|<sparkle:version>${VERSION}</sparkle:version>|g" "$GENERATED_APPCAST"
+    sed -i '' "s|<sparkle:shortVersionString>${BUNDLE_VERSION}</sparkle:shortVersionString>|<sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>|g" "$GENERATED_APPCAST"
+fi
+
 # Copy appcast to output directory
 cp "$GENERATED_APPCAST" "$OUTPUT_DIR/appcast.xml"
 APPCAST_PATH="$OUTPUT_DIR/appcast.xml"

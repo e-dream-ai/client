@@ -1970,7 +1970,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Get the latest Git tag\nlatest_tag=$(git describe --tags --abbrev=0)\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" ${INFOPLIST_FILE}\nsh generate_builddata.sh\n\n# go to root of repo and run vcpkg\n# todo : somehow fails with openssl, feels like a path issue, unclear, could be the build environment from the toolchain setting unexpected stuff that trips vcpkg. For now : run manually once in a while to generate the cache of universal libs. That cache is also temporarirly committed to repo for github integration\n#cd ../../\n#sh build_mac_libs_vcpkg.sh\n";
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Use BUILD_VERSION env var if set, otherwise get the latest Git tag\nif [ -n \"$BUILD_VERSION\" ]; then\n    latest_tag=\"$BUILD_VERSION\"\nelse\n    latest_tag=$(git describe --tags --abbrev=0)\nfi\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" ${INFOPLIST_FILE}\nsh generate_builddata.sh\n\n# go to root of repo and run vcpkg\n# todo : somehow fails with openssl, feels like a path issue, unclear, could be the build environment from the toolchain setting unexpected stuff that trips vcpkg. For now : run manually once in a while to generate the cache of universal libs. That cache is also temporarirly committed to repo for github integration\n#cd ../../\n#sh build_mac_libs_vcpkg.sh\n";
 		};
 		12B37C892B308A6300E86D2E /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -1987,7 +1987,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Get the latest Git tag\nlatest_tag=$(git describe --tags --abbrev=0)\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" ${INFOPLIST_FILE}\n\nsh generate_builddata.sh\n";
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Use BUILD_VERSION env var if set, otherwise get the latest Git tag\nif [ -n \"$BUILD_VERSION\" ]; then\n    latest_tag=\"$BUILD_VERSION\"\nelse\n    latest_tag=$(git describe --tags --abbrev=0)\nfi\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" ${INFOPLIST_FILE}\n\nsh generate_builddata.sh\n";
 		};
 		F0C100022C1372EF007FA505 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -2004,7 +2004,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Get the latest Git tag\nlatest_tag=$(git describe --tags --abbrev=0)\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" ${INFOPLIST_FILE}\n\nsh generate_builddata.sh\n";
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Use BUILD_VERSION env var if set, otherwise get the latest Git tag\nif [ -n \"$BUILD_VERSION\" ]; then\n    latest_tag=\"$BUILD_VERSION\"\nelse\n    latest_tag=$(git describe --tags --abbrev=0)\nfi\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" ${INFOPLIST_FILE}\n\nsh generate_builddata.sh\n";
 		};
 		F0E9CE2D2C136B0500C4D694 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -2021,7 +2021,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Get the latest Git tag\nlatest_tag=$(git describe --tags --abbrev=0)\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" ${INFOPLIST_FILE}\nsh generate_builddata.sh\n\n# go to root of repo and run vcpkg\n# todo : somehow fails with openssl, feels like a path issue, unclear, could be the build environment from the toolchain setting unexpected stuff that trips vcpkg. For now : run manually once in a while to generate the cache of universal libs. That cache is also temporarirly committed to repo for github integration\n#cd ../../\n#sh build_mac_libs_vcpkg.sh\n";
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Use BUILD_VERSION env var if set, otherwise get the latest Git tag\nif [ -n \"$BUILD_VERSION\" ]; then\n    latest_tag=\"$BUILD_VERSION\"\nelse\n    latest_tag=$(git describe --tags --abbrev=0)\nfi\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" ${INFOPLIST_FILE}\nsh generate_builddata.sh\n\n# go to root of repo and run vcpkg\n# todo : somehow fails with openssl, feels like a path issue, unclear, could be the build environment from the toolchain setting unexpected stuff that trips vcpkg. For now : run manually once in a while to generate the cache of universal libs. That cache is also temporarirly committed to repo for github integration\n#cd ../../\n#sh build_mac_libs_vcpkg.sh\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
