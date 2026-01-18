@@ -720,7 +720,7 @@ else
     FINAL_ZIP="${BUILD_DIR}/${BUILD_CONFIG}/infinidream-$(date +%Y%m%d).zip"
 fi
 echo -e "${YELLOW}Creating final distribution package...${NC}"
-ditto -c -k --keepParent --norsrc "$EXPORTED_APP" "$FINAL_ZIP"
+ditto -c -k --keepParent "$EXPORTED_APP" "$FINAL_ZIP"
 
 # Get file sizes
 SAVER_SIZE=$(du -sh "${OUTPUT_SAVER}" | cut -f1)
