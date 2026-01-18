@@ -26,6 +26,14 @@
 /* End PBXAggregateTarget section */
 
 /* Begin PBXBuildFile section */
+		063B5C5D2F198F1500B5E553 /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 063B5C5C2F198F1500B5E553 /* Sparkle.framework */; };
+		063B5C5E2F198F1500B5E553 /* Sparkle.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 063B5C5C2F198F1500B5E553 /* Sparkle.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		063B5C5F2F198F2900B5E553 /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 063B5C5C2F198F1500B5E553 /* Sparkle.framework */; };
+		063B5C602F198F2900B5E553 /* Sparkle.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 063B5C5C2F198F1500B5E553 /* Sparkle.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		063B5C612F19946300B5E553 /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 063B5C5C2F198F1500B5E553 /* Sparkle.framework */; };
+		063B5C622F19946300B5E553 /* Sparkle.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 063B5C5C2F198F1500B5E553 /* Sparkle.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		063B5C632F19947D00B5E553 /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 063B5C5C2F198F1500B5E553 /* Sparkle.framework */; };
+		063B5C642F19947D00B5E553 /* Sparkle.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 063B5C5C2F198F1500B5E553 /* Sparkle.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		121FCCB72B484B8B00F58DD5 /* Clip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 121FCCB52B484B8B00F58DD5 /* Clip.cpp */; };
 		121FCCB82B484B8B00F58DD5 /* Clip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 121FCCB52B484B8B00F58DD5 /* Clip.cpp */; };
 		1220B5392B3DC64D00D68410 /* StringFormat.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1220B5382B3DC64D00D68410 /* StringFormat.cpp */; };
@@ -635,6 +643,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
+				063B5C602F198F2900B5E553 /* Sparkle.framework in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -644,6 +653,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
+				063B5C5E2F198F1500B5E553 /* Sparkle.framework in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -685,6 +695,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
+				063B5C642F19947D00B5E553 /* Sparkle.framework in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -706,12 +717,15 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
+				063B5C622F19946300B5E553 /* Sparkle.framework in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		063B5C5B2F172FAB00B5E553 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; name = .gitignore; path = ../../../../webminds/ReplayVideoCapture/.gitignore; sourceTree = "<group>"; };
+		063B5C5C2F198F1500B5E553 /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Sparkle.framework; path = Frameworks/Sparkle.framework; sourceTree = "<group>"; };
 		09AB6884FE841BABC02AAC07 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
 		121FCCB52B484B8B00F58DD5 /* Clip.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Clip.cpp; path = ../ContentDecoder/Clip.cpp; sourceTree = "<group>"; };
 		121FCCB62B484B8B00F58DD5 /* Clip.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Clip.h; path = ../ContentDecoder/Clip.h; sourceTree = "<group>"; };
@@ -994,6 +1008,7 @@
 				467230BB2AC17E9A00017C51 /* MetalKit.framework in Frameworks */,
 				213D540311F79C9800CF500D /* IOKit.framework in Frameworks */,
 				F07071D72C0E05DA008219A4 /* libboost_log.a in Frameworks */,
+				063B5C5D2F198F1500B5E553 /* Sparkle.framework in Frameworks */,
 				2160FC9D0F30F48200B2C27A /* CoreFoundation.framework in Frameworks */,
 				F0141B982C663E8900DBA60E /* libavcodec.a in Frameworks */,
 				2160FC9E0F30F48200B2C27A /* GLUT.framework in Frameworks */,
@@ -1040,6 +1055,7 @@
 				F0C1FFFD2C1372C4007FA505 /* libboost_log_setup.a in Frameworks */,
 				F0141B942C663E2700DBA60E /* libavformat.a in Frameworks */,
 				12440CBC2B85F4DF00A23253 /* libssl.a in Frameworks */,
+				063B5C5F2F198F2900B5E553 /* Sparkle.framework in Frameworks */,
 				464A49DE2AB88E1A00C77F6D /* Security.framework in Frameworks */,
 				F0C1FFFE2C1372C4007FA505 /* libboost_log.a in Frameworks */,
 				F0C1FFFF2C1372C4007FA505 /* libboost_system.a in Frameworks */,
@@ -1086,6 +1102,7 @@
 				F0C100592C1372EF007FA505 /* Security.framework in Frameworks */,
 				F0C1005A2C1372EF007FA505 /* libboost_log.a in Frameworks */,
 				F0C1005B2C1372EF007FA505 /* libboost_system.a in Frameworks */,
+				063B5C632F19947D00B5E553 /* Sparkle.framework in Frameworks */,
 				F0C1005C2C1372EF007FA505 /* Metal.framework in Frameworks */,
 				F03CF2732CB7F5FC009F51D8 /* libswresample.a in Frameworks */,
 				F03CF26E2CB7F5FC009F51D8 /* libavcodec.a in Frameworks */,
@@ -1132,6 +1149,7 @@
 				F0E9CE822C136B0500C4D694 /* MetalKit.framework in Frameworks */,
 				F0E9CE832C136B0500C4D694 /* IOKit.framework in Frameworks */,
 				F0E9CE842C136B0500C4D694 /* libboost_log.a in Frameworks */,
+				063B5C612F19946300B5E553 /* Sparkle.framework in Frameworks */,
 				F0E9CE852C136B0500C4D694 /* CoreFoundation.framework in Frameworks */,
 				F0141BA62C663F1500DBA60E /* libavcodec.a in Frameworks */,
 				F0E9CE862C136B0500C4D694 /* GLUT.framework in Frameworks */,
@@ -1504,6 +1522,8 @@
 		464A49D92AB8864600C77F6D /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				063B5C5C2F198F1500B5E553 /* Sparkle.framework */,
+				063B5C5B2F172FAB00B5E553 /* .gitignore */,
 				F0141B902C663DEF00DBA60E /* libswresample.a */,
 				F0141BA52C663EDA00DBA60E /* libswresample.a */,
 				F0141B912C663DEF00DBA60E /* libswscale.a */,
@@ -1950,7 +1970,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Get the latest Git tag\nlatest_tag=$(git describe --tags --abbrev=0)\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" ${INFOPLIST_FILE}\nsh generate_builddata.sh\n\n# go to root of repo and run vcpkg\n# todo : somehow fails with openssl, feels like a path issue, unclear, could be the build environment from the toolchain setting unexpected stuff that trips vcpkg. For now : run manually once in a while to generate the cache of universal libs. That cache is also temporarirly committed to repo for github integration\n#cd ../../\n#sh build_mac_libs_vcpkg.sh\n";
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Use BUILD_VERSION env var if set, otherwise get the latest Git tag\nif [ -n \"$BUILD_VERSION\" ]; then\n    latest_tag=\"$BUILD_VERSION\"\nelse\n    latest_tag=$(git describe --tags --abbrev=0)\nfi\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" ${INFOPLIST_FILE}\nsh generate_builddata.sh\n\n# go to root of repo and run vcpkg\n# todo : somehow fails with openssl, feels like a path issue, unclear, could be the build environment from the toolchain setting unexpected stuff that trips vcpkg. For now : run manually once in a while to generate the cache of universal libs. That cache is also temporarirly committed to repo for github integration\n#cd ../../\n#sh build_mac_libs_vcpkg.sh\n";
 		};
 		12B37C892B308A6300E86D2E /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -1967,7 +1987,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Get the latest Git tag\nlatest_tag=$(git describe --tags --abbrev=0)\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" ${INFOPLIST_FILE}\n\nsh generate_builddata.sh\n";
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Use BUILD_VERSION env var if set, otherwise get the latest Git tag\nif [ -n \"$BUILD_VERSION\" ]; then\n    latest_tag=\"$BUILD_VERSION\"\nelse\n    latest_tag=$(git describe --tags --abbrev=0)\nfi\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" ${INFOPLIST_FILE}\n\nsh generate_builddata.sh\n";
 		};
 		F0C100022C1372EF007FA505 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -1984,7 +2004,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Get the latest Git tag\nlatest_tag=$(git describe --tags --abbrev=0)\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" ${INFOPLIST_FILE}\n\nsh generate_builddata.sh\n";
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Use BUILD_VERSION env var if set, otherwise get the latest Git tag\nif [ -n \"$BUILD_VERSION\" ]; then\n    latest_tag=\"$BUILD_VERSION\"\nelse\n    latest_tag=$(git describe --tags --abbrev=0)\nfi\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" ${INFOPLIST_FILE}\n\nsh generate_builddata.sh\n";
 		};
 		F0E9CE2D2C136B0500C4D694 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -2001,7 +2021,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Get the latest Git tag\nlatest_tag=$(git describe --tags --abbrev=0)\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" ${INFOPLIST_FILE}\nsh generate_builddata.sh\n\n# go to root of repo and run vcpkg\n# todo : somehow fails with openssl, feels like a path issue, unclear, could be the build environment from the toolchain setting unexpected stuff that trips vcpkg. For now : run manually once in a while to generate the cache of universal libs. That cache is also temporarirly committed to repo for github integration\n#cd ../../\n#sh build_mac_libs_vcpkg.sh\n";
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Use BUILD_VERSION env var if set, otherwise get the latest Git tag\nif [ -n \"$BUILD_VERSION\" ]; then\n    latest_tag=\"$BUILD_VERSION\"\nelse\n    latest_tag=$(git describe --tags --abbrev=0)\nfi\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" ${INFOPLIST_FILE}\nsh generate_builddata.sh\n\n# go to root of repo and run vcpkg\n# todo : somehow fails with openssl, feels like a path issue, unclear, could be the build environment from the toolchain setting unexpected stuff that trips vcpkg. For now : run manually once in a while to generate the cache of universal libs. That cache is also temporarirly committed to repo for github integration\n#cd ../../\n#sh build_mac_libs_vcpkg.sh\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -2511,6 +2531,10 @@
 				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
 				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
 				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Frameworks",
+				);
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_ENABLE_BUILTIN_FUNCTIONS = NO;
@@ -2582,6 +2606,10 @@
 				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
 				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
 				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Frameworks",
+				);
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_ENABLE_BUILTIN_FUNCTIONS = NO;
 				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
@@ -2641,6 +2669,10 @@
 				DEVELOPMENT_TEAM = FCG855WTXV;
 				"DEVELOPMENT_TEAM[sdk=macosx*]" = "";
 				ENABLE_NS_ASSERTIONS = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Frameworks",
+				);
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
@@ -2694,6 +2726,10 @@
 				DEPLOYMENT_POSTPROCESSING = NO;
 				DEVELOPMENT_TEAM = BNXH8TLP5D;
 				ENABLE_NS_ASSERTIONS = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Frameworks",
+				);
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
 				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
@@ -2752,6 +2788,10 @@
 				DEVELOPMENT_TEAM = FCG855WTXV;
 				"DEVELOPMENT_TEAM[sdk=macosx*]" = "";
 				ENABLE_NS_ASSERTIONS = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Frameworks",
+				);
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
@@ -2805,6 +2845,10 @@
 				DEPLOYMENT_POSTPROCESSING = NO;
 				DEVELOPMENT_TEAM = BNXH8TLP5D;
 				ENABLE_NS_ASSERTIONS = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Frameworks",
+				);
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
 				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
@@ -2875,6 +2919,10 @@
 				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
 				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
 				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Frameworks",
+				);
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_ENABLE_BUILTIN_FUNCTIONS = NO;
@@ -2945,6 +2993,10 @@
 				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
 				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
 				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Frameworks",
+				);
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_ENABLE_BUILTIN_FUNCTIONS = NO;
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;

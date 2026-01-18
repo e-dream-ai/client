@@ -86,4 +86,10 @@
 - (BOOL)fullscreen;
 - (void)setFullScreen:(BOOL)fullscreen;
 
+#ifndef SCREEN_SAVER
+- (void)checkForUpdates:(id)sender;
+- (SPUStandardUpdaterController*)updaterController;
+- (void)connectCheckForUpdatesMenuItem;
+#endif
+
 @end
