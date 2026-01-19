@@ -310,7 +310,7 @@ class CElectricSheep
         spStats->Add(
             new Hud::CStringStat("uptime", "\nClient uptime: ", "...."));
         spStats->Add(
-            new Hud::CStringStat("decodefps", "Decoding video at ", "? fps"));
+            new Hud::CStringStat("decodefps", "Decoding video target is ", "? fps, actually decoding at ? fps"));
         spStats->Add(
             new Hud::CStringStat("perceptualfps", "Perceptual speed ", "? fps"));
 
@@ -1181,7 +1181,8 @@ class CElectricSheep
                     std::dynamic_pointer_cast<Hud::CStatsConsole>(
                         m_HudManager->Get("dreamstats"));
                 float activityLevel = 1.f;
-                double realFps = 20;
+                double targetFps = 20;
+                double actualFps = 0;
                 bool isStreamingCurrent = false;
                 const ContentDecoder::sClipMetadata* clipMetadata =
                     g_Player().GetCurrentPlayingClipMetadata();
@@ -1189,10 +1190,11 @@ class CElectricSheep
                 if (clipMetadata)
                 {
                     activityLevel = clipMetadata->dreamData.activityLevel;
-                    realFps = clipMetadata->decodeFps;
+                    targetFps = clipMetadata->decodeFps;
                     isStreamingCurrent = !(clipMetadata->dreamData.isCached());
                     baseFps = std::stod(clipMetadata->dreamData.fps);
                 }
+                actualFps = g_Player().GetCurrentMeasuredFps();
 
                 const ContentDecoder::sFrameMetadata* frameMetadata =
                     g_Player().GetCurrentFrameMetadata();
@@ -1202,11 +1204,11 @@ class CElectricSheep
                 double pFPS = g_Player().GetPerceptualFPS();
                 if (isStreamingCurrent) {
                     ((Hud::CStringStat*)spStats->Get("decodefps"))
-                        ->SetSample(string_format(" %.2f fps (streaming)", realFps));
+                        ->SetSample(string_format("%.1f fps, actually decoding at %.1f fps (streaming)", targetFps, actualFps));
 
                 } else {
                     ((Hud::CStringStat*)spStats->Get("decodefps"))
-                        ->SetSample(string_format(" %.2f fps", realFps));
+                        ->SetSample(string_format("%.1f fps, actually decoding at %.1f fps", targetFps, actualFps));
                 }
 
                 ((Hud::CStringStat*)spStats->Get("perceptualfps"))
