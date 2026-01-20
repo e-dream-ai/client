@@ -193,11 +193,6 @@ void ESScreensaver_SetDoubleSetting(const char* url, const double val)
     g_Settings()->Storage()->Commit();
 }*/
 
-void ESScreensaver_SetUpdateAvailable(const char* verinfo)
-{
-    gClient.SetUpdateAvailable(verinfo);
-}
-
 void ESScreensaver_SetIsFullScreen(bool _bFullScreen)
 {
     gClient.SetIsFullScreen(_bFullScreen);

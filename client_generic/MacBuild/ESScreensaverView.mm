@@ -45,6 +45,10 @@
                                                               updaterDelegate:self
                                                            userDriverDelegate:nil];
     
+    if (m_updater) {
+        [m_updater.updater checkForUpdatesInBackground];
+    }
+    
     // Connect "Check for Updates..." menu item to the updater
     [self connectCheckForUpdatesMenuItem];
 #endif
@@ -463,14 +467,11 @@ static void signnal_handler(int signal)
 - (void)doUpdate:(NSTimer*)timer
 {
 #ifndef SCREEN_SAVER
-    SUAppcastItem* update = timer.userInfo;
+    (void)timer; // unused
     
-    if (!m_isFullScreen && m_updater != nil) {
-        // In windowed mode, show the update dialog
+    // Show Sparkle's update dialog directly - user can click OK/Cancel
+    if (m_updater != nil) {
         [m_updater checkForUpdates:nil];
-    } else if (update != nil) {
-        // In fullscreen mode, notify user about available update
-        ESScreensaver_SetUpdateAvailable(update.displayVersionString.UTF8String);
     }
 #endif
 }
