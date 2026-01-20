@@ -620,6 +620,25 @@ fi
 echo -e "${GREEN}✓ App exported successfully${NC}"
 echo "Exported app: $EXPORTED_APP"
 
+# Clean up stale build rpaths from the binary (fixes Sparkle validation errors)
+echo -e "${YELLOW}Cleaning up stale rpaths from app binary...${NC}"
+APP_BINARY="${EXPORTED_APP}/Contents/MacOS/${APP_NAME}"
+if [ -f "$APP_BINARY" ]; then
+    # Find and remove any rpaths that point to build directories
+    STALE_RPATHS=$(otool -l "$APP_BINARY" 2>/dev/null | grep -A2 LC_RPATH | grep "path " | grep -E "(DerivedData|Build|Intermediates)" | sed 's/.*path \(.*\) (offset.*/\1/')
+    for RPATH in $STALE_RPATHS; do
+        echo "  Removing stale rpath: $RPATH"
+        install_name_tool -delete_rpath "$RPATH" "$APP_BINARY" 2>/dev/null || true
+    done
+    if [ -z "$STALE_RPATHS" ]; then
+        echo "  No stale rpaths found"
+    else
+        echo -e "${GREEN}✓ Stale rpaths removed${NC}"
+        # Re-sign the binary after modification (will be properly signed during notarization)
+        codesign --force --sign - "$APP_BINARY" 2>/dev/null || true
+    fi
+fi
+
 # ============================================================================
 # STEP 5: Notarize App (if requested)
 # ============================================================================

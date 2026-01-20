@@ -1859,19 +1859,6 @@ class CElectricSheep
 
     virtual int GetACLineStatus() { return -1; }
 
-    void SetUpdateAvailable(const std::string& verinfo)
-    {
-        std::string message("New e-drean ");
-
-        message += verinfo;
-        message += " is available.";
-#ifdef MAC
-        message +=
-            " Relaunch infinidream application or preference pane to update.";
-#endif
-
-        m_MessageQueue.QueueMessage(message, 30.0);
-    }
 };
 
 #endif // CLIENT_H_INCLUDED
