@@ -120,16 +120,16 @@ fi
 
 # If version not provided, try to extract from Info.plist
 if [ -z "$VERSION" ]; then
-    VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "infinidream-App-Info.plist" 2>/dev/null || echo "")
+    VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "App-Info.plist" 2>/dev/null || echo "")
 fi
 
 # Update Info.plist with provided version (if -v was specified)
 if [ -n "$VERSION" ]; then
     # Determine which Info.plist to update based on stage/prod
     if [ "$BUILD_STAGE" = true ]; then
-        APP_INFO_PLIST="infinidream App copy-Info.plist"
+        APP_INFO_PLIST="App-Stage-Info.plist"
     else
-        APP_INFO_PLIST="infinidream-App-Info.plist"
+        APP_INFO_PLIST="App-Info.plist"
     fi
     
     # Get current version from plist

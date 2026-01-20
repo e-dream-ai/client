@@ -159,7 +159,7 @@ add_custom_command(TARGET infinidream_app POST_BUILD
 
 # Set bundle properties - App
 set_target_properties(infinidream_app PROPERTIES
-    MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/infinidream-App-Info.plist
+    MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/App-Info.plist
     MACOSX_BUNDLE_BUNDLE_NAME "infinidream"
     MACOSX_BUNDLE_GUI_IDENTIFIER "ai.infinidream.alpha.app"
     OUTPUT_NAME "infinidream"
@@ -173,6 +173,6 @@ set_target_properties(infinidream_app PROPERTIES
 set_target_properties(infinidream_saver PROPERTIES
     BUNDLE TRUE
     BUNDLE_EXTENSION "saver"
-    MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/ScreenSaver-Info.plist
+    MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Screensaver-Info.plist
     OUTPUT_NAME "infinidream"
 )

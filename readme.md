@@ -189,9 +189,9 @@ This will:
 3. Print the public key to add to `Info.plist`
 
 **Important**: If you generate new keys, you must update `SUPublicEDKey` in:
-- `infinidream-App-Info.plist`
-- `infinidream App copy-Info.plist`
-- `ScreenSaver-Info.plist`
+- `App-Info.plist`
+- `App-Stage-Info.plist`
+- `Screensaver-Info.plist`
 
 Existing users won't be able to update if the public key changes, so only regenerate keys if the private key is lost.
 
