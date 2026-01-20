@@ -123,23 +123,35 @@ if [ -z "$VERSION" ]; then
     VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "App-Info.plist" 2>/dev/null || echo "")
 fi
 
-# Update Info.plist with provided version (if -v was specified)
+# Determine version string (add -stage suffix for stage builds)
+if [ "$BUILD_STAGE" = true ]; then
+    APP_INFO_PLIST="App-Stage-Info.plist"
+    SAVER_INFO_PLIST="Screensaver-Stage-Info.plist"
+    PLIST_VERSION="${VERSION}-stage"
+else
+    APP_INFO_PLIST="App-Info.plist"
+    SAVER_INFO_PLIST="Screensaver-Info.plist"
+    PLIST_VERSION="$VERSION"
+fi
+
+# Update Info.plist files with provided version (if -v was specified)
 if [ -n "$VERSION" ]; then
-    # Determine which Info.plist to update based on stage/prod
-    if [ "$BUILD_STAGE" = true ]; then
-        APP_INFO_PLIST="App-Stage-Info.plist"
-    else
-        APP_INFO_PLIST="App-Info.plist"
-    fi
-    
-    # Get current version from plist
+
+    # Update App Info.plist
     CURRENT_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP_INFO_PLIST" 2>/dev/null || echo "")
-    
-    if [ "$CURRENT_VERSION" != "$VERSION" ]; then
-        echo -e "${YELLOW}Updating $APP_INFO_PLIST version from $CURRENT_VERSION to $VERSION...${NC}"
-        /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$APP_INFO_PLIST"
-        /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" "$APP_INFO_PLIST"
-        echo -e "${GREEN}✓ Version updated in Info.plist${NC}"
+    if [ "$CURRENT_VERSION" != "$PLIST_VERSION" ]; then
+        echo -e "${YELLOW}Updating $APP_INFO_PLIST version from $CURRENT_VERSION to $PLIST_VERSION...${NC}"
+        /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $PLIST_VERSION" "$APP_INFO_PLIST"
+        /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $PLIST_VERSION" "$APP_INFO_PLIST"
+        echo -e "${GREEN}✓ Version updated in $APP_INFO_PLIST${NC}"
+    fi
+
+    # Update Screensaver Info.plist
+    CURRENT_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$SAVER_INFO_PLIST" 2>/dev/null || echo "")
+    if [ "$CURRENT_VERSION" != "$PLIST_VERSION" ]; then
+        echo -e "${YELLOW}Updating $SAVER_INFO_PLIST version from $CURRENT_VERSION to $PLIST_VERSION...${NC}"
+        /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $PLIST_VERSION" "$SAVER_INFO_PLIST"
+        echo -e "${GREEN}✓ Version updated in $SAVER_INFO_PLIST${NC}"
     fi
 fi
 
@@ -274,7 +286,7 @@ echo -e "${BLUE}========================================${NC}"
 
 if [ "$BUILD_RELEASE" = true ]; then
     # Release build with manual code signing
-    BUILD_VERSION="$VERSION" xcodebuild -project "$PROJECT" \
+    BUILD_VERSION="$PLIST_VERSION" xcodebuild -project "$PROJECT" \
                -scheme "$SCREENSAVER_SCHEME" \
                -configuration "$BUILD_CONFIG" \
                -derivedDataPath "$DERIVED_DATA" \
@@ -284,7 +296,7 @@ if [ "$BUILD_RELEASE" = true ]; then
                OTHER_CODE_SIGN_FLAGS="--timestamp" \
                | xcpretty --color || {
         # Fallback if xcpretty is not installed
-        BUILD_VERSION="$VERSION" xcodebuild -project "$PROJECT" \
+        BUILD_VERSION="$PLIST_VERSION" xcodebuild -project "$PROJECT" \
                    -scheme "$SCREENSAVER_SCHEME" \
                    -configuration "$BUILD_CONFIG" \
                    -derivedDataPath "$DERIVED_DATA" \
@@ -295,7 +307,7 @@ if [ "$BUILD_RELEASE" = true ]; then
     }
 else
     # Debug build without code signing
-    BUILD_VERSION="$VERSION" xcodebuild -project "$PROJECT" \
+    BUILD_VERSION="$PLIST_VERSION" xcodebuild -project "$PROJECT" \
                -scheme "$SCREENSAVER_SCHEME" \
                -configuration "$BUILD_CONFIG" \
                -derivedDataPath "$DERIVED_DATA" \
@@ -488,7 +500,7 @@ APP_ARCHIVE_PATH="${BUILD_DIR}/${BUILD_CONFIG}/${APP_NAME}.xcarchive"
 
 if [ "$BUILD_RELEASE" = true ]; then
     # Release build with manual code signing
-    BUILD_VERSION="$VERSION" xcodebuild archive \
+    BUILD_VERSION="$PLIST_VERSION" xcodebuild archive \
                -project "$PROJECT" \
                -scheme "$APP_SCHEME" \
                -configuration "$BUILD_CONFIG" \
@@ -500,7 +512,7 @@ if [ "$BUILD_RELEASE" = true ]; then
                OTHER_CODE_SIGN_FLAGS="--timestamp" \
                | xcpretty --color || {
         # Fallback if xcpretty is not installed
-        BUILD_VERSION="$VERSION" xcodebuild archive \
+        BUILD_VERSION="$PLIST_VERSION" xcodebuild archive \
                    -project "$PROJECT" \
                    -scheme "$APP_SCHEME" \
                    -configuration "$BUILD_CONFIG" \
@@ -513,7 +525,7 @@ if [ "$BUILD_RELEASE" = true ]; then
     }
 else
     # Debug build without code signing
-    BUILD_VERSION="$VERSION" xcodebuild archive \
+    BUILD_VERSION="$PLIST_VERSION" xcodebuild archive \
                -project "$PROJECT" \
                -scheme "$APP_SCHEME" \
                -configuration "$BUILD_CONFIG" \
