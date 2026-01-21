@@ -46,6 +46,11 @@ public:
     // Check if a dream is currently being downloaded
     bool IsDreamBeingDownloaded(const std::string& uuid) const; 
     
+    // Disk space warning
+    void SetDiskSpaceLow(bool low);
+    bool IsDiskSpaceLow() const;
+    void CheckDiskSpace();  // Check disk space immediately (call at startup)
+    
     std::future<bool> DownloadImmediately(const std::string& uuid, std::function<void(bool, const std::string&)> callback = nullptr);
 
     bool DownloadDream(const std::string& uuid, const std::string& downloadLink, bool enqueue = true);
@@ -67,6 +72,9 @@ private:
     // Download status
     mutable std::mutex m_statusMutex;
     std::string m_downloadStatus;
+    
+    // Disk space warning flag
+    std::atomic<bool> m_diskSpaceLow{false};
 };
 
 }

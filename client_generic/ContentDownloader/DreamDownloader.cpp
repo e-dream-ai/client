@@ -19,6 +19,8 @@
 namespace ContentDownloader
 {
 
+std::uintmax_t minDiskSpace = (std::uintmax_t)1024 * 1024 * 1024 * 5;
+
 void DreamDownloader::FindDreamsToDownload() {
     
     if (isRunning.exchange(true)) {
@@ -51,6 +53,27 @@ std::string DreamDownloader::GetDownloadStatus() const {
     return m_downloadStatus;
 }
 
+void DreamDownloader::SetDiskSpaceLow(bool low) {
+    m_diskSpaceLow.store(low);
+}
+
+bool DreamDownloader::IsDiskSpaceLow() const {
+    return m_diskSpaceLow.load();
+}
+
+void DreamDownloader::CheckDiskSpace() {
+    
+    auto freeSpace = Cache::CacheManager::getInstance().getFreeSpace(Cache::PathManager::getInstance().mp4Path());
+    g_Log->Info("Disk space check at startup: %llu bytes free", (unsigned long long)freeSpace);
+    
+    if (freeSpace < minDiskSpace) {
+        g_Log->Info("Not enough disk space at startup");
+        SetDiskSpaceLow(true);
+    } else {
+        SetDiskSpaceLow(false);
+    }
+}
+
 // MARK: Thread function
 void DreamDownloader::FindDreamsThread() {
     PlatformUtils::SetThreadName("FindDreamsToDownload");
@@ -62,8 +85,6 @@ void DreamDownloader::FindDreamsThread() {
         // Set a default delay (30 seconds)
         // int delayTime = 30;
         
-        // Minimum disk space : 5 GB (TODO: this can be lowered or pref'd later)
-        std::uintmax_t minDiskSpace =  (std::uintmax_t)1024 * 1024 * 1024 * 5;
         // Minimum space in cache/quota to consider downloading (100 MB)
         std::uintmax_t minSpaceForDream = (std::uintmax_t)1024 * 1024 * 100;
 
@@ -111,7 +132,10 @@ void DreamDownloader::FindDreamsThread() {
             if (cm.getFreeSpace(Cache::PathManager::getInstance().mp4Path()) < minDiskSpace) {
                 g_Log->Info("Not enough disk space %ll", cm.getFreeSpace(Cache::PathManager::getInstance().mp4Path()));
                 SetDownloadStatus("Not enough disk space");
+                SetDiskSpaceLow(true);
                 break;
+            } else {
+                SetDiskSpaceLow(false);
             }
 
             // Is our cache full ?

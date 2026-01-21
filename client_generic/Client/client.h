@@ -365,6 +365,7 @@ class CElectricSheep
         creditsConsole->Add(new Hud::CStringStat("credits-fps", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-playlist");
         creditsConsole->Add(new Hud::CStringStat("credits-net", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-mode");
         creditsConsole->Add(new Hud::CStringStat("credits-ws", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-mode");
+        creditsConsole->Add(new Hud::CStringStat("credits-dsk", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-mode");
         creditsConsole->Add(new Hud::CStringStat("credits-download", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-download-base");
     }
     
@@ -548,6 +549,9 @@ class CElectricSheep
         // Grab the CacheManager
         Cache::CacheManager& cm = Cache::CacheManager::getInstance();
         cm.loadCachedMetadata();
+        
+        // Check disk space at startup
+        g_ContentDownloader().m_gDownloader.CheckDiskSpace();
         
         if (m_MultipleInstancesMode) {
             g_Player().SetOfflineMode(true);
@@ -1307,6 +1311,17 @@ class CElectricSheep
                     ((Hud::CStringStat*)spStats->Get("credits-ws"))
                         ->SetSample("\u25CF Remote");
                     spStats->SetColor("credits-ws", wsConnected ? Base::Math::CVector4(0, 1, 0, 1) : Base::Math::CVector4(1, 0, 0, 1));
+
+                    // Disk space indicator - only show when disk space is low
+                    bool diskSpaceLow = g_ContentDownloader().m_gDownloader.IsDiskSpaceLow();
+                    if (diskSpaceLow) {
+                        ((Hud::CStringStat*)spStats->Get("credits-dsk"))
+                            ->SetSample("\u25CF Disk                               ");
+                        spStats->SetColor("credits-dsk", Base::Math::CVector4(1, 0, 0, 1));  // Red when low
+                    } else {
+                        ((Hud::CStringStat*)spStats->Get("credits-dsk"))
+                            ->SetSample("");  // Hide when disk space is OK
+                    }
 
                     // Update download indicator
                     if (isStreamingCurrent && isBuffering) {
