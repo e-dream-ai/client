@@ -81,7 +81,6 @@
 - (void)windowDidResize;
 
 - (void)updaterWillRelaunchApplication:(SPUUpdater*)updater;
-- (void)updater:(SPUUpdater*)updater didFindValidUpdate:(SUAppcastItem*)update;
 
 - (BOOL)fullscreen;
 - (void)setFullScreen:(BOOL)fullscreen;

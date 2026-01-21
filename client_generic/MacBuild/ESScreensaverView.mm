@@ -464,17 +464,6 @@ static void signnal_handler(int signal)
     [self stopAnimation];
 }
 
-- (void)doUpdate:(NSTimer*)timer
-{
-#ifndef SCREEN_SAVER
-    (void)timer; // unused
-    
-    // Show Sparkle's update dialog directly - user can click OK/Cancel
-    if (m_updater != nil) {
-        [m_updater checkForUpdates:nil];
-    }
-#endif
-}
 
 #ifndef SCREEN_SAVER
 - (void)checkForUpdates:(id)sender
@@ -515,16 +504,6 @@ static void signnal_handler(int signal)
 }
 #endif
 
-// Sent when a valid update is found by the update driver.
-- (void)updater:(SPUUpdater*)__unused updater
-    didFindValidUpdate:(SUAppcastItem*)update
-{
-    [NSTimer scheduledTimerWithTimeInterval:1.0
-                                     target:self
-                                   selector:@selector(doUpdate:)
-                                   userInfo:update
-                                    repeats:NO];
-}
 
 - (BOOL)fullscreen
 {
