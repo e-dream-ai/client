@@ -94,6 +94,7 @@ class CElectricSheep
     double m_LastCPUCheckTime;
     int m_CpuUsageTotal;
     int m_CpuUsageES;
+    int m_GpuUsage;
     int m_HighCpuUsageCounter;
     int m_CpuUsageThreshold;
     std::string m_PreviousDlState; // Track download status
@@ -201,6 +202,7 @@ class CElectricSheep
         PlatformUtils::SetThreadName("Main");
         m_CpuUsageTotal = -1;
         m_CpuUsageES = -1;
+        m_GpuUsage = -1;
         m_CpuUsageThreshold = 50;
         m_HighCpuUsageCounter = 0;
         m_StatsCodeCounter = 0;
@@ -306,7 +308,8 @@ class CElectricSheep
             spStats->Add(new Hud::CTimeCountDownStat(
                 "svstat", "", "Preparing downloader..."));
 
-        spStats->Add(new Hud::CStringStat("zzacpu", "CPU usage: ", "Unknown"));
+        spStats->Add(new Hud::CStringStat("zzacpu", "App CPU: ", "measuring..."));
+        spStats->Add(new Hud::CStringStat("zzagpu", "System GPU: ", "measuring..."));
         spStats->Add(
             new Hud::CStringStat("uptime", "\nClient uptime: ", "...."));
         spStats->Add(
@@ -1107,34 +1110,11 @@ class CElectricSheep
                 }
 
                 std::string batteryStatus = "Unknown";
-                /*bool blockRendering = false;
-                if (m_Timer.Time() > m_LastCPUCheckTime + 3.)
-                {
-                    m_LastCPUCheckTime = m_Timer.Time();
-                    if (m_CpuUsage.GetCpuUsage(m_CpuUsageTotal, m_CpuUsageES))
-                        if (m_CpuUsageTotal != -1 && m_CpuUsageES != -1 &&
-                            m_CpuUsageTotal > m_CpuUsageES)
-                        {
-                            if ((m_CpuUsageTotal - m_CpuUsageES) >
-                                m_CpuUsageThreshold)
-                            {
-                                ++m_HighCpuUsageCounter;
-                                if (m_HighCpuUsageCounter > 10)
-                                {
-                                    m_HighCpuUsageCounter = 5;
-                                    blockRendering = true;
-                                }
-                            }
-                            else
-                            {
-                                if (m_HighCpuUsageCounter > 0)
-                                    --m_HighCpuUsageCounter;
-                            }
-                        }
-                }*/
-                /*if (m_HighCpuUsageCounter > 0 &&
-                    ContentDownloader::Shepherd::RenderingAllowed() == false)
-                    blockRendering = true;*/
+                
+                // Update CPU and GPU usage measurements
+                // Both methods rate-limit internally to reduce jitter
+                m_CpuUsage.GetAppCpuUsage(m_CpuUsageES, m_CpuUsageTotal);
+                m_GpuUsage = m_CpuUsage.GetGpuUsage();
 
                 switch (GetACLineStatus())
                 {
@@ -1349,12 +1329,26 @@ class CElectricSheep
 
                 ((Hud::CStringStat*)spStats->Get("uptime"))
                     ->SetSample(FormatTimeDiff(uptime, true));
-                if (m_CpuUsageTotal != -1 && m_CpuUsageES != -1)
+                // Update CPU usage display (percentage of total CPU capacity)
+                if (m_CpuUsageES >= 0)
                 {
+                    int numCores = m_CpuUsage.GetNumCores();
                     ((Hud::CStringStat*)spStats->Get("zzacpu"))
-                        ->SetSample(string_format("%i\%/%i\%", m_CpuUsageES,
-                                                  m_CpuUsageTotal));
+                        ->SetSample(string_format("%i%% app, %i%% total (%d cores)", 
+                                                  m_CpuUsageES, m_CpuUsageTotal, numCores));
                     EDreamClient::SetCPUUsage(m_CpuUsageES);
+                }
+                
+                // Update GPU usage display
+                if (m_GpuUsage >= 0)
+                {
+                    ((Hud::CStringStat*)spStats->Get("zzagpu"))
+                        ->SetSample(string_format("%i%%", m_GpuUsage));
+                }
+                else
+                {
+                    ((Hud::CStringStat*)spStats->Get("zzagpu"))
+                        ->SetSample("n/a");
                 }
 
                 Cache::CacheManager& cm = Cache::CacheManager::getInstance();
