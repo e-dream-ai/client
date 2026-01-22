@@ -1371,7 +1371,10 @@ class CElectricSheep
                     ShowNetworkIndicator(30.0, false);
                 } else if (networkWentUp && internetConnected && wsConnected) {
                     // Both network and websocket recovered - show green for 5 seconds
-                    ShowNetworkIndicator(5.0, true);
+                    // Only show green if we were showing the red indicator (actual recovery, not initial connection)
+                    if (m_NetworkIndicatorEndTime > 0.0 && !m_NetworkIndicatorShowGreen) {
+                        ShowNetworkIndicator(5.0, true);
+                    }
                 }
                 
                 // Update previous state for next frame
