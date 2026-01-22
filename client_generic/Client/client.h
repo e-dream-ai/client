@@ -89,6 +89,12 @@ class CElectricSheep
     std::thread m_TimecodeUpdaterThread;
     std::mutex m_TimecodeHudMutex;
 
+    // Network indicator state tracking
+    bool m_PrevNetworkUp = true;      // Previous network state for transition detection
+    bool m_PrevWebsocketUp = true;    // Previous websocket state for transition detection
+    double m_NetworkIndicatorEndTime = 0.0;  // When to hide the network indicator (0 = hidden)
+    bool m_NetworkIndicatorShowGreen = false; // True when showing recovery (green) indicator
+
   protected:
     ESCpuUsage m_CpuUsage;
     double m_LastCPUCheckTime;
@@ -369,6 +375,53 @@ class CElectricSheep
         creditsConsole->Add(new Hud::CStringStat("credits-download", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-download-base");
     }
     
+    void AddNetworkIndicatorHud()
+    {
+        // Create a separate HUD for network status indicator (shown outside credits overlay)
+        auto networkConsole = std::make_shared<Hud::CStatsConsole>(
+                                              Base::Math::CRect(1, 1),
+                                              m_HudFontName, m_HudFontSize);
+        m_HudManager->Add("network-indicator", networkConsole);
+        m_HudManager->Hide("network-indicator");
+
+        // Add placeholder stats for network and websocket status
+        // These are right-aligned at the bottom right corner
+        networkConsole->Add(new Hud::CStringStat("net-indicator-base", "", " "));  // Invisible base for alignment
+        networkConsole->Add(new Hud::CStringStat("net-indicator-net", "", ""), true, Base::Math::CVector4(1, 0, 0, 1), "net-indicator-base");
+        networkConsole->Add(new Hud::CStringStat("net-indicator-ws", "", ""), true, Base::Math::CVector4(1, 0, 0, 1), "net-indicator-base");
+    }
+    
+    // Show network indicator for a specific duration
+    // duration_seconds: how long to show (30 for startup/down, 5 for action/recovery)
+    // show_green: true for recovery (down->up transition), false for down state
+    void ShowNetworkIndicator(double duration_seconds, bool show_green = false)
+    {
+        m_NetworkIndicatorEndTime = m_Timer.Time() + duration_seconds;
+        m_NetworkIndicatorShowGreen = show_green;
+        if (auto spIndicator = m_HudManager->Get("network-indicator"))
+            spIndicator->Visible(true);
+    }
+    
+    void HideNetworkIndicator()
+    {
+        m_NetworkIndicatorEndTime = 0.0;
+        if (auto spIndicator = m_HudManager->Get("network-indicator"))
+            spIndicator->Visible(false);
+    }
+    
+    // Called when user performs an action that needs network (like, dislike, report)
+    // Shows indicator for 5s if network is down
+    void CheckNetworkForUserAction()
+    {
+        bool internetConnected = PlatformUtils::IsInternetReachable();
+        bool wsConnected = internetConnected && EDreamClient::IsWebSocketConnected();
+        
+        if (!internetConnected || !wsConnected)
+        {
+            ShowNetworkIndicator(5.0, false);  // Show red indicator for 5 seconds
+        }
+    }
+    
     void AddOSDHud()
     {
         // We pass min max values for speed and brightness
@@ -512,6 +565,7 @@ class CElectricSheep
 
         CreateHud();
         AddCreditsHud();
+        AddNetworkIndicatorHud();
         AddHelpHud();
         AddDreamStatsHud();
         AddProgressHud();
@@ -530,9 +584,15 @@ class CElectricSheep
             180);*/
 
         bool internetReachable = PlatformUtils::IsInternetReachable();
+        
+        // Initialize network state tracking
+        m_PrevNetworkUp = internetReachable;
+        m_PrevWebsocketUp = false;  // Websocket not connected yet at startup
+        
         if (!internetReachable)
         {
-            m_MessageQueue.QueueMessage("No Internet Connection.", 180);
+            // Show network indicator for 30 seconds at startup if network is down
+            ShowNetworkIndicator(30.0, false);
             m_MultipleInstancesMode = true;  // set offline mode
         } else if (m_MultipleInstancesMode) {
             g_Log->Info("Forcing offline mode with multiple instances");
@@ -1296,11 +1356,63 @@ class CElectricSheep
                     m_HudManager->Get("dreamcredits"));
 
                 // Update status indicators with dynamic colors (always update, not conditional on metadata)
+                bool internetConnected = PlatformUtils::IsInternetReachable();
+                bool wsConnected = internetConnected && EDreamClient::IsWebSocketConnected();
+                
+                // Detect network state transitions for standalone indicator
+                bool networkWentDown = (m_PrevNetworkUp && !internetConnected) || 
+                                       (m_PrevWebsocketUp && !wsConnected);
+                bool networkWentUp = (!m_PrevNetworkUp && internetConnected) || 
+                                     (!m_PrevWebsocketUp && wsConnected);
+                
+                // Handle transitions - show indicator outside credits overlay
+                if (networkWentDown) {
+                    // Network or websocket went from up to down - show for 30 seconds
+                    ShowNetworkIndicator(30.0, false);
+                } else if (networkWentUp && internetConnected && wsConnected) {
+                    // Both network and websocket recovered - show green for 5 seconds
+                    ShowNetworkIndicator(5.0, true);
+                }
+                
+                // Update previous state for next frame
+                m_PrevNetworkUp = internetConnected;
+                m_PrevWebsocketUp = wsConnected;
+                
+                // Check if network indicator timer has expired
+                if (m_NetworkIndicatorEndTime > 0.0 && m_Timer.Time() >= m_NetworkIndicatorEndTime) {
+                    HideNetworkIndicator();
+                }
+                
+                // Update network indicator content if visible
+                if (auto spNetIndicator = std::dynamic_pointer_cast<Hud::CStatsConsole>(
+                        m_HudManager->Get("network-indicator")))
+                {
+                    if (m_NetworkIndicatorEndTime > 0.0)
+                    {
+                        // Determine colors based on whether we're showing recovery (green) or down state (red)
+                        Base::Math::CVector4 netColor, wsColor;
+                        if (m_NetworkIndicatorShowGreen) {
+                            // Recovery state - show green for both
+                            netColor = Base::Math::CVector4(0, 1, 0, 1);
+                            wsColor = Base::Math::CVector4(0, 1, 0, 1);
+                        } else {
+                            // Down state - show actual status colors
+                            netColor = internetConnected ? Base::Math::CVector4(0, 1, 0, 1) : Base::Math::CVector4(1, 0, 0, 1);
+                            wsColor = wsConnected ? Base::Math::CVector4(0, 1, 0, 1) : Base::Math::CVector4(1, 0, 0, 1);
+                        }
+                        
+                        ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-net"))
+                            ->SetSample("\u25CF Net                   ");  // 19 spaces for separation
+                        spNetIndicator->SetColor("net-indicator-net", netColor);
+                        
+                        ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-ws"))
+                            ->SetSample("\u25CF Remote");
+                        spNetIndicator->SetColor("net-indicator-ws", wsColor);
+                    }
+                }
+                
                 if (spStats)
                 {
-                    bool internetConnected = PlatformUtils::IsInternetReachable();
-                    bool wsConnected = internetConnected && EDreamClient::IsWebSocketConnected();
-
                     // Combine Net and Remote on same line using spacing hack
                     // We add spaces after "Net" to separate the two indicators on the same right-aligned line
                     // This allows different colors for each indicator without implementing multi-color string support
@@ -1555,12 +1667,14 @@ class CElectricSheep
                     return true;
                 }
                 if (data != nullptr) {
+                    CheckNetworkForUserAction();  // Show indicator for 5s if network down
                     EDreamClient::Like(data->dreamData.uuid);
                     popOSD(Hud::Like);
                 }
                 return true;
             case CLIENT_COMMAND_DISLIKE:
                 if (data != nullptr) {
+                    CheckNetworkForUserAction();  // Show indicator for 5s if network down
                     EDreamClient::Dislike(data->dreamData.uuid);
                     
                     if (g_Settings()->Get("settings.content.negvotedeletes", true))
@@ -1586,6 +1700,7 @@ class CElectricSheep
                 //    Repeat current sheep
             case CLIENT_COMMAND_REPORT:
                 if (data != nullptr) {
+                    CheckNetworkForUserAction();  // Show indicator for 5s if network down
                     EDreamClient::Report(data->dreamData.uuid);
                     popOSD(Hud::Report);
                 }
