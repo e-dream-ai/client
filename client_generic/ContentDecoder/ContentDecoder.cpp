@@ -752,10 +752,6 @@ void CContentDecoder::ReadFramesThread()
         // tmp
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
         
-        // Initialize decode FPS measurement
-        auto decodeStartTime = std::chrono::steady_clock::now();
-        uint32_t framesDecodedInWindow = 0;
-        
         while (!m_HasEnded.load())
         {
             // Check for shutdown
@@ -855,16 +851,6 @@ void CContentDecoder::ReadFramesThread()
             if (pMainVideoFrame)
             {
                 m_FrameQueue.push(pMainVideoFrame);
-                
-                // Measure real decode FPS
-                framesDecodedInWindow++;
-                auto now = std::chrono::steady_clock::now();
-                double elapsed = std::chrono::duration<double>(now - decodeStartTime).count();
-                if (elapsed >= DECODE_FPS_MEASURE_WINDOW) {
-                    m_MeasuredDecodeFps.store(framesDecodedInWindow / elapsed);
-                    framesDecodedInWindow = 0;
-                    decodeStartTime = now;
-                }
             }
             else
             {

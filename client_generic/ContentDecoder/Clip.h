@@ -88,7 +88,6 @@ private:
     double m_TotalBufferingTime = 0.0;   // Accumulated buffering time
     bool m_HasStartedPlaying = false;    // Whether playback has actually begun
     float m_LastCalculatedAlpha = 0.0f;  // Store last calculated alpha (needed when buffering)
-    
 
     
   private:
@@ -164,8 +163,6 @@ public:
     double GetActualStartTime() const { return m_ActualStartTime; }
     double GetTotalBufferingTime() const { return m_TotalBufferingTime; }
     bool HasStartedPlaying() const { return m_HasStartedPlaying; }
-    /// Returns the real decode FPS (frames decoded per second by FFmpeg)
-    double GetMeasuredDecodeFps() const { return m_spDecoder ? m_spDecoder->GetMeasuredDecodeFps() : 0.0; }
     
     // Get the FrameDisplay for seamless transition frame inheritance
     spCFrameDisplay GetFrameDisplay() const { return m_spFrameDisplay; }

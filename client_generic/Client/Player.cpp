@@ -1781,17 +1781,6 @@ const ContentDecoder::sFrameMetadata* CPlayer::GetCurrentFrameMetadata() const
     return &m_currentClip->GetCurrentFrameMetadata();
 }
 
-double CPlayer::GetCurrentMeasuredFps() const
-{
-    reader_lock l(m_UpdateMutex);
-    // During transition, use next clip (the new dream)
-    if (m_isTransitioning && m_nextClip)
-        return m_nextClip->GetMeasuredDecodeFps();
-    if (!m_currentClip)
-        return 0.0;
-    return m_currentClip->GetMeasuredDecodeFps();
-}
-
 double CPlayer::GetCurrentClipElapsedTime() const
 {
     reader_lock l(m_UpdateMutex);

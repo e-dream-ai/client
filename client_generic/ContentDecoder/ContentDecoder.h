@@ -127,12 +127,6 @@ class CContentDecoder
 
     std::atomic<bool> m_isShuttingDown{false};
     void abortFutures();
-    
-    // Real decode FPS measurement (measured in decoder thread)
-    std::atomic<uint32_t> m_DecodedFrameCount{0};
-    std::atomic<double> m_DecodeStartTime{0.0};
-    std::atomic<double> m_MeasuredDecodeFps{0.0};
-    static constexpr double DECODE_FPS_MEASURE_WINDOW = 1.0;
 
   public:
     CContentDecoder(const uint32_t _queueLenght,
@@ -162,9 +156,6 @@ class CContentDecoder
         }
         m_SkipForward.exchange(_secondsForward);
     }
-    
-    /// Returns the measured real decode FPS (frames decoded per second by FFmpeg)
-    double GetMeasuredDecodeFps() const { return m_MeasuredDecodeFps.load(); }
     
   private:
     std::vector<std::future<void>> m_futures;
