@@ -52,8 +52,12 @@
 
 #ifdef MAC
 #define FULLSCREEN_MODIFIER_KEY "Command"
+// Sparkle update availability check (Mac only)
+extern bool ESScreensaver_IsUpdateAvailable(void);
 #else
 #define FULLSCREEN_MODIFIER_KEY "Control"
+// Non-Mac platforms don't have Sparkle
+inline bool ESScreensaver_IsUpdateAvailable(void) { return false; }
 #endif
 
 typedef void (*ShowPreferencesCallback_t)();
@@ -375,6 +379,7 @@ class CElectricSheep
         creditsConsole->Add(new Hud::CStringStat("credits-net", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-mode");
         creditsConsole->Add(new Hud::CStringStat("credits-ws", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-mode");
         creditsConsole->Add(new Hud::CStringStat("credits-dsk", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-mode");
+        creditsConsole->Add(new Hud::CStringStat("credits-upd", "", ""), true, Base::Math::CVector4(1, 1, 0, 1), "credits-mode");  // Yellow update indicator
         creditsConsole->Add(new Hud::CStringStat("credits-download", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-download-base");
     }
     
@@ -392,6 +397,7 @@ class CElectricSheep
         networkConsole->Add(new Hud::CStringStat("net-indicator-base", "", " "));  // Invisible base for alignment
         networkConsole->Add(new Hud::CStringStat("net-indicator-net", "", ""), true, Base::Math::CVector4(1, 0, 0, 1), "net-indicator-base");
         networkConsole->Add(new Hud::CStringStat("net-indicator-ws", "", ""), true, Base::Math::CVector4(1, 0, 0, 1), "net-indicator-base");
+        networkConsole->Add(new Hud::CStringStat("net-indicator-upd", "", ""), true, Base::Math::CVector4(1, 1, 0, 1), "net-indicator-base");  // Yellow update indicator
     }
     
     // Show network indicator for a specific duration
@@ -1392,6 +1398,17 @@ class CElectricSheep
                             ->SetSample("\u25CF Remote");
                         spNetIndicator->SetColor("net-indicator-ws", wsColor);
                     }
+                    
+                    // Update indicator in standalone network HUD - always show if update available
+                    bool updateAvailableForIndicator = ESScreensaver_IsUpdateAvailable();
+                    if (updateAvailableForIndicator) {
+                        ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-upd"))
+                            ->SetSample("\u25CF Update");
+                        spNetIndicator->SetColor("net-indicator-upd", Base::Math::CVector4(1, 1, 0, 1));  // Yellow
+                    } else {
+                        ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-upd"))
+                            ->SetSample("");
+                    }
                 }
                 
                 if (spStats)
@@ -1409,13 +1426,26 @@ class CElectricSheep
 
                     // Disk space indicator - only show when disk space is low
                     bool diskSpaceLow = g_ContentDownloader().m_gDownloader.IsDiskSpaceLow();
+                    bool updateAvailable = ESScreensaver_IsUpdateAvailable();
+                    
                     if (diskSpaceLow) {
+                        // Disk indicator with spacing (Update indicator may follow)
                         ((Hud::CStringStat*)spStats->Get("credits-dsk"))
                             ->SetSample("\u25CF Disk                               ");
                         spStats->SetColor("credits-dsk", Base::Math::CVector4(1, 0, 0, 1));  // Red when low
                     } else {
                         ((Hud::CStringStat*)spStats->Get("credits-dsk"))
                             ->SetSample("");  // Hide when disk space is OK
+                    }
+
+                    // Update available indicator - yellow, always leftmost when shown
+                    if (updateAvailable) {
+                        ((Hud::CStringStat*)spStats->Get("credits-upd"))
+                            ->SetSample(std::string("\u25CF Update                               ") + (diskSpaceLow ? "             " : ""));
+                        spStats->SetColor("credits-upd", Base::Math::CVector4(1, 1, 0, 1));  // Yellow
+                    } else {
+                        ((Hud::CStringStat*)spStats->Get("credits-upd"))
+                            ->SetSample("");  // Hide when no update available
                     }
 
                     // Update download indicator
