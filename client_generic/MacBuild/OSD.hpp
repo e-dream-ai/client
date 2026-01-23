@@ -11,6 +11,8 @@
 #define OSD_hpp
 
 #include <stdio.h>
+#include <cmath>
+#include <string>
 
 #include "Hud.h"
 #include "Rect.h"
@@ -379,6 +381,11 @@ public:
 
         m_spFont = g_Player().Renderer()->GetFont(m_FontDesc);
         
+        // Create the FPS text object once (will be reused via SetText)
+        if (m_spFont != NULL) {
+            m_spFpsText = g_Player().Renderer()->NewText(m_spFont, "");
+        }
+        
         // Large HUD
         tmpBg = NULL;
         tmpDot = NULL;
@@ -476,12 +483,11 @@ public:
                 bool isFastZone = scaledValueForIcons > 27;  // Red zone
                 bool isSlowZone = scaledValueForIcons < 0.8; // Blue zone
                 
+                // Set common state once (blend and shader already set from background draw)
                 if (isFastZone) {
                     // Fast zone: One rabbit on left, two rabbits on right
                     if (m_spRabbitTexture != NULL) {
                         spRenderer->SetTexture(m_spRabbitTexture, 0);
-                        spRenderer->SetBlend("alphablend");
-                        spRenderer->SetShader(NULL);
                         spRenderer->Apply();
                         // Draw one rabbit on left (in turtle's position)
                         spRenderer->DrawQuad(m_TurtleCRect, Base::Math::CVector4(1, 1, 1, 1), m_spRabbitTexture->GetRect());
@@ -493,8 +499,6 @@ public:
                     // Slow zone: Two turtles on left, one turtle on right
                     if (m_spTurtleTexture != NULL) {
                         spRenderer->SetTexture(m_spTurtleTexture, 0);
-                        spRenderer->SetBlend("alphablend");
-                        spRenderer->SetShader(NULL);
                         spRenderer->Apply();
                         // Draw two turtles on left
                         spRenderer->DrawQuad(m_TurtleCRect, Base::Math::CVector4(1, 1, 1, 1), m_spTurtleTexture->GetRect());
@@ -506,38 +510,60 @@ public:
                     // Normal zone: One turtle on left, one rabbit on right
                     if (m_spTurtleTexture != NULL) {
                         spRenderer->SetTexture(m_spTurtleTexture, 0);
-                        spRenderer->SetBlend("alphablend");
-                        spRenderer->SetShader(NULL);
                         spRenderer->Apply();
                         spRenderer->DrawQuad(m_TurtleCRect, Base::Math::CVector4(1, 1, 1, 1), m_spTurtleTexture->GetRect());
                     }
                     
                     if (m_spRabbitTexture != NULL) {
                         spRenderer->SetTexture(m_spRabbitTexture, 0);
-                        spRenderer->SetBlend("alphablend");
-                        spRenderer->SetShader(NULL);
                         spRenderer->Apply();
                         spRenderer->DrawQuad(m_RabbitCRect, Base::Math::CVector4(1, 1, 1, 1), m_spRabbitTexture->GetRect());
                     }
                 }
                 
                 // Draw FPS numeric display (horizontally centered, above the indicator dots)
-                // Recompute font size each frame to follow current display size
-                float fontPx = m_BgCRect.Height() * g_Player().Display()->Height() * 0.3f;
-                m_FontDesc.Height(fontPx);
-                m_spFont = g_Player().Renderer()->GetFont(m_FontDesc);
-                if (m_spFont != NULL) {
-                    // Create/update text with current FPS value (2 decimal places)
+                // Update font only if display size changes (avoid reallocating every frame)
+                int displayWInt = g_Player().Display()->Width();
+                int displayHInt = g_Player().Display()->Height();
+                float displayW = (float)displayWInt;
+                float displayH = (float)displayHInt;
+                float fontPx = m_BgCRect.Height() * displayH * 0.3f;
+
+                bool fontChanged = false;
+                if (fontPx > 0.0f &&
+                    (m_LastFontPx <= 0.0f || std::fabs(m_LastFontPx - fontPx) > 0.5f)) {
+                    m_LastFontPx = fontPx;
+                    m_FontDesc.Height(fontPx);
+                    m_spFont = g_Player().Renderer()->GetFont(m_FontDesc);
+                    if (m_spFont != NULL) {
+                        m_spFpsText = g_Player().Renderer()->NewText(m_spFont, "");
+                    } else {
+                        m_spFpsText = NULL;
+                    }
+                    fontChanged = true;
+                    m_LastFpsText.clear();
+                }
+
+                bool displayChanged = (displayWInt != m_LastDisplayWidth ||
+                                       displayHInt != m_LastDisplayHeight);
+                if (displayChanged) {
+                    m_LastDisplayWidth = displayWInt;
+                    m_LastDisplayHeight = displayHInt;
+                }
+
+                // Only update text if the visible value changed (avoid expensive SetText calls)
+                if (m_spFpsText != NULL && displayW > 0.0f && displayH > 0.0f) {
                     std::string fpsText = string_format("%.2f fps", currentFps);
-                    m_spFpsText = g_Player().Renderer()->NewText(m_spFont, fpsText);
-                    if (m_spFpsText != NULL) {
+                    bool textChanged = (fpsText != m_LastFpsText);
+                    if (textChanged || fontChanged || displayChanged) {
+                        m_LastFpsText = fpsText;
+                        m_spFpsText->SetText(fpsText);
+                        
                         // Manual extent estimate (Metal GetExtent is async and may return 0)
                         // Approx width = charCount * 0.6 * fontPx; height = fontPx
-                        float displayW = (float)g_Player().Display()->Width();
-                        float displayH = (float)g_Player().Display()->Height();
-                        float fontPx   = m_FontDesc.Height();
-                        float approxWidthPx  = (float)fpsText.size() * fontPx * 0.6f;
-                        float approxHeightPx = fontPx;
+                        float fontPxLayout = m_FontDesc.Height();
+                        float approxWidthPx  = (float)fpsText.size() * fontPxLayout * 0.6f;
+                        float approxHeightPx = fontPxLayout;
                         float textW = approxWidthPx / displayW;
                         float textH = approxHeightPx / displayH;
 
@@ -547,65 +573,97 @@ public:
                         float textX = 0.5f - (textW * 0.5f) + (m_BgCRect.Width() * 0.02f);
 
                         m_spFpsText->SetRect(Base::Math::CRect(textX, textY, textX + textW, textY + textH));
-                        m_spFpsText->SetEnabled(true);
-                        // Use renderer's DrawText to set color (osd-pill orange)
-                        spRenderer->DrawText(m_spFpsText, Base::Math::CVector4(1.0f, 0.855f, 0.722f, 1.0f));
                     }
+                    m_spFpsText->SetEnabled(true);
+                    // Use renderer's DrawText to set color (osd-pill orange)
+                    spRenderer->DrawText(m_spFpsText, Base::Math::CVector4(1.0f, 0.855f, 0.722f, 1.0f));
                 }
             } else {
                 // Brightness - use original symbol, hide FPS text
                 if (m_spFpsText != NULL) {
                     m_spFpsText->SetEnabled(false);
                 }
+                // Blend and shader already set from background draw
                 spRenderer->SetTexture(m_spSymbolBrightnessTexture, 0);
-                spRenderer->SetBlend("alphablend");
-                spRenderer->SetShader(NULL);
                 spRenderer->Apply();
                 spRenderer->DrawQuad(m_SymbolCRect, Base::Math::CVector4(1, 1, 1, 1), m_spSymbolBrightnessTexture->GetRect());
             }
             
-            // Setup & Draw dots
+            // Setup & Draw dots (batched to minimize Apply() calls)
 
-            // Scale back linearly min-max to 0-10
+            // Scale back linearly min-max to 0-27
             double scaledValue = 0;
             
             if (type == Speed) {
                 // We cheat a bit to align our rough fps to dots
                 scaledValue = (PerceptualFPSToSpeed(currentFps - 0.01) - minFps) * 27 / (maxFps - minFps);
-
             } else {
                 scaledValue = (currentBrightness - minBrightness) * 27 / (maxBrightness - minBrightness);
-
             }
 
             bool isFastZone = scaledValue > 27;
             bool isSlowZone = scaledValue < 0.8;
             bool isNormalZone = !isFastZone && !isSlowZone;
 
+            // Precompute which dots are "selected" (lit) vs "unselected"
+            // Then batch draw all selected dots first, then all unselected dots
+            // This reduces Apply() calls from 27 to just 2
+            
             spRenderer->SetBlend("alphablend");
             spRenderer->SetShader(NULL);
-            for (int i = 0 ; i < 27 ; i++) {
-                if (isFastZone && i < (scaledValue - 27)) {
-                    spRenderer->SetTexture(m_spDotTexture, 0);
-                } else if (isSlowZone && i < (scaledValue + 27)) {
-                    spRenderer->SetTexture(m_spDotTexture, 0);
-                } else if (isNormalZone && i < scaledValue) {
-                    spRenderer->SetTexture(m_spDotTexture, 0);
-                } else {
-                    spRenderer->SetTexture(m_spDotTexture_u, 0);
-                }
+            
+            // First pass: draw all selected (lit) dots
+            if (m_spDotTexture != NULL) {
+                spRenderer->SetTexture(m_spDotTexture, 0);
                 spRenderer->Apply();
-
-
-                spRenderer->DrawQuad(
-                                    Base::Math::CRect(
-                                        m_DotCRect.m_X0 + i*dotGap,
-                                        m_DotCRect.m_Y0,
-                                        m_DotCRect.m_X1 + i*dotGap,
-                                        m_DotCRect.m_Y1),
-                                    Base::Math::CVector4(1, 1, 1, 1),
-                                    m_spDotTexture->GetRect()
-                                     );
+                for (int i = 0; i < 27; i++) {
+                    bool isSelected = false;
+                    if (isFastZone && i < (scaledValue - 27)) {
+                        isSelected = true;
+                    } else if (isSlowZone && i < (scaledValue + 27)) {
+                        isSelected = true;
+                    } else if (isNormalZone && i < scaledValue) {
+                        isSelected = true;
+                    }
+                    
+                    if (isSelected) {
+                        spRenderer->DrawQuad(
+                            Base::Math::CRect(
+                                m_DotCRect.m_X0 + i * dotGap,
+                                m_DotCRect.m_Y0,
+                                m_DotCRect.m_X1 + i * dotGap,
+                                m_DotCRect.m_Y1),
+                            Base::Math::CVector4(1, 1, 1, 1),
+                            m_spDotTexture->GetRect());
+                    }
+                }
+            }
+            
+            // Second pass: draw all unselected dots
+            if (m_spDotTexture_u != NULL) {
+                spRenderer->SetTexture(m_spDotTexture_u, 0);
+                spRenderer->Apply();
+                for (int i = 0; i < 27; i++) {
+                    bool isSelected = false;
+                    if (isFastZone && i < (scaledValue - 27)) {
+                        isSelected = true;
+                    } else if (isSlowZone && i < (scaledValue + 27)) {
+                        isSelected = true;
+                    } else if (isNormalZone && i < scaledValue) {
+                        isSelected = true;
+                    }
+                    
+                    if (!isSelected) {
+                        spRenderer->DrawQuad(
+                            Base::Math::CRect(
+                                m_DotCRect.m_X0 + i * dotGap,
+                                m_DotCRect.m_Y0,
+                                m_DotCRect.m_X1 + i * dotGap,
+                                m_DotCRect.m_Y1),
+                            Base::Math::CVector4(1, 1, 1, 1),
+                            m_spDotTexture_u->GetRect());
+                    }
+                }
             }
         } else {
             // Show mini hud!
@@ -623,52 +681,52 @@ public:
 
             spRenderer->DrawQuad(m_BgSqCRect, Base::Math::CVector4(1, 1, 1, 1), m_spBgSqTexture->GetRect());
             
-            // Setup & Draw symbol
+            // Setup & Draw symbol (blend and shader already set from background)
+            DisplayOutput::spCTextureFlat symbolTexture;
             switch (type) {
                 case Pause:
-                    spRenderer->SetTexture(m_spPauseTexture, 0);
+                    symbolTexture = m_spPauseTexture;
                     break;
                 case Play:
-                    spRenderer->SetTexture(m_spPlayTexture, 0);
+                    symbolTexture = m_spPlayTexture;
                     break;
                 case Previous:
-                    spRenderer->SetTexture(m_spBackTexture, 0);
+                    symbolTexture = m_spBackTexture;
                     break;
                 case Next:
-                    spRenderer->SetTexture(m_spForwardTexture, 0);
+                    symbolTexture = m_spForwardTexture;
                     break;
                 case Back10:
-                    spRenderer->SetTexture(m_spBack10Texture, 0);
+                    symbolTexture = m_spBack10Texture;
                     break;
                 case Forward10:
-                    spRenderer->SetTexture(m_spForward10Texture, 0);
+                    symbolTexture = m_spForward10Texture;
                     break;
                 case Like:
-                    spRenderer->SetTexture(m_spLikeTexture, 0);
+                    symbolTexture = m_spLikeTexture;
                     break;
                 case Dislike:
-                    spRenderer->SetTexture(m_spDislikeTexture, 0);
+                    symbolTexture = m_spDislikeTexture;
                     break;
                 case Report:
-                    spRenderer->SetTexture(m_spReportTexture, 0);
+                    symbolTexture = m_spReportTexture;
                     break;
                 case Repeat:
-                    spRenderer->SetTexture(m_spRepeatTexture, 0);
+                    symbolTexture = m_spRepeatTexture;
                     break;
                 case Shuffle:
-                    spRenderer->SetTexture(m_spShuffleTexture, 0);
+                    symbolTexture = m_spShuffleTexture;
                     break;
                 default:
-                    spRenderer->SetTexture(m_spPauseTexture, 0);
-                    printf("Shouldn't be here");
+                    symbolTexture = m_spPauseTexture;
                     break;
             }
 
-            spRenderer->SetBlend("alphablend");
-            spRenderer->SetShader(NULL);
-            spRenderer->Apply();
-
-            spRenderer->DrawQuad(m_LargeSymbolCRect, Base::Math::CVector4(1, 1, 1, 1), m_spPlayTexture->GetRect());
+            if (symbolTexture != NULL) {
+                spRenderer->SetTexture(symbolTexture, 0);
+                spRenderer->Apply();
+                spRenderer->DrawQuad(m_LargeSymbolCRect, Base::Math::CVector4(1, 1, 1, 1), symbolTexture->GetRect());
+            }
         }
         
         
@@ -745,6 +803,10 @@ private:
     DisplayOutput::spCBaseFont m_spFont;
     DisplayOutput::spCBaseText m_spFpsText;
     Base::Math::CRect m_FpsTextRect;
+    float m_LastFontPx = 0.0f;
+    int m_LastDisplayWidth = 0;
+    int m_LastDisplayHeight = 0;
+    std::string m_LastFpsText;  // Track last displayed value to avoid unnecessary updates
     
     // Precalculations for rendering
     float dotGap;
