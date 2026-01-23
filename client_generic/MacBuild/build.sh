@@ -151,6 +151,7 @@ if [ -n "$VERSION" ]; then
     if [ "$CURRENT_VERSION" != "$PLIST_VERSION" ]; then
         echo -e "${YELLOW}Updating $SAVER_INFO_PLIST version from $CURRENT_VERSION to $PLIST_VERSION...${NC}"
         /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $PLIST_VERSION" "$SAVER_INFO_PLIST"
+        /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $PLIST_VERSION" "$SAVER_INFO_PLIST"
         echo -e "${GREEN}✓ Version updated in $SAVER_INFO_PLIST${NC}"
     fi
 fi
