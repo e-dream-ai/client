@@ -1372,42 +1372,76 @@ class CElectricSheep
                     HideNetworkIndicator();
                 }
                 
-                // Update network indicator content if visible
+                // Check if credits overlay is visible
+                bool creditsVisible = false;
+                if (auto spCreditsHud = m_HudManager->Get("dreamcredits")) {
+                    creditsVisible = spCreditsHud->Visible();
+                }
+                
+                // Check if update is available
+                bool updateAvailableForIndicator = ESScreensaver_IsUpdateAvailable();
+                
+                // Show network indicator HUD when:
+                // 1. Network is down (m_NetworkIndicatorEndTime > 0), OR
+                // 2. Update available AND credits overlay is hidden (so user can see update indicator)
+                bool shouldShowIndicatorHUD = (m_NetworkIndicatorEndTime > 0.0) || 
+                                              (updateAvailableForIndicator && !creditsVisible);
+                
+                // Update network indicator content
                 if (auto spNetIndicator = std::dynamic_pointer_cast<Hud::CStatsConsole>(
                         m_HudManager->Get("network-indicator")))
                 {
-                    if (m_NetworkIndicatorEndTime > 0.0)
+                    if (shouldShowIndicatorHUD)
                     {
-                        // Determine colors based on whether we're showing recovery (green) or down state (red)
-                        Base::Math::CVector4 netColor, wsColor;
-                        if (m_NetworkIndicatorShowGreen) {
-                            // Recovery state - show green for both
-                            netColor = Base::Math::CVector4(0, 1, 0, 1);
-                            wsColor = Base::Math::CVector4(0, 1, 0, 1);
-                        } else {
-                            // Down state - show actual status colors
-                            netColor = internetConnected ? Base::Math::CVector4(0, 1, 0, 1) : Base::Math::CVector4(1, 0, 0, 1);
-                            wsColor = wsConnected ? Base::Math::CVector4(0, 1, 0, 1) : Base::Math::CVector4(1, 0, 0, 1);
+                        // Make sure the HUD is visible
+                        spNetIndicator->Visible(true);
+                        
+                        // Only show net/ws indicators when there's a network issue (not just for update)
+                        if (m_NetworkIndicatorEndTime > 0.0)
+                        {
+                            // Determine colors based on whether we're showing recovery (green) or down state (red)
+                            Base::Math::CVector4 netColor, wsColor;
+                            if (m_NetworkIndicatorShowGreen) {
+                                // Recovery state - show green for both
+                                netColor = Base::Math::CVector4(0, 1, 0, 1);
+                                wsColor = Base::Math::CVector4(0, 1, 0, 1);
+                            } else {
+                                // Down state - show actual status colors
+                                netColor = internetConnected ? Base::Math::CVector4(0, 1, 0, 1) : Base::Math::CVector4(1, 0, 0, 1);
+                                wsColor = wsConnected ? Base::Math::CVector4(0, 1, 0, 1) : Base::Math::CVector4(1, 0, 0, 1);
+                            }
+                            
+                            ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-net"))
+                                ->SetSample("\u25CF Net                   ");  // 19 spaces for separation
+                            spNetIndicator->SetColor("net-indicator-net", netColor);
+                            
+                            ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-ws"))
+                                ->SetSample("\u25CF Remote");
+                            spNetIndicator->SetColor("net-indicator-ws", wsColor);
+                        }
+                        else
+                        {
+                            // Only showing for update indicator - clear net/ws indicators
+                            ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-net"))
+                                ->SetSample("");
+                            ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-ws"))
+                                ->SetSample("");
                         }
                         
-                        ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-net"))
-                            ->SetSample("\u25CF Net                   ");  // 19 spaces for separation
-                        spNetIndicator->SetColor("net-indicator-net", netColor);
-                        
-                        ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-ws"))
-                            ->SetSample("\u25CF Remote");
-                        spNetIndicator->SetColor("net-indicator-ws", wsColor);
+                        // Update indicator - always show if update available
+                        if (updateAvailableForIndicator) {
+                            ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-upd"))
+                                ->SetSample("\u25CF Update");
+                            spNetIndicator->SetColor("net-indicator-upd", Base::Math::CVector4(1, 1, 0, 1));  // Yellow
+                        } else {
+                            ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-upd"))
+                                ->SetSample("");
+                        }
                     }
-                    
-                    // Update indicator in standalone network HUD - always show if update available
-                    bool updateAvailableForIndicator = ESScreensaver_IsUpdateAvailable();
-                    if (updateAvailableForIndicator) {
-                        ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-upd"))
-                            ->SetSample("\u25CF Update");
-                        spNetIndicator->SetColor("net-indicator-upd", Base::Math::CVector4(1, 1, 0, 1));  // Yellow
-                    } else {
-                        ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-upd"))
-                            ->SetSample("");
+                    else
+                    {
+                        // Hide the indicator HUD when not needed
+                        spNetIndicator->Visible(false);
                     }
                 }
                 
