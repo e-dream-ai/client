@@ -32,6 +32,7 @@
 
 
     m_updater = NULL;
+    m_updateAvailable = NO;
 
     m_isFullScreen = !isPreview;
     m_isStopped = YES;
@@ -39,8 +40,9 @@
     m_isPreview = isPreview;
     DEBUG_LOG("INIT");
 
-#ifndef SCREEN_SAVER
-    // Initialize Sparkle updater for app (not screensaver)
+    // Initialize Sparkle updater for both app and screensaver
+    // For screensaver: only check in background, no UI prompts
+    // For app: full functionality with menu item connection
     m_updater = [[SPUStandardUpdaterController alloc] initWithStartingUpdater:YES
                                                               updaterDelegate:self
                                                            userDriverDelegate:nil];
@@ -49,7 +51,8 @@
         [m_updater.updater checkForUpdatesInBackground];
     }
     
-    // Connect "Check for Updates..." menu item to the updater
+#ifndef SCREEN_SAVER
+    // Connect "Check for Updates..." menu item to the updater (app only)
     [self connectCheckForUpdatesMenuItem];
 #endif
 
@@ -464,6 +467,27 @@ static void signnal_handler(int signal)
     [self stopAnimation];
 }
 
+// Called when Sparkle finds a valid update
+- (void)updater:(SPUUpdater *)updater didFindValidUpdate:(SUAppcastItem *)item
+{
+    m_updateAvailable = YES;
+    ESScreensaver_SetUpdateAvailable(true);
+    NSLog(@"Sparkle found valid update: %@", item.displayVersionString);
+}
+
+// Called when Sparkle does not find an update
+- (void)updaterDidNotFindUpdate:(SPUUpdater *)updater
+{
+    m_updateAvailable = NO;
+    ESScreensaver_SetUpdateAvailable(false);
+    NSLog(@"Sparkle did not find an update");
+}
+
+// Check if an update is available
+- (BOOL)isUpdateAvailable
+{
+    return m_updateAvailable;
+}
 
 #ifndef SCREEN_SAVER
 - (void)checkForUpdates:(id)sender
