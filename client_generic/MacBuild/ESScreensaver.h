@@ -40,3 +40,7 @@ CFStringRef ESScreensaver_CopyGetRoot(void);
 void ESScreensaver_SetIsFullScreen(bool);
 
 size_t ESScreensaver_GetFlockSizeMBs(const char* mp4path, int sheeptype);
+
+// Update availability functions
+void ESScreensaver_SetUpdateAvailable(bool available);
+bool ESScreensaver_IsUpdateAvailable(void);

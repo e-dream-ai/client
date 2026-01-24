@@ -32,6 +32,8 @@
 
 
     m_updater = NULL;
+    m_sparkleUpdater = NULL;
+    m_updateAvailable = NO;
 
     m_isFullScreen = !isPreview;
     m_isStopped = YES;
@@ -39,8 +41,49 @@
     m_isPreview = isPreview;
     DEBUG_LOG("INIT");
 
-#ifndef SCREEN_SAVER
-    // Initialize Sparkle updater for app (not screensaver)
+    // Initialize Sparkle updater for both app and screensaver
+    // For screensaver: explicitly specify the bundle so Sparkle can find Info.plist
+    // For app: full functionality with menu item connection
+    
+    NSLog(@"ESScreensaverView: Initializing Sparkle...");
+    
+#ifdef SCREEN_SAVER
+    NSLog(@"ESScreensaverView: Running in SCREEN_SAVER mode");
+    // For screensaver: use explicit bundle initialization
+    // This ensures Sparkle reads SUPublicEDKey and other settings from our bundle
+    m_updater = nil;
+    m_sparkleUpdater = nil;
+    
+    @try {
+        NSBundle *screensaverBundle = [NSBundle bundleForClass:[self class]];
+        NSLog(@"Sparkle: initializing for screensaver bundle: %@ at %@", 
+              screensaverBundle.bundleIdentifier, screensaverBundle.bundlePath);
+        
+        SPUStandardUserDriver *userDriver = [[SPUStandardUserDriver alloc] initWithHostBundle:screensaverBundle delegate:nil];
+        SPUUpdater *updater = [[SPUUpdater alloc] initWithHostBundle:screensaverBundle
+                                                   applicationBundle:screensaverBundle
+                                                          userDriver:userDriver
+                                                            delegate:self];
+        
+        NSError *error = nil;
+        if ([updater startUpdater:&error]) {
+            m_sparkleUpdater = updater;
+            m_sparkleUpdater.automaticallyChecksForUpdates = YES;
+            NSLog(@"Sparkle: successfully started for screensaver");
+            
+            // Trigger an immediate background check for updates
+            [m_sparkleUpdater checkForUpdatesInBackground];
+            NSLog(@"Sparkle: initiated background update check");
+        } else {
+            NSLog(@"Sparkle: failed to start - %@", error.localizedDescription);
+        }
+    } @catch (NSException *exception) {
+        NSLog(@"Sparkle: exception during initialization - %@: %@", exception.name, exception.reason);
+    }
+#else
+    NSLog(@"ESScreensaverView: Running in APP mode");
+    // For app: use standard controller
+    m_sparkleUpdater = nil;
     m_updater = [[SPUStandardUpdaterController alloc] initWithStartingUpdater:YES
                                                               updaterDelegate:self
                                                            userDriverDelegate:nil];
@@ -49,7 +92,7 @@
         [m_updater.updater checkForUpdatesInBackground];
     }
     
-    // Connect "Check for Updates..." menu item to the updater
+    // Connect "Check for Updates..." menu item to the updater (app only)
     [self connectCheckForUpdatesMenuItem];
 #endif
 
@@ -464,6 +507,62 @@ static void signnal_handler(int signal)
     [self stopAnimation];
 }
 
+// Called when Sparkle finds a valid update
+- (void)updater:(SPUUpdater *)updater didFindValidUpdate:(SUAppcastItem *)item
+{
+    m_updateAvailable = YES;
+    ESScreensaver_SetUpdateAvailable(true);
+    NSLog(@"Sparkle found valid update: %@", item.displayVersionString);
+}
+
+// Called when Sparkle does not find an update
+- (void)updaterDidNotFindUpdate:(SPUUpdater *)updater
+{
+    m_updateAvailable = NO;
+    ESScreensaver_SetUpdateAvailable(false);
+    NSLog(@"Sparkle did not find an update");
+}
+
+// Provide the appcast URL for Sparkle (required for screensaver bundle)
+- (nullable NSString *)feedURLStringForUpdater:(SPUUpdater *)updater
+{
+    // First try to get URL from bundle's Info.plist
+    NSBundle *bundle = [NSBundle bundleForClass:[self class]];
+    NSString *feedURL = [bundle objectForInfoDictionaryKey:@"SUFeedURL"];
+    
+    if (feedURL && feedURL.length > 0) {
+        NSLog(@"Sparkle feed URL from bundle: %@", feedURL);
+        return feedURL;
+    }
+    
+    // Fallback to hardcoded URL based on build configuration
+#ifdef DEBUG
+    feedURL = @"https://infinidream.ai/stage/appcast.xml";
+#else
+    feedURL = @"https://infinidream.ai/alpha/appcast.xml";
+#endif
+    
+    NSLog(@"Sparkle feed URL (fallback): %@", feedURL);
+    return feedURL;
+}
+
+// For screensaver: don't prompt user for permission, just check silently
+- (BOOL)updaterShouldPromptForPermissionToCheckForUpdates:(SPUUpdater *)updater
+{
+#ifdef SCREEN_SAVER
+    // Screensaver should never show permission dialogs
+    return NO;
+#else
+    // App can show the standard permission dialog
+    return YES;
+#endif
+}
+
+// Check if an update is available
+- (BOOL)isUpdateAvailable
+{
+    return m_updateAvailable;
+}
 
 #ifndef SCREEN_SAVER
 - (void)checkForUpdates:(id)sender

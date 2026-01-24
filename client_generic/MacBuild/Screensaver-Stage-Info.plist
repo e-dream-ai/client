@@ -19,9 +19,11 @@
 	<key>CFBundlePackageType</key>
 	<string>BNDL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.13.3-stage</string>
+	<string>0.13.5-stage</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
+	<key>CFBundleVersion</key>
+	<string>0.13.5-stage</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSExceptionDomains</key>

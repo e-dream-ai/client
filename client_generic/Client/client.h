@@ -52,8 +52,12 @@
 
 #ifdef MAC
 #define FULLSCREEN_MODIFIER_KEY "Command"
+// Sparkle update availability check (Mac only)
+extern bool ESScreensaver_IsUpdateAvailable(void);
 #else
 #define FULLSCREEN_MODIFIER_KEY "Control"
+// Non-Mac platforms don't have Sparkle
+inline bool ESScreensaver_IsUpdateAvailable(void) { return false; }
 #endif
 
 typedef void (*ShowPreferencesCallback_t)();
@@ -375,6 +379,7 @@ class CElectricSheep
         creditsConsole->Add(new Hud::CStringStat("credits-net", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-mode");
         creditsConsole->Add(new Hud::CStringStat("credits-ws", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-mode");
         creditsConsole->Add(new Hud::CStringStat("credits-dsk", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-mode");
+        creditsConsole->Add(new Hud::CStringStat("credits-upd", "", ""), true, Base::Math::CVector4(1, 1, 0, 1), "credits-mode");  // Yellow update indicator
         creditsConsole->Add(new Hud::CStringStat("credits-download", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-download-base");
     }
     
@@ -392,6 +397,7 @@ class CElectricSheep
         networkConsole->Add(new Hud::CStringStat("net-indicator-base", "", " "));  // Invisible base for alignment
         networkConsole->Add(new Hud::CStringStat("net-indicator-net", "", ""), true, Base::Math::CVector4(1, 0, 0, 1), "net-indicator-base");
         networkConsole->Add(new Hud::CStringStat("net-indicator-ws", "", ""), true, Base::Math::CVector4(1, 0, 0, 1), "net-indicator-base");
+        networkConsole->Add(new Hud::CStringStat("net-indicator-upd", "", ""), true, Base::Math::CVector4(1, 1, 0, 1), "net-indicator-base");  // Yellow update indicator
     }
     
     // Show network indicator for a specific duration
@@ -1366,31 +1372,76 @@ class CElectricSheep
                     HideNetworkIndicator();
                 }
                 
-                // Update network indicator content if visible
+                // Check if credits overlay is visible
+                bool creditsVisible = false;
+                if (auto spCreditsHud = m_HudManager->Get("dreamcredits")) {
+                    creditsVisible = spCreditsHud->Visible();
+                }
+                
+                // Check if update is available
+                bool updateAvailableForIndicator = ESScreensaver_IsUpdateAvailable();
+                
+                // Show network indicator HUD when:
+                // 1. Network is down (m_NetworkIndicatorEndTime > 0), OR
+                // 2. Update available AND credits overlay is hidden (so user can see update indicator)
+                bool shouldShowIndicatorHUD = (m_NetworkIndicatorEndTime > 0.0) || 
+                                              (updateAvailableForIndicator && !creditsVisible);
+                
+                // Update network indicator content
                 if (auto spNetIndicator = std::dynamic_pointer_cast<Hud::CStatsConsole>(
                         m_HudManager->Get("network-indicator")))
                 {
-                    if (m_NetworkIndicatorEndTime > 0.0)
+                    if (shouldShowIndicatorHUD)
                     {
-                        // Determine colors based on whether we're showing recovery (green) or down state (red)
-                        Base::Math::CVector4 netColor, wsColor;
-                        if (m_NetworkIndicatorShowGreen) {
-                            // Recovery state - show green for both
-                            netColor = Base::Math::CVector4(0, 1, 0, 1);
-                            wsColor = Base::Math::CVector4(0, 1, 0, 1);
-                        } else {
-                            // Down state - show actual status colors
-                            netColor = internetConnected ? Base::Math::CVector4(0, 1, 0, 1) : Base::Math::CVector4(1, 0, 0, 1);
-                            wsColor = wsConnected ? Base::Math::CVector4(0, 1, 0, 1) : Base::Math::CVector4(1, 0, 0, 1);
+                        // Make sure the HUD is visible
+                        spNetIndicator->Visible(true);
+                        
+                        // Only show net/ws indicators when there's a network issue (not just for update)
+                        if (m_NetworkIndicatorEndTime > 0.0)
+                        {
+                            // Determine colors based on whether we're showing recovery (green) or down state (red)
+                            Base::Math::CVector4 netColor, wsColor;
+                            if (m_NetworkIndicatorShowGreen) {
+                                // Recovery state - show green for both
+                                netColor = Base::Math::CVector4(0, 1, 0, 1);
+                                wsColor = Base::Math::CVector4(0, 1, 0, 1);
+                            } else {
+                                // Down state - show actual status colors
+                                netColor = internetConnected ? Base::Math::CVector4(0, 1, 0, 1) : Base::Math::CVector4(1, 0, 0, 1);
+                                wsColor = wsConnected ? Base::Math::CVector4(0, 1, 0, 1) : Base::Math::CVector4(1, 0, 0, 1);
+                            }
+                            
+                            ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-net"))
+                                ->SetSample("\u25CF Net                   ");  // 19 spaces for separation
+                            spNetIndicator->SetColor("net-indicator-net", netColor);
+                            
+                            ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-ws"))
+                                ->SetSample("\u25CF Remote");
+                            spNetIndicator->SetColor("net-indicator-ws", wsColor);
+                        }
+                        else
+                        {
+                            // Only showing for update indicator - clear net/ws indicators
+                            ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-net"))
+                                ->SetSample("");
+                            ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-ws"))
+                                ->SetSample("");
                         }
                         
-                        ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-net"))
-                            ->SetSample("\u25CF Net                   ");  // 19 spaces for separation
-                        spNetIndicator->SetColor("net-indicator-net", netColor);
-                        
-                        ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-ws"))
-                            ->SetSample("\u25CF Remote");
-                        spNetIndicator->SetColor("net-indicator-ws", wsColor);
+                        // Update indicator - always show if update available
+                        if (updateAvailableForIndicator) {
+                            ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-upd"))
+                                ->SetSample("\u25CF Update");
+                            spNetIndicator->SetColor("net-indicator-upd", Base::Math::CVector4(1, 1, 0, 1));  // Yellow
+                        } else {
+                            ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-upd"))
+                                ->SetSample("");
+                        }
+                    }
+                    else
+                    {
+                        // Hide the indicator HUD when not needed
+                        spNetIndicator->Visible(false);
                     }
                 }
                 
@@ -1409,13 +1460,26 @@ class CElectricSheep
 
                     // Disk space indicator - only show when disk space is low
                     bool diskSpaceLow = g_ContentDownloader().m_gDownloader.IsDiskSpaceLow();
+                    bool updateAvailable = ESScreensaver_IsUpdateAvailable();
+                    
                     if (diskSpaceLow) {
+                        // Disk indicator with spacing (Update indicator may follow)
                         ((Hud::CStringStat*)spStats->Get("credits-dsk"))
                             ->SetSample("\u25CF Disk                               ");
                         spStats->SetColor("credits-dsk", Base::Math::CVector4(1, 0, 0, 1));  // Red when low
                     } else {
                         ((Hud::CStringStat*)spStats->Get("credits-dsk"))
                             ->SetSample("");  // Hide when disk space is OK
+                    }
+
+                    // Update available indicator - yellow, always leftmost when shown
+                    if (updateAvailable) {
+                        ((Hud::CStringStat*)spStats->Get("credits-upd"))
+                            ->SetSample(std::string("\u25CF Update                               ") + (diskSpaceLow ? "             " : ""));
+                        spStats->SetColor("credits-upd", Base::Math::CVector4(1, 1, 0, 1));  // Yellow
+                    } else {
+                        ((Hud::CStringStat*)spStats->Get("credits-upd"))
+                            ->SetSample("");  // Hide when no update available
                     }
 
                     // Update download indicator

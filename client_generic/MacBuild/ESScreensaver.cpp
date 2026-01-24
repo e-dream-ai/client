@@ -250,3 +250,16 @@ size_t ESScreensaver_GetFlockSizeMBs(const char* mp4path, int sheeptype)
 {
     return GetFlockSizeBytes(mp4path, sheeptype) / 1024 / 1024;
 }
+
+// Update availability state - set from Objective-C code
+static bool g_updateAvailable = false;
+
+void ESScreensaver_SetUpdateAvailable(bool available)
+{
+    g_updateAvailable = available;
+}
+
+bool ESScreensaver_IsUpdateAvailable(void)
+{
+    return g_updateAvailable;
+}
