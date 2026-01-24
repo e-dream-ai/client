@@ -98,6 +98,11 @@ class CElectricSheep
     bool m_PrevWebsocketUp = true;    // Previous websocket state for transition detection
     double m_NetworkIndicatorEndTime = 0.0;  // When to hide the network indicator (0 = hidden)
     bool m_NetworkIndicatorShowGreen = false; // True when showing recovery (green) indicator
+    bool m_NetworkWasDown = false;    // True if network has been down since startup (for green recovery)
+
+    // Update indicator state tracking
+    bool m_PrevUpdateAvailable = false;      // Previous update available state for transition detection
+    double m_UpdateIndicatorEndTime = 0.0;   // When to hide the update indicator (0 = hidden)
 
   protected:
     ESCpuUsage m_CpuUsage;
@@ -417,7 +422,18 @@ class CElectricSheep
         if (auto spIndicator = m_HudManager->Get("network-indicator"))
             spIndicator->Visible(false);
     }
-    
+
+    // Show update indicator for a specific duration (similar to network indicator)
+    void ShowUpdateIndicator(double duration_seconds)
+    {
+        m_UpdateIndicatorEndTime = m_Timer.Time() + duration_seconds;
+    }
+
+    void HideUpdateIndicator()
+    {
+        m_UpdateIndicatorEndTime = 0.0;
+    }
+
     // Called when user performs an action that needs network (like, dislike, report)
     // Shows indicator for 5s if network is down
     void CheckNetworkForUserAction()
@@ -1354,12 +1370,14 @@ class CElectricSheep
                 // Handle transitions - show indicator outside credits overlay
                 if (networkWentDown) {
                     // Network or websocket went from up to down - show for 30 seconds
+                    m_NetworkWasDown = true;
                     ShowNetworkIndicator(30.0, false);
                 } else if (networkWentUp && internetConnected && wsConnected) {
                     // Both network and websocket recovered - show green for 5 seconds
-                    // Only show green if we were showing the red indicator (actual recovery, not initial connection)
-                    if (m_NetworkIndicatorEndTime > 0.0 && !m_NetworkIndicatorShowGreen) {
+                    // Only show green if network was actually down (not initial connection)
+                    if (m_NetworkWasDown) {
                         ShowNetworkIndicator(5.0, true);
+                        m_NetworkWasDown = false;
                     }
                 }
                 
@@ -1371,21 +1389,32 @@ class CElectricSheep
                 if (m_NetworkIndicatorEndTime > 0.0 && m_Timer.Time() >= m_NetworkIndicatorEndTime) {
                     HideNetworkIndicator();
                 }
-                
+
+                // Check if update is available and detect transitions
+                bool updateAvailableForIndicator = ESScreensaver_IsUpdateAvailable();
+
+                // Detect update availability transition (from not available to available)
+                if (updateAvailableForIndicator && !m_PrevUpdateAvailable) {
+                    // Update just became available - show indicator for 30 seconds
+                    ShowUpdateIndicator(30.0);
+                }
+                m_PrevUpdateAvailable = updateAvailableForIndicator;
+
+                // Check if update indicator timer has expired
+                if (m_UpdateIndicatorEndTime > 0.0 && m_Timer.Time() >= m_UpdateIndicatorEndTime) {
+                    HideUpdateIndicator();
+                }
+
                 // Check if credits overlay is visible
                 bool creditsVisible = false;
                 if (auto spCreditsHud = m_HudManager->Get("dreamcredits")) {
                     creditsVisible = spCreditsHud->Visible();
                 }
-                
-                // Check if update is available
-                bool updateAvailableForIndicator = ESScreensaver_IsUpdateAvailable();
-                
-                // Show network indicator HUD when:
-                // 1. Network is down (m_NetworkIndicatorEndTime > 0), OR
-                // 2. Update available AND credits overlay is hidden (so user can see update indicator)
-                bool shouldShowIndicatorHUD = (m_NetworkIndicatorEndTime > 0.0) || 
-                                              (updateAvailableForIndicator && !creditsVisible);
+
+                // Show standalone indicator HUD only when credits overlay is hidden
+                // and either network or update indicator timer is active
+                bool shouldShowIndicatorHUD = !creditsVisible &&
+                                              (m_NetworkIndicatorEndTime > 0.0 || m_UpdateIndicatorEndTime > 0.0);
                 
                 // Update network indicator content
                 if (auto spNetIndicator = std::dynamic_pointer_cast<Hud::CStatsConsole>(
@@ -1428,8 +1457,8 @@ class CElectricSheep
                                 ->SetSample("");
                         }
                         
-                        // Update indicator - always show if update available
-                        if (updateAvailableForIndicator) {
+                        // Update indicator - show only when timer is active
+                        if (m_UpdateIndicatorEndTime > 0.0) {
                             ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-upd"))
                                 ->SetSample("\u25CF Update");
                             spNetIndicator->SetColor("net-indicator-upd", Base::Math::CVector4(1, 1, 0, 1));  // Yellow
@@ -1447,16 +1476,24 @@ class CElectricSheep
                 
                 if (spStats)
                 {
-                    // Combine Net and Remote on same line using spacing hack
-                    // We add spaces after "Net" to separate the two indicators on the same right-aligned line
-                    // This allows different colors for each indicator without implementing multi-color string support
-                    ((Hud::CStringStat*)spStats->Get("credits-net"))
-                        ->SetSample("\u25CF Net                   ");  // 19 spaces for separation
-                    spStats->SetColor("credits-net", internetConnected ? Base::Math::CVector4(0, 1, 0, 1) : Base::Math::CVector4(1, 0, 0, 1));
+                    // Net and Remote indicators - only show in credits overlay when there's a problem (red)
+                    if (!internetConnected) {
+                        ((Hud::CStringStat*)spStats->Get("credits-net"))
+                            ->SetSample("\u25CF Net                   ");  // 19 spaces for separation
+                        spStats->SetColor("credits-net", Base::Math::CVector4(1, 0, 0, 1));  // Red
+                    } else {
+                        ((Hud::CStringStat*)spStats->Get("credits-net"))
+                            ->SetSample("");  // Hide when connected
+                    }
 
-                    ((Hud::CStringStat*)spStats->Get("credits-ws"))
-                        ->SetSample("\u25CF Remote");
-                    spStats->SetColor("credits-ws", wsConnected ? Base::Math::CVector4(0, 1, 0, 1) : Base::Math::CVector4(1, 0, 0, 1));
+                    if (!wsConnected) {
+                        ((Hud::CStringStat*)spStats->Get("credits-ws"))
+                            ->SetSample("\u25CF Remote");
+                        spStats->SetColor("credits-ws", Base::Math::CVector4(1, 0, 0, 1));  // Red
+                    } else {
+                        ((Hud::CStringStat*)spStats->Get("credits-ws"))
+                            ->SetSample("");  // Hide when connected
+                    }
 
                     // Disk space indicator - only show when disk space is low
                     bool diskSpaceLow = g_ContentDownloader().m_gDownloader.IsDiskSpaceLow();
