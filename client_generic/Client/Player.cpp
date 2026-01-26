@@ -1174,6 +1174,7 @@ bool CPlayer::SetPlaylist(const std::string& playlistUUID, bool fetchPlaylist = 
             if (m_nextClip) {
                 m_nextClip->SetTransitionLength(1.0f, 5.0f);
             }
+            m_playlistManager->moveToNextDream(*m_nextDreamDecision);
         }
     }
 
