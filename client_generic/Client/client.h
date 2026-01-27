@@ -640,11 +640,14 @@ class CElectricSheep
         // Initialize network state tracking
         m_PrevNetworkUp = internetReachable;
         m_PrevWebsocketUp = false;  // Websocket not connected yet at startup
+        m_RemoteWasDown = true;     // Treat initial state as "was down" so we can show indicator
         
         if (!internetReachable)
         {
             // Show network indicator for 30 seconds at startup if network is down
             ShowNetworkIndicator(30.0, false);
+            // Also show remote indicator since network is down
+            ShowRemoteIndicator(30.0);
             m_MultipleInstancesMode = true;  // set offline mode
         } else if (m_MultipleInstancesMode) {
             g_Log->Info("Forcing offline mode with multiple instances");
@@ -1417,6 +1420,10 @@ class CElectricSheep
                     }
                     m_RemoteWasDown = false;
                     m_RemoteInitialConnection = false;  // First successful connection done
+                } else if (m_RemoteInitialConnection && !wsConnected && m_RemoteIndicatorEndTime == 0.0) {
+                    // Initial connection failed - show indicator for 30 seconds
+                    ShowRemoteIndicator(30.0);
+                    m_RemoteInitialConnection = false;  // Don't trigger again
                 }
                 
                 // Update previous state for next frame
