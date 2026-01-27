@@ -110,6 +110,10 @@ class CElectricSheep
     // Busy indicator state tracking
     double m_BusyIndicatorEndTime = 0.0;     // When to hide the busy indicator (0 = hidden)
 
+    // Disk indicator state tracking
+    bool m_PrevDiskSpaceLow = false;         // Previous disk space state for transition detection
+    double m_DiskIndicatorEndTime = 0.0;     // When to hide the disk indicator (0 = hidden)
+
   protected:
     ESCpuUsage m_CpuUsage;
     double m_LastCPUCheckTime;
@@ -405,14 +409,24 @@ class CElectricSheep
         m_HudManager->Add("network-indicator", networkConsole);
         m_HudManager->Hide("network-indicator");
 
-        // Add placeholder stats for network and websocket status
-        // These are right-aligned at the bottom right corner
-        // Indicator order (left to right): Busy, Net, Remote, Update
-        networkConsole->Add(new Hud::CStringStat("net-indicator-base", "", " "));  // Invisible base for alignment
-        networkConsole->Add(new Hud::CStringStat("net-indicator-busy", "", ""), true, Base::Math::CVector4(1, 0, 0, 1), "net-indicator-base");  // Red busy indicator
-        networkConsole->Add(new Hud::CStringStat("net-indicator-net", "", ""), true, Base::Math::CVector4(1, 0, 0, 1), "net-indicator-base");
-        networkConsole->Add(new Hud::CStringStat("net-indicator-ws", "", ""), true, Base::Math::CVector4(1, 0, 0, 1), "net-indicator-base");
-        networkConsole->Add(new Hud::CStringStat("net-indicator-upd", "", ""), true, Base::Math::CVector4(1, 1, 0, 1), "net-indicator-base");  // Yellow update indicator
+        // Add rows to match credits console structure for same vertical positioning
+        // Credits has 5 rows: title, artist, playlist, mode, download-base
+        // Indicators align to "mode" row (4th row, 2nd from bottom)
+        // We need same structure so indicators appear at same Y position
+        // Using transparent color (alpha=0) so placeholder text is invisible
+        networkConsole->Add(new Hud::CStringStat("net-row1", "", " "), false, Base::Math::CVector4(0, 0, 0, 0));  // title row
+        networkConsole->Add(new Hud::CStringStat("net-row2", "", " "), false, Base::Math::CVector4(0, 0, 0, 0));  // artist row
+        networkConsole->Add(new Hud::CStringStat("net-row3", "", " "), false, Base::Math::CVector4(0, 0, 0, 0));  // playlist row
+        networkConsole->Add(new Hud::CStringStat("net-row4", "", " "), false, Base::Math::CVector4(0, 0, 0, 0));  // mode row - indicators here
+        networkConsole->Add(new Hud::CStringStat("net-row5", "", " "), false, Base::Math::CVector4(0, 0, 0, 0));  // download-base row
+
+        // Add right-aligned indicators on the mode row (row4)
+        // Indicator order (left to right): Disk, Busy, Net, Remote, Update
+        networkConsole->Add(new Hud::CStringStat("net-indicator-dsk", "", ""), true, Base::Math::CVector4(1, 0, 0, 1), "net-row4");
+        networkConsole->Add(new Hud::CStringStat("net-indicator-busy", "", ""), true, Base::Math::CVector4(1, 0, 0, 1), "net-row4");
+        networkConsole->Add(new Hud::CStringStat("net-indicator-net", "", ""), true, Base::Math::CVector4(1, 0, 0, 1), "net-row4");
+        networkConsole->Add(new Hud::CStringStat("net-indicator-ws", "", ""), true, Base::Math::CVector4(1, 0, 0, 1), "net-row4");
+        networkConsole->Add(new Hud::CStringStat("net-indicator-upd", "", ""), true, Base::Math::CVector4(1, 1, 0, 1), "net-row4");
     }
     
     // Show Net indicator for a specific duration
@@ -666,6 +680,12 @@ class CElectricSheep
         
         // Check disk space at startup
         g_ContentDownloader().m_gDownloader.CheckDiskSpace();
+        
+        // Show disk indicator for 30 seconds at startup if disk space is low
+        if (g_ContentDownloader().m_gDownloader.IsDiskSpaceLow()) {
+            m_DiskIndicatorEndTime = m_Timer.Time() + 30.0;
+            m_PrevDiskSpaceLow = true;
+        }
         
         if (m_MultipleInstancesMode) {
             g_Player().SetOfflineMode(true);
@@ -1455,6 +1475,19 @@ class CElectricSheep
                     HideUpdateIndicator();
                 }
 
+                // Check disk space and detect transitions
+                bool diskSpaceLow = g_ContentDownloader().m_gDownloader.IsDiskSpaceLow();
+                if (diskSpaceLow && !m_PrevDiskSpaceLow) {
+                    // Disk space just became low - show indicator for 30 seconds
+                    m_DiskIndicatorEndTime = m_Timer.Time() + 30.0;
+                }
+                m_PrevDiskSpaceLow = diskSpaceLow;
+
+                // Check if disk indicator timer has expired
+                if (m_DiskIndicatorEndTime > 0.0 && m_Timer.Time() >= m_DiskIndicatorEndTime) {
+                    m_DiskIndicatorEndTime = 0.0;
+                }
+
                 // Check if credits overlay is visible
                 bool creditsVisible = false;
                 if (auto spCreditsHud = m_HudManager->Get("dreamcredits")) {
@@ -1468,13 +1501,14 @@ class CElectricSheep
 
                 // Show standalone indicator HUD only when credits overlay is hidden
                 // and any indicator timer is active
+                bool showDisk = m_DiskIndicatorEndTime > 0.0;
                 bool showBusy = m_BusyIndicatorEndTime > 0.0;
                 bool showNet = m_NetworkIndicatorEndTime > 0.0;
                 bool showRemote = m_RemoteIndicatorEndTime > 0.0;
                 bool showUpdate = m_UpdateIndicatorEndTime > 0.0;
                 
                 bool shouldShowIndicatorHUD = !creditsVisible &&
-                                              (showBusy || showNet || showRemote || showUpdate);
+                                              (showDisk || showBusy || showNet || showRemote || showUpdate);
                 
                 // Calculate dynamic spacing based on which indicators will be shown AFTER each one
                 // Order (left to right): Disk -> Busy -> Net -> Remote -> Update
@@ -1486,6 +1520,8 @@ class CElectricSheep
                 const int WIDTH_UPDATE = 16;  // "● Update"
                 const int GAP = 2;           // gap between indicators
                 
+                // Disk needs spacing for: Busy (if shown) + Net (if shown) + Remote (if shown) + Update (if shown)
+                int spacesForDiskIndicator = (showBusy ? WIDTH_BUSY + GAP : 0) + (showNet ? WIDTH_NET + GAP : 0) + (showRemote ? WIDTH_REMOTE + GAP : 0) + (showUpdate ? WIDTH_UPDATE + GAP : 0);
                 // Busy needs spacing for: Net (if shown) + Remote (if shown) + Update (if shown)
                 int spacesForBusyIndicator = (showNet ? WIDTH_NET + GAP : 0) + (showRemote ? WIDTH_REMOTE + GAP : 0) + (showUpdate ? WIDTH_UPDATE + GAP : 0);
                 // Net needs spacing for: Remote (if shown) + Update (if shown)
@@ -1503,6 +1539,18 @@ class CElectricSheep
                     {
                         // Make sure the HUD is visible
                         spNetIndicator->Visible(true);
+                        
+                        // Placeholder rows are already set with transparent color in AddNetworkIndicatorHud()
+                        
+                        // Disk indicator - show when timer is active
+                        if (showDisk) {
+                            ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-dsk"))
+                                ->SetSample("\u25CF Disk" + std::string(spacesForDiskIndicator, ' '));
+                            spNetIndicator->SetColor("net-indicator-dsk", Base::Math::CVector4(1, 0, 0, 1));  // Red
+                        } else {
+                            ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-dsk"))
+                                ->SetSample("");
+                        }
                         
                         // Busy indicator - show when timer is active
                         if (showBusy) {
