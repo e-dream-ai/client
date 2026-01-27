@@ -1334,6 +1334,13 @@ void CPlayer::UpdateTransition(double currentTime)
         m_currentClip = m_nextClip;
         
         if (m_currentClip) {
+            // Transition already handled the fade-in visually, so disable the clip's internal
+            // fade-in to avoid a brief dark flash caused by the clip's secondsIn calculation
+            // being slightly behind due to decoder startup delay
+            m_currentClip->m_FadeInSeconds = 0.f;
+            m_currentClip->m_Alpha = 1.0f;
+            m_currentClip->m_LastCalculatedAlpha = 1.0f;
+            
             bool isJumpTransition = !m_nextDreamDecision.has_value();
             
             if (isJumpTransition) {
