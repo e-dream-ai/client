@@ -104,6 +104,9 @@ class CElectricSheep
     bool m_PrevUpdateAvailable = false;      // Previous update available state for transition detection
     double m_UpdateIndicatorEndTime = 0.0;   // When to hide the update indicator (0 = hidden)
 
+    // Busy indicator state tracking
+    double m_BusyIndicatorEndTime = 0.0;     // When to hide the busy indicator (0 = hidden)
+
   protected:
     ESCpuUsage m_CpuUsage;
     double m_LastCPUCheckTime;
@@ -314,7 +317,7 @@ class CElectricSheep
         spStats->Add(new Hud::CStringStat("deleted", "", ""));
         if (m_MultipleInstancesMode == true)
             spStats->Add(new Hud::CTimeCountDownStat(
-                "svstat", "", "Downloading disabled, offline mode"));
+                "svstat", "", "Downloading disabled, busy mode"));
         else if (g_Settings()->Get("settings.content.download_mode", true) ==
                  false)
             spStats->Add(new Hud::CTimeCountDownStat("svstat", "",
@@ -381,6 +384,8 @@ class CElectricSheep
         // Move most stats down one row to avoid overlap with long titles
         creditsConsole->Add(new Hud::CStringStat("credits-time", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-artist");
         creditsConsole->Add(new Hud::CStringStat("credits-fps", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-playlist");
+        // Indicator order (left to right): Busy, Net, Remote, Disk, Update
+        creditsConsole->Add(new Hud::CStringStat("credits-busy", "", ""), true, Base::Math::CVector4(1, 0, 0, 1), "credits-mode");  // Red busy indicator
         creditsConsole->Add(new Hud::CStringStat("credits-net", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-mode");
         creditsConsole->Add(new Hud::CStringStat("credits-ws", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-mode");
         creditsConsole->Add(new Hud::CStringStat("credits-dsk", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-mode");
@@ -399,7 +404,9 @@ class CElectricSheep
 
         // Add placeholder stats for network and websocket status
         // These are right-aligned at the bottom right corner
+        // Indicator order (left to right): Busy, Net, Remote, Update
         networkConsole->Add(new Hud::CStringStat("net-indicator-base", "", " "));  // Invisible base for alignment
+        networkConsole->Add(new Hud::CStringStat("net-indicator-busy", "", ""), true, Base::Math::CVector4(1, 0, 0, 1), "net-indicator-base");  // Red busy indicator
         networkConsole->Add(new Hud::CStringStat("net-indicator-net", "", ""), true, Base::Math::CVector4(1, 0, 0, 1), "net-indicator-base");
         networkConsole->Add(new Hud::CStringStat("net-indicator-ws", "", ""), true, Base::Math::CVector4(1, 0, 0, 1), "net-indicator-base");
         networkConsole->Add(new Hud::CStringStat("net-indicator-upd", "", ""), true, Base::Math::CVector4(1, 1, 0, 1), "net-indicator-base");  // Yellow update indicator
@@ -622,7 +629,6 @@ class CElectricSheep
         } else if (m_MultipleInstancesMode) {
             g_Log->Info("Forcing offline mode with multiple instances");
             internetReachable = false;
-            m_MessageQueue.QueueMessage("Running in Offline mode", 180);
         }
         //    Start downloader.
         g_Log->Info("Starting downloader...");
@@ -640,6 +646,8 @@ class CElectricSheep
         
         if (m_MultipleInstancesMode) {
             g_Player().SetOfflineMode(true);
+            // Show busy indicator for 30 seconds at startup
+            m_BusyIndicatorEndTime = m_Timer.Time() + 30.0;
         }
         
         // call static method to fill sheep counts
@@ -1104,7 +1112,7 @@ class CElectricSheep
                         if (!EDreamClient::IsLoggedIn())
                         {
                             if (m_MultipleInstancesMode) {
-                                pTmp->SetSample("Starting in offline mode.");
+                                pTmp->SetSample("Starting in busy mode.");
                             } else {
 #ifdef SCREEN_SAVER
                                 pTmp->SetSample("Please open settings to sign in.");
@@ -1411,10 +1419,35 @@ class CElectricSheep
                     creditsVisible = spCreditsHud->Visible();
                 }
 
+                // Check if busy indicator timer has expired
+                if (m_BusyIndicatorEndTime > 0.0 && m_Timer.Time() >= m_BusyIndicatorEndTime) {
+                    m_BusyIndicatorEndTime = 0.0;
+                }
+
                 // Show standalone indicator HUD only when credits overlay is hidden
-                // and either network or update indicator timer is active
+                // and either network, update, or busy indicator should be shown
+                bool showBusy = m_BusyIndicatorEndTime > 0.0;
+                bool showNet = m_NetworkIndicatorEndTime > 0.0;
+                bool showUpdate = m_UpdateIndicatorEndTime > 0.0;
+                
                 bool shouldShowIndicatorHUD = !creditsVisible &&
-                                              (m_NetworkIndicatorEndTime > 0.0 || m_UpdateIndicatorEndTime > 0.0);
+                                              (showNet || showUpdate || showBusy);
+                
+                // Calculate dynamic spacing based on which indicators will be shown AFTER each one
+                // Order (left to right): Busy -> Net -> Remote -> Update
+                // Each indicator width (including dot and space): Busy=7, Net=6, Remote=9, Update=9
+                const int WIDTH_BUSY = 12;    // "● Busy"
+                const int WIDTH_NET = 10;     // "● Net"
+                const int WIDTH_REMOTE = 17;  // "● Remote"
+                const int WIDTH_UPDATE = 16;  // "● Update"
+                const int GAP = 2;           // gap between indicators
+                
+                // Busy needs spacing for: Net + Remote (if shown) + Update (if shown)
+                int spacesForBusyIndicator = (showNet ? WIDTH_NET + GAP + WIDTH_REMOTE + GAP : 0) + (showUpdate ? WIDTH_UPDATE + GAP : 0);
+                // Net needs spacing for: Remote (always shown with Net) + Update (if shown)
+                int spacesForNetIndicator = WIDTH_REMOTE + GAP + (showUpdate ? WIDTH_UPDATE + GAP : 0);
+                // Remote needs spacing for: Update (if shown)
+                int spacesForWSIndicator = (showUpdate ? WIDTH_UPDATE + GAP : 0);
                 
                 // Update network indicator content
                 if (auto spNetIndicator = std::dynamic_pointer_cast<Hud::CStatsConsole>(
@@ -1424,6 +1457,16 @@ class CElectricSheep
                     {
                         // Make sure the HUD is visible
                         spNetIndicator->Visible(true);
+                        
+                        // Busy indicator - show when timer is active
+                        if (showBusy) {
+                            ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-busy"))
+                                ->SetSample("\u25CF Busy" + std::string(spacesForBusyIndicator, ' '));
+                            spNetIndicator->SetColor("net-indicator-busy", Base::Math::CVector4(1, 0, 0, 1));  // Red
+                        } else {
+                            ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-busy"))
+                                ->SetSample("");
+                        }
                         
                         // Only show net/ws indicators when there's a network issue (not just for update)
                         if (m_NetworkIndicatorEndTime > 0.0)
@@ -1441,11 +1484,11 @@ class CElectricSheep
                             }
                             
                             ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-net"))
-                                ->SetSample("\u25CF Net                   ");  // 19 spaces for separation
+                                ->SetSample("\u25CF Net" + std::string(spacesForNetIndicator, ' '));  // 19 spaces for separation
                             spNetIndicator->SetColor("net-indicator-net", netColor);
                             
                             ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-ws"))
-                                ->SetSample("\u25CF Remote");
+                                ->SetSample("\u25CF Remote" + std::string(spacesForWSIndicator, ' '));
                             spNetIndicator->SetColor("net-indicator-ws", wsColor);
                         }
                         else
@@ -1476,6 +1519,16 @@ class CElectricSheep
                 
                 if (spStats)
                 {
+                    // Busy indicator - show when in offline/multiple instances mode
+                    if (m_MultipleInstancesMode) {
+                        ((Hud::CStringStat*)spStats->Get("credits-busy"))
+                            ->SetSample("\u25CF Busy                   ");  // 19 spaces for separation
+                        spStats->SetColor("credits-busy", Base::Math::CVector4(1, 0, 0, 1));  // Red
+                    } else {
+                        ((Hud::CStringStat*)spStats->Get("credits-busy"))
+                            ->SetSample("");  // Hide when not in busy mode
+                    }
+
                     // Net and Remote indicators - only show in credits overlay when there's a problem (red)
                     if (!internetConnected) {
                         ((Hud::CStringStat*)spStats->Get("credits-net"))
@@ -1630,7 +1683,7 @@ class CElectricSheep
                     else
                     {
                         if (m_MultipleInstancesMode) {
-                            pTmp->SetSample("Offline mode, please close other instances of infnidream");
+                            pTmp->SetSample("Busy mode, please close other instances of infnidream");
                         } else {
                             pTmp->SetSample("Not signed in");
                         }
