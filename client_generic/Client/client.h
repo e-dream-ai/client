@@ -1549,29 +1549,29 @@ class CElectricSheep
                     }
                 }
 
-                // Disk space indicator - only show when disk space is low
-                bool diskSpaceLow = g_ContentDownloader().m_gDownloader.IsDiskSpaceLow();
-                bool updateAvailable = ESScreensaver_IsUpdateAvailable();
-
-                bool showDisk = diskSpaceLow;
-                showBusy = m_MultipleInstancesMode;
-                showNet = !internetConnected;
-                bool showRemote = !wsConnected;
-                showUpdate = updateAvailable;
-
-                // Disk needs spacing for: Busy (if shown) + Net (if shown) + Remote (if shown) + Update (if shown)
-                int spacesForDiskIndicator = (showBusy ? WIDTH_BUSY + GAP : 0) + (showNet ? WIDTH_NET + GAP : 0) + (showRemote ? WIDTH_REMOTE + GAP : 0) + (showUpdate ? WIDTH_UPDATE + GAP : 0);
-                // Busy needs spacing for: Net (if shown) + Remote (if shown) + Update (if shown)
-                spacesForBusyIndicator = (showNet ? WIDTH_NET + GAP : 0) + (showRemote ? WIDTH_REMOTE + GAP : 0) + (showUpdate ? WIDTH_UPDATE + GAP : 0);
-                // Net needs spacing for: Remote (if shown) + Update (if shown)
-                spacesForNetIndicator = (showRemote ? WIDTH_REMOTE + GAP : 0) + (showUpdate ? WIDTH_UPDATE + GAP : 0);
-                // Remote needs spacing for: Update (if shown)
-                spacesForWSIndicator = (showUpdate ? WIDTH_UPDATE + GAP : 0);
-                // Update needs spacing for: nothing
-                spacesForUpdateIndicator = 0;
-
                 if (spStats)
                 {
+                    // Disk space indicator - only show when disk space is low
+                    bool diskSpaceLow = g_ContentDownloader().m_gDownloader.IsDiskSpaceLow();
+                    bool updateAvailable = ESScreensaver_IsUpdateAvailable();
+
+                    bool showDisk = diskSpaceLow;
+                    showBusy = m_MultipleInstancesMode;
+                    showNet = !internetConnected;
+                    showRemote = !wsConnected;
+                    showUpdate = updateAvailable;
+
+                    // Disk needs spacing for: Busy (if shown) + Net (if shown) + Remote (if shown) + Update (if shown)
+                    int spacesForDiskIndicator = (showBusy ? WIDTH_BUSY + GAP : 0) + (showNet ? WIDTH_NET + GAP : 0) + (showRemote ? WIDTH_REMOTE + GAP : 0) + (showUpdate ? WIDTH_UPDATE + GAP : 0);
+                    // Busy needs spacing for: Net (if shown) + Remote (if shown) + Update (if shown)
+                    spacesForBusyIndicator = (showNet ? WIDTH_NET + GAP : 0) + (showRemote ? WIDTH_REMOTE + GAP : 0) + (showUpdate ? WIDTH_UPDATE + GAP : 0);
+                    // Net needs spacing for: Remote (if shown) + Update (if shown)
+                    spacesForNetIndicator = (showRemote ? WIDTH_REMOTE + GAP : 0) + (showUpdate ? WIDTH_UPDATE + GAP : 0);
+                    // Remote needs spacing for: Update (if shown)
+                    spacesForWSIndicator = (showUpdate ? WIDTH_UPDATE + GAP : 0);
+                    // Update needs spacing for: nothing
+                    spacesForUpdateIndicator = 0;
+
                     // Busy indicator - show when in offline/multiple instances mode
                     if (showBusy) {
                         ((Hud::CStringStat*)spStats->Get("credits-busy"))
