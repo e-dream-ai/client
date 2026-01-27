@@ -100,6 +100,8 @@ class CElectricSheep
     double m_RemoteIndicatorEndTime = 0.0;   // When to hide the Remote indicator (0 = hidden)
     bool m_NetworkIndicatorShowGreen = false; // True when showing recovery (green) indicator
     bool m_NetworkWasDown = false;    // True if network has been down since startup (for green recovery)
+    bool m_RemoteWasDown = false;     // True if remote has been down since startup (for green recovery)
+    bool m_RemoteInitialConnection = true;   // True until first successful websocket connection
 
     // Update indicator state tracking
     bool m_PrevUpdateAvailable = false;      // Previous update available state for transition detection
@@ -1406,9 +1408,15 @@ class CElectricSheep
                 
                 // Handle Remote transitions
                 if (remoteWentDown) {
+                    m_RemoteWasDown = true;
                     ShowRemoteIndicator(30.0);
                 } else if (remoteWentUp) {
-                    ShowRemoteIndicator(5.0);  // Brief show on recovery
+                    // Only show green recovery if remote was actually down (not initial connection)
+                    if (m_RemoteWasDown && !m_RemoteInitialConnection) {
+                        ShowRemoteIndicator(5.0);  // Brief show on recovery
+                    }
+                    m_RemoteWasDown = false;
+                    m_RemoteInitialConnection = false;  // First successful connection done
                 }
                 
                 // Update previous state for next frame
