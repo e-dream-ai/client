@@ -306,6 +306,20 @@ bool CCurlTransfer::Perform(const std::string& _url)
     if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_SSL_VERIFYPEER, 0)))
         return false;
 
+    // Set timeouts to prevent hanging when network is unavailable
+    // Connection timeout: max time to wait for connection to be established
+    if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_CONNECTTIMEOUT, 10L)))
+        return false;
+    // Overall timeout: max time for entire operation (including data transfer)
+    if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_TIMEOUT, 60L)))
+        return false;
+    // Low speed limit: abort if transfer speed drops below 1 byte/sec for 30 seconds
+    // This handles stalled connections that established but stopped transferring
+    if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_LOW_SPEED_LIMIT, 1L)))
+        return false;
+    if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_LOW_SPEED_TIME, 30L)))
+        return false;
+
     if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_HTTPHEADER, m_Headers)))
         return false;
 
