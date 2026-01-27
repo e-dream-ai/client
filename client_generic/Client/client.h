@@ -101,7 +101,8 @@ class CElectricSheep
     bool m_NetworkIndicatorShowGreen = false; // True when showing recovery (green) indicator
     bool m_NetworkWasDown = false;    // True if network has been down since startup (for green recovery)
     bool m_RemoteWasDown = false;     // True if remote has been down since startup (for green recovery)
-    bool m_RemoteInitialConnection = true;   // True until first successful websocket connection
+    bool m_RemoteFirstConnected = false;     // True after first successful websocket connection
+    bool m_RemoteInitialIndicatorShown = false;  // True after showing initial connection failure indicator
 
     // Update indicator state tracking
     bool m_PrevUpdateAvailable = false;      // Previous update available state for transition detection
@@ -654,7 +655,6 @@ class CElectricSheep
         // Initialize network state tracking
         m_PrevNetworkUp = internetReachable;
         m_PrevWebsocketUp = false;  // Websocket not connected yet at startup
-        m_RemoteWasDown = true;     // Treat initial state as "was down" so we can show indicator
         
         if (!internetReachable)
         {
@@ -1434,16 +1434,19 @@ class CElectricSheep
                     m_RemoteWasDown = true;
                     ShowRemoteIndicator(30.0);
                 } else if (remoteWentUp) {
-                    // Only show green recovery if remote was actually down (not initial connection)
-                    if (m_RemoteWasDown && !m_RemoteInitialConnection) {
+                    // Only show green recovery if this is NOT the first connection
+                    if (m_RemoteFirstConnected && m_RemoteWasDown) {
                         ShowRemoteIndicator(5.0);  // Brief show on recovery
+                    } else {
+                        // First connection - hide any initial failure indicator
+                        HideRemoteIndicator();
                     }
                     m_RemoteWasDown = false;
-                    m_RemoteInitialConnection = false;  // First successful connection done
-                } else if (m_RemoteInitialConnection && !wsConnected && m_RemoteIndicatorEndTime == 0.0) {
-                    // Initial connection failed - show indicator for 30 seconds
+                    m_RemoteFirstConnected = true;  // Mark that we've connected at least once
+                } else if (!m_RemoteFirstConnected && !wsConnected && !m_RemoteInitialIndicatorShown) {
+                    // Initial connection not yet established - show indicator once
                     ShowRemoteIndicator(30.0);
-                    m_RemoteInitialConnection = false;  // Don't trigger again
+                    m_RemoteInitialIndicatorShown = true;
                 }
                 
                 // Update previous state for next frame
