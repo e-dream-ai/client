@@ -982,12 +982,19 @@ void PlaylistManager::periodicCheckThread() {
             }
         }
         
-        if (!m_isCheckingActive.load()) {
+        if (!m_isCheckingActive.load() || m_shouldTerminate) {
             break;
         }
         
         checkForPlaylistChanges();
+        
+        // Check again after network call in case termination was requested during it
+        if (m_shouldTerminate) {
+            g_Log->Info("PlaylistManager::periodicCheckThread() - termination requested after check");
+            break;
+        }
     }
+    g_Log->Info("PlaylistManager::periodicCheckThread() - exiting");
 }
 
 bool PlaylistManager::checkForPlaylistChanges() {

@@ -689,6 +689,16 @@ class CElectricSheep
 
         if (!m_bConfigMode)
         {
+            // IMPORTANT: Abort all network operations FIRST before any thread joins
+            // This prevents hanging when network is unavailable or disrupted
+            g_NetworkManager->Abort();
+            
+            // Stop playlist manager's periodic checking thread before player shutdown
+            // This must happen before Player::Stop() which joins threads
+            if (g_Player().m_playlistManager) {
+                g_Player().m_playlistManager->stopPeriodicChecking();
+            }
+            
             g_ContentDownloader().Shutdown();
 
             //	This stuff was never started in config mode.
