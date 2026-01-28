@@ -96,13 +96,24 @@ class CElectricSheep
     // Network indicator state tracking
     bool m_PrevNetworkUp = true;      // Previous network state for transition detection
     bool m_PrevWebsocketUp = true;    // Previous websocket state for transition detection
-    double m_NetworkIndicatorEndTime = 0.0;  // When to hide the network indicator (0 = hidden)
+    double m_NetworkIndicatorEndTime = 0.0;  // When to hide the Net indicator (0 = hidden)
+    double m_RemoteIndicatorEndTime = 0.0;   // When to hide the Remote indicator (0 = hidden)
     bool m_NetworkIndicatorShowGreen = false; // True when showing recovery (green) indicator
     bool m_NetworkWasDown = false;    // True if network has been down since startup (for green recovery)
+    bool m_RemoteWasDown = false;     // True if remote has been down since startup (for green recovery)
+    bool m_RemoteFirstConnected = false;     // True after first successful websocket connection
+    bool m_RemoteInitialIndicatorShown = false;  // True after showing initial connection failure indicator
 
     // Update indicator state tracking
     bool m_PrevUpdateAvailable = false;      // Previous update available state for transition detection
     double m_UpdateIndicatorEndTime = 0.0;   // When to hide the update indicator (0 = hidden)
+
+    // Busy indicator state tracking
+    double m_BusyIndicatorEndTime = 0.0;     // When to hide the busy indicator (0 = hidden)
+
+    // Disk indicator state tracking
+    bool m_PrevDiskSpaceLow = false;         // Previous disk space state for transition detection
+    double m_DiskIndicatorEndTime = 0.0;     // When to hide the disk indicator (0 = hidden)
 
   protected:
     ESCpuUsage m_CpuUsage;
@@ -314,7 +325,7 @@ class CElectricSheep
         spStats->Add(new Hud::CStringStat("deleted", "", ""));
         if (m_MultipleInstancesMode == true)
             spStats->Add(new Hud::CTimeCountDownStat(
-                "svstat", "", "Downloading disabled, offline mode"));
+                "svstat", "", "Downloading disabled, busy mode"));
         else if (g_Settings()->Get("settings.content.download_mode", true) ==
                  false)
             spStats->Add(new Hud::CTimeCountDownStat("svstat", "",
@@ -381,6 +392,8 @@ class CElectricSheep
         // Move most stats down one row to avoid overlap with long titles
         creditsConsole->Add(new Hud::CStringStat("credits-time", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-artist");
         creditsConsole->Add(new Hud::CStringStat("credits-fps", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-playlist");
+        // Indicator order (left to right): Busy, Net, Remote, Disk, Update
+        creditsConsole->Add(new Hud::CStringStat("credits-busy", "", ""), true, Base::Math::CVector4(1, 0, 0, 1), "credits-mode");  // Red busy indicator
         creditsConsole->Add(new Hud::CStringStat("credits-net", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-mode");
         creditsConsole->Add(new Hud::CStringStat("credits-ws", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-mode");
         creditsConsole->Add(new Hud::CStringStat("credits-dsk", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-mode");
@@ -397,15 +410,27 @@ class CElectricSheep
         m_HudManager->Add("network-indicator", networkConsole);
         m_HudManager->Hide("network-indicator");
 
-        // Add placeholder stats for network and websocket status
-        // These are right-aligned at the bottom right corner
-        networkConsole->Add(new Hud::CStringStat("net-indicator-base", "", " "));  // Invisible base for alignment
-        networkConsole->Add(new Hud::CStringStat("net-indicator-net", "", ""), true, Base::Math::CVector4(1, 0, 0, 1), "net-indicator-base");
-        networkConsole->Add(new Hud::CStringStat("net-indicator-ws", "", ""), true, Base::Math::CVector4(1, 0, 0, 1), "net-indicator-base");
-        networkConsole->Add(new Hud::CStringStat("net-indicator-upd", "", ""), true, Base::Math::CVector4(1, 1, 0, 1), "net-indicator-base");  // Yellow update indicator
+        // Add rows to match credits console structure for same vertical positioning
+        // Credits has 5 rows: title, artist, playlist, mode, download-base
+        // Indicators align to "mode" row (4th row, 2nd from bottom)
+        // We need same structure so indicators appear at same Y position
+        // Using transparent color (alpha=0) so placeholder text is invisible
+        networkConsole->Add(new Hud::CStringStat("net-row1", "", " "), false, Base::Math::CVector4(0, 0, 0, 0));  // title row
+        networkConsole->Add(new Hud::CStringStat("net-row2", "", " "), false, Base::Math::CVector4(0, 0, 0, 0));  // artist row
+        networkConsole->Add(new Hud::CStringStat("net-row3", "", " "), false, Base::Math::CVector4(0, 0, 0, 0));  // playlist row
+        networkConsole->Add(new Hud::CStringStat("net-row4", "", " "), false, Base::Math::CVector4(0, 0, 0, 0));  // mode row - indicators here
+        networkConsole->Add(new Hud::CStringStat("net-row5", "", " "), false, Base::Math::CVector4(0, 0, 0, 0));  // download-base row
+
+        // Add right-aligned indicators on the mode row (row4)
+        // Indicator order (left to right): Disk, Busy, Net, Remote, Update
+        networkConsole->Add(new Hud::CStringStat("net-indicator-dsk", "", ""), true, Base::Math::CVector4(1, 0, 0, 1), "net-row4");
+        networkConsole->Add(new Hud::CStringStat("net-indicator-busy", "", ""), true, Base::Math::CVector4(1, 0, 0, 1), "net-row4");
+        networkConsole->Add(new Hud::CStringStat("net-indicator-net", "", ""), true, Base::Math::CVector4(1, 0, 0, 1), "net-row4");
+        networkConsole->Add(new Hud::CStringStat("net-indicator-ws", "", ""), true, Base::Math::CVector4(1, 0, 0, 1), "net-row4");
+        networkConsole->Add(new Hud::CStringStat("net-indicator-upd", "", ""), true, Base::Math::CVector4(1, 1, 0, 1), "net-row4");
     }
     
-    // Show network indicator for a specific duration
+    // Show Net indicator for a specific duration
     // duration_seconds: how long to show (30 for startup/down, 5 for action/recovery)
     // show_green: true for recovery (down->up transition), false for down state
     void ShowNetworkIndicator(double duration_seconds, bool show_green = false)
@@ -421,6 +446,19 @@ class CElectricSheep
         m_NetworkIndicatorEndTime = 0.0;
         if (auto spIndicator = m_HudManager->Get("network-indicator"))
             spIndicator->Visible(false);
+    }
+
+    // Show Remote indicator for a specific duration
+    void ShowRemoteIndicator(double duration_seconds)
+    {
+        m_RemoteIndicatorEndTime = m_Timer.Time() + duration_seconds;
+        if (auto spIndicator = m_HudManager->Get("network-indicator"))
+            spIndicator->Visible(true);
+    }
+
+    void HideRemoteIndicator()
+    {
+        m_RemoteIndicatorEndTime = 0.0;
     }
 
     // Show update indicator for a specific duration (similar to network indicator)
@@ -441,9 +479,13 @@ class CElectricSheep
         bool internetConnected = PlatformUtils::IsInternetReachable();
         bool wsConnected = internetConnected && EDreamClient::IsWebSocketConnected();
         
-        if (!internetConnected || !wsConnected)
+        if (!internetConnected)
         {
-            ShowNetworkIndicator(5.0, false);  // Show red indicator for 5 seconds
+            ShowNetworkIndicator(5.0, false);  // Show red Net indicator for 5 seconds
+        }
+        if (!wsConnected)
+        {
+            ShowRemoteIndicator(5.0);  // Show red Remote indicator for 5 seconds
         }
     }
     
@@ -618,11 +660,12 @@ class CElectricSheep
         {
             // Show network indicator for 30 seconds at startup if network is down
             ShowNetworkIndicator(30.0, false);
+            // Also show remote indicator since network is down
+            ShowRemoteIndicator(30.0);
             m_MultipleInstancesMode = true;  // set offline mode
         } else if (m_MultipleInstancesMode) {
             g_Log->Info("Forcing offline mode with multiple instances");
             internetReachable = false;
-            m_MessageQueue.QueueMessage("Running in Offline mode", 180);
         }
         //    Start downloader.
         g_Log->Info("Starting downloader...");
@@ -638,8 +681,16 @@ class CElectricSheep
         // Check disk space at startup
         g_ContentDownloader().m_gDownloader.CheckDiskSpace();
         
+        // Show disk indicator for 30 seconds at startup if disk space is low
+        if (g_ContentDownloader().m_gDownloader.IsDiskSpaceLow()) {
+            m_DiskIndicatorEndTime = m_Timer.Time() + 30.0;
+            m_PrevDiskSpaceLow = true;
+        }
+        
         if (m_MultipleInstancesMode) {
             g_Player().SetOfflineMode(true);
+            // Show busy indicator for 30 seconds at startup
+            m_BusyIndicatorEndTime = m_Timer.Time() + 30.0;
         }
         
         // call static method to fill sheep counts
@@ -1104,7 +1155,7 @@ class CElectricSheep
                         if (!EDreamClient::IsLoggedIn())
                         {
                             if (m_MultipleInstancesMode) {
-                                pTmp->SetSample("Starting in offline mode.");
+                                pTmp->SetSample("Starting in busy mode.");
                             } else {
 #ifdef SCREEN_SAVER
                                 pTmp->SetSample("Please open settings to sign in.");
@@ -1362,23 +1413,40 @@ class CElectricSheep
                 bool wsConnected = internetConnected && EDreamClient::IsWebSocketConnected();
                 
                 // Detect network state transitions for standalone indicator
-                bool networkWentDown = (m_PrevNetworkUp && !internetConnected) || 
-                                       (m_PrevWebsocketUp && !wsConnected);
-                bool networkWentUp = (!m_PrevNetworkUp && internetConnected) || 
-                                     (!m_PrevWebsocketUp && wsConnected);
+                bool netWentDown = m_PrevNetworkUp && !internetConnected;
+                bool netWentUp = !m_PrevNetworkUp && internetConnected;
+                bool remoteWentDown = m_PrevWebsocketUp && !wsConnected;
+                bool remoteWentUp = !m_PrevWebsocketUp && wsConnected;
                 
-                // Handle transitions - show indicator outside credits overlay
-                if (networkWentDown) {
-                    // Network or websocket went from up to down - show for 30 seconds
+                // Handle Net transitions
+                if (netWentDown) {
                     m_NetworkWasDown = true;
                     ShowNetworkIndicator(30.0, false);
-                } else if (networkWentUp && internetConnected && wsConnected) {
-                    // Both network and websocket recovered - show green for 5 seconds
-                    // Only show green if network was actually down (not initial connection)
+                } else if (netWentUp) {
                     if (m_NetworkWasDown) {
-                        ShowNetworkIndicator(5.0, true);
+                        ShowNetworkIndicator(5.0, true);  // Green recovery
                         m_NetworkWasDown = false;
                     }
+                }
+                
+                // Handle Remote transitions
+                if (remoteWentDown) {
+                    m_RemoteWasDown = true;
+                    ShowRemoteIndicator(30.0);
+                } else if (remoteWentUp) {
+                    // Only show green recovery if this is NOT the first connection
+                    if (m_RemoteFirstConnected && m_RemoteWasDown) {
+                        ShowRemoteIndicator(5.0);  // Brief show on recovery
+                    } else {
+                        // First connection - hide any initial failure indicator
+                        HideRemoteIndicator();
+                    }
+                    m_RemoteWasDown = false;
+                    m_RemoteFirstConnected = true;  // Mark that we've connected at least once
+                } else if (!m_RemoteFirstConnected && !wsConnected && !m_RemoteInitialIndicatorShown) {
+                    // Initial connection not yet established - show indicator once
+                    ShowRemoteIndicator(30.0);
+                    m_RemoteInitialIndicatorShown = true;
                 }
                 
                 // Update previous state for next frame
@@ -1388,6 +1456,11 @@ class CElectricSheep
                 // Check if network indicator timer has expired
                 if (m_NetworkIndicatorEndTime > 0.0 && m_Timer.Time() >= m_NetworkIndicatorEndTime) {
                     HideNetworkIndicator();
+                }
+                
+                // Check if remote indicator timer has expired
+                if (m_RemoteIndicatorEndTime > 0.0 && m_Timer.Time() >= m_RemoteIndicatorEndTime) {
+                    HideRemoteIndicator();
                 }
 
                 // Check if update is available and detect transitions
@@ -1405,16 +1478,61 @@ class CElectricSheep
                     HideUpdateIndicator();
                 }
 
+                // Check disk space and detect transitions
+                bool diskSpaceLow = g_ContentDownloader().m_gDownloader.IsDiskSpaceLow();
+                if (diskSpaceLow && !m_PrevDiskSpaceLow) {
+                    // Disk space just became low - show indicator for 30 seconds
+                    m_DiskIndicatorEndTime = m_Timer.Time() + 30.0;
+                }
+                m_PrevDiskSpaceLow = diskSpaceLow;
+
+                // Check if disk indicator timer has expired
+                if (m_DiskIndicatorEndTime > 0.0 && m_Timer.Time() >= m_DiskIndicatorEndTime) {
+                    m_DiskIndicatorEndTime = 0.0;
+                }
+
                 // Check if credits overlay is visible
                 bool creditsVisible = false;
                 if (auto spCreditsHud = m_HudManager->Get("dreamcredits")) {
                     creditsVisible = spCreditsHud->Visible();
                 }
 
+                // Check if busy indicator timer has expired
+                if (m_BusyIndicatorEndTime > 0.0 && m_Timer.Time() >= m_BusyIndicatorEndTime) {
+                    m_BusyIndicatorEndTime = 0.0;
+                }
+
                 // Show standalone indicator HUD only when credits overlay is hidden
-                // and either network or update indicator timer is active
+                // and any indicator timer is active
+                bool showDisk = m_DiskIndicatorEndTime > 0.0;
+                bool showBusy = m_BusyIndicatorEndTime > 0.0;
+                bool showNet = m_NetworkIndicatorEndTime > 0.0;
+                bool showRemote = m_RemoteIndicatorEndTime > 0.0;
+                bool showUpdate = m_UpdateIndicatorEndTime > 0.0;
+                
                 bool shouldShowIndicatorHUD = !creditsVisible &&
-                                              (m_NetworkIndicatorEndTime > 0.0 || m_UpdateIndicatorEndTime > 0.0);
+                                              (showDisk || showBusy || showNet || showRemote || showUpdate);
+                
+                // Calculate dynamic spacing based on which indicators will be shown AFTER each one
+                // Order (left to right): Disk -> Busy -> Net -> Remote -> Update
+                // Each indicator width (including dot and space): Disk=12, Busy=12, Net=10, Remote=17, Update=16
+                const int WIDTH_DISK = 12;     // "● Disk"
+                const int WIDTH_BUSY = 12;    // "● Busy"
+                const int WIDTH_NET = 10;     // "● Net"
+                const int WIDTH_REMOTE = 17;  // "● Remote"
+                const int WIDTH_UPDATE = 16;  // "● Update"
+                const int GAP = 2;           // gap between indicators
+                
+                // Disk needs spacing for: Busy (if shown) + Net (if shown) + Remote (if shown) + Update (if shown)
+                int spacesForDiskIndicator = (showBusy ? WIDTH_BUSY + GAP : 0) + (showNet ? WIDTH_NET + GAP : 0) + (showRemote ? WIDTH_REMOTE + GAP : 0) + (showUpdate ? WIDTH_UPDATE + GAP : 0);
+                // Busy needs spacing for: Net (if shown) + Remote (if shown) + Update (if shown)
+                int spacesForBusyIndicator = (showNet ? WIDTH_NET + GAP : 0) + (showRemote ? WIDTH_REMOTE + GAP : 0) + (showUpdate ? WIDTH_UPDATE + GAP : 0);
+                // Net needs spacing for: Remote (if shown) + Update (if shown)
+                int spacesForNetIndicator = (showRemote ? WIDTH_REMOTE + GAP : 0) + (showUpdate ? WIDTH_UPDATE + GAP : 0);
+                // Remote needs spacing for: Update (if shown)
+                int spacesForWSIndicator = (showUpdate ? WIDTH_UPDATE + GAP : 0);
+                // Update needs spacing for: nothing
+                int spacesForUpdateIndicator = 0;
                 
                 // Update network indicator content
                 if (auto spNetIndicator = std::dynamic_pointer_cast<Hud::CStatsConsole>(
@@ -1425,34 +1543,57 @@ class CElectricSheep
                         // Make sure the HUD is visible
                         spNetIndicator->Visible(true);
                         
-                        // Only show net/ws indicators when there's a network issue (not just for update)
-                        if (m_NetworkIndicatorEndTime > 0.0)
+                        // Placeholder rows are already set with transparent color in AddNetworkIndicatorHud()
+                        
+                        // Disk indicator - show when timer is active
+                        if (showDisk) {
+                            ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-dsk"))
+                                ->SetSample("\u25CF Disk" + std::string(spacesForDiskIndicator, ' '));
+                            spNetIndicator->SetColor("net-indicator-dsk", Base::Math::CVector4(1, 0, 0, 1));  // Red
+                        } else {
+                            ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-dsk"))
+                                ->SetSample("");
+                        }
+                        
+                        // Busy indicator - show when timer is active
+                        if (showBusy) {
+                            ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-busy"))
+                                ->SetSample("\u25CF Busy" + std::string(spacesForBusyIndicator, ' '));
+                            spNetIndicator->SetColor("net-indicator-busy", Base::Math::CVector4(1, 0, 0, 1));  // Red
+                        } else {
+                            ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-busy"))
+                                ->SetSample("");
+                        }
+                        
+                        // Net indicator - show when timer is active
+                        if (showNet)
                         {
-                            // Determine colors based on whether we're showing recovery (green) or down state (red)
-                            Base::Math::CVector4 netColor, wsColor;
-                            if (m_NetworkIndicatorShowGreen) {
-                                // Recovery state - show green for both
-                                netColor = Base::Math::CVector4(0, 1, 0, 1);
-                                wsColor = Base::Math::CVector4(0, 1, 0, 1);
-                            } else {
-                                // Down state - show actual status colors
-                                netColor = internetConnected ? Base::Math::CVector4(0, 1, 0, 1) : Base::Math::CVector4(1, 0, 0, 1);
-                                wsColor = wsConnected ? Base::Math::CVector4(0, 1, 0, 1) : Base::Math::CVector4(1, 0, 0, 1);
-                            }
+                            Base::Math::CVector4 netColor = m_NetworkIndicatorShowGreen ? 
+                                Base::Math::CVector4(0, 1, 0, 1) : 
+                                (internetConnected ? Base::Math::CVector4(0, 1, 0, 1) : Base::Math::CVector4(1, 0, 0, 1));
                             
                             ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-net"))
-                                ->SetSample("\u25CF Net                   ");  // 19 spaces for separation
+                                ->SetSample("\u25CF Net" + std::string(spacesForNetIndicator, ' '));
                             spNetIndicator->SetColor("net-indicator-net", netColor);
+                        }
+                        else
+                        {
+                            ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-net"))
+                                ->SetSample("");
+                        }
+                        
+                        // Remote indicator - show when timer is active
+                        if (showRemote)
+                        {
+                            Base::Math::CVector4 wsColor = wsConnected ? 
+                                Base::Math::CVector4(0, 1, 0, 1) : Base::Math::CVector4(1, 0, 0, 1);
                             
                             ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-ws"))
-                                ->SetSample("\u25CF Remote");
+                                ->SetSample("\u25CF Remote" + std::string(spacesForWSIndicator, ' '));
                             spNetIndicator->SetColor("net-indicator-ws", wsColor);
                         }
                         else
                         {
-                            // Only showing for update indicator - clear net/ws indicators
-                            ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-net"))
-                                ->SetSample("");
                             ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-ws"))
                                 ->SetSample("");
                         }
@@ -1473,36 +1614,63 @@ class CElectricSheep
                         spNetIndicator->Visible(false);
                     }
                 }
-                
+
                 if (spStats)
                 {
+                    // Disk space indicator - only show when disk space is low
+                    bool diskSpaceLow = g_ContentDownloader().m_gDownloader.IsDiskSpaceLow();
+                    bool updateAvailable = ESScreensaver_IsUpdateAvailable();
+
+                    bool showDisk = diskSpaceLow;
+                    showBusy = m_MultipleInstancesMode;
+                    showNet = !internetConnected;
+                    showRemote = !wsConnected;
+                    showUpdate = updateAvailable;
+
+                    // Disk needs spacing for: Busy (if shown) + Net (if shown) + Remote (if shown) + Update (if shown)
+                    int spacesForDiskIndicator = (showBusy ? WIDTH_BUSY + GAP : 0) + (showNet ? WIDTH_NET + GAP : 0) + (showRemote ? WIDTH_REMOTE + GAP : 0) + (showUpdate ? WIDTH_UPDATE + GAP : 0);
+                    // Busy needs spacing for: Net (if shown) + Remote (if shown) + Update (if shown)
+                    spacesForBusyIndicator = (showNet ? WIDTH_NET + GAP : 0) + (showRemote ? WIDTH_REMOTE + GAP : 0) + (showUpdate ? WIDTH_UPDATE + GAP : 0);
+                    // Net needs spacing for: Remote (if shown) + Update (if shown)
+                    spacesForNetIndicator = (showRemote ? WIDTH_REMOTE + GAP : 0) + (showUpdate ? WIDTH_UPDATE + GAP : 0);
+                    // Remote needs spacing for: Update (if shown)
+                    spacesForWSIndicator = (showUpdate ? WIDTH_UPDATE + GAP : 0);
+                    // Update needs spacing for: nothing
+                    spacesForUpdateIndicator = 0;
+
+                    // Busy indicator - show when in offline/multiple instances mode
+                    if (showBusy) {
+                        ((Hud::CStringStat*)spStats->Get("credits-busy"))
+                            ->SetSample("\u25CF Busy" + std::string(spacesForBusyIndicator, ' '));
+                        spStats->SetColor("credits-busy", Base::Math::CVector4(1, 0, 0, 1));  // Red
+                    } else {
+                        ((Hud::CStringStat*)spStats->Get("credits-busy"))
+                            ->SetSample("");  // Hide when not in busy mode
+                    }
+
                     // Net and Remote indicators - only show in credits overlay when there's a problem (red)
-                    if (!internetConnected) {
+                    if (showNet) {
                         ((Hud::CStringStat*)spStats->Get("credits-net"))
-                            ->SetSample("\u25CF Net                   ");  // 19 spaces for separation
+                            ->SetSample("\u25CF Net" + std::string(spacesForNetIndicator, ' '));
                         spStats->SetColor("credits-net", Base::Math::CVector4(1, 0, 0, 1));  // Red
                     } else {
                         ((Hud::CStringStat*)spStats->Get("credits-net"))
                             ->SetSample("");  // Hide when connected
                     }
 
-                    if (!wsConnected) {
+                    if (showRemote) {
                         ((Hud::CStringStat*)spStats->Get("credits-ws"))
-                            ->SetSample("\u25CF Remote");
+                            ->SetSample("\u25CF Remote" + std::string(spacesForWSIndicator, ' '));
                         spStats->SetColor("credits-ws", Base::Math::CVector4(1, 0, 0, 1));  // Red
                     } else {
                         ((Hud::CStringStat*)spStats->Get("credits-ws"))
                             ->SetSample("");  // Hide when connected
                     }
-
-                    // Disk space indicator - only show when disk space is low
-                    bool diskSpaceLow = g_ContentDownloader().m_gDownloader.IsDiskSpaceLow();
-                    bool updateAvailable = ESScreensaver_IsUpdateAvailable();
                     
-                    if (diskSpaceLow) {
+                    if (showDisk) {
                         // Disk indicator with spacing (Update indicator may follow)
                         ((Hud::CStringStat*)spStats->Get("credits-dsk"))
-                            ->SetSample("\u25CF Disk                               ");
+                            ->SetSample("\u25CF Disk" + std::string(spacesForDiskIndicator, ' '));
                         spStats->SetColor("credits-dsk", Base::Math::CVector4(1, 0, 0, 1));  // Red when low
                     } else {
                         ((Hud::CStringStat*)spStats->Get("credits-dsk"))
@@ -1510,9 +1678,9 @@ class CElectricSheep
                     }
 
                     // Update available indicator - yellow, always leftmost when shown
-                    if (updateAvailable) {
+                    if (showUpdate) {
                         ((Hud::CStringStat*)spStats->Get("credits-upd"))
-                            ->SetSample(std::string("\u25CF Update                               ") + (diskSpaceLow ? "             " : ""));
+                            ->SetSample(std::string("\u25CF Update" + std::string(spacesForUpdateIndicator, ' ')));
                         spStats->SetColor("credits-upd", Base::Math::CVector4(1, 1, 0, 1));  // Yellow
                     } else {
                         ((Hud::CStringStat*)spStats->Get("credits-upd"))
@@ -1630,7 +1798,7 @@ class CElectricSheep
                     else
                     {
                         if (m_MultipleInstancesMode) {
-                            pTmp->SetSample("Offline mode, please close other instances of infnidream");
+                            pTmp->SetSample("Busy mode, please close other instances of infnidream");
                         } else {
                             pTmp->SetSample("Not signed in");
                         }
