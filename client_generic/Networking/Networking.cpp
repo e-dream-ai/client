@@ -8,6 +8,7 @@
 
 #include "Networking.h"
 #include "Log.h"
+#include "PlatformUtils.h"
 
 namespace Network
 {
@@ -265,6 +266,12 @@ bool CCurlTransfer::Perform(const std::string& _url)
     if (!g_NetworkManager->SingletonActive() || g_NetworkManager->IsAborted())
         return false;
 
+    // Fast path: skip immediately if network is unreachable (instant quit when net is off)
+    if (!PlatformUtils::IsInternetReachable()) {
+        g_Log->Info("Perform(%s) - skipped, network unreachable", _url.c_str());
+        return false;
+    }
+
     std::string url = _url;
 
     g_Log->Info("Perform(%s)", url.c_str());
@@ -307,17 +314,20 @@ bool CCurlTransfer::Perform(const std::string& _url)
         return false;
 
     // Set timeouts to prevent hanging when network is unavailable
-    // Connection timeout: max time to wait for connection to be established
-    if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_CONNECTTIMEOUT, 10L)))
+    // Connection timeout: max time to wait for connection to be established (5 seconds)
+    if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_CONNECTTIMEOUT, 5L)))
         return false;
-    // Overall timeout: max time for entire operation (including data transfer)
-    if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_TIMEOUT, 60L)))
+    // Overall timeout: max time for entire operation - keep short for fast shutdown (10 seconds)
+    if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_TIMEOUT, 10L)))
         return false;
-    // Low speed limit: abort if transfer speed drops below 1 byte/sec for 30 seconds
+    // Low speed limit: abort if transfer speed drops below 1 byte/sec for 5 seconds
     // This handles stalled connections that established but stopped transferring
     if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_LOW_SPEED_LIMIT, 1L)))
         return false;
-    if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_LOW_SPEED_TIME, 30L)))
+    if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_LOW_SPEED_TIME, 5L)))
+        return false;
+    // Prevent CURL from installing signal handlers (important for multi-threaded apps)
+    if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_NOSIGNAL, 1L)))
         return false;
 
     if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_HTTPHEADER, m_Headers)))
