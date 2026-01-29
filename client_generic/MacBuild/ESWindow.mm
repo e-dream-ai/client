@@ -374,6 +374,17 @@ static void ShowFirstTimeSetupCallback()
     return mIsFullScreen;
 }
 
+- (BOOL)performKeyEquivalent:(NSEvent*)ev
+{
+    // Handle Command+W to close window
+    if (([ev modifierFlags] & NSEventModifierFlagCommand) && [[ev charactersIgnoringModifiers] isEqualToString:@"w"])
+    {
+        [self performClose:self];
+        return YES;
+    }
+    return [super performKeyEquivalent:ev];
+}
+
 - (void)keyDown:(NSEvent*)ev
 {
     BOOL handled = NO;
