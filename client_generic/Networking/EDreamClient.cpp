@@ -959,6 +959,12 @@ std::string EDreamClient::Hello() {
     int currentAttempt = 0;
     while (currentAttempt++ < maxAttempts)
     {
+        // Check for abort before each attempt to allow fast shutdown
+        if (g_NetworkManager->IsAborted()) {
+            g_Log->Info("Hello() aborted due to shutdown");
+            return "";
+        }
+        
         spDownload = std::make_shared<Network::CFileDownloader>("Hello!");
         Network::NetworkHeaders::addStandardHeaders(spDownload);
         spDownload->AppendHeader("Content-Type: application/json");
@@ -1273,6 +1279,12 @@ std::vector<std::string> EDreamClient::FetchUserDislikes() {
 
 
 bool EDreamClient::FetchPlaylist(std::string_view uuid) {
+    // Check for abort at start to allow fast shutdown
+    if (g_NetworkManager->IsAborted()) {
+        g_Log->Info("FetchPlaylist() aborted due to shutdown");
+        return false;
+    }
+    
     // Lets make it simpler
     if (uuid.empty()) {
         g_Log->Info("Rerouting to fetching default playlist");
@@ -1286,6 +1298,12 @@ bool EDreamClient::FetchPlaylist(std::string_view uuid) {
     int currentAttempt = 0;
     while (currentAttempt++ < maxAttempts)
     {
+        // Check for abort before each attempt to allow fast shutdown
+        if (g_NetworkManager->IsAborted()) {
+            g_Log->Info("FetchPlaylist() aborted due to shutdown");
+            return false;
+        }
+        
         spDownload = std::make_shared<Network::CFileDownloader>("Playlist");
         Network::NetworkHeaders::addStandardHeaders(spDownload);
         spDownload->AppendHeader("Content-Type: application/json");
@@ -1350,6 +1368,12 @@ bool EDreamClient::FetchDefaultPlaylist() {
     int currentAttempt = 0;
     while (currentAttempt++ < maxAttempts)
     {
+        // Check for abort before each attempt to allow fast shutdown
+        if (g_NetworkManager->IsAborted()) {
+            g_Log->Info("FetchDefaultPlaylist() aborted due to shutdown");
+            return false;
+        }
+        
         spDownload = std::make_shared<Network::CFileDownloader>("Default Playlist");
         Network::NetworkHeaders::addStandardHeaders(spDownload);
         spDownload->AppendHeader("Content-Type: application/json");

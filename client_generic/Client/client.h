@@ -8,6 +8,7 @@
 #include <sstream>
 #include <string>
 #include <mutex>
+#include <unistd.h>  // for _exit()
 
 #include "Exception.h"
 #include "Log.h"
@@ -725,6 +726,21 @@ class CElectricSheep
     virtual void Shutdown()
     {
         printf("CElectricSheep::Shutdown()\n");
+        
+        // Arm a force-exit watchdog to guarantee instant shutdown.
+        // Always exit after a short delay, even if cleanup appears complete.
+        std::thread([]() {
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+            printf("Force exiting after shutdown timeout\n");
+            _exit(0);
+        }).detach();
+        
+        // FAST EXIT: If network is unreachable, exit immediately without waiting
+        g_NetworkManager->Abort();
+        if (!PlatformUtils::IsInternetReachable()) {
+            printf("Network unreachable - forcing immediate exit\n");
+            _exit(0);
+        }
 
 #ifdef DO_THREAD_UPDATE
         DestroyUpdateThreads();
@@ -740,6 +756,16 @@ class CElectricSheep
 
         if (!m_bConfigMode)
         {
+            // IMPORTANT: Abort all network operations FIRST before any thread joins
+            // This prevents hanging when network is unavailable or disrupted
+            g_NetworkManager->Abort();
+            
+            // Stop playlist manager's periodic checking thread before player shutdown
+            // This must happen before Player::Stop() which joins threads
+            if (g_Player().m_playlistManager) {
+                g_Player().m_playlistManager->stopPeriodicChecking();
+            }
+            
             g_ContentDownloader().Shutdown();
 
             //	This stuff was never started in config mode.
