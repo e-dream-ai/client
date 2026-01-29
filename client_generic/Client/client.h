@@ -1815,9 +1815,10 @@ class CElectricSheep
 
                     if (EDreamClient::IsLoggedIn())
                     {
+                        std::string email = g_Settings()->Get("settings.generator.nickname", std::string(""));
                         std::stringstream loginstatusstr;
                         loginstatusstr
-                        << "Signed in! Remaining quota: " << cm.getRemainingQuotaAsString();
+                        << "Signed in as " << email << "!\nRemaining quota: " << cm.getRemainingQuotaAsString();
                         
                         pTmp->SetSample(loginstatusstr.str());
                     }
