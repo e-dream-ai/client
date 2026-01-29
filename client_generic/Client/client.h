@@ -8,6 +8,7 @@
 #include <sstream>
 #include <string>
 #include <mutex>
+#include <unistd.h>  // for _exit()
 
 #include "Exception.h"
 #include "Log.h"
@@ -674,6 +675,21 @@ class CElectricSheep
     virtual void Shutdown()
     {
         printf("CElectricSheep::Shutdown()\n");
+        
+        // Arm a force-exit watchdog to guarantee instant shutdown.
+        // Always exit after a short delay, even if cleanup appears complete.
+        std::thread([]() {
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+            printf("Force exiting after shutdown timeout\n");
+            _exit(0);
+        }).detach();
+        
+        // FAST EXIT: If network is unreachable, exit immediately without waiting
+        g_NetworkManager->Abort();
+        if (!PlatformUtils::IsInternetReachable()) {
+            printf("Network unreachable - forcing immediate exit\n");
+            _exit(0);
+        }
 
 #ifdef DO_THREAD_UPDATE
         DestroyUpdateThreads();
