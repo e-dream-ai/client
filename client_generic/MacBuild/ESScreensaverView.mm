@@ -69,6 +69,10 @@
         if ([updater startUpdater:&error]) {
             m_sparkleUpdater = updater;
             m_sparkleUpdater.automaticallyChecksForUpdates = YES;
+            // Hide "Skip this version" in update dialog (Sparkle 2.x allowsSkippingUpdates)
+            if ([m_sparkleUpdater respondsToSelector:NSSelectorFromString(@"setAllowsSkippingUpdates:")]) {
+                [m_sparkleUpdater setValue:@NO forKey:@"allowsSkippingUpdates"];
+            }
             NSLog(@"Sparkle: successfully started for screensaver");
             
             // Trigger an immediate background check for updates
@@ -89,7 +93,12 @@
                                                            userDriverDelegate:nil];
     
     if (m_updater) {
-        [m_updater.updater checkForUpdatesInBackground];
+        SPUUpdater *appUpdater = m_updater.updater;
+        // Hide "Skip this version" in update dialog (Sparkle 2.x allowsSkippingUpdates)
+        if ([appUpdater respondsToSelector:NSSelectorFromString(@"setAllowsSkippingUpdates:")]) {
+            [appUpdater setValue:@NO forKey:@"allowsSkippingUpdates"];
+        }
+        [appUpdater checkForUpdatesInBackground];
     }
     
     // Connect "Check for Updates..." menu item to the updater (app only)
