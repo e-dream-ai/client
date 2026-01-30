@@ -335,7 +335,10 @@ def main() -> None:
         print()
         print_yellow("DRY RUN - Would perform these actions:")
         print(f"  1. Publish appcast.xml to {target_repo}/{target_path}")
-        print(f"  2. Mark release {version} as latest (remove prerelease)")
+        if not stage:
+            print(f"  2. Mark release {version} as latest (remove prerelease)")
+        else:
+            print("  2. (Stage: skip marking as latest)")
         print()
         print("Run without --dry-run to execute for real.")
         return
@@ -364,20 +367,23 @@ def main() -> None:
 
     print_green("Appcast published successfully!")
 
-    # Step 5: Mark GitHub release as latest (remove prerelease label)
-    print_yellow("Marking GitHub release as latest...")
-    result = run_command(
-        ['gh', 'release', 'edit', version, '--repo', 'e-dream-ai/client',
-         '--prerelease=false', '--latest'],
-        check=False,
-        capture_output=True
-    )
-    if result.returncode == 0:
-        print_green("Release marked as latest")
+    # Step 5: Mark GitHub release as latest (only when not stage)
+    if not stage:
+        print_yellow("Marking GitHub release as latest...")
+        result = run_command(
+            ['gh', 'release', 'edit', version, '--repo', 'e-dream-ai/client',
+             '--prerelease=false', '--latest'],
+            check=False,
+            capture_output=True
+        )
+        if result.returncode == 0:
+            print_green("Release marked as latest")
+        else:
+            print_yellow("Warning: Could not update release status")
+            if result.stderr:
+                print(result.stderr)
     else:
-        print_yellow("Warning: Could not update release status")
-        if result.stderr:
-            print(result.stderr)
+        print_blue("Stage release: skipping marking as latest")
 
     print()
     print_green("========================================")
