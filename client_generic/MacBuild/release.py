@@ -103,7 +103,7 @@ def linkify_issue_references(markdown: str, repo: str = "e-dream-ai/client") -> 
 
     # Match #123 but not already inside a markdown link or URL
     # Negative lookbehind for [ or / to avoid matching already-linked or URL refs
-    return re.sub(r'(?<![[\w/])#(\d+)\b', replace_issue, markdown)
+    return re.sub(r'(?<![\[\w/])#(\d+)\b', replace_issue, markdown)
 
 
 def add_release_notes_to_appcast(appcast_path: Path, release_notes_markdown: str) -> str:
@@ -189,28 +189,52 @@ def get_file_from_github(repo: str, path: str) -> tuple[Optional[str], Optional[
     return None, None
 
 
-def update_file_on_github(repo: str, path: str, content: str, sha: Optional[str], message: str) -> bool:
-    """Update or create a file on GitHub. Returns True on success."""
-    content_b64 = base64.b64encode(content.encode('utf-8')).decode('utf-8')
+def get_sha_from_github(repo: str, path: str, ref: Optional[str] = None) -> Optional[str]:
+    """Get current blob SHA of a file from GitHub. Works even when content is not returned (e.g. large file)."""
+    url = f'/repos/{repo}/contents/{path}'
+    if ref:
+        url += f'?ref={ref}'
+    cmd = ['gh', 'api', url, '--jq', '.sha']
+    result = run_command(cmd, check=False, capture_output=True)
+    if result.returncode != 0:
+        return None
+    sha = (result.stdout or '').strip()
+    return sha if sha else None
 
-    # Build the request body
-    body = {
-        'message': message,
-        'content': content_b64,
-    }
-    if sha:
-        body['sha'] = sha
 
+def get_default_branch(repo: str) -> str:
+    """Get default branch of repo (e.g. main)."""
     result = run_command(
-        ['gh', 'api', '-X', 'PUT', f'/repos/{repo}/contents/{path}',
-         '-f', f'message={message}',
-         '-f', f'content={content_b64}'] +
-        (['-f', f'sha={sha}'] if sha else []),
+        ['gh', 'api', f'/repos/{repo}', '--jq', '.default_branch'],
         check=False,
         capture_output=True
     )
+    if result.returncode == 0 and result.stdout:
+        return result.stdout.strip()
+    return 'main'
 
-    return result.returncode == 0
+
+def update_file_on_github(
+    repo: str, path: str, content: str, sha: Optional[str], message: str, branch: Optional[str] = None
+) -> tuple[bool, str]:
+    """Update or create a file on GitHub. Returns (success, error_message)."""
+    content_b64 = base64.b64encode(content.encode('utf-8')).decode('utf-8')
+
+    args = [
+        'gh', 'api', '-X', 'PUT', f'/repos/{repo}/contents/{path}',
+        '-f', f'message={message}',
+        '-f', f'content={content_b64}',
+    ]
+    if sha:
+        args += ['-f', f'sha={sha}']
+    if branch:
+        args += ['-f', f'branch={branch}']
+    result = run_command(args, check=False, capture_output=True)
+
+    if result.returncode == 0:
+        return True, ""
+    err = (result.stderr or result.stdout or "").strip()
+    return False, err
 
 
 def main() -> None:
@@ -234,7 +258,7 @@ def main() -> None:
 
     # Determine paths
     script_dir = Path(__file__).parent
-    build_config = "Release"  # Appcast is only generated for release builds
+    build_config = "Debug" if stage else "Release"
     local_appcast = script_dir / "build" / build_config / "appcast.xml"
 
     target_repo = "e-dream-ai/landing-page"
@@ -287,8 +311,9 @@ def main() -> None:
     print_green("Release notes added to appcast (markdown format)")
 
     # Step 3: Get current file SHA from GitHub (needed for update)
-    print_yellow(f"Checking existing file on GitHub...")
-    _, existing_sha = get_file_from_github(target_repo, target_path)
+    default_branch = get_default_branch(target_repo)
+    print_yellow(f"Checking existing file on GitHub (branch: {default_branch})...")
+    existing_sha = get_sha_from_github(target_repo, target_path, ref=default_branch)
     if existing_sha:
         print(f"Existing file found (SHA: {existing_sha[:7]}...)")
     else:
@@ -315,12 +340,24 @@ def main() -> None:
         print("Run without --dry-run to execute for real.")
         return
 
-    # Step 4: Push to GitHub
+    # Step 4: Push to GitHub (refetch SHA right before update to avoid 409 conflict)
     print_yellow(f"Publishing appcast.xml to {target_repo}...")
     commit_message = f"Update appcast.xml for v{version}"
-
-    if not update_file_on_github(target_repo, target_path, updated_appcast, existing_sha, commit_message):
+    existing_sha = get_sha_from_github(target_repo, target_path, ref=default_branch)
+    ok, err_msg = update_file_on_github(
+        target_repo, target_path, updated_appcast, existing_sha, commit_message, branch=default_branch
+    )
+    if not ok and "409" in err_msg:
+        # File changed since we fetched SHA; refetch and retry once
+        print_yellow("File changed on GitHub, retrying with latest SHA...")
+        existing_sha = get_sha_from_github(target_repo, target_path, ref=default_branch)
+        ok, err_msg = update_file_on_github(
+            target_repo, target_path, updated_appcast, existing_sha, commit_message, branch=default_branch
+        )
+    if not ok:
         print_red("Failed to publish appcast.xml")
+        if err_msg:
+            print(err_msg)
         print("Check that you have write access to the repository.")
         print(f"Try: gh repo view {target_repo}")
         sys.exit(1)
