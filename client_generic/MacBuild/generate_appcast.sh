@@ -154,13 +154,6 @@ if [ -n "$BUNDLE_VERSION" ] && [ "$BUNDLE_VERSION" != "$VERSION" ]; then
     sed -i '' "s|<sparkle:shortVersionString>${BUNDLE_VERSION}</sparkle:shortVersionString>|<sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>|g" "$GENERATED_APPCAST"
 fi
 
-# Add critical update tag so Sparkle hides the "Skip this version" button (first item only)
-if ! grep -q '<sparkle:criticalUpdate>' "$GENERATED_APPCAST"; then
-    # perl: replace first <item> with <item> + critical tag (portable on macOS)
-    perl -i -0pe 's|<item>|<item>\n        <sparkle:criticalUpdate></sparkle:criticalUpdate>|' "$GENERATED_APPCAST"
-    echo -e "${GREEN}✓ Critical update tag added (Skip this version hidden)${NC}"
-fi
-
 # Check if signature was added
 if grep -q 'sparkle:edSignature' "$GENERATED_APPCAST"; then
     echo -e "${GREEN}✓ EdDSA signature found in appcast${NC}"
