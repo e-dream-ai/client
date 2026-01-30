@@ -255,6 +255,7 @@ class BuildConfig:
         self.stage = args.stage
         self.notarize = args.notarize
         self.generate_appcast = args.appcast
+        self.github_release = args.github
         self.version = args.version
 
         # Configuration derived from flags
@@ -311,6 +312,15 @@ def validate_config(config: BuildConfig) -> None:
         print_red("Error: Appcast generation requires version. Use -v flag with -a")
         sys.exit(1)
 
+    if config.github_release and not config.version:
+        print_red("Error: GitHub release requires version. Use -v flag with -g")
+        sys.exit(1)
+
+    # Check gh CLI is available if GitHub release is requested
+    if config.github_release and not shutil.which('gh'):
+        print_red("Error: GitHub CLI (gh) not found. Install with: brew install gh")
+        sys.exit(1)
+
 
 def print_build_info(config: BuildConfig) -> None:
     """Print build configuration information."""
@@ -328,6 +338,7 @@ def print_build_info(config: BuildConfig) -> None:
     print(f"App Scheme: {config.app_scheme}")
     print(f"Notarization: {'Enabled' if config.notarize else 'Disabled'}")
     print(f"Generate Appcast: {'Enabled' if config.generate_appcast else 'Disabled'}")
+    print(f"GitHub Release: {'Enabled' if config.github_release else 'Disabled'}")
 
     if config.version:
         print(f"Version: {config.version}")
@@ -929,6 +940,142 @@ def step7_generate_appcast(config: BuildConfig, final_zip: Path) -> Optional[Pat
         return None
 
 
+def step8_github_release(config: BuildConfig, final_zip: Path) -> Optional[str]:
+    """Create GitHub release with tag and upload zip. Returns release URL or None."""
+    if not config.github_release:
+        return None
+
+    print()
+    print_blue("========================================")
+    print_blue("STEP 8: Creating GitHub Release")
+    print_blue("========================================")
+
+    tag = config.version
+    release_name = f"v{config.version}"
+
+    # Check if tag already exists locally
+    result = run_command(
+        ['git', 'tag', '-l', tag],
+        capture_output=True,
+        check=False
+    )
+    tag_exists_locally = bool(result.stdout.strip())
+
+    # Check if tag exists on remote
+    result = run_command(
+        ['git', 'ls-remote', '--tags', 'origin', f'refs/tags/{tag}'],
+        capture_output=True,
+        check=False
+    )
+    tag_exists_remote = bool(result.stdout.strip())
+
+    # Delete existing tags so we can recreate at current commit
+    if tag_exists_locally:
+        print_yellow(f"Deleting existing local tag {tag}...")
+        run_command(['git', 'tag', '-d', tag], check=False, capture_output=True)
+
+    if tag_exists_remote:
+        print_yellow(f"Deleting existing remote tag {tag}...")
+        run_command(['git', 'push', 'origin', f':refs/tags/{tag}'], check=False, capture_output=True)
+
+    # Create and push tag
+    print_yellow(f"Creating git tag {tag}...")
+    result = run_command(
+        ['git', 'tag', tag],
+        check=False,
+        capture_output=True
+    )
+    if result.returncode != 0:
+        print_red(f"Failed to create tag {tag}")
+        print(result.stderr or result.stdout)
+        return None
+    print_green(f"Tag {tag} created")
+
+    print_yellow(f"Pushing tag {tag} to origin...")
+    result = run_command(
+        ['git', 'push', 'origin', tag],
+        check=False,
+        capture_output=True
+    )
+    if result.returncode != 0:
+        print_red(f"Failed to push tag {tag}")
+        print(result.stderr or result.stdout)
+        return None
+    print_green(f"Tag {tag} pushed to origin")
+
+    # Check if release already exists
+    result = run_command(
+        ['gh', 'release', 'view', tag],
+        check=False,
+        capture_output=True
+    )
+    release_exists = result.returncode == 0
+
+    if release_exists:
+        print_yellow(f"Release {tag} already exists, deleting it...")
+        run_command(
+            ['gh', 'release', 'delete', tag, '--yes'],
+            check=False,
+            capture_output=True
+        )
+
+    # Create new release with auto-generated notes as prerelease
+    print_yellow(f"Creating GitHub release {release_name}...")
+    result = run_command(
+        [
+            'gh', 'release', 'create', tag,
+            str(final_zip),
+            '--title', release_name,
+            '--generate-notes',
+            '--prerelease'
+        ],
+        check=False,
+        capture_output=True
+    )
+    if result.returncode != 0:
+        print_red("Failed to create GitHub release")
+        print(result.stderr or result.stdout)
+        return None
+    print_green(f"GitHub release {release_name} created as prerelease")
+
+    # Clean up release notes - remove "by @user in <link>" from each line
+    print_yellow("Cleaning up release notes...")
+    result = run_command(
+        ['gh', 'release', 'view', tag, '--json', 'body', '-q', '.body'],
+        check=False,
+        capture_output=True
+    )
+    if result.returncode == 0 and result.stdout:
+        original_notes = result.stdout
+        # Remove "by @username in https://..." pattern from each line
+        cleaned_notes = re.sub(r' by @[\w-]+ in https://[^\s]+', '', original_notes)
+
+        if cleaned_notes != original_notes:
+            # Update the release with cleaned notes
+            result = run_command(
+                ['gh', 'release', 'edit', tag, '--notes', cleaned_notes],
+                check=False,
+                capture_output=True
+            )
+            if result.returncode == 0:
+                print_green("Release notes cleaned up")
+            else:
+                print_yellow("Warning: Could not update release notes")
+
+    # Get release URL
+    result = run_command(
+        ['gh', 'release', 'view', tag, '--json', 'url', '-q', '.url'],
+        check=False,
+        capture_output=True
+    )
+    release_url = result.stdout.strip() if result.returncode == 0 else None
+
+    if release_url:
+        print_green(f"Release URL: {release_url}")
+
+    return release_url
+
+
 def print_summary(
     config: BuildConfig,
     output_saver: Path,
@@ -938,6 +1085,7 @@ def print_summary(
     exported_app: Path,
     final_zip: Path,
     appcast_path: Optional[Path],
+    release_url: Optional[str] = None,
 ) -> None:
     """Print build summary."""
     saver_size = get_dir_size(output_saver)
@@ -974,6 +1122,13 @@ def print_summary(
     else:
         print("Notarization: Skipped")
 
+    if release_url:
+        print(f"GitHub Release: {release_url}")
+    elif config.github_release:
+        print("GitHub Release: Failed")
+    else:
+        print("GitHub Release: Skipped")
+
     print()
     print(f"Distribution package: {final_zip} ({zip_size})")
 
@@ -991,13 +1146,18 @@ def print_summary(
         print_blue("Upload Instructions for Sparkle Updates")
         print_blue("========================================")
         print()
-        print(f"1. Create GitHub release for version {config.version}:")
-        print(f"   https://github.com/e-dream-ai/client/releases/new?tag={config.version}")
-        print()
-        print("2. Upload the zip file to the release:")
-        print(f"   {final_zip}")
-        print()
-        print("3. Upload appcast.xml to your web server:")
+        if release_url:
+            print(f"1. GitHub release created: {release_url}")
+            print()
+            print("2. Upload appcast.xml to your web server:")
+        else:
+            print(f"1. Create GitHub release for version {config.version}:")
+            print(f"   https://github.com/e-dream-ai/client/releases/new?tag={config.version}")
+            print()
+            print("2. Upload the zip file to the release:")
+            print(f"   {final_zip}")
+            print()
+            print("3. Upload appcast.xml to your web server:")
         print(f"   {appcast_path} -> https://infinidream.ai/alpha/appcast.xml")
         print()
 
@@ -1048,8 +1208,10 @@ Environment variables (optional overrides):
                         help='Enable notarization (requires -r)')
     parser.add_argument('-a', '--appcast', action='store_true',
                         help='Generate appcast.xml for Sparkle updates')
+    parser.add_argument('-g', '--github', action='store_true',
+                        help='Create GitHub release with tag (requires -v)')
     parser.add_argument('-v', '--version', type=str,
-                        help='Version string (e.g., 0.12.0) - used for zip naming and appcast')
+                        help='Version string (e.g., 0.12.0) - used for zip naming, appcast, and GitHub release')
 
     args = parser.parse_args()
 
@@ -1094,10 +1256,13 @@ Environment variables (optional overrides):
     # Step 7: Generate appcast
     appcast_path = step7_generate_appcast(config, final_zip)
 
+    # Step 8: GitHub release
+    release_url = step8_github_release(config, final_zip)
+
     # Print summary
     print_summary(
         config, output_saver, project_saver, screensaver_zip,
-        archive_path, exported_app, final_zip, appcast_path
+        archive_path, exported_app, final_zip, appcast_path, release_url
     )
 
 
