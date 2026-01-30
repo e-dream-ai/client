@@ -60,6 +60,8 @@
     ESConfiguration* m_config;
 
     SPUStandardUpdaterController* m_updater;
+    SPUUpdater* m_sparkleUpdater;  // Direct updater reference for screensaver
+    BOOL m_updateAvailable;  // Track if Sparkle found a valid update
     std::unique_ptr<boost::barrier> m_beginFrameBarrier;
     std::unique_ptr<boost::barrier> m_endFrameBarrier;
 }
@@ -81,7 +83,6 @@
 - (void)windowDidResize;
 
 - (void)updaterWillRelaunchApplication:(SPUUpdater*)updater;
-- (void)updater:(SPUUpdater*)updater didFindValidUpdate:(SUAppcastItem*)update;
 
 - (BOOL)fullscreen;
 - (void)setFullScreen:(BOOL)fullscreen;
@@ -91,5 +92,7 @@
 - (SPUStandardUpdaterController*)updaterController;
 - (void)connectCheckForUpdatesMenuItem;
 #endif
+
+- (BOOL)isUpdateAvailable;
 
 @end

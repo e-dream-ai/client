@@ -215,7 +215,7 @@ class CElectricSheep_Mac : public CElectricSheep
 
         // This was determined in constructor, and we've already initialized logging
         if (m_MultipleInstancesMode) {
-            g_Log->Info("⛓️‍💥⛓️‍💥⛓️‍💥 Running in offline mode ⛓️‍💥⛓️‍💥⛓️‍💥");
+            g_Log->Info("⛓️‍💥⛓️‍💥⛓️‍💥 Running in busy mode ⛓️‍💥⛓️‍💥⛓️‍💥");
         }
         
         // if m_proxyHost is set, the proxy resolver found one. If not, we

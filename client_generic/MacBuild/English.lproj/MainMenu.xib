@@ -61,22 +61,6 @@
                         </items>
                     </menu>
                 </menuItem>
-                <menuItem title="File" id="83">
-                    <menu key="submenu" title="File" id="81">
-                        <items>
-                            <menuItem title="New Window" hidden="YES" enabled="NO" keyEquivalent="n" id="73">
-                                <connections>
-                                    <action selector="newWindow:" target="-1" id="b0f-vY-u11"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Close" keyEquivalent="w" id="BYB-2i-0J5">
-                                <connections>
-                                    <action selector="performClose:" target="-1" id="m3Y-kg-DlK"/>
-                                </connections>
-                            </menuItem>
-                        </items>
-                    </menu>
-                </menuItem>
                 <menuItem title="Edit" id="505">
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <menu key="submenu" title="Edit" id="506">

@@ -350,7 +350,12 @@ void CPlayer::Start()
         
         // We do this async, so client rendering loop doesn't lock
         m_startupThread = std::make_shared<std::thread>([this]{
-            if (m_shutdownFlag) return;
+            // Helper to check if we should abort startup
+            auto shouldAbort = [this]() {
+                return m_shutdownFlag.load() || g_NetworkManager->IsAborted();
+            };
+            
+            if (shouldAbort()) return;
 
             std::string lastPlayedUUID = g_Settings()->Get(
                 "settings.content.last_played_uuid", std::string{});
@@ -358,7 +363,7 @@ void CPlayer::Start()
             auto clientPlaylistId = g_Settings()->Get("settings.content.current_playlist_uuid", std::string(""));
 
             if (EDreamClient::IsLoggedIn()) {
-                if (m_shutdownFlag) return;
+                if (shouldAbort()) return;
                 
                 // Ensure websocket is connected when player starts and user is logged in
                 if (!EDreamClient::fIsWebSocketConnected.load()) {
@@ -366,11 +371,12 @@ void CPlayer::Start()
                     boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
                 }
                 
+                if (shouldAbort()) return;
                 auto serverPlaylistId = EDreamClient::GetCurrentServerPlaylist();
                 
                 // Override if there's a mismatch, and don't try to resume previous file as
                 // it may not be part of the new playlist
-                if (m_shutdownFlag) return;
+                if (shouldAbort()) return;
                 if (serverPlaylistId != clientPlaylistId) {
                     g_Settings()->Set("settings.content.current_playlist_uuid", serverPlaylistId);
                     lastPlayedUUID = "";
@@ -380,16 +386,18 @@ void CPlayer::Start()
                 m_currentClip = nullptr;
 
                 // Start the playlist and playback at the start, or at a given position
-                if (m_shutdownFlag) return;
+                if (shouldAbort()) return;
                 if (lastPlayedUUID.empty()) {
                     SetPlaylist(serverPlaylistId, false);
                 } else {
                     SetPlaylistAtDream(serverPlaylistId, lastPlayedUUID, false);
                 }
                 
-                m_hasStarted = true;
+                if (!shouldAbort()) {
+                    m_hasStarted = true;
+                }
             } else {
-                if (m_shutdownFlag) return;
+                if (shouldAbort()) return;
 
                 // Make sure we remove the current clip before enqueuing the new playlist
 
@@ -401,7 +409,9 @@ void CPlayer::Start()
                     SetPlaylistAtDream(clientPlaylistId, lastPlayedUUID, false);
                 }
 
-                m_hasStarted = true;
+                if (!shouldAbort()) {
+                    m_hasStarted = true;
+                }
             }
         });
     }
@@ -1174,6 +1184,7 @@ bool CPlayer::SetPlaylist(const std::string& playlistUUID, bool fetchPlaylist = 
             if (m_nextClip) {
                 m_nextClip->SetTransitionLength(1.0f, 5.0f);
             }
+            m_playlistManager->moveToNextDream(*m_nextDreamDecision);
         }
     }
 
@@ -1333,6 +1344,13 @@ void CPlayer::UpdateTransition(double currentTime)
         m_currentClip = m_nextClip;
         
         if (m_currentClip) {
+            // Transition already handled the fade-in visually, so disable the clip's internal
+            // fade-in to avoid a brief dark flash caused by the clip's secondsIn calculation
+            // being slightly behind due to decoder startup delay
+            m_currentClip->m_FadeInSeconds = 0.f;
+            m_currentClip->m_Alpha = 1.0f;
+            m_currentClip->m_LastCalculatedAlpha = 1.0f;
+            
             bool isJumpTransition = !m_nextDreamDecision.has_value();
             
             if (isJumpTransition) {

@@ -56,15 +56,16 @@ Then in xcode just use command-R.
 ### Build Script
 ```bash
 cd client_generic/MacBuild
-./build.sh [options]
+./build.py [options]
 ```
 
 ### Options
 - `-r` : Build in Release mode (default: Debug)
 - `-s` : Build stage version (default: production)
 - `-n` : Enable notarization (requires `-r`)
-- `-v VERSION` : Set version string (e.g., `0.12.0`) for zip naming and appcast
+- `-v VERSION` : Set version string (e.g., `0.12.0`) for zip naming, appcast, and GitHub release
 - `-a` : Generate appcast.xml for Sparkle auto-updates
+- `-g` : Create GitHub release with tag (requires `-v`)
 
 ### Code Signing
 Auto-discovers Developer ID certificate and Team ID from keychain.
@@ -74,7 +75,7 @@ Override via environment variables:
 DEVELOPER_ID_CERT="Developer ID Application: Your Name (TEAM123)" \
 TEAM_ID="TEAM123" \
 KEYCHAIN_PROFILE="your-profile" \
-./build.sh -r
+./build.py -r
 ```
 
 Default keychain profile: `infinidream-notarization`
@@ -82,22 +83,22 @@ Default keychain profile: `infinidream-notarization`
 ### Examples
 ```bash
 # Debug build (default)
-./build.sh
+./build.py
 
 # Release build
-./build.sh -r
+./build.py -r
 
 # Stage debug build
-./build.sh -s
+./build.py -s
 
 # Release with notarization
-./build.sh -r -n
+./build.py -r -n
 
 # Release with notarization and version (creates infinidream-0.12.0.zip)
-./build.sh -r -n -v 0.12.0
+./build.py -r -n -v 0.12.0
 
-# Full release with appcast generation for Sparkle auto-updates
-./build.sh -r -n -v 0.12.0 -a
+# Full release with appcast and GitHub release
+./build.py -r -n -v 0.12.0 -a -g
 ```
 
 ### Output
@@ -108,37 +109,47 @@ The app bundle contains the embedded screensaver at `infinidream.app/Contents/Re
 
 ## to release (with Sparkle auto-update)
 
-### 1. Tag the version
-```bash
-git tag X.Y.Z
-git push --tags
-```
-
-### 2. Build for release with appcast
+### 1. Build, notarize, and create GitHub release
 ```bash
 cd client_generic/MacBuild
-./build.sh -r -n -v X.Y.Z -a
+./build.py -r -n -v X.Y.Z -a -g
 ```
 
-This creates:
-- `build/Release/infinidream-X.Y.Z.zip` - the app bundle
-- `build/Release/appcast.xml` - Sparkle update feed
+This:
+- Builds and notarizes the app
+- Creates git tag `X.Y.Z` (overwrites if exists)
+- Creates GitHub prerelease `vX.Y.Z` with auto-generated notes
+- Uploads `infinidream-X.Y.Z.zip` to the release
+- Generates `build/Release/appcast.xml`
 
-### 3. Upload to GitHub Releases
+### 2. Test the app
+```bash
+open build/Release/AppExport/infinidream.app
+```
 
-1. Go to https://github.com/e-dream-ai/client/releases/new
-2. Select tag `X.Y.Z`
-3. Write release notes
-4. Upload `infinidream-X.Y.Z.zip`
-5. Publish
+### 3. Edit release notes (optional)
 
-### 4. Upload appcast.xml
+Edit the release notes on GitHub if needed:
+https://github.com/e-dream-ai/client/releases
 
-Upload `build/Release/appcast.xml` to your web server:
-- **Production**: https://infinidream.ai/appcast.xml
-- **Stage**: https://infinidream.ai/stage/appcast.xml
+### 4. Publish the release
 
-This enables existing users to receive the update automatically via Sparkle.
+Preview what will be published:
+```bash
+./release.py -v X.Y.Z --dry-run
+```
+
+When ready, publish for real:
+```bash
+./release.py -v X.Y.Z        # production (alpha)
+./release.py -v X.Y.Z -s     # stage
+```
+
+This:
+- Fetches release notes from GitHub
+- Adds them to appcast.xml (with linked issue references)
+- Publishes appcast.xml to the landing-page repo
+- Marks the GitHub release as latest (removes prerelease label)
 
 ### 5. Update frontend (for new installs)
 
