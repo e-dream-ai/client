@@ -264,6 +264,9 @@ def main() -> None:
     # Determine paths
     script_dir = Path(__file__).parent
     build_config = "Debug" if stage else "Release"
+    # previous line can be wrong, there is a separate option for release/debug in build.py
+    # it is not necessarily the same as stage/prod. next line fixes for now.
+    build_config = "Release"
     local_appcast = script_dir / "build" / build_config / "appcast.xml"
 
     target_repo = "e-dream-ai/landing-page"
@@ -275,12 +278,12 @@ def main() -> None:
     else:
         target_path = "public/alpha/appcast.xml"
 
-    print_blue("========================================")
+    print("========================================")
     if dry_run:
-        print_blue("infinidream Release (DRY RUN)")
+        print("infinidream Release (DRY RUN)")
     else:
-        print_blue("infinidream Release")
-    print_blue("========================================")
+        print("infinidream Release")
+    print("========================================")
     print(f"Version: {version}")
     print(f"Target: {target_repo}/{target_path}")
     print(f"Frontend version target: {frontend_repo}/{frontend_version_path} (branch: {frontend_branch})")
@@ -344,10 +347,11 @@ def main() -> None:
         print()
         print_yellow("DRY RUN - Would perform these actions:")
         print(f"  1. Publish appcast.xml to {target_repo}/{target_path}")
-        print(f"  2. Update frontend version file on {frontend_repo} ({frontend_branch})")
         if not stage:
+            print(f"  2. Update frontend version file on {frontend_repo} ({frontend_branch})")
             print(f"  3. Mark release {version} as latest (remove prerelease)")
         else:
+            print("  2. (Stage: skip frontend version update)")
             print("  3. (Stage: skip marking as latest)")
         print()
         print("Run without --dry-run to execute for real.")
@@ -377,30 +381,33 @@ def main() -> None:
 
     print_green("Appcast published successfully!")
 
-    # Step 5: Update frontend version file
-    print_yellow("Updating frontend version file...")
-    frontend_version_content = f'export const APP_VERSION = "{version}";\n'
-    _, frontend_sha = get_file_from_github(
-        frontend_repo,
-        frontend_version_path,
-        ref=frontend_branch,
-    )
-    ok, err_msg = update_file_on_github(
-        frontend_repo,
-        frontend_version_path,
-        frontend_version_content,
-        frontend_sha,
-        f"Update app version to {version}",
-        branch=frontend_branch,
-    )
-    if not ok:
-        print_red("Failed to update frontend version file")
-        if err_msg:
-            print(err_msg)
-        print(f"Check that you have write access to {frontend_repo} and that branch '{frontend_branch}' exists.")
-        sys.exit(1)
+    # Step 5: Update frontend version file (only when not stage)
+    if not stage:
+        print_yellow("Updating frontend version file...")
+        frontend_version_content = f'export const APP_VERSION = "{version}";\n'
+        _, frontend_sha = get_file_from_github(
+            frontend_repo,
+            frontend_version_path,
+            ref=frontend_branch,
+        )
+        ok, err_msg = update_file_on_github(
+            frontend_repo,
+            frontend_version_path,
+            frontend_version_content,
+            frontend_sha,
+            f"Update app version to {version}",
+            branch=frontend_branch,
+        )
+        if not ok:
+            print_red("Failed to update frontend version file")
+            if err_msg:
+                print(err_msg)
+            print(f"Check that you have write access to {frontend_repo} and that branch '{frontend_branch}' exists.")
+            sys.exit(1)
 
-    print_green("Frontend version file updated!")
+        print_green("Frontend version file updated!")
+    else:
+        print("Stage release: skipping frontend version update")
 
     # Step 6: Mark GitHub release as latest (only when not stage)
     if not stage:
@@ -418,7 +425,7 @@ def main() -> None:
             if result.stderr:
                 print(result.stderr)
     else:
-        print_blue("Stage release: skipping marking as latest")
+        print("Stage release: skipping marking as latest")
 
     print()
     print_green("========================================")
