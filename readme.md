@@ -19,6 +19,9 @@ this repository uses git LFS, be sure to run
     brew install git-lfs
     git lfs install
 
+Also, if you are doing releases you will need:
+    brew install gh
+
 The general C++ dependencies are handled by vcpkg. Run these commands to build them:
 
     git submodule update --init

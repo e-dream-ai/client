@@ -166,10 +166,15 @@ def add_release_notes_to_appcast(appcast_path: Path, release_notes_markdown: str
     return content
 
 
-def get_file_from_github(repo: str, path: str) -> tuple[Optional[str], Optional[str]]:
+def get_file_from_github(
+    repo: str,
+    path: str,
+    ref: Optional[str] = None,
+) -> tuple[Optional[str], Optional[str]]:
     """Get file content and SHA from GitHub. Returns (content, sha) or (None, None)."""
+    ref_arg = f"?ref={ref}" if ref else ""
     result = run_command(
-        ['gh', 'api', f'/repos/{repo}/contents/{path}',
+        ['gh', 'api', f'/repos/{repo}/contents/{path}{ref_arg}',
          '--jq', '.content, .sha'],
         check=False,
         capture_output=True
@@ -262,6 +267,9 @@ def main() -> None:
     local_appcast = script_dir / "build" / build_config / "appcast.xml"
 
     target_repo = "e-dream-ai/landing-page"
+    frontend_repo = "e-dream-ai/frontend"
+    frontend_version_path = "src/version.ts"
+    frontend_branch = "stage" if stage else "main"
     if stage:
         target_path = "public/stage/appcast.xml"
     else:
@@ -275,6 +283,7 @@ def main() -> None:
     print_blue("========================================")
     print(f"Version: {version}")
     print(f"Target: {target_repo}/{target_path}")
+    print(f"Frontend version target: {frontend_repo}/{frontend_version_path} (branch: {frontend_branch})")
     if dry_run:
         print_yellow("DRY RUN - no changes will be made")
     print()
@@ -335,10 +344,11 @@ def main() -> None:
         print()
         print_yellow("DRY RUN - Would perform these actions:")
         print(f"  1. Publish appcast.xml to {target_repo}/{target_path}")
+        print(f"  2. Update frontend version file on {frontend_repo} ({frontend_branch})")
         if not stage:
-            print(f"  2. Mark release {version} as latest (remove prerelease)")
+            print(f"  3. Mark release {version} as latest (remove prerelease)")
         else:
-            print("  2. (Stage: skip marking as latest)")
+            print("  3. (Stage: skip marking as latest)")
         print()
         print("Run without --dry-run to execute for real.")
         return
@@ -367,7 +377,32 @@ def main() -> None:
 
     print_green("Appcast published successfully!")
 
-    # Step 5: Mark GitHub release as latest (only when not stage)
+    # Step 5: Update frontend version file
+    print_yellow("Updating frontend version file...")
+    frontend_version_content = f'export const APP_VERSION = "{version}";\n'
+    _, frontend_sha = get_file_from_github(
+        frontend_repo,
+        frontend_version_path,
+        ref=frontend_branch,
+    )
+    ok, err_msg = update_file_on_github(
+        frontend_repo,
+        frontend_version_path,
+        frontend_version_content,
+        frontend_sha,
+        f"Update app version to {version}",
+        branch=frontend_branch,
+    )
+    if not ok:
+        print_red("Failed to update frontend version file")
+        if err_msg:
+            print(err_msg)
+        print(f"Check that you have write access to {frontend_repo} and that branch '{frontend_branch}' exists.")
+        sys.exit(1)
+
+    print_green("Frontend version file updated!")
+
+    # Step 6: Mark GitHub release as latest (only when not stage)
     if not stage:
         print_yellow("Marking GitHub release as latest...")
         result = run_command(
