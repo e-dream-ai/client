@@ -20,7 +20,8 @@
 #else
     : NSView
 #endif
-      <SPUUpdaterDelegate
+      <SPUUpdaterDelegate,
+       SPUStandardUserDriverDelegate
 #ifdef USE_METAL
 #ifdef SCREEN_SAVER
        ,
@@ -61,6 +62,7 @@
 
     SPUStandardUpdaterController* m_updater;
     SPUUpdater* m_sparkleUpdater;  // Direct updater reference for screensaver
+    SPUStandardUserDriver* m_sparkleUserDriver;  // For screensaver: access activeUpdateAlert to hide Skip button
     BOOL m_updateAvailable;  // Track if Sparkle found a valid update
     std::unique_ptr<boost::barrier> m_beginFrameBarrier;
     std::unique_ptr<boost::barrier> m_endFrameBarrier;

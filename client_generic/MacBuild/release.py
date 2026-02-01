@@ -103,7 +103,7 @@ def linkify_issue_references(markdown: str, repo: str = "e-dream-ai/client") -> 
 
     # Match #123 but not already inside a markdown link or URL
     # Negative lookbehind for [ or / to avoid matching already-linked or URL refs
-    return re.sub(r'(?<![[\w/])#(\d+)\b', replace_issue, markdown)
+    return re.sub(r'(?<![\[\w/])#(\d+)\b', replace_issue, markdown)
 
 
 def add_release_notes_to_appcast(appcast_path: Path, release_notes_markdown: str) -> str:
@@ -194,38 +194,52 @@ def get_file_from_github(
     return None, None
 
 
+def get_sha_from_github(repo: str, path: str, ref: Optional[str] = None) -> Optional[str]:
+    """Get current blob SHA of a file from GitHub. Works even when content is not returned (e.g. large file)."""
+    url = f'/repos/{repo}/contents/{path}'
+    if ref:
+        url += f'?ref={ref}'
+    cmd = ['gh', 'api', url, '--jq', '.sha']
+    result = run_command(cmd, check=False, capture_output=True)
+    if result.returncode != 0:
+        return None
+    sha = (result.stdout or '').strip()
+    return sha if sha else None
+
+
+def get_default_branch(repo: str) -> str:
+    """Get default branch of repo (e.g. main)."""
+    result = run_command(
+        ['gh', 'api', f'/repos/{repo}', '--jq', '.default_branch'],
+        check=False,
+        capture_output=True
+    )
+    if result.returncode == 0 and result.stdout:
+        return result.stdout.strip()
+    return 'main'
+
+
 def update_file_on_github(
-    repo: str,
-    path: str,
-    content: str,
-    sha: Optional[str],
-    message: str,
-    branch: Optional[str] = None,
-) -> bool:
-    """Update or create a file on GitHub. Returns True on success."""
+    repo: str, path: str, content: str, sha: Optional[str], message: str, branch: Optional[str] = None
+) -> tuple[bool, str]:
+    """Update or create a file on GitHub. Returns (success, error_message)."""
     content_b64 = base64.b64encode(content.encode('utf-8')).decode('utf-8')
 
-    # Build the request body
-    body = {
-        'message': message,
-        'content': content_b64,
-    }
-    if sha:
-        body['sha'] = sha
-
-    cmd = [
+    args = [
         'gh', 'api', '-X', 'PUT', f'/repos/{repo}/contents/{path}',
         '-f', f'message={message}',
         '-f', f'content={content_b64}',
     ]
     if sha:
-        cmd += ['-f', f'sha={sha}']
+        args += ['-f', f'sha={sha}']
     if branch:
-        cmd += ['-f', f'branch={branch}']
+        args += ['-f', f'branch={branch}']
+    result = run_command(args, check=False, capture_output=True)
 
-    result = run_command(cmd, check=False, capture_output=True)
-
-    return result.returncode == 0
+    if result.returncode == 0:
+        return True, ""
+    err = (result.stderr or result.stdout or "").strip()
+    return False, err
 
 
 def main() -> None:
@@ -249,7 +263,10 @@ def main() -> None:
 
     # Determine paths
     script_dir = Path(__file__).parent
-    build_config = "Release"  # Appcast is only generated for release builds
+    build_config = "Debug" if stage else "Release"
+    # previous line can be wrong, there is a separate option for release/debug in build.py
+    # it is not necessarily the same as stage/prod. next line fixes for now.
+    build_config = "Release"
     local_appcast = script_dir / "build" / build_config / "appcast.xml"
 
     target_repo = "e-dream-ai/landing-page"
@@ -261,12 +278,12 @@ def main() -> None:
     else:
         target_path = "public/alpha/appcast.xml"
 
-    print_blue("========================================")
+    print("========================================")
     if dry_run:
-        print_blue("infinidream Release (DRY RUN)")
+        print("infinidream Release (DRY RUN)")
     else:
-        print_blue("infinidream Release")
-    print_blue("========================================")
+        print("infinidream Release")
+    print("========================================")
     print(f"Version: {version}")
     print(f"Target: {target_repo}/{target_path}")
     print(f"Frontend version target: {frontend_repo}/{frontend_version_path} (branch: {frontend_branch})")
@@ -306,8 +323,9 @@ def main() -> None:
     print_green("Release notes added to appcast (markdown format)")
 
     # Step 3: Get current file SHA from GitHub (needed for update)
-    print_yellow(f"Checking existing file on GitHub...")
-    _, existing_sha = get_file_from_github(target_repo, target_path)
+    default_branch = get_default_branch(target_repo)
+    print_yellow(f"Checking existing file on GitHub (branch: {default_branch})...")
+    existing_sha = get_sha_from_github(target_repo, target_path, ref=default_branch)
     if existing_sha:
         print(f"Existing file found (SHA: {existing_sha[:7]}...)")
     else:
@@ -329,60 +347,85 @@ def main() -> None:
         print()
         print_yellow("DRY RUN - Would perform these actions:")
         print(f"  1. Publish appcast.xml to {target_repo}/{target_path}")
-        print(f"  2. Update frontend version file on {frontend_repo} ({frontend_branch})")
-        print(f"  3. Mark release {version} as latest (remove prerelease)")
+        if not stage:
+            print(f"  2. Update frontend version file on {frontend_repo} ({frontend_branch})")
+            print(f"  3. Mark release {version} as latest (remove prerelease)")
+        else:
+            print("  2. (Stage: skip frontend version update)")
+            print("  3. (Stage: skip marking as latest)")
         print()
         print("Run without --dry-run to execute for real.")
         return
 
-    # Step 4: Push to GitHub
+    # Step 4: Push to GitHub (refetch SHA right before update to avoid 409 conflict)
     print_yellow(f"Publishing appcast.xml to {target_repo}...")
     commit_message = f"Update appcast.xml for v{version}"
-
-    if not update_file_on_github(target_repo, target_path, updated_appcast, existing_sha, commit_message):
+    existing_sha = get_sha_from_github(target_repo, target_path, ref=default_branch)
+    ok, err_msg = update_file_on_github(
+        target_repo, target_path, updated_appcast, existing_sha, commit_message, branch=default_branch
+    )
+    if not ok and "409" in err_msg:
+        # File changed since we fetched SHA; refetch and retry once
+        print_yellow("File changed on GitHub, retrying with latest SHA...")
+        existing_sha = get_sha_from_github(target_repo, target_path, ref=default_branch)
+        ok, err_msg = update_file_on_github(
+            target_repo, target_path, updated_appcast, existing_sha, commit_message, branch=default_branch
+        )
+    if not ok:
         print_red("Failed to publish appcast.xml")
+        if err_msg:
+            print(err_msg)
         print("Check that you have write access to the repository.")
         print(f"Try: gh repo view {target_repo}")
         sys.exit(1)
 
     print_green("Appcast published successfully!")
 
-    # Step 5: Update frontend version file
-    print_yellow("Updating frontend version file...")
-    frontend_version_content = f'export const APP_VERSION = "{version}";\n'
-    _, frontend_sha = get_file_from_github(
-        frontend_repo,
-        frontend_version_path,
-        ref=frontend_branch,
-    )
-    if not update_file_on_github(
-        frontend_repo,
-        frontend_version_path,
-        frontend_version_content,
-        frontend_sha,
-        f"Update app version to {version}",
-        branch=frontend_branch,
-    ):
-        print_red("Failed to update frontend version file")
-        print(f"Check that you have write access to {frontend_repo} and that branch '{frontend_branch}' exists.")
-        sys.exit(1)
+    # Step 5: Update frontend version file (only when not stage)
+    if not stage:
+        print_yellow("Updating frontend version file...")
+        frontend_version_content = f'export const APP_VERSION = "{version}";\n'
+        _, frontend_sha = get_file_from_github(
+            frontend_repo,
+            frontend_version_path,
+            ref=frontend_branch,
+        )
+        ok, err_msg = update_file_on_github(
+            frontend_repo,
+            frontend_version_path,
+            frontend_version_content,
+            frontend_sha,
+            f"Update app version to {version}",
+            branch=frontend_branch,
+        )
+        if not ok:
+            print_red("Failed to update frontend version file")
+            if err_msg:
+                print(err_msg)
+            print(f"Check that you have write access to {frontend_repo} and that branch '{frontend_branch}' exists.")
+            sys.exit(1)
 
-    print_green("Frontend version file updated!")
-
-    # Step 6: Mark GitHub release as latest (remove prerelease label)
-    print_yellow("Marking GitHub release as latest...")
-    result = run_command(
-        ['gh', 'release', 'edit', version, '--repo', 'e-dream-ai/client',
-         '--prerelease=false', '--latest'],
-        check=False,
-        capture_output=True
-    )
-    if result.returncode == 0:
-        print_green("Release marked as latest")
+        print_green("Frontend version file updated!")
     else:
-        print_yellow("Warning: Could not update release status")
-        if result.stderr:
-            print(result.stderr)
+        print("Stage release: skipping frontend version update")
+
+    # Step 6: Mark GitHub release as latest (only when not stage)
+    if not stage:
+        print_yellow("Marking GitHub release as latest...")
+        result = run_command(
+            ['gh', 'release', 'edit', version, '--repo', 'e-dream-ai/client',
+             '--prerelease=false', '--latest'],
+            check=False,
+            capture_output=True
+        )
+        if result.returncode == 0:
+            print_green("Release marked as latest")
+        else:
+            print_yellow("Warning: Could not update release status")
+            if result.stderr:
+                print(result.stderr)
+    else:
+        print("Stage release: skipping marking as latest")
 
     print()
     print_green("========================================")

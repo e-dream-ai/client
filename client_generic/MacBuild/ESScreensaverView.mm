@@ -33,6 +33,7 @@
 
     m_updater = NULL;
     m_sparkleUpdater = NULL;
+    m_sparkleUserDriver = nil;
     m_updateAvailable = NO;
 
     m_isFullScreen = !isPreview;
@@ -53,13 +54,15 @@
     // This ensures Sparkle reads SUPublicEDKey and other settings from our bundle
     m_updater = nil;
     m_sparkleUpdater = nil;
+    m_sparkleUserDriver = nil;
     
     @try {
         NSBundle *screensaverBundle = [NSBundle bundleForClass:[self class]];
         NSLog(@"Sparkle: initializing for screensaver bundle: %@ at %@", 
               screensaverBundle.bundleIdentifier, screensaverBundle.bundlePath);
         
-        SPUStandardUserDriver *userDriver = [[SPUStandardUserDriver alloc] initWithHostBundle:screensaverBundle delegate:nil];
+        SPUStandardUserDriver *userDriver = [[SPUStandardUserDriver alloc] initWithHostBundle:screensaverBundle delegate:self];
+        m_sparkleUserDriver = userDriver;
         SPUUpdater *updater = [[SPUUpdater alloc] initWithHostBundle:screensaverBundle
                                                    applicationBundle:screensaverBundle
                                                           userDriver:userDriver
@@ -69,6 +72,10 @@
         if ([updater startUpdater:&error]) {
             m_sparkleUpdater = updater;
             m_sparkleUpdater.automaticallyChecksForUpdates = YES;
+            // Hide "Skip this version" in update dialog (Sparkle 2.x allowsSkippingUpdates)
+            if ([m_sparkleUpdater respondsToSelector:NSSelectorFromString(@"setAllowsSkippingUpdates:")]) {
+                [m_sparkleUpdater setValue:@NO forKey:@"allowsSkippingUpdates"];
+            }
             NSLog(@"Sparkle: successfully started for screensaver");
             
             // Trigger an immediate background check for updates
@@ -86,10 +93,15 @@
     m_sparkleUpdater = nil;
     m_updater = [[SPUStandardUpdaterController alloc] initWithStartingUpdater:YES
                                                               updaterDelegate:self
-                                                           userDriverDelegate:nil];
+                                                           userDriverDelegate:self];
     
     if (m_updater) {
-        [m_updater.updater checkForUpdatesInBackground];
+        SPUUpdater *appUpdater = m_updater.updater;
+        // Hide "Skip this version" in update dialog (Sparkle 2.x allowsSkippingUpdates)
+        if ([appUpdater respondsToSelector:NSSelectorFromString(@"setAllowsSkippingUpdates:")]) {
+            [appUpdater setValue:@NO forKey:@"allowsSkippingUpdates"];
+        }
+        [appUpdater checkForUpdatesInBackground];
     }
     
     // Connect "Check for Updates..." menu item to the updater (app only)
@@ -556,6 +568,48 @@ static void signnal_handler(int signal)
     // App can show the standard permission dialog
     return YES;
 #endif
+}
+
+#pragma mark - SPUStandardUserDriverDelegate (hide "Skip this version" button)
+
+static void hideSkipButtonInView(NSView *view)
+{
+    if (!view) return;
+    if ([view isKindOfClass:[NSButton class]]) {
+        NSButton *btn = (NSButton *)view;
+        NSString *title = [btn title];
+        if ([title rangeOfString:@"Skip" options:NSCaseInsensitiveSearch].location != NSNotFound) {
+            [btn setHidden:YES];
+        }
+    }
+    for (NSView *sub in [view subviews]) {
+        hideSkipButtonInView(sub);
+    }
+}
+
+- (void)standardUserDriverWillHandleShowingUpdate:(BOOL)handleShowingUpdate forUpdate:(SUAppcastItem *)update state:(SPUUserUpdateState *)state
+{
+    // Get the user driver (app: from controller; screensaver: stored reference)
+    id userDriver = nil;
+#ifdef SCREEN_SAVER
+    userDriver = m_sparkleUserDriver;
+#else
+    userDriver = m_updater ? m_updater.userDriver : nil;
+#endif
+    if (!userDriver) return;
+
+    __weak id weakDriver = userDriver;
+    // Run after the update alert window is built and shown
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.15 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        id driver = weakDriver;
+        if (!driver) return;
+        NSWindowController *alert = [driver valueForKey:@"activeUpdateAlert"];
+        if (!alert || ![alert isKindOfClass:[NSWindowController class]]) return;
+        NSWindow *window = [alert window];
+        if (!window) return;
+        NSView *contentView = [window contentView];
+        hideSkipButtonInView(contentView);
+    });
 }
 
 // Check if an update is available

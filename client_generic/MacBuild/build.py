@@ -324,9 +324,9 @@ def validate_config(config: BuildConfig) -> None:
 
 def print_build_info(config: BuildConfig) -> None:
     """Print build configuration information."""
-    print_blue("========================================")
-    print_blue("infinidream Unified Build")
-    print_blue("========================================")
+    print("========================================")
+    print("infinidream Unified Build")
+    print("========================================")
 
     if config.stage:
         print(f"Environment: {Colors.YELLOW}STAGE{Colors.NC}")
@@ -357,7 +357,7 @@ def print_build_info(config: BuildConfig) -> None:
     if config.notarize:
         print(f"Notarization Profile: {config.keychain_profile}")
 
-    print_blue("========================================")
+    print("========================================")
     print()
 
 
@@ -381,9 +381,9 @@ def step0_resign_sparkle(config: BuildConfig) -> None:
         return
 
     print()
-    print_blue("========================================")
-    print_blue("STEP 0: Re-signing Sparkle.framework")
-    print_blue("========================================")
+    print("========================================")
+    print("STEP 0: Re-signing Sparkle.framework")
+    print("========================================")
 
     sparkle_path = Path("Frameworks/Sparkle.framework")
 
@@ -419,9 +419,9 @@ def step0_resign_sparkle(config: BuildConfig) -> None:
 def step1_build_screensaver(config: BuildConfig) -> Path:
     """Build the screensaver. Returns path to built screensaver."""
     print()
-    print_blue("========================================")
-    print_blue("STEP 1: Building Screensaver")
-    print_blue("========================================")
+    print("========================================")
+    print("STEP 1: Building Screensaver")
+    print("========================================")
 
     env = {'BUILD_VERSION': config.plist_version} if config.plist_version else {}
 
@@ -552,9 +552,9 @@ def step2_notarize_screensaver(config: BuildConfig, project_saver: Path, screens
         return
 
     print()
-    print_blue("========================================")
-    print_blue("STEP 2: Notarizing Screensaver")
-    print_blue("========================================")
+    print("========================================")
+    print("STEP 2: Notarizing Screensaver")
+    print("========================================")
 
     print_yellow("Submitting screensaver to Apple for notarization...")
     print_yellow("This may take several minutes...")
@@ -640,9 +640,9 @@ def step2_notarize_screensaver(config: BuildConfig, project_saver: Path, screens
 def step3_archive_app(config: BuildConfig) -> Path:
     """Archive the app. Returns path to archive."""
     print()
-    print_blue("========================================")
-    print_blue("STEP 3: Archiving App")
-    print_blue("========================================")
+    print("========================================")
+    print("STEP 3: Archiving App")
+    print("========================================")
 
     print_green("Found notarized screensaver in project Resources")
 
@@ -689,9 +689,9 @@ def step3_archive_app(config: BuildConfig) -> Path:
 def step4_export_app(config: BuildConfig, archive_path: Path) -> Path:
     """Export the app from archive. Returns path to exported app."""
     print()
-    print_blue("========================================")
-    print_blue("STEP 4: Exporting App")
-    print_blue("========================================")
+    print("========================================")
+    print("STEP 4: Exporting App")
+    print("========================================")
 
     export_options_path = config.build_dir / config.build_config / "AppExportOptions.plist"
 
@@ -769,9 +769,9 @@ def step5_notarize_app(config: BuildConfig, exported_app: Path) -> None:
         return
 
     print()
-    print_blue("========================================")
-    print_blue("STEP 5: Notarizing App")
-    print_blue("========================================")
+    print("========================================")
+    print("STEP 5: Notarizing App")
+    print("========================================")
 
     # Create zip for notarization
     print_yellow("Creating zip of app for notarization...")
@@ -873,9 +873,9 @@ def step5_notarize_app(config: BuildConfig, exported_app: Path) -> None:
 def step6_create_distribution(config: BuildConfig, exported_app: Path, output_saver: Path) -> Path:
     """Create final distribution package. Returns path to final zip."""
     print()
-    print_blue("========================================")
-    print_blue("STEP 6: Creating Distribution Package")
-    print_blue("========================================")
+    print("========================================")
+    print("STEP 6: Creating Distribution Package")
+    print("========================================")
 
     # Determine output filename
     if config.version:
@@ -911,9 +911,9 @@ def step7_generate_appcast(config: BuildConfig, final_zip: Path) -> Optional[Pat
         return None
 
     print()
-    print_blue("========================================")
-    print_blue("STEP 7: Generating Appcast")
-    print_blue("========================================")
+    print("========================================")
+    print("STEP 7: Generating Appcast")
+    print("========================================")
 
     script_dir = Path(__file__).parent
     appcast_script = script_dir / "generate_appcast.sh"
@@ -946,9 +946,9 @@ def step8_github_release(config: BuildConfig, final_zip: Path) -> Optional[str]:
         return None
 
     print()
-    print_blue("========================================")
-    print_blue("STEP 8: Creating GitHub Release")
-    print_blue("========================================")
+    print("========================================")
+    print("STEP 8: Creating GitHub Release")
+    print("========================================")
 
     tag = config.version
     release_name = f"v{config.version}"
@@ -1142,9 +1142,9 @@ def print_summary(
 
     # Show upload instructions if appcast was generated
     if appcast_path and appcast_path.exists():
-        print_blue("========================================")
-        print_blue("Upload Instructions for Sparkle Updates")
-        print_blue("========================================")
+        print("========================================")
+        print("Upload Instructions for Sparkle Updates")
+        print("========================================")
         print()
         if release_url:
             print(f"1. GitHub release created: {release_url}")
