@@ -12,6 +12,8 @@ a platform for generative visuals.
 this repository has the native client.
 See the [backend](https://github.com/e-dream-ai/backend) for the server that it connects to.
 
+Originally known as [Electric Sheep](https://github.com/scottdraves/electricsheep).
+
 # dev docs
 
 this repository uses git LFS, be sure to run
