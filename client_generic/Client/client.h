@@ -39,6 +39,9 @@
 #include "StringFormat.h"
 #include "CacheManager.h"
 
+// Flag to cancel the shutdown watchdog when restarting (e.g., after wizard)
+static std::atomic<bool> s_shutdownCancelled{false};
+
 #if defined(WIN32) && defined(_MSC_VER)
 #include "../msvc/cpu_usage_win32.h"
 #include "../msvc/msvc_fix.h"
@@ -606,6 +609,9 @@ class CElectricSheep
     //
     virtual bool Startup()
     {
+        // Cancel any pending shutdown watchdog (e.g., when restarting after wizard)
+        s_shutdownCancelled.store(true);
+
         m_CpuUsageThreshold =
             g_Settings()->Get("settings.player.cpuusagethreshold", 50);
 
@@ -726,20 +732,35 @@ class CElectricSheep
     virtual void Shutdown()
     {
         printf("CElectricSheep::Shutdown()\n");
-        
-        // Arm a force-exit watchdog to guarantee instant shutdown.
-        // Always exit after a short delay, even if cleanup appears complete.
-        std::thread([]() {
-            std::this_thread::sleep_for(std::chrono::milliseconds(200));
-            printf("Force exiting after shutdown timeout\n");
-            _exit(0);
-        }).detach();
-        
-        // FAST EXIT: If network is unreachable, exit immediately without waiting
-        g_NetworkManager->Abort();
-        if (!PlatformUtils::IsInternetReachable()) {
-            printf("Network unreachable - forcing immediate exit\n");
-            _exit(0);
+
+        // Reset cancellation flag - Startup() will set it to true if this is a restart
+        s_shutdownCancelled.store(false);
+
+        // Only use aggressive shutdown tactics when not in config mode.
+        // Config mode shutdown happens when transitioning from onboarding to playback,
+        // so we must not abort network or force-exit in that case.
+        if (!m_bConfigMode)
+        {
+            // Arm a force-exit watchdog to guarantee instant shutdown.
+            // The watchdog checks s_shutdownCancelled before exiting, so if
+            // Startup() is called (e.g., when restarting after wizard), it
+            // will cancel the watchdog by setting s_shutdownCancelled = true.
+            std::thread([]() {
+                std::this_thread::sleep_for(std::chrono::milliseconds(200));
+                if (s_shutdownCancelled.load()) {
+                    printf("Shutdown watchdog cancelled - app is restarting\n");
+                    return;
+                }
+                printf("Force exiting after shutdown timeout\n");
+                _exit(0);
+            }).detach();
+
+            // FAST EXIT: If network is unreachable, exit immediately without waiting
+            g_NetworkManager->Abort();
+            if (!PlatformUtils::IsInternetReachable()) {
+                printf("Network unreachable - forcing immediate exit\n");
+                _exit(0);
+            }
         }
 
 #ifdef DO_THREAD_UPDATE
@@ -756,9 +777,7 @@ class CElectricSheep
 
         if (!m_bConfigMode)
         {
-            // IMPORTANT: Abort all network operations FIRST before any thread joins
-            // This prevents hanging when network is unavailable or disrupted
-            g_NetworkManager->Abort();
+            // Note: g_NetworkManager->Abort() already called above
             
             // Stop playlist manager's periodic checking thread before player shutdown
             // This must happen before Player::Stop() which joins threads
