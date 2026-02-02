@@ -538,7 +538,7 @@ def main() -> None:
     if not stage:
         print_yellow("Updating frontend version file...")
         frontend_version_content = f'export const APP_VERSION = "{version}";\n'
-        _, frontend_sha = get_file_from_github(
+        frontend_sha = get_sha_from_github(
             frontend_repo,
             frontend_version_path,
             ref=frontend_branch,
