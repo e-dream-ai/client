@@ -254,7 +254,6 @@ class BuildConfig:
         self.release = args.release
         self.stage = args.stage
         self.notarize = args.notarize
-        self.generate_appcast = args.appcast
         self.github_release = args.github
         self.version = args.version
 
@@ -308,10 +307,6 @@ def validate_config(config: BuildConfig) -> None:
         print_red("Error: Notarization requires Release mode. Use -r flag with -n")
         sys.exit(1)
 
-    if config.generate_appcast and not config.version:
-        print_red("Error: Appcast generation requires version. Use -v flag with -a")
-        sys.exit(1)
-
     if config.github_release and not config.version:
         print_red("Error: GitHub release requires version. Use -v flag with -g")
         sys.exit(1)
@@ -337,7 +332,6 @@ def print_build_info(config: BuildConfig) -> None:
     print(f"Screensaver Scheme: {config.screensaver_scheme}")
     print(f"App Scheme: {config.app_scheme}")
     print(f"Notarization: {'Enabled' if config.notarize else 'Disabled'}")
-    print(f"Generate Appcast: {'Enabled' if config.generate_appcast else 'Disabled'}")
     print(f"GitHub Release: {'Enabled' if config.github_release else 'Disabled'}")
 
     if config.version:
@@ -905,49 +899,14 @@ def get_file_size(path: Path) -> str:
     return result.split()[0] if result else "?"
 
 
-def step7_generate_appcast(config: BuildConfig, final_zip: Path) -> Optional[Path]:
-    """Generate appcast for Sparkle updates. Returns path to appcast or None."""
-    if not config.generate_appcast:
-        return None
-
-    print()
-    print("========================================")
-    print("STEP 7: Generating Appcast")
-    print("========================================")
-
-    script_dir = Path(__file__).parent
-    appcast_script = script_dir / "generate_appcast.sh"
-
-    if not appcast_script.exists() or not os.access(appcast_script, os.X_OK):
-        print_red("Error: generate_appcast.sh not found or not executable")
-        print(f"Expected at: {appcast_script}")
-        return None
-
-    print_yellow("Generating appcast.xml...")
-    output_dir = config.build_dir / config.build_config
-
-    result = run_command(
-        [str(appcast_script), '-v', config.version, '-z', str(final_zip), '-o', str(output_dir)],
-        check=False
-    )
-
-    if result.returncode == 0:
-        appcast_path = output_dir / "appcast.xml"
-        print_green("Appcast generated successfully")
-        return appcast_path
-    else:
-        print_yellow("Warning: Appcast generation failed (continuing without appcast)")
-        return None
-
-
-def step8_github_release(config: BuildConfig, final_zip: Path) -> Optional[str]:
+def step7_github_release(config: BuildConfig, final_zip: Path) -> Optional[str]:
     """Create GitHub release with tag and upload zip. Returns release URL or None."""
     if not config.github_release:
         return None
 
     print()
     print("========================================")
-    print("STEP 8: Creating GitHub Release")
+    print("STEP 7: Creating GitHub Release")
     print("========================================")
 
     tag = config.version
@@ -1084,7 +1043,6 @@ def print_summary(
     archive_path: Path,
     exported_app: Path,
     final_zip: Path,
-    appcast_path: Optional[Path],
     release_url: Optional[str] = None,
 ) -> None:
     """Print build summary."""
@@ -1132,34 +1090,10 @@ def print_summary(
     print()
     print(f"Distribution package: {final_zip} ({zip_size})")
 
-    if appcast_path and appcast_path.exists():
-        print(f"Appcast: {appcast_path}")
-
     print()
     print("To test the app, run:")
     print(f"  open '{exported_app}'")
     print()
-
-    # Show upload instructions if appcast was generated
-    if appcast_path and appcast_path.exists():
-        print("========================================")
-        print("Upload Instructions for Sparkle Updates")
-        print("========================================")
-        print()
-        if release_url:
-            print(f"1. GitHub release created: {release_url}")
-            print()
-            print("2. Upload appcast.xml to your web server:")
-        else:
-            print(f"1. Create GitHub release for version {config.version}:")
-            print(f"   https://github.com/e-dream-ai/client/releases/new?tag={config.version}")
-            print()
-            print("2. Upload the zip file to the release:")
-            print(f"   {final_zip}")
-            print()
-            print("3. Upload appcast.xml to your web server:")
-        print(f"   {appcast_path} -> https://infinidream.ai/alpha/appcast.xml")
-        print()
 
     if config.release and not config.notarize:
         stage_flag = " -s" if config.stage else ""
@@ -1206,12 +1140,10 @@ Environment variables (optional overrides):
                         help='Build stage version (default: production)')
     parser.add_argument('-n', '--notarize', action='store_true',
                         help='Enable notarization (requires -r)')
-    parser.add_argument('-a', '--appcast', action='store_true',
-                        help='Generate appcast.xml for Sparkle updates')
     parser.add_argument('-g', '--github', action='store_true',
                         help='Create GitHub release with tag (requires -v)')
     parser.add_argument('-v', '--version', type=str,
-                        help='Version string (e.g., 0.12.0) - used for zip naming, appcast, and GitHub release')
+                        help='Version string (e.g., 0.12.0) - used for zip naming and GitHub release')
 
     args = parser.parse_args()
 
@@ -1253,16 +1185,13 @@ Environment variables (optional overrides):
     # Step 6: Create distribution package
     final_zip = step6_create_distribution(config, exported_app, output_saver)
 
-    # Step 7: Generate appcast
-    appcast_path = step7_generate_appcast(config, final_zip)
-
-    # Step 8: GitHub release
-    release_url = step8_github_release(config, final_zip)
+    # Step 7: GitHub release
+    release_url = step7_github_release(config, final_zip)
 
     # Print summary
     print_summary(
         config, output_saver, project_saver, screensaver_zip,
-        archive_path, exported_app, final_zip, appcast_path, release_url
+        archive_path, exported_app, final_zip, release_url
     )
 
 

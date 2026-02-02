@@ -2,7 +2,7 @@
 """
 infinidream Release Script
 
-Fetches release notes from GitHub, adds them to appcast.xml,
+Generates appcast.xml, fetches release notes from GitHub, adds them to appcast.xml,
 and publishes to the landing-page repository.
 
 Usage:
@@ -13,9 +13,12 @@ Usage:
 import argparse
 import base64
 import json
+import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Optional
 
@@ -77,6 +80,127 @@ def run_command_with_output(cmd: list[str]) -> str:
     """Run a command and return its output."""
     result = run_command(cmd, capture_output=True, check=False)
     return result.stdout.strip() if result.stdout else ""
+
+
+def find_generate_appcast_tool(script_dir: Path) -> Optional[str]:
+    """Find the Sparkle generate_appcast tool."""
+    locations = [
+        "/usr/local/bin/generate_appcast",
+        Path.home() / "bin" / "generate_appcast",
+        script_dir / "bin" / "generate_appcast",
+    ]
+
+    for loc in locations:
+        loc_str = str(loc)
+        if os.path.isfile(loc_str) and os.access(loc_str, os.X_OK):
+            return loc_str
+
+    # Check if it's in PATH
+    if shutil.which("generate_appcast"):
+        return "generate_appcast"
+
+    return None
+
+
+def generate_appcast(version: str, zip_path: Path, output_dir: Path, script_dir: Path) -> Optional[Path]:
+    """Generate appcast.xml using Sparkle's generate_appcast tool.
+
+    Returns path to generated appcast.xml or None on failure.
+    """
+    print_yellow("Generating appcast.xml...")
+
+    # Find the generate_appcast tool
+    generate_appcast_tool = find_generate_appcast_tool(script_dir)
+    if not generate_appcast_tool:
+        print_red("Error: generate_appcast tool not found")
+        print()
+        print("Please download Sparkle tools from:")
+        print("  https://github.com/sparkle-project/Sparkle/releases")
+        print()
+        print("Extract and place generate_appcast in one of these locations:")
+        print("  - /usr/local/bin/generate_appcast")
+        print("  - ~/bin/generate_appcast")
+        print(f"  - {script_dir}/bin/generate_appcast")
+        print()
+        print("Or add it to your PATH.")
+        return None
+
+    print(f"Using generate_appcast: {generate_appcast_tool}")
+
+    # Create a temporary directory for appcast generation
+    with tempfile.TemporaryDirectory() as appcast_dir:
+        # Copy zip to temp directory
+        zip_filename = zip_path.name
+        temp_zip = Path(appcast_dir) / zip_filename
+        shutil.copy2(zip_path, temp_zip)
+
+        # Construct download URL
+        download_url_prefix = "https://github.com/e-dream-ai/client/releases/download"
+        download_url = f"{download_url_prefix}/{version}/{zip_filename}"
+        print(f"Download URL: {download_url}")
+
+        # Run generate_appcast with download URL prefix
+        print_yellow("Running Sparkle's generate_appcast...")
+        result = run_command(
+            [generate_appcast_tool, "--download-url-prefix", f"{download_url_prefix}/{version}/", appcast_dir],
+            check=False,
+            capture_output=True
+        )
+
+        if result.returncode != 0:
+            print_red("Error: generate_appcast failed")
+            if result.stderr:
+                print(result.stderr)
+            if result.stdout:
+                print(result.stdout)
+            return None
+
+        # Check if appcast was generated
+        generated_appcast = Path(appcast_dir) / "appcast.xml"
+        if not generated_appcast.exists():
+            print_red("Error: generate_appcast did not create appcast.xml")
+            return None
+
+        # Read the generated content
+        appcast_content = generated_appcast.read_text()
+
+        # Update version in appcast.xml to match the -v argument
+        # Sparkle's generate_appcast extracts version from the app bundle
+        import re as re_module
+        bundle_version_match = re_module.search(r'<sparkle:version>([^<]*)</sparkle:version>', appcast_content)
+        if bundle_version_match:
+            bundle_version = bundle_version_match.group(1)
+            if bundle_version != version:
+                print(f"Bundle version: {bundle_version} -> Updating to: {version}")
+                appcast_content = appcast_content.replace(
+                    f"<title>{bundle_version}</title>",
+                    f"<title>{version}</title>"
+                )
+                appcast_content = appcast_content.replace(
+                    f"<sparkle:version>{bundle_version}</sparkle:version>",
+                    f"<sparkle:version>{version}</sparkle:version>"
+                )
+                appcast_content = appcast_content.replace(
+                    f"<sparkle:shortVersionString>{bundle_version}</sparkle:shortVersionString>",
+                    f"<sparkle:shortVersionString>{version}</sparkle:shortVersionString>"
+                )
+
+        # Check if signature was added
+        if 'sparkle:edSignature' in appcast_content:
+            print_green("EdDSA signature found in appcast")
+        else:
+            print_yellow("Warning: No EdDSA signature found in appcast")
+            print()
+            print("The appcast needs to be signed for Sparkle to accept updates.")
+            print("Make sure the Sparkle private key is in your Keychain.")
+            print()
+
+        # Copy appcast to output directory
+        appcast_path = output_dir / "appcast.xml"
+        appcast_path.write_text(appcast_content)
+
+        print_green(f"Appcast generated: {appcast_path}")
+        return appcast_path
 
 
 def get_release_notes(version: str) -> Optional[str]:
@@ -244,7 +368,7 @@ def update_file_on_github(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description='Publish appcast.xml with release notes to landing-page repo',
+        description='Generate and publish appcast.xml with release notes to landing-page repo',
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
@@ -263,11 +387,15 @@ def main() -> None:
 
     # Determine paths
     script_dir = Path(__file__).parent
-    build_config = "Debug" if stage else "Release"
-    # previous line can be wrong, there is a separate option for release/debug in build.py
-    # it is not necessarily the same as stage/prod. next line fixes for now.
     build_config = "Release"
-    local_appcast = script_dir / "build" / build_config / "appcast.xml"
+    build_dir = script_dir / "build" / build_config
+    local_appcast = build_dir / "appcast.xml"
+
+    # Determine zip file path
+    if stage:
+        zip_path = build_dir / f"infinidream-{version}-stage.zip"
+    else:
+        zip_path = build_dir / f"infinidream-{version}.zip"
 
     target_repo = "e-dream-ai/landing-page"
     frontend_repo = "e-dream-ai/frontend"
@@ -285,13 +413,36 @@ def main() -> None:
         print("infinidream Release")
     print("========================================")
     print(f"Version: {version}")
+    print(f"Zip file: {zip_path}")
     print(f"Target: {target_repo}/{target_path}")
     print(f"Frontend version target: {frontend_repo}/{frontend_version_path} (branch: {frontend_branch})")
     if dry_run:
         print_yellow("DRY RUN - no changes will be made")
     print()
 
-    # Step 1: Fetch release notes from GitHub
+    # Verify zip file exists
+    if not zip_path.exists():
+        print_red(f"Error: Zip file not found: {zip_path}")
+        print()
+        print("Run build.py first to create the distribution package:")
+        print(f"  ./build.py -r -n -g -v {version}" + (" -s" if stage else ""))
+        sys.exit(1)
+
+    # Step 1: Generate appcast.xml
+    print()
+    print("========================================")
+    print("Step 1: Generating Appcast")
+    print("========================================")
+    appcast_path = generate_appcast(version, zip_path, build_dir, script_dir)
+    if not appcast_path:
+        print_red("Failed to generate appcast.xml")
+        sys.exit(1)
+    print()
+
+    # Step 2: Fetch release notes from GitHub
+    print("========================================")
+    print("Step 2: Fetching Release Notes")
+    print("========================================")
     print_yellow("Fetching release notes from GitHub...")
     release_notes = get_release_notes(version)
     if not release_notes:
@@ -308,21 +459,23 @@ def main() -> None:
     print("-" * 40)
     print()
 
-    # Step 2: Process release notes and add to appcast
+    # Step 3: Process release notes and add to appcast
+    print("========================================")
+    print("Step 3: Adding Release Notes to Appcast")
+    print("========================================")
     print_yellow("Processing release notes...")
     release_notes = linkify_issue_references(release_notes)
     print_green("Issue references linked (e.g., #123 -> GitHub link)")
 
     print_yellow(f"Reading local appcast from {local_appcast}...")
-    if not local_appcast.exists():
-        print_red(f"Local appcast not found: {local_appcast}")
-        print("Run build.py with -a flag first to generate appcast.xml")
-        sys.exit(1)
-
     updated_appcast = add_release_notes_to_appcast(local_appcast, release_notes)
     print_green("Release notes added to appcast (markdown format)")
+    print()
 
-    # Step 3: Get current file SHA from GitHub (needed for update)
+    # Step 4: Get current file SHA from GitHub (needed for update)
+    print("========================================")
+    print("Step 4: Publishing to GitHub")
+    print("========================================")
     default_branch = get_default_branch(target_repo)
     print_yellow(f"Checking existing file on GitHub (branch: {default_branch})...")
     existing_sha = get_sha_from_github(target_repo, target_path, ref=default_branch)
@@ -357,7 +510,7 @@ def main() -> None:
         print("Run without --dry-run to execute for real.")
         return
 
-    # Step 4: Push to GitHub (refetch SHA right before update to avoid 409 conflict)
+    # Push to GitHub (refetch SHA right before update to avoid 409 conflict)
     print_yellow(f"Publishing appcast.xml to {target_repo}...")
     commit_message = f"Update appcast.xml for v{version}"
     existing_sha = get_sha_from_github(target_repo, target_path, ref=default_branch)
@@ -381,7 +534,7 @@ def main() -> None:
 
     print_green("Appcast published successfully!")
 
-    # Step 5: Update frontend version file (only when not stage)
+    # Step 5: Update frontend version file (only for production releases)
     if not stage:
         print_yellow("Updating frontend version file...")
         frontend_version_content = f'export const APP_VERSION = "{version}";\n'
