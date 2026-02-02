@@ -164,15 +164,11 @@ bool CClip::StartPlayback(int64_t _seekFrame)
 
 
 
-//    Do some math to figure out the delta between frames...
-bool CClip::NeedsNewFrame(double _timelineTime,
-                          DecoderClock* _decoderClock) const
+//    Calculate how many frames we need to advance based on elapsed time
+//    Returns: 0 = no new frame needed, 1+ = number of frames to advance
+int CClip::GetFramesToAdvance(double _timelineTime,
+                              DecoderClock* _decoderClock) const
 {
-   /* g_Log->Info("Needs new frame : %d %d",m_CurrentFrameMetadata.frameIdx, m_spFrameDisplay->StartAtFrame());
-    
-    if (m_CurrentFrameMetadata.frameIdx < m_spFrameDisplay->StartAtFrame())
-        return true;
-*/
     double deltaTime = _timelineTime - _decoderClock->clock;
     
     // Detect large time gaps (like clip transitions) and reset timing
@@ -189,29 +185,40 @@ bool CClip::NeedsNewFrame(double _timelineTime,
         _decoderClock->started = true;
         _decoderClock->acc = 0.0;  // Initialize accumulator
         g_Log->Info("First frame timing - reinit acc and force grab");
-        //deltaTime = 0.0167;
-        return true;
+        return 1;  // Need first frame
     }
     _decoderClock->acc += deltaTime;
 
     const double dt = 1.0 / m_ClipMetadata.decodeFps;
-    bool bCrossedFrame = false;
-
-    //    Accumulated time is longer than the requested framerate, we
-    // crossed over
-    // to the next frame
-    if (_decoderClock->acc >= dt)
-        bCrossedFrame = true;
-
+    
+    // Calculate how many complete frame intervals have passed
+    int framesToAdvance = static_cast<int>(_decoderClock->acc / dt);
+    
+    // Keep only the fractional remainder
     _decoderClock->acc = std::fmod(_decoderClock->acc, dt);
 
-    //    This is our inter-frame delta, > 0 < 1 <
+    // This is our inter-frame delta, > 0 < 1
     _decoderClock->interframeDelta = _decoderClock->acc / dt;
 
-    /*g_Log->Info("Frame timing - deltaTime: %.6f, acc: %.6f, dt: %.6f (%.1ffps), crossedFrame: %s",
-                deltaTime, _decoderClock->acc, dt, m_ClipMetadata.decodeFps, bCrossedFrame ? "YES" : "NO");*/
+    if (framesToAdvance > 1) {
+        g_Log->Info("Frame timing catch-up: advancing %d frames (deltaTime: %.4f, dt: %.4f)",
+                    framesToAdvance, deltaTime, dt);
+    }
 
-    return bCrossedFrame;
+    return framesToAdvance;
+}
+
+void CClip::DiscardFrames(int count)
+{
+    for (int i = 0; i < count; ++i) {
+        spCVideoFrame frame = m_spDecoder->PopVideoFrame();
+        if (!frame) {
+            // No more frames in queue, stop discarding
+            g_Log->Info("DiscardFrames: only discarded %d of %d requested (queue empty)", i, count);
+            break;
+        }
+        // Frame is automatically released when shared_ptr goes out of scope
+    }
 }
 
 bool CClip::Update(double _timelineTime, bool isPaused)
@@ -282,12 +289,28 @@ bool CClip::Update(double _timelineTime, bool isPaused)
         return false;
     }
     
-    bool needsFrame = NeedsNewFrame(_timelineTime, &m_DecoderClock);
-    /*g_Log->Info("Update() - NeedsNewFrame returned: %s, current frame: %d",
-                needsFrame ? "YES" : "NO", m_CurrentFrameMetadata.frameIdx); */
-    if (needsFrame)
+    int framesToAdvance = GetFramesToAdvance(_timelineTime, &m_DecoderClock);
+    
+    if (framesToAdvance > 0)
     {
-        //g_Log->Info("About to call GrabVideoFrame()");
+        // If we need to advance multiple frames, discard the intermediate ones
+        // Only grab (and process/upload to GPU) the last frame we need
+        if (framesToAdvance > 1) {
+            int framesToDiscard = framesToAdvance - 1;
+            
+            // Don't discard more frames than we have in the queue
+            uint32_t queueLength = m_spDecoder->QueueLength();
+            if (framesToDiscard >= static_cast<int>(queueLength)) {
+                // We're very far behind - discard all but one frame
+                framesToDiscard = std::max(0, static_cast<int>(queueLength) - 1);
+            }
+            
+            if (framesToDiscard > 0) {
+                DiscardFrames(framesToDiscard);
+            }
+        }
+        
+        // Now grab the actual frame we want to display
         if (!GrabVideoFrame())
         {
             // Check if we're at the last frame and should mark as finished
