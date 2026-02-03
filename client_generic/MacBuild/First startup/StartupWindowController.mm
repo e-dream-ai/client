@@ -46,7 +46,7 @@
     self.window.level = NSModalPanelWindowLevel;
 
     // Hide skip button to prevent crash when clicked during async operations
-    [_skipButton setHidden:YES];
+    // [_skipButton setHidden:YES];
 
     self.emailStepVC = [[EmailStepViewController alloc] init];
     self.codeStepVC = [[CodeStepViewController alloc] init];
