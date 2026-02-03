@@ -316,7 +316,8 @@ static void ShowFirstTimeSetupCallback()
     //@TODO: is the full screen check needed? disabling for now
     if (/*!mIsFullScreen &&*/ mESView && [mESView hasConfigureSheet])
     {
-        [mESView stopAnimation];
+        // Pause animation only (no full shutdown). Closing the sheet will resume.
+        [mESView pauseAnimationForSheet];
 
         mInSheet = YES;
         [self beginSheet:[mESView configureSheet]
@@ -339,6 +340,8 @@ static void ShowFirstTimeSetupCallback()
 
     if (mESView != nil)
     {
+        [mESView resumeAnimationFromSheet];
+        // If we weren't paused (e.g. sheet opened before start), startAnimation is a no-op when already running
         [mESView startAnimation];
         [mESView windowDidResize];
     }

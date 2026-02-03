@@ -15,6 +15,7 @@
 @implementation ESScreensaverView
 {
     BOOL m_bStarted;
+    BOOL m_bPausedForSheet;  // YES when paused for Preferences sheet (no full shutdown)
     int m_displayIdx;
 }
 
@@ -38,6 +39,7 @@
 
     m_isFullScreen = !isPreview;
     m_isStopped = YES;
+    m_bPausedForSheet = NO;
 
     m_isPreview = isPreview;
     DEBUG_LOG("INIT");
@@ -220,6 +222,7 @@
 #ifdef SCREEN_SAVER
     [NSCursor unhide];
 #endif
+    m_bPausedForSheet = NO;
     if (m_bStarted)
     {
         [self _endThread];
@@ -235,6 +238,29 @@
         [NSCursor unhide];
     m_isHidden = NO;
     [super stopAnimation];
+#endif
+}
+
+- (void)pauseAnimationForSheet
+{
+    if (!m_bStarted || m_bPausedForSheet)
+        return;
+    [self _endThread];
+    ESScreensaver_Stop();
+    m_bPausedForSheet = YES;
+    m_bStarted = NO;
+}
+
+- (void)resumeAnimationFromSheet
+{
+    if (!m_bPausedForSheet)
+        return;
+    ESScreensaver_Resume();
+    [self _beginThread];
+    m_bStarted = YES;
+    m_bPausedForSheet = NO;
+#ifdef SCREEN_SAVER
+    [super startAnimation];
 #endif
 }
 
