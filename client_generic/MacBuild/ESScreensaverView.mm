@@ -251,10 +251,10 @@
     m_bStarted = NO;
 }
 
-- (void)resumeAnimationFromSheet
+- (BOOL)resumeAnimationFromSheet
 {
     if (!m_bPausedForSheet)
-        return;
+        return NO;
     ESScreensaver_Resume();
     [self _beginThread];
     m_bStarted = YES;
@@ -262,6 +262,7 @@
 #ifdef SCREEN_SAVER
     [super startAnimation];
 #endif
+    return YES;  // Caller must NOT call startAnimation (would re-add display and retrigger full startup)
 }
 
 - (void)animateOneFrame

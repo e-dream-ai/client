@@ -101,7 +101,7 @@ bool ESScreensaver_DoFrame(int _displayIdx, boost::barrier& _beginFrameBarrier,
 
 void ESScreensaver_Stop(void) { g_Player().Stop(); }
 
-void ESScreensaver_Resume(void) { g_Player().Start(); }
+void ESScreensaver_Resume(void) { g_Player().ResumeAfterPause(); }
 
 bool ESScreensaver_Stopped(void) { return g_Player().Stopped(); }
 

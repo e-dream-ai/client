@@ -417,6 +417,12 @@ void CPlayer::Start()
     }
 }
 
+void CPlayer::ResumeAfterPause()
+{
+    m_shutdownFlag = false;
+    m_bStarted.exchange(true);
+}
+
 void CPlayer::Stop()
 {
     m_shutdownFlag = true;

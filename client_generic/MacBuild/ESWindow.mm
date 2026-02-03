@@ -338,12 +338,19 @@ static void ShowFirstTimeSetupCallback()
 
     mInSheet = NO;
 
+    // Restore key window so Metal view gets draw callbacks and OSD/HUD render correctly after sheet
+    [self makeKeyWindow];
+    [self orderFront:nil];
+
     if (mESView != nil)
     {
-        [mESView resumeAnimationFromSheet];
-        // If we weren't paused (e.g. sheet opened before start), startAnimation is a no-op when already running
-        [mESView startAnimation];
+        // If we resumed from sheet, do NOT call startAnimation — it would call AddGraphicsContext
+        // again and add a second display, retriggering full startup (Hello, playlist fetch, etc.).
+        BOOL didResume = [mESView resumeAnimationFromSheet];
+        if (!didResume)
+            [mESView startAnimation];  // Sheet was opened before start; start now
         [mESView windowDidResize];
+        [mESView setNeedsDisplay:YES];
     }
 }
 
