@@ -1140,9 +1140,10 @@ class CElectricSheep
 // MARK: Main per frame update loop
     virtual bool DoRealFrameUpdate(uint32_t displayUnit)
     {
-        if (g_Player().BeginDisplayFrame(displayUnit))
-        {
+        if (!g_Player().BeginDisplayFrame(displayUnit))
+            return true;
 
+        {
             // g_Player().Renderer()->BeginFrame();
 
             if (g_Player().Closed())

@@ -316,7 +316,8 @@ static void ShowFirstTimeSetupCallback()
     //@TODO: is the full screen check needed? disabling for now
     if (/*!mIsFullScreen &&*/ mESView && [mESView hasConfigureSheet])
     {
-        [mESView stopAnimation];
+        // Pause animation only (no full shutdown). Closing the sheet will resume.
+        [mESView pauseAnimationForSheet];
 
         mInSheet = YES;
         [self beginSheet:[mESView configureSheet]
@@ -337,10 +338,19 @@ static void ShowFirstTimeSetupCallback()
 
     mInSheet = NO;
 
+    // Restore key window so Metal view gets draw callbacks and OSD/HUD render correctly after sheet
+    [self makeKeyWindow];
+    [self orderFront:nil];
+
     if (mESView != nil)
     {
-        [mESView startAnimation];
+        // If we resumed from sheet, do NOT call startAnimation — it would call AddGraphicsContext
+        // again and add a second display, retriggering full startup (Hello, playlist fetch, etc.).
+        BOOL didResume = [mESView resumeAnimationFromSheet];
+        if (!didResume)
+            [mESView startAnimation];  // Sheet was opened before start; start now
         [mESView windowDidResize];
+        [mESView setNeedsDisplay:YES];
     }
 }
 

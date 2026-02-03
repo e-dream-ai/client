@@ -71,6 +71,10 @@
 - (id)initWithFrame:(NSRect)frame isPreview:(BOOL)isPreview;
 - (void)startAnimation;
 - (void)stopAnimation;
+/// Pause animation and frame thread without full shutdown (e.g. for Preferences sheet). Use resumeAnimationFromSheet to resume.
+- (void)pauseAnimationForSheet;
+/// Resume after pauseAnimationForSheet. Returns YES if it resumed, NO if no-op (caller should call startAnimation only when NO).
+- (BOOL)resumeAnimationFromSheet;
 - (void)animateOneFrame;
 
 - (BOOL)hasConfigureSheet;

@@ -159,6 +159,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
     
     bool HasStarted() { return m_hasStarted; };
     void Start();
+    /// Resume after Stop() without re-running startup (e.g. after Preferences sheet). Keeps current clip and playlist.
+    void ResumeAfterPause();
     void Stop();
     bool NextClipForPlaying(int32_t _forceNext);
     //void CalculateNextClipThread();
