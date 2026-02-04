@@ -589,8 +589,8 @@ public:
 
                         // Position just above the dots with minimal gap
                         float textY = m_DotCRect.m_Y0 + m_BgCRect.Height() * 0.15f - textH;
-                        // Center horizontally based on estimated width, nudge slightly right to compensate layout
-                        float textX = 0.5f - (textW * 0.5f) + (m_BgCRect.Width() * 0.02f);
+                        // Center horizontally based on estimated width, nudge right to compensate layout
+                        float textX = 0.5f - (textW * 0.5f) + (m_BgCRect.Width() * 0.04f);
 
                         m_spFpsText->SetRect(Base::Math::CRect(textX, textY, textX + textW, textY + textH));
                     }
