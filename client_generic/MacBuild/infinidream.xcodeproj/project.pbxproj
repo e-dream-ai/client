@@ -39,6 +39,7 @@
 		1220B5392B3DC64D00D68410 /* StringFormat.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1220B5382B3DC64D00D68410 /* StringFormat.cpp */; };
 		1220B53A2B3DC64D00D68410 /* StringFormat.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1220B5382B3DC64D00D68410 /* StringFormat.cpp */; };
 		123A0C8A2B87B1E600A616E3 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 21EE634D10139BEF000CE53E /* MainMenu.xib */; };
+		123A0C8B2B87B1E600A616E4 /* SettingsDialog.xib in Resources */ = {isa = PBXBuildFile; fileRef = F0E9CE352C136B0500C4D695 /* SettingsDialog.xib */; };
 		1243576C2B31FC1B00CCD62A /* BuildData.json in Resources */ = {isa = PBXBuildFile; fileRef = 1243576B2B31FC1B00CCD62A /* BuildData.json */; };
 		1243576D2B31FC1B00CCD62A /* BuildData.json in Resources */ = {isa = PBXBuildFile; fileRef = 1243576B2B31FC1B00CCD62A /* BuildData.json */; };
 		12440CBB2B85F49B00A23253 /* libsioclient_tls.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 12CA4A452B83DE3D00A2EAD6 /* libsioclient_tls.a */; };
@@ -135,7 +136,6 @@
 		2197D56819B0806F00EFA1F2 /* proximus.c in Sources */ = {isa = PBXBuildFile; fileRef = 21CE8B8E0F6ECFFC00DDF96A /* proximus.c */; };
 		21A8AFBB18416ECA00F77369 /* libiconv.2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 21A8AFBA18416ECA00F77369 /* libiconv.2.dylib */; };
 		21A8AFBC18416ECA00F77369 /* libiconv.2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 21A8AFBA18416ECA00F77369 /* libiconv.2.dylib */; };
-		21AAA0BD0F7040B500AC23A8 /* ElectricSheep.nib in Resources */ = {isa = PBXBuildFile; fileRef = 21AAA09E0F70400D00AC23A8 /* ElectricSheep.nib */; };
 		21AAA0EF0F70453200AC23A8 /* ESConfiguration.mm in Sources */ = {isa = PBXBuildFile; fileRef = 21AAA0EE0F70453200AC23A8 /* ESConfiguration.mm */; };
 		21ADBB241305D380000A9F20 /* green.tif in Resources */ = {isa = PBXBuildFile; fileRef = 21ADBB211305D380000A9F20 /* green.tif */; };
 		21ADBB251305D380000A9F20 /* red.tif in Resources */ = {isa = PBXBuildFile; fileRef = 21ADBB221305D380000A9F20 /* red.tif */; };
@@ -148,7 +148,6 @@
 		21DC0CA91263B98200D60C6A /* libcurl.4.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 211CDDEB0ED0BE8300EB9394 /* libcurl.4.dylib */; };
 		21DC0CAC1263B99000D60C6A /* libcurl.4.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 211CDDEB0ED0BE8300EB9394 /* libcurl.4.dylib */; };
 		21EE633510139BCC000CE53E /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 21EE633410139BCC000CE53E /* main.m */; };
-		21EE636310139D68000CE53E /* ElectricSheep.nib in Resources */ = {isa = PBXBuildFile; fileRef = 21AAA09E0F70400D00AC23A8 /* ElectricSheep.nib */; };
 		21EE63961013A674000CE53E /* ESWindow.mm in Sources */ = {isa = PBXBuildFile; fileRef = 21EE63951013A674000CE53E /* ESWindow.mm */; };
 		21EE63C21013A879000CE53E /* ESScreensaverView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA520EC7479A005E246D /* ESScreensaverView.mm */; };
 		21EE63C31013A87F000CE53E /* ESScreensaver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA540EC74853005E246D /* ESScreensaver.cpp */; };
@@ -269,6 +268,7 @@
 		F02C14F42E01904600BFFFF4 /* StartupWindowController.xib in Resources */ = {isa = PBXBuildFile; fileRef = F02C14EE2E01904600BFFFF4 /* StartupWindowController.xib */; };
 		F02C14F62E01904600BFFFF4 /* StartupWindowController.xib in Resources */ = {isa = PBXBuildFile; fileRef = F02C14EE2E01904600BFFFF4 /* StartupWindowController.xib */; };
 		F02C14FB2E01948200BFFFF4 /* EmailStepViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = F02C14F92E01948200BFFFF4 /* EmailStepViewController.xib */; };
+		F02C14FC2E01948200BFFFF5 /* SettingsDialog.xib in Resources */ = {isa = PBXBuildFile; fileRef = F0E9CE352C136B0500C4D695 /* SettingsDialog.xib */; };
 		F02C14FD2E01948200BFFFF4 /* EmailStepViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = F02C14F92E01948200BFFFF4 /* EmailStepViewController.xib */; };
 		F02C14FE2E01948200BFFFF4 /* EmailStepViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = F02C14F92E01948200BFFFF4 /* EmailStepViewController.xib */; };
 		F02C15002E01948200BFFFF4 /* EmailStepViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = F02C14F92E01948200BFFFF4 /* EmailStepViewController.xib */; };
@@ -365,13 +365,13 @@
 		F0B754532DBFCE4400C59D7A /* network.png in Resources */ = {isa = PBXBuildFile; fileRef = F0B754502DBFCE4400C59D7A /* network.png */; };
 		F0B754542DBFCE4400C59D7A /* network.png in Resources */ = {isa = PBXBuildFile; fileRef = F0B754502DBFCE4400C59D7A /* network.png */; };
 		F0C100002C1372C4007FA505 /* libboost_thread.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071D32C0E052B008219A4 /* libboost_thread.a */; };
+		F0C100032C1372EF007FA506 /* SettingsDialog.xib in Resources */ = {isa = PBXBuildFile; fileRef = F0E9CE352C136B0500C4D695 /* SettingsDialog.xib */; };
 		F0C100042C1372EF007FA505 /* osd-pill-r.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994532BA0912200B018C7 /* osd-pill-r.png */; };
 		F0C100052C1372EF007FA505 /* BuildData.json in Resources */ = {isa = PBXBuildFile; fileRef = 1243576B2B31FC1B00CCD62A /* BuildData.json */; };
 		F0C100062C1372EF007FA505 /* Lato.sddf in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD42B0D31E6001C0792 /* Lato.sddf */; };
 		F0C100072C1372EF007FA505 /* osd-forward10.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994662BA0A07200B018C7 /* osd-forward10.png */; };
 		F0C100082C1372EF007FA505 /* osd-brightness.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994672BA0A07300B018C7 /* osd-brightness.png */; };
 		F0C100092C1372EF007FA505 /* osd-like.png in Resources */ = {isa = PBXBuildFile; fileRef = F0F6D4242BCD504500222647 /* osd-like.png */; };
-		F0C1000A2C1372EF007FA505 /* ElectricSheep.nib in Resources */ = {isa = PBXBuildFile; fileRef = 21AAA09E0F70400D00AC23A8 /* ElectricSheep.nib */; };
 		F0C1000B2C1372EF007FA505 /* infinidream.icns in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD82B0FCA39001C0792 /* infinidream.icns */; };
 		F0C1000D2C1372EF007FA505 /* osd-back10.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994622BA0A07100B018C7 /* osd-back10.png */; };
 		F0C1000E2C1372EF007FA505 /* osd-dislike.png in Resources */ = {isa = PBXBuildFile; fileRef = F0F6D4252BCD504500222647 /* osd-dislike.png */; };
@@ -481,7 +481,7 @@
 		F0E9CE302C136B0500C4D694 /* osd-pill-r.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994532BA0912200B018C7 /* osd-pill-r.png */; };
 		F0E9CE312C136B0500C4D694 /* osd-bg-700.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994562BA0912300B018C7 /* osd-bg-700.png */; };
 		F0E9CE322C136B0500C4D694 /* osd-pause.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994682BA0A07300B018C7 /* osd-pause.png */; };
-		F0E9CE332C136B0500C4D694 /* ElectricSheep.nib in Resources */ = {isa = PBXBuildFile; fileRef = 21AAA09E0F70400D00AC23A8 /* ElectricSheep.nib */; };
+		F0E9CE332C136B0500C4D694 /* SettingsDialog.xib in Resources */ = {isa = PBXBuildFile; fileRef = F0E9CE352C136B0500C4D695 /* SettingsDialog.xib */; };
 		F0E9CE342C136B0500C4D694 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 21EE634D10139BEF000CE53E /* MainMenu.xib */; };
 		F0E9CE352C136B0500C4D694 /* osd-back.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994692BA0A07300B018C7 /* osd-back.png */; };
 		F0E9CE362C136B0500C4D694 /* infinidream.icns in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD82B0FCA39001C0792 /* infinidream.icns */; };
@@ -853,8 +853,8 @@
 		21D944A90E8F6245001C141E /* client_mac.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = client_mac.h; path = ../Client/client_mac.h; sourceTree = SOURCE_ROOT; };
 		21DD8C6F0EA9BA5F00BB9EC7 /* Splash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Splash.h; path = ../Client/Splash.h; sourceTree = SOURCE_ROOT; };
 		21EE633410139BCC000CE53E /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
-		21EE633610139BD8000CE53E /* English */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = English; path = ElectricSheep.nib; sourceTree = "<group>"; };
 		21EE634E10139BEF000CE53E /* English */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = English; path = English.lproj/MainMenu.xib; sourceTree = "<group>"; };
+		F0E9CE352C136B0500C4D695 /* SettingsDialog.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = SettingsDialog.xib; path = "English.lproj/SettingsDialog.xib"; sourceTree = "<group>"; };
 		21EE63941013A674000CE53E /* ESWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ESWindow.h; sourceTree = "<group>"; };
 		21EE63951013A674000CE53E /* ESWindow.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ESWindow.mm; sourceTree = "<group>"; };
 		343948512ED6669E00DCF85E /* osd-repeat.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-repeat.png"; sourceTree = "<group>"; };
@@ -1507,7 +1507,7 @@
 				218878D10EC6CD7E001ABD2E /* Screensaver-Info.plist */,
 				F0E9CEB22C136B0600C4D694 /* App-Stage-Info.plist */,
 				F0C100852C1372F0007FA505 /* Screensaver-Stage-Info.plist */,
-				21AAA09E0F70400D00AC23A8 /* ElectricSheep.nib */,
+				F0E9CE352C136B0500C4D695 /* SettingsDialog.xib */,
 				1243576B2B31FC1B00CCD62A /* BuildData.json */,
 			);
 			name = Resources;
@@ -1774,11 +1774,11 @@
 				1BEBFE3E2ECB6B2B00F39019 /* osd-next.png in Resources */,
 				F05994752BA0A07300B018C7 /* osd-brightness.png in Resources */,
 				F0F6D4262BCD504500222647 /* osd-like.png in Resources */,
-				21AAA0BD0F7040B500AC23A8 /* ElectricSheep.nib in Resources */,
 				12A00CD92B0FCA39001C0792 /* infinidream.icns in Resources */,
 				F059946B2BA0A07300B018C7 /* osd-back10.png in Resources */,
 				F0F6D4282BCD504500222647 /* osd-dislike.png in Resources */,
 				F05994772BA0A07300B018C7 /* osd-pause.png in Resources */,
+				F02C14FC2E01948200BFFFF5 /* SettingsDialog.xib in Resources */,
 				F02C14FD2E01948200BFFFF4 /* EmailStepViewController.xib in Resources */,
 				343948592ED6669E00DCF85E /* osd-repeat.png in Resources */,
 				3439485A2ED6669E00DCF85E /* osd-shuffle.png in Resources */,
@@ -1818,8 +1818,8 @@
 				F05994592BA0912300B018C7 /* osd-pill-r.png in Resources */,
 				F059945F2BA0912300B018C7 /* osd-bg-700.png in Resources */,
 				F05994782BA0A07300B018C7 /* osd-pause.png in Resources */,
-				21EE636310139D68000CE53E /* ElectricSheep.nib in Resources */,
 				123A0C8A2B87B1E600A616E3 /* MainMenu.xib in Resources */,
+				123A0C8B2B87B1E600A616E4 /* SettingsDialog.xib in Resources */,
 				F02C15122E0194BB00BFFFF4 /* ThanksStepViewController.xib in Resources */,
 				F02C14FE2E01948200BFFFF4 /* EmailStepViewController.xib in Resources */,
 				F059947A2BA0A07300B018C7 /* osd-back.png in Resources */,
@@ -1857,6 +1857,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F09BCEBC2DF33CBB00EA1BD3 /* Screensaver-Stage-Info.plist in Resources */,
+				F0C100032C1372EF007FA506 /* SettingsDialog.xib in Resources */,
 				F0C100042C1372EF007FA505 /* osd-pill-r.png in Resources */,
 				F0C100052C1372EF007FA505 /* BuildData.json in Resources */,
 				F0C100062C1372EF007FA505 /* Lato.sddf in Resources */,
@@ -1864,7 +1865,6 @@
 				1BEBFE412ECB6B2B00F39019 /* osd-next.png in Resources */,
 				F0C100082C1372EF007FA505 /* osd-brightness.png in Resources */,
 				F0C100092C1372EF007FA505 /* osd-like.png in Resources */,
-				F0C1000A2C1372EF007FA505 /* ElectricSheep.nib in Resources */,
 				F0C1000B2C1372EF007FA505 /* infinidream.icns in Resources */,
 				F0C1000D2C1372EF007FA505 /* osd-back10.png in Resources */,
 				F0C1000E2C1372EF007FA505 /* osd-dislike.png in Resources */,
@@ -1908,7 +1908,7 @@
 				F0E9CE302C136B0500C4D694 /* osd-pill-r.png in Resources */,
 				F0E9CE312C136B0500C4D694 /* osd-bg-700.png in Resources */,
 				F0E9CE322C136B0500C4D694 /* osd-pause.png in Resources */,
-				F0E9CE332C136B0500C4D694 /* ElectricSheep.nib in Resources */,
+				F0E9CE332C136B0500C4D694 /* SettingsDialog.xib in Resources */,
 				F0E9CE342C136B0500C4D694 /* MainMenu.xib in Resources */,
 				F02C15152E0194BB00BFFFF4 /* ThanksStepViewController.xib in Resources */,
 				F02C14FB2E01948200BFFFF4 /* EmailStepViewController.xib in Resources */,
@@ -2298,15 +2298,6 @@
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
-		21AAA09E0F70400D00AC23A8 /* ElectricSheep.nib */ = {
-			isa = PBXVariantGroup;
-			children = (
-				21EE633610139BD8000CE53E /* English */,
-			);
-			name = ElectricSheep.nib;
-			path = English.lproj;
-			sourceTree = "<group>";
-		};
 		21EE634D10139BEF000CE53E /* MainMenu.xib */ = {
 			isa = PBXVariantGroup;
 			children = (

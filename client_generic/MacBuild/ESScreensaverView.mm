@@ -431,7 +431,7 @@ static void signnal_handler(int signal)
     if (!m_config)
     {
         m_config =
-            [[ESConfiguration alloc] initWithWindowNibName:@"ElectricSheep"];
+            [[ESConfiguration alloc] initWithWindowNibName:@"SettingsDialog"];
     }
 
     return m_config.window;
