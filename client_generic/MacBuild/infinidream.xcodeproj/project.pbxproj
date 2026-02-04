@@ -168,6 +168,14 @@
 		343948622F4F000100000006 /* osd-rabbit.png in Resources */ = {isa = PBXBuildFile; fileRef = 3439485E2F4F000100000002 /* osd-rabbit.png */; };
 		343948632F4F000100000007 /* osd-turtle.png in Resources */ = {isa = PBXBuildFile; fileRef = 3439485D2F4F000100000001 /* osd-turtle.png */; };
 		343948642F4F000100000008 /* osd-rabbit.png in Resources */ = {isa = PBXBuildFile; fileRef = 3439485E2F4F000100000002 /* osd-rabbit.png */; };
+		343948672F4F00010000000A /* osd-snail.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948652F4F000100000009 /* osd-snail.png */; };
+		343948682F4F00010000000B /* osd-snail.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948652F4F000100000009 /* osd-snail.png */; };
+		343948692F4F00010000000C /* osd-snail.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948652F4F000100000009 /* osd-snail.png */; };
+		3439486A2F4F00010000000D /* osd-snail.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948652F4F000100000009 /* osd-snail.png */; };
+		3439486B2F4F00010000000E /* osd-bird.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948662F4F00010000000E /* osd-bird.png */; };
+		3439486C2F4F00010000000F /* osd-bird.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948662F4F00010000000E /* osd-bird.png */; };
+		3439486D2F4F000100000010 /* osd-bird.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948662F4F00010000000E /* osd-bird.png */; };
+		3439486E2F4F000100000011 /* osd-bird.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948662F4F00010000000E /* osd-bird.png */; };
 		461C9D7C2B28BA50000C44E9 /* JSONStorage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 461C9D7A2B28BA50000C44E9 /* JSONStorage.cpp */; };
 		461C9D7D2B28BA50000C44E9 /* JSONStorage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 461C9D7A2B28BA50000C44E9 /* JSONStorage.cpp */; };
 		4628A55E2B0F84EF001C3078 /* Lato-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4628A55D2B0F84EF001C3078 /* Lato-Regular.ttf */; };
@@ -860,6 +868,8 @@
 		343948522ED6669E00DCF85E /* osd-shuffle.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-shuffle.png"; sourceTree = "<group>"; };
 		3439485D2F4F000100000001 /* osd-turtle.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-turtle.png"; sourceTree = "<group>"; };
 		3439485E2F4F000100000002 /* osd-rabbit.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-rabbit.png"; sourceTree = "<group>"; };
+		343948652F4F000100000009 /* osd-snail.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-snail.png"; sourceTree = "<group>"; };
+		343948662F4F00010000000E /* osd-bird.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-bird.png"; sourceTree = "<group>"; };
 		461614182AEBEA57008AC64A /* DreamPlaylist.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DreamPlaylist.h; path = ../Client/DreamPlaylist.h; sourceTree = "<group>"; };
 		461C9D7A2B28BA50000C44E9 /* JSONStorage.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = JSONStorage.cpp; path = ../TupleStorage/JSONStorage.cpp; sourceTree = "<group>"; };
 		461C9D7B2B28BA50000C44E9 /* JSONStorage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = JSONStorage.h; path = ../TupleStorage/JSONStorage.h; sourceTree = "<group>"; };
@@ -1463,6 +1473,8 @@
 				343948522ED6669E00DCF85E /* osd-shuffle.png */,
 				3439485D2F4F000100000001 /* osd-turtle.png */,
 				3439485E2F4F000100000002 /* osd-rabbit.png */,
+				343948652F4F000100000009 /* osd-snail.png */,
+				343948662F4F00010000000E /* osd-bird.png */,
 				1BEBFE3D2ECB6B2B00F39019 /* osd-next.png */,
 				21934CB819F3C2430096E7D7 /* thumbnail.tif */,
 				12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */,
@@ -1785,6 +1797,8 @@
 				3439485A2ED6669E00DCF85E /* osd-shuffle.png in Resources */,
 				3439485B2F4F000100000001 /* osd-turtle.png in Resources */,
 				3439485C2F4F000100000002 /* osd-rabbit.png in Resources */,
+				343948672F4F00010000000A /* osd-snail.png in Resources */,
+				3439486B2F4F00010000000E /* osd-bird.png in Resources */,
 				F059945A2BA0912300B018C7 /* osd-pill-u.png in Resources */,
 				F05994792BA0A07300B018C7 /* osd-back.png in Resources */,
 				F0B754542DBFCE4400C59D7A /* network.png in Resources */,
@@ -1831,6 +1845,8 @@
 				343948542ED6669E00DCF85E /* osd-shuffle.png in Resources */,
 				3439485F2F4F000100000003 /* osd-turtle.png in Resources */,
 				343948602F4F000100000004 /* osd-rabbit.png in Resources */,
+				343948682F4F00010000000B /* osd-snail.png in Resources */,
+				3439486C2F4F00010000000F /* osd-bird.png in Resources */,
 				F05994762BA0A07300B018C7 /* osd-brightness.png in Resources */,
 				F059946E2BA0A07300B018C7 /* osd-forward.png in Resources */,
 				F059946C2BA0A07300B018C7 /* osd-back10.png in Resources */,
@@ -1875,6 +1891,8 @@
 				343948582ED6669E00DCF85E /* osd-shuffle.png in Resources */,
 				343948612F4F000100000005 /* osd-turtle.png in Resources */,
 				343948622F4F000100000006 /* osd-rabbit.png in Resources */,
+				343948692F4F00010000000C /* osd-snail.png in Resources */,
+				3439486D2F4F000100000010 /* osd-bird.png in Resources */,
 				F0C100102C1372EF007FA505 /* osd-pill-u.png in Resources */,
 				F0C100112C1372EF007FA505 /* osd-back.png in Resources */,
 				F0B754522DBFCE4400C59D7A /* network.png in Resources */,
@@ -1921,6 +1939,8 @@
 				343948562ED6669E00DCF85E /* osd-shuffle.png in Resources */,
 				343948632F4F000100000007 /* osd-turtle.png in Resources */,
 				343948642F4F000100000008 /* osd-rabbit.png in Resources */,
+				3439486A2F4F00010000000D /* osd-snail.png in Resources */,
+				3439486E2F4F000100000011 /* osd-bird.png in Resources */,
 				F0E9CE392C136B0500C4D694 /* osd-brightness.png in Resources */,
 				F0E9CE3A2C136B0500C4D694 /* osd-forward.png in Resources */,
 				F0E9CE3B2C136B0500C4D694 /* osd-back10.png in Resources */,
