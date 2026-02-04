@@ -853,8 +853,7 @@
 		21D944A90E8F6245001C141E /* client_mac.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = client_mac.h; path = ../Client/client_mac.h; sourceTree = SOURCE_ROOT; };
 		21DD8C6F0EA9BA5F00BB9EC7 /* Splash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Splash.h; path = ../Client/Splash.h; sourceTree = SOURCE_ROOT; };
 		21EE633410139BCC000CE53E /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
-		21EE634E10139BEF000CE53E /* English */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = English; path = English.lproj/MainMenu.xib; sourceTree = "<group>"; };
-		F0E9CE352C136B0500C4D695 /* SettingsDialog.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = SettingsDialog.xib; path = "English.lproj/SettingsDialog.xib"; sourceTree = "<group>"; };
+		21EE634E10139BEF000CE53E /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		21EE63941013A674000CE53E /* ESWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ESWindow.h; sourceTree = "<group>"; };
 		21EE63951013A674000CE53E /* ESWindow.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ESWindow.mm; sourceTree = "<group>"; };
 		343948512ED6669E00DCF85E /* osd-repeat.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-repeat.png"; sourceTree = "<group>"; };
@@ -983,6 +982,7 @@
 		F0C16C112E01DE870039EC33 /* FirstTimeSetupManager.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = FirstTimeSetupManager.mm; sourceTree = "<group>"; };
 		F0CCD23D2B98CF530070314F /* OSD.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = OSD.hpp; sourceTree = "<group>"; };
 		F0CCD2532B9A59320070314F /* infinidream AppRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "infinidream AppRelease.entitlements"; sourceTree = "<group>"; };
+		F0E9CE352C136B0500C4D695 /* SettingsDialog.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = SettingsDialog.xib; path = Base.lproj/SettingsDialog.xib; sourceTree = "<group>"; };
 		F0E9CEB12C136B0500C4D694 /* infinidream stage.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "infinidream stage.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F0E9CEB22C136B0600C4D694 /* App-Stage-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "App-Stage-Info.plist"; sourceTree = "<group>"; };
 		F0F4CE4B2E785E6F00C1F6AA /* ScreensaverHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreensaverHelper.swift; sourceTree = "<group>"; };
@@ -1743,6 +1743,7 @@
 				Japanese,
 				French,
 				German,
+				Base,
 			);
 			mainGroup = 08FB7794FE84155DC02AAC07 /* ElectricSheep */;
 			packageReferences = (
@@ -2301,7 +2302,7 @@
 		21EE634D10139BEF000CE53E /* MainMenu.xib */ = {
 			isa = PBXVariantGroup;
 			children = (
-				21EE634E10139BEF000CE53E /* English */,
+				21EE634E10139BEF000CE53E /* Base */,
 			);
 			name = MainMenu.xib;
 			sourceTree = "<group>";
