@@ -457,6 +457,9 @@ static void signnal_handler(int signal)
     for (characterIndex = 0; characterIndex < characterCount; characterIndex++)
     {
         unichar c = [characters characterAtIndex:characterIndex];
+        // Convert to lowercase to support both 'c' and 'C' (shift+c)
+        if (c >= 'A' && c <= 'Z')
+            c = c + ('a' - 'A');
         using namespace DisplayOutput;
 
         std::map<unichar, CKeyEvent::eKeyCode> keyMap = {
