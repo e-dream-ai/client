@@ -53,11 +53,8 @@ static void ShowFirstTimeSetupCallback()
     frame.size.width = 1280;
     frame.size.height = 720;
     
-    // Force window aspect ratio only if set in settings
-    // @TODO: reset window ar when setting change, currently requires a restart
-    if (ESScreensaver_GetBoolSetting("settings.player.preserve_AR", true)) {
-        self.contentAspectRatio = CGSizeMake(16.f, 9.f);
-    }
+    // Note: aspect ratio is enforced dynamically in windowWillResize:toSize: method
+    // This allows the setting to take effect immediately without requiring a restart
 
     mBlackouMonitors =
         ESScreensaver_GetBoolSetting("settings.player.blackout_monitors", true);
@@ -352,6 +349,25 @@ static void ShowFirstTimeSetupCallback()
         [mESView windowDidResize];
         [mESView setNeedsDisplay:YES];
     }
+}
+
+- (NSSize)windowWillResize:(NSWindow*)sender toSize:(NSSize)frameSize
+{
+    // Only enforce aspect ratio if the setting is enabled and not in fullscreen
+    if (!mIsFullScreen && ESScreensaver_GetBoolSetting("settings.player.preserve_AR", true)) {
+        // Get the content rect for the proposed frame size
+        NSRect contentRect = [sender contentRectForFrameRect:NSMakeRect(0, 0, frameSize.width, frameSize.height)];
+        
+        // Calculate new height based on 16:9 aspect ratio
+        CGFloat newHeight = contentRect.size.width * 9.0f / 16.0f;
+        contentRect.size.height = newHeight;
+        
+        // Convert back to frame size
+        NSRect newFrame = [sender frameRectForContentRect:contentRect];
+        return newFrame.size;
+    }
+    
+    return frameSize;
 }
 
 - (void)windowDidResize:(NSNotification*)__unused notification
