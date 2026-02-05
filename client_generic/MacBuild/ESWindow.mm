@@ -339,6 +339,21 @@ static void ShowFirstTimeSetupCallback()
     [self makeKeyWindow];
     [self orderFront:nil];
 
+    // Adjust window size to match aspect ratio setting if it changed
+    if (!mIsFullScreen && ESScreensaver_GetBoolSetting("settings.player.preserve_AR", true)) {
+        // Get current content size
+        NSRect contentRect = [self contentRectForFrameRect:self.frame];
+        
+        // Calculate new height based on 16:9 aspect ratio
+        CGFloat newHeight = contentRect.size.width * 9.0f / 16.0f;
+        contentRect.size.height = newHeight;
+        
+        // Convert back to frame and set it
+        NSRect newFrame = [self frameRectForContentRect:contentRect];
+        newFrame.origin = self.frame.origin;  // Keep the window position
+        [self setFrame:newFrame display:YES animate:YES];
+    }
+
     if (mESView != nil)
     {
         // If we resumed from sheet, do NOT call startAnimation — it would call AddGraphicsContext
