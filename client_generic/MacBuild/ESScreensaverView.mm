@@ -445,48 +445,8 @@ static void signnal_handler(int signal)
     [super flagsChanged:ev];
 }
 
-- (BOOL)performKeyEquivalent:(NSEvent*)ev
-{
-    // For Command key combinations, normalize to lowercase and try the menu
-    if ([ev modifierFlags] & NSEventModifierFlagCommand)
-    {
-        NSString* chars = [ev charactersIgnoringModifiers];
-        NSString* lowerChars = [chars lowercaseString];
-        
-        // If the character is uppercase (Shift was pressed), create a new event with lowercase
-        if (![chars isEqualToString:lowerChars])
-        {
-            // Try the menu with a modified event that has lowercase character
-            NSEvent* modifiedEvent = [NSEvent keyEventWithType:ev.type
-                                                       location:ev.locationInWindow
-                                                  modifierFlags:ev.modifierFlags & ~NSEventModifierFlagShift
-                                                      timestamp:ev.timestamp
-                                                   windowNumber:ev.windowNumber
-                                                        context:nil
-                                                     characters:lowerChars
-                                    charactersIgnoringModifiers:lowerChars
-                                                      isARepeat:ev.isARepeat
-                                                        keyCode:ev.keyCode];
-            if ([[NSApp mainMenu] performKeyEquivalent:modifiedEvent])
-                return YES;
-        }
-        
-        // Try with the original event
-        if ([[NSApp mainMenu] performKeyEquivalent:ev])
-            return YES;
-    }
-    return [super performKeyEquivalent:ev];
-}
-
 - (void)keyDown:(NSEvent*)ev
 {
-    // Don't handle keys with Command modifier - those are for menu shortcuts
-    if ([ev modifierFlags] & NSEventModifierFlagCommand)
-    {
-        [super keyDown:ev];
-        return;
-    }
-    
     BOOL handled = NO;
 
     NSString* characters = ev.charactersIgnoringModifiers;

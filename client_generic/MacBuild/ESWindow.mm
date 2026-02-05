@@ -386,8 +386,8 @@ static void ShowFirstTimeSetupCallback()
 
 - (BOOL)performKeyEquivalent:(NSEvent*)ev
 {
-    // Handle Command+W (and Command+Shift+W) to close window
-    if (([ev modifierFlags] & NSEventModifierFlagCommand) && [[ev charactersIgnoringModifiers] caseInsensitiveCompare:@"w"] == NSOrderedSame)
+    // Handle Command+W to close window
+    if (([ev modifierFlags] & NSEventModifierFlagCommand) && [[ev charactersIgnoringModifiers] isEqualToString:@"w"])
     {
         [self performClose:self];
         return YES;
