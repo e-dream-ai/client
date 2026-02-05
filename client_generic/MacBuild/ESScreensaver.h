@@ -13,6 +13,7 @@ bool ESScreensaver_Start(bool _bPreview, uint32_t _width, uint32_t _height);
 bool ESScreensaver_DoFrame(int _displayIdx, boost::barrier& _beginFrameBarrier,
                            boost::barrier& _endFrameBarrier);
 void ESScreensaver_Stop(void);
+void ESScreensaver_Resume(void);
 bool ESScreensaver_Stopped(void);
 void ESScreensaver_ForceWidthAndHeight(uint32_t _width, uint32_t _height);
 void ESScreensaver_Deinit(void);

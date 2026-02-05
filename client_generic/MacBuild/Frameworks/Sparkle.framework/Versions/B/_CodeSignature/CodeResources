@@ -354,10 +354,10 @@
 		<dict>
 			<key>cdhash</key>
 			<data>
-			W4r09rcGA9uOeRznm3Hc2+xDb4g=
+			NmkpxyfoP/+D0VtloqSOtplEsA0=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"5b8af4f6b70603db8e791ce79b71dcdbec436f88" or cdhash H"033059fc2a0f0ad6d4822d8e15f42c827488759b"</string>
+			<string>identifier Autoupdate and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = BNXH8TLP5D</string>
 		</dict>
 		<key>Headers/SPUAppcastSigningValidationStatus.h</key>
 		<dict>
@@ -951,28 +951,28 @@
 		<dict>
 			<key>cdhash</key>
 			<data>
-			oYj9xHFOQDCisu3O4vIjDGdJQ1g=
+			O/IE6/vqIX3eWRNhXsn5hrdOUS8=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"a188fdc4714e4030a2b2edcee2f2230c67494358" or cdhash H"d155bedf27fa910710fed6799205a20b09e6b189"</string>
+			<string>identifier "org.sparkle-project.Sparkle.Updater" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = BNXH8TLP5D</string>
 		</dict>
 		<key>XPCServices/Downloader.xpc</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			0vXVL46V8WTlWONRhndjA3TIAlY=
+			nw23B5FqOs0jeom564zASu954k4=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"d2f5d52f8e95f164e558e3518677630374c80256" or cdhash H"84ee8b7613b3e17f3b989bdb61a45e99d6c03558"</string>
+			<string>identifier "org.sparkle-project.DownloaderService" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = BNXH8TLP5D</string>
 		</dict>
 		<key>XPCServices/Installer.xpc</key>
 		<dict>
 			<key>cdhash</key>
 			<data>
-			PQ+CfI3tZL7/DiQHefvW5OazifA=
+			vYe5sy2uHpiv/rcuKjuCxjTaWj8=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"3d0f827c8ded64beff0e240779fbd6e4e6b389f0" or cdhash H"04cd880658c56d70cdd95b8e3ccde8b782f12ea5"</string>
+			<string>identifier "org.sparkle-project.InstallerLauncher" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = BNXH8TLP5D</string>
 		</dict>
 	</dict>
 	<key>rules</key>

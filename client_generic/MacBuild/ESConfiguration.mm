@@ -607,7 +607,10 @@
     
     [alert beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse returnCode) {
         if (returnCode == NSAlertFirstButtonReturn) {
-            std::exit(0);
+            // Defer exit to the next run loop so the sheet can fully dismiss (avoids hang).
+            dispatch_async(dispatch_get_main_queue(), ^{
+                exit(0);
+            });
         }
     }];
 }
