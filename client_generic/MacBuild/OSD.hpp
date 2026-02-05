@@ -237,6 +237,15 @@ public:
             m_spTurtleTexture->Upload(tmpTurtle);
         }
 
+        // Grab snail icon (for slow zone - double slow indicator)
+        DisplayOutput::spCImage tmpSnail(new DisplayOutput::CImage());
+        if (tmpSnail->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
+                               "osd-snail.png", false))
+        {
+            m_spSnailTexture = g_Player().Renderer()->NewTextureFlat();
+            m_spSnailTexture->Upload(tmpSnail);
+        }
+
         // Grab rabbit icon (for faster speed indicator)
         DisplayOutput::spCImage tmpRabbit(new DisplayOutput::CImage());
         if (tmpRabbit->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
@@ -244,6 +253,15 @@ public:
         {
             m_spRabbitTexture = g_Player().Renderer()->NewTextureFlat();
             m_spRabbitTexture->Upload(tmpRabbit);
+        }
+
+        // Grab bird icon (for fast zone - double fast indicator)
+        DisplayOutput::spCImage tmpBird(new DisplayOutput::CImage());
+        if (tmpBird->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
+                               "osd-bird.png", false))
+        {
+            m_spBirdTexture = g_Player().Renderer()->NewTextureFlat();
+            m_spBirdTexture->Upload(tmpBird);
         }
 
         // Set mini BG size
@@ -485,25 +503,27 @@ public:
                 
                 // Set common state once (blend and shader already set from background draw)
                 if (isFastZone) {
-                    // Fast zone: One rabbit on left, two rabbits on right
+                    // Fast zone: One rabbit on left, one bird on right
                     if (m_spRabbitTexture != NULL) {
                         spRenderer->SetTexture(m_spRabbitTexture, 0);
                         spRenderer->Apply();
-                        // Draw one rabbit on left (in turtle's position)
                         spRenderer->DrawQuad(m_TurtleCRect, Base::Math::CVector4(1, 1, 1, 1), m_spRabbitTexture->GetRect());
-                        // Draw two rabbits on right
-                        spRenderer->DrawQuad(m_RabbitCRect, Base::Math::CVector4(1, 1, 1, 1), m_spRabbitTexture->GetRect());
-                        spRenderer->DrawQuad(m_Rabbit2CRect, Base::Math::CVector4(1, 1, 1, 1), m_spRabbitTexture->GetRect());
+                    }
+                    if (m_spBirdTexture != NULL) {
+                        spRenderer->SetTexture(m_spBirdTexture, 0);
+                        spRenderer->Apply();
+                        spRenderer->DrawQuad(m_RabbitCRect, Base::Math::CVector4(1, 1, 1, 1), m_spBirdTexture->GetRect());
                     }
                 } else if (isSlowZone) {
-                    // Slow zone: Two turtles on left, one turtle on right
+                    // Slow zone: One snail on left, one turtle on right
+                    if (m_spSnailTexture != NULL) {
+                        spRenderer->SetTexture(m_spSnailTexture, 0);
+                        spRenderer->Apply();
+                        spRenderer->DrawQuad(m_TurtleCRect, Base::Math::CVector4(1, 1, 1, 1), m_spSnailTexture->GetRect());
+                    }
                     if (m_spTurtleTexture != NULL) {
                         spRenderer->SetTexture(m_spTurtleTexture, 0);
                         spRenderer->Apply();
-                        // Draw two turtles on left
-                        spRenderer->DrawQuad(m_TurtleCRect, Base::Math::CVector4(1, 1, 1, 1), m_spTurtleTexture->GetRect());
-                        spRenderer->DrawQuad(m_Turtle2CRect, Base::Math::CVector4(1, 1, 1, 1), m_spTurtleTexture->GetRect());
-                        // Draw one turtle on right (in rabbit's position)
                         spRenderer->DrawQuad(m_RabbitCRect, Base::Math::CVector4(1, 1, 1, 1), m_spTurtleTexture->GetRect());
                     }
                 } else {
@@ -569,8 +589,8 @@ public:
 
                         // Position just above the dots with minimal gap
                         float textY = m_DotCRect.m_Y0 + m_BgCRect.Height() * 0.15f - textH;
-                        // Center horizontally based on estimated width, nudge slightly right to compensate layout
-                        float textX = 0.5f - (textW * 0.5f) + (m_BgCRect.Width() * 0.02f);
+                        // Center horizontally based on estimated width, nudge right to compensate layout
+                        float textX = 0.5f - (textW * 0.5f) + (m_BgCRect.Width() * 0.04f);
 
                         m_spFpsText->SetRect(Base::Math::CRect(textX, textY, textX + textW, textY + textH));
                     }
@@ -793,8 +813,8 @@ private:
     float m_BufferingMinAlpha = 0.3f;   // Minimum alpha value
     float m_BufferingMaxAlpha = 1.0f;   // Maximum alpha value
     
-    // Turtle and Rabbit icons for speed OSD
-    DisplayOutput::spCTextureFlat m_spTurtleTexture, m_spRabbitTexture;
+    // Turtle, Snail, Rabbit and Bird icons for speed OSD
+    DisplayOutput::spCTextureFlat m_spTurtleTexture, m_spSnailTexture, m_spRabbitTexture, m_spBirdTexture;
     Base::Math::CRect m_TurtleCRect, m_RabbitCRect;
     Base::Math::CRect m_Turtle2CRect, m_Rabbit2CRect;  // Second icons for fast/slow zones
     
