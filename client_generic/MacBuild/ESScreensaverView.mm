@@ -11,6 +11,7 @@
 #include "Log.h"
 #include "DisplayOutput.h"
 #include "PlatformUtils.h"
+#include "Networking.h"
 
 @implementation ESScreensaverView
 {
@@ -438,6 +439,14 @@ static void signnal_handler(int signal)
 
 - (NSWindow*)configureSheet
 {
+    // Ensure network manager is not in aborted state when opening config sheet
+    // This can happen if Shutdown() was called previously (e.g., when preview was stopped)
+    // but we're now opening the config sheet in a new context
+    if (g_NetworkManager->IsAborted()) {
+        g_Log->Info("Config sheet: Network manager was aborted, restarting it");
+        g_NetworkManager->Shutdown();
+        g_NetworkManager->Startup();
+    }
     if (!m_config)
     {
         m_config =
