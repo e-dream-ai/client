@@ -739,17 +739,7 @@ class CElectricSheep
         // Only use aggressive shutdown tactics when not in config mode.
         // Config mode shutdown happens when transitioning from onboarding to playback,
         // so we must not abort network or force-exit in that case.
-        // 
-        // IMPORTANT: On macOS screensavers, NEVER use _exit() as it prevents proper
-        // cleanup of the NSRemoteViewController and causes catastrophic errors.
-        // The aggressive shutdown is only needed for the standalone app, not screensaver.
-        #ifdef SCREEN_SAVER
-        bool useAggressiveShutdown = false;
-        #else
-        bool useAggressiveShutdown = !m_bConfigMode;
-        #endif
-        
-        if (useAggressiveShutdown)
+        if (!m_bConfigMode)
         {
             // Arm a force-exit watchdog to guarantee instant shutdown.
             // The watchdog checks s_shutdownCancelled before exiting, so if
@@ -772,12 +762,6 @@ class CElectricSheep
                 _exit(0);
             }
         }
-        else
-        {
-            // For screensaver or config mode: still abort network operations
-            // but don't force-exit, allow normal cleanup
-            g_NetworkManager->Abort();
-        }
 
 #ifdef DO_THREAD_UPDATE
         DestroyUpdateThreads();
@@ -793,6 +777,8 @@ class CElectricSheep
 
         if (!m_bConfigMode)
         {
+            // Note: g_NetworkManager->Abort() already called above
+            
             // Stop playlist manager's periodic checking thread before player shutdown
             // This must happen before Player::Stop() which joins threads
             if (g_Player().m_playlistManager) {
