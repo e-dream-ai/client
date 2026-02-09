@@ -38,7 +38,7 @@
 class CElectricSheep_Mac : public CElectricSheep
 {
     std::vector<CGraphicsContext> m_graphicsContextList;
-    // Note: m_bIsPreview is now in the base class CElectricSheep
+    bool m_bIsPreview;
     UInt8 m_proxyHost[256];
     UInt8 m_proxyUser[32];
     UInt8 m_proxyPass[32];
@@ -52,7 +52,7 @@ class CElectricSheep_Mac : public CElectricSheep
         
         printf("CElectricSheep_Mac()\n");
 
-        // m_bIsPreview is initialized in base class
+        m_bIsPreview = false;
 
         *m_proxyHost = 0;
         *m_proxyUser = 0;

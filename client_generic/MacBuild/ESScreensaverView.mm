@@ -151,18 +151,6 @@
 - (void)startAnimation
 {
     //g_Log->Error("Test error 2");
-    
-    // Check if we're resuming from a paused state (config sheet closed in preview mode)
-    if (m_bPausedForSheet)
-    {
-        NSLog(@"startAnimation - resuming from paused state (config sheet closed)");
-        [self resumeAnimationFromSheet];
-#ifdef SCREEN_SAVER
-        [super startAnimation];
-#endif
-        return;
-    }
-    
     if (view == NULL)
     {
 #ifdef SCREEN_SAVER
@@ -234,31 +222,15 @@
 #ifdef SCREEN_SAVER
     [NSCursor unhide];
 #endif
-    
-    // IMPORTANT: In preview mode (System Settings), stopAnimation is called when
-    // the config sheet opens. We want to PAUSE (not full shutdown) in this case.
-    // Check if we're in preview mode - if so, treat this as pauseAnimationForSheet.
-    if (m_isPreview && m_bStarted && !m_bPausedForSheet)
+    m_bPausedForSheet = NO;
+    if (m_bStarted)
     {
-        // Preview mode: Pause for config sheet (no full shutdown)
-        NSLog(@"stopAnimation in preview mode - pausing for config sheet");
         [self _endThread];
+
         ESScreensaver_Stop();
-        m_bPausedForSheet = YES;
+
+        ESScreensaver_Deinit();
         m_bStarted = NO;
-        // Do NOT call ESScreensaver_Deinit() - just pause
-    }
-    else
-    {
-        // Full screensaver or already paused: Do full shutdown
-        m_bPausedForSheet = NO;
-        if (m_bStarted)
-        {
-            [self _endThread];
-            ESScreensaver_Stop();
-            ESScreensaver_Deinit();
-            m_bStarted = NO;
-        }
     }
 
 #ifdef SCREEN_SAVER
@@ -640,21 +612,6 @@ static void signnal_handler(int signal)
 
 #pragma mark - SPUStandardUserDriverDelegate (hide "Skip this version" button)
 
-// Prevent Sparkle from showing modal update dialogs in screensaver
-// Modal dialogs cause legacyScreenSaver.appex to crash/terminate
-- (BOOL)standardUserDriverShouldHandleShowingScheduledUpdate:(SUAppcastItem *)update andInImmediateFocus:(BOOL)immediateFocus
-{
-#ifdef SCREEN_SAVER
-    // Screensaver: Don't show modal update dialog - just track that update is available
-    // The HUD indicator will show the update icon to the user
-    NSLog(@"Sparkle: Update available but suppressing modal dialog in screensaver: %@", update.displayVersionString);
-    return NO;  // Don't show the dialog
-#else
-    // App: Show the update dialog normally
-    return YES;
-#endif
-}
-
 static void hideSkipButtonInView(NSView *view)
 {
     if (!view) return;
@@ -672,14 +629,13 @@ static void hideSkipButtonInView(NSView *view)
 
 - (void)standardUserDriverWillHandleShowingUpdate:(BOOL)handleShowingUpdate forUpdate:(SUAppcastItem *)update state:(SPUUserUpdateState *)state
 {
+    // Get the user driver (app: from controller; screensaver: stored reference)
+    id userDriver = nil;
 #ifdef SCREEN_SAVER
-    // Screensaver: We suppress the modal dialog, so this should not be called
-    // But if it is, do nothing to avoid any modal UI
-    NSLog(@"Sparkle: standardUserDriverWillHandleShowingUpdate called in screensaver (should be suppressed)");
-    return;
+    userDriver = m_sparkleUserDriver;
 #else
-    // App: Hide the "Skip this version" button in the update dialog
-    id userDriver = m_updater ? m_updater.userDriver : nil;
+    userDriver = m_updater ? m_updater.userDriver : nil;
+#endif
     if (!userDriver) return;
 
     __weak id weakDriver = userDriver;
@@ -694,7 +650,6 @@ static void hideSkipButtonInView(NSView *view)
         NSView *contentView = [window contentView];
         hideSkipButtonInView(contentView);
     });
-#endif
 }
 
 // Check if an update is available
