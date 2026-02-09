@@ -229,12 +229,19 @@ bool CClip::Update(double _timelineTime, bool isPaused)
     // Check buffering state
     if (m_BufferingState != BufferingState::NotBuffering) {
         uint32_t queueLength = m_spDecoder->QueueLength();
+        bool decoderEnded = m_spDecoder->DecoderThreadEnded();  // Check if decoder thread finished, not if all frames consumed
         
         // Check if we have enough frames to start/resume playback
-        if (m_BufferingState == BufferingState::Buffering && queueLength >= 10) {
+        // OR if the decoder has ended (meaning no more frames will arrive)
+        if (m_BufferingState == BufferingState::Buffering && (queueLength >= 10 || (decoderEnded && queueLength > 0))) {
             // Initial buffer filled, start playback
-            g_Log->Info("Initial buffer filled (%d frames), starting playback for %s",
-                        queueLength, m_ClipMetadata.dreamData.uuid.c_str());
+            if (decoderEnded && queueLength < 10) {
+                g_Log->Info("Decoder ended with only %d frames (less than target 10), starting playback anyway for %s",
+                            queueLength, m_ClipMetadata.dreamData.uuid.c_str());
+            } else {
+                g_Log->Info("Initial buffer filled (%d frames), starting playback for %s",
+                            queueLength, m_ClipMetadata.dreamData.uuid.c_str());
+            }
             m_BufferingState = BufferingState::NotBuffering;
             
             // Set the actual start time when playback begins
@@ -249,10 +256,15 @@ bool CClip::Update(double _timelineTime, bool isPaused)
                 StartPlayback(m_spDecoder->GetVideoInfo()->m_SeekTargetFrame);
             }
         }
-        else if (m_BufferingState == BufferingState::Rebuffering && queueLength >= 5) {
+        else if (m_BufferingState == BufferingState::Rebuffering && (queueLength >= 5 || (decoderEnded && queueLength > 0))) {
             // Rebuffer filled, resume playback
-            g_Log->Info("Buffer refilled (%d frames), resuming playback for %s",
-                        queueLength, m_ClipMetadata.dreamData.uuid.c_str());
+            if (decoderEnded && queueLength < 5) {
+                g_Log->Info("Decoder ended with only %d frames (less than target 5), resuming playback anyway for %s",
+                            queueLength, m_ClipMetadata.dreamData.uuid.c_str());
+            } else {
+                g_Log->Info("Buffer refilled (%d frames), resuming playback for %s",
+                            queueLength, m_ClipMetadata.dreamData.uuid.c_str());
+            }
             
             // Track how long we were buffering
             double bufferingDuration = _timelineTime - m_RebufferingStartTime;
@@ -260,16 +272,26 @@ bool CClip::Update(double _timelineTime, bool isPaused)
             
             m_BufferingState = BufferingState::NotBuffering;
         }
+        else if (decoderEnded && queueLength == 0) {
+            // Decoder ended and no frames available - clip is finished
+            g_Log->Info("Decoder ended with no frames available for %s, marking as finished",
+                        m_ClipMetadata.dreamData.uuid.c_str());
+            m_HasFinished.exchange(true);
+            return false;
+        }
         else {
             // Still buffering, don't update the frame
             return true;    // Return true so player knows we're still active
         }
     }
     
-    // Check if we need to rebuffer (unless we're near the end)
+    // Check if we need to rebuffer (unless we're near the end or decoder has ended)
     bool nearEnd = IsNearEnd();
+    bool decoderEnded = m_spDecoder->DecoderThreadEnded();
     
-    if (m_spDecoder->QueueLength() < 2) {
+    // Only check for rebuffering if decoder is still running
+    // If decoder has ended, we just play whatever frames we have left
+    if (!decoderEnded && m_spDecoder->QueueLength() < 2) {
         // Log state for debugging
         /*g_Log->Info("Buffer low check: nearEnd=%d, queue=%d, for %s",
                   nearEnd ? 1 : 0,
