@@ -256,9 +256,7 @@
         {
             [self _endThread];
             ESScreensaver_Stop();
-#ifndef SCREEN_SAVER
             ESScreensaver_Deinit();
-#endif
             m_bStarted = NO;
         }
     }
@@ -374,15 +372,13 @@ static void signnal_handler(int signal)
 - (void)willStop:(NSNotification*)notification
 {
 #ifdef SCREEN_SAVER
-    NSLog(@"[infinidream] !!!!! willStop notification received !!!!!");
     g_Log->Info("Killed by system from willStop");
     if (@available(macOS 14.0, *)) {
-        NSLog(@"[infinidream] willStop: NOT calling Deinit in screensaver mode");
-        g_Log->Info("NOT calling Deinit - let system handle cleanup");
+        g_Log->Info("Deinit");
+        ESScreensaver_Deinit();
         g_Log->Info("Log shutdown, will exit in 2 seconds");
         g_Log->Shutdown();
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-            NSLog(@"[infinidream] willStop: calling exit(0) NOW");
             exit(0);
         });
     }
@@ -392,18 +388,16 @@ static void signnal_handler(int signal)
 - (void)onSleepNote:(NSNotification*)notif
 {
 #ifdef SCREEN_SAVER
-    NSLog(@"[infinidream] onSleepNote notification received: %@", notif.name);
-    NSLog(@"[infinidream] notif.object:%@", notif.object);
-    g_Log->Info("onSleepNote received: %s", notif.name.UTF8String);
+    g_Log->Info("Killed by system from onSleepNote %s", notif.name.UTF8String);
+    NSLog(@"notif.object:%@", notif.object);
 
-    // CRITICAL: This notification is sent when closing the screensaver preview in System Preferences
-    // We should NOT exit - the process needs to stay alive for the options dialog
-    // System Preferences will kill the process when it's actually done with it
-    
-    NSLog(@"[infinidream] onSleepNote: Ignoring notification in screensaver mode - NOT calling exit()");
-    g_Log->Info("onSleepNote: Ignoring notification - process stays alive for options dialog");
-    
-    // Do NOT call exit(0) - let the process stay alive!
+    if (@available(macOS 14.0, *)) {
+        g_Log->Info("Deinit");
+        ESScreensaver_Deinit();
+        g_Log->Info("Log shutdown, will exit");
+        g_Log->Shutdown();
+        exit(0);
+    }
 #endif
 }
 
