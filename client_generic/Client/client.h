@@ -133,6 +133,7 @@ class CElectricSheep
     bool m_SeamlessPlayback;
     bool m_bPaused;
     bool m_bFullScreen;
+    bool m_bIsPreview = false;  // True when running in preview mode (System Settings small window)
     Base::CTimer m_Timer;
     Base::CTimer m_F1F4Timer;
     // Track per-frame wall time to derive smooth in-frame timecode without relying on clip elapsed time.
@@ -739,17 +740,7 @@ class CElectricSheep
         // Only use aggressive shutdown tactics when not in config mode.
         // Config mode shutdown happens when transitioning from onboarding to playback,
         // so we must not abort network or force-exit in that case.
-        // 
-        // IMPORTANT: On macOS screensavers, NEVER use _exit() as it prevents proper
-        // cleanup of the NSRemoteViewController and causes catastrophic errors.
-        // The aggressive shutdown is only needed for the standalone app, not screensaver.
-        #ifdef SCREEN_SAVER
-        bool useAggressiveShutdown = false;
-        #else
-        bool useAggressiveShutdown = !m_bConfigMode;
-        #endif
-        
-        if (useAggressiveShutdown)
+        if (!m_bConfigMode)
         {
             // Arm a force-exit watchdog to guarantee instant shutdown.
             // The watchdog checks s_shutdownCancelled before exiting, so if
