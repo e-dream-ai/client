@@ -626,6 +626,9 @@ class CElectricSheep
         // Cancel any pending shutdown watchdog (e.g., when restarting after wizard)
         s_shutdownCancelled.store(true);
 
+        // Ensure storage is read-only when in busy mode (e.g. Mac preview forced after constructor)
+        InitStorage(m_MultipleInstancesMode);
+
         m_CpuUsageThreshold =
             g_Settings()->Get("settings.player.cpuusagethreshold", 50);
 
