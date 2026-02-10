@@ -130,6 +130,7 @@ class CElectricSheep
     std::string m_PreviousDlState; // Track download status
     bool m_MultipleInstancesMode;
     bool m_bConfigMode;
+    bool m_bIsPreview;
     bool m_SeamlessPlayback;
     bool m_bPaused;
     bool m_bFullScreen;
@@ -237,6 +238,7 @@ class CElectricSheep
         m_HighCpuUsageCounter = 0;
         m_StatsCodeCounter = 0;
         m_bConfigMode = false;
+        m_bIsPreview = false;
         m_MultipleInstancesMode = false;
         printf("CElectricSheep()\n");
 
@@ -260,6 +262,18 @@ class CElectricSheep
     
     bool IsMultipleInstancesMode() {
         return m_MultipleInstancesMode;
+    }
+    
+    void ForceMultipleInstancesMode(bool force) {
+        m_MultipleInstancesMode = force;
+    }
+    
+    virtual void SetIsPreview(bool _isPreview) {
+        m_bIsPreview = _isPreview;
+    }
+    
+    virtual bool IsPreview() const {
+        return m_bIsPreview;
     }
     
     void CreateHud()
@@ -696,8 +710,10 @@ class CElectricSheep
         
         if (m_MultipleInstancesMode) {
             g_Player().SetOfflineMode(true);
-            // Show busy indicator for 30 seconds at startup
-            m_BusyIndicatorEndTime = m_Timer.Time() + 30.0;
+            // Show busy indicator for 30 seconds at startup (but not in preview mode)
+            if (!IsPreview()) {
+                m_BusyIndicatorEndTime = m_Timer.Time() + 30.0;
+            }
         }
         
         // call static method to fill sheep counts
@@ -1214,7 +1230,7 @@ class CElectricSheep
                     {
                         if (!EDreamClient::IsLoggedIn())
                         {
-                            if (m_MultipleInstancesMode) {
+                            if (m_MultipleInstancesMode && !IsPreview()) {
                                 pTmp->SetSample("Starting in busy mode.");
                             } else {
 #ifdef SCREEN_SAVER
@@ -1682,7 +1698,7 @@ class CElectricSheep
                     bool updateAvailable = ESScreensaver_IsUpdateAvailable();
 
                     bool showDisk = diskSpaceLow;
-                    showBusy = m_MultipleInstancesMode;
+                    showBusy = m_MultipleInstancesMode && !IsPreview();
                     showNet = !internetConnected;
                     showRemote = !wsConnected;
                     showUpdate = updateAvailable;

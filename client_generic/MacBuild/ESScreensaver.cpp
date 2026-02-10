@@ -58,11 +58,17 @@ int ESScreenSaver_AddGraphicsContext(void* _glContext)
 
 bool ESScreensaver_Start(bool _bPreview, uint32 _width, uint32 _height)
 {
+    // Always set preview mode flag
+    gClient.SetIsPreview(_bPreview);
+    
+    // Force busy mode for preview to avoid network/auth activity
+    if (_bPreview) {
+        gClient.ForceMultipleInstancesMode(true);
+    }
+    
     if (g_Player().Display() == NULL)
     {
         DisplayOutput::CDisplayMetal::SetDefaultWidthAndHeight(_width, _height);
-
-        gClient.SetIsPreview(_bPreview);
 
         gClient.Startup();
         // we should stop the player, if it is started by default, just to be
