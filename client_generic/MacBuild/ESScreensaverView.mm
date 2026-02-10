@@ -433,7 +433,11 @@ static void signnal_handler(int signal)
 
 - (BOOL)hasConfigureSheet
 {
-    return YES;
+#ifdef SCREEN_SAVER
+    return NO;  // Hide Options button in System Settings when running as screensaver
+#else
+    return YES; // App can open settings dialog
+#endif
 }
 
 - (NSWindow*)configureSheet
