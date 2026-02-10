@@ -1582,11 +1582,11 @@ class CElectricSheep
                 }
 
                 // Show standalone indicator HUD only when credits overlay is hidden
-                // and any indicator timer is active
-                bool showDisk = m_DiskIndicatorEndTime > 0.0;
-                bool showBusy = m_BusyIndicatorEndTime > 0.0;
-                bool showNet = m_NetworkIndicatorEndTime > 0.0;
-                bool showRemote = m_RemoteIndicatorEndTime > 0.0;
+                // and any indicator timer is active (hide all in preview mode)
+                bool showDisk = m_DiskIndicatorEndTime > 0.0 && !IsPreview();
+                bool showBusy = m_BusyIndicatorEndTime > 0.0 && !IsPreview();
+                bool showNet = m_NetworkIndicatorEndTime > 0.0 && !IsPreview();
+                bool showRemote = m_RemoteIndicatorEndTime > 0.0 && !IsPreview();
                 bool showUpdate = m_UpdateIndicatorEndTime > 0.0;
                 
                 bool shouldShowIndicatorHUD = !creditsVisible &&
@@ -1696,14 +1696,14 @@ class CElectricSheep
 
                 if (spStats)
                 {
-                    // Disk space indicator - only show when disk space is low
+                    // Disk space indicator - only show when disk space is low (hide all in preview mode)
                     bool diskSpaceLow = g_ContentDownloader().m_gDownloader.IsDiskSpaceLow();
                     bool updateAvailable = ESScreensaver_IsUpdateAvailable();
 
-                    bool showDisk = diskSpaceLow;
+                    bool showDisk = diskSpaceLow && !IsPreview();
                     showBusy = m_MultipleInstancesMode && !IsPreview();
-                    showNet = !internetConnected;
-                    showRemote = !wsConnected;
+                    showNet = !internetConnected && !IsPreview();
+                    showRemote = !wsConnected && !IsPreview();
                     showUpdate = updateAvailable;
 
                     // Disk needs spacing for: Busy (if shown) + Net (if shown) + Remote (if shown) + Update (if shown)
