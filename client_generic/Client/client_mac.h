@@ -127,6 +127,12 @@ class CElectricSheep_Mac : public CElectricSheep
 
         bool exists = std::filesystem::exists(m_AppData);
         
+#ifdef SCREEN_SAVER
+        // When running as screensaver (preview or real), skip lock acquisition
+        // to avoid blocking the main app. Always run in busy mode.
+        m_lckFile = -1;
+        m_MultipleInstancesMode = true;
+#else
         if (exists) {
             // check the exclusive file lock to see if we are running alone...
             std::string lockfile = m_AppData + ".instance-lock";
@@ -139,6 +145,7 @@ class CElectricSheep_Mac : public CElectricSheep
         } else {
             m_MultipleInstancesMode = false;
         }
+#endif
         
         // Make sure we are in read only mode in that case !
         InitStorage(m_MultipleInstancesMode);
@@ -200,6 +207,13 @@ class CElectricSheep_Mac : public CElectricSheep
     }
 
     void SetUpConfig() { InitStorage(); }
+    
+    void ReleaseLockFile() {
+        if (m_lckFile >= 0) {
+            close(m_lckFile);
+            m_lckFile = -1;
+        }
+    }
 
     //
     virtual bool Startup()

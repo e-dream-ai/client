@@ -62,7 +62,9 @@ bool ESScreensaver_Start(bool _bPreview, uint32 _width, uint32 _height)
     gClient.SetIsPreview(_bPreview);
     
     // Force busy mode for preview to avoid network/auth activity
+    // Also release the lock file so the main app can run normally
     if (_bPreview) {
+        gClient.ReleaseLockFile();
         gClient.ForceMultipleInstancesMode(true);
     }
     
