@@ -502,11 +502,10 @@ static void ShowFirstTimeSetupCallback()
 - (IBAction)goToHelpPage:(id)sender {
     g_Log->Info("Open Help Page");
 #ifdef STAGE
-    NSString* urlStr = [NSString stringWithFormat:@"https://stage.infinidream.ai/help?v=%s", CLIENT_VERSION];
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://stage.infinidream.ai/help"]];
 #else
-    NSString* urlStr = [NSString stringWithFormat:@"https://alpha.infinidream.ai/help?v=%s", CLIENT_VERSION];
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://alpha.infinidream.ai/help"]];
 #endif
-    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:urlStr]];
 }
 
 @end
