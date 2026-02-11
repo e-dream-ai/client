@@ -237,6 +237,42 @@ DQ
                                     </constraints>
                                 </view>
                             </tabViewItem>
+                            <tabViewItem label="Controls" identifier="4" id="2001">
+                                <view key="view" id="2002">
+                                    <rect key="frame" x="10" y="33" width="495" height="298"/>
+                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                    <subviews>
+                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="2003">
+                                            <rect key="frame" x="18" y="200" width="459" height="80"/>
+                                            <constraints>
+                                                <constraint firstAttribute="height" constant="80" id="2004"/>
+                                            </constraints>
+                                            <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" title="infinidream can be controlled using your keyboard and mouse while it's running. Press ESC to exit, use arrow keys to navigate, and click to interact with the scene. For a complete list of controls and keyboard shortcuts, visit our help page." id="2005">
+                                                <font key="font" metaFont="system"/>
+                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                            </textFieldCell>
+                                        </textField>
+                                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="2006">
+                                            <rect key="frame" x="164" y="140" width="167" height="32"/>
+                                            <buttonCell key="cell" type="push" title="View Help Page" bezelStyle="rounded" alignment="center" controlSize="large" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="2007">
+                                                <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                                <font key="font" metaFont="system"/>
+                                            </buttonCell>
+                                            <connections>
+                                                <action selector="goToHelpPage:" target="-2" id="2008"/>
+                                            </connections>
+                                        </button>
+                                    </subviews>
+                                    <constraints>
+                                        <constraint firstItem="2003" firstAttribute="leading" secondItem="2002" secondAttribute="leading" constant="20" symbolic="YES" id="2009"/>
+                                        <constraint firstAttribute="trailing" secondItem="2003" secondAttribute="trailing" constant="20" symbolic="YES" id="2010"/>
+                                        <constraint firstItem="2003" firstAttribute="top" secondItem="2002" secondAttribute="top" constant="18" id="2011"/>
+                                        <constraint firstItem="2006" firstAttribute="centerX" secondItem="2002" secondAttribute="centerX" id="2012"/>
+                                        <constraint firstItem="2006" firstAttribute="top" secondItem="2003" secondAttribute="bottom" constant="28" id="2013"/>
+                                    </constraints>
+                                </view>
+                            </tabViewItem>
                             <tabViewItem label="Disk" identifier="Item 5" id="1011">
                                 <view key="view" id="1012">
                                     <rect key="frame" x="10" y="33" width="495" height="298"/>
@@ -511,42 +547,6 @@ room for new ones</string>
                                         <constraint firstItem="1041" firstAttribute="top" secondItem="324" secondAttribute="top" constant="20" symbolic="YES" id="s1g-o7-r9g"/>
                                         <constraint firstItem="662" firstAttribute="leading" secondItem="933" secondAttribute="leading" id="vTf-B7-xSJ"/>
                                         <constraint firstItem="1042" firstAttribute="leading" secondItem="1041" secondAttribute="trailing" constant="8" symbolic="YES" id="w17-ko-z5a"/>
-                                    </constraints>
-                                </view>
-                            </tabViewItem>
-                            <tabViewItem label="Controls" identifier="4" id="2001">
-                                <view key="view" id="2002">
-                                    <rect key="frame" x="10" y="33" width="495" height="298"/>
-                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                                    <subviews>
-                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="2003">
-                                            <rect key="frame" x="18" y="200" width="459" height="80"/>
-                                            <constraints>
-                                                <constraint firstAttribute="height" constant="80" id="2004"/>
-                                            </constraints>
-                                            <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" title="infinidream can be controlled using your keyboard and mouse while it's running. Press ESC to exit, use arrow keys to navigate, and click to interact with the scene. For a complete list of controls and keyboard shortcuts, visit our help page." id="2005">
-                                                <font key="font" metaFont="system"/>
-                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                                            </textFieldCell>
-                                        </textField>
-                                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="2006">
-                                            <rect key="frame" x="164" y="140" width="167" height="32"/>
-                                            <buttonCell key="cell" type="push" title="View Help Page" bezelStyle="rounded" alignment="center" controlSize="large" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="2007">
-                                                <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="system"/>
-                                            </buttonCell>
-                                            <connections>
-                                                <action selector="goToHelpPage:" target="-2" id="2008"/>
-                                            </connections>
-                                        </button>
-                                    </subviews>
-                                    <constraints>
-                                        <constraint firstItem="2003" firstAttribute="leading" secondItem="2002" secondAttribute="leading" constant="20" symbolic="YES" id="2009"/>
-                                        <constraint firstAttribute="trailing" secondItem="2003" secondAttribute="trailing" constant="20" symbolic="YES" id="2010"/>
-                                        <constraint firstItem="2003" firstAttribute="top" secondItem="2002" secondAttribute="top" constant="18" id="2011"/>
-                                        <constraint firstItem="2006" firstAttribute="centerX" secondItem="2002" secondAttribute="centerX" id="2012"/>
-                                        <constraint firstItem="2006" firstAttribute="top" secondItem="2003" secondAttribute="bottom" constant="28" id="2013"/>
                                     </constraints>
                                 </view>
                             </tabViewItem>
