@@ -58,4 +58,6 @@
 
 - (IBAction)newWindow:(id)sender;
 
+- (IBAction)goToHelpPage:(id)sender;
+
 @end

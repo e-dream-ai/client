@@ -4,6 +4,7 @@
 #import "ESAppDelegate.h"
 #import "ESScreensaver.h"
 #import "FirstTimeSetupManager.h"
+#import "clientversion.h"
 #ifndef SCREEN_SAVER
 #import "ScreensaverInstaller.h"
 #endif
@@ -495,6 +496,15 @@ static void ShowFirstTimeSetupCallback()
     [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://stage.infinidream.ai/playlists"]];
 #else
     [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://alpha.infinidream.ai/playlists"]];
+#endif
+}
+
+- (IBAction)goToHelpPage:(id)sender {
+    g_Log->Info("Open Help Page");
+#ifdef STAGE
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://stage.infinidream.ai/help"]];
+#else
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://alpha.infinidream.ai/help"]];
 #endif
 }
 

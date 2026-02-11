@@ -558,14 +558,30 @@
 - (IBAction)goToHelpPage:(id)__unused sender
 {
 #ifdef STAGE
-    NSString* urlStr = [NSString stringWithFormat:@"https://stage.infinidream.ai/help?v=%s", CLIENT_VERSION];
+    NSURL* helpURL = [NSURL URLWithString:@"https://stage.infinidream.ai/help"];
 #else
-    NSString* urlStr = [NSString stringWithFormat:@"https://alpha.infinidream.ai/help?v=%s", CLIENT_VERSION];
+    NSURL* helpURL = [NSURL URLWithString:@"https://alpha.infinidream.ai/help"];
 #endif
 
-    NSURL* helpURL = [NSURL URLWithString:urlStr];
-
     [[NSWorkspace sharedWorkspace] openURL:helpURL];
+}
+
+- (IBAction)openRemoteControl:(id)__unused sender
+{
+#ifdef STAGE
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://stage.infinidream.ai/rc"]];
+#else
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://alpha.infinidream.ai/rc"]];
+#endif
+}
+
+- (IBAction)openBrowsePlaylist:(id)__unused sender
+{
+#ifdef STAGE
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://stage.infinidream.ai/playlists"]];
+#else
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://alpha.infinidream.ai/playlists"]];
+#endif
 }
 
 - (void)dealloc
