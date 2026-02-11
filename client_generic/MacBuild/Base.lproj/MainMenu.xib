@@ -125,6 +125,12 @@
                                     <action selector="openBrowsePlaylist:" target="371" id="Rbv-DH-sX3"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Help" id="3002">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="goToHelpPage:" target="371" id="3003"/>
+                                </connections>
+                            </menuItem>
                         </items>
                     </menu>
                 </menuItem>
