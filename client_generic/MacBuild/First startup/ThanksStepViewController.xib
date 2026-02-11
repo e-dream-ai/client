@@ -42,9 +42,8 @@
                 <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="0PL-G4-b8W">
                     <rect key="frame" x="46" y="253" width="593" height="40"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <textFieldCell key="cell" id="V81-sN-HPh">
+                    <textFieldCell key="cell" title="Change the style of your dreams by selecting a playlist. Click the button on the thumbnail to start the playlist." id="V81-sN-HPh">
                         <font key="font" metaFont="system" size="15"/>
-                        <string key="title">Infinidream starts out with a default playlist with dreams in a variety of styles. Browse and discover more dreams, and pick a playlist with visuals for your vibe:</string>
                         <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
@@ -81,7 +80,7 @@ DQ
                         <font key="font" metaFont="system" size="15"/>
                         <string key="title">Pro tips: Use the View menu to reopen those whenever needed.
 Use AirPlay to connect to a big screen.
-Run the app (not screensaver settings) to get updates.</string>
+Run the app to get updates.</string>
                         <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
@@ -96,7 +95,7 @@ Run the app (not screensaver settings) to get updates.</string>
                     </textFieldCell>
                 </textField>
                 <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="zvW-M4-Dty">
-                    <rect key="frame" x="211" y="82" width="247" height="27"/>
+                    <rect key="frame" x="211" y="82.5" width="247" height="27"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <buttonCell key="cell" type="check" title="Install and enable screensaver" bezelStyle="regularSquare" imagePosition="left" alignment="center" controlSize="large" state="on" inset="2" id="gmw-Yc-6RL">
                         <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
