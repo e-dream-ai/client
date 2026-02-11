@@ -129,6 +129,7 @@ class CElectricSheep
     int m_CpuUsageThreshold;
     std::string m_PreviousDlState; // Track download status
     bool m_MultipleInstancesMode;
+    bool m_OfflineDueToNoInternetOnly = false;  // true when m_MultipleInstancesMode was set only because internet was down (don't show Busy in that case)
     bool m_bConfigMode;
     bool m_bIsPreview;
     bool m_SeamlessPlayback;
@@ -687,6 +688,7 @@ class CElectricSheep
             // Also show remote indicator since network is down
             ShowRemoteIndicator(30.0);
             m_MultipleInstancesMode = true;  // set offline mode
+            m_OfflineDueToNoInternetOnly = true;  // don't show Busy indicator (Net/Remote are enough)
         } else if (m_MultipleInstancesMode) {
             g_Log->Info("Forcing offline mode with multiple instances");
             internetReachable = false;
@@ -713,8 +715,8 @@ class CElectricSheep
         
         if (m_MultipleInstancesMode) {
             g_Player().SetOfflineMode(true);
-            // Show busy indicator for 30 seconds at startup (but not in preview mode)
-            if (!IsPreview()) {
+            // Show busy indicator only for actual multiple instances, not when offline due to no internet
+            if (!IsPreview() && !m_OfflineDueToNoInternetOnly) {
                 m_BusyIndicatorEndTime = m_Timer.Time() + 30.0;
             }
         }
@@ -1701,7 +1703,7 @@ class CElectricSheep
                     bool updateAvailable = ESScreensaver_IsUpdateAvailable();
 
                     bool showDisk = diskSpaceLow && !IsPreview();
-                    showBusy = m_MultipleInstancesMode && !IsPreview();
+                    showBusy = m_MultipleInstancesMode && !m_OfflineDueToNoInternetOnly && !IsPreview();
                     showNet = !internetConnected && !IsPreview();
                     showRemote = !wsConnected && !IsPreview();
                     showUpdate = updateAvailable;
