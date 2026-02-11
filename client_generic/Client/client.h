@@ -130,6 +130,7 @@ class CElectricSheep
     std::string m_PreviousDlState; // Track download status
     bool m_MultipleInstancesMode;
     bool m_bConfigMode;
+    bool m_bIsPreview;
     bool m_SeamlessPlayback;
     bool m_bPaused;
     bool m_bFullScreen;
@@ -237,6 +238,7 @@ class CElectricSheep
         m_HighCpuUsageCounter = 0;
         m_StatsCodeCounter = 0;
         m_bConfigMode = false;
+        m_bIsPreview = false;
         m_MultipleInstancesMode = false;
         printf("CElectricSheep()\n");
 
@@ -260,6 +262,18 @@ class CElectricSheep
     
     bool IsMultipleInstancesMode() {
         return m_MultipleInstancesMode;
+    }
+    
+    void ForceMultipleInstancesMode(bool force) {
+        m_MultipleInstancesMode = force;
+    }
+    
+    virtual void SetIsPreview(bool _isPreview) {
+        m_bIsPreview = _isPreview;
+    }
+    
+    virtual bool IsPreview() const {
+        return m_bIsPreview;
     }
     
     void CreateHud()
@@ -612,6 +626,9 @@ class CElectricSheep
         // Cancel any pending shutdown watchdog (e.g., when restarting after wizard)
         s_shutdownCancelled.store(true);
 
+        // Ensure storage is read-only when in busy mode (e.g. Mac preview forced after constructor)
+        InitStorage(m_MultipleInstancesMode);
+
         m_CpuUsageThreshold =
             g_Settings()->Get("settings.player.cpuusagethreshold", 50);
 
@@ -696,8 +713,10 @@ class CElectricSheep
         
         if (m_MultipleInstancesMode) {
             g_Player().SetOfflineMode(true);
-            // Show busy indicator for 30 seconds at startup
-            m_BusyIndicatorEndTime = m_Timer.Time() + 30.0;
+            // Show busy indicator for 30 seconds at startup (but not in preview mode)
+            if (!IsPreview()) {
+                m_BusyIndicatorEndTime = m_Timer.Time() + 30.0;
+            }
         }
         
         // call static method to fill sheep counts
@@ -739,7 +758,17 @@ class CElectricSheep
         // Only use aggressive shutdown tactics when not in config mode.
         // Config mode shutdown happens when transitioning from onboarding to playback,
         // so we must not abort network or force-exit in that case.
-        if (!m_bConfigMode)
+        // 
+        // IMPORTANT: On macOS screensavers, NEVER use _exit() as it prevents proper
+        // cleanup of the NSRemoteViewController and causes catastrophic errors.
+        // The aggressive shutdown is only needed for the standalone app, not screensaver.
+        #ifdef SCREEN_SAVER
+        bool useAggressiveShutdown = false;
+        #else
+        bool useAggressiveShutdown = !m_bConfigMode;
+        #endif
+        
+        if (useAggressiveShutdown)
         {
             // Arm a force-exit watchdog to guarantee instant shutdown.
             // The watchdog checks s_shutdownCancelled before exiting, so if
@@ -762,6 +791,12 @@ class CElectricSheep
                 _exit(0);
             }
         }
+        else
+        {
+            // For screensaver or config mode: still abort network operations
+            // but don't force-exit, allow normal cleanup
+            g_NetworkManager->Abort();
+        }
 
 #ifdef DO_THREAD_UPDATE
         DestroyUpdateThreads();
@@ -777,8 +812,6 @@ class CElectricSheep
 
         if (!m_bConfigMode)
         {
-            // Note: g_NetworkManager->Abort() already called above
-            
             // Stop playlist manager's periodic checking thread before player shutdown
             // This must happen before Player::Stop() which joins threads
             if (g_Player().m_playlistManager) {
@@ -1200,7 +1233,7 @@ class CElectricSheep
                     {
                         if (!EDreamClient::IsLoggedIn())
                         {
-                            if (m_MultipleInstancesMode) {
+                            if (m_MultipleInstancesMode && !IsPreview()) {
                                 pTmp->SetSample("Starting in busy mode.");
                             } else {
 #ifdef SCREEN_SAVER
@@ -1549,11 +1582,11 @@ class CElectricSheep
                 }
 
                 // Show standalone indicator HUD only when credits overlay is hidden
-                // and any indicator timer is active
-                bool showDisk = m_DiskIndicatorEndTime > 0.0;
-                bool showBusy = m_BusyIndicatorEndTime > 0.0;
-                bool showNet = m_NetworkIndicatorEndTime > 0.0;
-                bool showRemote = m_RemoteIndicatorEndTime > 0.0;
+                // and any indicator timer is active (hide all in preview mode)
+                bool showDisk = m_DiskIndicatorEndTime > 0.0 && !IsPreview();
+                bool showBusy = m_BusyIndicatorEndTime > 0.0 && !IsPreview();
+                bool showNet = m_NetworkIndicatorEndTime > 0.0 && !IsPreview();
+                bool showRemote = m_RemoteIndicatorEndTime > 0.0 && !IsPreview();
                 bool showUpdate = m_UpdateIndicatorEndTime > 0.0;
                 
                 bool shouldShowIndicatorHUD = !creditsVisible &&
@@ -1663,14 +1696,14 @@ class CElectricSheep
 
                 if (spStats)
                 {
-                    // Disk space indicator - only show when disk space is low
+                    // Disk space indicator - only show when disk space is low (hide all in preview mode)
                     bool diskSpaceLow = g_ContentDownloader().m_gDownloader.IsDiskSpaceLow();
                     bool updateAvailable = ESScreensaver_IsUpdateAvailable();
 
-                    bool showDisk = diskSpaceLow;
-                    showBusy = m_MultipleInstancesMode;
-                    showNet = !internetConnected;
-                    showRemote = !wsConnected;
+                    bool showDisk = diskSpaceLow && !IsPreview();
+                    showBusy = m_MultipleInstancesMode && !IsPreview();
+                    showNet = !internetConnected && !IsPreview();
+                    showRemote = !wsConnected && !IsPreview();
                     showUpdate = updateAvailable;
 
                     // Disk needs spacing for: Busy (if shown) + Net (if shown) + Remote (if shown) + Update (if shown)
