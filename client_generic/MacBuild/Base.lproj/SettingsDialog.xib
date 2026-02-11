@@ -254,7 +254,10 @@ DQ
                                             </textFieldCell>
                                         </textField>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="2006">
-                                            <rect key="frame" x="164" y="140" width="167" height="32"/>
+                                            <rect key="frame" x="44" y="140" width="140" height="32"/>
+                                            <constraints>
+                                                <constraint firstAttribute="width" constant="140" id="2024"/>
+                                            </constraints>
                                             <buttonCell key="cell" type="push" title="View Help Page" bezelStyle="rounded" alignment="center" controlSize="large" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="2007">
                                                 <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="system"/>
@@ -263,13 +266,43 @@ DQ
                                                 <action selector="goToHelpPage:" target="-2" id="2008"/>
                                             </connections>
                                         </button>
+                                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="2014">
+                                            <rect key="frame" x="192" y="140" width="140" height="32"/>
+                                            <constraints>
+                                                <constraint firstAttribute="width" constant="140" id="2025"/>
+                                            </constraints>
+                                            <buttonCell key="cell" type="push" title="Remote Control" bezelStyle="rounded" alignment="center" controlSize="large" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="2015">
+                                                <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                                <font key="font" metaFont="system"/>
+                                            </buttonCell>
+                                            <connections>
+                                                <action selector="openRemoteControl:" target="-2" id="2016"/>
+                                            </connections>
+                                        </button>
+                                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="2017">
+                                            <rect key="frame" x="340" y="140" width="140" height="32"/>
+                                            <constraints>
+                                                <constraint firstAttribute="width" constant="140" id="2026"/>
+                                            </constraints>
+                                            <buttonCell key="cell" type="push" title="Browse Playlists" bezelStyle="rounded" alignment="center" controlSize="large" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="2018">
+                                                <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                                <font key="font" metaFont="system"/>
+                                            </buttonCell>
+                                            <connections>
+                                                <action selector="openBrowsePlaylist:" target="-2" id="2019"/>
+                                            </connections>
+                                        </button>
                                     </subviews>
                                     <constraints>
                                         <constraint firstItem="2003" firstAttribute="leading" secondItem="2002" secondAttribute="leading" constant="20" symbolic="YES" id="2009"/>
                                         <constraint firstAttribute="trailing" secondItem="2003" secondAttribute="trailing" constant="20" symbolic="YES" id="2010"/>
                                         <constraint firstItem="2003" firstAttribute="top" secondItem="2002" secondAttribute="top" constant="18" id="2011"/>
-                                        <constraint firstItem="2006" firstAttribute="centerX" secondItem="2002" secondAttribute="centerX" id="2012"/>
-                                        <constraint firstItem="2006" firstAttribute="top" secondItem="2003" secondAttribute="bottom" constant="28" id="2013"/>
+                                        <constraint firstItem="2017" firstAttribute="centerX" secondItem="2002" secondAttribute="centerX" id="2020"/>
+                                        <constraint firstAttribute="bottom" secondItem="2017" secondAttribute="bottom" constant="20" id="2013"/>
+                                        <constraint firstItem="2014" firstAttribute="trailing" secondItem="2017" secondAttribute="leading" constant="-10" id="2021"/>
+                                        <constraint firstItem="2014" firstAttribute="top" secondItem="2017" secondAttribute="top" id="2022"/>
+                                        <constraint firstItem="2006" firstAttribute="leading" secondItem="2017" secondAttribute="trailing" constant="10" id="2023"/>
+                                        <constraint firstItem="2006" firstAttribute="top" secondItem="2017" secondAttribute="top" id="2027"/>
                                     </constraints>
                                 </view>
                             </tabViewItem>

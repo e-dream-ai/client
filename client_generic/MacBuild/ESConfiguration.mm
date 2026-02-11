@@ -590,6 +590,24 @@
     [[NSWorkspace sharedWorkspace] openURL:helpURL];
 }
 
+- (IBAction)openRemoteControl:(id)__unused sender
+{
+#ifdef STAGE
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://stage.infinidream.ai/rc"]];
+#else
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://alpha.infinidream.ai/rc"]];
+#endif
+}
+
+- (IBAction)openBrowsePlaylist:(id)__unused sender
+{
+#ifdef STAGE
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://stage.infinidream.ai/playlists"]];
+#else
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://alpha.infinidream.ai/playlists"]];
+#endif
+}
+
 - (void)dealloc
 {
     [emailTextField setDelegate:nil];
