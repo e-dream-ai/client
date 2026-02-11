@@ -7,8 +7,6 @@
 
     IBOutlet NSTextField* playerFPS;
     IBOutlet NSTextField* displayFPS;
-    IBOutlet NSPopUpButton* display;
-    IBOutlet NSPopUpButton* multiDisplayMode;
     IBOutlet NSButton* synchronizeVBL;
     IBOutlet NSButton* blackoutMonitors;
     IBOutlet NSButton* silentMode;

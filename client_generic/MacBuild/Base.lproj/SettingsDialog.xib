@@ -16,7 +16,6 @@
                 <outlet property="debugLog" destination="921" id="923"/>
                 <outlet property="digitCodeLabel" destination="712" id="pEF-OY-jg9"/>
                 <outlet property="digitCodeTextField" destination="4IA-ih-tPf" id="03L-gJ-tFt"/>
-                <outlet property="display" destination="662" id="925"/>
                 <outlet property="displayFPS" destination="1041" id="1051"/>
                 <outlet property="emailLabel" destination="697" id="VZf-MQ-2QT"/>
                 <outlet property="emailTextField" destination="696" id="759"/>
@@ -25,7 +24,6 @@
                 <outlet property="keepScreensaverEnabledButton" destination="Bnq-I4-c9S" id="37C-4p-862"/>
                 <outlet property="loginStatusImage" destination="1119" id="1121"/>
                 <outlet property="loginTestStatusText" destination="1099" id="1108"/>
-                <outlet property="multiDisplayMode" destination="911" id="926"/>
                 <outlet property="okButton" destination="331" id="Qns-8w-LN7"/>
                 <outlet property="preserveAR" destination="1191" id="1193"/>
                 <outlet property="proxyHost" destination="Q3k-U6-7Ad" id="ALD-hu-lzP"/>
@@ -384,62 +382,11 @@ room for new ones</string>
                                     </subviews>
                                 </view>
                             </tabViewItem>
-                            <tabViewItem label="Playback" identifier="2" id="325">
+                            <tabViewItem label="Display" identifier="2" id="325">
                                 <view key="view" id="324">
                                     <rect key="frame" x="10" y="33" width="495" height="298"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
-                                        <popUpButton toolTip="Comming soon." verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="662">
-                                            <rect key="frame" x="197" y="121" width="104" height="25"/>
-                                            <popUpButtonCell key="cell" type="push" title="Primary" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" enabled="NO" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="665" id="663">
-                                                <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="message"/>
-                                                <menu key="menu" title="OtherViews" id="664">
-                                                    <items>
-                                                        <menuItem title="Primary" state="on" id="665"/>
-                                                        <menuItem title="Secondary" id="666"/>
-                                                        <menuItem title="3rd" id="778">
-                                                            <modifierMask key="keyEquivalentModifierMask"/>
-                                                        </menuItem>
-                                                        <menuItem title="4th" id="779">
-                                                            <modifierMask key="keyEquivalentModifierMask"/>
-                                                        </menuItem>
-                                                        <menuItem title="5th" id="780">
-                                                            <modifierMask key="keyEquivalentModifierMask"/>
-                                                        </menuItem>
-                                                    </items>
-                                                </menu>
-                                            </popUpButtonCell>
-                                        </popUpButton>
-                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="668">
-                                            <rect key="frame" x="91" y="128" width="103" height="16"/>
-                                            <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Display Monitor:" id="669">
-                                                <font key="font" metaFont="system"/>
-                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                                            </textFieldCell>
-                                        </textField>
-                                        <popUpButton toolTip="In Shared mode, all displays will render exactly the same sheep. In Individual each display will render its own." verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="911">
-                                            <rect key="frame" x="197" y="91" width="97" height="25"/>
-                                            <popUpButtonCell key="cell" type="push" title="Shared" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="920" id="914">
-                                                <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                                <font key="font" metaFont="message"/>
-                                                <menu key="menu" title="OtherViews" id="915">
-                                                    <items>
-                                                        <menuItem title="Shared" state="on" id="920"/>
-                                                        <menuItem title="Individual" id="919"/>
-                                                    </items>
-                                                </menu>
-                                            </popUpButtonCell>
-                                        </popUpButton>
-                                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="912">
-                                            <rect key="frame" x="50" y="98" width="144" height="16"/>
-                                            <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Multiple Monitor Mode:" id="913">
-                                                <font key="font" metaFont="system"/>
-                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                                            </textFieldCell>
-                                        </textField>
                                         <textField hidden="YES" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="1040">
                                             <rect key="frame" x="99" y="260" width="95" height="16"/>
                                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Display Speed:" id="1045">
@@ -483,7 +430,7 @@ room for new ones</string>
                                             </buttonCell>
                                         </button>
                                         <button toolTip="Check to use black bars to maintain 16x9 aspect ratio. Uncheck to stretch the image to fill the screen." translatesAutoresizingMaskIntoConstraints="NO" id="1191">
-                                            <rect key="frame" x="198" y="192" width="160" height="18"/>
+                                            <rect key="frame" x="160" y="192" width="160" height="18"/>
                                             <buttonCell key="cell" type="check" title="Preserve Aspect Ratio" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="1192">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
@@ -491,25 +438,17 @@ room for new ones</string>
                                         </button>
                                     </subviews>
                                     <constraints>
-                                        <constraint firstItem="662" firstAttribute="firstBaseline" secondItem="668" secondAttribute="firstBaseline" id="66u-MN-PkT"/>
-                                        <constraint firstItem="911" firstAttribute="leading" secondItem="933" secondAttribute="leading" id="6fj-lJ-0dQ"/>
-                                        <constraint firstItem="662" firstAttribute="leading" secondItem="668" secondAttribute="trailing" constant="8" symbolic="YES" id="BNO-kj-YOK"/>
-                                        <constraint firstItem="911" firstAttribute="firstBaseline" secondItem="912" secondAttribute="firstBaseline" id="DHs-au-g4z"/>
                                         <constraint firstItem="1041" firstAttribute="leading" secondItem="1040" secondAttribute="trailing" constant="8" symbolic="YES" id="EFn-CA-1Gv"/>
-                                        <constraint firstItem="911" firstAttribute="top" secondItem="662" secondAttribute="bottom" constant="10" symbolic="YES" id="FeU-QH-Af7"/>
-                                        <constraint firstItem="911" firstAttribute="leading" secondItem="912" secondAttribute="trailing" constant="8" symbolic="YES" id="J7E-kH-syL"/>
                                         <constraint firstItem="933" firstAttribute="leading" secondItem="1185" secondAttribute="leading" id="Mn2-NU-Vah"/>
                                         <constraint firstItem="1042" firstAttribute="firstBaseline" secondItem="1040" secondAttribute="firstBaseline" id="Nlx-ot-duM"/>
                                         <constraint firstItem="1041" firstAttribute="leading" secondItem="324" secondAttribute="leading" constant="200" id="VGU-mb-A73"/>
                                         <constraint firstItem="1041" firstAttribute="firstBaseline" secondItem="1040" secondAttribute="firstBaseline" id="ctL-e2-R5i"/>
-                                        <constraint firstItem="1191" firstAttribute="leading" secondItem="1185" secondAttribute="leading" id="m1n-dn-ySm"/>
+                                        <constraint firstItem="1191" firstAttribute="leading" secondItem="324" secondAttribute="leading" constant="160" id="m1n-dn-ySm"/>
                                         <constraint firstItem="1185" firstAttribute="top" secondItem="1041" secondAttribute="bottom" constant="24" id="m7d-8w-pdm"/>
                                         <constraint firstItem="933" firstAttribute="top" secondItem="1191" secondAttribute="bottom" constant="8" id="mYm-6P-5kG"/>
-                                        <constraint firstItem="662" firstAttribute="top" secondItem="933" secondAttribute="bottom" constant="24" id="nRQ-BX-iRT"/>
                                         <constraint firstItem="1191" firstAttribute="top" secondItem="1185" secondAttribute="bottom" constant="8" id="pGU-aw-jVg"/>
                                         <constraint firstItem="1185" firstAttribute="leading" secondItem="324" secondAttribute="leading" constant="200" id="pOq-Gj-AEO"/>
                                         <constraint firstItem="1041" firstAttribute="top" secondItem="324" secondAttribute="top" constant="20" symbolic="YES" id="s1g-o7-r9g"/>
-                                        <constraint firstItem="662" firstAttribute="leading" secondItem="933" secondAttribute="leading" id="vTf-B7-xSJ"/>
                                         <constraint firstItem="1042" firstAttribute="leading" secondItem="1041" secondAttribute="trailing" constant="8" symbolic="YES" id="w17-ko-z5a"/>
                                     </constraints>
                                 </view>
