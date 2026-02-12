@@ -18,7 +18,7 @@
             <rect key="frame" x="0.0" y="0.0" width="667" height="500"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
-                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Yu6-br-bXQ">
+                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Yu6-br-bXQ">
                     <rect key="frame" x="244" y="460" width="178" height="26"/>
                     <textFieldCell key="cell" alignment="center" title="All set! Quick tips:" id="byu-F2-qmZ">
                         <font key="font" textStyle="title1" name=".SFNS-Regular"/>
@@ -29,7 +29,7 @@
                 <customView translatesAutoresizingMaskIntoConstraints="NO" id="top-left-cell">
                     <rect key="frame" x="20" y="250" width="303" height="190"/>
                     <subviews>
-                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="749" translatesAutoresizingMaskIntoConstraints="NO" id="3KU-bv-GQ2">
+                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="749" translatesAutoresizingMaskIntoConstraints="NO" id="3KU-bv-GQ2">
                             <rect key="frame" x="6" y="46" width="291" height="136"/>
                             <textFieldCell key="cell" alignment="left" id="B5a-EM-Ctv">
                                 <font key="font" metaFont="system" size="15"/>
@@ -61,7 +61,7 @@
                 <customView translatesAutoresizingMaskIntoConstraints="NO" id="top-right-cell">
                     <rect key="frame" x="343" y="250" width="304" height="190"/>
                     <subviews>
-                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="749" translatesAutoresizingMaskIntoConstraints="NO" id="0PL-G4-b8W">
+                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="749" translatesAutoresizingMaskIntoConstraints="NO" id="0PL-G4-b8W">
                             <rect key="frame" x="6" y="46" width="222" height="136"/>
                             <textFieldCell key="cell" alignment="left" title="Change your dreams by selecting a playlist from the browser. Click the button on a thumbnail to start that playlist." id="V81-sN-HPh">
                                 <font key="font" metaFont="system" size="15"/>
@@ -102,7 +102,7 @@
                 <customView translatesAutoresizingMaskIntoConstraints="NO" id="bottom-left-cell">
                     <rect key="frame" x="20" y="20" width="303" height="207"/>
                     <subviews>
-                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Cbu-Kb-Z64">
+                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Cbu-Kb-Z64">
                             <rect key="frame" x="6" y="56" width="291" height="95"/>
                             <textFieldCell key="cell" alignment="left" id="set-L7-nAt">
                                 <font key="font" metaFont="system" size="15"/>
@@ -126,10 +126,10 @@ The screensaver cannot update itself.</string>
                     <rect key="frame" x="343" y="20" width="304" height="207"/>
                     <subviews>
                         <customView translatesAutoresizingMaskIntoConstraints="NO" id="br-content-container">
-                            <rect key="frame" x="0.0" y="74" width="304" height="59"/>
+                            <rect key="frame" x="0.0" y="56" width="304" height="95"/>
                             <subviews>
                                 <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="zvW-M4-Dty">
-                                    <rect key="frame" x="33" y="38.5" width="235" height="22"/>
+                                    <rect key="frame" x="33" y="74" width="235" height="22"/>
                                     <buttonCell key="cell" type="check" title="Install and enable screensaver" bezelStyle="regularSquare" imagePosition="left" alignment="center" controlSize="large" state="on" inset="2" id="gmw-Yc-6RL">
                                         <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                         <font key="font" metaFont="system" size="15"/>
@@ -151,7 +151,7 @@ DQ
                             </subviews>
                             <constraints>
                                 <constraint firstItem="zvW-M4-Dty" firstAttribute="leading" secondItem="br-content-container" secondAttribute="leading" constant="36" id="7fM-15-D1t"/>
-                                <constraint firstItem="bJr-1O-LEd" firstAttribute="top" secondItem="zvW-M4-Dty" secondAttribute="bottom" constant="12" id="br-btn-below-checkbox"/>
+                                <constraint firstItem="bJr-1O-LEd" firstAttribute="top" secondItem="zvW-M4-Dty" secondAttribute="bottom" constant="48" id="br-btn-below-checkbox"/>
                                 <constraint firstItem="bJr-1O-LEd" firstAttribute="bottom" secondItem="br-content-container" secondAttribute="bottom" id="br-btn-bottom"/>
                                 <constraint firstItem="bJr-1O-LEd" firstAttribute="centerX" secondItem="br-content-container" secondAttribute="centerX" id="br-btn-centerX-container"/>
                                 <constraint firstItem="zvW-M4-Dty" firstAttribute="centerX" secondItem="br-content-container" secondAttribute="centerX" id="br-checkbox-centerX-container"/>
@@ -219,6 +219,6 @@ DQ
         </customView>
     </objects>
     <resources>
-        <image name="play-playlist" width="240" height="240"/>
+        <image name="play-playlist" width="192" height="192"/>
     </resources>
 </document>
