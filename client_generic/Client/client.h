@@ -8,6 +8,7 @@
 #include <sstream>
 #include <string>
 #include <mutex>
+#include <cstdlib>   // for exit()
 #include <unistd.h>  // for _exit()
 
 #include "Exception.h"
@@ -760,15 +761,7 @@ class CElectricSheep
         // Only use aggressive shutdown tactics when not in config mode.
         // Config mode shutdown happens when transitioning from onboarding to playback,
         // so we must not abort network or force-exit in that case.
-        // 
-        // IMPORTANT: On macOS screensavers, NEVER use _exit() as it prevents proper
-        // cleanup of the NSRemoteViewController and causes catastrophic errors.
-        // The aggressive shutdown is only needed for the standalone app, not screensaver.
-        #ifdef SCREEN_SAVER
-        bool useAggressiveShutdown = false;
-        #else
         bool useAggressiveShutdown = !m_bConfigMode;
-        #endif
         
         if (useAggressiveShutdown)
         {
@@ -776,6 +769,7 @@ class CElectricSheep
             // The watchdog checks s_shutdownCancelled before exiting, so if
             // Startup() is called (e.g., when restarting after wizard), it
             // will cancel the watchdog by setting s_shutdownCancelled = true.
+            // On macOS screensaver use exit(0) so atexit/destructors run; standalone app uses _exit(0).
             std::thread([]() {
                 std::this_thread::sleep_for(std::chrono::milliseconds(200));
                 if (s_shutdownCancelled.load()) {
@@ -783,14 +777,22 @@ class CElectricSheep
                     return;
                 }
                 printf("Force exiting after shutdown timeout\n");
+                #ifdef SCREEN_SAVER
+                exit(0);
+                #else
                 _exit(0);
+                #endif
             }).detach();
 
             // FAST EXIT: If network is unreachable, exit immediately without waiting
             g_NetworkManager->Abort();
             if (!PlatformUtils::IsInternetReachable()) {
                 printf("Network unreachable - forcing immediate exit\n");
+                #ifdef SCREEN_SAVER
+                exit(0);
+                #else
                 _exit(0);
+                #endif
             }
         }
         else
