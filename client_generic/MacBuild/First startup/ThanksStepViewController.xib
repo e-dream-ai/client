@@ -62,7 +62,7 @@
                     <rect key="frame" x="343" y="250" width="304" height="190"/>
                     <subviews>
                         <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="749" translatesAutoresizingMaskIntoConstraints="NO" id="0PL-G4-b8W">
-                            <rect key="frame" x="6" y="46" width="292" height="136"/>
+                            <rect key="frame" x="6" y="46" width="222" height="136"/>
                             <textFieldCell key="cell" alignment="justified" title="Change the style of your dreams by selecting a playlist. Click the button on the thumbnail to start the playlist." id="V81-sN-HPh">
                                 <font key="font" metaFont="system" size="15"/>
                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -79,14 +79,24 @@
                                 <action selector="openPlaylistBrowser:" target="-2" id="LEN-bN-gdi"/>
                             </connections>
                         </button>
+                        <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="playlist-image">
+                            <rect key="frame" x="238" y="112" width="60" height="60"/>
+                            <constraints>
+                                <constraint firstAttribute="height" constant="60" id="playlist-img-height"/>
+                                <constraint firstAttribute="width" constant="60" id="playlist-img-width"/>
+                            </constraints>
+                            <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" image="play-playlist" id="playlist-img-cell"/>
+                        </imageView>
                     </subviews>
                     <constraints>
+                        <constraint firstItem="playlist-image" firstAttribute="top" secondItem="top-right-cell" secondAttribute="top" constant="18" id="playlist-img-top"/>
+                        <constraint firstItem="playlist-image" firstAttribute="trailing" secondItem="top-right-cell" secondAttribute="trailing" constant="-6" id="playlist-img-trailing"/>
                         <constraint firstItem="aJz-2o-GyE" firstAttribute="top" secondItem="0PL-G4-b8W" secondAttribute="bottom" constant="8" id="tr-btn-below-text"/>
                         <constraint firstItem="aJz-2o-GyE" firstAttribute="bottom" secondItem="top-right-cell" secondAttribute="bottom" constant="-10" id="tr-btn-bottom"/>
                         <constraint firstItem="aJz-2o-GyE" firstAttribute="centerX" secondItem="top-right-cell" secondAttribute="centerX" id="tr-btn-centerX"/>
+                        <constraint firstItem="0PL-G4-b8W" firstAttribute="trailing" secondItem="playlist-image" secondAttribute="leading" constant="-12" id="tr-text-beside-image"/>
                         <constraint firstItem="0PL-G4-b8W" firstAttribute="leading" secondItem="top-right-cell" secondAttribute="leading" constant="8" id="tr-text-leading"/>
                         <constraint firstItem="0PL-G4-b8W" firstAttribute="top" secondItem="top-right-cell" secondAttribute="top" constant="8" id="tr-text-top"/>
-                        <constraint firstItem="0PL-G4-b8W" firstAttribute="trailing" secondItem="top-right-cell" secondAttribute="trailing" constant="-8" id="tr-text-trailing"/>
                     </constraints>
                 </customView>
                 <customView translatesAutoresizingMaskIntoConstraints="NO" id="bottom-left-cell">
@@ -206,4 +216,7 @@ DQ
             <point key="canvasLocation" x="108" y="268"/>
         </customView>
     </objects>
+    <resources>
+        <image name="play-playlist" width="192" height="192"/>
+    </resources>
 </document>
