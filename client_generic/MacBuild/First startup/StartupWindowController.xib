@@ -28,10 +28,8 @@
                     </customView>
                     <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="NDv-ai-fEX">
                         <rect key="frame" x="260" y="576" width="360" height="76"/>
-                        <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" id="rhf-zB-zDd">
+                        <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" title="Welcome to Infinidream!" id="rhf-zB-zDd">
                             <font key="font" metaFont="systemSemibold" size="32"/>
-                            <string key="title">Welcome to Infinidream!
-First, sign in...</string>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>

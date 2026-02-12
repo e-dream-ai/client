@@ -18,7 +18,7 @@
             <rect key="frame" x="0.0" y="0.0" width="667" height="500"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
-                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Yu6-br-bXQ">
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Yu6-br-bXQ">
                     <rect key="frame" x="244" y="460" width="178" height="26"/>
                     <textFieldCell key="cell" alignment="center" title="All set! Quick tips:" id="byu-F2-qmZ">
                         <font key="font" textStyle="title1" name=".SFNS-Regular"/>
@@ -29,7 +29,7 @@
                 <customView translatesAutoresizingMaskIntoConstraints="NO" id="top-left-cell">
                     <rect key="frame" x="20" y="250" width="303" height="190"/>
                     <subviews>
-                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="749" translatesAutoresizingMaskIntoConstraints="NO" id="3KU-bv-GQ2">
+                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="749" translatesAutoresizingMaskIntoConstraints="NO" id="3KU-bv-GQ2">
                             <rect key="frame" x="6" y="46" width="291" height="136"/>
                             <textFieldCell key="cell" alignment="left" id="B5a-EM-Ctv">
                                 <font key="font" metaFont="system" size="15"/>
@@ -61,7 +61,7 @@
                 <customView translatesAutoresizingMaskIntoConstraints="NO" id="top-right-cell">
                     <rect key="frame" x="343" y="250" width="304" height="190"/>
                     <subviews>
-                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="749" translatesAutoresizingMaskIntoConstraints="NO" id="0PL-G4-b8W">
+                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="749" translatesAutoresizingMaskIntoConstraints="NO" id="0PL-G4-b8W">
                             <rect key="frame" x="6" y="46" width="222" height="136"/>
                             <textFieldCell key="cell" alignment="left" title="Change your dreams by selecting a playlist from the browser. Click the button on a thumbnail to start that playlist." id="V81-sN-HPh">
                                 <font key="font" metaFont="system" size="15"/>
@@ -102,7 +102,7 @@
                 <customView translatesAutoresizingMaskIntoConstraints="NO" id="bottom-left-cell">
                     <rect key="frame" x="20" y="20" width="303" height="207"/>
                     <subviews>
-                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Cbu-Kb-Z64">
+                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Cbu-Kb-Z64">
                             <rect key="frame" x="6" y="75" width="291" height="57"/>
                             <textFieldCell key="cell" alignment="left" title="Use AirPlay to connect to a big screen. Run the app to get updates. The screensaver cannot update itself." id="set-L7-nAt">
                                 <font key="font" metaFont="system" size="15"/>
