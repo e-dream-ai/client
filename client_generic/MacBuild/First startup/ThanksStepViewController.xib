@@ -31,9 +31,9 @@
                     <subviews>
                         <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="749" translatesAutoresizingMaskIntoConstraints="NO" id="3KU-bv-GQ2">
                             <rect key="frame" x="6" y="46" width="291" height="136"/>
-                            <textFieldCell key="cell" alignment="justified" id="B5a-EM-Ctv">
+                            <textFieldCell key="cell" alignment="left" id="B5a-EM-Ctv">
                                 <font key="font" metaFont="system" size="15"/>
-                                <string key="title">Press F1 when the app is running to see the keyboard controls. Use the A and D keys to adjust the speed of playback. You can also interact with the remote control installed on your phone, or from a web browser:</string>
+                                <string key="title">Use the A and D keys to adjust the speed of playback. Press F1 to see more keyboard controls. You can also interact with the remote control installed on your phone, or from a web browser:</string>
                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                 <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                             </textFieldCell>
@@ -63,7 +63,7 @@
                     <subviews>
                         <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="749" translatesAutoresizingMaskIntoConstraints="NO" id="0PL-G4-b8W">
                             <rect key="frame" x="6" y="46" width="222" height="136"/>
-                            <textFieldCell key="cell" alignment="justified" title="Change the style of your dreams by selecting a playlist. Click the button on the thumbnail to start the playlist." id="V81-sN-HPh">
+                            <textFieldCell key="cell" alignment="left" title="Change your dreams by selecting a playlist from the browser. Click the button on a thumbnail to start that playlist." id="V81-sN-HPh">
                                 <font key="font" metaFont="system" size="15"/>
                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                 <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -103,12 +103,9 @@
                     <rect key="frame" x="20" y="20" width="303" height="207"/>
                     <subviews>
                         <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Cbu-Kb-Z64">
-                            <rect key="frame" x="6" y="66" width="291" height="76"/>
-                            <textFieldCell key="cell" alignment="center" id="set-L7-nAt">
+                            <rect key="frame" x="6" y="75" width="291" height="57"/>
+                            <textFieldCell key="cell" alignment="left" title="Use AirPlay to connect to a big screen. Run the app to get updates. The screensaver cannot update itself." id="set-L7-nAt">
                                 <font key="font" metaFont="system" size="15"/>
-                                <string key="title">Pro tips: Use the View menu to reopen those whenever needed.
-Use AirPlay to connect to a big screen.
-Run the app to get updates.</string>
                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                 <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                             </textFieldCell>
@@ -127,7 +124,7 @@ Run the app to get updates.</string>
                             <rect key="frame" x="0.0" y="74" width="304" height="59"/>
                             <subviews>
                                 <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="zvW-M4-Dty">
-                                    <rect key="frame" x="33" y="38" width="235" height="22"/>
+                                    <rect key="frame" x="33" y="38.5" width="235" height="22"/>
                                     <buttonCell key="cell" type="check" title="Install and enable screensaver" bezelStyle="regularSquare" imagePosition="left" alignment="center" controlSize="large" state="on" inset="2" id="gmw-Yc-6RL">
                                         <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                         <font key="font" metaFont="system" size="15"/>
@@ -217,6 +214,6 @@ DQ
         </customView>
     </objects>
     <resources>
-        <image name="play-playlist" width="192" height="192"/>
+        <image name="play-playlist" width="240" height="240"/>
     </resources>
 </document>
