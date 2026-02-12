@@ -15,94 +15,182 @@
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
         <customView id="Hz6-mo-xeY">
-            <rect key="frame" x="0.0" y="0.0" width="668" height="500"/>
+            <rect key="frame" x="0.0" y="0.0" width="667" height="500"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
-                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="3KU-bv-GQ2">
-                    <rect key="frame" x="46" y="371" width="610" height="57"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <textFieldCell key="cell" id="B5a-EM-Ctv">
-                        <font key="font" metaFont="system" size="15"/>
-                        <string key="title">Press F1 when the app is running to see the keyboard controls. Use the A and D keys to adjust the speed of playback. You can also interact with the remote control installed on your phone, or from a web browser:</string>
-                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                    </textFieldCell>
-                </textField>
-                <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="qPR-jz-dEJ">
-                    <rect key="frame" x="258" y="312" width="154" height="40"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <buttonCell key="cell" type="push" title="Open web remote" bezelStyle="rounded" alignment="center" controlSize="large" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="T0x-7s-ZU4">
-                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
-                        <font key="font" metaFont="system" size="15"/>
-                    </buttonCell>
-                    <connections>
-                        <action selector="openRemote:" target="-2" id="N7O-uq-QGy"/>
-                    </connections>
-                </button>
-                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="0PL-G4-b8W">
-                    <rect key="frame" x="46" y="253" width="593" height="40"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <textFieldCell key="cell" title="Change the style of your dreams by selecting a playlist. Click the button on the thumbnail to start the playlist." id="V81-sN-HPh">
-                        <font key="font" metaFont="system" size="15"/>
-                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                    </textFieldCell>
-                </textField>
-                <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="aJz-2o-GyE">
-                    <rect key="frame" x="244" y="194" width="181" height="40"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <buttonCell key="cell" type="push" title="Open playlist browser" bezelStyle="rounded" alignment="center" controlSize="large" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="kNX-kE-nnN">
-                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
-                        <font key="font" metaFont="system" size="15"/>
-                    </buttonCell>
-                    <connections>
-                        <action selector="openPlaylistBrowser:" target="-2" id="LEN-bN-gdi"/>
-                    </connections>
-                </button>
-                <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="bJr-1O-LEd">
-                    <rect key="frame" x="283" y="20" width="103" height="40"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <buttonCell key="cell" type="push" title="Dream on!" bezelStyle="rounded" alignment="center" controlSize="large" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="fIK-aa-6SJ">
-                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
-                        <font key="font" metaFont="system" size="15"/>
-                        <string key="keyEquivalent" base64-UTF8="YES">
-DQ
-</string>
-                    </buttonCell>
-                    <connections>
-                        <action selector="closeModal:" target="-2" id="eOP-c0-blO"/>
-                    </connections>
-                </button>
-                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Cbu-Kb-Z64">
-                    <rect key="frame" x="46" y="126" width="599" height="57"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <textFieldCell key="cell" alignment="center" id="set-L7-nAt">
-                        <font key="font" metaFont="system" size="15"/>
-                        <string key="title">Pro tips: Use the View menu to reopen those whenever needed.
-Use AirPlay to connect to a big screen.
-Run the app to get updates.</string>
-                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                    </textFieldCell>
-                </textField>
-                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Yu6-br-bXQ">
-                    <rect key="frame" x="246" y="444" width="178" height="26"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Yu6-br-bXQ">
+                    <rect key="frame" x="244" y="460" width="178" height="26"/>
                     <textFieldCell key="cell" alignment="center" title="All set! Quick tips:" id="byu-F2-qmZ">
                         <font key="font" textStyle="title1" name=".SFNS-Regular"/>
                         <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="zvW-M4-Dty">
-                    <rect key="frame" x="211" y="82.5" width="247" height="27"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <buttonCell key="cell" type="check" title="Install and enable screensaver" bezelStyle="regularSquare" imagePosition="left" alignment="center" controlSize="large" state="on" inset="2" id="gmw-Yc-6RL">
-                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                        <font key="font" metaFont="system" size="15"/>
-                    </buttonCell>
-                </button>
+                <customView translatesAutoresizingMaskIntoConstraints="NO" id="top-left-cell">
+                    <rect key="frame" x="20" y="250" width="303" height="190"/>
+                    <subviews>
+                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="749" translatesAutoresizingMaskIntoConstraints="NO" id="3KU-bv-GQ2">
+                            <rect key="frame" x="6" y="46" width="291" height="136"/>
+                            <textFieldCell key="cell" alignment="center" id="B5a-EM-Ctv">
+                                <font key="font" metaFont="system" size="15"/>
+                                <string key="title">Press F1 when the app is running to see the keyboard controls. Use the A and D keys to adjust the speed of playback. You can also interact with the remote control installed on your phone, or from a web browser:</string>
+                                <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                            </textFieldCell>
+                        </textField>
+                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="qPR-jz-dEJ">
+                            <rect key="frame" x="75" y="4" width="154" height="40"/>
+                            <buttonCell key="cell" type="push" title="Open web remote" bezelStyle="rounded" alignment="center" controlSize="large" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="T0x-7s-ZU4">
+                                <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                <font key="font" metaFont="system" size="15"/>
+                            </buttonCell>
+                            <connections>
+                                <action selector="openRemote:" target="-2" id="N7O-uq-QGy"/>
+                            </connections>
+                        </button>
+                    </subviews>
+                    <constraints>
+                        <constraint firstItem="qPR-jz-dEJ" firstAttribute="top" secondItem="3KU-bv-GQ2" secondAttribute="bottom" constant="8" id="tl-btn-below-text"/>
+                        <constraint firstItem="qPR-jz-dEJ" firstAttribute="bottom" secondItem="top-left-cell" secondAttribute="bottom" constant="-10" id="tl-btn-bottom"/>
+                        <constraint firstItem="qPR-jz-dEJ" firstAttribute="centerX" secondItem="top-left-cell" secondAttribute="centerX" id="tl-btn-centerX"/>
+                        <constraint firstItem="3KU-bv-GQ2" firstAttribute="leading" secondItem="top-left-cell" secondAttribute="leading" constant="8" id="tl-text-leading"/>
+                        <constraint firstItem="3KU-bv-GQ2" firstAttribute="top" secondItem="top-left-cell" secondAttribute="top" constant="8" id="tl-text-top"/>
+                        <constraint firstItem="3KU-bv-GQ2" firstAttribute="trailing" secondItem="top-left-cell" secondAttribute="trailing" constant="-8" id="tl-text-trailing"/>
+                    </constraints>
+                </customView>
+                <customView translatesAutoresizingMaskIntoConstraints="NO" id="top-right-cell">
+                    <rect key="frame" x="343" y="250" width="304" height="190"/>
+                    <subviews>
+                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="749" translatesAutoresizingMaskIntoConstraints="NO" id="0PL-G4-b8W">
+                            <rect key="frame" x="6" y="46" width="292" height="136"/>
+                            <textFieldCell key="cell" alignment="center" title="Change the style of your dreams by selecting a playlist. Click the button on the thumbnail to start the playlist." id="V81-sN-HPh">
+                                <font key="font" metaFont="system" size="15"/>
+                                <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                            </textFieldCell>
+                        </textField>
+                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="aJz-2o-GyE">
+                            <rect key="frame" x="62" y="4" width="181" height="40"/>
+                            <buttonCell key="cell" type="push" title="Open playlist browser" bezelStyle="rounded" alignment="center" controlSize="large" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="kNX-kE-nnN">
+                                <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                <font key="font" metaFont="system" size="15"/>
+                            </buttonCell>
+                            <connections>
+                                <action selector="openPlaylistBrowser:" target="-2" id="LEN-bN-gdi"/>
+                            </connections>
+                        </button>
+                    </subviews>
+                    <constraints>
+                        <constraint firstItem="aJz-2o-GyE" firstAttribute="top" secondItem="0PL-G4-b8W" secondAttribute="bottom" constant="8" id="tr-btn-below-text"/>
+                        <constraint firstItem="aJz-2o-GyE" firstAttribute="bottom" secondItem="top-right-cell" secondAttribute="bottom" constant="-10" id="tr-btn-bottom"/>
+                        <constraint firstItem="aJz-2o-GyE" firstAttribute="centerX" secondItem="top-right-cell" secondAttribute="centerX" id="tr-btn-centerX"/>
+                        <constraint firstItem="0PL-G4-b8W" firstAttribute="leading" secondItem="top-right-cell" secondAttribute="leading" constant="8" id="tr-text-leading"/>
+                        <constraint firstItem="0PL-G4-b8W" firstAttribute="top" secondItem="top-right-cell" secondAttribute="top" constant="8" id="tr-text-top"/>
+                        <constraint firstItem="0PL-G4-b8W" firstAttribute="trailing" secondItem="top-right-cell" secondAttribute="trailing" constant="-8" id="tr-text-trailing"/>
+                    </constraints>
+                </customView>
+                <customView translatesAutoresizingMaskIntoConstraints="NO" id="bottom-left-cell">
+                    <rect key="frame" x="20" y="20" width="303" height="207"/>
+                    <subviews>
+                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Cbu-Kb-Z64">
+                            <rect key="frame" x="6" y="66" width="291" height="76"/>
+                            <textFieldCell key="cell" alignment="center" id="set-L7-nAt">
+                                <font key="font" metaFont="system" size="15"/>
+                                <string key="title">Pro tips: Use the View menu to reopen those whenever needed.
+Use AirPlay to connect to a big screen.
+Run the app to get updates.</string>
+                                <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                            </textFieldCell>
+                        </textField>
+                    </subviews>
+                    <constraints>
+                        <constraint firstItem="Cbu-Kb-Z64" firstAttribute="centerY" secondItem="bottom-left-cell" secondAttribute="centerY" id="bl-text-centerY"/>
+                        <constraint firstItem="Cbu-Kb-Z64" firstAttribute="leading" secondItem="bottom-left-cell" secondAttribute="leading" constant="8" id="bl-text-leading"/>
+                        <constraint firstItem="Cbu-Kb-Z64" firstAttribute="trailing" secondItem="bottom-left-cell" secondAttribute="trailing" constant="-8" id="bl-text-trailing"/>
+                    </constraints>
+                </customView>
+                <customView translatesAutoresizingMaskIntoConstraints="NO" id="bottom-right-cell">
+                    <rect key="frame" x="343" y="20" width="304" height="207"/>
+                    <subviews>
+                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="zvW-M4-Dty">
+                            <rect key="frame" x="33" y="78" width="236" height="22"/>
+                            <buttonCell key="cell" type="check" title="Install and enable screensaver" bezelStyle="regularSquare" imagePosition="left" alignment="center" controlSize="large" state="on" inset="2" id="gmw-Yc-6RL">
+                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                <font key="font" metaFont="system" size="15"/>
+                            </buttonCell>
+                        </button>
+                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="bJr-1O-LEd">
+                            <rect key="frame" x="101" y="41" width="103" height="40"/>
+                            <buttonCell key="cell" type="push" title="Dream on!" bezelStyle="rounded" alignment="center" controlSize="large" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="fIK-aa-6SJ">
+                                <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                <font key="font" metaFont="system" size="15"/>
+                                <string key="keyEquivalent" base64-UTF8="YES">
+DQ
+</string>
+                            </buttonCell>
+                            <connections>
+                                <action selector="closeModal:" target="-2" id="eOP-c0-blO"/>
+                            </connections>
+                        </button>
+                    </subviews>
+                    <constraints>
+                        <constraint firstItem="bJr-1O-LEd" firstAttribute="top" secondItem="zvW-M4-Dty" secondAttribute="bottom" constant="5" id="br-btn-below-checkbox"/>
+                        <constraint firstItem="bJr-1O-LEd" firstAttribute="centerX" secondItem="bottom-right-cell" secondAttribute="centerX" id="br-btn-centerX"/>
+                        <constraint firstItem="zvW-M4-Dty" firstAttribute="centerX" secondItem="bottom-right-cell" secondAttribute="centerX" id="br-checkbox-centerX"/>
+                        <constraint firstItem="zvW-M4-Dty" firstAttribute="centerY" secondItem="bottom-right-cell" secondAttribute="centerY" constant="14" id="br-checkbox-centerY"/>
+                    </constraints>
+                </customView>
+                <box verticalHuggingPriority="750" boxType="separator" translatesAutoresizingMaskIntoConstraints="NO" id="separator-line">
+                    <rect key="frame" x="20" y="235" width="627" height="7"/>
+                    <constraints>
+                        <constraint firstAttribute="height" constant="3" id="separator-height"/>
+                    </constraints>
+                </box>
+                <box horizontalHuggingPriority="750" boxType="separator" translatesAutoresizingMaskIntoConstraints="NO" id="vertical-separator-top">
+                    <rect key="frame" x="331" y="250" width="5" height="190"/>
+                    <constraints>
+                        <constraint firstAttribute="width" constant="1" id="vsep-top-width"/>
+                    </constraints>
+                </box>
+                <box horizontalHuggingPriority="750" boxType="separator" translatesAutoresizingMaskIntoConstraints="NO" id="vertical-separator-bottom">
+                    <rect key="frame" x="331" y="20" width="5" height="207"/>
+                    <constraints>
+                        <constraint firstAttribute="width" constant="1" id="vsep-bottom-width"/>
+                    </constraints>
+                </box>
             </subviews>
+            <constraints>
+                <constraint firstItem="bottom-left-cell" firstAttribute="leading" secondItem="top-left-cell" secondAttribute="leading" id="bl-align-left"/>
+                <constraint firstItem="bottom-left-cell" firstAttribute="top" secondItem="separator-line" secondAttribute="bottom" constant="10" id="bl-below-separator"/>
+                <constraint firstItem="bottom-left-cell" firstAttribute="bottom" secondItem="Hz6-mo-xeY" secondAttribute="bottom" constant="-20" id="bl-bottom"/>
+                <constraint firstItem="bottom-left-cell" firstAttribute="width" secondItem="top-left-cell" secondAttribute="width" id="bl-width-match-tl"/>
+                <constraint firstItem="bottom-right-cell" firstAttribute="trailing" secondItem="top-right-cell" secondAttribute="trailing" id="br-align-right"/>
+                <constraint firstItem="bottom-right-cell" firstAttribute="top" secondItem="bottom-left-cell" secondAttribute="top" id="br-align-top"/>
+                <constraint firstItem="bottom-right-cell" firstAttribute="leading" secondItem="bottom-left-cell" secondAttribute="trailing" constant="20" id="br-beside-bl"/>
+                <constraint firstItem="bottom-right-cell" firstAttribute="height" secondItem="bottom-left-cell" secondAttribute="height" id="br-height-match-bl"/>
+                <constraint firstItem="bottom-right-cell" firstAttribute="width" secondItem="bottom-left-cell" secondAttribute="width" id="br-width-match-bl"/>
+                <constraint firstItem="separator-line" firstAttribute="top" secondItem="top-left-cell" secondAttribute="bottom" constant="10" id="separator-below-top"/>
+                <constraint firstItem="separator-line" firstAttribute="leading" secondItem="Hz6-mo-xeY" secondAttribute="leading" constant="20" id="separator-leading"/>
+                <constraint firstItem="separator-line" firstAttribute="trailing" secondItem="Hz6-mo-xeY" secondAttribute="trailing" constant="-20" id="separator-trailing"/>
+                <constraint firstItem="Yu6-br-bXQ" firstAttribute="centerX" secondItem="Hz6-mo-xeY" secondAttribute="centerX" id="title-centerX"/>
+                <constraint firstItem="Yu6-br-bXQ" firstAttribute="top" secondItem="Hz6-mo-xeY" secondAttribute="top" constant="14" id="title-top"/>
+                <constraint firstItem="top-left-cell" firstAttribute="top" secondItem="Yu6-br-bXQ" secondAttribute="bottom" constant="20" id="tl-below-title"/>
+                <constraint firstItem="top-left-cell" firstAttribute="height" constant="190" id="tl-height"/>
+                <constraint firstItem="top-left-cell" firstAttribute="leading" secondItem="Hz6-mo-xeY" secondAttribute="leading" constant="20" id="tl-leading"/>
+                <constraint firstItem="top-left-cell" firstAttribute="width" secondItem="Hz6-mo-xeY" secondAttribute="width" multiplier="0.455" id="tl-width"/>
+                <constraint firstItem="top-right-cell" firstAttribute="top" secondItem="top-left-cell" secondAttribute="top" id="tr-align-top"/>
+                <constraint firstItem="top-right-cell" firstAttribute="leading" secondItem="top-left-cell" secondAttribute="trailing" constant="20" id="tr-beside-tl"/>
+                <constraint firstItem="top-right-cell" firstAttribute="height" secondItem="top-left-cell" secondAttribute="height" id="tr-height-match-tl"/>
+                <constraint firstItem="top-right-cell" firstAttribute="trailing" secondItem="Hz6-mo-xeY" secondAttribute="trailing" constant="-20" id="tr-trailing"/>
+                <constraint firstItem="top-right-cell" firstAttribute="width" secondItem="top-left-cell" secondAttribute="width" id="tr-width-match-tl"/>
+                <constraint firstItem="vertical-separator-bottom" firstAttribute="bottom" secondItem="bottom-left-cell" secondAttribute="bottom" id="vsep-bottom-align-bottom"/>
+                <constraint firstItem="vertical-separator-bottom" firstAttribute="top" secondItem="bottom-left-cell" secondAttribute="top" id="vsep-bottom-align-top"/>
+                <constraint firstItem="vertical-separator-bottom" firstAttribute="leading" secondItem="bottom-left-cell" secondAttribute="trailing" constant="10" id="vsep-bottom-beside-bl"/>
+                <constraint firstItem="vertical-separator-top" firstAttribute="bottom" secondItem="top-left-cell" secondAttribute="bottom" id="vsep-top-align-bottom"/>
+                <constraint firstItem="vertical-separator-top" firstAttribute="top" secondItem="top-left-cell" secondAttribute="top" id="vsep-top-align-top"/>
+                <constraint firstItem="vertical-separator-top" firstAttribute="leading" secondItem="top-left-cell" secondAttribute="trailing" constant="10" id="vsep-top-beside-tl"/>
+            </constraints>
             <point key="canvasLocation" x="108" y="268"/>
         </customView>
     </objects>
