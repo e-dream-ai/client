@@ -18,7 +18,7 @@
         <window title="Welcome to Infinidream" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" animationBehavior="default" id="F0z-JX-Cv5" customClass="StartupWindow">
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="196" y="240" width="879" height="686"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1470" height="919"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1920" height="1055"/>
             <view key="contentView" id="se5-gp-TjO">
                 <rect key="frame" x="0.0" y="0.0" width="879" height="686"/>
                 <autoresizingMask key="autoresizingMask"/>
@@ -27,11 +27,9 @@
                         <rect key="frame" x="0.0" y="50" width="879" height="497"/>
                     </customView>
                     <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="NDv-ai-fEX">
-                        <rect key="frame" x="260" y="576" width="360" height="76"/>
-                        <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" id="rhf-zB-zDd">
+                        <rect key="frame" x="265" y="598" width="350" height="38"/>
+                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" alignment="center" title="Welcome to Infinidream" id="rhf-zB-zDd">
                             <font key="font" metaFont="systemSemibold" size="32"/>
-                            <string key="title">Welcome to Infinidream!
-First, sign in...</string>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>
@@ -62,9 +60,8 @@ Gw
                 <constraints>
                     <constraint firstItem="CDn-Bw-w4B" firstAttribute="leading" secondItem="se5-gp-TjO" secondAttribute="leading" constant="10" id="2mG-JH-kCi"/>
                     <constraint firstItem="u0i-x2-tkf" firstAttribute="leading" secondItem="se5-gp-TjO" secondAttribute="leading" id="3Td-Jh-9RH"/>
-                    <constraint firstItem="NDv-ai-fEX" firstAttribute="top" secondItem="se5-gp-TjO" secondAttribute="top" constant="34" id="6lB-SJ-bOB"/>
+                    <constraint firstItem="NDv-ai-fEX" firstAttribute="top" secondItem="se5-gp-TjO" secondAttribute="top" constant="50" id="6lB-SJ-bOB"/>
                     <constraint firstItem="u0i-x2-tkf" firstAttribute="top" secondItem="CDn-Bw-w4B" secondAttribute="bottom" constant="8" symbolic="YES" id="9mL-D4-aRI"/>
-                    <constraint firstItem="u0i-x2-tkf" firstAttribute="top" secondItem="NDv-ai-fEX" secondAttribute="bottom" constant="29" id="B7v-Rc-J9I"/>
                     <constraint firstAttribute="trailing" secondItem="u0i-x2-tkf" secondAttribute="trailing" id="EEa-nH-90T"/>
                     <constraint firstAttribute="bottom" secondItem="u0i-x2-tkf" secondAttribute="bottom" constant="50" id="Ekj-sB-UKf"/>
                     <constraint firstItem="NDv-ai-fEX" firstAttribute="centerX" secondItem="se5-gp-TjO" secondAttribute="centerX" id="PMW-vR-4Jn"/>
