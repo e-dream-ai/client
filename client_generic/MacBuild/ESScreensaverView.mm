@@ -17,6 +17,8 @@
     BOOL m_bStarted;
     BOOL m_bPausedForSheet;  // YES when paused for Preferences sheet (no full shutdown)
     int m_displayIdx;
+    NSTimer *m_screenCheckTimer;  // Periodic check for screen disconnection (macOS stopAnimation bug workaround)
+    int m_notVisibleCount;        // Consecutive checks where the window appears not visible/occluded
 }
 
 - (instancetype)initWithFrame:(NSRect)frame isPreview:(BOOL)isPreview
@@ -210,6 +212,7 @@
        
         [self _beginThread];
         m_bStarted = YES;
+        [self _startScreenConnectionMonitor];
     }
     
 #ifdef SCREEN_SAVER
@@ -219,6 +222,7 @@
 
 - (void)stopAnimation
 {
+    [self _stopScreenConnectionMonitor];
 #ifdef SCREEN_SAVER
     [NSCursor unhide];
 #endif
@@ -243,6 +247,7 @@
 
 - (void)pauseAnimationForSheet
 {
+    [self _stopScreenConnectionMonitor];
     if (!m_bStarted || m_bPausedForSheet)
         return;
     [self _endThread];
@@ -259,6 +264,7 @@
     [self _beginThread];
     m_bStarted = YES;
     m_bPausedForSheet = NO;
+    [self _startScreenConnectionMonitor];
 #ifdef SCREEN_SAVER
     [super startAnimation];
 #endif
@@ -369,6 +375,121 @@ static void signnal_handler(int signal)
         g_Log->Info("Log shutdown, will exit");
         g_Log->Shutdown();
         exit(0);
+    }
+#endif
+}
+
+#pragma mark - Screen disconnection monitor (macOS stopAnimation bug workaround)
+
+// Workaround for macOS not calling stopAnimation when a hot corner screensaver
+// start is aborted (e.g. user moves mouse away immediately). The legacyScreenSaver
+// host process stays alive with no signal to exit. We periodically check whether
+// the view is still connected to a visible screen and exit cleanly if not.
+// See: https://developer.apple.com/forums/thread/738547  (FB13041503)
+
+- (void)_startScreenConnectionMonitor
+{
+#ifdef SCREEN_SAVER
+    if (m_isPreview)
+        return;
+
+    // Stop any existing timer first
+    [self _stopScreenConnectionMonitor];
+
+    // Grace period: wait 5 seconds before starting checks so we don't
+    // false-positive during the initial screensaver transition.
+    __weak ESScreensaverView *weakSelf = self;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+        ESScreensaverView *strongSelf = weakSelf;
+        if (!strongSelf || strongSelf->m_isStopped)
+            return;
+
+        strongSelf->m_notVisibleCount = 0;
+        strongSelf->m_screenCheckTimer = [NSTimer scheduledTimerWithTimeInterval:1.0
+                                                                          target:strongSelf
+                                                                        selector:@selector(_checkScreenConnection:)
+                                                                        userInfo:nil
+                                                                         repeats:YES];
+        g_Log->Info("Screen connection monitor started");
+    });
+#endif
+}
+
+- (void)_stopScreenConnectionMonitor
+{
+#ifdef SCREEN_SAVER
+    if (m_screenCheckTimer) {
+        [m_screenCheckTimer invalidate];
+        m_screenCheckTimer = nil;
+    }
+#endif
+}
+
+- (void)_checkScreenConnection:(NSTimer *)timer
+{
+#ifdef SCREEN_SAVER
+    NSLog(@"[infinidream] Checking screen connection : m_notVisibleCount=%d", m_notVisibleCount);
+    if (m_isPreview)
+        return;
+
+    NSWindow *win = self.window;
+
+    NSLog(@"[infinidream] Checking screen connection : win=%@, screen=%@", win, win.screen);
+
+    // Hard signals: immediate exit
+    if (win == nil) {
+        g_Log->Info("Screen connection monitor: view no longer has a window — performing clean exit");
+        [self _stopScreenConnectionMonitor];
+        ESScreensaver_Deinit();
+        g_Log->Shutdown();
+        exit(0);
+    }
+    if (win.screen == nil) {
+        g_Log->Info("Screen connection monitor: window is not on any screen — performing clean exit");
+        [self _stopScreenConnectionMonitor];
+        ESScreensaver_Deinit();
+        g_Log->Shutdown();
+        exit(0);
+    }
+
+    // Soft signals: the host may keep the window "alive" but it's no longer
+    // truly on screen. Require 3 consecutive failing checks (6 seconds) to
+    // avoid false positives during normal transitions.
+    BOOL notVisible = NO;
+    const char *reason = nullptr;
+
+    NSLog(@"[infinidream] Checking screen connection : win.notVisible=%d", win.isVisible);
+    NSLog(@"[infinidream] Checking screen connection : win.level=%d, NSScreenSaverWindowLevel=%d", win.level, NSScreenSaverWindowLevel);
+    NSLog(@"[infinidream] Checking screen connection : win.occlusionState=%d", win.occlusionState);
+
+    if (!win.isVisible) {
+        notVisible = YES;
+        reason = "window is not visible (isVisible=NO)";
+    } else if (win.level < NSScreenSaverWindowLevel) {
+        notVisible = YES;
+        reason = "window level dropped below NSScreenSaverWindowLevel";
+    } else if (!(win.occlusionState & NSWindowOcclusionStateVisible)) {
+        notVisible = YES;
+        reason = "window is fully occluded";
+    }
+
+    if (notVisible) {
+        m_notVisibleCount++;
+        g_Log->Info("Screen connection monitor: %s (count=%d/3)", reason, m_notVisibleCount);
+        if (m_notVisibleCount >= 3) {
+            g_Log->Info("Screen connection monitor: not visible for %d consecutive checks — performing clean exit",
+                        m_notVisibleCount);
+            [self _stopScreenConnectionMonitor];
+            ESScreensaver_Deinit();
+            g_Log->Shutdown();
+            exit(0);
+        }
+    } else {
+        // Reset counter when the window appears healthy
+        if (m_notVisibleCount > 0) {
+            g_Log->Info("Screen connection monitor: window visible again, resetting counter");
+        }
+        m_notVisibleCount = 0;
     }
 #endif
 }
