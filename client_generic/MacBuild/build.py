@@ -872,11 +872,12 @@ def step6_create_distribution(config: BuildConfig, exported_app: Path, output_sa
     print("========================================")
 
     # Determine output filename
+    stage_suffix = "-stage" if config.stage else ""
     if config.version:
-        final_zip = config.build_dir / config.build_config / f"infinidream-{config.version}.zip"
+        final_zip = config.build_dir / config.build_config / f"infinidream-{config.version}{stage_suffix}.zip"
     else:
         date_str = datetime.now().strftime("%Y%m%d")
-        final_zip = config.build_dir / config.build_config / f"infinidream-{date_str}.zip"
+        final_zip = config.build_dir / config.build_config / f"infinidream-{date_str}{stage_suffix}.zip"
 
     print_yellow("Creating final distribution package...")
     run_command([
