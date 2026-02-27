@@ -91,9 +91,12 @@ private:
 
     
   private:
-    bool NeedsNewFrame(double _timelineTime, DecoderClock* _decoderClock) const;
+    /// Returns the number of frames to advance (0 = no new frame needed, 1+ = frames to skip)
+    int GetFramesToAdvance(double _timelineTime, DecoderClock* _decoderClock) const;
     ///    Grab a frame from the decoder and use it as a texture.
     bool GrabVideoFrame();
+    /// Discard frames from the queue without processing them (for catching up)
+    void DiscardFrames(int count);
     spCVideoFrame m_LastValidFrame;  // Store the last successfully decoded frame
 
 public:

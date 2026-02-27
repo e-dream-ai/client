@@ -144,6 +144,7 @@ class CContentDecoder
     }
     spCVideoFrame PopVideoFrame();
     bool HasEnded() const { return m_HasEnded.load() && !m_FrameQueue.size(); }
+    bool DecoderThreadEnded() const { return m_HasEnded.load(); }  // True when decoder thread finished, regardless of queue state
     bool Stopped() { return m_bStop; };
     uint32_t QueueLength();
     void ClearQueue(uint32_t leave = 0);
