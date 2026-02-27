@@ -8,6 +8,7 @@
 #include <condition_variable>
 #include <tuple>
 #include <sstream>
+#include <chrono>
 #include <boost/asio.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/json.hpp>
@@ -36,6 +37,7 @@ public:
 private:
     static std::string Hello();
     static long long remainingQuota;
+    static std::chrono::system_clock::time_point quotaExpiresAt;
     
     static std::future<bool> FetchPlaylistAsync(const std::string& uuid);
     static std::future<bool> FetchDefaultPlaylistAsync();

@@ -6,6 +6,9 @@
 #include <boost/asio/ssl.hpp>
 #include <cstdio>
 #include <future>
+#include <iomanip>
+#include <sstream>
+#include <chrono>
 
 #include "ContentDownloader.h"
 #include "StringFormat.h"
@@ -66,6 +69,7 @@ void ESShowFirstTimeSetup()
 }
 
 long long EDreamClient::remainingQuota = 0;
+std::chrono::system_clock::time_point EDreamClient::quotaExpiresAt = std::chrono::system_clock::now();
 
 std::atomic<bool> EDreamClient::fIsLoggedIn(false);
 std::atomic<int> EDreamClient::fCpuUsage(0);
@@ -294,7 +298,30 @@ void EDreamClient::UpdateQuota()
         // Update CacheManager with the new quota
         cm.setRemainingQuota(remainingQuota);
 
-        g_Log->Info("UpdateQuota: Successfully updated quota to %lld", remainingQuota);
+        // Parse quotaExpiresAt if present
+        if (data.as_object().if_contains("quotaExpiresAt")) {
+            json::value quotaExpiresAtValue = data.at("quotaExpiresAt");
+            std::string expiresAtStr = quotaExpiresAtValue.as_string().c_str();
+            
+            // Parse ISO 8601 datetime string (e.g., "2026-02-27T16:37:09.942Z")
+            std::tm tm = {};
+            std::istringstream ss(expiresAtStr);
+            ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%S");
+            
+            if (!ss.fail()) {
+                auto tp = std::chrono::system_clock::from_time_t(std::mktime(&tm));
+                quotaExpiresAt = tp;
+                cm.setQuotaExpiresAt(tp);
+                
+                g_Log->Info("UpdateQuota: Successfully updated quota to %lld, expires at %s", 
+                           remainingQuota, expiresAtStr.c_str());
+            } else {
+                g_Log->Warning("UpdateQuota: Failed to parse quotaExpiresAt: %s", expiresAtStr.c_str());
+                g_Log->Info("UpdateQuota: Successfully updated quota to %lld", remainingQuota);
+            }
+        } else {
+            g_Log->Info("UpdateQuota: Successfully updated quota to %lld", remainingQuota);
+        }
     }
     catch (const boost::system::system_error& e)
     {
@@ -1021,6 +1048,27 @@ std::string EDreamClient::Hello() {
         
         // Update CacheManager with that info
         cm.setRemainingQuota(remainingQuota);
+
+        // Parse quotaExpiresAt if present
+        if (data.as_object().if_contains("quotaExpiresAt")) {
+            json::value quotaExpiresAtValue = data.at("quotaExpiresAt");
+            std::string expiresAtStr = quotaExpiresAtValue.as_string().c_str();
+            
+            // Parse ISO 8601 datetime string (e.g., "2026-02-27T16:37:09.942Z")
+            std::tm tm = {};
+            std::istringstream ss(expiresAtStr);
+            ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%S");
+            
+            if (!ss.fail()) {
+                auto tp = std::chrono::system_clock::from_time_t(std::mktime(&tm));
+                quotaExpiresAt = tp;
+                cm.setQuotaExpiresAt(tp);
+                
+                g_Log->Info("Hello: Quota expires at %s", expiresAtStr.c_str());
+            } else {
+                g_Log->Warning("Hello: Failed to parse quotaExpiresAt: %s", expiresAtStr.c_str());
+            }
+        }
 
         // Schedule the next quota update (this ensures quota timer is started even if DidSignIn was called earlier)
         ScheduleNextQuotaUpdate();

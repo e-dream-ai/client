@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include <mutex>
 #include <shared_mutex>
+#include <chrono>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -87,6 +88,22 @@ public:
     }
     void decreaseRemainingQuota(long long amount);
     
+    // Quota expiration getter/setter
+    std::chrono::system_clock::time_point getQuotaExpiresAt() const {
+        return quotaExpiresAt;
+    }
+    
+    void setQuotaExpiresAt(const std::chrono::system_clock::time_point& expiresAt) {
+        quotaExpiresAt = expiresAt;
+    }
+    
+    // Check if quota expires within the specified duration
+    bool quotaExpiresWithin(const std::chrono::hours& duration) const {
+        auto now = std::chrono::system_clock::now();
+        auto timeUntilExpiration = quotaExpiresAt - now;
+        return timeUntilExpiration <= duration && timeUntilExpiration > std::chrono::hours(0);
+    }
+    
     // Used space by a path
     std::uintmax_t getUsedSpace(const std::filesystem::path& path) const;
     // Underlying disk free space to that path
@@ -143,6 +160,7 @@ private:
     static std::unique_ptr<CacheManager> instance;
     std::unordered_map<std::string, Dream> dreams;
     static long long remainingQuota;
+    std::chrono::system_clock::time_point quotaExpiresAt;
     
     // diskCachedItem/historyItem
     std::vector<DiskCachedItem> diskCached;
