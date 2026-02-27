@@ -38,7 +38,6 @@
 class CElectricSheep_Mac : public CElectricSheep
 {
     std::vector<CGraphicsContext> m_graphicsContextList;
-    bool m_bIsPreview;
     UInt8 m_proxyHost[256];
     UInt8 m_proxyUser[32];
     UInt8 m_proxyPass[32];
@@ -51,8 +50,6 @@ class CElectricSheep_Mac : public CElectricSheep
     {
         
         printf("CElectricSheep_Mac()\n");
-
-        m_bIsPreview = false;
 
         *m_proxyHost = 0;
         *m_proxyUser = 0;
@@ -202,9 +199,14 @@ class CElectricSheep_Mac : public CElectricSheep
         }
     }
 
-    void SetIsPreview(bool _isPreview) { m_bIsPreview = _isPreview; }
-
     void SetUpConfig() { InitStorage(); }
+    
+    void ReleaseLockFile() {
+        if (m_lckFile >= 0) {
+            close(m_lckFile);
+            m_lckFile = -1;
+        }
+    }
 
     //
     virtual bool Startup()

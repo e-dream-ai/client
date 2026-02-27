@@ -317,6 +317,9 @@
 		F059946E2BA0A07300B018C7 /* osd-forward.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994632BA0A07100B018C7 /* osd-forward.png */; };
 		F059946F2BA0A07300B018C7 /* osd-play.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994642BA0A07200B018C7 /* osd-play.png */; };
 		F05994702BA0A07300B018C7 /* osd-play.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994642BA0A07200B018C7 /* osd-play.png */; };
+		F0PLAYLIST02 /* play-playlist.png in Resources */ = {isa = PBXBuildFile; fileRef = F0PLAYLIST01 /* play-playlist.png */; };
+		F0PLAYLIST03 /* play-playlist.png in Resources */ = {isa = PBXBuildFile; fileRef = F0PLAYLIST01 /* play-playlist.png */; };
+		F0PLAYLIST04 /* play-playlist.png in Resources */ = {isa = PBXBuildFile; fileRef = F0PLAYLIST01 /* play-playlist.png */; };
 		F05994712BA0A07300B018C7 /* osd-speed.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994652BA0A07200B018C7 /* osd-speed.png */; };
 		F05994722BA0A07300B018C7 /* osd-speed.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994652BA0A07200B018C7 /* osd-speed.png */; };
 		F05994732BA0A07300B018C7 /* osd-forward10.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994662BA0A07200B018C7 /* osd-forward10.png */; };
@@ -963,6 +966,7 @@
 		F05994632BA0A07100B018C7 /* osd-forward.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-forward.png"; sourceTree = "<group>"; };
 		F05994642BA0A07200B018C7 /* osd-play.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-play.png"; sourceTree = "<group>"; };
 		F05994652BA0A07200B018C7 /* osd-speed.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-speed.png"; sourceTree = "<group>"; };
+		F0PLAYLIST01 /* play-playlist.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "../Runtime/play-playlist.png"; sourceTree = SOURCE_ROOT; };
 		F05994662BA0A07200B018C7 /* osd-forward10.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-forward10.png"; sourceTree = "<group>"; };
 		F05994672BA0A07300B018C7 /* osd-brightness.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-brightness.png"; sourceTree = "<group>"; };
 		F05994682BA0A07300B018C7 /* osd-pause.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-pause.png"; sourceTree = "<group>"; };
@@ -1496,6 +1500,7 @@
 				F05994552BA0912200B018C7 /* osd-pill.png */,
 				F059946A2BA0A07300B018C7 /* osd-bg-sq.png */,
 				F05994642BA0A07200B018C7 /* osd-play.png */,
+				F0PLAYLIST01 /* play-playlist.png */,
 				F05994682BA0A07300B018C7 /* osd-pause.png */,
 				F05994692BA0A07300B018C7 /* osd-back.png */,
 				F05994632BA0A07100B018C7 /* osd-forward.png */,
@@ -1807,6 +1812,7 @@
 				F059945E2BA0912300B018C7 /* osd-bg-700.png in Resources */,
 				F02C15172E0194BB00BFFFF4 /* ThanksStepViewController.xib in Resources */,
 				F059946F2BA0A07300B018C7 /* osd-play.png in Resources */,
+				F0PLAYLIST02 /* play-playlist.png in Resources */,
 				F06C22AC2DA6CAE500D54DB2 /* osd-report.png in Resources */,
 				4628A55E2B0F84EF001C3078 /* Lato-Regular.ttf in Resources */,
 				F059945C2BA0912300B018C7 /* osd-pill.png in Resources */,
@@ -1862,6 +1868,7 @@
 				21ADBB251305D380000A9F20 /* red.tif in Resources */,
 				1243576D2B31FC1B00CCD62A /* BuildData.json in Resources */,
 				F05994702BA0A07300B018C7 /* osd-play.png in Resources */,
+				F0PLAYLIST03 /* play-playlist.png in Resources */,
 				F00638D72E83121600A1B908 /* infinidream.saver in Resources */,
 				F02C14EF2E01904600BFFFF4 /* StartupWindowController.xib in Resources */,
 				F0F6D4292BCD504500222647 /* osd-dislike.png in Resources */,
@@ -1956,6 +1963,7 @@
 				F0E9CE442C136B0500C4D694 /* red.tif in Resources */,
 				F0E9CE452C136B0500C4D694 /* BuildData.json in Resources */,
 				F0E9CE462C136B0500C4D694 /* osd-play.png in Resources */,
+				F0PLAYLIST04 /* play-playlist.png in Resources */,
 				F00638D82E83121600A1B908 /* infinidream.saver in Resources */,
 				F02C14F22E01904600BFFFF4 /* StartupWindowController.xib in Resources */,
 				F0E9CE472C136B0500C4D694 /* osd-dislike.png in Resources */,

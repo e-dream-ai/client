@@ -384,35 +384,45 @@ static void signnal_handler(int signal)
 
 - (void)windowDidResize
 {
-    // Set background to black for letterboxing/pillarboxing
-    if (self.window) {
-        self.window.backgroundColor = [NSColor blackColor];
-    }
-
-    // Calculate 16:9 constrained frame within the window
     NSRect videoFrame = self.frame;
-    float frameAR = self.frame.size.width / self.frame.size.height;
-    float targetAR = 16.0f / 9.0f;
-
-    // Only adjust if aspect ratio differs significantly from 16:9
-    if (fabsf(frameAR - targetAR) > 0.01f)
-    {
-        NSSize constrainedSize = self.frame.size;
-
-        if (frameAR < targetAR)  // Frame is taller than 16:9 (e.g., 16:10)
-        {
-            // Constrain height and center vertically
-            constrainedSize.height = constrainedSize.width * 9.0f / 16.0f;
-            CGFloat yOffset = (self.frame.size.height - constrainedSize.height) / 2.0f;
-            videoFrame = NSMakeRect(0, yOffset, constrainedSize.width, constrainedSize.height);
+    
+    // Only apply aspect ratio constraint if the setting is enabled
+    if (ESScreensaver_GetBoolSetting("settings.player.preserve_AR", true)) {
+        // Set background to black for letterboxing/pillarboxing
+        if (self.window) {
+            self.window.backgroundColor = [NSColor blackColor];
         }
-        else  // Frame is wider than 16:9
+
+        // Calculate 16:9 constrained frame within the window
+        float frameAR = self.frame.size.width / self.frame.size.height;
+        float targetAR = 16.0f / 9.0f;
+
+        // Only adjust if aspect ratio differs significantly from 16:9
+        if (fabsf(frameAR - targetAR) > 0.01f)
         {
-            // Constrain width and center horizontally
-            constrainedSize.width = constrainedSize.height * 16.0f / 9.0f;
-            CGFloat xOffset = (self.frame.size.width - constrainedSize.width) / 2.0f;
-            videoFrame = NSMakeRect(xOffset, 0, constrainedSize.width, constrainedSize.height);
+            NSSize constrainedSize = self.frame.size;
+
+            if (frameAR < targetAR)  // Frame is taller than 16:9 (e.g., 16:10)
+            {
+                // Constrain height and center vertically
+                constrainedSize.height = constrainedSize.width * 9.0f / 16.0f;
+                CGFloat yOffset = (self.frame.size.height - constrainedSize.height) / 2.0f;
+                videoFrame = NSMakeRect(0, yOffset, constrainedSize.width, constrainedSize.height);
+            }
+            else  // Frame is wider than 16:9
+            {
+                // Constrain width and center horizontally
+                constrainedSize.width = constrainedSize.height * 16.0f / 9.0f;
+                CGFloat xOffset = (self.frame.size.width - constrainedSize.width) / 2.0f;
+                videoFrame = NSMakeRect(xOffset, 0, constrainedSize.width, constrainedSize.height);
+            }
         }
+    } else {
+        // When preserve AR is disabled, fill the entire window
+        if (self.window) {
+            self.window.backgroundColor = [NSColor blackColor];
+        }
+        videoFrame = self.frame;
     }
 
     view.frame = videoFrame;
@@ -423,7 +433,11 @@ static void signnal_handler(int signal)
 
 - (BOOL)hasConfigureSheet
 {
-    return YES;
+#ifdef SCREEN_SAVER
+    return NO;  // Hide Options button in System Settings when running as screensaver
+#else
+    return YES; // App can open settings dialog
+#endif
 }
 
 - (NSWindow*)configureSheet
@@ -457,6 +471,9 @@ static void signnal_handler(int signal)
     for (characterIndex = 0; characterIndex < characterCount; characterIndex++)
     {
         unichar c = [characters characterAtIndex:characterIndex];
+        // Convert to lowercase to support both 'c' and 'C' (shift+c)
+        if (c >= 'A' && c <= 'Z')
+            c = c + ('a' - 'A');
         using namespace DisplayOutput;
 
         std::map<unichar, CKeyEvent::eKeyCode> keyMap = {
@@ -599,6 +616,21 @@ static void signnal_handler(int signal)
 
 #pragma mark - SPUStandardUserDriverDelegate (hide "Skip this version" button)
 
+// Prevent Sparkle from showing modal update dialogs in screensaver
+// Modal dialogs cause legacyScreenSaver.appex to crash/terminate
+- (BOOL)standardUserDriverShouldHandleShowingScheduledUpdate:(SUAppcastItem *)update andInImmediateFocus:(BOOL)immediateFocus
+{
+#ifdef SCREEN_SAVER
+    // Screensaver: Don't show modal update dialog - just track that update is available
+    // The HUD indicator will show the update icon to the user
+    NSLog(@"Sparkle: Update available but suppressing modal dialog in screensaver: %@", update.displayVersionString);
+    return NO;  // Don't show the dialog
+#else
+    // App: Show the update dialog normally
+    return YES;
+#endif
+}
+
 static void hideSkipButtonInView(NSView *view)
 {
     if (!view) return;
@@ -616,13 +648,14 @@ static void hideSkipButtonInView(NSView *view)
 
 - (void)standardUserDriverWillHandleShowingUpdate:(BOOL)handleShowingUpdate forUpdate:(SUAppcastItem *)update state:(SPUUserUpdateState *)state
 {
-    // Get the user driver (app: from controller; screensaver: stored reference)
-    id userDriver = nil;
 #ifdef SCREEN_SAVER
-    userDriver = m_sparkleUserDriver;
+    // Screensaver: We suppress the modal dialog, so this should not be called
+    // But if it is, do nothing to avoid any modal UI
+    NSLog(@"Sparkle: standardUserDriverWillHandleShowingUpdate called in screensaver (should be suppressed)");
+    return;
 #else
-    userDriver = m_updater ? m_updater.userDriver : nil;
-#endif
+    // App: Hide the "Skip this version" button in the update dialog
+    id userDriver = m_updater ? m_updater.userDriver : nil;
     if (!userDriver) return;
 
     __weak id weakDriver = userDriver;
@@ -637,6 +670,7 @@ static void hideSkipButtonInView(NSView *view)
         NSView *contentView = [window contentView];
         hideSkipButtonInView(contentView);
     });
+#endif
 }
 
 // Check if an update is available

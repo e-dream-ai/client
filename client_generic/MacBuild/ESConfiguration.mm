@@ -255,24 +255,6 @@
     displayFPS.doubleValue =
         ESScreensaver_GetDoubleSetting("settings.player.display_fps", 60.0);
 
-    UInt32 scr =
-        (UInt32)abs(ESScreensaver_GetIntSetting("settings.player.screen", 0));
-
-    UInt32 scrcnt = (UInt32)[NSScreen screens].count;
-
-    if (scr >= scrcnt && scrcnt > 0)
-        scr = scrcnt - 1;
-
-    while (display.numberOfItems > scrcnt)
-        [display removeItemAtIndex:scrcnt];
-
-    [display selectItemAtIndex:scr];
-
-    SInt32 mdmode =
-        ESScreensaver_GetIntSetting("settings.player.MultiDisplayMode", 0);
-
-    [multiDisplayMode selectItemAtIndex:mdmode];
-
     synchronizeVBL.state =
         ESScreensaver_GetBoolSetting("settings.player.vbl_sync", false);
 
@@ -389,12 +371,6 @@
 
     ESScreensaver_SetBoolSetting("settings.player.blackout_monitors",
                                  blackoutMonitors.state);
-
-    ESScreensaver_SetIntSetting("settings.player.screen",
-                                (SInt32)display.indexOfSelectedItem);
-
-    ESScreensaver_SetIntSetting("settings.player.MultiDisplayMode",
-                                (SInt32)multiDisplayMode.indexOfSelectedItem);
 
     ESScreensaver_SetBoolSetting("settings.app.attributionpng",
                                  showAttribution.state);
@@ -582,14 +558,30 @@
 - (IBAction)goToHelpPage:(id)__unused sender
 {
 #ifdef STAGE
-    NSString* urlStr = [NSString stringWithFormat:@"https://stage.infinidream.ai/help?v=%s", CLIENT_VERSION];
+    NSURL* helpURL = [NSURL URLWithString:@"https://stage.infinidream.ai/help"];
 #else
-    NSString* urlStr = [NSString stringWithFormat:@"https://alpha.infinidream.ai/help?v=%s", CLIENT_VERSION];
+    NSURL* helpURL = [NSURL URLWithString:@"https://alpha.infinidream.ai/help"];
 #endif
 
-    NSURL* helpURL = [NSURL URLWithString:urlStr];
-
     [[NSWorkspace sharedWorkspace] openURL:helpURL];
+}
+
+- (IBAction)openRemoteControl:(id)__unused sender
+{
+#ifdef STAGE
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://stage.infinidream.ai/rc"]];
+#else
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://alpha.infinidream.ai/rc"]];
+#endif
+}
+
+- (IBAction)openBrowsePlaylist:(id)__unused sender
+{
+#ifdef STAGE
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://stage.infinidream.ai/playlists"]];
+#else
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://alpha.infinidream.ai/playlists"]];
+#endif
 }
 
 - (void)dealloc
