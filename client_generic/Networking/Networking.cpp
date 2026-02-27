@@ -494,10 +494,11 @@ void CManager::UpdateProgress(CCurlTransfer* _pTransfer,
         return;
 
     std::stringstream tmp;
-    tmp << _pTransfer->Name() << " (" << _pTransfer->Status() << ")";
+    tmp << _pTransfer->Name();
+    tmp << "\nDownload status: " << _pTransfer->Status();
     if (_pTransfer->Status() == "Active")
     {
-        tmp << ": " << (int32_t)_percentComplete << "%";
+        tmp << ", " << (int32_t)_percentComplete << "%";
         if (_bytesTransferred > 1024 * 1024)
             tmp << std::fixed << std::setprecision(1) << " ("
                 << (_bytesTransferred / (1024.0 * 1024)) << " MB)";
