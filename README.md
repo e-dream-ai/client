@@ -68,8 +68,7 @@ cd client_generic/MacBuild
 - `-r` : Build in Release mode (default: Debug)
 - `-s` : Build stage version (default: production)
 - `-n` : Enable notarization (requires `-r`)
-- `-v VERSION` : Set version string (e.g., `0.12.0`) for zip naming, appcast, and GitHub release
-- `-a` : Generate appcast.xml for Sparkle auto-updates
+- `-v VERSION` : Set version string (e.g., `0.12.0`) for zip naming and GitHub release
 - `-g` : Create GitHub release with tag (requires `-v`)
 
 ### Code Signing
@@ -103,7 +102,7 @@ Default keychain profile: `infinidream-notarization`
 ./build.py -r -n -v 0.12.0
 
 # Full release with appcast and GitHub release
-./build.py -r -n -v 0.12.0 -a -g
+./build.py -r -n -v 0.12.0 -g
 ```
 
 ### Output
@@ -117,7 +116,7 @@ The app bundle contains the embedded screensaver at `infinidream.app/Contents/Re
 ### 1. Build, notarize, and create GitHub release
 ```bash
 cd client_generic/MacBuild
-./build.py -r -n -v X.Y.Z -a -g
+./build.py -r -n -v X.Y.Z -g
 ```
 
 This:
