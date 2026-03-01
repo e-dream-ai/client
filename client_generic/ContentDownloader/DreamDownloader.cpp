@@ -110,13 +110,31 @@ void DreamDownloader::FindDreamsThread() {
             
             // Preflight checklist
  
-            // Make sure we have some remaining quota
-            if (cm.getRemainingQuota() < (long long)minSpaceForDream) {
-                g_Log->Info("Quota too low to grab new videos %ll", cm.getRemainingQuota());
-                // TODO : some user funnel to add quota, later on
-                SetDownloadStatus("Your quota is expired");
-
+            // Check quota status
+            // A = quota > 100MB
+            // B = cache is full
+            // C = time until expiration < 1 hour
+            // Logic: A && (!B || C)
+            bool hasEnoughQuota = cm.getRemainingQuota() >= (long long)minSpaceForDream;  // A
+            bool cacheIsFull = cm.getRemainingCacheSpace() < minSpaceForDream;            // B
+            bool quotaExpiresSoon = cm.quotaExpiresWithin(std::chrono::hours(1));  // C
+            
+            // Download allowed if: quota > 100MB AND (cache is not full OR quota expires soon)
+            bool canDownload = hasEnoughQuota && (!cacheIsFull || quotaExpiresSoon);
+            
+            if (!canDownload) {
+                if (!hasEnoughQuota) {
+                    g_Log->Info("Quota too low to grab new videos %ll", cm.getRemainingQuota());
+                    SetDownloadStatus("Your quota is expired");
+                } else if (cacheIsFull && !quotaExpiresSoon) {
+                    g_Log->Info("Cache is full and quota doesn't expire soon. Stopping downloads.");
+                    SetDownloadStatus("Cache is full");
+                }
                 break;
+            }
+            
+            if (hasEnoughQuota && cacheIsFull && quotaExpiresSoon) {
+                g_Log->Info("Cache is full but quota expires within 1 hour, continuing download");
             }
             
             // First check if there's a dream to download
