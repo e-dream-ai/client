@@ -101,7 +101,7 @@ public:
     bool quotaExpiresWithin(const std::chrono::hours& duration) const {
         auto now = std::chrono::system_clock::now();
         auto timeUntilExpiration = std::chrono::duration_cast<std::chrono::hours>(quotaExpiresAt - now);
-        return timeUntilExpiration <= duration && timeUntilExpiration.count() > 0;
+        return timeUntilExpiration < duration && timeUntilExpiration.count() > 0;
     }
     
     // Used space by a path
