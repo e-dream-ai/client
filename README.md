@@ -124,7 +124,6 @@ This:
 - Creates git tag `X.Y.Z` (overwrites if exists)
 - Creates GitHub prerelease `vX.Y.Z` with auto-generated notes
 - Uploads `infinidream-X.Y.Z.zip` to the release
-- Generates `build/Release/appcast.xml`
 
 ### 2. Test the app
 ```bash
@@ -151,7 +150,7 @@ When ready, publish for real:
 
 This:
 - Fetches release notes from GitHub
-- Adds them to appcast.xml (with linked issue references)
+- Generates appcast.xml (with linked issue references)
 - Publishes appcast.xml to the landing-page repo
 - Marks the GitHub release as latest (removes prerelease label)
 
