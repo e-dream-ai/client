@@ -150,6 +150,9 @@ static void ShowFirstTimeSetupCallback()
         } else {
             [self setMaxFullScreenContentSize:CGSizeMake(self.screen.frame.size.height * 16 / 9, self.screen.frame.size.height)];
         }
+    } else {
+        // Clear any previous constraint to allow full stretch
+        [self setMaxFullScreenContentSize:NSMakeSize(FLT_MAX, FLT_MAX)];
     }
 
     //ESScreensaver_DeinitClientStorage();

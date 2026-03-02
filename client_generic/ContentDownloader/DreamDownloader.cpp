@@ -188,7 +188,7 @@ void DreamDownloader::FindDreamsThread() {
                 
                 if (!link.empty()) {
                     g_Log->Info("Download link received: %s", link.c_str());
-                    SetDownloadStatus("Downloading dream...");
+                    SetDownloadStatus("");
 
                     DownloadDream(current_uuid, link);
                     
