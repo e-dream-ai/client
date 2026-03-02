@@ -1645,6 +1645,7 @@ std::string EDreamClient::GetDreamDownloadLink(const std::string& uuid) {
 
     while (currentAttempt++ < maxAttempts) {
         spDownload = std::make_shared<Network::CFileDownloader>("Dream Link");
+        spDownload->SetSilent(true);
         Network::NetworkHeaders::addStandardHeaders(spDownload);
         spDownload->AppendHeader("Content-Type: application/json");
         // Retrieve the sealed session from settings

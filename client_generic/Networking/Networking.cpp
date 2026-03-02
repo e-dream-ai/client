@@ -117,7 +117,7 @@ int CCurlTransfer::customProgressCallback(void* _pUserData, double _downTotal,
         return -1;
     }
 
-    if (g_NetworkManager)
+    if (g_NetworkManager && !pOut->IsSilent())
         g_NetworkManager->UpdateProgress(
             pOut,
             ((_downTotal + _upTotal) > 0)
@@ -339,7 +339,8 @@ bool CCurlTransfer::Perform(const std::string& _url)
         Status("Completed");
 
     //	Need to do this to trigger the strings to propagate.
-    g_NetworkManager->UpdateProgress(this, 100, 0);
+    if (!m_Silent)
+        g_NetworkManager->UpdateProgress(this, 100, 0);
 
     if (!Verify(
             curl_easy_getinfo(m_pCurl, CURLINFO_RESPONSE_CODE, &m_HttpCode)))

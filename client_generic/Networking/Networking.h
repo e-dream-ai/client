@@ -40,6 +40,7 @@ class CCurlTransfer
     std::string m_AverageSpeed;
     long m_HttpCode;
     char errorBuffer[CURL_ERROR_SIZE];
+    bool m_Silent = false;
 
     //	Map of respons codes allowed. This is checkd on failed perform's.
     std::vector<uint32_t> m_AllowedResponses;
@@ -74,6 +75,8 @@ class CCurlTransfer
     const std::string& Status() const { return m_Status; };
     long ResponseCode() const { return m_HttpCode; };
     const std::string SpeedString() const { return m_AverageSpeed; };
+    void SetSilent(bool _silent) { m_Silent = _silent; };
+    bool IsSilent() const { return m_Silent; };
 };
 
 //
