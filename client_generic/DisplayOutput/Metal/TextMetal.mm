@@ -53,6 +53,7 @@ CTextMetal::CTextMetal(spCFontMetal _font, MTKView* _view,
         NSMutableDictionary* newActions =
             [NSMutableDictionary dictionaryWithDictionary:textLayer.actions];
         [newActions setObject:[NSNull null] forKey:@"position"];
+        [newActions setObject:[NSNull null] forKey:@"bounds"];
         [newActions setObject:[NSNull null] forKey:@"content"];
         [newActions setObject:[NSNull null] forKey:@"sublayers"];
         textLayer.actions = newActions;
