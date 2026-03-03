@@ -31,7 +31,10 @@
     // Hide error/progress
     self.errorLabel.hidden = YES;
     self.progressIndicator.hidden = YES;
-    // Focus on the text field
+}
+
+- (void)viewDidAppear {
+    [super viewDidAppear];
     [self.view.window makeFirstResponder:self.otpTextField];
 }
 
