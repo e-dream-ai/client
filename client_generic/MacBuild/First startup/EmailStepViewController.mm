@@ -40,6 +40,11 @@
     self.progressIndicator.hidden = YES;
 }
 
+- (void)viewDidAppear {
+    [super viewDidAppear];
+    [self.view.window makeFirstResponder:self.emailTextField];
+}
+
 - (IBAction)sendCode:(id)sender {
 /*
      // Basic move to next step for testing
