@@ -387,7 +387,7 @@ def main() -> None:
 
     # Determine paths
     script_dir = Path(__file__).parent
-    build_config = "Release"
+    build_config = "Debug" if stage else "Release"
     build_dir = script_dir / "build" / build_config
     local_appcast = build_dir / "appcast.xml"
 
