@@ -309,11 +309,11 @@ void EDreamClient::UpdateQuota()
             ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%S");
             
             if (!ss.fail()) {
-                auto tp = std::chrono::system_clock::from_time_t(std::mktime(&tm));
+                auto tp = std::chrono::system_clock::from_time_t(timegm(&tm));
                 quotaExpiresAt = tp;
                 cm.setQuotaExpiresAt(tp);
-                
-                g_Log->Info("UpdateQuota: Successfully updated quota to %lld, expires at %s", 
+
+                g_Log->Info("UpdateQuota: Successfully updated quota to %lld, expires at %s",
                            remainingQuota, expiresAtStr.c_str());
             } else {
                 g_Log->Warning("UpdateQuota: Failed to parse quotaExpiresAt: %s", expiresAtStr.c_str());
@@ -1060,10 +1060,10 @@ std::string EDreamClient::Hello() {
             ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%S");
             
             if (!ss.fail()) {
-                auto tp = std::chrono::system_clock::from_time_t(std::mktime(&tm));
+                auto tp = std::chrono::system_clock::from_time_t(timegm(&tm));
                 quotaExpiresAt = tp;
                 cm.setQuotaExpiresAt(tp);
-                
+
                 g_Log->Info("Hello: Quota expires at %s", expiresAtStr.c_str());
             } else {
                 g_Log->Warning("Hello: Failed to parse quotaExpiresAt: %s", expiresAtStr.c_str());
