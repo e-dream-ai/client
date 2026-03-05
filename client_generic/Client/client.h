@@ -225,8 +225,10 @@ class CElectricSheep
             g_Log->Attach(m_AppData + "Logs/", m_MultipleInstancesMode);
 
         g_Log->Info("AttachLog()");
-        g_Log->Info("******************* %s (Built %s / %s)...\n",
-                    PlatformUtils::GetAppVersion().c_str(), __DATE__, __TIME__);
+        g_Log->Info("******************* %s %s %s\n",
+                    PlatformUtils::GetAppVersion().c_str(),
+                    PlatformUtils::GetGitRevision().c_str(),
+                    PlatformUtils::GetBuildDate().c_str());
     }
 
   public:
