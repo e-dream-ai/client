@@ -104,7 +104,8 @@ void CClip::Stop() { m_spDecoder->Stop(); }
 
 bool CClip::Preload(int64_t _seekFrame)
 {
-    g_Log->Info("Starting preloading %s at %d", m_ClipMetadata.path.c_str(), _seekFrame);
+    g_Log->Info("Starting preloading %s at frame %d", m_ClipMetadata.path.c_str(), _seekFrame);
+    g_Log->Info("Dream: %s by %s", m_ClipMetadata.dreamData.name.c_str(), m_ClipMetadata.dreamData.artist.c_str());
  
     // Reset flags
     m_HasFinished.exchange(false);

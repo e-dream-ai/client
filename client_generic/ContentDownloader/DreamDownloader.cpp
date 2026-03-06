@@ -117,7 +117,7 @@ void DreamDownloader::FindDreamsThread() {
             // Logic: A && (!B || C)
             bool hasEnoughQuota = cm.getRemainingQuota() >= (long long)minSpaceForDream;  // A
             bool cacheIsFull = cm.getRemainingCacheSpace() < minSpaceForDream;            // B
-            bool quotaExpiresSoon = cm.quotaExpiresWithin(std::chrono::hours(1));  // C
+            bool quotaExpiresSoon = true; // cm.quotaExpiresWithin(std::chrono::hours(1));  // C
             
             // Download allowed if: quota > 100MB AND (cache is not full OR quota expires soon)
             bool canDownload = hasEnoughQuota && (!cacheIsFull || quotaExpiresSoon);
