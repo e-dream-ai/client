@@ -1226,6 +1226,9 @@ std::future<void> EDreamClient::SendPlayingDreamAsync(const std::string& uuid) {
 }
 
 std::future<bool> EDreamClient::EnqueuePlaylistAsync(const std::string& uuid) {
+    // Mark interactive so downloads aren't suppressed while the new playlist loads
+    g_ContentDownloader().m_gDownloader.MarkInteractive();
+
     return std::async(std::launch::async, [uuid]() {
         // First, fetch the playlist asynchronously
         auto fetchFuture = FetchPlaylistAsync(uuid);

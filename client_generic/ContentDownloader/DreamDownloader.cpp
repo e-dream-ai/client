@@ -61,6 +61,15 @@ bool DreamDownloader::IsDiskSpaceLow() const {
     return m_diskSpaceLow.load();
 }
 
+void DreamDownloader::MarkInteractive() {
+    m_lastInteractiveTime.store(std::chrono::steady_clock::now());
+}
+
+bool DreamDownloader::IsRecentlyInteractive() const {
+    auto elapsed = std::chrono::steady_clock::now() - m_lastInteractiveTime.load();
+    return elapsed < std::chrono::seconds(60);
+}
+
 void DreamDownloader::CheckDiskSpace() {
     
     auto freeSpace = Cache::CacheManager::getInstance().getFreeSpace(Cache::PathManager::getInstance().mp4Path());
@@ -114,27 +123,33 @@ void DreamDownloader::FindDreamsThread() {
             // A = quota > 100MB
             // B = cache is full
             // C = time until expiration < 1 hour
-            // Logic: A && (!B || C)
+            // D = user recently changed playlist (interactive mode)
+            // Logic: A && (!B || C || D)
             bool hasEnoughQuota = cm.getRemainingQuota() >= (long long)minSpaceForDream;  // A
             bool cacheIsFull = cm.getRemainingCacheSpace() < minSpaceForDream;            // B
-            bool quotaExpiresSoon = true; // cm.quotaExpiresWithin(std::chrono::hours(1));  // C
-            
-            // Download allowed if: quota > 100MB AND (cache is not full OR quota expires soon)
-            bool canDownload = hasEnoughQuota && (!cacheIsFull || quotaExpiresSoon);
-            
+            bool quotaExpiresSoon = cm.quotaExpiresWithin(std::chrono::hours(1));         // C
+            bool isInteractive = IsRecentlyInteractive();                                 // D
+
+            // Download allowed if: quota > 100MB AND (cache is not full OR quota expires soon OR interactive)
+            bool canDownload = hasEnoughQuota && (!cacheIsFull || quotaExpiresSoon || isInteractive);
+
             if (!canDownload) {
                 if (!hasEnoughQuota) {
                     g_Log->Info("Quota too low to grab new videos %ll", cm.getRemainingQuota());
                     SetDownloadStatus("Your quota is expired");
-                } else if (cacheIsFull && !quotaExpiresSoon) {
-                    g_Log->Info("Cache is full and quota doesn't expire soon. Stopping downloads.");
+                } else if (cacheIsFull && !quotaExpiresSoon && !isInteractive) {
+                    g_Log->Info("Cache is full and quota doesn't expire soon. Waiting to save quota.");
                     SetDownloadStatus("Cache is full");
                 }
                 break;
             }
-            
+
             if (hasEnoughQuota && cacheIsFull && quotaExpiresSoon) {
                 g_Log->Info("Cache is full but quota expires within 1 hour, continuing download");
+            }
+
+            if (hasEnoughQuota && cacheIsFull && isInteractive) {
+                g_Log->Info("Cache is full but user recently changed playlist, continuing download");
             }
             
             // First check if there's a dream to download

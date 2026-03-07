@@ -14,6 +14,7 @@
 #include <set>
 #include <mutex>
 #include <future>
+#include <chrono>
 #include <boost/thread.hpp>
 #include <filesystem>
 #include <optional>
@@ -58,7 +59,12 @@ public:
 
     void SetDownloadStatus(const std::string& status);
     std::string GetDownloadStatus() const;
-    
+
+    // Mark that a user-interactive action (e.g. playlist change) just happened,
+    // so downloads should not be suppressed for a short window.
+    void MarkInteractive();
+    bool IsRecentlyInteractive() const;
+
 private:
     void FindDreamsThread();
     
@@ -75,6 +81,9 @@ private:
     
     // Disk space warning flag
     std::atomic<bool> m_diskSpaceLow{false};
+
+    // Interactive mode: timestamp of last user-initiated playlist action
+    std::atomic<std::chrono::steady_clock::time_point> m_lastInteractiveTime{std::chrono::steady_clock::time_point{}};
 };
 
 }
