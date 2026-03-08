@@ -10,11 +10,15 @@
 #include "Log.h"
 #include "Player.h"
 #include "PlatformUtils.h"
+#include "Settings.h"
 #include <algorithm>
 #include <random>
 
 PlaylistManager::PlaylistManager()
-: m_started(false), m_playbackMode(PlaybackMode::Normal), m_offlineMode(false), m_currentPosition(0), m_cacheManager(Cache::CacheManager::getInstance()),  m_shouldTerminate(false) {}
+: m_started(false), m_playbackMode(PlaybackMode::Normal), m_offlineMode(false), m_currentPosition(0), m_cacheManager(Cache::CacheManager::getInstance()),  m_shouldTerminate(false) {
+    m_loopIterations = g_Settings()->Get("settings.player.LoopIterations", 0);
+    g_Log->Info("LoopIterations setting: %d", m_loopIterations);
+}
 
 PlaylistManager::~PlaylistManager() {
     stopPeriodicChecking();
@@ -232,6 +236,35 @@ std::optional<std::string> PlaylistManager::getNextUncachedDream() const {
             }
         }
         
+        // 50% chance: If LoopIterations is enabled, prioritize downloading uncached looping dreams
+        // that share a keyframe with a cached dream (so we have loop variety available)
+        if (m_loopIterations > 0 && dis(gen) < 50) {
+            std::vector<std::string> uncachedLoops;
+
+            for (const auto& entry : m_playlist) {
+                if (!isLoopingDream(entry)) continue;
+                if (cm.hasDiskCachedItem(entry.uuid)) continue;
+                if (downloader.IsDreamBeingDownloaded(entry.uuid)) continue;
+
+                // Check if any cached dream shares this loop's keyframe group
+                for (const auto& other : m_playlist) {
+                    if (other.startKeyframe.has_value() &&
+                        *other.startKeyframe == *entry.startKeyframe &&
+                        cm.hasDiskCachedItem(other.uuid)) {
+                        uncachedLoops.push_back(entry.uuid);
+                        break;
+                    }
+                }
+            }
+
+            if (!uncachedLoops.empty()) {
+                std::uniform_int_distribution<> dreamDis(0, uncachedLoops.size() - 1);
+                g_Log->Info("Selecting uncached looping dream for LoopIterations (%zu candidates)",
+                           uncachedLoops.size());
+                return uncachedLoops[dreamDis(gen)];
+            }
+        }
+
         // 75% chance: Look for cached dreams that have no cached successors
         if (dis(gen) < 75) {  // New independent 75% chance
             std::vector<std::string> orphanedSuccessors;
@@ -449,6 +482,11 @@ PlaylistManager::TransitionType PlaylistManager::determineTransitionType(const P
     return TransitionType::StandardCrossfade;
 }
 
+bool PlaylistManager::isLoopingDream(const PlaylistEntry& entry) const {
+    return entry.startKeyframe.has_value() && entry.endKeyframe.has_value() &&
+           *entry.startKeyframe == *entry.endKeyframe;
+}
+
 std::optional<size_t> PlaylistManager::findKeyframeMatch(const PlaylistEntry& currentEntry, bool canStream) const {
     if (!currentEntry.endKeyframe) {
         return std::nullopt;
@@ -490,6 +528,34 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
     if (m_playbackMode == PlaybackMode::Normal && m_started) {
         // Normal mode: respect keyframes for seamless transitions
         const auto& currentEntry = m_playlist[m_currentPosition];
+
+        // Loop iteration logic: if current dream is a loop and we haven't exhausted iterations,
+        // pick a random matching loop (including self) and replay with seamless transition
+        if (m_loopIterations > 0 && isLoopingDream(currentEntry) && m_currentLoopCount < m_loopIterations) {
+            std::vector<size_t> loopCandidates;
+            for (size_t i = 0; i < m_playlist.size(); i++) {
+                const auto& entry = m_playlist[i];
+                if (isLoopingDream(entry) &&
+                    entry.startKeyframe == currentEntry.startKeyframe &&
+                    (canStream || m_cacheManager.hasDiskCachedItem(entry.uuid))) {
+                    loopCandidates.push_back(i);
+                }
+            }
+            if (!loopCandidates.empty()) {
+                size_t pick = loopCandidates[rand() % loopCandidates.size()];
+                const auto& loopEntry = m_playlist[pick];
+                g_Log->Info("Preflight : Loop iteration %d/%d - picking loop at position %zu",
+                            m_currentLoopCount + 1, m_loopIterations, pick);
+                decision = {
+                    pick,
+                    TransitionType::Seamless,
+                    m_cacheManager.getDream(loopEntry.uuid),
+                    loopEntry.startKeyframe,
+                    loopEntry.endKeyframe
+                };
+                return decision;
+            }
+        }
 
         // Try to find keyframe match first
         auto keyframeMatch = findKeyframeMatch(currentEntry, canStream);
@@ -740,11 +806,13 @@ const Cache::Dream* PlaylistManager::moveToNextDream(const NextDreamDecision& de
 
     // Validate that the position is still valid
     if (decision.position >= m_playlist.size()) {
-        g_Log->Error("moveToNextDream: position %zu is out of bounds (playlist size: %zu)", 
+        g_Log->Error("moveToNextDream: position %zu is out of bounds (playlist size: %zu)",
                      decision.position, m_playlist.size());
         return nullptr;
     }
-    
+
+    size_t previousPosition = m_currentPosition;
+
     // Validate that the dream UUID at this position matches what we expect
     if (decision.dream && m_playlist[decision.position].uuid != decision.dream->uuid) {
         g_Log->Warning("moveToNextDream: dream UUID mismatch at position %zu (expected: %s, found: %s)",
@@ -766,6 +834,22 @@ const Cache::Dream* PlaylistManager::moveToNextDream(const NextDreamDecision& de
         m_currentPosition = decision.position;
     }
 
+    // Track loop iterations: if we were on a looping dream and moving to another dream
+    // in the same keyframe group, increment the count; otherwise reset
+    if (m_loopIterations > 0 && m_started &&
+        previousPosition < m_playlist.size() &&
+        isLoopingDream(m_playlist[previousPosition]) &&
+        isLoopingDream(m_playlist[m_currentPosition]) &&
+        m_playlist[m_currentPosition].startKeyframe == m_playlist[previousPosition].startKeyframe) {
+        m_currentLoopCount++;
+        g_Log->Info("Loop iteration count: %d/%d", m_currentLoopCount, m_loopIterations);
+    } else {
+        if (m_currentLoopCount > 0) {
+            g_Log->Info("Loop iterations reset (was %d)", m_currentLoopCount);
+        }
+        m_currentLoopCount = 0;
+    }
+
     // If this is the first play, mark as started
     if (!m_started) {
         m_started = true;
@@ -777,7 +861,7 @@ const Cache::Dream* PlaylistManager::moveToNextDream(const NextDreamDecision& de
     if (m_currentPosition == 0 && !hasUnplayedDreams()) {
         resetPlayHistory();
     }
-    
+
     // Update current dream info
     m_currentDreamUUID = m_playlist[m_currentPosition].uuid;
     m_currentDream = decision.dream;

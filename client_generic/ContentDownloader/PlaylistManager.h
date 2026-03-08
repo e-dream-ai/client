@@ -117,6 +117,14 @@ public:
     // Helper to find keyframe matches
     std::optional<size_t> findKeyframeMatch(const PlaylistEntry& currentEntry, bool canStream) const;
 
+    // Check if a dream is a loop (same start and end keyframe)
+    bool isLoopingDream(const PlaylistEntry& entry) const;
+
+    // Loop iteration control
+    int getLoopIterations() const { return m_loopIterations; }
+    void setLoopIterations(int iterations) { m_loopIterations = iterations; }
+    int getCurrentLoopCount() const { return m_currentLoopCount; }
+
     // Actually move to the next dream based on preflight decision
     const Cache::Dream* moveToNextDream(const NextDreamDecision& decision);
 
@@ -233,6 +241,10 @@ private:
     bool isDreamPlayed(const std::string& uuid) const;
     bool hasUnplayedDreams() const;
     size_t findFirstUnplayedPosition() const;
+
+    // Loop iteration settings
+    int m_loopIterations = 0;           // 0 = no special loop handling, N > 0 = play loops N times
+    mutable int m_currentLoopCount = 0; // Tracks how many times we've looped at current keyframe group
 
     // Download lookahead configuration
     size_t m_downloadLookaheadLimit = 5;

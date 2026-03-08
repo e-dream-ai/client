@@ -1800,8 +1800,16 @@ class CElectricSheep
 
                     // Set mode on separate line
                     PlaybackMode creditsMode = g_Player().GetPlaylistManager().getPlaybackMode();
-                    ((Hud::CStringStat*)spStats->Get("credits-mode"))
-                        ->SetSample(string_format("mode: %s", to_string(creditsMode)));
+                    auto& pm = g_Player().GetPlaylistManager();
+                    int loopIter = pm.getLoopIterations();
+                    int loopCount = pm.getCurrentLoopCount();
+                    if (loopIter > 0 && loopCount > 0) {
+                        ((Hud::CStringStat*)spStats->Get("credits-mode"))
+                            ->SetSample(string_format("mode: %s, loop %d/%d", to_string(creditsMode), loopCount, loopIter));
+                    } else {
+                        ((Hud::CStringStat*)spStats->Get("credits-mode"))
+                            ->SetSample(string_format("mode: %s", to_string(creditsMode)));
+                    }
                 }
                 
                 //	Serverstats.
