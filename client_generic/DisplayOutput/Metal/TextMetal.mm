@@ -21,17 +21,9 @@ inline void ExecuteOnMainThread(void (^_block)(void))
     }
 }
 
-CTextMetal::CTextMetal(spCFontMetal _font, MTKView* _view,
-                       float /*_contextAspect*/)
-    : m_spFont(_font), m_pTextMesh(NULL), m_Device(_view.device)
-#if !USE_SYSTEM_UI
-      ,
-      m_ContextAspect(
-          9. /
-          16.) //@TODO: update me when resized, for now just going with 16:9
-#endif
+CTextMetal::CTextMetal(spCFontMetal _font, MTKView* _view)
+    : m_spFont(_font)
 {
-#if USE_SYSTEM_UI
     __block spCFontMetal font = _font;
     __weak MTKView* view = _view;
 
@@ -71,55 +63,35 @@ CTextMetal::CTextMetal(spCFontMetal _font, MTKView* _view,
                                      forOrientation:
                                          NSLayoutConstraintOrientationVertical];
     });
-#endif
 }
 
 CTextMetal::~CTextMetal()
 {
-#if USE_SYSTEM_UI
     __weak CATextLayer* textLayer = m_TextLayer;
     ExecuteOnMainThread(^{
         [textLayer removeFromSuperlayer];
         CFBridgingRelease((__bridge CFTypeRef)textLayer);
     });
-#endif
 }
 
 void CTextMetal::SetText(const std::string& _text)
 {
-    //if (_text != m_Text)
-    {
-        m_Text = _text;
-#if USE_SYSTEM_UI
-        __block NSString* str = @(_text.c_str());
-        __weak CATextLayer* textLayer = m_TextLayer;
-        ExecuteOnMainThread(^{
-            if (g_Player().Stopped())
-                return;
-            textLayer.string = str;
-            NSSize contentSize = [textLayer preferredFrameSize];
-            textLayer.frame =
-                NSMakeRect(0, 0, contentSize.width, contentSize.height);
-        });
-#else  /*USE_SYSTEM_UI*/
-        NSString* text = @(_text.c_str());
-        CGRect rect = CGRectMake(
-            0, 0, kMetalTextReferenceContextSize * (1.f / m_ContextAspect),
-            kMetalTextReferenceContextSize);
-        CGFloat size = m_spFont->FontDescription().Height() * 3;
-        MBEFontAtlas* atlas = m_spFont->GetAtlas();
-        m_pTextMesh = [[MBETextMesh alloc] initWithString:text
-                                                   inRect:rect
-                                            withFontAtlas:atlas
-                                                   atSize:size
-                                                   device:m_Device];
-#endif /*USE_SYSTEM_UI*/
-    }
+    m_Text = _text;
+    __block NSString* str = @(_text.c_str());
+    __weak CATextLayer* textLayer = m_TextLayer;
+    ExecuteOnMainThread(^{
+        if (g_Player().Stopped())
+            return;
+        textLayer.string = str;
+        NSSize contentSize = [textLayer preferredFrameSize];
+        textLayer.frame =
+            NSMakeRect(0, 0, contentSize.width, contentSize.height);
+    });
 }
+
 void CTextMetal::SetRect(const Base::Math::CRect& _rect)
 {
     CBaseText::SetRect(_rect);
-#if USE_SYSTEM_UI
     __block Base::Math::CRect rect = _rect;
     __block const Base::Math::CVector2& extents = m_Extents;
     __weak CATextLayer* textLayer = m_TextLayer;
@@ -137,12 +109,10 @@ void CTextMetal::SetRect(const Base::Math::CRect& _rect)
                                      frame.size.width, frame.size.height);
         [textLayer display];
     });
-#endif
 }
 
 Base::Math::CVector2 CTextMetal::GetExtent()
 {
-#if USE_SYSTEM_UI
     __block Base::Math::CVector2& extents = m_Extents;
     __weak CATextLayer* textLayer = m_TextLayer;
     ExecuteOnMainThread(^{
@@ -158,31 +128,18 @@ Base::Math::CVector2 CTextMetal::GetExtent()
                    (float)frame.size.height / (float)parentFrame.size.height};
     });
     return extents;
-#else  /*USE_SYSTEM_UI*/
-    if (m_pTextMesh)
-    {
-        CGSize size = m_pTextMesh.textExtent;
-        return {(float)(size.width / kMetalTextReferenceContextSize),
-                (float)(size.height / kMetalTextReferenceContextSize)};
-    }
-    return {0.f, 0.f};
-#endif /*USE_SYSTEM_UI*/
 }
 
 void CTextMetal::SetEnabled(bool _enabled)
 {
     if (_enabled != m_Enabled)
     {
-#if USE_SYSTEM_UI
-        // if (m_Extents.m_X == 0.f)
-        // return;
         __weak CATextLayer* textLayer = m_TextLayer;
         ExecuteOnMainThread(^{
             if (g_Player().Stopped())
                 return;
             textLayer.hidden = !_enabled;
         });
-#endif
         m_Enabled = _enabled;
     }
 }
@@ -195,7 +152,6 @@ void CTextMetal::SetColor(const Base::Math::CVector4& _color)
     }
 
     m_Color = _color;
-#if USE_SYSTEM_UI
     __weak CATextLayer* textLayer = m_TextLayer;
     __block CGColorRef color = CGColorCreateGenericRGB(_color.m_X, _color.m_Y, _color.m_Z, _color.m_W);
     ExecuteOnMainThread(^{
@@ -204,7 +160,6 @@ void CTextMetal::SetColor(const Base::Math::CVector4& _color)
         textLayer.foregroundColor = color;
         CGColorRelease(color);
     });
-#endif
 }
 
 } // namespace DisplayOutput

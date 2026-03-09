@@ -2,8 +2,6 @@
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
 
-#import "TextRendering/MBEMathUtilities.h"
-
 #include <atomic>
 #include <chrono>
 #include <cstdint>
@@ -45,8 +43,6 @@ static const NSUInteger MaxFramesInFlight = 3;
     MTLLoadAction currentLoadAction;
   @public
     DisplayOutput::spCShaderMetal drawTextureShader;
-  @public
-    DisplayOutput::spCShaderMetal drawTextShader;
   @public
     DisplayOutput::spCShaderMetal activeShader;
   @public
@@ -93,26 +89,6 @@ CRendererMetal::~CRendererMetal()
     m_pRendererContext = nullptr;
 }
 
-static MTLVertexDescriptor* CreateTextVertexDescriptor()
-{
-    MTLVertexDescriptor* vertexDescriptor = [MTLVertexDescriptor new];
-
-    // Position
-    vertexDescriptor.attributes[0].format = MTLVertexFormatFloat4;
-    vertexDescriptor.attributes[0].offset = 0;
-    vertexDescriptor.attributes[0].bufferIndex = 0;
-
-    // Texture coordinates
-    vertexDescriptor.attributes[1].format = MTLVertexFormatFloat2;
-    vertexDescriptor.attributes[1].offset = sizeof(vector_float4);
-    vertexDescriptor.attributes[1].bufferIndex = 0;
-
-    vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
-    vertexDescriptor.layouts[0].stride = sizeof(VertexText);
-
-    return vertexDescriptor;
-}
-
 bool CRendererMetal::Initialize(spCDisplayOutput _spDisplay)
 {
     if (!CRenderer::Initialize(_spDisplay))
@@ -140,12 +116,6 @@ bool CRendererMetal::Initialize(spCDisplayOutput _spDisplay)
 
     rendererContext->drawTextureShader = std::static_pointer_cast<CShaderMetal>(
         NewShader("quadPassVertex", "drawTextureFragment"));
-    rendererContext->drawTextShader = spCShaderMetal(new CShaderMetal(
-        device,
-        [rendererContext->shaderLibrary newFunctionWithName:@"drawTextVertex"],
-        [rendererContext
-             ->shaderLibrary newFunctionWithName : @"drawTextFragment"],
-        CreateTextVertexDescriptor(), {}));
 
     if (USE_HW_ACCELERATION)
     {
@@ -208,7 +178,7 @@ spCBaseFont CRendererMetal::GetFont(CFontDescription& _desc)
     if (it == m_fontPool.end())
     {
         spCBaseFont font =
-            std::make_shared<CFontMetal>(_desc, NewTextureFlat());
+            std::make_shared<CFontMetal>(_desc);
         if (!font->Create())
             return NULL;
         font->FontDescription(_desc);
@@ -222,9 +192,8 @@ spCBaseText CRendererMetal::NewText(spCBaseFont _font, const std::string& _text)
 {
     RendererContext* rendererContext =
         (__bridge RendererContext*)m_pRendererContext;
-    float aspect = m_spDisplay->Aspect();
     CTextMetal* text = new CTextMetal(static_pointer_cast<CFontMetal>(_font),
-                                      rendererContext->metalView, aspect);
+                                      rendererContext->metalView);
     text->SetText(_text);
 
     return spCBaseText(text);
@@ -328,97 +297,15 @@ void CRendererMetal::Clear()
     }
 }
 
-void CRendererMetal::DrawText(
-    [[maybe_unused]] spCBaseText _text,
-    [[maybe_unused]] const Base::Math::CVector4& _color)
+void CRendererMetal::DrawText(spCBaseText _text,
+                              const Base::Math::CVector4& _color)
 {
-#if USE_SYSTEM_UI
-    // For USE_SYSTEM_UI, set the color on the text layer
     if (_text) {
         spCTextMetal textMetal = std::static_pointer_cast<CTextMetal>(_text);
         if (textMetal) {
             textMetal->SetColor(_color);
         }
     }
-#else
-    // Original custom Metal rendering path
-    RendererContext* rendererContext =
-        (__bridge RendererContext*)m_pRendererContext;
-    @autoreleasepool
-    {
-        spCTextMetal textMetal = std::static_pointer_cast<CTextMetal>(_text);
-        const MBETextMesh* textMesh = textMetal->GetTextMesh();
-
-        MTLRenderPassDescriptor* passDescriptor =
-            [MTLRenderPassDescriptor renderPassDescriptor];
-        if (passDescriptor != nil)
-        {
-            passDescriptor.colorAttachments[0].texture =
-                rendererContext->metalView.currentDrawable.texture;
-            passDescriptor.colorAttachments[0].loadAction =
-                rendererContext->currentLoadAction;
-            passDescriptor.colorAttachments[0].storeAction =
-                MTLStoreActionStore;
-
-            passDescriptor.depthAttachment.texture =
-                rendererContext->depthTexture;
-            passDescriptor.depthAttachment.clearDepth = 1.0;
-            passDescriptor.depthAttachment.loadAction =
-                rendererContext->currentLoadAction;
-            passDescriptor.depthAttachment.storeAction = MTLStoreActionStore;
-        }
-
-        id<MTLRenderCommandEncoder> renderEncoder =
-            [rendererContext->currentCommandBuffer
-                renderCommandEncoderWithDescriptor:passDescriptor];
-        [renderEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
-        [renderEncoder setCullMode:MTLCullModeNone];
-        [renderEncoder setRenderPipelineState:rendererContext->drawTextShader
-                                                  ->GetPipelineState()];
-        [renderEncoder setVertexBuffer:textMesh.vertexBuffer
-                                offset:0
-                               atIndex:0];
-
-        vector_float3 translation = {_text->GetRect().m_X0,
-                                     _text->GetRect().m_Y0, 0};
-        vector_float3 scale = {1, 1, 1};
-        float aspect = m_spDisplay->Aspect();
-        matrix_float4x4 modelMatrix = matrix_multiply(
-            matrix_translation(translation * kMetalTextReferenceContextSize),
-            matrix_scale(scale * vector_float3{aspect, 1, 1}));
-        matrix_float4x4 projectionMatrix =
-            matrix_orthographic_projection(0, kMetalTextReferenceContextSize, 0,
-                                           kMetalTextReferenceContextSize);
-
-        TextUniforms uniforms;
-        uniforms.modelMatrix = modelMatrix;
-        uniforms.viewProjectionMatrix = projectionMatrix;
-        uniforms.foregroundColor = {_color.m_X, _color.m_Y, _color.m_Z,
-                                    _color.m_W};
-
-        [renderEncoder setVertexBytes:&uniforms
-                               length:sizeof(uniforms)
-                              atIndex:1];
-        [renderEncoder setFragmentBytes:&uniforms
-                                 length:sizeof(uniforms)
-                                atIndex:0];
-        spCTextMetal metalText = static_cast<spCTextMetal>(_text);
-        spCFontMetal font = metalText->GetFont();
-        id<MTLTexture> atlasTexture =
-            font->GetAtlasTexture()->GetRGBMetalTexture();
-        [renderEncoder setFragmentTexture:atlasTexture atIndex:0];
-
-        [renderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-                                  indexCount:[textMesh.indexBuffer length] /
-                                             sizeof(uint16_t)
-                                   indexType:MTLIndexTypeUint16_t
-                                 indexBuffer:textMesh.indexBuffer
-                           indexBufferOffset:0];
-
-        [renderEncoder endEncoding];
-        rendererContext->currentLoadAction = MTLLoadActionLoad;
-    }
-#endif /*USE_SYSTEM_UI*/
 }
 
 bool CRendererMetal::CreateMetalTextureFromDecoderFrame(

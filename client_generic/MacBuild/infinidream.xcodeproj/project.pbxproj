@@ -49,8 +49,6 @@
 		12579D4A2B83C99100604B41 /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 12D020022B83C86C0036357D /* libssl.a */; };
 		1270D0EF2B28975500E1DCE3 /* PlatformUtils_Mac.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1270D0EE2B28975400E1DCE3 /* PlatformUtils_Mac.mm */; };
 		1270D0F02B28975500E1DCE3 /* PlatformUtils_Mac.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1270D0EE2B28975400E1DCE3 /* PlatformUtils_Mac.mm */; };
-		12A00CD52B0D31E6001C0792 /* Lato.sddf in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD42B0D31E6001C0792 /* Lato.sddf */; };
-		12A00CD72B0D31F9001C0792 /* Lato.sddf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 12A00CD42B0D31E6001C0792 /* Lato.sddf */; };
 		12A00CD92B0FCA39001C0792 /* infinidream.icns in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD82B0FCA39001C0792 /* infinidream.icns */; };
 		12A00CDA2B0FCA39001C0792 /* infinidream.icns in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD82B0FCA39001C0792 /* infinidream.icns */; };
 		12A00CDC2B0FCA6C001C0792 /* e-dream-attr.png in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */; };
@@ -207,18 +205,10 @@
 		467B6FC92AE6D031001C80CB /* EDreamClient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 467B6FC82AE6D031001C80CB /* EDreamClient.cpp */; };
 		467B6FCA2AE6D031001C80CB /* EDreamClient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 467B6FC82AE6D031001C80CB /* EDreamClient.cpp */; };
 		46C427BB2AF8F575009C3879 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 467230BC2AC17EAA00017C51 /* Metal.framework */; };
-		46D2E8EF2AFBA64B0054049D /* MBEMesh.m in Sources */ = {isa = PBXBuildFile; fileRef = 46D2E8E82AFBA64B0054049D /* MBEMesh.m */; };
-		46D2E8F02AFBA64B0054049D /* MBEMesh.m in Sources */ = {isa = PBXBuildFile; fileRef = 46D2E8E82AFBA64B0054049D /* MBEMesh.m */; };
-		46D2E8F12AFBA64B0054049D /* MBEFontAtlas.m in Sources */ = {isa = PBXBuildFile; fileRef = 46D2E8E92AFBA64B0054049D /* MBEFontAtlas.m */; };
-		46D2E8F22AFBA64B0054049D /* MBEFontAtlas.m in Sources */ = {isa = PBXBuildFile; fileRef = 46D2E8E92AFBA64B0054049D /* MBEFontAtlas.m */; };
-		46D2E8F32AFBA64B0054049D /* MBETextMesh.m in Sources */ = {isa = PBXBuildFile; fileRef = 46D2E8EE2AFBA64B0054049D /* MBETextMesh.m */; };
-		46D2E8F42AFBA64B0054049D /* MBETextMesh.m in Sources */ = {isa = PBXBuildFile; fileRef = 46D2E8EE2AFBA64B0054049D /* MBETextMesh.m */; };
 		46D2E8FD2AFBBBF50054049D /* TextMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 46D2E8FC2AFBBBF50054049D /* TextMetal.mm */; };
 		46D2E8FE2AFBBBF50054049D /* TextMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 46D2E8FC2AFBBBF50054049D /* TextMetal.mm */; };
 		46D2E9012AFBC3720054049D /* Text.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 46D2E9002AFBC3720054049D /* Text.cpp */; };
 		46D2E9022AFBC3720054049D /* Text.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 46D2E9002AFBC3720054049D /* Text.cpp */; };
-		46D2E9052AFBF8F70054049D /* MBEMathUtilities.m in Sources */ = {isa = PBXBuildFile; fileRef = 46D2E9042AFBF8F70054049D /* MBEMathUtilities.m */; };
-		46D2E9062AFBF8F70054049D /* MBEMathUtilities.m in Sources */ = {isa = PBXBuildFile; fileRef = 46D2E9042AFBF8F70054049D /* MBEMathUtilities.m */; };
 		46ED5CB12AF5326A00AF8F45 /* MetalShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 46ED5CAF2AF5326A00AF8F45 /* MetalShaders.metal */; };
 		46ED5CB22AF5326A00AF8F45 /* MetalShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 46ED5CAF2AF5326A00AF8F45 /* MetalShaders.metal */; };
 		46ED5CB32AF5326A00AF8F45 /* DisplayMetal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 46ED5CB02AF5326A00AF8F45 /* DisplayMetal.cpp */; };
@@ -379,7 +369,6 @@
 		F0C100032C1372EF007FA506 /* SettingsDialog.xib in Resources */ = {isa = PBXBuildFile; fileRef = F0E9CE352C136B0500C4D695 /* SettingsDialog.xib */; };
 		F0C100042C1372EF007FA505 /* osd-pill-r.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994532BA0912200B018C7 /* osd-pill-r.png */; };
 		F0C100052C1372EF007FA505 /* BuildData.json in Resources */ = {isa = PBXBuildFile; fileRef = 1243576B2B31FC1B00CCD62A /* BuildData.json */; };
-		F0C100062C1372EF007FA505 /* Lato.sddf in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD42B0D31E6001C0792 /* Lato.sddf */; };
 		F0C100072C1372EF007FA505 /* osd-forward10.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994662BA0A07200B018C7 /* osd-forward10.png */; };
 		F0C100082C1372EF007FA505 /* osd-brightness.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994672BA0A07300B018C7 /* osd-brightness.png */; };
 		F0C100092C1372EF007FA505 /* osd-like.png in Resources */ = {isa = PBXBuildFile; fileRef = F0F6D4242BCD504500222647 /* osd-like.png */; };
@@ -406,7 +395,6 @@
 		F0C100222C1372EF007FA505 /* Common.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B192A0E8E591000CE185C /* Common.cpp */; };
 		F0C100232C1372EF007FA505 /* Exception.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B192B0E8E591000CE185C /* Exception.cpp */; };
 		F0C100242C1372EF007FA505 /* Log.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B192C0E8E591000CE185C /* Log.cpp */; };
-		F0C100252C1372EF007FA505 /* MBETextMesh.m in Sources */ = {isa = PBXBuildFile; fileRef = 46D2E8EE2AFBA64B0054049D /* MBETextMesh.m */; };
 		F0C100262C1372EF007FA505 /* pool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19300E8E591000CE185C /* pool.cpp */; };
 		F0C100272C1372EF007FA505 /* ContentDecoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19400E8E59E700CE185C /* ContentDecoder.cpp */; };
 		F0C100282C1372EF007FA505 /* JSONStorage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 461C9D7A2B28BA50000C44E9 /* JSONStorage.cpp */; };
@@ -422,7 +410,6 @@
 		F0C100332C1372EF007FA505 /* Renderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A400E8E651000CE185C /* Renderer.cpp */; };
 		F0C100342C1372EF007FA505 /* Shader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A410E8E651000CE185C /* Shader.cpp */; };
 		F0C100352C1372EF007FA505 /* Texture.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A420E8E651000CE185C /* Texture.cpp */; };
-		F0C100362C1372EF007FA505 /* MBEMesh.m in Sources */ = {isa = PBXBuildFile; fileRef = 46D2E8E82AFBA64B0054049D /* MBEMesh.m */; };
 		F0C100372C1372EF007FA505 /* FontMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C42AC18FDB00017C51 /* FontMetal.mm */; };
 		F0C100382C1372EF007FA505 /* StringFormat.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1220B5382B3DC64D00D68410 /* StringFormat.cpp */; };
 		F0C100392C1372EF007FA505 /* TextureFlat.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A430E8E651000CE185C /* TextureFlat.cpp */; };
@@ -431,7 +418,6 @@
 		F0C1003C2C1372EF007FA505 /* Rect.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 214B75060EBBA78900B5B897 /* Rect.cpp */; };
 		F0C1003D2C1372EF007FA505 /* MetalShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 46ED5CAF2AF5326A00AF8F45 /* MetalShaders.metal */; };
 		F0C1003E2C1372EF007FA505 /* ESMetalView.m in Sources */ = {isa = PBXBuildFile; fileRef = 467230B62AC17A9E00017C51 /* ESMetalView.m */; };
-		F0C1003F2C1372EF007FA505 /* MBEMathUtilities.m in Sources */ = {isa = PBXBuildFile; fileRef = 46D2E9042AFBF8F70054049D /* MBEMathUtilities.m */; };
 		F0C100402C1372EF007FA505 /* ESScreensaverView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA520EC7479A005E246D /* ESScreensaverView.mm */; };
 		F0C100412C1372EF007FA505 /* ESScreensaver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA540EC74853005E246D /* ESScreensaver.cpp */; };
 		F0C100422C1372EF007FA505 /* EDreamClient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 467B6FC82AE6D031001C80CB /* EDreamClient.cpp */; };
@@ -441,7 +427,6 @@
 		F0C100462C1372EF007FA505 /* DisplayMetal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 46ED5CB02AF5326A00AF8F45 /* DisplayMetal.cpp */; };
 		F0C100472C1372EF007FA505 /* ContentDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212313190F503C4500702B2C /* ContentDownloader.cpp */; };
 		F0C100482C1372EF007FA505 /* ShaderMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 46FA9E192B03CB0500708000 /* ShaderMetal.mm */; };
-		F0C1004C2C1372EF007FA505 /* MBEFontAtlas.m in Sources */ = {isa = PBXBuildFile; fileRef = 46D2E8E92AFBA64B0054049D /* MBEFontAtlas.m */; };
 		F0C1004D2C1372EF007FA505 /* AlignedBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 210335030F549BEF00A83F17 /* AlignedBuffer.cpp */; };
 		F0C1004E2C1372EF007FA505 /* TextureFlatMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C72AC1AE9D00017C51 /* TextureFlatMetal.mm */; };
 		F0C1004F2C1372EF007FA505 /* TextMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 46D2E8FC2AFBBBF50054049D /* TextMetal.mm */; };
@@ -534,16 +519,12 @@
 		F0E9CE5D2C136B0500C4D694 /* RendererMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C12AC1817500017C51 /* RendererMetal.mm */; };
 		F0E9CE5E2C136B0500C4D694 /* EDreamClient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 467B6FC82AE6D031001C80CB /* EDreamClient.cpp */; };
 		F0E9CE5F2C136B0500C4D694 /* Text.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 46D2E9002AFBC3720054049D /* Text.cpp */; };
-		F0E9CE602C136B0500C4D694 /* MBEMesh.m in Sources */ = {isa = PBXBuildFile; fileRef = 46D2E8E82AFBA64B0054049D /* MBEMesh.m */; };
 		F0E9CE612C136B0500C4D694 /* Font.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A3F0E8E651000CE185C /* Font.cpp */; };
 		F0E9CE622C136B0500C4D694 /* Renderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A400E8E651000CE185C /* Renderer.cpp */; };
 		F0E9CE632C136B0500C4D694 /* PlatformUtils_Mac.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1270D0EE2B28975400E1DCE3 /* PlatformUtils_Mac.mm */; };
 		F0E9CE642C136B0500C4D694 /* Shader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A410E8E651000CE185C /* Shader.cpp */; };
 		F0E9CE652C136B0500C4D694 /* Texture.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A420E8E651000CE185C /* Texture.cpp */; };
-		F0E9CE662C136B0500C4D694 /* MBEFontAtlas.m in Sources */ = {isa = PBXBuildFile; fileRef = 46D2E8E92AFBA64B0054049D /* MBEFontAtlas.m */; };
-		F0E9CE672C136B0500C4D694 /* MBEMathUtilities.m in Sources */ = {isa = PBXBuildFile; fileRef = 46D2E9042AFBF8F70054049D /* MBEMathUtilities.m */; };
 		F0E9CE682C136B0500C4D694 /* TextureFlat.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A430E8E651000CE185C /* TextureFlat.cpp */; };
-		F0E9CE692C136B0500C4D694 /* MBETextMesh.m in Sources */ = {isa = PBXBuildFile; fileRef = 46D2E8EE2AFBA64B0054049D /* MBETextMesh.m */; };
 		F0E9CE6A2C136B0500C4D694 /* FontMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C42AC18FDB00017C51 /* FontMetal.mm */; };
 		F0E9CE6B2C136B0500C4D694 /* Hud.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 21D90D010EA1D52000F8E5D5 /* Hud.cpp */; };
 		F0E9CE6C2C136B0500C4D694 /* StringFormat.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1220B5382B3DC64D00D68410 /* StringFormat.cpp */; };
@@ -590,7 +571,6 @@
 		F0E9CEA12C136B0500C4D694 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2135D2670EC70571005E246D /* AppKit.framework */; };
 		F0E9CEA22C136B0500C4D694 /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49DA2AB8864600C77F6D /* VideoToolbox.framework */; };
 		F0E9CEA32C136B0500C4D694 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 21CE8E3B0F6EE12B00DDF96A /* SystemConfiguration.framework */; };
-		F0E9CEA52C136B0500C4D694 /* Lato.sddf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 12A00CD42B0D31E6001C0792 /* Lato.sddf */; };
 		F0E9CEAB2C136B0500C4D694 /* logo.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE240F30F82800B2C27A /* logo.png */; };
 		F0E9CEAC2C136B0500C4D694 /* Credits.html in CopyFiles */ = {isa = PBXBuildFile; fileRef = 21006FBD1017BC2C004A6511 /* Credits.html */; };
 		F0F4CE4C2E785E6F00C1F6AA /* ScreensaverHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0F4CE4B2E785E6F00C1F6AA /* ScreensaverHelper.swift */; };
@@ -670,7 +650,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 7;
 			files = (
-				12A00CD72B0D31F9001C0792 /* Lato.sddf in CopyFiles */,
 				2160FE800F30F8A000B2C27A /* logo.png in CopyFiles */,
 				21006FC81017BC4B004A6511 /* Credits.html in CopyFiles */,
 			);
@@ -712,7 +691,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 7;
 			files = (
-				F0E9CEA52C136B0500C4D694 /* Lato.sddf in CopyFiles */,
 				F0E9CEAB2C136B0500C4D694 /* logo.png in CopyFiles */,
 				F0E9CEAC2C136B0500C4D694 /* Credits.html in CopyFiles */,
 			);
@@ -793,7 +771,6 @@
 		1270D0EA2B28960500E1DCE3 /* PlatformUtils.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = PlatformUtils.h; path = ../Client/PlatformUtils.h; sourceTree = "<group>"; };
 		1270D0EE2B28975400E1DCE3 /* PlatformUtils_Mac.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PlatformUtils_Mac.mm; sourceTree = "<group>"; };
 		12726C132B694F36003C0FF6 /* infinidream App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "infinidream App.entitlements"; sourceTree = "<group>"; };
-		12A00CD42B0D31E6001C0792 /* Lato.sddf */ = {isa = PBXFileReference; lastKnownFileType = file.bplist; path = Lato.sddf; sourceTree = "<group>"; };
 		12A00CD82B0FCA39001C0792 /* infinidream.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = infinidream.icns; sourceTree = SOURCE_ROOT; };
 		12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "e-dream-attr.png"; sourceTree = "<group>"; };
 		12CA4A452B83DE3D00A2EAD6 /* libsioclient_tls.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libsioclient_tls.a; path = "../socket.io-client-cpp/lib/libsioclient_tls.a"; sourceTree = "<group>"; };
@@ -896,13 +873,6 @@
 		467B6FC72AE6CFFB001C80CB /* EDreamClient.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = EDreamClient.h; path = ../Networking/EDreamClient.h; sourceTree = "<group>"; };
 		467B6FC82AE6D031001C80CB /* EDreamClient.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = EDreamClient.cpp; path = ../Networking/EDreamClient.cpp; sourceTree = "<group>"; };
 		46D2E8E62AFBA57E0054049D /* ESMetalView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ESMetalView.h; path = ../../DisplayOutput/Metal/ESMetalView.h; sourceTree = "<group>"; };
-		46D2E8E82AFBA64B0054049D /* MBEMesh.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MBEMesh.m; sourceTree = "<group>"; };
-		46D2E8E92AFBA64B0054049D /* MBEFontAtlas.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MBEFontAtlas.m; sourceTree = "<group>"; };
-		46D2E8EA2AFBA64B0054049D /* MBETextMesh.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MBETextMesh.h; sourceTree = "<group>"; };
-		46D2E8EB2AFBA64B0054049D /* MBEFontAtlas.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MBEFontAtlas.h; sourceTree = "<group>"; };
-		46D2E8EC2AFBA64B0054049D /* MBEMesh.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MBEMesh.h; sourceTree = "<group>"; };
-		46D2E8ED2AFBA64B0054049D /* MBETypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MBETypes.h; sourceTree = "<group>"; };
-		46D2E8EE2AFBA64B0054049D /* MBETextMesh.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MBETextMesh.m; sourceTree = "<group>"; };
 		46D2E8F52AFBAE230054049D /* Font.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Font.h; path = ../DisplayOutput/Renderer/Font.h; sourceTree = "<group>"; };
 		46D2E8F62AFBAE330054049D /* Renderer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Renderer.h; path = ../DisplayOutput/Renderer/Renderer.h; sourceTree = "<group>"; };
 		46D2E8F72AFBAE330054049D /* Shader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Shader.h; path = ../DisplayOutput/Renderer/Shader.h; sourceTree = "<group>"; };
@@ -913,8 +883,6 @@
 		46D2E8FC2AFBBBF50054049D /* TextMetal.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = TextMetal.mm; path = ../../DisplayOutput/Metal/TextMetal.mm; sourceTree = "<group>"; };
 		46D2E8FF2AFBBD2D0054049D /* FontMetal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = FontMetal.h; path = ../../DisplayOutput/Metal/FontMetal.h; sourceTree = "<group>"; };
 		46D2E9002AFBC3720054049D /* Text.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Text.cpp; path = ../DisplayOutput/Renderer/Text.cpp; sourceTree = "<group>"; };
-		46D2E9032AFBF8F60054049D /* MBEMathUtilities.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MBEMathUtilities.h; sourceTree = "<group>"; };
-		46D2E9042AFBF8F70054049D /* MBEMathUtilities.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MBEMathUtilities.m; sourceTree = "<group>"; };
 		46E9C2592AE7F32700C5444A /* libboost_json.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_json.a; path = ../boost/osx/lib/libboost_json.a; sourceTree = "<group>"; };
 		46ED5CAE2AF531EA00AF8F45 /* ShaderUniforms.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ShaderUniforms.h; path = ../../DisplayOutput/Metal/ShaderUniforms.h; sourceTree = "<group>"; };
 		46ED5CAF2AF5326A00AF8F45 /* MetalShaders.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = MetalShaders.metal; path = ../../DisplayOutput/Metal/MetalShaders.metal; sourceTree = "<group>"; };
@@ -1484,7 +1452,6 @@
 				12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */,
 				21006FBD1017BC2C004A6511 /* Credits.html */,
 				12A00CD82B0FCA39001C0792 /* infinidream.icns */,
-				12A00CD42B0D31E6001C0792 /* Lato.sddf */,
 				4628A55D2B0F84EF001C3078 /* Lato-Regular.ttf */,
 				2160FE240F30F82800B2C27A /* logo.png */,
 				21ADBB211305D380000A9F20 /* green.tif */,
@@ -1575,7 +1542,6 @@
 		467230B02AC16A7200017C51 /* Metal */ = {
 			isa = PBXGroup;
 			children = (
-				46D2E8E72AFBA64B0054049D /* TextRendering */,
 				46D2E8FC2AFBBBF50054049D /* TextMetal.mm */,
 				46D2E8FB2AFBB37A0054049D /* TextMetal.h */,
 				467230C72AC1AE9D00017C51 /* TextureFlatMetal.mm */,
@@ -1595,23 +1561,6 @@
 			);
 			name = Metal;
 			path = ../DisplayOutput/Metal;
-			sourceTree = "<group>";
-		};
-		46D2E8E72AFBA64B0054049D /* TextRendering */ = {
-			isa = PBXGroup;
-			children = (
-				46D2E9042AFBF8F70054049D /* MBEMathUtilities.m */,
-				46D2E9032AFBF8F60054049D /* MBEMathUtilities.h */,
-				46D2E8E92AFBA64B0054049D /* MBEFontAtlas.m */,
-				46D2E8EB2AFBA64B0054049D /* MBEFontAtlas.h */,
-				46D2E8E82AFBA64B0054049D /* MBEMesh.m */,
-				46D2E8EC2AFBA64B0054049D /* MBEMesh.h */,
-				46D2E8EE2AFBA64B0054049D /* MBETextMesh.m */,
-				46D2E8EA2AFBA64B0054049D /* MBETextMesh.h */,
-				46D2E8ED2AFBA64B0054049D /* MBETypes.h */,
-			);
-			name = TextRendering;
-			path = ../../DisplayOutput/Metal/TextRendering;
 			sourceTree = "<group>";
 		};
 		F02C15182E0194CA00BFFFF4 /* First startup */ = {
@@ -1787,7 +1736,6 @@
 				F09BCEBD2DF33CCE00EA1BD3 /* Screensaver-Info.plist in Resources */,
 				F05994582BA0912300B018C7 /* osd-pill-r.png in Resources */,
 				1243576C2B31FC1B00CCD62A /* BuildData.json in Resources */,
-				12A00CD52B0D31E6001C0792 /* Lato.sddf in Resources */,
 				F05994732BA0A07300B018C7 /* osd-forward10.png in Resources */,
 				1BEBFE3E2ECB6B2B00F39019 /* osd-next.png in Resources */,
 				F05994752BA0A07300B018C7 /* osd-brightness.png in Resources */,
@@ -1884,7 +1832,6 @@
 				F0C100032C1372EF007FA506 /* SettingsDialog.xib in Resources */,
 				F0C100042C1372EF007FA505 /* osd-pill-r.png in Resources */,
 				F0C100052C1372EF007FA505 /* BuildData.json in Resources */,
-				F0C100062C1372EF007FA505 /* Lato.sddf in Resources */,
 				F0C100072C1372EF007FA505 /* osd-forward10.png in Resources */,
 				1BEBFE412ECB6B2B00F39019 /* osd-next.png in Resources */,
 				F0C100082C1372EF007FA505 /* osd-brightness.png in Resources */,
@@ -2077,7 +2024,6 @@
 				467230C32AC1835300017C51 /* RendererMetal.mm in Sources */,
 				467B6FCA2AE6D031001C80CB /* EDreamClient.cpp in Sources */,
 				46D2E9022AFBC3720054049D /* Text.cpp in Sources */,
-				46D2E8F02AFBA64B0054049D /* MBEMesh.m in Sources */,
 				2160FAD50F30F45100B2C27A /* Font.cpp in Sources */,
 				2160FAD60F30F45100B2C27A /* Renderer.cpp in Sources */,
 				1270D0F02B28975500E1DCE3 /* PlatformUtils_Mac.mm in Sources */,
@@ -2085,11 +2031,8 @@
 				F0141B822C594A2D00DBA60E /* MessageQueue.cpp in Sources */,
 				2160FAD80F30F45100B2C27A /* Texture.cpp in Sources */,
 				F01CCF192C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */,
-				46D2E8F22AFBA64B0054049D /* MBEFontAtlas.m in Sources */,
 				F0917E0A2E32764C000DBED8 /* ESAppDelegate.mm in Sources */,
-				46D2E9062AFBF8F70054049D /* MBEMathUtilities.m in Sources */,
 				2160FAD90F30F45100B2C27A /* TextureFlat.cpp in Sources */,
-				46D2E8F42AFBA64B0054049D /* MBETextMesh.m in Sources */,
 				467230C62AC18FDB00017C51 /* FontMetal.mm in Sources */,
 				F0141BB22C6BBB9D00DBA60E /* PlaylistManager.cpp in Sources */,
 				2160FADB0F30F45100B2C27A /* Hud.cpp in Sources */,
@@ -2123,7 +2066,6 @@
 				218878D60EC6CDE2001ABD2E /* Exception.cpp in Sources */,
 				F0387EA02E0EF1D4005410D5 /* ESWindow.mm in Sources */,
 				218878D70EC6CDE2001ABD2E /* Log.cpp in Sources */,
-				46D2E8F32AFBA64B0054049D /* MBETextMesh.m in Sources */,
 				218878DB0EC6CDE2001ABD2E /* pool.cpp in Sources */,
 				218878DC0EC6CDE2001ABD2E /* ContentDecoder.cpp in Sources */,
 				461C9D7C2B28BA50000C44E9 /* JSONStorage.cpp in Sources */,
@@ -2143,7 +2085,6 @@
 				218878F80EC6CDE2001ABD2E /* Renderer.cpp in Sources */,
 				218878F90EC6CDE2001ABD2E /* Shader.cpp in Sources */,
 				218878FA0EC6CDE2001ABD2E /* Texture.cpp in Sources */,
-				46D2E8EF2AFBA64B0054049D /* MBEMesh.m in Sources */,
 				467230C52AC18FDB00017C51 /* FontMetal.mm in Sources */,
 				1220B5392B3DC64D00D68410 /* StringFormat.cpp in Sources */,
 				218878FB0EC6CDE2001ABD2E /* TextureFlat.cpp in Sources */,
@@ -2152,7 +2093,6 @@
 				218878FE0EC6CDE2001ABD2E /* Rect.cpp in Sources */,
 				46ED5CB12AF5326A00AF8F45 /* MetalShaders.metal in Sources */,
 				467230B72AC17A9E00017C51 /* ESMetalView.m in Sources */,
-				46D2E9052AFBF8F70054049D /* MBEMathUtilities.m in Sources */,
 				F0917E0B2E32764C000DBED8 /* ESAppDelegate.mm in Sources */,
 				2135DA530EC7479A005E246D /* ESScreensaverView.mm in Sources */,
 				2135DA550EC74853005E246D /* ESScreensaver.cpp in Sources */,
@@ -2165,7 +2105,6 @@
 				212313270F503C4500702B2C /* ContentDownloader.cpp in Sources */,
 				F02A5C3F2C453FEF00B57FBD /* DreamDownloader.cpp in Sources */,
 				46FA9E1A2B03CB0500708000 /* ShaderMetal.mm in Sources */,
-				46D2E8F12AFBA64B0054049D /* MBEFontAtlas.m in Sources */,
 				210335040F549BEF00A83F17 /* AlignedBuffer.cpp in Sources */,
 				467230C82AC1AE9D00017C51 /* TextureFlatMetal.mm in Sources */,
 				46D2E8FD2AFBBBF50054049D /* TextMetal.mm in Sources */,
@@ -2188,7 +2127,6 @@
 				F0C100232C1372EF007FA505 /* Exception.cpp in Sources */,
 				F0387EA12E0EF1D4005410D5 /* ESWindow.mm in Sources */,
 				F0C100242C1372EF007FA505 /* Log.cpp in Sources */,
-				F0C100252C1372EF007FA505 /* MBETextMesh.m in Sources */,
 				F0C100262C1372EF007FA505 /* pool.cpp in Sources */,
 				F0C100272C1372EF007FA505 /* ContentDecoder.cpp in Sources */,
 				F0C100282C1372EF007FA505 /* JSONStorage.cpp in Sources */,
@@ -2208,7 +2146,6 @@
 				F0C100332C1372EF007FA505 /* Renderer.cpp in Sources */,
 				F0C100342C1372EF007FA505 /* Shader.cpp in Sources */,
 				F0C100352C1372EF007FA505 /* Texture.cpp in Sources */,
-				F0C100362C1372EF007FA505 /* MBEMesh.m in Sources */,
 				F0C100372C1372EF007FA505 /* FontMetal.mm in Sources */,
 				F0C100382C1372EF007FA505 /* StringFormat.cpp in Sources */,
 				F0C100392C1372EF007FA505 /* TextureFlat.cpp in Sources */,
@@ -2217,7 +2154,6 @@
 				F0C1003C2C1372EF007FA505 /* Rect.cpp in Sources */,
 				F0C1003D2C1372EF007FA505 /* MetalShaders.metal in Sources */,
 				F0C1003E2C1372EF007FA505 /* ESMetalView.m in Sources */,
-				F0C1003F2C1372EF007FA505 /* MBEMathUtilities.m in Sources */,
 				F0917E0C2E32764C000DBED8 /* ESAppDelegate.mm in Sources */,
 				F0C100402C1372EF007FA505 /* ESScreensaverView.mm in Sources */,
 				F0C100412C1372EF007FA505 /* ESScreensaver.cpp in Sources */,
@@ -2230,7 +2166,6 @@
 				F0C100472C1372EF007FA505 /* ContentDownloader.cpp in Sources */,
 				F02A5C3E2C453FEF00B57FBD /* DreamDownloader.cpp in Sources */,
 				F0C100482C1372EF007FA505 /* ShaderMetal.mm in Sources */,
-				F0C1004C2C1372EF007FA505 /* MBEFontAtlas.m in Sources */,
 				F0C1004D2C1372EF007FA505 /* AlignedBuffer.cpp in Sources */,
 				F0C1004E2C1372EF007FA505 /* TextureFlatMetal.mm in Sources */,
 				F0C1004F2C1372EF007FA505 /* TextMetal.mm in Sources */,
@@ -2275,7 +2210,6 @@
 				F0E9CE5D2C136B0500C4D694 /* RendererMetal.mm in Sources */,
 				F0E9CE5E2C136B0500C4D694 /* EDreamClient.cpp in Sources */,
 				F0E9CE5F2C136B0500C4D694 /* Text.cpp in Sources */,
-				F0E9CE602C136B0500C4D694 /* MBEMesh.m in Sources */,
 				F0E9CE612C136B0500C4D694 /* Font.cpp in Sources */,
 				F0E9CE622C136B0500C4D694 /* Renderer.cpp in Sources */,
 				F0E9CE632C136B0500C4D694 /* PlatformUtils_Mac.mm in Sources */,
@@ -2283,11 +2217,8 @@
 				F0141B812C594A2D00DBA60E /* MessageQueue.cpp in Sources */,
 				F0E9CE652C136B0500C4D694 /* Texture.cpp in Sources */,
 				F01CCF172C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */,
-				F0E9CE662C136B0500C4D694 /* MBEFontAtlas.m in Sources */,
 				F0917E092E32764C000DBED8 /* ESAppDelegate.mm in Sources */,
-				F0E9CE672C136B0500C4D694 /* MBEMathUtilities.m in Sources */,
 				F0E9CE682C136B0500C4D694 /* TextureFlat.cpp in Sources */,
-				F0E9CE692C136B0500C4D694 /* MBETextMesh.m in Sources */,
 				F0E9CE6A2C136B0500C4D694 /* FontMetal.mm in Sources */,
 				F0141BB02C6BBB9D00DBA60E /* PlaylistManager.cpp in Sources */,
 				F0E9CE6B2C136B0500C4D694 /* Hud.cpp in Sources */,
