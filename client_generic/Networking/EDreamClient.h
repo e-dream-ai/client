@@ -62,7 +62,7 @@ private:
     static std::vector<PlaylistEntry> ParsePlaylist(std::string_view uuid);
 
 
-    static std::tuple<std::string, std::string, bool, int64_t> ParsePlaylistMetadata(std::string_view uuid);
+    static std::tuple<std::string, std::string, bool, int64_t, int> ParsePlaylistMetadata(std::string_view uuid);
 
     // Telemetry reporting
     static void SendTelemetry(const std::string& eventType, const boost::json::object& eventData);

@@ -10,14 +10,11 @@
 #include "Log.h"
 #include "Player.h"
 #include "PlatformUtils.h"
-#include "Settings.h"
 #include <algorithm>
 #include <random>
 
 PlaylistManager::PlaylistManager()
 : m_started(false), m_playbackMode(PlaybackMode::Normal), m_offlineMode(false), m_currentPosition(0), m_cacheManager(Cache::CacheManager::getInstance()),  m_shouldTerminate(false) {
-    m_loopIterations = g_Settings()->Get("settings.player.LoopIterations", 0);
-    g_Log->Info("LoopIterations setting: %d", m_loopIterations);
 }
 
 PlaylistManager::~PlaylistManager() {
@@ -101,6 +98,8 @@ void PlaylistManager::initializeOfflinePlaylist() {
     m_currentPlaylistArtist = "Local";
     m_isPlaylistNSFW = false;
     m_playlistTimestamp = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    m_loopIterations = 0;
+    m_currentLoopCount = 0;
 }
 
 
@@ -123,7 +122,7 @@ bool PlaylistManager::parsePlaylist(const std::string& playlistUUID) {
     }
 
     // Get the playlist metadata
-    auto [playlistName, playlistArtist, isNSFW, timestamp] = EDreamClient::ParsePlaylistMetadata(playlistUUID);
+    auto [playlistName, playlistArtist, isNSFW, timestamp, loops] = EDreamClient::ParsePlaylistMetadata(playlistUUID);
 
     // Filter out evicted UUIDs and unprocessed dreams
     if (!m_offlineMode) {
@@ -138,6 +137,13 @@ bool PlaylistManager::parsePlaylist(const std::string& playlistUUID) {
     m_currentPlaylistArtist = playlistArtist;
     m_isPlaylistNSFW = isNSFW;
     m_playlistTimestamp = timestamp;
+
+    // Update loop iterations from server-provided value and reset counter if it changed
+    if (loops != m_loopIterations) {
+        m_currentLoopCount = 0;
+    }
+    m_loopIterations = loops;
+    g_Log->Info("Playlist loops: %d", m_loopIterations);
 
     g_Log->Info("Updated playlist: %s by %s (UUID: %s, NSFW: %s, Timestamp: %lld) with %zu dreams",
                 m_currentPlaylistName.c_str(), m_currentPlaylistArtist.c_str(),
@@ -531,7 +537,7 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
 
         // Loop iteration logic: if current dream is a loop and we haven't exhausted iterations,
         // pick a random matching loop (including self) and replay with seamless transition
-        if (m_loopIterations > 0 && isLoopingDream(currentEntry) && m_currentLoopCount < m_loopIterations) {
+        if (!forceNext && m_loopIterations > 0 && isLoopingDream(currentEntry) && m_currentLoopCount < m_loopIterations) {
             std::vector<size_t> loopCandidates;
             for (size_t i = 0; i < m_playlist.size(); i++) {
                 const auto& entry = m_playlist[i];
@@ -1002,8 +1008,8 @@ void PlaylistManager::shufflePlaylist() {
     m_currentPosition = 0;
 }
 
-std::tuple<std::string, std::string, bool, int64_t> PlaylistManager::getPlaylistInfo() const {
-    return {m_currentPlaylistName, m_currentPlaylistArtist, m_isPlaylistNSFW, m_playlistTimestamp};
+std::tuple<std::string, std::string, bool, int64_t, int> PlaylistManager::getPlaylistInfo() const {
+    return {m_currentPlaylistName, m_currentPlaylistArtist, m_isPlaylistNSFW, m_playlistTimestamp, m_loopIterations};
 }
 
 const Cache::Dream* PlaylistManager::getDreamMetadata(const std::string& dreamUUID) const {
@@ -1089,7 +1095,7 @@ bool PlaylistManager::checkForPlaylistChanges() {
     }
 
     // Then parse the metadata to get the new timestamp
-    auto [newName, newArtist, newNSFW, newTimestamp] = EDreamClient::ParsePlaylistMetadata(m_currentPlaylistUUID);
+    auto [newName, newArtist, newNSFW, newTimestamp, newLoops] = EDreamClient::ParsePlaylistMetadata(m_currentPlaylistUUID);
     
     g_Log->Info("Old timestamp: %lld, New timestamp: %lld",
                 m_playlistTimestamp, newTimestamp);

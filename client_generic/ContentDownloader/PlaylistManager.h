@@ -175,7 +175,7 @@ public:
     void shufflePlaylist();
 
     // Get playlist information (e.g., name, artist)
-    std::tuple<std::string, std::string, bool, int64_t> getPlaylistInfo() const;
+    std::tuple<std::string, std::string, bool, int64_t, int> getPlaylistInfo() const;
 
     void startPeriodicChecking();
     void stopPeriodicChecking();

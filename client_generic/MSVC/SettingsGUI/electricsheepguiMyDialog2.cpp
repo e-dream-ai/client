@@ -155,8 +155,6 @@ void electricsheepguiMyDialog2::SaveSettings()
     g_Settings()->Set("settings.player.player_fps", tempd);
 
     g_Settings()->Set("settings.player.screen", m_spinMonitor->GetValue());
-    g_Settings()->Set("settings.player.LoopIterations",
-                      m_spinRepeatLoops->GetValue());
 
     tempstr = m_spinDisplayFps->GetValue();
     // tempstr.Replace(wxT(","), wxT("."));
@@ -298,8 +296,6 @@ void electricsheepguiMyDialog2::LoadSettings()
         wxT("%.2lf"), g_Settings()->Get("settings.player.player_fps", 20.)));
     m_spinMonitor->SetValue(wxString::Format(
         wxT("%d"), g_Settings()->Get("settings.player.screen", 0)));
-    m_spinRepeatLoops->SetValue(wxString::Format(
-        wxT("%d"), g_Settings()->Get("settings.player.LoopIterations", 2)));
     m_spinDisplayFps->SetValue(wxString::Format(
         wxT("%.2lf"), g_Settings()->Get("settings.player.display_fps", 60.)));
     m_ForceWindowedDX =

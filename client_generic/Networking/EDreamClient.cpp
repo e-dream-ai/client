@@ -1825,24 +1825,24 @@ std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
     return entries;
 }
 
-std::tuple<std::string, std::string, bool, int64_t> EDreamClient::ParsePlaylistMetadata(std::string_view uuid) {
+std::tuple<std::string, std::string, bool, int64_t, int> EDreamClient::ParsePlaylistMetadata(std::string_view uuid) {
     // Default playlist doesn't have any metadata right now, hardcoding this
     if (uuid.empty()) {
-        return {"Popular dreams", "Various artists", false, 0};
+        return {"Popular dreams", "Various artists", false, 0, 0};
     }
-    
+
     // Open playlist and grab content
     fs::path filePath = Cache::PathManager::getInstance().jsonPlaylistPath() / ("playlist_" + std::string(uuid) + ".json");
     std::ifstream file(filePath);
     if (!file.is_open())
     {
         g_Log->Error("Error opening file: %s", filePath.string().c_str());
-        return {"", "", false, 0};
+        return {"", "", false, 0, 0};
     }
     std::string contents{(std::istreambuf_iterator<char>(file)),
         (std::istreambuf_iterator<char>())};
     file.close();
-    
+
     try
     {
         boost::property_tree::ptree pt;
@@ -1851,13 +1851,14 @@ std::tuple<std::string, std::string, bool, int64_t> EDreamClient::ParsePlaylistM
 
         auto data = pt.get_child("data");
         auto playlist = data.get_child("playlist");
-        
+
         std::string name = playlist.get<std::string>("name", "");
         std::string artist = playlist.get<std::string>("artist", "");
         bool nsfw = playlist.get<bool>("nsfw", false);
         int64_t timestamp = playlist.get<int64_t>("timestamp", 0);
+        int loops = playlist.get<int>("loops", 0);
 
-        return {name, artist, nsfw, timestamp};
+        return {name, artist, nsfw, timestamp, loops};
     }
     catch (const boost::property_tree::json_parser_error& e)
     {
@@ -1867,8 +1868,8 @@ std::tuple<std::string, std::string, bool, int64_t> EDreamClient::ParsePlaylistM
     {
         g_Log->Error("Error parsing playlist metadata: %s", e.what());
     }
-    
-    return {"", "", false, 0};
+
+    return {"", "", false, 0, 0};
 }
 
 
