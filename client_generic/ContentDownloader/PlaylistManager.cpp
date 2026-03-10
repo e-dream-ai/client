@@ -840,20 +840,28 @@ const Cache::Dream* PlaylistManager::moveToNextDream(const NextDreamDecision& de
         m_currentPosition = decision.position;
     }
 
-    // Track loop iterations: if we were on a looping dream and moving to another dream
-    // in the same keyframe group, increment the count; otherwise reset
-    if (m_loopIterations > 0 && m_started &&
-        previousPosition < m_playlist.size() &&
-        isLoopingDream(m_playlist[previousPosition]) &&
-        isLoopingDream(m_playlist[m_currentPosition]) &&
-        m_playlist[m_currentPosition].startKeyframe == m_playlist[previousPosition].startKeyframe) {
-        m_currentLoopCount++;
-        g_Log->Info("Loop iteration count: %d/%d", m_currentLoopCount, m_loopIterations);
-    } else {
-        if (m_currentLoopCount > 0) {
-            g_Log->Info("Loop iterations reset (was %d)", m_currentLoopCount);
+    // Track loop iterations
+    if (m_loopIterations > 0) {
+        bool currentIsLoop = isLoopingDream(m_playlist[m_currentPosition]);
+        bool continuingLoop = m_started &&
+            previousPosition < m_playlist.size() &&
+            isLoopingDream(m_playlist[previousPosition]) &&
+            currentIsLoop &&
+            m_playlist[m_currentPosition].startKeyframe == m_playlist[previousPosition].startKeyframe;
+
+        if (continuingLoop) {
+            m_currentLoopCount++;
+            g_Log->Info("Loop iteration count: %d/%d", m_currentLoopCount, m_loopIterations);
+        } else if (currentIsLoop) {
+            // First arrival at a looping dream (from a non-loop or different keyframe group)
+            m_currentLoopCount = 1;
+            g_Log->Info("Loop iteration count: %d/%d (entering loop)", m_currentLoopCount, m_loopIterations);
+        } else {
+            if (m_currentLoopCount > 0) {
+                g_Log->Info("Loop iterations reset (was %d)", m_currentLoopCount);
+            }
+            m_currentLoopCount = 0;
         }
-        m_currentLoopCount = 0;
     }
 
     // If this is the first play, mark as started
