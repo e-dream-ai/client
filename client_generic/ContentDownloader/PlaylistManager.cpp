@@ -859,11 +859,6 @@ const Cache::Dream* PlaylistManager::moveToNextDream(const NextDreamDecision& de
     // If this is the first play, mark as started
     if (!m_started) {
         m_started = true;
-        // Count the initial play of a looping dream as the first loop iteration
-        if (m_loopIterations > 0 && isLoopingDream(m_playlist[m_currentPosition])) {
-            m_currentLoopCount = 1;
-            g_Log->Info("Loop iteration count: %d/%d (initial play)", m_currentLoopCount, m_loopIterations);
-        }
     } else {
         addToHistory(m_currentPosition);
     }
