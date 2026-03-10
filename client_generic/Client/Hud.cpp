@@ -49,7 +49,11 @@ bool CHudManager::Render(DisplayOutput::spCRenderer _spRenderer)
         spCHudEntry e = i->second;
         bool bRemove = false;
 
-        if (e->Visible())
+        if (!e)
+        {
+            bRemove = true;
+        }
+        else if (e->Visible())
         {
             if (!e->Render(m_Timer.Time(), _spRenderer))
                 bRemove = true;
@@ -76,7 +80,8 @@ void CHudManager::HideAll()
     for (i = m_EntryMap.begin(); i != m_EntryMap.end(); ++i)
     {
         spCHudEntry e = i->second;
-        e->Visible(false);
+        if (e)
+            e->Visible(false);
     }
 }
 
@@ -85,7 +90,7 @@ void CHudManager::Toggle(const std::string _entry)
 {
     auto it = m_EntryMap.find(_entry);
 
-    if (it == m_EntryMap.end())
+    if (it == m_EntryMap.end() || !it->second)
     {
         return;
     }
@@ -99,7 +104,7 @@ void CHudManager::Hide(const std::string _entry)
 {
     auto it = m_EntryMap.find(_entry);
 
-    if (it != m_EntryMap.end()) {
+    if (it != m_EntryMap.end() && it->second) {
         it->second->Visible(false);
     }
 }
