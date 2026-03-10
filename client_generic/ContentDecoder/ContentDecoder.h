@@ -54,7 +54,7 @@ namespace ContentDecoder
 struct sClipMetadata
 {
     std::string path;
-    double decodeFps;
+    double decodeFps = 0.0;
     Cache::Dream dreamData;
 };
 
@@ -64,6 +64,7 @@ struct sOpenVideoInfo
         : m_pFrame(NULL), m_pFormatContext(NULL), m_pVideoCodecContext(NULL),
           m_pVideoCodec(NULL), m_pVideoStream(NULL), m_VideoStreamID(-1),
           m_TotalFrameCount(0), m_CurrentFrameIndex(0), m_SeekTargetFrame(0),
+          m_DecodeFps(0.0f),
           m_NextIsSeam(false), m_ReadingTrailingFrames(false), m_ActualFrameCount(0)
 
     {
