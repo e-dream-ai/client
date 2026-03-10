@@ -598,7 +598,8 @@ class CElectricSheep
                                             m_HudFontName, m_HudFontSize));
         Hud::spCStatsConsole spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
             m_HudManager->Get("progress"));
-        spStats->Add(new Hud::CStringStat("downloadprogress", "", ""));
+        if (spStats)
+            spStats->Add(new Hud::CStringStat("downloadprogress", "", ""));
     }
     
     void SetupFramerate()
@@ -1100,27 +1101,11 @@ class CElectricSheep
 #endif
 
     //
-    virtual bool Update(int _displayIdx, boost::barrier& _beginFrameBarrier,
-                        boost::barrier& _endFrameBarrier)
+    virtual bool Update(int _displayIdx)
     {
         g_Player().BeginFrameUpdate();
 
-#ifdef DO_THREAD_UPDATE
-        {
-            std::scoped_lock lock(m_BarrierMutex);
-
-            m_pUpdateBarrier->wait();
-
-            m_pUpdateBarrier->wait();
-        }
-#else
-        // No longer used ?
-        // uint32_t displayCnt = g_Player().GetDisplayCount();
-
-        _beginFrameBarrier.wait();
         bool ret = DoRealFrameUpdate(_displayIdx);
-        _endFrameBarrier.wait();
-#endif
 
         g_Player().EndFrameUpdate();
 
@@ -1230,8 +1215,9 @@ class CElectricSheep
                 Hud::spCStatsConsole spStats =
                     std::dynamic_pointer_cast<Hud::CStatsConsole>(
                         m_HudManager->Get("progress"));
-                Hud::CStringStat* pTmp =
-                    (Hud::CStringStat*)spStats->Get("downloadprogress");
+                Hud::CStringStat* pTmp = nullptr;
+                if (spStats)
+                    pTmp = (Hud::CStringStat*)spStats->Get("downloadprogress");
                 if (pTmp)
                 {
                     std::string serverStatus = g_NetworkManager->Status();
