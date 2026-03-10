@@ -571,25 +571,18 @@ public:
                     m_LastDisplayHeight = displayHInt;
                 }
 
-                // Only update text if the visible value changed (avoid expensive SetText calls)
                 if (m_spFpsText != NULL && displayW > 0.0f && displayH > 0.0f) {
                     std::string fpsText = string_format("%.2f fps", currentFps);
                     bool textChanged = (fpsText != m_LastFpsText);
                     if (textChanged || fontChanged || displayChanged) {
                         m_LastFpsText = fpsText;
                         m_spFpsText->SetText(fpsText);
-                        
-                        // Manual extent estimate (Metal GetExtent is async and may return 0)
-                        // Approx width = charCount * 0.6 * fontPx; height = fontPx
-                        float fontPxLayout = m_FontDesc.Height();
-                        float approxWidthPx  = (float)fpsText.size() * fontPxLayout * 0.6f;
-                        float approxHeightPx = fontPxLayout;
-                        float textW = approxWidthPx / displayW;
-                        float textH = approxHeightPx / displayH;
 
-                        // Position just above the dots with minimal gap
+                        Base::Math::CVector2 extent = m_spFpsText->GetExtent();
+                        float textW = extent.m_X;
+                        float textH = extent.m_Y;
+
                         float textY = m_DotCRect.m_Y0 + m_BgCRect.Height() * 0.15f - textH;
-                        // Center horizontally based on estimated width, nudge right to compensate layout
                         float textX = 0.5f - (textW * 0.5f) + (m_BgCRect.Width() * 0.04f);
 
                         m_spFpsText->SetRect(Base::Math::CRect(textX, textY, textX + textW, textY + textH));
