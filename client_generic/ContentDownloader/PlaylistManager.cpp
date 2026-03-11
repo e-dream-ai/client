@@ -224,7 +224,7 @@ std::optional<std::string> PlaylistManager::getNextUncachedDream() const {
         static std::mt19937 gen(rd());
         static std::uniform_int_distribution<> dis(0, 99);
         
-        if (dis(gen) < 10) {  // 10% chance
+        if (dis(gen) < 2) {  // 2% chance
             // Collect all uncached dreams
             std::vector<std::string> uncachedDreams;
             for (const auto& entry : m_playlist) {
