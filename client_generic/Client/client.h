@@ -1803,7 +1803,10 @@ class CElectricSheep
                     auto& pm = g_Player().GetPlaylistManager();
                     int loopIter = pm.getLoopIterations();
                     int loopCount = pm.getCurrentLoopCount();
-                    if (loopIter > 0 && loopCount > 0) {
+                    // Only show loop indicator if the playing clip matches the playlist position
+                    // (they can be out of sync briefly during seamless transitions)
+                    bool clipMatchesPlaylist = clipMetadata->dreamData.uuid == pm.getCurrentDreamUUID();
+                    if (loopIter > 0 && loopCount > 0 && clipMatchesPlaylist) {
                         ((Hud::CStringStat*)spStats->Get("credits-mode"))
                             ->SetSample(string_format("mode: %s, loop %d/%d", to_string(creditsMode), loopCount, loopIter));
                     } else {

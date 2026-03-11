@@ -124,6 +124,7 @@ public:
     int getLoopIterations() const { return m_loopIterations; }
     void setLoopIterations(int iterations) { m_loopIterations = iterations; }
     int getCurrentLoopCount() const { return m_currentLoopCount; }
+    const std::string& getCurrentDreamUUID() const { return m_currentDreamUUID; }
 
     // Actually move to the next dream based on preflight decision
     const Cache::Dream* moveToNextDream(const NextDreamDecision& decision);

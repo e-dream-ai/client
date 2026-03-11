@@ -283,7 +283,8 @@ std::optional<std::string> PlaylistManager::getNextUncachedDream() const {
                     std::vector<std::string> uncachedSuccessors;
                     
                     for (const auto& succ : m_playlist) {
-                        if (succ.startKeyframe.has_value() && 
+                        if (succ.uuid == entry.uuid) continue;  // Don't count a loop as its own successor
+                        if (succ.startKeyframe.has_value() &&
                             *succ.startKeyframe == *entry.endKeyframe) {
                             // Found a dream with matching start keyframe
                             if (cm.hasDiskCachedItem(succ.uuid)) {
@@ -733,18 +734,21 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
     // No keyframe match - find next unplayed dream
     if (hasUnplayedDreams()) {
         g_Log->Info("Preflight : has unplayed dreams");
-        
+
         // Track if we found any unplayed dreams that were skipped due to not being cached
         bool foundUnplayedButUncached = false;
 
-        for (size_t i = 0; i < m_playlist.size(); i++) {
+        // Start scanning from a random position to avoid always picking low-numbered dreams
+        size_t startPos = rand() % m_playlist.size();
+        for (size_t j = 0; j < m_playlist.size(); j++) {
+            size_t i = (startPos + j) % m_playlist.size();
             if (i != m_currentPosition && !isDreamPlayed(m_playlist[i].uuid)) {
                 // If canStream is false, only consider cached dreams
                 if (!canStream && !m_cacheManager.hasDiskCachedItem(m_playlist[i].uuid)) {
                     foundUnplayedButUncached = true;
                     continue;
                 }
-                
+
                 const auto& nextEntry = m_playlist[i];
                 decision = {
                     i,
@@ -754,7 +758,7 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
                     nextEntry.endKeyframe
                 };
 
-                g_Log->Info("Preflight : returning first unplayed : %zu", i);
+                g_Log->Info("Preflight : returning unplayed at %zu (scan started at %zu)", i, startPos);
                 return decision;
             }
         }
