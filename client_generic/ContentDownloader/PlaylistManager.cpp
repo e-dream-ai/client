@@ -564,6 +564,34 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
             }
         }
 
+        // When arriving at a keyframe via an edge, prefer entering loops at the destination
+        if (!isLoopingDream(currentEntry) && m_loopIterations > 0 && currentEntry.endKeyframe.has_value()) {
+            std::vector<size_t> loopCandidates;
+            for (size_t i = 0; i < m_playlist.size(); i++) {
+                const auto& entry = m_playlist[i];
+                if (isLoopingDream(entry) &&
+                    entry.startKeyframe.has_value() &&
+                    *entry.startKeyframe == *currentEntry.endKeyframe &&
+                    (canStream || m_cacheManager.hasDiskCachedItem(entry.uuid))) {
+                    loopCandidates.push_back(i);
+                }
+            }
+            if (!loopCandidates.empty()) {
+                size_t pick = loopCandidates[rand() % loopCandidates.size()];
+                const auto& loopEntry = m_playlist[pick];
+                g_Log->Info("Preflight : Entering loop at destination keyframe %s - position %zu",
+                            loopEntry.startKeyframe->c_str(), pick);
+                decision = {
+                    pick,
+                    TransitionType::Seamless,
+                    m_cacheManager.getDream(loopEntry.uuid),
+                    loopEntry.startKeyframe,
+                    loopEntry.endKeyframe
+                };
+                return decision;
+            }
+        }
+
         // Try to find keyframe match first
         auto keyframeMatch = findKeyframeMatch(currentEntry, canStream);
         if (keyframeMatch) {

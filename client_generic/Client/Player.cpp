@@ -1469,6 +1469,10 @@ void CPlayer::SkipToNext()
     // If already transitioning, change the target
     if (m_isTransitioning && m_nextClip) {
         g_Log->Info("Skip during transition - changing target destination");
+        // Clear any stale preflight decision
+        m_nextDreamDecision = std::nullopt;
+        m_PreloadingNextClip = false;
+        m_PreloadingDreamUUID = "";
         // Set short transition duration for quick fade
         m_transitionDuration = 1.0f;
         
@@ -1504,6 +1508,11 @@ void CPlayer::SkipToNext()
     
     
     // For cached dreams, use synchronous approach
+        // Clear any stale preflight decision before starting new transition
+        m_nextDreamDecision = std::nullopt;
+        m_PreloadingNextClip = false;
+        m_PreloadingDreamUUID = "";
+
         // Set short transition duration for quick fade
         m_transitionDuration = 1.0f;
         StartTransition();
