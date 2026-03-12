@@ -2,7 +2,6 @@
 #define _STATSCONSOLE_H_
 
 #include <iomanip>
-#include <memory>
 #include <sstream>
 #include <unordered_map>
 
@@ -250,7 +249,7 @@ class CTimeCountDownStat : public CStat
         CStatsConsole.
 
 */
-class CStatsConsole : public CConsole, public std::enable_shared_from_this<CStatsConsole>
+class CStatsConsole : public CConsole
 {
     struct StatText
     {
@@ -350,96 +349,73 @@ class CStatsConsole : public CConsole, public std::enable_shared_from_this<CStat
     {
         if (!CHudEntry::Render(_time, _spRenderer))
             return false;
-        //CHudEntry::Render(_time, _spRenderer);
 
-        // Ensure the HUD entry stays alive while the async work runs.
-        std::weak_ptr<CStatsConsole> weakSelf = shared_from_this();
-        std::weak_ptr<DisplayOutput::CRenderer> weakRenderer = _spRenderer;
+        if (g_Player().Stopped() || m_Stats.empty() || !g_Player().HasStarted())
+            return false;
 
-        PlatformUtils::DispatchOnMainThread(
-            [weakSelf, weakRenderer, _time]()
+        float step = (float)m_Desc.Height() /
+                     (float)_spRenderer->Display()->Height();
+        float pos = 0;
+        float edge = 24 / (float)_spRenderer->Display()->Width();
+
+        std::unordered_map<std::string, Base::Math::CVector2> sizes;
+        m_TotalExtent = {0, 0, 0, 0};
+        for (auto i = m_Stats.begin(); i != m_Stats.end(); ++i)
+        {
+            CStat* e = i->second.stat;
+            DisplayOutput::spCBaseText& text = i->second.text;
+            if (text && e)
             {
-                auto self = weakSelf.lock();
-                auto renderer = weakRenderer.lock();
-                if (!self || !renderer)
-                    return;
+                text->SetEnabled(e->Visible());
 
-                if (g_Player().Stopped() || self->m_Stats.empty() || !g_Player().HasStarted())
-                    return;
-                float step = (float)self->m_Desc.Height() /
-                             (float)renderer->Display()->Height();
-                float pos = 0;
-                float edge = 24 / (float)renderer->Display()->Width();
-
-                //	Figure out text extent for all strings.
-                std::unordered_map<std::string, Base::Math::CVector2> sizes;
-                self->m_TotalExtent = {0, 0, 0, 0};
-                for (auto i = self->m_Stats.begin(); i != self->m_Stats.end(); ++i)
+                if (e->Visible())
                 {
-                    CStat* e = i->second.stat;
-                    DisplayOutput::spCBaseText& text = i->second.text;
-                    if (text && e)
+                    text->SetText(e->Report(_time));
+                    Base::Math::CVector2 size = text->GetExtent();
+                    sizes[i->first] = size;
+
+                    if (!i->second.isRightAligned)
                     {
-                        text->SetEnabled(e->Visible());
-
-                        if (e && e->Visible())
-                        {
-                            text->SetText(e->Report(_time));
-                            Base::Math::CVector2 size = text->GetExtent();
-                            sizes[i->first] = size;
-
-                            if (!i->second.isRightAligned)
-                            {
-                                // Only left-aligned stats contribute to total extent and position
-                                self->m_TotalExtent = self->m_TotalExtent.Union(Base::Math::CRect(
-                                    0, pos, size.m_X + (edge * 2),
-                                    size.m_Y + (pos) + (edge * 2)));
-                                pos += size.m_Y;
-                            }
-                        }
-                    }
-
-                }
-
-                // align soft quad at bottom
-                self->m_TotalExtent.m_Y0 = 1.f - self->m_TotalExtent.m_Y1;
-                self->m_TotalExtent.m_Y1 = 1.f;
-
-                // align text at bottom
-                pos = self->m_TotalExtent.m_Y0 + edge;
-                std::unordered_map<std::string, float> leftStatPositions;
-
-                for (auto i = self->m_Stats.begin(); i != self->m_Stats.end(); ++i)
-                {
-                    CStat* e = i->second.stat;
-                    if (e && e->Visible())
-                    {
-                        Base::Math::CVector2 size = sizes[i->first];
-                        DisplayOutput::spCBaseText& text = i->second.text;
-
-                        if (i->second.isRightAligned)
-                        {
-                            // Use explicit alignment stat name
-                            float baseY = leftStatPositions[i->second.alignWithStat];
-
-                            // Position right-aligned text at the right edge, same Y as base
-                            float rightX = 1.0f - edge - size.m_X;
-                            text->SetRect(Base::Math::CRect(rightX, baseY, 1.0f - edge,
-                                                            size.m_Y + baseY + step));
-                        }
-                        else
-                        {
-                            // Regular left-aligned text
-                            leftStatPositions[i->first] = pos;
-                            text->SetRect(Base::Math::CRect(edge, pos, 1,
-                                                            size.m_Y + pos + step));
-                            pos += size.m_Y;
-                        }
+                        m_TotalExtent = m_TotalExtent.Union(Base::Math::CRect(
+                            0, pos, size.m_X + (edge * 2),
+                            size.m_Y + (pos) + (edge * 2)));
+                        pos += size.m_Y;
                     }
                 }
-            });
+            }
+        }
 
-        //	Draw quad.
+        m_TotalExtent.m_Y0 = 1.f - m_TotalExtent.m_Y1;
+        m_TotalExtent.m_Y1 = 1.f;
+
+        pos = m_TotalExtent.m_Y0 + edge;
+        std::unordered_map<std::string, float> leftStatPositions;
+
+        for (auto i = m_Stats.begin(); i != m_Stats.end(); ++i)
+        {
+            CStat* e = i->second.stat;
+            if (e && e->Visible())
+            {
+                Base::Math::CVector2 size = sizes[i->first];
+                DisplayOutput::spCBaseText& text = i->second.text;
+
+                if (i->second.isRightAligned)
+                {
+                    float baseY = leftStatPositions[i->second.alignWithStat];
+                    float rightX = 1.0f - edge - size.m_X;
+                    text->SetRect(Base::Math::CRect(rightX, baseY, 1.0f - edge,
+                                                    size.m_Y + baseY + step));
+                }
+                else
+                {
+                    leftStatPositions[i->first] = pos;
+                    text->SetRect(Base::Math::CRect(edge, pos, 1,
+                                                    size.m_Y + pos + step));
+                    pos += size.m_Y;
+                }
+            }
+        }
+
         _spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader |
                            DisplayOutput::eBlend);
         _spRenderer->SetBlend("alphablend");
@@ -447,9 +423,6 @@ class CStatsConsole : public CConsole, public std::enable_shared_from_this<CStat
         _spRenderer->DrawSoftQuad(m_TotalExtent,
                                   Base::Math::CVector4(0, 0, 0, 0.375f), 16);
 
-        //_spRenderer->NewText(m_spFont)
-
-        // align text at bottom
         for (auto i = m_Stats.begin(); i != m_Stats.end(); ++i)
         {
             CStat* e = i->second.stat;

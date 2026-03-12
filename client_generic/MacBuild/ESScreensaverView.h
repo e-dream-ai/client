@@ -1,7 +1,5 @@
 #import <ScreenSaver/ScreenSaver.h>
 
-#include <boost/thread.hpp>
-#include <memory>
 #include <atomic>
 
 #if USE_METAL
@@ -46,8 +44,6 @@
     ESOpenGLView* view;
 #endif /*USE_METAL*/
     NSTimer* animationTimer;
-    dispatch_group_t m_animationDispatchGroup;
-    dispatch_queue_t m_frameUpdateQueue;
     std::atomic<bool> m_isStopped;
 
     BOOL m_isPreview;
@@ -64,8 +60,6 @@
     SPUUpdater* m_sparkleUpdater;  // Direct updater reference for screensaver
     SPUStandardUserDriver* m_sparkleUserDriver;  // For screensaver: access activeUpdateAlert to hide Skip button
     BOOL m_updateAvailable;  // Track if Sparkle found a valid update
-    std::unique_ptr<boost::barrier> m_beginFrameBarrier;
-    std::unique_ptr<boost::barrier> m_endFrameBarrier;
 }
 
 - (id)initWithFrame:(NSRect)frame isPreview:(BOOL)isPreview;
@@ -84,7 +78,6 @@
 
 - (void)_beginThread;
 - (void)_endThread;
-- (void)_animationThread;
 
 - (void)windowDidResize;
 

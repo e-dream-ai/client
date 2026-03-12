@@ -266,15 +266,13 @@ class CElectricSheep_Mac : public CElectricSheep
     }
 
     //
-    virtual bool Update(int _displayIdx, boost::barrier& _beginFrameBarrier,
-                        boost::barrier& _endFrameBarrier)
+    virtual bool Update(int _displayIdx)
     {
         using namespace DisplayOutput;
 
         PROFILER_BEGIN("Render Frame");
 
-        if (!CElectricSheep::Update(_displayIdx, _beginFrameBarrier,
-                                    _endFrameBarrier))
+        if (!CElectricSheep::Update(_displayIdx))
             return false;
 
         //	Update display events.

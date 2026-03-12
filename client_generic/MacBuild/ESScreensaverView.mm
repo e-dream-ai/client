@@ -10,7 +10,6 @@
 #include "libgen.h"
 #include "Log.h"
 #include "DisplayOutput.h"
-#include "PlatformUtils.h"
 
 @implementation ESScreensaverView
 {
@@ -267,39 +266,6 @@
 
 - (void)animateOneFrame
 {
-    //[self setAnimationTimeInterval:-1];
-
-    //[animationLock unlock];
-
-    // ESScreensaver_DoFrame();
-
-    //[view setNeedsDisplay:YES];
-}
-
-- (void)_animationThread
-{
-    DEBUG_LOG("ANIMATIONTHREAD");
-    while (!m_isStopped && !ESScreensaver_Stopped())
-    {
-        @autoreleasepool
-        {
-            if (!ESScreensaver_DoFrame(m_displayIdx, *m_beginFrameBarrier,
-                                       *m_endFrameBarrier))
-                break;
-#ifdef SCREEN_SAVER
-            if (!m_isPreview && CGCursorIsVisible())
-            {
-                [NSCursor hide];
-                m_isHidden = YES;
-            }
-#endif
-            // if (m_isStopped)
-            // break;
-
-            // if (view != NULL)
-            //[view setNeedsDisplay:YES];
-        }
-    }
 }
 
 static void signnal_handler(int signal)
@@ -314,13 +280,8 @@ static void signnal_handler(int signal)
 
 - (void)_beginThread
 {
-    //[animationLock lock];
     DEBUG_LOG("BEGINTHREAD");
     m_isStopped = NO;
-    m_beginFrameBarrier = std::make_unique<boost::barrier>(2);
-    m_endFrameBarrier = std::make_unique<boost::barrier>(2);
-    m_animationDispatchGroup = dispatch_group_create();
-    m_frameUpdateQueue = dispatch_queue_create("Frame Update", NULL);
     [NSWorkspace.sharedWorkspace.notificationCenter
         addObserver:self
            selector:@selector(willStop:)
@@ -332,13 +293,6 @@ static void signnal_handler(int signal)
                name:NSNotificationName(@"com.apple.screensaver.willstop")
              object:nil];
     std::signal(SIGSEGV, signnal_handler);
-
-    dispatch_async(m_frameUpdateQueue, ^{
-        PlatformUtils::SetThreadName("FrameUpdate");
-        dispatch_group_enter(self->m_animationDispatchGroup);
-        [self _animationThread];
-        dispatch_group_leave(self->m_animationDispatchGroup);
-    });
 }
 
 - (void)willStop:(NSNotification*)notification
@@ -375,11 +329,7 @@ static void signnal_handler(int signal)
 
 - (void)_endThread
 {
-    m_beginFrameBarrier->wait();
     m_isStopped = YES;
-    m_endFrameBarrier->wait();
-
-    dispatch_group_wait(m_animationDispatchGroup, DISPATCH_TIME_FOREVER);
 }
 
 - (void)windowDidResize
@@ -741,8 +691,17 @@ static void hideSkipButtonInView(NSView *view)
     DEBUG_LOG("DRAW_IN_METAL_VIEW");
     if (!m_isStopped)
     {
-        m_beginFrameBarrier->wait();
-        m_endFrameBarrier->wait();
+        @autoreleasepool
+        {
+            ESScreensaver_DoFrame(m_displayIdx);
+#ifdef SCREEN_SAVER
+            if (!m_isPreview && CGCursorIsVisible())
+            {
+                [NSCursor hide];
+                m_isHidden = YES;
+            }
+#endif
+        }
     }
 }
 

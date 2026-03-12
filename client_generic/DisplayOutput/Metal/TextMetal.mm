@@ -9,157 +9,102 @@
 namespace DisplayOutput
 {
 
-inline void ExecuteOnMainThread(void (^_block)(void))
-{
-    if ([NSThread isMainThread])
-    {
-        _block();
-    }
-    else
-    {
-        dispatch_async(dispatch_get_main_queue(), _block);
-    }
-}
-
 CTextMetal::CTextMetal(spCFontMetal _font, MTKView* _view)
     : m_spFont(_font)
 {
-    __block spCFontMetal font = _font;
-    __weak MTKView* view = _view;
-
     CATextLayer* textLayer = [[CATextLayer alloc] init];
-    m_TextLayer = (__bridge CATextLayer*)CFBridgingRetain(textLayer);
-    ExecuteOnMainThread(^{
-        textLayer.font =
-            (__bridge CFTypeRef) @(font->FontDescription().TypeFace().c_str());
-        textLayer.string = @"";
-        textLayer.frame = CGRectMake(0, 0, 100, 200);
-        textLayer.fontSize = font->FontDescription().Height();
-        textLayer.shadowOpacity = 1;
-        textLayer.shadowColor = NSColor.blackColor.CGColor;
-        textLayer.foregroundColor = NSColor.whiteColor.CGColor;
-        textLayer.shadowOffset = NSMakeSize(1, -1);
-        textLayer.shadowRadius = 0;
-        [textLayer display];
-        textLayer.autoresizingMask = NSViewMaxYMargin;
-        NSMutableDictionary* newActions =
-            [NSMutableDictionary dictionaryWithDictionary:textLayer.actions];
-        [newActions setObject:[NSNull null] forKey:@"position"];
-        [newActions setObject:[NSNull null] forKey:@"bounds"];
-        [newActions setObject:[NSNull null] forKey:@"content"];
-        [newActions setObject:[NSNull null] forKey:@"sublayers"];
-        textLayer.actions = newActions;
-        [textLayer setHidden:YES];
+    m_TextLayer = textLayer;
+
+    textLayer.font =
+        (__bridge CFTypeRef) @(_font->FontDescription().TypeFace().c_str());
+    textLayer.string = @"";
+    textLayer.frame = CGRectMake(0, 0, 100, 200);
+    textLayer.fontSize = _font->FontDescription().Height();
+    textLayer.shadowOpacity = 1;
+    textLayer.shadowColor = NSColor.blackColor.CGColor;
+    textLayer.foregroundColor = NSColor.whiteColor.CGColor;
+    textLayer.shadowOffset = NSMakeSize(1, -1);
+    textLayer.shadowRadius = 0;
+
+    NSDictionary* noAnimActions = @{
+        @"position" : [NSNull null],
+        @"bounds" : [NSNull null],
+        @"contents" : [NSNull null],
+        @"sublayers" : [NSNull null],
+        @"hidden" : [NSNull null],
+        @"foregroundColor" : [NSNull null],
+        @"string" : [NSNull null],
+    };
+    textLayer.actions = noAnimActions;
+    textLayer.hidden = YES;
+
 #ifdef SCREEN_SAVER
-        [[view.layer.sublayers objectAtIndex:0] addSublayer:textLayer];
+    [[_view.layer.sublayers objectAtIndex:0] addSublayer:textLayer];
 #else
-        [view.layer addSublayer:textLayer];
+    [_view.layer addSublayer:textLayer];
 #endif
-        [view setAutoresizesSubviews:NO];
-        [view setContentHuggingPriority:NSLayoutPriorityRequired
-                         forOrientation:NSLayoutConstraintOrientationVertical];
-        [view
-            setContentCompressionResistancePriority:NSLayoutPriorityRequired
-                                     forOrientation:
-                                         NSLayoutConstraintOrientationVertical];
-    });
 }
 
 CTextMetal::~CTextMetal()
 {
-    __weak CATextLayer* textLayer = m_TextLayer;
-    ExecuteOnMainThread(^{
-        [textLayer removeFromSuperlayer];
-        CFBridgingRelease((__bridge CFTypeRef)textLayer);
-    });
+    [m_TextLayer removeFromSuperlayer];
 }
 
 void CTextMetal::SetText(const std::string& _text)
 {
     m_Text = _text;
-    __block NSString* str = @(_text.c_str());
-    __weak CATextLayer* textLayer = m_TextLayer;
-    ExecuteOnMainThread(^{
-        if (g_Player().Stopped())
-            return;
-        textLayer.string = str;
-        NSSize contentSize = [textLayer preferredFrameSize];
-        textLayer.frame =
-            NSMakeRect(0, 0, contentSize.width, contentSize.height);
-    });
+    m_TextLayer.string = @(_text.c_str());
+    NSSize contentSize = [m_TextLayer preferredFrameSize];
+    m_TextLayer.frame = NSMakeRect(0, 0, contentSize.width, contentSize.height);
+    UpdateExtents();
 }
 
 void CTextMetal::SetRect(const Base::Math::CRect& _rect)
 {
     CBaseText::SetRect(_rect);
-    __block Base::Math::CRect rect = _rect;
-    __block const Base::Math::CVector2& extents = m_Extents;
-    __weak CATextLayer* textLayer = m_TextLayer;
-    ExecuteOnMainThread(^{
-        if (g_Player().Stopped())
-            return;
 
-        NSSize contentSize = [textLayer preferredFrameSize];
-        NSRect frame = NSMakeRect(0, 0, contentSize.width, contentSize.height);
-
-        NSRect parentFrame = textLayer.superlayer.frame;
-        textLayer.frame = NSMakeRect(rect.m_X0 * parentFrame.size.width,
-                                     ((1 - rect.m_Y0) - extents.m_Y) *
-                                         parentFrame.size.height,
-                                     frame.size.width, frame.size.height);
-        [textLayer display];
-    });
+    NSSize contentSize = [m_TextLayer preferredFrameSize];
+    NSRect parentFrame = m_TextLayer.superlayer.frame;
+    m_TextLayer.frame = NSMakeRect(_rect.m_X0 * parentFrame.size.width,
+                                   ((1 - _rect.m_Y0) - m_Extents.m_Y) *
+                                       parentFrame.size.height,
+                                   contentSize.width, contentSize.height);
 }
 
 Base::Math::CVector2 CTextMetal::GetExtent()
 {
-    __block Base::Math::CVector2& extents = m_Extents;
-    __weak CATextLayer* textLayer = m_TextLayer;
-    ExecuteOnMainThread(^{
-        if (g_Player().Stopped())
-            return;
-        NSRect frame = textLayer.frame;
-        NSRect parentFrame = textLayer.superlayer.frame;
-        extents = {
-            0.04f,
-            0.05f,
-        };
-        extents = {(float)frame.size.width / (float)parentFrame.size.width,
-                   (float)frame.size.height / (float)parentFrame.size.height};
-    });
-    return extents;
+    return m_Extents;
 }
 
 void CTextMetal::SetEnabled(bool _enabled)
 {
     if (_enabled != m_Enabled)
     {
-        __weak CATextLayer* textLayer = m_TextLayer;
-        ExecuteOnMainThread(^{
-            if (g_Player().Stopped())
-                return;
-            textLayer.hidden = !_enabled;
-        });
+        m_TextLayer.hidden = !_enabled;
         m_Enabled = _enabled;
     }
 }
 
 void CTextMetal::SetColor(const Base::Math::CVector4& _color)
 {
-    // Early exit if color hasn't changed
-    if (m_Color == _color) {
+    if (m_Color == _color)
         return;
-    }
 
     m_Color = _color;
-    __weak CATextLayer* textLayer = m_TextLayer;
-    __block CGColorRef color = CGColorCreateGenericRGB(_color.m_X, _color.m_Y, _color.m_Z, _color.m_W);
-    ExecuteOnMainThread(^{
-        if (g_Player().Stopped())
-            return;
-        textLayer.foregroundColor = color;
-        CGColorRelease(color);
-    });
+    CGColorRef color = CGColorCreateGenericRGB(_color.m_X, _color.m_Y, _color.m_Z, _color.m_W);
+    m_TextLayer.foregroundColor = color;
+    CGColorRelease(color);
+}
+
+void CTextMetal::UpdateExtents()
+{
+    NSRect frame = m_TextLayer.frame;
+    NSRect parentFrame = m_TextLayer.superlayer.frame;
+    if (parentFrame.size.width > 0 && parentFrame.size.height > 0)
+    {
+        m_Extents = {(float)frame.size.width / (float)parentFrame.size.width,
+                     (float)frame.size.height / (float)parentFrame.size.height};
+    }
 }
 
 } // namespace DisplayOutput

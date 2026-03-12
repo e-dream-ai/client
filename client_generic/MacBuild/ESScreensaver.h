@@ -1,5 +1,4 @@
 #include <CoreFoundation/CoreFoundation.h>
-#include <boost/thread.hpp>
 #include <string_view>
 
 #include "base.h"
@@ -10,8 +9,7 @@ CFBundleRef CopyDLBundle_ex(void);
 int ESScreenSaver_AddGraphicsContext(void* _graphicsContext);
 
 bool ESScreensaver_Start(bool _bPreview, uint32_t _width, uint32_t _height);
-bool ESScreensaver_DoFrame(int _displayIdx, boost::barrier& _beginFrameBarrier,
-                           boost::barrier& _endFrameBarrier);
+bool ESScreensaver_DoFrame(int _displayIdx);
 void ESScreensaver_Stop(void);
 void ESScreensaver_Resume(void);
 bool ESScreensaver_Stopped(void);

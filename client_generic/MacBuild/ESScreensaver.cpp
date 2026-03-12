@@ -93,18 +93,9 @@ bool ESScreensaver_Start(bool _bPreview, uint32 _width, uint32 _height)
     return true;
 }
 
-bool ESScreensaver_DoFrame(int _displayIdx, boost::barrier& _beginFrameBarrier,
-                           boost::barrier& _endFrameBarrier)
+bool ESScreensaver_DoFrame(int _displayIdx)
 {
-    bool retval = true;
-
-    if (gClient.Update(_displayIdx, _beginFrameBarrier, _endFrameBarrier) ==
-        false)
-    {
-        retval = false;
-    }
-
-    return retval;
+    return gClient.Update(_displayIdx);
 }
 
 void ESScreensaver_Stop(void) { g_Player().Stop(); }

@@ -27,8 +27,10 @@ class CTextMetal : public CBaseText
     spCFontMetal m_spFont;
     CATextLayer* m_TextLayer;
     Base::Math::CVector2 m_Extents;
-    bool m_Enabled;
+    bool m_Enabled = false;
     Base::Math::CVector4 m_Color;
+
+    void UpdateExtents();
 
   public:
     CTextMetal(spCFontMetal _font, MTKView* _view);
