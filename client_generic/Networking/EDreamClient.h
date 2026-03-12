@@ -28,6 +28,7 @@ class EDreamClient
     
   private:
     static std::atomic<bool> fIsLoggedIn;
+    static std::atomic<bool> fAuthRetryAbort;
     static std::atomic<int> fCpuUsage;
     static std::mutex fAuthMutex;
     static std::condition_variable fAuthCV;
@@ -79,7 +80,8 @@ private:
     // Auth v2
     static AuthResult SendCode();
     static bool ValidateCode(const std::string& code);
-    static bool RefreshSealedSession();
+    enum class AuthRefreshResult { Success, InvalidSession, TransientFailure };
+    static AuthRefreshResult RefreshSealedSession();
     
     static constexpr int DREAMS_PER_PAGE = 10;
 
