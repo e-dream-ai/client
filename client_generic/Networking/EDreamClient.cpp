@@ -74,6 +74,7 @@ std::chrono::system_clock::time_point EDreamClient::quotaExpiresAt = std::chrono
 
 std::atomic<bool> EDreamClient::fIsLoggedIn(false);
 std::atomic<bool> EDreamClient::fAuthRetryAbort(false);
+std::atomic<bool> EDreamClient::fAuthRetryPending(false);
 std::atomic<int> EDreamClient::fCpuUsage(0);
 std::mutex EDreamClient::fAuthMutex;
 std::condition_variable EDreamClient::fAuthCV;
@@ -512,6 +513,7 @@ bool EDreamClient::Authenticate()
 {
     PlatformUtils::SetThreadName("Authenticate");
     fAuthRetryAbort.store(false);
+    fAuthRetryPending.store(false);
     g_Log->Info("Starting Authentication...");
 
     // Check if we have a sealed session
@@ -575,6 +577,7 @@ bool EDreamClient::Authenticate()
     // TransientFailure: keep sealed session, notify so startup does not block, then retry with backoff
     g_Log->Warning("Auth refresh failed (transient), will retry. Remote indicator may show until server is back.");
     fIsLoggedIn.exchange(false);
+    fAuthRetryPending.store(true);  // So UI does not show "open settings to log in"
     fAuthCV.notify_one();
 
     int delaySeconds = kRetryDelayInitialSeconds;
@@ -588,6 +591,7 @@ bool EDreamClient::Authenticate()
         if (fAuthRetryAbort.load())
         {
             g_Log->Info("Auth refresh retry aborted (shutdown)");
+            fAuthRetryPending.store(false);
             return false;
         }
 
@@ -595,6 +599,7 @@ bool EDreamClient::Authenticate()
         if (result == AuthRefreshResult::Success)
         {
             g_Log->Info("Auth refresh succeeded after retry");
+            fAuthRetryPending.store(false);
             fIsLoggedIn.exchange(true);
             DidSignIn();
             return true;
@@ -602,6 +607,7 @@ bool EDreamClient::Authenticate()
         if (result == AuthRefreshResult::InvalidSession)
         {
             g_Log->Warning("Auth refresh failed on retry: session invalid or expired");
+            fAuthRetryPending.store(false);
             g_Settings()->Set("settings.content.sealed_session", std::string(""));
             g_Settings()->Storage()->Commit();
             if (!shownSettingsOnce) {
@@ -622,6 +628,7 @@ bool EDreamClient::Authenticate()
         g_Log->Warning("Auth refresh failed (transient), retrying in %d seconds", delaySeconds);
     }
 
+    fAuthRetryPending.store(false);
     return false;
 }
 
@@ -630,6 +637,7 @@ void EDreamClient::DidSignIn()
 {
     g_Log->Info("Did Sign-in");
     fAuthRetryAbort.store(true);  // Stop auth retry loop if it was waiting (e.g. user logged in manually)
+    fAuthRetryPending.store(false);
     g_Player().SetOfflineMode(false);
     std::lock_guard<std::mutex> lock(fAuthMutex);
     fIsLoggedIn.exchange(true);
@@ -733,6 +741,11 @@ bool EDreamClient::IsLoggedIn()
 {
     std::lock_guard<std::mutex> lock(fAuthMutex);
     return fIsLoggedIn.load();
+}
+
+bool EDreamClient::IsAuthRetryPending()
+{
+    return fAuthRetryPending.load();
 }
 
 
@@ -936,12 +949,8 @@ EDreamClient::AuthRefreshResult EDreamClient::RefreshSealedSession()
 
     if (spDownload->Perform(ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::LOGIN_REFRESH)))
     {
+        // Perform() returns true only for HTTP 200 (no other codes allowed in CCurlTransfer)
         int responseCode = static_cast<int>(spDownload->ResponseCode());
-        if (responseCode >= 400 && responseCode < 500)
-        {
-            g_Log->Warning("Auth refresh rejected by server (HTTP %i): session invalid or expired", responseCode);
-            return AuthRefreshResult::InvalidSession;
-        }
         if (responseCode == 200)
         {
             try
@@ -952,14 +961,15 @@ EDreamClient::AuthRefreshResult EDreamClient::RefreshSealedSession()
                 // Check if the response was successful
                 if (!responseObj.contains("success") || !responseObj["success"].as_bool())
                 {
-                    g_Log->Error("Sealed session refresh failed: %s", responseObj.contains("message") ? responseObj["message"].as_string().c_str() : "Unknown error");
+                    g_Log->Error("Sealed session refresh failed (HTTP %i): %s", responseCode,
+                                 responseObj.contains("message") ? responseObj["message"].as_string().c_str() : "Unknown error");
                     return AuthRefreshResult::InvalidSession;
                 }
 
                 // Check for the data object
                 if (!responseObj.contains("data") || !responseObj["data"].is_object())
                 {
-                    g_Log->Error("Response doesn't contain data object");
+                    g_Log->Error("Response doesn't contain data object (HTTP %i)", responseCode);
                     return AuthRefreshResult::InvalidSession;
                 }
 
@@ -977,24 +987,37 @@ EDreamClient::AuthRefreshResult EDreamClient::RefreshSealedSession()
                 }
                 else
                 {
-                    g_Log->Error("New sealedSession not found in the response data");
+                    g_Log->Error("New sealedSession not found in the response data (HTTP %i)", responseCode);
                     return AuthRefreshResult::InvalidSession;
                 }
             }
             catch (const boost::system::system_error& e)
             {
-                g_Log->Warning("JSON parsing error while refreshing sealed session (transient), will retry: %s", e.what());
+                g_Log->Warning("JSON parsing error while refreshing sealed session (HTTP %i, transient), will retry: %s", responseCode, e.what());
                 return AuthRefreshResult::TransientFailure;
             }
         }
-        // 5xx or other server/redirect errors: treat as transient
+        // Fallback if transfer ever allows non-200 (e.g. via Allow())
         g_Log->Warning("Auth refresh failed with HTTP %i (transient), will retry: %s",
                        responseCode, spDownload->Data().c_str());
         return AuthRefreshResult::TransientFailure;
     }
     else
     {
-        g_Log->Warning("Network error while refreshing sealed session (transient), will retry");
+        int responseCode = static_cast<int>(spDownload->ResponseCode());
+        if (responseCode == 0)
+        {
+            g_Log->Warning("Network error while refreshing sealed session (no response, transient), will retry");
+            return AuthRefreshResult::TransientFailure;
+        }
+        if (responseCode >= 400 && responseCode < 500)
+        {
+            g_Log->Warning("Auth refresh rejected by server (HTTP %i): session invalid or expired: %s",
+                           responseCode, spDownload->Data().c_str());
+            return AuthRefreshResult::InvalidSession;
+        }
+        g_Log->Warning("Auth refresh failed with HTTP %i (transient), will retry: %s",
+                       responseCode, spDownload->Data().c_str());
         return AuthRefreshResult::TransientFailure;
     }
 }

@@ -1239,17 +1239,24 @@ class CElectricSheep
                     {
                         if (!EDreamClient::IsLoggedIn())
                         {
-                            if (m_MultipleInstancesMode && !IsPreview()) {
-                                pTmp->SetSample("Starting in busy mode.");
+                            if (EDreamClient::IsAuthRetryPending()) {
+                                pTmp->SetSample("");
+                                pTmp->Visible(false);
                             } else {
+                                if (m_MultipleInstancesMode && !IsPreview()) {
+                                    pTmp->SetSample("Starting in busy mode.");
+                                } else {
 #ifdef SCREEN_SAVER
-                                pTmp->SetSample("Please open settings to sign in.");
+                                    pTmp->SetSample("Please open settings to sign in.");
 #else
-                                pTmp->SetSample("Please open settings to sign in.");
+                                    pTmp->SetSample("Please open settings to sign in.");
 #endif
+                                }
+                                pTmp->Visible(true);
                             }
+                        } else {
+                            pTmp->Visible(true);
                         }
-                        pTmp->Visible(true);
                     }
                     else
                         pTmp->Visible(false);
