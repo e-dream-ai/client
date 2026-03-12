@@ -454,6 +454,10 @@ void EDreamClient::InitializeClient()
         quota_timer = std::make_unique<boost::asio::steady_timer>(*io_context);
     }
 
+    // Start in offline mode until initial auth completes; this prevents
+    // remote/online UI from appearing before we know the auth result.
+    g_Player().SetOfflineMode(true);
+
     s_SIOClient.set_open_listener(&OnWebSocketConnected);
     s_SIOClient.set_close_listener(&OnWebSocketClosed);
     s_SIOClient.set_fail_listener(&OnWebSocketFail);
@@ -462,11 +466,6 @@ void EDreamClient::InitializeClient()
 
     boost::thread authThread(&EDreamClient::Authenticate);
     authThread.detach();
-
-    // Block main thread until authentication completes
-    std::unique_lock<std::mutex> lock(fAuthMutex);
-    fAuthCV.wait(lock);
-    // Authentication thread will notify us when done (success or failure)
 }
 
 void EDreamClient::DeinitializeClient()
@@ -547,6 +546,7 @@ bool EDreamClient::Authenticate()
     if (result == AuthRefreshResult::Success)
     {
         fIsLoggedIn.exchange(true);
+        g_Player().SetOfflineMode(false);
         fAuthCV.notify_one();
         g_Log->Info("Sign in success: true");
         boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
