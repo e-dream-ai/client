@@ -365,6 +365,9 @@ void CPlayer::Start()
             if (EDreamClient::IsLoggedIn()) {
                 if (shouldAbort()) return;
                 
+                // Logged-in path: ensure we are not forcing offline-only playback
+                SetOfflineMode(false);
+                
                 // Ensure websocket is connected when player starts and user is logged in
                 if (!EDreamClient::fIsWebSocketConnected.load()) {
                     g_Log->Info("Player starting with logged in user - connecting websocket");
@@ -398,6 +401,10 @@ void CPlayer::Start()
                 }
             } else {
                 if (shouldAbort()) return;
+                
+                // Not logged in (including transient auth/server outage): play from cache only.
+                // This avoids blocking startup on server calls for streaming links/metadata.
+                SetOfflineMode(true);
 
                 // Make sure we remove the current clip before enqueuing the new playlist
 

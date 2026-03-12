@@ -630,6 +630,7 @@ void EDreamClient::DidSignIn()
 {
     g_Log->Info("Did Sign-in");
     fAuthRetryAbort.store(true);  // Stop auth retry loop if it was waiting (e.g. user logged in manually)
+    g_Player().SetOfflineMode(false);
     std::lock_guard<std::mutex> lock(fAuthMutex);
     fIsLoggedIn.exchange(true);
 
@@ -1868,19 +1869,24 @@ std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
 
     // Do we need to fetch metadata?
     if (!needsMetadataUuids.empty()) {
-        // send that array and try to fetch all at once
-        FetchDreamsMetadata(needsMetadataUuids);
+        if (EDreamClient::IsLoggedIn() && !g_Player().IsOfflineMode()) {
+            // send that array and try to fetch all at once
+            FetchDreamsMetadata(needsMetadataUuids);
 
-        // Then reload metadata for each of the uuids
-        for (const auto& needsMetadata : needsMetadataUuids) {
-            cm.reloadMetadata(needsMetadata);
+            // Then reload metadata for each of the uuids
+            for (const auto& needsMetadata : needsMetadataUuids) {
+                cm.reloadMetadata(needsMetadata);
+            }
+        } else {
+            g_Log->Info("Skipping metadata fetch at startup (offline/not logged in). Missing metadata count: %zu",
+                        needsMetadataUuids.size());
         }
     }
 
     // Downloads will be pulled dynamically by FindDreamsThread from PlaylistManager
     
     // Finally, if needed fetch streaming link for 1st video
-    if (!needsStreamingUuid.empty()) {
+    if (!needsStreamingUuid.empty() && EDreamClient::IsLoggedIn() && !g_Player().IsOfflineMode()) {
         // Grab a pointer to the dream metadata
         auto dream = cm.getDream(needsStreamingUuid);
 
@@ -1888,6 +1894,9 @@ std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
         g_Log->Info("Parse playlist blocking call for download link");
         auto path = EDreamClient::GetDreamDownloadLink(dream->uuid);
         dream->setStreamingUrl(path);
+    } else if (!needsStreamingUuid.empty()) {
+        g_Log->Info("Skipping blocking prefetch of streaming link (offline/not logged in). First uncached UUID: %s",
+                    needsStreamingUuid.c_str());
     }
     
     return entries;
