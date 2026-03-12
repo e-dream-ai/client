@@ -32,7 +32,8 @@
     bool firstTimeSetupCompleted = ESScreensaver_GetBoolSetting("settings.app.firsttimesetup", false);
     
     // Show startup window if first time setup hasn't been completed OR if user is not logged in
-    if (!firstTimeSetupCompleted || !EDreamClient::IsLoggedIn()) {
+    // (but not when we're in transient auth retry - server down / outage - we'll retry in background)
+    if (!firstTimeSetupCompleted || (!EDreamClient::IsLoggedIn() && !EDreamClient::IsAuthRetryPending())) {
         dispatch_async(dispatch_get_main_queue(), ^{
             [self presentFirstTimeSetup];
         });

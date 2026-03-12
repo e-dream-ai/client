@@ -28,6 +28,8 @@ class EDreamClient
     
   private:
     static std::atomic<bool> fIsLoggedIn;
+    static std::atomic<bool> fAuthRetryAbort;
+    static std::atomic<bool> fAuthRetryPending;
     static std::atomic<int> fCpuUsage;
     static std::mutex fAuthMutex;
     static std::condition_variable fAuthCV;
@@ -73,13 +75,15 @@ private:
     static bool GetDreams(int _page = 0, int _count = -1);
 
     static bool IsLoggedIn();
+    static bool IsAuthRetryPending();  // true while transient auth failure retry loop is running; do not show "log in" UI
     static bool Authenticate();
     static void SignOut();
     static void DidSignIn();
     // Auth v2
     static AuthResult SendCode();
     static bool ValidateCode(const std::string& code);
-    static bool RefreshSealedSession();
+    enum class AuthRefreshResult { Success, InvalidSession, TransientFailure };
+    static AuthRefreshResult RefreshSealedSession();
     
     static constexpr int DREAMS_PER_PAGE = 10;
 

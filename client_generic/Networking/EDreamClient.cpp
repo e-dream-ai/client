@@ -9,6 +9,7 @@
 #include <iomanip>
 #include <sstream>
 #include <chrono>
+#include <algorithm>
 
 #include "ContentDownloader.h"
 #include "StringFormat.h"
@@ -72,6 +73,8 @@ long long EDreamClient::remainingQuota = 0;
 std::chrono::system_clock::time_point EDreamClient::quotaExpiresAt = std::chrono::system_clock::now();
 
 std::atomic<bool> EDreamClient::fIsLoggedIn(false);
+std::atomic<bool> EDreamClient::fAuthRetryAbort(false);
+std::atomic<bool> EDreamClient::fAuthRetryPending(false);
 std::atomic<int> EDreamClient::fCpuUsage(0);
 std::mutex EDreamClient::fAuthMutex;
 std::condition_variable EDreamClient::fAuthCV;
@@ -271,7 +274,7 @@ void EDreamClient::UpdateQuota()
                     ScheduleNextQuotaUpdate();
                     return;
                 }
-                if (!RefreshSealedSession()) {
+                if (RefreshSealedSession() != AuthRefreshResult::Success) {
                     g_Log->Error("UpdateQuota: Failed to refresh session");
                     ScheduleNextQuotaUpdate();
                     return;
@@ -468,6 +471,8 @@ void EDreamClient::InitializeClient()
 
 void EDreamClient::DeinitializeClient()
 {
+    // Signal auth retry loop to exit (if running)
+    fAuthRetryAbort.store(true);
     // Multiple instances do not connect to websocket, just return
     if (g_Client()->IsMultipleInstancesMode()) {
         return;
@@ -507,65 +512,113 @@ void EDreamClient::DeinitializeClient()
 bool EDreamClient::Authenticate()
 {
     PlatformUtils::SetThreadName("Authenticate");
+    fAuthRetryAbort.store(false);
+    fAuthRetryPending.store(false);
     g_Log->Info("Starting Authentication...");
 
     // Check if we have a sealed session
     std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
 
-    bool success = false;
-    if (!sealedSession.empty())
-    {
-        // Attempt to refresh the sealed session
-        if (RefreshSealedSession())
-        {
-            g_Log->Info("Successfully refreshed sealed session");
-            success = true;
-        }
-        else
-        {
-            g_Log->Warning("Failed to refresh sealed session");
-        }
-    }
-    else
+    if (sealedSession.empty())
     {
         g_Log->Warning("No sealed session found");
-    }
-
-    // Update login state and notify waiting thread
-    fIsLoggedIn.exchange(success);
-    fAuthCV.notify_one();
-    g_Log->Info("Sign in success: %s", success ? "true" : "false");
-
-    if (success)
-    {
-        boost::thread webSocketThread(
-            &EDreamClient::ConnectRemoteControlSocket);
-    } else {
-        // Clear the sealed session as it's no longer valid
-        g_Settings()->Set("settings.content.sealed_session", std::string(""));
-        g_Settings()->Storage()->Commit();
-        // Only show once at startup, we don't want to loop
+        fIsLoggedIn.exchange(false);
+        fAuthCV.notify_one();
         if (!shownSettingsOnce) {
             shownSettingsOnce = true;
 #ifdef __APPLE__
-            // On macOS, check if we should show first-time setup
             bool firstTimeSetupCompleted = g_Settings()->Get("settings.app.firsttimesetup", false);
             if (!firstTimeSetupCompleted) {
                 ESShowFirstTimeSetup();
             }
 #else
-            ESShowPreferences(); // This will trigger the preferences modal
+            ESShowPreferences();
 #endif
         }
+        return false;
     }
 
-    return success;
+    constexpr int kRetryDelayInitialSeconds = 60;
+    constexpr int kRetryDelayMultiplier = 3;
+    constexpr int kRetryDelayMaxSeconds = 24 * 3600; // 24 hours
+
+    AuthRefreshResult result = RefreshSealedSession();
+
+    if (result == AuthRefreshResult::Success)
+    {
+        fIsLoggedIn.exchange(true);
+        fAuthCV.notify_one();
+        g_Log->Info("Sign in success: true");
+        boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
+        return true;
+    }
+
+    if (result == AuthRefreshResult::InvalidSession)
+    {
+        g_Log->Warning("Auth refresh failed: session invalid or expired");
+        fIsLoggedIn.exchange(false);
+        g_Settings()->Set("settings.content.sealed_session", std::string(""));
+        g_Settings()->Storage()->Commit();
+        fAuthCV.notify_one();
+        // Do not auto-open login/settings UI on initial auth failure; HUD will show \"Please open settings to sign in.\"
+        return false;
+    }
+
+    // TransientFailure: keep sealed session, notify so startup does not block, then retry with backoff
+    g_Log->Warning("Auth refresh failed (transient), will retry. Remote indicator may show until server is back.");
+    fIsLoggedIn.exchange(false);
+    fAuthRetryPending.store(true);  // So UI does not show "open settings to log in"
+    fAuthCV.notify_one();
+
+    int delaySeconds = kRetryDelayInitialSeconds;
+    while (!fAuthRetryAbort.load())
+    {
+        g_Log->Info("Auth refresh retrying in %d seconds...", delaySeconds);
+        for (int remaining = delaySeconds; remaining > 0 && !fAuthRetryAbort.load(); remaining--)
+        {
+            boost::this_thread::sleep(boost::posix_time::seconds(1));
+        }
+        if (fAuthRetryAbort.load())
+        {
+            g_Log->Info("Auth refresh retry aborted (shutdown)");
+            fAuthRetryPending.store(false);
+            return false;
+        }
+
+        result = RefreshSealedSession();
+        if (result == AuthRefreshResult::Success)
+        {
+            g_Log->Info("Auth refresh succeeded after retry");
+            fAuthRetryPending.store(false);
+            fIsLoggedIn.exchange(true);
+            DidSignIn();
+            return true;
+        }
+        if (result == AuthRefreshResult::InvalidSession)
+        {
+            g_Log->Warning("Auth refresh failed on retry: session invalid or expired");
+            fAuthRetryPending.store(false);
+            g_Settings()->Set("settings.content.sealed_session", std::string(""));
+            g_Settings()->Storage()->Commit();
+            // Do not auto-open login/settings UI here; HUD will show \"Please open settings to sign in.\"
+            return false;
+        }
+        // TransientFailure again: increase delay (3x, cap 24h)
+        delaySeconds = std::min(delaySeconds * kRetryDelayMultiplier, kRetryDelayMaxSeconds);
+        g_Log->Warning("Auth refresh failed (transient), retrying in %d seconds", delaySeconds);
+    }
+
+    fAuthRetryPending.store(false);
+    return false;
 }
 
 // MARK: - Sign-in/out status, used externally
 void EDreamClient::DidSignIn()
 {
     g_Log->Info("Did Sign-in");
+    fAuthRetryAbort.store(true);  // Stop auth retry loop if it was waiting (e.g. user logged in manually)
+    fAuthRetryPending.store(false);
+    g_Player().SetOfflineMode(false);
     std::lock_guard<std::mutex> lock(fAuthMutex);
     fIsLoggedIn.exchange(true);
 
@@ -668,6 +721,11 @@ bool EDreamClient::IsLoggedIn()
 {
     std::lock_guard<std::mutex> lock(fAuthMutex);
     return fIsLoggedIn.load();
+}
+
+bool EDreamClient::IsAuthRetryPending()
+{
+    return fAuthRetryPending.load();
 }
 
 
@@ -846,7 +904,7 @@ bool EDreamClient::ValidateCode(const std::string& code)
     return false;
 }
 
-bool EDreamClient::RefreshSealedSession()
+EDreamClient::AuthRefreshResult EDreamClient::RefreshSealedSession()
 {
     // Retrieve the current sealed session from settings
     std::string currentSealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
@@ -854,7 +912,7 @@ bool EDreamClient::RefreshSealedSession()
     if (currentSealedSession.empty())
     {
         g_Log->Error("No current sealed session found in settings");
-        return false;
+        return AuthRefreshResult::InvalidSession;
     }
 
     Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>("Refresh Sealed Session");
@@ -871,7 +929,9 @@ bool EDreamClient::RefreshSealedSession()
 
     if (spDownload->Perform(ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::LOGIN_REFRESH)))
     {
-        if (spDownload->ResponseCode() == 200)
+        // Perform() returns true only for HTTP 200 (no other codes allowed in CCurlTransfer)
+        int responseCode = static_cast<int>(spDownload->ResponseCode());
+        if (responseCode == 200)
         {
             try
             {
@@ -881,15 +941,16 @@ bool EDreamClient::RefreshSealedSession()
                 // Check if the response was successful
                 if (!responseObj.contains("success") || !responseObj["success"].as_bool())
                 {
-                    g_Log->Error("Sealed session refresh failed: %s", responseObj.contains("message") ? responseObj["message"].as_string().c_str() : "Unknown error");
-                    return false;
+                    g_Log->Error("Sealed session refresh failed (HTTP %i): %s", responseCode,
+                                 responseObj.contains("message") ? responseObj["message"].as_string().c_str() : "Unknown error");
+                    return AuthRefreshResult::InvalidSession;
                 }
 
                 // Check for the data object
                 if (!responseObj.contains("data") || !responseObj["data"].is_object())
                 {
-                    g_Log->Error("Response doesn't contain data object");
-                    return false;
+                    g_Log->Error("Response doesn't contain data object (HTTP %i)", responseCode);
+                    return AuthRefreshResult::InvalidSession;
                 }
 
                 boost::json::object dataObj = responseObj["data"].as_object();
@@ -902,31 +963,42 @@ bool EDreamClient::RefreshSealedSession()
                     g_Settings()->Storage()->Commit();  // Save the settings
 
                     g_Log->Info("New sealed session saved successfully");
-                    return true;
+                    return AuthRefreshResult::Success;
                 }
                 else
                 {
-                    g_Log->Error("New sealedSession not found in the response data");
-                    return false;
+                    g_Log->Error("New sealedSession not found in the response data (HTTP %i)", responseCode);
+                    return AuthRefreshResult::InvalidSession;
                 }
             }
             catch (const boost::system::system_error& e)
             {
-                g_Log->Error("JSON parsing error: %s", e.what());
-                return false;
+                g_Log->Warning("JSON parsing error while refreshing sealed session (HTTP %i, transient), will retry: %s", responseCode, e.what());
+                return AuthRefreshResult::TransientFailure;
             }
         }
-        else
-        {
-            g_Log->Error("Failed to refresh sealed session. Server returned %i: %s",
-                         spDownload->ResponseCode(), spDownload->Data().c_str());
-            return false;
-        }
+        // Fallback if transfer ever allows non-200 (e.g. via Allow())
+        g_Log->Warning("Auth refresh failed with HTTP %i (transient), will retry: %s",
+                       responseCode, spDownload->Data().c_str());
+        return AuthRefreshResult::TransientFailure;
     }
     else
     {
-        g_Log->Error("Network error while refreshing sealed session");
-        return false;
+        int responseCode = static_cast<int>(spDownload->ResponseCode());
+        if (responseCode == 0)
+        {
+            g_Log->Warning("Network error while refreshing sealed session (no response, transient), will retry");
+            return AuthRefreshResult::TransientFailure;
+        }
+        if (responseCode >= 400 && responseCode < 500)
+        {
+            g_Log->Warning("Auth refresh rejected by server (HTTP %i): session invalid or expired: %s",
+                           responseCode, spDownload->Data().c_str());
+            return AuthRefreshResult::InvalidSession;
+        }
+        g_Log->Warning("Auth refresh failed with HTTP %i (transient), will retry: %s",
+                       responseCode, spDownload->Data().c_str());
+        return AuthRefreshResult::TransientFailure;
     }
 }
 
@@ -1021,7 +1093,7 @@ std::string EDreamClient::Hello() {
             {
                 if (currentAttempt == maxAttempts)
                     return "";
-                if (!RefreshSealedSession())
+                if (RefreshSealedSession() != AuthRefreshResult::Success)
                     return "";
             }
             else
@@ -1313,7 +1385,7 @@ std::vector<std::string> EDreamClient::FetchUserDislikes() {
             {
                 if (currentAttempt == maxAttempts)
                     return dislikes;
-                if (!RefreshSealedSession())
+                if (RefreshSealedSession() != AuthRefreshResult::Success)
                     return dislikes;
             }
             else
@@ -1387,7 +1459,7 @@ bool EDreamClient::FetchPlaylist(std::string_view uuid) {
             {
                 if (currentAttempt == maxAttempts)
                     return false;
-                if (!RefreshSealedSession())
+                if (RefreshSealedSession() != AuthRefreshResult::Success)
                     return false;
             }
             else
@@ -1456,7 +1528,7 @@ bool EDreamClient::FetchDefaultPlaylist() {
             {
                 if (currentAttempt == maxAttempts)
                     return false;
-                if (!RefreshSealedSession())
+                if (RefreshSealedSession() != AuthRefreshResult::Success)
                     return false;
             }
             else
@@ -1520,7 +1592,7 @@ bool EDreamClient::FetchDreamMetadata(std::string uuid) {
             {
                 if (currentAttempt == maxAttempts)
                     return false;
-                if (!RefreshSealedSession())
+                if (RefreshSealedSession() != AuthRefreshResult::Success)
                     return false;
             }
             else
@@ -1591,7 +1663,7 @@ bool EDreamClient::FetchDreamsMetadata(const std::vector<std::string>& uuids) {
                 spDownload->ResponseCode() == 401) {
                 if (currentAttempt == maxAttempts)
                     return false;
-                if (!RefreshSealedSession())
+                if (RefreshSealedSession() != AuthRefreshResult::Success)
                     return false;
             } else {
                 g_Log->Error("Failed to get metadata. Server returned %i: %s",
@@ -1688,7 +1760,7 @@ std::string EDreamClient::GetDreamDownloadLink(const std::string& uuid) {
             if (spDownload->ResponseCode() == 400 || spDownload->ResponseCode() == 401) {
                 if (currentAttempt == maxAttempts)
                     return "";
-                if (!RefreshSealedSession())
+                if (RefreshSealedSession() != AuthRefreshResult::Success)
                     return "";
             } else {
                 g_Log->Error("Failed to get dream download link. Server returned %i: %s",
@@ -1800,19 +1872,24 @@ std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
 
     // Do we need to fetch metadata?
     if (!needsMetadataUuids.empty()) {
-        // send that array and try to fetch all at once
-        FetchDreamsMetadata(needsMetadataUuids);
+        if (EDreamClient::IsLoggedIn() && !g_Player().IsOfflineMode()) {
+            // send that array and try to fetch all at once
+            FetchDreamsMetadata(needsMetadataUuids);
 
-        // Then reload metadata for each of the uuids
-        for (const auto& needsMetadata : needsMetadataUuids) {
-            cm.reloadMetadata(needsMetadata);
+            // Then reload metadata for each of the uuids
+            for (const auto& needsMetadata : needsMetadataUuids) {
+                cm.reloadMetadata(needsMetadata);
+            }
+        } else {
+            g_Log->Info("Skipping metadata fetch at startup (offline/not logged in). Missing metadata count: %zu",
+                        needsMetadataUuids.size());
         }
     }
 
     // Downloads will be pulled dynamically by FindDreamsThread from PlaylistManager
     
     // Finally, if needed fetch streaming link for 1st video
-    if (!needsStreamingUuid.empty()) {
+    if (!needsStreamingUuid.empty() && EDreamClient::IsLoggedIn() && !g_Player().IsOfflineMode()) {
         // Grab a pointer to the dream metadata
         auto dream = cm.getDream(needsStreamingUuid);
 
@@ -1820,6 +1897,9 @@ std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
         g_Log->Info("Parse playlist blocking call for download link");
         auto path = EDreamClient::GetDreamDownloadLink(dream->uuid);
         dream->setStreamingUrl(path);
+    } else if (!needsStreamingUuid.empty()) {
+        g_Log->Info("Skipping blocking prefetch of streaming link (offline/not logged in). First uncached UUID: %s",
+                    needsStreamingUuid.c_str());
     }
     
     return entries;
