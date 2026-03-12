@@ -49,6 +49,8 @@ static const NSUInteger MaxFramesInFlight = 3;
     std::atomic<uint8_t> framesStarted;
   @public
     std::atomic<uint8_t> framesFinished;
+  @public
+    std::atomic<float> avgGpuFrameTimeMs;
 }
 @end
 
@@ -232,10 +234,12 @@ bool CRendererMetal::EndFrame(bool drawn)
     __block uint32_t frameNumber = rendererContext->frameCounter;
     __block std::atomic<uint8_t>& framesFinished =
         rendererContext->framesFinished;
+    __block std::atomic<float>& avgGpuFrameTimeMs =
+        rendererContext->avgGpuFrameTimeMs;
     rendererContext->framesStarted++;
     bool* isAlivePtr = m_pIsAlive;
     [rendererContext->currentCommandBuffer
-        addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
+        addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull commandBuffer) {
             {
                 if (!*isAlivePtr)
                     return;
@@ -248,6 +252,13 @@ bool CRendererMetal::EndFrame(bool drawn)
                 }
                 metalTexturesUsed.clear();
             }
+            // Measure actual GPU execution time via Metal timestamps.
+            float gpuTimeMs =
+                (float)(commandBuffer.GPUEndTime -
+                        commandBuffer.GPUStartTime) * 1000.0f;
+            float prev = avgGpuFrameTimeMs.load(std::memory_order_relaxed);
+            avgGpuFrameTimeMs.store(prev * 0.99f + gpuTimeMs * 0.01f,
+                                    std::memory_order_relaxed);
             PROFILER_EVENT_F("Metal Frame Finished", "%d", frameNumber);
             dispatch_semaphore_signal(semaphore);
             framesFinished++;
@@ -485,6 +496,24 @@ void CRendererMetal::BuildDepthTexture()
 
     rendererContext->depthTexture =
         [device newTextureWithDescriptor:depthTextureDescriptor];
+}
+
+float CRendererMetal::GetGPUFrameTimeMs()
+{
+    RendererContext* rendererContext =
+        (__bridge RendererContext*)m_pRendererContext;
+    return rendererContext->avgGpuFrameTimeMs.load(std::memory_order_relaxed);
+}
+
+float CRendererMetal::GetGPUUtilization()
+{
+    RendererContext* rendererContext =
+        (__bridge RendererContext*)m_pRendererContext;
+    float gpuMs =
+        rendererContext->avgGpuFrameTimeMs.load(std::memory_order_relaxed);
+    float budgetMs =
+        1000.0f / rendererContext->metalView.preferredFramesPerSecond;
+    return gpuMs / budgetMs * 100.0f;
 }
 
 } // namespace DisplayOutput

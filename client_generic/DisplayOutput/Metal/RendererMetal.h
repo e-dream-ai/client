@@ -66,6 +66,8 @@ class CRendererMetal : public CRenderer
                   const Base::Math::CRect& _uvRect);
     void DrawSoftQuad(const Base::Math::CRect& _rect,
                       const Base::Math::CVector4& _color, const float _width);
+    float GetGPUFrameTimeMs();
+    float GetGPUUtilization();
 
   private:
     void BuildDepthTexture();

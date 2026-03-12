@@ -358,6 +358,7 @@ class CElectricSheep
 
         spStats->Add(new Hud::CStringStat("zzacpu", "App CPU: ", "measuring..."));
         spStats->Add(new Hud::CStringStat("zzagpu", "System GPU: ", "measuring..."));
+        spStats->Add(new Hud::CStringStat("zzagpu2", "Metal GPU: ", "measuring..."));
         spStats->Add(
             new Hud::CStringStat("uptime", "\nClient uptime: ", "...."));
         spStats->Add(
@@ -1322,7 +1323,14 @@ class CElectricSheep
                 // Update CPU and GPU usage measurements
                 // Both methods rate-limit internally to reduce jitter
                 m_CpuUsage.GetAppCpuUsage(m_CpuUsageES, m_CpuUsageTotal);
+                int prevGpuUsage = m_GpuUsage;
                 m_GpuUsage = m_CpuUsage.GetGpuUsage();
+                if (m_GpuUsage != prevGpuUsage)
+                {
+                    float metalMs = g_Player().Renderer()->GetGPUFrameTimeMs();
+                    g_Log->Info("GPU: system=%d%%, metal=%.2fms",
+                                m_GpuUsage, metalMs);
+                }
 
                 switch (GetACLineStatus())
                 {
@@ -1830,6 +1838,19 @@ class CElectricSheep
                 {
                     ((Hud::CStringStat*)spStats->Get("zzagpu"))
                         ->SetSample("n/a");
+                }
+
+                // Update Metal GPU frame time
+                {
+                    float gpuMs = g_Player().Renderer()->GetGPUFrameTimeMs();
+                    float gpuPct = g_Player().Renderer()->GetGPUUtilization();
+                    if (gpuMs >= 0)
+                        ((Hud::CStringStat*)spStats->Get("zzagpu2"))
+                            ->SetSample(string_format("%.2fms (%.0f%%)",
+                                gpuMs, gpuPct));
+                    else
+                        ((Hud::CStringStat*)spStats->Get("zzagpu2"))
+                            ->SetSample("n/a");
                 }
 
                 Cache::CacheManager& cm = Cache::CacheManager::getInstance();
