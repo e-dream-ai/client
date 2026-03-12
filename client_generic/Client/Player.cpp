@@ -1179,18 +1179,20 @@ bool CPlayer::SetPlaylist(const std::string& playlistUUID, bool fetchPlaylist = 
     } else {
         // Current clip is playing, preflight the next dream for smooth transition
         g_Log->Info("Current clip playing, preflighting next dream for new playlist");
-        m_nextDreamDecision = m_playlistManager->preflightNextDream();
+        auto nextDecision = m_playlistManager->preflightNextDream();
 
         // Proactively prepare the next clip so the transition does not block on network I/O
         // when the first dream of the new playlist is not cached. This keeps the current
         // clip playing while the next one is being fetched/decoded.
-        if (m_nextDreamDecision) {
+        // Use a local copy to avoid racing with other threads that may reset m_nextDreamDecision.
+        if (nextDecision) {
             g_Log->Info("Preloading next clip for playlist switch");
-            PlayClip(m_nextDreamDecision->dream, m_TimelineTime, -1, true);
+            PlayClip(nextDecision->dream, m_TimelineTime, -1, true);
             if (m_nextClip) {
                 m_nextClip->SetTransitionLength(1.0f, 5.0f);
             }
-            m_playlistManager->moveToNextDream(*m_nextDreamDecision);
+            m_playlistManager->moveToNextDream(*nextDecision);
+            m_nextDreamDecision = nextDecision;
         }
     }
 
