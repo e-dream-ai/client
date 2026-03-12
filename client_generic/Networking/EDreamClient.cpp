@@ -560,17 +560,7 @@ bool EDreamClient::Authenticate()
         g_Settings()->Set("settings.content.sealed_session", std::string(""));
         g_Settings()->Storage()->Commit();
         fAuthCV.notify_one();
-        if (!shownSettingsOnce) {
-            shownSettingsOnce = true;
-#ifdef __APPLE__
-            bool firstTimeSetupCompleted = g_Settings()->Get("settings.app.firsttimesetup", false);
-            if (!firstTimeSetupCompleted) {
-                ESShowFirstTimeSetup();
-            }
-#else
-            ESShowPreferences();
-#endif
-        }
+        // Do not auto-open login/settings UI on initial auth failure; HUD will show \"Please open settings to sign in.\"
         return false;
     }
 
@@ -610,17 +600,7 @@ bool EDreamClient::Authenticate()
             fAuthRetryPending.store(false);
             g_Settings()->Set("settings.content.sealed_session", std::string(""));
             g_Settings()->Storage()->Commit();
-            if (!shownSettingsOnce) {
-                shownSettingsOnce = true;
-#ifdef __APPLE__
-                bool firstTimeSetupCompleted = g_Settings()->Get("settings.app.firsttimesetup", false);
-                if (!firstTimeSetupCompleted) {
-                    ESShowFirstTimeSetup();
-                }
-#else
-                ESShowPreferences();
-#endif
-            }
+            // Do not auto-open login/settings UI here; HUD will show \"Please open settings to sign in.\"
             return false;
         }
         // TransientFailure again: increase delay (3x, cap 24h)
