@@ -983,8 +983,8 @@ EDreamClient::AuthRefreshResult EDreamClient::RefreshSealedSession()
             }
             catch (const boost::system::system_error& e)
             {
-                g_Log->Error("JSON parsing error: %s", e.what());
-                return AuthRefreshResult::InvalidSession;
+                g_Log->Warning("JSON parsing error while refreshing sealed session (transient), will retry: %s", e.what());
+                return AuthRefreshResult::TransientFailure;
             }
         }
         // 5xx or other server/redirect errors: treat as transient
