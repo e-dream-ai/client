@@ -937,7 +937,7 @@ EDreamClient::AuthRefreshResult EDreamClient::RefreshSealedSession()
     if (spDownload->Perform(ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::LOGIN_REFRESH)))
     {
         int responseCode = static_cast<int>(spDownload->ResponseCode());
-        if (responseCode == 401 || responseCode == 403)
+        if (responseCode >= 400 && responseCode < 500)
         {
             g_Log->Warning("Auth refresh rejected by server (HTTP %i): session invalid or expired", responseCode);
             return AuthRefreshResult::InvalidSession;
