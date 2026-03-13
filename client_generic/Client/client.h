@@ -103,6 +103,7 @@ class CElectricSheep
     bool m_PrevWebsocketUp = true;    // Previous websocket state for transition detection
     double m_NetworkIndicatorEndTime = 0.0;  // When to hide the Net indicator (0 = hidden)
     double m_RemoteIndicatorEndTime = 0.0;   // When to hide the Remote indicator (0 = hidden)
+    double m_RemoteIndicatorGraceEndTime = 0.0; // Suppress Remote indicator during initial auth (seconds since startup)
     bool m_NetworkIndicatorShowGreen = false; // True when showing recovery (green) indicator
     bool m_NetworkWasDown = false;    // True if network has been down since startup (for green recovery)
     bool m_RemoteWasDown = false;     // True if remote has been down since startup (for green recovery)
@@ -747,6 +748,9 @@ class CElectricSheep
         //	And we're off.
         m_SplashPNGDelayTimer.Reset();
         m_Timer.Reset();
+        // For the first few seconds while the initial auth refresh is in flight,
+        // suppress the Remote indicator so brief startup delays don't flash errors.
+        m_RemoteIndicatorGraceEndTime = m_Timer.Time() + 5.0;
         g_Player().Start();
         m_F1F4Timer.Reset();
         m_LastCPUCheckTime = m_Timer.Time();
@@ -1573,6 +1577,13 @@ class CElectricSheep
                     m_DiskIndicatorEndTime = 0.0;
                 }
 
+                // During the very first auth refresh request, suppress the Remote
+                // indicator for up to 5 seconds after startup so short-lived
+                // startup hiccups don't show as a Remote error.
+                bool inInitialAuthWindow =
+                    !EDreamClient::HasCompletedInitialAuth() &&
+                    (m_Timer.Time() < m_RemoteIndicatorGraceEndTime);
+
                 // Check if credits overlay is visible
                 bool creditsVisible = false;
                 if (auto spCreditsHud = m_HudManager->Get("dreamcredits")) {
@@ -1589,7 +1600,7 @@ class CElectricSheep
                 bool showDisk = m_DiskIndicatorEndTime > 0.0 && !IsPreview();
                 bool showBusy = m_BusyIndicatorEndTime > 0.0 && !IsPreview();
                 bool showNet = m_NetworkIndicatorEndTime > 0.0 && !IsPreview();
-                bool showRemote = m_RemoteIndicatorEndTime > 0.0 && !IsPreview();
+                bool showRemote = m_RemoteIndicatorEndTime > 0.0 && !IsPreview() && !inInitialAuthWindow;
                 bool showUpdate = m_UpdateIndicatorEndTime > 0.0;
                 
                 bool shouldShowIndicatorHUD = !creditsVisible &&
@@ -1706,7 +1717,7 @@ class CElectricSheep
                     bool showDisk = diskSpaceLow && !IsPreview();
                     showBusy = m_MultipleInstancesMode && !m_OfflineDueToNoInternetOnly && !IsPreview();
                     showNet = !internetConnected && !IsPreview();
-                    showRemote = !wsConnected && !IsPreview();
+                    showRemote = !wsConnected && !IsPreview() && !inInitialAuthWindow;
                     showUpdate = updateAvailable;
 
                     // Disk needs spacing for: Busy (if shown) + Net (if shown) + Remote (if shown) + Update (if shown)
