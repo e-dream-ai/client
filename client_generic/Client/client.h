@@ -1223,8 +1223,12 @@ class CElectricSheep
                     std::string serverStatus = g_NetworkManager->Status();
                     if (drawNoSheepIntro)
                     {
-                        if (!EDreamClient::IsLoggedIn())
-                        {
+                        // While the initial auth refresh attempt is still running,
+                        // do not show any "please log in" messaging yet.
+                        if (!EDreamClient::HasCompletedInitialAuth()) {
+                            pTmp->SetSample("");
+                            pTmp->Visible(false);
+                        } else if (!EDreamClient::IsLoggedIn()) {
                             if (EDreamClient::IsAuthRetryPending()) {
                                 pTmp->SetSample("");
                                 pTmp->Visible(false);
