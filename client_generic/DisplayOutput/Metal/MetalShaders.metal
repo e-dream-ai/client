@@ -70,11 +70,6 @@ float4 SampleYUVTexturesRGBA(float2 uv,
     yuv.x = yTexture.sample(s, uv).x;
 
     yuv.yz = uvTexture.sample(s, uv).xy;
-    //return float4(yuv, 1);
-    if (yuv.x == 0)
-        return float4(1, 0, 0, 0.5);
-    if (all(yuv.yz == float2(0, 0)))
-        return float4(0, 0, 1, 0.5);
     yuv.x = 1.164383561643836 * (yuv.x - 0.0625);
     yuv.y = yuv.y - 0.5;
     yuv.z = yuv.z - 0.5;
