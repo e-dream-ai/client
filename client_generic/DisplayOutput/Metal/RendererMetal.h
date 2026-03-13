@@ -69,8 +69,6 @@ class CRendererMetal : public CRenderer
     float GetGPUFrameTimeMs();
     float GetGPUUtilization();
 
-  private:
-    void BuildDepthTexture();
 };
 
 MakeSmartPointers(CRendererMetal);

@@ -24,8 +24,6 @@ static const NSUInteger MaxFramesInFlight = 3;
   @public
     id<MTLCommandBuffer> currentCommandBuffer;
   @public
-    id<MTLTexture> depthTexture;
-  @public
     id<MTLLibrary> shaderLibrary;
   @public
     std::vector<CVMetalTextureRef> metalTexturesUsed[MaxFramesInFlight];
@@ -227,24 +225,11 @@ bool CRendererMetal::BeginFrame(void)
         id<CAMetalDrawable> drawable =
             rendererContext->metalView.currentDrawable;
         id<MTLTexture> mainTex = drawable.texture;
-        if (rendererContext->depthTexture == nil ||
-            mainTex.width != rendererContext->depthTexture.width ||
-            mainTex.height != rendererContext->depthTexture.height)
-        {
-            BuildDepthTexture();
-        }
-
         MTLRenderPassDescriptor* passDescriptor =
             [MTLRenderPassDescriptor renderPassDescriptor];
         passDescriptor.colorAttachments[0].texture = drawable.texture;
         passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
         passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-
-        passDescriptor.depthAttachment.texture =
-            rendererContext->depthTexture;
-        passDescriptor.depthAttachment.clearDepth = 1.0;
-        passDescriptor.depthAttachment.loadAction = MTLLoadActionClear;
-        passDescriptor.depthAttachment.storeAction = MTLStoreActionDontCare;
 
         rendererContext->currentRenderEncoder =
             [rendererContext->currentCommandBuffer
@@ -468,23 +453,6 @@ void CRendererMetal::DrawSoftQuad(const Base::Math::CRect& _rect,
     DrawQuad(_rect, _color, Base::Math::CRect{0, 0, 1, 1});
 }
 
-void CRendererMetal::BuildDepthTexture()
-{
-    RendererContext* rendererContext =
-        (__bridge RendererContext*)m_pRendererContext;
-    id<MTLDevice> device = rendererContext->metalView.device;
-    id<MTLTexture> texture = rendererContext->metalView.currentDrawable.texture;
-    MTLTextureDescriptor* depthTextureDescriptor =
-        [[MTLTextureDescriptor alloc] init];
-    depthTextureDescriptor.pixelFormat = MTLPixelFormatDepth32Float;
-    depthTextureDescriptor.width = texture.width;
-    depthTextureDescriptor.height = texture.height;
-    depthTextureDescriptor.storageMode = MTLStorageModePrivate;
-    depthTextureDescriptor.usage = MTLTextureUsageRenderTarget;
-
-    rendererContext->depthTexture =
-        [device newTextureWithDescriptor:depthTextureDescriptor];
-}
 
 float CRendererMetal::GetGPUFrameTimeMs()
 {
