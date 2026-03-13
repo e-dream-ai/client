@@ -40,7 +40,7 @@ static const NSUInteger MaxFramesInFlight = 3;
   @public
     uint8_t currentFrameIndex;
   @public
-    MTLLoadAction currentLoadAction;
+    id<MTLRenderCommandEncoder> currentRenderEncoder;
   @public
     DisplayOutput::spCShaderMetal drawTextureShader;
   @public
@@ -218,8 +218,38 @@ bool CRendererMetal::BeginFrame(void)
     PROFILER_BEGIN_F("Metal Frame", "%d", rendererContext->frameCounter);
     id<MTLCommandQueue> commandQueue = rendererContext->commandQueue;
     rendererContext->currentCommandBuffer = [commandQueue commandBuffer];
-    rendererContext->currentLoadAction = MTLLoadActionClear;
-    Clear();
+
+    // Single render pass for the entire frame: clear once, draw everything,
+    // end in EndFrame(). This avoids per-DrawQuad render passes which each
+    // force a full framebuffer load/store on Apple's tile-based GPU.
+    @autoreleasepool
+    {
+        id<CAMetalDrawable> drawable =
+            rendererContext->metalView.currentDrawable;
+        id<MTLTexture> mainTex = drawable.texture;
+        if (rendererContext->depthTexture == nil ||
+            mainTex.width != rendererContext->depthTexture.width ||
+            mainTex.height != rendererContext->depthTexture.height)
+        {
+            BuildDepthTexture();
+        }
+
+        MTLRenderPassDescriptor* passDescriptor =
+            [MTLRenderPassDescriptor renderPassDescriptor];
+        passDescriptor.colorAttachments[0].texture = drawable.texture;
+        passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
+        passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+
+        passDescriptor.depthAttachment.texture =
+            rendererContext->depthTexture;
+        passDescriptor.depthAttachment.clearDepth = 1.0;
+        passDescriptor.depthAttachment.loadAction = MTLLoadActionClear;
+        passDescriptor.depthAttachment.storeAction = MTLStoreActionDontCare;
+
+        rendererContext->currentRenderEncoder =
+            [rendererContext->currentCommandBuffer
+                renderCommandEncoderWithDescriptor:passDescriptor];
+    }
     return true;
 }
 
@@ -228,6 +258,10 @@ bool CRendererMetal::EndFrame(bool drawn)
     CRenderer::EndFrame(drawn);
     RendererContext* rendererContext =
         (__bridge RendererContext*)m_pRendererContext;
+
+    // End the frame's single render pass.
+    [rendererContext->currentRenderEncoder endEncoding];
+    rendererContext->currentRenderEncoder = nil;
     __block dispatch_semaphore_t semaphore = rendererContext->inFlightSemaphore;
     __block std::vector<CVMetalTextureRef>& metalTexturesUsed =
         rendererContext->metalTexturesUsed[rendererContext->currentFrameIndex];
@@ -279,33 +313,7 @@ bool CRendererMetal::EndFrame(bool drawn)
 
 void CRendererMetal::Clear()
 {
-    RendererContext* rendererContext =
-        (__bridge RendererContext*)m_pRendererContext;
-    @autoreleasepool
-    {
-        MTLRenderPassDescriptor* passDescriptor =
-            [MTLRenderPassDescriptor renderPassDescriptor];
-        if (passDescriptor != nil)
-        {
-            passDescriptor.colorAttachments[0].texture =
-                rendererContext->metalView.currentDrawable.texture;
-            passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
-            passDescriptor.colorAttachments[0].storeAction =
-                MTLStoreActionStore;
-
-            passDescriptor.depthAttachment.texture =
-                rendererContext->depthTexture;
-            passDescriptor.depthAttachment.clearDepth = 1.0;
-            passDescriptor.depthAttachment.loadAction = MTLLoadActionClear;
-            passDescriptor.depthAttachment.storeAction = MTLStoreActionDontCare;
-        }
-
-        id<MTLRenderCommandEncoder> renderEncoder =
-            [rendererContext->currentCommandBuffer
-                renderCommandEncoderWithDescriptor:passDescriptor];
-
-        [renderEncoder endEncoding];
-    }
+    // Clear is handled by MTLLoadActionClear in BeginFrame().
 }
 
 void CRendererMetal::DrawText(spCBaseText _text,
@@ -366,38 +374,10 @@ void CRendererMetal::DrawQuad(const Base::Math::CRect& _rect,
                 : rendererContext->drawTextureShader;
         id<MTLRenderPipelineState> renderPipelineState =
             activeShader->GetPipelineState();
-        MTLRenderPassDescriptor* passDescriptor =
-            [MTLRenderPassDescriptor renderPassDescriptor];
-        if (passDescriptor != nil)
-        {
-            id<CAMetalDrawable> drawable =
-                rendererContext->metalView.currentDrawable;
-            id<MTLTexture> mainTex = drawable.texture;
-            if (rendererContext->depthTexture == nil ||
-                mainTex.width != rendererContext->depthTexture.width ||
-                mainTex.height != rendererContext->depthTexture.height)
-            {
-                BuildDepthTexture();
-            }
-            passDescriptor.colorAttachments[0].texture =
-                rendererContext->metalView.currentDrawable.texture;
-            passDescriptor.colorAttachments[0].loadAction =
-                rendererContext->currentLoadAction;
-            passDescriptor.colorAttachments[0].storeAction =
-                MTLStoreActionStore;
 
-            passDescriptor.depthAttachment.texture =
-                rendererContext->depthTexture;
-            passDescriptor.depthAttachment.clearDepth = 1.0;
-            passDescriptor.depthAttachment.loadAction =
-                rendererContext->currentLoadAction;
-            ;
-            passDescriptor.depthAttachment.storeAction = MTLStoreActionStore;
-        }
-
+        // Reuse the frame's single render encoder from BeginFrame().
         id<MTLRenderCommandEncoder> renderEncoder =
-            [rendererContext->currentCommandBuffer
-                renderCommandEncoderWithDescriptor:passDescriptor];
+            rendererContext->currentRenderEncoder;
         [renderEncoder setRenderPipelineState:renderPipelineState];
         std::vector<CVMetalTextureRef>& metalTexturesUsed =
             rendererContext
@@ -462,8 +442,6 @@ void CRendererMetal::DrawQuad(const Base::Math::CRect& _rect,
         [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip
                           vertexStart:0
                           vertexCount:4];
-        [renderEncoder endEncoding];
-        rendererContext->currentLoadAction = MTLLoadActionLoad;
     }
 }
 
