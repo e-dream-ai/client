@@ -75,6 +75,7 @@ std::chrono::system_clock::time_point EDreamClient::quotaExpiresAt = std::chrono
 std::atomic<bool> EDreamClient::fIsLoggedIn(false);
 std::atomic<bool> EDreamClient::fAuthRetryAbort(false);
 std::atomic<bool> EDreamClient::fAuthRetryPending(false);
+std::atomic<bool> EDreamClient::fInitialAuthComplete(false);
 std::atomic<int> EDreamClient::fCpuUsage(0);
 std::mutex EDreamClient::fAuthMutex;
 std::condition_variable EDreamClient::fAuthCV;
@@ -454,19 +455,20 @@ void EDreamClient::InitializeClient()
         quota_timer = std::make_unique<boost::asio::steady_timer>(*io_context);
     }
 
+    // Start in offline mode until initial auth completes; this prevents
+    // remote/online UI from appearing before we know the auth result.
+    g_Player().SetOfflineMode(true);
+
     s_SIOClient.set_open_listener(&OnWebSocketConnected);
     s_SIOClient.set_close_listener(&OnWebSocketClosed);
     s_SIOClient.set_fail_listener(&OnWebSocketFail);
     s_SIOClient.set_reconnecting_listener(&OnWebSocketReconnecting);
     s_SIOClient.set_reconnect_listener(&OnWebSocketReconnect);
 
+    fInitialAuthComplete.store(false);
+
     boost::thread authThread(&EDreamClient::Authenticate);
     authThread.detach();
-
-    // Block main thread until authentication completes
-    std::unique_lock<std::mutex> lock(fAuthMutex);
-    fAuthCV.wait(lock);
-    // Authentication thread will notify us when done (success or failure)
 }
 
 void EDreamClient::DeinitializeClient()
@@ -523,6 +525,7 @@ bool EDreamClient::Authenticate()
     {
         g_Log->Warning("No sealed session found");
         fIsLoggedIn.exchange(false);
+        fInitialAuthComplete.store(true);
         fAuthCV.notify_one();
         if (!shownSettingsOnce) {
             shownSettingsOnce = true;
@@ -547,6 +550,8 @@ bool EDreamClient::Authenticate()
     if (result == AuthRefreshResult::Success)
     {
         fIsLoggedIn.exchange(true);
+        fInitialAuthComplete.store(true);
+        g_Player().SetOfflineMode(false);
         fAuthCV.notify_one();
         g_Log->Info("Sign in success: true");
         boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
@@ -559,6 +564,7 @@ bool EDreamClient::Authenticate()
         fIsLoggedIn.exchange(false);
         g_Settings()->Set("settings.content.sealed_session", std::string(""));
         g_Settings()->Storage()->Commit();
+        fInitialAuthComplete.store(true);
         fAuthCV.notify_one();
         // Do not auto-open login/settings UI on initial auth failure; HUD will show \"Please open settings to sign in.\"
         return false;
@@ -568,6 +574,7 @@ bool EDreamClient::Authenticate()
     g_Log->Warning("Auth refresh failed (transient), will retry. Remote indicator may show until server is back.");
     fIsLoggedIn.exchange(false);
     fAuthRetryPending.store(true);  // So UI does not show "open settings to log in"
+    fInitialAuthComplete.store(true);
     fAuthCV.notify_one();
 
     int delaySeconds = kRetryDelayInitialSeconds;
@@ -728,6 +735,10 @@ bool EDreamClient::IsAuthRetryPending()
     return fAuthRetryPending.load();
 }
 
+bool EDreamClient::HasCompletedInitialAuth()
+{
+    return fInitialAuthComplete.load();
+}
 
 // MARK: - Auth v2
 // Callback function to write response data
