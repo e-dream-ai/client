@@ -423,6 +423,16 @@ void CRendererMetal::DrawQuad(const Base::Math::CRect& _rect,
                     [renderEncoder setFragmentTexture:rgbTexture atIndex:i];
                 }
             }
+            else
+            {
+                // Clear stale texture bindings from previous draw calls
+                // that used this same render encoder.  Without this, a
+                // DrawQuad with no texture (e.g. DrawSoftQuad overlay)
+                // would sample whatever texture the previous draw left
+                // bound, causing ghost images.
+                [renderEncoder setFragmentTexture:nil atIndex:i * 2 + 0];
+                [renderEncoder setFragmentTexture:nil atIndex:i * 2 + 1];
+            }
         }
         QuadUniforms uniforms;
         uniforms.color =
