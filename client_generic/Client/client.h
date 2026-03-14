@@ -8,6 +8,7 @@
 #include <sstream>
 #include <string>
 #include <mutex>
+#include <queue>
 #include <cstdlib>   // for exit()
 #include <unistd.h>  // for _exit()
 
@@ -97,6 +98,13 @@ class CElectricSheep
     std::atomic<bool> m_TimecodeUpdaterRunning{false};
     std::thread m_TimecodeUpdaterThread;
     std::mutex m_TimecodeHudMutex;
+
+    // Thread-safe command queue for remote control commands.
+    // WebSocket events arrive on a background thread; queueing them here
+    // ensures they are executed on the main/render thread during HandleEvents,
+    // avoiding data races on HudManager state and CATextLayer visibility.
+    std::queue<int> m_CommandQueue;
+    std::mutex m_CommandQueueMutex;
 
     // Network indicator state tracking
     bool m_PrevNetworkUp = true;      // Previous network state for transition detection
@@ -2034,6 +2042,26 @@ class CElectricSheep
         m_HudManager->Add("osd-common", m_spOSD, 1);
     }
     
+    // Thread-safe: enqueue a command to be executed on the main/render thread.
+    // Call this from background threads (e.g. WebSocket) instead of ExecuteCommand.
+    void EnqueueCommand(eClientCommand _command)
+    {
+        std::lock_guard<std::mutex> lock(m_CommandQueueMutex);
+        m_CommandQueue.push(static_cast<int>(_command));
+    }
+
+    // Process any queued remote-control commands (called on the main thread).
+    void ProcessCommandQueue()
+    {
+        std::lock_guard<std::mutex> lock(m_CommandQueueMutex);
+        while (!m_CommandQueue.empty())
+        {
+            int cmd = m_CommandQueue.front();
+            m_CommandQueue.pop();
+            ExecuteCommand(static_cast<eClientCommand>(cmd));
+        }
+    }
+
     virtual bool ExecuteCommand(eClientCommand _command)
     {
         g_Log->Info("ExecuteCommand called with command: %d", (int)_command);
@@ -2373,6 +2401,9 @@ class CElectricSheep
             if (HandleOneEvent(spEvent) == false)
                 return false;
         }
+
+        // Process any commands enqueued from background threads (remote control).
+        ProcessCommandQueue();
 
         return true;
     }
