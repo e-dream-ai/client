@@ -111,6 +111,8 @@ std::unique_ptr<boost::asio::io_context> EDreamClient::io_context = nullptr;
 std::unique_ptr<boost::asio::steady_timer> EDreamClient::ping_timer = nullptr;
 std::unique_ptr<boost::asio::steady_timer> EDreamClient::quota_timer = nullptr;
 
+static void OnQuotaUpdate(sio::event& _wsEvent);
+
 // MARK: Ping via websocket
 void EDreamClient::SendPing()
 {
@@ -128,6 +130,8 @@ void EDreamClient::SendPing()
         g_Log->Info("SendPing: Socket available but not marked connected, binding callbacks now");
         socket->off("new_remote_control_event");
         socket->on("new_remote_control_event", &OnWebSocketMessage);
+        socket->off("quota_update");
+        socket->on("quota_update", &OnQuotaUpdate);
         fIsWebSocketConnected.exchange(true);
     }
 
@@ -372,6 +376,8 @@ static void BindWebSocketCallbacks()
         g_Log->Info("WebSocket socket found, binding callbacks");
         socket->off("new_remote_control_event");
         socket->on("new_remote_control_event", &OnWebSocketMessage);
+        socket->off("quota_update");
+        socket->on("quota_update", &OnQuotaUpdate);
         EDreamClient::fIsWebSocketConnected.exchange(true);
     } else {
         // Namespace socket not ready yet - retry after a short delay
@@ -383,6 +389,8 @@ static void BindWebSocketCallbacks()
                 g_Log->Info("WebSocket socket found on retry, binding callbacks");
                 socket->off("new_remote_control_event");
                 socket->on("new_remote_control_event", &OnWebSocketMessage);
+                socket->off("quota_update");
+                socket->on("quota_update", &OnQuotaUpdate);
                 EDreamClient::fIsWebSocketConnected.exchange(true);
             } else {
                 g_Log->Error("WebSocket namespace still not available after retry");
@@ -397,6 +405,7 @@ void EDreamClient::UnbindWebSocketCallbacks()
     auto socket = s_SIOClient.socket("/remote-control");
     if (socket) {
         socket->off("new_remote_control_event");
+        socket->off("quota_update");
     }
 }
 
@@ -1309,9 +1318,6 @@ std::future<void> EDreamClient::SendPlayingDreamAsync(const std::string& uuid) {
 }
 
 std::future<bool> EDreamClient::EnqueuePlaylistAsync(const std::string& uuid) {
-    // Mark interactive so downloads aren't suppressed while the new playlist loads
-    g_ContentDownloader().m_gDownloader.MarkInteractive();
-
     return std::async(std::launch::async, [uuid]() {
         // First, fetch the playlist asynchronously
         auto fetchFuture = FetchPlaylistAsync(uuid);
@@ -2179,7 +2185,60 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
     }
 }
 
-void EDreamClient::SendPlayingDream(std::string uuid) 
+void EDreamClient::SetQuota(long long quota, std::chrono::system_clock::time_point expiresAt)
+{
+    remainingQuota = quota;
+    quotaExpiresAt = expiresAt;
+
+    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+    cm.setRemainingQuota(quota);
+    cm.setQuotaExpiresAt(expiresAt);
+
+    g_Log->Info("SetQuota: quota updated to %lld", quota);
+}
+
+static void OnQuotaUpdate(sio::event& _wsEvent)
+{
+    std::shared_ptr<sio::object_message> objectMessage =
+        std::dynamic_pointer_cast<sio::object_message>(_wsEvent.get_message());
+    if (!objectMessage) {
+        g_Log->Warning("OnQuotaUpdate: received non-object message");
+        return;
+    }
+
+    std::map<std::string, sio::message::ptr> response = objectMessage->get_map();
+
+    long long newQuota = 0;
+    auto expiresAt = std::chrono::system_clock::time_point{};
+
+    if (response.find("quota") != response.end()) {
+        std::shared_ptr<sio::int_message> quotaObj =
+            std::dynamic_pointer_cast<sio::int_message>(response["quota"]);
+        if (quotaObj) {
+            newQuota = quotaObj->get_int();
+        }
+    }
+
+    if (response.find("quotaExpiresAt") != response.end()) {
+        std::shared_ptr<sio::string_message> expiresObj =
+            std::dynamic_pointer_cast<sio::string_message>(response["quotaExpiresAt"]);
+        if (expiresObj) {
+            std::string expiresAtStr = expiresObj->get_string();
+            std::tm tm = {};
+            std::istringstream ss(expiresAtStr);
+            ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%S");
+            if (!ss.fail()) {
+                expiresAt = std::chrono::system_clock::from_time_t(timegm(&tm));
+            }
+        }
+    }
+
+    if (newQuota > 0) {
+        EDreamClient::SetQuota(newQuota, expiresAt);
+    }
+}
+
+void EDreamClient::SendPlayingDream(std::string uuid)
 {
     std::shared_ptr<sio::object_message> ms =
         std::dynamic_pointer_cast<sio::object_message>(
