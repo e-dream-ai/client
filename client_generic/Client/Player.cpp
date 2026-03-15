@@ -357,9 +357,17 @@ void CPlayer::Start()
             
             if (shouldAbort()) return;
 
+            // Wait for initial auth to complete before deciding online vs offline path.
+            // This runs on the player startup thread, so it doesn't block the main/render thread.
+            while (!EDreamClient::HasCompletedInitialAuth() && !shouldAbort()) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+
+            if (shouldAbort()) return;
+
             std::string lastPlayedUUID = g_Settings()->Get(
                 "settings.content.last_played_uuid", std::string{});
-            
+
             auto clientPlaylistId = g_Settings()->Get("settings.content.current_playlist_uuid", std::string(""));
 
             if (EDreamClient::IsLoggedIn()) {
