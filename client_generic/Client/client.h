@@ -1351,8 +1351,8 @@ class CElectricSheep
                 if (m_GpuUsage != prevGpuUsage)
                 {
                     float metalMs = g_Player().Renderer()->GetGPUFrameTimeMs();
-                    g_Log->Info("GPU: system=%d%%, metal=%.2fms",
-                                m_GpuUsage, metalMs);
+                    // g_Log->Info("GPU: system=%d%%, metal=%.2fms",
+                    //             m_GpuUsage, metalMs);
                 }
 
                 switch (GetACLineStatus())
@@ -1419,6 +1419,7 @@ class CElectricSheep
                 
                 // Grab Perceptual FPS from player
                 double pFPS = g_Player().GetPerceptualFPS();
+                if (spStats) {
                 if (isStreamingCurrent) {
                     ((Hud::CStringStat*)spStats->Get("decodefps"))
                         ->SetSample(string_format(" %.2f fps (streaming)", realFps));
@@ -1467,6 +1468,7 @@ class CElectricSheep
                 // Update playback mode display
                 ((Hud::CStringStat*)spStats->Get("playbackmode"))
                     ->SetSample(to_string(mode));
+                }
 
                 // Update OSD
                 m_spOSD->SetFPS(pFPS);
@@ -1842,7 +1844,7 @@ class CElectricSheep
                 //	Serverstats.
                 spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
                     m_HudManager->Get("dreamstats"));
-
+                if (spStats) {
                 //    Prettify uptime.
                 uint64_t uptime = (uint64_t)m_Timer.Time();
 
@@ -1987,6 +1989,7 @@ class CElectricSheep
                         m_PreviousDlState = dlState;
                     }
                 }
+                } // if (spStats) - dreamstats
 
                 //	Finally render hud.
                 m_HudManager->Render(g_Player().Renderer());

@@ -351,7 +351,7 @@ class CStatsConsole : public CConsole
             return false;
 
         if (g_Player().Stopped() || m_Stats.empty() || !g_Player().HasStarted())
-            return false;
+            return true; // Skip rendering but keep entry alive (false = remove from HudManager)
 
         float step = (float)m_Desc.Height() /
                      (float)_spRenderer->Display()->Height();
