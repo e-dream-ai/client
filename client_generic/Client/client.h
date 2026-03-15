@@ -420,6 +420,7 @@ class CElectricSheep
 
         // Add right-aligned stats with explicit alignment
         // Move most stats down one row to avoid overlap with long titles
+        creditsConsole->Add(new Hud::CStringStat("credits-track", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-title");
         creditsConsole->Add(new Hud::CStringStat("credits-time", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-artist");
         creditsConsole->Add(new Hud::CStringStat("credits-fps", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-playlist");
         // Indicator order (left to right): Busy, Net, Remote, Disk, Update
@@ -1811,6 +1812,14 @@ class CElectricSheep
                     // Set left-aligned title and right-aligned time info
                     ((Hud::CStringStat*)spStats->Get("credits-title"))
                         ->SetSample(string_format("title: %s", clipMetadata->dreamData.name.c_str()));
+
+                    // Set track position right-aligned on title row
+                    {
+                        size_t pos = g_Player().GetPlaylistManager().getCurrentPosition();
+                        size_t total = g_Player().GetPlaylistManager().getPlaylistSize();
+                        ((Hud::CStringStat*)spStats->Get("credits-track"))
+                            ->SetSample(string_format("%zu/%zu", pos, total));
+                    }
 
                     // Set left-aligned artist and right-aligned fps info
                     ((Hud::CStringStat*)spStats->Get("credits-artist"))
