@@ -355,6 +355,9 @@ class CStatsConsole : public CConsole
 
         float step = (float)m_Desc.Height() /
                      (float)_spRenderer->Display()->Height();
+#ifdef SCREEN_SAVER
+        step *= 0.5f;
+#endif
         float pos = 0;
         float edge = 24 / (float)_spRenderer->Display()->Width();
 

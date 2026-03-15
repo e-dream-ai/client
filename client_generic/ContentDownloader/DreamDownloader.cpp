@@ -240,7 +240,7 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
 
     auto dream = cm.getDream(uuid);
     
-    Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>("Downloading dream " + dream->name);
+    Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>("Downloading dream: " + dream->name);
     Network::NetworkHeaders::addStandardHeaders(spDownload);
     
     if (!spDownload->Perform(downloadLink)) {

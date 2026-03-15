@@ -1818,7 +1818,7 @@ class CElectricSheep
                         size_t pos = g_Player().GetPlaylistManager().getCurrentPosition();
                         size_t total = g_Player().GetPlaylistManager().getPlaylistSize();
                         ((Hud::CStringStat*)spStats->Get("credits-track"))
-                            ->SetSample(string_format("%zu/%zu", pos, total));
+                            ->SetSample(string_format("%zu/%zu", pos + 1, total));
                     }
 
                     // Set left-aligned artist and right-aligned fps info
