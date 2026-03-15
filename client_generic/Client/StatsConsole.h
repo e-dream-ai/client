@@ -358,6 +358,9 @@ class CStatsConsole : public CConsole
         float pos = 0;
         float edge = 24 / (float)_spRenderer->Display()->Width();
 
+        // First pass: update text content and calculate layout.
+        // Always reserve space for every stat (visible or not) so that
+        // toggling visibility doesn't shift other lines vertically.
         std::unordered_map<std::string, Base::Math::CVector2> sizes;
         m_TotalExtent = {0, 0, 0, 0};
         for (auto i = m_Stats.begin(); i != m_Stats.end(); ++i)
@@ -368,19 +371,25 @@ class CStatsConsole : public CConsole
             {
                 text->SetEnabled(e->Visible());
 
+                float lineHeight = step;
                 if (e->Visible())
                 {
                     text->SetText(e->Report(_time));
                     Base::Math::CVector2 size = text->GetExtent();
-                    sizes[i->first] = size;
+                    lineHeight = std::max(size.m_Y, step);
+                    sizes[i->first] = {size.m_X, lineHeight};
+                }
+                else
+                {
+                    sizes[i->first] = {0, step};
+                }
 
-                    if (!i->second.isRightAligned)
-                    {
-                        m_TotalExtent = m_TotalExtent.Union(Base::Math::CRect(
-                            0, pos, size.m_X + (edge * 2),
-                            size.m_Y + (pos) + (edge * 2)));
-                        pos += size.m_Y;
-                    }
+                if (!i->second.isRightAligned)
+                {
+                    m_TotalExtent = m_TotalExtent.Union(Base::Math::CRect(
+                        0, pos, sizes[i->first].m_X + (edge * 2),
+                        lineHeight + (pos) + (edge * 2)));
+                    pos += lineHeight;
                 }
             }
         }
@@ -388,31 +397,39 @@ class CStatsConsole : public CConsole
         m_TotalExtent.m_Y0 = 1.f - m_TotalExtent.m_Y1;
         m_TotalExtent.m_Y1 = 1.f;
 
+        // Second pass: position all stats at their fixed slots.
         pos = m_TotalExtent.m_Y0 + edge;
         std::unordered_map<std::string, float> leftStatPositions;
 
         for (auto i = m_Stats.begin(); i != m_Stats.end(); ++i)
         {
             CStat* e = i->second.stat;
-            if (e && e->Visible())
-            {
-                Base::Math::CVector2 size = sizes[i->first];
-                DisplayOutput::spCBaseText& text = i->second.text;
+            if (!e)
+                continue;
 
-                if (i->second.isRightAligned)
+            Base::Math::CVector2 size = sizes[i->first];
+
+            if (i->second.isRightAligned)
+            {
+                if (e->Visible())
                 {
+                    DisplayOutput::spCBaseText& text = i->second.text;
                     float baseY = leftStatPositions[i->second.alignWithStat];
                     float rightX = 1.0f - edge - size.m_X;
                     text->SetRect(Base::Math::CRect(rightX, baseY, 1.0f - edge,
                                                     size.m_Y + baseY + step));
                 }
-                else
+            }
+            else
+            {
+                leftStatPositions[i->first] = pos;
+                if (e->Visible())
                 {
-                    leftStatPositions[i->first] = pos;
+                    DisplayOutput::spCBaseText& text = i->second.text;
                     text->SetRect(Base::Math::CRect(edge, pos, 1,
                                                     size.m_Y + pos + step));
-                    pos += size.m_Y;
                 }
+                pos += size.m_Y;
             }
         }
 

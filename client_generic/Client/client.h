@@ -352,8 +352,7 @@ class CElectricSheep
         spStats->Add(new Hud::CStringStat("loginstatus", "", "Not signed in"));
         spStats->Add(
             new Hud::CStringStat("all", "Content cache: ", "unknown..."));
-        spStats->Add(new Hud::CStringStat("transfers", "", ""));
-        spStats->Add(new Hud::CStringStat("deleted", "", ""));
+        spStats->Add(new Hud::CStringStat("transfers", "", " \n "));
         if (m_MultipleInstancesMode == true)
             spStats->Add(new Hud::CTimeCountDownStat(
                 "svstat", "", "Downloading disabled, busy mode"));
@@ -365,9 +364,8 @@ class CElectricSheep
             spStats->Add(new Hud::CTimeCountDownStat(
                 "svstat", "", "Preparing downloader..."));
 
-        spStats->Add(new Hud::CStringStat("zzacpu", "App CPU: ", "measuring..."));
-        spStats->Add(new Hud::CStringStat("zzagpu", "System GPU: ", "measuring..."));
-        spStats->Add(new Hud::CStringStat("zzagpu2", "Metal GPU: ", "measuring..."));
+        spStats->Add(new Hud::CStringStat("zzacpu", "CPU: ", "measuring..."));
+        spStats->Add(new Hud::CStringStat("zzagpu2", "GPU: ", "measuring..."));
         spStats->Add(
             new Hud::CStringStat("uptime", "\nClient uptime: ", "...."));
         spStats->Add(
@@ -1860,26 +1858,15 @@ class CElectricSheep
                     EDreamClient::SetCPUUsage(m_CpuUsageES);
                 }
                 
-                // Update GPU usage display
-                if (m_GpuUsage >= 0)
-                {
-                    ((Hud::CStringStat*)spStats->Get("zzagpu"))
-                        ->SetSample(string_format("%i%%", m_GpuUsage));
-                }
-                else
-                {
-                    ((Hud::CStringStat*)spStats->Get("zzagpu"))
-                        ->SetSample("n/a");
-                }
-
-                // Update Metal GPU frame time
+                // Update GPU usage display (Metal frame time + system GPU %)
                 {
                     float gpuMs = g_Player().Renderer()->GetGPUFrameTimeMs();
                     float gpuPct = g_Player().Renderer()->GetGPUUtilization();
+                    std::string sysGpu = (m_GpuUsage >= 0) ? string_format(", %i%%", m_GpuUsage) : "";
                     if (gpuMs >= 0)
                         ((Hud::CStringStat*)spStats->Get("zzagpu2"))
-                            ->SetSample(string_format("%.2fms (%.0f%%)",
-                                gpuMs, gpuPct));
+                            ->SetSample(string_format("%.2fms (%.0f%%)%s total",
+                                gpuMs, gpuPct, sysGpu.c_str()));
                     else
                         ((Hud::CStringStat*)spStats->Get("zzagpu2"))
                             ->SetSample("n/a");
@@ -1908,13 +1895,7 @@ class CElectricSheep
                 if (pTmp)
                 {
                     std::string serverStatus = g_NetworkManager->Status();
-                    if (serverStatus == "")
-                        pTmp->Visible(false);
-                    else
-                    {
-                        pTmp->SetSample(serverStatus);
-                        pTmp->Visible(true);
-                    }
+                    pTmp->SetSample(serverStatus.empty() ? " \n " : serverStatus);
                 }
 
                 pTmp = (Hud::CStringStat*)spStats->Get("loginstatus");
@@ -1942,18 +1923,6 @@ class CElectricSheep
                     pTmp->Visible(visible);
                 }
 
-                pTmp = (Hud::CStringStat*)spStats->Get("deleted");
-                if (pTmp)
-                {
-                    std::string deleted;
-                    if (m_MessageQueue.PopOverflowMessage(deleted) && !deleted.empty())
-                    {
-                        pTmp->SetSample(deleted);
-                        pTmp->Visible(true);
-                    }
-                    else
-                        pTmp->Visible(false);
-                }
 
                 pTmp = (Hud::CStringStat*)spStats->Get("zconnerror");
                 if (pTmp)
@@ -1969,10 +1938,9 @@ class CElectricSheep
                             allConnectionErrors.erase(
                                 allConnectionErrors.size() - 1);
                         pTmp->SetSample(allConnectionErrors);
-                        pTmp->Visible(true);
                     }
                     else
-                        pTmp->Visible(false);
+                        pTmp->SetSample("");
                 }
 
                 Hud::CTimeCountDownStat* pTcd =

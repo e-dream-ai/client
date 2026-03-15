@@ -111,22 +111,11 @@ void DreamDownloader::FindDreamsThread() {
             // Preflight checklist
  
             // Check quota status
-            // A = quota > 100MB
-            // B = cache is full
-            // Logic: A && !B
-            bool hasEnoughQuota = cm.getRemainingQuota() >= (long long)minSpaceForDream;  // A
-            bool cacheIsFull = cm.getRemainingCacheSpace() < minSpaceForDream;            // B
+            bool hasEnoughQuota = cm.getRemainingQuota() >= (long long)minSpaceForDream;
 
-            bool canDownload = hasEnoughQuota && !cacheIsFull;
-
-            if (!canDownload) {
-                if (!hasEnoughQuota) {
-                    g_Log->Info("Quota too low to grab new videos");
-                    SetDownloadStatus("Your quota is expired");
-                } else if (cacheIsFull) {
-                    g_Log->Info("Cache is full. Stopping downloads.");
-                    SetDownloadStatus("Cache is full");
-                }
+            if (!hasEnoughQuota) {
+                g_Log->Info("Quota too low to grab new videos");
+                SetDownloadStatus("Your quota is expired");
                 break;
             }
             
@@ -299,7 +288,7 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
     }
 
     g_Log->Info("Successfully downloaded and saved dream to %s", finalPath.string().c_str());
-    SetDownloadStatus("Download complete " + dream->name);
+    SetDownloadStatus("");
     
     Cache::CacheManager::DiskCachedItem newDiskItem;
     newDiskItem.uuid = uuid;
