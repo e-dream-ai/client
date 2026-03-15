@@ -88,6 +88,8 @@ void DreamDownloader::FindDreamsThread() {
         // Minimum space in cache/quota to consider downloading (100 MB)
         std::uintmax_t minSpaceForDream = (std::uintmax_t)1024 * 1024 * 100;
 
+        bool quotaWarningLogged = false;
+
         while (isRunning.load()) {
         //g_Log->Info("Searching for dreams to download...");
         SetDownloadStatus("Searching for dreams to download...");
@@ -114,9 +116,14 @@ void DreamDownloader::FindDreamsThread() {
             bool hasEnoughQuota = cm.getRemainingQuota() >= (long long)minSpaceForDream;
 
             if (!hasEnoughQuota) {
-                g_Log->Info("Quota too low to grab new videos");
+                if (!quotaWarningLogged) {
+                    g_Log->Info("Quota too low to grab new videos");
+                    quotaWarningLogged = true;
+                }
                 SetDownloadStatus("Your quota is expired");
                 break;
+            } else {
+                quotaWarningLogged = false;
             }
             
             // First check if there's a dream to download
