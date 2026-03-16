@@ -1907,17 +1907,13 @@ std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
     
     // Finally, if needed fetch streaming link for 1st video
     if (!needsStreamingUuid.empty() && EDreamClient::IsLoggedIn() && !g_Player().IsOfflineMode()) {
+        // Grab a pointer to the dream metadata
+        auto dream = cm.getDream(needsStreamingUuid);
+
         // Grab streaming URL and save it for later use
         g_Log->Info("Parse playlist blocking call for download link");
-        auto path = EDreamClient::GetDreamDownloadLink(needsStreamingUuid);
-
-        // Grab a pointer to the dream metadata and save the streaming URL
-        auto dream = cm.getDream(needsStreamingUuid);
-        if (dream) {
-            dream->setStreamingUrl(path);
-        } else {
-            g_Log->Warning("Could not find dream %s in cache to set streaming URL", needsStreamingUuid.c_str());
-        }
+        auto path = EDreamClient::GetDreamDownloadLink(dream->uuid);
+        dream->setStreamingUrl(path);
     } else if (!needsStreamingUuid.empty()) {
         g_Log->Info("Skipping blocking prefetch of streaming link (offline/not logged in). First uncached UUID: %s",
                     needsStreamingUuid.c_str());
