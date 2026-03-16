@@ -101,6 +101,7 @@ private:
     static void Dislike(std::string uuid);
     static void Report(std::string uuid);
     static void SetCPUUsage(int _cpuUsage);
+    static void SetQuota(long long quota, std::chrono::system_clock::time_point expiresAt);
 
   private:
     static std::unique_ptr<boost::asio::io_context> io_context;
