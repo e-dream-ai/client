@@ -36,6 +36,7 @@
 #include "StatsConsole.h"
 #include "TextureFlat.h"
 #include "Timer.h"
+#include "StringFormat.h"
 
 #include "PlatformUtils.h"
 #include "CacheManager.h"
