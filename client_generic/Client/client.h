@@ -1457,17 +1457,17 @@ class CElectricSheep
                 if (isStreamingCurrent) {
                     ((Hud::CStringStat*)spStats->Get("decodefps"))
                         ->SetSample(
-                            std::format(" {:.2f} fps (streaming)", realFps));
+                            string_format(" %.2f fps (streaming)", realFps));
                 }
                 else
                 {
                     ((Hud::CStringStat*)spStats->Get("decodefps"))
-                        ->SetSample(std::format(" {:.2f} fps", realFps));
+                        ->SetSample(string_format(" %.2f fps", realFps));
                 }
                 ((Hud::CStringStat*)spStats->Get("perceptualfps"))
-                    ->SetSample(std::format(" {:.2f} fps", pFPS));
+                    ->SetSample(string_format(" %.2f fps", pFPS));
                 ((Hud::CStringStat*)spStats->Get("activityLevel"))
-                    ->SetSample(std::format(" {:.2f}", activityLevel));
+                    ->SetSample(string_format(" %.2f", activityLevel));
                 ((Hud::CIntCounter*)spStats->Get("displayfps"))->AddSample(1);
 
                 // Update playlist info
