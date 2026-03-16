@@ -27,6 +27,9 @@
 #include <algorithm>
 #include <filesystem>
 #include <future>
+#include <fcntl.h>
+#include <thread>
+#include <sstream>
 
 #include "ContentDecoder.h"
 #include "Log.h"
@@ -39,6 +42,9 @@ namespace fs = std::filesystem;
 
 namespace ContentDecoder
 {
+
+// Static mutex definition
+std::mutex CContentDecoder::s_RenameMutex;
 
 static void AVCodecLogCallback(void* /*_avcl*/, int _level, const char* _fmt,
                                va_list _vl)
@@ -340,6 +346,8 @@ bool CContentDecoder::Open()
         return false;
     }
     ovi->m_pFrame = av_frame_alloc();
+    
+    
     if (ovi->m_pVideoStream->nb_frames > 0)
         ovi->m_TotalFrameCount =
         static_cast<uint32_t>(ovi->m_pVideoStream->nb_frames);
@@ -406,6 +414,7 @@ int CContentDecoder::ReadPacket(void* opaque, uint8_t* buf, int buf_size)
         int64_t currentPos = avio_tell(decoder->m_pIOContext) - bytesRead;
         decoder->WriteToCache(buf, bytesRead, currentPos);
     }
+    
     return bytesRead;
 }
 
@@ -436,8 +445,8 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
     
     AVRational timeBase =
     pFormatContext->streams[ovi->m_VideoStreamID]->time_base;
-    int64_t frameRate = (int64_t)av_q2d(
-                                        pFormatContext->streams[ovi->m_VideoStreamID]->avg_frame_rate);
+    double frameRate = av_q2d(
+                             pFormatContext->streams[ovi->m_VideoStreamID]->avg_frame_rate);
     AVPacket* packet;
     AVPacket* filteredPacket;
     int frameDecoded = 0;
@@ -451,20 +460,41 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
         packet = av_packet_alloc();
         filteredPacket = av_packet_alloc();
         
+        // Handle packet reading vs flushing
+        bool endOfPackets = false;
         if (!ovi->m_ReadingTrailingFrames)
         {
             if (av_read_frame(pFormatContext, packet) < 0)
             {
+                // Reached end of packets, now flush decoder
                 ovi->m_ReadingTrailingFrames = true;
+                endOfPackets = true;
                 av_packet_free(&packet);
                 av_packet_free(&filteredPacket);
-                continue;
+                
+                // Send NULL packet to start flushing
+                int flushRet = avcodec_send_packet(pVideoCodecContext, nullptr);
+                if (flushRet < 0 && flushRet != AVERROR_EOF) {
+                    g_Log->Error("Error starting decoder flush: %s", UNFFERRTAG(flushRet));
+                    return nullptr;
+                }
+                
+                // Try to get a frame from the flushed decoder
+                packet = av_packet_alloc();
+                filteredPacket = av_packet_alloc();
             }
+        }
+        else
+        {
+            // We're in flushing mode, no more packets to read
+            endOfPackets = true;
         }
         
         int ret = 0;
         AVPacket* packetToSend = nullptr;
-        if (ovi->m_pBsfContext)
+        
+        // Only process packet through BSF if we have a real packet (not flushing)
+        if (!endOfPackets && ovi->m_pBsfContext)
         {
             DumpError(av_bsf_send_packet(ovi->m_pBsfContext, packet));
             ret = av_bsf_receive_packet(ovi->m_pBsfContext, filteredPacket);
@@ -475,7 +505,6 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
                     av_packet_free(&packet);
                     av_packet_free(&filteredPacket);
                     m_HasEnded.exchange(true);
-                    ovi->m_CurrentFrameIndex = ovi->m_TotalFrameCount - 1;
                     return nullptr;
                 }
                 g_Log->Error(
@@ -493,77 +522,123 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
                 continue;
             }
         }
-        else
+        else if (!endOfPackets)
         {
             packetToSend = packet;
         }
         
-        if (packetToSend)
+        // Send packet to decoder (or continue flushing if endOfPackets)
+        if (!endOfPackets && packetToSend)
         {
             ret = avcodec_send_packet(pVideoCodecContext, packetToSend);
-        }
-        
-        if (packet) {
-            if (packet->stream_index != ovi->m_VideoStreamID)
+            
+            if (packet && packet->stream_index != ovi->m_VideoStreamID)
             {
                 g_Log->Error("FFmpeg Mismatching stream ID");
-                break;
-            }
-        }
-            
-        
-        if (ret < 0)
-        {
-            if (ret == AVERROR_EOF)
-            {
-                av_packet_free(&packet);
-                av_packet_free(&filteredPacket);
-                m_HasEnded.exchange(true);
-                ovi->m_CurrentFrameIndex = ovi->m_TotalFrameCount - 1;
-                return nullptr;
-            }
-            #ifdef MAC
-            g_Log->Error("FFmpeg Error sending packet for decoding: %i:%s", ret,
-                         UNFFERRTAG(ret));
-            #else 
-            g_Log->Error("FFmpeg Error sending packet for decoding: %i", ret);
-            #endif
-        }
-        if (ret >= 0)
-        {
-            ret = avcodec_receive_frame(pVideoCodecContext, pFrame);
-            
-            frameNumber =
-            (int64_t)((pFrame->pts * frameRate) * av_q2d(timeBase));
-            ovi->m_CurrentFrameIndex = frameNumber;
-            
-            if (ret == AVERROR(EAGAIN))
-            {
                 av_packet_free(&packet);
                 av_packet_free(&filteredPacket);
                 continue;
             }
-            if (ret == AVERROR_EOF)
+            
+            if (ret < 0)
             {
-                av_packet_free(&packet);
-                av_packet_free(&filteredPacket);
-                return nullptr; // the codec has been fully flushed, and there will
-                // be no more output frames
+                if (ret == AVERROR_EOF)
+                {
+                    // Start flushing mode
+                    ovi->m_ReadingTrailingFrames = true;
+                    av_packet_free(&packet);
+                    av_packet_free(&filteredPacket);
+                    continue;
+                }
+                g_Log->Error("FFmpeg Error sending packet for decoding: %i:%s", ret,
+                             UNFFERRTAG(ret));
             }
-            else if (ret < 0)
-            {
-                #ifdef MAC
-                g_Log->Error("FFmpeg Error decoding: %s", UNFFERRTAG(ret));
-                #else 
-                g_Log->Error("FFmpeg Error decoding");
-                #endif
-            }
-            frameDecoded = 1;
         }
+        
+        // Try to receive a frame (works for both normal packets and flushing)
+        ret = avcodec_receive_frame(pVideoCodecContext, pFrame);
+        
+        if (ret == AVERROR(EAGAIN))
+        {
+            av_packet_free(&packet);
+            av_packet_free(&filteredPacket);
+            
+            if (endOfPackets) {
+                // If we're flushing and get EAGAIN, we're done
+                m_HasEnded.exchange(true);
+                return nullptr;
+            }
+            
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            continue;
+        }
+        
+        if (ret == AVERROR_EOF)
+        {
+            // Decoder is fully flushed, no more frames
+            av_packet_free(&packet);
+            av_packet_free(&filteredPacket);
+            m_HasEnded.exchange(true);
+            return nullptr;
+        }
+        
+        if (ret < 0)
+        {
+            g_Log->Error("FFmpeg Error decoding: %s", UNFFERRTAG(ret));
+            av_packet_free(&packet);
+            av_packet_free(&filteredPacket);
+            continue;
+        }
+        
+        // Successfully decoded a frame
+        frameDecoded = 1;
+        ovi->m_ActualFrameCount++;
+        
+        // Update frame number - use sequential counting during flush mode
+        if (ovi->m_ReadingTrailingFrames) {
+            // During flushing, increment sequentially from last known position
+            ovi->m_CurrentFrameIndex++;
+            frameNumber = ovi->m_CurrentFrameIndex;
+            g_Log->Info("Frame %d decoded from flush", (int)frameNumber);
+        } else {
+            // Normal mode: calculate from PTS, but validate it
+            // Get the stream start time
+            int64_t start_time = pFormatContext->streams[ovi->m_VideoStreamID]->start_time;
+            if (start_time == AV_NOPTS_VALUE) {
+                start_time = 0;
+            }
+            
+            // PTS is in timebase units, subtract start_time and convert to seconds then to frames
+            double pts_seconds = (pFrame->pts - start_time) * av_q2d(timeBase);
+            int64_t calculatedFrame = (int64_t)round(pts_seconds * frameRate);
+            
+            // Debug logging for frame calculation
+            // Use that in the future to verify if we decode what we are supposed to !
+            /*g_Log->Info("Frame calculation - PTS: %lld, start_time: %lld, PTS_seconds: %.6f, FrameRate: %.2f, Calculated frame: %lld, Current index before: %lld",
+                        (long long)pFrame->pts, (long long)start_time, pts_seconds, frameRate, (long long)calculatedFrame, (long long)ovi->m_CurrentFrameIndex);
+            */
+            
+            // If this is the first frame after a seek (CurrentFrameIndex == -1), trust the PTS
+            if (ovi->m_CurrentFrameIndex == -1) {
+                frameNumber = calculatedFrame;
+                ovi->m_CurrentFrameIndex = frameNumber;
+            }
+            // Ensure frame numbers are sequential when possible
+            else if (calculatedFrame >= ovi->m_CurrentFrameIndex) {
+                frameNumber = calculatedFrame;
+                ovi->m_CurrentFrameIndex = frameNumber;
+            } else {
+                // PTS calculation seems wrong, use sequential counting
+                ovi->m_CurrentFrameIndex++;
+                frameNumber = ovi->m_CurrentFrameIndex;
+            }
+        }
+        
         av_packet_unref(packet);
         av_packet_unref(filteredPacket);
         
-        if (frameDecoded != 0 || ovi->m_ReadingTrailingFrames)
+        // Check if this frame meets our seek target
+        if (frameDecoded != 0)
         {
             if (ovi->m_CurrentFrameIndex >= ovi->m_SeekTargetFrame)
             {
@@ -572,6 +647,7 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
             else
             {
                 av_frame_unref(pFrame);
+                frameDecoded = 0;  // Reset so we continue looking
             }
         }
         
@@ -639,11 +715,16 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
         pVideoFrame->SetMetaData_DecodeFps(ovi->m_DecodeFps);
         pVideoFrame->SetMetaData_IsSeam(ovi->m_NextIsSeam);
         pVideoFrame->SetMetaData_FrameIdx((uint32_t)ovi->m_CurrentFrameIndex);
-        pVideoFrame->SetMetaData_MaxFrameIdx(ovi->m_TotalFrameCount);
+        pVideoFrame->SetMetaData_MaxFrameIdx(ovi->m_TotalFrameCount - 1);
     }
     
     av_packet_free(&packet);
     av_packet_free(&filteredPacket);
+    
+    /*g_Log->Info("Decoder produced frame %d/%d for %s",
+                (uint32_t)ovi->m_CurrentFrameIndex,
+                ovi->m_TotalFrameCount,
+                ovi->m_Path.c_str());*/
     
     return pVideoFrame;
 }
@@ -656,8 +737,29 @@ void CContentDecoder::ReadFramesThread()
         PlatformUtils::SetThreadName("ReadFrames");
         g_Log->Info("Main video frame reading thread started for %s", m_Metadata.dreamData.uuid.c_str());
         
-        while (m_CurrentVideoInfo->m_CurrentFrameIndex <
-               m_CurrentVideoInfo->m_TotalFrameCount - 1)
+        // Initialize frame counters
+        m_CurrentVideoInfo->m_ActualFrameCount = 0;
+        
+        // Handle initial seek if specified
+        if (m_CurrentVideoInfo->m_SeekTargetFrame > 0) {
+            // Seeking to a specific frame - don't set CurrentFrameIndex yet
+            // Let it be determined by the actual PTS of decoded frames
+            m_CurrentVideoInfo->m_CurrentFrameIndex = -1;
+        } else {
+            // Starting from beginning
+            m_CurrentVideoInfo->m_CurrentFrameIndex = 0;
+            m_CurrentVideoInfo->m_SeekTargetFrame = 0;
+            
+            // Force a seek to beginning to ensure we get frame 0
+            avformat_seek_file(m_CurrentVideoInfo->m_pFormatContext,
+                               m_CurrentVideoInfo->m_VideoStreamID, 0, 0, 0, 0);
+            avcodec_flush_buffers(m_CurrentVideoInfo->m_pVideoCodecContext);
+        }
+
+        // tmp
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        
+        while (!m_HasEnded.load())
         {
             // Check for shutdown
             if (m_isShuttingDown.load()) {
@@ -673,17 +775,36 @@ void CContentDecoder::ReadFramesThread()
             
             if (fpclassify(skipTime) != FP_ZERO)
             {
-                m_CurrentVideoInfo->m_SeekTargetFrame =
-                m_CurrentVideoInfo->m_CurrentFrameIndex +
-                (int64_t)(skipTime * 20);
+                // Get base FPS from playlist/dream metadata
+                double baseFps = 20.0; // fallback default
+                if (!m_Metadata.dreamData.fps.empty()) {
+                    baseFps = std::stod(m_Metadata.dreamData.fps);
+                }
+                
+                // Use the display frame index if available (from SkipToFrame), otherwise use decoder's index
+                // The display frame index is more accurate as it represents what's actually being displayed
+                int64_t currentFrame = m_CurrentVideoInfo->m_CurrentFrameIndex;
+                int64_t skipTargetFrame = m_SkipToFrame.load();
+                
+                if (skipTargetFrame >= 0) {
+                    // We have an explicit target frame from the display layer
+                    m_CurrentVideoInfo->m_SeekTargetFrame = skipTargetFrame + (int64_t)(skipTime * baseFps);
+                    m_SkipToFrame.store(-1);  // Reset
+                } else {
+                    // Fallback to using the decoder's current frame index
+                    m_CurrentVideoInfo->m_SeekTargetFrame = currentFrame + (int64_t)(skipTime * baseFps);
+                }
+                
                 m_CurrentVideoInfo->m_SeekTargetFrame =
                 std::max(m_CurrentVideoInfo->m_SeekTargetFrame, (int64_t)0);
 
-                // never go beyond last frame, keep 20 frames so decoder doesn't stall
-                m_CurrentVideoInfo->m_SeekTargetFrame = std::min(m_CurrentVideoInfo->m_SeekTargetFrame, (int64_t)m_CurrentVideoInfo->m_TotalFrameCount - 20);
+                // Ensure seek target doesn't exceed total frame count (if we have an accurate count)
+                if (m_CurrentVideoInfo->m_TotalFrameCount > 0) {
+                    m_CurrentVideoInfo->m_SeekTargetFrame = std::min(m_CurrentVideoInfo->m_SeekTargetFrame, (int64_t)m_CurrentVideoInfo->m_TotalFrameCount - 1);
+                }
                 m_SkipForward.exchange(0.f);
             }
-            
+
             if (m_CurrentVideoInfo->m_SeekTargetFrame != -1)
             {
                 m_FrameQueueMutex.lock();
@@ -692,25 +813,44 @@ void CContentDecoder::ReadFramesThread()
                 m_CurrentVideoInfo->m_pFormatContext
                 ->streams[m_CurrentVideoInfo->m_VideoStreamID]
                 ->time_base;
-                int64_t frameRate = (int64_t)av_q2d(
-                                                    m_CurrentVideoInfo->m_pFormatContext
-                                                    ->streams[m_CurrentVideoInfo->m_VideoStreamID]
-                                                    ->avg_frame_rate);
+                double frameRate = av_q2d(
+                                         m_CurrentVideoInfo->m_pFormatContext
+                                         ->streams[m_CurrentVideoInfo->m_VideoStreamID]
+                                         ->avg_frame_rate);
+                
+
                 
                 // Calculate target timestamp in stream time base
                 int64_t targetTimestamp =
                 (int64_t)(m_CurrentVideoInfo->m_SeekTargetFrame /
                           (frameRate * av_q2d(timeBase)));
                 
+                // Determine if this is a backward seek
+                int64_t currentTimestamp =
+                (int64_t)(m_CurrentVideoInfo->m_CurrentFrameIndex /
+                          (frameRate * av_q2d(timeBase)));
+                int seekFlags = (targetTimestamp < currentTimestamp) ? AVSEEK_FLAG_BACKWARD : 0;
+
+                g_Log->Info("Target timestamp: %lld", targetTimestamp);
+                g_Log->Info("Current timestamp: %lld", currentTimestamp);
+                g_Log->Info("Seek flags: %d", seekFlags);
+                
                 // Seek to the target timestamp
                 int seek =
                 avformat_seek_file(m_CurrentVideoInfo->m_pFormatContext,
                                    m_CurrentVideoInfo->m_VideoStreamID, 0,
-                                   targetTimestamp, targetTimestamp, 0);
+                                   targetTimestamp, targetTimestamp, seekFlags);
                 avcodec_flush_buffers(m_CurrentVideoInfo->m_pVideoCodecContext);
                 if (seek < 0)
                 {
                     g_Log->Error("Error seeking:%i", seek);
+                }
+                else
+                {
+                    // Seek successful - reset trailing frames mode so we can read from new position
+                    m_CurrentVideoInfo->m_ReadingTrailingFrames = false;
+                    // Reset frame index so next decoded frame trusts PTS (needed for backward seeks)
+                    m_CurrentVideoInfo->m_CurrentFrameIndex = -1;
                 }
             }
             CVideoFrame* pMainVideoFrame = ReadOneFrame();
@@ -749,7 +889,7 @@ void CContentDecoder::ReadFramesThread()
     }
     catch (thread_interrupted const&)
     {
-        g_Log->Info("Ending main video frame reading thread for %s", m_Metadata.dreamData.uuid.c_str());
+        g_Log->Info("Thread Interrupted: Ending main video frame reading thread for %s", m_Metadata.dreamData.uuid.c_str());
 
         // Before opening a thread to grab the remainder of the video ,make sure we intend to save it
         if (!m_isShuttingDown.load() && m_IsStreaming && !m_Metadata.dreamData.md5.empty()) {
@@ -777,12 +917,26 @@ spCVideoFrame CContentDecoder::PopVideoFrame()
 {
     std::scoped_lock l(m_FrameQueueMutex);
     CVideoFrame* tmp = nullptr;
+    //g_Log->Info("FrameQueue : %d", m_FrameQueue.size());
+
     m_FrameQueue.pop(tmp, false);
+   
+    if (tmp == nullptr) {
+        g_Log->Info("can't pop");
+    }
+    
     return spCVideoFrame{tmp};
 }
 
 bool CContentDecoder::Start(const sClipMetadata& metadata, int64_t _seekFrame)
 {
+    if (m_HasStarted.load()) {
+        g_Log->Info("decoder already started");
+        return true;
+    }
+    
+    m_HasStarted.exchange(true);
+    
     m_Metadata = metadata;
     m_CurrentVideoInfo = std::make_unique<sOpenVideoInfo>();
     m_CurrentVideoInfo->m_Path = metadata.path;
@@ -869,6 +1023,7 @@ bool CContentDecoder::OpenCacheFile() {
 
 void CContentDecoder::CloseCacheFile() {
     if (m_CacheFile) {
+        fflush(m_CacheFile);
         fclose(m_CacheFile);
         m_CacheFile = nullptr;
     }
@@ -878,19 +1033,46 @@ void CContentDecoder::WriteToCache(const uint8_t* buf, int buf_size, int64_t pos
 {
     if (m_CacheFile && buf && buf_size > 0) {
         std::lock_guard<std::mutex> lock(m_CacheMutex);
-        if (position == m_CacheWritePosition) {
-            fseek(m_CacheFile, m_CacheWritePosition, SEEK_SET);
-            fwrite(buf, 1, buf_size, m_CacheFile);
-            fflush(m_CacheFile);
-            m_CacheWritePosition += buf_size;
+        
+        // Handle position mismatches (FFmpeg may seek around)
+        if (position != m_CacheWritePosition) {
+            if (position > m_CacheWritePosition) {
+                // Update our write position to match FFmpeg's expectation
+                m_CacheWritePosition = position;
+            }
         }
+        
+        fseek(m_CacheFile, m_CacheWritePosition, SEEK_SET);
+        size_t written = fwrite(buf, 1, buf_size, m_CacheFile);
+        
+        // Check for write errors
+        if (written != (size_t)buf_size) {
+            g_Log->Error("Write mismatch for %s: expected %d, wrote %zu", 
+                         m_Metadata.dreamData.uuid.c_str(), buf_size, written);
+        }
+        
+        fflush(m_CacheFile);
+        m_CacheWritePosition += buf_size;
     }
 }
 
 std::string CContentDecoder::GenerateCacheFileName() {
     std::string uuid = m_Metadata.dreamData.uuid;
     fs::path mp4Path = Cache::PathManager::getInstance().mp4Path();
-    return (mp4Path / (uuid + ".tmp")).string();
+    
+    // Add thread ID to make filename unique per thread to prevent race conditions
+    std::thread::id threadId = std::this_thread::get_id();
+    std::ostringstream oss;
+    oss << threadId;
+    std::string threadIdStr = oss.str();
+    
+    return (mp4Path / (uuid + "_" + threadIdStr + ".tmp")).string();
+}
+
+std::string CContentDecoder::GetFinalFileName() const {
+    std::string uuid = m_Metadata.dreamData.uuid;
+    fs::path mp4Path = Cache::PathManager::getInstance().mp4Path();
+    return (mp4Path / (uuid + ".mp4")).string();
 }
 
 bool CContentDecoder::IsDownloadComplete() const
@@ -918,19 +1100,49 @@ void CContentDecoder::FinalizeCacheFile()
 
     if (m_IsStreaming && IsDownloadComplete() && !m_CachePath.empty())
     {
-        CloseCacheFile();  // Close the current .tmp file
+        // File integrity checks - ensure file is properly closed and flushed
+        if (m_CacheFile) {
+            fflush(m_CacheFile);
+            
+            // Platform-specific sync to ensure data is written to disk
+            int fd = fileno(m_CacheFile);
+#ifdef __APPLE__
+            // On macOS, use F_BARRIERFSYNC for proper flush
+            if (fcntl(fd, F_BARRIERFSYNC) == -1) {
+                g_Log->Warning("F_BARRIERFSYNC failed for %s", m_Metadata.dreamData.uuid.c_str());
+            }
+#else
+            // On Linux/other platforms, use fsync
+            fsync(fd);
+#endif
+            
+            fclose(m_CacheFile);
+            m_CacheFile = nullptr;
+        }
 
         fs::path tmpPath(m_CachePath);
-        fs::path finalPath = tmpPath.parent_path() / (tmpPath.stem().string() + ".mp4");
+        fs::path finalPath = GetFinalFileName();
 
         // Only proceed with verification if we have an MD5 hash
         if (!m_Metadata.dreamData.md5.empty()) {
+            // Re-open for MD5 calculation to ensure all data is written
+            FILE* verifyHandle = fopen(tmpPath.string().c_str(), "rb");
+            if (!verifyHandle) {
+                g_Log->Error("Failed to re-open file for MD5 verification: %s", tmpPath.string().c_str());
+                fs::remove(tmpPath);
+                m_CachePath.clear();
+                return;
+            }
+            fclose(verifyHandle);
+            
             std::string downloadedMd5 = PlatformUtils::CalculateFileMD5(tmpPath.string());
+            
             if (downloadedMd5 != m_Metadata.dreamData.md5) {
                 g_Log->Error("Streaming MD5 mismatch for %s. Expected: %s, Got: %s",
                              m_Metadata.dreamData.uuid.c_str(),
                              m_Metadata.dreamData.md5.c_str(),
                              downloadedMd5.c_str());
+                
                 EDreamClient::ReportMD5Failure(m_Metadata.dreamData.uuid, downloadedMd5, true);
                 fs::remove(tmpPath);
                 m_CachePath.clear();
@@ -946,20 +1158,29 @@ void CContentDecoder::FinalizeCacheFile()
         
         try
         {
-            if (fs::exists(tmpPath) && !fs::exists(finalPath))
-            {
-                fs::rename(tmpPath, finalPath);
-                g_Log->Info("Successfully renamed cache file from %s to %s", tmpPath.string().c_str(), finalPath.string().c_str());
-                m_CachePath.clear();  // Clear the cache path to indicate we've finalized
+            if (fs::exists(tmpPath)) {
+                // Use static mutex to ensure atomic rename operation across all threads
+                std::lock_guard<std::mutex> renameLock(s_RenameMutex);
                 
-                // Now we let our cache know the file is there
-                Cache::CacheManager::DiskCachedItem newDiskItem;
-                newDiskItem.uuid = m_Metadata.dreamData.uuid;
-                newDiskItem.version = m_Metadata.dreamData.video_timestamp;
-                newDiskItem.downloadDate = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+                if (!fs::exists(finalPath)) {
+                    fs::rename(tmpPath, finalPath);
+                    g_Log->Info("Successfully renamed cache file from %s to %s", tmpPath.string().c_str(), finalPath.string().c_str());
+                    m_CachePath.clear();  // Clear the cache path to indicate we've finalized
+                    
+                    // Now we let our cache know the file is there
+                    Cache::CacheManager::DiskCachedItem newDiskItem;
+                    newDiskItem.uuid = m_Metadata.dreamData.uuid;
+                    newDiskItem.version = m_Metadata.dreamData.video_timestamp;
+                    newDiskItem.downloadDate = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
-                Cache::CacheManager& cm = Cache::CacheManager::getInstance();
-                cm.addDiskCachedItem(newDiskItem);
+                    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+                    cm.addDiskCachedItem(newDiskItem);
+                } else {
+                    g_Log->Info("Final file %s already exists, removing temporary file %s", 
+                                finalPath.string().c_str(), tmpPath.string().c_str());
+                    fs::remove(tmpPath);
+                    m_CachePath.clear();
+                }
             }
         }
         catch (const fs::filesystem_error& e)

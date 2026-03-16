@@ -64,9 +64,11 @@ bool CContentDownloader::Shutdown(void)
 {
     //	Terminate the threads.
     g_Log->Info("Terminating download thread.");
-
+    
+    // Cut download manager
     g_NetworkManager->Abort();
 
+    // End the dream finding thread
     m_gDownloader.StopFindingDreams();
     
     return true;

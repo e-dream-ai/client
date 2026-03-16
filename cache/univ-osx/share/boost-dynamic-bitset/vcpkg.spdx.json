@@ -3,13 +3,13 @@
   "spdxVersion": "SPDX-2.2",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "documentNamespace": "https://spdx.org/spdxdocs/boost-dynamic-bitset-arm64-osx-1.85.0#1-13dc6c92-ff43-4f35-8ede-6ca2db6d919b",
-  "name": "boost-dynamic-bitset:arm64-osx@1.85.0#1 f2ab493da24fac6e8c73e2de38af3bea03226a4c881663c29d2811bf3e68b87d",
+  "documentNamespace": "https://spdx.org/spdxdocs/boost-dynamic-bitset-arm64-osx-1.87.0-44154083-064f-4eea-a828-21bf95eaa4bf",
+  "name": "boost-dynamic-bitset:arm64-osx@1.87.0 1c3e34a8afdbdc71b36f4aafbd85163375e4c4476683b1a202f4d9c9300175a9",
   "creationInfo": {
     "creators": [
-      "Tool: vcpkg-d6945642ee5c3076addd1a42c331bbf4cfc97457"
+      "Tool: vcpkg-2025-02-11-bec4296bf5289dc9ce83b4f5095943e44162f9c2"
     ],
-    "created": "2024-08-08T16:31:29Z"
+    "created": "2025-03-13T17:58:32Z"
   },
   "relationships": [
     {
@@ -47,7 +47,7 @@
     {
       "name": "boost-dynamic-bitset",
       "SPDXID": "SPDXRef-port",
-      "versionInfo": "1.85.0#1",
+      "versionInfo": "1.87.0",
       "downloadLocation": "NOASSERTION",
       "homepage": "https://www.boost.org/libs/dynamic_bitset",
       "licenseConcluded": "BSL-1.0",
@@ -59,7 +59,7 @@
     {
       "name": "boost-dynamic-bitset:arm64-osx",
       "SPDXID": "SPDXRef-binary",
-      "versionInfo": "f2ab493da24fac6e8c73e2de38af3bea03226a4c881663c29d2811bf3e68b87d",
+      "versionInfo": "1c3e34a8afdbdc71b36f4aafbd85163375e4c4476683b1a202f4d9c9300175a9",
       "downloadLocation": "NONE",
       "licenseConcluded": "BSL-1.0",
       "licenseDeclared": "NOASSERTION",
@@ -67,16 +67,16 @@
       "comment": "This is a binary package built by vcpkg."
     },
     {
-      "SPDXID": "SPDXRef-resource-1",
+      "SPDXID": "SPDXRef-resource-0",
       "name": "boostorg/dynamic_bitset",
-      "downloadLocation": "git+https://github.com/boostorg/dynamic_bitset@boost-1.85.0",
+      "downloadLocation": "git+https://github.com/boostorg/dynamic_bitset@boost-1.87.0",
       "licenseConcluded": "NOASSERTION",
       "licenseDeclared": "NOASSERTION",
       "copyrightText": "NOASSERTION",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "384af394734b66be85f07f41f72550bbea0cdaa9a723b26ef9cd9b2fc310fc143072827f1c1719bea61aeea51d470b80db71bc0338215fdabcb8e86aa55c6667"
+          "checksumValue": "e01d1d36a585a6cb382ddbcbea6d4f94692018c2a6f9e548422565cd22bdf2fb1af36e0bcf5f7950cc7fda6068501fda308d646841186967b0995eb41755fd6f"
         }
       ]
     }
@@ -88,7 +88,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "6b36a14c918a0ef4c200710a2badad138ee63681791879e17c8870f465401ffd"
+          "checksumValue": "aea3ca5721bf1b88d76d92dd2448bd4e9262b402e5f6485e83fb42025703d06e"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -100,7 +100,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "a044cf874abf63dc82b18a2e32ef86deade19111bf5c75b2fde85cbd7d71c9ae"
+          "checksumValue": "12afbe8f24c10926e6833b4a4774430e0aaab73f95673cd1f372f2ae108d7fdb"
         }
       ],
       "licenseConcluded": "NOASSERTION",

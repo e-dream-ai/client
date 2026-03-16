@@ -3,13 +3,13 @@
   "spdxVersion": "SPDX-2.2",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "documentNamespace": "https://spdx.org/spdxdocs/boost-algorithm-arm64-osx-1.85.0#1-3b636e75-902e-4acf-ac65-a0787cf3c361",
-  "name": "boost-algorithm:arm64-osx@1.85.0#1 87adea190f8f1be51d4cc747882168bb5e9d669e3cb2a8efbd4e7397eb0bff09",
+  "documentNamespace": "https://spdx.org/spdxdocs/boost-algorithm-arm64-osx-1.87.0-a6cad9c3-1630-46ae-be78-6562b12f0462",
+  "name": "boost-algorithm:arm64-osx@1.87.0 a3e55908026d6c6468544182168d453502f425f714a1d035d550c9563279c680",
   "creationInfo": {
     "creators": [
-      "Tool: vcpkg-d6945642ee5c3076addd1a42c331bbf4cfc97457"
+      "Tool: vcpkg-2025-02-11-bec4296bf5289dc9ce83b4f5095943e44162f9c2"
     ],
-    "created": "2024-08-08T16:31:17Z"
+    "created": "2025-03-13T17:58:16Z"
   },
   "relationships": [
     {
@@ -47,7 +47,7 @@
     {
       "name": "boost-algorithm",
       "SPDXID": "SPDXRef-port",
-      "versionInfo": "1.85.0#1",
+      "versionInfo": "1.87.0",
       "downloadLocation": "NOASSERTION",
       "homepage": "https://www.boost.org/libs/algorithm",
       "licenseConcluded": "BSL-1.0",
@@ -59,7 +59,7 @@
     {
       "name": "boost-algorithm:arm64-osx",
       "SPDXID": "SPDXRef-binary",
-      "versionInfo": "87adea190f8f1be51d4cc747882168bb5e9d669e3cb2a8efbd4e7397eb0bff09",
+      "versionInfo": "a3e55908026d6c6468544182168d453502f425f714a1d035d550c9563279c680",
       "downloadLocation": "NONE",
       "licenseConcluded": "BSL-1.0",
       "licenseDeclared": "NOASSERTION",
@@ -67,16 +67,16 @@
       "comment": "This is a binary package built by vcpkg."
     },
     {
-      "SPDXID": "SPDXRef-resource-1",
+      "SPDXID": "SPDXRef-resource-0",
       "name": "boostorg/algorithm",
-      "downloadLocation": "git+https://github.com/boostorg/algorithm@boost-1.85.0",
+      "downloadLocation": "git+https://github.com/boostorg/algorithm@boost-1.87.0",
       "licenseConcluded": "NOASSERTION",
       "licenseDeclared": "NOASSERTION",
       "copyrightText": "NOASSERTION",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "6cf6b95e688a7841b699a7f0fbfa1ff10025298e05b3333c5bc2a412a176545955d3089bb90eb66b313241bcd56e941b27e858045633bcb10705d9068486bed8"
+          "checksumValue": "b5608632f96239e8ee162fb642a0408985c3c11d19b972bec574a80088649d7c417d70ca5204b34afc93d92ab24dedea3ba877eb6d9a98296de53218d338bcfa"
         }
       ]
     }
@@ -88,7 +88,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "629a90d9859037ceb5e3ff02f6f6c2c73d9360cf1fbd48193109b9bb723bb098"
+          "checksumValue": "866fd24eea53b1bf5ca26cd4769f524274d9d3db03a353e67ddf39d097cf1fd8"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -100,7 +100,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "b6d9dbfc46ae9e842c7a30f7cb4bc7362bfd15391aae4dad228bb82d395c435f"
+          "checksumValue": "e53ec30d88d1b4498f947afcd8a14eceebcd4b5689325857e3e190a46af27ffd"
         }
       ],
       "licenseConcluded": "NOASSERTION",

@@ -56,6 +56,9 @@ class CPlayer : public Base::CSingleton<CPlayer>
     double m_transitionStartTime;
     float m_transitionDuration;
     bool m_isFirstPlay;
+    
+    // Pending seek crossfade - waiting for next clip to buffer before starting transition
+    bool m_pendingSeekCrossfade;
 
     typedef struct
     {
@@ -85,7 +88,13 @@ class CPlayer : public Base::CSingleton<CPlayer>
     double m_LastFrameRealTime;
     bool m_bFullscreen;
     bool m_InitPlayCounts;
-    bool m_bPaused;
+    bool m_bPaused = false;
+    bool m_UserPaused = false;
+    bool m_PausedForBuffering = false;
+    
+    bool m_PreloadingNextClip = false;
+    std::string m_PreloadingDreamUUID;
+
     Base::CBlockingQueue<std::string> m_NextClipInfoQueue;
     Base::CBlockingQueue<std::string> m_ClipInfoHistoryQueue;
     
@@ -143,11 +152,15 @@ class CPlayer : public Base::CSingleton<CPlayer>
     bool EndFrameUpdate();
     bool BeginDisplayFrame(uint32_t displayUnit);
     bool EndDisplayFrame(uint32_t displayUnit, bool drawn = true);
-    bool Update(uint32_t displayUnit, bool& bPlayNoSheepIntro);
+    bool Update(uint32_t displayUnit); //, bool& bPlayNoSheepIntro);
+    //bool Update(double _timelineTime);
+
     void RenderFrame(DisplayOutput::spCRenderer renderer);
     
     bool HasStarted() { return m_hasStarted; };
     void Start();
+    /// Resume after Stop() without re-running startup (e.g. after Preferences sheet). Keeps current clip and playlist.
+    void ResumeAfterPause();
     void Stop();
     bool NextClipForPlaying(int32_t _forceNext);
     //void CalculateNextClipThread();
@@ -192,24 +205,32 @@ class CPlayer : public Base::CSingleton<CPlayer>
 
     const ContentDecoder::sClipMetadata* GetCurrentPlayingClipMetadata() const;
     const ContentDecoder::sFrameMetadata* GetCurrentFrameMetadata() const;
+    double GetCurrentClipElapsedTime() const;
 
     void PlayNextDream(bool quickFade = false);
     void StartTransition();
     void UpdateTransition(double currentTime);
     bool IsTransitioning() const { return m_isTransitioning; }
     void SetTransitionDuration(float duration) { m_transitionDuration = duration; }
+    bool IsJumpDisabled() const { 
+        return m_pendingSeekCrossfade || 
+               (m_isTransitioning && m_transitionDuration == 1.0f && !m_nextDreamDecision);
+    }
 
     // Get the name of the current playlist
     std::string GetPlaylistName() const;
+    
+    // Get the PlaylistManager
+    PlaylistManager& GetPlaylistManager() { return *m_playlistManager; }
     
     void PlayDreamNow(std::string_view _uuid, int64_t frameNumber);
     void ResetPlaylist();
     
     // Set playlist from the start
-    bool SetPlaylist(const std::string& playlistUUID);
+    bool SetPlaylist(const std::string& playlistUUID, bool fetchPlaylist);
 
     // Set playlist at a given dream. Used to resume
-    bool SetPlaylistAtDream(const std::string& playlistUUID, const std::string& dreamUUID);
+    bool SetPlaylistAtDream(const std::string& playlistUUID, const std::string& dreamUUID, bool fetchPlaylist);
    
     void MarkForDeletion(std::string_view _uuid);
     void SkipToNext();
@@ -233,7 +254,56 @@ class CPlayer : public Base::CSingleton<CPlayer>
         return static_cast<uint32_t>(m_displayUnits.size());
     }
     void ForceWidthAndHeight(uint32_t du, uint32_t _w, uint32_t _h);
-    void SetPaused(bool _bPaused) { m_bPaused = _bPaused; }
+    
+    void SetPaused(bool _bPaused, bool isUserInitiated = false) {
+        bool stateChanged = (m_bPaused != _bPaused);
+        m_bPaused = _bPaused;
+
+        // Set on pause when manually initiated, or unset
+        if (isUserInitiated && _bPaused) {
+            m_UserPaused = _bPaused;
+        } else {
+            m_UserPaused = false;
+        }
+
+        if (stateChanged) {
+            g_Log->Info("Pause state changed to %s, syncing to server", _bPaused ? "paused" : "playing");
+            EDreamClient::SendStateUpdate();
+        }
+    }
+
+    // Keep track of preflight decision
+    std::optional<PlaylistManager::NextDreamDecision> m_nextDreamDecision;
+    
+    // Check if we need to prepare for transition
+    bool shouldPrepareTransition(const ContentDecoder::spCClip& clip) const;
+    
+    // Prepare next clip for seamless/crossfade transition
+    void prepareSeamlessTransition();
+    void prepareCrossfadeTransition();
+
+    bool PreloadClip(const Cache::Dream* dream);
+    
+    // Handle buffering states
+    void SetPausedForBuffering(bool paused) {
+        m_PausedForBuffering = paused;
+    }
+
+    bool IsPausedForBuffering() const {
+        return m_PausedForBuffering;
+    }
+
+    bool IsUserPaused() const {
+        return m_UserPaused;
+    }
+
+    bool IsPaused() const {
+        return m_bPaused;
+    }
+
+    bool IsAnyClipBuffering() const;
+    bool IsPreloading() const;
+    bool IsAnyClipStreaming() const;
 };
 
 /*

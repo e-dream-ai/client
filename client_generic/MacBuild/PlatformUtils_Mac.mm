@@ -139,10 +139,9 @@ void PlatformUtils::OpenURLExternally(std::string_view _url)
 
 void PlatformUtils::SetThreadName(std::string_view _name)
 {
-    if (_name.end())
-        pthread_setname_np(std::string{_name}.data());
-    else
-        pthread_setname_np(_name.data());
+    // pthread_setname_np requires null-terminated string
+    // string_view is not guaranteed to be null-terminated, so convert to std::string
+    pthread_setname_np(std::string{_name}.c_str());
 }
 
 void PlatformUtils::DispatchOnMainThread(std::function<void()> _func)

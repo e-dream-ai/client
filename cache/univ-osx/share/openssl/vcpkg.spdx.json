@@ -3,13 +3,13 @@
   "spdxVersion": "SPDX-2.2",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "documentNamespace": "https://spdx.org/spdxdocs/openssl-arm64-osx-3.3.0#1-90a360a9-7b4b-4715-88be-a8a84d99d907",
-  "name": "openssl:arm64-osx@3.3.0#1 ee149538c38b99c579b815c97f4a9cae704c4c2188ae1f535e90d2f2ad3ed11b",
+  "documentNamespace": "https://spdx.org/spdxdocs/openssl-arm64-osx-3.4.1-1d1f6f65-e774-44ea-b326-2bc7f1190ced",
+  "name": "openssl:arm64-osx@3.4.1 f9a707a3e3335c611e39d9694f9d04305ff8e21879551849bd5c157c1dc916e6",
   "creationInfo": {
     "creators": [
-      "Tool: vcpkg-d6945642ee5c3076addd1a42c331bbf4cfc97457"
+      "Tool: vcpkg-2025-02-11-bec4296bf5289dc9ce83b4f5095943e44162f9c2"
     ],
-    "created": "2024-08-08T16:38:06Z"
+    "created": "2025-03-13T18:01:12Z"
   },
   "relationships": [
     {
@@ -217,7 +217,7 @@
     {
       "name": "openssl",
       "SPDXID": "SPDXRef-port",
-      "versionInfo": "3.3.0#1",
+      "versionInfo": "3.4.1",
       "downloadLocation": "NOASSERTION",
       "homepage": "https://www.openssl.org",
       "licenseConcluded": "Apache-2.0",
@@ -229,7 +229,7 @@
     {
       "name": "openssl:arm64-osx",
       "SPDXID": "SPDXRef-binary",
-      "versionInfo": "ee149538c38b99c579b815c97f4a9cae704c4c2188ae1f535e90d2f2ad3ed11b",
+      "versionInfo": "f9a707a3e3335c611e39d9694f9d04305ff8e21879551849bd5c157c1dc916e6",
       "downloadLocation": "NONE",
       "licenseConcluded": "Apache-2.0",
       "licenseDeclared": "NOASSERTION",
@@ -237,16 +237,16 @@
       "comment": "This is a binary package built by vcpkg."
     },
     {
-      "SPDXID": "SPDXRef-resource-1",
+      "SPDXID": "SPDXRef-resource-0",
       "name": "openssl/openssl",
-      "downloadLocation": "git+https://github.com/openssl/openssl@openssl-3.3.0",
+      "downloadLocation": "git+https://github.com/openssl/openssl@openssl-3.4.1",
       "licenseConcluded": "NOASSERTION",
       "licenseDeclared": "NOASSERTION",
       "copyrightText": "NOASSERTION",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "42cc11475d8b31706ec151c9aed0178e17b788c6b38636ae1cde363872139ed85f5b9efd0c75012f4d6f15ec8100e1afe5d528e72b88a5d3dea4125c9b0804aa"
+          "checksumValue": "c66ac5bb4ba90cb62176e39dad1534963fc84fac3db9774d1ab4999ec3c4f796c63e13036c1f8b36f3077d7a1ee0db54d677de3dae32926c14af128cc3993e14"
         }
       ]
     }
@@ -258,7 +258,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "11c01cd2ebcca46cf1f54abd1edc1e3b4776c35552eed7ee9d4fbab6b7e6159b"
+          "checksumValue": "9b4cd414b2f7ea82e9bc46507312ad6046ba62403834869b1cc7badc13597a27"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -294,7 +294,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "41a5ec588fed9be2b24fcef27203f3556e3943de4e5c025bc977702525aa496c"
+          "checksumValue": "88f42dc6e3960ac033451cc8ee4fbf3e2b07884221d38d4268bd42eb438ad0cb"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -342,7 +342,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "a306e9e63242db926c607fdb08a559e534869e15bd4962903f010535b8ddd5a2"
+          "checksumValue": "7b5bfbfb19d02de85f009a2ad132169624618ebe74dd3a208029eae09dc6551c"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -390,7 +390,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "785e56303e73d00fb5fd0ce9b3fb7126b7fed344504a80e9de8e85563af4effe"
+          "checksumValue": "8efdeabcb4d98d45a9a541a2385855349c3161d736183bbaef6f3e777c2f4045"
         }
       ],
       "licenseConcluded": "NOASSERTION",

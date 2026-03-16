@@ -55,7 +55,7 @@ namespace ContentDecoder
 struct sClipMetadata
 {
     std::string path;
-    double decodeFps;
+    double decodeFps = 0.0;
     Cache::Dream dreamData;
 };
 
@@ -65,7 +65,8 @@ struct sOpenVideoInfo
         : m_pFrame(NULL), m_pFormatContext(NULL), m_pVideoCodecContext(NULL),
           m_pVideoCodec(NULL), m_pVideoStream(NULL), m_VideoStreamID(-1),
           m_TotalFrameCount(0), m_CurrentFrameIndex(0), m_SeekTargetFrame(0),
-          m_NextIsSeam(false), m_ReadingTrailingFrames(false)
+          m_DecodeFps(0.0f),
+          m_NextIsSeam(false), m_ReadingTrailingFrames(false), m_ActualFrameCount(0)
 
     {
     }
@@ -92,6 +93,7 @@ struct sOpenVideoInfo
     std::string m_Path;
     bool m_NextIsSeam;
     bool m_ReadingTrailingFrames;
+    int64_t m_ActualFrameCount;
 };
 
 /*
@@ -116,6 +118,8 @@ class CContentDecoder
     std::unique_ptr<sOpenVideoInfo> m_CurrentVideoInfo;
     AVPixelFormat m_WantedPixelFormat;
     boost::atomic<float> m_SkipForward;
+    std::atomic<int64_t> m_SkipToFrame{-1};  // The displayed frame index to use as base for skip
+    boost::atomic<bool> m_HasStarted{false};
     boost::atomic<bool> m_HasEnded;
 
     void Destroy();
@@ -142,11 +146,17 @@ class CContentDecoder
     }
     spCVideoFrame PopVideoFrame();
     bool HasEnded() const { return m_HasEnded.load() && !m_FrameQueue.size(); }
+    bool DecoderThreadEnded() const { return m_HasEnded.load(); }  // True when decoder thread finished, regardless of queue state
     bool Stopped() { return m_bStop; };
     uint32_t QueueLength();
     void ClearQueue(uint32_t leave = 0);
-    void SkipTime(float _secondsForward)
+    void SkipTime(float _secondsForward, int64_t _displayedFrameIdx = -1)
     {
+        // Store the displayed frame index first, then the skip time
+        // The decoder thread will pick these up atomically
+        if (_displayedFrameIdx >= 0) {
+            m_SkipToFrame.store(_displayedFrameIdx);
+        }
         m_SkipForward.exchange(_secondsForward);
     }
     
@@ -171,9 +181,13 @@ class CContentDecoder
     void CloseCacheFile();
     void WriteToCache(const uint8_t* buf, int buf_size, int64_t position);
     std::string GenerateCacheFileName();
+    std::string GetFinalFileName() const;
     
     bool IsDownloadComplete() const;
     void FinalizeCacheFile();
+    
+    // Static mutex to ensure atomic file renaming across all instances
+    static std::mutex s_RenameMutex;
 };
 
 MakeSmartPointers(CContentDecoder);

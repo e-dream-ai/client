@@ -194,6 +194,8 @@ class CRenderer
     virtual void Apply();
     virtual void SetTexture(spCTexture _spTex, const uint32_t _index);
     virtual void SetShader(spCShader _spShader);
+    virtual float GetGPUFrameTimeMs() { return -1.0f; }
+    virtual float GetGPUUtilization() { return -1.0f; }
     virtual float GetBrightness() const { return m_Brightness; }
     virtual void SetBrightness(float _brightness)
     {

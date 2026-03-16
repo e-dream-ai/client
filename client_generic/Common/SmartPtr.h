@@ -153,6 +153,8 @@
 #include "base.h"
 #include <memory>
 
+#define _LIBCPP_INLINE_VISIBILITY _LIBCPP_HIDE_FROM_ABI
+
 namespace Base
 {
 /**

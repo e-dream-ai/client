@@ -7,8 +7,6 @@
 
     IBOutlet NSTextField* playerFPS;
     IBOutlet NSTextField* displayFPS;
-    IBOutlet NSPopUpButton* display;
-    IBOutlet NSPopUpButton* multiDisplayMode;
     IBOutlet NSButton* synchronizeVBL;
     IBOutlet NSButton* blackoutMonitors;
     IBOutlet NSButton* silentMode;
@@ -66,6 +64,11 @@
 
     IBOutlet NSTabView* tabView;
 
+    
+    __weak IBOutlet NSButton *installAndUpdateScreensaverButton;
+    
+    __weak IBOutlet NSButton *keepScreensaverEnabledButton;
+    
     NSString* m_origNickname;
     NSString* m_previousLoginEmail;
     
@@ -88,9 +91,13 @@
 - (IBAction)goToCreateAccountPage:(id)sender;
 - (IBAction)goToLearnMorePage:(id)sender;
 - (IBAction)goToHelpPage:(id)sender;
+- (IBAction)openRemoteControl:(id)sender;
+- (IBAction)openBrowsePlaylist:(id)sender;
 - (IBAction)chooseContentFolder:(id)sender;
 - (IBAction)restartLogin:(id)sender;
 - (IBAction)validateLogin:(id)sender;
+- (IBAction)installAndUpdateScreensaver:(id)sender;
+- (IBAction)keepScreensaverEnabled:(id)sender;
 
 
 - (void)fixFlockSize;

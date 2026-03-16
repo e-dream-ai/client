@@ -2,8 +2,6 @@
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
 
-#import "TextRendering/MBEMathUtilities.h"
-
 #include <atomic>
 #include <chrono>
 #include <cstdint>
@@ -26,8 +24,6 @@ static const NSUInteger MaxFramesInFlight = 3;
   @public
     id<MTLCommandBuffer> currentCommandBuffer;
   @public
-    id<MTLTexture> depthTexture;
-  @public
     id<MTLLibrary> shaderLibrary;
   @public
     std::vector<CVMetalTextureRef> metalTexturesUsed[MaxFramesInFlight];
@@ -42,17 +38,17 @@ static const NSUInteger MaxFramesInFlight = 3;
   @public
     uint8_t currentFrameIndex;
   @public
-    MTLLoadAction currentLoadAction;
+    id<MTLRenderCommandEncoder> currentRenderEncoder;
   @public
     DisplayOutput::spCShaderMetal drawTextureShader;
-  @public
-    DisplayOutput::spCShaderMetal drawTextShader;
   @public
     DisplayOutput::spCShaderMetal activeShader;
   @public
     std::atomic<uint8_t> framesStarted;
   @public
     std::atomic<uint8_t> framesFinished;
+  @public
+    std::atomic<float> avgGpuFrameTimeMs;
 }
 @end
 
@@ -93,26 +89,6 @@ CRendererMetal::~CRendererMetal()
     m_pRendererContext = nullptr;
 }
 
-static MTLVertexDescriptor* CreateTextVertexDescriptor()
-{
-    MTLVertexDescriptor* vertexDescriptor = [MTLVertexDescriptor new];
-
-    // Position
-    vertexDescriptor.attributes[0].format = MTLVertexFormatFloat4;
-    vertexDescriptor.attributes[0].offset = 0;
-    vertexDescriptor.attributes[0].bufferIndex = 0;
-
-    // Texture coordinates
-    vertexDescriptor.attributes[1].format = MTLVertexFormatFloat2;
-    vertexDescriptor.attributes[1].offset = sizeof(vector_float4);
-    vertexDescriptor.attributes[1].bufferIndex = 0;
-
-    vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
-    vertexDescriptor.layouts[0].stride = sizeof(VertexText);
-
-    return vertexDescriptor;
-}
-
 bool CRendererMetal::Initialize(spCDisplayOutput _spDisplay)
 {
     if (!CRenderer::Initialize(_spDisplay))
@@ -140,12 +116,6 @@ bool CRendererMetal::Initialize(spCDisplayOutput _spDisplay)
 
     rendererContext->drawTextureShader = std::static_pointer_cast<CShaderMetal>(
         NewShader("quadPassVertex", "drawTextureFragment"));
-    rendererContext->drawTextShader = spCShaderMetal(new CShaderMetal(
-        device,
-        [rendererContext->shaderLibrary newFunctionWithName:@"drawTextVertex"],
-        [rendererContext
-             ->shaderLibrary newFunctionWithName : @"drawTextFragment"],
-        CreateTextVertexDescriptor(), {}));
 
     if (USE_HW_ACCELERATION)
     {
@@ -202,15 +172,17 @@ spCShader CRendererMetal::NewShader(
 
 spCBaseFont CRendererMetal::GetFont(CFontDescription& _desc)
 {
-    auto it = m_fontPool.find(_desc.TypeFace());
+    // Key font cache by typeface AND size so size changes take effect.
+    std::string key = _desc.TypeFace() + "#" + std::to_string((int)_desc.Height());
+    auto it = m_fontPool.find(key);
     if (it == m_fontPool.end())
     {
         spCBaseFont font =
-            std::make_shared<CFontMetal>(_desc, NewTextureFlat());
+            std::make_shared<CFontMetal>(_desc);
         if (!font->Create())
             return NULL;
         font->FontDescription(_desc);
-        m_fontPool[_desc.TypeFace()] = font;
+        m_fontPool[key] = font;
         return font;
     }
     return it->second;
@@ -220,9 +192,8 @@ spCBaseText CRendererMetal::NewText(spCBaseFont _font, const std::string& _text)
 {
     RendererContext* rendererContext =
         (__bridge RendererContext*)m_pRendererContext;
-    float aspect = m_spDisplay->Aspect();
     CTextMetal* text = new CTextMetal(static_pointer_cast<CFontMetal>(_font),
-                                      rendererContext->metalView, aspect);
+                                      rendererContext->metalView);
     text->SetText(_text);
 
     return spCBaseText(text);
@@ -245,8 +216,25 @@ bool CRendererMetal::BeginFrame(void)
     PROFILER_BEGIN_F("Metal Frame", "%d", rendererContext->frameCounter);
     id<MTLCommandQueue> commandQueue = rendererContext->commandQueue;
     rendererContext->currentCommandBuffer = [commandQueue commandBuffer];
-    rendererContext->currentLoadAction = MTLLoadActionClear;
-    Clear();
+
+    // Single render pass for the entire frame: clear once, draw everything,
+    // end in EndFrame(). This avoids per-DrawQuad render passes which each
+    // force a full framebuffer load/store on Apple's tile-based GPU.
+    @autoreleasepool
+    {
+        id<CAMetalDrawable> drawable =
+            rendererContext->metalView.currentDrawable;
+        id<MTLTexture> mainTex = drawable.texture;
+        MTLRenderPassDescriptor* passDescriptor =
+            [MTLRenderPassDescriptor renderPassDescriptor];
+        passDescriptor.colorAttachments[0].texture = drawable.texture;
+        passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
+        passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+
+        rendererContext->currentRenderEncoder =
+            [rendererContext->currentCommandBuffer
+                renderCommandEncoderWithDescriptor:passDescriptor];
+    }
     return true;
 }
 
@@ -255,16 +243,22 @@ bool CRendererMetal::EndFrame(bool drawn)
     CRenderer::EndFrame(drawn);
     RendererContext* rendererContext =
         (__bridge RendererContext*)m_pRendererContext;
+
+    // End the frame's single render pass.
+    [rendererContext->currentRenderEncoder endEncoding];
+    rendererContext->currentRenderEncoder = nil;
     __block dispatch_semaphore_t semaphore = rendererContext->inFlightSemaphore;
     __block std::vector<CVMetalTextureRef>& metalTexturesUsed =
         rendererContext->metalTexturesUsed[rendererContext->currentFrameIndex];
     __block uint32_t frameNumber = rendererContext->frameCounter;
     __block std::atomic<uint8_t>& framesFinished =
         rendererContext->framesFinished;
+    __block std::atomic<float>& avgGpuFrameTimeMs =
+        rendererContext->avgGpuFrameTimeMs;
     rendererContext->framesStarted++;
     bool* isAlivePtr = m_pIsAlive;
     [rendererContext->currentCommandBuffer
-        addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
+        addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull commandBuffer) {
             {
                 if (!*isAlivePtr)
                     return;
@@ -277,6 +271,13 @@ bool CRendererMetal::EndFrame(bool drawn)
                 }
                 metalTexturesUsed.clear();
             }
+            // Measure actual GPU execution time via Metal timestamps.
+            float gpuTimeMs =
+                (float)(commandBuffer.GPUEndTime -
+                        commandBuffer.GPUStartTime) * 1000.0f;
+            float prev = avgGpuFrameTimeMs.load(std::memory_order_relaxed);
+            avgGpuFrameTimeMs.store(prev * 0.99f + gpuTimeMs * 0.01f,
+                                    std::memory_order_relaxed);
             PROFILER_EVENT_F("Metal Frame Finished", "%d", frameNumber);
             dispatch_semaphore_signal(semaphore);
             framesFinished++;
@@ -297,117 +298,18 @@ bool CRendererMetal::EndFrame(bool drawn)
 
 void CRendererMetal::Clear()
 {
-    RendererContext* rendererContext =
-        (__bridge RendererContext*)m_pRendererContext;
-    @autoreleasepool
-    {
-        MTLRenderPassDescriptor* passDescriptor =
-            [MTLRenderPassDescriptor renderPassDescriptor];
-        if (passDescriptor != nil)
-        {
-            passDescriptor.colorAttachments[0].texture =
-                rendererContext->metalView.currentDrawable.texture;
-            passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
-            passDescriptor.colorAttachments[0].storeAction =
-                MTLStoreActionStore;
-
-            passDescriptor.depthAttachment.texture =
-                rendererContext->depthTexture;
-            passDescriptor.depthAttachment.clearDepth = 1.0;
-            passDescriptor.depthAttachment.loadAction = MTLLoadActionClear;
-            passDescriptor.depthAttachment.storeAction = MTLStoreActionDontCare;
-        }
-
-        id<MTLRenderCommandEncoder> renderEncoder =
-            [rendererContext->currentCommandBuffer
-                renderCommandEncoderWithDescriptor:passDescriptor];
-
-        [renderEncoder endEncoding];
-    }
+    // Clear is handled by MTLLoadActionClear in BeginFrame().
 }
 
-void CRendererMetal::DrawText(
-    [[maybe_unused]] spCBaseText _text,
-    [[maybe_unused]] const Base::Math::CVector4& _color)
+void CRendererMetal::DrawText(spCBaseText _text,
+                              const Base::Math::CVector4& _color)
 {
-#if !USE_SYSTEM_UI
-    RendererContext* rendererContext =
-        (__bridge RendererContext*)m_pRendererContext;
-    @autoreleasepool
-    {
-        spCTextMetal textMetal = static_cast<spCTextMetal>(_text);
-        const MBETextMesh* textMesh = textMetal->GetTextMesh();
-
-        MTLRenderPassDescriptor* passDescriptor =
-            [MTLRenderPassDescriptor renderPassDescriptor];
-        if (passDescriptor != nil)
-        {
-            passDescriptor.colorAttachments[0].texture =
-                rendererContext->metalView.currentDrawable.texture;
-            passDescriptor.colorAttachments[0].loadAction =
-                rendererContext->currentLoadAction;
-            passDescriptor.colorAttachments[0].storeAction =
-                MTLStoreActionStore;
-
-            passDescriptor.depthAttachment.texture =
-                rendererContext->depthTexture;
-            passDescriptor.depthAttachment.clearDepth = 1.0;
-            passDescriptor.depthAttachment.loadAction =
-                rendererContext->currentLoadAction;
-            passDescriptor.depthAttachment.storeAction = MTLStoreActionStore;
+    if (_text) {
+        spCTextMetal textMetal = std::static_pointer_cast<CTextMetal>(_text);
+        if (textMetal) {
+            textMetal->SetColor(_color);
         }
-
-        id<MTLRenderCommandEncoder> renderEncoder =
-            [rendererContext->currentCommandBuffer
-                renderCommandEncoderWithDescriptor:passDescriptor];
-        [renderEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
-        [renderEncoder setCullMode:MTLCullModeNone];
-        [renderEncoder setRenderPipelineState:rendererContext->drawTextShader
-                                                  ->GetPipelineState()];
-        [renderEncoder setVertexBuffer:textMesh.vertexBuffer
-                                offset:0
-                               atIndex:0];
-
-        vector_float3 translation = {_text->GetRect().m_X0,
-                                     _text->GetRect().m_Y0, 0};
-        vector_float3 scale = {1, 1, 1};
-        float aspect = m_spDisplay->Aspect();
-        matrix_float4x4 modelMatrix = matrix_multiply(
-            matrix_translation(translation * kMetalTextReferenceContextSize),
-            matrix_scale(scale * vector_float3{aspect, 1, 1}));
-        matrix_float4x4 projectionMatrix =
-            matrix_orthographic_projection(0, kMetalTextReferenceContextSize, 0,
-                                           kMetalTextReferenceContextSize);
-
-        TextUniforms uniforms;
-        uniforms.modelMatrix = modelMatrix;
-        uniforms.viewProjectionMatrix = projectionMatrix;
-        uniforms.foregroundColor = {_color.m_X, _color.m_Y, _color.m_Z,
-                                    _color.m_W};
-
-        [renderEncoder setVertexBytes:&uniforms
-                               length:sizeof(uniforms)
-                              atIndex:1];
-        [renderEncoder setFragmentBytes:&uniforms
-                                 length:sizeof(uniforms)
-                                atIndex:0];
-        spCTextMetal metalText = static_cast<spCTextMetal>(_text);
-        spCFontMetal font = metalText->GetFont();
-        id<MTLTexture> atlasTexture =
-            font->GetAtlasTexture()->GetRGBMetalTexture();
-        [renderEncoder setFragmentTexture:atlasTexture atIndex:0];
-
-        [renderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-                                  indexCount:[textMesh.indexBuffer length] /
-                                             sizeof(uint16_t)
-                                   indexType:MTLIndexTypeUint16_t
-                                 indexBuffer:textMesh.indexBuffer
-                           indexBufferOffset:0];
-
-        [renderEncoder endEncoding];
-        rendererContext->currentLoadAction = MTLLoadActionLoad;
     }
-#endif /*USE_SYSTEM_UI*/
 }
 
 bool CRendererMetal::CreateMetalTextureFromDecoderFrame(
@@ -457,38 +359,10 @@ void CRendererMetal::DrawQuad(const Base::Math::CRect& _rect,
                 : rendererContext->drawTextureShader;
         id<MTLRenderPipelineState> renderPipelineState =
             activeShader->GetPipelineState();
-        MTLRenderPassDescriptor* passDescriptor =
-            [MTLRenderPassDescriptor renderPassDescriptor];
-        if (passDescriptor != nil)
-        {
-            id<CAMetalDrawable> drawable =
-                rendererContext->metalView.currentDrawable;
-            id<MTLTexture> mainTex = drawable.texture;
-            if (rendererContext->depthTexture == nil ||
-                mainTex.width != rendererContext->depthTexture.width ||
-                mainTex.height != rendererContext->depthTexture.height)
-            {
-                BuildDepthTexture();
-            }
-            passDescriptor.colorAttachments[0].texture =
-                rendererContext->metalView.currentDrawable.texture;
-            passDescriptor.colorAttachments[0].loadAction =
-                rendererContext->currentLoadAction;
-            passDescriptor.colorAttachments[0].storeAction =
-                MTLStoreActionStore;
 
-            passDescriptor.depthAttachment.texture =
-                rendererContext->depthTexture;
-            passDescriptor.depthAttachment.clearDepth = 1.0;
-            passDescriptor.depthAttachment.loadAction =
-                rendererContext->currentLoadAction;
-            ;
-            passDescriptor.depthAttachment.storeAction = MTLStoreActionStore;
-        }
-
+        // Reuse the frame's single render encoder from BeginFrame().
         id<MTLRenderCommandEncoder> renderEncoder =
-            [rendererContext->currentCommandBuffer
-                renderCommandEncoderWithDescriptor:passDescriptor];
+            rendererContext->currentRenderEncoder;
         [renderEncoder setRenderPipelineState:renderPipelineState];
         std::vector<CVMetalTextureRef>& metalTexturesUsed =
             rendererContext
@@ -534,6 +408,16 @@ void CRendererMetal::DrawQuad(const Base::Math::CRect& _rect,
                     [renderEncoder setFragmentTexture:rgbTexture atIndex:i];
                 }
             }
+            else
+            {
+                // Clear stale texture bindings from previous draw calls
+                // that used this same render encoder.  Without this, a
+                // DrawQuad with no texture (e.g. DrawSoftQuad overlay)
+                // would sample whatever texture the previous draw left
+                // bound, causing ghost images.
+                [renderEncoder setFragmentTexture:nil atIndex:i * 2 + 0];
+                [renderEncoder setFragmentTexture:nil atIndex:i * 2 + 1];
+            }
         }
         QuadUniforms uniforms;
         uniforms.color =
@@ -553,8 +437,6 @@ void CRendererMetal::DrawQuad(const Base::Math::CRect& _rect,
         [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip
                           vertexStart:0
                           vertexCount:4];
-        [renderEncoder endEncoding];
-        rendererContext->currentLoadAction = MTLLoadActionLoad;
     }
 }
 
@@ -571,22 +453,23 @@ void CRendererMetal::DrawSoftQuad(const Base::Math::CRect& _rect,
     DrawQuad(_rect, _color, Base::Math::CRect{0, 0, 1, 1});
 }
 
-void CRendererMetal::BuildDepthTexture()
+
+float CRendererMetal::GetGPUFrameTimeMs()
 {
     RendererContext* rendererContext =
         (__bridge RendererContext*)m_pRendererContext;
-    id<MTLDevice> device = rendererContext->metalView.device;
-    id<MTLTexture> texture = rendererContext->metalView.currentDrawable.texture;
-    MTLTextureDescriptor* depthTextureDescriptor =
-        [[MTLTextureDescriptor alloc] init];
-    depthTextureDescriptor.pixelFormat = MTLPixelFormatDepth32Float;
-    depthTextureDescriptor.width = texture.width;
-    depthTextureDescriptor.height = texture.height;
-    depthTextureDescriptor.storageMode = MTLStorageModePrivate;
-    depthTextureDescriptor.usage = MTLTextureUsageRenderTarget;
+    return rendererContext->avgGpuFrameTimeMs.load(std::memory_order_relaxed);
+}
 
-    rendererContext->depthTexture =
-        [device newTextureWithDescriptor:depthTextureDescriptor];
+float CRendererMetal::GetGPUUtilization()
+{
+    RendererContext* rendererContext =
+        (__bridge RendererContext*)m_pRendererContext;
+    float gpuMs =
+        rendererContext->avgGpuFrameTimeMs.load(std::memory_order_relaxed);
+    float budgetMs =
+        1000.0f / rendererContext->metalView.preferredFramesPerSecond;
+    return gpuMs / budgetMs * 100.0f;
 }
 
 } // namespace DisplayOutput

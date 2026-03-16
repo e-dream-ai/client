@@ -28,7 +28,10 @@ bool CFileUploader::PerformUpload(const std::string& _url,
                                   const uint32_t _fileSize)
 {
     //	Open input file to transfer.
-    FILE* pFile = fopen(_file.c_str(), "rb");
+    
+    auto fileCloser = [](FILE* f){ if(f) fclose(f); };
+    std::unique_ptr<FILE, decltype(fileCloser)> pFile(fopen(_file.c_str(), "rb"), fileCloser);
+
     if (!pFile)
     {
         g_Log->Info("Failed to open %s", _file.c_str());
@@ -40,7 +43,7 @@ bool CFileUploader::PerformUpload(const std::string& _url,
     if (slist != NULL)
         if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_HTTPHEADER, slist)))
             return false;
-    if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_INFILE, pFile)))
+    if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_INFILE, pFile.get())))
         return false;
     if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_INFILESIZE, _fileSize)))
         return false;
@@ -50,9 +53,6 @@ bool CFileUploader::PerformUpload(const std::string& _url,
         return false;
 
     bool retval = CCurlTransfer::Perform(_url);
-    if (pFile != NULL)
-        fclose(pFile);
-
     if (slist != NULL)
     {
         curl_slist_free_all(slist);

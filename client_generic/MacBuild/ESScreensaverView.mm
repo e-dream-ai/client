@@ -3,18 +3,18 @@
 #import "ESScreensaverView.h"
 #import "ESScreensaver.h"
 #import <Bugsnag/Bugsnag.h>
-//#import <Sparkle/Sparkle.h>
+#import <Sparkle/Sparkle.h>
 #include <csignal>
 
 #include "dlfcn.h"
 #include "libgen.h"
 #include "Log.h"
 #include "DisplayOutput.h"
-#include "PlatformUtils.h"
 
 @implementation ESScreensaverView
 {
     BOOL m_bStarted;
+    BOOL m_bPausedForSheet;  // YES when paused for Preferences sheet (no full shutdown)
     int m_displayIdx;
 }
 
@@ -32,24 +32,82 @@
 
 
     m_updater = NULL;
+    m_sparkleUpdater = NULL;
+    m_sparkleUserDriver = nil;
+    m_updateAvailable = NO;
 
     m_isFullScreen = !isPreview;
     m_isStopped = YES;
+    m_bPausedForSheet = NO;
 
     m_isPreview = isPreview;
     DEBUG_LOG("INIT");
 
+    // Initialize Sparkle updater for both app and screensaver
+    // For screensaver: explicitly specify the bundle so Sparkle can find Info.plist
+    // For app: full functionality with menu item connection
+    
+    NSLog(@"ESScreensaverView: Initializing Sparkle...");
+    
 #ifdef SCREEN_SAVER
-    // if (isPreview)
-#endif
-    {
-
-        //        m_updater =
-        //            [[SPUStandardUpdaterController alloc] initWithStartingUpdater:YES
-        //                                                          updaterDelegate:nil
-        //                                                       userDriverDelegate:nil];
-        //        [m_updater startUpdater];
+    NSLog(@"ESScreensaverView: Running in SCREEN_SAVER mode");
+    // For screensaver: use explicit bundle initialization
+    // This ensures Sparkle reads SUPublicEDKey and other settings from our bundle
+    m_updater = nil;
+    m_sparkleUpdater = nil;
+    m_sparkleUserDriver = nil;
+    
+    @try {
+        NSBundle *screensaverBundle = [NSBundle bundleForClass:[self class]];
+        NSLog(@"Sparkle: initializing for screensaver bundle: %@ at %@", 
+              screensaverBundle.bundleIdentifier, screensaverBundle.bundlePath);
+        
+        SPUStandardUserDriver *userDriver = [[SPUStandardUserDriver alloc] initWithHostBundle:screensaverBundle delegate:self];
+        m_sparkleUserDriver = userDriver;
+        SPUUpdater *updater = [[SPUUpdater alloc] initWithHostBundle:screensaverBundle
+                                                   applicationBundle:screensaverBundle
+                                                          userDriver:userDriver
+                                                            delegate:self];
+        
+        NSError *error = nil;
+        if ([updater startUpdater:&error]) {
+            m_sparkleUpdater = updater;
+            m_sparkleUpdater.automaticallyChecksForUpdates = YES;
+            // Hide "Skip this version" in update dialog (Sparkle 2.x allowsSkippingUpdates)
+            if ([m_sparkleUpdater respondsToSelector:NSSelectorFromString(@"setAllowsSkippingUpdates:")]) {
+                [m_sparkleUpdater setValue:@NO forKey:@"allowsSkippingUpdates"];
+            }
+            NSLog(@"Sparkle: successfully started for screensaver");
+            
+            // Trigger an immediate background check for updates
+            [m_sparkleUpdater checkForUpdatesInBackground];
+            NSLog(@"Sparkle: initiated background update check");
+        } else {
+            NSLog(@"Sparkle: failed to start - %@", error.localizedDescription);
+        }
+    } @catch (NSException *exception) {
+        NSLog(@"Sparkle: exception during initialization - %@: %@", exception.name, exception.reason);
     }
+#else
+    NSLog(@"ESScreensaverView: Running in APP mode");
+    // For app: use standard controller
+    m_sparkleUpdater = nil;
+    m_updater = [[SPUStandardUpdaterController alloc] initWithStartingUpdater:YES
+                                                              updaterDelegate:self
+                                                           userDriverDelegate:self];
+    
+    if (m_updater) {
+        SPUUpdater *appUpdater = m_updater.updater;
+        // Hide "Skip this version" in update dialog (Sparkle 2.x allowsSkippingUpdates)
+        if ([appUpdater respondsToSelector:NSSelectorFromString(@"setAllowsSkippingUpdates:")]) {
+            [appUpdater setValue:@NO forKey:@"allowsSkippingUpdates"];
+        }
+        [appUpdater checkForUpdatesInBackground];
+    }
+    
+    // Connect "Check for Updates..." menu item to the updater (app only)
+    [self connectCheckForUpdatesMenuItem];
+#endif
 
     if (self)
     {
@@ -163,6 +221,7 @@
 #ifdef SCREEN_SAVER
     [NSCursor unhide];
 #endif
+    m_bPausedForSheet = NO;
     if (m_bStarted)
     {
         [self _endThread];
@@ -181,41 +240,32 @@
 #endif
 }
 
-- (void)animateOneFrame
+- (void)pauseAnimationForSheet
 {
-    //[self setAnimationTimeInterval:-1];
-
-    //[animationLock unlock];
-
-    // ESScreensaver_DoFrame();
-
-    //[view setNeedsDisplay:YES];
+    if (!m_bStarted || m_bPausedForSheet)
+        return;
+    [self _endThread];
+    ESScreensaver_Stop();
+    m_bPausedForSheet = YES;
+    m_bStarted = NO;
 }
 
-- (void)_animationThread
+- (BOOL)resumeAnimationFromSheet
 {
-    DEBUG_LOG("ANIMATIONTHREAD");
-    while (!m_isStopped && !ESScreensaver_Stopped())
-    {
-        @autoreleasepool
-        {
-            if (!ESScreensaver_DoFrame(m_displayIdx, *m_beginFrameBarrier,
-                                       *m_endFrameBarrier))
-                break;
+    if (!m_bPausedForSheet)
+        return NO;
+    ESScreensaver_Resume();
+    [self _beginThread];
+    m_bStarted = YES;
+    m_bPausedForSheet = NO;
 #ifdef SCREEN_SAVER
-            if (!m_isPreview && CGCursorIsVisible())
-            {
-                [NSCursor hide];
-                m_isHidden = YES;
-            }
+    [super startAnimation];
 #endif
-            // if (m_isStopped)
-            // break;
+    return YES;  // Caller must NOT call startAnimation (would re-add display and retrigger full startup)
+}
 
-            // if (view != NULL)
-            //[view setNeedsDisplay:YES];
-        }
-    }
+- (void)animateOneFrame
+{
 }
 
 static void signnal_handler(int signal)
@@ -230,13 +280,8 @@ static void signnal_handler(int signal)
 
 - (void)_beginThread
 {
-    //[animationLock lock];
     DEBUG_LOG("BEGINTHREAD");
     m_isStopped = NO;
-    m_beginFrameBarrier = std::make_unique<boost::barrier>(2);
-    m_endFrameBarrier = std::make_unique<boost::barrier>(2);
-    m_animationDispatchGroup = dispatch_group_create();
-    m_frameUpdateQueue = dispatch_queue_create("Frame Update", NULL);
     [NSWorkspace.sharedWorkspace.notificationCenter
         addObserver:self
            selector:@selector(willStop:)
@@ -248,13 +293,6 @@ static void signnal_handler(int signal)
                name:NSNotificationName(@"com.apple.screensaver.willstop")
              object:nil];
     std::signal(SIGSEGV, signnal_handler);
-
-    dispatch_async(m_frameUpdateQueue, ^{
-        PlatformUtils::SetThreadName("FrameUpdate");
-        dispatch_group_enter(self->m_animationDispatchGroup);
-        [self _animationThread];
-        dispatch_group_leave(self->m_animationDispatchGroup);
-    });
 }
 
 - (void)willStop:(NSNotification*)notification
@@ -264,9 +302,11 @@ static void signnal_handler(int signal)
     if (@available(macOS 14.0, *)) {
         g_Log->Info("Deinit");
         ESScreensaver_Deinit();
-        g_Log->Info("Log shutdown, will exit");
+        g_Log->Info("Log shutdown, will exit in 2 seconds");
         g_Log->Shutdown();
-        exit(0);
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+            exit(0);
+        });
     }
 #endif
 }
@@ -289,24 +329,65 @@ static void signnal_handler(int signal)
 
 - (void)_endThread
 {
-    m_beginFrameBarrier->wait();
     m_isStopped = YES;
-    m_endFrameBarrier->wait();
-
-    dispatch_group_wait(m_animationDispatchGroup, DISPATCH_TIME_FOREVER);
 }
 
 - (void)windowDidResize
 {
-    view.frame = self.frame;
+    NSRect videoFrame = self.frame;
+    
+    // Only apply aspect ratio constraint if the setting is enabled
+    if (ESScreensaver_GetBoolSetting("settings.player.preserve_AR", true)) {
+        // Set background to black for letterboxing/pillarboxing
+        if (self.window) {
+            self.window.backgroundColor = [NSColor blackColor];
+        }
 
-    ESScreensaver_ForceWidthAndHeight((uint32_t)self.frame.size.width,
-                                      (uint32_t)self.frame.size.height);
+        // Calculate 16:9 constrained frame within the window
+        float frameAR = self.frame.size.width / self.frame.size.height;
+        float targetAR = 16.0f / 9.0f;
+
+        // Only adjust if aspect ratio differs significantly from 16:9
+        if (fabsf(frameAR - targetAR) > 0.01f)
+        {
+            NSSize constrainedSize = self.frame.size;
+
+            if (frameAR < targetAR)  // Frame is taller than 16:9 (e.g., 16:10)
+            {
+                // Constrain height and center vertically
+                constrainedSize.height = constrainedSize.width * 9.0f / 16.0f;
+                CGFloat yOffset = (self.frame.size.height - constrainedSize.height) / 2.0f;
+                videoFrame = NSMakeRect(0, yOffset, constrainedSize.width, constrainedSize.height);
+            }
+            else  // Frame is wider than 16:9
+            {
+                // Constrain width and center horizontally
+                constrainedSize.width = constrainedSize.height * 16.0f / 9.0f;
+                CGFloat xOffset = (self.frame.size.width - constrainedSize.width) / 2.0f;
+                videoFrame = NSMakeRect(xOffset, 0, constrainedSize.width, constrainedSize.height);
+            }
+        }
+    } else {
+        // When preserve AR is disabled, fill the entire window
+        if (self.window) {
+            self.window.backgroundColor = [NSColor blackColor];
+        }
+        videoFrame = self.frame;
+    }
+
+    view.frame = videoFrame;
+
+    ESScreensaver_ForceWidthAndHeight((uint32_t)videoFrame.size.width,
+                                      (uint32_t)videoFrame.size.height);
 }
 
 - (BOOL)hasConfigureSheet
 {
-    return YES;
+#ifdef SCREEN_SAVER
+    return NO;  // Hide Options button in System Settings when running as screensaver
+#else
+    return YES; // App can open settings dialog
+#endif
 }
 
 - (NSWindow*)configureSheet
@@ -314,7 +395,7 @@ static void signnal_handler(int signal)
     if (!m_config)
     {
         m_config =
-            [[ESConfiguration alloc] initWithWindowNibName:@"ElectricSheep"];
+            [[ESConfiguration alloc] initWithWindowNibName:@"SettingsDialog"];
     }
 
     return m_config.window;
@@ -340,6 +421,9 @@ static void signnal_handler(int signal)
     for (characterIndex = 0; characterIndex < characterCount; characterIndex++)
     {
         unichar c = [characters characterAtIndex:characterIndex];
+        // Convert to lowercase to support both 'c' and 'C' (shift+c)
+        if (c >= 'A' && c <= 'Z')
+            c = c + ('a' - 'A');
         using namespace DisplayOutput;
 
         std::map<unichar, CKeyEvent::eKeyCode> keyMap = {
@@ -379,13 +463,13 @@ static void signnal_handler(int signal)
             //{'\t', CKeyEvent::eKeyCode::KEY_TAB},
             //{' ', CKeyEvent::eKeyCode::KEY_SPACE},
             {'a', CKeyEvent::eKeyCode::KEY_A},
-            //            {'b', CKeyEvent::eKeyCode::KEY_B},
+            {'b', CKeyEvent::eKeyCode::KEY_B},
             {'c', CKeyEvent::eKeyCode::KEY_C},
             {'d', CKeyEvent::eKeyCode::KEY_D},
             //            {'e', CKeyEvent::eKeyCode::KEY_E},
             //            {'f', CKeyEvent::eKeyCode::KEY_F},
             //            {'g', CKeyEvent::eKeyCode::KEY_G},
-            //            {'h', CKeyEvent::eKeyCode::KEY_H},
+            {'h', CKeyEvent::eKeyCode::KEY_H},
             //            {'i', CKeyEvent::eKeyCode::KEY_I},
             {'j', CKeyEvent::eKeyCode::KEY_J},
             {'k', CKeyEvent::eKeyCode::KEY_K},
@@ -421,31 +505,169 @@ static void signnal_handler(int signal)
 // Called immediately before relaunching.
 - (void)updaterWillRelaunchApplication:(SPUUpdater*)__unused updater
 {
+    // Close any open configuration sheet
     if (m_config != NULL)
         [NSApp endSheet:m_config.window];
+    
+    // Stop animation and cleanup before relaunch
+    [self stopAnimation];
 }
 
-- (void)doUpdate:(NSTimer*)timer
+// Called when Sparkle finds a valid update
+- (void)updater:(SPUUpdater *)updater didFindValidUpdate:(SUAppcastItem *)item
 {
-    // SUAppcastItem* update = timer.userInfo;
-
-    //    if (!m_isFullScreen)
-    //        [m_updater checkForUpdates:nil];
-    //    else
-    //        ESScreensaver_SetUpdateAvailable(
-    //            update.displayVersionString.UTF8String);
+    m_updateAvailable = YES;
+    ESScreensaver_SetUpdateAvailable(true);
+    NSLog(@"Sparkle found valid update: %@", item.displayVersionString);
 }
 
-// Sent when a valid update is found by the update driver.
-- (void)updater:(SPUUpdater*)__unused updater
-    didFindValidUpdate:(SUAppcastItem*)update
+// Called when Sparkle does not find an update
+- (void)updaterDidNotFindUpdate:(SPUUpdater *)updater
 {
-    [NSTimer scheduledTimerWithTimeInterval:1.0
-                                     target:self
-                                   selector:@selector(doUpdate:)
-                                   userInfo:update
-                                    repeats:NO];
+    m_updateAvailable = NO;
+    ESScreensaver_SetUpdateAvailable(false);
+    NSLog(@"Sparkle did not find an update");
 }
+
+// Provide the appcast URL for Sparkle (required for screensaver bundle)
+- (nullable NSString *)feedURLStringForUpdater:(SPUUpdater *)updater
+{
+    // First try to get URL from bundle's Info.plist
+    NSBundle *bundle = [NSBundle bundleForClass:[self class]];
+    NSString *feedURL = [bundle objectForInfoDictionaryKey:@"SUFeedURL"];
+    
+    if (feedURL && feedURL.length > 0) {
+        NSLog(@"Sparkle feed URL from bundle: %@", feedURL);
+        return feedURL;
+    }
+    
+    // Fallback to hardcoded URL based on build configuration
+#ifdef DEBUG
+    feedURL = @"https://infinidream.ai/stage/appcast.xml";
+#else
+    feedURL = @"https://infinidream.ai/alpha/appcast.xml";
+#endif
+    
+    NSLog(@"Sparkle feed URL (fallback): %@", feedURL);
+    return feedURL;
+}
+
+// For screensaver: don't prompt user for permission, just check silently
+- (BOOL)updaterShouldPromptForPermissionToCheckForUpdates:(SPUUpdater *)updater
+{
+#ifdef SCREEN_SAVER
+    // Screensaver should never show permission dialogs
+    return NO;
+#else
+    // App can show the standard permission dialog
+    return YES;
+#endif
+}
+
+#pragma mark - SPUStandardUserDriverDelegate (hide "Skip this version" button)
+
+// Prevent Sparkle from showing modal update dialogs in screensaver
+// Modal dialogs cause legacyScreenSaver.appex to crash/terminate
+- (BOOL)standardUserDriverShouldHandleShowingScheduledUpdate:(SUAppcastItem *)update andInImmediateFocus:(BOOL)immediateFocus
+{
+#ifdef SCREEN_SAVER
+    // Screensaver: Don't show modal update dialog - just track that update is available
+    // The HUD indicator will show the update icon to the user
+    NSLog(@"Sparkle: Update available but suppressing modal dialog in screensaver: %@", update.displayVersionString);
+    return NO;  // Don't show the dialog
+#else
+    // App: Show the update dialog normally
+    return YES;
+#endif
+}
+
+static void hideSkipButtonInView(NSView *view)
+{
+    if (!view) return;
+    if ([view isKindOfClass:[NSButton class]]) {
+        NSButton *btn = (NSButton *)view;
+        NSString *title = [btn title];
+        if ([title rangeOfString:@"Skip" options:NSCaseInsensitiveSearch].location != NSNotFound) {
+            [btn setHidden:YES];
+        }
+    }
+    for (NSView *sub in [view subviews]) {
+        hideSkipButtonInView(sub);
+    }
+}
+
+- (void)standardUserDriverWillHandleShowingUpdate:(BOOL)handleShowingUpdate forUpdate:(SUAppcastItem *)update state:(SPUUserUpdateState *)state
+{
+#ifdef SCREEN_SAVER
+    // Screensaver: We suppress the modal dialog, so this should not be called
+    // But if it is, do nothing to avoid any modal UI
+    NSLog(@"Sparkle: standardUserDriverWillHandleShowingUpdate called in screensaver (should be suppressed)");
+    return;
+#else
+    // App: Hide the "Skip this version" button in the update dialog
+    id userDriver = m_updater ? m_updater.userDriver : nil;
+    if (!userDriver) return;
+
+    __weak id weakDriver = userDriver;
+    // Run after the update alert window is built and shown
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.15 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        id driver = weakDriver;
+        if (!driver) return;
+        NSWindowController *alert = [driver valueForKey:@"activeUpdateAlert"];
+        if (!alert || ![alert isKindOfClass:[NSWindowController class]]) return;
+        NSWindow *window = [alert window];
+        if (!window) return;
+        NSView *contentView = [window contentView];
+        hideSkipButtonInView(contentView);
+    });
+#endif
+}
+
+// Check if an update is available
+- (BOOL)isUpdateAvailable
+{
+    return m_updateAvailable;
+}
+
+#ifndef SCREEN_SAVER
+- (void)checkForUpdates:(id)sender
+{
+    if (m_updater != nil) {
+        [m_updater checkForUpdates:sender];
+    }
+}
+
+- (SPUStandardUpdaterController*)updaterController
+{
+    return m_updater;
+}
+
+- (void)connectCheckForUpdatesMenuItem
+{
+    // Find the "Check for Updates..." menu item and connect it to the updater
+    NSMenu *mainMenu = [NSApp mainMenu];
+    if (!mainMenu) return;
+    
+    // Search through all menu items
+    for (NSMenuItem *topItem in mainMenu.itemArray) {
+        NSMenu *submenu = topItem.submenu;
+        if (!submenu) continue;
+        
+        for (NSMenuItem *item in submenu.itemArray) {
+            if ([item.title isEqualToString:@"Check for Updates..."] ||
+                [item.title hasPrefix:@"Check for Updates"]) {
+                // Connect to our updater controller
+                item.target = m_updater;
+                item.action = @selector(checkForUpdates:);
+                NSLog(@"Connected 'Check for Updates' menu item to Sparkle updater");
+                return;
+            }
+        }
+    }
+    NSLog(@"Warning: Could not find 'Check for Updates' menu item");
+}
+#endif
+
 
 - (BOOL)fullscreen
 {
@@ -469,8 +691,17 @@ static void signnal_handler(int signal)
     DEBUG_LOG("DRAW_IN_METAL_VIEW");
     if (!m_isStopped)
     {
-        m_beginFrameBarrier->wait();
-        m_endFrameBarrier->wait();
+        @autoreleasepool
+        {
+            ESScreensaver_DoFrame(m_displayIdx);
+#ifdef SCREEN_SAVER
+            if (!m_isPreview && CGCursorIsVisible())
+            {
+                [NSCursor hide];
+                m_isHidden = YES;
+            }
+#endif
+        }
     }
 }
 

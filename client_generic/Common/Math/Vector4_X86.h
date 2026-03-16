@@ -56,6 +56,7 @@ class CVector4_x86
     //
     bool operator>(const CVector4_x86& _rhs);
     bool operator<(const CVector4_x86& _rhs);
+    bool operator==(const CVector4_x86& _rhs) const;
 
     //
     CVector4_x86& operator=(const CVector3_x86& _v); //	.m_W = 1.0f.
@@ -303,6 +304,13 @@ inline bool CVector4_x86::operator<(const CVector4_x86& _rhs)
         return (true);
     else
         return (false);
+}
+
+/*
+ */
+inline bool CVector4_x86::operator==(const CVector4_x86& _rhs) const
+{
+    return (m_X == _rhs.m_X && m_Y == _rhs.m_Y && m_Z == _rhs.m_Z && m_W == _rhs.m_W);
 }
 
 /*

@@ -91,7 +91,7 @@ void destroyClipAsync(ContentDecoder::spCClip clip) {
 }
 
 // MARK: - Setup & lifecycle
-CPlayer::CPlayer() : m_isFirstPlay(true), m_offlineMode(false)
+CPlayer::CPlayer() : m_isFirstPlay(true), m_offlineMode(false), m_pendingSeekCrossfade(false)
 {
     m_DecoderFps = 23; //	http://en.wikipedia.org/wiki/23_(numerology)
     m_PerceptualFPS = 20;
@@ -218,7 +218,7 @@ int CPlayer::AddDisplay(uint32 screen)
     //	Start renderer & set window title.
     if (spRenderer->Initialize(spDisplay) == false)
         return -1;
-    spDisplay->Title("e-dream");
+    spDisplay->Title("infinidream");
 
     {
         auto du = std::make_shared<DisplayUnit>();
@@ -338,20 +338,44 @@ void CPlayer::Start()
         
         // We do this async, so client rendering loop doesn't lock
         m_startupThread = std::make_shared<std::thread>([this]{
-            if (m_shutdownFlag) return;
+            // Helper to check if we should abort startup
+            auto shouldAbort = [this]() {
+                return m_shutdownFlag.load() || g_NetworkManager->IsAborted();
+            };
+            
+            if (shouldAbort()) return;
+
+            // Wait for initial auth to complete before deciding online vs offline path.
+            // This runs on the player startup thread, so it doesn't block the main/render thread.
+            while (!EDreamClient::HasCompletedInitialAuth() && !shouldAbort()) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+
+            if (shouldAbort()) return;
 
             std::string lastPlayedUUID = g_Settings()->Get(
                 "settings.content.last_played_uuid", std::string{});
-            
+
             auto clientPlaylistId = g_Settings()->Get("settings.content.current_playlist_uuid", std::string(""));
 
             if (EDreamClient::IsLoggedIn()) {
-                if (m_shutdownFlag) return;
+                if (shouldAbort()) return;
+                
+                // Logged-in path: ensure we are not forcing offline-only playback
+                SetOfflineMode(false);
+                
+                // Ensure websocket is connected when player starts and user is logged in
+                if (!EDreamClient::fIsWebSocketConnected.load()) {
+                    g_Log->Info("Player starting with logged in user - connecting websocket");
+                    boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
+                }
+                
+                if (shouldAbort()) return;
                 auto serverPlaylistId = EDreamClient::GetCurrentServerPlaylist();
                 
                 // Override if there's a mismatch, and don't try to resume previous file as
                 // it may not be part of the new playlist
-                if (m_shutdownFlag) return;
+                if (shouldAbort()) return;
                 if (serverPlaylistId != clientPlaylistId) {
                     g_Settings()->Set("settings.content.current_playlist_uuid", serverPlaylistId);
                     lastPlayedUUID = "";
@@ -361,31 +385,45 @@ void CPlayer::Start()
                 m_currentClip = nullptr;
 
                 // Start the playlist and playback at the start, or at a given position
-                if (m_shutdownFlag) return;
+                if (shouldAbort()) return;
                 if (lastPlayedUUID.empty()) {
-                    SetPlaylist(serverPlaylistId);
+                    SetPlaylist(serverPlaylistId, false);
                 } else {
-                    SetPlaylistAtDream(serverPlaylistId, lastPlayedUUID);
+                    SetPlaylistAtDream(serverPlaylistId, lastPlayedUUID, false);
                 }
                 
-                m_hasStarted = true;
+                if (!shouldAbort()) {
+                    m_hasStarted = true;
+                }
             } else {
-                if (m_shutdownFlag) return;
+                if (shouldAbort()) return;
+                
+                // Not logged in (including transient auth/server outage): play from cache only.
+                // This avoids blocking startup on server calls for streaming links/metadata.
+                SetOfflineMode(true);
 
                 // Make sure we remove the current clip before enqueuing the new playlist
 
                 m_currentClip = nullptr;
 
                 if (lastPlayedUUID.empty()) {
-                    SetPlaylist(clientPlaylistId);
+                    SetPlaylist(clientPlaylistId, false);
                 } else {
-                    SetPlaylistAtDream(clientPlaylistId, lastPlayedUUID);
+                    SetPlaylistAtDream(clientPlaylistId, lastPlayedUUID, false);
                 }
 
-                m_hasStarted = true;
+                if (!shouldAbort()) {
+                    m_hasStarted = true;
+                }
             }
         });
     }
+}
+
+void CPlayer::ResumeAfterPause()
+{
+    m_shutdownFlag = false;
+    m_bStarted.exchange(true);
 }
 
 void CPlayer::Stop()
@@ -475,13 +513,15 @@ bool CPlayer::BeginFrameUpdate()
 
     writer_lock l(m_UpdateMutex);
 
-    if (m_currentClip) {
+/*    if (m_currentClip) {
         m_currentClip->Update(m_TimelineTime);
     }
 
     if (m_nextClip) {
-        m_nextClip->Update(m_TimelineTime);
-    }
+        if (!m_nextClip->HasFinished()) {
+            m_nextClip->Update(m_TimelineTime);
+        }
+    }*/
     
     if (m_currentClip)
     {
@@ -552,8 +592,12 @@ void CPlayer::FpsCap(const double _cap)
     m_CapClock = m_Timer.Time();
 }
 
-bool CPlayer::Update(uint32_t displayUnit, bool& bPlayNoSheepIntro)
+// MARK: Update function
+//bool CPlayer::Update(uint32_t displayUnit, bool& bPlayNoSheepIntro)
+bool CPlayer::Update(uint32_t displayUnit)
 {
+    //g_Log->Info("Player update");
+    // todo: need to check this
     std::shared_ptr<DisplayUnit> du;
 
     {
@@ -570,22 +614,114 @@ bool CPlayer::Update(uint32_t displayUnit, bool& bPlayNoSheepIntro)
     du->spRenderer->Apply();
 
     writer_lock l(m_UpdateMutex);
+
+    if (m_currentClip) {
+        m_currentClip->Update(m_TimelineTime, m_bPaused);
+        
+        // Only check for transition if we're not buffering anything
+        if (!IsAnyClipBuffering()) {
+            // Check if we need to prepare for transition
+            // Skip if we have a pending seek crossfade (user-initiated skip with seek offset)
+            if (!m_isTransitioning && !m_nextDreamDecision && !m_pendingSeekCrossfade && shouldPrepareTransition(m_currentClip)) {
+                // If we should transition, but we are already prealoding a manual transition, then we have to pause
+                if (IsPreloading()) {
+                    g_Log->Info("Force pausing as we are already preloading");
+                    SetPausedForBuffering(true);
+                    SetPaused(true);
+                } else {
+                    // Get the next dream decision
+                    g_Log->Info("Update will preflight");
+                    // Natural transition - don't allow streaming
+                    m_nextDreamDecision = m_playlistManager->preflightNextDream(false);
+                    
+                    if (m_nextDreamDecision) {
+                        if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::Seamless) {
+                            prepareSeamlessTransition();
+                        } else if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::StandardCrossfade) {
+                            prepareCrossfadeTransition();
+                        }
+                    }
+                }
+            }
+            
+            if (m_isTransitioning) {
+                UpdateTransition(m_TimelineTime);
+            }
+            
+            if (m_nextDreamDecision) {
+                if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::Seamless) {
+                    if (m_currentClip && m_currentClip->HasFinished()) {
+                        g_Log->Info("PND : Launching on finished current");
+                        PlayNextDream();
+                        // We need to update the clip here since we switched it!
+                        m_currentClip->Update(m_TimelineTime, m_bPaused);
+                    }
+                } else if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::StandardCrossfade) {
+                    //
+                    if (m_currentClip && m_currentClip->IsFadingOut()) {
+                        g_Log->Info("PND : Standard crossfading");
+                        PlayNextDream();
+                    } else if (m_currentClip && m_currentClip->HasFinished() && !m_isTransitioning) {
+                        // Safety catch: clip finished without proper fading
+                        g_Log->Error("Clip finished without fading out state, forcing transition");
+                        PlayNextDream();
+                    }
+                }
+            }
+        }
+    }
+    
+    if (m_nextClip) {
+        if (!m_nextClip->HasFinished()) {
+            m_nextClip->Update(m_TimelineTime, m_bPaused);
+        }
+        
+        // Check if pending seek crossfade can now start (next clip finished buffering)
+        if (m_pendingSeekCrossfade && !m_nextClip->IsBuffering()) {
+            g_Log->Info("Pending seek crossfade: next clip ready, starting transition");
+            m_pendingSeekCrossfade = false;
+            m_isTransitioning = true;
+            m_transitionStartTime = m_TimelineTime;
+            
+            // Now start the fade out on current clip
+            if (m_currentClip) {
+                float currentFadeIn = m_currentClip->m_FadeInSeconds;
+                m_currentClip->SetTransitionLength(currentFadeIn, m_transitionDuration);
+                m_currentClip->FadeOut(m_TimelineTime);
+            }
+        }
+    }
     
     // Make sure we are :
     // - either logged in, or in offline mode
     // - have a playlist ready before going in
-    if ((EDreamClient::IsLoggedIn() || true /* g_Client->IsMultipleInstancesMode() */) && m_hasStarted) {
-        if (m_isTransitioning) {
-            UpdateTransition(m_TimelineTime);
-        } else if (m_currentClip && m_currentClip->IsFadingOut()) {
-            PlayNextDream();
-        } else if (!m_currentClip && m_isFirstPlay) {
-            PlayNextDream();
-        } else if (m_currentClip && m_currentClip->HasFinished()) {
-            PlayNextDream();
-        }
+//    if ((EDreamClient::IsLoggedIn() /*|| g_Client->IsMultipleInstancesMode()*/ ) && m_hasStarted) {
+//        if (!m_currentClip && m_isFirstPlay) {
+//            g_Log->Info("PND : First play");
+//            PlayNextDream();
+//        }
+//    }
+    
+    if (m_currentClip && m_currentClip->m_Alpha == 0.0f && m_currentClip->m_FadeInSeconds == 0.f) {
+        g_Log->Info("Fixing null alpha");
+        m_currentClip->m_Alpha = 1.0f;
+    }
+    
+    // Debug code for transitions when needed
+    /*
+    if (m_currentClip) {
+        g_Log->Info("RENDER Current: alpha=%.3f, fadeOut=%.1f, finished=%d",
+                     m_currentClip->m_Alpha,
+                     m_currentClip->m_FadeOutSeconds,
+                     m_currentClip->HasFinished());
     }
 
+    if (m_nextClip) {
+        g_Log->Info("RENDER Next: alpha=%.3f, fadeIn=%.1f",
+                     m_nextClip->m_Alpha,
+                     m_nextClip->m_FadeInSeconds);
+    }*/
+    
     RenderFrame(du->spRenderer);
 
     return true;
@@ -598,20 +734,41 @@ void CPlayer::RenderFrame(DisplayOutput::spCRenderer renderer) {
         float nextAlpha = static_cast<float>(transitionProgress);
 
         // Render current clip
-        m_currentClip->Update(m_TimelineTime);
+        // TODO: tmplog
+        /*g_Log->Info("render current frame %d of %s", m_currentClip->m_CurrentFrameMetadata.frameIdx, m_currentClip->m_ClipMetadata.dreamData.uuid.c_str());
+         */
         m_currentClip->DrawFrame(renderer, currentAlpha);
 
         // Render next clip
         // Somehow sometimes we reach here with no m_nextClip, not 100% clear why
         if (m_nextClip) {
-            m_nextClip->Update(m_TimelineTime);
-            m_nextClip->DrawFrame(renderer, nextAlpha);
+            // TODO: tmplog
+            /*g_Log->Info("render next frame %d of %s", m_nextClip->m_CurrentFrameMetadata.frameIdx, m_nextClip->m_ClipMetadata.dreamData.uuid.c_str());*/
+           m_nextClip->DrawFrame(renderer, nextAlpha);
         } else {
             g_Log->Error("Render frame has null nextClip despite checking for it earlier");
         }
     } else if (m_currentClip) {
-        m_currentClip->Update(m_TimelineTime);
-        m_currentClip->DrawFrame(renderer);
+        if (m_currentClip->IsBuffering()) {
+            // We're still buffering, show appropriate UI
+            /*g_Log->Info("Buffering clip %s, frame queue: %d",
+                m_currentClip->GetClipMetadata().dreamData.uuid.c_str(),
+                m_currentClip->GetDecoder()->QueueLength());*/
+            
+            // Still call DrawFrame which will handle buffering visualization
+            m_currentClip->DrawFrame(renderer);
+        } else {
+            // Normal playback
+            /*g_Log->Info("render frame %d of %s",
+                m_currentClip->m_CurrentFrameMetadata.frameIdx,
+                m_currentClip->m_ClipMetadata.dreamData.uuid.c_str());*/
+            
+            m_currentClip->DrawFrame(renderer);
+
+            if (m_currentClip->m_CurrentFrameMetadata.frameIdx == 1) {
+                // TMP breakpoint
+            }
+        }
     }
 }
 
@@ -634,6 +791,7 @@ bool CPlayer::PlayClip(const Cache::Dream* dream, double _startTime, int64_t _se
         if (path.empty()) {
             // Last resort blocking call this should never get called ideally
             // but keeping it for resiliancy
+            g_Log->Warning("Last resort blocking call to get streaming link (Player:PlayClip)");
             path = EDreamClient::GetDreamDownloadLink(dream->uuid);
         }
     }
@@ -664,6 +822,9 @@ bool CPlayer::PlayClip(const Cache::Dream* dream, double _startTime, int64_t _se
         
         m_currentClip = newClip;
         m_isTransitioning = false;
+
+        g_Log->Info("Dream changed, syncing state to server");
+        EDreamClient::SendStateUpdate();
     } else if (isTransition) {
         if (m_nextClip) {
             destroyClipAsync(std::move(m_nextClip));
@@ -678,64 +839,135 @@ bool CPlayer::PlayClip(const Cache::Dream* dream, double _startTime, int64_t _se
     return true;
 }
 
-void CPlayer::PlayNextDream(bool quickFade)
-{
-    auto nextDream = m_playlistManager->getNextDream();
+
+void CPlayer::PlayNextDream(bool quickFade) {
+    if (!m_playlistManager) return;
     
-    // Ensure we have one
-    if (!nextDream) {
-        // Make sure playlist manager is ready
-        if (!m_playlistManager->isReady())
-        {
-            g_Log->Info("Playlist manager still warming up, waiting");
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            return;
+    // For user-forced transitions, we don't use the preflight decision
+    if (quickFade) {
+        // Force a quick transition
+        StartTransition();
+        if (m_currentClip) {
+            m_currentClip->SetTransitionLength(5.0f, 1.0f);
         }
         
-        // Last resort, revert to default playlist
-        // this could be triggered by an empty playlist
-        g_Log->Error("No next dream available to play, reseting to default playlist");
-        ResetPlaylist();
+        // User-initiated quick fade - allow streaming
+        auto nextDecision = m_playlistManager->preflightNextDream(true);
+        if (nextDecision) {
+            PlayClip(nextDecision->dream, m_TimelineTime, -1, true);
+            m_playlistManager->moveToNextDream(*nextDecision);
+            
+            if (m_nextClip) {
+                m_nextClip->SetTransitionLength(1.0f, 5.0f);
+            }
+        }
         return;
     }
     
-    if (!nextDream->uuid.empty()) {
-        if (m_isFirstPlay) {
-            // For the first play, start immediately without transition
-            PlayClip(nextDream, m_TimelineTime);
-            m_isFirstPlay = false;
+    // Use existing preflight decision if we have one
+    if (m_nextDreamDecision) {
+        if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::Seamless) {
+            // For seamless, next clip should already be prepared
+            if (m_nextClip) {
+                g_Log->Info("Executing seamless transition now");
+                
+                // Transfer frame continuity before destroying old clip
+                if (m_currentClip && m_nextClip) {
+                    auto currentDisplay = m_currentClip->GetFrameDisplay();
+                    auto nextDisplay = m_nextClip->GetFrameDisplay();
+                    if (currentDisplay && nextDisplay) {
+                        nextDisplay->InheritFramesFrom(currentDisplay.get());
+                        g_Log->Info("Inherited frames for seamless transition");
+                    }
+                }
+                
+                destroyClipAsync(std::move(m_currentClip));
+
+                m_currentClip = m_nextClip;
+                m_nextClip = nullptr;
+
+                m_currentClip->SetStartTime(m_TimelineTime);
+                m_currentClip->SetTransitionLength(0.0, 0.0);
+                m_currentClip->ResetFinished();
+
+                const Cache::Dream* nextDream = m_playlistManager->moveToNextDream(*m_nextDreamDecision);
+
+                g_Log->Info("Seamless transition complete, syncing state to server");
+                EDreamClient::SendStateUpdate();
+                m_nextDreamDecision = std::nullopt;
+                
+                if (!nextDream) {
+                    g_Log->Error("Failed to move to next dream during seamless transition - playlist may have changed");
+                    // Fall back to standard playback
+                    m_currentClip = nullptr;
+                    m_nextClip = nullptr;
+                    m_PreloadingNextClip = false;
+                    m_PreloadingDreamUUID = "";
+                    return;
+                }
+                
+                m_PreloadingNextClip = false;
+                m_PreloadingDreamUUID = "";
+            }
         } else {
-            // Prefetch streaming link if needed, but do it in a thread
-            if (!nextDream->isCached() && nextDream->getStreamingUrl().empty()) {
-                std::thread([this, nextDream, quickFade]{
-                    auto path = EDreamClient::GetDreamDownloadLink(nextDream->uuid);
-                    nextDream->setStreamingUrl(path);
-                    
-                    StartTransition();
-                    if (quickFade)
-                        m_currentClip->SetTransitionLength(5.0f, 1.0f);
-                    
-                    PlayClip(nextDream, m_TimelineTime, -1, true);  // The true flag indicates this is for transition
-                    
-                    if (quickFade && m_nextClip)
-                        m_nextClip->SetTransitionLength(1.0f, 5.0f);
-                }).detach();
+            // Standard transition
+            g_Log->Info("Regular transitionning");
+
+            StartTransition();
+            
+            if (m_nextClip && m_nextClip->IsPreloadComplete()) {
+                // Double check for frames before proceeding
+                uint32_t queueLength = m_nextClip->GetDecoder()->QueueLength();
+                if (queueLength < 5) {
+                    g_Log->Warning("Next clip marked as preloaded but has only %d frames, pausing for more frames",
+                                 queueLength);
+                    // Force back into buffering state
+                    //m_nextClip->SetBufferingState(BufferingState::Buffering);
+                    return;  // Don't proceed with the transition yet
+                }
+                
+                g_Log->Info("Starting preloaded clip with %d frames", queueLength);
+                
+                // Set the start time for the preloaded clip
+                m_nextClip->SetStartTime(m_TimelineTime);
+                m_nextClip->SetTransitionLength(5.0f, 5.0f);
+                m_nextClip->ResetFinished();
+                
+                m_nextClip->StartPlayback(0);
             } else {
-                // Do the same thing in the player thread instead
-                StartTransition();
-                if (quickFade)
-                    m_currentClip->SetTransitionLength(5.0f, 1.0f);
-                
-                PlayClip(nextDream, m_TimelineTime, -1, true);  // The true flag indicates this is for transition
-                
-                if (quickFade && m_nextClip)
-                    m_nextClip->SetTransitionLength(1.0f, 5.0f);
+                // Fallback to direct load if preloading didn't complete
+                g_Log->Info("Fallback as we didn't preload fully");
+                PlayClip(m_nextDreamDecision->dream, m_TimelineTime, -1, true);
+            }
+            
+            const Cache::Dream* nextDream = m_playlistManager->moveToNextDream(*m_nextDreamDecision);
+            m_PreloadingNextClip = false;
+            m_PreloadingDreamUUID = "";
+
+            if (!nextDream) {
+                g_Log->Error("Failed to move to next dream during standard transition - playlist may have changed");
+                // Clean up any partially loaded clips
+                m_nextClip = nullptr;
+            } else {
+                g_Log->Info("Standard transition complete, syncing state to server");
+                EDreamClient::SendStateUpdate();
             }
         }
+        m_nextDreamDecision = std::nullopt;
     } else {
-        g_Log->Error("No next dream available to play (empty uuid)");
+        // No preflight decision, get one now (fallback case)
+        // Natural transition - don't allow streaming
+        auto nextDecision = m_playlistManager->preflightNextDream(false);
+        if (nextDecision) {
+            StartTransition();
+            PlayClip(nextDecision->dream, m_TimelineTime, -1, true);
+            m_playlistManager->moveToNextDream(*nextDecision);
+            g_Log->Info("Fallback transition complete, syncing state to server");
+            EDreamClient::SendStateUpdate();
+        }
     }
 }
+
 
 void CPlayer::MultiplyPerceptualFPS(const double _multiplier) {
     m_PerceptualFPS *= _multiplier;
@@ -774,6 +1006,9 @@ double CPlayer::GetDecoderFPS() {
 }
 
 void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
+    // Reset any pending transition decision
+    m_nextDreamDecision = std::nullopt;
+    
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
     // NOTE : This is the only path that currently streams 
     if (cm.hasDream(std::string(_uuid))) {
@@ -782,17 +1017,42 @@ void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
         if (dream->isCached()) {
             writer_lock l(m_UpdateMutex);
 
+            // Check if the dream is in the current playlist and update position
+            m_playlistManager->getDreamByUUID(std::string(_uuid));
+            
+            // Cancel any ongoing transition/preload
+            if (m_isTransitioning && m_nextClip) {
+                destroyClipAsync(std::move(m_nextClip));
+                m_nextClip = nullptr;
+            }
+            m_isTransitioning = false;
+            m_nextDreamDecision = std::nullopt;
+            m_PreloadingNextClip = false;
+            m_PreloadingDreamUUID = "";
+            
+            // Set up transition parameters (but don't start yet - wait for clip to buffer)
             m_transitionDuration = 1.0f;
-            StartTransition();
+            m_pendingSeekCrossfade = true;  // Will start transition when next clip is ready
+            
+            // Create the new clip at the target position (it will start buffering)
             PlayClip(dream, m_TimelineTime, frameNumber, true);
-            m_nextClip->SetTransitionLength(1.0f, 5.0f);
+            if (m_nextClip) {
+                m_nextClip->SetTransitionLength(1.0f, 5.0f);
+            }
         } else {
             std::thread([this, frameNumber, dream = dream]() {
                 // Fetch URL first
                 auto path = EDreamClient::GetDreamDownloadLink(dream->uuid);
                 dream->setStreamingUrl(path);
                 
+                // Check if the dream is in the current playlist and update position
+                m_playlistManager->getDreamByUUID(dream->uuid);
+
                 // Prepare the clip outside the lock
+                if (m_displayUnits.empty()) {
+                    g_Log->Error("Cannot play clip: no display units available");
+                    return false;
+                }
                 auto du = m_displayUnits[0];
                 int32_t displayMode = g_Settings()->Get("settings.player.DisplayMode", 2);
                 
@@ -805,13 +1065,27 @@ void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
                 if (newClip->Start(frameNumber)) {
                     // Only take the lock once everything is ready
                     writer_lock l(m_UpdateMutex);
+                    
+                    // Cancel any ongoing transition/preload
+                    if (m_isTransitioning && m_nextClip) {
+                        destroyClipAsync(std::move(m_nextClip));
+                        m_nextClip = nullptr;
+                    }
+                    m_isTransitioning = false;
+                    m_nextDreamDecision = std::nullopt;
+                    m_PreloadingNextClip = false;
+                    m_PreloadingDreamUUID = "";
+                    
+                    // Set up transition parameters (but don't start yet - wait for clip to buffer)
                     m_transitionDuration = 1.0f;
-                    StartTransition();
+                    m_pendingSeekCrossfade = true;  // Will start transition when next clip is ready
                     
                     // Set the start time and store the clip
                     newClip->SetStartTime(m_TimelineTime);
                     m_nextClip = newClip;
-                    m_nextClip->SetTransitionLength(1.0f, 5.0f);
+                    if (m_nextClip) {
+                        m_nextClip->SetTransitionLength(1.0f, 5.0f);
+                    }
                 }
             }).detach();
         }
@@ -840,12 +1114,26 @@ void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
             
             if (newClip->Start(frameNumber)) {
                 writer_lock l(m_UpdateMutex);
+                
+                // Cancel any ongoing transition/preload
+                if (m_isTransitioning && m_nextClip) {
+                    destroyClipAsync(std::move(m_nextClip));
+                    m_nextClip = nullptr;
+                }
+                m_isTransitioning = false;
+                m_nextDreamDecision = std::nullopt;
+                m_PreloadingNextClip = false;
+                m_PreloadingDreamUUID = "";
+                
+                // Set up transition parameters (but don't start yet - wait for clip to buffer)
                 m_transitionDuration = 1.0f;
-                StartTransition();
+                m_pendingSeekCrossfade = true;  // Will start transition when next clip is ready
                 
                 newClip->SetStartTime(m_TimelineTime);
                 m_nextClip = newClip;
-                m_nextClip->SetTransitionLength(1.0f, 5.0f);
+                if (m_nextClip) {
+                    m_nextClip->SetTransitionLength(1.0f, 5.0f);
+                }
             }
         }).detach();
     }
@@ -856,25 +1144,71 @@ std::string CPlayer::GetPlaylistName() const
     return m_playlistManager->getPlaylistName();
 }
 
-bool CPlayer::SetPlaylist(const std::string& playlistUUID) {
-    if (!m_playlistManager->initializePlaylist(playlistUUID)) {
+bool CPlayer::SetPlaylist(const std::string& playlistUUID, bool fetchPlaylist = true) {
+    // Reset any pending transition decision
+    m_nextDreamDecision = std::nullopt;
+    
+    if (!m_playlistManager->initializePlaylist(playlistUUID, fetchPlaylist)) {
         g_Log->Error("Failed to set playlist with UUID: %s", playlistUUID.c_str());
         return false;
     }
     
+    // Ensure m_hasStarted is set
+    m_hasStarted = true;
+    
     // Start playing the first dream if not already playing
     if (!m_currentClip) {
         m_isFirstPlay = true;  // Reset the first play flag when setting a new playlist
+        
+        g_Log->Info("Grabing new next decision in set playlist");
+        auto nextDecision = m_playlistManager->preflightNextDream();
+        if (nextDecision) {
+            // Load the clip directly without transition
+            if (PlayClip(nextDecision->dream, m_TimelineTime, -1, false)) {
+                m_playlistManager->moveToNextDream(*nextDecision);
+                
+                // Explicitly set the fade-in and fade-out lengths
+                if (m_currentClip) {
+                    m_currentClip->SetTransitionLength(5.0, 5.0);
+                }
+
+                g_Log->Info("Playlist changed, syncing state to server");
+                EDreamClient::SendStateUpdate();
+                return true;
+            }
+        }
+        
         PlayNextDream();
+    } else {
+        // Current clip is playing, preflight the next dream for smooth transition
+        g_Log->Info("Current clip playing, preflighting next dream for new playlist");
+        auto nextDecision = m_playlistManager->preflightNextDream();
+
+        // Proactively prepare the next clip so the transition does not block on network I/O
+        // when the first dream of the new playlist is not cached. This keeps the current
+        // clip playing while the next one is being fetched/decoded.
+        // Use a local copy to avoid racing with other threads that may reset m_nextDreamDecision.
+        if (nextDecision) {
+            g_Log->Info("Preloading next clip for playlist switch");
+            PlayClip(nextDecision->dream, m_TimelineTime, -1, true);
+            if (m_nextClip) {
+                m_nextClip->SetTransitionLength(1.0f, 5.0f);
+            }
+            m_playlistManager->moveToNextDream(*nextDecision);
+            m_nextDreamDecision = nextDecision;
+        }
     }
 
     return true;
 }
 
 
-bool CPlayer::SetPlaylistAtDream(const std::string& playlistUUID, const std::string& dreamUUID) {
+bool CPlayer::SetPlaylistAtDream(const std::string& playlistUUID, const std::string& dreamUUID, bool fetchPlaylist = true) {
+    // Reset any pending transition decision
+    m_nextDreamDecision = std::nullopt;
+    
     // First, set the new playlist
-    if (!m_playlistManager->initializePlaylist(playlistUUID)) {
+    if (!m_playlistManager->initializePlaylist(playlistUUID, fetchPlaylist)) {
         g_Log->Error("Failed to set playlist with UUID: %s", playlistUUID.c_str());
         return false;
     }
@@ -886,6 +1220,23 @@ bool CPlayer::SetPlaylistAtDream(const std::string& playlistUUID, const std::str
         
         if (!m_currentClip) {
             m_isFirstPlay = true;  // Reset the first play flag when setting a new playlist
+            
+            // Get the first dream directly instead of using PlayNextDream()
+            auto nextDecision = m_playlistManager->preflightNextDream();
+            if (nextDecision) {
+                // Load the clip directly without transition
+                if (PlayClip(nextDecision->dream, m_TimelineTime, -1, false)) {
+                    m_playlistManager->moveToNextDream(*nextDecision);
+                    
+                    // Explicitly set the fade-in and fade-out lengths
+                    if (m_currentClip) {
+                        m_currentClip->SetTransitionLength(5.0, 5.0);
+                    }
+                    return true;
+                }
+            }
+
+            // Fallback (maybe not needed)
             PlayNextDream();
         }
         return true;
@@ -900,11 +1251,22 @@ bool CPlayer::SetPlaylistAtDream(const std::string& playlistUUID, const std::str
     // If we've reached here, the playlist is set and positioned at the correct dream
     // Now we can start playing this dream
     StartTransition();
-    return PlayClip(*optionalDream, m_TimelineTime, seekFrame);
+    if (PlayClip(optionalDream->dream, m_TimelineTime, seekFrame)) {
+        if (m_currentClip) {
+            m_currentClip->SetResumeTime(m_TimelineTime);
+            m_currentClip->SetTransitionLength(5.0, 5.0);
+        }
+        return true;
+    }
+    return false;
+   
 }
 
 
 void CPlayer::ResetPlaylist() {
+    // Reset any pending transition decision
+    m_nextDreamDecision = std::nullopt;
+
     //writer_lock l(m_UpdateMutex);
 
     // Grab the default playlist again & set it
@@ -925,13 +1287,34 @@ void CPlayer::StartTransition()
         return;  // Don't start a transition for the first play
     }
 
+    if (m_nextDreamDecision &&
+           m_nextDreamDecision->transition == PlaylistManager::TransitionType::Seamless) {
+       g_Log->Info("Skipping crossfade for seamless transition");
+       return;
+    }
+
     m_isTransitioning = true;
     m_transitionStartTime = m_TimelineTime;
     
-    if (m_nextClip) {
-        destroyClipAsync(std::move(m_nextClip));
+    // Check if the next clip is ready or still preloading
+    if (m_PreloadingNextClip && !m_nextClip) {
+        g_Log->Info("Next clip still preloading, transition will wait for it to complete");
+        return; // Let IsAnyClipBuffering handle the pause
     }
-    m_nextClip = nullptr;  // We'll set this when we have the next clip ready
+    
+    
+    // Verify if the nextclip is the correct one
+    bool plannedTransition = (m_nextDreamDecision && m_nextClip &&
+                             m_nextClip->GetClipMetadata().dreamData.uuid == m_nextDreamDecision->dream->uuid);
+
+    
+    if (!plannedTransition && m_nextClip && m_nextClip != m_currentClip) {
+        g_Log->Info("Destroying previous next clip during transition start");
+        destroyClipAsync(std::move(m_nextClip));
+        m_nextClip = nullptr;  // We'll set this again when we have the correct next clip ready
+    } else {
+        g_Log->Info("Preloaded clip is the correct one, using for transition");
+    }
 }
 
 void CPlayer::UpdateTransition(double currentTime)
@@ -940,9 +1323,29 @@ void CPlayer::UpdateTransition(double currentTime)
 
     double transitionProgress = (currentTime - m_transitionStartTime) / m_transitionDuration;
 
+    bool nextClipBuffering = (m_nextClip && m_nextClip->IsBuffering());
+        
+    /*if (nextClipBuffering) {
+        g_Log->Info("Next clip still buffering during transition (progress: %.2f)",
+                    transitionProgress);
+    }*/
+    
+    // If we have preflight decision and it's seamless, but we're transitioning,
+    // that means it was interrupted - convert to quick fade
+    if (m_nextDreamDecision &&
+        m_nextDreamDecision->transition == PlaylistManager::TransitionType::Seamless) {
+        g_Log->Info("Seamless transition was interrupted, converting to quick fade");
+        m_transitionDuration = 1.0f;
+        m_nextDreamDecision = std::nullopt;
+    }
+    
+
     if (transitionProgress >= 1.0) {
         // Transition complete
         m_isTransitioning = false;
+        m_pendingSeekCrossfade = false;
+        m_PreloadingNextClip = false;
+        m_PreloadingDreamUUID = "";
         
         // Start the asynchronous destruction of the current clip
         if (m_currentClip) {
@@ -951,12 +1354,53 @@ void CPlayer::UpdateTransition(double currentTime)
         
         m_currentClip = m_nextClip;
         
+        if (m_currentClip) {
+            // Transition already handled the fade-in visually, so disable the clip's internal
+            // fade-in to avoid a brief dark flash caused by the clip's secondsIn calculation
+            // being slightly behind due to decoder startup delay
+            m_currentClip->m_FadeInSeconds = 0.f;
+            m_currentClip->m_Alpha = 1.0f;
+            m_currentClip->m_LastCalculatedAlpha = 1.0f;
+            
+            bool isJumpTransition = !m_nextDreamDecision.has_value();
+            
+            if (isJumpTransition) {
+                double clipStartTime = m_currentClip->GetStartTime();
+                double timeDelta = m_transitionStartTime - clipStartTime;
+                if (std::abs(timeDelta) > 0.01) {
+                    m_currentClip->SetStartTime(m_transitionStartTime);
+                }
+            }
+        }
+        
         m_nextClip = nullptr;
         m_transitionDuration = 5.0f;
+        m_nextDreamDecision = std::nullopt;  // Clear any pending decision
+        
+        // Sync state to server after transition completes
+        EDreamClient::SendStateUpdate();
     } else if (!m_nextClip) {
         // If we don't have a next clip yet, try to get one
-        auto nextDream = m_playlistManager->getNextDream();
-        if (nextDream) {
+        // Natural transition fallback - don't allow streaming
+        auto nextDecision = m_playlistManager->preflightNextDream(false);
+        if (nextDecision) {
+            // We're in mid-transition without a next clip, must be user/network forced
+            // Always use quick crossfade
+            PlayClip(nextDecision->dream, currentTime, -1, true);
+            if (m_nextClip) {
+                // Use quick fade for interrupted transitions
+                m_nextClip->SetTransitionLength(1.0f, 5.0f);
+                m_playlistManager->moveToNextDream(*nextDecision);
+            }
+        }
+        // tmp
+        /*PlayClip(nextDecision->dream, currentTime, -1, true);
+        if (m_nextClip) {
+            // Use quick fade for interrupted transitions
+            m_nextClip->SetTransitionLength(1.0f, 5.0f);
+            m_playlistManager->moveToNextDream(*nextDecision);
+        }
+        if (nextDecision) {
             if (!nextDream->uuid.empty()) {
                 // We may need to prefetch the url, if so, do it all in a thread
                 if (!nextDream->isCached() && nextDream->getStreamingUrl().empty()) {
@@ -976,7 +1420,7 @@ void CPlayer::UpdateTransition(double currentTime)
                     }
                 }
             }
-        }
+        }*/
     }
 }
 
@@ -995,18 +1439,160 @@ void CPlayer::MarkForDeletion(std::string_view _uuid)
 void CPlayer::SkipToNext()
 {
     g_Log->Info("Next");
-    m_transitionDuration = 1.0f;
-    PlayNextDream(true);
+
+    // Check quota first - if quota is 0, don't allow streaming
+    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+    bool canStream = cm.getRemainingQuota() > 0;
+
+    if (!canStream) {
+        g_Log->Info("Quota is 0, using cache-only mode for Next");
+    }
+
+    // Get the next dream decision - use forceNext=true to advance even in repeat mode
+    auto nextDecision = m_playlistManager->preflightNextDream(canStream, true);
+    if (!nextDecision) {
+        g_Log->Error("No next dream available");
+        return;
+    }
+
+    // Check if we are cached or not
+    bool isDreamCached = !nextDecision->dream->getCachedPath().empty();
+    g_Log->Info("Next dream %s is %scached",
+              nextDecision->dream->uuid.c_str(),
+              isDreamCached ? "" : "not ");
+
+    if (!isDreamCached) {
+        if (!canStream) {
+            g_Log->Warning("Next dream is not cached and quota is 0, cannot stream");
+            return;
+        }
+        g_Log->Info("Next dream is not cached, will try loading and playin immediately");
+        PlayDreamNow(nextDecision->dream->uuid, -1);
+        return;
+    }
+    
+    // If already transitioning, change the target
+    if (m_isTransitioning && m_nextClip) {
+        g_Log->Info("Skip during transition - changing target destination");
+        // Clear any stale preflight decision
+        m_nextDreamDecision = std::nullopt;
+        m_PreloadingNextClip = false;
+        m_PreloadingDreamUUID = "";
+        // Set short transition duration for quick fade
+        m_transitionDuration = 1.0f;
+        
+        // Save the current transition progress
+        double currentProgress = (m_TimelineTime - m_transitionStartTime) / m_transitionDuration;
+        
+        // Destroy the current target clip
+        destroyClipAsync(std::move(m_nextClip));
+        m_nextClip = nullptr;
+        
+        // For cached dreams, we can use the synchronous approach (it's fast)
+            // Make sure current clip fades out properly
+            if (m_currentClip) {
+                float currentFadeIn = m_currentClip->m_FadeInSeconds;
+                m_currentClip->SetTransitionLength(currentFadeIn, 1.0f);
+                m_currentClip->FadeOut(m_TimelineTime);  // Trigger the fade out
+            }
+            
+            PlayClip(nextDecision->dream, m_TimelineTime, -1, true);
+            m_playlistManager->moveToNextDream(*nextDecision);
+            
+            if (m_nextClip) {
+                m_nextClip->SetTransitionLength(1.0f, 5.0f);
+                
+                // Maintain visual continuity
+                if (currentProgress > 0.1) {
+                    m_nextClip->m_Alpha = static_cast<float>(currentProgress);
+                }
+            }
+             return;
+        
+    }
+    
+    
+    // For cached dreams, use synchronous approach
+        // Clear any stale preflight decision before starting new transition
+        m_nextDreamDecision = std::nullopt;
+        m_PreloadingNextClip = false;
+        m_PreloadingDreamUUID = "";
+
+        // Set short transition duration for quick fade
+        m_transitionDuration = 1.0f;
+        StartTransition();
+        
+        // Set current clip to fade out during the transition
+        if (m_currentClip) {
+            float currentFadeIn = m_currentClip->m_FadeInSeconds;
+            m_currentClip->SetTransitionLength(currentFadeIn, 1.0f);  // 1 second fade out to match transition
+            m_currentClip->FadeOut(m_TimelineTime);  // Trigger the fade out
+        }
+
+        PlayClip(nextDecision->dream, m_TimelineTime, -1, true);
+        m_playlistManager->moveToNextDream(*nextDecision);
+
+        if (m_nextClip) {
+            m_nextClip->SetTransitionLength(1.0f, 5.0f);
+        }
+
+        g_Log->Info("User skip to next, syncing state to server");
+        EDreamClient::SendStateUpdate();
+        return;
+    
 }
 
 void CPlayer::ReturnToPrevious()
 {
-    m_transitionDuration = 1.0f;
     auto previousDream = m_playlistManager->getPreviousDream();
+
+    bool isDreamCached = !previousDream->getCachedPath().empty();
+    if (!isDreamCached) {
+        // Check quota before allowing streaming
+        Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+        if (cm.getRemainingQuota() <= 0) {
+            g_Log->Warning("Previous dream is not cached and quota is 0, cannot stream");
+            return;
+        }
+        g_Log->Info("Previous dream is not cached, will try loading and playing immediately");
+        PlayDreamNow(previousDream->uuid, -1);
+        return;
+    }
     
+    if (m_isTransitioning && m_nextClip) {
+        g_Log->Info("Previous during transition - changing target");
+        
+        // Save the current transition progress
+        double currentProgress = (m_TimelineTime - m_transitionStartTime) / m_transitionDuration;
+        
+        // Destroy the current target clip
+        destroyClipAsync(std::move(m_nextClip));
+        m_nextClip = nullptr;
+        
+        // Create a new target clip
+        PlayClip(previousDream, m_TimelineTime, -1, true);
+
+        if (m_nextClip) {
+            m_nextClip->SetTransitionLength(1.0f, 5.0f);
+
+            // Maintain visual continuity
+            if (currentProgress > 0.1) {
+                m_nextClip->m_Alpha = static_cast<float>(currentProgress);
+            }
+        }
+
+        g_Log->Info("User skip to previous during transition, syncing state to server");
+        EDreamClient::SendStateUpdate();
+        return;
+    }
+
+    m_transitionDuration = 1.0f;
     StartTransition();
     PlayClip(previousDream, m_TimelineTime, -1, true);
     m_nextClip->SetTransitionLength(1.0f, 5.0f);
+
+    g_Log->Info("User skip to previous, syncing state to server");
+    EDreamClient::SendStateUpdate();
 }
 
 void CPlayer::RepeatClip()
@@ -1020,13 +1606,204 @@ void CPlayer::RepeatClip()
 
 void CPlayer::SkipForward(float _seconds)
 {
-    m_currentClip->SkipTime(_seconds);
+    if (!m_currentClip) return;
+    
+    // Disable jump feature during seek crossfade transitions (but allow during regular playlist transitions)
+    // Seek crossfades are detected by: pending flag OR (transitioning with 1s duration and no preflight decision)
+    bool isSeekCrossfade = m_pendingSeekCrossfade || 
+                           (m_isTransitioning && m_transitionDuration == 1.0f && !m_nextDreamDecision);
+    if (isSeekCrossfade) {
+        g_Log->Info("Jump feature disabled during seek crossfade transition");
+        return;
+    }
+    
+    float absSeconds = std::abs(_seconds);
+    
+    // During a transition, we have a "from" dream (m_currentClip) and "to" dream (m_nextClip)
+    // The displayed timecode shows the "to" dream position during transition
+    // For J (backward): if in transition, check "to" dream's position to decide if we go to "from" dream
+    // For L (forward): use the "to" dream to calculate position
+    
+    // Helper lambda to start a crossfade seek transition within the same dream
+    // This keeps the current video playing while fading to the new time position
+    // The actual crossfade starts when the target clip finishes buffering
+    auto startSeekCrossfade = [this](const Cache::Dream* dream, int64_t seekFrame) {
+        g_Log->Info("Preparing crossfade seek to frame %lld in dream %s", 
+                    seekFrame, dream->uuid.c_str());
+        
+        // Cancel any ongoing transition/preload
+        if (m_isTransitioning && m_nextClip) {
+            destroyClipAsync(std::move(m_nextClip));
+            m_nextClip = nullptr;
+        }
+        m_isTransitioning = false;
+        m_nextDreamDecision = std::nullopt;
+        m_PreloadingNextClip = false;
+        m_PreloadingDreamUUID = "";
+        
+        // Set up transition parameters (but don't start yet - wait for clip to buffer)
+        m_transitionDuration = 1.0f;
+        m_pendingSeekCrossfade = true;  // Will start transition when next clip is ready
+        
+        // Create the new clip at the target position (it will start buffering)
+        PlayClip(dream, m_TimelineTime, seekFrame, true);
+        if (m_nextClip) {
+            m_nextClip->SetTransitionLength(1.0f, 5.0f);
+        }
+    };
+    
+    // Check if skipping backward (J key)
+    if (_seconds < 0) {
+        // Determine which clip's position to check based on transition state
+        ContentDecoder::spCClip referenceClip = (m_isTransitioning && m_nextClip) ? m_nextClip : m_currentClip;
+        const auto& refMetadata = referenceClip->GetCurrentFrameMetadata();
+        
+        double refFps = 20.0;
+        if (!referenceClip->GetClipMetadata().dreamData.fps.empty()) {
+            refFps = std::stod(referenceClip->GetClipMetadata().dreamData.fps);
+        }
+        
+        double currentTimeInRefClip = refMetadata.frameIdx / refFps;
+        
+        if (currentTimeInRefClip <= absSeconds) {
+            // We're within the first N seconds - jump to previous dream
+            // During transition: "previous" is the "from" dream (m_currentClip)
+            // Not transitioning: "previous" is from playlist
+            const Cache::Dream* targetDream = nullptr;
+            
+            if (m_isTransitioning && m_nextClip) {
+                // During transition, go back to the "from" dream (m_currentClip)
+                targetDream = &m_currentClip->GetClipMetadata().dreamData;
+                g_Log->Info("Skip backward during transition - going back to 'from' dream");
+            } else {
+                // Not transitioning, go to playlist's previous dream
+                targetDream = m_playlistManager->getPreviousDream();
+            }
+            
+            if (targetDream) {
+                bool isDreamCached = !targetDream->getCachedPath().empty();
+                if (!isDreamCached) {
+                    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+                    if (cm.getRemainingQuota() <= 0) {
+                        g_Log->Warning("Target dream is not cached and quota is 0, cannot stream");
+                        // Fall back to crossfade seek to start of current dream
+                        const Cache::Dream* currentDream = &referenceClip->GetClipMetadata().dreamData;
+                        startSeekCrossfade(currentDream, 0);
+                        return;
+                    }
+                }
+                
+                // Calculate seek frame: (absSeconds - currentTimeInRefClip) from the end of the target dream
+                double targetFps = std::stod(targetDream->fps);
+                double offsetFromEnd = absSeconds - currentTimeInRefClip;
+                int64_t seekFrame = targetDream->frames - static_cast<int64_t>(offsetFromEnd * targetFps);
+                seekFrame = std::max(seekFrame, static_cast<int64_t>(0));
+                
+                g_Log->Info("Skip backward at %.1fs - crossfade to target dream at frame %lld (%.1fs from end)",
+                            currentTimeInRefClip, seekFrame, offsetFromEnd);
+                
+                // Use crossfade transition to the previous dream
+                startSeekCrossfade(targetDream, seekFrame);
+                EDreamClient::SendStateUpdate();
+                return;
+            }
+        }
+        
+        // Normal backward skip within current clip - use crossfade
+        const Cache::Dream* currentDream = &referenceClip->GetClipMetadata().dreamData;
+        int64_t currentFrame = static_cast<int64_t>(refMetadata.frameIdx);
+        int64_t seekFrame = currentFrame + static_cast<int64_t>(_seconds * refFps);
+        seekFrame = std::max(seekFrame, static_cast<int64_t>(0));
+        
+        g_Log->Info("Skip backward %.1fs - crossfade from frame %lld to frame %lld", 
+                    absSeconds, currentFrame, seekFrame);
+        startSeekCrossfade(currentDream, seekFrame);
+        return;
+    }
+    
+    // Check if skipping forward (L key)
+    if (_seconds > 0) {
+        // During transition, use the "to" dream (m_nextClip) for forward skip
+        ContentDecoder::spCClip targetClip = m_isTransitioning && m_nextClip ? m_nextClip : m_currentClip;
+        const auto& toMetadata = targetClip->GetCurrentFrameMetadata();
+        
+        double toFps = 20.0;
+        if (!targetClip->GetClipMetadata().dreamData.fps.empty()) {
+            toFps = std::stod(targetClip->GetClipMetadata().dreamData.fps);
+        }
+        
+        double currentTimeInToClip = toMetadata.frameIdx / toFps;
+        uint32_t framesRemaining = toMetadata.maxFrameIdx > toMetadata.frameIdx ? 
+                                   toMetadata.maxFrameIdx - toMetadata.frameIdx : 0;
+        double timeRemaining = framesRemaining / toFps;
+        
+        if (toMetadata.maxFrameIdx > 0 && timeRemaining <= _seconds) {
+            // We're within the last N seconds of the target dream - jump to next dream
+            // Seek position: (absSeconds - timeRemaining) from the start of next dream
+            
+            // Get the next dream decision
+            Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+            bool canStream = cm.getRemainingQuota() > 0;
+            auto nextDecision = m_playlistManager->preflightNextDream(canStream, true);
+            
+            if (nextDecision && nextDecision->dream) {
+                bool isDreamCached = !nextDecision->dream->getCachedPath().empty();
+                if (!isDreamCached && !canStream) {
+                    g_Log->Warning("Next dream is not cached and quota is 0, cannot stream");
+                    // Crossfade to end of current clip
+                    const Cache::Dream* currentDream = &targetClip->GetClipMetadata().dreamData;
+                    int64_t nearEndFrame = toMetadata.maxFrameIdx - static_cast<int64_t>(0.5 * toFps);
+                    nearEndFrame = std::max(nearEndFrame, static_cast<int64_t>(0));
+                    startSeekCrossfade(currentDream, nearEndFrame);
+                    return;
+                }
+                
+                // Calculate seek frame: (absSeconds - timeRemaining) from start of next dream
+                double nextFps = std::stod(nextDecision->dream->fps);
+                double offsetFromStart = absSeconds - timeRemaining;
+                int64_t seekFrame = static_cast<int64_t>(offsetFromStart * nextFps);
+                
+                g_Log->Info("Skip forward (%.1fs remaining in %s) - crossfade to next dream at frame %lld (%.1fs from start)",
+                            timeRemaining, 
+                            m_isTransitioning ? "to-clip" : "current",
+                            seekFrame, offsetFromStart);
+                
+                // Use crossfade transition to the next dream
+                startSeekCrossfade(nextDecision->dream, seekFrame);
+                m_playlistManager->moveToNextDream(*nextDecision);
+                EDreamClient::SendStateUpdate();
+                return;
+            }
+            
+            // Fallback to original behavior if we couldn't get next dream
+            SkipToNext();
+            return;
+        }
+        
+        // Normal forward skip within the target clip - use crossfade
+        const Cache::Dream* currentDream = &targetClip->GetClipMetadata().dreamData;
+        int64_t currentFrame = static_cast<int64_t>(toMetadata.frameIdx);
+        int64_t seekFrame = currentFrame + static_cast<int64_t>(_seconds * toFps);
+        
+        // Clamp to not go past end
+        if (toMetadata.maxFrameIdx > 0) {
+            seekFrame = std::min(seekFrame, static_cast<int64_t>(toMetadata.maxFrameIdx));
+        }
+        
+        g_Log->Info("Skip forward %.1fs - crossfade from frame %lld to frame %lld", 
+                    _seconds, currentFrame, seekFrame);
+        startSeekCrossfade(currentDream, seekFrame);
+        return;
+    }
 }
 
 const ContentDecoder::sClipMetadata*
 CPlayer::GetCurrentPlayingClipMetadata() const
 {
     reader_lock l(m_UpdateMutex);
+    // During transition, use next clip metadata (the new dream)
+    if (m_isTransitioning && m_nextClip)
+        return &m_nextClip->GetClipMetadata();
     if (!m_currentClip)
         return nullptr;
     return &m_currentClip->GetClipMetadata();
@@ -1034,7 +1811,266 @@ CPlayer::GetCurrentPlayingClipMetadata() const
 const ContentDecoder::sFrameMetadata* CPlayer::GetCurrentFrameMetadata() const
 {
     reader_lock l(m_UpdateMutex);
+    // During transition, use next clip metadata (the new dream)
+    if (m_isTransitioning && m_nextClip)
+        return &m_nextClip->GetCurrentFrameMetadata();
     if (!m_currentClip)
         return nullptr;
     return &m_currentClip->GetCurrentFrameMetadata();
+}
+
+double CPlayer::GetCurrentClipElapsedTime() const
+{
+    reader_lock l(m_UpdateMutex);
+    // During transition, use next clip (the new dream), otherwise use current clip
+    if (m_isTransitioning && m_nextClip) {
+        return m_TimelineTime - m_nextClip->GetStartTime();
+    }
+    if (!m_currentClip)
+        return 0.0;
+    return m_TimelineTime - m_currentClip->GetStartTime();
+}
+
+// MARK: - Transitions
+bool CPlayer::shouldPrepareTransition(const ContentDecoder::spCClip& clip) const {
+    if (!clip) return false;
+
+    const auto& metadata = clip->GetCurrentFrameMetadata();
+
+    // Make sure the clip is properly loaded before we look for transition
+    if (metadata.maxFrameIdx <= 0) {
+        return false;
+    }
+
+    uint32_t framesRemaining = metadata.maxFrameIdx - metadata.frameIdx;
+    // Use base fps (not decode fps) to get actual time remaining regardless of playback speed
+    double baseFps = std::stod(clip->GetClipMetadata().dreamData.fps);
+    double timeRemaining = framesRemaining / baseFps;
+
+    // Start preparing transition when we're within 8 seconds of the end
+    return timeRemaining <= 8.0;
+}
+
+void CPlayer::prepareSeamlessTransition() {
+    if (!m_playlistManager || !m_nextDreamDecision) return;
+    
+    // We only want to prepare once
+    if (m_nextClip) return;
+
+    // Make sure current clip won't transition
+    m_currentClip->SetTransitionLength(0.0, 0.0);
+
+    const Cache::Dream* dream = m_nextDreamDecision->dream;
+    if (!dream) return;
+    
+    // Check if we already have the path
+    auto path = dream->getCachedPath();
+    if (!path.empty()) {
+        // Direct load if cached
+        PreloadClip(dream);
+        if (m_nextClip) {
+            m_nextClip->StartPlayback(0);
+            g_Log->Info("Prepared seamless transition to: %s (cached)", dream->uuid.c_str());
+        }
+        return;
+    }
+
+    // Check if we have streaming URL
+    path = dream->getStreamingUrl();
+    if (!path.empty()) {
+        // Direct load if streaming URL exists
+        PreloadClip(dream);
+        if (m_nextClip) {
+            m_nextClip->StartPlayback(0);
+            g_Log->Info("Prepared seamless transition to: %s (streaming URL)", dream->uuid.c_str());
+        }
+        return;
+    }
+
+    // We need to fetch async
+    std::thread([this, dream]() {
+        auto path = EDreamClient::GetDreamDownloadLink(dream->uuid);
+        if (path.empty()) {
+            g_Log->Error("Failed to get download link for seamless transition: %s", dream->uuid.c_str());
+            return;
+        }
+        
+        dream->setStreamingUrl(path);
+        
+        if (PreloadClip(dream)) {
+            if (m_nextClip) {
+                m_nextClip->StartPlayback(0);
+                g_Log->Info("Prepared seamless transition to: %s (async fetch)", dream->uuid.c_str());
+            }
+        }
+    }).detach();
+    
+    g_Log->Info("Initiated async preparation for seamless transition to: %s", dream->uuid.c_str());
+}
+
+void CPlayer::prepareCrossfadeTransition() {
+    if (!m_playlistManager || !m_nextDreamDecision) return;
+    
+    // We only want to prepare once
+    if (m_nextClip && m_nextClip->IsPreloadComplete()) {
+        g_Log->Info("Already have a preloaded clip ready for transition");
+        return;
+    }
+    
+    // Check if we're already preloading
+    if (m_PreloadingNextClip) {
+        g_Log->Info("Preload already in progress for %s", m_PreloadingDreamUUID.c_str());
+        return;
+    }
+    
+    // Ensure current clip has proper fadeout time for crossfade
+    if (m_currentClip) {
+        float currentFadeIn = m_currentClip->m_FadeInSeconds;
+        m_currentClip->SetTransitionLength(currentFadeIn, 5.0f);
+    }
+
+    const Cache::Dream* dream = m_nextDreamDecision->dream;
+    if (!dream) return;
+    
+    // Check if we already have the path
+    auto path = dream->getCachedPath();
+    if (!path.empty()) {
+        // Direct load if cached
+        PreloadClip(dream);
+        g_Log->Info("Prepared crossfade transition to: %s (cached)", dream->uuid.c_str());
+        return;
+    }
+    
+    // Check if we have streaming URL
+    path = dream->getStreamingUrl();
+    if (!path.empty()) {
+        // Direct load if streaming URL exists
+        PreloadClip(dream);
+        g_Log->Info("Prepared crossfade transition to: %s (streaming URL)", dream->uuid.c_str());
+        return;
+    }
+
+    // We need to fetch async
+    std::thread([this, dream]() {
+        auto path = EDreamClient::GetDreamDownloadLink(dream->uuid);
+        dream->setStreamingUrl(path);
+        
+        if (!path.empty()) {
+            PreloadClip(dream);
+            g_Log->Info("Prepared crossfade transition to: %s (async fetch)", dream->uuid.c_str());
+        }
+    }).detach();
+    
+    g_Log->Info("Initiated async preparation for: %s", dream->uuid.c_str());
+}
+
+bool CPlayer::PreloadClip(const Cache::Dream* dream) {
+    if (!dream) {
+        g_Log->Error("Attempted to preload a null dream");
+        return false;
+    }
+    
+    m_PreloadingNextClip = true;
+    m_PreloadingDreamUUID = dream->uuid;
+    
+    auto du = m_displayUnits[0];
+    int32_t displayMode = g_Settings()->Get("settings.player.DisplayMode", 2);
+    
+    auto path = dream->getCachedPath();
+    if (path.empty()) {
+        // Try streamingUrl that's been prefetched
+        path = dream->getStreamingUrl();
+        if (path.empty()) {
+            // Last resort blocking call
+            g_Log->Warning("Last resort blocking call (Player:Preload clip)");
+            path = EDreamClient::GetDreamDownloadLink(dream->uuid);
+        }
+    }
+    
+    if (path.empty()) {
+        g_Log->Error("Failed to get path for dream: %s", dream->uuid.c_str());
+        return false;
+    }
+    
+    auto newClip = std::make_shared<ContentDecoder::CClip>(
+        ContentDecoder::sClipMetadata{path, m_PerceptualFPS / dream->activityLevel, *dream},
+        du->spRenderer, displayMode, du->spDisplay->Width(),
+        du->spDisplay->Height());
+    
+    // Update internal decoder fps counter
+    m_DecoderFps = m_PerceptualFPS / dream->activityLevel;
+
+    // If preload succeeds, set the clip
+    if (newClip->Preload()) {
+        m_nextClip = newClip;
+        g_Log->Info("Preloading initiated for %s", dream->uuid.c_str());
+        return true;
+    }
+    
+    // Failed to preload
+    m_PreloadingNextClip = false;
+    m_PreloadingDreamUUID = "";
+    return false;
+}
+
+
+// MARK: Buffering logic
+bool CPlayer::IsAnyClipBuffering() const {
+    //reader_lock l(m_UpdateMutex);
+    
+    // Current clip initial buffering
+    if (m_currentClip && m_currentClip->IsBuffering() && !m_currentClip->HasStartedPlaying()) {
+        return true;
+    }
+    
+    // Current clip rebuffering
+    if (m_currentClip && m_currentClip->IsBuffering() && m_currentClip->HasStartedPlaying()) {
+        return true;
+    }
+    
+    // Next clip buffering during transition
+    /*if (m_PreloadingNextClip && (m_nextClip == nullptr || !m_nextClip->IsPreloadComplete())) {
+        g_Log->Info("Detected pending preload for %s as buffering state",
+                   m_PreloadingDreamUUID.c_str());
+        return true;
+    }*/
+    
+    return false;
+}
+
+bool CPlayer::IsPreloading() const {
+    if (m_PreloadingNextClip && (m_nextClip == nullptr || !m_nextClip->IsPreloadComplete())) {
+        /*g_Log->Info("Detected pending preload for %s as buffering state",
+                   m_PreloadingDreamUUID.c_str());*/
+        return true;
+    }
+    
+    return false;
+}
+
+bool CPlayer::IsAnyClipStreaming() const {
+    // Check if current clip is streaming
+    if (m_currentClip) {
+        const auto& metadata = m_currentClip->GetClipMetadata();
+        if (!metadata.dreamData.streamingUrl.empty()) {
+            return true;
+        }
+    }
+    
+    // Check if next clip is streaming
+    if (m_nextClip) {
+        const auto& metadata = m_nextClip->GetClipMetadata();
+        if (!metadata.dreamData.streamingUrl.empty()) {
+            return true;
+        }
+    }
+    
+    // Also return true if we are preloading
+    if (m_PreloadingNextClip && (m_nextClip == nullptr || !m_nextClip->IsPreloadComplete())) {
+        /*g_Log->Info("Manual transition preloading in progress for %s",
+                  m_PreloadingDreamUUID.c_str());*/
+        return true;
+    }
+    
+    return false;
 }

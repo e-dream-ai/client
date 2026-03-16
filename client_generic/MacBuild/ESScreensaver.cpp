@@ -58,11 +58,19 @@ int ESScreenSaver_AddGraphicsContext(void* _glContext)
 
 bool ESScreensaver_Start(bool _bPreview, uint32 _width, uint32 _height)
 {
+    // Always set preview mode flag
+    gClient.SetIsPreview(_bPreview);
+    
+    // Force busy mode for preview to avoid network/auth activity
+    // Also release the lock file so the main app can run normally
+    if (_bPreview) {
+        gClient.ReleaseLockFile();
+        gClient.ForceMultipleInstancesMode(true);
+    }
+    
     if (g_Player().Display() == NULL)
     {
         DisplayOutput::CDisplayMetal::SetDefaultWidthAndHeight(_width, _height);
-
-        gClient.SetIsPreview(_bPreview);
 
         gClient.Startup();
         // we should stop the player, if it is started by default, just to be
@@ -85,21 +93,14 @@ bool ESScreensaver_Start(bool _bPreview, uint32 _width, uint32 _height)
     return true;
 }
 
-bool ESScreensaver_DoFrame(int _displayIdx, boost::barrier& _beginFrameBarrier,
-                           boost::barrier& _endFrameBarrier)
+bool ESScreensaver_DoFrame(int _displayIdx)
 {
-    bool retval = true;
-
-    if (gClient.Update(_displayIdx, _beginFrameBarrier, _endFrameBarrier) ==
-        false)
-    {
-        retval = false;
-    }
-
-    return retval;
+    return gClient.Update(_displayIdx);
 }
 
 void ESScreensaver_Stop(void) { g_Player().Stop(); }
+
+void ESScreensaver_Resume(void) { g_Player().ResumeAfterPause(); }
 
 bool ESScreensaver_Stopped(void) { return g_Player().Stopped(); }
 
@@ -193,11 +194,6 @@ void ESScreensaver_SetDoubleSetting(const char* url, const double val)
     g_Settings()->Storage()->Commit();
 }*/
 
-void ESScreensaver_SetUpdateAvailable(const char* verinfo)
-{
-    gClient.SetUpdateAvailable(verinfo);
-}
-
 void ESScreensaver_SetIsFullScreen(bool _bFullScreen)
 {
     gClient.SetIsFullScreen(_bFullScreen);
@@ -254,4 +250,17 @@ static uint64 GetFlockSizeBytes(const std::string& path, int sheeptype)
 size_t ESScreensaver_GetFlockSizeMBs(const char* mp4path, int sheeptype)
 {
     return GetFlockSizeBytes(mp4path, sheeptype) / 1024 / 1024;
+}
+
+// Update availability state - set from Objective-C code
+static bool g_updateAvailable = false;
+
+void ESScreensaver_SetUpdateAvailable(bool available)
+{
+    g_updateAvailable = available;
+}
+
+bool ESScreensaver_IsUpdateAvailable(void)
+{
+    return g_updateAvailable;
 }

@@ -7,7 +7,7 @@ if(CMAKE_VERSION VERSION_LESS "3.0.0")
    message(FATAL_ERROR "CMake >= 3.0.0 required")
 endif()
 cmake_policy(PUSH)
-cmake_policy(VERSION 3.0.0...3.27)
+cmake_policy(VERSION 3.0.0...3.28)
 #----------------------------------------------------------------
 # Generated CMake target import file.
 #----------------------------------------------------------------
@@ -58,10 +58,9 @@ endif()
 add_library(Boost::asio INTERFACE IMPORTED)
 
 set_target_properties(Boost::asio PROPERTIES
-  INTERFACE_COMPILE_DEFINITIONS "\$<\$<NOT:\$<TARGET_EXISTS:Boost::context>>:BOOST_ASIO_DISABLE_BOOST_CONTEXT_FIBER>;\$<\$<NOT:\$<TARGET_EXISTS:Boost::coroutine>>:BOOST_ASIO_DISABLE_BOOST_COROUTINE>"
   INTERFACE_COMPILE_FEATURES "cxx_std_11"
   INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/include"
-  INTERFACE_LINK_LIBRARIES "Boost::align;Boost::assert;Boost::config;\$<TARGET_NAME_IF_EXISTS:Boost::context>;\$<TARGET_NAME_IF_EXISTS:Boost::coroutine>;Boost::date_time;Boost::system;Boost::throw_exception"
+  INTERFACE_LINK_LIBRARIES "Boost::align;Boost::assert;Boost::config;\$<TARGET_NAME_IF_EXISTS:Boost::context>;Boost::date_time;Boost::system;Boost::throw_exception"
 )
 
 # Load information for each installed configuration.

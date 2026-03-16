@@ -12,6 +12,9 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <mutex>
+#include <shared_mutex>
+#include <chrono>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -85,6 +88,21 @@ public:
     }
     void decreaseRemainingQuota(long long amount);
     
+    // Quota expiration getter/setter
+    std::chrono::system_clock::time_point getQuotaExpiresAt() const {
+        return quotaExpiresAt;
+    }
+    
+    void setQuotaExpiresAt(const std::chrono::system_clock::time_point& expiresAt) {
+        quotaExpiresAt = expiresAt;
+    }
+    
+    // Check if quota expires within the specified duration
+    bool quotaExpiresWithin(const std::chrono::hours& duration) const {
+        auto now = std::chrono::system_clock::now();
+        return quotaExpiresAt > now && quotaExpiresAt <= now + duration;
+    }
+    
     // Used space by a path
     std::uintmax_t getUsedSpace(const std::filesystem::path& path) const;
     // Underlying disk free space to that path
@@ -141,12 +159,16 @@ private:
     static std::unique_ptr<CacheManager> instance;
     std::unordered_map<std::string, Dream> dreams;
     static long long remainingQuota;
+    std::chrono::system_clock::time_point quotaExpiresAt;
     
     // diskCachedItem/historyItem
     std::vector<DiskCachedItem> diskCached;
     std::vector<HistoryItem> history;
 
     std::vector<std::string> m_evictedUUIDs;
+    
+    // Mutex to protect diskCached container from concurrent access
+    mutable std::shared_mutex diskCachedMutex;
 
     boost::property_tree::ptree serializeDiskCachedItem(const DiskCachedItem& item) const;
     boost::property_tree::ptree serializeHistoryItem(const HistoryItem& item) const;

@@ -34,6 +34,13 @@ class CClip
         ReverseHistory = 2
     };
 
+    enum class BufferingState {
+        NotBuffering,  // Normal playback
+        Buffering,     // Initial buffering before playback starts
+        Rebuffering    // Paused playback to rebuild buffer
+    };
+
+    
   private:
     struct DecoderClock
     {
@@ -43,37 +50,69 @@ class CClip
         bool started;
     };
 
+public: // tmp public for debug
     sClipMetadata m_ClipMetadata;
     DecoderClock m_DecoderClock;
+private: //tmp
     spCFrameDisplay m_spFrameDisplay;
     spCRenderer m_spRenderer;
     spCContentDecoder m_spDecoder;
     ContentDecoder::spCVideoFrame m_spFrameData;
     DisplayOutput::spCImage m_spImageRef;
+public: // tmp public for debug
     sFrameMetadata m_CurrentFrameMetadata;
+private: // tmp
     mutable std::shared_mutex m_CurrentFrameMetadataLock;
     double m_StartTime;
     double m_EndTime;
     boost::atomic<bool> m_HasFinished;
     boost::atomic<bool> m_IsFadingOut;
+public:
     float m_FadeInSeconds = 5.f;
     float m_FadeOutSeconds = 5.f;
-    float m_Alpha;
+    float m_Alpha = 0.f;
+    float m_LastCalculatedAlpha = 0.0f;  // Store last calculated alpha (needed for pause/buffering and transition completion)
+private:
     eClipFlags m_ClipFlags = eClipFlags::None;
 
+    // We need these to handle resumes
+    double m_ResumeStartTime = 0.0;
+    bool m_IsResume = false;
+    
+    bool m_IsPreloaded = false;
+ 
+    // Buffering-related fields
+    BufferingState m_BufferingState = BufferingState::NotBuffering;
+    double m_RequestedStartTime = 0.0;  // When clip was requested to start
+    double m_ActualStartTime = 0.0;     // When clip actually started playing
+    double m_RebufferingStartTime = 0.0; // When rebuffering began
+    double m_TotalBufferingTime = 0.0;   // Accumulated buffering time
+    bool m_HasStartedPlaying = false;    // Whether playback has actually begun
+
+    
   private:
-    bool NeedsNewFrame(double _timelineTime, DecoderClock* _decoderClock) const;
+    /// Returns the number of frames to advance (0 = no new frame needed, 1+ = frames to skip)
+    int GetFramesToAdvance(double _timelineTime, DecoderClock* _decoderClock) const;
     ///    Grab a frame from the decoder and use it as a texture.
     bool GrabVideoFrame();
+    /// Discard frames from the queue without processing them (for catching up)
+    void DiscardFrames(int count);
+    spCVideoFrame m_LastValidFrame;  // Store the last successfully decoded frame
 
-  public:
+public:
     CClip(const sClipMetadata& _metadata, spCRenderer _spRenderer,
           int32_t _displayMode, uint32_t _displayWidth,
           uint32_t _displayHeight);
     bool Start(int64_t _seekFrame = -1);
     void Stop();
-    bool Update(double _timelineTime);
-    bool DrawFrame(spCRenderer _spRenderer, float alpha = 1.0f);
+    
+    bool Preload(int64_t _seekFrame = -1);
+    bool IsPreloadComplete() const;
+
+    bool StartPlayback(int64_t _seekFrame = -1);
+    
+    bool Update(double _timelineTime, bool isPaused = false);
+    bool DrawFrame(spCRenderer _spRenderer, float alpha = -1.0f);
     void SetDisplaySize(uint32_t _displayWidth, uint32_t _displayHeight);
 
     spCContentDecoder GetDecoder() const { return m_spDecoder; }
@@ -95,6 +134,9 @@ class CClip
     }
     double GetLength(float _atFps) const { return GetFrameCount() / _atFps; }
     bool HasFinished() const { return m_HasFinished.load(); }
+    void ResetFinished() {
+        m_HasFinished.exchange(false);
+    }
     bool IsFadingOut() const { return m_IsFadingOut.load(); }
 
     void SetTransitionLength(float _fadeInSeconds, float _fadeOutSeconds)
@@ -112,6 +154,22 @@ class CClip
     eClipFlags GetFlags() const { return m_ClipFlags; }
     void SkipTime(float _secondsForward);
     void SetFps(double _fps) { m_ClipMetadata.decodeFps = _fps; }
+    
+    void SetResumeTime(double startTime) {
+        m_ResumeStartTime = startTime;
+        m_IsResume = true;
+    }
+    bool IsNearEnd() const;
+
+    bool IsBuffering() const { return m_BufferingState != BufferingState::NotBuffering; }
+    bool IsRebuffering() const { return m_BufferingState == BufferingState::Rebuffering; }
+    double GetActualStartTime() const { return m_ActualStartTime; }
+    double GetTotalBufferingTime() const { return m_TotalBufferingTime; }
+    bool HasStartedPlaying() const { return m_HasStartedPlaying; }
+    
+    // Get the FrameDisplay for seamless transition frame inheritance
+    spCFrameDisplay GetFrameDisplay() const { return m_spFrameDisplay; }
+   
 };
 MakeSmartPointers(CClip);
 } // namespace ContentDecoder

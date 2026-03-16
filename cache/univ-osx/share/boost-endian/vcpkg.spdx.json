@@ -3,13 +3,13 @@
   "spdxVersion": "SPDX-2.2",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "documentNamespace": "https://spdx.org/spdxdocs/boost-endian-arm64-osx-1.85.0#1-c2f3dfed-1c01-4661-b815-ef384f2d4884",
-  "name": "boost-endian:arm64-osx@1.85.0#1 42d9344803a89c6714568794183588d63f79230519931ed4909ae398b198eb46",
+  "documentNamespace": "https://spdx.org/spdxdocs/boost-endian-arm64-osx-1.87.0-fe924379-0b1f-4687-8737-c33f70c7f2db",
+  "name": "boost-endian:arm64-osx@1.87.0 ba9989d39986024684781af83ad58dd37fcf7aa39d1902641acf79c9df7547f1",
   "creationInfo": {
     "creators": [
-      "Tool: vcpkg-d6945642ee5c3076addd1a42c331bbf4cfc97457"
+      "Tool: vcpkg-2025-02-11-bec4296bf5289dc9ce83b4f5095943e44162f9c2"
     ],
-    "created": "2024-08-08T16:31:01Z"
+    "created": "2025-03-13T17:57:53Z"
   },
   "relationships": [
     {
@@ -47,7 +47,7 @@
     {
       "name": "boost-endian",
       "SPDXID": "SPDXRef-port",
-      "versionInfo": "1.85.0#1",
+      "versionInfo": "1.87.0",
       "downloadLocation": "NOASSERTION",
       "homepage": "https://www.boost.org/libs/endian",
       "licenseConcluded": "BSL-1.0",
@@ -59,7 +59,7 @@
     {
       "name": "boost-endian:arm64-osx",
       "SPDXID": "SPDXRef-binary",
-      "versionInfo": "42d9344803a89c6714568794183588d63f79230519931ed4909ae398b198eb46",
+      "versionInfo": "ba9989d39986024684781af83ad58dd37fcf7aa39d1902641acf79c9df7547f1",
       "downloadLocation": "NONE",
       "licenseConcluded": "BSL-1.0",
       "licenseDeclared": "NOASSERTION",
@@ -67,16 +67,16 @@
       "comment": "This is a binary package built by vcpkg."
     },
     {
-      "SPDXID": "SPDXRef-resource-1",
+      "SPDXID": "SPDXRef-resource-0",
       "name": "boostorg/endian",
-      "downloadLocation": "git+https://github.com/boostorg/endian@boost-1.85.0",
+      "downloadLocation": "git+https://github.com/boostorg/endian@boost-1.87.0",
       "licenseConcluded": "NOASSERTION",
       "licenseDeclared": "NOASSERTION",
       "copyrightText": "NOASSERTION",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "660a44a73d551968620a39daad9b626827ab7dd3134bb1bcf6c2d24482f4db3b32f6b72159f4e98f9834ebc7c099454c6048082c7c05a4e3e0432c84928298db"
+          "checksumValue": "48e168281c381a27b4102d0d29c7646b480661119ba4db890b1f1a25e83939335f505081bfc3c71d52b22553a95ee646863867e44607d9d2de9e294f36f152d8"
         }
       ]
     }
@@ -88,7 +88,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "59892b19bf35dac75ebe2b217ce2a16777b854a9a2bcac27e2ac8525ee579496"
+          "checksumValue": "a1bf0c894192c26697944d97392891191907c6a4d49708126f98175f19a01025"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -100,7 +100,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "d27a1c4229ef50b4e6207b730316878204c5c1e409a1bf4b314674774d4ed1c0"
+          "checksumValue": "b9e04f32bb5434b64f55059007140cc641f53ac0a96cced263f380cf2cbb0c52"
         }
       ],
       "licenseConcluded": "NOASSERTION",

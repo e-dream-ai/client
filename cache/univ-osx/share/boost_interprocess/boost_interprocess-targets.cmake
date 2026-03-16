@@ -7,7 +7,7 @@ if(CMAKE_VERSION VERSION_LESS "3.0.0")
    message(FATAL_ERROR "CMake >= 3.0.0 required")
 endif()
 cmake_policy(PUSH)
-cmake_policy(VERSION 3.0.0...3.27)
+cmake_policy(VERSION 3.0.0...3.28)
 #----------------------------------------------------------------
 # Generated CMake target import file.
 #----------------------------------------------------------------
@@ -59,7 +59,7 @@ add_library(Boost::interprocess INTERFACE IMPORTED)
 
 set_target_properties(Boost::interprocess PROPERTIES
   INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/include"
-  INTERFACE_LINK_LIBRARIES "Boost::assert;Boost::config;Boost::container;Boost::core;Boost::intrusive;Boost::move;Boost::static_assert;Boost::type_traits;Boost::winapi"
+  INTERFACE_LINK_LIBRARIES "Boost::assert;Boost::config;Boost::container;Boost::intrusive;Boost::move;Boost::winapi"
 )
 
 # Load information for each installed configuration.

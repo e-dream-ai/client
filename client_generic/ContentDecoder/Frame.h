@@ -36,17 +36,17 @@ MakeSmartPointers(CVideoFrame);
 
 struct sFrameMetadata
 {
-    float fade;
+    float fade = 0.0f;
     std::string fileName;
     std::string name;
     std::string author;
-    uint32_t sheepID;
-    uint32_t sheepGeneration;
-    bool isSeam;
-    float transitionProgress;
-    float decodeFps;
-    uint32_t frameIdx;
-    uint32_t maxFrameIdx;
+    uint32_t sheepID = 0;
+    uint32_t sheepGeneration = 0;
+    bool isSeam = false;
+    float transitionProgress = 0.0f;
+    float decodeFps = 0.0f;
+    uint32_t frameIdx = 0;
+    uint32_t maxFrameIdx = 0;
 };
 
 /*

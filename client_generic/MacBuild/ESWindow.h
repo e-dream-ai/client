@@ -5,11 +5,13 @@
 @interface ESWindow : NSWindow
 #if defined(MAC_OS_X_VERSION_10_6) &&                                          \
     (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_6)
-                      <NSWindowDelegate, NSApplicationDelegate>
+                      <NSWindowDelegate>
 #endif
 {
+@public
     ESScreensaverView* mESView;
 
+@protected
     ESWindow* mFullScreenWindow;
 
     ESWindow* mOriginalWindow;
@@ -37,8 +39,6 @@
 
 - (void)windowDidResize:(NSNotification*)notification;
 
-- (BOOL)applicationShouldTerminateAfterLastWindowClosed:
-    (NSApplication*)theApplication;
 
 - (BOOL)canBecomeKeyWindow;
 
@@ -57,5 +57,7 @@
 - (void)fadeWindow:(NSWindow*)window withEffect:(NSString*)effect;
 
 - (IBAction)newWindow:(id)sender;
+
+- (IBAction)goToHelpPage:(id)sender;
 
 @end

@@ -11,17 +11,4 @@ struct QuadUniforms
     float brightness;
 };
 
-struct TextUniforms
-{
-    matrix_float4x4 modelMatrix;
-    matrix_float4x4 viewProjectionMatrix;
-    vector_float4 foregroundColor;
-};
-
-struct VertexText
-{
-    packed_float4 position;
-    packed_float2 texCoords;
-};
-
 #endif /* ShaderUniforms_h */

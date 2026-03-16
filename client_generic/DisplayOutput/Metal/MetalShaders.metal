@@ -70,11 +70,6 @@ float4 SampleYUVTexturesRGBA(float2 uv,
     yuv.x = yTexture.sample(s, uv).x;
 
     yuv.yz = uvTexture.sample(s, uv).xy;
-    //return float4(yuv, 1);
-    if (yuv.x == 0)
-        return float4(1, 0, 0, 0.5);
-    if (all(yuv.yz == float2(0, 0)))
-        return float4(0, 0, 1, 0.5);
     yuv.x = 1.164383561643836 * (yuv.x - 0.0625);
     yuv.y = yuv.y - 0.5;
     yuv.z = yuv.z - 0.5;
@@ -214,47 +209,4 @@ fragment float4 drawDecodedFrameCubicFrameBlendFragment(
     color.a = uniforms.color.a;
     color.rgb += uniforms.brightness;
     return color;
-}
-
-struct TransformedVertex
-{
-    float4 position [[position]];
-    float2 texCoords;
-};
-
-vertex TransformedVertex drawTextVertex(constant VertexText* vertices
-                                        [[buffer(0)]],
-                                        constant TextUniforms& uniforms
-                                        [[buffer(1)]],
-                                        uint vid [[vertex_id]])
-{
-    TransformedVertex outVert;
-    outVert.position = uniforms.viewProjectionMatrix * uniforms.modelMatrix *
-                       float4(vertices[vid].position);
-    outVert.texCoords = vertices[vid].texCoords;
-    return outVert;
-}
-
-fragment half4 drawTextFragment(TransformedVertex vert [[stage_in]],
-                                constant TextUniforms& uniforms [[buffer(0)]],
-                                texture2d<float, access::sample> texture
-                                [[texture(0)]])
-{
-    //return 1;
-    constexpr sampler s(address::repeat, filter::linear);
-
-    float4 color = uniforms.foregroundColor;
-    // Outline of glyph is the isocontour with value 50%
-    float edgeDistance = 0.5;
-    // Sample the signed-distance field to find distance from this fragment to the glyph outline
-    float sampleDistance = texture.sample(s, vert.texCoords).r;
-    // Use local automatic gradients to find anti-aliased anisotropic edge width, cf. Gustavson 2012
-    float edgeWidth =
-        0.75 * length(float2(dfdx(sampleDistance), dfdy(sampleDistance))) *
-        0.25;
-    // Smooth the glyph edge by interpolating across the boundary in a band with the width determined above
-    float insideness = smoothstep(edgeDistance - edgeWidth,
-                                  edgeDistance + edgeWidth, sampleDistance);
-
-    return half4(color.r, color.g, color.b, insideness);
 }

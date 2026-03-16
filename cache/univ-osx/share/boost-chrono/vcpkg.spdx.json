@@ -3,13 +3,13 @@
   "spdxVersion": "SPDX-2.2",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "documentNamespace": "https://spdx.org/spdxdocs/boost-chrono-arm64-osx-1.85.0#1-4fe5508d-c9de-474f-a28f-b16fb8a971bb",
-  "name": "boost-chrono:arm64-osx@1.85.0#1 1ef959b02a4afc358de99d29a728e6d248d2fa2834b74d4c05e6e7c750346801",
+  "documentNamespace": "https://spdx.org/spdxdocs/boost-chrono-arm64-osx-1.87.0-f224dba4-5057-4f31-b130-10f966bab0da",
+  "name": "boost-chrono:arm64-osx@1.87.0 8f5a61b7fc9c9f20c379373779f99ea47198aa2475c0da0eff0290fa1e56af5e",
   "creationInfo": {
     "creators": [
-      "Tool: vcpkg-d6945642ee5c3076addd1a42c331bbf4cfc97457"
+      "Tool: vcpkg-2025-02-11-bec4296bf5289dc9ce83b4f5095943e44162f9c2"
     ],
-    "created": "2024-08-08T16:31:20Z"
+    "created": "2025-03-13T17:58:21Z"
   },
   "relationships": [
     {
@@ -47,7 +47,7 @@
     {
       "name": "boost-chrono",
       "SPDXID": "SPDXRef-port",
-      "versionInfo": "1.85.0#1",
+      "versionInfo": "1.87.0",
       "downloadLocation": "NOASSERTION",
       "homepage": "https://www.boost.org/libs/chrono",
       "licenseConcluded": "BSL-1.0",
@@ -59,7 +59,7 @@
     {
       "name": "boost-chrono:arm64-osx",
       "SPDXID": "SPDXRef-binary",
-      "versionInfo": "1ef959b02a4afc358de99d29a728e6d248d2fa2834b74d4c05e6e7c750346801",
+      "versionInfo": "8f5a61b7fc9c9f20c379373779f99ea47198aa2475c0da0eff0290fa1e56af5e",
       "downloadLocation": "NONE",
       "licenseConcluded": "BSL-1.0",
       "licenseDeclared": "NOASSERTION",
@@ -67,16 +67,16 @@
       "comment": "This is a binary package built by vcpkg."
     },
     {
-      "SPDXID": "SPDXRef-resource-1",
+      "SPDXID": "SPDXRef-resource-0",
       "name": "boostorg/chrono",
-      "downloadLocation": "git+https://github.com/boostorg/chrono@boost-1.85.0",
+      "downloadLocation": "git+https://github.com/boostorg/chrono@boost-1.87.0",
       "licenseConcluded": "NOASSERTION",
       "licenseDeclared": "NOASSERTION",
       "copyrightText": "NOASSERTION",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "fdd1874f560a91c05b69d3cf83206dce772236301bcf83e22e37a126a5e6cf62a4819b64457ec5164d53d3791eeb467224a11d16d74a7d1cf46567d76d170f9f"
+          "checksumValue": "c339a9a5e15d16494db768cd827062bac2beef0fc98c2d9cb821f2984d547dc5c27b06a0774b0115c27201ddde3b83e38c482b98949b53d28588eb76611ecd18"
         }
       ]
     }
@@ -88,7 +88,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "cc2b209a63df22d923a0bec09fcc5d16fc391a0f265339be3bc1736228799662"
+          "checksumValue": "1c6a90ee913bbe8d265127481ef6a18d75bf2e4d0c77a91d2b917b59156b000a"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -100,7 +100,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "2453a76782afcc0ef84c99a4d327bcfd65685cc744068316ec142f1600efa001"
+          "checksumValue": "c9b6d713d7145d6b9873cb53b5ce0e728b38b04d157844ef36b3642ac5bf6830"
         }
       ],
       "licenseConcluded": "NOASSERTION",

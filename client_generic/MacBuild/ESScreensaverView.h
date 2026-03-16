@@ -1,7 +1,6 @@
 #import <ScreenSaver/ScreenSaver.h>
 
-#include <boost/thread.hpp>
-#include <memory>
+#include <atomic>
 
 #if USE_METAL
 #import "ESMetalView.h"
@@ -19,7 +18,8 @@
 #else
     : NSView
 #endif
-      <SPUUpdaterDelegate
+      <SPUUpdaterDelegate,
+       SPUStandardUserDriverDelegate
 #ifdef USE_METAL
 #ifdef SCREEN_SAVER
        ,
@@ -44,9 +44,7 @@
     ESOpenGLView* view;
 #endif /*USE_METAL*/
     NSTimer* animationTimer;
-    dispatch_group_t m_animationDispatchGroup;
-    dispatch_queue_t m_frameUpdateQueue;
-    BOOL m_isStopped;
+    std::atomic<bool> m_isStopped;
 
     BOOL m_isPreview;
 
@@ -59,13 +57,18 @@
     ESConfiguration* m_config;
 
     SPUStandardUpdaterController* m_updater;
-    std::unique_ptr<boost::barrier> m_beginFrameBarrier;
-    std::unique_ptr<boost::barrier> m_endFrameBarrier;
+    SPUUpdater* m_sparkleUpdater;  // Direct updater reference for screensaver
+    SPUStandardUserDriver* m_sparkleUserDriver;  // For screensaver: access activeUpdateAlert to hide Skip button
+    BOOL m_updateAvailable;  // Track if Sparkle found a valid update
 }
 
 - (id)initWithFrame:(NSRect)frame isPreview:(BOOL)isPreview;
 - (void)startAnimation;
 - (void)stopAnimation;
+/// Pause animation and frame thread without full shutdown (e.g. for Preferences sheet). Use resumeAnimationFromSheet to resume.
+- (void)pauseAnimationForSheet;
+/// Resume after pauseAnimationForSheet. Returns YES if it resumed, NO if no-op (caller should call startAnimation only when NO).
+- (BOOL)resumeAnimationFromSheet;
 - (void)animateOneFrame;
 
 - (BOOL)hasConfigureSheet;
@@ -75,14 +78,20 @@
 
 - (void)_beginThread;
 - (void)_endThread;
-- (void)_animationThread;
 
 - (void)windowDidResize;
 
 - (void)updaterWillRelaunchApplication:(SPUUpdater*)updater;
-- (void)updater:(SPUUpdater*)updater didFindValidUpdate:(SUAppcastItem*)update;
 
 - (BOOL)fullscreen;
 - (void)setFullScreen:(BOOL)fullscreen;
+
+#ifndef SCREEN_SAVER
+- (void)checkForUpdates:(id)sender;
+- (SPUStandardUpdaterController*)updaterController;
+- (void)connectCheckForUpdatesMenuItem;
+#endif
+
+- (BOOL)isUpdateAvailable;
 
 @end

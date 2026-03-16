@@ -19,7 +19,7 @@
 #define CLIENT_VERSION OS_PREFIX VER_MAJOR "." VER_MINOR "." VER_BUILD
 #define CLIENT_VERSION_PRETTY                                                  \
     OS_PREFIX_PRETTY VER_MAJOR "." VER_MINOR "." VER_BUILD
-#define CLIENT_SETTINGS "e-dream"
+#define CLIENT_SETTINGS "settings"
 
 #define BETA_RELEASE
 

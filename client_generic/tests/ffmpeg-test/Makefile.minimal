@@ -1,0 +1,16 @@
+# Minimal test Makefile
+CXX = g++
+CXXFLAGS = -std=c++17 -Wall -O2 -g -I../../../cache/univ-osx/include
+LDFLAGS = -L../../../cache/univ-osx/lib
+LIBS = -lavformat -lavcodec -lavutil -lswscale -lswresample -framework VideoToolbox -framework CoreFoundation -framework CoreMedia -framework CoreVideo -framework AudioToolbox -framework Security -lz -lbz2 -liconv
+
+test_decoder_minimal: test_decoder_minimal.cpp
+	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS) $(LIBS)
+
+clean:
+	rm -f test_decoder_minimal
+
+run: test_decoder_minimal
+	./test_decoder_minimal ../test-videos/exact_100_frames.mp4
+
+.PHONY: clean run

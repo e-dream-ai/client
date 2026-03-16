@@ -424,7 +424,13 @@ class CElectricSheep_Win32 : public CElectricSheep
             m_ScrMode != ePreview && m_ScrMode != eWindowed &&
             m_ScrMode != eWindowed_AllowMultipleInstances)
             return false;
-            */
+
+        //	Set preview flag and force busy mode for preview (same as Mac)
+        SetIsPreview(m_ScrMode == ePreview);
+        if (m_ScrMode == ePreview) {
+            ForceMultipleInstancesMode(true);
+        }
+
         //	A window was provided, let's use it.
         if (hwnd)
             g_Player().SetHWND(hwnd);

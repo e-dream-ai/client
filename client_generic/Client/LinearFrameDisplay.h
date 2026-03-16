@@ -134,6 +134,19 @@ class CLinearFrameDisplay : public CFrameDisplay
     {
         return _displayFps;
     }
+
+    virtual void InheritFramesFrom(CFrameDisplay* previous) override {
+        auto* linearPrev = dynamic_cast<CLinearFrameDisplay*>(previous);
+        if (!linearPrev) return;
+        
+        g_Log->Info("Inheriting linear frame from slot %d", linearPrev->m_State);
+        
+        // Copy the last frame to maintain continuity
+        m_spFrames[0] = linearPrev->m_spFrames[linearPrev->m_State];
+        m_State = 1;  // Next frame will go to slot 1
+        
+        g_Log->Info("Linear frame inheritance complete");
+    }
 };
 
 MakeSmartPointers(CLinearFrameDisplay);

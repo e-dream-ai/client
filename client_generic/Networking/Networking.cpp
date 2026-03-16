@@ -8,6 +8,7 @@
 
 #include "Networking.h"
 #include "Log.h"
+#include "PlatformUtils.h"
 
 namespace Network
 {
@@ -17,7 +18,7 @@ namespace Network
         Constructor.
 */
 CCurlTransfer::CCurlTransfer(const std::string& _name)
-    : m_Name(_name), m_Status("Idle"), m_AverageSpeed("0 kb/s")
+    : m_Name(_name), m_Status("Idle"), m_AverageSpeed("0 kb/s"), m_HttpCode(0)
 {
     g_Log->Info("CCurlTransfer(%s)", _name.c_str());
     memset(errorBuffer, 0, CURL_ERROR_SIZE);
@@ -265,6 +266,12 @@ bool CCurlTransfer::Perform(const std::string& _url)
     if (!g_NetworkManager->SingletonActive() || g_NetworkManager->IsAborted())
         return false;
 
+    // Fast path: skip immediately if network is unreachable (instant quit when net is off)
+    if (!PlatformUtils::IsInternetReachable()) {
+        g_Log->Info("Perform(%s) - skipped, network unreachable", _url.c_str());
+        return false;
+    }
+
     std::string url = _url;
 
     g_Log->Info("Perform(%s)", url.c_str());
@@ -304,6 +311,10 @@ bool CCurlTransfer::Perform(const std::string& _url)
     if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_SSL_VERIFYHOST, 0)))
         return false;
     if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_SSL_VERIFYPEER, 0)))
+        return false;
+
+    // Prevent CURL from installing signal handlers (important for multi-threaded apps)
+    if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_NOSIGNAL, 1L)))
         return false;
 
     if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_HTTPHEADER, m_Headers)))
@@ -388,7 +399,7 @@ bool CCurlTransfer::Perform(const std::string& _url)
         CManager().
         Constructor.
 */
-CManager::CManager() {}
+CManager::CManager() : m_Aborted(false) {}
 
 /*
         Startup().
@@ -483,10 +494,11 @@ void CManager::UpdateProgress(CCurlTransfer* _pTransfer,
         return;
 
     std::stringstream tmp;
-    tmp << _pTransfer->Name() << " (" << _pTransfer->Status() << ")";
+    tmp << _pTransfer->Name();
+    tmp << "\nDownload status: " << _pTransfer->Status();
     if (_pTransfer->Status() == "Active")
     {
-        tmp << ": " << (int32_t)_percentComplete << "%";
+        tmp << ", " << (int32_t)_percentComplete << "%";
         if (_bytesTransferred > 1024 * 1024)
             tmp << std::fixed << std::setprecision(1) << " ("
                 << (_bytesTransferred / (1024.0 * 1024)) << " MB)";

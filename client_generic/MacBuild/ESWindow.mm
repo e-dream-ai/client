@@ -1,9 +1,16 @@
 #import <IOKit/IOMapTypes.h>
 #import <IOKit/pwr_mgt/IOPMLib.h>
 #import "ESWindow.h"
+#import "ESAppDelegate.h"
 #import "ESScreensaver.h"
+#import "FirstTimeSetupManager.h"
+#import "clientversion.h"
+#ifndef SCREEN_SAVER
+#import "ScreensaverInstaller.h"
+#endif
 
 #include "client.h"
+#include "client_mac.h"
 
 @implementation ESWindow
 {
@@ -21,11 +28,15 @@ static void ShowPreferencesCallback()
     });
 }
 
+static void ShowFirstTimeSetupCallback()
+{
+    [[FirstTimeSetupManager sharedManager] showFirstTimeSetupIfNeeded];
+}
+
 - (void)awakeFromNib // was - (NSWindow *)window
 {
+    if (g_Log) g_Log->Info("Awake from nib");
     self.delegate = self;
-
-    [NSApplication sharedApplication].delegate = self;
 
     NSRect frame = [self contentRectForFrameRect:self.frame];
 
@@ -43,11 +54,8 @@ static void ShowPreferencesCallback()
     frame.size.width = 1280;
     frame.size.height = 720;
     
-    // Force window aspect ratio only if set in settings
-    // @TODO: reset window ar when setting change, currently requires a restart
-    if (ESScreensaver_GetBoolSetting("settings.player.preserve_AR", true)) {
-        self.contentAspectRatio = CGSizeMake(16.f, 9.f);
-    }
+    // Note: aspect ratio is enforced dynamically in windowWillResize:toSize: method
+    // This allows the setting to take effect immediately without requiring a restart
 
     mBlackouMonitors =
         ESScreensaver_GetBoolSetting("settings.player.blackout_monitors", true);
@@ -67,7 +75,25 @@ static void ShowPreferencesCallback()
 
     s_pWindow = self;
     ESSetShowPreferencesCallback(ShowPreferencesCallback);
+    ESSetShowFirstTimeSetupCallback(ShowFirstTimeSetupCallback);
     
+    // Check if user has enabled auto-install screensaver and install if needed
+    // Only run this in the app, not in the screensaver itself
+#ifndef SCREEN_SAVER
+    if (g_Log) g_Log->Info("Will check for install");
+    if (ESScreensaver_GetBoolSetting("settings.app.auto_install_screensaver", false)) {
+        if (g_Log) g_Log->Info("Auto install enabled");
+        [[ScreensaverInstaller sharedInstaller] installScreensaverIfNeeded];
+    }
+    
+    // Enable screensaver if needed
+    if (ESScreensaver_GetBoolSetting("settings.app.keep_screensaver_enabled", false)) {
+        if (g_Log) g_Log->Info("Keep screensaver enabled preference is set");
+        [[ScreensaverInstaller sharedInstaller] enableScreensaverIfNeeded];
+    }
+#endif
+    
+    [self makeFirstResponder:self->mESView];
     [self initWindowProperties];
 }
 
@@ -124,6 +150,9 @@ static void ShowPreferencesCallback()
         } else {
             [self setMaxFullScreenContentSize:CGSizeMake(self.screen.frame.size.height * 16 / 9, self.screen.frame.size.height)];
         }
+    } else {
+        // Clear any previous constraint to allow full stretch
+        [self setMaxFullScreenContentSize:NSMakeSize(FLT_MAX, FLT_MAX)];
     }
 
     //ESScreensaver_DeinitClientStorage();
@@ -288,7 +317,8 @@ static void ShowPreferencesCallback()
     //@TODO: is the full screen check needed? disabling for now
     if (/*!mIsFullScreen &&*/ mESView && [mESView hasConfigureSheet])
     {
-        [mESView stopAnimation];
+        // Pause animation only (no full shutdown). Closing the sheet will resume.
+        [mESView pauseAnimationForSheet];
 
         mInSheet = YES;
         [self beginSheet:[mESView configureSheet]
@@ -309,11 +339,54 @@ static void ShowPreferencesCallback()
 
     mInSheet = NO;
 
+    // Restore key window so Metal view gets draw callbacks and OSD/HUD render correctly after sheet
+    [self makeKeyWindow];
+    [self orderFront:nil];
+
+    // Adjust window size to match aspect ratio setting if it changed
+    if (!mIsFullScreen && ESScreensaver_GetBoolSetting("settings.player.preserve_AR", true)) {
+        // Get current content size
+        NSRect contentRect = [self contentRectForFrameRect:self.frame];
+        
+        // Calculate new height based on 16:9 aspect ratio
+        CGFloat newHeight = contentRect.size.width * 9.0f / 16.0f;
+        contentRect.size.height = newHeight;
+        
+        // Convert back to frame and set it
+        NSRect newFrame = [self frameRectForContentRect:contentRect];
+        newFrame.origin = self.frame.origin;  // Keep the window position
+        [self setFrame:newFrame display:YES animate:YES];
+    }
+
     if (mESView != nil)
     {
-        [mESView startAnimation];
+        // If we resumed from sheet, do NOT call startAnimation — it would call AddGraphicsContext
+        // again and add a second display, retriggering full startup (Hello, playlist fetch, etc.).
+        BOOL didResume = [mESView resumeAnimationFromSheet];
+        if (!didResume)
+            [mESView startAnimation];  // Sheet was opened before start; start now
         [mESView windowDidResize];
+        [mESView setNeedsDisplay:YES];
     }
+}
+
+- (NSSize)windowWillResize:(NSWindow*)sender toSize:(NSSize)frameSize
+{
+    // Only enforce aspect ratio if the setting is enabled and not in fullscreen
+    if (!mIsFullScreen && ESScreensaver_GetBoolSetting("settings.player.preserve_AR", true)) {
+        // Get the content rect for the proposed frame size
+        NSRect contentRect = [sender contentRectForFrameRect:NSMakeRect(0, 0, frameSize.width, frameSize.height)];
+        
+        // Calculate new height based on 16:9 aspect ratio
+        CGFloat newHeight = contentRect.size.width * 9.0f / 16.0f;
+        contentRect.size.height = newHeight;
+        
+        // Convert back to frame size
+        NSRect newFrame = [sender frameRectForContentRect:contentRect];
+        return newFrame.size;
+    }
+    
+    return frameSize;
 }
 
 - (void)windowDidResize:(NSNotification*)__unused notification
@@ -325,11 +398,6 @@ static void ShowPreferencesCallback()
         [mESView windowDidResize];
 }
 
-- (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication*)__unused
-    theApplication
-{
-    return YES;
-}
 
 - (BOOL)canBecomeKeyWindow
 {
@@ -349,6 +417,17 @@ static void ShowPreferencesCallback()
 - (BOOL)isFullScreen
 {
     return mIsFullScreen;
+}
+
+- (BOOL)performKeyEquivalent:(NSEvent*)ev
+{
+    // Handle Command+W to close window
+    if (([ev modifierFlags] & NSEventModifierFlagCommand) && [[ev charactersIgnoringModifiers] isEqualToString:@"w"])
+    {
+        [self performClose:self];
+        return YES;
+    }
+    return [super performKeyEquivalent:ev];
 }
 
 - (void)keyDown:(NSEvent*)ev
@@ -388,6 +467,7 @@ static void ShowPreferencesCallback()
         [super keyDown:ev];
 }
 
+
 - (IBAction)newWindow:(id)sender
 {
     ESWindow* window = [[ESWindow alloc]
@@ -403,4 +483,32 @@ static void ShowPreferencesCallback()
     [window initWindowProperties];
     [s_ExtraWindows addObject:window];
 }
+
+- (IBAction)openRemoteControl:(id)sender {
+    g_Log->Info("Open Remote");
+#ifdef STAGE
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://stage.infinidream.ai/rc"]];
+#else
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://alpha.infinidream.ai/rc"]];
+#endif
+}
+
+- (IBAction)openBrowsePlaylist:(id)sender {
+    g_Log->Info("Browse Playlists");
+#ifdef STAGE
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://stage.infinidream.ai/playlists"]];
+#else
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://alpha.infinidream.ai/playlists"]];
+#endif
+}
+
+- (IBAction)goToHelpPage:(id)sender {
+    g_Log->Info("Open Help Page");
+#ifdef STAGE
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://stage.infinidream.ai/help"]];
+#else
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://alpha.infinidream.ai/help"]];
+#endif
+}
+
 @end

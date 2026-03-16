@@ -3,13 +3,13 @@
   "spdxVersion": "SPDX-2.2",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "documentNamespace": "https://spdx.org/spdxdocs/ffmpeg-arm64-osx-6.1.1#5-6c191c4c-85cf-4453-83eb-6722a27b5efb",
-  "name": "ffmpeg:arm64-osx@6.1.1#5 8efc4113fe2112d370c8a8e087af850f09e19e6398e46762a0458d033e2c156d",
+  "documentNamespace": "https://spdx.org/spdxdocs/ffmpeg-arm64-osx-7.1.1-96a829eb-5336-448f-b867-04ab29901fc1",
+  "name": "ffmpeg:arm64-osx@7.1.1 f38a720c4fc0330fcf47cd26112b1343419052d25b62c091cee95c3b655c8e87",
   "creationInfo": {
     "creators": [
-      "Tool: vcpkg-d6945642ee5c3076addd1a42c331bbf4cfc97457"
+      "Tool: vcpkg-2025-02-11-bec4296bf5289dc9ce83b4f5095943e44162f9c2"
     ],
-    "created": "2024-08-08T16:37:26Z"
+    "created": "2025-03-13T18:00:37Z"
   },
   "relationships": [
     {
@@ -113,21 +113,6 @@
       "relatedSpdxElement": "SPDXRef-file-18"
     },
     {
-      "spdxElementId": "SPDXRef-port",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-file-19"
-    },
-    {
-      "spdxElementId": "SPDXRef-port",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-file-20"
-    },
-    {
-      "spdxElementId": "SPDXRef-port",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-file-21"
-    },
-    {
       "spdxElementId": "SPDXRef-binary",
       "relationshipType": "GENERATED_FROM",
       "relatedSpdxElement": "SPDXRef-port"
@@ -226,40 +211,25 @@
       "spdxElementId": "SPDXRef-file-18",
       "relationshipType": "CONTAINED_BY",
       "relatedSpdxElement": "SPDXRef-port"
-    },
-    {
-      "spdxElementId": "SPDXRef-file-19",
-      "relationshipType": "CONTAINED_BY",
-      "relatedSpdxElement": "SPDXRef-port"
-    },
-    {
-      "spdxElementId": "SPDXRef-file-20",
-      "relationshipType": "CONTAINED_BY",
-      "relatedSpdxElement": "SPDXRef-port"
-    },
-    {
-      "spdxElementId": "SPDXRef-file-21",
-      "relationshipType": "CONTAINED_BY",
-      "relatedSpdxElement": "SPDXRef-port"
     }
   ],
   "packages": [
     {
       "name": "ffmpeg",
       "SPDXID": "SPDXRef-port",
-      "versionInfo": "6.1.1#5",
+      "versionInfo": "7.1.1",
       "downloadLocation": "NOASSERTION",
       "homepage": "https://ffmpeg.org",
       "licenseConcluded": "NOASSERTION",
       "licenseDeclared": "NOASSERTION",
       "copyrightText": "NOASSERTION",
-      "description": "a library to decode, encode, transcode, mux, demux, stream, filter and play pretty much anything that humans and machines have created.\nFFmpeg is the leading multimedia framework, able to decode, encode, transcode, mux, demux, stream, filter and play pretty much anything that humans and machines have created. It supports the most obscure ancient formats up to the cutting edge. No matter if they were designed by some standards committee, the community or a corporation. It is also highly portable: FFmpeg compiles, runs, and passes our testing infrastructure FATE across Linux, Mac OS X, Microsoft Windows, the BSDs, Solaris, etc. under a wide variety of build environments, machine architectures, and configurations.",
+      "description": "A library to decode, encode, transcode, mux, demux, stream, filter and play pretty much anything that humans and machines have created.\nFFmpeg is the leading multimedia framework, able to decode, encode, transcode, mux, demux, stream, filter and play pretty much anything that humans and machines have created. It supports the most obscure ancient formats up to the cutting edge. No matter if they were designed by some standards committee, the community or a corporation. It is also highly portable: FFmpeg compiles, runs, and passes our testing infrastructure FATE across Linux, Mac OS X, Microsoft Windows, the BSDs, Solaris, etc. under a wide variety of build environments, machine architectures, and configurations.",
       "comment": "This is the port (recipe) consumed by vcpkg."
     },
     {
       "name": "ffmpeg:arm64-osx",
       "SPDXID": "SPDXRef-binary",
-      "versionInfo": "8efc4113fe2112d370c8a8e087af850f09e19e6398e46762a0458d033e2c156d",
+      "versionInfo": "f38a720c4fc0330fcf47cd26112b1343419052d25b62c091cee95c3b655c8e87",
       "downloadLocation": "NONE",
       "licenseConcluded": "NOASSERTION",
       "licenseDeclared": "NOASSERTION",
@@ -267,16 +237,16 @@
       "comment": "This is a binary package built by vcpkg."
     },
     {
-      "SPDXID": "SPDXRef-resource-1",
+      "SPDXID": "SPDXRef-resource-0",
       "name": "ffmpeg/ffmpeg",
-      "downloadLocation": "git+https://github.com/ffmpeg/ffmpeg@n6.1.1",
+      "downloadLocation": "git+https://github.com/ffmpeg/ffmpeg@n7.1.1",
       "licenseConcluded": "NOASSERTION",
       "licenseDeclared": "NOASSERTION",
       "copyrightText": "NOASSERTION",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "a84209fe36a2a0262ebc34b727e7600b12d4739991a95599d7b4df533791b12e2e43586ccc6ff26aab2f935a3049866204e322ec0c5e49e378fc175ded34e183"
+          "checksumValue": "6b9a5ee501be41d6abc7579a106263b31f787321cbc45dedee97abf992bf8236cdb2394571dd256a74154f4a20018d429ae7e7f0409611ddc4d6f529d924d175"
         }
       ]
     }
@@ -324,7 +294,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "7569c86058daf4d556ceb01b862cddc57cf9748f8b0009e3a7107a9ea725b4e5"
+          "checksumValue": "8867b0d0afd071d85b9404065752db6ac11062c84fa2d997fbac6f7f08248894"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -336,7 +306,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "a61ba19681d7a1c80d3effe20e9949ef4323343b5d1abaffc84e2e041f9609f1"
+          "checksumValue": "3e00a2918ded31d579c1fe9619f7c81ba7d4541a27417c71d41aac054300f7d2"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -348,19 +318,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "1f496b6c998afe63ff20ed15108947d6cd5d81247b0e20dd57c8a75e599a3d3f"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
-      "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/ffmpeg/0004-fix-debug-build.patch",
-      "SPDXID": "SPDXRef-file-6",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "b0c0cbbd6dba5d2ee1a9e4a745b7bcba4d83a6b8196253588d97c2adbc2a247c"
+          "checksumValue": "7033d16b7df10cc6915381471654f19f5927930b45f450260bf9e62387660bf0"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -368,59 +326,59 @@
     },
     {
       "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/ffmpeg/FindFFMPEG.cmake.in",
+      "SPDXID": "SPDXRef-file-6",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "6790e23173772655e1617bd8d7a4dc5e4590bffe7d829dedee28f3aaf3475b78"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/ffmpeg/0004-dependencies.patch",
       "SPDXID": "SPDXRef-file-7",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "e47d75e2e99c22b457e05898a9ff2244f3115ac82fc7bfddb99fe18ea2f04e6c"
+          "checksumValue": "bcd7cb5c34e76c8bc84e89daea6abae7447b4c3eabe9d1361f74959dc167e922"
         }
       ],
       "licenseConcluded": "NOASSERTION",
       "copyrightText": "NOASSERTION"
     },
     {
-      "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/ffmpeg/0023-fix-qsv-init.patch",
+      "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/ffmpeg/0043-fix-miss-head.patch",
       "SPDXID": "SPDXRef-file-8",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "89204ac42780be26b58a9f1cf18483a0c1e546ea601dc9de0fd8fb6bee00d7e0"
+          "checksumValue": "580e47e951fcbb41289386de02b25c08a122638f3063b8ed717c1039cb627e8e"
         }
       ],
       "licenseConcluded": "NOASSERTION",
       "copyrightText": "NOASSERTION"
     },
     {
-      "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/ffmpeg/0022-fix-iconv.patch",
+      "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/ffmpeg/0042-fix-arm64-linux.patch",
       "SPDXID": "SPDXRef-file-9",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "e2b80ffce6008939b14a510f64195daa1f1113ae8bbffb663070d6d6f430d220"
+          "checksumValue": "e4db4661a3da6bdb4b3528eb7796de4af8236ec28d1a319801d4a7015656f58a"
         }
       ],
       "licenseConcluded": "NOASSERTION",
       "copyrightText": "NOASSERTION"
     },
     {
-      "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/ffmpeg/0011-Fix-x265-detection.patch",
+      "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/ffmpeg/0024-fix-osx-host-c11.patch",
       "SPDXID": "SPDXRef-file-10",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "1340cfc3d41944f33397fc7bd4377b4451a8f2a56a5d2d1089fdf58eb8bb7f47"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
-      "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/ffmpeg/0009-Fix-fdk-detection.patch",
-      "SPDXID": "SPDXRef-file-11",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "19515fe92d169c2677fc0c4218c0d433df400d937f95e7bc027cd78d07922bf3"
+          "checksumValue": "1cdb52872429c852cc4358d2122cc847c7e251c149af382c61535f1de42221f2"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -428,7 +386,7 @@
     },
     {
       "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/ffmpeg/usage",
-      "SPDXID": "SPDXRef-file-12",
+      "SPDXID": "SPDXRef-file-11",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -440,11 +398,11 @@
     },
     {
       "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/ffmpeg/portfile.cmake",
-      "SPDXID": "SPDXRef-file-13",
+      "SPDXID": "SPDXRef-file-12",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "fa100b21651f05bbcb449be5bd0d4cc8dddcbead3f2d5c9f7e71edfd8e97fefc"
+          "checksumValue": "d2d57339887875d6c45893a501f0ee44e81f4641992ac4637aad1dc99e72a818"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -452,7 +410,7 @@
     },
     {
       "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/ffmpeg/0013-define-WINVER.patch",
-      "SPDXID": "SPDXRef-file-14",
+      "SPDXID": "SPDXRef-file-13",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -463,36 +421,12 @@
       "copyrightText": "NOASSERTION"
     },
     {
-      "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/ffmpeg/0012-Fix-ssl-110-detection.patch",
-      "SPDXID": "SPDXRef-file-15",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "6beae0525cac597c25f3d74959a91ac5739338a7c6efbdeb1e4079b51ccaa4d4"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
       "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/ffmpeg/vcpkg.json",
-      "SPDXID": "SPDXRef-file-16",
+      "SPDXID": "SPDXRef-file-14",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "fbb308d82331ae3160a0719bb35713926d61cf2a226ac3b68d4269472b93b1f6"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
-      "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/ffmpeg/0015-Fix-xml2-detection.patch",
-      "SPDXID": "SPDXRef-file-17",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "451d432d84baea06fda44669b3b85880795e25edfef9c238361b27e6dd12cee2"
+          "checksumValue": "93f339208c5503e191639e8855a873abd053f1360c6e5045fff39407d9f42581"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -500,23 +434,11 @@
     },
     {
       "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/ffmpeg/0005-fix-nasm.patch",
-      "SPDXID": "SPDXRef-file-18",
+      "SPDXID": "SPDXRef-file-15",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "9538a85350d46023ac4482abd0f78eb1c75cea5d66f511aead3c233d710995f6"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
-      "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/ffmpeg/0006-fix-StaticFeatures.patch",
-      "SPDXID": "SPDXRef-file-19",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "aa86aa011837a43fb64b5f496c9fa2dfee03c147ec8d2f2f49be50773013dae5"
+          "checksumValue": "9afa9e0db0bd2a03af3033eeccf15751c5fc20b40db7892d3979379e7bbc5cc7"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -524,11 +446,23 @@
     },
     {
       "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/ffmpeg/vcpkg-cmake-wrapper.cmake",
-      "SPDXID": "SPDXRef-file-20",
+      "SPDXID": "SPDXRef-file-16",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "93482c284863494056dda4047ec006208cd66c623d452cb17ee4a0184286663b"
+          "checksumValue": "2f573163241eb9ca80b7f97c7a8988fe4966f8a3a075749aa925ddb2ba2d6702"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/ffmpeg/0041-add-const-for-opengl-definition.patch",
+      "SPDXID": "SPDXRef-file-17",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "00baaf3fe29c8597c47adc3adfb1901832bc3138dfce712fbb1c4ddb6c0a0fcf"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -536,7 +470,7 @@
     },
     {
       "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/ffmpeg/0020-fix-aarch64-libswscale.patch",
-      "SPDXID": "SPDXRef-file-21",
+      "SPDXID": "SPDXRef-file-18",
       "checksums": [
         {
           "algorithm": "SHA256",

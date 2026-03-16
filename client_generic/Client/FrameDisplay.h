@@ -98,6 +98,11 @@ class CFrameDisplay
         return _displayFps;
     }
 
+    // Virtual method for seamless transition frame inheritance
+    virtual void InheritFramesFrom(CFrameDisplay* previous) {
+        // Base implementation does nothing (for normal display mode)
+    }
+
     virtual void
     ScrollVideoForNonMatchingAspectRatio(const Base::Math::CRect& texDim)
     {

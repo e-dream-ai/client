@@ -3,13 +3,13 @@
   "spdxVersion": "SPDX-2.2",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "documentNamespace": "https://spdx.org/spdxdocs/boost-asio-arm64-osx-1.85.0#2-06150855-d8f4-42b9-b2c7-7c3f8f3d78ee",
-  "name": "boost-asio:arm64-osx@1.85.0#2 259c4b0f9fc7e264007f544a4d860a20084ca46ec09d4019173efdcfe2b42587",
+  "documentNamespace": "https://spdx.org/spdxdocs/boost-asio-arm64-osx-1.87.0#1-3c8bc5b5-1917-4419-9847-6f37f08a0fef",
+  "name": "boost-asio:arm64-osx@1.87.0#1 c7cff8639c8484ca2e35ae0e0de1bda6deec0f2c68fdc75f38309de3faf1c8af",
   "creationInfo": {
     "creators": [
-      "Tool: vcpkg-d6945642ee5c3076addd1a42c331bbf4cfc97457"
+      "Tool: vcpkg-2025-02-11-bec4296bf5289dc9ce83b4f5095943e44162f9c2"
     ],
-    "created": "2024-08-08T16:31:44Z"
+    "created": "2025-03-13T17:58:48Z"
   },
   "relationships": [
     {
@@ -33,11 +33,6 @@
       "relatedSpdxElement": "SPDXRef-file-2"
     },
     {
-      "spdxElementId": "SPDXRef-port",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-file-3"
-    },
-    {
       "spdxElementId": "SPDXRef-binary",
       "relationshipType": "GENERATED_FROM",
       "relatedSpdxElement": "SPDXRef-port"
@@ -56,18 +51,13 @@
       "spdxElementId": "SPDXRef-file-2",
       "relationshipType": "CONTAINED_BY",
       "relatedSpdxElement": "SPDXRef-port"
-    },
-    {
-      "spdxElementId": "SPDXRef-file-3",
-      "relationshipType": "CONTAINED_BY",
-      "relatedSpdxElement": "SPDXRef-port"
     }
   ],
   "packages": [
     {
       "name": "boost-asio",
       "SPDXID": "SPDXRef-port",
-      "versionInfo": "1.85.0#2",
+      "versionInfo": "1.87.0#1",
       "downloadLocation": "NOASSERTION",
       "homepage": "https://www.boost.org/libs/asio",
       "licenseConcluded": "BSL-1.0",
@@ -79,7 +69,7 @@
     {
       "name": "boost-asio:arm64-osx",
       "SPDXID": "SPDXRef-binary",
-      "versionInfo": "259c4b0f9fc7e264007f544a4d860a20084ca46ec09d4019173efdcfe2b42587",
+      "versionInfo": "c7cff8639c8484ca2e35ae0e0de1bda6deec0f2c68fdc75f38309de3faf1c8af",
       "downloadLocation": "NONE",
       "licenseConcluded": "BSL-1.0",
       "licenseDeclared": "NOASSERTION",
@@ -87,16 +77,16 @@
       "comment": "This is a binary package built by vcpkg."
     },
     {
-      "SPDXID": "SPDXRef-resource-1",
+      "SPDXID": "SPDXRef-resource-0",
       "name": "boostorg/asio",
-      "downloadLocation": "git+https://github.com/boostorg/asio@boost-1.85.0",
+      "downloadLocation": "git+https://github.com/boostorg/asio@boost-1.87.0",
       "licenseConcluded": "NOASSERTION",
       "licenseDeclared": "NOASSERTION",
       "copyrightText": "NOASSERTION",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "bbde7c60f208733d48713d2dcfe5be0e18b8372ecaae51055225e5da6bf3e4671e53da8917d27c17f84e34be858d3002c3ac62cdecfd8e3e3861edf365256bee"
+          "checksumValue": "5bd17f3667f85c65f7ac25665231743e64f4060b358d7756a3eddab30c22cf7fcfb774cd65a863fd957ed735249b028dd7d43adba928c7722e4da99bca1306a0"
         }
       ]
     }
@@ -108,19 +98,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "53d57323b3ff0bfcc07cbf926394c885af832c46900530d6996dd46e3e615ff1"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
-      "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/boost-asio/windows_alloca_header.patch",
-      "SPDXID": "SPDXRef-file-1",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "660780f22547aafc822714dc55e6bead728c86df831718da1a8854fc6c339466"
+          "checksumValue": "2a139ba11c2f5502cdbe1536da68068b99c21162ae95e850ac696f469d9572f6"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -128,11 +106,11 @@
     },
     {
       "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/boost-asio/portfile.cmake",
-      "SPDXID": "SPDXRef-file-2",
+      "SPDXID": "SPDXRef-file-1",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "e79383e91791c3905fd06bbc8d89a69c221ef687faccf5d63858362fb78024b2"
+          "checksumValue": "2b32d1d229db61b2a4c1026ef40eb00c208eb2e42fe2660591c05b99be10a89e"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -140,11 +118,11 @@
     },
     {
       "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/boost-asio/vcpkg.json",
-      "SPDXID": "SPDXRef-file-3",
+      "SPDXID": "SPDXRef-file-2",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "0fa8b6bdd0171fcd64929894842a0e48d01af6f1ead86ab572a9c87e17ef8bbb"
+          "checksumValue": "e87241c3eadbda3cdf6496c022b5afcd199563c02e4cc939c1636d3447da68d0"
         }
       ],
       "licenseConcluded": "NOASSERTION",

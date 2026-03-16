@@ -1,6 +1,9 @@
 #import "ESConfiguration.h"
 #import "ESScreensaver.h"
 #import "clientversion.h"
+#ifndef SCREEN_SAVER
+#import "ScreensaverInstaller.h"
+#endif
 
 #include "EDreamClient.h"
 #include "ServerConfig.h"
@@ -29,6 +32,17 @@
     if (!cancelButton.isEnabled)
         return;
     [NSApp endSheet:self.window returnCode:m_loginWasSuccessful];
+}
+
+- (IBAction)installAndUpdateScreensaver:(id)sender {
+#ifndef SCREEN_SAVER
+    if (installAndUpdateScreensaverButton.state == NSControlStateValueOn) {
+        [[ScreensaverInstaller sharedInstaller] installScreensaverIfNeeded];
+    }
+#endif
+}
+
+- (IBAction)keepScreensaverEnabled:(id)sender {
 }
 
 // Helper to show a message box
@@ -241,24 +255,6 @@
     displayFPS.doubleValue =
         ESScreensaver_GetDoubleSetting("settings.player.display_fps", 60.0);
 
-    UInt32 scr =
-        (UInt32)abs(ESScreensaver_GetIntSetting("settings.player.screen", 0));
-
-    UInt32 scrcnt = (UInt32)[NSScreen screens].count;
-
-    if (scr >= scrcnt && scrcnt > 0)
-        scr = scrcnt - 1;
-
-    while (display.numberOfItems > scrcnt)
-        [display removeItemAtIndex:scrcnt];
-
-    [display selectItemAtIndex:scr];
-
-    SInt32 mdmode =
-        ESScreensaver_GetIntSetting("settings.player.MultiDisplayMode", 0);
-
-    [multiDisplayMode selectItemAtIndex:mdmode];
-
     synchronizeVBL.state =
         ESScreensaver_GetBoolSetting("settings.player.vbl_sync", false);
 
@@ -339,6 +335,11 @@
 
     
     [self fixFlockSize];
+    
+    installAndUpdateScreensaverButton.state = 
+        ESScreensaver_GetBoolSetting("settings.app.auto_install_screensaver", false);
+    keepScreensaverEnabledButton.state = 
+        ESScreensaver_GetBoolSetting("settings.app.keep_screensaver_enabled", false);
 
     [self updateAuthUI];
 }
@@ -370,12 +371,6 @@
 
     ESScreensaver_SetBoolSetting("settings.player.blackout_monitors",
                                  blackoutMonitors.state);
-
-    ESScreensaver_SetIntSetting("settings.player.screen",
-                                (SInt32)display.indexOfSelectedItem);
-
-    ESScreensaver_SetIntSetting("settings.player.MultiDisplayMode",
-                                (SInt32)multiDisplayMode.indexOfSelectedItem);
 
     ESScreensaver_SetBoolSetting("settings.app.attributionpng",
                                  showAttribution.state);
@@ -421,22 +416,25 @@
     ESScreensaver_SetBoolSetting("settings.app.log", debugLog.state);
 
     ESScreensaver_SetStringSetting("settings.content.server", serverField.stringValue.UTF8String);
+    
+    ESScreensaver_SetBoolSetting("settings.app.auto_install_screensaver", installAndUpdateScreensaverButton.state);
+    ESScreensaver_SetBoolSetting("settings.app.keep_screensaver_enabled", keepScreensaverEnabledButton.state);
 }
 
 // MARK: Create Account
 - (IBAction)goToCreateAccountPage:(id)__unused sender
 {
 #ifdef STAGE
-    NSURL* helpURL = [NSURL URLWithString:@"https://stage.e-dream.ai/account"];
+    NSURL* helpURL = [NSURL URLWithString:@"https://stage.infinidream.ai/account"];
 #else
-    NSURL* helpURL = [NSURL URLWithString:@"https://alpha.e-dream.ai/account"];
+    NSURL* helpURL = [NSURL URLWithString:@"https://alpha.infinidream.ai/account"];
 #endif
     [[NSWorkspace sharedWorkspace] openURL:helpURL];
 }
 
 /*- (IBAction)goToLearnMorePage:(id)__unused sender
 {
-    NSURL* helpURL = [NSURL URLWithString:@"https://e-dream.ai/learnmore"];
+    NSURL* helpURL = [NSURL URLWithString:@"https://infinidream.ai/learnmore"];
 
     [[NSWorkspace sharedWorkspace] openURL:helpURL];
 }*/
@@ -559,12 +557,31 @@
 
 - (IBAction)goToHelpPage:(id)__unused sender
 {
-    NSString* urlStr = [NSString
-        stringWithFormat:@"https://e-dream.ai/help?v=%s", CLIENT_VERSION];
-
-    NSURL* helpURL = [NSURL URLWithString:urlStr];
+#ifdef STAGE
+    NSURL* helpURL = [NSURL URLWithString:@"https://stage.infinidream.ai/help"];
+#else
+    NSURL* helpURL = [NSURL URLWithString:@"https://alpha.infinidream.ai/help"];
+#endif
 
     [[NSWorkspace sharedWorkspace] openURL:helpURL];
+}
+
+- (IBAction)openRemoteControl:(id)__unused sender
+{
+#ifdef STAGE
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://stage.infinidream.ai/rc"]];
+#else
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://alpha.infinidream.ai/rc"]];
+#endif
+}
+
+- (IBAction)openBrowsePlaylist:(id)__unused sender
+{
+#ifdef STAGE
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://stage.infinidream.ai/playlists"]];
+#else
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://alpha.infinidream.ai/playlists"]];
+#endif
 }
 
 - (void)dealloc
@@ -577,12 +594,15 @@
 {
     NSAlert *alert = [[NSAlert alloc] init];
     [alert setMessageText:@"Account Change Detected"];
-    [alert setInformativeText:@"e-dream will now exit. Please restart the application to take your new settings into account."];
+    [alert setInformativeText:@"infinidream will now exit. Please restart the application to take your new settings into account."];
     [alert addButtonWithTitle:@"OK"];
     
     [alert beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse returnCode) {
         if (returnCode == NSAlertFirstButtonReturn) {
-            std::exit(0);
+            // Defer exit to the next run loop so the sheet can fully dismiss (avoids hang).
+            dispatch_async(dispatch_get_main_queue(), ^{
+                exit(0);
+            });
         }
     }];
 }

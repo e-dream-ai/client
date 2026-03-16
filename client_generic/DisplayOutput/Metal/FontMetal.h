@@ -8,8 +8,6 @@
 #include "DisplayOutput.h"
 #include "Font.h"
 #include "SmartPtr.h"
-#include "TextRendering/MBEFontAtlas.h"
-#include "TextureFlatMetal.h"
 #include "base.h"
 
 namespace DisplayOutput
@@ -21,16 +19,12 @@ namespace DisplayOutput
 */
 class CFontMetal : public CBaseFont
 {
-    CFTypeRef m_pFontAtlas;
-    spCTextureFlatMetal m_spAtlasTexture;
     std::string m_typeFace;
 
   public:
-    CFontMetal(CFontDescription& _desc, spCTextureFlat _textTexture);
+    CFontMetal(CFontDescription& _desc);
     virtual ~CFontMetal();
     virtual bool Create();
-    MBEFontAtlas* GetAtlas() const;
-    spCTextureFlatMetal GetAtlasTexture() { return m_spAtlasTexture; }
 };
 
 MakeSmartPointers(CFontMetal);

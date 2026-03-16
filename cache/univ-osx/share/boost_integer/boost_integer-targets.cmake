@@ -7,7 +7,7 @@ if(CMAKE_VERSION VERSION_LESS "3.0.0")
    message(FATAL_ERROR "CMake >= 3.0.0 required")
 endif()
 cmake_policy(PUSH)
-cmake_policy(VERSION 3.0.0...3.27)
+cmake_policy(VERSION 3.0.0...3.28)
 #----------------------------------------------------------------
 # Generated CMake target import file.
 #----------------------------------------------------------------
@@ -59,7 +59,7 @@ add_library(Boost::integer INTERFACE IMPORTED)
 
 set_target_properties(Boost::integer PROPERTIES
   INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/include"
-  INTERFACE_LINK_LIBRARIES "Boost::assert;Boost::config;Boost::core;Boost::static_assert;Boost::throw_exception"
+  INTERFACE_LINK_LIBRARIES "Boost::assert;Boost::config;Boost::core;Boost::static_assert;Boost::throw_exception;Boost::type_traits"
 )
 
 # Load information for each installed configuration.

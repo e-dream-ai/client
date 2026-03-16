@@ -38,7 +38,6 @@
 class CElectricSheep_Mac : public CElectricSheep
 {
     std::vector<CGraphicsContext> m_graphicsContextList;
-    bool m_bIsPreview;
     UInt8 m_proxyHost[256];
     UInt8 m_proxyUser[32];
     UInt8 m_proxyPass[32];
@@ -51,8 +50,6 @@ class CElectricSheep_Mac : public CElectricSheep
     {
         
         printf("CElectricSheep_Mac()\n");
-
-        m_bIsPreview = false;
 
         *m_proxyHost = 0;
         *m_proxyUser = 0;
@@ -77,16 +74,16 @@ class CElectricSheep_Mac : public CElectricSheep
                                                      sizeof(path) - 1))
                 {
 #ifdef STAGE
-                    m_AppData = "/Users/Shared/e-dream.ai-stage/";
+                    m_AppData = "/Users/Shared/infinidream.ai-stage/";
 #else
-                    m_AppData = "/Users/Shared/e-dream.ai/";
+                    m_AppData = "/Users/Shared/infinidream.ai/";
 #endif
 
 
 #ifndef SCREEN_SAVER
                     //m_AppData += "/Containers/com.apple.ScreenSaver.Engine.legacyScreenSaver/Data/Library";
 #endif
-                    //m_AppData += "/Application Support/e-dream.ai/";
+                    //m_AppData += "/Application Support/infinidream.ai/";
                 }
 
                 CFRelease(appSupportURL);
@@ -146,6 +143,9 @@ class CElectricSheep_Mac : public CElectricSheep
         // Make sure we are in read only mode in that case !
         InitStorage(m_MultipleInstancesMode);
 
+        // Initialize logging early so it's available throughout the app lifecycle
+        AttachLog();
+
         GetClientProxy();
     }
 
@@ -199,9 +199,14 @@ class CElectricSheep_Mac : public CElectricSheep
         }
     }
 
-    void SetIsPreview(bool _isPreview) { m_bIsPreview = _isPreview; }
-
     void SetUpConfig() { InitStorage(); }
+    
+    void ReleaseLockFile() {
+        if (m_lckFile >= 0) {
+            close(m_lckFile);
+            m_lckFile = -1;
+        }
+    }
 
     //
     virtual bool Startup()
@@ -210,12 +215,9 @@ class CElectricSheep_Mac : public CElectricSheep
 
         printf("Startup()\n");
 
-        AttachLog();
-
-        // This is determined now in constructor, but we log it here
-        // as we now have logging up and running
+        // This was determined in constructor, and we've already initialized logging
         if (m_MultipleInstancesMode) {
-            g_Log->Info("⛓️‍💥⛓️‍💥⛓️‍💥 Running in offline mode ⛓️‍💥⛓️‍💥⛓️‍💥");
+            g_Log->Info("⛓️‍💥⛓️‍💥⛓️‍💥 Running in busy mode ⛓️‍💥⛓️‍💥⛓️‍💥");
         }
         
         // if m_proxyHost is set, the proxy resolver found one. If not, we
@@ -264,15 +266,13 @@ class CElectricSheep_Mac : public CElectricSheep
     }
 
     //
-    virtual bool Update(int _displayIdx, boost::barrier& _beginFrameBarrier,
-                        boost::barrier& _endFrameBarrier)
+    virtual bool Update(int _displayIdx)
     {
         using namespace DisplayOutput;
 
         PROFILER_BEGIN("Render Frame");
 
-        if (!CElectricSheep::Update(_displayIdx, _beginFrameBarrier,
-                                    _endFrameBarrier))
+        if (!CElectricSheep::Update(_displayIdx))
             return false;
 
         //	Update display events.

@@ -3,13 +3,13 @@
   "spdxVersion": "SPDX-2.2",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "documentNamespace": "https://spdx.org/spdxdocs/vcpkg-cmake-config-arm64-osx-2022-02-06#1-439cd5f9-267c-4110-8fcb-527aa49087fd",
-  "name": "vcpkg-cmake-config:arm64-osx@2022-02-06#1 408d39df800482751d6cf565906eac7acc6490771cc378287df3cd72a6d9964e",
+  "documentNamespace": "https://spdx.org/spdxdocs/vcpkg-cmake-config-arm64-osx-2024-05-23-8daf48cb-0d69-48c4-be6c-de1068124395",
+  "name": "vcpkg-cmake-config:arm64-osx@2024-05-23 e6c842ebf36fe52eeed9f29936f0a825b6e76199cfb237134cebb6df7638e37b",
   "creationInfo": {
     "creators": [
-      "Tool: vcpkg-d6945642ee5c3076addd1a42c331bbf4cfc97457"
+      "Tool: vcpkg-2025-02-11-bec4296bf5289dc9ce83b4f5095943e44162f9c2"
     ],
-    "created": "2024-08-08T16:30:34Z"
+    "created": "2025-03-13T17:57:13Z"
   },
   "relationships": [
     {
@@ -77,7 +77,7 @@
     {
       "name": "vcpkg-cmake-config",
       "SPDXID": "SPDXRef-port",
-      "versionInfo": "2022-02-06#1",
+      "versionInfo": "2024-05-23",
       "downloadLocation": "NOASSERTION",
       "licenseConcluded": "MIT",
       "licenseDeclared": "NOASSERTION",
@@ -87,7 +87,7 @@
     {
       "name": "vcpkg-cmake-config:arm64-osx",
       "SPDXID": "SPDXRef-binary",
-      "versionInfo": "408d39df800482751d6cf565906eac7acc6490771cc378287df3cd72a6d9964e",
+      "versionInfo": "e6c842ebf36fe52eeed9f29936f0a825b6e76199cfb237134cebb6df7638e37b",
       "downloadLocation": "NONE",
       "licenseConcluded": "MIT",
       "licenseDeclared": "NOASSERTION",
@@ -114,7 +114,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "4ffbabc2feab69abd21267f57669ef5e404bcbfa5ab6d93234374d98f5ff1864"
+          "checksumValue": "3964c3d0e6b39c7f42cebd5949cccdc7eb6feb83ee434fe73756c954b173c5c2"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -138,7 +138,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "f92905382d90e37fa2addd96becce31f5075175196b117de6dd997a4ac1d6d06"
+          "checksumValue": "f3880578674f1bdbc54b67c5fc3787aaab8ee8bcf4e3e6e008204bf4ab67aa0b"
         }
       ],
       "licenseConcluded": "NOASSERTION",

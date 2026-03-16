@@ -27,6 +27,7 @@ void ServerConfigManager::initializeEndpoints() {
         {Endpoint::GETDREAM, m_dreamServer + apiVersionV1 + "/client/dream"},
         {Endpoint::GETDISLIKES, m_dreamServer + apiVersionV1 + "/client/user/dislikes"},
         {Endpoint::TELEMETRY, m_dreamServer + apiVersionV1 + "/client/telemetry"},
+        {Endpoint::QUOTA, m_dreamServer + apiVersionV1 + "/client/quota"},
         // New V2 endpoints
         {Endpoint::LOGIN_MAGIC, m_dreamServer + apiVersionV2 + "/auth/magic"},
         {Endpoint::LOGIN_AUTHENTICATE, m_dreamServer + apiVersionV2 + "/auth/authenticate"},

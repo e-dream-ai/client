@@ -195,6 +195,33 @@ class CCubicFrameDisplay : public CFrameDisplay
     {
         return _displayFps;
     }
+
+    virtual void InheritFramesFrom(CFrameDisplay* previous) override {
+        auto* cubicPrev = dynamic_cast<CCubicFrameDisplay*>(previous);
+        if (!cubicPrev) return;
+        
+        g_Log->Info("Inheriting cubic frames: copying textures from slots [%d,%d,%d,%d]", 
+                    cubicPrev->m_FrameIndices[0], 
+                    cubicPrev->m_FrameIndices[1], 
+                    cubicPrev->m_FrameIndices[2], 
+                    cubicPrev->m_FrameIndices[3]);
+        
+        // Copy all 4 frames' textures in chronological order
+        // This maintains the full cubic interpolation context
+        for (int i = 0; i < 4; i++) {
+            uint32_t srcIdx = cubicPrev->m_FrameIndices[i];
+            m_spFrames[i] = cubicPrev->m_spFrames[srcIdx];
+        }
+        
+        // Initialize ring buffer state - already have 4 frames
+        m_FrameIndices[0] = 0;  // Oldest frame (n-3)
+        m_FrameIndices[1] = 1;  // Frame n-2
+        m_FrameIndices[2] = 2;  // Frame n-1
+        m_FrameIndices[3] = 3;  // Frame n (newest)
+        m_NumFrames = 4;  // We have all 4 frames pre-loaded
+        
+        g_Log->Info("Frame inheritance complete with full 4-frame context");
+    }
 };
 
 MakeSmartPointers(CCubicFrameDisplay);

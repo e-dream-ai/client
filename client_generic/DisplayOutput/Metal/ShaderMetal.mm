@@ -25,10 +25,10 @@ CShaderMetal::CShaderMetal(
 {
     MTLRenderPipelineDescriptor* renderPipelineDesc =
         [MTLRenderPipelineDescriptor new];
-    renderPipelineDesc.label = @"e-dream Render Pipeline";
+    renderPipelineDesc.label = @"infinidream Render Pipeline";
     renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].pixelFormat =
         MTLPixelFormatBGRA8Unorm;
-    renderPipelineDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
+    renderPipelineDesc.depthAttachmentPixelFormat = MTLPixelFormatInvalid;
     renderPipelineDesc.stencilAttachmentPixelFormat = MTLPixelFormatInvalid;
 
     renderPipelineDesc.colorAttachments[AAPLRenderTargetColor].blendingEnabled =
