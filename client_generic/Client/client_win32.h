@@ -454,12 +454,14 @@ class CElectricSheep_Win32 : public CElectricSheep
 
         // m_pD3D9 = Direct3DCreate9(D3D_SDK_VERSION);
 
-        if (g_Player().AddDisplay(
-                g_Settings()->Get("settings.player.screen", 0), /* m_pD3D12,*/
-                g_Settings()->Get("settings.player.MultiDisplayMode", 0) ==
-                        CPlayer::kMDSingleScreen &&
-                    m_ScrMode != eFullScreenStandalone &&
-                    m_ScrMode != eWindowed) == -1)
+        const uint32_t requestedScreen =
+            g_Settings()->Get("settings.player.screen", 0);
+        const bool blankOtherDisplays =
+            (g_Settings()->Get("settings.player.MultiDisplayMode", 0) ==
+             CPlayer::kMDSingleScreen) &&
+            (m_ScrMode != eFullScreenStandalone) && (m_ScrMode != eWindowed);
+
+        if (g_Player().AddDisplay(requestedScreen, blankOtherDisplays) == -1)
         {
             bool foundfirstmon = false;
             g_Log->Error("AddDisplay failed for screen %d", monnum);
@@ -468,7 +470,7 @@ class CElectricSheep_Win32 : public CElectricSheep
             while (monnum < 9)
             {
                 g_Log->Info("Trying monitor %d", monnum);
-                if (g_Player().AddDisplay(monnum, m_pD3D11) == true)
+                if (g_Player().AddDisplay(monnum, blankOtherDisplays) != -1)
                 {
                     foundfirstmon = true;
                     g_Log->Info("Monitor %d ok", monnum);
@@ -671,11 +673,13 @@ class CElectricSheep_Win32 : public CElectricSheep
     } 
 
     // TODO : Never called ?
-    virtual bool Update(int _displayIdx, boost::barrier& _beginFrameBarrier, boost::barrier& _endFrameBarrier)
+    virtual bool Update(int _displayIdx)
     {
         //g_Player().Framerate(m_CurrentFps);
 
-        if (!CElectricSheep::Update(_displayIdx, _beginFrameBarrier, _endFrameBarrier))
+        // We don't use a separate update/render thread on Win32.
+        // Ignore barriers and perform a normal per-display update.
+        if (!CElectricSheep::Update(_displayIdx))
             return false;
 
         DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
