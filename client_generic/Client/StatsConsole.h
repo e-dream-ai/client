@@ -276,8 +276,8 @@ class CStatsConsole : public CConsole
         m_Desc.Style(DisplayOutput::CFontDescription::Normal);
         m_Desc.Italic(false);
         m_Desc.TypeFace(_FontName);
-
-        m_spFont = g_Player().Renderer()->GetFont(m_Desc);
+        // Renderer can be unavailable during early startup; lazily acquire font in Render().
+        m_spFont = nullptr;
 
         m_Stats.clear();
     }
@@ -304,9 +304,15 @@ class CStatsConsole : public CConsole
             return;
         }
 
-        m_Stats.emplace_back(
-            _pStat->m_Name,
-            StatText{_pStat, g_Player().Renderer()->NewText(m_spFont, ""), _isRightAligned, _color, _alignWithStat});
+        // Text object may be created later in Render() once a renderer is available.
+        DisplayOutput::spCBaseText newText = nullptr;
+        if (auto spRenderer = g_Player().Renderer(); spRenderer && m_spFont)
+        {
+            newText = spRenderer->NewText(m_spFont, "");
+        }
+
+        m_Stats.emplace_back(_pStat->m_Name,
+                             StatText{_pStat, newText, _isRightAligned, _color, _alignWithStat});
     }
 
     void SetColor(std::string_view _name, Base::Math::CVector4 _color)
@@ -352,6 +358,25 @@ class CStatsConsole : public CConsole
 
         if (g_Player().Stopped() || m_Stats.empty() || !g_Player().HasStarted())
             return true; // Skip rendering but keep entry alive (false = remove from HudManager)
+
+        // Lazily initialize font/text now that we have a renderer.
+        if (_spRenderer)
+        {
+            if (!m_spFont)
+            {
+                m_spFont = _spRenderer->GetFont(m_Desc);
+            }
+            if (m_spFont)
+            {
+                for (auto& entry : m_Stats)
+                {
+                    if (!entry.second.text)
+                    {
+                        entry.second.text = _spRenderer->NewText(m_spFont, "");
+                    }
+                }
+            }
+        }
 
         float step = (float)m_Desc.Height() /
                      (float)_spRenderer->Display()->Height();
@@ -449,7 +474,10 @@ class CStatsConsole : public CConsole
             if (e && e->Visible())
             {
                 DisplayOutput::spCBaseText& text = i->second.text;
-                _spRenderer->DrawText(text, i->second.color);
+                if (text)
+                {
+                    _spRenderer->DrawText(text, i->second.color);
+                }
             }
         }
 

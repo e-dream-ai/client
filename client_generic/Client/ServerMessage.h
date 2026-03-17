@@ -48,10 +48,9 @@ class CServerMessage : public CConsole
             stringBuilder << lineView << '\n';
         }
         m_Message = stringBuilder.str();
-
-        m_spFont = g_Player().Renderer()->GetFont(m_Desc);
-        m_spText = g_Player().Renderer()->NewText(m_spFont, m_Message);
-        m_spText->SetEnabled(true);
+        // Renderer can be unavailable during early startup; lazily init font/text in Render().
+        m_spFont = nullptr;
+        m_spText = nullptr;
         m_MoveMessageCounter = 0.;
     }
 
@@ -63,7 +62,8 @@ class CServerMessage : public CConsole
     virtual void Visible(const bool _bState) override
     {
         CHudEntry::Visible(_bState);
-        m_spText->SetEnabled(_bState);
+        if (m_spText)
+            m_spText->SetEnabled(_bState);
     }
 
     //
@@ -72,6 +72,20 @@ class CServerMessage : public CConsole
     {
         if (!CHudEntry::Render(_time, _spRenderer))
             return false;
+
+        if (_spRenderer && (!m_spFont || !m_spText))
+        {
+            if (!m_spFont)
+                m_spFont = _spRenderer->GetFont(m_Desc);
+            if (m_spFont && !m_spText)
+            {
+                m_spText = _spRenderer->NewText(m_spFont, m_Message);
+                m_spText->SetEnabled(true);
+            }
+        }
+
+        if (!m_spText)
+            return true; // keep alive; try again next frame
 
         if (m_bServerMessageStartTimer == false)
         {
@@ -118,8 +132,7 @@ class CServerMessage : public CConsole
             m_spFont->Reupload();
         m_spText->SetRect(
             Base::Math::CRect(r.m_X0 + edge, r.m_Y0 + edge, r.m_X1, r.m_Y1));
-        g_Player().Renderer()->DrawText(m_spText,
-                                        Base::Math::CVector4(1, 1, 1, 1));
+        _spRenderer->DrawText(m_spText, Base::Math::CVector4(1, 1, 1, 1));
 
         return true;
     }

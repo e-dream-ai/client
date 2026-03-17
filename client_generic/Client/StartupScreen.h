@@ -38,13 +38,13 @@ class CStartupScreen : public CHudEntry
         m_Desc.Style(DisplayOutput::CFontDescription::Normal);
         m_Desc.Italic(false);
         m_Desc.TypeFace(_FontName);
-
-        m_spFont = g_Player().Renderer()->GetFont(m_Desc);
+        // Renderer can be unavailable during early startup; lazily acquire font/text in Render().
+        m_spFont = nullptr;
         m_StartupMessage =
             "No Sheep downloaded yet, this should take less than a minute\nbut "
             "might take several hours.  Please see ElectricSheep.org\nto learn "
             "more, or press F1 for help.";
-        m_spText = g_Player().Renderer()->NewText(m_spFont, m_StartupMessage);
+        m_spText = nullptr;
         m_spImageRef = std::make_shared<DisplayOutput::CImage>();
         m_spImageRef->Create(256, 256, DisplayOutput::eImage_RGBA8, false,
                              true);
@@ -82,7 +82,8 @@ class CStartupScreen : public CHudEntry
     virtual void Visible(const bool _bState) override
     {
         CHudEntry::Visible(_bState);
-        m_spText->SetEnabled(_bState);
+        if (m_spText)
+            m_spText->SetEnabled(_bState);
     }
 
     bool Render(const double _time, DisplayOutput::spCRenderer _spRenderer)
@@ -98,6 +99,15 @@ class CStartupScreen : public CHudEntry
         }
         
         CHudEntry::Render(_time, _spRenderer);
+
+        // Lazily init font/text once we have a renderer.
+        if (_spRenderer && (!m_spFont || !m_spText))
+        {
+            if (!m_spFont)
+                m_spFont = _spRenderer->GetFont(m_Desc);
+            if (m_spFont && !m_spText)
+                m_spText = _spRenderer->NewText(m_spFont, m_StartupMessage);
+        }
 
         if (m_bServerMessageStartTimer == false)
         {
