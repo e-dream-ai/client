@@ -10,7 +10,6 @@
         "curl",
         "libpng",
         "directxtk12",
-        "ffmpeg",
-        "socket-io-client"
+        "ffmpeg"
     ]
 }
