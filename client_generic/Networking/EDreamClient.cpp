@@ -10,6 +10,7 @@
 #include <sstream>
 #include <chrono>
 #include <algorithm>
+#include <ctime>
 
 #include "ContentDownloader.h"
 #include "Log.h"
@@ -316,7 +317,12 @@ void EDreamClient::UpdateQuota()
             ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%S");
             
             if (!ss.fail()) {
+                #if defined(_WIN32) || defined(_WIN64)
+                // Windows uses `_mkgmtime` for UTC conversion.
+                auto tp = std::chrono::system_clock::from_time_t(_mkgmtime(&tm));
+                #else
                 auto tp = std::chrono::system_clock::from_time_t(timegm(&tm));
+                #endif
                 quotaExpiresAt = tp;
                 cm.setQuotaExpiresAt(tp);
 
@@ -1155,7 +1161,11 @@ std::string EDreamClient::Hello() {
             ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%S");
             
             if (!ss.fail()) {
+                #if defined(_WIN32) || defined(_WIN64)
+                auto tp = std::chrono::system_clock::from_time_t(_mkgmtime(&tm));
+                #else
                 auto tp = std::chrono::system_clock::from_time_t(timegm(&tm));
+                #endif
                 quotaExpiresAt = tp;
                 cm.setQuotaExpiresAt(tp);
 
@@ -2234,7 +2244,11 @@ static void OnQuotaUpdate(sio::event& _wsEvent)
             std::istringstream ss(expiresAtStr);
             ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%S");
             if (!ss.fail()) {
+                #if defined(_WIN32) || defined(_WIN64)
+                expiresAt = std::chrono::system_clock::from_time_t(_mkgmtime(&tm));
+                #else
                 expiresAt = std::chrono::system_clock::from_time_t(timegm(&tm));
+                #endif
             }
         }
     }
