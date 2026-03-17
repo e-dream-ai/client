@@ -59,7 +59,8 @@ class CStartupScreen : public CHudEntry
                 "logo.png",
             false);
 #endif
-        float aspect = g_Player().Display()->Aspect();
+        DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
+        float aspect = (spDisplay && spDisplay->Width() != 0) ? spDisplay->Aspect() : 1.0f;
         m_LogoSize.m_X0 = 0.f;
         m_LogoSize.m_X1 = 0.2f * aspect;
         m_LogoSize.m_Y0 = 0.f;

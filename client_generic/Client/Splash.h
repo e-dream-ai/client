@@ -29,7 +29,8 @@ class CSplash : public CHudEntry
         }
 
         //	Adjust aspect...
-        float aspect = g_Player().Display()->Aspect();
+        DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
+        float aspect = (spDisplay && spDisplay->Width() != 0) ? spDisplay->Aspect() : 1.0f;
         m_Rect.m_X0 = 0;
         m_Rect.m_X1 = _size * aspect;
         m_Rect.m_Y0 = 0;
@@ -107,7 +108,8 @@ class CSplashImage : public CHudEntry
         }
 
         //	Adjust aspect...
-        float aspect = g_Player().Display()->Aspect();
+        DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
+        float aspect = (spDisplay && spDisplay->Width() != 0) ? spDisplay->Aspect() : 1.0f;
         m_Rect.m_X0 = 0;
         m_Rect.m_X1 = _size * aspect;
         m_Rect.m_Y0 = 0;
