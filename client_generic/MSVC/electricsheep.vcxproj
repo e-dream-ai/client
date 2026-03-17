@@ -260,9 +260,9 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc /y
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>avcodec.lib;avformat.lib;swscale.lib;avdevice.lib;avutil.lib;wxzlib.lib;wxpng.lib;kernel32.lib;user32.lib;shlwapi.lib;libcurl.lib;d3d9.lib;d3d12.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;ws2_32.lib;wldap32.lib;psapi.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>avcodec.lib;avformat.lib;swscale.lib;avdevice.lib;avutil.lib;sioclient.lib;wxzlib.lib;wxpng.lib;kernel32.lib;user32.lib;shlwapi.lib;libcurl.lib;d3d9.lib;d3d11.lib;d3d12.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;ws2_32.lib;wldap32.lib;psapi.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(ProjectName)d.exe</OutputFile>
-      <AdditionalLibraryDirectories>..\curl\lib\debug-ssl-zlib;..\ffmpeg\win32\ffmpeg-6.1.1-93\lib;C:\local\boost_1_85_0\lib64-msvc-14.3;..\wxWidgets\lib\vc120_x64_dll;..\libpng\win32\x64;C:\Users\Jack\Documents\openssl\openssl1_1-win-build\build-VS2022-MT\x64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\socket.io-client-cpp\lib\Debug;..\curl\lib\debug-ssl-zlib;..\ffmpeg\win32\ffmpeg-6.1.1-93\lib;C:\local\boost_1_85_0\lib64-msvc-14.3;..\wxWidgets\lib\vc120_x64_dll;..\libpng\win32\x64;C:\Users\Jack\Documents\openssl\openssl1_1-win-build\build-VS2022-MT\x64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <DelayLoadDLLs>wldap32.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -756,6 +756,7 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
       <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdcpp20</LanguageStandard>
     </ClCompile>
     <ClCompile Include="..\Client\main.cpp" />
+    <ClCompile Include="..\Client\StringFormat.cpp" />
     <ClCompile Include="..\ContentDownloader\DreamDownloader.cpp" />
     <ClCompile Include="..\ContentDownloader\MessageQueue.cpp" />
     <ClCompile Include="..\ContentDownloader\PathManager.cpp" />
