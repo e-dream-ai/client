@@ -24,6 +24,9 @@
 #include <boost/filesystem.hpp> // TODO: We need to unify to std::fs someday
 #include <string>
 #include <sys/stat.h>
+#if defined(_WIN32) || defined(_WIN64)
+#include <io.h>  // _commit()
+#endif
 #include <algorithm>
 #include <filesystem>
 #include <future>
@@ -475,7 +478,8 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
                 // Send NULL packet to start flushing
                 int flushRet = avcodec_send_packet(pVideoCodecContext, nullptr);
                 if (flushRet < 0 && flushRet != AVERROR_EOF) {
-                    g_Log->Error("Error starting decoder flush: %s", UNFFERRTAG(flushRet));
+                    char errTag[5] = { (char)(-flushRet & 0xFF), (char)((-flushRet >> 8) & 0xFF), (char)((-flushRet >> 16) & 0xFF), (char)((-flushRet >> 24) & 0xFF), 0 };
+                    g_Log->Error("Error starting decoder flush: %s", errTag);
                     return nullptr;
                 }
                 
@@ -550,8 +554,8 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
                     av_packet_free(&filteredPacket);
                     continue;
                 }
-                g_Log->Error("FFmpeg Error sending packet for decoding: %i:%s", ret,
-                             UNFFERRTAG(ret));
+                { char errTag[5] = { (char)(-ret & 0xFF), (char)((-ret >> 8) & 0xFF), (char)((-ret >> 16) & 0xFF), (char)((-ret >> 24) & 0xFF), 0 };
+                  g_Log->Error("FFmpeg Error sending packet for decoding: %i:%s", ret, errTag); }
             }
         }
         
@@ -584,7 +588,8 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
         
         if (ret < 0)
         {
-            g_Log->Error("FFmpeg Error decoding: %s", UNFFERRTAG(ret));
+            char errTag[5] = { (char)(-ret & 0xFF), (char)((-ret >> 8) & 0xFF), (char)((-ret >> 16) & 0xFF), (char)((-ret >> 24) & 0xFF), 0 };
+            g_Log->Error("FFmpeg Error decoding: %s", errTag);
             av_packet_free(&packet);
             av_packet_free(&filteredPacket);
             continue;
@@ -988,8 +993,7 @@ sOpenVideoInfo::~sOpenVideoInfo()
 {
     if (m_pVideoCodecContext)
     {
-        avcodec_close(m_pVideoCodecContext);
-        m_pVideoCodecContext = nullptr;
+        avcodec_free_context(&m_pVideoCodecContext);
     }
     
     if (m_pFormatContext)
@@ -1105,12 +1109,18 @@ void CContentDecoder::FinalizeCacheFile()
             fflush(m_CacheFile);
             
             // Platform-specific sync to ensure data is written to disk
+#ifdef _WIN32
+            int fd = _fileno(m_CacheFile);
+#else
             int fd = fileno(m_CacheFile);
+#endif
 #ifdef __APPLE__
             // On macOS, use F_BARRIERFSYNC for proper flush
             if (fcntl(fd, F_BARRIERFSYNC) == -1) {
                 g_Log->Warning("F_BARRIERFSYNC failed for %s", m_Metadata.dreamData.uuid.c_str());
             }
+#elif defined(_WIN32) || defined(_WIN64)
+            _commit(fd);
 #else
             // On Linux/other platforms, use fsync
             fsync(fd);
