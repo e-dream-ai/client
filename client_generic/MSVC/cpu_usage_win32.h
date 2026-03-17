@@ -99,4 +99,24 @@ class ESCpuUsage
             return false;
         return true;
     }
+
+    // Compatibility wrappers used by `Client/client.h`.
+    // The project historically referenced these names.
+    void GetAppCpuUsage(int& _es, int& _total)
+    {
+        (void)GetCpuUsage(_total, _es);
+    }
+
+    int GetGpuUsage()
+    {
+        // No GPU usage implementation on Win32 path yet.
+        return 0;
+    }
+
+    int GetNumCores()
+    {
+        SYSTEM_INFO sysinfo;
+        GetSystemInfo(&sysinfo);
+        return (int)sysinfo.dwNumberOfProcessors;
+    }
 };
