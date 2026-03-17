@@ -387,22 +387,25 @@ class CElectricSheep
 
         int32_t displayMode =
             g_Settings()->Get("settings.player.DisplayMode", 2);
+        std::string rendererDesc = "Renderer";
+        if (auto spRenderer = g_Player().Renderer())
+            rendererDesc = spRenderer->Description();
         if (displayMode == 2)
             spStats->Add(
                 new Hud::CAverageCounter("displayfps",
-                                         g_Player().Renderer()->Description() +
+                                         rendererDesc +
                                              " piecewise cubic display at ",
                                          " fps", 1.0));
         else if (displayMode == 1)
             spStats->Add(
                 new Hud::CAverageCounter("displayfps",
-                                         g_Player().Renderer()->Description() +
+                                         rendererDesc +
                                              " piecewise linear display at ",
                                          " fps", 1.0));
         else
             spStats->Add(new Hud::CAverageCounter(
                 "displayfps",
-                g_Player().Renderer()->Description() + " display at ", " fps",
+                rendererDesc + " display at ", " fps",
                 1.0));
         spStats->Add(new Hud::CStringStat(std::string("zconnerror"), "", ""));
     }
