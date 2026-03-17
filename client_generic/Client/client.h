@@ -10,7 +10,11 @@
 #include <mutex>
 #include <queue>
 #include <cstdlib>   // for exit()
+#if defined(_WIN32) || defined(_WIN64)
+#include <stdlib.h>  // _exit() on Windows
+#else
 #include <unistd.h>  // for _exit()
+#endif
 
 #include "Exception.h"
 #include "Log.h"

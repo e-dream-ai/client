@@ -26,8 +26,8 @@
 #ifdef WIN32
 //#include "DisplayD3D12.h"
 //#include "RendererD3D12.h"
-#include "DisplayDX11.h"
-#include "RendererDX11.h"
+#include "../DisplayOutput/D3D11/DisplayDX11.h"
+#include "../DisplayOutput/D3D11/RendererDX11.h"
 #else
 #include "DisplayMetal.h"
 #include "RendererMetal.h"
