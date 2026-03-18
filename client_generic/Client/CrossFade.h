@@ -22,22 +22,8 @@ class CCrossFade : public CHudEntry
         : CHudEntry(Base::Math::CRect(float(width), float(height))),
           m_bSkipped(false), m_bSkipToNext(skipToNext)
     {
-        DisplayOutput::spCImage tmpImage =
-            std::make_shared<DisplayOutput::CImage>();
-
-        tmpImage->Create(width, height, DisplayOutput::eImage_RGBA8, 0, false);
-
-        for (uint32_t x = 0; x < width; x++)
-        {
-            for (uint32_t y = 0; y < height; y++)
-            {
-                tmpImage->PutPixel(static_cast<int32_t>(x),
-                                   static_cast<int32_t>(y), 0, 0, 0, 255);
-            }
-        }
-
-        m_spTexture = g_Player().Renderer()->NewTextureFlat();
-        m_spTexture->Upload(tmpImage);
+        // Texture will be created lazily in Render() when a renderer is available.
+        m_spTexture = nullptr;
     }
 
     virtual ~CCrossFade() {}
@@ -53,10 +39,36 @@ class CCrossFade : public CHudEntry
         if (!CHudEntry::Render(_time, _spRenderer))
             return false;
 
+        if (!_spRenderer)
+            return false;
+
+        if (!m_spTexture)
+        {
+            DisplayOutput::spCImage tmpImage =
+                std::make_shared<DisplayOutput::CImage>();
+
+            tmpImage->Create(static_cast<uint32_t>(m_Rect.Width()),
+                             static_cast<uint32_t>(m_Rect.Height()),
+                             DisplayOutput::eImage_RGBA8, 0, false);
+
+            for (uint32_t x = 0; x < static_cast<uint32_t>(m_Rect.Width()); x++)
+            {
+                for (uint32_t y = 0; y < static_cast<uint32_t>(m_Rect.Height()); y++)
+                {
+                    tmpImage->PutPixel(static_cast<int32_t>(x),
+                                       static_cast<int32_t>(y), 0, 0, 0, 255);
+                }
+            }
+
+            m_spTexture = _spRenderer->NewTextureFlat();
+            if (m_spTexture)
+                m_spTexture->Upload(tmpImage);
+        }
+
         if (m_spTexture == NULL)
             return false;
 
-        DisplayOutput::spCRenderer spRenderer = g_Player().Renderer();
+        DisplayOutput::spCRenderer spRenderer = _spRenderer;
 
         spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader);
         spRenderer->SetTexture(m_spTexture, 0);

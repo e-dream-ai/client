@@ -635,6 +635,8 @@ class CElectricSheep_Win32 : public CElectricSheep
     virtual bool HandleEvents()
     {
         DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
+        if (!spDisplay)
+            return true;
 
         //	Handle events.
         DisplayOutput::spCEvent spEvent;
@@ -659,6 +661,8 @@ class CElectricSheep_Win32 : public CElectricSheep
             return false;
 
         DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
+        if (!spDisplay)
+            return true;
 
         //	We ignore events in preview mode.
         if (m_ScrMode == ePreview)
@@ -683,6 +687,8 @@ class CElectricSheep_Win32 : public CElectricSheep
             return false;
 
         DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
+        if (!spDisplay)
+            return true;
 
         //	We ignore events in preview mode.
         if (m_ScrMode == ePreview)

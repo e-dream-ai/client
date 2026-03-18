@@ -16,17 +16,15 @@ class CSplash : public CHudEntry
 {
     DisplayOutput::spCTextureFlat m_spTexture;
     Base::Math::CFastBezier *m_pAlphaBezier, *m_pSizeBezier;
+    std::string m_TextureName;
 
   public:
     CSplash(const float _size, const std::string& _texture)
         : CHudEntry(Base::Math::CRect(_size, _size))
     {
-        DisplayOutput::spCImage tmpImage(new DisplayOutput::CImage());
-        if (tmpImage->Load(_texture, false))
-        {
-            m_spTexture = g_Player().Renderer()->NewTextureFlat();
-            m_spTexture->Upload(tmpImage);
-        }
+        // Texture will be created lazily in Render() when a renderer is available.
+        m_spTexture = nullptr;
+        m_TextureName = _texture;
 
         //	Adjust aspect...
         DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
@@ -35,8 +33,6 @@ class CSplash : public CHudEntry
         m_Rect.m_X1 = _size * aspect;
         m_Rect.m_Y0 = 0;
         m_Rect.m_Y1 = _size;
-
-        tmpImage = NULL;
 
         m_pAlphaBezier = new Base::Math::CFastBezier(0, 2, 1, 0);
         m_pSizeBezier = new Base::Math::CFastBezier(1.f, 0.65f, 0.95f, 2.5f);
@@ -56,10 +52,24 @@ class CSplash : public CHudEntry
         if (!CHudEntry::Render(_time, _spRenderer))
             return false;
 
+        if (!_spRenderer)
+            return false;
+
+        if (!m_spTexture)
+        {
+            DisplayOutput::spCImage tmpImage(new DisplayOutput::CImage());
+            if (tmpImage->Load(m_TextureName, false))
+            {
+                m_spTexture = _spRenderer->NewTextureFlat();
+                if (m_spTexture)
+                    m_spTexture->Upload(tmpImage);
+            }
+        }
+
         if (m_spTexture == NULL)
             return false;
 
-        DisplayOutput::spCRenderer spRenderer = g_Player().Renderer();
+        DisplayOutput::spCRenderer spRenderer = _spRenderer;
 
         spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader);
         spRenderer->SetTexture(m_spTexture, 0);
@@ -90,6 +100,7 @@ MakeSmartPointers(CSplash);
 class CSplashImage : public CHudEntry
 {
     DisplayOutput::spCTextureFlat m_spTexture;
+    std::string m_TextureName;
     float m_FadeinTime;
     float m_HoldTime;
     float m_FadeoutTime;
@@ -99,13 +110,9 @@ class CSplashImage : public CHudEntry
                  float fadeintime, float holdtime, float fadeouttime)
         : CHudEntry(Base::Math::CRect(_size, _size))
     {
-        DisplayOutput::spCImage tmpImage =
-            std::make_shared<DisplayOutput::CImage>();
-        if (tmpImage->Load(_texture, false))
-        {
-            m_spTexture = g_Player().Renderer()->NewTextureFlat();
-            m_spTexture->Upload(tmpImage);
-        }
+        // Texture will be created lazily in Render() when a renderer is available.
+        m_spTexture = nullptr;
+        m_TextureName = _texture;
 
         //	Adjust aspect...
         DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
@@ -114,8 +121,6 @@ class CSplashImage : public CHudEntry
         m_Rect.m_X1 = _size * aspect;
         m_Rect.m_Y0 = 0;
         m_Rect.m_Y1 = _size;
-
-        tmpImage = NULL;
 
         m_FadeinTime = fadeintime;
         m_HoldTime = holdtime;
@@ -132,10 +137,25 @@ class CSplashImage : public CHudEntry
         if (!CHudEntry::Render(_time, _spRenderer))
             return false;
 
+        if (!_spRenderer)
+            return false;
+
+        if (!m_spTexture)
+        {
+            DisplayOutput::spCImage tmpImage =
+                std::make_shared<DisplayOutput::CImage>();
+            if (tmpImage->Load(m_TextureName, false))
+            {
+                m_spTexture = _spRenderer->NewTextureFlat();
+                if (m_spTexture)
+                    m_spTexture->Upload(tmpImage);
+            }
+        }
+
         if (m_spTexture == NULL)
             return false;
 
-        DisplayOutput::spCRenderer spRenderer = g_Player().Renderer();
+        DisplayOutput::spCRenderer spRenderer = _spRenderer;
 
         spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader);
         spRenderer->SetTexture(m_spTexture, 0);

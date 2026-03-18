@@ -24,7 +24,8 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
         }
         
         if (spEvent->m_Code != CKeyEvent::KEY_NONE) {
-            g_Player().Display()->AppendEvent(spEvent);
+            if (auto spD = g_Player().Display())
+                spD->AppendEvent(spEvent);
         }
         break;
     }

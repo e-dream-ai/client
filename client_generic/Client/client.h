@@ -684,9 +684,15 @@ class CElectricSheep
         AddSplashHud();
         AddOSDHud();
 
-        m_spCrossFade = std::make_shared<Hud::CCrossFade>(
-            g_Player().Display()->Width(), g_Player().Display()->Height(),
-            true);
+        {
+            DisplayOutput::spCDisplayOutput spDisplayForCrossFade = g_Player().Display();
+            const uint32_t crossFadeWidth =
+                spDisplayForCrossFade ? spDisplayForCrossFade->Width() : 0;
+            const uint32_t crossFadeHeight =
+                spDisplayForCrossFade ? spDisplayForCrossFade->Height() : 0;
+            m_spCrossFade = std::make_shared<Hud::CCrossFade>(
+                crossFadeWidth, crossFadeHeight, true);
+        }
         
 
         //	For testing...
@@ -874,12 +880,13 @@ class CElectricSheep
                 g_Player().Renderer()->EndFrame();
                 return false;
             }
-#else 
-            g_Player().Renderer()->BeginFrame();
+#else
+            // g_Player().Renderer()->BeginFrame();
 
             if( !Update() )
             {
-                g_Player().Renderer()->EndFrame();
+                if (auto spRenderer = g_Player().Renderer())
+                    spRenderer->EndFrame();
                 return false;
             }
 
@@ -2014,7 +2021,8 @@ class CElectricSheep
                 m_HudManager->Render(g_Player().Renderer());
 
                 //	Update display events.
-                g_Player().Display()->Update();
+                if (auto spDisplay = g_Player().Display())
+                    spDisplay->Update();
             }
 
             g_Player().EndDisplayFrame(displayUnit, drawn);
@@ -2418,6 +2426,8 @@ class CElectricSheep
     virtual bool HandleEvents()
     {
         DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
+        if (!spDisplay)
+            return true;
 
         // Handle events.
         DisplayOutput::spCEvent spEvent;

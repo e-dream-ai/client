@@ -302,7 +302,8 @@ LRESULT CALLBACK CDisplayDX::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
             spEvent->m_Code = CKeyEvent::KEY_Esc;
             break;
         }
-        g_Player().Display()->AppendEvent(spEvent);
+        if (auto spD = g_Player().Display())
+            spD->AppendEvent(spEvent);
     }
     break;
 
@@ -312,7 +313,8 @@ LRESULT CALLBACK CDisplayDX::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
         spEvent->m_Code = CMouseEvent::Mouse_LEFT;
         spEvent->m_X = MAKEPOINTS(lParam).x;
         spEvent->m_Y = MAKEPOINTS(lParam).y;
-        g_Player().Display()->AppendEvent(spEvent);
+        if (auto spD = g_Player().Display())
+            spD->AppendEvent(spEvent);
     }
     break;
 
@@ -322,7 +324,8 @@ LRESULT CALLBACK CDisplayDX::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
         spEvent->m_Code = CMouseEvent::Mouse_RIGHT;
         spEvent->m_X = MAKEPOINTS(lParam).x;
         spEvent->m_Y = MAKEPOINTS(lParam).y;
-        g_Player().Display()->AppendEvent(spEvent);
+        if (auto spD = g_Player().Display())
+            spD->AppendEvent(spEvent);
     }
     break;
 
@@ -333,7 +336,8 @@ LRESULT CALLBACK CDisplayDX::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
 
         spEvent->m_X = MAKEPOINTS(lParam).x;
         spEvent->m_Y = MAKEPOINTS(lParam).y;
-        g_Player().Display()->AppendEvent(spEvent);
+        if (auto spD = g_Player().Display())
+            spD->AppendEvent(spEvent);
 
     }
     break;
@@ -345,7 +349,8 @@ LRESULT CALLBACK CDisplayDX::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
         case PBT_APMSUSPEND:
         {
             auto spEvent = std::make_shared<CPowerEvent>();
-            g_Player().Display()->AppendEvent(spEvent);
+            if (auto spD = g_Player().Display())
+                spD->AppendEvent(spEvent);
         }
         }
         break;

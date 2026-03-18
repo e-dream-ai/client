@@ -564,9 +564,9 @@ public:
                     (m_LastFontPx <= 0.0f || std::fabs(m_LastFontPx - fontPx) > 0.5f)) {
                     m_LastFontPx = fontPx;
                     m_FontDesc.Height(fontPx);
-                    m_spFont = g_Player().Renderer()->GetFont(m_FontDesc);
+                    m_spFont = spRenderer->GetFont(m_FontDesc);
                     if (m_spFont != NULL) {
-                        m_spFpsText = g_Player().Renderer()->NewText(m_spFont, "");
+                        m_spFpsText = spRenderer->NewText(m_spFont, "");
                     } else {
                         m_spFpsText = NULL;
                     }

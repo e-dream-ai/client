@@ -95,7 +95,8 @@ class CServerMessage : public CConsole
         }
         // float step = (float)m_Desc.Height() /
         // (float)_spRenderer->Display()->Height();
-        float edge = 24 / (float)_spRenderer->Display()->Width();
+        auto spDisplay = _spRenderer ? _spRenderer->Display() : nullptr;
+        float edge = (spDisplay && spDisplay->Width() > 0) ? (24 / (float)spDisplay->Width()) : 24.f;
 
         std::map<std::string, CStat*>::const_iterator i;
 

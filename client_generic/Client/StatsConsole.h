@@ -378,13 +378,17 @@ class CStatsConsole : public CConsole
             }
         }
 
+        auto spDisplay = _spRenderer->Display();
+        if (!spDisplay)
+            return true;
+
         float step = (float)m_Desc.Height() /
-                     (float)_spRenderer->Display()->Height();
+                     (float)spDisplay->Height();
 #ifdef SCREEN_SAVER
         step *= 0.5f;
 #endif
         float pos = 0;
-        float edge = 24 / (float)_spRenderer->Display()->Width();
+        float edge = 24 / (float)spDisplay->Width();
 
         // First pass: update text content and calculate layout.
         // Always reserve space for every stat (visible or not) so that
