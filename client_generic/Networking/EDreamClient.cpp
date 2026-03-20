@@ -1792,7 +1792,7 @@ std::string EDreamClient::GetDreamDownloadLink(const std::string& uuid) {
 
 
 std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
-    g_Log->Info("Parse Playlist %s", (uuid == "" ? "default playlist" : uuid));
+    g_Log->Info("Parse Playlist %s", uuid.empty() ? "default playlist" : uuid.data());
     // Grab the CacheManager
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
 
