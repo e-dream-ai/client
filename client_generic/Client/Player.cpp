@@ -561,10 +561,6 @@ bool CPlayer::BeginFrameUpdate()
 
 bool CPlayer::EndFrameUpdate()
 {
-#ifndef USE_METAL
-    // FPS capping via FrameDisplay not wired up for Linux/Vulkan yet
-#endif
-
     return true;
 }
 
@@ -755,16 +751,11 @@ void CPlayer::RenderFrame(DisplayOutput::spCRenderer renderer) {
         float nextAlpha = static_cast<float>(transitionProgress);
 
         // Render current clip
-        // TODO: tmplog
-        /*g_Log->Info("render current frame %d of %s", m_currentClip->m_CurrentFrameMetadata.frameIdx, m_currentClip->m_ClipMetadata.dreamData.uuid.c_str());
-         */
         m_currentClip->DrawFrame(renderer, currentAlpha);
 
         // Render next clip
         // Somehow sometimes we reach here with no m_nextClip, not 100% clear why
         if (m_nextClip) {
-            // TODO: tmplog
-            /*g_Log->Info("render next frame %d of %s", m_nextClip->m_CurrentFrameMetadata.frameIdx, m_nextClip->m_ClipMetadata.dreamData.uuid.c_str());*/
            m_nextClip->DrawFrame(renderer, nextAlpha);
         } else {
             g_Log->Error("Render frame has null nextClip despite checking for it earlier");

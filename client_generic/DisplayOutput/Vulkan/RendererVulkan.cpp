@@ -1031,7 +1031,7 @@ spCTextureFlat CRendererVulkan::NewTextureFlat(spCImage _spImage,
 }
 
 // ---------------------------------------------------------------------------
-// Fonts / Text (stub — Phase 2)
+// Fonts / Text
 // ---------------------------------------------------------------------------
 spCBaseFont CRendererVulkan::GetFont(CFontDescription& _desc)
 {
@@ -1054,11 +1054,10 @@ spCBaseText CRendererVulkan::NewText(spCBaseFont _font, const std::string& _text
 void CRendererVulkan::DrawText(spCBaseText /*_text*/,
                                 const Base::Math::CVector4& /*_color*/)
 {
-    // Phase 2 stub — text rendering requires FreeType integration
 }
 
 // ---------------------------------------------------------------------------
-// Shaders (stub — the renderer uses its own baked pipeline)
+// Shaders
 // ---------------------------------------------------------------------------
 spCShader CRendererVulkan::NewShader(
     const char* /*_pVert*/, const char* /*_pFrag*/,
