@@ -8,12 +8,12 @@
 #include "Exception.h"
 #include "Log.h"
 #include "MathBase.h"
+#include "PlatformUtils.h"
 #include "Player.h"
 #include "Settings.h"
 #include "SimplePlaylist.h"
 #include "Timer.h"
 #include "base.h"
-#include "lua_playlist.h"
 #include "storage.h"
 #include <string>
 
@@ -38,8 +38,8 @@ class CElectricSheep_Linux : public CElectricSheep
 
         printf("Startup()\n");
 
-        m_AppData = std::string(getenv("HOME")) + "/.electricsheep/";
-        m_WorkingDir = SHAREDIR;
+        m_AppData = std::string(getenv("HOME")) + "/.config/infinidream/";
+        m_WorkingDir = PlatformUtils::GetWorkingDir();
 
         InitStorage();
         AttachLog();
@@ -49,7 +49,7 @@ class CElectricSheep_Linux : public CElectricSheep
 
         //	Run gui.
 
-        g_Player().AddDisplay(g_Settings()->Get("settings.player.screen", 0));
+        g_Player().AddDisplay(g_Settings()->Get("settings.player.screen", 0), nullptr);
 
         // if( true )
         {
@@ -93,17 +93,13 @@ class CElectricSheep_Linux : public CElectricSheep
     {
         using namespace DisplayOutput;
 
-        g_Player().Framerate(m_CurrentFps);
-
-        if (!CElectricSheep::Update())
+        if (!CElectricSheep::Update(0))
             return false;
 
         DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
 
         //	Update display events.
         spDisplay->Update();
-
-        static const float voteDelaySeconds = 1;
 
         //	Handle events.
         spCEvent spEvent;
@@ -112,53 +108,18 @@ class CElectricSheep_Linux : public CElectricSheep
             //	Key events.
             if (spEvent->Type() == CEvent::Event_KEY)
             {
-                spCKeyEvent spKey = static_cast<spCKeyEvent>(spEvent);
+                spCKeyEvent spKey = std::static_pointer_cast<CKeyEvent>(spEvent);
 
                 switch (spKey->m_Code)
                 {
-                    //	Vote for sheep.
-
-                case DisplayOutput::CKeyEvent::KEY_UP:
-                    if (m_pVoter != NULL &&
-                        m_pVoter->Vote(g_Player().GetCurrentPlayingID(), true,
-                                       voteDelaySeconds))
-                        m_HudManager->Add("splash_pos", m_spSplashPos,
-                                          voteDelaySeconds * 0.9f);
-                    break;
-                case DisplayOutput::CKeyEvent::KEY_DOWN:
-                    if (m_pVoter != NULL &&
-                        m_pVoter->Vote(g_Player().GetCurrentPlayingID(), false,
-                                       voteDelaySeconds))
-                    {
-                        if (g_Settings()->Get("settings.content.negvotedeletes",
-                                              true))
-                        {
-                            // g_Player().Stop();
-                            m_spCrossFade->Reset();
-                            m_HudManager->Add("fade", m_spCrossFade, 1.5);
-                        }
-
-                        m_HudManager->Add("splash_pos", m_spSplashNeg,
-                                          voteDelaySeconds * 0.9f);
-                    }
-                    break;
-
-                    //	Repeat current sheep
                 case DisplayOutput::CKeyEvent::KEY_LEFT:
                     g_Player().ReturnToPrevious();
                     break;
 
-                    //  Force Next Sheep
                 case DisplayOutput::CKeyEvent::KEY_RIGHT:
                     g_Player().SkipToNext();
                     break;
 
-                    //	Repeat sheep
-                case DisplayOutput::CKeyEvent::KEY_F8:
-                    g_Player().RepeatSheep();
-                    break;
-
-                //	OSD info.
                 case DisplayOutput::CKeyEvent::KEY_F1:
                     m_F1F4Timer.Reset();
                     m_HudManager->Toggle("helpmessage");
@@ -180,17 +141,13 @@ class CElectricSheep_Linux : public CElectricSheep
                     spDisplay->Close();
                     break;
 
-                //	All other keys close...
-                // NO !!!
                 default:
-                    //	   spDisplay->Close();
                     break;
                 }
             }
         }
 
         return true;
-        return HandleEvents();
     }
 
     //

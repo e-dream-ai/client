@@ -30,9 +30,12 @@
 #include "../msvc/DisplayDD.h"
 #include "../msvc/RendererDD.h"
 #endif
-#else
+#elif defined(MAC)
 #include "DisplayMetal.h"
 #include "RendererMetal.h"
+#else  // Linux
+#include "DisplayVulkan.h"
+#include "RendererVulkan.h"
 #endif
 
 #include "CacheManager.h"
@@ -205,7 +208,7 @@ int CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
     else
 #endif
         spRenderer = new CRendererDX();
-#else // !WIN32
+#elif defined(MAC)
 
     g_Log->Info("Attempting to open %s...", CDisplayMetal::Description());
     spDisplay = std::make_shared<CDisplayMetal>();
@@ -213,7 +216,6 @@ int CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
     if (spDisplay == nullptr)
         return -1;
 
-#if defined(MAC)
     if (_graphicsContext != nullptr)
     {
         if (!spDisplay->Initialize(_graphicsContext, true))
@@ -221,14 +223,23 @@ int CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
 
         spDisplay->ForceWidthAndHeight(w, h);
     }
-#else
-    if (!spDisplay->Initialize(w, h, m_bFullscreen))
-        return -1;
-#endif //! MAC
 
     spRenderer = std::make_shared<CRendererMetal>();
 
-#endif //! WIN32
+#else  // Linux — Vulkan
+
+    g_Log->Info("Attempting to open Vulkan display...");
+    spDisplay = std::make_shared<CDisplayVulkan>();
+
+    if (spDisplay == nullptr)
+        return -1;
+
+    if (!spDisplay->Initialize(w, h, m_bFullscreen))
+        return -1;
+
+    spRenderer = std::make_shared<CRendererVulkan>();
+
+#endif  // !WIN32
 
     //	Start renderer & set window title.
     if (spRenderer->Initialize(spDisplay) == false)
@@ -551,9 +562,7 @@ bool CPlayer::BeginFrameUpdate()
 bool CPlayer::EndFrameUpdate()
 {
 #ifndef USE_METAL
-    double capFPS = spFD->GetFps(m_PlayerFps, m_DisplayFps);
-    if (spFD && capFPS > 0.000001)
-        FpsCap(capFPS);
+    // FPS capping via FrameDisplay not wired up for Linux/Vulkan yet
 #endif
 
     return true;
