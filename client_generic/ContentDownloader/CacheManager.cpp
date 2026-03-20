@@ -287,11 +287,13 @@ const std::unordered_map<std::string, Dream>& CacheManager::getDreams() const {
 // MARK: - Quota
 
 void CacheManager::decreaseRemainingQuota(long long amount) {
+    g_Log->Info("decreaseRemainingQuota: amount=%lld, before=%lld", amount, remainingQuota);
     if (amount > remainingQuota) {
         remainingQuota = 0;
     } else {
         remainingQuota -= amount;
     }
+    g_Log->Info("decreaseRemainingQuota: after=%lld", remainingQuota);
 }
 
 // MARK: - Metadata
