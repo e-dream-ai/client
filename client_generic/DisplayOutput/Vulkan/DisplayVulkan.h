@@ -9,8 +9,14 @@
 #include <X11/Xatom.h>
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_xlib.h>
-#include <string>
 
+#ifdef HAVE_WAYLAND
+#include <wayland-client.h>
+#include <vulkan/vulkan_wayland.h>
+#include "xdg-shell-client-protocol.h"
+#endif
+
+#include <string>
 #include "DisplayOutput.h"
 
 namespace DisplayOutput
@@ -18,34 +24,63 @@ namespace DisplayOutput
 
 /*
     CDisplayVulkan.
-    X11 window + Vulkan surface for Linux.
-    Mirrors CDisplayMetal's role: owns the window and surface;
-    CRendererVulkan owns the device, swapchain, and pipelines.
+
+    Creates a window and a VkSurfaceKHR for Linux. At runtime:
+      - Native Wayland (VK_KHR_wayland_surface) when WAYLAND_DISPLAY is set
+        and XSCREENSAVER_WINDOW is not — requires HAVE_WAYLAND at build time.
+      - X11 (VK_KHR_xlib_surface) otherwise, including XWayland sessions and
+        XScreensaver embed mode (which is inherently X11).
+
+    CRendererVulkan owns the device, swapchain, and pipelines; this class
+    owns only the window and VkSurfaceKHR.
 */
 class CDisplayVulkan : public CDisplayOutput
 {
-    // X11
-    Display*  m_pDisplay      = nullptr;
-    Window    m_Window        = 0;
+    // -----------------------------------------------------------------------
+    // X11 state
+    // -----------------------------------------------------------------------
+    Display*  m_pDisplay       = nullptr;
+    Window    m_Window         = 0;
+    Atom      m_wmDeleteWindow = 0;
+    Atom      m_netWmState     = 0;
+    Atom      m_netWmFullscreen= 0;
+
+#ifdef HAVE_WAYLAND
+    // -----------------------------------------------------------------------
+    // Wayland state (populated only when m_bWayland == true)
+    // -----------------------------------------------------------------------
+    struct wl_display*    m_pWlDisplay    = nullptr;
+    struct wl_surface*    m_pWlSurface    = nullptr;
+    struct wl_compositor* m_pWlCompositor = nullptr;
+    struct xdg_wm_base*   m_pXdgWmBase    = nullptr;
+    struct xdg_surface*   m_pXdgSurface   = nullptr;
+    struct xdg_toplevel*  m_pXdgToplevel  = nullptr;
+
+    bool initWayland(uint32_t w, uint32_t h, bool bFullscreen);
+    void destroyWayland();
+
+    // Wayland listener callbacks (static so they match C function-pointer ABI)
+    static void onRegistryGlobal(void*, wl_registry*, uint32_t, const char*, uint32_t);
+    static void onRegistryGlobalRemove(void*, wl_registry*, uint32_t);
+    static void onXdgWmBasePing(void*, xdg_wm_base*, uint32_t);
+    static void onXdgSurfaceConfigure(void*, xdg_surface*, uint32_t);
+    static void onXdgToplevelConfigure(void*, xdg_toplevel*, int32_t, int32_t, wl_array*);
+    static void onXdgToplevelClose(void*, xdg_toplevel*);
+#endif
+
+    bool      m_bWayland      = false;
     bool      m_bFullScreen   = false;
     uint32_t  m_WidthFS       = 0;
     uint32_t  m_HeightFS      = 0;
     bool      m_bScreensaver  = false;
 
-    // X11 Atoms
-    Atom m_wmDeleteWindow = 0;
-    Atom m_netWmState     = 0;
-    Atom m_netWmFullscreen= 0;
-
     // Vulkan
     VkInstance   m_instance = VK_NULL_HANDLE;
     VkSurfaceKHR m_surface  = VK_NULL_HANDLE;
 
-    // Internal helpers
     bool createVulkanInstance();
     void setFullScreen(bool enabled);
     void setWindowDecorations(bool enabled);
-    void alwaysOnTop();
     void checkEvents();
     void applyInvisibleCursor();
 

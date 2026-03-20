@@ -43,6 +43,32 @@ if(PKG_CONFIG_FOUND)
     )
 endif()
 
+# Wayland — optional, enables native Wayland surface (VK_KHR_wayland_surface).
+# Falls back to X11/XWayland if not found. XScreensaver mode always uses X11.
+if(PKG_CONFIG_FOUND)
+    pkg_check_modules(WAYLAND_CLIENT wayland-client)
+    pkg_check_modules(WAYLAND_PROTOCOLS wayland-protocols)
+    find_program(WAYLAND_SCANNER wayland-scanner HINTS /usr/bin /usr/local/bin)
+    if(WAYLAND_CLIENT_FOUND AND WAYLAND_PROTOCOLS_FOUND AND WAYLAND_SCANNER)
+        message(STATUS "Wayland found — native Wayland surface enabled")
+        pkg_get_variable(WL_PROTOCOLS_DIR wayland-protocols pkgdatadir)
+        set(XDG_SHELL_XML "${WL_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml")
+        add_custom_command(
+            OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/xdg-shell-protocol.c
+                    ${CMAKE_CURRENT_BINARY_DIR}/xdg-shell-client-protocol.h
+            COMMAND ${WAYLAND_SCANNER} private-code
+                    ${XDG_SHELL_XML} ${CMAKE_CURRENT_BINARY_DIR}/xdg-shell-protocol.c
+            COMMAND ${WAYLAND_SCANNER} client-header
+                    ${XDG_SHELL_XML} ${CMAKE_CURRENT_BINARY_DIR}/xdg-shell-client-protocol.h
+            DEPENDS ${XDG_SHELL_XML}
+            COMMENT "Generating xdg-shell protocol bindings"
+        )
+        add_compile_definitions(HAVE_WAYLAND)
+    else()
+        message(STATUS "Wayland not found — X11/XWayland only")
+    endif()
+endif()
+
 # libpng
 find_package(PNG)
 if(NOT PNG_FOUND)
@@ -169,6 +195,11 @@ set(SOURCES
     ${LINBLD}/PlatformUtils_Linux.cpp
 )
 
+# Append generated xdg-shell binding when Wayland is available
+if(WAYLAND_CLIENT_FOUND AND WAYLAND_PROTOCOLS_FOUND AND WAYLAND_SCANNER)
+    list(APPEND SOURCES ${CMAKE_CURRENT_BINARY_DIR}/xdg-shell-protocol.c)
+endif()
+
 # ---------------------------------------------------------------------------
 # Executable
 # ---------------------------------------------------------------------------
@@ -203,6 +234,8 @@ target_include_directories(infinidream PRIVATE
     ${CURL_INCLUDE_DIRS}
     ${FFMPEG_INCLUDE_DIRS}
     ${PNG_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_BINARY_DIR}           # generated xdg-shell-client-protocol.h
+    ${WAYLAND_CLIENT_INCLUDE_DIRS}
 )
 
 # ---------------------------------------------------------------------------
@@ -226,6 +259,7 @@ target_link_libraries(infinidream PRIVATE
     ${PNG_LIBRARIES}
     dl
     ${BASE}/socket.io-client-cpp/lib/linux/libsioclient_tls.a
+    $<$<BOOL:${WAYLAND_CLIENT_FOUND}>:${WAYLAND_CLIENT_LIBRARIES}>
 )
 
 # ---------------------------------------------------------------------------

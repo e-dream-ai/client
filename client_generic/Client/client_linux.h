@@ -93,8 +93,10 @@ class CElectricSheep_Linux : public CElectricSheep
     {
         using namespace DisplayOutput;
 
-        if (!CElectricSheep::Update(0))
+        g_Player().BeginFrameUpdate();
+        if (!DoRealFrameUpdate(0))
             return false;
+        g_Player().EndFrameUpdate();
 
         DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
 
