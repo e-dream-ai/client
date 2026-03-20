@@ -219,7 +219,7 @@ class CElectricSheep
 #ifndef LINUX_GNU
         g_Settings()->Set("settings.app.InstallDir", m_WorkingDir);
 #else
-        g_Settings()->Set("settings.app.InstallDir", SHAREDIR);
+        g_Settings()->Set("settings.app.InstallDir", std::string(SHAREDIR));
 #endif
         g_Settings()->Storage()->Commit();
         return true;

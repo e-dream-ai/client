@@ -58,7 +58,7 @@ template <typename T> class CBlockingQueue
             {
                 lock.unlock();
                 std::unique_lock<std::shared_mutex> wlock(m_mutex);
-                m_emptyCond.wait(m_mutex);
+                m_emptyCond.wait(wlock);
             }
         }
         else
@@ -110,7 +110,7 @@ template <typename T> class CBlockingQueue
             {
                 lock.unlock();
                 std::unique_lock<std::shared_mutex> wlock(m_mutex);
-                m_emptyCond.wait(m_mutex);
+                m_emptyCond.wait(wlock);
             }
         }
         else
@@ -206,16 +206,16 @@ template <typename T> class CBlockingQueue
         lock.unlock();
         std::unique_lock<std::shared_mutex> wlock(m_mutex);
 
-        m_nonEmptyCond.wait(m_mutex);
+        m_nonEmptyCond.wait(wlock);
 
         return true;
     }
 
   private:
     mutable std::shared_mutex m_mutex;
-    boost::condition m_fullCond;
-    boost::condition m_emptyCond;
-    boost::condition m_nonEmptyCond;
+    mutable boost::condition m_fullCond;
+    mutable boost::condition m_emptyCond;
+    mutable boost::condition m_nonEmptyCond;
     size_t m_maxQueueElements;
     std::deque<T> m_queue;
 };

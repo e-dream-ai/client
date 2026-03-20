@@ -981,8 +981,7 @@ sOpenVideoInfo::~sOpenVideoInfo()
 {
     if (m_pVideoCodecContext)
     {
-        avcodec_close(m_pVideoCodecContext);
-        m_pVideoCodecContext = nullptr;
+        avcodec_free_context(&m_pVideoCodecContext);
     }
     
     if (m_pFormatContext)

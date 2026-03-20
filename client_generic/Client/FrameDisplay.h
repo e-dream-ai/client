@@ -10,7 +10,9 @@
 #include "Timer.h"
 #include "ContentDecoder.h"
 
+#ifdef MAC
 #include <CoreVideo/CVPixelBuffer.h>
+#endif
 // #ifndef FRAME_DIAG
 // #define FRAME_DIAG
 // #endif
