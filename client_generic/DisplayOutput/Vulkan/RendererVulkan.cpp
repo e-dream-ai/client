@@ -847,8 +847,8 @@ void CRendererVulkan::Defaults() {}
 void CRendererVulkan::Reset(const uint32_t /*_flags*/) {}
 void CRendererVulkan::Apply()
 {
-    // Bind any selected texture's descriptor set from the base-class state
-    // Actual binding happens in drawQuadInternal
+    // Delegate to base class which handles Bind()/Dirty() per texture unit
+    CRenderer::Apply();
 }
 
 // ---------------------------------------------------------------------------

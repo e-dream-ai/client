@@ -99,6 +99,9 @@ class CVideoFrame
             int width = _pCodecContext->width;
             int height = _pCodecContext->height;
 
+            m_pFrame->format = static_cast<int>(_format);
+            m_pFrame->width  = width;
+            m_pFrame->height = height;
             int ret = av_image_fill_arrays(m_pFrame->data, m_pFrame->linesize,
                                            buffer, _format, width, height, 1);
             if (ret < 0)

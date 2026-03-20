@@ -61,9 +61,9 @@ m_CurrentFrameMetadata{}, m_HasFinished(false), m_IsFadingOut(false)
 
 #else
 
-    AVPixelFormat pf = AV_PIX_FMT_BGR32;
+    AVPixelFormat pf = AV_PIX_FMT_RGBA;
 #if defined(__BIG_ENDIAN__)
-    pf = AV_PIX_FMT_RGB32_1;
+    pf = AV_PIX_FMT_RGBA;  // RGBA is byte-order agnostic for our purposes
 #endif
 
 #endif
@@ -500,17 +500,14 @@ bool CClip::GrabVideoFrame()
             return false;
         if (m_spFrameData->Frame())
         {
-            if (USE_HW_ACCELERATION)
-            {
+#if USE_HW_ACCELERATION || defined(LINUX_GNU)
                 //g_Log->Info("BindFrame %d", m_CurrentFrameMetadata.frameIdx);
                 currentTexture->BindFrame(m_spFrameData);
-            }
-            else
-            {
+#else
                 //    Set image texturedata and upload to texture.
                 m_spImageRef->SetStorageBuffer(m_spFrameData->StorageBuffer());
                 currentTexture->Upload(m_spImageRef);
-            }
+#endif
         }
     }
 

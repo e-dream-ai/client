@@ -29,6 +29,7 @@ class CTextureFlatVulkan : public CTextureFlat
 
     uint32_t m_imgWidth  = 0;
     uint32_t m_imgHeight = 0;
+    bool     m_dirty     = false;
 
     // Staging buffer (re-used across uploads to the same texture)
     VkBuffer       m_stagingBuffer = VK_NULL_HANDLE;
@@ -49,6 +50,8 @@ class CTextureFlatVulkan : public CTextureFlat
                         uint32_t bytesPerRow, bool mipMapped,
                         uint32_t mipLevel);
     virtual bool BindFrame(ContentDecoder::spCVideoFrame _spFrame) override;
+    virtual bool Bind(const uint32_t _index) override;
+    virtual bool Dirty() override { return m_dirty; }
 
     VkDescriptorSet DescSet() const { return m_descSet; }
 };

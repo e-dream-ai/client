@@ -237,6 +237,18 @@ bool CTextureFlatVulkan::uploadToImage(uint32_t w, uint32_t h)
         0, 0, nullptr, 0, nullptr, 1, &barrier);
 
     m_pRenderer->EndSingleTimeCommands(cmd);
+    m_dirty = true;   // signal Apply() to re-call Bind() with the new descSet
+    return true;
+}
+
+// ---------------------------------------------------------------------------
+// Bind — tell the renderer to use this texture's descriptor set
+// ---------------------------------------------------------------------------
+bool CTextureFlatVulkan::Bind(const uint32_t /*_index*/)
+{
+    if (m_descSet != VK_NULL_HANDLE)
+        m_pRenderer->SetDescriptorSet(m_descSet);
+    m_dirty = false;
     return true;
 }
 
@@ -253,9 +265,38 @@ bool CTextureFlatVulkan::BindFrame(ContentDecoder::spCVideoFrame _spFrame)
     uint32_t w = _spFrame->Width();
     uint32_t h = _spFrame->Height();
 
-    // Convert to RGBA using swscale
+    // Normalize JPEG-range YUV formats (deprecated in newer FFmpeg; sws_setColorspaceDetails aborts on them)
+    AVPixelFormat srcFmt = static_cast<AVPixelFormat>(frame->format);
+    if      (srcFmt == AV_PIX_FMT_YUVJ420P) srcFmt = AV_PIX_FMT_YUV420P;
+    else if (srcFmt == AV_PIX_FMT_YUVJ422P) srcFmt = AV_PIX_FMT_YUV422P;
+    else if (srcFmt == AV_PIX_FMT_YUVJ444P) srcFmt = AV_PIX_FMT_YUV444P;
+    else if (srcFmt == AV_PIX_FMT_YUVJ440P) srcFmt = AV_PIX_FMT_YUV440P;
+    else if (srcFmt == AV_PIX_FMT_YUVJ411P) srcFmt = AV_PIX_FMT_YUV411P;
+
+    // The ContentDecoder pre-converts to RGBA on Linux (AV_PIX_FMT_RGBA).
+    // If the frame is already RGBA, upload directly without an extra swscale pass.
+    if (srcFmt == AV_PIX_FMT_RGBA)
+    {
+        auto spImg = std::make_shared<CImage>();
+        spImg->Create(w, h, eImage_RGBA8);
+        if (uint8_t* dst = spImg->GetData(0))
+        {
+            // Copy row-by-row to handle any stride padding
+            const int srcStride = frame->linesize[0];
+            const int dstStride = static_cast<int>(w * 4);
+            for (uint32_t row = 0; row < h; ++row)
+                memcpy(dst + row * dstStride,
+                       frame->data[0] + row * srcStride,
+                       static_cast<size_t>(dstStride));
+        }
+        return Upload(spImg);
+    }
+
+    // Fallback: convert to RGBA using swscale for any other format
+    if (srcFmt == AV_PIX_FMT_NONE) return false;  // guard against uninitialised frames
+
     SwsContext* sws = sws_getContext(
-        static_cast<int>(w), static_cast<int>(h), static_cast<AVPixelFormat>(frame->format),
+        static_cast<int>(w), static_cast<int>(h), srcFmt,
         static_cast<int>(w), static_cast<int>(h), AV_PIX_FMT_RGBA,
         SWS_BILINEAR, nullptr, nullptr, nullptr);
 
@@ -263,13 +304,12 @@ bool CTextureFlatVulkan::BindFrame(ContentDecoder::spCVideoFrame _spFrame)
 
     std::vector<uint8_t> rgba(w * h * 4);
     uint8_t* dstData[4]  = {rgba.data(), nullptr, nullptr, nullptr};
-    int      dstStride[4] = {static_cast<int>(w * 4), 0, 0, 0};
+    int      dstLinesize[4] = {static_cast<int>(w * 4), 0, 0, 0};
 
     sws_scale(sws, frame->data, frame->linesize,
-              0, static_cast<int>(h), dstData, dstStride);
+              0, static_cast<int>(h), dstData, dstLinesize);
     sws_freeContext(sws);
 
-    // Upload RGBA pixels directly via a temporary CImage
     auto spImg = std::make_shared<CImage>();
     spImg->Create(w, h, eImage_RGBA8);
     if (uint8_t* dst = spImg->GetData(0))

@@ -16,9 +16,10 @@ layout(location = 1) out vec4 fragColor;
 
 void main()
 {
-    // Convert pixel coords → NDC: x in [-1,1], y in [-1,1] (Vulkan: +Y down)
-    float nx =  (inPos.x / pc.screenWidth)  * 2.0 - 1.0;
-    float ny = -(inPos.y / pc.screenHeight) * 2.0 + 1.0;  // flip Y
+    // Input coords are normalized [0,1]. Convert to NDC [-1,1].
+    // Vulkan NDC: x=-1 left, x=+1 right, y=-1 top, y=+1 bottom.
+    float nx = inPos.x * 2.0 - 1.0;
+    float ny = inPos.y * 2.0 - 1.0;
 
     gl_Position = vec4(nx, ny, 0.0, 1.0);
     fragUV      = inUV;

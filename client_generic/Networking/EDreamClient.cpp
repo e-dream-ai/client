@@ -1461,7 +1461,7 @@ bool EDreamClient::FetchPlaylist(std::string_view uuid) {
         spDownload->AppendHeader(cookieHeader);
         
         std::string url{string_format(
-            "%s/%s", ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::GETPLAYLIST).c_str(), uuid)};
+            "%s/%s", ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::GETPLAYLIST).c_str(), std::string(uuid).c_str())};
         
         printf("url : %s\n", url.c_str());
         

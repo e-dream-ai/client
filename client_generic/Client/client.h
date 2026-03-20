@@ -852,13 +852,13 @@ class CElectricSheep
 
     void SetIsFullScreen(bool _bFullScreen) { m_bFullScreen = _bFullScreen; }
 
+    virtual bool Update() { return true; }
+
     bool Run()
     {
         while (true)
         {
-            // g_Player().Renderer()->BeginFrame();
-
-            // if( !Update() )
+            if (!Update())
             {
                 g_Player().Renderer()->EndFrame();
                 return false;
