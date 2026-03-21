@@ -306,7 +306,19 @@ void CacheManager::loadCachedMetadata() {
     cleanupDiskCache();
     // Also remove unknown videos
     removeUnknownVideos();
-    
+
+    // Enforce cache size limit on startup
+    if (!g_Settings()->Get("settings.content.unlimited_cache", false)) {
+        std::uintmax_t cacheSize = (std::uintmax_t)g_Settings()->Get("settings.content.cache_size", 10) * 1024 * 1024 * 1024;
+        std::uintmax_t usedSpace = getUsedSpace(PathManager::getInstance().mp4Path());
+        if (usedSpace > cacheSize) {
+            g_Log->Info("Cache exceeds limit on startup (%.2f GB / %.2f GB), resizing",
+                        usedSpace / (1024.0 * 1024.0 * 1024.0),
+                        cacheSize / (1024.0 * 1024.0 * 1024.0));
+            resizeCache(cacheSize);
+        }
+    }
+
     fs::path dir = PathManager::getInstance().jsonDreamPath();
             
     if (!fs::exists(dir) || !fs::is_directory(dir)) {
