@@ -1198,7 +1198,9 @@ class CElectricSheep
                 drawNoSheepIntro = true;
             }
             
-            bool showStartup = drawNoSheepIntro ||
+            // Show the startup screen whenever the player has nothing to draw yet,
+            // or while it is still fading out after the player started.
+            bool showStartup = !drawn || drawNoSheepIntro ||
                                (m_StartupScreen && !m_StartupScreen->IsFullyFaded());
 
             if ((showStartup || drawn) && displayUnit == 0)
