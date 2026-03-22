@@ -224,7 +224,6 @@ void CClip::DiscardFrames(int count)
 
 bool CClip::Update(double _timelineTime, bool isPaused)
 {
-    //g_Log->Info("Update for %s", m_ClipMetadata.dreamData.uuid.c_str());
     m_Alpha = m_LastCalculatedAlpha;
     
     // Check buffering state

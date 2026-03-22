@@ -739,49 +739,30 @@ bool CPlayer::Update(uint32_t displayUnit)
                      m_nextClip->m_FadeInSeconds);
     }*/
     
-    RenderFrame(du->spRenderer);
+    bool drew = RenderFrame(du->spRenderer);
 
-    return true;
+    return drew;
 }
 
-void CPlayer::RenderFrame(DisplayOutput::spCRenderer renderer) {
+bool CPlayer::RenderFrame(DisplayOutput::spCRenderer renderer) {
     if (m_isTransitioning && m_currentClip && m_nextClip) {
         double transitionProgress = (m_TimelineTime - m_transitionStartTime) / m_transitionDuration;
         float currentAlpha = 1.0f - static_cast<float>(transitionProgress);
         float nextAlpha = static_cast<float>(transitionProgress);
 
-        // Render current clip
-        m_currentClip->DrawFrame(renderer, currentAlpha);
+        bool drew = m_currentClip->DrawFrame(renderer, currentAlpha);
 
-        // Render next clip
         // Somehow sometimes we reach here with no m_nextClip, not 100% clear why
         if (m_nextClip) {
-           m_nextClip->DrawFrame(renderer, nextAlpha);
+           drew |= m_nextClip->DrawFrame(renderer, nextAlpha);
         } else {
             g_Log->Error("Render frame has null nextClip despite checking for it earlier");
         }
+        return drew;
     } else if (m_currentClip) {
-        if (m_currentClip->IsBuffering()) {
-            // We're still buffering, show appropriate UI
-            /*g_Log->Info("Buffering clip %s, frame queue: %d",
-                m_currentClip->GetClipMetadata().dreamData.uuid.c_str(),
-                m_currentClip->GetDecoder()->QueueLength());*/
-            
-            // Still call DrawFrame which will handle buffering visualization
-            m_currentClip->DrawFrame(renderer);
-        } else {
-            // Normal playback
-            /*g_Log->Info("render frame %d of %s",
-                m_currentClip->m_CurrentFrameMetadata.frameIdx,
-                m_currentClip->m_ClipMetadata.dreamData.uuid.c_str());*/
-            
-            m_currentClip->DrawFrame(renderer);
-
-            if (m_currentClip->m_CurrentFrameMetadata.frameIdx == 1) {
-                // TMP breakpoint
-            }
-        }
+        return m_currentClip->DrawFrame(renderer);
     }
+    return false;
 }
 
 bool CPlayer::PlayClip(const Cache::Dream* dream, double _startTime, int64_t _seekFrame, bool isTransition)

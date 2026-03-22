@@ -154,7 +154,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     bool Update(uint32_t displayUnit); //, bool& bPlayNoSheepIntro);
     //bool Update(double _timelineTime);
 
-    void RenderFrame(DisplayOutput::spCRenderer renderer);
+    bool RenderFrame(DisplayOutput::spCRenderer renderer);
     
     bool HasStarted() { return m_hasStarted; };
     void Start();

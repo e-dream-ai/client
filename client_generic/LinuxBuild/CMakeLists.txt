@@ -15,7 +15,7 @@ add_compile_definitions(
     BOOST_FILESYSTEM_VERSION=3
     BOOST_NETWORK_ENABLE_HTTPS
     OPENSSL_NO_ERR
-    "SHAREDIR=\".\""
+    "SHAREDIR=\"./\""
     $<$<CONFIG:Debug>:DEBUG>
     $<$<CONFIG:Release>:NDEBUG>
 )

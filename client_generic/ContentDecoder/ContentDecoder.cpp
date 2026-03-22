@@ -714,11 +714,6 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
     av_packet_free(&packet);
     av_packet_free(&filteredPacket);
     
-    /*g_Log->Info("Decoder produced frame %d/%d for %s",
-                (uint32_t)ovi->m_CurrentFrameIndex,
-                ovi->m_TotalFrameCount,
-                ovi->m_Path.c_str());*/
-    
     return pVideoFrame;
 }
 

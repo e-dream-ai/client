@@ -42,6 +42,7 @@ class CRendererVulkan : public CRenderer
     uint32_t         m_presentFamily  = UINT32_MAX;
 
     // Swapchain
+    VkSurfaceKHR             m_surface    = VK_NULL_HANDLE;
     VkSwapchainKHR           m_swapchain = VK_NULL_HANDLE;
     std::vector<VkImage>     m_swapImages;
     std::vector<VkImageView> m_swapImageViews;
@@ -109,6 +110,7 @@ class CRendererVulkan : public CRenderer
     bool createVertexBuffers();
     bool createWhiteTexture();
     VkShaderModule loadShader(const std::string& path);
+    void recreateSwapchain();
 
   public:
     CRendererVulkan();

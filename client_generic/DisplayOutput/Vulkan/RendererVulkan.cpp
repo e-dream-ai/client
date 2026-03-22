@@ -812,6 +812,7 @@ bool CRendererVulkan::Initialize(spCDisplayOutput _spDisplay)
     VkSurfaceKHR surface  = disp->GetSurface();
     uint32_t     w        = disp->Width();
     uint32_t     h        = disp->Height();
+    m_surface = surface;
 
     if (!pickPhysicalDevice(instance, surface))     return false;
     if (!createLogicalDevice())                      return false;
@@ -846,6 +847,39 @@ void CRendererVulkan::Apply()
 }
 
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Swapchain recreation (called when VK_ERROR_OUT_OF_DATE_KHR)
+// ---------------------------------------------------------------------------
+void CRendererVulkan::recreateSwapchain()
+{
+    vkDeviceWaitIdle(m_device);
+
+    // Destroy framebuffers
+    for (auto fb : m_framebuffers)
+        vkDestroyFramebuffer(m_device, fb, nullptr);
+    m_framebuffers.clear();
+
+    // Destroy image views
+    for (auto iv : m_swapImageViews)
+        vkDestroyImageView(m_device, iv, nullptr);
+    m_swapImageViews.clear();
+
+    // Destroy old swapchain
+    if (m_swapchain != VK_NULL_HANDLE)
+    {
+        vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
+        m_swapchain = VK_NULL_HANDLE;
+    }
+
+    // Use current display size
+    uint32_t w = m_spDisplay->Width();
+    uint32_t h = m_spDisplay->Height();
+
+    g_Log->Info("CRendererVulkan: recreating swapchain (%ux%u)", w, h);
+    createSwapchain(m_surface, w, h);
+    createFramebuffers();
+}
+
 // BeginFrame
 // ---------------------------------------------------------------------------
 bool CRendererVulkan::BeginFrame()
@@ -861,10 +895,10 @@ bool CRendererVulkan::BeginFrame()
         m_imageAvailable[m_currentFrame], VK_NULL_HANDLE,
         &m_currentImageIndex);
 
-    if (result == VK_ERROR_OUT_OF_DATE_KHR)
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
     {
-        // Swapchain needs recreation (window resize) — skip this frame
-        return false;
+        recreateSwapchain();
+        return false;  // Skip this frame
     }
 
     vkResetFences(m_device, 1, &m_inFlightFence[m_currentFrame]);
@@ -930,7 +964,9 @@ bool CRendererVulkan::EndFrame(bool /*drawn*/)
     pi.swapchainCount     = 1;
     pi.pSwapchains        = &m_swapchain;
     pi.pImageIndices      = &m_currentImageIndex;
-    vkQueuePresentKHR(m_presentQueue, &pi);
+    VkResult presentResult = vkQueuePresentKHR(m_presentQueue, &pi);
+    if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR)
+        recreateSwapchain();
 
     m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     m_inFrame      = false;
