@@ -1091,7 +1091,8 @@ void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
                     // Set up transition parameters (but don't start yet - wait for clip to buffer)
                     m_transitionDuration = 1.0f;
                     m_pendingSeekCrossfade = true;  // Will start transition when next clip is ready
-                    
+
+
                     // Set the start time and store the clip
                     newClip->SetStartTime(m_TimelineTime);
                     m_nextClip = newClip;
@@ -1099,6 +1100,7 @@ void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
                         m_nextClip->SetTransitionLength(1.0f, 5.0f);
                     }
                 }
+                return true;
             }).detach();
         }
     } else {
