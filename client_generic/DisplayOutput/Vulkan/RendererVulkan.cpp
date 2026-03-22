@@ -263,15 +263,9 @@ bool CRendererVulkan::createSwapchain(VkSurfaceKHR surface,
             f.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
         { chosenFmt = f; break; }
 
-    // Choose present mode: prefer MAILBOX, fallback to FIFO
-    uint32_t pmCount = 0;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(m_physicalDevice, surface, &pmCount, nullptr);
-    std::vector<VkPresentModeKHR> presentModes(pmCount);
-    vkGetPhysicalDeviceSurfacePresentModesKHR(m_physicalDevice, surface, &pmCount, presentModes.data());
-
+    // FIFO (vsync) — guaranteed supported, blocks on present to throttle the render loop.
+    // Mailbox would spin the CPU freely between presents, burning cycles for no benefit.
     VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
-    for (auto pm : presentModes)
-        if (pm == VK_PRESENT_MODE_MAILBOX_KHR) { presentMode = pm; break; }
 
     // Choose extent
     if (caps.currentExtent.width != UINT32_MAX)

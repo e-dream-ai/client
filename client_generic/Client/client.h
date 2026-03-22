@@ -863,6 +863,7 @@ class CElectricSheep
                 g_Player().Renderer()->EndFrame();
                 return false;
             }
+            g_Player().FpsCap(m_PerceptualFPS);
         }
 
         return true;

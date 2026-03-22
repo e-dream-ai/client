@@ -126,9 +126,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
   private:
 #endif
 
-    void FpsCap(const double _cap);
-
   public:
+    void FpsCap(const double _cap);
     bool Startup();
     bool Shutdown(void);
     virtual ~CPlayer();
