@@ -281,3 +281,11 @@ if(GLSLC)
         COMMENT "Copying compiled shaders to binary directory"
     )
 endif()
+
+# Copy runtime assets next to the binary
+add_custom_command(TARGET infinidream POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${BASE}/Runtime/logo.png
+        $<TARGET_FILE_DIR:infinidream>/logo.png
+    COMMENT "Copying runtime assets to binary directory"
+)

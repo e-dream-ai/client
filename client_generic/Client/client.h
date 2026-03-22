@@ -1198,11 +1198,13 @@ class CElectricSheep
                 drawNoSheepIntro = true;
             }
             
-            if ((drawNoSheepIntro && displayUnit == 0) ||
-                (drawn && displayUnit == 0))
+            bool showStartup = drawNoSheepIntro ||
+                               (m_StartupScreen && !m_StartupScreen->IsFullyFaded());
+
+            if ((showStartup || drawn) && displayUnit == 0)
             {
                 
-                if (drawNoSheepIntro || (m_StartupScreen && !m_StartupScreen->IsFullyFaded()))
+                if (showStartup)
                 {
                     if (!m_StartupScreen)
                         m_StartupScreen = std::make_shared<Hud::CStartupScreen>(

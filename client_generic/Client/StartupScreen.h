@@ -48,17 +48,14 @@ class CStartupScreen : public CHudEntry
         m_spImageRef = std::make_shared<DisplayOutput::CImage>();
         m_spImageRef->Create(256, 256, DisplayOutput::eImage_RGBA8, false,
                              true);
-#ifndef LINUX_GNU
-        m_spImageRef->Load(
-            g_Settings()->Get("settings.app.InstallDir", PlatformUtils::GetWorkingDir()) +
-                "logo.png",
-            false);
-#else
-        m_spImageRef->Load(
-            g_Settings()->Get("settings.app.InstallDir", PlatformUtils::GetWorkingDir()) +
-                "logo.png",
-            false);
-#endif
+        if (!m_spImageRef->Load(
+                g_Settings()->Get("settings.app.InstallDir", PlatformUtils::GetWorkingDir()) +
+                    "logo.png",
+                false))
+        {
+            // Logo not found — skip rendering it rather than showing a white square.
+            m_spImageRef = nullptr;
+        }
         float aspect = g_Player().Display()->Aspect();
         m_LogoSize.m_X0 = 0.f;
         m_LogoSize.m_X1 = 0.2f * aspect;
@@ -106,33 +103,27 @@ class CStartupScreen : public CHudEntry
                 boost::posix_time::second_clock::local_time();
         }
 
-        // draw picture
-
-        DisplayOutput::spCImage tmpImage =
-            std::make_shared<DisplayOutput::CImage>();
+        // draw picture (only if logo loaded successfully)
         if (m_spImageRef)
         {
             m_spVideoTexture = _spRenderer->NewTextureFlat();
             m_spVideoTexture->Upload(m_spImageRef);
+
+            _spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader);
+            _spRenderer->SetBlend("alphablend");
+            _spRenderer->SetTexture(m_spVideoTexture, 0);
+            _spRenderer->SetShader(NULL);
+            _spRenderer->Apply();
+
+            Base::Math::CRect rr;
+            rr.m_X0 = 0.5f - (m_LogoSize.Width());
+            rr.m_Y0 = 0.5f - (m_LogoSize.Height()) + m_MoveMessageCounter;
+            rr.m_X1 = 0.5f + (m_LogoSize.Width());
+            rr.m_Y1 = 0.5f + (m_LogoSize.Height()) + m_MoveMessageCounter;
+
+            _spRenderer->DrawQuad(rr, Base::Math::CVector4(1, 1, 1, m_Alpha),
+                                  m_spVideoTexture->GetRect());
         }
-
-        if (!m_spVideoTexture)
-            return false;
-
-        _spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader);
-        _spRenderer->SetBlend("alphablend");
-        _spRenderer->SetTexture(m_spVideoTexture, 0);
-        _spRenderer->SetShader(NULL);
-        _spRenderer->Apply();
-
-        Base::Math::CRect rr;
-        rr.m_X0 = 0.5f - (m_LogoSize.Width());
-        rr.m_Y0 = 0.5f - (m_LogoSize.Height()) + m_MoveMessageCounter;
-        rr.m_X1 = 0.5f + (m_LogoSize.Width());
-        rr.m_Y1 = 0.5f + (m_LogoSize.Height()) + m_MoveMessageCounter;
-
-        _spRenderer->DrawQuad(rr, Base::Math::CVector4(1, 1, 1, m_Alpha),
-                              m_spVideoTexture->GetRect());
 
         // draw text
 
