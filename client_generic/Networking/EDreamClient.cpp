@@ -250,18 +250,7 @@ void EDreamClient::UpdateQuota()
         Network::NetworkHeaders::addStandardHeaders(spDownload);
         spDownload->AppendHeader("Content-Type: application/json");
 
-        // Retrieve the sealed session from settings
-        std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
-
-        if (sealedSession.empty()) {
-            g_Log->Error("UpdateQuota: Sealed session not found in settings");
-            ScheduleNextQuotaUpdate();
-            return;
-        }
-
-        // Set the cookie with the sealed session
-        std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
-        spDownload->AppendHeader(cookieHeader);
+        AppendAuthHeader(spDownload);
 
         std::string url{ ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::QUOTA) };
 
@@ -519,6 +508,33 @@ void EDreamClient::DeinitializeClient()
     s_SIOClient.set_reconnect_listener(nullptr);*/
 }
 
+// Appends the appropriate auth header to a request.
+// Prefers wos-session cookie (sealed session), falls back to Api-Key header.
+void EDreamClient::AppendAuthHeader(Network::spCFileDownloader& spDownload)
+{
+    std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
+    if (!sealedSession.empty())
+    {
+        spDownload->AppendHeader("Cookie: wos-session=" + sealedSession);
+        return;
+    }
+    std::string apiKey = g_Settings()->Get("settings.content.api_key", std::string(""));
+    if (!apiKey.empty())
+    {
+        spDownload->AppendHeader("Api-Key " + apiKey);
+    }
+}
+
+// Marks the client as authenticated using a bare API key (no session exchange needed —
+// the backend middleware accepts Api-Key header directly on all protected endpoints).
+bool EDreamClient::SignInWithApiKey(const std::string& apiKey)
+{
+    g_Settings()->Set("settings.content.api_key", apiKey);
+    g_Settings()->Storage()->Commit();
+    g_Log->Info("Signed in with API key");
+    return true;
+}
+
 // MARK : Auth (via refresh)
 bool EDreamClient::Authenticate()
 {
@@ -533,6 +549,37 @@ bool EDreamClient::Authenticate()
     if (sealedSession.empty())
     {
         g_Log->Warning("No sealed session found");
+
+        // Fallback: API key auth (Linux / headless environments).
+        // Check the INFINIDREAM_API_KEY env var first so users can pass a key without
+        // editing the settings file. If present it is persisted for future runs.
+        const char* envKey = getenv("INFINIDREAM_API_KEY");
+        if (envKey && *envKey)
+        {
+            g_Log->Info("Found INFINIDREAM_API_KEY env var, using it");
+            if (SignInWithApiKey(std::string(envKey)))
+            {
+                fIsLoggedIn.exchange(true);
+                fInitialAuthComplete.store(true);
+                fAuthCV.notify_one();
+                boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
+                return true;
+            }
+        }
+        else
+        {
+            std::string storedKey = g_Settings()->Get("settings.content.api_key", std::string(""));
+            if (!storedKey.empty())
+            {
+                g_Log->Info("Found stored API key, using it");
+                fIsLoggedIn.exchange(true);
+                fInitialAuthComplete.store(true);
+                fAuthCV.notify_one();
+                boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
+                return true;
+            }
+        }
+
         fIsLoggedIn.exchange(false);
         fInitialAuthComplete.store(true);
         fAuthCV.notify_one();
@@ -698,9 +745,7 @@ void EDreamClient::SignOut()
     Network::NetworkHeaders::addStandardHeaders(spDownload);
     spDownload->AppendHeader("Content-Type: application/json");
 
-    // Set the cookie with the current sealed session
-    std::string cookieHeader = "Cookie: wos-session=" + currentSealedSession;
-    spDownload->AppendHeader(cookieHeader);
+    AppendAuthHeader(spDownload);
 
     if (spDownload->Perform(ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::LOGOUT)))
     {
@@ -1089,17 +1134,7 @@ std::string EDreamClient::Hello() {
         spDownload->AppendHeader("Content-Type: application/json");
         
         // Retrieve the sealed session from settings
-        std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
-        
-        if (sealedSession.empty()) {
-            g_Log->Error("Sealed session not found in settings");
-            return "";
-        }
-        
-        // Set the cookie with the sealed session
-        std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
-        spDownload->AppendHeader(cookieHeader);
-       
+        AppendAuthHeader(spDownload);
         std::string url{ ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::HELLO) };
         
         if (spDownload->Perform(url))
@@ -1238,11 +1273,8 @@ void EDreamClient::SendTelemetry(const std::string& eventType, const boost::json
     Network::NetworkHeaders::addStandardHeaders(spDownload);
     spDownload->AppendHeader("Content-Type: application/json");
     
-    std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
-    if (!sealedSession.empty()) {
-        std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
-        spDownload->AppendHeader(cookieHeader);
-    }
+        AppendAuthHeader(spDownload);
+
 
     boost::json::object payload;
     payload["eventType"] = eventType;
@@ -1360,17 +1392,7 @@ std::vector<std::string> EDreamClient::FetchUserDislikes() {
         Network::NetworkHeaders::addStandardHeaders(spDownload);
         spDownload->AppendHeader("Content-Type: application/json");
         // Retrieve the sealed session from settings
-        std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
-        
-        if (sealedSession.empty()) {
-            g_Log->Error("Sealed session not found in settings");
-            return dislikes;
-        }
-        
-        // Set the cookie with the sealed session
-        std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
-        spDownload->AppendHeader(cookieHeader);
-        
+        AppendAuthHeader(spDownload);
         std::string url = ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::GETDISLIKES);
         
         if (spDownload->Perform(url))
@@ -1449,17 +1471,7 @@ bool EDreamClient::FetchPlaylist(std::string_view uuid) {
         spDownload->AppendHeader("Content-Type: application/json");
         
         // Retrieve the sealed session from settings
-        std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
-        
-        if (sealedSession.empty()) {
-            g_Log->Error("Sealed session not found in settings");
-            return "";
-        }
-        
-        // Set the cookie with the sealed session
-        std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
-        spDownload->AppendHeader(cookieHeader);
-        
+        AppendAuthHeader(spDownload);
         std::string url{string_format(
             "%s/%s", ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::GETPLAYLIST).c_str(), std::string(uuid).c_str())};
         
@@ -1519,17 +1531,7 @@ bool EDreamClient::FetchDefaultPlaylist() {
         spDownload->AppendHeader("Content-Type: application/json");
         
         // Retrieve the sealed session from settings
-        std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
-        
-        if (sealedSession.empty()) {
-            g_Log->Error("Sealed session not found in settings");
-            return "";
-        }
-        
-        // Set the cookie with the sealed session
-        std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
-        spDownload->AppendHeader(cookieHeader);
-        
+        AppendAuthHeader(spDownload);
         std::string url{ ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::GETDEFAULTPLAYLIST) };
         
         printf("url : %s\n", url.c_str());
@@ -1581,18 +1583,7 @@ bool EDreamClient::FetchDreamMetadata(std::string uuid) {
         spDownload->AppendHeader("Content-Type: application/json");
         
         // Retrieve the sealed session from settings
-        std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
-        
-        if (sealedSession.empty()) {
-            g_Log->Error("Sealed session not found in settings");
-            return false;
-        }
-        
-        // Set the cookie with the sealed session
-        std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
-        spDownload->AppendHeader(cookieHeader);
-        
-        
+        AppendAuthHeader(spDownload);
         std::string url = ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::GETDREAM) +
         "?uuids=" + uuid;
        
@@ -1649,17 +1640,7 @@ bool EDreamClient::FetchDreamsMetadata(const std::vector<std::string>& uuids) {
         spDownload->AppendHeader("Content-Type: application/json");
         
         // Retrieve the sealed session from settings
-        std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
-        
-        if (sealedSession.empty()) {
-            g_Log->Error("Sealed session not found in settings");
-            return false;
-        }
-        
-        // Set the cookie with the sealed session
-        std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
-        spDownload->AppendHeader(cookieHeader);
-        
+        AppendAuthHeader(spDownload);
         // Create request body
         boost::json::object requestBody;
         boost::json::array uuidArray;
@@ -1740,17 +1721,7 @@ std::string EDreamClient::GetDreamDownloadLink(const std::string& uuid) {
         Network::NetworkHeaders::addStandardHeaders(spDownload);
         spDownload->AppendHeader("Content-Type: application/json");
         // Retrieve the sealed session from settings
-        std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
-        
-        if (sealedSession.empty()) {
-            g_Log->Error("Sealed session not found in settings");
-            return "";
-        }
-        
-        // Set the cookie with the sealed session
-        std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
-        spDownload->AppendHeader(cookieHeader);
-
+        AppendAuthHeader(spDownload);
         std::string url = ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::GETDREAM) +
                           "/" + uuid + "/url";
 
@@ -2284,14 +2255,19 @@ void EDreamClient::ConnectRemoteControlSocket()
     std::map<std::string, std::string> query;
     
     std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
-    
-    if (sealedSession.empty())
+    std::string apiKey = g_Settings()->Get("settings.content.api_key", std::string(""));
+
+    if (sealedSession.empty() && apiKey.empty())
     {
-        g_Log->Error("Cannot connect WebSocket: no sealed session available.");
+        g_Log->Error("Cannot connect WebSocket: no sealed session or API key available.");
         return;
     }
-    
-    query["Cookie"] = string_format("wos-session=%s", sealedSession.c_str());
+
+    if (!sealedSession.empty())
+        query["Cookie"] = string_format("wos-session=%s", sealedSession.c_str());
+    else
+        query["Api-Key"] = apiKey;
+
     query["Edream-Client-Type"] = PlatformUtils::GetPlatformName();
     query["Edream-Client-Version"] = PlatformUtils::GetAppVersion();
 
