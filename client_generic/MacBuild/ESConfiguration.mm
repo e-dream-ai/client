@@ -530,25 +530,28 @@
         } else {
             // Try validating code
             // Ask for the code to be sent
-            if (EDreamClient::ValidateCode(digitCodeTextField.stringValue.UTF8String)) {
+            auto result = EDreamClient::ValidateCode(digitCodeTextField.stringValue.UTF8String);
+            if (result.success) {
                 // Login successful
                 m_sentCode = false;
                 m_loginWasSuccessful = true;
-                
+
                 // Check if the email has changed from the previous login
                 if (m_previousLoginEmail && ![m_previousLoginEmail isEqualToString:emailTextField.stringValue]) {
 
                     [self showRestartMessageAndRelaunch];
                 }
-                
-                
+
+
                 EDreamClient::DidSignIn(); // Let client know we signed in
-                
+
                 [self updateAuthUI];
             } else {
                 // Code validation failed
                 m_loginWasSuccessful = false;
                 m_sentCode = false;
+                loginStatusImage.image = redImage;
+                [self showErrorAlert:@(result.message.c_str())];
                 [self updateAuthUI];
             }
         }

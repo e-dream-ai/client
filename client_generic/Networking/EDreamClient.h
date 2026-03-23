@@ -83,7 +83,7 @@ private:
     static void DidSignIn();
     // Auth v2
     static AuthResult SendCode();
-    static bool ValidateCode(const std::string& code);
+    static AuthResult ValidateCode(const std::string& code);
     enum class AuthRefreshResult { Success, InvalidSession, TransientFailure };
     static AuthRefreshResult RefreshSealedSession();
     

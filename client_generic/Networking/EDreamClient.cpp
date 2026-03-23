@@ -827,14 +827,14 @@ EDreamClient::AuthResult EDreamClient::SendCode() {
     return AuthResult(false, "Cannot access Network");
 }
 
-bool EDreamClient::ValidateCode(const std::string& code)
+EDreamClient::AuthResult EDreamClient::ValidateCode(const std::string& code)
 {
     std::string email = g_Settings()->Get("settings.generator.nickname", std::string(""));
-    
+
     if (email.empty())
     {
         g_Log->Error("Email address not found in settings");
-        return false;
+        return AuthResult(false, "Email address not provided");
     }
 
     CURLcode res;
@@ -867,7 +867,7 @@ bool EDreamClient::ValidateCode(const std::string& code)
 
         if(res != CURLE_OK) {
             g_Log->Error("Failed to validate code. Curl error: %s", curl_easy_strerror(res));
-            return false;
+            return AuthResult(false, std::string("Error: ") + curl_easy_strerror(res));
         }
 
         long http_code = 0;
@@ -877,51 +877,70 @@ bool EDreamClient::ValidateCode(const std::string& code)
             try {
                 boost::json::value response = boost::json::parse(readBuffer);
                 boost::json::object responseObj = response.as_object();
-                
+
                 if (!responseObj.contains("success") || !responseObj["success"].as_bool()) {
-                    g_Log->Error("Validation failed: %s", responseObj.contains("message") ? responseObj["message"].as_string().c_str() : "Unknown error");
-                    return false;
+                    std::string errorMsg = "Unknown error";
+                    if (responseObj.contains("message") && responseObj["message"].is_string()) {
+                        errorMsg = responseObj["message"].as_string().c_str();
+                    }
+                    g_Log->Error("Validation failed: %s", errorMsg.c_str());
+                    return AuthResult(false, errorMsg);
                 }
-                
+
                 if (!responseObj.contains("data") || !responseObj["data"].is_object()) {
                     g_Log->Error("Response doesn't contain data object");
-                    return false;
+                    return AuthResult(false, "Invalid server response");
                 }
-                
+
                 boost::json::object dataObj = responseObj["data"].as_object();
-                
+
                 if (dataObj.contains("sealedSession") && dataObj["sealedSession"].is_string()) {
                     std::string sealedSession = dataObj["sealedSession"].as_string().c_str();
                     g_Settings()->Set("settings.content.sealed_session", sealedSession);
                     g_Settings()->Storage()->Commit();
-                    
+
                     g_Log->Info("Sealed session saved successfully");
-                    //g_Player().Start();
                 } else {
                     g_Log->Error("sealedSession not found in the response data");
-                    return false;
+                    return AuthResult(false, "Invalid server response");
                 }
-                
+
                 if (dataObj.contains("user") && dataObj["user"].is_object()) {
                     boost::json::object userObj = dataObj["user"].as_object();
                     g_Log->Info("User object received: %s", boost::json::serialize(userObj).c_str());
                 } else {
                     g_Log->Warning("User object not found in the response data");
                 }
-                
-                return true;
-            } catch (const boost::system::system_error& e) {
-                g_Log->Error("JSON parsing error: %s", e.what());
-                return false;
+
+                return AuthResult(true);
+            } catch (...) {
+                g_Log->Error("JSON parsing error during code validation");
+                return AuthResult(false, "Invalid server response");
             }
+        } else if (http_code >= 400 && http_code < 500) {
+            g_Log->Error("Failed to validate code. Server returned %ld: %s", http_code, readBuffer.c_str());
+
+            std::string errorMessage;
+            try {
+                boost::json::value response = boost::json::parse(readBuffer);
+                if (response.is_object() && response.as_object().contains("message")) {
+                    errorMessage = response.as_object()["message"].as_string().c_str();
+                } else {
+                    errorMessage = "Invalid or expired code";
+                }
+            } catch (...) {
+                errorMessage = "Invalid or expired code";
+            }
+
+            return AuthResult(false, errorMessage);
         } else {
             g_Log->Error("Failed to validate code. Server returned %ld: %s", http_code, readBuffer.c_str());
-            return false;
+            return AuthResult(false, "Server error, please try again later");
         }
     }
 
     g_Log->Error("Failed to initialize curl");
-    return false;
+    return AuthResult(false, "Cannot access network");
 }
 
 EDreamClient::AuthRefreshResult EDreamClient::RefreshSealedSession()
