@@ -53,6 +53,15 @@ public:
                              const float _width) override;
 
 private:
+    struct QuadUniforms
+    {
+        float rect[4];
+        float uvRect[4];
+        float color[4];
+        float brightness;
+        float padding[3];
+    };
+
     struct Vertex
     {
         float pos[3];
@@ -61,6 +70,8 @@ private:
 
     ComPtr<ID3D11Buffer> m_quadVertexBuffer;
     ComPtr<ID3D11Buffer> m_quadIndexBuffer;
+    ComPtr<ID3D11Buffer> m_quadUniformBuffer;
+    spCShader m_drawTextureShader;
     bool CreateQuadBuffers();
 
     bool CreateRenderTargets();

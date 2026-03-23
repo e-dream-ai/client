@@ -17,10 +17,57 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
     case WM_KEYUP: {
         auto spEvent = std::make_shared<CKeyEvent>();
         spEvent->m_bPressed = true;
-        
+
         switch (wParam) {
             case VK_ESCAPE: spEvent->m_Code = CKeyEvent::KEY_Esc; break;
             case VK_SPACE: spEvent->m_Code = CKeyEvent::KEY_SPACE; break;
+            case VK_TAB: spEvent->m_Code = CKeyEvent::KEY_TAB; break;
+            case VK_LEFT: spEvent->m_Code = CKeyEvent::KEY_LEFT; break;
+            case VK_RIGHT: spEvent->m_Code = CKeyEvent::KEY_RIGHT; break;
+            case VK_UP: spEvent->m_Code = CKeyEvent::KEY_UP; break;
+            case VK_DOWN: spEvent->m_Code = CKeyEvent::KEY_DOWN; break;
+            case VK_MENU: spEvent->m_Code = CKeyEvent::KEY_MENU; break;
+            case VK_LMENU: spEvent->m_Code = CKeyEvent::KEY_LALT; break;
+            case VK_CONTROL:
+            case VK_LCONTROL:
+            case VK_RCONTROL:
+                spEvent->m_Code = CKeyEvent::KEY_CTRL;
+                break;
+            case VK_SHIFT:
+            case VK_LSHIFT:
+            case VK_RSHIFT:
+                spEvent->m_Code = CKeyEvent::KEY_SHIFT;
+                break;
+            case VK_BACK: spEvent->m_Code = CKeyEvent::KEY_BACKSPACE; break;
+            case VK_RETURN: spEvent->m_Code = CKeyEvent::KEY_ENTER; break;
+            case VK_CAPITAL: spEvent->m_Code = CKeyEvent::KEY_CAPSLOCK; break;
+            case VK_DELETE: spEvent->m_Code = CKeyEvent::KEY_DELETE; break;
+            case VK_END: spEvent->m_Code = CKeyEvent::KEY_END; break;
+            case VK_HOME: spEvent->m_Code = CKeyEvent::KEY_HOME; break;
+            case VK_INSERT: spEvent->m_Code = CKeyEvent::KEY_INSERT; break;
+            case VK_PRIOR: spEvent->m_Code = CKeyEvent::KEY_PAGEUP; break;
+            case VK_NEXT: spEvent->m_Code = CKeyEvent::KEY_PAGEDOWN; break;
+            case VK_F1: spEvent->m_Code = CKeyEvent::KEY_F1; break;
+            case VK_F2: spEvent->m_Code = CKeyEvent::KEY_F2; break;
+            case VK_F3: spEvent->m_Code = CKeyEvent::KEY_F3; break;
+            case VK_F4: spEvent->m_Code = CKeyEvent::KEY_F4; break;
+            case VK_F5: spEvent->m_Code = CKeyEvent::KEY_F5; break;
+            case VK_F6: spEvent->m_Code = CKeyEvent::KEY_F6; break;
+            case VK_F7: spEvent->m_Code = CKeyEvent::KEY_F7; break;
+            case VK_F8: spEvent->m_Code = CKeyEvent::KEY_F8; break;
+            case VK_F9: spEvent->m_Code = CKeyEvent::KEY_F9; break;
+            case VK_F10: spEvent->m_Code = CKeyEvent::KEY_F10; break;
+            case VK_F11: spEvent->m_Code = CKeyEvent::KEY_F11; break;
+            case VK_F12: spEvent->m_Code = CKeyEvent::KEY_F12; break;
+            case VK_OEM_COMMA: spEvent->m_Code = CKeyEvent::KEY_Comma; break;
+            case VK_OEM_PERIOD: spEvent->m_Code = CKeyEvent::KEY_Period; break;
+            default:
+                if (wParam >= 'A' && wParam <= 'Z') {
+                    spEvent->m_Code = static_cast<CKeyEvent::eKeyCode>(wParam);
+                } else if (wParam >= '0' && wParam <= '9') {
+                    spEvent->m_Code = static_cast<CKeyEvent::eKeyCode>(wParam);
+                }
+                break;
         }
         
         if (spEvent->m_Code != CKeyEvent::KEY_NONE) {

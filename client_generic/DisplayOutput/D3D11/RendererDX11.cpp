@@ -4,6 +4,57 @@
 #include <cassert>
 
 namespace DisplayOutput {
+namespace {
+const char* kQuadPassVertexHlsl = R"(
+struct VSInput {
+    float3 pos : POSITION;
+    float2 uv  : TEXCOORD0;
+};
+
+struct VSOutput {
+    float4 position : SV_POSITION;
+    float2 uv       : TEXCOORD0;
+};
+
+VSOutput main(VSInput input) {
+    VSOutput output;
+    output.position = float4(input.pos.xy * float2(2.0f, -2.0f) + float2(-1.0f, 1.0f), input.pos.z, 1.0f);
+    output.uv = input.uv;
+    return output;
+}
+)";
+
+const char* kDrawTextureFragmentHlsl = R"(
+Texture2D tx0 : register(t0);
+SamplerState smp0 : register(s0);
+
+cbuffer QuadUniforms : register(b0) {
+    float4 rect;
+    float4 uvRect;
+    float4 color;
+    float brightness;
+    float3 padding;
+};
+
+struct PSInput {
+    float4 position : SV_POSITION;
+    float2 uv       : TEXCOORD0;
+};
+
+float4 main(PSInput input) : SV_TARGET {
+    float2 adjustedUV = (input.uv - rect.xy) / rect.zw;
+    if (adjustedUV.x <= 0.0f || adjustedUV.x >= 1.0f ||
+        adjustedUV.y <= 0.0f || adjustedUV.y >= 1.0f) {
+        discard;
+    }
+
+    adjustedUV = (adjustedUV + uvRect.xy) * uvRect.zw;
+    float4 sampled = tx0.Sample(smp0, adjustedUV);
+    sampled.rgb += brightness;
+    return float4(sampled.rgb * color.rgb, sampled.a * color.a);
+}
+)";
+} // namespace
 
 CRendererDX11::CRendererDX11() : CRenderer() {
 }
@@ -31,6 +82,9 @@ bool CRendererDX11::Initialize(spCDisplayOutput _spDisplay) {
 
     if (!CreateBlendStates())
         return false;
+
+    // Mirror Metal initialization so generic texture rendering has a default shader.
+    m_drawTextureShader = NewShader("quadPassVertex", "drawTextureFragment");
 
     return true;
 }
@@ -163,8 +217,11 @@ bool CRendererDX11::BeginFrame() {
 }
 
 bool CRendererDX11::EndFrame(bool drawn) {
-    if (drawn && m_context) {
-        // Present the frame
+    if (!CRenderer::EndFrame(drawn))
+        return false;
+
+    if (drawn && m_context && m_spDisplay) {
+        m_spDisplay->SwapBuffers();
         return true;
     }
     return false;
@@ -205,7 +262,44 @@ spCBaseText CRendererDX11::NewText(spCBaseFont _font, const std::string& _text) 
 
 spCShader CRendererDX11::NewShader(const char* _pVertexShader, const char* _pFragmentShader,
                                   std::vector<std::pair<std::string, eUniformType>> uniforms) {
-    return nullptr;
+    if (!_pVertexShader || !_pFragmentShader) {
+        g_Log->Error("NewShader called with null shader names");
+        return nullptr;
+    }
+
+    const std::string vertexName(_pVertexShader);
+    const std::string fragmentName(_pFragmentShader);
+
+    if (vertexName != "quadPassVertex") {
+        g_Log->Warning("Unsupported DX11 vertex shader requested: %s", vertexName.c_str());
+        return nullptr;
+    }
+
+    // Windows DX11 currently renders decoded RGBA frames (no YUV shader path).
+    // Map all frame fragment variants to the same RGBA fragment implementation.
+    const bool supportedFragment =
+        fragmentName == "drawTextureFragment" ||
+        fragmentName == "drawDecodedFrameNoBlendingFragment" ||
+        fragmentName == "drawDecodedFrameLinearFrameBlendFragment" ||
+        fragmentName == "drawDecodedFrameCubicFrameBlendFragment";
+
+    if (!supportedFragment) {
+        g_Log->Warning("Unsupported DX11 fragment shader requested: %s", fragmentName.c_str());
+        return nullptr;
+    }
+
+    auto shader = std::make_shared<CShaderDX11>(m_device, m_context);
+    if (!shader->Build(kQuadPassVertexHlsl, kDrawTextureFragmentHlsl)) {
+        g_Log->Error("Failed building DX11 shader pair: %s / %s",
+                     vertexName.c_str(), fragmentName.c_str());
+        return nullptr;
+    }
+
+    for (uint32_t slot = 0; slot < uniforms.size(); ++slot) {
+        shader->CreateUniform(uniforms[slot].first, uniforms[slot].second, slot);
+    }
+
+    return shader;
 }
 
 // TODO
@@ -277,6 +371,52 @@ void CRendererDX11::DrawQuad(const Base::Math::CRect& _rect,
         if (!CreateQuadBuffers())
             return;
     }
+
+    if (!m_quadUniformBuffer)
+    {
+        D3D11_BUFFER_DESC cbDesc = {};
+        cbDesc.ByteWidth = sizeof(QuadUniforms);
+        cbDesc.Usage = D3D11_USAGE_DYNAMIC;
+        cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+        HRESULT hr = m_device->CreateBuffer(&cbDesc, nullptr, &m_quadUniformBuffer);
+        if (FAILED(hr))
+        {
+            g_Log->Error("Failed to create quad uniform buffer: %08X", hr);
+            return;
+        }
+    }
+
+    D3D11_MAPPED_SUBRESOURCE mapped = {};
+    HRESULT mapHr = m_context->Map(m_quadUniformBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+    if (FAILED(mapHr))
+    {
+        g_Log->Error("Failed to map quad uniform buffer: %08X", mapHr);
+        return;
+    }
+
+    auto* uniforms = reinterpret_cast<QuadUniforms*>(mapped.pData);
+    uniforms->rect[0] = _rect.m_X0;
+    uniforms->rect[1] = _rect.m_Y0;
+    uniforms->rect[2] = _rect.Width();
+    uniforms->rect[3] = _rect.Height();
+
+    uniforms->uvRect[0] = _uvRect.m_X0;
+    uniforms->uvRect[1] = _uvRect.m_Y0;
+    uniforms->uvRect[2] = _uvRect.Width();
+    uniforms->uvRect[3] = _uvRect.Height();
+
+    uniforms->color[0] = _color.m_X;
+    uniforms->color[1] = _color.m_Y;
+    uniforms->color[2] = _color.m_Z;
+    uniforms->color[3] = _color.m_W;
+    uniforms->brightness = GetBrightness();
+    uniforms->padding[0] = uniforms->padding[1] = uniforms->padding[2] = 0.0f;
+
+    m_context->Unmap(m_quadUniformBuffer.Get(), 0);
+    ID3D11Buffer* cb = m_quadUniformBuffer.Get();
+    m_context->VSSetConstantBuffers(0, 1, &cb);
+    m_context->PSSetConstantBuffers(0, 1, &cb);
 
     // Sync selected render state (textures/shader) before issuing draw call.
     // This avoids stale active state in CRenderer::Apply.
