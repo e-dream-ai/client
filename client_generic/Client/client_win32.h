@@ -418,7 +418,6 @@ class CElectricSheep_Win32 : public CElectricSheep
 
             return false;
         }*/
-        /*
         //	Exit if we're not supposed to render anything...
         if (m_ScrMode != eSaver && m_ScrMode != eFullScreenStandalone &&
             m_ScrMode != ePreview && m_ScrMode != eWindowed &&
