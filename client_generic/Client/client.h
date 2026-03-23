@@ -1234,7 +1234,8 @@ class CElectricSheep
             if (g_Player().Closed())
             {
                 g_Log->Info("Player closed...");
-                g_Player().Renderer()->EndFrame();
+                if (auto spRenderer = g_Player().Renderer())
+                    spRenderer->EndFrame();
                 return false;
             }
 

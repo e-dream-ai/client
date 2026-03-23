@@ -80,7 +80,8 @@ class CServerMessage : public CConsole
             if (m_spFont && !m_spText)
             {
                 m_spText = _spRenderer->NewText(m_spFont, m_Message);
-                m_spText->SetEnabled(true);
+                if (m_spText)
+                    m_spText->SetEnabled(true);
             }
         }
 

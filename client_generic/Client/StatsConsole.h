@@ -446,10 +446,13 @@ class CStatsConsole : public CConsole
                 if (e->Visible())
                 {
                     DisplayOutput::spCBaseText& text = i->second.text;
-                    float baseY = leftStatPositions[i->second.alignWithStat];
-                    float rightX = 1.0f - edge - size.m_X;
-                    text->SetRect(Base::Math::CRect(rightX, baseY, 1.0f - edge,
-                                                    size.m_Y + baseY + step));
+                    if (text)
+                    {
+                        float baseY = leftStatPositions[i->second.alignWithStat];
+                        float rightX = 1.0f - edge - size.m_X;
+                        text->SetRect(Base::Math::CRect(rightX, baseY, 1.0f - edge,
+                                                        size.m_Y + baseY + step));
+                    }
                 }
             }
             else
@@ -458,8 +461,11 @@ class CStatsConsole : public CConsole
                 if (e->Visible())
                 {
                     DisplayOutput::spCBaseText& text = i->second.text;
-                    text->SetRect(Base::Math::CRect(edge, pos, 1,
-                                                    size.m_Y + pos + step));
+                    if (text)
+                    {
+                        text->SetRect(Base::Math::CRect(edge, pos, 1,
+                                                        size.m_Y + pos + step));
+                    }
                 }
                 pos += size.m_Y;
             }
