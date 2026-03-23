@@ -260,6 +260,11 @@ void CRendererDX11::DrawQuad(const Base::Math::CRect& _rect,
                              const Base::Math::CVector4& _color,
                              const Base::Math::CRect& _uvRect)
 {
+    static bool s_loggedMissingVertexShader = false;
+    (void)_rect;
+    (void)_color;
+    (void)_uvRect;
+
     if (!m_renderTargetView)
     {
         g_Log->Error("No render target view");
@@ -273,39 +278,21 @@ void CRendererDX11::DrawQuad(const Base::Math::CRect& _rect,
             return;
     }
 
-    // Update shader uniforms
-    struct QuadUniforms
+    // Sync selected render state (textures/shader) before issuing draw call.
+    // This avoids stale active state in CRenderer::Apply.
+    Apply();
+
+    // D3D11 always needs a vertex shader for DrawIndexed.
+    ComPtr<ID3D11VertexShader> boundVertexShader;
+    m_context->VSGetShader(&boundVertexShader, nullptr, nullptr);
+    if (!boundVertexShader)
     {
-        float rect[4];   // x, y, width, height
-        float uvRect[4]; // x, y, width, height
-        float color[4];  // r, g, b, a
-        float brightness;
-    } uniforms;
-
-    uniforms.rect[0] = _rect.m_X0;
-    uniforms.rect[1] = _rect.m_Y0;
-    uniforms.rect[2] = _rect.m_X1 - _rect.m_X0;
-    uniforms.rect[3] = _rect.m_Y1 - _rect.m_Y0;
-
-    uniforms.uvRect[0] = _uvRect.m_X0;
-    uniforms.uvRect[1] = _uvRect.m_Y0;
-    uniforms.uvRect[2] = _uvRect.m_X1 - _uvRect.m_X0;
-    uniforms.uvRect[3] = _uvRect.m_Y1 - _uvRect.m_Y0;
-
-    uniforms.color[0] = _color.m_X;
-    uniforms.color[1] = _color.m_Y;
-    uniforms.color[2] = _color.m_Z;
-    uniforms.color[3] = _color.m_W;
-    uniforms.brightness = m_Brightness;
-
-    // Apply active shader and upload uniforms
-    auto activeShader =
-        std::static_pointer_cast<CShaderDX11>(m_spSelectedShader);
-    if (activeShader)
-    {
-        activeShader->Bind();
-        activeShader->Set("QuadUniforms", uniforms.rect[0], uniforms.rect[1],
-                          uniforms.rect[2], uniforms.rect[3]);
+        if (!s_loggedMissingVertexShader)
+        {
+            g_Log->Warning("Skipping DrawQuad: no vertex shader bound");
+            s_loggedMissingVertexShader = true;
+        }
+        return;
     }
 
     // Set vertex/index buffers and draw
@@ -319,11 +306,6 @@ void CRendererDX11::DrawQuad(const Base::Math::CRect& _rect,
 
     // Draw the quad
     m_context->DrawIndexed(6, 0, 0);
-
-    if (activeShader)
-    {
-        activeShader->Unbind();
-    }
 }
 
 void CRendererDX11::DrawQuad(const Base::Math::CRect& _rect,
