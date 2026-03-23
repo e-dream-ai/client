@@ -487,7 +487,7 @@ bool CClip::GrabVideoFrame()
             /*g_Log->Info("GrabVideoFrame() - Successfully grabbed frame %d",
                         m_CurrentFrameMetadata.frameIdx);*/
         }
-#if !USE_HW_ACCELERATION
+#if !USE_HW_ACCELERATION || defined(WIN32)
         if (m_spImageRef->GetWidth() != m_spFrameData->Width() ||
             m_spImageRef->GetHeight() != m_spFrameData->Height())
         {
@@ -507,17 +507,14 @@ bool CClip::GrabVideoFrame()
             return false;
         if (m_spFrameData->Frame())
         {
-            if (USE_HW_ACCELERATION)
-            {
-                //g_Log->Info("BindFrame %d", m_CurrentFrameMetadata.frameIdx);
-                currentTexture->BindFrame(m_spFrameData);
-            }
-            else
-            {
-                //    Set image texturedata and upload to texture.
-                m_spImageRef->SetStorageBuffer(m_spFrameData->StorageBuffer());
-                currentTexture->Upload(m_spImageRef);
-            }
+#if USE_HW_ACCELERATION && !defined(WIN32)
+            //g_Log->Info("BindFrame %d", m_CurrentFrameMetadata.frameIdx);
+            currentTexture->BindFrame(m_spFrameData);
+#else
+            // Set image texture data and upload to texture.
+            m_spImageRef->SetStorageBuffer(m_spFrameData->StorageBuffer());
+            currentTexture->Upload(m_spImageRef);
+#endif
         }
     }
 

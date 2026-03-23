@@ -19,6 +19,7 @@ protected:
     ComPtr<ID3D11RenderTargetView> m_renderTargetView;
     ComPtr<ID3D11DepthStencilView> m_depthStencilView;
     ComPtr<ID3D11BlendState> m_blendState;
+    ComPtr<ID3D11SamplerState> m_defaultSampler;
 
     std::map<std::string, spCBaseFont> m_fontPool;
 

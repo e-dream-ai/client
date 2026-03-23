@@ -54,6 +54,50 @@ float4 main(PSInput input) : SV_TARGET {
     return float4(sampled.rgb * color.rgb, sampled.a * color.a);
 }
 )";
+
+const char* kDrawDecodedFrameFragmentHlsl = R"(
+Texture2D tx0 : register(t0);
+SamplerState smp0 : register(s0);
+
+cbuffer QuadUniforms : register(b0) {
+    float4 rect;
+    float4 uvRect;
+    float4 color;
+    float brightness;
+    float3 padding;
+};
+
+struct PSInput {
+    float4 position : SV_POSITION;
+    float2 uv       : TEXCOORD0;
+};
+
+float4 main(PSInput input) : SV_TARGET {
+    float2 adjustedUV = (input.uv - rect.xy) / rect.zw;
+    adjustedUV = (adjustedUV + uvRect.xy) * uvRect.zw;
+    float4 sampled = tx0.Sample(smp0, adjustedUV);
+    sampled.rgb += brightness;
+    return float4(sampled.rgb * color.rgb, color.a);
+}
+)";
+
+bool CreateDefaultSampler(ID3D11Device* device, ID3D11SamplerState** outSampler)
+{
+    if (!device || !outSampler)
+        return false;
+
+    D3D11_SAMPLER_DESC samplerDesc = {};
+    samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+    samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+    samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+    samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+    samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+    samplerDesc.MinLOD = 0.0f;
+    samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+    HRESULT hr = device->CreateSamplerState(&samplerDesc, outSampler);
+    return SUCCEEDED(hr);
+}
 } // namespace
 
 CRendererDX11::CRendererDX11() : CRenderer() {
@@ -82,6 +126,12 @@ bool CRendererDX11::Initialize(spCDisplayOutput _spDisplay) {
 
     if (!CreateBlendStates())
         return false;
+
+    if (!CreateDefaultSampler(m_device.Get(), &m_defaultSampler))
+    {
+        g_Log->Error("Failed to create default DX11 sampler");
+        return false;
+    }
 
     // Mirror Metal initialization so generic texture rendering has a default shader.
     m_drawTextureShader = NewShader("quadPassVertex", "drawTextureFragment");
@@ -197,6 +247,17 @@ void CRendererDX11::Defaults() {
 }
 
 bool CRendererDX11::BeginFrame() {
+    if (!CRenderer::BeginFrame())
+        return false;
+
+    if (m_context && m_renderTargetView) {
+        ID3D11RenderTargetView* rtv = m_renderTargetView.Get();
+        m_context->OMSetRenderTargets(1, &rtv, m_depthStencilView.Get());
+
+        float blendFactor[4] = {0.f, 0.f, 0.f, 0.f};
+        m_context->OMSetBlendState(m_blendState.Get(), blendFactor, 0xFFFFFFFF);
+    }
+
     D3D11_VIEWPORT viewport = {};
     viewport.Width = static_cast<float>(m_spDisplay->Width());
     viewport.Height = static_cast<float>(m_spDisplay->Height());
@@ -211,6 +272,7 @@ bool CRendererDX11::BeginFrame() {
         if (m_depthStencilView) {
             m_context->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
         }
+
         return true;
     }
     return false;
@@ -288,8 +350,15 @@ spCShader CRendererDX11::NewShader(const char* _pVertexShader, const char* _pFra
         return nullptr;
     }
 
+    const char* fragmentSource = kDrawTextureFragmentHlsl;
+    if (fragmentName == "drawDecodedFrameNoBlendingFragment" ||
+        fragmentName == "drawDecodedFrameLinearFrameBlendFragment" ||
+        fragmentName == "drawDecodedFrameCubicFrameBlendFragment") {
+        fragmentSource = kDrawDecodedFrameFragmentHlsl;
+    }
+
     auto shader = std::make_shared<CShaderDX11>(m_device, m_context);
-    if (!shader->Build(kQuadPassVertexHlsl, kDrawTextureFragmentHlsl)) {
+    if (!shader->Build(kQuadPassVertexHlsl, fragmentSource)) {
         g_Log->Error("Failed building DX11 shader pair: %s / %s",
                      vertexName.c_str(), fragmentName.c_str());
         return nullptr;
@@ -355,9 +424,6 @@ void CRendererDX11::DrawQuad(const Base::Math::CRect& _rect,
                              const Base::Math::CRect& _uvRect)
 {
     static bool s_loggedMissingVertexShader = false;
-    (void)_rect;
-    (void)_color;
-    (void)_uvRect;
 
     if (!m_renderTargetView)
     {
@@ -418,9 +484,18 @@ void CRendererDX11::DrawQuad(const Base::Math::CRect& _rect,
     m_context->VSSetConstantBuffers(0, 1, &cb);
     m_context->PSSetConstantBuffers(0, 1, &cb);
 
+    // Match Metal behavior: use default texture shader when no shader was selected.
+    if (!m_spSelectedShader && m_drawTextureShader) {
+        SetShader(m_drawTextureShader);
+    }
+
     // Sync selected render state (textures/shader) before issuing draw call.
     // This avoids stale active state in CRenderer::Apply.
     Apply();
+
+    // Ensure PS sampler slot 0 is always explicitly bound.
+    ID3D11SamplerState* fallbackSampler = m_defaultSampler.Get();
+    m_context->PSSetSamplers(0, 1, &fallbackSampler);
 
     // D3D11 always needs a vertex shader for DrawIndexed.
     ComPtr<ID3D11VertexShader> boundVertexShader;
