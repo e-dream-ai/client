@@ -21,23 +21,54 @@ CTextureFlatVulkan::CTextureFlatVulkan(CRendererVulkan* renderer,
     : CTextureFlat(flags), m_pRenderer(renderer)
 {}
 
-CTextureFlatVulkan::~CTextureFlatVulkan()
+void CTextureFlatVulkan::DestroyVulkanResources()
 {
     if (!m_pRenderer) return;
     VkDevice dev = m_pRenderer->GetDevice();
+    if (dev == VK_NULL_HANDLE) return;
+
+    // Wait for any in-flight upload to finish before freeing the staging buffer.
+    if (m_copyPending && m_copyFence != VK_NULL_HANDLE)
+    {
+        vkWaitForFences(dev, 1, &m_copyFence, VK_TRUE, UINT64_MAX);
+        m_copyPending = false;
+    }
+    if (m_uploadCmdBuffer != VK_NULL_HANDLE)
+    {
+        vkFreeCommandBuffers(dev, m_pRenderer->GetCommandPool(),
+                             1, &m_uploadCmdBuffer);
+        m_uploadCmdBuffer = VK_NULL_HANDLE;
+    }
+    if (m_copyFence != VK_NULL_HANDLE)
+    {
+        vkDestroyFence(dev, m_copyFence, nullptr);
+        m_copyFence = VK_NULL_HANDLE;
+    }
 
     if (m_stagingBuffer != VK_NULL_HANDLE)
     {
         vkDestroyBuffer(dev, m_stagingBuffer, nullptr);
         vkFreeMemory(dev, m_stagingMem, nullptr);
+        m_stagingBuffer = VK_NULL_HANDLE;
+        m_stagingMem    = VK_NULL_HANDLE;
     }
     if (m_imageView != VK_NULL_HANDLE)
+    {
         vkDestroyImageView(dev, m_imageView, nullptr);
+        m_imageView = VK_NULL_HANDLE;
+    }
     if (m_image != VK_NULL_HANDLE)
     {
         vkDestroyImage(dev, m_image, nullptr);
         vkFreeMemory(dev, m_imageMem, nullptr);
+        m_image    = VK_NULL_HANDLE;
+        m_imageMem = VK_NULL_HANDLE;
     }
+}
+
+CTextureFlatVulkan::~CTextureFlatVulkan()
+{
+    DestroyVulkanResources();
 }
 
 // ---------------------------------------------------------------------------
@@ -203,7 +234,42 @@ bool CTextureFlatVulkan::Upload(spCImage _spImage)
 
 bool CTextureFlatVulkan::uploadToImage(uint32_t w, uint32_t h)
 {
-    VkCommandBuffer cmd = m_pRenderer->BeginSingleTimeCommands();
+    VkDevice dev = m_pRenderer->GetDevice();
+
+    // Lazily create the persistent upload command buffer and fence.
+    if (m_uploadCmdBuffer == VK_NULL_HANDLE)
+    {
+        VkCommandBufferAllocateInfo allocInfo{};
+        allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.commandPool        = m_pRenderer->GetCommandPool();
+        allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandBufferCount = 1;
+        vkAllocateCommandBuffers(dev, &allocInfo, &m_uploadCmdBuffer);
+
+        // Initially signaled so the first upload skips the wait.
+        VkFenceCreateInfo fenceInfo{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+        fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+        vkCreateFence(dev, &fenceInfo, nullptr, &m_copyFence);
+    }
+
+    // Wait for the previous upload to finish before overwriting the staging
+    // buffer.  In practice the GPU copy finishes long before the next video
+    // frame arrives (~33 ms at 30 fps vs < 1 ms for a typical copy), so this
+    // returns immediately and replaces the former vkQueueWaitIdle() stall.
+    if (m_copyPending)
+    {
+        vkWaitForFences(dev, 1, &m_copyFence, VK_TRUE, UINT64_MAX);
+        m_copyPending = false;
+    }
+    vkResetFences(dev, 1, &m_copyFence);
+
+    // Re-record the upload commands into the persistent command buffer.
+    vkResetCommandBuffer(m_uploadCmdBuffer, 0);
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    vkBeginCommandBuffer(m_uploadCmdBuffer, &beginInfo);
 
     // Transition: UNDEFINED → TRANSFER_DST
     VkImageMemoryBarrier barrier{};
@@ -216,7 +282,7 @@ bool CTextureFlatVulkan::uploadToImage(uint32_t w, uint32_t h)
     barrier.subresourceRange    = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
     barrier.srcAccessMask       = 0;
     barrier.dstAccessMask       = VK_ACCESS_TRANSFER_WRITE_BIT;
-    vkCmdPipelineBarrier(cmd,
+    vkCmdPipelineBarrier(m_uploadCmdBuffer,
         VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
         0, 0, nullptr, 0, nullptr, 1, &barrier);
 
@@ -224,7 +290,7 @@ bool CTextureFlatVulkan::uploadToImage(uint32_t w, uint32_t h)
     VkBufferImageCopy region{};
     region.imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
     region.imageExtent      = {w, h, 1};
-    vkCmdCopyBufferToImage(cmd, m_stagingBuffer, m_image,
+    vkCmdCopyBufferToImage(m_uploadCmdBuffer, m_stagingBuffer, m_image,
                            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
     // Transition: TRANSFER_DST → SHADER_READ_ONLY
@@ -232,11 +298,24 @@ bool CTextureFlatVulkan::uploadToImage(uint32_t w, uint32_t h)
     barrier.newLayout     = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-    vkCmdPipelineBarrier(cmd,
+    vkCmdPipelineBarrier(m_uploadCmdBuffer,
         VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
         0, 0, nullptr, 0, nullptr, 1, &barrier);
 
-    m_pRenderer->EndSingleTimeCommands(cmd);
+    vkEndCommandBuffer(m_uploadCmdBuffer);
+
+    // Submit without blocking the CPU.  The graphics queue executes submissions
+    // in order, so the render command buffer (submitted later in EndFrame) is
+    // guaranteed to start only after this upload completes — no semaphore needed.
+    // The fence is checked at the top of the *next* upload to ensure the staging
+    // buffer is no longer in use before we overwrite it.
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers    = &m_uploadCmdBuffer;
+    vkQueueSubmit(m_pRenderer->GetGraphicsQueue(), 1, &submitInfo, m_copyFence);
+    m_copyPending = true;
+
     m_dirty = true;   // signal Apply() to re-call Bind() with the new descSet
     return true;
 }

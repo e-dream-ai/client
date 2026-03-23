@@ -122,13 +122,14 @@ class CKeyEvent : public CEvent
         KEY_PAGEDOWN = 0x22
     };
 
-    CKeyEvent() : m_bPressed(true), m_Code(KEY_NONE) {}
+    CKeyEvent() : m_bPressed(true), m_Code(KEY_NONE), m_bCtrl(false) {}
 
     virtual ~CKeyEvent() {}
 
     virtual eEventType Type() { return (CEvent::Event_KEY); };
-    bool m_bPressed;
+    bool     m_bPressed;
     eKeyCode m_Code;
+    bool     m_bCtrl;
 
     POOLED(CKeyEvent, Memory::CLinkPool);
 };
@@ -234,6 +235,7 @@ class CDisplayOutput
     void ClearEvents();
 
     virtual bool HasShaders() { return false; };
+    virtual void ToggleFullscreen() {}
     uint32_t Width() { return (m_Width); };
     uint32_t Height() { return (m_Height); };
     float Aspect() { return ((float)m_Height / (float)m_Width); };

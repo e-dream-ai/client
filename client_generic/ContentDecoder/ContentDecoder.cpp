@@ -46,6 +46,19 @@ namespace ContentDecoder
 // Static mutex definition
 std::mutex CContentDecoder::s_RenameMutex;
 
+#ifndef WIN32
+// Prefer AV_PIX_FMT_VAAPI when the codec offers it; otherwise take the first
+// software format in the list.  This is the required get_format() hook for
+// FFmpeg hardware-accelerated decoding.
+static AVPixelFormat vaapi_get_format(AVCodecContext* /*ctx*/,
+                                      const AVPixelFormat* fmts)
+{
+    for (const AVPixelFormat* p = fmts; *p != AV_PIX_FMT_NONE; ++p)
+        if (*p == AV_PIX_FMT_VAAPI) return AV_PIX_FMT_VAAPI;
+    return fmts[0];
+}
+#endif
+
 static void AVCodecLogCallback(void* /*_avcl*/, int _level, const char* _fmt,
                                va_list _vl)
 {
@@ -314,20 +327,25 @@ bool CContentDecoder::Open()
         g_Log->Error("unknown codec? ");
         return false;
     }
-    if (USE_HW_ACCELERATION)
+#ifndef WIN32
+    // Try VAAPI hardware-accelerated decoding.  Falls back silently to
+    // software if VAAPI is not available (e.g. no DRI device, VM, etc.).
     {
-        AVHWDeviceType hw_type = av_hwdevice_find_type_by_name("videotoolbox");
-        if (hw_type != AV_HWDEVICE_TYPE_NONE)
+        AVBufferRef* hw_ctx = nullptr;
+        if (av_hwdevice_ctx_create(&hw_ctx, AV_HWDEVICE_TYPE_VAAPI,
+                                   nullptr, nullptr, 0) == 0)
         {
-            ovi->m_pVideoCodecContext->hw_device_ctx =
-            av_hwdevice_ctx_alloc(hw_type);
-            av_hwdevice_ctx_init(ovi->m_pVideoCodecContext->hw_device_ctx);
+            ovi->m_pVideoCodecContext->hw_device_ctx = av_buffer_ref(hw_ctx);
+            ovi->m_pVideoCodecContext->get_format     = vaapi_get_format;
+            av_buffer_unref(&hw_ctx);
+            g_Log->Info("VAAPI hardware decoding enabled");
         }
         else
         {
-            g_Log->Error("Hardware acceleration unsupported.");
+            g_Log->Info("VAAPI unavailable — using software decoding");
         }
     }
+#endif
     // Initialize the codec context
     ovi->m_pFormatContext->flags |= AVFMT_FLAG_IGNIDX;   //	Ignore index.
     ovi->m_pFormatContext->flags |= AVFMT_FLAG_NONBLOCK; //	Do not
@@ -586,6 +604,34 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
         // Successfully decoded a frame
         frameDecoded = 1;
         ovi->m_ActualFrameCount++;
+
+#ifndef WIN32
+        // If VAAPI produced a hardware frame, copy it to system RAM so the
+        // regular swscale path below can process it normally.
+        if (pFrame->format == AV_PIX_FMT_VAAPI)
+        {
+            AVFrame* sw_frame = av_frame_alloc();
+            if (av_hwframe_transfer_data(sw_frame, pFrame, 0) == 0)
+            {
+                // av_hwframe_transfer_data copies only pixel data — preserve timing metadata manually.
+                sw_frame->pts                   = pFrame->pts;
+                sw_frame->pkt_dts               = pFrame->pkt_dts;
+                sw_frame->best_effort_timestamp = pFrame->best_effort_timestamp;
+                av_frame_unref(pFrame);
+                av_frame_move_ref(pFrame, sw_frame);
+            }
+            else
+            {
+                g_Log->Error("av_hwframe_transfer_data failed — dropping frame");
+                av_frame_free(&sw_frame);
+                av_packet_free(&packet);
+                av_packet_free(&filteredPacket);
+                frameDecoded = 0;
+                continue;
+            }
+            av_frame_free(&sw_frame);
+        }
+#endif
         
         // Update frame number - use sequential counting during flush mode
         if (ovi->m_ReadingTrailingFrames) {
@@ -681,7 +727,8 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
                 
                 m_pScaler = sws_getContext(
                                            pVideoCodecContext->width, pVideoCodecContext->height,
-                                           pVideoCodecContext->pix_fmt, pVideoCodecContext->width,
+                                           static_cast<AVPixelFormat>(pFrame->format),
+                                           pVideoCodecContext->width,
                                            pVideoCodecContext->height, m_WantedPixelFormat,
                                            SWS_BICUBIC, nullptr, nullptr, nullptr);
                 

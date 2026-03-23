@@ -312,6 +312,8 @@ class CElectricSheep
         Hud::spCStatsConsole spHelpMessage =
             std::dynamic_pointer_cast<Hud::CStatsConsole>(
                 m_HudManager->Get("helpmessage"));
+        // BK wraps a key name in inline-bold markers for the help overlay renderer.
+#define BK(k) "\x01" k "\x02"
         spHelpMessage->Add(new Hud::CStringStat(
             "message",
             "infinidream: visuals for your vibe\n\n"
@@ -321,17 +323,23 @@ class CElectricSheep
             "Use the remote control or keyboard to interact.\n\n"
 #endif
             "Keyboard Commands:\n"
-            "A: slower playback\t\t\t\t\tUp: like this dream\n"
-            "D: faster playback\t\t\t\t\tDown: dislike and delete\n"
-            "J: skip 10 seconds back\t\t\tLeft: previous dream\n"
-            "L: skip 10 seconds forward\tRight: next dream\n"
-            "R: repeat current dream\t\t\tH: shuffle mode\n"
-            "C: show credit\t\t\t\t\t\tB: report this dream\n"
-            "V: open web source\t\t\t\t" FULLSCREEN_MODIFIER_KEY "-F: toggle full screen\n"
-            "F1: help (this page)\t\t\t\tF2: status overlay\n\n"
+            BK("A") ": Slower playback\t\t\t\t\t" BK("Up") ": Like this dream\n"
+            BK("D") ": Faster playback\t\t\t\t\t" BK("Down") ": Dislike and delete\n"
+            BK("J") ": Skip 10 seconds back\t\t\t" BK("Left") ": Previous dream\n"
+            BK("L") ": Skip 10 seconds forward\t" BK("Right") ": Next dream\n"
+            BK("R") ": Repeat current dream\t\t\t" BK("H") ": Shuffle mode\n"
+            BK("C") ": Show credit\t\t\t\t\t\t" BK("B") ": Report this dream\n"
+#ifdef LINUX_GNU
+            BK("V") ": Open web source\t\t\t\t" BK("F") ": Toggle full screen\n"
+#else
+            BK("V") ": Open web source\t\t\t\t" BK(FULLSCREEN_MODIFIER_KEY "-F") ": Toggle full screen\n"
+#endif
+            BK("F1") ": Help (this page)\t\t\t\t" BK("F2") ": Status overlay\n\n"
 
-            FULLSCREEN_MODIFIER_KEY "-R: open remote control\n" FULLSCREEN_MODIFIER_KEY "-B: browse playlists",
+            BK(FULLSCREEN_MODIFIER_KEY "-R") ": Open remote control\n"
+            BK(FULLSCREEN_MODIFIER_KEY "-B") ": Browse playlists",
             ""));
+#undef BK
 
         std::string ver = GetVersion();
 
@@ -2294,6 +2302,7 @@ class CElectricSheep
         {
             DisplayOutput::spCKeyEvent spKey =
                 std::dynamic_pointer_cast<DisplayOutput::CKeyEvent>(_event);
+            if (!spKey->m_bPressed) return true;  // ignore key-release events
             switch (spKey->m_Code)
             {
                     // Vote for sheep.
@@ -2365,10 +2374,12 @@ class CElectricSheep
                     return ExecuteCommand(CLIENT_COMMAND_BRIGHTNESS_UP);
                 case DisplayOutput::CKeyEvent::KEY_S:
                     return ExecuteCommand(CLIENT_COMMAND_BRIGHTNESS_DOWN);
+                case DisplayOutput::CKeyEvent::KEY_F:
+                    g_Player().Display()->ToggleFullscreen();
+                    return true;
                 //    All other keys needs to be ignored, they are handled somewhere
                 // else...
                 default:
-                    g_Log->Info("Key event, ignoring");
                     return false;
             }
         }

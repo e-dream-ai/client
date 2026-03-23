@@ -1242,7 +1242,11 @@ bool CPlayer::SetPlaylistAtDream(const std::string& playlistUUID, const std::str
     int64_t seekFrame;
     seekFrame = (int64_t)g_Settings()->Get(
         "settings.content.last_played_frame", uint64_t{});
-    
+    // Guard against corrupted/wrapped values (e.g. uint32_t wrap from a previous VAAPI PTS bug).
+    // Any negative value or value implying > 24 hours of footage at 60fps is treated as invalid.
+    constexpr int64_t kMaxReasonableFrame = 24LL * 3600 * 60; // 24h @ 60fps
+    if (seekFrame < 0 || seekFrame > kMaxReasonableFrame) seekFrame = 0;
+
     // If we've reached here, the playlist is set and positioned at the correct dream
     // Now we can start playing this dream
     StartTransition();

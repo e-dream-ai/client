@@ -27,6 +27,7 @@ find_package(Vulkan REQUIRED)
 find_package(X11 REQUIRED)
 find_package(Threads REQUIRED)
 find_package(OpenSSL REQUIRED)
+find_package(Freetype REQUIRED)
 
 # Boost — filesystem + thread (boost_system is header-only since 1.69)
 find_package(Boost REQUIRED COMPONENTS filesystem thread log log_setup json)
@@ -48,6 +49,7 @@ endif()
 if(PKG_CONFIG_FOUND)
     pkg_check_modules(WAYLAND_CLIENT wayland-client)
     pkg_check_modules(WAYLAND_PROTOCOLS wayland-protocols)
+    pkg_check_modules(XKB xkbcommon)
     find_program(WAYLAND_SCANNER wayland-scanner HINTS /usr/bin /usr/local/bin)
     if(WAYLAND_CLIENT_FOUND AND WAYLAND_PROTOCOLS_FOUND AND WAYLAND_SCANNER)
         message(STATUS "Wayland found — native Wayland surface enabled")
@@ -62,6 +64,17 @@ if(PKG_CONFIG_FOUND)
                     ${XDG_SHELL_XML} ${CMAKE_CURRENT_BINARY_DIR}/xdg-shell-client-protocol.h
             DEPENDS ${XDG_SHELL_XML}
             COMMENT "Generating xdg-shell protocol bindings"
+        )
+        set(XDG_DECORATION_XML "${WL_PROTOCOLS_DIR}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml")
+        add_custom_command(
+            OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/xdg-decoration-unstable-v1-protocol.c
+                    ${CMAKE_CURRENT_BINARY_DIR}/xdg-decoration-unstable-v1-client-protocol.h
+            COMMAND ${WAYLAND_SCANNER} private-code
+                    ${XDG_DECORATION_XML} ${CMAKE_CURRENT_BINARY_DIR}/xdg-decoration-unstable-v1-protocol.c
+            COMMAND ${WAYLAND_SCANNER} client-header
+                    ${XDG_DECORATION_XML} ${CMAKE_CURRENT_BINARY_DIR}/xdg-decoration-unstable-v1-client-protocol.h
+            DEPENDS ${XDG_DECORATION_XML}
+            COMMENT "Generating xdg-decoration protocol bindings"
         )
         add_compile_definitions(HAVE_WAYLAND)
     else()
@@ -195,9 +208,12 @@ set(SOURCES
     ${LINBLD}/PlatformUtils_Linux.cpp
 )
 
-# Append generated xdg-shell binding when Wayland is available
+# Append generated Wayland protocol bindings when Wayland is available
 if(WAYLAND_CLIENT_FOUND AND WAYLAND_PROTOCOLS_FOUND AND WAYLAND_SCANNER)
-    list(APPEND SOURCES ${CMAKE_CURRENT_BINARY_DIR}/xdg-shell-protocol.c)
+    list(APPEND SOURCES
+        ${CMAKE_CURRENT_BINARY_DIR}/xdg-shell-protocol.c
+        ${CMAKE_CURRENT_BINARY_DIR}/xdg-decoration-unstable-v1-protocol.c
+    )
 endif()
 
 # ---------------------------------------------------------------------------
@@ -236,6 +252,8 @@ target_include_directories(infinidream PRIVATE
     ${PNG_INCLUDE_DIRS}
     ${CMAKE_CURRENT_BINARY_DIR}           # generated xdg-shell-client-protocol.h
     ${WAYLAND_CLIENT_INCLUDE_DIRS}
+    ${XKB_INCLUDE_DIRS}
+    ${FREETYPE_INCLUDE_DIRS}
 )
 
 # ---------------------------------------------------------------------------
@@ -260,6 +278,8 @@ target_link_libraries(infinidream PRIVATE
     dl
     ${BASE}/socket.io-client-cpp/lib/linux/libsioclient_tls.a
     $<$<BOOL:${WAYLAND_CLIENT_FOUND}>:${WAYLAND_CLIENT_LIBRARIES}>
+    $<$<BOOL:${XKB_FOUND}>:${XKB_LIBRARIES}>
+    ${FREETYPE_LIBRARIES}
 )
 
 # ---------------------------------------------------------------------------
@@ -288,4 +308,11 @@ add_custom_command(TARGET infinidream POST_BUILD
         ${BASE}/Runtime/logo.png
         $<TARGET_FILE_DIR:infinidream>/logo.png
     COMMENT "Copying runtime assets to binary directory"
+)
+
+add_custom_command(TARGET infinidream POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${BASE}/Runtime/Lato-Regular.ttf
+        $<TARGET_FILE_DIR:infinidream>/Lato-Regular.ttf
+    COMMENT "Copying Lato-Regular.ttf to binary directory"
 )

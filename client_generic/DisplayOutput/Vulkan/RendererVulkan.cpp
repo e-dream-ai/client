@@ -9,6 +9,7 @@
 #include "Rect.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 #include <fstream>
 #include <limits>
@@ -36,6 +37,17 @@ CRendererVulkan::~CRendererVulkan()
     if (m_device == VK_NULL_HANDLE) return;
     vkDeviceWaitIdle(m_device);
 
+    // Explicitly destroy font atlas GPU resources before device teardown.
+    // CStatsConsole etc. may still hold shared_ptr refs to CFontVulkan, so
+    // we can't rely on the font pool's destructor to run first.
+    for (auto& kv : m_fontPool)
+    {
+        auto fv = std::dynamic_pointer_cast<CFontVulkan>(kv.second);
+        if (fv && fv->AtlasTexture())
+            fv->AtlasTexture()->DestroyVulkanResources();
+    }
+    m_fontPool.clear();
+
     // White texture
     if (m_whiteDescSet  != VK_NULL_HANDLE) { /* freed with pool */ }
     if (m_whiteView     != VK_NULL_HANDLE) vkDestroyImageView(m_device, m_whiteView, nullptr);
@@ -59,6 +71,7 @@ CRendererVulkan::~CRendererVulkan()
             vkDestroyFence(m_device, m_inFlightFence[i], nullptr);
     }
 
+    if (m_timestampPool       != VK_NULL_HANDLE) vkDestroyQueryPool(m_device, m_timestampPool, nullptr);
     // Command buffers freed with pool
     if (m_commandPool         != VK_NULL_HANDLE) vkDestroyCommandPool(m_device, m_commandPool, nullptr);
     if (m_pipeline            != VK_NULL_HANDLE) vkDestroyPipeline(m_device, m_pipeline, nullptr);
@@ -73,6 +86,9 @@ CRendererVulkan::~CRendererVulkan()
     if (m_swapchain  != VK_NULL_HANDLE)  vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
 
     vkDestroyDevice(m_device, nullptr);
+    // Null the handle so any CTextureFlatVulkan dtor that still holds a raw
+    // renderer pointer sees VK_NULL_HANDLE and skips destroy calls safely.
+    m_device = VK_NULL_HANDLE;
 }
 
 // ---------------------------------------------------------------------------
@@ -831,6 +847,30 @@ bool CRendererVulkan::Initialize(spCDisplayOutput _spDisplay)
 
     m_currentDescSet = m_whiteDescSet;
 
+    // Timestamp query pool for GPU frame-time measurement.
+    // Two queries per in-flight frame slot: one at start, one at end of frame.
+    {
+        VkPhysicalDeviceProperties devProps;
+        vkGetPhysicalDeviceProperties(m_physicalDevice, &devProps);
+        m_timestampPeriodNs = devProps.limits.timestampPeriod;
+
+        if (m_timestampPeriodNs > 0.0f)
+        {
+            VkQueryPoolCreateInfo qpci{VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO};
+            qpci.queryType  = VK_QUERY_TYPE_TIMESTAMP;
+            qpci.queryCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 2;
+            if (vkCreateQueryPool(m_device, &qpci, nullptr, &m_timestampPool) != VK_SUCCESS)
+            {
+                g_Log->Warning("CRendererVulkan: timestamp query pool creation failed — GPU timing unavailable");
+                m_timestampPool = VK_NULL_HANDLE;
+            }
+        }
+        else
+        {
+            g_Log->Warning("CRendererVulkan: GPU timestamps not supported by this device");
+        }
+    }
+
     g_Log->Info("CRendererVulkan: initialized (%ux%u)", w, h);
     return true;
 }
@@ -842,8 +882,41 @@ void CRendererVulkan::Defaults() {}
 void CRendererVulkan::Reset(const uint32_t /*_flags*/) {}
 void CRendererVulkan::Apply()
 {
-    // Delegate to base class which handles Bind()/Dirty() per texture unit
     CRenderer::Apply();
+    // DrawText calls Bind() directly on font atlas textures, changing
+    // m_currentDescSet behind Apply()'s back.  The base class won't rebind
+    // the video texture on frames where it hasn't changed (same pointer,
+    // not dirty), so m_currentDescSet can be left pointing at a font atlas.
+    // Force-rebind every selected texture here so m_currentDescSet is always
+    // correct before the next DrawQuad.
+    for (uint32_t i = 0; i < MAX_TEXUNIT; ++i)
+    {
+        if (m_aspSelectedTextures[i])
+            m_aspSelectedTextures[i]->Bind(i);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// GPU utilization — read from the DRM sysfs interface exposed by amdgpu and
+// some Intel drivers.  Returns 0 if the path doesn't exist (NVIDIA, VMs, etc.).
+// ---------------------------------------------------------------------------
+float CRendererVulkan::GetGPUUtilization()
+{
+    static const char* const kPaths[] = {
+        "/sys/class/drm/card0/device/gpu_busy_percent",
+        "/sys/class/drm/card1/device/gpu_busy_percent",
+        nullptr,
+    };
+    for (int i = 0; kPaths[i]; ++i)
+    {
+        FILE* f = fopen(kPaths[i], "r");
+        if (!f) continue;
+        int pct = 0;
+        bool ok = (fscanf(f, "%d", &pct) == 1);
+        fclose(f);
+        if (ok) return static_cast<float>(pct);
+    }
+    return 0.0f;
 }
 
 // ---------------------------------------------------------------------------
@@ -886,6 +959,15 @@ bool CRendererVulkan::BeginFrame()
 {
     if (m_inFrame) return true;
 
+    // Proactively recreate the swapchain if the display size changed (e.g. fullscreen toggle).
+    // Wayland compositors don't always send VK_ERROR_OUT_OF_DATE_KHR for client-driven resizes.
+    if (m_spDisplay->Width()  != m_swapExtent.width ||
+        m_spDisplay->Height() != m_swapExtent.height)
+    {
+        recreateSwapchain();
+        return false;
+    }
+
     // Wait for previous frame in this slot
     vkWaitForFences(m_device, 1, &m_inFlightFence[m_currentFrame],
                     VK_TRUE, UINT64_MAX);
@@ -908,6 +990,27 @@ bool CRendererVulkan::BeginFrame()
 
     VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
     vkBeginCommandBuffer(cmd, &beginInfo);
+
+    // GPU frame-time: read back last frame's results (fence guarantees they're ready),
+    // then reset + write the start timestamp for this slot.
+    if (m_timestampPool != VK_NULL_HANDLE)
+    {
+        if (m_timestampsValid)
+        {
+            uint64_t ts[2] = {};
+            if (vkGetQueryPoolResults(m_device, m_timestampPool,
+                    m_currentFrame * 2, 2,
+                    sizeof(ts), ts, sizeof(uint64_t),
+                    VK_QUERY_RESULT_64_BIT) == VK_SUCCESS)
+            {
+                float ns = static_cast<float>(ts[1] - ts[0]) * m_timestampPeriodNs;
+                m_gpuFrameTimeMs = ns * 1e-6f;
+            }
+        }
+        vkCmdResetQueryPool(cmd, m_timestampPool, m_currentFrame * 2, 2);
+        vkCmdWriteTimestamp(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                            m_timestampPool, m_currentFrame * 2);
+    }
 
     // Begin render pass
     VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
@@ -945,6 +1048,15 @@ bool CRendererVulkan::EndFrame(bool /*drawn*/)
 
     VkCommandBuffer cmd = m_commandBuffers[m_currentFrame];
     vkCmdEndRenderPass(cmd);
+
+    // GPU frame-time: write end timestamp outside the render pass.
+    if (m_timestampPool != VK_NULL_HANDLE)
+    {
+        vkCmdWriteTimestamp(cmd, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                            m_timestampPool, m_currentFrame * 2 + 1);
+        m_timestampsValid = true;
+    }
+
     vkEndCommandBuffer(cmd);
 
     VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -1065,25 +1177,125 @@ spCTextureFlat CRendererVulkan::NewTextureFlat(spCImage _spImage,
 // ---------------------------------------------------------------------------
 spCBaseFont CRendererVulkan::GetFont(CFontDescription& _desc)
 {
-    std::string key = _desc.TypeFace() + "_" + std::to_string(_desc.Height());
+    std::string key = _desc.TypeFace() + "_" + std::to_string(_desc.Height())
+                    + "_" + std::to_string(static_cast<int>(_desc.Style()));
     auto it = m_fontPool.find(key);
     if (it != m_fontPool.end()) return it->second;
 
     auto font = std::make_shared<CFontVulkan>();
     font->FontDescription(_desc);
-    font->Create();
+    font->CreateWithRenderer(this);
     m_fontPool[key] = font;
+
+    // Pre-create the bold variant for Normal fonts so DrawText never triggers
+    // atlas creation (and vkQueueWaitIdle) inside an active render pass.
+    if (_desc.Style() == CFontDescription::Normal)
+    {
+        CFontDescription boldDesc = _desc;
+        boldDesc.Style(CFontDescription::Bold);
+        std::string boldKey = boldDesc.TypeFace() + "_" + std::to_string(boldDesc.Height())
+                            + "_" + std::to_string(static_cast<int>(boldDesc.Style()));
+        if (m_fontPool.find(boldKey) == m_fontPool.end())
+        {
+            auto boldFont = std::make_shared<CFontVulkan>();
+            boldFont->FontDescription(boldDesc);
+            boldFont->CreateWithRenderer(this);
+            m_fontPool[boldKey] = boldFont;
+        }
+    }
+
     return font;
 }
 
 spCBaseText CRendererVulkan::NewText(spCBaseFont _font, const std::string& _text)
 {
-    return std::make_shared<CTextVulkan>(_font, _text);
+    return std::make_shared<CTextVulkan>(_font, _text, this);
 }
 
-void CRendererVulkan::DrawText(spCBaseText /*_text*/,
-                                const Base::Math::CVector4& /*_color*/)
+void CRendererVulkan::DrawText(spCBaseText _text,
+                                const Base::Math::CVector4& _color)
 {
+    if (!_text || !m_inFrame) return;
+
+    auto spTV = std::dynamic_pointer_cast<CTextVulkan>(_text);
+    if (!spTV || !spTV->IsEnabled()) return;
+
+    auto spFV = std::dynamic_pointer_cast<CFontVulkan>(spTV->GetFont());
+    if (!spFV || !spFV->AtlasTexture()) return;
+
+    // Resolve the bold variant for inline bold markers.
+    // GetFont() returns immediately from the pool — the bold font was pre-created
+    // by GetFont() when the normal font was first requested, so this is a cheap
+    // map lookup with no atlas creation and no vkQueueWaitIdle.
+    std::shared_ptr<CFontVulkan> spFVBold = spFV;
+    const std::string& text = spTV->Text();
+    if (text.find('\x01') != std::string::npos)
+    {
+        CFontDescription boldDesc = spTV->GetFont()->FontDescription();
+        boldDesc.Style(CFontDescription::Bold);
+        auto boldFont = GetFont(boldDesc);
+        if (boldFont)
+        {
+            auto candidate = std::dynamic_pointer_cast<CFontVulkan>(boldFont);
+            if (candidate && candidate->AtlasTexture())
+                spFVBold = candidate;
+        }
+    }
+
+    // Bind the glyph atlas so subsequent DrawQuad calls sample from it.
+    spFV->AtlasTexture()->Bind(0);
+
+    Base::Math::CRect  rect    = spTV->GetRect();
+    const float        screenW = static_cast<float>(m_swapExtent.width);
+    const float        screenH = static_cast<float>(m_swapExtent.height);
+    const float        lineHN  = static_cast<float>(spFV->LineHeight()) / screenH;
+    const int32_t      asc     = spFV->Ascender();
+
+    float penX = rect.m_X0;
+    float penY = rect.m_Y0;
+    CFontVulkan* activeFV = spFV.get();
+
+    for (unsigned char c : text)
+    {
+        if (c == '\x01') { activeFV = spFVBold.get(); spFVBold->AtlasTexture()->Bind(0); continue; }
+        if (c == '\x02') { activeFV = spFV.get();     spFV->AtlasTexture()->Bind(0);     continue; }
+
+        if (c == '\n')
+        {
+            penX  = rect.m_X0;
+            penY += lineHN;
+            continue;
+        }
+
+        if (c == '\t')
+        {
+            const GlyphInfo* sp = activeFV->GetGlyph(' ');
+            if (sp)
+            {
+                float tabW  = static_cast<float>(sp->advance * 8) / screenW;
+                float stops = std::floor(penX / tabW);
+                penX = (stops + 1.0f) * tabW;
+            }
+            continue;
+        }
+
+        const GlyphInfo* gi = activeFV->GetGlyph(static_cast<uint32_t>(c));
+        if (!gi) continue;
+
+        if (gi->width > 0 && gi->height > 0)
+        {
+            const float x0 = penX + static_cast<float>(gi->bearingX)       / screenW;
+            const float y0 = penY + static_cast<float>(asc - gi->bearingY) / screenH;
+            const float x1 = x0  + static_cast<float>(gi->width)           / screenW;
+            const float y1 = y0  + static_cast<float>(gi->height)          / screenH;
+
+            DrawQuad(Base::Math::CRect(x0, y0, x1, y1),
+                     _color,
+                     Base::Math::CRect(gi->u0, gi->v0, gi->u1, gi->v1));
+        }
+
+        penX += static_cast<float>(gi->advance) / screenW;
+    }
 }
 
 // ---------------------------------------------------------------------------

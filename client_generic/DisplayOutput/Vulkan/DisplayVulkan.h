@@ -13,7 +13,9 @@
 #ifdef HAVE_WAYLAND
 #include <wayland-client.h>
 #include <vulkan/vulkan_wayland.h>
+#include <xkbcommon/xkbcommon.h>
 #include "xdg-shell-client-protocol.h"
+#include "xdg-decoration-unstable-v1-client-protocol.h"
 #endif
 
 #include <string>
@@ -55,6 +57,14 @@ class CDisplayVulkan : public CDisplayOutput
     struct xdg_wm_base*   m_pXdgWmBase    = nullptr;
     struct xdg_surface*   m_pXdgSurface   = nullptr;
     struct xdg_toplevel*  m_pXdgToplevel  = nullptr;
+    struct wl_seat*       m_pWlSeat       = nullptr;
+    struct wl_keyboard*   m_pWlKeyboard   = nullptr;
+    struct zxdg_decoration_manager_v1*   m_pDecorationManager = nullptr;
+    struct zxdg_toplevel_decoration_v1*  m_pToplevelDecoration = nullptr;
+
+    struct xkb_context*   m_pXkbContext   = nullptr;
+    struct xkb_keymap*    m_pXkbKeymap    = nullptr;
+    struct xkb_state*     m_pXkbState     = nullptr;
 
     bool initWayland(uint32_t w, uint32_t h, bool bFullscreen);
     void destroyWayland();
@@ -66,6 +76,14 @@ class CDisplayVulkan : public CDisplayOutput
     static void onXdgSurfaceConfigure(void*, xdg_surface*, uint32_t);
     static void onXdgToplevelConfigure(void*, xdg_toplevel*, int32_t, int32_t, wl_array*);
     static void onXdgToplevelClose(void*, xdg_toplevel*);
+    static void onSeatCapabilities(void*, wl_seat*, uint32_t);
+    static void onSeatName(void*, wl_seat*, const char*);
+    static void onKeyboardKeymap(void*, wl_keyboard*, uint32_t, int32_t, uint32_t);
+    static void onKeyboardEnter(void*, wl_keyboard*, uint32_t, wl_surface*, wl_array*);
+    static void onKeyboardLeave(void*, wl_keyboard*, uint32_t, wl_surface*);
+    static void onKeyboardKey(void*, wl_keyboard*, uint32_t, uint32_t, uint32_t, uint32_t);
+    static void onKeyboardModifiers(void*, wl_keyboard*, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
+    static void onKeyboardRepeatInfo(void*, wl_keyboard*, int32_t, int32_t);
 #endif
 
     bool      m_bWayland      = false;
@@ -95,6 +113,7 @@ class CDisplayVulkan : public CDisplayOutput
 
     virtual void Title(const std::string& _title) override;
     virtual void Update() override;
+    virtual void ToggleFullscreen() override { setFullScreen(!m_bFullScreen); }
     virtual void SwapBuffers() override {} // presentation managed by RendererVulkan
     virtual bool HasShaders() override { return true; }
 

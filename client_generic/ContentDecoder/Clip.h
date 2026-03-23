@@ -54,8 +54,11 @@ public: // tmp public for debug
     sClipMetadata m_ClipMetadata;
     DecoderClock m_DecoderClock;
 private: //tmp
-    spCFrameDisplay m_spFrameDisplay;
+    // m_spRenderer must be declared before m_spFrameDisplay so that the frame
+    // display (and its CTextureFlatVulkan) is destroyed BEFORE the renderer
+    // ref count drops. C++ destructs members in reverse declaration order.
     spCRenderer m_spRenderer;
+    spCFrameDisplay m_spFrameDisplay;
     spCContentDecoder m_spDecoder;
     ContentDecoder::spCVideoFrame m_spFrameData;
     DisplayOutput::spCImage m_spImageRef;

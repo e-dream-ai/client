@@ -36,6 +36,13 @@ class CTextureFlatVulkan : public CTextureFlat
     VkDeviceMemory m_stagingMem    = VK_NULL_HANDLE;
     VkDeviceSize   m_stagingSize   = 0;
 
+    // Persistent upload command buffer + fence for async uploads.
+    // The fence signals when the GPU has finished consuming the staging buffer,
+    // so we can safely overwrite it with new frame data on the next upload.
+    VkCommandBuffer m_uploadCmdBuffer = VK_NULL_HANDLE;
+    VkFence         m_copyFence       = VK_NULL_HANDLE;
+    bool            m_copyPending     = false;
+
     bool allocStaging(VkDeviceSize size);
     bool uploadToImage(uint32_t w, uint32_t h);
 
@@ -54,6 +61,11 @@ class CTextureFlatVulkan : public CTextureFlat
     virtual bool Dirty() override { return m_dirty; }
 
     VkDescriptorSet DescSet() const { return m_descSet; }
+
+    // Explicitly free Vulkan resources while the device is still alive.
+    // Called by the renderer destructor before vkDestroyDevice.
+    // After this the destructor becomes a no-op (all handles are NULL).
+    void DestroyVulkanResources();
 };
 
 MakeSmartPointers(CTextureFlatVulkan);

@@ -94,6 +94,13 @@ class CRendererVulkan : public CRenderer
     // Font pool
     std::map<std::string, spCBaseFont> m_fontPool;
 
+    // GPU frame-time measurement via Vulkan timestamp queries.
+    // One start + one end query per in-flight slot → MAX_FRAMES_IN_FLIGHT * 2 queries total.
+    VkQueryPool m_timestampPool    = VK_NULL_HANDLE;
+    float       m_gpuFrameTimeMs   = 0.0f;
+    float       m_timestampPeriodNs = 0.0f;  // nanoseconds per timestamp tick
+    bool        m_timestampsValid  = false;   // becomes true after the first frame completes
+
     // Initialisation helpers
     bool pickPhysicalDevice(VkInstance instance, VkSurfaceKHR surface);
     bool createLogicalDevice();
@@ -137,6 +144,9 @@ class CRendererVulkan : public CRenderer
     virtual void DrawText(spCBaseText _text,
                           const Base::Math::CVector4& _color) override;
 
+    virtual float GetGPUFrameTimeMs() override { return m_gpuFrameTimeMs; }
+    virtual float GetGPUUtilization() override;
+
     virtual spCShader NewShader(
         const char* _pVert, const char* _pFrag,
         std::vector<std::pair<std::string, eUniformType>> uniforms = {}) override;
@@ -166,6 +176,9 @@ class CRendererVulkan : public CRenderer
 
     // Let the active texture set its descriptor
     void SetDescriptorSet(VkDescriptorSet ds) { m_currentDescSet = ds; }
+
+    // Swapchain extent — used by CTextVulkan::GetExtent() for screen-space normalisation
+    VkExtent2D GetSwapExtent() const { return m_swapExtent; }
 };
 
 MakeSmartPointers(CRendererVulkan);

@@ -37,7 +37,6 @@ bool CImage::LoadPNG(const std::string& _fileName, const bool _wantMipMaps)
     // open the PNG input file
     if ((file = fopen(_fileName.c_str(), "rb")) == NULL)
     {
-        g_Log->Warning("Unable to open %s", _fileName.c_str());
         return (false);
     }
 

@@ -41,9 +41,7 @@ class CStartupScreen : public CHudEntry
 
         m_spFont = g_Player().Renderer()->GetFont(m_Desc);
         m_StartupMessage =
-            "No Sheep downloaded yet, this should take less than a minute\nbut "
-            "might take several hours.  Please see ElectricSheep.org\nto learn "
-            "more, or press F1 for help.";
+            "Connecting to infinidream.ai...\nPress F1 for help.";
         m_spText = g_Player().Renderer()->NewText(m_spFont, m_StartupMessage);
         m_spImageRef = std::make_shared<DisplayOutput::CImage>();
         m_spImageRef->Create(256, 256, DisplayOutput::eImage_RGBA8, false,
@@ -106,8 +104,12 @@ class CStartupScreen : public CHudEntry
         // draw picture (only if logo loaded successfully)
         if (m_spImageRef)
         {
-            m_spVideoTexture = _spRenderer->NewTextureFlat();
-            m_spVideoTexture->Upload(m_spImageRef);
+            // Create and upload the logo texture only once — the image never changes.
+            if (!m_spVideoTexture)
+            {
+                m_spVideoTexture = _spRenderer->NewTextureFlat();
+                m_spVideoTexture->Upload(m_spImageRef);
+            }
 
             _spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader);
             _spRenderer->SetBlend("alphablend");

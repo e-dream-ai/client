@@ -41,6 +41,91 @@ screensaver. The staging targets have their own directory
 /Users/Shared/infinidream.ai-stage that can coexist with the normal one
 /Users/Shared/infinidream.ai
 
+## Build on Linux
+
+### Prerequisites
+
+Install the required system packages (Arch Linux):
+
+```bash
+sudo pacman -S --needed \
+    base-devel cmake pkgconf \
+    vulkan-headers vulkan-icd-loader vulkan-tools shaderc \
+    libx11 \
+    openssl \
+    boost \
+    ffmpeg \
+    libpng curl \
+    wayland wayland-protocols \
+    libxkbcommon \
+    freetype2
+```
+
+Wayland support is optional — the build falls back to X11/XWayland if the
+Wayland packages are absent.
+
+Also initialise the vcpkg submodule (needed for the socket.io dependency):
+
+```bash
+git submodule update --init
+```
+
+### Build
+
+```bash
+cd client_generic/LinuxBuild
+cmake -B build
+cmake --build build -j$(nproc)
+```
+
+For a release build:
+
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j$(nproc)
+```
+
+The binary is placed at `client_generic/LinuxBuild/build/infinidream`, with
+compiled shaders in `build/shaders/` and `logo.png` copied next to it
+automatically.
+
+### Authentication
+
+Linux has no UI sign-in flow. Authenticate via API key:
+
+**Option 1 — environment variable (one-off or scripted):**
+```bash
+export INFINIDREAM_API_KEY=<your-key>
+./build/infinidream
+```
+The key is persisted to `~/.config/infinidream/settings.json` on first run,
+so subsequent launches work without the variable.
+
+**Option 2 — settings file (persistent):**
+Add the key directly to `~/.config/infinidream/settings.json`:
+```json
+{
+  "settings": {
+    "content": {
+      "api_key": "<your-key>"
+    }
+  }
+}
+```
+
+### Running
+
+```bash
+cd client_generic/LinuxBuild/build
+./infinidream
+```
+
+Arrow keys navigate between dreams. `F1`–`F4` toggle HUD overlays (help,
+server stats, render stats, display stats). Close the window or press `Esc`
+to quit.
+
+---
+
 ## Build on macOS
 
 ### Prerequisites
