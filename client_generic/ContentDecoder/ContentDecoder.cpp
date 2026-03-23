@@ -46,7 +46,7 @@ namespace ContentDecoder
 // Static mutex definition
 std::mutex CContentDecoder::s_RenameMutex;
 
-#ifndef WIN32
+#ifdef LINUX_GNU
 // Prefer AV_PIX_FMT_VAAPI when the codec offers it; otherwise take the first
 // software format in the list.  This is the required get_format() hook for
 // FFmpeg hardware-accelerated decoding.
@@ -327,7 +327,7 @@ bool CContentDecoder::Open()
         g_Log->Error("unknown codec? ");
         return false;
     }
-#ifndef WIN32
+#ifdef LINUX_GNU
     // Try VAAPI hardware-accelerated decoding.  Falls back silently to
     // software if VAAPI is not available (e.g. no DRI device, VM, etc.).
     {
@@ -605,7 +605,7 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
         frameDecoded = 1;
         ovi->m_ActualFrameCount++;
 
-#ifndef WIN32
+#ifdef LINUX_GNU
         // If VAAPI produced a hardware frame, copy it to system RAM so the
         // regular swscale path below can process it normally.
         if (pFrame->format == AV_PIX_FMT_VAAPI)

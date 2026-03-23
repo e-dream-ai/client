@@ -312,8 +312,13 @@ class CElectricSheep
         Hud::spCStatsConsole spHelpMessage =
             std::dynamic_pointer_cast<Hud::CStatsConsole>(
                 m_HudManager->Get("helpmessage"));
-        // BK wraps a key name in inline-bold markers for the help overlay renderer.
+        // BK wraps a key name in inline-bold markers for the Linux help overlay renderer.
+        // On other platforms the renderer does not handle these bytes, so fall back to plain text.
+#ifdef LINUX_GNU
 #define BK(k) "\x01" k "\x02"
+#else
+#define BK(k) k
+#endif
         spHelpMessage->Add(new Hud::CStringStat(
             "message",
             "infinidream: visuals for your vibe\n\n"
