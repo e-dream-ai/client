@@ -214,6 +214,9 @@ void EDreamClient::SendPing()
 
 void EDreamClient::ScheduleNextPing()
 {
+    if (!ping_timer) {
+        return;
+    }
     ping_timer->expires_after(std::chrono::seconds(30));
     ping_timer->async_wait([](const boost::system::error_code& ec) {
         if (!ec) {
@@ -343,6 +346,10 @@ void EDreamClient::UpdateQuota()
 
 void EDreamClient::ScheduleNextQuotaUpdate()
 {
+    if (!quota_timer) {
+        g_Log->Warning("ScheduleNextQuotaUpdate: quota_timer not initialized, skipping");
+        return;
+    }
     g_Log->Info("Scheduling next quota update in one hour");
     // Schedule quota update every hour (3600 seconds)
     quota_timer->expires_after(std::chrono::seconds(3600));
@@ -645,13 +652,20 @@ void EDreamClient::DidSignIn()
         g_Player().Start();
     }
     
+    // Skip websocket/timer setup when io_context was never created
+    // (e.g. multiple-instances mode where InitializeClient returns early)
+    if (!io_context) {
+        g_Log->Info("DidSignIn: skipping websocket/timer setup (no io_context)");
+        return;
+    }
+
     // Add a small delay to allow any pending socket operations to complete
     // This helps avoid issues with the socket.io client's internal state
     boost::thread delayedWebSocketThread([]() {
         boost::this_thread::sleep(boost::posix_time::milliseconds(500));
 
         // Restart the io_context if it was stopped during SignOut/DeinitializeClient
-        if (io_context->stopped()) {
+        if (io_context && io_context->stopped()) {
             g_Log->Info("Restarting io_context after sign-in");
             io_context->restart();
         }
@@ -1012,8 +1026,8 @@ EDreamClient::AuthRefreshResult EDreamClient::RefreshSealedSession()
         }
         if (responseCode >= 400 && responseCode < 500)
         {
-            g_Log->Warning("Auth refresh rejected by server (HTTP %i): session invalid or expired: %s",
-                           responseCode, spDownload->Data().c_str());
+            g_Log->Warning("Auth refresh rejected by server (HTTP %i): session invalid or expired. Session value: '%s'. Response: %s",
+                           responseCode, currentSealedSession.c_str(), spDownload->Data().c_str());
             return AuthRefreshResult::InvalidSession;
         }
         g_Log->Warning("Auth refresh failed with HTTP %i (transient), will retry: %s",
@@ -1112,9 +1126,23 @@ std::string EDreamClient::Hello() {
                 spDownload->ResponseCode() == 401)
             {
                 if (currentAttempt == maxAttempts)
+                {
+                    std::string badSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
+                    g_Log->Error("Hello: auth failed after %d attempts. Invalidating session: '%s'", maxAttempts, badSession.c_str());
+                    fIsLoggedIn.exchange(false);
+                    g_Settings()->Set("settings.content.sealed_session", std::string(""));
+                    g_Settings()->Storage()->Commit();
                     return "";
+                }
                 if (RefreshSealedSession() != AuthRefreshResult::Success)
+                {
+                    std::string badSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
+                    g_Log->Error("Hello: session refresh failed. Invalidating session: '%s'", badSession.c_str());
+                    fIsLoggedIn.exchange(false);
+                    g_Settings()->Set("settings.content.sealed_session", std::string(""));
+                    g_Settings()->Storage()->Commit();
                     return "";
+                }
             }
             else
             {
@@ -2262,7 +2290,12 @@ void EDreamClient::ConnectRemoteControlSocket()
     std::lock_guard<std::mutex> lock(fWebSocketMutex);
     
     g_Log->Info("Performing remote control connect.");
-    
+
+    if (!io_context) {
+        g_Log->Warning("ConnectRemoteControlSocket: io_context not initialized, skipping");
+        return;
+    }
+
     // Check if socket is already connected AND io_context is running AND namespace is available
     auto existingSocket = s_SIOClient.socket("/remote-control");
     if (s_SIOClient.opened() && !io_context->stopped() && existingSocket)

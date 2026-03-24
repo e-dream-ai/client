@@ -384,7 +384,24 @@ void CPlayer::Start()
                 
                 if (shouldAbort()) return;
                 auto serverPlaylistId = EDreamClient::GetCurrentServerPlaylist();
-                
+
+                // If the session was invalidated during GetCurrentServerPlaylist
+                // (e.g. bad sealed session), fall back to offline mode
+                if (!EDreamClient::IsLoggedIn()) {
+                    g_Log->Warning("Session invalidated during startup, falling back to offline mode");
+                    SetOfflineMode(true);
+                    m_currentClip = nullptr;
+                    if (lastPlayedUUID.empty()) {
+                        SetPlaylist(clientPlaylistId, false);
+                    } else {
+                        SetPlaylistAtDream(clientPlaylistId, lastPlayedUUID, false);
+                    }
+                    if (!shouldAbort()) {
+                        m_hasStarted = true;
+                    }
+                    return;
+                }
+
                 // Override if there's a mismatch, and don't try to resume previous file as
                 // it may not be part of the new playlist
                 if (shouldAbort()) return;
@@ -403,7 +420,7 @@ void CPlayer::Start()
                 } else {
                     SetPlaylistAtDream(serverPlaylistId, lastPlayedUUID, false);
                 }
-                
+
                 if (!shouldAbort()) {
                     m_hasStarted = true;
                 }
