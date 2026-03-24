@@ -71,57 +71,6 @@ changequote([,])dnl
 
 
 
-dnl Check for WXWidgets
-WX_VER_291=""
-
-AC_PATH_PROGS(WX_CONFIG, [wx-config-2.9 wx-config], no)
-
-if test x$WX_CONFIG != xno; then
-   WX_VERSION=`$WX_CONFIG --version`
-
-   WX_MAJOR=${WX_VERSION%%.*};
-   WX_MINOR=${WX_VERSION#*.};
-   WX_MINOR=${WX_MINOR%%.*};
-   WX_MICRO=${WX_VERSION##*.};
-
-   if test $WX_MAJOR -gt 2; then
-      WX_VER_291=yes
-   else
-     if test $WX_MAJOR -eq 2; then
-        if test $WX_MINOR -gt 9; then
-           WX_VER_291=yes
-        else
-           if test $WX_MINOR -eq 9; then
-              if test $WX_MICRO -ge 1; then
-                 WX_VER_291=yes
-              fi
-           fi
-        fi
-     fi
-  fi
-fi
-
-if test "$WX_VER_291" != "yes"; then
-
-    dnl Use static version
-    echo "installed version of wx is too old,"
-
-    AC_MSG_ERROR([Please install development libraries for wxWidgets 2.9.1 or higher, and then run this configure script again.])
-fi
-
-WX_CXXFLAGS="`$WX_CONFIG --cxxflags`"
-WX_LIBS="-static `$WX_CONFIG --libs` `$WX_CONFIG --libs richtext`"
-
-echo "WX_CXXFLAGS is $WX_CXXFLAGS"
-echo "WX_LIBS is $WX_LIBS"
-
-WX_LDADD="$WX_LIBS"
-
-AC_SUBST(WX_CXXFLAGS)
-AC_SUBST(WX_LDADD)
-
-
-
 dnl Check for avcodec
 
 
@@ -343,5 +292,4 @@ AC_CHECK_LIB([rt],[clock_gettime],,
 AC_OUTPUT([ 
 Makefile
 Client/Makefile
-MSVC/SettingsGUI/Makefile
 ])

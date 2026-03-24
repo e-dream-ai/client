@@ -1,4 +1,4 @@
-/* Public-domain MD5; API matches legacy GNU md5_buffer used by SettingsGUI. */
+/* Public-domain MD5; API matches legacy GNU md5_buffer. */
 #ifndef CLIENT_GENERIC_COMMON_MD5_H
 #define CLIENT_GENERIC_COMMON_MD5_H
 

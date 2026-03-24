@@ -5,7 +5,7 @@ AUTOMAKE_OPTIONS = 1.7
 MAINTAINERCLEANFILES = Makefile.in aclocal.m4 configure config.h.in \
                        stamp-h.in config.log config.cache config.status
 
-SUBDIRS = Client MSVC/SettingsGUI
+SUBDIRS = Client
 
 docdir = $(prefix)/share/doc/$(PACKAGE)-$(VERSION)
 sharedir = $(prefix)/share
@@ -35,12 +35,7 @@ EXTRA_DIST = \
 	Runtime/TrebuchetMS-24.glf \
 	Runtime/sheep_logo.xpm \
 	Runtime/sheep_logo2.xpm \
-	wxWidgets-2.9.1 \
 	$(doc_DATA)
-
-
-dist-hook:
-	rm -rf `find $(distdir)/wxWidgets-2.9.1 -name svn`
 
 
 installdirs: 
@@ -84,7 +79,6 @@ install-exec-local:
 # uninstall stuff goes here
 uninstall-local:
 	rm -rf $(DESTDIR)$(bindir)/electricsheep
-	rm -rf $(DESTDIR)$(bindir)/electricsheep-preferences
 	rm -rf $(DESTDIR)$(bindir)/electricsheep-saver
 	rm -rf $(DESTDIR)$(docdir)
 	rm -rf $(DESTDIR)$(sharedir)/electricsheep

@@ -26,7 +26,7 @@ client_generic/MSVC/.vs/
 *.VC.db
 *.VC.VC.opendb
 
-# Per-project build output next to .vcxproj (e.g. SettingsGUI/Debug)
+# Per-project build output next to .vcxproj
 client_generic/MSVC/**/Debug/
 client_generic/MSVC/**/Release/
 client_generic/MSVC/**/x64/
