@@ -5,6 +5,7 @@
 #error This file is not supposed to be used for this platform...
 #endif
 
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <shellapi.h>
@@ -12,6 +13,7 @@
 #include <shlwapi.h>
 #include <string>
 #include <tchar.h>
+#include <vector>
 #include <windows.h>
 #include <wrl.h>
 
@@ -255,9 +257,6 @@ class CElectricSheep_Win32 : public CElectricSheep
             }
         }
 
-        // TMP
-        m_ScrMode = eWindowed;
-
         //	Check for multiple instances if we're not specifically asked not
         // to.
         if (m_ScrMode != eWindowed_AllowMultipleInstances &&
@@ -372,52 +371,147 @@ class CElectricSheep_Win32 : public CElectricSheep
         g_Log->Info("Commandline: %s", GetCommandLineA());
 
         _chdir(m_WorkingDir.c_str());
-        /*
-        //	Run gui.
+
+        // Run standalone wxWidgets settings UI (SettingsGUI project ->
+        // settingsgui.exe next to the client).
         if (m_ScrMode == eConfig)
         {
             g_Log->Info("Running config.");
-            // #ifdef _DEBUG
-            //					#pragma comment(lib,
-            //"wxbase29ud.lib") 					#pragma
-            // comment(lib, "wxmsw29ud_core.lib")
-            // #pragma comment(lib, "wxpngd.lib")
-            // #pragma comment(lib, "wxzlibd.lib") #else
-            // #pragma comment(lib,
-            //"wxbase29u.lib") 					#pragma
-            // comment(lib, "wxmsw29u_core.lib")
-            // #pragma comment(lib, "wxpng.lib")
-            // #pragma comment(lib, "wxzlib.lib") #endif
-            // #pragma comment(lib,
-            //"comctl32.lib") 					#pragma
-            // comment(lib, "rpcrt4.lib")
-            //
-            //					wxApp::SetInstance(new
-            // wxWidgetsApp());
-            //					::wxEntry( GetModuleHandle(NULL)
-            //);
 
-            SHELLEXECUTEINFOA sei = {0};
-            sei.cbSize = sizeof(sei);
-            sei.fMask = SEE_MASK_NOASYNC | SEE_MASK_NOCLOSEPROCESS;
-            sei.hwnd = NULL;
-            if (IsUserAnAdmin())
-                sei.lpVerb = "open";
-            else
-                sei.lpVerb = "runas";.ex
-            sei.lpFile = "settingsgui.exe";
-            sei.lpParameters = NULL;
-            sei.lpDirectory = m_WorkingDir.c_str();
-            sei.nShow = SW_SHOWNORMAL;
-            if (ShellExecuteExA(&sei) == TRUE)
+            auto FileIsPlainFileA = [](const char* path) -> bool {
+                const DWORD a = GetFileAttributesA(path);
+                return a != INVALID_FILE_ATTRIBUTES &&
+                       (a & FILE_ATTRIBUTE_DIRECTORY) == 0;
+            };
+
+            // Prefer folder of this .exe. MSVC outputs SettingsGUI.exe; deploy
+            // copies often use settingsgui.exe. Legacy typo: settingsguid.exe.
+            static const char* const kSettingsNames[] = {"SettingsGUI.exe",
+                                                         "settingsgui.exe",
+                                                         "settingsguid.exe"};
+            std::string settingsExe;
+            char szModule[MAX_PATH];
+            std::string moduleDir;
+            if (GetModuleFileNameA(NULL, szModule, MAX_PATH) > 0)
             {
-                WaitForSingleObject(sei.hProcess, INFINITE);
-                CloseHandle(sei.hProcess);
+                char* pSlash = strrchr(szModule, '\\');
+                if (pSlash != NULL)
+                {
+                    *pSlash = '\0';
+                    moduleDir.assign(szModule);
+                }
+            }
+            for (size_t n = 0; n < sizeof(kSettingsNames) / sizeof(kSettingsNames[0]);
+                 ++n)
+            {
+                if (!moduleDir.empty())
+                {
+                    std::string tryPath = moduleDir + "\\" + kSettingsNames[n];
+                    if (FileIsPlainFileA(tryPath.c_str()))
+                    {
+                        settingsExe = std::move(tryPath);
+                        break;
+                    }
+                }
+            }
+            if (settingsExe.empty())
+            {
+                for (size_t n = 0;
+                     n < sizeof(kSettingsNames) / sizeof(kSettingsNames[0]); ++n)
+                {
+                    std::string alt = m_WorkingDir + kSettingsNames[n];
+                    if (FileIsPlainFileA(alt.c_str()))
+                    {
+                        settingsExe = std::move(alt);
+                        break;
+                    }
+                }
+            }
+
+            if (settingsExe.empty() || !FileIsPlainFileA(settingsExe.c_str()))
+            {
+                g_Log->Warning(
+                    "settingsgui.exe not found beside this executable or in "
+                    "InstallDir.");
+                MessageBoxA(NULL,
+                            "Could not find SettingsGUI.exe / settingsgui.exe "
+                            "(or legacy settingsguid.exe) next to this "
+                            "program.\n\n"
+                            "Build the SettingsGUI project for the same "
+                            "platform (Win32 vs x64) as e-dream; the post-"
+                            "build step copies settingsgui.exe beside the "
+                            "output and under RuntimeMSVC.",
+                            "e-dream — Settings",
+                            MB_OK | MB_ICONERROR);
+                m_bConfigMode = true;
+                return false;
+            }
+
+            std::string settingsDir(settingsExe);
+            {
+                const size_t p = settingsDir.find_last_of("\\/");
+                if (p != std::string::npos)
+                    settingsDir.resize(p);
+                else
+                    settingsDir = m_WorkingDir;
+            }
+
+            /* CreateProcess: use a writable command line (documented requirement
+               for some paths) and quote the path if it contains spaces. */
+            std::vector<char> cmdLine(settingsExe.size() + 4u, '\0');
+            cmdLine[0] = '"';
+            std::memcpy(cmdLine.data() + 1, settingsExe.c_str(),
+                        settingsExe.size());
+            cmdLine[1u + settingsExe.size()] = '"';
+            cmdLine[2u + settingsExe.size()] = '\0';
+
+            STARTUPINFOA si = {};
+            si.cb = sizeof(si);
+            PROCESS_INFORMATION pi = {};
+            BOOL launched =
+                CreateProcessA(settingsExe.c_str(), cmdLine.data(), NULL, NULL,
+                               FALSE, 0, NULL, settingsDir.c_str(), &si, &pi);
+            if (launched)
+            {
+                WaitForSingleObject(pi.hProcess, INFINITE);
+                CloseHandle(pi.hThread);
+                CloseHandle(pi.hProcess);
+            }
+            else
+            {
+                const DWORD err = GetLastError();
+                g_Log->Warning(
+                    "CreateProcessA for settings GUI failed (err=%lu); "
+                    "trying ShellExecuteExA.",
+                    (unsigned long)err);
+                SHELLEXECUTEINFOA sei = {0};
+                sei.cbSize = sizeof(sei);
+                sei.fMask = SEE_MASK_NOASYNC | SEE_MASK_NOCLOSEPROCESS;
+                sei.hwnd = NULL;
+                /* Do not use "runas": UAC elevation can also fail with RPC 0x6D9. */
+                sei.lpVerb = NULL;
+                sei.lpFile = settingsExe.c_str();
+                sei.lpParameters = NULL;
+                sei.lpDirectory = settingsDir.c_str();
+                sei.nShow = SW_SHOWNORMAL;
+                if (ShellExecuteExA(&sei) != FALSE && sei.hProcess != NULL)
+                {
+                    WaitForSingleObject(sei.hProcess, INFINITE);
+                    CloseHandle(sei.hProcess);
+                }
+                else
+                {
+                    g_Log->Warning(
+                        "Failed to launch settings GUI (ShellExecuteExA), "
+                        "err=%lu.",
+                        (unsigned long)GetLastError());
+                }
             }
             m_bConfigMode = true;
 
             return false;
-        }*/
+        }
+
         //	Exit if we're not supposed to render anything...
         if (m_ScrMode != eSaver && m_ScrMode != eFullScreenStandalone &&
             m_ScrMode != ePreview && m_ScrMode != eWindowed &&
