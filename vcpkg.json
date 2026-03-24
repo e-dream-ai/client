@@ -1,15 +1,24 @@
 {
-    "dependencies":
-    [
-        "boost-log",
-        "boost-filesystem",
-        "boost-json",
-        "boost-format",
-        "boost-thread",
-        "openssl",
-        "curl",
-        "libpng",
-        "directxtk12",
-        "ffmpeg"
-    ]
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "builtin-baseline": "4b77da7fed37817f124936239197833469f1b9a8",
+  "dependencies": [
+    "boost-log",
+    "boost-filesystem",
+    "boost-json",
+    "boost-format",
+    "boost-thread",
+    "openssl",
+    "curl",
+    "libpng",
+    "directxtk12",
+    "ffmpeg",
+    "wxwidgets"
+  ],
+  "overrides": [
+    {
+      "name": "wxwidgets",
+      "version": "3.3.1",
+      "port-version": 1
+    }
+  ]
 }
