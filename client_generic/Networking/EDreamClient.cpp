@@ -650,6 +650,14 @@ void EDreamClient::DidSignIn()
     boost::thread delayedWebSocketThread([]() {
         boost::this_thread::sleep(boost::posix_time::milliseconds(500));
 
+        // Initialize io_context if it was never created (e.g. signing in from
+        // the app settings panel, where InitializeClient() has not run yet)
+        if (!io_context) {
+            io_context = std::make_unique<boost::asio::io_context>();
+            ping_timer = std::make_unique<boost::asio::steady_timer>(*io_context);
+            quota_timer = std::make_unique<boost::asio::steady_timer>(*io_context);
+        }
+
         // Restart the io_context if it was stopped during SignOut/DeinitializeClient
         if (io_context->stopped()) {
             g_Log->Info("Restarting io_context after sign-in");
@@ -2282,6 +2290,11 @@ void EDreamClient::ConnectRemoteControlSocket()
     
     g_Log->Info("Performing remote control connect.");
     
+    if (!io_context) {
+        g_Log->Error("ConnectRemoteControlSocket: io_context not initialized");
+        return;
+    }
+
     // Check if socket is already connected AND io_context is running AND namespace is available
     auto existingSocket = s_SIOClient.socket("/remote-control");
     if (s_SIOClient.opened() && !io_context->stopped() && existingSocket)
