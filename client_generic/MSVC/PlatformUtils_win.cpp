@@ -1,5 +1,6 @@
 #include "PlatformUtils.h"
 #include <Windows.h>
+#include <algorithm>
 #include <iostream>
 #include <windows.h>
 #include <wininet.h>
