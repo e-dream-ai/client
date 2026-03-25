@@ -196,7 +196,17 @@ class CElectricSheep_Win32 : public CElectricSheep
 
         if (*c == 0)
         {
-            m_ScrMode = eConfig;
+            char szModule[MAX_PATH] = {};
+            const DWORD got = GetModuleFileNameA(NULL, szModule, MAX_PATH);
+            const char* const ext =
+                (got > 0) ? PathFindExtensionA(szModule) : nullptr;
+
+            // Preserve classic .scr behavior: no args means "configure".
+            // For the standalone .exe, default to windowed mode.
+            if (ext != nullptr && _stricmp(ext, ".scr") == 0)
+                m_ScrMode = eConfig;
+            else
+                m_ScrMode = eWindowed;
             hwnd = NULL;
         }
         else
