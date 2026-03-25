@@ -223,6 +223,20 @@ bool CRendererDX11::CreateRenderTargets()
     return true;
 }
 
+void CRendererDX11::PrepareForSwapChainResize()
+{
+    // CRTV for the swap chain buffer holds a ref; DXGI ResizeBuffers requires all refs released.
+    m_renderTargetView.Reset();
+    m_depthStencilView.Reset();
+}
+
+bool CRendererDX11::RecreateRenderTargetsAfterResize()
+{
+    m_renderTargetView.Reset();
+    m_depthStencilView.Reset();
+    return CreateRenderTargets();
+}
+
 bool CRendererDX11::CreateBlendStates() {
     D3D11_BLEND_DESC blendDesc = {};
     blendDesc.AlphaToCoverageEnable = false;

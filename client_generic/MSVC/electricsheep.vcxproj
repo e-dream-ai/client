@@ -195,6 +195,7 @@ copy /y "..\runtime\flam3-animate.exe" "$(OutDir)"
 copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
 copy /y "..\runtime\License.rtf" "$(OutDir)"
 copy /y "..\runtime\logo.png" "$(OutDir)"
+copy /y "..\RuntimeMSVC\play-playlist.png" "$(OutDir)"
 copy /y "..\runtime\pthreadGC2.dll" "$(OutDir)"
 </Command>
     </PreBuildEvent>
@@ -235,6 +236,7 @@ copy /y "..\runtime\flam3-animate.exe" "$(OutDir)"
 copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
 copy /y "..\runtime\License.rtf" "$(OutDir)"
 copy /y "..\runtime\*.png" "$(OutDir)"
+copy /y "..\RuntimeMSVC\play-playlist.png" "$(OutDir)"
 copy /y "..\runtime\pthreadGC2.dll" "$(OutDir)"
 
 </Command>
@@ -285,6 +287,7 @@ copy /y "..\runtime\flam3-animate.exe" "$(OutDir)"
 copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
 copy /y "..\runtime\License.rtf" "$(OutDir)"
 copy /y "..\runtime\logo.png" "$(OutDir)"
+copy /y "..\RuntimeMSVC\play-playlist.png" "$(OutDir)"
 copy /y "..\runtime\pthreadGC2.dll" "$(OutDir)"
 </Command>
     </PreBuildEvent>
@@ -361,6 +364,7 @@ copy /y "..\runtime\flam3-animate.exe" "$(OutDir)"
 copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
 copy /y "..\runtime\License.rtf" "$(OutDir)"
 copy /y "..\runtime\logo.png" "$(OutDir)"
+copy /y "..\RuntimeMSVC\play-playlist.png" "$(OutDir)"
 copy /y "..\runtime\pthreadGC2.dll" "$(OutDir)"
 </Command>
     </PreBuildEvent>
@@ -437,6 +441,7 @@ copy /y "..\runtime\flam3-animate.exe" "$(OutDir)"
 copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
 copy /y "..\runtime\License.rtf" "$(OutDir)"
 copy /y "..\runtime\logo.png" "$(OutDir)"
+copy /y "..\RuntimeMSVC\play-playlist.png" "$(OutDir)"
 copy /y "..\runtime\pthreadGC2.dll" "$(OutDir)"
 </Command>
     </PreBuildEvent>
@@ -510,6 +515,7 @@ copy /y "..\runtime\flam3-animate.exe" "$(OutDir)"
 copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
 copy /y "..\runtime\License.rtf" "$(OutDir)"
 copy /y "..\runtime\*.png" "$(OutDir)"
+copy /y "..\RuntimeMSVC\play-playlist.png" "$(OutDir)"
 copy /y "..\runtime\pthreadGC2.dll" "$(OutDir)"
 </Command>
     </PreBuildEvent>
@@ -582,6 +588,7 @@ copy /y "..\runtime\flam3-animate.exe" "$(OutDir)"
 copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
 copy /y "..\runtime\License.rtf" "$(OutDir)"
 copy /y "..\runtime\*.png" "$(OutDir)"
+copy /y "..\RuntimeMSVC\play-playlist.png" "$(OutDir)"
 copy /y "..\runtime\pthreadGC2.dll" "$(OutDir)"
 </Command>
     </PreBuildEvent>
@@ -656,6 +663,7 @@ copy /y "..\runtime\flam3-animate.exe" "$(OutDir)"
 copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
 copy /y "..\runtime\License.rtf" "$(OutDir)"
 copy /y "..\runtime\*.png" "$(OutDir)"
+copy /y "..\RuntimeMSVC\play-playlist.png" "$(OutDir)"
 copy /y "..\runtime\pthreadGC2.dll" "$(OutDir)"
 </Command>
     </PreBuildEvent>

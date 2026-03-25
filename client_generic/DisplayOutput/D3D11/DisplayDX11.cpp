@@ -1,6 +1,7 @@
 #include "DisplayDX11.h"
 #include "Log.h"
 #include "Player.h"
+#include "RendererDX11.h"
 
 #ifdef WIN32
 #include "FirstTimeSetupWin32.h"
@@ -16,13 +17,35 @@ CDisplayDX11::~CDisplayDX11() {
     g_Log->Info("~CDisplayDX11()");
 }
 
-LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    if (msg == WM_NCCREATE)
+    {
+        auto* cs = reinterpret_cast<LPCREATESTRUCT>(lParam);
+        if (cs && cs->lpCreateParams)
+            SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(cs->lpCreateParams));
+        return TRUE;
+    }
+
+    CDisplayDX11* self = reinterpret_cast<CDisplayDX11*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+
 #ifdef WIN32
     LRESULT imguiHandled = 0;
     if (FirstTimeSetupWin32_TryConsumeWndProc(hWnd, msg, wParam, lParam, &imguiHandled))
         return imguiHandled;
 #endif
-    switch (msg) {
+
+    switch (msg)
+    {
+    case WM_SIZE:
+        if (self && wParam != SIZE_MINIMIZED)
+        {
+            const UINT nw = static_cast<UINT>(LOWORD(lParam));
+            const UINT nh = static_cast<UINT>(HIWORD(lParam));
+            if (nw > 0 && nh > 0)
+                self->ResizeSwapChain(nw, nh);
+        }
+        return DefWindowProc(hWnd, msg, wParam, lParam);
     case WM_KEYUP: {
         auto spEvent = std::make_shared<CKeyEvent>();
         spEvent->m_bPressed = true;
@@ -116,11 +139,71 @@ HWND CDisplayDX11::CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen) 
     RECT rc = {0, 0, (LONG)w, (LONG)h};
     AdjustWindowRect(&rc, style, FALSE);
 
-    return CreateWindow(wc.lpszClassName, L"E-Dream",
-                       style, 
-                       CW_USEDEFAULT, CW_USEDEFAULT,
-                       rc.right - rc.left, rc.bottom - rc.top,
-                       nullptr, nullptr, hInstance, nullptr);
+    return CreateWindowW(wc.lpszClassName, L"E-Dream", style, CW_USEDEFAULT, CW_USEDEFAULT,
+                         rc.right - rc.left, rc.bottom - rc.top, nullptr, nullptr, hInstance, this);
+}
+
+bool CDisplayDX11::ResizeSwapChain(uint32_t width, uint32_t height)
+{
+    if (!m_swapChain || !m_device || !m_context || width == 0 || height == 0)
+        return false;
+    if (width == m_Width && height == m_Height)
+        return true;
+
+    m_context->ClearState();
+    m_context->Flush();
+
+    if (auto spR = g_Player().Renderer())
+    {
+        if (auto* r11 = dynamic_cast<CRendererDX11*>(spR.get()))
+            r11->PrepareForSwapChainResize();
+    }
+
+    m_renderTargetView.Reset();
+
+    HRESULT hr = m_swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+    if (FAILED(hr))
+    {
+        g_Log->Error("ResizeBuffers failed: %08X", hr);
+        return false;
+    }
+
+    m_Width = width;
+    m_Height = height;
+
+    ComPtr<ID3D11Texture2D> backBuffer;
+    hr = m_swapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer));
+    if (FAILED(hr))
+    {
+        g_Log->Error("GetBuffer after resize failed: %08X", hr);
+        return false;
+    }
+
+    hr = m_device->CreateRenderTargetView(backBuffer.Get(), nullptr, &m_renderTargetView);
+    if (FAILED(hr))
+    {
+        g_Log->Error("CreateRenderTargetView after resize failed: %08X", hr);
+        return false;
+    }
+
+    m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), nullptr);
+    D3D11_VIEWPORT vp = {};
+    vp.Width = static_cast<float>(m_Width);
+    vp.Height = static_cast<float>(m_Height);
+    vp.MinDepth = 0.f;
+    vp.MaxDepth = 1.f;
+    m_context->RSSetViewports(1, &vp);
+
+    if (auto spR = g_Player().Renderer())
+    {
+        if (auto* r11 = dynamic_cast<CRendererDX11*>(spR.get()))
+        {
+            if (!r11->RecreateRenderTargetsAfterResize())
+                g_Log->Warning("Renderer RTs failed to recreate after resize");
+        }
+    }
+
+    return true;
 }
 
 bool CDisplayDX11::CreateDeviceAndSwapChain() {

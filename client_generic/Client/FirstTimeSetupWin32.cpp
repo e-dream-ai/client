@@ -2,15 +2,25 @@
 
 #include "FirstTimeSetupWin32.h"
 
+#include "PlatformUtils.h"
+
 #include <atomic>
+#include <cstdio>
 #include <cstring>
 #include <mutex>
 #include <string>
 #include <thread>
+#include <vector>
+
+#include <objbase.h>
+#include <wincodec.h>
 
 #include <imgui.h>
 #include <imgui_impl_dx11.h>
 #include <imgui_impl_win32.h>
+
+#pragma comment(lib, "ole32.lib")
+#pragma comment(lib, "windowscodecs.lib")
 
 // ImGui 1.91+ leaves this out of imgui_impl_win32.h (#if 0) to avoid pulling Win32 types into the header.
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -26,6 +36,67 @@ extern void ESSetShowFirstTimeSetupCallback(ShowFirstTimeSetupCallback_t);
 
 namespace {
 
+#ifdef STAGE
+constexpr const char* kUrlCreateAccount = "https://stage.infinidream.ai/account";
+constexpr const char* kUrlWebRemote = "https://stage.infinidream.ai/rc";
+constexpr const char* kUrlPlaylists = "https://stage.infinidream.ai/playlists";
+#else
+constexpr const char* kUrlCreateAccount = "https://alpha.infinidream.ai/account";
+constexpr const char* kUrlWebRemote = "https://alpha.infinidream.ai/rc";
+constexpr const char* kUrlPlaylists = "https://alpha.infinidream.ai/playlists";
+#endif
+
+constexpr float kDesignWinW = 879.f;
+constexpr float kDesignWinH = 686.f;
+constexpr float kLogoDisplay = 120.f;
+// First startup/*.xib content widths (step panels centered in the window body).
+constexpr float kEmailStepPanelW = 571.f;
+constexpr float kEmailStepPanelH = 268.f;
+constexpr float kCodeStepPanelW = 509.f;
+constexpr float kCodeStepPanelH = 291.f;
+// EmailStepViewController.xib (Cocoa y-from-bottom converted to top-down).
+constexpr float kEmailPromptL = 45.f;
+constexpr float kEmailMarginL = 47.f;
+constexpr float kEmailFieldW = 364.f;
+constexpr float kEmailSendBtnW = 106.f;
+constexpr float kEmailCreateAccountW = 235.f;
+constexpr float kEmailPromptOffsetY = 30.f;
+constexpr float kEmailRowOffsetY = 115.f;
+constexpr float kEmailErrorOffsetY = 151.f;
+constexpr float kEmailCreateBtnOffsetY = 172.f;
+// CodeStepViewController.xib
+constexpr float kCodeInstrOffsetY = 30.f;
+constexpr float kCodeOtpW = 158.f;
+constexpr float kCodeOtpH = 48.f;
+constexpr float kCodeOtpOffsetY = 112.f;
+constexpr float kCodeErrorOffsetY = 166.f;
+constexpr float kCodeVerifyW = 110.f;
+constexpr float kCodeVerifyOffsetY = 184.f;
+constexpr float kCodeTryAgainW = 88.f;
+constexpr float kCodeTryAgainOffsetY = 227.f;
+
+// macOS systemBlue focus ring; idle outline matches sheet borderChrome
+static constexpr ImVec4 kMacInputBorderFocus(0.f, 0.478f, 1.f, 1.f);
+static constexpr ImVec4 kMacInputBorderIdle(0.74f, 0.74f, 0.76f, 1.f);
+// NSButton “default” / accent (key-style primary action)
+static constexpr ImVec4 kMacAccentBtn(0.f, 0.478f, 1.f, 1.f);
+static constexpr ImVec4 kMacAccentBtnHov(0.10f, 0.54f, 1.f, 1.f);
+static constexpr ImVec4 kMacAccentBtnAct(0.f, 0.40f, 0.88f, 1.f);
+static constexpr ImVec4 kMacAccentBtnBorder(0.f, 0.38f, 0.82f, 1.f);
+
+/// Vertically center a fixed-height panel in the body region below the header.
+static float CenteredPanelTopPad(float bodyAvailH, float panelH)
+{
+    if (bodyAvailH <= 0.f || panelH <= 0.f)
+        return 0.f;
+    const float pad = (bodyAvailH - panelH) * 0.5f;
+    return pad > 0.f ? pad : 0.f;
+}
+
+// Updated after each InputText; cleared when leaving email/code steps (public ImGui has no GetActiveID).
+static bool g_emailFieldBorderActive = false;
+static bool g_otpFieldBorderActive = false;
+
 std::atomic<bool> g_overlayAllowed{true};
 std::atomic<bool> g_showRequested{false};
 std::atomic<bool> g_visible{false};
@@ -33,6 +104,19 @@ std::atomic<bool> g_imguiInitialized{false};
 /// Set when the user dismisses the wizard; context must not be destroyed inside NewFrame/Begin/End.
 std::atomic<bool> g_pendingImGuiShutdown{false};
 ImGuiContext* g_imguiContext = nullptr;
+
+ImFont* g_fontBody = nullptr;
+ImFont* g_fontTitle = nullptr;
+ImFont* g_fontHeadline = nullptr;
+ImFont* g_fontOtp = nullptr;
+
+ID3D11ShaderResourceView* g_srvLogo = nullptr;
+ID3D11ShaderResourceView* g_srvPlaylist = nullptr;
+int g_texLogoW = 0;
+int g_texLogoH = 0;
+int g_texPlaylistW = 0;
+int g_texPlaylistH = 0;
+
 std::mutex g_jobMutex;
 std::atomic<bool> g_sendBusy{false};
 std::atomic<bool> g_sendDone{false};
@@ -68,9 +152,42 @@ static bool IsLikelyEmail(const char* s)
 
 static int FilterDigitsOnly(ImGuiInputTextCallbackData* data)
 {
-    if (data->EventChar >= '0' && data->EventChar <= '9')
+    const auto isDigit = [](ImWchar c) { return c >= '0' && c <= '9'; };
+    const int kMaxDigits = 6;
+
+    if (data->EventFlag == ImGuiInputTextFlags_CallbackCharFilter)
+    {
+        if (!isDigit(data->EventChar))
+            return 1; // discard non-digits
+
+        // Prevent typing beyond 6 digits.
+        if (data->BufTextLen >= kMaxDigits)
+            return 1;
+
         return 0;
-    return 1;
+    }
+
+    if (data->EventFlag == ImGuiInputTextFlags_CallbackEdit)
+    {
+        // Robust: clamp after any edit (paste/selection/etc).
+        int w = 0;
+        for (int r = 0; r < data->BufTextLen && data->Buf[r] != '\0'; ++r)
+        {
+            const char c = data->Buf[r];
+            if (c >= '0' && c <= '9')
+            {
+                data->Buf[w++] = c;
+                if (w >= kMaxDigits)
+                    break;
+            }
+        }
+        data->Buf[w] = '\0';
+        data->BufTextLen = w;
+        data->BufDirty = true;
+        return 0;
+    }
+
+    return 0;
 }
 
 static void StripNonDigits(char* buf, size_t bufSize)
@@ -94,15 +211,268 @@ static DisplayOutput::CDisplayDX11* TryGetDx11Display()
     return dynamic_cast<DisplayOutput::CDisplayDX11*>(sp.get());
 }
 
+static std::wstring Utf8ToWidePath(const std::string& utf8)
+{
+    if (utf8.empty())
+        return L"";
+    int n = MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, nullptr, 0);
+    if (n <= 0)
+        return L"";
+    std::wstring w(static_cast<size_t>(n), L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, w.data(), n);
+    if (!w.empty() && w.back() == L'\0')
+        w.pop_back();
+    return w;
+}
+
+static std::string AssetBaseDir()
+{
+    return g_Settings()->Get("settings.app.InstallDir", PlatformUtils::GetWorkingDir());
+}
+
+static void ReleaseOverlayTextures()
+{
+    if (g_srvLogo)
+    {
+        g_srvLogo->Release();
+        g_srvLogo = nullptr;
+    }
+    if (g_srvPlaylist)
+    {
+        g_srvPlaylist->Release();
+        g_srvPlaylist = nullptr;
+    }
+    g_texLogoW = g_texLogoH = g_texPlaylistW = g_texPlaylistH = 0;
+}
+
+static HRESULT CreateSrvFromRgba(ID3D11Device* device, const uint8_t* rgba, UINT w, UINT h,
+                                ID3D11ShaderResourceView** outSrv)
+{
+    if (!device || !rgba || !outSrv || w == 0 || h == 0)
+        return E_INVALIDARG;
+
+    D3D11_TEXTURE2D_DESC desc = {};
+    desc.Width = w;
+    desc.Height = h;
+    desc.MipLevels = 1;
+    desc.ArraySize = 1;
+    desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    desc.SampleDesc.Count = 1;
+    desc.Usage = D3D11_USAGE_IMMUTABLE;
+    desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+    D3D11_SUBRESOURCE_DATA sub = {};
+    sub.pSysMem = rgba;
+    sub.SysMemPitch = w * 4;
+
+    ID3D11Texture2D* tex = nullptr;
+    HRESULT hr = device->CreateTexture2D(&desc, &sub, &tex);
+    if (FAILED(hr))
+        return hr;
+    hr = device->CreateShaderResourceView(tex, nullptr, outSrv);
+    tex->Release();
+    return hr;
+}
+
+static bool DecodePngToRgba(const std::wstring& path, std::vector<uint8_t>& outRgba, UINT& outW, UINT& outH)
+{
+    IWICImagingFactory* factory = nullptr;
+    HRESULT hr = CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&factory));
+    if (FAILED(hr) || !factory)
+        return false;
+
+    IWICBitmapDecoder* decoder = nullptr;
+    hr = factory->CreateDecoderFromFilename(path.c_str(), nullptr, GENERIC_READ, WICDecodeMetadataCacheOnDemand,
+                                            &decoder);
+    if (FAILED(hr) || !decoder)
+    {
+        factory->Release();
+        return false;
+    }
+
+    IWICBitmapFrameDecode* frame = nullptr;
+    hr = decoder->GetFrame(0, &frame);
+    if (FAILED(hr) || !frame)
+    {
+        decoder->Release();
+        factory->Release();
+        return false;
+    }
+
+    IWICFormatConverter* conv = nullptr;
+    hr = factory->CreateFormatConverter(&conv);
+    if (FAILED(hr) || !conv)
+    {
+        frame->Release();
+        decoder->Release();
+        factory->Release();
+        return false;
+    }
+
+    hr = conv->Initialize(frame, GUID_WICPixelFormat32bppRGBA, WICBitmapDitherTypeNone, nullptr, 0.0,
+                         WICBitmapPaletteTypeMedianCut);
+    if (FAILED(hr))
+    {
+        conv->Release();
+        frame->Release();
+        decoder->Release();
+        factory->Release();
+        return false;
+    }
+
+    conv->GetSize(&outW, &outH);
+    const UINT stride = outW * 4;
+    const UINT bufSize = stride * outH;
+    outRgba.resize(bufSize);
+    hr = conv->CopyPixels(nullptr, stride, bufSize, outRgba.data());
+
+    conv->Release();
+    frame->Release();
+    decoder->Release();
+    factory->Release();
+
+    return SUCCEEDED(hr);
+}
+
+static bool TryLoadTextureFromPngUtf8(ID3D11Device* device, const std::string& pathUtf8, ID3D11ShaderResourceView** srv,
+                                     int* outW, int* outH)
+{
+    if (!device || !srv || !outW || !outH)
+        return false;
+    *srv = nullptr;
+    *outW = *outH = 0;
+    std::vector<uint8_t> rgba;
+    UINT w = 0, h = 0;
+    if (!DecodePngToRgba(Utf8ToWidePath(pathUtf8), rgba, w, h))
+        return false;
+    ID3D11ShaderResourceView* s = nullptr;
+    if (FAILED(CreateSrvFromRgba(device, rgba.data(), w, h, &s)))
+        return false;
+    *srv = s;
+    *outW = static_cast<int>(w);
+    *outH = static_cast<int>(h);
+    return true;
+}
+
+static void ApplyLightSheetStyle()
+{
+    ImGuiStyle& s = ImGui::GetStyle();
+    ImGui::StyleColorsLight(&s);
+    s.WindowRounding = 8.f;
+    s.ChildRounding = 6.f;
+    // NSButton rounded bezel ~5pt corner radius on recent macOS.
+    s.FrameRounding = 5.f;
+    s.PopupRounding = 6.f;
+    s.ScrollbarRounding = 8.f;
+    s.GrabRounding = 4.f;
+    s.WindowBorderSize = 1.f;
+    // Buttons and framed inputs use RenderFrame(..., borders=true); 1px edge matches macOS hairline.
+    s.FrameBorderSize = 1.f;
+    s.WindowPadding = ImVec2(14.f, 14.f);
+    s.ItemSpacing = ImVec2(10.f, 8.f);
+    s.CellPadding = ImVec2(6.f, 4.f);
+    // ~NSControlSizeLarge padding feel; email/OTP still override locally.
+    s.FramePadding = ImVec2(10.f, 8.f);
+
+    ImVec4 text(0.10f, 0.11f, 0.13f, 1.f);
+    ImVec4 winBg(0.965f, 0.967f, 0.975f, 0.985f);
+    // Push button: white face, slight gray press; border = opaque separator gray (see ImGui::RenderFrame).
+    ImVec4 btn(1.f, 1.f, 1.f, 1.f);
+    ImVec4 btnHov(0.96f, 0.96f, 0.98f, 1.f);
+    ImVec4 btnAct(0.90f, 0.90f, 0.93f, 1.f);
+    // Unfocused controls: ~gridColor / systemGray in light mode (opaque so button outline reads clearly).
+    ImVec4 borderChrome(0.74f, 0.74f, 0.76f, 1.f);
+
+    s.Colors[ImGuiCol_Text] = text;
+    s.Colors[ImGuiCol_TextDisabled] = ImVec4(0.45f, 0.47f, 0.50f, 1.f);
+    s.Colors[ImGuiCol_WindowBg] = winBg;
+    // Keep child panel backgrounds consistent with the main sheet like macOS.
+    s.Colors[ImGuiCol_ChildBg] = winBg;
+    s.Colors[ImGuiCol_Border] = borderChrome;
+    s.Colors[ImGuiCol_BorderShadow] = ImVec4(0.f, 0.f, 0.f, 0.f);
+    s.Colors[ImGuiCol_FrameBg] = ImVec4(1.f, 1.f, 1.f, 1.f);
+    s.Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.98f, 0.98f, 0.99f, 1.f);
+    s.Colors[ImGuiCol_FrameBgActive] = ImVec4(1.f, 1.f, 1.f, 1.f);
+    s.Colors[ImGuiCol_Button] = btn;
+    s.Colors[ImGuiCol_ButtonHovered] = btnHov;
+    s.Colors[ImGuiCol_ButtonActive] = btnAct;
+    s.Colors[ImGuiCol_Header] = ImVec4(0.86f, 0.89f, 0.97f, 1.f);
+    s.Colors[ImGuiCol_ScrollbarBg] = ImVec4(0.93f, 0.94f, 0.96f, 0.85f);
+    // Keyboard/gamepad focus ring — keep visible; mouse-active fields use Border push below.
+    s.Colors[ImGuiCol_NavHighlight] = ImVec4(0.f, 0.478f, 1.f, 0.55f);
+}
+
+static void LoadSystemFonts()
+{
+    ImGuiIO& io = ImGui::GetIO();
+    g_fontBody = nullptr;
+    g_fontTitle = nullptr;
+    g_fontHeadline = nullptr;
+    g_fontOtp = nullptr;
+
+    char winDir[MAX_PATH] = {};
+    if (GetWindowsDirectoryA(winDir, MAX_PATH) == 0)
+        return;
+
+    std::string base(winDir);
+    if (!base.empty() && base.back() != '\\' && base.back() != '/')
+        base += '\\';
+    for (char& c : base)
+        if (c == '/')
+            c = '\\';
+
+    const std::string segoe = base + "Fonts\\segoeui.ttf";
+    const std::string segSb = base + "Fonts\\seguisb.ttf";
+
+    FILE* f = std::fopen(segoe.c_str(), "rb");
+    if (!f)
+        return;
+    std::fclose(f);
+
+    ImFontConfig cfg;
+    cfg.OversampleH = 2;
+    cfg.OversampleV = 1;
+
+    g_fontBody = io.Fonts->AddFontFromFileTTF(segoe.c_str(), 15.f, &cfg, io.Fonts->GetGlyphRangesDefault());
+    g_fontTitle = io.Fonts->AddFontFromFileTTF(segoe.c_str(), 28.f, &cfg, io.Fonts->GetGlyphRangesDefault());
+    g_fontOtp = io.Fonts->AddFontFromFileTTF(segoe.c_str(), 36.f, &cfg, io.Fonts->GetGlyphRangesDefault());
+
+    FILE* fsb = std::fopen(segSb.c_str(), "rb");
+    if (fsb)
+    {
+        std::fclose(fsb);
+        g_fontHeadline = io.Fonts->AddFontFromFileTTF(segSb.c_str(), 32.f, &cfg, io.Fonts->GetGlyphRangesDefault());
+    }
+    if (!g_fontHeadline)
+        g_fontHeadline = io.Fonts->AddFontFromFileTTF(segoe.c_str(), 32.f, &cfg, io.Fonts->GetGlyphRangesDefault());
+
+    if (g_fontBody)
+        io.FontDefault = g_fontBody;
+}
+
+static void LoadOverlayTextures(ID3D11Device* device)
+{
+    ReleaseOverlayTextures();
+    if (!device)
+        return;
+
+    const std::string dir = AssetBaseDir();
+    TryLoadTextureFromPngUtf8(device, dir + "logo.png", &g_srvLogo, &g_texLogoW, &g_texLogoH);
+    TryLoadTextureFromPngUtf8(device, dir + "play-playlist.png", &g_srvPlaylist, &g_texPlaylistW,
+                             &g_texPlaylistH);
+}
+
 static void ShutdownImGui()
 {
     if (!g_imguiInitialized.load(std::memory_order_acquire))
         return;
     g_pendingImGuiShutdown.store(false, std::memory_order_release);
+    ReleaseOverlayTextures();
     ImGui_ImplDX11_Shutdown();
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
     g_imguiContext = nullptr;
+    g_fontBody = g_fontTitle = g_fontHeadline = g_fontOtp = nullptr;
     g_imguiInitialized.store(false, std::memory_order_release);
 }
 
@@ -115,13 +485,16 @@ static bool TryInitImGui()
     if (!dx || !dx->GetWindowHandle() || !dx->GetDevice() || !dx->GetContext())
         return false;
 
+    CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.IniFilename = nullptr;
 
-    ImGui::StyleColorsDark();
+    ApplyLightSheetStyle();
+    LoadSystemFonts();
 
     if (!ImGui_ImplWin32_Init(dx->GetWindowHandle()))
     {
@@ -135,6 +508,8 @@ static bool TryInitImGui()
         return false;
     }
 
+    LoadOverlayTextures(dx->GetDevice());
+
     g_imguiContext = ImGui::GetCurrentContext();
     g_imguiInitialized.store(true, std::memory_order_release);
     return true;
@@ -143,6 +518,8 @@ static bool TryInitImGui()
 static void ResetWizardForShow()
 {
     g_wizardStep = 0;
+    g_emailFieldBorderActive = false;
+    g_otpFieldBorderActive = false;
     g_codeBuf[0] = '\0';
     g_errBuf[0] = '\0';
     std::string existing = g_Settings()->Get("settings.generator.nickname", std::string());
@@ -181,7 +558,32 @@ static void PollWorkerResults()
         {
             std::strncpy(g_errBuf, "Invalid verification code. Please try again.", sizeof g_errBuf - 1);
             g_errBuf[sizeof g_errBuf - 1] = '\0';
+            g_codeBuf[0] = '\0';
         }
+    }
+}
+
+static void DrawSkipFooter()
+{
+    if (g_wizardStep >= 2)
+        return;
+
+    // Pin the footer to the bottom-right inside the dialog sheet.
+    const float skipW = 80.f;
+
+    const float padY = ImGui::GetStyle().WindowPadding.y;
+    const float skipH = 36.f; // matches other large controls on the sheet
+    float y = ImGui::GetWindowHeight() - padY - skipH;
+    if (y < 0.f)
+        y = ImGui::GetCursorPosY();
+
+    const float x = ImGui::GetCursorStartPos().x + ImGui::GetContentRegionAvail().x - skipW;
+    ImGui::SetCursorPos(ImVec2(x, y));
+
+    if (ImGui::Button("Skip", ImVec2(skipW, skipH)))
+    {
+        g_visible.store(false, std::memory_order_release);
+        g_pendingImGuiShutdown.store(true, std::memory_order_release);
     }
 }
 
@@ -189,29 +591,132 @@ static void DrawWizard()
 {
     ImGuiIO& io = ImGui::GetIO();
     const ImVec2 display = io.DisplaySize;
-    const ImVec2 winSize(480.f, 360.f);
-    ImGui::SetNextWindowPos(ImVec2((display.x - winSize.x) * 0.5f, (display.y - winSize.y) * 0.5f));
-    ImGui::SetNextWindowSize(winSize);
-    ImGuiWindowFlags wflags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove;
+    const ImVec2 dialogPadding = ImGui::GetStyle().WindowPadding;
 
-    ImGui::Begin("Welcome to infinidream", nullptr, wflags);
+    // ImGui clamps *root* windows to the viewport, so a single 879×686 window shrinks with the app.
+    // Use a fullscreen host + fixed-size child so the dialog stays 879×686; scroll the host if needed.
+    const ImVec2 panelSize(kDesignWinW, kDesignWinH);
+    float panelX = (display.x - panelSize.x) * 0.5f;
+    float panelY = (display.y - panelSize.y) * 0.5f;
+    panelX = (std::max)(0.f, panelX);
+    panelY = (std::max)(0.f, panelY);
+
+    ImGui::SetNextWindowPos(ImVec2(0.f, 0.f), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(display, ImGuiCond_Always);
+    ImGuiWindowFlags hostFlags =
+        ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove;
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
+    ImVec4 sheetBg = ImGui::GetStyle().Colors[ImGuiCol_ChildBg];
+    // Main overlay host should be transparent; the dialog sheet is drawn by the Welcome child below.
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.f, 0.f, 0.f, 0.f));
+    ImGui::Begin("##FirstTimeOverlayHost", nullptr, hostFlags);
+
+    ImGui::SetCursorPos(ImVec2(panelX, panelY));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, dialogPadding);
+    // Make the sheet background consistent inside the dialog (fix header/body seam).
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, sheetBg);
+    ImGui::BeginChild("Welcome to Infinidream", panelSize, true, ImGuiWindowFlags_NoScrollbar);
+
+    // --- Header — StartupWindowController.xib: logo leading 10 top 11; title centerX at y=50 (not inline with logo)
+    {
+        const float logoSz = kLogoDisplay;
+        const float hdrH = logoSz + 11.f + 8.f; // logo + top inset + gap before body (xib)
+        const float winInnerW = ImGui::GetWindowWidth();
+        if (g_srvLogo && g_texLogoW > 0 && g_texLogoH > 0)
+        {
+            ImGui::SetCursorPos(ImVec2(10.f, 11.f));
+            ImGui::Image(static_cast<ImTextureID>(reinterpret_cast<uintptr_t>(g_srvLogo)),
+                         ImVec2(logoSz, logoSz));
+        }
+
+        if (g_fontHeadline)
+            ImGui::PushFont(g_fontHeadline);
+        const char* headline = "Welcome to Infinidream";
+        const ImVec2 ts = ImGui::CalcTextSize(headline);
+        ImGui::SetCursorPos(ImVec2((winInnerW - ts.x) * 0.5f, 50.f));
+        ImGui::TextUnformatted(headline);
+        if (g_fontHeadline)
+            ImGui::PopFont();
+
+        // Continue layout right below the header area (avoid an extra child boundary).
+        ImGui::SetCursorPos(ImVec2(0.f, hdrH));
+    }
+
+    // Body fills remaining sheet height above the Skip row; no extra background (same as header/dialog).
+    const ImGuiStyle& sheetSt = ImGui::GetStyle();
+    const float skipReserve =
+        sheetSt.WindowPadding.y + 36.f + 4.f; // Skip button height + bottom padding + gap
+    float bodyH = ImGui::GetContentRegionAvail().y - skipReserve;
+    if (bodyH < 1.f)
+        bodyH = 1.f;
+    ImGui::BeginChild("body", ImVec2(0, bodyH), ImGuiChildFlags_None, ImGuiWindowFlags_NoBackground);
 
     if (g_wizardStep == 0)
     {
-        ImGui::TextUnformatted("Sign in with your email. We will send you a verification code.");
-        ImGui::Spacing();
-        ImGui::InputText("Email", g_emailBuf, sizeof g_emailBuf);
-        if (g_errBuf[0] != '\0')
-            ImGui::TextColored(ImVec4(1.f, 0.4f, 0.4f, 1.f), "%s", g_errBuf);
+        g_otpFieldBorderActive = false;
+        const ImVec2 bodyAvail = ImGui::GetContentRegionAvail();
+        const float vPad = CenteredPanelTopPad(bodyAvail.y, kEmailStepPanelH);
+        if (vPad > 0.f)
+            ImGui::Dummy(ImVec2(0.f, vPad));
+        float stepPadX = (bodyAvail.x - kEmailStepPanelW) * 0.5f;
+        if (stepPadX > 0.f)
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + stepPadX);
+        // No separate ChildBg — match the sheet (same as transparent body region).
+        ImGui::BeginChild("emailStep", ImVec2(kEmailStepPanelW, kEmailStepPanelH), ImGuiChildFlags_None,
+                          ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBackground);
 
-        const bool busy = g_sendBusy.load(std::memory_order_acquire);
-        if (busy)
-            ImGui::BeginDisabled();
-        if (ImGui::Button("Send code", ImVec2(-1, 0)) && !busy)
+        ImGui::SetCursorPos(ImVec2(kEmailPromptL, kEmailPromptOffsetY));
+        if (g_fontTitle)
+            ImGui::PushFont(g_fontTitle);
+        ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + 473.f);
+        ImGui::TextUnformatted("Enter your email to sign in:");
+        ImGui::PopTextWrapPos();
+        if (g_fontTitle)
+            ImGui::PopFont();
+
+        ImGui::SetCursorPos(ImVec2(kEmailMarginL, kEmailRowOffsetY));
+        // Match the email input height to the Send button height.
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.f, 10.f));
+        ImGui::PushItemWidth(kEmailFieldW);
         {
-            if (!IsLikelyEmail(g_emailBuf))
+            ImGui::PushStyleColor(ImGuiCol_Border,
+                                  g_emailFieldBorderActive ? kMacInputBorderFocus : kMacInputBorderIdle);
+            ImGui::InputTextWithHint("##email", "your@email.com", g_emailBuf, sizeof g_emailBuf);
+            ImGui::PopStyleColor();
+            g_emailFieldBorderActive = ImGui::IsItemActive() || ImGui::IsItemFocused();
+        }
+        ImGui::PopItemWidth();
+        ImGui::PopStyleVar();
+        ImGui::SameLine(0.f, 10.f);
+        const bool busy = g_sendBusy.load(std::memory_order_acquire);
+
+        // macOS-like primary action: blue background + white foreground.
+        // While busy: hide the normal text and show centered "Sending..." inside the same button.
+        const float sendBtnH = 36.f;
+        const char* sendBtnText = busy ? "Sending..." : "Send code";
+        const char* sendBtnId = "##send_code_btn";
+        ImVec2 sendBtnMin = ImGui::GetCursorScreenPos();
+
+        ImGui::PushStyleColor(ImGuiCol_Button, kMacAccentBtn);
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, kMacAccentBtnHov);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, kMacAccentBtnAct);
+        ImGui::PushStyleColor(ImGuiCol_Border, kMacAccentBtnBorder);
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
+        const bool clicked = ImGui::Button(sendBtnId, ImVec2(kEmailSendBtnW, sendBtnH));
+        ImGui::PopStyleColor(5);
+
+        if (!busy && clicked)
+        {
+            const size_t elen = std::strlen(g_emailBuf);
+            if (elen == 0)
             {
-                std::strncpy(g_errBuf, "Please enter a valid email address.", sizeof g_errBuf - 1);
+                std::strncpy(g_errBuf, "Please enter your email address", sizeof g_errBuf - 1);
+                g_errBuf[sizeof g_errBuf - 1] = '\0';
+            }
+            else if (!IsLikelyEmail(g_emailBuf))
+            {
+                std::strncpy(g_errBuf, "Please enter a valid email address", sizeof g_errBuf - 1);
                 g_errBuf[sizeof g_errBuf - 1] = '\0';
             }
             else
@@ -232,27 +737,88 @@ static void DrawWizard()
                 }).detach();
             }
         }
-        if (busy)
+
+        if (g_errBuf[0] != '\0')
         {
-            ImGui::EndDisabled();
-            ImGui::TextUnformatted("Sending...");
+            ImGui::SetCursorPos(ImVec2(kEmailPromptL, kEmailErrorOffsetY));
+            ImGui::TextColored(ImVec4(0.75f, 0.18f, 0.18f, 1.f), "%s", g_errBuf);
         }
+        {
+            // Draw label text centered within the button frame (Button label is hidden via "##send_code_btn").
+            const ImVec2 ts = ImGui::CalcTextSize(sendBtnText);
+            const ImVec2 textPos(sendBtnMin.x + (kEmailSendBtnW - ts.x) * 0.5f,
+                                 sendBtnMin.y + (sendBtnH - ts.y) * 0.5f);
+            ImGui::GetWindowDrawList()->AddText(
+                textPos, ImGui::ColorConvertFloat4ToU32(ImVec4(1.f, 1.f, 1.f, 1.f)), sendBtnText);
+        }
+
+        ImGui::SetCursorPos(ImVec2((kEmailStepPanelW - kEmailCreateAccountW) * 0.5f, kEmailCreateBtnOffsetY));
+        if (ImGui::Button("Need an account? Create one", ImVec2(kEmailCreateAccountW, 36.f)))
+            PlatformUtils::OpenURLExternally(kUrlCreateAccount);
+
+        ImGui::EndChild();
     }
     else if (g_wizardStep == 1)
     {
-        ImGui::TextUnformatted("Enter the 6-digit code from your email.");
-        ImGui::Spacing();
-        ImGui::InputText("Code", g_codeBuf, sizeof g_codeBuf,
-                         ImGuiInputTextFlags_CallbackCharFilter, FilterDigitsOnly);
+        g_emailFieldBorderActive = false;
+        const ImVec2 bodyAvail = ImGui::GetContentRegionAvail();
+        const float vPad = CenteredPanelTopPad(bodyAvail.y, kCodeStepPanelH);
+        if (vPad > 0.f)
+            ImGui::Dummy(ImVec2(0.f, vPad));
+        float stepPadX = (bodyAvail.x - kCodeStepPanelW) * 0.5f;
+        if (stepPadX > 0.f)
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + stepPadX);
+        ImGui::BeginChild("codeStep", ImVec2(kCodeStepPanelW, kCodeStepPanelH), ImGuiChildFlags_None,
+                          ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBackground);
+
+        ImGui::SetCursorPos(ImVec2(38.f, kCodeInstrOffsetY));
+        if (g_fontTitle)
+            ImGui::PushFont(g_fontTitle);
+        ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + 434.f);
+        ImGui::TextUnformatted("Check your email for a one-time code, and enter it below.");
+        ImGui::PopTextWrapPos();
+        if (g_fontTitle)
+            ImGui::PopFont();
+
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.f, 10.f));
+        if (g_fontOtp)
+            ImGui::PushFont(g_fontOtp);
+
+        // Make the OTP input width fit exactly 6 digits (like the macOS layout).
+        const float otpTextW = ImGui::CalcTextSize("000000").x;
+        const float otpInputW = otpTextW + ImGui::GetStyle().FramePadding.x * 2.f;
+        ImGui::SetCursorPos(ImVec2((kCodeStepPanelW - otpInputW) * 0.5f, kCodeOtpOffsetY));
+        ImGui::PushItemWidth(otpInputW);
+        {
+            ImGui::PushStyleColor(ImGuiCol_Border,
+                                  g_otpFieldBorderActive ? kMacInputBorderFocus : kMacInputBorderIdle);
+            ImGui::InputTextWithHint("##otp", "000000", g_codeBuf, sizeof g_codeBuf,
+                                     ImGuiInputTextFlags_CallbackCharFilter |
+                                         ImGuiInputTextFlags_CallbackEdit,
+                                     FilterDigitsOnly);
+            ImGui::PopStyleColor();
+            g_otpFieldBorderActive = ImGui::IsItemActive() || ImGui::IsItemFocused();
+        }
+        if (g_fontOtp)
+            ImGui::PopFont();
+        ImGui::PopStyleVar();
+        ImGui::PopItemWidth();
         StripNonDigits(g_codeBuf, sizeof g_codeBuf);
-        if (g_errBuf[0] != '\0')
-            ImGui::TextColored(ImVec4(1.f, 0.4f, 0.4f, 1.f), "%s", g_errBuf);
 
         const bool busy = g_validateBusy.load(std::memory_order_acquire);
+        if (g_errBuf[0] != '\0')
+        {
+            ImGui::SetCursorPos(ImVec2(18.f, kCodeErrorOffsetY));
+            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + 473.f);
+            ImGui::TextColored(ImVec4(0.75f, 0.18f, 0.18f, 1.f), "%s", g_errBuf);
+            ImGui::PopTextWrapPos();
+        }
+
         const bool canVerify = std::strlen(g_codeBuf) == 6 && !busy;
+        ImGui::SetCursorPos(ImVec2((kCodeStepPanelW - kCodeVerifyW) * 0.5f, kCodeVerifyOffsetY));
         if (!canVerify || busy)
             ImGui::BeginDisabled();
-        if (ImGui::Button("Verify", ImVec2(-1, 0)) && canVerify && !busy)
+        if (ImGui::Button("Verify code", ImVec2(kCodeVerifyW, 36.f)) && canVerify && !busy)
         {
             g_errBuf[0] = '\0';
             std::string codeCopy(g_codeBuf);
@@ -268,28 +834,118 @@ static void DrawWizard()
             ImGui::EndDisabled();
 
         if (busy)
-            ImGui::TextUnformatted("Verifying...");
+        {
+            ImGui::SetCursorPos(ImVec2(kCodeStepPanelW * 0.5f + kCodeVerifyW * 0.5f + 12.f, kCodeVerifyOffsetY + 6.f));
+            ImGui::TextDisabled("Verifying...");
+        }
 
-        ImGui::Spacing();
-        if (ImGui::Button("Use a different email"))
+        ImGui::SetCursorPos(ImVec2((kCodeStepPanelW - kCodeTryAgainW) * 0.5f, kCodeTryAgainOffsetY));
+        if (ImGui::Button("Try again", ImVec2(kCodeTryAgainW, 36.f)))
         {
             g_wizardStep = 0;
             g_codeBuf[0] = '\0';
             g_errBuf[0] = '\0';
         }
+
+        ImGui::EndChild();
     }
     else
     {
-        ImGui::TextUnformatted("You are signed in. Enjoy infinidream.");
+        g_emailFieldBorderActive = false;
+        g_otpFieldBorderActive = false;
+        if (g_fontTitle)
+            ImGui::PushFont(g_fontTitle);
+        const char* tipsTitle = "All set! Quick tips:";
+        const ImVec2 tipsTs = ImGui::CalcTextSize(tipsTitle);
+        const float tipsX = (ImGui::GetContentRegionAvail().x - tipsTs.x) * 0.5f;
+        if (tipsX > 0.f)
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + tipsX);
+        ImGui::TextUnformatted(tipsTitle);
+        if (g_fontTitle)
+            ImGui::PopFont();
+
         ImGui::Spacing();
-        if (ImGui::Button("Continue", ImVec2(-1, 0)))
+
+        const float availW = ImGui::GetContentRegionAvail().x;
+        const float gap = 12.f;
+        const float cellW = (availW - gap) * 0.5f;
+        const float rowTopH = 190.f;
+        const float rowBotH = 200.f;
+
+        const ImGuiTableFlags tf = ImGuiTableFlags_SizingStretchSame;
+        if (ImGui::BeginTable("tips_grid", 2, tf))
         {
-            g_visible.store(false, std::memory_order_release);
-            g_pendingImGuiShutdown.store(true, std::memory_order_release);
+            ImGui::TableSetupColumn("L", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("R", ImGuiTableColumnFlags_WidthStretch);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::BeginChild("tl", ImVec2(0, rowTopH), false);
+            ImGui::TextWrapped(
+                "Use the A and D keys to adjust the speed of playback. Press F1 to see more keyboard "
+                "controls. You can also interact with the remote control installed on your phone, or from "
+                "a web browser:");
+            ImGui::Spacing();
+            if (ImGui::Button("Open web remote"))
+                PlatformUtils::OpenURLExternally(kUrlWebRemote);
+            ImGui::EndChild();
+
+            ImGui::TableSetColumnIndex(1);
+            ImGui::BeginChild("tr", ImVec2(0, rowTopH), false);
+            ImGui::Columns(2, "##trcols", false);
+            ImGui::SetColumnWidth(0, cellW - 72.f);
+            ImGui::TextWrapped(
+                "Change your dreams by selecting a playlist from the browser. Click the button on a "
+                "thumbnail to start that playlist.");
+            ImGui::NextColumn();
+            if (g_srvPlaylist && g_texPlaylistW > 0 && g_texPlaylistH > 0)
+                ImGui::Image(static_cast<ImTextureID>(reinterpret_cast<uintptr_t>(g_srvPlaylist)),
+                             ImVec2(60.f, 60.f));
+            ImGui::Columns(1);
+            ImGui::Spacing();
+            if (ImGui::Button("Open playlist browser"))
+                PlatformUtils::OpenURLExternally(kUrlPlaylists);
+            ImGui::EndChild();
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::BeginChild("bl", ImVec2(0, rowBotH), false);
+            ImGui::TextWrapped(
+                "Use fullscreen (e.g. F11 or the app window menu) for the best experience on a large "
+                "display.\n\n"
+                "Run the app to get updates.");
+            ImGui::EndChild();
+
+            ImGui::TableSetColumnIndex(1);
+            ImGui::BeginChild("br", ImVec2(0, rowBotH), false);
+            ImGui::Dummy(ImVec2(0, 20.f));
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
+            ImGui::PushStyleColor(ImGuiCol_Button, kMacAccentBtn);
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, kMacAccentBtnHov);
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, kMacAccentBtnAct);
+            ImGui::PushStyleColor(ImGuiCol_Border, kMacAccentBtnBorder);
+            if (ImGui::Button("Dream on!", ImVec2(-1, 38.f)))
+            {
+                g_visible.store(false, std::memory_order_release);
+                g_pendingImGuiShutdown.store(true, std::memory_order_release);
+            }
+            ImGui::PopStyleColor(5);
+            ImGui::EndChild();
+
+            ImGui::EndTable();
         }
     }
 
+    ImGui::EndChild(); // body (transparent; sheet bg shows through)
+
+    DrawSkipFooter();
+
+    ImGui::EndChild(); // "Welcome to Infinidream"
+    ImGui::PopStyleColor(); // sheetBg for Welcome
+    ImGui::PopStyleVar(); // dialog padding
     ImGui::End();
+    ImGui::PopStyleColor();
+    ImGui::PopStyleVar(); // host padding (0,0)
 }
 
 } // namespace
@@ -359,6 +1015,8 @@ bool FirstTimeSetupWin32_RenderIfNeeded(ID3D11Device* device, ID3D11DeviceContex
 
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
+    // Match the swap chain / viewport we render into (Win32 client rect can disagree during resize / DPI).
+    ImGui::GetIO().DisplaySize = ImVec2(viewportW, viewportH);
     ImGui::NewFrame();
 
     DrawWizard();

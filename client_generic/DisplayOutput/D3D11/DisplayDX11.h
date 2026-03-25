@@ -21,6 +21,7 @@ private:
     HWND CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen);
     static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
     bool CreateDeviceAndSwapChain();
+    bool ResizeSwapChain(uint32_t width, uint32_t height);
     void ResetDevice(); // Handle device lost scenarios
     bool m_deviceValid;
 

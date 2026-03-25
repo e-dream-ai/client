@@ -31,6 +31,10 @@ public:
     virtual const std::string Description(void) const override { return "DirectX 11"; }
     
     virtual bool Initialize(spCDisplayOutput _spDisplay) override;
+    /// Release RTV (and depth) that reference the swap chain back buffer; call before ResizeBuffers.
+    void PrepareForSwapChainResize();
+    /// Call after IDXGISwapChain::ResizeBuffers so RTV/depth match the new backbuffer and Display sizes.
+    bool RecreateRenderTargetsAfterResize();
     virtual void Defaults() override;
     virtual bool BeginFrame(void) override;
     virtual bool EndFrame(bool drawn = true) override;
