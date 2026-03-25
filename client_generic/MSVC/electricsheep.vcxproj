@@ -181,21 +181,21 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <PreBuildEvent>
-      <Command>mkdir ..\runtimemsvc\scripts
-mkdir ..\runtimemsvc\scripts\dictionary
-mkdir ..\runtimemsvc\scripts\logging
-copy ..\runtime\scripts\*.* ..\runtimemsvc\scripts\*.*  /y
-copy ..\runtime\scripts\dictionary\*.* ..\runtimemsvc\scripts\Dictionary\*.*  /y
-copy ..\runtime\scripts\logging\*.* ..\runtimemsvc\scripts\logging\*.*  /y
-copy ..\runtime\electricsheep-frown.png ..\runtimemsvc /y
-copy ..\runtime\electricsheep-smile.png ..\runtimemsvc /y
-copy ..\runtime\electricsheep-attr.png ..\runtimemsvc /y
-copy ..\runtime\exchndl.dll ..\runtimemsvc /y
-copy ..\runtime\flam3-animate.exe ..\runtimemsvc /y
-copy ..\runtime\Instructions.rtf ..\runtimemsvc /y
-copy ..\runtime\License.rtf ..\runtimemsvc /y
-copy ..\runtime\logo.png ..\runtimemsvc /y
-copy ..\runtime\pthreadGC2.dll ..\runtimemsvc /y
+      <Command>if not exist "$(OutDir)scripts" mkdir "$(OutDir)scripts"
+if not exist "$(OutDir)scripts\dictionary" mkdir "$(OutDir)scripts\dictionary"
+if not exist "$(OutDir)scripts\logging" mkdir "$(OutDir)scripts\logging"
+copy /y "..\runtime\scripts\*.*" "$(OutDir)scripts\"
+copy /y "..\runtime\scripts\dictionary\*.*" "$(OutDir)scripts\Dictionary\"
+copy /y "..\runtime\scripts\logging\*.*" "$(OutDir)scripts\logging\"
+copy /y "..\runtime\electricsheep-frown.png" "$(OutDir)"
+copy /y "..\runtime\electricsheep-smile.png" "$(OutDir)"
+copy /y "..\runtime\electricsheep-attr.png" "$(OutDir)"
+copy /y "..\runtime\exchndl.dll" "$(OutDir)"
+copy /y "..\runtime\flam3-animate.exe" "$(OutDir)"
+copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
+copy /y "..\runtime\License.rtf" "$(OutDir)"
+copy /y "..\runtime\logo.png" "$(OutDir)"
+copy /y "..\runtime\pthreadGC2.dll" "$(OutDir)"
 </Command>
     </PreBuildEvent>
     <ClCompile>
@@ -221,27 +221,21 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc /y
       <TargetMachine>MachineX86</TargetMachine>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
-    <PostBuildEvent>
-      <Command>copy .\debug\esd.exe ..\RuntimeMSVC /y</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <PreBuildEvent>
-      <Command>mkdir ..\runtimemsvc\scripts
-mkdir ..\runtimemsvc\scripts\dictionary
-mkdir ..\runtimemsvc\scripts\logging
-copy ..\runtime\scripts\*.* ..\runtimemsvc\scripts\*.*  /y
-copy ..\runtime\scripts\dictionary\*.* ..\runtimemsvc\scripts\Dictionary\*.*  /y
-copy ..\runtime\scripts\logging\*.* ..\runtimemsvc\scripts\logging\*.*  /y
-copy ..\runtime\electricsheep-frown.png ..\runtimemsvc /y
-copy ..\runtime\electricsheep-smile.png ..\runtimemsvc /y
-copy ..\runtime\electricsheep-attr.png ..\runtimemsvc /y
-copy ..\runtime\exchndl.dll ..\runtimemsvc /y
-copy ..\runtime\flam3-animate.exe ..\runtimemsvc /y
-copy ..\runtime\Instructions.rtf ..\runtimemsvc /y
-copy ..\runtime\License.rtf ..\runtimemsvc /y
-copy ..\runtime\*.png ..\runtimemsvc /y
-copy ..\runtime\pthreadGC2.dll ..\runtimemsvc /y
+      <Command>if not exist "$(OutDir)scripts" mkdir "$(OutDir)scripts"
+if not exist "$(OutDir)scripts\dictionary" mkdir "$(OutDir)scripts\dictionary"
+if not exist "$(OutDir)scripts\logging" mkdir "$(OutDir)scripts\logging"
+copy /y "..\runtime\scripts\*.*" "$(OutDir)scripts\"
+copy /y "..\runtime\scripts\dictionary\*.*" "$(OutDir)scripts\Dictionary\"
+copy /y "..\runtime\scripts\logging\*.*" "$(OutDir)scripts\logging\"
+copy /y "..\runtime\exchndl.dll" "$(OutDir)"
+copy /y "..\runtime\flam3-animate.exe" "$(OutDir)"
+copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
+copy /y "..\runtime\License.rtf" "$(OutDir)"
+copy /y "..\runtime\*.png" "$(OutDir)"
+copy /y "..\runtime\pthreadGC2.dll" "$(OutDir)"
 
 </Command>
     </PreBuildEvent>
@@ -274,27 +268,24 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc /y
       <ForceSymbolReferences>
       </ForceSymbolReferences>
     </Link>
-    <PostBuildEvent>
-      <Command>copy .\debug\e-dreamd.exe ..\RuntimeMSVC\e-dreamd.exe /y</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <PreBuildEvent>
-      <Command>mkdir ..\runtimemsvc\scripts
-mkdir ..\runtimemsvc\scripts\dictionary
-mkdir ..\runtimemsvc\scripts\logging
-copy ..\runtime\scripts\*.* ..\runtimemsvc\scripts\*.*
-copy ..\runtime\scripts\dictionary\*.* ..\runtimemsvc\scripts\Dictionary\*.*
-copy ..\runtime\scripts\logging\*.* ..\runtimemsvc\scripts\logging\*.*
-copy ..\runtime\electricsheep-frown.png ..\runtimemsvc
-copy ..\runtime\electricsheep-smile.png ..\runtimemsvc
-copy ..\runtime\electricsheep-attr.png ..\runtimemsvc
-copy ..\runtime\exchndl.dll ..\runtimemsvc
-copy ..\runtime\flam3-animate.exe ..\runtimemsvc
-copy ..\runtime\Instructions.rtf ..\runtimemsvc
-copy ..\runtime\License.rtf ..\runtimemsvc
-copy ..\runtime\logo.png ..\runtimemsvc
-copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
+      <Command>if not exist "$(OutDir)scripts" mkdir "$(OutDir)scripts"
+if not exist "$(OutDir)scripts\dictionary" mkdir "$(OutDir)scripts\dictionary"
+if not exist "$(OutDir)scripts\logging" mkdir "$(OutDir)scripts\logging"
+copy /y "..\runtime\scripts\*.*" "$(OutDir)scripts\"
+copy /y "..\runtime\scripts\dictionary\*.*" "$(OutDir)scripts\Dictionary\"
+copy /y "..\runtime\scripts\logging\*.*" "$(OutDir)scripts\logging\"
+copy /y "..\runtime\electricsheep-frown.png" "$(OutDir)"
+copy /y "..\runtime\electricsheep-smile.png" "$(OutDir)"
+copy /y "..\runtime\electricsheep-attr.png" "$(OutDir)"
+copy /y "..\runtime\exchndl.dll" "$(OutDir)"
+copy /y "..\runtime\flam3-animate.exe" "$(OutDir)"
+copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
+copy /y "..\runtime\License.rtf" "$(OutDir)"
+copy /y "..\runtime\logo.png" "$(OutDir)"
+copy /y "..\runtime\pthreadGC2.dll" "$(OutDir)"
 </Command>
     </PreBuildEvent>
     <ClCompile>
@@ -348,9 +339,7 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
-      <Command>copy .\release\es.scr ..\RuntimeMSVC\es.scr /y
-copy .\release\es.scr ..\RuntimeMSVC\es.exe /y
-</Command>
+      <Command>copy /y "$(TargetPath)" "$(OutDir)$(ProjectName).exe"</Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDPIAwareness>true</EnableDPIAwareness>
@@ -358,21 +347,21 @@ copy .\release\es.scr ..\RuntimeMSVC\es.exe /y
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugMD|Win32'">
     <PreBuildEvent>
-      <Command>mkdir ..\runtimemsvc\scripts
-mkdir ..\runtimemsvc\scripts\dictionary
-mkdir ..\runtimemsvc\scripts\logging
-copy ..\runtime\scripts\*.* ..\runtimemsvc\scripts\*.*
-copy ..\runtime\scripts\dictionary\*.* ..\runtimemsvc\scripts\Dictionary\*.*
-copy ..\runtime\scripts\logging\*.* ..\runtimemsvc\scripts\logging\*.*
-copy ..\runtime\electricsheep-frown.png ..\runtimemsvc
-copy ..\runtime\electricsheep-smile.png ..\runtimemsvc
-copy ..\runtime\electricsheep-attr.png ..\runtimemsvc
-copy ..\runtime\exchndl.dll ..\runtimemsvc
-copy ..\runtime\flam3-animate.exe ..\runtimemsvc
-copy ..\runtime\Instructions.rtf ..\runtimemsvc
-copy ..\runtime\License.rtf ..\runtimemsvc
-copy ..\runtime\logo.png ..\runtimemsvc
-copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
+      <Command>if not exist "$(OutDir)scripts" mkdir "$(OutDir)scripts"
+if not exist "$(OutDir)scripts\dictionary" mkdir "$(OutDir)scripts\dictionary"
+if not exist "$(OutDir)scripts\logging" mkdir "$(OutDir)scripts\logging"
+copy /y "..\runtime\scripts\*.*" "$(OutDir)scripts\"
+copy /y "..\runtime\scripts\dictionary\*.*" "$(OutDir)scripts\Dictionary\"
+copy /y "..\runtime\scripts\logging\*.*" "$(OutDir)scripts\logging\"
+copy /y "..\runtime\electricsheep-frown.png" "$(OutDir)"
+copy /y "..\runtime\electricsheep-smile.png" "$(OutDir)"
+copy /y "..\runtime\electricsheep-attr.png" "$(OutDir)"
+copy /y "..\runtime\exchndl.dll" "$(OutDir)"
+copy /y "..\runtime\flam3-animate.exe" "$(OutDir)"
+copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
+copy /y "..\runtime\License.rtf" "$(OutDir)"
+copy /y "..\runtime\logo.png" "$(OutDir)"
+copy /y "..\runtime\pthreadGC2.dll" "$(OutDir)"
 </Command>
     </PreBuildEvent>
     <ClCompile>
@@ -426,9 +415,7 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
-      <Command>copy .\release\es.scr ..\RuntimeMSVC\es.scr /y
-copy .\release\es.scr ..\RuntimeMSVC\es.exe /y
-</Command>
+      <Command>copy /y "$(TargetPath)" "$(OutDir)$(ProjectName).exe"</Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDPIAwareness>true</EnableDPIAwareness>
@@ -436,21 +423,21 @@ copy .\release\es.scr ..\RuntimeMSVC\es.exe /y
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugMDd|Win32'">
     <PreBuildEvent>
-      <Command>mkdir ..\runtimemsvc\scripts
-mkdir ..\runtimemsvc\scripts\dictionary
-mkdir ..\runtimemsvc\scripts\logging
-copy ..\runtime\scripts\*.* ..\runtimemsvc\scripts\*.*
-copy ..\runtime\scripts\dictionary\*.* ..\runtimemsvc\scripts\Dictionary\*.*
-copy ..\runtime\scripts\logging\*.* ..\runtimemsvc\scripts\logging\*.*
-copy ..\runtime\electricsheep-frown.png ..\runtimemsvc
-copy ..\runtime\electricsheep-smile.png ..\runtimemsvc
-copy ..\runtime\electricsheep-attr.png ..\runtimemsvc
-copy ..\runtime\exchndl.dll ..\runtimemsvc
-copy ..\runtime\flam3-animate.exe ..\runtimemsvc
-copy ..\runtime\Instructions.rtf ..\runtimemsvc
-copy ..\runtime\License.rtf ..\runtimemsvc
-copy ..\runtime\logo.png ..\runtimemsvc
-copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
+      <Command>if not exist "$(OutDir)scripts" mkdir "$(OutDir)scripts"
+if not exist "$(OutDir)scripts\dictionary" mkdir "$(OutDir)scripts\dictionary"
+if not exist "$(OutDir)scripts\logging" mkdir "$(OutDir)scripts\logging"
+copy /y "..\runtime\scripts\*.*" "$(OutDir)scripts\"
+copy /y "..\runtime\scripts\dictionary\*.*" "$(OutDir)scripts\Dictionary\"
+copy /y "..\runtime\scripts\logging\*.*" "$(OutDir)scripts\logging\"
+copy /y "..\runtime\electricsheep-frown.png" "$(OutDir)"
+copy /y "..\runtime\electricsheep-smile.png" "$(OutDir)"
+copy /y "..\runtime\electricsheep-attr.png" "$(OutDir)"
+copy /y "..\runtime\exchndl.dll" "$(OutDir)"
+copy /y "..\runtime\flam3-animate.exe" "$(OutDir)"
+copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
+copy /y "..\runtime\License.rtf" "$(OutDir)"
+copy /y "..\runtime\logo.png" "$(OutDir)"
+copy /y "..\runtime\pthreadGC2.dll" "$(OutDir)"
 </Command>
     </PreBuildEvent>
     <ClCompile>
@@ -504,9 +491,7 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
-      <Command>copy .\release\es.scr ..\RuntimeMSVC\es.scr /y
-copy .\release\es.scr ..\RuntimeMSVC\es.exe /y
-</Command>
+      <Command>copy /y "$(TargetPath)" "$(OutDir)$(ProjectName).exe"</Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDPIAwareness>true</EnableDPIAwareness>
@@ -514,21 +499,18 @@ copy .\release\es.scr ..\RuntimeMSVC\es.exe /y
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <PreBuildEvent>
-      <Command>mkdir ..\runtimemsvc\scripts
-mkdir ..\runtimemsvc\scripts\dictionary
-mkdir ..\runtimemsvc\scripts\logging
-copy ..\runtime\scripts\*.* ..\runtimemsvc\scripts\*.*
-copy ..\runtime\scripts\dictionary\*.* ..\runtimemsvc\scripts\Dictionary\*.*
-copy ..\runtime\scripts\logging\*.* ..\runtimemsvc\scripts\logging\*.*
-copy ..\runtime\electricsheep-frown.png ..\runtimemsvc
-copy ..\runtime\electricsheep-smile.png ..\runtimemsvc
-copy ..\runtime\electricsheep-attr.png ..\runtimemsvc
-copy ..\runtime\exchndl.dll ..\runtimemsvc
-copy ..\runtime\flam3-animate.exe ..\runtimemsvc
-copy ..\runtime\Instructions.rtf ..\runtimemsvc
-copy ..\runtime\License.rtf ..\runtimemsvc
-copy ..\runtime\*.png ..\runtimemsvc
-copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
+      <Command>if not exist "$(OutDir)scripts" mkdir "$(OutDir)scripts"
+if not exist "$(OutDir)scripts\dictionary" mkdir "$(OutDir)scripts\dictionary"
+if not exist "$(OutDir)scripts\logging" mkdir "$(OutDir)scripts\logging"
+copy /y "..\runtime\scripts\*.*" "$(OutDir)scripts\"
+copy /y "..\runtime\scripts\dictionary\*.*" "$(OutDir)scripts\Dictionary\"
+copy /y "..\runtime\scripts\logging\*.*" "$(OutDir)scripts\logging\"
+copy /y "..\runtime\exchndl.dll" "$(OutDir)"
+copy /y "..\runtime\flam3-animate.exe" "$(OutDir)"
+copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
+copy /y "..\runtime\License.rtf" "$(OutDir)"
+copy /y "..\runtime\*.png" "$(OutDir)"
+copy /y "..\runtime\pthreadGC2.dll" "$(OutDir)"
 </Command>
     </PreBuildEvent>
     <ClCompile>
@@ -584,28 +566,23 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
       </IgnoreAllDefaultLibraries>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>copy /y "$(TargetPath)" "$(OutDir)$(ProjectName).exe"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugMD|x64'">
     <PreBuildEvent>
-      <Command>mkdir ..\runtimemsvc\scripts
-mkdir ..\runtimemsvc\scripts\dictionary
-mkdir ..\runtimemsvc\scripts\logging
-copy ..\runtime\scripts\*.* ..\runtimemsvc\scripts\*.*
-copy ..\runtime\scripts\dictionary\*.* ..\runtimemsvc\scripts\Dictionary\*.*
-copy ..\runtime\scripts\logging\*.* ..\runtimemsvc\scripts\logging\*.*
-copy ..\runtime\electricsheep-frown.png ..\runtimemsvc
-copy ..\runtime\electricsheep-smile.png ..\runtimemsvc
-copy ..\runtime\electricsheep-attr.png ..\runtimemsvc
-copy ..\runtime\exchndl.dll ..\runtimemsvc
-copy ..\runtime\flam3-animate.exe ..\runtimemsvc
-copy ..\runtime\Instructions.rtf ..\runtimemsvc
-copy ..\runtime\License.rtf ..\runtimemsvc
-copy ..\runtime\*.png ..\runtimemsvc
-copy ..\runtime\*.png ..\MSVC\DebugMD
-copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
+      <Command>if not exist "$(OutDir)scripts" mkdir "$(OutDir)scripts"
+if not exist "$(OutDir)scripts\dictionary" mkdir "$(OutDir)scripts\dictionary"
+if not exist "$(OutDir)scripts\logging" mkdir "$(OutDir)scripts\logging"
+copy /y "..\runtime\scripts\*.*" "$(OutDir)scripts\"
+copy /y "..\runtime\scripts\dictionary\*.*" "$(OutDir)scripts\Dictionary\"
+copy /y "..\runtime\scripts\logging\*.*" "$(OutDir)scripts\logging\"
+copy /y "..\runtime\exchndl.dll" "$(OutDir)"
+copy /y "..\runtime\flam3-animate.exe" "$(OutDir)"
+copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
+copy /y "..\runtime\License.rtf" "$(OutDir)"
+copy /y "..\runtime\*.png" "$(OutDir)"
+copy /y "..\runtime\pthreadGC2.dll" "$(OutDir)"
 </Command>
     </PreBuildEvent>
     <ClCompile>
@@ -668,22 +645,18 @@ copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugMDd|x64'">
     <PreBuildEvent>
-      <Command>mkdir ..\runtimemsvc\scripts
-mkdir ..\runtimemsvc\scripts\dictionary
-mkdir ..\runtimemsvc\scripts\logging
-copy ..\runtime\scripts\*.* ..\runtimemsvc\scripts\*.*
-copy ..\runtime\scripts\dictionary\*.* ..\runtimemsvc\scripts\Dictionary\*.*
-copy ..\runtime\scripts\logging\*.* ..\runtimemsvc\scripts\logging\*.*
-copy ..\runtime\electricsheep-frown.png ..\runtimemsvc
-copy ..\runtime\electricsheep-smile.png ..\runtimemsvc
-copy ..\runtime\electricsheep-attr.png ..\runtimemsvc
-copy ..\runtime\exchndl.dll ..\runtimemsvc
-copy ..\runtime\flam3-animate.exe ..\runtimemsvc
-copy ..\runtime\Instructions.rtf ..\runtimemsvc
-copy ..\runtime\License.rtf ..\runtimemsvc
-copy ..\runtime\*.png ..\runtimemsvc
-copy ..\runtime\*.png ..\MSVC\DebugMDd
-copy ..\runtime\pthreadGC2.dll ..\runtimemsvc
+      <Command>if not exist "$(OutDir)scripts" mkdir "$(OutDir)scripts"
+if not exist "$(OutDir)scripts\dictionary" mkdir "$(OutDir)scripts\dictionary"
+if not exist "$(OutDir)scripts\logging" mkdir "$(OutDir)scripts\logging"
+copy /y "..\runtime\scripts\*.*" "$(OutDir)scripts\"
+copy /y "..\runtime\scripts\dictionary\*.*" "$(OutDir)scripts\Dictionary\"
+copy /y "..\runtime\scripts\logging\*.*" "$(OutDir)scripts\logging\"
+copy /y "..\runtime\exchndl.dll" "$(OutDir)"
+copy /y "..\runtime\flam3-animate.exe" "$(OutDir)"
+copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
+copy /y "..\runtime\License.rtf" "$(OutDir)"
+copy /y "..\runtime\*.png" "$(OutDir)"
+copy /y "..\runtime\pthreadGC2.dll" "$(OutDir)"
 </Command>
     </PreBuildEvent>
     <ClCompile>
