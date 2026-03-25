@@ -18,6 +18,7 @@
 #include <wrl.h>
 
 #include "clientversion.h"
+#include "FirstTimeSetupWin32.h"
 #include "Exception.h"
 #include "Log.h"
 #include "MathBase.h"
@@ -409,6 +410,9 @@ class CElectricSheep_Win32 : public CElectricSheep
         if (m_ScrMode == ePreview) {
             ForceMultipleInstancesMode(true);
         }
+
+        FirstTimeSetupWin32_SetOverlayAllowed(m_ScrMode != eSaver && m_ScrMode != ePreview);
+        FirstTimeSetupWin32_Register();
 
         //	A window was provided, let's use it.
         if (hwnd)

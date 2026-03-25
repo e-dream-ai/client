@@ -9,6 +9,7 @@
 #include <tuple>
 #include <sstream>
 #include <chrono>
+#include <utility>
 #include <boost/asio.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/json.hpp>
@@ -83,6 +84,8 @@ private:
     static void DidSignIn();
     // Auth v2
     static AuthResult SendCode();
+    /// Same as SendCode(); public return type for UI code outside this class.
+    static std::pair<bool, std::string> SendVerificationCodeOutcome();
     static bool ValidateCode(const std::string& code);
     enum class AuthRefreshResult { Success, InvalidSession, TransientFailure };
     static AuthRefreshResult RefreshSealedSession();

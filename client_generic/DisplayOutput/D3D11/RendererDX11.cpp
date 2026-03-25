@@ -3,6 +3,10 @@
 #include "Log.h"
 #include <cassert>
 
+#ifdef WIN32
+#include "FirstTimeSetupWin32.h"
+#endif
+
 namespace DisplayOutput {
 namespace {
 const char* kQuadPassVertexHlsl = R"(
@@ -279,6 +283,25 @@ bool CRendererDX11::BeginFrame() {
 }
 
 bool CRendererDX11::EndFrame(bool drawn) {
+#ifdef WIN32
+    // Base CRenderer::EndFrame returns false when !drawn, which would skip overlay + Present.
+    bool forcePresent = false;
+    if (m_context && m_renderTargetView && m_spDisplay) {
+        forcePresent = FirstTimeSetupWin32_RenderIfNeeded(
+            m_device.Get(), m_context.Get(), m_renderTargetView.Get(),
+            static_cast<float>(m_spDisplay->Width()),
+            static_cast<float>(m_spDisplay->Height()));
+    }
+    const bool effectiveDrawn = drawn || forcePresent;
+    if (!CRenderer::EndFrame(effectiveDrawn))
+        return false;
+
+    if (effectiveDrawn && m_context && m_spDisplay) {
+        m_spDisplay->SwapBuffers();
+        return true;
+    }
+    return false;
+#else
     if (!CRenderer::EndFrame(drawn))
         return false;
 
@@ -287,6 +310,7 @@ bool CRendererDX11::EndFrame(bool drawn) {
         return true;
     }
     return false;
+#endif
 }
 
 void CRendererDX11::Apply() {

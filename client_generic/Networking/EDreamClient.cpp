@@ -9,6 +9,7 @@
 #include <iomanip>
 #include <sstream>
 #include <chrono>
+#include <utility>
 #include <algorithm>
 #include <ctime>
 
@@ -544,14 +545,10 @@ bool EDreamClient::Authenticate()
         fAuthCV.notify_one();
         if (!shownSettingsOnce) {
             shownSettingsOnce = true;
-#ifdef __APPLE__
             bool firstTimeSetupCompleted = g_Settings()->Get("settings.app.firsttimesetup", false);
             if (!firstTimeSetupCompleted) {
                 ESShowFirstTimeSetup();
             }
-#else
-            ESShowPreferences();
-#endif
         }
         return false;
     }
@@ -834,6 +831,12 @@ EDreamClient::AuthResult EDreamClient::SendCode() {
     }
 
     return AuthResult(false, "Cannot access Network");
+}
+
+std::pair<bool, std::string> EDreamClient::SendVerificationCodeOutcome()
+{
+    AuthResult r = SendCode();
+    return {r.success, std::move(r.message)};
 }
 
 bool EDreamClient::ValidateCode(const std::string& code)
@@ -1807,7 +1810,11 @@ std::string EDreamClient::GetDreamDownloadLink(const std::string& uuid) {
 
 
 std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
-    g_Log->Info("Parse Playlist %s", (uuid == "" ? "default playlist" : uuid));
+    // Do not pass std::string_view to "%s" (expects null-terminated const char*).
+    if (uuid.empty())
+        g_Log->Info("Parse Playlist default playlist");
+    else
+        g_Log->Info("Parse Playlist %.*s", static_cast<int>(uuid.size()), uuid.data());
     // Grab the CacheManager
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
 

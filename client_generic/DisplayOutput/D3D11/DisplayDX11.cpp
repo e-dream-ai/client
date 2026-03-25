@@ -2,6 +2,10 @@
 #include "Log.h"
 #include "Player.h"
 
+#ifdef WIN32
+#include "FirstTimeSetupWin32.h"
+#endif
+
 namespace DisplayOutput {
 
 CDisplayDX11::CDisplayDX11() : CDisplayOutput(), m_WindowHandle(nullptr) {
@@ -13,6 +17,11 @@ CDisplayDX11::~CDisplayDX11() {
 }
 
 LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+#ifdef WIN32
+    LRESULT imguiHandled = 0;
+    if (FirstTimeSetupWin32_TryConsumeWndProc(hWnd, msg, wParam, lParam, &imguiHandled))
+        return imguiHandled;
+#endif
     switch (msg) {
     case WM_KEYUP: {
         auto spEvent = std::make_shared<CKeyEvent>();
