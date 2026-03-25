@@ -27,7 +27,6 @@ find_package(Vulkan REQUIRED)
 find_package(X11 REQUIRED)
 find_package(Threads REQUIRED)
 find_package(OpenSSL REQUIRED)
-find_package(Freetype REQUIRED)
 
 # Boost — filesystem + thread (boost_system is header-only since 1.69)
 find_package(Boost REQUIRED COMPONENTS filesystem thread log log_setup json)
@@ -181,6 +180,13 @@ set(SOURCES
     ${VULKAN}/ShaderVulkan.cpp
     ${VULKAN}/FontVulkan.cpp
 
+    # ImGui — compiled directly from the submodule source
+    ${BASE}/imgui/imgui.cpp
+    ${BASE}/imgui/imgui_draw.cpp
+    ${BASE}/imgui/imgui_tables.cpp
+    ${BASE}/imgui/imgui_widgets.cpp
+    ${BASE}/imgui/backends/imgui_impl_vulkan.cpp
+
     # Content decoder (ffmpeg)
     ${CDEC}/Clip.cpp
     ${CDEC}/ContentDecoder.cpp
@@ -253,7 +259,8 @@ target_include_directories(infinidream PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR}           # generated xdg-shell-client-protocol.h
     ${WAYLAND_CLIENT_INCLUDE_DIRS}
     ${XKB_INCLUDE_DIRS}
-    ${FREETYPE_INCLUDE_DIRS}
+    ${BASE}/imgui
+    ${BASE}/imgui/backends
 )
 
 # ---------------------------------------------------------------------------
@@ -279,7 +286,6 @@ target_link_libraries(infinidream PRIVATE
     ${BASE}/socket.io-client-cpp/lib/linux/libsioclient_tls.a
     $<$<BOOL:${WAYLAND_CLIENT_FOUND}>:${WAYLAND_CLIENT_LIBRARIES}>
     $<$<BOOL:${XKB_FOUND}>:${XKB_LIBRARIES}>
-    ${FREETYPE_LIBRARIES}
 )
 
 # ---------------------------------------------------------------------------
@@ -310,9 +316,3 @@ add_custom_command(TARGET infinidream POST_BUILD
     COMMENT "Copying runtime assets to binary directory"
 )
 
-add_custom_command(TARGET infinidream POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${BASE}/Runtime/Lato-Regular.ttf
-        $<TARGET_FILE_DIR:infinidream>/Lato-Regular.ttf
-    COMMENT "Copying Lato-Regular.ttf to binary directory"
-)

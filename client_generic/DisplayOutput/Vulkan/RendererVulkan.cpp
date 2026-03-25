@@ -8,6 +8,9 @@
 #include "PlatformUtils.h"
 #include "Rect.h"
 
+#include <imgui.h>
+#include <backends/imgui_impl_vulkan.h>
+
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -37,15 +40,16 @@ CRendererVulkan::~CRendererVulkan()
     if (m_device == VK_NULL_HANDLE) return;
     vkDeviceWaitIdle(m_device);
 
-    // Explicitly destroy font atlas GPU resources before device teardown.
-    // CStatsConsole etc. may still hold shared_ptr refs to CFontVulkan, so
-    // we can't rely on the font pool's destructor to run first.
-    for (auto& kv : m_fontPool)
+    // Shut down ImGui before any Vulkan resources are destroyed.
+    if (m_imguiInitialized)
     {
-        auto fv = std::dynamic_pointer_cast<CFontVulkan>(kv.second);
-        if (fv && fv->AtlasTexture())
-            fv->AtlasTexture()->DestroyVulkanResources();
+        ImGui_ImplVulkan_Shutdown();
+        ImGui::DestroyContext(m_imguiContext);
+        m_imguiContext     = nullptr;
+        m_imguiInitialized = false;
     }
+
+    // Font objects are ImGui-managed; just release the shared_ptr refs.
     m_fontPool.clear();
 
     // White texture
@@ -810,6 +814,41 @@ bool CRendererVulkan::createWhiteTexture()
 }
 
 // ---------------------------------------------------------------------------
+// initImGui — set up ImGui with the Vulkan backend.
+// Called at the tail of Initialize(), after all Vulkan objects exist.
+// ---------------------------------------------------------------------------
+bool CRendererVulkan::initImGui()
+{
+    IMGUI_CHECKVERSION();
+    m_imguiContext = ImGui::CreateContext();
+    ImGui::SetCurrentContext(m_imguiContext);
+
+    ImGuiIO& io = ImGui::GetIO();
+    io.IniFilename = nullptr;  // no imgui.ini — we don't persist UI state
+
+    ImGui_ImplVulkan_InitInfo initInfo{};
+    initInfo.ApiVersion        = VK_API_VERSION_1_0;
+    initInfo.Instance          = m_vulkanInstance;
+    initInfo.PhysicalDevice    = m_physicalDevice;
+    initInfo.Device            = m_device;
+    initInfo.QueueFamily       = m_graphicsFamily;
+    initInfo.Queue             = m_graphicsQueue;
+    initInfo.DescriptorPoolSize = 2;  // imgui creates its own pool internally
+    initInfo.MinImageCount     = 2;
+    initInfo.ImageCount        = static_cast<uint32_t>(m_swapImages.size());
+    // Since imgui 1.92 (Sept 2025): RenderPass and MSAASamples live in PipelineInfoMain.
+    initInfo.PipelineInfoMain.RenderPass = m_renderPass;
+    // MSAASamples defaults to VK_SAMPLE_COUNT_1_BIT (zero-init = {})
+    ImGui_ImplVulkan_Init(&initInfo);
+
+    // Font atlas upload is handled automatically by ImGui_ImplVulkan_NewFrame().
+
+    m_imguiInitialized = true;
+    g_Log->Info("CRendererVulkan: ImGui initialized");
+    return true;
+}
+
+// ---------------------------------------------------------------------------
 // Initialize
 // ---------------------------------------------------------------------------
 bool CRendererVulkan::Initialize(spCDisplayOutput _spDisplay)
@@ -828,7 +867,8 @@ bool CRendererVulkan::Initialize(spCDisplayOutput _spDisplay)
     VkSurfaceKHR surface  = disp->GetSurface();
     uint32_t     w        = disp->Width();
     uint32_t     h        = disp->Height();
-    m_surface = surface;
+    m_surface         = surface;
+    m_vulkanInstance  = instance;
 
     if (!pickPhysicalDevice(instance, surface))     return false;
     if (!createLogicalDevice())                      return false;
@@ -846,6 +886,9 @@ bool CRendererVulkan::Initialize(spCDisplayOutput _spDisplay)
     if (!createVertexBuffers())                      return false;
 
     m_currentDescSet = m_whiteDescSet;
+
+    if (!initImGui())
+        return false;
 
     // Timestamp query pool for GPU frame-time measurement.
     // Two queries per in-flight frame slot: one at start, one at end of frame.
@@ -883,12 +926,8 @@ void CRendererVulkan::Reset(const uint32_t /*_flags*/) {}
 void CRendererVulkan::Apply()
 {
     CRenderer::Apply();
-    // DrawText calls Bind() directly on font atlas textures, changing
-    // m_currentDescSet behind Apply()'s back.  The base class won't rebind
-    // the video texture on frames where it hasn't changed (same pointer,
-    // not dirty), so m_currentDescSet can be left pointing at a font atlas.
-    // Force-rebind every selected texture here so m_currentDescSet is always
-    // correct before the next DrawQuad.
+    // Force-rebind selected textures to keep m_currentDescSet pointing at the
+    // correct video/content texture before the next DrawQuad call.
     for (uint32_t i = 0; i < MAX_TEXUNIT; ++i)
     {
         if (m_aspSelectedTextures[i])
@@ -1012,6 +1051,19 @@ bool CRendererVulkan::BeginFrame()
                             m_timestampPool, m_currentFrame * 2);
     }
 
+    // Start an ImGui frame before the render pass so DrawText() can add to
+    // the background draw list.  ImGui_ImplVulkan_NewFrame() also handles
+    // automatic font-atlas uploads (new in imgui 1.92+).
+    if (m_imguiInitialized)
+    {
+        ImGui_ImplVulkan_NewFrame();
+        ImGuiIO& io    = ImGui::GetIO();
+        io.DisplaySize = ImVec2(static_cast<float>(m_swapExtent.width),
+                                static_cast<float>(m_swapExtent.height));
+        io.DeltaTime   = 1.0f / 60.0f;  // approximation; sufficient for text rendering
+        ImGui::NewFrame();
+    }
+
     // Begin render pass
     VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
     VkRenderPassBeginInfo rpbi{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
@@ -1047,6 +1099,16 @@ bool CRendererVulkan::EndFrame(bool /*drawn*/)
     if (!m_inFrame) return true;
 
     VkCommandBuffer cmd = m_commandBuffers[m_currentFrame];
+
+    // Render ImGui draw data (text overlays etc.) inside the active render pass.
+    if (m_imguiInitialized)
+    {
+        ImGui::Render();
+        ImDrawData* drawData = ImGui::GetDrawData();
+        if (drawData && drawData->TotalVtxCount > 0)
+            ImGui_ImplVulkan_RenderDrawData(drawData, cmd);
+    }
+
     vkCmdEndRenderPass(cmd);
 
     // GPU frame-time: write end timestamp outside the render pass.
@@ -1182,13 +1244,14 @@ spCBaseFont CRendererVulkan::GetFont(CFontDescription& _desc)
     auto it = m_fontPool.find(key);
     if (it != m_fontPool.end()) return it->second;
 
-    auto font = std::make_shared<CFontVulkan>();
+    auto font = std::make_shared<CFontImGui>();
     font->FontDescription(_desc);
     font->CreateWithRenderer(this);
     m_fontPool[key] = font;
 
-    // Pre-create the bold variant for Normal fonts so DrawText never triggers
-    // atlas creation (and vkQueueWaitIdle) inside an active render pass.
+    // Pre-create the bold variant for Normal fonts so DrawText can switch to
+    // it via inline bold markers (\x01/\x02) without triggering a new font
+    // registration inside an active render pass.
     if (_desc.Style() == CFontDescription::Normal)
     {
         CFontDescription boldDesc = _desc;
@@ -1197,7 +1260,7 @@ spCBaseFont CRendererVulkan::GetFont(CFontDescription& _desc)
                             + "_" + std::to_string(static_cast<int>(boldDesc.Style()));
         if (m_fontPool.find(boldKey) == m_fontPool.end())
         {
-            auto boldFont = std::make_shared<CFontVulkan>();
+            auto boldFont = std::make_shared<CFontImGui>();
             boldFont->FontDescription(boldDesc);
             boldFont->CreateWithRenderer(this);
             m_fontPool[boldKey] = boldFont;
@@ -1209,93 +1272,79 @@ spCBaseFont CRendererVulkan::GetFont(CFontDescription& _desc)
 
 spCBaseText CRendererVulkan::NewText(spCBaseFont _font, const std::string& _text)
 {
-    return std::make_shared<CTextVulkan>(_font, _text, this);
+    return std::make_shared<CTextImGui>(_font, _text, this);
 }
 
 void CRendererVulkan::DrawText(spCBaseText _text,
                                 const Base::Math::CVector4& _color)
 {
-    if (!_text || !m_inFrame) return;
+    if (!_text || !m_inFrame || !m_imguiInitialized) return;
 
-    auto spTV = std::dynamic_pointer_cast<CTextVulkan>(_text);
+    auto spTV = std::dynamic_pointer_cast<CTextImGui>(_text);
     if (!spTV || !spTV->IsEnabled()) return;
 
-    auto spFV = std::dynamic_pointer_cast<CFontVulkan>(spTV->GetFont());
-    if (!spFV || !spFV->AtlasTexture()) return;
+    auto spFI = std::dynamic_pointer_cast<CFontImGui>(spTV->GetFont());
+    if (!spFI) return;
 
-    // Resolve the bold variant for inline bold markers.
-    // GetFont() returns immediately from the pool — the bold font was pre-created
-    // by GetFont() when the normal font was first requested, so this is a cheap
-    // map lookup with no atlas creation and no vkQueueWaitIdle.
-    std::shared_ptr<CFontVulkan> spFVBold = spFV;
+    ImFont* normalFont = spFI->GetImFont();
+    float   fontSize   = spFI->FontSize();
+
+    // Convert normalised rect [0,1] → pixel coords (ImGui origin is top-left).
+    Base::Math::CRect r = _text->GetRect();
+    ImVec2 cursor{r.m_X0 * static_cast<float>(m_swapExtent.width),
+                  r.m_Y0 * static_cast<float>(m_swapExtent.height)};
+
+    ImU32 col = ImGui::ColorConvertFloat4ToU32(
+        ImVec4(_color.m_X, _color.m_Y, _color.m_Z, _color.m_W));
+
+    ImDrawList*        dl   = ImGui::GetBackgroundDrawList();
     const std::string& text = spTV->Text();
-    if (text.find('\x01') != std::string::npos)
+
+    if (text.find_first_of("\t\n\x01\x02") == std::string::npos)
     {
-        CFontDescription boldDesc = spTV->GetFont()->FontDescription();
-        boldDesc.Style(CFontDescription::Bold);
-        auto boldFont = GetFont(boldDesc);
-        if (boldFont)
-        {
-            auto candidate = std::dynamic_pointer_cast<CFontVulkan>(boldFont);
-            if (candidate && candidate->AtlasTexture())
-                spFVBold = candidate;
-        }
+        // Fast path — plain single-line text with no special characters.
+        dl->AddText(normalFont, fontSize, cursor, col, text.c_str());
+        return;
     }
 
-    // Bind the glyph atlas so subsequent DrawQuad calls sample from it.
-    spFV->AtlasTexture()->Bind(0);
+    // Render segment-by-segment, handling:
+    //   \n      — newline: reset cursor.x, advance cursor.y
+    //   \t      — tab: snap cursor.x to next tab stop (4 × space width)
+    //   \x01\x02 — bold markers (no bold font available; strip silently)
+    const float spaceW      = normalFont
+        ? normalFont->CalcTextSizeA(fontSize, FLT_MAX, 0.f, " ").x
+        : fontSize * 0.5f;
+    const float tabInterval = spaceW * 4.0f;
+    const float startX      = cursor.x;
+    const char* p           = text.c_str();
+    const char* segBegin    = p;
 
-    Base::Math::CRect  rect    = spTV->GetRect();
-    const float        screenW = static_cast<float>(m_swapExtent.width);
-    const float        screenH = static_cast<float>(m_swapExtent.height);
-    const float        lineHN  = static_cast<float>(spFV->LineHeight()) / screenH;
-    const int32_t      asc     = spFV->Ascender();
-
-    float penX = rect.m_X0;
-    float penY = rect.m_Y0;
-    CFontVulkan* activeFV = spFV.get();
-
-    for (unsigned char c : text)
+    while (*p)
     {
-        if (c == '\x01') { activeFV = spFVBold.get(); spFVBold->AtlasTexture()->Bind(0); continue; }
-        if (c == '\x02') { activeFV = spFV.get();     spFV->AtlasTexture()->Bind(0);     continue; }
-
-        if (c == '\n')
+        if (*p == '\n' || *p == '\t' || *p == '\x01' || *p == '\x02')
         {
-            penX  = rect.m_X0;
-            penY += lineHN;
-            continue;
-        }
-
-        if (c == '\t')
-        {
-            const GlyphInfo* sp = activeFV->GetGlyph(' ');
-            if (sp)
+            if (p > segBegin)
             {
-                float tabW  = static_cast<float>(sp->advance * 8) / screenW;
-                float stops = std::floor(penX / tabW);
-                penX = (stops + 1.0f) * tabW;
+                dl->AddText(normalFont, fontSize, cursor, col, segBegin, p);
+                cursor.x += normalFont->CalcTextSizeA(fontSize, FLT_MAX, 0.f, segBegin, p).x;
             }
-            continue;
+            if (*p == '\n')
+            {
+                cursor.x = startX;
+                cursor.y += fontSize;
+            }
+            else if (*p == '\t')
+            {
+                float offset = cursor.x - startX;
+                cursor.x = startX + (std::floor(offset / tabInterval) + 1.0f) * tabInterval;
+            }
+            // \x01 / \x02 stripped — no bold font to switch to
+            segBegin = p + 1;
         }
-
-        const GlyphInfo* gi = activeFV->GetGlyph(static_cast<uint32_t>(c));
-        if (!gi) continue;
-
-        if (gi->width > 0 && gi->height > 0)
-        {
-            const float x0 = penX + static_cast<float>(gi->bearingX)       / screenW;
-            const float y0 = penY + static_cast<float>(asc - gi->bearingY) / screenH;
-            const float x1 = x0  + static_cast<float>(gi->width)           / screenW;
-            const float y1 = y0  + static_cast<float>(gi->height)          / screenH;
-
-            DrawQuad(Base::Math::CRect(x0, y0, x1, y1),
-                     _color,
-                     Base::Math::CRect(gi->u0, gi->v0, gi->u1, gi->v1));
-        }
-
-        penX += static_cast<float>(gi->advance) / screenW;
+        ++p;
     }
+    if (p > segBegin)
+        dl->AddText(normalFont, fontSize, cursor, col, segBegin, p);
 }
 
 // ---------------------------------------------------------------------------

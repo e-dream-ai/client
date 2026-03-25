@@ -57,14 +57,13 @@ sudo pacman -S --needed \
     ffmpeg \
     libpng curl \
     wayland wayland-protocols \
-    libxkbcommon \
-    freetype2
+    libxkbcommon
 ```
 
 Wayland support is optional — the build falls back to X11/XWayland if the
 Wayland packages are absent.
 
-Also initialise the vcpkg submodule (needed for the socket.io dependency):
+Also initialise the submodules (socket.io dependency and ImGui UI library):
 
 ```bash
 git submodule update --init

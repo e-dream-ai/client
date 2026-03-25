@@ -9,6 +9,9 @@
 #include <string>
 #include <vector>
 
+// Forward-declare ImGui context so we need not include imgui.h in this header.
+struct ImGuiContext;
+
 namespace DisplayOutput
 {
 
@@ -94,6 +97,11 @@ class CRendererVulkan : public CRenderer
     // Font pool
     std::map<std::string, spCBaseFont> m_fontPool;
 
+    // ImGui state (Vulkan backend for text / UI overlay rendering)
+    VkInstance       m_vulkanInstance    = VK_NULL_HANDLE;  // stored for ImGui init
+    ImGuiContext*    m_imguiContext      = nullptr;
+    bool             m_imguiInitialized = false;
+
     // GPU frame-time measurement via Vulkan timestamp queries.
     // One start + one end query per in-flight slot → MAX_FRAMES_IN_FLIGHT * 2 queries total.
     VkQueryPool m_timestampPool    = VK_NULL_HANDLE;
@@ -118,6 +126,7 @@ class CRendererVulkan : public CRenderer
     bool createWhiteTexture();
     VkShaderModule loadShader(const std::string& path);
     void recreateSwapchain();
+    bool initImGui();
 
   public:
     CRendererVulkan();
@@ -177,7 +186,7 @@ class CRendererVulkan : public CRenderer
     // Let the active texture set its descriptor
     void SetDescriptorSet(VkDescriptorSet ds) { m_currentDescSet = ds; }
 
-    // Swapchain extent — used by CTextVulkan::GetExtent() for screen-space normalisation
+    // Swapchain extent — used by CTextImGui::GetExtent() for screen-space normalisation
     VkExtent2D GetSwapExtent() const { return m_swapExtent; }
 };
 
