@@ -2,12 +2,20 @@
 #include "DisplayDX11.h"
 #include "Log.h"
 #include <cassert>
+#include <cstring>
 
 #ifdef WIN32
 #include "FirstTimeSetupWin32.h"
+#include <windows.h>
 #endif
 
 namespace DisplayOutput {
+
+// Some Windows DX11 builds do not link DisplayOutput/Renderer/Text.cpp into this target.
+// Provide local base text definitions to satisfy linkage for DX11 text objects.
+CBaseText::CBaseText() {}
+CBaseText::~CBaseText() {}
+
 namespace {
 const char* kQuadPassVertexHlsl = R"(
 struct VSInput {
@@ -102,6 +110,107 @@ bool CreateDefaultSampler(ID3D11Device* device, ID3D11SamplerState** outSampler)
     HRESULT hr = device->CreateSamplerState(&samplerDesc, outSampler);
     return SUCCEEDED(hr);
 }
+
+class CFontDX11Gdi final : public CBaseFont
+{
+public:
+    CFontDX11Gdi() : m_hFont(nullptr) {}
+    ~CFontDX11Gdi() override
+    {
+        if (m_hFont)
+            DeleteObject(m_hFont);
+    }
+
+    bool Create() override { return EnsureCreated(); }
+
+    bool EnsureCreated()
+    {
+        if (m_hFont)
+            return true;
+
+        LOGFONTA lf = {};
+        lf.lfHeight = -static_cast<LONG>(FontDescription().Height());
+        lf.lfWeight = FW_NORMAL;
+        switch (FontDescription().Style())
+        {
+        case CFontDescription::Thin: lf.lfWeight = FW_THIN; break;
+        case CFontDescription::Light: lf.lfWeight = FW_LIGHT; break;
+        case CFontDescription::Normal: lf.lfWeight = FW_NORMAL; break;
+        case CFontDescription::Bold: lf.lfWeight = FW_BOLD; break;
+        case CFontDescription::UberBold: lf.lfWeight = FW_EXTRABOLD; break;
+        }
+        lf.lfItalic = FontDescription().Italic() ? TRUE : FALSE;
+        lf.lfUnderline = FontDescription().Underline() ? TRUE : FALSE;
+        lf.lfQuality = FontDescription().AntiAliased() ? ANTIALIASED_QUALITY : NONANTIALIASED_QUALITY;
+        std::strncpy(lf.lfFaceName, FontDescription().TypeFace().c_str(), LF_FACESIZE - 1);
+        lf.lfFaceName[LF_FACESIZE - 1] = '\0';
+
+        m_hFont = CreateFontIndirectA(&lf);
+        return m_hFont != nullptr;
+    }
+
+    HFONT Handle() { return EnsureCreated() ? m_hFont : nullptr; }
+
+private:
+    HFONT m_hFont;
+};
+
+class CTextDX11Gdi final : public CBaseText
+{
+public:
+    explicit CTextDX11Gdi(std::shared_ptr<CFontDX11Gdi> font, std::string text, HWND hwnd,
+                          uint32_t displayWidth, uint32_t displayHeight)
+        : m_font(std::move(font)),
+          m_text(std::move(text)),
+          m_enabled(true),
+          m_hwnd(hwnd),
+          m_displayWidth(displayWidth),
+          m_displayHeight(displayHeight)
+    {
+    }
+
+    void SetText(const std::string& text) override { m_text = text; }
+
+    Base::Math::CVector2 GetExtent() override
+    {
+        Base::Math::CVector2 result;
+        if (!m_hwnd)
+            return result;
+        HFONT font = m_font ? m_font->Handle() : nullptr;
+        if (!font)
+            return result;
+
+        HDC hdc = GetDC(m_hwnd);
+        if (!hdc)
+            return result;
+        HGDIOBJ oldFont = SelectObject(hdc, font);
+        SIZE size = {};
+        if (GetTextExtentPoint32A(hdc, m_text.c_str(), static_cast<int>(m_text.size()), &size))
+        {
+            const uint32_t safeW = (m_displayWidth == 0u) ? 1u : m_displayWidth;
+            const uint32_t safeH = (m_displayHeight == 0u) ? 1u : m_displayHeight;
+            const float w = static_cast<float>(safeW);
+            const float h = static_cast<float>(safeH);
+            result = Base::Math::CVector2(size.cx / w, size.cy / h);
+        }
+        SelectObject(hdc, oldFont);
+        ReleaseDC(m_hwnd, hdc);
+        return result;
+    }
+
+    void SetEnabled(bool enabled) override { m_enabled = enabled; }
+    bool Enabled() const { return m_enabled; }
+    const std::string& Text() const { return m_text; }
+    std::shared_ptr<CFontDX11Gdi> Font() const { return m_font; }
+
+private:
+    std::shared_ptr<CFontDX11Gdi> m_font;
+    std::string m_text;
+    bool m_enabled;
+    HWND m_hwnd;
+    uint32_t m_displayWidth;
+    uint32_t m_displayHeight;
+};
 } // namespace
 
 CRendererDX11::CRendererDX11() : CRenderer() {
@@ -265,6 +374,8 @@ void CRendererDX11::Defaults() {
 }
 
 bool CRendererDX11::BeginFrame() {
+    m_pendingTextDraws.clear();
+
     if (!CRenderer::BeginFrame())
         return false;
 
@@ -312,6 +423,41 @@ bool CRendererDX11::EndFrame(bool drawn) {
 
     if (effectiveDrawn && m_context && m_spDisplay) {
         m_spDisplay->SwapBuffers();
+
+        auto display = std::dynamic_pointer_cast<CDisplayDX11>(m_spDisplay);
+        if (display && display->GetWindowHandle() && !m_pendingTextDraws.empty())
+        {
+            HDC hdc = GetDC(display->GetWindowHandle());
+            if (hdc)
+            {
+                SetBkMode(hdc, TRANSPARENT);
+                for (const auto& draw : m_pendingTextDraws)
+                {
+                    auto text = std::dynamic_pointer_cast<CTextDX11Gdi>(draw.text);
+                    if (!text || !text->Enabled())
+                        continue;
+                    auto font = text->Font();
+                    HFONT hFont = font ? font->Handle() : nullptr;
+                    if (!hFont)
+                        continue;
+
+                    HGDIOBJ oldFont = SelectObject(hdc, hFont);
+                    COLORREF c = RGB(
+                        static_cast<int>(draw.color.m_X * 255.0f),
+                        static_cast<int>(draw.color.m_Y * 255.0f),
+                        static_cast<int>(draw.color.m_Z * 255.0f));
+                    SetTextColor(hdc, c);
+
+                    const Base::Math::CRect r = text->GetRect();
+                    const int left = static_cast<int>(r.m_X0 * static_cast<float>(display->Width()));
+                    const int top = static_cast<int>(r.m_Y0 * static_cast<float>(display->Height()));
+                    RECT rc = {left, top, static_cast<int>(display->Width()), static_cast<int>(display->Height())};
+                    DrawTextA(hdc, text->Text().c_str(), -1, &rc, DT_LEFT | DT_TOP | DT_NOCLIP);
+                    SelectObject(hdc, oldFont);
+                }
+                ReleaseDC(display->GetWindowHandle(), hdc);
+            }
+        }
         return true;
     }
     return false;
@@ -353,11 +499,40 @@ spCTextureFlat CRendererDX11::NewTextureFlat(spCImage _spImage,
 
 // TODO: remaining resource creation stubs
 spCBaseFont CRendererDX11::GetFont(CFontDescription& _desc) {
-    return nullptr;
+    const std::string key = _desc.TypeFace() + "#" + std::to_string(static_cast<int>(_desc.Height())) +
+                            "#" + std::to_string(static_cast<int>(_desc.Style())) +
+                            "#" + (_desc.Italic() ? "i" : "n") +
+                            "#" + (_desc.Underline() ? "u" : "n") +
+                            "#" + (_desc.AntiAliased() ? "aa" : "na");
+    auto it = m_fontPool.find(key);
+    if (it != m_fontPool.end())
+        return it->second;
+
+    auto font = std::make_shared<CFontDX11Gdi>();
+    font->FontDescription(_desc);
+    if (!font->EnsureCreated())
+    {
+        g_Log->Warning("DX11 font '%s' unavailable, trying Arial fallback", _desc.TypeFace().c_str());
+        CFontDescription fallback = _desc;
+        fallback.TypeFace("Arial");
+        font->FontDescription(fallback);
+        if (!font->EnsureCreated())
+            return nullptr;
+    }
+
+    m_fontPool[key] = font;
+    return font;
 }
 
 spCBaseText CRendererDX11::NewText(spCBaseFont _font, const std::string& _text) {
-    return nullptr;
+    auto font = std::dynamic_pointer_cast<CFontDX11Gdi>(_font);
+    if (!font)
+        return nullptr;
+    auto display = std::dynamic_pointer_cast<CDisplayDX11>(m_spDisplay);
+    if (!display)
+        return nullptr;
+    return std::make_shared<CTextDX11Gdi>(
+        font, _text, display->GetWindowHandle(), display->Width(), display->Height());
 }
 
 spCShader CRendererDX11::NewShader(const char* _pVertexShader, const char* _pFragmentShader,
@@ -411,6 +586,9 @@ spCShader CRendererDX11::NewShader(const char* _pVertexShader, const char* _pFra
 
 // TODO
 void CRendererDX11::DrawText(spCBaseText _text, const Base::Math::CVector4& _color) {
+    if (!_text)
+        return;
+    m_pendingTextDraws.push_back(PendingTextDraw{_text, _color});
 }
 
 

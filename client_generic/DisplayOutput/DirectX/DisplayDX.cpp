@@ -25,6 +25,28 @@ namespace DisplayOutput
 bool m_bWaitForInputIdle = false;
 bool g_bPreview = false;
 static HWND gl_hFocusWindow = NULL;
+static ULONGLONG g_lastF1EnqueueTickMs = 0;
+static constexpr ULONGLONG kF1DuplicateWindowMs = 250;
+
+static void AppendKeyEvent(CKeyEvent::eKeyCode code, bool dedupeF1)
+{
+    if (code == CKeyEvent::KEY_NONE)
+        return;
+
+    if (dedupeF1 && code == CKeyEvent::KEY_F1)
+    {
+        const ULONGLONG now = GetTickCount64();
+        if (now - g_lastF1EnqueueTickMs <= kF1DuplicateWindowMs)
+            return;
+        g_lastF1EnqueueTickMs = now;
+    }
+
+    auto spEvent = std::make_shared<CKeyEvent>();
+    spEvent->m_bPressed = true;
+    spEvent->m_Code = code;
+    if (auto spD = g_Player().Display())
+        spD->AppendEvent(spEvent);
+}
 
 /*
         CDisplayDX().
@@ -205,6 +227,11 @@ LRESULT CALLBACK CDisplayDX::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
 
     switch (msg)
     {
+    case WM_HELP:
+        // Fallback path: some Windows setups surface F1 as help message.
+        AppendKeyEvent(CKeyEvent::KEY_F1, true);
+        return 0;
+
     case WM_USER:
         //	All initialization messages have gone through.  Allow 500ms of
         // idle
@@ -247,63 +274,60 @@ LRESULT CALLBACK CDisplayDX::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
 
     case WM_KEYUP:
     {
-        spCKeyEvent spEvent = std::make_shared<CKeyEvent>();
-        //CKeyEvent* spEvent = new CKeyEvent();
-        spEvent->m_bPressed = true;
+        CKeyEvent::eKeyCode code = CKeyEvent::KEY_NONE;
 
         switch (wParam)
         {
         case VK_TAB:
-            spEvent->m_Code = CKeyEvent::KEY_TAB;
+            code = CKeyEvent::KEY_TAB;
             break;
         case VK_LWIN:
-            spEvent->m_Code = CKeyEvent::KEY_LALT;
+            code = CKeyEvent::KEY_LALT;
             break;
         case VK_MENU:
-            spEvent->m_Code = CKeyEvent::KEY_MENU;
+            code = CKeyEvent::KEY_MENU;
             break;
         case VK_LEFT:
-            spEvent->m_Code = CKeyEvent::KEY_LEFT;
+            code = CKeyEvent::KEY_LEFT;
             break;
         case VK_RIGHT:
-            spEvent->m_Code = CKeyEvent::KEY_RIGHT;
+            code = CKeyEvent::KEY_RIGHT;
             break;
         case VK_UP:
-            spEvent->m_Code = CKeyEvent::KEY_UP;
+            code = CKeyEvent::KEY_UP;
             break;
         case VK_DOWN:
-            spEvent->m_Code = CKeyEvent::KEY_DOWN;
+            code = CKeyEvent::KEY_DOWN;
             break;
         case VK_SPACE:
-            spEvent->m_Code = CKeyEvent::KEY_SPACE;
+            code = CKeyEvent::KEY_SPACE;
             break;
         case 0x46:
-            spEvent->m_Code = CKeyEvent::KEY_F;
+            code = CKeyEvent::KEY_F;
             break;
         case VK_CONTROL:
-            spEvent->m_Code = CKeyEvent::KEY_CTRL;
+            code = CKeyEvent::KEY_CTRL;
             break;
         case VK_F1:
-            spEvent->m_Code = CKeyEvent::KEY_F1;
+            code = CKeyEvent::KEY_F1;
             break;
         case VK_F2:
-            spEvent->m_Code = CKeyEvent::KEY_F2;
+            code = CKeyEvent::KEY_F2;
             break;
         case VK_F3:
-            spEvent->m_Code = CKeyEvent::KEY_F3;
+            code = CKeyEvent::KEY_F3;
             break;
         case VK_F4:
-            spEvent->m_Code = CKeyEvent::KEY_F4;
+            code = CKeyEvent::KEY_F4;
             break;
         case VK_F8:
-            spEvent->m_Code = CKeyEvent::KEY_F8;
+            code = CKeyEvent::KEY_F8;
             break;
         case VK_ESCAPE:
-            spEvent->m_Code = CKeyEvent::KEY_Esc;
+            code = CKeyEvent::KEY_Esc;
             break;
         }
-        if (auto spD = g_Player().Display())
-            spD->AppendEvent(spEvent);
+        AppendKeyEvent(code, true);
     }
     break;
 

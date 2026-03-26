@@ -3,6 +3,7 @@
 
 #include <d3d11.h>
 #include <wrl/client.h>
+#include <vector>
 #include "Renderer.h"
 #include "SmartPtr.h"
 #include "ShaderDX11.h"
@@ -78,6 +79,13 @@ private:
     ComPtr<ID3D11Buffer> m_quadUniformBuffer;
     spCShader m_drawTextureShader;
     bool CreateQuadBuffers();
+
+    struct PendingTextDraw
+    {
+        spCBaseText text;
+        Base::Math::CVector4 color;
+    };
+    std::vector<PendingTextDraw> m_pendingTextDraws;
 
     bool CreateRenderTargets();
     bool CreateBlendStates();
