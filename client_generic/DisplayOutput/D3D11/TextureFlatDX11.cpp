@@ -54,9 +54,12 @@ DXGI_FORMAT CTextureFlatDX11::GetDXGIFormat(CImageFormat format) {
         DXGI_FORMAT_R32G32B32A32_FLOAT, // eImage_RGB32F
         DXGI_FORMAT_R32G32B32A32_FLOAT  // eImage_RGBA32F
     };
-    DXGI_FORMAT dxgiFormat = dxgiFormats[format.getFormatEnum()];
-    g_Log->Info("Converting format %d to DXGI format %d",
-                format.getFormatEnum(), dxgiFormat);
+    int formatEnum = format.getFormatEnum();
+    DXGI_FORMAT dxgiFormat = dxgiFormats[formatEnum];
+    if (!(formatEnum == 4 && dxgiFormat == DXGI_FORMAT_R8G8B8A8_UNORM)) {
+        g_Log->Info("Converting format %d to DXGI format %d",
+                    formatEnum, dxgiFormat);
+    }
     return dxgiFormat;
 }
 
