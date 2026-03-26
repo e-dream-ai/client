@@ -667,15 +667,44 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
         
         if (USE_HW_ACCELERATION)
         {
+            const std::string frameSource = ovi ? ovi->m_Path : std::string();
             pVideoFrame = new CVideoFrame(pFrame, frameNumber,
-                                          std::string(pFormatContext->url));
+                                          frameSource);
         }
         else
         {
+            const int srcWidth = (pFrame && pFrame->width > 0) ? pFrame->width : pVideoCodecContext->width;
+            const int srcHeight = (pFrame && pFrame->height > 0) ? pFrame->height : pVideoCodecContext->height;
+            const AVPixelFormat srcPixelFormat =
+                (pFrame && pFrame->format != AV_PIX_FMT_NONE)
+                    ? static_cast<AVPixelFormat>(pFrame->format)
+                    : pVideoCodecContext->pix_fmt;
+
+            if (srcWidth <= 0 || srcHeight <= 0)
+            {
+                g_Log->Error("Invalid frame dimensions for scaler: %dx%d (codec: %dx%d)",
+                             srcWidth, srcHeight,
+                             pVideoCodecContext->width, pVideoCodecContext->height);
+                av_frame_unref(pFrame);
+                av_packet_free(&packet);
+                av_packet_free(&filteredPacket);
+                return nullptr;
+            }
+            if (srcPixelFormat == AV_PIX_FMT_NONE)
+            {
+                g_Log->Error("Invalid source pixel format for scaler (frame: %d, codec: %d)",
+                             pFrame ? pFrame->format : -1,
+                             pVideoCodecContext->pix_fmt);
+                av_frame_unref(pFrame);
+                av_packet_free(&packet);
+                av_packet_free(&filteredPacket);
+                return nullptr;
+            }
+
             //    If the decoded video has a different resolution, delete the
             //    scaler to trigger it to be recreated.
-            if (m_ScalerWidth != (uint32_t)pVideoCodecContext->width ||
-                m_ScalerHeight != (uint32_t)pVideoCodecContext->height)
+            if (m_ScalerWidth != (uint32_t)srcWidth ||
+                m_ScalerHeight != (uint32_t)srcHeight)
             {
                 g_Log->Info("size doesn't match, recreating");
                 
@@ -692,27 +721,59 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
                 g_Log->Info("creating m_pScaler");
                 
                 m_pScaler = sws_getContext(
-                                           pVideoCodecContext->width, pVideoCodecContext->height,
-                                           pVideoCodecContext->pix_fmt, pVideoCodecContext->width,
-                                           pVideoCodecContext->height, m_WantedPixelFormat,
+                                           srcWidth, srcHeight,
+                                           srcPixelFormat, srcWidth,
+                                           srcHeight, m_WantedPixelFormat,
                                            SWS_BICUBIC, nullptr, nullptr, nullptr);
                 
                 //    Store width & height now...
-                m_ScalerWidth =
-                static_cast<uint32_t>(pVideoCodecContext->width);
-                m_ScalerHeight = (uint32_t)pVideoCodecContext->height;
+                m_ScalerWidth = static_cast<uint32_t>(srcWidth);
+                m_ScalerHeight = static_cast<uint32_t>(srcHeight);
                 
                 if (m_pScaler == nullptr)
-                    g_Log->Warning("scaler == null");
+                {
+                    g_Log->Error("scaler == null (src: %dx%d, pix_fmt: %d, wanted: %d)",
+                                 srcWidth, srcHeight,
+                                 srcPixelFormat,
+                                 m_WantedPixelFormat);
+                    av_frame_unref(pFrame);
+                    av_packet_free(&packet);
+                    av_packet_free(&filteredPacket);
+                    return nullptr;
+                }
             }
+            const std::string frameSource = ovi ? ovi->m_Path : std::string();
             pVideoFrame =
-            new CVideoFrame(pVideoCodecContext, m_WantedPixelFormat,
-                            std::string(pFormatContext->url));
+            new CVideoFrame(srcWidth, srcHeight, m_WantedPixelFormat,
+                            frameSource);
             AVFrame* pDest = pVideoFrame->Frame();
+
+            if (!pDest || !pDest->data[0])
+            {
+                g_Log->Error("Invalid destination frame buffer for scaler (wanted: %d)",
+                             m_WantedPixelFormat);
+                delete pVideoFrame;
+                pVideoFrame = nullptr;
+                av_frame_unref(pFrame);
+                av_packet_free(&packet);
+                av_packet_free(&filteredPacket);
+                return nullptr;
+            }
             
             // printf( "calling sws_scale()" );
-            sws_scale(m_pScaler, pFrame->data, pFrame->linesize, 0,
-                      pVideoCodecContext->height, pDest->data, pDest->linesize);
+            const int scaledLines = sws_scale(m_pScaler, pFrame->data, pFrame->linesize, 0,
+                                              srcHeight, pDest->data, pDest->linesize);
+            if (scaledLines <= 0)
+            {
+                g_Log->Error("sws_scale failed: %d (src: %dx%d, src_fmt: %d, dst_fmt: %d)",
+                             scaledLines, srcWidth, srcHeight, srcPixelFormat, m_WantedPixelFormat);
+                delete pVideoFrame;
+                pVideoFrame = nullptr;
+                av_frame_unref(pFrame);
+                av_packet_free(&packet);
+                av_packet_free(&filteredPacket);
+                return nullptr;
+            }
         }
         
         av_frame_unref(pFrame);
