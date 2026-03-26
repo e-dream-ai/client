@@ -829,12 +829,20 @@ EDreamClient::AuthResult EDreamClient::SendCode() {
 
 bool EDreamClient::ValidateCode(const std::string& code)
 {
+    return ValidateCodeDetailed(code).success;
+}
+
+EDreamClient::ValidateCodeResult EDreamClient::ValidateCodeDetailed(const std::string& code)
+{
+    ValidateCodeResult result{false, ValidationFailureReason::TransientFailure, 0, "Unable to validate verification code"};
     std::string email = g_Settings()->Get("settings.generator.nickname", std::string(""));
     
     if (email.empty())
     {
         g_Log->Error("Email address not found in settings");
-        return false;
+        result.reason = ValidationFailureReason::InvalidSession;
+        result.message = "Email address not provided";
+        return result;
     }
 
     CURLcode res;
@@ -867,11 +875,14 @@ bool EDreamClient::ValidateCode(const std::string& code)
 
         if(res != CURLE_OK) {
             g_Log->Error("Failed to validate code. Curl error: %s", curl_easy_strerror(res));
-            return false;
+            result.reason = ValidationFailureReason::TransientFailure;
+            result.message = std::string("Network error: ") + curl_easy_strerror(res);
+            return result;
         }
 
         long http_code = 0;
         curl_easy_getinfo(curl.get(), CURLINFO_RESPONSE_CODE, &http_code);
+        result.httpCode = static_cast<int>(http_code);
 
         if (http_code == 200) {
             try {
@@ -879,13 +890,20 @@ bool EDreamClient::ValidateCode(const std::string& code)
                 boost::json::object responseObj = response.as_object();
                 
                 if (!responseObj.contains("success") || !responseObj["success"].as_bool()) {
-                    g_Log->Error("Validation failed: %s", responseObj.contains("message") ? responseObj["message"].as_string().c_str() : "Unknown error");
-                    return false;
+                    const char* errorMessage = responseObj.contains("message")
+                        ? responseObj["message"].as_string().c_str()
+                        : "Unknown error";
+                    g_Log->Error("Validation failed: %s", errorMessage);
+                    result.reason = ValidationFailureReason::InvalidSession;
+                    result.message = errorMessage;
+                    return result;
                 }
                 
                 if (!responseObj.contains("data") || !responseObj["data"].is_object()) {
                     g_Log->Error("Response doesn't contain data object");
-                    return false;
+                    result.reason = ValidationFailureReason::InvalidSession;
+                    result.message = "Malformed validation response";
+                    return result;
                 }
                 
                 boost::json::object dataObj = responseObj["data"].as_object();
@@ -896,10 +914,11 @@ bool EDreamClient::ValidateCode(const std::string& code)
                     g_Settings()->Storage()->Commit();
                     
                     g_Log->Info("Sealed session saved successfully");
-                    //g_Player().Start();
                 } else {
                     g_Log->Error("sealedSession not found in the response data");
-                    return false;
+                    result.reason = ValidationFailureReason::InvalidSession;
+                    result.message = "No session token returned by backend";
+                    return result;
                 }
                 
                 if (dataObj.contains("user") && dataObj["user"].is_object()) {
@@ -909,19 +928,56 @@ bool EDreamClient::ValidateCode(const std::string& code)
                     g_Log->Warning("User object not found in the response data");
                 }
                 
-                return true;
+                AuthRefreshResult refreshResult = RefreshSealedSession();
+                if (refreshResult == AuthRefreshResult::Success) {
+                    return ValidateCodeResult{true, ValidationFailureReason::None, static_cast<int>(http_code), "Validation successful"};
+                }
+                if (refreshResult == AuthRefreshResult::InvalidSession) {
+                    g_Log->Warning("Validation succeeded but session refresh returned invalid session");
+                    result.reason = ValidationFailureReason::InvalidSession;
+                    result.message = "Session token was rejected by backend";
+                    return result;
+                }
+                g_Log->Warning("Validation succeeded but session refresh failed transiently");
+                result.reason = ValidationFailureReason::TransientFailure;
+                result.message = "Backend is temporarily unavailable. Please retry.";
+                return result;
             } catch (const boost::system::system_error& e) {
                 g_Log->Error("JSON parsing error: %s", e.what());
-                return false;
+                result.reason = ValidationFailureReason::TransientFailure;
+                result.message = "Unable to parse validation response";
+                return result;
             }
         } else {
             g_Log->Error("Failed to validate code. Server returned %ld: %s", http_code, readBuffer.c_str());
-            return false;
+            std::string errorMessage = "Validation failed";
+            try {
+                boost::json::value response = boost::json::parse(readBuffer);
+                if (response.is_object() && response.as_object().contains("message")) {
+                    errorMessage = response.as_object()["message"].as_string().c_str();
+                } else if (!readBuffer.empty()) {
+                    errorMessage = readBuffer;
+                }
+            } catch (...) {
+                if (!readBuffer.empty()) {
+                    errorMessage = readBuffer;
+                }
+            }
+
+            if (http_code >= 400 && http_code < 500) {
+                result.reason = ValidationFailureReason::InvalidSession;
+            } else {
+                result.reason = ValidationFailureReason::TransientFailure;
+            }
+            result.message = errorMessage;
+            return result;
         }
     }
 
     g_Log->Error("Failed to initialize curl");
-    return false;
+    result.reason = ValidationFailureReason::TransientFailure;
+    result.message = "Unable to initialize network stack";
+    return result;
 }
 
 EDreamClient::AuthRefreshResult EDreamClient::RefreshSealedSession()
@@ -1068,7 +1124,8 @@ void EDreamClient::ParseAndSaveCookies(const Network::spCFileDownloader& spDownl
 // Returns a JSON with a data structure containing
 //      "quota": int,   // in bytes
 //      "currentPlaylistId": int    // playlistID
-std::string EDreamClient::Hello() {
+EDreamClient::HelloResult EDreamClient::HelloDetailed() {
+    HelloResult result{false, HelloFailureReason::TransientFailure, 0, "Handshake failed", ""};
     // Grab the CacheManager
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
 
@@ -1081,7 +1138,9 @@ std::string EDreamClient::Hello() {
         // Check for abort before each attempt to allow fast shutdown
         if (g_NetworkManager->IsAborted()) {
             g_Log->Info("Hello() aborted due to shutdown");
-            return "";
+            result.reason = HelloFailureReason::TransientFailure;
+            result.message = "Client is shutting down";
+            return result;
         }
         
         spDownload = std::make_shared<Network::CFileDownloader>("Hello!");
@@ -1093,7 +1152,9 @@ std::string EDreamClient::Hello() {
         
         if (sealedSession.empty()) {
             g_Log->Error("Sealed session not found in settings");
-            return "";
+            result.reason = HelloFailureReason::InvalidSession;
+            result.message = "No saved session token";
+            return result;
         }
         
         // Set the cookie with the sealed session
@@ -1108,19 +1169,38 @@ std::string EDreamClient::Hello() {
         }
         else
         {
-            if (spDownload->ResponseCode() == 400 ||
-                spDownload->ResponseCode() == 401)
+            int responseCode = static_cast<int>(spDownload->ResponseCode());
+            result.httpCode = responseCode;
+            if (responseCode >= 400 && responseCode < 500)
             {
-                if (currentAttempt == maxAttempts)
-                    return "";
-                if (RefreshSealedSession() != AuthRefreshResult::Success)
-                    return "";
+                if (currentAttempt == maxAttempts) {
+                    result.reason = HelloFailureReason::InvalidSession;
+                    result.message = "Session token rejected by backend";
+                    return result;
+                }
+                AuthRefreshResult refreshResult = RefreshSealedSession();
+                if (refreshResult == AuthRefreshResult::Success) {
+                    continue;
+                }
+                if (refreshResult == AuthRefreshResult::InvalidSession) {
+                    result.reason = HelloFailureReason::InvalidSession;
+                    result.message = "Session refresh rejected by backend";
+                    return result;
+                }
+                result.reason = HelloFailureReason::TransientFailure;
+                result.message = "Session refresh failed transiently";
+                return result;
             }
             else
             {
                 g_Log->Error("Failed to handshake. Server returned %i: %s",
                              spDownload->ResponseCode(),
                              spDownload->Data().c_str());
+                if (currentAttempt == maxAttempts) {
+                    result.reason = HelloFailureReason::TransientFailure;
+                    result.message = "Backend unavailable for hello handshake";
+                    return result;
+                }
             }
         }
     }
@@ -1201,26 +1281,96 @@ std::string EDreamClient::Hello() {
 
             g_Log->Info("Handshake with server successful, playlist id : %s, remaining quota : %lld", uuid.c_str(), remainingQuota);
 
-            return std::string(uuid);
+            result.success = true;
+            result.reason = HelloFailureReason::None;
+            result.playlistUUID = std::string(uuid);
+            return result;
         } else {
             g_Log->Info("Handshake with server successful, no playlist, remaining quota : %lld", remainingQuota);
-
-            return "";
+            result.success = true;
+            result.reason = HelloFailureReason::None;
+            result.playlistUUID = "";
+            return result;
         }
     }
     catch (const boost::system::system_error& e)
     {
         JSONUtil::LogException(e, spDownload->Data());
     }
-    
-    return "";
+
+    result.reason = HelloFailureReason::TransientFailure;
+    result.message = "Malformed hello response";
+    return result;
+}
+
+std::string EDreamClient::Hello() {
+    return HelloDetailed().playlistUUID;
 }
 
 
 
 std::string EDreamClient::GetCurrentServerPlaylist() {
+    std::string localPlaylistId = g_Settings()->Get("settings.content.current_playlist_uuid", std::string(""));
+    auto invalidateSessionAndPromptRelogin = []() {
+        g_Log->Warning("Invalidating local session and prompting user to sign in again");
+        // Prefer the full sign-out path to keep client state consistent and
+        // to ensure the existing HUD messaging ("Please open settings to sign in.")
+        // is shown via IsLoggedIn() == false.
+        try {
+            EDreamClient::SignOut();
+        } catch (...) {
+            // Defensive: if something throws, still clear local auth state.
+            fIsLoggedIn.exchange(false);
+            g_Settings()->Set("settings.content.sealed_session", std::string(""));
+            g_Settings()->Set("settings.content.refresh_token", std::string(""));
+            g_Settings()->Storage()->Commit();
+            g_Player().SetOfflineMode(true);
+        }
+        ESShowPreferences();
+    };
     // Handshake server and get quota and current playlist ID
-    auto playlistId = Hello();
+    auto hello = HelloDetailed();
+
+    if (!hello.success) {
+        if (hello.reason == HelloFailureReason::InvalidSession) {
+            g_Log->Warning("Hello returned invalid session (HTTP %d): %s. Signing out and asking user to relogin.",
+                           hello.httpCode, hello.message.c_str());
+            invalidateSessionAndPromptRelogin();
+            return localPlaylistId;
+        }
+
+        g_Log->Warning("Hello transient failure (HTTP %d): %s. Staying signed in and using local playlist.",
+                       hello.httpCode, hello.message.c_str());
+        static std::atomic<bool> sHelloRetryLoopRunning(false);
+        bool expected = false;
+        if (sHelloRetryLoopRunning.compare_exchange_strong(expected, true)) {
+            boost::thread([invalidateSessionAndPromptRelogin]() {
+                constexpr int kRetryDelayInitialSeconds = 60;
+                constexpr int kRetryDelayMultiplier = 3;
+                constexpr int kRetryDelayMaxSeconds = 24 * 3600;
+                int delaySeconds = kRetryDelayInitialSeconds;
+
+                while (EDreamClient::IsLoggedIn()) {
+                    g_Log->Info("Hello retry scheduled in %d seconds", delaySeconds);
+                    boost::this_thread::sleep(boost::posix_time::seconds(delaySeconds));
+                    auto retry = EDreamClient::HelloDetailed();
+                    if (retry.success) {
+                        g_Log->Info("Hello retry succeeded");
+                        break;
+                    }
+                    if (retry.reason == HelloFailureReason::InvalidSession) {
+                        g_Log->Warning("Hello retry reported invalid session, signing out");
+                        invalidateSessionAndPromptRelogin();
+                        break;
+                    }
+                    delaySeconds = std::min(delaySeconds * kRetryDelayMultiplier, kRetryDelayMaxSeconds);
+                }
+                sHelloRetryLoopRunning.store(false);
+            }).detach();
+        }
+        return localPlaylistId;
+    }
+    auto playlistId = hello.playlistUUID;
     
     // Fetch playlist if we have one and save it to disk
     if (playlistId != "") {

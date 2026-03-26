@@ -17,6 +17,25 @@
 
 class EDreamClient
 {
+  public:
+    enum class ValidationFailureReason { None, InvalidSession, TransientFailure };
+    struct ValidateCodeResult {
+        bool success;
+        ValidationFailureReason reason;
+        int httpCode;
+        std::string message;
+    };
+
+    enum class HelloFailureReason { None, InvalidSession, TransientFailure };
+    struct HelloResult {
+        bool success;
+        HelloFailureReason reason;
+        int httpCode;
+        std::string message;
+        std::string playlistUUID;
+    };
+
+  private:
     // Used by SendCode (for now), so we can propagate error messages from the server
     struct AuthResult {
         bool success;
@@ -38,6 +57,7 @@ class EDreamClient
 public:
     static std::atomic<bool> fIsWebSocketConnected;
 private:
+    static HelloResult HelloDetailed();
     static std::string Hello();
     static long long remainingQuota;
     static std::chrono::system_clock::time_point quotaExpiresAt;
@@ -83,6 +103,7 @@ private:
     static void DidSignIn();
     // Auth v2
     static AuthResult SendCode();
+    static ValidateCodeResult ValidateCodeDetailed(const std::string& code);
     static bool ValidateCode(const std::string& code);
     enum class AuthRefreshResult { Success, InvalidSession, TransientFailure };
     static AuthRefreshResult RefreshSealedSession();
