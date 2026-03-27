@@ -172,9 +172,6 @@
                 [windowController showThanksStep];
             } else {
                 [self showValidationFailurePopupForResult:validateResult];
-                
-                // Clear the text field for retry
-                self.otpTextField.stringValue = @"";
                 [self.view.window makeFirstResponder:self.otpTextField];
             }
         });
@@ -197,11 +194,8 @@
 }
 
 - (IBAction)tryAgain:(id)sender {
-    [self resetVerificationInput];
-    // move back
     StartupWindowController *windowController = (StartupWindowController *)self.view.window.windowController;
     [windowController showEmailStep];
-
 }
 
 

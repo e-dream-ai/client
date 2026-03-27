@@ -572,7 +572,7 @@
                 // Code validation failed
                 m_loginWasSuccessful = false;
                 if (validateResult.reason == EDreamClient::ValidationFailureReason::InvalidSession) {
-                    m_sentCode = false;
+                    // Keep m_sentCode YES so user stays in "enter code" flow; they can retry or use Start again.
                     if (validateResult.httpCode >= 400 && validateResult.httpCode < 500) {
                         [self showInvalidCodeValidationAlert];
                     } else {
