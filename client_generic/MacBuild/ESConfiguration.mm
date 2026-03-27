@@ -556,9 +556,17 @@
                         : [NSString stringWithUTF8String:validateResult.message.c_str()];
                     [self showErrorAlert:message];
                 } else {
-                    NSString *message = validateResult.message.empty()
-                        ? @"Backend is temporarily unavailable. Please try again shortly."
-                        : [NSString stringWithUTF8String:validateResult.message.c_str()];
+                    NSString *message = nil;
+                    if (!validateResult.message.empty()) {
+                        message = [NSString stringWithUTF8String:validateResult.message.c_str()];
+                    }
+                    if (message.length == 0) {
+                        if (validateResult.httpCode >= 500) {
+                            message = [NSString stringWithFormat:@"Server error (HTTP %d). Please try again.", validateResult.httpCode];
+                        } else {
+                            message = @"Backend is temporarily unavailable. Please try again shortly.";
+                        }
+                    }
                     [self showErrorAlert:message];
                 }
                 [self updateAuthUI];

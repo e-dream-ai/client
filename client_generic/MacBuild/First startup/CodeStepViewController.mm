@@ -22,6 +22,46 @@
 
 @implementation CodeStepViewController
 
+- (NSString *)popupMessageForValidateResult:(const EDreamClient::ValidateCodeResult&)result
+{
+    if (!result.message.empty()) {
+        NSString *msg = [NSString stringWithUTF8String:result.message.c_str()];
+        if (msg.length > 0) {
+            return msg;
+        }
+    }
+    
+    if (result.reason == EDreamClient::ValidationFailureReason::InvalidSession) {
+        return @"Invalid verification code. Please try again.";
+    }
+    
+    if (result.httpCode >= 500) {
+        return [NSString stringWithFormat:@"Server error (HTTP %d). Please try again.", result.httpCode];
+    }
+    
+    return @"Backend is temporarily unavailable. Please try again shortly.";
+}
+
+- (void)showValidationFailurePopupForResult:(const EDreamClient::ValidateCodeResult&)result
+{
+    NSString *message = [self popupMessageForValidateResult:result];
+    
+    // Keep inline error text (per requirement), plus popup so it's not missed.
+    [self showError:message];
+    
+    NSAlert *alert = [[NSAlert alloc] init];
+    alert.messageText = @"Authentication Error";
+    alert.informativeText = message;
+    alert.alertStyle = NSAlertStyleWarning;
+    [alert addButtonWithTitle:@"OK"];
+    
+    if (self.view.window) {
+        [alert beginSheetModalForWindow:self.view.window completionHandler:nil];
+    } else {
+        [alert runModal];
+    }
+}
+
 - (void)viewDidLoad {
     [super viewDidLoad];
     
@@ -87,15 +127,7 @@
                 StartupWindowController *windowController = (StartupWindowController *)self.view.window.windowController;
                 [windowController showThanksStep];
             } else {
-                NSString *errorMessage = @"Verification failed. Please try again.";
-                if (!validateResult.message.empty()) {
-                    errorMessage = [NSString stringWithUTF8String:validateResult.message.c_str()];
-                }
-                if (validateResult.reason == EDreamClient::ValidationFailureReason::InvalidSession) {
-                    [self showError:errorMessage.length > 0 ? errorMessage : @"Invalid verification code. Please try again."];
-                } else {
-                    [self showError:errorMessage.length > 0 ? errorMessage : @"Backend is temporarily unavailable. Please try again shortly."];
-                }
+                [self showValidationFailurePopupForResult:validateResult];
                 
                 // Clear the text field for retry
                 self.otpTextField.stringValue = @"";
