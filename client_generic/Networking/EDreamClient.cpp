@@ -747,13 +747,13 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
     return size * nmemb;
 }
 
-EDreamClient::AuthResult EDreamClient::SendCode() {
+EDreamClient::SendCodeResult EDreamClient::SendCode() {
     std::string email = g_Settings()->Get("settings.generator.nickname", std::string(""));
     
     if (email.empty())
     {
         g_Log->Error("Email address not found in settings");
-        return AuthResult(false, "Email address not provided");
+        return SendCodeResult{false, 0, "Email address not provided"};
     }
         
     CURLcode res;
@@ -785,7 +785,7 @@ EDreamClient::AuthResult EDreamClient::SendCode() {
         
         if(res != CURLE_OK) {
             g_Log->Error("Failed to send verification code. Curl error: %s", curl_easy_strerror(res));
-            return AuthResult(false, std::string("Error: ") + curl_easy_strerror(res));
+            return SendCodeResult{false, 0, std::string("Error: ") + curl_easy_strerror(res)};
         }
         
         long http_code = 0;
@@ -793,7 +793,7 @@ EDreamClient::AuthResult EDreamClient::SendCode() {
         
         if (http_code == 200) {
             g_Log->Info("Verification code sent successfully to %s", email.c_str());
-            return AuthResult(true, "Verification code sent successfully");
+            return SendCodeResult{true, static_cast<int>(http_code), "Verification code sent successfully"};
         } else {
             g_Log->Error("Failed to send verification code. Server returned %ld: %s", http_code, readBuffer.c_str());
             
@@ -810,11 +810,11 @@ EDreamClient::AuthResult EDreamClient::SendCode() {
                 errorMessage = readBuffer; // Use raw response if JSON parsing fails
             }
             
-            return AuthResult(false, errorMessage);
+            return SendCodeResult{false, static_cast<int>(http_code), errorMessage};
         }
     }
 
-    return AuthResult(false, "Cannot access Network");
+    return SendCodeResult{false, 0, "Cannot access Network"};
 }
 
 bool EDreamClient::ValidateCode(const std::string& code)

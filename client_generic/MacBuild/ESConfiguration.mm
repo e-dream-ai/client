@@ -62,6 +62,20 @@
     [alert beginSheetModalForWindow:self.window completionHandler:nil];
 }
 
+- (void)showSendCodeClientErrorAlertWithServerMessage:(NSString *)serverMessage {
+    NSMutableString *body = [NSMutableString stringWithString:
+        @"We couldn't send a verification email. Make sure your email address is correct, then try Send code again. You can also use Start again if you need to start over."];
+    if (serverMessage.length > 0) {
+        [body appendString:@"\n\n"];
+        [body appendString:serverMessage];
+    }
+    NSAlert *alert = [[NSAlert alloc] init];
+    [alert setMessageText:@"Unable to send code"];
+    [alert setInformativeText:body];
+    [alert addButtonWithTitle:@"OK"];
+    [alert beginSheetModalForWindow:self.window completionHandler:nil];
+}
+
 - (void)showServerErrorValidationAlertWithServerMessage:(NSString *)serverMessage {
     NSMutableString *body = [NSMutableString stringWithString:@"Try again later."];
     if (serverMessage.length > 0) {
@@ -541,12 +555,26 @@
             } else {
                 m_sentCode = false;
                 loginStatusImage.image = redImage;
-                [self showErrorAlert:@(result.message.c_str())];
-                //loginTestStatusText.stringValue = @(result.message.c_str());
                 // Keep email field enabled and reset the UI state
                 [emailTextField setEnabled:YES];
                 [digitCodeTextField setEnabled:NO];
-
+                const int httpCode = result.httpCode;
+                if (httpCode >= 400 && httpCode < 500) {
+                    NSString *serverMsg = result.message.empty()
+                        ? @""
+                        : [NSString stringWithUTF8String:result.message.c_str()];
+                    [self showSendCodeClientErrorAlertWithServerMessage:serverMsg];
+                } else if (httpCode >= 500) {
+                    NSString *serverMsg = result.message.empty()
+                        ? @""
+                        : [NSString stringWithUTF8String:result.message.c_str()];
+                    [self showServerErrorValidationAlertWithServerMessage:serverMsg];
+                } else {
+                    NSString *message = result.message.empty()
+                        ? @"Failed to send verification code."
+                        : [NSString stringWithUTF8String:result.message.c_str()];
+                    [self showErrorAlert:message];
+                }
                 [self updateAuthUI];
             }
         } else {
