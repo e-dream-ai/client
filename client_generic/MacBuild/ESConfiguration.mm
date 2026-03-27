@@ -64,7 +64,7 @@
 
 - (void)showSendCodeClientErrorAlertWithServerMessage:(NSString *)serverMessage {
     NSMutableString *body = [NSMutableString stringWithString:
-        @"We couldn't send a verification email. Make sure your email address is correct, then try Send code again. You can also use Start again if you need to start over."];
+        @"We couldn't send a verification email. Make sure your email address is correct, then try Send code again."];
     if (serverMessage.length > 0) {
         [body appendString:@"\n\n"];
         [body appendString:serverMessage];
