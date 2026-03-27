@@ -22,6 +22,23 @@
 
 @implementation CodeStepViewController
 
+- (void)resetVerificationInput {
+    if (self.otpTextField) {
+        self.otpTextField.stringValue = @"";
+        self.otpTextField.enabled = YES;
+    }
+    if (self.verifyButton) {
+        self.verifyButton.enabled = NO;
+    }
+    if (self.progressIndicator) {
+        [self.progressIndicator stopAnimation:nil];
+        self.progressIndicator.hidden = YES;
+    }
+    if (self.errorLabel) {
+        self.errorLabel.hidden = YES;
+    }
+}
+
 - (NSString *)popupMessageForValidateResult:(const EDreamClient::ValidateCodeResult&)result
 {
     if (!result.message.empty()) {
@@ -153,6 +170,7 @@
 }
 
 - (IBAction)tryAgain:(id)sender {
+    [self resetVerificationInput];
     // move back
     StartupWindowController *windowController = (StartupWindowController *)self.view.window.windowController;
     [windowController showEmailStep];

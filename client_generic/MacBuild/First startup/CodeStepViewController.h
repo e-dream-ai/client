@@ -11,6 +11,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface CodeStepViewController : NSViewController
 
+/// Clears OTP, error state, and verify UI for a new code request or "start again" flow.
+- (void)resetVerificationInput;
+
 @end
 
 NS_ASSUME_NONNULL_END

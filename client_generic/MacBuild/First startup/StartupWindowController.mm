@@ -130,6 +130,7 @@
 }
 
 - (void)showCodeStep {
+    [self.codeStepVC resetVerificationInput];
     [self switchToViewController:self.codeStepVC];
 }
 

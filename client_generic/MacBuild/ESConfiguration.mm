@@ -475,6 +475,7 @@
     // Restart validation
     m_loginWasSuccessful = false;
     m_sentCode = false;
+    digitCodeTextField.stringValue = @"";
     [self updateAuthUI];
 }
 
