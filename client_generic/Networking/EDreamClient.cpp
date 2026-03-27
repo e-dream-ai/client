@@ -894,8 +894,17 @@ EDreamClient::ValidateCodeResult EDreamClient::ValidateCodeDetailed(const std::s
                         ? responseObj["message"].as_string().c_str()
                         : "Unknown error";
                     g_Log->Error("Validation failed: %s", errorMessage);
+                    
+                    // Backend sometimes replies with a non-descriptive "no".
+                    // Normalize it so UI can present a helpful message.
+                    std::string normalizedMsg = errorMessage ? std::string(errorMessage) : std::string();
+                    std::string lower = normalizedMsg;
+                    std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c){ return (char)std::tolower(c); });
+                    if (lower == "no") {
+                        normalizedMsg = "Invalid verification code. Please try again.";
+                    }
                     result.reason = ValidationFailureReason::InvalidSession;
-                    result.message = errorMessage;
+                    result.message = normalizedMsg;
                     return result;
                 }
                 
@@ -961,6 +970,15 @@ EDreamClient::ValidateCodeResult EDreamClient::ValidateCodeDetailed(const std::s
             } catch (...) {
                 if (!readBuffer.empty()) {
                     errorMessage = readBuffer;
+                }
+            }
+            
+            // Normalize non-descriptive backend "no" message.
+            {
+                std::string lower = errorMessage;
+                std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c){ return (char)std::tolower(c); });
+                if (lower == "no") {
+                    errorMessage = "Invalid verification code. Please try again.";
                 }
             }
 
