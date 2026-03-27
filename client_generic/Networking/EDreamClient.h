@@ -35,16 +35,13 @@ class EDreamClient
         std::string playlistUUID;
     };
 
-  private:
-    // Used by SendCode (for now), so we can propagate error messages from the server
-    struct AuthResult {
+  public:
+    struct SendCodeResult {
         bool success;
+        int httpCode;
         std::string message;
-        
-        // Constructor for convenient initialization
-        AuthResult(bool s, std::string m = "") : success(s), message(m) {}
     };
-    
+
   private:
     static std::atomic<bool> fIsLoggedIn;
     static std::atomic<bool> fAuthRetryAbort;
@@ -102,7 +99,7 @@ private:
     static void SignOut();
     static void DidSignIn();
     // Auth v2
-    static AuthResult SendCode();
+    static SendCodeResult SendCode();
     static ValidateCodeResult ValidateCodeDetailed(const std::string& code);
     static bool ValidateCode(const std::string& code);
     enum class AuthRefreshResult { Success, InvalidSession, TransientFailure };

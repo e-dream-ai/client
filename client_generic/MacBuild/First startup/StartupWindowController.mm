@@ -126,10 +126,13 @@
 }
 
 - (void)showEmailStep {
+    // Clear OTP when leaving the code step (e.g. Start over / Try again) so the next visit starts fresh.
+    [self.codeStepVC resetVerificationInput];
     [self switchToViewController:self.emailStepVC];
 }
 
 - (void)showCodeStep {
+    [self.codeStepVC resetVerificationInput];
     [self switchToViewController:self.codeStepVC];
 }
 

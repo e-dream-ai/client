@@ -644,37 +644,27 @@ void EDreamClient::DidSignIn()
         g_Log->Info("Restarting player after sign-in");
         g_Player().Start();
     }
-    
-    // Add a small delay to allow any pending socket operations to complete
-    // This helps avoid issues with the socket.io client's internal state
-    boost::thread delayedWebSocketThread([]() {
-        boost::this_thread::sleep(boost::posix_time::milliseconds(500));
 
-        // Restart the io_context if it was stopped during SignOut/DeinitializeClient
-        if (io_context->stopped()) {
-            g_Log->Info("Restarting io_context after sign-in");
-            io_context->restart();
-        }
+    g_Log->Info("Configuring websocket reconnect after sign-in");
 
-        // Start the quota update timer
-        ScheduleNextQuotaUpdate();
+    // Restart io_context deterministically before reconnecting.
+    if (io_context->stopped()) {
+        g_Log->Info("Restarting io_context after sign-in");
+        io_context->restart();
+    }
 
-        // Clear any existing socket state before reconnecting
-        s_SIOClient.clear_con_listeners();
+    // Start quota update timer for authenticated state.
+    ScheduleNextQuotaUpdate();
 
-        // Reinitialize socket client to fix first-login connection issue
-        // The socket.io client can get into an inconsistent state when listeners
-        // are set during InitializeClient() but no connection is attempted
-        s_SIOClient.set_open_listener(&OnWebSocketConnected);
-        s_SIOClient.set_close_listener(&OnWebSocketClosed);
-        s_SIOClient.set_fail_listener(&OnWebSocketFail);
-        s_SIOClient.set_reconnecting_listener(&OnWebSocketReconnecting);
-        s_SIOClient.set_reconnect_listener(&OnWebSocketReconnect);
+    // Reset socket listeners and reconnect immediately (no fixed delay).
+    s_SIOClient.clear_con_listeners();
+    s_SIOClient.set_open_listener(&OnWebSocketConnected);
+    s_SIOClient.set_close_listener(&OnWebSocketClosed);
+    s_SIOClient.set_fail_listener(&OnWebSocketFail);
+    s_SIOClient.set_reconnecting_listener(&OnWebSocketReconnecting);
+    s_SIOClient.set_reconnect_listener(&OnWebSocketReconnect);
 
-        EDreamClient::ConnectRemoteControlSocket();
-
-
-    });
+    EDreamClient::ConnectRemoteControlSocket();
 }
 
 void EDreamClient::SignOut()
@@ -757,13 +747,13 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
     return size * nmemb;
 }
 
-EDreamClient::AuthResult EDreamClient::SendCode() {
+EDreamClient::SendCodeResult EDreamClient::SendCode() {
     std::string email = g_Settings()->Get("settings.generator.nickname", std::string(""));
     
     if (email.empty())
     {
         g_Log->Error("Email address not found in settings");
-        return AuthResult(false, "Email address not provided");
+        return SendCodeResult{false, 0, "Email address not provided"};
     }
         
     CURLcode res;
@@ -795,7 +785,7 @@ EDreamClient::AuthResult EDreamClient::SendCode() {
         
         if(res != CURLE_OK) {
             g_Log->Error("Failed to send verification code. Curl error: %s", curl_easy_strerror(res));
-            return AuthResult(false, std::string("Error: ") + curl_easy_strerror(res));
+            return SendCodeResult{false, 0, std::string("Error: ") + curl_easy_strerror(res)};
         }
         
         long http_code = 0;
@@ -803,7 +793,7 @@ EDreamClient::AuthResult EDreamClient::SendCode() {
         
         if (http_code == 200) {
             g_Log->Info("Verification code sent successfully to %s", email.c_str());
-            return AuthResult(true, "Verification code sent successfully");
+            return SendCodeResult{true, static_cast<int>(http_code), "Verification code sent successfully"};
         } else {
             g_Log->Error("Failed to send verification code. Server returned %ld: %s", http_code, readBuffer.c_str());
             
@@ -820,11 +810,11 @@ EDreamClient::AuthResult EDreamClient::SendCode() {
                 errorMessage = readBuffer; // Use raw response if JSON parsing fails
             }
             
-            return AuthResult(false, errorMessage);
+            return SendCodeResult{false, static_cast<int>(http_code), errorMessage};
         }
     }
 
-    return AuthResult(false, "Cannot access Network");
+    return SendCodeResult{false, 0, "Cannot access Network"};
 }
 
 bool EDreamClient::ValidateCode(const std::string& code)
@@ -894,8 +884,17 @@ EDreamClient::ValidateCodeResult EDreamClient::ValidateCodeDetailed(const std::s
                         ? responseObj["message"].as_string().c_str()
                         : "Unknown error";
                     g_Log->Error("Validation failed: %s", errorMessage);
+                    
+                    // Backend sometimes replies with a non-descriptive "no".
+                    // Normalize it so UI can present a helpful message.
+                    std::string normalizedMsg = errorMessage ? std::string(errorMessage) : std::string();
+                    std::string lower = normalizedMsg;
+                    std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c){ return (char)std::tolower(c); });
+                    if (lower == "no") {
+                        normalizedMsg = "Invalid verification code. Please try again.";
+                    }
                     result.reason = ValidationFailureReason::InvalidSession;
-                    result.message = errorMessage;
+                    result.message = normalizedMsg;
                     return result;
                 }
                 
@@ -961,6 +960,15 @@ EDreamClient::ValidateCodeResult EDreamClient::ValidateCodeDetailed(const std::s
             } catch (...) {
                 if (!readBuffer.empty()) {
                     errorMessage = readBuffer;
+                }
+            }
+            
+            // Normalize non-descriptive backend "no" message.
+            {
+                std::string lower = errorMessage;
+                std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c){ return (char)std::tolower(c); });
+                if (lower == "no") {
+                    errorMessage = "Invalid verification code. Please try again.";
                 }
             }
 

@@ -22,6 +22,90 @@
 
 @implementation CodeStepViewController
 
+- (void)resetVerificationInput {
+    if (self.otpTextField) {
+        self.otpTextField.stringValue = @"";
+        self.otpTextField.enabled = YES;
+    }
+    if (self.verifyButton) {
+        self.verifyButton.enabled = NO;
+    }
+    if (self.progressIndicator) {
+        [self.progressIndicator stopAnimation:nil];
+        self.progressIndicator.hidden = YES;
+    }
+    if (self.errorLabel) {
+        self.errorLabel.hidden = YES;
+    }
+}
+
+- (NSString *)popupMessageForValidateResult:(const EDreamClient::ValidateCodeResult&)result
+{
+    if (!result.message.empty()) {
+        NSString *msg = [NSString stringWithUTF8String:result.message.c_str()];
+        if (msg.length > 0) {
+            return msg;
+        }
+    }
+    
+    if (result.reason == EDreamClient::ValidationFailureReason::InvalidSession) {
+        return @"Invalid verification code. Please try again.";
+    }
+    
+    if (result.httpCode >= 500) {
+        return [NSString stringWithFormat:@"Server error (HTTP %d). Please try again.", result.httpCode];
+    }
+    
+    return @"Backend is temporarily unavailable. Please try again shortly.";
+}
+
+- (NSString *)serverErrorDescriptionForResult:(const EDreamClient::ValidateCodeResult&)result
+{
+    NSMutableString *body = [NSMutableString stringWithString:@"Try again later."];
+    if (!result.message.empty()) {
+        NSString *serverText = [NSString stringWithUTF8String:result.message.c_str()];
+        if (serverText.length > 0) {
+            [body appendString:@" "];
+            [body appendString:serverText];
+        }
+    }
+    return body;
+}
+
+- (void)showValidationFailurePopupForResult:(const EDreamClient::ValidateCodeResult&)result
+{
+    const bool isClientErrorHttp =
+        (result.httpCode >= 400 && result.httpCode < 500);
+    const bool isServerErrorHttp = (result.httpCode >= 500);
+    NSString *title;
+    NSString *message;
+    if (isClientErrorHttp) {
+        title = @"Invalid Code";
+        message = @"Check for typos and check to be sure you have the most recent code. Try again or start over";
+    } else if (isServerErrorHttp) {
+        title = @"Server Error";
+        message = [self serverErrorDescriptionForResult:result];
+    } else {
+        title = @"Authentication Error";
+        message = [self popupMessageForValidateResult:result];
+    }
+    
+    // Keep inline error text (per requirement), plus popup so it's not missed.
+    [self showError:message];
+    
+    NSAlert *alert = [[NSAlert alloc] init];
+    alert.messageText = title;
+    alert.informativeText = message;
+    alert.alertStyle = NSAlertStyleWarning;
+    [alert addButtonWithTitle:@"OK"];
+    
+    if (self.view.window) {
+        [alert beginSheetModalForWindow:self.view.window completionHandler:nil];
+    } else {
+        [alert runModal];
+    }
+}
+
 - (void)viewDidLoad {
     [super viewDidLoad];
     
@@ -87,18 +171,7 @@
                 StartupWindowController *windowController = (StartupWindowController *)self.view.window.windowController;
                 [windowController showThanksStep];
             } else {
-                NSString *errorMessage = @"Verification failed. Please try again.";
-                if (!validateResult.message.empty()) {
-                    errorMessage = [NSString stringWithUTF8String:validateResult.message.c_str()];
-                }
-                if (validateResult.reason == EDreamClient::ValidationFailureReason::InvalidSession) {
-                    [self showError:errorMessage.length > 0 ? errorMessage : @"Invalid verification code. Please try again."];
-                } else {
-                    [self showError:errorMessage.length > 0 ? errorMessage : @"Backend is temporarily unavailable. Please try again shortly."];
-                }
-                
-                // Clear the text field for retry
-                self.otpTextField.stringValue = @"";
+                [self showValidationFailurePopupForResult:validateResult];
                 [self.view.window makeFirstResponder:self.otpTextField];
             }
         });
@@ -121,10 +194,8 @@
 }
 
 - (IBAction)tryAgain:(id)sender {
-    // move back
     StartupWindowController *windowController = (StartupWindowController *)self.view.window.windowController;
     [windowController showEmailStep];
-
 }
 
 
