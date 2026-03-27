@@ -54,6 +54,14 @@
     [alert beginSheetModalForWindow:self.window completionHandler:nil];
 }
 
+- (void)showInvalidCodeValidationAlert {
+    NSAlert *alert = [[NSAlert alloc] init];
+    [alert setMessageText:@"Invalid Code"];
+    [alert setInformativeText:@"Check for typos and check to be sure you have the most recent code. Try again or start over"];
+    [alert addButtonWithTitle:@"OK"];
+    [alert beginSheetModalForWindow:self.window completionHandler:nil];
+}
+
 - (void)awakeFromNib // was - (NSWindow *)window
 {
     CFBundleRef bndl = CopyDLBundle_ex();
@@ -552,10 +560,14 @@
                 m_loginWasSuccessful = false;
                 if (validateResult.reason == EDreamClient::ValidationFailureReason::InvalidSession) {
                     m_sentCode = false;
-                    NSString *message = validateResult.message.empty()
-                        ? @"Validation failed. Please request a new code and sign in again."
-                        : [NSString stringWithUTF8String:validateResult.message.c_str()];
-                    [self showErrorAlert:message];
+                    if (validateResult.httpCode >= 400 && validateResult.httpCode < 500) {
+                        [self showInvalidCodeValidationAlert];
+                    } else {
+                        NSString *message = validateResult.message.empty()
+                            ? @"Validation failed. Please request a new code and sign in again."
+                            : [NSString stringWithUTF8String:validateResult.message.c_str()];
+                        [self showErrorAlert:message];
+                    }
                 } else {
                     NSString *message = nil;
                     if (!validateResult.message.empty()) {

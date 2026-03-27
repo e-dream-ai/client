@@ -61,13 +61,18 @@
 
 - (void)showValidationFailurePopupForResult:(const EDreamClient::ValidateCodeResult&)result
 {
-    NSString *message = [self popupMessageForValidateResult:result];
+    const bool isClientErrorHttp =
+        (result.httpCode >= 400 && result.httpCode < 500);
+    NSString *title = isClientErrorHttp ? @"Invalid Code" : @"Authentication Error";
+    NSString *message = isClientErrorHttp
+        ? @"Check for typos and check to be sure you have the most recent code. Try again or start over"
+        : [self popupMessageForValidateResult:result];
     
     // Keep inline error text (per requirement), plus popup so it's not missed.
     [self showError:message];
     
     NSAlert *alert = [[NSAlert alloc] init];
-    alert.messageText = @"Authentication Error";
+    alert.messageText = title;
     alert.informativeText = message;
     alert.alertStyle = NSAlertStyleWarning;
     [alert addButtonWithTitle:@"OK"];
