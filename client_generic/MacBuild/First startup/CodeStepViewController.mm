@@ -59,14 +59,36 @@
     return @"Backend is temporarily unavailable. Please try again shortly.";
 }
 
+- (NSString *)serverErrorDescriptionForResult:(const EDreamClient::ValidateCodeResult&)result
+{
+    NSMutableString *body = [NSMutableString stringWithString:@"Try again later."];
+    if (!result.message.empty()) {
+        NSString *serverText = [NSString stringWithUTF8String:result.message.c_str()];
+        if (serverText.length > 0) {
+            [body appendString:@" "];
+            [body appendString:serverText];
+        }
+    }
+    return body;
+}
+
 - (void)showValidationFailurePopupForResult:(const EDreamClient::ValidateCodeResult&)result
 {
     const bool isClientErrorHttp =
         (result.httpCode >= 400 && result.httpCode < 500);
-    NSString *title = isClientErrorHttp ? @"Invalid Code" : @"Authentication Error";
-    NSString *message = isClientErrorHttp
-        ? @"Check for typos and check to be sure you have the most recent code. Try again or start over"
-        : [self popupMessageForValidateResult:result];
+    const bool isServerErrorHttp = (result.httpCode >= 500);
+    NSString *title;
+    NSString *message;
+    if (isClientErrorHttp) {
+        title = @"Invalid Code";
+        message = @"Check for typos and check to be sure you have the most recent code. Try again or start over";
+    } else if (isServerErrorHttp) {
+        title = @"Server Error";
+        message = [self serverErrorDescriptionForResult:result];
+    } else {
+        title = @"Authentication Error";
+        message = [self popupMessageForValidateResult:result];
+    }
     
     // Keep inline error text (per requirement), plus popup so it's not missed.
     [self showError:message];

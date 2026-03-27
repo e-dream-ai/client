@@ -62,6 +62,19 @@
     [alert beginSheetModalForWindow:self.window completionHandler:nil];
 }
 
+- (void)showServerErrorValidationAlertWithServerMessage:(NSString *)serverMessage {
+    NSMutableString *body = [NSMutableString stringWithString:@"Try again later."];
+    if (serverMessage.length > 0) {
+        [body appendString:@" "];
+        [body appendString:serverMessage];
+    }
+    NSAlert *alert = [[NSAlert alloc] init];
+    [alert setMessageText:@"Server Error"];
+    [alert setInformativeText:body];
+    [alert addButtonWithTitle:@"OK"];
+    [alert beginSheetModalForWindow:self.window completionHandler:nil];
+}
+
 - (void)awakeFromNib // was - (NSWindow *)window
 {
     CFBundleRef bndl = CopyDLBundle_ex();
@@ -569,18 +582,21 @@
                         [self showErrorAlert:message];
                     }
                 } else {
-                    NSString *message = nil;
-                    if (!validateResult.message.empty()) {
-                        message = [NSString stringWithUTF8String:validateResult.message.c_str()];
-                    }
-                    if (message.length == 0) {
-                        if (validateResult.httpCode >= 500) {
-                            message = [NSString stringWithFormat:@"Server error (HTTP %d). Please try again.", validateResult.httpCode];
-                        } else {
+                    if (validateResult.httpCode >= 500) {
+                        NSString *serverMessage = validateResult.message.empty()
+                            ? @""
+                            : [NSString stringWithUTF8String:validateResult.message.c_str()];
+                        [self showServerErrorValidationAlertWithServerMessage:serverMessage];
+                    } else {
+                        NSString *message = nil;
+                        if (!validateResult.message.empty()) {
+                            message = [NSString stringWithUTF8String:validateResult.message.c_str()];
+                        }
+                        if (message.length == 0) {
                             message = @"Backend is temporarily unavailable. Please try again shortly.";
                         }
+                        [self showErrorAlert:message];
                     }
-                    [self showErrorAlert:message];
                 }
                 [self updateAuthUI];
             }
