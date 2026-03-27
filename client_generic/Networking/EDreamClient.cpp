@@ -644,37 +644,27 @@ void EDreamClient::DidSignIn()
         g_Log->Info("Restarting player after sign-in");
         g_Player().Start();
     }
-    
-    // Add a small delay to allow any pending socket operations to complete
-    // This helps avoid issues with the socket.io client's internal state
-    boost::thread delayedWebSocketThread([]() {
-        boost::this_thread::sleep(boost::posix_time::milliseconds(500));
 
-        // Restart the io_context if it was stopped during SignOut/DeinitializeClient
-        if (io_context->stopped()) {
-            g_Log->Info("Restarting io_context after sign-in");
-            io_context->restart();
-        }
+    g_Log->Info("Configuring websocket reconnect after sign-in");
 
-        // Start the quota update timer
-        ScheduleNextQuotaUpdate();
+    // Restart io_context deterministically before reconnecting.
+    if (io_context->stopped()) {
+        g_Log->Info("Restarting io_context after sign-in");
+        io_context->restart();
+    }
 
-        // Clear any existing socket state before reconnecting
-        s_SIOClient.clear_con_listeners();
+    // Start quota update timer for authenticated state.
+    ScheduleNextQuotaUpdate();
 
-        // Reinitialize socket client to fix first-login connection issue
-        // The socket.io client can get into an inconsistent state when listeners
-        // are set during InitializeClient() but no connection is attempted
-        s_SIOClient.set_open_listener(&OnWebSocketConnected);
-        s_SIOClient.set_close_listener(&OnWebSocketClosed);
-        s_SIOClient.set_fail_listener(&OnWebSocketFail);
-        s_SIOClient.set_reconnecting_listener(&OnWebSocketReconnecting);
-        s_SIOClient.set_reconnect_listener(&OnWebSocketReconnect);
+    // Reset socket listeners and reconnect immediately (no fixed delay).
+    s_SIOClient.clear_con_listeners();
+    s_SIOClient.set_open_listener(&OnWebSocketConnected);
+    s_SIOClient.set_close_listener(&OnWebSocketClosed);
+    s_SIOClient.set_fail_listener(&OnWebSocketFail);
+    s_SIOClient.set_reconnecting_listener(&OnWebSocketReconnecting);
+    s_SIOClient.set_reconnect_listener(&OnWebSocketReconnect);
 
-        EDreamClient::ConnectRemoteControlSocket();
-
-
-    });
+    EDreamClient::ConnectRemoteControlSocket();
 }
 
 void EDreamClient::SignOut()
