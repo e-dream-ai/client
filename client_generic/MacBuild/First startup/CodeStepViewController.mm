@@ -63,7 +63,8 @@
         // For testing: 5 second pause instead of actual call
         //[NSThread sleepForTimeInterval:5.0];
         //bool success = true; // Simulate success for testing
-        bool success = EDreamClient::ValidateCode(std::string(code.UTF8String));
+        EDreamClient::ValidateCodeResult validateResult =
+            EDreamClient::ValidateCodeDetailed(std::string(code.UTF8String));
         
         // Return to main thread for UI updates
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -75,7 +76,7 @@
                 self.progressIndicator.hidden = YES;
             }
             
-            if (success) {
+            if (validateResult.success) {
                 // Mark first time setup as complete
                 ESScreensaver_SetBoolSetting("settings.app.firsttimesetup", true);
                 
@@ -86,8 +87,15 @@
                 StartupWindowController *windowController = (StartupWindowController *)self.view.window.windowController;
                 [windowController showThanksStep];
             } else {
-                // Show error
-                [self showError:@"Invalid verification code. Please try again."];
+                NSString *errorMessage = @"Verification failed. Please try again.";
+                if (!validateResult.message.empty()) {
+                    errorMessage = [NSString stringWithUTF8String:validateResult.message.c_str()];
+                }
+                if (validateResult.reason == EDreamClient::ValidationFailureReason::InvalidSession) {
+                    [self showError:errorMessage.length > 0 ? errorMessage : @"Invalid verification code. Please try again."];
+                } else {
+                    [self showError:errorMessage.length > 0 ? errorMessage : @"Backend is temporarily unavailable. Please try again shortly."];
+                }
                 
                 // Clear the text field for retry
                 self.otpTextField.stringValue = @"";

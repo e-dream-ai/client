@@ -529,8 +529,9 @@
             }
         } else {
             // Try validating code
-            // Ask for the code to be sent
-            if (EDreamClient::ValidateCode(digitCodeTextField.stringValue.UTF8String)) {
+            EDreamClient::ValidateCodeResult validateResult =
+                EDreamClient::ValidateCodeDetailed(digitCodeTextField.stringValue.UTF8String);
+            if (validateResult.success) {
                 // Login successful
                 m_sentCode = false;
                 m_loginWasSuccessful = true;
@@ -548,7 +549,18 @@
             } else {
                 // Code validation failed
                 m_loginWasSuccessful = false;
-                m_sentCode = false;
+                if (validateResult.reason == EDreamClient::ValidationFailureReason::InvalidSession) {
+                    m_sentCode = false;
+                    NSString *message = validateResult.message.empty()
+                        ? @"Validation failed. Please request a new code and sign in again."
+                        : [NSString stringWithUTF8String:validateResult.message.c_str()];
+                    [self showErrorAlert:message];
+                } else {
+                    NSString *message = validateResult.message.empty()
+                        ? @"Backend is temporarily unavailable. Please try again shortly."
+                        : [NSString stringWithUTF8String:validateResult.message.c_str()];
+                    [self showErrorAlert:message];
+                }
                 [self updateAuthUI];
             }
         }
