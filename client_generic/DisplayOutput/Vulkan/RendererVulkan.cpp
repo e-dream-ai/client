@@ -918,7 +918,16 @@ bool CRendererVulkan::Initialize(spCDisplayOutput _spDisplay)
 // Defaults / Reset / Apply
 // ---------------------------------------------------------------------------
 void CRendererVulkan::Defaults() {}
-void CRendererVulkan::Reset(const uint32_t /*_flags*/) {}
+void CRendererVulkan::Reset(const uint32_t _flags)
+{
+    CRenderer::Reset(_flags);
+    // When textures are reset, revert to the white descriptor set so that
+    // DrawSoftQuad / DrawQuad render a solid colour instead of sampling the
+    // previously-bound video/startup texture (which appeared as a ghost
+    // ellipse over the F1/F2 HUD background rectangles).
+    if (_flags & eTexture)
+        m_currentDescSet = m_whiteDescSet;
+}
 void CRendererVulkan::Apply()
 {
     CRenderer::Apply();
