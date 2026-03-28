@@ -122,6 +122,7 @@ class CDisplayVulkan : public CDisplayOutput
     VkSurfaceKHR GetSurface()   const { return m_surface; }
     Display*     GetXDisplay()  const { return m_pDisplay; }
     Window       GetXWindow()   const { return m_Window; }
+    bool         IsWayland()    const { return m_bWayland; }
 };
 
 } // namespace DisplayOutput

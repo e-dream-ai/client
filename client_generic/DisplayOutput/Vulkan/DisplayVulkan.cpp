@@ -5,9 +5,11 @@
 #include "Log.h"
 
 #include <X11/Xutil.h>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <sys/select.h>
 #ifdef HAVE_WAYLAND
 #include <sys/mman.h>
 #include <unistd.h>
@@ -491,12 +493,15 @@ bool CDisplayVulkan::Initialize(const uint32_t _width, const uint32_t _height,
     }
     else
     {
-        uint32_t winW = _bFullscreen ? m_WidthFS  : m_Width;
-        uint32_t winH = _bFullscreen ? m_HeightFS : m_Height;
-
+        // For EWMH fullscreen, create the window at the requested size and let
+        // the WM resize it to the appropriate monitor.  Using m_WidthFS (the full
+        // virtual desktop width) here would create a window that spans all monitors,
+        // leaving it up to the WM to decide which ones to fill — typically resulting
+        // in a surface that is still the full virtual-desktop size even though only
+        // one monitor is shown, which squashes the startup logo.
         m_Window = XCreateSimpleWindow(
             m_pDisplay, RootWindow(m_pDisplay, screen),
-            0, 0, winW, winH, 0,
+            0, 0, m_Width, m_Height, 0,
             BlackPixel(m_pDisplay, screen),
             BlackPixel(m_pDisplay, screen));
 
@@ -511,14 +516,90 @@ bool CDisplayVulkan::Initialize(const uint32_t _width, const uint32_t _height,
                      ButtonPressMask | PointerMotionMask);
         XSetWMProtocols(m_pDisplay, m_Window, &m_wmDeleteWindow, 1);
         setWindowDecorations(!_bFullscreen);
-        if (_bFullscreen) setFullScreen(true);
+
+        if (_bFullscreen)
+        {
+            // Set _NET_WM_STATE_FULLSCREEN as a window *property* before mapping.
+            // The _NET_WM_STATE client message form is for toggling an already-mapped
+            // window; setting the property directly is the correct EWMH approach for
+            // the initial window state.  Using a client message here (before MapRaised)
+            // is ignored by most WMs, leaving the window large but not in the EWMH
+            // fullscreen state — meaning _NET_WM_STATE_REMOVE has nothing to act on,
+            // making the F keypress to toggle fullscreen appear to do nothing.
+            XChangeProperty(m_pDisplay, m_Window,
+                            m_netWmState, XA_ATOM, 32, PropModeReplace,
+                            reinterpret_cast<unsigned char*>(&m_netWmFullscreen), 1);
+        }
 
         XMapRaised(m_pDisplay, m_Window);
         XFlush(m_pDisplay);
 
+        // Wait for MapNotify, but also capture any ConfigureNotify that the WM
+        // may send *before* MapNotify when it applies the fullscreen property.
+        // Discarding those events in the wait loop is the primary reason the
+        // startup logo is squashed — we'd miss the WM's fullscreen resize.
         XEvent e;
-        do { XNextEvent(m_pDisplay, &e); }
-        while (e.type != MapNotify || e.xmap.window != m_Window);
+        bool gotFullscreenSize = false;
+        for (;;)
+        {
+            XNextEvent(m_pDisplay, &e);
+            if (_bFullscreen &&
+                e.type == ConfigureNotify &&
+                e.xconfigure.window == m_Window)
+            {
+                const uint32_t newWidth  = static_cast<uint32_t>(e.xconfigure.width);
+                const uint32_t newHeight = static_cast<uint32_t>(e.xconfigure.height);
+                if (newWidth != m_Width || newHeight != m_Height)
+                {
+                    m_Width  = newWidth;
+                    m_Height = newHeight;
+                    gotFullscreenSize = true;
+                }
+            }
+            if (e.type == MapNotify && e.xmap.window == m_Window)
+                break;
+        }
+
+        if (_bFullscreen && !gotFullscreenSize)
+        {
+            // The WM applies the EWMH fullscreen state asynchronously: it must
+            // receive our property + MapRaised, resize the window, then send
+            // ConfigureNotify.  If no fullscreen ConfigureNotify arrived before
+            // MapNotify, poll the X connection (up to 500 ms) so the Vulkan
+            // surface and swapchain are created at the monitor's actual size.
+            const int xfd = ConnectionNumber(m_pDisplay);
+            const auto deadline =
+                std::chrono::steady_clock::now() + std::chrono::milliseconds(500);
+            while (!gotFullscreenSize &&
+                   std::chrono::steady_clock::now() < deadline)
+            {
+                XSync(m_pDisplay, False);
+                while (XPending(m_pDisplay))
+                {
+                    XNextEvent(m_pDisplay, &e);
+                    if (e.type == ConfigureNotify &&
+                        e.xconfigure.window == m_Window)
+                    {
+                        const uint32_t newWidth  = static_cast<uint32_t>(e.xconfigure.width);
+                        const uint32_t newHeight = static_cast<uint32_t>(e.xconfigure.height);
+                        if (newWidth != m_Width || newHeight != m_Height)
+                        {
+                            m_Width  = newWidth;
+                            m_Height = newHeight;
+                            gotFullscreenSize = true;
+                        }
+                    }
+                }
+                if (!gotFullscreenSize)
+                {
+                    fd_set fds;
+                    FD_ZERO(&fds);
+                    FD_SET(xfd, &fds);
+                    struct timeval tv{0, 10000};  // 10 ms
+                    select(xfd + 1, &fds, nullptr, nullptr, &tv);
+                }
+            }
+        }
     }
 
     applyInvisibleCursor();
@@ -638,6 +719,18 @@ void CDisplayVulkan::checkEvents()
             m_EventQueue.push(std::static_pointer_cast<CEvent>(spEvent));
         }
 
+        if (xEvent.type == ConfigureNotify && xEvent.xconfigure.window == m_Window)
+        {
+            // Keep m_Width/m_Height in sync with the actual window size as reported
+            // by the WM.  This matters because StatsConsole uses Display()->Width/Height()
+            // to compute normalised HUD coordinates, while DrawQuad's vertex shader uses
+            // m_swapExtent.  If the two disagree after a WM-driven resize (e.g. fullscreen
+            // toggle), the background rect is rendered at the wrong aspect ratio and can
+            // appear as an ellipse rather than a rectangle.
+            m_Width  = static_cast<uint32_t>(xEvent.xconfigure.width);
+            m_Height = static_cast<uint32_t>(xEvent.xconfigure.height);
+        }
+
         if (xEvent.type == MotionNotify)
         {
             auto& cb = PlatformUtils_GetMouseCallback();
@@ -683,17 +776,20 @@ void CDisplayVulkan::setFullScreen(bool enabled)
     setWindowDecorations(!enabled);
     if (!m_pDisplay || !m_Window) return;
 
-    Atom add = XInternAtom(m_pDisplay, "_NET_WM_STATE_ADD",    False);
-    Atom rem = XInternAtom(m_pDisplay, "_NET_WM_STATE_REMOVE", False);
-
+    // EWMH _NET_WM_STATE client message format:
+    //   data.l[0] = 0 (remove), 1 (add), or 2 (toggle)  — NOT an Atom value
+    //   data.l[1] = first property atom to change
+    //   data.l[2] = second property atom (0 if only one)
+    //   data.l[3] = source indication: 1 = normal application
     XEvent e{};
     e.type                 = ClientMessage;
     e.xclient.window       = m_Window;
     e.xclient.message_type = m_netWmState;
     e.xclient.format       = 32;
-    e.xclient.data.l[0]    = enabled ? add : rem;
+    e.xclient.data.l[0]    = enabled ? 1L : 0L;
     e.xclient.data.l[1]    = static_cast<long>(m_netWmFullscreen);
-    e.xclient.data.l[3]    = 0;
+    e.xclient.data.l[2]    = 0L;
+    e.xclient.data.l[3]    = 1L;
     XSendEvent(m_pDisplay, DefaultRootWindow(m_pDisplay), False,
                SubstructureNotifyMask | SubstructureRedirectMask, &e);
     XFlush(m_pDisplay);

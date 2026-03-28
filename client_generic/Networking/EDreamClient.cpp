@@ -616,13 +616,46 @@ bool EDreamClient::Authenticate()
 
     if (result == AuthRefreshResult::InvalidSession)
     {
-        g_Log->Warning("Auth refresh failed: session invalid or expired");
+        // The refresh endpoint rejected the session, but this doesn't necessarily mean the
+        // session is dead for all API calls. The same 400 is returned for a genuinely expired
+        // grant AND for edge cases like MFA re-enrolment or SSO policy changes, where the
+        // session token may still be accepted by other endpoints.
+        //
+        // Rather than blindly wiping the session (original behaviour — wrong for the above
+        // edge cases) or blindly proceeding as logged-in (wrong for a genuinely expired
+        // session), we make a real authenticated request to the QUOTA endpoint. The server's
+        // response tells us definitively whether the token still works:
+        //   HTTP 200 → token is valid for API calls → proceed logged in, keep session
+        //   HTTP 4xx → token is dead everywhere    → wipe session, force re-login
+        {
+            auto spValidate = std::make_shared<Network::CFileDownloader>("ValidateSession");
+            Network::NetworkHeaders::addStandardHeaders(spValidate);
+            AppendAuthHeader(spValidate);
+            const bool reachable = spValidate->Perform(
+                ServerConfig::ServerConfigManager::getInstance().getEndpoint(
+                    ServerConfig::Endpoint::QUOTA));
+            const long httpCode = static_cast<long>(spValidate->ResponseCode());
+
+            if (reachable && httpCode == 200)
+            {
+                g_Log->Info("Auth refresh rejected but session is still valid (HTTP 200 on QUOTA) — proceeding as logged in.");
+                fIsLoggedIn.exchange(true);
+                fInitialAuthComplete.store(true);
+                g_Player().SetOfflineMode(false);
+                fAuthCV.notify_one();
+                boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
+                return true;
+            }
+
+            // 4xx (or network failure) — session is genuinely unusable.
+            g_Log->Warning("Auth refresh failed and session validation returned HTTP %ld — session is invalid, wiping.", httpCode);
+        }
+
         fIsLoggedIn.exchange(false);
         g_Settings()->Set("settings.content.sealed_session", std::string(""));
         g_Settings()->Storage()->Commit();
         fInitialAuthComplete.store(true);
         fAuthCV.notify_one();
-        // Do not auto-open login/settings UI on initial auth failure; HUD will show \"Please open settings to sign in.\"
         return false;
     }
 
@@ -659,11 +692,28 @@ bool EDreamClient::Authenticate()
         }
         if (result == AuthRefreshResult::InvalidSession)
         {
-            g_Log->Warning("Auth refresh failed on retry: session invalid or expired");
+            // Same validation approach as the initial auth attempt above.
+            auto spValidate = std::make_shared<Network::CFileDownloader>("ValidateSession");
+            Network::NetworkHeaders::addStandardHeaders(spValidate);
+            AppendAuthHeader(spValidate);
+            const bool reachable = spValidate->Perform(
+                ServerConfig::ServerConfigManager::getInstance().getEndpoint(
+                    ServerConfig::Endpoint::QUOTA));
+            const long httpCode = static_cast<long>(spValidate->ResponseCode());
+
+            if (reachable && httpCode == 200)
+            {
+                g_Log->Info("Auth refresh rejected on retry but session still valid (HTTP 200 on QUOTA) — proceeding as logged in.");
+                fAuthRetryPending.store(false);
+                fIsLoggedIn.exchange(true);
+                DidSignIn();
+                return true;
+            }
+
+            g_Log->Warning("Auth refresh failed on retry and session validation returned HTTP %ld — wiping session.", httpCode);
             fAuthRetryPending.store(false);
             g_Settings()->Set("settings.content.sealed_session", std::string(""));
             g_Settings()->Storage()->Commit();
-            // Do not auto-open login/settings UI here; HUD will show \"Please open settings to sign in.\"
             return false;
         }
         // TransientFailure again: increase delay (3x, cap 24h)

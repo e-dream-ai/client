@@ -1,5 +1,4 @@
 #include <shared_mutex>
-#include <boost/bind.hpp>
 #include <boost/thread.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/thread/xtime.hpp>

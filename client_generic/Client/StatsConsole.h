@@ -353,13 +353,18 @@ class CStatsConsole : public CConsole
         if (g_Player().Stopped() || m_Stats.empty() || !g_Player().HasStarted())
             return true; // Skip rendering but keep entry alive (false = remove from HudManager)
 
-        float step = (float)m_Desc.Height() /
-                     (float)_spRenderer->Display()->Height();
+        // Scale step and edge proportionally with screen height (same reference as
+        // DrawText/GetExtent) so the overlay stays visually consistent at any resolution.
+        static constexpr float kHudReferenceHeight = 1080.f;
+        const float screenH = static_cast<float>(_spRenderer->Display()->Height());
+        const float screenW = static_cast<float>(_spRenderer->Display()->Width());
+        const float hudScale = screenH / kHudReferenceHeight;
+        float step = (float)m_Desc.Height() * hudScale / screenH;
 #ifdef SCREEN_SAVER
         step *= 0.5f;
 #endif
         float pos = 0;
-        float edge = 24 / (float)_spRenderer->Display()->Width();
+        float edge = (float)m_Desc.Height() * hudScale / screenW;
 
         // First pass: update text content and calculate layout.
         // Always reserve space for every stat (visible or not) so that

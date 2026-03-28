@@ -287,16 +287,12 @@ bool CRendererVulkan::createSwapchain(VkSurfaceKHR surface,
     // Mailbox would spin the CPU freely between presents, burning cycles for no benefit.
     VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
 
-    // Choose extent
-    if (caps.currentExtent.width != UINT32_MAX)
-        m_swapExtent = caps.currentExtent;
-    else
-    {
-        m_swapExtent.width  = std::max(caps.minImageExtent.width,
-                              std::min(caps.maxImageExtent.width,  width));
-        m_swapExtent.height = std::max(caps.minImageExtent.height,
-                              std::min(caps.maxImageExtent.height, height));
-    }
+    // Always use the requested dimensions clamped to surface bounds.
+    // Never blindly trust caps.currentExtent — on X11 it can lag behind ConfigureNotify
+    // by several frames, causing the swapchain to be created at the wrong size while
+    // Display()->Width/Height() already reflects the new window dimensions.
+    m_swapExtent.width  = std::clamp(width,  caps.minImageExtent.width,  caps.maxImageExtent.width);
+    m_swapExtent.height = std::clamp(height, caps.minImageExtent.height, caps.maxImageExtent.height);
 
     uint32_t imageCount = caps.minImageCount + 1;
     if (caps.maxImageCount > 0 && imageCount > caps.maxImageCount)
@@ -833,7 +829,7 @@ bool CRendererVulkan::initImGui()
     initInfo.Device            = m_device;
     initInfo.QueueFamily       = m_graphicsFamily;
     initInfo.Queue             = m_graphicsQueue;
-    initInfo.DescriptorPoolSize = 2;  // imgui creates its own pool internally
+    initInfo.DescriptorPoolSize = IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE;
     initInfo.MinImageCount     = 2;
     initInfo.ImageCount        = static_cast<uint32_t>(m_swapImages.size());
     // Since imgui 1.92 (Sept 2025): RenderPass and MSAASamples live in PipelineInfoMain.
@@ -998,10 +994,13 @@ bool CRendererVulkan::BeginFrame()
 {
     if (m_inFrame) return true;
 
-    // Proactively recreate the swapchain if the display size changed (e.g. fullscreen toggle).
-    // Wayland compositors don't always send VK_ERROR_OUT_OF_DATE_KHR for client-driven resizes.
-    if (m_spDisplay->Width()  != m_swapExtent.width ||
-        m_spDisplay->Height() != m_swapExtent.height)
+    // Proactively recreate the swapchain if the window size changed.
+    // Display()->Width/Height() is kept up-to-date by ConfigureNotify (X11) and
+    // xdg_toplevel configure (Wayland), so comparing against m_swapExtent detects
+    // fullscreen transitions and manual resizes exactly one frame after the WM sends
+    // the resize event — no spurious recreations since m_swapExtent is set from those
+    // same dimensions (never from stale caps.currentExtent).
+    if (m_spDisplay->Width() != m_swapExtent.width || m_spDisplay->Height() != m_swapExtent.height)
     {
         recreateSwapchain();
         return false;
@@ -1016,11 +1015,14 @@ bool CRendererVulkan::BeginFrame()
         m_imageAvailable[m_currentFrame], VK_NULL_HANDLE,
         &m_currentImageIndex);
 
-    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+    if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {
         recreateSwapchain();
         return false;  // Skip this frame
     }
+    // VK_SUBOPTIMAL_KHR: the image was acquired successfully and can be presented —
+    // do not recreate here. On some drivers (e.g. Intel Arc on X11) this is returned
+    // every single frame, causing an infinite recreation loop if acted upon.
 
     vkResetFences(m_device, 1, &m_inFlightFence[m_currentFrame]);
 
@@ -1058,8 +1060,8 @@ bool CRendererVulkan::BeginFrame()
     {
         ImGui_ImplVulkan_NewFrame();
         ImGuiIO& io    = ImGui::GetIO();
-        io.DisplaySize = ImVec2(static_cast<float>(m_swapExtent.width),
-                                static_cast<float>(m_swapExtent.height));
+        io.DisplaySize = ImVec2(static_cast<float>(m_spDisplay->Width()),
+                                static_cast<float>(m_spDisplay->Height()));
         io.DeltaTime   = 1.0f / 60.0f;  // approximation; sufficient for text rendering
         ImGui::NewFrame();
     }
@@ -1139,8 +1141,11 @@ bool CRendererVulkan::EndFrame(bool /*drawn*/)
     pi.pSwapchains        = &m_swapchain;
     pi.pImageIndices      = &m_currentImageIndex;
     VkResult presentResult = vkQueuePresentKHR(m_presentQueue, &pi);
-    if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR)
+    if (presentResult == VK_ERROR_OUT_OF_DATE_KHR)
         recreateSwapchain();
+    // VK_SUBOPTIMAL_KHR at present time is benign — the frame was displayed. Recreating
+    // here would cause an infinite loop on drivers that permanently return SUBOPTIMAL
+    // (e.g. Intel Arc on X11).
 
     m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     m_inFrame      = false;
@@ -1287,7 +1292,15 @@ void CRendererVulkan::DrawText(spCBaseText _text,
     if (!spFI) return;
 
     ImFont* normalFont = spFI->GetImFont();
-    float   fontSize   = spFI->FontSize();
+
+    // Scale the font size so the overlay occupies the same visual proportion
+    // of the screen regardless of resolution.  1080p is the reference at which
+    // the baked font size (24 px) looks correct; above that we scale up, below
+    // we scale down.  ImGui accepts any size in AddText regardless of the atlas
+    // bake size — it rasterises at bake size and scales to display size.
+    static constexpr float kHudReferenceHeight = 1080.f;
+    const float scale    = static_cast<float>(m_spDisplay->Height()) / kHudReferenceHeight;
+    const float fontSize = spFI->FontSize() * scale;
 
     // Convert normalised rect [0,1] → pixel coords (ImGui origin is top-left).
     Base::Math::CRect r = _text->GetRect();
@@ -1300,7 +1313,7 @@ void CRendererVulkan::DrawText(spCBaseText _text,
     ImDrawList*        dl   = ImGui::GetBackgroundDrawList();
     const std::string& text = spTV->Text();
 
-    if (text.find_first_of("\t\n\x01\x02") == std::string::npos)
+    if (text.find_first_of("\t\n") == std::string::npos)
     {
         // Fast path — plain single-line text with no special characters.
         dl->AddText(normalFont, fontSize, cursor, col, text.c_str());
@@ -1308,9 +1321,8 @@ void CRendererVulkan::DrawText(spCBaseText _text,
     }
 
     // Render segment-by-segment, handling:
-    //   \n      — newline: reset cursor.x, advance cursor.y
-    //   \t      — tab: snap cursor.x to next tab stop (4 × space width)
-    //   \x01\x02 — bold markers (no bold font available; strip silently)
+    //   \n — newline: reset cursor.x, advance cursor.y
+    //   \t — tab: snap cursor.x to next tab stop (4 × space width)
     const float spaceW      = normalFont
         ? normalFont->CalcTextSizeA(fontSize, FLT_MAX, 0.f, " ").x
         : fontSize * 0.5f;
@@ -1321,7 +1333,7 @@ void CRendererVulkan::DrawText(spCBaseText _text,
 
     while (*p)
     {
-        if (*p == '\n' || *p == '\t' || *p == '\x01' || *p == '\x02')
+        if (*p == '\n' || *p == '\t')
         {
             if (p > segBegin)
             {
@@ -1333,12 +1345,11 @@ void CRendererVulkan::DrawText(spCBaseText _text,
                 cursor.x = startX;
                 cursor.y += fontSize;
             }
-            else if (*p == '\t')
+            else
             {
                 float offset = cursor.x - startX;
                 cursor.x = startX + (std::floor(offset / tabInterval) + 1.0f) * tabInterval;
             }
-            // \x01 / \x02 stripped — no bold font to switch to
             segBegin = p + 1;
         }
         ++p;

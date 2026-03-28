@@ -312,13 +312,7 @@ class CElectricSheep
         Hud::spCStatsConsole spHelpMessage =
             std::dynamic_pointer_cast<Hud::CStatsConsole>(
                 m_HudManager->Get("helpmessage"));
-        // BK wraps a key name in inline-bold markers for the Linux help overlay renderer.
-        // On other platforms the renderer does not handle these bytes, so fall back to plain text.
-#ifdef LINUX_GNU
-#define BK(k) "\x01" k "\x02"
-#else
 #define BK(k) k
-#endif
         spHelpMessage->Add(new Hud::CStringStat(
             "message",
             "infinidream: visuals for your vibe\n\n"
@@ -328,12 +322,12 @@ class CElectricSheep
             "Use the remote control or keyboard to interact.\n\n"
 #endif
             "Keyboard Commands:\n"
-            BK("A") ": Slower playback\t\t\t\t\t" BK("Up") ": Like this dream\n"
-            BK("D") ": Faster playback\t\t\t\t\t" BK("Down") ": Dislike and delete\n"
+            BK("A") ": Slower playback\t\t\t\t" BK("Up") ": Like this dream\n"
+            BK("D") ": Faster playback\t\t\t\t" BK("Down") ": Dislike and delete\n"
             BK("J") ": Skip 10 seconds back\t\t\t" BK("Left") ": Previous dream\n"
-            BK("L") ": Skip 10 seconds forward\t" BK("Right") ": Next dream\n"
+            BK("L") ": Skip 10 seconds forward\t\t" BK("Right") ": Next dream\n"
             BK("R") ": Repeat current dream\t\t\t" BK("H") ": Shuffle mode\n"
-            BK("C") ": Show credit\t\t\t\t\t\t" BK("B") ": Report this dream\n"
+            BK("C") ": Show credit\t\t\t\t\t" BK("B") ": Report this dream\n"
 #ifdef LINUX_GNU
             BK("V") ": Open web source\t\t\t\t" BK("F") ": Toggle full screen\n"
 #else

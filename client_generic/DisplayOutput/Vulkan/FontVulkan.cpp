@@ -54,20 +54,20 @@ Base::Math::CVector2 CTextImGui::GetExtent()
     ImFont* font = spFI->GetImFont();
     if (!font || !font->IsLoaded()) return {0.f, 0.f};
 
-    VkExtent2D ext    = m_renderer->GetSwapExtent();
-    float      screenW = static_cast<float>(ext.width);
-    float      screenH = static_cast<float>(ext.height);
+    // Use Display()->Width/Height() — the actual window dimensions — so that
+    // font measurements are consistent with the edge/step calculations in
+    // StatsConsole and StartupScreen, which also use Display()->Width/Height().
+    // Using m_swapExtent here diverges from those calculations during the
+    // fullscreen↔windowed transition (swapchain recreates after ConfigureNotify)
+    // and produces a mismatched box shape for several frames.
+    float screenW = static_cast<float>(m_renderer->Display()->Width());
+    float screenH = static_cast<float>(m_renderer->Display()->Height());
     if (screenW <= 0.f || screenH <= 0.f) return {0.f, 0.f};
 
-    // Strip inline bold markers (\x01 start-bold, \x02 end-bold) before measuring.
-    std::string clean;
-    clean.reserve(m_text.size());
-    for (char c : m_text)
-        if (c != '\x01' && c != '\x02')
-            clean += c;
-
-    float  fontSize = spFI->FontSize();
-    ImVec2 sz       = font->CalcTextSizeA(fontSize, FLT_MAX, 0.f, clean.c_str());
+    static constexpr float kHudReferenceHeight = 1080.f;
+    const float scale    = screenH / kHudReferenceHeight;
+    const float fontSize = spFI->FontSize() * scale;
+    ImVec2 sz = font->CalcTextSizeA(fontSize, FLT_MAX, 0.f, m_text.c_str());
     return {sz.x / screenW, sz.y / screenH};
 }
 

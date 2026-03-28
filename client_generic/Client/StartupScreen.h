@@ -117,11 +117,15 @@ class CStartupScreen : public CHudEntry
             _spRenderer->SetShader(NULL);
             _spRenderer->Apply();
 
+            // Recompute aspect each frame so the logo stays circular after
+            // the window is resized (e.g. F-key fullscreen toggle).  Caching
+            // it in the constructor produced the wrong ratio after resize.
+            const float currentAspect = _spRenderer->Display()->Aspect();
             Base::Math::CRect rr;
-            rr.m_X0 = 0.5f - (m_LogoSize.Width());
-            rr.m_Y0 = 0.5f - (m_LogoSize.Height()) + m_MoveMessageCounter;
-            rr.m_X1 = 0.5f + (m_LogoSize.Width());
-            rr.m_Y1 = 0.5f + (m_LogoSize.Height()) + m_MoveMessageCounter;
+            rr.m_X0 = 0.5f - 0.2f * currentAspect;
+            rr.m_Y0 = 0.5f - 0.2f + m_MoveMessageCounter;
+            rr.m_X1 = 0.5f + 0.2f * currentAspect;
+            rr.m_Y1 = 0.5f + 0.2f + m_MoveMessageCounter;
 
             _spRenderer->DrawQuad(rr, Base::Math::CVector4(1, 1, 1, m_Alpha),
                                   m_spVideoTexture->GetRect());
@@ -129,9 +133,10 @@ class CStartupScreen : public CHudEntry
 
         // draw text
 
-        // float step = (float)m_Desc.Height() /
-        // (float)_spRenderer->Display()->Height();
-        float edge = 24 / (float)_spRenderer->Display()->Width();
+        // Scale the edge margin proportionally with screen height so it stays
+        // visually consistent at any resolution (same reference as DrawText/GetExtent).
+        static constexpr float kHudReferenceHeight = 1080.f;
+        const float edge = (float)m_Desc.Height() * (static_cast<float>(_spRenderer->Display()->Height()) / kHudReferenceHeight) / static_cast<float>(_spRenderer->Display()->Width());
 
         Base::Math::CRect extent;
         Base::Math::CVector2 size = m_spText->GetExtent();
