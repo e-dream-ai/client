@@ -24,6 +24,65 @@
 
 @implementation EmailStepViewController
 
+- (NSString *)authFallbackMessageForSendCodeResult:(const EDreamClient::SendCodeResult &)result
+{
+    if (!result.message.empty()) {
+        NSString *msg = [NSString stringWithUTF8String:result.message.c_str()];
+        if (msg.length > 0) {
+            return msg;
+        }
+    }
+    return @"Failed to send verification code.";
+}
+
+- (NSString *)serverErrorDescriptionForSendCodeResult:(const EDreamClient::SendCodeResult &)result
+{
+    NSMutableString *body = [NSMutableString stringWithString:@"Try again later."];
+    if (!result.message.empty()) {
+        NSString *serverText = [NSString stringWithUTF8String:result.message.c_str()];
+        if (serverText.length > 0) {
+            [body appendString:@" "];
+            [body appendString:serverText];
+        }
+    }
+    return body;
+}
+
+- (void)showSendCodeFailurePopupForResult:(const EDreamClient::SendCodeResult &)result
+{
+    const bool isClientErrorHttp = (result.httpCode >= 400 && result.httpCode < 500);
+    const bool isServerErrorHttp = (result.httpCode >= 500);
+    NSString *title;
+    NSString *message;
+    if (isClientErrorHttp) {
+        title = @"Unable to send code";
+        message = @"We couldn't send a verification email. Make sure your email address is correct, then tap Send code again.";
+        if (!result.message.empty()) {
+            NSString *serverText = [NSString stringWithUTF8String:result.message.c_str()];
+            if (serverText.length > 0) {
+                message = [NSString stringWithFormat:@"%@\n\n%@", message, serverText];
+            }
+        }
+    } else if (isServerErrorHttp) {
+        title = @"Server Error";
+        message = [self serverErrorDescriptionForSendCodeResult:result];
+    } else {
+        title = @"Authentication Error";
+        message = [self authFallbackMessageForSendCodeResult:result];
+    }
+    [self showError:message];
+    NSAlert *alert = [[NSAlert alloc] init];
+    alert.messageText = title;
+    alert.informativeText = message;
+    alert.alertStyle = NSAlertStyleWarning;
+    [alert addButtonWithTitle:@"OK"];
+    if (self.view.window) {
+        [alert beginSheetModalForWindow:self.view.window completionHandler:nil];
+    } else {
+        [alert runModal];
+    }
+}
+
 - (void)viewDidLoad {
     [super viewDidLoad];
     
@@ -105,9 +164,7 @@
                 StartupWindowController *windowController = (StartupWindowController *)self.view.window.windowController;
                 [windowController showCodeStep];
             } else {
-                // Show error
-                NSString *errorMessage = [NSString stringWithUTF8String:result.message.c_str()];
-                [self showError:errorMessage ?: @"Failed to send verification code"];
+                [self showSendCodeFailurePopupForResult:result];
             }
         });
     });

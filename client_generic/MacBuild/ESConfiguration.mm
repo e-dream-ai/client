@@ -54,6 +54,41 @@
     [alert beginSheetModalForWindow:self.window completionHandler:nil];
 }
 
+- (void)showInvalidCodeValidationAlert {
+    NSAlert *alert = [[NSAlert alloc] init];
+    [alert setMessageText:@"Invalid Code"];
+    [alert setInformativeText:@"Check for typos and check to be sure you have the most recent code. Try again or start over"];
+    [alert addButtonWithTitle:@"OK"];
+    [alert beginSheetModalForWindow:self.window completionHandler:nil];
+}
+
+- (void)showSendCodeClientErrorAlertWithServerMessage:(NSString *)serverMessage {
+    NSMutableString *body = [NSMutableString stringWithString:
+        @"We couldn't send a verification email. Make sure your email address is correct, then try Send code again."];
+    if (serverMessage.length > 0) {
+        [body appendString:@"\n\n"];
+        [body appendString:serverMessage];
+    }
+    NSAlert *alert = [[NSAlert alloc] init];
+    [alert setMessageText:@"Unable to send code"];
+    [alert setInformativeText:body];
+    [alert addButtonWithTitle:@"OK"];
+    [alert beginSheetModalForWindow:self.window completionHandler:nil];
+}
+
+- (void)showServerErrorValidationAlertWithServerMessage:(NSString *)serverMessage {
+    NSMutableString *body = [NSMutableString stringWithString:@"Try again later."];
+    if (serverMessage.length > 0) {
+        [body appendString:@" "];
+        [body appendString:serverMessage];
+    }
+    NSAlert *alert = [[NSAlert alloc] init];
+    [alert setMessageText:@"Server Error"];
+    [alert setInformativeText:body];
+    [alert addButtonWithTitle:@"OK"];
+    [alert beginSheetModalForWindow:self.window completionHandler:nil];
+}
+
 - (void)awakeFromNib // was - (NSWindow *)window
 {
     CFBundleRef bndl = CopyDLBundle_ex();
@@ -475,6 +510,7 @@
     // Restart validation
     m_loginWasSuccessful = false;
     m_sentCode = false;
+    digitCodeTextField.stringValue = @"";
     [self updateAuthUI];
 }
 
@@ -519,18 +555,33 @@
             } else {
                 m_sentCode = false;
                 loginStatusImage.image = redImage;
-                [self showErrorAlert:@(result.message.c_str())];
-                //loginTestStatusText.stringValue = @(result.message.c_str());
                 // Keep email field enabled and reset the UI state
                 [emailTextField setEnabled:YES];
                 [digitCodeTextField setEnabled:NO];
-
+                const int httpCode = result.httpCode;
+                if (httpCode >= 400 && httpCode < 500) {
+                    NSString *serverMsg = result.message.empty()
+                        ? @""
+                        : [NSString stringWithUTF8String:result.message.c_str()];
+                    [self showSendCodeClientErrorAlertWithServerMessage:serverMsg];
+                } else if (httpCode >= 500) {
+                    NSString *serverMsg = result.message.empty()
+                        ? @""
+                        : [NSString stringWithUTF8String:result.message.c_str()];
+                    [self showServerErrorValidationAlertWithServerMessage:serverMsg];
+                } else {
+                    NSString *message = result.message.empty()
+                        ? @"Failed to send verification code."
+                        : [NSString stringWithUTF8String:result.message.c_str()];
+                    [self showErrorAlert:message];
+                }
                 [self updateAuthUI];
             }
         } else {
             // Try validating code
-            // Ask for the code to be sent
-            if (EDreamClient::ValidateCode(digitCodeTextField.stringValue.UTF8String)) {
+            EDreamClient::ValidateCodeResult validateResult =
+                EDreamClient::ValidateCodeDetailed(digitCodeTextField.stringValue.UTF8String);
+            if (validateResult.success) {
                 // Login successful
                 m_sentCode = false;
                 m_loginWasSuccessful = true;
@@ -548,7 +599,33 @@
             } else {
                 // Code validation failed
                 m_loginWasSuccessful = false;
-                m_sentCode = false;
+                if (validateResult.reason == EDreamClient::ValidationFailureReason::InvalidSession) {
+                    // Keep m_sentCode YES so user stays in "enter code" flow; they can retry or use Start again.
+                    if (validateResult.httpCode >= 400 && validateResult.httpCode < 500) {
+                        [self showInvalidCodeValidationAlert];
+                    } else {
+                        NSString *message = validateResult.message.empty()
+                            ? @"Validation failed. Please request a new code and sign in again."
+                            : [NSString stringWithUTF8String:validateResult.message.c_str()];
+                        [self showErrorAlert:message];
+                    }
+                } else {
+                    if (validateResult.httpCode >= 500) {
+                        NSString *serverMessage = validateResult.message.empty()
+                            ? @""
+                            : [NSString stringWithUTF8String:validateResult.message.c_str()];
+                        [self showServerErrorValidationAlertWithServerMessage:serverMessage];
+                    } else {
+                        NSString *message = nil;
+                        if (!validateResult.message.empty()) {
+                            message = [NSString stringWithUTF8String:validateResult.message.c_str()];
+                        }
+                        if (message.length == 0) {
+                            message = @"Backend is temporarily unavailable. Please try again shortly.";
+                        }
+                        [self showErrorAlert:message];
+                    }
+                }
                 [self updateAuthUI];
             }
         }
