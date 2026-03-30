@@ -222,6 +222,8 @@ static void BuildGlyphCodepointList(std::vector<uint32_t>& out)
     pushUnique(0x20AC); // Euro (outside General Punctuation block below)
 
     pushUnique(0x25CF); // HUD bullet (BLACK CIRCLE)
+    pushUnique(0x2193); // HUD preloading (DOWNWARDS ARROW)
+    pushUnique(0x21BB); // HUD buffering (CLOCKWISE OPEN CIRCLE ARROW)
     pushUnique(0x0020); // space
 }
 

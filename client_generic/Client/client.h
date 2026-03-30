@@ -90,10 +90,16 @@ inline float TapsToBrightness(double taps) {
     return pow(2.0, (taps / 40)) - 1 ;
 }
 
-// U+25CF BLACK CIRCLE ● as UTF-8 bytes. Do not use "\u25CF" in narrow literals: MSVC may emit
-// ASCII '?' when the execution character set cannot encode that code point (HUD then shows "?").
+// HUD glyphs as UTF-8 bytes. Do not use "\uXXXX" in narrow literals: MSVC may emit ASCII '?'
+// when the execution character set cannot encode that code point (HUD then shows "?").
 inline const char* HudIndicatorBulletUtf8() noexcept {
-    return "\xE2\x97\x8F";
+    return "\xE2\x97\x8F"; // U+25CF BLACK CIRCLE ●
+}
+inline const char* HudBufferingArrowUtf8() noexcept {
+    return "\xE2\x86\xBB"; // U+21BB CLOCKWISE OPEN CIRCLE ARROW ↻
+}
+inline const char* HudPreloadingArrowUtf8() noexcept {
+    return "\xE2\x86\x93"; // U+2193 DOWNWARDS ARROW ↓
 }
 
 /*
@@ -1864,9 +1870,11 @@ class CElectricSheep
 
                     // Update download indicator
                     if (isStreamingCurrent && isBuffering) {
-                        ((Hud::CStringStat*)spStats->Get("credits-download"))->SetSample("\u21BB buffering");  // ↻
+                        ((Hud::CStringStat*)spStats->Get("credits-download"))
+                            ->SetSample(std::string(HudBufferingArrowUtf8()) + " buffering");
                     } else if (isPreloading) {
-                        ((Hud::CStringStat*)spStats->Get("credits-download"))->SetSample("\u2193 preloading");  // ↓
+                        ((Hud::CStringStat*)spStats->Get("credits-download"))
+                            ->SetSample(std::string(HudPreloadingArrowUtf8()) + " preloading");
                     } else {
                         ((Hud::CStringStat*)spStats->Get("credits-download"))->SetSample("");  // Clear
                     }
