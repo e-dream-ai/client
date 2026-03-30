@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cctype>
 #include <cstring>
 #include <string>
 
@@ -24,6 +25,97 @@ namespace DisplayOutput
 {
 
 using Microsoft::WRL::ComPtr;
+
+namespace
+{
+static void TrimAsciiWsInPlace(std::string& s)
+{
+    while (!s.empty() && static_cast<unsigned char>(s.front()) <= 32u)
+        s.erase(s.begin());
+    while (!s.empty() && static_cast<unsigned char>(s.back()) <= 32u)
+        s.pop_back();
+}
+
+// Match HUD / settings names: "Lato", "Lato Regular", "Lato-Regular", etc. (ASCII)
+static bool ShouldUseBundledLatoFile(const std::string& faceUtf8)
+{
+    std::string n = faceUtf8;
+    TrimAsciiWsInPlace(n);
+    for (char& c : n)
+    {
+        if (static_cast<unsigned char>(c) < 128u && std::isalpha(static_cast<unsigned char>(c)))
+            c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    }
+    if (n.empty())
+        return false;
+    if (n == "lato")
+        return true;
+    if (n == "lato regular")
+        return true;
+    if (n == "lato-regular")
+        return true;
+    if (n.size() >= 5 && n.compare(0, 5, "lato ") == 0)
+        return true;
+    if (n.size() >= 5 && n.compare(0, 5, "lato-") == 0)
+        return true;
+    // Font dialogs often return "Lato Light", etc.; we only ship Regular.
+    if (n.size() >= 4 && n.compare(0, 4, "lato") == 0)
+        return true;
+    return false;
+}
+
+static std::wstring ExeDirectoryWide()
+{
+    wchar_t buf[MAX_PATH];
+    const DWORD n = GetModuleFileNameW(nullptr, buf, MAX_PATH);
+    if (n == 0 || n >= MAX_PATH)
+        return {};
+    std::wstring path(buf, n);
+    const auto sep = path.find_last_of(L"\\/");
+    if (sep == std::wstring::npos)
+        return {};
+    return path.substr(0, sep + 1);
+}
+
+static DWRITE_FONT_SIMULATIONS DWriteSimulationsFromDesc(const CFontDescription& desc)
+{
+    DWRITE_FONT_SIMULATIONS sims = DWRITE_FONT_SIMULATIONS_NONE;
+    if (desc.Italic())
+        sims = static_cast<DWRITE_FONT_SIMULATIONS>(sims | DWRITE_FONT_SIMULATIONS_OBLIQUE);
+    const auto st = desc.Style();
+    if (st == CFontDescription::Bold || st == CFontDescription::UberBold)
+        sims = static_cast<DWRITE_FONT_SIMULATIONS>(sims | DWRITE_FONT_SIMULATIONS_BOLD);
+    return sims;
+}
+
+static bool TryFontFaceFromBundledFile(IDWriteFactory* factory, const wchar_t* filePath,
+                                       DWRITE_FONT_SIMULATIONS sims, ComPtr<IDWriteFontFace>& outFace)
+{
+    if (!factory || !filePath)
+        return false;
+    ComPtr<IDWriteFontFile> fontFile;
+    HRESULT hr = factory->CreateFontFileReference(filePath, nullptr, &fontFile);
+    if (FAILED(hr) || !fontFile)
+    {
+        g_Log->Warning("Glyph atlas: CreateFontFileReference failed %08X for \"%ls\"", hr, filePath);
+        return false;
+    }
+    IDWriteFontFile* files[] = {fontFile.Get()};
+    ComPtr<IDWriteFontFace> ff;
+    hr = factory->CreateFontFace(DWRITE_FONT_FACE_TYPE_TRUETYPE, 1, files, 0, sims, &ff);
+    if (FAILED(hr) && sims != DWRITE_FONT_SIMULATIONS_NONE)
+        hr = factory->CreateFontFace(DWRITE_FONT_FACE_TYPE_TRUETYPE, 1, files, 0,
+                                     DWRITE_FONT_SIMULATIONS_NONE, &ff);
+    if (FAILED(hr) || !ff)
+    {
+        g_Log->Warning("Glyph atlas: CreateFontFace from file failed %08X for \"%ls\"", hr,
+                       filePath);
+        return false;
+    }
+    outFace = ff;
+    return true;
+}
+} // namespace
 
 CFontDX11DirectWriteAtlas::CFontDX11DirectWriteAtlas(ComPtr<ID3D11Device> device,
                                                      ComPtr<ID3D11DeviceContext> context)
@@ -197,98 +289,119 @@ bool CFontDX11DirectWriteAtlas::BuildAtlasDirectWriteOnce()
         return false;
     }
 
-    std::wstring familyName;
+    ComPtr<IDWriteFontFace> fontFace;
+    if (ShouldUseBundledLatoFile(faceUtf8))
     {
-        int n = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, faceUtf8.data(),
-                                    static_cast<int>(faceUtf8.size()), nullptr, 0);
-        if (n > 0)
+        const std::wstring bundlePath = ExeDirectoryWide() + L"Lato-Regular.ttf";
+        const DWORD attribs = GetFileAttributesW(bundlePath.c_str());
+        if (attribs != INVALID_FILE_ATTRIBUTES && (attribs & FILE_ATTRIBUTE_DIRECTORY) == 0)
         {
-            familyName.resize(static_cast<size_t>(n));
-            if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, faceUtf8.data(),
-                                    static_cast<int>(faceUtf8.size()), familyName.data(), n) <= 0)
-                n = 0;
+            const DWRITE_FONT_SIMULATIONS sims = DWriteSimulationsFromDesc(FontDescription());
+            TryFontFaceFromBundledFile(factory.Get(), bundlePath.c_str(), sims, fontFace);
         }
-        if (n <= 0)
+        else
         {
-            n = MultiByteToWideChar(CP_ACP, 0, faceUtf8.data(), static_cast<int>(faceUtf8.size()),
-                                    nullptr, 0);
+            g_Log->Warning(
+                "Glyph atlas: Lato-Regular.ttf missing next to exe (expected at \"%ls\"); copy from Runtime on build or install Lato",
+                bundlePath.c_str());
+        }
+    }
+
+    if (!fontFace)
+    {
+        std::wstring familyName;
+        {
+            int n = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, faceUtf8.data(),
+                                        static_cast<int>(faceUtf8.size()), nullptr, 0);
             if (n > 0)
             {
                 familyName.resize(static_cast<size_t>(n));
-                MultiByteToWideChar(CP_ACP, 0, faceUtf8.data(), static_cast<int>(faceUtf8.size()),
-                                    familyName.data(), n);
+                if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, faceUtf8.data(),
+                                        static_cast<int>(faceUtf8.size()), familyName.data(), n) <= 0)
+                    n = 0;
+            }
+            if (n <= 0)
+            {
+                n = MultiByteToWideChar(CP_ACP, 0, faceUtf8.data(), static_cast<int>(faceUtf8.size()),
+                                        nullptr, 0);
+                if (n > 0)
+                {
+                    familyName.resize(static_cast<size_t>(n));
+                    MultiByteToWideChar(CP_ACP, 0, faceUtf8.data(), static_cast<int>(faceUtf8.size()),
+                                        familyName.data(), n);
+                }
             }
         }
-    }
-    if (familyName.empty())
-    {
-        g_Log->Error("Glyph atlas: could not convert typeface name to wide string");
-        return false;
-    }
+        if (familyName.empty())
+        {
+            g_Log->Error("Glyph atlas: could not convert typeface name to wide string");
+            return false;
+        }
 
-    DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL;
-    switch (FontDescription().Style())
-    {
-    case CFontDescription::Thin:
-        weight = DWRITE_FONT_WEIGHT_THIN;
-        break;
-    case CFontDescription::Light:
-        weight = DWRITE_FONT_WEIGHT_LIGHT;
-        break;
-    case CFontDescription::Normal:
-        weight = DWRITE_FONT_WEIGHT_NORMAL;
-        break;
-    case CFontDescription::Bold:
-        weight = DWRITE_FONT_WEIGHT_BOLD;
-        break;
-    case CFontDescription::UberBold:
-        weight = DWRITE_FONT_WEIGHT_ULTRA_BOLD;
-        break;
-    }
+        DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL;
+        switch (FontDescription().Style())
+        {
+        case CFontDescription::Thin:
+            weight = DWRITE_FONT_WEIGHT_THIN;
+            break;
+        case CFontDescription::Light:
+            weight = DWRITE_FONT_WEIGHT_LIGHT;
+            break;
+        case CFontDescription::Normal:
+            weight = DWRITE_FONT_WEIGHT_NORMAL;
+            break;
+        case CFontDescription::Bold:
+            weight = DWRITE_FONT_WEIGHT_BOLD;
+            break;
+        case CFontDescription::UberBold:
+            weight = DWRITE_FONT_WEIGHT_ULTRA_BOLD;
+            break;
+        }
 
-    const DWRITE_FONT_STYLE style =
-        FontDescription().Italic() ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL;
-    const DWRITE_FONT_STRETCH stretch = DWRITE_FONT_STRETCH_NORMAL;
+        const DWRITE_FONT_STYLE style =
+            FontDescription().Italic() ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL;
+        const DWRITE_FONT_STRETCH stretch = DWRITE_FONT_STRETCH_NORMAL;
 
-    ComPtr<IDWriteFontCollection> collection;
-    hr = factory->GetSystemFontCollection(&collection);
-    if (FAILED(hr) || !collection)
-    {
-        g_Log->Error("Glyph atlas: GetSystemFontCollection failed %08X", hr);
-        return false;
-    }
+        ComPtr<IDWriteFontCollection> collection;
+        hr = factory->GetSystemFontCollection(&collection);
+        if (FAILED(hr) || !collection)
+        {
+            g_Log->Error("Glyph atlas: GetSystemFontCollection failed %08X", hr);
+            return false;
+        }
 
-    UINT32 familyIndex = 0;
-    BOOL familyExists = FALSE;
-    hr = collection->FindFamilyName(familyName.c_str(), &familyIndex, &familyExists);
-    if (FAILED(hr) || !familyExists)
-    {
-        g_Log->Error("Glyph atlas: DirectWrite could not find font family");
-        return false;
-    }
+        UINT32 familyIndex = 0;
+        BOOL familyExists = FALSE;
+        hr = collection->FindFamilyName(familyName.c_str(), &familyIndex, &familyExists);
+        if (FAILED(hr) || !familyExists)
+        {
+            g_Log->Warning("Glyph atlas: DirectWrite could not find font family \"%s\"",
+                           faceUtf8.c_str());
+            return false;
+        }
 
-    ComPtr<IDWriteFontFamily> fontFamily;
-    hr = collection->GetFontFamily(familyIndex, &fontFamily);
-    if (FAILED(hr) || !fontFamily)
-    {
-        g_Log->Error("Glyph atlas: GetFontFamily failed %08X", hr);
-        return false;
-    }
+        ComPtr<IDWriteFontFamily> fontFamily;
+        hr = collection->GetFontFamily(familyIndex, &fontFamily);
+        if (FAILED(hr) || !fontFamily)
+        {
+            g_Log->Error("Glyph atlas: GetFontFamily failed %08X", hr);
+            return false;
+        }
 
-    ComPtr<IDWriteFont> font;
-    hr = fontFamily->GetFirstMatchingFont(weight, stretch, style, &font);
-    if (FAILED(hr) || !font)
-    {
-        g_Log->Error("Glyph atlas: GetFirstMatchingFont failed %08X", hr);
-        return false;
-    }
+        ComPtr<IDWriteFont> font;
+        hr = fontFamily->GetFirstMatchingFont(weight, stretch, style, &font);
+        if (FAILED(hr) || !font)
+        {
+            g_Log->Error("Glyph atlas: GetFirstMatchingFont failed %08X", hr);
+            return false;
+        }
 
-    ComPtr<IDWriteFontFace> fontFace;
-    hr = font->CreateFontFace(&fontFace);
-    if (FAILED(hr) || !fontFace)
-    {
-        g_Log->Error("Glyph atlas: CreateFontFace failed %08X", hr);
-        return false;
+        hr = font->CreateFontFace(&fontFace);
+        if (FAILED(hr) || !fontFace)
+        {
+            g_Log->Error("Glyph atlas: CreateFontFace failed %08X", hr);
+            return false;
+        }
     }
 
     DWRITE_FONT_METRICS fontMetrics = {};

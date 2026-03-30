@@ -197,6 +197,7 @@ copy /y "..\runtime\License.rtf" "$(OutDir)"
 copy /y "..\runtime\logo.png" "$(OutDir)"
 copy /y "..\RuntimeMSVC\play-playlist.png" "$(OutDir)"
 copy /y "..\runtime\pthreadGC2.dll" "$(OutDir)"
+copy /y "..\runtime\*.ttf" "$(OutDir)"
 </Command>
     </PreBuildEvent>
     <ClCompile>
@@ -238,6 +239,7 @@ copy /y "..\runtime\License.rtf" "$(OutDir)"
 copy /y "..\runtime\*.png" "$(OutDir)"
 copy /y "..\RuntimeMSVC\play-playlist.png" "$(OutDir)"
 copy /y "..\runtime\pthreadGC2.dll" "$(OutDir)"
+copy /y "..\runtime\*.ttf" "$(OutDir)"
 
 </Command>
     </PreBuildEvent>
@@ -289,6 +291,7 @@ copy /y "..\runtime\License.rtf" "$(OutDir)"
 copy /y "..\runtime\logo.png" "$(OutDir)"
 copy /y "..\RuntimeMSVC\play-playlist.png" "$(OutDir)"
 copy /y "..\runtime\pthreadGC2.dll" "$(OutDir)"
+copy /y "..\runtime\*.ttf" "$(OutDir)"
 </Command>
     </PreBuildEvent>
     <ClCompile>
@@ -366,6 +369,7 @@ copy /y "..\runtime\License.rtf" "$(OutDir)"
 copy /y "..\runtime\logo.png" "$(OutDir)"
 copy /y "..\RuntimeMSVC\play-playlist.png" "$(OutDir)"
 copy /y "..\runtime\pthreadGC2.dll" "$(OutDir)"
+copy /y "..\runtime\*.ttf" "$(OutDir)"
 </Command>
     </PreBuildEvent>
     <ClCompile>
@@ -443,6 +447,7 @@ copy /y "..\runtime\License.rtf" "$(OutDir)"
 copy /y "..\runtime\logo.png" "$(OutDir)"
 copy /y "..\RuntimeMSVC\play-playlist.png" "$(OutDir)"
 copy /y "..\runtime\pthreadGC2.dll" "$(OutDir)"
+copy /y "..\runtime\*.ttf" "$(OutDir)"
 </Command>
     </PreBuildEvent>
     <ClCompile>
@@ -517,6 +522,7 @@ copy /y "..\runtime\License.rtf" "$(OutDir)"
 copy /y "..\runtime\*.png" "$(OutDir)"
 copy /y "..\RuntimeMSVC\play-playlist.png" "$(OutDir)"
 copy /y "..\runtime\pthreadGC2.dll" "$(OutDir)"
+copy /y "..\runtime\*.ttf" "$(OutDir)"
 </Command>
     </PreBuildEvent>
     <ClCompile>
@@ -590,6 +596,7 @@ copy /y "..\runtime\License.rtf" "$(OutDir)"
 copy /y "..\runtime\*.png" "$(OutDir)"
 copy /y "..\RuntimeMSVC\play-playlist.png" "$(OutDir)"
 copy /y "..\runtime\pthreadGC2.dll" "$(OutDir)"
+copy /y "..\runtime\*.ttf" "$(OutDir)"
 </Command>
     </PreBuildEvent>
     <ClCompile>
@@ -665,6 +672,7 @@ copy /y "..\runtime\License.rtf" "$(OutDir)"
 copy /y "..\runtime\*.png" "$(OutDir)"
 copy /y "..\RuntimeMSVC\play-playlist.png" "$(OutDir)"
 copy /y "..\runtime\pthreadGC2.dll" "$(OutDir)"
+copy /y "..\runtime\*.ttf" "$(OutDir)"
 </Command>
     </PreBuildEvent>
     <ClCompile>
@@ -725,6 +733,9 @@ copy /y "..\runtime\pthreadGC2.dll" "$(OutDir)"
       </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
+  <ItemGroup>
+    <None Include="..\runtime\Lato-Regular.ttf" />
+  </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\ContentDecoder\Clip.cpp" />
     <ClCompile Include="..\ContentDownloader\CacheManager.cpp" />
