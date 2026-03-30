@@ -109,8 +109,8 @@ class ESCpuUsage
 
     int GetGpuUsage()
     {
-        // No GPU usage implementation on Win32 path yet.
-        return 0;
+        // No system-wide GPU % on Win32 (macOS uses IOKit). -1 omits ", N%" in HUD.
+        return -1;
     }
 
     int GetNumCores()

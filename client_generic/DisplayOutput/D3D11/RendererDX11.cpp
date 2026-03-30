@@ -258,11 +258,121 @@ private:
 };
 } // namespace
 
-CRendererDX11::CRendererDX11() : CRenderer() {
+CRendererDX11::CRendererDX11()
+    : CRenderer(),
+      m_avgGpuFrameTimeMs(-1.0f),
+      m_gpuTimingSlot(0),
+      m_gpuLastClosedSlot(-1),
+      m_gpuTimingOpen(false),
+      m_gpuQueriesOk(false)
+{
 }
 
 CRendererDX11::~CRendererDX11() {
     // ComPtr handles cleanup automatically
+}
+
+bool CRendererDX11::CreateGpuTimingQueries()
+{
+    if (!m_device)
+        return false;
+
+    D3D11_QUERY_DESC desc = {};
+    for (int i = 0; i < 2; ++i)
+    {
+        desc.Query = D3D11_QUERY_TIMESTAMP;
+        if (FAILED(m_device->CreateQuery(&desc, &m_tsStart[i])))
+            return false;
+        if (FAILED(m_device->CreateQuery(&desc, &m_tsEnd[i])))
+            return false;
+        desc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
+        if (FAILED(m_device->CreateQuery(&desc, &m_disjointQuery[i])))
+            return false;
+    }
+    return true;
+}
+
+void CRendererDX11::ResolveGpuTimingSlot(int slot)
+{
+    if (!m_gpuQueriesOk || !m_context || slot < 0 || slot > 1)
+        return;
+
+    // Help prior frame's queries complete (avoids indefinite S_FALSE on some drivers).
+    m_context->Flush();
+
+    D3D11_QUERY_DATA_TIMESTAMP_DISJOINT disjoint = {};
+    HRESULT hr = m_context->GetData(m_disjointQuery[slot].Get(), &disjoint,
+                                    sizeof(disjoint), 0);
+    if (hr != S_OK)
+        return;
+    if (disjoint.Disjoint || disjoint.Frequency == 0)
+        return;
+
+    UINT64 t0 = 0;
+    UINT64 t1 = 0;
+    hr = m_context->GetData(m_tsStart[slot].Get(), &t0, sizeof(t0), 0);
+    if (hr != S_OK)
+        return;
+    hr = m_context->GetData(m_tsEnd[slot].Get(), &t1, sizeof(t1), 0);
+    if (hr != S_OK)
+        return;
+    if (t1 <= t0)
+        return;
+
+    const float ms =
+        static_cast<float>((double)(t1 - t0) * 1000.0 / (double)disjoint.Frequency);
+    if (m_avgGpuFrameTimeMs < 0.0f)
+        m_avgGpuFrameTimeMs = ms;
+    else
+        m_avgGpuFrameTimeMs = m_avgGpuFrameTimeMs * 0.99f + ms * 0.01f;
+}
+
+void CRendererDX11::EndGpuTimingFrame()
+{
+    if (!m_gpuTimingOpen || !m_gpuQueriesOk || !m_context)
+        return;
+
+    m_context->End(m_tsEnd[m_gpuTimingSlot].Get());
+    m_context->End(m_disjointQuery[m_gpuTimingSlot].Get());
+    m_gpuLastClosedSlot = m_gpuTimingSlot;
+    m_gpuTimingSlot = 1 - m_gpuTimingSlot;
+    m_gpuTimingOpen = false;
+}
+
+float CRendererDX11::DisplayRefreshHz() const
+{
+    auto display = std::dynamic_pointer_cast<CDisplayDX11>(m_spDisplay);
+    if (!display)
+        return 60.0f;
+    IDXGISwapChain* sc = display->GetSwapChain();
+    if (!sc)
+        return 60.0f;
+
+    DXGI_SWAP_CHAIN_DESC scd = {};
+    if (FAILED(sc->GetDesc(&scd)))
+        return 60.0f;
+    const UINT den = scd.BufferDesc.RefreshRate.Denominator;
+    const UINT num = scd.BufferDesc.RefreshRate.Numerator;
+    if (den == 0 || num == 0)
+        return 60.0f;
+    const float hz = static_cast<float>(num) / static_cast<float>(den);
+    return hz > 0.5f ? hz : 60.0f;
+}
+
+float CRendererDX11::GetGPUFrameTimeMs()
+{
+    return m_avgGpuFrameTimeMs;
+}
+
+float CRendererDX11::GetGPUUtilization()
+{
+    if (m_avgGpuFrameTimeMs < 0.0f)
+        return -1.0f;
+    const float hz = DisplayRefreshHz();
+    if (hz <= 0.0f)
+        return -1.0f;
+    const float budgetMs = 1000.0f / hz;
+    return m_avgGpuFrameTimeMs / budgetMs * 100.0f;
 }
 
 bool CRendererDX11::Initialize(spCDisplayOutput _spDisplay) {
@@ -290,6 +400,10 @@ bool CRendererDX11::Initialize(spCDisplayOutput _spDisplay) {
 
     if (!CreateRasterizerStates())
         return false;
+
+    m_gpuQueriesOk = CreateGpuTimingQueries();
+    if (!m_gpuQueriesOk)
+        g_Log->Warning("D3D11 GPU timestamp queries unavailable; HUD GPU stats disabled");
 
     if (!CreateDefaultSampler(m_device.Get(), &m_defaultSampler))
     {
@@ -508,6 +622,18 @@ bool CRendererDX11::BeginFrame() {
             m_context->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
         }
 
+        if (m_gpuQueriesOk)
+        {
+            if (m_gpuLastClosedSlot >= 0)
+            {
+                ResolveGpuTimingSlot(m_gpuLastClosedSlot);
+                m_gpuLastClosedSlot = -1;
+            }
+            m_context->Begin(m_disjointQuery[m_gpuTimingSlot].Get());
+            m_context->End(m_tsStart[m_gpuTimingSlot].Get());
+            m_gpuTimingOpen = true;
+        }
+
         return true;
     }
     return false;
@@ -525,7 +651,10 @@ bool CRendererDX11::EndFrame(bool drawn) {
     }
     const bool effectiveDrawn = drawn || forcePresent;
     if (!CRenderer::EndFrame(effectiveDrawn))
+    {
+        EndGpuTimingFrame();
         return false;
+    }
 
     if (effectiveDrawn && m_context && m_spDisplay) {
         auto display = std::dynamic_pointer_cast<CDisplayDX11>(m_spDisplay);
@@ -626,9 +755,12 @@ bool CRendererDX11::EndFrame(bool drawn) {
             }
         }
 
+        EndGpuTimingFrame();
+
         m_spDisplay->SwapBuffers();
         return true;
     }
+    EndGpuTimingFrame();
     return false;
 #else
     if (!CRenderer::EndFrame(drawn))

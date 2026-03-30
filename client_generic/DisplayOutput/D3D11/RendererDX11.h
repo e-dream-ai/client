@@ -65,6 +65,9 @@ public:
     virtual void DrawSoftQuad(const Base::Math::CRect& _rect, const Base::Math::CVector4& _color,
                              const float _width) override;
 
+    float GetGPUFrameTimeMs() override;
+    float GetGPUUtilization() override;
+
 private:
     struct QuadUniforms
     {
@@ -86,6 +89,21 @@ private:
     ComPtr<ID3D11Buffer> m_quadUniformBuffer;
     spCShader m_drawTextureShader;
     bool CreateQuadBuffers();
+
+    // GPU frame timing (D3D11 timestamp queries) — HUD parity with Metal.
+    float m_avgGpuFrameTimeMs;
+    int m_gpuTimingSlot;
+    int m_gpuLastClosedSlot;
+    bool m_gpuTimingOpen;
+    bool m_gpuQueriesOk;
+    ComPtr<ID3D11Query> m_disjointQuery[2];
+    ComPtr<ID3D11Query> m_tsStart[2];
+    ComPtr<ID3D11Query> m_tsEnd[2];
+
+    bool CreateGpuTimingQueries();
+    void ResolveGpuTimingSlot(int slot);
+    void EndGpuTimingFrame();
+    float DisplayRefreshHz() const;
 
     struct PendingTextDraw
     {
