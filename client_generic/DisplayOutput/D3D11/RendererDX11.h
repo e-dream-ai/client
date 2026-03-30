@@ -23,6 +23,8 @@ protected:
     ComPtr<ID3D11DepthStencilState> m_depthStencilNoDepthTest;
     ComPtr<ID3D11SamplerState> m_defaultSampler;
     ComPtr<ID3D11SamplerState> m_glyphPointSampler;
+    ComPtr<ID3D11RasterizerState> m_rasterizerDefault;
+    ComPtr<ID3D11RasterizerState> m_rasterizerScissor;
 
     void DrawTexturedQuad(const Base::Math::CRect& _rect, const Base::Math::CVector4& _color,
                           const Base::Math::CRect& _uvRect, ID3D11SamplerState* _pixelSampler);
@@ -95,6 +97,7 @@ private:
     bool CreateRenderTargets();
     bool CreateBlendStates();
     bool CreateDepthStencilStates();
+    bool CreateRasterizerStates();
 };
 
 MakeSmartPointers(CRendererDX11);

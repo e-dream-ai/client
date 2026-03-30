@@ -3,9 +3,22 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <string>
+
+// windows.h (via header above) #defines GetGlyphIndices -> GetGlyphIndicesW. If dwrite.h is
+// parsed with that macro active, IDWriteFontFace declares the wrong member name and calls
+// won't compile — undef before including dwrite.h.
+#pragma push_macro("GetGlyphIndices")
+#undef GetGlyphIndices
+
+#include <dwrite.h>
 
 #include "../../Common/Log.h"
 #include "../Image.h"
+
+#ifdef GetGlyphIndices
+#undef GetGlyphIndices
+#endif
 
 namespace DisplayOutput
 {
@@ -32,15 +45,20 @@ const CFontDX11DirectWriteAtlas::SGlyph& CFontDX11DirectWriteAtlas::GetGlyph(uin
 
 uint32_t CFontDX11DirectWriteAtlas::MeasureTextWidthPx(const std::string& text) const
 {
-    uint32_t best = 0;
-    uint32_t cur = 0;
+    float best = 0.0f;
+    float cur = 0.0f;
     size_t i = 0;
     while (i < text.size())
     {
+        if (text[i] == '\r')
+        {
+            ++i;
+            continue;
+        }
         if (text[i] == '\n')
         {
             best = std::max(best, cur);
-            cur = 0;
+            cur = 0.0f;
             ++i;
             continue;
         }
@@ -48,19 +66,31 @@ uint32_t CFontDX11DirectWriteAtlas::MeasureTextWidthPx(const std::string& text) 
         uint32_t cp = 0;
         Utf8DecodeNext(text, i, cp);
         const SGlyph& g = GetGlyph(cp);
-        cur += static_cast<uint32_t>(std::round(g.advancePx));
+        cur += g.advancePx;
     }
 
-    return std::max(best, cur);
+    return static_cast<uint32_t>(std::ceil(std::max(best, cur)));
 }
 
 uint32_t CFontDX11DirectWriteAtlas::MeasureTextHeightPx(const std::string& text) const
 {
     uint32_t lines = 1;
-    for (char ch : text)
+    for (size_t i = 0; i < text.size();)
     {
-        if (ch == '\n')
+        if (text[i] == '\r')
+        {
+            ++i;
+            continue;
+        }
+        if (text[i] == '\n')
+        {
             ++lines;
+            ++i;
+            continue;
+        }
+        uint32_t cp = 0;
+        Utf8DecodeNext(text, i, cp);
+        (void)cp;
     }
 
     return lines * m_lineHeightPx;
@@ -84,6 +114,20 @@ static void BuildGlyphCodepointList(std::vector<uint32_t>& out)
         pushUnique(cp);
     for (uint32_t cp = 0x100; cp <= 0x017F; ++cp)
         pushUnique(cp);
+    // Latin Extended-B (common Eastern European letters)
+    for (uint32_t cp = 0x0180; cp <= 0x024F; ++cp)
+        pushUnique(cp);
+    // Greek + Coptic
+    for (uint32_t cp = 0x0370; cp <= 0x03FF; ++cp)
+        pushUnique(cp);
+    // Cyrillic + Cyrillic Supplement
+    for (uint32_t cp = 0x0400; cp <= 0x052F; ++cp)
+        pushUnique(cp);
+    // General punctuation (dashes, bullets)
+    for (uint32_t cp = 0x2000; cp <= 0x206F; ++cp)
+        pushUnique(cp);
+
+    pushUnique(0x20AC); // Euro (outside General Punctuation block below)
 
     pushUnique(0x25CF); // HUD bullet (BLACK CIRCLE)
     pushUnique(0x0020); // space
@@ -97,7 +141,7 @@ bool CFontDX11DirectWriteAtlas::EnsureCreated()
     if (!m_device || !m_context)
         return false;
 
-    if (!BuildAtlasGdiOnce())
+    if (!BuildAtlasDirectWriteOnce())
         return false;
 
     // Upload CPU atlas as a GPU texture.
@@ -133,35 +177,18 @@ void CFontDX11DirectWriteAtlas::ConvertAtlasToRGBA(std::vector<uint8_t>& outRGBA
     outRGBA = m_atlasRGBA;
 }
 
-bool CFontDX11DirectWriteAtlas::BuildAtlasGdiOnce()
+bool CFontDX11DirectWriteAtlas::BuildAtlasDirectWriteOnce()
 {
     m_glyphByCodepoint.clear();
 
-    LOGFONTW lf = {};
-    lf.lfHeight = -static_cast<LONG>(FontDescription().Height());
-    lf.lfCharSet = DEFAULT_CHARSET;
-    lf.lfWeight = FW_NORMAL;
-    switch (FontDescription().Style())
+    ComPtr<IDWriteFactory> factory;
+    HRESULT hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
+                                     reinterpret_cast<IUnknown**>(factory.GetAddressOf()));
+    if (FAILED(hr) || !factory)
     {
-    case CFontDescription::Thin:
-        lf.lfWeight = FW_THIN;
-        break;
-    case CFontDescription::Light:
-        lf.lfWeight = FW_LIGHT;
-        break;
-    case CFontDescription::Normal:
-        lf.lfWeight = FW_NORMAL;
-        break;
-    case CFontDescription::Bold:
-        lf.lfWeight = FW_BOLD;
-        break;
-    case CFontDescription::UberBold:
-        lf.lfWeight = FW_EXTRABOLD;
-        break;
+        g_Log->Error("Glyph atlas: DWriteCreateFactory failed %08X", hr);
+        return false;
     }
-    lf.lfItalic = FontDescription().Italic() ? TRUE : FALSE;
-    lf.lfUnderline = FontDescription().Underline() ? TRUE : FALSE;
-    lf.lfQuality = FontDescription().AntiAliased() ? ANTIALIASED_QUALITY : NONANTIALIASED_QUALITY;
 
     const std::string faceUtf8 = FontDescription().TypeFace();
     if (faceUtf8.empty())
@@ -169,41 +196,115 @@ bool CFontDX11DirectWriteAtlas::BuildAtlasGdiOnce()
         g_Log->Error("Glyph atlas: empty typeface name");
         return false;
     }
-    const int conv = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, faceUtf8.c_str(),
-                                         -1, lf.lfFaceName, LF_FACESIZE);
-    if (conv <= 0)
-    {
-        MultiByteToWideChar(CP_ACP, 0, faceUtf8.c_str(), -1, lf.lfFaceName, LF_FACESIZE);
-    }
 
-    HFONT hFont = CreateFontIndirectW(&lf);
-    if (!hFont)
+    std::wstring familyName;
     {
-        g_Log->Error("Glyph atlas: failed to create HFONT");
+        int n = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, faceUtf8.data(),
+                                    static_cast<int>(faceUtf8.size()), nullptr, 0);
+        if (n > 0)
+        {
+            familyName.resize(static_cast<size_t>(n));
+            if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, faceUtf8.data(),
+                                    static_cast<int>(faceUtf8.size()), familyName.data(), n) <= 0)
+                n = 0;
+        }
+        if (n <= 0)
+        {
+            n = MultiByteToWideChar(CP_ACP, 0, faceUtf8.data(), static_cast<int>(faceUtf8.size()),
+                                    nullptr, 0);
+            if (n > 0)
+            {
+                familyName.resize(static_cast<size_t>(n));
+                MultiByteToWideChar(CP_ACP, 0, faceUtf8.data(), static_cast<int>(faceUtf8.size()),
+                                    familyName.data(), n);
+            }
+        }
+    }
+    if (familyName.empty())
+    {
+        g_Log->Error("Glyph atlas: could not convert typeface name to wide string");
         return false;
     }
 
-    HDC hdc = CreateCompatibleDC(nullptr);
-    if (!hdc)
+    DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL;
+    switch (FontDescription().Style())
     {
-        DeleteObject(hFont);
+    case CFontDescription::Thin:
+        weight = DWRITE_FONT_WEIGHT_THIN;
+        break;
+    case CFontDescription::Light:
+        weight = DWRITE_FONT_WEIGHT_LIGHT;
+        break;
+    case CFontDescription::Normal:
+        weight = DWRITE_FONT_WEIGHT_NORMAL;
+        break;
+    case CFontDescription::Bold:
+        weight = DWRITE_FONT_WEIGHT_BOLD;
+        break;
+    case CFontDescription::UberBold:
+        weight = DWRITE_FONT_WEIGHT_ULTRA_BOLD;
+        break;
+    }
+
+    const DWRITE_FONT_STYLE style =
+        FontDescription().Italic() ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL;
+    const DWRITE_FONT_STRETCH stretch = DWRITE_FONT_STRETCH_NORMAL;
+
+    ComPtr<IDWriteFontCollection> collection;
+    hr = factory->GetSystemFontCollection(&collection);
+    if (FAILED(hr) || !collection)
+    {
+        g_Log->Error("Glyph atlas: GetSystemFontCollection failed %08X", hr);
         return false;
     }
-    HGDIOBJ oldFont = SelectObject(hdc, hFont);
 
-    TEXTMETRICW tm = {};
-    if (!GetTextMetricsW(hdc, &tm))
+    UINT32 familyIndex = 0;
+    BOOL familyExists = FALSE;
+    hr = collection->FindFamilyName(familyName.c_str(), &familyIndex, &familyExists);
+    if (FAILED(hr) || !familyExists)
     {
-        SelectObject(hdc, oldFont);
-        DeleteObject(hFont);
-        DeleteDC(hdc);
+        g_Log->Error("Glyph atlas: DirectWrite could not find font family");
         return false;
     }
 
-    m_ascentPx = static_cast<uint32_t>(tm.tmAscent);
-    m_lineHeightPx = static_cast<uint32_t>(tm.tmHeight);
-    if (m_lineHeightPx == 0)
-        m_lineHeightPx = 1;
+    ComPtr<IDWriteFontFamily> fontFamily;
+    hr = collection->GetFontFamily(familyIndex, &fontFamily);
+    if (FAILED(hr) || !fontFamily)
+    {
+        g_Log->Error("Glyph atlas: GetFontFamily failed %08X", hr);
+        return false;
+    }
+
+    ComPtr<IDWriteFont> font;
+    hr = fontFamily->GetFirstMatchingFont(weight, stretch, style, &font);
+    if (FAILED(hr) || !font)
+    {
+        g_Log->Error("Glyph atlas: GetFirstMatchingFont failed %08X", hr);
+        return false;
+    }
+
+    ComPtr<IDWriteFontFace> fontFace;
+    hr = font->CreateFontFace(&fontFace);
+    if (FAILED(hr) || !fontFace)
+    {
+        g_Log->Error("Glyph atlas: CreateFontFace failed %08X", hr);
+        return false;
+    }
+
+    DWRITE_FONT_METRICS fontMetrics = {};
+    fontFace->GetMetrics(&fontMetrics);
+
+    const float emSize = static_cast<float>(FontDescription().Height());
+    const float designToPx = emSize / static_cast<float>(fontMetrics.designUnitsPerEm);
+
+    const float ascentF = static_cast<float>(fontMetrics.ascent) * designToPx;
+    const float descentF = static_cast<float>(fontMetrics.descent) * designToPx;
+    const float lineGapF = static_cast<float>(fontMetrics.lineGap) * designToPx;
+
+    m_ascentPx = static_cast<uint32_t>(std::max(1.0f, static_cast<float>(std::round(ascentF))));
+    const uint32_t lineH = static_cast<uint32_t>(
+        std::max(1.0f, static_cast<float>(std::round(ascentF + descentF + lineGapF))));
+    m_lineHeightPx = lineH > 0 ? lineH : 1u;
 
     std::vector<uint32_t> codepoints;
     BuildGlyphCodepointList(codepoints);
@@ -225,11 +326,9 @@ bool CFontDX11DirectWriteAtlas::BuildAtlasGdiOnce()
     uint32_t atlasW = 1024;
     uint32_t atlasH = 1024;
 
-    // Antialiased strokes bleed past ABC boxes. Tight shelf packing lets each glyph paint
-    // into the next atlas column — letters leak badly; punctuation often survives.
     constexpr uint32_t kPackPadX = 2;
     constexpr uint32_t kPackPadY = 1;
-    constexpr int kCellPadR = 2; // extra texels inside the UV width for right-side AA
+    constexpr int kCellPadR = 2;
 
     auto computePlacements = [&](uint32_t tryW, uint32_t tryH, std::vector<Placement>& outPlacements) -> bool {
         outPlacements.clear();
@@ -238,47 +337,29 @@ bool CFontDX11DirectWriteAtlas::BuildAtlasGdiOnce()
         uint32_t y = 0;
         uint32_t rowH = 0;
 
-        for (uint32_t i = 0; i < glyphCount; ++i)
+        for (uint32_t gi = 0; gi < glyphCount; ++gi)
         {
-            const uint32_t cp = codepoints[i];
-            const WCHAR wch = static_cast<WCHAR>(cp);
+            const uint32_t cp = codepoints[gi];
+            UINT32 cp32 = cp;
+            UINT16 glyphIndex = 0;
+            if (FAILED(fontFace->GetGlyphIndices(&cp32, 1, &glyphIndex)))
+                return false;
 
-            ABC abc = {};
-            if (!GetCharABCWidthsW(hdc, wch, wch, &abc))
-            {
-                SIZE size = {};
-                GetTextExtentPoint32W(hdc, &wch, 1, &size);
-                const int extW = std::max(1, static_cast<int>(size.cx));
-                const float advancePx = static_cast<float>(extW);
-                const uint32_t bw = static_cast<uint32_t>(extW + kCellPadR);
-                uint32_t bh = m_lineHeightPx;
+            DWRITE_GLYPH_METRICS gm = {};
+            if (FAILED(fontFace->GetDesignGlyphMetrics(&glyphIndex, 1, &gm, FALSE)))
+                return false;
 
-                if (x + bw > tryW)
-                {
-                    y += rowH + kPackPadY;
-                    x = 0;
-                    rowH = 0;
-                }
-                if (y + bh > tryH)
-                    return false;
-
-                outPlacements.push_back({cp, x, y, bw, bh, advancePx, 0});
-                x += bw + kPackPadX;
-                rowH = std::max(rowH, bh);
-                continue;
-            }
-
-            const int a = static_cast<int>(abc.abcA);
-            const int b = static_cast<int>(abc.abcB);
-            const int abcC = static_cast<int>(abc.abcC);
-
-            const int inkW = std::max(1, b);
-            const int fromAbc = (a >= 0) ? (a + inkW) : inkW;
+            const float advancePx = static_cast<float>(gm.advanceWidth) * designToPx;
+            const int a = static_cast<int>(std::floor(static_cast<float>(gm.leftSideBearing) * designToPx));
+            const int inkWpx = std::max(
+                1, static_cast<int>(std::ceil(
+                       static_cast<float>(gm.advanceWidth - gm.leftSideBearing - gm.rightSideBearing) *
+                       designToPx)));
+            const int fromAbc = (a >= 0) ? (a + inkWpx) : inkWpx;
             const int cellW = std::max(1, fromAbc + kCellPadR);
 
             const uint32_t bw = static_cast<uint32_t>(cellW);
             const uint32_t bh = m_lineHeightPx;
-            const float advancePx = static_cast<float>(a + b + abcC);
 
             if (x + bw > tryW)
             {
@@ -299,10 +380,10 @@ bool CFontDX11DirectWriteAtlas::BuildAtlasGdiOnce()
 
     bool fits = false;
     std::vector<Placement> finalPlacements;
-    for (uint32_t pow = 0; pow < 4; ++pow)
+    for (uint32_t pow = 0; pow < 6; ++pow)
     {
-        uint32_t tryW = atlasW << pow;
-        uint32_t tryH = atlasH << pow;
+        const uint32_t tryW = atlasW << pow;
+        const uint32_t tryH = atlasH << pow;
         std::vector<Placement> tmp;
         if (computePlacements(tryW, tryH, tmp))
         {
@@ -316,58 +397,78 @@ bool CFontDX11DirectWriteAtlas::BuildAtlasGdiOnce()
     if (!fits)
     {
         g_Log->Error("Glyph atlas: failed to pack glyph set");
-        SelectObject(hdc, oldFont);
-        DeleteObject(hFont);
-        DeleteDC(hdc);
         return false;
     }
 
-    // Rasterize glyphs into a DIB section.
-    BITMAPINFO bmi = {};
-    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-    bmi.bmiHeader.biWidth = static_cast<LONG>(atlasW);
-    bmi.bmiHeader.biHeight = -static_cast<LONG>(atlasH); // top-down
-    bmi.bmiHeader.biPlanes = 1;
-    bmi.bmiHeader.biBitCount = 32;
-    bmi.bmiHeader.biCompression = BI_RGB;
-
-    HDC hdcAtlas = CreateCompatibleDC(nullptr);
-    if (!hdcAtlas)
+    ComPtr<IDWriteGdiInterop> gdiInterop;
+    hr = factory->GetGdiInterop(&gdiInterop);
+    if (FAILED(hr) || !gdiInterop)
     {
-        SelectObject(hdc, oldFont);
-        DeleteObject(hFont);
-        DeleteDC(hdc);
+        g_Log->Error("Glyph atlas: GetGdiInterop failed %08X", hr);
         return false;
     }
 
-    void* dibBits = nullptr;
-    HBITMAP hBmp = CreateDIBSection(hdcAtlas, &bmi, DIB_RGB_COLORS, &dibBits, nullptr, 0);
-    if (!hBmp || !dibBits)
+    ComPtr<IDWriteRenderingParams> renderingParams;
+    hr = factory->CreateRenderingParams(&renderingParams);
+    if (FAILED(hr))
     {
-        DeleteDC(hdcAtlas);
-        SelectObject(hdc, oldFont);
-        DeleteObject(hFont);
-        DeleteDC(hdc);
+        g_Log->Error("Glyph atlas: CreateRenderingParams failed %08X", hr);
         return false;
     }
-    HGDIOBJ oldBmp = SelectObject(hdcAtlas, hBmp);
-    std::memset(dibBits, 0, static_cast<size_t>(atlasW) * atlasH * 4);
 
-    // Use the same HFONT for drawing.
-    HGDIOBJ oldFontAtlas = SelectObject(hdcAtlas, hFont);
-    // TRANSPARENT keeps grayscale/ClearType fringes on the black background; OPAQUE can
-    // flatten or tint edge pixels in ways that confuse our alpha extraction.
-    SetBkMode(hdcAtlas, TRANSPARENT);
-    SetTextColor(hdcAtlas, RGB(255, 255, 255));
-    PatBlt(hdcAtlas, 0, 0, static_cast<int>(atlasW), static_cast<int>(atlasH), BLACKNESS);
+    HDC hdcScreen = GetDC(nullptr);
+    ComPtr<IDWriteBitmapRenderTarget> bitmapRt;
+    hr = gdiInterop->CreateBitmapRenderTarget(hdcScreen, static_cast<UINT32>(atlasW),
+                                              static_cast<UINT32>(atlasH), &bitmapRt);
+    ReleaseDC(nullptr, hdcScreen);
+    if (FAILED(hr) || !bitmapRt)
+    {
+        g_Log->Error("Glyph atlas: CreateBitmapRenderTarget failed %08X", hr);
+        return false;
+    }
+
+    bitmapRt->SetPixelsPerDip(1.0f);
+
+    HDC hdcBrt = bitmapRt->GetMemoryDC();
+    PatBlt(hdcBrt, 0, 0, static_cast<int>(atlasW), static_cast<int>(atlasH), BLACKNESS);
+
+    const DWRITE_MEASURING_MODE measureMode = FontDescription().AntiAliased()
+                                                   ? DWRITE_MEASURING_MODE_GDI_NATURAL
+                                                   : DWRITE_MEASURING_MODE_GDI_CLASSIC;
+    const COLORREF textColor = RGB(255, 255, 255);
 
     for (const auto& p : finalPlacements)
     {
-        const WCHAR wch = static_cast<WCHAR>(p.codepoint);
+        UINT32 cp32 = p.codepoint;
+        UINT16 glyphIndex = 0;
+        hr = fontFace->GetGlyphIndices(&cp32, 1, &glyphIndex);
+        if (FAILED(hr))
+        {
+            g_Log->Warning("Glyph atlas: GetGlyphIndices failed for U+%04X: %08X", p.codepoint, hr);
+            continue;
+        }
 
-        const int drawX = static_cast<int>(p.x) - std::min(0, p.abcA);
-        const int drawY = static_cast<int>(p.y + m_ascentPx);
-        TextOutW(hdcAtlas, drawX, drawY, &wch, 1);
+        const float advanceDip = p.advancePx;
+        DWRITE_GLYPH_OFFSET glyphOffset = {};
+        DWRITE_GLYPH_RUN run = {};
+        run.fontFace = fontFace.Get();
+        run.fontEmSize = emSize;
+        run.glyphCount = 1;
+        run.glyphIndices = &glyphIndex;
+        run.glyphAdvances = &advanceDip;
+        run.glyphOffsets = &glyphOffset;
+        run.isSideways = FALSE;
+        run.bidiLevel = 0;
+
+        const float baselineX = static_cast<float>(p.x) - static_cast<float>(std::min(0, p.abcA));
+        const float baselineY = static_cast<float>(p.y) + static_cast<float>(m_ascentPx);
+
+        hr = bitmapRt->DrawGlyphRun(baselineX, baselineY, measureMode, &run, renderingParams.Get(),
+                                    textColor, nullptr);
+        if (FAILED(hr))
+        {
+            g_Log->Warning("Glyph atlas: DrawGlyphRun failed for U+%04X: %08X", p.codepoint, hr);
+        }
 
         const float u0 = static_cast<float>(p.x) / static_cast<float>(atlasW);
         const float v0 = static_cast<float>(p.y) / static_cast<float>(atlasH);
@@ -390,7 +491,6 @@ bool CFontDX11DirectWriteAtlas::BuildAtlasGdiOnce()
         m_spaceGlyph = m_glyphByCodepoint.begin()->second;
     if (m_spaceGlyph.widthPx == 0 || m_spaceGlyph.heightPx == 0)
     {
-        // Absolute fallback.
         m_spaceGlyph.widthPx = 1;
         m_spaceGlyph.heightPx = m_lineHeightPx;
         m_spaceGlyph.advancePx = 1.0f;
@@ -398,32 +498,57 @@ bool CFontDX11DirectWriteAtlas::BuildAtlasGdiOnce()
         m_spaceGlyph.uvRect = Base::Math::CRect(0, 0, 1.0f / atlasW, 1.0f / atlasH);
     }
 
-    // Convert BGRA DIB pixels into RGBA8 atlas (white RGB + alpha coverage).
+    HBITMAP hBmp = static_cast<HBITMAP>(GetCurrentObject(hdcBrt, OBJ_BITMAP));
+    if (!hBmp)
+    {
+        g_Log->Error("Glyph atlas: no bitmap on DirectWrite render target DC");
+        return false;
+    }
+
+    BITMAP bm = {};
+    if (!GetObjectW(hBmp, sizeof(bm), &bm))
+    {
+        g_Log->Error("Glyph atlas: GetObject bitmap failed");
+        return false;
+    }
+
     m_atlasW = atlasW;
     m_atlasH = atlasH;
     m_atlasRGBA.resize(static_cast<size_t>(atlasW) * atlasH * 4);
 
-    const uint8_t* src = static_cast<const uint8_t*>(dibBits);
-    uint64_t nonZeroAlphaPixels = 0;
-    for (uint32_t y = 0; y < atlasH; ++y)
+    BITMAPINFO bmi = {};
+    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bmi.bmiHeader.biWidth = static_cast<LONG>(atlasW);
+    bmi.bmiHeader.biHeight = -static_cast<LONG>(atlasH);
+    bmi.bmiHeader.biPlanes = 1;
+    bmi.bmiHeader.biBitCount = 32;
+    bmi.bmiHeader.biCompression = BI_RGB;
+
+    std::vector<uint8_t> bgra(static_cast<size_t>(atlasW) * atlasH * 4);
+    if (!GetDIBits(hdcBrt, hBmp, 0, atlasH, bgra.data(), &bmi, DIB_RGB_COLORS))
     {
-        for (uint32_t x = 0; x < atlasW; ++x)
+        g_Log->Error("Glyph atlas: GetDIBits failed");
+        return false;
+    }
+
+    uint64_t nonZeroAlphaPixels = 0;
+    for (uint32_t row = 0; row < atlasH; ++row)
+    {
+        for (uint32_t col = 0; col < atlasW; ++col)
         {
-            const size_t i = (static_cast<size_t>(y) * atlasW + x);
-            const uint8_t b = src[i * 4 + 0];
-            const uint8_t g = src[i * 4 + 1];
-            const uint8_t r = src[i * 4 + 2];
-            // Luminance: ClearType often lights only one channel; max(r,g,b) drops most strokes.
-            const unsigned lum =
-                (static_cast<unsigned>(r) * 76u + static_cast<unsigned>(g) * 150u +
-                 static_cast<unsigned>(b) * 29u) >>
-                8u;
+            const size_t i = static_cast<size_t>(row) * atlasW + col;
+            const uint8_t b = bgra[i * 4 + 0];
+            const uint8_t gch = bgra[i * 4 + 1];
+            const uint8_t r = bgra[i * 4 + 2];
+            const unsigned lum = (static_cast<unsigned>(r) * 76u +
+                                  static_cast<unsigned>(gch) * 150u +
+                                  static_cast<unsigned>(b) * 29u) >>
+                                 8u;
             const uint8_t intensity = static_cast<uint8_t>(std::min(255u, lum));
 
-            // RGB is white, alpha comes from glyph coverage.
-            m_atlasRGBA[i * 4 + 0] = 255; // R
-            m_atlasRGBA[i * 4 + 1] = 255; // G
-            m_atlasRGBA[i * 4 + 2] = 255; // B
+            m_atlasRGBA[i * 4 + 0] = 255;
+            m_atlasRGBA[i * 4 + 1] = 255;
+            m_atlasRGBA[i * 4 + 2] = 255;
             m_atlasRGBA[i * 4 + 3] = intensity;
             if (intensity != 0)
                 ++nonZeroAlphaPixels;
@@ -431,19 +556,7 @@ bool CFontDX11DirectWriteAtlas::BuildAtlasGdiOnce()
     }
 
     if (nonZeroAlphaPixels == 0)
-    {
         g_Log->Warning("Glyph atlas rasterized with zero coverage pixels");
-    }
-
-    // Cleanup.
-    SelectObject(hdcAtlas, oldFontAtlas);
-    SelectObject(hdcAtlas, oldBmp);
-    DeleteObject(hBmp);
-    DeleteDC(hdcAtlas);
-
-    SelectObject(hdc, oldFont);
-    DeleteObject(hFont);
-    DeleteDC(hdc);
 
     return true;
 }
@@ -479,3 +592,4 @@ Base::Math::CVector2 CTextDX11Atlas::GetExtent()
 
 } // namespace DisplayOutput
 
+#pragma pop_macro("GetGlyphIndices")

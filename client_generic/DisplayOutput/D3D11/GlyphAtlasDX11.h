@@ -12,6 +12,7 @@
 #include "../Renderer/Text.h"
 #include "TextureFlatDX11.h"
 #include "../../Common/Math/Rect.h"
+#include "../../Common/Utf8.h"
 
 #ifdef WIN32
 #include <windows.h>
@@ -20,63 +21,10 @@
 namespace DisplayOutput
 {
 
-// Minimal UTF-8 scanner for HUD strings (BMP code points; invalid bytes -> U+003F).
-inline bool Utf8DecodeNext(const std::string& s, size_t& i, uint32_t& outCp)
-{
-    if (i >= s.size())
-        return false;
-    const unsigned char b0 = static_cast<unsigned char>(s[i]);
-    if (b0 < 0x80u)
-    {
-        outCp = b0;
-        ++i;
-        return true;
-    }
-    if ((b0 & 0xE0u) == 0xC0u && i + 1 < s.size())
-    {
-        const unsigned b1 = static_cast<unsigned char>(s[i + 1]);
-        outCp = (uint32_t(b0 & 0x1Fu) << 6) | uint32_t(b1 & 0x3Fu);
-        if (outCp >= 0x80u)
-        {
-            i += 2;
-            return true;
-        }
-    }
-    else if ((b0 & 0xF0u) == 0xE0u && i + 2 < s.size())
-    {
-        const unsigned b1 = static_cast<unsigned char>(s[i + 1]);
-        const unsigned b2 = static_cast<unsigned char>(s[i + 2]);
-        outCp = (uint32_t(b0 & 0x0Fu) << 12) | (uint32_t(b1 & 0x3Fu) << 6) | uint32_t(b2 & 0x3Fu);
-        if (outCp >= 0x800u &&
-            !(outCp >= 0xD800u && outCp <= 0xDFFFu)) // not UTF-16 surrogate
-        {
-            i += 3;
-            return true;
-        }
-    }
-    else if ((b0 & 0xF8u) == 0xF0u && i + 3 < s.size())
-    {
-        const unsigned b1 = static_cast<unsigned char>(s[i + 1]);
-        const unsigned b2 = static_cast<unsigned char>(s[i + 2]);
-        const unsigned b3 = static_cast<unsigned char>(s[i + 3]);
-        outCp = (uint32_t(b0 & 0x07u) << 18) | (uint32_t(b1 & 0x3Fu) << 12) |
-                (uint32_t(b2 & 0x3Fu) << 6) | uint32_t(b3 & 0x3Fu);
-        if (outCp >= 0x10000u && outCp <= 0x10FFFFu)
-        {
-            i += 4;
-            return true;
-        }
-    }
-    outCp = '?';
-    ++i;
-    return true;
-}
-
 // CPU-built RGBA glyph atlas + GPU texture (DX11) used to render HUD text
-// via quads inside the normal DX11 render pass (no per-frame GDI draws).
-//
-// Note: class name follows the plan; internally the glyph rasterization is
-// done once during atlas creation and then reused for all frames.
+// via quads in the normal DX11 render pass.
+// Glyphs are rasterized once at atlas build time using DirectWrite
+// (IDWriteBitmapRenderTarget / DrawGlyphRun), then reused every frame.
 class CFontDX11DirectWriteAtlas final : public CBaseFont
 {
 public:
@@ -101,7 +49,7 @@ public:
         uint32_t widthPx = 0;
         uint32_t heightPx = 0;
         float advancePx = 0.0f; // how far to move pen in pixels
-        float penOffsetXPx = 0.0f; // quad left = pen + offset (min(0, abcA) from GDI)
+        float penOffsetXPx = 0.0f; // quad left = pen + offset (negative left bearing)
         Base::Math::CRect uvRect; // atlas uv: (u0,v0,u1,v1) in normalized [0..1]
     };
 
@@ -112,7 +60,7 @@ public:
     uint32_t MeasureTextHeightPx(const std::string& text) const;
 
 private:
-    bool BuildAtlasGdiOnce(); // rasterizes glyphs once into atlas pixels
+    bool BuildAtlasDirectWriteOnce(); // rasterizes glyphs once via DirectWrite + DIB
     void ConvertAtlasToRGBA(std::vector<uint8_t>& outRGBA) const;
 
 private:

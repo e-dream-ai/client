@@ -3,7 +3,9 @@
 #include "Log.h"
 #include "GlyphAtlasDX11.h"
 #include <cassert>
+#include <cmath>
 #include <cstring>
+#include <string>
 
 #ifdef WIN32
 #include "FirstTimeSetupWin32.h"
@@ -205,7 +207,30 @@ public:
             return result;
         HGDIOBJ oldFont = SelectObject(hdc, font);
         SIZE size = {};
-        if (GetTextExtentPoint32A(hdc, m_text.c_str(), static_cast<int>(m_text.size()), &size))
+        std::wstring wide;
+        bool gotExtent = false;
+        int nWide = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, m_text.c_str(),
+                                        static_cast<int>(m_text.size()), nullptr, 0);
+        if (nWide > 0)
+        {
+            wide.resize(static_cast<size_t>(nWide));
+            if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, m_text.c_str(),
+                                    static_cast<int>(m_text.size()), wide.data(), nWide) > 0)
+                gotExtent = GetTextExtentPoint32W(hdc, wide.c_str(), nWide, &size);
+        }
+        if (!gotExtent)
+        {
+            nWide = MultiByteToWideChar(CP_ACP, 0, m_text.c_str(),
+                                        static_cast<int>(m_text.size()), nullptr, 0);
+            if (nWide > 0)
+            {
+                wide.resize(static_cast<size_t>(nWide));
+                if (MultiByteToWideChar(CP_ACP, 0, m_text.c_str(),
+                                        static_cast<int>(m_text.size()), wide.data(), nWide) > 0)
+                    gotExtent = GetTextExtentPoint32W(hdc, wide.c_str(), nWide, &size);
+            }
+        }
+        if (gotExtent)
         {
             const uint32_t safeW = (m_displayWidth == 0u) ? 1u : m_displayWidth;
             const uint32_t safeH = (m_displayHeight == 0u) ? 1u : m_displayHeight;
@@ -261,6 +286,9 @@ bool CRendererDX11::Initialize(spCDisplayOutput _spDisplay) {
         return false;
 
     if (!CreateDepthStencilStates())
+        return false;
+
+    if (!CreateRasterizerStates())
         return false;
 
     if (!CreateDefaultSampler(m_device.Get(), &m_defaultSampler))
@@ -391,6 +419,36 @@ bool CRendererDX11::CreateDepthStencilStates()
     return true;
 }
 
+bool CRendererDX11::CreateRasterizerStates()
+{
+    D3D11_RASTERIZER_DESC rd = {};
+    rd.FillMode = D3D11_FILL_SOLID;
+    rd.CullMode = D3D11_CULL_NONE;
+    rd.FrontCounterClockwise = FALSE;
+    rd.DepthBias = 0;
+    rd.DepthBiasClamp = 0.0f;
+    rd.SlopeScaledDepthBias = 0.0f;
+    rd.DepthClipEnable = TRUE;
+    rd.ScissorEnable = FALSE;
+    rd.MultisampleEnable = FALSE;
+    rd.AntialiasedLineEnable = FALSE;
+
+    HRESULT hr = m_device->CreateRasterizerState(&rd, &m_rasterizerDefault);
+    if (FAILED(hr))
+    {
+        g_Log->Error("Failed to create default rasterizer state: %08X", hr);
+        return false;
+    }
+    rd.ScissorEnable = TRUE;
+    hr = m_device->CreateRasterizerState(&rd, &m_rasterizerScissor);
+    if (FAILED(hr))
+    {
+        g_Log->Error("Failed to create scissor rasterizer state: %08X", hr);
+        return false;
+    }
+    return true;
+}
+
 bool CRendererDX11::CreateBlendStates() {
     D3D11_BLEND_DESC blendDesc = {};
     blendDesc.AlphaToCoverageEnable = false;
@@ -473,6 +531,10 @@ bool CRendererDX11::EndFrame(bool drawn) {
         auto display = std::dynamic_pointer_cast<CDisplayDX11>(m_spDisplay);
         if (display && !m_pendingTextDraws.empty())
         {
+            Microsoft::WRL::ComPtr<ID3D11RasterizerState> prevRasterizer;
+            if (m_context && m_rasterizerScissor)
+                m_context->RSGetState(prevRasterizer.GetAddressOf());
+
             // Render all queued HUD texts into the current backbuffer.
             for (const auto& draw : m_pendingTextDraws)
             {
@@ -497,6 +559,26 @@ bool CRendererDX11::EndFrame(bool drawn) {
                 if (dispW == 0u || dispH == 0u)
                     continue;
 
+                if (m_context && m_rasterizerScissor)
+                {
+                    const float fdw = static_cast<float>(dispW);
+                    const float fdh = static_cast<float>(dispH);
+                    D3D11_RECT sc = {};
+                    sc.left = static_cast<LONG>(std::floor(r.m_X0 * fdw));
+                    sc.top = static_cast<LONG>(std::floor(r.m_Y0 * fdh));
+                    sc.right = static_cast<LONG>(std::ceil(r.m_X1 * fdw));
+                    sc.bottom = static_cast<LONG>(std::ceil(r.m_Y1 * fdh));
+                    const LONG dw = static_cast<LONG>(dispW);
+                    const LONG dh = static_cast<LONG>(dispH);
+                    sc.left = std::max(0L, std::min(sc.left, dw));
+                    sc.top = std::max(0L, std::min(sc.top, dh));
+                    sc.right = std::max(sc.left, std::min(sc.right, dw));
+                    sc.bottom = std::max(sc.top, std::min(sc.bottom, dh));
+
+                    m_context->RSSetState(m_rasterizerScissor.Get());
+                    m_context->RSSetScissorRects(1, &sc);
+                }
+
                 float penXpx = r.m_X0 * static_cast<float>(dispW);
                 float penYpx = r.m_Y0 * static_cast<float>(dispH);
                 const float lineHeightPx = static_cast<float>(font->LineHeightPx());
@@ -505,6 +587,11 @@ bool CRendererDX11::EndFrame(bool drawn) {
                 size_t ti = 0;
                 while (ti < body.size())
                 {
+                    if (body[ti] == '\r')
+                    {
+                        ++ti;
+                        continue;
+                    }
                     if (body[ti] == '\n')
                     {
                         penXpx = r.m_X0 * static_cast<float>(dispW);
@@ -533,6 +620,9 @@ bool CRendererDX11::EndFrame(bool drawn) {
 
                     penXpx += g.advancePx;
                 }
+
+                if (m_context)
+                    m_context->RSSetState(prevRasterizer.Get());
             }
         }
 
