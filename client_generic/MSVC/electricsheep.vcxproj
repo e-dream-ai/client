@@ -747,6 +747,7 @@ copy /y "..\runtime\pthreadGC2.dll" "$(OutDir)"
     <ClCompile Include="..\ContentDownloader\PlaylistManager.cpp" />
     <ClCompile Include="..\ContentDownloader\ServerConfig.cpp" />
     <ClCompile Include="..\DisplayOutput\D3D11\DisplayDX11.cpp" />
+    <ClCompile Include="..\DisplayOutput\D3D11\GlyphAtlasDX11.cpp" />
     <ClCompile Include="..\DisplayOutput\D3D11\RendererDX11.cpp" />
     <ClCompile Include="..\DisplayOutput\D3D11\ShaderDX11.cpp" />
     <ClCompile Include="..\DisplayOutput\D3D11\TextureFlatDX11.cpp" />
@@ -785,6 +786,7 @@ copy /y "..\runtime\pthreadGC2.dll" "$(OutDir)"
     <ClInclude Include="..\ContentDownloader\PlaylistManager.h" />
     <ClInclude Include="..\ContentDownloader\ServerConfig.h" />
     <ClInclude Include="..\DisplayOutput\D3D11\DisplayDX11.h" />
+    <ClInclude Include="..\DisplayOutput\D3D11\GlyphAtlasDX11.h" />
     <ClInclude Include="..\DisplayOutput\D3D11\RendererDX11.h" />
     <ClInclude Include="..\DisplayOutput\D3D11\ShaderDX11.h" />
     <ClInclude Include="..\DisplayOutput\D3D11\TextureFlatDX11.h" />

@@ -1,6 +1,7 @@
 #include "RendererDX11.h"
 #include "DisplayDX11.h"
 #include "Log.h"
+#include "GlyphAtlasDX11.h"
 #include <cassert>
 #include <cstring>
 
@@ -55,12 +56,12 @@ struct PSInput {
 
 float4 main(PSInput input) : SV_TARGET {
     float2 adjustedUV = (input.uv - rect.xy) / rect.zw;
-    if (adjustedUV.x <= 0.0f || adjustedUV.x >= 1.0f ||
-        adjustedUV.y <= 0.0f || adjustedUV.y >= 1.0f) {
+    if (adjustedUV.x < 0.0f || adjustedUV.x > 1.0f ||
+        adjustedUV.y < 0.0f || adjustedUV.y > 1.0f) {
         discard;
     }
 
-    adjustedUV = (adjustedUV + uvRect.xy) * uvRect.zw;
+    adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;
     float4 sampled = tx0.Sample(smp0, adjustedUV);
     sampled.rgb += brightness;
     return float4(sampled.rgb * color.rgb, sampled.a * color.a);
@@ -86,7 +87,7 @@ struct PSInput {
 
 float4 main(PSInput input) : SV_TARGET {
     float2 adjustedUV = (input.uv - rect.xy) / rect.zw;
-    adjustedUV = (adjustedUV + uvRect.xy) * uvRect.zw;
+    adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;
     float4 sampled = tx0.Sample(smp0, adjustedUV);
     sampled.rgb += brightness;
     return float4(sampled.rgb * color.rgb, color.a);
@@ -100,9 +101,28 @@ bool CreateDefaultSampler(ID3D11Device* device, ID3D11SamplerState** outSampler)
 
     D3D11_SAMPLER_DESC samplerDesc = {};
     samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-    samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-    samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-    samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+    // Clamp avoids sampling wrapped neighbors in atlases / frame edges when filtering.
+    samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+    samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+    samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+    samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+    samplerDesc.MinLOD = 0.0f;
+    samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+    HRESULT hr = device->CreateSamplerState(&samplerDesc, outSampler);
+    return SUCCEEDED(hr);
+}
+
+bool CreateGlyphPointSampler(ID3D11Device* device, ID3D11SamplerState** outSampler)
+{
+    if (!device || !outSampler)
+        return false;
+
+    D3D11_SAMPLER_DESC samplerDesc = {};
+    samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+    samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+    samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+    samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
     samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
     samplerDesc.MinLOD = 0.0f;
     samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
@@ -240,9 +260,17 @@ bool CRendererDX11::Initialize(spCDisplayOutput _spDisplay) {
     if (!CreateBlendStates())
         return false;
 
+    if (!CreateDepthStencilStates())
+        return false;
+
     if (!CreateDefaultSampler(m_device.Get(), &m_defaultSampler))
     {
         g_Log->Error("Failed to create default DX11 sampler");
+        return false;
+    }
+    if (!CreateGlyphPointSampler(m_device.Get(), &m_glyphPointSampler))
+    {
+        g_Log->Error("Failed to create glyph point sampler");
         return false;
     }
 
@@ -346,6 +374,23 @@ bool CRendererDX11::RecreateRenderTargetsAfterResize()
     return CreateRenderTargets();
 }
 
+bool CRendererDX11::CreateDepthStencilStates()
+{
+    D3D11_DEPTH_STENCIL_DESC ds = {};
+    ds.DepthEnable = FALSE;
+    ds.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+    ds.DepthFunc = D3D11_COMPARISON_LESS;
+    ds.StencilEnable = FALSE;
+
+    HRESULT hr = m_device->CreateDepthStencilState(&ds, &m_depthStencilNoDepthTest);
+    if (FAILED(hr))
+    {
+        g_Log->Error("Failed to create depth-stencil state (2D overlay): %08X", hr);
+        return false;
+    }
+    return true;
+}
+
 bool CRendererDX11::CreateBlendStates() {
     D3D11_BLEND_DESC blendDesc = {};
     blendDesc.AlphaToCoverageEnable = false;
@@ -385,6 +430,9 @@ bool CRendererDX11::BeginFrame() {
 
         float blendFactor[4] = {0.f, 0.f, 0.f, 0.f};
         m_context->OMSetBlendState(m_blendState.Get(), blendFactor, 0xFFFFFFFF);
+        // All quads share z=0; default LESS depth test rejects every overlay after the first
+        // fullscreen pass. Disable depth testing for 2D compositing (video + HUD + deferred text).
+        m_context->OMSetDepthStencilState(m_depthStencilNoDepthTest.Get(), 0);
     }
 
     D3D11_VIEWPORT viewport = {};
@@ -422,42 +470,73 @@ bool CRendererDX11::EndFrame(bool drawn) {
         return false;
 
     if (effectiveDrawn && m_context && m_spDisplay) {
-        m_spDisplay->SwapBuffers();
-
         auto display = std::dynamic_pointer_cast<CDisplayDX11>(m_spDisplay);
-        if (display && display->GetWindowHandle() && !m_pendingTextDraws.empty())
+        if (display && !m_pendingTextDraws.empty())
         {
-            HDC hdc = GetDC(display->GetWindowHandle());
-            if (hdc)
+            // Render all queued HUD texts into the current backbuffer.
+            for (const auto& draw : m_pendingTextDraws)
             {
-                SetBkMode(hdc, TRANSPARENT);
-                for (const auto& draw : m_pendingTextDraws)
+                auto text = std::dynamic_pointer_cast<CTextDX11Atlas>(draw.text);
+                if (!text || !text->Enabled())
+                    continue;
+
+                auto font = text->Font();
+                if (!font)
+                    continue;
+
+                auto atlasTex = font->AtlasTexture();
+                if (!atlasTex)
+                    continue;
+
+                // Bind atlas texture for the quad shader.
+                SetTexture(atlasTex, 0);
+
+                const Base::Math::CRect r = text->GetRect();
+                const uint32_t dispW = display->Width();
+                const uint32_t dispH = display->Height();
+                if (dispW == 0u || dispH == 0u)
+                    continue;
+
+                float penXpx = r.m_X0 * static_cast<float>(dispW);
+                float penYpx = r.m_Y0 * static_cast<float>(dispH);
+                const float lineHeightPx = static_cast<float>(font->LineHeightPx());
+
+                const std::string& body = text->Text();
+                size_t ti = 0;
+                while (ti < body.size())
                 {
-                    auto text = std::dynamic_pointer_cast<CTextDX11Gdi>(draw.text);
-                    if (!text || !text->Enabled())
+                    if (body[ti] == '\n')
+                    {
+                        penXpx = r.m_X0 * static_cast<float>(dispW);
+                        penYpx += lineHeightPx;
+                        ++ti;
                         continue;
-                    auto font = text->Font();
-                    HFONT hFont = font ? font->Handle() : nullptr;
-                    if (!hFont)
+                    }
+
+                    uint32_t cp = 0;
+                    Utf8DecodeNext(body, ti, cp);
+                    const auto& g = font->GetGlyph(cp);
+                    if (g.widthPx == 0u || g.heightPx == 0u)
+                    {
+                        penXpx += g.advancePx;
                         continue;
+                    }
 
-                    HGDIOBJ oldFont = SelectObject(hdc, hFont);
-                    COLORREF c = RGB(
-                        static_cast<int>(draw.color.m_X * 255.0f),
-                        static_cast<int>(draw.color.m_Y * 255.0f),
-                        static_cast<int>(draw.color.m_Z * 255.0f));
-                    SetTextColor(hdc, c);
+                    const float quadLeftPx = penXpx + g.penOffsetXPx;
+                    Base::Math::CRect dest(
+                        quadLeftPx / static_cast<float>(dispW),
+                        penYpx / static_cast<float>(dispH),
+                        (quadLeftPx + static_cast<float>(g.widthPx)) / static_cast<float>(dispW),
+                        (penYpx + static_cast<float>(g.heightPx)) / static_cast<float>(dispH));
 
-                    const Base::Math::CRect r = text->GetRect();
-                    const int left = static_cast<int>(r.m_X0 * static_cast<float>(display->Width()));
-                    const int top = static_cast<int>(r.m_Y0 * static_cast<float>(display->Height()));
-                    RECT rc = {left, top, static_cast<int>(display->Width()), static_cast<int>(display->Height())};
-                    DrawTextA(hdc, text->Text().c_str(), -1, &rc, DT_LEFT | DT_TOP | DT_NOCLIP);
-                    SelectObject(hdc, oldFont);
+                    DrawTexturedQuad(dest, draw.color, g.uvRect, m_glyphPointSampler.Get());
+
+                    penXpx += g.advancePx;
                 }
-                ReleaseDC(display->GetWindowHandle(), hdc);
             }
         }
+
+        m_spDisplay->SwapBuffers();
         return true;
     }
     return false;
@@ -508,7 +587,7 @@ spCBaseFont CRendererDX11::GetFont(CFontDescription& _desc) {
     if (it != m_fontPool.end())
         return it->second;
 
-    auto font = std::make_shared<CFontDX11Gdi>();
+    auto font = std::make_shared<CFontDX11DirectWriteAtlas>(m_device, m_context);
     font->FontDescription(_desc);
     if (!font->EnsureCreated())
     {
@@ -525,14 +604,14 @@ spCBaseFont CRendererDX11::GetFont(CFontDescription& _desc) {
 }
 
 spCBaseText CRendererDX11::NewText(spCBaseFont _font, const std::string& _text) {
-    auto font = std::dynamic_pointer_cast<CFontDX11Gdi>(_font);
+    auto font = std::dynamic_pointer_cast<CFontDX11DirectWriteAtlas>(_font);
     if (!font)
         return nullptr;
     auto display = std::dynamic_pointer_cast<CDisplayDX11>(m_spDisplay);
     if (!display)
         return nullptr;
-    return std::make_shared<CTextDX11Gdi>(
-        font, _text, display->GetWindowHandle(), display->Width(), display->Height());
+    return std::make_shared<CTextDX11Atlas>(
+        font, _text, display->Width(), display->Height());
 }
 
 spCShader CRendererDX11::NewShader(const char* _pVertexShader, const char* _pFragmentShader,
@@ -588,6 +667,11 @@ spCShader CRendererDX11::NewShader(const char* _pVertexShader, const char* _pFra
 void CRendererDX11::DrawText(spCBaseText _text, const Base::Math::CVector4& _color) {
     if (!_text)
         return;
+    if (m_spDisplay)
+    {
+        if (auto atlasText = std::dynamic_pointer_cast<CTextDX11Atlas>(_text))
+            atlasText->SetDisplaySize(m_spDisplay->Width(), m_spDisplay->Height());
+    }
     m_pendingTextDraws.push_back(PendingTextDraw{_text, _color});
 }
 
@@ -635,9 +719,10 @@ bool CRendererDX11::CreateQuadBuffers()
     return true;
 }
 
-void CRendererDX11::DrawQuad(const Base::Math::CRect& _rect,
-                             const Base::Math::CVector4& _color,
-                             const Base::Math::CRect& _uvRect)
+void CRendererDX11::DrawTexturedQuad(const Base::Math::CRect& _rect,
+                                     const Base::Math::CVector4& _color,
+                                     const Base::Math::CRect& _uvRect,
+                                     ID3D11SamplerState* _pixelSampler)
 {
     static bool s_loggedMissingVertexShader = false;
 
@@ -646,7 +731,6 @@ void CRendererDX11::DrawQuad(const Base::Math::CRect& _rect,
         g_Log->Error("No render target view");
         return;
     }
-
 
     if (!m_quadVertexBuffer || !m_quadIndexBuffer)
     {
@@ -700,20 +784,14 @@ void CRendererDX11::DrawQuad(const Base::Math::CRect& _rect,
     m_context->VSSetConstantBuffers(0, 1, &cb);
     m_context->PSSetConstantBuffers(0, 1, &cb);
 
-    // Match Metal behavior: use default texture shader when no shader was selected.
-    if (!m_spSelectedShader && m_drawTextureShader) {
+    if (!m_spSelectedShader && m_drawTextureShader)
         SetShader(m_drawTextureShader);
-    }
 
-    // Sync selected render state (textures/shader) before issuing draw call.
-    // This avoids stale active state in CRenderer::Apply.
     Apply();
 
-    // Ensure PS sampler slot 0 is always explicitly bound.
-    ID3D11SamplerState* fallbackSampler = m_defaultSampler.Get();
-    m_context->PSSetSamplers(0, 1, &fallbackSampler);
+    ID3D11SamplerState* samp = _pixelSampler ? _pixelSampler : m_defaultSampler.Get();
+    m_context->PSSetSamplers(0, 1, &samp);
 
-    // D3D11 always needs a vertex shader for DrawIndexed.
     ComPtr<ID3D11VertexShader> boundVertexShader;
     m_context->VSGetShader(&boundVertexShader, nullptr, nullptr);
     if (!boundVertexShader)
@@ -726,7 +804,6 @@ void CRendererDX11::DrawQuad(const Base::Math::CRect& _rect,
         return;
     }
 
-    // Set vertex/index buffers and draw
     UINT stride = sizeof(Vertex);
     UINT offset = 0;
     m_context->IASetVertexBuffers(0, 1, m_quadVertexBuffer.GetAddressOf(),
@@ -735,8 +812,14 @@ void CRendererDX11::DrawQuad(const Base::Math::CRect& _rect,
                                 0);
     m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    // Draw the quad
     m_context->DrawIndexed(6, 0, 0);
+}
+
+void CRendererDX11::DrawQuad(const Base::Math::CRect& _rect,
+                             const Base::Math::CVector4& _color,
+                             const Base::Math::CRect& _uvRect)
+{
+    DrawTexturedQuad(_rect, _color, _uvRect, m_defaultSampler.Get());
 }
 
 void CRendererDX11::DrawQuad(const Base::Math::CRect& _rect,

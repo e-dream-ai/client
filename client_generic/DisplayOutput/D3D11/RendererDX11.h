@@ -20,7 +20,12 @@ protected:
     ComPtr<ID3D11RenderTargetView> m_renderTargetView;
     ComPtr<ID3D11DepthStencilView> m_depthStencilView;
     ComPtr<ID3D11BlendState> m_blendState;
+    ComPtr<ID3D11DepthStencilState> m_depthStencilNoDepthTest;
     ComPtr<ID3D11SamplerState> m_defaultSampler;
+    ComPtr<ID3D11SamplerState> m_glyphPointSampler;
+
+    void DrawTexturedQuad(const Base::Math::CRect& _rect, const Base::Math::CVector4& _color,
+                          const Base::Math::CRect& _uvRect, ID3D11SamplerState* _pixelSampler);
 
     std::map<std::string, spCBaseFont> m_fontPool;
 
@@ -89,6 +94,7 @@ private:
 
     bool CreateRenderTargets();
     bool CreateBlendStates();
+    bool CreateDepthStencilStates();
 };
 
 MakeSmartPointers(CRendererDX11);

@@ -401,6 +401,7 @@ class CStatsConsole : public CConsole
             DisplayOutput::spCBaseText& text = i->second.text;
             if (text && e)
             {
+                text->SyncLayoutDisplay(spDisplay->Width(), spDisplay->Height());
                 text->SetEnabled(e->Visible());
 
                 float lineHeight = step;

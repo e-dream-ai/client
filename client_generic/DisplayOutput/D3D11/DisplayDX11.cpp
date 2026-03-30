@@ -65,6 +65,21 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
 
     switch (msg)
     {
+#ifdef WIN32
+    case WM_PAINT:
+    {
+        // We render via Direct3D and draw DX11 "text HUD" via GDI after Present.
+        // Prevent default background erase that can cause HUD flicker.
+        PAINTSTRUCT ps;
+        BeginPaint(hWnd, &ps);
+        EndPaint(hWnd, &ps);
+        return 0;
+    }
+
+    case WM_ERASEBKGND:
+        return 1;
+#endif
+
     case WM_HELP:
         // Fallback path: some Windows setups surface F1 as help message.
         AppendKeyEvent(CKeyEvent::KEY_F1, true);
