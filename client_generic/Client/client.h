@@ -90,6 +90,12 @@ inline float TapsToBrightness(double taps) {
     return pow(2.0, (taps / 40)) - 1 ;
 }
 
+// U+25CF BLACK CIRCLE ● as UTF-8 bytes. Do not use "\u25CF" in narrow literals: MSVC may emit
+// ASCII '?' when the execution character set cannot encode that code point (HUD then shows "?").
+inline const char* HudIndicatorBulletUtf8() noexcept {
+    return "\xE2\x97\x8F";
+}
+
 /*
         CElectricSheep().
         Prime mover for the client, used from main.cpp...
@@ -1708,7 +1714,8 @@ class CElectricSheep
                         // Disk indicator - show when timer is active
                         if (showDisk) {
                             ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-dsk"))
-                                ->SetSample("\u25CF Disk" + std::string(spacesForDiskIndicator, ' '));
+                                ->SetSample(std::string(HudIndicatorBulletUtf8()) + " Disk" +
+                                    std::string(spacesForDiskIndicator, ' '));
                             spNetIndicator->SetColor("net-indicator-dsk", Base::Math::CVector4(1, 0, 0, 1));  // Red
                         } else {
                             ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-dsk"))
@@ -1718,7 +1725,8 @@ class CElectricSheep
                         // Busy indicator - show when timer is active
                         if (showBusy) {
                             ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-busy"))
-                                ->SetSample("\u25CF Busy" + std::string(spacesForBusyIndicator, ' '));
+                                ->SetSample(std::string(HudIndicatorBulletUtf8()) + " Busy" +
+                                    std::string(spacesForBusyIndicator, ' '));
                             spNetIndicator->SetColor("net-indicator-busy", Base::Math::CVector4(1, 0, 0, 1));  // Red
                         } else {
                             ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-busy"))
@@ -1733,7 +1741,8 @@ class CElectricSheep
                                 (internetConnected ? Base::Math::CVector4(0, 1, 0, 1) : Base::Math::CVector4(1, 0, 0, 1));
                             
                             ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-net"))
-                                ->SetSample("\u25CF Net" + std::string(spacesForNetIndicator, ' '));
+                                ->SetSample(std::string(HudIndicatorBulletUtf8()) + " Net" +
+                                    std::string(spacesForNetIndicator, ' '));
                             spNetIndicator->SetColor("net-indicator-net", netColor);
                         }
                         else
@@ -1749,7 +1758,8 @@ class CElectricSheep
                                 Base::Math::CVector4(0, 1, 0, 1) : Base::Math::CVector4(1, 0, 0, 1);
                             
                             ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-ws"))
-                                ->SetSample("\u25CF Remote" + std::string(spacesForWSIndicator, ' '));
+                                ->SetSample(std::string(HudIndicatorBulletUtf8()) + " Remote" +
+                                    std::string(spacesForWSIndicator, ' '));
                             spNetIndicator->SetColor("net-indicator-ws", wsColor);
                         }
                         else
@@ -1761,7 +1771,7 @@ class CElectricSheep
                         // Update indicator - show only when timer is active
                         if (m_UpdateIndicatorEndTime > 0.0) {
                             ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-upd"))
-                                ->SetSample("\u25CF Update");
+                                ->SetSample(std::string(HudIndicatorBulletUtf8()) + " Update");
                             spNetIndicator->SetColor("net-indicator-upd", Base::Math::CVector4(1, 1, 0, 1));  // Yellow
                         } else {
                             ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-upd"))
@@ -1801,7 +1811,8 @@ class CElectricSheep
                     // Busy indicator - show when in offline/multiple instances mode
                     if (showBusy) {
                         ((Hud::CStringStat*)spStats->Get("credits-busy"))
-                            ->SetSample("\u25CF Busy" + std::string(spacesForBusyIndicator, ' '));
+                            ->SetSample(std::string(HudIndicatorBulletUtf8()) + " Busy" +
+                                    std::string(spacesForBusyIndicator, ' '));
                         spStats->SetColor("credits-busy", Base::Math::CVector4(1, 0, 0, 1));  // Red
                     } else {
                         ((Hud::CStringStat*)spStats->Get("credits-busy"))
@@ -1811,7 +1822,8 @@ class CElectricSheep
                     // Net and Remote indicators - only show in credits overlay when there's a problem (red)
                     if (showNet) {
                         ((Hud::CStringStat*)spStats->Get("credits-net"))
-                            ->SetSample("\u25CF Net" + std::string(spacesForNetIndicator, ' '));
+                            ->SetSample(std::string(HudIndicatorBulletUtf8()) + " Net" +
+                                    std::string(spacesForNetIndicator, ' '));
                         spStats->SetColor("credits-net", Base::Math::CVector4(1, 0, 0, 1));  // Red
                     } else {
                         ((Hud::CStringStat*)spStats->Get("credits-net"))
@@ -1820,7 +1832,8 @@ class CElectricSheep
 
                     if (showRemote) {
                         ((Hud::CStringStat*)spStats->Get("credits-ws"))
-                            ->SetSample("\u25CF Remote" + std::string(spacesForWSIndicator, ' '));
+                            ->SetSample(std::string(HudIndicatorBulletUtf8()) + " Remote" +
+                                    std::string(spacesForWSIndicator, ' '));
                         spStats->SetColor("credits-ws", Base::Math::CVector4(1, 0, 0, 1));  // Red
                     } else {
                         ((Hud::CStringStat*)spStats->Get("credits-ws"))
@@ -1830,7 +1843,8 @@ class CElectricSheep
                     if (showDisk) {
                         // Disk indicator with spacing (Update indicator may follow)
                         ((Hud::CStringStat*)spStats->Get("credits-dsk"))
-                            ->SetSample("\u25CF Disk" + std::string(spacesForDiskIndicator, ' '));
+                            ->SetSample(std::string(HudIndicatorBulletUtf8()) + " Disk" +
+                                    std::string(spacesForDiskIndicator, ' '));
                         spStats->SetColor("credits-dsk", Base::Math::CVector4(1, 0, 0, 1));  // Red when low
                     } else {
                         ((Hud::CStringStat*)spStats->Get("credits-dsk"))
@@ -1840,7 +1854,8 @@ class CElectricSheep
                     // Update available indicator - yellow, always leftmost when shown
                     if (showUpdate) {
                         ((Hud::CStringStat*)spStats->Get("credits-upd"))
-                            ->SetSample(std::string("\u25CF Update" + std::string(spacesForUpdateIndicator, ' ')));
+                            ->SetSample(std::string(HudIndicatorBulletUtf8()) + " Update" +
+                                    std::string(spacesForUpdateIndicator, ' '));
                         spStats->SetColor("credits-upd", Base::Math::CVector4(1, 1, 0, 1));  // Yellow
                     } else {
                         ((Hud::CStringStat*)spStats->Get("credits-upd"))
