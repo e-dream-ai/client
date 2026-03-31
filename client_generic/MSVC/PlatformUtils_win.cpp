@@ -11,6 +11,73 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
+#include <array>
+#include <cctype>
+#include <cstdio>
+
+namespace
+{
+std::string TrimWhitespace(std::string value)
+{
+    const auto isWs = [](unsigned char c) { return std::isspace(c) != 0; };
+    value.erase(value.begin(),
+                std::find_if(value.begin(), value.end(),
+                             [&](unsigned char c) { return !isWs(c); }));
+    value.erase(std::find_if(value.rbegin(), value.rend(),
+                             [&](unsigned char c) { return !isWs(c); })
+                    .base(),
+                value.end());
+    return value;
+}
+
+std::string GetEnvVar(const char* key)
+{
+    if (!key || !*key)
+        return {};
+
+    const DWORD required = GetEnvironmentVariableA(key, nullptr, 0);
+    if (required == 0)
+        return {};
+
+    std::string value(required, '\0');
+    const DWORD written =
+        GetEnvironmentVariableA(key, value.data(), required);
+    if (written == 0)
+        return {};
+
+    if (!value.empty() && value.back() == '\0')
+        value.pop_back();
+    return TrimWhitespace(std::move(value));
+}
+
+std::string RunCommandAndGetFirstLine(const char* command)
+{
+    if (!command || !*command)
+        return {};
+
+    FILE* pipe = _popen(command, "r");
+    if (!pipe)
+        return {};
+
+    std::array<char, 512> buffer{};
+    std::string output;
+    while (fgets(buffer.data(), static_cast<int>(buffer.size()), pipe) != nullptr)
+    {
+        output += buffer.data();
+        if (output.size() > 8192)
+            break;
+    }
+    _pclose(pipe);
+
+    if (output.empty())
+        return {};
+
+    const size_t newline = output.find_first_of("\r\n");
+    if (newline != std::string::npos)
+        output.resize(newline);
+    return TrimWhitespace(std::move(output));
+}
+} // namespace
 
 bool PlatformUtils::IsInternetReachable()
 { 
@@ -21,17 +88,57 @@ bool PlatformUtils::IsInternetReachable()
 
 std::string PlatformUtils::GetBuildDate()
 {
-	return __DATE__;
+    const std::string fromEnv = GetEnvVar("BUILD_DATE");
+    if (!fromEnv.empty())
+        return fromEnv;
+    return __DATE__;
 }
 
 std::string PlatformUtils::GetGitRevision()
 {
-	return "unknown";
+    static const std::string revision = []() -> std::string {
+        const std::string fromEnv = GetEnvVar("GIT_REVISION");
+        if (!fromEnv.empty())
+            return fromEnv;
+
+        const std::string fromBuildRev = GetEnvVar("BUILD_REVISION");
+        if (!fromBuildRev.empty())
+            return fromBuildRev;
+
+        const std::string fromGit = RunCommandAndGetFirstLine(
+            "git -C . rev-parse --short HEAD 2>nul");
+        if (!fromGit.empty())
+            return fromGit;
+
+        return "unknown";
+    }();
+    return revision;
 }
 
 std::string PlatformUtils::GetAppVersion()
 {
-	return "1.0";
+    static const std::string version = []() -> std::string {
+        const std::string fromEnv = GetEnvVar("BUILD_VERSION");
+        if (!fromEnv.empty())
+            return fromEnv;
+
+        const std::string fromAppVersion = GetEnvVar("APP_VERSION");
+        if (!fromAppVersion.empty())
+            return fromAppVersion;
+
+        const std::string fromGitTag = RunCommandAndGetFirstLine(
+            "git -C . describe --tags --abbrev=0 2>nul");
+        if (!fromGitTag.empty())
+            return fromGitTag;
+
+        const std::string fromGitDescribe = RunCommandAndGetFirstLine(
+            "git -C . describe --tags --always 2>nul");
+        if (!fromGitDescribe.empty())
+            return fromGitDescribe;
+
+        return "unknown";
+    }();
+    return version;
 }
 
 std::string PlatformUtils::GetPlatformName() { return "native W64"; }
