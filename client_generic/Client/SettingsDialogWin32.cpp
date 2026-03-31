@@ -9,6 +9,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <cmath>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -100,6 +101,44 @@ static DisplayOutput::CDisplayDX11* TryGetDx11Display()
     if (!sp)
         return nullptr;
     return dynamic_cast<DisplayOutput::CDisplayDX11*>(sp.get());
+}
+
+static void SnapWindowTo16By9IfNeeded()
+{
+    if (!g_Settings() || !g_Settings()->Get("settings.player.preserve_AR", false))
+        return;
+
+    auto* dx = TryGetDx11Display();
+    if (!dx)
+        return;
+
+    HWND hwnd = dx->GetWindowHandle();
+    if (!hwnd || !IsWindow(hwnd) || IsZoomed(hwnd))
+        return;
+
+    const LONG style = GetWindowLong(hwnd, GWL_STYLE);
+    if ((style & WS_OVERLAPPEDWINDOW) == 0)
+        return;
+
+    RECT clientRc = {};
+    RECT windowRc = {};
+    if (!GetClientRect(hwnd, &clientRc) || !GetWindowRect(hwnd, &windowRc))
+        return;
+
+    const LONG clientW = std::max<LONG>(1L, clientRc.right - clientRc.left);
+    const int targetClientH = std::max(1, static_cast<int>(std::round(static_cast<double>(clientW) * 9.0 / 16.0)));
+
+    RECT targetWindow = {0, 0, clientW, targetClientH};
+    const LONG exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+    const BOOL hasMenu = GetMenu(hwnd) != nullptr;
+    if (!AdjustWindowRectEx(&targetWindow, static_cast<DWORD>(style), hasMenu, static_cast<DWORD>(exStyle)))
+        return;
+
+    const int targetWindowW = targetWindow.right - targetWindow.left;
+    const int targetWindowH = targetWindow.bottom - targetWindow.top;
+
+    SetWindowPos(hwnd, nullptr, windowRc.left, windowRc.top, targetWindowW, targetWindowH,
+                 SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
 static void OnShowPreferencesRequested()

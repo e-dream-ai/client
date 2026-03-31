@@ -2,6 +2,9 @@
 #include "Log.h"
 #include "Player.h"
 #include "RendererDX11.h"
+#include "Settings.h"
+#include <algorithm>
+#include <cstdlib>
 
 #ifdef WIN32
 #include "FirstTimeSetupWin32.h"
@@ -16,6 +19,7 @@ namespace {
 // Avoid duplicate F1 enqueue when WM_HELP and WM_KEYUP arrive for the same press.
 static ULONGLONG g_lastF1EnqueueTickMs = 0;
 constexpr ULONGLONG kF1DuplicateWindowMs = 250;
+constexpr float kTargetClientAspect16By9 = 16.0f / 9.0f;
 
 static void AppendKeyEvent(CKeyEvent::eKeyCode code, bool dedupeF1)
 {
@@ -35,6 +39,114 @@ static void AppendKeyEvent(CKeyEvent::eKeyCode code, bool dedupeF1)
     spEvent->m_Code = code;
     if (auto spD = g_Player().Display())
         spD->AppendEvent(spEvent);
+}
+
+static bool IsPreserveAspectEnabled()
+{
+    if (!g_Settings())
+        return false;
+    return g_Settings()->Get("settings.player.preserve_AR", false);
+}
+
+static void EnforceSizingAspect16By9(HWND hWnd, WPARAM edge, RECT* rc)
+{
+    if (!rc)
+        return;
+
+    RECT currentWindow = {};
+    RECT currentClient = {};
+    if (!GetWindowRect(hWnd, &currentWindow) || !GetClientRect(hWnd, &currentClient))
+        return;
+
+    const LONG frameW = (currentWindow.right - currentWindow.left) -
+                        (currentClient.right - currentClient.left);
+    const LONG frameH = (currentWindow.bottom - currentWindow.top) -
+                        (currentClient.bottom - currentClient.top);
+    if (frameW < 0 || frameH < 0)
+        return;
+
+    LONG windowW = rc->right - rc->left;
+    LONG windowH = rc->bottom - rc->top;
+    LONG clientW = std::max<LONG>(1, windowW - frameW);
+    LONG clientH = std::max<LONG>(1, windowH - frameH);
+
+    auto widthDriven = [&](LONG w) -> LONG {
+        const LONG h = static_cast<LONG>((static_cast<double>(w) / kTargetClientAspect16By9) + 0.5);
+        return std::max<LONG>(1, h);
+    };
+    auto heightDriven = [&](LONG h) -> LONG {
+        const LONG w = static_cast<LONG>((static_cast<double>(h) * kTargetClientAspect16By9) + 0.5);
+        return std::max<LONG>(1, w);
+    };
+
+    LONG targetClientW = clientW;
+    LONG targetClientH = clientH;
+    switch (edge)
+    {
+    case WMSZ_LEFT:
+    case WMSZ_RIGHT:
+        targetClientH = widthDriven(clientW);
+        break;
+    case WMSZ_TOP:
+    case WMSZ_BOTTOM:
+        targetClientW = heightDriven(clientH);
+        break;
+    default:
+    {
+        const LONG byWidthH = widthDriven(clientW);
+        const LONG byHeightW = heightDriven(clientH);
+        const LONG errWidth = std::abs(byWidthH - clientH);
+        const LONG errHeight = std::abs(byHeightW - clientW);
+        if (errWidth <= errHeight)
+            targetClientH = byWidthH;
+        else
+            targetClientW = byHeightW;
+        break;
+    }
+    }
+
+    const LONG targetWindowW = targetClientW + frameW;
+    const LONG targetWindowH = targetClientH + frameH;
+
+    switch (edge)
+    {
+    case WMSZ_LEFT:
+        rc->left = rc->right - targetWindowW;
+        rc->bottom = rc->top + targetWindowH;
+        break;
+    case WMSZ_RIGHT:
+        rc->right = rc->left + targetWindowW;
+        rc->bottom = rc->top + targetWindowH;
+        break;
+    case WMSZ_TOP:
+        rc->top = rc->bottom - targetWindowH;
+        rc->right = rc->left + targetWindowW;
+        break;
+    case WMSZ_BOTTOM:
+        rc->bottom = rc->top + targetWindowH;
+        rc->right = rc->left + targetWindowW;
+        break;
+    case WMSZ_TOPLEFT:
+        rc->left = rc->right - targetWindowW;
+        rc->top = rc->bottom - targetWindowH;
+        break;
+    case WMSZ_TOPRIGHT:
+        rc->right = rc->left + targetWindowW;
+        rc->top = rc->bottom - targetWindowH;
+        break;
+    case WMSZ_BOTTOMLEFT:
+        rc->left = rc->right - targetWindowW;
+        rc->bottom = rc->top + targetWindowH;
+        break;
+    case WMSZ_BOTTOMRIGHT:
+        rc->right = rc->left + targetWindowW;
+        rc->bottom = rc->top + targetWindowH;
+        break;
+    default:
+        rc->right = rc->left + targetWindowW;
+        rc->bottom = rc->top + targetWindowH;
+        break;
+    }
 }
 
 } // namespace
@@ -98,6 +210,15 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
                 self->ResizeSwapChain(nw, nh);
         }
         return DefWindowProc(hWnd, msg, wParam, lParam);
+
+    case WM_SIZING:
+        if (self && IsPreserveAspectEnabled())
+        {
+            EnforceSizingAspect16By9(hWnd, wParam, reinterpret_cast<RECT*>(lParam));
+            return TRUE;
+        }
+        return DefWindowProc(hWnd, msg, wParam, lParam);
+
     case WM_KEYUP: {
         if (wParam == VK_OEM_COMMA && (GetKeyState(VK_CONTROL) & 0x8000) != 0)
         {

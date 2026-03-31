@@ -23,7 +23,10 @@ static void ApplyDialogPauseState(bool visible)
 static void CloseDialog(bool saveBeforeClose)
 {
     if (saveBeforeClose)
+    {
         SaveSettings();
+        SnapWindowTo16By9IfNeeded();
+    }
     ApplyDialogPauseState(false);
     g_visible.store(false, std::memory_order_release);
     g_pendingImGuiShutdown.store(true, std::memory_order_release);
