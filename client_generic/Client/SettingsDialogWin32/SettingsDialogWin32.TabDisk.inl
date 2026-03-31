@@ -48,17 +48,18 @@ ImGui::SetCursorPos(ImVec2(maxDiskLabelX, centeredTextY));
 ImGui::TextUnformatted(maxDiskLabel);
 
 ImGui::SetCursorPos(ImVec2(optionsX, centeredFrameY));
-if (ImGui::RadioButton("Unlimited", g_unlimitedCache))
+if (StyledRadioButton("Unlimited", g_unlimitedCache))
     g_unlimitedCache = true;
 
 ImGui::SetCursorPos(ImVec2(optionsX, ImGui::GetCursorPosY() + 4.f));
-if (ImGui::RadioButton("##limited_cache", !g_unlimitedCache))
+if (StyledRadioButton("##limited_cache", !g_unlimitedCache))
     g_unlimitedCache = false;
 ImGui::SameLine(0.f, 8.f);
 ImGui::AlignTextToFramePadding();
 ImGui::BeginDisabled(g_unlimitedCache);
 ImGui::PushItemWidth(84.f);
 ImGui::InputInt("##max_cache_gb", &g_cacheSizeGb, 0, 0);
+DrawFocusedInputDecoration(ImGui::IsItemActive() || ImGui::IsItemFocused());
 ImGui::PopItemWidth();
 ImGui::EndDisabled();
 ImGui::SameLine(0.f, 8.f);
@@ -80,6 +81,7 @@ if (g_boldUiFont)
 ImGui::SetCursorPos(ImVec2(horizontalInset, 30.f));
 ImGui::PushItemWidth(contentWidth - (horizontalInset * 2.f));
 ImGui::InputText("##content_folder", g_contentDirBuf, sizeof g_contentDirBuf);
+DrawFocusedInputDecoration(ImGui::IsItemActive() || ImGui::IsItemFocused());
 ImGui::PopItemWidth();
 
 ImGui::SetCursorPos(ImVec2(contentWidth - horizontalInset - chooseButtonWidth, 58.f));

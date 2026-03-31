@@ -1,1 +1,1 @@
-ImGui::Checkbox("Preserve Aspect Ratio", &g_preserveAR);
+StyledCheckbox("Preserve Aspect Ratio", &g_preserveAR);

@@ -54,17 +54,51 @@ static bool InputTextWithPlaceholder(const char* id, const char* placeholder, ch
 
 static void DrawFocusedInputDecoration(bool focused)
 {
-    if (!focused)
-        return;
-
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     const ImVec2 min = ImGui::GetItemRectMin();
     const ImVec2 max = ImGui::GetItemRectMax();
     const float rounding = ImGui::GetStyle().FrameRounding;
+    const ImU32 borderColor = focused ? IM_COL32(0, 122, 255, 255) : IM_COL32(224, 224, 224, 255);
 
-    // Subtle outer glow/shadow like macOS focus ring.
-    drawList->AddRect(ImVec2(min.x - 2.f, min.y - 2.f), ImVec2(max.x + 2.f, max.y + 2.f),
-                      IM_COL32(64, 132, 255, 70), rounding + 1.f, 0, 3.f);
-    // Crisp blue focus border.
-    drawList->AddRect(min, max, IM_COL32(0, 122, 255, 255), rounding, 0, 1.6f);
+    if (focused)
+    {
+        // Subtle outer glow/shadow like macOS focus ring.
+        drawList->AddRect(ImVec2(min.x - 2.f, min.y - 2.f), ImVec2(max.x + 2.f, max.y + 2.f),
+                          IM_COL32(64, 132, 255, 70), rounding + 1.f, 0, 3.f);
+    }
+
+    // Inputs use a light gray border by default and blue when focused.
+    drawList->AddRect(min, max, borderColor, rounding, 0, focused ? 1.6f : 1.2f);
+}
+
+static bool StyledCheckbox(const char* label, bool* value)
+{
+    const bool changed = ImGui::Checkbox(label, value);
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    const ImVec2 min = ImGui::GetItemRectMin();
+    const float frameSize = ImGui::GetFrameHeight();
+    const ImVec2 max(min.x + frameSize, min.y + frameSize);
+    const float rounding = ImGui::GetStyle().FrameRounding;
+    const bool focused = ImGui::IsItemActive() || ImGui::IsItemFocused();
+    const ImU32 borderColor = focused ? IM_COL32(0, 122, 255, 255) : IM_COL32(224, 224, 224, 255);
+
+    drawList->AddRect(min, max, borderColor, rounding, 0, focused ? 1.6f : 1.2f);
+    return changed;
+}
+
+static bool StyledRadioButton(const char* label, bool active)
+{
+    const bool changed = ImGui::RadioButton(label, active);
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    const ImVec2 min = ImGui::GetItemRectMin();
+    const float frameSize = ImGui::GetFrameHeight();
+    ImVec2 center(min.x + frameSize * 0.5f, min.y + frameSize * 0.5f);
+    center.x = static_cast<float>(static_cast<int>(center.x + 0.5f));
+    center.y = static_cast<float>(static_cast<int>(center.y + 0.5f));
+    const bool focused = ImGui::IsItemActive() || ImGui::IsItemFocused();
+    const ImU32 borderColor = focused ? IM_COL32(0, 122, 255, 255) : IM_COL32(224, 224, 224, 255);
+    const float radius = ((frameSize - 1.0f) * 0.5f) - 0.5f;
+
+    drawList->AddCircle(center, radius, borderColor, 24, focused ? 1.6f : 1.2f);
+    return changed;
 }
