@@ -9,6 +9,7 @@
 
 #ifdef WIN32
 #include "FirstTimeSetupWin32.h"
+#include "SettingsDialogWin32.h"
 #include <windows.h>
 #endif
 
@@ -644,10 +645,14 @@ bool CRendererDX11::EndFrame(bool drawn) {
     // Base CRenderer::EndFrame returns false when !drawn, which would skip overlay + Present.
     bool forcePresent = false;
     if (m_context && m_renderTargetView && m_spDisplay) {
-        forcePresent = FirstTimeSetupWin32_RenderIfNeeded(
-            m_device.Get(), m_context.Get(), m_renderTargetView.Get(),
-            static_cast<float>(m_spDisplay->Width()),
-            static_cast<float>(m_spDisplay->Height()));
+        const float viewportW = static_cast<float>(m_spDisplay->Width());
+        const float viewportH = static_cast<float>(m_spDisplay->Height());
+        const bool settingsVisible = SettingsDialogWin32_RenderIfNeeded(
+            m_device.Get(), m_context.Get(), m_renderTargetView.Get(), viewportW, viewportH);
+        const bool firstTimeVisible = settingsVisible ? false :
+            FirstTimeSetupWin32_RenderIfNeeded(
+                m_device.Get(), m_context.Get(), m_renderTargetView.Get(), viewportW, viewportH);
+        forcePresent = settingsVisible || firstTimeVisible;
     }
     const bool effectiveDrawn = drawn || forcePresent;
     if (!CRenderer::EndFrame(effectiveDrawn))

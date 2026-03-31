@@ -274,6 +274,12 @@ LRESULT CALLBACK CDisplayDX::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
 
     case WM_KEYUP:
     {
+        if (wParam == VK_OEM_COMMA && (GetKeyState(VK_CONTROL) & 0x8000) != 0)
+        {
+            ESShowPreferences();
+            return 0;
+        }
+
         CKeyEvent::eKeyCode code = CKeyEvent::KEY_NONE;
 
         switch (wParam)

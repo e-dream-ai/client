@@ -19,6 +19,7 @@
 
 #include "clientversion.h"
 #include "FirstTimeSetupWin32.h"
+#include "SettingsDialogWin32.h"
 #include "Exception.h"
 #include "Log.h"
 #include "MathBase.h"
@@ -411,8 +412,11 @@ class CElectricSheep_Win32 : public CElectricSheep
             ForceMultipleInstancesMode(true);
         }
 
-        FirstTimeSetupWin32_SetOverlayAllowed(m_ScrMode != eSaver && m_ScrMode != ePreview);
+        const bool allowOverlays = (m_ScrMode != eSaver && m_ScrMode != ePreview);
+        FirstTimeSetupWin32_SetOverlayAllowed(allowOverlays);
+        SettingsDialogWin32_SetOverlayAllowed(allowOverlays);
         FirstTimeSetupWin32_Register();
+        SettingsDialogWin32_Register();
 
         //	A window was provided, let's use it.
         if (hwnd)

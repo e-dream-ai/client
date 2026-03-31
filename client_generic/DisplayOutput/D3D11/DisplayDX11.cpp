@@ -5,6 +5,8 @@
 
 #ifdef WIN32
 #include "FirstTimeSetupWin32.h"
+#include "SettingsDialogWin32.h"
+extern void ESShowPreferences();
 #endif
 
 namespace DisplayOutput {
@@ -59,6 +61,8 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
 
 #ifdef WIN32
     LRESULT imguiHandled = 0;
+    if (SettingsDialogWin32_TryConsumeWndProc(hWnd, msg, wParam, lParam, &imguiHandled))
+        return imguiHandled;
     if (FirstTimeSetupWin32_TryConsumeWndProc(hWnd, msg, wParam, lParam, &imguiHandled))
         return imguiHandled;
 #endif
@@ -95,6 +99,12 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
         }
         return DefWindowProc(hWnd, msg, wParam, lParam);
     case WM_KEYUP: {
+        if (wParam == VK_OEM_COMMA && (GetKeyState(VK_CONTROL) & 0x8000) != 0)
+        {
+            ESShowPreferences();
+            return 0;
+        }
+
         CKeyEvent::eKeyCode code = CKeyEvent::KEY_NONE;
 
         switch (wParam) {
