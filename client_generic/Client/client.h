@@ -337,6 +337,7 @@ class CElectricSheep
             "Use the remote control or keyboard to interact.\n\n"
 #endif
             "Keyboard Commands:\n"
+#ifdef MAC
             "A: slower playback\t\t\t\t\tUp: like this dream\n"
             "D: faster playback\t\t\t\t\tDown: dislike and delete\n"
             "J: skip 10 seconds back\t\t\tLeft: previous dream\n"
@@ -345,6 +346,16 @@ class CElectricSheep
             "C: show credit\t\t\t\t\t\tB: report this dream\n"
             "V: open web source\t\t\t\t" FULLSCREEN_MODIFIER_KEY "-F: toggle full screen\n"
             "F1: help (this page)\t\t\t\tF2: status overlay\n\n"
+#else
+            "A: slower playback\t\t\t\t\t\t\t\t\t\t\t\t\t\t    Up: like this dream\n"
+            "D: faster playback\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t    Down: dislike and delete\n"
+            "J: skip 10 seconds back\t\t\t\t\t\t\t\t  Left: previous dream\n"
+            "L: skip 10 seconds forward\t\t\t\tRight: next dream\n"
+            "R: repeat current dream\t\t\t      H: shuffle mode\n"
+            "C: show credit\t\t\t\t\t\t                   B: report this dream\n"
+            "V: open web source\t\t\t\t            " FULLSCREEN_MODIFIER_KEY "-F: toggle full screen\n"
+            "F1: help (this page)\t\t\t\t              F2: status overlay\n\n"
+#endif
 
             FULLSCREEN_MODIFIER_KEY "-R: open remote control\n" FULLSCREEN_MODIFIER_KEY "-B: browse playlists",
             ""));
