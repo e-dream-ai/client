@@ -663,32 +663,36 @@ static void DrawSettingsDialog(float viewportW, float viewportH)
         ImGui::BeginChild("settings_footer_region", ImVec2(0.f, 0.f), false,
                           ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
         {
-            const float rowHeight = 24.f;
-            const float helpButtonSize = 22.f;
+            const float helpButtonSize = 20.f;
             const float closeButtonWidth = 78.f;
             const float closeButtonHeight = 24.f;
             const float originX = ImGui::GetCursorPosX();
             const float contentWidth = ImGui::GetContentRegionAvail().x;
-            const float rowY = ImGui::GetCursorPosY() +
-                               ((ImGui::GetContentRegionAvail().y - rowHeight) * 0.5f);
+            const float contentHeight = ImGui::GetContentRegionAvail().y;
+            const float rowCenterY = ImGui::GetCursorPosY() + (contentHeight * 0.5f);
+            const float buttonY = rowCenterY - (closeButtonHeight * 0.5f);
+            const float textY = rowCenterY - (ImGui::GetTextLineHeight() * 0.5f);
             const float closeX = originX + contentWidth - closeButtonWidth;
 
-            ImGui::SetCursorPos(ImVec2(closeX, rowY));
+            ImGui::SetCursorPos(ImVec2(closeX, buttonY));
             if (ImGui::Button("Close", ImVec2(closeButtonWidth, closeButtonHeight)))
                 CloseDialog(true);
 
-            ImGui::SetCursorPos(ImVec2(originX, rowY + ((rowHeight - helpButtonSize) * 0.5f)));
+            ImGui::SetCursorPos(ImVec2(originX, rowCenterY - (helpButtonSize * 0.5f)));
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, helpButtonSize * 0.5f);
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.f, 0.f));
             if (ImGui::Button("?", ImVec2(helpButtonSize, helpButtonSize)))
                 PlatformUtils::OpenURLExternally(kUrlHelp);
+            ImGui::PopStyleVar(2);
 
             ImGui::SameLine();
-            ImGui::SetCursorPosY(rowY + ((rowHeight - ImGui::GetTextLineHeight()) * 0.5f));
+            ImGui::SetCursorPosY(textY);
             ImGui::TextDisabled("%s", g_versionText.c_str());
 
             if (g_statusBuf[0] != '\0')
             {
                 ImGui::SameLine();
-                ImGui::SetCursorPosY(rowY + ((rowHeight - ImGui::GetTextLineHeight()) * 0.5f));
+                ImGui::SetCursorPosY(textY);
                 ImGui::TextDisabled(" | %s", g_statusBuf);
             }
         }
