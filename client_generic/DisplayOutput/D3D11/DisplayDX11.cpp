@@ -163,6 +163,10 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
         break;
     }
 
+    case WM_CLOSE:
+        DestroyWindow(hWnd);
+        return 0;
+
     case WM_DESTROY:
         PostQuitMessage(0);
         return 0;
@@ -341,6 +345,10 @@ void CDisplayDX11::Title(const std::string& title) {
 void CDisplayDX11::Update() {
     MSG msg = {};
     while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+        if (msg.message == WM_QUIT) {
+            m_bClosed = true;
+            return;
+        }
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }

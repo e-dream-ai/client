@@ -659,8 +659,7 @@ class CElectricSheep_Win32 : public CElectricSheep
         }
 
         //static const float voteDelaySeconds = 1;
-        HandleEvents();
-        return true;
+        return HandleEvents();
     } 
 
     // TODO : Never called ?
