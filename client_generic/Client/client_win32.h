@@ -559,9 +559,15 @@ class CElectricSheep_Win32 : public CElectricSheep
                 //	All other keys close...
                 default:
                 {
-                    uint32_t x = spKey->m_Code;
-                    g_Log->Info("Key event, closing");
-                    return false;
+                    // In app/player modes, ignore unmapped keys.
+                    // Keep legacy "any key closes" behavior for saver/preview.
+                    if (m_ScrMode == eSaver || m_ScrMode == ePreview)
+                    {
+                        g_Log->Info("Unhandled key event in saver/preview, closing");
+                        return false;
+                    }
+                    g_Log->Info("Unhandled key event, ignoring");
+                    return true;
                 }
                 }
                 return true;
