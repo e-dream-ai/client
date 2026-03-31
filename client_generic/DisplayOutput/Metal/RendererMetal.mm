@@ -1,6 +1,7 @@
 #import <Metal/MTLRenderPipeline.h>
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
+#import <CoreText/CoreText.h>
 
 #include <atomic>
 #include <chrono>
@@ -127,6 +128,22 @@ bool CRendererMetal::Initialize(spCDisplayOutput _spDisplay)
             g_Log->Error("Error creating CVTextureCache:%d", textureCacheError);
         }
     }
+    // Register bundled Lato font so CATextLayer can find it by name.
+    // This is needed because screensavers run inside ScreenSaverEngine,
+    // where plist-based font registration (ATSApplicationFontsPath) does not apply.
+    NSBundle* fontBundle = [NSBundle bundleForClass:RendererContext.class];
+    NSString* fontPath = [fontBundle pathForResource:@"Lato-Regular" ofType:@"ttf"];
+    if (fontPath) {
+        NSURL* fontURL = [NSURL fileURLWithPath:fontPath];
+        CFErrorRef cfError = NULL;
+        if (!CTFontManagerRegisterFontsForURL((__bridge CFURLRef)fontURL,
+                                               kCTFontManagerScopeProcess,
+                                               &cfError)) {
+            // kCTFontManagerErrorAlreadyRegistered is fine — ignore it
+            if (cfError) CFRelease(cfError);
+        }
+    }
+
     m_pIsAlive = new bool(true);
     return true;
 }

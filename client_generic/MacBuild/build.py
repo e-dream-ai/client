@@ -680,6 +680,62 @@ def step3_archive_app(config: BuildConfig) -> Path:
     return archive_path
 
 
+def upload_dsyms_to_bugsnag(config: BuildConfig, archive_path: Path) -> None:
+    """Upload dSYM files from the xcarchive to Bugsnag."""
+    if not config.release:
+        return
+
+    print()
+    print("========================================")
+    print("Uploading dSYMs to Bugsnag")
+    print("========================================")
+
+    if not shutil.which('bugsnag-cli'):
+        print_yellow("Warning: bugsnag-cli not found. Install with: brew install bugsnag/tap/bugsnag-cli")
+        print_yellow("Skipping dSYM upload.")
+        return
+
+    api_key = get_bugsnag_api_key(config.app_info_plist)
+    if not api_key:
+        print_yellow("Warning: Could not read Bugsnag API key from Info.plist")
+        print_yellow("Skipping dSYM upload.")
+        return
+
+    print_yellow("Uploading dSYMs to Bugsnag...")
+    result = run_command(
+        [
+            'bugsnag-cli', 'upload', 'xcode-archive',
+            '--api-key', api_key,
+            '--scheme', config.app_scheme,
+            '--configuration', config.build_config,
+            '--xcode-project', config.project,
+            str(archive_path),
+        ],
+        check=False,
+        capture_output=True,
+    )
+
+    if result.returncode == 0:
+        print_green("dSYMs uploaded to Bugsnag successfully")
+    else:
+        print_yellow("Warning: dSYM upload to Bugsnag failed (non-fatal)")
+        if result.stderr:
+            print(f"  {result.stderr.strip()}")
+        if result.stdout:
+            print(f"  {result.stdout.strip()}")
+
+
+def get_bugsnag_api_key(plist_path: Path) -> Optional[str]:
+    """Read Bugsnag API key from Info.plist."""
+    try:
+        with open(plist_path, 'rb') as f:
+            plist = plistlib.load(f)
+        bugsnag = plist.get('bugsnag', {})
+        return bugsnag.get('apiKey')
+    except Exception:
+        return None
+
+
 def step4_export_app(config: BuildConfig, archive_path: Path) -> Path:
     """Export the app from archive. Returns path to exported app."""
     print()
@@ -1176,6 +1232,10 @@ Environment variables (optional overrides):
 
     # Step 3: Archive app
     archive_path = step3_archive_app(config)
+
+    # Upload dSYMs to Bugsnag (only for GitHub releases)
+    if config.github_release:
+        upload_dsyms_to_bugsnag(config, archive_path)
 
     # Step 4: Export app
     exported_app = step4_export_app(config, archive_path)

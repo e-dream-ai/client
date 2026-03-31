@@ -145,19 +145,22 @@ void DreamDownloader::FindDreamsThread() {
                 SetDiskSpaceLow(false);
             }
 
-            // Is our cache full ?
-            if (cm.getRemainingCacheSpace() < minSpaceForDream) {
+            // Is our cache full ? Keep evicting until we have enough space
+            bool cacheFull = false;
+            while (cm.getRemainingCacheSpace() < minSpaceForDream) {
                 // First try to remove the oldest video that's not part of the playlist
                 if (!cm.removeOldestVideo(true)) {
                     // If that fails, try removing oldest from playlist too
                     if (!cm.removeOldestVideo(false)) {
                         g_Log->Info("Not enough space in cache remaining : %ju, cannot remove any video", cm.getRemainingCacheSpace());
                         SetDownloadStatus("Your cache is full");
+                        cacheFull = true;
                         break;
                     }
                     g_Log->Info("Removed oldest dream from playlist to make space");
                 }
             }
+            if (cacheFull) break;
             // /Preflight
             
             std::string current_uuid = nextDream.value();
@@ -318,10 +321,21 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
 bool DreamDownloader::DownloadDreamNow(const std::string& uuid, std::function<void(bool, const std::string&)> callback) {
     g_Log->Info("Immediately downloading dream with UUID: %s", uuid.c_str());
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
-    
+
     if (!cm.hasDiskCachedItem(uuid.c_str())) {
+        // Evict old videos if cache is full
+        std::uintmax_t minSpaceForDream = (std::uintmax_t)1024 * 1024 * 100;
+        while (cm.getRemainingCacheSpace() < minSpaceForDream) {
+            if (!cm.removeOldestVideo(true)) {
+                if (!cm.removeOldestVideo(false)) {
+                    g_Log->Info("DownloadDreamNow: cache full, cannot make space");
+                    break;
+                }
+            }
+        }
+
         auto link = EDreamClient::GetDreamDownloadLink(uuid);
-        
+
         if (!link.empty()) {
             g_Log->Info("Download link received: %s", link.c_str());
             bool success = DownloadDream(uuid, link, false);

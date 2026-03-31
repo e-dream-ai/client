@@ -18,15 +18,31 @@
 
 class EDreamClient
 {
-    // Used by SendCode (for now), so we can propagate error messages from the server
-    struct AuthResult {
+  public:
+    enum class ValidationFailureReason { None, InvalidSession, TransientFailure };
+    struct ValidateCodeResult {
         bool success;
+        ValidationFailureReason reason;
+        int httpCode;
         std::string message;
-        
-        // Constructor for convenient initialization
-        AuthResult(bool s, std::string m = "") : success(s), message(m) {}
     };
-    
+
+    enum class HelloFailureReason { None, InvalidSession, TransientFailure };
+    struct HelloResult {
+        bool success;
+        HelloFailureReason reason;
+        int httpCode;
+        std::string message;
+        std::string playlistUUID;
+    };
+
+  public:
+    struct SendCodeResult {
+        bool success;
+        int httpCode;
+        std::string message;
+    };
+
   private:
     static std::atomic<bool> fIsLoggedIn;
     static std::atomic<bool> fAuthRetryAbort;
@@ -39,6 +55,7 @@ class EDreamClient
 public:
     static std::atomic<bool> fIsWebSocketConnected;
 private:
+    static HelloResult HelloDetailed();
     static std::string Hello();
     static long long remainingQuota;
     static std::chrono::system_clock::time_point quotaExpiresAt;
@@ -83,7 +100,8 @@ private:
     static void SignOut();
     static void DidSignIn();
     // Auth v2
-    static AuthResult SendCode();
+    static SendCodeResult SendCode();
+    static ValidateCodeResult ValidateCodeDetailed(const std::string& code);
     /// Same as SendCode(); public return type for UI code outside this class.
     static std::pair<bool, std::string> SendVerificationCodeOutcome();
     static bool ValidateCode(const std::string& code);
