@@ -192,6 +192,77 @@ static void SetStatus(const std::string& status)
     g_statusBuf[sizeof g_statusBuf - 1] = '\0';
 }
 
+struct AuthDialogContent
+{
+    const char* title;
+    std::string message;
+};
+
+static void ShowAuthWarningDialog(const AuthDialogContent& content)
+{
+    HWND owner = nullptr;
+    if (auto* dx = TryGetDx11Display())
+        owner = dx->GetWindowHandle();
+    MessageBoxA(owner, content.message.c_str(), content.title, MB_OK | MB_ICONWARNING);
+}
+
+static AuthDialogContent BuildSendCodeFailureDialog(const EDreamClient::SendCodeResult& result)
+{
+    const bool isClientErrorHttp = (result.httpCode >= 400 && result.httpCode < 500);
+    const bool isServerErrorHttp = (result.httpCode >= 500);
+
+    if (isClientErrorHttp)
+    {
+        std::string message =
+            "We couldn't send a verification email. Make sure your email address is correct, then try Send code again.";
+        if (!result.message.empty())
+            message += "\n\n" + result.message;
+        return {"Unable to send code", message};
+    }
+
+    if (isServerErrorHttp)
+    {
+        std::string message = "Try again later.";
+        if (!result.message.empty())
+            message += " " + result.message;
+        return {"Server Error", message};
+    }
+
+    return {"Authentication Error",
+            result.message.empty() ? "Failed to send verification code." : result.message};
+}
+
+static AuthDialogContent BuildValidateFailureDialog(const EDreamClient::ValidateCodeResult& result)
+{
+    if (result.reason == EDreamClient::ValidationFailureReason::InvalidSession &&
+        result.httpCode >= 400 && result.httpCode < 500)
+    {
+        return {"Invalid Code",
+                "Check for typos and check to be sure you have the most recent code. Try again or start over"};
+    }
+
+    if (result.httpCode >= 500)
+    {
+        std::string message = "Try again later.";
+        if (!result.message.empty())
+            message += " " + result.message;
+        return {"Server Error", message};
+    }
+
+    if (result.reason == EDreamClient::ValidationFailureReason::InvalidSession)
+    {
+        return {"Authentication Error",
+                result.message.empty()
+                    ? "Validation failed. Please request a new code and sign in again."
+                    : result.message};
+    }
+
+    return {"Authentication Error",
+            result.message.empty()
+                ? "Backend is temporarily unavailable. Please try again shortly."
+                : result.message};
+}
+
 static void TrimWhitespaceInPlace(char* s)
 {
     if (!s)
@@ -607,9 +678,18 @@ static void DrawAccountTab()
                 TrimWhitespaceInPlace(g_nicknameBuf);
                 g_Settings()->Set("settings.generator.nickname", std::string(g_nicknameBuf));
                 g_Settings()->Storage()->Commit();
-                const auto result = EDreamClient::SendVerificationCodeOutcome();
-                g_sentCode = result.first;
-                SetStatus(result.second);
+                const EDreamClient::SendCodeResult result = EDreamClient::SendCode();
+                g_sentCode = result.success;
+                if (result.success)
+                {
+                    SetStatus(result.message.empty() ? "Check your e-mail for confirmation code" : result.message);
+                }
+                else
+                {
+                    const AuthDialogContent dialog = BuildSendCodeFailureDialog(result);
+                    SetStatus(dialog.message);
+                    ShowAuthWarningDialog(dialog);
+                }
             }
             if (g_boldUiFont)
                 ImGui::PopFont();
@@ -633,7 +713,9 @@ static void DrawAccountTab()
             if (ImGui::Button("Validate", ImVec2(actionButtonWidth, actionButtonHeight)))
             {
                 StripNonDigits(g_codeBuf);
-                if (EDreamClient::ValidateCode(std::string(g_codeBuf)))
+                const EDreamClient::ValidateCodeResult validateResult =
+                    EDreamClient::ValidateCodeDetailed(std::string(g_codeBuf));
+                if (validateResult.success)
                 {
                     const bool accountChanged =
                         g_hasPreviousLoginEmail &&
@@ -652,7 +734,9 @@ static void DrawAccountTab()
                 }
                 else
                 {
-                    SetStatus("Invalid code. Please try again.");
+                    const AuthDialogContent dialog = BuildValidateFailureDialog(validateResult);
+                    SetStatus(dialog.message);
+                    ShowAuthWarningDialog(dialog);
                 }
             }
             if (g_boldUiFont)

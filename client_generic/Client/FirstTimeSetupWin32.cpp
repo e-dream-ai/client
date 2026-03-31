@@ -121,16 +121,26 @@ std::mutex g_jobMutex;
 std::atomic<bool> g_sendBusy{false};
 std::atomic<bool> g_sendDone{false};
 bool g_sendOk = false;
-std::string g_sendMessage;
+EDreamClient::SendCodeResult g_sendResult{false, 0, std::string()};
 
 std::atomic<bool> g_validateBusy{false};
 std::atomic<bool> g_validateDone{false};
 bool g_validateOk = false;
+EDreamClient::ValidateCodeResult g_validateResult{
+    false, EDreamClient::ValidationFailureReason::None, 0, std::string()};
 
 char g_emailBuf[256] = {};
 char g_codeBuf[16] = {};
 char g_errBuf[512] = {};
 int g_wizardStep = 0;
+
+struct AuthDialogContent
+{
+    const char* title;
+    std::string message;
+};
+
+static DisplayOutput::CDisplayDX11* TryGetDx11Display();
 
 static void OnFirstTimeSetupRequested()
 {
@@ -148,6 +158,65 @@ static bool IsLikelyEmail(const char* s)
         return false;
     const char* dot = std::strchr(at + 1, '.');
     return dot != nullptr && dot > at + 1 && std::strlen(dot) > 1;
+}
+
+static void ShowAuthWarningDialog(const AuthDialogContent& content)
+{
+    HWND owner = nullptr;
+    if (auto* dx = TryGetDx11Display())
+        owner = dx->GetWindowHandle();
+    MessageBoxA(owner, content.message.c_str(), content.title, MB_OK | MB_ICONWARNING);
+}
+
+static AuthDialogContent BuildSendCodeFailureDialog(const EDreamClient::SendCodeResult& result)
+{
+    const bool isClientErrorHttp = (result.httpCode >= 400 && result.httpCode < 500);
+    const bool isServerErrorHttp = (result.httpCode >= 500);
+
+    if (isClientErrorHttp)
+    {
+        std::string message =
+            "We couldn't send a verification email. Make sure your email address is correct, then try Send code again.";
+        if (!result.message.empty())
+            message += "\n\n" + result.message;
+        return {"Unable to send code", message};
+    }
+
+    if (isServerErrorHttp)
+    {
+        std::string message = "Try again later.";
+        if (!result.message.empty())
+            message += " " + result.message;
+        return {"Server Error", message};
+    }
+
+    return {"Authentication Error",
+            result.message.empty() ? "Failed to send verification code." : result.message};
+}
+
+static AuthDialogContent BuildValidateFailureDialog(const EDreamClient::ValidateCodeResult& result)
+{
+    const bool isClientErrorHttp = (result.httpCode >= 400 && result.httpCode < 500);
+    const bool isServerErrorHttp = (result.httpCode >= 500);
+
+    if (isClientErrorHttp)
+    {
+        return {"Invalid Code",
+                "Check for typos and check to be sure you have the most recent code. Try again or start over"};
+    }
+
+    if (isServerErrorHttp)
+    {
+        std::string message = "Try again later.";
+        if (!result.message.empty())
+            message += " " + result.message;
+        return {"Server Error", message};
+    }
+
+    return {"Authentication Error",
+            result.message.empty()
+                ? "Backend is temporarily unavailable. Please try again shortly."
+                : result.message};
 }
 
 static int FilterDigitsOnly(ImGuiInputTextCallbackData* data)
@@ -539,8 +608,10 @@ static void PollWorkerResults()
         }
         else
         {
-            std::strncpy(g_errBuf, g_sendMessage.c_str(), sizeof g_errBuf - 1);
+            const AuthDialogContent dialog = BuildSendCodeFailureDialog(g_sendResult);
+            std::strncpy(g_errBuf, dialog.message.c_str(), sizeof g_errBuf - 1);
             g_errBuf[sizeof g_errBuf - 1] = '\0';
+            ShowAuthWarningDialog(dialog);
         }
     }
 
@@ -556,9 +627,11 @@ static void PollWorkerResults()
         }
         else
         {
-            std::strncpy(g_errBuf, "Invalid verification code. Please try again.", sizeof g_errBuf - 1);
+            const AuthDialogContent dialog = BuildValidateFailureDialog(g_validateResult);
+            std::strncpy(g_errBuf, dialog.message.c_str(), sizeof g_errBuf - 1);
             g_errBuf[sizeof g_errBuf - 1] = '\0';
             g_codeBuf[0] = '\0';
+            ShowAuthWarningDialog(dialog);
         }
     }
 }
@@ -726,11 +799,11 @@ static void DrawWizard()
                 g_Settings()->Storage()->Commit();
                 g_sendBusy.store(true, std::memory_order_release);
                 std::thread([]() {
-                    auto result = EDreamClient::SendVerificationCodeOutcome();
+                    EDreamClient::SendCodeResult result = EDreamClient::SendCode();
                     {
                         std::lock_guard<std::mutex> lock(g_jobMutex);
-                        g_sendOk = result.first;
-                        g_sendMessage = std::move(result.second);
+                        g_sendOk = result.success;
+                        g_sendResult = std::move(result);
                     }
                     g_sendDone.store(true, std::memory_order_release);
                     g_sendBusy.store(false, std::memory_order_release);
@@ -824,8 +897,10 @@ static void DrawWizard()
             std::string codeCopy(g_codeBuf);
             g_validateBusy.store(true, std::memory_order_release);
             std::thread([code = std::move(codeCopy)]() {
-                bool ok = EDreamClient::ValidateCode(code);
-                g_validateOk = ok;
+                EDreamClient::ValidateCodeResult result =
+                    EDreamClient::ValidateCodeDetailed(code);
+                g_validateOk = result.success;
+                g_validateResult = std::move(result);
                 g_validateDone.store(true, std::memory_order_release);
                 g_validateBusy.store(false, std::memory_order_release);
             }).detach();
