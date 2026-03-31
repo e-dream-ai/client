@@ -1556,13 +1556,13 @@ class CElectricSheep
                 if (isBuffering && !g_Player().IsPausedForBuffering()) {
                     g_Log->Info("Pausing for buffering");
                     g_Player().SetPausedForBuffering(true);
-                    if (!m_bPaused) {
+                    if (!g_Player().IsPaused()) {
                         g_Player().SetPaused(true);
                     }
                 } else if (!isBuffering && g_Player().IsPausedForBuffering()) {
                     g_Log->Info("Buffering complete, unpausing");
                     g_Player().SetPausedForBuffering(false);
-                    if (!m_bPaused || !g_Player().IsUserPaused()) {
+                    if (!g_Player().IsPaused() || !g_Player().IsUserPaused()) {
                         g_Player().SetPaused(false);
                     }
                 }
@@ -2320,12 +2320,17 @@ class CElectricSheep
                 EDreamClient::SendStateUpdate();
             case CLIENT_COMMAND_PAUSE:
                 g_Log->Info("Pause command");
-                if (m_bPaused) {
+                {
+                const bool currentlyPaused = g_Player().IsPaused();
+                const bool targetPaused = !currentlyPaused;
+                if (currentlyPaused) {
                     popOSD(Hud::Play);
                 } else {
                     popOSD(Hud::Pause);
                 }
-                g_Player().SetPaused(m_bPaused = !m_bPaused, true);
+                m_bPaused = targetPaused;
+                g_Player().SetPaused(targetPaused, true);
+                }
                 EDreamClient::SendStateUpdate();
                 return true;
             case CLIENT_COMMAND_CREDIT:
