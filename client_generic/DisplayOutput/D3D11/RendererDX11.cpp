@@ -643,16 +643,15 @@ bool CRendererDX11::BeginFrame() {
 bool CRendererDX11::EndFrame(bool drawn) {
 #ifdef WIN32
     // Base CRenderer::EndFrame returns false when !drawn, which would skip overlay + Present.
+    // Settings overlay is rendered after HUD text so it always appears top-most.
     bool forcePresent = false;
     if (m_context && m_renderTargetView && m_spDisplay) {
         const float viewportW = static_cast<float>(m_spDisplay->Width());
         const float viewportH = static_cast<float>(m_spDisplay->Height());
-        const bool settingsVisible = SettingsDialogWin32_RenderIfNeeded(
+        const bool settingsPendingOrVisible = SettingsDialogWin32_HasPendingOrVisible();
+        const bool firstTimeVisible = FirstTimeSetupWin32_RenderIfNeeded(
             m_device.Get(), m_context.Get(), m_renderTargetView.Get(), viewportW, viewportH);
-        const bool firstTimeVisible = settingsVisible ? false :
-            FirstTimeSetupWin32_RenderIfNeeded(
-                m_device.Get(), m_context.Get(), m_renderTargetView.Get(), viewportW, viewportH);
-        forcePresent = settingsVisible || firstTimeVisible;
+        forcePresent = firstTimeVisible || settingsPendingOrVisible;
     }
     const bool effectiveDrawn = drawn || forcePresent;
     if (!CRenderer::EndFrame(effectiveDrawn))
@@ -760,10 +759,20 @@ bool CRendererDX11::EndFrame(bool drawn) {
             }
         }
 
+        // Draw settings last so it stays above all HUD layers.
+        const float viewportW = static_cast<float>(m_spDisplay->Width());
+        const float viewportH = static_cast<float>(m_spDisplay->Height());
+        const bool settingsVisible = SettingsDialogWin32_RenderIfNeeded(
+            m_device.Get(), m_context.Get(), m_renderTargetView.Get(), viewportW, viewportH);
+
         EndGpuTimingFrame();
 
-        m_spDisplay->SwapBuffers();
-        return true;
+        if (effectiveDrawn || settingsVisible)
+        {
+            m_spDisplay->SwapBuffers();
+            return true;
+        }
+        return false;
     }
     EndGpuTimingFrame();
     return false;

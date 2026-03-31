@@ -46,6 +46,8 @@ constexpr const char* kUrlPlaylists = "https://alpha.infinidream.ai/playlists";
 std::atomic<bool> g_overlayAllowed{true};
 std::atomic<bool> g_showRequested{false};
 std::atomic<bool> g_visible{false};
+std::atomic<bool> g_wasPausedBeforeDialog{false};
+std::atomic<bool> g_pausedBySettingsDialog{false};
 std::atomic<bool> g_imguiInitialized{false};
 std::atomic<bool> g_pendingImGuiShutdown{false};
 ImGuiContext* g_imguiContext = nullptr;
@@ -398,10 +400,33 @@ static void ResetFormForShow()
     LoadSettingsForShow();
 }
 
+static void ApplyDialogPauseState(bool visible)
+{
+    if (visible)
+    {
+        const bool wasPaused = g_Player().IsPaused();
+        g_wasPausedBeforeDialog.store(wasPaused, std::memory_order_release);
+        if (!wasPaused)
+        {
+            g_Player().SetPaused(true);
+            g_pausedBySettingsDialog.store(true, std::memory_order_release);
+        }
+        else
+        {
+            g_pausedBySettingsDialog.store(false, std::memory_order_release);
+        }
+        return;
+    }
+
+    if (g_pausedBySettingsDialog.exchange(false, std::memory_order_acq_rel))
+        g_Player().SetPaused(g_wasPausedBeforeDialog.load(std::memory_order_acquire));
+}
+
 static void CloseDialog(bool saveBeforeClose)
 {
     if (saveBeforeClose)
         SaveSettings();
+    ApplyDialogPauseState(false);
     g_visible.store(false, std::memory_order_release);
     g_pendingImGuiShutdown.store(true, std::memory_order_release);
 }
@@ -718,10 +743,19 @@ void SettingsDialogWin32_SetOverlayAllowed(bool allow)
     g_overlayAllowed.store(allow, std::memory_order_release);
     if (!allow)
     {
+        ApplyDialogPauseState(false);
         g_showRequested.store(false, std::memory_order_release);
         g_visible.store(false, std::memory_order_release);
         ShutdownImGui();
     }
+}
+
+bool SettingsDialogWin32_HasPendingOrVisible()
+{
+    if (!g_overlayAllowed.load(std::memory_order_acquire))
+        return false;
+    return g_showRequested.load(std::memory_order_acquire) ||
+           g_visible.load(std::memory_order_acquire);
 }
 
 bool SettingsDialogWin32_TryConsumeWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam,
@@ -757,6 +791,7 @@ bool SettingsDialogWin32_RenderIfNeeded(ID3D11Device* device, ID3D11DeviceContex
             g_showRequested.store(false, std::memory_order_release);
             g_visible.store(true, std::memory_order_release);
             ResetFormForShow();
+            ApplyDialogPauseState(true);
         }
     }
 
@@ -768,6 +803,11 @@ bool SettingsDialogWin32_RenderIfNeeded(ID3D11Device* device, ID3D11DeviceContex
     ImGui_ImplWin32_NewFrame();
     ImGui::GetIO().DisplaySize = ImVec2(viewportW, viewportH);
     ImGui::NewFrame();
+
+    // Keep the dream scene visible but slightly whitened under settings.
+    ImGui::GetBackgroundDrawList()->AddRectFilled(
+        ImVec2(0.0f, 0.0f), ImVec2(viewportW, viewportH),
+        ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 1.0f, 0.16f)));
 
     DrawSettingsDialog(viewportW, viewportH);
 
