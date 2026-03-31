@@ -38,6 +38,7 @@ protected:
     ComPtr<ID3D11InputLayout> m_inputLayout;
     ComPtr<ID3D11Device> m_device;
     ComPtr<ID3D11DeviceContext> m_context;
+    bool m_isDecodedFrameShader = false;
 
 public:
     CShaderDX11(ComPtr<ID3D11Device> device, ComPtr<ID3D11DeviceContext> context);
@@ -55,6 +56,8 @@ public:
     ID3D11VertexShader* GetVertexShader() const { return m_vertexShader.Get(); }
     ID3D11PixelShader* GetPixelShader() const { return m_pixelShader.Get(); }
     ID3D11InputLayout* GetInputLayout() const { return m_inputLayout.Get(); }
+    void SetDecodedFrameShader(bool isDecodedFrameShader) { m_isDecodedFrameShader = isDecodedFrameShader; }
+    bool IsDecodedFrameShader() const { return m_isDecodedFrameShader; }
 };
 
 MakeSmartPointers(CShaderDX11);

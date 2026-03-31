@@ -2,6 +2,7 @@
 #include "DisplayDX11.h"
 #include "Log.h"
 #include "GlyphAtlasDX11.h"
+#include "Settings.h"
 #include <cassert>
 #include <cmath>
 #include <cstring>
@@ -132,6 +133,35 @@ bool CreateGlyphPointSampler(ID3D11Device* device, ID3D11SamplerState** outSampl
 
     HRESULT hr = device->CreateSamplerState(&samplerDesc, outSampler);
     return SUCCEEDED(hr);
+}
+
+bool IsPreserveAspectEnabled()
+{
+    return g_Settings() && g_Settings()->Get("settings.player.preserve_AR", false);
+}
+
+bool ComputeAspectViewport16By9(float displayW, float displayH, D3D11_VIEWPORT& outViewport)
+{
+    if (displayW <= 0.0f || displayH <= 0.0f)
+        return false;
+
+    constexpr float kTargetAspect16By9 = 16.0f / 9.0f;
+    const float displayAspect = displayW / displayH;
+    float vpW = displayW;
+    float vpH = displayH;
+
+    if (kTargetAspect16By9 > displayAspect)
+        vpH = std::max(1.0f, std::round(displayW / kTargetAspect16By9));
+    else
+        vpW = std::max(1.0f, std::round(displayH * kTargetAspect16By9));
+
+    outViewport.TopLeftX = std::floor((displayW - vpW) * 0.5f);
+    outViewport.TopLeftY = std::floor((displayH - vpH) * 0.5f);
+    outViewport.Width = vpW;
+    outViewport.Height = vpH;
+    outViewport.MinDepth = 0.0f;
+    outViewport.MaxDepth = 1.0f;
+    return true;
 }
 
 class CFontDX11Gdi final : public CBaseFont
@@ -896,6 +926,11 @@ spCShader CRendererDX11::NewShader(const char* _pVertexShader, const char* _pFra
         shader->CreateUniform(uniforms[slot].first, uniforms[slot].second, slot);
     }
 
+    shader->SetDecodedFrameShader(
+        fragmentName == "drawDecodedFrameNoBlendingFragment" ||
+        fragmentName == "drawDecodedFrameLinearFrameBlendFragment" ||
+        fragmentName == "drawDecodedFrameCubicFrameBlendFragment");
+
     return shader;
 }
 
@@ -997,11 +1032,37 @@ void CRendererDX11::DrawTexturedQuad(const Base::Math::CRect& _rect,
         return;
     }
 
+    const CShaderDX11* selectedShaderDx11 =
+        dynamic_cast<CShaderDX11*>(m_spSelectedShader.get());
+    const bool applyAspectViewport = selectedShaderDx11 &&
+                                     selectedShaderDx11->IsDecodedFrameShader() &&
+                                     IsPreserveAspectEnabled() && m_spDisplay;
+
+    Base::Math::CRect drawRect = _rect;
+    D3D11_VIEWPORT savedViewports[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE] = {};
+    UINT savedViewportCount = D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE;
+    bool viewportOverridden = false;
+
+    if (applyAspectViewport)
+    {
+        D3D11_VIEWPORT letterboxVp = {};
+        if (ComputeAspectViewport16By9(static_cast<float>(m_spDisplay->Width()),
+                                       static_cast<float>(m_spDisplay->Height()),
+                                       letterboxVp))
+        {
+            m_context->RSGetViewports(&savedViewportCount, savedViewports);
+            m_context->RSSetViewports(1, &letterboxVp);
+            // Draw decoded frame across the computed viewport only.
+            drawRect = Base::Math::CRect(0.f, 0.f, 1.f, 1.f);
+            viewportOverridden = true;
+        }
+    }
+
     auto* uniforms = reinterpret_cast<QuadUniforms*>(mapped.pData);
-    uniforms->rect[0] = _rect.m_X0;
-    uniforms->rect[1] = _rect.m_Y0;
-    uniforms->rect[2] = _rect.Width();
-    uniforms->rect[3] = _rect.Height();
+    uniforms->rect[0] = drawRect.m_X0;
+    uniforms->rect[1] = drawRect.m_Y0;
+    uniforms->rect[2] = drawRect.Width();
+    uniforms->rect[3] = drawRect.Height();
 
     uniforms->uvRect[0] = _uvRect.m_X0;
     uniforms->uvRect[1] = _uvRect.m_Y0;
@@ -1049,6 +1110,9 @@ void CRendererDX11::DrawTexturedQuad(const Base::Math::CRect& _rect,
     m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     m_context->DrawIndexed(6, 0, 0);
+
+    if (viewportOverridden && savedViewportCount > 0)
+        m_context->RSSetViewports(savedViewportCount, savedViewports);
 }
 
 void CRendererDX11::DrawQuad(const Base::Math::CRect& _rect,
