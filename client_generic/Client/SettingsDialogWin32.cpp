@@ -51,6 +51,7 @@ std::atomic<bool> g_pausedBySettingsDialog{false};
 std::atomic<bool> g_imguiInitialized{false};
 std::atomic<bool> g_pendingImGuiShutdown{false};
 ImGuiContext* g_imguiContext = nullptr;
+ImFont* g_boldUiFont = nullptr;
 
 char g_nicknameBuf[256] = {};
 char g_codeBuf[32] = {};
@@ -126,6 +127,7 @@ static bool TryInitImGui()
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.IniFilename = nullptr;
     ImGui::StyleColorsLight();
+    g_boldUiFont = nullptr;
     {
         // Prefer San Francisco if available; fallback to close sans-serif fonts on Windows.
         const std::array<const char*, 5> preferredFonts = {
@@ -146,6 +148,23 @@ static bool TryInitImGui()
                     io.FontDefault = loaded;
                     break;
                 }
+            }
+        }
+
+        const std::array<const char*, 4> preferredBoldFonts = {
+            "C:\\Windows\\Fonts\\SFPRODISPLAYBOLD.OTF",
+            "C:\\Windows\\Fonts\\SFPROTEXT-BOLD.OTF",
+            "C:\\Windows\\Fonts\\seguisb.ttf",
+            "C:\\Windows\\Fonts\\arialbd.ttf",
+        };
+        for (const char* fontPath : preferredBoldFonts)
+        {
+            const DWORD attrs = GetFileAttributesA(fontPath);
+            if (attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY) == 0)
+            {
+                g_boldUiFont = io.Fonts->AddFontFromFileTTF(fontPath, 17.0f);
+                if (g_boldUiFont)
+                    break;
             }
         }
     }
@@ -207,6 +226,41 @@ static void StripNonDigits(char* s)
         }
     }
     s[w] = '\0';
+}
+
+static bool InputTextWithPlaceholder(const char* id, const char* placeholder, char* buf, size_t bufSize,
+                                     ImGuiInputTextFlags flags = 0)
+{
+    const bool changed = ImGui::InputText(id, buf, bufSize, flags);
+    if (placeholder && placeholder[0] != '\0' && buf && buf[0] == '\0' && !ImGui::IsItemActive())
+    {
+        const ImVec2 min = ImGui::GetItemRectMin();
+        const ImVec2 max = ImGui::GetItemRectMax();
+        const ImVec2 pad = ImGui::GetStyle().FramePadding;
+        const float textY = min.y + ((max.y - min.y - ImGui::GetTextLineHeight()) * 0.5f);
+        ImGui::GetWindowDrawList()->AddText(
+            ImVec2(min.x + pad.x, textY),
+            ImGui::GetColorU32(ImGuiCol_TextDisabled),
+            placeholder);
+    }
+    return changed;
+}
+
+static void DrawFocusedInputDecoration(bool focused)
+{
+    if (!focused)
+        return;
+
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    const ImVec2 min = ImGui::GetItemRectMin();
+    const ImVec2 max = ImGui::GetItemRectMax();
+    const float rounding = ImGui::GetStyle().FrameRounding;
+
+    // Subtle outer glow/shadow like macOS focus ring.
+    drawList->AddRect(ImVec2(min.x - 2.f, min.y - 2.f), ImVec2(max.x + 2.f, max.y + 2.f),
+                      IM_COL32(64, 132, 255, 70), rounding + 1.f, 0, 3.f);
+    // Crisp blue focus border.
+    drawList->AddRect(min, max, IM_COL32(0, 122, 255, 255), rounding, 0, 1.6f);
 }
 
 static std::wstring Utf8ToWidePath(const std::string& utf8)
@@ -434,7 +488,10 @@ static void CloseDialog(bool saveBeforeClose)
 static void DrawAccountTab()
 {
     const bool loggedIn = EDreamClient::IsLoggedIn();
-    const float actionButtonWidth = 140.f;
+    const float actionButtonWidth = 100.f;
+    const float actionButtonHeight = 30.f;
+    const float panelMaxWidth = 495.f;
+    const float sidePadding = 60.f;
 
     ImVec4 authColor = ImVec4(0.89f, 0.20f, 0.24f, 1.0f);
     const char* authText = "Please sign in.";
@@ -449,36 +506,103 @@ static void DrawAccountTab()
         authText = "Check your e-mail for confirmation code";
     }
 
-    ImGui::ColorButton("##authdot", authColor,
-                       ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoDragDrop |
-                           ImGuiColorEditFlags_NoBorder,
-                       ImVec2(18.f, 18.f));
-    ImGui::SameLine();
+    const float availW = ImGui::GetContentRegionAvail().x;
+    const float availH = ImGui::GetContentRegionAvail().y;
+    const float safePanelWidth = (availW < 300.f) ? 300.f : availW;
+
+    const float formHeight = loggedIn ? 92.f : 230.f;
+    const float topPad = (availH - formHeight) * 0.5f;
+    if (topPad > 0.f)
+        ImGui::Dummy(ImVec2(0.f, topPad));
+
+    ImGui::BeginChild("account_centered_body", ImVec2(safePanelWidth, formHeight), false,
+                      ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBackground);
+
     if (loggedIn)
-        ImGui::Text("Signed in as %s", g_nicknameBuf);
-    else
-        ImGui::TextUnformatted(authText);
-
-    if (!loggedIn)
     {
-        ImGui::BeginDisabled(g_sentCode);
-        ImGui::PushItemWidth(-1.f);
-        ImGui::InputTextWithHint("Email", "john@smith.com", g_nicknameBuf, sizeof g_nicknameBuf);
-        ImGui::PopItemWidth();
-        ImGui::EndDisabled();
+        const std::string signedInText = std::string("Signed in as ") + g_nicknameBuf;
+        const float dotRadius = 5.f;
+        const float rowW = dotRadius * 2.f + 8.f + ImGui::CalcTextSize(signedInText.c_str()).x;
+        const float rowX = sidePadding;
+        if (rowX > 0.f)
+            ImGui::SetCursorPosX(rowX);
 
-        ImGui::BeginDisabled(!g_sentCode);
-        ImGui::PushItemWidth(-1.f);
-        ImGui::InputTextWithHint("Code", "6 digit code", g_codeBuf, sizeof g_codeBuf);
-        ImGui::PopItemWidth();
-        ImGui::EndDisabled();
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
+        const float lineHeight = ImGui::GetTextLineHeight();
+        const ImVec2 dotCenter(ImGui::GetCursorScreenPos().x + dotRadius, ImGui::GetCursorScreenPos().y + lineHeight * 0.5f);
+        drawList->AddCircleFilled(dotCenter, dotRadius, ImGui::ColorConvertFloat4ToU32(authColor), 24);
+        ImGui::Dummy(ImVec2(dotRadius * 2.f, lineHeight));
+        ImGui::SameLine(0.f, 8.f);
+        ImGui::TextUnformatted(signedInText.c_str());
     }
 
     if (!loggedIn)
     {
+        ImGui::Spacing();
+        const float contentW = safePanelWidth - sidePadding * 2.f;
+        const float fieldGap = 10.f;
+        const float emailLabelW = ImGui::CalcTextSize("Email:").x;
+        const float codeLabelW = ImGui::CalcTextSize("Code:").x;
+        const float labelW = (emailLabelW > codeLabelW) ? emailLabelW : codeLabelW;
+        const float emailInputW = contentW - labelW - fieldGap;
+        const float codeInputW = 96.f; // Match the compact macOS code input feel.
+        const float leftX = sidePadding;
+
+        ImGui::SetCursorPosX(leftX);
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted("Email:");
+        ImGui::BeginDisabled(g_sentCode);
+        ImGui::SameLine(0.f, fieldGap);
+        ImGui::PushItemWidth(emailInputW);
+        InputTextWithPlaceholder("##email", "eg: john@smith.com", g_nicknameBuf, sizeof g_nicknameBuf);
+        DrawFocusedInputDecoration(ImGui::IsItemActive() || ImGui::IsItemFocused());
+        ImGui::PopItemWidth();
+        ImGui::EndDisabled();
+
+        ImGui::SetCursorPosX(leftX);
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted("Code:");
+        ImGui::BeginDisabled(!g_sentCode);
+        ImGui::SameLine(0.f, fieldGap);
+        ImGui::PushItemWidth(codeInputW);
+        InputTextWithPlaceholder("##code", "6 digit code", g_codeBuf, sizeof g_codeBuf,
+                                 ImGuiInputTextFlags_CharsDecimal);
+        StripNonDigits(g_codeBuf);
+        DrawFocusedInputDecoration(ImGui::IsItemActive() || ImGui::IsItemFocused());
+        ImGui::PopItemWidth();
+        ImGui::EndDisabled();
+
+        ImGui::SetCursorPosX(leftX);
+        {
+            ImDrawList* drawList = ImGui::GetWindowDrawList();
+            const float dotRadius = 5.f;
+            const float lineHeight = ImGui::GetTextLineHeight();
+            const ImVec2 dotCenter(ImGui::GetCursorScreenPos().x + dotRadius,
+                                   ImGui::GetCursorScreenPos().y + lineHeight * 0.5f);
+            drawList->AddCircleFilled(dotCenter, dotRadius, ImGui::ColorConvertFloat4ToU32(authColor), 24);
+            ImGui::Dummy(ImVec2(dotRadius * 2.f, lineHeight));
+            ImGui::SameLine(0.f, 8.f);
+        }
+        ImGui::TextUnformatted(authText);
+
+        const float buttonRowW = actionButtonWidth * 2.f + ImGui::GetStyle().ItemSpacing.x;
+        const float buttonX = safePanelWidth - sidePadding - buttonRowW;
+        if (buttonX > 0.f)
+            ImGui::SetCursorPosX(buttonX);
+
         if (!g_sentCode)
         {
-            if (ImGui::Button("Send Code", ImVec2(actionButtonWidth, 0.f)))
+            ImGui::BeginDisabled();
+            ImGui::Button("Start Again", ImVec2(actionButtonWidth, actionButtonHeight));
+            ImGui::EndDisabled();
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.00f, 0.48f, 1.00f, 1.00f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.10f, 0.56f, 1.00f, 1.00f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.00f, 0.40f, 0.86f, 1.00f));
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
+            if (g_boldUiFont)
+                ImGui::PushFont(g_boldUiFont);
+            if (ImGui::Button("Send Code", ImVec2(actionButtonWidth, actionButtonHeight)))
             {
                 TrimWhitespaceInPlace(g_nicknameBuf);
                 g_Settings()->Set("settings.generator.nickname", std::string(g_nicknameBuf));
@@ -487,14 +611,26 @@ static void DrawAccountTab()
                 g_sentCode = result.first;
                 SetStatus(result.second);
             }
-            ImGui::SameLine();
-            ImGui::BeginDisabled();
-            ImGui::Button("Start Again", ImVec2(actionButtonWidth, 0.f));
-            ImGui::EndDisabled();
+            if (g_boldUiFont)
+                ImGui::PopFont();
+            ImGui::PopStyleColor(4);
         }
         else
         {
-            if (ImGui::Button("Validate", ImVec2(actionButtonWidth, 0.f)))
+            if (ImGui::Button("Start again", ImVec2(actionButtonWidth, actionButtonHeight)))
+            {
+                g_sentCode = false;
+                g_codeBuf[0] = '\0';
+                SetStatus("Code flow restarted.");
+            }
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.00f, 0.48f, 1.00f, 1.00f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.10f, 0.56f, 1.00f, 1.00f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.00f, 0.40f, 0.86f, 1.00f));
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
+            if (g_boldUiFont)
+                ImGui::PushFont(g_boldUiFont);
+            if (ImGui::Button("Validate", ImVec2(actionButtonWidth, actionButtonHeight)))
             {
                 StripNonDigits(g_codeBuf);
                 if (EDreamClient::ValidateCode(std::string(g_codeBuf)))
@@ -519,21 +655,32 @@ static void DrawAccountTab()
                     SetStatus("Invalid code. Please try again.");
                 }
             }
-            ImGui::SameLine();
-            if (ImGui::Button("Start Again", ImVec2(actionButtonWidth, 0.f)))
-            {
-                g_sentCode = false;
-                g_codeBuf[0] = '\0';
-                SetStatus("Code flow restarted.");
-            }
+            if (g_boldUiFont)
+                ImGui::PopFont();
+            ImGui::PopStyleColor(4);
         }
-        ImGui::SameLine();
-        if (ImGui::Button("Need an account? Create one", ImVec2(220.f, 0.f)))
+
+        ImGui::SetCursorPosX(sidePadding);
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.90f, 0.90f, 0.90f, 1.00f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.86f, 0.86f, 0.86f, 1.00f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.82f, 0.82f, 0.82f, 1.00f));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.08f, 0.08f, 0.08f, 1.00f));
+        if (ImGui::Button("Need an account? Create one", ImVec2(contentW, actionButtonHeight)))
             PlatformUtils::OpenURLExternally(kUrlCreateAccount);
+        ImGui::PopStyleColor(4);
     }
     else
     {
-        if (ImGui::Button("Sign Out", ImVec2(actionButtonWidth, 0.f)))
+        const float signOutX = safePanelWidth - sidePadding - actionButtonWidth;
+        if (signOutX > 0.f)
+            ImGui::SetCursorPosX(signOutX);
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.00f, 0.48f, 1.00f, 1.00f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.10f, 0.56f, 1.00f, 1.00f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.00f, 0.40f, 0.86f, 1.00f));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
+        if (g_boldUiFont)
+            ImGui::PushFont(g_boldUiFont);
+        if (ImGui::Button("Sign out", ImVec2(actionButtonWidth, actionButtonHeight)))
         {
             std::strncpy(g_previousLoginEmailBuf, g_nicknameBuf, sizeof g_previousLoginEmailBuf - 1);
             g_previousLoginEmailBuf[sizeof g_previousLoginEmailBuf - 1] = '\0';
@@ -543,7 +690,12 @@ static void DrawAccountTab()
             g_codeBuf[0] = '\0';
             SetStatus("Signed out.");
         }
+        if (g_boldUiFont)
+            ImGui::PopFont();
+        ImGui::PopStyleColor(4);
     }
+
+    ImGui::EndChild();
 }
 
 static void DrawControlsTab()
@@ -607,10 +759,12 @@ static void DrawAdvancedTab()
 
 static void DrawSettingsDialog(float viewportW, float viewportH)
 {
-    const float windowWidth = (viewportW > 960.f) ? 860.f : (viewportW - 64.f);
-    const float windowHeight = (viewportH > 820.f) ? 680.f : (viewportH - 64.f);
-    const ImVec2 windowSize((windowWidth < 520.f) ? 520.f : windowWidth,
-                            (windowHeight < 420.f) ? 420.f : windowHeight);
+    const float targetWidth = 541.f;   // Match macOS settings dialog content width.
+    const float targetHeight = 390.f;  // Match macOS settings dialog content height.
+    const float windowWidth = (viewportW > (targetWidth + 64.f)) ? targetWidth : (viewportW - 32.f);
+    const float windowHeight = (viewportH > (targetHeight + 64.f)) ? targetHeight : (viewportH - 32.f);
+    const ImVec2 windowSize((windowWidth < 460.f) ? 460.f : windowWidth,
+                            (windowHeight < 340.f) ? 340.f : windowHeight);
     ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
     ImGui::SetNextWindowPos(ImVec2((viewportW - windowSize.x) * 0.5f, (viewportH - windowSize.y) * 0.5f),
                             ImGuiCond_Always);
@@ -646,41 +800,34 @@ static void DrawSettingsDialog(float viewportW, float viewportH)
 
         ImGui::BeginChild("settings_content_region", ImVec2(0.f, contentHeight), false,
                           ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-        if (EDreamClient::IsLoggedIn())
+        if (ImGui::BeginTabBar("settings_tabs"))
         {
-            if (ImGui::BeginTabBar("settings_tabs"))
+            if (ImGui::BeginTabItem("Account"))
             {
-                if (ImGui::BeginTabItem("Account"))
-                {
-                    DrawAccountTab();
-                    ImGui::EndTabItem();
-                }
-                if (ImGui::BeginTabItem("Controls"))
-                {
-                    DrawControlsTab();
-                    ImGui::EndTabItem();
-                }
-                if (ImGui::BeginTabItem("Disk"))
-                {
-                    DrawDiskTab();
-                    ImGui::EndTabItem();
-                }
-                if (ImGui::BeginTabItem("Display"))
-                {
-                    DrawDisplayTab();
-                    ImGui::EndTabItem();
-                }
-                if (ImGui::BeginTabItem("Advanced"))
-                {
-                    DrawAdvancedTab();
-                    ImGui::EndTabItem();
-                }
-                ImGui::EndTabBar();
+                DrawAccountTab();
+                ImGui::EndTabItem();
             }
-        }
-        else
-        {
-            DrawAccountTab();
+            if (ImGui::BeginTabItem("Controls"))
+            {
+                DrawControlsTab();
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Disk"))
+            {
+                DrawDiskTab();
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Display"))
+            {
+                DrawDisplayTab();
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Advanced"))
+            {
+                DrawAdvancedTab();
+                ImGui::EndTabItem();
+            }
+            ImGui::EndTabBar();
         }
         ImGui::EndChild();
 
@@ -713,13 +860,6 @@ static void DrawSettingsDialog(float viewportW, float viewportH)
             ImGui::SameLine();
             ImGui::SetCursorPosY(textY);
             ImGui::TextDisabled("%s", g_versionText.c_str());
-
-            if (g_statusBuf[0] != '\0')
-            {
-                ImGui::SameLine();
-                ImGui::SetCursorPosY(textY);
-                ImGui::TextDisabled(" | %s", g_statusBuf);
-            }
         }
         ImGui::EndChild();
     }
