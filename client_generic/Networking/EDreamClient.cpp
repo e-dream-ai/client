@@ -825,7 +825,7 @@ EDreamClient::SendCodeResult EDreamClient::SendCode() {
 
 std::pair<bool, std::string> EDreamClient::SendVerificationCodeOutcome()
 {
-    AuthResult r = SendCode();
+    SendCodeResult r = SendCode();
     return {r.success, std::move(r.message)};
 }
 
