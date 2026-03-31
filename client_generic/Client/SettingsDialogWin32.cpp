@@ -3,10 +3,14 @@
 #include "SettingsDialogWin32.h"
 
 #include <atomic>
+#include <cctype>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 #include <string_view>
+
+#include <shobjidl.h>
 
 #include <imgui.h>
 #include <imgui_impl_dx11.h>
@@ -72,6 +76,8 @@ bool g_keepScreensaverEnabled = false;
 
 bool g_sentCode = false;
 char g_statusBuf[256] = {};
+char g_previousLoginEmailBuf[256] = {};
+bool g_hasPreviousLoginEmail = false;
 
 static DisplayOutput::CDisplayDX11* TryGetDx11Display()
 {
@@ -140,6 +146,139 @@ static void SetStatus(const std::string& status)
     g_statusBuf[sizeof g_statusBuf - 1] = '\0';
 }
 
+static void TrimWhitespaceInPlace(char* s)
+{
+    if (!s)
+        return;
+
+    size_t len = std::strlen(s);
+    size_t first = 0;
+    while (first < len && std::isspace(static_cast<unsigned char>(s[first])) != 0)
+        ++first;
+    size_t last = len;
+    while (last > first && std::isspace(static_cast<unsigned char>(s[last - 1])) != 0)
+        --last;
+
+    if (first > 0)
+        std::memmove(s, s + first, last - first);
+    s[last - first] = '\0';
+}
+
+static void StripNonDigits(char* s)
+{
+    if (!s)
+        return;
+
+    size_t w = 0;
+    for (size_t r = 0; s[r] != '\0'; ++r)
+    {
+        if (std::isdigit(static_cast<unsigned char>(s[r])) != 0)
+        {
+            s[w++] = s[r];
+            if (w >= 6)
+                break;
+        }
+    }
+    s[w] = '\0';
+}
+
+static std::wstring Utf8ToWidePath(const std::string& utf8)
+{
+    if (utf8.empty())
+        return L"";
+    int n = MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, nullptr, 0);
+    if (n <= 0)
+        return L"";
+    std::wstring w(static_cast<size_t>(n), L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, w.data(), n);
+    if (!w.empty() && w.back() == L'\0')
+        w.pop_back();
+    return w;
+}
+
+static std::string WideToUtf8Path(const std::wstring& wide)
+{
+    if (wide.empty())
+        return std::string();
+
+    int n = WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), -1, nullptr, 0, nullptr, nullptr);
+    if (n <= 0)
+        return std::string();
+    std::string utf8(static_cast<size_t>(n), '\0');
+    WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), -1, utf8.data(), n, nullptr, nullptr);
+    if (!utf8.empty() && utf8.back() == '\0')
+        utf8.pop_back();
+    return utf8;
+}
+
+static bool ChooseContentFolder(char* outBuf, size_t outSize)
+{
+    HRESULT coInitHr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+    const bool shouldUninit = SUCCEEDED(coInitHr);
+    const bool canProceed = SUCCEEDED(coInitHr) || coInitHr == RPC_E_CHANGED_MODE;
+    if (!canProceed)
+        return false;
+
+    IFileOpenDialog* dialog = nullptr;
+    HRESULT hr = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER,
+                                  IID_PPV_ARGS(&dialog));
+    if (FAILED(hr) || !dialog)
+    {
+        if (shouldUninit)
+            CoUninitialize();
+        return false;
+    }
+
+    DWORD options = 0;
+    dialog->GetOptions(&options);
+    dialog->SetOptions(options | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST);
+
+    if (outBuf && outBuf[0] != '\0')
+    {
+        const std::wstring folder = Utf8ToWidePath(std::string(outBuf));
+        if (!folder.empty())
+        {
+            IShellItem* item = nullptr;
+            if (SUCCEEDED(SHCreateItemFromParsingName(folder.c_str(), nullptr, IID_PPV_ARGS(&item))))
+            {
+                dialog->SetFolder(item);
+                item->Release();
+            }
+        }
+    }
+
+    HWND owner = nullptr;
+    if (auto* dx = TryGetDx11Display())
+        owner = dx->GetWindowHandle();
+
+    bool selected = false;
+    if (SUCCEEDED(dialog->Show(owner)))
+    {
+        IShellItem* result = nullptr;
+        if (SUCCEEDED(dialog->GetResult(&result)) && result)
+        {
+            PWSTR folderW = nullptr;
+            if (SUCCEEDED(result->GetDisplayName(SIGDN_FILESYSPATH, &folderW)) && folderW)
+            {
+                const std::string folder = WideToUtf8Path(folderW);
+                if (!folder.empty())
+                {
+                    std::strncpy(outBuf, folder.c_str(), outSize - 1);
+                    outBuf[outSize - 1] = '\0';
+                    selected = true;
+                }
+                CoTaskMemFree(folderW);
+            }
+            result->Release();
+        }
+    }
+
+    dialog->Release();
+    if (shouldUninit)
+        CoUninitialize();
+    return selected;
+}
+
 static void CopySettingToBuf(const char* key, std::string_view fallback, char* outBuf, size_t outSize)
 {
     const std::string value = g_Settings()->Get(key, std::string(fallback));
@@ -152,6 +291,8 @@ static void LoadSettingsForShow()
     CopySettingToBuf("settings.generator.nickname", std::string(), g_nicknameBuf, sizeof g_nicknameBuf);
     g_codeBuf[0] = '\0';
     g_sentCode = false;
+    g_previousLoginEmailBuf[0] = '\0';
+    g_hasPreviousLoginEmail = false;
 
     g_playerFps = g_Settings()->Get("settings.player.player_fps", 23.0);
     g_displayFps = g_Settings()->Get("settings.player.display_fps", 60.0);
@@ -229,14 +370,19 @@ static void ResetFormForShow()
     LoadSettingsForShow();
 }
 
-static void CloseDialog()
+static void CloseDialog(bool saveBeforeClose)
 {
+    if (saveBeforeClose)
+        SaveSettings();
     g_visible.store(false, std::memory_order_release);
     g_pendingImGuiShutdown.store(true, std::memory_order_release);
 }
 
 static void DrawAccountTab()
 {
+    const bool loggedIn = EDreamClient::IsLoggedIn();
+    const float actionButtonWidth = 140.f;
+
     if (EDreamClient::IsLoggedIn())
     {
         ImGui::TextColored(ImVec4(0.3f, 1.0f, 0.3f, 1.0f), "Signed in as %s", g_nicknameBuf);
@@ -250,31 +396,57 @@ static void DrawAccountTab()
         ImGui::TextColored(ImVec4(1.0f, 0.45f, 0.45f, 1.0f), "Please sign in.");
     }
 
+    ImGui::BeginDisabled(loggedIn || g_sentCode);
+    ImGui::PushItemWidth(-1.f);
     ImGui::InputTextWithHint("Email", "john@smith.com", g_nicknameBuf, sizeof g_nicknameBuf);
-    ImGui::InputTextWithHint("Code", "6 digit code", g_codeBuf, sizeof g_codeBuf);
+    ImGui::PopItemWidth();
+    ImGui::EndDisabled();
 
-    if (!EDreamClient::IsLoggedIn())
+    ImGui::BeginDisabled(loggedIn || !g_sentCode);
+    ImGui::PushItemWidth(-1.f);
+    ImGui::InputTextWithHint("Code", "6 digit code", g_codeBuf, sizeof g_codeBuf);
+    ImGui::PopItemWidth();
+    ImGui::EndDisabled();
+
+    if (!loggedIn)
     {
         if (!g_sentCode)
         {
-            if (ImGui::Button("Send Code"))
+            if (ImGui::Button("Send Code", ImVec2(actionButtonWidth, 0.f)))
             {
+                TrimWhitespaceInPlace(g_nicknameBuf);
                 g_Settings()->Set("settings.generator.nickname", std::string(g_nicknameBuf));
                 g_Settings()->Storage()->Commit();
                 const auto result = EDreamClient::SendVerificationCodeOutcome();
                 g_sentCode = result.first;
                 SetStatus(result.second);
             }
+            ImGui::SameLine();
+            ImGui::BeginDisabled();
+            ImGui::Button("Start Again", ImVec2(actionButtonWidth, 0.f));
+            ImGui::EndDisabled();
         }
         else
         {
-            if (ImGui::Button("Validate"))
+            if (ImGui::Button("Validate", ImVec2(actionButtonWidth, 0.f)))
             {
+                StripNonDigits(g_codeBuf);
                 if (EDreamClient::ValidateCode(std::string(g_codeBuf)))
                 {
+                    const bool accountChanged =
+                        g_hasPreviousLoginEmail &&
+                        std::strcmp(g_previousLoginEmailBuf, g_nicknameBuf) != 0;
                     EDreamClient::DidSignIn();
                     g_sentCode = false;
                     SetStatus("Login successful.");
+                    if (accountChanged)
+                    {
+                        MessageBoxA(nullptr,
+                                    "infinidream will now exit. Please restart the application "
+                                    "to take your new settings into account.",
+                                    "Account Change Detected", MB_OK | MB_ICONINFORMATION);
+                        std::exit(0);
+                    }
                 }
                 else
                 {
@@ -282,7 +454,7 @@ static void DrawAccountTab()
                 }
             }
             ImGui::SameLine();
-            if (ImGui::Button("Start Again"))
+            if (ImGui::Button("Start Again", ImVec2(actionButtonWidth, 0.f)))
             {
                 g_sentCode = false;
                 g_codeBuf[0] = '\0';
@@ -292,8 +464,11 @@ static void DrawAccountTab()
     }
     else
     {
-        if (ImGui::Button("Sign Out"))
+        if (ImGui::Button("Sign Out", ImVec2(actionButtonWidth, 0.f)))
         {
+            std::strncpy(g_previousLoginEmailBuf, g_nicknameBuf, sizeof g_previousLoginEmailBuf - 1);
+            g_previousLoginEmailBuf[sizeof g_previousLoginEmailBuf - 1] = '\0';
+            g_hasPreviousLoginEmail = true;
             EDreamClient::SignOut();
             g_sentCode = false;
             g_codeBuf[0] = '\0';
@@ -302,7 +477,7 @@ static void DrawAccountTab()
     }
 
     ImGui::SameLine();
-    if (ImGui::Button("Need an account? Create one"))
+    if (ImGui::Button("Need an account? Create one", ImVec2(220.f, 0.f)))
         PlatformUtils::OpenURLExternally(kUrlCreateAccount);
 }
 
@@ -320,7 +495,21 @@ static void DrawControlsTab()
 
 static void DrawDiskTab()
 {
+    const float chooseButtonWidth = 100.f;
+    const float itemSpacing = ImGui::GetStyle().ItemSpacing.x;
+    float contentWidth = ImGui::GetContentRegionAvail().x - chooseButtonWidth - itemSpacing;
+    if (contentWidth < 160.f)
+        contentWidth = 160.f;
+
+    ImGui::PushItemWidth(contentWidth);
     ImGui::InputText("Content Folder", g_contentDirBuf, sizeof g_contentDirBuf);
+    ImGui::PopItemWidth();
+    ImGui::SameLine();
+    if (ImGui::Button("Choose...", ImVec2(chooseButtonWidth, 0.f)))
+    {
+        if (ChooseContentFolder(g_contentDirBuf, sizeof g_contentDirBuf))
+            SetStatus("Content folder updated.");
+    }
     ImGui::Checkbox("Unlimited cache", &g_unlimitedCache);
     if (!g_unlimitedCache)
         ImGui::InputInt("Max disk space (GB)", &g_cacheSizeGb);
@@ -328,95 +517,113 @@ static void DrawDiskTab()
 
 static void DrawDisplayTab()
 {
-    ImGui::InputDouble("Player FPS", &g_playerFps);
-    ImGui::InputDouble("Display FPS", &g_displayFps);
-    ImGui::Checkbox("Vertical Synchronization", &g_vsync);
-    ImGui::Checkbox("Black Out Other Monitors In Fullscreen", &g_blackoutMonitors);
     ImGui::Checkbox("Preserve Aspect Ratio", &g_preserveAR);
 }
 
 static void DrawAdvancedTab()
 {
-    ImGui::Checkbox("Quiet Mode", &g_quietMode);
-    ImGui::Checkbox("Show Attribution", &g_showAttribution);
-    ImGui::Checkbox("Log Debug Messages", &g_debugLog);
-
-    ImGui::Separator();
     ImGui::Checkbox("Use Proxy", &g_useProxy);
+    ImGui::PushItemWidth(-1.f);
     ImGui::InputText("Proxy Host", g_proxyHostBuf, sizeof g_proxyHostBuf);
     ImGui::InputText("Proxy Login", g_proxyLoginBuf, sizeof g_proxyLoginBuf);
     ImGui::InputText("Proxy Password", g_proxyPasswordBuf, sizeof g_proxyPasswordBuf,
                      ImGuiInputTextFlags_Password);
+    ImGui::PopItemWidth();
 
+#ifdef DEBUG
     ImGui::Separator();
+    ImGui::PushItemWidth(-1.f);
     ImGui::InputText("Server", g_serverBuf, sizeof g_serverBuf);
+    ImGui::PopItemWidth();
+#endif
     ImGui::Checkbox("Install and update screensaver", &g_autoInstallScreensaver);
     ImGui::Checkbox("Keep screensaver enabled", &g_keepScreensaverEnabled);
 }
 
 static void DrawSettingsDialog(float viewportW, float viewportH)
 {
-    const ImVec2 windowSize(760.f, 560.f);
+    const float windowWidth = (viewportW > 960.f) ? 860.f : (viewportW - 64.f);
+    const float windowHeight = (viewportH > 740.f) ? 620.f : (viewportH - 64.f);
+    const ImVec2 windowSize((windowWidth < 520.f) ? 520.f : windowWidth,
+                            (windowHeight < 420.f) ? 420.f : windowHeight);
     ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
     ImGui::SetNextWindowPos(ImVec2((viewportW - windowSize.x) * 0.5f, (viewportH - windowSize.y) * 0.5f),
                             ImGuiCond_Always);
 
-    ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse;
-    if (ImGui::Begin("Settings", nullptr, flags))
+    ImGui::GetBackgroundDrawList()->AddRectFilled(ImVec2(0.f, 0.f), ImVec2(viewportW, viewportH),
+                                                  IM_COL32(8, 10, 14, 150));
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(18.f, 16.f));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 6.f);
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.f, 10.f));
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.10f, 0.11f, 0.14f, 0.98f));
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.22f, 0.24f, 0.30f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(0.17f, 0.19f, 0.23f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(0.24f, 0.35f, 0.55f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_TabHovered, ImVec4(0.28f, 0.41f, 0.62f, 1.00f));
+
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
+                             ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove;
+    if (ImGui::Begin("##SettingsDialog", nullptr, flags))
     {
-        ImGui::TextUnformatted("Windows Settings");
+        if (EDreamClient::IsLoggedIn())
+        {
+            if (ImGui::BeginTabBar("settings_tabs"))
+            {
+                if (ImGui::BeginTabItem("Account"))
+                {
+                    DrawAccountTab();
+                    ImGui::EndTabItem();
+                }
+                if (ImGui::BeginTabItem("Controls"))
+                {
+                    DrawControlsTab();
+                    ImGui::EndTabItem();
+                }
+                if (ImGui::BeginTabItem("Disk"))
+                {
+                    DrawDiskTab();
+                    ImGui::EndTabItem();
+                }
+                if (ImGui::BeginTabItem("Display"))
+                {
+                    DrawDisplayTab();
+                    ImGui::EndTabItem();
+                }
+                if (ImGui::BeginTabItem("Advanced"))
+                {
+                    DrawAdvancedTab();
+                    ImGui::EndTabItem();
+                }
+                ImGui::EndTabBar();
+            }
+        }
+        else
+        {
+            DrawAccountTab();
+        }
+
         ImGui::Separator();
-
-        if (ImGui::BeginTabBar("settings_tabs"))
-        {
-            if (ImGui::BeginTabItem("Account"))
-            {
-                DrawAccountTab();
-                ImGui::EndTabItem();
-            }
-            if (ImGui::BeginTabItem("Controls"))
-            {
-                DrawControlsTab();
-                ImGui::EndTabItem();
-            }
-            if (ImGui::BeginTabItem("Disk"))
-            {
-                DrawDiskTab();
-                ImGui::EndTabItem();
-            }
-            if (ImGui::BeginTabItem("Display"))
-            {
-                DrawDisplayTab();
-                ImGui::EndTabItem();
-            }
-            if (ImGui::BeginTabItem("Advanced"))
-            {
-                DrawAdvancedTab();
-                ImGui::EndTabItem();
-            }
-            ImGui::EndTabBar();
-        }
-
-        ImGui::Spacing();
-        if (ImGui::Button("Save", ImVec2(140.f, 0.f)))
-        {
-            SaveSettings();
-            SetStatus("Saved. Restart may be required for some changes.");
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Close", ImVec2(140.f, 0.f)))
-            CloseDialog();
-
         if (g_statusBuf[0] != '\0')
         {
-            ImGui::Spacing();
             ImGui::TextDisabled("%s", g_statusBuf);
         }
+
+        const float closeButtonWidth = 150.f;
+        const float closeButtonHeight = 32.f;
+        const float x = ImGui::GetContentRegionAvail().x - closeButtonWidth;
+        if (x > 0.f)
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + x);
+        if (ImGui::Button("Close", ImVec2(closeButtonWidth, closeButtonHeight)))
+            CloseDialog(true);
     }
     ImGui::End();
+    ImGui::PopStyleColor(5);
+    ImGui::PopStyleVar(4);
 
     if (ImGui::IsKeyPressed(ImGuiKey_Escape))
-        CloseDialog();
+        CloseDialog(true);
 }
 
 } // namespace
