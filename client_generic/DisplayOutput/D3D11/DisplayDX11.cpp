@@ -179,13 +179,15 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
 
 HWND CDisplayDX11::CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen) {
     HMODULE hInstance = GetModuleHandle(NULL);
+    HICON appIcon = LoadIcon(hInstance, MAKEINTRESOURCE(1));
 
     WNDCLASSEX wc = {};
     wc.cbSize = sizeof(WNDCLASSEX);
     wc.style = CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc = WndProc;
     wc.hInstance = hInstance;
-    wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+    wc.hIcon = appIcon ? appIcon : LoadIcon(NULL, IDI_APPLICATION);
+    wc.hIconSm = wc.hIcon;
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
     wc.lpszClassName = L"EDreamDX11Class";
 
