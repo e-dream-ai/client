@@ -58,7 +58,9 @@ ImGui::SameLine(0.f, 8.f);
 ImGui::AlignTextToFramePadding();
 ImGui::BeginDisabled(g_unlimitedCache);
 ImGui::PushItemWidth(84.f);
-ImGui::InputInt("##max_cache_gb", &g_cacheSizeGb, 0, 0);
+ImGui::InputInt("##max_cache_gb", &g_cacheSizeGb, 0, 0, ImGuiInputTextFlags_CharsDecimal);
+if (g_cacheSizeGb < 0)
+    g_cacheSizeGb = 0;
 DrawFocusedInputDecoration(ImGui::IsItemActive() || ImGui::IsItemFocused());
 ImGui::PopItemWidth();
 ImGui::EndDisabled();
