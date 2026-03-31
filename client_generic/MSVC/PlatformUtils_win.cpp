@@ -14,6 +14,7 @@
 #include <array>
 #include <cctype>
 #include <cstdio>
+#include <vector>
 
 namespace
 {
@@ -55,19 +56,65 @@ std::string RunCommandAndGetFirstLine(const char* command)
     if (!command || !*command)
         return {};
 
-    FILE* pipe = _popen(command, "r");
-    if (!pipe)
+    SECURITY_ATTRIBUTES sa{};
+    sa.nLength = sizeof(sa);
+    sa.lpSecurityDescriptor = nullptr;
+    sa.bInheritHandle = TRUE;
+
+    HANDLE readPipe = nullptr;
+    HANDLE writePipe = nullptr;
+    if (!CreatePipe(&readPipe, &writePipe, &sa, 0))
         return {};
+
+    // Reader handle must not be inherited by child process.
+    SetHandleInformation(readPipe, HANDLE_FLAG_INHERIT, 0);
+
+    std::string cmdLine = "cmd.exe /C ";
+    cmdLine += command;
+    std::vector<char> mutableCmd(cmdLine.begin(), cmdLine.end());
+    mutableCmd.push_back('\0');
+
+    STARTUPINFOA si{};
+    si.cb = sizeof(si);
+    si.dwFlags = STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
+    si.wShowWindow = SW_HIDE;
+    si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+    si.hStdOutput = writePipe;
+    si.hStdError = writePipe;
+
+    PROCESS_INFORMATION pi{};
+    const BOOL created =
+        CreateProcessA(nullptr, mutableCmd.data(), nullptr, nullptr, TRUE,
+                       CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi);
+
+    // Parent never writes to child stdout/stderr.
+    CloseHandle(writePipe);
+    writePipe = nullptr;
+
+    if (!created)
+    {
+        CloseHandle(readPipe);
+        return {};
+    }
 
     std::array<char, 512> buffer{};
     std::string output;
-    while (fgets(buffer.data(), static_cast<int>(buffer.size()), pipe) != nullptr)
+    DWORD bytesRead = 0;
+    while (ReadFile(readPipe, buffer.data(),
+                    static_cast<DWORD>(buffer.size() - 1), &bytesRead, nullptr) &&
+           bytesRead > 0)
     {
-        output += buffer.data();
+        output.append(buffer.data(), bytesRead);
         if (output.size() > 8192)
             break;
     }
-    _pclose(pipe);
+
+    CloseHandle(readPipe);
+    readPipe = nullptr;
+
+    WaitForSingleObject(pi.hProcess, 5000);
+    CloseHandle(pi.hThread);
+    CloseHandle(pi.hProcess);
 
     if (output.empty())
         return {};

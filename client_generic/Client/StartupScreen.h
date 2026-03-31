@@ -4,6 +4,7 @@
 #include "Console.h"
 #include "Hud.h"
 #include "Rect.h"
+#include <algorithm>
 #include <sstream>
 
 namespace Hud
@@ -25,6 +26,7 @@ class CStartupScreen : public CHudEntry
     bool m_IsFading = false;
     double m_FadeStartTime = 0.0;
     const double m_FadeDuration = 5.0; 
+    bool m_TextureUploaded = false;
     
   public:
     CStartupScreen(Base::Math::CRect _rect, const std::string& _FontName,
@@ -49,15 +51,17 @@ class CStartupScreen : public CHudEntry
         m_spImageRef->Create(256, 256, DisplayOutput::eImage_RGBA8, false,
                              true);
 #ifndef LINUX_GNU
-        m_spImageRef->Load(
-            g_Settings()->Get("settings.app.InstallDir", PlatformUtils::GetWorkingDir()) +
-                "logo.png",
-            false);
+        std::string installDir =
+            g_Settings()->Get("settings.app.InstallDir", PlatformUtils::GetWorkingDir());
+        if (!installDir.empty() && installDir.back() != '/' && installDir.back() != '\\')
+            installDir += '/';
+        m_spImageRef->Load(installDir + "logo.png", false);
 #else
-        m_spImageRef->Load(
-            g_Settings()->Get("settings.app.InstallDir", PlatformUtils::GetWorkingDir()) +
-                "logo.png",
-            false);
+        std::string installDir =
+            g_Settings()->Get("settings.app.InstallDir", PlatformUtils::GetWorkingDir());
+        if (!installDir.empty() && installDir.back() != '/')
+            installDir += '/';
+        m_spImageRef->Load(installDir + "logo.png", false);
 #endif
         DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
         float aspect = (spDisplay && spDisplay->Width() != 0) ? spDisplay->Aspect() : 1.0f;
@@ -119,14 +123,16 @@ class CStartupScreen : public CHudEntry
 
         // draw picture
 
-        DisplayOutput::spCImage tmpImage =
-            std::make_shared<DisplayOutput::CImage>();
         if (m_spImageRef)
         {
-            // Only create the texture if we don't have one, if we do, reuse it
+            // Create and upload once; reusing GPU texture avoids per-frame stalls on startup.
             if (!m_spVideoTexture)
                 m_spVideoTexture = _spRenderer->NewTextureFlat();
-            m_spVideoTexture->Upload(m_spImageRef);
+            if (m_spVideoTexture && !m_TextureUploaded)
+            {
+                m_spVideoTexture->Upload(m_spImageRef);
+                m_TextureUploaded = true;
+            }
         }
 
         if (!m_spVideoTexture)

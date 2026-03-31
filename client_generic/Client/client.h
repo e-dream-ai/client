@@ -879,8 +879,6 @@ class CElectricSheep
 
     bool Run()
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-
         while (true)
         {
             // TODO : Some renderer changes have happened here
