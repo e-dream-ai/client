@@ -559,15 +559,15 @@ class CElectricSheep_Win32 : public CElectricSheep
                 //	All other keys close...
                 default:
                 {
-                    // In app/player modes, ignore unmapped keys.
                     // Keep legacy "any key closes" behavior for saver/preview.
                     if (m_ScrMode == eSaver || m_ScrMode == ePreview)
                     {
                         g_Log->Info("Unhandled key event in saver/preview, closing");
                         return false;
                     }
-                    g_Log->Info("Unhandled key event, ignoring");
-                    return true;
+                    // In app/player modes, let the core client command handler
+                    // process hotkeys first.
+                    return false;
                 }
                 }
                 return true;
@@ -638,7 +638,17 @@ class CElectricSheep_Win32 : public CElectricSheep
             if (HandleOneEvent(spEvent) == false)
             {
                 if (CElectricSheep::HandleOneEvent(spEvent) == false)
+                {
+                    if (spEvent->Type() == DisplayOutput::CEvent::Event_KEY &&
+                        (m_ScrMode == eWindowed ||
+                         m_ScrMode == eWindowed_AllowMultipleInstances ||
+                         m_ScrMode == eFullScreenStandalone))
+                    {
+                        // In app/player modes, ignore truly unmapped keys.
+                        continue;
+                    }
                     return false;
+                }
             }
         }
 
