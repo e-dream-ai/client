@@ -124,7 +124,7 @@ public:
     int getLoopIterations() const { return m_loopIterations; }
     void setLoopIterations(int iterations) { m_loopIterations = iterations; }
     int getCurrentLoopCount() const { return m_currentLoopCount; }
-    const std::string& getCurrentDreamUUID() const { return m_currentDreamUUID; }
+    std::string getCurrentDreamUUID() const;
 
     // Actually move to the next dream based on preflight decision
     const Cache::Dream* moveToNextDream(const NextDreamDecision& decision);
@@ -154,11 +154,11 @@ public:
 
     // Set the current position in the playlist
     void setCurrentPosition(size_t position);
-    size_t getCurrentPosition() const { return m_currentPosition; }
+    size_t getCurrentPosition() const;
 
     // Playback mode control
-    void setPlaybackMode(PlaybackMode mode) { m_playbackMode = mode; }
-    PlaybackMode getPlaybackMode() const { return m_playbackMode; }
+    void setPlaybackMode(PlaybackMode mode);
+    PlaybackMode getPlaybackMode() const;
     
     // Get the total number of dreams in the playlist
     size_t getPlaylistSize() const;
@@ -202,6 +202,7 @@ private:
     size_t m_currentPosition;
     const Cache::Dream* m_currentDream;
     std::string m_currentDreamUUID;  // Store the UUID of the currently playing dream
+    mutable std::mutex m_stateMutex;
 
     Cache::CacheManager& m_cacheManager;
 

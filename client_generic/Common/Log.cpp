@@ -290,8 +290,9 @@ void CLog::Log(
 #define grabvarargs                                                            \
     va_list ArgPtr;                                                            \
     char pTempStr[m_MaxMessageLength];                                         \
+    std::string fmtString(_pFmt);                                              \
     va_start(ArgPtr, _pFmt);                                                   \
-    vsnprintf(pTempStr, m_MaxMessageLength, _pFmt.data(), ArgPtr);             \
+    vsnprintf(pTempStr, m_MaxMessageLength, fmtString.c_str(), ArgPtr);        \
     va_end(ArgPtr);
 
 //    Def our loggers.

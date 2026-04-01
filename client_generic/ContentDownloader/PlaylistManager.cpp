@@ -25,6 +25,26 @@ void PlaylistManager::setOfflineMode(bool offline) {
     m_offlineMode = offline;
 }
 
+std::string PlaylistManager::getCurrentDreamUUID() const {
+    std::lock_guard<std::mutex> lock(m_stateMutex);
+    return m_currentDreamUUID;
+}
+
+size_t PlaylistManager::getCurrentPosition() const {
+    std::lock_guard<std::mutex> lock(m_stateMutex);
+    return m_currentPosition;
+}
+
+void PlaylistManager::setPlaybackMode(PlaybackMode mode) {
+    std::lock_guard<std::mutex> lock(m_stateMutex);
+    m_playbackMode = mode;
+}
+
+PlaybackMode PlaylistManager::getPlaybackMode() const {
+    std::lock_guard<std::mutex> lock(m_stateMutex);
+    return m_playbackMode;
+}
+
 // MARK: Init
 bool PlaylistManager::initializePlaylist(const std::string& playlistUUID, bool fetchPlaylist = true) {
     m_initializeInProgress = true;
@@ -56,7 +76,10 @@ bool PlaylistManager::initializePlaylist(const std::string& playlistUUID, bool f
     
     m_currentPosition = 0;
     m_started = false;
-    m_currentDreamUUID = m_playlist.empty() ? "" : m_playlist[0].uuid;
+    {
+        std::lock_guard<std::mutex> lock(m_stateMutex);
+        m_currentDreamUUID = m_playlist.empty() ? "" : m_playlist[0].uuid;
+    }
 
     // Clear play history when switching playlists to prevent out-of-bounds access
     resetPlayHistory();
@@ -88,7 +111,10 @@ void PlaylistManager::initializeOfflinePlaylist() {
 
     m_currentPosition = 0;
     m_started = false;
-    m_currentDreamUUID = m_playlist.empty() ? "" : m_playlist[0].uuid;
+    {
+        std::lock_guard<std::mutex> lock(m_stateMutex);
+        m_currentDreamUUID = m_playlist.empty() ? "" : m_playlist[0].uuid;
+    }
 
     // Clear play history when initializing offline playlist
     resetPlayHistory();
@@ -909,7 +935,10 @@ const Cache::Dream* PlaylistManager::moveToNextDream(const NextDreamDecision& de
     }
 
     // Update current dream info
-    m_currentDreamUUID = m_playlist[m_currentPosition].uuid;
+    {
+        std::lock_guard<std::mutex> lock(m_stateMutex);
+        m_currentDreamUUID = m_playlist[m_currentPosition].uuid;
+    }
     m_currentDream = decision.dream;
     
     g_Log->Info("moveToNextDream : %s (pos: %zu, transition: %d)",
@@ -936,7 +965,10 @@ std::optional<PlaylistManager::DreamLookupResult> PlaylistManager::getDreamByUUI
 
     // Dream is in the playlist, update the position
     m_currentPosition = std::distance(m_playlist.begin(), it);
-    m_currentDreamUUID = dreamUUID;
+    {
+        std::lock_guard<std::mutex> lock(m_stateMutex);
+        m_currentDreamUUID = dreamUUID;
+    }
     m_currentDream = m_cacheManager.getDream(dreamUUID);
     
     if (!m_currentDream) {
@@ -998,7 +1030,10 @@ const Cache::Dream* PlaylistManager::getPreviousDream() {
         }
     }
     
-    m_currentDreamUUID = m_playlist[m_currentPosition].uuid;
+    {
+        std::lock_guard<std::mutex> lock(m_stateMutex);
+        m_currentDreamUUID = m_playlist[m_currentPosition].uuid;
+    }
     m_currentDream = m_cacheManager.getDream(m_currentDreamUUID);
     
     g_Log->Info("getPreviousDream : %s (pos: %zu)", m_currentDreamUUID.c_str(), m_currentPosition);
@@ -1029,10 +1064,12 @@ std::string PlaylistManager::getPlaylistName() const {
 }
 
 std::string PlaylistManager::getPlaylistUUID() const {
+    std::lock_guard<std::mutex> lock(m_stateMutex);
     return m_currentPlaylistUUID;
 }
 
 size_t PlaylistManager::getPlaylistSize() const {
+    std::lock_guard<std::mutex> lock(m_stateMutex);
     return m_playlist.size();
 }
 
@@ -1159,7 +1196,7 @@ bool PlaylistManager::checkForPlaylistChanges() {
 }
 
 bool PlaylistManager::updatePlaylist(bool alreadyFetched) {
-    std::string currentDreamUUID = m_currentDreamUUID;
+    std::string currentDreamUUID = getCurrentDreamUUID();
     size_t oldPosition = m_currentPosition;
 
     if (!alreadyFetched) {
@@ -1185,7 +1222,10 @@ bool PlaylistManager::updatePlaylist(bool alreadyFetched) {
     }
 
     // Update the current dream UUID
-    m_currentDreamUUID = m_playlist[m_currentPosition].uuid;
+    {
+        std::lock_guard<std::mutex> lock(m_stateMutex);
+        m_currentDreamUUID = m_playlist[m_currentPosition].uuid;
+    }
 
     g_Log->Info("Playlist updated. New position: %zu, Current dream UUID: %s (old position: %zu, old uuid : %s)",
                 m_currentPosition, m_currentDreamUUID.c_str(), oldPosition, currentDreamUUID.c_str());

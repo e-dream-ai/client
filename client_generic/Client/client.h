@@ -1518,8 +1518,10 @@ class CElectricSheep
                 std::string playlistUUID = g_Player().GetPlaylistManager().getPlaylistUUID();
                 size_t currentPosition = g_Player().GetPlaylistManager().getCurrentPosition();
                 size_t playlistSize = g_Player().GetPlaylistManager().getPlaylistSize();
-                auto currentDream = g_Player().GetPlaylistManager().getCurrentDream();
-                std::string dreamUUID = currentDream ? currentDream->uuid : "None";
+                std::string dreamUUID = g_Player().GetPlaylistManager().getCurrentDreamUUID();
+                if (dreamUUID.empty()) {
+                    dreamUUID = "None";
+                }
                 PlaybackMode mode = g_Player().GetPlaylistManager().getPlaybackMode();
 
                 // If playlist changed, reset prev to -1

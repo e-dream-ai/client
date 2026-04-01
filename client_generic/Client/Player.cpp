@@ -132,7 +132,7 @@ bool CPlayer::IsOfflineMode() const
 #ifdef WIN32
 void CPlayer::SetHWND(HWND _hWnd)
 {
-    g_Log->Info("Got hwnd... (0x%x)", _hWnd);
+    g_Log->Info("Got hwnd... (%p)", static_cast<void*>(_hWnd));
     m_hWnd = _hWnd;
 };
 #endif
