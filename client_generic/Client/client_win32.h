@@ -66,6 +66,7 @@ class CElectricSheep_Win32 : public CElectricSheep
     int32_t m_MouseX, m_MouseY;
 
     bool m_bAllowFKey;
+    bool m_bCtrlDown;
 
     //	Grab a string from the registry.
     HRESULT RegGetString(HKEY hKey, LPCSTR szValueName, LPSTR* lpszResult)
@@ -139,6 +140,7 @@ class CElectricSheep_Win32 : public CElectricSheep
     {
         printf("CElectricSheep_Win32()\n");
         m_bAllowFKey = false;
+        m_bCtrlDown = false;
         //m_pD3D12 = NULL;
 
 
@@ -501,6 +503,30 @@ class CElectricSheep_Win32 : public CElectricSheep
     
     virtual bool HandleOneEvent(DisplayOutput::spCEvent& _event)
     {
+        auto toggleFullscreenInPlace = [this]() -> bool
+        {
+            DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
+            if (!spDisplay)
+            {
+                g_Log->Warning("Fullscreen toggle requested but display is null");
+                return false;
+            }
+
+            if (!spDisplay->ToggleFullscreen())
+            {
+                g_Log->Warning("Fullscreen toggle failed");
+                return false;
+            }
+
+            const bool nowFullscreen = spDisplay->IsFullscreen();
+            g_Client()->SetIsFullScreen(nowFullscreen);
+            if (nowFullscreen)
+                m_ScrMode = eFullScreenStandalone;
+            else
+                m_ScrMode = m_MultipleInstancesMode ? eWindowed_AllowMultipleInstances : eWindowed;
+            return true;
+        };
+
         //	Handle events.
         if (_event->Type() == DisplayOutput::CEvent::Event_Power)
         {
@@ -513,37 +539,30 @@ class CElectricSheep_Win32 : public CElectricSheep
             {
                 DisplayOutput::spCKeyEvent spKey =
                     std::dynamic_pointer_cast<DisplayOutput::CKeyEvent>(_event);
+                m_bCtrlDown = ((GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0);
 
                 switch (spKey->m_Code)
                 {
                 case DisplayOutput::CKeyEvent::KEY_Esc:
-                    if (m_ScrMode !=
-                        eFullScreenStandalone) // esc exits windowed and
-                                               // screensaver mode
+                    if (m_ScrMode == eSaver || m_ScrMode == ePreview)
                         return false;
-                    else
                     {
-                        ::Base::RecreateProcess(std::string("-X"));
-                        return false;
+                        DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
+                        if (spDisplay && spDisplay->IsFullscreen())
+                            return toggleFullscreenInPlace();
                     }
+                    return false;
                     break;
 
                 case DisplayOutput::CKeyEvent::KEY_F:
+                    if (m_ScrMode != eSaver && m_bCtrlDown)
+                        return toggleFullscreenInPlace();
                     if (m_bAllowFKey == true)
-                    {
-                        if (m_ScrMode == eWindowed ||
-                            m_ScrMode == eWindowed_AllowMultipleInstances)
-                        {
-                            // restart or change display here
-                            ::Base::RecreateProcess(std::string("-R"));
-                            return false;
-                        }
-                        else
-                        {
-                            ::Base::RecreateProcess(std::string("-X"));
-                            return false;
-                        }
-                    }
+                        return toggleFullscreenInPlace();
+                    break;
+                case DisplayOutput::CKeyEvent::KEY_F11:
+                    if (m_ScrMode != eSaver)
+                        return toggleFullscreenInPlace();
                     break;
                 case DisplayOutput::CKeyEvent::KEY_TAB:
                     if (m_ScrMode != eWindowed &&
@@ -554,6 +573,7 @@ class CElectricSheep_Win32 : public CElectricSheep
                 case DisplayOutput::CKeyEvent::KEY_LALT:
                 case DisplayOutput::CKeyEvent::KEY_MENU:
                 case DisplayOutput::CKeyEvent::KEY_CTRL:
+                    m_bCtrlDown = ((GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0);
                     break;
 
                 //	All other keys close...

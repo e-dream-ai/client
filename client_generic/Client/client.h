@@ -353,7 +353,11 @@ class CElectricSheep
             "L: skip 10 seconds forward\t\t\t\tRight: next dream\n"
             "R: repeat current dream\t\t\t      H: shuffle mode\n"
             "C: show credit\t\t\t\t\t\t                   B: report this dream\n"
+#ifdef WIN32
+            "V: open web source\t\t\t\t            F11 or Control-F: toggle full screen\n"
+#else
             "V: open web source\t\t\t\t            " FULLSCREEN_MODIFIER_KEY "-F: toggle full screen\n"
+#endif
             "F1: help (this page)\t\t\t\t              F2: status overlay\n\n"
 #endif
 

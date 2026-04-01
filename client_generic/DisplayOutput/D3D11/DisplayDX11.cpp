@@ -151,7 +151,10 @@ static void EnforceSizingAspect16By9(HWND hWnd, WPARAM edge, RECT* rc)
 
 } // namespace
 
-CDisplayDX11::CDisplayDX11() : CDisplayOutput(), m_WindowHandle(nullptr) {
+CDisplayDX11::CDisplayDX11()
+    : CDisplayOutput(), m_WindowHandle(nullptr), m_windowedStyle(0),
+      m_windowedExStyle(0), m_hasWindowedRect(false) {
+    m_windowedRect = {0, 0, 0, 0};
     g_Log->Info("CDisplayDX11()");
 }
 
@@ -489,6 +492,69 @@ void CDisplayDX11::SwapBuffers()
             // Handle device lost
         }
     }
+}
+
+bool CDisplayDX11::SetFullscreen(const bool fullscreen)
+{
+    if (!m_WindowHandle || !m_swapChain)
+        return false;
+    if (m_bFullScreen == fullscreen)
+        return true;
+
+    if (fullscreen)
+    {
+        m_windowedStyle = static_cast<DWORD>(GetWindowLongPtr(m_WindowHandle, GWL_STYLE));
+        m_windowedExStyle = static_cast<DWORD>(GetWindowLongPtr(m_WindowHandle, GWL_EXSTYLE));
+        if (GetWindowRect(m_WindowHandle, &m_windowedRect))
+            m_hasWindowedRect = true;
+
+        const HRESULT fsHr = m_swapChain->SetFullscreenState(TRUE, nullptr);
+        if (FAILED(fsHr))
+            g_Log->Warning("SetFullscreenState(TRUE) failed: %08X", fsHr);
+
+        HMONITOR monitor = MonitorFromWindow(m_WindowHandle, MONITOR_DEFAULTTONEAREST);
+        MONITORINFO mi = {};
+        mi.cbSize = sizeof(mi);
+        if (GetMonitorInfo(monitor, &mi))
+        {
+            SetWindowLongPtr(m_WindowHandle, GWL_STYLE, static_cast<LONG_PTR>(WS_POPUP | WS_VISIBLE));
+            SetWindowPos(m_WindowHandle, HWND_TOP, mi.rcMonitor.left, mi.rcMonitor.top,
+                         mi.rcMonitor.right - mi.rcMonitor.left,
+                         mi.rcMonitor.bottom - mi.rcMonitor.top,
+                         SWP_FRAMECHANGED | SWP_SHOWWINDOW | SWP_NOOWNERZORDER);
+        }
+        ShowCursor(FALSE);
+        m_bFullScreen = true;
+        return true;
+    }
+
+    const HRESULT wsHr = m_swapChain->SetFullscreenState(FALSE, nullptr);
+    if (FAILED(wsHr))
+        g_Log->Warning("SetFullscreenState(FALSE) failed: %08X", wsHr);
+
+    DWORD restoreStyle = m_windowedStyle ? m_windowedStyle : WS_OVERLAPPEDWINDOW;
+    SetWindowLongPtr(m_WindowHandle, GWL_STYLE, static_cast<LONG_PTR>(restoreStyle));
+    SetWindowLongPtr(m_WindowHandle, GWL_EXSTYLE, static_cast<LONG_PTR>(m_windowedExStyle));
+
+    RECT windowRect = m_windowedRect;
+    if (!m_hasWindowedRect)
+    {
+        windowRect.left = CW_USEDEFAULT;
+        windowRect.top = CW_USEDEFAULT;
+        windowRect.right = windowRect.left + static_cast<LONG>(m_Width);
+        windowRect.bottom = windowRect.top + static_cast<LONG>(m_Height);
+    }
+    SetWindowPos(m_WindowHandle, HWND_NOTOPMOST, windowRect.left, windowRect.top,
+                 windowRect.right - windowRect.left, windowRect.bottom - windowRect.top,
+                 SWP_FRAMECHANGED | SWP_SHOWWINDOW | SWP_NOOWNERZORDER);
+    ShowCursor(TRUE);
+    m_bFullScreen = false;
+    return true;
+}
+
+bool CDisplayDX11::ToggleFullscreen()
+{
+    return SetFullscreen(!m_bFullScreen);
 }
 
 

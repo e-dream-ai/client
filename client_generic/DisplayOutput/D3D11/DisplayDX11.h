@@ -17,6 +17,10 @@ private:
     ComPtr<ID3D11DeviceContext> m_context;
     ComPtr<IDXGISwapChain> m_swapChain;
     ComPtr<ID3D11RenderTargetView> m_renderTargetView;
+    RECT m_windowedRect;
+    DWORD m_windowedStyle;
+    DWORD m_windowedExStyle;
+    bool m_hasWindowedRect;
     
     HWND CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen);
     static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -39,6 +43,9 @@ private:
     virtual void Update() override;
     virtual bool HasShaders() override { return true; }
     virtual void SwapBuffers() override;
+    virtual bool ToggleFullscreen() override;
+    virtual bool SetFullscreen(const bool fullscreen) override;
+    virtual bool IsFullscreen() const override { return m_bFullScreen; }
 
     IDXGISwapChain* GetSwapChain() const { return m_swapChain.Get(); }
 

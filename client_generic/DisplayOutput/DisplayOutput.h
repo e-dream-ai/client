@@ -243,6 +243,9 @@ class CDisplayOutput
     virtual void Title(const std::string& _title) = PureVirtual;
     virtual void Update() = PureVirtual;
     virtual void SwapBuffers() = PureVirtual;
+    virtual bool ToggleFullscreen() { return false; }
+    virtual bool SetFullscreen(const bool _fullscreen) { (void)_fullscreen; return false; }
+    virtual bool IsFullscreen() const { return m_bFullScreen; }
 
     bool GetEvent(spCEvent& _event);
     void AppendEvent(spCEvent _event);
