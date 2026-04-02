@@ -35,7 +35,7 @@
 #include "ServerMessage.h"
 #include "MessageQueue.h"
 #include "Splash.h"
-#include "OSD.hpp"
+#include "../MacBuild/OSD.hpp"
 #include "StartupScreen.h"
 #include "StatsConsole.h"
 #include "TextureFlat.h"

@@ -404,7 +404,7 @@ class CElectricSheep_Win32 : public CElectricSheep
                 ".json) in your data folder, next to this program, or wherever "
                 "the client stores its configuration.\n\n"
                 "Then run the screensaver or player normally.",
-                "e-dream — Settings",
+                "e-dream - Settings",
                 MB_OK | MB_ICONINFORMATION);
             m_bConfigMode = true;
             return false;
