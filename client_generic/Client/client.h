@@ -1281,7 +1281,10 @@ class CElectricSheep
                 (drawn && displayUnit == 0))
             {
                 
-                if (drawNoSheepIntro || (m_StartupScreen && !m_StartupScreen->IsFullyFaded()))
+                // /p preview: skip startup logo (oversized on tiny HWND, hides video).
+                if (!IsPreview() &&
+                    (drawNoSheepIntro ||
+                     (m_StartupScreen && !m_StartupScreen->IsFullyFaded())))
                 {
                     if (!m_StartupScreen)
                         m_StartupScreen = std::make_shared<Hud::CStartupScreen>(

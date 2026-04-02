@@ -178,16 +178,14 @@ int CPlayer::AddDisplay(uint32 screen)
         return -1;
     }
 
-    /* if (m_hWnd)
-    {
-        if (!spDisplay->Initialize(m_hWnd, true))
-            return -1;
-    }
-    else */
-    if (!spDisplay->Initialize(w, h, m_bFullscreen))
-    {
+    HWND displayHwnd = nullptr;
+    if (m_hWnd)
+        displayHwnd = spDisplay->Initialize(m_hWnd, true);
+    else
+        displayHwnd = spDisplay->Initialize(w, h, m_bFullscreen);
+
+    if (!displayHwnd)
         return -1;
-    }
 
     spRenderer = std::make_shared<CRendererDX11>();
 #else // !WIN32

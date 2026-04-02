@@ -5,6 +5,8 @@
 #error This file is not supposed to be used for this platform...
 #endif
 
+#include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -228,7 +230,8 @@ class CElectricSheep_Win32 : public CElectricSheep
                 while (*c == ' ' || *c == ':')
                     c++;
 
-                hwnd = (HWND)atoi(c);
+                hwnd = reinterpret_cast<HWND>(static_cast<uintptr_t>(
+                    strtoull(c, nullptr, 10)));
                 m_ScrMode = ePreview;
             }
             else if (*c == 's' || *c == 'S')
@@ -251,7 +254,8 @@ class CElectricSheep_Win32 : public CElectricSheep
                 while (*c == ' ' || *c == ':')
                     c++;
 
-                hwnd = (HWND)atoi(c);
+                hwnd = reinterpret_cast<HWND>(static_cast<uintptr_t>(
+                    strtoull(c, nullptr, 10)));
                 m_ScrMode = ePassword;
             }
             //	Windowed test mode.
@@ -463,9 +467,10 @@ class CElectricSheep_Win32 : public CElectricSheep
             // WM_SETTINGCHANGE );
         }
 
-        //	User wants windowed?
+        //	User wants windowed? (preview is always embedded child window)
         if (m_ScrMode == eWindowed ||
-            m_ScrMode == eWindowed_AllowMultipleInstances)
+            m_ScrMode == eWindowed_AllowMultipleInstances ||
+            m_ScrMode == ePreview)
             g_Player().Fullscreen(false);
 
         uint32_t monnum = g_Settings()->Get("settings.player.screen", 0);

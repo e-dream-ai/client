@@ -27,7 +27,9 @@ private:
     bool CreateDeviceAndSwapChain();
     bool ResizeSwapChain(uint32_t width, uint32_t height);
     void ResetDevice(); // Handle device lost scenarios
-    bool m_deviceValid;
+    bool m_bWaitForPreviewPump;
+    bool m_bEmbeddedSaverPreview;
+    static bool EnsureWindowClassRegistered(HINSTANCE hInstance);
 
   public:
     CDisplayDX11();
@@ -37,6 +39,7 @@ private:
 
     virtual bool Initialize() /* override */;
     virtual HWND Initialize(uint32_t width, uint32_t height, bool fullscreen) override;
+    virtual HWND Initialize(HWND parentHwnd, bool preview) override;
     virtual HWND GetWindowHandle() override { return m_WindowHandle; }
 
     virtual void Title(const std::string& title) override;

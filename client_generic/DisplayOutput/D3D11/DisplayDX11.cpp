@@ -153,9 +153,32 @@ static void EnforceSizingAspect16By9(HWND hWnd, WPARAM edge, RECT* rc)
 
 CDisplayDX11::CDisplayDX11()
     : CDisplayOutput(), m_WindowHandle(nullptr), m_windowedStyle(0),
-      m_windowedExStyle(0), m_hasWindowedRect(false) {
+      m_windowedExStyle(0), m_hasWindowedRect(false), m_bWaitForPreviewPump(false),
+      m_bEmbeddedSaverPreview(false) {
     m_windowedRect = {0, 0, 0, 0};
     g_Log->Info("CDisplayDX11()");
+}
+
+bool CDisplayDX11::EnsureWindowClassRegistered(HINSTANCE hInstance)
+{
+    WNDCLASSEXW wcProbe = {};
+    if (GetClassInfoExW(hInstance, L"EDreamDX11Class", &wcProbe))
+        return true;
+
+    HICON appIcon = LoadIcon(hInstance, MAKEINTRESOURCE(1));
+    WNDCLASSEXW wc = {};
+    wc.cbSize = sizeof(WNDCLASSEXW);
+    wc.style = CS_HREDRAW | CS_VREDRAW;
+    wc.lpfnWndProc = WndProc;
+    wc.hInstance = hInstance;
+    wc.hIcon = appIcon ? appIcon : LoadIcon(NULL, IDI_APPLICATION);
+    wc.hIconSm = wc.hIcon;
+    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+    wc.lpszClassName = L"EDreamDX11Class";
+
+    if (RegisterClassExW(&wc))
+        return true;
+    return GetLastError() == ERROR_CLASS_ALREADY_EXISTS;
 }
 
 CDisplayDX11::~CDisplayDX11() {
@@ -203,6 +226,24 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
         // Fallback path: some Windows setups surface F1 as help message.
         AppendKeyEvent(CKeyEvent::KEY_F1, true);
         return 0;
+
+    case WM_USER:
+        // Let the screen-saver control panel finish painting; same pattern as
+        // legacy D3D9 (DisplayDX).
+        SetTimer(hWnd, 1, 500, NULL);
+        g_Log->Info("Starting 500ms preview timer");
+        return 0;
+
+    case WM_TIMER:
+        if (wParam == 1)
+        {
+            if (self)
+                self->m_bWaitForPreviewPump = false;
+            KillTimer(hWnd, 1);
+            g_Log->Info("500ms preview timer done");
+            return 0;
+        }
+        break;
 
     case WM_SIZE:
         if (self && wParam != SIZE_MINIMIZED)
@@ -308,27 +349,14 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
 
 HWND CDisplayDX11::CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen) {
     HMODULE hInstance = GetModuleHandle(NULL);
-    HICON appIcon = LoadIcon(hInstance, MAKEINTRESOURCE(1));
-
-    WNDCLASSEX wc = {};
-    wc.cbSize = sizeof(WNDCLASSEX);
-    wc.style = CS_HREDRAW | CS_VREDRAW;
-    wc.lpfnWndProc = WndProc;
-    wc.hInstance = hInstance;
-    wc.hIcon = appIcon ? appIcon : LoadIcon(NULL, IDI_APPLICATION);
-    wc.hIconSm = wc.hIcon;
-    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-    wc.lpszClassName = L"EDreamDX11Class";
-
-    if (!RegisterClassEx(&wc)) {
+    if (!EnsureWindowClassRegistered(hInstance))
         return nullptr;
-    }
 
     DWORD style = fullscreen ? WS_POPUP : WS_OVERLAPPEDWINDOW;
     RECT rc = {0, 0, (LONG)w, (LONG)h};
     AdjustWindowRect(&rc, style, FALSE);
 
-    return CreateWindowW(wc.lpszClassName, L"E-Dream", style, CW_USEDEFAULT, CW_USEDEFAULT,
+    return CreateWindowW(L"EDreamDX11Class", L"E-Dream", style, CW_USEDEFAULT, CW_USEDEFAULT,
                          rc.right - rc.left, rc.bottom - rc.top, nullptr, nullptr, hInstance, this);
 }
 
@@ -448,6 +476,7 @@ bool CDisplayDX11::CreateDeviceAndSwapChain() {
 }
 
 HWND CDisplayDX11::Initialize(uint32_t width, uint32_t height, bool fullscreen) {
+    m_bEmbeddedSaverPreview = false;
     m_Width = width;
     m_Height = height;
     m_bFullScreen = fullscreen;
@@ -465,6 +494,79 @@ HWND CDisplayDX11::Initialize(uint32_t width, uint32_t height, bool fullscreen) 
     return m_WindowHandle;
 }
 
+HWND CDisplayDX11::Initialize(HWND parentHwnd, bool preview)
+{
+    if (!parentHwnd || !preview)
+        return nullptr;
+
+    m_bEmbeddedSaverPreview = true;
+
+    HMODULE hInstance = GetModuleHandleW(NULL);
+    if (!EnsureWindowClassRegistered(hInstance))
+        return nullptr;
+
+    RECT rc = {};
+    if (!GetClientRect(parentHwnd, &rc))
+        return nullptr;
+
+    const LONG cx = rc.right - rc.left;
+    const LONG cy = rc.bottom - rc.top;
+    if (cx <= 0 || cy <= 0)
+        return nullptr;
+
+    g_Log->Info("CDisplayDX11::Initialize preview client %ldx%ld", cx, cy);
+
+    DWORD dwStyle = WS_VISIBLE | WS_CHILD;
+    AdjustWindowRect(&rc, dwStyle, FALSE);
+
+    m_WindowHandle = CreateWindowW(L"EDreamDX11Class", L"Preview", dwStyle, rc.left,
+                                   rc.top, rc.right - rc.left, rc.bottom - rc.top,
+                                   parentHwnd, nullptr, hInstance, this);
+    if (!m_WindowHandle)
+    {
+        g_Log->Error("CDisplayDX11::Initialize preview CreateWindow failed");
+        return nullptr;
+    }
+
+    m_Width = static_cast<uint32_t>(cx);
+    m_Height = static_cast<uint32_t>(cy);
+    m_bFullScreen = false;
+
+    g_Log->Info("Screensaver preview D3D11 (%ux%u)", m_Width, m_Height);
+
+    m_bWaitForPreviewPump = true;
+    PostMessageW(m_WindowHandle, WM_USER, 0, 0);
+    InvalidateRect(GetParent(m_WindowHandle), nullptr, FALSE);
+    UpdateWindow(GetParent(m_WindowHandle));
+    UpdateWindow(GetParent(m_WindowHandle));
+
+    MSG msg = {};
+    while (m_bWaitForPreviewPump)
+    {
+        if (!GetMessageW(&msg, m_WindowHandle, 0, 0))
+        {
+            PostQuitMessage(0);
+            break;
+        }
+
+        TranslateMessage(&msg);
+        DispatchMessageW(&msg);
+    }
+
+    if (!CreateDeviceAndSwapChain())
+    {
+        DestroyWindow(m_WindowHandle);
+        m_WindowHandle = nullptr;
+        return nullptr;
+    }
+
+    ShowWindow(m_WindowHandle, SW_SHOW);
+    ShowCursor(TRUE);
+    SetFocus(parentHwnd);
+
+    return m_WindowHandle;
+}
+
 bool CDisplayDX11::Initialize() {
     return true;
 }
@@ -475,19 +577,21 @@ void CDisplayDX11::Title(const std::string& title) {
 
 void CDisplayDX11::Update() {
     MSG msg = {};
-    while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+    while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
         if (msg.message == WM_QUIT) {
             m_bClosed = true;
             return;
         }
         TranslateMessage(&msg);
-        DispatchMessage(&msg);
+        DispatchMessageW(&msg);
     }
 }
 
 void CDisplayDX11::SwapBuffers()
 {
-    HRESULT hr = m_swapChain->Present(1, 0); // Use vsync
+    // /p preview child: avoid vsync Present(1) stalling on the tiny HWND.
+    const UINT syncInterval = m_bEmbeddedSaverPreview ? 0u : 1u;
+    HRESULT hr = m_swapChain->Present(syncInterval, 0);
     if (FAILED(hr))
     {
         g_Log->Error("Present failed: %08X", hr);

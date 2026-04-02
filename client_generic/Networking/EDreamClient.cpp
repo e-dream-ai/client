@@ -461,6 +461,8 @@ void EDreamClient::InitializeClient()
 {
     if (g_Client()->IsMultipleInstancesMode()) {
         g_Log->Info("Disabling auth in multiple instance mode");
+        // CPlayer::Start waits on HasCompletedInitialAuth(); no auth thread here.
+        fInitialAuthComplete.store(true);
         return;
     }
 

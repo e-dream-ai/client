@@ -218,6 +218,14 @@ class CDisplayOutput
     virtual HWND Initialize(const uint32_t _width, const uint32_t _height,
                             const bool _bFullscreen) = PureVirtual;
 
+    // Screensaver preview: render into a child of the Control Panel HWND (/p).
+    virtual HWND Initialize(HWND parentHwnd, bool preview)
+    {
+        (void)parentHwnd;
+        (void)preview;
+        return nullptr;
+    }
+
     virtual HWND GetWindowHandle(void) = PureVirtual;
     void* GetDevice() const { return nullptr; }
     virtual IDXGISwapChain* GetSwapChain() const { return nullptr; }
