@@ -136,7 +136,11 @@ class CElectricSheep_Win32 : public CElectricSheep
   public:
     CElectricSheep_Win32()
         : CElectricSheep(),
+#if defined(_DEBUG) || defined(DEBUG)
+          g_SingleInstanceObj("Global\\{" CLIENT_VERSION_PRETTY "-stage}")
+#else
           g_SingleInstanceObj("Global\\{" CLIENT_VERSION_PRETTY "}")
+#endif
     {
         printf("CElectricSheep_Win32()\n");
         m_bAllowFKey = false;
@@ -301,7 +305,11 @@ class CElectricSheep_Win32 : public CElectricSheep
         if (SUCCEEDED(
                 SHGetFolderPathA(NULL, CSIDL_COMMON_APPDATA, NULL, 0, szPath)))
         {
+#if defined(_DEBUG) || defined(DEBUG)
+            PathAppendA(szPath, "\\e-dream-stage\\");
+#else
             PathAppendA(szPath, "\\e-dream\\");
+#endif
             m_AppData = szPath;
         }
 

@@ -1,5 +1,6 @@
 #ifdef WIN32
 
+#include "ServerConfig.h"
 #include "FirstTimeSetupWin32.h"
 
 #include "PlatformUtils.h"
