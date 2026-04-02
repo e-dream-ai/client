@@ -315,6 +315,62 @@ void CPlayer::ForceWidthAndHeight(uint32_t du, uint32_t _w, uint32_t _h)
 /*
 
 */
+void CPlayer::BootstrapLoggedInPlaylist()
+{
+    auto shouldAbort = [this]() {
+        return m_shutdownFlag.load() || g_NetworkManager->IsAborted();
+    };
+
+    if (shouldAbort())
+        return;
+
+    SetOfflineMode(false);
+
+    if (!EDreamClient::fIsWebSocketConnected.load()) {
+        g_Log->Info("Player bootstrap logged-in: connecting websocket");
+        boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
+    }
+
+    if (shouldAbort())
+        return;
+
+    std::string lastPlayedUUID =
+        g_Settings()->Get("settings.content.last_played_uuid", std::string{});
+    auto clientPlaylistId =
+        g_Settings()->Get("settings.content.current_playlist_uuid", std::string(""));
+
+    auto serverPlaylistId = EDreamClient::GetCurrentServerPlaylist();
+
+    if (shouldAbort())
+        return;
+    if (serverPlaylistId != clientPlaylistId) {
+        g_Settings()->Set("settings.content.current_playlist_uuid", serverPlaylistId);
+        lastPlayedUUID = "";
+    }
+
+    m_currentClip = nullptr;
+
+    if (shouldAbort())
+        return;
+    if (lastPlayedUUID.empty()) {
+        SetPlaylist(serverPlaylistId, false);
+    } else {
+        SetPlaylistAtDream(serverPlaylistId, lastPlayedUUID, false);
+    }
+}
+
+void CPlayer::EnsureOnlinePlaybackAfterSignIn()
+{
+    std::thread([this]() {
+        if (m_shutdownFlag.load() || g_NetworkManager->IsAborted())
+            return;
+        if (!EDreamClient::IsLoggedIn())
+            return;
+        g_Log->Info("Sign-in after offline startup: loading server playlist and quota");
+        BootstrapLoggedInPlaylist();
+    }).detach();
+}
+
 void CPlayer::Start()
 {
     if (!m_bStarted)
@@ -360,38 +416,7 @@ void CPlayer::Start()
 
             if (EDreamClient::IsLoggedIn()) {
                 if (shouldAbort()) return;
-                
-                // Logged-in path: ensure we are not forcing offline-only playback
-                SetOfflineMode(false);
-                
-                // Ensure websocket is connected when player starts and user is logged in
-                if (!EDreamClient::fIsWebSocketConnected.load()) {
-                    g_Log->Info("Player starting with logged in user - connecting websocket");
-                    boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
-                }
-                
-                if (shouldAbort()) return;
-                auto serverPlaylistId = EDreamClient::GetCurrentServerPlaylist();
-                
-                // Override if there's a mismatch, and don't try to resume previous file as
-                // it may not be part of the new playlist
-                if (shouldAbort()) return;
-                if (serverPlaylistId != clientPlaylistId) {
-                    g_Settings()->Set("settings.content.current_playlist_uuid", serverPlaylistId);
-                    lastPlayedUUID = "";
-                }
-
-                // Make sure we remove the current clip before enqueuing the new playlist
-                m_currentClip = nullptr;
-
-                // Start the playlist and playback at the start, or at a given position
-                if (shouldAbort()) return;
-                if (lastPlayedUUID.empty()) {
-                    SetPlaylist(serverPlaylistId, false);
-                } else {
-                    SetPlaylistAtDream(serverPlaylistId, lastPlayedUUID, false);
-                }
-                
+                BootstrapLoggedInPlaylist();
                 if (!shouldAbort()) {
                     m_hasStarted = true;
                 }
@@ -402,11 +427,12 @@ void CPlayer::Start()
                 // This avoids blocking startup on server calls for streaming links/metadata.
                 SetOfflineMode(true);
 
-                // Make sure we remove the current clip before enqueuing the new playlist
-
                 m_currentClip = nullptr;
 
-                if (lastPlayedUUID.empty()) {
+                if (EDreamClient::IsLoggedIn()) {
+                    // Signed in while this thread was preparing the offline playlist.
+                    BootstrapLoggedInPlaylist();
+                } else if (lastPlayedUUID.empty()) {
                     SetPlaylist(clientPlaylistId, false);
                 } else {
                     SetPlaylistAtDream(clientPlaylistId, lastPlayedUUID, false);

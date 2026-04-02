@@ -127,6 +127,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
 #endif
 
     void FpsCap(const double _cap);
+    /// Shared logged-in path: Hello/quota, server playlist, begin playback (used by startup and sign-in).
+    void BootstrapLoggedInPlaylist();
 
   public:
     bool Startup();
@@ -159,6 +161,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
     
     bool HasStarted() { return m_hasStarted; };
     void Start();
+    /// Load server playlist and refresh quota when sign-in happens after offline startup (first-run wizard, etc.).
+    void EnsureOnlinePlaybackAfterSignIn();
     /// Resume after Stop() without re-running startup (e.g. after Preferences sheet). Keeps current clip and playlist.
     void ResumeAfterPause();
     void Stop();

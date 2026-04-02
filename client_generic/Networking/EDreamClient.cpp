@@ -635,6 +635,10 @@ bool EDreamClient::Authenticate()
 void EDreamClient::DidSignIn()
 {
     g_Log->Info("Did Sign-in");
+    // Playback may have already started in cache-only mode before the user finished sign-in
+    // (first-run wizard, etc.). We'll switch to the server playlist + Hello quota after commit below.
+    const bool needLateOnlineBootstrap =
+        g_Player().HasStarted() && g_Player().IsOfflineMode();
     fAuthRetryAbort.store(true);  // Stop auth retry loop if it was waiting (e.g. user logged in manually)
     fAuthRetryPending.store(false);
     g_Player().SetOfflineMode(false);
@@ -668,6 +672,9 @@ void EDreamClient::DidSignIn()
     s_SIOClient.set_reconnect_listener(&OnWebSocketReconnect);
 
     EDreamClient::ConnectRemoteControlSocket();
+
+    if (needLateOnlineBootstrap)
+        g_Player().EnsureOnlinePlaybackAfterSignIn();
 }
 
 void EDreamClient::SignOut()

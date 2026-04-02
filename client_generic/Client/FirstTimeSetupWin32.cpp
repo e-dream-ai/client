@@ -104,6 +104,9 @@ std::atomic<bool> g_visible{false};
 std::atomic<bool> g_imguiInitialized{false};
 /// Set when the user dismisses the wizard; context must not be destroyed inside NewFrame/Begin/End.
 std::atomic<bool> g_pendingImGuiShutdown{false};
+/// Mirror settings dialog: pause playback while the sheet is up, restore after close (avoids stuck buffering pause + no key focus).
+std::atomic<bool> g_wasPausedBeforeWizard{false};
+std::atomic<bool> g_pausedByWizard{false};
 ImGuiContext* g_imguiContext = nullptr;
 
 ImFont* g_fontBody = nullptr;
@@ -530,6 +533,27 @@ static void LoadOverlayTextures(ID3D11Device* device)
     TryLoadTextureFromPngUtf8(device, dir + "logo.png", &g_srvLogo, &g_texLogoW, &g_texLogoH);
     TryLoadTextureFromPngUtf8(device, dir + "play-playlist.png", &g_srvPlaylist, &g_texPlaylistW,
                              &g_texPlaylistH);
+}
+
+static void ApplyFirstTimeWizardPauseState(bool visible)
+{
+    if (visible)
+    {
+        const bool wasPaused = g_Player().IsPaused();
+        g_wasPausedBeforeWizard.store(wasPaused, std::memory_order_release);
+        if (!wasPaused)
+        {
+            g_Player().SetPaused(true, false);
+            g_pausedByWizard.store(true, std::memory_order_release);
+        }
+        else
+            g_pausedByWizard.store(false, std::memory_order_release);
+        return;
+    }
+    if (g_pausedByWizard.exchange(false, std::memory_order_acq_rel))
+        g_Player().SetPaused(g_wasPausedBeforeWizard.load(std::memory_order_acquire), false);
+    // Drop stale auto-pause from stream bootstrap behind the overlay; main loop will re-pause if still buffering.
+    g_Player().SetPausedForBuffering(false);
 }
 
 static void ShutdownImGui()
@@ -1039,6 +1063,7 @@ void FirstTimeSetupWin32_SetOverlayAllowed(bool allow)
         g_showRequested.store(false, std::memory_order_release);
         g_visible.store(false, std::memory_order_release);
         ShutdownImGui();
+        ApplyFirstTimeWizardPauseState(false);
     }
 }
 
@@ -1085,6 +1110,7 @@ bool FirstTimeSetupWin32_RenderIfNeeded(ID3D11Device* device, ID3D11DeviceContex
             g_showRequested.store(false, std::memory_order_release);
             g_visible.store(true, std::memory_order_release);
             ResetWizardForShow();
+            ApplyFirstTimeWizardPauseState(true);
         }
     }
 
@@ -1118,7 +1144,10 @@ bool FirstTimeSetupWin32_RenderIfNeeded(ID3D11Device* device, ID3D11DeviceContex
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
     if (g_pendingImGuiShutdown.exchange(false, std::memory_order_acq_rel))
+    {
         ShutdownImGui();
+        ApplyFirstTimeWizardPauseState(false);
+    }
 
     return true;
 }
