@@ -16,7 +16,7 @@ namespace DisplayOutput {
 
 namespace {
 
-// Avoid duplicate F1 enqueue when WM_HELP and WM_KEYUP arrive for the same press.
+// Avoid duplicate F1 enqueue when WM_HELP and WM_KEYDOWN arrive for the same press.
 static ULONGLONG g_lastF1EnqueueTickMs = 0;
 constexpr ULONGLONG kF1DuplicateWindowMs = 250;
 constexpr float kTargetClientAspect16By9 = 16.0f / 9.0f;
@@ -222,7 +222,12 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
         }
         return DefWindowProc(hWnd, msg, wParam, lParam);
 
-    case WM_KEYUP: {
+    case WM_KEYDOWN: {
+        // Match macOS keyDown: handle hotkeys on press, not release (WM_KEYUP felt delayed).
+        // lParam bit 30: previous key state (1 = autorepeat); ignore repeats.
+        if ((lParam >> 30) & 1)
+            break;
+
         if (wParam == VK_OEM_COMMA && (GetKeyState(VK_CONTROL) & 0x8000) != 0)
         {
             ESShowPreferences();

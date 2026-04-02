@@ -85,8 +85,11 @@ LRESULT CALLBACK CDisplayDD::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
         PostQuitMessage(0);
         break;
 
-    case WM_KEYUP:
+    case WM_KEYDOWN:
     {
+        if ((lParam >> 30) & 1)
+            break;
+
         CKeyEvent* spEvent = new CKeyEvent();
         spEvent->m_bPressed = true;
 
@@ -142,8 +145,12 @@ LRESULT CALLBACK CDisplayDD::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
             break;
         }
 
-        spCEvent e = spEvent;
-        m_EventQueue.push(e);
+        if (spEvent->m_Code != CKeyEvent::KEY_NONE) {
+            spCEvent e = spEvent;
+            m_EventQueue.push(e);
+        } else {
+            delete spEvent;
+        }
     }
     break;
 

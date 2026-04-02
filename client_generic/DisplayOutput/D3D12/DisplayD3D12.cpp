@@ -68,8 +68,12 @@ LRESULT CALLBACK CDisplayD3D12::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
         PostQuitMessage(0);
         break;
 
-    case WM_KEYUP:
+    case WM_KEYDOWN:
     {
+        // Match macOS keyDown: key press, not release. Skip autorepeat (lParam bit 30).
+        if ((lParam >> 30) & 1)
+            break;
+
         spCKeyEvent spEvent = std::make_shared<CKeyEvent>();
         spEvent->m_bPressed = true;
 
@@ -184,8 +188,9 @@ LRESULT CALLBACK CDisplayD3D12::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
 			spEvent->m_Code = CKeyEvent::KEY_Esc;
 			break;
 		}
-		if (auto spD = g_Player().Display())
-			spD->AppendEvent(spEvent);
+		if (spEvent->m_Code != CKeyEvent::KEY_NONE)
+			if (auto spD = g_Player().Display())
+				spD->AppendEvent(spEvent);
 	}        
 	break;
 

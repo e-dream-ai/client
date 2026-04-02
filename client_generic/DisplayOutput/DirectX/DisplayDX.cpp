@@ -272,8 +272,11 @@ LRESULT CALLBACK CDisplayDX::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
         PostQuitMessage(0);
         break;
 
-    case WM_KEYUP:
+    case WM_KEYDOWN:
     {
+        if ((lParam >> 30) & 1)
+            break;
+
         if (wParam == VK_OEM_COMMA && (GetKeyState(VK_CONTROL) & 0x8000) != 0)
         {
             ESShowPreferences();
