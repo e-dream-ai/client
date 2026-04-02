@@ -396,16 +396,37 @@ class CElectricSheep_Win32 : public CElectricSheep
 
         if (m_ScrMode == eConfig)
         {
-            g_Log->Info("Running config (no GUI; edit JSON settings).");
-            MessageBoxA(
-                NULL,
-                "The old wxWidgets settings application has been removed.\n\n"
-                "Edit the JSON settings file (" CLIENT_SETTINGS
-                ".json) in your data folder, next to this program, or wherever "
-                "the client stores its configuration.\n\n"
-                "Then run the screensaver or player normally.",
-                "e-dream - Settings",
-                MB_OK | MB_ICONINFORMATION);
+            char szCfgModule[MAX_PATH] = {};
+            const DWORD cfgGot = GetModuleFileNameA(NULL, szCfgModule, MAX_PATH);
+            const char* const cfgExt =
+                (cfgGot > 0) ? PathFindExtensionA(szCfgModule) : nullptr;
+            const bool launchedFromScr =
+                cfgExt != nullptr && _stricmp(cfgExt, ".scr") == 0;
+
+            if (launchedFromScr)
+            {
+                g_Log->Info("Configure/settings from .scr: show message to use standalone app.");
+                MessageBoxA(
+                    NULL,
+                    "You cannot change settings from the screensaver (.scr).\n\n"
+                    "Run e-dream (the desktop program, e-dream.exe) and open "
+                    "Settings from there.",
+                    "e-dream - Settings",
+                    MB_OK | MB_ICONINFORMATION);
+            }
+            else
+            {
+                g_Log->Info("Running config (no GUI; edit JSON settings).");
+                MessageBoxA(
+                    NULL,
+                    "The old wxWidgets settings application has been removed.\n\n"
+                    "Edit the JSON settings file (" CLIENT_SETTINGS
+                    ".json) in your data folder, next to this program, or wherever "
+                    "the client stores its configuration.\n\n"
+                    "Then run the screensaver or player normally.",
+                    "e-dream - Settings",
+                    MB_OK | MB_ICONINFORMATION);
+            }
             m_bConfigMode = true;
             return false;
         }
