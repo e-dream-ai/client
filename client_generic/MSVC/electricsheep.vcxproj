@@ -223,6 +223,9 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
       <TargetMachine>MachineX86</TargetMachine>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
+    <PostBuildEvent>
+      <Command>copy /y "$(TargetPath)" "$(OutDir)$(ProjectName)d.scr"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <PreBuildEvent>
@@ -272,6 +275,9 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
       <ForceSymbolReferences>
       </ForceSymbolReferences>
     </Link>
+    <PostBuildEvent>
+      <Command>copy /y "$(TargetPath)" "$(OutDir)$(TargetName).scr"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <PreBuildEvent>
@@ -653,8 +659,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
       </IgnoreAllDefaultLibraries>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>copy /y "$(TargetPath)" "$(OutDir)$(TargetName).scr"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugMDd|x64'">
@@ -729,8 +734,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
       </IgnoreAllDefaultLibraries>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>copy /y "$(TargetPath)" "$(OutDir)$(TargetName).scr"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
