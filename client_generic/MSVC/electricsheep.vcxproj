@@ -160,10 +160,6 @@
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectName)d</TargetName>
     <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\boost_1_64_0\stage\lib;$(DXSDK_DIR)Lib\x86;$(LibraryPath)</LibraryPath>
     <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(DXSDK_DIR)Lib\x64;$(LibraryPath)</LibraryPath>
-    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.scr</TargetExt>
-    <TargetExt Condition="'$(Configuration)|$(Platform)'=='DebugMD|Win32'">.scr</TargetExt>
-    <TargetExt Condition="'$(Configuration)|$(Platform)'=='DebugMDd|Win32'">.scr</TargetExt>
-    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.scr</TargetExt>
     <TargetExt Condition="'$(Configuration)|$(Platform)'=='DebugMD|x64'">.exe</TargetExt>
     <TargetExt Condition="'$(Configuration)|$(Platform)'=='DebugMDd|x64'">.exe</TargetExt>
   </PropertyGroup>
@@ -327,7 +323,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     <Link>
       <AdditionalDependencies>avcodec.lib;avutil.lib;avfilter.lib;swscale.lib;avdevice.lib;avformat.lib;zlib.lib;libpng16.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;tinyxml.lib;lua5.1.lib;d3d9.lib;ws2_32.lib;wldap32.lib;ddraw.lib;dxguid.lib;psapi.lib;delayimp.lib;libeay32.lib;ssleay32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ShowProgress>NotSet</ShowProgress>
-      <OutputFile>$(OutDir)$(ProjectName).scr</OutputFile>
+      <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
       <AdditionalLibraryDirectories>..\curl\lib\release-ssl-zlib;..\tinyXml\Releasetinyxml;..\lua5.1\lib\static;..\ffmpeg\ffmpeg-static\lib;..\openssl-1.0.2k\out32;..\libpng\win32\$(Platform);..\zlib\win32\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <ModuleDefinitionFile>
@@ -351,7 +347,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
-      <Command>copy /y "$(TargetPath)" "$(OutDir)$(ProjectName).exe"</Command>
+      <Command>copy /y "$(TargetPath)" "$(OutDir)$(ProjectName).scr"</Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDPIAwareness>true</EnableDPIAwareness>
@@ -405,7 +401,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     <Link>
       <AdditionalDependencies>avcodec.lib;avutil.lib;avfilter.lib;swscale.lib;avdevice.lib;avformat.lib;zlib.lib;libpng16.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;tinyxml.lib;lua5.1.lib;d3d9.lib;ws2_32.lib;wldap32.lib;ddraw.lib;dxguid.lib;psapi.lib;delayimp.lib;libeay32.lib;ssleay32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ShowProgress>NotSet</ShowProgress>
-      <OutputFile>$(OutDir)$(ProjectName).scr</OutputFile>
+      <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
       <AdditionalLibraryDirectories>..\curl\lib\release-ssl-zlib;..\tinyXml\Releasetinyxml;..\lua5.1\lib\static;..\ffmpeg\ffmpeg-static\lib;..\openssl-1.0.2k\out32;..\libpng\win32\$(Platform);..\zlib\win32\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <ModuleDefinitionFile>
@@ -429,7 +425,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
-      <Command>copy /y "$(TargetPath)" "$(OutDir)$(ProjectName).exe"</Command>
+      <Command>copy /y "$(TargetPath)" "$(OutDir)$(ProjectName).scr"</Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDPIAwareness>true</EnableDPIAwareness>
@@ -483,7 +479,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     <Link>
       <AdditionalDependencies>avcodec.lib;avutil.lib;avfilter.lib;swscale.lib;avdevice.lib;avformat.lib;zlib.lib;libpng16.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;tinyxml.lib;lua5.1.lib;d3d9.lib;ws2_32.lib;wldap32.lib;ddraw.lib;dxguid.lib;psapi.lib;delayimp.lib;libeay32.lib;ssleay32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ShowProgress>NotSet</ShowProgress>
-      <OutputFile>$(OutDir)$(ProjectName).scr</OutputFile>
+      <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
       <AdditionalLibraryDirectories>..\curl\lib\release-ssl-zlib;..\tinyXml\Releasetinyxml;..\lua5.1\lib\static;..\ffmpeg\ffmpeg-static\lib;..\openssl-1.0.2k\out32;..\libpng\win32\$(Platform);..\zlib\win32\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <ModuleDefinitionFile>
@@ -507,7 +503,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
-      <Command>copy /y "$(TargetPath)" "$(OutDir)$(ProjectName).exe"</Command>
+      <Command>copy /y "$(TargetPath)" "$(OutDir)$(ProjectName).scr"</Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDPIAwareness>true</EnableDPIAwareness>
@@ -561,7 +557,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     <Link>
       <AdditionalDependencies>avcodec.lib;avformat.lib;swscale.lib;avdevice.lib;avutil.lib;sioclient.lib;zlib.lib;libpng16.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;d3d9.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;ws2_32.lib;wldap32.lib;psapi.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ShowProgress>NotSet</ShowProgress>
-      <OutputFile>$(OutDir)$(ProjectName).scr</OutputFile>
+      <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
       <AdditionalLibraryDirectories>..\socket.io-client-cpp\lib\Release;..\curl-x64\lib\release-zlib;..\ffmpeg\ffmpeg-static\libx64;..\libpng\win32\x64;..\zlib\win32\x64;c:\local\boost_1_85_0\lib64-msvc-14.3;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <ModuleDefinitionFile>
@@ -584,7 +580,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
       </IgnoreAllDefaultLibraries>
     </Link>
     <PostBuildEvent>
-      <Command>copy /y "$(TargetPath)" "$(OutDir)$(ProjectName).exe"</Command>
+      <Command>copy /y "$(TargetPath)" "$(OutDir)$(ProjectName).scr"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugMD|x64'">
