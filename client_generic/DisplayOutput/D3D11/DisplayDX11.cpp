@@ -21,6 +21,44 @@ static ULONGLONG g_lastF1EnqueueTickMs = 0;
 constexpr ULONGLONG kF1DuplicateWindowMs = 250;
 constexpr float kTargetClientAspect16By9 = 16.0f / 9.0f;
 
+static void AppendMouseEvent(CMouseEvent::eMouseCode code, LPARAM lParam)
+{
+    auto spEvent = std::make_shared<CMouseEvent>();
+    spEvent->m_Code = code;
+    spEvent->m_X = MAKEPOINTS(lParam).x;
+    spEvent->m_Y = MAKEPOINTS(lParam).y;
+    if (auto spD = g_Player().Display())
+        spD->AppendEvent(spEvent);
+}
+
+static void LayoutFullscreenSaverWindow(HWND hwnd, IDXGISwapChain* swapChain)
+{
+    if (!hwnd)
+        return;
+
+    HMONITOR mon = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+    MONITORINFO mi = {};
+    mi.cbSize = sizeof(mi);
+    if (!GetMonitorInfo(mon, &mi))
+        return;
+
+    LONG_PTR ex = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
+    if ((ex & WS_EX_TOPMOST) == 0)
+        SetWindowLongPtr(hwnd, GWL_EXSTYLE, ex | WS_EX_TOPMOST | WS_EX_APPWINDOW);
+
+    SetWindowPos(hwnd, HWND_TOPMOST, mi.rcMonitor.left, mi.rcMonitor.top,
+                 mi.rcMonitor.right - mi.rcMonitor.left,
+                 mi.rcMonitor.bottom - mi.rcMonitor.top,
+                 SWP_FRAMECHANGED | SWP_SHOWWINDOW | SWP_NOOWNERZORDER);
+
+    if (swapChain)
+    {
+        const HRESULT hr = swapChain->SetFullscreenState(TRUE, nullptr);
+        if (FAILED(hr))
+            g_Log->Warning("SetFullscreenState(TRUE) after layout failed: %08X", hr);
+    }
+}
+
 static void AppendKeyEvent(CKeyEvent::eKeyCode code, bool dedupeF1)
 {
     if (code == CKeyEvent::KEY_NONE)
@@ -333,6 +371,34 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
         break;
     }
 
+    case WM_LBUTTONUP:
+        AppendMouseEvent(CMouseEvent::Mouse_LEFT, lParam);
+        return 0;
+
+    case WM_RBUTTONUP:
+        AppendMouseEvent(CMouseEvent::Mouse_RIGHT, lParam);
+        return 0;
+
+    case WM_MOUSEMOVE:
+        AppendMouseEvent(CMouseEvent::Mouse_MOVE, lParam);
+        return 0;
+
+    case WM_POWERBROADCAST:
+        switch (LOWORD(wParam))
+        {
+        case PBT_APMBATTERYLOW:
+        case PBT_APMSUSPEND:
+        {
+            auto spEvent = std::make_shared<CPowerEvent>();
+            if (auto spD = g_Player().Display())
+                spD->AppendEvent(spEvent);
+        }
+        break;
+        default:
+            break;
+        }
+        break;
+
     case WM_CLOSE:
         DestroyWindow(hWnd);
         return 0;
@@ -356,8 +422,12 @@ HWND CDisplayDX11::CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen) 
     RECT rc = {0, 0, (LONG)w, (LONG)h};
     AdjustWindowRect(&rc, style, FALSE);
 
-    return CreateWindowW(L"EDreamDX11Class", L"E-Dream", style, CW_USEDEFAULT, CW_USEDEFAULT,
-                         rc.right - rc.left, rc.bottom - rc.top, nullptr, nullptr, hInstance, this);
+    const DWORD exStyle =
+        fullscreen ? (WS_EX_APPWINDOW | WS_EX_TOPMOST) : 0UL;
+
+    return CreateWindowExW(exStyle, L"EDreamDX11Class", L"E-Dream", style,
+                           CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left,
+                           rc.bottom - rc.top, nullptr, nullptr, hInstance, this);
 }
 
 bool CDisplayDX11::ResizeSwapChain(uint32_t width, uint32_t height)
@@ -490,6 +560,13 @@ HWND CDisplayDX11::Initialize(uint32_t width, uint32_t height, bool fullscreen) 
 
     ShowWindow(m_WindowHandle, SW_SHOW);
     ShowCursor(!fullscreen);
+
+    if (fullscreen)
+    {
+        LayoutFullscreenSaverWindow(m_WindowHandle, m_swapChain.Get());
+        SetForegroundWindow(m_WindowHandle);
+        SetFocus(m_WindowHandle);
+    }
 
     return m_WindowHandle;
 }
