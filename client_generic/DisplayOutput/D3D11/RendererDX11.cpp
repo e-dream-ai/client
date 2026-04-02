@@ -675,13 +675,14 @@ bool CRendererDX11::EndFrame(bool drawn) {
     // Base CRenderer::EndFrame returns false when !drawn, which would skip overlay + Present.
     // Settings overlay is rendered after HUD text so it always appears top-most.
     bool forcePresent = false;
+    bool firstTimeWizardDrawn = false;
     if (m_context && m_renderTargetView && m_spDisplay) {
         const float viewportW = static_cast<float>(m_spDisplay->Width());
         const float viewportH = static_cast<float>(m_spDisplay->Height());
         const bool settingsPendingOrVisible = SettingsDialogWin32_HasPendingOrVisible();
-        const bool firstTimeVisible = FirstTimeSetupWin32_RenderIfNeeded(
+        firstTimeWizardDrawn = FirstTimeSetupWin32_RenderIfNeeded(
             m_device.Get(), m_context.Get(), m_renderTargetView.Get(), viewportW, viewportH);
-        forcePresent = firstTimeVisible || settingsPendingOrVisible;
+        forcePresent = firstTimeWizardDrawn || settingsPendingOrVisible;
     }
     const bool effectiveDrawn = drawn || forcePresent;
     if (!CRenderer::EndFrame(effectiveDrawn))
@@ -692,7 +693,8 @@ bool CRendererDX11::EndFrame(bool drawn) {
 
     if (effectiveDrawn && m_context && m_spDisplay) {
         auto display = std::dynamic_pointer_cast<CDisplayDX11>(m_spDisplay);
-        if (display && !m_pendingTextDraws.empty())
+        // Defer HUD text is drawn after the wizard; skip it so stats/indicators do not cover the dialog.
+        if (display && !m_pendingTextDraws.empty() && !firstTimeWizardDrawn)
         {
             Microsoft::WRL::ComPtr<ID3D11RasterizerState> prevRasterizer;
             if (m_context && m_rasterizerScissor)

@@ -78,6 +78,11 @@ typedef void (*ShowFirstTimeSetupCallback_t)();
 extern void ESSetShowFirstTimeSetupCallback(ShowFirstTimeSetupCallback_t);
 extern void ESShowFirstTimeSetup();
 
+#if defined(WIN32)
+/// True while the first-run ImGui wizard is active (used to skip game HUD compositing).
+bool FirstTimeSetupWin32_IsWizardVisible();
+#endif
+
 extern class CElectricSheep* gClientInstance;
 
 inline class CElectricSheep* g_Client() { return gClientInstance; }
@@ -2057,7 +2062,10 @@ class CElectricSheep
                 } // if (spStats) - dreamstats
 
                 //	Finally render hud.
-                m_HudManager->Render(g_Player().Renderer());
+#if defined(WIN32)
+                if (!FirstTimeSetupWin32_IsWizardVisible())
+#endif
+                    m_HudManager->Render(g_Player().Renderer());
 
                 //	Update display events.
                 if (auto spDisplay = g_Player().Display())

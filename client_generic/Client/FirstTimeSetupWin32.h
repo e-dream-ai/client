@@ -7,6 +7,7 @@
 
 void FirstTimeSetupWin32_Register();
 void FirstTimeSetupWin32_SetOverlayAllowed(bool allow);
+bool FirstTimeSetupWin32_IsWizardVisible();
 
 /// If ImGui consumed the message, returns true and sets *outResult (return from WndProc).
 bool FirstTimeSetupWin32_TryConsumeWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam,

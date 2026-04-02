@@ -1042,6 +1042,12 @@ void FirstTimeSetupWin32_SetOverlayAllowed(bool allow)
     }
 }
 
+bool FirstTimeSetupWin32_IsWizardVisible()
+{
+    return g_visible.load(std::memory_order_acquire) &&
+           g_imguiInitialized.load(std::memory_order_acquire);
+}
+
 bool FirstTimeSetupWin32_TryConsumeWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam,
                                             LRESULT* outResult)
 {
