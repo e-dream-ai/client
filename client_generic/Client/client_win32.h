@@ -342,6 +342,11 @@ class CElectricSheep_Win32 : public CElectricSheep
             m_WorkingDir.append("\\");
         }
 
+        // Full screensaver (.scr /S): busy mode so we do not contend with the
+        // main e-dream process (downloads, auth, writable storage).
+        if (m_ScrMode == eSaver)
+            ForceMultipleInstancesMode(true);
+
         if (InitStorage(m_MultipleInstancesMode) == false)
         {
             MessageBox(NULL, L"Unable to initialize scripts. Try reinstalling.",
