@@ -154,6 +154,10 @@ std::string PlatformUtils::GetGitRevision()
         if (!fromBuildRev.empty())
             return fromBuildRev;
 
+        const std::string embeddedGit(EDREAM_BUILD_GIT_REVISION);
+        if (!embeddedGit.empty() && embeddedGit != "unknown")
+            return embeddedGit;
+
         const std::string fromGit = RunCommandAndGetFirstLine(
             "git -C . rev-parse --short HEAD 2>nul");
         if (!fromGit.empty())

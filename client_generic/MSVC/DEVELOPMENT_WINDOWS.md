@@ -68,7 +68,7 @@ Useful flags:
 
 | Flag | Description |
 |------|-------------|
-| `-v SEMVER`, `--version SEMVER` | Embed this version in the binary (Settings / API). Omit to take **VER_*** from `Common/clientversion.h`. |
+| `-v SEMVER`, `--version SEMVER` | Embed this version in the binary (Settings / API). Omit to take **VER_*** from `Common/clientversion.h`. Also embeds **`git rev-parse --short HEAD`** (or `unknown` without a repo). |
 | `-r`, `--release` | Configuration **Release** (default). |
 | `-d`, `--debug` | Configuration **Debug** (output `e-dreamd.exe`). |
 | `--configuration NAME` | Any MSBuild configuration (e.g. `DebugMD`). |
