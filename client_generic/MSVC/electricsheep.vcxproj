@@ -839,6 +839,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     <ClInclude Include="..\Common\AlignedBuffer.h" />
     <ClInclude Include="..\Common\base.h" />
     <ClInclude Include="..\Common\clientversion.h" />
+    <ClInclude Include="edream_build_version_generated.h" />
     <ClInclude Include="..\Common\Common.h" />
     <ClInclude Include="..\Common\Exception.h" />
     <ClInclude Include="..\Common\linkpool.h" />

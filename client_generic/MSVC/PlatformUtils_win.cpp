@@ -1,4 +1,6 @@
 #include "PlatformUtils.h"
+#include "clientversion.h"
+#include "edream_build_version_generated.h"
 #include <Windows.h>
 #include <algorithm>
 #include <iostream>
@@ -173,17 +175,8 @@ std::string PlatformUtils::GetAppVersion()
         if (!fromAppVersion.empty())
             return fromAppVersion;
 
-        const std::string fromGitTag = RunCommandAndGetFirstLine(
-            "git -C . describe --tags --abbrev=0 2>nul");
-        if (!fromGitTag.empty())
-            return fromGitTag;
-
-        const std::string fromGitDescribe = RunCommandAndGetFirstLine(
-            "git -C . describe --tags --always 2>nul");
-        if (!fromGitDescribe.empty())
-            return fromGitDescribe;
-
-        return "unknown";
+        // Semver from WinBuild/build.py (-v / --version) or clientversion.h, compiled in.
+        return std::string(OS_PREFIX_PRETTY) + EDREAM_BUILD_VERSION_SEMVER;
     }();
     return version;
 }

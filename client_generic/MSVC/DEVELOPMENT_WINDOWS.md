@@ -68,6 +68,7 @@ Useful flags:
 
 | Flag | Description |
 |------|-------------|
+| `-v SEMVER`, `--version SEMVER` | Embed this version in the binary (Settings / API). Omit to take **VER_*** from `Common/clientversion.h`. |
 | `-r`, `--release` | Configuration **Release** (default). |
 | `-d`, `--debug` | Configuration **Debug** (output `e-dreamd.exe`). |
 | `--configuration NAME` | Any MSBuild configuration (e.g. `DebugMD`). |
@@ -81,7 +82,13 @@ Useful flags:
 
 ## Release: ZIP (default)
 
-After **`build.py`** for **Release** (use **`--configuration Debug`** for a Debug tree):
+Build with the same semver you will ship (writes `MSVC/edream_build_version_generated.h` then compiles):
+
+```bat
+python client_generic\WinBuild\build.py -v 0.14.0
+```
+
+Then package (use **`--configuration Debug`** if you built Debug):
 
 ```bat
 python client_generic\WinBuild\release.py -v 0.14.0
