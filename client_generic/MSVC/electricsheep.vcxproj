@@ -904,4 +904,12 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
+  <!-- Copy optional third-party DLLs from MSVC\dll\<Configuration>\ e.g. dll\Release, dll\Debug (flat into OutDir). -->
+  <Target Name="CopyExtraDllsFromDllFolder" AfterTargets="PostBuildEvent" Condition="Exists('$(ProjectDir)dll\$(Configuration)')">
+    <ItemGroup>
+      <_ExtraDllsFromDllFolder Include="$(ProjectDir)dll\$(Configuration)\**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_ExtraDllsFromDllFolder)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+    <Message Text="Copied extra files from $(ProjectDir)dll\$(Configuration) to $(OutDir)" Importance="Low" Condition="'@(_ExtraDllsFromDllFolder)' != ''" />
+  </Target>
 </Project>

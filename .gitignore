@@ -42,6 +42,10 @@ client_generic/MSVC/DebugMDd
 client_generic/MSVC/DebugMDdx64
 client_generic/MSVC/es.map
 
+# --- WinBuild release output ---
+client_generic/WinBuild/dist/
+client_generic/WinBuild/__pycache__/
+
 # --- Screensaver bundle (generated) ---
 *.saver
 
