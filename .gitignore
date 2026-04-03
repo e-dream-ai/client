@@ -49,3 +49,6 @@ client_generic/MSVC/es.map
 client_generic/RuntimeMSVC/*.exe
 client_generic/RuntimeMSVC/*.dll
 client_generic/RuntimeMSVC/*.pdb
+
+# sioclient
+_build_sioclient_win32/
