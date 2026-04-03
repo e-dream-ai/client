@@ -1,10 +1,9 @@
 .DS_Store
 
-# --- vcpkg (manifest uses repo-root install tree; optional bundled clone) ---
-/vcpkg
-/vcpkg_installed
-/vcpkg_x86
-/vcpkg-temp
+# --- vcpkg (toolchain is a git submodule at ./vcpkg; install tree / mac merge dirs stay local) ---
+/vcpkg_installed/
+/vcpkg_x86/
+/vcpkg-temp/
 
 # --- macOS / Xcode ---
 client_generic/MacBuild/build

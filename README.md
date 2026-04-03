@@ -24,11 +24,13 @@ this repository uses git LFS, be sure to run
 Also, if you are doing releases you will need:
     brew install gh
 
-The general C++ dependencies are handled by vcpkg. Run these commands to build them:
+The general C++ dependencies are handled by vcpkg. The Microsoft vcpkg repo is included as a **git submodule** at `vcpkg/`. After cloning this repo, fetch it and build dependencies:
 
-    git submodule update --init
+    git submodule update --init --recursive
     ./vcpkg/bootstrap-vcpkg.sh
     ./vcpkg/vcpkg install
+
+On Windows, use `vcpkg\bootstrap-vcpkg.bat` instead of the shell bootstrap script. For a fresh clone you can use `git clone --recurse-submodules <url>` so `vcpkg/` is populated immediately; otherwise run `git submodule update --init` after clone.
 
 on Mac, open client_generic/MacBuild/infinidream.xcodeproj
 
