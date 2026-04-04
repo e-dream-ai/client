@@ -597,8 +597,7 @@ bool EDreamClient::LoginWithMagicLinkCode()
         return false;
     }
 
-    fprintf(stderr, "Check your email (%s) for the code, then enter it here: ",
-            email.c_str());
+    fprintf(stderr, "Check your email for the code then enter it here: ");
     fflush(stderr);
 
     std::string code;
@@ -1015,7 +1014,7 @@ EDreamClient::SendCodeResult EDreamClient::SendCode() {
         curl_easy_getinfo(curl.get(), CURLINFO_RESPONSE_CODE, &http_code);
         
         if (http_code == 200) {
-            g_Log->Info("Verification code sent successfully to %s", email.c_str());
+            g_Log->Info("Verification code sent successfully");
             return SendCodeResult{true, static_cast<int>(http_code), "Verification code sent successfully"};
         } else {
             g_Log->Error("Failed to send verification code. Server returned %ld: %s", http_code, readBuffer.c_str());
