@@ -46,6 +46,11 @@ int32_t APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 #else
 int32_t main(int argc, char* argv[])
 {
+    // Parse our flags before glutInit so GLUT doesn't interfere.
+    bool cachedOnlyMode = false;
+    for (int i = 1; i < argc; ++i)
+        if (strcmp(argv[i], "--cached") == 0) { cachedOnlyMode = true; break; }
+
 #if defined(MAC) || (defined(USE_GLUT) && !defined(WIN32))
     glutInit(&argc, argv);
 #endif
@@ -55,6 +60,7 @@ int32_t main(int argc, char* argv[])
     g_Log->Startup();
 
     CElectricSheepClient client;
+    client.SetCachedOnlyMode(cachedOnlyMode);
 
     if (client.Startup())
         client.Run();

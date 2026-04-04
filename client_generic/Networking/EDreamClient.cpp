@@ -7,9 +7,11 @@
 #include <cstdio>
 #include <future>
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 #include <chrono>
 #include <algorithm>
+#include <unistd.h>
 
 #include "ContentDownloader.h"
 #include "StringFormat.h"
@@ -535,6 +537,91 @@ bool EDreamClient::SignInWithApiKey(const std::string& apiKey)
     return true;
 }
 
+// Interactive magic-link login. Reads the user's email from
+// settings.generator.nickname (settings.json), prompts for confirmation, sends
+// a one-time code to that address, reads the code from stdin, and exchanges it
+// for a sealed session (saved to settings). Requires a tty.
+// Returns true only if a sealed session was successfully obtained.
+// NOTE: ValidateCodeDetailed() calls RefreshSealedSession() internally, so
+// callers must NOT call RefreshSealedSession() again after this returns true.
+bool EDreamClient::LoginWithMagicLinkCode()
+{
+    std::string email = g_Settings()->Get("settings.generator.nickname", std::string(""));
+
+    if (!isatty(STDIN_FILENO))
+    {
+        if (email.empty())
+            g_Log->Warning("No email in settings and no tty — "
+                           "set settings.generator.nickname in ~/.config/infinidream/settings.json");
+        else
+            g_Log->Warning("No tty for magic link code entry — "
+                           "run interactively once to establish a session");
+        return false;
+    }
+
+    if (email.empty())
+    {
+        // First run: prompt the user for their email and save it to settings.
+        fprintf(stderr,
+            "\nWelcome to infinidream!\n"
+            "Enter your invited email address to get started.\n"
+            "It will be saved to ~/.config/infinidream/settings.json for future runs.\n"
+            "Email: ");
+        fflush(stderr);
+
+        if (!std::getline(std::cin, email)) return false;
+
+        email.erase(0, email.find_first_not_of(" \t\r\n"));
+        auto trimEnd = email.find_last_not_of(" \t\r\n");
+        if (trimEnd != std::string::npos) email.erase(trimEnd + 1);
+        if (email.empty()) return false;
+
+        g_Settings()->Set("settings.generator.nickname", email);
+        g_Settings()->Storage()->Commit();
+        fprintf(stderr, "(Email saved to settings.json)\n\n");
+        g_Log->Info("Email saved to settings");
+    }
+
+    fprintf(stderr, "No sealed session token found. Would you like us to send a login code to %s? (y/N): ",
+            email.c_str());
+    fflush(stderr);
+
+    std::string response;
+    if (!std::getline(std::cin, response) || (response != "y" && response != "Y"))
+        return false;
+
+    auto sendResult = SendCode();
+    if (!sendResult.success)
+    {
+        fprintf(stderr, "Failed to send login code: %s\n", sendResult.message.c_str());
+        return false;
+    }
+
+    fprintf(stderr, "Check your email (%s) for the code, then enter it here: ",
+            email.c_str());
+    fflush(stderr);
+
+    std::string code;
+    if (!std::getline(std::cin, code) || code.empty())
+        return false;
+
+    // Trim whitespace from code
+    code.erase(0, code.find_first_not_of(" \t\r\n"));
+    auto last = code.find_last_not_of(" \t\r\n");
+    if (last != std::string::npos) code.erase(last + 1);
+
+    auto result = ValidateCodeDetailed(code);
+    if (!result.success)
+    {
+        fprintf(stderr, "Login failed: %s\n", result.message.c_str());
+        return false;
+    }
+
+    fprintf(stderr, "Login successful!\n");
+    g_Log->Info("Magic link login successful, sealed session saved");
+    return true;
+}
+
 // MARK : Auth (via refresh)
 bool EDreamClient::Authenticate()
 {
@@ -549,6 +636,20 @@ bool EDreamClient::Authenticate()
     if (sealedSession.empty())
     {
         g_Log->Warning("No sealed session found");
+
+        // Try magic link login via email in settings (settings.generator.nickname).
+        // ValidateCodeDetailed() calls RefreshSealedSession() internally — no
+        // second refresh needed if this returns true.
+        if (LoginWithMagicLinkCode())
+        {
+            fIsLoggedIn.exchange(true);
+            fInitialAuthComplete.store(true);
+            g_Player().SetOfflineMode(false);
+            fAuthCV.notify_one();
+            g_Log->Info("Sign in success via magic link");
+            boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
+            return true;
+        }
 
         // Fallback: API key auth (Linux / headless environments).
         // Check the INFINIDREAM_API_KEY env var first so users can pass a key without
@@ -580,6 +681,9 @@ bool EDreamClient::Authenticate()
             }
         }
 
+        g_Log->Warning("No sealed session or API key found. "
+                       "Set settings.generator.nickname in ~/.config/infinidream/settings.json "
+                       "and run interactively, or run with --cached to play cached videos.");
         fIsLoggedIn.exchange(false);
         fInitialAuthComplete.store(true);
         fAuthCV.notify_one();
@@ -651,6 +755,19 @@ bool EDreamClient::Authenticate()
             g_Log->Warning("Auth refresh failed and session validation returned HTTP %ld — session is invalid, wiping.", httpCode);
         }
 
+        // Before giving up, try re-acquiring a session via magic link.
+        if (LoginWithMagicLinkCode())
+        {
+            // ValidateCodeDetailed() already called RefreshSealedSession() — session is fresh.
+            g_Log->Info("Stale session replaced via magic link — session is fresh and valid");
+            fIsLoggedIn.exchange(true);
+            fInitialAuthComplete.store(true);
+            g_Player().SetOfflineMode(false);
+            fAuthCV.notify_one();
+            boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
+            return true;
+        }
+
         fIsLoggedIn.exchange(false);
         g_Settings()->Set("settings.content.sealed_session", std::string(""));
         g_Settings()->Storage()->Commit();
@@ -712,6 +829,17 @@ bool EDreamClient::Authenticate()
 
             g_Log->Warning("Auth refresh failed on retry and session validation returned HTTP %ld — wiping session.", httpCode);
             fAuthRetryPending.store(false);
+
+            // Try re-acquiring a session via magic link before giving up.
+            if (LoginWithMagicLinkCode())
+            {
+                // ValidateCodeDetailed() already called RefreshSealedSession() — session is fresh.
+                g_Log->Info("Stale session replaced via magic link during retry — session is fresh and valid");
+                fIsLoggedIn.exchange(true);
+                DidSignIn();
+                return true;
+            }
+
             g_Settings()->Set("settings.content.sealed_session", std::string(""));
             g_Settings()->Storage()->Commit();
             return false;

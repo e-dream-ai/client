@@ -105,6 +105,7 @@ private:
     enum class AuthRefreshResult { Success, InvalidSession, TransientFailure };
     static AuthRefreshResult RefreshSealedSession();
     static bool SignInWithApiKey(const std::string& apiKey);
+    static bool LoginWithMagicLinkCode();
 
     // Appends the appropriate auth header to a request: wos-session cookie if we
     // have a sealed session, Api-Key header if we have an API key, nothing otherwise.

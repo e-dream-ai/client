@@ -139,6 +139,7 @@ class CElectricSheep
     int m_CpuUsageThreshold;
     std::string m_PreviousDlState; // Track download status
     bool m_MultipleInstancesMode;
+    bool m_CachedOnlyMode = false;
     bool m_OfflineDueToNoInternetOnly = false;  // true when m_MultipleInstancesMode was set only because internet was down (don't show Busy in that case)
     bool m_bConfigMode;
     bool m_bIsPreview;
@@ -205,13 +206,7 @@ class CElectricSheep
     bool InitStorage(bool _bReadOnly = false)
     {
         g_Log->Info("InitStorage()");
-#ifndef LINUX_GNU
         if (g_Settings()->Init(m_AppData, m_WorkingDir, _bReadOnly) == false)
-#else
-        char appdata[PATH_MAX];
-        snprintf(appdata, PATH_MAX, "%s/.electricsheep/", getenv("HOME"));
-        if (g_Settings()->Init(appdata, SHAREDIR) == false)
-#endif
             return false;
 
         //	Trigger this to exist in the settings.
@@ -279,6 +274,10 @@ class CElectricSheep
     
     void ForceMultipleInstancesMode(bool force) {
         m_MultipleInstancesMode = force;
+    }
+
+    void SetCachedOnlyMode(bool val) {
+        m_CachedOnlyMode = val;
     }
     
     virtual void SetIsPreview(bool _isPreview) {
@@ -664,6 +663,51 @@ class CElectricSheep
         g_Player().SetMultiDisplayMode(
             (CPlayer::MultiDisplayMode)g_Settings()->Get(
                 "settings.player.MultiDisplayMode", 0));
+
+        // Pre-check auth / cache state before the window opens.
+        if (m_CachedOnlyMode)
+        {
+            // --cached: play locally cached videos without a session.
+            Cache::CacheManager& cmPre = Cache::CacheManager::getInstance();
+            cmPre.loadDiskCachedFromJson();
+            size_t cachedCount = cmPre.getCachedDreamCount();
+            double cachedGB    = cmPre.getCacheSize();
+            if (cachedCount == 0 && cachedGB < 0.001)
+            {
+                fprintf(stderr, "No cached videos found. Run without --cached first to download content.\n");
+                return false;
+            }
+            printf("No sealed session token — cycling through %zu (%.1f GB) of cached videos.\n",
+                   cachedCount, cachedGB);
+            m_MultipleInstancesMode = true;  // forces offline mode through the rest of Startup()
+        }
+        else
+        {
+            std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
+            if (sealedSession.empty())
+            {
+                // Try to get a sealed session interactively before the window opens.
+                if (!EDreamClient::LoginWithMagicLinkCode())
+                {
+                    // Magic link not available (no credentials file, no tty, or user declined).
+                    // Fall back to API key if one is configured.
+                    const char* envKey = getenv("INFINIDREAM_API_KEY");
+                    std::string storedKey = g_Settings()->Get("settings.content.api_key", std::string(""));
+                    if (!((envKey && *envKey) || !storedKey.empty()))
+                    {
+                        fprintf(stderr,
+                            "\nNo sealed session or API key found.\n"
+                            "Options:\n"
+                            "  1. Run interactively to be prompted for your email and log in\n"
+                            "  2. Set INFINIDREAM_API_KEY environment variable\n"
+                            "  3. Run with --cached to play locally cached videos\n");
+                        return false;
+                    }
+                    fprintf(stderr, "Warning: no sealed session token — video downloads may not work with API key only.\n");
+                }
+                // else: LoginWithMagicLinkCode() succeeded — sealed session now in settings
+            }
+        }
 
         //	Init the display and create decoder.
         if (!g_Player().Startup())
