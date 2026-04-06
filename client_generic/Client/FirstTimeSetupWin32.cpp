@@ -177,6 +177,8 @@ static void OnFirstTimeSetupRequested()
     if (!g_overlayAllowed.load(std::memory_order_acquire))
         return;
     g_showRequested.store(true, std::memory_order_release);
+    // Hold timeline before ImGui init completes (avoids a few frames of playback under the wizard).
+    g_Player().SetFirstRunWizardPlaybackHold(true);
 }
 
 static bool IsLikelyEmail(const char* s)
@@ -574,17 +576,20 @@ static void ApplyFirstTimeWizardPauseState(bool visible)
 {
     if (visible)
     {
+        g_Player().SetFirstRunWizardPlaybackHold(true);
         const bool wasPaused = g_Player().IsPaused();
         g_wasPausedBeforeWizard.store(wasPaused, std::memory_order_release);
         if (!wasPaused)
         {
-            g_Player().SetPaused(true, false);
+            // User-initiated pause: survives internal SetPaused(true) from buffering (Player.h).
+            g_Player().SetPaused(true, true);
             g_pausedByWizard.store(true, std::memory_order_release);
         }
         else
             g_pausedByWizard.store(false, std::memory_order_release);
         return;
     }
+    g_Player().SetFirstRunWizardPlaybackHold(false);
     if (g_pausedByWizard.exchange(false, std::memory_order_acq_rel))
         g_Player().SetPaused(g_wasPausedBeforeWizard.load(std::memory_order_acquire), false);
     // Drop stale auto-pause from stream bootstrap behind the overlay; main loop will re-pause if still buffering.

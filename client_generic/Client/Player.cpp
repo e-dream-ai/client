@@ -453,7 +453,8 @@ void CPlayer::ResumeAfterPause()
 void CPlayer::Stop()
 {
     m_shutdownFlag = true;
-    
+    SetFirstRunWizardPlaybackHold(false);
+
     if (m_startupThread && m_startupThread->joinable()) {
         m_startupThread->join();
     }
@@ -522,7 +523,7 @@ CPlayer::~CPlayer()
 // MARK: - Update and rendering
 bool CPlayer::BeginFrameUpdate()
 {
-    if (m_bPaused)
+    if (m_bPaused || IsFirstRunWizardPlaybackHold())
         return true;
 
     double newTime = m_Timer.Time();
@@ -639,11 +640,13 @@ bool CPlayer::Update(uint32_t displayUnit)
 
     writer_lock l(m_UpdateMutex);
 
+    const bool freezePlayback = m_bPaused || IsFirstRunWizardPlaybackHold();
+
     if (m_currentClip) {
-        m_currentClip->Update(m_TimelineTime, m_bPaused);
+        m_currentClip->Update(m_TimelineTime, freezePlayback);
         
         // Only check for transition if we're not buffering anything
-        if (!IsAnyClipBuffering()) {
+        if (!freezePlayback && !IsAnyClipBuffering()) {
             // Check if we need to prepare for transition
             // Skip if we have a pending seek crossfade (user-initiated skip with seek offset)
             if (!m_isTransitioning && !m_nextDreamDecision && !m_pendingSeekCrossfade && shouldPrepareTransition(m_currentClip)) {
@@ -678,7 +681,7 @@ bool CPlayer::Update(uint32_t displayUnit)
                         g_Log->Info("PND : Launching on finished current");
                         PlayNextDream();
                         // We need to update the clip here since we switched it!
-                        m_currentClip->Update(m_TimelineTime, m_bPaused);
+                        m_currentClip->Update(m_TimelineTime, freezePlayback);
                     }
                 } else if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::StandardCrossfade) {
                     //
@@ -697,11 +700,11 @@ bool CPlayer::Update(uint32_t displayUnit)
     
     if (m_nextClip) {
         if (!m_nextClip->HasFinished()) {
-            m_nextClip->Update(m_TimelineTime, m_bPaused);
+            m_nextClip->Update(m_TimelineTime, freezePlayback);
         }
         
         // Check if pending seek crossfade can now start (next clip finished buffering)
-        if (m_pendingSeekCrossfade && !m_nextClip->IsBuffering()) {
+        if (m_pendingSeekCrossfade && !m_nextClip->IsBuffering() && !freezePlayback) {
             g_Log->Info("Pending seek crossfade: next clip ready, starting transition");
             m_pendingSeekCrossfade = false;
             m_isTransitioning = true;
