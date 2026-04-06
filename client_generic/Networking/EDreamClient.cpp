@@ -165,7 +165,7 @@ void EDreamClient::SendPing()
     // This ensures timecode in state_sync matches what's shown on screen
     double timecode = 0.0;
     if (frameMetadata && clipMetadata) {
-        double baseFps = std::stod(clipMetadata->dreamData.fps);
+        double baseFps = clipMetadata->dreamData.getFps();
         auto [currentTime, totalTime] = CElectricSheep::CalculateTimecode(frameMetadata, baseFps);
         timecode = currentTime;
     }

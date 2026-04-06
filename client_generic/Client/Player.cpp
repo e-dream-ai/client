@@ -1670,10 +1670,7 @@ void CPlayer::SkipForward(float _seconds)
         ContentDecoder::spCClip referenceClip = (m_isTransitioning && m_nextClip) ? m_nextClip : m_currentClip;
         const auto& refMetadata = referenceClip->GetCurrentFrameMetadata();
         
-        double refFps = 20.0;
-        if (!referenceClip->GetClipMetadata().dreamData.fps.empty()) {
-            refFps = std::stod(referenceClip->GetClipMetadata().dreamData.fps);
-        }
+        double refFps = referenceClip->GetClipMetadata().dreamData.getFps();
         
         double currentTimeInRefClip = refMetadata.frameIdx / refFps;
         
@@ -1706,7 +1703,7 @@ void CPlayer::SkipForward(float _seconds)
                 }
                 
                 // Calculate seek frame: (absSeconds - currentTimeInRefClip) from the end of the target dream
-                double targetFps = std::stod(targetDream->fps);
+                double targetFps = targetDream->getFps();
                 double offsetFromEnd = absSeconds - currentTimeInRefClip;
                 int64_t seekFrame = targetDream->frames - static_cast<int64_t>(offsetFromEnd * targetFps);
                 seekFrame = std::max(seekFrame, static_cast<int64_t>(0));
@@ -1739,10 +1736,7 @@ void CPlayer::SkipForward(float _seconds)
         ContentDecoder::spCClip targetClip = m_isTransitioning && m_nextClip ? m_nextClip : m_currentClip;
         const auto& toMetadata = targetClip->GetCurrentFrameMetadata();
         
-        double toFps = 20.0;
-        if (!targetClip->GetClipMetadata().dreamData.fps.empty()) {
-            toFps = std::stod(targetClip->GetClipMetadata().dreamData.fps);
-        }
+        double toFps = targetClip->GetClipMetadata().dreamData.getFps();
         
         double currentTimeInToClip = toMetadata.frameIdx / toFps;
         uint32_t framesRemaining = toMetadata.maxFrameIdx > toMetadata.frameIdx ? 
@@ -1771,7 +1765,7 @@ void CPlayer::SkipForward(float _seconds)
                 }
                 
                 // Calculate seek frame: (absSeconds - timeRemaining) from start of next dream
-                double nextFps = std::stod(nextDecision->dream->fps);
+                double nextFps = nextDecision->dream->getFps();
                 double offsetFromStart = absSeconds - timeRemaining;
                 int64_t seekFrame = static_cast<int64_t>(offsetFromStart * nextFps);
                 
@@ -1856,7 +1850,7 @@ bool CPlayer::shouldPrepareTransition(const ContentDecoder::spCClip& clip) const
 
     uint32_t framesRemaining = metadata.maxFrameIdx - metadata.frameIdx;
     // Use base fps (not decode fps) to get actual time remaining regardless of playback speed
-    double baseFps = std::stod(clip->GetClipMetadata().dreamData.fps);
+    double baseFps = clip->GetClipMetadata().dreamData.getFps();
     double timeRemaining = framesRemaining / baseFps;
 
     // Start preparing transition when we're within 8 seconds of the end

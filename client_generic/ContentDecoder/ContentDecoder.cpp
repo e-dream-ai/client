@@ -769,10 +769,7 @@ void CContentDecoder::ReadFramesThread()
             if (fpclassify(skipTime) != FP_ZERO)
             {
                 // Get base FPS from playlist/dream metadata
-                double baseFps = 20.0; // fallback default
-                if (!m_Metadata.dreamData.fps.empty()) {
-                    baseFps = std::stod(m_Metadata.dreamData.fps);
-                }
+                double baseFps = m_Metadata.dreamData.getFps();
                 
                 // Use the display frame index if available (from SkipToFrame), otherwise use decoder's index
                 // The display frame index is more accurate as it represents what's actually being displayed
