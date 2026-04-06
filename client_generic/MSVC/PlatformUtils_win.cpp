@@ -16,7 +16,13 @@
 #include <array>
 #include <cctype>
 #include <cstdio>
+#include <mutex>
+
 #include <vector>
+
+static HWND g_win32MsgHwnd = nullptr;
+static std::mutex g_mouseCallbackMutex;
+static std::function<void(int, int)> g_onMouseMoved;
 
 namespace
 {
@@ -128,6 +134,22 @@ std::string RunCommandAndGetFirstLine(const char* command)
 }
 } // namespace
 
+void PlatformUtils::Win32SetMessageWindow(void* hwnd)
+{
+    g_win32MsgHwnd = static_cast<HWND>(hwnd);
+}
+
+void PlatformUtils::NotifyMouseMoved(int x, int y)
+{
+    std::function<void(int, int)> cb;
+    {
+        std::lock_guard<std::mutex> lock(g_mouseCallbackMutex);
+        cb = g_onMouseMoved;
+    }
+    if (cb)
+        cb(x, y);
+}
+
 bool PlatformUtils::IsInternetReachable()
 { 
 	// TODO: Implement this
@@ -220,8 +242,8 @@ void PlatformUtils::SetCursorHidden(bool _hidden)
 
 void PlatformUtils::SetOnMouseMovedCallback(std::function<void(int, int)> _callback)
 {
-	// Not implemented
-    g_Log->Error("SetOnMouseMovedCallback not implemented yet on WIN32");
+    std::lock_guard<std::mutex> lock(g_mouseCallbackMutex);
+    g_onMouseMoved = std::move(_callback);
 }
 
 void PlatformUtils::OpenURLExternally(std::string_view _url)
@@ -257,23 +279,72 @@ void PlatformUtils::DispatchOnMainThread(std::function<void()> _func)
 }
 
 CDelayedDispatch::CDelayedDispatch(std::function<void()> _func)
-    : m_DispatchTime(0), m_Func(_func)
+    : m_DispatchTime(0), m_Func(std::move(_func))
 {
-    g_Log->Error("DelayedDispatch not implemented yet on WIN32");
 }
 
 void CDelayedDispatch::Cancel()
 {
-	m_DispatchTime = 0;
+    std::lock_guard<std::mutex> lock(m_TimerMutex);
+    if (g_win32MsgHwnd)
+        KillTimer(g_win32MsgHwnd, reinterpret_cast<UINT_PTR>(this));
+    m_DispatchTime = 0;
+}
+
+void CALLBACK CDelayedDispatch::Win32TimerProc(HWND hwnd, UINT, UINT_PTR idEvent,
+                                               DWORD)
+{
+    KillTimer(hwnd, idEvent);
+    auto* self = reinterpret_cast<CDelayedDispatch*>(idEvent);
+    if (self)
+        self->Win32OnTimerFired();
+}
+
+void CDelayedDispatch::Win32OnTimerFired()
+{
+    std::function<void()> fn;
+    {
+        std::lock_guard<std::mutex> lock(m_TimerMutex);
+        if (m_DispatchTime == 0)
+            return;
+        m_DispatchTime = 0;
+        fn = m_Func;
+    }
+    if (fn)
+        fn();
 }
 
 void CDelayedDispatch::DispatchAfter(uint64_t _seconds)
 {
-    g_Log->Error("DispatchAfter not implemented yet on WIN32, launching immediately");
-	// Not implemented, just launch now
-	m_Func();
+    std::lock_guard<std::mutex> lock(m_TimerMutex);
+    HWND hwnd = g_win32MsgHwnd;
+    if (hwnd)
+        KillTimer(hwnd, reinterpret_cast<UINT_PTR>(this));
 
-	// TODO: TMP disabled this to stop the downloads during debugging 
+    if (_seconds == 0)
+    {
+        m_DispatchTime = 0;
+        if (m_Func)
+            m_Func();
+        return;
+    }
+
+    if (!hwnd)
+        return;
+
+    m_DispatchTime = 1;
+    // SetTimer elapse is limited to 0x7FFFFFFF ms (~24.8 days).
+    constexpr DWORD kMaxTimerMs = 0x7FFFFFFF;
+    const DWORD ms =
+        (_seconds > (static_cast<uint64_t>(kMaxTimerMs) / 1000ULL))
+            ? kMaxTimerMs
+            : static_cast<DWORD>(_seconds * 1000ULL);
+    const UINT_PTR timerId = reinterpret_cast<UINT_PTR>(this);
+    if (!SetTimer(hwnd, timerId, ms, &CDelayedDispatch::Win32TimerProc))
+    {
+        g_Log->Warning("CDelayedDispatch::DispatchAfter SetTimer failed");
+        m_DispatchTime = 0;
+    }
 }
 
 // This uses OpenSSL implementation of md5.

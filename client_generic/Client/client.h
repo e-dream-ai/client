@@ -273,6 +273,7 @@ class CElectricSheep
         m_StatsCodeCounter = 0;
         m_bConfigMode = false;
         m_bIsPreview = false;
+        m_bFullScreen = false;
         m_MultipleInstancesMode = false;
         printf("CElectricSheep()\n");
 
@@ -786,7 +787,13 @@ class CElectricSheep
             std::make_shared<CDelayedDispatch>(
                 [&, this]() -> void
                 {
-                    if (m_bFullScreen)
+                    const auto spD = g_Player().Display();
+                    // Win32: m_bFullScreen is only updated on fullscreen toggle, not when the
+                    // app launches already fullscreen — use the display too. Mac: Metal display
+                    // does not track m_bFullScreen on the output, so m_bFullScreen must win.
+                    const bool fullscreenNow =
+                        (spD && spD->IsFullscreen()) || m_bFullScreen;
+                    if (fullscreenNow)
                         PlatformUtils::SetCursorHidden(true);
                 });
         hideCursorDispatch->DispatchAfter(5);

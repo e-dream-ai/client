@@ -1,5 +1,6 @@
 #include "DisplayDX11.h"
 #include "Log.h"
+#include "PlatformUtils.h"
 #include "Player.h"
 #include "RendererDX11.h"
 #include "Settings.h"
@@ -23,6 +24,12 @@ constexpr float kTargetClientAspect16By9 = 16.0f / 9.0f;
 
 static void AppendMouseEvent(CMouseEvent::eMouseCode code, LPARAM lParam)
 {
+    if (code == CMouseEvent::Mouse_MOVE)
+    {
+        const POINTS pt = MAKEPOINTS(lParam);
+        PlatformUtils::NotifyMouseMoved(static_cast<int>(pt.x),
+                                        static_cast<int>(pt.y));
+    }
     auto spEvent = std::make_shared<CMouseEvent>();
     spEvent->m_Code = code;
     spEvent->m_X = MAKEPOINTS(lParam).x;

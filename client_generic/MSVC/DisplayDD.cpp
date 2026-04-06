@@ -3,6 +3,7 @@
 
 #include "DisplayDD.h"
 #include "Log.h"
+#include "PlatformUtils.h"
 #include <cstdio>
 #include <windows.h>
 
@@ -178,11 +179,14 @@ LRESULT CALLBACK CDisplayDD::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
 
     case WM_MOUSEMOVE:
     {
+        const POINTS pt = MAKEPOINTS(lParam);
+        PlatformUtils::NotifyMouseMoved(static_cast<int>(pt.x),
+                                        static_cast<int>(pt.y));
         CMouseEvent* spEvent = new CMouseEvent();
         spEvent->m_Code = CMouseEvent::Mouse_MOVE;
 
-        spEvent->m_X = MAKEPOINTS(lParam).x;
-        spEvent->m_Y = MAKEPOINTS(lParam).y;
+        spEvent->m_X = pt.x;
+        spEvent->m_Y = pt.y;
 
         spCEvent e = spEvent;
         m_EventQueue.push(e);

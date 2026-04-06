@@ -134,7 +134,8 @@ void CPlayer::SetHWND(HWND _hWnd)
 {
     g_Log->Info("Got hwnd... (%p)", static_cast<void*>(_hWnd));
     m_hWnd = _hWnd;
-};
+    PlatformUtils::Win32SetMessageWindow(static_cast<void*>(_hWnd));
+}
 #endif
 
 
@@ -186,6 +187,8 @@ int CPlayer::AddDisplay(uint32 screen)
 
     if (!displayHwnd)
         return -1;
+
+    SetHWND(displayHwnd);
 
     spRenderer = std::make_shared<CRendererDX11>();
 #else // !WIN32
