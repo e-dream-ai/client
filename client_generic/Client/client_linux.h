@@ -232,8 +232,6 @@ class CElectricSheep_Linux : public CElectricSheep
             return false;
         g_Player().EndFrameUpdate();
 
-        g_Player().Display()->Update();
-
         HandleEvents();
 
         return true;
