@@ -13,10 +13,18 @@
 #ifdef HAVE_WAYLAND
 #include <sys/mman.h>
 #include <unistd.h>
+#ifdef HAVE_LIBDECOR
+#include <poll.h>
+#endif
 #endif
 
 namespace DisplayOutput
 {
+
+namespace
+{
+constexpr uint32_t kWaylandButtonLeft = 0x110;
+}
 
 // ---------------------------------------------------------------------------
 // Motif window-decoration hints (borderless windows, X11 only)
@@ -33,6 +41,70 @@ typedef struct {
 // ===========================================================================
 #ifdef HAVE_WAYLAND
 
+#ifdef HAVE_LIBDECOR
+namespace
+{
+wl_cursor* loadCursorWithFallbacks(wl_cursor_theme* theme,
+                                   std::initializer_list<const char*> names)
+{
+    if (!theme)
+        return nullptr;
+    for (const char* name : names)
+    {
+        if (wl_cursor* cursor = wl_cursor_theme_get_cursor(theme, name))
+            return cursor;
+    }
+    return nullptr;
+}
+}
+
+void CDisplayVulkan::onLibdecorError(struct libdecor*,
+                                     enum libdecor_error error,
+                                     const char* message)
+{
+    g_Log->Warning("CDisplayVulkan: libdecor error %d: %s",
+                   static_cast<int>(error), message ? message : "(unknown)");
+}
+
+void CDisplayVulkan::onLibdecorConfigure(struct libdecor_frame* frame,
+                                         struct libdecor_configuration* configuration,
+                                         void* data)
+{
+    auto* self = static_cast<CDisplayVulkan*>(data);
+    int width = static_cast<int>(self->m_Width);
+    int height = static_cast<int>(self->m_Height);
+
+    libdecor_configuration_get_content_size(configuration, frame, &width, &height);
+    if (width <= 0) width = static_cast<int>(self->m_Width);
+    if (height <= 0) height = static_cast<int>(self->m_Height);
+
+    self->m_Width = static_cast<uint32_t>(width);
+    self->m_Height = static_cast<uint32_t>(height);
+
+    enum libdecor_window_state windowState = LIBDECOR_WINDOW_STATE_NONE;
+    if (libdecor_configuration_get_window_state(configuration, &windowState))
+        self->m_bFullScreen =
+            (windowState & LIBDECOR_WINDOW_STATE_FULLSCREEN) != 0;
+
+    libdecor_state* state = libdecor_state_new(width, height);
+    libdecor_frame_commit(frame, state, configuration);
+    wl_surface_commit(self->m_pWlSurface);
+    libdecor_state_free(state);
+}
+
+void CDisplayVulkan::onLibdecorClose(struct libdecor_frame*, void* data)
+{
+    static_cast<CDisplayVulkan*>(data)->m_bClosed = true;
+}
+
+void CDisplayVulkan::onLibdecorCommit(struct libdecor_frame*, void* data)
+{
+    auto* self = static_cast<CDisplayVulkan*>(data);
+    if (self->m_pWlSurface)
+        wl_surface_commit(self->m_pWlSurface);
+}
+#endif
+
 void CDisplayVulkan::onRegistryGlobal(void* data, wl_registry* registry,
                                        uint32_t name, const char* interface,
                                        uint32_t version)
@@ -43,6 +115,11 @@ void CDisplayVulkan::onRegistryGlobal(void* data, wl_registry* registry,
     {
         self->m_pWlCompositor = static_cast<wl_compositor*>(
             wl_registry_bind(registry, name, &wl_compositor_interface, 4));
+    }
+    else if (strcmp(interface, wl_shm_interface.name) == 0)
+    {
+        self->m_pWlShm = static_cast<wl_shm*>(
+            wl_registry_bind(registry, name, &wl_shm_interface, 1));
     }
     else if (strcmp(interface, xdg_wm_base_interface.name) == 0)
     {
@@ -141,13 +218,112 @@ bool CDisplayVulkan::initWayland(uint32_t w, uint32_t h, bool bFullscreen)
     wl_display_roundtrip(m_pWlDisplay);  // bind compositor, xdg_wm_base, seat
     wl_display_roundtrip(m_pWlDisplay);  // receive seat capabilities → keyboard
 
-    if (!m_pWlCompositor || !m_pXdgWmBase)
+    if (!m_pWlCompositor || !m_pWlShm || !m_pXdgWmBase)
     {
-        g_Log->Error("CDisplayVulkan: Wayland compositor or xdg_wm_base unavailable");
+        g_Log->Error("CDisplayVulkan: Wayland compositor, shm, or xdg_wm_base unavailable");
         return false;
     }
 
     m_pWlSurface = wl_compositor_create_surface(m_pWlCompositor);
+    m_pCursorSurface = wl_compositor_create_surface(m_pWlCompositor);
+
+    const char* cursorTheme = getenv("XCURSOR_THEME");
+    int cursorSize = 24;
+    if (const char* xcursorSize = getenv("XCURSOR_SIZE"))
+    {
+        const int parsedSize = atoi(xcursorSize);
+        if (parsedSize > 0)
+            cursorSize = parsedSize;
+    }
+    m_pCursorTheme = wl_cursor_theme_load(cursorTheme, cursorSize, m_pWlShm);
+    if (m_pCursorTheme)
+    {
+        m_pArrowCursor = loadCursorWithFallbacks(
+            m_pCursorTheme, {"left_ptr", "default"});
+        m_pResizeTopCursor = loadCursorWithFallbacks(
+            m_pCursorTheme, {"top_side", "n-resize"});
+        m_pResizeBottomCursor = loadCursorWithFallbacks(
+            m_pCursorTheme, {"bottom_side", "s-resize"});
+        m_pResizeLeftCursor = loadCursorWithFallbacks(
+            m_pCursorTheme, {"left_side", "w-resize"});
+        m_pResizeRightCursor = loadCursorWithFallbacks(
+            m_pCursorTheme, {"right_side", "e-resize"});
+        m_pResizeTopLeftCursor = loadCursorWithFallbacks(
+            m_pCursorTheme, {"top_left_corner", "nw-resize"});
+        m_pResizeTopRightCursor = loadCursorWithFallbacks(
+            m_pCursorTheme, {"top_right_corner", "ne-resize"});
+        m_pResizeBottomLeftCursor = loadCursorWithFallbacks(
+            m_pCursorTheme, {"bottom_left_corner", "sw-resize"});
+        m_pResizeBottomRightCursor = loadCursorWithFallbacks(
+            m_pCursorTheme, {"bottom_right_corner", "se-resize"});
+    }
+    if (!m_pArrowCursor)
+        g_Log->Warning("CDisplayVulkan: failed to load Wayland arrow cursor");
+
+#ifdef HAVE_LIBDECOR
+    const bool useLibdecor = (m_pDecorationManager == nullptr);
+    if (useLibdecor)
+    {
+        static libdecor_interface s_libdecorInterface = {
+            onLibdecorError,
+            nullptr, nullptr, nullptr, nullptr,
+            nullptr, nullptr, nullptr, nullptr, nullptr
+        };
+        static libdecor_frame_interface s_libdecorFrameInterface = {
+            onLibdecorConfigure,
+            onLibdecorClose,
+            onLibdecorCommit,
+            nullptr,
+            nullptr, nullptr, nullptr, nullptr, nullptr,
+            nullptr, nullptr, nullptr, nullptr, nullptr
+        };
+
+        m_pLibdecorContext = libdecor_new(m_pWlDisplay, &s_libdecorInterface);
+        if (m_pLibdecorContext)
+        {
+            m_pLibdecorFrame = libdecor_decorate(
+                m_pLibdecorContext, m_pWlSurface, &s_libdecorFrameInterface, this);
+            if (m_pLibdecorFrame)
+            {
+                m_bUsingLibdecor = true;
+                m_bFullScreen = bFullscreen;
+                libdecor_frame_set_app_id(m_pLibdecorFrame, "infinidream");
+                libdecor_frame_set_title(m_pLibdecorFrame, "infinidream");
+                libdecor_frame_set_capabilities(
+                    m_pLibdecorFrame,
+                    static_cast<libdecor_capabilities>(
+                        LIBDECOR_ACTION_MOVE |
+                        LIBDECOR_ACTION_RESIZE |
+                        LIBDECOR_ACTION_FULLSCREEN |
+                        LIBDECOR_ACTION_CLOSE));
+                if (bFullscreen)
+                    libdecor_frame_set_fullscreen(m_pLibdecorFrame, nullptr);
+                libdecor_frame_map(m_pLibdecorFrame);
+                wl_display_roundtrip(m_pWlDisplay);
+
+                if (m_Width == 0)  m_Width = w;
+                if (m_Height == 0) m_Height = h;
+
+                g_Log->Info(
+                    "CDisplayVulkan: Wayland initialized via libdecor %ux%u (fullscreen=%d)",
+                    m_Width, m_Height, static_cast<int>(bFullscreen));
+                return true;
+            }
+
+            g_Log->Warning(
+                "CDisplayVulkan: libdecor decoration setup failed; continuing undecorated. "
+                "Arch bundles libdecor backends in the libdecor package; Ubuntu typically "
+                "needs libdecor-0-plugin-1-gtk installed.");
+            libdecor_unref(m_pLibdecorContext);
+            m_pLibdecorContext = nullptr;
+        }
+        else
+        {
+            g_Log->Warning(
+                "CDisplayVulkan: libdecor unavailable at runtime; continuing undecorated");
+        }
+    }
+#endif
 
     static const xdg_surface_listener s_xdgSurfaceListener = {
         onXdgSurfaceConfigure,
@@ -206,6 +382,18 @@ void CDisplayVulkan::onSeatName(void*, wl_seat*, const char*) {}
 void CDisplayVulkan::onSeatCapabilities(void* data, wl_seat*, uint32_t caps)
 {
     auto* self = static_cast<CDisplayVulkan*>(data);
+    if ((caps & WL_SEAT_CAPABILITY_POINTER) && !self->m_pWlPointer)
+    {
+        self->m_pWlPointer = wl_seat_get_pointer(self->m_pWlSeat);
+        static const wl_pointer_listener s_pointerListener = {
+            onPointerEnter,
+            onPointerLeave,
+            onPointerMotion,
+            onPointerButton,
+            onPointerAxis,
+        };
+        wl_pointer_add_listener(self->m_pWlPointer, &s_pointerListener, self);
+    }
     if ((caps & WL_SEAT_CAPABILITY_KEYBOARD) && !self->m_pWlKeyboard)
     {
         self->m_pWlKeyboard = wl_seat_get_keyboard(self->m_pWlSeat);
@@ -327,6 +515,162 @@ void CDisplayVulkan::onKeyboardModifiers(void* data, wl_keyboard*, uint32_t,
 
 void CDisplayVulkan::onKeyboardRepeatInfo(void*, wl_keyboard*, int32_t, int32_t) {}
 
+void CDisplayVulkan::onPointerEnter(void* data, wl_pointer*, uint32_t serial,
+                                    wl_surface*, wl_fixed_t surface_x, wl_fixed_t surface_y)
+{
+    auto* self = static_cast<CDisplayVulkan*>(data);
+    self->m_lastPointerSerial = serial;
+    self->m_bPointerInsideContent = true;
+    self->m_lastPointerX = wl_fixed_to_int(surface_x);
+    self->m_lastPointerY = wl_fixed_to_int(surface_y);
+#ifdef HAVE_LIBDECOR
+    self->m_hoverResizeEdge =
+        self->getWaylandResizeEdge(self->m_lastPointerX, self->m_lastPointerY);
+#endif
+    self->updateWaylandCursor();
+
+    auto& cb = PlatformUtils_GetMouseCallback();
+    if (cb)
+        cb(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
+}
+
+void CDisplayVulkan::onPointerLeave(void* data, wl_pointer*, uint32_t, wl_surface*)
+{
+    auto* self = static_cast<CDisplayVulkan*>(data);
+    self->m_bPointerInsideContent = false;
+#ifdef HAVE_LIBDECOR
+    self->m_hoverResizeEdge = LIBDECOR_RESIZE_EDGE_NONE;
+#endif
+}
+
+void CDisplayVulkan::onPointerMotion(void* data, wl_pointer*, uint32_t,
+                                     wl_fixed_t surface_x, wl_fixed_t surface_y)
+{
+    auto* self = static_cast<CDisplayVulkan*>(data);
+    self->m_lastPointerX = wl_fixed_to_int(surface_x);
+    self->m_lastPointerY = wl_fixed_to_int(surface_y);
+#ifdef HAVE_LIBDECOR
+    self->m_hoverResizeEdge =
+        self->getWaylandResizeEdge(self->m_lastPointerX, self->m_lastPointerY);
+#endif
+    self->updateWaylandCursor();
+
+    auto& cb = PlatformUtils_GetMouseCallback();
+    if (cb)
+        cb(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
+}
+
+void CDisplayVulkan::onPointerButton(void* data, wl_pointer*, uint32_t serial,
+                                     uint32_t, uint32_t button, uint32_t state)
+{
+    auto* self = static_cast<CDisplayVulkan*>(data);
+    self->m_lastPointerSerial = serial;
+#ifdef HAVE_LIBDECOR
+    if (button == kWaylandButtonLeft &&
+        state == WL_POINTER_BUTTON_STATE_PRESSED &&
+        self->m_bUsingLibdecor &&
+        self->m_pLibdecorFrame &&
+        self->m_pWlSeat &&
+        self->m_hoverResizeEdge != LIBDECOR_RESIZE_EDGE_NONE &&
+        !self->m_bFullScreen)
+    {
+        libdecor_frame_resize(self->m_pLibdecorFrame, self->m_pWlSeat,
+                              serial, self->m_hoverResizeEdge);
+    }
+#endif
+}
+
+void CDisplayVulkan::onPointerAxis(void*, wl_pointer*, uint32_t, uint32_t, wl_fixed_t) {}
+
+#ifdef HAVE_LIBDECOR
+libdecor_resize_edge CDisplayVulkan::getWaylandResizeEdge(int32_t x, int32_t y) const
+{
+    if (!m_bUsingLibdecor || m_bFullScreen)
+        return LIBDECOR_RESIZE_EDGE_NONE;
+
+    constexpr int32_t kResizeMarginPx = 12;
+    const int32_t width = static_cast<int32_t>(m_Width);
+    const int32_t height = static_cast<int32_t>(m_Height);
+
+    if (x < 0 || y < 0 || x >= width || y >= height)
+        return LIBDECOR_RESIZE_EDGE_NONE;
+
+    const bool left = x < kResizeMarginPx;
+    const bool right = x >= width - kResizeMarginPx;
+    const bool top = y < kResizeMarginPx;
+    const bool bottom = y >= height - kResizeMarginPx;
+
+    if (top && left) return LIBDECOR_RESIZE_EDGE_TOP_LEFT;
+    if (top && right) return LIBDECOR_RESIZE_EDGE_TOP_RIGHT;
+    if (bottom && left) return LIBDECOR_RESIZE_EDGE_BOTTOM_LEFT;
+    if (bottom && right) return LIBDECOR_RESIZE_EDGE_BOTTOM_RIGHT;
+    if (top) return LIBDECOR_RESIZE_EDGE_TOP;
+    if (bottom) return LIBDECOR_RESIZE_EDGE_BOTTOM;
+    if (left) return LIBDECOR_RESIZE_EDGE_LEFT;
+    if (right) return LIBDECOR_RESIZE_EDGE_RIGHT;
+    return LIBDECOR_RESIZE_EDGE_NONE;
+}
+
+wl_cursor* CDisplayVulkan::getWaylandCursorForEdge(libdecor_resize_edge edge) const
+{
+    switch (edge)
+    {
+    case LIBDECOR_RESIZE_EDGE_TOP: return m_pResizeTopCursor;
+    case LIBDECOR_RESIZE_EDGE_BOTTOM: return m_pResizeBottomCursor;
+    case LIBDECOR_RESIZE_EDGE_LEFT: return m_pResizeLeftCursor;
+    case LIBDECOR_RESIZE_EDGE_RIGHT: return m_pResizeRightCursor;
+    case LIBDECOR_RESIZE_EDGE_TOP_LEFT: return m_pResizeTopLeftCursor;
+    case LIBDECOR_RESIZE_EDGE_TOP_RIGHT: return m_pResizeTopRightCursor;
+    case LIBDECOR_RESIZE_EDGE_BOTTOM_LEFT: return m_pResizeBottomLeftCursor;
+    case LIBDECOR_RESIZE_EDGE_BOTTOM_RIGHT: return m_pResizeBottomRightCursor;
+    default: return m_pArrowCursor;
+    }
+}
+#endif
+
+void CDisplayVulkan::updateWaylandCursor()
+{
+    if (!m_pWlPointer || !m_pCursorSurface || m_lastPointerSerial == 0 ||
+        !m_bPointerInsideContent)
+        return;
+
+    const bool hidden = PlatformUtils_GetCursorHidden();
+    if (hidden)
+    {
+        wl_pointer_set_cursor(m_pWlPointer, m_lastPointerSerial, nullptr, 0, 0);
+        m_bWaylandCursorHiddenApplied = true;
+        return;
+    }
+
+#ifdef HAVE_LIBDECOR
+    wl_cursor* cursor = getWaylandCursorForEdge(m_hoverResizeEdge);
+#else
+    wl_cursor* cursor = m_pArrowCursor;
+#endif
+    if (!cursor || cursor->image_count == 0)
+        cursor = m_pArrowCursor;
+    if (!cursor || cursor->image_count == 0)
+        return;
+
+    wl_cursor_image* image = cursor->images[0];
+    if (!image)
+        return;
+
+    wl_buffer* buffer = wl_cursor_image_get_buffer(image);
+    if (!buffer)
+        return;
+
+    wl_pointer_set_cursor(m_pWlPointer, m_lastPointerSerial, m_pCursorSurface,
+                          static_cast<int32_t>(image->hotspot_x),
+                          static_cast<int32_t>(image->hotspot_y));
+    wl_surface_attach(m_pCursorSurface, buffer, 0, 0);
+    wl_surface_damage_buffer(m_pCursorSurface, 0, 0,
+                             static_cast<int32_t>(image->width),
+                             static_cast<int32_t>(image->height));
+    wl_surface_commit(m_pCursorSurface);
+    m_bWaylandCursorHiddenApplied = false;
+}
+
 // ---------------------------------------------------------------------------
 // destroyWayland
 // ---------------------------------------------------------------------------
@@ -335,16 +679,36 @@ void CDisplayVulkan::destroyWayland()
     if (m_pXkbState)          { xkb_state_unref(m_pXkbState);                              m_pXkbState          = nullptr; }
     if (m_pXkbKeymap)         { xkb_keymap_unref(m_pXkbKeymap);                            m_pXkbKeymap         = nullptr; }
     if (m_pXkbContext)        { xkb_context_unref(m_pXkbContext);                          m_pXkbContext        = nullptr; }
+    if (m_pCursorTheme)       { wl_cursor_theme_destroy(m_pCursorTheme);                   m_pCursorTheme       = nullptr; }
+    m_pArrowCursor = nullptr;
+    if (m_pCursorSurface)     { wl_surface_destroy(m_pCursorSurface);                      m_pCursorSurface     = nullptr; }
+    if (m_pWlPointer)         { wl_pointer_destroy(m_pWlPointer);                          m_pWlPointer         = nullptr; }
     if (m_pWlKeyboard)        { wl_keyboard_destroy(m_pWlKeyboard);                        m_pWlKeyboard        = nullptr; }
     if (m_pWlSeat)            { wl_seat_destroy(m_pWlSeat);                                m_pWlSeat            = nullptr; }
     if (m_pToplevelDecoration){ zxdg_toplevel_decoration_v1_destroy(m_pToplevelDecoration);m_pToplevelDecoration= nullptr; }
     if (m_pDecorationManager) { zxdg_decoration_manager_v1_destroy(m_pDecorationManager);  m_pDecorationManager = nullptr; }
-    if (m_pXdgToplevel)       { xdg_toplevel_destroy(m_pXdgToplevel);                      m_pXdgToplevel       = nullptr; }
-    if (m_pXdgSurface)        { xdg_surface_destroy(m_pXdgSurface);                        m_pXdgSurface        = nullptr; }
+#ifdef HAVE_LIBDECOR
+    if (m_pLibdecorFrame)     { libdecor_frame_unref(m_pLibdecorFrame);                    m_pLibdecorFrame     = nullptr; }
+    if (m_pLibdecorContext)   { libdecor_unref(m_pLibdecorContext);                        m_pLibdecorContext   = nullptr; }
+#endif
+    if (!m_bUsingLibdecor && m_pXdgToplevel)
+    {
+        xdg_toplevel_destroy(m_pXdgToplevel);
+    }
+    m_pXdgToplevel = nullptr;
+    if (!m_bUsingLibdecor && m_pXdgSurface)
+    {
+        xdg_surface_destroy(m_pXdgSurface);
+    }
+    m_pXdgSurface = nullptr;
     if (m_pWlSurface)         { wl_surface_destroy(m_pWlSurface);                          m_pWlSurface         = nullptr; }
     if (m_pXdgWmBase)         { xdg_wm_base_destroy(m_pXdgWmBase);                         m_pXdgWmBase         = nullptr; }
+    if (m_pWlShm)             { wl_shm_destroy(m_pWlShm);                                  m_pWlShm             = nullptr; }
     if (m_pWlCompositor)      { wl_compositor_destroy(m_pWlCompositor);                    m_pWlCompositor      = nullptr; }
     if (m_pWlDisplay)         { wl_display_disconnect(m_pWlDisplay);                       m_pWlDisplay         = nullptr; }
+#ifdef HAVE_LIBDECOR
+    m_bUsingLibdecor = false;
+#endif
 }
 
 #endif // HAVE_WAYLAND
@@ -631,6 +995,13 @@ void CDisplayVulkan::Title(const std::string& _title)
 #ifdef HAVE_WAYLAND
     if (m_bWayland)
     {
+#ifdef HAVE_LIBDECOR
+        if (m_bUsingLibdecor && m_pLibdecorFrame)
+        {
+            libdecor_frame_set_title(m_pLibdecorFrame, _title.c_str());
+            return;
+        }
+#endif
         if (m_pXdgToplevel) xdg_toplevel_set_title(m_pXdgToplevel, _title.c_str());
         return;
     }
@@ -654,7 +1025,18 @@ void CDisplayVulkan::checkEvents()
 #ifdef HAVE_WAYLAND
     if (m_bWayland)
     {
+        if (m_bPointerInsideContent &&
+            PlatformUtils_GetCursorHidden() != m_bWaylandCursorHiddenApplied)
+        {
+            updateWaylandCursor();
+        }
         wl_display_flush(m_pWlDisplay);
+#ifdef HAVE_LIBDECOR
+        if (m_bUsingLibdecor && m_pLibdecorContext)
+        {
+            while (libdecor_dispatch(m_pLibdecorContext, 0) > 0) {}
+        }
+#endif
         wl_display_dispatch_pending(m_pWlDisplay);
         return;
     }
@@ -750,6 +1132,30 @@ void CDisplayVulkan::setFullScreen(bool enabled)
 #ifdef HAVE_WAYLAND
     if (m_bWayland)
     {
+#ifdef HAVE_LIBDECOR
+        if (m_bUsingLibdecor)
+        {
+            if (!m_pLibdecorFrame) return;
+            if (enabled)
+            {
+                libdecor_frame_set_fullscreen(m_pLibdecorFrame, nullptr);
+            }
+            else
+            {
+                m_Width  = 1280;
+                m_Height = 720;
+                libdecor_frame_unset_fullscreen(m_pLibdecorFrame);
+                libdecor_state* state =
+                    libdecor_state_new(static_cast<int>(m_Width),
+                                       static_cast<int>(m_Height));
+                libdecor_frame_commit(m_pLibdecorFrame, state, nullptr);
+                wl_surface_commit(m_pWlSurface);
+                libdecor_state_free(state);
+            }
+            wl_display_flush(m_pWlDisplay);
+            return;
+        }
+#endif
         if (!m_pXdgToplevel) return;
         if (enabled)
         {

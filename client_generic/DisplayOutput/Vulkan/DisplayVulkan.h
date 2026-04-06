@@ -12,10 +12,14 @@
 
 #ifdef HAVE_WAYLAND
 #include <wayland-client.h>
+#include <wayland-cursor.h>
 #include <vulkan/vulkan_wayland.h>
 #include <xkbcommon/xkbcommon.h>
 #include "xdg-shell-client-protocol.h"
 #include "xdg-decoration-unstable-v1-client-protocol.h"
+#ifdef HAVE_LIBDECOR
+#include <libdecor.h>
+#endif
 #endif
 
 #include <string>
@@ -53,21 +57,52 @@ class CDisplayVulkan : public CDisplayOutput
     // -----------------------------------------------------------------------
     struct wl_display*    m_pWlDisplay    = nullptr;
     struct wl_surface*    m_pWlSurface    = nullptr;
+    struct wl_surface*    m_pCursorSurface= nullptr;
     struct wl_compositor* m_pWlCompositor = nullptr;
+    struct wl_shm*        m_pWlShm        = nullptr;
     struct xdg_wm_base*   m_pXdgWmBase    = nullptr;
     struct xdg_surface*   m_pXdgSurface   = nullptr;
     struct xdg_toplevel*  m_pXdgToplevel  = nullptr;
     struct wl_seat*       m_pWlSeat       = nullptr;
     struct wl_keyboard*   m_pWlKeyboard   = nullptr;
+    struct wl_pointer*    m_pWlPointer    = nullptr;
     struct zxdg_decoration_manager_v1*   m_pDecorationManager = nullptr;
     struct zxdg_toplevel_decoration_v1*  m_pToplevelDecoration = nullptr;
+#ifdef HAVE_LIBDECOR
+    struct libdecor*      m_pLibdecorContext = nullptr;
+    struct libdecor_frame* m_pLibdecorFrame  = nullptr;
+    bool                  m_bUsingLibdecor   = false;
+#endif
 
     struct xkb_context*   m_pXkbContext   = nullptr;
     struct xkb_keymap*    m_pXkbKeymap    = nullptr;
     struct xkb_state*     m_pXkbState     = nullptr;
+    struct wl_cursor_theme* m_pCursorTheme = nullptr;
+    struct wl_cursor*     m_pArrowCursor  = nullptr;
+#ifdef HAVE_LIBDECOR
+    struct wl_cursor*     m_pResizeTopCursor = nullptr;
+    struct wl_cursor*     m_pResizeBottomCursor = nullptr;
+    struct wl_cursor*     m_pResizeLeftCursor = nullptr;
+    struct wl_cursor*     m_pResizeRightCursor = nullptr;
+    struct wl_cursor*     m_pResizeTopLeftCursor = nullptr;
+    struct wl_cursor*     m_pResizeTopRightCursor = nullptr;
+    struct wl_cursor*     m_pResizeBottomLeftCursor = nullptr;
+    struct wl_cursor*     m_pResizeBottomRightCursor = nullptr;
+    uint32_t              m_lastPointerSerial = 0;
+    bool                  m_bPointerInsideContent = false;
+    bool                  m_bWaylandCursorHiddenApplied = false;
+    int32_t               m_lastPointerX = 0;
+    int32_t               m_lastPointerY = 0;
+    enum libdecor_resize_edge m_hoverResizeEdge = LIBDECOR_RESIZE_EDGE_NONE;
+#endif
 
     bool initWayland(uint32_t w, uint32_t h, bool bFullscreen);
     void destroyWayland();
+    void updateWaylandCursor();
+#ifdef HAVE_LIBDECOR
+    enum libdecor_resize_edge getWaylandResizeEdge(int32_t x, int32_t y) const;
+    struct wl_cursor* getWaylandCursorForEdge(enum libdecor_resize_edge edge) const;
+#endif
 
     // Wayland listener callbacks (static so they match C function-pointer ABI)
     static void onRegistryGlobal(void*, wl_registry*, uint32_t, const char*, uint32_t);
@@ -84,6 +119,17 @@ class CDisplayVulkan : public CDisplayOutput
     static void onKeyboardKey(void*, wl_keyboard*, uint32_t, uint32_t, uint32_t, uint32_t);
     static void onKeyboardModifiers(void*, wl_keyboard*, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
     static void onKeyboardRepeatInfo(void*, wl_keyboard*, int32_t, int32_t);
+    static void onPointerEnter(void*, wl_pointer*, uint32_t, wl_surface*, wl_fixed_t, wl_fixed_t);
+    static void onPointerLeave(void*, wl_pointer*, uint32_t, wl_surface*);
+    static void onPointerMotion(void*, wl_pointer*, uint32_t, wl_fixed_t, wl_fixed_t);
+    static void onPointerButton(void*, wl_pointer*, uint32_t, uint32_t, uint32_t, uint32_t);
+    static void onPointerAxis(void*, wl_pointer*, uint32_t, uint32_t, wl_fixed_t);
+#ifdef HAVE_LIBDECOR
+    static void onLibdecorError(struct libdecor*, enum libdecor_error, const char*);
+    static void onLibdecorConfigure(struct libdecor_frame*, struct libdecor_configuration*, void*);
+    static void onLibdecorClose(struct libdecor_frame*, void*);
+    static void onLibdecorCommit(struct libdecor_frame*, void*);
+#endif
 #endif
 
     bool      m_bWayland      = false;

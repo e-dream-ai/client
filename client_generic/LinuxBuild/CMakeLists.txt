@@ -47,8 +47,10 @@ endif()
 # Falls back to X11/XWayland if not found. XScreensaver mode always uses X11.
 if(PKG_CONFIG_FOUND)
     pkg_check_modules(WAYLAND_CLIENT wayland-client)
+    pkg_check_modules(WAYLAND_CURSOR wayland-cursor)
     pkg_check_modules(WAYLAND_PROTOCOLS wayland-protocols)
     pkg_check_modules(XKB xkbcommon)
+    pkg_check_modules(LIBDECOR libdecor-0)
     find_program(WAYLAND_SCANNER wayland-scanner HINTS /usr/bin /usr/local/bin)
     if(WAYLAND_CLIENT_FOUND AND WAYLAND_PROTOCOLS_FOUND AND WAYLAND_SCANNER)
         message(STATUS "Wayland found — native Wayland surface enabled")
@@ -76,6 +78,12 @@ if(PKG_CONFIG_FOUND)
             COMMENT "Generating xdg-decoration protocol bindings"
         )
         add_compile_definitions(HAVE_WAYLAND)
+        if(LIBDECOR_FOUND)
+            message(STATUS "libdecor found — Wayland client-side decoration fallback enabled")
+            add_compile_definitions(HAVE_LIBDECOR)
+        else()
+            message(STATUS "libdecor not found — Wayland fallback decorations disabled")
+        endif()
     else()
         message(STATUS "Wayland not found — X11/XWayland only")
     endif()
@@ -258,6 +266,8 @@ target_include_directories(infinidream PRIVATE
     ${PNG_INCLUDE_DIRS}
     ${CMAKE_CURRENT_BINARY_DIR}           # generated xdg-shell-client-protocol.h
     ${WAYLAND_CLIENT_INCLUDE_DIRS}
+    ${WAYLAND_CURSOR_INCLUDE_DIRS}
+    ${LIBDECOR_INCLUDE_DIRS}
     ${XKB_INCLUDE_DIRS}
     ${BASE}/imgui
     ${BASE}/imgui/backends
@@ -285,6 +295,8 @@ target_link_libraries(infinidream PRIVATE
     dl
     ${BASE}/socket.io-client-cpp/lib/linux/libsioclient_tls.a
     $<$<BOOL:${WAYLAND_CLIENT_FOUND}>:${WAYLAND_CLIENT_LIBRARIES}>
+    $<$<BOOL:${WAYLAND_CURSOR_FOUND}>:${WAYLAND_CURSOR_LIBRARIES}>
+    $<$<BOOL:${LIBDECOR_FOUND}>:${LIBDECOR_LIBRARIES}>
     $<$<BOOL:${XKB_FOUND}>:${XKB_LIBRARIES}>
 )
 
@@ -315,4 +327,3 @@ add_custom_command(TARGET infinidream POST_BUILD
         $<TARGET_FILE_DIR:infinidream>/logo.png
     COMMENT "Copying runtime assets to binary directory"
 )
-
