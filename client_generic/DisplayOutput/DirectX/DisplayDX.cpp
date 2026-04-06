@@ -180,7 +180,7 @@ void CDisplayDX::BlankUnusedMonitors(WNDCLASS& wnd, HWND hWnd,
                     iMonitor, m_DesiredScreenID, rc.left, rc.top,
                     rc.right - rc.left, rc.bottom - rc.top);
                 pMonitorInfo->hWnd = CreateWindowEx(
-                    WS_EX_TOPMOST, L"ElectricsheepWndClass", L"ES", dwStyle,
+                    WS_EX_TOPMOST, L"ElectricsheepWndClass", L"infinidream", dwStyle,
                     rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top,
                     hWnd, NULL, hInstance, NULL);
             }
@@ -662,7 +662,7 @@ HWND CDisplayDX::createwindow(uint32_t _w, uint32_t _h, const bool _bFullscreen)
     }
 
     HWND hWnd =
-        CreateWindowEx(exStyle, L"ElectricsheepWndClass", L"e-dream",
+        CreateWindowEx(exStyle, L"ElectricsheepWndClass", L"infinidream",
                        style, xx, yy, ww, hh, NULL, NULL, hInstance, NULL);
     BlankUnusedMonitors(wndclass, hWnd, hInstance);
     return hWnd;

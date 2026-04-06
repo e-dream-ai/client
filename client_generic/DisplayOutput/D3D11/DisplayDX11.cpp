@@ -432,7 +432,7 @@ HWND CDisplayDX11::CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen) 
     const DWORD exStyle =
         fullscreen ? (WS_EX_APPWINDOW | WS_EX_TOPMOST) : 0UL;
 
-    return CreateWindowExW(exStyle, L"EDreamDX11Class", L"E-Dream", style,
+    return CreateWindowExW(exStyle, L"EDreamDX11Class", L"infinidream", style,
                            CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left,
                            rc.bottom - rc.top, nullptr, nullptr, hInstance, this);
 }

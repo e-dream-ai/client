@@ -184,7 +184,10 @@ static HWND createwindow(uint32 _w, uint32 _h, const bool _bFullscreen)
     wndclass.cbClsExtra = 0;
     wndclass.cbWndExtra = 0;
     wndclass.hInstance = hInstance;
-    wndclass.hIcon = LoadIcon(NULL, IDI_WINLOGO);
+    {
+        HICON appIcon = LoadIcon(hInstance, MAKEINTRESOURCE(1));
+        wndclass.hIcon = appIcon ? appIcon : LoadIcon(NULL, IDI_APPLICATION);
+    }
     wndclass.hCursor = LoadCursor(NULL, IDC_ARROW);
     wndclass.hbrBackground = NULL;
     wndclass.lpszMenuName = NULL;
@@ -226,7 +229,7 @@ static HWND createwindow(uint32 _w, uint32 _h, const bool _bFullscreen)
     }
 
     AdjustWindowRectEx(&windowRect, style, false, exStyle);
-    HWND hWnd = CreateWindowEx(exStyle, "Electricsheep", "Electricsheep", style,
+    HWND hWnd = CreateWindowEx(exStyle, "Electricsheep", "infinidream", style,
                                0, 0, _w, _h, NULL, NULL, hInstance, NULL);
 
     return hWnd;

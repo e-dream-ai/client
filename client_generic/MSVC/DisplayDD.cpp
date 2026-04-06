@@ -248,7 +248,7 @@ HWND CDisplayDD::createwindow(uint32 _w, uint32 _h, const bool _bFullscreen)
 
         dwStyle = WS_VISIBLE | WS_POPUP;
         HWND hWnd = CreateWindowEx(WS_EX_TOPMOST, L"ElectricsheepWndClass",
-                                   L"Electricsheep", dwStyle, rc.left, rc.top,
+                                   L"infinidream", dwStyle, rc.left, rc.top,
                                    rc.right - rc.left, rc.bottom - rc.top, NULL,
                                    NULL, hInstance, NULL);
         m_ParentWindowHandle = hWnd;
@@ -288,7 +288,7 @@ HWND CDisplayDD::createwindow(uint32 _w, uint32 _h, const bool _bFullscreen)
     _w = windowRect.right - windowRect.left;
     _h = windowRect.bottom - windowRect.top;
     HWND hWnd =
-        CreateWindowEx(exStyle, L"ElectricsheepWndClass", L"Electricsheep",
+        CreateWindowEx(exStyle, L"ElectricsheepWndClass", L"infinidream",
                        style, 0, 0, _w, _h, NULL, NULL, hInstance, NULL);
     m_ParentWindowHandle = hWnd;
     return hWnd;

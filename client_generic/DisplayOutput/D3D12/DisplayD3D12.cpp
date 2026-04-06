@@ -336,7 +336,7 @@ HWND CDisplayD3D12::CreateDisplayWindow(uint32_t _w, uint32_t _h, const bool _bF
     }*/
 
     HWND hWnd =
-        CreateWindowEx(exStyle, L"EdreamWndClass", L"e-dream", style, xx,
+        CreateWindowEx(exStyle, L"EdreamWndClass", L"infinidream", style, xx,
                        yy, ww, hh, NULL, NULL, hInstance, NULL);
     //BlankUnusedMonitors(wndclass, hWnd, hInstance);
     return hWnd;
