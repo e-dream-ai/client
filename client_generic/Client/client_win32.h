@@ -711,6 +711,8 @@ class CElectricSheep_Win32 : public CElectricSheep
             }
         }
 
+        ProcessCommandQueue();
+
         return true;
     }
     //
