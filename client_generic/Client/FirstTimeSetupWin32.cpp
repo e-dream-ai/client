@@ -75,6 +75,30 @@ constexpr float kCodeVerifyW = 110.f;
 constexpr float kCodeVerifyOffsetY = 184.f;
 constexpr float kCodeTryAgainW = 88.f;
 constexpr float kCodeTryAgainOffsetY = 227.f;
+// ThanksStepViewController.xib (tips / “All set” step)
+constexpr float kThanksPanelW = 667.f;
+constexpr float kThanksOuterPad = 20.f;
+constexpr float kThanksColGap = 20.f;
+constexpr float kThanksTitleTop = 14.f;
+constexpr float kThanksTitleToGrid = 20.f;
+constexpr float kThanksRowTopH = 190.f;
+constexpr float kThanksRowBotH = 207.f;
+constexpr float kThanksHSepGap = 10.f;
+/// Match vertical splitter thickness (1px hairline).
+constexpr float kThanksHSepH = 1.f;
+constexpr float kThanksCellPad = 8.f;
+constexpr float kThanksImgTop = 18.f;
+constexpr float kThanksImgTrail = 6.f;
+constexpr float kThanksTextImgGap = 12.f;
+constexpr float kThanksPlaylistImg = 60.f;
+constexpr float kThanksBtnBottom = 10.f;
+constexpr float kThanksBottomPad = 20.f;
+constexpr float kThanksOpenRemoteBtnW = 118.f;
+constexpr float kThanksOpenPlaylistBtnW = 136.f;
+constexpr float kThanksTipsBtnH = 28.f;
+constexpr float kThanksDreamOnMinW = 82.f;
+constexpr float kThanksCopyFontSize = 17.f;
+constexpr float kThanksBtnFontSize = 15.f;
 
 // macOS systemBlue focus ring; idle outline matches sheet borderChrome
 static constexpr ImVec4 kMacInputBorderFocus(0.f, 0.478f, 1.f, 1.f);
@@ -113,6 +137,8 @@ ImFont* g_fontBody = nullptr;
 ImFont* g_fontTitle = nullptr;
 ImFont* g_fontHeadline = nullptr;
 ImFont* g_fontOtp = nullptr;
+ImFont* g_fontThanksCopy = nullptr;
+ImFont* g_fontThanksBtn = nullptr;
 
 ID3D11ShaderResourceView* g_srvLogo = nullptr;
 ID3D11ShaderResourceView* g_srvPlaylist = nullptr;
@@ -482,6 +508,8 @@ static void LoadSystemFonts()
     g_fontTitle = nullptr;
     g_fontHeadline = nullptr;
     g_fontOtp = nullptr;
+    g_fontThanksCopy = nullptr;
+    g_fontThanksBtn = nullptr;
 
     char winDir[MAX_PATH] = {};
     if (GetWindowsDirectoryA(winDir, MAX_PATH) == 0)
@@ -509,15 +537,22 @@ static void LoadSystemFonts()
     g_fontBody = io.Fonts->AddFontFromFileTTF(segoe.c_str(), 15.f, &cfg, io.Fonts->GetGlyphRangesDefault());
     g_fontTitle = io.Fonts->AddFontFromFileTTF(segoe.c_str(), 28.f, &cfg, io.Fonts->GetGlyphRangesDefault());
     g_fontOtp = io.Fonts->AddFontFromFileTTF(segoe.c_str(), 36.f, &cfg, io.Fonts->GetGlyphRangesDefault());
+    g_fontThanksCopy =
+        io.Fonts->AddFontFromFileTTF(segoe.c_str(), kThanksCopyFontSize, &cfg, io.Fonts->GetGlyphRangesDefault());
 
     FILE* fsb = std::fopen(segSb.c_str(), "rb");
     if (fsb)
     {
         std::fclose(fsb);
         g_fontHeadline = io.Fonts->AddFontFromFileTTF(segSb.c_str(), 32.f, &cfg, io.Fonts->GetGlyphRangesDefault());
+        g_fontThanksBtn =
+            io.Fonts->AddFontFromFileTTF(segSb.c_str(), kThanksBtnFontSize, &cfg, io.Fonts->GetGlyphRangesDefault());
     }
     if (!g_fontHeadline)
         g_fontHeadline = io.Fonts->AddFontFromFileTTF(segoe.c_str(), 32.f, &cfg, io.Fonts->GetGlyphRangesDefault());
+    if (!g_fontThanksBtn)
+        g_fontThanksBtn =
+            io.Fonts->AddFontFromFileTTF(segoe.c_str(), kThanksBtnFontSize, &cfg, io.Fonts->GetGlyphRangesDefault());
 
     if (g_fontBody)
         io.FontDefault = g_fontBody;
@@ -567,6 +602,7 @@ static void ShutdownImGui()
     ImGui::DestroyContext();
     g_imguiContext = nullptr;
     g_fontBody = g_fontTitle = g_fontHeadline = g_fontOtp = nullptr;
+    g_fontThanksCopy = g_fontThanksBtn = nullptr;
     g_imguiInitialized.store(false, std::memory_order_release);
 }
 
@@ -748,7 +784,10 @@ static void DrawWizard()
     float bodyH = ImGui::GetContentRegionAvail().y - skipReserve;
     if (bodyH < 1.f)
         bodyH = 1.f;
-    ImGui::BeginChild("body", ImVec2(0, bodyH), ImGuiChildFlags_None, ImGuiWindowFlags_NoBackground);
+    ImGuiWindowFlags bodyChildFlags = ImGuiWindowFlags_NoBackground;
+    if (g_wizardStep == 2)
+        bodyChildFlags |= ImGuiWindowFlags_NoScrollbar;
+    ImGui::BeginChild("body", ImVec2(0, bodyH), ImGuiChildFlags_None, bodyChildFlags);
 
     if (g_wizardStep == 0)
     {
@@ -953,87 +992,211 @@ static void DrawWizard()
     {
         g_emailFieldBorderActive = false;
         g_otpFieldBorderActive = false;
+
+        const float bodyAvailW = ImGui::GetContentRegionAvail().x;
+        const float panelW = bodyAvailW < kThanksPanelW ? bodyAvailW : kThanksPanelW;
+        const float centerPad = (bodyAvailW - panelW) * 0.5f;
+        if (centerPad > 0.f)
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + centerPad);
+
+        const float innerW = panelW - 2.f * kThanksOuterPad;
+        const float colW = (innerW - kThanksColGap) * 0.5f;
+
         if (g_fontTitle)
             ImGui::PushFont(g_fontTitle);
         const char* tipsTitle = "All set! Quick tips:";
         const ImVec2 tipsTs = ImGui::CalcTextSize(tipsTitle);
-        const float tipsX = (ImGui::GetContentRegionAvail().x - tipsTs.x) * 0.5f;
-        if (tipsX > 0.f)
-            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + tipsX);
-        ImGui::TextUnformatted(tipsTitle);
         if (g_fontTitle)
             ImGui::PopFont();
 
-        ImGui::Spacing();
+        const float panelH = kThanksTitleTop + tipsTs.y + kThanksTitleToGrid + kThanksRowTopH +
+                             kThanksHSepGap + kThanksHSepH + kThanksHSepGap + kThanksRowBotH + kThanksBottomPad;
 
-        const float availW = ImGui::GetContentRegionAvail().x;
-        const float gap = 12.f;
-        const float cellW = (availW - gap) * 0.5f;
-        const float rowTopH = 190.f;
-        const float rowBotH = 200.f;
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
+        ImGui::BeginChild("thanksPanel", ImVec2(panelW, panelH), ImGuiChildFlags_None,
+                          ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar |
+                              ImGuiWindowFlags_NoScrollWithMouse);
 
-        const ImGuiTableFlags tf = ImGuiTableFlags_SizingStretchSame;
-        if (ImGui::BeginTable("tips_grid", 2, tf))
+        ImGui::Dummy(ImVec2(0.f, kThanksTitleTop));
+
+        if (g_fontTitle)
+            ImGui::PushFont(g_fontTitle);
         {
-            ImGui::TableSetupColumn("L", ImGuiTableColumnFlags_WidthStretch);
-            ImGui::TableSetupColumn("R", ImGuiTableColumnFlags_WidthStretch);
+            const float tipX = (panelW - tipsTs.x) * 0.5f;
+            if (tipX > 0.f)
+                ImGui::SetCursorPosX(tipX);
+            ImGui::TextUnformatted(tipsTitle);
+        }
+        if (g_fontTitle)
+            ImGui::PopFont();
 
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
-            ImGui::BeginChild("tl", ImVec2(0, rowTopH), false);
+        ImGui::Dummy(ImVec2(0.f, kThanksTitleToGrid));
+
+        const float yTop = ImGui::GetCursorPosY();
+        ImDrawList* panelDl = ImGui::GetWindowDrawList();
+        const ImU32 sepU32 = ImGui::ColorConvertFloat4ToU32(ImGui::GetStyle().Colors[ImGuiCol_Border]);
+
+        ImGui::SetCursorPos(ImVec2(kThanksOuterPad, yTop));
+        ImGui::BeginChild("tl", ImVec2(colW, kThanksRowTopH), ImGuiChildFlags_None,
+                          ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar |
+                              ImGuiWindowFlags_NoScrollWithMouse);
+        {
+            if (g_fontThanksCopy)
+                ImGui::PushFont(g_fontThanksCopy);
+            ImGui::SetCursorPos(ImVec2(kThanksCellPad, kThanksCellPad));
+            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + colW - 2.f * kThanksCellPad);
             ImGui::TextWrapped(
                 "Use the A and D keys to adjust the speed of playback. Press F1 to see more keyboard "
                 "controls. You can also interact with the remote control installed on your phone, or from "
                 "a web browser:");
-            ImGui::Spacing();
-            if (ImGui::Button("Open web remote"))
-                PlatformUtils::OpenURLExternally(kUrlWebRemote);
-            ImGui::EndChild();
+            ImGui::PopTextWrapPos();
+            if (g_fontThanksCopy)
+                ImGui::PopFont();
 
-            ImGui::TableSetColumnIndex(1);
-            ImGui::BeginChild("tr", ImVec2(0, rowTopH), false);
-            ImGui::Columns(2, "##trcols", false);
-            ImGui::SetColumnWidth(0, cellW - 72.f);
+            const float btnY = kThanksRowTopH - kThanksBtnBottom - kThanksTipsBtnH;
+            ImGui::SetCursorPos(ImVec2((colW - kThanksOpenRemoteBtnW) * 0.5f, btnY));
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.f, 3.f));
+            if (g_fontThanksBtn)
+                ImGui::PushFont(g_fontThanksBtn);
+            const bool openRemote = ImGui::Button("Open web remote", ImVec2(kThanksOpenRemoteBtnW, kThanksTipsBtnH));
+            if (g_fontThanksBtn)
+                ImGui::PopFont();
+            ImGui::PopStyleVar();
+            if (openRemote)
+                PlatformUtils::OpenURLExternally(kUrlWebRemote);
+        }
+        ImGui::EndChild();
+        const ImVec2 tlRectMin = ImGui::GetItemRectMin();
+        const ImVec2 tlRectMax = ImGui::GetItemRectMax();
+
+        ImGui::SetCursorPos(ImVec2(kThanksOuterPad + colW + kThanksColGap, yTop));
+        ImGui::BeginChild("tr", ImVec2(colW, kThanksRowTopH), ImGuiChildFlags_None,
+                          ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar |
+                              ImGuiWindowFlags_NoScrollWithMouse);
+        {
+            const float textWrapW =
+                colW - kThanksCellPad - kThanksTextImgGap - kThanksPlaylistImg - kThanksImgTrail;
+            if (g_fontThanksCopy)
+                ImGui::PushFont(g_fontThanksCopy);
+            ImGui::SetCursorPos(ImVec2(kThanksCellPad, kThanksCellPad));
+            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + textWrapW);
             ImGui::TextWrapped(
                 "Change your dreams by selecting a playlist from the browser. Click the button on a "
                 "thumbnail to start that playlist.");
-            ImGui::NextColumn();
-            if (g_srvPlaylist && g_texPlaylistW > 0 && g_texPlaylistH > 0)
-                ImGui::Image(static_cast<ImTextureID>(reinterpret_cast<uintptr_t>(g_srvPlaylist)),
-                             ImVec2(60.f, 60.f));
-            ImGui::Columns(1);
-            ImGui::Spacing();
-            if (ImGui::Button("Open playlist browser"))
-                PlatformUtils::OpenURLExternally(kUrlPlaylists);
-            ImGui::EndChild();
+            ImGui::PopTextWrapPos();
+            if (g_fontThanksCopy)
+                ImGui::PopFont();
 
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
-            ImGui::BeginChild("bl", ImVec2(0, rowBotH), false);
-            ImGui::TextWrapped(
+            if (g_srvPlaylist && g_texPlaylistW > 0 && g_texPlaylistH > 0)
+            {
+                const ImVec2 trWin = ImGui::GetWindowPos();
+                const ImVec2 imgMin(trWin.x + colW - kThanksImgTrail - kThanksPlaylistImg,
+                                    trWin.y + kThanksImgTop);
+                const ImVec2 imgMax(imgMin.x + kThanksPlaylistImg, imgMin.y + kThanksPlaylistImg);
+                ImGui::GetWindowDrawList()->AddImage(
+                    static_cast<ImTextureID>(reinterpret_cast<uintptr_t>(g_srvPlaylist)), imgMin, imgMax);
+            }
+
+            const float btnY = kThanksRowTopH - kThanksBtnBottom - kThanksTipsBtnH;
+            ImGui::SetCursorPos(ImVec2((colW - kThanksOpenPlaylistBtnW) * 0.5f, btnY));
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.f, 3.f));
+            if (g_fontThanksBtn)
+                ImGui::PushFont(g_fontThanksBtn);
+            const bool openPl =
+                ImGui::Button("Open playlist browser", ImVec2(kThanksOpenPlaylistBtnW, kThanksTipsBtnH));
+            if (g_fontThanksBtn)
+                ImGui::PopFont();
+            ImGui::PopStyleVar();
+            if (openPl)
+                PlatformUtils::OpenURLExternally(kUrlPlaylists);
+        }
+        ImGui::EndChild();
+
+        const float vSepX = tlRectMax.x + 10.f;
+        panelDl->AddRectFilled(ImVec2(vSepX, tlRectMin.y), ImVec2(vSepX + 1.f, tlRectMin.y + kThanksRowTopH),
+                               sepU32);
+
+        const float hSepTop = tlRectMax.y + kThanksHSepGap;
+        panelDl->AddRectFilled(ImVec2(tlRectMin.x, hSepTop),
+                               ImVec2(tlRectMin.x + innerW, hSepTop + kThanksHSepH), sepU32);
+
+        const float yBot = yTop + kThanksRowTopH + kThanksHSepGap + kThanksHSepH + kThanksHSepGap;
+        ImGui::SetCursorPos(ImVec2(kThanksOuterPad, yBot));
+        ImGui::BeginChild("bl", ImVec2(colW, kThanksRowBotH), ImGuiChildFlags_None,
+                          ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar |
+                              ImGuiWindowFlags_NoScrollWithMouse);
+        {
+            static const char kBlTips[] =
                 "Use fullscreen (e.g. F11 or the app window menu) for the best experience on a large "
                 "display.\n\n"
-                "Run the app to get updates.");
-            ImGui::EndChild();
+                "Run the app to get updates.";
+            const float wrapPx = colW - 2.f * kThanksCellPad;
+            ImVec2 wrapped;
+            if (g_fontThanksCopy)
+                ImGui::PushFont(g_fontThanksCopy);
+            wrapped = ImGui::CalcTextSize(kBlTips, nullptr, false, wrapPx);
+            if (g_fontThanksCopy)
+                ImGui::PopFont();
+            float yText = (kThanksRowBotH - wrapped.y) * 0.5f;
+            if (yText < kThanksCellPad)
+                yText = kThanksCellPad;
+            ImGui::SetCursorPos(ImVec2(kThanksCellPad, yText));
+            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + wrapPx);
+            if (g_fontThanksCopy)
+                ImGui::PushFont(g_fontThanksCopy);
+            ImGui::TextWrapped("%s", kBlTips);
+            if (g_fontThanksCopy)
+                ImGui::PopFont();
+            ImGui::PopTextWrapPos();
+        }
+        ImGui::EndChild();
+        const ImVec2 blRectMin = ImGui::GetItemRectMin();
 
-            ImGui::TableSetColumnIndex(1);
-            ImGui::BeginChild("br", ImVec2(0, rowBotH), false);
-            ImGui::Dummy(ImVec2(0, 20.f));
+        ImGui::SetCursorPos(ImVec2(kThanksOuterPad + colW + kThanksColGap, yBot));
+        ImGui::BeginChild("br", ImVec2(colW, kThanksRowBotH), ImGuiChildFlags_None,
+                          ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar |
+                              ImGuiWindowFlags_NoScrollWithMouse);
+        {
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.f, 3.f));
+            if (g_fontThanksBtn)
+                ImGui::PushFont(g_fontThanksBtn);
+            float dreamW = ImGui::CalcTextSize("Dream on!").x + ImGui::GetStyle().FramePadding.x * 2.f +
+                           ImGui::GetStyle().FrameBorderSize * 2.f;
+            if (g_fontThanksBtn)
+                ImGui::PopFont();
+            ImGui::PopStyleVar();
+            if (dreamW < kThanksDreamOnMinW)
+                dreamW = kThanksDreamOnMinW;
+
+            const float bx = (colW - dreamW) * 0.5f;
+            const float by = (kThanksRowBotH - kThanksTipsBtnH) * 0.5f;
+            ImGui::SetCursorPos(ImVec2(bx, by));
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.f, 3.f));
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
             ImGui::PushStyleColor(ImGuiCol_Button, kMacAccentBtn);
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, kMacAccentBtnHov);
             ImGui::PushStyleColor(ImGuiCol_ButtonActive, kMacAccentBtnAct);
             ImGui::PushStyleColor(ImGuiCol_Border, kMacAccentBtnBorder);
-            if (ImGui::Button("Dream on!", ImVec2(-1, 38.f)))
+            if (g_fontThanksBtn)
+                ImGui::PushFont(g_fontThanksBtn);
+            const bool dreamOn = ImGui::Button("Dream on!", ImVec2(dreamW, kThanksTipsBtnH));
+            if (g_fontThanksBtn)
+                ImGui::PopFont();
+            ImGui::PopStyleColor(5);
+            ImGui::PopStyleVar();
+            if (dreamOn)
             {
                 g_visible.store(false, std::memory_order_release);
                 g_pendingImGuiShutdown.store(true, std::memory_order_release);
             }
-            ImGui::PopStyleColor(5);
-            ImGui::EndChild();
-
-            ImGui::EndTable();
         }
+        ImGui::EndChild();
+
+        panelDl->AddRectFilled(ImVec2(vSepX, blRectMin.y), ImVec2(vSepX + 1.f, blRectMin.y + kThanksRowBotH),
+                               sepU32);
+
+        ImGui::EndChild(); // thanksPanel
+        ImGui::PopStyleVar(); // WindowPadding 0,0
     }
 
     ImGui::EndChild(); // body (transparent; sheet bg shows through)
