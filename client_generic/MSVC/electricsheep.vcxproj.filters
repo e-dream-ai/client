@@ -150,9 +150,6 @@
     <ClCompile Include="PlatformUtils_win.cpp">
       <Filter>Client\Code</Filter>
     </ClCompile>
-    <ClCompile Include="..\DisplayOutput\D3D12\ShaderD3D12.cpp">
-      <Filter>ContentDownloader</Filter>
-    </ClCompile>
     <ClCompile Include="..\ContentDownloader\CacheManager.cpp">
       <Filter>ContentDownloader\Code</Filter>
     </ClCompile>
@@ -397,9 +394,6 @@
     </ClInclude>
     <ClInclude Include="..\Client\PlatformUtils.h">
       <Filter>Client\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\DisplayOutput\D3D12\ShaderD3D12.h">
-      <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="..\MacBuild\OSD.hpp">
       <Filter>Client\Headers</Filter>

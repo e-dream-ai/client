@@ -778,7 +778,6 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     <ClCompile Include="..\DisplayOutput\D3D11\RendererDX11.cpp" />
     <ClCompile Include="..\DisplayOutput\D3D11\ShaderDX11.cpp" />
     <ClCompile Include="..\DisplayOutput\D3D11\TextureFlatDX11.cpp" />
-    <ClCompile Include="..\DisplayOutput\D3D12\ShaderD3D12.cpp" />
     <ClCompile Include="..\Networking\EDreamClient.cpp" />
     <ClCompile Include="..\TupleStorage\JSONStorage.cpp" />
     <ClCompile Include="msvc_fix.cpp" />
@@ -818,7 +817,6 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     <ClInclude Include="..\DisplayOutput\D3D11\RendererDX11.h" />
     <ClInclude Include="..\DisplayOutput\D3D11\ShaderDX11.h" />
     <ClInclude Include="..\DisplayOutput\D3D11\TextureFlatDX11.h" />
-    <ClInclude Include="..\DisplayOutput\D3D12\ShaderD3D12.h" />
     <ClInclude Include="..\MacBuild\OSD.hpp" />
     <ClInclude Include="..\Networking\EDreamClient.h" />
     <ClInclude Include="..\TupleStorage\JSONStorage.h" />
