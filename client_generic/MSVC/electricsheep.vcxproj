@@ -257,7 +257,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     </PreBuildEvent>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\DirectX-Headers-1.613.1\include\directx;..\MacBuild;C:\local\boost_1_85_0;..\ffmpeg\include;..\curl\include;..\ContentDownloader;..\Client;..\Common;..\Common\Math;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\libxml\include;..\lua5.1\include;..\Networking;..\zlib;..\libpng\include;..\TupleStorage;..\DisplayOutput\D3D12;..\socket.io-client-cpp\include;..\websocketpp;..\;C:\Users\Jack\Documents\openssl\openssl1_1-win-build\build-VS2022-MT\x64\Debug\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\MacBuild;C:\local\boost_1_85_0;..\ffmpeg\include;..\curl\include;..\ContentDownloader;..\Client;..\Common;..\Common\Math;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\libxml\include;..\lua5.1\include;..\Networking;..\zlib;..\libpng\include;..\TupleStorage;..\socket.io-client-cpp\include;..\websocketpp;..\;C:\Users\Jack\Documents\openssl\openssl1_1-win-build\build-VS2022-MT\x64\Debug\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0A00;BOOST_BIND_GLOBAL_PLACEHOLDERS;WIN32;_WIN64;_DEBUG;_WINDOWS;NOMINMAX;_CRT_SECURE_NO_WARNINGS;WIN32_LEAN_AND_MEAN;CURL_STATICLIB;VC_EXTRALEAN;D3D_DEBUG_INFO;COMPILE_MULTIMON_STUBS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -625,7 +625,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
       <OmitFramePointers>false</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>..\DirectX-Headers-1.613.1\include\directx;..\socket.io-client-cpp\include;..\zlib;..\libpng\include;..\;..\Client;..\Common;..\Common\Math;..\ContentDownloader;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\DisplayOutput\D3D11;..\Networking;..\TupleStorage;..\MacBuild;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\socket.io-client-cpp\include;..\zlib;..\libpng\include;..\;..\Client;..\Common;..\Common\Math;..\ContentDownloader;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\DisplayOutput\D3D11;..\Networking;..\TupleStorage;..\MacBuild;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0A00;BOOST_BIND_GLOBAL_PLACEHOLDERS;DEBUG;WIN32;_WIN64;_WINDOWS;NOMINMAX;_CRT_SECURE_NO_WARNINGS;CURL_STATICLIB;WIN32_LEAN_AND_MEAN;VC_EXTRALEAN;COMPILE_MULTIMON_STUBS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
