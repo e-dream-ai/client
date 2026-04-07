@@ -23,6 +23,7 @@ this repository uses git LFS, be sure to run
 
 Also, if you are doing releases you will need:
     brew install gh
+    brew install bugsnag/tap/bugsnag-cli
 
 The general C++ dependencies are handled by vcpkg. Run these commands to build them:
 
