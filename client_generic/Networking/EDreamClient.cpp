@@ -111,6 +111,15 @@ std::unique_ptr<boost::asio::io_context> EDreamClient::io_context = nullptr;
 std::unique_ptr<boost::asio::steady_timer> EDreamClient::ping_timer = nullptr;
 std::unique_ptr<boost::asio::steady_timer> EDreamClient::quota_timer = nullptr;
 
+void EDreamClient::EnsureIOContext()
+{
+    if (!io_context) {
+        io_context = std::make_unique<boost::asio::io_context>();
+        ping_timer = std::make_unique<boost::asio::steady_timer>(*io_context);
+        quota_timer = std::make_unique<boost::asio::steady_timer>(*io_context);
+    }
+}
+
 static void OnQuotaUpdate(sio::event& _wsEvent);
 
 // MARK: Ping via websocket
@@ -454,15 +463,12 @@ void EDreamClient::InitializeClient()
 {
     if (g_Client()->IsMultipleInstancesMode()) {
         g_Log->Info("Disabling auth in multiple instance mode");
+        fInitialAuthComplete.store(true);
         return;
     }
 
     // Initialize io_context and timers on first use to avoid static initialization order issues
-    if (!io_context) {
-        io_context = std::make_unique<boost::asio::io_context>();
-        ping_timer = std::make_unique<boost::asio::steady_timer>(*io_context);
-        quota_timer = std::make_unique<boost::asio::steady_timer>(*io_context);
-    }
+    EnsureIOContext();
 
     // Start in offline mode until initial auth completes; this prevents
     // remote/online UI from appearing before we know the auth result.
@@ -634,6 +640,16 @@ void EDreamClient::DidSignIn()
     g_Log->Info("Did Sign-in");
     fAuthRetryAbort.store(true);  // Stop auth retry loop if it was waiting (e.g. user logged in manually)
     fAuthRetryPending.store(false);
+
+    // If the app started offline (no internet), the networking infrastructure
+    // was never initialized. Transition to online mode now.
+    if (g_Client()->IsMultipleInstancesMode()) {
+        g_Log->Info("Transitioning from offline/multiple-instances mode to online");
+        g_Client()->ForceMultipleInstancesMode(false);
+        g_NetworkManager->Startup();
+        g_ContentDownloader().m_gDownloader.FindDreamsToDownload();
+    }
+
     g_Player().SetOfflineMode(false);
     std::lock_guard<std::mutex> lock(fAuthMutex);
     fIsLoggedIn.exchange(true);
@@ -646,6 +662,9 @@ void EDreamClient::DidSignIn()
     }
 
     g_Log->Info("Configuring websocket reconnect after sign-in");
+
+    // Ensure io_context exists (may not if app started offline / in multiple-instances mode).
+    EnsureIOContext();
 
     // Restart io_context deterministically before reconnecting.
     if (io_context->stopped()) {

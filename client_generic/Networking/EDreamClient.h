@@ -68,6 +68,7 @@ private:
     static void ParseAndSaveCookies(const Network::spCFileDownloader& spDownload); 
 
   public:
+    static void EnsureIOContext();
     static void InitializeClient();
     static void DeinitializeClient();
     static std::string GetCurrentServerPlaylist();
