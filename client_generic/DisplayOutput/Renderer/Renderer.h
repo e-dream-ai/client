@@ -51,7 +51,8 @@ enum eRenderLimits
 
 enum eRenderType
 {
-    eDX9,
+    eDX9,   // Legacy DirectDraw renderer (RendererDD)
+    eDX11,
     eMetal,
 };
 

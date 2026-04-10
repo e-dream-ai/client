@@ -35,7 +35,7 @@ public:
     CRendererDX11();
     virtual ~CRendererDX11();
 
-    virtual eRenderType Type(void) const override { return eDX9; }
+    virtual eRenderType Type(void) const override { return eDX11; }
     virtual const std::string Description(void) const override { return "DirectX 11"; }
     
     virtual bool Initialize(spCDisplayOutput _spDisplay) override;

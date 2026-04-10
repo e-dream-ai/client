@@ -98,6 +98,83 @@ float4 main(PSInput input) : SV_TARGET {
 }
 )";
 
+// CLinearFrameDisplay binds decoded RGBA textures at indices 1 and 2 (see SetTexture).
+const char* kDrawDecodedFrameLinearFragmentHlsl = R"(
+Texture2D tx1 : register(t1);
+Texture2D tx2 : register(t2);
+SamplerState smp1 : register(s1);
+SamplerState smp2 : register(s2);
+
+cbuffer QuadUniforms : register(b0) {
+    float4 rect;
+    float4 uvRect;
+    float4 color;
+    float brightness;
+    float3 padding;
+};
+
+cbuffer LinearDeltaCB : register(b1) {
+    float delta;
+    float3 _padDelta;
+};
+
+struct PSInput {
+    float4 position : SV_POSITION;
+    float2 uv       : TEXCOORD0;
+};
+
+float4 main(PSInput input) : SV_TARGET {
+    float2 adjustedUV = (input.uv - rect.xy) / rect.zw;
+    adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;
+    float4 c1 = tx1.Sample(smp1, adjustedUV);
+    float4 c2 = tx2.Sample(smp2, adjustedUV);
+    float4 blended = lerp(c1, c2, delta);
+    blended.rgb += brightness;
+    return float4(blended.rgb * color.rgb, color.a);
+}
+)";
+
+// CCubicFrameDisplay binds four decoded RGBA frames at texture indices 1-4.
+const char* kDrawDecodedFrameCubicFragmentHlsl = R"(
+Texture2D tx1 : register(t1);
+Texture2D tx2 : register(t2);
+Texture2D tx3 : register(t3);
+Texture2D tx4 : register(t4);
+SamplerState smp1 : register(s1);
+SamplerState smp2 : register(s2);
+SamplerState smp3 : register(s3);
+SamplerState smp4 : register(s4);
+
+cbuffer QuadUniforms : register(b0) {
+    float4 rect;
+    float4 uvRect;
+    float4 color;
+    float brightness;
+    float3 padding;
+};
+
+cbuffer CubicWeightsCB : register(b1) {
+    float4 weights;
+};
+
+struct PSInput {
+    float4 position : SV_POSITION;
+    float2 uv       : TEXCOORD0;
+};
+
+float4 main(PSInput input) : SV_TARGET {
+    float2 adjustedUV = (input.uv - rect.xy) / rect.zw;
+    adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;
+    float4 c1 = tx1.Sample(smp1, adjustedUV);
+    float4 c2 = tx2.Sample(smp2, adjustedUV);
+    float4 c3 = tx3.Sample(smp3, adjustedUV);
+    float4 c4 = tx4.Sample(smp4, adjustedUV);
+    float4 blended = (c1 * weights.x) + (c2 * weights.y) + (c3 * weights.z) + (c4 * weights.w);
+    blended.rgb += brightness;
+    return float4(blended.rgb * color.rgb, color.a);
+}
+)";
+
 bool CreateDefaultSampler(ID3D11Device* device, ID3D11SamplerState** outSampler)
 {
     if (!device || !outSampler)
@@ -897,8 +974,8 @@ spCShader CRendererDX11::NewShader(const char* _pVertexShader, const char* _pFra
         return nullptr;
     }
 
-    // Windows DX11 currently renders decoded RGBA frames (no YUV shader path).
-    // Map all frame fragment variants to the same RGBA fragment implementation.
+    // Windows DX11 renders decoded RGBA frames (no YUV path). Linear/cubic use
+    // multi-texture pixel shaders; blend uniforms use CB slots 1+ so b0 stays QuadUniforms.
     const bool supportedFragment =
         fragmentName == "drawTextureFragment" ||
         fragmentName == "drawDecodedFrameNoBlendingFragment" ||
@@ -911,10 +988,12 @@ spCShader CRendererDX11::NewShader(const char* _pVertexShader, const char* _pFra
     }
 
     const char* fragmentSource = kDrawTextureFragmentHlsl;
-    if (fragmentName == "drawDecodedFrameNoBlendingFragment" ||
-        fragmentName == "drawDecodedFrameLinearFrameBlendFragment" ||
-        fragmentName == "drawDecodedFrameCubicFrameBlendFragment") {
+    if (fragmentName == "drawDecodedFrameNoBlendingFragment") {
         fragmentSource = kDrawDecodedFrameFragmentHlsl;
+    } else if (fragmentName == "drawDecodedFrameLinearFrameBlendFragment") {
+        fragmentSource = kDrawDecodedFrameLinearFragmentHlsl;
+    } else if (fragmentName == "drawDecodedFrameCubicFrameBlendFragment") {
+        fragmentSource = kDrawDecodedFrameCubicFragmentHlsl;
     }
 
     auto shader = std::make_shared<CShaderDX11>(m_device, m_context);
@@ -924,8 +1003,12 @@ spCShader CRendererDX11::NewShader(const char* _pVertexShader, const char* _pFra
         return nullptr;
     }
 
-    for (uint32_t slot = 0; slot < uniforms.size(); ++slot) {
-        shader->CreateUniform(uniforms[slot].first, uniforms[slot].second, slot);
+    const bool blendSlotsOffset =
+        (fragmentName == "drawDecodedFrameLinearFrameBlendFragment" ||
+         fragmentName == "drawDecodedFrameCubicFrameBlendFragment");
+    for (uint32_t i = 0; i < uniforms.size(); ++i) {
+        const uint32_t slot = blendSlotsOffset ? (i + 1) : i;
+        shader->CreateUniform(uniforms[i].first, uniforms[i].second, slot);
     }
 
     shader->SetDecodedFrameShader(

@@ -1,5 +1,6 @@
 #include "ShaderDX11.h"
 #include "Log.h"
+#include <cstring>
 #include <d3dcompiler.h>
 
 namespace DisplayOutput {
@@ -13,10 +14,12 @@ CShaderUniformDX11::CShaderUniformDX11(const std::string& name, eUniformType typ
     , m_slot(slot)
     , m_size(UniformTypeSizes[type])
 {
-    m_data.resize(m_size);
+    // D3D11 constant buffers must be multiples of 16 bytes.
+    const size_t cbBytes = (m_size + 15u) & ~15u;
+    m_data.resize(cbBytes);
 
     D3D11_BUFFER_DESC desc = {};
-    desc.ByteWidth = (UINT)m_size;
+    desc.ByteWidth = (UINT)cbBytes;
     desc.Usage = D3D11_USAGE_DYNAMIC;
     desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -29,8 +32,10 @@ CShaderUniformDX11::CShaderUniformDX11(const std::string& name, eUniformType typ
 
 bool CShaderUniformDX11::SetData(void* _pData, const uint32_t _size) {
     if (_size != m_size) return false;
-    
+
     memcpy(m_data.data(), _pData, _size);
+    if (m_data.size() > _size)
+        memset(m_data.data() + _size, 0, m_data.size() - _size);
     m_bDirty = true;
     return true;
 }
@@ -42,7 +47,7 @@ void CShaderUniformDX11::Apply() {
     HRESULT hr = m_context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 
                                0, &mapped);
     if (SUCCEEDED(hr)) {
-        memcpy(mapped.pData, m_data.data(), m_size);
+        memcpy(mapped.pData, m_data.data(), m_data.size());
         m_context->Unmap(m_constantBuffer.Get(), 0);
         m_context->VSSetConstantBuffers(m_slot, 1, m_constantBuffer.GetAddressOf());
         m_context->PSSetConstantBuffers(m_slot, 1, m_constantBuffer.GetAddressOf());
