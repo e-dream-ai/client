@@ -6,6 +6,7 @@
 #include "Settings.h"
 #include <algorithm>
 #include <cstdlib>
+#include <string>
 
 #ifdef WIN32
 #include "FirstTimeSetupWin32.h"
@@ -16,6 +17,65 @@ extern void ESShowPreferences();
 namespace DisplayOutput {
 
 namespace {
+
+#ifdef WIN32
+enum DX11MenuCmd : UINT
+{
+    ID_FILE_PREFERENCES = 0xE100,
+    ID_FILE_EXIT,
+    ID_VIEW_FULLSCREEN,
+    ID_TOOLS_REMOTE,
+    ID_TOOLS_PLAYLISTS,
+    ID_HELP_ONLINE,
+    ID_HELP_CHECK_UPDATES,
+    ID_HELP_ABOUT,
+};
+
+static std::wstring NarrowUtf8ToWide(const std::string& utf8)
+{
+    if (utf8.empty())
+        return L"";
+    const int n = MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, nullptr, 0);
+    if (n <= 0)
+        return L"";
+    std::wstring w(static_cast<size_t>(n - 1), L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, w.data(), n);
+    return w;
+}
+
+static void OpenInfinidreamWebUrl(int which)
+{
+    // 0 = remote, 1 = playlists, 2 = help (matches Mac ESWindow URLs)
+#ifdef STAGE
+    constexpr const char* kRemote = "https://stage.infinidream.ai/rc";
+    constexpr const char* kPlaylists = "https://stage.infinidream.ai/playlists";
+    constexpr const char* kHelp = "https://stage.infinidream.ai/help";
+#else
+    constexpr const char* kRemote = "https://alpha.infinidream.ai/rc";
+    constexpr const char* kPlaylists = "https://alpha.infinidream.ai/playlists";
+    constexpr const char* kHelp = "https://alpha.infinidream.ai/help";
+#endif
+    const char* url = kRemote;
+    if (which == 1)
+        url = kPlaylists;
+    else if (which == 2)
+        url = kHelp;
+    PlatformUtils::OpenURLExternally(url);
+}
+
+static void ShowAboutInfinidream(HWND owner)
+{
+    const std::wstring ver = NarrowUtf8ToWide(PlatformUtils::GetAppVersion());
+    std::wstring body = L"infinidream";
+    if (!ver.empty())
+    {
+        body += L"\n\n";
+        body += ver;
+    }
+    MessageBoxW(owner, body.c_str(), L"About infinidream",
+                MB_OK | MB_ICONINFORMATION);
+}
+#endif // WIN32
 
 // Avoid duplicate F1 enqueue when WM_HELP and WM_KEYDOWN arrive for the same press.
 static ULONGLONG g_lastF1EnqueueTickMs = 0;
@@ -197,9 +257,12 @@ static void EnforceSizingAspect16By9(HWND hWnd, WPARAM edge, RECT* rc)
 } // namespace
 
 CDisplayDX11::CDisplayDX11()
-    : CDisplayOutput(), m_WindowHandle(nullptr), m_windowedStyle(0),
-      m_windowedExStyle(0), m_hasWindowedRect(false), m_bWaitForPreviewPump(false),
-      m_bEmbeddedSaverPreview(false) {
+    : CDisplayOutput(), m_WindowHandle(nullptr),
+#ifdef WIN32
+      m_appMenu(nullptr), m_appMenuOwned(false),
+#endif
+      m_windowedStyle(0), m_windowedExStyle(0), m_hasWindowedRect(false),
+      m_bWaitForPreviewPump(false), m_bEmbeddedSaverPreview(false) {
     m_windowedRect = {0, 0, 0, 0};
     g_Log->Info("CDisplayDX11()");
 }
@@ -228,7 +291,64 @@ bool CDisplayDX11::EnsureWindowClassRegistered(HINSTANCE hInstance)
 
 CDisplayDX11::~CDisplayDX11() {
     g_Log->Info("~CDisplayDX11()");
+#ifdef WIN32
+    if (m_appMenuOwned && m_appMenu)
+    {
+        if (m_WindowHandle && IsWindow(m_WindowHandle))
+            SetMenu(m_WindowHandle, nullptr);
+        DestroyMenu(m_appMenu);
+        m_appMenu = nullptr;
+        m_appMenuOwned = false;
+    }
+#endif
 }
+
+#ifdef WIN32
+HMENU CDisplayDX11::BuildAppMenuW()
+{
+    HMENU bar = CreateMenu();
+    HMENU file = CreatePopupMenu();
+    HMENU view = CreatePopupMenu();
+    HMENU tools = CreatePopupMenu();
+    HMENU help = CreatePopupMenu();
+    if (!bar || !file || !view || !tools || !help)
+    {
+        if (help)
+            DestroyMenu(help);
+        if (tools)
+            DestroyMenu(tools);
+        if (view)
+            DestroyMenu(view);
+        if (file)
+            DestroyMenu(file);
+        if (bar)
+            DestroyMenu(bar);
+        return nullptr;
+    }
+
+    AppendMenuW(file, MF_STRING, ID_FILE_PREFERENCES, L"&Settings\tCtrl+,");
+    AppendMenuW(file, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(file, MF_STRING, ID_FILE_EXIT, L"E&xit\tCtrl+Q");
+
+    AppendMenuW(view, MF_STRING, ID_VIEW_FULLSCREEN, L"&Full screen\tF11");
+
+    AppendMenuW(tools, MF_STRING, ID_TOOLS_REMOTE, L"&Remote control\tCtrl+R");
+    AppendMenuW(tools, MF_STRING, ID_TOOLS_PLAYLISTS, L"Browse &playlists\tCtrl+B");
+
+    AppendMenuW(help, MF_STRING, ID_HELP_ONLINE, L"&Help on the web");
+    AppendMenuW(help, MF_STRING | MF_GRAYED, ID_HELP_CHECK_UPDATES,
+                L"Check for &updates…");
+    AppendMenuW(help, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(help, MF_STRING, ID_HELP_ABOUT, L"&About infinidream");
+
+    AppendMenuW(bar, MF_POPUP, reinterpret_cast<UINT_PTR>(file), L"&File");
+    AppendMenuW(bar, MF_POPUP, reinterpret_cast<UINT_PTR>(view), L"&View");
+    AppendMenuW(bar, MF_POPUP, reinterpret_cast<UINT_PTR>(tools), L"&Tools");
+    AppendMenuW(bar, MF_POPUP, reinterpret_cast<UINT_PTR>(help), L"&Help");
+
+    return bar;
+}
+#endif
 
 LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -265,6 +385,41 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
 
     case WM_ERASEBKGND:
         return 1;
+
+    case WM_COMMAND:
+    {
+        if (HIWORD(wParam) != 0)
+            break;
+        switch (LOWORD(wParam))
+        {
+        case ID_FILE_PREFERENCES:
+            ESShowPreferences();
+            return 0;
+        case ID_FILE_EXIT:
+            DestroyWindow(hWnd);
+            return 0;
+        case ID_VIEW_FULLSCREEN:
+            AppendKeyEvent(CKeyEvent::KEY_F11, false);
+            return 0;
+        case ID_TOOLS_REMOTE:
+            OpenInfinidreamWebUrl(0);
+            return 0;
+        case ID_TOOLS_PLAYLISTS:
+            OpenInfinidreamWebUrl(1);
+            return 0;
+        case ID_HELP_ONLINE:
+            OpenInfinidreamWebUrl(2);
+            return 0;
+        case ID_HELP_CHECK_UPDATES:
+            return 0;
+        case ID_HELP_ABOUT:
+            ShowAboutInfinidream(hWnd);
+            return 0;
+        default:
+            break;
+        }
+        break;
+    }
 #endif
 
     case WM_HELP:
@@ -325,17 +480,7 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
         // Match Mac menu: Command-R / Command-B (help text: Control-R / Control-B on Windows).
         if (ctrlDown && (wParam == 'R' || wParam == 'B'))
         {
-#ifdef STAGE
-            constexpr const char* kUrlWebRemote = "https://stage.infinidream.ai/rc";
-            constexpr const char* kUrlPlaylists = "https://stage.infinidream.ai/playlists";
-#else
-            constexpr const char* kUrlWebRemote = "https://alpha.infinidream.ai/rc";
-            constexpr const char* kUrlPlaylists = "https://alpha.infinidream.ai/playlists";
-#endif
-            if (wParam == 'R')
-                PlatformUtils::OpenURLExternally(kUrlWebRemote);
-            else
-                PlatformUtils::OpenURLExternally(kUrlPlaylists);
+            OpenInfinidreamWebUrl(wParam == 'R' ? 0 : 1);
             return 0;
         }
 
@@ -439,22 +584,25 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
     return 0;
 }
 
-HWND CDisplayDX11::CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen) {
+#ifdef WIN32
+HWND CDisplayDX11::CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen,
+                                       HMENU hMenu) {
     HMODULE hInstance = GetModuleHandle(NULL);
     if (!EnsureWindowClassRegistered(hInstance))
         return nullptr;
 
     DWORD style = fullscreen ? WS_POPUP : WS_OVERLAPPEDWINDOW;
     RECT rc = {0, 0, (LONG)w, (LONG)h};
-    AdjustWindowRect(&rc, style, FALSE);
+    AdjustWindowRect(&rc, style, hMenu ? TRUE : FALSE);
 
     const DWORD exStyle =
         fullscreen ? (WS_EX_APPWINDOW | WS_EX_TOPMOST) : 0UL;
 
     return CreateWindowExW(exStyle, L"EDreamDX11Class", L"infinidream", style,
                            CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left,
-                           rc.bottom - rc.top, nullptr, nullptr, hInstance, this);
+                           rc.bottom - rc.top, nullptr, hMenu, hInstance, this);
 }
+#endif
 
 bool CDisplayDX11::ResizeSwapChain(uint32_t width, uint32_t height)
 {
@@ -577,7 +725,13 @@ HWND CDisplayDX11::Initialize(uint32_t width, uint32_t height, bool fullscreen) 
     m_Height = height;
     m_bFullScreen = fullscreen;
 
-    m_WindowHandle = CreateDisplayWindow(width, height, fullscreen);
+    m_WindowHandle = nullptr;
+#ifdef WIN32
+    m_appMenu = BuildAppMenuW();
+    m_appMenuOwned = (m_appMenu != nullptr);
+    HMENU menuAttach = (!fullscreen && m_appMenu) ? m_appMenu : nullptr;
+    m_WindowHandle = CreateDisplayWindow(width, height, fullscreen, menuAttach);
+#endif
     if (!m_WindowHandle) return nullptr;
 
     if (!CreateDeviceAndSwapChain()) {
@@ -735,6 +889,10 @@ bool CDisplayDX11::SetFullscreen(const bool fullscreen)
                          mi.rcMonitor.bottom - mi.rcMonitor.top,
                          SWP_FRAMECHANGED | SWP_SHOWWINDOW | SWP_NOOWNERZORDER);
         }
+#ifdef WIN32
+        if (m_appMenu && IsWindow(m_WindowHandle))
+            SetMenu(m_WindowHandle, nullptr);
+#endif
         ShowCursor(FALSE);
         m_bFullScreen = true;
         return true;
@@ -759,6 +917,10 @@ bool CDisplayDX11::SetFullscreen(const bool fullscreen)
     SetWindowPos(m_WindowHandle, HWND_NOTOPMOST, windowRect.left, windowRect.top,
                  windowRect.right - windowRect.left, windowRect.bottom - windowRect.top,
                  SWP_FRAMECHANGED | SWP_SHOWWINDOW | SWP_NOOWNERZORDER);
+#ifdef WIN32
+    if (m_appMenu && IsWindow(m_WindowHandle))
+        SetMenu(m_WindowHandle, m_appMenu);
+#endif
     ShowCursor(TRUE);
     m_bFullScreen = false;
     return true;
