@@ -616,6 +616,9 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
         if (!canStream && !m_cacheManager.hasDiskCachedItem(nextEntry.uuid)) {
             g_Log->Info("Preflight : Normal mode - next sequential dream not cached and canStream=false, falling through");
             // Fall through to the cache-only logic below
+        } else if (isDreamPlayed(nextEntry.uuid)) {
+            g_Log->Info("Preflight : Normal mode - next sequential dream already played, falling through");
+            // Fall through to the unplayed-scan logic below
         } else {
             g_Log->Info("Preflight : Normal mode - sequential to position %zu", nextPos);
 
