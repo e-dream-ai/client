@@ -31,3 +31,16 @@ static void CloseDialog(bool saveBeforeClose)
     g_visible.store(false, std::memory_order_release);
     g_pendingImGuiShutdown.store(true, std::memory_order_release);
 }
+
+/// Used when another Win32 ImGui overlay (e.g. About) needs exclusive use of ImGui_ImplWin32 on the main HWND.
+static void DismissSettingsWithoutSaveImpl()
+{
+    g_showRequested.store(false, std::memory_order_release);
+    if (g_visible.load(std::memory_order_acquire))
+    {
+        ApplyDialogPauseState(false);
+        g_visible.store(false, std::memory_order_release);
+    }
+    if (g_imguiInitialized.load(std::memory_order_acquire))
+        ShutdownImGui();
+}

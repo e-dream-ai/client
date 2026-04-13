@@ -96,6 +96,9 @@
     <ClCompile Include="..\Client\Player.cpp">
       <Filter>Client\Code</Filter>
     </ClCompile>
+    <ClCompile Include="..\Client\AboutDialogWin32.cpp">
+      <Filter>Client\Code</Filter>
+    </ClCompile>
     <ClCompile Include="..\Client\SettingsDialogWin32.cpp">
       <Filter>Client\Code</Filter>
     </ClCompile>
@@ -291,6 +294,9 @@
       <Filter>ContentDecoder\Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\Client\client.h">
+      <Filter>Client\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Client\AboutDialogWin32.h">
       <Filter>Client\Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\Client\SettingsDialogWin32.h">

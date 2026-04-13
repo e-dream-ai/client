@@ -9,6 +9,9 @@ void SettingsDialogWin32_Register();
 void SettingsDialogWin32_SetOverlayAllowed(bool allow);
 bool SettingsDialogWin32_HasPendingOrVisible();
 
+/// Close settings without saving and tear down ImGui immediately (for another overlay on the same HWND).
+void SettingsDialogWin32_DismissWithoutSaveForExternalOverlay();
+
 /// If ImGui consumed the message, returns true and sets *outResult (return from WndProc).
 bool SettingsDialogWin32_TryConsumeWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam,
                                            LRESULT* outResult);

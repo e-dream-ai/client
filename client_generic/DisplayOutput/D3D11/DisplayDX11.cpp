@@ -9,6 +9,7 @@
 #include <string>
 
 #ifdef WIN32
+#include "AboutDialogWin32.h"
 #include "FirstTimeSetupWin32.h"
 #include "SettingsDialogWin32.h"
 extern void ESShowPreferences();
@@ -31,18 +32,6 @@ enum DX11MenuCmd : UINT
     ID_HELP_ABOUT,
 };
 
-static std::wstring NarrowUtf8ToWide(const std::string& utf8)
-{
-    if (utf8.empty())
-        return L"";
-    const int n = MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, nullptr, 0);
-    if (n <= 0)
-        return L"";
-    std::wstring w(static_cast<size_t>(n - 1), L'\0');
-    MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, w.data(), n);
-    return w;
-}
-
 static void OpenInfinidreamWebUrl(int which)
 {
     // 0 = remote, 1 = playlists, 2 = help (matches Mac ESWindow URLs)
@@ -61,19 +50,6 @@ static void OpenInfinidreamWebUrl(int which)
     else if (which == 2)
         url = kHelp;
     PlatformUtils::OpenURLExternally(url);
-}
-
-static void ShowAboutInfinidream(HWND owner)
-{
-    const std::wstring ver = NarrowUtf8ToWide(PlatformUtils::GetAppVersion());
-    std::wstring body = L"infinidream";
-    if (!ver.empty())
-    {
-        body += L"\n\n";
-        body += ver;
-    }
-    MessageBoxW(owner, body.c_str(), L"About infinidream",
-                MB_OK | MB_ICONINFORMATION);
 }
 #endif // WIN32
 
@@ -371,6 +347,8 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
     LRESULT imguiHandled = 0;
     if (SettingsDialogWin32_TryConsumeWndProc(hWnd, msg, wParam, lParam, &imguiHandled))
         return imguiHandled;
+    if (AboutDialogWin32_TryConsumeWndProc(hWnd, msg, wParam, lParam, &imguiHandled))
+        return imguiHandled;
     if (FirstTimeSetupWin32_TryConsumeWndProc(hWnd, msg, wParam, lParam, &imguiHandled))
         return imguiHandled;
 #endif
@@ -418,7 +396,7 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
         case ID_HELP_CHECK_UPDATES:
             return 0;
         case ID_HELP_ABOUT:
-            ShowAboutInfinidream(hWnd);
+            AboutDialogWin32_RequestShow();
             return 0;
         default:
             break;

@@ -1,6 +1,7 @@
 #ifdef WIN32
 
 #include "SettingsDialogWin32.h"
+#include "AboutDialogWin32.h"
 
 #include <atomic>
 #include <array>
@@ -145,6 +146,7 @@ static void OnShowPreferencesRequested()
 {
     if (!g_overlayAllowed.load(std::memory_order_acquire))
         return;
+    AboutDialogWin32_DismissWithoutSaveForExternalOverlay();
     g_showRequested.store(true, std::memory_order_release);
 }
 
@@ -607,6 +609,13 @@ static void DrawSettingsDialog(float viewportW, float viewportH)
 }
 
 } // namespace
+
+void SettingsDialogWin32_DismissWithoutSaveForExternalOverlay()
+{
+    if (!g_overlayAllowed.load(std::memory_order_acquire))
+        return;
+    DismissSettingsWithoutSaveImpl();
+}
 
 void SettingsDialogWin32_Register()
 {

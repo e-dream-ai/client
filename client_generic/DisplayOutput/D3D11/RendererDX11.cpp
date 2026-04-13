@@ -9,6 +9,7 @@
 #include <string>
 
 #ifdef WIN32
+#include "AboutDialogWin32.h"
 #include "FirstTimeSetupWin32.h"
 #include "SettingsDialogWin32.h"
 #include <windows.h>
@@ -757,9 +758,10 @@ bool CRendererDX11::EndFrame(bool drawn) {
         const float viewportW = static_cast<float>(m_spDisplay->Width());
         const float viewportH = static_cast<float>(m_spDisplay->Height());
         const bool settingsPendingOrVisible = SettingsDialogWin32_HasPendingOrVisible();
+        const bool aboutPendingOrVisible = AboutDialogWin32_HasPendingOrVisible();
         firstTimeWizardDrawn = FirstTimeSetupWin32_RenderIfNeeded(
             m_device.Get(), m_context.Get(), m_renderTargetView.Get(), viewportW, viewportH);
-        forcePresent = firstTimeWizardDrawn || settingsPendingOrVisible;
+        forcePresent = firstTimeWizardDrawn || settingsPendingOrVisible || aboutPendingOrVisible;
     }
     const bool effectiveDrawn = drawn || forcePresent;
     if (!CRenderer::EndFrame(effectiveDrawn))
@@ -882,15 +884,17 @@ bool CRendererDX11::EndFrame(bool drawn) {
             }
         }
 
-        // Draw settings last so it stays above all HUD layers.
+        // Draw settings then about so both stay above HUD; about is top-most when both run (normally exclusive).
         const float viewportW = static_cast<float>(m_spDisplay->Width());
         const float viewportH = static_cast<float>(m_spDisplay->Height());
         const bool settingsVisible = SettingsDialogWin32_RenderIfNeeded(
             m_device.Get(), m_context.Get(), m_renderTargetView.Get(), viewportW, viewportH);
+        const bool aboutVisible = AboutDialogWin32_RenderIfNeeded(
+            m_device.Get(), m_context.Get(), m_renderTargetView.Get(), viewportW, viewportH);
 
         EndGpuTimingFrame();
 
-        if (effectiveDrawn || settingsVisible)
+        if (effectiveDrawn || settingsVisible || aboutVisible)
         {
             m_spDisplay->SwapBuffers();
             return true;

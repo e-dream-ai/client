@@ -20,6 +20,7 @@
 #include <wrl.h>
 
 #include "clientversion.h"
+#include "AboutDialogWin32.h"
 #include "FirstTimeSetupWin32.h"
 #include "SettingsDialogWin32.h"
 #include "Exception.h"
@@ -466,6 +467,7 @@ class CElectricSheep_Win32 : public CElectricSheep
 
         const bool allowOverlays = (m_ScrMode != eSaver && m_ScrMode != ePreview);
         FirstTimeSetupWin32_SetOverlayAllowed(allowOverlays);
+        AboutDialogWin32_SetOverlayAllowed(allowOverlays);
         SettingsDialogWin32_SetOverlayAllowed(allowOverlays);
         FirstTimeSetupWin32_Register();
         SettingsDialogWin32_Register();
