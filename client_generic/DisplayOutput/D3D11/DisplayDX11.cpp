@@ -80,6 +80,10 @@ static void ShowAboutInfinidream(HWND owner)
 // Avoid duplicate F1 enqueue when WM_HELP and WM_KEYDOWN arrive for the same press.
 static ULONGLONG g_lastF1EnqueueTickMs = 0;
 constexpr ULONGLONG kF1DuplicateWindowMs = 250;
+
+// Timer IDs used in WndProc.
+constexpr UINT_PTR kPreviewTimerId    = 1; // 500 ms one-shot for screensaver preview init
+constexpr UINT_PTR kMenuLoopTimerId   = 2; // ~60 fps keep-alive while menu bar is open
 constexpr float kTargetClientAspect16By9 = 16.0f / 9.0f;
 
 static void AppendMouseEvent(CMouseEvent::eMouseCode code, LPARAM lParam)
@@ -262,7 +266,8 @@ CDisplayDX11::CDisplayDX11()
       m_appMenu(nullptr), m_appMenuOwned(false),
 #endif
       m_windowedStyle(0), m_windowedExStyle(0), m_hasWindowedRect(false),
-      m_bWaitForPreviewPump(false), m_bEmbeddedSaverPreview(false) {
+      m_bWaitForPreviewPump(false), m_bEmbeddedSaverPreview(false),
+      m_bMenuRenderInProgress(false) {
     m_windowedRect = {0, 0, 0, 0};
     g_Log->Info("CDisplayDX11()");
 }
@@ -430,20 +435,38 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
     case WM_USER:
         // Let the screen-saver control panel finish painting; same pattern as
         // legacy D3D9 (DisplayDX).
-        SetTimer(hWnd, 1, 500, NULL);
+        SetTimer(hWnd, kPreviewTimerId, 500, NULL);
         g_Log->Info("Starting 500ms preview timer");
         return 0;
 
     case WM_TIMER:
-        if (wParam == 1)
+        if (wParam == kPreviewTimerId)
         {
             if (self)
                 self->m_bWaitForPreviewPump = false;
-            KillTimer(hWnd, 1);
+            KillTimer(hWnd, kPreviewTimerId);
             g_Log->Info("500ms preview timer done");
             return 0;
         }
+        if (wParam == kMenuLoopTimerId)
+        {
+            if (self && self->m_menuLoopRenderCb && !self->m_bMenuRenderInProgress)
+            {
+                self->m_bMenuRenderInProgress = true;
+                self->m_menuLoopRenderCb();
+                self->m_bMenuRenderInProgress = false;
+            }
+            return 0;
+        }
         break;
+
+    case WM_ENTERMENULOOP:
+        SetTimer(hWnd, kMenuLoopTimerId, 16, nullptr);
+        return 0;
+
+    case WM_EXITMENULOOP:
+        KillTimer(hWnd, kMenuLoopTimerId);
+        return 0;
 
     case WM_SIZE:
         if (self && wParam != SIZE_MINIMIZED)

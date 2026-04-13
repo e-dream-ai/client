@@ -5,6 +5,7 @@
 #include <d3d11.h>
 #include <wrl/client.h>
 #include <dxgi.h>
+#include <functional>
 
 #ifdef WIN32
 #include <Windows.h>
@@ -42,6 +43,9 @@ private:
     bool m_bEmbeddedSaverPreview;
     static bool EnsureWindowClassRegistered(HINSTANCE hInstance);
 
+    std::function<void()> m_menuLoopRenderCb;
+    bool m_bMenuRenderInProgress;
+
   public:
     CDisplayDX11();
     virtual ~CDisplayDX11();
@@ -60,6 +64,8 @@ private:
     virtual bool ToggleFullscreen() override;
     virtual bool SetFullscreen(const bool fullscreen) override;
     virtual bool IsFullscreen() const override { return m_bFullScreen; }
+
+    void SetMenuLoopRenderCallback(std::function<void()> cb) { m_menuLoopRenderCb = std::move(cb); }
 
     IDXGISwapChain* GetSwapChain() const { return m_swapChain.Get(); }
 

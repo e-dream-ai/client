@@ -27,6 +27,7 @@
 #include "MathBase.h"
 #include "MonoInstance.h"
 #include "Player.h"
+#include "../DisplayOutput/D3D11/DisplayDX11.h"
 #include "ProcessForker.h"
 #include "Settings.h"
 #include "base.h"
@@ -542,6 +543,24 @@ class CElectricSheep_Win32 : public CElectricSheep
         //
         if (CElectricSheep::Startup() == false)
             return false;
+
+        // Keep the dream rendering while a menu bar popup is open.
+        // Windows enters a modal menu-tracking loop on the main thread when the
+        // user clicks a menu, which blocks our Run() loop entirely.  We install
+        // a ~60 fps WM_TIMER that fires during that modal loop so the display
+        // continues to update visually.
+        if (m_ScrMode != ePreview && m_ScrMode != eSaver)
+        {
+            if (auto spDisplay = g_Player().Display())
+            {
+                if (auto* pDX11 = dynamic_cast<DisplayOutput::CDisplayDX11*>(spDisplay.get()))
+                {
+                    pDX11->SetMenuLoopRenderCallback([this]() {
+                        CElectricSheep_Win32::Update();
+                    });
+                }
+            }
+        }
 
         //	Reset mouse calcs.
         m_bMouseUnknown = true;
