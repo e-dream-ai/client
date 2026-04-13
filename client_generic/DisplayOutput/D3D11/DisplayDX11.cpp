@@ -314,9 +314,28 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
         if ((lParam >> 30) & 1)
             break;
 
-        if (wParam == VK_OEM_COMMA && (GetKeyState(VK_CONTROL) & 0x8000) != 0)
+        const bool ctrlDown = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+
+        if (wParam == VK_OEM_COMMA && ctrlDown)
         {
             ESShowPreferences();
+            return 0;
+        }
+
+        // Match Mac menu: Command-R / Command-B (help text: Control-R / Control-B on Windows).
+        if (ctrlDown && (wParam == 'R' || wParam == 'B'))
+        {
+#ifdef STAGE
+            constexpr const char* kUrlWebRemote = "https://stage.infinidream.ai/rc";
+            constexpr const char* kUrlPlaylists = "https://stage.infinidream.ai/playlists";
+#else
+            constexpr const char* kUrlWebRemote = "https://alpha.infinidream.ai/rc";
+            constexpr const char* kUrlPlaylists = "https://alpha.infinidream.ai/playlists";
+#endif
+            if (wParam == 'R')
+                PlatformUtils::OpenURLExternally(kUrlWebRemote);
+            else
+                PlatformUtils::OpenURLExternally(kUrlPlaylists);
             return 0;
         }
 
