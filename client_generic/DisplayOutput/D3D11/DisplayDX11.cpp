@@ -337,7 +337,7 @@ HMENU CDisplayDX11::BuildAppMenuW()
 
     AppendMenuW(help, MF_STRING, ID_HELP_ONLINE, L"&Help on the web");
     AppendMenuW(help, MF_STRING | MF_GRAYED, ID_HELP_CHECK_UPDATES,
-                L"Check for &updates…");
+                L"Check for &updates...");
     AppendMenuW(help, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(help, MF_STRING, ID_HELP_ABOUT, L"&About infinidream");
 
