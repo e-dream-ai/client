@@ -43,6 +43,7 @@ std::atomic<bool> g_overlayAllowed{true};
 std::atomic<bool> g_showRequested{false};
 std::atomic<bool> g_visible{false};
 std::atomic<bool> g_wasPausedBeforeDialog{false};
+std::atomic<bool> g_wasUserPausedBeforeDialog{false};
 std::atomic<bool> g_pausedByAboutDialog{false};
 std::atomic<bool> g_imguiInitialized{false};
 std::atomic<bool> g_pendingImGuiShutdown{false};
@@ -236,19 +237,39 @@ static void ApplyAboutPauseState(bool visible)
     if (visible)
     {
         const bool wasPaused = g_Player().IsPaused();
+        const bool wasUserPaused = g_Player().IsUserPaused();
         g_wasPausedBeforeDialog.store(wasPaused, std::memory_order_release);
-        if (!wasPaused)
-        {
-            g_Player().SetPaused(true);
-            g_pausedByAboutDialog.store(true, std::memory_order_release);
-        }
-        else
-            g_pausedByAboutDialog.store(false, std::memory_order_release);
+        g_wasUserPausedBeforeDialog.store(wasUserPaused, std::memory_order_release);
+        g_Player().SetPaused(true, /*isUserInitiated=*/true);
+        g_pausedByAboutDialog.store(true, std::memory_order_release);
         return;
     }
 
     if (g_pausedByAboutDialog.exchange(false, std::memory_order_acq_rel))
-        g_Player().SetPaused(g_wasPausedBeforeDialog.load(std::memory_order_acquire));
+    {
+        const bool restorePaused = g_wasPausedBeforeDialog.load(std::memory_order_acquire);
+        const bool restoreUserPaused = g_wasUserPausedBeforeDialog.load(std::memory_order_acquire);
+        if (restorePaused && !restoreUserPaused)
+        {
+            // Was paused only by buffering (not by user). If buffering has already completed while
+            // the dialog was open, the buffering-complete event won't fire again, so just unpause.
+            // If buffering is still active, restore the system-only pause so buffering-complete can
+            // resume normally (two-step needed because dialog set m_UserPaused=true).
+            if (g_Player().IsPausedForBuffering())
+            {
+                g_Player().SetPaused(false, false);
+                g_Player().SetPaused(true, false);
+            }
+            else
+            {
+                g_Player().SetPaused(false, false);
+            }
+        }
+        else
+        {
+            g_Player().SetPaused(restorePaused, restoreUserPaused);
+        }
+    }
 }
 
 static void ShutdownImGui()

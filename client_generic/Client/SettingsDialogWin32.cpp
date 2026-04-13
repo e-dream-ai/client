@@ -56,6 +56,7 @@ std::atomic<bool> g_overlayAllowed{true};
 std::atomic<bool> g_showRequested{false};
 std::atomic<bool> g_visible{false};
 std::atomic<bool> g_wasPausedBeforeDialog{false};
+std::atomic<bool> g_wasUserPausedBeforeDialog{false};
 std::atomic<bool> g_pausedBySettingsDialog{false};
 std::atomic<bool> g_imguiInitialized{false};
 std::atomic<bool> g_pendingImGuiShutdown{false};
