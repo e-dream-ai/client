@@ -484,6 +484,13 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
             return 0;
         }
 
+        // Match Mac Quit (Cmd+Q): Ctrl+Q exits (same as File → Exit).
+        if (ctrlDown && wParam == 'Q')
+        {
+            DestroyWindow(hWnd);
+            return 0;
+        }
+
         CKeyEvent::eKeyCode code = CKeyEvent::KEY_NONE;
 
         switch (wParam) {
