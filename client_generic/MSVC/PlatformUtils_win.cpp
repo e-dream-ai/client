@@ -235,6 +235,28 @@ std::string PlatformUtils::GetWorkingDir()
     return workingDir;
 }
 
+std::string PlatformUtils::GetAppPath()
+{
+    char pathBuf[MAX_PATH]{};
+    const DWORD len = GetModuleFileNameA(nullptr, pathBuf, MAX_PATH);
+    if (len == 0 || len >= MAX_PATH)
+        return {};
+
+    std::string full(pathBuf, len);
+
+    // Strip filename to directory.
+    const size_t slash = full.find_last_of("\\/");
+    if (slash == std::string::npos)
+        return {};
+
+    std::string dir = full.substr(0, slash + 1);
+
+    // Ensure trailing separator is backslash for Win32 consumers.
+    if (!dir.empty() && dir.back() != '\\' && dir.back() != '/')
+        dir.push_back('\\');
+    return dir;
+}
+
 void PlatformUtils::SetCursorHidden(bool _hidden)
 {
 	ShowCursor(!_hidden);

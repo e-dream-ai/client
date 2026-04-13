@@ -333,11 +333,22 @@ class CElectricSheep_Win32 : public CElectricSheep
             }
             RegCloseKey(key);
         }
+
+        // Dev/runnable builds often have no installer registry key; in that case
+        // use the executable directory so relative asset loads work regardless
+        // of the terminal's current directory.
+        if (m_WorkingDir == ".\\" || m_WorkingDir == "./" || m_WorkingDir == ".")
+        {
+            const std::string appDir = PlatformUtils::GetAppPath();
+            if (!appDir.empty())
+                m_WorkingDir = appDir;
+        }
+
         //	If the exe is renamed to .scr, the path lacks trailing slashes
         // for some
         // bizarre reason...
         size_t len = m_WorkingDir.size();
-        if (m_WorkingDir[len - 1] != '\\')
+        if (len > 0 && m_WorkingDir[len - 1] != '\\' && m_WorkingDir[len - 1] != '/')
         {
             m_WorkingDir.append("\\");
         }
