@@ -52,7 +52,11 @@ m_CurrentFrameMetadata{}, m_HasFinished(false), m_IsFadingOut(false)
     m_spFrameDisplay->SetDisplaySize(_displayWidth, _displayHeight);
 
 #ifndef LINUX_GNU
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
+    AVPixelFormat pf = AV_PIX_FMT_RGBA;
+#else
     AVPixelFormat pf = AV_PIX_FMT_RGB32;
+#endif
 
     // On PowerPC machines we need to use different pixel format!
 #if defined(MAC) && defined(__BIG_ENDIAN__)
