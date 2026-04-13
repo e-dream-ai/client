@@ -807,8 +807,9 @@ bool CRendererDX11::EndFrame(bool drawn) {
                     const float fdh = static_cast<float>(dispH);
                     D3D11_RECT sc = {};
                     sc.left = static_cast<LONG>(std::floor(r.m_X0 * fdw));
-                    sc.top = static_cast<LONG>(std::floor(r.m_Y0 * fdh));
-                    sc.right = static_cast<LONG>(std::ceil(r.m_X1 * fdw));
+                    // Scissor inset matches macOS CATextLayer shadowOffset (1, -1): 1px right, 1px up.
+                    sc.top = static_cast<LONG>(std::floor(r.m_Y0 * fdh)) - 1;
+                    sc.right = static_cast<LONG>(std::ceil(r.m_X1 * fdw)) + 1;
                     sc.bottom = static_cast<LONG>(std::ceil(r.m_Y1 * fdh));
                     const LONG dw = static_cast<LONG>(dispW);
                     const LONG dh = static_cast<LONG>(dispH);
@@ -824,6 +825,9 @@ bool CRendererDX11::EndFrame(bool drawn) {
                 float penXpx = r.m_X0 * static_cast<float>(dispW);
                 float penYpx = r.m_Y0 * static_cast<float>(dispH);
                 const float lineHeightPx = static_cast<float>(font->LineHeightPx());
+                // Match Metal/TextMetal.mm CATextLayer shadowOffset (1, -1) in pixels.
+                const float kTextShadowDx = 1.f;
+                const float kTextShadowDy = -1.f;
 
                 const std::string& body = text->Text();
                 size_t ti = 0;
@@ -858,6 +862,16 @@ bool CRendererDX11::EndFrame(bool drawn) {
                         (quadLeftPx + static_cast<float>(g.widthPx)) / static_cast<float>(dispW),
                         (penYpx + static_cast<float>(g.heightPx)) / static_cast<float>(dispH));
 
+                    Base::Math::CRect shadowDest(
+                        (quadLeftPx + kTextShadowDx) / static_cast<float>(dispW),
+                        (penYpx + kTextShadowDy) / static_cast<float>(dispH),
+                        (quadLeftPx + kTextShadowDx + static_cast<float>(g.widthPx)) /
+                            static_cast<float>(dispW),
+                        (penYpx + kTextShadowDy + static_cast<float>(g.heightPx)) /
+                            static_cast<float>(dispH));
+                    DrawTexturedQuad(shadowDest,
+                                     Base::Math::CVector4(0.f, 0.f, 0.f, draw.color.m_W),
+                                     g.uvRect, m_glyphPointSampler.Get());
                     DrawTexturedQuad(dest, draw.color, g.uvRect, m_glyphPointSampler.Get());
 
                     penXpx += g.advancePx;
