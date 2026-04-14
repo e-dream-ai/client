@@ -109,8 +109,8 @@ def stage_build_to_runtime_msvc(
         sys.exit(1)
 
     debug = configuration.lower().startswith("debug")
-    exe_name = "e-dreamd.exe" if debug else "e-dream.exe"
-    scr_name = "e-dreamd.scr" if debug else "e-dream.scr"
+    exe_name = "infinidreamd.exe" if debug else "infinidream.exe"
+    scr_name = "infinidreamd.scr" if debug else "infinidream.scr"
     exe_src = out / exe_name
     scr_src = out / scr_name
     if not exe_src.is_file():
@@ -200,7 +200,7 @@ def check_msvc_output(repo: Path, configuration: str) -> None:
         print_red("Run: python client_generic/WinBuild/build.py")
         sys.exit(1)
     debug = configuration.lower().startswith("debug")
-    exe = out / ("e-dreamd.exe" if debug else "e-dream.exe")
+    exe = out / ("infinidreamd.exe" if debug else "infinidream.exe")
     if not exe.is_file():
         print_red(f"Missing executable: {exe}")
         sys.exit(1)
@@ -222,8 +222,8 @@ def make_distribution_zip(
         if not source_root.is_dir():
             print_red(f"RuntimeMSVC not found: {source_root}")
             sys.exit(1)
-        if not (source_root / "es.exe").is_file() and not (source_root / "e-dream.exe").is_file():
-            print_red("RuntimeMSVC has no es.exe or e-dream.exe. Run with --stage first.")
+        if not (source_root / "es.exe").is_file() and not (source_root / "infinidream.exe").is_file():
+            print_red("RuntimeMSVC has no es.exe or infinidream.exe. Run with --stage first.")
             sys.exit(1)
 
     ensure_dir(output_dir)
@@ -346,7 +346,7 @@ def main() -> None:
     parser.add_argument(
         "--stage",
         action="store_true",
-        help="Copy e-dream*.exe/.scr and assets from MSVC output into RuntimeMSVC as es.exe / es.scr.",
+        help="Copy infinidream*.exe/.scr and assets from MSVC output into RuntimeMSVC as es.exe / es.scr.",
     )
     parser.add_argument(
         "--configuration",

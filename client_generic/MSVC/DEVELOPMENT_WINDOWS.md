@@ -50,7 +50,7 @@ Open [e-dream.sln](e-dream.sln), select **Release** and **x64**, then build. The
 
 `client_generic\MSVC\Release\`
 
-Binaries are named **`e-dream.exe`** and **`e-dream.scr`** (project name `e-dream`).
+Binaries are named **`infinidream.exe`** and **`infinidream.scr`**.
 
 Place extra runtime **DLLs** (and any other drop-in files) under **`client_generic\MSVC\dll\Release\`** or **`dll\Debug\`**, matching the MSBuild **configuration** you are building (same spelling: `Release`, `Debug`, `DebugMD`, etc.). After each successful link, MSBuild copies all files under that configuration folder into the executable directory (`$(OutDir)`), including nested paths under that folder (**files land flat** in `OutDir`; duplicate basenames overwrite). If **`dll\<Configuration>\`** does not exist, the step is skipped.
 
@@ -70,7 +70,7 @@ Useful flags:
 |------|-------------|
 | `-v SEMVER`, `--version SEMVER` | Embed this version in the binary (Settings / API). Omit to take **VER_*** from `Common/clientversion.h`. Also embeds **`git rev-parse --short HEAD`** (or `unknown` without a repo). |
 | `-r`, `--release` | Configuration **Release** (default). |
-| `-d`, `--debug` | Configuration **Debug** (output `e-dreamd.exe`). |
+| `-d`, `--debug` | Configuration **Debug** (output `infinidreamd.exe`). |
 | `--configuration NAME` | Any MSBuild configuration (e.g. `DebugMD`). |
 | `--platform Win32` or `x64` | Default **x64**. |
 | `--run-vcpkg` | Run `vcpkg install` for `--triplet` before building. |

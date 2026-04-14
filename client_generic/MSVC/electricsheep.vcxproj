@@ -35,7 +35,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectName>e-dream</ProjectName>
+    <ProjectName>infinidream</ProjectName>
     <ProjectGuid>{C117F50C-4724-48CF-8C5C-193FB1A0F26A}</ProjectGuid>
     <RootNamespace>electricsheep</RootNamespace>
     <Keyword>Win32Proj</Keyword>
