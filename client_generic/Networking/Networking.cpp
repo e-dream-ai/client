@@ -308,11 +308,6 @@ bool CCurlTransfer::Perform(const std::string& _url)
     if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_MAXREDIRS, 5)))
         return false;
 
-    if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_SSL_VERIFYHOST, 0)))
-        return false;
-    if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_SSL_VERIFYPEER, 0)))
-        return false;
-
     // Prevent CURL from installing signal handlers (important for multi-threaded apps)
     if (!Verify(curl_easy_setopt(m_pCurl, CURLOPT_NOSIGNAL, 1L)))
         return false;
