@@ -18,10 +18,6 @@ namespace DisplayOutput {
 class CDisplayDX11 : public CDisplayOutput {
 private:
     HWND m_WindowHandle;
-#ifdef WIN32
-    HMENU m_appMenu;
-    bool m_appMenuOwned;
-#endif
     ComPtr<ID3D11Device> m_device;
     ComPtr<ID3D11DeviceContext> m_context;
     ComPtr<IDXGISwapChain> m_swapChain;
@@ -33,7 +29,6 @@ private:
     
 #ifdef WIN32
     HWND CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen, HMENU hMenu);
-    static HMENU BuildAppMenuW();
 #endif
     static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
     bool CreateDeviceAndSwapChain();
