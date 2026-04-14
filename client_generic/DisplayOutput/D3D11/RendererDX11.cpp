@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cstring>
 #include <string>
+#include <d3dcompiler.h>
 
 #ifdef WIN32
 #include "AboutDialogWin32.h"
@@ -70,6 +71,51 @@ float4 main(PSInput input) : SV_TARGET {
     float4 sampled = tx0.Sample(smp0, adjustedUV);
     sampled.rgb += brightness;
     return float4(sampled.rgb * color.rgb, sampled.a * color.a);
+}
+)";
+
+// Batched HUD text shader: per-vertex position/UV/color, sampled from glyph atlas.
+const char* kTextBatchVertexHlsl = R"(
+struct VSInput {
+    float3 pos   : POSITION;
+    float2 uv    : TEXCOORD0;
+    float4 color : COLOR0;
+};
+
+struct VSOutput {
+    float4 position : SV_POSITION;
+    float2 uv       : TEXCOORD0;
+    float4 color    : COLOR0;
+};
+
+VSOutput main(VSInput input) {
+    VSOutput output;
+    output.position = float4(input.pos.xy * float2(2.0f, -2.0f) + float2(-1.0f, 1.0f), input.pos.z, 1.0f);
+    output.uv = input.uv;
+    output.color = input.color;
+    return output;
+}
+)";
+
+const char* kTextBatchFragmentHlsl = R"(
+Texture2D tx0 : register(t0);
+SamplerState smp0 : register(s0);
+
+cbuffer TextBatchUniforms : register(b0) {
+    float brightness;
+    float3 padding;
+};
+
+struct PSInput {
+    float4 position : SV_POSITION;
+    float2 uv       : TEXCOORD0;
+    float4 color    : COLOR0;
+};
+
+float4 main(PSInput input) : SV_TARGET {
+    float4 sampled = tx0.Sample(smp0, input.uv);
+    sampled.rgb += brightness;
+    return float4(sampled.rgb * input.color.rgb, sampled.a * input.color.a);
 }
 )";
 
@@ -748,6 +794,107 @@ bool CRendererDX11::BeginFrame() {
     return false;
 }
 
+bool CRendererDX11::EnsureTextBatchResources()
+{
+    if (!m_device || !m_context)
+        return false;
+
+    if (!m_textBatchVS || !m_textBatchPS || !m_textBatchInputLayout)
+    {
+        ComPtr<ID3DBlob> vsBlob;
+        {
+            UINT flags = D3DCOMPILE_ENABLE_STRICTNESS;
+#ifdef _DEBUG
+            flags |= D3DCOMPILE_DEBUG;
+#endif
+            ComPtr<ID3DBlob> errorBlob;
+            HRESULT hr = D3DCompile(kTextBatchVertexHlsl, std::strlen(kTextBatchVertexHlsl),
+                                    nullptr, nullptr, nullptr, "main", "vs_5_0",
+                                    flags, 0, &vsBlob, &errorBlob);
+            if (FAILED(hr))
+            {
+                if (errorBlob)
+                    g_Log->Error("Text batch VS compilation failed: %s",
+                                 (char*)errorBlob->GetBufferPointer());
+                return false;
+            }
+        }
+
+        HRESULT hr = m_device->CreateVertexShader(vsBlob->GetBufferPointer(),
+                                                  vsBlob->GetBufferSize(),
+                                                  nullptr, &m_textBatchVS);
+        if (FAILED(hr))
+        {
+            g_Log->Error("Failed to create text batch vertex shader: %08X", hr);
+            return false;
+        }
+
+        D3D11_INPUT_ELEMENT_DESC layout[] = {
+            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, (UINT)offsetof(TextBatchVertex, pos),
+             D3D11_INPUT_PER_VERTEX_DATA, 0},
+            {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, (UINT)offsetof(TextBatchVertex, uv),
+             D3D11_INPUT_PER_VERTEX_DATA, 0},
+            {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, (UINT)offsetof(TextBatchVertex, color),
+             D3D11_INPUT_PER_VERTEX_DATA, 0},
+        };
+
+        hr = m_device->CreateInputLayout(layout, ARRAYSIZE(layout),
+                                         vsBlob->GetBufferPointer(),
+                                         vsBlob->GetBufferSize(),
+                                         &m_textBatchInputLayout);
+        if (FAILED(hr))
+        {
+            g_Log->Error("Failed to create text batch input layout: %08X", hr);
+            return false;
+        }
+
+        ComPtr<ID3DBlob> psBlob;
+        {
+            UINT flags = D3DCOMPILE_ENABLE_STRICTNESS;
+#ifdef _DEBUG
+            flags |= D3DCOMPILE_DEBUG;
+#endif
+            ComPtr<ID3DBlob> errorBlob;
+            hr = D3DCompile(kTextBatchFragmentHlsl, std::strlen(kTextBatchFragmentHlsl),
+                            nullptr, nullptr, nullptr, "main", "ps_5_0",
+                            flags, 0, &psBlob, &errorBlob);
+            if (FAILED(hr))
+            {
+                if (errorBlob)
+                    g_Log->Error("Text batch PS compilation failed: %s",
+                                 (char*)errorBlob->GetBufferPointer());
+                return false;
+            }
+        }
+
+        hr = m_device->CreatePixelShader(psBlob->GetBufferPointer(),
+                                         psBlob->GetBufferSize(),
+                                         nullptr, &m_textBatchPS);
+        if (FAILED(hr))
+        {
+            g_Log->Error("Failed to create text batch pixel shader: %08X", hr);
+            return false;
+        }
+    }
+
+    if (!m_textBatchUniformBuffer)
+    {
+        D3D11_BUFFER_DESC cbDesc = {};
+        cbDesc.ByteWidth = 16; // brightness + padding (16-byte aligned)
+        cbDesc.Usage = D3D11_USAGE_DYNAMIC;
+        cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+        HRESULT hr = m_device->CreateBuffer(&cbDesc, nullptr, &m_textBatchUniformBuffer);
+        if (FAILED(hr))
+        {
+            g_Log->Error("Failed to create text batch uniform buffer: %08X", hr);
+            return false;
+        }
+    }
+
+    return true;
+}
+
 bool CRendererDX11::EndFrame(bool drawn) {
 #ifdef WIN32
     // Base CRenderer::EndFrame returns false when !drawn, which would skip overlay + Present.
@@ -795,89 +942,14 @@ bool CRendererDX11::EndFrame(bool drawn) {
                     continue;
 
                 // Bind atlas texture for the quad shader.
-                SetTexture(atlasTex, 0);
-
                 const Base::Math::CRect r = text->GetRect();
                 const uint32_t dispW = display->Width();
                 const uint32_t dispH = display->Height();
                 if (dispW == 0u || dispH == 0u)
                     continue;
 
-                if (m_context && m_rasterizerScissor)
-                {
-                    const float fdw = static_cast<float>(dispW);
-                    const float fdh = static_cast<float>(dispH);
-                    D3D11_RECT sc = {};
-                    sc.left = static_cast<LONG>(std::floor(r.m_X0 * fdw));
-                    sc.top = static_cast<LONG>(std::floor(r.m_Y0 * fdh));
-                    sc.right = static_cast<LONG>(std::ceil(r.m_X1 * fdw)) + 1;
-                    // Scissor inset matches macOS CATextLayer shadowOffset (1, 1): 1px right, 1px down.
-                    sc.bottom = static_cast<LONG>(std::ceil(r.m_Y1 * fdh)) + 1;
-                    const LONG dw = static_cast<LONG>(dispW);
-                    const LONG dh = static_cast<LONG>(dispH);
-                    sc.left = std::max(0L, std::min(sc.left, dw));
-                    sc.top = std::max(0L, std::min(sc.top, dh));
-                    sc.right = std::max(sc.left, std::min(sc.right, dw));
-                    sc.bottom = std::max(sc.top, std::min(sc.bottom, dh));
-
-                    m_context->RSSetState(m_rasterizerScissor.Get());
-                    m_context->RSSetScissorRects(1, &sc);
-                }
-
-                float penXpx = r.m_X0 * static_cast<float>(dispW);
-                float penYpx = r.m_Y0 * static_cast<float>(dispH);
-                const float lineHeightPx = static_cast<float>(font->LineHeightPx());
-                // Match Metal/TextMetal.mm CATextLayer shadowOffset (1, 1) in pixels.
-                const float kTextShadowDx = 1.f;
-                const float kTextShadowDy = 1.f;
-
-                const std::string& body = text->Text();
-                size_t ti = 0;
-                while (ti < body.size())
-                {
-                    if (body[ti] == '\r')
-                    {
-                        ++ti;
-                        continue;
-                    }
-                    if (body[ti] == '\n')
-                    {
-                        penXpx = r.m_X0 * static_cast<float>(dispW);
-                        penYpx += lineHeightPx;
-                        ++ti;
-                        continue;
-                    }
-
-                    uint32_t cp = 0;
-                    Utf8DecodeNext(body, ti, cp);
-                    const auto& g = font->GetGlyph(cp);
-                    if (g.widthPx == 0u || g.heightPx == 0u)
-                    {
-                        penXpx += g.advancePx;
-                        continue;
-                    }
-
-                    const float quadLeftPx = penXpx + g.penOffsetXPx;
-                    Base::Math::CRect dest(
-                        quadLeftPx / static_cast<float>(dispW),
-                        penYpx / static_cast<float>(dispH),
-                        (quadLeftPx + static_cast<float>(g.widthPx)) / static_cast<float>(dispW),
-                        (penYpx + static_cast<float>(g.heightPx)) / static_cast<float>(dispH));
-
-                    Base::Math::CRect shadowDest(
-                        (quadLeftPx + kTextShadowDx) / static_cast<float>(dispW),
-                        (penYpx + kTextShadowDy) / static_cast<float>(dispH),
-                        (quadLeftPx + kTextShadowDx + static_cast<float>(g.widthPx)) /
-                            static_cast<float>(dispW),
-                        (penYpx + kTextShadowDy + static_cast<float>(g.heightPx)) /
-                            static_cast<float>(dispH));
-                    DrawTexturedQuad(shadowDest,
-                                     Base::Math::CVector4(0.f, 0.f, 0.f, draw.color.m_W),
-                                     g.uvRect, m_glyphPointSampler.Get());
-                    DrawTexturedQuad(dest, draw.color, g.uvRect, m_glyphPointSampler.Get());
-
-                    penXpx += g.advancePx;
-                }
+                // Batched path: a single DrawIndexed for all glyph quads (shadow + foreground).
+                DrawTextBatched(text, draw.color);
 
                 if (m_context)
                     m_context->RSSetState(prevRasterizer.Get());
@@ -913,6 +985,261 @@ bool CRendererDX11::EndFrame(bool drawn) {
     }
     return false;
 #endif
+}
+
+void CRendererDX11::DrawTextBatched(const std::shared_ptr<CTextDX11Atlas>& text,
+                                    const Base::Math::CVector4& color)
+{
+    if (!text || !text->Enabled() || !m_context || !m_spDisplay)
+        return;
+
+    auto font = text->Font();
+    if (!font)
+        return;
+
+    auto atlasTex = font->AtlasTexture();
+    if (!atlasTex)
+        return;
+
+    if (!EnsureTextBatchResources())
+        return;
+
+    auto atlasDx11 = std::dynamic_pointer_cast<CTextureFlatDX11>(atlasTex);
+    if (!atlasDx11 || !atlasDx11->GetSRV())
+        return;
+
+    auto display = std::dynamic_pointer_cast<CDisplayDX11>(m_spDisplay);
+    if (!display)
+        return;
+
+    const uint32_t dispW = display->Width();
+    const uint32_t dispH = display->Height();
+    if (dispW == 0u || dispH == 0u)
+        return;
+
+    const Base::Math::CRect r = text->GetRect();
+    const std::string& body = text->Text();
+
+    // Count drawable glyphs (for buffer sizing).
+    uint32_t glyphCount = 0;
+    {
+        size_t ti = 0;
+        while (ti < body.size())
+        {
+            if (body[ti] == '\r')
+            {
+                ++ti;
+                continue;
+            }
+            if (body[ti] == '\n')
+            {
+                ++ti;
+                continue;
+            }
+
+            uint32_t cp = 0;
+            Utf8DecodeNext(body, ti, cp);
+            const auto& g = font->GetGlyph(cp);
+            if (g.widthPx != 0u && g.heightPx != 0u)
+                ++glyphCount;
+        }
+    }
+
+    if (glyphCount == 0u)
+        return;
+
+    // Two quads per glyph (shadow + foreground).
+    const uint32_t quadCount = glyphCount * 2u;
+    const uint32_t verticesNeeded = quadCount * 4u;
+    const uint32_t indicesNeeded = quadCount * 6u;
+
+    auto ensureBuffers = [&](uint32_t vbVerts, uint32_t ibIndices) -> bool {
+        if (!m_textBatchVertexBuffer || vbVerts > m_textBatchVertexCapacity)
+        {
+            m_textBatchVertexCapacity = std::max(vbVerts, std::max(1024u, m_textBatchVertexCapacity * 2u));
+            D3D11_BUFFER_DESC desc = {};
+            desc.ByteWidth = static_cast<UINT>(m_textBatchVertexCapacity * sizeof(TextBatchVertex));
+            desc.Usage = D3D11_USAGE_DYNAMIC;
+            desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+            desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+            HRESULT hr = m_device->CreateBuffer(&desc, nullptr, &m_textBatchVertexBuffer);
+            if (FAILED(hr))
+            {
+                g_Log->Error("Failed to create text batch VB: %08X", hr);
+                return false;
+            }
+        }
+
+        if (!m_textBatchIndexBuffer || ibIndices > m_textBatchIndexCapacity)
+        {
+            m_textBatchIndexCapacity = std::max(ibIndices, std::max(1536u, m_textBatchIndexCapacity * 2u));
+            // Generate indices on CPU and upload once.
+            std::vector<uint16_t> idx;
+            idx.resize(m_textBatchIndexCapacity);
+            uint32_t q = 0;
+            uint32_t oi = 0;
+            while (oi + 5u < idx.size())
+            {
+                const uint16_t base = static_cast<uint16_t>(q * 4u);
+                idx[oi + 0] = base + 0;
+                idx[oi + 1] = base + 1;
+                idx[oi + 2] = base + 2;
+                idx[oi + 3] = base + 0;
+                idx[oi + 4] = base + 2;
+                idx[oi + 5] = base + 3;
+                oi += 6u;
+                ++q;
+                if (base + 3u >= 0xFFFCu)
+                    break; // uint16 overflow safety
+            }
+            D3D11_BUFFER_DESC desc = {};
+            desc.ByteWidth = static_cast<UINT>(idx.size() * sizeof(uint16_t));
+            desc.Usage = D3D11_USAGE_IMMUTABLE;
+            desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+            D3D11_SUBRESOURCE_DATA init = {};
+            init.pSysMem = idx.data();
+            HRESULT hr = m_device->CreateBuffer(&desc, &init, &m_textBatchIndexBuffer);
+            if (FAILED(hr))
+            {
+                g_Log->Error("Failed to create text batch IB: %08X", hr);
+                return false;
+            }
+        }
+
+        return true;
+    };
+
+    if (!ensureBuffers(verticesNeeded, indicesNeeded))
+        return;
+
+    // Scissor to the text rect (same behavior as the legacy per-glyph path).
+    if (m_rasterizerScissor)
+    {
+        const float fdw = static_cast<float>(dispW);
+        const float fdh = static_cast<float>(dispH);
+        D3D11_RECT sc = {};
+        sc.left = static_cast<LONG>(std::floor(r.m_X0 * fdw));
+        sc.top = static_cast<LONG>(std::floor(r.m_Y0 * fdh));
+        sc.right = static_cast<LONG>(std::ceil(r.m_X1 * fdw)) + 1;
+        sc.bottom = static_cast<LONG>(std::ceil(r.m_Y1 * fdh)) + 1;
+        const LONG dw = static_cast<LONG>(dispW);
+        const LONG dh = static_cast<LONG>(dispH);
+        sc.left = std::max(0L, std::min(sc.left, dw));
+        sc.top = std::max(0L, std::min(sc.top, dh));
+        sc.right = std::max(sc.left, std::min(sc.right, dw));
+        sc.bottom = std::max(sc.top, std::min(sc.bottom, dh));
+        m_context->RSSetState(m_rasterizerScissor.Get());
+        m_context->RSSetScissorRects(1, &sc);
+    }
+
+    // Fill vertex buffer in one map.
+    D3D11_MAPPED_SUBRESOURCE mapped = {};
+    HRESULT mapHr = m_context->Map(m_textBatchVertexBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+    if (FAILED(mapHr) || !mapped.pData)
+        return;
+
+    auto* verts = reinterpret_cast<TextBatchVertex*>(mapped.pData);
+    uint32_t v = 0;
+
+    float penXpx = r.m_X0 * static_cast<float>(dispW);
+    float penYpx = r.m_Y0 * static_cast<float>(dispH);
+    const float lineHeightPx = static_cast<float>(font->LineHeightPx());
+    const float kTextShadowDx = 1.f;
+    const float kTextShadowDy = 1.f;
+
+    auto emitQuad = [&](const Base::Math::CRect& dest, const Base::Math::CRect& uv,
+                        const Base::Math::CVector4& c)
+    {
+        // Order matches the existing quad vertex buffer: TL, TR, BR, BL.
+        verts[v + 0] = {{dest.m_X0, dest.m_Y0, 0.f}, {uv.m_X0, uv.m_Y0}, {c.m_X, c.m_Y, c.m_Z, c.m_W}};
+        verts[v + 1] = {{dest.m_X1, dest.m_Y0, 0.f}, {uv.m_X1, uv.m_Y0}, {c.m_X, c.m_Y, c.m_Z, c.m_W}};
+        verts[v + 2] = {{dest.m_X1, dest.m_Y1, 0.f}, {uv.m_X1, uv.m_Y1}, {c.m_X, c.m_Y, c.m_Z, c.m_W}};
+        verts[v + 3] = {{dest.m_X0, dest.m_Y1, 0.f}, {uv.m_X0, uv.m_Y1}, {c.m_X, c.m_Y, c.m_Z, c.m_W}};
+        v += 4;
+    };
+
+    size_t ti = 0;
+    while (ti < body.size())
+    {
+        if (body[ti] == '\r')
+        {
+            ++ti;
+            continue;
+        }
+        if (body[ti] == '\n')
+        {
+            penXpx = r.m_X0 * static_cast<float>(dispW);
+            penYpx += lineHeightPx;
+            ++ti;
+            continue;
+        }
+
+        uint32_t cp = 0;
+        Utf8DecodeNext(body, ti, cp);
+        const auto& g = font->GetGlyph(cp);
+        if (g.widthPx == 0u || g.heightPx == 0u)
+        {
+            penXpx += g.advancePx;
+            continue;
+        }
+
+        const float quadLeftPx = penXpx + g.penOffsetXPx;
+        Base::Math::CRect dest(
+            quadLeftPx / static_cast<float>(dispW),
+            penYpx / static_cast<float>(dispH),
+            (quadLeftPx + static_cast<float>(g.widthPx)) / static_cast<float>(dispW),
+            (penYpx + static_cast<float>(g.heightPx)) / static_cast<float>(dispH));
+
+        Base::Math::CRect shadowDest(
+            (quadLeftPx + kTextShadowDx) / static_cast<float>(dispW),
+            (penYpx + kTextShadowDy) / static_cast<float>(dispH),
+            (quadLeftPx + kTextShadowDx + static_cast<float>(g.widthPx)) / static_cast<float>(dispW),
+            (penYpx + kTextShadowDy + static_cast<float>(g.heightPx)) / static_cast<float>(dispH));
+
+        emitQuad(shadowDest, g.uvRect, Base::Math::CVector4(0.f, 0.f, 0.f, color.m_W));
+        emitQuad(dest, g.uvRect, color);
+
+        penXpx += g.advancePx;
+    }
+
+    m_context->Unmap(m_textBatchVertexBuffer.Get(), 0);
+
+    // Bind pipeline + issue one draw for all quads.
+    ID3D11ShaderResourceView* srv = atlasDx11->GetSRV();
+    m_context->PSSetShaderResources(0, 1, &srv);
+    ID3D11SamplerState* samp = m_glyphPointSampler ? m_glyphPointSampler.Get() : m_defaultSampler.Get();
+    m_context->PSSetSamplers(0, 1, &samp);
+
+    m_context->IASetInputLayout(m_textBatchInputLayout.Get());
+    m_context->VSSetShader(m_textBatchVS.Get(), nullptr, 0);
+    m_context->PSSetShader(m_textBatchPS.Get(), nullptr, 0);
+
+    // Brightness constant buffer.
+    if (m_textBatchUniformBuffer)
+    {
+        D3D11_MAPPED_SUBRESOURCE cbMap = {};
+        HRESULT cbHr = m_context->Map(m_textBatchUniformBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &cbMap);
+        if (SUCCEEDED(cbHr) && cbMap.pData)
+        {
+            float* data = reinterpret_cast<float*>(cbMap.pData);
+            data[0] = GetBrightness();
+            data[1] = data[2] = data[3] = 0.f;
+            m_context->Unmap(m_textBatchUniformBuffer.Get(), 0);
+            ID3D11Buffer* cb = m_textBatchUniformBuffer.Get();
+            m_context->VSSetConstantBuffers(0, 1, &cb);
+            m_context->PSSetConstantBuffers(0, 1, &cb);
+        }
+    }
+
+    UINT stride = sizeof(TextBatchVertex);
+    UINT offset = 0;
+    m_context->IASetVertexBuffers(0, 1, m_textBatchVertexBuffer.GetAddressOf(), &stride, &offset);
+    m_context->IASetIndexBuffer(m_textBatchIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
+    m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    const uint32_t quadsEmitted = v / 4u;
+    const uint32_t indexCount = quadsEmitted * 6u;
+    m_context->DrawIndexed(static_cast<UINT>(indexCount), 0, 0);
 }
 
 void CRendererDX11::Apply() {

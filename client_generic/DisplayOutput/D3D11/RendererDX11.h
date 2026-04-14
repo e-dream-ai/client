@@ -90,6 +90,28 @@ private:
     spCShader m_drawTextureShader;
     bool CreateQuadBuffers();
 
+    // Batched HUD text path (avoids per-glyph DrawIndexed overhead).
+    struct TextBatchVertex
+    {
+        float pos[3];
+        float uv[2];
+        float color[4];
+    };
+
+    ComPtr<ID3D11Buffer> m_textBatchVertexBuffer;
+    ComPtr<ID3D11Buffer> m_textBatchIndexBuffer;
+    uint32_t m_textBatchVertexCapacity = 0; // number of vertices the VB can hold
+    uint32_t m_textBatchIndexCapacity = 0;  // number of indices the IB can hold
+
+    ComPtr<ID3D11VertexShader> m_textBatchVS;
+    ComPtr<ID3D11PixelShader> m_textBatchPS;
+    ComPtr<ID3D11InputLayout> m_textBatchInputLayout;
+    ComPtr<ID3D11Buffer> m_textBatchUniformBuffer; // brightness CB
+
+    bool EnsureTextBatchResources();
+    void DrawTextBatched(const std::shared_ptr<class CTextDX11Atlas>& text,
+                         const Base::Math::CVector4& color);
+
     // GPU frame timing (D3D11 timestamp queries) — HUD parity with Metal.
     float m_avgGpuFrameTimeMs;
     int m_gpuTimingSlot;
