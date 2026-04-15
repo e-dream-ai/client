@@ -207,7 +207,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     </PreBuildEvent>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\ffmpeg\ffmpeg-static\include;..\curl\include;..\ContentDownloader;..\Client;..\Common;..\Common\Math;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\libxml\include;..\lua5.1\include;..\Networking;..\socket.io-client-cpp\include;..\websocketpp;..\tinyXml;..\TupleStorage;..\DisplayOutput\DirectX;..\DisplayOutput\OpenGL;..\zlib;..\libpng\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\ffmpeg\ffmpeg-static\include;..\curl\include;..\ContentDownloader;..\Client;..\Common;..\Common\Math;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\libxml\include;..\Networking;..\socket.io-client-cpp\include;..\websocketpp;..\tinyXml;..\TupleStorage;..\DisplayOutput\DirectX;..\DisplayOutput\OpenGL;..\zlib;..\libpng\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0A00;WIN32;_DEBUG;_WINDOWS;NOMINMAX;_CRT_SECURE_NO_WARNINGS;CURL_STATICLIB;WIN32_LEAN_AND_MEAN;VC_EXTRALEAN;D3D_DEBUG_INFO;COMPILE_MULTIMON_STUBS;BOOST_NUMERIC_CONVERSION_RELAX_BUILT_IN_CAST_TRAITS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -254,7 +254,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     </PreBuildEvent>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\MacBuild;C:\local\boost_1_85_0;..\ffmpeg\include;..\curl\include;..\ContentDownloader;..\Client;..\Common;..\Common\Math;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\libxml\include;..\lua5.1\include;..\Networking;..\zlib;..\libpng\include;..\TupleStorage;..\socket.io-client-cpp\include;..\websocketpp;..\;C:\Users\Jack\Documents\openssl\openssl1_1-win-build\build-VS2022-MT\x64\Debug\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\MacBuild;C:\local\boost_1_85_0;..\ffmpeg\include;..\curl\include;..\ContentDownloader;..\Client;..\Common;..\Common\Math;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\libxml\include;..\Networking;..\zlib;..\libpng\include;..\TupleStorage;..\socket.io-client-cpp\include;..\websocketpp;..\;C:\Users\Jack\Documents\openssl\openssl1_1-win-build\build-VS2022-MT\x64\Debug\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0A00;BOOST_BIND_GLOBAL_PLACEHOLDERS;WIN32;_WIN64;_DEBUG;_WINDOWS;NOMINMAX;_CRT_SECURE_NO_WARNINGS;WIN32_LEAN_AND_MEAN;CURL_STATICLIB;VC_EXTRALEAN;D3D_DEBUG_INFO;COMPILE_MULTIMON_STUBS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -311,7 +311,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
       <OmitFramePointers>false</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <WholeProgramOptimization>true</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>..\ffmpeg\ffmpeg-static\include;..\curl\include;..\ContentDownloader;..\Client;..\Common;..\Common\Math;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\lua5.1\include;..\Networking;..\socket.io-client-cpp\include;..\websocketpp;..\tinyXml;..\TupleStorage;..\DisplayOutput\DirectX;..\DisplayOutput\OpenGL;..\zlib;..\libpng\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\ffmpeg\ffmpeg-static\include;..\curl\include;..\ContentDownloader;..\Client;..\Common;..\Common\Math;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\Networking;..\socket.io-client-cpp\include;..\websocketpp;..\tinyXml;..\TupleStorage;..\DisplayOutput\DirectX;..\DisplayOutput\OpenGL;..\zlib;..\libpng\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0A00;WIN32;NDEBUG;_WINDOWS;NOMINMAX;_CRT_SECURE_NO_WARNINGS;CURL_STATICLIB;WIN32_LEAN_AND_MEAN;VC_EXTRALEAN;COMPILE_MULTIMON_STUBS;BOOST_NUMERIC_CONVERSION_RELAX_BUILT_IN_CAST_TRAITS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -329,10 +329,10 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>avcodec.lib;avutil.lib;avfilter.lib;swscale.lib;avdevice.lib;avformat.lib;sioclient.lib;zlib.lib;libpng16.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;tinyxml.lib;lua5.1.lib;d3d9.lib;ws2_32.lib;wldap32.lib;ddraw.lib;dxguid.lib;psapi.lib;delayimp.lib;libeay32.lib;ssleay32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>avcodec.lib;avutil.lib;avfilter.lib;swscale.lib;avdevice.lib;avformat.lib;sioclient.lib;zlib.lib;libpng16.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;tinyxml.lib;d3d9.lib;ws2_32.lib;wldap32.lib;ddraw.lib;dxguid.lib;psapi.lib;delayimp.lib;libeay32.lib;ssleay32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ShowProgress>NotSet</ShowProgress>
       <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
-      <AdditionalLibraryDirectories>..\socket.io-client-cpp\lib\Win32\Release;..\..\vcpkg\installed\x86-windows\lib;..\curl\lib\release-ssl-zlib;..\tinyXml\Releasetinyxml;..\lua5.1\lib\static;..\ffmpeg\ffmpeg-static\lib;..\openssl-1.0.2k\out32;..\libpng\win32\$(Platform);..\zlib\win32\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\socket.io-client-cpp\lib\Win32\Release;..\..\vcpkg\installed\x86-windows\lib;..\curl\lib\release-ssl-zlib;..\tinyXml\Releasetinyxml;..\ffmpeg\ffmpeg-static\lib;..\openssl-1.0.2k\out32;..\libpng\win32\$(Platform);..\zlib\win32\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
@@ -387,7 +387,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
       <OmitFramePointers>false</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <WholeProgramOptimization>true</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>..\ffmpeg\ffmpeg-static\include;..\curl\include;..\ContentDownloader;..\Client;..\Common;..\Common\Math;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\lua5.1\include;..\Networking;..\socket.io-client-cpp\include;..\websocketpp;..\tinyXml;..\TupleStorage;..\DisplayOutput\DirectX;..\DisplayOutput\OpenGL;..\zlib;..\libpng\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\ffmpeg\ffmpeg-static\include;..\curl\include;..\ContentDownloader;..\Client;..\Common;..\Common\Math;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\Networking;..\socket.io-client-cpp\include;..\websocketpp;..\tinyXml;..\TupleStorage;..\DisplayOutput\DirectX;..\DisplayOutput\OpenGL;..\zlib;..\libpng\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0A00;WIN32;NDEBUG;_WINDOWS;NOMINMAX;_CRT_SECURE_NO_WARNINGS;CURL_STATICLIB;WIN32_LEAN_AND_MEAN;VC_EXTRALEAN;COMPILE_MULTIMON_STUBS;BOOST_NUMERIC_CONVERSION_RELAX_BUILT_IN_CAST_TRAITS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -405,10 +405,10 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>avcodec.lib;avutil.lib;avfilter.lib;swscale.lib;avdevice.lib;avformat.lib;sioclient.lib;zlib.lib;libpng16.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;tinyxml.lib;lua5.1.lib;d3d9.lib;ws2_32.lib;wldap32.lib;ddraw.lib;dxguid.lib;psapi.lib;delayimp.lib;libeay32.lib;ssleay32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>avcodec.lib;avutil.lib;avfilter.lib;swscale.lib;avdevice.lib;avformat.lib;sioclient.lib;zlib.lib;libpng16.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;tinyxml.lib;d3d9.lib;ws2_32.lib;wldap32.lib;ddraw.lib;dxguid.lib;psapi.lib;delayimp.lib;libeay32.lib;ssleay32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ShowProgress>NotSet</ShowProgress>
       <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
-      <AdditionalLibraryDirectories>..\socket.io-client-cpp\lib\Win32\Release;..\..\vcpkg\installed\x86-windows\lib;..\curl\lib\release-ssl-zlib;..\tinyXml\Releasetinyxml;..\lua5.1\lib\static;..\ffmpeg\ffmpeg-static\lib;..\openssl-1.0.2k\out32;..\libpng\win32\$(Platform);..\zlib\win32\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\socket.io-client-cpp\lib\Win32\Release;..\..\vcpkg\installed\x86-windows\lib;..\curl\lib\release-ssl-zlib;..\tinyXml\Releasetinyxml;..\ffmpeg\ffmpeg-static\lib;..\openssl-1.0.2k\out32;..\libpng\win32\$(Platform);..\zlib\win32\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
@@ -463,7 +463,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
       <OmitFramePointers>false</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <WholeProgramOptimization>true</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>..\ffmpeg\ffmpeg-static\include;..\curl\include;..\ContentDownloader;..\Client;..\Common;..\Common\Math;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\lua5.1\include;..\Networking;..\socket.io-client-cpp\include;..\websocketpp;..\tinyXml;..\TupleStorage;..\DisplayOutput\DirectX;..\DisplayOutput\OpenGL;..\zlib;..\libpng\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\ffmpeg\ffmpeg-static\include;..\curl\include;..\ContentDownloader;..\Client;..\Common;..\Common\Math;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\Networking;..\socket.io-client-cpp\include;..\websocketpp;..\tinyXml;..\TupleStorage;..\DisplayOutput\DirectX;..\DisplayOutput\OpenGL;..\zlib;..\libpng\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0A00;WIN32;NDEBUG;_WINDOWS;NOMINMAX;_CRT_SECURE_NO_WARNINGS;CURL_STATICLIB;WIN32_LEAN_AND_MEAN;VC_EXTRALEAN;COMPILE_MULTIMON_STUBS;BOOST_NUMERIC_CONVERSION_RELAX_BUILT_IN_CAST_TRAITS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -481,10 +481,10 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>avcodec.lib;avutil.lib;avfilter.lib;swscale.lib;avdevice.lib;avformat.lib;sioclient.lib;zlib.lib;libpng16.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;tinyxml.lib;lua5.1.lib;d3d9.lib;ws2_32.lib;wldap32.lib;ddraw.lib;dxguid.lib;psapi.lib;delayimp.lib;libeay32.lib;ssleay32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>avcodec.lib;avutil.lib;avfilter.lib;swscale.lib;avdevice.lib;avformat.lib;sioclient.lib;zlib.lib;libpng16.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;tinyxml.lib;d3d9.lib;ws2_32.lib;wldap32.lib;ddraw.lib;dxguid.lib;psapi.lib;delayimp.lib;libeay32.lib;ssleay32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ShowProgress>NotSet</ShowProgress>
       <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
-      <AdditionalLibraryDirectories>..\socket.io-client-cpp\lib\Win32\Release;..\..\vcpkg\installed\x86-windows\lib;..\curl\lib\release-ssl-zlib;..\tinyXml\Releasetinyxml;..\lua5.1\lib\static;..\ffmpeg\ffmpeg-static\lib;..\openssl-1.0.2k\out32;..\libpng\win32\$(Platform);..\zlib\win32\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\socket.io-client-cpp\lib\Win32\Release;..\..\vcpkg\installed\x86-windows\lib;..\curl\lib\release-ssl-zlib;..\tinyXml\Releasetinyxml;..\ffmpeg\ffmpeg-static\lib;..\openssl-1.0.2k\out32;..\libpng\win32\$(Platform);..\zlib\win32\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
