@@ -18,12 +18,18 @@ client_generic/MacBuild/infinidream.xcodeproj/xcuserdata
 
 # --- MSVC / Visual Studio (user + cache) ---
 client_generic/MSVC/.vs/
+**/.vs/
 *.vcxproj.user
 *.suo
 *.userosscache
 *.sln.docstates
 *.VC.db
 *.VC.VC.opendb
+*.vsidx
+*.tlog
+*.obj
+*.pdb
+*.idb
 
 # Per-project build output next to .vcxproj
 client_generic/MSVC/**/Debug/
