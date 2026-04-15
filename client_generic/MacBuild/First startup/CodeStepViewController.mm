@@ -90,9 +90,6 @@
         message = [self popupMessageForValidateResult:result];
     }
     
-    // Keep inline error text (per requirement), plus popup so it's not missed.
-    [self showError:message];
-    
     NSAlert *alert = [[NSAlert alloc] init];
     alert.messageText = title;
     alert.informativeText = message;

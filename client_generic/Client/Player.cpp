@@ -13,6 +13,7 @@
 #include <dirent.h>
 #endif
 #include <math.h>
+#include <limits>
 #include <string>
 #include <algorithm>
 #include <thread>
@@ -1001,28 +1002,31 @@ void CPlayer::PlayNextDream(bool quickFade) {
 
 void CPlayer::MultiplyPerceptualFPS(const double _multiplier) {
     m_PerceptualFPS *= _multiplier;
-    
+
     reader_lock l(m_UpdateMutex);
     if (m_currentClip) {
         float dreamActivityLevel = m_currentClip->GetClipMetadata().dreamData.activityLevel;
-        // Update decoder speed
+        // Update decoder speed and re-anchor m_EndTime to the new rate, otherwise
+        // the wallclock deadline baked in at clip start would fire on the original
+        // schedule while frames crawl at the new rate — stranding the fade-out
+        // trigger ahead of the preflight trigger and producing a black screen.
         m_DecoderFps = m_PerceptualFPS / dreamActivityLevel;
-        m_currentClip->SetFps(m_DecoderFps);
+        m_currentClip->UpdatePlaybackRate(m_DecoderFps, m_TimelineTime);
     }
 }
 
 void CPlayer::SetPerceptualFPS(const double _fps) {
-    
+
     m_PerceptualFPS = _fps;
-    
+
     reader_lock l(m_UpdateMutex);
 
     if (m_currentClip) {
         // Grab the activity level of the dream
         float dreamActivityLevel = m_currentClip->GetClipMetadata().dreamData.activityLevel;
-        // Update decoder speed
+        // Update decoder speed and re-anchor m_EndTime (see MultiplyPerceptualFPS).
         m_DecoderFps = m_PerceptualFPS / dreamActivityLevel;
-        m_currentClip->SetFps(m_DecoderFps);
+        m_currentClip->UpdatePlaybackRate(m_DecoderFps, m_TimelineTime);
     }
 }
 
@@ -1688,10 +1692,7 @@ void CPlayer::SkipForward(float _seconds)
         ContentDecoder::spCClip referenceClip = (m_isTransitioning && m_nextClip) ? m_nextClip : m_currentClip;
         const auto& refMetadata = referenceClip->GetCurrentFrameMetadata();
         
-        double refFps = 20.0;
-        if (!referenceClip->GetClipMetadata().dreamData.fps.empty()) {
-            refFps = std::stod(referenceClip->GetClipMetadata().dreamData.fps);
-        }
+        double refFps = referenceClip->GetClipMetadata().dreamData.getFps();
         
         double currentTimeInRefClip = refMetadata.frameIdx / refFps;
         
@@ -1724,7 +1725,7 @@ void CPlayer::SkipForward(float _seconds)
                 }
                 
                 // Calculate seek frame: (absSeconds - currentTimeInRefClip) from the end of the target dream
-                double targetFps = std::stod(targetDream->fps);
+                double targetFps = targetDream->getFps();
                 double offsetFromEnd = absSeconds - currentTimeInRefClip;
                 int64_t seekFrame = targetDream->frames - static_cast<int64_t>(offsetFromEnd * targetFps);
                 seekFrame = std::max(seekFrame, static_cast<int64_t>(0));
@@ -1757,10 +1758,7 @@ void CPlayer::SkipForward(float _seconds)
         ContentDecoder::spCClip targetClip = m_isTransitioning && m_nextClip ? m_nextClip : m_currentClip;
         const auto& toMetadata = targetClip->GetCurrentFrameMetadata();
         
-        double toFps = 20.0;
-        if (!targetClip->GetClipMetadata().dreamData.fps.empty()) {
-            toFps = std::stod(targetClip->GetClipMetadata().dreamData.fps);
-        }
+        double toFps = targetClip->GetClipMetadata().dreamData.getFps();
         
         double currentTimeInToClip = toMetadata.frameIdx / toFps;
         uint32_t framesRemaining = toMetadata.maxFrameIdx > toMetadata.frameIdx ? 
@@ -1789,7 +1787,7 @@ void CPlayer::SkipForward(float _seconds)
                 }
                 
                 // Calculate seek frame: (absSeconds - timeRemaining) from start of next dream
-                double nextFps = std::stod(nextDecision->dream->fps);
+                double nextFps = nextDecision->dream->getFps();
                 double offsetFromStart = absSeconds - timeRemaining;
                 int64_t seekFrame = static_cast<int64_t>(offsetFromStart * nextFps);
                 
@@ -1872,10 +1870,19 @@ bool CPlayer::shouldPrepareTransition(const ContentDecoder::spCClip& clip) const
         return false;
     }
 
+    // Mirror the fade-out predicate in CClip::Update so the preflight trigger
+    // and the fade-out trigger can never disagree. Both are wallclock-based:
+    //   framesLeft/decodeFps = wallclock seconds to play remaining frames at
+    //                         the current rate
+    //   m_EndTime - timeline  = wallclock deadline baked in at clip start (or
+    //                         overwritten by FadeOut / UpdatePlaybackRate)
     uint32_t framesRemaining = metadata.maxFrameIdx - metadata.frameIdx;
-    // Use base fps (not decode fps) to get actual time remaining regardless of playback speed
-    double baseFps = std::stod(clip->GetClipMetadata().dreamData.fps);
-    double timeRemaining = framesRemaining / baseFps;
+    double decodeFps = clip->GetClipMetadata().decodeFps;
+    double framesLeftSeconds = (decodeFps > 0.0)
+        ? (framesRemaining / decodeFps)
+        : std::numeric_limits<double>::infinity();
+    double wallclockLeftSeconds = clip->GetEndTime() - m_TimelineTime;
+    double timeRemaining = std::fmin(framesLeftSeconds, wallclockLeftSeconds);
 
     // Start preparing transition when we're within 8 seconds of the end
     return timeRemaining <= 8.0;

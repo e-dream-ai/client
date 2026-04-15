@@ -154,6 +154,10 @@ public:
     eClipFlags GetFlags() const { return m_ClipFlags; }
     void SkipTime(float _secondsForward);
     void SetFps(double _fps) { m_ClipMetadata.decodeFps = _fps; }
+    // Update decode fps AND recompute m_EndTime from remaining frames at the
+    // new rate, anchored at _currentTimelineTime. Leaves m_EndTime alone while
+    // the clip is already fading out (FadeOut has pinned a hard stop there).
+    void UpdatePlaybackRate(double _newFps, double _currentTimelineTime);
     
     void SetResumeTime(double startTime) {
         m_ResumeStartTime = startTime;

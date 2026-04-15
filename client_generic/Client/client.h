@@ -1060,15 +1060,7 @@ class CElectricSheep
         if (!clipMetadata)
             return;
 
-        double baseFps = 1.0;
-        try
-        {
-            baseFps = std::stod(clipMetadata->dreamData.fps);
-        }
-        catch (...)
-        {
-            baseFps = 1.0;
-        }
+        double baseFps = clipMetadata->dreamData.getFps();
 
         double currentTime = g_Player().GetCurrentClipElapsedTime(); // fallback if no frame metadata
         double totalTime = 0.0;
@@ -1499,7 +1491,7 @@ class CElectricSheep
                     activityLevel = clipMetadata->dreamData.activityLevel;
                     realFps = clipMetadata->decodeFps;
                     isStreamingCurrent = !(clipMetadata->dreamData.isCached());
-                    baseFps = std::stod(clipMetadata->dreamData.fps);
+                    baseFps = clipMetadata->dreamData.getFps();
                 }
 
                 const ContentDecoder::sFrameMetadata* frameMetadata =

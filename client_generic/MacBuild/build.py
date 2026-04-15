@@ -256,6 +256,7 @@ class BuildConfig:
         self.notarize = args.notarize
         self.github_release = args.github
         self.version = args.version
+        self.force = args.force
 
         # Configuration derived from flags
         self.build_config = "Release" if self.release else "Debug"
@@ -315,6 +316,39 @@ def validate_config(config: BuildConfig) -> None:
     if config.github_release and not shutil.which('gh'):
         print_red("Error: GitHub CLI (gh) not found. Install with: brew install gh")
         sys.exit(1)
+
+    # Refuse to clobber an existing tag/release unless --force is set.
+    # We check early so a long build doesn't run only to fail (or worse,
+    # silently overwrite hand-edited release notes) at the upload step.
+    if config.github_release and not config.force:
+        tag = config.version
+
+        local_tag = run_command(
+            ['git', 'tag', '-l', tag],
+            capture_output=True, check=False
+        )
+        if local_tag.stdout.strip():
+            print_red(f"Error: git tag {tag} already exists locally.")
+            print_red("Refusing to overwrite existing release notes. Use --force to override.")
+            sys.exit(1)
+
+        remote_tag = run_command(
+            ['git', 'ls-remote', '--tags', 'origin', f'refs/tags/{tag}'],
+            capture_output=True, check=False
+        )
+        if remote_tag.stdout.strip():
+            print_red(f"Error: git tag {tag} already exists on origin.")
+            print_red("Refusing to overwrite existing release notes. Use --force to override.")
+            sys.exit(1)
+
+        gh_release = run_command(
+            ['gh', 'release', 'view', tag],
+            capture_output=True, check=False
+        )
+        if gh_release.returncode == 0:
+            print_red(f"Error: GitHub release {tag} already exists.")
+            print_red("Refusing to overwrite existing release notes. Use --force to override.")
+            sys.exit(1)
 
 
 def print_build_info(config: BuildConfig) -> None:
@@ -1201,6 +1235,8 @@ Environment variables (optional overrides):
                         help='Create GitHub release with tag (requires -v)')
     parser.add_argument('-v', '--version', type=str,
                         help='Version string (e.g., 0.12.0) - used for zip naming and GitHub release')
+    parser.add_argument('--force', action='store_true',
+                        help='Overwrite an existing tag/release (destroys existing release notes)')
 
     args = parser.parse_args()
 

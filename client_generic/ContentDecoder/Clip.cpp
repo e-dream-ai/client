@@ -561,6 +561,32 @@ void CClip::FadeOut(double _currentTimelineTime)
     m_EndTime = _currentTimelineTime + m_FadeOutSeconds;
 }
 
+void CClip::UpdatePlaybackRate(double _newFps, double _currentTimelineTime)
+{
+    m_ClipMetadata.decodeFps = _newFps;
+
+    // If the clip is already fading out, FadeOut() has deliberately pinned
+    // m_EndTime to a "stop N seconds from now" deadline; don't un-end it.
+    if (m_IsFadingOut.load())
+        return;
+
+    uint32_t idx = 0;
+    uint32_t maxIdx = 0;
+    {
+        std::shared_lock<std::shared_mutex> lock(m_CurrentFrameMetadataLock);
+        idx = m_CurrentFrameMetadata.frameIdx;
+        maxIdx = m_CurrentFrameMetadata.maxFrameIdx;
+    }
+
+    // Decoder hasn't populated frame metadata yet — SetStartTime will handle
+    // m_EndTime once the clip is actually started.
+    if (maxIdx == 0 || _newFps <= 0.0)
+        return;
+
+    double remainingFrames = (maxIdx > idx) ? static_cast<double>(maxIdx - idx) : 0.0;
+    m_EndTime = _currentTimelineTime + remainingFrames / _newFps;
+}
+
 void CClip::SkipTime(float _secondsForward)
 {
     // Pass the displayed frame index to the decoder so it uses the correct base

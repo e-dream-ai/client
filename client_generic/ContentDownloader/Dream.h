@@ -10,6 +10,7 @@
 
 #include <string>
 #include <cmath>
+#include "Log.h"
 
 namespace Cache {
 
@@ -32,9 +33,22 @@ struct Dream {
     mutable std::string streamingUrl;
     std::string md5;
     
-    // Possibly useful helpers
+    double getFps(double defaultFps = 30.0) const {
+        if (fps.empty()) {
+            g_Log->Warning("Dream::getFps: fps string is empty for dream '%s', using default %.1f",
+                           uuid.c_str(), defaultFps);
+            return defaultFps;
+        }
+        try { return std::stod(fps); }
+        catch (...) {
+            g_Log->Warning("Dream::getFps: failed to parse fps '%s' for dream '%s', using default %.1f",
+                           fps.c_str(), uuid.c_str(), defaultFps);
+            return defaultFps;
+        }
+    }
+
     double getDuration() const {
-        return frames / std::stod(fps);
+        return frames / getFps();
     }
 
     std::string getFormattedSize() const {
