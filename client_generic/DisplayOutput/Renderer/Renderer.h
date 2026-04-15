@@ -15,6 +15,10 @@
 #include "Vector4.h"
 #include "base.h"
 
+#ifdef WIN32
+#include <d3d12.h>
+#endif
+
 namespace DisplayOutput
 {
 
@@ -47,7 +51,8 @@ enum eRenderLimits
 
 enum eRenderType
 {
-    eDX9,
+    eDX9,   // Legacy DirectDraw renderer (RendererDD)
+    eDX11,
     eMetal,
 };
 
@@ -125,6 +130,13 @@ class CRenderer
   public:
     CRenderer();
     virtual ~CRenderer();
+
+    #ifdef WIN32
+    /* virtual ComPtr<ID3D12Device> GetDevice() = PureVirtual;
+    virtual ComPtr<ID3D12GraphicsCommandList> GetCommandList() = PureVirtual;
+    virtual ComPtr<ID3D12CommandQueue> GetCommandQueue() = PureVirtual;
+    */
+    #endif
 
     virtual eRenderType Type(void) const = PureVirtual;
     virtual const std::string Description(void) const = PureVirtual;

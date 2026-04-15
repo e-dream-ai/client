@@ -1,12 +1,21 @@
 {
-    "dependencies":
-    [
-        "boost-log",
-        "boost-filesystem",
-        "boost-json",
-        "boost-format",
-        "boost-thread",
-        "openssl",
-        "ffmpeg"
-    ]
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "builtin-baseline": "4b77da7fed37817f124936239197833469f1b9a8",
+  "dependencies": [
+    "boost-log",
+    "boost-filesystem",
+    "boost-json",
+    "boost-format",
+    "boost-thread",
+    "openssl",
+    "curl",
+    "libpng",
+    "directxtk12",
+    "ffmpeg",
+    {
+      "name": "imgui",
+      "default-features": false,
+      "features": [ "dx11-binding", "win32-binding" ]
+    }
+  ]
 }

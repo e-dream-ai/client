@@ -11,7 +11,6 @@
 #include <boost/format.hpp>
 
 #include "clientversion.h"
-#include "StringFormat.h"
 #include "Log.h"
 #include "JSONUtil.h"
 #include "JSONStorage.h"
@@ -40,11 +39,12 @@ bool JSONStorage::Initialise(std::string_view _sRoot,
             std::stringstream buffer;
             buffer << file.rdbuf();
             auto fileStr = buffer.str();
-            auto str = string_format("Exception during parsing config:%s "
-                                     "contents:\"%s\"",
-                                     e.what(), fileStr.data());
+            std::string str = "Exception during parsing config: ";
+            str += e.what();
+            str += " contents: ";
+            str += fileStr;
             //ContentDownloader::Shepherd::addMessageText(str.data(), 180);
-            g_Log->Error(str.data());
+            g_Log->Error(str.c_str());
         }
     }
     m_bReadOnly = _bReadOnly;

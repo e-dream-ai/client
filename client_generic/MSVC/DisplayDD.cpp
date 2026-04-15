@@ -3,6 +3,7 @@
 
 #include "DisplayDD.h"
 #include "Log.h"
+#include "PlatformUtils.h"
 #include <cstdio>
 #include <windows.h>
 
@@ -85,8 +86,11 @@ LRESULT CALLBACK CDisplayDD::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
         PostQuitMessage(0);
         break;
 
-    case WM_KEYUP:
+    case WM_KEYDOWN:
     {
+        if ((lParam >> 30) & 1)
+            break;
+
         CKeyEvent* spEvent = new CKeyEvent();
         spEvent->m_bPressed = true;
 
@@ -142,8 +146,12 @@ LRESULT CALLBACK CDisplayDD::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
             break;
         }
 
-        spCEvent e = spEvent;
-        m_EventQueue.push(e);
+        if (spEvent->m_Code != CKeyEvent::KEY_NONE) {
+            spCEvent e = spEvent;
+            m_EventQueue.push(e);
+        } else {
+            delete spEvent;
+        }
     }
     break;
 
@@ -171,11 +179,14 @@ LRESULT CALLBACK CDisplayDD::wndProc(HWND hWnd, UINT msg, WPARAM wParam,
 
     case WM_MOUSEMOVE:
     {
+        const POINTS pt = MAKEPOINTS(lParam);
+        PlatformUtils::NotifyMouseMoved(static_cast<int>(pt.x),
+                                        static_cast<int>(pt.y));
         CMouseEvent* spEvent = new CMouseEvent();
         spEvent->m_Code = CMouseEvent::Mouse_MOVE;
 
-        spEvent->m_X = MAKEPOINTS(lParam).x;
-        spEvent->m_Y = MAKEPOINTS(lParam).y;
+        spEvent->m_X = pt.x;
+        spEvent->m_Y = pt.y;
 
         spCEvent e = spEvent;
         m_EventQueue.push(e);
@@ -237,7 +248,7 @@ HWND CDisplayDD::createwindow(uint32 _w, uint32 _h, const bool _bFullscreen)
 
         dwStyle = WS_VISIBLE | WS_POPUP;
         HWND hWnd = CreateWindowEx(WS_EX_TOPMOST, L"ElectricsheepWndClass",
-                                   L"Electricsheep", dwStyle, rc.left, rc.top,
+                                   L"infinidream", dwStyle, rc.left, rc.top,
                                    rc.right - rc.left, rc.bottom - rc.top, NULL,
                                    NULL, hInstance, NULL);
         m_ParentWindowHandle = hWnd;
@@ -277,7 +288,7 @@ HWND CDisplayDD::createwindow(uint32 _w, uint32 _h, const bool _bFullscreen)
     _w = windowRect.right - windowRect.left;
     _h = windowRect.bottom - windowRect.top;
     HWND hWnd =
-        CreateWindowEx(exStyle, L"ElectricsheepWndClass", L"Electricsheep",
+        CreateWindowEx(exStyle, L"ElectricsheepWndClass", L"infinidream",
                        style, 0, 0, _w, _h, NULL, NULL, hInstance, NULL);
     m_ParentWindowHandle = hWnd;
     return hWnd;

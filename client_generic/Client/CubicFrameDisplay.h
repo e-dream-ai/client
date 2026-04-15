@@ -49,60 +49,11 @@ class CCubicFrameDisplay : public CFrameDisplay
         : CFrameDisplay(_spRenderer)
     {
 
-        // gl_FragColor = ( c0 * weights.x ) + ( c1 * weights.y ) + ( c2 *
-        // weights.z ) + ( c3 * weights.w ); 	hlsl vertexshader...
-        static const char* cubic_vertexshader = "\
-					float4x4 WorldViewProj: WORLDVIEWPROJECTION;\
-					struct VS_OUTPUT\
-					{\
-						float4 Pos  : POSITION;\
-						float2 Tex	: TEXCOORD0;\
-					};\
-					VS_OUTPUT main( float4 Pos : POSITION, float2 Tex : TEXCOORD0 )\
-					{\
-					  VS_OUTPUT Out = (VS_OUTPUT)0;\
-					  Out.Pos = mul( Pos, WorldViewProj );\
-					  Out.Tex = Tex;\
-					  return Out;\
-					}";
-
-        //	hlsl fragmentshader.
-        static const char* cubic_fragmentshaderDX = "\
-					sampler2D texUnit1: register(s1);\
-					sampler2D texUnit2: register(s2);\
-					sampler2D texUnit3: register(s3);\
-					sampler2D texUnit4: register(s4);\
-					sampler2D texUnit5: register(s5);\
-					sampler2D texUnit6: register(s6);\
-					sampler2D texUnit7: register(s7);\
-					sampler2D texUnit8: register(s8);\
-					float4	weights;\
-					float newalpha;\
-					float	transPct;\
-					float4 main( float2 _uv : TEXCOORD0 ) : COLOR0\
-					{\
-						float4 c1 = tex2D( texUnit1, _uv );\
-						float4 c2 = tex2D( texUnit2, _uv );\
-						float4 c3 = tex2D( texUnit3, _uv );\
-						float4 c4 = tex2D( texUnit4, _uv );\
-						float4 c5 = ( c1 * weights.x ) + ( c2 * weights.y ) + ( c3 * weights.z ) + ( c4 * weights.w );\
-						c1 = tex2D( texUnit5, _uv );\
-						c2 = tex2D( texUnit6, _uv );\
-						c3 = tex2D( texUnit7, _uv );\
-						c4 = tex2D( texUnit8, _uv );\
-						float4 c6 = ( c1 * weights.x ) + ( c2 * weights.y ) + ( c3 * weights.z ) + ( c4 * weights.w );\
-						float4 c7 = lerp( c5, c6, transPct / 100.0 );\
-						c7.a = newalpha;\
-						return c7;\
-					}";
-
-        //	Compile the shader.
+        // DX11 and Metal use symbolic shader names. DirectDraw (eDX9) cannot
+        // compile them and falls back to plain CFrameDisplay behavior.
         switch (_spRenderer->Type())
         {
-        case DisplayOutput::eDX9:
-            m_spShader = _spRenderer->NewShader(cubic_vertexshader,
-                                                cubic_fragmentshaderDX);
-            break;
+        case DisplayOutput::eDX11:
         case DisplayOutput::eMetal:
             m_spShader = _spRenderer->NewShader(
                 "quadPassVertex", "drawDecodedFrameCubicFrameBlendFragment",

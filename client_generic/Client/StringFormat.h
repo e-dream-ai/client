@@ -1,16 +1,10 @@
-//
-//  StringFormat.h
-//  e-dream
-//
-//  Created by Tibi Hencz on 28.12.2023.
-//
-
-#ifndef _STRINGFORMAT_H_
-#define _STRINGFORMAT_H_
+#ifndef STRINGFORMAT_H
+#define STRINGFORMAT_H
 
 #include <string>
-#include <string_view>
 
-std::string string_format(std::string_view _format, ...);
+/// printf-style formatting returning std::string.
+/// Uses same format specifiers as printf (e.g. %s, %d, %u, %f).
+std::string string_format(const char* fmt, ...);
 
-#endif /* _STRINGFORMAT_H_ */
+#endif // STRINGFORMAT_H

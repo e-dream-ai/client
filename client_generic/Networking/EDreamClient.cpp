@@ -9,10 +9,11 @@
 #include <iomanip>
 #include <sstream>
 #include <chrono>
+#include <utility>
 #include <algorithm>
+#include <ctime>
 
 #include "ContentDownloader.h"
-#include "StringFormat.h"
 #include "Log.h"
 #include "Player.h"
 #include "Settings.h"
@@ -326,7 +327,12 @@ void EDreamClient::UpdateQuota()
             ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%S");
             
             if (!ss.fail()) {
+                #if defined(_WIN32) || defined(_WIN64)
+                // Windows uses `_mkgmtime` for UTC conversion.
+                auto tp = std::chrono::system_clock::from_time_t(_mkgmtime(&tm));
+                #else
                 auto tp = std::chrono::system_clock::from_time_t(timegm(&tm));
+                #endif
                 quotaExpiresAt = tp;
                 cm.setQuotaExpiresAt(tp);
 
@@ -434,6 +440,7 @@ static void OnWebSocketConnected()
     fWebSocketConnectionAttempts = 0;
 }
 
+
 static void OnWebSocketClosed(const sio::client::close_reason& _reason)
 {
     g_Log->Info("WebSocket connection closed. Reason: %d", static_cast<int>(_reason));
@@ -463,6 +470,7 @@ void EDreamClient::InitializeClient()
 {
     if (g_Client()->IsMultipleInstancesMode()) {
         g_Log->Info("Disabling auth in multiple instance mode");
+        // CPlayer::Start waits on HasCompletedInitialAuth(); no auth thread here.
         fInitialAuthComplete.store(true);
         return;
     }
@@ -544,14 +552,10 @@ bool EDreamClient::Authenticate()
         fAuthCV.notify_one();
         if (!shownSettingsOnce) {
             shownSettingsOnce = true;
-#ifdef __APPLE__
             bool firstTimeSetupCompleted = g_Settings()->Get("settings.app.firsttimesetup", false);
             if (!firstTimeSetupCompleted) {
                 ESShowFirstTimeSetup();
             }
-#else
-            ESShowPreferences();
-#endif
         }
         return false;
     }
@@ -638,6 +642,10 @@ bool EDreamClient::Authenticate()
 void EDreamClient::DidSignIn()
 {
     g_Log->Info("Did Sign-in");
+    // Playback may have already started in cache-only mode before the user finished sign-in
+    // (first-run wizard, etc.). We'll switch to the server playlist + Hello quota after commit below.
+    const bool needLateOnlineBootstrap =
+        g_Player().HasStarted() && g_Player().IsOfflineMode();
     fAuthRetryAbort.store(true);  // Stop auth retry loop if it was waiting (e.g. user logged in manually)
     fAuthRetryPending.store(false);
 
@@ -684,6 +692,9 @@ void EDreamClient::DidSignIn()
     s_SIOClient.set_reconnect_listener(&OnWebSocketReconnect);
 
     EDreamClient::ConnectRemoteControlSocket();
+
+    if (needLateOnlineBootstrap)
+        g_Player().EnsureOnlinePlaybackAfterSignIn();
 }
 
 void EDreamClient::SignOut()
@@ -744,7 +755,10 @@ void EDreamClient::SignOut()
 
 bool EDreamClient::IsLoggedIn()
 {
+    // TODO WIN
+    //#ifdef MAC
     std::lock_guard<std::mutex> lock(fAuthMutex);
+    //#endif
     return fIsLoggedIn.load();
 }
 
@@ -834,6 +848,12 @@ EDreamClient::SendCodeResult EDreamClient::SendCode() {
     }
 
     return SendCodeResult{false, 0, "Cannot access Network"};
+}
+
+std::pair<bool, std::string> EDreamClient::SendVerificationCodeOutcome()
+{
+    SendCodeResult r = SendCode();
+    return {r.success, std::move(r.message)};
 }
 
 bool EDreamClient::ValidateCode(const std::string& code)
@@ -1259,7 +1279,11 @@ EDreamClient::HelloResult EDreamClient::HelloDetailed() {
             ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%S");
             
             if (!ss.fail()) {
+                #if defined(_WIN32) || defined(_WIN64)
+                auto tp = std::chrono::system_clock::from_time_t(_mkgmtime(&tm));
+                #else
                 auto tp = std::chrono::system_clock::from_time_t(timegm(&tm));
+                #endif
                 quotaExpiresAt = tp;
                 cm.setQuotaExpiresAt(tp);
 
@@ -1637,9 +1661,11 @@ bool EDreamClient::FetchPlaylist(std::string_view uuid) {
         std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
         spDownload->AppendHeader(cookieHeader);
         
-        std::string url{string_format(
-            "%s/%s", ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::GETPLAYLIST).c_str(), uuid)};
-        
+        std::string url =
+            ServerConfig::ServerConfigManager::getInstance().getEndpoint(
+                ServerConfig::Endpoint::GETPLAYLIST) +
+            "/" + std::string(uuid);
+
         printf("url : %s\n", url.c_str());
         
         if (spDownload->Perform(url))
@@ -1969,7 +1995,11 @@ std::string EDreamClient::GetDreamDownloadLink(const std::string& uuid) {
 
 
 std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
-    g_Log->Info("Parse Playlist %s", (uuid == "" ? "default playlist" : uuid));
+    // Do not pass std::string_view to "%s" (expects null-terminated const char*).
+    if (uuid.empty())
+        g_Log->Info("Parse Playlist default playlist");
+    else
+        g_Log->Info("Parse Playlist %.*s", static_cast<int>(uuid.size()), uuid.data());
     // Grab the CacheManager
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
 
@@ -2178,6 +2208,7 @@ bool EDreamClient::EnqueuePlaylist(std::string_view uuid) {
     
     return true;
 }
+
 
 static void OnWebSocketMessage(sio::event& _wsEvent)
 {
@@ -2405,7 +2436,11 @@ static void OnQuotaUpdate(sio::event& _wsEvent)
             std::istringstream ss(expiresAtStr);
             ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%S");
             if (!ss.fail()) {
+                #if defined(_WIN32) || defined(_WIN64)
+                expiresAt = std::chrono::system_clock::from_time_t(_mkgmtime(&tm));
+                #else
                 expiresAt = std::chrono::system_clock::from_time_t(timegm(&tm));
+                #endif
             }
         }
     }
@@ -2461,6 +2496,12 @@ void EDreamClient::ConnectRemoteControlSocket()
     std::map<std::string, std::string> query;
     
     std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
+    
+    if (sealedSession.empty())
+    {
+        g_Log->Error("Cannot connect WebSocket: no sealed session available.");
+        return;
+    }
     
     if (sealedSession.empty())
     {

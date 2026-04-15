@@ -25,13 +25,25 @@ Also, if you are doing releases you will need:
     brew install gh
     brew install bugsnag/tap/bugsnag-cli
 
-The general C++ dependencies are handled by vcpkg. Run these commands to build them:
+The general C++ dependencies are handled by vcpkg. The Microsoft vcpkg repo is included as a **git submodule** at `vcpkg/`. After cloning this repo, fetch it and build dependencies.
 
-    git submodule update --init
+**macOS**
+
+    git submodule update --init --recursive
     ./vcpkg/bootstrap-vcpkg.sh
     ./vcpkg/vcpkg install
 
-on Mac, open client_generic/MacBuild/infinidream.xcodeproj
+**Windows** (from repo root; typical desktop build is **x64**)
+
+    git submodule update --init --recursive
+    vcpkg\bootstrap-vcpkg.bat
+    vcpkg\vcpkg.exe install --triplet x64-windows
+
+The root [vcpkg.json](vcpkg.json) is the manifest. Set **`VCPKG_ROOT`** to the full path of the `vcpkg` folder (for example `D:\src\client\vcpkg`) so Visual Studio MSBuild integration can resolve packages.
+
+For a fresh clone you can use `git clone --recurse-submodules <url>` so `vcpkg/` is populated immediately; otherwise run `git submodule update --init` after clone.
+
+On Mac, open `client_generic/MacBuild/infinidream.xcodeproj`. On Windows, open `client_generic/MSVC/e-dream.sln`.
 
 Use the "File>Packages>Update to Latest" menu to load the
 Mac specific dependencies.
@@ -112,6 +124,65 @@ Default keychain profile: `infinidream-notarization`
 
 The app bundle contains the embedded screensaver at `infinidream.app/Contents/Resources/infinidream.saver`.
 
+## Build on Windows
+
+Full detail: [client_generic/MSVC/DEVELOPMENT_WINDOWS.md](client_generic/MSVC/DEVELOPMENT_WINDOWS.md).
+
+### Prerequisites
+
+- Visual Studio 2022 (or newer) with **Desktop development with C++** and the Windows SDK
+- Python 3.10+ (for build/packaging scripts)
+
+### Quick build in Visual Studio
+
+Open `client_generic/MSVC/e-dream.sln`, choose **Release** and **x64**, build. Typical output:
+
+`client_generic/MSVC/Release/` → **`e-dream.exe`**, **`e-dream.scr`**
+
+### Build script
+
+```bat
+cd client_generic\WinBuild
+python build.py
+```
+
+Defaults: **Release**, **x64**, runs MSBuild **restore** then **build** (uses `MSBUILD` env or **vswhere** to locate MSBuild).
+
+### Options (summary)
+
+| Flag | Description |
+|------|-------------|
+| `-r`, `--release` | Configuration **Release** (default). |
+| `-d`, `--debug` | Configuration **Debug** (outputs `e-dreamd.exe`). |
+| `--configuration NAME` | Override configuration (e.g. `DebugMD`). |
+| `--platform Win32` \| `x64` | Default **x64**. |
+| `--run-vcpkg` | Run `vcpkg install` for `--triplet` first (default triplet **x64-windows**). |
+| `--triplet TRIPLET` | Triplet for `--run-vcpkg`. |
+| `--no-restore` | Skip MSBuild `/restore`. |
+| `--msbuild PATH` | Force a specific `MSBuild.exe`. |
+
+### Examples
+
+```bat
+cd client_generic\WinBuild
+python build.py
+python build.py -d --platform x64
+python build.py --run-vcpkg --triplet x64-windows
+```
+
+### Release ZIP (portable bundle)
+
+After a **Release** build, create a versioned archive of the MSVC output folder:
+
+```bat
+cd client_generic\WinBuild
+python release.py -v 0.14.0
+```
+
+Output: **`client_generic/WinBuild/dist/infinidream-windows-0.14.0.zip`** (contents live under a single root folder inside the zip).
+
+Optional: **`--zip-from runtime`** after **`--stage`**, **`--sign`**, **`--github-release TAG`**. Legacy **NSIS `Setup.exe`**: **`python release.py --installer -v X.Y.Z`** (needs `makensis` and a full **`RuntimeMSVC`** tree). See **Windows (ZIP)** under [to release](#to-release-with-sparkle-auto-update) below.
+
 ## to release (with Sparkle auto-update)
 
 ### 1. Build, notarize, and create GitHub release
@@ -161,6 +232,22 @@ Update `APP_VERSION` in the frontend repository:
 `src/components/pages/install/install.page.tsx`
 
 Push and Cloudflare will deploy in a few minutes.
+
+### Windows (ZIP release)
+
+There is **no** Sparkle appcast on Windows in this repo. Typical flow:
+
+1. Build **Release \| x64** (Visual Studio or `client_generic/WinBuild/build.py`).
+2. Package:
+
+   ```bat
+   cd client_generic\WinBuild
+   python release.py -v X.Y.Z
+   ```
+
+   Produces **`client_generic/WinBuild/dist/infinidream-windows-X.Y.Z.zip`**.
+
+Optional: **`--sign`**, **`--github-release TAG`** (uploads the ZIP with **`gh`**). Legacy **NSIS** installer: **`python release.py --installer`** after staging **`RuntimeMSVC`**; see [DEVELOPMENT_WINDOWS.md](client_generic/MSVC/DEVELOPMENT_WINDOWS.md).
 
 ### How Sparkle Auto-Update Works
 

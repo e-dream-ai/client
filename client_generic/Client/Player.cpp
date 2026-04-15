@@ -25,12 +25,10 @@
 #include "clientversion.h"
 
 #ifdef WIN32
-#include "DisplayDX.h"
-#include "RendererDX.h"
-#if defined(WIN32) && defined(_MSC_VER) && !defined(_WIN64)
-#include "../msvc/DisplayDD.h"
-#include "../msvc/RendererDD.h"
-#endif
+//#include "DisplayD3D12.h"
+//#include "RendererD3D12.h"
+#include "../DisplayOutput/D3D11/DisplayDX11.h"
+#include "../DisplayOutput/D3D11/RendererDX11.h"
 #else
 #include "DisplayMetal.h"
 #include "RendererMetal.h"
@@ -52,6 +50,7 @@
 
 #include <boost/filesystem.hpp>
 
+#include "boost/filesystem.hpp"
 #if defined(MAC) || defined(WIN32)
 #define HONOR_VBL_SYNC
 #endif
@@ -134,14 +133,24 @@ bool CPlayer::IsOfflineMode() const
 #ifdef WIN32
 void CPlayer::SetHWND(HWND _hWnd)
 {
-    g_Log->Info("Got hwnd... (0x%x)", _hWnd);
+    g_Log->Info("Got hwnd... (%p)", static_cast<void*>(_hWnd));
     m_hWnd = _hWnd;
-};
+    PlatformUtils::Win32SetMessageWindow(static_cast<void*>(_hWnd));
+}
 #endif
 
+
+#ifdef MAC
 int CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
                         CGraphicsContext _graphicsContext,
                         [[maybe_unused]] bool _blank)
+#else
+#ifdef WIN32
+int CPlayer::AddDisplay(uint32_t screen, bool _blank)
+#else
+int CPlayer::AddDisplay(uint32 screen)
+#endif
+#endif
 {
     DisplayOutput::spCDisplayOutput spDisplay;
     DisplayOutput::spCRenderer spRenderer;
@@ -150,62 +159,39 @@ int CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
     if (detectgold)
     {
         detectgold = false;
-        std::string content = g_Settings()->Root() + "content/";
+        std::string content = g_Settings()->Root() + "content";
         std::string watchFolder =
-            g_Settings()->Get("settings.content.sheepdir", content) + "/mp4/";
+            g_Settings()->Get("settings.content.sheepdir", content) + PATH_SEPARATOR + "mp4" + PATH_SEPARATOR;
     }
     // modify aspect ratio and/or window size hint
     uint32_t w = 1280;
     uint32_t h = 720;
 
 #ifdef WIN32
-#ifndef _WIN64
-    bool bDirectDraw = g_Settings()->Get("settings.player.directdraw", false);
-    CDisplayDD* pDisplayDD = nullptr;
-#endif
-    CDisplayDX* pDisplayDX = nullptr;
-#ifndef _WIN64
-    if (bDirectDraw)
-    {
-        g_Log->Info("Attempting to open %s...", CDisplayDD::Description());
-        pDisplayDD = new CDisplayDD();
-    }
-    else
-#endif
-    {
-        g_Log->Info("Attempting to open %s...", CDisplayDX::Description());
-        pDisplayDX = new CDisplayDX(_blank, _graphicsContext);
-        pDisplayDX->SetScreen(screen);
-    }
+    g_Log->Info("Attempting to open %s...", CDisplayDX11::Description());
 
-    if (pDisplayDX == nullptr
-#ifndef _WIN64
-        && pDisplayDD == nullptr
-#endif
-    )
+    spDisplay = std::make_shared<CDisplayDX11>();
+    // spDisplay->SetScreen(screen); 
+
+
+    if (spDisplay == nullptr)
     {
         g_Log->Error("Unable to open display");
         return -1;
     }
-#ifndef _WIN64
-    if (bDirectDraw)
-        spDisplay = pDisplayDD;
-    else
-#endif
-        spDisplay = pDisplayDX;
+
+    HWND displayHwnd = nullptr;
     if (m_hWnd)
-    {
-        if (!spDisplay->Initialize(m_hWnd, true))
-            return -1;
-    }
-    else if (!spDisplay->Initialize(w, h, m_bFullscreen))
-        return -1;
-#ifndef _WIN64
-    if (bDirectDraw)
-        spRenderer = new CRendererDD();
+        displayHwnd = spDisplay->Initialize(m_hWnd, true);
     else
-#endif
-        spRenderer = new CRendererDX();
+        displayHwnd = spDisplay->Initialize(w, h, m_bFullscreen);
+
+    if (!displayHwnd)
+        return -1;
+
+    SetHWND(displayHwnd);
+
+    spRenderer = std::make_shared<CRendererDX11>();
 #else // !WIN32
 
     g_Log->Info("Attempting to open %s...", CDisplayMetal::Description());
@@ -267,7 +253,9 @@ bool CPlayer::Startup()
 #endif
     //	Grab some paths for the decoder.
     std::string content = g_Settings()->Root() + "content/";
+
 #ifndef LINUX_GNU
+    // Common for mac & win
     std::string scriptRoot =
         g_Settings()->Get("settings.app.InstallDir", PlatformUtils::GetWorkingDir()) +
         "Scripts";
@@ -276,13 +264,14 @@ bool CPlayer::Startup()
         g_Settings()->Get("settings.app.InstallDir", std::string(SHAREDIR)) +
         "Scripts";
 #endif
-    std::string watchFolder =
-        g_Settings()->Get("settings.content.sheepdir", content) + "/mp4/";
+    std::string watchFolder = g_Settings()->Get("settings.content.sheepdir", content) +
+         "/mp4/";
 
     if (TupleStorage::IStorageInterface::CreateFullDirectory(content.c_str()))
     {
-        if (m_InitPlayCounts)
-            g_PlayCounter().SetDirectory(content);
+        // TODO is this still used ?
+        //if (m_InitPlayCounts)
+        //    g_PlayCounter().SetDirectory(content);
     }
 
     //  Tidy up the paths.
@@ -328,6 +317,62 @@ void CPlayer::ForceWidthAndHeight(uint32_t du, uint32_t _w, uint32_t _h)
 /*
 
 */
+void CPlayer::BootstrapLoggedInPlaylist()
+{
+    auto shouldAbort = [this]() {
+        return m_shutdownFlag.load() || g_NetworkManager->IsAborted();
+    };
+
+    if (shouldAbort())
+        return;
+
+    SetOfflineMode(false);
+
+    if (!EDreamClient::fIsWebSocketConnected.load()) {
+        g_Log->Info("Player bootstrap logged-in: connecting websocket");
+        boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
+    }
+
+    if (shouldAbort())
+        return;
+
+    std::string lastPlayedUUID =
+        g_Settings()->Get("settings.content.last_played_uuid", std::string{});
+    auto clientPlaylistId =
+        g_Settings()->Get("settings.content.current_playlist_uuid", std::string(""));
+
+    auto serverPlaylistId = EDreamClient::GetCurrentServerPlaylist();
+
+    if (shouldAbort())
+        return;
+    if (serverPlaylistId != clientPlaylistId) {
+        g_Settings()->Set("settings.content.current_playlist_uuid", serverPlaylistId);
+        lastPlayedUUID = "";
+    }
+
+    m_currentClip = nullptr;
+
+    if (shouldAbort())
+        return;
+    if (lastPlayedUUID.empty()) {
+        SetPlaylist(serverPlaylistId, false);
+    } else {
+        SetPlaylistAtDream(serverPlaylistId, lastPlayedUUID, false);
+    }
+}
+
+void CPlayer::EnsureOnlinePlaybackAfterSignIn()
+{
+    std::thread([this]() {
+        if (m_shutdownFlag.load() || g_NetworkManager->IsAborted())
+            return;
+        if (!EDreamClient::IsLoggedIn())
+            return;
+        g_Log->Info("Sign-in after offline startup: loading server playlist and quota");
+        BootstrapLoggedInPlaylist();
+    }).detach();
+}
+
 void CPlayer::Start()
 {
     if (!m_bStarted)
@@ -373,38 +418,7 @@ void CPlayer::Start()
 
             if (EDreamClient::IsLoggedIn()) {
                 if (shouldAbort()) return;
-                
-                // Logged-in path: ensure we are not forcing offline-only playback
-                SetOfflineMode(false);
-                
-                // Ensure websocket is connected when player starts and user is logged in
-                if (!EDreamClient::fIsWebSocketConnected.load()) {
-                    g_Log->Info("Player starting with logged in user - connecting websocket");
-                    boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
-                }
-                
-                if (shouldAbort()) return;
-                auto serverPlaylistId = EDreamClient::GetCurrentServerPlaylist();
-                
-                // Override if there's a mismatch, and don't try to resume previous file as
-                // it may not be part of the new playlist
-                if (shouldAbort()) return;
-                if (serverPlaylistId != clientPlaylistId) {
-                    g_Settings()->Set("settings.content.current_playlist_uuid", serverPlaylistId);
-                    lastPlayedUUID = "";
-                }
-
-                // Make sure we remove the current clip before enqueuing the new playlist
-                m_currentClip = nullptr;
-
-                // Start the playlist and playback at the start, or at a given position
-                if (shouldAbort()) return;
-                if (lastPlayedUUID.empty()) {
-                    SetPlaylist(serverPlaylistId, false);
-                } else {
-                    SetPlaylistAtDream(serverPlaylistId, lastPlayedUUID, false);
-                }
-                
+                BootstrapLoggedInPlaylist();
                 if (!shouldAbort()) {
                     m_hasStarted = true;
                 }
@@ -415,11 +429,12 @@ void CPlayer::Start()
                 // This avoids blocking startup on server calls for streaming links/metadata.
                 SetOfflineMode(true);
 
-                // Make sure we remove the current clip before enqueuing the new playlist
-
                 m_currentClip = nullptr;
 
-                if (lastPlayedUUID.empty()) {
+                if (EDreamClient::IsLoggedIn()) {
+                    // Signed in while this thread was preparing the offline playlist.
+                    BootstrapLoggedInPlaylist();
+                } else if (lastPlayedUUID.empty()) {
                     SetPlaylist(clientPlaylistId, false);
                 } else {
                     SetPlaylistAtDream(clientPlaylistId, lastPlayedUUID, false);
@@ -442,7 +457,8 @@ void CPlayer::ResumeAfterPause()
 void CPlayer::Stop()
 {
     m_shutdownFlag = true;
-    
+    SetFirstRunWizardPlaybackHold(false);
+
     if (m_startupThread && m_startupThread->joinable()) {
         m_startupThread->join();
     }
@@ -511,7 +527,7 @@ CPlayer::~CPlayer()
 // MARK: - Update and rendering
 bool CPlayer::BeginFrameUpdate()
 {
-    if (m_bPaused)
+    if (m_bPaused || IsFirstRunWizardPlaybackHold())
         return true;
 
     double newTime = m_Timer.Time();
@@ -552,9 +568,9 @@ bool CPlayer::BeginFrameUpdate()
 bool CPlayer::EndFrameUpdate()
 {
 #ifndef USE_METAL
-    double capFPS = spFD->GetFps(m_PlayerFps, m_DisplayFps);
+    /* double capFPS = spFD->GetFps(m_PlayerFps, m_DisplayFps);
     if (spFD && capFPS > 0.000001)
-        FpsCap(capFPS);
+        FpsCap(capFPS);*/
 #endif
 
     return true;
@@ -628,11 +644,13 @@ bool CPlayer::Update(uint32_t displayUnit)
 
     writer_lock l(m_UpdateMutex);
 
+    const bool freezePlayback = m_bPaused || IsFirstRunWizardPlaybackHold();
+
     if (m_currentClip) {
-        m_currentClip->Update(m_TimelineTime, m_bPaused);
+        m_currentClip->Update(m_TimelineTime, freezePlayback);
         
         // Only check for transition if we're not buffering anything
-        if (!IsAnyClipBuffering()) {
+        if (!freezePlayback && !IsAnyClipBuffering()) {
             // Check if we need to prepare for transition
             // Skip if we have a pending seek crossfade (user-initiated skip with seek offset)
             if (!m_isTransitioning && !m_nextDreamDecision && !m_pendingSeekCrossfade && shouldPrepareTransition(m_currentClip)) {
@@ -667,7 +685,7 @@ bool CPlayer::Update(uint32_t displayUnit)
                         g_Log->Info("PND : Launching on finished current");
                         PlayNextDream();
                         // We need to update the clip here since we switched it!
-                        m_currentClip->Update(m_TimelineTime, m_bPaused);
+                        m_currentClip->Update(m_TimelineTime, freezePlayback);
                     }
                 } else if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::StandardCrossfade) {
                     //
@@ -686,11 +704,11 @@ bool CPlayer::Update(uint32_t displayUnit)
     
     if (m_nextClip) {
         if (!m_nextClip->HasFinished()) {
-            m_nextClip->Update(m_TimelineTime, m_bPaused);
+            m_nextClip->Update(m_TimelineTime, freezePlayback);
         }
         
         // Check if pending seek crossfade can now start (next clip finished buffering)
-        if (m_pendingSeekCrossfade && !m_nextClip->IsBuffering()) {
+        if (m_pendingSeekCrossfade && !m_nextClip->IsBuffering() && !freezePlayback) {
             g_Log->Info("Pending seek crossfade: next clip ready, starting transition");
             m_pendingSeekCrossfade = false;
             m_isTransitioning = true;

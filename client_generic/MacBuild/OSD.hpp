@@ -19,7 +19,7 @@
 #include "fastbez.h"
 #include "Settings.h"
 #include "Player.h"
-#include "StringFormat.h"
+#include "../Client/StringFormat.h"
 
 namespace Hud {
 
@@ -266,7 +266,8 @@ public:
 
         // Set mini BG size
         // Fix A/R
-        float aspect = g_Player().Display()->Aspect();
+        DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
+        float aspect = (spDisplay && spDisplay->Width() != 0) ? spDisplay->Aspect() : 1.0f;
         const float s_mini = 0.045f;  // This can be changed to adjust the overall scale of the mini OSD
 
         m_BgSqCRect = rect;
@@ -391,18 +392,17 @@ public:
         // Font initialization for FPS display
         m_FontDesc.AntiAliased(true);
         // Scale font size with app size: proportional to OSD bg height in pixels
-        float fontPx = m_BgCRect.Height() * g_Player().Display()->Height() * 0.3f; // tuned for readability
+        DisplayOutput::spCDisplayOutput spDisplayForFont = g_Player().Display();
+        const float displayHForFont =
+            (spDisplayForFont != nullptr) ? static_cast<float>(spDisplayForFont->Height()) : 0.0f;
+        float fontPx = m_BgCRect.Height() * displayHForFont * 0.3f; // tuned for readability
         m_FontDesc.Height(fontPx);
         m_FontDesc.Style(DisplayOutput::CFontDescription::Normal);
         m_FontDesc.Italic(false);
         m_FontDesc.TypeFace("Lato");
-
-        m_spFont = g_Player().Renderer()->GetFont(m_FontDesc);
-        
-        // Create the FPS text object once (will be reused via SetText)
-        if (m_spFont != NULL) {
-            m_spFpsText = g_Player().Renderer()->NewText(m_spFont, "");
-        }
+        // Renderer can be unavailable during early startup; lazily acquire font/text in Render().
+        m_spFont = nullptr;
+        m_spFpsText = nullptr;
         
         // Large HUD
         tmpBg = NULL;
@@ -457,7 +457,16 @@ public:
         if (m_spBgTexture == NULL)
             return false;
 
-        DisplayOutput::spCRenderer spRenderer = g_Player().Renderer();
+        // Lazily init font/text once we have a renderer.
+        if (_spRenderer && (!m_spFont || !m_spFpsText))
+        {
+            if (!m_spFont)
+                m_spFont = _spRenderer->GetFont(m_FontDesc);
+            if (m_spFont && !m_spFpsText)
+                m_spFpsText = _spRenderer->NewText(m_spFont, "");
+        }
+
+        DisplayOutput::spCRenderer spRenderer = _spRenderer;
 
         if (type == Buffering) {
             // Hide FPS text for non-Speed types
@@ -543,8 +552,9 @@ public:
                 
                 // Draw FPS numeric display (horizontally centered, above the indicator dots)
                 // Update font only if display size changes (avoid reallocating every frame)
-                int displayWInt = g_Player().Display()->Width();
-                int displayHInt = g_Player().Display()->Height();
+                DisplayOutput::spCDisplayOutput spDisplayForFps = g_Player().Display();
+                int displayWInt = spDisplayForFps ? static_cast<int>(spDisplayForFps->Width()) : 0;
+                int displayHInt = spDisplayForFps ? static_cast<int>(spDisplayForFps->Height()) : 0;
                 float displayW = (float)displayWInt;
                 float displayH = (float)displayHInt;
                 float fontPx = m_BgCRect.Height() * displayH * 0.3f;
@@ -554,9 +564,9 @@ public:
                     (m_LastFontPx <= 0.0f || std::fabs(m_LastFontPx - fontPx) > 0.5f)) {
                     m_LastFontPx = fontPx;
                     m_FontDesc.Height(fontPx);
-                    m_spFont = g_Player().Renderer()->GetFont(m_FontDesc);
+                    m_spFont = spRenderer->GetFont(m_FontDesc);
                     if (m_spFont != NULL) {
-                        m_spFpsText = g_Player().Renderer()->NewText(m_spFont, "");
+                        m_spFpsText = spRenderer->NewText(m_spFont, "");
                     } else {
                         m_spFpsText = NULL;
                     }
@@ -747,7 +757,9 @@ public:
         /*
          // @TODO : check why text ALWAYS appear bottom left and never disappear
          
-        m_FontDesc.Height(72 * g_Player().Display()->Height() / 2000);
+        DisplayOutput::spCDisplayOutput spDisplayForLegacyFps = g_Player().Display();
+        const uint32_t displayH = spDisplayForLegacyFps ? spDisplayForLegacyFps->Height() : 0;
+        m_FontDesc.Height(72 * displayH / 2000);
         m_spFont = g_Player().Renderer()->GetFont(m_FontDesc);
 
         m_spText = g_Player().Renderer()->NewText(m_spFont, string_format(" %.2f FPS", currentValue));

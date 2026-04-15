@@ -1,11 +1,12 @@
 #ifndef _PLAYER_H_
 #define _PLAYER_H_
 
+#include <atomic>
 #include <queue>
 
 #ifdef WIN32
-#include <d3d9.h>
-#include <d3dx9.h>
+//#include <d3d12.h>
+//#include <d3dx12.h>
 #endif
 #include "ContentDecoder.h"
 #include "DisplayOutput.h"
@@ -91,6 +92,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
     bool m_bPaused = false;
     bool m_UserPaused = false;
     bool m_PausedForBuffering = false;
+    /// Windows first-run ImGui wizard: freeze timeline and playlist transitions until "Dream on!".
+    std::atomic<bool> m_firstRunWizardPlaybackHold{false};
     
     bool m_PreloadingNextClip = false;
     std::string m_PreloadingDreamUUID;
@@ -127,6 +130,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
 #endif
 
     void FpsCap(const double _cap);
+    /// Shared logged-in path: Hello/quota, server playlist, begin playback (used by startup and sign-in).
+    void BootstrapLoggedInPlaylist();
 
   public:
     bool Startup();
@@ -158,7 +163,17 @@ class CPlayer : public Base::CSingleton<CPlayer>
     void RenderFrame(DisplayOutput::spCRenderer renderer);
     
     bool HasStarted() { return m_hasStarted; };
+    void SetFirstRunWizardPlaybackHold(bool hold)
+    {
+        m_firstRunWizardPlaybackHold.store(hold, std::memory_order_release);
+    }
+    bool IsFirstRunWizardPlaybackHold(void) const
+    {
+        return m_firstRunWizardPlaybackHold.load(std::memory_order_acquire);
+    }
     void Start();
+    /// Load server playlist and refresh quota when sign-in happens after offline startup (first-run wizard, etc.).
+    void EnsureOnlinePlaybackAfterSignIn();
     /// Resume after Stop() without re-running startup (e.g. after Preferences sheet). Keeps current clip and playlist.
     void ResumeAfterPause();
     void Stop();
@@ -167,8 +182,15 @@ class CPlayer : public Base::CSingleton<CPlayer>
     //void PlayQueuedClipsThread();
     sOpenVideoInfo* GetNextClipInfo();
 
+
+#ifdef MAC
     int AddDisplay(uint32_t screen, CGraphicsContext _grapicsContext,
                    bool _blank = false);
+#endif
+
+#ifdef WIN32
+    int AddDisplay(uint32_t screen, bool _blank = false);
+#endif
 
     inline void PlayCountsInitOff() { m_InitPlayCounts = false; };
 
@@ -252,10 +274,12 @@ class CPlayer : public Base::CSingleton<CPlayer>
         bool stateChanged = (m_bPaused != _bPaused);
         m_bPaused = _bPaused;
 
-        // Set on pause when manually initiated, or unset
-        if (isUserInitiated && _bPaused) {
+        // User intent (remote/UI): drive m_UserPaused directly.
+        // System/buffering may call SetPaused(true) while already user-paused; do not clear
+        // m_UserPaused in that case or buffering-complete logic will wrongly auto-unpause.
+        if (isUserInitiated) {
             m_UserPaused = _bPaused;
-        } else {
+        } else if (!_bPaused) {
             m_UserPaused = false;
         }
 

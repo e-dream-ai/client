@@ -3,6 +3,7 @@
 #include "base.h"
 #include "png.h"
 #include <cstdint>
+#include <cstdio>
 
 #ifdef LINUX_GNU
 #include <endian.h>
@@ -17,6 +18,26 @@
 
 namespace DisplayOutput
 {
+namespace
+{
+/* Libpng's default reader calls fread from inside libpng.obj. If libpng was
+ * linked from a .lib built with a different MSVC runtime (/MT vs /MD) than
+ * this TU, passing a FILE* from fopen here into that fread triggers UCRT
+ * invalid-parameter failures. Reading via a callback defined here keeps
+ * fopen/fread on the same CRT. */
+static void PNGCBAPI png_read_stdio(png_structp png_ptr, png_bytep data,
+                                    png_size_t length)
+{
+    if (png_ptr == NULL)
+        return;
+    FILE* fp = (FILE*)png_get_io_ptr(png_ptr);
+    if (fp == NULL || (length != 0 && data == NULL))
+        png_error(png_ptr, "Read Error");
+    size_t check = fread(data, 1, (size_t)length, fp);
+    if (check != (size_t)length)
+        png_error(png_ptr, "Read Error");
+}
+} // namespace
 
 /*
         LoadPNG().
@@ -67,8 +88,8 @@ bool CImage::LoadPNG(const std::string& _fileName, const bool _wantMipMaps)
         return (false);
     }
 
-    // initialize the png structure
-    png_init_io(png_ptr, file);
+    // initialize the png structure (custom reader — see png_read_stdio comment)
+    png_set_read_fn(png_ptr, file, png_read_stdio);
     png_set_sig_bytes(png_ptr, 8);
 
     // read all PNG info up to image data
@@ -184,4 +205,4 @@ bool CImage::LoadPNG(const std::string& _fileName, const bool _wantMipMaps)
     return (true);
 }
 
-}; // namespace DisplayOutput
+} // namespace DisplayOutput

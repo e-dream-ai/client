@@ -5,6 +5,7 @@
 #include "SmartPtr.h"
 #include "Vector2.h"
 #include "base.h"
+#include <cstdint>
 #include <string>
 
 namespace DisplayOutput
@@ -26,6 +27,9 @@ class CBaseText
     virtual void SetRect(const Base::Math::CRect& _rect) { m_Rect = _rect; }
     virtual Base::Math::CRect GetRect() const { return m_Rect; }
     virtual void SetEnabled(bool _enabled) = PureVirtual;
+
+    // Optional: sync backing resolution used for layout (HUD measures text before DrawText).
+    virtual void SyncLayoutDisplay(uint32_t /*widthPx*/, uint32_t /*heightPx*/) {}
 };
 
 MakeSmartPointers(CBaseText);

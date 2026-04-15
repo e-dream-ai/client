@@ -99,7 +99,7 @@ Section "MainSection" SEC01
 	
 	SetOutPath "$INSTDIR"
 	
-	CreateShortCut "$INSTDIR\SheepConfig.lnk" "$INSTDIR\settingsgui.exe"
+	CreateShortCut "$INSTDIR\SheepConfig.lnk" "$WINDIR\${PRODUCT_EXE_STRING}" "-config"
 	
 	File "..\RuntimeMSVC\setacl.exe"
 	
@@ -111,7 +111,6 @@ Section "MainSection" SEC01
 	File "..\RuntimeMSVC\logo.png"
 	;exe files
     File "..\RuntimeMSVC\flam3-animate.exe"
-    File "..\RuntimeMSVC\settingsgui.exe"
 	;scripts
 	SetOutPath "$INSTDIR\Scripts"
 	File "..\RuntimeMSVC\Scripts\class.lua"
@@ -186,7 +185,7 @@ Section -AdditionalIcons
   SetShellVarContext all
   WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
   CreateDirectory "$SMPROGRAMS\Electric Sheep "
-  CreateShortCut "$SMPROGRAMS\Electric Sheep\Settings.lnk" "$INSTDIR\settingsgui.exe"
+  CreateShortCut "$SMPROGRAMS\Electric Sheep\Settings.lnk" "$WINDIR\${PRODUCT_EXE_STRING}" "-config"
   CreateShortCut "$SMPROGRAMS\Electric Sheep\Run Fullscreen.lnk" "$WINDIR\${PRODUCT_EXE_STRING}" "-R"
   CreateShortCut "$SMPROGRAMS\Electric Sheep\Run in a window.lnk" "$WINDIR\${PRODUCT_EXE_STRING}" "-X"
   CreateShortCut "$SMPROGRAMS\Electric Sheep\Website.lnk" "$INSTDIR\${PRODUCT_NAME}.url"
@@ -267,7 +266,7 @@ Function OptionDestopShortcut
 	MessageBox MB_YESNO "Would you like a shortcut on the desktop to start ElectricSheep screensaver?" IDYES +2
 	Return
 	SetShellVarContext all
-	CreateShortCut "$DESKTOP\Electric Sheep.lnk" "$INSTDIR\settingsgui.exe"
+	CreateShortCut "$DESKTOP\Electric Sheep.lnk" "$WINDIR\${PRODUCT_EXE_STRING}" "-config"
 	SetShellVarContext current
 
 FunctionEnd

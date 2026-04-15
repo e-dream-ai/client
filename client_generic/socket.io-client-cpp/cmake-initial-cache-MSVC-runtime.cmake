@@ -1,0 +1,3 @@
+# Use with: cmake -C cmake-initial-cache-MSVC-runtime.cmake ...
+# Debug -> /MDd + _ITERATOR_DEBUG_LEVEL=2; Release -> /MD (matches electricsheep.vcxproj).
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL" CACHE STRING "" FORCE)

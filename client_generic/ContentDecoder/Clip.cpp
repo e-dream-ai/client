@@ -52,7 +52,11 @@ m_CurrentFrameMetadata{}, m_HasFinished(false), m_IsFadingOut(false)
     m_spFrameDisplay->SetDisplaySize(_displayWidth, _displayHeight);
 
 #ifndef LINUX_GNU
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
+    AVPixelFormat pf = AV_PIX_FMT_RGBA;
+#else
     AVPixelFormat pf = AV_PIX_FMT_RGB32;
+#endif
 
     // On PowerPC machines we need to use different pixel format!
 #if defined(MAC) && defined(__BIG_ENDIAN__)
@@ -370,6 +374,13 @@ bool CClip::Update(double _timelineTime, bool isPaused)
     if (m_spFrameData == nullptr)
         return false;
 
+    // Triple check that we have a frame to display. Seems like an issue on WIN32 somehow ?
+    if (m_spFrameData == nullptr)
+	{
+        g_Log->Error("GrabVideoFrame() returned true but no frame data available?");
+		return false;
+	}
+
     uint32_t idx = m_spFrameData->GetMetaData().frameIdx;
     uint32_t maxIdx = m_spFrameData->GetMetaData().maxFrameIdx;
     double delta = m_DecoderClock.interframeDelta / m_ClipMetadata.decodeFps;
@@ -480,7 +491,7 @@ bool CClip::GrabVideoFrame()
             /*g_Log->Info("GrabVideoFrame() - Successfully grabbed frame %d",
                         m_CurrentFrameMetadata.frameIdx);*/
         }
-#if !USE_HW_ACCELERATION
+#if !USE_HW_ACCELERATION || defined(WIN32)
         if (m_spImageRef->GetWidth() != m_spFrameData->Width() ||
             m_spImageRef->GetHeight() != m_spFrameData->Height())
         {
@@ -500,17 +511,14 @@ bool CClip::GrabVideoFrame()
             return false;
         if (m_spFrameData->Frame())
         {
-            if (USE_HW_ACCELERATION)
-            {
-                //g_Log->Info("BindFrame %d", m_CurrentFrameMetadata.frameIdx);
-                currentTexture->BindFrame(m_spFrameData);
-            }
-            else
-            {
-                //    Set image texturedata and upload to texture.
-                m_spImageRef->SetStorageBuffer(m_spFrameData->StorageBuffer());
-                currentTexture->Upload(m_spImageRef);
-            }
+#if USE_HW_ACCELERATION && !defined(WIN32)
+            //g_Log->Info("BindFrame %d", m_CurrentFrameMetadata.frameIdx);
+            currentTexture->BindFrame(m_spFrameData);
+#else
+            // Set image texture data and upload to texture.
+            m_spImageRef->SetStorageBuffer(m_spFrameData->StorageBuffer());
+            currentTexture->Upload(m_spImageRef);
+#endif
         }
     }
 
