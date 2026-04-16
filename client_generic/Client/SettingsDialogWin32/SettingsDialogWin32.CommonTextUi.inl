@@ -73,6 +73,12 @@ static void DrawFocusedInputDecoration(bool focused)
 
 static bool StyledCheckbox(const char* label, bool* value)
 {
+    // Make checkbox/radio controls more compact than the dialog's global frame padding.
+    // Their glyph size is tied to frame height (font size + frame padding).
+    const ImVec2 basePad = ImGui::GetStyle().FramePadding;
+    const ImVec2 compactPad(std::max(2.0f, std::floor(basePad.x * 0.40f + 0.5f)),
+                            std::max(1.0f, std::floor(basePad.y * 0.40f + 0.5f)));
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, compactPad);
     const bool changed = ImGui::Checkbox(label, value);
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     const ImVec2 min = ImGui::GetItemRectMin();
@@ -83,11 +89,16 @@ static bool StyledCheckbox(const char* label, bool* value)
     const ImU32 borderColor = focused ? IM_COL32(0, 122, 255, 255) : IM_COL32(224, 224, 224, 255);
 
     drawList->AddRect(min, max, borderColor, rounding, 0, focused ? 1.6f : 1.2f);
+    ImGui::PopStyleVar();
     return changed;
 }
 
 static bool StyledRadioButton(const char* label, bool active)
 {
+    const ImVec2 basePad = ImGui::GetStyle().FramePadding;
+    const ImVec2 compactPad(std::max(3.0f, std::floor(basePad.x * 0.55f + 0.5f)),
+                            std::max(2.0f, std::floor(basePad.y * 0.55f + 0.5f)));
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, compactPad);
     const bool changed = ImGui::RadioButton(label, active);
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     const ImVec2 min = ImGui::GetItemRectMin();
@@ -100,5 +111,6 @@ static bool StyledRadioButton(const char* label, bool active)
     const float radius = ((frameSize - 1.0f) * 0.5f) - 0.5f;
 
     drawList->AddCircle(center, radius, borderColor, 24, focused ? 1.6f : 1.2f);
+    ImGui::PopStyleVar();
     return changed;
 }
