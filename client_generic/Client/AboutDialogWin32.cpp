@@ -402,20 +402,21 @@ static void CenteredMutedTextUnformatted(const char* text)
 static void DrawAboutDialog(float viewportW, float viewportH)
 {
     // NSApplication orderFrontStandardAboutPanel: compact centered sheet (icon, name, version, copyright).
-    constexpr float kTargetW = 360.f;
-    constexpr float kTargetH = 300.f;
-    constexpr float kLogoDisplay = 96.f;
+    const float scale = std::max(1.0f, ImGui::GetFontSize() / 17.0f);
+    const float targetW = 420.f * scale;
+    const float targetH = 340.f * scale;
+    const float logoDisplay = 104.f * scale;
 
-    const ImVec2 windowSize((viewportW > kTargetW + 32.f) ? kTargetW : (viewportW - 32.f),
-                            (viewportH > kTargetH + 32.f) ? kTargetH : (viewportH - 32.f));
+    const ImVec2 windowSize((viewportW > targetW + 32.f * scale) ? targetW : (viewportW - 32.f * scale),
+                            (viewportH > targetH + 32.f * scale) ? targetH : (viewportH - 32.f * scale));
     ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
     ImGui::SetNextWindowPos(ImVec2((viewportW - windowSize.x) * 0.5f, (viewportH - windowSize.y) * 0.5f),
                             ImGuiCond_Always);
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(20.f, 20.f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(20.f * scale, 20.f * scale));
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 6.f);
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.f, 6.f));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.f * scale, 6.f * scale));
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.98f, 0.98f, 0.98f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.82f, 0.82f, 0.82f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.08f, 0.08f, 0.08f, 1.00f));
@@ -432,8 +433,8 @@ static void DrawAboutDialog(float viewportW, float viewportH)
         if (g_srvAboutLogo && g_aboutLogoW > 0 && g_aboutLogoH > 0)
         {
             const float aspect = static_cast<float>(g_aboutLogoH) / static_cast<float>(g_aboutLogoW);
-            const float dispW = kLogoDisplay;
-            const float dispH = kLogoDisplay * aspect;
+            const float dispW = logoDisplay;
+            const float dispH = logoDisplay * aspect;
             const float inner = WindowInnerWidth();
             ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMin().x + std::max(0.f, (inner - dispW) * 0.5f));
             ImGui::Image(static_cast<ImTextureID>(reinterpret_cast<uintptr_t>(g_srvAboutLogo)),
@@ -458,11 +459,11 @@ static void DrawAboutDialog(float viewportW, float viewportH)
         ImGui::Spacing();
         CenteredMutedTextUnformatted(kCopyrightLine);
 
-        const float closeW = 88.f;
-        const float closeH = 26.f;
+        const float closeW = std::round(92.f * scale);
+        const float closeH = std::round(28.f * scale);
         const float availY = ImGui::GetContentRegionAvail().y;
-        if (availY > closeH + 10.f)
-            ImGui::Dummy(ImVec2(0.f, availY - closeH - 10.f));
+        if (availY > closeH + 10.f * scale)
+            ImGui::Dummy(ImVec2(0.f, availY - closeH - 10.f * scale));
         const float inner = WindowInnerWidth();
         ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMin().x + std::max(0.f, (inner - closeW) * 0.5f));
         if (ImGui::Button("OK", ImVec2(closeW, closeH)))
