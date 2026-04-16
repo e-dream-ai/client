@@ -1,10 +1,10 @@
-const float diskFontScale = 14.0f / 17.0f; // Closer to the macOS system-control text feel.
+const float diskFontScale = (ImGui::GetFontSize() >= 22.0f) ? 1.0f : (14.0f / 17.0f); // Don't shrink large accessibility fonts.
 ImGui::SetWindowFontScale(diskFontScale);
 
 const float contentWidth = ImGui::GetContentRegionAvail().x;
 const float groupHeight = 92.f;
 const float chooseButtonWidth = 98.f;
-const float chooseButtonHeight = 28.f;
+const float chooseButtonHeight = std::round(ImGui::GetFrameHeight() * 1.15f);
 const float horizontalInset = 14.f;
 const float groupGap = 6.f;
 const float bottomBorderReserve = 10.f; // Move the content-folder group up a bit more.

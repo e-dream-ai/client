@@ -341,7 +341,7 @@ static bool TryInitImGui()
             const DWORD attrs = GetFileAttributesA(fontPath);
             if (attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY) == 0)
             {
-                ImFont* loaded = io.Fonts->AddFontFromFileTTF(fontPath, 17.0f);
+                ImFont* loaded = io.Fonts->AddFontFromFileTTF(fontPath, 24.0f);
                 if (loaded)
                 {
                     io.FontDefault = loaded;
@@ -361,7 +361,7 @@ static bool TryInitImGui()
             const DWORD attrs = GetFileAttributesA(fontPath);
             if (attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY) == 0)
             {
-                g_boldUiFont = io.Fonts->AddFontFromFileTTF(fontPath, 17.0f);
+                g_boldUiFont = io.Fonts->AddFontFromFileTTF(fontPath, 24.0f);
                 if (g_boldUiFont)
                     break;
             }
@@ -497,20 +497,26 @@ static void DrawAdvancedTab()
 
 static void DrawSettingsDialog(float viewportW, float viewportH)
 {
-    const float targetWidth = 541.f;   // Match macOS settings dialog content width.
-    const float targetHeight = 390.f;  // Match macOS settings dialog content height.
-    const float windowWidth = (viewportW > (targetWidth + 64.f)) ? targetWidth : (viewportW - 32.f);
-    const float windowHeight = (viewportH > (targetHeight + 64.f)) ? targetHeight : (viewportH - 32.f);
-    const ImVec2 windowSize((windowWidth < 460.f) ? 460.f : windowWidth,
-                            (windowHeight < 340.f) ? 340.f : windowHeight);
+    // The UI was originally tuned for a ~17pt font. Scale window + spacing with the font size so the
+    // dialog stays usable at larger sizes (e.g. 24pt accessibility).
+    const float scale = std::max(1.0f, ImGui::GetFontSize() / 17.0f);
+    // Increase the default footprint versus the original macOS-matched dimensions so the UI has more
+    // breathing room with large fonts and long labels.
+    const float targetWidth = 600.f * scale;
+    const float targetHeight = 450.f * scale;
+    const float windowWidth = (viewportW > (targetWidth + 64.f * scale)) ? targetWidth : (viewportW - 32.f * scale);
+    const float windowHeight = (viewportH > (targetHeight + 64.f * scale)) ? targetHeight : (viewportH - 32.f * scale);
+    const ImVec2 windowSize((windowWidth < 560.f * scale) ? (560.f * scale) : windowWidth,
+                            (windowHeight < 420.f * scale) ? (420.f * scale) : windowHeight);
     ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
     ImGui::SetNextWindowPos(ImVec2((viewportW - windowSize.x) * 0.5f, (viewportH - windowSize.y) * 0.5f),
                             ImGuiCond_Always);
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(18.f, 16.f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(18.f * scale, 16.f * scale));
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.f * scale, 7.f * scale));
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 6.f);
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.f, 10.f));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.f * scale, 10.f * scale));
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.98f, 0.98f, 0.98f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.82f, 0.82f, 0.82f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.08f, 0.08f, 0.08f, 1.00f));
@@ -530,11 +536,12 @@ static void DrawSettingsDialog(float viewportW, float viewportH)
                              ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
     if (ImGui::Begin("##SettingsDialog", nullptr, flags))
     {
-        const float footerHeight = 44.f;
+        const float footerHeight = std::max(44.f * scale, ImGui::GetFrameHeightWithSpacing() + 10.f * scale);
         const float separatorReserve = ImGui::GetStyle().ItemSpacing.y + 2.f;
         float contentHeight = ImGui::GetContentRegionAvail().y - footerHeight - separatorReserve;
-        if (contentHeight < 120.f)
-            contentHeight = 120.f;
+        const float minContentHeight = std::max(120.f * scale, ImGui::GetTextLineHeightWithSpacing() * 6.0f);
+        if (contentHeight < minContentHeight)
+            contentHeight = minContentHeight;
 
         ImGui::BeginChild("settings_content_region", ImVec2(0.f, contentHeight), false,
                           ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
@@ -573,9 +580,11 @@ static void DrawSettingsDialog(float viewportW, float viewportH)
         ImGui::BeginChild("settings_footer_region", ImVec2(0.f, 0.f), false,
                           ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
         {
-            const float helpButtonSize = 20.f;
-            const float closeButtonWidth = 78.f;
-            const float closeButtonHeight = 24.f;
+            const float closeButtonHeight = std::round(ImGui::GetFrameHeight() * 1.15f);
+            const float helpButtonSize = closeButtonHeight;
+            const float closeButtonWidth =
+                std::max(92.f * scale,
+                         ImGui::CalcTextSize("Close").x + ImGui::GetStyle().FramePadding.x * 2.f + 34.f * scale);
             const float originX = ImGui::GetCursorPosX();
             const float contentWidth = ImGui::GetContentRegionAvail().x;
             const float contentHeight = ImGui::GetContentRegionAvail().y;
@@ -603,7 +612,7 @@ static void DrawSettingsDialog(float viewportW, float viewportH)
     }
     ImGui::End();
     ImGui::PopStyleColor(13);
-    ImGui::PopStyleVar(4);
+    ImGui::PopStyleVar(5);
 
     if (ImGui::IsKeyPressed(ImGuiKey_Escape))
         CloseDialog(true);

@@ -1,14 +1,14 @@
 const float sectionHeight = 190.f;
 const float panelGap = 8.f;
 const float panelInnerPadding = 8.f;
-const float buttonWidth = 170.f;
-const float buttonHeight = 30.f;
-const float footerRowHeight = 34.f;
+const float buttonHeight = std::round(ImGui::GetFrameHeight() * 1.15f);
+const float buttonWidth = std::max(190.f, ImGui::CalcTextSize("Open playlist browser").x + ImGui::GetStyle().FramePadding.x * 2.f + 20.f);
+const float footerRowHeight = std::max(34.f, buttonHeight + 4.f);
 const float dividerWidth = 1.f;
 const ImVec4 sectionDividerColor(0.90f, 0.90f, 0.90f, 1.00f);
 
-const float controlsFontScale = 14.0f / 17.0f;
-ImGui::SetWindowFontScale(controlsFontScale); // Match macOS controls-tab text and button sizing.
+const float controlsFontScale = (ImGui::GetFontSize() >= 22.0f) ? 1.0f : (14.0f / 17.0f);
+ImGui::SetWindowFontScale(controlsFontScale); // Match macOS controls-tab sizing; don't shrink large accessibility fonts.
 
 const float rowStartY = ImGui::GetCursorPosY();
 const float availWidth = ImGui::GetContentRegionAvail().x;

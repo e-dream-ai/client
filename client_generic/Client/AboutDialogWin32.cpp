@@ -319,7 +319,7 @@ static bool TryInitImGui()
             const DWORD attrs = GetFileAttributesA(fontPath);
             if (attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY) == 0)
             {
-                ImFont* loaded = io.Fonts->AddFontFromFileTTF(fontPath, 13.0f);
+                ImFont* loaded = io.Fonts->AddFontFromFileTTF(fontPath, 24.0f);
                 if (loaded)
                 {
                     io.FontDefault = loaded;
@@ -339,7 +339,7 @@ static bool TryInitImGui()
             const DWORD attrs = GetFileAttributesA(fontPath);
             if (attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY) == 0)
             {
-                g_aboutBoldFont = io.Fonts->AddFontFromFileTTF(fontPath, 18.0f);
+                g_aboutBoldFont = io.Fonts->AddFontFromFileTTF(fontPath, 36.0f);
                 if (g_aboutBoldFont)
                     break;
             }

@@ -1,6 +1,6 @@
 const bool loggedIn = EDreamClient::IsLoggedIn();
-const float actionButtonWidth = 100.f;
-const float actionButtonHeight = 30.f;
+const float actionButtonWidth = 150.f;
+const float actionButtonHeight = 45.f;
 const float sidePadding = 60.f;
 
 ImVec4 authColor = ImVec4(0.89f, 0.20f, 0.24f, 1.0f);
@@ -20,7 +20,7 @@ const float availW = ImGui::GetContentRegionAvail().x;
 const float availH = ImGui::GetContentRegionAvail().y;
 const float safePanelWidth = (availW < 300.f) ? 300.f : availW;
 
-const float formHeight = loggedIn ? 92.f : 230.f;
+const float formHeight = loggedIn ? 92.f : 280.f;
 const float topPad = (availH - formHeight) * 0.5f;
 if (topPad > 0.f)
     ImGui::Dummy(ImVec2(0.f, topPad));
@@ -54,7 +54,7 @@ if (!loggedIn)
     const float codeLabelW = ImGui::CalcTextSize("Code:").x;
     const float labelW = (emailLabelW > codeLabelW) ? emailLabelW : codeLabelW;
     const float emailInputW = contentW - labelW - fieldGap;
-    const float codeInputW = 96.f; // Match the compact macOS code input feel.
+    const float codeInputW = 130.f; // Match the compact macOS code input feel.
     const float leftX = sidePadding;
 
     ImGui::SetCursorPosX(leftX);
