@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -294,9 +295,14 @@ def main() -> None:
         help="Explicit path to MSBuild.exe (overrides discovery and MSBUILD env).",
     )
     parser.add_argument(
+        "--clean",
+        action="store_true",
+        help="Remove build product directories before building.",
+    )
+    parser.add_argument(
         "--target",
         default="Build",
-        help="MSBuild target (default: Build).",
+        help="MSBuild target (default: Build). Use Rebuild to clean and build in one step.",
     )
     parser.add_argument(
         "-v",
@@ -325,6 +331,18 @@ def main() -> None:
     if not sln.is_file():
         print_red(f"Solution not found: {sln}")
         sys.exit(1)
+
+    if args.clean:
+        msvc_dir = sln.parent
+        clean_dirs = [
+            msvc_dir / configuration,
+            msvc_dir / f"{configuration}{args.platform}",
+        ]
+        for d in clean_dirs:
+            if d.is_dir():
+                print_blue(f"Removing {d} ...")
+                shutil.rmtree(d)
+        print_green("Clean finished.")
 
     vcpkg_root_path = Path(args.vcpkg_root) if args.vcpkg_root else None
     vcpkg_env_root = os.environ.get("VCPKG_ROOT")
