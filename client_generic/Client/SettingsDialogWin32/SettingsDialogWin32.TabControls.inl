@@ -1,4 +1,4 @@
-const float sectionHeight = 190.f;
+const float sectionHeight = 265.f;
 const float panelGap = 8.f;
 const float panelInnerPadding = 8.f;
 const float buttonHeight = std::round(ImGui::GetFrameHeight() * 1.15f);
@@ -20,18 +20,19 @@ auto drawControlPanel = [&](const char* panelId, const char* bodyText, const cha
                       ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
     ImGui::SetCursorPos(ImVec2(panelInnerPadding, panelInnerPadding));
     float textWrapPos = panelWidth - panelInnerPadding;
+    const float playlistIconScale = 1.5f; // slightly larger on Windows to match macOS feel
     if (showPlaylistIcon && g_srvPlaylistIcon && g_texPlaylistIconW > 0 && g_texPlaylistIconH > 0)
-        textWrapPos -= (41.f + 8.f);
+        textWrapPos -= ((41.f * playlistIconScale) + 8.f);
     ImGui::PushTextWrapPos(textWrapPos);
     ImGui::TextWrapped("%s", bodyText);
     ImGui::PopTextWrapPos();
 
     if (showPlaylistIcon && g_srvPlaylistIcon && g_texPlaylistIconW > 0 && g_texPlaylistIconH > 0)
     {
-        const float iconW = 41.f;
-        const float iconH = 44.f;
+        const float iconW = std::round(41.f * playlistIconScale);
+        const float iconH = std::round(44.f * playlistIconScale);
         const float iconX = panelWidth - iconW - 6.f;
-        const float iconY = 32.f;
+        const float iconY = 30.f;
         ImGui::SetCursorPos(ImVec2(iconX, iconY));
         ImGui::Image(static_cast<ImTextureID>(reinterpret_cast<uintptr_t>(g_srvPlaylistIcon)), ImVec2(iconW, iconH));
     }
@@ -71,9 +72,9 @@ ImGui::PopStyleColor();
 ImGui::SetCursorPosY(ImGui::GetCursorPosY() + panelGap);
 
 const float footerStartX = ImGui::GetCursorPosX();
-const float footerStartY = ImGui::GetCursorPosY();
+const float footerStartY = ImGui::GetCursorPosY() + 50.f;
 const float footerAvailWidth = ImGui::GetContentRegionAvail().x;
-const float footerGap = 12.f;
+const float footerGap = 10.f;
 const char* footerLabel = "For more controls and explanation:";
 
 ImGui::SetWindowFontScale(16.0f / 17.0f);
