@@ -8,7 +8,7 @@ const float firstCheckboxDownOffset = 16.f; // Move first checkbox slightly down
 const float topCheckboxGap = 5.f;        // Reduce spacing between the two checkboxes.
 const float proxyGroupTopGap = 12.f;
 const float proxyContentInsetX = 6.f;
-const float proxyContentInsetY = 22.f;
+const float proxyContentInsetY = 32.f;
 const float labelInputGap = 8.f;
 const float fieldRowGap = 2.f;
 
@@ -39,7 +39,7 @@ ImGui::PopItemWidth();
 
 ImGui::SetCursorPosY(ImGui::GetCursorPosY() + proxyGroupTopGap);
 const float proxyGroupW = availW;
-const float proxyGroupH = 160.f; // Close to macOS proxy box visual height.
+const float proxyGroupH = 200.f; // Close to macOS proxy box visual height, with more breathing room.
 ImGui::BeginChild("advanced_proxy_group", ImVec2(proxyGroupW, proxyGroupH), true,
                   ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
