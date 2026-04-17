@@ -24,7 +24,6 @@ client_generic/
   (platform-agnostic C++ source)
 vcpkg/                   # C++ dependency management
 build_mac_libs_vcpkg.sh  # Dependency setup
-format.sh                # Code formatting
 ```
 
 ## Commands
