@@ -73,7 +73,6 @@ target_include_directories(infinidream_app PRIVATE
     ../DisplayOutput/Renderer
     ../DisplayOutput/Metal
     ../Networking
-    ../libpng/include
     ..
     ../socket.io-client-cpp/include
 )
@@ -93,7 +92,6 @@ target_include_directories(infinidream_saver PRIVATE
     ../DisplayOutput/Renderer
     ../DisplayOutput/Metal
     ../Networking
-    ../libpng/include
     ..
     ../socket.io-client-cpp/include
 )
@@ -101,14 +99,12 @@ target_include_directories(infinidream_saver PRIVATE
 # Library search paths
 target_link_directories(infinidream_app PRIVATE
     ../../cache/univ-osx/lib
-    ../libpng/osx/lib
     ../ffmpeg/osx/lib
     ../socket.io-client-cpp/lib
 )
 
 target_link_directories(infinidream_saver PRIVATE
     ../../cache/univ-osx/lib
-    ../libpng/osx/lib
     ../ffmpeg/osx/lib
     ../socket.io-client-cpp/lib
 )
