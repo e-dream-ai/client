@@ -1215,6 +1215,13 @@ static void DrawWizard()
 
     DrawSkipFooter();
 
+    // Match SettingsDialogWin32 behavior: Esc dismisses the overlay.
+    if (ImGui::IsKeyPressed(ImGuiKey_Escape))
+    {
+        g_visible.store(false, std::memory_order_release);
+        g_pendingImGuiShutdown.store(true, std::memory_order_release);
+    }
+
     ImGui::EndChild(); // "Welcome to Infinidream"
     ImGui::PopStyleColor(); // sheetBg for Welcome
     ImGui::PopStyleVar(); // dialog padding
