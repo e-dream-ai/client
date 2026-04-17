@@ -103,7 +103,6 @@ target_link_directories(infinidream_app PRIVATE
     ../../cache/univ-osx/lib
     ../libpng/osx/lib
     ../ffmpeg/osx/lib
-    ../openssl-1.0.2k/MacOS/lib
     ../socket.io-client-cpp/lib
 )
 
@@ -111,7 +110,6 @@ target_link_directories(infinidream_saver PRIVATE
     ../../cache/univ-osx/lib
     ../libpng/osx/lib
     ../ffmpeg/osx/lib
-    ../openssl-1.0.2k/MacOS/lib
     ../socket.io-client-cpp/lib
 )
 

@@ -767,14 +767,14 @@
 		12478AAA2B03B6C4006A8669 /* Timer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Timer.h; path = ../Common/Timer.h; sourceTree = "<group>"; };
 		12478AAB2B03B6C4006A8669 /* Singleton.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Singleton.h; path = ../Common/Singleton.h; sourceTree = "<group>"; };
 		12478AAC2B03B6CA006A8669 /* pool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = pool.h; path = ../Common/pool.h; sourceTree = "<group>"; };
-		12579D482B83C91E00604B41 /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = "../openssl-1.0.2k/MacOS/lib/libcrypto.a"; sourceTree = "<group>"; };
+		12579D482B83C91E00604B41 /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = "../../cache/univ-osx/lib/libcrypto.a"; sourceTree = "<group>"; };
 		1270D0EA2B28960500E1DCE3 /* PlatformUtils.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = PlatformUtils.h; path = ../Client/PlatformUtils.h; sourceTree = "<group>"; };
 		1270D0EE2B28975400E1DCE3 /* PlatformUtils_Mac.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PlatformUtils_Mac.mm; sourceTree = "<group>"; };
 		12726C132B694F36003C0FF6 /* infinidream App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "infinidream App.entitlements"; sourceTree = "<group>"; };
 		12A00CD82B0FCA39001C0792 /* infinidream.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = infinidream.icns; sourceTree = SOURCE_ROOT; };
 		12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "e-dream-attr.png"; sourceTree = "<group>"; };
 		12CA4A452B83DE3D00A2EAD6 /* libsioclient_tls.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libsioclient_tls.a; path = "../socket.io-client-cpp/lib/libsioclient_tls.a"; sourceTree = "<group>"; };
-		12D020022B83C86C0036357D /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = "../openssl-1.0.2k/MacOS/lib/libssl.a"; sourceTree = "<group>"; };
+		12D020022B83C86C0036357D /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = "../../cache/univ-osx/lib/libssl.a"; sourceTree = "<group>"; };
 		1BEBFE3D2ECB6B2B00F39019 /* osd-next.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-next.png"; sourceTree = "<group>"; };
 		21006FBD1017BC2C004A6511 /* Credits.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = Credits.html; sourceTree = SOURCE_ROOT; };
 		21008B760EB7D69900E64796 /* Console.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Console.h; path = ../Client/Console.h; sourceTree = SOURCE_ROOT; };
@@ -2336,7 +2336,6 @@
 					"../../cache/univ-osx/lib",
 					"\"$(SRCROOT)/../libpng/osx/lib\"",
 					"\"$(SRCROOT)/../ffmpeg/osx/lib\"",
-					"\"$(SRCROOT)/../openssl-1.0.2k/MacOS/lib\"",
 					"\"$(SRCROOT)/../socket.io-client-cpp/lib\"",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
@@ -2416,7 +2415,6 @@
 					"../../cache/univ-osx/lib",
 					"\"$(SRCROOT)/../libpng/osx/lib\"",
 					"\"$(SRCROOT)/../ffmpeg/osx/lib\"",
-					"\"$(SRCROOT)/../openssl-1.0.2k/MacOS/lib\"",
 					"\"$(SRCROOT)/../socket.io-client-cpp/lib\"",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
