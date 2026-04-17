@@ -355,10 +355,10 @@ class CElectricSheep_Win32 : public CElectricSheep
             m_WorkingDir.append("\\");
         }
 
-        // Full screensaver (.scr /S): busy mode so we do not contend with the
-        // main e-dream process (downloads, auth, writable storage).
-        if (m_ScrMode == eSaver)
-            ForceMultipleInstancesMode(true);
+        // Full screensaver (.scr /S): busy mode only when another instance holds
+        // the global mutex (see CMonoInstance block above), matching macOS
+        // .instance-lock behavior — solo saver runs auth/WebSocket; do not force
+        // ForceMultipleInstancesMode here.
 
         if (InitStorage(m_MultipleInstancesMode) == false)
         {
