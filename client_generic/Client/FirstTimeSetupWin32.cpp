@@ -51,38 +51,41 @@ constexpr float kDesignWinW = 879.f;
 constexpr float kDesignWinH = 686.f;
 constexpr float kLogoDisplay = 120.f;
 // First startup/*.xib content widths (step panels centered in the window body).
-constexpr float kEmailStepPanelW = 571.f;
+constexpr float kEmailStepPanelW = 660.f;
 constexpr float kEmailStepPanelH = 268.f;
 constexpr float kCodeStepPanelW = 509.f;
 constexpr float kCodeStepPanelH = 291.f;
 // EmailStepViewController.xib (Cocoa y-from-bottom converted to top-down).
 constexpr float kEmailPromptL = 45.f;
 constexpr float kEmailMarginL = 47.f;
-constexpr float kEmailFieldW = 364.f;
+constexpr float kEmailFieldW = 440.f;
 constexpr float kEmailSendBtnW = 106.f;
-constexpr float kEmailCreateAccountW = 235.f;
+constexpr float kEmailCreateAccountW = 265.f;
 constexpr float kEmailPromptOffsetY = 30.f;
 constexpr float kEmailRowOffsetY = 115.f;
-constexpr float kEmailErrorOffsetY = 151.f;
-constexpr float kEmailCreateBtnOffsetY = 172.f;
+constexpr float kEmailErrorOffsetY = 165.f;
+constexpr float kEmailCreateBtnOffsetY = 214.f;
 // CodeStepViewController.xib
 constexpr float kCodeInstrOffsetY = 30.f;
 constexpr float kCodeOtpW = 158.f;
 constexpr float kCodeOtpH = 48.f;
-constexpr float kCodeOtpOffsetY = 112.f;
+// Move the OTP input slightly upward to create more space above the fixed Verify button.
+constexpr float kCodeOtpOffsetY = 96.f;
 constexpr float kCodeErrorOffsetY = 166.f;
 constexpr float kCodeVerifyW = 110.f;
 constexpr float kCodeVerifyOffsetY = 184.f;
 constexpr float kCodeTryAgainW = 88.f;
 constexpr float kCodeTryAgainOffsetY = 227.f;
 // ThanksStepViewController.xib (tips / “All set” step)
-constexpr float kThanksPanelW = 667.f;
-constexpr float kThanksOuterPad = 20.f;
-constexpr float kThanksColGap = 20.f;
-constexpr float kThanksTitleTop = 14.f;
-constexpr float kThanksTitleToGrid = 20.f;
-constexpr float kThanksRowTopH = 190.f;
-constexpr float kThanksRowBotH = 207.f;
+constexpr float kThanksPanelW = 780.f;
+// Tighter side padding on the last ("tips") step to fit more content.
+constexpr float kThanksOuterPad = 12.f;
+constexpr float kThanksColGap = 16.f;
+constexpr float kThanksTitleTop = 0.f;
+constexpr float kThanksTitleToGrid = 10.f;
+// Give the top-row tips more breathing room.
+constexpr float kThanksRowTopH = 230.f;
+constexpr float kThanksRowBotH = 167.f;
 constexpr float kThanksHSepGap = 10.f;
 /// Match vertical splitter thickness (1px hairline).
 constexpr float kThanksHSepH = 1.f;
@@ -92,13 +95,15 @@ constexpr float kThanksImgTrail = 6.f;
 constexpr float kThanksTextImgGap = 12.f;
 constexpr float kThanksPlaylistImg = 60.f;
 constexpr float kThanksBtnBottom = 10.f;
-constexpr float kThanksBottomPad = 20.f;
-constexpr float kThanksOpenRemoteBtnW = 118.f;
-constexpr float kThanksOpenPlaylistBtnW = 136.f;
-constexpr float kThanksTipsBtnH = 28.f;
-constexpr float kThanksDreamOnMinW = 82.f;
-constexpr float kThanksCopyFontSize = 17.f;
-constexpr float kThanksBtnFontSize = 15.f;
+constexpr float kThanksBottomPad = 10.f;
+// Wider buttons on the last step (more like settings dialog affordances).
+constexpr float kThanksOpenRemoteBtnW = 200.f;
+constexpr float kThanksOpenPlaylistBtnW = 200.f;
+// Button height is derived at runtime from font + style padding (match settings dialog behavior).
+constexpr float kThanksDreamOnMinW = 120.f;
+// Scale these to match the Win32 settings dialog's ~24pt UI font baseline.
+constexpr float kThanksCopyFontSize = 27.f;
+constexpr float kThanksBtnFontSize = 24.f;
 
 // macOS systemBlue focus ring; idle outline matches sheet borderChrome
 static constexpr ImVec4 kMacInputBorderFocus(0.f, 0.478f, 1.f, 1.f);
@@ -134,6 +139,7 @@ std::atomic<bool> g_pausedByWizard{false};
 ImGuiContext* g_imguiContext = nullptr;
 
 ImFont* g_fontBody = nullptr;
+ImFont* g_fontBodySmall = nullptr;
 ImFont* g_fontTitle = nullptr;
 ImFont* g_fontHeadline = nullptr;
 ImFont* g_fontOtp = nullptr;
@@ -209,8 +215,6 @@ static AuthDialogContent BuildSendCodeFailureDialog(const EDreamClient::SendCode
     {
         std::string message =
             "We couldn't send a verification email. Make sure your email address is correct, then try Send code again.";
-        if (!result.message.empty())
-            message += "\n\n" + result.message;
         return {"Unable to send code", message};
     }
 
@@ -473,7 +477,8 @@ static void ApplyLightSheetStyle()
     s.ItemSpacing = ImVec2(10.f, 8.f);
     s.CellPadding = ImVec2(6.f, 4.f);
     // ~NSControlSizeLarge padding feel; email/OTP still override locally.
-    s.FramePadding = ImVec2(10.f, 8.f);
+    // Match SettingsDialogWin32 defaults (keeps framed inputs/buttons feeling consistent).
+    s.FramePadding = ImVec2(10.f, 7.f);
 
     ImVec4 text(0.10f, 0.11f, 0.13f, 1.f);
     ImVec4 winBg(0.965f, 0.967f, 0.975f, 0.985f);
@@ -507,6 +512,7 @@ static void LoadSystemFonts()
 {
     ImGuiIO& io = ImGui::GetIO();
     g_fontBody = nullptr;
+    g_fontBodySmall = nullptr;
     g_fontTitle = nullptr;
     g_fontHeadline = nullptr;
     g_fontOtp = nullptr;
@@ -536,9 +542,11 @@ static void LoadSystemFonts()
     cfg.OversampleH = 2;
     cfg.OversampleV = 1;
 
-    g_fontBody = io.Fonts->AddFontFromFileTTF(segoe.c_str(), 15.f, &cfg, io.Fonts->GetGlyphRangesDefault());
-    g_fontTitle = io.Fonts->AddFontFromFileTTF(segoe.c_str(), 28.f, &cfg, io.Fonts->GetGlyphRangesDefault());
-    g_fontOtp = io.Fonts->AddFontFromFileTTF(segoe.c_str(), 36.f, &cfg, io.Fonts->GetGlyphRangesDefault());
+    // Align with SettingsDialogWin32's Win32 tuning (~24pt default).
+    g_fontBody = io.Fonts->AddFontFromFileTTF(segoe.c_str(), 24.f, &cfg, io.Fonts->GetGlyphRangesDefault());
+    g_fontBodySmall = io.Fonts->AddFontFromFileTTF(segoe.c_str(), 20.f, &cfg, io.Fonts->GetGlyphRangesDefault());
+    g_fontTitle = io.Fonts->AddFontFromFileTTF(segoe.c_str(), 32.f, &cfg, io.Fonts->GetGlyphRangesDefault());
+    g_fontOtp = io.Fonts->AddFontFromFileTTF(segoe.c_str(), 42.f, &cfg, io.Fonts->GetGlyphRangesDefault());
     g_fontThanksCopy =
         io.Fonts->AddFontFromFileTTF(segoe.c_str(), kThanksCopyFontSize, &cfg, io.Fonts->GetGlyphRangesDefault());
 
@@ -546,12 +554,12 @@ static void LoadSystemFonts()
     if (fsb)
     {
         std::fclose(fsb);
-        g_fontHeadline = io.Fonts->AddFontFromFileTTF(segSb.c_str(), 32.f, &cfg, io.Fonts->GetGlyphRangesDefault());
+        g_fontHeadline = io.Fonts->AddFontFromFileTTF(segSb.c_str(), 36.f, &cfg, io.Fonts->GetGlyphRangesDefault());
         g_fontThanksBtn =
             io.Fonts->AddFontFromFileTTF(segSb.c_str(), kThanksBtnFontSize, &cfg, io.Fonts->GetGlyphRangesDefault());
     }
     if (!g_fontHeadline)
-        g_fontHeadline = io.Fonts->AddFontFromFileTTF(segoe.c_str(), 32.f, &cfg, io.Fonts->GetGlyphRangesDefault());
+        g_fontHeadline = io.Fonts->AddFontFromFileTTF(segoe.c_str(), 36.f, &cfg, io.Fonts->GetGlyphRangesDefault());
     if (!g_fontThanksBtn)
         g_fontThanksBtn =
             io.Fonts->AddFontFromFileTTF(segoe.c_str(), kThanksBtnFontSize, &cfg, io.Fonts->GetGlyphRangesDefault());
@@ -606,7 +614,7 @@ static void ShutdownImGui()
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
     g_imguiContext = nullptr;
-    g_fontBody = g_fontTitle = g_fontHeadline = g_fontOtp = nullptr;
+    g_fontBody = g_fontBodySmall = g_fontTitle = g_fontHeadline = g_fontOtp = nullptr;
     g_fontThanksCopy = g_fontThanksBtn = nullptr;
     g_imguiInitialized.store(false, std::memory_order_release);
 }
@@ -711,7 +719,7 @@ static void DrawSkipFooter()
     const float skipW = 80.f;
 
     const float padY = ImGui::GetStyle().WindowPadding.y;
-    const float skipH = 36.f; // matches other large controls on the sheet
+    const float skipH = std::round(ImGui::GetFrameHeight() * 1.15f); // match settings dialog button sizing
     float y = ImGui::GetWindowHeight() - padY - skipH;
     if (y < 0.f)
         y = ImGui::GetCursorPosY();
@@ -731,6 +739,7 @@ static void DrawWizard()
     ImGuiIO& io = ImGui::GetIO();
     const ImVec2 display = io.DisplaySize;
     const ImVec2 dialogPadding = ImGui::GetStyle().WindowPadding;
+    const float kPrimaryControlH = std::round(ImGui::GetFrameHeight() * 1.15f);
 
     // ImGui clamps *root* windows to the viewport, so a single 879×686 window shrinks with the app.
     // Use a fullscreen host + fixed-size child so the dialog stays 879×686; scroll the host if needed.
@@ -785,7 +794,7 @@ static void DrawWizard()
     // Body fills remaining sheet height above the Skip row; no extra background (same as header/dialog).
     const ImGuiStyle& sheetSt = ImGui::GetStyle();
     const float skipReserve =
-        sheetSt.WindowPadding.y + 36.f + 4.f; // Skip button height + bottom padding + gap
+        sheetSt.WindowPadding.y + kPrimaryControlH + 4.f; // Skip button height + bottom padding + gap
     float bodyH = ImGui::GetContentRegionAvail().y - skipReserve;
     if (bodyH < 1.f)
         bodyH = 1.f;
@@ -834,18 +843,20 @@ static void DrawWizard()
         const bool busy = g_sendBusy.load(std::memory_order_acquire);
 
         // macOS-like primary action: blue background + white foreground.
-        // While busy: hide the normal text and show centered "Sending..." inside the same button.
-        const float sendBtnH = 36.f;
-        const char* sendBtnText = busy ? "Sending..." : "Send code";
-        const char* sendBtnId = "##send_code_btn";
-        ImVec2 sendBtnMin = ImGui::GetCursorScreenPos();
+        // While busy: keep size stable and swap label text; rely on ImGui's internal centering.
+        const float sendBtnH = kPrimaryControlH;
+        const char* sendBtnLabel = busy ? "Sending...##send_code_btn" : "Send code##send_code_btn";
 
         ImGui::PushStyleColor(ImGuiCol_Button, kMacAccentBtn);
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, kMacAccentBtnHov);
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, kMacAccentBtnAct);
         ImGui::PushStyleColor(ImGuiCol_Border, kMacAccentBtnBorder);
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
-        const bool clicked = ImGui::Button(sendBtnId, ImVec2(kEmailSendBtnW, sendBtnH));
+        if (busy)
+            ImGui::BeginDisabled();
+        const bool clicked = ImGui::Button(sendBtnLabel, ImVec2(kEmailSendBtnW, sendBtnH));
+        if (busy)
+            ImGui::EndDisabled();
         ImGui::PopStyleColor(5);
 
         if (!busy && clicked)
@@ -883,19 +894,18 @@ static void DrawWizard()
         if (g_errBuf[0] != '\0')
         {
             ImGui::SetCursorPos(ImVec2(kEmailPromptL, kEmailErrorOffsetY));
+            // Wrap so longer messages don't clip in the step panel.
+            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + (kEmailStepPanelW - kEmailPromptL * 2.f));
+            if (g_fontBodySmall)
+                ImGui::PushFont(g_fontBodySmall);
             ImGui::TextColored(ImVec4(0.75f, 0.18f, 0.18f, 1.f), "%s", g_errBuf);
-        }
-        {
-            // Draw label text centered within the button frame (Button label is hidden via "##send_code_btn").
-            const ImVec2 ts = ImGui::CalcTextSize(sendBtnText);
-            const ImVec2 textPos(sendBtnMin.x + (kEmailSendBtnW - ts.x) * 0.5f,
-                                 sendBtnMin.y + (sendBtnH - ts.y) * 0.5f);
-            ImGui::GetWindowDrawList()->AddText(
-                textPos, ImGui::ColorConvertFloat4ToU32(ImVec4(1.f, 1.f, 1.f, 1.f)), sendBtnText);
+            if (g_fontBodySmall)
+                ImGui::PopFont();
+            ImGui::PopTextWrapPos();
         }
 
         ImGui::SetCursorPos(ImVec2((kEmailStepPanelW - kEmailCreateAccountW) * 0.5f, kEmailCreateBtnOffsetY));
-        if (ImGui::Button("Need an account? Create one", ImVec2(kEmailCreateAccountW, 36.f)))
+        if (ImGui::Button("Need an account? Create one", ImVec2(kEmailCreateAccountW, kPrimaryControlH)))
             PlatformUtils::OpenURLExternally(kUrlCreateAccount);
 
         ImGui::EndChild();
@@ -948,19 +958,13 @@ static void DrawWizard()
         StripNonDigits(g_codeBuf, sizeof g_codeBuf);
 
         const bool busy = g_validateBusy.load(std::memory_order_acquire);
-        if (g_errBuf[0] != '\0')
-        {
-            ImGui::SetCursorPos(ImVec2(18.f, kCodeErrorOffsetY));
-            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + 473.f);
-            ImGui::TextColored(ImVec4(0.75f, 0.18f, 0.18f, 1.f), "%s", g_errBuf);
-            ImGui::PopTextWrapPos();
-        }
 
         const bool canVerify = std::strlen(g_codeBuf) == 6 && !busy;
-        ImGui::SetCursorPos(ImVec2((kCodeStepPanelW - kCodeVerifyW) * 0.5f, kCodeVerifyOffsetY));
+        const float verifyBtnY = kCodeVerifyOffsetY;
+        ImGui::SetCursorPos(ImVec2((kCodeStepPanelW - kCodeVerifyW) * 0.5f, verifyBtnY));
         if (!canVerify || busy)
             ImGui::BeginDisabled();
-        if (ImGui::Button("Verify code", ImVec2(kCodeVerifyW, 36.f)) && canVerify && !busy)
+        if (ImGui::Button("Verify code", ImVec2(kCodeVerifyW, kPrimaryControlH)) && canVerify && !busy)
         {
             g_errBuf[0] = '\0';
             std::string codeCopy(g_codeBuf);
@@ -979,12 +983,14 @@ static void DrawWizard()
 
         if (busy)
         {
-            ImGui::SetCursorPos(ImVec2(kCodeStepPanelW * 0.5f + kCodeVerifyW * 0.5f + 12.f, kCodeVerifyOffsetY + 6.f));
+            ImGui::SetCursorPos(
+                ImVec2(kCodeStepPanelW * 0.5f + kCodeVerifyW * 0.5f + 12.f, verifyBtnY + 6.f));
             ImGui::TextDisabled("Verifying...");
         }
 
-        ImGui::SetCursorPos(ImVec2((kCodeStepPanelW - kCodeTryAgainW) * 0.5f, kCodeTryAgainOffsetY));
-        if (ImGui::Button("Try again", ImVec2(kCodeTryAgainW, 36.f)))
+        const float tryAgainY = verifyBtnY + kPrimaryControlH + ImGui::GetStyle().ItemSpacing.y;
+        ImGui::SetCursorPos(ImVec2((kCodeStepPanelW - kCodeTryAgainW) * 0.5f, tryAgainY));
+        if (ImGui::Button("Try again", ImVec2(kCodeTryAgainW, kPrimaryControlH)))
         {
             g_wizardStep = 0;
             g_codeBuf[0] = '\0';
@@ -1040,6 +1046,7 @@ static void DrawWizard()
         const float yTop = ImGui::GetCursorPosY();
         ImDrawList* panelDl = ImGui::GetWindowDrawList();
         const ImU32 sepU32 = ImGui::ColorConvertFloat4ToU32(ImGui::GetStyle().Colors[ImGuiCol_Border]);
+        const float tipsBtnH = std::round(ImGui::GetFrameHeight() * 1.15f);
 
         ImGui::SetCursorPos(ImVec2(kThanksOuterPad, yTop));
         ImGui::BeginChild("tl", ImVec2(colW, kThanksRowTopH), ImGuiChildFlags_None,
@@ -1058,12 +1065,12 @@ static void DrawWizard()
             if (g_fontThanksCopy)
                 ImGui::PopFont();
 
-            const float btnY = kThanksRowTopH - kThanksBtnBottom - kThanksTipsBtnH;
+            const float btnY = kThanksRowTopH - kThanksBtnBottom - tipsBtnH;
             ImGui::SetCursorPos(ImVec2((colW - kThanksOpenRemoteBtnW) * 0.5f, btnY));
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.f, 3.f));
             if (g_fontThanksBtn)
                 ImGui::PushFont(g_fontThanksBtn);
-            const bool openRemote = ImGui::Button("Open web remote", ImVec2(kThanksOpenRemoteBtnW, kThanksTipsBtnH));
+            const bool openRemote = ImGui::Button("Open web remote", ImVec2(kThanksOpenRemoteBtnW, tipsBtnH));
             if (g_fontThanksBtn)
                 ImGui::PopFont();
             ImGui::PopStyleVar();
@@ -1102,13 +1109,12 @@ static void DrawWizard()
                     static_cast<ImTextureID>(reinterpret_cast<uintptr_t>(g_srvPlaylist)), imgMin, imgMax);
             }
 
-            const float btnY = kThanksRowTopH - kThanksBtnBottom - kThanksTipsBtnH;
+            const float btnY = kThanksRowTopH - kThanksBtnBottom - tipsBtnH;
             ImGui::SetCursorPos(ImVec2((colW - kThanksOpenPlaylistBtnW) * 0.5f, btnY));
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.f, 3.f));
             if (g_fontThanksBtn)
                 ImGui::PushFont(g_fontThanksBtn);
-            const bool openPl =
-                ImGui::Button("Open playlist browser", ImVec2(kThanksOpenPlaylistBtnW, kThanksTipsBtnH));
+            const bool openPl = ImGui::Button("Open playlist browser", ImVec2(kThanksOpenPlaylistBtnW, tipsBtnH));
             if (g_fontThanksBtn)
                 ImGui::PopFont();
             ImGui::PopStyleVar();
@@ -1174,7 +1180,8 @@ static void DrawWizard()
                 dreamW = kThanksDreamOnMinW;
 
             const float bx = (colW - dreamW) * 0.5f;
-            const float by = (kThanksRowBotH - kThanksTipsBtnH) * 0.5f;
+            const float tipsBtnH = std::round(ImGui::GetFrameHeight() * 1.15f);
+            const float by = (kThanksRowBotH - tipsBtnH) * 0.5f;
             ImGui::SetCursorPos(ImVec2(bx, by));
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.f, 3.f));
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
@@ -1184,7 +1191,7 @@ static void DrawWizard()
             ImGui::PushStyleColor(ImGuiCol_Border, kMacAccentBtnBorder);
             if (g_fontThanksBtn)
                 ImGui::PushFont(g_fontThanksBtn);
-            const bool dreamOn = ImGui::Button("Dream on!", ImVec2(dreamW, kThanksTipsBtnH));
+            const bool dreamOn = ImGui::Button("Dream on!", ImVec2(dreamW, tipsBtnH));
             if (g_fontThanksBtn)
                 ImGui::PopFont();
             ImGui::PopStyleColor(5);
