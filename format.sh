@@ -1,7 +1,6 @@
 #!/bin/sh
 
 find . -name '*.cpp' -o -name '*.h' -o -name '*.m' -o -name '*.mm' -name '*.metal' \
-| grep -v "./client_generic/boost/*" \
 | grep -v "./client_generic/tinyXml/xmltest.cp*" \
 | grep -v "./client_generic/ffmpeg/*" \
 | grep -v "./client_generic/socket.io-client-cpp/*" \

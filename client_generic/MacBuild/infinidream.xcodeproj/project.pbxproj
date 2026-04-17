@@ -785,7 +785,6 @@
 		211CDDEB0ED0BE8300EB9394 /* libcurl.4.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libcurl.4.dylib; path = usr/lib/libcurl.4.dylib; sourceTree = SDKROOT; };
 		212313190F503C4500702B2C /* ContentDownloader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ContentDownloader.cpp; sourceTree = "<group>"; };
 		2123131A0F503C4500702B2C /* ContentDownloader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ContentDownloader.h; sourceTree = "<group>"; };
-		212316950F50636700702B2C /* libboost_filesystem.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_filesystem.a; path = ../boost/osx/lib/libboost_filesystem.a; sourceTree = SOURCE_ROOT; };
 		212B192A0E8E591000CE185C /* Common.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Common.cpp; path = ../Common/Common.cpp; sourceTree = SOURCE_ROOT; };
 		212B192B0E8E591000CE185C /* Exception.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Exception.cpp; path = ../Common/Exception.cpp; sourceTree = SOURCE_ROOT; };
 		212B192C0E8E591000CE185C /* Log.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Log.cpp; path = ../Common/Log.cpp; sourceTree = SOURCE_ROOT; };
@@ -806,8 +805,6 @@
 		212B1A420E8E651000CE185C /* Texture.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Texture.cpp; path = ../DisplayOutput/Renderer/Texture.cpp; sourceTree = SOURCE_ROOT; };
 		212B1A430E8E651000CE185C /* TextureFlat.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = TextureFlat.cpp; path = ../DisplayOutput/Renderer/TextureFlat.cpp; sourceTree = SOURCE_ROOT; };
 		212B1AAC0E8E68E200CE185C /* libpng.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libpng.a; path = ../libpng/osx/lib/libpng.a; sourceTree = SOURCE_ROOT; };
-		212B1ABB0E8E69F700CE185C /* libboost_system.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_system.a; path = ../boost/osx/lib/libboost_system.a; sourceTree = SOURCE_ROOT; };
-		212B1ABD0E8E69F700CE185C /* libboost_thread.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_thread.a; path = ../boost/osx/lib/libboost_thread.a; sourceTree = SOURCE_ROOT; };
 		212B1AD90E8E6E0100CE185C /* libz.1.2.5.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.1.2.5.dylib; path = usr/lib/libz.1.2.5.dylib; sourceTree = SDKROOT; };
 		212B1ADD0E8E6E5000CE185C /* libbz2.1.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libbz2.1.0.dylib; path = usr/lib/libbz2.1.0.dylib; sourceTree = SDKROOT; };
 		2135D2670EC70571005E246D /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
@@ -883,7 +880,6 @@
 		46D2E8FC2AFBBBF50054049D /* TextMetal.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = TextMetal.mm; path = ../../DisplayOutput/Metal/TextMetal.mm; sourceTree = "<group>"; };
 		46D2E8FF2AFBBD2D0054049D /* FontMetal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = FontMetal.h; path = ../../DisplayOutput/Metal/FontMetal.h; sourceTree = "<group>"; };
 		46D2E9002AFBC3720054049D /* Text.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Text.cpp; path = ../DisplayOutput/Renderer/Text.cpp; sourceTree = "<group>"; };
-		46E9C2592AE7F32700C5444A /* libboost_json.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost_json.a; path = ../boost/osx/lib/libboost_json.a; sourceTree = "<group>"; };
 		46ED5CAE2AF531EA00AF8F45 /* ShaderUniforms.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ShaderUniforms.h; path = ../../DisplayOutput/Metal/ShaderUniforms.h; sourceTree = "<group>"; };
 		46ED5CAF2AF5326A00AF8F45 /* MetalShaders.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = MetalShaders.metal; path = ../../DisplayOutput/Metal/MetalShaders.metal; sourceTree = "<group>"; };
 		46ED5CB02AF5326A00AF8F45 /* DisplayMetal.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = DisplayMetal.cpp; path = ../../DisplayOutput/Metal/DisplayMetal.cpp; sourceTree = "<group>"; };
@@ -1208,9 +1204,6 @@
 				2135D2670EC70571005E246D /* AppKit.framework */,
 				212B1ADD0E8E6E5000CE185C /* libbz2.1.0.dylib */,
 				212B1AD90E8E6E0100CE185C /* libz.1.2.5.dylib */,
-				212316950F50636700702B2C /* libboost_filesystem.a */,
-				212B1ABB0E8E69F700CE185C /* libboost_system.a */,
-				212B1ABD0E8E69F700CE185C /* libboost_thread.a */,
 				212B1AAC0E8E68E200CE185C /* libpng.a */,
 				212B19850E8E5E9200CE185C /* OpenGL.framework */,
 				212B196C0E8E5D0800CE185C /* GLUT.framework */,
@@ -1526,7 +1519,6 @@
 				12579D482B83C91E00604B41 /* libcrypto.a */,
 				12D020022B83C86C0036357D /* libssl.a */,
 				466C2AA92AFA5B8600ED939F /* libpng_universal.a */,
-				46E9C2592AE7F32700C5444A /* libboost_json.a */,
 				4665198E2ACC8C5000ADB56E /* IOSurface.framework */,
 				467230BC2AC17EAA00017C51 /* Metal.framework */,
 				467230B82AC17C0400017C51 /* MetalKit.framework */,
