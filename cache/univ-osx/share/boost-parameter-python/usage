@@ -1,9 +1,0 @@
-The package boost-parameter-python is compatible with built-in CMake targets of FindBoost.cmake:
-
-    find_package(Boost REQUIRED COMPONENTS parameter_python)
-    target_link_libraries(main PRIVATE Boost::parameter_python)
-
-or the generated cmake configs via:
-
-    find_package(boost_parameter_python REQUIRED CONFIG)
-    target_link_libraries(main PRIVATE Boost::parameter_python)

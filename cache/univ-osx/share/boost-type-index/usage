@@ -5,5 +5,5 @@ The package boost-type-index is compatible with built-in CMake targets of FindBo
 
 or the generated cmake configs via:
 
-    find_package(boost_type_index REQUIRED CONFIG)
+    find_package( REQUIRED CONFIG)
     target_link_libraries(main PRIVATE Boost::type_index)

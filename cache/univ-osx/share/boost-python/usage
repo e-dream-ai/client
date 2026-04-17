@@ -1,9 +1,0 @@
-The package boost-python is compatible with built-in CMake targets of FindBoost.cmake:
-
-    find_package(Boost REQUIRED COMPONENTS python)
-    target_link_libraries(main PRIVATE Boost::python)
-
-or the generated cmake configs via:
-
-    find_package(boost_python REQUIRED CONFIG)
-    target_link_libraries(main PRIVATE Boost::python)

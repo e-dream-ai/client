@@ -1,9 +1,0 @@
-The package boost-locale is compatible with built-in CMake targets of FindBoost.cmake:
-
-    find_package(Boost REQUIRED COMPONENTS locale)
-    target_link_libraries(main PRIVATE Boost::locale)
-
-or the generated cmake configs via:
-
-    find_package(boost_locale REQUIRED CONFIG)
-    target_link_libraries(main PRIVATE Boost::locale)

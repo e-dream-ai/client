@@ -1,9 +1,0 @@
-The package boost-qvm is compatible with built-in CMake targets of FindBoost.cmake:
-
-    find_package(Boost REQUIRED COMPONENTS qvm)
-    target_link_libraries(main PRIVATE Boost::qvm)
-
-or the generated cmake configs via:
-
-    find_package(boost_qvm REQUIRED CONFIG)
-    target_link_libraries(main PRIVATE Boost::qvm)

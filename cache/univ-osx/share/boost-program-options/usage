@@ -1,9 +1,0 @@
-The package boost-program-options is compatible with built-in CMake targets of FindBoost.cmake:
-
-    find_package(Boost REQUIRED COMPONENTS program_options)
-    target_link_libraries(main PRIVATE Boost::program_options)
-
-or the generated cmake configs via:
-
-    find_package(boost_program_options REQUIRED CONFIG)
-    target_link_libraries(main PRIVATE Boost::program_options)

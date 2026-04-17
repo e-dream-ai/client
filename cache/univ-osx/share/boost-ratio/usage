@@ -5,5 +5,5 @@ The package boost-ratio is compatible with built-in CMake targets of FindBoost.c
 
 or the generated cmake configs via:
 
-    find_package(boost_ratio REQUIRED CONFIG)
+    find_package( REQUIRED CONFIG)
     target_link_libraries(main PRIVATE Boost::ratio)

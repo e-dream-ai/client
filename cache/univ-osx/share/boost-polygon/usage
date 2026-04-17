@@ -1,9 +1,0 @@
-The package boost-polygon is compatible with built-in CMake targets of FindBoost.cmake:
-
-    find_package(Boost REQUIRED COMPONENTS polygon)
-    target_link_libraries(main PRIVATE Boost::polygon)
-
-or the generated cmake configs via:
-
-    find_package(boost_polygon REQUIRED CONFIG)
-    target_link_libraries(main PRIVATE Boost::polygon)

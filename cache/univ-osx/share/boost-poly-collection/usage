@@ -1,9 +1,0 @@
-The package boost-poly-collection is compatible with built-in CMake targets of FindBoost.cmake:
-
-    find_package(Boost REQUIRED COMPONENTS poly_collection)
-    target_link_libraries(main PRIVATE Boost::poly_collection)
-
-or the generated cmake configs via:
-
-    find_package(boost_poly_collection REQUIRED CONFIG)
-    target_link_libraries(main PRIVATE Boost::poly_collection)

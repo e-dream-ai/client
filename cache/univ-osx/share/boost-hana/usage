@@ -1,9 +1,0 @@
-The package boost-hana is compatible with built-in CMake targets of FindBoost.cmake:
-
-    find_package(Boost REQUIRED COMPONENTS hana)
-    target_link_libraries(main PRIVATE Boost::hana)
-
-or the generated cmake configs via:
-
-    find_package(boost_hana REQUIRED CONFIG)
-    target_link_libraries(main PRIVATE Boost::hana)

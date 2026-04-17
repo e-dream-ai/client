@@ -1,9 +1,0 @@
-The package boost-signals2 is compatible with built-in CMake targets of FindBoost.cmake:
-
-    find_package(Boost REQUIRED COMPONENTS signals2)
-    target_link_libraries(main PRIVATE Boost::signals2)
-
-or the generated cmake configs via:
-
-    find_package(boost_signals2 REQUIRED CONFIG)
-    target_link_libraries(main PRIVATE Boost::signals2)
