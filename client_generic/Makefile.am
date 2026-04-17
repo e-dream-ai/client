@@ -22,9 +22,6 @@ EXTRA_DIST = \
 	INSTALL \
 	electricsheep-saver \
 	electricsheep-saver-gnome \
-	Runtime/Scripts/*.lua \
-	Runtime/Scripts/Dictionary/*.lua \
-	Runtime/Scripts/logging/*.lua \
 	menu-entries/ElectricSheep.desktop \
 	menu-entries/electricsheep-saver.desktop \
 	menu-entries/electricsheep.xpm \
@@ -42,7 +39,6 @@ installdirs:
 	mkinstalldirs
 	$(srcdir)/mkinstalldirs
 	mkdir -p $(DESTDIR)$(bindir)
-	mkdir -p $(DESTDIR)$(sharedir)/electricsheep/Scripts
 	mkdir -p $(DESTDIR)$(sharedir)/applications
 	mkdir -p $(DESTDIR)$(sharedir)/pixmaps
 	mkdir -p $(DESTDIR)$(sharedir)/electricsheep/icons
@@ -50,12 +46,10 @@ installdirs:
 
 install-data-local:
 	mkdir -p $(DESTDIR)$(bindir)
-	mkdir -p $(DESTDIR)$(sharedir)/electricsheep/Scripts
 	mkdir -p $(DESTDIR)$(sharedir)/applications
 	mkdir -p $(DESTDIR)$(sharedir)/pixmaps
 	mkdir -p $(DESTDIR)$(sharedir)/electricsheep/icons
 	mkdir -p $(DESTDIR)$(gnome_screensaver_dir)
-	cp -rf $(srcdir)/Runtime/Scripts $(DESTDIR)$(sharedir)/electricsheep
 	mkdir -p $(DESTDIR)$(sharedir)/applications/
 	cp -f $(srcdir)/menu-entries/ElectricSheep.desktop.kde $(DESTDIR)$(sharedir)/applications/ElectricSheep.desktop
 	mkdir -p $(DESTDIR)$(sharedir)/pixmaps/

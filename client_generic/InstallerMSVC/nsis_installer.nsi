@@ -111,20 +111,7 @@ Section "MainSection" SEC01
 	File "..\RuntimeMSVC\logo.png"
 	;exe files
     File "..\RuntimeMSVC\flam3-animate.exe"
-	;scripts
-	SetOutPath "$INSTDIR\Scripts"
-	File "..\RuntimeMSVC\Scripts\class.lua"
-	File "..\RuntimeMSVC\Scripts\histogram.lua"
-	File "..\RuntimeMSVC\Scripts\playlist.lua"
-	File "..\RuntimeMSVC\Scripts\pq.lua"
-	File "..\RuntimeMSVC\Scripts\serialize.lua"
-	SetOutPath "$INSTDIR\Scripts\logging"
-	File "..\RuntimeMSVC\Scripts\logging\console.lua"
-	File "..\RuntimeMSVC\Scripts\logging\file.lua"
-	File "..\RuntimeMSVC\Scripts\logging\localized.lua"
-	File "..\RuntimeMSVC\Scripts\logging\logging.lua"
-	File "..\RuntimeMSVC\Scripts\logging\null.lua"
-	
+
 	SetShellVarContext all
 	CreateDirectory "$APPDATA\ElectricSheep"
 	AccessControl::GrantOnFile "$APPDATA\ElectricSheep" "(S-1-1-0)" "FullAccess"

@@ -111,17 +111,6 @@ AC_SUBST(AVUTIL_CFLAGS)
 AC_SUBST(AVUTIL_LIBS)
 
 
-dnl Check for lua
-
-PKG_CHECK_MODULES([LUA], [lua5.1],, 
-	[PKG_CHECK_MODULES([LUA], [lua >= 5.1])
-])
-
-AC_SUBST(LUA_CFLAGS)
-AC_SUBST(LUA_LIBS)
-
-
-
 dnl Check for glee
 
 PKG_CHECK_MODULES([GLEE],[glee], [HAVE_GLEE=true] , [HAVE_GLEE=false] )

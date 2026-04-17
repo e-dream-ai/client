@@ -141,14 +141,6 @@ def stage_build_to_runtime_msvc(
     for png in out.glob("*.png"):
         shutil.copy2(png, dest / png.name)
 
-    scripts_src = out / "scripts"
-    scripts_dst = dest / "Scripts"
-    if scripts_src.is_dir():
-        if scripts_dst.is_dir():
-            shutil.rmtree(scripts_dst)
-        shutil.copytree(scripts_src, scripts_dst)
-        print_green(f"Copied scripts to {scripts_dst}")
-
     print_green(f"Staging complete under {dest}")
 
 
@@ -168,7 +160,6 @@ INSTALLER_CRITICAL = (
     "Instructions.rtf",
     "License.rtf",
     "logo.png",
-    "Scripts/class.lua",
 )
 
 

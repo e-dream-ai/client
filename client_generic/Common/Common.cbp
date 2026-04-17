@@ -15,7 +15,6 @@
 				<Option createDefFile="1" />
 				<Compiler>
 					<Add option="-g" />
-					<Add directory="\usr\include\lua5.1\" />
 				</Compiler>
 			</Target>
 			<Target title="Release">
@@ -32,7 +31,6 @@
 					<Add option="-O2" />
 					<Add option="-O1" />
 					<Add option="-O" />
-					<Add directory="\usr\include\lua5.1\" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
@@ -49,7 +47,6 @@
 					<Add option="-g" />
 					<Add option="-DDEBUG" />
 					<Add option="-DWIN32" />
-					<Add directory="..\lua5.1\include" />
 				</Compiler>
 			</Target>
 			<Target title="Release Win32">
@@ -63,7 +60,6 @@
 					<Add option="-O3" />
 					<Add option="-g" />
 					<Add option="-DWIN32" />
-					<Add directory="..\lua5.1\include" />
 				</Compiler>
 			</Target>
 			<Target title="Release Win32 Evoke">
@@ -95,8 +91,6 @@
 		<Unit filename="Exception.h" />
 		<Unit filename="Log.cpp" />
 		<Unit filename="Log.h" />
-		<Unit filename="LuaState.cpp" />
-		<Unit filename="LuaState.h" />
 		<Unit filename="MathBase.h" />
 		<Unit filename="Math\Matrix.h" />
 		<Unit filename="Math\Matrix3x3_x86.h" />
@@ -120,8 +114,6 @@
 		<Unit filename="base.h" />
 		<Unit filename="clientversion.h" />
 		<Unit filename="linkpool.h" />
-		<Unit filename="luaxml.cpp" />
-		<Unit filename="luaxml.h" />
 		<Unit filename="md5.c">
 			<Option compilerVar="CC" />
 		</Unit>

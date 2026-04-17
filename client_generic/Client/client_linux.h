@@ -13,7 +13,6 @@
 #include "SimplePlaylist.h"
 #include "Timer.h"
 #include "base.h"
-#include "lua_playlist.h"
 #include "storage.h"
 #include <string>
 
@@ -50,14 +49,6 @@ class CElectricSheep_Linux : public CElectricSheep
         //	Run gui.
 
         g_Player().AddDisplay(g_Settings()->Get("settings.player.screen", 0));
-
-        // if( true )
-        {
-            g_Log->Info("Running config...");
-            // g_Settings()->Storage()->ConfigUI( m_WorkingDir +
-            // "Scripts/config.lua"
-            // );
-        }
 
         if (CElectricSheep::Startup() == false)
             return false;

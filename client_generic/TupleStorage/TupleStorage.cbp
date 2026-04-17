@@ -16,7 +16,6 @@
 				<Compiler>
 					<Add option="-g" />
 					<Add option="-DDEBUG" />
-					<Add directory="\usr\include\lua5.1\" />
 					<Add directory="..\iup\iup2_6_Linux26_lib\include" />
 				</Compiler>
 			</Target>
@@ -29,7 +28,6 @@
 				<Option createDefFile="1" />
 				<Compiler>
 					<Add option="-O2" />
-					<Add directory="\usr\include\lua5.1\" />
 					<Add directory="..\iup\iup2_6_Linux26_lib\include" />
 				</Compiler>
 				<Linker>
@@ -48,7 +46,6 @@
 					<Add option="-DDEBUG" />
 					<Add option="-DWIN32" />
 					<Add directory="..\iup\iup2_6_Win32_mingw4_lib\include" />
-					<Add directory="..\lua5.1\include" />
 				</Compiler>
 			</Target>
 			<Target title="Release Win32">
@@ -64,7 +61,6 @@
 					<Add option="-g" />
 					<Add option="-DWIN32" />
 					<Add directory="..\iup\iup2_6_Win32_mingw4_lib\include" />
-					<Add directory="..\lua5.1\include" />
 				</Compiler>
 			</Target>
 		</Build>
@@ -76,8 +72,6 @@
 		<Unit filename="Settings.h" />
 		<Unit filename="diriterator.cpp" />
 		<Unit filename="diriterator.h" />
-		<Unit filename="luastorage.cpp" />
-		<Unit filename="luastorage.h" />
 		<Unit filename="storage.cpp" />
 		<Unit filename="storage.h" />
 		<Extensions>

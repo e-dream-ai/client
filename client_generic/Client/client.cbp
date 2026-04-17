@@ -28,7 +28,6 @@
 					<Add library="libavutil" />
 					<Add library="libswscale" />
 					<Add library="libz" />
-					<Add library="liblua5.1.a" />
 					<Add library="glut" />
 					<Add directory="..\iup\iup_2_7_Linux26_x64_lib" />
 				</Linker>
@@ -60,14 +59,10 @@
 					<Add library="libswscale" />
 					<Add library="libz" />
 					<Add library="..\iup\iup2_6_Linux26_lib\libiupcontrols.a" />
-					<Add library="iupluacontrols51" />
-					<Add library="cdlua51" />
-					<Add library="iuplua51" />
 					<Add library="iup" />
 					<Add library="iupcontrols" />
 					<Add library="cd" />
 					<Add library="cdiup" />
-					<Add library="liblua5.1.a" />
 					<Add library="glut" />
 					<Add directory="..\iup\iup2_6_Linux26_lib" />
 					<Add directory="..\iup\cd5_0_Linux26_lib" />
@@ -101,7 +96,6 @@
 					<Add library="winmm" />
 					<Add library="expat" />
 					<Add library="curldll" />
-					<Add library="..\lua5.1\liblua5.a" />
 					<Add library="gdi32" />
 					<Add library="ole32" />
 					<Add library="comctl32" />
@@ -165,7 +159,6 @@
 					<Add library="winmm" />
 					<Add library="expat" />
 					<Add library="curldll" />
-					<Add library="..\lua5.1\liblua5.a" />
 					<Add library="gdi32" />
 					<Add library="ole32" />
 					<Add library="comctl32" />
@@ -219,7 +212,6 @@
 			<Add directory="..\TupleStorage" />
 			<Add directory="..\tinyXml" />
 			<Add directory="..\DisplayOutput\FTGL\include" />
-			<Add directory="..\lua5.1\include" />
 			<Add directory="..\DisplayOutput\OpenGL" />
 			<Add directory="..\DisplayOutput\Renderer" />
 			<Add directory="..\DisplayOutput\DirectX" />
@@ -271,30 +263,10 @@
 			<Option target="Release Win32" />
 		</Unit>
 		<Unit filename="demangle.h" />
-		<Unit filename="lua_playlist.h" />
 		<Unit filename="main.cpp" />
 		<Unit filename="..\Common\md5.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\Runtime\Scripts\Dictionary\Deutsch.lua" />
-		<Unit filename="..\Runtime\Scripts\Dictionary\English.lua" />
-		<Unit filename="..\Runtime\Scripts\Dictionary\Español.lua" />
-		<Unit filename="..\Runtime\Scripts\Dictionary\Français.lua" />
-		<Unit filename="..\Runtime\Scripts\Dictionary\Portuguese.lua" />
-		<Unit filename="..\Runtime\Scripts\Dictionary\Svenska.lua" />
-		<Unit filename="..\Runtime\Scripts\class.lua" />
-		<Unit filename="..\Runtime\Scripts\config.lua" />
-		<Unit filename="..\Runtime\Scripts\desc.lua" />
-		<Unit filename="..\Runtime\Scripts\histogram.lua" />
-		<Unit filename="..\Runtime\Scripts\logging\console.lua" />
-		<Unit filename="..\Runtime\Scripts\logging\file.lua" />
-		<Unit filename="..\Runtime\Scripts\logging\localized.lua" />
-		<Unit filename="..\Runtime\Scripts\logging\logging.lua" />
-		<Unit filename="..\Runtime\Scripts\logging\null.lua" />
-		<Unit filename="..\Runtime\Scripts\playlist.lua" />
-		<Unit filename="..\Runtime\Scripts\pq.lua" />
-		<Unit filename="..\Runtime\Scripts\serialize.lua" />
-		<Unit filename="..\Runtime\Scripts\wx_config.lua" />
 		<Extensions>
 			<code_completion />
 			<envvars />

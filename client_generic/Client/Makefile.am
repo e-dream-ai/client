@@ -21,7 +21,6 @@ AM_CPPFLAGS = \
 	-I ../ContentDecoder \
 	-I ../TupleStorage \
 	-I ../ContentDownloader \
-	-I ../lua5.1/src \
 	-I ../Client \
 	-I ../Networking \
 	-I ../tinyXml
@@ -58,7 +57,6 @@ Hud.cpp \
 ../tinyXml/tinyxmlerror.cpp \
 ../TupleStorage/diriterator.cpp \
 ../TupleStorage/storage.cpp \
-../TupleStorage/luastorage.cpp \
 ../ContentDecoder/ContentDecoder.cpp \
 ../ContentDownloader/SheepUploader.cpp \
 ../ContentDownloader/ContentDownloader.cpp \
@@ -66,25 +64,23 @@ Hud.cpp \
 ../ContentDownloader/SheepDownloader.cpp \
 ../ContentDownloader/Sheep.cpp \
 ../ContentDownloader/Shepherd.cpp \
-../Common/LuaState.cpp \
 ../Common/Common.cpp \
 ../Common/AlignedBuffer.cpp \
 ../Common/isaac.cpp \
 ../Common/pool.cpp \
 ../Common/Log.cpp \
 ../Common/Math/Rect.cpp \
-../Common/luaxml.cpp \
 ../Common/Exception.cpp \
 ../Common/md5.c
 
 
 
 electricsheep_LDADD = -lboost_system -lboost_thread -lboost_filesystem -lglut \
-	$(AVCODEC_LIBS) $(AVFORMAT_LIBS) $(SWSCALE_LIBS) $(AVUTIL_LIBS) $(LUA_LIBS) $(GLU_LIBS) $(GLEE_LIBS) $(BOOST_LDADD) \
+	$(AVCODEC_LIBS) $(AVFORMAT_LIBS) $(SWSCALE_LIBS) $(AVUTIL_LIBS) $(GLU_LIBS) $(GLEE_LIBS) $(BOOST_LDADD) \
 	$(CURL_LIBS) $(PNG_LIBS) $(XRENDER_LIBS) $(LIBGTOP_LIBS) $(XRENDER_LIBS)
 
 AM_CXXFLAGS = $(linux_CFLAGS) $(AVCODEC_CFLAGS) $(AVFORMAT_CFLAGS) $(SWSCALE_CFLAGS) $(AVUTIL_CFLAGS) $(LIBGTOP_CFLAGS) \
-	$(LUA_CFLAGS) $(GLU_CFLAGS) $(GLEE_CFLAGS) $(CURL_CFLAGS) $(PNG_CFLAGS) $(LUA_CFLAGS) $(XRENDER_CFLAGS) $(BOOST_CXXFLAGS) -lrt -lz -lGL \
+	$(GLU_CFLAGS) $(GLEE_CFLAGS) $(CURL_CFLAGS) $(PNG_CFLAGS) $(XRENDER_CFLAGS) $(BOOST_CXXFLAGS) -lrt -lz -lGL \
 	-D__STDC_CONSTANT_MACROS -Wno-write-strings $(AVC_DEFS)
 
 
