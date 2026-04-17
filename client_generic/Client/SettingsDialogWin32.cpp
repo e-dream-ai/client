@@ -517,13 +517,19 @@ static void DrawSettingsDialog(float viewportW, float viewportH)
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.f * scale, 7.f * scale));
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 6.f);
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.f * scale, 10.f * scale));
+    ImGui::PushStyleVar(ImGuiStyleVar_TabRounding, 6.f);
+    ImGui::PushStyleVar(ImGuiStyleVar_TabBorderSize, 1.f);
+    ImGui::PushStyleVar(ImGuiStyleVar_TabBarBorderSize, 1.f);
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.98f, 0.98f, 0.98f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.82f, 0.82f, 0.82f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.08f, 0.08f, 0.08f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_TextDisabled, ImVec4(0.40f, 0.40f, 0.40f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(0.92f, 0.92f, 0.92f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(0.98f, 0.98f, 0.98f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_TabHovered, ImVec4(0.95f, 0.95f, 0.95f, 1.00f));
+    // Keep selected tab white, but make unselected tabs clearly darker so selection is obvious.
+    ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(0.90f, 0.90f, 0.90f, 1.00f));
+    // Make hovered tab match the active color so the *selected* tab has no hover state,
+    // while *unselected* tabs still get a clear hover highlight.
+    ImGui::PushStyleColor(ImGuiCol_TabHovered, ImVec4(0.99f, 0.99f, 0.99f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(0.99f, 0.99f, 0.99f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.93f, 0.93f, 0.93f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.88f, 0.88f, 0.88f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.84f, 0.84f, 0.84f, 1.00f));
@@ -612,7 +618,7 @@ static void DrawSettingsDialog(float viewportW, float viewportH)
     }
     ImGui::End();
     ImGui::PopStyleColor(13);
-    ImGui::PopStyleVar(5);
+    ImGui::PopStyleVar(8);
 
     if (ImGui::IsKeyPressed(ImGuiKey_Escape))
         CloseDialog(true);
