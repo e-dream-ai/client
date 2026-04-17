@@ -225,9 +225,6 @@ class CRenderer
     virtual void DrawQuad(const Base::Math::CRect& /*_rect*/,
                           const Base::Math::CVector4& /*_color*/,
                           const Base::Math::CRect& /*_uvRect*/){};
-    virtual void DrawSoftQuad(const Base::Math::CRect& /*_rect*/,
-                              const Base::Math::CVector4& /*_color*/,
-                              const float /*_width*/){};
 };
 
 MakeSmartPointers(CRenderer);

@@ -428,10 +428,9 @@ void CRendererMetal::DrawQuad(const Base::Math::CRect& _rect,
             else
             {
                 // Clear stale texture bindings from previous draw calls
-                // that used this same render encoder.  Without this, a
-                // DrawQuad with no texture (e.g. DrawSoftQuad overlay)
-                // would sample whatever texture the previous draw left
-                // bound, causing ghost images.
+                // that used this same render encoder. Without this, a
+                // DrawQuad with no texture would sample whatever texture
+                // the previous draw left bound, causing ghost images.
                 [renderEncoder setFragmentTexture:nil atIndex:i * 2 + 0];
                 [renderEncoder setFragmentTexture:nil atIndex:i * 2 + 1];
             }
@@ -459,13 +458,6 @@ void CRendererMetal::DrawQuad(const Base::Math::CRect& _rect,
 
 void CRendererMetal::DrawQuad(const Base::Math::CRect& _rect,
                               const Base::Math::CVector4& _color)
-{
-    DrawQuad(_rect, _color, Base::Math::CRect{0, 0, 1, 1});
-}
-
-void CRendererMetal::DrawSoftQuad(const Base::Math::CRect& _rect,
-                                  const Base::Math::CVector4& _color,
-                                  const float /*_width*/)
 {
     DrawQuad(_rect, _color, Base::Math::CRect{0, 0, 1, 1});
 }

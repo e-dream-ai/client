@@ -119,7 +119,6 @@ class CServerMessage : public CConsole
 
         _spRenderer->SetBlend("alphablend");
         _spRenderer->Apply();
-        _spRenderer->DrawSoftQuad(r, Base::Math::CVector4(0, 0, 0, 0.5), 16);
 
         //@TODO: not needed on Metal. do we need this on DX?
         // dasvo - terrible hack - redo!!

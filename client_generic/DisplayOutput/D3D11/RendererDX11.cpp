@@ -1558,37 +1558,4 @@ void CRendererDX11::DrawQuad(const Base::Math::CRect& _rect,
     DrawQuad(_rect, _color, Base::Math::CRect(0, 0, 1, 1));
 }
 
-void CRendererDX11::DrawSoftQuad(const Base::Math::CRect& _rect,
-                                 const Base::Math::CVector4& _color,
-                                 const float _width)
-{
-    // Draw inner quad
-    Base::Math::CRect innerRect = _rect;
-    innerRect.m_X0 += _width;
-    innerRect.m_Y0 += _width;
-    innerRect.m_X1 -= _width;
-    innerRect.m_Y1 -= _width;
-
-    // Draw with alpha gradient for soft edges
-    Base::Math::CVector4 edgeColor = _color;
-    edgeColor.m_W = 0.0f; // Transparent edges
-
-    // Draw edges with gradient
-    DrawQuad(
-        Base::Math::CRect(_rect.m_X0, _rect.m_Y0, _rect.m_X1, innerRect.m_Y0),
-        edgeColor); // Top
-    DrawQuad(
-        Base::Math::CRect(_rect.m_X0, innerRect.m_Y1, _rect.m_X1, _rect.m_Y1),
-        edgeColor); // Bottom
-    DrawQuad(Base::Math::CRect(_rect.m_X0, innerRect.m_Y0, innerRect.m_X0,
-                               innerRect.m_Y1),
-             edgeColor); // Left
-    DrawQuad(Base::Math::CRect(innerRect.m_X1, innerRect.m_Y0, _rect.m_X1,
-                               innerRect.m_Y1),
-             edgeColor); // Right
-
-    // Draw inner quad with full alpha
-    DrawQuad(innerRect, _color);
-}
-
 } // namespace DisplayOutput
