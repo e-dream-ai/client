@@ -10,10 +10,11 @@
     "openssl",
     "curl",
     "libpng",
-    "directxtk12",
+    { "name": "directxtk12", "platform": "windows" },
     "ffmpeg",
     {
       "name": "imgui",
+      "platform": "windows",
       "default-features": false,
       "features": [ "dx11-binding", "win32-binding" ]
     }
