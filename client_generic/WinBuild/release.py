@@ -197,6 +197,9 @@ def check_msvc_output(repo: Path, configuration: str) -> None:
         sys.exit(1)
 
 
+DIST_README_NAME = "dist_readme.txt"
+
+
 def make_distribution_zip(
     repo: Path,
     *,
@@ -230,6 +233,11 @@ def make_distribution_zip(
             if path.is_file():
                 arcname = Path(inner) / path.relative_to(source_root)
                 zf.write(path, arcname.as_posix())
+        readme_src = winbuild_dir(repo) / DIST_README_NAME
+        if readme_src.is_file():
+            zf.write(readme_src, "README.txt")
+        else:
+            print_yellow(f"Skipping zip README (missing {readme_src})")
 
     print_green(f"ZIP created: {zip_path}")
     return zip_path
