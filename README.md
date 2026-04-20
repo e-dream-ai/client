@@ -130,8 +130,27 @@ Full detail: [client_generic/MSVC/DEVELOPMENT_WINDOWS.md](client_generic/MSVC/DE
 
 ### Prerequisites
 
-- Visual Studio 2022 (or newer) with **Desktop development with C++** and the Windows SDK
-- Python 3.10+ (for build/packaging scripts)
+Everything used to build and release on Windows can be installed with **winget** (ships with Windows 10 1809+ / Windows 11). Open an elevated `cmd`/PowerShell and run:
+
+```cmd
+winget install --id Git.Git -e
+winget install --id Python.Python.3.12 -e
+winget install --id Microsoft.VisualStudio.2022.Community -e
+winget install --id NSIS.NSIS -e
+winget install --id GitHub.cli -e
+```
+
+| Package | Purpose | Notes |
+|---------|---------|-------|
+| `Git.Git` | Clone, submodules. | Bundles Git LFS; after install run `git lfs install` once. |
+| `Python.Python.3.12` | Drives [`WinBuild/build.py`](client_generic/WinBuild/build.py) and [`release.py`](client_generic/WinBuild/release.py). Any 3.10+ works. | |
+| `Microsoft.VisualStudio.2022.Community` | MSBuild, C++ toolchain, Windows 10/11 SDK, `signtool.exe`. Use `Microsoft.VisualStudio.2022.BuildTools` for headless/CI. | The winget install launches the VS Installer but **does not select workloads** — add **Desktop development with C++** (and the Windows SDK) in that UI, or pass `--override "--add Microsoft.VisualStudio.Workload.NativeDesktop --includeRecommended"` to winget. |
+| `NSIS.NSIS` | [`makensis`](client_generic/InstallerMSVC/nsis_installer.nsi) for the Windows installer. | Installs to `C:\Program Files (x86)\NSIS\` but does **not** add itself to `PATH`; [`release.py`](client_generic/WinBuild/release.py) auto-discovers it there, or honors `MAKENSIS=<path>`. |
+| `GitHub.cli` | `release.py --github-release TAG` uploads artifacts via `gh`. | Run `gh auth login` once. |
+
+`vcpkg` is **not** a separate install — it's a git submodule at [`vcpkg/`](vcpkg/) that is bootstrapped with `vcpkg\bootstrap-vcpkg.bat` (see [dev docs](#dev-docs) at the top of this file).
+
+`signtool.exe` for Authenticode signing (`release.py --sign`) ships with the Windows SDK that the VS workload above installs — no separate package needed.
 
 ### Quick build in Visual Studio
 
@@ -170,18 +189,19 @@ python build.py -d --platform x64
 python build.py --run-vcpkg --triplet x64-windows
 ```
 
-### Release ZIP (portable bundle)
+### Release installer and ZIP
 
-After a **Release** build, create a versioned archive of the MSVC output folder:
+After a **Release** build, package an NSIS `Setup.exe` (default) and optionally a portable ZIP:
 
 ```bat
 cd client_generic\WinBuild
-python release.py -v 0.14.0
+python release.py -v 0.14.0          :: -> dist\infinidream-windows-0.14.0-setup.exe
+python release.py -v 0.14.0 --zip    :: also writes dist\infinidream-windows-0.14.0.zip
 ```
 
-Output: **`client_generic/WinBuild/dist/infinidream-windows-0.14.0.zip`** (contents live under a single root folder inside the zip).
+The installer requires `makensis` (NSIS 3.x) on `PATH`. Pass `--no-installer` if you only want the ZIP.
 
-Optional: **`--zip-from runtime`** after **`--stage`**, **`--sign`**, **`--github-release TAG`**. Legacy **NSIS `Setup.exe`**: **`python release.py --installer -v X.Y.Z`** (needs `makensis` and a full **`RuntimeMSVC`** tree). See **Windows (ZIP)** under [to release](#to-release-with-sparkle-auto-update) below.
+Optional: **`--sign`** (Authenticode via `SIGN_THUMBPRINT` / `SIGN_PFX`), **`--github-release TAG`** (uploads produced artifacts with `gh`).
 
 ## to release (with Sparkle auto-update)
 
@@ -233,7 +253,7 @@ Update `APP_VERSION` in the frontend repository:
 
 Push and Cloudflare will deploy in a few minutes.
 
-### Windows (ZIP release)
+### Windows release
 
 There is **no** Sparkle appcast on Windows in this repo. Typical flow:
 
@@ -242,12 +262,12 @@ There is **no** Sparkle appcast on Windows in this repo. Typical flow:
 
    ```bat
    cd client_generic\WinBuild
-   python release.py -v X.Y.Z
+   python release.py -v X.Y.Z --github-release vX.Y.Z
    ```
 
-   Produces **`client_generic/WinBuild/dist/infinidream-windows-X.Y.Z.zip`**.
+   Produces **`client_generic/WinBuild/dist/infinidream-windows-X.Y.Z-setup.exe`** (NSIS) and uploads it to the release. Add `--zip` for the portable archive.
 
-Optional: **`--sign`**, **`--github-release TAG`** (uploads the ZIP with **`gh`**). Legacy **NSIS** installer: **`python release.py --installer`** after staging **`RuntimeMSVC`**; see [DEVELOPMENT_WINDOWS.md](client_generic/MSVC/DEVELOPMENT_WINDOWS.md).
+See [DEVELOPMENT_WINDOWS.md](client_generic/MSVC/DEVELOPMENT_WINDOWS.md) for the installer script, signing, and troubleshooting.
 
 ### How Sparkle Auto-Update Works
 

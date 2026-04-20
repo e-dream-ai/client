@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """
-Windows packaging: stage outputs, build a distributable ZIP (default), optional legacy NSIS installer.
+Windows packaging: build a distributable ZIP and/or NSIS Setup.exe directly
+from the MSBuild output directory (client_generic/MSVC/<Configuration>/).
 
-Structure and CLI style align with client_generic/MacBuild/release.py; there is no Sparkle appcast.
+Structure and CLI style align with client_generic/MacBuild/release.py; there
+is no Sparkle appcast on Windows.
 """
 
 from __future__ import annotations
@@ -82,106 +84,12 @@ def msvc_out_dir(repo: Path, configuration: str) -> Path:
     return repo / "client_generic" / "MSVC" / configuration
 
 
-def runtime_msvc_dir(repo: Path) -> Path:
-    return repo / "client_generic" / "RuntimeMSVC"
-
-
 def installer_dir(repo: Path) -> Path:
     return repo / "client_generic" / "InstallerMSVC"
 
 
 def ensure_dir(p: Path) -> None:
     p.mkdir(parents=True, exist_ok=True)
-
-
-def stage_build_to_runtime_msvc(
-    repo: Path,
-    *,
-    configuration: str,
-    platform: str,
-) -> None:
-    if platform.lower() != "x64":
-        print_yellow("Staging is only verified for x64; continuing anyway.")
-    out = msvc_out_dir(repo, configuration)
-    if not out.is_dir():
-        print_red(f"Build output directory not found: {out}")
-        print_red("Run WinBuild/build.py for this configuration first.")
-        sys.exit(1)
-
-    debug = configuration.lower().startswith("debug")
-    exe_name = "infinidreamd.exe" if debug else "infinidream.exe"
-    scr_name = "infinidreamd.scr" if debug else "infinidream.scr"
-    exe_src = out / exe_name
-    scr_src = out / scr_name
-    if not exe_src.is_file():
-        print_red(f"Missing {exe_src}")
-        sys.exit(1)
-    if not scr_src.is_file():
-        print_yellow(f"Missing {scr_src} (PostBuild copy); using .exe copy for .scr name")
-        scr_src = exe_src
-
-    dest = runtime_msvc_dir(repo)
-    ensure_dir(dest)
-    shutil.copy2(exe_src, dest / "es.exe")
-    shutil.copy2(scr_src, dest / "es.scr")
-    print_green(f"Staged es.exe / es.scr from {exe_src.name}")
-
-    for name in (
-        "exchndl.dll",
-        "pthreadGC2.dll",
-        "flam3-animate.exe",
-        "Instructions.rtf",
-        "License.rtf",
-        "logo.png",
-    ):
-        src = out / name
-        if src.is_file():
-            shutil.copy2(src, dest / name)
-
-    for png in out.glob("*.png"):
-        shutil.copy2(png, dest / png.name)
-
-    print_green(f"Staging complete under {dest}")
-
-
-# Paths relative to client_generic/RuntimeMSVC required by nsis_installer.nsi (subset).
-INSTALLER_CRITICAL = (
-    "es.exe",
-    "es.scr",
-    "exchndl.dll",
-    "pthreadGC2.dll",
-    "avcodec-57.dll",
-    "avformat-57.dll",
-    "avutil-55.dll",
-    "swresample-2.dll",
-    "swscale-4.dll",
-    "setacl.exe",
-    "flam3-animate.exe",
-    "Instructions.rtf",
-    "License.rtf",
-    "logo.png",
-)
-
-
-def check_runtime_msvc(repo: Path, *, strict: bool = True) -> list[str]:
-    base = runtime_msvc_dir(repo)
-    missing: list[str] = []
-    for rel in INSTALLER_CRITICAL:
-        if not (base / Path(rel)).is_file():
-            missing.append(rel)
-    dx_files = (
-        "Jun2010_D3DCompiler_43_x86.cab",
-        "DXSETUP.exe",
-    )
-    for rel in dx_files:
-        if not (base / rel).is_file():
-            missing.append(rel)
-    if missing and strict:
-        print_red("RuntimeMSVC is missing files that the NSIS script expects:")
-        for m in missing:
-            print_red(f"  - {m}")
-        print_yellow("Stage a build with: python client_generic/WinBuild/release.py --stage")
-    return missing
 
 
 def check_msvc_output(repo: Path, configuration: str) -> None:
@@ -195,6 +103,9 @@ def check_msvc_output(repo: Path, configuration: str) -> None:
     if not exe.is_file():
         print_red(f"Missing executable: {exe}")
         sys.exit(1)
+    scr = out / ("infinidreamd.scr" if debug else "infinidream.scr")
+    if not scr.is_file():
+        print_yellow(f"Missing screensaver binary: {scr} (PostBuild copy may have been skipped)")
 
 
 DIST_README_NAME = "dist_readme.txt"
@@ -205,20 +116,10 @@ def make_distribution_zip(
     *,
     version: str,
     configuration: str,
-    zip_from: str,
     output_dir: Path,
 ) -> Path:
-    if zip_from == "msvc":
-        source_root = msvc_out_dir(repo, configuration)
-        check_msvc_output(repo, configuration)
-    else:
-        source_root = runtime_msvc_dir(repo)
-        if not source_root.is_dir():
-            print_red(f"RuntimeMSVC not found: {source_root}")
-            sys.exit(1)
-        if not (source_root / "es.exe").is_file() and not (source_root / "infinidream.exe").is_file():
-            print_red("RuntimeMSVC has no es.exe or infinidream.exe. Run with --stage first.")
-            sys.exit(1)
+    check_msvc_output(repo, configuration)
+    source_root = msvc_out_dir(repo, configuration)
 
     ensure_dir(output_dir)
     inner = f"infinidream-windows-{version}"
@@ -293,33 +194,71 @@ def sign_file(path: Path) -> None:
     print_green("Signing finished.")
 
 
+def find_makensis() -> Optional[Path]:
+    env = os.environ.get("MAKENSIS")
+    if env:
+        p = Path(env)
+        if p.is_file():
+            return p
+    on_path = shutil.which("makensis")
+    if on_path:
+        return Path(on_path)
+    candidates = [
+        os.environ.get("ProgramFiles(x86)"),
+        os.environ.get("ProgramFiles"),
+        r"C:\Program Files (x86)",
+        r"C:\Program Files",
+    ]
+    for base in candidates:
+        if not base:
+            continue
+        cand = Path(base) / "NSIS" / "makensis.exe"
+        if cand.is_file():
+            return cand
+    return None
+
+
 def run_makensis(
     repo: Path,
     *,
-    version: Optional[str],
+    version: str,
+    configuration: str,
+    output_dir: Path,
 ) -> Path:
+    check_msvc_output(repo, configuration)
+
     nsi_dir = installer_dir(repo)
     nsi = nsi_dir / "nsis_installer.nsi"
     if not nsi.is_file():
         print_red(f"NSIS script not found: {nsi}")
         sys.exit(1)
-    makensis = shutil.which("makensis")
-    if not makensis:
-        print_red("makensis not found on PATH. Install NSIS 3.x.")
+    makensis_path = find_makensis()
+    if not makensis_path:
+        print_red(
+            "makensis not found. Install NSIS 3.x (`winget install NSIS.NSIS`) "
+            "or set MAKENSIS to the full path of makensis.exe."
+        )
         sys.exit(1)
+    makensis = str(makensis_path)
 
-    cmd = [makensis]
-    if version:
-        cmd.append(f"/DPRODUCT_VERSION={version}")
-    cmd.append("nsis_installer.nsi")
+    ensure_dir(output_dir)
+    out_file = output_dir / f"infinidream-windows-{version}-setup.exe"
+    source_dir = msvc_out_dir(repo, configuration)
+
+    cmd = [
+        makensis,
+        f"/DPRODUCT_VERSION={version}",
+        f"/DSOURCE_DIR={source_dir}",
+        f"/DOUT_FILE={out_file}",
+        "nsis_installer.nsi",
+    ]
     print_blue(f"Running NSIS: {' '.join(cmd)} (cwd={nsi_dir})")
     run_command(cmd, cwd=nsi_dir)
-    setup = nsi_dir / "Setup.exe"
-    if not setup.is_file():
-        print_red(f"Expected output missing: {setup}")
+    if not out_file.is_file():
+        print_red(f"Expected output missing: {out_file}")
         sys.exit(1)
-    print_green(f"Installer created: {setup}")
-    return setup
+    print_green(f"Installer created: {out_file}")
+    return out_file
 
 
 def github_upload(asset: Path, tag: str) -> None:
@@ -339,100 +278,84 @@ def github_upload(asset: Path, tag: str) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
-            "Windows release helper: ZIP distribution (default), optional --stage and legacy --installer (NSIS)."
+            "Windows release helper: build NSIS Setup.exe (default) and/or ZIP, "
+            "upload to GitHub."
         ),
-    )
-    parser.add_argument(
-        "--stage",
-        action="store_true",
-        help="Copy infinidream*.exe/.scr and assets from MSVC output into RuntimeMSVC as es.exe / es.scr.",
     )
     parser.add_argument(
         "--configuration",
         default="Release",
-        help="MSBuild configuration for --stage / ZIP from msvc (default: Release).",
-    )
-    parser.add_argument(
-        "--platform",
-        default="x64",
-        help="Platform hint for --stage (default: x64).",
-    )
-    parser.add_argument(
-        "--installer",
-        action="store_true",
-        help="Build NSIS Setup.exe instead of a ZIP (legacy; requires makensis and full RuntimeMSVC).",
-    )
-    parser.add_argument(
-        "--skip-check",
-        action="store_true",
-        help="With --installer: do not verify RuntimeMSVC before makensis.",
+        help="MSBuild configuration to package (default: Release).",
     )
     parser.add_argument(
         "-v",
         "--version",
         dest="version",
         default="0.0.0",
-        help="Version string for the ZIP name (default: 0.0.0), e.g. 0.14.0.",
+        help="Version string for filenames and the installer (default: 0.0.0).",
     )
     parser.add_argument(
-        "--zip-from",
-        choices=("msvc", "runtime"),
-        default="msvc",
-        help="ZIP contents from MSVC output (default) or staged RuntimeMSVC.",
+        "--zip",
+        action="store_true",
+        help="Also build a flat ZIP of the MSVC output.",
+    )
+    parser.add_argument(
+        "--no-installer",
+        action="store_true",
+        help="Skip NSIS installer (useful with --zip when makensis is unavailable).",
     )
     parser.add_argument(
         "--output-dir",
         default=None,
-        help="Directory for the .zip (default: client_generic/WinBuild/dist).",
+        help="Directory for artifacts (default: client_generic/WinBuild/dist).",
     )
     parser.add_argument(
         "--sign",
         action="store_true",
-        help="Sign the ZIP or Setup.exe (requires SIGN_THUMBPRINT or SIGN_PFX).",
+        help="Authenticode-sign artifacts (requires SIGN_THUMBPRINT or SIGN_PFX).",
     )
     parser.add_argument(
         "--github-release",
         metavar="TAG",
         default=None,
-        help="Upload the produced ZIP (or Setup.exe with --installer) to GitHub release TAG.",
+        help="Upload produced artifacts to GitHub release TAG.",
     )
     args = parser.parse_args()
 
     repo = repo_root_from_script()
-
-    if args.stage:
-        stage_build_to_runtime_msvc(
-            repo,
-            configuration=args.configuration,
-            platform=args.platform,
-        )
-        return
-
     out_dir = Path(args.output_dir) if args.output_dir else winbuild_dir(repo) / "dist"
 
-    if args.installer:
-        if not args.skip_check:
-            missing = check_runtime_msvc(repo, strict=True)
-            if missing:
-                sys.exit(1)
-        setup = run_makensis(repo, version=args.version if args.version != "0.0.0" else None)
-        if args.sign:
-            sign_file(setup)
-        if args.github_release:
-            github_upload(setup, args.github_release)
-        return
+    artifacts: list[Path] = []
 
-    zip_path = make_distribution_zip(
-        repo,
-        version=args.version,
-        configuration=args.configuration,
-        zip_from=args.zip_from,
-        output_dir=out_dir,
-    )
+    if not args.no_installer:
+        setup = run_makensis(
+            repo,
+            version=args.version,
+            configuration=args.configuration,
+            output_dir=out_dir,
+        )
+        artifacts.append(setup)
+
+    if args.zip:
+        zip_path = make_distribution_zip(
+            repo,
+            version=args.version,
+            configuration=args.configuration,
+            output_dir=out_dir,
+        )
+        artifacts.append(zip_path)
+
+    if not artifacts:
+        print_red("Nothing to do: --no-installer was passed without --zip.")
+        sys.exit(1)
+
     if args.sign:
-        sign_file(zip_path)
+        for a in artifacts:
+            sign_file(a)
+
     if args.github_release:
-        github_upload(zip_path, args.github_release)
+        for a in artifacts:
+            github_upload(a, args.github_release)
 
 
 if __name__ == "__main__":
