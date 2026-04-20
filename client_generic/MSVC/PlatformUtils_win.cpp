@@ -162,7 +162,12 @@ std::string PlatformUtils::GetBuildDate()
     const std::string fromEnv = GetEnvVar("BUILD_DATE");
     if (!fromEnv.empty())
         return fromEnv;
-    return __DATE__;
+
+    const std::string embedded(EDREAM_BUILD_DATE_UTC);
+    if (!embedded.empty())
+        return embedded;
+
+    return std::string(__DATE__) + " " + __TIME__;
 }
 
 std::string PlatformUtils::GetGitRevision()

@@ -13,6 +13,7 @@ import re
 import shutil
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -168,6 +169,7 @@ def write_msvc_embedded_version_header(
         semver = semver_from_clientversion_h(clientversion)
 
     git_rev = git_short_head(repo_root)
+    build_date_utc = datetime.now(timezone.utc).strftime("%a %b %d %H:%M:%S UTC %Y")
 
     out_path = msvc_dir / "edream_build_version_generated.h"
     body = (
@@ -176,10 +178,11 @@ def write_msvc_embedded_version_header(
         "\n"
         f'#define EDREAM_BUILD_VERSION_SEMVER "{_escape_c_string_literal(semver)}"\n'
         f'#define EDREAM_BUILD_GIT_REVISION "{_escape_c_string_literal(git_rev)}"\n'
+        f'#define EDREAM_BUILD_DATE_UTC "{_escape_c_string_literal(build_date_utc)}"\n'
     )
     out_path.write_text(body, encoding="utf-8")
     print_blue(
-        f"Wrote embedded version {semver!r}, git {git_rev!r} -> {out_path.relative_to(repo_root)}"
+        f"Wrote embedded version {semver!r}, git {git_rev!r}, date {build_date_utc!r} -> {out_path.relative_to(repo_root)}"
     )
     return semver
 
