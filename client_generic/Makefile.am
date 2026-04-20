@@ -13,7 +13,7 @@ sharedir = $(prefix)/share
 gnome_screensaver_dir = /usr/lib/gnome-screensaver
 
 # add documentation files here
-doc_DATA = AUTHORS README NEWS ChangeLog Runtime/Instructions.rtf Runtime/License.rtf
+doc_DATA = AUTHORS README NEWS ChangeLog Runtime/License.rtf
 
 # extra files to be included in distributions
 EXTRA_DIST = \
