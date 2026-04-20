@@ -16,14 +16,6 @@
 #include "client.h"
 
 #ifdef WIN32
-class ExceptionHandler
-{
-  public:
-    ExceptionHandler() { LoadLibraryA("exchndl.dll"); }
-};
-
-static ExceptionHandler gExceptionHandler; //  global instance of class
-
 #include "client_win32.h"
 typedef CElectricSheep_Win32 CElectricSheepClient;
 #else

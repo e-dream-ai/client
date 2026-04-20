@@ -8,7 +8,6 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <fstream>
 #include <iostream>
 #include <shellapi.h>
 #include <shlobj.h>
@@ -388,46 +387,6 @@ class CElectricSheep_Win32 : public CElectricSheep
 
         if (g_SingleInstanceObj.IsAnotherInstanceRunning() == false)
             AttachLog();
-
-        char szLogFileName[MAX_PATH] = "";
-
-        //  Try to open the debug-report...
-        if (GetModuleFileNameA(NULL, szLogFileName, MAX_PATH))
-        {
-            LPSTR lpszDot;
-
-            // Look for the '.' before the "EXE" extension.  Replace the
-            // extension with "RPT".
-            if ((lpszDot = strrchr(szLogFileName, '.')))
-            {
-                lpszDot++;              //  Advance past the '.'
-                strcpy(lpszDot, "RPT"); // "RPT" -> "Report"
-            }
-            else
-                strcat(szLogFileName, ".RPT");
-        }
-        else if (GetWindowsDirectoryA(szLogFileName, MAX_PATH))
-        {
-            strcat(szLogFileName, "EXCHNDL.RPT");
-        }
-
-        //  Append each line into the logfile.
-        std::string line;
-        std::ifstream rptfile(szLogFileName);
-        if (rptfile.is_open())
-        {
-            while (!rptfile.eof())
-            {
-                getline(rptfile, line);
-                g_Log->Fatal(line.c_str());
-            }
-
-            rptfile.close();
-
-            //  And finally delete the report file.
-            if (remove(szLogFileName) != 0)
-                g_Log->Warning("Failed to remove .rpt file!");
-        }
 
         std::string tmp = "Working dir: " + m_WorkingDir;
         g_Log->Info(tmp.c_str());

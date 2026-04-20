@@ -173,8 +173,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <PreBuildEvent>
-      <Command>copy /y "..\runtime\exchndl.dll" "$(OutDir)"
-copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
+      <Command>copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
 copy /y "..\runtime\License.rtf" "$(OutDir)"
 copy /y "..\Runtime\*.png" "$(OutDir)"
 copy /y "..\RuntimeMSVC\*.png" "$(OutDir)"
@@ -211,8 +210,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <PreBuildEvent>
-      <Command>copy /y "..\runtime\exchndl.dll" "$(OutDir)"
-copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
+      <Command>copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
 copy /y "..\runtime\License.rtf" "$(OutDir)"
 copy /y "..\runtime\*.png" "$(OutDir)"
 copy /y "..\RuntimeMSVC\*.png" "$(OutDir)"
@@ -255,8 +253,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <PreBuildEvent>
-      <Command>copy /y "..\runtime\exchndl.dll" "$(OutDir)"
-copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
+      <Command>copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
 copy /y "..\runtime\License.rtf" "$(OutDir)"
 copy /y "..\Runtime\*.png" "$(OutDir)"
 copy /y "..\RuntimeMSVC\*.png" "$(OutDir)"
@@ -323,8 +320,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugMD|Win32'">
     <PreBuildEvent>
-      <Command>copy /y "..\runtime\exchndl.dll" "$(OutDir)"
-copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
+      <Command>copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
 copy /y "..\runtime\License.rtf" "$(OutDir)"
 copy /y "..\Runtime\*.png" "$(OutDir)"
 copy /y "..\RuntimeMSVC\*.png" "$(OutDir)"
@@ -391,8 +387,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugMDd|Win32'">
     <PreBuildEvent>
-      <Command>copy /y "..\runtime\exchndl.dll" "$(OutDir)"
-copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
+      <Command>copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
 copy /y "..\runtime\License.rtf" "$(OutDir)"
 copy /y "..\Runtime\*.png" "$(OutDir)"
 copy /y "..\RuntimeMSVC\*.png" "$(OutDir)"
@@ -459,8 +454,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <PreBuildEvent>
-      <Command>copy /y "..\runtime\exchndl.dll" "$(OutDir)"
-copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
+      <Command>copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
 copy /y "..\runtime\License.rtf" "$(OutDir)"
 copy /y "..\runtime\*.png" "$(OutDir)"
 copy /y "..\RuntimeMSVC\*.png" "$(OutDir)"
@@ -525,8 +519,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugMD|x64'">
     <PreBuildEvent>
-      <Command>copy /y "..\runtime\exchndl.dll" "$(OutDir)"
-copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
+      <Command>copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
 copy /y "..\runtime\License.rtf" "$(OutDir)"
 copy /y "..\runtime\*.png" "$(OutDir)"
 copy /y "..\RuntimeMSVC\*.png" "$(OutDir)"
@@ -592,8 +585,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugMDd|x64'">
     <PreBuildEvent>
-      <Command>copy /y "..\runtime\exchndl.dll" "$(OutDir)"
-copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
+      <Command>copy /y "..\runtime\Instructions.rtf" "$(OutDir)"
 copy /y "..\runtime\License.rtf" "$(OutDir)"
 copy /y "..\Runtime\*.png" "$(OutDir)"
 copy /y "..\RuntimeMSVC\*.png" "$(OutDir)"
