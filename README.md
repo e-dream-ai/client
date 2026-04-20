@@ -239,7 +239,7 @@ Options:
 - Installs everything to `%ProgramFiles%\Infinidream\` (admin required).
 - Creates Start Menu shortcuts (launch, windowed launch, website, uninstall).
 - On the finish page, user can opt-in to set Infinidream as the **current screensaver** (writes `HKCU\Control Panel\Desktop\SCRNSAVE.EXE` to the full path of `infinidream.scr`).
-- Uninstaller prompts to preserve or delete `%ProgramData%\e-dream\` (downloaded content and logs).
+- Uninstaller prompts to preserve or delete `%ProgramData%\Infinidream\` (downloaded content and logs). Existing installs auto-migrate from the legacy `%ProgramData%\e-dream\` on first launch.
 
 The NSIS script lives at [`client_generic/InstallerMSVC/nsis_installer.nsi`](client_generic/InstallerMSVC/nsis_installer.nsi).
 

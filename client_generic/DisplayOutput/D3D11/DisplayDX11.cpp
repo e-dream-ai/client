@@ -50,8 +50,8 @@ static void PopulateSystemMenu(HWND hWnd)
 
     // Insert before Close for a standard placement.
     InsertMenuW(sys, SC_CLOSE, MF_BYCOMMAND | MF_STRING, ID_HELP_ABOUT, L"&About infinidream");
-    InsertMenuW(sys, SC_CLOSE, MF_BYCOMMAND | MF_STRING, ID_TOOLS_PLAYLISTS, L"&Playlists\tCtrl+B");
-    InsertMenuW(sys, SC_CLOSE, MF_BYCOMMAND | MF_STRING, ID_TOOLS_REMOTE, L"&Remote\tCtrl+R");
+    InsertMenuW(sys, SC_CLOSE, MF_BYCOMMAND | MF_STRING, ID_TOOLS_PLAYLISTS, L"&Browse Playlists\tCtrl+B");
+    InsertMenuW(sys, SC_CLOSE, MF_BYCOMMAND | MF_STRING, ID_TOOLS_REMOTE, L"&Remote Control\tCtrl+R");
     InsertMenuW(sys, SC_CLOSE, MF_BYCOMMAND | MF_STRING, ID_FILE_PREFERENCES, L"&Settings\tCtrl+,");
     InsertMenuW(sys, SC_CLOSE, MF_BYCOMMAND | MF_SEPARATOR, 0, nullptr);
     InsertMenuW(sys, SC_CLOSE, MF_BYCOMMAND | MF_STRING, ID_VIEW_FULLSCREEN, L"&Full screen\tF11");

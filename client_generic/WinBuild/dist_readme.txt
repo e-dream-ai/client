@@ -8,4 +8,4 @@ Open the inner folder, then run infinidream.exe.
 To install as a screensaver, right-click infinidream.scr and choose Install.
 
 If it crashes or has a problem, please file an issue in github with
-the most recent log file found at: C:\ProgramData\e-dream\Logs
+the most recent log file found at: C:\ProgramData\Infinidream\Logs

@@ -37,7 +37,7 @@ constexpr const char* kAppDisplayName = "infinidream stage";
 constexpr const char* kAppDisplayName = "infinidream";
 #endif
 // Matches typical NSHumanReadableCopyright when not set in Info.plist; adjust if legal adds a plist string.
-constexpr const char* kCopyrightLine = "Copyright \xC2\xA9 2026 Infinidream. All rights reserved.";
+constexpr const char* kCopyrightLine = "Copyright \xC2\xA9 e-dream, inc.";
 
 std::atomic<bool> g_overlayAllowed{true};
 std::atomic<bool> g_showRequested{false};

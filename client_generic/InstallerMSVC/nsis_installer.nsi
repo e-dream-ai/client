@@ -139,9 +139,9 @@ Section Uninstall
     DeleteRegValue HKCU "Control Panel\Desktop" "SCRNSAVE.EXE"
 
   MessageBox MB_YESNO|MB_ICONQUESTION \
-    "Keep your downloaded content and logs under %ProgramData%\e-dream?$\r$\n$\r$\nChoose Yes to keep, No to delete." \
+    "Keep your downloaded content and logs under %ProgramData%\Infinidream?$\r$\n$\r$\nChoose Yes to keep, No to delete." \
     IDYES SkipDataDelete
-    RMDir /r "$PROGRAMDATA\e-dream"
+    RMDir /r "$PROGRAMDATA\Infinidream"
   SkipDataDelete:
 
   Delete "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk"

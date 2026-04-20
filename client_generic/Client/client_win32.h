@@ -312,10 +312,29 @@ class CElectricSheep_Win32 : public CElectricSheep
                 SHGetFolderPathA(NULL, CSIDL_COMMON_APPDATA, NULL, 0, szPath)))
         {
 #if defined(_DEBUG) || defined(DEBUG)
-            PathAppendA(szPath, "\\e-dream-stage\\");
+            const char* const kDataFolder = "Infinidream-stage";
+            const char* const kLegacyFolder = "e-dream-stage";
 #else
-            PathAppendA(szPath, "\\e-dream\\");
+            const char* const kDataFolder = "Infinidream";
+            const char* const kLegacyFolder = "e-dream";
 #endif
+
+            char szLegacyPath[MAX_PATH];
+            strcpy_s(szLegacyPath, MAX_PATH, szPath);
+            PathAppendA(szLegacyPath, kLegacyFolder);
+            PathAppendA(szPath, kDataFolder);
+
+            // One-time migration (issue #574): the %ProgramData% subfolder
+            // was renamed from "e-dream" to "Infinidream". If the new folder
+            // doesn't exist yet but the legacy one does, rename it so the
+            // user keeps their downloaded content, settings, and logs.
+            if (!PathFileExistsA(szPath) && PathFileExistsA(szLegacyPath))
+            {
+                if (!MoveFileA(szLegacyPath, szPath))
+                    strcpy_s(szPath, MAX_PATH, szLegacyPath);
+            }
+
+            PathAddBackslashA(szPath);
             m_AppData = szPath;
         }
 
@@ -325,7 +344,7 @@ class CElectricSheep_Win32 : public CElectricSheep
         m_WorkingDir = ".\\";
 
         HKEY key;
-        if (!RegOpenKeyA(HKEY_LOCAL_MACHINE, "SOFTWARE\\e-dream", &key))
+        if (!RegOpenKeyA(HKEY_LOCAL_MACHINE, "Software\\Infinidream", &key))
         {
             LPSTR temp;
             if (RegGetString(key, "InstallDir", &temp) == NOERROR)
