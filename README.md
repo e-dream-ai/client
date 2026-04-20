@@ -126,7 +126,7 @@ The app bundle contains the embedded screensaver at `infinidream.app/Contents/Re
 
 ## Build on Windows
 
-Full detail: [client_generic/MSVC/DEVELOPMENT_WINDOWS.md](client_generic/MSVC/DEVELOPMENT_WINDOWS.md).
+Covers the native **MSVC** client ([`e-dream.sln`](client_generic/MSVC/e-dream.sln)), **vcpkg** manifest dependencies, and the **NSIS installer** / ZIP distribution via [`client_generic/WinBuild/`](client_generic/WinBuild/) (same style as [`MacBuild/build.py`](client_generic/MacBuild/build.py) and [`release.py`](client_generic/MacBuild/release.py)).
 
 ### Prerequisites
 
@@ -154,9 +154,15 @@ winget install --id GitHub.cli -e
 
 ### Quick build in Visual Studio
 
-Open `client_generic/MSVC/e-dream.sln`, choose **Release** and **x64**, build. Typical output:
+Open `client_generic/MSVC/e-dream.sln`, choose **Release** and **x64**, build. Typical output directory:
 
-`client_generic/MSVC/Release/` → **`e-dream.exe`**, **`e-dream.scr`**
+`client_generic/MSVC/Release/` → **`infinidream.exe`**, **`infinidream.scr`**
+
+**Toolsets:** the solution mixes toolsets — **x64** configurations use **v143**; **Win32** configurations may still reference **v140** and legacy **Boost** paths inside [`electricsheep.vcxproj`](client_generic/MSVC/electricsheep.vcxproj). Prefer **Release | x64** unless you maintain Win32 explicitly (the installer is 64-bit only).
+
+**Drop-in runtime files:** place extra DLLs or assets under **`client_generic/MSVC/dll/Release/`** or **`dll/Debug/`** (folder name matches the MSBuild configuration — `Release`, `Debug`, `DebugMD`, etc.). After each successful link, MSBuild flattens every file under that folder into `$(OutDir)` (nested paths land flat; duplicate basenames overwrite). If `dll/<Configuration>/` doesn't exist, the step is skipped.
+
+**vcpkg on Windows:** [`electricsheep.vcxproj`](client_generic/MSVC/electricsheep.vcxproj) enables `VcpkgEnableManifest`; Visual Studio resolves packages when `VCPKG_ROOT` points at your vcpkg submodule checkout. Set `VCPKG_ROOT` as a user/system env var (e.g. `D:\src\client\vcpkg`) and **restart Visual Studio**. For Win32 builds you may need the **`x86-windows`** triplet.
 
 ### Build script
 
@@ -171,14 +177,17 @@ Defaults: **Release**, **x64**, runs MSBuild **restore** then **build** (uses `M
 
 | Flag | Description |
 |------|-------------|
+| `-v SEMVER`, `--version SEMVER` | Embed this version in the binary (Settings / API). Omit to take `VER_*` from [`Common/clientversion.h`](client_generic/Common/clientversion.h). Also embeds `git rev-parse --short HEAD` (or `unknown` without a repo). |
 | `-r`, `--release` | Configuration **Release** (default). |
-| `-d`, `--debug` | Configuration **Debug** (outputs `e-dreamd.exe`). |
+| `-d`, `--debug` | Configuration **Debug** (outputs `infinidreamd.exe`). |
 | `--configuration NAME` | Override configuration (e.g. `DebugMD`). |
 | `--platform Win32` \| `x64` | Default **x64**. |
 | `--run-vcpkg` | Run `vcpkg install` for `--triplet` first (default triplet **x64-windows**). |
 | `--triplet TRIPLET` | Triplet for `--run-vcpkg`. |
 | `--no-restore` | Skip MSBuild `/restore`. |
 | `--msbuild PATH` | Force a specific `MSBuild.exe`. |
+
+**MSBuild discovery:** uses the `MSBUILD` env var if set; otherwise **vswhere** (`%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe`) to locate `MSBuild.exe`. You can also add the MSBuild `Bin` folder to `PATH` so `msbuild.exe` resolves without vswhere.
 
 ### Examples
 
@@ -191,17 +200,52 @@ python build.py --run-vcpkg --triplet x64-windows
 
 ### Release installer and ZIP
 
-After a **Release** build, package an NSIS `Setup.exe` (default) and optionally a portable ZIP:
+Build with the same semver you will ship (writes `MSVC/edream_build_version_generated.h` then compiles):
 
 ```bat
-cd client_generic\WinBuild
-python release.py -v 0.14.0          :: -> dist\infinidream-windows-0.14.0-setup.exe
-python release.py -v 0.14.0 --zip    :: also writes dist\infinidream-windows-0.14.0.zip
+python client_generic\WinBuild\build.py -v 0.14.0
 ```
 
-The installer requires `makensis` (NSIS 3.x) on `PATH`. Pass `--no-installer` if you only want the ZIP.
+Then package an NSIS `Setup.exe` (default) and optionally a portable ZIP:
 
-Optional: **`--sign`** (Authenticode via `SIGN_THUMBPRINT` / `SIGN_PFX`), **`--github-release TAG`** (uploads produced artifacts with `gh`).
+```bat
+python client_generic\WinBuild\release.py -v 0.14.0                        :: NSIS Setup.exe
+python client_generic\WinBuild\release.py -v 0.14.0 --zip                  :: also writes a portable ZIP
+python client_generic\WinBuild\release.py -v 0.14.0 --no-installer --zip   :: ZIP only
+```
+
+The installer packages the entire `client_generic\MSVC\Release\` directory (binaries, vcpkg-linked DLLs, fonts, OSD assets) directly — there is no separate staging step. License content is embedded from `client_generic\RuntimeMSVC\License.rtf`.
+
+Output:
+
+- `client_generic\WinBuild\dist\infinidream-windows-{version}-setup.exe` (NSIS)
+- `client_generic\WinBuild\dist\infinidream-windows-{version}.zip` (with `--zip`)
+
+Options:
+
+| Flag | Description |
+|------|-------------|
+| `-v`, `--version` | Version string baked into the installer and file names (default `0.0.0`). |
+| `--configuration` | MSVC folder to package (default **Release**). |
+| `--zip` | Also build the portable ZIP. |
+| `--no-installer` | Skip NSIS; useful when `makensis` is unavailable. |
+| `--output-dir DIR` | Where to write artifacts. |
+| `--sign` | Authenticode-sign artifacts via `SIGN_THUMBPRINT` or `SIGN_PFX`. |
+| `--github-release TAG` | Upload with `gh`. |
+
+#### Installer behavior
+
+- **x64 Windows 10+** only; the installer aborts otherwise.
+- Installs everything to `%ProgramFiles%\Infinidream\` (admin required).
+- Creates Start Menu shortcuts (launch, windowed launch, website, uninstall).
+- On the finish page, user can opt-in to set Infinidream as the **current screensaver** (writes `HKCU\Control Panel\Desktop\SCRNSAVE.EXE` to the full path of `infinidream.scr`).
+- Uninstaller prompts to preserve or delete `%ProgramData%\e-dream\` (downloaded content and logs).
+
+The NSIS script lives at [`client_generic/InstallerMSVC/nsis_installer.nsi`](client_generic/InstallerMSVC/nsis_installer.nsi).
+
+### Windows crash symbols
+
+Windows builds produce **PDB** files next to binaries (e.g. under `client_generic\MSVC\Release\`). Upload PDBs to BugSnag following their Windows symbol-upload guidance; macOS dSYM instructions below do not apply on Windows.
 
 ## to release (with Sparkle auto-update)
 
@@ -267,7 +311,7 @@ There is **no** Sparkle appcast on Windows in this repo. Typical flow:
 
    Produces **`client_generic/WinBuild/dist/infinidream-windows-X.Y.Z-setup.exe`** (NSIS) and uploads it to the release. Add `--zip` for the portable archive.
 
-See [DEVELOPMENT_WINDOWS.md](client_generic/MSVC/DEVELOPMENT_WINDOWS.md) for the installer script, signing, and troubleshooting.
+See [Build on Windows](#build-on-windows) above for the full flag list, installer behavior, and signing notes.
 
 ### How Sparkle Auto-Update Works
 
