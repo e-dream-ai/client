@@ -1,7 +1,6 @@
 #ifndef _SERVERMESSAGE_H_
 #define _SERVERMESSAGE_H_
 
-#include <sstream>
 #ifdef WIN32
 #include "boost/date_time/posix_time/posix_time.hpp"
 #endif
@@ -9,6 +8,7 @@
 #include "StatsConsole.h"
 #include "Hud.h"
 #include "Rect.h"
+#include "Utf8.h"
 
 namespace Hud
 {
@@ -39,19 +39,10 @@ class CServerMessage : public CConsole
         m_Desc.Italic(false);
         m_Desc.TypeFace("Lato");
 
-        std::ostringstream stringBuilder;
-        size_t lineLength = 100;
-        for (size_t i = 0; i < _msg.length(); i += lineLength)
-        {
-            std::string_view lineView(_msg.data() + i,
-                                      std::min(lineLength, _msg.length() - i));
-            stringBuilder << lineView << '\n';
-        }
-        m_Message = stringBuilder.str();
-
-        m_spFont = g_Player().Renderer()->GetFont(m_Desc);
-        m_spText = g_Player().Renderer()->NewText(m_spFont, m_Message);
-        m_spText->SetEnabled(true);
+        m_Message = Utf8WrapLinesByByteLimit(_msg, 100);
+        // Renderer can be unavailable during early startup; lazily init font/text in Render().
+        m_spFont = nullptr;
+        m_spText = nullptr;
         m_MoveMessageCounter = 0.;
     }
 
@@ -63,7 +54,8 @@ class CServerMessage : public CConsole
     virtual void Visible(const bool _bState) override
     {
         CHudEntry::Visible(_bState);
-        m_spText->SetEnabled(_bState);
+        if (m_spText)
+            m_spText->SetEnabled(_bState);
     }
 
     //
@@ -73,6 +65,21 @@ class CServerMessage : public CConsole
         if (!CHudEntry::Render(_time, _spRenderer))
             return false;
 
+        if (_spRenderer && (!m_spFont || !m_spText))
+        {
+            if (!m_spFont)
+                m_spFont = _spRenderer->GetFont(m_Desc);
+            if (m_spFont && !m_spText)
+            {
+                m_spText = _spRenderer->NewText(m_spFont, m_Message);
+                if (m_spText)
+                    m_spText->SetEnabled(true);
+            }
+        }
+
+        if (!m_spText)
+            return true; // keep alive; try again next frame
+
         if (m_bServerMessageStartTimer == false)
         {
             m_bServerMessageStartTimer = true;
@@ -81,9 +88,11 @@ class CServerMessage : public CConsole
         }
         // float step = (float)m_Desc.Height() /
         // (float)_spRenderer->Display()->Height();
-        float edge = 24 / (float)_spRenderer->Display()->Width();
+        auto spDisplay = _spRenderer ? _spRenderer->Display() : nullptr;
+        float edge = (spDisplay && spDisplay->Width() > 0) ? (24 / (float)spDisplay->Width()) : 24.f;
 
-        std::map<std::string, CStat*>::const_iterator i;
+        if (m_spText && spDisplay)
+            m_spText->SyncLayoutDisplay(spDisplay->Width(), spDisplay->Height());
 
         //	Figure out text extent for all strings.
         Base::Math::CRect extent;
@@ -110,7 +119,6 @@ class CServerMessage : public CConsole
 
         _spRenderer->SetBlend("alphablend");
         _spRenderer->Apply();
-        _spRenderer->DrawSoftQuad(r, Base::Math::CVector4(0, 0, 0, 0.5), 16);
 
         //@TODO: not needed on Metal. do we need this on DX?
         // dasvo - terrible hack - redo!!
@@ -118,8 +126,7 @@ class CServerMessage : public CConsole
             m_spFont->Reupload();
         m_spText->SetRect(
             Base::Math::CRect(r.m_X0 + edge, r.m_Y0 + edge, r.m_X1, r.m_Y1));
-        g_Player().Renderer()->DrawText(m_spText,
-                                        Base::Math::CVector4(1, 1, 1, 1));
+        _spRenderer->DrawText(m_spText, Base::Math::CVector4(1, 1, 1, 1));
 
         return true;
     }

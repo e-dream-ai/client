@@ -67,14 +67,9 @@ class CVideoFrame
     AVFrame* m_pFrame;
 
   public:
-    CVideoFrame(AVCodecContext* _pCodecContext, AVPixelFormat _format,
-                std::string _filename)
+    CVideoFrame(int _width, int _height, AVPixelFormat _format, std::string _filename)
         : m_pFrame(NULL)
     {
-        assert(_pCodecContext);
-        if (_pCodecContext == NULL)
-            g_Log->Info("_pCodecContext == NULL");
-
         m_MetaData.fade = 1.f;
         m_MetaData.fileName = _filename;
         m_MetaData.sheepID = 0;
@@ -84,26 +79,23 @@ class CVideoFrame
         m_MetaData.isSeam = false;
         m_MetaData.transitionProgress = 0.f;
 
-        m_Width = static_cast<uint32_t>(_pCodecContext->width);
-        m_Height = static_cast<uint32_t>(_pCodecContext->height);
+        m_Width = static_cast<uint32_t>(_width);
+        m_Height = static_cast<uint32_t>(_height);
 
         m_pFrame = av_frame_alloc();
 
         if (m_pFrame != NULL)
         {
-            int numBytes = av_image_get_buffer_size(
-                _format, _pCodecContext->width, _pCodecContext->height, 1);
+            int numBytes = av_image_get_buffer_size(_format, _width, _height, 1);
             m_spBuffer = std::make_shared<Base::CAlignedBuffer>(
                 static_cast<uint32_t>(numBytes) * sizeof(uint8_t));
             uint8_t* buffer = m_spBuffer->GetBufferPtr();
-            int width = _pCodecContext->width;
-            int height = _pCodecContext->height;
 
             m_pFrame->format = static_cast<int>(_format);
             m_pFrame->width  = width;
             m_pFrame->height = height;
             int ret = av_image_fill_arrays(m_pFrame->data, m_pFrame->linesize,
-                                           buffer, _format, width, height, 1);
+                                           buffer, _format, _width, _height, 1);
             if (ret < 0)
                 g_Log->Error("av_image_copy_to_buffer error %i", ret);
         }
@@ -112,6 +104,17 @@ class CVideoFrame
             g_Log->Error("m_pFrame == NULL");
             m_spBuffer = nullptr;
         }
+    }
+
+    CVideoFrame(AVCodecContext* _pCodecContext, AVPixelFormat _format,
+                std::string _filename)
+        : CVideoFrame(_pCodecContext ? _pCodecContext->width : 0,
+                      _pCodecContext ? _pCodecContext->height : 0,
+                      _format, _filename)
+    {
+        assert(_pCodecContext);
+        if (_pCodecContext == NULL)
+            g_Log->Info("_pCodecContext == NULL");
     }
 
     CVideoFrame(const AVFrame* _pFrame, int64_t _frameNumber,

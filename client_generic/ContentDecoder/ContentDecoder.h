@@ -23,6 +23,7 @@
 #ifndef _CONTENTDECODER_H
 #define _CONTENTDECODER_H
 
+#include <future>
 #include <queue>
 #include <string>
 #include <string_view>
@@ -30,7 +31,7 @@
 #include <boost/bind.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/thread/xtime.hpp>
-#include <future>
+#include <boost/atomic.hpp>
 
 //	FFmpeg headers.
 extern "C"

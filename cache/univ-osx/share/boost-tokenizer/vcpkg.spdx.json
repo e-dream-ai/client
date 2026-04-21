@@ -3,13 +3,13 @@
   "spdxVersion": "SPDX-2.2",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "documentNamespace": "https://spdx.org/spdxdocs/boost-tokenizer-arm64-osx-1.87.0-0efb59a5-4d99-40ef-905a-0281fa92ecf3",
-  "name": "boost-tokenizer:arm64-osx@1.87.0 715b01774d50597ee00cebc991cdb9bcf3f8de49027737ad61cacd834586b58c",
+  "documentNamespace": "https://spdx.org/spdxdocs/boost-tokenizer-arm64-osx-1.90.0#1-ca2ff525-64fa-4ef2-9c9d-eedbb978c218",
+  "name": "boost-tokenizer:arm64-osx@1.90.0#1 cd4ca785982f406bf0464a645ea487132d40f8cbc4dbea061ebb8d7d5abef36c",
   "creationInfo": {
     "creators": [
-      "Tool: vcpkg-2025-02-11-bec4296bf5289dc9ce83b4f5095943e44162f9c2"
+      "Tool: vcpkg-2026-03-04-4b3e4c276b5b87a649e66341e11553e8c577459c"
     ],
-    "created": "2025-03-13T17:58:08Z"
+    "created": "2026-04-17T03:29:35Z"
   },
   "relationships": [
     {
@@ -20,36 +20,66 @@
     {
       "spdxElementId": "SPDXRef-port",
       "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-file-0"
+      "relatedSpdxElement": "SPDXRef-port-file-0"
     },
     {
       "spdxElementId": "SPDXRef-port",
       "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-file-1"
+      "relatedSpdxElement": "SPDXRef-port-file-1"
+    },
+    {
+      "spdxElementId": "SPDXRef-port-file-1",
+      "relationshipType": "DEPENDENCY_MANIFEST_OF",
+      "relatedSpdxElement": "SPDXRef-port"
     },
     {
       "spdxElementId": "SPDXRef-binary",
-      "relationshipType": "GENERATED_FROM",
-      "relatedSpdxElement": "SPDXRef-port"
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-binary-file-0"
     },
     {
-      "spdxElementId": "SPDXRef-file-0",
-      "relationshipType": "CONTAINED_BY",
-      "relatedSpdxElement": "SPDXRef-port"
+      "spdxElementId": "SPDXRef-binary",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-binary-file-1"
     },
     {
-      "spdxElementId": "SPDXRef-file-1",
-      "relationshipType": "CONTAINED_BY",
-      "relatedSpdxElement": "SPDXRef-port"
+      "spdxElementId": "SPDXRef-binary",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-binary-file-2"
+    },
+    {
+      "spdxElementId": "SPDXRef-binary",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-binary-file-3"
+    },
+    {
+      "spdxElementId": "SPDXRef-binary",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-binary-file-4"
+    },
+    {
+      "spdxElementId": "SPDXRef-binary",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-binary-file-5"
+    },
+    {
+      "spdxElementId": "SPDXRef-binary",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-binary-file-6"
+    },
+    {
+      "spdxElementId": "SPDXRef-binary",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-binary-file-7"
     }
   ],
   "packages": [
     {
       "name": "boost-tokenizer",
       "SPDXID": "SPDXRef-port",
-      "versionInfo": "1.87.0",
-      "downloadLocation": "NOASSERTION",
-      "homepage": "https://www.boost.org/libs/tokenizer",
+      "versionInfo": "1.90.0#1",
+      "downloadLocation": "git+https://github.com/Microsoft/vcpkg@a8e68feb1372fbabcddfab9436a2aa99c2e6fcff",
+      "homepage": "https://www.boost.org/library/latest/tokenizer/",
       "licenseConcluded": "BSL-1.0",
       "licenseDeclared": "NOASSERTION",
       "copyrightText": "NOASSERTION",
@@ -59,7 +89,7 @@
     {
       "name": "boost-tokenizer:arm64-osx",
       "SPDXID": "SPDXRef-binary",
-      "versionInfo": "715b01774d50597ee00cebc991cdb9bcf3f8de49027737ad61cacd834586b58c",
+      "versionInfo": "cd4ca785982f406bf0464a645ea487132d40f8cbc4dbea061ebb8d7d5abef36c",
       "downloadLocation": "NONE",
       "licenseConcluded": "BSL-1.0",
       "licenseDeclared": "NOASSERTION",
@@ -69,38 +99,134 @@
     {
       "SPDXID": "SPDXRef-resource-0",
       "name": "boostorg/tokenizer",
-      "downloadLocation": "git+https://github.com/boostorg/tokenizer@boost-1.87.0",
+      "downloadLocation": "git+https://github.com/boostorg/tokenizer@boost-1.90.0",
       "licenseConcluded": "NOASSERTION",
       "licenseDeclared": "NOASSERTION",
       "copyrightText": "NOASSERTION",
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "fe5856edf63dbf58a4e27c37f813b56b058459fdc84d2f160613150b834ca823e7fc48f6baf241db1bf2734f6997c4d3aa6dfe542aab03dbe8d16000ab599609"
+          "checksumValue": "3cb26b9038d4ed33e83afa34abf1d20f69c78fb3f657301c782a4be1fb9ebaf17d9319e58d3566821df0e9f67c859678f4bfd180e1dde6326e18ddf0821313b3"
         }
       ]
     }
   ],
   "files": [
     {
-      "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/boost-tokenizer/portfile.cmake",
-      "SPDXID": "SPDXRef-file-0",
+      "fileName": "./portfile.cmake",
+      "SPDXID": "SPDXRef-port-file-0",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "179d14985d10c4ea2427958c5c36f093882e2c8af8959b011deda4694b541b3c"
+          "checksumValue": "dc7051723c3c67ba63bbbc7cd7cb63d80aeeebff687c7eb3386ba73288b65cd7"
         }
       ],
       "licenseConcluded": "NOASSERTION",
       "copyrightText": "NOASSERTION"
     },
     {
-      "fileName": ".//Users/guillaume/dev/client/vcpkg/ports/boost-tokenizer/vcpkg.json",
-      "SPDXID": "SPDXRef-file-1",
+      "fileName": "./vcpkg.json",
+      "SPDXID": "SPDXRef-port-file-1",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "edea4d5a57c6398245c73fcaec5098013a848107956d4e8be357786897ed40e7"
+          "checksumValue": "0545c67de836e002fd02ae196bfd1c569beb4a9fb96c1dd7938e4c4dc98d24f2"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./include/boost/token_iterator.hpp",
+      "SPDXID": "SPDXRef-binary-file-0",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "5830edac221eaa06db1e2a464a5c004a1200c1d4605866b59c70d3c9bcff0acd"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./include/boost/tokenizer.hpp",
+      "SPDXID": "SPDXRef-binary-file-1",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "39e6b62d5c49caa0ba3c36058f665ca7042e62cceade3301bb4299fc331621e6"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./include/boost/token_functions.hpp",
+      "SPDXID": "SPDXRef-binary-file-2",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "d49d94b79b2b0a19bfb624be1eb8bc61910b5c4ce01546dc344eefbfa1d16ebb"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./BUILD_INFO",
+      "SPDXID": "SPDXRef-binary-file-3",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "b17d8abcb0fd6454b3c1ec6556988d624863978121b87c51af8b1b6d937db69a"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./share/boost-tokenizer/copyright",
+      "SPDXID": "SPDXRef-binary-file-4",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./share/boost_tokenizer/boost_tokenizer-targets.cmake",
+      "SPDXID": "SPDXRef-binary-file-5",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "4adb91e10ec33799ef2caffb71fc7bf1b3d24064db29d89bf5de1fb9cfa4e3ef"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./share/boost_tokenizer/boost_tokenizer-config-version.cmake",
+      "SPDXID": "SPDXRef-binary-file-6",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "531953006bd53529e39e453e03a236d10fc9f7e3e2711d8f2479b1c6cdbbe2fa"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./share/boost_tokenizer/boost_tokenizer-config.cmake",
+      "SPDXID": "SPDXRef-binary-file-7",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "836f3d46a6c34ab29e5c127f8a1588db7c9c6a7a18928f538fdf8ff1a650480e"
         }
       ],
       "licenseConcluded": "NOASSERTION",

@@ -143,7 +143,7 @@ namespace sio
             return ptr(new bool_message(v));
         }
 
-        bool get_bool() const
+        bool get_bool() const override
         {
             return _v;
         }
@@ -164,14 +164,14 @@ namespace sio
             return ptr(new int_message(v));
         }
 
-        int64_t get_int() const
+        int64_t get_int() const override
         {
             return _v;
         }
 
-        double get_double() const//add double accessor for integer.
+        double get_double() const override
         {
-            return static_cast<double>(_v);
+            return static_cast<double>(_v);//add double accessor for integer.
         }
     };
 
@@ -189,7 +189,7 @@ namespace sio
             return ptr(new double_message(v));
         }
 
-        double get_double() const
+        double get_double() const override
         {
             return _v;
         }
@@ -204,7 +204,7 @@ namespace sio
         }
 
         string_message(std::string&& v)
-            :message(flag_string),_v(move(v))
+            :message(flag_string),_v(std::move(v))
         {
         }
     public:
@@ -215,10 +215,10 @@ namespace sio
 
         static message::ptr create(std::string&& v)
         {
-            return ptr(new string_message(move(v)));
+            return ptr(new string_message(std::move(v)));
         }
 
-        std::string const& get_string() const
+        std::string const& get_string() const override
         {
             return _v;
         }
@@ -237,7 +237,7 @@ namespace sio
             return ptr(new binary_message(v));
         }
 
-        std::shared_ptr<const std::string> const& get_binary() const
+        std::shared_ptr<const std::string> const& get_binary() const override
         {
             return _v;
         }
@@ -256,10 +256,10 @@ namespace sio
             return ptr(new array_message());
         }
 
-        void push(message::ptr const& message)
+        void push(message::ptr const& msg)
         {
-            if(message)
-                _v.push_back(message);
+            if(msg)
+                _v.push_back(msg);
         }
 
         void push(const std::string& text)
@@ -269,7 +269,7 @@ namespace sio
 
         void push(std::string&& text)
         {
-            _v.push_back(string_message::create(move(text)));
+            _v.push_back(string_message::create(std::move(text)));
         }
 
         void push(std::shared_ptr<std::string> const& binary)
@@ -284,9 +284,9 @@ namespace sio
                 _v.push_back(binary_message::create(binary));
         }
 
-        void insert(size_t pos,message::ptr const& message)
+        void insert(size_t pos,message::ptr const& msg)
         {
-            _v.insert(_v.begin()+pos, message);
+            _v.insert(_v.begin()+pos, msg);
         }
 
         void insert(size_t pos,const std::string& text)
@@ -296,7 +296,7 @@ namespace sio
 
         void insert(size_t pos,std::string&& text)
         {
-            _v.insert(_v.begin()+pos, string_message::create(move(text)));
+            _v.insert(_v.begin()+pos, string_message::create(std::move(text)));
         }
 
         void insert(size_t pos,std::shared_ptr<std::string> const& binary)
@@ -326,12 +326,12 @@ namespace sio
             return _v[i];
         }
 
-        std::vector<ptr>& get_vector()
+        std::vector<ptr>& get_vector() override
         {
             return _v;
         }
 
-        const std::vector<ptr>& get_vector() const
+        const std::vector<ptr>& get_vector() const override
         {
             return _v;
         }
@@ -349,9 +349,9 @@ namespace sio
             return ptr(new object_message());
         }
 
-        void insert(const std::string & key,message::ptr const& message)
+        void insert(const std::string & key,message::ptr const& msg)
         {
-            _v[key] = message;
+            _v[key] = msg;
         }
 
         void insert(const std::string & key,const std::string& text)
@@ -361,7 +361,7 @@ namespace sio
 
         void insert(const std::string & key,std::string&& text)
         {
-            _v[key] = string_message::create(move(text));
+            _v[key] = string_message::create(std::move(text));
         }
 
         void insert(const std::string & key,std::shared_ptr<std::string> const& binary)
@@ -400,12 +400,12 @@ namespace sio
             return _v.find(key) != _v.end();
         }
 
-        std::map<std::string,message::ptr>& get_map()
+        std::map<std::string,message::ptr>& get_map() override
         {
             return _v;
         }
 
-        const std::map<std::string,message::ptr>& get_map() const
+        const std::map<std::string,message::ptr>& get_map() const override
         {
             return _v;
         }
@@ -447,11 +447,10 @@ namespace sio
 
         }
 
-        list(message::ptr const& message)
+        list(message::ptr const& msg)
         {
-            if(message)
-                m_vector.push_back(message);
-
+            if(msg)
+                m_vector.push_back(msg);
         }
 
         list(const std::string& text)
@@ -461,7 +460,7 @@ namespace sio
 
         list(std::string&& text)
         {
-            m_vector.push_back(string_message::create(move(text)));
+            m_vector.push_back(string_message::create(std::move(text)));
         }
 
         list(std::shared_ptr<std::string> const& binary)
@@ -476,10 +475,10 @@ namespace sio
                 m_vector.push_back(binary_message::create(binary));
         }
 
-        void push(message::ptr const& message)
+        void push(message::ptr const& msg)
         {
-            if(message)
-                m_vector.push_back(message);
+            if(msg)
+                m_vector.push_back(msg);
         }
 
         void push(const std::string& text)
@@ -489,7 +488,7 @@ namespace sio
 
         void push(std::string&& text)
         {
-            m_vector.push_back(string_message::create(move(text)));
+            m_vector.push_back(string_message::create(std::move(text)));
         }
 
         void push(std::shared_ptr<std::string> const& binary)
@@ -504,9 +503,9 @@ namespace sio
                 m_vector.push_back(binary_message::create(binary));
         }
 
-        void insert(size_t pos,message::ptr const& message)
+        void insert(size_t pos,message::ptr const& msg)
         {
-            m_vector.insert(m_vector.begin()+pos, message);
+            m_vector.insert(m_vector.begin()+pos, msg);
         }
 
         void insert(size_t pos,const std::string& text)
@@ -516,7 +515,7 @@ namespace sio
 
         void insert(size_t pos,std::string&& text)
         {
-            m_vector.insert(m_vector.begin()+pos, string_message::create(move(text)));
+            m_vector.insert(m_vector.begin()+pos, string_message::create(std::move(text)));
         }
 
         void insert(size_t pos,std::shared_ptr<std::string> const& binary)

@@ -10,7 +10,11 @@
 #include <mutex>
 #include <queue>
 #include <cstdlib>   // for exit()
+#if defined(_WIN32) || defined(_WIN64)
+#include <stdlib.h>  // _exit() on Windows
+#else
 #include <unistd.h>  // for _exit()
+#endif
 
 #include "Exception.h"
 #include "Log.h"
@@ -31,14 +35,14 @@
 #include "ServerMessage.h"
 #include "MessageQueue.h"
 #include "Splash.h"
-#include "OSD.hpp"
+#include "../MacBuild/OSD.hpp"
 #include "StartupScreen.h"
 #include "StatsConsole.h"
 #include "TextureFlat.h"
 #include "Timer.h"
+#include "StringFormat.h"
 
 #include "PlatformUtils.h"
-#include "StringFormat.h"
 #include "CacheManager.h"
 
 // Flag to cancel the shutdown watchdog when restarting (e.g., after wizard)
@@ -74,6 +78,11 @@ typedef void (*ShowFirstTimeSetupCallback_t)();
 extern void ESSetShowFirstTimeSetupCallback(ShowFirstTimeSetupCallback_t);
 extern void ESShowFirstTimeSetup();
 
+#if defined(WIN32)
+/// True while the first-run ImGui wizard is active (used to skip game HUD compositing).
+bool FirstTimeSetupWin32_IsWizardVisible();
+#endif
+
 extern class CElectricSheep* gClientInstance;
 
 inline class CElectricSheep* g_Client() { return gClientInstance; }
@@ -84,6 +93,18 @@ inline double SpeedToPerceptualFPS(double speed) {
 
 inline float TapsToBrightness(double taps) {
     return pow(2.0, (taps / 40)) - 1 ;
+}
+
+// HUD glyphs as UTF-8 bytes. Do not use "\uXXXX" in narrow literals: MSVC may emit ASCII '?'
+// when the execution character set cannot encode that code point (HUD then shows "?").
+inline const char* HudIndicatorBulletUtf8() noexcept {
+    return "\xE2\x97\x8F"; // U+25CF BLACK CIRCLE ●
+}
+inline const char* HudBufferingArrowUtf8() noexcept {
+    return "\xE2\x86\xBB"; // U+21BB CLOCKWISE OPEN CIRCLE ARROW ↻
+}
+inline const char* HudPreloadingArrowUtf8() noexcept {
+    return "\xE2\x86\x93"; // U+2193 DOWNWARDS ARROW ↓
 }
 
 /*
@@ -276,14 +297,15 @@ class CElectricSheep
         m_StatsCodeCounter = 0;
         m_bConfigMode = false;
         m_bIsPreview = false;
+        m_bFullScreen = false;
         m_MultipleInstancesMode = false;
         printf("CElectricSheep()\n");
 
 #ifndef LINUX_GNU
-        m_AppData = "./.ElectricSheep/";
+        m_AppData = "./.e-dream/";
         m_WorkingDir = "./";
 #else
-        m_AppData = std::string(getenv("HOME")) + "/.electricsheep/";
+        m_AppData = std::string(getenv("HOME")) + "/.e-dream/";
         m_WorkingDir = SHAREDIR;
 #endif
 #ifdef DO_THREAD_UPDATE
@@ -418,22 +440,25 @@ class CElectricSheep
 
         int32_t displayMode =
             g_Settings()->Get("settings.player.DisplayMode", 2);
+        std::string rendererDesc = "Renderer";
+        if (auto spRenderer = g_Player().Renderer())
+            rendererDesc = spRenderer->Description();
         if (displayMode == 2)
             spStats->Add(
                 new Hud::CAverageCounter("displayfps",
-                                         g_Player().Renderer()->Description() +
+                                         rendererDesc +
                                              " piecewise cubic display at ",
                                          " fps", 1.0));
         else if (displayMode == 1)
             spStats->Add(
                 new Hud::CAverageCounter("displayfps",
-                                         g_Player().Renderer()->Description() +
+                                         rendererDesc +
                                              " piecewise linear display at ",
                                          " fps", 1.0));
         else
             spStats->Add(new Hud::CAverageCounter(
                 "displayfps",
-                g_Player().Renderer()->Description() + " display at ", " fps",
+                rendererDesc + " display at ", " fps",
                 1.0));
         spStats->Add(new Hud::CStringStat(std::string("zconnerror"), "", ""));
     }
@@ -880,9 +905,15 @@ class CElectricSheep
         AddSplashHud();
         AddOSDHud();
 
-        m_spCrossFade = std::make_shared<Hud::CCrossFade>(
-            g_Player().Display()->Width(), g_Player().Display()->Height(),
-            true);
+        {
+            DisplayOutput::spCDisplayOutput spDisplayForCrossFade = g_Player().Display();
+            const uint32_t crossFadeWidth =
+                spDisplayForCrossFade ? spDisplayForCrossFade->Width() : 0;
+            const uint32_t crossFadeHeight =
+                spDisplayForCrossFade ? spDisplayForCrossFade->Height() : 0;
+            m_spCrossFade = std::make_shared<Hud::CCrossFade>(
+                crossFadeWidth, crossFadeHeight, true);
+        }
         
 
         //	For testing...
@@ -944,7 +975,13 @@ class CElectricSheep
             std::make_shared<CDelayedDispatch>(
                 [&, this]() -> void
                 {
-                    if (m_bFullScreen)
+                    const auto spD = g_Player().Display();
+                    // Win32: m_bFullScreen is only updated on fullscreen toggle, not when the
+                    // app launches already fullscreen — use the display too. Mac: Metal display
+                    // does not track m_bFullScreen on the output, so m_bFullScreen must win.
+                    const bool fullscreenNow =
+                        (spD && spD->IsFullscreen()) || m_bFullScreen;
+                    if (fullscreenNow)
                         PlatformUtils::SetCursorHidden(true);
                 });
         hideCursorDispatch->DispatchAfter(5);
@@ -1202,15 +1239,7 @@ class CElectricSheep
         if (!clipMetadata)
             return;
 
-        double baseFps = 1.0;
-        try
-        {
-            baseFps = std::stod(clipMetadata->dreamData.fps);
-        }
-        catch (...)
-        {
-            baseFps = 1.0;
-        }
+        double baseFps = clipMetadata->dreamData.getFps();
 
         double currentTime = g_Player().GetCurrentClipElapsedTime(); // fallback if no frame metadata
         double totalTime = 0.0;
@@ -1319,6 +1348,27 @@ class CElectricSheep
     }
 #endif
 
+
+    // WIN32 only for now 
+    virtual bool Update()
+    {
+        g_Player().BeginFrameUpdate();
+
+        uint32_t displayCnt = g_Player().GetDisplayCount();
+
+        bool ret = true;
+        for (uint32_t i = 0; i < displayCnt; i++)
+        {
+            ret &= DoRealFrameUpdate(i);
+            if (!ret)
+                break;
+        }
+
+        g_Player().EndFrameUpdate();
+
+        return ret;
+    }
+
     //
     virtual bool Update(int _displayIdx)
     {
@@ -1394,7 +1444,8 @@ class CElectricSheep
             if (g_Player().Closed())
             {
                 g_Log->Info("Player closed...");
-                g_Player().Renderer()->EndFrame();
+                if (auto spRenderer = g_Player().Renderer())
+                    spRenderer->EndFrame();
                 return false;
             }
 
@@ -1615,7 +1666,7 @@ class CElectricSheep
                     activityLevel = clipMetadata->dreamData.activityLevel;
                     realFps = clipMetadata->decodeFps;
                     isStreamingCurrent = !(clipMetadata->dreamData.isCached());
-                    baseFps = std::stod(clipMetadata->dreamData.fps);
+                    baseFps = clipMetadata->dreamData.getFps();
                 }
 
                 const ContentDecoder::sFrameMetadata* frameMetadata =
@@ -1629,16 +1680,16 @@ class CElectricSheep
                 updateNextCheckTimeDisplay();
                 if (isStreamingCurrent) {
                     ((Hud::CStringStat*)spStats->Get("decodefps"))
-                        ->SetSample(string_format(" %.2f fps (streaming)", realFps));
-
-                } else {
+                        ->SetSample(
+                            string_format(" %.2f fps (streaming)", realFps));
+                }
+                else
+                {
                     ((Hud::CStringStat*)spStats->Get("decodefps"))
                         ->SetSample(string_format(" %.2f fps", realFps));
                 }
-
                 ((Hud::CStringStat*)spStats->Get("perceptualfps"))
                     ->SetSample(string_format(" %.2f fps", pFPS));
-
                 ((Hud::CStringStat*)spStats->Get("activityLevel"))
                     ->SetSample(string_format(" %.2f", activityLevel));
                 ((Hud::CIntCounter*)spStats->Get("displayfps"))->AddSample(1);
@@ -1651,8 +1702,10 @@ class CElectricSheep
                 std::string playlistUUID = g_Player().GetPlaylistManager().getPlaylistUUID();
                 size_t currentPosition = g_Player().GetPlaylistManager().getCurrentPosition();
                 size_t playlistSize = g_Player().GetPlaylistManager().getPlaylistSize();
-                auto currentDream = g_Player().GetPlaylistManager().getCurrentDream();
-                std::string dreamUUID = currentDream ? currentDream->uuid : "None";
+                std::string dreamUUID = g_Player().GetPlaylistManager().getCurrentDreamUUID();
+                if (dreamUUID.empty()) {
+                    dreamUUID = "None";
+                }
                 PlaybackMode mode = g_Player().GetPlaylistManager().getPlaybackMode();
 
                 // If playlist changed, reset prev to -1
@@ -1704,13 +1757,13 @@ class CElectricSheep
                 if (isBuffering && !g_Player().IsPausedForBuffering()) {
                     g_Log->Info("Pausing for buffering");
                     g_Player().SetPausedForBuffering(true);
-                    if (!m_bPaused) {
+                    if (!g_Player().IsPaused()) {
                         g_Player().SetPaused(true);
                     }
                 } else if (!isBuffering && g_Player().IsPausedForBuffering()) {
                     g_Log->Info("Buffering complete, unpausing");
                     g_Player().SetPausedForBuffering(false);
-                    if (!m_bPaused || !g_Player().IsUserPaused()) {
+                    if (!g_Player().IsPaused() || !g_Player().IsUserPaused()) {
                         g_Player().SetPaused(false);
                     }
                 }
@@ -1860,7 +1913,8 @@ class CElectricSheep
                         // Disk indicator - show when timer is active
                         if (showDisk) {
                             ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-dsk"))
-                                ->SetSample("\u25CF Disk" + std::string(spacesForDiskIndicator, ' '));
+                                ->SetSample(std::string(HudIndicatorBulletUtf8()) + " Disk" +
+                                    std::string(spacesForDiskIndicator, ' '));
                             spNetIndicator->SetColor("net-indicator-dsk", Base::Math::CVector4(1, 0, 0, 1));  // Red
                         } else {
                             ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-dsk"))
@@ -1870,7 +1924,8 @@ class CElectricSheep
                         // Busy indicator - show when timer is active
                         if (showBusy) {
                             ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-busy"))
-                                ->SetSample("\u25CF Busy" + std::string(spacesForBusyIndicator, ' '));
+                                ->SetSample(std::string(HudIndicatorBulletUtf8()) + " Busy" +
+                                    std::string(spacesForBusyIndicator, ' '));
                             spNetIndicator->SetColor("net-indicator-busy", Base::Math::CVector4(1, 0, 0, 1));  // Red
                         } else {
                             ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-busy"))
@@ -1885,7 +1940,8 @@ class CElectricSheep
                                 (internetConnected ? Base::Math::CVector4(0, 1, 0, 1) : Base::Math::CVector4(1, 0, 0, 1));
                             
                             ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-net"))
-                                ->SetSample("\u25CF Net" + std::string(spacesForNetIndicator, ' '));
+                                ->SetSample(std::string(HudIndicatorBulletUtf8()) + " Net" +
+                                    std::string(spacesForNetIndicator, ' '));
                             spNetIndicator->SetColor("net-indicator-net", netColor);
                         }
                         else
@@ -1901,7 +1957,8 @@ class CElectricSheep
                                 Base::Math::CVector4(0, 1, 0, 1) : Base::Math::CVector4(1, 0, 0, 1);
                             
                             ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-ws"))
-                                ->SetSample("\u25CF Remote" + std::string(spacesForWSIndicator, ' '));
+                                ->SetSample(std::string(HudIndicatorBulletUtf8()) + " Remote" +
+                                    std::string(spacesForWSIndicator, ' '));
                             spNetIndicator->SetColor("net-indicator-ws", wsColor);
                         }
                         else
@@ -1913,7 +1970,7 @@ class CElectricSheep
                         // Update indicator - show only when timer is active
                         if (m_UpdateIndicatorEndTime > 0.0) {
                             ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-upd"))
-                                ->SetSample("\u25CF Update");
+                                ->SetSample(std::string(HudIndicatorBulletUtf8()) + " Update");
                             spNetIndicator->SetColor("net-indicator-upd", Base::Math::CVector4(1, 1, 0, 1));  // Yellow
                         } else {
                             ((Hud::CStringStat*)spNetIndicator->Get("net-indicator-upd"))
@@ -1953,7 +2010,8 @@ class CElectricSheep
                     // Busy indicator - show when in offline/multiple instances mode
                     if (showBusy) {
                         ((Hud::CStringStat*)spStats->Get("credits-busy"))
-                            ->SetSample("\u25CF Busy" + std::string(spacesForBusyIndicator, ' '));
+                            ->SetSample(std::string(HudIndicatorBulletUtf8()) + " Busy" +
+                                    std::string(spacesForBusyIndicator, ' '));
                         spStats->SetColor("credits-busy", Base::Math::CVector4(1, 0, 0, 1));  // Red
                     } else {
                         ((Hud::CStringStat*)spStats->Get("credits-busy"))
@@ -1963,7 +2021,8 @@ class CElectricSheep
                     // Net and Remote indicators - only show in credits overlay when there's a problem (red)
                     if (showNet) {
                         ((Hud::CStringStat*)spStats->Get("credits-net"))
-                            ->SetSample("\u25CF Net" + std::string(spacesForNetIndicator, ' '));
+                            ->SetSample(std::string(HudIndicatorBulletUtf8()) + " Net" +
+                                    std::string(spacesForNetIndicator, ' '));
                         spStats->SetColor("credits-net", Base::Math::CVector4(1, 0, 0, 1));  // Red
                     } else {
                         ((Hud::CStringStat*)spStats->Get("credits-net"))
@@ -1972,7 +2031,8 @@ class CElectricSheep
 
                     if (showRemote) {
                         ((Hud::CStringStat*)spStats->Get("credits-ws"))
-                            ->SetSample("\u25CF Remote" + std::string(spacesForWSIndicator, ' '));
+                            ->SetSample(std::string(HudIndicatorBulletUtf8()) + " Remote" +
+                                    std::string(spacesForWSIndicator, ' '));
                         spStats->SetColor("credits-ws", Base::Math::CVector4(1, 0, 0, 1));  // Red
                     } else {
                         ((Hud::CStringStat*)spStats->Get("credits-ws"))
@@ -1982,7 +2042,8 @@ class CElectricSheep
                     if (showDisk) {
                         // Disk indicator with spacing (Update indicator may follow)
                         ((Hud::CStringStat*)spStats->Get("credits-dsk"))
-                            ->SetSample("\u25CF Disk" + std::string(spacesForDiskIndicator, ' '));
+                            ->SetSample(std::string(HudIndicatorBulletUtf8()) + " Disk" +
+                                    std::string(spacesForDiskIndicator, ' '));
                         spStats->SetColor("credits-dsk", Base::Math::CVector4(1, 0, 0, 1));  // Red when low
                     } else {
                         ((Hud::CStringStat*)spStats->Get("credits-dsk"))
@@ -1992,7 +2053,8 @@ class CElectricSheep
                     // Update available indicator - yellow, always leftmost when shown
                     if (showUpdate) {
                         ((Hud::CStringStat*)spStats->Get("credits-upd"))
-                            ->SetSample(std::string("\u25CF Update" + std::string(spacesForUpdateIndicator, ' ')));
+                            ->SetSample(std::string(HudIndicatorBulletUtf8()) + " Update" +
+                                    std::string(spacesForUpdateIndicator, ' '));
                         spStats->SetColor("credits-upd", Base::Math::CVector4(1, 1, 0, 1));  // Yellow
                     } else {
                         ((Hud::CStringStat*)spStats->Get("credits-upd"))
@@ -2001,9 +2063,11 @@ class CElectricSheep
 
                     // Update download indicator
                     if (isStreamingCurrent && isBuffering) {
-                        ((Hud::CStringStat*)spStats->Get("credits-download"))->SetSample("\u21BB buffering");  // ↻
+                        ((Hud::CStringStat*)spStats->Get("credits-download"))
+                            ->SetSample(std::string(HudBufferingArrowUtf8()) + " buffering");
                     } else if (isPreloading) {
-                        ((Hud::CStringStat*)spStats->Get("credits-download"))->SetSample("\u2193 preloading");  // ↓
+                        ((Hud::CStringStat*)spStats->Get("credits-download"))
+                            ->SetSample(std::string(HudPreloadingArrowUtf8()) + " preloading");
                     } else {
                         ((Hud::CStringStat*)spStats->Get("credits-download"))->SetSample("");  // Clear
                     }
@@ -2179,7 +2243,8 @@ class CElectricSheep
                 MaybeLogFramePerf(m_Timer.Time(), frameStartTime, hudStartTime);
 
                 //	Update display events.
-                g_Player().Display()->Update();
+                if (auto spDisplay = g_Player().Display())
+                    spDisplay->Update();
             }
 
             g_Player().EndDisplayFrame(displayUnit, drawn);
@@ -2454,12 +2519,18 @@ class CElectricSheep
                 return true;
                 EDreamClient::SendStateUpdate();
             case CLIENT_COMMAND_PAUSE:
-                if (m_bPaused) {
+                g_Log->Info("Pause command");
+                {
+                const bool currentlyPaused = g_Player().IsPaused();
+                const bool targetPaused = !currentlyPaused;
+                if (currentlyPaused) {
                     popOSD(Hud::Play);
                 } else {
                     popOSD(Hud::Pause);
                 }
-                g_Player().SetPaused(m_bPaused = !m_bPaused, true);
+                m_bPaused = targetPaused;
+                g_Player().SetPaused(targetPaused, true);
+                }
                 EDreamClient::SendStateUpdate();
                 return true;
             case CLIENT_COMMAND_CREDIT:
@@ -2583,6 +2654,8 @@ class CElectricSheep
     virtual bool HandleEvents()
     {
         DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
+        if (!spDisplay)
+            return true;
 
         // Handle events.
         DisplayOutput::spCEvent spEvent;

@@ -62,7 +62,7 @@ bool GetFileList(std::vector<std::string>& _list, const std::string _dir,
                                 if ((_usegoldsheep && generation >= 10000) ||
                                     (_usefreesheep && generation < 10000))
                                 {
-                                    _list.push_back(itr->path().c_str());
+                                    _list.push_back(itr->path().string());
                                     gotSheep = true;
                                 }
                             }
@@ -70,7 +70,7 @@ bool GetFileList(std::vector<std::string>& _list, const std::string _dir,
                     }
                     else
                     {
-                        _list.push_back(itr->path().c_str());
+                        _list.push_back(itr->path().string());
                         gotSheep = true;
                     }
                 }

@@ -26,52 +26,11 @@ class CLinearFrameDisplay : public CFrameDisplay
     {
         m_State = 0;
 
-        //	vertexshader...
-        static const char* linear_vertexshader = "\
-					float4x4 WorldViewProj: WORLDVIEWPROJECTION;\
-					struct VS_OUTPUT\
-					{\
-						float4 Pos  : POSITION;\
-						float2 Tex	: TEXCOORD0;\
-					};\
-					VS_OUTPUT main( float4 Pos : POSITION, float2 Tex : TEXCOORD0 )\
-					{\
-					  VS_OUTPUT Out = (VS_OUTPUT)0;\
-					  Out.Pos = mul( Pos, WorldViewProj );\
-					  Out.Tex = Tex;\
-					  return Out;\
-					}";
-
-        //	Pixelshader to lerp between two textures.
-        static const char* linear_pixelshaderDX = "\
-					float delta;\
-					float newalpha;\
-					float transPct;\
-					sampler2D texUnit1: register(s1);\
-					sampler2D texUnit2: register(s2);\
-					sampler2D texUnit3: register(s3);\
-					sampler2D texUnit4: register(s4);\
-					float4 main( float2 _uv : TEXCOORD0 ) : COLOR0\
-					{\
-						float4 c1 = tex2D( texUnit1, _uv );\
-						float4 c2 = tex2D( texUnit2, _uv );\
-						float4 c3 = lerp( c1, c2, delta );\
-						c1 = tex2D( texUnit3, _uv );\
-						c2 = tex2D( texUnit4, _uv );\
-						float4 c4 = lerp( c1, c2, delta );\
-						\
-						float4 c5 = lerp( c3, c4, transPct / 100.0 );\
-						c5.a = newalpha;\
-						return c5;\
-					}";
-
-        //	Compile the shader.
+        // DX11 and Metal use symbolic shader names. DirectDraw (eDX9) cannot
+        // compile them and falls back to plain CFrameDisplay behavior.
         switch (_spRenderer->Type())
         {
-        case DisplayOutput::eDX9:
-            m_spShader = _spRenderer->NewShader(linear_vertexshader,
-                                                linear_pixelshaderDX);
-            break;
+        case DisplayOutput::eDX11:
         case DisplayOutput::eMetal:
             m_spShader = _spRenderer->NewShader(
                 "quadPassVertex", "drawDecodedFrameLinearFrameBlendFragment",

@@ -1,0 +1,5 @@
+const float leftPadding = 140.f;
+const float topPadding = 80.f;
+
+ImGui::SetCursorPos(ImVec2(leftPadding, ImGui::GetCursorPosY() + topPadding));
+StyledCheckbox("Preserve Aspect Ratio", &g_preserveAR);

@@ -1,9 +1,0 @@
-The package boost-lambda is compatible with built-in CMake targets of FindBoost.cmake:
-
-    find_package(Boost REQUIRED COMPONENTS lambda)
-    target_link_libraries(main PRIVATE Boost::lambda)
-
-or the generated cmake configs via:
-
-    find_package(boost_lambda REQUIRED CONFIG)
-    target_link_libraries(main PRIVATE Boost::lambda)

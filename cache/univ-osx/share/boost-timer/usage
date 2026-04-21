@@ -1,9 +1,0 @@
-The package boost-timer is compatible with built-in CMake targets of FindBoost.cmake:
-
-    find_package(Boost REQUIRED COMPONENTS timer)
-    target_link_libraries(main PRIVATE Boost::timer)
-
-or the generated cmake configs via:
-
-    find_package(boost_timer REQUIRED CONFIG)
-    target_link_libraries(main PRIVATE Boost::timer)

@@ -5,5 +5,5 @@ The package boost-throw-exception is compatible with built-in CMake targets of F
 
 or the generated cmake configs via:
 
-    find_package(boost_throw_exception REQUIRED CONFIG)
+    find_package( REQUIRED CONFIG)
     target_link_libraries(main PRIVATE Boost::throw_exception)

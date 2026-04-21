@@ -1,9 +1,0 @@
-The package boost-mysql is compatible with built-in CMake targets of FindBoost.cmake:
-
-    find_package(Boost REQUIRED COMPONENTS mysql)
-    target_link_libraries(main PRIVATE Boost::mysql)
-
-or the generated cmake configs via:
-
-    find_package(boost_mysql REQUIRED CONFIG)
-    target_link_libraries(main PRIVATE Boost::mysql)

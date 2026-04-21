@@ -276,8 +276,8 @@ class CStatsConsole : public CConsole
         m_Desc.Style(DisplayOutput::CFontDescription::Normal);
         m_Desc.Italic(false);
         m_Desc.TypeFace(_FontName);
-
-        m_spFont = g_Player().Renderer()->GetFont(m_Desc);
+        // Renderer can be unavailable during early startup; lazily acquire font in Render().
+        m_spFont = nullptr;
 
         m_Stats.clear();
     }
@@ -304,9 +304,15 @@ class CStatsConsole : public CConsole
             return;
         }
 
-        m_Stats.emplace_back(
-            _pStat->m_Name,
-            StatText{_pStat, g_Player().Renderer()->NewText(m_spFont, ""), _isRightAligned, _color, _alignWithStat});
+        // Text object may be created later in Render() once a renderer is available.
+        DisplayOutput::spCBaseText newText = nullptr;
+        if (auto spRenderer = g_Player().Renderer(); spRenderer && m_spFont)
+        {
+            newText = spRenderer->NewText(m_spFont, "");
+        }
+
+        m_Stats.emplace_back(_pStat->m_Name,
+                             StatText{_pStat, newText, _isRightAligned, _color, _alignWithStat});
     }
 
     void SetColor(std::string_view _name, Base::Math::CVector4 _color)
@@ -353,11 +359,34 @@ class CStatsConsole : public CConsole
         if (g_Player().Stopped() || m_Stats.empty() || !g_Player().HasStarted())
             return true; // Skip rendering but keep entry alive (false = remove from HudManager)
 
+        // Lazily initialize font/text now that we have a renderer.
+        if (_spRenderer)
+        {
+            if (!m_spFont)
+            {
+                m_spFont = _spRenderer->GetFont(m_Desc);
+            }
+            if (m_spFont)
+            {
+                for (auto& entry : m_Stats)
+                {
+                    if (!entry.second.text)
+                    {
+                        entry.second.text = _spRenderer->NewText(m_spFont, "");
+                    }
+                }
+            }
+        }
+
+        auto spDisplay = _spRenderer->Display();
+        if (!spDisplay)
+            return true;
+
         // Scale step and edge proportionally with screen height (same reference as
         // DrawText/GetExtent) so the overlay stays visually consistent at any resolution.
         static constexpr float kHudReferenceHeight = 1080.f;
-        const float screenH = static_cast<float>(_spRenderer->Display()->Height());
-        const float screenW = static_cast<float>(_spRenderer->Display()->Width());
+        const float screenH = static_cast<float>(spDisplay->Height());
+        const float screenW = static_cast<float>(spDisplay->Width());
         const float hudScale = screenH / kHudReferenceHeight;
         float step = (float)m_Desc.Height() * hudScale / screenH;
 #ifdef SCREEN_SAVER
@@ -377,6 +406,7 @@ class CStatsConsole : public CConsole
             DisplayOutput::spCBaseText& text = i->second.text;
             if (text && e)
             {
+                text->SyncLayoutDisplay(spDisplay->Width(), spDisplay->Height());
                 text->SetEnabled(e->Visible());
 
                 float lineHeight = step;
@@ -422,10 +452,13 @@ class CStatsConsole : public CConsole
                 if (e->Visible())
                 {
                     DisplayOutput::spCBaseText& text = i->second.text;
-                    float baseY = leftStatPositions[i->second.alignWithStat];
-                    float rightX = 1.0f - edge - size.m_X;
-                    text->SetRect(Base::Math::CRect(rightX, baseY, 1.0f - edge,
-                                                    size.m_Y + baseY + step));
+                    if (text)
+                    {
+                        float baseY = leftStatPositions[i->second.alignWithStat];
+                        float rightX = 1.0f - edge - size.m_X;
+                        text->SetRect(Base::Math::CRect(rightX, baseY, 1.0f - edge,
+                                                        size.m_Y + baseY + step));
+                    }
                 }
             }
             else
@@ -434,8 +467,11 @@ class CStatsConsole : public CConsole
                 if (e->Visible())
                 {
                     DisplayOutput::spCBaseText& text = i->second.text;
-                    text->SetRect(Base::Math::CRect(edge, pos, 1,
-                                                    size.m_Y + pos + step));
+                    if (text)
+                    {
+                        text->SetRect(Base::Math::CRect(edge, pos, 1,
+                                                        size.m_Y + pos + step));
+                    }
                 }
                 pos += size.m_Y;
             }
@@ -445,8 +481,6 @@ class CStatsConsole : public CConsole
                            DisplayOutput::eBlend);
         _spRenderer->SetBlend("alphablend");
         _spRenderer->Apply();
-        _spRenderer->DrawSoftQuad(m_TotalExtent,
-                                  Base::Math::CVector4(0, 0, 0, 0.375f), 16);
 
         for (auto i = m_Stats.begin(); i != m_Stats.end(); ++i)
         {
@@ -454,7 +488,10 @@ class CStatsConsole : public CConsole
             if (e && e->Visible())
             {
                 DisplayOutput::spCBaseText& text = i->second.text;
-                _spRenderer->DrawText(text, i->second.color);
+                if (text)
+                {
+                    _spRenderer->DrawText(text, i->second.color);
+                }
             }
         }
 

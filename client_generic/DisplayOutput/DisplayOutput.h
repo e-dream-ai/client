@@ -6,6 +6,15 @@
 #include "linkpool.h"
 #include <queue>
 
+#ifdef WIN32
+#include <d3d11.h>
+#include <dxgi.h>
+
+#include <wrl.h>
+
+using Microsoft::WRL::ComPtr;
+#endif
+
 #ifdef __OBJC__
 typedef void* CGraphicsContext;
 #else
@@ -206,11 +215,25 @@ class CDisplayOutput
     virtual ~CDisplayOutput();
 
 #ifdef WIN32
-    virtual bool Initialize(HWND _hWnd, bool _bPreview) = PureVirtual;
+    //virtual bool Initialize(HWND _hWnd, bool _bPreview) = PureVirtual;
     virtual HWND Initialize(const uint32_t _width, const uint32_t _height,
                             const bool _bFullscreen) = PureVirtual;
-    virtual HWND WindowHandle(void) = PureVirtual;
-    virtual DWORD GetNumMonitors() { return 1; }
+
+    // Screensaver preview: render into a child of the Control Panel HWND (/p).
+    virtual HWND Initialize(HWND parentHwnd, bool preview)
+    {
+        (void)parentHwnd;
+        (void)preview;
+        return nullptr;
+    }
+
+    virtual HWND GetWindowHandle(void) = PureVirtual;
+    void* GetDevice() const { return nullptr; }
+    virtual IDXGISwapChain* GetSwapChain() const { return nullptr; }
+    //virtual D3DPRESENT_PARAMETERS PresentParameters() = PureVirtual;
+    //virtual void SetScreen(const uint32_t _screen) = PureVirtual;
+    //virtual DWORD GetNumMonitors() { return 1; };
+
 #else
 #ifdef MAC
     virtual bool Initialize(CGraphicsContext _graphicsContext,
@@ -229,6 +252,9 @@ class CDisplayOutput
     virtual void Title(const std::string& _title) = PureVirtual;
     virtual void Update() = PureVirtual;
     virtual void SwapBuffers() = PureVirtual;
+    virtual bool ToggleFullscreen() { return false; }
+    virtual bool SetFullscreen(const bool _fullscreen) { (void)_fullscreen; return false; }
+    virtual bool IsFullscreen() const { return m_bFullScreen; }
 
     bool GetEvent(spCEvent& _event);
     void AppendEvent(spCEvent _event);

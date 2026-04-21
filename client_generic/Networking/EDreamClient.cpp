@@ -10,11 +10,12 @@
 #include <iostream>
 #include <sstream>
 #include <chrono>
+#include <utility>
 #include <algorithm>
 #include <unistd.h>
+#include <ctime>
 
 #include "ContentDownloader.h"
-#include "StringFormat.h"
 #include "Log.h"
 #include "Player.h"
 #include "Settings.h"
@@ -113,6 +114,15 @@ std::unique_ptr<boost::asio::io_context> EDreamClient::io_context = nullptr;
 std::unique_ptr<boost::asio::steady_timer> EDreamClient::ping_timer = nullptr;
 std::unique_ptr<boost::asio::steady_timer> EDreamClient::quota_timer = nullptr;
 
+void EDreamClient::EnsureIOContext()
+{
+    if (!io_context) {
+        io_context = std::make_unique<boost::asio::io_context>();
+        ping_timer = std::make_unique<boost::asio::steady_timer>(*io_context);
+        quota_timer = std::make_unique<boost::asio::steady_timer>(*io_context);
+    }
+}
+
 static void OnQuotaUpdate(sio::event& _wsEvent);
 
 // MARK: Ping via websocket
@@ -167,7 +177,7 @@ void EDreamClient::SendPing()
     // This ensures timecode in state_sync matches what's shown on screen
     double timecode = 0.0;
     if (frameMetadata && clipMetadata) {
-        double baseFps = std::stod(clipMetadata->dreamData.fps);
+        double baseFps = clipMetadata->dreamData.getFps();
         auto [currentTime, totalTime] = CElectricSheep::CalculateTimecode(frameMetadata, baseFps);
         timecode = currentTime;
     }
@@ -308,7 +318,12 @@ void EDreamClient::UpdateQuota()
             ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%S");
             
             if (!ss.fail()) {
+                #if defined(_WIN32) || defined(_WIN64)
+                // Windows uses `_mkgmtime` for UTC conversion.
+                auto tp = std::chrono::system_clock::from_time_t(_mkgmtime(&tm));
+                #else
                 auto tp = std::chrono::system_clock::from_time_t(timegm(&tm));
+                #endif
                 quotaExpiresAt = tp;
                 cm.setQuotaExpiresAt(tp);
 
@@ -416,6 +431,7 @@ static void OnWebSocketConnected()
     fWebSocketConnectionAttempts = 0;
 }
 
+
 static void OnWebSocketClosed(const sio::client::close_reason& _reason)
 {
     g_Log->Info("WebSocket connection closed. Reason: %d", static_cast<int>(_reason));
@@ -445,15 +461,13 @@ void EDreamClient::InitializeClient()
 {
     if (g_Client()->IsMultipleInstancesMode()) {
         g_Log->Info("Disabling auth in multiple instance mode");
+        // CPlayer::Start waits on HasCompletedInitialAuth(); no auth thread here.
+        fInitialAuthComplete.store(true);
         return;
     }
 
     // Initialize io_context and timers on first use to avoid static initialization order issues
-    if (!io_context) {
-        io_context = std::make_unique<boost::asio::io_context>();
-        ping_timer = std::make_unique<boost::asio::steady_timer>(*io_context);
-        quota_timer = std::make_unique<boost::asio::steady_timer>(*io_context);
-    }
+    EnsureIOContext();
 
     // Start in offline mode until initial auth completes; this prevents
     // remote/online UI from appearing before we know the auth result.
@@ -688,14 +702,10 @@ bool EDreamClient::Authenticate()
         fAuthCV.notify_one();
         if (!shownSettingsOnce) {
             shownSettingsOnce = true;
-#ifdef __APPLE__
             bool firstTimeSetupCompleted = g_Settings()->Get("settings.app.firsttimesetup", false);
             if (!firstTimeSetupCompleted) {
                 ESShowFirstTimeSetup();
             }
-#else
-            ESShowPreferences();
-#endif
         }
         return false;
     }
@@ -856,8 +866,22 @@ bool EDreamClient::Authenticate()
 void EDreamClient::DidSignIn()
 {
     g_Log->Info("Did Sign-in");
+    // Playback may have already started in cache-only mode before the user finished sign-in
+    // (first-run wizard, etc.). We'll switch to the server playlist + Hello quota after commit below.
+    const bool needLateOnlineBootstrap =
+        g_Player().HasStarted() && g_Player().IsOfflineMode();
     fAuthRetryAbort.store(true);  // Stop auth retry loop if it was waiting (e.g. user logged in manually)
     fAuthRetryPending.store(false);
+
+    // If the app started offline (no internet), the networking infrastructure
+    // was never initialized. Transition to online mode now.
+    if (g_Client()->IsMultipleInstancesMode()) {
+        g_Log->Info("Transitioning from offline/multiple-instances mode to online");
+        g_Client()->ForceMultipleInstancesMode(false);
+        g_NetworkManager->Startup();
+        g_ContentDownloader().m_gDownloader.FindDreamsToDownload();
+    }
+
     g_Player().SetOfflineMode(false);
     std::lock_guard<std::mutex> lock(fAuthMutex);
     fIsLoggedIn.exchange(true);
@@ -870,6 +894,9 @@ void EDreamClient::DidSignIn()
     }
 
     g_Log->Info("Configuring websocket reconnect after sign-in");
+
+    // Ensure io_context exists (may not if app started offline / in multiple-instances mode).
+    EnsureIOContext();
 
     // Restart io_context deterministically before reconnecting.
     if (io_context->stopped()) {
@@ -889,6 +916,9 @@ void EDreamClient::DidSignIn()
     s_SIOClient.set_reconnect_listener(&OnWebSocketReconnect);
 
     EDreamClient::ConnectRemoteControlSocket();
+
+    if (needLateOnlineBootstrap)
+        g_Player().EnsureOnlinePlaybackAfterSignIn();
 }
 
 void EDreamClient::SignOut()
@@ -947,7 +977,10 @@ void EDreamClient::SignOut()
 
 bool EDreamClient::IsLoggedIn()
 {
+    // TODO WIN
+    //#ifdef MAC
     std::lock_guard<std::mutex> lock(fAuthMutex);
+    //#endif
     return fIsLoggedIn.load();
 }
 
@@ -1037,6 +1070,12 @@ EDreamClient::SendCodeResult EDreamClient::SendCode() {
     }
 
     return SendCodeResult{false, 0, "Cannot access Network"};
+}
+
+std::pair<bool, std::string> EDreamClient::SendVerificationCodeOutcome()
+{
+    SendCodeResult r = SendCode();
+    return {r.success, std::move(r.message)};
 }
 
 bool EDreamClient::ValidateCode(const std::string& code)
@@ -1450,7 +1489,11 @@ EDreamClient::HelloResult EDreamClient::HelloDetailed() {
             ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%S");
             
             if (!ss.fail()) {
+                #if defined(_WIN32) || defined(_WIN64)
+                auto tp = std::chrono::system_clock::from_time_t(_mkgmtime(&tm));
+                #else
                 auto tp = std::chrono::system_clock::from_time_t(timegm(&tm));
+                #endif
                 quotaExpiresAt = tp;
                 cm.setQuotaExpiresAt(tp);
 
@@ -1807,7 +1850,7 @@ bool EDreamClient::FetchPlaylist(std::string_view uuid) {
         AppendAuthHeader(spDownload);
         std::string url{string_format(
             "%s/%s", ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::GETPLAYLIST).c_str(), std::string(uuid).c_str())};
-        
+
         printf("url : %s\n", url.c_str());
         
         if (spDownload->Perform(url))
@@ -2096,7 +2139,11 @@ std::string EDreamClient::GetDreamDownloadLink(const std::string& uuid) {
 
 
 std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
-    g_Log->Info("Parse Playlist %s", uuid.empty() ? "default playlist" : uuid.data());
+    // Do not pass std::string_view to "%s" (expects null-terminated const char*).
+    if (uuid.empty())
+        g_Log->Info("Parse Playlist default playlist");
+    else
+        g_Log->Info("Parse Playlist %.*s", static_cast<int>(uuid.size()), uuid.data());
     // Grab the CacheManager
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
 
@@ -2305,6 +2352,7 @@ bool EDreamClient::EnqueuePlaylist(std::string_view uuid) {
     
     return true;
 }
+
 
 static void OnWebSocketMessage(sio::event& _wsEvent)
 {
@@ -2532,7 +2580,11 @@ static void OnQuotaUpdate(sio::event& _wsEvent)
             std::istringstream ss(expiresAtStr);
             ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%S");
             if (!ss.fail()) {
+                #if defined(_WIN32) || defined(_WIN64)
+                expiresAt = std::chrono::system_clock::from_time_t(_mkgmtime(&tm));
+                #else
                 expiresAt = std::chrono::system_clock::from_time_t(timegm(&tm));
+                #endif
             }
         }
     }

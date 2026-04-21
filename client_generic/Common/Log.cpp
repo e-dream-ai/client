@@ -95,12 +95,12 @@ void CLog::PipeReaderThread()
             break;
         }
     }
-
 }
 
 void CLog::Attach(const std::string& _location, bool multipleInstance)
 {
-    if (m_bActive) {
+    if (m_bActive)
+    {
         return;
     }
 
@@ -110,19 +110,18 @@ void CLog::Attach(const std::string& _location, bool multipleInstance)
     console_backend->add_stream(
         boost::shared_ptr<std::ostream>(&std::cout, boost::null_deleter()));
 
-    m_ConsoleSink = boost::make_shared<
-        boost::log::sinks::synchronous_sink<boost::log::sinks::text_ostream_backend>>(
-        console_backend);
+    m_ConsoleSink = boost::make_shared<boost::log::sinks::synchronous_sink<
+        boost::log::sinks::text_ostream_backend>>(console_backend);
 
     m_ConsoleSink->set_formatter(
         boost::log::expressions::stream
-        << "[" << boost::log::expressions::attr<boost::posix_time::ptime>("TimeStamp")
+        << "["
+        << boost::log::expressions::attr<boost::posix_time::ptime>("TimeStamp")
         << " - " << boost::log::trivial::severity
         << "]: " << boost::log::expressions::smessage);
 
     boost::log::core::get()->add_sink(m_ConsoleSink);
 
-    
     // Create filename with timestamp
     time_t curTime;
     time(&curTime);
@@ -132,18 +131,19 @@ void CLog::Attach(const std::string& _location, bool multipleInstance)
 
     std::stringstream s;
     s << _location << timeStamp;
-    
+
     if (multipleInstance)
     {
         pid_t pid = getpid();
         s << "_pid" << pid;
     }
-    
+
     s << ".log";
     std::string f = s.str();
 
-    m_Sink = boost::log::add_file_log(f, boost::log::keywords::format =
-                                             "[%TimeStamp% - %Severity%]: %Message%");
+    m_Sink = boost::log::add_file_log(
+        f,
+        boost::log::keywords::format = "[%TimeStamp% - %Severity%]: %Message%");
 
     boost::log::core::get()->set_filter(boost::log::trivial::severity >=
                                         boost::log::trivial::info);
@@ -184,7 +184,6 @@ void CLog::Detach(void)
     //    perror("dup2 failed");
     //    exit(EXIT_FAILURE);
     //}
-
 }
 
 /*
@@ -203,7 +202,6 @@ void CLog::SetInfo(const char* _pFileStr, const uint32_t _line,
     //m_File = tmp.substr(offs + 1, tmp.size());
     //m_Function = std::string(_pFunc);
     //m_Line = _line;
-
 }
 
 /*
@@ -246,13 +244,12 @@ void CLog::Log(
     }
 
     // Flush the sink in debug mode so we can see the logs in real time
-//#ifdef DEBUG
-//    m_Sink->flush();
-//#endif
+    //#ifdef DEBUG
+    //    m_Sink->flush();
+    //#endif
 
     if (m_Sink != nullptr)
         m_Sink->flush();
-
 
     // if (m_pFile == NULL)
     // return;
@@ -288,14 +285,14 @@ void CLog::Log(
     //    strcpy(s_MessageType, _pType);
     //}
     ///* log spam end */
-
 }
 
 #define grabvarargs                                                            \
     va_list ArgPtr;                                                            \
     char pTempStr[m_MaxMessageLength];                                         \
+    std::string fmtString(_pFmt);                                              \
     va_start(ArgPtr, _pFmt);                                                   \
-    vsnprintf(pTempStr, m_MaxMessageLength, _pFmt.data(), ArgPtr);             \
+    vsnprintf(pTempStr, m_MaxMessageLength, fmtString.c_str(), ArgPtr);        \
     va_end(ArgPtr);
 
 //    Def our loggers.

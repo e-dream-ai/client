@@ -5,29 +5,40 @@
 #error This file is not supposed to be used for this platform...
 #endif
 
-#include <d3d9.h>
-#include <d3dx9.h>
-#include <fstream>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <shellapi.h>
 #include <shlobj.h>
 #include <shlwapi.h>
 #include <string>
 #include <tchar.h>
+#include <vector>
 #include <windows.h>
-// #include "../msvc/wxApp_main.h"
+#include <wrl.h>
+
+#include "clientversion.h"
+#include "AboutDialogWin32.h"
+#include "FirstTimeSetupWin32.h"
+#include "SettingsDialogWin32.h"
 #include "Exception.h"
 #include "Log.h"
 #include "MathBase.h"
 #include "MonoInstance.h"
 #include "Player.h"
+#include "../DisplayOutput/D3D11/DisplayDX11.h"
 #include "ProcessForker.h"
 #include "Settings.h"
 #include "base.h"
 #include "storage.h"
-#if defined(WIN32) && defined(_MSC_VER)
+
+using Microsoft::WRL::ComPtr;
+
+/* #if defined (WIN32) && defined(_MSC_VER)
 #include "../msvc/msvc_fix.h"
 #endif
+*/
 
 /*
         CElectricSheep_Win32().
@@ -51,13 +62,14 @@ class CElectricSheep_Win32 : public CElectricSheep
 
     //	Mode deduced from cmdline parsing.
     eScrMode m_ScrMode;
-    IDirect3D9* m_pD3D9;
+    ComPtr<ID3D11Device> m_pD3D11;
 
     //	Previous mouse pos, for movement calcs.
     bool m_bMouseUnknown;
     int32_t m_MouseX, m_MouseY;
 
     bool m_bAllowFKey;
+    bool m_bCtrlDown;
 
     //	Grab a string from the registry.
     HRESULT RegGetString(HKEY hKey, LPCSTR szValueName, LPSTR* lpszResult)
@@ -127,10 +139,17 @@ class CElectricSheep_Win32 : public CElectricSheep
   public:
     CElectricSheep_Win32()
         : CElectricSheep(),
-          g_SingleInstanceObj("Global\\{" CLIENT_VERSION_PRETTY "}"),
-          m_bAllowFKey(false), m_pD3D9(NULL)
+#if defined(_DEBUG) || defined(DEBUG)
+          g_SingleInstanceObj("Global\\{" CLIENT_VERSION_PRETTY "-stage}")
+#else
+          g_SingleInstanceObj("Global\\{" CLIENT_VERSION_PRETTY "}")
+#endif
     {
         printf("CElectricSheep_Win32()\n");
+        m_bAllowFKey = false;
+        m_bCtrlDown = false;
+        //m_pD3D12 = NULL;
+
 
         //	Windows spawns a screensaver process with idle priority, which
         // will
@@ -143,9 +162,9 @@ class CElectricSheep_Win32 : public CElectricSheep
 
     virtual ~CElectricSheep_Win32()
     {
-        if (m_pD3D9 != NULL)
+        if (m_pD3D11 != NULL)
         {
-            m_pD3D9->Release();
+            m_pD3D11->Release();
         }
         if (m_ScrMode == eSaver || m_ScrMode == eFullScreenStandalone)
         {
@@ -188,7 +207,17 @@ class CElectricSheep_Win32 : public CElectricSheep
 
         if (*c == 0)
         {
-            m_ScrMode = eConfig;
+            char szModule[MAX_PATH] = {};
+            const DWORD got = GetModuleFileNameA(NULL, szModule, MAX_PATH);
+            const char* const ext =
+                (got > 0) ? PathFindExtensionA(szModule) : nullptr;
+
+            // Preserve classic .scr behavior: no args means "configure".
+            // For the standalone .exe, default to windowed mode.
+            if (ext != nullptr && _stricmp(ext, ".scr") == 0)
+                m_ScrMode = eConfig;
+            else
+                m_ScrMode = eWindowed;
             hwnd = NULL;
         }
         else
@@ -202,7 +231,8 @@ class CElectricSheep_Win32 : public CElectricSheep
                 while (*c == ' ' || *c == ':')
                     c++;
 
-                hwnd = (HWND)atoi(c);
+                hwnd = reinterpret_cast<HWND>(static_cast<uintptr_t>(
+                    strtoull(c, nullptr, 10)));
                 m_ScrMode = ePreview;
             }
             else if (*c == 's' || *c == 'S')
@@ -225,7 +255,8 @@ class CElectricSheep_Win32 : public CElectricSheep
                 while (*c == ' ' || *c == ':')
                     c++;
 
-                hwnd = (HWND)atoi(c);
+                hwnd = reinterpret_cast<HWND>(static_cast<uintptr_t>(
+                    strtoull(c, nullptr, 10)));
                 m_ScrMode = ePassword;
             }
             //	Windowed test mode.
@@ -279,7 +310,30 @@ class CElectricSheep_Win32 : public CElectricSheep
         if (SUCCEEDED(
                 SHGetFolderPathA(NULL, CSIDL_COMMON_APPDATA, NULL, 0, szPath)))
         {
-            PathAppendA(szPath, "\\ElectricSheep\\");
+#if defined(_DEBUG) || defined(DEBUG)
+            const char* const kDataFolder = "Infinidream-stage";
+            const char* const kLegacyFolder = "e-dream-stage";
+#else
+            const char* const kDataFolder = "Infinidream";
+            const char* const kLegacyFolder = "e-dream";
+#endif
+
+            char szLegacyPath[MAX_PATH];
+            strcpy_s(szLegacyPath, MAX_PATH, szPath);
+            PathAppendA(szLegacyPath, kLegacyFolder);
+            PathAppendA(szPath, kDataFolder);
+
+            // One-time migration (issue #574): the %ProgramData% subfolder
+            // was renamed from "e-dream" to "Infinidream". If the new folder
+            // doesn't exist yet but the legacy one does, rename it so the
+            // user keeps their downloaded content, settings, and logs.
+            if (!PathFileExistsA(szPath) && PathFileExistsA(szLegacyPath))
+            {
+                if (!MoveFileA(szLegacyPath, szPath))
+                    strcpy_s(szPath, MAX_PATH, szLegacyPath);
+            }
+
+            PathAddBackslashA(szPath);
             m_AppData = szPath;
         }
 
@@ -289,7 +343,7 @@ class CElectricSheep_Win32 : public CElectricSheep
         m_WorkingDir = ".\\";
 
         HKEY key;
-        if (!RegOpenKeyA(HKEY_LOCAL_MACHINE, "SOFTWARE\\ElectricSheep", &key))
+        if (!RegOpenKeyA(HKEY_LOCAL_MACHINE, "Software\\Infinidream", &key))
         {
             LPSTR temp;
             if (RegGetString(key, "InstallDir", &temp) == NOERROR)
@@ -299,14 +353,30 @@ class CElectricSheep_Win32 : public CElectricSheep
             }
             RegCloseKey(key);
         }
+
+        // Dev/runnable builds often have no installer registry key; in that case
+        // use the executable directory so relative asset loads work regardless
+        // of the terminal's current directory.
+        if (m_WorkingDir == ".\\" || m_WorkingDir == "./" || m_WorkingDir == ".")
+        {
+            const std::string appDir = PlatformUtils::GetAppPath();
+            if (!appDir.empty())
+                m_WorkingDir = appDir;
+        }
+
         //	If the exe is renamed to .scr, the path lacks trailing slashes
         // for some
         // bizarre reason...
         size_t len = m_WorkingDir.size();
-        if (m_WorkingDir[len - 1] != '\\')
+        if (len > 0 && m_WorkingDir[len - 1] != '\\' && m_WorkingDir[len - 1] != '/')
         {
             m_WorkingDir.append("\\");
         }
+
+        // Full screensaver (.scr /S): busy mode only when another instance holds
+        // the global mutex (see CMonoInstance block above), matching macOS
+        // .instance-lock behavior — solo saver runs auth/WebSocket; do not force
+        // ForceMultipleInstancesMode here.
 
         if (InitStorage(m_MultipleInstancesMode) == false)
         {
@@ -318,95 +388,46 @@ class CElectricSheep_Win32 : public CElectricSheep
         if (g_SingleInstanceObj.IsAnotherInstanceRunning() == false)
             AttachLog();
 
-        char szLogFileName[MAX_PATH] = "";
-
-        //  Try to open the debug-report...
-        if (GetModuleFileNameA(NULL, szLogFileName, MAX_PATH))
-        {
-            LPSTR lpszDot;
-
-            // Look for the '.' before the "EXE" extension.  Replace the
-            // extension with "RPT".
-            if ((lpszDot = strrchr(szLogFileName, '.')))
-            {
-                lpszDot++;              //  Advance past the '.'
-                strcpy(lpszDot, "RPT"); // "RPT" -> "Report"
-            }
-            else
-                strcat(szLogFileName, ".RPT");
-        }
-        else if (GetWindowsDirectoryA(szLogFileName, MAX_PATH))
-        {
-            strcat(szLogFileName, "EXCHNDL.RPT");
-        }
-
-        //  Append each line into the logfile.
-        std::string line;
-        std::ifstream rptfile(szLogFileName);
-        if (rptfile.is_open())
-        {
-            while (!rptfile.eof())
-            {
-                getline(rptfile, line);
-                g_Log->Fatal(line.c_str());
-            }
-
-            rptfile.close();
-
-            //  And finally delete the report file.
-            if (remove(szLogFileName) != 0)
-                g_Log->Warning("Failed to remove .rpt file!");
-        }
-
         std::string tmp = "Working dir: " + m_WorkingDir;
         g_Log->Info(tmp.c_str());
         g_Log->Info("Commandline: %s", GetCommandLineA());
 
         _chdir(m_WorkingDir.c_str());
 
-        //	Run gui.
         if (m_ScrMode == eConfig)
         {
-            g_Log->Info("Running config.");
-            // #ifdef _DEBUG
-            //					#pragma comment(lib,
-            //"wxbase29ud.lib") 					#pragma
-            // comment(lib, "wxmsw29ud_core.lib")
-            // #pragma comment(lib, "wxpngd.lib")
-            // #pragma comment(lib, "wxzlibd.lib") #else
-            // #pragma comment(lib,
-            //"wxbase29u.lib") 					#pragma
-            // comment(lib, "wxmsw29u_core.lib")
-            // #pragma comment(lib, "wxpng.lib")
-            // #pragma comment(lib, "wxzlib.lib") #endif
-            // #pragma comment(lib,
-            //"comctl32.lib") 					#pragma
-            // comment(lib, "rpcrt4.lib")
-            //
-            //					wxApp::SetInstance(new
-            // wxWidgetsApp());
-            //					::wxEntry( GetModuleHandle(NULL)
-            //);
+            char szCfgModule[MAX_PATH] = {};
+            const DWORD cfgGot = GetModuleFileNameA(NULL, szCfgModule, MAX_PATH);
+            const char* const cfgExt =
+                (cfgGot > 0) ? PathFindExtensionA(szCfgModule) : nullptr;
+            const bool launchedFromScr =
+                cfgExt != nullptr && _stricmp(cfgExt, ".scr") == 0;
 
-            SHELLEXECUTEINFOA sei = {0};
-            sei.cbSize = sizeof(sei);
-            sei.fMask = SEE_MASK_NOASYNC | SEE_MASK_NOCLOSEPROCESS;
-            sei.hwnd = NULL;
-            if (IsUserAnAdmin())
-                sei.lpVerb = "open";
-            else
-                sei.lpVerb = "runas";
-            sei.lpFile = "settingsgui.exe";
-            sei.lpParameters = NULL;
-            sei.lpDirectory = m_WorkingDir.c_str();
-            sei.nShow = SW_SHOWNORMAL;
-            if (ShellExecuteExA(&sei) == TRUE)
+            if (launchedFromScr)
             {
-                WaitForSingleObject(sei.hProcess, INFINITE);
-                CloseHandle(sei.hProcess);
+                g_Log->Info("Configure/settings from .scr: show message to use standalone app.");
+                MessageBoxA(
+                    NULL,
+                    "You cannot change settings from the screensaver (.scr).\n\n"
+                    "Run infinidream (the desktop program, infinidream.exe) and open "
+                    "Settings from there.",
+                    "infinidream - Settings",
+                    MB_OK | MB_ICONINFORMATION);
+            }
+            else
+            {
+                g_Log->Info("Running config (no GUI; edit JSON settings).");
+                MessageBoxA(
+                    NULL,
+                    "The old wxWidgets settings application has been removed.\n\n"
+                    "Edit the JSON settings file (" CLIENT_SETTINGS
+                    ".json) in your data folder, next to this program, or wherever "
+                    "the client stores its configuration.\n\n"
+                    "Then run the screensaver or player normally.",
+                    "infinidream - Settings",
+                    MB_OK | MB_ICONINFORMATION);
             }
             m_bConfigMode = true;
-
             return false;
         }
 
@@ -422,6 +443,13 @@ class CElectricSheep_Win32 : public CElectricSheep
             ForceMultipleInstancesMode(true);
         }
 
+        const bool allowOverlays = (m_ScrMode != eSaver && m_ScrMode != ePreview);
+        FirstTimeSetupWin32_SetOverlayAllowed(allowOverlays);
+        AboutDialogWin32_SetOverlayAllowed(allowOverlays);
+        SettingsDialogWin32_SetOverlayAllowed(allowOverlays);
+        FirstTimeSetupWin32_Register();
+        SettingsDialogWin32_Register();
+
         //	A window was provided, let's use it.
         if (hwnd)
             g_Player().SetHWND(hwnd);
@@ -436,21 +464,24 @@ class CElectricSheep_Win32 : public CElectricSheep
             // WM_SETTINGCHANGE );
         }
 
-        //	User wants windowed?
+        //	User wants windowed? (preview is always embedded child window)
         if (m_ScrMode == eWindowed ||
-            m_ScrMode == eWindowed_AllowMultipleInstances)
+            m_ScrMode == eWindowed_AllowMultipleInstances ||
+            m_ScrMode == ePreview)
             g_Player().Fullscreen(false);
 
         uint32_t monnum = g_Settings()->Get("settings.player.screen", 0);
 
-        m_pD3D9 = Direct3DCreate9(D3D_SDK_VERSION);
+        // m_pD3D9 = Direct3DCreate9(D3D_SDK_VERSION);
 
-        if (g_Player().AddDisplay(
-                g_Settings()->Get("settings.player.screen", 0), m_pD3D9,
-                g_Settings()->Get("settings.player.MultiDisplayMode", 0) ==
-                        CPlayer::kMDSingleScreen &&
-                    m_ScrMode != eFullScreenStandalone &&
-                    m_ScrMode != eWindowed) == false)
+        const uint32_t requestedScreen =
+            g_Settings()->Get("settings.player.screen", 0);
+        const bool blankOtherDisplays =
+            (g_Settings()->Get("settings.player.MultiDisplayMode", 0) ==
+             CPlayer::kMDSingleScreen) &&
+            (m_ScrMode != eFullScreenStandalone) && (m_ScrMode != eWindowed);
+
+        if (g_Player().AddDisplay(requestedScreen, blankOtherDisplays) == -1)
         {
             bool foundfirstmon = false;
             g_Log->Error("AddDisplay failed for screen %d", monnum);
@@ -459,7 +490,7 @@ class CElectricSheep_Win32 : public CElectricSheep
             while (monnum < 9)
             {
                 g_Log->Info("Trying monitor %d", monnum);
-                if (g_Player().AddDisplay(monnum, m_pD3D9) == true)
+                if (g_Player().AddDisplay(monnum, blankOtherDisplays) != -1)
                 {
                     foundfirstmon = true;
                     g_Log->Info("Monitor %d ok", monnum);
@@ -477,7 +508,7 @@ class CElectricSheep_Win32 : public CElectricSheep
         else
             g_Log->Info("AddDisplay succeeded for screen %d",
                         g_Settings()->Get("settings.player.screen", 0));
-        if (m_ScrMode != eWindowed &&
+        /* if (m_ScrMode != eWindowed &&
             m_ScrMode != eWindowed_AllowMultipleInstances &&
             g_Settings()->Get("settings.player.MultiDisplayMode", 0) !=
                 CPlayer::kMDSingleScreen)
@@ -488,10 +519,28 @@ class CElectricSheep_Win32 : public CElectricSheep
                     g_Log->Info("AddDisplay succeeded for screen %d", dw);
                 else
                     g_Log->Error("AddDisplay failed for screen %d", dw);
-            }
+            }*/
         //
         if (CElectricSheep::Startup() == false)
             return false;
+
+        // Keep the dream rendering while a menu bar popup is open.
+        // Windows enters a modal menu-tracking loop on the main thread when the
+        // user clicks a menu, which blocks our Run() loop entirely.  We install
+        // a ~60 fps WM_TIMER that fires during that modal loop so the display
+        // continues to update visually.
+        if (m_ScrMode != ePreview && m_ScrMode != eSaver)
+        {
+            if (auto spDisplay = g_Player().Display())
+            {
+                if (auto* pDX11 = dynamic_cast<DisplayOutput::CDisplayDX11*>(spDisplay.get()))
+                {
+                    pDX11->SetMenuLoopRenderCallback([this]() {
+                        CElectricSheep_Win32::Update();
+                    });
+                }
+            }
+        }
 
         //	Reset mouse calcs.
         m_bMouseUnknown = true;
@@ -499,8 +548,34 @@ class CElectricSheep_Win32 : public CElectricSheep
         return true;
     }
 
+    // @TODO : Might no longer be needed, need to triple check as there is a lot of code moved to client already
+    
     virtual bool HandleOneEvent(DisplayOutput::spCEvent& _event)
     {
+        auto toggleFullscreenInPlace = [this]() -> bool
+        {
+            DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
+            if (!spDisplay)
+            {
+                g_Log->Warning("Fullscreen toggle requested but display is null");
+                return false;
+            }
+
+            if (!spDisplay->ToggleFullscreen())
+            {
+                g_Log->Warning("Fullscreen toggle failed");
+                return false;
+            }
+
+            const bool nowFullscreen = spDisplay->IsFullscreen();
+            g_Client()->SetIsFullScreen(nowFullscreen);
+            if (nowFullscreen)
+                m_ScrMode = eFullScreenStandalone;
+            else
+                m_ScrMode = m_MultipleInstancesMode ? eWindowed_AllowMultipleInstances : eWindowed;
+            return true;
+        };
+
         //	Handle events.
         if (_event->Type() == DisplayOutput::CEvent::Event_Power)
         {
@@ -512,38 +587,31 @@ class CElectricSheep_Win32 : public CElectricSheep
             if (_event->Type() == DisplayOutput::CEvent::Event_KEY)
             {
                 DisplayOutput::spCKeyEvent spKey =
-                    static_cast<DisplayOutput::spCKeyEvent>(_event);
+                    std::dynamic_pointer_cast<DisplayOutput::CKeyEvent>(_event);
+                m_bCtrlDown = ((GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0);
 
                 switch (spKey->m_Code)
                 {
                 case DisplayOutput::CKeyEvent::KEY_Esc:
-                    if (m_ScrMode !=
-                        eFullScreenStandalone) // esc exits windowed and
-                                               // screensaver mode
+                    if (m_ScrMode == eSaver || m_ScrMode == ePreview)
                         return false;
-                    else
                     {
-                        ::Base::RecreateProcess(std::string("-X"));
-                        return false;
+                        DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
+                        if (spDisplay && spDisplay->IsFullscreen())
+                            return toggleFullscreenInPlace();
                     }
+                    return false;
                     break;
 
                 case DisplayOutput::CKeyEvent::KEY_F:
+                    if (m_ScrMode != eSaver && m_bCtrlDown)
+                        return toggleFullscreenInPlace();
                     if (m_bAllowFKey == true)
-                    {
-                        if (m_ScrMode == eWindowed ||
-                            m_ScrMode == eWindowed_AllowMultipleInstances)
-                        {
-                            // restart or change display here
-                            ::Base::RecreateProcess(std::string("-R"));
-                            return false;
-                        }
-                        else
-                        {
-                            ::Base::RecreateProcess(std::string("-X"));
-                            return false;
-                        }
-                    }
+                        return toggleFullscreenInPlace();
+                    break;
+                case DisplayOutput::CKeyEvent::KEY_F11:
+                    if (m_ScrMode != eSaver)
+                        return toggleFullscreenInPlace();
                     break;
                 case DisplayOutput::CKeyEvent::KEY_TAB:
                     if (m_ScrMode != eWindowed &&
@@ -554,13 +622,20 @@ class CElectricSheep_Win32 : public CElectricSheep
                 case DisplayOutput::CKeyEvent::KEY_LALT:
                 case DisplayOutput::CKeyEvent::KEY_MENU:
                 case DisplayOutput::CKeyEvent::KEY_CTRL:
+                    m_bCtrlDown = ((GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0);
                     break;
 
                 //	All other keys close...
                 default:
                 {
-                    uint32_t x = spKey->m_Code;
-                    g_Log->Info("Key event, closing");
+                    // Keep legacy "any key closes" behavior for saver/preview.
+                    if (m_ScrMode == eSaver || m_ScrMode == ePreview)
+                    {
+                        g_Log->Info("Unhandled key event in saver/preview, closing");
+                        return false;
+                    }
+                    // In app/player modes, let the core client command handler
+                    // process hotkeys first.
                     return false;
                 }
                 }
@@ -577,7 +652,7 @@ class CElectricSheep_Win32 : public CElectricSheep
                         m_ScrMode != eFullScreenStandalone)
                     {
                         DisplayOutput::spCMouseEvent spMouse =
-                            static_cast<DisplayOutput::spCMouseEvent>(_event);
+                            std::dynamic_pointer_cast<DisplayOutput::CMouseEvent>(_event);
 
                         if (spMouse->m_Code ==
                             DisplayOutput::CMouseEvent::Mouse_MOVE)
@@ -618,10 +693,12 @@ class CElectricSheep_Win32 : public CElectricSheep
                 }
         return false;
     }
-
+    
     virtual bool HandleEvents()
     {
         DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
+        if (!spDisplay)
+            return true;
 
         //	Handle events.
         DisplayOutput::spCEvent spEvent;
@@ -630,21 +707,36 @@ class CElectricSheep_Win32 : public CElectricSheep
             if (HandleOneEvent(spEvent) == false)
             {
                 if (CElectricSheep::HandleOneEvent(spEvent) == false)
+                {
+                    if (spEvent->Type() == DisplayOutput::CEvent::Event_KEY &&
+                        (m_ScrMode == eWindowed ||
+                         m_ScrMode == eWindowed_AllowMultipleInstances ||
+                         m_ScrMode == eFullScreenStandalone))
+                    {
+                        // In app/player modes, ignore truly unmapped keys.
+                        continue;
+                    }
                     return false;
+                }
             }
         }
+
+        ProcessCommandQueue();
 
         return true;
     }
     //
-    bool Update()
+
+    virtual bool Update()
     {
-        g_Player().Framerate(m_CurrentFps);
+        //g_Player().Framerate(m_CurrentFps);
 
         if (!CElectricSheep::Update())
             return false;
 
         DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
+        if (!spDisplay)
+            return true;
 
         //	We ignore events in preview mode.
         if (m_ScrMode == ePreview)
@@ -653,7 +745,33 @@ class CElectricSheep_Win32 : public CElectricSheep
             return true;
         }
 
-        static const float voteDelaySeconds = 1;
+        //static const float voteDelaySeconds = 1;
+        return HandleEvents();
+    } 
+
+    // TODO : Never called ?
+    virtual bool Update(int _displayIdx)
+    {
+        //g_Player().Framerate(m_CurrentFps);
+
+        // We don't use a separate update/render thread on Win32.
+        // Ignore barriers and perform a normal per-display update.
+        if (!CElectricSheep::Update(_displayIdx))
+            return false;
+
+        DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
+        if (!spDisplay)
+            return true;
+
+        //	We ignore events in preview mode.
+        if (m_ScrMode == ePreview)
+        {
+            spDisplay->ClearEvents();
+            return true;
+        }
+
+        //static const float voteDelaySeconds = 1;
+        // @TODO: Might need to return true here and not HandleEvents, like mac client does now?
         return HandleEvents();
     }
 

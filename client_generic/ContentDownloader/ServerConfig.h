@@ -8,6 +8,10 @@
 #ifndef SERVER_CONFIG_MANAGER_H
 #define SERVER_CONFIG_MANAGER_H
 
+#if defined(_WIN32) && !defined(STAGE) && (defined(_DEBUG) || defined(DEBUG))
+#define STAGE
+#endif
+
 #include <string>
 #include <string_view>
 #include <map>

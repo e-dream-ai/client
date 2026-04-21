@@ -1,9 +1,0 @@
-The package boost-assign is compatible with built-in CMake targets of FindBoost.cmake:
-
-    find_package(Boost REQUIRED COMPONENTS assign)
-    target_link_libraries(main PRIVATE Boost::assign)
-
-or the generated cmake configs via:
-
-    find_package(boost_assign REQUIRED CONFIG)
-    target_link_libraries(main PRIVATE Boost::assign)

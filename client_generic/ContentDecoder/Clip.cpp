@@ -52,7 +52,11 @@ m_CurrentFrameMetadata{}, m_HasFinished(false), m_IsFadingOut(false)
     m_spFrameDisplay->SetDisplaySize(_displayWidth, _displayHeight);
 
 #ifndef LINUX_GNU
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
+    AVPixelFormat pf = AV_PIX_FMT_RGBA;
+#else
     AVPixelFormat pf = AV_PIX_FMT_RGB32;
+#endif
 
     // On PowerPC machines we need to use different pixel format!
 #if defined(MAC) && defined(__BIG_ENDIAN__)
@@ -369,6 +373,13 @@ bool CClip::Update(double _timelineTime, bool isPaused)
     if (m_spFrameData == nullptr)
         return false;
 
+    // Triple check that we have a frame to display. Seems like an issue on WIN32 somehow ?
+    if (m_spFrameData == nullptr)
+	{
+        g_Log->Error("GrabVideoFrame() returned true but no frame data available?");
+		return false;
+	}
+
     uint32_t idx = m_spFrameData->GetMetaData().frameIdx;
     uint32_t maxIdx = m_spFrameData->GetMetaData().maxFrameIdx;
     double delta = m_DecoderClock.interframeDelta / m_ClipMetadata.decodeFps;
@@ -479,7 +490,7 @@ bool CClip::GrabVideoFrame()
             /*g_Log->Info("GrabVideoFrame() - Successfully grabbed frame %d",
                         m_CurrentFrameMetadata.frameIdx);*/
         }
-#if !USE_HW_ACCELERATION
+#if !USE_HW_ACCELERATION || defined(WIN32)
         if (m_spImageRef->GetWidth() != m_spFrameData->Width() ||
             m_spImageRef->GetHeight() != m_spFrameData->Height())
         {
@@ -499,13 +510,13 @@ bool CClip::GrabVideoFrame()
             return false;
         if (m_spFrameData->Frame())
         {
-#if USE_HW_ACCELERATION || defined(LINUX_GNU)
-                //g_Log->Info("BindFrame %d", m_CurrentFrameMetadata.frameIdx);
-                currentTexture->BindFrame(m_spFrameData);
+#if USE_HW_ACCELERATION && !defined(WIN32)
+            //g_Log->Info("BindFrame %d", m_CurrentFrameMetadata.frameIdx);
+            currentTexture->BindFrame(m_spFrameData);
 #else
-                //    Set image texturedata and upload to texture.
-                m_spImageRef->SetStorageBuffer(m_spFrameData->StorageBuffer());
-                currentTexture->Upload(m_spImageRef);
+            // Set image texture data and upload to texture.
+            m_spImageRef->SetStorageBuffer(m_spFrameData->StorageBuffer());
+            currentTexture->Upload(m_spImageRef);
 #endif
         }
     }
@@ -547,6 +558,32 @@ void CClip::SetStartTime(double _startTime)
 void CClip::FadeOut(double _currentTimelineTime)
 {
     m_EndTime = _currentTimelineTime + m_FadeOutSeconds;
+}
+
+void CClip::UpdatePlaybackRate(double _newFps, double _currentTimelineTime)
+{
+    m_ClipMetadata.decodeFps = _newFps;
+
+    // If the clip is already fading out, FadeOut() has deliberately pinned
+    // m_EndTime to a "stop N seconds from now" deadline; don't un-end it.
+    if (m_IsFadingOut.load())
+        return;
+
+    uint32_t idx = 0;
+    uint32_t maxIdx = 0;
+    {
+        std::shared_lock<std::shared_mutex> lock(m_CurrentFrameMetadataLock);
+        idx = m_CurrentFrameMetadata.frameIdx;
+        maxIdx = m_CurrentFrameMetadata.maxFrameIdx;
+    }
+
+    // Decoder hasn't populated frame metadata yet — SetStartTime will handle
+    // m_EndTime once the clip is actually started.
+    if (maxIdx == 0 || _newFps <= 0.0)
+        return;
+
+    double remainingFrames = (maxIdx > idx) ? static_cast<double>(maxIdx - idx) : 0.0;
+    m_EndTime = _currentTimelineTime + remainingFrames / _newFps;
 }
 
 void CClip::SkipTime(float _secondsForward)

@@ -18,12 +18,11 @@
 #include "Settings.h"
 #include "PathManager.h"
 #include "Timer.h"
-#include "StringFormat.h"
 #include "EDreamClient.h"
 #include "CacheManager.h"
 
 // TODOWINDOWS POSIX ONLY
-#include <unistd.h>
+//#include <unistd.h>
 
 using boost::filesystem::directory_iterator;
 using boost::filesystem::exists;

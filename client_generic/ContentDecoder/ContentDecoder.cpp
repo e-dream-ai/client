@@ -24,6 +24,9 @@
 #include <boost/filesystem.hpp> // TODO: We need to unify to std::fs someday
 #include <string>
 #include <sys/stat.h>
+#if defined(_WIN32) || defined(_WIN64)
+#include <io.h>  // _commit()
+#endif
 #include <algorithm>
 #include <filesystem>
 #include <future>
@@ -151,28 +154,35 @@ int CContentDecoder::DumpError(int _err)
 {
     if (_err < 0)
     {
+#ifdef MAC
+        const char* errStr = UNFFERRTAG(_err);
+#else
+        std::string numStr = std::to_string(_err);
+        const char* errStr = numStr.c_str();
+#endif
         switch (_err)
         {
+
             case AVERROR_INVALIDDATA:
                 g_Log->Error("FFmpeg error %s: Error while parsing header",
-                             UNFFERRTAG(_err));
+                             errStr);
                 break;
             case AVERROR(EIO):
                 g_Log->Error(
                              "FFmpeg error %s: I/O error occured. Usually that means "
                              "that input file is truncated and/or corrupted.",
-                             UNFFERRTAG(_err));
+                    errStr);
                 break;
             case AVERROR(ENOMEM):
                 g_Log->Error("FFmpeg error %s: Memory allocation error occured",
-                             UNFFERRTAG(_err));
+                             errStr);
                 break;
             case AVERROR(ENOENT):
-                g_Log->Error("FFmpeg error %s: ENOENT", UNFFERRTAG(_err));
+                g_Log->Error("FFmpeg error %s: ENOENT", errStr);
                 break;
             default:
                 g_Log->Error("FFmpeg error %s: Error while opening file",
-                             UNFFERRTAG(_err));
+                             errStr);
                 break;
         }
     }
@@ -486,7 +496,8 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
                 // Send NULL packet to start flushing
                 int flushRet = avcodec_send_packet(pVideoCodecContext, nullptr);
                 if (flushRet < 0 && flushRet != AVERROR_EOF) {
-                    g_Log->Error("Error starting decoder flush: %s", UNFFERRTAG(flushRet));
+                    char errTag[5] = { (char)(-flushRet & 0xFF), (char)((-flushRet >> 8) & 0xFF), (char)((-flushRet >> 16) & 0xFF), (char)((-flushRet >> 24) & 0xFF), 0 };
+                    g_Log->Error("Error starting decoder flush: %s", errTag);
                     return nullptr;
                 }
                 
@@ -519,8 +530,8 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
                     return nullptr;
                 }
                 g_Log->Error(
-                             "Error receiving packet from bit stream filter: %s",
-                             UNFFERRTAG(ret));
+                             "Error receiving packet from bit stream filter: %i",
+                             ret);
             }
             if (filteredPacket->size)
             {
@@ -561,8 +572,8 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
                     av_packet_free(&filteredPacket);
                     continue;
                 }
-                g_Log->Error("FFmpeg Error sending packet for decoding: %i:%s", ret,
-                             UNFFERRTAG(ret));
+                { char errTag[5] = { (char)(-ret & 0xFF), (char)((-ret >> 8) & 0xFF), (char)((-ret >> 16) & 0xFF), (char)((-ret >> 24) & 0xFF), 0 };
+                  g_Log->Error("FFmpeg Error sending packet for decoding: %i:%s", ret, errTag); }
             }
         }
         
@@ -595,7 +606,8 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
         
         if (ret < 0)
         {
-            g_Log->Error("FFmpeg Error decoding: %s", UNFFERRTAG(ret));
+            char errTag[5] = { (char)(-ret & 0xFF), (char)((-ret >> 8) & 0xFF), (char)((-ret >> 16) & 0xFF), (char)((-ret >> 24) & 0xFF), 0 };
+            g_Log->Error("FFmpeg Error decoding: %s", errTag);
             av_packet_free(&packet);
             av_packet_free(&filteredPacket);
             continue;
@@ -701,15 +713,44 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
         
         if (USE_HW_ACCELERATION)
         {
+            const std::string frameSource = ovi ? ovi->m_Path : std::string();
             pVideoFrame = new CVideoFrame(pFrame, frameNumber,
-                                          std::string(pFormatContext->url));
+                                          frameSource);
         }
         else
         {
+            const int srcWidth = (pFrame && pFrame->width > 0) ? pFrame->width : pVideoCodecContext->width;
+            const int srcHeight = (pFrame && pFrame->height > 0) ? pFrame->height : pVideoCodecContext->height;
+            const AVPixelFormat srcPixelFormat =
+                (pFrame && pFrame->format != AV_PIX_FMT_NONE)
+                    ? static_cast<AVPixelFormat>(pFrame->format)
+                    : pVideoCodecContext->pix_fmt;
+
+            if (srcWidth <= 0 || srcHeight <= 0)
+            {
+                g_Log->Error("Invalid frame dimensions for scaler: %dx%d (codec: %dx%d)",
+                             srcWidth, srcHeight,
+                             pVideoCodecContext->width, pVideoCodecContext->height);
+                av_frame_unref(pFrame);
+                av_packet_free(&packet);
+                av_packet_free(&filteredPacket);
+                return nullptr;
+            }
+            if (srcPixelFormat == AV_PIX_FMT_NONE)
+            {
+                g_Log->Error("Invalid source pixel format for scaler (frame: %d, codec: %d)",
+                             pFrame ? pFrame->format : -1,
+                             pVideoCodecContext->pix_fmt);
+                av_frame_unref(pFrame);
+                av_packet_free(&packet);
+                av_packet_free(&filteredPacket);
+                return nullptr;
+            }
+
             //    If the decoded video has a different resolution, delete the
             //    scaler to trigger it to be recreated.
-            if (m_ScalerWidth != (uint32_t)pVideoCodecContext->width ||
-                m_ScalerHeight != (uint32_t)pVideoCodecContext->height)
+            if (m_ScalerWidth != (uint32_t)srcWidth ||
+                m_ScalerHeight != (uint32_t)srcHeight)
             {
                 g_Log->Info("size doesn't match, recreating");
                 
@@ -726,28 +767,59 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
                 g_Log->Info("creating m_pScaler");
                 
                 m_pScaler = sws_getContext(
-                                           pVideoCodecContext->width, pVideoCodecContext->height,
-                                           static_cast<AVPixelFormat>(pFrame->format),
-                                           pVideoCodecContext->width,
-                                           pVideoCodecContext->height, m_WantedPixelFormat,
+                                           srcWidth, srcHeight,
+                                           srcPixelFormat, srcWidth,
+                                           srcHeight, m_WantedPixelFormat,
                                            SWS_BICUBIC, nullptr, nullptr, nullptr);
                 
                 //    Store width & height now...
-                m_ScalerWidth =
-                static_cast<uint32_t>(pVideoCodecContext->width);
-                m_ScalerHeight = (uint32_t)pVideoCodecContext->height;
+                m_ScalerWidth = static_cast<uint32_t>(srcWidth);
+                m_ScalerHeight = static_cast<uint32_t>(srcHeight);
                 
                 if (m_pScaler == nullptr)
-                    g_Log->Warning("scaler == null");
+                {
+                    g_Log->Error("scaler == null (src: %dx%d, pix_fmt: %d, wanted: %d)",
+                                 srcWidth, srcHeight,
+                                 srcPixelFormat,
+                                 m_WantedPixelFormat);
+                    av_frame_unref(pFrame);
+                    av_packet_free(&packet);
+                    av_packet_free(&filteredPacket);
+                    return nullptr;
+                }
             }
+            const std::string frameSource = ovi ? ovi->m_Path : std::string();
             pVideoFrame =
-            new CVideoFrame(pVideoCodecContext, m_WantedPixelFormat,
-                            std::string(pFormatContext->url));
+            new CVideoFrame(srcWidth, srcHeight, m_WantedPixelFormat,
+                            frameSource);
             AVFrame* pDest = pVideoFrame->Frame();
+
+            if (!pDest || !pDest->data[0])
+            {
+                g_Log->Error("Invalid destination frame buffer for scaler (wanted: %d)",
+                             m_WantedPixelFormat);
+                delete pVideoFrame;
+                pVideoFrame = nullptr;
+                av_frame_unref(pFrame);
+                av_packet_free(&packet);
+                av_packet_free(&filteredPacket);
+                return nullptr;
+            }
             
             // printf( "calling sws_scale()" );
-            sws_scale(m_pScaler, pFrame->data, pFrame->linesize, 0,
-                      pVideoCodecContext->height, pDest->data, pDest->linesize);
+            const int scaledLines = sws_scale(m_pScaler, pFrame->data, pFrame->linesize, 0,
+                                              srcHeight, pDest->data, pDest->linesize);
+            if (scaledLines <= 0)
+            {
+                g_Log->Error("sws_scale failed: %d (src: %dx%d, src_fmt: %d, dst_fmt: %d)",
+                             scaledLines, srcWidth, srcHeight, srcPixelFormat, m_WantedPixelFormat);
+                delete pVideoFrame;
+                pVideoFrame = nullptr;
+                av_frame_unref(pFrame);
+                av_packet_free(&packet);
+                av_packet_free(&filteredPacket);
+                return nullptr;
+            }
         }
         
         av_frame_unref(pFrame);
@@ -811,10 +883,7 @@ void CContentDecoder::ReadFramesThread()
             if (fpclassify(skipTime) != FP_ZERO)
             {
                 // Get base FPS from playlist/dream metadata
-                double baseFps = 20.0; // fallback default
-                if (!m_Metadata.dreamData.fps.empty()) {
-                    baseFps = std::stod(m_Metadata.dreamData.fps);
-                }
+                double baseFps = m_Metadata.dreamData.getFps();
                 
                 // Use the display frame index if available (from SkipToFrame), otherwise use decoder's index
                 // The display frame index is more accurate as it represents what's actually being displayed
@@ -1139,12 +1208,18 @@ void CContentDecoder::FinalizeCacheFile()
             fflush(m_CacheFile);
             
             // Platform-specific sync to ensure data is written to disk
+#ifdef _WIN32
+            int fd = _fileno(m_CacheFile);
+#else
             int fd = fileno(m_CacheFile);
+#endif
 #ifdef __APPLE__
             // On macOS, use F_BARRIERFSYNC for proper flush
             if (fcntl(fd, F_BARRIERFSYNC) == -1) {
                 g_Log->Warning("F_BARRIERFSYNC failed for %s", m_Metadata.dreamData.uuid.c_str());
             }
+#elif defined(_WIN32) || defined(_WIN64)
+            _commit(fd);
 #else
             // On Linux/other platforms, use fsync
             fsync(fd);

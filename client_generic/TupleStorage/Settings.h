@@ -150,6 +150,7 @@ class CSettings : public Base::CSingleton<CSettings>
         return ret;
     }
 
+#ifdef MAC
     std::string Get(std::string_view _url,
                     const std::string_view _default = nullptr)
     {
@@ -168,6 +169,21 @@ class CSettings : public Base::CSingleton<CSettings>
         }
             
     }
+#else
+    std::string Get(std::string_view _url, const std::string_view _default = {})
+    {
+        std::string ret;
+        if (m_pStorage && !m_pStorage->Get(_url, ret))
+        {
+            m_pStorage->Set(_url, _default);
+            m_pStorage->Commit();
+            return std::string(_default);
+        }
+        return ret;
+    }
+#endif 
+
+
 
     std::vector<std::string> Get(std::string_view _url,
                                  const std::vector<std::string> _default = {})
@@ -185,7 +201,7 @@ class CSettings : public Base::CSingleton<CSettings>
     TupleStorage::IStorageInterface* Storage() { return m_pStorage; }
 
     ///	Singleton instance method.
-    __attribute__((no_instrument_function)) static CSettings* Instance()
+    /* __attribute__((no_instrument_function))*/ static CSettings* Instance()
     {
         static CSettings storage;
 
@@ -203,11 +219,19 @@ class CSettings : public Base::CSingleton<CSettings>
         Helper for less typing...
 
 */
+#ifdef MAC
 __attribute__((no_instrument_function))
-_LIBCPP_INLINE_VISIBILITY inline tpCSettings
-g_Settings(void)
+_LIBCPP_INLINE_VISIBILITY inline tpCSettings g_Settings(void)
 {
     return (CSettings::Instance());
 }
+#else
+/* __attribute__((no_instrument_function)) // ?
+__attribute__((__exclude_from_explicit_instantiation__)) */
+inline tpCSettings g_Settings(void)
+{
+    return (CSettings::Instance());
+}
+#endif 
 
 #endif

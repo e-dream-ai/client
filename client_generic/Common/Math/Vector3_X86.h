@@ -5,6 +5,10 @@
 #ifndef _VECTOR3_X86_H
 #define _VECTOR3_X86_H
 
+#ifdef WIN32
+#include "MathBase.h"
+#endif
+
 namespace Base
 {
 

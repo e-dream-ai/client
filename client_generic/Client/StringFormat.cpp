@@ -1,32 +1,52 @@
-//
-//  StringFormat.cpp
-//  e-dream
-//
-//  Created by Tibi Hencz on 28.12.2023.
-//
-
+#include "StringFormat.h"
 #include <cstdarg>
-#include <memory>
-#include <string>
-#include <string_view>
-#include <stdexcept>
+#include <cstdio>
+#include <vector>
 
-std::string string_format(std::string_view _format, ...)
+std::string string_format(const char* fmt, ...)
 {
-    va_list ArgPtr;
-    va_start(ArgPtr, _format);
-    int size_s = std::vsnprintf(nullptr, 0, _format.data(), ArgPtr) +
-                 1; // Extra space for '\0'
-    va_end(ArgPtr);
-    if (size_s <= 0)
+    va_list args;
+    va_start(args, fmt);
+
+#if defined(_MSC_VER) && (_MSC_VER < 1900)
+    // Pre-VS2015: _vsnprintf doesn't return required size when buffer too small
+    // (returns -1). Use a growing buffer instead.
+    std::vector<char> buf(256);
+    for (;;)
     {
-        throw std::runtime_error("Error during formatting.");
+        va_list argsCopy;
+        va_copy(argsCopy, args);
+        int ret = _vsnprintf(buf.data(), buf.size(), fmt, argsCopy);
+        va_end(argsCopy);
+        if (ret >= 0 && static_cast<size_t>(ret) < buf.size())
+        {
+            va_end(args);
+            return std::string(buf.data(), static_cast<size_t>(ret));
+        }
+        if (buf.size() > 64 * 1024)
+        {
+            va_end(args);
+            return "";
+        }
+        buf.resize(buf.size() * 2);
     }
-    auto size = (size_t)size_s;
-    std::unique_ptr<char[]> buf(new char[size]);
-    va_start(ArgPtr, _format);
-    std::vsnprintf(buf.get(), size, _format.data(), ArgPtr);
-    va_end(ArgPtr);
-    return std::string(buf.get(),
-                       buf.get() + size - 1); // We don't want the '\0' inside
+#else
+    // C11 / VS2015+: vsnprintf(nullptr, 0, ...) returns required length
+    va_list argsCopy;
+    va_copy(argsCopy, args);
+    int size = std::vsnprintf(nullptr, 0, fmt, argsCopy);
+    va_end(argsCopy);
+
+    if (size < 0)
+    {
+        va_end(args);
+        return "";
+    }
+
+    std::vector<char> buf(static_cast<size_t>(size) + 1);
+    std::vsnprintf(buf.data(), buf.size(), fmt, args);
+    va_end(args);
+
+    return std::string(buf.data(), static_cast<size_t>(size));
+#endif
 }

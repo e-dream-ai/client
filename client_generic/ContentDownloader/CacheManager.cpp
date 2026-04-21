@@ -13,7 +13,6 @@
 #include <unordered_set>
 
 #include "PathManager.h"
-#include "StringFormat.h"
 #include "EDreamClient.h"
 #include "ContentDownloader.h"
 #include "Settings.h"
@@ -539,7 +538,9 @@ void CacheManager::removeDiskCachedItem(const std::string& uuid) {
         lock.unlock();  // Release lock before potentially slow I/O
         saveDiskCachedToJson();
     } else {
-        throw std::runtime_error("Item with specified UUID not found in disk cache");
+        // This can legitimately happen if the on-disk file was removed externally
+        // or if the JSON cache metadata got out of sync. Don't crash the app.
+        g_Log->Warning("Disk cache item not found for UUID: %s", uuid.c_str());
     }
 }
 
@@ -750,7 +751,11 @@ bool CacheManager::removeOldestVideo(bool respectPlaylist) {
         return false;
     }
 
-    std::vector<DiskCachedItem> itemsToConsider = diskCached;
+    std::vector<DiskCachedItem> itemsToConsider;
+    {
+        std::shared_lock<std::shared_mutex> lock(diskCachedMutex);
+        itemsToConsider = diskCached;
+    }
 
     if (respectPlaylist) {
         // Filter out items that are in the playlist
@@ -775,14 +780,27 @@ bool CacheManager::removeOldestVideo(bool respectPlaylist) {
 
     // Remove the oldest item
     std::string filePath = getDreamPath(oldestItem->uuid);
-    if (std::filesystem::remove(filePath)) {
-        removeDiskCachedItem(oldestItem->uuid);
-        g_Log->Info("Removed oldest video: %s", oldestItem->uuid.c_str());
-        return true;
-    } else {
-        g_Log->Error("Failed to remove file: %s", filePath.c_str());
+    std::error_code ec;
+    const bool removed = std::filesystem::remove(std::filesystem::path(filePath), ec);
+
+    if (ec) {
+        // Common cases on Windows: file is locked/in-use, permissions denied, invalid path, etc.
+        g_Log->Error(
+            "Failed to remove file (%d: %s): %s (uuid=%s)",
+            ec.value(),
+            ec.message().c_str(),
+            filePath.c_str(),
+            oldestItem->uuid.c_str());
         return false;
     }
+
+    // If the file didn't exist, consider it a successful eviction of metadata.
+    removeDiskCachedItem(oldestItem->uuid);
+    g_Log->Info(
+        "Evicted oldest video: %s (removed=%s)",
+        oldestItem->uuid.c_str(),
+        removed ? "true" : "false");
+    return true;
 }
 
 void CacheManager::resizeCache(std::uintmax_t targetSize) {

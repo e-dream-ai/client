@@ -5,5 +5,5 @@ The package boost-optional is compatible with built-in CMake targets of FindBoos
 
 or the generated cmake configs via:
 
-    find_package(boost_optional REQUIRED CONFIG)
+    find_package( REQUIRED CONFIG)
     target_link_libraries(main PRIVATE Boost::optional)

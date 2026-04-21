@@ -256,6 +256,7 @@ class BuildConfig:
         self.notarize = args.notarize
         self.github_release = args.github
         self.version = args.version
+        self.force = args.force
 
         # Configuration derived from flags
         self.build_config = "Release" if self.release else "Debug"
@@ -315,6 +316,39 @@ def validate_config(config: BuildConfig) -> None:
     if config.github_release and not shutil.which('gh'):
         print_red("Error: GitHub CLI (gh) not found. Install with: brew install gh")
         sys.exit(1)
+
+    # Refuse to clobber an existing tag/release unless --force is set.
+    # We check early so a long build doesn't run only to fail (or worse,
+    # silently overwrite hand-edited release notes) at the upload step.
+    if config.github_release and not config.force:
+        tag = config.version
+
+        local_tag = run_command(
+            ['git', 'tag', '-l', tag],
+            capture_output=True, check=False
+        )
+        if local_tag.stdout.strip():
+            print_red(f"Error: git tag {tag} already exists locally.")
+            print_red("Refusing to overwrite existing release notes. Use --force to override.")
+            sys.exit(1)
+
+        remote_tag = run_command(
+            ['git', 'ls-remote', '--tags', 'origin', f'refs/tags/{tag}'],
+            capture_output=True, check=False
+        )
+        if remote_tag.stdout.strip():
+            print_red(f"Error: git tag {tag} already exists on origin.")
+            print_red("Refusing to overwrite existing release notes. Use --force to override.")
+            sys.exit(1)
+
+        gh_release = run_command(
+            ['gh', 'release', 'view', tag],
+            capture_output=True, check=False
+        )
+        if gh_release.returncode == 0:
+            print_red(f"Error: GitHub release {tag} already exists.")
+            print_red("Refusing to overwrite existing release notes. Use --force to override.")
+            sys.exit(1)
 
 
 def print_build_info(config: BuildConfig) -> None:
@@ -678,6 +712,62 @@ def step3_archive_app(config: BuildConfig) -> Path:
 
     print_green("App archive created successfully")
     return archive_path
+
+
+def upload_dsyms_to_bugsnag(config: BuildConfig, archive_path: Path) -> None:
+    """Upload dSYM files from the xcarchive to Bugsnag."""
+    if not config.release:
+        return
+
+    print()
+    print("========================================")
+    print("Uploading dSYMs to Bugsnag")
+    print("========================================")
+
+    if not shutil.which('bugsnag-cli'):
+        print_yellow("Warning: bugsnag-cli not found. Install with: brew install bugsnag/tap/bugsnag-cli")
+        print_yellow("Skipping dSYM upload.")
+        return
+
+    api_key = get_bugsnag_api_key(config.app_info_plist)
+    if not api_key:
+        print_yellow("Warning: Could not read Bugsnag API key from Info.plist")
+        print_yellow("Skipping dSYM upload.")
+        return
+
+    print_yellow("Uploading dSYMs to Bugsnag...")
+    result = run_command(
+        [
+            'bugsnag-cli', 'upload', 'xcode-archive',
+            '--api-key', api_key,
+            '--scheme', config.app_scheme,
+            '--configuration', config.build_config,
+            '--xcode-project', config.project,
+            str(archive_path),
+        ],
+        check=False,
+        capture_output=True,
+    )
+
+    if result.returncode == 0:
+        print_green("dSYMs uploaded to Bugsnag successfully")
+    else:
+        print_yellow("Warning: dSYM upload to Bugsnag failed (non-fatal)")
+        if result.stderr:
+            print(f"  {result.stderr.strip()}")
+        if result.stdout:
+            print(f"  {result.stdout.strip()}")
+
+
+def get_bugsnag_api_key(plist_path: Path) -> Optional[str]:
+    """Read Bugsnag API key from Info.plist."""
+    try:
+        with open(plist_path, 'rb') as f:
+            plist = plistlib.load(f)
+        bugsnag = plist.get('bugsnag', {})
+        return bugsnag.get('apiKey')
+    except Exception:
+        return None
 
 
 def step4_export_app(config: BuildConfig, archive_path: Path) -> Path:
@@ -1145,6 +1235,8 @@ Environment variables (optional overrides):
                         help='Create GitHub release with tag (requires -v)')
     parser.add_argument('-v', '--version', type=str,
                         help='Version string (e.g., 0.12.0) - used for zip naming and GitHub release')
+    parser.add_argument('--force', action='store_true',
+                        help='Overwrite an existing tag/release (destroys existing release notes)')
 
     args = parser.parse_args()
 
@@ -1176,6 +1268,10 @@ Environment variables (optional overrides):
 
     # Step 3: Archive app
     archive_path = step3_archive_app(config)
+
+    # Upload dSYMs to Bugsnag (only for GitHub releases)
+    if config.github_release:
+        upload_dsyms_to_bugsnag(config, archive_path)
 
     # Step 4: Export app
     exported_app = step4_export_app(config, archive_path)

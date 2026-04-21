@@ -1,9 +1,0 @@
-The package boost-geometry is compatible with built-in CMake targets of FindBoost.cmake:
-
-    find_package(Boost REQUIRED COMPONENTS geometry)
-    target_link_libraries(main PRIVATE Boost::geometry)
-
-or the generated cmake configs via:
-
-    find_package(boost_geometry REQUIRED CONFIG)
-    target_link_libraries(main PRIVATE Boost::geometry)

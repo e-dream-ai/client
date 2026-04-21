@@ -4,7 +4,7 @@
 #ifdef _TIMER_H_
 #error "WTimer.h included not from Timer.h"
 #endif
-
+#include <cstdint>
 #include <Windows.h>
 
 namespace Base
@@ -33,15 +33,24 @@ class CWTimer : public ITimer
         m_DeltaCounter = m_TimeCounter;
         m_Time = 0;
     }
-
-    double Time()
+    double Time() const 
+    {
+        int64_t counter;
+        QueryPerformanceCounter((LARGE_INTEGER*)&counter);
+        const_cast<CWTimer*>(this)->m_Time +=
+            (double)(counter - m_TimeCounter) / (double)m_Frequency;
+        const_cast<CWTimer*>(this)->m_TimeCounter = counter;
+        return m_Time;
+    }
+    // TODO: somewhere this got changed to const, make sure this still works under Windows
+    /* double Time() 
     {
         int64_t counter;
         QueryPerformanceCounter((LARGE_INTEGER*)&counter);
         m_Time += (double)(counter - m_TimeCounter) / (double)m_Frequency;
         m_TimeCounter = counter;
         return m_Time;
-    }
+    }*/
 
     double Delta()
     {

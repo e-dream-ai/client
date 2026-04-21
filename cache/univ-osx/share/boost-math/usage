@@ -1,9 +1,0 @@
-The package boost-math is compatible with built-in CMake targets of FindBoost.cmake:
-
-    find_package(Boost REQUIRED COMPONENTS math)
-    target_link_libraries(main PRIVATE Boost::math)
-
-or the generated cmake configs via:
-
-    find_package(boost_math REQUIRED CONFIG)
-    target_link_libraries(main PRIVATE Boost::math)

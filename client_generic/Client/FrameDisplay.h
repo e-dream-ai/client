@@ -104,7 +104,7 @@ class CFrameDisplay
     }
 
     virtual void
-    ScrollVideoForNonMatchingAspectRatio(const Base::Math::CRect& texDim)
+    ScrollVideoForNonMatchingAspectRatio([[maybe_unused]] const Base::Math::CRect& texDim)
     {
         m_texRect.m_X0 = 0.f;
         m_texRect.m_Y0 = 0.f;
@@ -114,67 +114,29 @@ class CFrameDisplay
         if (!m_bPreserveAR)
             return;
 
-        bool landscape = true;
+        const float dispW = static_cast<float>(m_dispSize.Width());
+        const float dispH = static_cast<float>(m_dispSize.Height());
+        if (dispW <= 0.f || dispH <= 0.f)
+            return;
 
-        float r1 = (float)m_dispSize.Width() / (float)m_dispSize.Height();
-        float r2 = texDim.Width() / texDim.Height();
+        const float targetAspect = 16.0f / 9.0f;
+        const float displayAspect = dispW / dispH;
 
-        if (r2 > r1)
+        // Preserve AR ON means fit to a fixed 16:9 viewport and let cleared
+        // background show as black bars outside the viewport.
+        if (displayAspect > targetAspect)
         {
-            r1 = 1.f / r1;
-            r2 = 1.f / r2;
-            landscape = false;
+            const float widthScale = targetAspect / displayAspect;
+            const float xPad = (1.f - widthScale) * 0.5f;
+            m_texRect.m_X0 = xPad;
+            m_texRect.m_X1 = 1.f - xPad;
         }
-
-        float bars = (r1 - r2) / (2 * r1);
-
-        if (bars > 0)
+        else if (displayAspect < targetAspect)
         {
-            double acttm = m_Timer.Time();
-
-            if (m_LastTexMoveClock < 0)
-            {
-                m_LastTexMoveClock = acttm;
-            }
-
-            if ((acttm - m_LastTexMoveClock) > TEX_MOVE_SECS)
-            {
-                m_CurTexMoveOff += bars / 20.f * m_CurTexMoveDir;
-                m_LastTexMoveClock = acttm;
-            }
-
-            float* a;
-            float* b;
-
-            if (landscape)
-            {
-                a = &m_texRect.m_X0;
-                b = &m_texRect.m_X1;
-            }
-            else
-            {
-                a = &m_texRect.m_Y0;
-                b = &m_texRect.m_Y1;
-            }
-
-            *a += bars + m_CurTexMoveOff;
-            *b -= bars - m_CurTexMoveOff;
-
-            if (*a <= 0.f)
-            {
-                *b += -*a;
-                *a += -*a;
-                m_CurTexMoveOff -= bars / 20.f * m_CurTexMoveDir;
-                m_CurTexMoveDir = -m_CurTexMoveDir;
-            }
-
-            if (*b >= 1.f)
-            {
-                *a -= *b - 1.f;
-                *b -= *b - 1.f;
-                m_CurTexMoveOff -= bars / 20.f * m_CurTexMoveDir;
-                m_CurTexMoveDir = -m_CurTexMoveDir;
-            }
+            const float heightScale = displayAspect / targetAspect;
+            const float yPad = (1.f - heightScale) * 0.5f;
+            m_texRect.m_Y0 = yPad;
+            m_texRect.m_Y1 = 1.f - yPad;
         }
     }
 };

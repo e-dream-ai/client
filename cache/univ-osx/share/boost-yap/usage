@@ -1,9 +1,0 @@
-The package boost-yap is compatible with built-in CMake targets of FindBoost.cmake:
-
-    find_package(Boost REQUIRED COMPONENTS yap)
-    target_link_libraries(main PRIVATE Boost::yap)
-
-or the generated cmake configs via:
-
-    find_package(boost_yap REQUIRED CONFIG)
-    target_link_libraries(main PRIVATE Boost::yap)

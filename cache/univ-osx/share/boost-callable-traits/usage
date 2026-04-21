@@ -1,9 +1,0 @@
-The package boost-callable-traits is compatible with built-in CMake targets of FindBoost.cmake:
-
-    find_package(Boost REQUIRED COMPONENTS callable_traits)
-    target_link_libraries(main PRIVATE Boost::callable_traits)
-
-or the generated cmake configs via:
-
-    find_package(boost_callable_traits REQUIRED CONFIG)
-    target_link_libraries(main PRIVATE Boost::callable_traits)

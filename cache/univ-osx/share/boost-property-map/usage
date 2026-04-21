@@ -1,9 +1,0 @@
-The package boost-property-map is compatible with built-in CMake targets of FindBoost.cmake:
-
-    find_package(Boost REQUIRED COMPONENTS property_map)
-    target_link_libraries(main PRIVATE Boost::property_map)
-
-or the generated cmake configs via:
-
-    find_package(boost_property_map REQUIRED CONFIG)
-    target_link_libraries(main PRIVATE Boost::property_map)
