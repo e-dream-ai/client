@@ -32,9 +32,9 @@ build_mac_libs_vcpkg.sh  # Dependency setup
 brew install git-lfs && git lfs install          # Required for binary assets
 ./vcpkg/bootstrap-vcpkg.sh && ./vcpkg/vcpkg install  # Install C++ deps
 open client_generic/MacBuild/e-dream.xcodeproj   # Open in Xcode
-./client_generic/MacBuild/build.py               # Build app
-./client_generic/MacBuild/build.py -r -n         # Release build with notarization
-./client_generic/MacBuild/release.py -v X.Y.Z    # Publish release
+cd client_generic/MacBuild && ./build.py               # Build app
+cd client_generic/MacBuild && ./build.py -r -n         # Release build with notarization
+cd client_generic/MacBuild && ./release.py -v X.Y.Z    # Publish release
 ```
 
 ## Key Patterns
