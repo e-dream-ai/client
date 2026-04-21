@@ -167,7 +167,7 @@ class CRendererVulkan : public CRenderer
                           const Base::Math::CRect& _uvRect) override;
     virtual void DrawSoftQuad(const Base::Math::CRect& _rect,
                                const Base::Math::CVector4& _color,
-                               const float _width) override;
+                               const float _width);
 
     // Accessors used by CTextureFlatVulkan
     VkDevice              GetDevice()             const { return m_device; }

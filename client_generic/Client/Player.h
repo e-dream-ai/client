@@ -183,14 +183,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
     sOpenVideoInfo* GetNextClipInfo();
 
 
-#ifdef MAC
-    int AddDisplay(uint32_t screen, CGraphicsContext _grapicsContext,
+    int AddDisplay(uint32_t screen, CGraphicsContext _grapicsContext = nullptr,
                    bool _blank = false);
-#endif
-
-#ifdef WIN32
-    int AddDisplay(uint32_t screen, bool _blank = false);
-#endif
 
     inline void PlayCountsInitOff() { m_InitPlayCounts = false; };
 

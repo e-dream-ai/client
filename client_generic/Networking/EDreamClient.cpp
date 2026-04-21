@@ -12,7 +12,9 @@
 #include <chrono>
 #include <utility>
 #include <algorithm>
+#ifndef WIN32
 #include <unistd.h>
+#endif
 #include <ctime>
 
 #include "ContentDownloader.h"
@@ -560,6 +562,9 @@ bool EDreamClient::SignInWithApiKey(const std::string& apiKey)
 // callers must NOT call RefreshSealedSession() again after this returns true.
 bool EDreamClient::LoginWithMagicLinkCode()
 {
+#ifndef LINUX_GNU
+    return false;  // Interactive terminal auth is Linux/headless only.
+#else
     std::string email = g_Settings()->Get("settings.generator.nickname", std::string(""));
 
     if (!isatty(STDIN_FILENO))
@@ -633,6 +638,7 @@ bool EDreamClient::LoginWithMagicLinkCode()
     fprintf(stderr, "Login successful!\n");
     g_Log->Info("Magic link login successful, sealed session saved");
     return true;
+#endif  // LINUX_GNU
 }
 
 // MARK : Auth (via refresh)

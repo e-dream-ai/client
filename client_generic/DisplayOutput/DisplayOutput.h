@@ -252,7 +252,7 @@ class CDisplayOutput
     virtual void Title(const std::string& _title) = PureVirtual;
     virtual void Update() = PureVirtual;
     virtual void SwapBuffers() = PureVirtual;
-    virtual bool ToggleFullscreen() { return false; }
+    virtual void ToggleFullscreen() {}
     virtual bool SetFullscreen(const bool _fullscreen) { (void)_fullscreen; return false; }
     virtual bool IsFullscreen() const { return m_bFullScreen; }
 
@@ -261,7 +261,6 @@ class CDisplayOutput
     void ClearEvents();
 
     virtual bool HasShaders() { return false; };
-    virtual void ToggleFullscreen() {}
     uint32_t Width() { return (m_Width); };
     uint32_t Height() { return (m_Height); };
     float Aspect() { return ((float)m_Height / (float)m_Width); };

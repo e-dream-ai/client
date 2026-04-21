@@ -840,7 +840,8 @@ class CElectricSheep
             (CPlayer::MultiDisplayMode)g_Settings()->Get(
                 "settings.player.MultiDisplayMode", 0));
 
-        // Pre-check auth / cache state before the window opens.
+#ifdef LINUX_GNU
+        // Linux/headless: pre-check auth / cache state before the window opens.
         if (m_CachedOnlyMode)
         {
             // --cached: play locally cached videos without a session.
@@ -884,6 +885,7 @@ class CElectricSheep
                 // else: LoginWithMagicLinkCode() succeeded — sealed session now in settings
             }
         }
+#endif  // LINUX_GNU
 
         //	Init the display and create decoder.
         if (!g_Player().Startup())
@@ -1095,15 +1097,14 @@ class CElectricSheep
 
     void SetIsFullScreen(bool _bFullScreen) { m_bFullScreen = _bFullScreen; }
 
-    virtual bool Update() { return true; }
-
     bool Run()
     {
         while (true)
         {
             if (!Update())
             {
-                g_Player().Renderer()->EndFrame();
+                if (auto spRenderer = g_Player().Renderer())
+                    spRenderer->EndFrame();
                 return false;
             }
             g_Player().FpsCap(m_PerceptualFPS);

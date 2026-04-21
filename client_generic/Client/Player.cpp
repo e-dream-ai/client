@@ -28,7 +28,7 @@
 //#include "RendererD3D12.h"
 #include "../DisplayOutput/D3D11/DisplayDX11.h"
 #include "../DisplayOutput/D3D11/RendererDX11.h"
-#else
+#elif defined(MAC)
 #include "DisplayMetal.h"
 #include "RendererMetal.h"
 #else  // Linux
@@ -142,17 +142,9 @@ void CPlayer::SetHWND(HWND _hWnd)
 #endif
 
 
-#ifdef MAC
 int CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
                         CGraphicsContext _graphicsContext,
                         [[maybe_unused]] bool _blank)
-#else
-#ifdef WIN32
-int CPlayer::AddDisplay(uint32_t screen, bool _blank)
-#else
-int CPlayer::AddDisplay(uint32 screen)
-#endif
-#endif
 {
     DisplayOutput::spCDisplayOutput spDisplay;
     DisplayOutput::spCRenderer spRenderer;
@@ -194,7 +186,7 @@ int CPlayer::AddDisplay(uint32 screen)
     SetHWND(displayHwnd);
 
     spRenderer = std::make_shared<CRendererDX11>();
-#else // !WIN32
+#elif defined(MAC)
 
     g_Log->Info("Attempting to open %s...", CDisplayMetal::Description());
     spDisplay = std::make_shared<CDisplayMetal>();

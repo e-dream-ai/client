@@ -44,7 +44,7 @@ class CStartupScreen : public CHudEntry
         m_spFont = nullptr;
         m_StartupMessage =
             "Connecting to infinidream.ai...\nPress F1 for help.";
-        m_spText = g_Player().Renderer()->NewText(m_spFont, m_StartupMessage);
+        m_spText = nullptr;
         m_spImageRef = std::make_shared<DisplayOutput::CImage>();
         m_spImageRef->Create(256, 256, DisplayOutput::eImage_RGBA8, false,
                              true);
@@ -56,7 +56,8 @@ class CStartupScreen : public CHudEntry
             // Logo not found — skip rendering it rather than showing a white square.
             m_spImageRef = nullptr;
         }
-        float aspect = g_Player().Display()->Aspect();
+        auto spDisplay = g_Player().Display();
+        float aspect = (spDisplay && spDisplay->Width() != 0) ? spDisplay->Aspect() : 1.0f;
         m_LogoSize.m_X0 = 0.f;
         m_LogoSize.m_X1 = 0.2f * aspect;
         m_LogoSize.m_Y0 = 0.f;
@@ -143,49 +144,26 @@ class CStartupScreen : public CHudEntry
                                   m_spVideoTexture->GetRect());
         }
 
-        // draw text
+        // draw text — centered near top of screen
+        if (m_spText)
+        {
+            static constexpr float kHudReferenceHeight = 1080.f;
+            const float screenH = static_cast<float>(_spRenderer->Display()->Height());
+            const float screenW = static_cast<float>(_spRenderer->Display()->Width());
+            const float edge = (float)m_Desc.Height() * (screenH / kHudReferenceHeight) / screenW;
 
-        // Scale the edge margin proportionally with screen height so it stays
-        // visually consistent at any resolution (same reference as DrawText/GetExtent).
-        static constexpr float kHudReferenceHeight = 1080.f;
-        const float edge = (float)m_Desc.Height() * (static_cast<float>(_spRenderer->Display()->Height()) / kHudReferenceHeight) / static_cast<float>(_spRenderer->Display()->Width());
+            // GetExtent() measures up to the first \n, giving the width of the
+            // longer first line — sufficient to horizontally center the block.
+            Base::Math::CVector2 extent = m_spText->GetExtent();
+            const float x0 = extent.m_X > 0.f ? 0.5f - extent.m_X * 0.5f : edge;
 
-
-
-        // TODO: DTEXT
-        //Base::Math::CRect extent;
-        //Base::Math::CVector2 size = m_spText->GetExtent();
-        //extent = extent.Union(Base::Math::CRect(0, 0, size.m_X + (edge * 2),
-        //                                        size.m_Y + (edge * 2)));
-
-        //boost::posix_time::time_duration td =
-        //    boost::posix_time::second_clock::local_time() -
-        //    m_ServerMessageStartTimer;
-        //if (td.hours() >= 1)
-        //{
-        //    m_MoveMessageCounter += 0.0005f;
-        //    if (m_MoveMessageCounter >= 1.f)
-        //        m_MoveMessageCounter -= 1.f + edge * 2 + float(size.m_Y);
-        //}
-
-        //	Draw quad.
-        //_spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader |
-        //                   DisplayOutput::eBlend);
-
-        //Base::Math::CRect r(
-        //    0.5f - (extent.Width() * 0.5f), extent.m_Y0 + m_MoveMessageCounter,
-        //    0.5f + (extent.Width() * 0.5f), extent.m_Y1 + m_MoveMessageCounter);
-
-        //_spRenderer->SetBlend("alphablend");
-        //_spRenderer->Apply();
-        //_spRenderer->DrawSoftQuad(r, Base::Math::CVector4(0, 0, 0, 0.5f), 16);
-
-        // dasvo - terrible hack - redo!!
-        //if (m_spFont)
-        //    m_spFont->Reupload();
-        //m_spText->SetRect(
-        //    Base::Math::CRect(r.m_X0 + edge, r.m_Y0 + edge, r.m_X1, r.m_Y1));
-        //_spRenderer->DrawText(m_spText, Base::Math::CVector4(1, 1, 1, 1));
+            m_spText->SetRect(Base::Math::CRect(x0, edge, x0 + extent.m_X + edge, edge + extent.m_Y * 3.0f));
+            _spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader |
+                               DisplayOutput::eBlend);
+            _spRenderer->SetBlend("alphablend");
+            _spRenderer->Apply();
+            _spRenderer->DrawText(m_spText, Base::Math::CVector4(1, 1, 1, m_Alpha));
+        }
 
         return true;
     }
