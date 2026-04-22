@@ -60,6 +60,16 @@ static AVPixelFormat vaapi_get_format(AVCodecContext* /*ctx*/,
         if (*p == AV_PIX_FMT_VAAPI) return AV_PIX_FMT_VAAPI;
     return fmts[0];
 }
+#elif defined(MAC)
+// Prefer AV_PIX_FMT_VIDEOTOOLBOX so frames arrive as CVPixelBufferRef in
+// data[3], which TextureFlatMetal::BindFrame / GetPixelBuffer expects.
+static AVPixelFormat vt_get_format(AVCodecContext* /*ctx*/,
+                                   const AVPixelFormat* fmts)
+{
+    for (const AVPixelFormat* p = fmts; *p != AV_PIX_FMT_NONE; ++p)
+        if (*p == AV_PIX_FMT_VIDEOTOOLBOX) return AV_PIX_FMT_VIDEOTOOLBOX;
+    return fmts[0];
+}
 #endif
 
 static void AVCodecLogCallback(void* /*_avcl*/, int _level, const char* _fmt,
@@ -353,6 +363,26 @@ bool CContentDecoder::Open()
         else
         {
             g_Log->Info("VAAPI unavailable — using software decoding");
+        }
+    }
+#elif defined(MAC)
+    // VideoToolbox hardware decoding — frames arrive as CVPixelBufferRef in
+    // data[3], which TextureFlatMetal::GetPixelBuffer() and BindFrame() expect.
+    // Without this init, the codec outputs software YUV and data[3] is null,
+    // causing a crash inside RendererMetal when it tries to create Metal textures.
+    {
+        AVBufferRef* hw_ctx = nullptr;
+        if (av_hwdevice_ctx_create(&hw_ctx, AV_HWDEVICE_TYPE_VIDEOTOOLBOX,
+                                   nullptr, nullptr, 0) == 0)
+        {
+            ovi->m_pVideoCodecContext->hw_device_ctx = av_buffer_ref(hw_ctx);
+            ovi->m_pVideoCodecContext->get_format     = vt_get_format;
+            av_buffer_unref(&hw_ctx);
+            g_Log->Info("VideoToolbox hardware decoding enabled");
+        }
+        else
+        {
+            g_Log->Error("VideoToolbox unavailable — using software decoding (expect crash)");
         }
     }
 #endif
