@@ -1010,41 +1010,43 @@ void CContentDecoder::ReadFramesThread()
                 m_SkipForward.exchange(0.f);
             }
 
-            std::unique_lock<std::mutex> seekQueueLock;
             if (m_CurrentVideoInfo->m_SeekTargetFrame != -1)
             {
-                seekQueueLock = std::unique_lock<std::mutex>(m_FrameQueueMutex);
-
-                // Flush the D3D11 GPU command queue and wait for all in-flight decode
-                // operations to complete before releasing the texture pool back to FFmpeg.
-                // Without this, avcodec_flush_buffers() can cause the pool to immediately
-                // reuse textures that the GPU is still reading/writing, triggering a TDR
-                // (DXGI_ERROR_DEVICE_RESET, 0x887A0006).
-#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
-                std::lock_guard<std::recursive_mutex> d3dCtxLock(GetD3D11ImmediateContextMutex());
-                if (m_d3d11Device)
+                // ── Phase 1: GPU sync + queue clear ──────────────────────────────────
+                // Hold BOTH the frame-queue mutex and the D3D11 context mutex only for
+                // the GPU-side work (flush + sync query + ClearQueue).  Release both
+                // BEFORE the demuxer seek below so the renderer is never locked out
+                // during potentially slow file/disk I/O.
                 {
-                    ComPtr<ID3D11DeviceContext> d3dCtx;
-                    m_d3d11Device->GetImmediateContext(&d3dCtx);
+                    std::lock_guard<std::mutex> qLock(m_FrameQueueMutex);
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
+                    std::lock_guard<std::recursive_mutex> d3dCtxLock(GetD3D11ImmediateContextMutex());
+                    if (m_d3d11Device)
+                    {
+                        ComPtr<ID3D11DeviceContext> d3dCtx;
+                        m_d3d11Device->GetImmediateContext(&d3dCtx);
 
-                    D3D11_QUERY_DESC qDesc = { D3D11_QUERY_EVENT, 0 };
-                    ComPtr<ID3D11Query> syncQuery;
-                    if (SUCCEEDED(m_d3d11Device->CreateQuery(&qDesc, &syncQuery)))
-                    {
-                        d3dCtx->Flush();
-                        d3dCtx->End(syncQuery.Get());
-                        BOOL done = FALSE;
-                        while (d3dCtx->GetData(syncQuery.Get(), &done, sizeof(done), 0) != S_OK || !done)
-                            std::this_thread::sleep_for(std::chrono::microseconds(100));
+                        D3D11_QUERY_DESC qDesc = { D3D11_QUERY_EVENT, 0 };
+                        ComPtr<ID3D11Query> syncQuery;
+                        if (SUCCEEDED(m_d3d11Device->CreateQuery(&qDesc, &syncQuery)))
+                        {
+                            d3dCtx->Flush();
+                            d3dCtx->End(syncQuery.Get());
+                            BOOL done = FALSE;
+                            while (d3dCtx->GetData(syncQuery.Get(), &done, sizeof(done), 0) != S_OK || !done)
+                                std::this_thread::sleep_for(std::chrono::microseconds(100));
+                        }
+                        else
+                        {
+                            d3dCtx->Flush();
+                            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+                        }
                     }
-                    else
-                    {
-                        d3dCtx->Flush();
-                        std::this_thread::sleep_for(std::chrono::milliseconds(20));
-                    }
-                }
 #endif
-                ClearQueue();
+                    ClearQueue();
+                } // ← both mutexes released here, before any disk I/O
+
+                // ── Phase 2: demuxer seek (no mutex – pure file/parser work) ─────────
                 AVRational timeBase =
                 m_CurrentVideoInfo->m_pFormatContext
                 ->streams[m_CurrentVideoInfo->m_VideoStreamID]
@@ -1053,15 +1055,11 @@ void CContentDecoder::ReadFramesThread()
                                          m_CurrentVideoInfo->m_pFormatContext
                                          ->streams[m_CurrentVideoInfo->m_VideoStreamID]
                                          ->avg_frame_rate);
-                
 
-                
-                // Calculate target timestamp in stream time base
                 int64_t targetTimestamp =
                 (int64_t)(m_CurrentVideoInfo->m_SeekTargetFrame /
                           (frameRate * av_q2d(timeBase)));
-                
-                // Determine if this is a backward seek
+
                 int64_t currentTimestamp =
                 (int64_t)(m_CurrentVideoInfo->m_CurrentFrameIndex /
                           (frameRate * av_q2d(timeBase)));
@@ -1070,13 +1068,25 @@ void CContentDecoder::ReadFramesThread()
                 g_Log->Info("Target timestamp: %lld", targetTimestamp);
                 g_Log->Info("Current timestamp: %lld", currentTimestamp);
                 g_Log->Info("Seek flags: %d", seekFlags);
-                
-                // Seek to the target timestamp
+
                 int seek =
                 avformat_seek_file(m_CurrentVideoInfo->m_pFormatContext,
                                    m_CurrentVideoInfo->m_VideoStreamID, 0,
                                    targetTimestamp, targetTimestamp, seekFlags);
+
+                // ── Phase 3: codec flush (D3D11 mutex only – may touch HW state) ─────
+                // FFmpeg's D3D11VA callbacks handle locking internally, but we hold the
+                // mutex explicitly as an outer guard to avoid interleaving with the
+                // renderer during codec-internal D3D11 cleanup.
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
+                {
+                    std::lock_guard<std::recursive_mutex> d3dCtxLock(GetD3D11ImmediateContextMutex());
+                    avcodec_flush_buffers(m_CurrentVideoInfo->m_pVideoCodecContext);
+                }
+#else
                 avcodec_flush_buffers(m_CurrentVideoInfo->m_pVideoCodecContext);
+#endif
+
                 if (seek < 0)
                 {
                     g_Log->Error("Error seeking:%i", seek);
