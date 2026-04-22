@@ -28,6 +28,10 @@
 #include "base.h"
 #include "linkpool.h"
 
+extern "C" {
+#include "libavutil/pixfmt.h"
+}
+
 namespace ContentDecoder
 {
 class CVideoFrame;
@@ -149,6 +153,20 @@ class CVideoFrame
     }
 
     int64_t GetFrameNumber() const { return m_FrameNumber; }
+
+    // Returns true when the frame data lives on the GPU (D3D11VA / VideoToolbox).
+    // These frames must NOT be accessed via StorageBuffer(); use BindFrame() instead.
+    bool IsHWFrame() const
+    {
+        if (!m_pFrame)
+            return false;
+        const int fmt = m_pFrame->format;
+        return (fmt == AV_PIX_FMT_VIDEOTOOLBOX)
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
+            || (fmt == AV_PIX_FMT_D3D11)
+#endif
+        ;
+    }
 
     inline const sFrameMetadata& GetMetaData() { return m_MetaData; }
 
