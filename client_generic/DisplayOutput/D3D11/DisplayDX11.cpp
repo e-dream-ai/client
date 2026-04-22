@@ -833,6 +833,9 @@ void CDisplayDX11::Update() {
 
 void CDisplayDX11::SwapBuffers()
 {
+    if (m_deviceLost)
+        return;
+
     // /p preview child: avoid vsync Present(1) stalling on the tiny HWND.
     const UINT syncInterval = m_bEmbeddedSaverPreview ? 0u : 1u;
     HRESULT hr = m_swapChain->Present(syncInterval, 0);
@@ -841,8 +844,10 @@ void CDisplayDX11::SwapBuffers()
         g_Log->Error("Present failed: %08X", hr);
         if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_HUNG)
         {
-            g_Log->Warning("Device lost during present");
-            // Handle device lost
+            HRESULT reason = m_device ? m_device->GetDeviceRemovedReason() : hr;
+            g_Log->Warning("Device lost during present (removal reason: %08X); "
+                           "halting rendering until device is recreated", reason);
+            m_deviceLost = true;
         }
     }
 }
