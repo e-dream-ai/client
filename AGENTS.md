@@ -44,6 +44,10 @@ cd client_generic/MacBuild && ./release.py -v X.Y.Z    # Publish release
 - Code signing auto-discovers Developer ID from Keychain
 - Auto-update via Sparkle appcast XML
 
+## Runtime Logs
+
+Runtime logs are written to `/Users/Shared/infinidream.ai/Logs/YYYY_MM_DD.log` (one file per day).
+
 ## Deployment
 
 GitHub releases as `infinidream-X.Y.Z.zip`. Appcast URLs:
