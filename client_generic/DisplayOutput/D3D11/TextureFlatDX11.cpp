@@ -181,12 +181,103 @@ bool CTextureFlatDX11::Upload(const uint8_t* _data, CImageFormat _format,
 }
 
 bool CTextureFlatDX11::BindFrame(ContentDecoder::spCVideoFrame _spFrame) {
-    m_Flags |= eTextureFlags::TEXTURE_YUV;
+    if (!_spFrame || !_spFrame->Frame())
+    {
+        g_Log->Error("CTextureFlatDX11::BindFrame: null frame");
+        return false;
+    }
+
     m_spBoundFrame = _spFrame;
+    AVFrame* frame = _spFrame->Frame();
+
+    // Defensive check: only NV12 (AV_PIX_FMT_D3D11 with NV12 surface) is supported
+    // in this first pass.  P010 (10-bit HEVC) surfaces are produced by some Intel
+    // drivers even for 8-bit content; detect and skip rather than crash.
+    {
+        D3D11_TEXTURE2D_DESC testDesc = {};
+        auto* testTex = reinterpret_cast<ID3D11Texture2D*>(frame->data[0]);
+        if (testTex)
+        {
+            testTex->GetDesc(&testDesc);
+            if (testDesc.Format != DXGI_FORMAT_NV12)
+            {
+                g_Log->Warning("CTextureFlatDX11::BindFrame: unsupported D3D11VA surface format %u "
+                               "(expected DXGI_FORMAT_NV12=103); falling back to software upload",
+                               static_cast<unsigned>(testDesc.Format));
+                return false;
+            }
+        }
+    }
+
+    // D3D11VA stores decoded frames in a texture array.
+    // data[0] = ID3D11Texture2D* (the array texture)
+    // data[1] = array slice index (uintptr_t)
+    auto* tex = reinterpret_cast<ID3D11Texture2D*>(frame->data[0]);
+    const UINT slice = static_cast<UINT>(reinterpret_cast<uintptr_t>(frame->data[1]));
+
+    if (!tex)
+    {
+        g_Log->Error("CTextureFlatDX11::BindFrame: AVFrame->data[0] is null (not a D3D11VA frame?)");
+        return false;
+    }
+
+    // Release any previous NV12 SRVs from a previous frame.
+    m_srvY.Reset();
+    m_srvUV.Reset();
+
+    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+    srvDesc.Texture2DArray.MostDetailedMip = 0;
+    srvDesc.Texture2DArray.MipLevels = 1;
+    srvDesc.Texture2DArray.FirstArraySlice = slice;
+    srvDesc.Texture2DArray.ArraySize = 1;
+
+    // Y plane: luminance as R8_UNORM
+    srvDesc.Format = DXGI_FORMAT_R8_UNORM;
+    HRESULT hr = m_device->CreateShaderResourceView(tex, &srvDesc, &m_srvY);
+    if (FAILED(hr))
+    {
+        if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_HUNG)
+            g_Log->Error("CTextureFlatDX11::BindFrame: device removed, cannot create Y SRV: %08X", hr);
+        else
+            g_Log->Error("CTextureFlatDX11::BindFrame: CreateSRV (Y) failed: %08X", hr);
+        return false;
+    }
+
+    // UV plane: chroma as R8G8_UNORM (CbCr interleaved)
+    srvDesc.Format = DXGI_FORMAT_R8G8_UNORM;
+    hr = m_device->CreateShaderResourceView(tex, &srvDesc, &m_srvUV);
+    if (FAILED(hr))
+    {
+        if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_HUNG)
+            g_Log->Error("CTextureFlatDX11::BindFrame: device removed, cannot create UV SRV: %08X", hr);
+        else
+            g_Log->Error("CTextureFlatDX11::BindFrame: CreateSRV (UV) failed: %08X", hr);
+        m_srvY.Reset();
+        return false;
+    }
+
+    m_Flags |= eTextureFlags::TEXTURE_YUV;
     return true;
 }
 
 bool CTextureFlatDX11::Bind(const uint32_t _index) {
+    if (IsYUVTexture())
+    {
+        // NV12 hw frame: Y at slot index*2, UV at slot index*2+1.
+        // This matches the slot convention used by the YUV HLSL shaders.
+        if (m_srvY && m_srvUV)
+        {
+            const uint32_t slotY  = _index * 2;
+            const uint32_t slotUV = _index * 2 + 1;
+            m_context->PSSetShaderResources(slotY,  1, m_srvY.GetAddressOf());
+            m_context->PSSetShaderResources(slotUV, 1, m_srvUV.GetAddressOf());
+            m_context->PSSetSamplers(slotY,  1, m_sampler.GetAddressOf());
+            m_context->PSSetSamplers(slotUV, 1, m_sampler.GetAddressOf());
+            return true;
+        }
+        return false;
+    }
     if (m_srv) {
         m_context->PSSetShaderResources(_index, 1, m_srv.GetAddressOf());
         m_context->PSSetSamplers(_index, 1, m_sampler.GetAddressOf());
@@ -197,6 +288,12 @@ bool CTextureFlatDX11::Bind(const uint32_t _index) {
 
 bool CTextureFlatDX11::Unbind(const uint32_t _index) {
     ID3D11ShaderResourceView* nullSRV = nullptr;
+    if (IsYUVTexture())
+    {
+        m_context->PSSetShaderResources(_index * 2,     1, &nullSRV);
+        m_context->PSSetShaderResources(_index * 2 + 1, 1, &nullSRV);
+        return true;
+    }
     m_context->PSSetShaderResources(_index, 1, &nullSRV);
     return true;
 }

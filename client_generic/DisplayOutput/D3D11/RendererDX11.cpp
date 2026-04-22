@@ -1,6 +1,7 @@
 #include "RendererDX11.h"
 #include "DisplayDX11.h"
 #include "Log.h"
+#include "base.h"
 #include "GlyphAtlasDX11.h"
 #include "Settings.h"
 #include <cassert>
@@ -176,6 +177,141 @@ float4 main(PSInput input) : SV_TARGET {
     float4 c1 = tx1.Sample(smp1, adjustedUV);
     float4 c2 = tx2.Sample(smp2, adjustedUV);
     float4 blended = lerp(c1, c2, delta);
+    blended.rgb += brightness;
+    return float4(blended.rgb * color.rgb, color.a);
+}
+)";
+
+// Shared NV12 YUV->RGB helper (BT.601 limited range, matching MetalShaders.metal SampleYUVTexturesRGBA).
+// Slot layout: YUV textures are bound at i*2 (Y) and i*2+1 (UV) where i is the SetTexture index.
+// No-blend:    t0=Y, t1=UV          (SetTexture index 0)
+// Linear:      t2=f1Y, t3=f1UV, t4=f2Y, t5=f2UV   (indices 1 and 2)
+// Cubic:       t2=f1Y,t3=f1UV, t4=f2Y,t5=f2UV, t6=f3Y,t7=f3UV, t8=f4Y,t9=f4UV (indices 1-4)
+static const char* kNV12SampleHlslHelper = R"(
+float4 SampleNV12(Texture2D yTex, Texture2D uvTex, SamplerState sY, SamplerState sUV, float2 uv) {
+    float  y  = yTex.Sample(sY,  uv).r;
+    float2 uv2 = uvTex.Sample(sUV, uv).rg;
+    float  cb = uv2.x - 0.5;
+    float  cr = uv2.y - 0.5;
+    y = 1.164383561643836 * (y - 0.0625);
+    float r = saturate(y + 1.792741071428571 * cr);
+    float g = saturate(y - 0.532909328559444 * cr - 0.21324861427373 * cb);
+    float b = saturate(y + 2.112401785714286 * cb);
+    return float4(r, g, b, 1.0);
+}
+)";
+
+// NV12 no-blend: texture index 0 → t0=Y, t1=UV
+const char* kDrawDecodedFrameYUVFragmentHlsl = R"(
+Texture2D  yTex  : register(t0);
+Texture2D  uvTex : register(t1);
+SamplerState sY  : register(s0);
+SamplerState sUV : register(s1);
+
+cbuffer QuadUniforms : register(b0) {
+    float4 rect;
+    float4 uvRect;
+    float4 color;
+    float  brightness;
+    float3 padding;
+};
+
+struct PSInput { float4 position : SV_POSITION; float2 uv : TEXCOORD0; };
+
+float4 SampleNV12(Texture2D yT, Texture2D uvT, SamplerState sY2, SamplerState sUV2, float2 uv) {
+    float  y   = yT.Sample(sY2,  uv).r;
+    float2 uv2 = uvT.Sample(sUV2, uv).rg;
+    float  cb  = uv2.x - 0.5; float cr = uv2.y - 0.5;
+    y = 1.164383561643836 * (y - 0.0625);
+    return float4(saturate(y + 1.792741071428571 * cr),
+                  saturate(y - 0.532909328559444 * cr - 0.21324861427373 * cb),
+                  saturate(y + 2.112401785714286 * cb), 1.0);
+}
+
+float4 main(PSInput input) : SV_TARGET {
+    float2 adjustedUV = (input.uv - rect.xy) / rect.zw;
+    adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;
+    float4 c = SampleNV12(yTex, uvTex, sY, sUV, adjustedUV);
+    c.rgb += brightness;
+    return float4(c.rgb * color.rgb, color.a);
+}
+)";
+
+// NV12 linear blend: indices 1 and 2 → t2=f1Y, t3=f1UV, t4=f2Y, t5=f2UV
+const char* kDrawDecodedFrameLinearYUVFragmentHlsl = R"(
+Texture2D  f1Y  : register(t2);
+Texture2D  f1UV : register(t3);
+Texture2D  f2Y  : register(t4);
+Texture2D  f2UV : register(t5);
+SamplerState s2 : register(s2);
+SamplerState s3 : register(s3);
+SamplerState s4 : register(s4);
+SamplerState s5 : register(s5);
+
+cbuffer QuadUniforms : register(b0) {
+    float4 rect; float4 uvRect; float4 color; float brightness; float3 padding;
+};
+cbuffer LinearDeltaCB : register(b1) { float delta; float3 _padDelta; };
+
+struct PSInput { float4 position : SV_POSITION; float2 uv : TEXCOORD0; };
+
+float4 SampleNV12_2(Texture2D yT, Texture2D uvT, SamplerState sY2, SamplerState sUV2, float2 uv) {
+    float  y   = yT.Sample(sY2,  uv).r;
+    float2 uv2 = uvT.Sample(sUV2, uv).rg;
+    float  cb  = uv2.x - 0.5; float cr = uv2.y - 0.5;
+    y = 1.164383561643836 * (y - 0.0625);
+    return float4(saturate(y + 1.792741071428571 * cr),
+                  saturate(y - 0.532909328559444 * cr - 0.21324861427373 * cb),
+                  saturate(y + 2.112401785714286 * cb), 1.0);
+}
+
+float4 main(PSInput input) : SV_TARGET {
+    float2 adjustedUV = (input.uv - rect.xy) / rect.zw;
+    adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;
+    float4 c1 = SampleNV12_2(f1Y, f1UV, s2, s3, adjustedUV);
+    float4 c2 = SampleNV12_2(f2Y, f2UV, s4, s5, adjustedUV);
+    float4 blended = lerp(c1, c2, delta);
+    blended.rgb += brightness;
+    return float4(blended.rgb * color.rgb, color.a);
+}
+)";
+
+// NV12 cubic blend: indices 1-4 → t2/t3, t4/t5, t6/t7, t8/t9
+const char* kDrawDecodedFrameCubicYUVFragmentHlsl = R"(
+Texture2D  f1Y  : register(t2);  Texture2D f1UV : register(t3);
+Texture2D  f2Y  : register(t4);  Texture2D f2UV : register(t5);
+Texture2D  f3Y  : register(t6);  Texture2D f3UV : register(t7);
+Texture2D  f4Y  : register(t8);  Texture2D f4UV : register(t9);
+SamplerState s2 : register(s2);  SamplerState s3 : register(s3);
+SamplerState s4 : register(s4);  SamplerState s5 : register(s5);
+SamplerState s6 : register(s6);  SamplerState s7 : register(s7);
+SamplerState s8 : register(s8);  SamplerState s9 : register(s9);
+
+cbuffer QuadUniforms : register(b0) {
+    float4 rect; float4 uvRect; float4 color; float brightness; float3 padding;
+};
+cbuffer CubicWeightsCB : register(b1) { float4 weights; };
+
+struct PSInput { float4 position : SV_POSITION; float2 uv : TEXCOORD0; };
+
+float4 SampleNV12_3(Texture2D yT, Texture2D uvT, SamplerState sY2, SamplerState sUV2, float2 uv) {
+    float  y   = yT.Sample(sY2,  uv).r;
+    float2 uv2 = uvT.Sample(sUV2, uv).rg;
+    float  cb  = uv2.x - 0.5; float cr = uv2.y - 0.5;
+    y = 1.164383561643836 * (y - 0.0625);
+    return float4(saturate(y + 1.792741071428571 * cr),
+                  saturate(y - 0.532909328559444 * cr - 0.21324861427373 * cb),
+                  saturate(y + 2.112401785714286 * cb), 1.0);
+}
+
+float4 main(PSInput input) : SV_TARGET {
+    float2 adjustedUV = (input.uv - rect.xy) / rect.zw;
+    adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;
+    float4 c1 = SampleNV12_3(f1Y, f1UV, s2, s3, adjustedUV);
+    float4 c2 = SampleNV12_3(f2Y, f2UV, s4, s5, adjustedUV);
+    float4 c3 = SampleNV12_3(f3Y, f3UV, s6, s7, adjustedUV);
+    float4 c4 = SampleNV12_3(f4Y, f4UV, s8, s9, adjustedUV);
+    float4 blended = c1 * weights.x + c2 * weights.y + c3 * weights.z + c4 * weights.w;
     blended.rgb += brightness;
     return float4(blended.rgb * color.rgb, color.a);
 }
@@ -746,7 +882,27 @@ void CRendererDX11::Defaults() {
 }
 
 bool CRendererDX11::BeginFrame() {
+    std::lock_guard<std::recursive_mutex> d3dLock(GetD3D11ImmediateContextMutex());
     m_pendingTextDraws.clear();
+
+    // Abort immediately if the D3D11 device was lost (DXGI_ERROR_DEVICE_REMOVED /
+    // DXGI_ERROR_DEVICE_HUNG during a previous Present).  Every D3D11 call on a
+    // removed device returns DXGI_ERROR_DEVICE_REMOVED, so continuing would
+    // flood the log and accomplish nothing useful.
+    if (m_device)
+    {
+        HRESULT removedReason = m_device->GetDeviceRemovedReason();
+        if (removedReason != S_OK)
+        {
+            static bool s_deviceLostLogged = false;
+            if (!s_deviceLostLogged)
+            {
+                g_Log->Error("D3D11 device removed (reason: %08X); all rendering suspended", removedReason);
+                s_deviceLostLogged = true;
+            }
+            return false;
+        }
+    }
 
     if (!CRenderer::BeginFrame())
         return false;
@@ -896,6 +1052,7 @@ bool CRendererDX11::EnsureTextBatchResources()
 }
 
 bool CRendererDX11::EndFrame(bool drawn) {
+    std::lock_guard<std::recursive_mutex> d3dLock(GetD3D11ImmediateContextMutex());
 #ifdef WIN32
     // Base CRenderer::EndFrame returns false when !drawn, which would skip overlay + Present.
     // Settings overlay is rendered after HUD text so it always appears top-most.
@@ -990,6 +1147,7 @@ bool CRendererDX11::EndFrame(bool drawn) {
 void CRendererDX11::DrawTextBatched(const std::shared_ptr<CTextDX11Atlas>& text,
                                     const Base::Math::CVector4& color)
 {
+    std::lock_guard<std::recursive_mutex> d3dLock(GetD3D11ImmediateContextMutex());
     if (!text || !text->Enabled() || !m_context || !m_spDisplay)
         return;
 
@@ -1319,8 +1477,8 @@ spCShader CRendererDX11::NewShader(const char* _pVertexShader, const char* _pFra
         return nullptr;
     }
 
-    // Windows DX11 renders decoded RGBA frames (no YUV path). Linear/cubic use
-    // multi-texture pixel shaders; blend uniforms use CB slots 1+ so b0 stays QuadUniforms.
+    // DX11 decoded-frame shaders: RGBA path + NV12 YUV hw path.
+    // Blend uniforms use CB slots 1+ so b0 stays QuadUniforms.
     const bool supportedFragment =
         fragmentName == "drawTextureFragment" ||
         fragmentName == "drawDecodedFrameNoBlendingFragment" ||
@@ -1333,12 +1491,16 @@ spCShader CRendererDX11::NewShader(const char* _pVertexShader, const char* _pFra
     }
 
     const char* fragmentSource = kDrawTextureFragmentHlsl;
+    const char* yuvFragmentSource = nullptr;
     if (fragmentName == "drawDecodedFrameNoBlendingFragment") {
-        fragmentSource = kDrawDecodedFrameFragmentHlsl;
+        fragmentSource    = kDrawDecodedFrameFragmentHlsl;
+        yuvFragmentSource = kDrawDecodedFrameYUVFragmentHlsl;
     } else if (fragmentName == "drawDecodedFrameLinearFrameBlendFragment") {
-        fragmentSource = kDrawDecodedFrameLinearFragmentHlsl;
+        fragmentSource    = kDrawDecodedFrameLinearFragmentHlsl;
+        yuvFragmentSource = kDrawDecodedFrameLinearYUVFragmentHlsl;
     } else if (fragmentName == "drawDecodedFrameCubicFrameBlendFragment") {
-        fragmentSource = kDrawDecodedFrameCubicFragmentHlsl;
+        fragmentSource    = kDrawDecodedFrameCubicFragmentHlsl;
+        yuvFragmentSource = kDrawDecodedFrameCubicYUVFragmentHlsl;
     }
 
     auto shader = std::make_shared<CShaderDX11>(m_device, m_context);
@@ -1356,10 +1518,33 @@ spCShader CRendererDX11::NewShader(const char* _pVertexShader, const char* _pFra
         shader->CreateUniform(uniforms[i].first, uniforms[i].second, slot);
     }
 
-    shader->SetDecodedFrameShader(
+    const bool isDecodedFrame =
         fragmentName == "drawDecodedFrameNoBlendingFragment" ||
         fragmentName == "drawDecodedFrameLinearFrameBlendFragment" ||
-        fragmentName == "drawDecodedFrameCubicFrameBlendFragment");
+        fragmentName == "drawDecodedFrameCubicFrameBlendFragment";
+    shader->SetDecodedFrameShader(isDecodedFrame);
+
+    // Build the NV12 YUV variant and register it so DrawTexturedQuad can
+    // auto-select it whenever any bound texture is a hw (D3D11VA) frame.
+    if (yuvFragmentSource)
+    {
+        auto yuvShader = std::make_shared<CShaderDX11>(m_device, m_context);
+        if (yuvShader->Build(kQuadPassVertexHlsl, yuvFragmentSource))
+        {
+            for (uint32_t i = 0; i < uniforms.size(); ++i)
+            {
+                const uint32_t slot = blendSlotsOffset ? (i + 1) : i;
+                yuvShader->CreateUniform(uniforms[i].first, uniforms[i].second, slot);
+            }
+            yuvShader->SetDecodedFrameShader(true);
+            m_yuvShaderVariants[shader.get()] = yuvShader;
+        }
+        else
+        {
+            g_Log->Warning("Failed to build NV12 YUV shader variant for '%s'; hw frames will fall back to Upload path",
+                           fragmentName.c_str());
+        }
+    }
 
     return shader;
 }
@@ -1425,6 +1610,7 @@ void CRendererDX11::DrawTexturedQuad(const Base::Math::CRect& _rect,
                                      const Base::Math::CRect& _uvRect,
                                      ID3D11SamplerState* _pixelSampler)
 {
+    std::lock_guard<std::recursive_mutex> d3dLock(GetD3D11ImmediateContextMutex());
     static bool s_loggedMissingVertexShader = false;
 
     if (!m_renderTargetView)
@@ -1514,7 +1700,36 @@ void CRendererDX11::DrawTexturedQuad(const Base::Math::CRect& _rect,
     if (!m_spSelectedShader && m_drawTextureShader)
         SetShader(m_drawTextureShader);
 
+    // If any bound texture is a hw YUV frame (D3D11VA NV12), automatically swap to
+    // the YUV variant of the current decoded-frame shader.  This keeps FrameDisplay
+    // classes oblivious to hw vs. sw decode.
+    spCShader savedShaderForYUV;
+    {
+        bool anyYUV = false;
+        for (uint32_t i = 0; i < MAX_TEXUNIT && !anyYUV; ++i)
+        {
+            auto* texDx11 = dynamic_cast<CTextureFlatDX11*>(m_aspSelectedTextures[i].get());
+            if (texDx11 && texDx11->IsYUVTexture())
+                anyYUV = true;
+        }
+        if (anyYUV && m_spSelectedShader)
+        {
+            auto it = m_yuvShaderVariants.find(m_spSelectedShader.get());
+            if (it != m_yuvShaderVariants.end())
+            {
+                savedShaderForYUV = m_spSelectedShader;
+                SetShader(it->second);
+            }
+        }
+    }
+
     Apply();
+
+    // Restore RGBA shader after the draw so state stays consistent.
+    auto restoreShader = [&]() {
+        if (savedShaderForYUV)
+            SetShader(savedShaderForYUV);
+    };
 
     ID3D11SamplerState* samp = _pixelSampler ? _pixelSampler : m_defaultSampler.Get();
     m_context->PSSetSamplers(0, 1, &samp);
@@ -1543,6 +1758,8 @@ void CRendererDX11::DrawTexturedQuad(const Base::Math::CRect& _rect,
 
     if (viewportOverridden && savedViewportCount > 0)
         m_context->RSSetViewports(savedViewportCount, savedViewports);
+
+    restoreShader();
 }
 
 void CRendererDX11::DrawQuad(const Base::Math::CRect& _rect,

@@ -8,6 +8,9 @@
 #define _BASE_H_
 
 #include <atomic>
+#ifdef __cplusplus
+#include <mutex>
+#endif
 
 #ifdef LINUX_GNU
 #include <inttypes.h>
@@ -21,6 +24,18 @@
 #define PATH_SEPARATOR "\\"
 #else 
 #define PATH_SEPARATOR "/"
+#endif
+
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
+#ifdef __cplusplus
+// Global lock used to serialize D3D11 immediate-context access across renderer
+// and FFmpeg D3D11VA decode threads.
+inline std::recursive_mutex& GetD3D11ImmediateContextMutex()
+{
+    static std::recursive_mutex mutex;
+    return mutex;
+}
+#endif
 #endif
 
 
@@ -95,11 +110,17 @@
 
 #define USE_HW_ACCELERATION true
 
-#ifndef USE_METAL
-#if USE_HW_ACCELERATION
+#ifdef USE_METAL
+// macOS Metal path: hw acceleration enabled via VideoToolbox.
+#elif defined(WIN32) || defined(_WIN32) || defined(_WIN64)
+// Windows path: hw acceleration enabled via D3D11VA.
+#define USE_HW_ACCELERATION_WIN32 1
+#undef USE_HW_ACCELERATION
+#define USE_HW_ACCELERATION 1
+#else
+// All other platforms (Linux, etc.): no hw acceleration.
 #undef USE_HW_ACCELERATION
 #define USE_HW_ACCELERATION 0
-#endif
 #endif
 
 #define UNFFERRTAG(tag)                                                        \
