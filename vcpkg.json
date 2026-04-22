@@ -11,7 +11,8 @@
     "curl",
     "libpng",
     { "name": "directxtk12", "platform": "windows" },
-    "ffmpeg",
+    { "name": "ffmpeg", "features": [ "openssl" ], "platform": "!windows" },
+    { "name": "ffmpeg", "platform": "windows" },
     {
       "name": "imgui",
       "platform": "windows",
