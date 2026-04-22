@@ -129,11 +129,11 @@ class CPlayer : public Base::CSingleton<CPlayer>
   private:
 #endif
 
-    void FpsCap(const double _cap);
     /// Shared logged-in path: Hello/quota, server playlist, begin playback (used by startup and sign-in).
     void BootstrapLoggedInPlaylist();
 
   public:
+    void FpsCap(const double _cap);
     bool Startup();
     bool Shutdown(void);
     virtual ~CPlayer();
@@ -160,7 +160,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     bool Update(uint32_t displayUnit); //, bool& bPlayNoSheepIntro);
     //bool Update(double _timelineTime);
 
-    void RenderFrame(DisplayOutput::spCRenderer renderer);
+    bool RenderFrame(DisplayOutput::spCRenderer renderer);
     
     bool HasStarted() { return m_hasStarted; };
     void SetFirstRunWizardPlaybackHold(bool hold)
@@ -183,14 +183,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
     sOpenVideoInfo* GetNextClipInfo();
 
 
-#ifdef MAC
-    int AddDisplay(uint32_t screen, CGraphicsContext _grapicsContext,
+    int AddDisplay(uint32_t screen, CGraphicsContext _grapicsContext = nullptr,
                    bool _blank = false);
-#endif
-
-#ifdef WIN32
-    int AddDisplay(uint32_t screen, bool _blank = false);
-#endif
 
     inline void PlayCountsInitOff() { m_InitPlayCounts = false; };
 

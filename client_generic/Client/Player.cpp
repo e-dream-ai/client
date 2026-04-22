@@ -1,5 +1,4 @@
 #include <shared_mutex>
-#include <boost/bind.hpp>
 #include <boost/thread.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/thread/xtime.hpp>
@@ -29,9 +28,12 @@
 //#include "RendererD3D12.h"
 #include "../DisplayOutput/D3D11/DisplayDX11.h"
 #include "../DisplayOutput/D3D11/RendererDX11.h"
-#else
+#elif defined(MAC)
 #include "DisplayMetal.h"
 #include "RendererMetal.h"
+#else  // Linux
+#include "DisplayVulkan.h"
+#include "RendererVulkan.h"
 #endif
 
 #include "CacheManager.h"
@@ -140,17 +142,9 @@ void CPlayer::SetHWND(HWND _hWnd)
 #endif
 
 
-#ifdef MAC
 int CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
                         CGraphicsContext _graphicsContext,
                         [[maybe_unused]] bool _blank)
-#else
-#ifdef WIN32
-int CPlayer::AddDisplay(uint32_t screen, bool _blank)
-#else
-int CPlayer::AddDisplay(uint32 screen)
-#endif
-#endif
 {
     DisplayOutput::spCDisplayOutput spDisplay;
     DisplayOutput::spCRenderer spRenderer;
@@ -192,7 +186,7 @@ int CPlayer::AddDisplay(uint32 screen)
     SetHWND(displayHwnd);
 
     spRenderer = std::make_shared<CRendererDX11>();
-#else // !WIN32
+#elif defined(MAC)
 
     g_Log->Info("Attempting to open %s...", CDisplayMetal::Description());
     spDisplay = std::make_shared<CDisplayMetal>();
@@ -200,7 +194,6 @@ int CPlayer::AddDisplay(uint32 screen)
     if (spDisplay == nullptr)
         return -1;
 
-#if defined(MAC)
     if (_graphicsContext != nullptr)
     {
         if (!spDisplay->Initialize(_graphicsContext, true))
@@ -208,14 +201,23 @@ int CPlayer::AddDisplay(uint32 screen)
 
         spDisplay->ForceWidthAndHeight(w, h);
     }
-#else
-    if (!spDisplay->Initialize(w, h, m_bFullscreen))
-        return -1;
-#endif //! MAC
 
     spRenderer = std::make_shared<CRendererMetal>();
 
-#endif //! WIN32
+#else  // Linux — Vulkan
+
+    g_Log->Info("Attempting to open Vulkan display...");
+    spDisplay = std::make_shared<CDisplayVulkan>();
+
+    if (spDisplay == nullptr)
+        return -1;
+
+    if (!spDisplay->Initialize(w, h, m_bFullscreen))
+        return -1;
+
+    spRenderer = std::make_shared<CRendererVulkan>();
+
+#endif  // !WIN32
 
     //	Start renderer & set window title.
     if (spRenderer->Initialize(spDisplay) == false)
@@ -753,54 +755,30 @@ bool CPlayer::Update(uint32_t displayUnit)
                      m_nextClip->m_FadeInSeconds);
     }*/
     
-    RenderFrame(du->spRenderer);
+    bool drew = RenderFrame(du->spRenderer);
 
-    return true;
+    return drew;
 }
 
-void CPlayer::RenderFrame(DisplayOutput::spCRenderer renderer) {
+bool CPlayer::RenderFrame(DisplayOutput::spCRenderer renderer) {
     if (m_isTransitioning && m_currentClip && m_nextClip) {
         double transitionProgress = (m_TimelineTime - m_transitionStartTime) / m_transitionDuration;
         float currentAlpha = 1.0f - static_cast<float>(transitionProgress);
         float nextAlpha = static_cast<float>(transitionProgress);
 
-        // Render current clip
-        // TODO: tmplog
-        /*g_Log->Info("render current frame %d of %s", m_currentClip->m_CurrentFrameMetadata.frameIdx, m_currentClip->m_ClipMetadata.dreamData.uuid.c_str());
-         */
-        m_currentClip->DrawFrame(renderer, currentAlpha);
+        bool drew = m_currentClip->DrawFrame(renderer, currentAlpha);
 
-        // Render next clip
         // Somehow sometimes we reach here with no m_nextClip, not 100% clear why
         if (m_nextClip) {
-            // TODO: tmplog
-            /*g_Log->Info("render next frame %d of %s", m_nextClip->m_CurrentFrameMetadata.frameIdx, m_nextClip->m_ClipMetadata.dreamData.uuid.c_str());*/
-           m_nextClip->DrawFrame(renderer, nextAlpha);
+           drew |= m_nextClip->DrawFrame(renderer, nextAlpha);
         } else {
             g_Log->Error("Render frame has null nextClip despite checking for it earlier");
         }
+        return drew;
     } else if (m_currentClip) {
-        if (m_currentClip->IsBuffering()) {
-            // We're still buffering, show appropriate UI
-            /*g_Log->Info("Buffering clip %s, frame queue: %d",
-                m_currentClip->GetClipMetadata().dreamData.uuid.c_str(),
-                m_currentClip->GetDecoder()->QueueLength());*/
-            
-            // Still call DrawFrame which will handle buffering visualization
-            m_currentClip->DrawFrame(renderer);
-        } else {
-            // Normal playback
-            /*g_Log->Info("render frame %d of %s",
-                m_currentClip->m_CurrentFrameMetadata.frameIdx,
-                m_currentClip->m_ClipMetadata.dreamData.uuid.c_str());*/
-            
-            m_currentClip->DrawFrame(renderer);
-
-            if (m_currentClip->m_CurrentFrameMetadata.frameIdx == 1) {
-                // TMP breakpoint
-            }
-        }
+        return m_currentClip->DrawFrame(renderer);
     }
+    return false;
 }
 
 bool CPlayer::PlayClip(const Cache::Dream* dream, double _startTime, int64_t _seekFrame, bool isTransition)
@@ -1113,7 +1091,8 @@ void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
                     // Set up transition parameters (but don't start yet - wait for clip to buffer)
                     m_transitionDuration = 1.0f;
                     m_pendingSeekCrossfade = true;  // Will start transition when next clip is ready
-                    
+
+
                     // Set the start time and store the clip
                     newClip->SetStartTime(m_TimelineTime);
                     m_nextClip = newClip;
@@ -1121,6 +1100,7 @@ void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
                         m_nextClip->SetTransitionLength(1.0f, 5.0f);
                     }
                 }
+                return true;
             }).detach();
         }
     } else {
@@ -1281,7 +1261,11 @@ bool CPlayer::SetPlaylistAtDream(const std::string& playlistUUID, const std::str
     int64_t seekFrame;
     seekFrame = (int64_t)g_Settings()->Get(
         "settings.content.last_played_frame", uint64_t{});
-    
+    // Guard against corrupted/wrapped values (e.g. uint32_t wrap from a previous VAAPI PTS bug).
+    // Any negative value or value implying > 24 hours of footage at 60fps is treated as invalid.
+    constexpr int64_t kMaxReasonableFrame = 24LL * 3600 * 60; // 24h @ 60fps
+    if (seekFrame < 0 || seekFrame > kMaxReasonableFrame) seekFrame = 0;
+
     // If we've reached here, the playlist is set and positioned at the correct dream
     // Now we can start playing this dream
     StartTransition();

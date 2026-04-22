@@ -62,7 +62,7 @@ namespace http {
     static std::string const empty_header;
 
     /// Maximum size in bytes before rejecting an HTTP header as too big.
-    size_t const max_header_size = 16000;
+    size_t const max_header_size = 65536;
     
     /// Default Maximum size in bytes for HTTP message bodies.
     size_t const max_body_size = 32000000;

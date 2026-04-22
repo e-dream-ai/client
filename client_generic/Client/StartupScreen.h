@@ -43,27 +43,20 @@ class CStartupScreen : public CHudEntry
         // Renderer can be unavailable during early startup; lazily acquire font/text in Render().
         m_spFont = nullptr;
         m_StartupMessage =
-            "No Sheep downloaded yet, this should take less than a minute\nbut "
-            "might take several hours.  Please see ElectricSheep.org\nto learn "
-            "more, or press F1 for help.";
+            "Connecting to infinidream.ai...\nPress F1 for help.";
         m_spText = nullptr;
         m_spImageRef = std::make_shared<DisplayOutput::CImage>();
         m_spImageRef->Create(256, 256, DisplayOutput::eImage_RGBA8, false,
                              true);
-#ifndef LINUX_GNU
-        std::string installDir =
-            g_Settings()->Get("settings.app.InstallDir", PlatformUtils::GetWorkingDir());
-        if (!installDir.empty() && installDir.back() != '/' && installDir.back() != '\\')
-            installDir += '/';
-        m_spImageRef->Load(installDir + "logo.png", false);
-#else
-        std::string installDir =
-            g_Settings()->Get("settings.app.InstallDir", PlatformUtils::GetWorkingDir());
-        if (!installDir.empty() && installDir.back() != '/')
-            installDir += '/';
-        m_spImageRef->Load(installDir + "logo.png", false);
-#endif
-        DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
+        if (!m_spImageRef->Load(
+                g_Settings()->Get("settings.app.InstallDir", PlatformUtils::GetWorkingDir()) +
+                    "logo.png",
+                false))
+        {
+            // Logo not found — skip rendering it rather than showing a white square.
+            m_spImageRef = nullptr;
+        }
+        auto spDisplay = g_Player().Display();
         float aspect = (spDisplay && spDisplay->Width() != 0) ? spDisplay->Aspect() : 1.0f;
         m_LogoSize.m_X0 = 0.f;
         m_LogoSize.m_X1 = 0.2f * aspect;
@@ -121,81 +114,56 @@ class CStartupScreen : public CHudEntry
                 boost::posix_time::second_clock::local_time();
         }
 
-        // draw picture
-
+        // draw picture (only if logo loaded successfully)
         if (m_spImageRef)
         {
-            // Create and upload once; reusing GPU texture avoids per-frame stalls on startup.
+            // Create and upload the logo texture only once — the image never changes.
             if (!m_spVideoTexture)
-                m_spVideoTexture = _spRenderer->NewTextureFlat();
-            if (m_spVideoTexture && !m_TextureUploaded)
             {
+                m_spVideoTexture = _spRenderer->NewTextureFlat();
                 m_spVideoTexture->Upload(m_spImageRef);
-                m_TextureUploaded = true;
             }
+
+            _spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader);
+            _spRenderer->SetBlend("alphablend");
+            _spRenderer->SetTexture(m_spVideoTexture, 0);
+            _spRenderer->SetShader(NULL);
+            _spRenderer->Apply();
+
+            // Recompute aspect each frame so the logo stays circular after
+            // the window is resized (e.g. F-key fullscreen toggle).  Caching
+            // it in the constructor produced the wrong ratio after resize.
+            const float currentAspect = _spRenderer->Display()->Aspect();
+            Base::Math::CRect rr;
+            rr.m_X0 = 0.5f - 0.2f * currentAspect;
+            rr.m_Y0 = 0.5f - 0.2f + m_MoveMessageCounter;
+            rr.m_X1 = 0.5f + 0.2f * currentAspect;
+            rr.m_Y1 = 0.5f + 0.2f + m_MoveMessageCounter;
+
+            _spRenderer->DrawQuad(rr, Base::Math::CVector4(1, 1, 1, m_Alpha),
+                                  m_spVideoTexture->GetRect());
         }
 
-        if (!m_spVideoTexture)
-            return false;
+        // draw text — centered near top of screen
+        if (m_spText)
+        {
+            static constexpr float kHudReferenceHeight = 1080.f;
+            const float screenH = static_cast<float>(_spRenderer->Display()->Height());
+            const float screenW = static_cast<float>(_spRenderer->Display()->Width());
+            const float edge = (float)m_Desc.Height() * (screenH / kHudReferenceHeight) / screenW;
 
-        _spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader);
-        _spRenderer->SetBlend("alphablend");
-        _spRenderer->SetTexture(m_spVideoTexture, 0);
-        _spRenderer->SetShader(NULL);
-        _spRenderer->Apply();
+            // GetExtent() measures up to the first \n, giving the width of the
+            // longer first line — sufficient to horizontally center the block.
+            Base::Math::CVector2 extent = m_spText->GetExtent();
+            const float x0 = extent.m_X > 0.f ? 0.5f - extent.m_X * 0.5f : edge;
 
-        Base::Math::CRect rr;
-        rr.m_X0 = 0.5f - (m_LogoSize.Width());
-        rr.m_Y0 = 0.5f - (m_LogoSize.Height()) + m_MoveMessageCounter;
-        rr.m_X1 = 0.5f + (m_LogoSize.Width());
-        rr.m_Y1 = 0.5f + (m_LogoSize.Height()) + m_MoveMessageCounter;
-
-        _spRenderer->DrawQuad(rr, Base::Math::CVector4(1, 1, 1, m_Alpha),
-                              m_spVideoTexture->GetRect());
-
-        // draw text
-
-        // float step = (float)m_Desc.Height() /
-        // (float)_spRenderer->Display()->Height();
-        auto spDisplay = _spRenderer ? _spRenderer->Display() : nullptr;
-        float edge = (spDisplay && spDisplay->Width() > 0) ? (24 / (float)spDisplay->Width()) : 24.f;
-
-
-
-        // TODO: DTEXT
-        //Base::Math::CRect extent;
-        //Base::Math::CVector2 size = m_spText->GetExtent();
-        //extent = extent.Union(Base::Math::CRect(0, 0, size.m_X + (edge * 2),
-        //                                        size.m_Y + (edge * 2)));
-
-        //boost::posix_time::time_duration td =
-        //    boost::posix_time::second_clock::local_time() -
-        //    m_ServerMessageStartTimer;
-        //if (td.hours() >= 1)
-        //{
-        //    m_MoveMessageCounter += 0.0005f;
-        //    if (m_MoveMessageCounter >= 1.f)
-        //        m_MoveMessageCounter -= 1.f + edge * 2 + float(size.m_Y);
-        //}
-
-        //	Draw quad.
-        //_spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader |
-        //                   DisplayOutput::eBlend);
-
-        //Base::Math::CRect r(
-        //    0.5f - (extent.Width() * 0.5f), extent.m_Y0 + m_MoveMessageCounter,
-        //    0.5f + (extent.Width() * 0.5f), extent.m_Y1 + m_MoveMessageCounter);
-
-        //_spRenderer->SetBlend("alphablend");
-        //_spRenderer->Apply();
-        //_spRenderer->DrawSoftQuad(r, Base::Math::CVector4(0, 0, 0, 0.5f), 16);
-
-        // dasvo - terrible hack - redo!!
-        //if (m_spFont)
-        //    m_spFont->Reupload();
-        //m_spText->SetRect(
-        //    Base::Math::CRect(r.m_X0 + edge, r.m_Y0 + edge, r.m_X1, r.m_Y1));
-        //_spRenderer->DrawText(m_spText, Base::Math::CVector4(1, 1, 1, 1));
+            m_spText->SetRect(Base::Math::CRect(x0, edge, x0 + extent.m_X + edge, edge + extent.m_Y * 3.0f));
+            _spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader |
+                               DisplayOutput::eBlend);
+            _spRenderer->SetBlend("alphablend");
+            _spRenderer->Apply();
+            _spRenderer->DrawText(m_spText, Base::Math::CVector4(1, 1, 1, m_Alpha));
+        }
 
         return true;
     }
