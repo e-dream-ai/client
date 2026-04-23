@@ -607,9 +607,6 @@ class CElectricSheep
             g_Player().Renderer()->GetGPUFrameTimeMs();
         m_RuntimeDiagnostics.gpuUtilization =
             g_Player().Renderer()->GetGPUUtilization();
-        m_RuntimeDiagnostics.serverStatus = g_NetworkManager->Status();
-        m_RuntimeDiagnostics.downloadStatus =
-            g_ContentDownloader().m_gDownloader.GetDownloadStatus();
         m_RuntimeDiagnostics.nextFastUpdateTime = now + 0.5;
     }
 
@@ -1678,6 +1675,9 @@ class CElectricSheep
                 // Grab Perceptual FPS from player
                 double pFPS = g_Player().GetPerceptualFPS();
                 if (spStats && dreamStatsVisible) {
+                m_RuntimeDiagnostics.serverStatus = g_NetworkManager->Status();
+                m_RuntimeDiagnostics.downloadStatus =
+                    g_ContentDownloader().m_gDownloader.GetDownloadStatus();
                 updateNextCheckTimeDisplay();
                 if (isStreamingCurrent) {
                     ((Hud::CStringStat*)spStats->Get("decodefps"))
