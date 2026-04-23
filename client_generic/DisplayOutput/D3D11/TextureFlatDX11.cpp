@@ -258,6 +258,9 @@ bool CTextureFlatDX11::BindFrame(ContentDecoder::spCVideoFrame _spFrame) {
     }
 
     m_Flags |= eTextureFlags::TEXTURE_YUV;
+
+    m_bDirty = true;
+
     return true;
 }
 
