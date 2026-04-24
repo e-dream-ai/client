@@ -42,6 +42,11 @@
 #include "Timer.h"
 #include "StringFormat.h"
 
+#if defined(WIN32)
+#include "FirstTimeSetupWin32.h"
+#include "SettingsDialogWin32.h"
+#endif
+
 #include "PlatformUtils.h"
 #include "CacheManager.h"
 
@@ -2392,6 +2397,12 @@ class CElectricSheep
     {
         if (_event->Type() == DisplayOutput::CEvent::Event_KEY)
         {
+#if defined(WIN32)
+            // While an ImGui overlay (Settings / first-run wizard) is active, it owns keyboard focus.
+            // Swallow player hotkeys so typing into text fields doesn't trigger playback actions.
+            if (SettingsDialogWin32_HasPendingOrVisible() || FirstTimeSetupWin32_IsWizardVisible())
+                return true;
+#endif
             DisplayOutput::spCKeyEvent spKey =
                 std::dynamic_pointer_cast<DisplayOutput::CKeyEvent>(_event);
 

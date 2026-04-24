@@ -586,6 +586,9 @@ class CElectricSheep_Win32 : public CElectricSheep
             //	Key events.
             if (_event->Type() == DisplayOutput::CEvent::Event_KEY)
             {
+                if (SettingsDialogWin32_HasPendingOrVisible() || FirstTimeSetupWin32_IsWizardVisible())
+                    return true;
+
                 DisplayOutput::spCKeyEvent spKey =
                     std::dynamic_pointer_cast<DisplayOutput::CKeyEvent>(_event);
                 m_bCtrlDown = ((GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0);
