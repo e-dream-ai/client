@@ -140,7 +140,10 @@ bool JSONStorage::Set(std::string_view _entry, int32_t _val)
     GetOrSetValue<int32_t>(
         _entry, _val,
         [=](json::value* jsonVal) -> int32_t
-        { return jsonVal->as_int64() = _val; },
+        {
+            *jsonVal = _val;
+            return _val;
+        },
         true);
     Dirty(true);
     return true;
@@ -210,7 +213,39 @@ bool JSONStorage::Get(std::string_view _entry, int32_t& _ret)
     return GetOrSetValue<int32_t>(
         _entry, _ret,
         [=](json::value* jsonVal) -> int32_t
-        { return (int32_t)jsonVal->as_int64(); },
+        {
+            if (jsonVal->is_int64())
+                return (int32_t)jsonVal->as_int64();
+
+            if (jsonVal->is_string())
+            {
+                const std::string legacyValue = jsonVal->as_string().data();
+
+                // Legacy migration for frame generation mode before it moved to enum-backed ints.
+                if (_entry == "settings.player.frame_generation.mode")
+                {
+                    if (legacyValue == "blend_2x")
+                        return 1;
+                    if (legacyValue == "rife_2x")
+                        return 2;
+                    if (legacyValue == "none" || legacyValue == "off")
+                        return 0;
+                }
+
+                try
+                {
+                    return std::stoi(legacyValue);
+                }
+                catch (const std::exception&)
+                {
+                    g_Log->Warning("JSONStorage::Get int32 failed to parse string for %s: %s",
+                                   std::string(_entry).c_str(), legacyValue.c_str());
+                    return 0;
+                }
+            }
+
+            return (int32_t)jsonVal->as_int64();
+        },
         false);
 }
 bool JSONStorage::Get(std::string_view _entry, double& _ret)

@@ -30,6 +30,7 @@
 #include "ContentDownloader.h"
 #include "CrossFade.h"
 #include "EDreamClient.h"
+#include "FrameGeneration/FrameGenerationMode.h"
 #include "Hud.h"
 #include "Matrix.h"
 #include "ServerMessage.h"
@@ -190,6 +191,7 @@ class CElectricSheep
     std::string m_PreviousDlState; // Track download status
     bool m_MultipleInstancesMode;
     bool m_CachedOnlyMode = false;
+    FrameGeneration::EFrameGenerationMode m_FrameGenerationOverrideMode = FrameGeneration::EFrameGenerationMode::Off;
     bool m_OfflineDueToNoInternetOnly = false;  // true when m_MultipleInstancesMode was set only because internet was down (don't show Busy in that case)
     bool m_bConfigMode;
     bool m_bIsPreview;
@@ -331,6 +333,10 @@ class CElectricSheep
         m_CachedOnlyMode = val;
     }
     
+    void SetFrameGenerationOverrideMode(FrameGeneration::EFrameGenerationMode mode) {
+        m_FrameGenerationOverrideMode = mode;
+    }
+    
     virtual void SetIsPreview(bool _isPreview) {
         m_bIsPreview = _isPreview;
     }
@@ -380,6 +386,7 @@ class CElectricSheep
             BK("C") ": Show credit\t\t\t\t\t" BK("B") ": Report this dream\n"
 #ifdef LINUX_GNU
             BK("V") ": Open web source\t\t\t\t" BK("F") ": Toggle full screen\n"
+            BK("G") ": Cycle frame generation\n"
 #else
             BK("V") ": Open web source\t\t\t\t" BK(FULLSCREEN_MODIFIER_KEY "-F") ": Toggle full screen\n"
 #endif
@@ -429,6 +436,14 @@ class CElectricSheep
             new Hud::CStringStat("decodefps", "Decoding video at ", "? fps"));
         spStats->Add(
             new Hud::CStringStat("perceptualfps", "Perceptual speed ", "? fps"));
+        spStats->Add(
+            new Hud::CStringStat("outputfps", "Output cadence ", "? fps"));
+        spStats->Add(
+            new Hud::CStringStat("framegen", "Frame generation ", "off"));
+        spStats->Add(
+            new Hud::CStringStat("framegencount", "Generated frames ", "0"));
+        spStats->Add(
+            new Hud::CStringStat("framegentiming", "Frame generation timing ", ""));
 
         spStats->Add(new Hud::CStringStat("currentplaylist", "\nPlaylist: ", "None"));
         spStats->Add(new Hud::CStringStat("playlistposition", "Position: ", "None"));
@@ -825,6 +840,21 @@ class CElectricSheep
         // Ensure storage is read-only when in busy mode (e.g. Mac preview forced after constructor)
         InitStorage(m_MultipleInstancesMode);
 
+        const auto startupFrameGenerationMode = m_FrameGenerationOverrideMode;
+        g_Settings()->Set("settings.player.frame_generation.mode",
+                          FrameGeneration::ToSetting(startupFrameGenerationMode));
+        g_Settings()->Set("settings.player.frame_generation.enabled",
+                          startupFrameGenerationMode != FrameGeneration::EFrameGenerationMode::Off);
+        g_Log->Info("Startup override: command line frame generation=%s mode=%s",
+                    startupFrameGenerationMode != FrameGeneration::EFrameGenerationMode::Off ? "true" : "false",
+                    FrameGeneration::ToString(startupFrameGenerationMode));
+
+        g_Log->Info("Startup settings: frame_generation.enabled=%s mode=%s",
+                    g_Settings()->Get("settings.player.frame_generation.enabled", false) ? "true" : "false",
+                    FrameGeneration::ToString(FrameGeneration::FromSetting(
+                        g_Settings()->Get("settings.player.frame_generation.mode",
+                                          FrameGeneration::ToSetting(FrameGeneration::EFrameGenerationMode::Off)))));
+
         m_CpuUsageThreshold =
             g_Settings()->Get("settings.player.cpuusagethreshold", 50);
 
@@ -890,6 +920,12 @@ class CElectricSheep
         //	Init the display and create decoder.
         if (!g_Player().Startup())
             return false;
+
+        g_Log->Info("Player startup complete: frame generation requested=%s effective=%s mode=%s presentation=%.2f",
+                    m_FrameGenerationOverrideMode != FrameGeneration::EFrameGenerationMode::Off ? "true" : "false",
+                    g_Player().IsFrameGenerationEnabled() ? "true" : "false",
+                    g_Player().GetFrameGenerationMode().c_str(),
+                    g_Player().GetPresentationFPS());
 
 #ifdef DO_THREAD_UPDATE
         CreateUpdateThreads();
@@ -1107,7 +1143,20 @@ class CElectricSheep
                     spRenderer->EndFrame();
                 return false;
             }
-            g_Player().FpsCap(m_PerceptualFPS);
+            bool shouldCap = true;
+#ifdef LINUX_GNU
+            if (auto spRenderer = g_Player().Renderer())
+            {
+                // Vulkan FIFO present already blocks to the display refresh.
+                // Sleeping again to the synthetic-content cadence (e.g. 30 fps on
+                // a 60 Hz panel) creates unstable pacing and drops the measured
+                // present rate into the mid-20s. Let present pacing drive Linux.
+                if (spRenderer->Description() == "Vulkan")
+                    shouldCap = false;
+            }
+#endif
+            if (shouldCap)
+                g_Player().FpsCap(g_Player().GetPresentationFPS());
         }
 
         return true;
@@ -1434,6 +1483,14 @@ class CElectricSheep
 // MARK: Main per frame update loop
     virtual bool DoRealFrameUpdate(uint32_t displayUnit)
     {
+        // Check closed BEFORE BeginFrame so we never block in vkWaitForFences /
+        // vkAcquireNextImageKHR with an infinite timeout after the display is closed.
+        if (g_Player().Closed())
+        {
+            g_Log->Info("Player closed (pre-frame check)...");
+            return false;
+        }
+
         if (!g_Player().BeginDisplayFrame(displayUnit))
             return true;
 
@@ -1677,6 +1734,13 @@ class CElectricSheep
                 
                 // Grab Perceptual FPS from player
                 double pFPS = g_Player().GetPerceptualFPS();
+                double outputFPS = g_Player().GetPresentationFPS();
+                bool frameGenerationEnabled = g_Player().IsFrameGenerationEnabled();
+                std::string frameGenerationMode = g_Player().GetFrameGenerationMode();
+                uint64_t generatedFrameCount = g_Player().GetGeneratedFrameCount();
+                uint64_t realFrameCount = g_Player().GetPresentedRealFrameCount();
+                double frameGenerationLastMs = g_Player().GetFrameGenerationLastTimeMs();
+                double frameGenerationAvgMs = g_Player().GetFrameGenerationAverageTimeMs();
                 if (spStats && dreamStatsVisible) {
                 updateNextCheckTimeDisplay();
                 if (isStreamingCurrent) {
@@ -1691,6 +1755,36 @@ class CElectricSheep
                 }
                 ((Hud::CStringStat*)spStats->Get("perceptualfps"))
                     ->SetSample(string_format(" %.2f fps", pFPS));
+                auto* outputFpsStat = (Hud::CStringStat*)spStats->Get("outputfps");
+                auto* frameGenStat = (Hud::CStringStat*)spStats->Get("framegen");
+                auto* frameGenCountStat = (Hud::CStringStat*)spStats->Get("framegencount");
+                auto* frameGenTimingStat = (Hud::CStringStat*)spStats->Get("framegentiming");
+                if (outputFpsStat && frameGenStat && frameGenCountStat && frameGenTimingStat)
+                {
+                    outputFpsStat->Visible(frameGenerationEnabled);
+                    frameGenStat->Visible(frameGenerationEnabled);
+                    frameGenCountStat->Visible(frameGenerationEnabled);
+                    frameGenTimingStat->Visible(frameGenerationEnabled && frameGenerationAvgMs > 0.0);
+
+                    if (frameGenerationEnabled)
+                    {
+                        outputFpsStat->SetSample(string_format(" %.2f fps", outputFPS));
+                        frameGenStat->SetSample(
+                            string_format(" %s (active, %.0f Hz output)",
+                                          frameGenerationMode.c_str(), outputFPS));
+                        frameGenCountStat->SetSample(
+                            string_format(" %llu synthetic / %llu real",
+                                          static_cast<unsigned long long>(generatedFrameCount),
+                                          static_cast<unsigned long long>(realFrameCount)));
+                        if (frameGenerationAvgMs > 0.0)
+                        {
+                            frameGenTimingStat->SetSample(
+                                string_format(" %.2f ms avg / %.2f ms last",
+                                              frameGenerationAvgMs,
+                                              frameGenerationLastMs));
+                        }
+                    }
+                }
                 ((Hud::CStringStat*)spStats->Get("activityLevel"))
                     ->SetSample(string_format(" %.2f", activityLevel));
                 ((Hud::CIntCounter*)spStats->Get("displayfps"))->AddSample(1);
@@ -2272,6 +2366,7 @@ class CElectricSheep
         CLIENT_COMMAND_PAUSE,
         CLIENT_COMMAND_CREDIT,
         CLIENT_COMMAND_WEBPAGE,
+        CLIENT_COMMAND_FRAMEGEN_CYCLE,
         CLIENT_COMMAND_BRIGHTNESS_UP,
         CLIENT_COMMAND_BRIGHTNESS_DOWN,
         CLIENT_COMMAND_SPEED_1,
@@ -2544,6 +2639,9 @@ class CElectricSheep
                     PlatformUtils::OpenURLExternally(data->dreamData.frontendUrl);
                 }
                 return true;
+            case CLIENT_COMMAND_FRAMEGEN_CYCLE:
+                g_Player().CycleFrameGenerationMode();
+                return true;
             case CLIENT_COMMAND_BRIGHTNESS_UP:
                 if (g_Player().Renderer()->GetBrightness() < 1) {
                     m_Brightness++;
@@ -2634,6 +2732,8 @@ class CElectricSheep
                     return ExecuteCommand(CLIENT_COMMAND_PAUSE);
                 case DisplayOutput::CKeyEvent::KEY_C:
                     return ExecuteCommand(CLIENT_COMMAND_CREDIT);
+                case DisplayOutput::CKeyEvent::KEY_G:
+                    return ExecuteCommand(CLIENT_COMMAND_FRAMEGEN_CYCLE);
                 case DisplayOutput::CKeyEvent::KEY_V:
                     return ExecuteCommand(CLIENT_COMMAND_WEBPAGE);
                 case DisplayOutput::CKeyEvent::KEY_W:

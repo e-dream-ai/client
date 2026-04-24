@@ -16,6 +16,8 @@
 #include "FrameDisplay.h"
 #include "ContentDecoder.h"
 #include "CacheManager.h"
+#include "FrameGeneration/FrameGenerationMode.h"
+#include "FrameGeneration/FrameGenerationScheduler.h"
 
 namespace ContentDecoder
 {
@@ -62,6 +64,9 @@ private: //tmp
     spCContentDecoder m_spDecoder;
     ContentDecoder::spCVideoFrame m_spFrameData;
     DisplayOutput::spCImage m_spImageRef;
+    std::unique_ptr<FrameGeneration::CFrameGenerationScheduler> m_spFrameGeneration;
+    FrameGeneration::EFrameGenerationMode m_FrameGenerationMode =
+        FrameGeneration::EFrameGenerationMode::Off;
 public: // tmp public for debug
     sFrameMetadata m_CurrentFrameMetadata;
 private: // tmp
@@ -98,9 +103,15 @@ private:
     int GetFramesToAdvance(double _timelineTime, DecoderClock* _decoderClock) const;
     ///    Grab a frame from the decoder and use it as a texture.
     bool GrabVideoFrame();
+    bool PopDecoderFrame(spCVideoFrame& frame);
+    bool UploadFrameToTexture(const spCVideoFrame& frame);
+    bool AdvanceFrameGenerationPlayback();
+    void ResetFrameGeneration();
     /// Discard frames from the queue without processing them (for catching up)
     void DiscardFrames(int count);
     spCVideoFrame m_LastValidFrame;  // Store the last successfully decoded frame
+    double m_DisplayFramePhase = 0.0;
+    double m_PresentationFps = 0.0;
 
 public:
     CClip(const sClipMetadata& _metadata, spCRenderer _spRenderer,
@@ -173,6 +184,13 @@ public:
     double GetActualStartTime() const { return m_ActualStartTime; }
     double GetTotalBufferingTime() const { return m_TotalBufferingTime; }
     bool HasStartedPlaying() const { return m_HasStartedPlaying; }
+    bool IsFrameGenerationEnabled() const;
+    double GetPresentationFps() const { return m_PresentationFps > 0.0 ? m_PresentationFps : m_ClipMetadata.decodeFps; }
+    std::string GetFrameGenerationMode() const;
+    uint64_t GetGeneratedFrameCount() const;
+    uint64_t GetPresentedRealFrameCount() const;
+    double GetFrameGenerationLastTimeMs() const;
+    double GetFrameGenerationAverageTimeMs() const;
     
     // Get the FrameDisplay for seamless transition frame inheritance
     spCFrameDisplay GetFrameDisplay() const { return m_spFrameDisplay; }

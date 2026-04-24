@@ -481,6 +481,7 @@ class CStatsConsole : public CConsole
                            DisplayOutput::eBlend);
         _spRenderer->SetBlend("alphablend");
         _spRenderer->Apply();
+        _spRenderer->DrawQuad(m_TotalExtent, Base::Math::CVector4(0, 0, 0, 0.65f));
 
         for (auto i = m_Stats.begin(); i != m_Stats.end(); ++i)
         {

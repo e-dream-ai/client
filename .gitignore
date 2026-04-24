@@ -52,6 +52,20 @@ client_generic/MSVC/es.map
 client_generic/WinBuild/dist/
 client_generic/WinBuild/__pycache__/
 
+# --- Linux build caches / outputs ---
+client_generic/LinuxBuild/build/
+client_generic/LinuxBuild/build-rife/
+client_generic/LinuxBuild/build-appimage/
+client_generic/LinuxBuild/appimage-tools/
+client_generic/LinuxBuild/deps-src/
+client_generic/LinuxBuild/deps-cache/
+client_generic/LinuxBuild/model-cache/
+client_generic/LinuxBuild/openssl-minimal/
+client_generic/LinuxBuild/ffmpeg-minimal/
+client_generic/LinuxBuild/AppDir/
+client_generic/LinuxBuild/BuildData.json
+client_generic/LinuxBuild/*.AppImage
+
 # --- Screensaver bundle (generated) ---
 *.saver
 

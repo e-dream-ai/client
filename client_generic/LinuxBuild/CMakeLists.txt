@@ -4,8 +4,12 @@ project(infinidream LANGUAGES C CXX)
 # Suppress deprecated FindBoost warning on CMake 3.30+
 cmake_policy(SET CMP0167 NEW)
 
+include(FetchContent)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+option(INFINIDREAM_ENABLE_RIFE "Enable Linux RIFE frame generation via ncnn Vulkan" OFF)
 
 # ---------------------------------------------------------------------------
 # Compile definitions
@@ -148,7 +152,129 @@ set(CDEC    ${BASE}/ContentDecoder)
 set(CDOWN   ${BASE}/ContentDownloader)
 set(NET     ${BASE}/Networking)
 set(STORE   ${BASE}/TupleStorage)
+set(FGEN    ${BASE}/FrameGeneration)
 set(LINBLD  ${CMAKE_CURRENT_SOURCE_DIR})
+set(LINUX_DEPS_CACHE_DIR ${LINBLD}/deps-cache)
+set(LINUX_MODEL_CACHE_DIR ${LINBLD}/model-cache)
+set(RIFE_RUNTIME_MODEL_NAME "rife-v4.6")
+set(RIFE_RUNTIME_MODELS_DIR "${CMAKE_CURRENT_BINARY_DIR}/models")
+set(RIFE_RUNTIME_MODEL_DIR "${RIFE_RUNTIME_MODELS_DIR}/${RIFE_RUNTIME_MODEL_NAME}")
+
+set(RIFE_EXTRA_INCLUDE_DIRS)
+set(RIFE_EXTRA_LIBS)
+set(RIFE_EXTRA_DEPENDENCIES)
+
+if(INFINIDREAM_ENABLE_RIFE)
+    file(MAKE_DIRECTORY "${LINUX_DEPS_CACHE_DIR}")
+    file(MAKE_DIRECTORY "${LINUX_MODEL_CACHE_DIR}")
+
+    set(NCNN_TAG "20240102")
+    option(NCNN_INSTALL_SDK "" OFF)
+    option(NCNN_PIXEL_ROTATE "" OFF)
+    option(NCNN_PIXEL_AFFINE "" OFF)
+    option(NCNN_PIXEL_DRAWING "" OFF)
+    option(NCNN_VULKAN "" ON)
+    option(NCNN_VULKAN_ONLINE_SPIRV "" ON)
+    option(NCNN_BUILD_BENCHMARK "" OFF)
+    option(NCNN_BUILD_TESTS "" OFF)
+    option(NCNN_BUILD_TOOLS "" OFF)
+    option(NCNN_BUILD_EXAMPLES "" OFF)
+    option(NCNN_DISABLE_RTTI "" OFF)
+    option(NCNN_DISABLE_EXCEPTION "" OFF)
+    option(NCNN_INT8 "" OFF)
+    set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "Minimum policy version for fetched deps" FORCE)
+    FetchContent_Declare(
+        ncnn_src
+        URL https://github.com/Tencent/ncnn/releases/download/${NCNN_TAG}/ncnn-${NCNN_TAG}-full-source.zip
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+        SOURCE_DIR "${LINUX_DEPS_CACHE_DIR}/ncnn-full-source-${NCNN_TAG}"
+    )
+    FetchContent_MakeAvailable(ncnn_src)
+
+    set(NCNN_GLSLANG_SPVBUILDER_H
+        "${ncnn_src_SOURCE_DIR}/glslang/SPIRV/SpvBuilder.h")
+    if(EXISTS "${NCNN_GLSLANG_SPVBUILDER_H}")
+        file(READ "${NCNN_GLSLANG_SPVBUILDER_H}" NCNN_SPVBUILDER_CONTENTS)
+        if(NOT NCNN_SPVBUILDER_CONTENTS MATCHES "#include <cstdint>")
+            string(REPLACE "#include <stack>"
+                           "#include <stack>\n#include <cstdint>"
+                           NCNN_SPVBUILDER_CONTENTS
+                           "${NCNN_SPVBUILDER_CONTENTS}")
+            file(WRITE "${NCNN_GLSLANG_SPVBUILDER_H}" "${NCNN_SPVBUILDER_CONTENTS}")
+        endif()
+    endif()
+
+    set(RIFE_UPSTREAM_TAG "20221029")
+    FetchContent_Declare(
+        rife_upstream
+        URL https://github.com/nihui/rife-ncnn-vulkan/archive/refs/tags/${RIFE_UPSTREAM_TAG}.tar.gz
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+        SOURCE_DIR "${LINUX_DEPS_CACHE_DIR}/rife-ncnn-vulkan-${RIFE_UPSTREAM_TAG}"
+    )
+    FetchContent_MakeAvailable(rife_upstream)
+
+    set(RIFE_SRC_DIR "${rife_upstream_SOURCE_DIR}/src")
+    set(RIFE_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/rife-upstream")
+    file(MAKE_DIRECTORY "${RIFE_BINARY_DIR}")
+
+    macro(infinidream_rife_add_shader shader_src)
+        get_filename_component(shader_name_we "${shader_src}" NAME_WE)
+        set(shader_comp_header "${RIFE_BINARY_DIR}/${shader_name_we}.comp.hex.h")
+        add_custom_command(
+            OUTPUT "${shader_comp_header}"
+            COMMAND ${CMAKE_COMMAND}
+                -DSHADER_SRC=${RIFE_SRC_DIR}/${shader_src}
+                -DSHADER_COMP_HEADER=${shader_comp_header}
+                -P ${RIFE_SRC_DIR}/generate_shader_comp_header.cmake
+            DEPENDS ${RIFE_SRC_DIR}/${shader_src}
+                    ${RIFE_SRC_DIR}/generate_shader_comp_header.cmake
+            COMMENT "Generating ${shader_name_we}.comp.hex.h"
+            VERBATIM
+        )
+        set_source_files_properties("${shader_comp_header}" PROPERTIES GENERATED TRUE)
+        list(APPEND RIFE_SHADER_HEADERS "${shader_comp_header}")
+    endmacro()
+
+    infinidream_rife_add_shader(rife_preproc.comp)
+    infinidream_rife_add_shader(rife_postproc.comp)
+    infinidream_rife_add_shader(rife_preproc_tta.comp)
+    infinidream_rife_add_shader(rife_postproc_tta.comp)
+    infinidream_rife_add_shader(rife_flow_tta_avg.comp)
+    infinidream_rife_add_shader(rife_v2_flow_tta_avg.comp)
+    infinidream_rife_add_shader(rife_v4_flow_tta_avg.comp)
+    infinidream_rife_add_shader(rife_flow_tta_temporal_avg.comp)
+    infinidream_rife_add_shader(rife_v2_flow_tta_temporal_avg.comp)
+    infinidream_rife_add_shader(rife_v4_flow_tta_temporal_avg.comp)
+    infinidream_rife_add_shader(rife_out_tta_temporal_avg.comp)
+    infinidream_rife_add_shader(rife_v4_timestep.comp)
+    infinidream_rife_add_shader(rife_v4_timestep_tta.comp)
+    infinidream_rife_add_shader(warp.comp)
+    infinidream_rife_add_shader(warp_pack4.comp)
+    infinidream_rife_add_shader(warp_pack8.comp)
+
+    add_library(infinidream_rife_backend STATIC
+        ${RIFE_SRC_DIR}/rife.cpp
+        ${RIFE_SRC_DIR}/warp.cpp
+        ${RIFE_SHADER_HEADERS}
+    )
+    target_include_directories(infinidream_rife_backend PUBLIC
+        ${RIFE_SRC_DIR}
+        ${RIFE_BINARY_DIR}
+    )
+    target_link_libraries(infinidream_rife_backend PUBLIC
+        ncnn
+        Vulkan::Vulkan
+        Threads::Threads
+    )
+
+    set(RIFE_EXTRA_INCLUDE_DIRS
+        ${RIFE_SRC_DIR}
+        ${RIFE_BINARY_DIR}
+    )
+    set(RIFE_EXTRA_LIBS infinidream_rife_backend)
+    set(RIFE_EXTRA_DEPENDENCIES infinidream_rife_backend)
+    set(RIFE_UPSTREAM_MODEL_DIR "${rife_upstream_SOURCE_DIR}/models/${RIFE_RUNTIME_MODEL_NAME}")
+endif()
 
 set(SOURCES
     # Entry point
@@ -199,6 +325,11 @@ set(SOURCES
     ${CDEC}/Clip.cpp
     ${CDEC}/ContentDecoder.cpp
 
+    # Frame generation
+    ${FGEN}/BlendFrameInterpolator.cpp
+    ${FGEN}/FrameGenerationScheduler.cpp
+    ${FGEN}/RifeInterpolatorNcnn.cpp
+
     # Content downloader
     ${CDOWN}/CacheManager.cpp
     ${CDOWN}/ContentDownloader.cpp
@@ -235,6 +366,9 @@ endif()
 # ---------------------------------------------------------------------------
 add_executable(infinidream ${SOURCES})
 add_dependencies(infinidream compile_shaders)
+if(RIFE_EXTRA_DEPENDENCIES)
+    add_dependencies(infinidream ${RIFE_EXTRA_DEPENDENCIES})
+endif()
 
 # ---------------------------------------------------------------------------
 # Include directories
@@ -271,6 +405,11 @@ target_include_directories(infinidream PRIVATE
     ${XKB_INCLUDE_DIRS}
     ${BASE}/imgui
     ${BASE}/imgui/backends
+    ${RIFE_EXTRA_INCLUDE_DIRS}
+)
+
+target_compile_definitions(infinidream PRIVATE
+    $<$<BOOL:${INFINIDREAM_ENABLE_RIFE}>:INFINIDREAM_ENABLE_RIFE=1>
 )
 
 # ---------------------------------------------------------------------------
@@ -298,6 +437,7 @@ target_link_libraries(infinidream PRIVATE
     $<$<BOOL:${WAYLAND_CURSOR_FOUND}>:${WAYLAND_CURSOR_LIBRARIES}>
     $<$<BOOL:${LIBDECOR_FOUND}>:${LIBDECOR_LIBRARIES}>
     $<$<BOOL:${XKB_FOUND}>:${XKB_LIBRARIES}>
+    ${RIFE_EXTRA_LIBS}
 )
 
 # ---------------------------------------------------------------------------
@@ -327,3 +467,18 @@ add_custom_command(TARGET infinidream POST_BUILD
         $<TARGET_FILE_DIR:infinidream>/logo.png
     COMMENT "Copying runtime assets to binary directory"
 )
+
+if(INFINIDREAM_ENABLE_RIFE)
+    if(EXISTS "${RIFE_UPSTREAM_MODEL_DIR}")
+        file(COPY "${RIFE_UPSTREAM_MODEL_DIR}" DESTINATION "${LINUX_MODEL_CACHE_DIR}")
+        add_custom_command(TARGET infinidream POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${RIFE_RUNTIME_MODELS_DIR}"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                "${LINUX_MODEL_CACHE_DIR}/${RIFE_RUNTIME_MODEL_NAME}"
+                "${RIFE_RUNTIME_MODEL_DIR}"
+            COMMENT "Copying bundled RIFE model to binary directory"
+        )
+    else()
+        message(FATAL_ERROR "Expected RIFE model directory missing: ${RIFE_UPSTREAM_MODEL_DIR}")
+    endif()
+endif()

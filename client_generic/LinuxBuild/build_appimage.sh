@@ -84,6 +84,7 @@ LINUXDEPLOY_URL="https://github.com/linuxdeploy/linuxdeploy/releases/download/co
 APPIMAGETOOL_URL="https://github.com/AppImage/appimagetool/releases/download/continuous/${APPIMAGETOOL_BIN}"
 
 OUTPUT_APPIMAGE="${SCRIPT_DIR}/infinidream-${ARCH}.AppImage"
+ENABLE_RIFE="${INFINIDREAM_ENABLE_RIFE:-OFF}"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -393,6 +394,7 @@ cmake -B "${BUILD_DIR}" -S "${SCRIPT_DIR}" \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_C_COMPILER="gcc" \
     -DCMAKE_CXX_COMPILER="g++" \
+    -DINFINIDREAM_ENABLE_RIFE="${ENABLE_RIFE}" \
     -DOPENSSL_ROOT_DIR="${OPENSSL_INSTALL}" \
     -DBoost_USE_STATIC_LIBS=ON \
     -DCMAKE_EXE_LINKER_FLAGS="${BUILD_DIR}/glibc_compat.o -lm -L${OPENSSL_INSTALL}/lib -L${FFMPEG_INSTALL}/lib -Wl,--allow-shlib-undefined"
@@ -430,6 +432,9 @@ mkdir -p "${APPDIR}/usr/lib"
 
 cp "${BUILD_DIR}/infinidream"    "${APPDIR}/usr/bin/"
 cp -r "${BUILD_DIR}/shaders"     "${APPDIR}/usr/bin/"
+if [[ -d "${BUILD_DIR}/models" ]]; then
+    cp -r "${BUILD_DIR}/models"  "${APPDIR}/usr/bin/"
+fi
 
 # Runtime assets (logo, font, OSD PNGs) next to the binary so SHAREDIR="./"
 # resolves correctly when AppRun cd's into usr/bin/

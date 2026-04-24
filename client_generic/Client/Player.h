@@ -19,6 +19,7 @@
 #include "Timer.h"
 #include "Clip.h"
 #include "PlaylistManager.h"
+#include "FrameGeneration/FrameGenerationMode.h"
 
 /**
         CPlayer.
@@ -192,6 +193,14 @@ class CPlayer : public Base::CSingleton<CPlayer>
     void SetPerceptualFPS(const double _fps);
     double GetPerceptualFPS();
     double GetDecoderFPS();
+    double GetPresentationFPS() const;
+    bool IsFrameGenerationEnabled() const;
+    std::string GetFrameGenerationMode() const;
+    uint64_t GetGeneratedFrameCount() const;
+    uint64_t GetPresentedRealFrameCount() const;
+    double GetFrameGenerationLastTimeMs() const;
+    double GetFrameGenerationAverageTimeMs() const;
+    FrameGeneration::EFrameGenerationMode CycleFrameGenerationMode();
     inline void Fullscreen(const bool _bState) { m_bFullscreen = _bState; };
     inline bool Stopped() { return !m_bStarted; };
 

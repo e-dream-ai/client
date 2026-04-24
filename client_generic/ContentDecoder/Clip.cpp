@@ -11,9 +11,34 @@
 #include "Clip.h"
 #include "CubicFrameDisplay.h"
 #include "LinearFrameDisplay.h"
+#include "FrameGeneration/BlendFrameInterpolator.h"
+#include "FrameGeneration/FrameGenerationMode.h"
+#include "FrameGeneration/RifeInterpolatorNcnn.h"
 
 namespace ContentDecoder
 {
+
+static double SelectFrameGenerationTargetFps(double sourceFps,
+                                             double requestedOutputFps,
+                                             double displayRefreshFps)
+{
+    if (sourceFps <= 0.0)
+        return requestedOutputFps;
+
+    const double cappedRequested = std::min(requestedOutputFps, sourceFps * 2.0);
+    if (displayRefreshFps <= 0.0)
+        return cappedRequested;
+
+    double best = sourceFps;
+    for (int divisor = 1; divisor <= 8; ++divisor)
+    {
+        const double candidate = displayRefreshFps / static_cast<double>(divisor);
+        if (candidate <= cappedRequested + 0.001 && candidate > best + 0.001)
+            best = candidate;
+    }
+
+    return best;
+}
 
 CClip::CClip(const sClipMetadata& _metadata, spCRenderer _spRenderer,
              int32_t _displayMode, uint32_t _displayWidth,
@@ -75,6 +100,95 @@ m_CurrentFrameMetadata{}, m_HasFinished(false), m_IsFadingOut(false)
         (uint32_t)abs(g_Settings()->Get("settings.player.BufferLength", 25)),
         pf);
     m_spImageRef = std::make_shared<DisplayOutput::CImage>();
+    m_spFrameGeneration = std::make_unique<FrameGeneration::CFrameGenerationScheduler>();
+    m_PresentationFps = m_ClipMetadata.decodeFps;
+
+#ifdef LINUX_GNU
+    m_FrameGenerationMode = FrameGeneration::FromSetting(
+        g_Settings()->Get("settings.player.frame_generation.mode",
+                          FrameGeneration::ToSetting(FrameGeneration::EFrameGenerationMode::Off)));
+    const double requestedOutputFps =
+        g_Settings()->Get("settings.player.frame_generation.output_fps", 40.0);
+    const double displayRefreshFps =
+        g_Settings()->Get("settings.player.display_fps", 60.0);
+    const double selectedOutputFps = SelectFrameGenerationTargetFps(
+        m_ClipMetadata.decodeFps, requestedOutputFps, displayRefreshFps);
+
+    FrameGeneration::spIFrameInterpolator interpolator;
+    if (m_FrameGenerationMode != FrameGeneration::EFrameGenerationMode::Off)
+    {
+        if (m_FrameGenerationMode == FrameGeneration::EFrameGenerationMode::RIFE)
+        {
+            g_Log->Info("Clip %s requested RIFE backend (compiled=%s model=%s)",
+                        m_ClipMetadata.dreamData.uuid.c_str(),
+                        FrameGeneration::CRifeInterpolatorNcnn::BuiltWithSupport() ? "yes" : "no",
+                        FrameGeneration::CRifeInterpolatorNcnn::RuntimeModelName());
+        }
+
+        switch (m_FrameGenerationMode)
+        {
+        case FrameGeneration::EFrameGenerationMode::Blend2X:
+            interpolator = std::make_shared<FrameGeneration::CBlendFrameInterpolator>();
+            break;
+        case FrameGeneration::EFrameGenerationMode::RIFE:
+            interpolator = std::make_shared<FrameGeneration::CRifeInterpolatorNcnn>();
+            break;
+        case FrameGeneration::EFrameGenerationMode::Off:
+            break;
+        }
+    }
+
+    if (interpolator)
+    {
+        std::string reason;
+        if (interpolator->IsAvailable(&reason))
+        {
+            m_spFrameGeneration->Configure(true, m_ClipMetadata.decodeFps,
+                                           selectedOutputFps, interpolator);
+            m_PresentationFps = m_spFrameGeneration->PresentationFps();
+            g_Log->Info("Frame generation enabled for %s using %s (source=%.2f requested=%.2f display=%.2f selected=%.2f fps)",
+                        m_ClipMetadata.dreamData.uuid.c_str(),
+                        interpolator->Name(),
+                        m_ClipMetadata.decodeFps,
+                        requestedOutputFps,
+                        displayRefreshFps,
+                        m_PresentationFps);
+        }
+        else
+        {
+            g_Log->Info("Frame generation unavailable for %s using %s: %s",
+                        m_ClipMetadata.dreamData.uuid.c_str(),
+                        interpolator->Name(),
+                        reason.c_str());
+
+            if (m_FrameGenerationMode == FrameGeneration::EFrameGenerationMode::RIFE)
+            {
+                auto fallbackInterpolator = std::make_shared<FrameGeneration::CBlendFrameInterpolator>();
+                std::string fallbackReason;
+                if (fallbackInterpolator->IsAvailable(&fallbackReason))
+                {
+                    m_spFrameGeneration->Configure(true, m_ClipMetadata.decodeFps,
+                                                   selectedOutputFps, fallbackInterpolator);
+                    m_PresentationFps = m_spFrameGeneration->PresentationFps();
+                    g_Log->Info("Falling back to %s for %s (source=%.2f requested=%.2f display=%.2f selected=%.2f fps)",
+                                fallbackInterpolator->Name(),
+                                m_ClipMetadata.dreamData.uuid.c_str(),
+                                m_ClipMetadata.decodeFps,
+                                requestedOutputFps,
+                                displayRefreshFps,
+                                m_PresentationFps);
+                }
+            }
+        }
+    }
+
+    g_Log->Info("Clip %s frame generation state: enabled=%s mode=%s decode=%.2f presentation=%.2f",
+                m_ClipMetadata.dreamData.uuid.c_str(),
+                IsFrameGenerationEnabled() ? "true" : "false",
+                GetFrameGenerationMode().c_str(),
+                m_ClipMetadata.decodeFps,
+                GetPresentationFps());
+#endif
 }
 
 bool CClip::Start(int64_t _seekFrame)
@@ -154,6 +268,7 @@ bool CClip::StartPlayback(int64_t _seekFrame)
     
     m_DecoderClock = {};
     m_DecoderClock.started = false;
+    ResetFrameGeneration();
 
 /*    // Initialize clock to actual start time to avoid frame skipping
     m_DecoderClock.clock = m_ActualStartTime;
@@ -194,7 +309,8 @@ int CClip::GetFramesToAdvance(double _timelineTime,
     }
     _decoderClock->acc += deltaTime;
 
-    const double dt = 1.0 / m_ClipMetadata.decodeFps;
+    const double fps = (m_PresentationFps > 0.0) ? m_PresentationFps : m_ClipMetadata.decodeFps;
+    const double dt = 1.0 / fps;
     
     // Calculate how many complete frame intervals have passed
     int framesToAdvance = static_cast<int>(_decoderClock->acc / dt);
@@ -319,52 +435,71 @@ bool CClip::Update(double _timelineTime, bool isPaused)
     
     if (framesToAdvance > 0)
     {
-        // If we need to advance multiple frames, discard the intermediate ones
-        // Only grab (and process/upload to GPU) the last frame we need
-        if (framesToAdvance > 1) {
-            int framesToDiscard = framesToAdvance - 1;
-            
-            // Don't discard more frames than we have in the queue
-            uint32_t queueLength = m_spDecoder->QueueLength();
-            if (framesToDiscard >= static_cast<int>(queueLength)) {
-                // We're very far behind - discard all but one frame
-                framesToDiscard = std::max(0, static_cast<int>(queueLength) - 1);
-            }
-            
-            if (framesToDiscard > 0) {
-                DiscardFrames(framesToDiscard);
+        if (m_spFrameGeneration && m_spFrameGeneration->Enabled())
+        {
+            for (int step = 0; step < framesToAdvance; ++step)
+            {
+                if (!AdvanceFrameGenerationPlayback())
+                {
+                    if (m_LastValidFrame && IsNearEnd())
+                    {
+                        m_spFrameData = m_LastValidFrame;
+                        break;
+                    }
+                    return false;
+                }
             }
         }
-        
-        // Now grab the actual frame we want to display
-        if (!GrabVideoFrame())
+        else
         {
-            // Check if we're at the last frame and should mark as finished
-            if (m_CurrentFrameMetadata.maxFrameIdx > 0 &&
-                m_CurrentFrameMetadata.frameIdx >= m_CurrentFrameMetadata.maxFrameIdx)
-            {
-                g_Log->Info("marking dream %s as finished", m_ClipMetadata.dreamData.uuid.c_str());
+            // If we need to advance multiple frames, discard the intermediate ones
+            // Only grab (and process/upload to GPU) the last frame we need
+            if (framesToAdvance > 1) {
+                int framesToDiscard = framesToAdvance - 1;
                 
-                if (m_FadeOutSeconds == 0.f)
-                    m_Alpha = 1.f;
+                // Don't discard more frames than we have in the queue
+                uint32_t queueLength = m_spDecoder->QueueLength();
+                if (framesToDiscard >= static_cast<int>(queueLength)) {
+                    // We're very far behind - discard all but one frame
+                    framesToDiscard = std::max(0, static_cast<int>(queueLength) - 1);
+                }
                 
-                m_HasFinished.exchange(true);
-                m_IsFadingOut.exchange(false);
-                
-                return false;
+                if (framesToDiscard > 0) {
+                    DiscardFrames(framesToDiscard);
+                }
             }
-            // If we're near the end, don't fail as we used to (this may no longer be needed)
-            else if (m_LastValidFrame && IsNearEnd())
+            
+            // Now grab the actual frame we want to display
+            if (!GrabVideoFrame())
             {
-                g_Log->Info("Reusing last valid, faking increment count");
-                // Just keep using the last valid frame
-                m_spFrameData = m_LastValidFrame;
-                m_CurrentFrameMetadata.frameIdx++;
+                // Check if we're at the last frame and should mark as finished
+                if (m_CurrentFrameMetadata.maxFrameIdx > 0 &&
+                    m_CurrentFrameMetadata.frameIdx >= m_CurrentFrameMetadata.maxFrameIdx)
+                {
+                    g_Log->Info("marking dream %s as finished", m_ClipMetadata.dreamData.uuid.c_str());
+                    
+                    if (m_FadeOutSeconds == 0.f)
+                        m_Alpha = 1.f;
+                    
+                    m_HasFinished.exchange(true);
+                    m_IsFadingOut.exchange(false);
+                    
+                    return false;
+                }
+                // If we're near the end, don't fail as we used to (this may no longer be needed)
+                else if (m_LastValidFrame && IsNearEnd())
+                {
+                    g_Log->Info("Reusing last valid, faking increment count");
+                    // Just keep using the last valid frame
+                    m_spFrameData = m_LastValidFrame;
+                    m_CurrentFrameMetadata.frameIdx++;
+                }
+                else
+                {
+                    return false;
+                }
             }
-            else
-            {
-                return false;
-            }
+            m_DisplayFramePhase = 0.0;
         }
     }
     
@@ -382,7 +517,8 @@ bool CClip::Update(double _timelineTime, bool isPaused)
 
     uint32_t idx = m_spFrameData->GetMetaData().frameIdx;
     uint32_t maxIdx = m_spFrameData->GetMetaData().maxFrameIdx;
-    double delta = m_DecoderClock.interframeDelta / m_ClipMetadata.decodeFps;
+    const double displayOffset = m_DisplayFramePhase / m_ClipMetadata.decodeFps;
+    double delta = m_DecoderClock.interframeDelta / ((m_PresentationFps > 0.0) ? m_PresentationFps : m_ClipMetadata.decodeFps);
     
     // Calculate secondsIn based on timeline for resume cases
     double secondsIn;
@@ -390,13 +526,13 @@ bool CClip::Update(double _timelineTime, bool isPaused)
         secondsIn = _timelineTime - m_ResumeStartTime;
     } else {
         // We no longer take into account StartAtFrame from FrameDisplay
-        secondsIn = idx / m_ClipMetadata.decodeFps + delta;
+        secondsIn = idx / m_ClipMetadata.decodeFps + displayOffset + delta;
     }
     
     // Calculate remaining time based on actual video frames
     // This is more accurate than using m_EndTime which may have been set
     // before the decoder knew the correct frame count
-    double secondsOut = (maxIdx - idx) / m_ClipMetadata.decodeFps - delta;
+    double secondsOut = (maxIdx - idx) / m_ClipMetadata.decodeFps - displayOffset - delta;
     secondsOut = std::fmin(secondsOut, (m_EndTime - _timelineTime));
 
     if (m_FadeOutSeconds > 0 && secondsOut > 0 && secondsOut < m_FadeOutSeconds) {
@@ -466,62 +602,12 @@ void CClip::SetDisplaySize(uint32_t _displayWidth, uint32_t _displayHeight)
 
 bool CClip::GrabVideoFrame()
 {
-    /*g_Log->Info("GrabVideoFrame() - Attempting to pop frame from queue (size: %d)",
-                m_spDecoder->QueueLength());
-    */
-    spCVideoFrame frame = m_spDecoder->PopVideoFrame();
-    if (!frame) {
-        g_Log->Info("GrabVideoFrame() - No frame available, returning false");
+    spCVideoFrame frame;
+    if (!PopDecoderFrame(frame))
         return false;
-    }
-    
-    if (frame)
-    {
-        m_spFrameData = frame;
 
-        // Store this as our last valid frame
-        m_LastValidFrame = frame;
-        
-        {
-            std::unique_lock<std::shared_mutex> lock(
-                m_CurrentFrameMetadataLock);
-            m_CurrentFrameMetadata = m_spFrameData->GetMetaData();
-            
-            /*g_Log->Info("GrabVideoFrame() - Successfully grabbed frame %d",
-                        m_CurrentFrameMetadata.frameIdx);*/
-        }
-#if !USE_HW_ACCELERATION || defined(WIN32)
-        if (m_spImageRef->GetWidth() != m_spFrameData->Width() ||
-            m_spImageRef->GetHeight() != m_spFrameData->Height())
-        {
-            //    Frame differs in size, recreate ref image.
-            m_spImageRef->Create(m_spFrameData->Width(),
-                                 m_spFrameData->Height(),
-                                 DisplayOutput::eImage_RGBA8, false, true);
-        }
-#endif
-
-        spCTextureFlat& currentTexture =
-            m_spFrameDisplay->RequestTargetTexture();
-        if (!currentTexture)
-            currentTexture = m_spRenderer->NewTextureFlat();
-
-        if (!currentTexture)
-            return false;
-        if (m_spFrameData->Frame())
-        {
-#if USE_HW_ACCELERATION && !defined(WIN32)
-            //g_Log->Info("BindFrame %d", m_CurrentFrameMetadata.frameIdx);
-            currentTexture->BindFrame(m_spFrameData);
-#else
-            // Set image texture data and upload to texture.
-            m_spImageRef->SetStorageBuffer(m_spFrameData->StorageBuffer());
-            currentTexture->Upload(m_spImageRef);
-#endif
-        }
-    }
-
-    return true;
+    m_DisplayFramePhase = 0.0;
+    return UploadFrameToTexture(frame);
 }
 
 bool CClip::IsNearEnd() const
@@ -563,6 +649,9 @@ void CClip::FadeOut(double _currentTimelineTime)
 void CClip::UpdatePlaybackRate(double _newFps, double _currentTimelineTime)
 {
     m_ClipMetadata.decodeFps = _newFps;
+    m_PresentationFps = (m_spFrameGeneration && m_spFrameGeneration->Enabled())
+        ? _newFps * 2.0
+        : _newFps;
 
     // If the clip is already fading out, FadeOut() has deliberately pinned
     // m_EndTime to a "stop N seconds from now" deadline; don't un-end it.
@@ -597,12 +686,159 @@ void CClip::SkipTime(float _secondsForward)
     
     m_spDecoder->SkipTime(_secondsForward, displayedFrame);
     m_DecoderClock.started = false;
+    ResetFrameGeneration();
     
     // If we were in buffering state, reset it to ensure proper rebuffering
     // This matters on successive skips
     if (m_BufferingState == BufferingState::Rebuffering) {
         m_BufferingState = BufferingState::NotBuffering;
     }
+}
+
+bool CClip::PopDecoderFrame(spCVideoFrame& frame)
+{
+    frame = m_spDecoder->PopVideoFrame();
+    if (!frame) {
+        g_Log->Info("GrabVideoFrame() - No frame available, returning false");
+        return false;
+    }
+
+    return true;
+}
+
+bool CClip::UploadFrameToTexture(const spCVideoFrame& frame)
+{
+    if (!frame)
+        return false;
+
+    m_spFrameData = frame;
+    m_LastValidFrame = frame;
+
+    {
+        std::unique_lock<std::shared_mutex> lock(m_CurrentFrameMetadataLock);
+        m_CurrentFrameMetadata = m_spFrameData->GetMetaData();
+    }
+
+#if !USE_HW_ACCELERATION || defined(WIN32)
+    if (m_spImageRef->GetWidth() != m_spFrameData->Width() ||
+        m_spImageRef->GetHeight() != m_spFrameData->Height())
+    {
+        m_spImageRef->Create(m_spFrameData->Width(),
+                             m_spFrameData->Height(),
+                             DisplayOutput::eImage_RGBA8, false, true);
+    }
+#endif
+
+    spCTextureFlat& currentTexture = m_spFrameDisplay->RequestTargetTexture();
+    if (!currentTexture)
+        currentTexture = m_spRenderer->NewTextureFlat();
+
+    if (!currentTexture)
+        return false;
+
+    if (!m_spFrameData->Frame())
+        return false;
+
+#if USE_HW_ACCELERATION && !defined(WIN32)
+    currentTexture->BindFrame(m_spFrameData);
+#else
+    m_spImageRef->SetStorageBuffer(m_spFrameData->StorageBuffer());
+    currentTexture->Upload(m_spImageRef);
+#endif
+
+    return true;
+}
+
+bool CClip::AdvanceFrameGenerationPlayback()
+{
+    if (!m_spFrameGeneration || !m_spFrameGeneration->Enabled())
+        return GrabVideoFrame();
+
+    const bool advanced = m_spFrameGeneration->Advance(
+        [this]() -> spCVideoFrame {
+            spCVideoFrame decoded;
+            if (!PopDecoderFrame(decoded))
+                return nullptr;
+            return decoded;
+        });
+
+    if (!advanced)
+    {
+        if (m_CurrentFrameMetadata.maxFrameIdx > 0 &&
+            m_CurrentFrameMetadata.frameIdx >= m_CurrentFrameMetadata.maxFrameIdx)
+        {
+            m_HasFinished.exchange(true);
+        }
+        return false;
+    }
+
+    m_DisplayFramePhase = m_spFrameGeneration->CurrentDisplayPhase();
+    if (m_DisplayFramePhase > 0.0 && (m_spFrameGeneration->GeneratedFrameCount() == 1 ||
+        (m_spFrameGeneration->GeneratedFrameCount() % 300) == 0))
+    {
+        g_Log->Info("Frame generation active for %s: generated=%llu real=%llu output=%.2f fps mode=%s avg=%.2fms last=%.2fms failures=%llu",
+                    m_ClipMetadata.dreamData.uuid.c_str(),
+                    static_cast<unsigned long long>(m_spFrameGeneration->GeneratedFrameCount()),
+                    static_cast<unsigned long long>(m_spFrameGeneration->RealFrameCount()),
+                    GetPresentationFps(),
+                    GetFrameGenerationMode().c_str(),
+                    m_spFrameGeneration->InterpolatorAverageTimeMs(),
+                    m_spFrameGeneration->InterpolatorLastTimeMs(),
+                    static_cast<unsigned long long>(m_spFrameGeneration->InterpolatorFailureCount()));
+    }
+    return UploadFrameToTexture(m_spFrameGeneration->CurrentDisplayFrame());
+}
+
+void CClip::ResetFrameGeneration()
+{
+    m_DisplayFramePhase = 0.0;
+    if (m_spFrameGeneration)
+        m_spFrameGeneration->Reset();
+}
+
+bool CClip::IsFrameGenerationEnabled() const
+{
+    return m_spFrameGeneration && m_spFrameGeneration->Enabled();
+}
+
+std::string CClip::GetFrameGenerationMode() const
+{
+    if (m_FrameGenerationMode == FrameGeneration::EFrameGenerationMode::RIFE &&
+        m_spFrameGeneration && m_spFrameGeneration->Enabled() &&
+        (m_spFrameGeneration->ModeName() == "blend_2x" ||
+         m_spFrameGeneration->InterpolatorFallingBack()))
+    {
+        return "RIFE (Blend_2X fallback)";
+    }
+    return FrameGeneration::ToString(m_FrameGenerationMode);
+}
+
+uint64_t CClip::GetGeneratedFrameCount() const
+{
+    if (!m_spFrameGeneration)
+        return 0;
+    return m_spFrameGeneration->GeneratedFrameCount();
+}
+
+uint64_t CClip::GetPresentedRealFrameCount() const
+{
+    if (!m_spFrameGeneration)
+        return 0;
+    return m_spFrameGeneration->RealFrameCount();
+}
+
+double CClip::GetFrameGenerationLastTimeMs() const
+{
+    if (!m_spFrameGeneration)
+        return 0.0;
+    return m_spFrameGeneration->InterpolatorLastTimeMs();
+}
+
+double CClip::GetFrameGenerationAverageTimeMs() const
+{
+    if (!m_spFrameGeneration)
+        return 0.0;
+    return m_spFrameGeneration->InterpolatorAverageTimeMs();
 }
 
 } // namespace ContentDecoder

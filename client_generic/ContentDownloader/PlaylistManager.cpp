@@ -74,11 +74,16 @@ bool PlaylistManager::initializePlaylist(const std::string& playlistUUID, bool f
         initializeOfflinePlaylist();
     }
     
-    m_currentPosition = 0;
+    {
+        static std::random_device rd;
+        static std::mt19937 rng(rd());
+        m_currentPosition = m_playlist.empty() ? 0
+            : std::uniform_int_distribution<size_t>(0, m_playlist.size() - 1)(rng);
+    }
     m_started = false;
     {
         std::lock_guard<std::mutex> lock(m_stateMutex);
-        m_currentDreamUUID = m_playlist.empty() ? "" : m_playlist[0].uuid;
+        m_currentDreamUUID = m_playlist.empty() ? "" : m_playlist[m_currentPosition].uuid;
     }
 
     // Clear play history when switching playlists to prevent out-of-bounds access
@@ -109,11 +114,16 @@ void PlaylistManager::initializeOfflinePlaylist() {
     
     g_Log->Info("Offline playlist initialized with %zu dreams", m_playlist.size());
 
-    m_currentPosition = 0;
+    {
+        static std::random_device rd;
+        static std::mt19937 rng(rd());
+        m_currentPosition = m_playlist.empty() ? 0
+            : std::uniform_int_distribution<size_t>(0, m_playlist.size() - 1)(rng);
+    }
     m_started = false;
     {
         std::lock_guard<std::mutex> lock(m_stateMutex);
-        m_currentDreamUUID = m_playlist.empty() ? "" : m_playlist[0].uuid;
+        m_currentDreamUUID = m_playlist.empty() ? "" : m_playlist[m_currentPosition].uuid;
     }
 
     // Clear play history when initializing offline playlist
@@ -748,24 +758,18 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
         }
     }
 
-    // If we haven't started yet, it would be the first dream
+    // If we haven't started yet, start at the randomly-chosen m_currentPosition.
     if (!m_started) {
-        const auto& firstEntry = m_playlist[0];
-        
-        // If canStream is false, check if the first dream is cached
-        /*if (!canStream && !m_cacheManager.hasDiskCachedItem(firstEntry.uuid)) {
-            g_Log->Info("Preflight : first dream not cached and canStream=false");
-            return std::nullopt;
-        }*/
-        
+        const auto& firstEntry = m_playlist[m_currentPosition];
+
         decision = {
-            0,  // Position
+            m_currentPosition,
             TransitionType::StandardCrossfade,
             m_cacheManager.getDream(firstEntry.uuid),
             firstEntry.startKeyframe,
             firstEntry.endKeyframe
         };
-        g_Log->Info("Preflight : startup with a crossfade");
+        g_Log->Info("Preflight : startup at random position %zu with a crossfade", m_currentPosition);
         return decision;
     }
 

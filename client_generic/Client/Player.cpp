@@ -338,8 +338,6 @@ void CPlayer::BootstrapLoggedInPlaylist()
     if (shouldAbort())
         return;
 
-    std::string lastPlayedUUID =
-        g_Settings()->Get("settings.content.last_played_uuid", std::string{});
     auto clientPlaylistId =
         g_Settings()->Get("settings.content.current_playlist_uuid", std::string(""));
 
@@ -349,18 +347,14 @@ void CPlayer::BootstrapLoggedInPlaylist()
         return;
     if (serverPlaylistId != clientPlaylistId) {
         g_Settings()->Set("settings.content.current_playlist_uuid", serverPlaylistId);
-        lastPlayedUUID = "";
     }
 
     m_currentClip = nullptr;
 
     if (shouldAbort())
         return;
-    if (lastPlayedUUID.empty()) {
-        SetPlaylist(serverPlaylistId, false);
-    } else {
-        SetPlaylistAtDream(serverPlaylistId, lastPlayedUUID, false);
-    }
+    // Always start at a random position — don't resume last-played.
+    SetPlaylist(serverPlaylistId, false);
 }
 
 void CPlayer::EnsureOnlinePlaybackAfterSignIn()
@@ -413,9 +407,6 @@ void CPlayer::Start()
 
             if (shouldAbort()) return;
 
-            std::string lastPlayedUUID = g_Settings()->Get(
-                "settings.content.last_played_uuid", std::string{});
-
             auto clientPlaylistId = g_Settings()->Get("settings.content.current_playlist_uuid", std::string(""));
 
             if (EDreamClient::IsLoggedIn()) {
@@ -436,10 +427,9 @@ void CPlayer::Start()
                 if (EDreamClient::IsLoggedIn()) {
                     // Signed in while this thread was preparing the offline playlist.
                     BootstrapLoggedInPlaylist();
-                } else if (lastPlayedUUID.empty()) {
-                    SetPlaylist(clientPlaylistId, false);
                 } else {
-                    SetPlaylistAtDream(clientPlaylistId, lastPlayedUUID, false);
+                    // Always start at a random position — don't resume last-played.
+                    SetPlaylist(clientPlaylistId, false);
                 }
 
                 if (!shouldAbort()) {
@@ -651,22 +641,17 @@ bool CPlayer::Update(uint32_t displayUnit)
     if (m_currentClip) {
         m_currentClip->Update(m_TimelineTime, freezePlayback);
         
-        // Only check for transition if we're not buffering anything
+        // Prepare the next transition only when not buffering (avoid thrashing while stalled).
         if (!freezePlayback && !IsAnyClipBuffering()) {
-            // Check if we need to prepare for transition
-            // Skip if we have a pending seek crossfade (user-initiated skip with seek offset)
             if (!m_isTransitioning && !m_nextDreamDecision && !m_pendingSeekCrossfade && shouldPrepareTransition(m_currentClip)) {
-                // If we should transition, but we are already prealoding a manual transition, then we have to pause
                 if (IsPreloading()) {
                     g_Log->Info("Force pausing as we are already preloading");
                     SetPausedForBuffering(true);
                     SetPaused(true);
                 } else {
-                    // Get the next dream decision
                     g_Log->Info("Update will preflight");
-                    // Natural transition - don't allow streaming
                     m_nextDreamDecision = m_playlistManager->preflightNextDream(false);
-                    
+
                     if (m_nextDreamDecision) {
                         if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::Seamless) {
                             prepareSeamlessTransition();
@@ -676,30 +661,38 @@ bool CPlayer::Update(uint32_t displayUnit)
                     }
                 }
             }
-            
+        }
+
+        // Execute an already-queued transition regardless of buffering state — a rebuffering
+        // stall near the end of a clip must not prevent the next dream from launching.
+        if (!freezePlayback) {
             if (m_isTransitioning) {
                 UpdateTransition(m_TimelineTime);
             }
-            
+
             if (m_nextDreamDecision) {
                 if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::Seamless) {
                     if (m_currentClip && m_currentClip->HasFinished()) {
                         g_Log->Info("PND : Launching on finished current");
                         PlayNextDream();
-                        // We need to update the clip here since we switched it!
                         m_currentClip->Update(m_TimelineTime, freezePlayback);
                     }
                 } else if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::StandardCrossfade) {
-                    //
                     if (m_currentClip && m_currentClip->IsFadingOut()) {
                         g_Log->Info("PND : Standard crossfading");
                         PlayNextDream();
                     } else if (m_currentClip && m_currentClip->HasFinished() && !m_isTransitioning) {
-                        // Safety catch: clip finished without proper fading
                         g_Log->Error("Clip finished without fading out state, forcing transition");
                         PlayNextDream();
                     }
                 }
+            } else if (m_currentClip && m_currentClip->HasFinished()) {
+                // Ultimate safety: clip finished with no transition queued at all
+                // (e.g. rebuffering blocked shouldPrepareTransition the whole time).
+                g_Log->Warning("Clip finished with no transition decision — forcing next dream");
+                m_nextDreamDecision = m_playlistManager->preflightNextDream(false);
+                if (m_nextDreamDecision)
+                    PlayNextDream();
             }
         }
     }
@@ -1015,6 +1008,91 @@ double CPlayer::GetPerceptualFPS() {
 
 double CPlayer::GetDecoderFPS() {
     return m_DecoderFps;
+}
+
+double CPlayer::GetPresentationFPS() const
+{
+    reader_lock l(m_UpdateMutex);
+    if (m_currentClip)
+        return m_currentClip->GetPresentationFps();
+    return m_PerceptualFPS;
+}
+
+bool CPlayer::IsFrameGenerationEnabled() const
+{
+    reader_lock l(m_UpdateMutex);
+    return m_currentClip && m_currentClip->IsFrameGenerationEnabled();
+}
+
+std::string CPlayer::GetFrameGenerationMode() const
+{
+    reader_lock l(m_UpdateMutex);
+    if (m_currentClip)
+        return m_currentClip->GetFrameGenerationMode();
+    return "off";
+}
+
+uint64_t CPlayer::GetGeneratedFrameCount() const
+{
+    reader_lock l(m_UpdateMutex);
+    if (m_currentClip)
+        return m_currentClip->GetGeneratedFrameCount();
+    return 0;
+}
+
+uint64_t CPlayer::GetPresentedRealFrameCount() const
+{
+    reader_lock l(m_UpdateMutex);
+    if (m_currentClip)
+        return m_currentClip->GetPresentedRealFrameCount();
+    return 0;
+}
+
+double CPlayer::GetFrameGenerationLastTimeMs() const
+{
+    reader_lock l(m_UpdateMutex);
+    if (m_currentClip)
+        return m_currentClip->GetFrameGenerationLastTimeMs();
+    return 0.0;
+}
+
+double CPlayer::GetFrameGenerationAverageTimeMs() const
+{
+    reader_lock l(m_UpdateMutex);
+    if (m_currentClip)
+        return m_currentClip->GetFrameGenerationAverageTimeMs();
+    return 0.0;
+}
+
+FrameGeneration::EFrameGenerationMode CPlayer::CycleFrameGenerationMode()
+{
+    const auto currentMode = FrameGeneration::FromSetting(
+        g_Settings()->Get("settings.player.frame_generation.mode",
+                          FrameGeneration::ToSetting(FrameGeneration::EFrameGenerationMode::Off)));
+    const auto nextMode = FrameGeneration::NextMode(currentMode);
+
+    g_Settings()->Set("settings.player.frame_generation.mode",
+                      FrameGeneration::ToSetting(nextMode));
+    g_Settings()->Set("settings.player.frame_generation.enabled",
+                      nextMode != FrameGeneration::EFrameGenerationMode::Off);
+
+    std::string uuid;
+    int64_t frameNumber = -1;
+    {
+        reader_lock l(m_UpdateMutex);
+        if (m_currentClip)
+        {
+            uuid = m_currentClip->GetClipMetadata().dreamData.uuid;
+            frameNumber = static_cast<int64_t>(m_currentClip->GetCurrentFrameIdx());
+        }
+    }
+
+    g_Log->Info("Frame generation mode changed to %s", FrameGeneration::ToString(nextMode));
+
+    if (!uuid.empty())
+        PlayDreamNow(uuid, frameNumber);
+
+    return nextMode;
 }
 
 void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
@@ -1563,6 +1641,10 @@ void CPlayer::SkipToNext()
 void CPlayer::ReturnToPrevious()
 {
     auto previousDream = m_playlistManager->getPreviousDream();
+    if (!previousDream) {
+        g_Log->Warning("No previous dream available");
+        return;
+    }
 
     bool isDreamCached = !previousDream->getCachedPath().empty();
     if (!isDreamCached) {
