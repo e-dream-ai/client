@@ -40,6 +40,7 @@ private:
 
     std::function<void()> m_menuLoopRenderCb;
     bool m_bMenuRenderInProgress;
+    bool m_deviceLost = false;
 
   public:
     CDisplayDX11();
@@ -66,6 +67,10 @@ private:
 
     ID3D11Device* GetDevice() const { return m_device.Get(); }
     ID3D11DeviceContext* GetContext() const { return m_context.Get(); }
+
+    // Returns true after DXGI_ERROR_DEVICE_REMOVED/HUNG is received from Present.
+    // All D3D11 operations will fail until the device is recreated.
+    bool IsDeviceLost() const { return m_deviceLost; }
 };
 
 }

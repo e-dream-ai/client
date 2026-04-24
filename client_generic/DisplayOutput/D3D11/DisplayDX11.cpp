@@ -8,6 +8,10 @@
 #include <cstdlib>
 #include <string>
 
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
+#include <d3d11_4.h>
+#endif
+
 #ifdef WIN32
 #include "AboutDialogWin32.h"
 #include "FirstTimeSetupWin32.h"
@@ -670,7 +674,16 @@ bool CDisplayDX11::CreateDeviceAndSwapChain() {
     sd.SampleDesc.Quality = 0;
     sd.Windowed = !m_bFullScreen;
 
-    UINT createDeviceFlags = 0;
+    // D3D11_CREATE_DEVICE_VIDEO_SUPPORT is REQUIRED because this same ID3D11Device
+    // is shared with FFmpeg's D3D11VA decoder (see CContentDecoder::Open).  Without
+    // it, the driver's ID3D11VideoDevice/ID3D11VideoContext interfaces sit on
+    // partially-initialized state and the decode command ring eventually corrupts,
+    // causing DXGI_ERROR_DEVICE_RESET (0x887A0006) after minutes of sustained use.
+    //
+    // D3D11_CREATE_DEVICE_BGRA_SUPPORT is harmless and commonly paired with video.
+    UINT createDeviceFlags =
+        D3D11_CREATE_DEVICE_VIDEO_SUPPORT |
+        D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 #ifdef _DEBUG
     createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
@@ -687,6 +700,27 @@ bool CDisplayDX11::CreateDeviceAndSwapChain() {
         g_Log->Error("Failed to create device and swap chain");
         return false;
     }
+
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
+    // Enable device-level multithread protection.  Our GetD3D11ImmediateContextMutex()
+    // serializes application-side calls, but the D3D11VA driver may submit/complete
+    // decode work on its own background threads that touch the immediate context
+    // without going through our mutex.  Turning on multithread protection makes the
+    // runtime/driver serialize those accesses internally.  Without this flag, the
+    // command ring can slowly get into an inconsistent state and trip TDR
+    // (DXGI_ERROR_DEVICE_RESET, 0x887A0006) after sustained playback.
+    {
+        ComPtr<ID3D11Multithread> mt;
+        if (SUCCEEDED(m_context.As(&mt)) && mt)
+        {
+            mt->SetMultithreadProtected(TRUE);
+        }
+        else
+        {
+            g_Log->Warning("ID3D11Multithread unavailable; decode/render races possible");
+        }
+    }
+#endif
 
     // Create render target view
     ComPtr<ID3D11Texture2D> backBuffer;
@@ -833,6 +867,9 @@ void CDisplayDX11::Update() {
 
 void CDisplayDX11::SwapBuffers()
 {
+    if (m_deviceLost)
+        return;
+
     // /p preview child: avoid vsync Present(1) stalling on the tiny HWND.
     const UINT syncInterval = m_bEmbeddedSaverPreview ? 0u : 1u;
     HRESULT hr = m_swapChain->Present(syncInterval, 0);
@@ -841,8 +878,10 @@ void CDisplayDX11::SwapBuffers()
         g_Log->Error("Present failed: %08X", hr);
         if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_HUNG)
         {
-            g_Log->Warning("Device lost during present");
-            // Handle device lost
+            HRESULT reason = m_device ? m_device->GetDeviceRemovedReason() : hr;
+            g_Log->Warning("Device lost during present (removal reason: %08X); "
+                           "halting rendering until device is recreated", reason);
+            m_deviceLost = true;
         }
     }
 }

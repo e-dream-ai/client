@@ -283,7 +283,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>avcodec.lib;avutil.lib;avfilter.lib;swscale.lib;avdevice.lib;avformat.lib;sioclient.lib;libpng16.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;tinyxml.lib;d3d9.lib;ws2_32.lib;wldap32.lib;ddraw.lib;dxguid.lib;psapi.lib;delayimp.lib;libssl.lib;libcrypto.lib;crypt32.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>avcodec.lib;avutil.lib;avfilter.lib;swscale.lib;avdevice.lib;avformat.lib;sioclient.lib;libpng16.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;tinyxml.lib;d3d9.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;ws2_32.lib;wldap32.lib;ddraw.lib;dxguid.lib;psapi.lib;delayimp.lib;libssl.lib;libcrypto.lib;crypt32.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ShowProgress>NotSet</ShowProgress>
       <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
       <AdditionalLibraryDirectories>..\tinyXml\Releasetinyxml;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -349,7 +349,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>avcodec.lib;avutil.lib;avfilter.lib;swscale.lib;avdevice.lib;avformat.lib;sioclient.lib;libpng16.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;tinyxml.lib;d3d9.lib;ws2_32.lib;wldap32.lib;ddraw.lib;dxguid.lib;psapi.lib;delayimp.lib;libssl.lib;libcrypto.lib;crypt32.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>avcodec.lib;avutil.lib;avfilter.lib;swscale.lib;avdevice.lib;avformat.lib;sioclient.lib;libpng16.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;tinyxml.lib;d3d9.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;ws2_32.lib;wldap32.lib;ddraw.lib;dxguid.lib;psapi.lib;delayimp.lib;libssl.lib;libcrypto.lib;crypt32.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ShowProgress>NotSet</ShowProgress>
       <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
       <AdditionalLibraryDirectories>..\tinyXml\Releasetinyxml;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -415,7 +415,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>avcodec.lib;avutil.lib;avfilter.lib;swscale.lib;avdevice.lib;avformat.lib;sioclient.lib;libpng16.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;tinyxml.lib;d3d9.lib;ws2_32.lib;wldap32.lib;ddraw.lib;dxguid.lib;psapi.lib;delayimp.lib;libssl.lib;libcrypto.lib;crypt32.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>avcodec.lib;avutil.lib;avfilter.lib;swscale.lib;avdevice.lib;avformat.lib;sioclient.lib;libpng16.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;tinyxml.lib;d3d9.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;ws2_32.lib;wldap32.lib;ddraw.lib;dxguid.lib;psapi.lib;delayimp.lib;libssl.lib;libcrypto.lib;crypt32.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ShowProgress>NotSet</ShowProgress>
       <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
       <AdditionalLibraryDirectories>..\tinyXml\Releasetinyxml;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
