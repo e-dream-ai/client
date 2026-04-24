@@ -359,6 +359,16 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
     switch (msg)
     {
 #ifdef WIN32
+    case WM_SETCURSOR:
+        // In fullscreen screensaver mode, the OS may repeatedly reset the cursor
+        // to the class cursor (IDC_ARROW). Keep it hidden deterministically.
+        if (self && self->m_bFullScreen && !self->m_bEmbeddedSaverPreview)
+        {
+            SetCursor(nullptr);
+            return TRUE;
+        }
+        break;
+
     case WM_PAINT:
     {
         // We render via Direct3D and draw DX11 "text HUD" via GDI after Present.
