@@ -457,6 +457,11 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
 
         const bool ctrlDown = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
 
+#ifdef WIN32
+        if (ctrlDown && (SettingsDialogWin32_HasPendingOrVisible() || FirstTimeSetupWin32_IsWizardVisible()))
+            return 0;
+#endif
+
         if (wParam == VK_OEM_COMMA && ctrlDown)
         {
             ESShowPreferences();
