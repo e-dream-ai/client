@@ -703,10 +703,21 @@ bool CPlayer::Update(uint32_t displayUnit)
     }
     
     if (m_nextClip) {
-        if (!m_nextClip->HasFinished()) {
+        // While waiting for a SEAMLESS swap the next clip is not rendered
+        // (see RenderFrame) and must not advance its playback either — if we
+        // Update() it every tick, its decoder queue drains and by swap time
+        // the first frame popped is not frame 0. With hw decode this produces
+        // a visible forward jump at the swap; with sw decode the decoder
+        // can't keep up so the bug is masked. The decoder thread keeps
+        // running and fills the queue up to its backpressure cap regardless,
+        // so the queue is fully buffered at swap time ready to pop frame 0.
+        const bool waitingForSeamless = m_nextDreamDecision &&
+            m_nextDreamDecision->transition == PlaylistManager::TransitionType::Seamless;
+
+        if (!m_nextClip->HasFinished() && !waitingForSeamless) {
             m_nextClip->Update(m_TimelineTime, freezePlayback);
         }
-        
+
         // Check if pending seek crossfade can now start (next clip finished buffering)
         if (m_pendingSeekCrossfade && !m_nextClip->IsBuffering() && !freezePlayback) {
             g_Log->Info("Pending seek crossfade: next clip ready, starting transition");
@@ -901,7 +912,7 @@ void CPlayer::PlayNextDream(bool quickFade) {
             // For seamless, next clip should already be prepared
             if (m_nextClip) {
                 g_Log->Info("Executing seamless transition now");
-                
+
                 // Transfer frame continuity before destroying old clip
                 if (m_currentClip && m_nextClip) {
                     auto currentDisplay = m_currentClip->GetFrameDisplay();

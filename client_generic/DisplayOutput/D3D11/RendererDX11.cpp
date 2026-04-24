@@ -1526,16 +1526,24 @@ spCShader CRendererDX11::NewShader(const char* _pVertexShader, const char* _pFra
 
     // Build the NV12 YUV variant and register it so DrawTexturedQuad can
     // auto-select it whenever any bound texture is a hw (D3D11VA) frame.
+    //
+    // Intentionally do NOT call CreateUniform on the YUV variant. The YUV
+    // variant is only ever bound mid-draw via the shader swap in
+    // DrawTexturedQuad — immediately after the *RGBA* variant's Apply() has
+    // already uploaded and bound the correct blend-uniform CB (weights/delta)
+    // at slot b1. If we gave the YUV variant its own uniforms they'd be born
+    // dirty (CShaderUniform ctor sets m_bDirty=true) with zero-initialized
+    // data; the first Apply() on each freshly-created YUV variant would then
+    // upload zeros to b1, clobbering the correct weights RGBA just wrote.
+    // Cubic blending then produces (0,0,0) for one draw — the black flash at
+    // seamless-transition boundaries on Windows D3D11VA (issue #568).
+    // After that first draw the uniform is clean and never rebinds b1 again,
+    // which is why only the first cubic draw of each new clip was broken.
     if (yuvFragmentSource)
     {
         auto yuvShader = std::make_shared<CShaderDX11>(m_device, m_context);
         if (yuvShader->Build(kQuadPassVertexHlsl, yuvFragmentSource))
         {
-            for (uint32_t i = 0; i < uniforms.size(); ++i)
-            {
-                const uint32_t slot = blendSlotsOffset ? (i + 1) : i;
-                yuvShader->CreateUniform(uniforms[i].first, uniforms[i].second, slot);
-            }
             yuvShader->SetDecodedFrameShader(true);
             m_yuvShaderVariants[shader.get()] = yuvShader;
         }
