@@ -189,8 +189,28 @@ class CElectricSheep_Linux : public CElectricSheep
 
         // Playback control
         case DisplayOutput::CKeyEvent::KEY_R:
+            if (spKey->m_bCtrl) {
+#ifdef STAGE
+                PlatformUtils::OpenURLExternally("https://stage.infinidream.ai/rc");
+#else
+                PlatformUtils::OpenURLExternally("https://alpha.infinidream.ai/rc");
+#endif
+                return true;
+            }
             CElectricSheep::HandleOneEvent(spEvent);
             showNotification("Repeat");
+            return true;
+        case DisplayOutput::CKeyEvent::KEY_B:
+            if (spKey->m_bCtrl) {
+#ifdef STAGE
+                PlatformUtils::OpenURLExternally("https://stage.infinidream.ai/playlists");
+#else
+                PlatformUtils::OpenURLExternally("https://alpha.infinidream.ai/playlists");
+#endif
+                return true;
+            }
+            CElectricSheep::HandleOneEvent(spEvent);
+            showNotification("Report");
             return true;
         case DisplayOutput::CKeyEvent::KEY_H:
             CElectricSheep::HandleOneEvent(spEvent);

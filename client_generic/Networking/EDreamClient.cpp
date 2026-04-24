@@ -539,7 +539,7 @@ void EDreamClient::AppendAuthHeader(Network::spCFileDownloader& spDownload)
     std::string apiKey = g_Settings()->Get("settings.content.api_key", std::string(""));
     if (!apiKey.empty())
     {
-        spDownload->AppendHeader("Api-Key " + apiKey);
+        spDownload->AppendHeader("Api-Key: " + apiKey);
     }
 }
 
