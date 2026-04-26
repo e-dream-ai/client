@@ -372,7 +372,7 @@ class CElectricSheep
             "F1: help (this page)\t\t\t\t              F2: status overlay\n\n"
 #endif
 
-            FULLSCREEN_MODIFIER_KEY "-R: open remote control\n" FULLSCREEN_MODIFIER_KEY "-B: browse playlists",
+            FULLSCREEN_MODIFIER_KEY "-R: open remote control\n" FULLSCREEN_MODIFIER_KEY "-B: browse playlists\n" FULLSCREEN_MODIFIER_KEY "-comma: open settings",
             ""));
 
         std::string ver = GetVersion();
