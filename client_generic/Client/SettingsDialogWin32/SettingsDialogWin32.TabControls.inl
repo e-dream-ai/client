@@ -1,10 +1,13 @@
-const float sectionHeight = 190.f;
-const float panelGap = 8.f;
-const float panelInnerPadding = 8.f;
-const float buttonWidth = 170.f;
-const float buttonHeight = 30.f;
-const float footerRowHeight = 34.f;
-const float dividerWidth = 1.f;
+// sectionHeight/panelGap trimmed from the macOS XIB (190/8) so the View-Help footer row
+// stays inside the dialog's content region at 150% Windows display scaling
+// (where the dialog window itself is clamped to the host viewport height).
+const float sectionHeight = S(160.f);
+const float panelGap = S(4.f);
+const float panelInnerPadding = S(8.f);
+const float buttonWidth = S(170.f);
+const float buttonHeight = S(30.f);
+const float footerRowHeight = S(34.f);
+const float dividerWidth = S(1.f);
 const ImVec4 sectionDividerColor(0.90f, 0.90f, 0.90f, 1.00f);
 
 const float controlsFontScale = 14.0f / 17.0f;
@@ -21,23 +24,23 @@ auto drawControlPanel = [&](const char* panelId, const char* bodyText, const cha
     ImGui::SetCursorPos(ImVec2(panelInnerPadding, panelInnerPadding));
     float textWrapPos = panelWidth - panelInnerPadding;
     if (showPlaylistIcon && g_srvPlaylistIcon && g_texPlaylistIconW > 0 && g_texPlaylistIconH > 0)
-        textWrapPos -= (41.f + 8.f);
+        textWrapPos -= (S(41.f) + S(8.f));
     ImGui::PushTextWrapPos(textWrapPos);
     ImGui::TextWrapped("%s", bodyText);
     ImGui::PopTextWrapPos();
 
     if (showPlaylistIcon && g_srvPlaylistIcon && g_texPlaylistIconW > 0 && g_texPlaylistIconH > 0)
     {
-        const float iconW = 41.f;
-        const float iconH = 44.f;
-        const float iconX = panelWidth - iconW - 6.f;
-        const float iconY = 32.f;
+        const float iconW = S(41.f);
+        const float iconH = S(44.f);
+        const float iconX = panelWidth - iconW - S(6.f);
+        const float iconY = S(32.f);
         ImGui::SetCursorPos(ImVec2(iconX, iconY));
         ImGui::Image(static_cast<ImTextureID>(reinterpret_cast<uintptr_t>(g_srvPlaylistIcon)), ImVec2(iconW, iconH));
     }
 
     const float buttonX = (panelWidth - buttonWidth) * 0.5f;
-    const float buttonY = sectionHeight - buttonHeight - 10.f;
+    const float buttonY = sectionHeight - buttonHeight - S(10.f);
     ImGui::SetCursorPos(ImVec2(buttonX, buttonY));
     if (ImGui::Button(buttonLabel, ImVec2(buttonWidth, buttonHeight)))
         PlatformUtils::OpenURLExternally(url);
@@ -73,7 +76,7 @@ ImGui::SetCursorPosY(ImGui::GetCursorPosY() + panelGap);
 const float footerStartX = ImGui::GetCursorPosX();
 const float footerStartY = ImGui::GetCursorPosY();
 const float footerAvailWidth = ImGui::GetContentRegionAvail().x;
-const float footerGap = 12.f;
+const float footerGap = S(12.f);
 const char* footerLabel = "For more controls and explanation:";
 
 ImGui::SetWindowFontScale(16.0f / 17.0f);

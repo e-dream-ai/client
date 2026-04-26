@@ -48,13 +48,17 @@ constexpr const char* kUrlPlaylists = "https://alpha.infinidream.ai/playlists";
 #endif
 
 constexpr float kDesignWinW = 879.f;
-constexpr float kDesignWinH = 686.f;
+// Trimmed from the macOS XIB's 686 — the original window had a lot of empty space below
+// content. 580 leaves room for header (139) + thanks panel (~329) + skip footer (54) + padding.
+constexpr float kDesignWinH = 580.f;
 constexpr float kLogoDisplay = 120.f;
 // First startup/*.xib content widths (step panels centered in the window body).
 constexpr float kEmailStepPanelW = 571.f;
 constexpr float kEmailStepPanelH = 268.f;
 constexpr float kCodeStepPanelW = 509.f;
-constexpr float kCodeStepPanelH = 291.f;
+// Trimmed from the macOS XIB's 291 to keep the Try-again row above the body clip
+// when the host window is shorter than the design height (e.g. 720p client area at >=125% DPI).
+constexpr float kCodeStepPanelH = 250.f;
 // EmailStepViewController.xib (Cocoa y-from-bottom converted to top-down).
 constexpr float kEmailPromptL = 45.f;
 constexpr float kEmailMarginL = 47.f;
@@ -65,34 +69,38 @@ constexpr float kEmailPromptOffsetY = 30.f;
 constexpr float kEmailRowOffsetY = 115.f;
 constexpr float kEmailErrorOffsetY = 151.f;
 constexpr float kEmailCreateBtnOffsetY = 172.f;
-// CodeStepViewController.xib
-constexpr float kCodeInstrOffsetY = 30.f;
+// CodeStepViewController.xib — Y offsets shifted up from the macOS XIB
+// (originals: 30/112/166/184/227) so the panel fits when the host window is short.
+constexpr float kCodeInstrOffsetY = 16.f;
 constexpr float kCodeOtpW = 158.f;
 constexpr float kCodeOtpH = 48.f;
-constexpr float kCodeOtpOffsetY = 112.f;
-constexpr float kCodeErrorOffsetY = 166.f;
+constexpr float kCodeOtpOffsetY = 90.f;
+constexpr float kCodeErrorOffsetY = 144.f;
 constexpr float kCodeVerifyW = 110.f;
-constexpr float kCodeVerifyOffsetY = 184.f;
+constexpr float kCodeVerifyOffsetY = 158.f;
 constexpr float kCodeTryAgainW = 88.f;
-constexpr float kCodeTryAgainOffsetY = 227.f;
+constexpr float kCodeTryAgainOffsetY = 200.f;
 // ThanksStepViewController.xib (tips / “All set” step)
+// Row heights and paddings were reduced from the original macOS XIB (190/207/14/20/20)
+// so the thanks panel fits inside the wizard body without clipping the bottom row,
+// even at 150% Windows display scaling on a ~720p host window.
 constexpr float kThanksPanelW = 667.f;
 constexpr float kThanksOuterPad = 20.f;
 constexpr float kThanksColGap = 20.f;
-constexpr float kThanksTitleTop = 14.f;
-constexpr float kThanksTitleToGrid = 20.f;
-constexpr float kThanksRowTopH = 190.f;
-constexpr float kThanksRowBotH = 207.f;
-constexpr float kThanksHSepGap = 10.f;
+constexpr float kThanksTitleTop = 2.f;
+constexpr float kThanksTitleToGrid = 8.f;
+constexpr float kThanksRowTopH = 110.f;
+constexpr float kThanksRowBotH = 92.f;
+constexpr float kThanksHSepGap = 5.f;
 /// Match vertical splitter thickness (1px hairline).
 constexpr float kThanksHSepH = 1.f;
-constexpr float kThanksCellPad = 8.f;
-constexpr float kThanksImgTop = 18.f;
+constexpr float kThanksCellPad = 6.f;
+constexpr float kThanksImgTop = 10.f;
 constexpr float kThanksImgTrail = 6.f;
 constexpr float kThanksTextImgGap = 12.f;
-constexpr float kThanksPlaylistImg = 60.f;
-constexpr float kThanksBtnBottom = 10.f;
-constexpr float kThanksBottomPad = 20.f;
+constexpr float kThanksPlaylistImg = 52.f;
+constexpr float kThanksBtnBottom = 6.f;
+constexpr float kThanksBottomPad = 4.f;
 constexpr float kThanksOpenRemoteBtnW = 118.f;
 constexpr float kThanksOpenPlaylistBtnW = 136.f;
 constexpr float kThanksTipsBtnH = 28.f;
@@ -108,6 +116,17 @@ static constexpr ImVec4 kMacAccentBtn(0.f, 0.478f, 1.f, 1.f);
 static constexpr ImVec4 kMacAccentBtnHov(0.10f, 0.54f, 1.f, 1.f);
 static constexpr ImVec4 kMacAccentBtnAct(0.f, 0.40f, 0.88f, 1.f);
 static constexpr ImVec4 kMacAccentBtnBorder(0.f, 0.38f, 0.82f, 1.f);
+
+// Design-time bump on top of the monitor DPI ratio. The macOS XIB design is sized for
+// a roomy welcome window (879×686 logical), so 1.0× already feels comfortable here —
+// any extra bump pushes the dialog past a typical app window's height.
+constexpr float kBaseUiBump = 1.0f;
+// Combined scale: (GetDpiForWindow / 96) × kBaseUiBump. Set in TryInitImGui() from the host
+// window's DPI; DrawWizard() may further reduce g_uiScale each frame so the dialog fits a
+// short host viewport (with a matching FontGlobalScale so text shrinks proportionally).
+static float g_baseScale = kBaseUiBump;
+static float g_uiScale = kBaseUiBump;
+static inline float S(float v) { return v * g_uiScale; }
 
 /// Vertically center a fixed-height panel in the body region below the header.
 static float CenteredPanelTopPad(float bodyAvailH, float panelH)
@@ -536,25 +555,25 @@ static void LoadSystemFonts()
     cfg.OversampleH = 2;
     cfg.OversampleV = 1;
 
-    g_fontBody = io.Fonts->AddFontFromFileTTF(segoe.c_str(), 15.f, &cfg, io.Fonts->GetGlyphRangesDefault());
-    g_fontTitle = io.Fonts->AddFontFromFileTTF(segoe.c_str(), 28.f, &cfg, io.Fonts->GetGlyphRangesDefault());
-    g_fontOtp = io.Fonts->AddFontFromFileTTF(segoe.c_str(), 36.f, &cfg, io.Fonts->GetGlyphRangesDefault());
-    g_fontThanksCopy =
-        io.Fonts->AddFontFromFileTTF(segoe.c_str(), kThanksCopyFontSize, &cfg, io.Fonts->GetGlyphRangesDefault());
+    g_fontBody = io.Fonts->AddFontFromFileTTF(segoe.c_str(), S(15.f), &cfg, io.Fonts->GetGlyphRangesDefault());
+    g_fontTitle = io.Fonts->AddFontFromFileTTF(segoe.c_str(), S(28.f), &cfg, io.Fonts->GetGlyphRangesDefault());
+    g_fontOtp = io.Fonts->AddFontFromFileTTF(segoe.c_str(), S(36.f), &cfg, io.Fonts->GetGlyphRangesDefault());
+    g_fontThanksCopy = io.Fonts->AddFontFromFileTTF(segoe.c_str(), S(kThanksCopyFontSize), &cfg,
+                                                    io.Fonts->GetGlyphRangesDefault());
 
     FILE* fsb = std::fopen(segSb.c_str(), "rb");
     if (fsb)
     {
         std::fclose(fsb);
-        g_fontHeadline = io.Fonts->AddFontFromFileTTF(segSb.c_str(), 32.f, &cfg, io.Fonts->GetGlyphRangesDefault());
-        g_fontThanksBtn =
-            io.Fonts->AddFontFromFileTTF(segSb.c_str(), kThanksBtnFontSize, &cfg, io.Fonts->GetGlyphRangesDefault());
+        g_fontHeadline = io.Fonts->AddFontFromFileTTF(segSb.c_str(), S(32.f), &cfg, io.Fonts->GetGlyphRangesDefault());
+        g_fontThanksBtn = io.Fonts->AddFontFromFileTTF(segSb.c_str(), S(kThanksBtnFontSize), &cfg,
+                                                       io.Fonts->GetGlyphRangesDefault());
     }
     if (!g_fontHeadline)
-        g_fontHeadline = io.Fonts->AddFontFromFileTTF(segoe.c_str(), 32.f, &cfg, io.Fonts->GetGlyphRangesDefault());
+        g_fontHeadline = io.Fonts->AddFontFromFileTTF(segoe.c_str(), S(32.f), &cfg, io.Fonts->GetGlyphRangesDefault());
     if (!g_fontThanksBtn)
-        g_fontThanksBtn =
-            io.Fonts->AddFontFromFileTTF(segoe.c_str(), kThanksBtnFontSize, &cfg, io.Fonts->GetGlyphRangesDefault());
+        g_fontThanksBtn = io.Fonts->AddFontFromFileTTF(segoe.c_str(), S(kThanksBtnFontSize), &cfg,
+                                                       io.Fonts->GetGlyphRangesDefault());
 
     if (g_fontBody)
         io.FontDefault = g_fontBody;
@@ -622,6 +641,13 @@ static bool TryInitImGui()
 
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 
+    // Manifest is system-DPI-aware (electricsheep.vcxproj), so this returns the system DPI;
+    // dialog opens at the same scale on every monitor for the life of the process.
+    HWND hwnd = dx->GetWindowHandle();
+    const UINT dpi = GetDpiForWindow(hwnd);
+    const float dpiScale = (dpi > 0u) ? (static_cast<float>(dpi) / 96.0f) : 1.0f;
+    g_uiScale = dpiScale * kBaseUiBump;
+
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
@@ -629,9 +655,11 @@ static bool TryInitImGui()
     io.IniFilename = nullptr;
 
     ApplyLightSheetStyle();
+    // Scale paddings/spacing/rounding from the design values set in ApplyLightSheetStyle().
+    ImGui::GetStyle().ScaleAllSizes(g_uiScale);
     LoadSystemFonts();
 
-    if (!ImGui_ImplWin32_Init(dx->GetWindowHandle()))
+    if (!ImGui_ImplWin32_Init(hwnd))
     {
         ImGui::DestroyContext();
         return false;
@@ -708,10 +736,10 @@ static void DrawSkipFooter()
         return;
 
     // Pin the footer to the bottom-right inside the dialog sheet.
-    const float skipW = 80.f;
+    const float skipW = S(80.f);
 
     const float padY = ImGui::GetStyle().WindowPadding.y;
-    const float skipH = 36.f; // matches other large controls on the sheet
+    const float skipH = S(36.f); // matches other large controls on the sheet
     float y = ImGui::GetWindowHeight() - padY - skipH;
     if (y < 0.f)
         y = ImGui::GetCursorPosY();
@@ -732,9 +760,11 @@ static void DrawWizard()
     const ImVec2 display = io.DisplaySize;
     const ImVec2 dialogPadding = ImGui::GetStyle().WindowPadding;
 
-    // ImGui clamps *root* windows to the viewport, so a single 879×686 window shrinks with the app.
-    // Use a fullscreen host + fixed-size child so the dialog stays 879×686; scroll the host if needed.
-    const ImVec2 panelSize(kDesignWinW, kDesignWinH);
+    // ImGui clamps *root* windows to the viewport, so a single fixed-size root window would shrink
+    // with the app. Use a fullscreen host + sized child instead. Clamp the child to the viewport so
+    // the bottom (Skip button) stays visible even when the host window is shorter than the design.
+    const ImVec2 panelSize((std::min)(S(kDesignWinW), display.x),
+                           (std::min)(S(kDesignWinH), display.y));
     float panelX = (display.x - panelSize.x) * 0.5f;
     float panelY = (display.y - panelSize.y) * 0.5f;
     panelX = (std::max)(0.f, panelX);
@@ -742,8 +772,9 @@ static void DrawWizard()
 
     ImGui::SetNextWindowPos(ImVec2(0.f, 0.f), ImGuiCond_Always);
     ImGui::SetNextWindowSize(display, ImGuiCond_Always);
-    ImGuiWindowFlags hostFlags =
-        ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove;
+    ImGuiWindowFlags hostFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+                                 ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove |
+                                 ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
     ImVec4 sheetBg = ImGui::GetStyle().Colors[ImGuiCol_ChildBg];
@@ -759,12 +790,12 @@ static void DrawWizard()
 
     // --- Header — StartupWindowController.xib: logo leading 10 top 11; title centerX at y=50 (not inline with logo)
     {
-        const float logoSz = kLogoDisplay;
-        const float hdrH = logoSz + 11.f + 8.f; // logo + top inset + gap before body (xib)
+        const float logoSz = S(kLogoDisplay);
+        const float hdrH = logoSz + S(11.f) + S(8.f); // logo + top inset + gap before body (xib)
         const float winInnerW = ImGui::GetWindowWidth();
         if (g_srvLogo && g_texLogoW > 0 && g_texLogoH > 0)
         {
-            ImGui::SetCursorPos(ImVec2(10.f, 11.f));
+            ImGui::SetCursorPos(ImVec2(S(10.f), S(11.f)));
             ImGui::Image(static_cast<ImTextureID>(reinterpret_cast<uintptr_t>(g_srvLogo)),
                          ImVec2(logoSz, logoSz));
         }
@@ -773,7 +804,7 @@ static void DrawWizard()
             ImGui::PushFont(g_fontHeadline);
         const char* headline = "Welcome to Infinidream";
         const ImVec2 ts = ImGui::CalcTextSize(headline);
-        ImGui::SetCursorPos(ImVec2((winInnerW - ts.x) * 0.5f, 50.f));
+        ImGui::SetCursorPos(ImVec2((winInnerW - ts.x) * 0.5f, S(50.f)));
         ImGui::TextUnformatted(headline);
         if (g_fontHeadline)
             ImGui::PopFont();
@@ -783,59 +814,65 @@ static void DrawWizard()
     }
 
     // Body fills remaining sheet height above the Skip row; no extra background (same as header/dialog).
+    // DrawSkipFooter early-returns on the thanks step, so reclaim that vertical reserve there —
+    // matters at 150% display scaling where every design pixel counts to fit the tips grid.
     const ImGuiStyle& sheetSt = ImGui::GetStyle();
-    const float skipReserve =
-        sheetSt.WindowPadding.y + 36.f + 4.f; // Skip button height + bottom padding + gap
+    const float skipReserve = (g_wizardStep < 2)
+                                  ? (sheetSt.WindowPadding.y + S(36.f) + S(4.f))
+                                  : (sheetSt.WindowPadding.y + S(8.f));
     float bodyH = ImGui::GetContentRegionAvail().y - skipReserve;
     if (bodyH < 1.f)
         bodyH = 1.f;
-    ImGuiWindowFlags bodyChildFlags = ImGuiWindowFlags_NoBackground;
-    if (g_wizardStep == 2)
-        bodyChildFlags |= ImGuiWindowFlags_NoScrollbar;
+    // Suppress the body scrollbar on every step. Each step's panel is sized to fit the body;
+    // if a tiny host viewport ever clips content, fall through silently rather than show a scrollbar.
+    ImGuiWindowFlags bodyChildFlags =
+        ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
     ImGui::BeginChild("body", ImVec2(0, bodyH), ImGuiChildFlags_None, bodyChildFlags);
 
     if (g_wizardStep == 0)
     {
         g_otpFieldBorderActive = false;
         const ImVec2 bodyAvail = ImGui::GetContentRegionAvail();
-        const float vPad = CenteredPanelTopPad(bodyAvail.y, kEmailStepPanelH);
-        if (vPad > 0.f)
-            ImGui::Dummy(ImVec2(0.f, vPad));
-        float stepPadX = (bodyAvail.x - kEmailStepPanelW) * 0.5f;
+        // Top-align with a small gap; centering left ~110px of dead space below the header.
+        ImGui::Dummy(ImVec2(0.f, S(20.f)));
+        float stepPadX = (bodyAvail.x - S(kEmailStepPanelW)) * 0.5f;
         if (stepPadX > 0.f)
             ImGui::SetCursorPosX(ImGui::GetCursorPosX() + stepPadX);
         // No separate ChildBg — match the sheet (same as transparent body region).
-        ImGui::BeginChild("emailStep", ImVec2(kEmailStepPanelW, kEmailStepPanelH), ImGuiChildFlags_None,
+        ImGui::BeginChild("emailStep", ImVec2(S(kEmailStepPanelW), S(kEmailStepPanelH)), ImGuiChildFlags_None,
                           ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBackground);
 
-        ImGui::SetCursorPos(ImVec2(kEmailPromptL, kEmailPromptOffsetY));
+        ImGui::SetCursorPos(ImVec2(S(kEmailPromptL), S(kEmailPromptOffsetY)));
         if (g_fontTitle)
             ImGui::PushFont(g_fontTitle);
-        ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + 473.f);
+        ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + S(473.f));
         ImGui::TextUnformatted("Enter your email to sign in:");
         ImGui::PopTextWrapPos();
         if (g_fontTitle)
             ImGui::PopFont();
 
-        ImGui::SetCursorPos(ImVec2(kEmailMarginL, kEmailRowOffsetY));
+        ImGui::SetCursorPos(ImVec2(S(kEmailMarginL), S(kEmailRowOffsetY)));
         // Match the email input height to the Send button height.
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.f, 10.f));
-        ImGui::PushItemWidth(kEmailFieldW);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(S(10.f), S(10.f)));
+        ImGui::PushItemWidth(S(kEmailFieldW));
+        bool emailEnter = false;
         {
             ImGui::PushStyleColor(ImGuiCol_Border,
                                   g_emailFieldBorderActive ? kMacInputBorderFocus : kMacInputBorderIdle);
-            ImGui::InputTextWithHint("##email", "your@email.com", g_emailBuf, sizeof g_emailBuf);
+            // EnterReturnsTrue so pressing Return submits, just like clicking Send code.
+            emailEnter = ImGui::InputTextWithHint("##email", "your@email.com", g_emailBuf, sizeof g_emailBuf,
+                                                  ImGuiInputTextFlags_EnterReturnsTrue);
             ImGui::PopStyleColor();
             g_emailFieldBorderActive = ImGui::IsItemActive() || ImGui::IsItemFocused();
         }
         ImGui::PopItemWidth();
         ImGui::PopStyleVar();
-        ImGui::SameLine(0.f, 10.f);
+        ImGui::SameLine(0.f, S(10.f));
         const bool busy = g_sendBusy.load(std::memory_order_acquire);
 
         // macOS-like primary action: blue background + white foreground.
         // While busy: hide the normal text and show centered "Sending..." inside the same button.
-        const float sendBtnH = 36.f;
+        const float sendBtnH = S(36.f);
         const char* sendBtnText = busy ? "Sending..." : "Send code";
         const char* sendBtnId = "##send_code_btn";
         ImVec2 sendBtnMin = ImGui::GetCursorScreenPos();
@@ -845,10 +882,10 @@ static void DrawWizard()
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, kMacAccentBtnAct);
         ImGui::PushStyleColor(ImGuiCol_Border, kMacAccentBtnBorder);
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
-        const bool clicked = ImGui::Button(sendBtnId, ImVec2(kEmailSendBtnW, sendBtnH));
+        const bool clicked = ImGui::Button(sendBtnId, ImVec2(S(kEmailSendBtnW), sendBtnH));
         ImGui::PopStyleColor(5);
 
-        if (!busy && clicked)
+        if (!busy && (clicked || emailEnter))
         {
             const size_t elen = std::strlen(g_emailBuf);
             if (elen == 0)
@@ -882,20 +919,20 @@ static void DrawWizard()
 
         if (g_errBuf[0] != '\0')
         {
-            ImGui::SetCursorPos(ImVec2(kEmailPromptL, kEmailErrorOffsetY));
+            ImGui::SetCursorPos(ImVec2(S(kEmailPromptL), S(kEmailErrorOffsetY)));
             ImGui::TextColored(ImVec4(0.75f, 0.18f, 0.18f, 1.f), "%s", g_errBuf);
         }
         {
             // Draw label text centered within the button frame (Button label is hidden via "##send_code_btn").
             const ImVec2 ts = ImGui::CalcTextSize(sendBtnText);
-            const ImVec2 textPos(sendBtnMin.x + (kEmailSendBtnW - ts.x) * 0.5f,
+            const ImVec2 textPos(sendBtnMin.x + (S(kEmailSendBtnW) - ts.x) * 0.5f,
                                  sendBtnMin.y + (sendBtnH - ts.y) * 0.5f);
             ImGui::GetWindowDrawList()->AddText(
                 textPos, ImGui::ColorConvertFloat4ToU32(ImVec4(1.f, 1.f, 1.f, 1.f)), sendBtnText);
         }
 
-        ImGui::SetCursorPos(ImVec2((kEmailStepPanelW - kEmailCreateAccountW) * 0.5f, kEmailCreateBtnOffsetY));
-        if (ImGui::Button("Need an account? Create one", ImVec2(kEmailCreateAccountW, 36.f)))
+        ImGui::SetCursorPos(ImVec2((S(kEmailStepPanelW) - S(kEmailCreateAccountW)) * 0.5f, S(kEmailCreateBtnOffsetY)));
+        if (ImGui::Button("Need an account? Create one", ImVec2(S(kEmailCreateAccountW), S(36.f))))
             PlatformUtils::OpenURLExternally(kUrlCreateAccount);
 
         ImGui::EndChild();
@@ -904,40 +941,43 @@ static void DrawWizard()
     {
         g_emailFieldBorderActive = false;
         const ImVec2 bodyAvail = ImGui::GetContentRegionAvail();
-        const float vPad = CenteredPanelTopPad(bodyAvail.y, kCodeStepPanelH);
-        if (vPad > 0.f)
-            ImGui::Dummy(ImVec2(0.f, vPad));
-        float stepPadX = (bodyAvail.x - kCodeStepPanelW) * 0.5f;
+        // Small top gap; the code step is the tallest, so keep this minimal so the Try-again
+        // row clears the body clip on shorter host windows.
+        ImGui::Dummy(ImVec2(0.f, S(6.f)));
+        float stepPadX = (bodyAvail.x - S(kCodeStepPanelW)) * 0.5f;
         if (stepPadX > 0.f)
             ImGui::SetCursorPosX(ImGui::GetCursorPosX() + stepPadX);
-        ImGui::BeginChild("codeStep", ImVec2(kCodeStepPanelW, kCodeStepPanelH), ImGuiChildFlags_None,
+        ImGui::BeginChild("codeStep", ImVec2(S(kCodeStepPanelW), S(kCodeStepPanelH)), ImGuiChildFlags_None,
                           ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBackground);
 
-        ImGui::SetCursorPos(ImVec2(38.f, kCodeInstrOffsetY));
+        ImGui::SetCursorPos(ImVec2(S(38.f), S(kCodeInstrOffsetY)));
         if (g_fontTitle)
             ImGui::PushFont(g_fontTitle);
-        ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + 434.f);
+        ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + S(434.f));
         ImGui::TextUnformatted("Check your email for a one-time code, and enter it below.");
         ImGui::PopTextWrapPos();
         if (g_fontTitle)
             ImGui::PopFont();
 
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.f, 10.f));
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(S(10.f), S(10.f)));
         if (g_fontOtp)
             ImGui::PushFont(g_fontOtp);
 
         // Make the OTP input width fit exactly 6 digits (like the macOS layout).
         const float otpTextW = ImGui::CalcTextSize("000000").x;
         const float otpInputW = otpTextW + ImGui::GetStyle().FramePadding.x * 2.f;
-        ImGui::SetCursorPos(ImVec2((kCodeStepPanelW - otpInputW) * 0.5f, kCodeOtpOffsetY));
+        ImGui::SetCursorPos(ImVec2((S(kCodeStepPanelW) - otpInputW) * 0.5f, S(kCodeOtpOffsetY)));
         ImGui::PushItemWidth(otpInputW);
+        bool otpEnter = false;
         {
             ImGui::PushStyleColor(ImGuiCol_Border,
                                   g_otpFieldBorderActive ? kMacInputBorderFocus : kMacInputBorderIdle);
-            ImGui::InputTextWithHint("##otp", "000000", g_codeBuf, sizeof g_codeBuf,
-                                     ImGuiInputTextFlags_CallbackCharFilter |
-                                         ImGuiInputTextFlags_CallbackEdit,
-                                     FilterDigitsOnly);
+            // EnterReturnsTrue plus the digit/edit callbacks: Enter submits, callbacks still filter input.
+            otpEnter = ImGui::InputTextWithHint("##otp", "000000", g_codeBuf, sizeof g_codeBuf,
+                                                ImGuiInputTextFlags_CallbackCharFilter |
+                                                    ImGuiInputTextFlags_CallbackEdit |
+                                                    ImGuiInputTextFlags_EnterReturnsTrue,
+                                                FilterDigitsOnly);
             ImGui::PopStyleColor();
             g_otpFieldBorderActive = ImGui::IsItemActive() || ImGui::IsItemFocused();
         }
@@ -950,17 +990,18 @@ static void DrawWizard()
         const bool busy = g_validateBusy.load(std::memory_order_acquire);
         if (g_errBuf[0] != '\0')
         {
-            ImGui::SetCursorPos(ImVec2(18.f, kCodeErrorOffsetY));
-            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + 473.f);
+            ImGui::SetCursorPos(ImVec2(S(18.f), S(kCodeErrorOffsetY)));
+            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + S(473.f));
             ImGui::TextColored(ImVec4(0.75f, 0.18f, 0.18f, 1.f), "%s", g_errBuf);
             ImGui::PopTextWrapPos();
         }
 
         const bool canVerify = std::strlen(g_codeBuf) == 6 && !busy;
-        ImGui::SetCursorPos(ImVec2((kCodeStepPanelW - kCodeVerifyW) * 0.5f, kCodeVerifyOffsetY));
+        ImGui::SetCursorPos(ImVec2((S(kCodeStepPanelW) - S(kCodeVerifyW)) * 0.5f, S(kCodeVerifyOffsetY)));
         if (!canVerify || busy)
             ImGui::BeginDisabled();
-        if (ImGui::Button("Verify code", ImVec2(kCodeVerifyW, 36.f)) && canVerify && !busy)
+        const bool verifyClicked = ImGui::Button("Verify code", ImVec2(S(kCodeVerifyW), S(36.f)));
+        if ((verifyClicked || otpEnter) && canVerify && !busy)
         {
             g_errBuf[0] = '\0';
             std::string codeCopy(g_codeBuf);
@@ -979,12 +1020,13 @@ static void DrawWizard()
 
         if (busy)
         {
-            ImGui::SetCursorPos(ImVec2(kCodeStepPanelW * 0.5f + kCodeVerifyW * 0.5f + 12.f, kCodeVerifyOffsetY + 6.f));
+            ImGui::SetCursorPos(ImVec2(S(kCodeStepPanelW) * 0.5f + S(kCodeVerifyW) * 0.5f + S(12.f),
+                                       S(kCodeVerifyOffsetY) + S(6.f)));
             ImGui::TextDisabled("Verifying...");
         }
 
-        ImGui::SetCursorPos(ImVec2((kCodeStepPanelW - kCodeTryAgainW) * 0.5f, kCodeTryAgainOffsetY));
-        if (ImGui::Button("Try again", ImVec2(kCodeTryAgainW, 36.f)))
+        ImGui::SetCursorPos(ImVec2((S(kCodeStepPanelW) - S(kCodeTryAgainW)) * 0.5f, S(kCodeTryAgainOffsetY)));
+        if (ImGui::Button("Try again", ImVec2(S(kCodeTryAgainW), S(36.f))))
         {
             g_wizardStep = 0;
             g_codeBuf[0] = '\0';
@@ -999,13 +1041,13 @@ static void DrawWizard()
         g_otpFieldBorderActive = false;
 
         const float bodyAvailW = ImGui::GetContentRegionAvail().x;
-        const float panelW = bodyAvailW < kThanksPanelW ? bodyAvailW : kThanksPanelW;
+        const float panelW = bodyAvailW < S(kThanksPanelW) ? bodyAvailW : S(kThanksPanelW);
         const float centerPad = (bodyAvailW - panelW) * 0.5f;
         if (centerPad > 0.f)
             ImGui::SetCursorPosX(ImGui::GetCursorPosX() + centerPad);
 
-        const float innerW = panelW - 2.f * kThanksOuterPad;
-        const float colW = (innerW - kThanksColGap) * 0.5f;
+        const float innerW = panelW - 2.f * S(kThanksOuterPad);
+        const float colW = (innerW - S(kThanksColGap)) * 0.5f;
 
         if (g_fontTitle)
             ImGui::PushFont(g_fontTitle);
@@ -1014,15 +1056,16 @@ static void DrawWizard()
         if (g_fontTitle)
             ImGui::PopFont();
 
-        const float panelH = kThanksTitleTop + tipsTs.y + kThanksTitleToGrid + kThanksRowTopH +
-                             kThanksHSepGap + kThanksHSepH + kThanksHSepGap + kThanksRowBotH + kThanksBottomPad;
+        const float panelH = S(kThanksTitleTop) + tipsTs.y + S(kThanksTitleToGrid) + S(kThanksRowTopH) +
+                             S(kThanksHSepGap) + S(kThanksHSepH) + S(kThanksHSepGap) + S(kThanksRowBotH) +
+                             S(kThanksBottomPad);
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
         ImGui::BeginChild("thanksPanel", ImVec2(panelW, panelH), ImGuiChildFlags_None,
                           ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar |
                               ImGuiWindowFlags_NoScrollWithMouse);
 
-        ImGui::Dummy(ImVec2(0.f, kThanksTitleTop));
+        ImGui::Dummy(ImVec2(0.f, S(kThanksTitleTop)));
 
         if (g_fontTitle)
             ImGui::PushFont(g_fontTitle);
@@ -1035,21 +1078,21 @@ static void DrawWizard()
         if (g_fontTitle)
             ImGui::PopFont();
 
-        ImGui::Dummy(ImVec2(0.f, kThanksTitleToGrid));
+        ImGui::Dummy(ImVec2(0.f, S(kThanksTitleToGrid)));
 
         const float yTop = ImGui::GetCursorPosY();
         ImDrawList* panelDl = ImGui::GetWindowDrawList();
         const ImU32 sepU32 = ImGui::ColorConvertFloat4ToU32(ImGui::GetStyle().Colors[ImGuiCol_Border]);
 
-        ImGui::SetCursorPos(ImVec2(kThanksOuterPad, yTop));
-        ImGui::BeginChild("tl", ImVec2(colW, kThanksRowTopH), ImGuiChildFlags_None,
+        ImGui::SetCursorPos(ImVec2(S(kThanksOuterPad), yTop));
+        ImGui::BeginChild("tl", ImVec2(colW, S(kThanksRowTopH)), ImGuiChildFlags_None,
                           ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar |
                               ImGuiWindowFlags_NoScrollWithMouse);
         {
             if (g_fontThanksCopy)
                 ImGui::PushFont(g_fontThanksCopy);
-            ImGui::SetCursorPos(ImVec2(kThanksCellPad, kThanksCellPad));
-            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + colW - 2.f * kThanksCellPad);
+            ImGui::SetCursorPos(ImVec2(S(kThanksCellPad), S(kThanksCellPad)));
+            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + colW - 2.f * S(kThanksCellPad));
             ImGui::TextWrapped(
                 "Use the A and D keys to adjust the speed of playback. Press F1 to see more keyboard "
                 "controls. You can also interact with the remote control installed on your phone, or from "
@@ -1058,12 +1101,13 @@ static void DrawWizard()
             if (g_fontThanksCopy)
                 ImGui::PopFont();
 
-            const float btnY = kThanksRowTopH - kThanksBtnBottom - kThanksTipsBtnH;
-            ImGui::SetCursorPos(ImVec2((colW - kThanksOpenRemoteBtnW) * 0.5f, btnY));
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.f, 3.f));
+            const float btnY = S(kThanksRowTopH) - S(kThanksBtnBottom) - S(kThanksTipsBtnH);
+            ImGui::SetCursorPos(ImVec2((colW - S(kThanksOpenRemoteBtnW)) * 0.5f, btnY));
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(S(8.f), S(3.f)));
             if (g_fontThanksBtn)
                 ImGui::PushFont(g_fontThanksBtn);
-            const bool openRemote = ImGui::Button("Open web remote", ImVec2(kThanksOpenRemoteBtnW, kThanksTipsBtnH));
+            const bool openRemote =
+                ImGui::Button("Open web remote", ImVec2(S(kThanksOpenRemoteBtnW), S(kThanksTipsBtnH)));
             if (g_fontThanksBtn)
                 ImGui::PopFont();
             ImGui::PopStyleVar();
@@ -1074,16 +1118,16 @@ static void DrawWizard()
         const ImVec2 tlRectMin = ImGui::GetItemRectMin();
         const ImVec2 tlRectMax = ImGui::GetItemRectMax();
 
-        ImGui::SetCursorPos(ImVec2(kThanksOuterPad + colW + kThanksColGap, yTop));
-        ImGui::BeginChild("tr", ImVec2(colW, kThanksRowTopH), ImGuiChildFlags_None,
+        ImGui::SetCursorPos(ImVec2(S(kThanksOuterPad) + colW + S(kThanksColGap), yTop));
+        ImGui::BeginChild("tr", ImVec2(colW, S(kThanksRowTopH)), ImGuiChildFlags_None,
                           ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar |
                               ImGuiWindowFlags_NoScrollWithMouse);
         {
             const float textWrapW =
-                colW - kThanksCellPad - kThanksTextImgGap - kThanksPlaylistImg - kThanksImgTrail;
+                colW - S(kThanksCellPad) - S(kThanksTextImgGap) - S(kThanksPlaylistImg) - S(kThanksImgTrail);
             if (g_fontThanksCopy)
                 ImGui::PushFont(g_fontThanksCopy);
-            ImGui::SetCursorPos(ImVec2(kThanksCellPad, kThanksCellPad));
+            ImGui::SetCursorPos(ImVec2(S(kThanksCellPad), S(kThanksCellPad)));
             ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + textWrapW);
             ImGui::TextWrapped(
                 "Change your dreams by selecting a playlist from the browser. Click the button on a "
@@ -1095,20 +1139,20 @@ static void DrawWizard()
             if (g_srvPlaylist && g_texPlaylistW > 0 && g_texPlaylistH > 0)
             {
                 const ImVec2 trWin = ImGui::GetWindowPos();
-                const ImVec2 imgMin(trWin.x + colW - kThanksImgTrail - kThanksPlaylistImg,
-                                    trWin.y + kThanksImgTop);
-                const ImVec2 imgMax(imgMin.x + kThanksPlaylistImg, imgMin.y + kThanksPlaylistImg);
+                const ImVec2 imgMin(trWin.x + colW - S(kThanksImgTrail) - S(kThanksPlaylistImg),
+                                    trWin.y + S(kThanksImgTop));
+                const ImVec2 imgMax(imgMin.x + S(kThanksPlaylistImg), imgMin.y + S(kThanksPlaylistImg));
                 ImGui::GetWindowDrawList()->AddImage(
                     static_cast<ImTextureID>(reinterpret_cast<uintptr_t>(g_srvPlaylist)), imgMin, imgMax);
             }
 
-            const float btnY = kThanksRowTopH - kThanksBtnBottom - kThanksTipsBtnH;
-            ImGui::SetCursorPos(ImVec2((colW - kThanksOpenPlaylistBtnW) * 0.5f, btnY));
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.f, 3.f));
+            const float btnY = S(kThanksRowTopH) - S(kThanksBtnBottom) - S(kThanksTipsBtnH);
+            ImGui::SetCursorPos(ImVec2((colW - S(kThanksOpenPlaylistBtnW)) * 0.5f, btnY));
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(S(8.f), S(3.f)));
             if (g_fontThanksBtn)
                 ImGui::PushFont(g_fontThanksBtn);
             const bool openPl =
-                ImGui::Button("Open playlist browser", ImVec2(kThanksOpenPlaylistBtnW, kThanksTipsBtnH));
+                ImGui::Button("Open playlist browser", ImVec2(S(kThanksOpenPlaylistBtnW), S(kThanksTipsBtnH)));
             if (g_fontThanksBtn)
                 ImGui::PopFont();
             ImGui::PopStyleVar();
@@ -1117,35 +1161,34 @@ static void DrawWizard()
         }
         ImGui::EndChild();
 
-        const float vSepX = tlRectMax.x + 10.f;
-        panelDl->AddRectFilled(ImVec2(vSepX, tlRectMin.y), ImVec2(vSepX + 1.f, tlRectMin.y + kThanksRowTopH),
-                               sepU32);
+        const float vSepX = tlRectMax.x + S(10.f);
+        panelDl->AddRectFilled(ImVec2(vSepX, tlRectMin.y),
+                               ImVec2(vSepX + 1.f, tlRectMin.y + S(kThanksRowTopH)), sepU32);
 
-        const float hSepTop = tlRectMax.y + kThanksHSepGap;
+        const float hSepTop = tlRectMax.y + S(kThanksHSepGap);
         panelDl->AddRectFilled(ImVec2(tlRectMin.x, hSepTop),
-                               ImVec2(tlRectMin.x + innerW, hSepTop + kThanksHSepH), sepU32);
+                               ImVec2(tlRectMin.x + innerW, hSepTop + S(kThanksHSepH)), sepU32);
 
-        const float yBot = yTop + kThanksRowTopH + kThanksHSepGap + kThanksHSepH + kThanksHSepGap;
-        ImGui::SetCursorPos(ImVec2(kThanksOuterPad, yBot));
-        ImGui::BeginChild("bl", ImVec2(colW, kThanksRowBotH), ImGuiChildFlags_None,
+        const float yBot = yTop + S(kThanksRowTopH) + S(kThanksHSepGap) + S(kThanksHSepH) + S(kThanksHSepGap);
+        ImGui::SetCursorPos(ImVec2(S(kThanksOuterPad), yBot));
+        ImGui::BeginChild("bl", ImVec2(colW, S(kThanksRowBotH)), ImGuiChildFlags_None,
                           ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar |
                               ImGuiWindowFlags_NoScrollWithMouse);
         {
             static const char kBlTips[] =
                 "Use fullscreen (e.g. F11 or the app window menu) for the best experience on a large "
-                "display.\n\n"
-                "Run the app to get updates.";
-            const float wrapPx = colW - 2.f * kThanksCellPad;
+                "display. Run the app to get updates.";
+            const float wrapPx = colW - 2.f * S(kThanksCellPad);
             ImVec2 wrapped;
             if (g_fontThanksCopy)
                 ImGui::PushFont(g_fontThanksCopy);
             wrapped = ImGui::CalcTextSize(kBlTips, nullptr, false, wrapPx);
             if (g_fontThanksCopy)
                 ImGui::PopFont();
-            float yText = (kThanksRowBotH - wrapped.y) * 0.5f;
-            if (yText < kThanksCellPad)
-                yText = kThanksCellPad;
-            ImGui::SetCursorPos(ImVec2(kThanksCellPad, yText));
+            float yText = (S(kThanksRowBotH) - wrapped.y) * 0.5f;
+            if (yText < S(kThanksCellPad))
+                yText = S(kThanksCellPad);
+            ImGui::SetCursorPos(ImVec2(S(kThanksCellPad), yText));
             ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + wrapPx);
             if (g_fontThanksCopy)
                 ImGui::PushFont(g_fontThanksCopy);
@@ -1157,12 +1200,12 @@ static void DrawWizard()
         ImGui::EndChild();
         const ImVec2 blRectMin = ImGui::GetItemRectMin();
 
-        ImGui::SetCursorPos(ImVec2(kThanksOuterPad + colW + kThanksColGap, yBot));
-        ImGui::BeginChild("br", ImVec2(colW, kThanksRowBotH), ImGuiChildFlags_None,
+        ImGui::SetCursorPos(ImVec2(S(kThanksOuterPad) + colW + S(kThanksColGap), yBot));
+        ImGui::BeginChild("br", ImVec2(colW, S(kThanksRowBotH)), ImGuiChildFlags_None,
                           ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar |
                               ImGuiWindowFlags_NoScrollWithMouse);
         {
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.f, 3.f));
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(S(8.f), S(3.f)));
             if (g_fontThanksBtn)
                 ImGui::PushFont(g_fontThanksBtn);
             float dreamW = ImGui::CalcTextSize("Dream on!").x + ImGui::GetStyle().FramePadding.x * 2.f +
@@ -1170,13 +1213,13 @@ static void DrawWizard()
             if (g_fontThanksBtn)
                 ImGui::PopFont();
             ImGui::PopStyleVar();
-            if (dreamW < kThanksDreamOnMinW)
-                dreamW = kThanksDreamOnMinW;
+            if (dreamW < S(kThanksDreamOnMinW))
+                dreamW = S(kThanksDreamOnMinW);
 
             const float bx = (colW - dreamW) * 0.5f;
-            const float by = (kThanksRowBotH - kThanksTipsBtnH) * 0.5f;
+            const float by = (S(kThanksRowBotH) - S(kThanksTipsBtnH)) * 0.5f;
             ImGui::SetCursorPos(ImVec2(bx, by));
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.f, 3.f));
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(S(8.f), S(3.f)));
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
             ImGui::PushStyleColor(ImGuiCol_Button, kMacAccentBtn);
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, kMacAccentBtnHov);
@@ -1184,7 +1227,7 @@ static void DrawWizard()
             ImGui::PushStyleColor(ImGuiCol_Border, kMacAccentBtnBorder);
             if (g_fontThanksBtn)
                 ImGui::PushFont(g_fontThanksBtn);
-            const bool dreamOn = ImGui::Button("Dream on!", ImVec2(dreamW, kThanksTipsBtnH));
+            const bool dreamOn = ImGui::Button("Dream on!", ImVec2(dreamW, S(kThanksTipsBtnH)));
             if (g_fontThanksBtn)
                 ImGui::PopFont();
             ImGui::PopStyleColor(5);
@@ -1197,8 +1240,8 @@ static void DrawWizard()
         }
         ImGui::EndChild();
 
-        panelDl->AddRectFilled(ImVec2(vSepX, blRectMin.y), ImVec2(vSepX + 1.f, blRectMin.y + kThanksRowBotH),
-                               sepU32);
+        panelDl->AddRectFilled(ImVec2(vSepX, blRectMin.y),
+                               ImVec2(vSepX + 1.f, blRectMin.y + S(kThanksRowBotH)), sepU32);
 
         ImGui::EndChild(); // thanksPanel
         ImGui::PopStyleVar(); // WindowPadding 0,0
