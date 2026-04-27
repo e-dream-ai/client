@@ -43,7 +43,16 @@ static void CloseDialog(bool saveBeforeClose)
     if (saveBeforeClose)
     {
         SaveSettings();
-        SnapWindowTo16By9IfNeeded();
+        // Defer 16:9 snap to the next message-pump iteration. Calling SnapWindowTo16By9IfNeeded
+        // synchronously here would SetWindowPos -> WM_SIZE -> ResizeSwapChain inside the ImGui
+        // click handler, invalidating RendererDX11's RTV while RenderIfNeeded still holds a
+        // raw pointer to it (crash on the trailing OMSetRenderTargets). The message handler in
+        // CDisplayDX11::WndProc runs the snap after the current frame returns.
+        if (auto* dx = TryGetDx11Display())
+        {
+            if (HWND hwnd = dx->GetWindowHandle())
+                PostMessageW(hwnd, kSettingsDialogWin32SnapAfterCloseMsg, 0, 0);
+        }
     }
     ApplyDialogPauseState(false);
     g_visible.store(false, std::memory_order_release);

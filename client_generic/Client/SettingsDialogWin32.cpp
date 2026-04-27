@@ -135,7 +135,14 @@ static void SnapWindowTo16By9IfNeeded()
         return;
 
     const LONG clientW = std::max<LONG>(1L, clientRc.right - clientRc.left);
+    const LONG clientH = std::max<LONG>(1L, clientRc.bottom - clientRc.top);
     const int targetClientH = std::max(1, static_cast<int>(std::round(static_cast<double>(clientW) * 9.0 / 16.0)));
+
+    // Already 16:9 within rounding — don't fire SetWindowPos. CDisplayDX11::WndProc posts the
+    // deferred-snap message on every non-trivial WM_SIZE; this guard keeps that idempotent and
+    // prevents a SetWindowPos -> WM_SIZE -> deferred-snap feedback loop.
+    if (std::abs(static_cast<int>(clientH) - targetClientH) <= 1)
+        return;
 
     RECT targetWindow = {0, 0, clientW, targetClientH};
     const LONG exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
@@ -664,6 +671,11 @@ void SettingsDialogWin32_DismissWithoutSaveForExternalOverlay()
     if (!g_overlayAllowed.load(std::memory_order_acquire))
         return;
     DismissSettingsWithoutSaveImpl();
+}
+
+void SettingsDialogWin32_HandleDeferredSnap()
+{
+    SnapWindowTo16By9IfNeeded();
 }
 
 void SettingsDialogWin32_Register()

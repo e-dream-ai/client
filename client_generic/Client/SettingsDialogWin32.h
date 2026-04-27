@@ -21,4 +21,10 @@ bool SettingsDialogWin32_TryConsumeWndProc(HWND hWnd, UINT msg, WPARAM wParam, L
 bool SettingsDialogWin32_RenderIfNeeded(ID3D11Device* device, ID3D11DeviceContext* ctx,
                                         ID3D11RenderTargetView* rtv, float viewportW, float viewportH);
 
+/// Close-time 16:9 snap is deferred to the message pump via this WM_APP message because
+/// SetWindowPos sends WM_SIZE synchronously, which would invalidate the in-flight RTV that
+/// RendererDX11 passes by raw pointer to RenderIfNeeded — see SnapWindowTo16By9IfNeeded.
+constexpr UINT kSettingsDialogWin32SnapAfterCloseMsg = WM_APP + 1;
+void SettingsDialogWin32_HandleDeferredSnap();
+
 #endif
