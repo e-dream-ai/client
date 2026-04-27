@@ -306,33 +306,21 @@ class CElectricSheep_Win32 : public CElectricSheep
                 m_MultipleInstancesMode = true;
         }
 
+        // Per-user app data lives in %LOCALAPPDATA%\Infinidream. Using LocalAppData (rather
+        // than the previous %ProgramData%) sidesteps an ACL trap: ProgramData's default ACL
+        // gives Users only RX on files inside, so files first written by the installer's
+        // (admin) run-at-end were unwritable for subsequent standard-user runs and the app
+        // crashed on startup with no log entry. LocalAppData is owned by the running user,
+        // so creator/owner rights make every file writable.
         char szPath[MAX_PATH];
-        if (SUCCEEDED(
-                SHGetFolderPathA(NULL, CSIDL_COMMON_APPDATA, NULL, 0, szPath)))
+        if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, szPath)))
         {
 #if defined(_DEBUG) || defined(DEBUG)
             const char* const kDataFolder = "Infinidream-stage";
-            const char* const kLegacyFolder = "e-dream-stage";
 #else
             const char* const kDataFolder = "Infinidream";
-            const char* const kLegacyFolder = "e-dream";
 #endif
-
-            char szLegacyPath[MAX_PATH];
-            strcpy_s(szLegacyPath, MAX_PATH, szPath);
-            PathAppendA(szLegacyPath, kLegacyFolder);
             PathAppendA(szPath, kDataFolder);
-
-            // One-time migration (issue #574): the %ProgramData% subfolder
-            // was renamed from "e-dream" to "Infinidream". If the new folder
-            // doesn't exist yet but the legacy one does, rename it so the
-            // user keeps their downloaded content, settings, and logs.
-            if (!PathFileExistsA(szPath) && PathFileExistsA(szLegacyPath))
-            {
-                if (!MoveFileA(szLegacyPath, szPath))
-                    strcpy_s(szPath, MAX_PATH, szLegacyPath);
-            }
-
             PathAddBackslashA(szPath);
             m_AppData = szPath;
         }
