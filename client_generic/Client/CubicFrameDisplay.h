@@ -2,6 +2,7 @@
 #define _CUBICFRAMEDISPLAY_H_
 
 #include <algorithm>
+#include <unordered_map>
 
 #include "Rect.h"
 #include "Vector4.h"
@@ -15,6 +16,7 @@ static const uint32_t kMaxFrames = 4;
 class CCubicFrameDisplay : public CFrameDisplay
 {
     DisplayOutput::spCShader m_spShader;
+    std::unordered_map<DisplayOutput::CRenderer*, DisplayOutput::spCShader> m_shaderByRenderer;
 
     //	The four frames.
     DisplayOutput::spCTextureFlat m_spFrames[2 * kMaxFrames];
@@ -65,6 +67,8 @@ class CCubicFrameDisplay : public CFrameDisplay
 
         if (!m_spShader)
             m_bValid = false;
+        if (_spRenderer && m_spShader)
+            m_shaderByRenderer[_spRenderer.get()] = m_spShader;
 
         m_NumFrames = 0;
 
@@ -100,7 +104,33 @@ class CCubicFrameDisplay : public CFrameDisplay
                       double _interframeDelta) override
     {
         //	Enable the shader.
-        _spRenderer->SetShader(m_spShader);
+        DisplayOutput::spCShader shader = m_spShader;
+        if (_spRenderer)
+        {
+            auto it = m_shaderByRenderer.find(_spRenderer.get());
+            if (it != m_shaderByRenderer.end())
+            {
+                shader = it->second;
+            }
+            else
+            {
+                switch (_spRenderer->Type())
+                {
+                case DisplayOutput::eDX11:
+                case DisplayOutput::eMetal:
+                    shader = _spRenderer->NewShader(
+                        "quadPassVertex", "drawDecodedFrameCubicFrameBlendFragment",
+                        {{"weights", DisplayOutput::eUniform_Float4},
+                         {"newalpha", DisplayOutput::eUniform_Float},
+                         {"transPct", DisplayOutput::eUniform_Float}});
+                    break;
+                }
+                if (shader)
+                    m_shaderByRenderer[_spRenderer.get()] = shader;
+            }
+        }
+
+        _spRenderer->SetShader(shader);
 
         uint32_t framesToUse = std::min(m_NumFrames, kMaxFrames);
 
@@ -125,11 +155,14 @@ class CCubicFrameDisplay : public CFrameDisplay
         const float C = 0.0f;
 
         //	Set the filter weights...
-        m_spShader->Set("weights",
+        if (shader)
+        {
+            shader->Set("weights",
                         MitchellNetravali((float)_interframeDelta + 1.f, B, C),
                         MitchellNetravali((float)_interframeDelta, B, C),
                         MitchellNetravali(1.f - (float)_interframeDelta, B, C),
                         MitchellNetravali(2.f - (float)_interframeDelta, B, C));
+        }
 
         _spRenderer->SetBlend("alphablend");
         _spRenderer->Apply();

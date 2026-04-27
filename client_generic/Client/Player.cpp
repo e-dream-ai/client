@@ -669,6 +669,27 @@ bool CPlayer::Update(uint32_t displayUnit)
     du->spRenderer->Orthographic();
     du->spRenderer->Apply();
 
+    // In shared multi-display mode we want to render the same content to each
+    // monitor window, but we must NOT advance clip/transition state once per
+    // display (that causes double-update flicker, odd color/alpha behavior,
+    // and unstable transitions).
+    size_t displayCount = 1;
+    {
+        std::scoped_lock lockthis(m_displayListMutex);
+        displayCount = m_displayUnits.size();
+    }
+    const bool sharedRenderOnly =
+        (displayCount > 1) &&
+        (m_MultiDisplayMode == kMDSharedMode) &&
+        (displayUnit != 0);
+
+    if (sharedRenderOnly)
+    {
+        reader_lock l(m_UpdateMutex);
+        RenderFrame(du->spRenderer);
+        return true;
+    }
+
     writer_lock l(m_UpdateMutex);
 
     const bool freezePlayback = m_bPaused || IsFirstRunWizardPlaybackHold();
