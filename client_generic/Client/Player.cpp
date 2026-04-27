@@ -178,9 +178,10 @@ int CPlayer::AddDisplay(uint32 screen)
         std::string watchFolder =
             g_Settings()->Get("settings.content.sheepdir", content) + PATH_SEPARATOR + "mp4" + PATH_SEPARATOR;
     }
-    // modify aspect ratio and/or window size hint
-    uint32_t w = 1280;
-    uint32_t h = 720;
+    // Logical size at 100% DPI; CDisplayDX11::CreateDisplayWindow scales it by the
+    // cursor-monitor DPI on Windows and centers the window on that monitor.
+    uint32_t w = 1920;
+    uint32_t h = 1080;
 
 #ifdef WIN32
     g_Log->Info("Attempting to open %s...", CDisplayDX11::Description());
