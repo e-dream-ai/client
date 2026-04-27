@@ -21,6 +21,7 @@
 #include "Log.h"
 #include "MathBase.h"
 #include "Player.h"
+#include "client.h"
 #include "base.h"
 #include "clientversion.h"
 
@@ -106,6 +107,8 @@ CPlayer::CPlayer() : m_isFirstPlay(true), m_offlineMode(false), m_pendingSeekCro
     m_transitionDuration = 5.0;
 #ifdef WIN32
     m_hWnd = nullptr;
+    m_previewParentHwnd = nullptr;
+    m_isScreenSaverRun = false;
 #endif
     
     m_playlistManager = std::make_unique<PlaylistManager>();
@@ -134,8 +137,20 @@ bool CPlayer::IsOfflineMode() const
 void CPlayer::SetHWND(HWND _hWnd)
 {
     g_Log->Info("Got hwnd... (%p)", static_cast<void*>(_hWnd));
-    m_hWnd = _hWnd;
-    PlatformUtils::Win32SetMessageWindow(static_cast<void*>(_hWnd));
+    // In preview mode (/p), Windows provides a parent window to embed into.
+    // In non-preview mode, we create our own top-level windows and only set
+    // the message window once (keep the first created one).
+    if (g_Client() && g_Client()->IsPreview())
+    {
+        m_previewParentHwnd = _hWnd;
+        return;
+    }
+
+    if (m_hWnd == nullptr)
+    {
+        m_hWnd = _hWnd;
+        PlatformUtils::Win32SetMessageWindow(static_cast<void*>(_hWnd));
+    }
 }
 #endif
 
@@ -173,6 +188,12 @@ int CPlayer::AddDisplay(uint32 screen)
     spDisplay = std::make_shared<CDisplayDX11>();
     // spDisplay->SetScreen(screen); 
 
+    if (auto* dx11 = dynamic_cast<CDisplayDX11*>(spDisplay.get()))
+    {
+        dx11->SetTargetMonitorIndex(screen);
+        dx11->SetDisableExclusiveFullscreen(m_isScreenSaverRun);
+    }
+
 
     if (spDisplay == nullptr)
     {
@@ -181,10 +202,16 @@ int CPlayer::AddDisplay(uint32 screen)
     }
 
     HWND displayHwnd = nullptr;
-    if (m_hWnd)
-        displayHwnd = spDisplay->Initialize(m_hWnd, true);
+    const bool isPreview = (g_Client() && g_Client()->IsPreview());
+    if (isPreview && m_previewParentHwnd)
+    {
+        displayHwnd = spDisplay->Initialize(m_previewParentHwnd, true);
+    }
     else
+    {
+        // Always create a new top-level window outside preview mode.
         displayHwnd = spDisplay->Initialize(w, h, m_bFullscreen);
+    }
 
     if (!displayHwnd)
         return -1;

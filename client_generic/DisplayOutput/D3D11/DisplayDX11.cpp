@@ -169,6 +169,47 @@ static void LayoutFullscreenSaverWindow(HWND hwnd, IDXGISwapChain* swapChain)
     }
 }
 
+struct MonitorInfoByIndex
+{
+    uint32_t idx = 0;
+    uint32_t target = 0;
+    bool found = false;
+    RECT rc = {};
+};
+
+static BOOL CALLBACK EnumMonitorForIndex(HMONITOR hMon, HDC, LPRECT, LPARAM lp)
+{
+    auto* st = reinterpret_cast<MonitorInfoByIndex*>(lp);
+    if (!st)
+        return TRUE;
+
+    MONITORINFO mi = {};
+    mi.cbSize = sizeof(mi);
+    if (!GetMonitorInfo(hMon, &mi))
+        return TRUE;
+
+    if (st->idx == st->target)
+    {
+        st->found = true;
+        st->rc = mi.rcMonitor;
+        return FALSE; // stop enumeration
+    }
+
+    st->idx++;
+    return TRUE;
+}
+
+static bool GetMonitorRectByIndex(uint32_t index, RECT& outRc)
+{
+    MonitorInfoByIndex st;
+    st.target = index;
+    EnumDisplayMonitors(nullptr, nullptr, EnumMonitorForIndex, reinterpret_cast<LPARAM>(&st));
+    if (!st.found)
+        return false;
+    outRc = st.rc;
+    return true;
+}
+
 static void AppendKeyEvent(CKeyEvent::eKeyCode code, bool dedupeF1)
 {
     if (code == CKeyEvent::KEY_NONE)
@@ -606,8 +647,16 @@ HWND CDisplayDX11::CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen,
     const DWORD exStyle =
         fullscreen ? (WS_EX_APPWINDOW | WS_EX_TOPMOST) : 0UL;
 
+    int x = CW_USEDEFAULT;
+    int y = CW_USEDEFAULT;
+    if (fullscreen && m_hasTargetMonitorRect)
+    {
+        x = m_targetMonitorRect.left;
+        y = m_targetMonitorRect.top;
+    }
+
     return CreateWindowExW(exStyle, L"EDreamDX11Class", L"infinidream", style,
-                           CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left,
+                           x, y, rc.right - rc.left,
                            rc.bottom - rc.top, nullptr, hMenu, hInstance, this);
 }
 #endif
@@ -759,12 +808,31 @@ bool CDisplayDX11::CreateDeviceAndSwapChain() {
 
 HWND CDisplayDX11::Initialize(uint32_t width, uint32_t height, bool fullscreen) {
     m_bEmbeddedSaverPreview = false;
-    m_Width = width;
-    m_Height = height;
     m_bFullScreen = fullscreen;
 
     m_WindowHandle = nullptr;
 #ifdef WIN32
+    m_hasTargetMonitorRect = false;
+    if (fullscreen && m_hasTargetMonitorIndex)
+    {
+        RECT rc = {};
+        if (GetMonitorRectByIndex(m_targetMonitorIndex, rc))
+        {
+            m_targetMonitorRect = rc;
+            m_hasTargetMonitorRect = true;
+            width = static_cast<uint32_t>(rc.right - rc.left);
+            height = static_cast<uint32_t>(rc.bottom - rc.top);
+        }
+        else
+        {
+            g_Log->Warning("Failed to resolve monitor rect for index %u; falling back to default placement",
+                           static_cast<unsigned>(m_targetMonitorIndex));
+        }
+    }
+
+    m_Width = width;
+    m_Height = height;
+
     m_WindowHandle = CreateDisplayWindow(width, height, fullscreen, nullptr);
     PopulateSystemMenu(m_WindowHandle);
 #endif
@@ -779,7 +847,12 @@ HWND CDisplayDX11::Initialize(uint32_t width, uint32_t height, bool fullscreen) 
 
     if (fullscreen)
     {
-        LayoutFullscreenSaverWindow(m_WindowHandle, m_swapChain.Get());
+        // Screensaver mode prefers borderless windowed fullscreen to avoid
+        // DXGI exclusive fullscreen issues on multi-monitor setups.
+        if (m_disableExclusiveFullscreen)
+            LayoutFullscreenSaverWindow(m_WindowHandle, nullptr);
+        else
+            LayoutFullscreenSaverWindow(m_WindowHandle, m_swapChain.Get());
         SetForegroundWindow(m_WindowHandle);
         SetFocus(m_WindowHandle);
     }
@@ -915,9 +988,12 @@ bool CDisplayDX11::SetFullscreen(const bool fullscreen)
         if (GetWindowRect(m_WindowHandle, &m_windowedRect))
             m_hasWindowedRect = true;
 
-        const HRESULT fsHr = m_swapChain->SetFullscreenState(TRUE, nullptr);
-        if (FAILED(fsHr))
-            g_Log->Warning("SetFullscreenState(TRUE) failed: %08X", fsHr);
+        if (!m_disableExclusiveFullscreen)
+        {
+            const HRESULT fsHr = m_swapChain->SetFullscreenState(TRUE, nullptr);
+            if (FAILED(fsHr))
+                g_Log->Warning("SetFullscreenState(TRUE) failed: %08X", fsHr);
+        }
 
         HMONITOR monitor = MonitorFromWindow(m_WindowHandle, MONITOR_DEFAULTTONEAREST);
         MONITORINFO mi = {};
@@ -935,9 +1011,12 @@ bool CDisplayDX11::SetFullscreen(const bool fullscreen)
         return true;
     }
 
-    const HRESULT wsHr = m_swapChain->SetFullscreenState(FALSE, nullptr);
-    if (FAILED(wsHr))
-        g_Log->Warning("SetFullscreenState(FALSE) failed: %08X", wsHr);
+    if (!m_disableExclusiveFullscreen)
+    {
+        const HRESULT wsHr = m_swapChain->SetFullscreenState(FALSE, nullptr);
+        if (FAILED(wsHr))
+            g_Log->Warning("SetFullscreenState(FALSE) failed: %08X", wsHr);
+    }
 
     DWORD restoreStyle = m_windowedStyle ? m_windowedStyle : WS_OVERLAPPEDWINDOW;
     SetWindowLongPtr(m_WindowHandle, GWL_STYLE, static_cast<LONG_PTR>(restoreStyle));
