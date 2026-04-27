@@ -89,6 +89,7 @@
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="$(MSBuildThisFileDirectory)..\..\vcpkg\scripts\buildsystems\msbuild\vcpkg.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
@@ -796,6 +797,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     </ResourceCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Import Project="$(MSBuildThisFileDirectory)..\..\vcpkg\scripts\buildsystems\msbuild\vcpkg.targets" />
   <ImportGroup Label="ExtensionTargets" />
   <!-- Copy optional third-party DLLs from MSVC\dll\<Configuration>\ e.g. dll\Release, dll\Debug (flat into OutDir). -->
   <Target Name="CopyExtraDllsFromDllFolder" AfterTargets="PostBuildEvent" Condition="Exists('$(ProjectDir)dll\$(Configuration)')">
