@@ -16,6 +16,8 @@
 #include "AboutDialogWin32.h"
 #include "FirstTimeSetupWin32.h"
 #include "SettingsDialogWin32.h"
+#include <ShellScalingApi.h>
+#pragma comment(lib, "shcore.lib")
 extern void ESShowPreferences();
 #endif
 
@@ -600,6 +602,60 @@ HWND CDisplayDX11::CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen,
         return nullptr;
 
     DWORD style = fullscreen ? WS_POPUP : WS_OVERLAPPEDWINDOW;
+    int posX = CW_USEDEFAULT;
+    int posY = CW_USEDEFAULT;
+
+    if (!fullscreen)
+    {
+        // Manifest is system-DPI-aware (electricsheep.vcxproj), so CreateWindow takes
+        // physical pixels and DX11 swap chains aren't bitmap-virtualized — meaning a
+        // 1920x1080 window stays 1920 physical pixels even on a high-DPI external monitor
+        // (1/4 of a 4K screen at 200%). Pick the cursor's monitor, query its effective DPI,
+        // scale the requested size accordingly, and centre the window on that monitor so
+        // CW_USEDEFAULT doesn't drop it onto the primary at a different scale.
+        POINT pt{};
+        HMONITOR mon = nullptr;
+        if (GetCursorPos(&pt))
+            mon = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
+        if (!mon)
+            mon = MonitorFromPoint(POINT{0, 0}, MONITOR_DEFAULTTOPRIMARY);
+
+        UINT dpiX = 96;
+        UINT dpiY = 96;
+        if (mon)
+            GetDpiForMonitor(mon, MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
+        if (dpiX > 0 && dpiY > 0)
+        {
+            w = MulDiv(w, dpiX, 96);
+            h = MulDiv(h, dpiY, 96);
+        }
+
+        MONITORINFO mi{};
+        mi.cbSize = sizeof(mi);
+        if (mon && GetMonitorInfo(mon, &mi))
+        {
+            const LONG waW = mi.rcWork.right - mi.rcWork.left;
+            const LONG waH = mi.rcWork.bottom - mi.rcWork.top;
+            // Shrink the *client* size so the full window (incl. caption/borders) fits.
+            RECT chrome = {0, 0, (LONG)w, (LONG)h};
+            AdjustWindowRect(&chrome, style, hMenu ? TRUE : FALSE);
+            const LONG overW = (chrome.right - chrome.left) - waW;
+            const LONG overH = (chrome.bottom - chrome.top) - waH;
+            if (overW > 0 && (LONG)w > overW)
+                w -= overW;
+            if (overH > 0 && (LONG)h > overH)
+                h -= overH;
+            chrome = {0, 0, (LONG)w, (LONG)h};
+            AdjustWindowRect(&chrome, style, hMenu ? TRUE : FALSE);
+            posX = mi.rcWork.left + (waW - (chrome.right - chrome.left)) / 2;
+            posY = mi.rcWork.top + (waH - (chrome.bottom - chrome.top)) / 2;
+        }
+    }
+
+    // Reflect the (possibly scaled and clamped) client size so the swap chain matches.
+    m_Width = w;
+    m_Height = h;
+
     RECT rc = {0, 0, (LONG)w, (LONG)h};
     AdjustWindowRect(&rc, style, hMenu ? TRUE : FALSE);
 
@@ -607,7 +663,7 @@ HWND CDisplayDX11::CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen,
         fullscreen ? (WS_EX_APPWINDOW | WS_EX_TOPMOST) : 0UL;
 
     return CreateWindowExW(exStyle, L"EDreamDX11Class", L"infinidream", style,
-                           CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left,
+                           posX, posY, rc.right - rc.left,
                            rc.bottom - rc.top, nullptr, hMenu, hInstance, this);
 }
 #endif
