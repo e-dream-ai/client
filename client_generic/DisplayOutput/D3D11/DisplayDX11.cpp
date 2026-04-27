@@ -369,7 +369,12 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
             SetCursor(nullptr);
             return TRUE;
         }
-        break;
+        // Windowed mode: defer to DefWindowProc so it picks the right cursor based on the
+        // WM_NCHITTEST result — IDC_SIZEWE / IDC_SIZENS / etc. on the resize borders.
+        // Returning 0 (the default switch fall-through) leaves the arrow cursor in place
+        // and the resize handles become invisible, even though clicking the border still
+        // initiates the resize via DefWindowProc's WM_NCLBUTTONDOWN handling.
+        return DefWindowProc(hWnd, msg, wParam, lParam);
 
     case WM_PAINT:
     {
@@ -451,6 +456,12 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
             if (nw > 0 && nh > 0)
                 self->ResizeSwapChain(nw, nh);
         }
+        // Aero snap (Win+Left/Right) and other programmatic SetWindowPos paths bypass WM_SIZING,
+        // so the aspect handler never sees them. If preserve_AR is on, defer a snap-to-16:9 via
+        // the message pump — SnapWindowTo16By9IfNeeded early-returns when already 16:9, so the
+        // deferred handler is idempotent and re-posting on every WM_SIZE is safe.
+        if (wParam != SIZE_MINIMIZED && wParam != SIZE_MAXIMIZED && IsPreserveAspectEnabled())
+            PostMessageW(hWnd, kSettingsDialogWin32SnapAfterCloseMsg, 0, 0);
         return DefWindowProc(hWnd, msg, wParam, lParam);
 
     case WM_SIZING:
@@ -589,6 +600,11 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
         return 0;
 
     default:
+        if (msg == kSettingsDialogWin32SnapAfterCloseMsg)
+        {
+            SettingsDialogWin32_HandleDeferredSnap();
+            return 0;
+        }
         return DefWindowProc(hWnd, msg, wParam, lParam);
     }
     return 0;
@@ -636,19 +652,32 @@ HWND CDisplayDX11::CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen,
         {
             const LONG waW = mi.rcWork.right - mi.rcWork.left;
             const LONG waH = mi.rcWork.bottom - mi.rcWork.top;
-            // Shrink the *client* size so the full window (incl. caption/borders) fits.
-            RECT chrome = {0, 0, (LONG)w, (LONG)h};
+            // Compute chrome thickness once (AdjustWindowRect with a zero rect returns just
+            // the borders/caption). Uniform-scale the client size so the design aspect ratio
+            // (16:9 for 1920x1080) is preserved when the work area can't fit it. Independent
+            // per-axis shrinking would skew the window — and since SettingsDialogWin32 snaps
+            // back to 16:9 on close (preserve_AR), a non-16:9 startup window triggers a
+            // SetWindowPos at close time, with subtle re-entrancy hazards.
+            RECT chrome = {0, 0, 0, 0};
             AdjustWindowRect(&chrome, style, hMenu ? TRUE : FALSE);
-            const LONG overW = (chrome.right - chrome.left) - waW;
-            const LONG overH = (chrome.bottom - chrome.top) - waH;
-            if (overW > 0 && (LONG)w > overW)
-                w -= overW;
-            if (overH > 0 && (LONG)h > overH)
-                h -= overH;
-            chrome = {0, 0, (LONG)w, (LONG)h};
-            AdjustWindowRect(&chrome, style, hMenu ? TRUE : FALSE);
-            posX = mi.rcWork.left + (waW - (chrome.right - chrome.left)) / 2;
-            posY = mi.rcWork.top + (waH - (chrome.bottom - chrome.top)) / 2;
+            const LONG chromeW = chrome.right - chrome.left;
+            const LONG chromeH = chrome.bottom - chrome.top;
+            const LONG maxClientW = (waW > chromeW) ? (waW - chromeW) : 1;
+            const LONG maxClientH = (waH > chromeH) ? (waH - chromeH) : 1;
+            double scale = 1.0;
+            if (static_cast<LONG>(w) > maxClientW)
+                scale = (std::min)(scale, static_cast<double>(maxClientW) / static_cast<double>(w));
+            if (static_cast<LONG>(h) > maxClientH)
+                scale = (std::min)(scale, static_cast<double>(maxClientH) / static_cast<double>(h));
+            if (scale < 1.0)
+            {
+                w = static_cast<uint32_t>(static_cast<double>(w) * scale);
+                h = static_cast<uint32_t>(static_cast<double>(h) * scale);
+            }
+            RECT outer = {0, 0, (LONG)w, (LONG)h};
+            AdjustWindowRect(&outer, style, hMenu ? TRUE : FALSE);
+            posX = mi.rcWork.left + (waW - (outer.right - outer.left)) / 2;
+            posY = mi.rcWork.top + (waH - (outer.bottom - outer.top)) / 2;
         }
     }
 
