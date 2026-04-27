@@ -415,7 +415,9 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
             SetCursor(nullptr);
             return TRUE;
         }
-        break;
+        // In all other modes, let Windows decide the correct cursor. Returning 0
+        // here can leave a stale cursor (e.g., "app starting"/busy) visible.
+        return DefWindowProc(hWnd, msg, wParam, lParam);
 
     case WM_PAINT:
     {
