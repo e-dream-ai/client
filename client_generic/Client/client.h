@@ -1971,10 +1971,13 @@ class CElectricSheep
                 {
                     float gpuMs = g_Player().Renderer()->GetGPUFrameTimeMs();
                     float gpuPct = g_Player().Renderer()->GetGPUUtilization();
-                    std::string sysGpu = (m_GpuUsage >= 0) ? string_format(", %i%%", m_GpuUsage) : "";
+                    // gpuPct is renderer "vsync budget %" (not device utilization).
+                    // sysGpu is OS-reported utilization for this process (when available).
+                    std::string sysGpu =
+                        (m_GpuUsage >= 0) ? string_format(", %i%% app", m_GpuUsage) : "";
                     if (gpuMs >= 0)
                         ((Hud::CStringStat*)spStats->Get("zzagpu2"))
-                            ->SetSample(string_format("%.2fms (%.0f%%)%s total",
+                            ->SetSample(string_format("%.2fms (%.0f%% budget)%s",
                                 gpuMs, gpuPct, sysGpu.c_str()));
                     else
                         ((Hud::CStringStat*)spStats->Get("zzagpu2"))
