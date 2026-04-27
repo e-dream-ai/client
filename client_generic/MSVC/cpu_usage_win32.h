@@ -7,6 +7,11 @@
 #include <windows.h>
 #include <shlobj.h>
 #include <shlwapi.h>
+#include <pdh.h>
+#include <pdhmsg.h>
+
+#include <vector>
+#include <string>
 
 class ESCpuUsage
 {
@@ -21,6 +26,96 @@ class ESCpuUsage
     int m_CachedEs{-1};
     int m_CachedTotal{-1};
     bool m_HasCachedSample{false};
+
+    // Windows GPU usage via PDH (\GPU Engine(*)\Utilization Percentage).
+    // We report max utilization across this process' engines, sampled ~1Hz.
+    PDH_HQUERY m_GpuQuery{nullptr};
+    std::vector<PDH_HCOUNTER> m_GpuCounters;
+    double m_LastGPUCheckTime{0.0};
+    double m_LastGpuCounterRebuildTime{0.0};
+    int m_CachedGpu{-1};
+    bool m_HasCachedGpuSample{false};
+
+    static std::wstring to_wstring(DWORD v)
+    {
+        wchar_t buf[32]{};
+        _snwprintf_s(buf, _TRUNCATE, L"%lu", static_cast<unsigned long>(v));
+        return std::wstring(buf);
+    }
+
+    void CloseGpuQuery()
+    {
+        if (m_GpuQuery)
+        {
+            PdhCloseQuery(m_GpuQuery);
+            m_GpuQuery = nullptr;
+        }
+        m_GpuCounters.clear();
+    }
+
+    bool RebuildGpuCounters()
+    {
+        CloseGpuQuery();
+
+        const PDH_STATUS openSt = PdhOpenQueryW(nullptr, 0, &m_GpuQuery);
+        if (openSt != ERROR_SUCCESS || !m_GpuQuery)
+            return false;
+
+        DWORD pid = GetCurrentProcessId();
+        std::wstring pidToken = L"pid_" + to_wstring(pid) + L"_";
+
+        // Enumerate GPU Engine instances.
+        DWORD counterListSize = 0;
+        DWORD instanceListSize = 0;
+        PDH_STATUS enumSt = PdhEnumObjectItemsW(
+            nullptr, nullptr, L"GPU Engine",
+            nullptr, &counterListSize,
+            nullptr, &instanceListSize,
+            PERF_DETAIL_WIZARD, 0);
+
+        if (enumSt != PDH_MORE_DATA || instanceListSize == 0)
+            return false;
+
+        std::vector<wchar_t> counterList(counterListSize);
+        std::vector<wchar_t> instanceList(instanceListSize);
+        enumSt = PdhEnumObjectItemsW(
+            nullptr, nullptr, L"GPU Engine",
+            counterList.data(), &counterListSize,
+            instanceList.data(), &instanceListSize,
+            PERF_DETAIL_WIZARD, 0);
+
+        if (enumSt != ERROR_SUCCESS)
+            return false;
+
+        // Multi-string: sequence of null-terminated strings, ending with extra null.
+        for (const wchar_t* p = instanceList.data(); p && *p; p += wcslen(p) + 1)
+        {
+            std::wstring inst = p;
+            if (inst.find(pidToken) == std::wstring::npos)
+                continue;
+
+            // \GPU Engine(<instance>)\Utilization Percentage
+            std::wstring path = L"\\GPU Engine(" + inst + L")\\Utilization Percentage";
+            PDH_HCOUNTER ctr = nullptr;
+            const PDH_STATUS addSt = PdhAddEnglishCounterW(m_GpuQuery, path.c_str(), 0, &ctr);
+            if (addSt == ERROR_SUCCESS && ctr)
+                m_GpuCounters.push_back(ctr);
+        }
+
+        if (m_GpuCounters.empty())
+        {
+            CloseGpuQuery();
+            return false;
+        }
+
+        // Prime query to allow formatted reads on next sample.
+        (void)PdhCollectQueryData(m_GpuQuery);
+
+        const double now = m_Timer.Time();
+        m_LastGPUCheckTime = now;
+        m_LastGpuCounterRebuildTime = now;
+        return true;
+    }
 
     static LONGLONG fileTimeLl(FILETIME ft)
     {
@@ -39,6 +134,11 @@ class ESCpuUsage
         FILETIME crea{}, exit{};
         GetProcessTimes(GetCurrentProcess(), &crea, &exit, &m_LastESKernelTime,
                         &m_LastESUserTime);
+    }
+
+    ~ESCpuUsage()
+    {
+        CloseGpuQuery();
     }
 
     // _total = system CPU %, _es = this process % (same semantics as macOS path).
@@ -127,7 +227,79 @@ class ESCpuUsage
 
     int GetGpuUsage()
     {
-        return -1;
+        const double now = m_Timer.Time();
+
+        // Cache at ~1Hz to avoid PDH overhead and jitter.
+        if ((now - m_LastGPUCheckTime) < 1.0)
+        {
+            if (m_HasCachedGpuSample)
+                return m_CachedGpu;
+        }
+
+        // Rebuild counters periodically to catch new engines / resets.
+        // (Instances can appear/disappear over time.)
+        const bool needRebuild = (!m_GpuQuery || m_GpuCounters.empty() ||
+                                  (now - m_LastGpuCounterRebuildTime) > 15.0);
+
+        if (needRebuild)
+        {
+            if (!RebuildGpuCounters())
+            {
+                m_LastGPUCheckTime = now;
+                m_CachedGpu = -1;
+                m_HasCachedGpuSample = true;
+                return -1;
+            }
+        }
+
+        const PDH_STATUS collectSt = PdhCollectQueryData(m_GpuQuery);
+        if (collectSt != ERROR_SUCCESS)
+        {
+            // Query became invalid; try one rebuild next time.
+            CloseGpuQuery();
+            m_LastGPUCheckTime = now;
+            m_CachedGpu = -1;
+            m_HasCachedGpuSample = true;
+            return -1;
+        }
+
+        double maxPct = 0.0;
+        bool hasValid = false;
+
+        for (auto ctr : m_GpuCounters)
+        {
+            PDH_FMT_COUNTERVALUE v{};
+            DWORD type = 0;
+            const PDH_STATUS st = PdhGetFormattedCounterValue(ctr, PDH_FMT_DOUBLE, &type, &v);
+            if (st != ERROR_SUCCESS)
+                continue;
+            if (v.CStatus != PDH_CSTATUS_VALID_DATA && v.CStatus != PDH_CSTATUS_NEW_DATA)
+                continue;
+
+            if (v.doubleValue >= 0.0)
+            {
+                hasValid = true;
+                if (v.doubleValue > maxPct)
+                    maxPct = v.doubleValue;
+            }
+        }
+
+        int result = -1;
+        if (hasValid)
+        {
+            // PDH can report slightly >100; clamp for UI.
+            result = static_cast<int>(maxPct + 0.5);
+            result = ::Base::Math::Clamped(result, 0, 100);
+        }
+
+        // If we had no valid values, engines may have changed; trigger rebuild sooner.
+        if (!hasValid)
+            m_LastGpuCounterRebuildTime = 0.0;
+
+        m_LastGPUCheckTime = now;
+        m_CachedGpu = result;
+        m_HasCachedGpuSample = true;
+        return result;
     }
 
     int GetNumCores()
