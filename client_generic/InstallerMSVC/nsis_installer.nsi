@@ -95,10 +95,12 @@ FunctionEnd
 Section "MainSection" SEC01
   SetOverwrite on
   SetOutPath "$INSTDIR"
+  SetShellVarContext all
 
   ; Wipe any stale %ProgramData%\Infinidream from earlier builds that stored data there.
   ; LocalAppData is now the data root (per-user, no ACL trap from the elevated installer).
-  RMDir /r "$PROGRAMDATA\Infinidream"
+  ; $APPDATA under "all" context = CSIDL_COMMON_APPDATA = %ProgramData%.
+  RMDir /r "$APPDATA\Infinidream"
 
   ; Binaries, runtime DLLs, fonts, images — whatever landed in MSVC\Release\.
   File "${SOURCE_DIR}\${PRODUCT_EXE}"
@@ -108,7 +110,6 @@ Section "MainSection" SEC01
   File "${SOURCE_DIR}\*.ttf"
 
   ; Start Menu shortcuts
-  SetShellVarContext all
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk"              "$INSTDIR\${PRODUCT_EXE}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME} (windowed).lnk"   "$INSTDIR\${PRODUCT_EXE}" "-X"
@@ -167,7 +168,8 @@ Section Uninstall
   ; ours to delete (standard Windows convention). The uninstaller runs elevated and
   ; would only see the admin profile's LocalAppData anyway. Clean up the legacy
   ; %ProgramData% location in case it survived from a pre-LocalAppData install.
-  RMDir /r "$PROGRAMDATA\Infinidream"
+  ; $APPDATA under "all" context (set above) = CSIDL_COMMON_APPDATA = %ProgramData%.
+  RMDir /r "$APPDATA\Infinidream"
 
   Delete "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk"
   Delete "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME} (windowed).lnk"
