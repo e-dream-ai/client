@@ -476,14 +476,10 @@ class CElectricSheep_Win32 : public CElectricSheep
 
         const uint32_t requestedScreen =
             g_Settings()->Get("settings.player.screen", 0);
+        const bool wantAllMonitors = (m_ScrMode == eSaver);
         const bool blankOtherDisplays =
-            (g_Settings()->Get("settings.player.MultiDisplayMode", 0) ==
-             CPlayer::kMDSingleScreen) &&
+            !wantAllMonitors &&
             (m_ScrMode != eFullScreenStandalone) && (m_ScrMode != eWindowed);
-
-        const int multiDisplayMode = g_Settings()->Get("settings.player.MultiDisplayMode", 0);
-        const bool wantAllMonitors =
-            (m_ScrMode == eSaver) && (multiDisplayMode != CPlayer::kMDSingleScreen);
 
         if (m_ScrMode == eSaver)
             g_Player().SetIsScreenSaverRun(true);
