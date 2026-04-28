@@ -9,6 +9,7 @@
 #include "Vector4.h"
 #include "Timer.h"
 #include "ContentDecoder.h"
+#include <unordered_map>
 
 #ifdef MAC
 #include <CoreVideo/CVPixelBuffer.h>
@@ -33,6 +34,7 @@ class CFrameDisplay
     ContentDecoder::sFrameMetadata m_MetaData;
 
     DisplayOutput::spCShader m_spShader;
+    std::unordered_map<DisplayOutput::CRenderer*, DisplayOutput::spCShader> m_shaderByRenderer;
     spCTextureFlat m_spVideoTexture;
 
     //	Dimensions of the display surface.
@@ -57,6 +59,8 @@ class CFrameDisplay
         m_CurTexMoveDir = 1.;
         m_spShader = _spRenderer->NewShader(
             "quadPassVertex", "drawDecodedFrameNoBlendingFragment");
+        if (_spRenderer && m_spShader)
+            m_shaderByRenderer[_spRenderer.get()] = m_spShader;
     }
 
     bool Valid() { return m_bValid; };
@@ -79,7 +83,23 @@ class CFrameDisplay
         if (!m_spVideoTexture)
             return false;
 
-        _spRenderer->SetShader(m_spShader);
+        DisplayOutput::spCShader shader = m_spShader;
+        if (_spRenderer)
+        {
+            auto it = m_shaderByRenderer.find(_spRenderer.get());
+            if (it != m_shaderByRenderer.end())
+            {
+                shader = it->second;
+            }
+            else
+            {
+                shader = _spRenderer->NewShader("quadPassVertex", "drawDecodedFrameNoBlendingFragment");
+                if (shader)
+                    m_shaderByRenderer[_spRenderer.get()] = shader;
+            }
+        }
+
+        _spRenderer->SetShader(shader);
         //    Bind texture and render a quad covering the screen.
         _spRenderer->SetBlend("alphablend");
         _spRenderer->SetTexture(m_spVideoTexture, 0);
