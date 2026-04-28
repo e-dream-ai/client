@@ -940,20 +940,6 @@ void CContentDecoder::ReadFramesThread()
         // tmp
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
-#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
-        // Tracks last HW decode submission time for the rate limiter below.
-        auto hwDecodeLastTime = std::chrono::steady_clock::now();
-        // Hard cap on how many GPU decode operations per second the decoder may submit.
-        // At extreme playback speeds (e.g. 71x) the frame queue empties instantly and the
-        // high-water backpressure never fires, letting the decoder run flat-out and pegging
-        // the GPU at 100%.  Capping at 60 ops/s keeps GPU decode + render well below the
-        // TDR threshold on any realistic GPU while having zero effect on normal playback
-        // (which only needs 24-30 decodes/s and is anyway throttled by push-blocking).
-        static constexpr int    kHwDecodeMaxFps     = 60;
-        static constexpr auto   kHwDecodeMinInterval =
-            std::chrono::microseconds(1'000'000 / kHwDecodeMaxFps);
-#endif
-
         while (!m_HasEnded.load())
         {
             // Check for shutdown
@@ -1115,22 +1101,6 @@ void CContentDecoder::ReadFramesThread()
                     continue;
                 }
             }
-
-#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
-            // Absolute HW decode rate limiter.
-            // At high playback speeds the queue drains faster than it fills, so the
-            // high-water check above never fires and the decoder runs uncapped, keeping
-            // the GPU at 100% until TDR.  This limiter ensures at most kHwDecodeMaxFps
-            // GPU decode submissions per second regardless of queue state or speed.
-            if (m_d3d11Device)
-            {
-                auto now     = std::chrono::steady_clock::now();
-                auto elapsed = now - hwDecodeLastTime;
-                if (elapsed < kHwDecodeMinInterval)
-                    std::this_thread::sleep_for(kHwDecodeMinInterval - elapsed);
-                hwDecodeLastTime = std::chrono::steady_clock::now();
-            }
-#endif
 
             CVideoFrame* pMainVideoFrame = ReadOneFrame();
             PROFILER_END("Main Video Decoder Frame");
