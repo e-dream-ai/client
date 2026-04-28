@@ -118,13 +118,20 @@ class CPlayer : public Base::CSingleton<CPlayer>
     // Last uuid reported to server
     std::string lastReportedUUID;
 #ifdef WIN32
-    HWND m_hWnd;
+    // In Control Panel preview mode (/p), Windows passes an existing parent HWND.
+    // Outside preview, we create our own top-level windows (potentially one per monitor).
+    HWND m_hWnd;              // message window (first created top-level display window)
+    HWND m_previewParentHwnd; // Control Panel preview parent window (/p)
+    bool m_isScreenSaverRun = false;
 
   public:
     //	When running as a screensaver, we need to pass this along, as it's
     // already created for us.
     void SetHWND(HWND _hWnd);
     HWND GetHWND(void) { return m_hWnd; }
+    HWND GetPreviewParentHWND(void) { return m_previewParentHwnd; }
+    void SetIsScreenSaverRun(bool isSaver) { m_isScreenSaverRun = isSaver; }
+    bool IsScreenSaverRun() const { return m_isScreenSaverRun; }
 
   private:
 #endif

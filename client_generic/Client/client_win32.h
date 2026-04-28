@@ -464,12 +464,62 @@ class CElectricSheep_Win32 : public CElectricSheep
 
         const uint32_t requestedScreen =
             g_Settings()->Get("settings.player.screen", 0);
+        const bool wantAllMonitors = (m_ScrMode == eSaver);
         const bool blankOtherDisplays =
-            (g_Settings()->Get("settings.player.MultiDisplayMode", 0) ==
-             CPlayer::kMDSingleScreen) &&
+            !wantAllMonitors &&
             (m_ScrMode != eFullScreenStandalone) && (m_ScrMode != eWindowed);
 
-        if (g_Player().AddDisplay(requestedScreen, blankOtherDisplays) == -1)
+        if (m_ScrMode == eSaver)
+            g_Player().SetIsScreenSaverRun(true);
+        else
+            g_Player().SetIsScreenSaverRun(false);
+
+        auto countMonitors = []() -> uint32_t {
+            struct Ctx
+            {
+                uint32_t count = 0;
+            } ctx;
+            auto cb = [](HMONITOR, HDC, LPRECT, LPARAM lp) -> BOOL {
+                auto* c = reinterpret_cast<Ctx*>(lp);
+                if (c) c->count++;
+                return TRUE;
+            };
+            EnumDisplayMonitors(nullptr, nullptr, cb, reinterpret_cast<LPARAM>(&ctx));
+            return ctx.count ? ctx.count : 1u;
+        };
+
+        if (wantAllMonitors)
+        {
+            const uint32_t monitorCount = countMonitors();
+            g_Log->Info("Screensaver multi-monitor mode: creating %u windows", monitorCount);
+
+            bool anyOk = false;
+            // Start with the requested screen (if in range), then create the rest.
+            auto addOne = [&](uint32_t idx) {
+                if (g_Player().AddDisplay(idx, /*blankOtherDisplays*/ false) != -1)
+                {
+                    anyOk = true;
+                    g_Log->Info("AddDisplay succeeded for screen %u", idx);
+                }
+                else
+                {
+                    g_Log->Error("AddDisplay failed for screen %u", idx);
+                }
+            };
+
+            if (requestedScreen < monitorCount)
+                addOne(requestedScreen);
+            for (uint32_t i = 0; i < monitorCount; ++i)
+            {
+                if (i == requestedScreen)
+                    continue;
+                addOne(i);
+            }
+
+            if (!anyOk)
+                return false;
+        }
+        else if (g_Player().AddDisplay(requestedScreen, blankOtherDisplays) == -1)
         {
             bool foundfirstmon = false;
             g_Log->Error("AddDisplay failed for screen %d", monnum);
