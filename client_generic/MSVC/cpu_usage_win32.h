@@ -250,6 +250,12 @@ class ESCpuUsage
                 m_HasCachedGpuSample = true;
                 return -1;
             }
+            // RebuildGpuCounters primed the query with one PdhCollectQueryData;
+            // rate counters need a second collect with elapsed time to produce
+            // a value. Hold the previous reading this tick and let the next
+            // ~1 Hz call perform the real collect (otherwise the display dips
+            // to 0 every time we rebuild).
+            return m_HasCachedGpuSample ? m_CachedGpu : -1;
         }
 
         const PDH_STATUS collectSt = PdhCollectQueryData(m_GpuQuery);

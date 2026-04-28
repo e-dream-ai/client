@@ -1970,15 +1970,12 @@ class CElectricSheep
                 // Update GPU usage display (Metal frame time + system GPU %)
                 {
                     float gpuMs = g_Player().Renderer()->GetGPUFrameTimeMs();
-                    float gpuPct = g_Player().Renderer()->GetGPUUtilization();
-                    // gpuPct is renderer "vsync budget %" (not device utilization).
-                    // sysGpu is OS-reported utilization for this process (when available).
                     std::string sysGpu =
                         (m_GpuUsage >= 0) ? string_format(", %i%% app", m_GpuUsage) : "";
                     if (gpuMs >= 0)
                         ((Hud::CStringStat*)spStats->Get("zzagpu2"))
-                            ->SetSample(string_format("%.2fms (%.0f%% budget)%s",
-                                gpuMs, gpuPct, sysGpu.c_str()));
+                            ->SetSample(string_format("%.2fms%s",
+                                gpuMs, sysGpu.c_str()));
                     else
                         ((Hud::CStringStat*)spStats->Get("zzagpu2"))
                             ->SetSample("n/a");
