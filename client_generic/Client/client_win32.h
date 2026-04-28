@@ -21,6 +21,7 @@
 #include "clientversion.h"
 #include "AboutDialogWin32.h"
 #include "FirstTimeSetupWin32.h"
+#include "ScreensaverInstallerWin32.h"
 #include "SettingsDialogWin32.h"
 #include "Exception.h"
 #include "Log.h"
@@ -381,6 +382,18 @@ class CElectricSheep_Win32 : public CElectricSheep
         g_Log->Info("Commandline: %s", GetCommandLineA());
 
         _chdir(m_WorkingDir.c_str());
+
+        // Mirror the Mac behavior: when the user-facing app launches, reassert
+        // ourselves as the active screensaver if the preference is on. Done
+        // here (not in the installer) so HKCU resolves to the actual user, not
+        // the elevated installer's admin token. Skipped for screensaver/preview
+        // modes — only the desktop app should be writing this preference.
+        if (m_ScrMode == eWindowed ||
+            m_ScrMode == eWindowed_AllowMultipleInstances ||
+            m_ScrMode == eFullScreenStandalone)
+        {
+            ScreensaverInstallerWin32::EnsureScreensaverActive(m_WorkingDir);
+        }
 
         if (m_ScrMode == eConfig)
         {

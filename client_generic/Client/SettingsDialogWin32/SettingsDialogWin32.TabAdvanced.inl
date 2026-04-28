@@ -3,22 +3,21 @@ const float topCheckboxFontScale = 1.0f;       // Keep top toggles more prominen
 ImGui::SetWindowFontScale(advancedFontScale);
 
 const float availW = ImGui::GetContentRegionAvail().x;
-const float leftInset = S(138.f);            // Move both checkboxes about 20px left.
-const float firstCheckboxDownOffset = S(16.f); // Move first checkbox slightly down.
-const float topCheckboxGap = S(5.f);        // Reduce spacing between the two checkboxes.
+const float leftInset = S(138.f);            // Move checkbox about 20px left.
+const float firstCheckboxDownOffset = S(16.f); // Move checkbox slightly down.
+const float topCheckboxGap = S(5.f);
 const float proxyGroupTopGap = S(12.f);
 const float proxyContentInsetX = S(6.f);
 const float proxyContentInsetY = S(22.f);
 const float labelInputGap = S(8.f);
 const float fieldRowGap = S(2.f);
 
-// Match macOS placement: two screensaver toggles in the upper-left area.
+// Windows installer places infinidream.scr in Program Files, so the macOS
+// "Install and update screensaver" toggle has no analog here — only the
+// "Keep screensaver enabled" toggle is wired up.
 ImGui::SetWindowFontScale(topCheckboxFontScale);
 ImGui::SetCursorPosY(ImGui::GetCursorPosY() + firstCheckboxDownOffset);
 ImGui::SetCursorPosX(leftInset);
-StyledCheckbox("Install and update screensaver", &g_autoInstallScreensaver);
-ImGui::SetCursorPosX(leftInset);
-ImGui::SetCursorPosY(ImGui::GetCursorPosY() + topCheckboxGap);
 StyledCheckbox("Keep screensaver enabled", &g_keepScreensaverEnabled);
 ImGui::SetWindowFontScale(advancedFontScale);
 

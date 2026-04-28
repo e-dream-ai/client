@@ -40,8 +40,7 @@ static void LoadSettingsForShow()
     g_debugLog = g_Settings()->Get("settings.app.log", false);
     CopySettingToBuf("settings.content.server", ServerConfig::DEFAULT_DREAM_SERVER, g_serverBuf, sizeof g_serverBuf);
 
-    g_autoInstallScreensaver = g_Settings()->Get("settings.app.auto_install_screensaver", false);
-    g_keepScreensaverEnabled = g_Settings()->Get("settings.app.keep_screensaver_enabled", false);
+    g_keepScreensaverEnabled = g_Settings()->Get("settings.app.keep_screensaver_enabled", true);
 
     g_statusBuf[0] = '\0';
 }
@@ -75,7 +74,6 @@ static void SaveSettings()
     g_Settings()->Set("settings.app.log", g_debugLog);
     g_Settings()->Set("settings.content.server", std::string(g_serverBuf));
 
-    g_Settings()->Set("settings.app.auto_install_screensaver", g_autoInstallScreensaver);
     g_Settings()->Set("settings.app.keep_screensaver_enabled", g_keepScreensaverEnabled);
     g_Settings()->Set("settings.generator.nickname", std::string(g_nicknameBuf));
     g_Settings()->Storage()->Commit();

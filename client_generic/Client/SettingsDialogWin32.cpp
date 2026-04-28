@@ -95,8 +95,7 @@ char g_proxyPasswordBuf[256] = {};
 bool g_debugLog = false;
 char g_serverBuf[512] = {};
 
-bool g_autoInstallScreensaver = false;
-bool g_keepScreensaverEnabled = false;
+bool g_keepScreensaverEnabled = true;
 
 bool g_sentCode = false;
 char g_statusBuf[256] = {};

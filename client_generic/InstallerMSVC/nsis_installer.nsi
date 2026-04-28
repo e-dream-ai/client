@@ -48,7 +48,7 @@ VIAddVersionKey "LegalCopyright"  "${PRODUCT_PUBLISHER}"
 !define MUI_UNICON "..\Client\app.ico"
 
 !define MUI_FINISHPAGE_RUN "$INSTDIR\${PRODUCT_EXE}"
-!define MUI_FINISHPAGE_RUN_NOTCHECKED
+!define MUI_FINISHPAGE_RUN_TEXT "Run ${PRODUCT_NAME} and sign in"
 ; The installer runs elevated, so a direct CreateProcess of the app would inherit the
 ; elevated token. That's the bug behind the "first run as admin, then standard-user
 ; launches crash" report: the app would write its data files (in %LOCALAPPDATA%) to the
@@ -57,10 +57,10 @@ VIAddVersionKey "LegalCopyright"  "${PRODUCT_PUBLISHER}"
 ; (non-elevated) session.
 !define MUI_FINISHPAGE_RUN_FUNCTION RunAppAsUser
 
-!define MUI_FINISHPAGE_SHOWREADME ""
-!define MUI_FINISHPAGE_SHOWREADME_NOTCHECKED
-!define MUI_FINISHPAGE_SHOWREADME_TEXT "Set Infinidream as current screensaver"
-!define MUI_FINISHPAGE_SHOWREADME_FUNCTION SetAsCurrentScreensaver
+; Selecting Infinidream as the current screensaver is handled by the app itself on
+; first launch (settings.app.keep_screensaver_enabled, on by default), not here.
+; Doing it from the elevated installer would write to the wrong HKCU hive whenever
+; a non-admin user installed via UAC prompt with someone else's credentials.
 
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_LICENSE "..\RuntimeMSVC\License.rtf"
@@ -136,11 +136,6 @@ Section -Post
   WriteRegDWORD HKLM "${PRODUCT_UNINST_KEY}" "NoModify" 1
   WriteRegDWORD HKLM "${PRODUCT_UNINST_KEY}" "NoRepair" 1
 SectionEnd
-
-Function SetAsCurrentScreensaver
-  WriteRegStr HKCU "Control Panel\Desktop" "ScreenSaveActive" "1"
-  WriteRegStr HKCU "Control Panel\Desktop" "SCRNSAVE.EXE"     "$INSTDIR\${PRODUCT_SCR}"
-FunctionEnd
 
 Function RunAppAsUser
   ; Drop installer elevation by routing the launch through Explorer's Shell.Application

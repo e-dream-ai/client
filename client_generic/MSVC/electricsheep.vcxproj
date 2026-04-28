@@ -677,6 +677,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     <ClCompile Include="..\Client\Player.cpp" />
     <ClCompile Include="..\Client\AboutDialogWin32.cpp" />
     <ClCompile Include="..\Client\FirstTimeSetupWin32.cpp" />
+    <ClCompile Include="..\Client\ScreensaverInstallerWin32.cpp" />
     <ClCompile Include="..\Client\SettingsDialogWin32.cpp" />
     <ClCompile Include="PlatformUtils_win.cpp" />
     <ClCompile Include="..\DisplayOutput\DisplayOutput.cpp" />
@@ -755,6 +756,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     <ClInclude Include="..\Client\client.h" />
     <ClInclude Include="..\Client\FirstTimeSetupWin32.h" />
     <ClInclude Include="..\Client\AboutDialogWin32.h" />
+    <ClInclude Include="..\Client\ScreensaverInstallerWin32.h" />
     <ClInclude Include="..\Client\SettingsDialogWin32.h" />
     <ClInclude Include="..\Client\client_win32.h" />
     <ClInclude Include="..\Client\Console.h" />
