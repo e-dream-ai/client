@@ -5,6 +5,7 @@
 #include "Shader.h"
 #include "Vector4.h"
 #include "FrameDisplay.h"
+#include <unordered_map>
 
 /**
         CLinearFrameDisplay().
@@ -15,6 +16,7 @@ class CLinearFrameDisplay : public CFrameDisplay
     static const uint32_t kFramesPerState = 2;
     //	Pixelshader.
     DisplayOutput::spCShader m_spShader;
+    std::unordered_map<DisplayOutput::CRenderer*, DisplayOutput::spCShader> m_shaderByRenderer;
 
     //	The two frames.
     DisplayOutput::spCTextureFlat m_spFrames[kFramesPerState];
@@ -42,6 +44,8 @@ class CLinearFrameDisplay : public CFrameDisplay
 
         if (!m_spShader)
             m_bValid = false;
+        if (_spRenderer && m_spShader)
+            m_shaderByRenderer[_spRenderer.get()] = m_spShader;
     }
 
     virtual ~CLinearFrameDisplay() {}
@@ -61,7 +65,33 @@ class CLinearFrameDisplay : public CFrameDisplay
         {
             Base::Math::CRect texRect;
 
-            _spRenderer->SetShader(m_spShader);
+            DisplayOutput::spCShader shader = m_spShader;
+            if (_spRenderer)
+            {
+                auto it = m_shaderByRenderer.find(_spRenderer.get());
+                if (it != m_shaderByRenderer.end())
+                {
+                    shader = it->second;
+                }
+                else
+                {
+                    switch (_spRenderer->Type())
+                    {
+                    case DisplayOutput::eDX11:
+                    case DisplayOutput::eMetal:
+                        shader = _spRenderer->NewShader(
+                            "quadPassVertex", "drawDecodedFrameLinearFrameBlendFragment",
+                            {{"delta", DisplayOutput::eUniform_Float},
+                             {"newalpha", DisplayOutput::eUniform_Float},
+                             {"transPct", DisplayOutput::eUniform_Float}});
+                        break;
+                    }
+                    if (shader)
+                        m_shaderByRenderer[_spRenderer.get()] = shader;
+                }
+            }
+
+            _spRenderer->SetShader(shader);
             _spRenderer->SetBlend("alphablend");
 
             //	Only one frame so far, let's display it normally.
@@ -77,7 +107,8 @@ class CLinearFrameDisplay : public CFrameDisplay
                 _spRenderer->SetTexture(m_spFrames[1], m_State + 1);
             }
             texRect = m_spFrames[m_State]->GetRect();
-            m_spShader->Set("delta", (float)_interframeDelta);
+            if (shader)
+                shader->Set("delta", (float)_interframeDelta);
             _spRenderer->Apply();
 
             ScrollVideoForNonMatchingAspectRatio(texRect);

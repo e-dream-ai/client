@@ -49,6 +49,13 @@ VIAddVersionKey "LegalCopyright"  "${PRODUCT_PUBLISHER}"
 
 !define MUI_FINISHPAGE_RUN "$INSTDIR\${PRODUCT_EXE}"
 !define MUI_FINISHPAGE_RUN_NOTCHECKED
+; The installer runs elevated, so a direct CreateProcess of the app would inherit the
+; elevated token. That's the bug behind the "first run as admin, then standard-user
+; launches crash" report: the app would write its data files (in %LOCALAPPDATA%) to the
+; admin profile, leaving the actual user with empty/missing state. Route the launch
+; through Explorer's Shell.Application COM object so it spawns the app in the user's
+; (non-elevated) session.
+!define MUI_FINISHPAGE_RUN_FUNCTION RunAppAsUser
 
 !define MUI_FINISHPAGE_SHOWREADME ""
 !define MUI_FINISHPAGE_SHOWREADME_NOTCHECKED
@@ -88,6 +95,10 @@ FunctionEnd
 Section "MainSection" SEC01
   SetOverwrite on
   SetOutPath "$INSTDIR"
+
+  ; Wipe any stale %ProgramData%\Infinidream from earlier builds that stored data there.
+  ; LocalAppData is now the data root (per-user, no ACL trap from the elevated installer).
+  RMDir /r "$PROGRAMDATA\Infinidream"
 
   ; Binaries, runtime DLLs, fonts, images — whatever landed in MSVC\Release\.
   File "${SOURCE_DIR}\${PRODUCT_EXE}"
@@ -130,6 +141,20 @@ Function SetAsCurrentScreensaver
   WriteRegStr HKCU "Control Panel\Desktop" "SCRNSAVE.EXE"     "$INSTDIR\${PRODUCT_SCR}"
 FunctionEnd
 
+Function RunAppAsUser
+  ; Drop installer elevation by routing the launch through Explorer's Shell.Application
+  ; COM object. CoCreateInstance for Shell.Application connects to the user-session
+  ; Explorer.exe (which always runs at user level), and ShellExecute on that interface
+  ; spawns the target as a child of Explorer — i.e. with the user's token, not admin.
+  ;
+  ; Implemented as a one-liner via PowerShell so we don't need a third-party plugin
+  ; (StdUtils / UAC). PowerShell still runs elevated; only the COM-marshaled Explorer
+  ; call escapes the elevation.
+  Push $0
+  ExecWait `powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -Command "(New-Object -ComObject Shell.Application).ShellExecute('$INSTDIR\${PRODUCT_EXE}')"` $0
+  Pop $0
+FunctionEnd
+
 Section Uninstall
   SetShellVarContext all
 
@@ -138,11 +163,11 @@ Section Uninstall
   StrCmp $0 "$INSTDIR\${PRODUCT_SCR}" 0 +2
     DeleteRegValue HKCU "Control Panel\Desktop" "SCRNSAVE.EXE"
 
-  MessageBox MB_YESNO|MB_ICONQUESTION \
-    "Keep your downloaded content and logs under %ProgramData%\Infinidream?$\r$\n$\r$\nChoose Yes to keep, No to delete." \
-    IDYES SkipDataDelete
-    RMDir /r "$PROGRAMDATA\Infinidream"
-  SkipDataDelete:
+  ; Per-user data lives in %LOCALAPPDATA%\Infinidream — that's the user's data, not
+  ; ours to delete (standard Windows convention). The uninstaller runs elevated and
+  ; would only see the admin profile's LocalAppData anyway. Clean up the legacy
+  ; %ProgramData% location in case it survived from a pre-LocalAppData install.
+  RMDir /r "$PROGRAMDATA\Infinidream"
 
   Delete "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk"
   Delete "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME} (windowed).lnk"

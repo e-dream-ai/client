@@ -306,33 +306,21 @@ class CElectricSheep_Win32 : public CElectricSheep
                 m_MultipleInstancesMode = true;
         }
 
+        // Per-user app data lives in %LOCALAPPDATA%\Infinidream. Using LocalAppData (rather
+        // than the previous %ProgramData%) sidesteps an ACL trap: ProgramData's default ACL
+        // gives Users only RX on files inside, so files first written by the installer's
+        // (admin) run-at-end were unwritable for subsequent standard-user runs and the app
+        // crashed on startup with no log entry. LocalAppData is owned by the running user,
+        // so creator/owner rights make every file writable.
         char szPath[MAX_PATH];
-        if (SUCCEEDED(
-                SHGetFolderPathA(NULL, CSIDL_COMMON_APPDATA, NULL, 0, szPath)))
+        if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, szPath)))
         {
 #if defined(_DEBUG) || defined(DEBUG)
             const char* const kDataFolder = "Infinidream-stage";
-            const char* const kLegacyFolder = "e-dream-stage";
 #else
             const char* const kDataFolder = "Infinidream";
-            const char* const kLegacyFolder = "e-dream";
 #endif
-
-            char szLegacyPath[MAX_PATH];
-            strcpy_s(szLegacyPath, MAX_PATH, szPath);
-            PathAppendA(szLegacyPath, kLegacyFolder);
             PathAppendA(szPath, kDataFolder);
-
-            // One-time migration (issue #574): the %ProgramData% subfolder
-            // was renamed from "e-dream" to "Infinidream". If the new folder
-            // doesn't exist yet but the legacy one does, rename it so the
-            // user keeps their downloaded content, settings, and logs.
-            if (!PathFileExistsA(szPath) && PathFileExistsA(szLegacyPath))
-            {
-                if (!MoveFileA(szLegacyPath, szPath))
-                    strcpy_s(szPath, MAX_PATH, szLegacyPath);
-            }
-
             PathAddBackslashA(szPath);
             m_AppData = szPath;
         }
@@ -476,12 +464,62 @@ class CElectricSheep_Win32 : public CElectricSheep
 
         const uint32_t requestedScreen =
             g_Settings()->Get("settings.player.screen", 0);
+        const bool wantAllMonitors = (m_ScrMode == eSaver);
         const bool blankOtherDisplays =
-            (g_Settings()->Get("settings.player.MultiDisplayMode", 0) ==
-             CPlayer::kMDSingleScreen) &&
+            !wantAllMonitors &&
             (m_ScrMode != eFullScreenStandalone) && (m_ScrMode != eWindowed);
 
-        if (g_Player().AddDisplay(requestedScreen, blankOtherDisplays) == -1)
+        if (m_ScrMode == eSaver)
+            g_Player().SetIsScreenSaverRun(true);
+        else
+            g_Player().SetIsScreenSaverRun(false);
+
+        auto countMonitors = []() -> uint32_t {
+            struct Ctx
+            {
+                uint32_t count = 0;
+            } ctx;
+            auto cb = [](HMONITOR, HDC, LPRECT, LPARAM lp) -> BOOL {
+                auto* c = reinterpret_cast<Ctx*>(lp);
+                if (c) c->count++;
+                return TRUE;
+            };
+            EnumDisplayMonitors(nullptr, nullptr, cb, reinterpret_cast<LPARAM>(&ctx));
+            return ctx.count ? ctx.count : 1u;
+        };
+
+        if (wantAllMonitors)
+        {
+            const uint32_t monitorCount = countMonitors();
+            g_Log->Info("Screensaver multi-monitor mode: creating %u windows", monitorCount);
+
+            bool anyOk = false;
+            // Start with the requested screen (if in range), then create the rest.
+            auto addOne = [&](uint32_t idx) {
+                if (g_Player().AddDisplay(idx, /*blankOtherDisplays*/ false) != -1)
+                {
+                    anyOk = true;
+                    g_Log->Info("AddDisplay succeeded for screen %u", idx);
+                }
+                else
+                {
+                    g_Log->Error("AddDisplay failed for screen %u", idx);
+                }
+            };
+
+            if (requestedScreen < monitorCount)
+                addOne(requestedScreen);
+            for (uint32_t i = 0; i < monitorCount; ++i)
+            {
+                if (i == requestedScreen)
+                    continue;
+                addOne(i);
+            }
+
+            if (!anyOk)
+                return false;
+        }
+        else if (g_Player().AddDisplay(requestedScreen, blankOtherDisplays) == -1)
         {
             bool foundfirstmon = false;
             g_Log->Error("AddDisplay failed for screen %d", monnum);

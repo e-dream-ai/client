@@ -31,7 +31,7 @@ ImGui::BeginChild("account_centered_body", ImVec2(safePanelWidth, formHeight), f
 if (loggedIn)
 {
     const std::string signedInText = std::string("Signed in as ") + g_nicknameBuf;
-    const float dotRadius = 5.f;
+    const float dotRadius = 10.f;
     const float rowX = sidePadding;
     if (rowX > 0.f)
         ImGui::SetCursorPosX(rowX);
@@ -90,7 +90,7 @@ if (!loggedIn)
     ImGui::SetCursorPosX(leftX);
     {
         ImDrawList* drawList = ImGui::GetWindowDrawList();
-        const float dotRadius = 5.f;
+        const float dotRadius = 10.f;
         const float lineHeight = ImGui::GetTextLineHeight();
         const ImVec2 dotCenter(ImGui::GetCursorScreenPos().x + dotRadius,
                                ImGui::GetCursorScreenPos().y + lineHeight * 0.5f);
