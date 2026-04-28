@@ -86,19 +86,66 @@ static bool StyledCheckbox(const char* label, bool* value)
     return changed;
 }
 
-static bool StyledRadioButton(const char* label, bool active)
+static bool StyledRadioButton(const char* label, bool active, float scale = 1.0f)
 {
-    const bool changed = ImGui::RadioButton(label, active);
+    if (scale == 1.0f)
+    {
+        const bool changed = ImGui::RadioButton(label, active);
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
+        const ImVec2 min = ImGui::GetItemRectMin();
+        const float frameSize = ImGui::GetFrameHeight();
+        ImVec2 center(min.x + frameSize * 0.5f, min.y + frameSize * 0.5f);
+        center.x = static_cast<float>(static_cast<int>(center.x + 0.5f));
+        center.y = static_cast<float>(static_cast<int>(center.y + 0.5f));
+        const bool focused = ImGui::IsItemActive() || ImGui::IsItemFocused();
+        const ImU32 borderColor = focused ? IM_COL32(0, 122, 255, 255) : IM_COL32(224, 224, 224, 255);
+        const float radius = ((frameSize - 1.0f) * 0.5f) - 0.5f;
+
+        drawList->AddCircle(center, radius, borderColor, 24, focused ? 1.6f : 1.2f);
+        return changed;
+    }
+
+    // Scaled path: custom render so the circle shrinks but the label keeps full size.
+    const ImGuiStyle& style = ImGui::GetStyle();
+    const ImVec2 cursor = ImGui::GetCursorScreenPos();
+    const ImVec2 labelSize = ImGui::CalcTextSize(label, nullptr, true);
+    const float frameH = ImGui::GetFrameHeight();
+    const float radioSize = static_cast<float>(static_cast<int>(frameH * scale));
+    const float labelW = (labelSize.x > 0.f) ? style.ItemInnerSpacing.x + labelSize.x : 0.f;
+    const ImVec2 totalSize(radioSize + labelW, frameH);
+
+    ImGui::InvisibleButton(label, totalSize);
+    const bool clicked = ImGui::IsItemClicked();
+    const bool hovered = ImGui::IsItemHovered();
+    const bool held = ImGui::IsItemActive();
+    const bool focused = ImGui::IsItemActive() || ImGui::IsItemFocused();
+
     ImDrawList* drawList = ImGui::GetWindowDrawList();
-    const ImVec2 min = ImGui::GetItemRectMin();
-    const float frameSize = ImGui::GetFrameHeight();
-    ImVec2 center(min.x + frameSize * 0.5f, min.y + frameSize * 0.5f);
+    ImVec2 center(cursor.x + radioSize * 0.5f, cursor.y + frameH * 0.5f);
     center.x = static_cast<float>(static_cast<int>(center.x + 0.5f));
     center.y = static_cast<float>(static_cast<int>(center.y + 0.5f));
-    const bool focused = ImGui::IsItemActive() || ImGui::IsItemFocused();
-    const ImU32 borderColor = focused ? IM_COL32(0, 122, 255, 255) : IM_COL32(224, 224, 224, 255);
-    const float radius = ((frameSize - 1.0f) * 0.5f) - 0.5f;
+    const float radius = ((radioSize - 1.0f) * 0.5f) - 0.5f;
 
+    const ImU32 bgColor = ImGui::GetColorU32((held && hovered) ? ImGuiCol_FrameBgActive
+                                              : hovered          ? ImGuiCol_FrameBgHovered
+                                                                  : ImGuiCol_FrameBg);
+    drawList->AddCircleFilled(center, radius, bgColor, 24);
+    if (active)
+    {
+        const float padPx = radioSize / 6.0f;
+        const float pad = (padPx > 1.0f) ? static_cast<float>(static_cast<int>(padPx)) : 1.0f;
+        drawList->AddCircleFilled(center, radius - pad, ImGui::GetColorU32(ImGuiCol_CheckMark), 24);
+    }
+
+    const ImU32 borderColor = focused ? IM_COL32(0, 122, 255, 255) : IM_COL32(224, 224, 224, 255);
     drawList->AddCircle(center, radius, borderColor, 24, focused ? 1.6f : 1.2f);
-    return changed;
+
+    if (labelSize.x > 0.f)
+    {
+        const ImVec2 labelPos(cursor.x + radioSize + style.ItemInnerSpacing.x,
+                              cursor.y + (frameH - labelSize.y) * 0.5f);
+        drawList->AddText(labelPos, ImGui::GetColorU32(ImGuiCol_Text), label);
+    }
+
+    return clicked;
 }

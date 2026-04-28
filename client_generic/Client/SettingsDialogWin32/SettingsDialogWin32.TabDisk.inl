@@ -51,11 +51,11 @@ if (g_boldUiFont)
     ImGui::PopFont();
 
 ImGui::SetCursorPos(ImVec2(boxInset, ImGui::GetCursorPosY() + rowGap));
-if (StyledRadioButton("Unlimited", g_unlimitedCache))
+if (StyledRadioButton("Unlimited", g_unlimitedCache, 0.8f))
     g_unlimitedCache = true;
 
 ImGui::SetCursorPos(ImVec2(boxInset, ImGui::GetCursorPosY() + rowGap));
-if (StyledRadioButton("##limited_cache", !g_unlimitedCache))
+if (StyledRadioButton("##limited_cache", !g_unlimitedCache, 0.8f))
     g_unlimitedCache = false;
 ImGui::SameLine(0.f, S(8.f));
 ImGui::AlignTextToFramePadding();
