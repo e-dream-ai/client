@@ -386,7 +386,7 @@ class CElectricSheep
             BK("C") ": Show credit\t\t\t\t\t" BK("B") ": Report this dream\n"
 #ifdef LINUX_GNU
             BK("V") ": Open web source\t\t\t\t" BK("F") ": Toggle full screen\n"
-            BK("G") ": Cycle frame generation\n"
+            BK("G") ": Cycle frame generation\t\t" BK("P") ": Reload server playlist\n"
 #else
             BK("V") ": Open web source\t\t\t\t" BK(FULLSCREEN_MODIFIER_KEY "-F") ": Toggle full screen\n"
 #endif
@@ -2378,7 +2378,8 @@ class CElectricSheep
         CLIENT_COMMAND_SPEED_7,
         CLIENT_COMMAND_SPEED_8,
         CLIENT_COMMAND_SPEED_9,
-        CLIENT_COMMAND_RESET_PLAYLIST
+        CLIENT_COMMAND_RESET_PLAYLIST,
+        CLIENT_COMMAND_RELOAD_SERVER_PLAYLIST
     };
 
     void popOSD(Hud::OSDType type) {
@@ -2531,6 +2532,25 @@ class CElectricSheep
                 g_Settings()->Set("settings.content.current_playlist_uuid", std::string(""));
                 g_Player().ResetPlaylist();
                 return true;
+            case CLIENT_COMMAND_RELOAD_SERVER_PLAYLIST:
+                popOSD(Hud::Next);
+                boost::thread([](){
+                    g_Log->Info("Reloading server playlist assignment...");
+                    std::string newId = EDreamClient::GetCurrentServerPlaylist();
+                    if (g_Player().IsShuttingDown()) return;
+                    if (newId.empty()) {
+                        g_Log->Warning("Reload server playlist: server returned empty ID");
+                        return;
+                    }
+                    std::string currentId = g_Settings()->Get("settings.content.current_playlist_uuid", std::string(""));
+                    if (newId == currentId) {
+                        g_Log->Info("Reload server playlist: already on %s, no change needed", newId.c_str());
+                        return;
+                    }
+                    g_Log->Info("Server playlist changed: %s → %s — applying", currentId.c_str(), newId.c_str());
+                    EDreamClient::EnqueuePlaylistAsync(newId);
+                }).detach();
+                return true;
                 //  Force Next Sheep
             case CLIENT_COMMAND_NEXT:
                 popOSD(Hud::Next);
@@ -2674,8 +2694,18 @@ class CElectricSheep
                     return ExecuteCommand(CLIENT_COMMAND_LIKE);
                 case DisplayOutput::CKeyEvent::KEY_DOWN:
                     return ExecuteCommand(CLIENT_COMMAND_DISLIKE);
-                    // Report
+                    // Report (B alone); Cmd+B / Ctrl+B opens playlists browser
                 case DisplayOutput::CKeyEvent::KEY_B:
+                    if (spKey->m_bCtrl) {
+#ifdef STAGE
+                        PlatformUtils::OpenURLExternally("https://stage.infinidream.ai/playlists");
+#elif defined(ALPHA)
+                        PlatformUtils::OpenURLExternally("https://alpha.infinidream.ai/playlists");
+#else
+                        PlatformUtils::OpenURLExternally("https://infinidream.ai/playlists");
+#endif
+                        return true;
+                    }
                     return ExecuteCommand(CLIENT_COMMAND_REPORT);
 
                     // Repeat current sheep
@@ -2723,6 +2753,9 @@ class CElectricSheep
                     // Reset playlist
                 case DisplayOutput::CKeyEvent::KEY_N:
                     return ExecuteCommand(CLIENT_COMMAND_RESET_PLAYLIST);
+                    // Reload server's current playlist assignment
+                case DisplayOutput::CKeyEvent::KEY_P:
+                    return ExecuteCommand(CLIENT_COMMAND_RELOAD_SERVER_PLAYLIST);
                     // prev/next
                 case DisplayOutput::CKeyEvent::KEY_J:
                     return ExecuteCommand(CLIENT_COMMAND_SKIP_BW);

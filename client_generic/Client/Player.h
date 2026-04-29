@@ -43,6 +43,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
 
     void SetOfflineMode(bool offline);
     bool IsOfflineMode() const;
+    bool IsShuttingDown() const { return m_shutdownFlag.load(std::memory_order_relaxed); }
   private:
     bool m_hasStarted = false;
     

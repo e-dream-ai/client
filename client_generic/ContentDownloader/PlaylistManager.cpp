@@ -572,6 +572,26 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
         // Normal mode: respect keyframes for seamless transitions
         const auto& currentEntry = m_playlist[m_currentPosition];
 
+        // forceNext = user explicitly pressed the Next key. Skip keyframe routing and the
+        // played-check so sequential mode advances strictly by position rather than falling
+        // through to the same random-unplayed scan used by Shuffle mode.
+        if (forceNext) {
+            size_t nextPos = (m_currentPosition + 1) % m_playlist.size();
+            const auto& nextEntry = m_playlist[nextPos];
+            if (canStream || m_cacheManager.hasDiskCachedItem(nextEntry.uuid)) {
+                g_Log->Info("Preflight : Normal mode forceNext - sequential to position %zu", nextPos);
+                decision = {
+                    nextPos,
+                    TransitionType::QuickCrossfade,
+                    m_cacheManager.getDream(nextEntry.uuid),
+                    nextEntry.startKeyframe,
+                    nextEntry.endKeyframe
+                };
+                return decision;
+            }
+            // Next position isn't available — fall through to cache-only logic below
+        }
+
         // Loop iteration logic: if current dream is a loop and we haven't exhausted iterations,
         // pick a random matching loop (including self) and replay with seamless transition
         if (!forceNext && m_loopIterations > 0 && isLoopingDream(currentEntry) && m_currentLoopCount < m_loopIterations) {
@@ -759,17 +779,34 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
     }
 
     // If we haven't started yet, start at the randomly-chosen m_currentPosition.
+    // When canStream is false (quota=0), scan forward from that position until we
+    // find a locally-cached dream so we never block on a streaming open at startup.
     if (!m_started) {
-        const auto& firstEntry = m_playlist[m_currentPosition];
-
+        size_t startPos = m_currentPosition;
+        if (!canStream) {
+            bool found = false;
+            for (size_t i = 0; i < m_playlist.size(); i++) {
+                size_t pos = (startPos + i) % m_playlist.size();
+                if (m_cacheManager.hasDiskCachedItem(m_playlist[pos].uuid)) {
+                    startPos = pos;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                g_Log->Info("Preflight : startup - no cached dreams and canStream=false, returning nullopt");
+                return std::nullopt;
+            }
+        }
+        const auto& firstEntry = m_playlist[startPos];
         decision = {
-            m_currentPosition,
+            startPos,
             TransitionType::StandardCrossfade,
             m_cacheManager.getDream(firstEntry.uuid),
             firstEntry.startKeyframe,
             firstEntry.endKeyframe
         };
-        g_Log->Info("Preflight : startup at random position %zu with a crossfade", m_currentPosition);
+        g_Log->Info("Preflight : startup at position %zu with a crossfade", startPos);
         return decision;
     }
 

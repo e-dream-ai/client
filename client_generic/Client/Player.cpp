@@ -86,10 +86,15 @@ typedef std::unique_lock<std::shared_mutex> writer_lock;
 
 // Async destruction of a clip. The destructor may be delayed by a
 // catch up streaming mechanism for caching
+// Global (not a CPlayer member) so background destroy threads never touch a
+// potentially-destroyed singleton to decrement the count.
+static std::atomic<int> s_asyncDestroyCount{0};
+
 void destroyClipAsync(ContentDecoder::spCClip clip) {
+    s_asyncDestroyCount.fetch_add(1, std::memory_order_relaxed);
     std::thread([clip = std::move(clip)]() mutable {
-        // This should call the destructor now
         clip = nullptr;
+        s_asyncDestroyCount.fetch_sub(1, std::memory_order_relaxed);
     }).detach();
 }
 
@@ -500,10 +505,26 @@ bool CPlayer::Shutdown(void)
         }
     }
 
+    // Destroy clips before the renderer. m_currentClip and m_nextClip are CPlayer
+    // members that would otherwise outlive m_displayUnits (which owns the renderer),
+    // causing CTextureFlatVulkan to call vkDestroyBuffer on an already-invalid device.
+    m_currentClip = nullptr;
+    m_nextClip    = nullptr;
+
+    // Drain any pending async clip destroys before releasing the Vulkan renderer.
+    constexpr int kMaxWaitMs = 500;
+    constexpr int kSleepMs   = 5;
+    for (int waited = 0;
+         s_asyncDestroyCount.load(std::memory_order_relaxed) > 0 && waited < kMaxWaitMs;
+         waited += kSleepMs)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(kSleepMs));
+    }
+
     m_displayUnits.clear();
 
     m_bStarted = false;
-    m_shutdownFlag = true;  
+    m_shutdownFlag = true;
 
     return true;
 }
@@ -637,6 +658,27 @@ bool CPlayer::Update(uint32_t displayUnit)
     writer_lock l(m_UpdateMutex);
 
     const bool freezePlayback = m_bPaused || IsFirstRunWizardPlaybackHold();
+
+    // Rescue: player is initialized but has no clip (e.g. playlist switched while quota was 0).
+    // Retry every 5 seconds so playback recovers automatically once quota is available.
+    if (!m_currentClip && m_hasStarted && !m_shutdownFlag.load() && m_playlistManager) {
+        static std::chrono::steady_clock::time_point s_lastRescue{};
+        auto now = std::chrono::steady_clock::now();
+        if (now - s_lastRescue >= std::chrono::seconds(5)) {
+            s_lastRescue = now;
+            bool canStream = Cache::CacheManager::getInstance().getRemainingQuota() > 0;
+            auto decision = m_playlistManager->preflightNextDream(canStream);
+            if (decision) {
+                g_Log->Info("Update: rescued from no-clip state, starting dream at position %zu", decision->position);
+                if (PlayClip(decision->dream, m_TimelineTime, -1, false)) {
+                    m_playlistManager->moveToNextDream(*decision);
+                }
+            } else {
+                g_Log->Warning("Update: rescue attempt failed — no playable dream found (quota=%s)",
+                               canStream ? "available" : "0");
+            }
+        }
+    }
 
     if (m_currentClip) {
         m_currentClip->Update(m_TimelineTime, freezePlayback);
@@ -1239,26 +1281,31 @@ std::string CPlayer::GetPlaylistName() const
 bool CPlayer::SetPlaylist(const std::string& playlistUUID, bool fetchPlaylist = true) {
     // Reset any pending transition decision
     m_nextDreamDecision = std::nullopt;
-    
+
     if (!m_playlistManager->initializePlaylist(playlistUUID, fetchPlaylist)) {
         g_Log->Error("Failed to set playlist with UUID: %s", playlistUUID.c_str());
         return false;
     }
-    
+
     // Ensure m_hasStarted is set
     m_hasStarted = true;
-    
+
+    bool canStream = Cache::CacheManager::getInstance().getRemainingQuota() > 0;
+    if (!canStream) {
+        g_Log->Info("SetPlaylist: quota is 0, selecting from cached dreams only");
+    }
+
     // Start playing the first dream if not already playing
     if (!m_currentClip) {
         m_isFirstPlay = true;  // Reset the first play flag when setting a new playlist
-        
+
         g_Log->Info("Grabing new next decision in set playlist");
-        auto nextDecision = m_playlistManager->preflightNextDream();
+        auto nextDecision = m_playlistManager->preflightNextDream(canStream);
         if (nextDecision) {
             // Load the clip directly without transition
             if (PlayClip(nextDecision->dream, m_TimelineTime, -1, false)) {
                 m_playlistManager->moveToNextDream(*nextDecision);
-                
+
                 // Explicitly set the fade-in and fade-out lengths
                 if (m_currentClip) {
                     m_currentClip->SetTransitionLength(5.0, 5.0);
@@ -1269,12 +1316,12 @@ bool CPlayer::SetPlaylist(const std::string& playlistUUID, bool fetchPlaylist = 
                 return true;
             }
         }
-        
+
         PlayNextDream();
     } else {
         // Current clip is playing, preflight the next dream for smooth transition
         g_Log->Info("Current clip playing, preflighting next dream for new playlist");
-        auto nextDecision = m_playlistManager->preflightNextDream();
+        auto nextDecision = m_playlistManager->preflightNextDream(canStream);
 
         // Proactively prepare the next clip so the transition does not block on network I/O
         // when the first dream of the new playlist is not cached. This keeps the current
@@ -1309,12 +1356,13 @@ bool CPlayer::SetPlaylistAtDream(const std::string& playlistUUID, const std::str
     auto optionalDream = m_playlistManager->getDreamByUUID(dreamUUID);
     if (!optionalDream) {
         g_Log->Error("Dream with UUID %s not found in playlist %s defaulting to the first dream", dreamUUID.c_str(), playlistUUID.c_str());
-        
+
         if (!m_currentClip) {
             m_isFirstPlay = true;  // Reset the first play flag when setting a new playlist
-            
+
+            bool canStream = Cache::CacheManager::getInstance().getRemainingQuota() > 0;
             // Get the first dream directly instead of using PlayNextDream()
-            auto nextDecision = m_playlistManager->preflightNextDream();
+            auto nextDecision = m_playlistManager->preflightNextDream(canStream);
             if (nextDecision) {
                 // Load the clip directly without transition
                 if (PlayClip(nextDecision->dream, m_TimelineTime, -1, false)) {

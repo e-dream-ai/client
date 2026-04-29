@@ -589,6 +589,7 @@ class CElectricSheep_Win32 : public CElectricSheep
                 DisplayOutput::spCKeyEvent spKey =
                     std::dynamic_pointer_cast<DisplayOutput::CKeyEvent>(_event);
                 m_bCtrlDown = ((GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0);
+                spKey->m_bCtrl = m_bCtrlDown;
 
                 switch (spKey->m_Code)
                 {

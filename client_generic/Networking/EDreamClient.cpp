@@ -1749,9 +1749,10 @@ std::future<bool> EDreamClient::EnqueuePlaylistAsync(const std::string& uuid) {
         g_Settings()->Set("settings.content.current_playlist_uuid", uuid);
         
         std::thread([uuid]() {
-            // These operations must happen on the main/UI thread
+            if (!g_Player().SingletonActive() || g_Player().IsShuttingDown()) return;
             g_Log->Info("Will call set playlist");
             g_Player().SetPlaylist(std::string(uuid), false);
+            if (!g_Player().SingletonActive() || g_Player().IsShuttingDown()) return;
             g_Player().SetTransitionDuration(1.0f);
             g_Log->Info("Will call start transition");
             g_Player().StartTransition();
@@ -2536,6 +2537,10 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_9);
+    }
+    else if (event == "playing")
+    {
+        // Server acknowledgement that content is playing — no action needed
     }
     else
     {

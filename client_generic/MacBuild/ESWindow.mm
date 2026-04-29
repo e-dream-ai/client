@@ -427,6 +427,12 @@ static void ShowFirstTimeSetupCallback()
         [self performClose:self];
         return YES;
     }
+    // Handle Command+B to browse playlists (as advertised in F1 help)
+    if (([ev modifierFlags] & NSEventModifierFlagCommand) && [[ev charactersIgnoringModifiers] isEqualToString:@"b"])
+    {
+        [self openBrowsePlaylist:self];
+        return YES;
+    }
     return [super performKeyEquivalent:ev];
 }
 
