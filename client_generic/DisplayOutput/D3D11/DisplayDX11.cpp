@@ -17,8 +17,10 @@
 #include "AboutDialogWin32.h"
 #include "FirstTimeSetupWin32.h"
 #include "SettingsDialogWin32.h"
+#include <dwmapi.h>
 #include <ShellScalingApi.h>
 #pragma comment(lib, "shcore.lib")
+#pragma comment(lib, "dwmapi.lib")
 extern void ESShowPreferences();
 #endif
 
@@ -124,6 +126,25 @@ static void OpenInfinidreamWebUrl(int which)
     PlatformUtils::OpenURLExternally(url);
 }
 #endif // WIN32
+
+#ifdef WIN32
+static bool SetDwmImmersiveDarkMode(HWND hWnd, bool enabled)
+{
+    if (!hWnd)
+        return false;
+    const BOOL use = enabled ? TRUE : FALSE;
+
+    // Windows 10 has used both 19 and 20 across builds; try both.
+    const DWORD DWMWA_USE_IMMERSIVE_DARK_MODE_20 = 20;
+    const DWORD DWMWA_USE_IMMERSIVE_DARK_MODE_19 = 19;
+
+    HRESULT hr = DwmSetWindowAttribute(hWnd, DWMWA_USE_IMMERSIVE_DARK_MODE_20, &use, sizeof(use));
+    if (SUCCEEDED(hr))
+        return true;
+    hr = DwmSetWindowAttribute(hWnd, DWMWA_USE_IMMERSIVE_DARK_MODE_19, &use, sizeof(use));
+    return SUCCEEDED(hr);
+}
+#endif
 
 // Avoid duplicate F1 enqueue when WM_HELP and WM_KEYDOWN arrive for the same press.
 static ULONGLONG g_lastF1EnqueueTickMs = 0;
@@ -751,6 +772,13 @@ HWND CDisplayDX11::CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen,
                            x, y, rc.right - rc.left,
                            rc.bottom - rc.top, nullptr, hMenu, hInstance, this);
 }
+
+void CDisplayDX11::ApplyDarkTitlebarIfSupported()
+{
+    if (!m_WindowHandle || !IsWindow(m_WindowHandle))
+        return;
+    SetDwmImmersiveDarkMode(m_WindowHandle, true);
+}
 #endif
 
 bool CDisplayDX11::ResizeSwapChain(uint32_t width, uint32_t height)
@@ -967,9 +995,15 @@ HWND CDisplayDX11::Initialize(uint32_t width, uint32_t height, bool fullscreen) 
     m_Height = height;
 
     m_WindowHandle = CreateDisplayWindow(width, height, fullscreen, nullptr);
-    PopulateSystemMenu(m_WindowHandle);
+    // Restore the default system menu (no custom app commands).
+    if (m_WindowHandle)
+        GetSystemMenu(m_WindowHandle, TRUE);
 #endif
     if (!m_WindowHandle) return nullptr;
+
+#ifdef WIN32
+    ApplyDarkTitlebarIfSupported();
+#endif
 
     if (!CreateDeviceAndSwapChain()) {
         return nullptr;
