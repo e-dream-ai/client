@@ -8,6 +8,6 @@ Description: FFmpeg container format library
 Version: 62.3.100
 Conflicts:
 
-Libs: "-L${libdir}" -lavformat -lm
+Libs: "-L${libdir}" -lavformat -lm "-L${prefix}/lib/pkgconfig/../../lib" -lssl -lcrypto
 Requires: libavcodec >= 62.11.100, libswresample >= 6.1.100, libavutil >= 60.8.100 
 Cflags: "-I${includedir}"
