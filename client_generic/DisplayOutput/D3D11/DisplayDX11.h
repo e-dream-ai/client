@@ -36,6 +36,7 @@ private:
     RECT m_captionBtnMaxRect = {};
     RECT m_captionBtnCloseRect = {};
     int m_captionBtnHover = 0; // 0 none, 1 min, 2 max, 3 close
+    int m_captionBtnPressed = 0; // 0 none, 1 min, 2 max, 3 close
 #endif
     
 #ifdef WIN32
@@ -91,6 +92,8 @@ private:
     const RECT& GetCaptionButtonMinRectPx() const { return m_captionBtnMinRect; }
     const RECT& GetCaptionButtonMaxRectPx() const { return m_captionBtnMaxRect; }
     const RECT& GetCaptionButtonCloseRectPx() const { return m_captionBtnCloseRect; }
+    int GetCaptionButtonHoverId() const { return m_captionBtnHover; }
+    int GetCaptionButtonPressedId() const { return m_captionBtnPressed; }
 
     // Window chrome action helpers for custom buttons.
     void WindowMinimize();

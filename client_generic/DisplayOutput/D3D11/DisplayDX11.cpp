@@ -85,9 +85,13 @@ static void ComputeCaptionButtonRects(HWND hWnd, int titlebarHeightPx, RECT& out
     GetClientRect(hWnd, &client);
     const int w = client.right - client.left;
 
-    const int btnW = (std::max)(GetSystemMetrics(SM_CXSIZE), 30);
-    const int btnH = (std::max)(GetSystemMetrics(SM_CYSIZE), 20);
-    const int topPad = (std::max)(0, (titlebarHeightPx - btnH) / 2);
+    const int btnH = (titlebarHeightPx > 0) ? titlebarHeightPx : (std::max)(GetSystemMetrics(SM_CYSIZE), 20);
+    const int baseW = (std::max)(GetSystemMetrics(SM_CXSIZE), 30);
+    const int baseH = (std::max)(GetSystemMetrics(SM_CYSIZE), 20);
+    // Scale width proportionally so buttons stay "Explorer-like" when titlebar height changes.
+    int btnW = (baseH > 0) ? MulDiv(baseW, btnH, baseH) : baseW;
+    btnW = (std::max)(btnW, (std::max)(40, baseW));
+    const int topPad = 0;
 
     // Right-aligned: [min][max][close]
     outClose = {w - btnW, topPad, w, topPad + btnH};
@@ -530,7 +534,9 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
         GetClientRect(hWnd, &rc);
         const int w = rc.right - rc.left;
         const int h = rc.bottom - rc.top;
-        const int border = GetResizeBorderThicknessPx();
+        // When maximized, the client rect may already be inset via WM_NCCALCSIZE. Treat the
+        // top/edges as client so caption buttons remain clickable.
+        const int border = IsZoomed(hWnd) ? 0 : GetResizeBorderThicknessPx();
 
         const bool left = ptClient.x < border;
         const bool right = ptClient.x >= (w - border);
@@ -776,20 +782,37 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
             const bool hasNativeCaption = (style & WS_CAPTION) != 0;
             if (!hasNativeCaption)
             {
+                // Update rects for the current client size.
+                const int titlebarH = (self->m_customTitlebarHeightPx > 0) ? self->m_customTitlebarHeightPx
+                                                                           : GetSystemTitlebarHeightPx();
+                RECT minRc{}, maxRc{}, closeRc{};
+                ComputeCaptionButtonRects(hWnd, titlebarH, minRc, maxRc, closeRc);
+                self->m_captionBtnMinRect = minRc;
+                self->m_captionBtnMaxRect = maxRc;
+                self->m_captionBtnCloseRect = closeRc;
+
                 const POINT ptClient{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+                const int pressed = self->m_captionBtnPressed;
+                self->m_captionBtnPressed = 0;
+                if (GetCapture() == hWnd)
+                    ReleaseCapture();
+
                 if (PtInRectClient(self->m_captionBtnCloseRect, ptClient))
                 {
-                    self->WindowClose();
+                    if (pressed == 3)
+                        self->WindowClose();
                     return 0;
                 }
                 if (PtInRectClient(self->m_captionBtnMaxRect, ptClient))
                 {
-                    self->WindowToggleMaximizeRestore();
+                    if (pressed == 2)
+                        self->WindowToggleMaximizeRestore();
                     return 0;
                 }
                 if (PtInRectClient(self->m_captionBtnMinRect, ptClient))
                 {
-                    self->WindowMinimize();
+                    if (pressed == 1)
+                        self->WindowMinimize();
                     return 0;
                 }
             }
@@ -811,6 +834,14 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
             const bool hasNativeCaption = (style & WS_CAPTION) != 0;
             if (!hasNativeCaption)
             {
+                const int titlebarH = (self->m_customTitlebarHeightPx > 0) ? self->m_customTitlebarHeightPx
+                                                                           : GetSystemTitlebarHeightPx();
+                RECT minRc{}, maxRc{}, closeRc{};
+                ComputeCaptionButtonRects(hWnd, titlebarH, minRc, maxRc, closeRc);
+                self->m_captionBtnMinRect = minRc;
+                self->m_captionBtnMaxRect = maxRc;
+                self->m_captionBtnCloseRect = closeRc;
+
                 const POINT ptClient{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
                 int hover = 0;
                 if (PtInRectClient(self->m_captionBtnMinRect, ptClient))
@@ -830,6 +861,46 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
         AppendMouseEvent(CMouseEvent::Mouse_MOVE, lParam);
         return 0;
     }
+
+    case WM_LBUTTONDOWN:
+    {
+        if (self && !self->m_bFullScreen && !self->m_bEmbeddedSaverPreview && self->m_useCustomWindowChrome)
+        {
+            const LONG_PTR style = GetWindowLongPtr(hWnd, GWL_STYLE);
+            const bool hasNativeCaption = (style & WS_CAPTION) != 0;
+            if (!hasNativeCaption)
+            {
+                const int titlebarH = (self->m_customTitlebarHeightPx > 0) ? self->m_customTitlebarHeightPx
+                                                                           : GetSystemTitlebarHeightPx();
+                RECT minRc{}, maxRc{}, closeRc{};
+                ComputeCaptionButtonRects(hWnd, titlebarH, minRc, maxRc, closeRc);
+                self->m_captionBtnMinRect = minRc;
+                self->m_captionBtnMaxRect = maxRc;
+                self->m_captionBtnCloseRect = closeRc;
+
+                const POINT ptClient{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+                int pressed = 0;
+                if (PtInRectClient(self->m_captionBtnMinRect, ptClient))
+                    pressed = 1;
+                else if (PtInRectClient(self->m_captionBtnMaxRect, ptClient))
+                    pressed = 2;
+                else if (PtInRectClient(self->m_captionBtnCloseRect, ptClient))
+                    pressed = 3;
+                self->m_captionBtnPressed = pressed;
+                if (pressed != 0)
+                {
+                    SetCapture(hWnd);
+                    return 0;
+                }
+            }
+        }
+        break;
+    }
+
+    case WM_CAPTURECHANGED:
+        if (self)
+            self->m_captionBtnPressed = 0;
+        break;
 
     case WM_POWERBROADCAST:
         switch (LOWORD(wParam))

@@ -1203,9 +1203,13 @@ bool CRendererDX11::EndFrame(bool drawn) {
                     m_context->RSSetViewports(1, &fullVp);
 
                     // Compute button rects directly (don't rely on WM_NCHITTEST having run).
-                    const int btnW = (std::max)(GetSystemMetrics(SM_CXSIZE), 30);
-                    const int btnH = (std::max)(GetSystemMetrics(SM_CYSIZE), 20);
-                    const int topPad = (std::max)(0, (titlebarPx - btnH) / 2);
+                    // Buttons match titlebar height; width scales proportionally (Explorer-like).
+                    const int btnH = titlebarPx;
+                    const int baseW = (std::max)(GetSystemMetrics(SM_CXSIZE), 30);
+                    const int baseH = (std::max)(GetSystemMetrics(SM_CYSIZE), 20);
+                    int btnW = (baseH > 0) ? MulDiv(baseW, btnH, baseH) : baseW;
+                    btnW = (std::max)(btnW, (std::max)(40, baseW));
+                    const int topPad = 0;
                     const RECT rClose{static_cast<LONG>(dispW - btnW), topPad, static_cast<LONG>(dispW), topPad + btnH};
                     const RECT rMax{static_cast<LONG>(dispW - (2 * btnW)), topPad, static_cast<LONG>(dispW - btnW), topPad + btnH};
                     const RECT rMin{static_cast<LONG>(dispW - (3 * btnW)), topPad, static_cast<LONG>(dispW - (2 * btnW)), topPad + btnH};
@@ -1218,20 +1222,35 @@ bool CRendererDX11::EndFrame(bool drawn) {
                         return Base::Math::CRect(x0, y0, x1, y1);
                     };
 
-                    // Dark theme palette.
+                    const int hoverId = dx->GetCaptionButtonHoverId();
+                    const int pressedId = dx->GetCaptionButtonPressedId();
+
+                    // Dark theme palette (default buttons are transparent).
                     const Base::Math::CVector4 stripBg(0.08f, 0.08f, 0.08f, 1.f);
-                    const Base::Math::CVector4 btnBg(0.16f, 0.16f, 0.16f, 1.f);
-                    const Base::Math::CVector4 closeBg(0.22f, 0.10f, 0.10f, 1.f);
                     const Base::Math::CVector4 glyph(0.92f, 0.92f, 0.92f, 1.f);
+                    const Base::Math::CVector4 hoverBg(0.28f, 0.28f, 0.28f, 1.f);
+                    const Base::Math::CVector4 pressedBg(0.20f, 0.20f, 0.20f, 1.f);
+                    const Base::Math::CVector4 closeHoverBg(0.85f, 0.20f, 0.20f, 1.f);
+                    const Base::Math::CVector4 closePressedBg(0.65f, 0.15f, 0.15f, 1.f);
 
                     m_forceSolidWhiteTex0 = true;
                     SetShader(m_drawTextureShader);
 
                     const float th = static_cast<float>(titlebarPx) / static_cast<float>(dispH);
                     DrawQuad(Base::Math::CRect(0.f, 0.f, 1.f, th), stripBg);
-                    DrawQuad(rectToNorm(rMin), btnBg);
-                    DrawQuad(rectToNorm(rMax), btnBg);
-                    DrawQuad(rectToNorm(rClose), closeBg);
+                    const auto drawBtnBg = [&](int id, const RECT& r, bool isClose) {
+                        const bool pressed = (pressedId == id);
+                        const bool hovered = (hoverId == id);
+                        if (!pressed && !hovered)
+                            return;
+                        const Base::Math::CVector4 bg =
+                            isClose ? (pressed ? closePressedBg : closeHoverBg)
+                                    : (pressed ? pressedBg : hoverBg);
+                        DrawQuad(rectToNorm(r), bg);
+                    };
+                    drawBtnBg(1, rMin, false);
+                    drawBtnBg(2, rMax, false);
+                    drawBtnBg(3, rClose, true);
 
                     auto drawHLine = [&](float x0, float x1, float y, float t, const Base::Math::CVector4& c) {
                         DrawQuad(Base::Math::CRect(x0, y - t * 0.5f, x1, y + t * 0.5f), c);
@@ -1239,34 +1258,107 @@ bool CRendererDX11::EndFrame(bool drawn) {
                     auto drawVLine = [&](float x, float y0, float y1, float t, const Base::Math::CVector4& c) {
                         DrawQuad(Base::Math::CRect(x - t * 0.5f, y0, x + t * 0.5f, y1), c);
                     };
-                    const float t = (2.5f / static_cast<float>(dispH));
+                    // Stroke thickness in normalized Y. Clamp to keep glyphs consistent across DPI/window sizes.
+                    const float px = 0.9f; // thinner
+                    const float t = (std::max)(px / static_cast<float>(dispH), 0.00065f);
+                    auto drawDiag = [&](const Base::Math::CRect& rc, bool downRight, float thickness,
+                                        const Base::Math::CVector4& c) {
+                        // Approximate a diagonal line using a few small axis-aligned rectangles.
+                        // This keeps visuals close to Windows caption "X" without needing rotation.
+                        constexpr int kSegments = 8;
+                        // Padding controls X size. Reduce padding so X matches other glyphs visually.
+                        const float padX = rc.Width() * 0.28f;
+                        const float padY = rc.Height() * 0.28f;
+                        const float x0 = rc.m_X0 + padX;
+                        const float x1 = rc.m_X0 + rc.Width() - padX;
+                        const float y0 = rc.m_Y0 + padY;
+                        const float y1 = rc.m_Y0 + rc.Height() - padY;
+                        for (int i = 0; i < kSegments; ++i)
+                        {
+                            const float a0 = static_cast<float>(i) / static_cast<float>(kSegments);
+                            const float a1 = static_cast<float>(i + 1) / static_cast<float>(kSegments);
+                            const float sx0 = x0 + (x1 - x0) * a0;
+                            const float sx1 = x0 + (x1 - x0) * a1;
+                            const float sy0 = downRight ? (y0 + (y1 - y0) * a0) : (y1 - (y1 - y0) * a0);
+                            const float sy1 = downRight ? (y0 + (y1 - y0) * a1) : (y1 - (y1 - y0) * a1);
+                            const float cx = (sx0 + sx1) * 0.5f;
+                            const float cy = (sy0 + sy1) * 0.5f;
+                            // Use the segment length for width; thickness for height.
+                            const float segW = (std::max)(std::fabs(sx1 - sx0), std::fabs(sy1 - sy0)) * 1.15f;
+                            DrawQuad(Base::Math::CRect(cx - segW * 0.5f, cy - thickness * 0.5f,
+                                                      cx + segW * 0.5f, cy + thickness * 0.5f),
+                                     c);
+                        }
+                    };
 
-                    // Minimize glyph
+                    // Fixed pixel sizing for glyphs (consistent across window sizes).
+                    // Icon is centered in the button (H+V). No padding math.
+                    // Per-icon fixed sizes (px). Keep centered; clamp to button bounds.
+                    constexpr float kIconPx = 12.0f;
+                    constexpr float kMaxIconPx = 10.0f;
+                    constexpr float kCloseIconPx = 14.0f;
+                    constexpr float kOverlapPx = 1.0f; // back-window offset for maximize
+
+                    auto squareInButtonPx = [&](const RECT& r, float iconPx) {
+                        const auto btn = rectToNorm(r);
+                        const float btnPxW = static_cast<float>(r.right - r.left);
+                        const float btnPxH = static_cast<float>(r.bottom - r.top);
+                        const float maxSidePx = (std::max)(1.0f, (std::min)(btnPxW, btnPxH));
+                        const float sidePx = (std::min)(iconPx, maxSidePx);
+
+                        const float sideX = sidePx / static_cast<float>(dispW);
+                        const float sideY = sidePx / static_cast<float>(dispH);
+
+                        const float cx = btn.m_X0 + btn.Width() * 0.5f;
+                        const float cy = btn.m_Y0 + btn.Height() * 0.5f;
+                        return Base::Math::CRect(cx - sideX * 0.5f, cy - sideY * 0.5f,
+                                                cx + sideX * 0.5f, cy + sideY * 0.5f);
+                    };
+
+                    // Minimize glyph (square-bounded)
                     {
-                        const auto rc = rectToNorm(rMin);
-                        const float cx = rc.m_X0 + rc.Width() * 0.5f;
-                        const float cy = rc.m_Y0 + rc.Height() * 0.62f;
-                        drawHLine(cx - rc.Width() * 0.18f, cx + rc.Width() * 0.18f, cy, t, glyph);
+                        const auto box = squareInButtonPx(rMin, kIconPx);
+                        const float cx = box.m_X0 + box.Width() * 0.5f;
+                        const float cy = box.m_Y0 + box.Height() * 0.70f;
+                        drawHLine(cx - box.Width() * 0.40f, cx + box.Width() * 0.40f, cy, t, glyph);
                     }
-                    // Maximize glyph (box)
+
+                    // Maximize icon: two overlapping squares (back partly hidden by front)
                     {
-                        const auto rc = rectToNorm(rMax);
-                        const float x0 = rc.m_X0 + rc.Width() * 0.34f;
-                        const float x1 = rc.m_X0 + rc.Width() * 0.66f;
-                        const float y0 = rc.m_Y0 + rc.Height() * 0.30f;
-                        const float y1 = rc.m_Y0 + rc.Height() * 0.70f;
-                        drawHLine(x0, x1, y0, t, glyph);
-                        drawHLine(x0, x1, y1, t, glyph);
-                        drawVLine(x0, y0, y1, t, glyph);
-                        drawVLine(x1, y0, y1, t, glyph);
+                        const auto box = squareInButtonPx(rMax, kMaxIconPx);
+                        const float dX = kOverlapPx / static_cast<float>(dispW);
+                        const float dY = kOverlapPx / static_cast<float>(dispH);
+
+                        // Make the double-window glyph slightly smaller than the icon box so it doesn't read larger
+                        // than the X/minimize icons.
+                        const float shrink = 0.76f;
+                        const float sw = box.Width() * shrink;
+                        const float sh = box.Height() * shrink;
+                        const float cx = box.m_X0 + box.Width() * 0.5f;
+                        const float cy = box.m_Y0 + box.Height() * 0.5f;
+                        const Base::Math::CRect core(cx - sw * 0.5f, cy - sh * 0.5f, cx + sw * 0.5f, cy + sh * 0.5f);
+
+                        // Back square (draw first)
+                        const Base::Math::CRect back(core.m_X0 + dX, core.m_Y0 - dY, core.m_X0 + core.Width() + dX,
+                                                     core.m_Y0 + core.Height() - dY);
+                        drawHLine(back.m_X0, back.m_X0 + back.Width(), back.m_Y0, t, glyph);
+                        drawHLine(back.m_X0, back.m_X0 + back.Width(), back.m_Y0 + back.Height(), t, glyph);
+                        drawVLine(back.m_X0, back.m_Y0, back.m_Y0 + back.Height(), t, glyph);
+                        drawVLine(back.m_X0 + back.Width(), back.m_Y0, back.m_Y0 + back.Height(), t, glyph);
+
+                        // Front square (draw second, hides part of back)
+                        const Base::Math::CRect front(core.m_X0 - dX, core.m_Y0 + dY, core.m_X0 + core.Width() - dX,
+                                                      core.m_Y0 + core.Height() + dY);
+                        drawHLine(front.m_X0, front.m_X0 + front.Width(), front.m_Y0, t, glyph);
+                        drawHLine(front.m_X0, front.m_X0 + front.Width(), front.m_Y0 + front.Height(), t, glyph);
+                        drawVLine(front.m_X0, front.m_Y0, front.m_Y0 + front.Height(), t, glyph);
+                        drawVLine(front.m_X0 + front.Width(), front.m_Y0, front.m_Y0 + front.Height(), t, glyph);
                     }
-                    // Close glyph (+)
+                    // Close glyph (X) (square-bounded)
                     {
-                        const auto rc = rectToNorm(rClose);
-                        const float cx = rc.m_X0 + rc.Width() * 0.5f;
-                        const float cy = rc.m_Y0 + rc.Height() * 0.5f;
-                        drawHLine(cx - rc.Width() * 0.16f, cx + rc.Width() * 0.16f, cy, t, glyph);
-                        drawVLine(cx, cy - rc.Height() * 0.16f, cy + rc.Height() * 0.16f, t, glyph);
+                        const auto box = squareInButtonPx(rClose, kCloseIconPx);
+                        drawDiag(box, true, t, glyph);
+                        drawDiag(box, false, t, glyph);
                     }
 
                     m_forceSolidWhiteTex0 = false;
