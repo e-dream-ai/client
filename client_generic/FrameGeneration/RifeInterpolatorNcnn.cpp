@@ -217,34 +217,35 @@ ContentDecoder::spCVideoFrame CRifeInterpolatorNcnn::Interpolate(
     const int height = static_cast<int>(previous->Height());
     CBlendFrameInterpolator blendFallback;
 
-    std::vector<unsigned char> previousRgb(static_cast<size_t>(width) * height * 3u);
-    std::vector<unsigned char> nextRgb(static_cast<size_t>(width) * height * 3u);
+    // Reuse per-instance buffers to avoid per-frame heap allocations (~18 MB/frame)
+    const size_t rgbBytes = static_cast<size_t>(width) * height * 3u;
+    if (m_prevRgbBuf.size() < rgbBytes) m_prevRgbBuf.resize(rgbBytes);
+    if (m_nextRgbBuf.size() < rgbBytes) m_nextRgbBuf.resize(rgbBytes);
+    if (m_outRgbBuf.size()  < rgbBytes) m_outRgbBuf.resize(rgbBytes);
 
-    for (int row = 0; row < height; ++row)
+    // RGBA→RGB: pointer-step form allows auto-vectorisation
     {
-        const uint8_t* prevRow = prevFrame->data[0] + row * prevFrame->linesize[0];
-        const uint8_t* nextRow = nextFrame->data[0] + row * nextFrame->linesize[0];
-        unsigned char* prevDst = previousRgb.data() + static_cast<size_t>(row) * width * 3u;
-        unsigned char* nextDst = nextRgb.data() + static_cast<size_t>(row) * width * 3u;
-
-        for (int col = 0; col < width; ++col)
-        {
-            prevDst[col * 3 + 0] = prevRow[col * 4 + 0];
-            prevDst[col * 3 + 1] = prevRow[col * 4 + 1];
-            prevDst[col * 3 + 2] = prevRow[col * 4 + 2];
-            nextDst[col * 3 + 0] = nextRow[col * 4 + 0];
-            nextDst[col * 3 + 1] = nextRow[col * 4 + 1];
-            nextDst[col * 3 + 2] = nextRow[col * 4 + 2];
-        }
+        const int pixels = width * height;
+        const uint8_t* src = prevFrame->data[0];
+        unsigned char* dst = m_prevRgbBuf.data();
+        for (int i = 0; i < pixels; ++i, src += 4, dst += 3)
+            { dst[0] = src[0]; dst[1] = src[1]; dst[2] = src[2]; }
+    }
+    {
+        const int pixels = width * height;
+        const uint8_t* src = nextFrame->data[0];
+        unsigned char* dst = m_nextRgbBuf.data();
+        for (int i = 0; i < pixels; ++i, src += 4, dst += 3)
+            { dst[0] = src[0]; dst[1] = src[1]; dst[2] = src[2]; }
     }
 
+    // Timer starts before GPU dispatch so the reported time covers the full cost
     Base::CTimer timer;
     timer.Reset();
 
-    std::vector<unsigned char> outRgbData(static_cast<size_t>(width) * height * 3u);
-    ncnn::Mat in0(width, height, previousRgb.data(), (size_t)3u);
-    ncnn::Mat in1(width, height, nextRgb.data(), (size_t)3u);
-    ncnn::Mat out(width, height, (void*)outRgbData.data(), (size_t)3u);
+    ncnn::Mat in0(width, height, m_prevRgbBuf.data(), (size_t)3u);
+    ncnn::Mat in1(width, height, m_nextRgbBuf.data(), (size_t)3u);
+    ncnn::Mat out(width, height, (void*)m_outRgbBuf.data(), (size_t)3u);
 
     int processResult = -1;
     {
@@ -254,7 +255,13 @@ ContentDecoder::spCVideoFrame CRifeInterpolatorNcnn::Interpolate(
         if (m_runtimeDisabled)
         {
             m_runtimeFallbackActive = true;
-            return blendFallback.Interpolate(previous, next, 0.5f);
+            auto result = blendFallback.Interpolate(previous, next, 0.5f);
+            const double elapsed = timer.Time() * 1000.0;
+            // m_mutex already held by the enclosing lock_guard
+            m_lastInferenceMs = elapsed;
+            m_totalInferenceMs += elapsed;
+            ++m_successfulFrames;
+            return result;
         }
         processResult = m_impl->backend->process(in0, in1, 0.5f, out);
     }
@@ -274,7 +281,12 @@ ContentDecoder::spCVideoFrame CRifeInterpolatorNcnn::Interpolate(
         g_Log->Warning("RIFE inference failed (count=%llu, model=%s)",
                        static_cast<unsigned long long>(m_failedFrames),
                        m_modelDirectory.c_str());
-        return blendFallback.Interpolate(previous, next, 0.5f);
+        auto result = blendFallback.Interpolate(previous, next, 0.5f);
+        const double elapsed = timer.Time() * 1000.0;
+        m_lastInferenceMs = elapsed;   // still inside lock (lock_guard above covers this block)
+        m_totalInferenceMs += elapsed;
+        ++m_successfulFrames;
+        return result;
     }
 
     auto output = std::make_shared<ContentDecoder::CVideoFrame>(
@@ -286,17 +298,13 @@ ContentDecoder::spCVideoFrame CRifeInterpolatorNcnn::Interpolate(
     if (!dstFrame || !dstFrame->data[0])
         return nullptr;
 
-    for (int row = 0; row < height; ++row)
+    // RGB→RGBA: pointer-step form for auto-vectorisation
     {
-        const unsigned char* srcRow = outRgbData.data() + static_cast<size_t>(row) * width * 3u;
-        uint8_t* dstRow = dstFrame->data[0] + row * dstFrame->linesize[0];
-        for (int col = 0; col < width; ++col)
-        {
-            dstRow[col * 4 + 0] = srcRow[col * 3 + 0];
-            dstRow[col * 4 + 1] = srcRow[col * 3 + 1];
-            dstRow[col * 4 + 2] = srcRow[col * 3 + 2];
-            dstRow[col * 4 + 3] = 255;
-        }
+        const int pixels = width * height;
+        const unsigned char* src = m_outRgbBuf.data();
+        uint8_t* dst = dstFrame->data[0];
+        for (int i = 0; i < pixels; ++i, src += 3, dst += 4)
+            { dst[0] = src[0]; dst[1] = src[1]; dst[2] = src[2]; dst[3] = 255; }
     }
 
     {

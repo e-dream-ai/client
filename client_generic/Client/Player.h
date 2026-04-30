@@ -1,6 +1,7 @@
 #ifndef _PLAYER_H_
 #define _PLAYER_H_
 
+#include <array>
 #include <atomic>
 #include <queue>
 
@@ -20,6 +21,7 @@
 #include "Clip.h"
 #include "PlaylistManager.h"
 #include "FrameGeneration/FrameGenerationMode.h"
+#include "FrameGeneration/RifeInterpolatorNcnn.h"
 
 /**
         CPlayer.
@@ -54,6 +56,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     
     ContentDecoder::spCClip m_currentClip;
     ContentDecoder::spCClip m_nextClip;
+    std::shared_ptr<FrameGeneration::CRifeInterpolatorNcnn> m_rifeInterpolator;
     
     bool m_isTransitioning;
     double m_transitionStartTime;
@@ -89,6 +92,22 @@ class CPlayer : public Base::CSingleton<CPlayer>
     double m_PerceptualFPS;
     double m_DisplayFps;
     double m_LastFrameRealTime;
+
+#if defined(LINUX_GNU)
+    // Rolling vsync-interval sampler for adaptive display-fps detection.
+    // Requires the full buffer before the first measurement, then imposes a
+    // 500-sample cooldown after any change to break the feedback loop where
+    // a ReconfigureFrameGeneration call perturbs frame timing and immediately
+    // triggers another change.
+    static constexpr int kVsyncSampleCount   = 120;
+    static constexpr int kVsyncCooldownCount = 500;
+    std::array<double, kVsyncSampleCount> m_vsyncSamples{};
+    int    m_vsyncSampleIdx           = 0;
+    int    m_vsyncSampleCount         = 0;
+    int    m_vsyncCooldown            = 0;  // samples remaining in post-change quiet period
+    double m_lastConfirmedDisplayFps  = 0.0;
+#endif
+
     bool m_bFullscreen;
     bool m_InitPlayCounts;
     bool m_bPaused = false;
@@ -133,6 +152,11 @@ class CPlayer : public Base::CSingleton<CPlayer>
 
     /// Shared logged-in path: Hello/quota, server playlist, begin playback (used by startup and sign-in).
     void BootstrapLoggedInPlaylist();
+#if defined(LINUX_GNU)
+    /// Update m_DisplayFps and reconfigure frame generation on all active clips.
+    /// Must be called while m_UpdateMutex writer lock is held.
+    void ApplyNewDisplayFpsLocked(double hz);
+#endif
 
   public:
     void FpsCap(const double _cap);

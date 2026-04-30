@@ -3,6 +3,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <vector>
 
 #include "IFrameInterpolator.h"
 
@@ -56,6 +57,9 @@ class CRifeInterpolatorNcnn : public IFrameInterpolator
     mutable bool m_loggedFirstGeneratedFrame = false;
     mutable bool m_runtimeFallbackActive = false;
     mutable std::unique_ptr<Impl> m_impl;
+    mutable std::vector<unsigned char> m_prevRgbBuf;
+    mutable std::vector<unsigned char> m_nextRgbBuf;
+    mutable std::vector<unsigned char> m_outRgbBuf;
 };
 
 } // namespace FrameGeneration

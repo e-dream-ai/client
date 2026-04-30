@@ -18,6 +18,7 @@
 #include "CacheManager.h"
 #include "FrameGeneration/FrameGenerationMode.h"
 #include "FrameGeneration/FrameGenerationScheduler.h"
+#include "FrameGeneration/RifeInterpolatorNcnn.h"
 
 namespace ContentDecoder
 {
@@ -185,7 +186,10 @@ public:
     double GetTotalBufferingTime() const { return m_TotalBufferingTime; }
     bool HasStartedPlaying() const { return m_HasStartedPlaying; }
     bool IsFrameGenerationEnabled() const;
-    void ReconfigureFrameGeneration(FrameGeneration::EFrameGenerationMode newMode);
+    void ReconfigureFrameGeneration(FrameGeneration::EFrameGenerationMode newMode,
+                                    FrameGeneration::spIFrameInterpolator prebuiltInterpolator = nullptr,
+                                    double displayFps = 0.0);
+    std::shared_ptr<FrameGeneration::CRifeInterpolatorNcnn> GetRifeInterpolator() const;
     double GetPresentationFps() const { return m_PresentationFps > 0.0 ? m_PresentationFps : m_ClipMetadata.decodeFps; }
     std::string GetFrameGenerationMode() const;
     uint64_t GetGeneratedFrameCount() const;

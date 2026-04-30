@@ -8,6 +8,7 @@ include(FetchContent)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(INFINIDREAM_ENABLE_RIFE "Enable Linux RIFE frame generation via ncnn Vulkan" OFF)
 
@@ -421,6 +422,7 @@ target_link_libraries(infinidream PRIVATE
     Vulkan::Vulkan
     ${X11_LIBRARIES}
     ${X11_Xrender_LIB}
+    ${X11_Xrandr_LIB}
     Threads::Threads
     OpenSSL::SSL
     OpenSSL::Crypto

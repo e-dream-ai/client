@@ -24,6 +24,7 @@ class CFrameGenerationScheduler
     {
         return m_interpolator ? std::string(m_interpolator->Name()) : std::string("off");
     }
+    spIFrameInterpolator GetInterpolator() const { return m_interpolator; }
     const ContentDecoder::spCVideoFrame& CurrentDisplayFrame() const { return m_displayFrame; }
     double CurrentDisplayPhase() const { return m_displayPhase; }
     uint64_t GeneratedFrameCount() const { return m_generatedFrameCount; }

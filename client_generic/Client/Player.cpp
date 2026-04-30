@@ -34,6 +34,7 @@
 #else  // Linux
 #include "DisplayVulkan.h"
 #include "RendererVulkan.h"
+#include <X11/extensions/Xrandr.h>
 #endif
 
 #include "CacheManager.h"
@@ -246,11 +247,133 @@ int CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
     return (int)m_displayUnits.size() - 1;
 }
 
+#if defined(LINUX_GNU)
+// ---------------------------------------------------------------------------
+// Query the primary monitor's refresh rate via XRandR 1.2+
+// Returns 0.0 if unavailable (no DISPLAY, no Xrandr, or no connected output).
+// ---------------------------------------------------------------------------
+static double QueryXRandrRefreshHz()
+{
+    Display* dpy = XOpenDisplay(nullptr);
+    if (!dpy)
+        return 0.0;
+
+    int screen = DefaultScreen(dpy);
+    Window root = RootWindow(dpy, screen);
+
+    int eventBase, errorBase;
+    if (!XRRQueryExtension(dpy, &eventBase, &errorBase))
+    {
+        XCloseDisplay(dpy);
+        return 0.0;
+    }
+
+    XRRScreenResources* res = XRRGetScreenResourcesCurrent(dpy, root);
+    if (!res)
+    {
+        XCloseDisplay(dpy);
+        return 0.0;
+    }
+
+    RROutput primary = XRRGetOutputPrimary(dpy, root);
+
+    auto getRefreshForOutput = [&](RROutput output) -> double
+    {
+        XRROutputInfo* outInfo = XRRGetOutputInfo(dpy, res, output);
+        if (!outInfo)
+            return 0.0;
+        double hz = 0.0;
+        if (outInfo->connection == RR_Connected && outInfo->crtc != None)
+        {
+            XRRCrtcInfo* crtcInfo = XRRGetCrtcInfo(dpy, res, outInfo->crtc);
+            if (crtcInfo)
+            {
+                for (int m = 0; m < res->nmode; ++m)
+                {
+                    if (res->modes[m].id == crtcInfo->mode)
+                    {
+                        const XRRModeInfo& mode = res->modes[m];
+                        if (mode.hTotal > 0 && mode.vTotal > 0)
+                            hz = static_cast<double>(mode.dotClock) /
+                                 (static_cast<double>(mode.hTotal) *
+                                  static_cast<double>(mode.vTotal));
+                        break;
+                    }
+                }
+                XRRFreeCrtcInfo(crtcInfo);
+            }
+        }
+        XRRFreeOutputInfo(outInfo);
+        return hz;
+    };
+
+    double refreshHz = 0.0;
+
+    // Prefer the designated primary output.
+    if (primary != None)
+        refreshHz = getRefreshForOutput(primary);
+
+    // Fall back to the first connected output if primary is unset or disconnected.
+    if (refreshHz <= 0.0)
+    {
+        for (int i = 0; i < res->noutput; ++i)
+        {
+            refreshHz = getRefreshForOutput(res->outputs[i]);
+            if (refreshHz > 0.0)
+                break;
+        }
+    }
+
+    XRRFreeScreenResources(res);
+    XCloseDisplay(dpy);
+    return refreshHz;
+}
+
+void CPlayer::ApplyNewDisplayFpsLocked(double hz)
+{
+    g_Log->Info("Display refresh rate updated: %.1f Hz (was %.1f Hz)", hz, m_DisplayFps);
+    m_lastConfirmedDisplayFps = hz;
+    m_DisplayFps = hz;
+    // Reset the sample buffer and impose a quiet period so the decoder-clock reset
+    // triggered by ReconfigureFrameGeneration doesn't immediately produce bad samples
+    // that fire another update.
+    m_vsyncSampleCount = 0;
+    m_vsyncSampleIdx   = 0;
+    m_vsyncCooldown    = kVsyncCooldownCount;
+    g_Settings()->Set("settings.player.display_fps", hz);
+
+    const auto mode = FrameGeneration::FromSetting(
+        g_Settings()->Get("settings.player.frame_generation.mode",
+                          FrameGeneration::ToSetting(FrameGeneration::EFrameGenerationMode::Off)));
+    if (m_currentClip)
+        m_currentClip->ReconfigureFrameGeneration(mode, m_rifeInterpolator, hz);
+    if (m_nextClip)
+        m_nextClip->ReconfigureFrameGeneration(mode, m_rifeInterpolator, hz);
+}
+#endif  // LINUX_GNU
+
 /*
  */
 bool CPlayer::Startup()
 {
     m_DisplayFps = g_Settings()->Get("settings.player.display_fps", 60.);
+
+#if defined(LINUX_GNU)
+    {
+        const double xrandrHz = QueryXRandrRefreshHz();
+        if (xrandrHz > 0.0)
+        {
+            g_Log->Info("XRandR primary monitor refresh rate: %.2f Hz", xrandrHz);
+            m_DisplayFps = xrandrHz;
+            m_lastConfirmedDisplayFps = xrandrHz;
+            g_Settings()->Set("settings.player.display_fps", xrandrHz);
+        }
+        else
+        {
+            g_Log->Info("XRandR query unavailable; using stored display_fps=%.1f Hz", m_DisplayFps);
+        }
+    }
+#endif
 
 #ifdef HONOR_VBL_SYNC
     if (g_Settings()->Get("settings.player.vbl_sync", false))
@@ -553,7 +676,56 @@ bool CPlayer::BeginFrameUpdate()
     m_LastFrameRealTime = newTime;
     m_TimelineTime += delta;
 
+#if defined(LINUX_GNU)
+    // Feed this vsync-interval sample into the rolling detector.
+    // Valid range: 2 ms (500 Hz) – 100 ms (10 Hz). Anything outside is noise.
+    double pendingDisplayFps = 0.0;
+    if (delta > 0.002 && delta < 0.100)
+    {
+        if (m_vsyncCooldown > 0)
+        {
+            // Post-change quiet period: collect samples but don't evaluate yet.
+            // This prevents the decoder-clock reset (from ReconfigureFrameGeneration)
+            // from perturbing frame timings and immediately triggering another change.
+            --m_vsyncCooldown;
+        }
+
+        m_vsyncSamples[m_vsyncSampleIdx] = delta;
+        m_vsyncSampleIdx = (m_vsyncSampleIdx + 1) % kVsyncSampleCount;
+        if (m_vsyncSampleCount < kVsyncSampleCount)
+            ++m_vsyncSampleCount;
+
+        // Only evaluate once the full buffer is filled (no early partial-window reads)
+        // and the cooldown has expired.
+        if (m_vsyncCooldown == 0 && m_vsyncSampleCount == kVsyncSampleCount)
+        {
+            // Compute median via nth_element (O(n), no full sort needed).
+            std::array<double, kVsyncSampleCount> sorted = m_vsyncSamples;
+            std::nth_element(sorted.begin(), sorted.begin() + kVsyncSampleCount / 2, sorted.end());
+            const double measuredFps = 1.0 / sorted[kVsyncSampleCount / 2];
+
+            // Snap to a known standard rate within ±5 %.
+            static constexpr double kStandardRates[] =
+                {60.0, 75.0, 90.0, 100.0, 120.0, 144.0, 165.0, 240.0};
+            for (double rate : kStandardRates)
+            {
+                if (std::fabs(measuredFps - rate) / rate < 0.05)
+                {
+                    if (std::fabs(rate - m_lastConfirmedDisplayFps) > 0.5)
+                        pendingDisplayFps = rate;
+                    break;
+                }
+            }
+        }
+    }
+#endif
+
     writer_lock l(m_UpdateMutex);
+
+#if defined(LINUX_GNU)
+    if (pendingDisplayFps > 0.0)
+        ApplyNewDisplayFpsLocked(pendingDisplayFps);
+#endif
 
 /*    if (m_currentClip) {
         m_currentClip->Update(m_TimelineTime);
@@ -855,9 +1027,24 @@ bool CPlayer::PlayClip(const Cache::Dream* dream, double _startTime, int64_t _se
 
     if (!newClip->Start(_seekFrame))
         return false;
-    
+
+    if (m_rifeInterpolator)
+    {
+        // Shared RIFE is ready — inject it so this clip doesn't hold its own loaded copy
+        const auto mode = FrameGeneration::FromSetting(
+            g_Settings()->Get("settings.player.frame_generation.mode",
+                              FrameGeneration::ToSetting(FrameGeneration::EFrameGenerationMode::Off)));
+        if (mode == FrameGeneration::EFrameGenerationMode::RIFE)
+            newClip->ReconfigureFrameGeneration(mode, m_rifeInterpolator);
+    }
+    else if (auto rife = newClip->GetRifeInterpolator())
+    {
+        // First RIFE clip — harvest its already-loaded instance for all future clips and G-key cycles
+        m_rifeInterpolator = rife;
+    }
+
     newClip->SetStartTime(_startTime);
-    
+
     if (m_isFirstPlay || !isTransition) {
         // Start the asynchronous destruction of the current clip
         if (m_currentClip) {
@@ -1120,6 +1307,14 @@ FrameGeneration::EFrameGenerationMode CPlayer::CycleFrameGenerationMode()
 
     g_Log->Info("Frame generation mode changed to %s", FrameGeneration::ToString(nextMode));
 
+    // Pre-initialize RIFE *outside* the render-thread lock so the one-time model
+    // load doesn't block the display loop. Subsequent cycles reuse the same instance.
+    if (nextMode == FrameGeneration::EFrameGenerationMode::RIFE && !m_rifeInterpolator)
+    {
+        m_rifeInterpolator = std::make_shared<FrameGeneration::CRifeInterpolatorNcnn>();
+        m_rifeInterpolator->IsAvailable(); // triggers one-time model load before lock
+    }
+
     // Reconfigure the running clip's scheduler in-place rather than seeking via
     // PlayDreamNow(). Seeking created a near-end clip that exhausted its frame
     // buffer in milliseconds, which destabilised the transition state machine and
@@ -1127,7 +1322,7 @@ FrameGeneration::EFrameGenerationMode CPlayer::CycleFrameGenerationMode()
     {
         writer_lock l(m_UpdateMutex);
         if (m_currentClip)
-            m_currentClip->ReconfigureFrameGeneration(nextMode);
+            m_currentClip->ReconfigureFrameGeneration(nextMode, m_rifeInterpolator);
     }
 
     return nextMode;
@@ -1193,7 +1388,21 @@ void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
                 if (newClip->Start(frameNumber)) {
                     // Only take the lock once everything is ready
                     writer_lock l(m_UpdateMutex);
-                    
+
+                    // RIFE: inject shared instance or harvest first loaded one (fast — model already loaded)
+                    if (m_rifeInterpolator)
+                    {
+                        const auto mode = FrameGeneration::FromSetting(
+                            g_Settings()->Get("settings.player.frame_generation.mode",
+                                              FrameGeneration::ToSetting(FrameGeneration::EFrameGenerationMode::Off)));
+                        if (mode == FrameGeneration::EFrameGenerationMode::RIFE)
+                            newClip->ReconfigureFrameGeneration(mode, m_rifeInterpolator);
+                    }
+                    else if (auto rife = newClip->GetRifeInterpolator())
+                    {
+                        m_rifeInterpolator = rife;
+                    }
+
                     // Cancel any ongoing transition/preload
                     if (m_isTransitioning && m_nextClip) {
                         destroyClipAsync(std::move(m_nextClip));
@@ -1203,11 +1412,10 @@ void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
                     m_nextDreamDecision = std::nullopt;
                     m_PreloadingNextClip = false;
                     m_PreloadingDreamUUID = "";
-                    
+
                     // Set up transition parameters (but don't start yet - wait for clip to buffer)
                     m_transitionDuration = 1.0f;
                     m_pendingSeekCrossfade = true;  // Will start transition when next clip is ready
-
 
                     // Set the start time and store the clip
                     newClip->SetStartTime(m_TimelineTime);
@@ -1244,7 +1452,21 @@ void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
             
             if (newClip->Start(frameNumber)) {
                 writer_lock l(m_UpdateMutex);
-                
+
+                // RIFE: inject shared instance or harvest first loaded one (fast — model already loaded)
+                if (m_rifeInterpolator)
+                {
+                    const auto mode = FrameGeneration::FromSetting(
+                        g_Settings()->Get("settings.player.frame_generation.mode",
+                                          FrameGeneration::ToSetting(FrameGeneration::EFrameGenerationMode::Off)));
+                    if (mode == FrameGeneration::EFrameGenerationMode::RIFE)
+                        newClip->ReconfigureFrameGeneration(mode, m_rifeInterpolator);
+                }
+                else if (auto rife = newClip->GetRifeInterpolator())
+                {
+                    m_rifeInterpolator = rife;
+                }
+
                 // Cancel any ongoing transition/preload
                 if (m_isTransitioning && m_nextClip) {
                     destroyClipAsync(std::move(m_nextClip));
@@ -1254,11 +1476,11 @@ void CPlayer::PlayDreamNow(std::string_view _uuid, int64_t frameNumber) {
                 m_nextDreamDecision = std::nullopt;
                 m_PreloadingNextClip = false;
                 m_PreloadingDreamUUID = "";
-                
+
                 // Set up transition parameters (but don't start yet - wait for clip to buffer)
                 m_transitionDuration = 1.0f;
                 m_pendingSeekCrossfade = true;  // Will start transition when next clip is ready
-                
+
                 newClip->SetStartTime(m_TimelineTime);
                 m_nextClip = newClip;
                 if (m_nextClip) {

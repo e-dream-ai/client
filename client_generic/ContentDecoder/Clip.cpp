@@ -37,7 +37,9 @@ static double SelectFrameGenerationTargetFps(double sourceFps,
             best = candidate;
     }
 
-    return best;
+    // If no display-aligned candidate beats sourceFps, fall back to the
+    // (non-display-aligned) cappedRequested so frame gen isn't silently disabled.
+    return (best > sourceFps + 0.001) ? best : cappedRequested;
 }
 
 CClip::CClip(const sClipMetadata& _metadata, spCRenderer _spRenderer,
@@ -650,7 +652,7 @@ void CClip::UpdatePlaybackRate(double _newFps, double _currentTimelineTime)
 {
     m_ClipMetadata.decodeFps = _newFps;
     m_PresentationFps = (m_spFrameGeneration && m_spFrameGeneration->Enabled())
-        ? _newFps * 2.0
+        ? m_spFrameGeneration->PresentationFps()
         : _newFps;
 
     // If the clip is already fading out, FadeOut() has deliberately pinned
@@ -801,34 +803,57 @@ bool CClip::IsFrameGenerationEnabled() const
     return m_spFrameGeneration && m_spFrameGeneration->Enabled();
 }
 
-void CClip::ReconfigureFrameGeneration(FrameGeneration::EFrameGenerationMode newMode)
+void CClip::ReconfigureFrameGeneration(FrameGeneration::EFrameGenerationMode newMode,
+                                       FrameGeneration::spIFrameInterpolator prebuiltInterpolator,
+                                       double displayFps)
 {
     m_FrameGenerationMode = newMode;
 
     const double requestedOutputFps =
         g_Settings()->Get("settings.player.frame_generation.output_fps", 40.0);
-    const double displayRefreshFps =
-        g_Settings()->Get("settings.player.display_fps", 60.0);
+    // Prefer the caller-supplied displayFps (avoids any settings-roundtrip latency).
+    const double displayRefreshFps = (displayFps > 0.0)
+        ? displayFps
+        : g_Settings()->Get("settings.player.display_fps", 60.0);
     const double selectedOutputFps = SelectFrameGenerationTargetFps(
         m_ClipMetadata.decodeFps, requestedOutputFps, displayRefreshFps);
 
     FrameGeneration::spIFrameInterpolator interpolator;
+    const bool prebuiltReady = (newMode == FrameGeneration::EFrameGenerationMode::RIFE) &&
+                               prebuiltInterpolator && prebuiltInterpolator->IsAvailable();
     switch (newMode)
     {
     case FrameGeneration::EFrameGenerationMode::Blend2X:
         interpolator = std::make_shared<FrameGeneration::CBlendFrameInterpolator>();
         break;
     case FrameGeneration::EFrameGenerationMode::RIFE:
-        interpolator = std::make_shared<FrameGeneration::CRifeInterpolatorNcnn>();
-        if (!interpolator->IsAvailable())
-            interpolator = std::make_shared<FrameGeneration::CBlendFrameInterpolator>();
+        if (prebuiltReady)
+        {
+            // Reuse the caller-provided (pre-initialized) interpolator — avoids reloading the model
+            interpolator = prebuiltInterpolator;
+        }
+        else
+        {
+            interpolator = std::make_shared<FrameGeneration::CRifeInterpolatorNcnn>();
+            if (!interpolator->IsAvailable())
+                interpolator = std::make_shared<FrameGeneration::CBlendFrameInterpolator>();
+        }
         break;
     case FrameGeneration::EFrameGenerationMode::Off:
         break;
     }
 
+    g_Log->Info("Clip %s ReconfigureFrameGeneration: mode=%s display=%.1f selected=%.2f prebuilt=%s interpolator=%s",
+                m_ClipMetadata.dreamData.uuid.c_str(),
+                FrameGeneration::ToString(newMode),
+                displayRefreshFps,
+                selectedOutputFps,
+                prebuiltInterpolator ? (prebuiltReady ? "ready" : "unavailable") : "null",
+                interpolator ? interpolator->Name() : "none");
+
+    const bool frameGenEnabled = (interpolator != nullptr);
     m_spFrameGeneration->Configure(
-        interpolator != nullptr,
+        frameGenEnabled,
         m_ClipMetadata.decodeFps,
         selectedOutputFps,
         std::move(interpolator));
@@ -836,11 +861,12 @@ void CClip::ReconfigureFrameGeneration(FrameGeneration::EFrameGenerationMode new
     // Reset clock so GetFramesToAdvance() recalibrates at the new presentation fps
     m_DecoderClock.started = false;
 
-    g_Log->Info("Clip %s frame generation reconfigured: mode=%s decode=%.2f presentation=%.2f",
+    g_Log->Info("Clip %s frame generation reconfigured: mode=%s decode=%.2f presentation=%.2f enabled=%s",
                 m_ClipMetadata.dreamData.uuid.c_str(),
                 GetFrameGenerationMode().c_str(),
                 m_ClipMetadata.decodeFps,
-                GetPresentationFps());
+                GetPresentationFps(),
+                m_spFrameGeneration->Enabled() ? "true" : "false");
 }
 
 std::string CClip::GetFrameGenerationMode() const
@@ -881,6 +907,14 @@ double CClip::GetFrameGenerationAverageTimeMs() const
     if (!m_spFrameGeneration)
         return 0.0;
     return m_spFrameGeneration->InterpolatorAverageTimeMs();
+}
+
+std::shared_ptr<FrameGeneration::CRifeInterpolatorNcnn> CClip::GetRifeInterpolator() const
+{
+    if (!m_spFrameGeneration)
+        return nullptr;
+    return std::dynamic_pointer_cast<FrameGeneration::CRifeInterpolatorNcnn>(
+        m_spFrameGeneration->GetInterpolator());
 }
 
 } // namespace ContentDecoder

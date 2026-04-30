@@ -1759,29 +1759,56 @@ class CElectricSheep
                 auto* frameGenStat = (Hud::CStringStat*)spStats->Get("framegen");
                 auto* frameGenCountStat = (Hud::CStringStat*)spStats->Get("framegencount");
                 auto* frameGenTimingStat = (Hud::CStringStat*)spStats->Get("framegentiming");
+                // Determine whether we're in a non-Off frame-gen mode (for visibility)
+                // independently of whether the scheduler is currently enabled.  This
+                // keeps stats visible even when the scheduler hasn't enabled yet, so
+                // we can diagnose configuration failures.
+                const auto frameGenModeSetting = FrameGeneration::FromSetting(
+                    g_Settings()->Get("settings.player.frame_generation.mode",
+                                      FrameGeneration::ToSetting(
+                                          FrameGeneration::EFrameGenerationMode::Off)));
+                const bool frameGenModeOn =
+                    frameGenModeSetting != FrameGeneration::EFrameGenerationMode::Off;
+
                 if (outputFpsStat && frameGenStat && frameGenCountStat && frameGenTimingStat)
                 {
-                    outputFpsStat->Visible(frameGenerationEnabled);
-                    frameGenStat->Visible(frameGenerationEnabled);
-                    frameGenCountStat->Visible(frameGenerationEnabled);
-                    frameGenTimingStat->Visible(frameGenerationEnabled && frameGenerationAvgMs > 0.0);
+                    outputFpsStat->Visible(frameGenModeOn);
+                    frameGenStat->Visible(frameGenModeOn);
+                    frameGenCountStat->Visible(frameGenModeOn);
+                    frameGenTimingStat->Visible(frameGenModeOn);
 
-                    if (frameGenerationEnabled)
+                    if (frameGenModeOn)
                     {
-                        outputFpsStat->SetSample(string_format(" %.2f fps", outputFPS));
-                        frameGenStat->SetSample(
-                            string_format(" %s (active, %.0f Hz output)",
-                                          frameGenerationMode.c_str(), outputFPS));
-                        frameGenCountStat->SetSample(
-                            string_format(" %llu synthetic / %llu real",
-                                          static_cast<unsigned long long>(generatedFrameCount),
-                                          static_cast<unsigned long long>(realFrameCount)));
-                        if (frameGenerationAvgMs > 0.0)
+                        if (frameGenerationEnabled)
                         {
-                            frameGenTimingStat->SetSample(
-                                string_format(" %.2f ms avg / %.2f ms last",
-                                              frameGenerationAvgMs,
-                                              frameGenerationLastMs));
+                            outputFpsStat->SetSample(string_format(" %.2f fps", outputFPS));
+                            frameGenStat->SetSample(
+                                string_format(" %s (active, %.0f Hz output)",
+                                              frameGenerationMode.c_str(), outputFPS));
+                            frameGenCountStat->SetSample(
+                                string_format(" %llu synthetic / %llu real",
+                                              static_cast<unsigned long long>(generatedFrameCount),
+                                              static_cast<unsigned long long>(realFrameCount)));
+                            if (frameGenerationAvgMs > 0.0)
+                            {
+                                frameGenTimingStat->SetSample(
+                                    string_format(" %.2f ms avg / %.2f ms last",
+                                                  frameGenerationAvgMs,
+                                                  frameGenerationLastMs));
+                            }
+                            else
+                            {
+                                frameGenTimingStat->SetSample(" -- ms avg / -- ms last");
+                            }
+                        }
+                        else
+                        {
+                            // Mode is set but scheduler hasn't enabled — show diagnostic state
+                            outputFpsStat->SetSample(string_format(" %.2f fps (inactive)", outputFPS));
+                            frameGenStat->SetSample(
+                                string_format(" %s (inactive)", frameGenerationMode.c_str()));
+                            frameGenCountStat->SetSample(" -- synthetic / -- real");
+                            frameGenTimingStat->SetSample(" -- ms avg / -- ms last");
                         }
                     }
                 }
