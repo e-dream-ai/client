@@ -114,6 +114,24 @@ static RECT ComputeTitlebarLogoRect(int titlebarHeightPx)
     return r;
 }
 
+static void ComputeTitlebarLeftButtonRects(int titlebarHeightPx, const RECT& logoRect,
+                                           RECT& outGear, RECT& outFullscreen, RECT& outMenu)
+{
+    // Must match the DX titlebar overlay's left-button placement.
+    constexpr int kGapPx = 8;
+    const int btnH = (titlebarHeightPx > 0) ? titlebarHeightPx : 24;
+    // Make left buttons a bit narrower than tall (closer to Windows caption affordances).
+    int btnW = static_cast<int>(std::round(static_cast<double>(btnH) * 0.62));
+    btnW = (std::max)(btnW, 24);
+    int x = logoRect.right + kGapPx;
+
+    outGear = {x, 0, x + btnW, btnH};
+    x += btnW;
+    outFullscreen = {x, 0, x + btnW, btnH};
+    x += btnW;
+    outMenu = {x, 0, x + btnW, btnH};
+}
+
 static void ShowSystemMenuAtScreenPoint(HWND hWnd, POINT ptScreen)
 {
     if (!hWnd || !IsWindow(hWnd))
@@ -130,6 +148,29 @@ static void ShowSystemMenuAtScreenPoint(HWND hWnd, POINT ptScreen)
                                      hWnd, nullptr);
     if (cmd != 0)
         SendMessageW(hWnd, WM_SYSCOMMAND, cmd, 0);
+}
+
+static void ShowTitlebarOverflowMenu(HWND hWnd, POINT ptScreen)
+{
+    if (!hWnd || !IsWindow(hWnd))
+        return;
+
+    HMENU popup = CreatePopupMenu();
+    if (!popup)
+        return;
+
+    AppendMenuW(popup, MF_STRING, ID_HELP_ABOUT, L"&About infinidream");
+    AppendMenuW(popup, MF_STRING, ID_TOOLS_REMOTE, L"&Remote Control\tCtrl+R");
+    AppendMenuW(popup, MF_STRING, ID_TOOLS_PLAYLISTS, L"&Browse Playlists\tCtrl+B");
+
+    SetForegroundWindow(hWnd);
+    const UINT cmd = TrackPopupMenuEx(popup,
+                                     TPM_RIGHTBUTTON | TPM_RETURNCMD | TPM_NONOTIFY,
+                                     ptScreen.x, ptScreen.y,
+                                     hWnd, nullptr);
+    DestroyMenu(popup);
+    if (cmd != 0)
+        SendMessageW(hWnd, WM_COMMAND, MAKEWPARAM(cmd, 0), 0);
 }
 
 static void PopulateSystemMenu(HWND hWnd)
@@ -593,12 +634,17 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
         self->m_captionBtnMaxRect = maxRc;
         self->m_captionBtnCloseRect = closeRc;
         self->m_titlebarLogoRect = ComputeTitlebarLogoRect(titlebarH);
+        ComputeTitlebarLeftButtonRects(titlebarH, self->m_titlebarLogoRect,
+                                       self->m_titlebarGearRect, self->m_titlebarFullscreenRect, self->m_titlebarMenuRect);
         self->m_customTitlebarHeightPx = titlebarH;
 
         if (ptClient.y >= 0 && ptClient.y < titlebarH)
         {
-            if (PtInRectClient(self->m_titlebarLogoRect, ptClient) || PtInRectClient(minRc, ptClient) ||
-                PtInRectClient(maxRc, ptClient) || PtInRectClient(closeRc, ptClient))
+            if (PtInRectClient(self->m_titlebarLogoRect, ptClient) ||
+                PtInRectClient(self->m_titlebarGearRect, ptClient) ||
+                PtInRectClient(self->m_titlebarFullscreenRect, ptClient) ||
+                PtInRectClient(self->m_titlebarMenuRect, ptClient) ||
+                PtInRectClient(minRc, ptClient) || PtInRectClient(maxRc, ptClient) || PtInRectClient(closeRc, ptClient))
                 return HTCLIENT;
             return HTCAPTION;
         }
@@ -826,6 +872,8 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
                 self->m_captionBtnMaxRect = maxRc;
                 self->m_captionBtnCloseRect = closeRc;
                 self->m_titlebarLogoRect = ComputeTitlebarLogoRect(titlebarH);
+                ComputeTitlebarLeftButtonRects(titlebarH, self->m_titlebarLogoRect,
+                                               self->m_titlebarGearRect, self->m_titlebarFullscreenRect, self->m_titlebarMenuRect);
 
                 const POINT ptClient{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
                 const int pressed = self->m_captionBtnPressed;
@@ -841,6 +889,30 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
                     POINT anchorScreen = anchorClient;
                     ClientToScreen(hWnd, &anchorScreen);
                     ShowSystemMenuAtScreenPoint(hWnd, anchorScreen);
+                    return 0;
+                }
+
+                if (PtInRectClient(self->m_titlebarGearRect, ptClient))
+                {
+                    if (pressed == 4)
+                        SendMessageW(hWnd, WM_COMMAND, MAKEWPARAM(ID_FILE_PREFERENCES, 0), 0);
+                    return 0;
+                }
+                if (PtInRectClient(self->m_titlebarFullscreenRect, ptClient))
+                {
+                    if (pressed == 5)
+                        SendMessageW(hWnd, WM_COMMAND, MAKEWPARAM(ID_VIEW_FULLSCREEN, 0), 0);
+                    return 0;
+                }
+                if (PtInRectClient(self->m_titlebarMenuRect, ptClient))
+                {
+                    if (pressed == 6)
+                    {
+                        POINT anchorClient{self->m_titlebarMenuRect.left, self->m_titlebarMenuRect.bottom};
+                        POINT anchorScreen = anchorClient;
+                        ClientToScreen(hWnd, &anchorScreen);
+                        ShowTitlebarOverflowMenu(hWnd, anchorScreen);
+                    }
                     return 0;
                 }
 
@@ -889,10 +961,18 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
                 self->m_captionBtnMaxRect = maxRc;
                 self->m_captionBtnCloseRect = closeRc;
                 self->m_titlebarLogoRect = ComputeTitlebarLogoRect(titlebarH);
+                ComputeTitlebarLeftButtonRects(titlebarH, self->m_titlebarLogoRect,
+                                               self->m_titlebarGearRect, self->m_titlebarFullscreenRect, self->m_titlebarMenuRect);
 
                 const POINT ptClient{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
                 int hover = 0;
-                if (PtInRectClient(self->m_captionBtnMinRect, ptClient))
+                if (PtInRectClient(self->m_titlebarGearRect, ptClient))
+                    hover = 4;
+                else if (PtInRectClient(self->m_titlebarFullscreenRect, ptClient))
+                    hover = 5;
+                else if (PtInRectClient(self->m_titlebarMenuRect, ptClient))
+                    hover = 6;
+                else if (PtInRectClient(self->m_captionBtnMinRect, ptClient))
                     hover = 1;
                 else if (PtInRectClient(self->m_captionBtnMaxRect, ptClient))
                     hover = 2;
@@ -925,10 +1005,19 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
                 self->m_captionBtnMinRect = minRc;
                 self->m_captionBtnMaxRect = maxRc;
                 self->m_captionBtnCloseRect = closeRc;
+                self->m_titlebarLogoRect = ComputeTitlebarLogoRect(titlebarH);
+                ComputeTitlebarLeftButtonRects(titlebarH, self->m_titlebarLogoRect,
+                                               self->m_titlebarGearRect, self->m_titlebarFullscreenRect, self->m_titlebarMenuRect);
 
                 const POINT ptClient{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
                 int pressed = 0;
-                if (PtInRectClient(self->m_captionBtnMinRect, ptClient))
+                if (PtInRectClient(self->m_titlebarGearRect, ptClient))
+                    pressed = 4;
+                else if (PtInRectClient(self->m_titlebarFullscreenRect, ptClient))
+                    pressed = 5;
+                else if (PtInRectClient(self->m_titlebarMenuRect, ptClient))
+                    pressed = 6;
+                else if (PtInRectClient(self->m_captionBtnMinRect, ptClient))
                     pressed = 1;
                 else if (PtInRectClient(self->m_captionBtnMaxRect, ptClient))
                     pressed = 2;

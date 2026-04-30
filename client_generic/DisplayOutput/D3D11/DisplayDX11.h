@@ -33,6 +33,9 @@ private:
     bool m_useCustomWindowChrome = true;
     int m_customTitlebarHeightPx = 0;
     RECT m_titlebarLogoRect = {};
+    RECT m_titlebarGearRect = {};
+    RECT m_titlebarFullscreenRect = {};
+    RECT m_titlebarMenuRect = {};
     RECT m_captionBtnMinRect = {};
     RECT m_captionBtnMaxRect = {};
     RECT m_captionBtnCloseRect = {};
@@ -95,6 +98,10 @@ private:
     const RECT& GetCaptionButtonCloseRectPx() const { return m_captionBtnCloseRect; }
     int GetCaptionButtonHoverId() const { return m_captionBtnHover; }
     int GetCaptionButtonPressedId() const { return m_captionBtnPressed; }
+
+    const RECT& GetTitlebarGearRectPx() const { return m_titlebarGearRect; }
+    const RECT& GetTitlebarFullscreenRectPx() const { return m_titlebarFullscreenRect; }
+    const RECT& GetTitlebarMenuRectPx() const { return m_titlebarMenuRect; }
 
     // Window chrome action helpers for custom buttons.
     void WindowMinimize();

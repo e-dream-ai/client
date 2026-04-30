@@ -31,6 +31,9 @@ protected:
     ComPtr<ID3D11ShaderResourceView> m_titlebarLogoSrv;
     uint32_t m_titlebarLogoW = 0;
     uint32_t m_titlebarLogoH = 0;
+    ComPtr<ID3D11ShaderResourceView> m_mdl2GearSrv;
+    ComPtr<ID3D11ShaderResourceView> m_mdl2FullscreenSrv;
+    ComPtr<ID3D11ShaderResourceView> m_mdl2MenuSrv;
 
     void DrawTexturedQuad(const Base::Math::CRect& _rect, const Base::Math::CVector4& _color,
                           const Base::Math::CRect& _uvRect, ID3D11SamplerState* _pixelSampler);
@@ -151,6 +154,7 @@ private:
     bool CreateRasterizerStates();
     bool EnsureSolidWhiteTexture();
     bool EnsureTitlebarLogoTexture(HWND hwnd);
+    bool EnsureMdl2GlyphTextures();
 
 };
 

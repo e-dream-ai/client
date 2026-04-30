@@ -1061,6 +1061,123 @@ static bool ExtractIconRgba8(HICON icon, std::vector<uint8_t>& outRgba, uint32_t
     return true;
 }
 
+static bool RenderGlyphToRgbaMask(wchar_t glyph, int sizePx, std::vector<uint8_t>& outRgba, uint32_t& outW, uint32_t& outH)
+{
+    outRgba.clear();
+    outW = outH = 0;
+    if (sizePx <= 0)
+        return false;
+
+    const int w = sizePx;
+    const int h = sizePx;
+
+    BITMAPINFO bi{};
+    bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bi.bmiHeader.biWidth = w;
+    bi.bmiHeader.biHeight = -h; // top-down
+    bi.bmiHeader.biPlanes = 1;
+    bi.bmiHeader.biBitCount = 32;
+    bi.bmiHeader.biCompression = BI_RGB;
+
+    HDC hdc = GetDC(nullptr);
+    if (!hdc)
+        return false;
+
+    void* bits = nullptr;
+    HBITMAP dib = CreateDIBSection(hdc, &bi, DIB_RGB_COLORS, &bits, nullptr, 0);
+    if (!dib || !bits)
+    {
+        ReleaseDC(nullptr, hdc);
+        if (dib) DeleteObject(dib);
+        return false;
+    }
+
+    HDC mem = CreateCompatibleDC(hdc);
+    if (!mem)
+    {
+        DeleteObject(dib);
+        ReleaseDC(nullptr, hdc);
+        return false;
+    }
+
+    HGDIOBJ oldBmp = SelectObject(mem, dib);
+    RECT r{0, 0, w, h};
+    HBRUSH black = CreateSolidBrush(RGB(0, 0, 0));
+    FillRect(mem, &r, black);
+    DeleteObject(black);
+
+    HFONT font = CreateFontW(sizePx, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+                             OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
+                             DEFAULT_PITCH, L"Segoe MDL2 Assets");
+    HGDIOBJ oldFont = nullptr;
+    if (font)
+        oldFont = SelectObject(mem, font);
+
+    SetBkMode(mem, TRANSPARENT);
+    SetTextColor(mem, RGB(255, 255, 255));
+
+    wchar_t s[2]{glyph, 0};
+    DrawTextW(mem, s, 1, &r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+    if (oldFont)
+        SelectObject(mem, oldFont);
+    if (font)
+        DeleteObject(font);
+
+    // Convert BGRA to RGBA with alpha from luminance (white on black → alpha mask).
+    outRgba.resize(static_cast<size_t>(w) * static_cast<size_t>(h) * 4u);
+    const uint8_t* bgra = reinterpret_cast<const uint8_t*>(bits);
+    for (int i = 0; i < w * h; ++i)
+    {
+        const uint8_t b = bgra[i * 4 + 0];
+        const uint8_t g = bgra[i * 4 + 1];
+        const uint8_t rr = bgra[i * 4 + 2];
+        const uint8_t a = (std::max)({b, g, rr});
+        outRgba[i * 4 + 0] = 255;
+        outRgba[i * 4 + 1] = 255;
+        outRgba[i * 4 + 2] = 255;
+        outRgba[i * 4 + 3] = a;
+    }
+
+    SelectObject(mem, oldBmp);
+    DeleteDC(mem);
+    DeleteObject(dib);
+    ReleaseDC(nullptr, hdc);
+
+    outW = static_cast<uint32_t>(w);
+    outH = static_cast<uint32_t>(h);
+    return true;
+}
+
+static bool CreateSrvFromRgba(ID3D11Device* device, const std::vector<uint8_t>& rgba, uint32_t w, uint32_t h,
+                              ComPtr<ID3D11ShaderResourceView>& outSrv)
+{
+    outSrv.Reset();
+    if (!device || rgba.empty() || w == 0 || h == 0)
+        return false;
+
+    D3D11_TEXTURE2D_DESC desc{};
+    desc.Width = w;
+    desc.Height = h;
+    desc.MipLevels = 1;
+    desc.ArraySize = 1;
+    desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    desc.SampleDesc.Count = 1;
+    desc.Usage = D3D11_USAGE_IMMUTABLE;
+    desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+    D3D11_SUBRESOURCE_DATA data{};
+    data.pSysMem = rgba.data();
+    data.SysMemPitch = w * 4;
+
+    ComPtr<ID3D11Texture2D> tex;
+    if (FAILED(device->CreateTexture2D(&desc, &data, &tex)))
+        return false;
+    if (FAILED(device->CreateShaderResourceView(tex.Get(), nullptr, &outSrv)))
+        return false;
+    return outSrv != nullptr;
+}
+
 bool CRendererDX11::EnsureTitlebarLogoTexture(HWND hwnd)
 {
     if (m_titlebarLogoSrv)
@@ -1097,6 +1214,39 @@ bool CRendererDX11::EnsureTitlebarLogoTexture(HWND hwnd)
 
     m_titlebarLogoW = w;
     m_titlebarLogoH = h;
+    return true;
+}
+
+bool CRendererDX11::EnsureMdl2GlyphTextures()
+{
+    if (m_mdl2GearSrv && m_mdl2FullscreenSrv && m_mdl2MenuSrv)
+        return true;
+    if (!m_device)
+        return false;
+
+    constexpr int kGlyphPx = 14;
+    std::vector<uint8_t> rgba;
+    uint32_t w = 0, h = 0;
+
+    // Gear (Settings) = E713, FullScreen = E740, Hamburger = E700.
+    if (!m_mdl2GearSrv)
+    {
+        if (!RenderGlyphToRgbaMask(static_cast<wchar_t>(0xE713), kGlyphPx, rgba, w, h) ||
+            !CreateSrvFromRgba(m_device.Get(), rgba, w, h, m_mdl2GearSrv))
+            return false;
+    }
+    if (!m_mdl2FullscreenSrv)
+    {
+        if (!RenderGlyphToRgbaMask(static_cast<wchar_t>(0xE740), kGlyphPx, rgba, w, h) ||
+            !CreateSrvFromRgba(m_device.Get(), rgba, w, h, m_mdl2FullscreenSrv))
+            return false;
+    }
+    if (!m_mdl2MenuSrv)
+    {
+        if (!RenderGlyphToRgbaMask(static_cast<wchar_t>(0xE700), kGlyphPx, rgba, w, h) ||
+            !CreateSrvFromRgba(m_device.Get(), rgba, w, h, m_mdl2MenuSrv))
+            return false;
+    }
     return true;
 }
 
@@ -1430,6 +1580,85 @@ bool CRendererDX11::EndFrame(bool drawn) {
 
                         // Restore solid-white for subsequent line glyphs.
                         m_overrideTex0Srv = m_solidWhiteSrv;
+                    }
+
+                    // Left buttons: gear (settings), fullscreen, menu (kebab/hamburger)
+                    {
+                        constexpr float kGapPx = 8.0f;
+                        // Compute in integer pixels to match Win32 hit-testing exactly, then convert to normalized.
+                        constexpr int kPadLeftPx = 10;
+                        constexpr int kLogoPx = 18;
+                        constexpr int kGapPxI = 8;
+                        const int btnHPx = (titlebarPx > 0) ? titlebarPx : 24;
+                        int btnWPx = static_cast<int>(std::round(static_cast<double>(btnHPx) * 0.62));
+                        btnWPx = (std::max)(btnWPx, 24);
+
+                        int xPx = kPadLeftPx + kLogoPx + kGapPxI;
+                        const RECT gearPx{xPx, 0, xPx + btnWPx, btnHPx};
+                        xPx += btnWPx;
+                        const RECT fsPx{xPx, 0, xPx + btnWPx, btnHPx};
+                        xPx += btnWPx;
+                        const RECT menuPx{xPx, 0, xPx + btnWPx, btnHPx};
+
+                        const auto rectPxToNorm = [&](const RECT& r) {
+                            const float x0 = static_cast<float>(r.left) / static_cast<float>(dispW);
+                            const float x1 = static_cast<float>(r.right) / static_cast<float>(dispW);
+                            const float y0 = static_cast<float>(r.top) / static_cast<float>(dispH);
+                            const float y1 = static_cast<float>(r.bottom) / static_cast<float>(dispH);
+                            return Base::Math::CRect(x0, y0, x1, y1);
+                        };
+
+                        const Base::Math::CRect gearRect = rectPxToNorm(gearPx);
+                        const Base::Math::CRect fsRect = rectPxToNorm(fsPx);
+                        const Base::Math::CRect menuRect = rectPxToNorm(menuPx);
+
+                        // Hover/press backgrounds (ids: 4 gear, 5 fullscreen, 6 menu).
+                        const auto drawBtnBgNorm = [&](int id, const Base::Math::CRect& r, bool isClose) {
+                            (void)isClose;
+                            const bool pressed = (pressedId == id);
+                            const bool hovered = (hoverId == id);
+                            if (!pressed && !hovered)
+                                return;
+                            const Base::Math::CVector4 bg = pressed ? pressedBg : hoverBg;
+                            DrawQuad(r, bg);
+                        };
+                        drawBtnBgNorm(4, gearRect, false);
+                        drawBtnBgNorm(5, fsRect, false);
+                        drawBtnBgNorm(6, menuRect, false);
+
+                        if (EnsureMdl2GlyphTextures())
+                        {
+                            // Fixed pixel size for glyphs (same as textures).
+                            constexpr float kGlyphPx = 14.0f;
+                            const auto squareInRectPx = [&](const Base::Math::CRect& r, float iconPx) {
+                                const float sideX = iconPx / static_cast<float>(dispW);
+                                const float sideY = iconPx / static_cast<float>(dispH);
+                                const float cx = r.m_X0 + r.Width() * 0.5f;
+                                const float cy = r.m_Y0 + r.Height() * 0.5f;
+                                return Base::Math::CRect(cx - sideX * 0.5f, cy - sideY * 0.5f,
+                                                        cx + sideX * 0.5f, cy + sideY * 0.5f);
+                            };
+
+                            const Base::Math::CRect gearBox = squareInRectPx(gearRect, kGlyphPx);
+                            const Base::Math::CRect fsBox = squareInRectPx(fsRect, kGlyphPx);
+                            const Base::Math::CRect menuBox = squareInRectPx(menuRect, kGlyphPx);
+
+                            // Draw as textured quads (white-tinted).
+                            m_overrideTex0Srv = m_mdl2GearSrv;
+                            DrawTexturedQuad(gearBox, Base::Math::CVector4(1.f, 1.f, 1.f, 1.f),
+                                             Base::Math::CRect(0.f, 0.f, 1.f, 1.f), m_defaultSampler.Get());
+
+                            m_overrideTex0Srv = m_mdl2FullscreenSrv;
+                            DrawTexturedQuad(fsBox, Base::Math::CVector4(1.f, 1.f, 1.f, 1.f),
+                                             Base::Math::CRect(0.f, 0.f, 1.f, 1.f), m_defaultSampler.Get());
+
+                            m_overrideTex0Srv = m_mdl2MenuSrv;
+                            DrawTexturedQuad(menuBox, Base::Math::CVector4(1.f, 1.f, 1.f, 1.f),
+                                             Base::Math::CRect(0.f, 0.f, 1.f, 1.f), m_defaultSampler.Get());
+
+                            // Restore solid-white for subsequent line glyphs.
+                            m_overrideTex0Srv = m_solidWhiteSrv;
+                        }
                     }
 
                     auto drawHLine = [&](float x0, float x1, float y, float t, const Base::Math::CVector4& c) {
