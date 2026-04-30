@@ -1,4 +1,5 @@
 .DS_Store
+.claude/
 
 # --- vcpkg (toolchain is a git submodule at ./vcpkg; install tree / mac merge dirs stay local) ---
 /vcpkg_installed/
