@@ -12,6 +12,10 @@
 #include "CubicFrameDisplay.h"
 #include "LinearFrameDisplay.h"
 
+#ifdef WIN32
+#include "../DisplayOutput/D3D11/RendererDX11.h"
+#endif
+
 namespace ContentDecoder
 {
 
@@ -75,6 +79,19 @@ m_CurrentFrameMetadata{}, m_HasFinished(false), m_IsFadingOut(false)
         (uint32_t)abs(g_Settings()->Get("settings.player.BufferLength", 25)),
         pf);
     m_spImageRef = std::make_shared<DisplayOutput::CImage>();
+
+#ifdef WIN32
+    // Pass the renderer's ID3D11Device to the decoder so FFmpeg D3D11VA
+    // shares the same device and decoded frames can be sampled GPU-natively.
+    if (m_spRenderer)
+    {
+        auto* rendererDX11 = dynamic_cast<DisplayOutput::CRendererDX11*>(m_spRenderer.get());
+        if (rendererDX11)
+            m_spDecoder->SetD3D11Device(rendererDX11->GetDevice());
+        else
+            g_Log->Warning("CClip: renderer is not CRendererDX11; hw decode will be unavailable");
+    }
+#endif
 }
 
 bool CClip::Start(int64_t _seekFrame)
@@ -490,16 +507,19 @@ bool CClip::GrabVideoFrame()
             /*g_Log->Info("GrabVideoFrame() - Successfully grabbed frame %d",
                         m_CurrentFrameMetadata.frameIdx);*/
         }
-#if !USE_HW_ACCELERATION || defined(WIN32)
-        if (m_spImageRef->GetWidth() != m_spFrameData->Width() ||
-            m_spImageRef->GetHeight() != m_spFrameData->Height())
+        const bool isHWFrame = m_spFrameData->IsHWFrame();
+
+        // CPU-path: keep a sized CImage ref for Upload(). Not needed for GPU frames.
+        if (!isHWFrame)
         {
-            //    Frame differs in size, recreate ref image.
-            m_spImageRef->Create(m_spFrameData->Width(),
-                                 m_spFrameData->Height(),
-                                 DisplayOutput::eImage_RGBA8, false, true);
+            if (m_spImageRef->GetWidth() != m_spFrameData->Width() ||
+                m_spImageRef->GetHeight() != m_spFrameData->Height())
+            {
+                m_spImageRef->Create(m_spFrameData->Width(),
+                                     m_spFrameData->Height(),
+                                     DisplayOutput::eImage_RGBA8, false, true);
+            }
         }
-#endif
 
         spCTextureFlat& currentTexture =
             m_spFrameDisplay->RequestTargetTexture();
@@ -510,14 +530,30 @@ bool CClip::GrabVideoFrame()
             return false;
         if (m_spFrameData->Frame())
         {
-#if USE_HW_ACCELERATION && !defined(WIN32)
-            //g_Log->Info("BindFrame %d", m_CurrentFrameMetadata.frameIdx);
-            currentTexture->BindFrame(m_spFrameData);
-#else
-            // Set image texture data and upload to texture.
-            m_spImageRef->SetStorageBuffer(m_spFrameData->StorageBuffer());
-            currentTexture->Upload(m_spImageRef);
-#endif
+            if (isHWFrame)
+            {
+                // GPU-backed frame (D3D11VA / VideoToolbox): bind directly —
+                // no sws_scale, no CPU→GPU upload.
+                if (!currentTexture->BindFrame(m_spFrameData))
+                {
+                    // BindFrame can fail for unsupported surface formats (e.g. P010).
+                    // Log once and drop this frame; the next frame may succeed or
+                    // the decoder will fall back to software on the next file open.
+                    static bool s_bindFrameFailLogged = false;
+                    if (!s_bindFrameFailLogged)
+                    {
+                        g_Log->Warning("CClip: BindFrame failed for hw frame; dropping frame "
+                                       "(unsupported surface format?)");
+                        s_bindFrameFailLogged = true;
+                    }
+                }
+            }
+            else
+            {
+                // Software frame: copy pixel buffer and upload to GPU texture.
+                m_spImageRef->SetStorageBuffer(m_spFrameData->StorageBuffer());
+                currentTexture->Upload(m_spImageRef);
+            }
         }
     }
 

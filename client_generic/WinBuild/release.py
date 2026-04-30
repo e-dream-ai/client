@@ -315,10 +315,10 @@ def main() -> None:
         help="Authenticode-sign artifacts (requires SIGN_THUMBPRINT or SIGN_PFX).",
     )
     parser.add_argument(
+        "-g",
         "--github-release",
-        metavar="TAG",
-        default=None,
-        help="Upload produced artifacts to GitHub release TAG.",
+        action="store_true",
+        help="Upload produced artifacts to the GitHub release whose tag matches --version.",
     )
     args = parser.parse_args()
 
@@ -355,7 +355,7 @@ def main() -> None:
 
     if args.github_release:
         for a in artifacts:
-            github_upload(a, args.github_release)
+            github_upload(a, args.version)
 
 
 if __name__ == "__main__":

@@ -12,7 +12,11 @@ namespace DisplayOutput {
 class CTextureFlatDX11 : public CTextureFlat {
 protected:
     ComPtr<ID3D11Texture2D> m_texture;
+    // RGBA path: single SRV
     ComPtr<ID3D11ShaderResourceView> m_srv;
+    // NV12 hw path: two SRVs — Y luma (R8_UNORM) and UV chroma (R8G8_UNORM)
+    ComPtr<ID3D11ShaderResourceView> m_srvY;
+    ComPtr<ID3D11ShaderResourceView> m_srvUV;
     ComPtr<ID3D11SamplerState> m_sampler;
     ComPtr<ID3D11Device> m_device;
     ComPtr<ID3D11DeviceContext> m_context;
@@ -30,7 +34,9 @@ public:
     bool Bind(const uint32_t _index) override;
     bool Unbind(const uint32_t _index) override;
 
-    ID3D11ShaderResourceView* GetSRV() const { return m_srv.Get(); }
+    ID3D11ShaderResourceView* GetSRV()  const { return m_srv.Get(); }
+    ID3D11ShaderResourceView* GetSRVY() const { return m_srvY.Get(); }
+    ID3D11ShaderResourceView* GetSRVUV() const { return m_srvUV.Get(); }
     ID3D11SamplerState* GetSampler() const { return m_sampler.Get(); }
 
 private:

@@ -99,6 +99,9 @@
     <ClCompile Include="..\Client\AboutDialogWin32.cpp">
       <Filter>Client\Code</Filter>
     </ClCompile>
+    <ClCompile Include="..\Client\ScreensaverInstallerWin32.cpp">
+      <Filter>Client\Code</Filter>
+    </ClCompile>
     <ClCompile Include="..\Client\SettingsDialogWin32.cpp">
       <Filter>Client\Code</Filter>
     </ClCompile>
@@ -297,6 +300,9 @@
       <Filter>Client\Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\Client\AboutDialogWin32.h">
+      <Filter>Client\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Client\ScreensaverInstallerWin32.h">
       <Filter>Client\Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\Client\SettingsDialogWin32.h">

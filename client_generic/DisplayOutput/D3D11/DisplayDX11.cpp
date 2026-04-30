@@ -6,12 +6,19 @@
 #include "Settings.h"
 #include <algorithm>
 #include <cstdlib>
+#include <mutex>
 #include <string>
+
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
+#include <d3d11_4.h>
+#endif
 
 #ifdef WIN32
 #include "AboutDialogWin32.h"
 #include "FirstTimeSetupWin32.h"
 #include "SettingsDialogWin32.h"
+#include <ShellScalingApi.h>
+#pragma comment(lib, "shcore.lib")
 extern void ESShowPreferences();
 #endif
 
@@ -20,6 +27,12 @@ namespace DisplayOutput {
 namespace {
 
 #ifdef WIN32
+// Shared D3D11 device/context across all DX11 windows so decoded textures
+// can be rendered into multiple swapchains (one per monitor window).
+static std::mutex g_sharedD3DInitMutex;
+static ComPtr<ID3D11Device> g_sharedDevice;
+static ComPtr<ID3D11DeviceContext> g_sharedContext;
+
 enum DX11MenuCmd : UINT
 {
     ID_FILE_PREFERENCES = 0xE100,
@@ -163,6 +176,47 @@ static void LayoutFullscreenSaverWindow(HWND hwnd, IDXGISwapChain* swapChain)
         if (FAILED(hr))
             g_Log->Warning("SetFullscreenState(TRUE) after layout failed: %08X", hr);
     }
+}
+
+struct MonitorInfoByIndex
+{
+    uint32_t idx = 0;
+    uint32_t target = 0;
+    bool found = false;
+    RECT rc = {};
+};
+
+static BOOL CALLBACK EnumMonitorForIndex(HMONITOR hMon, HDC, LPRECT, LPARAM lp)
+{
+    auto* st = reinterpret_cast<MonitorInfoByIndex*>(lp);
+    if (!st)
+        return TRUE;
+
+    MONITORINFO mi = {};
+    mi.cbSize = sizeof(mi);
+    if (!GetMonitorInfo(hMon, &mi))
+        return TRUE;
+
+    if (st->idx == st->target)
+    {
+        st->found = true;
+        st->rc = mi.rcMonitor;
+        return FALSE; // stop enumeration
+    }
+
+    st->idx++;
+    return TRUE;
+}
+
+static bool GetMonitorRectByIndex(uint32_t index, RECT& outRc)
+{
+    MonitorInfoByIndex st;
+    st.target = index;
+    EnumDisplayMonitors(nullptr, nullptr, EnumMonitorForIndex, reinterpret_cast<LPARAM>(&st));
+    if (!st.found)
+        return false;
+    outRc = st.rc;
+    return true;
 }
 
 static void AppendKeyEvent(CKeyEvent::eKeyCode code, bool dedupeF1)
@@ -355,6 +409,21 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
     switch (msg)
     {
 #ifdef WIN32
+    case WM_SETCURSOR:
+        // In fullscreen screensaver mode, the OS may repeatedly reset the cursor
+        // to the class cursor (IDC_ARROW). Keep it hidden deterministically.
+        if (self && self->m_bFullScreen && !self->m_bEmbeddedSaverPreview)
+        {
+            SetCursor(nullptr);
+            return TRUE;
+        }
+        // Windowed mode: defer to DefWindowProc so it picks the right cursor based on the
+        // WM_NCHITTEST result — IDC_SIZEWE / IDC_SIZENS / etc. on the resize borders.
+        // Returning 0 (the default switch fall-through) leaves the arrow cursor in place
+        // and the resize handles become invisible, even though clicking the border still
+        // initiates the resize via DefWindowProc's WM_NCLBUTTONDOWN handling.
+        return DefWindowProc(hWnd, msg, wParam, lParam);
+
     case WM_PAINT:
     {
         // We render via Direct3D and draw DX11 "text HUD" via GDI after Present.
@@ -435,6 +504,12 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
             if (nw > 0 && nh > 0)
                 self->ResizeSwapChain(nw, nh);
         }
+        // Aero snap (Win+Left/Right) and other programmatic SetWindowPos paths bypass WM_SIZING,
+        // so the aspect handler never sees them. If preserve_AR is on, defer a snap-to-16:9 via
+        // the message pump — SnapWindowTo16By9IfNeeded early-returns when already 16:9, so the
+        // deferred handler is idempotent and re-posting on every WM_SIZE is safe.
+        if (wParam != SIZE_MINIMIZED && wParam != SIZE_MAXIMIZED && IsPreserveAspectEnabled())
+            PostMessageW(hWnd, kSettingsDialogWin32SnapAfterCloseMsg, 0, 0);
         return DefWindowProc(hWnd, msg, wParam, lParam);
 
     case WM_SIZING:
@@ -452,6 +527,11 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
             break;
 
         const bool ctrlDown = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+
+#ifdef WIN32
+        if (ctrlDown && (SettingsDialogWin32_HasPendingOrVisible() || FirstTimeSetupWin32_IsWizardVisible()))
+            return 0;
+#endif
 
         if (wParam == VK_OEM_COMMA && ctrlDown)
         {
@@ -568,6 +648,11 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
         return 0;
 
     default:
+        if (msg == kSettingsDialogWin32SnapAfterCloseMsg)
+        {
+            SettingsDialogWin32_HandleDeferredSnap();
+            return 0;
+        }
         return DefWindowProc(hWnd, msg, wParam, lParam);
     }
     return 0;
@@ -581,14 +666,89 @@ HWND CDisplayDX11::CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen,
         return nullptr;
 
     DWORD style = fullscreen ? WS_POPUP : WS_OVERLAPPEDWINDOW;
+    int posX = CW_USEDEFAULT;
+    int posY = CW_USEDEFAULT;
+
+    if (!fullscreen)
+    {
+        // Manifest is system-DPI-aware (electricsheep.vcxproj), so CreateWindow takes
+        // physical pixels and DX11 swap chains aren't bitmap-virtualized — meaning a
+        // 1920x1080 window stays 1920 physical pixels even on a high-DPI external monitor
+        // (1/4 of a 4K screen at 200%). Pick the cursor's monitor, query its effective DPI,
+        // scale the requested size accordingly, and centre the window on that monitor so
+        // CW_USEDEFAULT doesn't drop it onto the primary at a different scale.
+        POINT pt{};
+        HMONITOR mon = nullptr;
+        if (GetCursorPos(&pt))
+            mon = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
+        if (!mon)
+            mon = MonitorFromPoint(POINT{0, 0}, MONITOR_DEFAULTTOPRIMARY);
+
+        UINT dpiX = 96;
+        UINT dpiY = 96;
+        if (mon)
+            GetDpiForMonitor(mon, MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
+        if (dpiX > 0 && dpiY > 0)
+        {
+            w = MulDiv(w, dpiX, 96);
+            h = MulDiv(h, dpiY, 96);
+        }
+
+        MONITORINFO mi{};
+        mi.cbSize = sizeof(mi);
+        if (mon && GetMonitorInfo(mon, &mi))
+        {
+            const LONG waW = mi.rcWork.right - mi.rcWork.left;
+            const LONG waH = mi.rcWork.bottom - mi.rcWork.top;
+            // Compute chrome thickness once (AdjustWindowRect with a zero rect returns just
+            // the borders/caption). Uniform-scale the client size so the design aspect ratio
+            // (16:9 for 1920x1080) is preserved when the work area can't fit it. Independent
+            // per-axis shrinking would skew the window — and since SettingsDialogWin32 snaps
+            // back to 16:9 on close (preserve_AR), a non-16:9 startup window triggers a
+            // SetWindowPos at close time, with subtle re-entrancy hazards.
+            RECT chrome = {0, 0, 0, 0};
+            AdjustWindowRect(&chrome, style, hMenu ? TRUE : FALSE);
+            const LONG chromeW = chrome.right - chrome.left;
+            const LONG chromeH = chrome.bottom - chrome.top;
+            const LONG maxClientW = (waW > chromeW) ? (waW - chromeW) : 1;
+            const LONG maxClientH = (waH > chromeH) ? (waH - chromeH) : 1;
+            double scale = 1.0;
+            if (static_cast<LONG>(w) > maxClientW)
+                scale = (std::min)(scale, static_cast<double>(maxClientW) / static_cast<double>(w));
+            if (static_cast<LONG>(h) > maxClientH)
+                scale = (std::min)(scale, static_cast<double>(maxClientH) / static_cast<double>(h));
+            if (scale < 1.0)
+            {
+                w = static_cast<uint32_t>(static_cast<double>(w) * scale);
+                h = static_cast<uint32_t>(static_cast<double>(h) * scale);
+            }
+            RECT outer = {0, 0, (LONG)w, (LONG)h};
+            AdjustWindowRect(&outer, style, hMenu ? TRUE : FALSE);
+            posX = mi.rcWork.left + (waW - (outer.right - outer.left)) / 2;
+            posY = mi.rcWork.top + (waH - (outer.bottom - outer.top)) / 2;
+        }
+    }
+
+    // Reflect the (possibly scaled and clamped) client size so the swap chain matches.
+    m_Width = w;
+    m_Height = h;
+
     RECT rc = {0, 0, (LONG)w, (LONG)h};
     AdjustWindowRect(&rc, style, hMenu ? TRUE : FALSE);
 
     const DWORD exStyle =
         fullscreen ? (WS_EX_APPWINDOW | WS_EX_TOPMOST) : 0UL;
 
+    int x = posX;
+    int y = posY;
+    if (fullscreen && m_hasTargetMonitorRect)
+    {
+        x = m_targetMonitorRect.left;
+        y = m_targetMonitorRect.top;
+    }
+
     return CreateWindowExW(exStyle, L"EDreamDX11Class", L"infinidream", style,
-                           CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left,
+                           x, y, rc.right - rc.left,
                            rc.bottom - rc.top, nullptr, hMenu, hInstance, this);
 }
 #endif
@@ -668,24 +828,95 @@ bool CDisplayDX11::CreateDeviceAndSwapChain() {
     sd.OutputWindow = m_WindowHandle;
     sd.SampleDesc.Count = 1;
     sd.SampleDesc.Quality = 0;
-    sd.Windowed = !m_bFullScreen;
 
-    UINT createDeviceFlags = 0;
+    const bool wantExclusiveFullscreen = m_bFullScreen && !m_disableExclusiveFullscreen;
+    sd.Windowed = !wantExclusiveFullscreen;
+
+    // D3D11_CREATE_DEVICE_VIDEO_SUPPORT is REQUIRED because this same ID3D11Device
+    // is shared with FFmpeg's D3D11VA decoder (see CContentDecoder::Open).  Without
+    // it, the driver's ID3D11VideoDevice/ID3D11VideoContext interfaces sit on
+    // partially-initialized state and the decode command ring eventually corrupts,
+    // causing DXGI_ERROR_DEVICE_RESET (0x887A0006) after minutes of sustained use.
+    //
+    // D3D11_CREATE_DEVICE_BGRA_SUPPORT is harmless and commonly paired with video.
+    UINT createDeviceFlags =
+        D3D11_CREATE_DEVICE_VIDEO_SUPPORT |
+        D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 #ifdef _DEBUG
     createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
     D3D_FEATURE_LEVEL featureLevels[] = { D3D_FEATURE_LEVEL_11_0 };
 
-    HRESULT hr = D3D11CreateDeviceAndSwapChain(
-        nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
-        createDeviceFlags, featureLevels, 1,
-        D3D11_SDK_VERSION, &sd,
-        &m_swapChain, &m_device, nullptr, &m_context);
+    HRESULT hr = S_OK;
 
-    if (FAILED(hr)) {
-        g_Log->Error("Failed to create device and swap chain");
-        return false;
+    {
+        std::lock_guard<std::mutex> lock(g_sharedD3DInitMutex);
+        if (!g_sharedDevice || !g_sharedContext)
+        {
+            hr = D3D11CreateDevice(
+                nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
+                createDeviceFlags, featureLevels, 1,
+                D3D11_SDK_VERSION, &g_sharedDevice, nullptr, &g_sharedContext);
+
+            if (FAILED(hr) || !g_sharedDevice || !g_sharedContext)
+            {
+                g_Log->Error("Failed to create shared D3D11 device/context");
+                return false;
+            }
+
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
+            // Enable device-level multithread protection once on the shared context.
+            {
+                ComPtr<ID3D11Multithread> mt;
+                if (SUCCEEDED(g_sharedContext.As(&mt)) && mt)
+                {
+                    mt->SetMultithreadProtected(TRUE);
+                }
+                else
+                {
+                    g_Log->Warning("ID3D11Multithread unavailable; decode/render races possible");
+                }
+            }
+#endif
+        }
+    }
+
+    m_device = g_sharedDevice;
+    m_context = g_sharedContext;
+
+    // Create a swapchain for this window using the shared device.
+    {
+        ComPtr<IDXGIDevice> dxgiDevice;
+        hr = m_device.As(&dxgiDevice);
+        if (FAILED(hr) || !dxgiDevice)
+        {
+            g_Log->Error("Failed to query IDXGIDevice from D3D11 device: %08X", hr);
+            return false;
+        }
+
+        ComPtr<IDXGIAdapter> adapter;
+        hr = dxgiDevice->GetAdapter(&adapter);
+        if (FAILED(hr) || !adapter)
+        {
+            g_Log->Error("Failed to get DXGI adapter: %08X", hr);
+            return false;
+        }
+
+        ComPtr<IDXGIFactory> factory;
+        hr = adapter->GetParent(IID_PPV_ARGS(&factory));
+        if (FAILED(hr) || !factory)
+        {
+            g_Log->Error("Failed to get DXGI factory: %08X", hr);
+            return false;
+        }
+
+        hr = factory->CreateSwapChain(m_device.Get(), &sd, &m_swapChain);
+        if (FAILED(hr) || !m_swapChain)
+        {
+            g_Log->Error("Failed to create swap chain for window: %08X", hr);
+            return false;
+        }
     }
 
     // Create render target view
@@ -710,12 +941,31 @@ bool CDisplayDX11::CreateDeviceAndSwapChain() {
 
 HWND CDisplayDX11::Initialize(uint32_t width, uint32_t height, bool fullscreen) {
     m_bEmbeddedSaverPreview = false;
-    m_Width = width;
-    m_Height = height;
     m_bFullScreen = fullscreen;
 
     m_WindowHandle = nullptr;
 #ifdef WIN32
+    m_hasTargetMonitorRect = false;
+    if (fullscreen && m_hasTargetMonitorIndex)
+    {
+        RECT rc = {};
+        if (GetMonitorRectByIndex(m_targetMonitorIndex, rc))
+        {
+            m_targetMonitorRect = rc;
+            m_hasTargetMonitorRect = true;
+            width = static_cast<uint32_t>(rc.right - rc.left);
+            height = static_cast<uint32_t>(rc.bottom - rc.top);
+        }
+        else
+        {
+            g_Log->Warning("Failed to resolve monitor rect for index %u; falling back to default placement",
+                           static_cast<unsigned>(m_targetMonitorIndex));
+        }
+    }
+
+    m_Width = width;
+    m_Height = height;
+
     m_WindowHandle = CreateDisplayWindow(width, height, fullscreen, nullptr);
     PopulateSystemMenu(m_WindowHandle);
 #endif
@@ -730,7 +980,12 @@ HWND CDisplayDX11::Initialize(uint32_t width, uint32_t height, bool fullscreen) 
 
     if (fullscreen)
     {
-        LayoutFullscreenSaverWindow(m_WindowHandle, m_swapChain.Get());
+        // Screensaver mode prefers borderless windowed fullscreen to avoid
+        // DXGI exclusive fullscreen issues on multi-monitor setups.
+        if (m_disableExclusiveFullscreen)
+            LayoutFullscreenSaverWindow(m_WindowHandle, nullptr);
+        else
+            LayoutFullscreenSaverWindow(m_WindowHandle, m_swapChain.Get());
         SetForegroundWindow(m_WindowHandle);
         SetFocus(m_WindowHandle);
     }
@@ -833,6 +1088,9 @@ void CDisplayDX11::Update() {
 
 void CDisplayDX11::SwapBuffers()
 {
+    if (m_deviceLost)
+        return;
+
     // /p preview child: avoid vsync Present(1) stalling on the tiny HWND.
     const UINT syncInterval = m_bEmbeddedSaverPreview ? 0u : 1u;
     HRESULT hr = m_swapChain->Present(syncInterval, 0);
@@ -841,8 +1099,10 @@ void CDisplayDX11::SwapBuffers()
         g_Log->Error("Present failed: %08X", hr);
         if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_HUNG)
         {
-            g_Log->Warning("Device lost during present");
-            // Handle device lost
+            HRESULT reason = m_device ? m_device->GetDeviceRemovedReason() : hr;
+            g_Log->Warning("Device lost during present (removal reason: %08X); "
+                           "halting rendering until device is recreated", reason);
+            m_deviceLost = true;
         }
     }
 }
@@ -861,9 +1121,12 @@ bool CDisplayDX11::SetFullscreen(const bool fullscreen)
         if (GetWindowRect(m_WindowHandle, &m_windowedRect))
             m_hasWindowedRect = true;
 
-        const HRESULT fsHr = m_swapChain->SetFullscreenState(TRUE, nullptr);
-        if (FAILED(fsHr))
-            g_Log->Warning("SetFullscreenState(TRUE) failed: %08X", fsHr);
+        if (!m_disableExclusiveFullscreen)
+        {
+            const HRESULT fsHr = m_swapChain->SetFullscreenState(TRUE, nullptr);
+            if (FAILED(fsHr))
+                g_Log->Warning("SetFullscreenState(TRUE) failed: %08X", fsHr);
+        }
 
         HMONITOR monitor = MonitorFromWindow(m_WindowHandle, MONITOR_DEFAULTTONEAREST);
         MONITORINFO mi = {};
@@ -881,9 +1144,12 @@ bool CDisplayDX11::SetFullscreen(const bool fullscreen)
         return true;
     }
 
-    const HRESULT wsHr = m_swapChain->SetFullscreenState(FALSE, nullptr);
-    if (FAILED(wsHr))
-        g_Log->Warning("SetFullscreenState(FALSE) failed: %08X", wsHr);
+    if (!m_disableExclusiveFullscreen)
+    {
+        const HRESULT wsHr = m_swapChain->SetFullscreenState(FALSE, nullptr);
+        if (FAILED(wsHr))
+            g_Log->Warning("SetFullscreenState(FALSE) failed: %08X", wsHr);
+    }
 
     DWORD restoreStyle = m_windowedStyle ? m_windowedStyle : WS_OVERLAPPEDWINDOW;
     SetWindowLongPtr(m_WindowHandle, GWL_STYLE, static_cast<LONG_PTR>(restoreStyle));

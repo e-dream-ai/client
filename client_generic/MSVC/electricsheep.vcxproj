@@ -89,6 +89,7 @@
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="$(MSBuildThisFileDirectory)..\..\vcpkg\scripts\buildsystems\msbuild\vcpkg.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
@@ -193,7 +194,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>avcodec.lib;avutil.lib;avfilter.lib;swscale.lib;avdevice.lib;avformat.lib;sioclient.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;d3d9.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;ws2_32.lib;wldap32.lib;ddraw.lib;dxguid.lib;psapi.lib;delayimp.lib;libssl.lib;libcrypto.lib;bcrypt.lib;crypt32.lib;secur32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>avcodec.lib;avutil.lib;avfilter.lib;swscale.lib;avdevice.lib;avformat.lib;sioclient.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;d3d9.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;ws2_32.lib;wldap32.lib;ddraw.lib;dxguid.lib;psapi.lib;delayimp.lib;libssl.lib;libcrypto.lib;bcrypt.lib;crypt32.lib;secur32.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(ProjectName)d.exe</OutputFile>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
@@ -234,7 +235,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>avcodec.lib;avformat.lib;swscale.lib;avdevice.lib;avutil.lib;sioclient.lib;libssl.lib;libcrypto.lib;libpng16d.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;d3d9.lib;d3d11.lib;d3d12.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;ws2_32.lib;wldap32.lib;psapi.lib;delayimp.lib;crypt32.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>avcodec.lib;avformat.lib;swscale.lib;avdevice.lib;avutil.lib;sioclient.lib;libssl.lib;libcrypto.lib;libpng16d.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;d3d9.lib;d3d11.lib;d3d12.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;ws2_32.lib;wldap32.lib;psapi.lib;delayimp.lib;crypt32.lib;bcrypt.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(ProjectName)d.exe</OutputFile>
       <AdditionalLibraryDirectories>..\socket.io-client-cpp\lib\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
@@ -283,7 +284,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>avcodec.lib;avutil.lib;avfilter.lib;swscale.lib;avdevice.lib;avformat.lib;sioclient.lib;libpng16.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;tinyxml.lib;d3d9.lib;ws2_32.lib;wldap32.lib;ddraw.lib;dxguid.lib;psapi.lib;delayimp.lib;libssl.lib;libcrypto.lib;crypt32.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>avcodec.lib;avutil.lib;avfilter.lib;swscale.lib;avdevice.lib;avformat.lib;sioclient.lib;libpng16.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;tinyxml.lib;d3d9.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;ws2_32.lib;wldap32.lib;ddraw.lib;dxguid.lib;psapi.lib;delayimp.lib;libssl.lib;libcrypto.lib;crypt32.lib;bcrypt.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ShowProgress>NotSet</ShowProgress>
       <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
       <AdditionalLibraryDirectories>..\tinyXml\Releasetinyxml;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -349,7 +350,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>avcodec.lib;avutil.lib;avfilter.lib;swscale.lib;avdevice.lib;avformat.lib;sioclient.lib;libpng16.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;tinyxml.lib;d3d9.lib;ws2_32.lib;wldap32.lib;ddraw.lib;dxguid.lib;psapi.lib;delayimp.lib;libssl.lib;libcrypto.lib;crypt32.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>avcodec.lib;avutil.lib;avfilter.lib;swscale.lib;avdevice.lib;avformat.lib;sioclient.lib;libpng16.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;tinyxml.lib;d3d9.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;ws2_32.lib;wldap32.lib;ddraw.lib;dxguid.lib;psapi.lib;delayimp.lib;libssl.lib;libcrypto.lib;crypt32.lib;bcrypt.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ShowProgress>NotSet</ShowProgress>
       <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
       <AdditionalLibraryDirectories>..\tinyXml\Releasetinyxml;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -415,7 +416,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>avcodec.lib;avutil.lib;avfilter.lib;swscale.lib;avdevice.lib;avformat.lib;sioclient.lib;libpng16.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;tinyxml.lib;d3d9.lib;ws2_32.lib;wldap32.lib;ddraw.lib;dxguid.lib;psapi.lib;delayimp.lib;libssl.lib;libcrypto.lib;crypt32.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>avcodec.lib;avutil.lib;avfilter.lib;swscale.lib;avdevice.lib;avformat.lib;sioclient.lib;libpng16.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;tinyxml.lib;d3d9.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;ws2_32.lib;wldap32.lib;ddraw.lib;dxguid.lib;psapi.lib;delayimp.lib;libssl.lib;libcrypto.lib;crypt32.lib;bcrypt.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ShowProgress>NotSet</ShowProgress>
       <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
       <AdditionalLibraryDirectories>..\tinyXml\Releasetinyxml;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -483,7 +484,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>avcodec.lib;avformat.lib;swscale.lib;avdevice.lib;avutil.lib;sioclient.lib;libssl.lib;libcrypto.lib;libpng16.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;d3d9.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;ws2_32.lib;wldap32.lib;psapi.lib;delayimp.lib;crypt32.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>avcodec.lib;avformat.lib;swscale.lib;avdevice.lib;avutil.lib;sioclient.lib;libssl.lib;libcrypto.lib;libpng16.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;d3d9.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;ws2_32.lib;wldap32.lib;psapi.lib;delayimp.lib;crypt32.lib;bcrypt.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ShowProgress>NotSet</ShowProgress>
       <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
       <AdditionalLibraryDirectories>..\socket.io-client-cpp\lib\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -548,7 +549,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>avcodec.lib;avformat.lib;swscale.lib;avdevice.lib;avutil.lib;sioclient.lib;libssl.lib;libcrypto.lib;libpng16.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;d3d9.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;ws2_32.lib;wldap32.lib;psapi.lib;delayimp.lib;crypt32.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>avcodec.lib;avformat.lib;swscale.lib;avdevice.lib;avutil.lib;sioclient.lib;libssl.lib;libcrypto.lib;libpng16.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;d3d9.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;ws2_32.lib;wldap32.lib;psapi.lib;delayimp.lib;crypt32.lib;bcrypt.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ShowProgress>NotSet</ShowProgress>
       <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
       <AdditionalLibraryDirectories>..\socket.io-client-cpp\lib\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -613,7 +614,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>avcodec.lib;avformat.lib;swscale.lib;avdevice.lib;avutil.lib;sioclient.lib;libssl.lib;libcrypto.lib;libpng16d.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;d3d9.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;ws2_32.lib;wldap32.lib;psapi.lib;delayimp.lib;crypt32.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>avcodec.lib;avformat.lib;swscale.lib;avdevice.lib;avutil.lib;sioclient.lib;libssl.lib;libcrypto.lib;libpng16d.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;d3d9.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;ws2_32.lib;wldap32.lib;psapi.lib;delayimp.lib;crypt32.lib;bcrypt.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ShowProgress>NotSet</ShowProgress>
       <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
       <AdditionalLibraryDirectories>..\socket.io-client-cpp\lib\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -676,6 +677,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     <ClCompile Include="..\Client\Player.cpp" />
     <ClCompile Include="..\Client\AboutDialogWin32.cpp" />
     <ClCompile Include="..\Client\FirstTimeSetupWin32.cpp" />
+    <ClCompile Include="..\Client\ScreensaverInstallerWin32.cpp" />
     <ClCompile Include="..\Client\SettingsDialogWin32.cpp" />
     <ClCompile Include="PlatformUtils_win.cpp" />
     <ClCompile Include="..\DisplayOutput\DisplayOutput.cpp" />
@@ -754,6 +756,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     <ClInclude Include="..\Client\client.h" />
     <ClInclude Include="..\Client\FirstTimeSetupWin32.h" />
     <ClInclude Include="..\Client\AboutDialogWin32.h" />
+    <ClInclude Include="..\Client\ScreensaverInstallerWin32.h" />
     <ClInclude Include="..\Client\SettingsDialogWin32.h" />
     <ClInclude Include="..\Client\client_win32.h" />
     <ClInclude Include="..\Client\Console.h" />
@@ -796,6 +799,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     </ResourceCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Import Project="$(MSBuildThisFileDirectory)..\..\vcpkg\scripts\buildsystems\msbuild\vcpkg.targets" />
   <ImportGroup Label="ExtensionTargets" />
   <!-- Copy optional third-party DLLs from MSVC\dll\<Configuration>\ e.g. dll\Release, dll\Debug (flat into OutDir). -->
   <Target Name="CopyExtraDllsFromDllFolder" AfterTargets="PostBuildEvent" Condition="Exists('$(ProjectDir)dll\$(Configuration)')">

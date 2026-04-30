@@ -40,6 +40,16 @@ private:
 
     std::function<void()> m_menuLoopRenderCb;
     bool m_bMenuRenderInProgress;
+    bool m_deviceLost = false;
+
+    // When set, fullscreen will be windowed-borderless (no DXGI exclusive mode).
+    bool m_disableExclusiveFullscreen = false;
+
+    // Optional target monitor placement for fullscreen windows.
+    bool m_hasTargetMonitorIndex = false;
+    uint32_t m_targetMonitorIndex = 0;
+    bool m_hasTargetMonitorRect = false;
+    RECT m_targetMonitorRect = {};
 
   public:
     CDisplayDX11();
@@ -60,12 +70,24 @@ private:
     virtual bool SetFullscreen(const bool fullscreen) override;
     virtual bool IsFullscreen() const override { return m_bFullScreen; }
 
+    // Choose which monitor this display window should occupy when fullscreen.
+    // Index is based on EnumDisplayMonitors ordering.
+    void SetTargetMonitorIndex(uint32_t index) { m_hasTargetMonitorIndex = true; m_targetMonitorIndex = index; }
+    void ClearTargetMonitor() { m_hasTargetMonitorIndex = false; m_hasTargetMonitorRect = false; }
+
+    // Screensaver mode uses borderless windowed fullscreen across monitors.
+    void SetDisableExclusiveFullscreen(bool disable) { m_disableExclusiveFullscreen = disable; }
+
     void SetMenuLoopRenderCallback(std::function<void()> cb) { m_menuLoopRenderCb = std::move(cb); }
 
     IDXGISwapChain* GetSwapChain() const { return m_swapChain.Get(); }
 
     ID3D11Device* GetDevice() const { return m_device.Get(); }
     ID3D11DeviceContext* GetContext() const { return m_context.Get(); }
+
+    // Returns true after DXGI_ERROR_DEVICE_REMOVED/HUNG is received from Present.
+    // All D3D11 operations will fail until the device is recreated.
+    bool IsDeviceLost() const { return m_deviceLost; }
 };
 
 }

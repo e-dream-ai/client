@@ -21,6 +21,7 @@
 #include "clientversion.h"
 #include "AboutDialogWin32.h"
 #include "FirstTimeSetupWin32.h"
+#include "ScreensaverInstallerWin32.h"
 #include "SettingsDialogWin32.h"
 #include "Exception.h"
 #include "Log.h"
@@ -306,33 +307,21 @@ class CElectricSheep_Win32 : public CElectricSheep
                 m_MultipleInstancesMode = true;
         }
 
+        // Per-user app data lives in %LOCALAPPDATA%\Infinidream. Using LocalAppData (rather
+        // than the previous %ProgramData%) sidesteps an ACL trap: ProgramData's default ACL
+        // gives Users only RX on files inside, so files first written by the installer's
+        // (admin) run-at-end were unwritable for subsequent standard-user runs and the app
+        // crashed on startup with no log entry. LocalAppData is owned by the running user,
+        // so creator/owner rights make every file writable.
         char szPath[MAX_PATH];
-        if (SUCCEEDED(
-                SHGetFolderPathA(NULL, CSIDL_COMMON_APPDATA, NULL, 0, szPath)))
+        if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, szPath)))
         {
 #if defined(_DEBUG) || defined(DEBUG)
             const char* const kDataFolder = "Infinidream-stage";
-            const char* const kLegacyFolder = "e-dream-stage";
 #else
             const char* const kDataFolder = "Infinidream";
-            const char* const kLegacyFolder = "e-dream";
 #endif
-
-            char szLegacyPath[MAX_PATH];
-            strcpy_s(szLegacyPath, MAX_PATH, szPath);
-            PathAppendA(szLegacyPath, kLegacyFolder);
             PathAppendA(szPath, kDataFolder);
-
-            // One-time migration (issue #574): the %ProgramData% subfolder
-            // was renamed from "e-dream" to "Infinidream". If the new folder
-            // doesn't exist yet but the legacy one does, rename it so the
-            // user keeps their downloaded content, settings, and logs.
-            if (!PathFileExistsA(szPath) && PathFileExistsA(szLegacyPath))
-            {
-                if (!MoveFileA(szLegacyPath, szPath))
-                    strcpy_s(szPath, MAX_PATH, szLegacyPath);
-            }
-
             PathAddBackslashA(szPath);
             m_AppData = szPath;
         }
@@ -393,6 +382,18 @@ class CElectricSheep_Win32 : public CElectricSheep
         g_Log->Info("Commandline: %s", GetCommandLineA());
 
         _chdir(m_WorkingDir.c_str());
+
+        // Mirror the Mac behavior: when the user-facing app launches, reassert
+        // ourselves as the active screensaver if the preference is on. Done
+        // here (not in the installer) so HKCU resolves to the actual user, not
+        // the elevated installer's admin token. Skipped for screensaver/preview
+        // modes — only the desktop app should be writing this preference.
+        if (m_ScrMode == eWindowed ||
+            m_ScrMode == eWindowed_AllowMultipleInstances ||
+            m_ScrMode == eFullScreenStandalone)
+        {
+            ScreensaverInstallerWin32::EnsureScreensaverActive(m_WorkingDir);
+        }
 
         if (m_ScrMode == eConfig)
         {
@@ -476,12 +477,62 @@ class CElectricSheep_Win32 : public CElectricSheep
 
         const uint32_t requestedScreen =
             g_Settings()->Get("settings.player.screen", 0);
+        const bool wantAllMonitors = (m_ScrMode == eSaver);
         const bool blankOtherDisplays =
-            (g_Settings()->Get("settings.player.MultiDisplayMode", 0) ==
-             CPlayer::kMDSingleScreen) &&
+            !wantAllMonitors &&
             (m_ScrMode != eFullScreenStandalone) && (m_ScrMode != eWindowed);
 
-        if (g_Player().AddDisplay(requestedScreen, blankOtherDisplays) == -1)
+        if (m_ScrMode == eSaver)
+            g_Player().SetIsScreenSaverRun(true);
+        else
+            g_Player().SetIsScreenSaverRun(false);
+
+        auto countMonitors = []() -> uint32_t {
+            struct Ctx
+            {
+                uint32_t count = 0;
+            } ctx;
+            auto cb = [](HMONITOR, HDC, LPRECT, LPARAM lp) -> BOOL {
+                auto* c = reinterpret_cast<Ctx*>(lp);
+                if (c) c->count++;
+                return TRUE;
+            };
+            EnumDisplayMonitors(nullptr, nullptr, cb, reinterpret_cast<LPARAM>(&ctx));
+            return ctx.count ? ctx.count : 1u;
+        };
+
+        if (wantAllMonitors)
+        {
+            const uint32_t monitorCount = countMonitors();
+            g_Log->Info("Screensaver multi-monitor mode: creating %u windows", monitorCount);
+
+            bool anyOk = false;
+            // Start with the requested screen (if in range), then create the rest.
+            auto addOne = [&](uint32_t idx) {
+                if (g_Player().AddDisplay(idx, /*blankOtherDisplays*/ false) != -1)
+                {
+                    anyOk = true;
+                    g_Log->Info("AddDisplay succeeded for screen %u", idx);
+                }
+                else
+                {
+                    g_Log->Error("AddDisplay failed for screen %u", idx);
+                }
+            };
+
+            if (requestedScreen < monitorCount)
+                addOne(requestedScreen);
+            for (uint32_t i = 0; i < monitorCount; ++i)
+            {
+                if (i == requestedScreen)
+                    continue;
+                addOne(i);
+            }
+
+            if (!anyOk)
+                return false;
+        }
+        else if (g_Player().AddDisplay(requestedScreen, blankOtherDisplays) == -1)
         {
             bool foundfirstmon = false;
             g_Log->Error("AddDisplay failed for screen %d", monnum);
@@ -586,6 +637,9 @@ class CElectricSheep_Win32 : public CElectricSheep
             //	Key events.
             if (_event->Type() == DisplayOutput::CEvent::Event_KEY)
             {
+                if (SettingsDialogWin32_HasPendingOrVisible() || FirstTimeSetupWin32_IsWizardVisible())
+                    return true;
+
                 DisplayOutput::spCKeyEvent spKey =
                     std::dynamic_pointer_cast<DisplayOutput::CKeyEvent>(_event);
                 m_bCtrlDown = ((GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0);

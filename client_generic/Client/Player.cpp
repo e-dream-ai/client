@@ -20,6 +20,7 @@
 #include "Log.h"
 #include "MathBase.h"
 #include "Player.h"
+#include "client.h"
 #include "base.h"
 #include "clientversion.h"
 
@@ -108,6 +109,8 @@ CPlayer::CPlayer() : m_isFirstPlay(true), m_offlineMode(false), m_pendingSeekCro
     m_transitionDuration = 5.0;
 #ifdef WIN32
     m_hWnd = nullptr;
+    m_previewParentHwnd = nullptr;
+    m_isScreenSaverRun = false;
 #endif
     
     m_playlistManager = std::make_unique<PlaylistManager>();
@@ -136,8 +139,20 @@ bool CPlayer::IsOfflineMode() const
 void CPlayer::SetHWND(HWND _hWnd)
 {
     g_Log->Info("Got hwnd... (%p)", static_cast<void*>(_hWnd));
-    m_hWnd = _hWnd;
-    PlatformUtils::Win32SetMessageWindow(static_cast<void*>(_hWnd));
+    // In preview mode (/p), Windows provides a parent window to embed into.
+    // In non-preview mode, we create our own top-level windows and only set
+    // the message window once (keep the first created one).
+    if (g_Client() && g_Client()->IsPreview())
+    {
+        m_previewParentHwnd = _hWnd;
+        return;
+    }
+
+    if (m_hWnd == nullptr)
+    {
+        m_hWnd = _hWnd;
+        PlatformUtils::Win32SetMessageWindow(static_cast<void*>(_hWnd));
+    }
 }
 #endif
 
@@ -157,15 +172,22 @@ int CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
         std::string watchFolder =
             g_Settings()->Get("settings.content.sheepdir", content) + PATH_SEPARATOR + "mp4" + PATH_SEPARATOR;
     }
-    // modify aspect ratio and/or window size hint
-    uint32_t w = 1280;
-    uint32_t h = 720;
+    // Logical size at 100% DPI; CDisplayDX11::CreateDisplayWindow scales it by the
+    // cursor-monitor DPI on Windows and centers the window on that monitor.
+    uint32_t w = 1920;
+    uint32_t h = 1080;
 
 #ifdef WIN32
     g_Log->Info("Attempting to open %s...", CDisplayDX11::Description());
 
     spDisplay = std::make_shared<CDisplayDX11>();
     // spDisplay->SetScreen(screen); 
+
+    if (auto* dx11 = dynamic_cast<CDisplayDX11*>(spDisplay.get()))
+    {
+        dx11->SetTargetMonitorIndex(screen);
+        dx11->SetDisableExclusiveFullscreen(m_isScreenSaverRun);
+    }
 
 
     if (spDisplay == nullptr)
@@ -175,10 +197,16 @@ int CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
     }
 
     HWND displayHwnd = nullptr;
-    if (m_hWnd)
-        displayHwnd = spDisplay->Initialize(m_hWnd, true);
+    const bool isPreview = (g_Client() && g_Client()->IsPreview());
+    if (isPreview && m_previewParentHwnd)
+    {
+        displayHwnd = spDisplay->Initialize(m_previewParentHwnd, true);
+    }
     else
+    {
+        // Always create a new top-level window outside preview mode.
         displayHwnd = spDisplay->Initialize(w, h, m_bFullscreen);
+    }
 
     if (!displayHwnd)
         return -1;
@@ -644,6 +672,27 @@ bool CPlayer::Update(uint32_t displayUnit)
     du->spRenderer->Orthographic();
     du->spRenderer->Apply();
 
+    // In shared multi-display mode we want to render the same content to each
+    // monitor window, but we must NOT advance clip/transition state once per
+    // display (that causes double-update flicker, odd color/alpha behavior,
+    // and unstable transitions).
+    size_t displayCount = 1;
+    {
+        std::scoped_lock lockthis(m_displayListMutex);
+        displayCount = m_displayUnits.size();
+    }
+    const bool sharedRenderOnly =
+        (displayCount > 1) &&
+        (m_MultiDisplayMode == kMDSharedMode) &&
+        (displayUnit != 0);
+
+    if (sharedRenderOnly)
+    {
+        reader_lock l(m_UpdateMutex);
+        RenderFrame(du->spRenderer);
+        return true;
+    }
+
     writer_lock l(m_UpdateMutex);
 
     const bool freezePlayback = m_bPaused || IsFirstRunWizardPlaybackHold();
@@ -705,10 +754,21 @@ bool CPlayer::Update(uint32_t displayUnit)
     }
     
     if (m_nextClip) {
-        if (!m_nextClip->HasFinished()) {
+        // While waiting for a SEAMLESS swap the next clip is not rendered
+        // (see RenderFrame) and must not advance its playback either — if we
+        // Update() it every tick, its decoder queue drains and by swap time
+        // the first frame popped is not frame 0. With hw decode this produces
+        // a visible forward jump at the swap; with sw decode the decoder
+        // can't keep up so the bug is masked. The decoder thread keeps
+        // running and fills the queue up to its backpressure cap regardless,
+        // so the queue is fully buffered at swap time ready to pop frame 0.
+        const bool waitingForSeamless = m_nextDreamDecision &&
+            m_nextDreamDecision->transition == PlaylistManager::TransitionType::Seamless;
+
+        if (!m_nextClip->HasFinished() && !waitingForSeamless) {
             m_nextClip->Update(m_TimelineTime, freezePlayback);
         }
-        
+
         // Check if pending seek crossfade can now start (next clip finished buffering)
         if (m_pendingSeekCrossfade && !m_nextClip->IsBuffering() && !freezePlayback) {
             g_Log->Info("Pending seek crossfade: next clip ready, starting transition");
@@ -879,7 +939,7 @@ void CPlayer::PlayNextDream(bool quickFade) {
             // For seamless, next clip should already be prepared
             if (m_nextClip) {
                 g_Log->Info("Executing seamless transition now");
-                
+
                 // Transfer frame continuity before destroying old clip
                 if (m_currentClip && m_nextClip) {
                     auto currentDisplay = m_currentClip->GetFrameDisplay();

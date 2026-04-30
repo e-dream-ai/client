@@ -4,6 +4,7 @@
 #include <d3d11.h>
 #include <wrl/client.h>
 #include <vector>
+#include <map>
 #include "Renderer.h"
 #include "SmartPtr.h"
 #include "ShaderDX11.h"
@@ -37,6 +38,8 @@ public:
 
     virtual eRenderType Type(void) const override { return eDX11; }
     virtual const std::string Description(void) const override { return "DirectX 11"; }
+
+    ID3D11Device* GetDevice() const { return m_device.Get(); }
     
     virtual bool Initialize(spCDisplayOutput _spDisplay) override;
     /// Release RTV (and depth) that reference the swap chain back buffer; call before ResizeBuffers.
@@ -88,6 +91,11 @@ private:
     spCShader m_drawTextureShader;
     bool CreateQuadBuffers();
 
+    // Maps each decoded-frame RGBA shader to its NV12 YUV counterpart.
+    // Populated lazily in NewShader(); used in DrawTexturedQuad to auto-select
+    // the YUV variant when any bound texture is a hw NV12 frame.
+    std::map<CShader*, spCShader> m_yuvShaderVariants;
+
     // Batched HUD text path (avoids per-glyph DrawIndexed overhead).
     struct TextBatchVertex
     {
@@ -136,6 +144,7 @@ private:
     bool CreateBlendStates();
     bool CreateDepthStencilStates();
     bool CreateRasterizerStates();
+
 };
 
 MakeSmartPointers(CRendererDX11);

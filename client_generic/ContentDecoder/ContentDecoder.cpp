@@ -204,6 +204,62 @@ bool CContentDecoder::IsURL(const std::string& path)
     return path.substr(0, 7) == "http://" || path.substr(0, 8) == "https://";
 }
 
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
+// Prefers AV_PIX_FMT_D3D11 when available; falls back to first software format.
+// Also creates the hw_frames_ctx here because coded_width/coded_height are only
+// finalized by the time get_format is invoked (they may differ from codecpar
+// display dimensions, e.g. 1088 vs 1080 for H264 macroblock alignment).
+// Setting hw_frames_ctx here is the documented FFmpeg approach for custom pools.
+AVPixelFormat CContentDecoder::GetHWFormat(AVCodecContext* ctx,
+                                            const AVPixelFormat* pix_fmts)
+{
+    for (const AVPixelFormat* p = pix_fmts; *p != AV_PIX_FMT_NONE; ++p)
+    {
+        if (*p == AV_PIX_FMT_D3D11)
+        {
+            if (ctx->hw_device_ctx)
+            {
+                AVBufferRef* framesRef = av_hwframe_ctx_alloc(ctx->hw_device_ctx);
+                if (framesRef)
+                {
+                    auto* framesCtx = reinterpret_cast<AVHWFramesContext*>(framesRef->data);
+                    framesCtx->format            = AV_PIX_FMT_D3D11;
+                    framesCtx->sw_format         = AV_PIX_FMT_NV12;
+                    framesCtx->width             = ctx->coded_width;
+                    framesCtx->height            = ctx->coded_height;
+                    // Pool of 32: decoder needs ~8 DPB refs + ~16 frame-queue slots + margin.
+                    // Keeping this moderate prevents burst-decodes after a seek from flooding
+                    // the GPU command queue with too many simultaneous decode operations.
+                    framesCtx->initial_pool_size = 32;
+
+                    auto* d3d11Frames = reinterpret_cast<AVD3D11VAFramesContext*>(framesCtx->hwctx);
+                    // D3D11_BIND_SHADER_RESOURCE is required to create SRVs for the Y/UV planes.
+                    d3d11Frames->BindFlags = D3D11_BIND_DECODER | D3D11_BIND_SHADER_RESOURCE;
+
+                    if (av_hwframe_ctx_init(framesRef) == 0)
+                    {
+                        av_buffer_unref(&ctx->hw_frames_ctx);
+                        ctx->hw_frames_ctx = framesRef;
+                        g_Log->Info("D3D11VA get_format: hw_frames_ctx set (coded %dx%d, pool %d)",
+                                    ctx->coded_width, ctx->coded_height,
+                                    framesCtx->initial_pool_size);
+                    }
+                    else
+                    {
+                        g_Log->Warning("D3D11VA get_format: av_hwframe_ctx_init failed; decoder will use default pool");
+                        av_buffer_unref(&framesRef);
+                    }
+                }
+            }
+            g_Log->Info("D3D11VA get_format: selected AV_PIX_FMT_D3D11");
+            return AV_PIX_FMT_D3D11;
+        }
+    }
+    g_Log->Warning("D3D11VA get_format: AV_PIX_FMT_D3D11 not offered; using software format");
+    return pix_fmts[0];
+}
+#endif
+
 bool CContentDecoder::Open()
 {
     auto ovi = m_CurrentVideoInfo.get();
@@ -347,9 +403,58 @@ bool CContentDecoder::Open()
         g_Log->Error("unknown codec? ");
         return false;
     }
-#ifdef LINUX_GNU
-    // Try VAAPI hardware-accelerated decoding.  Falls back silently to
-    // software if VAAPI is not available (e.g. no DRI device, VM, etc.).
+#if USE_HW_ACCELERATION
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
+    // D3D11VA: share the renderer's ID3D11Device so decoded textures stay on
+    // the same GPU and can be sampled directly without a CPU round-trip.
+    if (m_d3d11Device)
+    {
+        AVBufferRef* hwDevCtxBuf = av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_D3D11VA);
+        if (hwDevCtxBuf)
+        {
+            auto* hwDevCtx = reinterpret_cast<AVHWDeviceContext*>(hwDevCtxBuf->data);
+            auto* d3d11vaCtx = reinterpret_cast<AVD3D11VADeviceContext*>(hwDevCtx->hwctx);
+            d3d11vaCtx->device = m_d3d11Device.Get();
+            m_d3d11Device->GetImmediateContext(&d3d11vaCtx->device_context);
+
+            // Prevent two decoder threads from interleaving their D3D11VA
+            // BeginFrame→Execute→EndFrame sequences on the shared ID3D11VideoContext.
+            // Each lambda uses the process-wide immediate-context mutex so decode
+            // and render context calls are serialized through the same lock.
+            d3d11vaCtx->lock = [](void* ctx) {
+                static_cast<std::recursive_mutex*>(ctx)->lock();
+            };
+            d3d11vaCtx->unlock = [](void* ctx) {
+                static_cast<std::recursive_mutex*>(ctx)->unlock();
+            };
+            d3d11vaCtx->lock_ctx = &GetD3D11ImmediateContextMutex();
+
+            if (av_hwdevice_ctx_init(hwDevCtxBuf) == 0)
+            {
+                ovi->m_pVideoCodecContext->hw_device_ctx = hwDevCtxBuf;
+                ovi->m_pVideoCodecContext->get_format = CContentDecoder::GetHWFormat;
+                // hw_frames_ctx is created inside GetHWFormat where coded_width/coded_height
+                // are known, ensuring the correct padded dimensions and D3D11_BIND_SHADER_RESOURCE.
+                g_Log->Info("D3D11VA hw device created successfully");
+            }
+            else
+            {
+                g_Log->Warning("D3D11VA init failed; falling back to software decode");
+                av_buffer_unref(&hwDevCtxBuf);
+            }
+        }
+        else
+        {
+            g_Log->Warning("av_hwdevice_ctx_alloc(D3D11VA) failed; falling back to software decode");
+        }
+    }
+    else
+    {
+        g_Log->Warning("No D3D11 device set on decoder; falling back to software decode");
+    }
+#elif defined(LINUX_GNU)
+    // VAAPI: Falls back silently to software if VAAPI is not available
+    // (e.g. no DRI device, VM, etc.).
     {
         AVBufferRef* hw_ctx = nullptr;
         if (av_hwdevice_ctx_create(&hw_ctx, AV_HWDEVICE_TYPE_VAAPI,
@@ -365,9 +470,10 @@ bool CContentDecoder::Open()
             g_Log->Info("VAAPI unavailable — using software decoding");
         }
     }
-#elif defined(MAC)
-    // VideoToolbox hardware decoding — frames arrive as CVPixelBufferRef in
-    // data[3], which TextureFlatMetal::GetPixelBuffer() and BindFrame() expect.
+#else
+    // macOS: VideoToolbox
+    // Frames arrive as CVPixelBufferRef in data[3], which
+    // TextureFlatMetal::GetPixelBuffer() and BindFrame() expect.
     // Without this init, the codec outputs software YUV and data[3] is null,
     // causing a crash inside RendererMetal when it tries to create Metal textures.
     {
@@ -385,6 +491,7 @@ bool CContentDecoder::Open()
             g_Log->Error("VideoToolbox unavailable — using software decoding (expect crash)");
         }
     }
+#endif
 #endif
     // Initialize the codec context
     ovi->m_pFormatContext->flags |= AVFMT_FLAG_IGNIDX;   //	Ignore index.
@@ -741,7 +848,14 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
     {
         // g_Log->Info( "frame decoded" );
         
-        if (USE_HW_ACCELERATION)
+        // Determine whether this is a true GPU-backed hw frame or a software frame
+        // (software frames arrive when hw init failed and the codec fell back).
+        const bool isGPUFrame = (pFrame && (pFrame->format == AV_PIX_FMT_VIDEOTOOLBOX
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
+            || pFrame->format == AV_PIX_FMT_D3D11
+#endif
+        ));
+        if (USE_HW_ACCELERATION && isGPUFrame)
         {
             const std::string frameSource = ovi ? ovi->m_Path : std::string();
             pVideoFrame = new CVideoFrame(pFrame, frameNumber,
@@ -895,7 +1009,7 @@ void CContentDecoder::ReadFramesThread()
 
         // tmp
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
-        
+
         while (!m_HasEnded.load())
         {
             // Check for shutdown
@@ -903,6 +1017,19 @@ void CContentDecoder::ReadFramesThread()
                 g_Log->Info("Shutdown detected in read frames thread");
                 return;
             }
+
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
+            // If the shared D3D11 device is already lost, stop feeding the decoder.
+            // Continuing to submit hw decode work after device removal only burns CPU/GPU
+            // and can wedge the queueing path.
+            if (m_d3d11Device && m_d3d11Device->GetDeviceRemovedReason() != S_OK)
+            {
+                g_Log->Warning("ReadFrames: D3D11 device lost; stopping decode thread for %s",
+                               m_Metadata.dreamData.uuid.c_str());
+                m_HasEnded.store(true);
+                break;
+            }
+#endif
 
             this_thread::interruption_point();
             
@@ -941,8 +1068,41 @@ void CContentDecoder::ReadFramesThread()
 
             if (m_CurrentVideoInfo->m_SeekTargetFrame != -1)
             {
-                m_FrameQueueMutex.lock();
-                ClearQueue();
+                // ── Phase 1: GPU sync + queue clear ──────────────────────────────────
+                // Hold BOTH the frame-queue mutex and the D3D11 context mutex only for
+                // the GPU-side work (flush + sync query + ClearQueue).  Release both
+                // BEFORE the demuxer seek below so the renderer is never locked out
+                // during potentially slow file/disk I/O.
+                {
+                    std::lock_guard<std::mutex> qLock(m_FrameQueueMutex);
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
+                    std::lock_guard<std::recursive_mutex> d3dCtxLock(GetD3D11ImmediateContextMutex());
+                    if (m_d3d11Device)
+                    {
+                        ComPtr<ID3D11DeviceContext> d3dCtx;
+                        m_d3d11Device->GetImmediateContext(&d3dCtx);
+
+                        D3D11_QUERY_DESC qDesc = { D3D11_QUERY_EVENT, 0 };
+                        ComPtr<ID3D11Query> syncQuery;
+                        if (SUCCEEDED(m_d3d11Device->CreateQuery(&qDesc, &syncQuery)))
+                        {
+                            d3dCtx->Flush();
+                            d3dCtx->End(syncQuery.Get());
+                            BOOL done = FALSE;
+                            while (d3dCtx->GetData(syncQuery.Get(), &done, sizeof(done), 0) != S_OK || !done)
+                                std::this_thread::sleep_for(std::chrono::microseconds(100));
+                        }
+                        else
+                        {
+                            d3dCtx->Flush();
+                            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+                        }
+                    }
+#endif
+                    ClearQueue();
+                } // ← both mutexes released here, before any disk I/O
+
+                // ── Phase 2: demuxer seek (no mutex – pure file/parser work) ─────────
                 AVRational timeBase =
                 m_CurrentVideoInfo->m_pFormatContext
                 ->streams[m_CurrentVideoInfo->m_VideoStreamID]
@@ -951,15 +1111,11 @@ void CContentDecoder::ReadFramesThread()
                                          m_CurrentVideoInfo->m_pFormatContext
                                          ->streams[m_CurrentVideoInfo->m_VideoStreamID]
                                          ->avg_frame_rate);
-                
 
-                
-                // Calculate target timestamp in stream time base
                 int64_t targetTimestamp =
                 (int64_t)(m_CurrentVideoInfo->m_SeekTargetFrame /
                           (frameRate * av_q2d(timeBase)));
-                
-                // Determine if this is a backward seek
+
                 int64_t currentTimestamp =
                 (int64_t)(m_CurrentVideoInfo->m_CurrentFrameIndex /
                           (frameRate * av_q2d(timeBase)));
@@ -968,13 +1124,25 @@ void CContentDecoder::ReadFramesThread()
                 g_Log->Info("Target timestamp: %lld", targetTimestamp);
                 g_Log->Info("Current timestamp: %lld", currentTimestamp);
                 g_Log->Info("Seek flags: %d", seekFlags);
-                
-                // Seek to the target timestamp
+
                 int seek =
                 avformat_seek_file(m_CurrentVideoInfo->m_pFormatContext,
                                    m_CurrentVideoInfo->m_VideoStreamID, 0,
                                    targetTimestamp, targetTimestamp, seekFlags);
+
+                // ── Phase 3: codec flush (D3D11 mutex only – may touch HW state) ─────
+                // FFmpeg's D3D11VA callbacks handle locking internally, but we hold the
+                // mutex explicitly as an outer guard to avoid interleaving with the
+                // renderer during codec-internal D3D11 cleanup.
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
+                {
+                    std::lock_guard<std::recursive_mutex> d3dCtxLock(GetD3D11ImmediateContextMutex());
+                    avcodec_flush_buffers(m_CurrentVideoInfo->m_pVideoCodecContext);
+                }
+#else
                 avcodec_flush_buffers(m_CurrentVideoInfo->m_pVideoCodecContext);
+#endif
+
                 if (seek < 0)
                 {
                     g_Log->Error("Error seeking:%i", seek);
@@ -987,6 +1155,23 @@ void CContentDecoder::ReadFramesThread()
                     m_CurrentVideoInfo->m_CurrentFrameIndex = -1;
                 }
             }
+
+            // Backpressure: once queue is near full, pause decoding briefly instead of
+            // continuously submitting D3D11VA work.  This avoids sustained GPU saturation
+            // (3D engine pegged at 100%) and reduces TDR probability over long runs.
+            if (m_CurrentVideoInfo->m_SeekTargetFrame == -1)
+            {
+                const size_t queueSize = m_FrameQueue.size();
+                const size_t queueMax = m_FrameQueue.getMaxQueueElements();
+                const size_t highWater = (queueMax > 4) ? (queueMax - 4) : queueMax;
+                if (queueSize >= highWater)
+                {
+                    PROFILER_END("Main Video Decoder Frame");
+                    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+                    continue;
+                }
+            }
+
             CVideoFrame* pMainVideoFrame = ReadOneFrame();
             PROFILER_END("Main Video Decoder Frame");
             if (pMainVideoFrame)
@@ -999,9 +1184,7 @@ void CContentDecoder::ReadFramesThread()
                 m_HasEnded.store(true);
                 break;
             }
-            
-            if (m_CurrentVideoInfo->m_SeekTargetFrame != -1)
-                m_FrameQueueMutex.unlock();
+
             m_CurrentVideoInfo->m_SeekTargetFrame = -1;
         }
         

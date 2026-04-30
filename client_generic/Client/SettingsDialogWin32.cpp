@@ -62,6 +62,13 @@ std::atomic<bool> g_imguiInitialized{false};
 std::atomic<bool> g_pendingImGuiShutdown{false};
 ImGuiContext* g_imguiContext = nullptr;
 ImFont* g_boldUiFont = nullptr;
+
+// Design-time bump on top of the monitor DPI ratio. Mirrors FirstTimeSetupWin32; tune both together.
+constexpr float kBaseUiBump = 1.25f;
+// Combined scale: (GetDpiForWindow / 96) × kBaseUiBump. Set in TryInitImGui() from the host
+// window's DPI; used by S() at draw-time to scale every layout constant.
+static float g_uiScale = kBaseUiBump;
+static inline float S(float v) { return v * g_uiScale; }
 ID3D11ShaderResourceView* g_srvPlaylistIcon = nullptr;
 int g_texPlaylistIconW = 0;
 int g_texPlaylistIconH = 0;
@@ -88,8 +95,7 @@ char g_proxyPasswordBuf[256] = {};
 bool g_debugLog = false;
 char g_serverBuf[512] = {};
 
-bool g_autoInstallScreensaver = false;
-bool g_keepScreensaverEnabled = false;
+bool g_keepScreensaverEnabled = true;
 
 bool g_sentCode = false;
 char g_statusBuf[256] = {};
@@ -128,7 +134,14 @@ static void SnapWindowTo16By9IfNeeded()
         return;
 
     const LONG clientW = std::max<LONG>(1L, clientRc.right - clientRc.left);
+    const LONG clientH = std::max<LONG>(1L, clientRc.bottom - clientRc.top);
     const int targetClientH = std::max(1, static_cast<int>(std::round(static_cast<double>(clientW) * 9.0 / 16.0)));
+
+    // Already 16:9 within rounding — don't fire SetWindowPos. CDisplayDX11::WndProc posts the
+    // deferred-snap message on every non-trivial WM_SIZE; this guard keeps that idempotent and
+    // prevents a SetWindowPos -> WM_SIZE -> deferred-snap feedback loop.
+    if (std::abs(static_cast<int>(clientH) - targetClientH) <= 1)
+        return;
 
     RECT targetWindow = {0, 0, clientW, targetClientH};
     const LONG exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
@@ -320,12 +333,20 @@ static bool TryInitImGui()
 
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 
+    // Manifest is system-DPI-aware (electricsheep.vcxproj); GetDpiForWindow returns the system DPI.
+    HWND hwnd = dx->GetWindowHandle();
+    const UINT dpi = GetDpiForWindow(hwnd);
+    const float dpiScale = (dpi > 0u) ? (static_cast<float>(dpi) / 96.0f) : 1.0f;
+    g_uiScale = dpiScale * kBaseUiBump;
+
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.IniFilename = nullptr;
     ImGui::StyleColorsLight();
+    // Scale paddings/spacing/rounding from the default light style.
+    ImGui::GetStyle().ScaleAllSizes(g_uiScale);
     g_boldUiFont = nullptr;
     {
         // Prefer San Francisco if available; fallback to close sans-serif fonts on Windows.
@@ -341,7 +362,7 @@ static bool TryInitImGui()
             const DWORD attrs = GetFileAttributesA(fontPath);
             if (attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY) == 0)
             {
-                ImFont* loaded = io.Fonts->AddFontFromFileTTF(fontPath, 17.0f);
+                ImFont* loaded = io.Fonts->AddFontFromFileTTF(fontPath, S(17.0f));
                 if (loaded)
                 {
                     io.FontDefault = loaded;
@@ -361,14 +382,14 @@ static bool TryInitImGui()
             const DWORD attrs = GetFileAttributesA(fontPath);
             if (attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY) == 0)
             {
-                g_boldUiFont = io.Fonts->AddFontFromFileTTF(fontPath, 17.0f);
+                g_boldUiFont = io.Fonts->AddFontFromFileTTF(fontPath, S(17.0f));
                 if (g_boldUiFont)
                     break;
             }
         }
     }
 
-    if (!ImGui_ImplWin32_Init(dx->GetWindowHandle()))
+    if (!ImGui_ImplWin32_Init(hwnd))
     {
         ImGui::DestroyContext();
         return false;
@@ -497,20 +518,20 @@ static void DrawAdvancedTab()
 
 static void DrawSettingsDialog(float viewportW, float viewportH)
 {
-    const float targetWidth = 541.f;   // Match macOS settings dialog content width.
-    const float targetHeight = 390.f;  // Match macOS settings dialog content height.
-    const float windowWidth = (viewportW > (targetWidth + 64.f)) ? targetWidth : (viewportW - 32.f);
-    const float windowHeight = (viewportH > (targetHeight + 64.f)) ? targetHeight : (viewportH - 32.f);
-    const ImVec2 windowSize((windowWidth < 460.f) ? 460.f : windowWidth,
-                            (windowHeight < 340.f) ? 340.f : windowHeight);
+    const float targetWidth = S(541.f);   // Match macOS settings dialog content width.
+    const float targetHeight = S(390.f);  // Match macOS settings dialog content height.
+    const float windowWidth = (viewportW > (targetWidth + S(64.f))) ? targetWidth : (viewportW - S(32.f));
+    const float windowHeight = (viewportH > (targetHeight + S(64.f))) ? targetHeight : (viewportH - S(32.f));
+    const ImVec2 windowSize((windowWidth < S(460.f)) ? S(460.f) : windowWidth,
+                            (windowHeight < S(340.f)) ? S(340.f) : windowHeight);
     ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
     ImGui::SetNextWindowPos(ImVec2((viewportW - windowSize.x) * 0.5f, (viewportH - windowSize.y) * 0.5f),
                             ImGuiCond_Always);
 
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(18.f, 16.f));
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 6.f);
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.f, 10.f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, S(12.f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(S(18.f), S(16.f)));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, S(6.f));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(S(10.f), S(10.f)));
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.98f, 0.98f, 0.98f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.82f, 0.82f, 0.82f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.08f, 0.08f, 0.08f, 1.00f));
@@ -530,52 +551,85 @@ static void DrawSettingsDialog(float viewportW, float viewportH)
                              ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
     if (ImGui::Begin("##SettingsDialog", nullptr, flags))
     {
-        const float footerHeight = 44.f;
-        const float separatorReserve = ImGui::GetStyle().ItemSpacing.y + 2.f;
+        const float footerHeight = S(44.f);
+        const float separatorReserve = ImGui::GetStyle().ItemSpacing.y + S(2.f);
         float contentHeight = ImGui::GetContentRegionAvail().y - footerHeight - separatorReserve;
-        if (contentHeight < 120.f)
-            contentHeight = 120.f;
+        if (contentHeight < S(120.f))
+            contentHeight = S(120.f);
 
         ImGui::BeginChild("settings_content_region", ImVec2(0.f, contentHeight), false,
                           ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+
+        // Flat tabs with a hairline below the strip and an accent underline on the active tab.
+        // ImGui's default raised-button tab look reads as five buttons, not as a tab strip.
+        ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(0.f, 0.f, 0.f, 0.f));
+        ImGui::PushStyleColor(ImGuiCol_TabHovered, ImVec4(0.f, 0.f, 0.f, 0.06f));
+        ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(0.f, 0.f, 0.f, 0.f));
+        ImGui::PushStyleColor(ImGuiCol_TabUnfocused, ImVec4(0.f, 0.f, 0.f, 0.f));
+        ImGui::PushStyleColor(ImGuiCol_TabUnfocusedActive, ImVec4(0.f, 0.f, 0.f, 0.f));
+        ImGui::PushStyleVar(ImGuiStyleVar_TabBorderSize, 0.f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(S(14.f), S(8.f)));
+
+        // Capture the active tab's button rect so we can paint the underline + baseline below.
+        bool activeTabFound = false;
+        ImVec2 activeTabMin(0.f, 0.f);
+        ImVec2 activeTabMax(0.f, 0.f);
+        const auto drawTabItem = [&](const char* label, void (*body)()) {
+            const bool open = ImGui::BeginTabItem(label);
+            if (open && !activeTabFound)
+            {
+                activeTabMin = ImGui::GetItemRectMin();
+                activeTabMax = ImGui::GetItemRectMax();
+                activeTabFound = true;
+            }
+            if (open)
+            {
+                // Tab strip uses bumped FramePadding for taller tab buttons; restore the default
+                // for tab-body widgets so radios/inputs/buttons aren't oversized.
+                ImGui::PopStyleVar(); // pop FramePadding push from outside the tab bar
+                body();
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(S(14.f), S(8.f)));
+                ImGui::EndTabItem();
+            }
+        };
+
         if (ImGui::BeginTabBar("settings_tabs"))
         {
-            if (ImGui::BeginTabItem("Account"))
-            {
-                DrawAccountTab();
-                ImGui::EndTabItem();
-            }
-            if (ImGui::BeginTabItem("Controls"))
-            {
-                DrawControlsTab();
-                ImGui::EndTabItem();
-            }
-            if (ImGui::BeginTabItem("Disk"))
-            {
-                DrawDiskTab();
-                ImGui::EndTabItem();
-            }
-            if (ImGui::BeginTabItem("Display"))
-            {
-                DrawDisplayTab();
-                ImGui::EndTabItem();
-            }
-            if (ImGui::BeginTabItem("Advanced"))
-            {
-                DrawAdvancedTab();
-                ImGui::EndTabItem();
-            }
+            drawTabItem("Account", DrawAccountTab);
+            drawTabItem("Controls", DrawControlsTab);
+            drawTabItem("Disk", DrawDiskTab);
+            drawTabItem("Display", DrawDisplayTab);
+            drawTabItem("Advanced", DrawAdvancedTab);
             ImGui::EndTabBar();
         }
+
+        ImGui::PopStyleVar(2);
+        ImGui::PopStyleColor(5);
+
+        if (activeTabFound)
+        {
+            ImDrawList* dl = ImGui::GetWindowDrawList();
+            const ImU32 borderCol = ImGui::GetColorU32(ImGuiCol_Border);
+            // macOS systemBlue (matches the wizard's primary action).
+            const ImU32 accentCol = ImGui::ColorConvertFloat4ToU32(ImVec4(0.f, 0.478f, 1.f, 1.f));
+            const ImVec2 wPos = ImGui::GetWindowPos();
+            const float wW = ImGui::GetWindowWidth();
+            const float lineY = activeTabMax.y;
+            // Hairline along the entire tab strip baseline...
+            dl->AddLine(ImVec2(wPos.x, lineY), ImVec2(wPos.x + wW, lineY), borderCol, 1.f);
+            // ...with the active tab's underline drawn over it in accent color.
+            dl->AddLine(ImVec2(activeTabMin.x, lineY), ImVec2(activeTabMax.x, lineY), accentCol, S(2.f));
+        }
+
         ImGui::EndChild();
 
         ImGui::Separator();
         ImGui::BeginChild("settings_footer_region", ImVec2(0.f, 0.f), false,
                           ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
         {
-            const float helpButtonSize = 20.f;
-            const float closeButtonWidth = 78.f;
-            const float closeButtonHeight = 24.f;
+            const float helpButtonSize = S(20.f);
+            const float closeButtonWidth = S(78.f);
+            const float closeButtonHeight = S(24.f);
             const float originX = ImGui::GetCursorPosX();
             const float contentWidth = ImGui::GetContentRegionAvail().x;
             const float contentHeight = ImGui::GetContentRegionAvail().y;
@@ -616,6 +670,11 @@ void SettingsDialogWin32_DismissWithoutSaveForExternalOverlay()
     if (!g_overlayAllowed.load(std::memory_order_acquire))
         return;
     DismissSettingsWithoutSaveImpl();
+}
+
+void SettingsDialogWin32_HandleDeferredSnap()
+{
+    SnapWindowTo16By9IfNeeded();
 }
 
 void SettingsDialogWin32_Register()

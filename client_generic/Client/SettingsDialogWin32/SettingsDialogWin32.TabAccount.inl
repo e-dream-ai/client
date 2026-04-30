@@ -1,7 +1,7 @@
 const bool loggedIn = EDreamClient::IsLoggedIn();
-const float actionButtonWidth = 100.f;
-const float actionButtonHeight = 30.f;
-const float sidePadding = 60.f;
+const float actionButtonWidth = S(100.f);
+const float actionButtonHeight = S(30.f);
+const float sidePadding = S(60.f);
 
 ImVec4 authColor = ImVec4(0.89f, 0.20f, 0.24f, 1.0f);
 const char* authText = "Please sign in.";
@@ -18,9 +18,9 @@ else if (g_sentCode)
 
 const float availW = ImGui::GetContentRegionAvail().x;
 const float availH = ImGui::GetContentRegionAvail().y;
-const float safePanelWidth = (availW < 300.f) ? 300.f : availW;
+const float safePanelWidth = (availW < S(300.f)) ? S(300.f) : availW;
 
-const float formHeight = loggedIn ? 92.f : 230.f;
+const float formHeight = loggedIn ? S(92.f) : S(230.f);
 const float topPad = (availH - formHeight) * 0.5f;
 if (topPad > 0.f)
     ImGui::Dummy(ImVec2(0.f, topPad));
@@ -31,7 +31,7 @@ ImGui::BeginChild("account_centered_body", ImVec2(safePanelWidth, formHeight), f
 if (loggedIn)
 {
     const std::string signedInText = std::string("Signed in as ") + g_nicknameBuf;
-    const float dotRadius = 5.f;
+    const float dotRadius = 10.f;
     const float rowX = sidePadding;
     if (rowX > 0.f)
         ImGui::SetCursorPosX(rowX);
@@ -45,16 +45,18 @@ if (loggedIn)
     ImGui::TextUnformatted(signedInText.c_str());
 }
 
+bool emailEnter = false;
+bool codeEnter = false;
 if (!loggedIn)
 {
     ImGui::Spacing();
     const float contentW = safePanelWidth - sidePadding * 2.f;
-    const float fieldGap = 10.f;
+    const float fieldGap = S(10.f);
     const float emailLabelW = ImGui::CalcTextSize("Email:").x;
     const float codeLabelW = ImGui::CalcTextSize("Code:").x;
     const float labelW = (emailLabelW > codeLabelW) ? emailLabelW : codeLabelW;
     const float emailInputW = contentW - labelW - fieldGap;
-    const float codeInputW = 96.f; // Match the compact macOS code input feel.
+    const float codeInputW = S(96.f); // Match the compact macOS code input feel.
     const float leftX = sidePadding;
 
     ImGui::SetCursorPosX(leftX);
@@ -63,7 +65,9 @@ if (!loggedIn)
     ImGui::BeginDisabled(g_sentCode);
     ImGui::SameLine(0.f, fieldGap);
     ImGui::PushItemWidth(emailInputW);
-    InputTextWithPlaceholder("##email", "eg: john@smith.com", g_nicknameBuf, sizeof g_nicknameBuf);
+    // EnterReturnsTrue: pressing Return in the email field triggers Send Code below.
+    emailEnter = InputTextWithPlaceholder("##email", "eg: john@smith.com", g_nicknameBuf,
+                                          sizeof g_nicknameBuf, ImGuiInputTextFlags_EnterReturnsTrue);
     DrawFocusedInputDecoration(ImGui::IsItemActive() || ImGui::IsItemFocused());
     ImGui::PopItemWidth();
     ImGui::EndDisabled();
@@ -74,8 +78,10 @@ if (!loggedIn)
     ImGui::BeginDisabled(!g_sentCode);
     ImGui::SameLine(0.f, fieldGap);
     ImGui::PushItemWidth(codeInputW);
-    InputTextWithPlaceholder("##code", "6 digit code", g_codeBuf, sizeof g_codeBuf,
-                             ImGuiInputTextFlags_CharsDecimal);
+    // EnterReturnsTrue: pressing Return in the code field triggers Validate below.
+    codeEnter = InputTextWithPlaceholder("##code", "6 digit code", g_codeBuf, sizeof g_codeBuf,
+                                         ImGuiInputTextFlags_CharsDecimal |
+                                             ImGuiInputTextFlags_EnterReturnsTrue);
     StripNonDigits(g_codeBuf);
     DrawFocusedInputDecoration(ImGui::IsItemActive() || ImGui::IsItemFocused());
     ImGui::PopItemWidth();
@@ -84,7 +90,7 @@ if (!loggedIn)
     ImGui::SetCursorPosX(leftX);
     {
         ImDrawList* drawList = ImGui::GetWindowDrawList();
-        const float dotRadius = 5.f;
+        const float dotRadius = 10.f;
         const float lineHeight = ImGui::GetTextLineHeight();
         const ImVec2 dotCenter(ImGui::GetCursorScreenPos().x + dotRadius,
                                ImGui::GetCursorScreenPos().y + lineHeight * 0.5f);
@@ -111,7 +117,8 @@ if (!loggedIn)
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
         if (g_boldUiFont)
             ImGui::PushFont(g_boldUiFont);
-        if (ImGui::Button("Send Code", ImVec2(actionButtonWidth, actionButtonHeight)))
+        const bool sendClicked = ImGui::Button("Send Code", ImVec2(actionButtonWidth, actionButtonHeight));
+        if (sendClicked || emailEnter)
         {
             TrimWhitespaceInPlace(g_nicknameBuf);
             g_Settings()->Set("settings.generator.nickname", std::string(g_nicknameBuf));
@@ -148,7 +155,8 @@ if (!loggedIn)
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
         if (g_boldUiFont)
             ImGui::PushFont(g_boldUiFont);
-        if (ImGui::Button("Validate", ImVec2(actionButtonWidth, actionButtonHeight)))
+        const bool validateClicked = ImGui::Button("Validate", ImVec2(actionButtonWidth, actionButtonHeight));
+        if (validateClicked || codeEnter)
         {
             StripNonDigits(g_codeBuf);
             const EDreamClient::ValidateCodeResult validateResult =

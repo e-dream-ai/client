@@ -44,6 +44,17 @@ extern "C"
 #include "libswscale/swscale.h"
 }
 
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
+#include <d3d11.h>
+#include <wrl/client.h>
+using Microsoft::WRL::ComPtr;
+
+// Must be outside extern "C": this header pulls in D3D11 types.
+extern "C" {
+#include "libavutil/hwcontext_d3d11va.h"
+}
+#endif
+
 #include "base.h"
 #include "BlockingQueue.h"
 #include "Frame.h"
@@ -136,7 +147,14 @@ class CContentDecoder
     virtual ~CContentDecoder();
 
     void signalShutdown() { m_isShuttingDown.store(true); abortFutures(); }
-    
+
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
+    void SetD3D11Device(ID3D11Device* _device)
+    {
+        m_d3d11Device = _device;
+    }
+#endif
+
     void Close();
     bool Start(const sClipMetadata& metadata, int64_t _seekFrame = -1);
     void Stop();
@@ -188,6 +206,12 @@ class CContentDecoder
     
     // Static mutex to ensure atomic file renaming across all instances
     static std::mutex s_RenameMutex;
+
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
+    ComPtr<ID3D11Device> m_d3d11Device;
+    static AVPixelFormat GetHWFormat(AVCodecContext* ctx,
+                                     const AVPixelFormat* pix_fmts);
+#endif
 };
 
 MakeSmartPointers(CContentDecoder);

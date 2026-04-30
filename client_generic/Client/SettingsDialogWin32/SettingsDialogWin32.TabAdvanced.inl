@@ -3,22 +3,21 @@ const float topCheckboxFontScale = 1.0f;       // Keep top toggles more prominen
 ImGui::SetWindowFontScale(advancedFontScale);
 
 const float availW = ImGui::GetContentRegionAvail().x;
-const float leftInset = 138.f;            // Move both checkboxes about 20px left.
-const float firstCheckboxDownOffset = 16.f; // Move first checkbox slightly down.
-const float topCheckboxGap = 5.f;        // Reduce spacing between the two checkboxes.
-const float proxyGroupTopGap = 12.f;
-const float proxyContentInsetX = 6.f;
-const float proxyContentInsetY = 22.f;
-const float labelInputGap = 8.f;
-const float fieldRowGap = 2.f;
+const float leftInset = S(138.f);            // Move checkbox about 20px left.
+const float firstCheckboxDownOffset = S(16.f); // Move checkbox slightly down.
+const float topCheckboxGap = S(5.f);
+const float proxyGroupTopGap = S(12.f);
+const float proxyContentInsetX = S(6.f);
+const float proxyContentInsetY = S(22.f);
+const float labelInputGap = S(8.f);
+const float fieldRowGap = S(2.f);
 
-// Match macOS placement: two screensaver toggles in the upper-left area.
+// Windows installer places infinidream.scr in Program Files, so the macOS
+// "Install and update screensaver" toggle has no analog here — only the
+// "Keep screensaver enabled" toggle is wired up.
 ImGui::SetWindowFontScale(topCheckboxFontScale);
 ImGui::SetCursorPosY(ImGui::GetCursorPosY() + firstCheckboxDownOffset);
 ImGui::SetCursorPosX(leftInset);
-StyledCheckbox("Install and update screensaver", &g_autoInstallScreensaver);
-ImGui::SetCursorPosX(leftInset);
-ImGui::SetCursorPosY(ImGui::GetCursorPosY() + topCheckboxGap);
 StyledCheckbox("Keep screensaver enabled", &g_keepScreensaverEnabled);
 ImGui::SetWindowFontScale(advancedFontScale);
 
@@ -31,7 +30,7 @@ ImGui::SetCursorPosX(leftInset);
 ImGui::AlignTextToFramePadding();
 ImGui::TextUnformatted(serverLabel);
 ImGui::SameLine(0.f, labelInputGap);
-ImGui::PushItemWidth(availW - leftInset - serverLabelW - labelInputGap - 8.f);
+ImGui::PushItemWidth(availW - leftInset - serverLabelW - labelInputGap - S(8.f));
 ImGui::InputText("##server", g_serverBuf, sizeof g_serverBuf);
 DrawFocusedInputDecoration(ImGui::IsItemActive() || ImGui::IsItemFocused());
 ImGui::PopItemWidth();
@@ -39,14 +38,14 @@ ImGui::PopItemWidth();
 
 ImGui::SetCursorPosY(ImGui::GetCursorPosY() + proxyGroupTopGap);
 const float proxyGroupW = availW;
-const float proxyGroupH = 160.f; // Close to macOS proxy box visual height.
+const float proxyGroupH = S(160.f); // Close to macOS proxy box visual height.
 ImGui::BeginChild("advanced_proxy_group", ImVec2(proxyGroupW, proxyGroupH), true,
                   ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
 // Draw title like macOS NSBox section header.
 if (g_boldUiFont)
     ImGui::PushFont(g_boldUiFont);
-ImGui::SetCursorPos(ImVec2(proxyContentInsetX, 2.f));
+ImGui::SetCursorPos(ImVec2(proxyContentInsetX, S(2.f)));
 ImGui::TextUnformatted("Proxy");
 if (g_boldUiFont)
     ImGui::PopFont();
@@ -54,7 +53,7 @@ if (g_boldUiFont)
 const char* hostLabel = "Host:";
 const char* loginLabel = "Login:";
 const char* passwordLabel = "Password:";
-const float deltaLabelW = 40.f;
+const float deltaLabelW = S(40.f);
 const float hostLabelW = ImGui::CalcTextSize(hostLabel).x + deltaLabelW;
 const float loginLabelW = ImGui::CalcTextSize(loginLabel).x + deltaLabelW;
 const float passwordLabelW = ImGui::CalcTextSize(passwordLabel).x + deltaLabelW;
@@ -67,12 +66,12 @@ if (passwordLabelW > labelW)
 const float rowStartX = proxyContentInsetX;
 const float labelRightX = rowStartX + labelW;
 const float inputX = rowStartX + labelW + labelInputGap;
-const float proxyInputRightPadding = 20.f; // Extra breathing room on the right side.
+const float proxyInputRightPadding = S(20.f); // Extra breathing room on the right side.
 const float inputW = proxyGroupW - inputX - proxyContentInsetX - proxyInputRightPadding;
 const float startY = proxyContentInsetY;
 ImGui::SetCursorPos(ImVec2(inputX, startY));
 StyledCheckbox("Use Proxy", &g_useProxy);
-ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX(), ImGui::GetCursorPosY() + 40.0f));
+ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX(), ImGui::GetCursorPosY() + S(40.f)));
 
 const auto drawProxyRow = [&](const char* label, const char* id, char* buf, size_t bufSize, ImGuiInputTextFlags flags) {
     const float rowY = ImGui::GetCursorPosY() + fieldRowGap;

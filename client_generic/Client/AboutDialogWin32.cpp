@@ -36,6 +36,9 @@ constexpr const char* kAppDisplayName = "infinidream stage";
 #else
 constexpr const char* kAppDisplayName = "infinidream";
 #endif
+constexpr const char* kHomepageUrl = "https://infinidream.ai";
+constexpr const char* kHomepageLinkPrefix = "learn more at ";
+constexpr const char* kHomepageLinkText = "infinidream.ai";
 // Matches typical NSHumanReadableCopyright when not set in Info.plist; adjust if legal adds a plist string.
 constexpr const char* kCopyrightLine = "Copyright \xC2\xA9 e-dream, inc.";
 
@@ -49,6 +52,14 @@ std::atomic<bool> g_imguiInitialized{false};
 std::atomic<bool> g_pendingImGuiShutdown{false};
 ImGuiContext* g_imguiContext = nullptr;
 ImFont* g_aboutBoldFont = nullptr;
+
+// Design-time bump on top of the monitor DPI ratio. Mirrors SettingsDialogWin32; tune both together.
+constexpr float kBaseUiBump = 1.25f;
+// Combined scale: (GetDpiForWindow / 96) × kBaseUiBump. Set in TryInitImGui() from the host
+// window's DPI; used by S() at draw-time to scale every layout constant.
+static float g_uiScale = kBaseUiBump;
+static inline float S(float v) { return v * g_uiScale; }
+
 ID3D11ShaderResourceView* g_srvAboutLogo = nullptr;
 int g_aboutLogoW = 0;
 int g_aboutLogoH = 0;
@@ -298,12 +309,20 @@ static bool TryInitImGui()
 
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 
+    // Manifest is system-DPI-aware (electricsheep.vcxproj); GetDpiForWindow returns the system DPI.
+    HWND hwnd = dx->GetWindowHandle();
+    const UINT dpi = GetDpiForWindow(hwnd);
+    const float dpiScale = (dpi > 0u) ? (static_cast<float>(dpi) / 96.0f) : 1.0f;
+    g_uiScale = dpiScale * kBaseUiBump;
+
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.IniFilename = nullptr;
     ImGui::StyleColorsLight();
+    // Scale paddings/spacing/rounding from the default light style.
+    ImGui::GetStyle().ScaleAllSizes(g_uiScale);
     g_aboutBoldFont = nullptr;
 
     {
@@ -319,7 +338,7 @@ static bool TryInitImGui()
             const DWORD attrs = GetFileAttributesA(fontPath);
             if (attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY) == 0)
             {
-                ImFont* loaded = io.Fonts->AddFontFromFileTTF(fontPath, 13.0f);
+                ImFont* loaded = io.Fonts->AddFontFromFileTTF(fontPath, S(13.0f));
                 if (loaded)
                 {
                     io.FontDefault = loaded;
@@ -339,14 +358,14 @@ static bool TryInitImGui()
             const DWORD attrs = GetFileAttributesA(fontPath);
             if (attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY) == 0)
             {
-                g_aboutBoldFont = io.Fonts->AddFontFromFileTTF(fontPath, 18.0f);
+                g_aboutBoldFont = io.Fonts->AddFontFromFileTTF(fontPath, S(18.0f));
                 if (g_aboutBoldFont)
                     break;
             }
         }
     }
 
-    if (!ImGui_ImplWin32_Init(dx->GetWindowHandle()))
+    if (!ImGui_ImplWin32_Init(hwnd))
     {
         ImGui::DestroyContext();
         return false;
@@ -399,23 +418,53 @@ static void CenteredMutedTextUnformatted(const char* text)
     ImGui::PopStyleColor();
 }
 
+static void CenteredPrefixedLink(const char* prefix, const char* linkText, const char* url)
+{
+    if (!linkText || !*linkText || !url || !*url)
+        return;
+    const float prefixW = (prefix && *prefix) ? ImGui::CalcTextSize(prefix).x : 0.f;
+    const float linkW = ImGui::CalcTextSize(linkText).x;
+    const float totalW = prefixW + linkW;
+    const float inner = WindowInnerWidth();
+    ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMin().x + std::max(0.f, (inner - totalW) * 0.5f));
+
+    if (prefix && *prefix)
+    {
+        ImGui::TextUnformatted(prefix);
+        ImGui::SameLine(0.f, 0.f);
+    }
+
+    const ImVec4 linkColor(0.10f, 0.40f, 0.85f, 1.00f);
+    ImGui::PushStyleColor(ImGuiCol_Text, linkColor);
+    ImGui::TextUnformatted(linkText);
+    ImGui::PopStyleColor();
+    const ImVec2 itemMin = ImGui::GetItemRectMin();
+    const ImVec2 itemMax = ImGui::GetItemRectMax();
+    ImGui::GetWindowDrawList()->AddLine(ImVec2(itemMin.x, itemMax.y), ImVec2(itemMax.x, itemMax.y),
+                                        ImGui::GetColorU32(linkColor), 1.0f);
+    if (ImGui::IsItemHovered())
+        ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+    if (ImGui::IsItemClicked())
+        PlatformUtils::OpenURLExternally(url);
+}
+
 static void DrawAboutDialog(float viewportW, float viewportH)
 {
     // NSApplication orderFrontStandardAboutPanel: compact centered sheet (icon, name, version, copyright).
-    constexpr float kTargetW = 360.f;
-    constexpr float kTargetH = 300.f;
-    constexpr float kLogoDisplay = 96.f;
+    const float kTargetW = S(360.f);
+    const float kTargetH = S(300.f);
+    const float kLogoDisplay = S(96.f);
 
-    const ImVec2 windowSize((viewportW > kTargetW + 32.f) ? kTargetW : (viewportW - 32.f),
-                            (viewportH > kTargetH + 32.f) ? kTargetH : (viewportH - 32.f));
+    const ImVec2 windowSize((viewportW > kTargetW + S(32.f)) ? kTargetW : (viewportW - S(32.f)),
+                            (viewportH > kTargetH + S(32.f)) ? kTargetH : (viewportH - S(32.f)));
     ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
     ImGui::SetNextWindowPos(ImVec2((viewportW - windowSize.x) * 0.5f, (viewportH - windowSize.y) * 0.5f),
                             ImGuiCond_Always);
 
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(20.f, 20.f));
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 6.f);
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.f, 6.f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, S(12.f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(S(20.f), S(20.f)));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, S(6.f));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(S(8.f), S(6.f)));
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.98f, 0.98f, 0.98f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.82f, 0.82f, 0.82f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.08f, 0.08f, 0.08f, 1.00f));
@@ -456,13 +505,17 @@ static void DrawAboutDialog(float viewportW, float viewportH)
         }
 
         ImGui::Spacing();
-        CenteredMutedTextUnformatted(kCopyrightLine);
+        CenteredPrefixedLink(kHomepageLinkPrefix, kHomepageLinkText, kHomepageUrl);
 
-        const float closeW = 88.f;
-        const float closeH = 26.f;
+        const float closeW = S(88.f);
+        const float closeH = S(26.f);
+        const float copyrightH = ImGui::GetTextLineHeight();
+        const float bottomGap = ImGui::GetStyle().ItemSpacing.y;
+        const float bottomReserve = copyrightH + bottomGap + closeH + S(10.f);
         const float availY = ImGui::GetContentRegionAvail().y;
-        if (availY > closeH + 10.f)
-            ImGui::Dummy(ImVec2(0.f, availY - closeH - 10.f));
+        if (availY > bottomReserve)
+            ImGui::Dummy(ImVec2(0.f, availY - bottomReserve));
+        CenteredMutedTextUnformatted(kCopyrightLine);
         const float inner = WindowInnerWidth();
         ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMin().x + std::max(0.f, (inner - closeW) * 0.5f));
         if (ImGui::Button("OK", ImVec2(closeW, closeH)))

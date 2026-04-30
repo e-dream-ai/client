@@ -264,7 +264,17 @@ std::string PlatformUtils::GetAppPath()
 
 void PlatformUtils::SetCursorHidden(bool _hidden)
 {
-	ShowCursor(!_hidden);
+    // ShowCursor uses a process-global display counter. A single call is not
+    // sufficient if other parts of the process have adjusted the counter.
+    // Force the counter to the requested visible/hidden state.
+    if (_hidden)
+    {
+        while (ShowCursor(FALSE) >= 0) { /* keep decrementing until hidden */ }
+    }
+    else
+    {
+        while (ShowCursor(TRUE) < 0) { /* keep incrementing until visible */ }
+    }
 }
 
 void PlatformUtils::SetOnMouseMovedCallback(std::function<void(int, int)> _callback)

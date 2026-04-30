@@ -230,7 +230,7 @@ winget install --id GitHub.cli -e
 | `Python.Python.3.12` | Drives [`WinBuild/build.py`](client_generic/WinBuild/build.py) and [`release.py`](client_generic/WinBuild/release.py). Any 3.10+ works. | |
 | `Microsoft.VisualStudio.2022.Community` | MSBuild, C++ toolchain, Windows 10/11 SDK, `signtool.exe`. Use `Microsoft.VisualStudio.2022.BuildTools` for headless/CI. | The winget install launches the VS Installer but **does not select workloads** — add **Desktop development with C++** (and the Windows SDK) in that UI, or pass `--override "--add Microsoft.VisualStudio.Workload.NativeDesktop --includeRecommended"` to winget. |
 | `NSIS.NSIS` | [`makensis`](client_generic/InstallerMSVC/nsis_installer.nsi) for the Windows installer. | Installs to `C:\Program Files (x86)\NSIS\` but does **not** add itself to `PATH`; [`release.py`](client_generic/WinBuild/release.py) auto-discovers it there, or honors `MAKENSIS=<path>`. |
-| `GitHub.cli` | `release.py --github-release TAG` uploads artifacts via `gh`. | Run `gh auth login` once. |
+| `GitHub.cli` | `release.py -g` uploads artifacts via `gh`. | Run `gh auth login` once. |
 
 `vcpkg` is **not** a separate install — it's a git submodule at [`vcpkg/`](vcpkg/) that is bootstrapped with `vcpkg\bootstrap-vcpkg.bat` (see [dev docs](#dev-docs) at the top of this file).
 
@@ -315,7 +315,7 @@ Options:
 | `--no-installer` | Skip NSIS; useful when `makensis` is unavailable. |
 | `--output-dir DIR` | Where to write artifacts. |
 | `--sign` | Authenticode-sign artifacts via `SIGN_THUMBPRINT` or `SIGN_PFX`. |
-| `--github-release TAG` | Upload with `gh`. |
+| `-g`, `--github-release` | Upload artifacts with `gh` to the release whose tag matches `--version`. |
 
 #### Installer behavior
 
