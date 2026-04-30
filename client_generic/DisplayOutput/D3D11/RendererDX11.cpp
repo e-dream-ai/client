@@ -909,6 +909,37 @@ void CRendererDX11::Defaults() {
     // Set default render states
 }
 
+bool CRendererDX11::EnsureSolidWhiteTexture()
+{
+    if (m_solidWhiteSrv)
+        return true;
+    if (!m_device)
+        return false;
+
+    D3D11_TEXTURE2D_DESC desc{};
+    desc.Width = 1;
+    desc.Height = 1;
+    desc.MipLevels = 1;
+    desc.ArraySize = 1;
+    desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    desc.SampleDesc.Count = 1;
+    desc.Usage = D3D11_USAGE_IMMUTABLE;
+    desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+    const uint32_t white = 0xFFFFFFFFu;
+    D3D11_SUBRESOURCE_DATA data{};
+    data.pSysMem = &white;
+    data.SysMemPitch = sizeof(uint32_t);
+
+    ComPtr<ID3D11Texture2D> tex;
+    HRESULT hr = m_device->CreateTexture2D(&desc, &data, &tex);
+    if (FAILED(hr))
+        return false;
+
+    hr = m_device->CreateShaderResourceView(tex.Get(), nullptr, &m_solidWhiteSrv);
+    return SUCCEEDED(hr) && m_solidWhiteSrv != nullptr;
+}
+
 bool CRendererDX11::BeginFrame() {
     std::lock_guard<std::recursive_mutex> d3dLock(GetD3D11ImmediateContextMutex());
     m_pendingTextDraws.clear();
@@ -1144,6 +1175,106 @@ bool CRendererDX11::EndFrame(bool drawn) {
             m_device.Get(), m_context.Get(), m_renderTargetView.Get(), viewportW, viewportH);
         const bool aboutVisible = AboutDialogWin32_RenderIfNeeded(
             m_device.Get(), m_context.Get(), m_renderTargetView.Get(), viewportW, viewportH);
+
+        // Custom titlebar strip + caption buttons: draw in DX so it never flashes.
+        if (auto* dx = dynamic_cast<DisplayOutput::CDisplayDX11*>(m_spDisplay.get()))
+        {
+            if (!dx->IsFullscreen() && m_context && m_drawTextureShader)
+            {
+                const HWND hwnd = dx->GetWindowHandle();
+                const LONG_PTR style = hwnd ? GetWindowLongPtr(hwnd, GWL_STYLE) : 0;
+                const bool hasNativeCaption = (style & WS_CAPTION) != 0;
+                const int titlebarPx = dx->GetCustomTitlebarHeightPx();
+                const uint32_t dispW = dx->Width();
+                const uint32_t dispH = dx->Height();
+
+                if (!hasNativeCaption && titlebarPx > 0 && dispW > 0u && dispH > 0u &&
+                    titlebarPx < static_cast<int>(dispH) && EnsureSolidWhiteTexture())
+                {
+                    D3D11_VIEWPORT savedVp[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE] = {};
+                    UINT savedVpCount = D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE;
+                    m_context->RSGetViewports(&savedVpCount, savedVp);
+
+                    D3D11_VIEWPORT fullVp{};
+                    fullVp.Width = static_cast<float>(dispW);
+                    fullVp.Height = static_cast<float>(dispH);
+                    fullVp.MinDepth = 0.f;
+                    fullVp.MaxDepth = 1.f;
+                    m_context->RSSetViewports(1, &fullVp);
+
+                    // Compute button rects directly (don't rely on WM_NCHITTEST having run).
+                    const int btnW = (std::max)(GetSystemMetrics(SM_CXSIZE), 30);
+                    const int btnH = (std::max)(GetSystemMetrics(SM_CYSIZE), 20);
+                    const int topPad = (std::max)(0, (titlebarPx - btnH) / 2);
+                    const RECT rClose{static_cast<LONG>(dispW - btnW), topPad, static_cast<LONG>(dispW), topPad + btnH};
+                    const RECT rMax{static_cast<LONG>(dispW - (2 * btnW)), topPad, static_cast<LONG>(dispW - btnW), topPad + btnH};
+                    const RECT rMin{static_cast<LONG>(dispW - (3 * btnW)), topPad, static_cast<LONG>(dispW - (2 * btnW)), topPad + btnH};
+
+                    auto rectToNorm = [&](const RECT& r) {
+                        const float x0 = static_cast<float>(r.left) / static_cast<float>(dispW);
+                        const float x1 = static_cast<float>(r.right) / static_cast<float>(dispW);
+                        const float y0 = static_cast<float>(r.top) / static_cast<float>(dispH);
+                        const float y1 = static_cast<float>(r.bottom) / static_cast<float>(dispH);
+                        return Base::Math::CRect(x0, y0, x1, y1);
+                    };
+
+                    // Dark theme palette.
+                    const Base::Math::CVector4 stripBg(0.08f, 0.08f, 0.08f, 1.f);
+                    const Base::Math::CVector4 btnBg(0.16f, 0.16f, 0.16f, 1.f);
+                    const Base::Math::CVector4 closeBg(0.22f, 0.10f, 0.10f, 1.f);
+                    const Base::Math::CVector4 glyph(0.92f, 0.92f, 0.92f, 1.f);
+
+                    m_forceSolidWhiteTex0 = true;
+                    SetShader(m_drawTextureShader);
+
+                    const float th = static_cast<float>(titlebarPx) / static_cast<float>(dispH);
+                    DrawQuad(Base::Math::CRect(0.f, 0.f, 1.f, th), stripBg);
+                    DrawQuad(rectToNorm(rMin), btnBg);
+                    DrawQuad(rectToNorm(rMax), btnBg);
+                    DrawQuad(rectToNorm(rClose), closeBg);
+
+                    auto drawHLine = [&](float x0, float x1, float y, float t, const Base::Math::CVector4& c) {
+                        DrawQuad(Base::Math::CRect(x0, y - t * 0.5f, x1, y + t * 0.5f), c);
+                    };
+                    auto drawVLine = [&](float x, float y0, float y1, float t, const Base::Math::CVector4& c) {
+                        DrawQuad(Base::Math::CRect(x - t * 0.5f, y0, x + t * 0.5f, y1), c);
+                    };
+                    const float t = (2.5f / static_cast<float>(dispH));
+
+                    // Minimize glyph
+                    {
+                        const auto rc = rectToNorm(rMin);
+                        const float cx = rc.m_X0 + rc.Width() * 0.5f;
+                        const float cy = rc.m_Y0 + rc.Height() * 0.62f;
+                        drawHLine(cx - rc.Width() * 0.18f, cx + rc.Width() * 0.18f, cy, t, glyph);
+                    }
+                    // Maximize glyph (box)
+                    {
+                        const auto rc = rectToNorm(rMax);
+                        const float x0 = rc.m_X0 + rc.Width() * 0.34f;
+                        const float x1 = rc.m_X0 + rc.Width() * 0.66f;
+                        const float y0 = rc.m_Y0 + rc.Height() * 0.30f;
+                        const float y1 = rc.m_Y0 + rc.Height() * 0.70f;
+                        drawHLine(x0, x1, y0, t, glyph);
+                        drawHLine(x0, x1, y1, t, glyph);
+                        drawVLine(x0, y0, y1, t, glyph);
+                        drawVLine(x1, y0, y1, t, glyph);
+                    }
+                    // Close glyph (+)
+                    {
+                        const auto rc = rectToNorm(rClose);
+                        const float cx = rc.m_X0 + rc.Width() * 0.5f;
+                        const float cy = rc.m_Y0 + rc.Height() * 0.5f;
+                        drawHLine(cx - rc.Width() * 0.16f, cx + rc.Width() * 0.16f, cy, t, glyph);
+                        drawVLine(cx, cy - rc.Height() * 0.16f, cy + rc.Height() * 0.16f, t, glyph);
+                    }
+
+                    m_forceSolidWhiteTex0 = false;
+                    if (savedVpCount > 0)
+                        m_context->RSSetViewports(savedVpCount, savedVp);
+                }
+            }
+        }
 
         EndGpuTimingFrame();
 
@@ -1766,6 +1897,15 @@ void CRendererDX11::DrawTexturedQuad(const Base::Math::CRect& _rect,
 
     ID3D11SamplerState* samp = _pixelSampler ? _pixelSampler : m_defaultSampler.Get();
     m_context->PSSetSamplers(0, 1, &samp);
+
+    if (m_forceSolidWhiteTex0)
+    {
+        if (EnsureSolidWhiteTexture())
+        {
+            ID3D11ShaderResourceView* srv = m_solidWhiteSrv.Get();
+            m_context->PSSetShaderResources(0, 1, &srv);
+        }
+    }
 
     ComPtr<ID3D11VertexShader> boundVertexShader;
     m_context->VSGetShader(&boundVertexShader, nullptr, nullptr);

@@ -26,6 +26,8 @@ protected:
     ComPtr<ID3D11SamplerState> m_glyphPointSampler;
     ComPtr<ID3D11RasterizerState> m_rasterizerDefault;
     ComPtr<ID3D11RasterizerState> m_rasterizerScissor;
+    ComPtr<ID3D11ShaderResourceView> m_solidWhiteSrv;
+    bool m_forceSolidWhiteTex0 = false;
 
     void DrawTexturedQuad(const Base::Math::CRect& _rect, const Base::Math::CVector4& _color,
                           const Base::Math::CRect& _uvRect, ID3D11SamplerState* _pixelSampler);
@@ -144,6 +146,7 @@ private:
     bool CreateBlendStates();
     bool CreateDepthStencilStates();
     bool CreateRasterizerStates();
+    bool EnsureSolidWhiteTexture();
 
 };
 

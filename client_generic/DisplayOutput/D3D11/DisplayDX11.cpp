@@ -95,55 +95,6 @@ static void ComputeCaptionButtonRects(HWND hWnd, int titlebarHeightPx, RECT& out
     outMin = {w - (3 * btnW), topPad, w - (2 * btnW), topPad + btnH};
 }
 
-static void DrawCustomTitlebarAndButtonsGdi(HDC hdc, const RECT& client, int titlebarH, const RECT& minRc,
-                                            const RECT& maxRc, const RECT& closeRc, int hoverBtn)
-{
-    if (!hdc || titlebarH <= 0)
-        return;
-
-    // Background strip across the top (your "space under titlebar").
-    RECT topStrip = client;
-    topStrip.bottom = (std::min)(topStrip.bottom, topStrip.top + titlebarH);
-
-    // Minimal styling: light strip + darker button hover.
-    const COLORREF bgCol = RGB(245, 245, 245);
-    const COLORREF btnCol = RGB(232, 232, 232);
-    const COLORREF btnCloseCol = RGB(232, 232, 232);
-    const COLORREF borderCol = RGB(210, 210, 210);
-    const COLORREF textCol = RGB(32, 32, 32);
-
-    HBRUSH bgBrush = CreateSolidBrush(bgCol);
-    FillRect(hdc, &topStrip, bgBrush);
-    DeleteObject(bgBrush);
-
-    // Separator line under the strip.
-    HPEN pen = CreatePen(PS_SOLID, 1, borderCol);
-    HGDIOBJ oldPen = SelectObject(hdc, pen);
-    MoveToEx(hdc, topStrip.left, topStrip.bottom - 1, nullptr);
-    LineTo(hdc, topStrip.right, topStrip.bottom - 1);
-    SelectObject(hdc, oldPen);
-    DeleteObject(pen);
-
-    const auto drawBtn = [&](const RECT& rc, int btnId, const wchar_t* glyph, bool isClose) {
-        const bool hovered = (hoverBtn == btnId);
-        const COLORREF face = hovered ? (isClose ? RGB(232, 80, 80) : RGB(210, 210, 210)) : (isClose ? btnCloseCol : btnCol);
-        const COLORREF fg = hovered && isClose ? RGB(255, 255, 255) : textCol;
-
-        HBRUSH faceBrush = CreateSolidBrush(face);
-        FillRect(hdc, &rc, faceBrush);
-        DeleteObject(faceBrush);
-
-        SetBkMode(hdc, TRANSPARENT);
-        SetTextColor(hdc, fg);
-        DrawTextW(hdc, glyph, -1, const_cast<RECT*>(&rc), DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-    };
-
-    // Simple glyphs; feel free to replace with icons later.
-    drawBtn(minRc, 1, L"–", false);
-    drawBtn(maxRc, 2, L"□", false);
-    drawBtn(closeRc, 3, L"×", true);
-}
-
 static void PopulateSystemMenu(HWND hWnd)
 {
     if (!hWnd || !IsWindow(hWnd))
@@ -528,6 +479,36 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
     switch (msg)
     {
 #ifdef WIN32
+    case WM_NCCALCSIZE:
+    {
+        // Eliminate the standard non-client frame so our custom titlebar strip can sit
+        // flush at the very top of the window (no tiny gap from WS_THICKFRAME).
+        if (!self || self->m_bFullScreen || self->m_bEmbeddedSaverPreview || !self->m_useCustomWindowChrome)
+            break;
+
+        const LONG_PTR style = GetWindowLongPtr(hWnd, GWL_STYLE);
+        const bool hasNativeCaption = (style & WS_CAPTION) != 0;
+        if (hasNativeCaption)
+            break;
+
+        if (wParam)
+        {
+            // When maximized, keep a small inset so the window doesn't overlap the monitor edges/taskbar.
+            auto* params = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
+            if (params && IsZoomed(hWnd))
+            {
+                const int inset = GetResizeBorderThicknessPx();
+                params->rgrc[0].left += inset;
+                params->rgrc[0].top += inset;
+                params->rgrc[0].right -= inset;
+                params->rgrc[0].bottom -= inset;
+            }
+            return 0;
+        }
+
+        return 0;
+    }
+
     case WM_NCHITTEST:
     {
         // For our captionless windowed style we must provide:
@@ -601,32 +582,10 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
 
     case WM_PAINT:
     {
-        // We render via Direct3D. Use WM_PAINT only for lightweight GDI overlays
-        // in regions the renderer reserves (custom titlebar strip).
+        // D3D11 presents continuously; custom titlebar is drawn as a DX overlay (not GDI)
+        // to avoid compositor flashing. Keep WM_PAINT lightweight.
         PAINTSTRUCT ps{};
         BeginPaint(hWnd, &ps);
-
-        if (self && !self->m_bFullScreen && !self->m_bEmbeddedSaverPreview && self->m_useCustomWindowChrome)
-        {
-            const LONG_PTR style = GetWindowLongPtr(hWnd, GWL_STYLE);
-            const bool hasNativeCaption = (style & WS_CAPTION) != 0;
-            if (!hasNativeCaption)
-            {
-                RECT client{};
-                GetClientRect(hWnd, &client);
-                const int titlebarH = (self->m_customTitlebarHeightPx > 0) ? self->m_customTitlebarHeightPx
-                                                                           : GetSystemTitlebarHeightPx();
-                RECT minRc{}, maxRc{}, closeRc{};
-                ComputeCaptionButtonRects(hWnd, titlebarH, minRc, maxRc, closeRc);
-                self->m_captionBtnMinRect = minRc;
-                self->m_captionBtnMaxRect = maxRc;
-                self->m_captionBtnCloseRect = closeRc;
-                self->m_customTitlebarHeightPx = titlebarH;
-                DrawCustomTitlebarAndButtonsGdi(ps.hdc, client, titlebarH, minRc, maxRc, closeRc,
-                                                self->m_captionBtnHover);
-            }
-        }
-
         EndPaint(hWnd, &ps);
         return 0;
     }
@@ -864,13 +823,6 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
                 if (hover != self->m_captionBtnHover)
                 {
                     self->m_captionBtnHover = hover;
-                    RECT client{};
-                    GetClientRect(hWnd, &client);
-                    RECT strip = client;
-                    const int titlebarH = (self->m_customTitlebarHeightPx > 0) ? self->m_customTitlebarHeightPx
-                                                                               : GetSystemTitlebarHeightPx();
-                    strip.bottom = (std::min)(strip.bottom, strip.top + titlebarH);
-                    InvalidateRect(hWnd, &strip, FALSE);
                 }
             }
         }
@@ -1397,6 +1349,8 @@ void CDisplayDX11::SwapBuffers()
         }
         return;
     }
+
+    // Custom titlebar is drawn in the DX11 renderer overlay (stable, no GDI flashing).
 }
 
 bool CDisplayDX11::SetFullscreen(const bool fullscreen)
