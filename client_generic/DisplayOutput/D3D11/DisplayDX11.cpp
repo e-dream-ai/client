@@ -36,6 +36,10 @@ static std::mutex g_sharedD3DInitMutex;
 static ComPtr<ID3D11Device> g_sharedDevice;
 static ComPtr<ID3D11DeviceContext> g_sharedContext;
 
+// Timer IDs used in WndProc (also used by popup-menu helpers).
+constexpr UINT_PTR kPreviewTimerId    = 1; // 500 ms one-shot for screensaver preview init
+constexpr UINT_PTR kMenuLoopTimerId   = 2; // ~60 fps keep-alive while menu bar/popup is open
+
 enum DX11MenuCmd : UINT
 {
     ID_FILE_PREFERENCES = 0xE100,
@@ -144,10 +148,13 @@ static void ShowSystemMenuAtScreenPoint(HWND hWnd, POINT ptScreen)
 
     // Required quirk: make the window foreground before TrackPopupMenu, otherwise the menu can dismiss immediately.
     SetForegroundWindow(hWnd);
+    // Keep rendering during the modal menu tracking loop (TrackPopupMenuEx may not emit WM_ENTERMENULOOP reliably).
+    SetTimer(hWnd, kMenuLoopTimerId, 16, nullptr);
     const UINT cmd = TrackPopupMenuEx(sys,
                                      TPM_RIGHTBUTTON | TPM_RETURNCMD | TPM_NONOTIFY,
                                      ptScreen.x, ptScreen.y,
                                      hWnd, nullptr);
+    KillTimer(hWnd, kMenuLoopTimerId);
     if (cmd != 0)
         SendMessageW(hWnd, WM_SYSCOMMAND, cmd, 0);
 }
@@ -166,10 +173,13 @@ static void ShowTitlebarOverflowMenu(HWND hWnd, POINT ptScreen)
     AppendMenuW(popup, MF_STRING, ID_TOOLS_PLAYLISTS, L"&Browse Playlists\tCtrl+B");
 
     SetForegroundWindow(hWnd);
+    // Keep rendering during the modal menu tracking loop.
+    SetTimer(hWnd, kMenuLoopTimerId, 16, nullptr);
     const UINT cmd = TrackPopupMenuEx(popup,
                                      TPM_RIGHTBUTTON | TPM_RETURNCMD | TPM_NONOTIFY,
                                      ptScreen.x, ptScreen.y,
                                      hWnd, nullptr);
+    KillTimer(hWnd, kMenuLoopTimerId);
     DestroyMenu(popup);
     if (cmd != 0)
         SendMessageW(hWnd, WM_COMMAND, MAKEWPARAM(cmd, 0), 0);
@@ -275,9 +285,6 @@ static bool SetDwmImmersiveDarkMode(HWND hWnd, bool enabled)
 static ULONGLONG g_lastF1EnqueueTickMs = 0;
 constexpr ULONGLONG kF1DuplicateWindowMs = 250;
 
-// Timer IDs used in WndProc.
-constexpr UINT_PTR kPreviewTimerId    = 1; // 500 ms one-shot for screensaver preview init
-constexpr UINT_PTR kMenuLoopTimerId   = 2; // ~60 fps keep-alive while menu bar is open
 constexpr float kTargetClientAspect16By9 = 16.0f / 9.0f;
 
 static void AppendMouseEvent(CMouseEvent::eMouseCode code, LPARAM lParam)
