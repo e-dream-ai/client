@@ -19,6 +19,7 @@
 #include "SettingsDialogWin32.h"
 #include <dwmapi.h>
 #include <ShellScalingApi.h>
+#include <windowsx.h>
 #pragma comment(lib, "shcore.lib")
 #pragma comment(lib, "dwmapi.lib")
 extern void ESShowPreferences();
@@ -49,6 +50,99 @@ enum DX11MenuCmd : UINT
 
 static void OpenInfinidreamWebUrl(int which);
 static void AppendKeyEvent(CKeyEvent::eKeyCode code, bool dedupeF1);
+
+static int GetSystemTitlebarHeightPx()
+{
+    const int caption = GetSystemMetrics(SM_CYCAPTION);
+    const int frame = GetSystemMetrics(SM_CYSIZEFRAME);
+    const int padded = GetSystemMetrics(SM_CXPADDEDBORDER);
+    const int h = caption + frame + padded;
+    return (h > 0) ? h : 0;
+}
+
+static int GetResizeBorderThicknessPx()
+{
+    const int frame = GetSystemMetrics(SM_CXSIZEFRAME);
+    const int padded = GetSystemMetrics(SM_CXPADDEDBORDER);
+    const int t = frame + padded;
+    return (t > 0) ? t : 1;
+}
+
+static bool PtInRectClient(const RECT& rc, const POINT& ptClient)
+{
+    return ptClient.x >= rc.left && ptClient.x < rc.right && ptClient.y >= rc.top && ptClient.y < rc.bottom;
+}
+
+static DWORD GetDefaultWindowedStyle(bool useCustomChrome)
+{
+    return useCustomChrome ? (WS_POPUP | WS_THICKFRAME | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX)
+                           : WS_OVERLAPPEDWINDOW;
+}
+
+static void ComputeCaptionButtonRects(HWND hWnd, int titlebarHeightPx, RECT& outMin, RECT& outMax, RECT& outClose)
+{
+    RECT client{};
+    GetClientRect(hWnd, &client);
+    const int w = client.right - client.left;
+
+    const int btnW = (std::max)(GetSystemMetrics(SM_CXSIZE), 30);
+    const int btnH = (std::max)(GetSystemMetrics(SM_CYSIZE), 20);
+    const int topPad = (std::max)(0, (titlebarHeightPx - btnH) / 2);
+
+    // Right-aligned: [min][max][close]
+    outClose = {w - btnW, topPad, w, topPad + btnH};
+    outMax = {w - (2 * btnW), topPad, w - btnW, topPad + btnH};
+    outMin = {w - (3 * btnW), topPad, w - (2 * btnW), topPad + btnH};
+}
+
+static void DrawCustomTitlebarAndButtonsGdi(HDC hdc, const RECT& client, int titlebarH, const RECT& minRc,
+                                            const RECT& maxRc, const RECT& closeRc, int hoverBtn)
+{
+    if (!hdc || titlebarH <= 0)
+        return;
+
+    // Background strip across the top (your "space under titlebar").
+    RECT topStrip = client;
+    topStrip.bottom = (std::min)(topStrip.bottom, topStrip.top + titlebarH);
+
+    // Minimal styling: light strip + darker button hover.
+    const COLORREF bgCol = RGB(245, 245, 245);
+    const COLORREF btnCol = RGB(232, 232, 232);
+    const COLORREF btnCloseCol = RGB(232, 232, 232);
+    const COLORREF borderCol = RGB(210, 210, 210);
+    const COLORREF textCol = RGB(32, 32, 32);
+
+    HBRUSH bgBrush = CreateSolidBrush(bgCol);
+    FillRect(hdc, &topStrip, bgBrush);
+    DeleteObject(bgBrush);
+
+    // Separator line under the strip.
+    HPEN pen = CreatePen(PS_SOLID, 1, borderCol);
+    HGDIOBJ oldPen = SelectObject(hdc, pen);
+    MoveToEx(hdc, topStrip.left, topStrip.bottom - 1, nullptr);
+    LineTo(hdc, topStrip.right, topStrip.bottom - 1);
+    SelectObject(hdc, oldPen);
+    DeleteObject(pen);
+
+    const auto drawBtn = [&](const RECT& rc, int btnId, const wchar_t* glyph, bool isClose) {
+        const bool hovered = (hoverBtn == btnId);
+        const COLORREF face = hovered ? (isClose ? RGB(232, 80, 80) : RGB(210, 210, 210)) : (isClose ? btnCloseCol : btnCol);
+        const COLORREF fg = hovered && isClose ? RGB(255, 255, 255) : textCol;
+
+        HBRUSH faceBrush = CreateSolidBrush(face);
+        FillRect(hdc, &rc, faceBrush);
+        DeleteObject(faceBrush);
+
+        SetBkMode(hdc, TRANSPARENT);
+        SetTextColor(hdc, fg);
+        DrawTextW(hdc, glyph, -1, const_cast<RECT*>(&rc), DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    };
+
+    // Simple glyphs; feel free to replace with icons later.
+    drawBtn(minRc, 1, L"–", false);
+    drawBtn(maxRc, 2, L"□", false);
+    drawBtn(closeRc, 3, L"×", true);
+}
 
 static void PopulateSystemMenu(HWND hWnd)
 {
@@ -377,6 +471,10 @@ CDisplayDX11::CDisplayDX11()
       m_bMenuRenderInProgress(false) {
     m_windowedRect = {0, 0, 0, 0};
     g_Log->Info("CDisplayDX11()");
+
+#ifdef WIN32
+    m_customTitlebarHeightPx = GetSystemTitlebarHeightPx();
+#endif
 }
 
 bool CDisplayDX11::EnsureWindowClassRegistered(HINSTANCE hInstance)
@@ -430,6 +528,62 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
     switch (msg)
     {
 #ifdef WIN32
+    case WM_NCHITTEST:
+    {
+        // For our captionless windowed style we must provide:
+        // - resize border hit tests
+        // - draggable region hit test (HTCAPTION) excluding custom caption buttons
+        if (!self || self->m_bFullScreen || self->m_bEmbeddedSaverPreview)
+            break;
+
+        const LONG_PTR style = GetWindowLongPtr(hWnd, GWL_STYLE);
+        const bool hasNativeCaption = (style & WS_CAPTION) != 0;
+        if (hasNativeCaption || !self->m_useCustomWindowChrome)
+            break;
+
+        const POINT ptScreen{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+        POINT ptClient = ptScreen;
+        ScreenToClient(hWnd, &ptClient);
+
+        RECT rc{};
+        GetClientRect(hWnd, &rc);
+        const int w = rc.right - rc.left;
+        const int h = rc.bottom - rc.top;
+        const int border = GetResizeBorderThicknessPx();
+
+        const bool left = ptClient.x < border;
+        const bool right = ptClient.x >= (w - border);
+        const bool top = ptClient.y < border;
+        const bool bottom = ptClient.y >= (h - border);
+
+        if (top && left) return HTTOPLEFT;
+        if (top && right) return HTTOPRIGHT;
+        if (bottom && left) return HTBOTTOMLEFT;
+        if (bottom && right) return HTBOTTOMRIGHT;
+        if (left) return HTLEFT;
+        if (right) return HTRIGHT;
+        if (top) return HTTOP;
+        if (bottom) return HTBOTTOM;
+
+        const int titlebarH = (self->m_customTitlebarHeightPx > 0) ? self->m_customTitlebarHeightPx
+                                                                   : GetSystemTitlebarHeightPx();
+        RECT minRc{}, maxRc{}, closeRc{};
+        ComputeCaptionButtonRects(hWnd, titlebarH, minRc, maxRc, closeRc);
+        self->m_captionBtnMinRect = minRc;
+        self->m_captionBtnMaxRect = maxRc;
+        self->m_captionBtnCloseRect = closeRc;
+        self->m_customTitlebarHeightPx = titlebarH;
+
+        if (ptClient.y >= 0 && ptClient.y < titlebarH)
+        {
+            if (PtInRectClient(minRc, ptClient) || PtInRectClient(maxRc, ptClient) || PtInRectClient(closeRc, ptClient))
+                return HTCLIENT;
+            return HTCAPTION;
+        }
+
+        return HTCLIENT;
+    }
+
     case WM_SETCURSOR:
         // In fullscreen screensaver mode, the OS may repeatedly reset the cursor
         // to the class cursor (IDC_ARROW). Keep it hidden deterministically.
@@ -447,10 +601,32 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
 
     case WM_PAINT:
     {
-        // We render via Direct3D and draw DX11 "text HUD" via GDI after Present.
-        // Prevent default background erase that can cause HUD flicker.
-        PAINTSTRUCT ps;
+        // We render via Direct3D. Use WM_PAINT only for lightweight GDI overlays
+        // in regions the renderer reserves (custom titlebar strip).
+        PAINTSTRUCT ps{};
         BeginPaint(hWnd, &ps);
+
+        if (self && !self->m_bFullScreen && !self->m_bEmbeddedSaverPreview && self->m_useCustomWindowChrome)
+        {
+            const LONG_PTR style = GetWindowLongPtr(hWnd, GWL_STYLE);
+            const bool hasNativeCaption = (style & WS_CAPTION) != 0;
+            if (!hasNativeCaption)
+            {
+                RECT client{};
+                GetClientRect(hWnd, &client);
+                const int titlebarH = (self->m_customTitlebarHeightPx > 0) ? self->m_customTitlebarHeightPx
+                                                                           : GetSystemTitlebarHeightPx();
+                RECT minRc{}, maxRc{}, closeRc{};
+                ComputeCaptionButtonRects(hWnd, titlebarH, minRc, maxRc, closeRc);
+                self->m_captionBtnMinRect = minRc;
+                self->m_captionBtnMaxRect = maxRc;
+                self->m_captionBtnCloseRect = closeRc;
+                self->m_customTitlebarHeightPx = titlebarH;
+                DrawCustomTitlebarAndButtonsGdi(ps.hdc, client, titlebarH, minRc, maxRc, closeRc,
+                                                self->m_captionBtnHover);
+            }
+        }
+
         EndPaint(hWnd, &ps);
         return 0;
     }
@@ -633,16 +809,75 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
     }
 
     case WM_LBUTTONUP:
+    {
+        // If using custom chrome, map clicks on the top-right caption button rects to actions.
+        if (self && !self->m_bFullScreen && !self->m_bEmbeddedSaverPreview && self->m_useCustomWindowChrome)
+        {
+            const LONG_PTR style = GetWindowLongPtr(hWnd, GWL_STYLE);
+            const bool hasNativeCaption = (style & WS_CAPTION) != 0;
+            if (!hasNativeCaption)
+            {
+                const POINT ptClient{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+                if (PtInRectClient(self->m_captionBtnCloseRect, ptClient))
+                {
+                    self->WindowClose();
+                    return 0;
+                }
+                if (PtInRectClient(self->m_captionBtnMaxRect, ptClient))
+                {
+                    self->WindowToggleMaximizeRestore();
+                    return 0;
+                }
+                if (PtInRectClient(self->m_captionBtnMinRect, ptClient))
+                {
+                    self->WindowMinimize();
+                    return 0;
+                }
+            }
+        }
+
         AppendMouseEvent(CMouseEvent::Mouse_LEFT, lParam);
         return 0;
+    }
 
     case WM_RBUTTONUP:
         AppendMouseEvent(CMouseEvent::Mouse_RIGHT, lParam);
         return 0;
 
     case WM_MOUSEMOVE:
+    {
+        if (self && !self->m_bFullScreen && !self->m_bEmbeddedSaverPreview && self->m_useCustomWindowChrome)
+        {
+            const LONG_PTR style = GetWindowLongPtr(hWnd, GWL_STYLE);
+            const bool hasNativeCaption = (style & WS_CAPTION) != 0;
+            if (!hasNativeCaption)
+            {
+                const POINT ptClient{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+                int hover = 0;
+                if (PtInRectClient(self->m_captionBtnMinRect, ptClient))
+                    hover = 1;
+                else if (PtInRectClient(self->m_captionBtnMaxRect, ptClient))
+                    hover = 2;
+                else if (PtInRectClient(self->m_captionBtnCloseRect, ptClient))
+                    hover = 3;
+
+                if (hover != self->m_captionBtnHover)
+                {
+                    self->m_captionBtnHover = hover;
+                    RECT client{};
+                    GetClientRect(hWnd, &client);
+                    RECT strip = client;
+                    const int titlebarH = (self->m_customTitlebarHeightPx > 0) ? self->m_customTitlebarHeightPx
+                                                                               : GetSystemTitlebarHeightPx();
+                    strip.bottom = (std::min)(strip.bottom, strip.top + titlebarH);
+                    InvalidateRect(hWnd, &strip, FALSE);
+                }
+            }
+        }
+
         AppendMouseEvent(CMouseEvent::Mouse_MOVE, lParam);
         return 0;
+    }
 
     case WM_POWERBROADCAST:
         switch (LOWORD(wParam))
@@ -686,7 +921,7 @@ HWND CDisplayDX11::CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen,
     if (!EnsureWindowClassRegistered(hInstance))
         return nullptr;
 
-    DWORD style = fullscreen ? WS_POPUP : WS_OVERLAPPEDWINDOW;
+    DWORD style = fullscreen ? WS_POPUP : GetDefaultWindowedStyle(m_useCustomWindowChrome);
     int posX = CW_USEDEFAULT;
     int posY = CW_USEDEFAULT;
 
@@ -753,6 +988,9 @@ HWND CDisplayDX11::CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen,
     // Reflect the (possibly scaled and clamped) client size so the swap chain matches.
     m_Width = w;
     m_Height = h;
+
+    if (!fullscreen)
+        m_customTitlebarHeightPx = GetSystemTitlebarHeightPx();
 
     RECT rc = {0, 0, (LONG)w, (LONG)h};
     AdjustWindowRect(&rc, style, hMenu ? TRUE : FALSE);
@@ -1012,6 +1250,25 @@ HWND CDisplayDX11::Initialize(uint32_t width, uint32_t height, bool fullscreen) 
     ShowWindow(m_WindowHandle, SW_SHOW);
     ShowCursor(!fullscreen);
 
+#ifdef WIN32
+    // Ensure the custom titlebar strip is painted at least once on show.
+    if (m_WindowHandle && !fullscreen && m_useCustomWindowChrome)
+    {
+        const LONG_PTR style = GetWindowLongPtr(m_WindowHandle, GWL_STYLE);
+        const bool hasNativeCaption = (style & WS_CAPTION) != 0;
+        if (!hasNativeCaption)
+        {
+            RECT client{};
+            GetClientRect(m_WindowHandle, &client);
+            RECT strip = client;
+            const int titlebarH = (m_customTitlebarHeightPx > 0) ? m_customTitlebarHeightPx
+                                                                 : GetSystemTitlebarHeightPx();
+            strip.bottom = (std::min)(strip.bottom, strip.top + titlebarH);
+            InvalidateRect(m_WindowHandle, &strip, FALSE);
+        }
+    }
+#endif
+
     if (fullscreen)
     {
         // Screensaver mode prefers borderless windowed fullscreen to avoid
@@ -1138,6 +1395,7 @@ void CDisplayDX11::SwapBuffers()
                            "halting rendering until device is recreated", reason);
             m_deviceLost = true;
         }
+        return;
     }
 }
 
@@ -1185,7 +1443,7 @@ bool CDisplayDX11::SetFullscreen(const bool fullscreen)
             g_Log->Warning("SetFullscreenState(FALSE) failed: %08X", wsHr);
     }
 
-    DWORD restoreStyle = m_windowedStyle ? m_windowedStyle : WS_OVERLAPPEDWINDOW;
+    DWORD restoreStyle = m_windowedStyle ? m_windowedStyle : GetDefaultWindowedStyle(m_useCustomWindowChrome);
     SetWindowLongPtr(m_WindowHandle, GWL_STYLE, static_cast<LONG_PTR>(restoreStyle));
     SetWindowLongPtr(m_WindowHandle, GWL_EXSTYLE, static_cast<LONG_PTR>(m_windowedExStyle));
 
@@ -1209,6 +1467,30 @@ bool CDisplayDX11::ToggleFullscreen()
 {
     return SetFullscreen(!m_bFullScreen);
 }
+
+#ifdef WIN32
+void CDisplayDX11::WindowMinimize()
+{
+    if (m_WindowHandle && IsWindow(m_WindowHandle))
+        ShowWindow(m_WindowHandle, SW_MINIMIZE);
+}
+
+void CDisplayDX11::WindowToggleMaximizeRestore()
+{
+    if (!m_WindowHandle || !IsWindow(m_WindowHandle))
+        return;
+    if (IsZoomed(m_WindowHandle))
+        ShowWindow(m_WindowHandle, SW_RESTORE);
+    else
+        ShowWindow(m_WindowHandle, SW_MAXIMIZE);
+}
+
+void CDisplayDX11::WindowClose()
+{
+    if (m_WindowHandle && IsWindow(m_WindowHandle))
+        PostMessageW(m_WindowHandle, WM_CLOSE, 0, 0);
+}
+#endif
 
 
 } // namespace DisplayOutput

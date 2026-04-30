@@ -25,6 +25,38 @@ CBaseText::CBaseText() {}
 CBaseText::~CBaseText() {}
 
 namespace {
+
+static D3D11_VIEWPORT BuildBaseViewportForDisplay(const std::shared_ptr<CDisplayOutput>& display)
+{
+    D3D11_VIEWPORT vp{};
+    if (!display)
+        return vp;
+
+    vp.Width = static_cast<float>(display->Width());
+    vp.Height = static_cast<float>(display->Height());
+    vp.MinDepth = 0.0f;
+    vp.MaxDepth = 1.0f;
+
+#ifdef WIN32
+    if (auto* dx = dynamic_cast<DisplayOutput::CDisplayDX11*>(display.get()))
+    {
+        if (!dx->IsFullscreen())
+        {
+            const HWND hwnd = dx->GetWindowHandle();
+            const LONG_PTR style = hwnd ? GetWindowLongPtr(hwnd, GWL_STYLE) : 0;
+            const bool hasNativeCaption = (style & WS_CAPTION) != 0;
+            const int titlebarPx = dx->GetCustomTitlebarHeightPx();
+            if (!hasNativeCaption && titlebarPx > 0 && titlebarPx < static_cast<int>(display->Height()))
+            {
+                vp.TopLeftY = static_cast<float>(titlebarPx);
+                vp.Height = static_cast<float>(display->Height() - static_cast<uint32_t>(titlebarPx));
+            }
+        }
+    }
+#endif
+
+    return vp;
+}
 const char* kQuadPassVertexHlsl = R"(
 struct VSInput {
     float3 pos : POSITION;
@@ -782,12 +814,8 @@ bool CRendererDX11::CreateRenderTargets()
         return false;
     }
 
-    // Set the viewport
-    D3D11_VIEWPORT viewport = {};
-    viewport.Width = static_cast<float>(m_spDisplay->Width());
-    viewport.Height = static_cast<float>(m_spDisplay->Height());
-    viewport.MinDepth = 0.0f;
-    viewport.MaxDepth = 1.0f;
+    // Set the viewport (respect custom titlebar reserve if enabled).
+    D3D11_VIEWPORT viewport = BuildBaseViewportForDisplay(m_spDisplay);
     m_context->RSSetViewports(1, &viewport);
 
     return true;
@@ -918,11 +946,7 @@ bool CRendererDX11::BeginFrame() {
         m_context->OMSetDepthStencilState(m_depthStencilNoDepthTest.Get(), 0);
     }
 
-    D3D11_VIEWPORT viewport = {};
-    viewport.Width = static_cast<float>(m_spDisplay->Width());
-    viewport.Height = static_cast<float>(m_spDisplay->Height());
-    viewport.MinDepth = 0.0f;
-    viewport.MaxDepth = 1.0f;
+    D3D11_VIEWPORT viewport = BuildBaseViewportForDisplay(m_spDisplay);
     m_context->RSSetViewports(1, &viewport);
 
     // Clear render target and depth buffer
@@ -1669,11 +1693,12 @@ void CRendererDX11::DrawTexturedQuad(const Base::Math::CRect& _rect,
 
     if (applyAspectViewport)
     {
+        const D3D11_VIEWPORT baseVp = BuildBaseViewportForDisplay(m_spDisplay);
         D3D11_VIEWPORT letterboxVp = {};
-        if (ComputeAspectViewport16By9(static_cast<float>(m_spDisplay->Width()),
-                                       static_cast<float>(m_spDisplay->Height()),
-                                       letterboxVp))
+        if (ComputeAspectViewport16By9(baseVp.Width, baseVp.Height, letterboxVp))
         {
+            // Offset the letterbox viewport into the reserved client region (e.g. below titlebar).
+            letterboxVp.TopLeftY += baseVp.TopLeftY;
             m_context->RSGetViewports(&savedViewportCount, savedViewports);
             m_context->RSSetViewports(1, &letterboxVp);
             // Draw decoded frame across the computed viewport only.
