@@ -1,10 +1,19 @@
+# Build output directories (use -DINFINIDREAM_ENABLE_RIFE=ON with any of these)
 build/
+build-rife/
 build-appimage/
 build-glibc-check/
 a.out
 AppDir/
+
+# Downloaded dependency sources and caches (fetched automatically by CMake)
 appimage-tools/
 deps-src/
+deps-cache/
+model-cache/
+
+# Source-built toolchain components
 openssl-minimal/
 ffmpeg-minimal/
+
 *.AppImage

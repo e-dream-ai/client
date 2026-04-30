@@ -185,6 +185,7 @@ public:
     double GetTotalBufferingTime() const { return m_TotalBufferingTime; }
     bool HasStartedPlaying() const { return m_HasStartedPlaying; }
     bool IsFrameGenerationEnabled() const;
+    void ReconfigureFrameGeneration(FrameGeneration::EFrameGenerationMode newMode);
     double GetPresentationFps() const { return m_PresentationFps > 0.0 ? m_PresentationFps : m_ClipMetadata.decodeFps; }
     std::string GetFrameGenerationMode() const;
     uint64_t GetGeneratedFrameCount() const;

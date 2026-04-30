@@ -191,17 +191,19 @@ if(INFINIDREAM_ENABLE_RIFE)
     )
     FetchContent_MakeAvailable(ncnn_src)
 
-    set(NCNN_GLSLANG_SPVBUILDER_H
-        "${ncnn_src_SOURCE_DIR}/glslang/SPIRV/SpvBuilder.h")
-    if(EXISTS "${NCNN_GLSLANG_SPVBUILDER_H}")
-        file(READ "${NCNN_GLSLANG_SPVBUILDER_H}" NCNN_SPVBUILDER_CONTENTS)
-        if(NOT NCNN_SPVBUILDER_CONTENTS MATCHES "#include <cstdint>")
-            string(REPLACE "#include <stack>"
-                           "#include <stack>\n#include <cstdint>"
-                           NCNN_SPVBUILDER_CONTENTS
-                           "${NCNN_SPVBUILDER_CONTENTS}")
-            file(WRITE "${NCNN_GLSLANG_SPVBUILDER_H}" "${NCNN_SPVBUILDER_CONTENTS}")
-        endif()
+    # Apply GCC 15 compat patch to ncnn ${NCNN_TAG} — adds #include <cstdint> to SpvBuilder.h.
+    # Exit 0 = applied cleanly; exit 1 = already applied (idempotent); exit >1 = real error.
+    execute_process(
+        COMMAND patch -N -p1
+                -i "${CMAKE_CURRENT_SOURCE_DIR}/rife-framegen/patches/ncnn-20240102-gcc15-compat.patch"
+        WORKING_DIRECTORY "${ncnn_src_SOURCE_DIR}"
+        RESULT_VARIABLE _ncnn_patch_result
+        OUTPUT_QUIET
+    )
+    if(_ncnn_patch_result GREATER 1)
+        message(FATAL_ERROR
+            "Failed to apply ncnn GCC 15 compat patch (exit ${_ncnn_patch_result}). "
+            "Check rife-framegen/patches/ncnn-20240102-gcc15-compat.patch against ncnn ${NCNN_TAG}.")
     endif()
 
     set(RIFE_UPSTREAM_TAG "20221029")

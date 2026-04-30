@@ -1,0 +1,16 @@
+Fixes a missing #include <cstdint> in ncnn's glslang/SPIRV/SpvBuilder.h that causes
+build failures under GCC 15, where <cstdint> is no longer transitively included.
+
+Applies to: ncnn release tag 20240102 (ncnn-20240102-full-source.zip)
+Source:     https://github.com/Tencent/ncnn/releases/download/20240102/ncnn-20240102-full-source.zip
+
+--- a/glslang/SPIRV/SpvBuilder.h
++++ b/glslang/SPIRV/SpvBuilder.h
+@@ -60,6 +60,7 @@
+ #include <memory>
+ #include <set>
+ #include <sstream>
+ #include <stack>
++#include <cstdint>
+ #include <unordered_map>
+ #include <map>

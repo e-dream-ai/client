@@ -1118,21 +1118,17 @@ FrameGeneration::EFrameGenerationMode CPlayer::CycleFrameGenerationMode()
     g_Settings()->Set("settings.player.frame_generation.enabled",
                       nextMode != FrameGeneration::EFrameGenerationMode::Off);
 
-    std::string uuid;
-    int64_t frameNumber = -1;
-    {
-        reader_lock l(m_UpdateMutex);
-        if (m_currentClip)
-        {
-            uuid = m_currentClip->GetClipMetadata().dreamData.uuid;
-            frameNumber = static_cast<int64_t>(m_currentClip->GetCurrentFrameIdx());
-        }
-    }
-
     g_Log->Info("Frame generation mode changed to %s", FrameGeneration::ToString(nextMode));
 
-    if (!uuid.empty())
-        PlayDreamNow(uuid, frameNumber);
+    // Reconfigure the running clip's scheduler in-place rather than seeking via
+    // PlayDreamNow(). Seeking created a near-end clip that exhausted its frame
+    // buffer in milliseconds, which destabilised the transition state machine and
+    // caused an infinite "Clip finished with no transition decision" loop.
+    {
+        writer_lock l(m_UpdateMutex);
+        if (m_currentClip)
+            m_currentClip->ReconfigureFrameGeneration(nextMode);
+    }
 
     return nextMode;
 }

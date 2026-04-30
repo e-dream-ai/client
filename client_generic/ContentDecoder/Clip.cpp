@@ -801,6 +801,48 @@ bool CClip::IsFrameGenerationEnabled() const
     return m_spFrameGeneration && m_spFrameGeneration->Enabled();
 }
 
+void CClip::ReconfigureFrameGeneration(FrameGeneration::EFrameGenerationMode newMode)
+{
+    m_FrameGenerationMode = newMode;
+
+    const double requestedOutputFps =
+        g_Settings()->Get("settings.player.frame_generation.output_fps", 40.0);
+    const double displayRefreshFps =
+        g_Settings()->Get("settings.player.display_fps", 60.0);
+    const double selectedOutputFps = SelectFrameGenerationTargetFps(
+        m_ClipMetadata.decodeFps, requestedOutputFps, displayRefreshFps);
+
+    FrameGeneration::spIFrameInterpolator interpolator;
+    switch (newMode)
+    {
+    case FrameGeneration::EFrameGenerationMode::Blend2X:
+        interpolator = std::make_shared<FrameGeneration::CBlendFrameInterpolator>();
+        break;
+    case FrameGeneration::EFrameGenerationMode::RIFE:
+        interpolator = std::make_shared<FrameGeneration::CRifeInterpolatorNcnn>();
+        if (!interpolator->IsAvailable())
+            interpolator = std::make_shared<FrameGeneration::CBlendFrameInterpolator>();
+        break;
+    case FrameGeneration::EFrameGenerationMode::Off:
+        break;
+    }
+
+    m_spFrameGeneration->Configure(
+        interpolator != nullptr,
+        m_ClipMetadata.decodeFps,
+        selectedOutputFps,
+        std::move(interpolator));
+    m_PresentationFps = m_spFrameGeneration->PresentationFps();
+    // Reset clock so GetFramesToAdvance() recalibrates at the new presentation fps
+    m_DecoderClock.started = false;
+
+    g_Log->Info("Clip %s frame generation reconfigured: mode=%s decode=%.2f presentation=%.2f",
+                m_ClipMetadata.dreamData.uuid.c_str(),
+                GetFrameGenerationMode().c_str(),
+                m_ClipMetadata.decodeFps,
+                GetPresentationFps());
+}
+
 std::string CClip::GetFrameGenerationMode() const
 {
     if (m_FrameGenerationMode == FrameGeneration::EFrameGenerationMode::RIFE &&
