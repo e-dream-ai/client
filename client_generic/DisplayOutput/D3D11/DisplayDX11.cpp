@@ -99,6 +99,39 @@ static void ComputeCaptionButtonRects(HWND hWnd, int titlebarHeightPx, RECT& out
     outMin = {w - (3 * btnW), topPad, w - (2 * btnW), topPad + btnH};
 }
 
+static RECT ComputeTitlebarLogoRect(int titlebarHeightPx)
+{
+    // Must match the DX titlebar overlay's logo placement.
+    constexpr int kLogoPx = 18;
+    constexpr int kPadLeftPx = 10;
+    const int h = (titlebarHeightPx > 0) ? titlebarHeightPx : kLogoPx;
+    const int y = (std::max)(0, (h - kLogoPx) / 2);
+    RECT r{};
+    r.left = kPadLeftPx;
+    r.top = y;
+    r.right = kPadLeftPx + kLogoPx;
+    r.bottom = y + kLogoPx;
+    return r;
+}
+
+static void ShowSystemMenuAtScreenPoint(HWND hWnd, POINT ptScreen)
+{
+    if (!hWnd || !IsWindow(hWnd))
+        return;
+    HMENU sys = GetSystemMenu(hWnd, FALSE);
+    if (!sys)
+        return;
+
+    // Required quirk: make the window foreground before TrackPopupMenu, otherwise the menu can dismiss immediately.
+    SetForegroundWindow(hWnd);
+    const UINT cmd = TrackPopupMenuEx(sys,
+                                     TPM_RIGHTBUTTON | TPM_RETURNCMD | TPM_NONOTIFY,
+                                     ptScreen.x, ptScreen.y,
+                                     hWnd, nullptr);
+    if (cmd != 0)
+        SendMessageW(hWnd, WM_SYSCOMMAND, cmd, 0);
+}
+
 static void PopulateSystemMenu(HWND hWnd)
 {
     if (!hWnd || !IsWindow(hWnd))
@@ -559,11 +592,13 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
         self->m_captionBtnMinRect = minRc;
         self->m_captionBtnMaxRect = maxRc;
         self->m_captionBtnCloseRect = closeRc;
+        self->m_titlebarLogoRect = ComputeTitlebarLogoRect(titlebarH);
         self->m_customTitlebarHeightPx = titlebarH;
 
         if (ptClient.y >= 0 && ptClient.y < titlebarH)
         {
-            if (PtInRectClient(minRc, ptClient) || PtInRectClient(maxRc, ptClient) || PtInRectClient(closeRc, ptClient))
+            if (PtInRectClient(self->m_titlebarLogoRect, ptClient) || PtInRectClient(minRc, ptClient) ||
+                PtInRectClient(maxRc, ptClient) || PtInRectClient(closeRc, ptClient))
                 return HTCLIENT;
             return HTCAPTION;
         }
@@ -790,12 +825,24 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
                 self->m_captionBtnMinRect = minRc;
                 self->m_captionBtnMaxRect = maxRc;
                 self->m_captionBtnCloseRect = closeRc;
+                self->m_titlebarLogoRect = ComputeTitlebarLogoRect(titlebarH);
 
                 const POINT ptClient{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
                 const int pressed = self->m_captionBtnPressed;
                 self->m_captionBtnPressed = 0;
                 if (GetCapture() == hWnd)
                     ReleaseCapture();
+
+                if (PtInRectClient(self->m_titlebarLogoRect, ptClient))
+                {
+                    // Classic behavior: system menu appears anchored under the icon,
+                    // aligned to the icon's bottom-left (not the click point).
+                    POINT anchorClient{self->m_titlebarLogoRect.left, self->m_titlebarLogoRect.bottom};
+                    POINT anchorScreen = anchorClient;
+                    ClientToScreen(hWnd, &anchorScreen);
+                    ShowSystemMenuAtScreenPoint(hWnd, anchorScreen);
+                    return 0;
+                }
 
                 if (PtInRectClient(self->m_captionBtnCloseRect, ptClient))
                 {
@@ -841,6 +888,7 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
                 self->m_captionBtnMinRect = minRc;
                 self->m_captionBtnMaxRect = maxRc;
                 self->m_captionBtnCloseRect = closeRc;
+                self->m_titlebarLogoRect = ComputeTitlebarLogoRect(titlebarH);
 
                 const POINT ptClient{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
                 int hover = 0;

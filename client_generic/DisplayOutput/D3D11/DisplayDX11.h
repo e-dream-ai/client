@@ -32,6 +32,7 @@ private:
     // dragging / resizing / caption buttons in the client area.
     bool m_useCustomWindowChrome = true;
     int m_customTitlebarHeightPx = 0;
+    RECT m_titlebarLogoRect = {};
     RECT m_captionBtnMinRect = {};
     RECT m_captionBtnMaxRect = {};
     RECT m_captionBtnCloseRect = {};

@@ -15,6 +15,7 @@
 #include "FirstTimeSetupWin32.h"
 #include "SettingsDialogWin32.h"
 #include <windows.h>
+#include <vector>
 #endif
 
 namespace DisplayOutput {
@@ -940,6 +941,165 @@ bool CRendererDX11::EnsureSolidWhiteTexture()
     return SUCCEEDED(hr) && m_solidWhiteSrv != nullptr;
 }
 
+static HICON GetBestWindowIcon(HWND hwnd)
+{
+    if (!hwnd)
+        return nullptr;
+
+    // Prefer big icon, then small icon, then class icon.
+    HICON icon = reinterpret_cast<HICON>(SendMessageW(hwnd, WM_GETICON, ICON_BIG, 0));
+    if (!icon)
+        icon = reinterpret_cast<HICON>(SendMessageW(hwnd, WM_GETICON, ICON_SMALL, 0));
+    if (!icon)
+        icon = reinterpret_cast<HICON>(GetClassLongPtrW(hwnd, GCLP_HICON));
+    if (!icon)
+        icon = reinterpret_cast<HICON>(GetClassLongPtrW(hwnd, GCLP_HICONSM));
+    return icon;
+}
+
+static bool ExtractIconRgba8(HICON icon, std::vector<uint8_t>& outRgba, uint32_t& outW, uint32_t& outH)
+{
+    outRgba.clear();
+    outW = outH = 0;
+    if (!icon)
+        return false;
+
+    ICONINFO ii{};
+    if (!GetIconInfo(icon, &ii))
+        return false;
+
+    BITMAP bm{};
+    if (!GetObject(ii.hbmColor ? ii.hbmColor : ii.hbmMask, sizeof(bm), &bm))
+    {
+        if (ii.hbmColor) DeleteObject(ii.hbmColor);
+        if (ii.hbmMask) DeleteObject(ii.hbmMask);
+        return false;
+    }
+
+    const uint32_t w = static_cast<uint32_t>(bm.bmWidth);
+    uint32_t h = static_cast<uint32_t>(bm.bmHeight);
+    if (!ii.hbmColor)
+    {
+        // Mask bitmap is double-height (AND + XOR).
+        h = h / 2;
+    }
+    if (w == 0 || h == 0)
+    {
+        if (ii.hbmColor) DeleteObject(ii.hbmColor);
+        if (ii.hbmMask) DeleteObject(ii.hbmMask);
+        return false;
+    }
+
+    BITMAPINFO bi{};
+    bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bi.bmiHeader.biWidth = static_cast<LONG>(w);
+    bi.bmiHeader.biHeight = -static_cast<LONG>(h); // top-down
+    bi.bmiHeader.biPlanes = 1;
+    bi.bmiHeader.biBitCount = 32;
+    bi.bmiHeader.biCompression = BI_RGB;
+
+    std::vector<uint8_t> bgra(w * h * 4);
+    HDC hdc = GetDC(nullptr);
+    bool ok = false;
+    if (hdc)
+    {
+        // If we have a color bitmap, use it. Otherwise render the icon.
+        if (ii.hbmColor)
+        {
+            if (GetDIBits(hdc, ii.hbmColor, 0, h, bgra.data(), &bi, DIB_RGB_COLORS) != 0)
+                ok = true;
+        }
+        else
+        {
+            // Render to a DIB section via DrawIconEx.
+            void* bits = nullptr;
+            HBITMAP dib = CreateDIBSection(hdc, &bi, DIB_RGB_COLORS, &bits, nullptr, 0);
+            if (dib && bits)
+            {
+                HDC mem = CreateCompatibleDC(hdc);
+                if (mem)
+                {
+                    HGDIOBJ old = SelectObject(mem, dib);
+                    RECT r{0, 0, static_cast<LONG>(w), static_cast<LONG>(h)};
+                    HBRUSH b = CreateSolidBrush(RGB(0, 0, 0));
+                    FillRect(mem, &r, b);
+                    DeleteObject(b);
+                    if (DrawIconEx(mem, 0, 0, icon, w, h, 0, nullptr, DI_NORMAL))
+                    {
+                        std::memcpy(bgra.data(), bits, bgra.size());
+                        ok = true;
+                    }
+                    SelectObject(mem, old);
+                    DeleteDC(mem);
+                }
+                DeleteObject(dib);
+            }
+        }
+        ReleaseDC(nullptr, hdc);
+    }
+
+    if (ii.hbmColor) DeleteObject(ii.hbmColor);
+    if (ii.hbmMask) DeleteObject(ii.hbmMask);
+
+    if (!ok)
+        return false;
+
+    outRgba.resize(w * h * 4);
+    for (size_t i = 0; i < w * h; ++i)
+    {
+        const uint8_t b = bgra[i * 4 + 0];
+        const uint8_t g = bgra[i * 4 + 1];
+        const uint8_t r = bgra[i * 4 + 2];
+        const uint8_t a = bgra[i * 4 + 3];
+        outRgba[i * 4 + 0] = r;
+        outRgba[i * 4 + 1] = g;
+        outRgba[i * 4 + 2] = b;
+        outRgba[i * 4 + 3] = a;
+    }
+    outW = w;
+    outH = h;
+    return true;
+}
+
+bool CRendererDX11::EnsureTitlebarLogoTexture(HWND hwnd)
+{
+    if (m_titlebarLogoSrv)
+        return true;
+    if (!m_device || !hwnd)
+        return false;
+
+    HICON icon = GetBestWindowIcon(hwnd);
+    std::vector<uint8_t> rgba;
+    uint32_t w = 0, h = 0;
+    if (!ExtractIconRgba8(icon, rgba, w, h))
+        return false;
+
+    D3D11_TEXTURE2D_DESC desc{};
+    desc.Width = w;
+    desc.Height = h;
+    desc.MipLevels = 1;
+    desc.ArraySize = 1;
+    desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    desc.SampleDesc.Count = 1;
+    desc.Usage = D3D11_USAGE_IMMUTABLE;
+    desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+    D3D11_SUBRESOURCE_DATA data{};
+    data.pSysMem = rgba.data();
+    data.SysMemPitch = w * 4;
+
+    ComPtr<ID3D11Texture2D> tex;
+    if (FAILED(m_device->CreateTexture2D(&desc, &data, &tex)))
+        return false;
+
+    if (FAILED(m_device->CreateShaderResourceView(tex.Get(), nullptr, &m_titlebarLogoSrv)))
+        return false;
+
+    m_titlebarLogoW = w;
+    m_titlebarLogoH = h;
+    return true;
+}
+
 bool CRendererDX11::BeginFrame() {
     std::lock_guard<std::recursive_mutex> d3dLock(GetD3D11ImmediateContextMutex());
     m_pendingTextDraws.clear();
@@ -1233,7 +1393,7 @@ bool CRendererDX11::EndFrame(bool drawn) {
                     const Base::Math::CVector4 closeHoverBg(0.85f, 0.20f, 0.20f, 1.f);
                     const Base::Math::CVector4 closePressedBg(0.65f, 0.15f, 0.15f, 1.f);
 
-                    m_forceSolidWhiteTex0 = true;
+                    m_overrideTex0Srv = m_solidWhiteSrv;
                     SetShader(m_drawTextureShader);
 
                     const float th = static_cast<float>(titlebarPx) / static_cast<float>(dispH);
@@ -1251,6 +1411,26 @@ bool CRendererDX11::EndFrame(bool drawn) {
                     drawBtnBg(1, rMin, false);
                     drawBtnBg(2, rMax, false);
                     drawBtnBg(3, rClose, true);
+
+                    // Logo (left side), drawn as a textured quad.
+                    if (hwnd && EnsureTitlebarLogoTexture(hwnd) && m_titlebarLogoSrv && m_titlebarLogoW > 0 && m_titlebarLogoH > 0)
+                    {
+                        // Fixed display size for the logo inside the titlebar.
+                        constexpr float kLogoPx = 18.0f;
+                        const float logoW = kLogoPx / static_cast<float>(dispW);
+                        const float logoH = kLogoPx / static_cast<float>(dispH);
+                        const float padX = 10.0f / static_cast<float>(dispW);
+                        const float cy = (th) * 0.5f;
+                        const Base::Math::CRect logoRect(padX, cy - logoH * 0.5f, padX + logoW, cy + logoH * 0.5f);
+
+                        m_overrideTex0Srv = m_titlebarLogoSrv;
+                        // Color acts as tint; keep white to show original colors.
+                        DrawTexturedQuad(logoRect, Base::Math::CVector4(1.f, 1.f, 1.f, 1.f),
+                                         Base::Math::CRect(0.f, 0.f, 1.f, 1.f), m_defaultSampler.Get());
+
+                        // Restore solid-white for subsequent line glyphs.
+                        m_overrideTex0Srv = m_solidWhiteSrv;
+                    }
 
                     auto drawHLine = [&](float x0, float x1, float y, float t, const Base::Math::CVector4& c) {
                         DrawQuad(Base::Math::CRect(x0, y - t * 0.5f, x1, y + t * 0.5f), c);
@@ -1361,7 +1541,7 @@ bool CRendererDX11::EndFrame(bool drawn) {
                         drawDiag(box, false, t, glyph);
                     }
 
-                    m_forceSolidWhiteTex0 = false;
+                    m_overrideTex0Srv.Reset();
                     if (savedVpCount > 0)
                         m_context->RSSetViewports(savedVpCount, savedVp);
                 }
@@ -1990,13 +2170,10 @@ void CRendererDX11::DrawTexturedQuad(const Base::Math::CRect& _rect,
     ID3D11SamplerState* samp = _pixelSampler ? _pixelSampler : m_defaultSampler.Get();
     m_context->PSSetSamplers(0, 1, &samp);
 
-    if (m_forceSolidWhiteTex0)
+    if (m_overrideTex0Srv)
     {
-        if (EnsureSolidWhiteTexture())
-        {
-            ID3D11ShaderResourceView* srv = m_solidWhiteSrv.Get();
-            m_context->PSSetShaderResources(0, 1, &srv);
-        }
+        ID3D11ShaderResourceView* srv = m_overrideTex0Srv.Get();
+        m_context->PSSetShaderResources(0, 1, &srv);
     }
 
     ComPtr<ID3D11VertexShader> boundVertexShader;

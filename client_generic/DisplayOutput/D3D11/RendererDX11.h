@@ -27,7 +27,10 @@ protected:
     ComPtr<ID3D11RasterizerState> m_rasterizerDefault;
     ComPtr<ID3D11RasterizerState> m_rasterizerScissor;
     ComPtr<ID3D11ShaderResourceView> m_solidWhiteSrv;
-    bool m_forceSolidWhiteTex0 = false;
+    ComPtr<ID3D11ShaderResourceView> m_overrideTex0Srv;
+    ComPtr<ID3D11ShaderResourceView> m_titlebarLogoSrv;
+    uint32_t m_titlebarLogoW = 0;
+    uint32_t m_titlebarLogoH = 0;
 
     void DrawTexturedQuad(const Base::Math::CRect& _rect, const Base::Math::CVector4& _color,
                           const Base::Math::CRect& _uvRect, ID3D11SamplerState* _pixelSampler);
@@ -147,6 +150,7 @@ private:
     bool CreateDepthStencilStates();
     bool CreateRasterizerStates();
     bool EnsureSolidWhiteTexture();
+    bool EnsureTitlebarLogoTexture(HWND hwnd);
 
 };
 
