@@ -1250,6 +1250,44 @@ bool CRendererDX11::EnsureMdl2GlyphTextures()
     return true;
 }
 
+bool CRendererDX11::EnsureMdl2ChromeGlyphTextures()
+{
+    if (m_mdl2ChromeMinimizeSrv && m_mdl2ChromeMaximizeSrv && m_mdl2ChromeRestoreSrv && m_mdl2ChromeCloseSrv)
+        return true;
+    if (!m_device)
+        return false;
+
+    constexpr int kGlyphPx = 14;
+    std::vector<uint8_t> rgba;
+    uint32_t w = 0, h = 0;
+
+    if (!m_mdl2ChromeMinimizeSrv)
+    {
+        if (!RenderGlyphToRgbaMask(static_cast<wchar_t>(0xE921), kGlyphPx, rgba, w, h) ||
+            !CreateSrvFromRgba(m_device.Get(), rgba, w, h, m_mdl2ChromeMinimizeSrv))
+            return false;
+    }
+    if (!m_mdl2ChromeMaximizeSrv)
+    {
+        if (!RenderGlyphToRgbaMask(static_cast<wchar_t>(0xE922), kGlyphPx, rgba, w, h) ||
+            !CreateSrvFromRgba(m_device.Get(), rgba, w, h, m_mdl2ChromeMaximizeSrv))
+            return false;
+    }
+    if (!m_mdl2ChromeRestoreSrv)
+    {
+        if (!RenderGlyphToRgbaMask(static_cast<wchar_t>(0xE923), kGlyphPx, rgba, w, h) ||
+            !CreateSrvFromRgba(m_device.Get(), rgba, w, h, m_mdl2ChromeRestoreSrv))
+            return false;
+    }
+    if (!m_mdl2ChromeCloseSrv)
+    {
+        if (!RenderGlyphToRgbaMask(static_cast<wchar_t>(0xE8BB), kGlyphPx, rgba, w, h) ||
+            !CreateSrvFromRgba(m_device.Get(), rgba, w, h, m_mdl2ChromeCloseSrv))
+            return false;
+    }
+    return true;
+}
+
 bool CRendererDX11::BeginFrame() {
     std::lock_guard<std::recursive_mutex> d3dLock(GetD3D11ImmediateContextMutex());
     m_pendingTextDraws.clear();
@@ -1738,50 +1776,29 @@ bool CRendererDX11::EndFrame(bool drawn) {
                                                 cx + sideX * 0.5f, cy + sideY * 0.5f);
                     };
 
-                    // Minimize glyph (square-bounded)
+                    // Right caption glyphs: use Windows Segoe MDL2 Assets (ChromeMinimize/Maximize/Restore/Close).
+                    if (EnsureMdl2ChromeGlyphTextures())
                     {
-                        const auto box = squareInButtonPx(rMin, kIconPx);
-                        const float cx = box.m_X0 + box.Width() * 0.5f;
-                        const float cy = box.m_Y0 + box.Height() * 0.70f;
-                        drawHLine(cx - box.Width() * 0.40f, cx + box.Width() * 0.40f, cy, t, glyph);
-                    }
+                        constexpr float kChromeGlyphPx = 14.0f;
+                        const Base::Math::CRect minBox = squareInButtonPx(rMin, kChromeGlyphPx);
+                        const Base::Math::CRect maxBox = squareInButtonPx(rMax, kChromeGlyphPx);
+                        const Base::Math::CRect closeBox = squareInButtonPx(rClose, kChromeGlyphPx);
 
-                    // Maximize icon: two overlapping squares (back partly hidden by front)
-                    {
-                        const auto box = squareInButtonPx(rMax, kMaxIconPx);
-                        const float dX = kOverlapPx / static_cast<float>(dispW);
-                        const float dY = kOverlapPx / static_cast<float>(dispH);
+                        m_overrideTex0Srv = m_mdl2ChromeMinimizeSrv;
+                        DrawTexturedQuad(minBox, Base::Math::CVector4(1.f, 1.f, 1.f, 1.f),
+                                         Base::Math::CRect(0.f, 0.f, 1.f, 1.f), m_defaultSampler.Get());
 
-                        // Make the double-window glyph slightly smaller than the icon box so it doesn't read larger
-                        // than the X/minimize icons.
-                        const float shrink = 0.76f;
-                        const float sw = box.Width() * shrink;
-                        const float sh = box.Height() * shrink;
-                        const float cx = box.m_X0 + box.Width() * 0.5f;
-                        const float cy = box.m_Y0 + box.Height() * 0.5f;
-                        const Base::Math::CRect core(cx - sw * 0.5f, cy - sh * 0.5f, cx + sw * 0.5f, cy + sh * 0.5f);
+                        const bool maximized = hwnd && (IsZoomed(hwnd) != FALSE);
+                        m_overrideTex0Srv = maximized ? m_mdl2ChromeRestoreSrv : m_mdl2ChromeMaximizeSrv;
+                        DrawTexturedQuad(maxBox, Base::Math::CVector4(1.f, 1.f, 1.f, 1.f),
+                                         Base::Math::CRect(0.f, 0.f, 1.f, 1.f), m_defaultSampler.Get());
 
-                        // Back square (draw first)
-                        const Base::Math::CRect back(core.m_X0 + dX, core.m_Y0 - dY, core.m_X0 + core.Width() + dX,
-                                                     core.m_Y0 + core.Height() - dY);
-                        drawHLine(back.m_X0, back.m_X0 + back.Width(), back.m_Y0, t, glyph);
-                        drawHLine(back.m_X0, back.m_X0 + back.Width(), back.m_Y0 + back.Height(), t, glyph);
-                        drawVLine(back.m_X0, back.m_Y0, back.m_Y0 + back.Height(), t, glyph);
-                        drawVLine(back.m_X0 + back.Width(), back.m_Y0, back.m_Y0 + back.Height(), t, glyph);
+                        m_overrideTex0Srv = m_mdl2ChromeCloseSrv;
+                        DrawTexturedQuad(closeBox, Base::Math::CVector4(1.f, 1.f, 1.f, 1.f),
+                                         Base::Math::CRect(0.f, 0.f, 1.f, 1.f), m_defaultSampler.Get());
 
-                        // Front square (draw second, hides part of back)
-                        const Base::Math::CRect front(core.m_X0 - dX, core.m_Y0 + dY, core.m_X0 + core.Width() - dX,
-                                                      core.m_Y0 + core.Height() + dY);
-                        drawHLine(front.m_X0, front.m_X0 + front.Width(), front.m_Y0, t, glyph);
-                        drawHLine(front.m_X0, front.m_X0 + front.Width(), front.m_Y0 + front.Height(), t, glyph);
-                        drawVLine(front.m_X0, front.m_Y0, front.m_Y0 + front.Height(), t, glyph);
-                        drawVLine(front.m_X0 + front.Width(), front.m_Y0, front.m_Y0 + front.Height(), t, glyph);
-                    }
-                    // Close glyph (X) (square-bounded)
-                    {
-                        const auto box = squareInButtonPx(rClose, kCloseIconPx);
-                        drawDiag(box, true, t, glyph);
-                        drawDiag(box, false, t, glyph);
+                        // Restore solid-white for any following geometry (if any).
+                        m_overrideTex0Srv = m_solidWhiteSrv;
                     }
 
                     m_overrideTex0Srv.Reset();
