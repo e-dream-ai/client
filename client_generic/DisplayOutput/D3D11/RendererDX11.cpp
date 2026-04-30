@@ -1569,9 +1569,9 @@ bool CRendererDX11::EndFrame(bool drawn) {
                         constexpr float kLogoPx = 18.0f;
                         const float logoW = kLogoPx / static_cast<float>(dispW);
                         const float logoH = kLogoPx / static_cast<float>(dispH);
-                        const float padX = 10.0f / static_cast<float>(dispW);
+                        const float logoPadX = 10.0f / static_cast<float>(dispW); // left padding (right padding matches via splitter placement)
                         const float cy = (th) * 0.5f;
-                        const Base::Math::CRect logoRect(padX, cy - logoH * 0.5f, padX + logoW, cy + logoH * 0.5f);
+                        const Base::Math::CRect logoRect(logoPadX, cy - logoH * 0.5f, logoPadX + logoW, cy + logoH * 0.5f);
 
                         m_overrideTex0Srv = m_titlebarLogoSrv;
                         // Color acts as tint; keep white to show original colors.
@@ -1584,16 +1584,20 @@ bool CRendererDX11::EndFrame(bool drawn) {
 
                     // Left buttons: gear (settings), fullscreen, menu (kebab/hamburger)
                     {
-                        constexpr float kGapPx = 8.0f;
                         // Compute in integer pixels to match Win32 hit-testing exactly, then convert to normalized.
-                        constexpr int kPadLeftPx = 10;
+                        constexpr int kLogoPadPx = 10;   // left/right padding of logo
                         constexpr int kLogoPx = 18;
-                        constexpr int kGapPxI = 8;
+                        constexpr int kSplitterPx = 1;
+                        constexpr int kGapPxI = 8;       // gap after splitter
+                        constexpr int kSplitterPadTopPx = 6;
+                        constexpr int kSplitterPadBottomPx = 6;
                         const int btnHPx = (titlebarPx > 0) ? titlebarPx : 24;
                         int btnWPx = static_cast<int>(std::round(static_cast<double>(btnHPx) * 0.62));
                         btnWPx = (std::max)(btnWPx, 24);
 
-                        int xPx = kPadLeftPx + kLogoPx + kGapPxI;
+                        // Splitter sits after logo with equal right padding; buttons start after splitter+gap.
+                        const int splitterXPx = kLogoPadPx + kLogoPx + kLogoPadPx;
+                        int xPx = splitterXPx + kSplitterPx + kGapPxI;
                         const RECT gearPx{xPx, 0, xPx + btnWPx, btnHPx};
                         xPx += btnWPx;
                         const RECT fsPx{xPx, 0, xPx + btnWPx, btnHPx};
@@ -1611,6 +1615,16 @@ bool CRendererDX11::EndFrame(bool drawn) {
                         const Base::Math::CRect gearRect = rectPxToNorm(gearPx);
                         const Base::Math::CRect fsRect = rectPxToNorm(fsPx);
                         const Base::Math::CRect menuRect = rectPxToNorm(menuPx);
+
+                        // Splitter between logo and buttons (with top/bottom padding).
+                        {
+                            const float sx0 = static_cast<float>(splitterXPx) / static_cast<float>(dispW);
+                            const float sx1 = static_cast<float>(splitterXPx + kSplitterPx) / static_cast<float>(dispW);
+                            const float sy0 = static_cast<float>(kSplitterPadTopPx) / static_cast<float>(dispH);
+                            const float sy1 = static_cast<float>(btnHPx - kSplitterPadBottomPx) / static_cast<float>(dispH);
+                            // Slightly lighter than background.
+                            DrawQuad(Base::Math::CRect(sx0, sy0, sx1, sy1), Base::Math::CVector4(0.30f, 0.30f, 0.30f, 1.f));
+                        }
 
                         // Hover/press backgrounds (ids: 4 gear, 5 fullscreen, 6 menu).
                         const auto drawBtnBgNorm = [&](int id, const Base::Math::CRect& r, bool isClose) {

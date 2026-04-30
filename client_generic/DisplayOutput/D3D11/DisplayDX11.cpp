@@ -103,13 +103,13 @@ static RECT ComputeTitlebarLogoRect(int titlebarHeightPx)
 {
     // Must match the DX titlebar overlay's logo placement.
     constexpr int kLogoPx = 18;
-    constexpr int kPadLeftPx = 10;
+    constexpr int kLogoPadPx = 10;
     const int h = (titlebarHeightPx > 0) ? titlebarHeightPx : kLogoPx;
     const int y = (std::max)(0, (h - kLogoPx) / 2);
     RECT r{};
-    r.left = kPadLeftPx;
+    r.left = kLogoPadPx;
     r.top = y;
-    r.right = kPadLeftPx + kLogoPx;
+    r.right = kLogoPadPx + kLogoPx;
     r.bottom = y + kLogoPx;
     return r;
 }
@@ -118,12 +118,14 @@ static void ComputeTitlebarLeftButtonRects(int titlebarHeightPx, const RECT& log
                                            RECT& outGear, RECT& outFullscreen, RECT& outMenu)
 {
     // Must match the DX titlebar overlay's left-button placement.
-    constexpr int kGapPx = 8;
+    constexpr int kLogoPadPx = 10;   // right padding of logo (must equal left padding)
+    constexpr int kSplitterPx = 1;   // vertical separator width
+    constexpr int kGapPx = 8;        // gap after splitter before first button
     const int btnH = (titlebarHeightPx > 0) ? titlebarHeightPx : 24;
     // Make left buttons a bit narrower than tall (closer to Windows caption affordances).
     int btnW = static_cast<int>(std::round(static_cast<double>(btnH) * 0.62));
     btnW = (std::max)(btnW, 24);
-    int x = logoRect.right + kGapPx;
+    int x = logoRect.right + kLogoPadPx + kSplitterPx + kGapPx;
 
     outGear = {x, 0, x + btnW, btnH};
     x += btnW;
