@@ -186,28 +186,6 @@ static void ShowTitlebarOverflowMenu(HWND hWnd, POINT ptScreen)
         SendMessageW(hWnd, WM_COMMAND, MAKEWPARAM(cmd, 0), 0);
 }
 
-static void PopulateSystemMenu(HWND hWnd)
-{
-    if (!hWnd || !IsWindow(hWnd))
-        return;
-
-    HMENU sys = GetSystemMenu(hWnd, FALSE);
-    if (!sys)
-        return;
-
-    // Avoid duplicate inserts if window/menu gets recreated.
-    if (GetMenuState(sys, ID_FILE_PREFERENCES, MF_BYCOMMAND) != static_cast<UINT>(-1))
-        return;
-
-    // Insert before Close for a standard placement.
-    InsertMenuW(sys, SC_CLOSE, MF_BYCOMMAND | MF_STRING, ID_HELP_ABOUT, L"&About infinidream");
-    InsertMenuW(sys, SC_CLOSE, MF_BYCOMMAND | MF_STRING, ID_TOOLS_PLAYLISTS, L"&Browse Playlists\tCtrl+B");
-    InsertMenuW(sys, SC_CLOSE, MF_BYCOMMAND | MF_STRING, ID_TOOLS_REMOTE, L"&Remote Control\tCtrl+R");
-    InsertMenuW(sys, SC_CLOSE, MF_BYCOMMAND | MF_STRING, ID_FILE_PREFERENCES, L"&Settings\tCtrl+,");
-    InsertMenuW(sys, SC_CLOSE, MF_BYCOMMAND | MF_SEPARATOR, 0, nullptr);
-    InsertMenuW(sys, SC_CLOSE, MF_BYCOMMAND | MF_STRING, ID_VIEW_FULLSCREEN, L"&Full screen\tF11");
-}
-
 static bool HandleAppCommand(HWND hWnd, CDisplayDX11* self, UINT cmd)
 {
     (void)self;
@@ -575,6 +553,26 @@ CDisplayDX11::~CDisplayDX11() {
     g_Log->Info("~CDisplayDX11()");
 }
 
+#ifdef WIN32
+void CDisplayDX11::UpdateTitlebarChromeRects(CDisplayDX11* self, HWND hWnd)
+{
+    if (!self || !hWnd)
+        return;
+
+    const int titlebarH = (self->m_customTitlebarHeightPx > 0) ? self->m_customTitlebarHeightPx
+                                                               : GetSystemTitlebarHeightPx();
+    RECT minRc{}, maxRc{}, closeRc{};
+    ComputeCaptionButtonRects(hWnd, titlebarH, minRc, maxRc, closeRc);
+    self->m_captionBtnMinRect = minRc;
+    self->m_captionBtnMaxRect = maxRc;
+    self->m_captionBtnCloseRect = closeRc;
+    self->m_titlebarLogoRect = ComputeTitlebarLogoRect(titlebarH);
+    ComputeTitlebarLeftButtonRects(titlebarH, self->m_titlebarLogoRect,
+                                   self->m_titlebarGearRect, self->m_titlebarFullscreenRect, self->m_titlebarMenuRect);
+    self->m_customTitlebarHeightPx = titlebarH;
+}
+#endif
+
 LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     if (msg == WM_NCCREATE)
@@ -669,17 +667,8 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
         if (top) return HTTOP;
         if (bottom) return HTBOTTOM;
 
-        const int titlebarH = (self->m_customTitlebarHeightPx > 0) ? self->m_customTitlebarHeightPx
-                                                                   : GetSystemTitlebarHeightPx();
-        RECT minRc{}, maxRc{}, closeRc{};
-        ComputeCaptionButtonRects(hWnd, titlebarH, minRc, maxRc, closeRc);
-        self->m_captionBtnMinRect = minRc;
-        self->m_captionBtnMaxRect = maxRc;
-        self->m_captionBtnCloseRect = closeRc;
-        self->m_titlebarLogoRect = ComputeTitlebarLogoRect(titlebarH);
-        ComputeTitlebarLeftButtonRects(titlebarH, self->m_titlebarLogoRect,
-                                       self->m_titlebarGearRect, self->m_titlebarFullscreenRect, self->m_titlebarMenuRect);
-        self->m_customTitlebarHeightPx = titlebarH;
+        UpdateTitlebarChromeRects(self, hWnd);
+        const int titlebarH = self->m_customTitlebarHeightPx;
 
         if (ptClient.y >= 0 && ptClient.y < titlebarH)
         {
@@ -687,7 +676,8 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
                 PtInRectClient(self->m_titlebarGearRect, ptClient) ||
                 PtInRectClient(self->m_titlebarFullscreenRect, ptClient) ||
                 PtInRectClient(self->m_titlebarMenuRect, ptClient) ||
-                PtInRectClient(minRc, ptClient) || PtInRectClient(maxRc, ptClient) || PtInRectClient(closeRc, ptClient))
+                PtInRectClient(self->m_captionBtnMinRect, ptClient) || PtInRectClient(self->m_captionBtnMaxRect, ptClient) ||
+                PtInRectClient(self->m_captionBtnCloseRect, ptClient))
                 return HTCLIENT;
             return HTCAPTION;
         }
@@ -909,17 +899,7 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
             const bool hasNativeCaption = (style & WS_CAPTION) != 0;
             if (!hasNativeCaption)
             {
-                // Update rects for the current client size.
-                const int titlebarH = (self->m_customTitlebarHeightPx > 0) ? self->m_customTitlebarHeightPx
-                                                                           : GetSystemTitlebarHeightPx();
-                RECT minRc{}, maxRc{}, closeRc{};
-                ComputeCaptionButtonRects(hWnd, titlebarH, minRc, maxRc, closeRc);
-                self->m_captionBtnMinRect = minRc;
-                self->m_captionBtnMaxRect = maxRc;
-                self->m_captionBtnCloseRect = closeRc;
-                self->m_titlebarLogoRect = ComputeTitlebarLogoRect(titlebarH);
-                ComputeTitlebarLeftButtonRects(titlebarH, self->m_titlebarLogoRect,
-                                               self->m_titlebarGearRect, self->m_titlebarFullscreenRect, self->m_titlebarMenuRect);
+                UpdateTitlebarChromeRects(self, hWnd);
 
                 const POINT ptClient{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
                 const int pressed = self->m_captionBtnPressed;
@@ -999,16 +979,13 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
             const bool hasNativeCaption = (style & WS_CAPTION) != 0;
             if (!hasNativeCaption)
             {
-                const int titlebarH = (self->m_customTitlebarHeightPx > 0) ? self->m_customTitlebarHeightPx
-                                                                           : GetSystemTitlebarHeightPx();
-                RECT minRc{}, maxRc{}, closeRc{};
-                ComputeCaptionButtonRects(hWnd, titlebarH, minRc, maxRc, closeRc);
-                self->m_captionBtnMinRect = minRc;
-                self->m_captionBtnMaxRect = maxRc;
-                self->m_captionBtnCloseRect = closeRc;
-                self->m_titlebarLogoRect = ComputeTitlebarLogoRect(titlebarH);
-                ComputeTitlebarLeftButtonRects(titlebarH, self->m_titlebarLogoRect,
-                                               self->m_titlebarGearRect, self->m_titlebarFullscreenRect, self->m_titlebarMenuRect);
+                UpdateTitlebarChromeRects(self, hWnd);
+
+                TRACKMOUSEEVENT tme{};
+                tme.cbSize = sizeof(tme);
+                tme.dwFlags = TME_LEAVE;
+                tme.hwndTrack = hWnd;
+                TrackMouseEvent(&tme);
 
                 const POINT ptClient{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
                 int hover = 0;
@@ -1044,16 +1021,7 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
             const bool hasNativeCaption = (style & WS_CAPTION) != 0;
             if (!hasNativeCaption)
             {
-                const int titlebarH = (self->m_customTitlebarHeightPx > 0) ? self->m_customTitlebarHeightPx
-                                                                           : GetSystemTitlebarHeightPx();
-                RECT minRc{}, maxRc{}, closeRc{};
-                ComputeCaptionButtonRects(hWnd, titlebarH, minRc, maxRc, closeRc);
-                self->m_captionBtnMinRect = minRc;
-                self->m_captionBtnMaxRect = maxRc;
-                self->m_captionBtnCloseRect = closeRc;
-                self->m_titlebarLogoRect = ComputeTitlebarLogoRect(titlebarH);
-                ComputeTitlebarLeftButtonRects(titlebarH, self->m_titlebarLogoRect,
-                                               self->m_titlebarGearRect, self->m_titlebarFullscreenRect, self->m_titlebarMenuRect);
+                UpdateTitlebarChromeRects(self, hWnd);
 
                 const POINT ptClient{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
                 int pressed = 0;
@@ -1084,6 +1052,13 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
         if (self)
             self->m_captionBtnPressed = 0;
         break;
+
+#ifdef WIN32
+    case WM_MOUSELEAVE:
+        if (self && self->m_useCustomWindowChrome && self->m_captionBtnHover != 0)
+            self->m_captionBtnHover = 0;
+        return 0;
+#endif
 
     case WM_POWERBROADCAST:
         switch (LOWORD(wParam))

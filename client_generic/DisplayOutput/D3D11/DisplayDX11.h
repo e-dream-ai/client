@@ -46,6 +46,7 @@ private:
 #ifdef WIN32
     HWND CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen, HMENU hMenu);
     void ApplyDarkTitlebarIfSupported();
+    static void UpdateTitlebarChromeRects(CDisplayDX11* self, HWND hWnd);
 #endif
     static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
     bool CreateDeviceAndSwapChain();
