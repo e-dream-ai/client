@@ -92,6 +92,10 @@ private:
     // Use this as the "spacer under titlebar" when laying out your UI.
     int GetCustomTitlebarHeightPx() const { return m_customTitlebarHeightPx; }
 
+    /// Client-area height (px) excluded from the D3D video viewport (custom title strip when there is no WS_CAPTION).
+    /// Matches `BuildBaseViewportForDisplay` / preserve-AR letterboxing; 0 when the full client is used for video.
+    int GetVideoViewportTopInsetPx() const;
+
     // Caption button hit rects in *client* coordinates (only valid when custom chrome is enabled).
     const RECT& GetCaptionButtonMinRectPx() const { return m_captionBtnMinRect; }
     const RECT& GetCaptionButtonMaxRectPx() const { return m_captionBtnMaxRect; }

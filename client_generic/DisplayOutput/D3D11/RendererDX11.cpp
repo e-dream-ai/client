@@ -41,17 +41,11 @@ static D3D11_VIEWPORT BuildBaseViewportForDisplay(const std::shared_ptr<CDisplay
 #ifdef WIN32
     if (auto* dx = dynamic_cast<DisplayOutput::CDisplayDX11*>(display.get()))
     {
-        if (!dx->IsFullscreen())
+        const int inset = dx->GetVideoViewportTopInsetPx();
+        if (inset > 0)
         {
-            const HWND hwnd = dx->GetWindowHandle();
-            const LONG_PTR style = hwnd ? GetWindowLongPtr(hwnd, GWL_STYLE) : 0;
-            const bool hasNativeCaption = (style & WS_CAPTION) != 0;
-            const int titlebarPx = dx->GetCustomTitlebarHeightPx();
-            if (!hasNativeCaption && titlebarPx > 0 && titlebarPx < static_cast<int>(display->Height()))
-            {
-                vp.TopLeftY = static_cast<float>(titlebarPx);
-                vp.Height = static_cast<float>(display->Height() - static_cast<uint32_t>(titlebarPx));
-            }
+            vp.TopLeftY = static_cast<float>(inset);
+            vp.Height = static_cast<float>(display->Height()) - vp.TopLeftY;
         }
     }
 #endif

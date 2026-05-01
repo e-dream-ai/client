@@ -399,6 +399,14 @@ static bool IsPreserveAspectEnabled()
     return g_Settings()->Get("settings.player.preserve_AR", false);
 }
 
+static LONG ClientVideoTopInsetPx(HWND hWnd)
+{
+    auto* dx = reinterpret_cast<CDisplayDX11*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+    if (!dx)
+        return 0;
+    return static_cast<LONG>(dx->GetVideoViewportTopInsetPx());
+}
+
 static void EnforceSizingAspect16By9(HWND hWnd, WPARAM edge, RECT* rc)
 {
     if (!rc)
@@ -421,14 +429,18 @@ static void EnforceSizingAspect16By9(HWND hWnd, WPARAM edge, RECT* rc)
     LONG clientW = std::max<LONG>(1, windowW - frameW);
     LONG clientH = std::max<LONG>(1, windowH - frameH);
 
-    auto widthDriven = [&](LONG w) -> LONG {
-        const LONG h = static_cast<LONG>((static_cast<double>(w) / kTargetClientAspect16By9) + 0.5);
-        return std::max<LONG>(1, h);
+    const LONG topReserve = ClientVideoTopInsetPx(hWnd);
+    const LONG drawableH = std::max<LONG>(1, clientH - topReserve);
+
+    auto widthDrivenDrawableH = [&](LONG w) -> LONG {
+        const LONG dh = static_cast<LONG>((static_cast<double>(w) / kTargetClientAspect16By9) + 0.5);
+        return std::max<LONG>(1, dh);
     };
-    auto heightDriven = [&](LONG h) -> LONG {
-        const LONG w = static_cast<LONG>((static_cast<double>(h) * kTargetClientAspect16By9) + 0.5);
+    auto heightDrivenClientW = [&](LONG dh) -> LONG {
+        const LONG w = static_cast<LONG>((static_cast<double>(dh) * kTargetClientAspect16By9) + 0.5);
         return std::max<LONG>(1, w);
     };
+    auto fullClientHFromDrawable = [&](LONG dh) -> LONG { return std::max<LONG>(1, dh + topReserve); };
 
     LONG targetClientW = clientW;
     LONG targetClientH = clientH;
@@ -436,20 +448,20 @@ static void EnforceSizingAspect16By9(HWND hWnd, WPARAM edge, RECT* rc)
     {
     case WMSZ_LEFT:
     case WMSZ_RIGHT:
-        targetClientH = widthDriven(clientW);
+        targetClientH = fullClientHFromDrawable(widthDrivenDrawableH(clientW));
         break;
     case WMSZ_TOP:
     case WMSZ_BOTTOM:
-        targetClientW = heightDriven(clientH);
+        targetClientW = heightDrivenClientW(drawableH);
         break;
     default:
     {
-        const LONG byWidthH = widthDriven(clientW);
-        const LONG byHeightW = heightDriven(clientH);
-        const LONG errWidth = std::abs(byWidthH - clientH);
+        const LONG byWidthFullH = fullClientHFromDrawable(widthDrivenDrawableH(clientW));
+        const LONG byHeightW = heightDrivenClientW(drawableH);
+        const LONG errWidth = std::abs(byWidthFullH - clientH);
         const LONG errHeight = std::abs(byHeightW - clientW);
         if (errWidth <= errHeight)
-            targetClientH = byWidthH;
+            targetClientH = byWidthFullH;
         else
             targetClientW = byHeightW;
         break;
@@ -514,6 +526,27 @@ CDisplayDX11::CDisplayDX11()
     m_customTitlebarHeightPx = GetSystemTitlebarHeightPx();
 #endif
 }
+
+#ifdef WIN32
+int CDisplayDX11::GetVideoViewportTopInsetPx() const
+{
+    if (!m_WindowHandle || m_bFullScreen)
+        return 0;
+
+    const LONG_PTR style = GetWindowLongPtr(m_WindowHandle, GWL_STYLE);
+    const bool hasNativeCaption = (style & WS_CAPTION) != 0;
+    const int titlebarPx = m_customTitlebarHeightPx;
+    if (hasNativeCaption || titlebarPx <= 0)
+        return 0;
+    RECT client{};
+    if (!GetClientRect(m_WindowHandle, &client))
+        return 0;
+    const LONG ch = client.bottom - client.top;
+    if (ch <= 0 || titlebarPx >= ch)
+        return 0;
+    return titlebarPx;
+}
+#endif
 
 bool CDisplayDX11::EnsureWindowClassRegistered(HINSTANCE hInstance)
 {
