@@ -352,21 +352,35 @@ bool CTextureFlatVulkan::BindFrame(ContentDecoder::spCVideoFrame _spFrame)
     else if (srcFmt == AV_PIX_FMT_YUVJ440P) srcFmt = AV_PIX_FMT_YUV440P;
     else if (srcFmt == AV_PIX_FMT_YUVJ411P) srcFmt = AV_PIX_FMT_YUV411P;
 
-    // The ContentDecoder pre-converts to RGBA on Linux (AV_PIX_FMT_RGBA).
-    // If the frame is already RGBA, upload directly without an extra swscale pass.
-    if (srcFmt == AV_PIX_FMT_RGBA)
+    // Fast path: frame is already RGBA — copy row-by-row to handle any stride padding.
+    // Also handles RGB24 pass-through frames (RIFE mode decoder) by expanding to RGBA inline.
+    if (srcFmt == AV_PIX_FMT_RGBA || srcFmt == AV_PIX_FMT_RGB24)
     {
         auto spImg = std::make_shared<CImage>();
         spImg->Create(w, h, eImage_RGBA8);
         if (uint8_t* dst = spImg->GetData(0))
         {
-            // Copy row-by-row to handle any stride padding
             const int srcStride = frame->linesize[0];
             const int dstStride = static_cast<int>(w * 4);
-            for (uint32_t row = 0; row < h; ++row)
-                memcpy(dst + row * dstStride,
-                       frame->data[0] + row * srcStride,
-                       static_cast<size_t>(dstStride));
+            if (srcFmt == AV_PIX_FMT_RGBA)
+            {
+                for (uint32_t row = 0; row < h; ++row)
+                    memcpy(dst + row * dstStride,
+                           frame->data[0] + row * srcStride,
+                           static_cast<size_t>(dstStride));
+            }
+            else // RGB24 → expand to RGBA
+            {
+                for (uint32_t row = 0; row < h; ++row)
+                {
+                    const uint8_t* src = frame->data[0] + row * srcStride;
+                    uint8_t* d = dst + row * dstStride;
+                    for (uint32_t col = 0; col < w; ++col, src += 3, d += 4)
+                    {
+                        d[0] = src[0]; d[1] = src[1]; d[2] = src[2]; d[3] = 255;
+                    }
+                }
+            }
         }
         return Upload(spImg);
     }

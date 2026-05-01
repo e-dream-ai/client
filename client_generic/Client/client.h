@@ -416,10 +416,13 @@ class CElectricSheep
         spStats->Add(new Hud::CStringStat("loginstatus", "", "Not signed in"));
         spStats->Add(
             new Hud::CStringStat("all", "Content cache: ", "unknown..."));
-        spStats->Add(new Hud::CStringStat("transfers", "", " \n "));
-        if (m_MultipleInstancesMode == true)
+        spStats->Add(new Hud::CStringStat("transfers", "", ""));
+        if (m_CachedOnlyMode)
             spStats->Add(new Hud::CTimeCountDownStat(
-                "svstat", "", "Downloading disabled, busy mode"));
+                "svstat", "", "Downloading disabled"));
+        else if (m_MultipleInstancesMode == true)
+            spStats->Add(new Hud::CTimeCountDownStat(
+                "svstat", "", "Downloading disabled - another instance is running"));
         else if (g_Settings()->Get("settings.content.download_mode", true) ==
                  false)
             spStats->Add(new Hud::CTimeCountDownStat("svstat", "",
@@ -970,8 +973,6 @@ class CElectricSheep
         {
             // Show network indicator for 30 seconds at startup if network is down
             ShowNetworkIndicator(30.0, false);
-            // Also show remote indicator since network is down
-            ShowRemoteIndicator(30.0);
             m_MultipleInstancesMode = true;  // set offline mode
             m_OfflineDueToNoInternetOnly = true;  // don't show Busy indicator (Net/Remote are enough)
         } else if (m_MultipleInstancesMode) {
@@ -1000,10 +1001,6 @@ class CElectricSheep
         
         if (m_MultipleInstancesMode) {
             g_Player().SetOfflineMode(true);
-            // Show busy indicator only for actual multiple instances, not when offline due to no internet
-            if (!IsPreview() && !m_OfflineDueToNoInternetOnly) {
-                m_BusyIndicatorEndTime = m_Timer.Time() + 30.0;
-            }
         }
         
         // call static method to fill sheep counts
@@ -1461,18 +1458,22 @@ class CElectricSheep
 #endif
     
     void updateNextCheckTimeDisplay() {
-        auto timeUntilNextCheck = g_Player().m_playlistManager->getTimeUntilNextCheck();
-        int minutes = std::chrono::duration_cast<std::chrono::minutes>(timeUntilNextCheck).count();
-
         std::stringstream ss;
-        if (minutes == 0) {
-            ss << "Next playlist check in less than a minute"
-            << " | (Playing video " << (g_Player().m_playlistManager->getCurrentPosition() + 1) // +1 for human-readable indexing
-            << "/" << g_Player().m_playlistManager->getPlaylistSize() << ")";
+        if (m_CachedOnlyMode) {
+            Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+            ss << "Shuffling from " << cm.getCachedDreamCount() << " cached videos";
         } else {
-            ss << "Next playlist check in " << minutes << " minute" << (minutes != 1 ? "s" : "")
-            << " | (Playing video " << (g_Player().m_playlistManager->getCurrentPosition() + 1) // +1 for human-readable indexing
-            << "/" << g_Player().m_playlistManager->getPlaylistSize() << ")";
+            auto timeUntilNextCheck = g_Player().m_playlistManager->getTimeUntilNextCheck();
+            int minutes = std::chrono::duration_cast<std::chrono::minutes>(timeUntilNextCheck).count();
+            if (minutes == 0) {
+                ss << "Next playlist check in less than a minute"
+                << " | (Playing video " << (g_Player().m_playlistManager->getCurrentPosition() + 1)
+                << "/" << g_Player().m_playlistManager->getPlaylistSize() << ")";
+            } else {
+                ss << "Next playlist check in " << minutes << " minute" << (minutes != 1 ? "s" : "")
+                << " | (Playing video " << (g_Player().m_playlistManager->getCurrentPosition() + 1)
+                << "/" << g_Player().m_playlistManager->getPlaylistSize() << ")";
+            }
         }
 
         // Update the HUD with this information
@@ -1576,7 +1577,10 @@ class CElectricSheep
                                 pTmp->SetSample("");
                                 pTmp->Visible(false);
                             } else {
-                                if (m_MultipleInstancesMode && !IsPreview()) {
+                                if (m_CachedOnlyMode) {
+                                    pTmp->SetSample("");
+                                    pTmp->Visible(false);
+                                } else if (m_MultipleInstancesMode && !IsPreview()) {
                                     pTmp->SetSample("Starting in busy mode.");
                                 } else {
 #ifdef SCREEN_SAVER
@@ -1938,10 +1942,6 @@ class CElectricSheep
                     }
                     m_RemoteWasDown = false;
                     m_RemoteFirstConnected = true;  // Mark that we've connected at least once
-                } else if (!m_RemoteFirstConnected && !wsConnected && !m_RemoteInitialIndicatorShown) {
-                    // Initial connection not yet established - show indicator once
-                    ShowRemoteIndicator(30.0);
-                    m_RemoteInitialIndicatorShown = true;
                 }
                 
                 // Update previous state for next frame
@@ -2304,7 +2304,7 @@ class CElectricSheep
                 {
                     const std::string& serverStatus =
                         m_RuntimeDiagnostics.serverStatus;
-                    pTmp->SetSample(serverStatus.empty() ? " \n " : serverStatus);
+                    pTmp->SetSample(serverStatus.empty() ? "" : serverStatus);
                 }
 
                 pTmp = (Hud::CStringStat*)spStats->Get("loginstatus");
@@ -2323,8 +2323,10 @@ class CElectricSheep
                     }
                     else
                     {
-                        if (m_MultipleInstancesMode) {
-                            pTmp->SetSample("Busy mode, please close other instances of infnidream");
+                        if (m_CachedOnlyMode) {
+                            pTmp->SetSample("Running in offline cached mode - local videos only");
+                        } else if (m_MultipleInstancesMode) {
+                            pTmp->SetSample("Busy mode, please close other instances of infinidream");
                         } else {
                             pTmp->SetSample("Not signed in");
                         }

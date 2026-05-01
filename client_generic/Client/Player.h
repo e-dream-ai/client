@@ -99,13 +99,19 @@ class CPlayer : public Base::CSingleton<CPlayer>
     // 500-sample cooldown after any change to break the feedback loop where
     // a ReconfigureFrameGeneration call perturbs frame timing and immediately
     // triggers another change.
-    static constexpr int kVsyncSampleCount   = 120;
-    static constexpr int kVsyncCooldownCount = 500;
+    // A candidate rate must be observed continuously for kVsyncConfirmSeconds
+    // of wall time before being applied — this prevents RIFE inference stalls
+    // (which pollute the median for a few frames) from triggering reconfigures.
+    static constexpr int    kVsyncSampleCount      = 120;
+    static constexpr int    kVsyncCooldownCount    = 500;
+    static constexpr double kVsyncConfirmSeconds   = 4.0;
     std::array<double, kVsyncSampleCount> m_vsyncSamples{};
-    int    m_vsyncSampleIdx           = 0;
-    int    m_vsyncSampleCount         = 0;
-    int    m_vsyncCooldown            = 0;  // samples remaining in post-change quiet period
-    double m_lastConfirmedDisplayFps  = 0.0;
+    int    m_vsyncSampleIdx              = 0;
+    int    m_vsyncSampleCount            = 0;
+    int    m_vsyncCooldown               = 0;    // samples remaining in post-change quiet period
+    double m_lastConfirmedDisplayFps     = 0.0;
+    double m_pendingFpsCandidate         = 0.0;
+    double m_pendingFpsCandidateSince    = -1.0; // timeline time when candidate was first seen
 #endif
 
     bool m_bFullscreen;

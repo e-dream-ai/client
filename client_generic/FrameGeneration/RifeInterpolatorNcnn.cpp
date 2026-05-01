@@ -196,7 +196,8 @@ ContentDecoder::spCVideoFrame CRifeInterpolatorNcnn::Interpolate(
     if (!prevFrame || !nextFrame)
         return nullptr;
 
-    if (prevFrame->format != AV_PIX_FMT_RGBA || nextFrame->format != AV_PIX_FMT_RGBA)
+    const bool inputIsRgb = (prevFrame->format == AV_PIX_FMT_RGB24);
+    if (!inputIsRgb && (prevFrame->format != AV_PIX_FMT_RGBA || nextFrame->format != AV_PIX_FMT_RGBA))
         return nullptr;
 
     if (std::fabs(t - 0.5f) > kMidpointTolerance)
@@ -217,26 +218,44 @@ ContentDecoder::spCVideoFrame CRifeInterpolatorNcnn::Interpolate(
     const int height = static_cast<int>(previous->Height());
     CBlendFrameInterpolator blendFallback;
 
-    // Reuse per-instance buffers to avoid per-frame heap allocations (~18 MB/frame)
+    // Reuse per-instance buffers to avoid per-frame heap allocations.
+    // When the decoder feeds RGB24, frame->data[0] is already packed RGB — no strip needed.
+    // When the decoder feeds RGBA (fallback / non-RIFE mode), strip alpha first.
     const size_t rgbBytes = static_cast<size_t>(width) * height * 3u;
+    if (m_outRgbBuf.size() < rgbBytes) m_outRgbBuf.resize(rgbBytes);
+
     if (m_prevRgbBuf.size() < rgbBytes) m_prevRgbBuf.resize(rgbBytes);
     if (m_nextRgbBuf.size() < rgbBytes) m_nextRgbBuf.resize(rgbBytes);
-    if (m_outRgbBuf.size()  < rgbBytes) m_outRgbBuf.resize(rgbBytes);
 
-    // RGBA→RGB: pointer-step form allows auto-vectorisation
+    if (inputIsRgb)
     {
-        const int pixels = width * height;
-        const uint8_t* src = prevFrame->data[0];
-        unsigned char* dst = m_prevRgbBuf.data();
-        for (int i = 0; i < pixels; ++i, src += 4, dst += 3)
-            { dst[0] = src[0]; dst[1] = src[1]; dst[2] = src[2]; }
+        // Straight memcpy: faster than RGBA→RGB scatter-gather, no aliasing with ncnn's Vulkan allocator
+        const size_t rowBytes = static_cast<size_t>(width) * 3u;
+        for (int row = 0; row < height; ++row)
+        {
+            std::memcpy(m_prevRgbBuf.data() + row * rowBytes,
+                        prevFrame->data[0]  + row * prevFrame->linesize[0], rowBytes);
+            std::memcpy(m_nextRgbBuf.data() + row * rowBytes,
+                        nextFrame->data[0]  + row * nextFrame->linesize[0], rowBytes);
+        }
     }
+    else
     {
-        const int pixels = width * height;
-        const uint8_t* src = nextFrame->data[0];
-        unsigned char* dst = m_nextRgbBuf.data();
-        for (int i = 0; i < pixels; ++i, src += 4, dst += 3)
-            { dst[0] = src[0]; dst[1] = src[1]; dst[2] = src[2]; }
+        // RGBA→RGB: pointer-step form allows auto-vectorisation
+        {
+            const int pixels = width * height;
+            const uint8_t* src = prevFrame->data[0];
+            unsigned char* dst = m_prevRgbBuf.data();
+            for (int i = 0; i < pixels; ++i, src += 4, dst += 3)
+                { dst[0] = src[0]; dst[1] = src[1]; dst[2] = src[2]; }
+        }
+        {
+            const int pixels = width * height;
+            const uint8_t* src = nextFrame->data[0];
+            unsigned char* dst = m_nextRgbBuf.data();
+            for (int i = 0; i < pixels; ++i, src += 4, dst += 3)
+                { dst[0] = src[0]; dst[1] = src[1]; dst[2] = src[2]; }
+        }
     }
 
     // Timer starts before GPU dispatch so the reported time covers the full cost

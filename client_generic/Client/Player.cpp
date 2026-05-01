@@ -337,15 +337,19 @@ void CPlayer::ApplyNewDisplayFpsLocked(double hz)
     // Reset the sample buffer and impose a quiet period so the decoder-clock reset
     // triggered by ReconfigureFrameGeneration doesn't immediately produce bad samples
     // that fire another update.
-    m_vsyncSampleCount = 0;
-    m_vsyncSampleIdx   = 0;
-    m_vsyncCooldown    = kVsyncCooldownCount;
+    m_vsyncSampleCount         = 0;
+    m_vsyncSampleIdx           = 0;
+    m_vsyncCooldown            = kVsyncCooldownCount;
+    m_pendingFpsCandidate      = 0.0;
+    m_pendingFpsCandidateSince = -1.0;
     g_Settings()->Set("settings.player.display_fps", hz);
 
     const auto mode = FrameGeneration::FromSetting(
         g_Settings()->Get("settings.player.frame_generation.mode",
                           FrameGeneration::ToSetting(FrameGeneration::EFrameGenerationMode::Off)));
-    if (m_currentClip)
+    // Skip the outgoing clip during a crossfade — StartTransition already disabled
+    // RIFE on it to avoid two simultaneous inferences holding the shared mutex.
+    if (m_currentClip && !m_isTransitioning)
         m_currentClip->ReconfigureFrameGeneration(mode, m_rifeInterpolator, hz);
     if (m_nextClip)
         m_nextClip->ReconfigureFrameGeneration(mode, m_rifeInterpolator, hz);
@@ -707,14 +711,38 @@ bool CPlayer::BeginFrameUpdate()
             // Snap to a known standard rate within ±5 %.
             static constexpr double kStandardRates[] =
                 {60.0, 75.0, 90.0, 100.0, 120.0, 144.0, 165.0, 240.0};
+            double candidateFps = 0.0;
             for (double rate : kStandardRates)
             {
                 if (std::fabs(measuredFps - rate) / rate < 0.05)
                 {
                     if (std::fabs(rate - m_lastConfirmedDisplayFps) > 0.5)
-                        pendingDisplayFps = rate;
+                        candidateFps = rate;
                     break;
                 }
+            }
+
+            // Require the same candidate to be observed continuously for
+            // kVsyncConfirmSeconds of wall time before applying. RIFE inference
+            // (~15 ms) can momentarily shift the rolling median to a different
+            // standard rate; the time gate ensures transient contamination never
+            // lasts long enough to trigger a reconfigure.
+            if (candidateFps > 0.0)
+            {
+                if (candidateFps != m_pendingFpsCandidate)
+                {
+                    m_pendingFpsCandidate      = candidateFps;
+                    m_pendingFpsCandidateSince = m_TimelineTime;
+                }
+                else if (m_TimelineTime - m_pendingFpsCandidateSince >= kVsyncConfirmSeconds)
+                {
+                    pendingDisplayFps = m_pendingFpsCandidate;
+                }
+            }
+            else
+            {
+                m_pendingFpsCandidate      = 0.0;
+                m_pendingFpsCandidateSince = -1.0;
             }
         }
     }
@@ -900,9 +928,12 @@ bool CPlayer::Update(uint32_t displayUnit)
                         PlayNextDream();
                     }
                 }
-            } else if (m_currentClip && m_currentClip->HasFinished()) {
+            } else if (m_currentClip && m_currentClip->HasFinished() && !m_isTransitioning) {
                 // Ultimate safety: clip finished with no transition queued at all
                 // (e.g. rebuffering blocked shouldPrepareTransition the whole time).
+                // Guard on !m_isTransitioning: a fallback clip placed in m_nextClip needs
+                // the full transition window to buffer frames — firing again immediately
+                // destroys it and causes a rapid-cycle spiral.
                 g_Log->Warning("Clip finished with no transition decision — forcing next dream");
                 m_nextDreamDecision = m_playlistManager->preflightNextDream(false);
                 if (m_nextDreamDecision)
@@ -1511,6 +1542,8 @@ bool CPlayer::SetPlaylist(const std::string& playlistUUID, bool fetchPlaylist = 
     bool canStream = Cache::CacheManager::getInstance().getRemainingQuota() > 0;
     if (!canStream) {
         g_Log->Info("SetPlaylist: quota is 0, selecting from cached dreams only");
+        if (m_playlistManager->getPlaybackMode() == PlaybackMode::Normal)
+            m_playlistManager->setPlaybackMode(PlaybackMode::Shuffle);
     }
 
     // Start playing the first dream if not already playing
@@ -1657,7 +1690,15 @@ void CPlayer::StartTransition()
 
     m_isTransitioning = true;
     m_transitionStartTime = m_TimelineTime;
-    
+
+    // Drop RIFE on the outgoing clip for the duration of the crossfade.
+    // Running two simultaneous RIFE inferences serialises on the shared mutex,
+    // spikes CPU to 100% and causes the vsync sampler to oscillate, producing
+    // visible jitter. The outgoing clip is fading to 0 — native FPS is fine.
+    if (m_currentClip)
+        m_currentClip->ReconfigureFrameGeneration(
+            FrameGeneration::EFrameGenerationMode::Off, nullptr);
+
     // Check if the next clip is ready or still preloading
     if (m_PreloadingNextClip && !m_nextClip) {
         g_Log->Info("Next clip still preloading, transition will wait for it to complete");

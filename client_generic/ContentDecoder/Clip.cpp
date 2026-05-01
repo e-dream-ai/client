@@ -92,9 +92,17 @@ m_CurrentFrameMetadata{}, m_HasFinished(false), m_IsFadingOut(false)
 
 #else
 
-    AVPixelFormat pf = AV_PIX_FMT_RGBA;
+    // Use RGB24 for RIFE so RifeInterpolatorNcnn can skip the RGBA→RGB copy loops.
+    const auto fgModeSetting =
+        g_Settings()->Get("settings.player.frame_generation.mode",
+                          FrameGeneration::ToSetting(FrameGeneration::EFrameGenerationMode::Off));
+    AVPixelFormat pf =
+        (FrameGeneration::FromSetting(fgModeSetting) == FrameGeneration::EFrameGenerationMode::RIFE)
+        ? AV_PIX_FMT_RGB24
+        : AV_PIX_FMT_RGBA;
 #if defined(__BIG_ENDIAN__)
-    pf = AV_PIX_FMT_RGBA;  // RGBA is byte-order agnostic for our purposes
+    if (pf == AV_PIX_FMT_RGBA)
+        pf = AV_PIX_FMT_RGBA;  // byte-order agnostic for our purposes
 #endif
 
 #endif
@@ -744,8 +752,17 @@ bool CClip::UploadFrameToTexture(const spCVideoFrame& frame)
 #if USE_HW_ACCELERATION && !defined(WIN32)
     currentTexture->BindFrame(m_spFrameData);
 #else
-    m_spImageRef->SetStorageBuffer(m_spFrameData->StorageBuffer());
-    currentTexture->Upload(m_spImageRef);
+    // RGB24 frames have w*h*3 bytes; Upload(spCImage) assumes w*h*4. Route through
+    // BindFrame which already handles RGB24→RGBA expansion.
+    if (m_spFrameData->Frame()->format == AV_PIX_FMT_RGB24)
+    {
+        currentTexture->BindFrame(m_spFrameData);
+    }
+    else
+    {
+        m_spImageRef->SetStorageBuffer(m_spFrameData->StorageBuffer());
+        currentTexture->Upload(m_spImageRef);
+    }
 #endif
 
     return true;

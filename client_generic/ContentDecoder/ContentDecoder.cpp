@@ -800,7 +800,7 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
                                            srcWidth, srcHeight,
                                            srcPixelFormat, srcWidth,
                                            srcHeight, m_WantedPixelFormat,
-                                           SWS_BICUBIC, nullptr, nullptr, nullptr);
+                                           SWS_FAST_BILINEAR, nullptr, nullptr, nullptr);
                 
                 //    Store width & height now...
                 m_ScalerWidth = static_cast<uint32_t>(srcWidth);
