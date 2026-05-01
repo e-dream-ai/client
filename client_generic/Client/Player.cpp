@@ -178,10 +178,10 @@ int CPlayer::AddDisplay(uint32 screen)
         std::string watchFolder =
             g_Settings()->Get("settings.content.sheepdir", content) + PATH_SEPARATOR + "mp4" + PATH_SEPARATOR;
     }
-    // Logical size at 100% DPI; CDisplayDX11::CreateDisplayWindow scales it by the
-    // cursor-monitor DPI on Windows and centers the window on that monitor.
-    uint32_t w = 1920;
-    uint32_t h = 1080;
+    // Logical size at 96 DPI reference; CreateDisplayWindow maps to monitor DPI then clamps to
+    // the work area. Default is 720p-class (was 1080p) so windowed startups are smaller.
+    uint32_t w = 1280;
+    uint32_t h = 720;
 
 #ifdef WIN32
     g_Log->Info("Attempting to open %s...", CDisplayDX11::Description());

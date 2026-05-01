@@ -5,6 +5,7 @@
 #include "RendererDX11.h"
 #include "Settings.h"
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <mutex>
 #include <string>
@@ -786,15 +787,18 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
         {
             const UINT nw = static_cast<UINT>(LOWORD(lParam));
             const UINT nh = static_cast<UINT>(HIWORD(lParam));
+            const uint32_t prevW = self->m_Width;
+            const uint32_t prevH = self->m_Height;
+            const bool clientDimsChanged =
+                nw > 0 && nh > 0 && (nw != prevW || nh != prevH);
             if (nw > 0 && nh > 0)
                 self->ResizeSwapChain(nw, nh);
+            // Some moves (PerMonitor DPI, shell quirks) synthesize WM_SIZE even when the client
+            // size is unchanged. Re-running the deferred snap then used AdjustWindowRectEx on a
+            // captionless WS_POPUP frame and could grow the outer window.
+            if (clientDimsChanged && wParam != SIZE_MAXIMIZED && IsPreserveAspectEnabled())
+                PostMessageW(hWnd, kSettingsDialogWin32SnapAfterCloseMsg, 0, 0);
         }
-        // Aero snap (Win+Left/Right) and other programmatic SetWindowPos paths bypass WM_SIZING,
-        // so the aspect handler never sees them. If preserve_AR is on, defer a snap-to-16:9 via
-        // the message pump — SnapWindowTo16By9IfNeeded early-returns when already 16:9, so the
-        // deferred handler is idempotent and re-posting on every WM_SIZE is safe.
-        if (wParam != SIZE_MINIMIZED && wParam != SIZE_MAXIMIZED && IsPreserveAspectEnabled())
-            PostMessageW(hWnd, kSettingsDialogWin32SnapAfterCloseMsg, 0, 0);
         return DefWindowProc(hWnd, msg, wParam, lParam);
 
     case WM_SIZING:
@@ -1135,6 +1139,24 @@ HWND CDisplayDX11::CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen,
         // (1/4 of a 4K screen at 200%). Pick the cursor's monitor, query its effective DPI,
         // scale the requested size accordingly, and centre the window on that monitor so
         // CW_USEDEFAULT doesn't drop it onto the primary at a different scale.
+        const bool preserveAR =
+            g_Settings() && g_Settings()->Get("settings.player.preserve_AR", false);
+        const bool customVideoTopInset =
+            m_useCustomWindowChrome && ((style & WS_CAPTION) == 0);
+
+        auto clientSizeForPreserveAR = [&](uint32_t& cw, uint32_t& ch) {
+            // Match D3D video region: drawable (cw × ch − title strip) stays 16:9 (see
+            // BuildBaseViewportForDisplay + ComputeAspectViewport16By9).
+            if (!preserveAR || !customVideoTopInset)
+                return;
+            const int tb = GetSystemTitlebarHeightPx();
+            if (tb <= 0 || cw == 0)
+                return;
+            const auto dh =
+                std::max<int64_t>(1, llround(static_cast<double>(cw) * 9.0 / 16.0));
+            ch = static_cast<uint32_t>(tb) + static_cast<uint32_t>(dh);
+        };
+
         POINT pt{};
         HMONITOR mon = nullptr;
         if (GetCursorPos(&pt))
@@ -1151,6 +1173,8 @@ HWND CDisplayDX11::CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen,
             w = MulDiv(w, dpiX, 96);
             h = MulDiv(h, dpiY, 96);
         }
+
+        clientSizeForPreserveAR(w, h);
 
         MONITORINFO mi{};
         mi.cbSize = sizeof(mi);
@@ -1180,6 +1204,31 @@ HWND CDisplayDX11::CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen,
                 w = static_cast<uint32_t>(static_cast<double>(w) * scale);
                 h = static_cast<uint32_t>(static_cast<double>(h) * scale);
             }
+
+            clientSizeForPreserveAR(w, h);
+
+            // Uniform scaling uses full client ratio; restoring title-inset+break breaks outer fit.
+            if (preserveAR && customVideoTopInset)
+            {
+                auto outerPixelSize = [&](uint32_t cw, uint32_t ch, LONG& ow, LONG& oh) {
+                    RECT o = {0, 0, static_cast<LONG>(cw), static_cast<LONG>(ch)};
+                    AdjustWindowRect(&o, style, hMenu ? TRUE : FALSE);
+                    ow = o.right - o.left;
+                    oh = o.bottom - o.top;
+                };
+
+                LONG ow = 0, oh = 0;
+                outerPixelSize(w, h, ow, oh);
+                for (unsigned it = 0; it < 512u && (ow > waW || oh > waH); ++it)
+                {
+                    if (w < 96u)
+                        break;
+                    w -= (w > 512u) ? 32u : 16u;
+                    clientSizeForPreserveAR(w, h);
+                    outerPixelSize(w, h, ow, oh);
+                }
+            }
+
             RECT outer = {0, 0, (LONG)w, (LONG)h};
             AdjustWindowRect(&outer, style, hMenu ? TRUE : FALSE);
             posX = mi.rcWork.left + (waW - (outer.right - outer.left)) / 2;

@@ -146,16 +146,36 @@ static void SnapWindowTo16By9IfNeeded()
         return;
 
     const LONG targetClientH = static_cast<LONG>(targetDrawableH + topInset);
-    RECT targetWindow = {0, 0, clientW, targetClientH};
-    const LONG exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
-    const BOOL hasMenu = GetMenu(hwnd) != nullptr;
-    if (!AdjustWindowRectEx(&targetWindow, static_cast<DWORD>(style), hasMenu, static_cast<DWORD>(exStyle)))
+
+    POINT clientTL{};
+    if (!ClientToScreen(hwnd, &clientTL))
         return;
 
-    const int targetWindowW = targetWindow.right - targetWindow.left;
-    const int targetWindowH = targetWindow.bottom - targetWindow.top;
+    const LONG cw = clientRc.right - clientRc.left;
+    const LONG ncL = clientTL.x - windowRc.left;
+    const LONG ncT = clientTL.y - windowRc.top;
+    const LONG ncR = windowRc.right - clientTL.x - cw;
+    const LONG ncB = windowRc.bottom - clientTL.y - (clientRc.bottom - clientRc.top);
 
-    SetWindowPos(hwnd, nullptr, windowRc.left, windowRc.top, targetWindowW, targetWindowH,
+    int targetOuterW = 0;
+    int targetOuterH = 0;
+    if (ncL >= 0 && ncT >= 0 && ncR >= 0 && ncB >= 0)
+    {
+        targetOuterW = static_cast<int>(clientW + ncL + ncR);
+        targetOuterH = static_cast<int>(targetClientH + ncT + ncB);
+    }
+    else
+    {
+        RECT targetWindow = {0, 0, clientW, targetClientH};
+        const LONG exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+        const BOOL hasMenu = GetMenu(hwnd) != nullptr;
+        if (!AdjustWindowRectEx(&targetWindow, static_cast<DWORD>(style), hasMenu, static_cast<DWORD>(exStyle)))
+            return;
+        targetOuterW = targetWindow.right - targetWindow.left;
+        targetOuterH = targetWindow.bottom - targetWindow.top;
+    }
+
+    SetWindowPos(hwnd, nullptr, windowRc.left, windowRc.top, targetOuterW, targetOuterH,
                  SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
