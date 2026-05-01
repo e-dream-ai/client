@@ -1707,53 +1707,6 @@ bool CRendererDX11::EndFrame(bool drawn) {
                         }
                     }
 
-                    auto drawHLine = [&](float x0, float x1, float y, float t, const Base::Math::CVector4& c) {
-                        DrawQuad(Base::Math::CRect(x0, y - t * 0.5f, x1, y + t * 0.5f), c);
-                    };
-                    auto drawVLine = [&](float x, float y0, float y1, float t, const Base::Math::CVector4& c) {
-                        DrawQuad(Base::Math::CRect(x - t * 0.5f, y0, x + t * 0.5f, y1), c);
-                    };
-                    // Stroke thickness in normalized Y. Clamp to keep glyphs consistent across DPI/window sizes.
-                    const float px = 0.9f; // thinner
-                    const float t = (std::max)(px / static_cast<float>(dispH), 0.00065f);
-                    auto drawDiag = [&](const Base::Math::CRect& rc, bool downRight, float thickness,
-                                        const Base::Math::CVector4& c) {
-                        // Approximate a diagonal line using a few small axis-aligned rectangles.
-                        // This keeps visuals close to Windows caption "X" without needing rotation.
-                        constexpr int kSegments = 8;
-                        // Padding controls X size. Reduce padding so X matches other glyphs visually.
-                        const float padX = rc.Width() * 0.28f;
-                        const float padY = rc.Height() * 0.28f;
-                        const float x0 = rc.m_X0 + padX;
-                        const float x1 = rc.m_X0 + rc.Width() - padX;
-                        const float y0 = rc.m_Y0 + padY;
-                        const float y1 = rc.m_Y0 + rc.Height() - padY;
-                        for (int i = 0; i < kSegments; ++i)
-                        {
-                            const float a0 = static_cast<float>(i) / static_cast<float>(kSegments);
-                            const float a1 = static_cast<float>(i + 1) / static_cast<float>(kSegments);
-                            const float sx0 = x0 + (x1 - x0) * a0;
-                            const float sx1 = x0 + (x1 - x0) * a1;
-                            const float sy0 = downRight ? (y0 + (y1 - y0) * a0) : (y1 - (y1 - y0) * a0);
-                            const float sy1 = downRight ? (y0 + (y1 - y0) * a1) : (y1 - (y1 - y0) * a1);
-                            const float cx = (sx0 + sx1) * 0.5f;
-                            const float cy = (sy0 + sy1) * 0.5f;
-                            // Use the segment length for width; thickness for height.
-                            const float segW = (std::max)(std::fabs(sx1 - sx0), std::fabs(sy1 - sy0)) * 1.15f;
-                            DrawQuad(Base::Math::CRect(cx - segW * 0.5f, cy - thickness * 0.5f,
-                                                      cx + segW * 0.5f, cy + thickness * 0.5f),
-                                     c);
-                        }
-                    };
-
-                    // Fixed pixel sizing for glyphs (consistent across window sizes).
-                    // Icon is centered in the button (H+V). No padding math.
-                    // Per-icon fixed sizes (px). Keep centered; clamp to button bounds.
-                    constexpr float kIconPx = 12.0f;
-                    constexpr float kMaxIconPx = 10.0f;
-                    constexpr float kCloseIconPx = 14.0f;
-                    constexpr float kOverlapPx = 1.0f; // back-window offset for maximize
-
                     auto squareInButtonPx = [&](const RECT& r, float iconPx) {
                         const auto btn = rectToNorm(r);
                         const float btnPxW = static_cast<float>(r.right - r.left);
