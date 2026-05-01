@@ -1,7 +1,10 @@
 #pragma once
 
+#include <condition_variable>
 #include <functional>
+#include <mutex>
 #include <string>
+#include <thread>
 
 #include "IFrameInterpolator.h"
 
@@ -12,6 +15,8 @@ class CFrameGenerationScheduler
 {
   public:
     using FrameProvider = std::function<ContentDecoder::spCVideoFrame()>;
+
+    ~CFrameGenerationScheduler();
 
     void Configure(bool enabled, double sourceFps, double targetFps,
                    spIFrameInterpolator interpolator);
@@ -41,6 +46,20 @@ class CFrameGenerationScheduler
     bool canGenerateBetween(const ContentDecoder::spCVideoFrame& previous,
                             const ContentDecoder::spCVideoFrame& next) const;
 
+    // Async worker — pre-computes the next interpolated frame off the render thread.
+    void startAsyncWorker();
+    void stopAsyncWorker();
+    void asyncWorkerLoop();
+    bool submitAsyncJob(const ContentDecoder::spCVideoFrame& prev,
+                        const ContentDecoder::spCVideoFrame& next,
+                        const spIFrameInterpolator& interpolator);
+    ContentDecoder::spCVideoFrame takeAsyncResult(
+        const ContentDecoder::spCVideoFrame& expectedPrev,
+        const ContentDecoder::spCVideoFrame& expectedNext);
+    void maybePreFetchAndSubmit(const FrameProvider& frameProvider,
+                                double synthsPerGap,
+                                const ContentDecoder::spCVideoFrame& prevFrame);
+
     bool m_enabled = false;
     double m_sourceFps = 0.0;
     double m_targetFps = 0.0;
@@ -55,6 +74,30 @@ class CFrameGenerationScheduler
     double m_pendingSyntheticFrames = 0.0;
     uint64_t m_generatedFrameCount = 0;
     uint64_t m_realFrameCount = 0;
+
+    // Frame pre-fetched from the decoder ahead of when it's needed, so the async
+    // worker can start RIFE on the (current, prefetched) pair immediately.
+    ContentDecoder::spCVideoFrame m_prefetchedNextRealFrame;
+
+    // Async worker thread state — all fields guarded by m_asyncMutex.
+    std::thread m_asyncThread;
+    std::mutex m_asyncMutex;
+    std::condition_variable m_asyncWorkCv;
+    std::condition_variable m_asyncResultCv;
+    bool m_asyncStop = false;
+
+    // Submitted job
+    ContentDecoder::spCVideoFrame m_jobPrev;
+    ContentDecoder::spCVideoFrame m_jobNext;
+    spIFrameInterpolator m_jobInterpolator; // captured at submit time; safe against Configure()
+    bool m_jobPending = false;              // submitted, not yet picked up by worker
+    bool m_jobRunning = false;              // worker has started executing
+
+    // Result from the most recently completed job
+    ContentDecoder::spCVideoFrame m_asyncResult;
+    ContentDecoder::spCVideoFrame m_resultForPrev; // frames the result was computed for
+    ContentDecoder::spCVideoFrame m_resultForNext;
+    bool m_resultReady = false;
 };
 
 } // namespace FrameGeneration

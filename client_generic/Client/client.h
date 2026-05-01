@@ -1157,6 +1157,15 @@ class CElectricSheep
 #endif
             if (shouldCap)
                 g_Player().FpsCap(g_Player().GetPresentationFPS());
+#ifdef LINUX_GNU
+            else if (!g_Player().HasStarted())
+                // Vulkan FIFO present only blocks when a swapchain image is actively
+                // being presented. Before playback starts, BeginDisplayFrame bails out
+                // early (swapchain not ready / recreation loop) and no blocking occurs,
+                // leaving the loop free to spin at thousands of fps on a single core.
+                // Cap to the configured presentation rate until the player is running.
+                g_Player().FpsCap(g_Player().GetPresentationFPS());
+#endif
         }
 
         return true;
