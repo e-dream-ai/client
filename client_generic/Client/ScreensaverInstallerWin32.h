@@ -6,6 +6,9 @@
 
 namespace ScreensaverInstallerWin32
 {
+void SaveOriginalScreensaverSettingsOnce(const std::string& workingDir);
+bool RestoreOriginalScreensaverSettings();
+
 // Make sure infinidream is the active Windows screensaver, when the user has opted
 // in via settings.app.keep_screensaver_enabled. Idempotent — re-reads the registry
 // and only writes when values differ. Safe to call on every app launch.
