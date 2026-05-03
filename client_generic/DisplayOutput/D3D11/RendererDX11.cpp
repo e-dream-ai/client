@@ -1495,8 +1495,6 @@ bool CRendererDX11::EndFrame(bool drawn) {
                 if (!atlasTex)
                     continue;
 
-                // Bind atlas texture for the quad shader.
-                const Base::Math::CRect r = text->GetRect();
                 const uint32_t dispW = display->Width();
                 const uint32_t dispH = display->Height();
                 if (dispW == 0u || dispH == 0u)
@@ -1508,6 +1506,33 @@ bool CRendererDX11::EndFrame(bool drawn) {
                 if (m_context)
                     m_context->RSSetState(prevRasterizer.Get());
             }
+
+            // DrawTextBatched binds VS/PS/IA/VB/IB/CB/samplers directly on the immediate context and
+            // does not go through SetShader(), so m_spActiveShader can still name the decoded-frame
+            // shader from the video pass. The next Apply() then skips Unbind/Bind while the GPU is
+            // still running the text-batch pipeline — wrong IA/CB vs shader → garbage fullscreen draws
+            // (often during dream transitions when HUD stats refresh every frame).
+            if (m_context)
+            {
+                ID3D11ShaderResourceView* nullSrv = nullptr;
+                m_context->PSSetShaderResources(0, 1, &nullSrv);
+                ID3D11SamplerState* nullSamp = nullptr;
+                m_context->PSSetSamplers(0, 1, &nullSamp);
+
+                m_context->VSSetShader(nullptr, nullptr, 0);
+                m_context->PSSetShader(nullptr, nullptr, 0);
+                m_context->HSSetShader(nullptr, nullptr, 0);
+                m_context->DSSetShader(nullptr, nullptr, 0);
+                m_context->GSSetShader(nullptr, nullptr, 0);
+                m_context->IASetInputLayout(nullptr);
+                ID3D11Buffer* nullBuf = nullptr;
+                UINT zstride = 0, zoff = 0;
+                m_context->IASetVertexBuffers(0, 1, &nullBuf, &zstride, &zoff);
+                m_context->IASetIndexBuffer(nullptr, DXGI_FORMAT_R16_UINT, 0);
+                m_context->VSSetConstantBuffers(0, 1, &nullBuf);
+                m_context->PSSetConstantBuffers(0, 1, &nullBuf);
+            }
+            m_spActiveShader = nullptr;
         }
 
         // Draw settings then about so both stay above HUD; about is top-most when both run (normally exclusive).
