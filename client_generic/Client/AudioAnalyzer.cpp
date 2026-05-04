@@ -4,6 +4,39 @@
 #include <cmath>
 #include <vector>
 
+namespace
+{
+constexpr float kPi = 3.1415926535f;
+constexpr float kSampleRate = 48000.0f;
+
+// Bigger than 512 so bass has usable frequency resolution.
+// 2048 @ 48kHz = ~23.4 Hz/bin.
+constexpr int kAnalysisSize = 2048;
+
+float Clamp01(float value)
+{
+    if (value < 0.0f)
+        return 0.0f;
+    if (value > 1.0f)
+        return 1.0f;
+    return value;
+}
+
+float SmoothAttackRelease(float previous, float current, float attack,
+                          float release)
+{
+    const float amount = current > previous ? attack : release;
+    return (previous * (1.0f - amount)) + (current * amount);
+}
+
+float DbToLinear(float db) { return std::pow(10.0f, db / 20.0f); }
+
+float ApplyFloor(float value, float floor)
+{
+    return value < floor ? 0.0f : value;
+}
+} // namespace
+
 void AudioAnalyzer::Update(double deltaSeconds)
 {
     m_Phase += deltaSeconds;
@@ -17,27 +50,46 @@ void AudioAnalyzer::Update(double deltaSeconds)
 
     if (samples.empty())
     {
-        m_Features.volume *= 0.92f;
-        m_Features.bass *= 0.92f;
-        m_Features.mid *= 0.92f;
-        m_Features.high *= 0.92f;
+        m_Features.volume *= 0.80f;
+        m_Features.bass *= 0.80f;
+        m_Features.mid *= 0.80f;
+        m_Features.high *= 0.80f;
         m_Features.hasSignal = false;
         return;
     }
 
-    float sumSquares = 0.0f;
-
-    for (float sample : samples)
+    if (samples.size() > kAnalysisSize)
     {
-        sumSquares += sample * sample;
+        samples.erase(samples.begin(), samples.end() - kAnalysisSize);
     }
 
-    float rawLevel = std::sqrt(sumSquares / samples.size());
+    const int fftSize =
+        std::min<int>(kAnalysisSize, static_cast<int>(samples.size()));
 
-    const int fftSize = std::min<int>(512, static_cast<int>(samples.size()));
+    float sumSquares = 0.0f;
+    for (int i = 0; i < fftSize; ++i)
+    {
+        sumSquares += samples[i] * samples[i];
+    }
+
+    float rawLevel = std::sqrt(sumSquares / std::max(1, fftSize));
+
+    // Overall volume gate. -30 dBFS-ish.
+    if (rawLevel < DbToLinear(-30.0f))
+        rawLevel = 0.0f;
+
+    rawLevel = Clamp01(rawLevel * 3.0f);
+
+    const float level =
+        SmoothAttackRelease(m_Features.volume, rawLevel, 0.35f, 0.08f);
+
     float bassEnergy = 0.0f;
     float midEnergy = 0.0f;
     float highEnergy = 0.0f;
+
+    int bassBins = 0;
+    int midBins = 0;
+    int highBins = 0;
 
     for (int bin = 1; bin < fftSize / 2; ++bin)
     {
@@ -46,77 +98,69 @@ void AudioAnalyzer::Update(double deltaSeconds)
 
         for (int n = 0; n < fftSize; ++n)
         {
-            const float angle = 2.0f * 3.1415926535f *
-                                static_cast<float>(bin * n) /
+            // Hann window reduces spectral smear. Yes, finally, less brute-force caveman DSP.
+            const float window =
+                0.5f * (1.0f - std::cos((2.0f * kPi * n) / (fftSize - 1)));
+
+            const float sample = samples[n] * window;
+            const float angle = 2.0f * kPi * static_cast<float>(bin * n) /
                                 static_cast<float>(fftSize);
 
-            real += samples[n] * std::cos(angle);
-            imag -= samples[n] * std::sin(angle);
+            real += sample * std::cos(angle);
+            imag -= sample * std::sin(angle);
         }
 
-        const float magnitude = std::sqrt(real * real + imag * imag);
+        const float magnitude = std::sqrt(real * real + imag * imag) / fftSize;
+        const float frequency = (kSampleRate * bin) / fftSize;
 
-        float sampleRate = 48000.0f;
-        float frequency = (sampleRate * bin) / fftSize;
-
-        if (frequency < 200.0f)
+        if (frequency >= 40.0f && frequency < 120.0f)
+        {
             bassEnergy += magnitude;
-        else if (frequency < 2000.0f)
+            ++bassBins;
+        }
+        else if (frequency >= 120.0f && frequency < 2500.0f)
+        {
             midEnergy += magnitude;
-        else
+            ++midBins;
+        }
+        else if (frequency >= 2500.0f && frequency < 12000.0f)
+        {
             highEnergy += magnitude;
+            ++highBins;
+        }
     }
 
-    if (rawLevel < 0.01f)
-        rawLevel = 0.0f;
+    if (bassBins > 0)
+        bassEnergy /= bassBins;
+    if (midBins > 0)
+        midEnergy /= midBins;
+    if (highBins > 0)
+        highEnergy /= highBins;
 
-    rawLevel *= 1.5f;
-    if (rawLevel > 1.0f)
-        rawLevel = 1.0f;
+    // Convert tiny spectral magnitudes into usable 0..1-ish values.
+    bassEnergy = Clamp01(bassEnergy * 28.0f);
+    midEnergy = Clamp01(midEnergy * 35.0f);
+    highEnergy = Clamp01(highEnergy * 50.0f);
 
-    float attack = 0.35f;
-    float release = 0.08f;
+    // Floors per band. These are linear thresholds after scaling.
+    bassEnergy = ApplyFloor(bassEnergy, 0.18f);
+    midEnergy = ApplyFloor(midEnergy, 0.05f);
+    highEnergy = ApplyFloor(highEnergy, 0.04f);
 
-    float smoothing = rawLevel > m_Features.volume ? attack : release;
+    // Bass should care more about sudden low-end changes than constant rumble.
+    static float previousBassEnergy = 0.0f;
+    const float bassRise = std::max(0.0f, bassEnergy - previousBassEnergy);
+    previousBassEnergy = bassEnergy;
 
-    float level =
-        (m_Features.volume * (1.0f - smoothing)) + (rawLevel * smoothing);
-
-    static float peak = 0.0f;
-
-    if (level > peak)
-        peak = level;
-
-    peak *= 0.95f;
-
-    bassEnergy *= 0.004f;
-    midEnergy *= 0.004f;
-    highEnergy *= 0.004f;
-
-    bassEnergy = std::sqrt(bassEnergy);
-    midEnergy = std::sqrt(midEnergy);
-    highEnergy = std::sqrt(highEnergy);
-
-    if (bassEnergy > 1.0f)
-        bassEnergy = 1.0f;
-    if (midEnergy > 1.0f)
-        midEnergy = 1.0f;
-    if (highEnergy > 1.0f)
-        highEnergy = 1.0f;
-
-    auto smoothBand = [](float previous, float current)
-    {
-        const float attack = 0.45f;
-        const float release = 0.12f;
-        const float amount = current > previous ? attack : release;
-
-        return (previous * (1.0f - amount)) + (current * amount);
-    };
+    const float kickEnergy = Clamp01((bassEnergy * 0.6f) + (bassRise * 1.4f));
 
     m_Features.volume = level;
-    m_Features.bass = smoothBand(m_Features.bass, bassEnergy);
-    m_Features.mid = smoothBand(m_Features.mid, midEnergy);
-    m_Features.high = smoothBand(m_Features.high, highEnergy);
+    m_Features.bass = m_Features.bass =
+        SmoothAttackRelease(m_Features.bass, kickEnergy, 0.35f, 0.08f);
+    m_Features.mid =
+        SmoothAttackRelease(m_Features.mid, midEnergy, 0.35f, 0.08f);
+    m_Features.high =
+        SmoothAttackRelease(m_Features.high, highEnergy, 0.45f, 0.12f);
     m_Features.hasSignal = level > 0.001f;
 }
 

@@ -52,6 +52,9 @@ bool AudioInputWasapi::Start()
     {
         return false;
     }
+    m_ChannelCount = mixFormat->nChannels;
+    if (m_ChannelCount <= 0)
+        m_ChannelCount = 2;
 
     hr = m_AudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED,
                                    AUDCLNT_STREAMFLAGS_LOOPBACK, 0, 0,
@@ -185,9 +188,17 @@ std::vector<float> AudioInputWasapi::GetSamples()
 
         float* samples = reinterpret_cast<float*>(data);
 
-        for (UINT32 i = 0; i < numFrames; ++i)
+        for (UINT32 frame = 0; frame < numFrames; ++frame)
         {
-            samplesOut.push_back(samples[i]);
+            float mono = 0.0f;
+
+            for (int ch = 0; ch < m_ChannelCount; ++ch)
+            {
+                mono += samples[(frame * m_ChannelCount) + ch];
+            }
+
+            mono /= static_cast<float>(m_ChannelCount);
+            samplesOut.push_back(mono);
         }
 
         m_CaptureClient->ReleaseBuffer(numFrames);

@@ -21,6 +21,7 @@ class AudioInputWasapi
   private:
     bool m_Running = false;
     float m_Level = 0.0f;
+    int m_ChannelCount = 2;
 
     IAudioClient* m_AudioClient = nullptr;
     IAudioCaptureClient* m_CaptureClient = nullptr;
