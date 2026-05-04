@@ -647,6 +647,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Client\AudioAnalyzer.cpp" />
+    <ClCompile Include="..\client\AudioInputWasapi.cpp" />
     <ClCompile Include="..\ContentDecoder\Clip.cpp" />
     <ClCompile Include="..\ContentDownloader\CacheManager.cpp" />
     <ClCompile Include="..\ContentDownloader\ContentDownloader.cpp" />
@@ -697,6 +698,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Client\AudioAnalyzer.h" />
+    <ClInclude Include="..\client\AudioInputWasapi.h" />
     <ClInclude Include="..\Client\DreamPlaylist.h" />
     <ClInclude Include="..\Client\PlatformUtils.h" />
     <ClInclude Include="..\Common\JSONUtil.h" />

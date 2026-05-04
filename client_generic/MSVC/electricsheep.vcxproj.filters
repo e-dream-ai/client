@@ -198,6 +198,9 @@
     <ClCompile Include="..\Client\AudioAnalyzer.cpp">
       <Filter>ContentDownloader</Filter>
     </ClCompile>
+    <ClCompile Include="..\client\AudioInputWasapi.cpp">
+      <Filter>ContentDownloader</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ContentDownloader\ContentDownloader.h">
@@ -465,6 +468,9 @@
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="..\Client\AudioAnalyzer.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\client\AudioInputWasapi.h">
       <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>
