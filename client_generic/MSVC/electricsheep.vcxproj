@@ -219,7 +219,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     </PreBuildEvent>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\MacBuild;..\ContentDownloader;..\Client;..\Common;..\Common\Math;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\Networking;..\TupleStorage;..\socket.io-client-cpp\include;..\websocketpp;..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\MacBuild;..\ContentDownloader;..\Client;..\Common;..\Common\Math;..\ContentDecoder;..\DisplayOutput\Renderer;..\DisplayOutput;..\Networking;..\TupleStorage;..\socket.io-client-cpp\include;..\websocketpp;..\;C:\Users\Sanial\client\vcpkg_installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0A00;BOOST_BIND_GLOBAL_PLACEHOLDERS;WIN32;_WIN64;_DEBUG;_WINDOWS;NOMINMAX;_CRT_SECURE_NO_WARNINGS;WIN32_LEAN_AND_MEAN;VC_EXTRALEAN;D3D_DEBUG_INFO;COMPILE_MULTIMON_STUBS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -237,7 +237,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     <Link>
       <AdditionalDependencies>avcodec.lib;avformat.lib;swscale.lib;avdevice.lib;avutil.lib;sioclient.lib;libssl.lib;libcrypto.lib;libpng16d.lib;kernel32.lib;user32.lib;dwrite.lib;shlwapi.lib;libcurl.lib;d3d9.lib;d3d11.lib;d3d12.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;ws2_32.lib;wldap32.lib;psapi.lib;delayimp.lib;crypt32.lib;bcrypt.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(ProjectName)d.exe</OutputFile>
-      <AdditionalLibraryDirectories>..\socket.io-client-cpp\lib\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\socket.io-client-cpp\lib\Debug;C:\Users\Sanial\client\vcpkg_installed\x64-windows\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <DelayLoadDLLs>wldap32.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -646,6 +646,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     <None Include="..\runtime\Lato-Regular.ttf" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\Client\AudioAnalyzer.cpp" />
     <ClCompile Include="..\ContentDecoder\Clip.cpp" />
     <ClCompile Include="..\ContentDownloader\CacheManager.cpp" />
     <ClCompile Include="..\ContentDownloader\ContentDownloader.cpp" />
@@ -695,6 +696,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     <ClCompile Include="..\TupleStorage\storage.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Client\AudioAnalyzer.h" />
     <ClInclude Include="..\Client\DreamPlaylist.h" />
     <ClInclude Include="..\Client\PlatformUtils.h" />
     <ClInclude Include="..\Common\JSONUtil.h" />

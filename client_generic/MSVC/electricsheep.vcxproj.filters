@@ -186,6 +186,18 @@
     <ClCompile Include="..\DisplayOutput\D3D11\DisplayDX11.cpp">
       <Filter>DisplayOutput\D3D11</Filter>
     </ClCompile>
+    <ClCompile Include="..\Client\StringFormat.cpp">
+      <Filter>ContentDownloader</Filter>
+    </ClCompile>
+    <ClCompile Include="..\DisplayOutput\D3D11\GlyphAtlasDX11.cpp">
+      <Filter>ContentDownloader</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Client\FirstTimeSetupWin32.cpp">
+      <Filter>ContentDownloader</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Client\AudioAnalyzer.cpp">
+      <Filter>ContentDownloader</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ContentDownloader\ContentDownloader.h">
@@ -440,6 +452,21 @@
     <ClInclude Include="..\DisplayOutput\D3D11\DisplayDX11.h">
       <Filter>DisplayOutput\D3D11</Filter>
     </ClInclude>
+    <ClInclude Include="..\DisplayOutput\D3D11\GlyphAtlasDX11.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="edream_build_version_generated.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Utf8.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Client\FirstTimeSetupWin32.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Client\AudioAnalyzer.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Client\app.ico">
@@ -448,6 +475,7 @@
     <None Include="..\RuntimeMSVC\logo256256.png">
       <Filter>Common</Filter>
     </None>
+    <None Include="..\runtime\Lato-Regular.ttf" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="sheepicon.rc">
