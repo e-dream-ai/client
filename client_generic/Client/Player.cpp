@@ -86,8 +86,8 @@ typedef std::unique_lock<std::shared_mutex> writer_lock;
 
 namespace
 {
-constexpr double kMinPerceptualFPS = 1.0;
-constexpr double kMaxPerceptualFPS = 144.0;
+constexpr double kMinPerceptualFPS = 0.078125;
+constexpr double kMaxPerceptualFPS = 320.0;
 
 double ClampPerceptualFPS(double fps)
 {
