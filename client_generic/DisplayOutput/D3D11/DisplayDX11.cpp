@@ -192,7 +192,7 @@ static bool HandleAppCommand(HWND hWnd, CDisplayDX11* self, UINT cmd)
     switch (cmd)
     {
     case ID_FILE_PREFERENCES:
-        ESShowPreferences();
+        SettingsDialogWin32_Toggle();
         return true;
     case ID_FILE_EXIT:
         DestroyWindow(hWnd);
@@ -586,6 +586,46 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
     CDisplayDX11* self = reinterpret_cast<CDisplayDX11*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
 
 #ifdef WIN32
+    const int captionPressedSnapshot = (self && msg == WM_LBUTTONUP) ? self->m_captionBtnPressed : 0;
+
+    // When settings (ImGui) is visible, it can consume mouse input before our titlebar WM_* cases run.
+    // Pre-handle only the gear rect so it still toggles settings; other chrome uses the normal path.
+    if (self && SettingsDialogWin32_IsVisible() &&
+        !self->m_bFullScreen && !self->m_bEmbeddedSaverPreview && self->m_useCustomWindowChrome)
+    {
+        const LONG_PTR style = GetWindowLongPtr(hWnd, GWL_STYLE);
+        const bool hasNativeCaption = (style & WS_CAPTION) != 0;
+        if (!hasNativeCaption)
+        {
+            if (msg == WM_LBUTTONDOWN)
+            {
+                UpdateTitlebarChromeRects(self, hWnd);
+                const POINT ptClient{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+                if (PtInRectClient(self->m_titlebarGearRect, ptClient))
+                {
+                    self->m_captionBtnPressed = 4;
+                    SetCapture(hWnd);
+                    return 0;
+                }
+            }
+            else if (msg == WM_LBUTTONUP)
+            {
+                const int pressed = (captionPressedSnapshot != 0) ? captionPressedSnapshot : self->m_captionBtnPressed;
+                if (pressed == 4)
+                {
+                    UpdateTitlebarChromeRects(self, hWnd);
+                    const POINT ptClient{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+                    self->m_captionBtnPressed = 0;
+                    if (GetCapture() == hWnd)
+                        ReleaseCapture();
+                    if (PtInRectClient(self->m_titlebarGearRect, ptClient))
+                        SendMessageW(hWnd, WM_COMMAND, MAKEWPARAM(ID_FILE_PREFERENCES, 0), 0);
+                    return 0;
+                }
+            }
+        }
+    }
+
     LRESULT imguiHandled = 0;
     if (SettingsDialogWin32_TryConsumeWndProc(hWnd, msg, wParam, lParam, &imguiHandled))
         return imguiHandled;
@@ -902,7 +942,8 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
                 UpdateTitlebarChromeRects(self, hWnd);
 
                 const POINT ptClient{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
-                const int pressed = self->m_captionBtnPressed;
+                const int pressed = (captionPressedSnapshot != 0) ? captionPressedSnapshot
+                                                                   : self->m_captionBtnPressed;
                 self->m_captionBtnPressed = 0;
                 if (GetCapture() == hWnd)
                     ReleaseCapture();
