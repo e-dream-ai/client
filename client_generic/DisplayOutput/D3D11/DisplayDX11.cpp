@@ -50,6 +50,7 @@ enum DX11MenuCmd : UINT
     ID_TOOLS_REMOTE,
     ID_TOOLS_PLAYLISTS,
     ID_HELP_ONLINE,
+    ID_HELP_OSD,
     ID_HELP_CHECK_UPDATES,
     ID_HELP_ABOUT,
 };
@@ -173,6 +174,8 @@ static void ShowTitlebarOverflowMenu(HWND hWnd, POINT ptScreen)
     AppendMenuW(popup, MF_STRING, ID_TOOLS_REMOTE, L"&Remote Control\tCtrl+R");
     AppendMenuW(popup, MF_STRING, ID_TOOLS_PLAYLISTS, L"&Browse Playlists\tCtrl+B");
     AppendMenuW(popup, MF_STRING, ID_HELP_ONLINE, L"&Help");
+    AppendMenuW(popup, MF_STRING, ID_HELP_OSD, L"Help &Overlay\tF1");
+    AppendMenuW(popup, MF_STRING, ID_VIEW_FULLSCREEN, L"&Fullscreen\tF11");
 
     SetForegroundWindow(hWnd);
     // Keep rendering during the modal menu tracking loop.
@@ -210,6 +213,9 @@ static bool HandleAppCommand(HWND hWnd, CDisplayDX11* self, UINT cmd)
         return true;
     case ID_HELP_ONLINE:
         OpenInfinidreamWebUrl(2);
+        return true;
+    case ID_HELP_OSD:
+        AppendKeyEvent(CKeyEvent::KEY_F1, false);
         return true;
     case ID_HELP_CHECK_UPDATES:
         return true;
