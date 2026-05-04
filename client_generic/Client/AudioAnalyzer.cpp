@@ -6,15 +6,44 @@ void AudioAnalyzer::Update(double deltaSeconds)
 {
     m_Phase += deltaSeconds;
 
-    m_Features.bass = 0.5f + 0.5f * static_cast<float>(std::sin(m_Phase * 3.0));
-    m_Features.mid = 0.5f + 0.5f * static_cast<float>(std::sin(m_Phase * 5.0));
-    m_Features.high =
-        0.5f + 0.5f * static_cast<float>(std::sin(m_Phase * 11.0));
+    if (!m_AudioInput.IsRunning())
+    {
+        m_AudioInput.Start();
+    }
 
-    m_Features.volume =
-        (m_Features.bass + m_Features.mid + m_Features.high) / 3.0f;
+    float rawLevel = m_AudioInput.GetLevel();
 
-    m_Features.hasSignal = true;
+    // Boost raw input before smoothing
+    rawLevel *= 1.5f;
+    if (rawLevel > 1.0f)
+        rawLevel = 1.0f;
+    // Noise floor clamp
+    if (rawLevel < 0.01f)
+        rawLevel = 0.0f;
+
+    // Fast rise, slow fall
+    float attack = 0.35f;
+    float release = 0.08f;
+
+    float smoothing = rawLevel > m_Features.volume ? attack : release;
+
+    float level =
+        (m_Features.volume * (1.0f - smoothing)) + (rawLevel * smoothing);
+
+    static float peak = 0.0f;
+
+    // quick peak capture
+    if (level > peak)
+        peak = level;
+
+    // decay
+    peak *= 0.95f;
+
+    m_Features.volume = level;
+    m_Features.bass = level;
+    m_Features.mid = level * 0.7f;
+    m_Features.high = level * 0.4f;
+    m_Features.hasSignal = level > 0.001f;
 }
 
 const AudioFeatures& AudioAnalyzer::GetFeatures() const { return m_Features; }

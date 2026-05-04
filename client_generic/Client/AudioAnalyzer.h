@@ -1,6 +1,8 @@
 #ifndef AUDIO_ANALYZER_H_INCLUDED
 #define AUDIO_ANALYZER_H_INCLUDED
 
+#include "AudioInputWasapi.h"
+
 struct AudioFeatures
 {
     float bass = 0.0f;
@@ -17,6 +19,8 @@ class AudioAnalyzer
     const AudioFeatures& GetFeatures() const;
 
   private:
+
+      AudioInputWasapi m_AudioInput;
     double m_Phase = 0.0;
     AudioFeatures m_Features;
 };

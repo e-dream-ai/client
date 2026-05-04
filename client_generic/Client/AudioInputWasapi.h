@@ -21,6 +21,7 @@ class AudioInputWasapi
     float m_Level = 0.0f;
 
     IAudioClient* m_AudioClient = nullptr;
+    IAudioCaptureClient* m_CaptureClient = nullptr;
     IMMDevice* m_Device = nullptr;
 };
 
