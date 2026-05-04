@@ -201,6 +201,9 @@
     <ClCompile Include="..\client\AudioInputWasapi.cpp">
       <Filter>ContentDownloader</Filter>
     </ClCompile>
+    <ClCompile Include="..\Client\kiss_fft.c">
+      <Filter>ContentDownloader</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ContentDownloader\ContentDownloader.h">
@@ -471,6 +474,15 @@
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="..\client\AudioInputWasapi.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Client\_kiss_fft_guts.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Client\kiss_fft.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Client\kiss_fft_log.h">
       <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>
