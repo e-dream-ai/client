@@ -184,6 +184,7 @@ static void OnShowPreferencesRequested()
     if (!g_overlayAllowed.load(std::memory_order_acquire))
         return;
     AboutDialogWin32_DismissWithoutSaveForExternalOverlay();
+    g_pendingImGuiShutdown.store(false, std::memory_order_release);
     g_showRequested.store(true, std::memory_order_release);
 }
 
@@ -723,6 +724,27 @@ bool SettingsDialogWin32_HasPendingOrVisible()
         return false;
     return g_showRequested.load(std::memory_order_acquire) ||
            g_visible.load(std::memory_order_acquire);
+}
+
+bool SettingsDialogWin32_IsVisible()
+{
+    if (!g_overlayAllowed.load(std::memory_order_acquire))
+        return false;
+    return g_visible.load(std::memory_order_acquire);
+}
+
+void SettingsDialogWin32_Toggle()
+{
+    if (!g_overlayAllowed.load(std::memory_order_acquire))
+        return;
+    if (SettingsDialogWin32_HasPendingOrVisible())
+    {
+        g_showRequested.store(false, std::memory_order_release);
+        if (g_visible.load(std::memory_order_acquire))
+            CloseDialog(true);
+        return;
+    }
+    OnShowPreferencesRequested();
 }
 
 bool SettingsDialogWin32_TryConsumeWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam,

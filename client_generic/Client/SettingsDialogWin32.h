@@ -8,6 +8,8 @@
 void SettingsDialogWin32_Register();
 void SettingsDialogWin32_SetOverlayAllowed(bool allow);
 bool SettingsDialogWin32_HasPendingOrVisible();
+bool SettingsDialogWin32_IsVisible();
+void SettingsDialogWin32_Toggle();
 
 /// Close settings without saving and tear down ImGui immediately (for another overlay on the same HWND).
 void SettingsDialogWin32_DismissWithoutSaveForExternalOverlay();
