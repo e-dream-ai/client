@@ -26,6 +26,18 @@ protected:
     ComPtr<ID3D11SamplerState> m_glyphPointSampler;
     ComPtr<ID3D11RasterizerState> m_rasterizerDefault;
     ComPtr<ID3D11RasterizerState> m_rasterizerScissor;
+    ComPtr<ID3D11ShaderResourceView> m_solidWhiteSrv;
+    ComPtr<ID3D11ShaderResourceView> m_overrideTex0Srv;
+    ComPtr<ID3D11ShaderResourceView> m_titlebarLogoSrv;
+    uint32_t m_titlebarLogoW = 0;
+    uint32_t m_titlebarLogoH = 0;
+    ComPtr<ID3D11ShaderResourceView> m_mdl2GearSrv;
+    ComPtr<ID3D11ShaderResourceView> m_mdl2FullscreenSrv;
+    ComPtr<ID3D11ShaderResourceView> m_mdl2MenuSrv;
+    ComPtr<ID3D11ShaderResourceView> m_mdl2ChromeMinimizeSrv;
+    ComPtr<ID3D11ShaderResourceView> m_mdl2ChromeMaximizeSrv;
+    ComPtr<ID3D11ShaderResourceView> m_mdl2ChromeRestoreSrv;
+    ComPtr<ID3D11ShaderResourceView> m_mdl2ChromeCloseSrv;
 
     void DrawTexturedQuad(const Base::Math::CRect& _rect, const Base::Math::CVector4& _color,
                           const Base::Math::CRect& _uvRect, ID3D11SamplerState* _pixelSampler);
@@ -144,6 +156,10 @@ private:
     bool CreateBlendStates();
     bool CreateDepthStencilStates();
     bool CreateRasterizerStates();
+    bool EnsureSolidWhiteTexture();
+    bool EnsureTitlebarLogoTexture(HWND hwnd);
+    bool EnsureMdl2GlyphTextures();
+    bool EnsureMdl2ChromeGlyphTextures();
 
 };
 

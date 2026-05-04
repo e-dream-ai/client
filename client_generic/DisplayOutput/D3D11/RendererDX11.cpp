@@ -15,6 +15,7 @@
 #include "FirstTimeSetupWin32.h"
 #include "SettingsDialogWin32.h"
 #include <windows.h>
+#include <vector>
 #endif
 
 namespace DisplayOutput {
@@ -25,6 +26,32 @@ CBaseText::CBaseText() {}
 CBaseText::~CBaseText() {}
 
 namespace {
+
+static D3D11_VIEWPORT BuildBaseViewportForDisplay(const std::shared_ptr<CDisplayOutput>& display)
+{
+    D3D11_VIEWPORT vp{};
+    if (!display)
+        return vp;
+
+    vp.Width = static_cast<float>(display->Width());
+    vp.Height = static_cast<float>(display->Height());
+    vp.MinDepth = 0.0f;
+    vp.MaxDepth = 1.0f;
+
+#ifdef WIN32
+    if (auto* dx = dynamic_cast<DisplayOutput::CDisplayDX11*>(display.get()))
+    {
+        const int inset = dx->GetVideoViewportTopInsetPx();
+        if (inset > 0)
+        {
+            vp.TopLeftY = static_cast<float>(inset);
+            vp.Height = static_cast<float>(display->Height()) - vp.TopLeftY;
+        }
+    }
+#endif
+
+    return vp;
+}
 const char* kQuadPassVertexHlsl = R"(
 struct VSInput {
     float3 pos : POSITION;
@@ -782,12 +809,8 @@ bool CRendererDX11::CreateRenderTargets()
         return false;
     }
 
-    // Set the viewport
-    D3D11_VIEWPORT viewport = {};
-    viewport.Width = static_cast<float>(m_spDisplay->Width());
-    viewport.Height = static_cast<float>(m_spDisplay->Height());
-    viewport.MinDepth = 0.0f;
-    viewport.MaxDepth = 1.0f;
+    // Set the viewport (respect custom titlebar reserve if enabled).
+    D3D11_VIEWPORT viewport = BuildBaseViewportForDisplay(m_spDisplay);
     m_context->RSSetViewports(1, &viewport);
 
     return true;
@@ -881,6 +904,384 @@ void CRendererDX11::Defaults() {
     // Set default render states
 }
 
+bool CRendererDX11::EnsureSolidWhiteTexture()
+{
+    if (m_solidWhiteSrv)
+        return true;
+    if (!m_device)
+        return false;
+
+    D3D11_TEXTURE2D_DESC desc{};
+    desc.Width = 1;
+    desc.Height = 1;
+    desc.MipLevels = 1;
+    desc.ArraySize = 1;
+    desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    desc.SampleDesc.Count = 1;
+    desc.Usage = D3D11_USAGE_IMMUTABLE;
+    desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+    const uint32_t white = 0xFFFFFFFFu;
+    D3D11_SUBRESOURCE_DATA data{};
+    data.pSysMem = &white;
+    data.SysMemPitch = sizeof(uint32_t);
+
+    ComPtr<ID3D11Texture2D> tex;
+    HRESULT hr = m_device->CreateTexture2D(&desc, &data, &tex);
+    if (FAILED(hr))
+        return false;
+
+    hr = m_device->CreateShaderResourceView(tex.Get(), nullptr, &m_solidWhiteSrv);
+    return SUCCEEDED(hr) && m_solidWhiteSrv != nullptr;
+}
+
+static HICON GetBestWindowIcon(HWND hwnd)
+{
+    if (!hwnd)
+        return nullptr;
+
+    // Prefer big icon, then small icon, then class icon.
+    HICON icon = reinterpret_cast<HICON>(SendMessageW(hwnd, WM_GETICON, ICON_BIG, 0));
+    if (!icon)
+        icon = reinterpret_cast<HICON>(SendMessageW(hwnd, WM_GETICON, ICON_SMALL, 0));
+    if (!icon)
+        icon = reinterpret_cast<HICON>(GetClassLongPtrW(hwnd, GCLP_HICON));
+    if (!icon)
+        icon = reinterpret_cast<HICON>(GetClassLongPtrW(hwnd, GCLP_HICONSM));
+    return icon;
+}
+
+static bool ExtractIconRgba8(HICON icon, std::vector<uint8_t>& outRgba, uint32_t& outW, uint32_t& outH)
+{
+    outRgba.clear();
+    outW = outH = 0;
+    if (!icon)
+        return false;
+
+    ICONINFO ii{};
+    if (!GetIconInfo(icon, &ii))
+        return false;
+
+    BITMAP bm{};
+    if (!GetObject(ii.hbmColor ? ii.hbmColor : ii.hbmMask, sizeof(bm), &bm))
+    {
+        if (ii.hbmColor) DeleteObject(ii.hbmColor);
+        if (ii.hbmMask) DeleteObject(ii.hbmMask);
+        return false;
+    }
+
+    const uint32_t w = static_cast<uint32_t>(bm.bmWidth);
+    uint32_t h = static_cast<uint32_t>(bm.bmHeight);
+    if (!ii.hbmColor)
+    {
+        // Mask bitmap is double-height (AND + XOR).
+        h = h / 2;
+    }
+    if (w == 0 || h == 0)
+    {
+        if (ii.hbmColor) DeleteObject(ii.hbmColor);
+        if (ii.hbmMask) DeleteObject(ii.hbmMask);
+        return false;
+    }
+
+    BITMAPINFO bi{};
+    bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bi.bmiHeader.biWidth = static_cast<LONG>(w);
+    bi.bmiHeader.biHeight = -static_cast<LONG>(h); // top-down
+    bi.bmiHeader.biPlanes = 1;
+    bi.bmiHeader.biBitCount = 32;
+    bi.bmiHeader.biCompression = BI_RGB;
+
+    std::vector<uint8_t> bgra(w * h * 4);
+    HDC hdc = GetDC(nullptr);
+    bool ok = false;
+    if (hdc)
+    {
+        // If we have a color bitmap, use it. Otherwise render the icon.
+        if (ii.hbmColor)
+        {
+            if (GetDIBits(hdc, ii.hbmColor, 0, h, bgra.data(), &bi, DIB_RGB_COLORS) != 0)
+                ok = true;
+        }
+        else
+        {
+            // Render to a DIB section via DrawIconEx.
+            void* bits = nullptr;
+            HBITMAP dib = CreateDIBSection(hdc, &bi, DIB_RGB_COLORS, &bits, nullptr, 0);
+            if (dib && bits)
+            {
+                HDC mem = CreateCompatibleDC(hdc);
+                if (mem)
+                {
+                    HGDIOBJ old = SelectObject(mem, dib);
+                    RECT r{0, 0, static_cast<LONG>(w), static_cast<LONG>(h)};
+                    HBRUSH b = CreateSolidBrush(RGB(0, 0, 0));
+                    FillRect(mem, &r, b);
+                    DeleteObject(b);
+                    if (DrawIconEx(mem, 0, 0, icon, w, h, 0, nullptr, DI_NORMAL))
+                    {
+                        std::memcpy(bgra.data(), bits, bgra.size());
+                        ok = true;
+                    }
+                    SelectObject(mem, old);
+                    DeleteDC(mem);
+                }
+                DeleteObject(dib);
+            }
+        }
+        ReleaseDC(nullptr, hdc);
+    }
+
+    if (ii.hbmColor) DeleteObject(ii.hbmColor);
+    if (ii.hbmMask) DeleteObject(ii.hbmMask);
+
+    if (!ok)
+        return false;
+
+    outRgba.resize(w * h * 4);
+    for (size_t i = 0; i < w * h; ++i)
+    {
+        const uint8_t b = bgra[i * 4 + 0];
+        const uint8_t g = bgra[i * 4 + 1];
+        const uint8_t r = bgra[i * 4 + 2];
+        const uint8_t a = bgra[i * 4 + 3];
+        outRgba[i * 4 + 0] = r;
+        outRgba[i * 4 + 1] = g;
+        outRgba[i * 4 + 2] = b;
+        outRgba[i * 4 + 3] = a;
+    }
+    outW = w;
+    outH = h;
+    return true;
+}
+
+static bool RenderGlyphToRgbaMask(wchar_t glyph, int sizePx, std::vector<uint8_t>& outRgba, uint32_t& outW, uint32_t& outH)
+{
+    outRgba.clear();
+    outW = outH = 0;
+    if (sizePx <= 0)
+        return false;
+
+    const int w = sizePx;
+    const int h = sizePx;
+
+    BITMAPINFO bi{};
+    bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bi.bmiHeader.biWidth = w;
+    bi.bmiHeader.biHeight = -h; // top-down
+    bi.bmiHeader.biPlanes = 1;
+    bi.bmiHeader.biBitCount = 32;
+    bi.bmiHeader.biCompression = BI_RGB;
+
+    HDC hdc = GetDC(nullptr);
+    if (!hdc)
+        return false;
+
+    void* bits = nullptr;
+    HBITMAP dib = CreateDIBSection(hdc, &bi, DIB_RGB_COLORS, &bits, nullptr, 0);
+    if (!dib || !bits)
+    {
+        ReleaseDC(nullptr, hdc);
+        if (dib) DeleteObject(dib);
+        return false;
+    }
+
+    HDC mem = CreateCompatibleDC(hdc);
+    if (!mem)
+    {
+        DeleteObject(dib);
+        ReleaseDC(nullptr, hdc);
+        return false;
+    }
+
+    HGDIOBJ oldBmp = SelectObject(mem, dib);
+    RECT r{0, 0, w, h};
+    HBRUSH black = CreateSolidBrush(RGB(0, 0, 0));
+    FillRect(mem, &r, black);
+    DeleteObject(black);
+
+    HFONT font = CreateFontW(sizePx, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+                             OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
+                             DEFAULT_PITCH, L"Segoe MDL2 Assets");
+    HGDIOBJ oldFont = nullptr;
+    if (font)
+        oldFont = SelectObject(mem, font);
+
+    SetBkMode(mem, TRANSPARENT);
+    SetTextColor(mem, RGB(255, 255, 255));
+
+    wchar_t s[2]{glyph, 0};
+    DrawTextW(mem, s, 1, &r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+    if (oldFont)
+        SelectObject(mem, oldFont);
+    if (font)
+        DeleteObject(font);
+
+    // Convert BGRA to RGBA with alpha from luminance (white on black → alpha mask).
+    outRgba.resize(static_cast<size_t>(w) * static_cast<size_t>(h) * 4u);
+    const uint8_t* bgra = reinterpret_cast<const uint8_t*>(bits);
+    for (int i = 0; i < w * h; ++i)
+    {
+        const uint8_t b = bgra[i * 4 + 0];
+        const uint8_t g = bgra[i * 4 + 1];
+        const uint8_t rr = bgra[i * 4 + 2];
+        const uint8_t a = (std::max)({b, g, rr});
+        outRgba[i * 4 + 0] = 255;
+        outRgba[i * 4 + 1] = 255;
+        outRgba[i * 4 + 2] = 255;
+        outRgba[i * 4 + 3] = a;
+    }
+
+    SelectObject(mem, oldBmp);
+    DeleteDC(mem);
+    DeleteObject(dib);
+    ReleaseDC(nullptr, hdc);
+
+    outW = static_cast<uint32_t>(w);
+    outH = static_cast<uint32_t>(h);
+    return true;
+}
+
+static bool CreateSrvFromRgba(ID3D11Device* device, const std::vector<uint8_t>& rgba, uint32_t w, uint32_t h,
+                              ComPtr<ID3D11ShaderResourceView>& outSrv)
+{
+    outSrv.Reset();
+    if (!device || rgba.empty() || w == 0 || h == 0)
+        return false;
+
+    D3D11_TEXTURE2D_DESC desc{};
+    desc.Width = w;
+    desc.Height = h;
+    desc.MipLevels = 1;
+    desc.ArraySize = 1;
+    desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    desc.SampleDesc.Count = 1;
+    desc.Usage = D3D11_USAGE_IMMUTABLE;
+    desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+    D3D11_SUBRESOURCE_DATA data{};
+    data.pSysMem = rgba.data();
+    data.SysMemPitch = w * 4;
+
+    ComPtr<ID3D11Texture2D> tex;
+    if (FAILED(device->CreateTexture2D(&desc, &data, &tex)))
+        return false;
+    if (FAILED(device->CreateShaderResourceView(tex.Get(), nullptr, &outSrv)))
+        return false;
+    return outSrv != nullptr;
+}
+
+bool CRendererDX11::EnsureTitlebarLogoTexture(HWND hwnd)
+{
+    if (m_titlebarLogoSrv)
+        return true;
+    if (!m_device || !hwnd)
+        return false;
+
+    HICON icon = GetBestWindowIcon(hwnd);
+    std::vector<uint8_t> rgba;
+    uint32_t w = 0, h = 0;
+    if (!ExtractIconRgba8(icon, rgba, w, h))
+        return false;
+
+    D3D11_TEXTURE2D_DESC desc{};
+    desc.Width = w;
+    desc.Height = h;
+    desc.MipLevels = 1;
+    desc.ArraySize = 1;
+    desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    desc.SampleDesc.Count = 1;
+    desc.Usage = D3D11_USAGE_IMMUTABLE;
+    desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+    D3D11_SUBRESOURCE_DATA data{};
+    data.pSysMem = rgba.data();
+    data.SysMemPitch = w * 4;
+
+    ComPtr<ID3D11Texture2D> tex;
+    if (FAILED(m_device->CreateTexture2D(&desc, &data, &tex)))
+        return false;
+
+    if (FAILED(m_device->CreateShaderResourceView(tex.Get(), nullptr, &m_titlebarLogoSrv)))
+        return false;
+
+    m_titlebarLogoW = w;
+    m_titlebarLogoH = h;
+    return true;
+}
+
+bool CRendererDX11::EnsureMdl2GlyphTextures()
+{
+    if (m_mdl2GearSrv && m_mdl2FullscreenSrv && m_mdl2MenuSrv)
+        return true;
+    if (!m_device)
+        return false;
+
+    constexpr int kGlyphPx = 14;
+    std::vector<uint8_t> rgba;
+    uint32_t w = 0, h = 0;
+
+    // Gear (Settings) = E713, FullScreen = E740, Hamburger = E700.
+    if (!m_mdl2GearSrv)
+    {
+        if (!RenderGlyphToRgbaMask(static_cast<wchar_t>(0xE713), kGlyphPx, rgba, w, h) ||
+            !CreateSrvFromRgba(m_device.Get(), rgba, w, h, m_mdl2GearSrv))
+            return false;
+    }
+    if (!m_mdl2FullscreenSrv)
+    {
+        if (!RenderGlyphToRgbaMask(static_cast<wchar_t>(0xE740), kGlyphPx, rgba, w, h) ||
+            !CreateSrvFromRgba(m_device.Get(), rgba, w, h, m_mdl2FullscreenSrv))
+            return false;
+    }
+    if (!m_mdl2MenuSrv)
+    {
+        if (!RenderGlyphToRgbaMask(static_cast<wchar_t>(0xE700), kGlyphPx, rgba, w, h) ||
+            !CreateSrvFromRgba(m_device.Get(), rgba, w, h, m_mdl2MenuSrv))
+            return false;
+    }
+    return true;
+}
+
+bool CRendererDX11::EnsureMdl2ChromeGlyphTextures()
+{
+    if (m_mdl2ChromeMinimizeSrv && m_mdl2ChromeMaximizeSrv && m_mdl2ChromeRestoreSrv && m_mdl2ChromeCloseSrv)
+        return true;
+    if (!m_device)
+        return false;
+
+    constexpr int kGlyphPx = 14;
+    std::vector<uint8_t> rgba;
+    uint32_t w = 0, h = 0;
+
+    if (!m_mdl2ChromeMinimizeSrv)
+    {
+        if (!RenderGlyphToRgbaMask(static_cast<wchar_t>(0xE921), kGlyphPx, rgba, w, h) ||
+            !CreateSrvFromRgba(m_device.Get(), rgba, w, h, m_mdl2ChromeMinimizeSrv))
+            return false;
+    }
+    if (!m_mdl2ChromeMaximizeSrv)
+    {
+        if (!RenderGlyphToRgbaMask(static_cast<wchar_t>(0xE922), kGlyphPx, rgba, w, h) ||
+            !CreateSrvFromRgba(m_device.Get(), rgba, w, h, m_mdl2ChromeMaximizeSrv))
+            return false;
+    }
+    if (!m_mdl2ChromeRestoreSrv)
+    {
+        if (!RenderGlyphToRgbaMask(static_cast<wchar_t>(0xE923), kGlyphPx, rgba, w, h) ||
+            !CreateSrvFromRgba(m_device.Get(), rgba, w, h, m_mdl2ChromeRestoreSrv))
+            return false;
+    }
+    if (!m_mdl2ChromeCloseSrv)
+    {
+        if (!RenderGlyphToRgbaMask(static_cast<wchar_t>(0xE8BB), kGlyphPx, rgba, w, h) ||
+            !CreateSrvFromRgba(m_device.Get(), rgba, w, h, m_mdl2ChromeCloseSrv))
+            return false;
+    }
+    return true;
+}
+
 bool CRendererDX11::BeginFrame() {
     std::lock_guard<std::recursive_mutex> d3dLock(GetD3D11ImmediateContextMutex());
     m_pendingTextDraws.clear();
@@ -918,11 +1319,7 @@ bool CRendererDX11::BeginFrame() {
         m_context->OMSetDepthStencilState(m_depthStencilNoDepthTest.Get(), 0);
     }
 
-    D3D11_VIEWPORT viewport = {};
-    viewport.Width = static_cast<float>(m_spDisplay->Width());
-    viewport.Height = static_cast<float>(m_spDisplay->Height());
-    viewport.MinDepth = 0.0f;
-    viewport.MaxDepth = 1.0f;
+    D3D11_VIEWPORT viewport = BuildBaseViewportForDisplay(m_spDisplay);
     m_context->RSSetViewports(1, &viewport);
 
     // Clear render target and depth buffer
@@ -1098,8 +1495,6 @@ bool CRendererDX11::EndFrame(bool drawn) {
                 if (!atlasTex)
                     continue;
 
-                // Bind atlas texture for the quad shader.
-                const Base::Math::CRect r = text->GetRect();
                 const uint32_t dispW = display->Width();
                 const uint32_t dispH = display->Height();
                 if (dispW == 0u || dispH == 0u)
@@ -1111,6 +1506,33 @@ bool CRendererDX11::EndFrame(bool drawn) {
                 if (m_context)
                     m_context->RSSetState(prevRasterizer.Get());
             }
+
+            // DrawTextBatched binds VS/PS/IA/VB/IB/CB/samplers directly on the immediate context and
+            // does not go through SetShader(), so m_spActiveShader can still name the decoded-frame
+            // shader from the video pass. The next Apply() then skips Unbind/Bind while the GPU is
+            // still running the text-batch pipeline — wrong IA/CB vs shader → garbage fullscreen draws
+            // (often during dream transitions when HUD stats refresh every frame).
+            if (m_context)
+            {
+                ID3D11ShaderResourceView* nullSrv = nullptr;
+                m_context->PSSetShaderResources(0, 1, &nullSrv);
+                ID3D11SamplerState* nullSamp = nullptr;
+                m_context->PSSetSamplers(0, 1, &nullSamp);
+
+                m_context->VSSetShader(nullptr, nullptr, 0);
+                m_context->PSSetShader(nullptr, nullptr, 0);
+                m_context->HSSetShader(nullptr, nullptr, 0);
+                m_context->DSSetShader(nullptr, nullptr, 0);
+                m_context->GSSetShader(nullptr, nullptr, 0);
+                m_context->IASetInputLayout(nullptr);
+                ID3D11Buffer* nullBuf = nullptr;
+                UINT zstride = 0, zoff = 0;
+                m_context->IASetVertexBuffers(0, 1, &nullBuf, &zstride, &zoff);
+                m_context->IASetIndexBuffer(nullptr, DXGI_FORMAT_R16_UINT, 0);
+                m_context->VSSetConstantBuffers(0, 1, &nullBuf);
+                m_context->PSSetConstantBuffers(0, 1, &nullBuf);
+            }
+            m_spActiveShader = nullptr;
         }
 
         // Draw settings then about so both stay above HUD; about is top-most when both run (normally exclusive).
@@ -1120,6 +1542,242 @@ bool CRendererDX11::EndFrame(bool drawn) {
             m_device.Get(), m_context.Get(), m_renderTargetView.Get(), viewportW, viewportH);
         const bool aboutVisible = AboutDialogWin32_RenderIfNeeded(
             m_device.Get(), m_context.Get(), m_renderTargetView.Get(), viewportW, viewportH);
+
+        // Custom titlebar strip + caption buttons: draw in DX so it never flashes.
+        if (auto* dx = dynamic_cast<DisplayOutput::CDisplayDX11*>(m_spDisplay.get()))
+        {
+            if (!dx->IsFullscreen() && m_context && m_drawTextureShader)
+            {
+                const HWND hwnd = dx->GetWindowHandle();
+                const LONG_PTR style = hwnd ? GetWindowLongPtr(hwnd, GWL_STYLE) : 0;
+                const bool hasNativeCaption = (style & WS_CAPTION) != 0;
+                const int titlebarPx = dx->GetCustomTitlebarHeightPx();
+                const uint32_t dispW = dx->Width();
+                const uint32_t dispH = dx->Height();
+
+                if (!hasNativeCaption && titlebarPx > 0 && dispW > 0u && dispH > 0u &&
+                    titlebarPx < static_cast<int>(dispH) && EnsureSolidWhiteTexture())
+                {
+                    D3D11_VIEWPORT savedVp[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE] = {};
+                    UINT savedVpCount = D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE;
+                    m_context->RSGetViewports(&savedVpCount, savedVp);
+
+                    D3D11_VIEWPORT fullVp{};
+                    fullVp.Width = static_cast<float>(dispW);
+                    fullVp.Height = static_cast<float>(dispH);
+                    fullVp.MinDepth = 0.f;
+                    fullVp.MaxDepth = 1.f;
+                    m_context->RSSetViewports(1, &fullVp);
+
+                    // Compute button rects directly (don't rely on WM_NCHITTEST having run).
+                    // Buttons match titlebar height; width scales proportionally (Explorer-like).
+                    const int btnH = titlebarPx;
+                    const int baseW = (std::max)(GetSystemMetrics(SM_CXSIZE), 30);
+                    const int baseH = (std::max)(GetSystemMetrics(SM_CYSIZE), 20);
+                    int btnW = (baseH > 0) ? MulDiv(baseW, btnH, baseH) : baseW;
+                    btnW = (std::max)(btnW, (std::max)(40, baseW));
+                    const int topPad = 0;
+                    const RECT rClose{static_cast<LONG>(dispW - btnW), topPad, static_cast<LONG>(dispW), topPad + btnH};
+                    const RECT rMax{static_cast<LONG>(dispW - (2 * btnW)), topPad, static_cast<LONG>(dispW - btnW), topPad + btnH};
+                    const RECT rMin{static_cast<LONG>(dispW - (3 * btnW)), topPad, static_cast<LONG>(dispW - (2 * btnW)), topPad + btnH};
+
+                    auto rectToNorm = [&](const RECT& r) {
+                        const float x0 = static_cast<float>(r.left) / static_cast<float>(dispW);
+                        const float x1 = static_cast<float>(r.right) / static_cast<float>(dispW);
+                        const float y0 = static_cast<float>(r.top) / static_cast<float>(dispH);
+                        const float y1 = static_cast<float>(r.bottom) / static_cast<float>(dispH);
+                        return Base::Math::CRect(x0, y0, x1, y1);
+                    };
+
+                    const int hoverId = dx->GetCaptionButtonHoverId();
+                    const int pressedId = dx->GetCaptionButtonPressedId();
+
+                    // Dark theme palette (default buttons are transparent).
+                    const Base::Math::CVector4 stripBg(0.08f, 0.08f, 0.08f, 1.f);
+                    const Base::Math::CVector4 glyph(0.92f, 0.92f, 0.92f, 1.f);
+                    const Base::Math::CVector4 hoverBg(0.28f, 0.28f, 0.28f, 1.f);
+                    const Base::Math::CVector4 pressedBg(0.20f, 0.20f, 0.20f, 1.f);
+                    const Base::Math::CVector4 closeHoverBg(0.85f, 0.20f, 0.20f, 1.f);
+                    const Base::Math::CVector4 closePressedBg(0.65f, 0.15f, 0.15f, 1.f);
+
+                    m_overrideTex0Srv = m_solidWhiteSrv;
+                    SetShader(m_drawTextureShader);
+
+                    const float th = static_cast<float>(titlebarPx) / static_cast<float>(dispH);
+                    DrawQuad(Base::Math::CRect(0.f, 0.f, 1.f, th), stripBg);
+                    const auto drawBtnBg = [&](int id, const RECT& r, bool isClose) {
+                        const bool pressed = (pressedId == id);
+                        const bool hovered = (hoverId == id);
+                        if (!pressed && !hovered)
+                            return;
+                        const Base::Math::CVector4 bg =
+                            isClose ? (pressed ? closePressedBg : closeHoverBg)
+                                    : (pressed ? pressedBg : hoverBg);
+                        DrawQuad(rectToNorm(r), bg);
+                    };
+                    drawBtnBg(1, rMin, false);
+                    drawBtnBg(2, rMax, false);
+                    drawBtnBg(3, rClose, true);
+
+                    // Logo (left side), drawn as a textured quad.
+                    if (hwnd && EnsureTitlebarLogoTexture(hwnd) && m_titlebarLogoSrv && m_titlebarLogoW > 0 && m_titlebarLogoH > 0)
+                    {
+                        // Fixed display size for the logo inside the titlebar.
+                        constexpr float kLogoPx = 24.0f;
+                        const float logoW = kLogoPx / static_cast<float>(dispW);
+                        const float logoH = kLogoPx / static_cast<float>(dispH);
+                        const float logoPadX = 10.0f / static_cast<float>(dispW); // left padding (right padding matches via splitter placement)
+                        const float cy = (th) * 0.5f;
+                        const Base::Math::CRect logoRect(logoPadX, cy - logoH * 0.5f, logoPadX + logoW, cy + logoH * 0.5f);
+
+                        m_overrideTex0Srv = m_titlebarLogoSrv;
+                        // Color acts as tint; keep white to show original colors.
+                        DrawTexturedQuad(logoRect, Base::Math::CVector4(1.f, 1.f, 1.f, 1.f),
+                                         Base::Math::CRect(0.f, 0.f, 1.f, 1.f), m_defaultSampler.Get());
+
+                        // Restore solid-white for subsequent line glyphs.
+                        m_overrideTex0Srv = m_solidWhiteSrv;
+                    }
+
+                    // Left buttons: gear (settings), fullscreen, menu (kebab/hamburger)
+                    {
+                        // Compute in integer pixels to match Win32 hit-testing exactly, then convert to normalized.
+                        constexpr int kLogoPadPx = 10;   // left/right padding of logo
+                        constexpr int kLogoPx = 24;
+                        constexpr int kSplitterPx = 1;
+                        constexpr int kGapPxI = 8;       // gap after splitter
+                        constexpr int kSplitterPadTopPx = 6;
+                        constexpr int kSplitterPadBottomPx = 6;
+                        const int btnHPx = (titlebarPx > 0) ? titlebarPx : 24;
+                        const int btnWPx = btnHPx; // square buttons (match DisplayDX11 hit rects)
+
+                        // Splitter sits after logo with equal right padding; buttons start after splitter+gap.
+                        const int splitterXPx = kLogoPadPx + kLogoPx + kLogoPadPx;
+                        int xPx = splitterXPx + kSplitterPx + kGapPxI;
+                        const RECT gearPx{xPx, 0, xPx + btnWPx, btnHPx};
+                        xPx += btnWPx;
+                        const RECT fsPx{xPx, 0, xPx + btnWPx, btnHPx};
+                        xPx += btnWPx;
+                        const RECT menuPx{xPx, 0, xPx + btnWPx, btnHPx};
+
+                        const auto rectPxToNorm = [&](const RECT& r) {
+                            const float x0 = static_cast<float>(r.left) / static_cast<float>(dispW);
+                            const float x1 = static_cast<float>(r.right) / static_cast<float>(dispW);
+                            const float y0 = static_cast<float>(r.top) / static_cast<float>(dispH);
+                            const float y1 = static_cast<float>(r.bottom) / static_cast<float>(dispH);
+                            return Base::Math::CRect(x0, y0, x1, y1);
+                        };
+
+                        const Base::Math::CRect gearRect = rectPxToNorm(gearPx);
+                        const Base::Math::CRect fsRect = rectPxToNorm(fsPx);
+                        const Base::Math::CRect menuRect = rectPxToNorm(menuPx);
+
+                        // Splitter between logo and buttons (with top/bottom padding).
+                        {
+                            const float sx0 = static_cast<float>(splitterXPx) / static_cast<float>(dispW);
+                            const float sx1 = static_cast<float>(splitterXPx + kSplitterPx) / static_cast<float>(dispW);
+                            const float sy0 = static_cast<float>(kSplitterPadTopPx) / static_cast<float>(dispH);
+                            const float sy1 = static_cast<float>(btnHPx - kSplitterPadBottomPx) / static_cast<float>(dispH);
+                            // Slightly lighter than background.
+                            DrawQuad(Base::Math::CRect(sx0, sy0, sx1, sy1), Base::Math::CVector4(0.30f, 0.30f, 0.30f, 1.f));
+                        }
+
+                        // Hover/press backgrounds (ids: 4 gear, 5 fullscreen, 6 menu).
+                        const auto drawBtnBgNorm = [&](int id, const Base::Math::CRect& r, bool isClose) {
+                            (void)isClose;
+                            const bool pressed = (pressedId == id);
+                            const bool hovered = (hoverId == id);
+                            if (!pressed && !hovered)
+                                return;
+                            const Base::Math::CVector4 bg = pressed ? pressedBg : hoverBg;
+                            DrawQuad(r, bg);
+                        };
+                        drawBtnBgNorm(4, gearRect, false);
+                        drawBtnBgNorm(5, fsRect, false);
+                        drawBtnBgNorm(6, menuRect, false);
+
+                        if (EnsureMdl2GlyphTextures())
+                        {
+                            // Fixed pixel size for glyphs (same as textures).
+                            constexpr float kGlyphPx = 14.0f;
+                            const auto squareInRectPx = [&](const Base::Math::CRect& r, float iconPx) {
+                                const float sideX = iconPx / static_cast<float>(dispW);
+                                const float sideY = iconPx / static_cast<float>(dispH);
+                                const float cx = r.m_X0 + r.Width() * 0.5f;
+                                const float cy = r.m_Y0 + r.Height() * 0.5f;
+                                return Base::Math::CRect(cx - sideX * 0.5f, cy - sideY * 0.5f,
+                                                        cx + sideX * 0.5f, cy + sideY * 0.5f);
+                            };
+
+                            const Base::Math::CRect gearBox = squareInRectPx(gearRect, kGlyphPx);
+                            const Base::Math::CRect fsBox = squareInRectPx(fsRect, kGlyphPx);
+                            const Base::Math::CRect menuBox = squareInRectPx(menuRect, kGlyphPx);
+
+                            // Draw as textured quads (white-tinted).
+                            m_overrideTex0Srv = m_mdl2GearSrv;
+                            DrawTexturedQuad(gearBox, Base::Math::CVector4(1.f, 1.f, 1.f, 1.f),
+                                             Base::Math::CRect(0.f, 0.f, 1.f, 1.f), m_defaultSampler.Get());
+
+                            m_overrideTex0Srv = m_mdl2FullscreenSrv;
+                            DrawTexturedQuad(fsBox, Base::Math::CVector4(1.f, 1.f, 1.f, 1.f),
+                                             Base::Math::CRect(0.f, 0.f, 1.f, 1.f), m_defaultSampler.Get());
+
+                            m_overrideTex0Srv = m_mdl2MenuSrv;
+                            DrawTexturedQuad(menuBox, Base::Math::CVector4(1.f, 1.f, 1.f, 1.f),
+                                             Base::Math::CRect(0.f, 0.f, 1.f, 1.f), m_defaultSampler.Get());
+
+                            // Restore solid-white for subsequent line glyphs.
+                            m_overrideTex0Srv = m_solidWhiteSrv;
+                        }
+                    }
+
+                    auto squareInButtonPx = [&](const RECT& r, float iconPx) {
+                        const auto btn = rectToNorm(r);
+                        const float btnPxW = static_cast<float>(r.right - r.left);
+                        const float btnPxH = static_cast<float>(r.bottom - r.top);
+                        const float maxSidePx = (std::max)(1.0f, (std::min)(btnPxW, btnPxH));
+                        const float sidePx = (std::min)(iconPx, maxSidePx);
+
+                        const float sideX = sidePx / static_cast<float>(dispW);
+                        const float sideY = sidePx / static_cast<float>(dispH);
+
+                        const float cx = btn.m_X0 + btn.Width() * 0.5f;
+                        const float cy = btn.m_Y0 + btn.Height() * 0.5f;
+                        return Base::Math::CRect(cx - sideX * 0.5f, cy - sideY * 0.5f,
+                                                cx + sideX * 0.5f, cy + sideY * 0.5f);
+                    };
+
+                    // Right caption glyphs: use Windows Segoe MDL2 Assets (ChromeMinimize/Maximize/Restore/Close).
+                    if (EnsureMdl2ChromeGlyphTextures())
+                    {
+                        constexpr float kChromeGlyphPx = 14.0f;
+                        const Base::Math::CRect minBox = squareInButtonPx(rMin, kChromeGlyphPx);
+                        const Base::Math::CRect maxBox = squareInButtonPx(rMax, kChromeGlyphPx);
+                        const Base::Math::CRect closeBox = squareInButtonPx(rClose, kChromeGlyphPx);
+
+                        m_overrideTex0Srv = m_mdl2ChromeMinimizeSrv;
+                        DrawTexturedQuad(minBox, Base::Math::CVector4(1.f, 1.f, 1.f, 1.f),
+                                         Base::Math::CRect(0.f, 0.f, 1.f, 1.f), m_defaultSampler.Get());
+
+                        const bool maximized = hwnd && (IsZoomed(hwnd) != FALSE);
+                        m_overrideTex0Srv = maximized ? m_mdl2ChromeRestoreSrv : m_mdl2ChromeMaximizeSrv;
+                        DrawTexturedQuad(maxBox, Base::Math::CVector4(1.f, 1.f, 1.f, 1.f),
+                                         Base::Math::CRect(0.f, 0.f, 1.f, 1.f), m_defaultSampler.Get());
+
+                        m_overrideTex0Srv = m_mdl2ChromeCloseSrv;
+                        DrawTexturedQuad(closeBox, Base::Math::CVector4(1.f, 1.f, 1.f, 1.f),
+                                         Base::Math::CRect(0.f, 0.f, 1.f, 1.f), m_defaultSampler.Get());
+
+                        // Restore solid-white for any following geometry (if any).
+                        m_overrideTex0Srv = m_solidWhiteSrv;
+                    }
+
+                    m_overrideTex0Srv.Reset();
+                    if (savedVpCount > 0)
+                        m_context->RSSetViewports(savedVpCount, savedVp);
+                }
+            }
+        }
 
         EndGpuTimingFrame();
 
@@ -1669,11 +2327,12 @@ void CRendererDX11::DrawTexturedQuad(const Base::Math::CRect& _rect,
 
     if (applyAspectViewport)
     {
+        const D3D11_VIEWPORT baseVp = BuildBaseViewportForDisplay(m_spDisplay);
         D3D11_VIEWPORT letterboxVp = {};
-        if (ComputeAspectViewport16By9(static_cast<float>(m_spDisplay->Width()),
-                                       static_cast<float>(m_spDisplay->Height()),
-                                       letterboxVp))
+        if (ComputeAspectViewport16By9(baseVp.Width, baseVp.Height, letterboxVp))
         {
+            // Offset the letterbox viewport into the reserved client region (e.g. below titlebar).
+            letterboxVp.TopLeftY += baseVp.TopLeftY;
             m_context->RSGetViewports(&savedViewportCount, savedViewports);
             m_context->RSSetViewports(1, &letterboxVp);
             // Draw decoded frame across the computed viewport only.
@@ -1741,6 +2400,12 @@ void CRendererDX11::DrawTexturedQuad(const Base::Math::CRect& _rect,
 
     ID3D11SamplerState* samp = _pixelSampler ? _pixelSampler : m_defaultSampler.Get();
     m_context->PSSetSamplers(0, 1, &samp);
+
+    if (m_overrideTex0Srv)
+    {
+        ID3D11ShaderResourceView* srv = m_overrideTex0Srv.Get();
+        m_context->PSSetShaderResources(0, 1, &srv);
+    }
 
     ComPtr<ID3D11VertexShader> boundVertexShader;
     m_context->VSGetShader(&boundVertexShader, nullptr, nullptr);

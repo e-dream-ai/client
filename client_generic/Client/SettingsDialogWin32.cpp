@@ -135,24 +135,47 @@ static void SnapWindowTo16By9IfNeeded()
 
     const LONG clientW = std::max<LONG>(1L, clientRc.right - clientRc.left);
     const LONG clientH = std::max<LONG>(1L, clientRc.bottom - clientRc.top);
-    const int targetClientH = std::max(1, static_cast<int>(std::round(static_cast<double>(clientW) * 9.0 / 16.0)));
+    const int topInset = dx->GetVideoViewportTopInsetPx();
+    const int drawableH = std::max(1, static_cast<int>(clientH) - topInset);
+    const int targetDrawableH = std::max(1, static_cast<int>(std::round(static_cast<double>(clientW) * 9.0 / 16.0)));
 
     // Already 16:9 within rounding — don't fire SetWindowPos. CDisplayDX11::WndProc posts the
     // deferred-snap message on every non-trivial WM_SIZE; this guard keeps that idempotent and
     // prevents a SetWindowPos -> WM_SIZE -> deferred-snap feedback loop.
-    if (std::abs(static_cast<int>(clientH) - targetClientH) <= 1)
+    if (std::abs(drawableH - targetDrawableH) <= 1)
         return;
 
-    RECT targetWindow = {0, 0, clientW, targetClientH};
-    const LONG exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
-    const BOOL hasMenu = GetMenu(hwnd) != nullptr;
-    if (!AdjustWindowRectEx(&targetWindow, static_cast<DWORD>(style), hasMenu, static_cast<DWORD>(exStyle)))
+    const LONG targetClientH = static_cast<LONG>(targetDrawableH + topInset);
+
+    POINT clientTL{};
+    if (!ClientToScreen(hwnd, &clientTL))
         return;
 
-    const int targetWindowW = targetWindow.right - targetWindow.left;
-    const int targetWindowH = targetWindow.bottom - targetWindow.top;
+    const LONG cw = clientRc.right - clientRc.left;
+    const LONG ncL = clientTL.x - windowRc.left;
+    const LONG ncT = clientTL.y - windowRc.top;
+    const LONG ncR = windowRc.right - clientTL.x - cw;
+    const LONG ncB = windowRc.bottom - clientTL.y - (clientRc.bottom - clientRc.top);
 
-    SetWindowPos(hwnd, nullptr, windowRc.left, windowRc.top, targetWindowW, targetWindowH,
+    int targetOuterW = 0;
+    int targetOuterH = 0;
+    if (ncL >= 0 && ncT >= 0 && ncR >= 0 && ncB >= 0)
+    {
+        targetOuterW = static_cast<int>(clientW + ncL + ncR);
+        targetOuterH = static_cast<int>(targetClientH + ncT + ncB);
+    }
+    else
+    {
+        RECT targetWindow = {0, 0, clientW, targetClientH};
+        const LONG exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+        const BOOL hasMenu = GetMenu(hwnd) != nullptr;
+        if (!AdjustWindowRectEx(&targetWindow, static_cast<DWORD>(style), hasMenu, static_cast<DWORD>(exStyle)))
+            return;
+        targetOuterW = targetWindow.right - targetWindow.left;
+        targetOuterH = targetWindow.bottom - targetWindow.top;
+    }
+
+    SetWindowPos(hwnd, nullptr, windowRc.left, windowRc.top, targetOuterW, targetOuterH,
                  SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
@@ -161,6 +184,7 @@ static void OnShowPreferencesRequested()
     if (!g_overlayAllowed.load(std::memory_order_acquire))
         return;
     AboutDialogWin32_DismissWithoutSaveForExternalOverlay();
+    g_pendingImGuiShutdown.store(false, std::memory_order_release);
     g_showRequested.store(true, std::memory_order_release);
 }
 
@@ -700,6 +724,27 @@ bool SettingsDialogWin32_HasPendingOrVisible()
         return false;
     return g_showRequested.load(std::memory_order_acquire) ||
            g_visible.load(std::memory_order_acquire);
+}
+
+bool SettingsDialogWin32_IsVisible()
+{
+    if (!g_overlayAllowed.load(std::memory_order_acquire))
+        return false;
+    return g_visible.load(std::memory_order_acquire);
+}
+
+void SettingsDialogWin32_Toggle()
+{
+    if (!g_overlayAllowed.load(std::memory_order_acquire))
+        return;
+    if (SettingsDialogWin32_HasPendingOrVisible())
+    {
+        g_showRequested.store(false, std::memory_order_release);
+        if (g_visible.load(std::memory_order_acquire))
+            CloseDialog(true);
+        return;
+    }
+    OnShowPreferencesRequested();
 }
 
 bool SettingsDialogWin32_TryConsumeWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam,
