@@ -1288,10 +1288,14 @@ class CElectricSheep
                 m_AudioAnalyzer.Update(1.0 / 60.0);
             }
             
-            if (displayUnit == 0)
+            if (displayUnit == 0 &&
+                g_Settings()->Get("settings.player.audio_reactive", true))
             {
                 const AudioFeatures& audio = m_AudioAnalyzer.GetFeatures();
-                const float reactiveBrightness = audio.bass * 0.15f;
+                float sensitivity = g_Settings()->Get(
+                    "settings.player.audio_reactive_sensitivity", 0.15f);
+
+                const float reactiveBrightness = audio.bass * sensitivity;
 
                 if (auto spRenderer = g_Player().Renderer())
                 {
