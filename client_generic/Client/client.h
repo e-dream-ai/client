@@ -1288,19 +1288,78 @@ class CElectricSheep
                 m_AudioAnalyzer.Update(1.0 / 60.0);
             }
             
-            if (displayUnit == 0 &&
-                g_Settings()->Get("settings.player.audio_reactive", true))
+            const bool audioReactiveEnabled =
+                g_Settings()->Get("settings.player.audio_reactive", true);
+
+            const AudioFeatures& audio = m_AudioAnalyzer.GetFeatures();
+
+            if (audioReactiveEnabled)
             {
-                const AudioFeatures& audio = m_AudioAnalyzer.GetFeatures();
                 float sensitivity = g_Settings()->Get(
                     "settings.player.audio_reactive_sensitivity", 0.15f);
 
-                const float reactiveBrightness = audio.bass * sensitivity;
+                // Bass controls brightness.
+                const float prescribedBrightness =
+                    TapsToBrightness(m_Brightness);
+                const float reactiveDarkBrightness = -0.5f;
+
+                const float bassAmount = audio.hasSignal ? audio.bass : 0.0f;
+                const float kickAmount = audio.hasSignal ? audio.kick : 0.0f;
+
+                // Extra smoothing for brightness only.
+                // Put this here, after bassAmount/kickAmount, before reactiveBrightness.
+                static float visualBass = 0.0f;
+
+                const float visualBassAttack = 0.08f;
+                const float visualBassRelease = 0.025f;
+                const float visualBassAmount = bassAmount > visualBass
+                                                   ? visualBassAttack
+                                                   : visualBassRelease;
+
+                visualBass = (visualBass * (1.0f - visualBassAmount)) +
+                             (bassAmount * visualBassAmount);
+
+                float reactiveBrightness =
+                    reactiveDarkBrightness +
+                    ((prescribedBrightness - reactiveDarkBrightness) *
+                     visualBass) +
+                    (kickAmount * 0.02f);
+
+                if (reactiveBrightness > prescribedBrightness)
+                    reactiveBrightness = prescribedBrightness;
+
+                if (reactiveBrightness < reactiveDarkBrightness)
+                    reactiveBrightness = reactiveDarkBrightness;
 
                 if (auto spRenderer = g_Player().Renderer())
                 {
                     spRenderer->SetBrightness(reactiveBrightness);
                 }
+                // User setting is the base speed. Audio only boosts above it.
+                const double basePerceptualFps = 4.0;
+
+                const double midAmount = audio.hasSignal ? audio.mid : 0.0;
+
+                double reactiveFps =
+                    basePerceptualFps + (midAmount * 48.0); // 4 → 36 fps
+
+                if (reactiveFps < 4.0)
+                    reactiveFps = 4.0;
+
+                if (reactiveFps > 48.0)
+                    reactiveFps = 48.0;
+
+                g_Player().SetPerceptualFPS(reactiveFps);
+            }
+            else
+            {
+                if (auto spRenderer = g_Player().Renderer())
+                {
+                    spRenderer->SetBrightness(TapsToBrightness(m_Brightness));
+                }
+
+                g_Player().SetPerceptualFPS(
+                    g_Settings()->Get("settings.player.perceptual_fps", 16.0));
             }
 
             if ((!EDreamClient::IsLoggedIn() && !m_MultipleInstancesMode) || !g_Player().HasStarted()) {

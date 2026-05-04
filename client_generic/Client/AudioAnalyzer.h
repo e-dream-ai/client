@@ -5,10 +5,16 @@
 
 struct AudioFeatures
 {
+    float volume = 0.0f;
+
+    // Sustained low-end energy.
     float bass = 0.0f;
+
+    // Short transient/onset pulse.
+    float kick = 0.0f;
+
     float mid = 0.0f;
     float high = 0.0f;
-    float volume = 0.0f;
     bool hasSignal = false;
 };
 
