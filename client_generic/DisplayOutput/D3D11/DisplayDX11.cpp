@@ -128,9 +128,8 @@ static void ComputeTitlebarLeftButtonRects(int titlebarHeightPx, const RECT& log
     constexpr int kSplitterPx = 1;   // vertical separator width
     constexpr int kGapPx = 8;        // gap after splitter before first button
     const int btnH = (titlebarHeightPx > 0) ? titlebarHeightPx : 24;
-    // Make left buttons a bit narrower than tall (closer to Windows caption affordances).
-    int btnW = static_cast<int>(std::round(static_cast<double>(btnH) * 0.62));
-    btnW = (std::max)(btnW, 24);
+    // Square hit targets (width matches titlebar strip height).
+    const int btnW = btnH;
     int x = logoRect.right + kLogoPadPx + kSplitterPx + kGapPx;
 
     outGear = {x, 0, x + btnW, btnH};

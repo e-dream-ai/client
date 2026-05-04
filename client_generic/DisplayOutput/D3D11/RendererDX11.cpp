@@ -1649,8 +1649,7 @@ bool CRendererDX11::EndFrame(bool drawn) {
                         constexpr int kSplitterPadTopPx = 6;
                         constexpr int kSplitterPadBottomPx = 6;
                         const int btnHPx = (titlebarPx > 0) ? titlebarPx : 24;
-                        int btnWPx = static_cast<int>(std::round(static_cast<double>(btnHPx) * 0.62));
-                        btnWPx = (std::max)(btnWPx, 24);
+                        const int btnWPx = btnHPx; // square buttons (match DisplayDX11 hit rects)
 
                         // Splitter sits after logo with equal right padding; buttons start after splitter+gap.
                         const int splitterXPx = kLogoPadPx + kLogoPx + kLogoPadPx;
