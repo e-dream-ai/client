@@ -41,6 +41,7 @@
 #include "TextureFlat.h"
 #include "Timer.h"
 #include "StringFormat.h"
+#include <cmath>
 
 #if defined(WIN32)
 #include "FirstTimeSetupWin32.h"
@@ -193,7 +194,11 @@ class CElectricSheep
     // We use perceptual FPS here which don't take into account per dream activity level
     double m_PerceptualFPS;
     
-    
+    double m_AudioReactivePhase = 0.0;
+    float m_AudioReactiveBass = 0.0f;
+    float m_AudioReactiveMid = 0.0f;
+    float m_AudioReactiveHigh = 0.0f;
+
     // internal brightness counter
     int m_Brightness = 0;
     
@@ -421,6 +426,8 @@ class CElectricSheep
 
         spStats->Add(
             new Hud::CStringStat("activityLevel", "Activity level: ", "1.00"));
+        spStats->Add(
+            new Hud::CStringStat("audioReactive", "Audio reactive: ", "off"));
         spStats->Add(new Hud::CStringStat("playHead", "", "00m00s/00m00s"));
 
         int32_t displayMode =
@@ -1278,7 +1285,34 @@ class CElectricSheep
             bool drawNoSheepIntro = false;
             bool drawn = g_Player().Update(displayUnit); // , drawNoSheepIntro);
 
+            // Temporary fake audio-reactive signal.
+            // This proves the app can update reactive values once per frame
+            // before we bother wrestling Windows audio capture like a cursed printer driver.
+            if (displayUnit == 0)
+            {
+                m_AudioReactivePhase += 1.0 / 60.0;
+
+                m_AudioReactiveBass =
+                    0.5f + 0.5f * static_cast<float>(
+                                      std::sin(m_AudioReactivePhase * 3.0));
+                m_AudioReactiveMid =
+                    0.5f + 0.5f * static_cast<float>(
+                                      std::sin(m_AudioReactivePhase * 5.0));
+                m_AudioReactiveHigh =
+                    0.5f + 0.5f * static_cast<float>(
+                                      std::sin(m_AudioReactivePhase * 11.0));
+            }
             
+            if (displayUnit == 0)
+            {
+                const float reactiveBrightness = m_AudioReactiveBass * 0.15f;
+
+                if (auto spRenderer = g_Player().Renderer())
+                {
+                    spRenderer->SetBrightness(reactiveBrightness);
+                }
+            }
+
             if ((!EDreamClient::IsLoggedIn() && !m_MultipleInstancesMode) || !g_Player().HasStarted()) {
                 drawNoSheepIntro = true;
             }
@@ -1522,6 +1556,13 @@ class CElectricSheep
                     ->SetSample(string_format(" %.2f fps", pFPS));
                 ((Hud::CStringStat*)spStats->Get("activityLevel"))
                     ->SetSample(string_format(" %.2f", activityLevel));
+                if (auto audioReactiveStat = static_cast<Hud::CStringStat*>(
+                        spStats->Get("audioReactive")))
+                {
+                    audioReactiveStat->SetSample(string_format(
+                        "bass %.2f | mid %.2f | high %.2f", m_AudioReactiveBass,
+                        m_AudioReactiveMid, m_AudioReactiveHigh));
+                }
                 ((Hud::CIntCounter*)spStats->Get("displayfps"))->AddSample(1);
 
                 // Update playlist info
