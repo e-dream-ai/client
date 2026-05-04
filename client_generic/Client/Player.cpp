@@ -25,6 +25,7 @@
 #include "base.h"
 #include "clientversion.h"
 
+
 #ifdef WIN32
 //#include "DisplayD3D12.h"
 //#include "RendererD3D12.h"
@@ -82,6 +83,17 @@ using CClip = ContentDecoder::CClip;
 using spCClip = ContentDecoder::spCClip;
 typedef std::shared_lock<std::shared_mutex> reader_lock;
 typedef std::unique_lock<std::shared_mutex> writer_lock;
+
+namespace
+{
+constexpr double kMinPerceptualFPS = 1.0;
+constexpr double kMaxPerceptualFPS = 144.0;
+
+double ClampPerceptualFPS(double fps)
+{
+    return std::clamp(fps, kMinPerceptualFPS, kMaxPerceptualFPS);
+}
+} // namespace
 
 // Async destruction of a clip. The destructor may be delayed by a
 // catch up streaming mechanism for caching
@@ -1060,8 +1072,8 @@ void CPlayer::PlayNextDream(bool quickFade) {
 }
 
 
-void CPlayer::MultiplyPerceptualFPS(const double _multiplier) {
-    m_PerceptualFPS *= _multiplier;
+void CPlayer::MultiplyPerceptualFPS(const double _multiplier){
+    m_PerceptualFPS = ClampPerceptualFPS(m_PerceptualFPS * _multiplier);
 
     reader_lock l(m_UpdateMutex);
     if (m_currentClip) {
@@ -1075,9 +1087,9 @@ void CPlayer::MultiplyPerceptualFPS(const double _multiplier) {
     }
 }
 
-void CPlayer::SetPerceptualFPS(const double _fps) {
+void CPlayer::SetPerceptualFPS(const double _fps){
 
-    m_PerceptualFPS = _fps;
+    m_PerceptualFPS = ClampPerceptualFPS(_fps);
 
     reader_lock l(m_UpdateMutex);
 
