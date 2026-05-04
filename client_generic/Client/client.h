@@ -1551,9 +1551,26 @@ class CElectricSheep
                 {
                     const AudioFeatures& audio = m_AudioAnalyzer.GetFeatures();
 
-                    audioReactiveStat->SetSample(
-                        string_format("bass %.2f | mid %.2f | high %.2f",
-                                      audio.bass, audio.mid, audio.high));
+                        auto bar = [](float value)
+                    {
+                        int count = static_cast<int>(value * 10.0f);
+                        if (count < 0)
+                            count = 0;
+                        if (count > 10)
+                            count = 10;
+
+                        std::string result;
+                        for (int i = 0; i < count; ++i)
+                            result += "|";
+
+                        return result;
+                    };
+
+                    audioReactiveStat->SetSample(string_format(
+                        "B %-10s %.2f | M %-10s %.2f | H %-10s %.2f",
+                        bar(audio.bass).c_str(), audio.bass,
+                        bar(audio.mid).c_str(), audio.mid,
+                        bar(audio.high).c_str(), audio.high));
                 }
                 
                 ((Hud::CIntCounter*)spStats->Get("displayfps"))->AddSample(1);
