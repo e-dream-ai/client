@@ -3,6 +3,7 @@
 
 #include <audioclient.h>
 #include <mmdeviceapi.h>
+#include <vector>
 
 class AudioInputWasapi
 {
@@ -15,6 +16,7 @@ class AudioInputWasapi
 
     bool IsRunning() const;
     float GetLevel() const;
+    std::vector<float> GetSamples();
 
   private:
     bool m_Running = false;

@@ -161,3 +161,39 @@ float AudioInputWasapi::GetLevel() const
 
     return level;
 }
+std::vector<float> AudioInputWasapi::GetSamples()
+{
+    std::vector<float> samplesOut;
+
+    if (!m_CaptureClient)
+        return samplesOut;
+
+    UINT32 packetLength = 0;
+    HRESULT hr = m_CaptureClient->GetNextPacketSize(&packetLength);
+
+    while (SUCCEEDED(hr) && packetLength > 0)
+    {
+        BYTE* data = nullptr;
+        UINT32 numFrames = 0;
+        DWORD flags = 0;
+
+        hr = m_CaptureClient->GetBuffer(&data, &numFrames, &flags, nullptr,
+                                        nullptr);
+
+        if (FAILED(hr))
+            break;
+
+        float* samples = reinterpret_cast<float*>(data);
+
+        for (UINT32 i = 0; i < numFrames; ++i)
+        {
+            samplesOut.push_back(samples[i]);
+        }
+
+        m_CaptureClient->ReleaseBuffer(numFrames);
+
+        hr = m_CaptureClient->GetNextPacketSize(&packetLength);
+    }
+
+    return samplesOut;
+}
