@@ -58,6 +58,7 @@ private:
 
     std::function<void()> m_menuLoopRenderCb;
     bool m_bMenuRenderInProgress;
+    int m_sizeMoveNested = 0;
     bool m_deviceLost = false;
 
     // When set, fullscreen will be windowed-borderless (no DXGI exclusive mode).

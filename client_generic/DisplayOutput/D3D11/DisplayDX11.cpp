@@ -40,6 +40,7 @@ static ComPtr<ID3D11DeviceContext> g_sharedContext;
 // Timer IDs used in WndProc (also used by popup-menu helpers).
 constexpr UINT_PTR kPreviewTimerId    = 1; // 500 ms one-shot for screensaver preview init
 constexpr UINT_PTR kMenuLoopTimerId   = 2; // ~60 fps keep-alive while menu bar/popup is open
+constexpr UINT_PTR kSizeMoveTimerId   = 3; // ~60 fps keep-alive during modal move/resize loops
 
 enum DX11MenuCmd : UINT
 {
@@ -792,7 +793,7 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
             g_Log->Info("500ms preview timer done");
             return 0;
         }
-        if (wParam == kMenuLoopTimerId)
+        if (wParam == kMenuLoopTimerId || wParam == kSizeMoveTimerId)
         {
             if (self && self->m_menuLoopRenderCb && !self->m_bMenuRenderInProgress)
             {
@@ -803,6 +804,26 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
             return 0;
         }
         break;
+
+    case WM_ENTERSIZEMOVE:
+        // Like TrackPopupMenu, DefWindowProc's modal move/resize loop runs on this thread and
+        // blocks the outer Run() pump — no Present until WM_EXITSIZEMOVE. Drive frames from WM_TIMER.
+        if (self && !self->m_bFullScreen && !self->m_bEmbeddedSaverPreview && self->m_menuLoopRenderCb)
+        {
+            ++self->m_sizeMoveNested;
+            if (self->m_sizeMoveNested == 1)
+                SetTimer(hWnd, kSizeMoveTimerId, 16, nullptr);
+        }
+        return 0;
+
+    case WM_EXITSIZEMOVE:
+        if (self && self->m_sizeMoveNested > 0)
+        {
+            --self->m_sizeMoveNested;
+            if (self->m_sizeMoveNested == 0)
+                KillTimer(hWnd, kSizeMoveTimerId);
+        }
+        return 0;
 
     case WM_ENTERMENULOOP:
         SetTimer(hWnd, kMenuLoopTimerId, 16, nullptr);
