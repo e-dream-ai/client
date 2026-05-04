@@ -1,6 +1,9 @@
 #ifndef AUDIO_INPUT_WASAPI_H_INCLUDED
 #define AUDIO_INPUT_WASAPI_H_INCLUDED
 
+#include <audioclient.h>
+#include <mmdeviceapi.h>
+
 class AudioInputWasapi
 {
   public:
@@ -16,6 +19,9 @@ class AudioInputWasapi
   private:
     bool m_Running = false;
     float m_Level = 0.0f;
+
+    IAudioClient* m_AudioClient = nullptr;
+    IMMDevice* m_Device = nullptr;
 };
 
 #endif
