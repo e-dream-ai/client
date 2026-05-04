@@ -1623,7 +1623,7 @@ bool CRendererDX11::EndFrame(bool drawn) {
                     if (hwnd && EnsureTitlebarLogoTexture(hwnd) && m_titlebarLogoSrv && m_titlebarLogoW > 0 && m_titlebarLogoH > 0)
                     {
                         // Fixed display size for the logo inside the titlebar.
-                        constexpr float kLogoPx = 18.0f;
+                        constexpr float kLogoPx = 24.0f;
                         const float logoW = kLogoPx / static_cast<float>(dispW);
                         const float logoH = kLogoPx / static_cast<float>(dispH);
                         const float logoPadX = 10.0f / static_cast<float>(dispW); // left padding (right padding matches via splitter placement)
@@ -1643,7 +1643,7 @@ bool CRendererDX11::EndFrame(bool drawn) {
                     {
                         // Compute in integer pixels to match Win32 hit-testing exactly, then convert to normalized.
                         constexpr int kLogoPadPx = 10;   // left/right padding of logo
-                        constexpr int kLogoPx = 18;
+                        constexpr int kLogoPx = 24;
                         constexpr int kSplitterPx = 1;
                         constexpr int kGapPxI = 8;       // gap after splitter
                         constexpr int kSplitterPadTopPx = 6;

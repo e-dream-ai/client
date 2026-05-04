@@ -108,7 +108,7 @@ static void ComputeCaptionButtonRects(HWND hWnd, int titlebarHeightPx, RECT& out
 static RECT ComputeTitlebarLogoRect(int titlebarHeightPx)
 {
     // Must match the DX titlebar overlay's logo placement.
-    constexpr int kLogoPx = 18;
+    constexpr int kLogoPx = 24;
     constexpr int kLogoPadPx = 10;
     const int h = (titlebarHeightPx > 0) ? titlebarHeightPx : kLogoPx;
     const int y = (std::max)(0, (h - kLogoPx) / 2);
