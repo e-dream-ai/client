@@ -173,6 +173,7 @@ static void ShowTitlebarOverflowMenu(HWND hWnd, POINT ptScreen)
     AppendMenuW(popup, MF_STRING, ID_HELP_ABOUT, L"&About infinidream");
     AppendMenuW(popup, MF_STRING, ID_TOOLS_REMOTE, L"&Remote Control\tCtrl+R");
     AppendMenuW(popup, MF_STRING, ID_TOOLS_PLAYLISTS, L"&Browse Playlists\tCtrl+B");
+    AppendMenuW(popup, MF_STRING, ID_HELP_ONLINE, L"&Help");
 
     SetForegroundWindow(hWnd);
     // Keep rendering during the modal menu tracking loop.
