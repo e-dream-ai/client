@@ -7,6 +7,7 @@
 
 #include <cstdlib>
 #include <string>
+#include <vector>
 
 #include "Log.h"
 #include "Settings.h"
@@ -16,7 +17,15 @@
 namespace
 {
 constexpr const char* kDesktopKey = "Control Panel\\Desktop";
-constexpr const char* kBackupKey = "Software\\Infinidream\\Screensaver";
+constexpr const char* kBackupSettingKey = "settings.app.screensaver_backup";
+
+struct ScreensaverBackup
+{
+    bool valid = false;
+    std::string exe;
+    std::string active;
+    std::string timeout;
+};
 
 std::string ReadRegString(HKEY hKey, const char* valueName)
 {
@@ -68,117 +77,160 @@ std::string BuildScrPath(const std::string& workingDir)
     return scrPath;
 }
 
+std::string NormalizePathForCompare(std::string path)
+{
+    for (char& c : path)
+    {
+        if (c == '/')
+            c = '\\';
+    }
+
+    return path;
+}
+
 void RefreshScreensaverSettings(bool active)
 {
     SystemParametersInfoA(SPI_SETSCREENSAVEACTIVE, active ? TRUE : FALSE,
                           nullptr, SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
+}
+
+std::vector<std::string> SplitLines(const std::string& value)
+{
+    std::vector<std::string> lines;
+    std::string current;
+
+    for (char c : value)
+    {
+        if (c == '\n')
+        {
+            lines.push_back(current);
+            current.clear();
+        }
+        else if (c != '\r')
+        {
+            current.push_back(c);
+        }
+    }
+
+    lines.push_back(current);
+    return lines;
+}
+
+std::string SerializeBackup(const ScreensaverBackup& backup)
+{
+    return std::string(backup.valid ? "1" : "0") + "\n" + backup.exe + "\n" +
+           backup.active + "\n" + backup.timeout;
+}
+
+ScreensaverBackup ReadBackupFromSettings()
+{
+    ScreensaverBackup backup;
+
+    if (!g_Settings())
+        return backup;
+
+    const std::string raw = g_Settings()->Get(kBackupSettingKey, std::string());
+
+    const std::vector<std::string> lines = SplitLines(raw);
+    if (lines.size() < 4 || lines[0] != "1")
+        return backup;
+
+    backup.valid = true;
+    backup.exe = lines[1];
+    backup.active = lines[2];
+    backup.timeout = lines[3];
+
+    return backup;
+}
+
+void SaveBackupToSettings(const ScreensaverBackup& backup)
+{
+    if (!g_Settings())
+        return;
+    const std::string serialized = SerializeBackup(backup);
+
+    if (g_Log)
+        g_Log->Info("SaveBackupToSettings: writing '%s'", serialized.c_str());
+
+    g_Settings()->Set(kBackupSettingKey, serialized);
+    g_Settings()->Storage()->Commit();
+
+    // Verify it survived the commit
+    const std::string verify =
+        g_Settings()->Get(kBackupSettingKey, std::string("MISSING"));
+    if (g_Log)
+        g_Log->Info("SaveBackupToSettings: verify read-back '%s'",
+                    verify.c_str());
 }
 } // namespace
 
 void ScreensaverInstallerWin32::SaveOriginalScreensaverSettingsOnce(
     const std::string& workingDir)
 {
-    HKEY hBackup = nullptr;
-    DWORD disposition = 0;
-
-    const LSTATUS backupRc =
-        RegCreateKeyExA(HKEY_CURRENT_USER, kBackupKey, 0, nullptr, 0,
-                        KEY_READ | KEY_WRITE, nullptr, &hBackup, &disposition);
-    if (backupRc != ERROR_SUCCESS)
-    {
-        if (g_Log)
-            g_Log->Warning("SaveOriginalScreensaverSettingsOnce: cannot open "
-                           "backup key (%ld)",
-                           static_cast<long>(backupRc));
-        return;
-    }
-
     HKEY hDesktop = nullptr;
     const LSTATUS desktopRc =
         RegOpenKeyExA(HKEY_CURRENT_USER, kDesktopKey, 0, KEY_READ, &hDesktop);
+
     if (desktopRc != ERROR_SUCCESS)
     {
         if (g_Log)
             g_Log->Warning("SaveOriginalScreensaverSettingsOnce: cannot open "
                            "Desktop key (%ld)",
                            static_cast<long>(desktopRc));
-        RegCloseKey(hBackup);
         return;
     }
 
-    const std::string originalExe = ReadRegString(hDesktop, "SCRNSAVE.EXE");
-    const std::string originalActive =
-        ReadRegString(hDesktop, "ScreenSaveActive");
-    const std::string originalTimeout =
-        ReadRegString(hDesktop, "ScreenSaveTimeOut");
+    ScreensaverBackup backup;
+    backup.valid = true;
+    backup.exe = ReadRegString(hDesktop, "SCRNSAVE.EXE");
+    backup.active = ReadRegString(hDesktop, "ScreenSaveActive");
+    backup.timeout = ReadRegString(hDesktop, "ScreenSaveTimeOut");
+
+    RegCloseKey(hDesktop);
 
     const std::string infinidreamScr = BuildScrPath(workingDir);
 
-    if (_stricmp(originalExe.c_str(), infinidreamScr.c_str()) == 0)
+    if (_stricmp(NormalizePathForCompare(backup.exe).c_str(),
+                 NormalizePathForCompare(infinidreamScr).c_str()) == 0)
     {
         if (g_Log)
             g_Log->Info(
                 "SaveOriginalScreensaverSettingsOnce: current screensaver is "
                 "already Infinidream, not overwriting backup");
-        RegCloseKey(hDesktop);
-        RegCloseKey(hBackup);
         return;
     }
 
-    WriteRegString(hBackup, "OriginalExe", originalExe);
-    WriteRegString(hBackup, "OriginalActive", originalActive);
-    WriteRegString(hBackup, "OriginalTimeout", originalTimeout);
-    WriteRegString(hBackup, "OriginalSaved", "1");
+    SaveBackupToSettings(backup);
 
     if (g_Log)
         g_Log->Info("SaveOriginalScreensaverSettingsOnce: saved backup "
                     "exe='%s', active='%s', timeout='%s'",
-                    originalExe.c_str(), originalActive.c_str(),
-                    originalTimeout.c_str());
-
-    RegCloseKey(hDesktop);
-    RegCloseKey(hBackup);
+                    backup.exe.c_str(), backup.active.c_str(),
+                    backup.timeout.c_str());
 }
 
 bool ScreensaverInstallerWin32::RestoreOriginalScreensaverSettings()
 {
-    HKEY hBackup = nullptr;
-    const LSTATUS backupRc =
-        RegOpenKeyExA(HKEY_CURRENT_USER, kBackupKey, 0, KEY_READ, &hBackup);
-    if (backupRc != ERROR_SUCCESS)
+    const ScreensaverBackup backup = ReadBackupFromSettings();
+
+    if (!backup.valid)
     {
         if (g_Log)
-            g_Log->Warning("RestoreOriginalScreensaverSettings: cannot open "
-                           "backup key (%ld)",
-                           static_cast<long>(backupRc));
+            g_Log->Warning("RestoreOriginalScreensaverSettings: no valid "
+                           "screensaver backup in settings");
         return false;
     }
-
-    if (ReadRegString(hBackup, "OriginalSaved") != "1")
-    {
-        if (g_Log)
-            g_Log->Warning("RestoreOriginalScreensaverSettings: backup is not "
-                           "marked saved");
-        RegCloseKey(hBackup);
-        return false;
-    }
-
-    const std::string originalExe = ReadRegString(hBackup, "OriginalExe");
-    const std::string originalActive = ReadRegString(hBackup, "OriginalActive");
-    const std::string originalTimeout =
-        ReadRegString(hBackup, "OriginalTimeout");
 
     if (g_Log)
         g_Log->Info("RestoreOriginalScreensaverSettings: restoring exe='%s', "
                     "active='%s', timeout='%s'",
-                    originalExe.c_str(), originalActive.c_str(),
-                    originalTimeout.c_str());
-
-    RegCloseKey(hBackup);
+                    backup.exe.c_str(), backup.active.c_str(),
+                    backup.timeout.c_str());
 
     HKEY hDesktop = nullptr;
     const LSTATUS desktopRc = RegOpenKeyExA(HKEY_CURRENT_USER, kDesktopKey, 0,
                                             KEY_READ | KEY_WRITE, &hDesktop);
+
     if (desktopRc != ERROR_SUCCESS)
     {
         if (g_Log)
@@ -188,19 +240,18 @@ bool ScreensaverInstallerWin32::RestoreOriginalScreensaverSettings()
         return false;
     }
 
-    const bool originalWasNone = originalExe.empty();
+    const bool originalWasNone = backup.exe.empty();
 
-    WriteRegString(hDesktop, "SCRNSAVE.EXE",
-                   originalWasNone ? "" : originalExe);
+    WriteRegString(hDesktop, "SCRNSAVE.EXE", originalWasNone ? "" : backup.exe);
     WriteRegString(hDesktop, "ScreenSaveActive",
-                   originalWasNone ? "0" : originalActive);
+                   originalWasNone ? "0" : backup.active);
 
-    if (!originalTimeout.empty())
-        WriteRegString(hDesktop, "ScreenSaveTimeOut", originalTimeout);
+    if (!backup.timeout.empty())
+        WriteRegString(hDesktop, "ScreenSaveTimeOut", backup.timeout);
 
     RegCloseKey(hDesktop);
 
-    RefreshScreensaverSettings(!originalWasNone && originalActive == "1");
+    RefreshScreensaverSettings(!originalWasNone && backup.active == "1");
 
     if (g_Log)
         g_Log->Info("RestoreOriginalScreensaverSettings: restored original "
@@ -234,6 +285,7 @@ void ScreensaverInstallerWin32::EnsureScreensaverActive(
     HKEY hKey = nullptr;
     const LSTATUS desktopRc = RegOpenKeyExA(HKEY_CURRENT_USER, kDesktopKey, 0,
                                             KEY_READ | KEY_WRITE, &hKey);
+
     if (desktopRc != ERROR_SUCCESS)
     {
         if (g_Log)
