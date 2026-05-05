@@ -866,6 +866,23 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
         }
         return DefWindowProc(hWnd, msg, wParam, lParam);
 
+    case WM_GETMINMAXINFO:
+        if (self && !self->m_bFullScreen && !self->m_bEmbeddedSaverPreview)
+        {
+            if (auto* mmi = reinterpret_cast<MINMAXINFO*>(lParam))
+            {
+                // Hard floor: leaves room for the custom titlebar buttons and a usable client area.
+                // Without this, drag-resize can pull the window down to ~0 or negative size and
+                // collapse the titlebar chrome (issue #611).
+                const LONG minW = 480;
+                const LONG minH = 320;
+                mmi->ptMinTrackSize.x = (std::max)(mmi->ptMinTrackSize.x, minW);
+                mmi->ptMinTrackSize.y = (std::max)(mmi->ptMinTrackSize.y, minH);
+                return 0;
+            }
+        }
+        return DefWindowProc(hWnd, msg, wParam, lParam);
+
     case WM_KEYDOWN: {
         // Match macOS keyDown: handle hotkeys on press, not release (WM_KEYUP felt delayed).
         // lParam bit 30: previous key state (1 = autorepeat); ignore repeats.
