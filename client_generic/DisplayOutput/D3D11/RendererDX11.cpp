@@ -1928,16 +1928,28 @@ void CRendererDX11::DrawTextBatched(const std::shared_ptr<CTextDX11Atlas>& text,
     if (!ensureBuffers(verticesNeeded, indicesNeeded))
         return;
 
-    // Scissor to the text rect (same behavior as the legacy per-glyph path).
+    // Scissor to the text rect. Normalized rect coords are mapped to the
+    // current viewport — which is offset/shrunk by the custom titlebar inset
+    // (see BuildBaseViewportForDisplay). Computing the scissor against the full
+    // swap chain dims would clip the text where the viewport doesn't reach
+    // (issue #609: FPS OSD text cropped on small Windows windows).
     if (m_rasterizerScissor)
     {
-        const float fdw = static_cast<float>(dispW);
-        const float fdh = static_cast<float>(dispH);
+        D3D11_VIEWPORT vp = {};
+        UINT vpCount = 1;
+        m_context->RSGetViewports(&vpCount, &vp);
+        if (vpCount == 0u || vp.Width <= 0.f || vp.Height <= 0.f)
+        {
+            vp.TopLeftX = 0.f;
+            vp.TopLeftY = 0.f;
+            vp.Width = static_cast<float>(dispW);
+            vp.Height = static_cast<float>(dispH);
+        }
         D3D11_RECT sc = {};
-        sc.left = static_cast<LONG>(std::floor(r.m_X0 * fdw));
-        sc.top = static_cast<LONG>(std::floor(r.m_Y0 * fdh));
-        sc.right = static_cast<LONG>(std::ceil(r.m_X1 * fdw)) + 1;
-        sc.bottom = static_cast<LONG>(std::ceil(r.m_Y1 * fdh)) + 1;
+        sc.left = static_cast<LONG>(std::floor(vp.TopLeftX + r.m_X0 * vp.Width));
+        sc.top = static_cast<LONG>(std::floor(vp.TopLeftY + r.m_Y0 * vp.Height));
+        sc.right = static_cast<LONG>(std::ceil(vp.TopLeftX + r.m_X1 * vp.Width)) + 1;
+        sc.bottom = static_cast<LONG>(std::ceil(vp.TopLeftY + r.m_Y1 * vp.Height)) + 1;
         const LONG dw = static_cast<LONG>(dispW);
         const LONG dh = static_cast<LONG>(dispH);
         sc.left = std::max(0L, std::min(sc.left, dw));
