@@ -798,10 +798,12 @@ class CElectricSheep
     
     void SetupFramerate()
     {
-        m_PerceptualFPS = g_Settings()->Get("settings.player.perceptual_fps", 20.);
+        m_PerceptualFPS =
+            g_Settings()->Get("settings.player.perceptual_fps", 20.);
 
         // We give the perceptual FPS to the player, and it is its job to adjust it with dream level
         g_Player().SetPerceptualFPS(m_PerceptualFPS);
+        m_PerceptualFPS = g_Player().GetPerceptualFPS();
     }
     
     void SetupProxy()
