@@ -4,35 +4,26 @@
 
 #include <algorithm>
 #include <cmath>
+#include <deque>
 #include <vector>
 
 namespace
 {
 constexpr float kSampleRate = 44100.0f;
-constexpr int kAnalysisSize = 2048;
+constexpr int kAnalysisSize = 2048; // ~46ms window - enough for bass cycles
+constexpr float kPeakDecay = 0.9995f;
 
-float Clamp01(float value)
-{
-    if (value < 0.0f)
-        return 0.0f;
-    if (value > 1.0f)
-        return 1.0f;
-    return value;
-}
+float Clamp01(float v) { return v < 0.0f ? 0.0f : v > 1.0f ? 1.0f : v; }
 
 float SmoothAttackRelease(float previous, float current, float attack,
                           float release)
 {
-    const float amount = current > previous ? attack : release;
-    return (previous * (1.0f - amount)) + (current * amount);
+    const float a = current > previous ? attack : release;
+    return previous * (1.0f - a) + current * a;
 }
 
 float DbToLinear(float db) { return std::pow(10.0f, db / 20.0f); }
 
-float ApplyFloor(float value, float floor)
-{
-    return value < floor ? 0.0f : value;
-}
 } // namespace
 
 void AudioAnalyzer::Update(double deltaSeconds)
@@ -40,193 +31,213 @@ void AudioAnalyzer::Update(double deltaSeconds)
     m_Phase += deltaSeconds;
 
     if (!m_AudioInput.IsRunning())
-    {
         m_AudioInput.Start();
-    }
 
-    std::vector<float> samples = m_AudioInput.GetSamples();
+    std::vector<float> newSamples = m_AudioInput.GetSamples();
 
-    if (samples.empty())
+    // Accumulate samples into a rolling buffer
+    // This gives us a stable 2048-sample window regardless of how many
+    // samples arrive per frame, solving the bass strobing problem
+    static std::deque<float> sampleBuffer;
+
+    for (float s : newSamples)
+        sampleBuffer.push_back(s);
+
+    // Keep buffer at exactly kAnalysisSize
+    while ((int)sampleBuffer.size() > kAnalysisSize)
+        sampleBuffer.pop_front();
+
+    m_Features.sampleCount = static_cast<int>(sampleBuffer.size());
+
+    if (newSamples.empty())
     {
-        m_Features.volume *= 0.80f;
-        m_Features.bass *= 0.85f;
-        m_Features.kick *= 0.65f;
-        m_Features.mid *= 0.80f;
-        m_Features.high *= 0.80f;
-
-        if (m_Features.volume < 0.001f)
-        {
-            m_Features.volume = 0.0f;
-            m_Features.bass = 0.0f;
-            m_Features.kick = 0.0f;
-            m_Features.mid = 0.0f;
-            m_Features.high = 0.0f;
-        }
-
-        m_Features.hasSignal = false;
+        // No new samples this frame - hold current values
+        // WASAPI delivers samples every other frame so this is normal
         return;
     }
 
-    if (samples.size() > kAnalysisSize)
-    {
-        samples.erase(samples.begin(), samples.end() - kAnalysisSize);
-    }
-
-    const int fftSize =
-        std::min<int>(kAnalysisSize, static_cast<int>(samples.size()));
-
-    if (fftSize <= 0)
+    // Wait for a full buffer
+    if ((int)sampleBuffer.size() < kAnalysisSize)
         return;
 
+    // Copy to vector for FFT
+    std::vector<float> samples(sampleBuffer.begin(), sampleBuffer.end());
+
+    const int fftSize = kAnalysisSize;
+
+    // -------------------------------------------------------------------
+    // RMS volume - use only the newest samples for responsiveness
+    // -------------------------------------------------------------------
     float sumSquares = 0.0f;
-    for (int i = 0; i < fftSize; ++i)
-    {
+    int rmsWindow = static_cast<int>(newSamples.size());
+    if (rmsWindow < 1)
+        rmsWindow = 1;
+    for (int i = fftSize - rmsWindow; i < fftSize; ++i)
         sumSquares += samples[i] * samples[i];
-    }
 
-    float rawLevel = std::sqrt(sumSquares / std::max(1, fftSize));
-
-    if (rawLevel < DbToLinear(-36.0f))
+    float rawLevel = std::sqrt(sumSquares / rmsWindow);
+    if (rawLevel < DbToLinear(-60.0f))
         rawLevel = 0.0f;
-
     rawLevel = Clamp01(rawLevel * 3.0f);
 
     const float level =
         SmoothAttackRelease(m_Features.volume, rawLevel, 0.35f, 0.08f);
 
+    // -------------------------------------------------------------------
+    // FFT on the full 2048-sample window
+    // -------------------------------------------------------------------
     static kiss_fft_cfg fftConfig = nullptr;
-    static int configuredSize = 0;
-
-    if (!fftConfig || configuredSize != fftSize)
-    {
-        if (fftConfig)
-        {
-            kiss_fft_free(fftConfig);
-            fftConfig = nullptr;
-        }
-
+    if (!fftConfig)
         fftConfig = kiss_fft_alloc(fftSize, 0, nullptr, nullptr);
-        configuredSize = fftSize;
-    }
 
     if (!fftConfig)
         return;
 
-    std::vector<kiss_fft_cpx> fftIn(fftSize);
-    std::vector<kiss_fft_cpx> fftOut(fftSize);
+    std::vector<kiss_fft_cpx> fftIn(fftSize), fftOut(fftSize);
 
     for (int n = 0; n < fftSize; ++n)
     {
-        const float window =
-            0.5f * (1.0f - std::cos((2.0f * 3.1415926535f * n) /
-                                    static_cast<float>(fftSize - 1)));
-
-        fftIn[n].r = samples[n] * window;
+        const float w =
+            0.5f * (1.0f - std::cos(2.0f * 3.1415926535f * n / (fftSize - 1)));
+        fftIn[n].r = samples[n] * w;
         fftIn[n].i = 0.0f;
     }
 
     kiss_fft(fftConfig, fftIn.data(), fftOut.data());
 
-    float bassEnergy = 0.0f;
-    float midEnergy = 0.0f;
-    float highEnergy = 0.0f;
-    float bassFlux = 0.0f;
-
-    int bassBins = 0;
-    int midBins = 0;
-    int highBins = 0;
-
-    static std::vector<float> previousMagnitude(kAnalysisSize / 2, 0.0f);
+    float bassEnergy = 0.0f, midEnergy = 0.0f, highEnergy = 0.0f;
+    int bassBins = 0, midBins = 0, highBins = 0;
+    float weightedFreqSum = 0.0f, magnitudeSum = 0.0f;
 
     for (int bin = 1; bin < fftSize / 2; ++bin)
     {
-        const float real = fftOut[bin].r;
-        const float imag = fftOut[bin].i;
-        const float magnitude =
-            std::sqrt((real * real) + (imag * imag)) / fftSize;
+        const float r = fftOut[bin].r;
+        const float im = fftOut[bin].i;
+        const float mag = std::sqrt(r * r + im * im) / fftSize;
+        const float f = kSampleRate * bin / fftSize;
 
-        const float frequency = (kSampleRate * bin) / fftSize;
-
-        if (frequency >= 40.0f && frequency < 120.0f)
+        if (f >= 20.0f && f < 20000.0f)
         {
-            bassEnergy += magnitude;
-            ++bassBins;
-
-            bassFlux += std::max(0.0f, magnitude - previousMagnitude[bin]);
+            weightedFreqSum += f * mag;
+            magnitudeSum += mag;
         }
-        else if (frequency >= 150.0f && frequency < 3500.0f)
+
+        if (f >= 30.0f && f < 150.0f)
         {
-            midEnergy += magnitude;
+            bassEnergy += mag;
+            ++bassBins;
+        }
+        else if (f >= 150.0f && f < 3500.0f)
+        {
+            midEnergy += mag;
             ++midBins;
         }
-        else if (frequency >= 3500.0f && frequency < 12000.0f)
+        else if (f >= 3500.0f && f < 20000.0f)
         {
-            highEnergy += magnitude;
+            highEnergy += mag;
             ++highBins;
         }
-
-        previousMagnitude[bin] = magnitude;
     }
 
     if (bassBins > 0)
-    {
         bassEnergy /= bassBins;
-        bassFlux /= bassBins;
-    }
-
     if (midBins > 0)
         midEnergy /= midBins;
-
     if (highBins > 0)
         highEnergy /= highBins;
 
-    bassEnergy = Clamp01(bassEnergy * 18.0f);
-    bassFlux = Clamp01(bassFlux * 240.0f);
-    midEnergy = Clamp01(midEnergy * 150.0f);
-    highEnergy = Clamp01(highEnergy * 50.0f);
+    // -------------------------------------------------------------------
+    // Adaptive normalisation
+    // -------------------------------------------------------------------
+    static float bassPeak = 0.001f, midPeak = 0.001f, highPeak = 0.001f;
+    static int warmup = 0;
 
-    bassEnergy = ApplyFloor(bassEnergy, 0.65f);
-    bassFlux = ApplyFloor(bassFlux, 0.08f);
-    midEnergy = ApplyFloor(midEnergy, 0.03f);
-    highEnergy = ApplyFloor(highEnergy, 0.04f);
+    bassPeak = std::max(bassEnergy, bassPeak * kPeakDecay);
+    midPeak = std::max(midEnergy, midPeak * kPeakDecay);
+    highPeak = std::max(highEnergy, highPeak * kPeakDecay);
 
-    static float fluxAverage = 0.0f;
-    fluxAverage = (fluxAverage * 0.94f) + (bassFlux * 0.06f);
-
-    static double kickCooldownSeconds = 0.0;
-    if (kickCooldownSeconds > 0.0)
+    float normBass, normMid, normHigh;
+    if (warmup < 90)
     {
-        kickCooldownSeconds -= deltaSeconds;
-        if (kickCooldownSeconds < 0.0)
-            kickCooldownSeconds = 0.0;
+        ++warmup;
+        normBass = Clamp01(bassEnergy * 120.0f);
+        normMid = Clamp01(midEnergy * 80.0f);
+        normHigh = Clamp01(highEnergy * 60.0f);
     }
+    else
+    {
+        normBass = Clamp01((bassEnergy / bassPeak) * 1.4f);
+        normMid = Clamp01((midEnergy / midPeak) * 2.5f);
+        normHigh = Clamp01((highEnergy / highPeak) * 1.4f);
+    }
+
+    // -------------------------------------------------------------------
+    // Spectral centroid
+    // -------------------------------------------------------------------
+    float rawCentroid = 0.0f;
+    if (magnitudeSum > 0.0f)
+        rawCentroid = weightedFreqSum / magnitudeSum;
+
+    const float logMin = std::log(20.0f);
+    const float logMax = std::log(20000.0f);
+    float logCentroid = 0.0f;
+    if (rawCentroid > 0.0f)
+        logCentroid = (std::log(rawCentroid) - logMin) / (logMax - logMin);
+
+    m_Features.spectralCentroid = SmoothAttackRelease(
+        m_Features.spectralCentroid, Clamp01(logCentroid), 0.3f, 0.1f);
+
+    // -------------------------------------------------------------------
+    // Kick detection
+    // -------------------------------------------------------------------
+    static float kickCooldown = 0.0f;
+
+    if (kickCooldown > 0.0f)
+        kickCooldown -= static_cast<float>(deltaSeconds);
 
     float kickPulse = 0.0f;
 
-    const bool bassIsPresent = bassEnergy > 0.65f;
-    const bool fluxIsSignificant =
-        bassFlux > 0.10f && bassFlux > (fluxAverage * 1.45f);
+    const float kickFloor = 0.25f;
 
-    if (bassIsPresent && fluxIsSignificant && kickCooldownSeconds <= 0.0)
+    if (normBass > kickFloor && kickCooldown <= 0.0f)
     {
-        kickPulse = Clamp01((bassFlux - fluxAverage) * 2.2f);
-        kickCooldownSeconds = 0.08;
+        kickPulse =
+            Clamp01(((normBass - kickFloor) / (1.0f - kickFloor)) * 2.0f);
+        kickCooldown = 0.45f;
     }
 
-    const float sustainedBass =
-        SmoothAttackRelease(m_Features.bass, bassEnergy, 0.30f, 0.08f);
-
-    const float kick =
-        SmoothAttackRelease(m_Features.kick, kickPulse, 0.45f, 0.08f);
-
+    // -------------------------------------------------------------------
+    // Write features
+    // -------------------------------------------------------------------
     m_Features.volume = level;
-    m_Features.bass = sustainedBass;
-    m_Features.kick = kick;
-    m_Features.mid =
-        SmoothAttackRelease(m_Features.mid, midEnergy, 0.35f, 0.12f);
+
+    // Two-stage bass smoothing
+    static float fastBass = 0.0f;
+    fastBass = SmoothAttackRelease(fastBass, normBass, 0.50f, 0.985f);
+
+    static float slowBass = 0.0f;
+    slowBass = SmoothAttackRelease(slowBass, normBass, 0.02f, 0.9999f);
+
+    m_Features.bass = std::max(fastBass, slowBass);
+    m_Features.kick =
+        SmoothAttackRelease(m_Features.kick, kickPulse, 0.70f, 0.05f);
+    m_Features.mid = SmoothAttackRelease(m_Features.mid, normMid, 0.35f, 0.12f);
     m_Features.high =
-        SmoothAttackRelease(m_Features.high, highEnergy, 0.45f, 0.12f);
-    m_Features.hasSignal = level > 0.001f;
+        SmoothAttackRelease(m_Features.high, normHigh, 0.45f, 0.12f);
+
+    // Signal gate with hysteresis
+    static double silenceSeconds = 0.0;
+    if (rawLevel > 0.005f)
+    {
+        silenceSeconds = 0.0;
+        m_Features.hasSignal = true;
+    }
+    else
+    {
+        silenceSeconds += deltaSeconds;
+        if (silenceSeconds > 1.5)
+            m_Features.hasSignal = false;
+    }
 }
 
 const AudioFeatures& AudioAnalyzer::GetFeatures() const { return m_Features; }

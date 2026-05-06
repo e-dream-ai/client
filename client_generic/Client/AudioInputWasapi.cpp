@@ -208,3 +208,37 @@ std::vector<float> AudioInputWasapi::GetSamples()
 
     return samplesOut;
 }
+StereoSamples AudioInputWasapi::GetStereoSamples()
+{
+    StereoSamples out;
+
+    if (!m_CaptureClient || m_ChannelCount < 2)
+        return out;
+
+    UINT32 packetLength = 0;
+    HRESULT hr = m_CaptureClient->GetNextPacketSize(&packetLength);
+
+    while (SUCCEEDED(hr) && packetLength > 0)
+    {
+        BYTE* data = nullptr;
+        UINT32 numFrames = 0;
+        DWORD flags = 0;
+
+        hr = m_CaptureClient->GetBuffer(&data, &numFrames, &flags, nullptr,
+                                        nullptr);
+        if (FAILED(hr))
+            break;
+
+        float* samples = reinterpret_cast<float*>(data);
+        for (UINT32 frame = 0; frame < numFrames; ++frame)
+        {
+            out.left.push_back(samples[(frame * m_ChannelCount) + 0]);
+            out.right.push_back(samples[(frame * m_ChannelCount) + 1]);
+        }
+
+        m_CaptureClient->ReleaseBuffer(numFrames);
+        hr = m_CaptureClient->GetNextPacketSize(&packetLength);
+    }
+
+    return out;
+}

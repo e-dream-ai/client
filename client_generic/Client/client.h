@@ -452,6 +452,24 @@ class CElectricSheep
                 1.0));
         spStats->Add(new Hud::CStringStat(std::string("zconnerror"), "", ""));
     }
+    void AddAudioStatsHud()
+    {
+        m_HudManager->Add("audiostats", std::make_shared<Hud::CStatsConsole>(
+                                            Base::Math::CRect(1, 1),
+                                            m_HudFontName, m_HudFontSize));
+        m_HudManager->Hide("audiostats");
+        Hud::spCStatsConsole spStats =
+            std::dynamic_pointer_cast<Hud::CStatsConsole>(
+                m_HudManager->Get("audiostats"));
+        spStats->Add(new Hud::CStringStat("audio-signal", "Signal: ", "off"));
+        spStats->Add(new Hud::CStringStat("audio-volume", "Volume:  ", ""));
+        spStats->Add(new Hud::CStringStat("audio-kick", "Kick:    ", ""));
+        spStats->Add(new Hud::CStringStat("audio-bass", "Bass:    ", ""));
+        spStats->Add(new Hud::CStringStat("audio-mid", "Mid:     ", ""));
+        spStats->Add(new Hud::CStringStat("audio-high", "High:    ", ""));
+        spStats->Add(new Hud::CStringStat("audio-centroid", "Centroid:", ""));
+        spStats->Add(new Hud::CStringStat("audio-samples", "Samples: ", ""));
+    }
     
     void AddCreditsHud()
     {
@@ -725,6 +743,7 @@ class CElectricSheep
         AddNetworkIndicatorHud();
         AddHelpHud();
         AddDreamStatsHud();
+        AddAudioStatsHud();
         AddProgressHud();
         AddSplashHud();
         AddOSDHud();
@@ -1306,24 +1325,11 @@ class CElectricSheep
                 const float bassAmount = audio.hasSignal ? audio.bass : 0.0f;
                 const float kickAmount = audio.hasSignal ? audio.kick : 0.0f;
 
-                // Extra smoothing for brightness only.
-                // Put this here, after bassAmount/kickAmount, before reactiveBrightness.
-                static float visualBass = 0.0f;
-
-                const float visualBassAttack = 0.08f;
-                const float visualBassRelease = 0.025f;
-                const float visualBassAmount = bassAmount > visualBass
-                                                   ? visualBassAttack
-                                                   : visualBassRelease;
-
-                visualBass = (visualBass * (1.0f - visualBassAmount)) +
-                             (bassAmount * visualBassAmount);
-
                 float reactiveBrightness =
                     reactiveDarkBrightness +
                     ((prescribedBrightness - reactiveDarkBrightness) *
-                     visualBass) +
-                    (kickAmount * 0.02f);
+                     bassAmount) +
+                    (kickAmount * 0.03f);
 
                 if (reactiveBrightness > prescribedBrightness)
                     reactiveBrightness = prescribedBrightness;
@@ -1625,11 +1631,13 @@ class CElectricSheep
                         return result;
                     };
 
-                    audioReactiveStat->SetSample(string_format(
-                        "B %-10s %.2f | M %-10s %.2f | H %-10s %.2f",
-                        bar(audio.bass).c_str(), audio.bass,
-                        bar(audio.mid).c_str(), audio.mid,
-                        bar(audio.high).c_str(), audio.high));
+                    audioReactiveStat->SetSample(
+                            string_format("B %-10s %.2f | M %-10s %.2f | H "
+                                          "%-10s %.2f | SC %.2f",
+                                          bar(audio.bass).c_str(), audio.bass,
+                                          bar(audio.mid).c_str(), audio.mid,
+                                          bar(audio.high).c_str(), audio.high,
+                                          audio.spectralCentroid));
                 }
                 
                 ((Hud::CIntCounter*)spStats->Get("displayfps"))->AddSample(1);
@@ -2180,6 +2188,60 @@ class CElectricSheep
                 }
                 } // if (spStats) - dreamstats
 
+               
+                // Update audio stats HUD (F3)
+                if (auto spAudioStats =
+                        std::dynamic_pointer_cast<Hud::CStatsConsole>(
+                            m_HudManager->Get("audiostats")))
+                {
+                    static float dVolume = 0.0f, dBass = 0.0f, dMid = 0.0f;
+                    static float dHigh = 0.0f, dCentroid = 0.0f, dKick = 0.0f;
+                    const float dSmooth = 0.12f;
+                    dVolume = dVolume + (audio.volume - dVolume) * dSmooth;
+                    dBass = dBass + (audio.bass - dBass) * dSmooth;
+                    dMid = dMid + (audio.mid - dMid) * dSmooth;
+                    dHigh = dHigh + (audio.high - dHigh) * dSmooth;
+                    dCentroid = dCentroid +
+                                (audio.spectralCentroid - dCentroid) * dSmooth;
+                    dKick = dKick + (audio.kick - dKick) * dSmooth;
+
+                    auto bar = [](float value)
+                    {
+                        int count = static_cast<int>(value * 20.0f);
+                        if (count < 0)
+                            count = 0;
+                        if (count > 20)
+                            count = 20;
+                        std::string result;
+                        for (int i = 0; i < count; ++i)
+                            result += "|";
+                        return result;
+                    };
+
+                    ((Hud::CStringStat*)spAudioStats->Get("audio-signal"))
+                        ->SetSample(dVolume > 0.01f ? "yes" : "no");
+                    ((Hud::CStringStat*)spAudioStats->Get("audio-volume"))
+                        ->SetSample(string_format(
+                            "%-20s %.3f", bar(dVolume).c_str(), dVolume));
+                    ((Hud::CStringStat*)spAudioStats->Get("audio-bass"))
+                        ->SetSample(string_format("%-20s %.3f",
+                                                  bar(dBass).c_str(), dBass));
+                    ((Hud::CStringStat*)spAudioStats->Get("audio-mid"))
+                        ->SetSample(string_format("%-20s %.3f",
+                                                  bar(dMid).c_str(), dMid));
+                    ((Hud::CStringStat*)spAudioStats->Get("audio-high"))
+                        ->SetSample(string_format("%-20s %.3f",
+                                                  bar(dHigh).c_str(), dHigh));
+                    ((Hud::CStringStat*)spAudioStats->Get("audio-centroid"))
+                        ->SetSample(string_format(
+                            "%-20s %.3f", bar(dCentroid).c_str(), dCentroid));
+                    ((Hud::CStringStat*)spAudioStats->Get("audio-kick"))
+                        ->SetSample(string_format("%-20s %.3f",
+                                                  bar(dKick).c_str(), dKick));
+                    ((Hud::CStringStat*)spAudioStats->Get("audio-samples"))
+                        ->SetSample(string_format("%d", audio.sampleCount));
+                }
+
                 //	Finally render hud.
 #if defined(WIN32)
                 if (!FirstTimeSetupWin32_IsWizardVisible())
@@ -2210,6 +2272,7 @@ class CElectricSheep
         CLIENT_COMMAND_PLAYBACK_FASTER,
         CLIENT_COMMAND_F1,
         CLIENT_COMMAND_F2,
+        CLIENT_COMMAND_F3,
         CLIENT_COMMAND_SKIP_FW,
         CLIENT_COMMAND_SKIP_BW,
         CLIENT_COMMAND_PAUSE,
@@ -2448,6 +2511,10 @@ class CElectricSheep
                 g_Log->Info("HUD toggled (F2), syncing state to server");
                 EDreamClient::SendStateUpdate();
                 return true;
+            case CLIENT_COMMAND_F3:
+                m_F1F4Timer.Reset();
+                m_HudManager->Toggle("audiostats");
+                return true;
             case CLIENT_COMMAND_SKIP_FW:
                 if (!g_Player().IsJumpDisabled()) {
                     popOSD(Hud::Forward10);
@@ -2571,6 +2638,8 @@ class CElectricSheep
                     return ExecuteCommand(CLIENT_COMMAND_F1);
                 case DisplayOutput::CKeyEvent::KEY_F2:
                     return ExecuteCommand(CLIENT_COMMAND_F2);
+                case DisplayOutput::CKeyEvent::KEY_F3:
+                    return ExecuteCommand(CLIENT_COMMAND_F3);
 
                     // Reset playlist
                 case DisplayOutput::CKeyEvent::KEY_N:

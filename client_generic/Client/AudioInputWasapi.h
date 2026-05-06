@@ -5,6 +5,12 @@
 #include <mmdeviceapi.h>
 #include <vector>
 
+struct StereoSamples
+{
+    std::vector<float> left;
+    std::vector<float> right;
+};
+
 class AudioInputWasapi
 {
   public:
@@ -17,6 +23,7 @@ class AudioInputWasapi
     bool IsRunning() const;
     float GetLevel() const;
     std::vector<float> GetSamples();
+    StereoSamples GetStereoSamples();
 
   private:
     bool m_Running = false;
