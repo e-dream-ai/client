@@ -11,7 +11,7 @@ namespace
 {
 constexpr float kSampleRate = 44100.0f;
 constexpr int kAnalysisSize = 2048; // ~46ms window - enough for bass cycles
-constexpr float kPeakDecay = 0.9995f;
+constexpr float kPeakDecay = 0.999f;
 
 float Clamp01(float v) { return v < 0.0f ? 0.0f : v > 1.0f ? 1.0f : v; }
 
@@ -122,12 +122,12 @@ void AudioAnalyzer::Update(double deltaSeconds)
             magnitudeSum += mag;
         }
 
-        if (f >= 30.0f && f < 150.0f)
+        if (f >= 30.0f && f < 200.0f)
         {
             bassEnergy += mag;
             ++bassBins;
         }
-        else if (f >= 150.0f && f < 3500.0f)
+        else if (f >= 200.0f && f < 3500.0f)
         {
             midEnergy += mag;
             ++midBins;
@@ -166,9 +166,9 @@ void AudioAnalyzer::Update(double deltaSeconds)
     }
     else
     {
-        normBass = Clamp01((bassEnergy / bassPeak) * 1.4f);
-        normMid = Clamp01((midEnergy / midPeak) * 2.5f);
-        normHigh = Clamp01((highEnergy / highPeak) * 1.4f);
+        normBass = Clamp01((bassEnergy / bassPeak) * 1.1f);
+        normMid = Clamp01((midEnergy / midPeak) * 1.3f);
+        normHigh = Clamp01((highEnergy / highPeak) * 1.1f);
     }
 
     // -------------------------------------------------------------------

@@ -1320,7 +1320,7 @@ class CElectricSheep
                 // Bass controls brightness.
                 const float prescribedBrightness =
                     TapsToBrightness(m_Brightness);
-                const float reactiveDarkBrightness = -0.5f;
+                const float reactiveDarkBrightness = -0.25f;
 
                 const float bassAmount = audio.hasSignal ? audio.bass : 0.0f;
                 const float kickAmount = audio.hasSignal ? audio.kick : 0.0f;
