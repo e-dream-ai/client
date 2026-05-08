@@ -52,7 +52,10 @@ class CPlayer : public Base::CSingleton<CPlayer>
     
     ContentDecoder::spCClip m_currentClip;
     ContentDecoder::spCClip m_nextClip;
-    
+    ContentDecoder::spCClip m_blendClip;  // frozen prev clip for audio-driven blending
+
+    float m_audioBlendAlpha = -1.0f;      // < 0 = disabled; set by SetAudioBlendAlpha()
+
     bool m_isTransitioning;
     double m_transitionStartTime;
     float m_transitionDuration;
@@ -205,6 +208,9 @@ class CPlayer : public Base::CSingleton<CPlayer>
     void SetPerceptualFPS(const double _fps);
     double GetPerceptualFPS();
     double GetDecoderFPS();
+
+    void SetAudioBlendAlpha(float a) { m_audioBlendAlpha = a; }
+    void TriggerAudioCut(float transitionDuration);
     inline void Fullscreen(const bool _bState) { m_bFullscreen = _bState; };
     inline bool Stopped() { return !m_bStarted; };
 

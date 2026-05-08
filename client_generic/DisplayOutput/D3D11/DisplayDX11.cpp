@@ -21,6 +21,7 @@
 #include <dwmapi.h>
 #include <ShellScalingApi.h>
 #include <windowsx.h>
+#include "AudioPanelWin32.h"
 #pragma comment(lib, "shcore.lib")
 #pragma comment(lib, "dwmapi.lib")
 extern void ESShowPreferences();
@@ -634,11 +635,17 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
     }
 
     LRESULT imguiHandled = 0;
-    if (SettingsDialogWin32_TryConsumeWndProc(hWnd, msg, wParam, lParam, &imguiHandled))
+    if (SettingsDialogWin32_TryConsumeWndProc(hWnd, msg, wParam, lParam,
+                                              &imguiHandled))
         return imguiHandled;
-    if (AboutDialogWin32_TryConsumeWndProc(hWnd, msg, wParam, lParam, &imguiHandled))
+    if (AboutDialogWin32_TryConsumeWndProc(hWnd, msg, wParam, lParam,
+                                           &imguiHandled))
         return imguiHandled;
-    if (FirstTimeSetupWin32_TryConsumeWndProc(hWnd, msg, wParam, lParam, &imguiHandled))
+    if (FirstTimeSetupWin32_TryConsumeWndProc(hWnd, msg, wParam, lParam,
+                                              &imguiHandled))
+        return imguiHandled;
+    if (AudioPanelWin32_TryConsumeWndProc(hWnd, msg, wParam, lParam,
+                                          &imguiHandled))
         return imguiHandled;
 #endif
 

@@ -42,11 +42,13 @@
 #include "Timer.h"
 #include "StringFormat.h"
 #include "AudioAnalyzer.h"
+#include <algorithm>
 #include <cmath>
 
 #if defined(WIN32)
 #include "FirstTimeSetupWin32.h"
 #include "SettingsDialogWin32.h"
+#include "AudioPanelWin32.h"
 #endif
 
 #include "PlatformUtils.h"
@@ -461,14 +463,16 @@ class CElectricSheep
         Hud::spCStatsConsole spStats =
             std::dynamic_pointer_cast<Hud::CStatsConsole>(
                 m_HudManager->Get("audiostats"));
-        spStats->Add(new Hud::CStringStat("audio-signal", "Signal: ", "off"));
-        spStats->Add(new Hud::CStringStat("audio-volume", "Volume:  ", ""));
-        spStats->Add(new Hud::CStringStat("audio-kick", "Kick:    ", ""));
-        spStats->Add(new Hud::CStringStat("audio-bass", "Bass:    ", ""));
-        spStats->Add(new Hud::CStringStat("audio-mid", "Mid:     ", ""));
-        spStats->Add(new Hud::CStringStat("audio-high", "High:    ", ""));
-        spStats->Add(new Hud::CStringStat("audio-centroid", "Centroid:", ""));
-        spStats->Add(new Hud::CStringStat("audio-samples", "Samples: ", ""));
+        spStats->Add(new Hud::CStringStat("audio-signal",    "Signal:   ", "off"));
+        spStats->Add(new Hud::CStringStat("audio-volume",    "Volume:   ", ""));
+        spStats->Add(new Hud::CStringStat("audio-kick",      "Kick:     ", ""));
+        spStats->Add(new Hud::CStringStat("audio-snare",     "Snare:    ", ""));
+        spStats->Add(new Hud::CStringStat("audio-transient", "Transient:", ""));
+        spStats->Add(new Hud::CStringStat("audio-bass",      "Bass:     ", ""));
+        spStats->Add(new Hud::CStringStat("audio-mid",       "Mid:      ", ""));
+        spStats->Add(new Hud::CStringStat("audio-high",      "High:     ", ""));
+        spStats->Add(new Hud::CStringStat("audio-centroid",  "Centroid: ", ""));
+        spStats->Add(new Hud::CStringStat("audio-samples",   "Samples:  ", ""));
     }
     
     void AddCreditsHud()
@@ -1314,58 +1318,134 @@ class CElectricSheep
 
             if (audioReactiveEnabled)
             {
-                float sensitivity = g_Settings()->Get(
-                    "settings.player.audio_reactive_sensitivity", 0.15f);
-
-                // Bass controls brightness.
-                const float prescribedBrightness =
-                    TapsToBrightness(m_Brightness);
-                const float reactiveDarkBrightness = -0.25f;
-
+                // ── Brightness ────────────────────────────────────────────────
+                const float prescribedBrightness  = TapsToBrightness(m_Brightness);
+                const float reactiveDarkBrightness = g_audioDarkBrightness;
                 const float bassAmount = audio.hasSignal ? audio.bass : 0.0f;
                 const float kickAmount = audio.hasSignal ? audio.kick : 0.0f;
 
                 float reactiveBrightness =
                     reactiveDarkBrightness +
-                    ((prescribedBrightness - reactiveDarkBrightness) *
-                     bassAmount) +
-                    (kickAmount * 0.03f);
+                    ((prescribedBrightness - reactiveDarkBrightness) * bassAmount) +
+                    (kickAmount * (float)g_Settings()->Get(
+                         "settings.player.audio_kick_contrib", 0.3f));
 
-                if (reactiveBrightness > prescribedBrightness)
-                    reactiveBrightness = prescribedBrightness;
-
-                if (reactiveBrightness < reactiveDarkBrightness)
-                    reactiveBrightness = reactiveDarkBrightness;
+                reactiveBrightness = std::max(reactiveDarkBrightness,
+                                     std::min(prescribedBrightness, reactiveBrightness));
 
                 if (auto spRenderer = g_Player().Renderer())
-                {
                     spRenderer->SetBrightness(reactiveBrightness);
+
+                // ── FPS ───────────────────────────────────────────────────────
+                if (g_audioFpsEnabled)
+                {
+                    const float centroid = audio.hasSignal ? audio.spectralCentroid : 0.0f;
+                    const float mid      = audio.hasSignal ? audio.mid              : 0.0f;
+                    const float high     = audio.hasSignal ? audio.high             : 0.0f;
+                    const float bass     = audio.hasSignal ? audio.bass             : 0.0f;
+
+                    const float wSum = g_audioFpsWeightCentroid + g_audioFpsWeightMid
+                                     + g_audioFpsWeightHigh    + g_audioFpsWeightBass;
+                    const float norm = (wSum > 0.001f) ? 1.0f / wSum : 1.0f;
+                    float signal = (centroid * g_audioFpsWeightCentroid
+                                  + mid      * g_audioFpsWeightMid
+                                  + high     * g_audioFpsWeightHigh
+                                  + bass     * g_audioFpsWeightBass) * norm;
+                    signal = std::max(0.0f, std::min(1.0f, signal));
+
+                    const float targetFps = g_audioFpsMin + (g_audioFpsMax - g_audioFpsMin) * signal;
+
+                    static float s_smoothFps = 4.0f;
+                    const float a = (targetFps > s_smoothFps) ? g_audioFpsAttack : g_audioFpsRelease;
+                    s_smoothFps = s_smoothFps * (1.0f - a) + targetFps * a;
+
+                    g_Player().SetPerceptualFPS(static_cast<double>(s_smoothFps));
                 }
-                // User setting is the base speed. Audio only boosts above it.
-                const double basePerceptualFps = 4.0;
+                else
+                {
+                    g_Player().SetPerceptualFPS(
+                        g_Settings()->Get("settings.player.perceptual_fps", 16.0));
+                }
 
-                const double midAmount = audio.hasSignal ? audio.mid : 0.0;
+                // ── Cuts ──────────────────────────────────────────────────────
+                {
+                    static float s_cutCooldown     = 0.0f;
+                    static float s_prevTransient   = 0.0f;
+                    static float s_prevKick        = 0.0f;
+                    static float s_prevSnare       = 0.0f;
+                    static float s_prevVolume      = 0.0f;
+                    static int   s_beatCounter     = 0;
 
-                double reactiveFps =
-                    basePerceptualFps + (midAmount * 48.0); // 4 → 36 fps
+                    const float dt = 1.0f / 60.0f;
+                    s_cutCooldown = std::max(0.0f, s_cutCooldown - dt);
 
-                if (reactiveFps < 4.0)
-                    reactiveFps = 4.0;
+                    const float curTransient = audio.hasSignal ? audio.transient : 0.0f;
+                    const float curKick      = audio.hasSignal ? audio.kick      : 0.0f;
+                    const float curSnare     = audio.hasSignal ? audio.snare     : 0.0f;
+                    const float curVol       = audio.hasSignal ? audio.volume    : 0.0f;
 
-                if (reactiveFps > 48.0)
-                    reactiveFps = 48.0;
+                    const bool transientEdge = (s_prevTransient < g_audioCutTransientThreshold && curTransient >= g_audioCutTransientThreshold);
+                    const bool kickEdge      = (s_prevKick      < g_audioCutKickThreshold      && curKick      >= g_audioCutKickThreshold);
+                    const bool snareEdge     = (s_prevSnare     < g_audioCutSnareThreshold     && curSnare     >= g_audioCutSnareThreshold);
+                    const bool volEdge       = (s_prevVolume    < g_audioCutVolumeThreshold    && curVol       >= g_audioCutVolumeThreshold);
+                    s_prevTransient = curTransient;
+                    s_prevKick      = curKick;
+                    s_prevSnare     = curSnare;
+                    s_prevVolume    = curVol;
 
-                g_Player().SetPerceptualFPS(reactiveFps);
+                    if (transientEdge)
+                        s_beatCounter++;
+
+                    int cutStyle = -1;
+                    if (s_cutCooldown <= 0.0f && !g_Player().IsTransitioning())
+                    {
+                        if (g_audioCutTransientEnabled && transientEdge)
+                            cutStyle = g_audioCutTransientStyle;
+                        else if (g_audioCutKickEnabled && kickEdge)
+                            cutStyle = g_audioCutKickStyle;
+                        else if (g_audioCutSnareEnabled && snareEdge)
+                            cutStyle = g_audioCutSnareStyle;
+                        else if (g_audioCutBeatEnabled && s_beatCounter >= g_audioCutBeatN)
+                            cutStyle = g_audioCutBeatStyle;
+                        else if (g_audioCutVolumeEnabled && volEdge)
+                            cutStyle = g_audioCutVolumeStyle;
+                    }
+
+                    if (cutStyle >= 0)
+                    {
+                        s_cutCooldown = g_audioCutGlobalCooldown;
+                        s_beatCounter = 0;
+                        const float dur = (cutStyle == 0) ? 0.05f : (cutStyle == 1) ? 0.2f : 2.0f;
+                        g_Player().TriggerAudioCut(dur);
+                    }
+                }
+
+                // ── Mixing ────────────────────────────────────────────────────
+                if (g_audioMixEnabled)
+                {
+                    const float sources[] = {
+                        audio.bass, audio.mid, audio.high,
+                        audio.spectralCentroid, audio.kick, audio.snare,
+                        audio.transient, audio.beatPhase
+                    };
+                    const int srcIdx = std::max(0, std::min(7, g_audioMixSource));
+                    const float raw  = audio.hasSignal ? sources[srcIdx] : 0.0f;
+                    const float alpha = g_audioMixMin + (g_audioMixMax - g_audioMixMin) * raw;
+                    g_Player().SetAudioBlendAlpha(std::max(0.0f, std::min(1.0f, alpha)));
+                }
+                else
+                {
+                    g_Player().SetAudioBlendAlpha(-1.0f);
+                }
             }
             else
             {
                 if (auto spRenderer = g_Player().Renderer())
-                {
                     spRenderer->SetBrightness(TapsToBrightness(m_Brightness));
-                }
 
                 g_Player().SetPerceptualFPS(
                     g_Settings()->Get("settings.player.perceptual_fps", 16.0));
+                g_Player().SetAudioBlendAlpha(-1.0f);
             }
 
             if ((!EDreamClient::IsLoggedIn() && !m_MultipleInstancesMode) || !g_Player().HasStarted()) {
@@ -2195,15 +2275,17 @@ class CElectricSheep
                             m_HudManager->Get("audiostats")))
                 {
                     static float dVolume = 0.0f, dBass = 0.0f, dMid = 0.0f;
-                    static float dHigh = 0.0f, dCentroid = 0.0f, dKick = 0.0f;
+                    static float dHigh = 0.0f, dCentroid = 0.0f;
+                    static float dKick = 0.0f, dSnare = 0.0f, dTransient = 0.0f;
                     const float dSmooth = 0.12f;
-                    dVolume = dVolume + (audio.volume - dVolume) * dSmooth;
-                    dBass = dBass + (audio.bass - dBass) * dSmooth;
-                    dMid = dMid + (audio.mid - dMid) * dSmooth;
-                    dHigh = dHigh + (audio.high - dHigh) * dSmooth;
-                    dCentroid = dCentroid +
-                                (audio.spectralCentroid - dCentroid) * dSmooth;
-                    dKick = dKick + (audio.kick - dKick) * dSmooth;
+                    dVolume   = dVolume   + (audio.volume           - dVolume)   * dSmooth;
+                    dBass     = dBass     + (audio.bass             - dBass)     * dSmooth;
+                    dMid      = dMid      + (audio.mid              - dMid)      * dSmooth;
+                    dHigh     = dHigh     + (audio.high             - dHigh)     * dSmooth;
+                    dCentroid = dCentroid + (audio.spectralCentroid - dCentroid) * dSmooth;
+                    dKick     = dKick     + (audio.kick             - dKick)     * dSmooth;
+                    dSnare    = dSnare    + (audio.snare            - dSnare)    * dSmooth;
+                    dTransient= dTransient+ (audio.transient        - dTransient)* dSmooth;
 
                     auto bar = [](float value)
                     {
@@ -2236,8 +2318,11 @@ class CElectricSheep
                         ->SetSample(string_format(
                             "%-20s %.3f", bar(dCentroid).c_str(), dCentroid));
                     ((Hud::CStringStat*)spAudioStats->Get("audio-kick"))
-                        ->SetSample(string_format("%-20s %.3f",
-                                                  bar(dKick).c_str(), dKick));
+                        ->SetSample(string_format("%-20s %.3f", bar(dKick).c_str(), dKick));
+                    ((Hud::CStringStat*)spAudioStats->Get("audio-snare"))
+                        ->SetSample(string_format("%-20s %.3f", bar(dSnare).c_str(), dSnare));
+                    ((Hud::CStringStat*)spAudioStats->Get("audio-transient"))
+                        ->SetSample(string_format("%-20s %.3f", bar(dTransient).c_str(), dTransient));
                     ((Hud::CStringStat*)spAudioStats->Get("audio-samples"))
                         ->SetSample(string_format("%d", audio.sampleCount));
                 }
@@ -2512,9 +2597,14 @@ class CElectricSheep
                 EDreamClient::SendStateUpdate();
                 return true;
             case CLIENT_COMMAND_F3:
-                m_F1F4Timer.Reset();
                 m_HudManager->Toggle("audiostats");
-                return true;
+#ifdef WIN32
+                {
+                    static bool s_audioStatsVisible = false;
+                    s_audioStatsVisible = !s_audioStatsVisible;
+                    AudioPanelWin32_SetVisible(s_audioStatsVisible);
+                }
+#endif
             case CLIENT_COMMAND_SKIP_FW:
                 if (!g_Player().IsJumpDisabled()) {
                     popOSD(Hud::Forward10);

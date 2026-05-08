@@ -14,6 +14,7 @@
 #include "AboutDialogWin32.h"
 #include "FirstTimeSetupWin32.h"
 #include "SettingsDialogWin32.h"
+#include "AudioPanelWin32.h"
 #include <windows.h>
 #include <vector>
 #endif
@@ -1539,9 +1540,14 @@ bool CRendererDX11::EndFrame(bool drawn) {
         const float viewportW = static_cast<float>(m_spDisplay->Width());
         const float viewportH = static_cast<float>(m_spDisplay->Height());
         const bool settingsVisible = SettingsDialogWin32_RenderIfNeeded(
-            m_device.Get(), m_context.Get(), m_renderTargetView.Get(), viewportW, viewportH);
+            m_device.Get(), m_context.Get(), m_renderTargetView.Get(),
+            viewportW, viewportH);
         const bool aboutVisible = AboutDialogWin32_RenderIfNeeded(
-            m_device.Get(), m_context.Get(), m_renderTargetView.Get(), viewportW, viewportH);
+            m_device.Get(), m_context.Get(), m_renderTargetView.Get(),
+            viewportW, viewportH);
+        const bool audioPanelVisible = AudioPanelWin32_RenderIfNeeded(
+            m_device.Get(), m_context.Get(), m_renderTargetView.Get(),
+            viewportW, viewportH);
 
         // Custom titlebar strip + caption buttons: draw in DX so it never flashes.
         if (auto* dx = dynamic_cast<DisplayOutput::CDisplayDX11*>(m_spDisplay.get()))
@@ -1781,7 +1787,8 @@ bool CRendererDX11::EndFrame(bool drawn) {
 
         EndGpuTimingFrame();
 
-        if (effectiveDrawn || settingsVisible || aboutVisible)
+        if (effectiveDrawn || settingsVisible || aboutVisible ||
+            audioPanelVisible)
         {
             m_spDisplay->SwapBuffers();
             return true;

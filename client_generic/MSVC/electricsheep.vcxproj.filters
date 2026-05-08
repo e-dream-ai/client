@@ -58,6 +58,9 @@
     <Filter Include="DisplayOutput\D3D11">
       <UniqueIdentifier>{55b5ee93-d357-4b3d-bc19-998a3c9c138d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="audioFlux">
+      <UniqueIdentifier>{a1b2c3d4-e5f6-7890-abcd-ef1234567890}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\ContentDownloader\ContentDownloader.cpp">
@@ -202,6 +205,79 @@
       <Filter>ContentDownloader</Filter>
     </ClCompile>
     <ClCompile Include="..\Client\kiss_fft.c">
+      <Filter>ContentDownloader</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\bft_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\cepstrogram_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\cqt_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\cwt_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\dwt_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\flux_spectral.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\flux_temporal.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\fst_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\nsgt_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\pwt_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\reassign_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\spectrogram_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\stft_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\st_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\swt_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\synsq_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\temporal_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\wpt_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\wsst_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\classic\hmm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\classic\nmf.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\classic\trist.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\classic\viterbi.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\dsp\conv_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\dsp\czt_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\dsp\dct_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\dsp\dft_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\dsp\fft_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\dsp\filterDesign_fir.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\dsp\filterDesign_freqz.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\dsp\filterDesign_iir.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\dsp\flux_correct.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\dsp\flux_window.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\dsp\hilbert_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\dsp\phase_vocoder.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\dsp\resample_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\dsp\xcorr_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\feature\deconv_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\feature\spectral_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\feature\xxcc_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\filterbank\auditory_filterBank.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\filterbank\auditory_weight.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\filterbank\chroma_filterBank.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\filterbank\cqt_filterBank.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\filterbank\cwt_filterBank.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\filterbank\dwt_filterCoef.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\filterbank\nsgt_filterBank.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\mir\harmonicRatio_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\mir\harmonic_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\mir\hpss_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\mir\onset_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\mir\pitchShift_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\mir\timeStretch_algorithm.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\mir\_pitch_cep.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\mir\_pitch_ffp.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\mir\_pitch_hps.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\mir\_pitch_lhs.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\mir\_pitch_ncf.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\mir\_pitch_pef.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\mir\_pitch_stft.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\mir\_pitch_yin.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\mir\_queue.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\mir\_trist3.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\track\tune_track.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\util\flux_util.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\util\flux_wave.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\vector\flux_complex.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\vector\flux_vector.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\vector\flux_vectorInt.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\..\audioFlux\src\vector\flux_vectorOp.c"><Filter>audioFlux</Filter></ClCompile>
+    <ClCompile Include="..\Client\AudioPanelWin32.cpp">
       <Filter>ContentDownloader</Filter>
     </ClCompile>
   </ItemGroup>
@@ -483,6 +559,9 @@
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="..\Client\kiss_fft_log.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Client\AudioPanelWin32.h">
       <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>
