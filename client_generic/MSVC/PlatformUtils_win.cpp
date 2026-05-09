@@ -207,7 +207,7 @@ std::string PlatformUtils::GetAppVersion()
             return fromAppVersion;
 
         // Semver from WinBuild/build.py (-v / --version) or clientversion.h, compiled in.
-        return std::string(OS_PREFIX_PRETTY) + EDREAM_BUILD_VERSION_SEMVER;
+        return EDREAM_BUILD_VERSION_SEMVER;
     }();
     return version;
 }

@@ -10,7 +10,6 @@
 #include <atomic>
 #include <array>
 #include <cstdint>
-#include <cstring>
 #include <string>
 #include <vector>
 
@@ -229,18 +228,7 @@ static void LoadAboutLogo(ID3D11Device* device)
 
 static std::string AboutPanelVersionString()
 {
-    std::string v = PlatformUtils::GetAppVersion();
-    static constexpr const char* kPrefixes[] = {"Windows ", "macOS ", "Linux "};
-    for (const char* pre : kPrefixes)
-    {
-        const size_t len = std::strlen(pre);
-        if (v.size() >= len && v.compare(0, len, pre) == 0)
-        {
-            v.erase(0, len);
-            break;
-        }
-    }
-    return v;
+    return PlatformUtils::GetAppVersion();
 }
 
 static void ApplyAboutPauseState(bool visible)
