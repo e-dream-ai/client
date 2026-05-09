@@ -473,6 +473,8 @@ class CElectricSheep
         spStats->Add(new Hud::CStringStat("audio-high",      "High:     ", ""));
         spStats->Add(new Hud::CStringStat("audio-centroid",  "Centroid: ", ""));
         spStats->Add(new Hud::CStringStat("audio-samples",   "Samples:  ", ""));
+        spStats->Add(new Hud::CStringStat("audio-bpm",       "BPM:      ", ""));
+        spStats->Add(new Hud::CStringStat("audio-beat",      "Beat:     ", ""));
     }
     
     void AddCreditsHud()
@@ -1344,13 +1346,13 @@ class CElectricSheep
                     const float high     = audio.hasSignal ? audio.high             : 0.0f;
                     const float bass     = audio.hasSignal ? audio.bass             : 0.0f;
 
-                    const float wSum = g_audioFpsWeightCentroid + g_audioFpsWeightMid
-                                     + g_audioFpsWeightHigh    + g_audioFpsWeightBass;
+                    const float wC   = g_audioFpsUseCentroid ? g_audioFpsWeightCentroid : 0.0f;
+                    const float wM   = g_audioFpsUseMid      ? g_audioFpsWeightMid      : 0.0f;
+                    const float wH   = g_audioFpsUseHigh     ? g_audioFpsWeightHigh     : 0.0f;
+                    const float wB   = g_audioFpsUseBass     ? g_audioFpsWeightBass     : 0.0f;
+                    const float wSum = wC + wM + wH + wB;
                     const float norm = (wSum > 0.001f) ? 1.0f / wSum : 1.0f;
-                    float signal = (centroid * g_audioFpsWeightCentroid
-                                  + mid      * g_audioFpsWeightMid
-                                  + high     * g_audioFpsWeightHigh
-                                  + bass     * g_audioFpsWeightBass) * norm;
+                    float signal = (centroid * wC + mid * wM + high * wH + bass * wB) * norm;
                     signal = std::max(0.0f, std::min(1.0f, signal));
 
                     const float targetFps = g_audioFpsMin + (g_audioFpsMax - g_audioFpsMin) * signal;
@@ -1428,10 +1430,12 @@ class CElectricSheep
                         audio.spectralCentroid, audio.kick, audio.snare,
                         audio.transient, audio.beatPhase
                     };
-                    const int srcIdx = std::max(0, std::min(7, g_audioMixSource));
-                    const float raw  = audio.hasSignal ? sources[srcIdx] : 0.0f;
-                    const float alpha = g_audioMixMin + (g_audioMixMax - g_audioMixMin) * raw;
-                    g_Player().SetAudioBlendAlpha(std::max(0.0f, std::min(1.0f, alpha)));
+                    const int srcIdx   = std::max(0, std::min(7, g_audioMixSource));
+                    const float raw    = audio.hasSignal ? sources[srcIdx] : 0.0f;
+                    const float target = g_audioMixMin + (g_audioMixMax - g_audioMixMin) * raw;
+                    static float s_mixAlpha = 0.0f;
+                    s_mixAlpha = s_mixAlpha * (1.0f - g_audioMixSmooth) + target * g_audioMixSmooth;
+                    g_Player().SetAudioBlendAlpha(std::max(0.0f, std::min(1.0f, s_mixAlpha)));
                 }
                 else
                 {
@@ -1691,35 +1695,6 @@ class CElectricSheep
                     ->SetSample(string_format(" %.2f fps", pFPS));
                 ((Hud::CStringStat*)spStats->Get("activityLevel"))
                     ->SetSample(string_format(" %.2f", activityLevel));
-                if (auto audioReactiveStat = static_cast<Hud::CStringStat*>(
-                        spStats->Get("audioReactive")))
-                {
-                    const AudioFeatures& audio = m_AudioAnalyzer.GetFeatures();
-
-                        auto bar = [](float value)
-                    {
-                        int count = static_cast<int>(value * 10.0f);
-                        if (count < 0)
-                            count = 0;
-                        if (count > 10)
-                            count = 10;
-
-                        std::string result;
-                        for (int i = 0; i < count; ++i)
-                            result += "|";
-
-                        return result;
-                    };
-
-                    audioReactiveStat->SetSample(
-                            string_format("B %-10s %.2f | M %-10s %.2f | H "
-                                          "%-10s %.2f | SC %.2f",
-                                          bar(audio.bass).c_str(), audio.bass,
-                                          bar(audio.mid).c_str(), audio.mid,
-                                          bar(audio.high).c_str(), audio.high,
-                                          audio.spectralCentroid));
-                }
-                
                 ((Hud::CIntCounter*)spStats->Get("displayfps"))->AddSample(1);
 
                 // Update playlist info
@@ -2325,6 +2300,15 @@ class CElectricSheep
                         ->SetSample(string_format("%-20s %.3f", bar(dTransient).c_str(), dTransient));
                     ((Hud::CStringStat*)spAudioStats->Get("audio-samples"))
                         ->SetSample(string_format("%d", audio.sampleCount));
+                    ((Hud::CStringStat*)spAudioStats->Get("audio-bpm"))
+                        ->SetSample(string_format("%.1f", audio.bpm));
+                    {
+                        const int beatPos = static_cast<int>(audio.beatPhase * 20.0f);
+                        std::string beatBar(20, '.');
+                        if (beatPos >= 0 && beatPos < 20) beatBar[beatPos] = '|';
+                        ((Hud::CStringStat*)spAudioStats->Get("audio-beat"))
+                            ->SetSample(beatBar);
+                    }
                 }
 
                 //	Finally render hud.
@@ -2587,24 +2571,27 @@ class CElectricSheep
             case CLIENT_COMMAND_F1:
                 m_F1F4Timer.Reset();
                 m_HudManager->Toggle("helpmessage");
+#ifdef WIN32
+                AudioPanelWin32_SetVisible(false);
+#endif
                 g_Log->Info("HUD toggled (F1), syncing state to server");
                 EDreamClient::SendStateUpdate();
                 return true;
             case CLIENT_COMMAND_F2:
                 m_F1F4Timer.Reset();
                 m_HudManager->Toggle("dreamstats");
+#ifdef WIN32
+                AudioPanelWin32_SetVisible(false);
+#endif
                 g_Log->Info("HUD toggled (F2), syncing state to server");
                 EDreamClient::SendStateUpdate();
                 return true;
             case CLIENT_COMMAND_F3:
                 m_HudManager->Toggle("audiostats");
 #ifdef WIN32
-                {
-                    static bool s_audioStatsVisible = false;
-                    s_audioStatsVisible = !s_audioStatsVisible;
-                    AudioPanelWin32_SetVisible(s_audioStatsVisible);
-                }
+                AudioPanelWin32_SetVisible(!AudioPanelWin32_IsVisible());
 #endif
+                return true;
             case CLIENT_COMMAND_SKIP_FW:
                 if (!g_Player().IsJumpDisabled()) {
                     popOSD(Hud::Forward10);
