@@ -109,14 +109,10 @@ Section "MainSection" SEC01
   File "${SOURCE_DIR}\*.png"
   File "${SOURCE_DIR}\*.ttf"
 
-  ; Start Menu shortcuts
+  ; Start Menu shortcut — just the app launcher. Apps & Features (registered via
+  ; PRODUCT_UNINST_KEY below) handles uninstall; the website lives in the app's About.
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk"              "$INSTDIR\${PRODUCT_EXE}"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME} (windowed).lnk"   "$INSTDIR\${PRODUCT_EXE}" "-X"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall ${PRODUCT_NAME}.lnk"    "$INSTDIR\uninst.exe"
-
-  WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Website.lnk" "$INSTDIR\${PRODUCT_NAME}.url"
   SetShellVarContext current
 SectionEnd
 
@@ -167,6 +163,7 @@ Section Uninstall
   RMDir /r "$APPDATA\Infinidream"
 
   Delete "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk"
+  ; Legacy shortcuts from older installers — delete on uninstall so they don't orphan.
   Delete "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME} (windowed).lnk"
   Delete "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall ${PRODUCT_NAME}.lnk"
   Delete "$SMPROGRAMS\${PRODUCT_NAME}\Website.lnk"
