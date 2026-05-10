@@ -2,6 +2,7 @@
 
 #include "SettingsDialogWin32.h"
 #include "AboutDialogWin32.h"
+#include "AudioPanelWin32.h"
 
 #include <atomic>
 #include <array>
@@ -184,6 +185,8 @@ static void OnShowPreferencesRequested()
     if (!g_overlayAllowed.load(std::memory_order_acquire))
         return;
     AboutDialogWin32_DismissWithoutSaveForExternalOverlay();
+    // Audio panel and settings share the same HWND ImGui context — close panel first.
+    AudioPanelWin32_SetVisible(false);
     g_pendingImGuiShutdown.store(false, std::memory_order_release);
     g_showRequested.store(true, std::memory_order_release);
 }
