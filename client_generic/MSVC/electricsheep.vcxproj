@@ -673,6 +673,8 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     <ClCompile Include="..\..\aubio\src\spectral\specdesc.c" />
     <ClCompile Include="..\..\aubio\src\spectral\statistics.c" />
     <ClCompile Include="..\..\aubio\src\spectral\awhitening.c" />
+    <ClCompile Include="..\..\aubio\src\spectral\filterbank.c" />
+    <ClCompile Include="..\..\aubio\src\spectral\filterbank_mel.c" />
     <!-- aubio: temporal -->
     <ClCompile Include="..\..\aubio\src\temporal\biquad.c" />
     <ClCompile Include="..\..\aubio\src\temporal\filter.c" />

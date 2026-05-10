@@ -1,6 +1,7 @@
 #ifdef WIN32
 
 #include "AudioPanelWin32.h"
+#include "AudioAnalyzer.h"
 #include "Settings.h"
 
 #include "imgui.h"
@@ -53,6 +54,8 @@ static void ShutdownImGui()
 {
     if (!g_imguiInitialized)
         return;
+    if (g_Settings()->Storage())
+        g_Settings()->Storage()->Commit();
     ImGui_ImplDX11_Shutdown();
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
@@ -69,6 +72,21 @@ bool AudioPanelWin32_TryConsumeWndProc(HWND hWnd, UINT msg, WPARAM wParam,
     extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(
         HWND, UINT, WPARAM, LPARAM);
     const LRESULT r = ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam);
+
+    // Unlike modal dialogs, the audio panel is a non-modal overlay. Only consume
+    // input when ImGui actually wants it — otherwise native chrome interactions
+    // (close/min/max buttons) are swallowed even when the cursor isn't near the panel.
+    const ImGuiIO& io = ImGui::GetIO();
+    const bool isMouse = (msg == WM_MOUSEMOVE    || msg == WM_LBUTTONDOWN ||
+                          msg == WM_LBUTTONUP    || msg == WM_RBUTTONDOWN ||
+                          msg == WM_RBUTTONUP    || msg == WM_MBUTTONDOWN ||
+                          msg == WM_MBUTTONUP    || msg == WM_MOUSEWHEEL  ||
+                          msg == WM_MOUSEHWHEEL);
+    const bool isKey   = (msg == WM_KEYDOWN   || msg == WM_KEYUP   ||
+                          msg == WM_SYSKEYDOWN || msg == WM_SYSKEYUP || msg == WM_CHAR);
+    if ((isMouse && !io.WantCaptureMouse) || (isKey && !io.WantCaptureKeyboard))
+        return false;
+
     if (r != 0)
     {
         if (outResult)
@@ -192,16 +210,132 @@ bool AudioPanelWin32_RenderIfNeeded(ID3D11Device* device,
     // ── Analyser ──────────────────────────────────────────────────────────────
     if (ImGui::CollapsingHeader("Analyser", ImGuiTreeNodeFlags_DefaultOpen))
     {
-        drawSlider("Bass",       &g_audioBassMult,      0.5f,   3.0f,    "settings.player.audio_bass_mult");
-        tip("Multiplier on normalised bass energy (30-200 Hz).");
-        drawSlider("Mid",        &g_audioMidMult,       0.5f,   3.0f,    "settings.player.audio_mid_mult");
-        tip("Multiplier on normalised mid energy (200-3500 Hz).");
-        drawSlider("High",       &g_audioHighMult,      0.5f,   3.0f,    "settings.player.audio_high_mult");
-        tip("Multiplier on normalised high energy (3.5-20 kHz).");
+        drawSlider("Bass",       &g_audioBassMult,      0.5f,   2.0f,    "settings.player.audio_bass_mult");
+        tip("Multiplier on normalised bass energy (20-200 Hz).");
+        drawSlider("Mid",        &g_audioMidMult,       0.5f,   2.0f,    "settings.player.audio_mid_mult");
+        tip("Multiplier on normalised mid energy (200-4000 Hz).");
+        drawSlider("High",       &g_audioHighMult,      0.5f,   2.0f,    "settings.player.audio_high_mult");
+        tip("Multiplier on normalised high energy (4-11 kHz).");
         drawSlider("Peak decay", &g_audioPeakDecay,     0.95f,  0.99999f,"settings.player.audio_peak_decay", "%.5f");
         tip("How slowly the per-band peak normalisation decays. Higher = longer memory, slower adaptation.");
+        drawSlider("Peak floor", &g_audioPeakFloor,     0.0f,   0.1f,    "settings.player.audio_peak_floor", "%.4f");
+        tip("Minimum peak value — prevents normalisation from chasing the noise floor during quiet passages.\n"
+            "Raise this if bands read too high during silence or quiet sections.");
         drawSlider("Dark brt",   &g_audioDarkBrightness,-1.0f,  0.0f,    "settings.player.audio_dark_brightness");
         tip("Brightness floor when no audio signal is present.");
+    }
+
+    // ── Beat ──────────────────────────────────────────────────────────────────
+    if (ImGui::CollapsingHeader("Beat", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        static bool  s_bpmLocked = false;
+        static float s_lockedBpm = 120.0f;
+
+        // Beat count is monotonically incremented by the audio thread on every beat wrap.
+        // Deriving beatIndex from it (rather than detecting phase wraps per frame) handles
+        // multiple beats per render frame correctly after a dream change drains audio backlog.
+        const uint32_t beatCount  = AudioAnalyzer_GetBeatCount();
+        const float    phase      = AudioAnalyzer_GetBeatPhase();
+        const int      s_beatIndex = static_cast<int>(beatCount % 4);
+
+        // BPM readout + Tap + Reset on one row
+        const float liveBpm = AudioAnalyzer_GetCurrentBpm();
+        ImGui::Text("Live BPM: %.1f", liveBpm);
+        ImGui::SameLine(110.0f);
+        const float halfW = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
+        if (ImGui::Button("Tap##bpm", ImVec2(halfW, 0)))
+        {
+            const float tapped = AudioAnalyzer_TapTempo();
+            if (tapped > 0.0f)
+            {
+                s_lockedBpm = tapped;
+                s_bpmLocked = true;
+            }
+        }
+        tip("Tap to the beat. Locks BPM automatically once two or more taps are recorded.\n"
+            "Resets if you stop tapping for more than 3 seconds.");
+        ImGui::SameLine();
+        if (ImGui::Button("Reset##beat", ImVec2(-1, 0)))
+            AudioAnalyzer_ResetBeatPhase();
+        tip("Snap beat phase to beat 1 immediately.");
+
+        // 4-box beat visualizer — box 1 is beat 1, pulses on each beat
+        {
+            const float avail = ImGui::GetContentRegionAvail().x;
+            const float gap   = 4.0f;
+            const float boxW  = (avail - gap * 3.0f) / 4.0f;
+            const float boxH  = 22.0f;
+
+            ImDrawList* dl     = ImGui::GetWindowDrawList();
+            const ImVec2 pos   = ImGui::GetCursorScreenPos();
+
+            for (int i = 0; i < 4; ++i)
+            {
+                const float x     = pos.x + i * (boxW + gap);
+                const bool active = (i == s_beatIndex);
+                // Pulse: bright at phase=0, half-bright at phase=1
+                const float pulse = active ? (1.0f - phase * 0.5f) : 0.0f;
+                const int   alpha = active ? (int)(pulse * 200.0f) + 40 : 110;
+
+                ImU32 fillCol;
+                if (i == 0)
+                    fillCol = active ? IM_COL32(255, 210, 40,  alpha)  // beat 1: gold
+                                     : IM_COL32(80,  65,  15,  alpha);
+                else
+                    fillCol = active ? IM_COL32(140, 140, 255, alpha)  // beats 2-4: blue-white
+                                     : IM_COL32(45,  45,  45,  alpha);
+
+                dl->AddRectFilled(ImVec2(x, pos.y), ImVec2(x + boxW, pos.y + boxH),
+                                  fillCol, 3.0f);
+
+                char num[4];
+                snprintf(num, sizeof(num), "%d", i + 1);
+                const ImVec2 tsz = ImGui::CalcTextSize(num);
+                dl->AddText(ImVec2(x + (boxW - tsz.x) * 0.5f, pos.y + (boxH - tsz.y) * 0.5f),
+                            active ? IM_COL32(255, 255, 255, 255) : IM_COL32(160, 160, 160, 180),
+                            num);
+            }
+            ImGui::Dummy(ImVec2(avail, boxH));
+        }
+
+        // Tempo nudge — hold to temporarily shift tempo ±5%; release restores locked BPM exactly.
+        // Auto-locks at current BPM on first press if not already locked.
+        float nudgeFactor = 0.0f;
+        {
+            const float nudgeW = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
+            ImGui::Button("< Slow##nudge", ImVec2(nudgeW, 0));
+            if (ImGui::IsItemActivated() && !s_bpmLocked)
+            {
+                s_lockedBpm = AudioAnalyzer_GetCurrentBpm();
+                s_bpmLocked = true;
+            }
+            if (ImGui::IsItemActive()) nudgeFactor = -0.05f;
+            tip("Hold to slow tempo 5% — release to restore.\nUse to drift beat phase back into sync.");
+            ImGui::SameLine();
+            ImGui::Button("Fast >##nudge", ImVec2(-1, 0));
+            if (ImGui::IsItemActivated() && !s_bpmLocked)
+            {
+                s_lockedBpm = AudioAnalyzer_GetCurrentBpm();
+                s_bpmLocked = true;
+            }
+            if (ImGui::IsItemActive()) nudgeFactor = +0.05f;
+            tip("Hold to speed tempo 5% — release to restore.\nUse to drift beat phase forward into sync.");
+        }
+
+        // Lock BPM row
+        if (ImGui::Checkbox("Lock BPM", &s_bpmLocked) && !s_bpmLocked)
+            AudioAnalyzer_SetBpmOverride(0.0f);
+        ImGui::SameLine(110.0f);
+        ImGui::PushItemWidth(-1);
+        ImGui::BeginDisabled(!s_bpmLocked);
+        if (ImGui::InputFloat("##lockedbpm", &s_lockedBpm, 1.0f, 5.0f, "%.1f"))
+            s_lockedBpm = std::max(40.0f, std::min(250.0f, s_lockedBpm));
+        ImGui::EndDisabled();
+        ImGui::PopItemWidth();
+        tip("BPM used when locked. Drag or use +/- to nudge.");
+
+        // nudgeFactor temporarily scales the override while held; s_lockedBpm is never mutated
+        AudioAnalyzer_SetBpmOverride(s_bpmLocked ? s_lockedBpm * (1.0f + nudgeFactor) : 0.0f);
     }
 
     // ── FPS ───────────────────────────────────────────────────────────────────
@@ -209,9 +343,9 @@ bool AudioPanelWin32_RenderIfNeeded(ID3D11Device* device,
     {
         drawCheck("Enable##fps", &g_audioFpsEnabled, "settings.player.audio_fps_enabled");
         tip("Vary playback frame rate with audio intensity.");
-        drawSlider("Min FPS", &g_audioFpsMin, 1.0f, 120.0f, "settings.player.audio_fps_min");
+        drawSlider("Min FPS", &g_audioFpsMin, 1.0f, 240.0f, "settings.player.audio_fps_min");
         tip("Frame rate when audio is quiet or absent.");
-        drawSlider("Max FPS", &g_audioFpsMax, 1.0f, 120.0f, "settings.player.audio_fps_max");
+        drawSlider("Max FPS", &g_audioFpsMax, 1.0f, 240.0f, "settings.player.audio_fps_max");
         tip("Frame rate at peak audio intensity.");
         drawWeightRow("##useC", &g_audioFpsUseCentroid, "settings.player.audio_fps_use_centroid",
                       "W centroid", &g_audioFpsWeightCentroid, "settings.player.audio_fps_weight_centroid",
@@ -280,9 +414,9 @@ bool AudioPanelWin32_RenderIfNeeded(ID3D11Device* device,
         ImGui::Spacing();
 
         drawCheck("Beat trigger", &g_audioCutBeatEnabled, "settings.player.audio_cut_beat_enabled");
-        tip("Trigger a cut every N beats as detected by the tempo tracker.");
-        drawSliderInt("Beat N",   &g_audioCutBeatN, 1, 8, "settings.player.audio_cut_beat_n");
-        tip("Number of beats between beat-triggered cuts.");
+        tip("Trigger a cut every N bars on beat 1.");
+        drawSliderInt("Bars",     &g_audioCutBeatN, 1, 8, "settings.player.audio_cut_beat_n");
+        tip("Number of bars between beat-triggered cuts. Cuts only fire on beat 1.");
         drawCombo("Beat style",   &g_audioCutBeatStyle, kCutStyles, 3, "settings.player.audio_cut_beat_style");
         tip("Transition style applied when a beat cut fires.");
         ImGui::Spacing();

@@ -102,12 +102,12 @@ ImGui::SetCursorPosX(S(8.f));
 ImGui::TextUnformatted("Analyser");
 ImGui::SetCursorPosY(ImGui::GetCursorPosY() + rowGap);
 
-drawSlider("Bass mult",       &g_audioBassMult,      0.5f,  3.0f,    "settings.player.audio_bass_mult");
-tip("Multiplier on normalised bass energy (30-200 Hz).");
-drawSlider("Mid mult",        &g_audioMidMult,       0.5f,  3.0f,    "settings.player.audio_mid_mult");
-tip("Multiplier on normalised mid energy (200-3500 Hz).");
-drawSlider("High mult",       &g_audioHighMult,      0.5f,  3.0f,    "settings.player.audio_high_mult");
-tip("Multiplier on normalised high energy (3.5-20 kHz).");
+drawSlider("Bass mult",       &g_audioBassMult,      0.5f,  2.0f,    "settings.player.audio_bass_mult");
+tip("Multiplier on normalised bass energy (20-200 Hz).");
+drawSlider("Mid mult",        &g_audioMidMult,       0.5f,  2.0f,    "settings.player.audio_mid_mult");
+tip("Multiplier on normalised mid energy (200-4000 Hz).");
+drawSlider("High mult",       &g_audioHighMult,      0.5f,  2.0f,    "settings.player.audio_high_mult");
+tip("Multiplier on normalised high energy (4-11 kHz).");
 drawSlider("Peak decay",      &g_audioPeakDecay,     0.95f, 0.99999f,"settings.player.audio_peak_decay", "%.5f");
 tip("How slowly per-band peak normalisation decays. Higher = longer memory, slower adaptation to volume changes.");
 drawSlider("Dark brightness", &g_audioDarkBrightness,-1.0f, 0.0f,    "settings.player.audio_dark_brightness");
@@ -124,9 +124,9 @@ ImGui::SetCursorPosY(ImGui::GetCursorPosY() + rowGap);
 drawCheck("Enable FPS control", &g_audioFpsEnabled, "settings.player.audio_fps_enabled");
 tip("Vary playback frame rate with audio intensity.");
 ImGui::SetCursorPosY(ImGui::GetCursorPosY() + rowGap);
-drawSlider("Min FPS",    &g_audioFpsMin,  1.0f, 120.0f, "settings.player.audio_fps_min");
+drawSlider("Min FPS",    &g_audioFpsMin,  1.0f, 240.0f, "settings.player.audio_fps_min");
 tip("Frame rate when audio is quiet or absent.");
-drawSlider("Max FPS",    &g_audioFpsMax,  1.0f, 120.0f, "settings.player.audio_fps_max");
+drawSlider("Max FPS",    &g_audioFpsMax,  1.0f, 240.0f, "settings.player.audio_fps_max");
 tip("Frame rate at peak audio intensity.");
 drawWeightSlider("W centroid", &g_audioFpsUseCentroid, &g_audioFpsWeightCentroid,
     "settings.player.audio_fps_use_centroid", "settings.player.audio_fps_weight_centroid",
@@ -199,9 +199,9 @@ tip("Transition style applied when a snare cut fires.");
 ImGui::SetCursorPosY(ImGui::GetCursorPosY() + rowGap);
 
 drawCheck("Beat trigger", &g_audioCutBeatEnabled, "settings.player.audio_cut_beat_enabled");
-tip("Trigger a cut every N beats as detected by the tempo tracker.");
-drawSliderInt("Beat N",   &g_audioCutBeatN, 1, 8, "settings.player.audio_cut_beat_n");
-tip("Number of beats between beat-triggered cuts.");
+tip("Trigger a cut every N bars on beat 1.");
+drawSliderInt("Bars",     &g_audioCutBeatN, 1, 8, "settings.player.audio_cut_beat_n");
+tip("Number of bars between beat-triggered cuts. Cuts only fire on beat 1.");
 drawCombo("Beat style",   &g_audioCutBeatStyle, kCutStyles, 3, "settings.player.audio_cut_beat_style");
 tip("Transition style applied when a beat cut fires.");
 ImGui::SetCursorPosY(ImGui::GetCursorPosY() + rowGap);

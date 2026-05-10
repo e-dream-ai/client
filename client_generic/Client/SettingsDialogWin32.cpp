@@ -701,6 +701,7 @@ float g_audioBassMult          = 0.7f;
 float g_audioMidMult           = 0.8f;
 float g_audioHighMult          = 0.7f;
 float g_audioPeakDecay         = 0.999f;
+float g_audioPeakFloor         = 0.01f;
 float g_audioDarkBrightness    = -0.5f;
 float g_audioOnsetThreshold    = 0.001f;
 
@@ -873,6 +874,11 @@ bool SettingsDialogWin32_RenderIfNeeded(ID3D11Device* device, ID3D11DeviceContex
         ShutdownImGui();
 
     return true;
+}
+
+void SettingsDialogWin32_LoadAudioSettings()
+{
+    LoadSettingsForShow();
 }
 
 #endif // WIN32

@@ -7,6 +7,9 @@
 
 void SettingsDialogWin32_Register();
 void SettingsDialogWin32_SetOverlayAllowed(bool allow);
+/// Populate all audio-reactive globals from the settings file.
+/// Call this whenever a panel that uses those globals becomes visible.
+void SettingsDialogWin32_LoadAudioSettings();
 bool SettingsDialogWin32_HasPendingOrVisible();
 bool SettingsDialogWin32_IsVisible();
 void SettingsDialogWin32_Toggle();
@@ -35,6 +38,7 @@ extern float g_audioBassMult;
 extern float g_audioMidMult;
 extern float g_audioHighMult;
 extern float g_audioPeakDecay;
+extern float g_audioPeakFloor;
 extern float g_audioDarkBrightness;
 extern float g_audioOnsetThreshold;
 

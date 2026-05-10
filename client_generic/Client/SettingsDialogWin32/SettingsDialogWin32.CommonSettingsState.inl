@@ -47,6 +47,7 @@ static void LoadSettingsForShow()
     g_audioMidMult         = g_Settings()->Get("settings.player.audio_mid_mult",         0.8f);
     g_audioHighMult        = g_Settings()->Get("settings.player.audio_high_mult",        0.7f);
     g_audioPeakDecay       = g_Settings()->Get("settings.player.audio_peak_decay",       0.999f);
+    g_audioPeakFloor       = g_Settings()->Get("settings.player.audio_peak_floor",       0.01f);
     g_audioDarkBrightness  = g_Settings()->Get("settings.player.audio_dark_brightness",  -0.5f);
     g_audioOnsetThreshold  = g_Settings()->Get("settings.player.audio_onset_threshold",  0.001f);
 
@@ -127,6 +128,7 @@ static void SaveSettings()
     g_Settings()->Set("settings.player.audio_mid_mult",        g_audioMidMult);
     g_Settings()->Set("settings.player.audio_high_mult",       g_audioHighMult);
     g_Settings()->Set("settings.player.audio_peak_decay",      g_audioPeakDecay);
+    g_Settings()->Set("settings.player.audio_peak_floor",      g_audioPeakFloor);
     g_Settings()->Set("settings.player.audio_dark_brightness", g_audioDarkBrightness);
     g_Settings()->Set("settings.player.audio_onset_threshold", g_audioOnsetThreshold);
 

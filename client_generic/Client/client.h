@@ -750,6 +750,10 @@ class CElectricSheep
         AddHelpHud();
         AddDreamStatsHud();
         AddAudioStatsHud();
+#ifdef WIN32
+        SettingsDialogWin32_LoadAudioSettings();
+#endif
+        m_AudioAnalyzer.Start();
         AddProgressHud();
         AddSplashHud();
         AddOSDHud();
@@ -858,6 +862,13 @@ class CElectricSheep
     virtual void Shutdown()
     {
         printf("CElectricSheep::Shutdown()\n");
+
+        // Persist any settings changed via the audio panel (or elsewhere) before
+        // aggressive shutdown paths can call _exit() and bypass later cleanup.
+        if (g_Settings()->Storage())
+            g_Settings()->Storage()->Commit();
+
+        m_AudioAnalyzer.Stop();
 
         // Reset cancellation flag - Startup() will set it to true if this is a restart
         s_shutdownCancelled.store(false);
@@ -1308,15 +1319,10 @@ class CElectricSheep
             bool drawNoSheepIntro = false;
             bool drawn = g_Player().Update(displayUnit); // , drawNoSheepIntro);
 
-            if (displayUnit == 0)
-            {
-                m_AudioAnalyzer.Update(1.0 / 60.0);
-            }
-            
             const bool audioReactiveEnabled =
                 g_Settings()->Get("settings.player.audio_reactive", true);
 
-            const AudioFeatures& audio = m_AudioAnalyzer.GetFeatures();
+            const AudioFeatures audio = m_AudioAnalyzer.GetFeaturesSnapshot();
 
             if (audioReactiveEnabled)
             {
@@ -1371,12 +1377,15 @@ class CElectricSheep
 
                 // ── Cuts ──────────────────────────────────────────────────────
                 {
-                    static float s_cutCooldown     = 0.0f;
-                    static float s_prevTransient   = 0.0f;
-                    static float s_prevKick        = 0.0f;
-                    static float s_prevSnare       = 0.0f;
-                    static float s_prevVolume      = 0.0f;
-                    static int   s_beatCounter     = 0;
+                    static float    s_cutCooldown   = 0.0f;
+                    static float    s_prevTransient = 0.0f;
+                    static float    s_prevKick      = 0.0f;
+                    static float    s_prevSnare     = 0.0f;
+                    static float    s_prevVolume    = 0.0f;
+                    // s_beatCutBase tracks the bar-aligned beat count at which the last cut fired.
+                    // UINT32_MAX = not yet initialised; set to currentBeat on first use to avoid
+                    // a startup cascade if the beat count has already advanced.
+                    static uint32_t s_beatCutBase = UINT32_MAX;
 
                     const float dt = 1.0f / 60.0f;
                     s_cutCooldown = std::max(0.0f, s_cutCooldown - dt);
@@ -1395,8 +1404,18 @@ class CElectricSheep
                     s_prevSnare     = curSnare;
                     s_prevVolume    = curVol;
 
-                    if (transientEdge)
-                        s_beatCounter++;
+                    // Beat trigger: fires on beat 1 of every N bars.
+                    // targetBarBeat is always a multiple of 4 (bar boundary), so the trigger
+                    // stays aligned even if the render loop misses the exact beat-count sample
+                    // when currentBeat % 4 == 0.  After firing, base is set to targetBarBeat
+                    // (not currentBeat) so subsequent targets are always bar-aligned too.
+                    const uint32_t currentBeat = AudioAnalyzer_GetBeatCount();
+                    if (s_beatCutBase == UINT32_MAX)
+                        s_beatCutBase = currentBeat; // align to current position on first use
+
+                    const uint32_t N             = static_cast<uint32_t>(std::max(1, g_audioCutBeatN));
+                    const uint32_t targetBarBeat = ((s_beatCutBase / 4) + N) * 4;
+                    const bool     beatEdge      = (currentBeat >= targetBarBeat);
 
                     int cutStyle = -1;
                     if (s_cutCooldown <= 0.0f && !g_Player().IsTransitioning())
@@ -1407,7 +1426,7 @@ class CElectricSheep
                             cutStyle = g_audioCutKickStyle;
                         else if (g_audioCutSnareEnabled && snareEdge)
                             cutStyle = g_audioCutSnareStyle;
-                        else if (g_audioCutBeatEnabled && s_beatCounter >= g_audioCutBeatN)
+                        else if (g_audioCutBeatEnabled && beatEdge)
                             cutStyle = g_audioCutBeatStyle;
                         else if (g_audioCutVolumeEnabled && volEdge)
                             cutStyle = g_audioCutVolumeStyle;
@@ -1416,7 +1435,9 @@ class CElectricSheep
                     if (cutStyle >= 0)
                     {
                         s_cutCooldown = g_audioCutGlobalCooldown;
-                        s_beatCounter = 0;
+                        // Reset to the bar boundary we just crossed, not to currentBeat.
+                        // This keeps every subsequent target aligned to beat 1 of a bar.
+                        s_beatCutBase = (cutStyle == g_audioCutBeatStyle) ? targetBarBeat : currentBeat;
                         const float dur = (cutStyle == 0) ? 0.05f : (cutStyle == 1) ? 0.2f : 2.0f;
                         g_Player().TriggerAudioCut(dur);
                     }
@@ -2303,11 +2324,15 @@ class CElectricSheep
                     ((Hud::CStringStat*)spAudioStats->Get("audio-bpm"))
                         ->SetSample(string_format("%.1f", audio.bpm));
                     {
-                        const int beatPos = static_cast<int>(audio.beatPhase * 20.0f);
-                        std::string beatBar(20, '.');
-                        if (beatPos >= 0 && beatPos < 20) beatBar[beatPos] = '|';
+                        const int beatIdx = static_cast<int>(AudioAnalyzer_GetBeatCount() % 4);
+                        char beatBuf[13];
+                        snprintf(beatBuf, sizeof(beatBuf), "%s%s%s%s",
+                            beatIdx == 0 ? "[1]" : " 1 ",
+                            beatIdx == 1 ? "[2]" : " 2 ",
+                            beatIdx == 2 ? "[3]" : " 3 ",
+                            beatIdx == 3 ? "[4]" : " 4 ");
                         ((Hud::CStringStat*)spAudioStats->Get("audio-beat"))
-                            ->SetSample(beatBar);
+                            ->SetSample(beatBuf);
                     }
                 }
 
@@ -2589,6 +2614,10 @@ class CElectricSheep
             case CLIENT_COMMAND_F3:
                 m_HudManager->Toggle("audiostats");
 #ifdef WIN32
+                // Settings and audio panel both own an ImGui context on the same HWND —
+                // close settings before opening the audio panel to avoid a context conflict.
+                if (!AudioPanelWin32_IsVisible())
+                    SettingsDialogWin32_DismissWithoutSaveForExternalOverlay();
                 AudioPanelWin32_SetVisible(!AudioPanelWin32_IsVisible());
 #endif
                 return true;

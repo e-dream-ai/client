@@ -5,8 +5,11 @@ extern "C" {
 }
 
 #include <algorithm>
+#include <atomic>
+#include <chrono>
 #include <cmath>
 #include <deque>
+#include <thread>
 #include <vector>
 #include "Settings.h"
 
@@ -16,13 +19,6 @@ constexpr uint_t kSampleRate = 44100;
 constexpr uint_t kWinSize   = 2048;
 constexpr uint_t kHopSize   = 512;
 constexpr uint_t kNumBins   = kWinSize / 2 + 1;
-
-// ACF BPM estimator: onset-flux autocorrelation over a rolling history window.
-// Lag range maps to ~50-200 BPM at 44100/512 hop rate (~86 hops/sec).
-constexpr int kOssLen    = 512;   // ~5.9 sec of onset history
-constexpr int kBpmMinLag = 26;    // ~200 BPM
-constexpr int kBpmMaxLag = 104;   // ~50 BPM
-constexpr int kAcfEvery  = 43;    // recompute every ~0.5 sec
 
 float Clamp01(float v) { return v < 0.0f ? 0.0f : v > 1.0f ? 1.0f : v; }
 
@@ -36,297 +32,406 @@ float DbToLinear(float db) { return std::pow(10.0f, db / 20.0f); }
 
 } // namespace
 
+constexpr uint_t kMelBands = 40;
+
 struct AubioState
 {
-    aubio_pvoc_t*   pvoc      = nullptr;
-    cvec_t*         fftgrain  = nullptr;
-    fvec_t*         hopIn     = nullptr;
-    fvec_t*         tempoOut  = nullptr;
-    aubio_tempo_t*  tempo     = nullptr;
-    bool            ready     = false;
+    aubio_pvoc_t*       pvoc       = nullptr;
+    cvec_t*             fftgrain   = nullptr;
+    fvec_t*             hopIn      = nullptr;
+    fvec_t*             tempoOut   = nullptr;
+    aubio_tempo_t*      tempo      = nullptr;
+    aubio_filterbank_t* filterbank = nullptr;
+    fvec_t*             melOut     = nullptr;
+    bool                ready      = false;
 
     void Init()
     {
         hopIn    = new_fvec(kHopSize);
         fftgrain = new_cvec(kWinSize);
         tempoOut = new_fvec(2);
+        melOut   = new_fvec(kMelBands);
 
-        pvoc  = new_aubio_pvoc(kWinSize, kHopSize);
-        tempo = new_aubio_tempo("complex", kWinSize, kHopSize, kSampleRate);
+        pvoc       = new_aubio_pvoc(kWinSize, kHopSize);
+        tempo      = new_aubio_tempo("complex", kWinSize, kHopSize, kSampleRate);
+        filterbank = new_aubio_filterbank(kMelBands, kWinSize);
+        if (filterbank)
+            aubio_filterbank_set_mel_coeffs(filterbank, (smpl_t)kSampleRate, 20.0f, 11000.0f);
 
-        if (pvoc && tempo)
+        if (pvoc && tempo && filterbank)
             ready = true;
     }
 
     ~AubioState()
     {
-        if (pvoc)     del_aubio_pvoc(pvoc);
-        if (fftgrain) del_cvec(fftgrain);
-        if (hopIn)    del_fvec(hopIn);
-        if (tempoOut) del_fvec(tempoOut);
-        if (tempo)    del_aubio_tempo(tempo);
+        if (pvoc)       del_aubio_pvoc(pvoc);
+        if (fftgrain)   del_cvec(fftgrain);
+        if (hopIn)      del_fvec(hopIn);
+        if (tempoOut)   del_fvec(tempoOut);
+        if (tempo)      del_aubio_tempo(tempo);
+        if (filterbank) del_aubio_filterbank(filterbank);
+        if (melOut)     del_fvec(melOut);
     }
 };
 
-void AudioAnalyzer::Update(double deltaSeconds)
+// ── Manual BPM control ────────────────────────────────────────────────────────
+static std::atomic<float>    s_bpmOverride{0.0f};
+static std::atomic<float>    s_liveBpm{120.0f};
+static std::atomic<float>    s_liveBeatPhase{0.0f};
+static std::atomic<uint32_t> s_liveBeatCount{0};
+static std::atomic<bool>     s_resetBeatPhase{false};
+
+void AudioAnalyzer_SetBpmOverride(float bpm)
 {
-    m_Phase += deltaSeconds;
+    s_bpmOverride.store(bpm, std::memory_order_relaxed);
+}
+
+float AudioAnalyzer_GetCurrentBpm()
+{
+    return s_liveBpm.load(std::memory_order_relaxed);
+}
+
+float AudioAnalyzer_GetBeatPhase()
+{
+    return s_liveBeatPhase.load(std::memory_order_relaxed);
+}
+
+uint32_t AudioAnalyzer_GetBeatCount()
+{
+    return s_liveBeatCount.load(std::memory_order_relaxed);
+}
+
+void AudioAnalyzer_ResetBeatPhase()
+{
+    s_resetBeatPhase.store(true, std::memory_order_relaxed);
+    // Round beat count down to the nearest multiple of 4 so box 1 re-aligns
+    uint32_t cur = s_liveBeatCount.load(std::memory_order_relaxed);
+    s_liveBeatCount.store(cur - (cur % 4), std::memory_order_relaxed);
+}
+
+float AudioAnalyzer_TapTempo()
+{
+    using Clock = std::chrono::steady_clock;
+    using Sec   = std::chrono::duration<double>;
+
+    static constexpr int kMaxTaps = 8;
+    static Clock::time_point s_taps[kMaxTaps];
+    static int s_tapCount = 0;
+
+    const auto now = Clock::now();
+
+    if (s_tapCount > 0)
+    {
+        if (Sec(now - s_taps[(s_tapCount - 1) % kMaxTaps]).count() > 3.0)
+            s_tapCount = 0;
+    }
+
+    s_taps[s_tapCount % kMaxTaps] = now;
+    ++s_tapCount;
+
+    if (s_tapCount < 2)
+        return 0.0f;
+
+    const int n      = std::min(s_tapCount, kMaxTaps);
+    const int oldest = (s_tapCount - n) % kMaxTaps;
+    const int newest = (s_tapCount - 1) % kMaxTaps;
+    const double totalSec = Sec(s_taps[newest] - s_taps[oldest]).count();
+    if (totalSec <= 0.0)
+        return 0.0f;
+
+    const float bpm = static_cast<float>(60.0 * (n - 1) / totalSec);
+    return (bpm >= 40.0f && bpm <= 250.0f) ? bpm : 0.0f;
+}
+
+// ── Background thread ─────────────────────────────────────────────────────────
+
+void AudioAnalyzer::Start()
+{
+    if (m_Running.exchange(true))
+        return; // already running
+    m_Thread = std::thread(&AudioAnalyzer::ThreadProc, this);
+}
+
+void AudioAnalyzer::Stop()
+{
+    if (!m_Running.exchange(false))
+        return; // already stopped
+    if (m_Thread.joinable())
+        m_Thread.join();
+}
+
+AudioFeatures AudioAnalyzer::GetFeaturesSnapshot() const
+{
+    std::lock_guard<std::mutex> lock(m_FeaturesMutex);
+    return m_Features;
+}
+
+void AudioAnalyzer::ThreadProc()
+{
+    using Clock = std::chrono::steady_clock;
+
+    std::deque<float> sampleBuffer;
+    AubioState        aubio;
+
+    // Per-thread state (was static locals in Update())
+    float bassPeak = 0.001f, midPeak = 0.001f, highPeak = 0.001f;
+    int   warmup   = 0;
+    float s_prevBass = 0.0f, s_prevMid = 0.0f, s_prevHigh = 0.0f;
+    float s_acfBpm      = 120.0f;
+    uint_t s_lastBeatHop = 0;
+    uint_t s_totalHops   = 0;
+    float s_beatPhase    = 0.0f;
+    float s_beatInterval = 60.0f / 120.0f;
+    int   s_beatCount    = 0;
+    float volume         = 0.0f;
+    float spectralCentroid = 0.0f;
+    float kick = 0.0f, snare = 0.0f, transient = 0.0f;
+
+    // Silence tracking uses wall clock since audio may be sparse
+    auto silenceStart = Clock::now();
+    bool inSilence    = false;
 
     if (!m_AudioInput.IsRunning())
         m_AudioInput.Start();
 
-    std::vector<float> newSamples = m_AudioInput.GetSamples();
+    aubio.Init();
 
-    static std::deque<float> sampleBuffer;
-    for (float s : newSamples)
-        sampleBuffer.push_back(s);
-
-    m_Features.sampleCount = static_cast<int>(sampleBuffer.size());
-
-    if (sampleBuffer.size() < kHopSize)
-        return;
-
-    static AubioState s_aubio;
-    if (!s_aubio.ready)
-        s_aubio.Init();
-    if (!s_aubio.ready)
-        return;
-
-    float bassEnergyAcc = 0.0f, midEnergyAcc = 0.0f, highEnergyAcc = 0.0f;
-    float centroidNum   = 0.0f, centroidDen  = 0.0f;
-    float rmsAcc        = 0.0f;
-    int   hops          = 0;
-    bool beatFired = false;
-
-    // OSS circular buffer — written inside the hop loop, read by ACF after it
-    static float s_prevHopBass = 0.0f, s_prevHopMid = 0.0f, s_prevHopHigh = 0.0f;
-    static float s_ossArr[kOssLen] = {};
-    static int   s_ossHead         = 0;
-
-    while (sampleBuffer.size() >= kHopSize)
+    while (m_Running.load(std::memory_order_relaxed))
     {
-        for (uint_t i = 0; i < kHopSize; ++i)
+        // Pull new samples from WASAPI
+        std::vector<float> newSamples = m_AudioInput.GetSamples();
+        for (float s : newSamples)
+            sampleBuffer.push_back(s);
+
+        // Bound the backlog (~200 ms) so start-up after a stall stays smooth
+        constexpr size_t kMaxBufferSamples = kHopSize * 18;
+        if (sampleBuffer.size() > kMaxBufferSamples)
+            sampleBuffer.erase(sampleBuffer.begin(),
+                               sampleBuffer.begin() +
+                                   static_cast<std::ptrdiff_t>(sampleBuffer.size() - kMaxBufferSamples));
+
+        if (sampleBuffer.size() < kHopSize)
         {
-            const float s         = sampleBuffer[i];
-            s_aubio.hopIn->data[i] = s;
-            rmsAcc                += s * s;
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            continue;
         }
-        for (uint_t i = 0; i < kHopSize; ++i)
-            sampleBuffer.pop_front();
 
-        // Spectrum via phase vocoder
-        aubio_pvoc_do(s_aubio.pvoc, s_aubio.hopIn, s_aubio.fftgrain);
-
-        float bassEnergy = 0.0f, midEnergy = 0.0f, highEnergy = 0.0f;
-        int   bassBins = 0, midBins = 0, highBins = 0;
-
-        for (uint_t bin = 1; bin < kNumBins; ++bin)
+        if (!aubio.ready)
         {
-            const float mag = s_aubio.fftgrain->norm[bin];
-            const float f   = (float)kSampleRate * bin / (float)kWinSize;
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            continue;
+        }
 
-            if (f >= 20.0f && f < 20000.0f)
+        // Process all available hops — thread runs continuously so no per-call cap needed
+        float bassEnergyAcc = 0.0f, midEnergyAcc = 0.0f, highEnergyAcc = 0.0f;
+        float centroidNum   = 0.0f, centroidDen  = 0.0f;
+        float rmsAcc        = 0.0f;
+        int   hops          = 0;
+        bool  beatFired     = false;
+
+        while (sampleBuffer.size() >= kHopSize)
+        {
+            for (uint_t i = 0; i < kHopSize; ++i)
             {
-                centroidNum += f * mag;
-                centroidDen += mag;
+                const float s            = sampleBuffer[i];
+                aubio.hopIn->data[i]     = s;
+                rmsAcc                  += s * s;
             }
-            if (f >= 30.0f && f < 200.0f)            { bassEnergy += mag; ++bassBins; }
-            else if (f >= 200.0f  && f < 3500.0f)    { midEnergy  += mag; ++midBins;  }
-            else if (f >= 3500.0f && f < 20000.0f)   { highEnergy += mag; ++highBins; }
-        }
+            for (uint_t i = 0; i < kHopSize; ++i)
+                sampleBuffer.pop_front();
 
-        if (bassBins > 0) bassEnergy /= bassBins;
-        if (midBins  > 0) midEnergy  /= midBins;
-        if (highBins > 0) highEnergy /= highBins;
+            aubio_pvoc_do(aubio.pvoc, aubio.hopIn, aubio.fftgrain);
 
-        bassEnergyAcc += bassEnergy;
-        midEnergyAcc  += midEnergy;
-        highEnergyAcc += highEnergy;
-
-        // Onset flux: positive energy rise per band, bass-weighted for kick dominance
-        const float hopFlux = std::max(0.0f, bassEnergy - s_prevHopBass) * 2.0f
-                            + std::max(0.0f, midEnergy  - s_prevHopMid)
-                            + std::max(0.0f, highEnergy - s_prevHopHigh) * 0.5f;
-        s_prevHopBass = bassEnergy; s_prevHopMid = midEnergy; s_prevHopHigh = highEnergy;
-        s_ossArr[s_ossHead % kOssLen] = hopFlux;
-        ++s_ossHead;
-
-        aubio_tempo_do(s_aubio.tempo, s_aubio.hopIn, s_aubio.tempoOut);
-        if (s_aubio.tempoOut->data[0] > 0.0f) beatFired = true;
-
-        ++hops;
-    }
-
-    if (hops == 0)
-        return;
-
-    const float bassEnergy = bassEnergyAcc / hops;
-    const float midEnergy  = midEnergyAcc  / hops;
-    const float highEnergy = highEnergyAcc / hops;
-    const float rawLevel   = std::sqrt(rmsAcc / (hops * (int)kHopSize));
-
-    // -------------------------------------------------------------------
-    // RMS volume
-    // -------------------------------------------------------------------
-    float clampedLevel = rawLevel;
-    if (clampedLevel < DbToLinear(-60.0f))
-        clampedLevel = 0.0f;
-    clampedLevel = Clamp01(clampedLevel * 3.0f);
-
-    const float level = SmoothAttackRelease(m_Features.volume, clampedLevel, 0.35f, 0.08f);
-
-    // -------------------------------------------------------------------
-    // Spectral centroid
-    // -------------------------------------------------------------------
-    float rawCentroid = 0.0f;
-    if (centroidDen > 0.0f)
-        rawCentroid = centroidNum / centroidDen;
-
-    const float logMin = std::log(20.0f);
-    const float logMax = std::log(20000.0f);
-    float logCentroid  = 0.0f;
-    if (rawCentroid > 0.0f)
-        logCentroid = (std::log(rawCentroid) - logMin) / (logMax - logMin);
-
-    m_Features.spectralCentroid = SmoothAttackRelease(
-        m_Features.spectralCentroid, Clamp01(logCentroid), 0.3f, 0.1f);
-
-    // -------------------------------------------------------------------
-    // Adaptive normalisation
-    // -------------------------------------------------------------------
-    static float bassPeak = 0.001f, midPeak = 0.001f, highPeak = 0.001f;
-    static int   warmup   = 0;
-
-    const float kPeakDecay = g_Settings()->Get("settings.player.audio_peak_decay", 0.999f);
-    bassPeak = std::max(bassEnergy, bassPeak * kPeakDecay);
-    midPeak  = std::max(midEnergy,  midPeak  * kPeakDecay);
-    highPeak = std::max(highEnergy, highPeak * kPeakDecay);
-
-    float normBass, normMid, normHigh;
-    if (warmup < 90)
-    {
-        ++warmup;
-        normBass = Clamp01(bassEnergy * 120.0f);
-        normMid  = Clamp01(midEnergy  *  80.0f);
-        normHigh = Clamp01(highEnergy *  60.0f);
-    }
-    else
-    {
-        const float bassMult = g_Settings()->Get("settings.player.audio_bass_mult", 0.7f);
-        const float midMult  = g_Settings()->Get("settings.player.audio_mid_mult",  0.8f);
-        const float highMult = g_Settings()->Get("settings.player.audio_high_mult", 0.7f);
-        normBass = Clamp01((bassEnergy / bassPeak) * bassMult);
-        normMid  = Clamp01((midEnergy  / midPeak)  * midMult);
-        normHigh = Clamp01((highEnergy / highPeak)  * highMult);
-    }
-
-    // -------------------------------------------------------------------
-    // Kick / snare / transient — band-energy delta detection
-    // -------------------------------------------------------------------
-    static float s_prevBass = 0.0f, s_prevMid = 0.0f, s_prevHigh = 0.0f;
-    const float bassDelta  = normBass - s_prevBass;
-    const float midDelta   = normMid  - s_prevMid;
-    const float highDelta  = normHigh - s_prevHigh;
-    const bool kickFired      = bassDelta > 0.15f;
-    const bool snareFired     = midDelta > 0.15f && midDelta > bassDelta * 1.2f;
-    const bool transientFired = (bassDelta + midDelta + highDelta) / 3.0f > 0.22f;
-    s_prevBass = normBass; s_prevMid = normMid; s_prevHigh = normHigh;
-
-    // -------------------------------------------------------------------
-    // BPM via onset-flux autocorrelation (recomputed every ~0.5 sec)
-    // -------------------------------------------------------------------
-    static float s_acfBpm   = 120.0f;
-    static int   s_acfSince = 0;
-    s_acfSince += hops;
-
-    if (s_acfSince >= kAcfEvery && s_ossHead >= kOssLen)
-    {
-        s_acfSince = 0;
-
-        // Linearise circular buffer into a contiguous array, oldest sample first
-        float oss[kOssLen];
-        for (int i = 0; i < kOssLen; ++i)
-            oss[i] = s_ossArr[(s_ossHead + i) % kOssLen];
-
-        // Score each candidate lag with ACF + sub-harmonic reinforcement.
-        // Dividing by mult down-weights harmonics so the fundamental wins.
-        float bestScore = -1.0f;
-        int   bestLag   = 43; // 120 BPM fallback
-
-        for (int lag = kBpmMinLag; lag <= kBpmMaxLag; ++lag)
-        {
-            float score = 0.0f;
-            for (int mult = 1; mult <= 3; ++mult)
+            for (uint_t bin = 1; bin < kNumBins; ++bin)
             {
-                const int l = lag * mult;
-                if (l >= kOssLen) break;
-                float acf = 0.0f;
-                for (int i = l; i < kOssLen; ++i)
-                    acf += oss[i] * oss[i - l];
-                score += (acf / (kOssLen - l)) / static_cast<float>(mult);
+                const float mag = aubio.fftgrain->norm[bin];
+                const float f   = (float)kSampleRate * bin / (float)kWinSize;
+                if (f >= 20.0f && f < 20000.0f)
+                {
+                    centroidNum += f * mag;
+                    centroidDen += mag;
+                }
             }
-            if (score > bestScore) { bestScore = score; bestLag = lag; }
+
+            aubio_filterbank_do(aubio.filterbank, aubio.fftgrain, aubio.melOut);
+            float bassEnergy = 0.0f, midEnergy = 0.0f, highEnergy = 0.0f;
+            for (uint_t b = 0;  b < 8;  ++b) bassEnergy += aubio.melOut->data[b];
+            for (uint_t b = 8;  b < 28; ++b) midEnergy  += aubio.melOut->data[b];
+            for (uint_t b = 28; b < 40; ++b) highEnergy += aubio.melOut->data[b];
+            bassEnergy /= 8.0f;
+            midEnergy  /= 20.0f;
+            highEnergy /= 12.0f;
+
+            bassEnergyAcc += bassEnergy;
+            midEnergyAcc  += midEnergy;
+            highEnergyAcc += highEnergy;
+
+            aubio_tempo_do(aubio.tempo, aubio.hopIn, aubio.tempoOut);
+            if (aubio.tempoOut->data[0] > 0.0f) beatFired = true;
+
+            ++hops;
         }
 
-        // Convert lag (hops) to BPM, then fold into the 60-180 BPM range
-        float bpmRaw = static_cast<float>(kSampleRate) / kHopSize * 60.0f / bestLag;
-        while (bpmRaw > 180.0f) bpmRaw *= 0.5f;
-        while (bpmRaw <  60.0f) bpmRaw *= 2.0f;
+        if (hops == 0)
+            continue;
 
-        // Slow IIR to resist single-frame outliers
-        s_acfBpm = s_acfBpm * 0.7f + bpmRaw * 0.3f;
-    }
+        const float bassEnergy = bassEnergyAcc / hops;
+        const float midEnergy  = midEnergyAcc  / hops;
+        const float highEnergy = highEnergyAcc / hops;
+        const float rawLevel   = std::sqrt(rmsAcc / (hops * (int)kHopSize));
 
-    // -------------------------------------------------------------------
-    // Beat phase — ACF provides the period; aubio fires the beat events
-    // -------------------------------------------------------------------
-    static float s_beatPhase    = 0.0f;
-    static float s_beatInterval = 60.0f / 120.0f;
-    static int   s_beatCount    = 0;
+        // RMS volume
+        float clampedLevel = rawLevel;
+        if (clampedLevel < DbToLinear(-60.0f))
+            clampedLevel = 0.0f;
+        clampedLevel = Clamp01(clampedLevel * 3.0f);
+        volume = SmoothAttackRelease(volume, clampedLevel, 0.35f, 0.08f);
 
-    const float confidence = aubio_tempo_get_confidence(s_aubio.tempo);
-    if (beatFired && confidence > 0.12f) ++s_beatCount;
+        // Spectral centroid
+        float rawCentroid = 0.0f;
+        if (centroidDen > 0.0f)
+            rawCentroid = centroidNum / centroidDen;
+        const float logMin = std::log(20.0f);
+        const float logMax = std::log(20000.0f);
+        float logCentroid  = 0.0f;
+        if (rawCentroid > 0.0f)
+            logCentroid = (std::log(rawCentroid) - logMin) / (logMax - logMin);
+        spectralCentroid = SmoothAttackRelease(spectralCentroid, Clamp01(logCentroid), 0.3f, 0.1f);
 
-    s_beatInterval = 60.0f / s_acfBpm;
+        // Adaptive normalisation — read settings once per thread iteration, not per hop
+        const float kPeakDecay = g_Settings()->Get("settings.player.audio_peak_decay", 0.999f);
+        const float kPeakFloor = g_Settings()->Get("settings.player.audio_peak_floor", 0.01f);
+        const float bassMult   = g_Settings()->Get("settings.player.audio_bass_mult",  0.7f);
+        const float midMult    = g_Settings()->Get("settings.player.audio_mid_mult",   0.8f);
+        const float highMult   = g_Settings()->Get("settings.player.audio_high_mult",  0.7f);
 
-    s_beatPhase += static_cast<float>(deltaSeconds) / s_beatInterval;
-    if (s_beatPhase >= 1.0f)
-        s_beatPhase = std::fmod(s_beatPhase, 1.0f);
+        bassPeak = std::max({bassEnergy, bassPeak * kPeakDecay, kPeakFloor});
+        midPeak  = std::max({midEnergy,  midPeak  * kPeakDecay, kPeakFloor});
+        highPeak = std::max({highEnergy, highPeak * kPeakDecay, kPeakFloor});
 
-    // On a confident beat, nudge phase toward 0 (PLL-style) rather than hard-reset
-    if (beatFired && confidence > 0.12f && s_beatCount >= 4)
-    {
-        const float err = s_beatPhase > 0.5f ? s_beatPhase - 1.0f : s_beatPhase;
-        s_beatPhase -= err * 0.4f;
-        if (s_beatPhase < 0.0f) s_beatPhase += 1.0f;
-    }
+        // gamma=2: squares the normalised ratio so quiet passages (e.g. 20% of peak)
+        // read ~0.04 instead of 0.20. Peaks still reach 1.0; only the curve changes.
+        constexpr float kGamma = 2.0f;
 
-    // -------------------------------------------------------------------
-    // Write features
-    // -------------------------------------------------------------------
-    m_Features.volume    = level;
-    m_Features.bass      = normBass;
-    m_Features.mid       = normMid;
-    m_Features.high      = normHigh;
-    m_Features.transient = SmoothAttackRelease(m_Features.transient, transientFired ? 1.0f : 0.0f, 0.80f, 0.08f);
-    m_Features.kick      = SmoothAttackRelease(m_Features.kick,      kickFired      ? 1.0f : 0.0f, 0.90f, 0.06f);
-    m_Features.snare     = SmoothAttackRelease(m_Features.snare,     snareFired     ? 1.0f : 0.0f, 0.85f, 0.07f);
-    m_Features.beatPhase = s_beatPhase;
-    m_Features.bpm       = s_acfBpm;
+        float normBass, normMid, normHigh;
+        if (warmup < 90)
+        {
+            ++warmup;
+            normBass = Clamp01(std::pow(bassEnergy * 120.0f, kGamma));
+            normMid  = Clamp01(std::pow(midEnergy  *  80.0f, kGamma));
+            normHigh = Clamp01(std::pow(highEnergy *  60.0f, kGamma));
+        }
+        else
+        {
+            normBass = Clamp01(std::pow(bassEnergy / bassPeak, kGamma) * bassMult);
+            normMid  = Clamp01(std::pow(midEnergy  / midPeak,  kGamma) * midMult);
+            normHigh = Clamp01(std::pow(highEnergy / highPeak,  kGamma) * highMult);
+        }
 
-    // Signal gate
-    static double silenceSeconds = 0.0;
-    if (clampedLevel > 0.005f)
-    {
-        silenceSeconds = 0.0;
-        m_Features.hasSignal = true;
-    }
-    else
-    {
-        silenceSeconds += deltaSeconds;
-        if (silenceSeconds > 1.5)
-            m_Features.hasSignal = false;
+        // Kick / snare / transient
+        const float bassDelta     = normBass - s_prevBass;
+        const float midDelta      = normMid  - s_prevMid;
+        const float highDelta     = normHigh - s_prevHigh;
+        const bool  kickFired     = bassDelta > 0.15f;
+        const bool  snareFired    = midDelta > 0.15f && midDelta > bassDelta * 1.2f;
+        const bool  transientFired = (bassDelta + midDelta + highDelta) / 3.0f > 0.22f;
+        s_prevBass = normBass; s_prevMid = normMid; s_prevHigh = normHigh;
+
+        // BPM
+        s_totalHops += static_cast<uint_t>(hops);
+        const float overrideBpm = s_bpmOverride.load(std::memory_order_relaxed);
+        if (overrideBpm > 0.0f)
+        {
+            s_acfBpm = overrideBpm;
+        }
+        else if (beatFired)
+        {
+            const float confidence = aubio_tempo_get_confidence(aubio.tempo);
+            if (s_lastBeatHop > 0 && confidence > 0.25f)
+            {
+                const uint_t hopDelta = s_totalHops - s_lastBeatHop;
+                const float  ibiSec   = float(hopDelta) * float(kHopSize) / float(kSampleRate);
+                const float  ibiBpm   = 60.0f / ibiSec;
+                const float  bpmRatio = ibiBpm / s_acfBpm;
+                if (ibiBpm >= 40.0f && ibiBpm <= 250.0f && bpmRatio >= 0.75f && bpmRatio <= 1.25f)
+                {
+                    const float alpha = 0.05f + confidence * 0.15f;
+                    s_acfBpm = s_acfBpm * (1.0f - alpha) + ibiBpm * alpha;
+                    s_lastBeatHop = s_totalHops;
+                }
+            }
+            else if (s_lastBeatHop == 0)
+            {
+                s_lastBeatHop = s_totalHops;
+            }
+        }
+        s_liveBpm.store(s_acfBpm, std::memory_order_relaxed);
+
+        // Beat phase
+        if (s_resetBeatPhase.exchange(false, std::memory_order_relaxed))
+            s_beatPhase = 0.0f;
+
+        const float confidence = aubio_tempo_get_confidence(aubio.tempo);
+        if (beatFired && confidence > 0.12f) ++s_beatCount;
+
+        s_beatInterval = 60.0f / s_acfBpm;
+
+        const float audioDt = float(hops) * float(kHopSize) / float(kSampleRate);
+        s_beatPhase += audioDt / s_beatInterval;
+
+        if (s_beatPhase >= 1.0f)
+        {
+            const uint32_t wraps = static_cast<uint32_t>(s_beatPhase);
+            s_beatPhase = std::fmod(s_beatPhase, 1.0f);
+            s_liveBeatCount.fetch_add(wraps, std::memory_order_relaxed);
+        }
+
+        const bool bpmLocked = (overrideBpm > 0.0f);
+        if (!bpmLocked && beatFired && confidence > 0.12f && s_beatCount >= 4)
+        {
+            const float err  = s_beatPhase > 0.5f ? s_beatPhase - 1.0f : s_beatPhase;
+            const float gain = 0.5f + confidence * 0.4f;
+            s_beatPhase -= err * gain;
+            if (s_beatPhase < 0.0f) s_beatPhase += 1.0f;
+        }
+
+        s_liveBeatPhase.store(s_beatPhase, std::memory_order_relaxed);
+
+        // Silence gate — use wall clock (audio thread runs even when signal is absent)
+        bool hasSignal;
+        if (clampedLevel > 0.005f)
+        {
+            silenceStart = Clock::now();
+            inSilence    = false;
+            hasSignal    = true;
+        }
+        else
+        {
+            using FSec = std::chrono::duration<float>;
+            const float silenceSec = FSec(Clock::now() - silenceStart).count();
+            inSilence = (silenceSec > 1.5f);
+            hasSignal = !inSilence;
+        }
+
+        // Publish features — brief lock, render thread gets a copy
+        kick      = SmoothAttackRelease(kick,      kickFired      ? 1.0f : 0.0f, 0.90f, 0.06f);
+        snare     = SmoothAttackRelease(snare,     snareFired     ? 1.0f : 0.0f, 0.85f, 0.07f);
+        transient = SmoothAttackRelease(transient, transientFired ? 1.0f : 0.0f, 0.80f, 0.08f);
+
+        {
+            std::lock_guard<std::mutex> lock(m_FeaturesMutex);
+            m_Features.volume          = volume;
+            m_Features.bass            = normBass;
+            m_Features.mid             = normMid;
+            m_Features.high            = normHigh;
+            m_Features.spectralCentroid = spectralCentroid;
+            m_Features.kick            = kick;
+            m_Features.snare           = snare;
+            m_Features.transient       = transient;
+            m_Features.beatPhase       = s_beatPhase;
+            m_Features.bpm             = s_acfBpm;
+            m_Features.hasSignal       = hasSignal;
+            m_Features.sampleCount     = static_cast<int>(sampleBuffer.size());
+        }
     }
 }
-
-const AudioFeatures& AudioAnalyzer::GetFeatures() const { return m_Features; }
