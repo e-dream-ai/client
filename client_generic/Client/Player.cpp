@@ -707,9 +707,12 @@ bool CPlayer::Update(uint32_t displayUnit)
 
     const bool freezePlayback = m_bPaused || IsFirstRunWizardPlaybackHold();
 
+    if (m_blendClip && m_audioBlendAlpha >= 0.0f)
+        m_blendClip->Update(m_TimelineTime, freezePlayback);
+
     if (m_currentClip) {
         m_currentClip->Update(m_TimelineTime, freezePlayback);
-        
+
         // Only check for transition if we're not buffering anything
         if (!freezePlayback && !IsAnyClipBuffering()) {
             // Check if we need to prepare for transition
@@ -851,13 +854,16 @@ void CPlayer::RenderFrame(DisplayOutput::spCRenderer renderer) {
         } else {
             g_Log->Error("Render frame has null nextClip despite checking for it earlier");
         }
+    } else if (m_audioBlendAlpha >= 0.0f && m_currentClip && m_blendClip) {
+        m_currentClip->DrawFrame(renderer, 1.0f - m_audioBlendAlpha);
+        m_blendClip->DrawFrame(renderer, m_audioBlendAlpha);
     } else if (m_currentClip) {
         if (m_currentClip->IsBuffering()) {
             // We're still buffering, show appropriate UI
             /*g_Log->Info("Buffering clip %s, frame queue: %d",
                 m_currentClip->GetClipMetadata().dreamData.uuid.c_str(),
                 m_currentClip->GetDecoder()->QueueLength());*/
-            
+
             // Still call DrawFrame which will handle buffering visualization
             m_currentClip->DrawFrame(renderer);
         } else {
@@ -1100,6 +1106,14 @@ void CPlayer::SetPerceptualFPS(const double _fps){
         m_DecoderFps = m_PerceptualFPS / dreamActivityLevel;
         m_currentClip->UpdatePlaybackRate(m_DecoderFps, m_TimelineTime);
     }
+}
+
+void CPlayer::TriggerAudioCut(float transitionDuration)
+{
+    if (m_isTransitioning || m_pendingSeekCrossfade)
+        return;
+    m_transitionDuration = std::max(0.05f, transitionDuration);
+    PlayNextDream(true);
 }
 
 // Getters for both perceptual FPS and true decoder FPS
@@ -1453,13 +1467,17 @@ void CPlayer::UpdateTransition(double currentTime)
         m_PreloadingNextClip = false;
         m_PreloadingDreamUUID = "";
         
-        // Start the asynchronous destruction of the current clip
+        // Keep the outgoing clip as the frozen blend source when audio mixing is active;
+        // otherwise destroy it immediately.
         if (m_currentClip) {
-            destroyClipAsync(std::move(m_currentClip));
+            if (m_audioBlendAlpha >= 0.0f)
+                m_blendClip = std::move(m_currentClip);
+            else
+                destroyClipAsync(std::move(m_currentClip));
         }
-        
+
         m_currentClip = m_nextClip;
-        
+
         if (m_currentClip) {
             // Transition already handled the fade-in visually, so disable the clip's internal
             // fade-in to avoid a brief dark flash caused by the clip's secondsIn calculation

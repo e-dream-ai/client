@@ -5,8 +5,9 @@ static void ApplyDialogPauseState(bool visible)
         const bool wasPaused = g_Player().IsPaused();
         const bool wasUserPaused = g_Player().IsUserPaused();
         g_wasPausedBeforeDialog.store(wasPaused, std::memory_order_release);
-        g_wasUserPausedBeforeDialog.store(wasUserPaused, std::memory_order_release);
-        g_Player().SetPaused(true, /*isUserInitiated=*/true);
+        g_wasUserPausedBeforeDialog.store(wasUserPaused,
+                                          std::memory_order_release);
+        // Don't pause - keep playback running so audio reactive visuals continue
         g_pausedBySettingsDialog.store(true, std::memory_order_release);
         return;
     }

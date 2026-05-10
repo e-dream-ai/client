@@ -41,10 +41,14 @@
 #include "TextureFlat.h"
 #include "Timer.h"
 #include "StringFormat.h"
+#include "AudioAnalyzer.h"
+#include <algorithm>
+#include <cmath>
 
 #if defined(WIN32)
 #include "FirstTimeSetupWin32.h"
 #include "SettingsDialogWin32.h"
+#include "AudioPanelWin32.h"
 #endif
 
 #include "PlatformUtils.h"
@@ -193,7 +197,8 @@ class CElectricSheep
     // We use perceptual FPS here which don't take into account per dream activity level
     double m_PerceptualFPS;
     
-    
+    AudioAnalyzer m_AudioAnalyzer;
+
     // internal brightness counter
     int m_Brightness = 0;
     
@@ -421,6 +426,8 @@ class CElectricSheep
 
         spStats->Add(
             new Hud::CStringStat("activityLevel", "Activity level: ", "1.00"));
+        spStats->Add(
+            new Hud::CStringStat("audioReactive", "Audio reactive: ", "off"));
         spStats->Add(new Hud::CStringStat("playHead", "", "00m00s/00m00s"));
 
         int32_t displayMode =
@@ -446,6 +453,29 @@ class CElectricSheep
                 rendererDesc + " display at ", " fps",
                 1.0));
         spStats->Add(new Hud::CStringStat(std::string("zconnerror"), "", ""));
+    }
+    void AddAudioStatsHud()
+    {
+        m_HudManager->Add("audiostats", std::make_shared<Hud::CStatsConsole>(
+                                            Base::Math::CRect(1, 1),
+                                            m_HudFontName, m_HudFontSize));
+        m_HudManager->Hide("audiostats");
+        Hud::spCStatsConsole spStats =
+            std::dynamic_pointer_cast<Hud::CStatsConsole>(
+                m_HudManager->Get("audiostats"));
+        spStats->Add(new Hud::CStringStat("audio-signal",    "Signal:   ", "off"));
+        spStats->Add(new Hud::CStringStat("audio-volume",    "Volume:   ", ""));
+        spStats->Add(new Hud::CStringStat("audio-kick",      "Kick:     ", ""));
+        spStats->Add(new Hud::CStringStat("audio-snare",     "Snare:    ", ""));
+        spStats->Add(new Hud::CStringStat("audio-transient", "Transient:", ""));
+        spStats->Add(new Hud::CStringStat("audio-bass",      "Bass:     ", ""));
+        spStats->Add(new Hud::CStringStat("audio-mid",       "Mid:      ", ""));
+        spStats->Add(new Hud::CStringStat("audio-high",      "High:     ", ""));
+        spStats->Add(new Hud::CStringStat("audio-centroid",  "Centroid: ", ""));
+        spStats->Add(new Hud::CStringStat("audio-samples",   "Samples:  ", ""));
+        spStats->Add(new Hud::CStringStat("audio-bpm",       "BPM:      ", ""));
+        spStats->Add(new Hud::CStringStat("audio-beat",      "Beat:     ", ""));
+        spStats->Add(new Hud::CStringStat("audio-bar",       "Bar:      ", ""));
     }
     
     void AddCreditsHud()
@@ -720,6 +750,11 @@ class CElectricSheep
         AddNetworkIndicatorHud();
         AddHelpHud();
         AddDreamStatsHud();
+        AddAudioStatsHud();
+#ifdef WIN32
+        SettingsDialogWin32_LoadAudioSettings();
+#endif
+        m_AudioAnalyzer.Start();
         AddProgressHud();
         AddSplashHud();
         AddOSDHud();
@@ -828,6 +863,13 @@ class CElectricSheep
     virtual void Shutdown()
     {
         printf("CElectricSheep::Shutdown()\n");
+
+        // Persist any settings changed via the audio panel (or elsewhere) before
+        // aggressive shutdown paths can call _exit() and bypass later cleanup.
+        if (g_Settings()->Storage())
+            g_Settings()->Storage()->Commit();
+
+        m_AudioAnalyzer.Stop();
 
         // Reset cancellation flag - Startup() will set it to true if this is a restart
         s_shutdownCancelled.store(false);
@@ -1278,7 +1320,179 @@ class CElectricSheep
             bool drawNoSheepIntro = false;
             bool drawn = g_Player().Update(displayUnit); // , drawNoSheepIntro);
 
-            
+            const bool audioReactiveEnabled =
+                g_Settings()->Get("settings.player.audio_reactive", true);
+
+            const AudioFeatures audio = m_AudioAnalyzer.GetFeaturesSnapshot();
+
+            if (audioReactiveEnabled)
+            {
+                // ── Brightness ────────────────────────────────────────────────
+                const float prescribedBrightness  = TapsToBrightness(m_Brightness);
+                const float reactiveDarkBrightness = g_audioDarkBrightness;
+                const float bassAmount = audio.hasSignal ? audio.bass : 0.0f;
+                const float kickAmount = audio.hasSignal ? audio.kick : 0.0f;
+
+                float reactiveBrightness =
+                    reactiveDarkBrightness +
+                    ((prescribedBrightness - reactiveDarkBrightness) * bassAmount) +
+                    (kickAmount * (float)g_Settings()->Get(
+                         "settings.player.audio_kick_contrib", 0.3f));
+
+                reactiveBrightness = std::max(reactiveDarkBrightness,
+                                     std::min(prescribedBrightness, reactiveBrightness));
+
+                if (auto spRenderer = g_Player().Renderer())
+                    spRenderer->SetBrightness(reactiveBrightness);
+
+                // ── FPS ───────────────────────────────────────────────────────
+                if (g_audioFpsEnabled)
+                {
+                    const float centroid = audio.hasSignal ? audio.spectralCentroid : 0.0f;
+                    const float mid      = audio.hasSignal ? audio.mid              : 0.0f;
+                    const float high     = audio.hasSignal ? audio.high             : 0.0f;
+                    const float bass     = audio.hasSignal ? audio.bass             : 0.0f;
+
+                    const float wC   = g_audioFpsUseCentroid ? g_audioFpsWeightCentroid : 0.0f;
+                    const float wM   = g_audioFpsUseMid      ? g_audioFpsWeightMid      : 0.0f;
+                    const float wH   = g_audioFpsUseHigh     ? g_audioFpsWeightHigh     : 0.0f;
+                    const float wB   = g_audioFpsUseBass     ? g_audioFpsWeightBass     : 0.0f;
+                    const float wSum = wC + wM + wH + wB;
+                    const float norm = (wSum > 0.001f) ? 1.0f / wSum : 1.0f;
+                    float signal = (centroid * wC + mid * wM + high * wH + bass * wB) * norm;
+                    signal = std::max(0.0f, std::min(1.0f, signal));
+
+                    const float targetFps = g_audioFpsMin + (g_audioFpsMax - g_audioFpsMin) * signal;
+
+                    static float s_smoothFps = 4.0f;
+                    const float a = (targetFps > s_smoothFps) ? g_audioFpsAttack : g_audioFpsRelease;
+                    s_smoothFps = s_smoothFps * (1.0f - a) + targetFps * a;
+
+                    g_Player().SetPerceptualFPS(static_cast<double>(s_smoothFps));
+                }
+                else
+                {
+                    g_Player().SetPerceptualFPS(
+                        g_Settings()->Get("settings.player.perceptual_fps", 16.0));
+                }
+
+                // ── Cuts ──────────────────────────────────────────────────────
+                {
+                    static float    s_cutCooldown   = 0.0f;
+                    static float    s_prevTransient = 0.0f;
+                    static float    s_prevKick      = 0.0f;
+                    static float    s_prevSnare     = 0.0f;
+                    static float    s_prevVolume    = 0.0f;
+                    // s_beatCutBase tracks the bar-aligned beat count at which the last cut fired.
+                    // UINT32_MAX = not yet initialised; set to currentBeat on first use to avoid
+                    // a startup cascade if the beat count has already advanced.
+                    static uint32_t s_beatCutBase = UINT32_MAX;
+
+                    const float dt = 1.0f / 60.0f;
+                    s_cutCooldown = std::max(0.0f, s_cutCooldown - dt);
+
+                    const float curTransient = audio.hasSignal ? audio.transient : 0.0f;
+                    const float curKick      = audio.hasSignal ? audio.kick      : 0.0f;
+                    const float curSnare     = audio.hasSignal ? audio.snare     : 0.0f;
+                    const float curVol       = audio.hasSignal ? audio.volume    : 0.0f;
+
+                    const bool transientEdge = (s_prevTransient < g_audioCutTransientThreshold && curTransient >= g_audioCutTransientThreshold);
+                    const bool kickEdge      = (s_prevKick      < g_audioCutKickThreshold      && curKick      >= g_audioCutKickThreshold);
+                    const bool snareEdge     = (s_prevSnare     < g_audioCutSnareThreshold     && curSnare     >= g_audioCutSnareThreshold);
+                    const bool volEdge       = (s_prevVolume    < g_audioCutVolumeThreshold    && curVol       >= g_audioCutVolumeThreshold);
+                    s_prevTransient = curTransient;
+                    s_prevKick      = curKick;
+                    s_prevSnare     = curSnare;
+                    s_prevVolume    = curVol;
+
+                    // Beat trigger: fires on beat 1 of every N bars.
+                    // targetBarBeat is always a multiple of 4 (bar boundary), so the trigger
+                    // stays aligned even if the render loop misses the exact beat-count sample
+                    // when currentBeat % 4 == 0.  After firing, base is set to targetBarBeat
+                    // (not currentBeat) so subsequent targets are always bar-aligned too.
+                    const uint32_t currentBeat = AudioAnalyzer_GetBeatCount();
+                    if (s_beatCutBase == UINT32_MAX)
+                        s_beatCutBase = currentBeat; // align to current position on first use
+
+                    const uint32_t N = static_cast<uint32_t>(std::max(1, g_audioCutBeatN));
+
+                    // Detect beat count reset (user pressed Reset) — beat count jumped back to 0
+                    if (s_beatCutBase != UINT32_MAX && currentBeat < s_beatCutBase)
+                        s_beatCutBase = UINT32_MAX;
+
+                    // Snap s_beatCutBase forward if volume gating silenced cuts for multiple bars,
+                    // so we don't cascade-cut to "catch up" when audio becomes loud again.
+                    if (s_beatCutBase != UINT32_MAX)
+                    {
+                        const uint32_t currentBar = currentBeat / 4;
+                        const uint32_t baseBar    = s_beatCutBase / 4;
+                        if (currentBar > baseBar + N)
+                        {
+                            const uint32_t skipped = (currentBar - baseBar) / N;
+                            s_beatCutBase = (baseBar + (skipped - 1) * N) * 4;
+                        }
+                    }
+
+                    const uint32_t targetBarBeat = ((s_beatCutBase / 4) + N) * 4;
+                    const bool     beatEdge      = (currentBeat >= targetBarBeat);
+
+                    int cutStyle = -1;
+                    if (s_cutCooldown <= 0.0f && !g_Player().IsTransitioning() &&
+                        curVol >= g_audioCutMinVolume)
+                    {
+                        if (g_audioCutTransientEnabled && transientEdge)
+                            cutStyle = g_audioCutTransientStyle;
+                        else if (g_audioCutKickEnabled && kickEdge)
+                            cutStyle = g_audioCutKickStyle;
+                        else if (g_audioCutSnareEnabled && snareEdge)
+                            cutStyle = g_audioCutSnareStyle;
+                        else if (g_audioCutBeatEnabled && beatEdge)
+                            cutStyle = g_audioCutBeatStyle;
+                        else if (g_audioCutVolumeEnabled && volEdge)
+                            cutStyle = g_audioCutVolumeStyle;
+                    }
+
+                    if (cutStyle >= 0)
+                    {
+                        s_cutCooldown = g_audioCutGlobalCooldown;
+                        // Reset to the bar boundary we just crossed, not to currentBeat.
+                        // This keeps every subsequent target aligned to beat 1 of a bar.
+                        s_beatCutBase = (cutStyle == g_audioCutBeatStyle) ? targetBarBeat : currentBeat;
+                        const float dur = (cutStyle == 0) ? 0.05f : (cutStyle == 1) ? 0.2f : 2.0f;
+                        g_Player().TriggerAudioCut(dur);
+                    }
+                }
+
+                // ── Mixing ────────────────────────────────────────────────────
+                if (g_audioMixEnabled)
+                {
+                    const float sources[] = {
+                        audio.bass, audio.mid, audio.high,
+                        audio.spectralCentroid, audio.kick, audio.snare,
+                        audio.transient, audio.beatPhase
+                    };
+                    const int srcIdx   = std::max(0, std::min(7, g_audioMixSource));
+                    const float raw    = audio.hasSignal ? sources[srcIdx] : 0.0f;
+                    const float target = g_audioMixMin + (g_audioMixMax - g_audioMixMin) * raw;
+                    static float s_mixAlpha = 0.0f;
+                    s_mixAlpha = s_mixAlpha * (1.0f - g_audioMixSmooth) + target * g_audioMixSmooth;
+                    g_Player().SetAudioBlendAlpha(std::max(0.0f, std::min(1.0f, s_mixAlpha)));
+                }
+                else
+                {
+                    g_Player().SetAudioBlendAlpha(-1.0f);
+                }
+            }
+            else
+            {
+                if (auto spRenderer = g_Player().Renderer())
+                    spRenderer->SetBrightness(TapsToBrightness(m_Brightness));
+
+                g_Player().SetPerceptualFPS(
+                    g_Settings()->Get("settings.player.perceptual_fps", 16.0));
+                g_Player().SetAudioBlendAlpha(-1.0f);
+            }
+
             if ((!EDreamClient::IsLoggedIn() && !m_MultipleInstancesMode) || !g_Player().HasStarted()) {
                 drawNoSheepIntro = true;
             }
@@ -2070,6 +2284,84 @@ class CElectricSheep
                 }
                 } // if (spStats) - dreamstats
 
+               
+                // Update audio stats HUD (F3)
+                if (auto spAudioStats =
+                        std::dynamic_pointer_cast<Hud::CStatsConsole>(
+                            m_HudManager->Get("audiostats")))
+                {
+                    static float dVolume = 0.0f, dBass = 0.0f, dMid = 0.0f;
+                    static float dHigh = 0.0f, dCentroid = 0.0f;
+                    static float dKick = 0.0f, dSnare = 0.0f, dTransient = 0.0f;
+                    const float dSmooth = 0.12f;
+                    dVolume   = dVolume   + (audio.volume           - dVolume)   * dSmooth;
+                    dBass     = dBass     + (audio.bass             - dBass)     * dSmooth;
+                    dMid      = dMid      + (audio.mid              - dMid)      * dSmooth;
+                    dHigh     = dHigh     + (audio.high             - dHigh)     * dSmooth;
+                    dCentroid = dCentroid + (audio.spectralCentroid - dCentroid) * dSmooth;
+                    dKick     = dKick     + (audio.kick             - dKick)     * dSmooth;
+                    dSnare    = dSnare    + (audio.snare            - dSnare)    * dSmooth;
+                    dTransient= dTransient+ (audio.transient        - dTransient)* dSmooth;
+
+                    auto bar = [](float value)
+                    {
+                        int count = static_cast<int>(value * 20.0f);
+                        if (count < 0)
+                            count = 0;
+                        if (count > 20)
+                            count = 20;
+                        std::string result;
+                        for (int i = 0; i < count; ++i)
+                            result += "|";
+                        return result;
+                    };
+
+                    ((Hud::CStringStat*)spAudioStats->Get("audio-signal"))
+                        ->SetSample(dVolume > 0.01f ? "yes" : "no");
+                    ((Hud::CStringStat*)spAudioStats->Get("audio-volume"))
+                        ->SetSample(string_format(
+                            "%-20s %.3f", bar(dVolume).c_str(), dVolume));
+                    ((Hud::CStringStat*)spAudioStats->Get("audio-bass"))
+                        ->SetSample(string_format("%-20s %.3f",
+                                                  bar(dBass).c_str(), dBass));
+                    ((Hud::CStringStat*)spAudioStats->Get("audio-mid"))
+                        ->SetSample(string_format("%-20s %.3f",
+                                                  bar(dMid).c_str(), dMid));
+                    ((Hud::CStringStat*)spAudioStats->Get("audio-high"))
+                        ->SetSample(string_format("%-20s %.3f",
+                                                  bar(dHigh).c_str(), dHigh));
+                    ((Hud::CStringStat*)spAudioStats->Get("audio-centroid"))
+                        ->SetSample(string_format(
+                            "%-20s %.3f", bar(dCentroid).c_str(), dCentroid));
+                    ((Hud::CStringStat*)spAudioStats->Get("audio-kick"))
+                        ->SetSample(string_format("%-20s %.3f", bar(dKick).c_str(), dKick));
+                    ((Hud::CStringStat*)spAudioStats->Get("audio-snare"))
+                        ->SetSample(string_format("%-20s %.3f", bar(dSnare).c_str(), dSnare));
+                    ((Hud::CStringStat*)spAudioStats->Get("audio-transient"))
+                        ->SetSample(string_format("%-20s %.3f", bar(dTransient).c_str(), dTransient));
+                    ((Hud::CStringStat*)spAudioStats->Get("audio-samples"))
+                        ->SetSample(string_format("%d", audio.sampleCount));
+                    ((Hud::CStringStat*)spAudioStats->Get("audio-bpm"))
+                        ->SetSample(string_format("%.1f", audio.bpm));
+                    {
+                        const uint32_t beatCount = AudioAnalyzer_GetBeatCount();
+                        const int      beatIdx   = static_cast<int>(beatCount % 4);
+                        const uint32_t barCount  = beatCount / 4;
+                        const uint32_t beatN     = static_cast<uint32_t>(std::max(1, g_audioCutBeatN));
+                        const uint32_t barCycle  = barCount % beatN;
+                        char beatBuf[13];
+                        snprintf(beatBuf, sizeof(beatBuf), "%s%s%s%s",
+                            beatIdx == 0 ? "[1]" : " 1 ",
+                            beatIdx == 1 ? "[2]" : " 2 ",
+                            beatIdx == 2 ? "[3]" : " 3 ",
+                            beatIdx == 3 ? "[4]" : " 4 ");
+                        ((Hud::CStringStat*)spAudioStats->Get("audio-beat"))
+                            ->SetSample(beatBuf);
+                        ((Hud::CStringStat*)spAudioStats->Get("audio-bar"))
+                            ->SetSample(string_format("%u/%u", barCycle + 1, beatN));
+                    }
+                }
+
                 //	Finally render hud.
 #if defined(WIN32)
                 if (!FirstTimeSetupWin32_IsWizardVisible())
@@ -2100,6 +2392,7 @@ class CElectricSheep
         CLIENT_COMMAND_PLAYBACK_FASTER,
         CLIENT_COMMAND_F1,
         CLIENT_COMMAND_F2,
+        CLIENT_COMMAND_F3,
         CLIENT_COMMAND_SKIP_FW,
         CLIENT_COMMAND_SKIP_BW,
         CLIENT_COMMAND_PAUSE,
@@ -2329,14 +2622,30 @@ class CElectricSheep
             case CLIENT_COMMAND_F1:
                 m_F1F4Timer.Reset();
                 m_HudManager->Toggle("helpmessage");
+#ifdef WIN32
+                AudioPanelWin32_SetVisible(false);
+#endif
                 g_Log->Info("HUD toggled (F1), syncing state to server");
                 EDreamClient::SendStateUpdate();
                 return true;
             case CLIENT_COMMAND_F2:
                 m_F1F4Timer.Reset();
                 m_HudManager->Toggle("dreamstats");
+#ifdef WIN32
+                AudioPanelWin32_SetVisible(false);
+#endif
                 g_Log->Info("HUD toggled (F2), syncing state to server");
                 EDreamClient::SendStateUpdate();
+                return true;
+            case CLIENT_COMMAND_F3:
+                m_HudManager->Toggle("audiostats");
+#ifdef WIN32
+                // Settings and audio panel both own an ImGui context on the same HWND —
+                // close settings before opening the audio panel to avoid a context conflict.
+                if (!AudioPanelWin32_IsVisible())
+                    SettingsDialogWin32_DismissWithoutSaveForExternalOverlay();
+                AudioPanelWin32_SetVisible(!AudioPanelWin32_IsVisible());
+#endif
                 return true;
             case CLIENT_COMMAND_SKIP_FW:
                 if (!g_Player().IsJumpDisabled()) {
@@ -2461,6 +2770,8 @@ class CElectricSheep
                     return ExecuteCommand(CLIENT_COMMAND_F1);
                 case DisplayOutput::CKeyEvent::KEY_F2:
                     return ExecuteCommand(CLIENT_COMMAND_F2);
+                case DisplayOutput::CKeyEvent::KEY_F3:
+                    return ExecuteCommand(CLIENT_COMMAND_F3);
 
                     // Reset playlist
                 case DisplayOutput::CKeyEvent::KEY_N:

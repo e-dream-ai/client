@@ -2,6 +2,7 @@
 
 #include "SettingsDialogWin32.h"
 #include "AboutDialogWin32.h"
+#include "AudioPanelWin32.h"
 
 #include <atomic>
 #include <array>
@@ -184,6 +185,8 @@ static void OnShowPreferencesRequested()
     if (!g_overlayAllowed.load(std::memory_order_acquire))
         return;
     AboutDialogWin32_DismissWithoutSaveForExternalOverlay();
+    // Audio panel and settings share the same HWND ImGui context — close panel first.
+    AudioPanelWin32_SetVisible(false);
     g_pendingImGuiShutdown.store(false, std::memory_order_release);
     g_showRequested.store(true, std::memory_order_release);
 }
@@ -540,6 +543,11 @@ static void DrawAdvancedTab()
     #include "SettingsDialogWin32/SettingsDialogWin32.TabAdvanced.inl"
 }
 
+static void DrawAudioReactiveTab()
+{
+#include "SettingsDialogWin32/SettingsDialogWin32.TabAudioReactive.inl"
+}
+
 static void DrawSettingsDialog(float viewportW, float viewportH)
 {
     const float targetWidth = S(541.f);   // Match macOS settings dialog content width.
@@ -624,6 +632,7 @@ static void DrawSettingsDialog(float viewportW, float viewportH)
             drawTabItem("Disk", DrawDiskTab);
             drawTabItem("Display", DrawDisplayTab);
             drawTabItem("Advanced", DrawAdvancedTab);
+            drawTabItem("Audio", DrawAudioReactiveTab);
             ImGui::EndTabBar();
         }
 
@@ -688,6 +697,57 @@ static void DrawSettingsDialog(float viewportW, float viewportH)
 }
 
 } // namespace
+
+// Audio reactive settings - defined here, shared with AudioPanelWin32
+bool  g_audioReactive          = true;
+float g_audioBassMult          = 0.7f;
+float g_audioMidMult           = 0.8f;
+float g_audioHighMult          = 0.7f;
+float g_audioPeakDecay         = 0.999f;
+float g_audioPeakFloor         = 0.01f;
+float g_audioDarkBrightness    = -0.5f;
+float g_audioOnsetThreshold    = 0.001f;
+
+// FPS
+bool  g_audioFpsEnabled        = true;
+float g_audioFpsWeightCentroid = 0.8f;
+float g_audioFpsWeightMid      = 0.5f;
+float g_audioFpsWeightHigh     = 0.3f;
+float g_audioFpsWeightBass     = 0.1f;
+float g_audioFpsMin            = 4.0f;
+float g_audioFpsMax            = 60.0f;
+float g_audioFpsAttack         = 0.3f;
+float g_audioFpsRelease        = 0.1f;
+bool  g_audioFpsUseCentroid    = true;
+bool  g_audioFpsUseMid         = true;
+bool  g_audioFpsUseHigh        = true;
+bool  g_audioFpsUseBass        = true;
+
+// Cuts
+bool  g_audioCutTransientEnabled   = false;
+float g_audioCutTransientThreshold = 0.5f;
+int   g_audioCutTransientStyle     = 0;
+bool  g_audioCutKickEnabled        = false;
+float g_audioCutKickThreshold      = 0.5f;
+int   g_audioCutKickStyle          = 0;
+bool  g_audioCutSnareEnabled       = false;
+float g_audioCutSnareThreshold     = 0.5f;
+int   g_audioCutSnareStyle         = 1;
+bool  g_audioCutBeatEnabled        = false;
+int   g_audioCutBeatN              = 4;
+int   g_audioCutBeatStyle          = 1;
+bool  g_audioCutVolumeEnabled      = false;
+float g_audioCutVolumeThreshold    = 0.8f;
+int   g_audioCutVolumeStyle        = 2;
+float g_audioCutGlobalCooldown     = 2.0f;
+float g_audioCutMinVolume         = 0.8f;
+
+// Mixing
+bool  g_audioMixEnabled        = false;
+int   g_audioMixSource         = 0;
+float g_audioMixMin            = 0.0f;
+float g_audioMixMax            = 1.0f;
+float g_audioMixSmooth         = 0.15f;
 
 void SettingsDialogWin32_DismissWithoutSaveForExternalOverlay()
 {
@@ -818,6 +878,11 @@ bool SettingsDialogWin32_RenderIfNeeded(ID3D11Device* device, ID3D11DeviceContex
         ShutdownImGui();
 
     return true;
+}
+
+void SettingsDialogWin32_LoadAudioSettings()
+{
+    LoadSettingsForShow();
 }
 
 #endif // WIN32

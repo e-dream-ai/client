@@ -280,11 +280,21 @@ class CElectricSheep_Win32 : public CElectricSheep
                 m_bAllowFKey = true;
             }
         }
-
+        //  Stops .scr /s running if .exe is open
+        if (m_ScrMode == eSaver &&
+            g_SingleInstanceObj.IsAnotherInstanceRunning())
+        {
+            g_Log->Info("Screensaver launch skipped because another "
+                        "infinidream instance is already running.");
+            m_bConfigMode = true;
+            return false;
+        }
         //	Check for multiple instances if we're not specifically asked not
-        // to.
+        //	to.
         if (m_ScrMode != eWindowed_AllowMultipleInstances &&
-            m_ScrMode != eSaver && m_ScrMode != eConfig &&
+            m_ScrMode != eSaver && 
+            m_ScrMode != eConfig &&
+            m_ScrMode != ePreview && 
             m_ScrMode != eFullScreenStandalone)
         {
             if (g_SingleInstanceObj.IsAnotherInstanceRunning())

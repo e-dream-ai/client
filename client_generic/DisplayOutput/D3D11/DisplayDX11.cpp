@@ -21,6 +21,7 @@
 #include <dwmapi.h>
 #include <ShellScalingApi.h>
 #include <windowsx.h>
+#include "AudioPanelWin32.h"
 #pragma comment(lib, "shcore.lib")
 #pragma comment(lib, "dwmapi.lib")
 extern void ESShowPreferences();
@@ -196,6 +197,7 @@ static bool HandleAppCommand(HWND hWnd, CDisplayDX11* self, UINT cmd)
     switch (cmd)
     {
     case ID_FILE_PREFERENCES:
+        AudioPanelWin32_SetVisible(false);
         SettingsDialogWin32_Toggle();
         return true;
     case ID_FILE_EXIT:
@@ -633,12 +635,77 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
         }
     }
 
+    // Pre-handle all caption-button clicks when the audio panel (F3) is visible,
+    // mirroring the settings-dialog pre-handle above.  ImGui's WndProcHandler runs
+    // later and would otherwise swallow WM_LBUTTONDOWN/Up before the normal
+    // WM_LBUTTONUP chrome handler in the switch below can fire WindowClose() etc.
+    if (self && AudioPanelWin32_IsVisible() &&
+        !self->m_bFullScreen && !self->m_bEmbeddedSaverPreview && self->m_useCustomWindowChrome)
+    {
+        const LONG_PTR style = GetWindowLongPtr(hWnd, GWL_STYLE);
+        const bool hasNativeCaption = (style & WS_CAPTION) != 0;
+        if (!hasNativeCaption)
+        {
+            if (msg == WM_LBUTTONDOWN)
+            {
+                UpdateTitlebarChromeRects(self, hWnd);
+                const POINT ptClient{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+                int pressed = 0;
+                if      (PtInRectClient(self->m_captionBtnCloseRect,       ptClient)) pressed = 3;
+                else if (PtInRectClient(self->m_captionBtnMaxRect,         ptClient)) pressed = 2;
+                else if (PtInRectClient(self->m_captionBtnMinRect,         ptClient)) pressed = 1;
+                else if (PtInRectClient(self->m_titlebarGearRect,          ptClient)) pressed = 4;
+                else if (PtInRectClient(self->m_titlebarFullscreenRect,    ptClient)) pressed = 5;
+                else if (PtInRectClient(self->m_titlebarMenuRect,          ptClient)) pressed = 6;
+                if (pressed != 0)
+                {
+                    self->m_captionBtnPressed = pressed;
+                    SetCapture(hWnd);
+                    return 0;
+                }
+            }
+            else if (msg == WM_LBUTTONUP)
+            {
+                const int pressed = (captionPressedSnapshot != 0) ? captionPressedSnapshot
+                                                                   : self->m_captionBtnPressed;
+                if (pressed != 0)
+                {
+                    UpdateTitlebarChromeRects(self, hWnd);
+                    const POINT ptClient{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+                    self->m_captionBtnPressed = 0;
+                    if (GetCapture() == hWnd) ReleaseCapture();
+                    if      (PtInRectClient(self->m_captionBtnCloseRect,    ptClient) && pressed == 3) self->WindowClose();
+                    else if (PtInRectClient(self->m_captionBtnMaxRect,      ptClient) && pressed == 2) self->WindowToggleMaximizeRestore();
+                    else if (PtInRectClient(self->m_captionBtnMinRect,      ptClient) && pressed == 1) self->WindowMinimize();
+                    else if (PtInRectClient(self->m_titlebarGearRect,       ptClient) && pressed == 4)
+                        SendMessageW(hWnd, WM_COMMAND, MAKEWPARAM(ID_FILE_PREFERENCES, 0), 0);
+                    else if (PtInRectClient(self->m_titlebarFullscreenRect, ptClient) && pressed == 5)
+                        SendMessageW(hWnd, WM_COMMAND, MAKEWPARAM(ID_VIEW_FULLSCREEN, 0), 0);
+                    else if (PtInRectClient(self->m_titlebarMenuRect,       ptClient) && pressed == 6)
+                    {
+                        POINT anchorClient{self->m_titlebarMenuRect.left, self->m_titlebarMenuRect.bottom};
+                        POINT anchorScreen = anchorClient;
+                        ClientToScreen(hWnd, &anchorScreen);
+                        ShowTitlebarOverflowMenu(hWnd, anchorScreen);
+                    }
+                    return 0;
+                }
+            }
+        }
+    }
+
     LRESULT imguiHandled = 0;
-    if (SettingsDialogWin32_TryConsumeWndProc(hWnd, msg, wParam, lParam, &imguiHandled))
+    if (SettingsDialogWin32_TryConsumeWndProc(hWnd, msg, wParam, lParam,
+                                              &imguiHandled))
         return imguiHandled;
-    if (AboutDialogWin32_TryConsumeWndProc(hWnd, msg, wParam, lParam, &imguiHandled))
+    if (AboutDialogWin32_TryConsumeWndProc(hWnd, msg, wParam, lParam,
+                                           &imguiHandled))
         return imguiHandled;
-    if (FirstTimeSetupWin32_TryConsumeWndProc(hWnd, msg, wParam, lParam, &imguiHandled))
+    if (FirstTimeSetupWin32_TryConsumeWndProc(hWnd, msg, wParam, lParam,
+                                              &imguiHandled))
+        return imguiHandled;
+    if (AudioPanelWin32_TryConsumeWndProc(hWnd, msg, wParam, lParam,
+                                          &imguiHandled))
         return imguiHandled;
 #endif
 
