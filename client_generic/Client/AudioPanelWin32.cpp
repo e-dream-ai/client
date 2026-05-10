@@ -387,6 +387,8 @@ bool AudioPanelWin32_RenderIfNeeded(ID3D11Device* device,
     {
         drawSlider("Global cooldown", &g_audioCutGlobalCooldown, 0.1f, 10.0f, "settings.player.audio_cut_global_cooldown");
         tip("Minimum seconds between any two audio-triggered cuts.");
+        drawSlider("Min volume",      &g_audioCutMinVolume,      0.0f,  1.0f, "settings.player.audio_cut_min_volume");
+        tip("Cuts only fire when overall volume is at or above this level.");
         ImGui::Spacing();
 
         drawCheck("Transient",     &g_audioCutTransientEnabled,   "settings.player.audio_cut_transient_enabled");

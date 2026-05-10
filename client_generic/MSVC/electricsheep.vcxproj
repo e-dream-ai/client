@@ -647,6 +647,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Client\AudioAnalyzer.cpp" />
+    <ClCompile Include="..\Client\BeatDetektor.cpp" />
     <ClCompile Include="..\client\AudioInputWasapi.cpp" />
     <ClCompile Include="..\Client\AudioPanelWin32.cpp" />
     <!-- aubio: core -->
@@ -736,6 +737,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Client\AudioAnalyzer.h" />
+    <ClInclude Include="..\Client\BeatDetektor.h" />
     <ClInclude Include="..\client\AudioInputWasapi.h" />
     <ClInclude Include="..\Client\AudioPanelWin32.h" />
     <ClInclude Include="..\Client\DreamPlaylist.h" />

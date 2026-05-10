@@ -707,9 +707,12 @@ bool CPlayer::Update(uint32_t displayUnit)
 
     const bool freezePlayback = m_bPaused || IsFirstRunWizardPlaybackHold();
 
+    if (m_blendClip && m_audioBlendAlpha >= 0.0f)
+        m_blendClip->Update(m_TimelineTime, freezePlayback);
+
     if (m_currentClip) {
         m_currentClip->Update(m_TimelineTime, freezePlayback);
-        
+
         // Only check for transition if we're not buffering anything
         if (!freezePlayback && !IsAnyClipBuffering()) {
             // Check if we need to prepare for transition

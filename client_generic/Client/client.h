@@ -475,6 +475,7 @@ class CElectricSheep
         spStats->Add(new Hud::CStringStat("audio-samples",   "Samples:  ", ""));
         spStats->Add(new Hud::CStringStat("audio-bpm",       "BPM:      ", ""));
         spStats->Add(new Hud::CStringStat("audio-beat",      "Beat:     ", ""));
+        spStats->Add(new Hud::CStringStat("audio-bar",       "Bar:      ", ""));
     }
     
     void AddCreditsHud()
@@ -1413,12 +1414,31 @@ class CElectricSheep
                     if (s_beatCutBase == UINT32_MAX)
                         s_beatCutBase = currentBeat; // align to current position on first use
 
-                    const uint32_t N             = static_cast<uint32_t>(std::max(1, g_audioCutBeatN));
+                    const uint32_t N = static_cast<uint32_t>(std::max(1, g_audioCutBeatN));
+
+                    // Detect beat count reset (user pressed Reset) — beat count jumped back to 0
+                    if (s_beatCutBase != UINT32_MAX && currentBeat < s_beatCutBase)
+                        s_beatCutBase = UINT32_MAX;
+
+                    // Snap s_beatCutBase forward if volume gating silenced cuts for multiple bars,
+                    // so we don't cascade-cut to "catch up" when audio becomes loud again.
+                    if (s_beatCutBase != UINT32_MAX)
+                    {
+                        const uint32_t currentBar = currentBeat / 4;
+                        const uint32_t baseBar    = s_beatCutBase / 4;
+                        if (currentBar > baseBar + N)
+                        {
+                            const uint32_t skipped = (currentBar - baseBar) / N;
+                            s_beatCutBase = (baseBar + (skipped - 1) * N) * 4;
+                        }
+                    }
+
                     const uint32_t targetBarBeat = ((s_beatCutBase / 4) + N) * 4;
                     const bool     beatEdge      = (currentBeat >= targetBarBeat);
 
                     int cutStyle = -1;
-                    if (s_cutCooldown <= 0.0f && !g_Player().IsTransitioning())
+                    if (s_cutCooldown <= 0.0f && !g_Player().IsTransitioning() &&
+                        curVol >= g_audioCutMinVolume)
                     {
                         if (g_audioCutTransientEnabled && transientEdge)
                             cutStyle = g_audioCutTransientStyle;
@@ -2324,7 +2344,11 @@ class CElectricSheep
                     ((Hud::CStringStat*)spAudioStats->Get("audio-bpm"))
                         ->SetSample(string_format("%.1f", audio.bpm));
                     {
-                        const int beatIdx = static_cast<int>(AudioAnalyzer_GetBeatCount() % 4);
+                        const uint32_t beatCount = AudioAnalyzer_GetBeatCount();
+                        const int      beatIdx   = static_cast<int>(beatCount % 4);
+                        const uint32_t barCount  = beatCount / 4;
+                        const uint32_t beatN     = static_cast<uint32_t>(std::max(1, g_audioCutBeatN));
+                        const uint32_t barCycle  = barCount % beatN;
                         char beatBuf[13];
                         snprintf(beatBuf, sizeof(beatBuf), "%s%s%s%s",
                             beatIdx == 0 ? "[1]" : " 1 ",
@@ -2333,6 +2357,8 @@ class CElectricSheep
                             beatIdx == 3 ? "[4]" : " 4 ");
                         ((Hud::CStringStat*)spAudioStats->Get("audio-beat"))
                             ->SetSample(beatBuf);
+                        ((Hud::CStringStat*)spAudioStats->Get("audio-bar"))
+                            ->SetSample(string_format("%u/%u", barCycle + 1, beatN));
                     }
                 }
 

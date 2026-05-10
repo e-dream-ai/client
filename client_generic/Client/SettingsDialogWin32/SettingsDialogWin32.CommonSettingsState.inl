@@ -81,6 +81,7 @@ static void LoadSettingsForShow()
     g_audioCutVolumeThreshold= g_Settings()->Get("settings.player.audio_cut_volume_threshold",0.8f);
     g_audioCutVolumeStyle    = g_Settings()->Get("settings.player.audio_cut_volume_style",    2);
     g_audioCutGlobalCooldown = g_Settings()->Get("settings.player.audio_cut_global_cooldown", 2.0f);
+    g_audioCutMinVolume      = g_Settings()->Get("settings.player.audio_cut_min_volume",      0.8f);
 
     g_audioMixEnabled        = g_Settings()->Get("settings.player.audio_mix_enabled",         false);
     g_audioMixSource         = g_Settings()->Get("settings.player.audio_mix_source",          0);
@@ -162,6 +163,7 @@ static void SaveSettings()
     g_Settings()->Set("settings.player.audio_cut_volume_threshold", g_audioCutVolumeThreshold);
     g_Settings()->Set("settings.player.audio_cut_volume_style",     g_audioCutVolumeStyle);
     g_Settings()->Set("settings.player.audio_cut_global_cooldown",  g_audioCutGlobalCooldown);
+    g_Settings()->Set("settings.player.audio_cut_min_volume",       g_audioCutMinVolume);
 
     g_Settings()->Set("settings.player.audio_mix_enabled",  g_audioMixEnabled);
     g_Settings()->Set("settings.player.audio_mix_source",   g_audioMixSource);

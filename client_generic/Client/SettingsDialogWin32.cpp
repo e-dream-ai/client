@@ -737,6 +737,7 @@ bool  g_audioCutVolumeEnabled      = false;
 float g_audioCutVolumeThreshold    = 0.8f;
 int   g_audioCutVolumeStyle        = 2;
 float g_audioCutGlobalCooldown     = 2.0f;
+float g_audioCutMinVolume         = 0.8f;
 
 // Mixing
 bool  g_audioMixEnabled        = false;

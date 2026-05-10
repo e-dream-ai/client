@@ -4,6 +4,8 @@ extern "C" {
 #include "aubio.h"
 }
 
+#include "BeatDetektor.h"
+
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -104,9 +106,7 @@ uint32_t AudioAnalyzer_GetBeatCount()
 void AudioAnalyzer_ResetBeatPhase()
 {
     s_resetBeatPhase.store(true, std::memory_order_relaxed);
-    // Round beat count down to the nearest multiple of 4 so box 1 re-aligns
-    uint32_t cur = s_liveBeatCount.load(std::memory_order_relaxed);
-    s_liveBeatCount.store(cur - (cur % 4), std::memory_order_relaxed);
+    s_liveBeatCount.store(0, std::memory_order_relaxed);
 }
 
 float AudioAnalyzer_TapTempo()
@@ -177,9 +177,11 @@ void AudioAnalyzer::ThreadProc()
     float bassPeak = 0.001f, midPeak = 0.001f, highPeak = 0.001f;
     int   warmup   = 0;
     float s_prevBass = 0.0f, s_prevMid = 0.0f, s_prevHigh = 0.0f;
-    float s_acfBpm      = 120.0f;
-    uint_t s_lastBeatHop = 0;
-    uint_t s_totalHops   = 0;
+    float s_acfBpm    = 120.0f;
+    uint_t s_totalHops = 0;
+    BeatDetektor bd_slow(60.0f, 119.0f);   // covers 60–119 BPM
+    BeatDetektor bd_fast(120.0f, 239.0f);  // covers 120–239 BPM
+    std::vector<float> bdFftVec(kNumBins, 0.0f);
     float s_beatPhase    = 0.0f;
     float s_beatInterval = 60.0f / 120.0f;
     int   s_beatCount    = 0;
@@ -269,6 +271,16 @@ void AudioAnalyzer::ThreadProc()
             aubio_tempo_do(aubio.tempo, aubio.hopIn, aubio.tempoOut);
             if (aubio.tempoOut->data[0] > 0.0f) beatFired = true;
 
+            // Feed BeatDetektor — reuse aubio's per-hop FFT magnitudes, zero extra FFT cost
+            ++s_totalHops;
+            {
+                const float hopTimeSec = float(s_totalHops) * float(kHopSize) / float(kSampleRate);
+                for (uint_t bin = 0; bin < kNumBins; ++bin)
+                    bdFftVec[bin] = aubio.fftgrain->norm[bin];
+                bd_slow.process(hopTimeSec, bdFftVec);
+                bd_fast.process(hopTimeSec, bdFftVec);
+            }
+
             ++hops;
         }
 
@@ -329,50 +341,63 @@ void AudioAnalyzer::ThreadProc()
         }
 
         // Kick / snare / transient
-        const float bassDelta     = normBass - s_prevBass;
-        const float midDelta      = normMid  - s_prevMid;
-        const float highDelta     = normHigh - s_prevHigh;
-        const bool  kickFired     = bassDelta > 0.15f;
-        const bool  snareFired    = midDelta > 0.15f && midDelta > bassDelta * 1.2f;
-        const bool  transientFired = (bassDelta + midDelta + highDelta) / 3.0f > 0.22f;
+        // volume is RMS-based and doesn't adapt away like normBass/normMid, so it's a reliable
+        // gate against ambient content in quiet sections where the adaptive peak has decayed to floor.
+        const float bassDelta      = normBass - s_prevBass;
+        const float midDelta       = normMid  - s_prevMid;
+        const float highDelta      = normHigh - s_prevHigh;
+        // Require onset from a low prior level: percussion attacks from near-silence;
+        // sustained bass/mid content (guitar, synth) keeps s_prevBass/s_prevMid elevated.
+        const bool  kickFired      = volume > 0.30f && normBass > 0.35f && bassDelta > 0.22f && s_prevBass < 0.25f;
+        const bool  snareFired     = volume > 0.30f && normMid  > 0.25f && midDelta  > 0.22f && midDelta > bassDelta * 1.5f && s_prevMid < 0.20f;
+        const bool  transientFired = volume > 0.25f && std::max({normBass, normMid, normHigh}) > 0.20f &&
+                                     (bassDelta + midDelta + highDelta) / 3.0f > 0.26f;
         s_prevBass = normBass; s_prevMid = normMid; s_prevHigh = normHigh;
 
-        // BPM
-        s_totalHops += static_cast<uint_t>(hops);
+        // BPM — BeatDetektor primary; aubio onset confidence still drives phase correction below
         const float overrideBpm = s_bpmOverride.load(std::memory_order_relaxed);
+        const float aubioConf   = aubio_tempo_get_confidence(aubio.tempo);
         if (overrideBpm > 0.0f)
         {
             s_acfBpm = overrideBpm;
         }
-        else if (beatFired)
+        else
         {
-            const float confidence = aubio_tempo_get_confidence(aubio.tempo);
-            if (s_lastBeatHop > 0 && confidence > 0.25f)
+            const bool  slowWins  = (bd_slow.win_val >= bd_fast.win_val);
+            const float bdPeriod  = slowWins ? bd_slow.winning_bpm : bd_fast.winning_bpm; // seconds per beat
+            const float bdConf    = slowWins ? bd_slow.win_val     : bd_fast.win_val;
+            const float bdBpm     = (bdPeriod > 0.0f) ? (60.0f / bdPeriod) : 0.0f;
+
+            // win_val >= 20 is the minimum reliable reading; 60 = finish line (high confidence)
+            if (bdConf >= 20.0f && bdBpm >= 40.0f && bdBpm <= 250.0f)
             {
-                const uint_t hopDelta = s_totalHops - s_lastBeatHop;
-                const float  ibiSec   = float(hopDelta) * float(kHopSize) / float(kSampleRate);
-                const float  ibiBpm   = 60.0f / ibiSec;
-                const float  bpmRatio = ibiBpm / s_acfBpm;
-                if (ibiBpm >= 40.0f && ibiBpm <= 250.0f && bpmRatio >= 0.75f && bpmRatio <= 1.25f)
+                // Fold octave errors: BeatDetektor sometimes locks onto 2x or 0.5x the true tempo
+                float candidate = bdBpm;
+                if (s_acfBpm > 0.0f)
                 {
-                    const float alpha = 0.05f + confidence * 0.15f;
-                    s_acfBpm = s_acfBpm * (1.0f - alpha) + ibiBpm * alpha;
-                    s_lastBeatHop = s_totalHops;
+                    const float r = candidate / s_acfBpm;
+                    if      (r > 1.8f && r < 2.2f)   candidate *= 0.5f;
+                    else if (r > 0.45f && r < 0.55f) candidate *= 2.0f;
                 }
-            }
-            else if (s_lastBeatHop == 0)
-            {
-                s_lastBeatHop = s_totalHops;
+                // Scale alpha by proximity: full rate within 8% of current estimate, zero at 20%+
+                // This prevents a bad detection frame from yanking the estimate far off track.
+                const float baseAlpha = Clamp01((bdConf - 20.0f) / 40.0f) * 0.05f;
+                const float deviation = (s_acfBpm > 0.0f) ? std::abs(candidate / s_acfBpm - 1.0f) : 0.0f;
+                const float alpha     = baseAlpha * Clamp01(1.0f - deviation / 0.15f);
+                s_acfBpm = s_acfBpm * (1.0f - alpha) + candidate * alpha;
+                s_acfBpm = std::max(40.0f, std::min(250.0f, s_acfBpm));
             }
         }
         s_liveBpm.store(s_acfBpm, std::memory_order_relaxed);
 
-        // Beat phase
+        // Beat phase — advance driven by BeatDetektor BPM; aubio onsets correct phase
         if (s_resetBeatPhase.exchange(false, std::memory_order_relaxed))
+        {
             s_beatPhase = 0.0f;
+            s_beatCount = 0;
+        }
 
-        const float confidence = aubio_tempo_get_confidence(aubio.tempo);
-        if (beatFired && confidence > 0.12f) ++s_beatCount;
+        if (beatFired && aubioConf > 0.12f) ++s_beatCount;
 
         s_beatInterval = 60.0f / s_acfBpm;
 
@@ -387,10 +412,10 @@ void AudioAnalyzer::ThreadProc()
         }
 
         const bool bpmLocked = (overrideBpm > 0.0f);
-        if (!bpmLocked && beatFired && confidence > 0.12f && s_beatCount >= 4)
+        if (!bpmLocked && beatFired && aubioConf > 0.12f && s_beatCount >= 4)
         {
             const float err  = s_beatPhase > 0.5f ? s_beatPhase - 1.0f : s_beatPhase;
-            const float gain = 0.5f + confidence * 0.4f;
+            const float gain = 0.5f + aubioConf * 0.4f;
             s_beatPhase -= err * gain;
             if (s_beatPhase < 0.0f) s_beatPhase += 1.0f;
         }

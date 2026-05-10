@@ -74,6 +74,7 @@ extern bool  g_audioCutVolumeEnabled;
 extern float g_audioCutVolumeThreshold;
 extern int   g_audioCutVolumeStyle;
 extern float g_audioCutGlobalCooldown;
+extern float g_audioCutMinVolume;
 
 // Mixing
 extern bool  g_audioMixEnabled;
