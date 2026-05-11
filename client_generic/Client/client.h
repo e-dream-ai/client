@@ -594,7 +594,7 @@ class CElectricSheep
         m_RuntimeDiagnostics.websocketConnected =
             m_RuntimeDiagnostics.internetConnected &&
             EDreamClient::IsWebSocketConnected();
-        m_RuntimeDiagnostics.nextConnectivityUpdateTime = now + 3.0;
+        m_RuntimeDiagnostics.nextConnectivityUpdateTime = now + 0.5;
     }
 
     void RefreshFastDiagnostics(double now, bool force = false)
@@ -1606,6 +1606,10 @@ class CElectricSheep
                 const double now = m_Timer.Time();
                 RefreshFastDiagnostics(now);
                 RefreshSlowDiagnostics(now);
+                // Force live connectivity probes until the first websocket connection
+                // so the cached "not connected" state doesn't flash the Remote indicator at startup.
+                if (!m_RemoteFirstConnected)
+                    RefreshConnectivityState(now, /*force=*/true);
 
                 const bool dreamStatsVisible = IsHudVisible("dreamstats");
                 const bool creditsVisible = IsHudVisible("dreamcredits");
