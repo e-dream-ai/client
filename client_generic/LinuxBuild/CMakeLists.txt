@@ -281,8 +281,6 @@ target_link_libraries(infinidream PRIVATE
     ${X11_LIBRARIES}
     ${X11_Xrender_LIB}
     Threads::Threads
-    OpenSSL::SSL
-    OpenSSL::Crypto
     Boost::filesystem
     Boost::thread
     Boost::log
@@ -294,6 +292,8 @@ target_link_libraries(infinidream PRIVATE
     ${PNG_LIBRARIES}
     dl
     ${BASE}/socket.io-client-cpp/lib/linux/libsioclient_tls.a
+    OpenSSL::SSL
+    OpenSSL::Crypto
     $<$<BOOL:${WAYLAND_CLIENT_FOUND}>:${WAYLAND_CLIENT_LIBRARIES}>
     $<$<BOOL:${WAYLAND_CURSOR_FOUND}>:${WAYLAND_CURSOR_LIBRARIES}>
     $<$<BOOL:${LIBDECOR_FOUND}>:${LIBDECOR_LIBRARIES}>
