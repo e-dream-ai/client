@@ -1477,24 +1477,15 @@ class CElectricSheep
                 {
                     if (!m_StartupScreen)
                         m_StartupScreen = std::make_shared<Hud::CStartupScreen>(
-                            Base::Math::CRect(0, 0, 1., 1.), "Lato", 24);
-                            
+                            Base::Math::CRect(0, 0, 1., 1.));
+
                     // Start fading out when player has started and we're not already fading
                     if (g_Player().HasStarted() && !m_StartupScreen->IsFadingOut()) {
                         m_StartupScreen->StartFadeOut(m_Timer.Time());
                     }
-                    
+
                     m_StartupScreen->Render(m_Timer.Time(), g_Player().Renderer());
                 }
-                
-                /*if (drawNoSheepIntro)
-                {
-                    if (!m_StartupScreen)
-                        m_StartupScreen = std::make_shared<Hud::CStartupScreen>(
-                            Base::Math::CRect(0, 0, 1., 1.), "Lato", 24);
-                    m_StartupScreen->Render(0., g_Player().Renderer());
-                    
-                }*/
                 
                 Hud::spCStatsConsole spStats =
                     std::dynamic_pointer_cast<Hud::CStatsConsole>(
