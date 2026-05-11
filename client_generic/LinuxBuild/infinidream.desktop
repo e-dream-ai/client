@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Infinidream
+Comment=Generative visual dream player
+Exec=infinidream
+Icon=infinidream
+Type=Application
+Categories=Graphics;
