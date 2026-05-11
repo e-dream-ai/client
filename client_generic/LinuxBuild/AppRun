@@ -1,0 +1,16 @@
+#!/bin/bash
+# AppImage entry point for infinidream.
+#
+# The binary resolves runtime assets (shaders, logo, fonts, OSD PNGs) relative
+# to its current working directory via SHAREDIR="./". We cd into usr/bin/ so
+# that all assets placed alongside the binary are found at "./<asset>".
+
+SELF="$(readlink -f "$0")"
+HERE="${SELF%/*}"
+
+# Prefer bundled shared libraries over whatever the host has installed,
+# but keep the host path so system Vulkan ICDs remain reachable.
+export LD_LIBRARY_PATH="${HERE}/usr/lib:${LD_LIBRARY_PATH:-}"
+
+cd "${HERE}/usr/bin"
+exec ./infinidream "$@"
