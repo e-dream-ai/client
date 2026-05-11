@@ -1,142 +1,69 @@
 #ifndef _STARTUPSCREEN_H_
 #define _STARTUPSCREEN_H_
 
-#include "Console.h"
 #include "Hud.h"
 #include "Rect.h"
 #include <algorithm>
-#include <sstream>
 
 namespace Hud
 {
 
 class CStartupScreen : public CHudEntry
 {
-    std::string m_StartupMessage;
-    DisplayOutput::CFontDescription m_Desc;
-    DisplayOutput::spCBaseFont m_spFont;
-    DisplayOutput::spCBaseText m_spText;
     DisplayOutput::spCImage m_spImageRef;
     DisplayOutput::spCTextureFlat m_spVideoTexture;
-
-    Base::Math::CRect m_LogoSize;
-    float m_MoveMessageCounter;
 
     float m_Alpha = 1.0f;
     bool m_IsFading = false;
     double m_FadeStartTime = 0.0;
-    const double m_FadeDuration = 5.0; 
-    bool m_TextureUploaded = false;
-    
-  public:
-    CStartupScreen(Base::Math::CRect _rect, const std::string& _FontName,
-                   const uint32_t _fontHeight)
-        : CHudEntry(_rect)
-    {
-        DisplayOutput::CFontDescription fontDesc;
+    static constexpr double kFadeDuration = 5.0;
 
-        m_Desc.AntiAliased(true);
-        m_Desc.Height(_fontHeight);
-        m_Desc.Style(DisplayOutput::CFontDescription::Normal);
-        m_Desc.Italic(false);
-        m_Desc.TypeFace(_FontName);
-        // Renderer can be unavailable during early startup; lazily acquire font/text in Render().
-        m_spFont = nullptr;
-        m_StartupMessage =
-            "No Sheep downloaded yet, this should take less than a minute\nbut "
-            "might take several hours.  Please see ElectricSheep.org\nto learn "
-            "more, or press F1 for help.";
-        m_spText = nullptr;
+  public:
+    CStartupScreen(Base::Math::CRect _rect) : CHudEntry(_rect)
+    {
         m_spImageRef = std::make_shared<DisplayOutput::CImage>();
         m_spImageRef->Create(256, 256, DisplayOutput::eImage_RGBA8, false,
                              true);
-#ifndef LINUX_GNU
-        std::string installDir =
-            g_Settings()->Get("settings.app.InstallDir", PlatformUtils::GetWorkingDir());
-        if (!installDir.empty() && installDir.back() != '/' && installDir.back() != '\\')
-            installDir += '/';
-        m_spImageRef->Load(installDir + "logo.png", false);
-#else
-        std::string installDir =
-            g_Settings()->Get("settings.app.InstallDir", PlatformUtils::GetWorkingDir());
-        if (!installDir.empty() && installDir.back() != '/')
-            installDir += '/';
-        m_spImageRef->Load(installDir + "logo.png", false);
-#endif
-        DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
-        float aspect = (spDisplay && spDisplay->Width() != 0) ? spDisplay->Aspect() : 1.0f;
-        m_LogoSize.m_X0 = 0.f;
-        m_LogoSize.m_X1 = 0.2f * aspect;
-        m_LogoSize.m_Y0 = 0.f;
-        m_LogoSize.m_Y1 = 0.2f;
-
-        m_spVideoTexture = NULL;
-        m_MoveMessageCounter = 0.;
+        if (!m_spImageRef->Load(
+                g_Settings()->Get("settings.app.InstallDir", PlatformUtils::GetWorkingDir()) +
+                    "logo.png",
+                false))
+        {
+            // Logo not found — skip rendering it rather than showing a white square.
+            m_spImageRef = nullptr;
+        }
     }
 
-    virtual ~CStartupScreen() { m_spVideoTexture = NULL; }
-
-    void StartFadeOut(double currentTime) {
+    void StartFadeOut(double currentTime)
+    {
         m_IsFading = true;
         m_FadeStartTime = currentTime;
     }
 
     bool IsFadingOut() const { return m_IsFading; }
     bool IsFullyFaded() const { return m_Alpha <= 0.0f; }
-    
-    virtual void Visible(const bool _bState) override
-    {
-        CHudEntry::Visible(_bState);
-        if (m_spText)
-            m_spText->SetEnabled(_bState);
-    }
 
     bool Render(const double _time, DisplayOutput::spCRenderer _spRenderer)
     {
-        // Update fade if needed
-        if (m_IsFading) {
-            double fadeProgress = (_time - m_FadeStartTime) / m_FadeDuration;
+        if (m_IsFading)
+        {
+            double fadeProgress = (_time - m_FadeStartTime) / kFadeDuration;
             m_Alpha = std::max(0.0f, 1.0f - static_cast<float>(fadeProgress));
-            
-            if (m_Alpha <= 0.0f) {
-                return false; // Skip rendering when fully transparent
-            }
+            if (m_Alpha <= 0.0f)
+                return false;
         }
-        
+
         CHudEntry::Render(_time, _spRenderer);
 
-        // Lazily init font/text once we have a renderer.
-        if (_spRenderer && (!m_spFont || !m_spText))
-        {
-            if (!m_spFont)
-                m_spFont = _spRenderer->GetFont(m_Desc);
-            if (m_spFont && !m_spText)
-                m_spText = _spRenderer->NewText(m_spFont, m_StartupMessage);
-        }
+        if (!m_spImageRef || !_spRenderer)
+            return true;
 
-        if (m_bServerMessageStartTimer == false)
-        {
-            m_bServerMessageStartTimer = true;
-            m_ServerMessageStartTimer =
-                boost::posix_time::second_clock::local_time();
-        }
-
-        // draw picture
-
-        if (m_spImageRef)
-        {
-            // Create and upload once; reusing GPU texture avoids per-frame stalls on startup.
-            if (!m_spVideoTexture)
-                m_spVideoTexture = _spRenderer->NewTextureFlat();
-            if (m_spVideoTexture && !m_TextureUploaded)
-            {
-                m_spVideoTexture->Upload(m_spImageRef);
-                m_TextureUploaded = true;
-            }
-        }
-
+        // Create and upload the logo texture only once — the image never changes.
         if (!m_spVideoTexture)
-            return false;
+        {
+            m_spVideoTexture = _spRenderer->NewTextureFlat();
+            m_spVideoTexture->Upload(m_spImageRef);
+        }
 
         _spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader);
         _spRenderer->SetBlend("alphablend");
@@ -144,58 +71,17 @@ class CStartupScreen : public CHudEntry
         _spRenderer->SetShader(NULL);
         _spRenderer->Apply();
 
+        // Recompute aspect each frame so the logo stays circular after the
+        // window is resized (e.g. F-key fullscreen toggle).
+        const float aspect = _spRenderer->Display()->Aspect();
         Base::Math::CRect rr;
-        rr.m_X0 = 0.5f - (m_LogoSize.Width());
-        rr.m_Y0 = 0.5f - (m_LogoSize.Height()) + m_MoveMessageCounter;
-        rr.m_X1 = 0.5f + (m_LogoSize.Width());
-        rr.m_Y1 = 0.5f + (m_LogoSize.Height()) + m_MoveMessageCounter;
+        rr.m_X0 = 0.5f - 0.2f * aspect;
+        rr.m_Y0 = 0.5f - 0.2f;
+        rr.m_X1 = 0.5f + 0.2f * aspect;
+        rr.m_Y1 = 0.5f + 0.2f;
 
         _spRenderer->DrawQuad(rr, Base::Math::CVector4(1, 1, 1, m_Alpha),
                               m_spVideoTexture->GetRect());
-
-        // draw text
-
-        // float step = (float)m_Desc.Height() /
-        // (float)_spRenderer->Display()->Height();
-        auto spDisplay = _spRenderer ? _spRenderer->Display() : nullptr;
-        float edge = (spDisplay && spDisplay->Width() > 0) ? (24 / (float)spDisplay->Width()) : 24.f;
-
-
-
-        // TODO: DTEXT
-        //Base::Math::CRect extent;
-        //Base::Math::CVector2 size = m_spText->GetExtent();
-        //extent = extent.Union(Base::Math::CRect(0, 0, size.m_X + (edge * 2),
-        //                                        size.m_Y + (edge * 2)));
-
-        //boost::posix_time::time_duration td =
-        //    boost::posix_time::second_clock::local_time() -
-        //    m_ServerMessageStartTimer;
-        //if (td.hours() >= 1)
-        //{
-        //    m_MoveMessageCounter += 0.0005f;
-        //    if (m_MoveMessageCounter >= 1.f)
-        //        m_MoveMessageCounter -= 1.f + edge * 2 + float(size.m_Y);
-        //}
-
-        //	Draw quad.
-        //_spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader |
-        //                   DisplayOutput::eBlend);
-
-        //Base::Math::CRect r(
-        //    0.5f - (extent.Width() * 0.5f), extent.m_Y0 + m_MoveMessageCounter,
-        //    0.5f + (extent.Width() * 0.5f), extent.m_Y1 + m_MoveMessageCounter);
-
-        //_spRenderer->SetBlend("alphablend");
-        //_spRenderer->Apply();
-        //_spRenderer->DrawSoftQuad(r, Base::Math::CVector4(0, 0, 0, 0.5f), 16);
-
-        // dasvo - terrible hack - redo!!
-        //if (m_spFont)
-        //    m_spFont->Reupload();
-        //m_spText->SetRect(
-        //    Base::Math::CRect(r.m_X0 + edge, r.m_Y0 + edge, r.m_X1, r.m_Y1));
-        //_spRenderer->DrawText(m_spText, Base::Math::CVector4(1, 1, 1, 1));
 
         return true;
     }

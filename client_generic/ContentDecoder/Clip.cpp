@@ -69,9 +69,9 @@ m_CurrentFrameMetadata{}, m_HasFinished(false), m_IsFadingOut(false)
 
 #else
 
-    AVPixelFormat pf = AV_PIX_FMT_BGR32;
+    AVPixelFormat pf = AV_PIX_FMT_RGBA;
 #if defined(__BIG_ENDIAN__)
-    pf = AV_PIX_FMT_RGB32_1;
+    pf = AV_PIX_FMT_RGBA;  // RGBA is byte-order agnostic for our purposes
 #endif
 
 #endif
@@ -245,7 +245,6 @@ void CClip::DiscardFrames(int count)
 
 bool CClip::Update(double _timelineTime, bool isPaused)
 {
-    //g_Log->Info("Update for %s", m_ClipMetadata.dreamData.uuid.c_str());
     m_Alpha = m_LastCalculatedAlpha;
     
     // Check buffering state

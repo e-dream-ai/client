@@ -95,6 +95,9 @@ class CVideoFrame
                 static_cast<uint32_t>(numBytes) * sizeof(uint8_t));
             uint8_t* buffer = m_spBuffer->GetBufferPtr();
 
+            m_pFrame->format = static_cast<int>(_format);
+            m_pFrame->width  = _width;
+            m_pFrame->height = _height;
             int ret = av_image_fill_arrays(m_pFrame->data, m_pFrame->linesize,
                                            buffer, _format, _width, _height, 1);
             if (ret < 0)

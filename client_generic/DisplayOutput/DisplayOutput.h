@@ -131,13 +131,14 @@ class CKeyEvent : public CEvent
         KEY_PAGEDOWN = 0x22
     };
 
-    CKeyEvent() : m_bPressed(true), m_Code(KEY_NONE) {}
+    CKeyEvent() : m_bPressed(true), m_Code(KEY_NONE), m_bCtrl(false) {}
 
     virtual ~CKeyEvent() {}
 
     virtual eEventType Type() { return (CEvent::Event_KEY); };
-    bool m_bPressed;
+    bool     m_bPressed;
     eKeyCode m_Code;
+    bool     m_bCtrl;
 
     POOLED(CKeyEvent, Memory::CLinkPool);
 };
@@ -251,7 +252,7 @@ class CDisplayOutput
     virtual void Title(const std::string& _title) = PureVirtual;
     virtual void Update() = PureVirtual;
     virtual void SwapBuffers() = PureVirtual;
-    virtual bool ToggleFullscreen() { return false; }
+    virtual void ToggleFullscreen() {}
     virtual bool SetFullscreen(const bool _fullscreen) { (void)_fullscreen; return false; }
     virtual bool IsFullscreen() const { return m_bFullScreen; }
 

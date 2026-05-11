@@ -2,3 +2,6 @@
 	path = vcpkg
 	url = https://github.com/microsoft/vcpkg
 	branch = master
+[submodule "client_generic/imgui"]
+	path = client_generic/imgui
+	url = https://github.com/ocornut/imgui.git

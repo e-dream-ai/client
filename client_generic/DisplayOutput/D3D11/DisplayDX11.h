@@ -85,7 +85,7 @@ private:
     virtual void Update() override;
     virtual bool HasShaders() override { return true; }
     virtual void SwapBuffers() override;
-    virtual bool ToggleFullscreen() override;
+    virtual void ToggleFullscreen() override;
     virtual bool SetFullscreen(const bool fullscreen) override;
     virtual bool IsFullscreen() const override { return m_bFullScreen; }
 

@@ -8,6 +8,8 @@
 #ifndef PLAYLIST_MANAGER_H
 #define PLAYLIST_MANAGER_H
 
+#include <condition_variable>
+#include <mutex>
 #include <string>
 #include <vector>
 #include <queue>
