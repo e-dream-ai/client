@@ -1112,7 +1112,9 @@ class CElectricSheep
                     spRenderer->EndFrame();
                 return false;
             }
-            g_Player().FpsCap(m_PerceptualFPS);
+#ifdef LINUX_GNU
+            g_Player().FpsCap(m_PerceptualFPS);  // Linux render loop has no vsync gate; cap it. Windows is paced by DXGI Present.
+#endif
         }
 
         return true;
