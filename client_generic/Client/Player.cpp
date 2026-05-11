@@ -180,10 +180,10 @@ int CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
 #ifdef WIN32
     g_Log->Info("Attempting to open %s...", CDisplayDX11::Description());
 
-    spDisplay = std::make_shared<CDisplayDX11>();
+    spDisplay = std::make_shared<DisplayOutput::CDisplayDX11>();
     // spDisplay->SetScreen(screen); 
 
-    if (auto* dx11 = dynamic_cast<CDisplayDX11*>(spDisplay.get()))
+    if (auto* dx11 = dynamic_cast<DisplayOutput::CDisplayDX11*>(spDisplay.get()))
     {
         dx11->SetTargetMonitorIndex(screen);
         dx11->SetDisableExclusiveFullscreen(m_isScreenSaverRun);

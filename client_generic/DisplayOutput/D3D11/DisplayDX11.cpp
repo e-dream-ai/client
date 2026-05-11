@@ -1171,9 +1171,9 @@ bool CDisplayDX11::SetFullscreen(const bool fullscreen)
     return true;
 }
 
-bool CDisplayDX11::ToggleFullscreen()
+void CDisplayDX11::ToggleFullscreen()
 {
-    return SetFullscreen(!m_bFullScreen);
+    SetFullscreen(!m_bFullScreen);
 }
 
 

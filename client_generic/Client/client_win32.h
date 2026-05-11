@@ -509,7 +509,7 @@ class CElectricSheep_Win32 : public CElectricSheep
             bool anyOk = false;
             // Start with the requested screen (if in range), then create the rest.
             auto addOne = [&](uint32_t idx) {
-                if (g_Player().AddDisplay(idx, /*blankOtherDisplays*/ false) != -1)
+                if (g_Player().AddDisplay(idx, nullptr, false) != -1)
                 {
                     anyOk = true;
                     g_Log->Info("AddDisplay succeeded for screen %u", idx);
@@ -532,7 +532,7 @@ class CElectricSheep_Win32 : public CElectricSheep
             if (!anyOk)
                 return false;
         }
-        else if (g_Player().AddDisplay(requestedScreen, blankOtherDisplays) == -1)
+        else if (g_Player().AddDisplay(requestedScreen, nullptr, blankOtherDisplays) == -1)
         {
             bool foundfirstmon = false;
             g_Log->Error("AddDisplay failed for screen %d", monnum);
@@ -541,7 +541,7 @@ class CElectricSheep_Win32 : public CElectricSheep
             while (monnum < 9)
             {
                 g_Log->Info("Trying monitor %d", monnum);
-                if (g_Player().AddDisplay(monnum, blankOtherDisplays) != -1)
+                if (g_Player().AddDisplay(monnum, nullptr, blankOtherDisplays) != -1)
                 {
                     foundfirstmon = true;
                     g_Log->Info("Monitor %d ok", monnum);
@@ -612,7 +612,7 @@ class CElectricSheep_Win32 : public CElectricSheep
                 return false;
             }
 
-            if (!spDisplay->ToggleFullscreen())
+            bool wasFullscreen = spDisplay->IsFullscreen(); spDisplay->ToggleFullscreen(); if (spDisplay->IsFullscreen() == wasFullscreen)
             {
                 g_Log->Warning("Fullscreen toggle failed");
                 return false;

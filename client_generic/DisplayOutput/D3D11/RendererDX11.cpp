@@ -632,7 +632,7 @@ void CRendererDX11::EndGpuTimingFrame()
 
 float CRendererDX11::DisplayRefreshHz() const
 {
-    auto display = std::dynamic_pointer_cast<CDisplayDX11>(m_spDisplay);
+    auto display = std::dynamic_pointer_cast<DisplayOutput::CDisplayDX11>(m_spDisplay);
     if (!display)
         return 60.0f;
     IDXGISwapChain* sc = display->GetSwapChain();
@@ -1075,7 +1075,7 @@ bool CRendererDX11::EndFrame(bool drawn) {
     }
 
     if (effectiveDrawn && m_context && m_spDisplay) {
-        auto display = std::dynamic_pointer_cast<CDisplayDX11>(m_spDisplay);
+        auto display = std::dynamic_pointer_cast<DisplayOutput::CDisplayDX11>(m_spDisplay);
         // Defer HUD text is drawn after the wizard; skip it so stats/indicators do not cover the dialog.
         if (display && !m_pendingTextDraws.empty() && !firstTimeWizardDrawn)
         {
@@ -1166,7 +1166,7 @@ void CRendererDX11::DrawTextBatched(const std::shared_ptr<CTextDX11Atlas>& text,
     if (!atlasDx11 || !atlasDx11->GetSRV())
         return;
 
-    auto display = std::dynamic_pointer_cast<CDisplayDX11>(m_spDisplay);
+    auto display = std::dynamic_pointer_cast<DisplayOutput::CDisplayDX11>(m_spDisplay);
     if (!display)
         return;
 
@@ -1455,7 +1455,7 @@ spCBaseText CRendererDX11::NewText(spCBaseFont _font, const std::string& _text) 
     auto font = std::dynamic_pointer_cast<CFontDX11DirectWriteAtlas>(_font);
     if (!font)
         return nullptr;
-    auto display = std::dynamic_pointer_cast<CDisplayDX11>(m_spDisplay);
+    auto display = std::dynamic_pointer_cast<DisplayOutput::CDisplayDX11>(m_spDisplay);
     if (!display)
         return nullptr;
     return std::make_shared<CTextDX11Atlas>(

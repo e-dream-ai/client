@@ -35,6 +35,7 @@ typedef CElectricSheep_Linux CElectricSheepClient;
 int32_t APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                          LPSTR lpCmdLine, int nCmdShow)
 {
+    bool cachedOnlyMode = false; // WIN32 does not support --cached flag parsing yet
 #else
 int32_t main(int argc, char* argv[])
 {
