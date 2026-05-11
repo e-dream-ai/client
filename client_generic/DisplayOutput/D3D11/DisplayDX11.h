@@ -26,9 +26,27 @@ private:
     DWORD m_windowedStyle;
     DWORD m_windowedExStyle;
     bool m_hasWindowedRect;
+
+#ifdef WIN32
+    // When enabled (windowed mode), we remove the native caption buttons and handle
+    // dragging / resizing / caption buttons in the client area.
+    bool m_useCustomWindowChrome = true;
+    int m_customTitlebarHeightPx = 0;
+    RECT m_titlebarLogoRect = {};
+    RECT m_titlebarGearRect = {};
+    RECT m_titlebarFullscreenRect = {};
+    RECT m_titlebarMenuRect = {};
+    RECT m_captionBtnMinRect = {};
+    RECT m_captionBtnMaxRect = {};
+    RECT m_captionBtnCloseRect = {};
+    int m_captionBtnHover = 0; // 0 none, 1 min, 2 max, 3 close
+    int m_captionBtnPressed = 0; // 0 none, 1 min, 2 max, 3 close
+#endif
     
 #ifdef WIN32
     HWND CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen, HMENU hMenu);
+    void ApplyDarkTitlebarIfSupported();
+    static void UpdateTitlebarChromeRects(CDisplayDX11* self, HWND hWnd);
 #endif
     static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
     bool CreateDeviceAndSwapChain();
@@ -40,6 +58,7 @@ private:
 
     std::function<void()> m_menuLoopRenderCb;
     bool m_bMenuRenderInProgress;
+    int m_sizeMoveNested = 0;
     bool m_deviceLost = false;
 
     // When set, fullscreen will be windowed-borderless (no DXGI exclusive mode).
@@ -69,6 +88,32 @@ private:
     virtual void ToggleFullscreen() override;
     virtual bool SetFullscreen(const bool fullscreen) override;
     virtual bool IsFullscreen() const override { return m_bFullScreen; }
+
+#ifdef WIN32
+    // Height in physical pixels to reserve at the top of the client area for a custom title bar.
+    // Use this as the "spacer under titlebar" when laying out your UI.
+    int GetCustomTitlebarHeightPx() const { return m_customTitlebarHeightPx; }
+
+    /// Client-area height (px) excluded from the D3D video viewport (custom title strip when there is no WS_CAPTION).
+    /// Matches `BuildBaseViewportForDisplay` / preserve-AR letterboxing; 0 when the full client is used for video.
+    int GetVideoViewportTopInsetPx() const;
+
+    // Caption button hit rects in *client* coordinates (only valid when custom chrome is enabled).
+    const RECT& GetCaptionButtonMinRectPx() const { return m_captionBtnMinRect; }
+    const RECT& GetCaptionButtonMaxRectPx() const { return m_captionBtnMaxRect; }
+    const RECT& GetCaptionButtonCloseRectPx() const { return m_captionBtnCloseRect; }
+    int GetCaptionButtonHoverId() const { return m_captionBtnHover; }
+    int GetCaptionButtonPressedId() const { return m_captionBtnPressed; }
+
+    const RECT& GetTitlebarGearRectPx() const { return m_titlebarGearRect; }
+    const RECT& GetTitlebarFullscreenRectPx() const { return m_titlebarFullscreenRect; }
+    const RECT& GetTitlebarMenuRectPx() const { return m_titlebarMenuRect; }
+
+    // Window chrome action helpers for custom buttons.
+    void WindowMinimize();
+    void WindowToggleMaximizeRestore();
+    void WindowClose();
+#endif
 
     // Choose which monitor this display window should occupy when fullscreen.
     // Index is based on EnumDisplayMonitors ordering.

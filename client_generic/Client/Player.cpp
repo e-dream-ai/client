@@ -24,6 +24,7 @@
 #include "base.h"
 #include "clientversion.h"
 
+
 #ifdef WIN32
 //#include "DisplayD3D12.h"
 //#include "RendererD3D12.h"
@@ -84,6 +85,17 @@ using CClip = ContentDecoder::CClip;
 using spCClip = ContentDecoder::spCClip;
 typedef std::shared_lock<std::shared_mutex> reader_lock;
 typedef std::unique_lock<std::shared_mutex> writer_lock;
+
+namespace
+{
+constexpr double kMinPerceptualFPS = 0.078125;
+constexpr double kMaxPerceptualFPS = 320.0;
+
+double ClampPerceptualFPS(double fps)
+{
+    return std::clamp(fps, kMinPerceptualFPS, kMaxPerceptualFPS);
+}
+} // namespace
 
 // Async destruction of a clip. The destructor may be delayed by a
 // catch up streaming mechanism for caching
@@ -172,10 +184,10 @@ int CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
         std::string watchFolder =
             g_Settings()->Get("settings.content.sheepdir", content) + PATH_SEPARATOR + "mp4" + PATH_SEPARATOR;
     }
-    // Logical size at 100% DPI; CDisplayDX11::CreateDisplayWindow scales it by the
-    // cursor-monitor DPI on Windows and centers the window on that monitor.
-    uint32_t w = 1920;
-    uint32_t h = 1080;
+    // Logical size at 96 DPI reference; CreateDisplayWindow maps to monitor DPI then clamps to
+    // the work area. Default is 720p-class (was 1080p) so windowed startups are smaller.
+    uint32_t w = 1280;
+    uint32_t h = 720;
 
 #ifdef WIN32
     g_Log->Info("Attempting to open %s...", CDisplayDX11::Description());
@@ -1038,8 +1050,8 @@ void CPlayer::PlayNextDream(bool quickFade) {
 }
 
 
-void CPlayer::MultiplyPerceptualFPS(const double _multiplier) {
-    m_PerceptualFPS *= _multiplier;
+void CPlayer::MultiplyPerceptualFPS(const double _multiplier){
+    m_PerceptualFPS = ClampPerceptualFPS(m_PerceptualFPS * _multiplier);
 
     reader_lock l(m_UpdateMutex);
     if (m_currentClip) {
@@ -1053,9 +1065,9 @@ void CPlayer::MultiplyPerceptualFPS(const double _multiplier) {
     }
 }
 
-void CPlayer::SetPerceptualFPS(const double _fps) {
+void CPlayer::SetPerceptualFPS(const double _fps){
 
-    m_PerceptualFPS = _fps;
+    m_PerceptualFPS = ClampPerceptualFPS(_fps);
 
     reader_lock l(m_UpdateMutex);
 
