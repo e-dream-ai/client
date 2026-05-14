@@ -12,6 +12,7 @@
 #include <chrono>
 #include <utility>
 #include <algorithm>
+#include <cctype>
 #ifndef WIN32
 #include <unistd.h>
 #endif
@@ -1008,6 +1009,97 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
     return size * nmemb;
 }
 
+namespace {
+
+struct MagicLinkHeaderCtx {
+    int retryAfterSeconds = -1;
+};
+
+static std::string ToLowerAscii(std::string s)
+{
+    std::transform(s.begin(), s.end(), s.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    return s;
+}
+
+static size_t MagicLinkHeaderCallback(char* ptr, size_t size, size_t nmemb, void* userdata)
+{
+    const size_t nbytes = size * nmemb;
+    auto* ctx = static_cast<MagicLinkHeaderCtx*>(userdata);
+    std::string line(ptr, nbytes);
+    while (!line.empty() && (line.back() == '\r' || line.back() == '\n'))
+        line.pop_back();
+    const std::string::size_type colon = line.find(':');
+    if (colon == std::string::npos)
+        return nbytes;
+    std::string key = line.substr(0, colon);
+    while (!key.empty() && (key.back() == ' ' || key.back() == '\t'))
+        key.pop_back();
+    if (ToLowerAscii(std::move(key)) != "retry-after")
+        return nbytes;
+    std::string val = line.substr(colon + 1);
+    const auto start = val.find_first_not_of(" \t");
+    if (start == std::string::npos)
+        return nbytes;
+    val.erase(0, start);
+    const auto last = val.find_last_not_of(" \t\r\n");
+    if (last != std::string::npos)
+        val.erase(last + 1);
+    try {
+        const int sec = std::stoi(val);
+        if (sec >= 0)
+            ctx->retryAfterSeconds = sec;
+    } catch (...) {
+    }
+    return nbytes;
+}
+
+static void ParseMagicLinkErrorBody(const std::string& readBuffer,
+                                    std::string& inOutMessage,
+                                    std::string& outErrorCode,
+                                    int& outRetryAfterSeconds)
+{
+    outErrorCode.clear();
+    outRetryAfterSeconds = -1;
+    try {
+        const boost::json::value response = boost::json::parse(readBuffer);
+        if (!response.is_object())
+            return;
+        const boost::json::object& o = response.as_object();
+        if (o.contains("message")) {
+            const boost::json::value& msg = o.at("message");
+            if (msg.is_string())
+                inOutMessage = std::string(msg.as_string());
+        }
+        if (o.contains("errorCode")) {
+            const boost::json::value& ec = o.at("errorCode");
+            if (ec.is_string())
+                outErrorCode = std::string(ec.as_string());
+        }
+        if (o.contains("retryAfterSeconds")) {
+            const boost::json::value& r = o.at("retryAfterSeconds");
+            if (r.is_int64())
+                outRetryAfterSeconds = static_cast<int>(r.as_int64());
+            else if (r.is_uint64())
+                outRetryAfterSeconds = static_cast<int>(r.as_uint64());
+            else if (r.is_double())
+                outRetryAfterSeconds = static_cast<int>(r.as_double());
+        }
+    } catch (...) {
+    }
+}
+
+static int MergeMagicLinkRetryAfter(int fromJson, int fromHeader)
+{
+    if (fromJson >= 0)
+        return fromJson;
+    if (fromHeader >= 0)
+        return fromHeader;
+    return -1;
+}
+
+}  // namespace
+
 EDreamClient::SendCodeResult EDreamClient::SendCode() {
     std::string email = g_Settings()->Get("settings.generator.nickname", std::string(""));
     
@@ -1031,10 +1123,13 @@ EDreamClient::SendCodeResult EDreamClient::SendCode() {
         payload["email"] = email;
         std::string jsonBody = boost::json::serialize(payload);
         
+        MagicLinkHeaderCtx hdrCtx;
         curl_easy_setopt(curl.get(), CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl.get(), CURLOPT_POSTFIELDS, jsonBody.c_str());
         curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, WriteCallback);
         curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &readBuffer);
+        curl_easy_setopt(curl.get(), CURLOPT_HEADERFUNCTION, MagicLinkHeaderCallback);
+        curl_easy_setopt(curl.get(), CURLOPT_HEADERDATA, &hdrCtx);
         
         // Set headers
         struct curl_slist *headers = NULL;
@@ -1058,20 +1153,14 @@ EDreamClient::SendCodeResult EDreamClient::SendCode() {
         } else {
             g_Log->Error("Failed to send verification code. Server returned %ld: %s", http_code, readBuffer.c_str());
             
-            std::string errorMessage;
-            try {
-                boost::json::value response = boost::json::parse(readBuffer);
-                if (response.is_object() && response.as_object().contains("message")) {
-                    // Extract just the error message from the JSON
-                    errorMessage = response.as_object()["message"].as_string().c_str();
-                } else {
-                    errorMessage = readBuffer; // Use full response if not in expected format
-                }
-            } catch (...) {
-                errorMessage = readBuffer; // Use raw response if JSON parsing fails
-            }
+            std::string errorMessage = readBuffer.empty() ? std::string("Failed to send verification code.") : readBuffer;
+            std::string errorCode;
+            int retryFromJson = -1;
+            ParseMagicLinkErrorBody(readBuffer, errorMessage, errorCode, retryFromJson);
+            const int mergedRetry = MergeMagicLinkRetryAfter(retryFromJson, hdrCtx.retryAfterSeconds);
             
-            return SendCodeResult{false, static_cast<int>(http_code), errorMessage};
+            return SendCodeResult{false, static_cast<int>(http_code), std::move(errorMessage),
+                                  std::move(errorCode), mergedRetry};
         }
     }
 
@@ -1117,10 +1206,13 @@ EDreamClient::ValidateCodeResult EDreamClient::ValidateCodeDetailed(const std::s
         payload["code"] = code;
         std::string jsonBody = boost::json::serialize(payload);
 
+        MagicLinkHeaderCtx hdrCtx;
         curl_easy_setopt(curl.get(), CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl.get(), CURLOPT_POSTFIELDS, jsonBody.c_str());
         curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, WriteCallback);
         curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &readBuffer);
+        curl_easy_setopt(curl.get(), CURLOPT_HEADERFUNCTION, MagicLinkHeaderCallback);
+        curl_easy_setopt(curl.get(), CURLOPT_HEADERDATA, &hdrCtx);
 
         // Set headers
         struct curl_slist *headers = NULL;
@@ -1216,20 +1308,11 @@ EDreamClient::ValidateCodeResult EDreamClient::ValidateCodeDetailed(const std::s
             }
         } else {
             g_Log->Error("Failed to validate code. Server returned %ld: %s", http_code, readBuffer.c_str());
-            std::string errorMessage = "Validation failed";
-            try {
-                boost::json::value response = boost::json::parse(readBuffer);
-                if (response.is_object() && response.as_object().contains("message")) {
-                    errorMessage = response.as_object()["message"].as_string().c_str();
-                } else if (!readBuffer.empty()) {
-                    errorMessage = readBuffer;
-                }
-            } catch (...) {
-                if (!readBuffer.empty()) {
-                    errorMessage = readBuffer;
-                }
-            }
-            
+            std::string errorMessage = readBuffer.empty() ? std::string("Validation failed") : readBuffer;
+            std::string errorCode;
+            int retryFromJson = -1;
+            ParseMagicLinkErrorBody(readBuffer, errorMessage, errorCode, retryFromJson);
+
             // Normalize non-descriptive backend "no" message.
             {
                 std::string lower = errorMessage;
@@ -1239,12 +1322,21 @@ EDreamClient::ValidateCodeResult EDreamClient::ValidateCodeDetailed(const std::s
                 }
             }
 
-            if (http_code >= 400 && http_code < 500) {
+            const int mergedRetry = MergeMagicLinkRetryAfter(retryFromJson, hdrCtx.retryAfterSeconds);
+            const bool rateLimited =
+                (http_code == 429) ||
+                (errorCode == "RATE_LIMITED");
+
+            if (rateLimited) {
+                result.reason = ValidationFailureReason::TransientFailure;
+            } else if (http_code >= 400 && http_code < 500) {
                 result.reason = ValidationFailureReason::InvalidSession;
             } else {
                 result.reason = ValidationFailureReason::TransientFailure;
             }
-            result.message = errorMessage;
+            result.message = std::move(errorMessage);
+            result.errorCode = std::move(errorCode);
+            result.retryAfterSeconds = mergedRetry;
             return result;
         }
     }
@@ -1479,7 +1571,7 @@ EDreamClient::HelloResult EDreamClient::HelloDetailed() {
         json::value dislikesCount = data.at("dislikesCount");
 
         remainingQuota = quota.as_int64();
-        int serverDislikes = dislikesCount.as_int64();
+        const int serverDislikes = static_cast<int>(dislikesCount.as_int64());
         
         // Update CacheManager with that info
         cm.setRemainingQuota(remainingQuota);
