@@ -120,6 +120,14 @@ static AuthDialogContent BuildValidateFailureDialog(const EDreamClient::Validate
             return {"Sign-In Failed",
                     result.message.empty() ? "Sign-in failed." : result.message};
         }
+        if (result.errorCode == "CODE_LOCKED_OUT")
+        {
+            return {"Verification code locked",
+                    result.message.empty()
+                        ? "This verification code has been locked after too many incorrect attempts. "
+                          "Please request a new code."
+                        : result.message};
+        }
         if (result.errorCode == "INVALID_CODE" || result.errorCode == "CODE_EXPIRED" ||
             result.errorCode.empty())
         {

@@ -160,6 +160,15 @@ static void MagicLink_ShowValidateFailureAlert(NSWindow *window, const EDreamCli
             MagicLink_PresentAlert(window, @"Sign-In Failed", msg.length > 0 ? msg : @"Sign-in failed.");
             return;
         }
+        if (result.errorCode == "CODE_LOCKED_OUT") {
+            NSString *msg = MagicLink_StrOpt(result.message);
+            if (msg.length == 0) {
+                msg = @"This verification code has been locked after too many incorrect attempts. "
+                      @"Please request a new code.";
+            }
+            MagicLink_PresentAlert(window, @"Verification code locked", msg);
+            return;
+        }
         if (result.errorCode == "INVALID_CODE" || result.errorCode == "CODE_EXPIRED" ||
             result.errorCode.empty()) {
             NSMutableString *body = [NSMutableString stringWithString:
