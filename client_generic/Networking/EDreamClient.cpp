@@ -561,6 +561,22 @@ bool EDreamClient::SignInWithApiKey(const std::string& apiKey)
 // Returns true only if a sealed session was successfully obtained.
 // NOTE: ValidateCodeDetailed() calls RefreshSealedSession() internally, so
 // callers must NOT call RefreshSealedSession() again after this returns true.
+#ifdef LINUX_GNU
+namespace {
+
+static void PrintLinuxMagicLinkFailure(FILE* sink, const char* leadPrefix, const std::string& message,
+                                       int retryAfterSeconds)
+{
+    std::fprintf(sink, "%s%s", leadPrefix, message.c_str());
+    if (retryAfterSeconds >= 0)
+        std::fprintf(sink, "%sTry again in %d seconds.", message.empty() ? "\n" : "\n\n",
+                     retryAfterSeconds);
+    std::fputs("\n", sink);
+}
+
+}  // namespace
+#endif
+
 bool EDreamClient::LoginWithMagicLinkCode()
 {
 #ifndef LINUX_GNU
@@ -613,7 +629,8 @@ bool EDreamClient::LoginWithMagicLinkCode()
     auto sendResult = SendCode();
     if (!sendResult.success)
     {
-        fprintf(stderr, "Failed to send login code: %s\n", sendResult.message.c_str());
+        PrintLinuxMagicLinkFailure(stderr, "Failed to send login code: ", sendResult.message,
+                                   sendResult.retryAfterSeconds);
         return false;
     }
 
@@ -632,7 +649,7 @@ bool EDreamClient::LoginWithMagicLinkCode()
     auto result = ValidateCodeDetailed(code);
     if (!result.success)
     {
-        fprintf(stderr, "Login failed: %s\n", result.message.c_str());
+        PrintLinuxMagicLinkFailure(stderr, "Login failed: ", result.message, result.retryAfterSeconds);
         return false;
     }
 
