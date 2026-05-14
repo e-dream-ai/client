@@ -189,6 +189,8 @@ struct AuthDialogContent
     std::string message;
 };
 
+#include "AuthFailureDialogsWin32.inl"
+
 static DisplayOutput::CDisplayDX11* TryGetDx11Display();
 
 static void OnFirstTimeSetupRequested()
@@ -217,57 +219,6 @@ static void ShowAuthWarningDialog(const AuthDialogContent& content)
     if (auto* dx = TryGetDx11Display())
         owner = dx->GetWindowHandle();
     MessageBoxA(owner, content.message.c_str(), content.title, MB_OK | MB_ICONWARNING);
-}
-
-static AuthDialogContent BuildSendCodeFailureDialog(const EDreamClient::SendCodeResult& result)
-{
-    const bool isClientErrorHttp = (result.httpCode >= 400 && result.httpCode < 500);
-    const bool isServerErrorHttp = (result.httpCode >= 500);
-
-    if (isClientErrorHttp)
-    {
-        std::string message =
-            "We couldn't send a verification email. Make sure your email address is correct, then try Send code again.";
-        if (!result.message.empty())
-            message += "\n\n" + result.message;
-        return {"Unable to send code", message};
-    }
-
-    if (isServerErrorHttp)
-    {
-        std::string message = "Try again later.";
-        if (!result.message.empty())
-            message += " " + result.message;
-        return {"Server Error", message};
-    }
-
-    return {"Authentication Error",
-            result.message.empty() ? "Failed to send verification code." : result.message};
-}
-
-static AuthDialogContent BuildValidateFailureDialog(const EDreamClient::ValidateCodeResult& result)
-{
-    const bool isClientErrorHttp = (result.httpCode >= 400 && result.httpCode < 500);
-    const bool isServerErrorHttp = (result.httpCode >= 500);
-
-    if (isClientErrorHttp)
-    {
-        return {"Invalid Code",
-                "Check for typos and check to be sure you have the most recent code. Try again or start over"};
-    }
-
-    if (isServerErrorHttp)
-    {
-        std::string message = "Try again later.";
-        if (!result.message.empty())
-            message += " " + result.message;
-        return {"Server Error", message};
-    }
-
-    return {"Authentication Error",
-            result.message.empty()
-                ? "Backend is temporarily unavailable. Please try again shortly."
-                : result.message};
 }
 
 static int FilterDigitsOnly(ImGuiInputTextCallbackData* data)
