@@ -34,7 +34,7 @@ static AuthDialogContent BuildSendCodeFailureDialog(const EDreamClient::SendCode
         std::string message =
             "Too many verification requests. Please wait before requesting another code.";
         if (!result.message.empty())
-            message += "\n\n" + result.message;
+            message = result.message;
         message = AppendRetrySecondsHint(std::move(message), result.retryAfterSeconds);
         return {"Too Many Requests", std::move(message)};
     }
@@ -91,7 +91,7 @@ static AuthDialogContent BuildValidateFailureDialog(const EDreamClient::Validate
     {
         std::string message = "Too many sign-in attempts. Please wait and try again.";
         if (!result.message.empty())
-            message += "\n\n" + result.message;
+            message = result.message;
         message = AppendRetrySecondsHint(std::move(message), result.retryAfterSeconds);
         return {"Too Many Requests", std::move(message)};
     }

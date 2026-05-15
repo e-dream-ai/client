@@ -61,8 +61,7 @@ static void MagicLink_ShowSendFailureAlert(NSWindow *window, const EDreamClient:
             stringWithString:@"Too many verification requests. Please wait before requesting another code."];
         NSString *srv = MagicLink_StrOpt(result.message);
         if (srv.length > 0) {
-            [body appendString:@"\n\n"];
-            [body appendString:srv];
+            body = srv;
         }
         NSString *msg = MagicLink_AppendRetryHint(body, result.retryAfterSeconds);
         MagicLink_PresentAlert(window, @"Too Many Requests", msg);
@@ -126,8 +125,7 @@ static void MagicLink_ShowValidateFailureAlert(NSWindow *window, const EDreamCli
             [NSMutableString stringWithString:@"Too many sign-in attempts. Please wait and try again."];
         NSString *srv = MagicLink_StrOpt(result.message);
         if (srv.length > 0) {
-            [body appendString:@"\n\n"];
-            [body appendString:srv];
+            body = srv;
         }
         NSString *msg = MagicLink_AppendRetryHint(body, result.retryAfterSeconds);
         MagicLink_PresentAlert(window, @"Too Many Requests", msg);
