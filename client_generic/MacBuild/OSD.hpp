@@ -268,6 +268,7 @@ public:
         // Fix A/R
         DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
         float aspect = (spDisplay && spDisplay->Width() != 0) ? spDisplay->Aspect() : 1.0f;
+        const float kOsdYCenter = 0.1f; // Vertical center of OSD (0=top, 1=bottom)
         const float s_mini = 0.045f;  // This can be changed to adjust the overall scale of the mini OSD
 
         m_BgSqCRect = rect;
@@ -277,9 +278,9 @@ public:
         auto h_bgsq = m_BgSqCRect.Height();
         
         m_BgSqCRect.m_X0 = 0.5f - (w_bgsq * s_mini);
-        m_BgSqCRect.m_Y0 = 0.75f - (h_bgsq * s_mini);
+        m_BgSqCRect.m_Y0 = kOsdYCenter - (h_bgsq * s_mini);
         m_BgSqCRect.m_X1 = 0.5f + (w_bgsq * s_mini);
-        m_BgSqCRect.m_Y1 = 0.75f + (h_bgsq * s_mini);
+        m_BgSqCRect.m_Y1 = kOsdYCenter + (h_bgsq * s_mini);
 
         m_LargeSymbolCRect = rect;
         m_LargeSymbolCRect.m_X1 *= aspect;
@@ -290,7 +291,7 @@ public:
 
         // Position as the first dot (16x45), 30px left, 30px bottom to our main rect (700x210)
         m_LargeSymbolCRect.m_X0 = 0.5f - (w_lgs) * s_lgs;
-        m_LargeSymbolCRect.m_Y0 = 0.75f - (h_lgs) * s_lgs;
+        m_LargeSymbolCRect.m_Y0 = kOsdYCenter - (h_lgs) * s_lgs;
         m_LargeSymbolCRect.m_X1 = m_LargeSymbolCRect.m_X0 + (2 * w_lgs * s_lgs);
         m_LargeSymbolCRect.m_Y1 = m_LargeSymbolCRect.m_Y0 + (2 * h_lgs * s_lgs);
 
@@ -306,9 +307,9 @@ public:
         const float s = 0.15f;  // This can be changed to adjust the overall scale of the OSD
         m_BgCRect = m_Rect;
         m_BgCRect.m_X0 = 0.5f - (m_Rect.Width() * s);
-        m_BgCRect.m_Y0 = 0.75f - (m_Rect.Height() * s);
+        m_BgCRect.m_Y0 = kOsdYCenter - (m_Rect.Height() * s);
         m_BgCRect.m_X1 = 0.5f + (m_Rect.Width() * s);
-        m_BgCRect.m_Y1 = 0.75f + (m_Rect.Height() * s);
+        m_BgCRect.m_Y1 = kOsdYCenter + (m_Rect.Height() * s);
         
         
         // Set dot size
@@ -327,7 +328,7 @@ public:
         
         // Position as the first dot (16x45), 30px left, 30px bottom to our main rect (700x210)
         m_DotCRect.m_X0 = 0.5 - m_BgCRect.Width() / 2 + m_BgCRect.Width() * 30 / 700;
-        m_DotCRect.m_Y0 = 0.75f + m_BgCRect.Height() * 30 / 210;
+        m_DotCRect.m_Y0 = kOsdYCenter + m_BgCRect.Height() * 30 / 210;
         m_DotCRect.m_X1 = m_DotCRect.m_X0 + (2 * w * s2_w);
         m_DotCRect.m_Y1 = m_DotCRect.m_Y0 + (2 * h * s2_h);
 
@@ -349,7 +350,7 @@ public:
         //m_SymbolCRect.m_X0 = 0.5 - m_BgCRect.Width() / 2 + m_BgCRect.Width() / 6;
         // TMP : center the symbol until we fix text
         m_SymbolCRect.m_X0 = 0.5f - (w*s3);
-        m_SymbolCRect.m_Y0 = 0.75f - m_BgCRect.Height() * 75 / 210;
+        m_SymbolCRect.m_Y0 = kOsdYCenter - m_BgCRect.Height() * 75 / 210;
         m_SymbolCRect.m_X1 = m_SymbolCRect.m_X0 + (2 * w * s3);
         m_SymbolCRect.m_Y1 = m_SymbolCRect.m_Y0 + (2 * h * s3);
 

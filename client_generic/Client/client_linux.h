@@ -239,6 +239,7 @@ class CElectricSheep_Linux : public CElectricSheep
             }
         }
 
+        ProcessCommandQueue();
         return true;
     }
 
