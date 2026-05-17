@@ -14,6 +14,9 @@
 
 //using namespace ContentDownloader;
 
+@interface ESConfiguration () <NSTextFieldDelegate>
+@end
+
 @implementation ESConfiguration
 
 - (IBAction)ok:(id)__unused sender
@@ -74,6 +77,8 @@
     emailTextField.cell.scrollable = NO;
     emailTextField.cell.wraps = NO;
     [emailTextField.cell setUsesSingleLineMode:YES];
+
+    digitCodeTextField.delegate = self;
 
     // We initially load the settings here, this avoid flickering of the ui
     [self loadSettings];
@@ -164,7 +169,7 @@
             m_loginWasSuccessful = NO;
             
             signInButton.title = @"Validate";
-            [signInButton setEnabled:true];
+            [signInButton setEnabled:(digitCodeTextField.stringValue.length == 6)];
 
             [retryLoginButton setHidden:false];
             [retryLoginButton setEnabled:true];
@@ -529,6 +534,10 @@
                 [self updateAuthUI];
             }
         } else {
+            if (digitCodeTextField.stringValue.length != 6) {
+                return;
+            }
+
             // Try validating code
             EDreamClient::ValidateCodeResult validateResult =
                 EDreamClient::ValidateCodeDetailed(digitCodeTextField.stringValue.UTF8String);
@@ -584,6 +593,34 @@
 #else
     [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://alpha.infinidream.ai/playlists"]];
 #endif
+}
+
+#pragma mark - NSTextFieldDelegate
+
+- (void)controlTextDidChange:(NSNotification *)notification {
+    if (notification.object != digitCodeTextField) {
+        return;
+    }
+
+    NSTextField *textField = notification.object;
+    NSString *text = textField.stringValue;
+
+    NSString *numbersOnly = [text stringByReplacingOccurrencesOfString:@"[^0-9]"
+                                                            withString:@""
+                                                               options:NSRegularExpressionSearch
+                                                                 range:NSMakeRange(0, text.length)];
+
+    if (numbersOnly.length > 6) {
+        numbersOnly = [numbersOnly substringToIndex:6];
+    }
+
+    if (![text isEqualToString:numbersOnly]) {
+        textField.stringValue = numbersOnly;
+    }
+
+    if (m_sentCode) {
+        signInButton.enabled = (numbersOnly.length == 6);
+    }
 }
 
 - (void)dealloc
