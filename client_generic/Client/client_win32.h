@@ -69,12 +69,6 @@ class CElectricSheep_Win32 : public CElectricSheep
     bool m_bMouseUnknown;
     int32_t m_MouseX, m_MouseY;
 
-    //	Screen-space mouse tracking for /s saver mode. WM_MOUSEMOVE is not always
-    //	delivered when the cursor is hidden in borderless fullscreen.
-    bool m_bSaverPollMouseUnknown = true;
-    int32_t m_SaverPollMouseX = 0;
-    int32_t m_SaverPollMouseY = 0;
-
     bool m_bAllowFKey;
     bool m_bCtrlDown;
 
@@ -141,47 +135,6 @@ class CElectricSheep_Win32 : public CElectricSheep
         (*lpszResult)[(dwBufSize / sizeof(CHAR)) - 1] = '\0';
 
         return NOERROR;
-    }
-
-    // Returns true when mouse activity should dismiss the screensaver (/s).
-    bool PollSaverMouseDismiss()
-    {
-        if ((GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0 ||
-            (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0 ||
-            (GetAsyncKeyState(VK_MBUTTON) & 0x8000) != 0 ||
-            (GetAsyncKeyState(VK_XBUTTON1) & 0x8000) != 0 ||
-            (GetAsyncKeyState(VK_XBUTTON2) & 0x8000) != 0)
-        {
-            g_Log->Info("Screensaver mouse button down, closing...");
-            return true;
-        }
-
-        POINT pt{};
-        if (!GetCursorPos(&pt))
-            return false;
-
-        if (m_bSaverPollMouseUnknown)
-        {
-            m_SaverPollMouseX = pt.x;
-            m_SaverPollMouseY = pt.y;
-            m_bSaverPollMouseUnknown = false;
-            return false;
-        }
-
-        const float dx = static_cast<float>(pt.x - m_SaverPollMouseX);
-        const float dy = static_cast<float>(pt.y - m_SaverPollMouseY);
-        m_SaverPollMouseX = pt.x;
-        m_SaverPollMouseY = pt.y;
-
-        const float distSq = dx * dx + dy * dy;
-        if (distSq > 20.0f * 20.0f)
-        {
-            g_Log->Info("Screensaver mouse moved (%f), closing...",
-                        Base::Math::Sqrt(distSq));
-            return true;
-        }
-
-        return false;
     }
 
   public:
@@ -642,7 +595,6 @@ class CElectricSheep_Win32 : public CElectricSheep
 
         //	Reset mouse calcs.
         m_bMouseUnknown = true;
-        m_bSaverPollMouseUnknown = true;
 
         return true;
     }
@@ -801,10 +753,6 @@ class CElectricSheep_Win32 : public CElectricSheep
         DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
         if (!spDisplay)
             return true;
-
-        // Borderless fullscreen saver may not receive WM_MOUSEMOVE; poll cursor.
-        if (m_ScrMode == eSaver && PollSaverMouseDismiss())
-            return false;
 
         //	Handle events.
         DisplayOutput::spCEvent spEvent;
