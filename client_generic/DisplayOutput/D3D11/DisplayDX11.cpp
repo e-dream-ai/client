@@ -516,7 +516,7 @@ CDisplayDX11::CDisplayDX11()
 #ifdef WIN32
 int CDisplayDX11::GetVideoViewportTopInsetPx() const
 {
-    if (!m_WindowHandle || m_bFullScreen)
+    if (!m_WindowHandle || m_bFullScreen || m_bEmbeddedSaverPreview)
         return 0;
 
     const LONG_PTR style = GetWindowLongPtr(m_WindowHandle, GWL_STYLE);
@@ -1601,6 +1601,7 @@ HWND CDisplayDX11::Initialize(HWND parentHwnd, bool preview)
         return nullptr;
 
     m_bEmbeddedSaverPreview = true;
+    m_customTitlebarHeightPx = 0;
 
     HMODULE hInstance = GetModuleHandleW(NULL);
     if (!EnsureWindowClassRegistered(hInstance))
