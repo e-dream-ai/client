@@ -2644,7 +2644,8 @@ void EDreamClient::ConnectRemoteControlSocket()
     EDreamClient::UnbindWebSocketCallbacks();
 
     std::map<std::string, std::string> query;
-    
+    std::map<std::string, std::string> headers;
+
     std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
     std::string apiKey = g_Settings()->Get("settings.content.api_key", std::string(""));
 
@@ -2654,19 +2655,25 @@ void EDreamClient::ConnectRemoteControlSocket()
         return;
     }
 
-    if (!sealedSession.empty())
-        query["Cookie"] = string_format("wos-session=%s", sealedSession.c_str());
-    else
-        query["Api-Key"] = apiKey;
+    const std::string clientType = PlatformUtils::GetPlatformName();
+    const std::string clientVersion = PlatformUtils::GetAppVersion();
 
-    query["Edream-Client-Type"] = PlatformUtils::GetPlatformName();
-    query["Edream-Client-Version"] = PlatformUtils::GetAppVersion();
+    query["Edream-Client-Type"] = clientType;
+    query["Edream-Client-Version"] = clientVersion;
+
+    if (!sealedSession.empty())
+        headers["Cookie"] = string_format("wos-session=%s", sealedSession.c_str());
+    else
+        headers["Api-Key"] = apiKey;
+
+    headers["Edream-Client-Type"] = clientType;
+    headers["Edream-Client-Version"] = clientVersion;
 
     g_Log->Info("Connecting to WebSocket server: %s", 
                 ServerConfig::ServerConfigManager::getInstance().getWebsocketServer().c_str());
     
     // Always call connect() - Socket.IO client will handle reconnection internally
-    s_SIOClient.connect(ServerConfig::ServerConfigManager::getInstance().getWebsocketServer(), query, query);
+    s_SIOClient.connect(ServerConfig::ServerConfigManager::getInstance().getWebsocketServer(), query, headers);
     
     // Send first ping immediately so frontend knows we're here
     SendPing();
