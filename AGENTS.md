@@ -48,7 +48,7 @@ cd client_generic/MacBuild && ./release.py -v X.Y.Z    # Publish release
 
 Runtime logs are written to one file per day (`YYYY_MM_DD.log`) in:
 - **macOS:** `/Users/Shared/infinidream.ai/Logs/`
-- **Windows:** `C:\ProgramData\Infinidream\Logs\`
+- **Windows:** `%LOCALAPPDATA%\Infinidream\Logs\` (e.g., `C:\Users\<user>\AppData\Local\Infinidream\Logs\`; stage build uses `Infinidream-stage`)
 - **Linux:** `/tmp/infinidream-logs/`
 
 ## Deployment

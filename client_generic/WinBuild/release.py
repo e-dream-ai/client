@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Windows packaging: build a distributable ZIP and/or NSIS Setup.exe directly
-from the MSBuild output directory (client_generic/MSVC/<Configuration>/).
+Windows packaging: build an NSIS Setup.exe directly from the MSBuild output
+directory (client_generic/MSVC/<Configuration>/).
 
 Structure and CLI style align with client_generic/MacBuild/release.py; there
 is no Sparkle appcast on Windows.
@@ -14,7 +14,6 @@ import os
 import shutil
 import subprocess
 import sys
-import zipfile
 from pathlib import Path
 from typing import Optional
 
@@ -106,42 +105,6 @@ def check_msvc_output(repo: Path, configuration: str) -> None:
     scr = out / ("infinidreamd.scr" if debug else "infinidream.scr")
     if not scr.is_file():
         print_yellow(f"Missing screensaver binary: {scr} (PostBuild copy may have been skipped)")
-
-
-DIST_README_NAME = "dist_readme.txt"
-
-
-def make_distribution_zip(
-    repo: Path,
-    *,
-    version: str,
-    configuration: str,
-    output_dir: Path,
-) -> Path:
-    check_msvc_output(repo, configuration)
-    source_root = msvc_out_dir(repo, configuration)
-
-    ensure_dir(output_dir)
-    inner = f"infinidream-windows-{version}"
-    zip_path = output_dir / f"{inner}.zip"
-    if zip_path.is_file():
-        zip_path.unlink()
-
-    print_blue(f"Creating {zip_path} from {source_root}")
-
-    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
-        for path in source_root.rglob("*"):
-            if path.is_file():
-                arcname = Path(inner) / path.relative_to(source_root)
-                zf.write(path, arcname.as_posix())
-        readme_src = winbuild_dir(repo) / DIST_README_NAME
-        if readme_src.is_file():
-            zf.write(readme_src, "README.txt")
-        else:
-            print_yellow(f"Skipping zip README (missing {readme_src})")
-
-    print_green(f"ZIP created: {zip_path}")
-    return zip_path
 
 
 def find_signtool() -> Optional[Path]:
@@ -277,10 +240,7 @@ def github_upload(asset: Path, tag: str) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description=(
-            "Windows release helper: build NSIS Setup.exe (default) and/or ZIP, "
-            "upload to GitHub."
-        ),
+        description="Windows release helper: build NSIS Setup.exe, upload to GitHub.",
     )
     parser.add_argument(
         "--configuration",
@@ -293,16 +253,6 @@ def main() -> None:
         dest="version",
         default="0.0.0",
         help="Version string for filenames and the installer (default: 0.0.0).",
-    )
-    parser.add_argument(
-        "--zip",
-        action="store_true",
-        help="Also build a flat ZIP of the MSVC output.",
-    )
-    parser.add_argument(
-        "--no-installer",
-        action="store_true",
-        help="Skip NSIS installer (useful with --zip when makensis is unavailable).",
     )
     parser.add_argument(
         "--output-dir",
@@ -325,37 +275,18 @@ def main() -> None:
     repo = repo_root_from_script()
     out_dir = Path(args.output_dir) if args.output_dir else winbuild_dir(repo) / "dist"
 
-    artifacts: list[Path] = []
-
-    if not args.no_installer:
-        setup = run_makensis(
-            repo,
-            version=args.version,
-            configuration=args.configuration,
-            output_dir=out_dir,
-        )
-        artifacts.append(setup)
-
-    if args.zip:
-        zip_path = make_distribution_zip(
-            repo,
-            version=args.version,
-            configuration=args.configuration,
-            output_dir=out_dir,
-        )
-        artifacts.append(zip_path)
-
-    if not artifacts:
-        print_red("Nothing to do: --no-installer was passed without --zip.")
-        sys.exit(1)
+    setup = run_makensis(
+        repo,
+        version=args.version,
+        configuration=args.configuration,
+        output_dir=out_dir,
+    )
 
     if args.sign:
-        for a in artifacts:
-            sign_file(a)
+        sign_file(setup)
 
     if args.github_release:
-        for a in artifacts:
-            github_upload(a, args.version)
+        github_upload(setup, args.version)
 
 
 if __name__ == "__main__":
