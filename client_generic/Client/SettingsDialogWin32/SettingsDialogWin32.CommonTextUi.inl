@@ -34,10 +34,47 @@ static void StripNonDigits(char* s)
     s[w] = '\0';
 }
 
-static bool InputTextWithPlaceholder(const char* id, const char* placeholder, char* buf, size_t bufSize,
-                                     ImGuiInputTextFlags flags = 0)
+static int FilterDigitsOnly(ImGuiInputTextCallbackData* data)
 {
-    const bool changed = ImGui::InputText(id, buf, bufSize, flags);
+    constexpr int kMaxDigits = 6;
+
+    if (data->EventFlag == ImGuiInputTextFlags_CallbackCharFilter)
+    {
+        const ImWchar c = data->EventChar;
+        if (c < '0' || c > '9')
+            return 1;
+        if (data->BufTextLen >= kMaxDigits)
+            return 1;
+        return 0;
+    }
+
+    if (data->EventFlag == ImGuiInputTextFlags_CallbackEdit)
+    {
+        int w = 0;
+        for (int r = 0; r < data->BufTextLen && data->Buf[r] != '\0'; ++r)
+        {
+            const char c = data->Buf[r];
+            if (c >= '0' && c <= '9')
+            {
+                data->Buf[w++] = c;
+                if (w >= kMaxDigits)
+                    break;
+            }
+        }
+        data->Buf[w] = '\0';
+        data->BufTextLen = w;
+        data->BufDirty = true;
+        return 0;
+    }
+
+    return 0;
+}
+
+static bool InputTextWithPlaceholder(const char* id, const char* placeholder, char* buf, size_t bufSize,
+                                     ImGuiInputTextFlags flags = 0,
+                                     ImGuiInputTextCallback callback = nullptr, void* userData = nullptr)
+{
+    const bool changed = ImGui::InputText(id, buf, bufSize, flags, callback, userData);
     if (placeholder && placeholder[0] != '\0' && buf && buf[0] == '\0' && !ImGui::IsItemActive())
     {
         const ImVec2 min = ImGui::GetItemRectMin();
