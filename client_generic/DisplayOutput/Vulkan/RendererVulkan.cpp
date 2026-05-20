@@ -80,6 +80,10 @@ CRendererVulkan::~CRendererVulkan()
     if (m_commandPool         != VK_NULL_HANDLE) vkDestroyCommandPool(m_device, m_commandPool, nullptr);
     if (m_pipeline            != VK_NULL_HANDLE) vkDestroyPipeline(m_device, m_pipeline, nullptr);
     if (m_pipelineLayout      != VK_NULL_HANDLE) vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
+    if (m_pipelineLinear      != VK_NULL_HANDLE) vkDestroyPipeline(m_device, m_pipelineLinear, nullptr);
+    if (m_pipelineLayoutLinear!= VK_NULL_HANDLE) vkDestroyPipelineLayout(m_device, m_pipelineLayoutLinear, nullptr);
+    if (m_pipelineCubic       != VK_NULL_HANDLE) vkDestroyPipeline(m_device, m_pipelineCubic, nullptr);
+    if (m_pipelineLayoutCubic != VK_NULL_HANDLE) vkDestroyPipelineLayout(m_device, m_pipelineLayoutCubic, nullptr);
     if (m_descriptorPool      != VK_NULL_HANDLE) vkDestroyDescriptorPool(m_device, m_descriptorPool, nullptr);
     if (m_descriptorSetLayout != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayout, nullptr);
     if (m_defaultSampler      != VK_NULL_HANDLE) vkDestroySampler(m_device, m_defaultSampler, nullptr);
@@ -501,21 +505,12 @@ VkShaderModule CRendererVulkan::loadShader(const std::string& path)
 }
 
 // ---------------------------------------------------------------------------
-// Graphics pipeline
+// Graphics pipeline — shared helper that builds a VkPipeline from pre-loaded
+// shader modules and a pre-created pipeline layout.
 // ---------------------------------------------------------------------------
-bool CRendererVulkan::createPipeline()
+bool CRendererVulkan::buildGraphicsPipeline(VkShaderModule vert, VkShaderModule frag,
+                                             VkPipelineLayout layout, VkPipeline& outPipeline)
 {
-    std::string shaderDir = PlatformUtils::GetWorkingDir() + "shaders/";
-
-    VkShaderModule vert = loadShader(shaderDir + "quad.vert.spv");
-    VkShaderModule frag = loadShader(shaderDir + "quad.frag.spv");
-    if (vert == VK_NULL_HANDLE || frag == VK_NULL_HANDLE)
-    {
-        if (vert != VK_NULL_HANDLE) vkDestroyShaderModule(m_device, vert, nullptr);
-        if (frag != VK_NULL_HANDLE) vkDestroyShaderModule(m_device, frag, nullptr);
-        return false;
-    }
-
     VkPipelineShaderStageCreateInfo stages[2]{};
     stages[0].sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     stages[0].stage  = VK_SHADER_STAGE_VERTEX_BIT;
@@ -526,7 +521,6 @@ bool CRendererVulkan::createPipeline()
     stages[1].module = frag;
     stages[1].pName  = "main";
 
-    // Vertex input: binding 0, stride = sizeof(QuadVertex)
     VkVertexInputBindingDescription binding{};
     binding.binding   = 0;
     binding.stride    = sizeof(QuadVertex);
@@ -551,7 +545,6 @@ bool CRendererVulkan::createPipeline()
     inputAssembly.sType    = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
     inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
-    // Dynamic viewport and scissor
     VkDynamicState dynStates[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
     VkPipelineDynamicStateCreateInfo dynState{};
     dynState.sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
@@ -574,7 +567,6 @@ bool CRendererVulkan::createPipeline()
     ms.sType                = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     ms.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
-    // Alpha blending (src_alpha, one_minus_src_alpha)
     VkPipelineColorBlendAttachmentState blendAtt{};
     blendAtt.blendEnable         = VK_TRUE;
     blendAtt.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
@@ -591,20 +583,6 @@ bool CRendererVulkan::createPipeline()
     blend.attachmentCount = 1;
     blend.pAttachments    = &blendAtt;
 
-    // Push constants: screenWidth, screenHeight, r, g, b, a  = 6 floats = 24 bytes
-    VkPushConstantRange pcRange{};
-    pcRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-    pcRange.offset     = 0;
-    pcRange.size       = sizeof(VkPushConstants);
-
-    VkPipelineLayoutCreateInfo plci{};
-    plci.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    plci.setLayoutCount         = 1;
-    plci.pSetLayouts            = &m_descriptorSetLayout;
-    plci.pushConstantRangeCount = 1;
-    plci.pPushConstantRanges    = &pcRange;
-    vkCreatePipelineLayout(m_device, &plci, nullptr, &m_pipelineLayout);
-
     VkGraphicsPipelineCreateInfo pci{};
     pci.sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pci.stageCount          = 2;
@@ -616,15 +594,130 @@ bool CRendererVulkan::createPipeline()
     pci.pMultisampleState   = &ms;
     pci.pColorBlendState    = &blend;
     pci.pDynamicState       = &dynState;
-    pci.layout              = m_pipelineLayout;
+    pci.layout              = layout;
     pci.renderPass          = m_renderPass;
 
-    VkResult result = vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pci,
-                                                nullptr, &m_pipeline);
+    return vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pci,
+                                     nullptr, &outPipeline) == VK_SUCCESS;
+}
+
+// ---------------------------------------------------------------------------
+// No-blend pipeline (single texture at set=0)
+// ---------------------------------------------------------------------------
+bool CRendererVulkan::createPipeline()
+{
+    VkPushConstantRange pcRange{};
+    pcRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    pcRange.offset     = 0;
+    pcRange.size       = sizeof(VkPushConstants);
+
+    VkPipelineLayoutCreateInfo plci{};
+    plci.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    plci.setLayoutCount         = 1;
+    plci.pSetLayouts            = &m_descriptorSetLayout;
+    plci.pushConstantRangeCount = 1;
+    plci.pPushConstantRanges    = &pcRange;
+    if (vkCreatePipelineLayout(m_device, &plci, nullptr, &m_pipelineLayout) != VK_SUCCESS)
+        return false;
+
+    std::string shaderDir = PlatformUtils::GetWorkingDir() + "shaders/";
+    VkShaderModule vert = loadShader(shaderDir + "quad.vert.spv");
+    VkShaderModule frag = loadShader(shaderDir + "quad.frag.spv");
+    if (vert == VK_NULL_HANDLE || frag == VK_NULL_HANDLE)
+    {
+        if (vert != VK_NULL_HANDLE) vkDestroyShaderModule(m_device, vert, nullptr);
+        if (frag != VK_NULL_HANDLE) vkDestroyShaderModule(m_device, frag, nullptr);
+        return false;
+    }
+
+    bool ok = buildGraphicsPipeline(vert, frag, m_pipelineLayout, m_pipeline);
     vkDestroyShaderModule(m_device, vert, nullptr);
     vkDestroyShaderModule(m_device, frag, nullptr);
+    return ok;
+}
 
-    return result == VK_SUCCESS;
+// ---------------------------------------------------------------------------
+// Linear frame-blend pipeline (2 frame textures at sets 1 and 2)
+// ---------------------------------------------------------------------------
+bool CRendererVulkan::createLinearBlendPipeline()
+{
+    // Three identical descriptor set layouts: set 0 (unused placeholder),
+    // set 1 (frame1), set 2 (frame2).
+    VkDescriptorSetLayout setLayouts[3] = {
+        m_descriptorSetLayout, m_descriptorSetLayout, m_descriptorSetLayout
+    };
+
+    VkPushConstantRange pcRange{};
+    pcRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    pcRange.offset     = 0;
+    pcRange.size       = sizeof(VkPushConstantsLinear);
+
+    VkPipelineLayoutCreateInfo plci{};
+    plci.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    plci.setLayoutCount         = 3;
+    plci.pSetLayouts            = setLayouts;
+    plci.pushConstantRangeCount = 1;
+    plci.pPushConstantRanges    = &pcRange;
+    if (vkCreatePipelineLayout(m_device, &plci, nullptr, &m_pipelineLayoutLinear) != VK_SUCCESS)
+        return false;
+
+    std::string shaderDir = PlatformUtils::GetWorkingDir() + "shaders/";
+    VkShaderModule vert = loadShader(shaderDir + "quad.vert.spv");
+    VkShaderModule frag = loadShader(shaderDir + "blend_linear.frag.spv");
+    if (vert == VK_NULL_HANDLE || frag == VK_NULL_HANDLE)
+    {
+        if (vert != VK_NULL_HANDLE) vkDestroyShaderModule(m_device, vert, nullptr);
+        if (frag != VK_NULL_HANDLE) vkDestroyShaderModule(m_device, frag, nullptr);
+        return false;
+    }
+
+    bool ok = buildGraphicsPipeline(vert, frag, m_pipelineLayoutLinear, m_pipelineLinear);
+    vkDestroyShaderModule(m_device, vert, nullptr);
+    vkDestroyShaderModule(m_device, frag, nullptr);
+    if (ok) g_Log->Info("CRendererVulkan: linear frame-blend pipeline ready");
+    return ok;
+}
+
+// ---------------------------------------------------------------------------
+// Cubic frame-blend pipeline (4 frame textures at sets 1–4)
+// ---------------------------------------------------------------------------
+bool CRendererVulkan::createCubicBlendPipeline()
+{
+    // Five identical descriptor set layouts: set 0 (unused), sets 1–4 (frames).
+    VkDescriptorSetLayout setLayouts[5] = {
+        m_descriptorSetLayout, m_descriptorSetLayout, m_descriptorSetLayout,
+        m_descriptorSetLayout, m_descriptorSetLayout
+    };
+
+    VkPushConstantRange pcRange{};
+    pcRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    pcRange.offset     = 0;
+    pcRange.size       = sizeof(VkPushConstantsCubic);
+
+    VkPipelineLayoutCreateInfo plci{};
+    plci.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    plci.setLayoutCount         = 5;
+    plci.pSetLayouts            = setLayouts;
+    plci.pushConstantRangeCount = 1;
+    plci.pPushConstantRanges    = &pcRange;
+    if (vkCreatePipelineLayout(m_device, &plci, nullptr, &m_pipelineLayoutCubic) != VK_SUCCESS)
+        return false;
+
+    std::string shaderDir = PlatformUtils::GetWorkingDir() + "shaders/";
+    VkShaderModule vert = loadShader(shaderDir + "quad.vert.spv");
+    VkShaderModule frag = loadShader(shaderDir + "blend_cubic.frag.spv");
+    if (vert == VK_NULL_HANDLE || frag == VK_NULL_HANDLE)
+    {
+        if (vert != VK_NULL_HANDLE) vkDestroyShaderModule(m_device, vert, nullptr);
+        if (frag != VK_NULL_HANDLE) vkDestroyShaderModule(m_device, frag, nullptr);
+        return false;
+    }
+
+    bool ok = buildGraphicsPipeline(vert, frag, m_pipelineLayoutCubic, m_pipelineCubic);
+    vkDestroyShaderModule(m_device, vert, nullptr);
+    vkDestroyShaderModule(m_device, frag, nullptr);
+    if (ok) g_Log->Info("CRendererVulkan: cubic frame-blend pipeline ready");
+    return ok;
 }
 
 // ---------------------------------------------------------------------------
@@ -879,6 +972,12 @@ bool CRendererVulkan::Initialize(spCDisplayOutput _spDisplay)
     if (!createWhiteTexture())                       return false;
     if (!createPipeline())                           return false;
     if (!createSyncObjects())                        return false;
+
+    // Blend pipelines are optional — failure is logged but does not abort startup.
+    if (!createLinearBlendPipeline())
+        g_Log->Warning("CRendererVulkan: linear blend pipeline unavailable (missing blend_linear.frag.spv?)");
+    if (!createCubicBlendPipeline())
+        g_Log->Warning("CRendererVulkan: cubic blend pipeline unavailable (missing blend_cubic.frag.spv?)");
     if (!createVertexBuffers())                      return false;
 
     m_currentDescSet = m_whiteDescSet;
@@ -926,7 +1025,11 @@ void CRendererVulkan::Reset(const uint32_t _flags)
     // previously-bound video/startup texture (which appeared as a ghost
     // ellipse over the F1/F2 HUD background rectangles).
     if (_flags & eTexture)
+    {
         m_currentDescSet = m_whiteDescSet;
+        for (int i = 0; i < MAX_BLEND_TEXTURES; ++i)
+            m_boundDescSets[i] = VK_NULL_HANDLE;
+    }
 }
 void CRendererVulkan::Apply()
 {
@@ -1085,8 +1188,9 @@ bool CRendererVulkan::BeginFrame()
     rpbi.pClearValues      = &clearColor;
     vkCmdBeginRenderPass(cmd, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
 
-    // Bind pipeline + set viewport/scissor
+    // Bind default (no-blend) pipeline + set viewport/scissor
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+    m_activePipeline = m_pipeline;
 
     VkViewport vp{};
     vp.width    = static_cast<float>(m_swapExtent.width);
@@ -1196,30 +1300,125 @@ void CRendererVulkan::DrawQuad(const Base::Math::CRect& _rect,
 
     VkCommandBuffer cmd = m_commandBuffers[m_currentFrame];
 
-    // Write vertices
     writeQuad(m_mappedVertex[m_currentFrame], m_vertexCount,
               _rect.m_X0, _rect.m_Y0, _rect.m_X1, _rect.m_Y1,
               _uvRect.m_X0, _uvRect.m_Y0, _uvRect.m_X1, _uvRect.m_Y1);
 
-    // Determine descriptor set: use currently selected texture or white
-    VkDescriptorSet ds = m_currentDescSet ? m_currentDescSet : m_whiteDescSet;
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                             m_pipelineLayout, 0, 1, &ds, 0, nullptr);
+    // Determine blend mode from the currently active shader.
+    CShaderVulkan* vkShader = dynamic_cast<CShaderVulkan*>(m_spActiveShader.get());
+    CShaderVulkan::BlendMode blendMode =
+        vkShader ? vkShader->GetBlendMode() : CShaderVulkan::kNone;
 
-    // Push constants
-    VkPushConstants pc{};
-    pc.screenWidth  = static_cast<float>(m_swapExtent.width);
-    pc.screenHeight = static_cast<float>(m_swapExtent.height);
-    pc.r = _color.m_X; pc.g = _color.m_Y;
-    pc.b = _color.m_Z; pc.a = _color.m_W;
-    vkCmdPushConstants(cmd, m_pipelineLayout,
-                       VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                       0, sizeof(pc), &pc);
+    // Fall back to no-blend if the requested blend pipeline is unavailable.
+    if (blendMode == CShaderVulkan::kLinear && m_pipelineLinear == VK_NULL_HANDLE)
+    {
+        g_Log->Warning("CRendererVulkan: linear blend requested but pipeline unavailable — falling back");
+        blendMode = CShaderVulkan::kNone;
+    }
+    if (blendMode == CShaderVulkan::kCubic  && m_pipelineCubic  == VK_NULL_HANDLE)
+    {
+        g_Log->Warning("CRendererVulkan: cubic blend requested but pipeline unavailable — falling back");
+        blendMode = CShaderVulkan::kNone;
+    }
 
-    // Bind vertex buffer and draw
+    // Log the first draw call for each blend mode so it is easy to confirm
+    // blending is active without having to eyeball the output.
+    static bool s_loggedLinear = false;
+    static bool s_loggedCubic  = false;
+    if (blendMode == CShaderVulkan::kLinear && !s_loggedLinear)
+    {
+        g_Log->Info("CRendererVulkan: first linear frame-blend draw (delta=%.3f)",
+                    vkShader ? vkShader->GetFloat("delta") : 0.f);
+        s_loggedLinear = true;
+    }
+    else if (blendMode == CShaderVulkan::kCubic && !s_loggedCubic)
+    {
+        float w[4] = {};
+        if (vkShader) vkShader->GetFloat4("weights", w);
+        g_Log->Info("CRendererVulkan: first cubic frame-blend draw (weights=%.3f,%.3f,%.3f,%.3f)",
+                    w[0], w[1], w[2], w[3]);
+        s_loggedCubic = true;
+    }
+
+    VkPipeline       targetPipeline = m_pipeline;
+    VkPipelineLayout targetLayout   = m_pipelineLayout;
+    if (blendMode == CShaderVulkan::kLinear)
+    {
+        targetPipeline = m_pipelineLinear;
+        targetLayout   = m_pipelineLayoutLinear;
+    }
+    else if (blendMode == CShaderVulkan::kCubic)
+    {
+        targetPipeline = m_pipelineCubic;
+        targetLayout   = m_pipelineLayoutCubic;
+    }
+
+    if (targetPipeline != m_activePipeline)
+    {
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, targetPipeline);
+        m_activePipeline = targetPipeline;
+    }
+
+    const float sw = static_cast<float>(m_swapExtent.width);
+    const float sh = static_cast<float>(m_swapExtent.height);
+
+    if (blendMode == CShaderVulkan::kLinear)
+    {
+        VkDescriptorSet safe1 = m_boundDescSets[1] ? m_boundDescSets[1] : m_whiteDescSet;
+        VkDescriptorSet safe2 = m_boundDescSets[2] ? m_boundDescSets[2] : m_whiteDescSet;
+        VkDescriptorSet sets[3] = { m_whiteDescSet, safe1, safe2 };
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                 targetLayout, 0, 3, sets, 0, nullptr);
+
+        VkPushConstantsLinear pc{};
+        pc.screenWidth  = sw;   pc.screenHeight = sh;
+        pc.r = _color.m_X;      pc.g = _color.m_Y;
+        pc.b = _color.m_Z;      pc.a = _color.m_W;
+        pc.delta = vkShader ? vkShader->GetFloat("delta") : 0.f;
+        vkCmdPushConstants(cmd, targetLayout,
+                           VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                           0, sizeof(pc), &pc);
+    }
+    else if (blendMode == CShaderVulkan::kCubic)
+    {
+        VkDescriptorSet safe1 = m_boundDescSets[1] ? m_boundDescSets[1] : m_whiteDescSet;
+        VkDescriptorSet safe2 = m_boundDescSets[2] ? m_boundDescSets[2] : m_whiteDescSet;
+        VkDescriptorSet safe3 = m_boundDescSets[3] ? m_boundDescSets[3] : m_whiteDescSet;
+        VkDescriptorSet safe4 = m_boundDescSets[4] ? m_boundDescSets[4] : m_whiteDescSet;
+        VkDescriptorSet sets[5] = { m_whiteDescSet, safe1, safe2, safe3, safe4 };
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                 targetLayout, 0, 5, sets, 0, nullptr);
+
+        float weights[4] = {0.f, 0.f, 0.f, 0.f};
+        if (vkShader) vkShader->GetFloat4("weights", weights);
+
+        VkPushConstantsCubic pc{};
+        pc.screenWidth  = sw;   pc.screenHeight = sh;
+        pc.r = _color.m_X;      pc.g = _color.m_Y;
+        pc.b = _color.m_Z;      pc.a = _color.m_W;
+        pc.w0 = weights[0];     pc.w1 = weights[1];
+        pc.w2 = weights[2];     pc.w3 = weights[3];
+        vkCmdPushConstants(cmd, targetLayout,
+                           VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                           0, sizeof(pc), &pc);
+    }
+    else
+    {
+        VkDescriptorSet ds = m_currentDescSet ? m_currentDescSet : m_whiteDescSet;
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                 targetLayout, 0, 1, &ds, 0, nullptr);
+
+        VkPushConstants pc{};
+        pc.screenWidth  = sw;   pc.screenHeight = sh;
+        pc.r = _color.m_X;      pc.g = _color.m_Y;
+        pc.b = _color.m_Z;      pc.a = _color.m_W;
+        vkCmdPushConstants(cmd, targetLayout,
+                           VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                           0, sizeof(pc), &pc);
+    }
+
     VkDeviceSize offset = 0;
     vkCmdBindVertexBuffers(cmd, 0, 1, &m_vertexBuffer[m_currentFrame], &offset);
-    // Draw the 6 vertices we just wrote (offset into the mapped buffer)
     uint32_t firstVertex = m_vertexCount - 6;
     vkCmdDraw(cmd, 6, 1, firstVertex, 0);
 }
@@ -1371,10 +1570,33 @@ void CRendererVulkan::DrawText(spCBaseText _text,
 // Shaders
 // ---------------------------------------------------------------------------
 spCShader CRendererVulkan::NewShader(
-    const char* /*_pVert*/, const char* /*_pFrag*/,
-    std::vector<std::pair<std::string, eUniformType>> /*uniforms*/)
+    const char* /*_pVert*/, const char* _pFrag,
+    std::vector<std::pair<std::string, eUniformType>> uniforms)
 {
-    return std::make_shared<CShaderVulkan>();
+    auto shader = std::make_shared<CShaderVulkan>();
+
+    // Populate the uniforms map so CShader::Set() can store values that
+    // DrawQuad reads back when building push constants.
+    for (auto& [name, type] : uniforms)
+        shader->AddUniform(name, type);
+
+    // Choose blend mode from the symbolic fragment shader name.
+    if (_pFrag)
+    {
+        std::string frag(_pFrag);
+        if (frag == "drawDecodedFrameLinearFrameBlendFragment")
+        {
+            shader->SetBlendMode(CShaderVulkan::kLinear);
+            g_Log->Info("CRendererVulkan: created linear blend shader");
+        }
+        else if (frag == "drawDecodedFrameCubicFrameBlendFragment")
+        {
+            shader->SetBlendMode(CShaderVulkan::kCubic);
+            g_Log->Info("CRendererVulkan: created cubic blend shader");
+        }
+    }
+
+    return shader;
 }
 
 } // namespace DisplayOutput
