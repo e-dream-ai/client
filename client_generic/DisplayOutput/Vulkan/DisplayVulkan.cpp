@@ -11,11 +11,9 @@
 #include <cstring>
 #include <sys/select.h>
 #ifdef HAVE_WAYLAND
+#include <poll.h>
 #include <sys/mman.h>
 #include <unistd.h>
-#ifdef HAVE_LIBDECOR
-#include <poll.h>
-#endif
 #endif
 
 namespace DisplayOutput
@@ -1047,6 +1045,13 @@ void CDisplayVulkan::checkEvents()
             while (libdecor_dispatch(m_pLibdecorContext, 0) > 0) {}
         }
 #endif
+        while (wl_display_prepare_read(m_pWlDisplay) != 0)
+            wl_display_dispatch_pending(m_pWlDisplay);
+        struct pollfd pfd = { wl_display_get_fd(m_pWlDisplay), POLLIN, 0 };
+        if (poll(&pfd, 1, 0) > 0 && (pfd.revents & POLLIN))
+            wl_display_read_events(m_pWlDisplay);
+        else
+            wl_display_cancel_read(m_pWlDisplay);
         wl_display_dispatch_pending(m_pWlDisplay);
         return;
     }
