@@ -1555,7 +1555,8 @@ bool CRendererDX11::EndFrame(bool drawn) {
                 const uint32_t dispW = dx->Width();
                 const uint32_t dispH = dx->Height();
 
-                if (!hasNativeCaption && titlebarPx > 0 && dispW > 0u && dispH > 0u &&
+                if (!dx->IsEmbeddedSaverPreview() && !hasNativeCaption && titlebarPx > 0 &&
+                    dispW > 0u && dispH > 0u &&
                     titlebarPx < static_cast<int>(dispH) && EnsureSolidWhiteTexture())
                 {
                     D3D11_VIEWPORT savedVp[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE] = {};
