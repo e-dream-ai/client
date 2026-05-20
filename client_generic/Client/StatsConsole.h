@@ -356,7 +356,7 @@ class CStatsConsole : public CConsole
         if (!CHudEntry::Render(_time, _spRenderer))
             return false;
 
-        if (g_Player().Stopped() || m_Stats.empty() || !g_Player().HasStarted())
+        if (m_Stats.empty() || !g_Player().HasStarted())
             return true; // Skip rendering but keep entry alive (false = remove from HudManager)
 
         // Lazily initialize font/text now that we have a renderer.
