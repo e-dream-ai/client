@@ -496,6 +496,7 @@ void CDisplayVulkan::onKeyboardKey(void* data, wl_keyboard*, uint32_t,
     case XKB_KEY_w:      spEvent->m_Code = CKeyEvent::KEY_W;     break;
     case XKB_KEY_n:      spEvent->m_Code = CKeyEvent::KEY_N;     break;
     case XKB_KEY_b:      spEvent->m_Code = CKeyEvent::KEY_B;     break;
+    case XKB_KEY_q:      spEvent->m_Code = CKeyEvent::KEY_Q;     break;
     case XKB_KEY_space:  spEvent->m_Code = CKeyEvent::KEY_SPACE; break;
     case XKB_KEY_Left:   spEvent->m_Code = CKeyEvent::KEY_LEFT;  break;
     case XKB_KEY_Right:  spEvent->m_Code = CKeyEvent::KEY_RIGHT; break;
@@ -1113,6 +1114,7 @@ void CDisplayVulkan::checkEvents()
                 case XK_w:      spEvent->m_Code = CKeyEvent::KEY_W;     break;
                 case XK_n:      spEvent->m_Code = CKeyEvent::KEY_N;     break;
                 case XK_b:      spEvent->m_Code = CKeyEvent::KEY_B;     break;
+                case XK_q:      spEvent->m_Code = CKeyEvent::KEY_Q;     break;
                 case XK_space:  spEvent->m_Code = CKeyEvent::KEY_SPACE; break;
                 case XK_Left:   spEvent->m_Code = CKeyEvent::KEY_LEFT;  break;
                 case XK_Right:  spEvent->m_Code = CKeyEvent::KEY_RIGHT; break;

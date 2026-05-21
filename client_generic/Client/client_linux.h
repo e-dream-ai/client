@@ -51,6 +51,10 @@ class CElectricSheep_Linux : public CElectricSheep
 
         //	Run gui.
 
+        // Start windowed by default; --fullscreen (m_StartFullscreen) opts into
+        // fullscreen at launch. F toggles at runtime; ESC exits fullscreen.
+        g_Player().Fullscreen(m_StartFullscreen);
+
         g_Player().AddDisplay(g_Settings()->Get("settings.player.screen", 0), nullptr);
 
         // if( true )
@@ -83,9 +87,27 @@ class CElectricSheep_Linux : public CElectricSheep
 
         switch (spKey->m_Code)
         {
-        // Linux-only: exit
+        // Linux-only: ESC exits fullscreen back to windowed (never quits).
         case DisplayOutput::CKeyEvent::KEY_Esc:
-            g_Player().Display()->Close();
+        {
+            auto spDisp = g_Player().Display();
+            if (spDisp && spDisp->IsFullscreen())
+            {
+                auto spVk = std::dynamic_pointer_cast<DisplayOutput::CDisplayVulkan>(spDisp);
+                if (spVk) spVk->ToggleFullscreen(); // fullscreen -> windowed
+            }
+            return true;
+        }
+
+        // Linux-only: Ctrl+Q quits.
+        case DisplayOutput::CKeyEvent::KEY_Q:
+            if (spKey->m_bCtrl)
+            {
+                if (auto spDisp = g_Player().Display())
+                    spDisp->Close();
+                return true;
+            }
+            CElectricSheep::HandleOneEvent(spEvent);
             return true;
 
         // F: toggle fullscreen

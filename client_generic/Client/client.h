@@ -195,6 +195,7 @@ class CElectricSheep
     std::string m_PreviousDlState; // Track download status
     bool m_MultipleInstancesMode;
     bool m_CachedOnlyMode = false;
+    bool m_StartFullscreen = false;  // Linux: start fullscreen (--fullscreen); default is windowed
     bool m_OfflineDueToNoInternetOnly = false;  // true when m_MultipleInstancesMode was set only because internet was down (don't show Busy in that case)
     bool m_bConfigMode;
     bool m_bIsPreview;
@@ -330,6 +331,10 @@ class CElectricSheep
 
     void SetCachedOnlyMode(bool val) {
         m_CachedOnlyMode = val;
+    }
+
+    void SetStartFullscreen(bool val) {
+        m_StartFullscreen = val;
     }
     
     virtual void SetIsPreview(bool _isPreview) {
