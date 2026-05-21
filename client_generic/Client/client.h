@@ -1109,7 +1109,14 @@ class CElectricSheep
                 return false;
             }
 #ifdef LINUX_GNU
-            g_Player().FpsCap(m_PerceptualFPS);  // Linux render loop has no vsync gate; cap it. Windows is paced by DXGI Present.
+            // Pace the render loop to the display rate, NOT the perceptual
+            // (content) rate. Capping at m_PerceptualFPS throttled the whole
+            // loop to the dream animation rate (often 2-20 fps), making motion
+            // choppy and defeating frame blending. FIFO present already gates
+            // on vblank; this cap is a safety net. 0 = uncapped (let vsync pace).
+            double displayFps = g_Player().GetDisplayFps();
+            if (displayFps > 0.0)
+                g_Player().FpsCap(displayFps);
 #endif
         }
 
