@@ -11,8 +11,8 @@ namespace DisplayOutput
 {
 
 /*
-    CShaderUniformVulkan — stub; uniforms for Vulkan are push constants
-    managed by RendererVulkan directly.
+    CShaderUniformVulkan — stores a single uniform value in CPU memory.
+    The Vulkan renderer reads these values back when building push constants.
 */
 class CShaderUniformVulkan : public CShaderUniform
 {
@@ -35,21 +35,23 @@ class CShaderUniformVulkan : public CShaderUniform
 
     void Apply() override { m_bDirty = false; }
 
-    const void* Data()   const { return m_data.data(); }
-    size_t       Size()   const { return m_data.size(); }
+    const void* Data() const { return m_data.data(); }
+    size_t       Size() const { return m_data.size(); }
 };
 
 MakeSmartPointers(CShaderUniformVulkan);
 
 /*
-    CShaderVulkan — wraps a Vulkan pipeline handle.
-    For this renderer pipeline creation is centralised in CRendererVulkan;
-    this class is a thin handle so the base-class API is satisfied.
+    CShaderVulkan — thin handle satisfying the CShader interface.
+    Carries the blend mode and uniform values that CRendererVulkan reads in DrawQuad.
 */
 class CShaderVulkan : public CShader
 {
-    VkDevice   m_device   = VK_NULL_HANDLE;
-    VkPipeline m_pipeline = VK_NULL_HANDLE;
+  public:
+    enum BlendMode { kNone, kLinear, kCubic };
+
+  private:
+    BlendMode m_blendMode = kNone;
 
   public:
     CShaderVulkan() {}
@@ -61,12 +63,42 @@ class CShaderVulkan : public CShader
 
     bool Build(const char* /*_pVert*/, const char* /*_pFrag*/) override
     {
-        // Pipeline building is handled by CRendererVulkan::NewShader()
         return true;
     }
 
-    VkPipeline Pipeline() const { return m_pipeline; }
-    void SetPipeline(VkPipeline p) { m_pipeline = p; }
+    void SetBlendMode(BlendMode m) { m_blendMode = m; }
+    BlendMode GetBlendMode() const { return m_blendMode; }
+
+    // Register a named uniform so CShader::Set() can store its value.
+    void AddUniform(const std::string& name, eUniformType type)
+    {
+        m_Uniforms[name] = std::make_shared<CShaderUniformVulkan>(name, type);
+    }
+
+    // Read a float uniform value (e.g. "delta").
+    float GetFloat(const std::string& name) const
+    {
+        auto it = m_Uniforms.find(name);
+        if (it != m_Uniforms.end())
+        {
+            auto u = std::dynamic_pointer_cast<CShaderUniformVulkan>(it->second);
+            if (u && u->Size() >= sizeof(float))
+                return *static_cast<const float*>(u->Data());
+        }
+        return 0.f;
+    }
+
+    // Read a float4 uniform value (e.g. "weights") into a 4-element array.
+    void GetFloat4(const std::string& name, float out[4]) const
+    {
+        auto it = m_Uniforms.find(name);
+        if (it != m_Uniforms.end())
+        {
+            auto u = std::dynamic_pointer_cast<CShaderUniformVulkan>(it->second);
+            if (u && u->Size() >= 4 * sizeof(float))
+                memcpy(out, u->Data(), 4 * sizeof(float));
+        }
+    }
 };
 
 MakeSmartPointers(CShaderVulkan);

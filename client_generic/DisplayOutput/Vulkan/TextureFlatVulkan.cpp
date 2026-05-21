@@ -321,12 +321,14 @@ bool CTextureFlatVulkan::uploadToImage(uint32_t w, uint32_t h)
 }
 
 // ---------------------------------------------------------------------------
-// Bind — tell the renderer to use this texture's descriptor set
+// Bind — register this texture's descriptor set at the given slot.
+// Slot 0 is used for single-texture (no-blend) draws; slots 1–4 hold the
+// frame textures consumed by the linear / cubic blend pipelines.
 // ---------------------------------------------------------------------------
-bool CTextureFlatVulkan::Bind(const uint32_t /*_index*/)
+bool CTextureFlatVulkan::Bind(const uint32_t _index)
 {
     if (m_descSet != VK_NULL_HANDLE)
-        m_pRenderer->SetDescriptorSet(m_descSet);
+        m_pRenderer->SetDescriptorSet(m_descSet, _index);
     m_dirty = false;
     return true;
 }
