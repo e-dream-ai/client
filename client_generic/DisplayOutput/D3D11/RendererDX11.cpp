@@ -1544,6 +1544,7 @@ bool CRendererDX11::EndFrame(bool drawn) {
             m_device.Get(), m_context.Get(), m_renderTargetView.Get(), viewportW, viewportH);
 
         // Custom titlebar strip + caption buttons: draw in DX so it never flashes.
+        bool drewCustomTitlebar = false;
         if (auto* dx = dynamic_cast<DisplayOutput::CDisplayDX11*>(m_spDisplay.get()))
         {
             if (!dx->IsFullscreen() && m_context && m_drawTextureShader)
@@ -1559,6 +1560,7 @@ bool CRendererDX11::EndFrame(bool drawn) {
                     dispW > 0u && dispH > 0u &&
                     titlebarPx < static_cast<int>(dispH) && EnsureSolidWhiteTexture())
                 {
+                    drewCustomTitlebar = true;
                     D3D11_VIEWPORT savedVp[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE] = {};
                     UINT savedVpCount = D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE;
                     m_context->RSGetViewports(&savedVpCount, savedVp);
@@ -1782,7 +1784,7 @@ bool CRendererDX11::EndFrame(bool drawn) {
 
         EndGpuTimingFrame();
 
-        if (effectiveDrawn || settingsVisible || aboutVisible)
+        if (effectiveDrawn || settingsVisible || aboutVisible || drewCustomTitlebar)
         {
             m_spDisplay->SwapBuffers();
             return true;

@@ -2249,7 +2249,11 @@ class CElectricSheep
                     spDisplay->Update();
             }
 
-            g_Player().EndDisplayFrame(displayUnit, drawn);
+            bool frameDrawn = drawn;
+            if (displayUnit == 0 && (showStartup || drawn))
+                frameDrawn = true;
+
+            g_Player().EndDisplayFrame(displayUnit, frameDrawn);
         }
 
         return true;
