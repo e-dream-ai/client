@@ -78,6 +78,8 @@
     emailTextField.cell.wraps = NO;
     [emailTextField.cell setUsesSingleLineMode:YES];
 
+    // Filter the verification code field to digits-only, max 6 chars
+    // (mirrors CodeStepViewController on first startup).
     digitCodeTextField.delegate = self;
 
     // We initially load the settings here, this avoid flickering of the ui
@@ -169,6 +171,7 @@
             m_loginWasSuccessful = NO;
             
             signInButton.title = @"Validate";
+            // Only allow validating once a full 6-digit code is entered
             [signInButton setEnabled:(digitCodeTextField.stringValue.length == 6)];
 
             [retryLoginButton setHidden:false];
@@ -597,29 +600,33 @@
 
 #pragma mark - NSTextFieldDelegate
 
-- (void)controlTextDidChange:(NSNotification *)notification {
+- (void)controlTextDidChange:(NSNotification *)notification
+{
     if (notification.object != digitCodeTextField) {
         return;
     }
 
-    NSTextField *textField = notification.object;
-    NSString *text = textField.stringValue;
+    NSString *text = digitCodeTextField.stringValue;
 
+    // Remove non-digits
     NSString *numbersOnly = [text stringByReplacingOccurrencesOfString:@"[^0-9]"
                                                             withString:@""
                                                                options:NSRegularExpressionSearch
                                                                  range:NSMakeRange(0, text.length)];
 
+    // Limit to 6 digits
     if (numbersOnly.length > 6) {
         numbersOnly = [numbersOnly substringToIndex:6];
     }
 
+    // Update field if changed
     if (![text isEqualToString:numbersOnly]) {
-        textField.stringValue = numbersOnly;
+        digitCodeTextField.stringValue = numbersOnly;
     }
 
-    if (m_sentCode) {
-        signInButton.enabled = (numbersOnly.length == 6);
+    // Only allow validating once a full 6-digit code is entered
+    if (m_sentCode && !EDreamClient::IsLoggedIn()) {
+        [signInButton setEnabled:(numbersOnly.length == 6)];
     }
 }
 

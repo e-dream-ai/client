@@ -195,6 +195,7 @@ class CElectricSheep
     std::string m_PreviousDlState; // Track download status
     bool m_MultipleInstancesMode;
     bool m_CachedOnlyMode = false;
+    bool m_StartFullscreen = false;  // Linux: start fullscreen (--fullscreen); default is windowed
     bool m_OfflineDueToNoInternetOnly = false;  // true when m_MultipleInstancesMode was set only because internet was down (don't show Busy in that case)
     bool m_bConfigMode;
     bool m_bIsPreview;
@@ -266,11 +267,7 @@ class CElectricSheep
 
         //	Trigger this to exist in the settings.
         // We reset the installdir at launch here, ensuring the bundle can be moved around
-#ifndef LINUX_GNU
         g_Settings()->Set("settings.app.InstallDir", m_WorkingDir);
-#else
-        g_Settings()->Set("settings.app.InstallDir", std::string(SHAREDIR));
-#endif
         g_Settings()->Storage()->Commit();
         return true;
     }
@@ -335,6 +332,10 @@ class CElectricSheep
     void SetCachedOnlyMode(bool val) {
         m_CachedOnlyMode = val;
     }
+
+    void SetStartFullscreen(bool val) {
+        m_StartFullscreen = val;
+    }
     
     virtual void SetIsPreview(bool _isPreview) {
         m_bIsPreview = _isPreview;
@@ -378,11 +379,11 @@ class CElectricSheep
 #endif
             "Keyboard Commands:\n"
             BK("A") ": Slower playback\t\t\t\t" BK("Up") ": Like this dream\n"
-            BK("D") ": Faster playback\t\t\t\t" BK("Down") ": Dislike and delete\n"
+            BK("D") ": Faster playback\t\t\t\t\t" BK("Down") ": Dislike and delete\n"
             BK("J") ": Skip 10 seconds back\t\t\t" BK("Left") ": Previous dream\n"
             BK("L") ": Skip 10 seconds forward\t\t" BK("Right") ": Next dream\n"
             BK("R") ": Repeat current dream\t\t\t" BK("H") ": Shuffle mode\n"
-            BK("C") ": Show credit\t\t\t\t\t" BK("B") ": Report this dream\n"
+            BK("C") ": Show credit\t\t\t\t\t\t" BK("B") ": Report this dream\n"
 #ifdef LINUX_GNU
             BK("V") ": Open web source\t\t\t\t" BK("F") ": Toggle full screen\n"
 #else
@@ -392,7 +393,11 @@ class CElectricSheep
 
             BK(FULLSCREEN_MODIFIER_KEY "-R") ": Open remote control\n"
             BK(FULLSCREEN_MODIFIER_KEY "-B") ": Browse playlists\n"
-            BK(FULLSCREEN_MODIFIER_KEY "-,") ": Open settings",
+            BK(FULLSCREEN_MODIFIER_KEY "-,") ": Open settings"
+#ifdef LINUX_GNU
+            "\n" BK(FULLSCREEN_MODIFIER_KEY "-Q") ": Quit"
+#endif
+            ,
             ""));
 #undef BK
 
@@ -1113,7 +1118,14 @@ class CElectricSheep
                 return false;
             }
 #ifdef LINUX_GNU
-            g_Player().FpsCap(m_PerceptualFPS);  // Linux render loop has no vsync gate; cap it. Windows is paced by DXGI Present.
+            // Pace the render loop to the display rate, NOT the perceptual
+            // (content) rate. Capping at m_PerceptualFPS throttled the whole
+            // loop to the dream animation rate (often 2-20 fps), making motion
+            // choppy and defeating frame blending. FIFO present already gates
+            // on vblank; this cap is a safety net. 0 = uncapped (let vsync pace).
+            double displayFps = g_Player().GetDisplayFps();
+            if (displayFps > 0.0)
+                g_Player().FpsCap(displayFps);
 #endif
         }
 
@@ -2253,7 +2265,11 @@ class CElectricSheep
                     spDisplay->Update();
             }
 
-            g_Player().EndDisplayFrame(displayUnit, drawn);
+            bool frameDrawn = drawn;
+            if (displayUnit == 0 && (showStartup || drawn))
+                frameDrawn = true;
+
+            g_Player().EndDisplayFrame(displayUnit, frameDrawn);
         }
 
         return true;

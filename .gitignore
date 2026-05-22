@@ -47,6 +47,7 @@ client_generic/MSVC/DebugMDx64
 client_generic/MSVC/DebugMDd
 client_generic/MSVC/DebugMDdx64
 client_generic/MSVC/es.map
+client_generic/MSVC/edream_build_version_generated.h
 
 # --- WinBuild release output ---
 client_generic/WinBuild/dist/

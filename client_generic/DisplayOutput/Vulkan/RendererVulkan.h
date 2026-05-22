@@ -17,17 +17,35 @@ namespace DisplayOutput
 
 static const int MAX_FRAMES_IN_FLIGHT = 2;
 static const int MAX_QUADS_PER_FRAME  = 4096;
+// Number of texture slots tracked for multi-texture blending (slots 0–4).
+static const int MAX_BLEND_TEXTURES   = 5;
 
 struct QuadVertex {
     float x, y;
     float u, v;
 };
 
-// Push constants layout — must match quad.vert / quad.frag
+// Push constants for the no-blend pipeline — must match quad.vert / quad.frag.
 struct VkPushConstants {
     float screenWidth;
     float screenHeight;
     float r, g, b, a;
+};
+
+// Extended push constants for linear frame blending.
+struct VkPushConstantsLinear {
+    float screenWidth;
+    float screenHeight;
+    float r, g, b, a;
+    float delta;
+};
+
+// Extended push constants for cubic frame blending.
+struct VkPushConstantsCubic {
+    float screenWidth;
+    float screenHeight;
+    float r, g, b, a;
+    float w0, w1, w2, w3;
 };
 
 /*
@@ -61,9 +79,20 @@ class CRendererVulkan : public CRenderer
     VkDescriptorPool      m_descriptorPool      = VK_NULL_HANDLE;
     VkSampler             m_defaultSampler      = VK_NULL_HANDLE;
 
-    // Pipeline
+    // No-blend pipeline
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
     VkPipeline       m_pipeline       = VK_NULL_HANDLE;
+
+    // Linear frame-blend pipeline (2 textures at sets 1 and 2)
+    VkPipelineLayout m_pipelineLayoutLinear = VK_NULL_HANDLE;
+    VkPipeline       m_pipelineLinear       = VK_NULL_HANDLE;
+
+    // Cubic frame-blend pipeline (4 textures at sets 1–4)
+    VkPipelineLayout m_pipelineLayoutCubic = VK_NULL_HANDLE;
+    VkPipeline       m_pipelineCubic       = VK_NULL_HANDLE;
+
+    // Currently bound pipeline (tracked to avoid redundant vkCmdBindPipeline calls)
+    VkPipeline m_activePipeline = VK_NULL_HANDLE;
 
     // Command pool + buffers
     VkCommandPool                m_commandPool = VK_NULL_HANDLE;
@@ -89,25 +118,28 @@ class CRendererVulkan : public CRenderer
     uint32_t m_currentFrame      = 0;
     uint32_t m_currentImageIndex = 0;
     bool     m_inFrame           = false;
-    uint32_t m_vertexCount       = 0;   // vertices written this frame
+    uint32_t m_vertexCount       = 0;
 
-    // Currently active texture's descriptor set
+    // Per-slot descriptor sets for multi-texture rendering.
+    // Slot 0 mirrors m_currentDescSet; slots 1–4 hold blend frame textures.
+    VkDescriptorSet m_boundDescSets[MAX_BLEND_TEXTURES]{};
+
+    // Currently active texture's descriptor set (slot 0, backwards compat)
     VkDescriptorSet m_currentDescSet = VK_NULL_HANDLE;
 
     // Font pool
     std::map<std::string, spCBaseFont> m_fontPool;
 
     // ImGui state (Vulkan backend for text / UI overlay rendering)
-    VkInstance       m_vulkanInstance    = VK_NULL_HANDLE;  // stored for ImGui init
+    VkInstance       m_vulkanInstance    = VK_NULL_HANDLE;
     ImGuiContext*    m_imguiContext      = nullptr;
     bool             m_imguiInitialized = false;
 
     // GPU frame-time measurement via Vulkan timestamp queries.
-    // One start + one end query per in-flight slot → MAX_FRAMES_IN_FLIGHT * 2 queries total.
     VkQueryPool m_timestampPool    = VK_NULL_HANDLE;
     float       m_gpuFrameTimeMs   = 0.0f;
-    float       m_timestampPeriodNs = 0.0f;  // nanoseconds per timestamp tick
-    bool        m_timestampsValid  = false;   // becomes true after the first frame completes
+    float       m_timestampPeriodNs = 0.0f;
+    bool        m_timestampsValid  = false;
 
     // Initialisation helpers
     bool pickPhysicalDevice(VkInstance instance, VkSurfaceKHR surface);
@@ -119,6 +151,10 @@ class CRendererVulkan : public CRenderer
     bool createDescriptorPool();
     bool createSampler();
     bool createPipeline();
+    bool createLinearBlendPipeline();
+    bool createCubicBlendPipeline();
+    bool buildGraphicsPipeline(VkShaderModule vert, VkShaderModule frag,
+                               VkPipelineLayout layout, VkPipeline& outPipeline);
     bool createCommandPool();
     bool createCommandBuffers();
     bool createSyncObjects();
@@ -183,8 +219,14 @@ class CRendererVulkan : public CRenderer
     VkCommandBuffer BeginSingleTimeCommands();
     void            EndSingleTimeCommands(VkCommandBuffer cmd);
 
-    // Let the active texture set its descriptor
-    void SetDescriptorSet(VkDescriptorSet ds) { m_currentDescSet = ds; }
+    // Bind a texture's descriptor set at a specific slot.
+    // Slot 0 is used by no-blend draws; slots 1–4 are blend frame textures.
+    void SetDescriptorSet(VkDescriptorSet ds, uint32_t slot = 0)
+    {
+        if (slot < MAX_BLEND_TEXTURES)
+            m_boundDescSets[slot] = ds;
+        m_currentDescSet = ds;
+    }
 
     // Swapchain extent — used by CTextImGui::GetExtent() for screen-space normalisation
     VkExtent2D GetSwapExtent() const { return m_swapExtent; }

@@ -160,6 +160,7 @@ class CDisplayVulkan : public CDisplayOutput
     virtual void Title(const std::string& _title) override;
     virtual void Update() override;
     virtual void ToggleFullscreen() override { setFullScreen(!m_bFullScreen); }
+    virtual bool IsFullscreen() const override { return m_bFullScreen; }
     virtual void SwapBuffers() override {} // presentation managed by RendererVulkan
     virtual bool HasShaders() override { return true; }
 

@@ -285,8 +285,14 @@ static void AppendMouseEvent(CMouseEvent::eMouseCode code, LPARAM lParam)
     spEvent->m_Code = code;
     spEvent->m_X = MAKEPOINTS(lParam).x;
     spEvent->m_Y = MAKEPOINTS(lParam).y;
-    if (auto spD = g_Player().Display())
-        spD->AppendEvent(spEvent);
+    for (uint32_t i = 0, n = g_Player().GetDisplayCount(); i < n; ++i)
+    {
+        if (auto spD = g_Player().Display(i))
+        {
+            spD->AppendEvent(spEvent);
+            return;
+        }
+    }
 }
 
 static void LayoutFullscreenSaverWindow(HWND hwnd, IDXGISwapChain* swapChain)
@@ -516,7 +522,7 @@ CDisplayDX11::CDisplayDX11()
 #ifdef WIN32
 int CDisplayDX11::GetVideoViewportTopInsetPx() const
 {
-    if (!m_WindowHandle || m_bFullScreen)
+    if (!m_WindowHandle || m_bFullScreen || m_bEmbeddedSaverPreview)
         return 0;
 
     const LONG_PTR style = GetWindowLongPtr(m_WindowHandle, GWL_STYLE);
@@ -1058,6 +1064,15 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
 
     case WM_MOUSEMOVE:
     {
+        if (self && self->m_bFullScreen && !self->m_bEmbeddedSaverPreview)
+        {
+            TRACKMOUSEEVENT tme{};
+            tme.cbSize = sizeof(tme);
+            tme.dwFlags = TME_LEAVE;
+            tme.hwndTrack = hWnd;
+            TrackMouseEvent(&tme);
+        }
+
         if (self && !self->m_bFullScreen && !self->m_bEmbeddedSaverPreview && self->m_useCustomWindowChrome)
         {
             const LONG_PTR style = GetWindowLongPtr(hWnd, GWL_STYLE);
@@ -1100,6 +1115,12 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
 
     case WM_LBUTTONDOWN:
     {
+        if (self && self->m_bFullScreen && !self->m_bEmbeddedSaverPreview)
+        {
+            AppendMouseEvent(CMouseEvent::Mouse_LEFT, lParam);
+            return 0;
+        }
+
         if (self && !self->m_bFullScreen && !self->m_bEmbeddedSaverPreview && self->m_useCustomWindowChrome)
         {
             const LONG_PTR style = GetWindowLongPtr(hWnd, GWL_STYLE);
@@ -1590,6 +1611,15 @@ HWND CDisplayDX11::Initialize(uint32_t width, uint32_t height, bool fullscreen) 
             LayoutFullscreenSaverWindow(m_WindowHandle, m_swapChain.Get());
         SetForegroundWindow(m_WindowHandle);
         SetFocus(m_WindowHandle);
+
+        if (!m_bEmbeddedSaverPreview)
+        {
+            TRACKMOUSEEVENT tme{};
+            tme.cbSize = sizeof(tme);
+            tme.dwFlags = TME_LEAVE;
+            tme.hwndTrack = m_WindowHandle;
+            TrackMouseEvent(&tme);
+        }
     }
 
     return m_WindowHandle;
@@ -1601,6 +1631,7 @@ HWND CDisplayDX11::Initialize(HWND parentHwnd, bool preview)
         return nullptr;
 
     m_bEmbeddedSaverPreview = true;
+    m_customTitlebarHeightPx = 0;
 
     HMODULE hInstance = GetModuleHandleW(NULL);
     if (!EnsureWindowClassRegistered(hInstance))

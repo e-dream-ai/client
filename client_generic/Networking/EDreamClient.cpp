@@ -2469,6 +2469,44 @@ bool EDreamClient::EnqueuePlaylist(std::string_view uuid) {
 }
 
 
+// ---------------------------------------------------------------------------
+// Known WebSocket event names — avoids repeated string-literal comparisons
+// and makes unhandled events easier to spot.
+// ---------------------------------------------------------------------------
+namespace WsEvent {
+    constexpr std::string_view kPlayDream        = "play_dream";
+    constexpr std::string_view kPlayPlaylist     = "play_playlist";
+    constexpr std::string_view kLike             = "like_current_dream";
+    constexpr std::string_view kDislike          = "dislike_current_dream";
+    constexpr std::string_view kReport           = "report_current_dream";
+    constexpr std::string_view kNext             = "next";
+    constexpr std::string_view kPrevious         = "previous";
+    constexpr std::string_view kShuffle          = "shuffle";
+    constexpr std::string_view kForward          = "forward";
+    constexpr std::string_view kBackward         = "backward";
+    constexpr std::string_view kPlaybackSlower   = "playback_slower";
+    constexpr std::string_view kPlaybackFaster   = "playback_faster";
+    constexpr std::string_view kRepeat           = "repeat";
+    constexpr std::string_view kHelp             = "help";
+    constexpr std::string_view kStatus           = "status";
+    constexpr std::string_view kPause            = "pause";
+    constexpr std::string_view kCredit           = "credit";
+    constexpr std::string_view kResetPlaylist    = "reset_playlist";
+    constexpr std::string_view kWeb              = "web";
+    constexpr std::string_view kBrighter         = "brighter";
+    constexpr std::string_view kDarker           = "darker";
+    constexpr std::string_view kSetSpeed1        = "set_speed_1";
+    constexpr std::string_view kSetSpeed2        = "set_speed_2";
+    constexpr std::string_view kSetSpeed3        = "set_speed_3";
+    constexpr std::string_view kSetSpeed4        = "set_speed_4";
+    constexpr std::string_view kSetSpeed5        = "set_speed_5";
+    constexpr std::string_view kSetSpeed6        = "set_speed_6";
+    constexpr std::string_view kSetSpeed7        = "set_speed_7";
+    constexpr std::string_view kSetSpeed8        = "set_speed_8";
+    constexpr std::string_view kSetSpeed9        = "set_speed_9";
+    constexpr std::string_view kPlaying          = "playing";
+} // namespace WsEvent
+
 static void OnWebSocketMessage(sio::event& _wsEvent)
 {
 
@@ -2481,170 +2519,174 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
     std::string_view event = eventObj->get_string();
 
     g_Log->Info("Received WebSocket message: %s", event.data());
-    printf("Received websocket message: %s", event.data());
-    
-    if (event == "play_dream") {
+
+    if (event == WsEvent::kPlayDream)
+    {
         std::shared_ptr<sio::string_message> uuidObj =
             std::dynamic_pointer_cast<sio::string_message>(response["uuid"]);
         std::string_view uuid = uuidObj->get_string();
-        
+
         int64_t frameNumber = -1;
         if (response.find("frameNumber") != response.end()) {
             std::shared_ptr<sio::int_message> frameNumberObj =
                         std::dynamic_pointer_cast<sio::int_message>(response["frameNumber"]);
             frameNumber = frameNumberObj->get_int();
-            printf("Frame number: %" PRId64, frameNumber);
         }
-        
+
         g_Log->Info("should play : %s", uuid.data());
         g_Player().PlayDreamNow(uuid.data(), frameNumber);
-    } else if (event == "play_playlist") {
+    }
+    else if (event == WsEvent::kPlayPlaylist)
+    {
         std::shared_ptr<sio::string_message> uuidObj =
             std::dynamic_pointer_cast<sio::string_message>(response["uuid"]);
         std::string_view uuid = uuidObj->get_string();
         g_Log->Info("should play : %s", uuid.data());
-        
         EDreamClient::EnqueuePlaylistAsync(uuid.data());
     }
-    else if (event == "like_current_dream")
+    else if (event == WsEvent::kLike)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_LIKE);
     }
-    else if (event == "dislike_current_dream")
+    else if (event == WsEvent::kDislike)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_DISLIKE);
     }
-    else if (event == "report_current_dream")
+    else if (event == WsEvent::kReport)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_REPORT);
     }
-    else if (event == "next")
+    else if (event == WsEvent::kNext)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_NEXT);
     }
-    else if (event == "previous")
+    else if (event == WsEvent::kPrevious)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_PREVIOUS);
     }
-    else if (event == "shuffle")
+    else if (event == WsEvent::kShuffle)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SHUFFLE);
     }
-    else if (event == "forward")
+    else if (event == WsEvent::kForward)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SKIP_FW);
     }
-    else if (event == "backward")
+    else if (event == WsEvent::kBackward)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SKIP_BW);
     }
-    else if (event == "playback_slower")
+    else if (event == WsEvent::kPlaybackSlower)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_PLAYBACK_SLOWER);
     }
-    else if (event == "playback_faster")
+    else if (event == WsEvent::kPlaybackFaster)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_PLAYBACK_FASTER);
     }
-    else if (event == "repeat")
+    else if (event == WsEvent::kRepeat)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_REPEAT);
     }
-    else if (event == "help")
+    else if (event == WsEvent::kHelp)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_F1);
     }
-    else if (event == "status")
+    else if (event == WsEvent::kStatus)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_F2);
     }
-    else if (event == "pause")
+    else if (event == WsEvent::kPause)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_PAUSE);
     }
-    else if (event == "credit")
+    else if (event == WsEvent::kCredit)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_CREDIT);
     }
-    else if (event == "reset_playlist")
+    else if (event == WsEvent::kResetPlaylist)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_RESET_PLAYLIST);
     }
-    else if (event == "web")
+    else if (event == WsEvent::kWeb)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_WEBPAGE);
     }
-    else if (event == "brighter")
+    else if (event == WsEvent::kBrighter)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_BRIGHTNESS_UP);
     }
-    else if (event == "darker")
+    else if (event == WsEvent::kDarker)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_BRIGHTNESS_DOWN);
     }
-    else if (event == "set_speed_1")
+    else if (event == WsEvent::kSetSpeed1)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_1);
     }
-    else if (event == "set_speed_2")
+    else if (event == WsEvent::kSetSpeed2)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_2);
     }
-    else if (event == "set_speed_3")
+    else if (event == WsEvent::kSetSpeed3)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_3);
     }
-    else if (event == "set_speed_4")
+    else if (event == WsEvent::kSetSpeed4)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_4);
     }
-    else if (event == "set_speed_5")
+    else if (event == WsEvent::kSetSpeed5)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_5);
     }
-    else if (event == "set_speed_6")
+    else if (event == WsEvent::kSetSpeed6)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_6);
     }
-    else if (event == "set_speed_7")
+    else if (event == WsEvent::kSetSpeed7)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_7);
     }
-    else if (event == "set_speed_8")
+    else if (event == WsEvent::kSetSpeed8)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_8);
     }
-    else if (event == "set_speed_9")
+    else if (event == WsEvent::kSetSpeed9)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_9);
+    }
+    else if (event == WsEvent::kPlaying)
+    {
+        // Server acknowledgement of our state_sync — no action needed.
     }
     else
     {
@@ -2753,7 +2795,8 @@ void EDreamClient::ConnectRemoteControlSocket()
     EDreamClient::UnbindWebSocketCallbacks();
 
     std::map<std::string, std::string> query;
-    
+    std::map<std::string, std::string> headers;
+
     std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
     std::string apiKey = g_Settings()->Get("settings.content.api_key", std::string(""));
 
@@ -2763,19 +2806,25 @@ void EDreamClient::ConnectRemoteControlSocket()
         return;
     }
 
-    if (!sealedSession.empty())
-        query["Cookie"] = string_format("wos-session=%s", sealedSession.c_str());
-    else
-        query["Api-Key"] = apiKey;
+    const std::string clientType = PlatformUtils::GetPlatformName();
+    const std::string clientVersion = PlatformUtils::GetAppVersion();
 
-    query["Edream-Client-Type"] = PlatformUtils::GetPlatformName();
-    query["Edream-Client-Version"] = PlatformUtils::GetAppVersion();
+    query["Edream-Client-Type"] = clientType;
+    query["Edream-Client-Version"] = clientVersion;
+
+    if (!sealedSession.empty())
+        headers["Cookie"] = string_format("wos-session=%s", sealedSession.c_str());
+    else
+        headers["Api-Key"] = apiKey;
+
+    headers["Edream-Client-Type"] = clientType;
+    headers["Edream-Client-Version"] = clientVersion;
 
     g_Log->Info("Connecting to WebSocket server: %s", 
                 ServerConfig::ServerConfigManager::getInstance().getWebsocketServer().c_str());
     
     // Always call connect() - Socket.IO client will handle reconnection internally
-    s_SIOClient.connect(ServerConfig::ServerConfigManager::getInstance().getWebsocketServer(), query, query);
+    s_SIOClient.connect(ServerConfig::ServerConfigManager::getInstance().getWebsocketServer(), query, headers);
     
     // Send first ping immediately so frontend knows we're here
     SendPing();

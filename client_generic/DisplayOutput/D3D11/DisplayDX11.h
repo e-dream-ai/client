@@ -88,6 +88,7 @@ private:
     virtual void ToggleFullscreen() override;
     virtual bool SetFullscreen(const bool fullscreen) override;
     virtual bool IsFullscreen() const override { return m_bFullScreen; }
+    bool IsEmbeddedSaverPreview() const { return m_bEmbeddedSaverPreview; }
 
 #ifdef WIN32
     // Height in physical pixels to reserve at the top of the client area for a custom title bar.

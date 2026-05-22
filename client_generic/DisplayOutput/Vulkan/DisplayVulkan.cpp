@@ -11,11 +11,9 @@
 #include <cstring>
 #include <sys/select.h>
 #ifdef HAVE_WAYLAND
+#include <poll.h>
 #include <sys/mman.h>
 #include <unistd.h>
-#ifdef HAVE_LIBDECOR
-#include <poll.h>
-#endif
 #endif
 
 namespace DisplayOutput
@@ -474,6 +472,16 @@ void CDisplayVulkan::onKeyboardKey(void* data, wl_keyboard*, uint32_t,
     case XKB_KEY_F3:     spEvent->m_Code = CKeyEvent::KEY_F3;    break;
     case XKB_KEY_F4:     spEvent->m_Code = CKeyEvent::KEY_F4;    break;
     case XKB_KEY_F8:     spEvent->m_Code = CKeyEvent::KEY_F8;    break;
+    case XKB_KEY_0:      spEvent->m_Code = CKeyEvent::KEY_0;     break;
+    case XKB_KEY_1:      spEvent->m_Code = CKeyEvent::KEY_1;     break;
+    case XKB_KEY_2:      spEvent->m_Code = CKeyEvent::KEY_2;     break;
+    case XKB_KEY_3:      spEvent->m_Code = CKeyEvent::KEY_3;     break;
+    case XKB_KEY_4:      spEvent->m_Code = CKeyEvent::KEY_4;     break;
+    case XKB_KEY_5:      spEvent->m_Code = CKeyEvent::KEY_5;     break;
+    case XKB_KEY_6:      spEvent->m_Code = CKeyEvent::KEY_6;     break;
+    case XKB_KEY_7:      spEvent->m_Code = CKeyEvent::KEY_7;     break;
+    case XKB_KEY_8:      spEvent->m_Code = CKeyEvent::KEY_8;     break;
+    case XKB_KEY_9:      spEvent->m_Code = CKeyEvent::KEY_9;     break;
     case XKB_KEY_f:      spEvent->m_Code = CKeyEvent::KEY_F;     break;
     case XKB_KEY_s:      spEvent->m_Code = CKeyEvent::KEY_S;     break;
     case XKB_KEY_a:      spEvent->m_Code = CKeyEvent::KEY_A;     break;
@@ -488,6 +496,7 @@ void CDisplayVulkan::onKeyboardKey(void* data, wl_keyboard*, uint32_t,
     case XKB_KEY_w:      spEvent->m_Code = CKeyEvent::KEY_W;     break;
     case XKB_KEY_n:      spEvent->m_Code = CKeyEvent::KEY_N;     break;
     case XKB_KEY_b:      spEvent->m_Code = CKeyEvent::KEY_B;     break;
+    case XKB_KEY_q:      spEvent->m_Code = CKeyEvent::KEY_Q;     break;
     case XKB_KEY_space:  spEvent->m_Code = CKeyEvent::KEY_SPACE; break;
     case XKB_KEY_Left:   spEvent->m_Code = CKeyEvent::KEY_LEFT;  break;
     case XKB_KEY_Right:  spEvent->m_Code = CKeyEvent::KEY_RIGHT; break;
@@ -1037,6 +1046,13 @@ void CDisplayVulkan::checkEvents()
             while (libdecor_dispatch(m_pLibdecorContext, 0) > 0) {}
         }
 #endif
+        while (wl_display_prepare_read(m_pWlDisplay) != 0)
+            wl_display_dispatch_pending(m_pWlDisplay);
+        struct pollfd pfd = { wl_display_get_fd(m_pWlDisplay), POLLIN, 0 };
+        if (poll(&pfd, 1, 0) > 0 && (pfd.revents & POLLIN))
+            wl_display_read_events(m_pWlDisplay);
+        else
+            wl_display_cancel_read(m_pWlDisplay);
         wl_display_dispatch_pending(m_pWlDisplay);
         return;
     }
@@ -1074,6 +1090,16 @@ void CDisplayVulkan::checkEvents()
                 case XK_F3:     spEvent->m_Code = CKeyEvent::KEY_F3;    break;
                 case XK_F4:     spEvent->m_Code = CKeyEvent::KEY_F4;    break;
                 case XK_F8:     spEvent->m_Code = CKeyEvent::KEY_F8;    break;
+                case XK_0:      spEvent->m_Code = CKeyEvent::KEY_0;     break;
+                case XK_1:      spEvent->m_Code = CKeyEvent::KEY_1;     break;
+                case XK_2:      spEvent->m_Code = CKeyEvent::KEY_2;     break;
+                case XK_3:      spEvent->m_Code = CKeyEvent::KEY_3;     break;
+                case XK_4:      spEvent->m_Code = CKeyEvent::KEY_4;     break;
+                case XK_5:      spEvent->m_Code = CKeyEvent::KEY_5;     break;
+                case XK_6:      spEvent->m_Code = CKeyEvent::KEY_6;     break;
+                case XK_7:      spEvent->m_Code = CKeyEvent::KEY_7;     break;
+                case XK_8:      spEvent->m_Code = CKeyEvent::KEY_8;     break;
+                case XK_9:      spEvent->m_Code = CKeyEvent::KEY_9;     break;
                 case XK_f:      spEvent->m_Code = CKeyEvent::KEY_F;     break;
                 case XK_s:      spEvent->m_Code = CKeyEvent::KEY_S;     break;
                 case XK_a:      spEvent->m_Code = CKeyEvent::KEY_A;     break;
@@ -1088,6 +1114,7 @@ void CDisplayVulkan::checkEvents()
                 case XK_w:      spEvent->m_Code = CKeyEvent::KEY_W;     break;
                 case XK_n:      spEvent->m_Code = CKeyEvent::KEY_N;     break;
                 case XK_b:      spEvent->m_Code = CKeyEvent::KEY_B;     break;
+                case XK_q:      spEvent->m_Code = CKeyEvent::KEY_Q;     break;
                 case XK_space:  spEvent->m_Code = CKeyEvent::KEY_SPACE; break;
                 case XK_Left:   spEvent->m_Code = CKeyEvent::KEY_LEFT;  break;
                 case XK_Right:  spEvent->m_Code = CKeyEvent::KEY_RIGHT; break;
