@@ -1508,62 +1508,72 @@ void CRendererVulkan::DrawText(spCBaseText _text,
     // bake size — it rasterises at bake size and scales to display size.
     static constexpr float kHudReferenceHeight = 1080.f;
     const float scale    = static_cast<float>(m_spDisplay->Height()) / kHudReferenceHeight;
-    const float fontSize = spFI->FontSize() * scale;
+    const float fontSizePx = spFI->FontSize() * scale;
 
     // Convert normalised rect [0,1] → pixel coords (ImGui origin is top-left).
     Base::Math::CRect r = _text->GetRect();
     ImVec2 cursor{r.m_X0 * static_cast<float>(m_swapExtent.width),
                   r.m_Y0 * static_cast<float>(m_swapExtent.height)};
 
-    ImU32 col = ImGui::ColorConvertFloat4ToU32(
+    ImU32 col       = ImGui::ColorConvertFloat4ToU32(
         ImVec4(_color.m_X, _color.m_Y, _color.m_Z, _color.m_W));
+    ImU32 shadowCol = IM_COL32(0, 0, 0, static_cast<ImU32>(_color.m_W * 255.f));
 
     ImDrawList*        dl   = ImGui::GetBackgroundDrawList();
     const std::string& text = spTV->Text();
 
-    if (text.find_first_of("\t\n") == std::string::npos)
-    {
-        // Fast path — plain single-line text with no special characters.
-        dl->AddText(normalFont, fontSize, cursor, col, text.c_str());
-        return;
-    }
+    constexpr char newlineChar = '\n';
+    constexpr char tabChar     = '\t';
 
-    // Render segment-by-segment, handling:
-    //   \n — newline: reset cursor.x, advance cursor.y
-    //   \t — tab: snap cursor.x to next tab stop (4 × space width)
-    const float spaceW      = normalFont
-        ? normalFont->CalcTextSizeA(fontSize, FLT_MAX, 0.f, " ").x
-        : fontSize * 0.5f;
-    const float tabInterval = spaceW * 4.0f;
-    const float startX      = cursor.x;
-    const char* p           = text.c_str();
-    const char* segBegin    = p;
-
-    while (*p)
+    // Render text at 'origin' with 'color', handling \n and \t.
+    auto renderAt = [&](ImVec2 origin, ImU32 color)
     {
-        if (*p == '\n' || *p == '\t')
+        if (text.find_first_of({tabChar, newlineChar}) == std::string::npos)
         {
-            if (p > segBegin)
-            {
-                dl->AddText(normalFont, fontSize, cursor, col, segBegin, p);
-                cursor.x += normalFont->CalcTextSizeA(fontSize, FLT_MAX, 0.f, segBegin, p).x;
-            }
-            if (*p == '\n')
-            {
-                cursor.x = startX;
-                cursor.y += fontSize;
-            }
-            else
-            {
-                float offset = cursor.x - startX;
-                cursor.x = startX + (std::floor(offset / tabInterval) + 1.0f) * tabInterval;
-            }
-            segBegin = p + 1;
+            dl->AddText(normalFont, fontSizePx, origin, color, text.c_str());
+            return;
         }
-        ++p;
-    }
-    if (p > segBegin)
-        dl->AddText(normalFont, fontSize, cursor, col, segBegin, p);
+
+        // Segment-by-segment: \n resets to start of line, \t snaps to tab stop.
+        const float spaceW      = normalFont
+            ? normalFont->CalcTextSizeA(fontSizePx, FLT_MAX, 0.f, " ").x
+            : fontSizePx * 0.5f;
+        const float tabInterval = spaceW * 4.0f;
+        const float startX      = origin.x;
+        ImVec2      cur         = origin;
+        const char* p           = text.c_str();
+        const char* segBegin    = p;
+
+        while (*p)
+        {
+            if (*p == newlineChar || *p == tabChar)
+            {
+                if (p > segBegin)
+                {
+                    dl->AddText(normalFont, fontSizePx, cur, color, segBegin, p);
+                    cur.x += normalFont->CalcTextSizeA(fontSizePx, FLT_MAX, 0.f, segBegin, p).x;
+                }
+                if (*p == newlineChar)
+                {
+                    cur.x = startX;
+                    cur.y += fontSizePx;
+                }
+                else
+                {
+                    float offset = cur.x - startX;
+                    cur.x = startX + (std::floor(offset / tabInterval) + 1.0f) * tabInterval;
+                }
+                segBegin = p + 1;
+            }
+            ++p;
+        }
+        if (p > segBegin)
+            dl->AddText(normalFont, fontSizePx, cur, color, segBegin, p);
+    };
+
+    // Drop-shadow: 1 px down-right in black (matches Mac: shadowOffset=(1,-1), shadowRadius=0).
+    renderAt({cursor.x + 1.0f, cursor.y + 1.0f}, shadowCol);
+    renderAt(cursor, col);
 }
 
 // ---------------------------------------------------------------------------

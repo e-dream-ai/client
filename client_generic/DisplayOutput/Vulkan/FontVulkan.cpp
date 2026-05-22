@@ -3,6 +3,7 @@
 #include "FontVulkan.h"
 #include "RendererVulkan.h"
 #include "Log.h"
+#include "PlatformUtils.h"
 
 #include <imgui.h>
 
@@ -12,27 +13,37 @@ namespace DisplayOutput
 // ---------------------------------------------------------------------------
 // CreateWithRenderer — register font with ImGui's global atlas.
 //
-// Uses ImGui's built-in embedded ProggyForever font (MIT license, no external
-// files required).  Bold is simulated with a small extra advance so key labels
-// in the F1 overlay sit visually apart from surrounding normal text.
+// Loads Lato-Regular.ttf from the binary directory (copied there by CMake).
+// Falls back to the embedded ProggyForever font if the file is not found.
 // ---------------------------------------------------------------------------
 bool CFontImGui::CreateWithRenderer(CRendererVulkan* /*renderer*/)
 {
-    m_fontSize = static_cast<float>(m_FontDescription.Height());
+    m_fontSizePx = static_cast<float>(m_FontDescription.Height());
     const bool isBold = m_FontDescription.Style() >= CFontDescription::Bold;
 
-    ImFontConfig cfg;
-    cfg.SizePixels = m_fontSize;
+    std::string fontPath = PlatformUtils::GetWorkingDir() + "Lato-Regular.ttf";
+    m_imFont = ImGui::GetIO().Fonts->AddFontFromFileTTF(fontPath.c_str(), m_fontSizePx);
+    if (m_imFont)
+    {
+        g_Log->Info("CFontImGui: loaded Lato-Regular.ttf at %.0fpx%s",
+                    m_fontSizePx, isBold ? " (bold)" : "");
+        return true;
+    }
 
+    g_Log->Warning("CFontImGui: Lato-Regular.ttf not found at %s, using embedded font",
+                   fontPath.c_str());
+
+    ImFontConfig cfg;
+    cfg.SizePixels = m_fontSizePx;
     m_imFont = ImGui::GetIO().Fonts->AddFontDefaultVector(&cfg);
     if (!m_imFont)
     {
-        g_Log->Warning("CFontImGui: AddFontDefaultVector failed at %.0fpx", m_fontSize);
+        g_Log->Warning("CFontImGui: AddFontDefaultVector also failed at %.0fpx", m_fontSizePx);
         return false;
     }
 
     g_Log->Info("CFontImGui: registered embedded font at %.0fpx%s",
-                m_fontSize, isBold ? " (bold)" : "");
+                m_fontSizePx, isBold ? " (bold)" : "");
     return true;
 }
 
@@ -66,8 +77,8 @@ Base::Math::CVector2 CTextImGui::GetExtent()
 
     static constexpr float kHudReferenceHeight = 1080.f;
     const float scale    = screenH / kHudReferenceHeight;
-    const float fontSize = spFI->FontSize() * scale;
-    ImVec2 sz = font->CalcTextSizeA(fontSize, FLT_MAX, 0.f, m_text.c_str());
+    const float fontSizePx = spFI->FontSize() * scale;
+    ImVec2 sz = font->CalcTextSizeA(fontSizePx, FLT_MAX, 0.f, m_text.c_str());
     return {sz.x / screenW, sz.y / screenH};
 }
 
