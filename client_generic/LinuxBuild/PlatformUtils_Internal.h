@@ -12,4 +12,4 @@ void PlatformUtils_DrainMainThreadQueue();
 bool PlatformUtils_GetCursorHidden();
 
 // Returns the mouse-moved callback stored by SetOnMouseMovedCallback().
-std::function<void(int, int)>& PlatformUtils_GetMouseCallback();
+std::function<void(int, int)>& PlatformUtils_GetOnMouseMovedCallback();

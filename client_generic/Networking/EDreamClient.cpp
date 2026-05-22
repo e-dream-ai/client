@@ -74,6 +74,11 @@ void ESShowFirstTimeSetup()
     }
 }
 
+bool ESHasFirstTimeSetupCallback()
+{
+    return gShowFirstTimeSetupCallback != nullptr;
+}
+
 long long EDreamClient::remainingQuota = 0;
 std::chrono::system_clock::time_point EDreamClient::quotaExpiresAt = std::chrono::system_clock::now();
 
@@ -657,9 +662,11 @@ bool EDreamClient::Authenticate()
         g_Log->Warning("No sealed session found");
 
         // Try magic link login via email in settings (settings.generator.nickname).
+        // Skip the console path if a GUI wizard is registered — the wizard will
+        // handle authentication and the auth loop will retry automatically.
         // ValidateCodeDetailed() calls RefreshSealedSession() internally — no
         // second refresh needed if this returns true.
-        if (LoginWithMagicLinkCode())
+        if (!ESHasFirstTimeSetupCallback() && LoginWithMagicLinkCode())
         {
             fIsLoggedIn.exchange(true);
             fInitialAuthComplete.store(true);

@@ -174,6 +174,7 @@ set(SOURCES
     ${CLIENT}/Player.cpp
     ${CLIENT}/Hud.cpp
     ${CLIENT}/StringFormat.cpp
+    ${CLIENT}/FirstTimeSetupVulkan.cpp
 
     # Common
     ${COMMON}/AlignedBuffer.cpp

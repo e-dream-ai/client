@@ -3,6 +3,7 @@
 #include "DisplayVulkan.h"
 #include "PlatformUtils_Internal.h"
 #include "Log.h"
+#include "FirstTimeSetupVulkan.h"
 
 #include <X11/Xutil.h>
 #include <chrono>
@@ -506,6 +507,13 @@ void CDisplayVulkan::onKeyboardKey(void* data, wl_keyboard*, uint32_t,
     default:             spEvent->m_Code = CKeyEvent::KEY_NONE;  break;
     }
 
+    // If the first-time setup wizard is visible, feed the event to ImGui and
+    // don't push it onto the game event queue.
+#ifdef HAVE_WAYLAND
+    if (FirstTimeSetupVulkan_FeedKey(key, keysym, spEvent->m_bPressed, self->m_pXkbState))
+        return;
+#endif
+
     self->m_EventQueue.push(std::static_pointer_cast<CEvent>(spEvent));
 }
 
@@ -538,9 +546,11 @@ void CDisplayVulkan::onPointerEnter(void* data, wl_pointer*, uint32_t serial,
 #endif
     self->updateWaylandCursor();
 
-    auto& cb = PlatformUtils_GetMouseCallback();
-    if (cb)
-        cb(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
+    FirstTimeSetupVulkan_FeedMousePos(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
+
+    auto& onMouseMovedCallback = PlatformUtils_GetOnMouseMovedCallback();
+    if (onMouseMovedCallback)
+        onMouseMovedCallback(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
 }
 
 void CDisplayVulkan::onPointerLeave(void* data, wl_pointer*, uint32_t, wl_surface*)
@@ -564,9 +574,11 @@ void CDisplayVulkan::onPointerMotion(void* data, wl_pointer*, uint32_t,
 #endif
     self->updateWaylandCursor();
 
-    auto& cb = PlatformUtils_GetMouseCallback();
-    if (cb)
-        cb(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
+    FirstTimeSetupVulkan_FeedMousePos(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
+
+    auto& onMouseMovedCallback = PlatformUtils_GetOnMouseMovedCallback();
+    if (onMouseMovedCallback)
+        onMouseMovedCallback(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
 }
 
 void CDisplayVulkan::onPointerButton(void* data, wl_pointer*, uint32_t serial,
@@ -587,6 +599,8 @@ void CDisplayVulkan::onPointerButton(void* data, wl_pointer*, uint32_t serial,
                               serial, self->m_hoverResizeEdge);
     }
 #endif
+
+    FirstTimeSetupVulkan_FeedMouseButton(button, state == WL_POINTER_BUTTON_STATE_PRESSED);
 }
 
 void CDisplayVulkan::onPointerAxis(void*, wl_pointer*, uint32_t, uint32_t, wl_fixed_t) {}
@@ -1142,8 +1156,8 @@ void CDisplayVulkan::checkEvents()
 
         if (xEvent.type == MotionNotify)
         {
-            auto& cb = PlatformUtils_GetMouseCallback();
-            if (cb) cb(xEvent.xmotion.x, xEvent.xmotion.y);
+            auto& onMouseMovedCallback = PlatformUtils_GetOnMouseMovedCallback();
+            if (onMouseMovedCallback) onMouseMovedCallback(xEvent.xmotion.x, xEvent.xmotion.y);
         }
     }
 }

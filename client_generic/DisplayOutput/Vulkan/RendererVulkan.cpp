@@ -11,6 +11,8 @@
 #include <imgui.h>
 #include <backends/imgui_impl_vulkan.h>
 
+#include "FirstTimeSetupVulkan.h"
+
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -1218,6 +1220,7 @@ bool CRendererVulkan::EndFrame(bool /*drawn*/)
     // Render ImGui draw data (text overlays etc.) inside the active render pass.
     if (m_imguiInitialized)
     {
+        FirstTimeSetupVulkan_DrawIfNeeded();
         ImGui::Render();
         ImDrawData* drawData = ImGui::GetDrawData();
         if (drawData && drawData->TotalVtxCount > 0)
