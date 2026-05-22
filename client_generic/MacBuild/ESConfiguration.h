@@ -1,7 +1,7 @@
 #import "Sparkle/Sparkle.h"
 #import <Cocoa/Cocoa.h>
 
-@interface ESConfiguration : NSWindowController
+@interface ESConfiguration : NSWindowController <NSTextFieldDelegate>
 {
     // IBOutlet NSMatrix* displayMode;
 
