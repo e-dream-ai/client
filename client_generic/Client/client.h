@@ -379,11 +379,11 @@ class CElectricSheep
 #endif
             "Keyboard Commands:\n"
             BK("A") ": Slower playback\t\t\t\t" BK("Up") ": Like this dream\n"
-            BK("D") ": Faster playback\t\t\t\t" BK("Down") ": Dislike and delete\n"
+            BK("D") ": Faster playback\t\t\t\t\t" BK("Down") ": Dislike and delete\n"
             BK("J") ": Skip 10 seconds back\t\t\t" BK("Left") ": Previous dream\n"
             BK("L") ": Skip 10 seconds forward\t\t" BK("Right") ": Next dream\n"
             BK("R") ": Repeat current dream\t\t\t" BK("H") ": Shuffle mode\n"
-            BK("C") ": Show credit\t\t\t\t\t" BK("B") ": Report this dream\n"
+            BK("C") ": Show credit\t\t\t\t\t\t" BK("B") ": Report this dream\n"
 #ifdef LINUX_GNU
             BK("V") ": Open web source\t\t\t\t" BK("F") ": Toggle full screen\n"
 #else
@@ -393,7 +393,11 @@ class CElectricSheep
 
             BK(FULLSCREEN_MODIFIER_KEY "-R") ": Open remote control\n"
             BK(FULLSCREEN_MODIFIER_KEY "-B") ": Browse playlists\n"
-            BK(FULLSCREEN_MODIFIER_KEY "-,") ": Open settings",
+            BK(FULLSCREEN_MODIFIER_KEY "-,") ": Open settings"
+#ifdef LINUX_GNU
+            "\n" BK(FULLSCREEN_MODIFIER_KEY "-Q") ": Quit"
+#endif
+            ,
             ""));
 #undef BK
 

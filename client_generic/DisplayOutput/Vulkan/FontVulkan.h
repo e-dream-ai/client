@@ -38,11 +38,11 @@ class CFontImGui : public CBaseFont
     bool CreateWithRenderer(CRendererVulkan* renderer);
 
     ImFont* GetImFont() const { return m_imFont; }
-    float   FontSize()  const { return m_fontSize; }
+    float   FontSize()  const { return m_fontSizePx; }
 
   private:
-    ImFont* m_imFont  = nullptr;
-    float   m_fontSize = 16.0f;
+    ImFont* m_imFont     = nullptr;
+    float   m_fontSizePx = 16.0f;
 };
 
 MakeSmartPointers(CFontImGui);
