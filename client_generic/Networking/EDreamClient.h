@@ -25,6 +25,8 @@ class EDreamClient
         ValidationFailureReason reason;
         int httpCode;
         std::string message;
+        std::string errorCode;
+        int retryAfterSeconds = -1;
     };
 
     enum class HelloFailureReason { None, InvalidSession, TransientFailure };
@@ -41,6 +43,8 @@ class EDreamClient
         bool success;
         int httpCode;
         std::string message;
+        std::string errorCode;
+        int retryAfterSeconds = -1;
     };
 
   private:

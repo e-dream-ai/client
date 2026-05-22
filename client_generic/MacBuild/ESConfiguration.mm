@@ -10,7 +10,12 @@
 #include "PlatformUtils.h"
 #include "CacheManager.h"
 
+#include "MagicLinkAuthAlertsApple.inl"
+
 //using namespace ContentDownloader;
+
+@interface ESConfiguration () <NSTextFieldDelegate>
+@end
 
 @implementation ESConfiguration
 
@@ -50,41 +55,6 @@
     NSAlert *alert = [[NSAlert alloc] init];
     [alert setMessageText:@"Authentication Error"];
     [alert setInformativeText:message];
-    [alert addButtonWithTitle:@"OK"];
-    [alert beginSheetModalForWindow:self.window completionHandler:nil];
-}
-
-- (void)showInvalidCodeValidationAlert {
-    NSAlert *alert = [[NSAlert alloc] init];
-    [alert setMessageText:@"Invalid Code"];
-    [alert setInformativeText:@"Check for typos and check to be sure you have the most recent code. Try again or start over"];
-    [alert addButtonWithTitle:@"OK"];
-    [alert beginSheetModalForWindow:self.window completionHandler:nil];
-}
-
-- (void)showSendCodeClientErrorAlertWithServerMessage:(NSString *)serverMessage {
-    NSMutableString *body = [NSMutableString stringWithString:
-        @"We couldn't send a verification email. Make sure your email address is correct, then try Send code again."];
-    if (serverMessage.length > 0) {
-        [body appendString:@"\n\n"];
-        [body appendString:serverMessage];
-    }
-    NSAlert *alert = [[NSAlert alloc] init];
-    [alert setMessageText:@"Unable to send code"];
-    [alert setInformativeText:body];
-    [alert addButtonWithTitle:@"OK"];
-    [alert beginSheetModalForWindow:self.window completionHandler:nil];
-}
-
-- (void)showServerErrorValidationAlertWithServerMessage:(NSString *)serverMessage {
-    NSMutableString *body = [NSMutableString stringWithString:@"Try again later."];
-    if (serverMessage.length > 0) {
-        [body appendString:@" "];
-        [body appendString:serverMessage];
-    }
-    NSAlert *alert = [[NSAlert alloc] init];
-    [alert setMessageText:@"Server Error"];
-    [alert setInformativeText:body];
     [alert addButtonWithTitle:@"OK"];
     [alert beginSheetModalForWindow:self.window completionHandler:nil];
 }
@@ -563,26 +533,14 @@
                 // Keep email field enabled and reset the UI state
                 [emailTextField setEnabled:YES];
                 [digitCodeTextField setEnabled:NO];
-                const int httpCode = result.httpCode;
-                if (httpCode >= 400 && httpCode < 500) {
-                    NSString *serverMsg = result.message.empty()
-                        ? @""
-                        : [NSString stringWithUTF8String:result.message.c_str()];
-                    [self showSendCodeClientErrorAlertWithServerMessage:serverMsg];
-                } else if (httpCode >= 500) {
-                    NSString *serverMsg = result.message.empty()
-                        ? @""
-                        : [NSString stringWithUTF8String:result.message.c_str()];
-                    [self showServerErrorValidationAlertWithServerMessage:serverMsg];
-                } else {
-                    NSString *message = result.message.empty()
-                        ? @"Failed to send verification code."
-                        : [NSString stringWithUTF8String:result.message.c_str()];
-                    [self showErrorAlert:message];
-                }
+                MagicLink_ShowSendFailureAlert(self.window, result);
                 [self updateAuthUI];
             }
         } else {
+            if (digitCodeTextField.stringValue.length != 6) {
+                return;
+            }
+
             // Try validating code
             EDreamClient::ValidateCodeResult validateResult =
                 EDreamClient::ValidateCodeDetailed(digitCodeTextField.stringValue.UTF8String);
@@ -604,33 +562,7 @@
             } else {
                 // Code validation failed
                 m_loginWasSuccessful = false;
-                if (validateResult.reason == EDreamClient::ValidationFailureReason::InvalidSession) {
-                    // Keep m_sentCode YES so user stays in "enter code" flow; they can retry or use Start again.
-                    if (validateResult.httpCode >= 400 && validateResult.httpCode < 500) {
-                        [self showInvalidCodeValidationAlert];
-                    } else {
-                        NSString *message = validateResult.message.empty()
-                            ? @"Validation failed. Please request a new code and sign in again."
-                            : [NSString stringWithUTF8String:validateResult.message.c_str()];
-                        [self showErrorAlert:message];
-                    }
-                } else {
-                    if (validateResult.httpCode >= 500) {
-                        NSString *serverMessage = validateResult.message.empty()
-                            ? @""
-                            : [NSString stringWithUTF8String:validateResult.message.c_str()];
-                        [self showServerErrorValidationAlertWithServerMessage:serverMessage];
-                    } else {
-                        NSString *message = nil;
-                        if (!validateResult.message.empty()) {
-                            message = [NSString stringWithUTF8String:validateResult.message.c_str()];
-                        }
-                        if (message.length == 0) {
-                            message = @"Backend is temporarily unavailable. Please try again shortly.";
-                        }
-                        [self showErrorAlert:message];
-                    }
-                }
+                MagicLink_ShowValidateFailureAlert(self.window, validateResult);
                 [self updateAuthUI];
             }
         }
