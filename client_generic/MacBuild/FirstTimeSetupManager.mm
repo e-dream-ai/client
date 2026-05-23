@@ -116,18 +116,28 @@
         ESWindow *esWindow = (ESWindow *)parentWindow;
 
         if (esWindow->mESView) {
-            // Stop current animation
+            // Keep the view hidden across the restart. The MTKView's last drawable
+            // is a video frame from when the player was running behind the wizard;
+            // unhiding now would flash it before the splash redraws. Stop+start the
+            // player while hidden, then unhide once new frames (splash) are drawn.
             [esWindow->mESView stopAnimation];
-            
+
             // Refresh window size
             [esWindow->mESView windowDidResize];
-            
+
             // Restart animation
             [esWindow->mESView startAnimation];
-            
+
             // Restore first responder to handle key events
             [esWindow makeFirstResponder:esWindow->mESView];
-            
+
+            // 200ms ≈ 12 display refreshes at 60Hz — enough for the new render
+            // path to produce a splash frame and replace the stale video drawable.
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(200 * NSEC_PER_MSEC)),
+                           dispatch_get_main_queue(), ^{
+                esWindow->mESView.hidden = NO;
+            });
+
             g_Log->Info("Player restarted successfully");
         }
     }

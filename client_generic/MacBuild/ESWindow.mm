@@ -116,8 +116,20 @@ static void ShowFirstTimeSetupCallback()
 
         [esView setAutoresizesSubviews:YES];
 
-        
+
         [self makeFirstResponder:esView];
+
+        // Hide the player view if the first-time wizard will be shown — auth runs from
+        // inside startAnimation and triggers the wizard, so we have to start the player
+        // for the wizard to appear, but we don't want video flashing behind the sheet.
+        // FirstTimeSetupManager.handleSheetCompletion unhides it after the wizard closes.
+        bool firstTimeSetupCompleted =
+            ESScreensaver_GetBoolSetting("settings.app.firsttimesetup", false);
+        if (!firstTimeSetupCompleted)
+        {
+            self.backgroundColor = [NSColor blackColor];
+            esView.hidden = YES;
+        }
 
         [self makeKeyAndOrderFront:nil];
 
