@@ -662,11 +662,17 @@ bool EDreamClient::Authenticate()
         g_Log->Warning("No sealed session found");
 
         // Try magic link login via email in settings (settings.generator.nickname).
-        // Skip the console path if a GUI wizard is registered — the wizard will
-        // handle authentication and the auth loop will retry automatically.
+        // On Linux, skip the console path if a GUI wizard is registered — the wizard
+        // will handle authentication and the auth loop will retry automatically.
+        // On Mac/Windows the GUI wizard is always registered but those platforms use
+        // their own GUI auth flow; magic link is still attempted as a fallback.
         // ValidateCodeDetailed() calls RefreshSealedSession() internally — no
         // second refresh needed if this returns true.
+#ifdef LINUX_GNU
         if (!ESHasFirstTimeSetupCallback() && LoginWithMagicLinkCode())
+#else
+        if (LoginWithMagicLinkCode())
+#endif
         {
             fIsLoggedIn.exchange(true);
             fInitialAuthComplete.store(true);
