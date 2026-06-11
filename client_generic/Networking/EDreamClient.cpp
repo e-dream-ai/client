@@ -2376,10 +2376,19 @@ std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
         // Grab a pointer to the dream metadata
         auto dream = cm.getDream(needsStreamingUuid);
 
-        // Grab streaming URL and save it for later use
-        g_Log->Info("Parse playlist blocking call for download link");
-        auto path = EDreamClient::GetDreamDownloadLink(dream->uuid);
-        dream->setStreamingUrl(path);
+        if (dream) {
+            // Grab streaming URL and save it for later use
+            g_Log->Info("Parse playlist blocking call for download link");
+            auto path = EDreamClient::GetDreamDownloadLink(dream->uuid);
+            dream->setStreamingUrl(path);
+        } else {
+            // Metadata fetch failed or didn't include this dream; skip the
+            // prefetch. The entry gets filtered out of the playlist anyway
+            // (isDreamProcessed returns false without metadata), and PlayClip
+            // can fetch the link on demand if it ever does play.
+            g_Log->Error("No cached metadata for first uncached dream %s, skipping streaming link prefetch",
+                         needsStreamingUuid.c_str());
+        }
     } else if (!needsStreamingUuid.empty()) {
         g_Log->Info("Skipping blocking prefetch of streaming link (offline/not logged in). First uncached UUID: %s",
                     needsStreamingUuid.c_str());
