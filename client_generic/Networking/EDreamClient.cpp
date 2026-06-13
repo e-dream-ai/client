@@ -1141,24 +1141,34 @@ EDreamClient::SendCodeResult EDreamClient::SendCode() {
         std::string jsonBody = boost::json::serialize(payload);
         
         MagicLinkHeaderCtx hdrCtx;
+        char errorBuffer[CURL_ERROR_SIZE] = {0};
         curl_easy_setopt(curl.get(), CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl.get(), CURLOPT_POSTFIELDS, jsonBody.c_str());
         curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, WriteCallback);
         curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &readBuffer);
         curl_easy_setopt(curl.get(), CURLOPT_HEADERFUNCTION, MagicLinkHeaderCallback);
         curl_easy_setopt(curl.get(), CURLOPT_HEADERDATA, &hdrCtx);
-        
+        curl_easy_setopt(curl.get(), CURLOPT_ERRORBUFFER, errorBuffer);
+#ifdef _WIN32
+        // Schannel hard-fails the TLS handshake when certificate revocation
+        // servers are unreachable (common behind AV TLS interception or
+        // filtered networks). Soft-fail like browsers do; genuinely revoked
+        // certs are still rejected. No-op on non-Schannel curl backends.
+        curl_easy_setopt(curl.get(), CURLOPT_SSL_OPTIONS, CURLSSLOPT_REVOKE_BEST_EFFORT);
+#endif
+
         // Set headers
         struct curl_slist *headers = NULL;
         headers = curl_slist_append(headers, "Content-Type: application/json");
         curl_easy_setopt(curl.get(), CURLOPT_HTTPHEADER, headers);
-        
+
         res = curl_easy_perform(curl.get());
         curl_slist_free_all(headers);
-        
+
         if(res != CURLE_OK) {
-            g_Log->Error("Failed to send verification code. Curl error: %s", curl_easy_strerror(res));
-            return SendCodeResult{false, 0, std::string("Error: ") + curl_easy_strerror(res)};
+            const char* detail = errorBuffer[0] ? errorBuffer : curl_easy_strerror(res);
+            g_Log->Error("Failed to send verification code. Curl error: %s", detail);
+            return SendCodeResult{false, 0, std::string("Error: ") + detail};
         }
         
         long http_code = 0;
@@ -1224,12 +1234,21 @@ EDreamClient::ValidateCodeResult EDreamClient::ValidateCodeDetailed(const std::s
         std::string jsonBody = boost::json::serialize(payload);
 
         MagicLinkHeaderCtx hdrCtx;
+        char errorBuffer[CURL_ERROR_SIZE] = {0};
         curl_easy_setopt(curl.get(), CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl.get(), CURLOPT_POSTFIELDS, jsonBody.c_str());
         curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, WriteCallback);
         curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &readBuffer);
         curl_easy_setopt(curl.get(), CURLOPT_HEADERFUNCTION, MagicLinkHeaderCallback);
         curl_easy_setopt(curl.get(), CURLOPT_HEADERDATA, &hdrCtx);
+        curl_easy_setopt(curl.get(), CURLOPT_ERRORBUFFER, errorBuffer);
+#ifdef _WIN32
+        // Schannel hard-fails the TLS handshake when certificate revocation
+        // servers are unreachable (common behind AV TLS interception or
+        // filtered networks). Soft-fail like browsers do; genuinely revoked
+        // certs are still rejected. No-op on non-Schannel curl backends.
+        curl_easy_setopt(curl.get(), CURLOPT_SSL_OPTIONS, CURLSSLOPT_REVOKE_BEST_EFFORT);
+#endif
 
         // Set headers
         struct curl_slist *headers = NULL;
@@ -1240,9 +1259,10 @@ EDreamClient::ValidateCodeResult EDreamClient::ValidateCodeDetailed(const std::s
         curl_slist_free_all(headers);
 
         if(res != CURLE_OK) {
-            g_Log->Error("Failed to validate code. Curl error: %s", curl_easy_strerror(res));
+            const char* detail = errorBuffer[0] ? errorBuffer : curl_easy_strerror(res);
+            g_Log->Error("Failed to validate code. Curl error: %s", detail);
             result.reason = ValidationFailureReason::TransientFailure;
-            result.message = std::string("Network error: ") + curl_easy_strerror(res);
+            result.message = std::string("Network error: ") + detail;
             return result;
         }
 

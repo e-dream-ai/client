@@ -435,6 +435,17 @@ CURLcode CManager::Prepare(CURL* _pCurl)
 
     CURLcode code = CURLE_OK;
 
+#ifdef _WIN32
+    // Schannel hard-fails the TLS handshake when certificate revocation
+    // servers are unreachable (common behind AV TLS interception or filtered
+    // networks). Soft-fail like browsers do; genuinely revoked certs are still
+    // rejected. No-op on non-Schannel curl backends. Covers all dream
+    // downloads/uploads, which hit the identical failure on the same machine.
+    code = curl_easy_setopt(_pCurl, CURLOPT_SSL_OPTIONS, CURLSSLOPT_REVOKE_BEST_EFFORT);
+    if (code != CURLE_OK)
+        return code;
+#endif
+
     //	Set proxy url and user/pass if they're defined.
     if (m_ProxyUrl != "")
     {
