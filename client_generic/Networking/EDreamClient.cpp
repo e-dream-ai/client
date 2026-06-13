@@ -2152,7 +2152,44 @@ bool EDreamClient::FetchDreamsMetadata(const std::vector<std::string>& uuids) {
     if (uuids.empty()) {
         return false;
     }
-    
+
+    // The server caps a single metadata request (it rejects oversized bodies
+    // with HTTP 413, see client issue #522). Page large requests into batches
+    // so big playlists (e.g. a playlist-of-playlists) load their metadata
+    // instead of failing wholesale. Must stay <= the backend's
+    // CLIENT_DREAMS_MAX_UUIDS.
+    constexpr size_t kMetadataBatchSize = 1000;
+
+    if (uuids.size() <= kMetadataBatchSize) {
+        return FetchDreamsMetadataBatch(uuids);
+    }
+
+    bool allSucceeded = true;
+    for (size_t offset = 0; offset < uuids.size(); offset += kMetadataBatchSize) {
+        // Check for abort between batches to allow fast shutdown.
+        if (g_NetworkManager->IsAborted()) {
+            g_Log->Info("FetchDreamsMetadata() aborted due to shutdown");
+            return false;
+        }
+
+        const size_t end = std::min(offset + kMetadataBatchSize, uuids.size());
+        const std::vector<std::string> batch(uuids.begin() + offset,
+                                             uuids.begin() + end);
+        if (!FetchDreamsMetadataBatch(batch)) {
+            g_Log->Error("Failed to fetch metadata batch [%zu, %zu) of %zu dreams",
+                         offset, end, uuids.size());
+            // Keep going so we cache as much metadata as possible.
+            allSucceeded = false;
+        }
+    }
+    return allSucceeded;
+}
+
+bool EDreamClient::FetchDreamsMetadataBatch(const std::vector<std::string>& uuids) {
+    if (uuids.empty()) {
+        return false;
+    }
+
     auto jsonPath = Cache::PathManager::getInstance().jsonDreamPath();
     Network::spCFileDownloader spDownload;
     int maxAttempts = 3;
