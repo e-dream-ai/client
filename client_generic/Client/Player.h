@@ -260,7 +260,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     /*bool PlayClip(std::string_view _clipPath, double _startTimelineTime,
                   int64_t _seekFrame = -1, bool fastFade = false);*/
     //bool PlayClip(const Cache::Dream& dream, double _startTime, int64_t _seekFrame = -1, bool fastFade = false);
-    bool PlayClip(const Cache::Dream* dream, double _startTime, int64_t _seekFrame = -1, bool isTransition = false);
+    bool PlayClip(const std::shared_ptr<const Cache::Dream>& dream, double _startTime, int64_t _seekFrame = -1, bool isTransition = false);
     
     void SetMultiDisplayMode(MultiDisplayMode mode)
     {
@@ -301,7 +301,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     void prepareSeamlessTransition();
     void prepareCrossfadeTransition();
 
-    bool PreloadClip(const Cache::Dream* dream);
+    bool PreloadClip(const std::shared_ptr<const Cache::Dream>& dream);
     
     // Handle buffering states
     void SetPausedForBuffering(bool paused) {

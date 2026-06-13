@@ -48,7 +48,10 @@ public:
     static CacheManager& getInstance();
     
     bool hasDream(const std::string& uuid) const;
-    const Dream* getDream(const std::string& uuid) const;
+    // Returns a shared owning handle so callers keep the Dream alive even if the
+    // cache mutates (or the entry is replaced) on another thread. Returns nullptr
+    // when the dream isn't cached.
+    std::shared_ptr<const Dream> getDream(const std::string& uuid) const;
     std::string getDreamPath(const std::string& uuid) const;
 
     std::vector<Dream> getAllCachedDreams() const;
@@ -61,8 +64,7 @@ public:
     void loadCachedMetadata();
     
     void loadJsonFile(const std::string& filename);
-    const std::unordered_map<std::string, Dream>& getDreams() const;
-    
+
     //
     bool areMetadataCached(std::string uuid);
     bool needsMetadata(std::string uuid, long long timeStamp);
@@ -157,7 +159,12 @@ private:
     
     // The singleton instance
     static std::unique_ptr<CacheManager> instance;
-    std::unordered_map<std::string, Dream> dreams;
+    std::unordered_map<std::string, std::shared_ptr<Dream>> dreams;
+    // Guards all access to `dreams`. It is read from playback/preflight threads
+    // and written from metadata-load threads concurrently, so every access must
+    // hold this lock. Stored values are shared_ptr so getDream() can hand out an
+    // owning handle that outlives any concurrent mutation of the map.
+    mutable std::shared_mutex dreamsMutex;
     static long long remainingQuota;
     std::chrono::system_clock::time_point quotaExpiresAt;
     
