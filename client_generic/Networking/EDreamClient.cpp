@@ -298,6 +298,12 @@ void EDreamClient::UpdateQuota()
         }
     }
 
+    // FIX (issue #656): the backend silently rotates the session and returns the new
+    // sealed session only as a Set-Cookie header on an otherwise-200 response. This
+    // endpoint previously never called ParseAndSaveCookies, so that rotation was dropped
+    // and the stored session went stale, causing a delayed sign-out. Persist it here.
+    ParseAndSaveCookies(spDownload);
+
     // Parse the quota response
     try
     {
@@ -772,6 +778,8 @@ bool EDreamClient::Authenticate()
                 ServerConfig::ServerConfigManager::getInstance().getEndpoint(
                     ServerConfig::Endpoint::QUOTA));
             const long httpCode = static_cast<long>(spValidate->ResponseCode());
+            // FIX (issue #656): persist any session rotation returned on this validation call.
+            ParseAndSaveCookies(spValidate);
 
             if (reachable && httpCode == 200)
             {
@@ -850,6 +858,8 @@ bool EDreamClient::Authenticate()
                 ServerConfig::ServerConfigManager::getInstance().getEndpoint(
                     ServerConfig::Endpoint::QUOTA));
             const long httpCode = static_cast<long>(spValidate->ResponseCode());
+            // FIX (issue #656): persist any session rotation returned on this validation call.
+            ParseAndSaveCookies(spValidate);
 
             if (reachable && httpCode == 200)
             {
@@ -1801,6 +1811,9 @@ void EDreamClient::SendTelemetry(const std::string& eventType, const boost::json
     if (!spDownload->Perform(url)) {
         g_Log->Error("Failed to send telemetry. Server returned %i", spDownload->ResponseCode());
     }
+    // FIX (issue #656): persist any rotated session the backend returned via Set-Cookie,
+    // otherwise telemetry (like UpdateQuota) silently drops the rotation.
+    ParseAndSaveCookies(spDownload);
 }
 
 void EDreamClient::ReportMD5Failure(const std::string& uuid, const std::string& foundMd5, bool isStreaming) {
