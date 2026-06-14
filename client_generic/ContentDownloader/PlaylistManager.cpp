@@ -242,7 +242,23 @@ bool PlaylistManager::hasKeyframes() const {
 std::optional<std::string> PlaylistManager::getNextUncachedDream() const {
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
     auto& downloader = g_ContentDownloader().m_gDownloader;
-    
+
+    // In shuffle mode, playback order is random, so download order should be
+    // random too - don't follow keyframe chains or sequential successors (issue #521).
+    if (m_playbackMode == PlaybackMode::Shuffle) {
+        std::vector<std::string> uncached;
+        for (const auto& entry : m_playlist) {
+            if (!cm.hasDiskCachedItem(entry.uuid) &&
+                !downloader.IsDreamBeingDownloaded(entry.uuid)) {
+                uncached.push_back(entry.uuid);
+            }
+        }
+        if (uncached.empty())
+            return std::nullopt;
+        g_Log->Info("Shuffle mode: random uncached dream (%zu remaining)", uncached.size());
+        return uncached[rand() % uncached.size()];
+    }
+
     // Check if playlist has keyframes and randomly return an uncached dream 10% of the time
     if (hasKeyframes()) {
         // Generate random number between 0 and 99
