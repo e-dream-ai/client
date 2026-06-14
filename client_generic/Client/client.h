@@ -393,7 +393,7 @@ class CElectricSheep
 
             BK(FULLSCREEN_MODIFIER_KEY "-R") ": Open remote control\n"
             BK(FULLSCREEN_MODIFIER_KEY "-B") ": Browse playlists\n"
-            BK(FULLSCREEN_MODIFIER_KEY "-,") ": Open settings"
+            BK(FULLSCREEN_MODIFIER_KEY "-Comma") ": Open settings"
 #ifdef LINUX_GNU
             "\n" BK(FULLSCREEN_MODIFIER_KEY "-Q") ": Quit"
 #endif
