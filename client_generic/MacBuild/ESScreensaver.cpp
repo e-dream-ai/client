@@ -109,6 +109,11 @@ void ESScreensaver_ForceWidthAndHeight(uint32 _width, uint32 _height)
     g_Player().ForceWidthAndHeight(0, _width, _height);
 }
 
+void ESScreensaver_SetVideoRotation(uint32 _degrees)
+{
+    g_Player().SetVideoRotation(0, _degrees);
+}
+
 void ESScreensaver_Deinit(void) { gClient.Shutdown(); }
 
 void ESScreensaver_AppendKeyEvent(DisplayOutput::CKeyEvent::eKeyCode keyCode)

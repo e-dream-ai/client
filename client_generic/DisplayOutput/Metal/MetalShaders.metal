@@ -60,6 +60,16 @@ fragment float4 drawTextureFragment(ColorInOut vert [[stage_in]],
     return float4(color.rgb * uniforms.color.rgb, alpha * color.a);
 }
 
+// Rotate texture-sampling coordinates about the (0.5, 0.5) center so a portrait
+// display can show landscape content turned 90 degrees. Only the decoded-frame
+// (video) fragment shaders call this; OSD/text rendering is left untouched.
+static inline float2 rotatedUV(float2 uv, int rotation)
+{
+    if (rotation == 90)
+        return float2(uv.y, 1.0 - uv.x);
+    return uv;
+}
+
 float4 SampleYUVTexturesRGBA(float2 uv,
                              texture2d<float, access::sample> yTexture,
                              texture2d<float, access::sample> uvTexture)
@@ -90,7 +100,8 @@ fragment float4 drawDecodedFrameNoBlendingFragment(
     texture2d<float, access::sample> uvTexture1 [[texture(1)]],
     constant QuadUniforms& uniforms [[buffer(0)]])
 {
-    float4 color = SampleYUVTexturesRGBA(vert.uv, yTexture1, uvTexture1);
+    float2 uv = rotatedUV(vert.uv, uniforms.rotation);
+    float4 color = SampleYUVTexturesRGBA(uv, yTexture1, uvTexture1);
     color.rgb += uniforms.brightness;
     return color * uniforms.color;
 }
@@ -111,8 +122,9 @@ fragment float4 drawDecodedFrameLinearFrameBlendFragment(
     constant QuadUniforms& uniforms [[buffer(0)]],
     constant LinearFrameBlendParameters& frameBlend [[buffer(1)]])
 {
-    float4 frame1RGBA = SampleYUVTexturesRGBA(vert.uv, frame1Y, frame1UV);
-    float4 frame2RGBA = SampleYUVTexturesRGBA(vert.uv, frame2Y, frame2UV);
+    float2 uv = rotatedUV(vert.uv, uniforms.rotation);
+    float4 frame1RGBA = SampleYUVTexturesRGBA(uv, frame1Y, frame1UV);
+    float4 frame2RGBA = SampleYUVTexturesRGBA(uv, frame2Y, frame2UV);
     float4 color = mix(frame1RGBA, frame2RGBA, frameBlend.delta);
     color.a = uniforms.color.a;
     color.rgb += uniforms.brightness;
@@ -199,10 +211,11 @@ fragment float4 drawDecodedFrameCubicFrameBlendFragment(
 #endif
     //return frameBlend.weights;
 
-    float4 c1 = SampleYUVTexturesRGBA(vert.uv, frame1Y, frame1UV);
-    float4 c2 = SampleYUVTexturesRGBA(vert.uv, frame2Y, frame2UV);
-    float4 c3 = SampleYUVTexturesRGBA(vert.uv, frame3Y, frame3UV);
-    float4 c4 = SampleYUVTexturesRGBA(vert.uv, frame4Y, frame4UV);
+    float2 uv = rotatedUV(vert.uv, uniforms.rotation);
+    float4 c1 = SampleYUVTexturesRGBA(uv, frame1Y, frame1UV);
+    float4 c2 = SampleYUVTexturesRGBA(uv, frame2Y, frame2UV);
+    float4 c3 = SampleYUVTexturesRGBA(uv, frame3Y, frame3UV);
+    float4 c4 = SampleYUVTexturesRGBA(uv, frame4Y, frame4UV);
     float4 color = (c1 * frameBlend.weights.x) + (c2 * frameBlend.weights.y) +
                    (c3 * frameBlend.weights.z) + (c4 * frameBlend.weights.w);
 
