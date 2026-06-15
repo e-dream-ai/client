@@ -23,7 +23,7 @@ protected:
     ComPtr<ID3D11BlendState> m_blendState;
     ComPtr<ID3D11DepthStencilState> m_depthStencilNoDepthTest;
     ComPtr<ID3D11SamplerState> m_defaultSampler;
-    ComPtr<ID3D11SamplerState> m_glyphPointSampler;
+    ComPtr<ID3D11SamplerState> m_glyphSampler;
     ComPtr<ID3D11RasterizerState> m_rasterizerDefault;
     ComPtr<ID3D11RasterizerState> m_rasterizerScissor;
     ComPtr<ID3D11ShaderResourceView> m_solidWhiteSrv;

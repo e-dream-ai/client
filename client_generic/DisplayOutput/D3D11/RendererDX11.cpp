@@ -404,13 +404,21 @@ bool CreateDefaultSampler(ID3D11Device* device, ID3D11SamplerState** outSampler)
     return SUCCEEDED(hr);
 }
 
-bool CreateGlyphPointSampler(ID3D11Device* device, ID3D11SamplerState** outSampler)
+bool CreateGlyphSampler(ID3D11Device* device, ID3D11SamplerState** outSampler)
 {
     if (!device || !outSampler)
         return false;
 
     D3D11_SAMPLER_DESC samplerDesc = {};
-    samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+    // Linear, not point. The OSD text quads are almost never an exact 1:1
+    // texel->pixel map: the custom-titlebar viewport inset
+    // (BuildBaseViewportForDisplay / GetVideoViewportTopInsetPx) scales the
+    // text vertically by (height - inset)/height, DPI scaling adds more, and
+    // pen positions land on fractional pixels. With nearest-neighbor sampling
+    // that minification drops whole rows of texels, which showed up as text
+    // with a "missing row of pixels" on Windows (issue #652). Linear blends
+    // those rows instead of dropping them, matching the Vulkan glyph sampler.
+    samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
     samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
     samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
     samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -728,7 +736,7 @@ bool CRendererDX11::Initialize(spCDisplayOutput _spDisplay) {
         g_Log->Error("Failed to create default DX11 sampler");
         return false;
     }
-    if (!CreateGlyphPointSampler(m_device.Get(), &m_glyphPointSampler))
+    if (!CreateGlyphSampler(m_device.Get(), &m_glyphSampler))
     {
         g_Log->Error("Failed to create glyph point sampler");
         return false;
@@ -2038,7 +2046,7 @@ void CRendererDX11::DrawTextBatched(const std::shared_ptr<CTextDX11Atlas>& text,
     // Bind pipeline + issue one draw for all quads.
     ID3D11ShaderResourceView* srv = atlasDx11->GetSRV();
     m_context->PSSetShaderResources(0, 1, &srv);
-    ID3D11SamplerState* samp = m_glyphPointSampler ? m_glyphPointSampler.Get() : m_defaultSampler.Get();
+    ID3D11SamplerState* samp = m_glyphSampler ? m_glyphSampler.Get() : m_defaultSampler.Get();
     m_context->PSSetSamplers(0, 1, &samp);
 
     m_context->IASetInputLayout(m_textBatchInputLayout.Get());
