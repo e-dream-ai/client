@@ -20,6 +20,7 @@ static void LoadSettingsForShow()
     g_displayFps = g_Settings()->Get("settings.player.display_fps", 60.0);
     g_vsync = g_Settings()->Get("settings.player.vbl_sync", false);
     g_preserveAR = g_Settings()->Get("settings.player.preserve_AR", false);
+    g_rotatePortrait = g_Settings()->Get("settings.player.rotate_portrait", false);
     g_blackoutMonitors = g_Settings()->Get("settings.player.blackout_monitors", true);
     g_quietMode = g_Settings()->Get("settings.player.quiet_mode", true);
     g_showAttribution = g_Settings()->Get("settings.app.attributionpng", false);
@@ -59,6 +60,7 @@ static void SaveSettings()
     g_Settings()->Set("settings.player.DisplayMode", 2);
     g_Settings()->Set("settings.player.vbl_sync", g_vsync);
     g_Settings()->Set("settings.player.preserve_AR", g_preserveAR);
+    g_Settings()->Set("settings.player.rotate_portrait", g_rotatePortrait);
     g_Settings()->Set("settings.player.blackout_monitors", g_blackoutMonitors);
     g_Settings()->Set("settings.player.quiet_mode", g_quietMode);
     g_Settings()->Set("settings.app.attributionpng", g_showAttribution);
