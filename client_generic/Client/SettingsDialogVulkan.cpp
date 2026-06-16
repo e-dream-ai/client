@@ -400,6 +400,9 @@ void SettingsDialogVulkan_DrawIfNeeded()
 
         ResetFormForShow();
         ApplyDialogPauseState(true);
+        // Clear any stale key state (e.g. Escape stuck pressed from closing the
+        // wizard) so the dialog doesn't immediately close on its first frame.
+        ImGui::GetIO().ClearInputKeys();
         g_visible.store(true, std::memory_order_release);
     }
 

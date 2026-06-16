@@ -558,6 +558,7 @@ void CDisplayVulkan::onKeyboardKey(void* data, wl_keyboard*, uint32_t,
     case XKB_KEY_n:      spEvent->m_Code = CKeyEvent::KEY_N;     break;
     case XKB_KEY_b:      spEvent->m_Code = CKeyEvent::KEY_B;     break;
     case XKB_KEY_q:      spEvent->m_Code = CKeyEvent::KEY_Q;     break;
+    case XKB_KEY_comma:  spEvent->m_Code = CKeyEvent::KEY_Comma; break;
     case XKB_KEY_space:  spEvent->m_Code = CKeyEvent::KEY_SPACE; break;
     case XKB_KEY_Left:   spEvent->m_Code = CKeyEvent::KEY_LEFT;  break;
     case XKB_KEY_Right:  spEvent->m_Code = CKeyEvent::KEY_RIGHT; break;
@@ -976,7 +977,7 @@ bool CDisplayVulkan::Initialize(const uint32_t _width, const uint32_t _height,
 
         XSelectInput(m_pDisplay, m_Window,
                      StructureNotifyMask | KeyPressMask | KeyReleaseMask |
-                     ButtonPressMask | PointerMotionMask);
+                     ButtonPressMask | ButtonReleaseMask | PointerMotionMask);
         XSetWMProtocols(m_pDisplay, m_Window, &m_wmDeleteWindow, 1);
         setWindowDecorations(!_bFullscreen);
 
@@ -1147,6 +1148,15 @@ void CDisplayVulkan::checkEvents()
         return;
     }
 #endif
+
+    // Show cursor while any ImGui overlay is up; hide it otherwise.
+    {
+        const bool overlayUp = FirstTimeSetupVulkan_IsWizardVisible() ||
+                               SettingsDialogVulkan_IsVisible();
+        static bool s_cursorVisible = false;
+        if (overlayUp && !s_cursorVisible)  { applyDefaultCursor();   s_cursorVisible = true;  }
+        if (!overlayUp && s_cursorVisible)  { applyInvisibleCursor(); s_cursorVisible = false; }
+    }
 
     XEvent xEvent;
     while (XPending(m_pDisplay))
@@ -1384,6 +1394,15 @@ void CDisplayVulkan::applyInvisibleCursor()
     XDefineCursor(m_pDisplay, m_Window, cur);
     XFreeCursor(m_pDisplay, cur);
     XFreePixmap(m_pDisplay, bm);
+}
+
+void CDisplayVulkan::applyDefaultCursor()
+{
+    if (!m_pDisplay || !m_Window) return;
+    // XC_left_ptr (68) is the standard arrow cursor.
+    Cursor cur = XCreateFontCursor(m_pDisplay, 68);
+    XDefineCursor(m_pDisplay, m_Window, cur);
+    XFreeCursor(m_pDisplay, cur);
 }
 
 } // namespace DisplayOutput
