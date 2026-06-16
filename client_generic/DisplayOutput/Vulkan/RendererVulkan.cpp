@@ -12,6 +12,7 @@
 #include <backends/imgui_impl_vulkan.h>
 
 #include "FirstTimeSetupVulkan.h"
+#include "SettingsDialogVulkan.h"
 
 #include <algorithm>
 #include <cmath>
@@ -1221,6 +1222,7 @@ bool CRendererVulkan::EndFrame(bool /*drawn*/)
     if (m_imguiInitialized)
     {
         FirstTimeSetupVulkan_DrawIfNeeded();
+        SettingsDialogVulkan_DrawIfNeeded();
         ImGui::Render();
         ImDrawData* drawData = ImGui::GetDrawData();
         if (drawData && drawData->TotalVtxCount > 0)

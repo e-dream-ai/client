@@ -721,10 +721,7 @@ bool EDreamClient::Authenticate()
         fAuthCV.notify_one();
         if (!shownSettingsOnce) {
             shownSettingsOnce = true;
-            bool firstTimeSetupCompleted = g_Settings()->Get("settings.app.firsttimesetup", false);
-            if (!firstTimeSetupCompleted) {
-                ESShowFirstTimeSetup();
-            }
+            ESShowFirstTimeSetup();
         }
         return false;
     }

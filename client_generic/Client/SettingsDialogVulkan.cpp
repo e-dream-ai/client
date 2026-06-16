@@ -6,6 +6,7 @@
 #include "ContentDownloader.h"
 #include "EDreamClient.h"
 #include "PlatformUtils.h"
+#include "PlatformUtils_Internal.h"
 #include "Player.h"
 #include "ServerConfig.h"
 #include "Settings.h"
@@ -42,8 +43,7 @@ constexpr const char* kUrlWebRemote     = "https://alpha.infinidream.ai/rc";
 constexpr const char* kUrlPlaylists     = "https://alpha.infinidream.ai/playlists";
 #endif
 
-// UI scale — 1:1 on Linux (no DPI scaling applied yet).
-static float g_uiScale = 1.0f;
+static float g_uiScale = 1.0f; // refreshed from PlatformUtils_GetUIScale() on each show
 static inline float S(float v) { return v * g_uiScale; }
 
 std::atomic<bool> g_showRequested{false};
@@ -390,6 +390,7 @@ void SettingsDialogVulkan_DrawIfNeeded()
     {
         g_showRequested.store(false, std::memory_order_release);
 
+        g_uiScale = PlatformUtils_GetUIScale();
         LoadDialogFonts();
 
         ImGui::GetStyle().ScaleAllSizes(g_uiScale);

@@ -4,6 +4,7 @@
 #include "ServerConfig.h"
 #include "EDreamClient.h"
 #include "PlatformUtils.h"
+#include "PlatformUtils_Internal.h"
 #include "Player.h"
 #include "Settings.h"
 #include "storage.h"
@@ -48,8 +49,8 @@ constexpr float kCodeStepPanelH   = 250.f;
 constexpr float kEmailPromptL     = 45.f;
 constexpr float kEmailMarginL     = 47.f;
 constexpr float kEmailFieldW      = 364.f;
-constexpr float kEmailSendBtnW    = 106.f;
-constexpr float kEmailCreateAccountW = 235.f;
+constexpr float kEmailSendBtnW    = 120.f;
+constexpr float kEmailCreateAccountW = 300.f;
 constexpr float kEmailPromptOffsetY  = 30.f;
 constexpr float kEmailRowOffsetY     = 115.f;
 constexpr float kEmailErrorOffsetY   = 151.f;
@@ -57,9 +58,9 @@ constexpr float kEmailCreateBtnOffsetY = 172.f;
 constexpr float kCodeInstrOffsetY  = 16.f;
 constexpr float kCodeOtpOffsetY    = 90.f;
 constexpr float kCodeErrorOffsetY  = 144.f;
-constexpr float kCodeVerifyW       = 110.f;
+constexpr float kCodeVerifyW       = 150.f;
 constexpr float kCodeVerifyOffsetY = 158.f;
-constexpr float kCodeTryAgainW     = 88.f;
+constexpr float kCodeTryAgainW     = 120.f;
 constexpr float kCodeTryAgainOffsetY = 200.f;
 
 constexpr float kThanksPanelW      = 667.f;
@@ -92,8 +93,7 @@ static constexpr ImVec4 kMacAccentBtnHov(0.10f, 0.54f, 1.f, 1.f);
 static constexpr ImVec4 kMacAccentBtnAct(0.f, 0.40f, 0.88f, 1.f);
 static constexpr ImVec4 kMacAccentBtnBorder(0.f, 0.38f, 0.82f, 1.f);
 
-// On Linux we use a 1:1 UI scale (no DPI scaling applied yet).
-static float g_uiScale = 1.0f;
+static float g_uiScale = 1.0f; // refreshed from PlatformUtils_GetUIScale() on each show
 static inline float S(float v) { return v * g_uiScale; }
 
 std::atomic<bool> g_showRequested{false};
@@ -103,6 +103,7 @@ std::atomic<bool> g_wasPausedBeforeWizard{false};
 std::atomic<bool> g_pausedByWizard{false};
 
 ImFont* g_fontBody       = nullptr;
+ImFont* g_fontButton     = nullptr;
 ImFont* g_fontTitle      = nullptr;
 ImFont* g_fontHeadline   = nullptr;
 ImFont* g_fontOtp        = nullptr;
@@ -278,6 +279,7 @@ static void LoadWizardFonts()
     if (!regular.empty())
     {
         g_fontBody       = io.Fonts->AddFontFromFileTTF(regular.c_str(), S(15.f), &cfg);
+        g_fontButton     = io.Fonts->AddFontFromFileTTF(regular.c_str(), S(20.f), &cfg);
         g_fontTitle      = io.Fonts->AddFontFromFileTTF(regular.c_str(), S(28.f), &cfg);
         g_fontOtp        = io.Fonts->AddFontFromFileTTF(regular.c_str(), S(36.f), &cfg);
         g_fontThanksCopy = io.Fonts->AddFontFromFileTTF(regular.c_str(), S(kThanksCopyFontSize), &cfg);
@@ -428,11 +430,13 @@ static void DrawSkipFooter()
     const float x = ImGui::GetCursorStartPos().x + ImGui::GetContentRegionAvail().x - skipW;
     ImGui::SetCursorPos(ImVec2(x, y));
 
+    if (g_fontButton) ImGui::PushFont(g_fontButton);
     if (ImGui::Button("Skip", ImVec2(skipW, skipH)))
     {
         g_visible.store(false, std::memory_order_release);
         ApplyWizardPauseState(false);
     }
+    if (g_fontButton) ImGui::PopFont();
 }
 
 static void DrawWizard()
@@ -511,7 +515,9 @@ static void DrawWizard()
         if (g_fontTitle) ImGui::PopFont();
 
         ImGui::SetCursorPos(ImVec2(S(kEmailMarginL), S(kEmailRowOffsetY)));
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(S(10.f), S(10.f)));
+        // y-padding chosen so height = S(20 font) + 2*S(8) = S(36), matching button height
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(S(10.f), S(8.f)));
+        if (g_fontButton) ImGui::PushFont(g_fontButton);
         ImGui::PushItemWidth(S(kEmailFieldW));
         bool emailEnter = false;
         {
@@ -523,6 +529,7 @@ static void DrawWizard()
             g_emailFieldBorderActive = ImGui::IsItemActive() || ImGui::IsItemFocused();
         }
         ImGui::PopItemWidth();
+        if (g_fontButton) ImGui::PopFont();
         ImGui::PopStyleVar();
         ImGui::SameLine(0.f, S(10.f));
 
@@ -572,17 +579,22 @@ static void DrawWizard()
         }
         // Draw button label centered (button uses "##" id to hide ImGui's label)
         {
-            const ImVec2 ts = ImGui::CalcTextSize(sendBtnText);
+            ImFont* btnFnt    = g_fontButton ? g_fontButton : ImGui::GetFont();
+            const float btnFntSz = g_fontButton ? S(20.f) : ImGui::GetFontSize();
+            const ImVec2 ts = btnFnt->CalcTextSizeA(btnFntSz, FLT_MAX, 0.f, sendBtnText);
             const ImVec2 textPos(sendBtnMin.x + (S(kEmailSendBtnW) - ts.x) * 0.5f,
                                  sendBtnMin.y + (sendBtnH - ts.y) * 0.5f);
             ImGui::GetWindowDrawList()->AddText(
-                textPos, ImGui::ColorConvertFloat4ToU32(ImVec4(1.f, 1.f, 1.f, 1.f)), sendBtnText);
+                btnFnt, btnFntSz, textPos,
+                ImGui::ColorConvertFloat4ToU32(ImVec4(1.f, 1.f, 1.f, 1.f)), sendBtnText);
         }
 
         ImGui::SetCursorPos(ImVec2((S(kEmailStepPanelW) - S(kEmailCreateAccountW)) * 0.5f,
                                    S(kEmailCreateBtnOffsetY)));
+        if (g_fontButton) ImGui::PushFont(g_fontButton);
         if (ImGui::Button("Need an account? Create one", ImVec2(S(kEmailCreateAccountW), S(36.f))))
             PlatformUtils::OpenURLExternally(kUrlCreateAccount);
+        if (g_fontButton) ImGui::PopFont();
 
         ImGui::EndChild(); // emailStep
     }
@@ -641,7 +653,9 @@ static void DrawWizard()
         const bool canVerify = std::strlen(g_codeBuf) == 6 && !busy;
         ImGui::SetCursorPos(ImVec2((S(kCodeStepPanelW) - S(kCodeVerifyW)) * 0.5f, S(kCodeVerifyOffsetY)));
         if (!canVerify || busy) ImGui::BeginDisabled();
+        if (g_fontButton) ImGui::PushFont(g_fontButton);
         const bool verifyClicked = ImGui::Button("Verify code", ImVec2(S(kCodeVerifyW), S(36.f)));
+        if (g_fontButton) ImGui::PopFont();
         if ((verifyClicked || otpEnter) && canVerify && !busy)
         {
             g_errBuf[0] = '\0';
@@ -666,12 +680,14 @@ static void DrawWizard()
 
         ImGui::SetCursorPos(ImVec2((S(kCodeStepPanelW) - S(kCodeTryAgainW)) * 0.5f,
                                    S(kCodeTryAgainOffsetY)));
+        if (g_fontButton) ImGui::PushFont(g_fontButton);
         if (ImGui::Button("Try again", ImVec2(S(kCodeTryAgainW), S(36.f))))
         {
             g_wizardStep = 0;
             g_codeBuf[0] = '\0';
             g_errBuf[0]  = '\0';
         }
+        if (g_fontButton) ImGui::PopFont();
 
         ImGui::EndChild(); // codeStep
     }
@@ -924,6 +940,8 @@ void FirstTimeSetupVulkan_DrawIfNeeded()
     if (g_showRequested.load(std::memory_order_acquire))
     {
         g_showRequested.store(false, std::memory_order_release);
+
+        g_uiScale = PlatformUtils_GetUIScale();
 
         // Load wizard fonts into the shared atlas on first show.
         // ImGui_ImplVulkan_NewFrame() handles re-uploading the atlas automatically.

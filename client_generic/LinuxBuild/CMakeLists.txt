@@ -175,6 +175,7 @@ set(SOURCES
     ${CLIENT}/Hud.cpp
     ${CLIENT}/StringFormat.cpp
     ${CLIENT}/FirstTimeSetupVulkan.cpp
+    ${CLIENT}/SettingsDialogVulkan.cpp
 
     # Common
     ${COMMON}/AlignedBuffer.cpp
