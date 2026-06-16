@@ -20,6 +20,9 @@ typedef SSIZE_T ssize_t;
 #include <string>
 #include <time.h>
 #include <thread>
+#include <filesystem>
+#include <system_error>
+#include <iostream>
 
 #include "Log.h"
 #include "base.h"
@@ -141,9 +144,39 @@ void CLog::Attach(const std::string& _location, bool multipleInstance)
     s << ".log";
     std::string f = s.str();
 
-    m_Sink = boost::log::add_file_log(
-        f,
-        boost::log::keywords::format = "[%TimeStamp% - %Severity%]: %Message%");
+    // Only attach a file sink if the log directory can actually be created.
+    // The boost.log file backend creates the directory lazily (on first write),
+    // so a full or unwritable disk would otherwise throw an uncaught
+    // filesystem_error - both here and on every subsequent log call - and abort
+    // the app at launch (issue #664). When it's not writable we keep the
+    // console sink and skip file logging.
+    std::error_code ec;
+    std::filesystem::create_directories(_location, ec);
+    const bool dirReady = std::filesystem::is_directory(_location, ec);
+
+    if (dirReady)
+    {
+        try
+        {
+            m_Sink = boost::log::add_file_log(
+                f,
+                boost::log::keywords::format =
+                    "[%TimeStamp% - %Severity%]: %Message%");
+        }
+        catch (const std::exception& e)
+        {
+            m_Sink.reset();
+            std::cerr << "Failed to attach file log at " << f << " ("
+                      << e.what() << "); using console logging only."
+                      << std::endl;
+        }
+    }
+    else
+    {
+        std::cerr << "Log directory " << _location << " is not writable ("
+                  << ec.message() << "); using console logging only."
+                  << std::endl;
+    }
 
     boost::log::core::get()->set_filter(boost::log::trivial::severity >=
                                         boost::log::trivial::info);
@@ -153,8 +186,23 @@ void CLog::Attach(const std::string& _location, bool multipleInstance)
 
     boost::log::add_common_attributes();
 
-    BOOST_LOG_TRIVIAL(info) << "Attaching Log";
-    m_Sink->flush();
+    if (m_Sink)
+    {
+        try
+        {
+            BOOST_LOG_TRIVIAL(info) << "Attaching Log";
+            m_Sink->flush();
+        }
+        catch (const std::exception& e)
+        {
+            // File became unwritable between the check and first write; drop the
+            // file sink and carry on with console logging.
+            boost::log::core::get()->remove_sink(m_Sink);
+            m_Sink.reset();
+            std::cerr << "File logging disabled (" << e.what() << ")."
+                      << std::endl;
+        }
+    }
 
     m_bActive = true;
 }
