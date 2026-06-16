@@ -45,7 +45,7 @@ constexpr float kLogoDisplay = 120.f;
 constexpr float kEmailStepPanelW  = 571.f;
 constexpr float kEmailStepPanelH  = 268.f;
 constexpr float kCodeStepPanelW   = 509.f;
-constexpr float kCodeStepPanelH   = 250.f;
+constexpr float kCodeStepPanelH   = 330.f;
 constexpr float kEmailPromptL     = 45.f;
 constexpr float kEmailMarginL     = 47.f;
 constexpr float kEmailFieldW      = 364.f;
@@ -57,11 +57,10 @@ constexpr float kEmailErrorOffsetY   = 151.f;
 constexpr float kEmailCreateBtnOffsetY = 172.f;
 constexpr float kCodeInstrOffsetY  = 16.f;
 constexpr float kCodeOtpOffsetY    = 90.f;
-constexpr float kCodeErrorOffsetY  = 144.f;
+// OTP field is S(36 font) + 2×S(10 padding) = S(56) tall; start + height + gap = 152.
+constexpr float kCodeAfterOtpY     = 152.f;
 constexpr float kCodeVerifyW       = 150.f;
-constexpr float kCodeVerifyOffsetY = 158.f;
 constexpr float kCodeTryAgainW     = 120.f;
-constexpr float kCodeTryAgainOffsetY = 200.f;
 
 constexpr float kThanksPanelW      = 667.f;
 constexpr float kThanksOuterPad    = 20.f;
@@ -575,7 +574,9 @@ static void DrawWizard()
         if (g_errBuf[0] != '\0')
         {
             ImGui::SetCursorPos(ImVec2(S(kEmailPromptL), S(kEmailErrorOffsetY)));
+            if (g_fontButton) ImGui::PushFont(g_fontButton);
             ImGui::TextColored(ImVec4(0.75f, 0.18f, 0.18f, 1.f), "%s", g_errBuf);
+            if (g_fontButton) ImGui::PopFont();
         }
         // Draw button label centered (button uses "##" id to hide ImGui's label)
         {
@@ -642,20 +643,40 @@ static void DrawWizard()
         StripNonDigits(g_codeBuf, sizeof g_codeBuf);
 
         const bool busy = g_validateBusy.load(std::memory_order_acquire);
+
+        // Flow layout below OTP: error (if any) pushes buttons down naturally.
+        ImGui::SetCursorPosY(S(kCodeAfterOtpY));
         if (g_errBuf[0] != '\0')
         {
-            ImGui::SetCursorPos(ImVec2(S(18.f), S(kCodeErrorOffsetY)));
-            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + S(473.f));
+            if (g_fontButton) ImGui::PushFont(g_fontButton);
+            ImGui::SetCursorPosX(S(18.f));
+            ImGui::PushTextWrapPos(S(18.f) + S(473.f));
             ImGui::TextColored(ImVec4(0.75f, 0.18f, 0.18f, 1.f), "%s", g_errBuf);
             ImGui::PopTextWrapPos();
+            if (g_fontButton) ImGui::PopFont();
+            ImGui::Dummy(ImVec2(0.f, S(12.f)));
+        }
+        else
+        {
+            ImGui::Dummy(ImVec2(0.f, S(20.f)));
         }
 
         const bool canVerify = std::strlen(g_codeBuf) == 6 && !busy;
-        ImGui::SetCursorPos(ImVec2((S(kCodeStepPanelW) - S(kCodeVerifyW)) * 0.5f, S(kCodeVerifyOffsetY)));
+        ImGui::SetCursorPosX((S(kCodeStepPanelW) - S(kCodeVerifyW)) * 0.5f);
         if (!canVerify || busy) ImGui::BeginDisabled();
         if (g_fontButton) ImGui::PushFont(g_fontButton);
         const bool verifyClicked = ImGui::Button("Verify code", ImVec2(S(kCodeVerifyW), S(36.f)));
         if (g_fontButton) ImGui::PopFont();
+        if (!canVerify || busy) ImGui::EndDisabled();
+
+        if (busy)
+        {
+            ImGui::SameLine(0.f, S(12.f));
+            if (g_fontButton) ImGui::PushFont(g_fontButton);
+            ImGui::TextDisabled("Verifying...");
+            if (g_fontButton) ImGui::PopFont();
+        }
+
         if ((verifyClicked || otpEnter) && canVerify && !busy)
         {
             g_errBuf[0] = '\0';
@@ -669,17 +690,9 @@ static void DrawWizard()
                 g_validateBusy.store(false, std::memory_order_release);
             }).detach();
         }
-        if (!canVerify || busy) ImGui::EndDisabled();
 
-        if (busy)
-        {
-            ImGui::SetCursorPos(ImVec2(S(kCodeStepPanelW) * 0.5f + S(kCodeVerifyW) * 0.5f + S(12.f),
-                                       S(kCodeVerifyOffsetY) + S(6.f)));
-            ImGui::TextDisabled("Verifying...");
-        }
-
-        ImGui::SetCursorPos(ImVec2((S(kCodeStepPanelW) - S(kCodeTryAgainW)) * 0.5f,
-                                   S(kCodeTryAgainOffsetY)));
+        ImGui::Dummy(ImVec2(0.f, S(8.f)));
+        ImGui::SetCursorPosX((S(kCodeStepPanelW) - S(kCodeTryAgainW)) * 0.5f);
         if (g_fontButton) ImGui::PushFont(g_fontButton);
         if (ImGui::Button("Try again", ImVec2(S(kCodeTryAgainW), S(36.f))))
         {
