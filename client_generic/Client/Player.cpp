@@ -198,7 +198,13 @@ int CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
     if (auto* dx11 = dynamic_cast<DisplayOutput::CDisplayDX11*>(spDisplay.get()))
     {
         dx11->SetTargetMonitorIndex(screen);
-        dx11->SetDisableExclusiveFullscreen(m_isScreenSaverRun);
+        // Issue #617: always use borderless windowed fullscreen (never DXGI
+        // exclusive fullscreen). Exclusive fullscreen on a secondary monitor breaks
+        // Win32 foreground/keyboard-focus recovery — once focus moves to the primary
+        // monitor, even clicking the fullscreen window failed to deliver key events.
+        // Borderless windowed restores normal click-to-focus activation. The
+        // screensaver already ran this way; this extends it to the app window.
+        dx11->SetDisableExclusiveFullscreen(true);
     }
 
 
