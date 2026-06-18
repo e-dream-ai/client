@@ -863,9 +863,23 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
             }
         }
 
-        // No cached dreams available at all
-        g_Log->Warning("Preflight : no cached dreams available and canStream=false");
-        return std::nullopt;
+        // No cached dreams available at all. Returning nothing here makes the caller
+        // re-preflight every frame (a busy-loop) with no way to advance. Since the
+        // cache is empty, streaming the next dream is the only way to make progress,
+        // so fall back to it even though this is a canStream=false (prefer-cached)
+        // request. Cached content was preferred above; this only fires as a last
+        // resort (e.g. a fresh install with an exhausted download quota).
+        size_t streamPos = (m_currentPosition + 1) % m_playlist.size();
+        const auto& streamEntry = m_playlist[streamPos];
+        g_Log->Warning("Preflight : no cached dreams available; streaming next dream at position %zu", streamPos);
+        decision = {
+            streamPos,
+            TransitionType::StandardCrossfade,
+            m_cacheManager.getDream(streamEntry.uuid),
+            streamEntry.startKeyframe,
+            streamEntry.endKeyframe
+        };
+        return decision;
     }
 
     const auto& firstEntry = m_playlist[0];
