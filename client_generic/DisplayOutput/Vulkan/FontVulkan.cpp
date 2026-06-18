@@ -5,6 +5,9 @@
 #include "Log.h"
 
 #include <imgui.h>
+#include <cstdio>
+#include <string>
+#include <unistd.h>
 
 namespace DisplayOutput
 {
@@ -12,27 +15,56 @@ namespace DisplayOutput
 // ---------------------------------------------------------------------------
 // CreateWithRenderer — register font with ImGui's global atlas.
 //
-// Uses ImGui's built-in embedded ProggyForever font (MIT license, no external
-// files required).  Bold is simulated with a small extra advance so key labels
-// in the F1 overlay sit visually apart from surrounding normal text.
+// Tries to load Lato-Regular.ttf from the executable directory (bundled in
+// the build output / Runtime).  Falls back to the embedded ProggyClean font
+// when the file is absent.
 // ---------------------------------------------------------------------------
 bool CFontImGui::CreateWithRenderer(CRendererVulkan* /*renderer*/)
 {
     m_fontSize = static_cast<float>(m_FontDescription.Height());
-    const bool isBold = m_FontDescription.Style() >= CFontDescription::Bold;
 
     ImFontConfig cfg;
-    cfg.SizePixels = m_fontSize;
+    cfg.SizePixels  = m_fontSize;
+    cfg.OversampleH = 2;
+    cfg.OversampleV = 2;
 
-    m_imFont = ImGui::GetIO().Fonts->AddFontDefaultVector(&cfg);
-    if (!m_imFont)
+    // Resolve the directory containing the running executable.
+    ImFont* loaded = nullptr;
     {
-        g_Log->Warning("CFontImGui: AddFontDefaultVector failed at %.0fpx", m_fontSize);
-        return false;
+        char exeBuf[4096] = {};
+        const ssize_t exeLen = readlink("/proc/self/exe", exeBuf, sizeof(exeBuf) - 1);
+        if (exeLen > 0)
+        {
+            exeBuf[exeLen] = '\0';
+            std::string exeDir(exeBuf);
+            const auto slash = exeDir.rfind('/');
+            if (slash != std::string::npos)
+                exeDir = exeDir.substr(0, slash + 1);
+
+            const std::string latoPath = exeDir + "Lato-Regular.ttf";
+            if (FILE* f = fopen(latoPath.c_str(), "rb"))
+            {
+                fclose(f);
+                loaded = ImGui::GetIO().Fonts->AddFontFromFileTTF(latoPath.c_str(), m_fontSize, &cfg);
+                if (loaded)
+                    g_Log->Info("CFontImGui: loaded Lato-Regular.ttf at %.0fpx", m_fontSize);
+            }
+        }
     }
 
-    g_Log->Info("CFontImGui: registered embedded font at %.0fpx%s",
-                m_fontSize, isBold ? " (bold)" : "");
+    if (!loaded)
+    {
+        loaded = ImGui::GetIO().Fonts->AddFontDefaultVector(&cfg);
+        if (loaded)
+            g_Log->Info("CFontImGui: Lato-Regular.ttf not found, using embedded font at %.0fpx", m_fontSize);
+    }
+
+    m_imFont = loaded;
+    if (!m_imFont)
+    {
+        g_Log->Warning("CFontImGui: font load failed at %.0fpx", m_fontSize);
+        return false;
+    }
     return true;
 }
 

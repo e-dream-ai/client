@@ -1,17 +1,14 @@
 // Controls tab — mirrors SettingsDialogWin32.TabControls.inl.
 // Linux: no playlist icon texture (skip image rendering).
 
-const float sectionHeight = S(160.f);
+const float sectionHeight = S(240.f);
 const float panelGap = S(4.f);
 const float panelInnerPadding = S(8.f);
 const float buttonWidth = S(170.f);
 const float buttonHeight = S(30.f);
-const float footerRowHeight = S(34.f);
+const float footerRowHeight = S(40.f);
 const float dividerWidth = S(1.f);
 const ImVec4 sectionDividerColor(0.90f, 0.90f, 0.90f, 1.00f);
-
-const float controlsFontScale = 14.0f / 17.0f;
-ImGui::SetWindowFontScale(controlsFontScale);
 
 const float rowStartY = ImGui::GetCursorPosY();
 const float availWidth = ImGui::GetContentRegionAvail().x;
@@ -65,22 +62,16 @@ const float footerAvailWidth = ImGui::GetContentRegionAvail().x;
 const float footerGap = S(12.f);
 const char* footerLabel = "For more controls and explanation:";
 
-ImGui::SetWindowFontScale(16.0f / 17.0f);
 const ImVec2 footerLabelSize = ImGui::CalcTextSize(footerLabel);
-ImGui::SetWindowFontScale(controlsFontScale);
 
 const float footerGroupWidth = footerLabelSize.x + footerGap + buttonWidth;
 const float footerGroupStartX = footerStartX + (footerAvailWidth - footerGroupWidth) * 0.5f;
 const float footerTextY = footerStartY + (footerRowHeight - footerLabelSize.y) * 0.5f;
 const float footerButtonY = footerStartY + (footerRowHeight - buttonHeight) * 0.5f;
 
-ImGui::SetWindowFontScale(16.0f / 17.0f);
 ImGui::SetCursorPos(ImVec2(footerGroupStartX, footerTextY));
 ImGui::TextUnformatted(footerLabel);
-ImGui::SetWindowFontScale(controlsFontScale);
 
 ImGui::SetCursorPos(ImVec2(footerGroupStartX + footerLabelSize.x + footerGap, footerButtonY));
-if (ImGui::Button("View Help Page", ImVec2(buttonWidth, buttonHeight)))
+if (ImGui::Button("View help page", ImVec2(buttonWidth, buttonHeight)))
     PlatformUtils::OpenURLExternally(kUrlHelp);
-
-ImGui::SetWindowFontScale(1.0f);

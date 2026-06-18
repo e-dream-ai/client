@@ -2,8 +2,8 @@
 // Linux: uses ImGui modal popup instead of MessageBox for auth errors.
 
 const bool loggedIn = EDreamClient::IsLoggedIn();
-const float actionButtonWidth = S(100.f);
-const float actionButtonHeight = S(30.f);
+const float actionButtonWidth = S(110.f);
+const float actionButtonHeight = S(36.f);
 const float sidePadding = S(60.f);
 
 ImVec4 authColor = ImVec4(0.89f, 0.20f, 0.24f, 1.0f);
@@ -23,7 +23,7 @@ const float availW = ImGui::GetContentRegionAvail().x;
 const float availH = ImGui::GetContentRegionAvail().y;
 const float safePanelWidth = (availW < S(300.f)) ? S(300.f) : availW;
 
-const float formHeight = loggedIn ? S(92.f) : S(230.f);
+const float formHeight = loggedIn ? S(100.f) : S(240.f);
 const float topPad = (availH - formHeight) * 0.5f;
 if (topPad > 0.f)
     ImGui::Dummy(ImVec2(0.f, topPad));
@@ -33,19 +33,47 @@ ImGui::BeginChild("account_centered_body", ImVec2(safePanelWidth, formHeight), f
 
 if (loggedIn)
 {
-    const std::string signedInText = std::string("Signed in as ") + g_nicknameBuf;
-    const float dotRadius = 10.f;
-    const float rowX = sidePadding;
-    if (rowX > 0.f) ImGui::SetCursorPosX(rowX);
-
-    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    // Single row: [● Signed in as …]  ···  [Sign out]
+    // The text baseline is vertically centred within the button height.
+    const float dotRadius  = S(10.f);
     const float lineHeight = ImGui::GetTextLineHeight();
-    const ImVec2 dotCenter(ImGui::GetCursorScreenPos().x + dotRadius,
-                           ImGui::GetCursorScreenPos().y + lineHeight * 0.5f);
-    drawList->AddCircleFilled(dotCenter, dotRadius, ImGui::ColorConvertFloat4ToU32(authColor), 24);
-    ImGui::Dummy(ImVec2(dotRadius * 2.f, lineHeight));
-    ImGui::SameLine(0.f, 8.f);
-    ImGui::TextUnformatted(signedInText.c_str());
+    const float rowY       = ImGui::GetCursorPosY() + S(4.f); // small top guard
+    const float textY      = rowY + (actionButtonHeight - lineHeight) * 0.5f;
+
+    // Green circle + "Signed in as" text
+    ImGui::SetCursorPos(ImVec2(sidePadding, textY));
+    {
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
+        const ImVec2 dotCenter(ImGui::GetCursorScreenPos().x + dotRadius,
+                               ImGui::GetCursorScreenPos().y + lineHeight * 0.5f);
+        drawList->AddCircleFilled(dotCenter, dotRadius,
+                                  ImGui::ColorConvertFloat4ToU32(authColor), 24);
+        ImGui::Dummy(ImVec2(dotRadius * 2.f, lineHeight));
+        ImGui::SameLine(0.f, S(8.f));
+        const std::string signedInText = std::string("Signed in as ") + g_nicknameBuf;
+        ImGui::TextUnformatted(signedInText.c_str());
+    }
+
+    // Sign out button: right-aligned on the same row
+    const float signOutX = safePanelWidth - sidePadding - actionButtonWidth;
+    ImGui::SetCursorPos(ImVec2(signOutX, rowY));
+    ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.00f, 0.48f, 1.00f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.10f, 0.56f, 1.00f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.00f, 0.40f, 0.86f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_Text,          ImVec4(1.f, 1.f, 1.f, 1.f));
+    if (g_boldUiFont) ImGui::PushFont(g_boldUiFont);
+    if (ImGui::Button("Sign out", ImVec2(actionButtonWidth, actionButtonHeight)))
+    {
+        std::strncpy(g_previousLoginEmailBuf, g_nicknameBuf, sizeof g_previousLoginEmailBuf - 1);
+        g_previousLoginEmailBuf[sizeof g_previousLoginEmailBuf - 1] = '\0';
+        g_hasPreviousLoginEmail = true;
+        EDreamClient::SignOut();
+        g_sentCode = false;
+        g_codeBuf[0] = '\0';
+        std::strncpy(g_statusBuf, "Signed out.", sizeof g_statusBuf - 1);
+    }
+    if (g_boldUiFont) ImGui::PopFont();
+    ImGui::PopStyleColor(4);
 }
 
 bool emailEnter = false;
@@ -91,7 +119,7 @@ if (!loggedIn)
     ImGui::SetCursorPosX(leftX);
     {
         ImDrawList* drawList = ImGui::GetWindowDrawList();
-        const float dotRadius = 10.f;
+        const float dotRadius = S(10.f);
         const float lineHeight = ImGui::GetTextLineHeight();
         const ImVec2 dotCenter(ImGui::GetCursorScreenPos().x + dotRadius,
                                ImGui::GetCursorScreenPos().y + lineHeight * 0.5f);
@@ -198,28 +226,6 @@ if (!loggedIn)
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.08f, 0.08f, 0.08f, 1.00f));
     if (ImGui::Button("Need an account? Create one", ImVec2(contentW, actionButtonHeight)))
         PlatformUtils::OpenURLExternally(kUrlCreateAccount);
-    ImGui::PopStyleColor(4);
-}
-else
-{
-    const float signOutX = safePanelWidth - sidePadding - actionButtonWidth;
-    if (signOutX > 0.f) ImGui::SetCursorPosX(signOutX);
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.00f, 0.48f, 1.00f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.10f, 0.56f, 1.00f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.00f, 0.40f, 0.86f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
-    if (g_boldUiFont) ImGui::PushFont(g_boldUiFont);
-    if (ImGui::Button("Sign out", ImVec2(actionButtonWidth, actionButtonHeight)))
-    {
-        std::strncpy(g_previousLoginEmailBuf, g_nicknameBuf, sizeof g_previousLoginEmailBuf - 1);
-        g_previousLoginEmailBuf[sizeof g_previousLoginEmailBuf - 1] = '\0';
-        g_hasPreviousLoginEmail = true;
-        EDreamClient::SignOut();
-        g_sentCode = false;
-        g_codeBuf[0] = '\0';
-        std::strncpy(g_statusBuf, "Signed out.", sizeof g_statusBuf - 1);
-    }
-    if (g_boldUiFont) ImGui::PopFont();
     ImGui::PopStyleColor(4);
 }
 

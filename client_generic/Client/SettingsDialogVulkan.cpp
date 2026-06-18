@@ -12,6 +12,7 @@
 #include "Settings.h"
 #include "storage.h"
 #include "client.h"
+#include "Log.h"
 
 #include <atomic>
 #include <cctype>
@@ -53,7 +54,8 @@ std::atomic<bool> g_wasUserPausedBeforeDialog{false};
 std::atomic<bool> g_pausedBySettingsDialog{false};
 std::atomic<bool> g_fontsLoaded{false};
 
-ImFont* g_boldUiFont = nullptr;
+ImFont* g_regularUiFont = nullptr;
+ImFont* g_boldUiFont    = nullptr;
 
 char g_nicknameBuf[256]          = {};
 char g_codeBuf[32]               = {};
@@ -135,11 +137,24 @@ static void LoadDialogFonts()
     cfg.OversampleH = 2;
     cfg.OversampleV = 2;
 
+    constexpr float kUiTextSize = 20.f; // design-space baseline; always used as S(kUiTextSize)
+
     if (!regular.empty())
-        io.FontDefault = io.Fonts->AddFontFromFileTTF(regular.c_str(), S(17.f), &cfg);
+    {
+        g_regularUiFont = io.Fonts->AddFontFromFileTTF(regular.c_str(), S(kUiTextSize), &cfg);
+        g_Log->Info("SettingsDialog: loaded regular font '%s' at %.0fpx (uiScale=%.2f)",
+                    regular.c_str(), S(kUiTextSize), g_uiScale);
+    }
+    else
+    {
+        g_Log->Warning("SettingsDialog: no regular font found; using embedded fallback");
+    }
 
     if (!bold.empty())
-        g_boldUiFont = io.Fonts->AddFontFromFileTTF(bold.c_str(), S(17.f), &cfg);
+    {
+        g_boldUiFont = io.Fonts->AddFontFromFileTTF(bold.c_str(), S(kUiTextSize), &cfg);
+        g_Log->Info("SettingsDialog: loaded bold font '%s' at %.0fpx", bold.c_str(), S(kUiTextSize));
+    }
 
     g_fontsLoaded.store(true, std::memory_order_release);
 }
@@ -215,7 +230,7 @@ static void DrawAdvancedTab()
 static void DrawSettingsDialog(float viewportW, float viewportH)
 {
     const float targetWidth  = S(541.f);
-    const float targetHeight = S(390.f);
+    const float targetHeight = S(450.f);
     const float windowWidth  = (viewportW > (targetWidth + S(64.f))) ? targetWidth : (viewportW - S(32.f));
     const float windowHeight = (viewportH > (targetHeight + S(64.f))) ? targetHeight : (viewportH - S(32.f));
     const ImVec2 windowSize((windowWidth < S(460.f)) ? S(460.f) : windowWidth,
@@ -315,9 +330,9 @@ static void DrawSettingsDialog(float viewportW, float viewportH)
         ImGui::BeginChild("settings_footer_region", ImVec2(0.f, 0.f), false,
                           ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
         {
-            const float helpButtonSize  = S(20.f);
-            const float closeButtonWidth  = S(78.f);
-            const float closeButtonHeight = S(24.f);
+            const float helpButtonSize    = S(24.f);
+            const float closeButtonWidth  = S(90.f);
+            const float closeButtonHeight = S(32.f);
             const float originX       = ImGui::GetCursorPosX();
             const float contentWidth  = ImGui::GetContentRegionAvail().x;
             const float contentHeight = ImGui::GetContentRegionAvail().y;
@@ -330,12 +345,25 @@ static void DrawSettingsDialog(float viewportW, float viewportH)
             if (ImGui::Button("Close", ImVec2(closeButtonWidth, closeButtonHeight)))
                 CloseDialog(true);
 
+            // Help button: InvisibleButton + manual draw for pixel-perfect "?" centering.
             ImGui::SetCursorPos(ImVec2(originX, rowCenterY - (helpButtonSize * 0.5f)));
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, helpButtonSize * 0.5f);
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.f, 0.f));
-            if (ImGui::Button("?", ImVec2(helpButtonSize, helpButtonSize)))
+            const bool helpClicked = ImGui::InvisibleButton("##help_btn", ImVec2(helpButtonSize, helpButtonSize));
+            {
+                ImDrawList* dl = ImGui::GetWindowDrawList();
+                const ImVec2 btnMin = ImGui::GetItemRectMin();
+                const ImVec2 center(btnMin.x + helpButtonSize * 0.5f, btnMin.y + helpButtonSize * 0.5f);
+                const ImU32 bgCol = ImGui::IsItemActive()  ? ImGui::GetColorU32(ImGuiCol_ButtonActive)  :
+                                    ImGui::IsItemHovered() ? ImGui::GetColorU32(ImGuiCol_ButtonHovered) :
+                                                             ImGui::GetColorU32(ImGuiCol_Button);
+                dl->AddCircleFilled(center, helpButtonSize * 0.5f, bgCol, 24);
+                dl->AddCircle(center, helpButtonSize * 0.5f, ImGui::GetColorU32(ImGuiCol_Border), 24, 1.f);
+                const char* q = "?";
+                const ImVec2 qs = ImGui::CalcTextSize(q);
+                dl->AddText(ImVec2(center.x - qs.x * 0.5f, center.y - qs.y * 0.5f),
+                            ImGui::GetColorU32(ImGuiCol_Text), q);
+            }
+            if (helpClicked)
                 PlatformUtils::OpenURLExternally(kUrlHelp);
-            ImGui::PopStyleVar(2);
 
             ImGui::SameLine();
             ImGui::SetCursorPosY(textY);
@@ -393,6 +421,11 @@ void SettingsDialogVulkan_DrawIfNeeded()
         g_uiScale = PlatformUtils_GetUIScale();
         LoadDialogFonts();
 
+        // Re-apply io.FontDefault on every open: the wizard may have overwritten it
+        // with its own S(15) body font between dialog opens.
+        if (g_regularUiFont)
+            ImGui::GetIO().FontDefault = g_regularUiFont;
+
         ImGui::GetStyle().ScaleAllSizes(g_uiScale);
         ImGui::StyleColorsLight();
         ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
@@ -416,7 +449,14 @@ void SettingsDialogVulkan_DrawIfNeeded()
         ImVec2(0.f, 0.f), ImVec2(vpW, vpH),
         ImGui::GetColorU32(ImVec4(1.f, 1.f, 1.f, 0.16f)));
 
+    // Push the dialog font at S(20) so all dialog text renders at the correct
+    // size regardless of what FontSizeBase was set to during earlier frames
+    // (e.g. ProggyClean 13px added by ImGui on the very first frame).
+    if (g_regularUiFont)
+        ImGui::PushFont(g_regularUiFont, S(20.f));
     DrawSettingsDialog(vpW, vpH);
+    if (g_regularUiFont)
+        ImGui::PopFont();
 }
 
 #ifdef HAVE_WAYLAND

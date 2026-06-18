@@ -37,9 +37,10 @@ constexpr const char* kUrlWebRemote     = "https://alpha.infinidream.ai/rc";
 constexpr const char* kUrlPlaylists     = "https://alpha.infinidream.ai/playlists";
 #endif
 
-// Design dimensions match the Windows/macOS wizard for visual consistency.
-constexpr float kDesignWinW = 879.f;
-constexpr float kDesignWinH = 580.f;
+// Narrower card — closer to the settings dialog footprint (S(541)×S(390)).
+// Height is slightly larger than original to accommodate S(20) tips text.
+constexpr float kDesignWinW = 700.f;
+constexpr float kDesignWinH = 620.f;
 constexpr float kLogoDisplay = 120.f;
 
 constexpr float kEmailStepPanelW  = 571.f;
@@ -62,13 +63,13 @@ constexpr float kCodeAfterOtpY     = 152.f;
 constexpr float kCodeVerifyW       = 150.f;
 constexpr float kCodeTryAgainW     = 120.f;
 
-constexpr float kThanksPanelW      = 667.f;
+constexpr float kThanksPanelW      = 660.f;
 constexpr float kThanksOuterPad    = 20.f;
 constexpr float kThanksColGap      = 20.f;
 constexpr float kThanksTitleTop    = 2.f;
 constexpr float kThanksTitleToGrid = 8.f;
-constexpr float kThanksRowTopH     = 110.f;
-constexpr float kThanksRowBotH     = 92.f;
+constexpr float kThanksRowTopH     = 215.f;
+constexpr float kThanksRowBotH     = 132.f;
 constexpr float kThanksHSepGap     = 5.f;
 constexpr float kThanksHSepH       = 1.f;
 constexpr float kThanksCellPad     = 6.f;
@@ -78,12 +79,13 @@ constexpr float kThanksTextImgGap  = 12.f;
 constexpr float kThanksPlaylistImg = 52.f;
 constexpr float kThanksBtnBottom   = 6.f;
 constexpr float kThanksBottomPad   = 4.f;
-constexpr float kThanksOpenRemoteBtnW   = 118.f;
-constexpr float kThanksOpenPlaylistBtnW = 136.f;
+constexpr float kThanksOpenRemoteBtnW   = 186.f;
+constexpr float kThanksOpenPlaylistBtnW = 224.f;
 constexpr float kThanksTipsBtnH    = 28.f;
 constexpr float kThanksDreamOnMinW = 82.f;
-constexpr float kThanksCopyFontSize = 17.f;
-constexpr float kThanksBtnFontSize  = 15.f;
+constexpr float kUiTextSize         = 20.f; // design-space baseline; always used as S(kUiTextSize)
+constexpr float kThanksCopyFontSize = kUiTextSize;
+constexpr float kThanksBtnFontSize  = kUiTextSize;
 
 static constexpr ImVec4 kMacInputBorderFocus(0.f, 0.478f, 1.f, 1.f);
 static constexpr ImVec4 kMacInputBorderIdle(0.74f, 0.74f, 0.76f, 1.f);

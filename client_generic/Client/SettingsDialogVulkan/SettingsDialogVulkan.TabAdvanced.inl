@@ -1,14 +1,11 @@
 // Advanced tab — mirrors SettingsDialogWin32.TabAdvanced.inl.
 // Linux: omits "Keep screensaver enabled" (not applicable).
 
-const float advancedFontScale = 14.0f / 17.0f;
-ImGui::SetWindowFontScale(advancedFontScale);
-
 const float availW = ImGui::GetContentRegionAvail().x;
 const float leftInset = S(138.f);
 const float proxyGroupTopGap = S(12.f);
 const float proxyContentInsetX = S(6.f);
-const float proxyContentInsetY = S(22.f);
+const float proxyContentInsetY = S(38.f); // below the "Proxy" bold header at S(20) font
 const float labelInputGap = S(8.f);
 const float fieldRowGap = S(2.f);
 
@@ -28,7 +25,7 @@ ImGui::SetCursorPosY(ImGui::GetCursorPosY() + proxyGroupTopGap);
 
 ImGui::SetCursorPosY(ImGui::GetCursorPosY() + proxyGroupTopGap);
 const float proxyGroupW = availW;
-const float proxyGroupH = S(160.f);
+const float proxyGroupH = S(200.f);
 ImGui::BeginChild("advanced_proxy_group", ImVec2(proxyGroupW, proxyGroupH), true,
                   ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
@@ -83,4 +80,3 @@ drawProxyRow(passwordLabel, "##proxy_password", g_proxyPasswordBuf, sizeof g_pro
              ImGuiInputTextFlags_Password);
 
 ImGui::EndChild();
-ImGui::SetWindowFontScale(1.0f);

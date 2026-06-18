@@ -6,7 +6,7 @@ const float groupHeight = S(72.f);
 const float horizontalInset = S(14.f);
 const float bottomBorderReserve = S(10.f);
 const float limitBoxH = S(118.f);
-const float playlistGroupH = S(62.f);
+const float playlistGroupH = S(72.f);
 const float playlistGroupGap = ImGui::GetStyle().ItemSpacing.y;
 float cacheGroupHeight = ImGui::GetContentRegionAvail().y - groupHeight - playlistGroupH - playlistGroupGap - bottomBorderReserve;
 if (cacheGroupHeight < limitBoxH + S(12.f))
@@ -97,26 +97,28 @@ ImGui::EndChild();
     ImGui::BeginChild("disk_playlist_group", ImVec2(contentWidth, playlistGroupH), true,
                       ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
+    // Use the inner content width (not the outer contentWidth) for right-alignment.
+    const float innerW = ImGui::GetContentRegionAvail().x;
+    const float countTextW = ImGui::CalcTextSize(countText).x;
+
+    // Row 1: "Playlist" bold label followed immediately by the playlist name.
     ImGui::SetCursorPos(ImVec2(horizontalInset, S(6.f)));
     if (g_boldUiFont) ImGui::PushFont(g_boldUiFont);
     ImGui::TextUnformatted("Playlist");
     if (g_boldUiFont) ImGui::PopFont();
-
-    const float labelEndX = ImGui::GetItemRectMax().x + S(10.f);
-    ImGui::SameLine();
-    ImGui::SetCursorPosX(labelEndX);
-    ImGui::SetCursorPosY(S(6.f));
+    ImGui::SameLine(0.f, S(8.f));
+    ImGui::PushTextWrapPos(horizontalInset + innerW - horizontalInset - countTextW - S(12.f));
     ImGui::TextUnformatted(nameText);
+    ImGui::PopTextWrapPos();
 
-    const float countX = contentWidth - horizontalInset - ImGui::CalcTextSize(countText).x;
-    ImGui::SameLine();
-    ImGui::SetCursorPosX(countX);
-    ImGui::SetCursorPosY(S(6.f));
+    // Count right-aligned on the same row.
+    ImGui::SetCursorPos(ImVec2(innerW - horizontalInset - countTextW, S(6.f)));
     ImGui::TextDisabled("%s", countText);
 
+    // Row 2: downloader status (if any).
     if (!dlStatus.empty())
     {
-        ImGui::SetCursorPos(ImVec2(horizontalInset, S(30.f)));
+        ImGui::SetCursorPos(ImVec2(horizontalInset, S(34.f)));
         ImGui::TextDisabled("%s", dlStatus.c_str());
     }
 
