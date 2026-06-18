@@ -271,6 +271,9 @@
     preserveAR.state =
         ESScreensaver_GetBoolSetting("settings.player.preserve_AR", false);
 
+    rotatePortrait.state =
+        ESScreensaver_GetBoolSetting("settings.player.rotate_portrait", false);
+
     blackoutMonitors.state =
         ESScreensaver_GetBoolSetting("settings.player.blackout_monitors", true);
 
@@ -378,6 +381,9 @@
 
     ESScreensaver_SetBoolSetting("settings.player.preserve_AR",
                                  preserveAR.state);
+
+    ESScreensaver_SetBoolSetting("settings.player.rotate_portrait",
+                                 rotatePortrait.state);
 
     ESScreensaver_SetBoolSetting("settings.player.blackout_monitors",
                                  blackoutMonitors.state);

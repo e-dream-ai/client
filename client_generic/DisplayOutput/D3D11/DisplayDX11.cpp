@@ -1266,7 +1266,7 @@ HWND CDisplayDX11::CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen,
 
         auto clientSizeForPreserveAR = [&](uint32_t& cw, uint32_t& ch) {
             // Match D3D video region: drawable (cw × ch − title strip) stays 16:9 (see
-            // BuildBaseViewportForDisplay + ComputeAspectViewport16By9).
+            // BuildBaseViewportForDisplay + ComputeAspectViewport).
             if (!preserveAR || !customVideoTopInset)
                 return;
             const int tb = GetSystemTitlebarHeightPx();

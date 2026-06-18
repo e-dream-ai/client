@@ -88,7 +88,8 @@ private:
         float uvRect[4];
         float color[4];
         float brightness;
-        float padding[3];
+        int rotation;  // video rotation in degrees: 0 = none, 90 = rotate 90 CW
+        float padding[2];
     };
 
     struct Vertex

@@ -362,6 +362,21 @@ void CPlayer::ForceWidthAndHeight(uint32_t du, uint32_t _w, uint32_t _h)
     }
 }
 
+void CPlayer::SetVideoRotation(uint32_t du, uint32_t _degrees)
+{
+    std::scoped_lock lockthis(m_displayListMutex);
+
+    if (du >= m_displayUnits.size())
+        return;
+
+    const std::shared_ptr<DisplayUnit> duptr = m_displayUnits[du];
+
+    if (duptr == nullptr || duptr->spRenderer == nullptr)
+        return;
+
+    duptr->spRenderer->SetVideoRotation((int)_degrees);
+}
+
 /*
 
 */

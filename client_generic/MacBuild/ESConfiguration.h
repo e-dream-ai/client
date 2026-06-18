@@ -12,6 +12,7 @@
     IBOutlet NSButton* silentMode;
     IBOutlet NSButton* showAttribution;
     IBOutlet NSButton* preserveAR;
+    IBOutlet NSButton* rotatePortrait;
 
     // login buttons
     IBOutlet NSButton* signInButton;

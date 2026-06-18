@@ -126,6 +126,7 @@ class CRenderer
     Base::Math::CMatrix4x4 m_WorldMat, m_ViewMat, m_ProjMat;
     uint32_t m_bDirtyMatrices;
     float m_Brightness;
+    int m_VideoRotation;  // degrees: 0 = none, 90 = rotate video 90 CW
 
   public:
     CRenderer();
@@ -202,6 +203,8 @@ class CRenderer
     {
         m_Brightness = _brightness;
     }
+    virtual int GetVideoRotation() const { return m_VideoRotation; }
+    virtual void SetVideoRotation(int _degrees) { m_VideoRotation = _degrees; }
 
     virtual eTextureTargetType GetTextureTargetType(void)
     {

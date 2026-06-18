@@ -14,6 +14,7 @@ void ESScreensaver_Stop(void);
 void ESScreensaver_Resume(void);
 bool ESScreensaver_Stopped(void);
 void ESScreensaver_ForceWidthAndHeight(uint32_t _width, uint32_t _height);
+void ESScreensaver_SetVideoRotation(uint32_t _degrees);
 void ESScreensaver_Deinit(void);
 
 void ESScreensaver_AppendKeyEvent(DisplayOutput::CKeyEvent::eKeyCode keyCode);

@@ -271,7 +271,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
         return static_cast<uint32_t>(m_displayUnits.size());
     }
     void ForceWidthAndHeight(uint32_t du, uint32_t _w, uint32_t _h);
-    
+    void SetVideoRotation(uint32_t du, uint32_t _degrees);
+
     void SetPaused(bool _bPaused, bool isUserInitiated = false) {
         bool stateChanged = (m_bPaused != _bPaused);
         m_bPaused = _bPaused;
