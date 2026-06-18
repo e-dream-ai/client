@@ -595,12 +595,12 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
     sOpenVideoInfo* ovi = m_CurrentVideoInfo.get();
     if (ovi == nullptr)
         return nullptr;
-    
+
     AVFormatContext* pFormatContext = ovi->m_pFormatContext;
-    
+
     if (!pFormatContext)
         return nullptr;
-    
+
     AVRational timeBase =
     pFormatContext->streams[ovi->m_VideoStreamID]->time_base;
     double frameRate = av_q2d(
@@ -608,6 +608,8 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
     AVPacket* packet;
     AVPacket* filteredPacket;
     int frameDecoded = 0;
+    int eagainCount = 0;
+    auto readOneFrameStart = std::chrono::steady_clock::now();
     AVFrame* pFrame = ovi->m_pFrame;
     AVCodecContext* pVideoCodecContext = ovi->m_pVideoCodecContext;
     CVideoFrame* pVideoFrame = nullptr;
@@ -622,7 +624,17 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
         bool endOfPackets = false;
         if (!ovi->m_ReadingTrailingFrames)
         {
-            if (av_read_frame(pFormatContext, packet) < 0)
+            auto t0 = std::chrono::steady_clock::now();
+            int avrf_ret = av_read_frame(pFormatContext, packet);
+            auto avrfMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - t0).count();
+            if (avrfMs > 500) {
+                g_Log->Warning("ReadOneFrame: av_read_frame SLOW (%lldms) ret=%d seekTarget=%lld frame=%lld",
+                               (long long)avrfMs, avrf_ret,
+                               (long long)ovi->m_SeekTargetFrame,
+                               (long long)ovi->m_CurrentFrameIndex);
+            }
+            if (avrf_ret < 0)
             {
                 // Reached end of packets, now flush decoder
                 ovi->m_ReadingTrailingFrames = true;
@@ -721,13 +733,22 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
         {
             av_packet_free(&packet);
             av_packet_free(&filteredPacket);
-            
+
             if (endOfPackets) {
                 // If we're flushing and get EAGAIN, we're done
                 m_HasEnded.exchange(true);
                 return nullptr;
             }
-            
+
+            eagainCount++;
+            if (eagainCount == 50 || eagainCount % 500 == 0) {
+                auto eagainMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::steady_clock::now() - readOneFrameStart).count();
+                g_Log->Warning("ReadOneFrame: stuck in EAGAIN loop — count=%d elapsed=%lldms seekTarget=%lld frame=%lld",
+                               eagainCount, (long long)eagainMs,
+                               (long long)ovi->m_SeekTargetFrame,
+                               (long long)ovi->m_CurrentFrameIndex);
+            }
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
             continue;
         }
@@ -830,6 +851,7 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
         {
             if (ovi->m_CurrentFrameIndex >= ovi->m_SeekTargetFrame)
             {
+                ovi->m_SeekTargetFrame = -1;  // resume normal playback; prevents re-seek loop
                 break;
             }
             else
@@ -976,7 +998,16 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
     
     av_packet_free(&packet);
     av_packet_free(&filteredPacket);
-    
+
+    auto totalMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - readOneFrameStart).count();
+    if (totalMs > 2000) {
+        g_Log->Warning("ReadOneFrame: completed in %lldms (EAGAIN×%d) seekTarget=%lld frame=%lld",
+                       (long long)totalMs, eagainCount,
+                       (long long)ovi->m_SeekTargetFrame,
+                       (long long)ovi->m_CurrentFrameIndex);
+    }
+
     return pVideoFrame;
 }
 
@@ -1142,6 +1173,8 @@ void CContentDecoder::ReadFramesThread()
 #else
                 avcodec_flush_buffers(m_CurrentVideoInfo->m_pVideoCodecContext);
 #endif
+                if (m_CurrentVideoInfo->m_pBsfContext)
+                    av_bsf_flush(m_CurrentVideoInfo->m_pBsfContext);
 
                 if (seek < 0)
                 {

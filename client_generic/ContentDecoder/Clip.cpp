@@ -150,7 +150,7 @@ bool CClip::IsPreloadComplete() const {
     
     // Require a minimum number of frames to consider preloading complete
     uint32_t queueLength = m_spDecoder->QueueLength();
-    uint32_t minFramesRequired = 10;  // Require at least 10 frames
+    uint32_t minFramesRequired = 5;  // Match the Rebuffering exit threshold in Update()
     
     bool complete = queueLength >= minFramesRequired;
     
@@ -223,8 +223,8 @@ int CClip::GetFramesToAdvance(double _timelineTime,
     _decoderClock->interframeDelta = _decoderClock->acc / dt;
 
     if (framesToAdvance > 1) {
-        g_Log->Info("Frame timing catch-up: advancing %d frames (deltaTime: %.4f, dt: %.4f)",
-                    framesToAdvance, deltaTime, dt);
+        g_Log->Debug("Frame timing catch-up: advancing %d frames (deltaTime: %.4f, dt: %.4f)",
+                     framesToAdvance, deltaTime, dt);
     }
 
     return framesToAdvance;

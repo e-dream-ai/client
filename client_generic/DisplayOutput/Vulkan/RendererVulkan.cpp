@@ -294,12 +294,20 @@ bool CRendererVulkan::createSwapchain(VkSurfaceKHR surface,
     // Mailbox would spin the CPU freely between presents, burning cycles for no benefit.
     VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
 
-    // Always use the requested dimensions clamped to surface bounds.
-    // Never blindly trust caps.currentExtent — on X11 it can lag behind ConfigureNotify
-    // by several frames, causing the swapchain to be created at the wrong size while
-    // Display()->Width/Height() already reflects the new window dimensions.
-    m_swapExtent.width  = std::clamp(width,  caps.minImageExtent.width,  caps.maxImageExtent.width);
-    m_swapExtent.height = std::clamp(height, caps.minImageExtent.height, caps.maxImageExtent.height);
+    // Vulkan spec: when currentExtent is not {UINT32_MAX, UINT32_MAX} the swapchain
+    // MUST use that exact size. Some drivers (common on X11 with XFCE/Xfwm4) also set
+    // minImageExtent == maxImageExtent == currentExtent, so ignoring currentExtent and
+    // clamping by min/max yields the same forced value — but leaves m_swapExtent
+    // differing from m_spDisplay->Width/Height(), triggering an infinite recreation loop.
+    // Use currentExtent directly when valid; fall back to the requested size otherwise.
+    if (caps.currentExtent.width != UINT32_MAX) {
+        if (caps.currentExtent.width == 0 || caps.currentExtent.height == 0)
+            return false;  // Window minimized/hidden — caller will retry next frame
+        m_swapExtent = caps.currentExtent;
+    } else {
+        m_swapExtent.width  = std::clamp(width,  caps.minImageExtent.width,  caps.maxImageExtent.width);
+        m_swapExtent.height = std::clamp(height, caps.minImageExtent.height, caps.maxImageExtent.height);
+    }
 
     uint32_t imageCount = caps.minImageCount + 1;
     if (caps.maxImageCount > 0 && imageCount > caps.maxImageCount)
@@ -959,8 +967,8 @@ bool CRendererVulkan::Initialize(spCDisplayOutput _spDisplay)
     VkSurfaceKHR surface  = disp->GetSurface();
     uint32_t     w        = disp->Width();
     uint32_t     h        = disp->Height();
-    m_surface         = surface;
-    m_vulkanInstance  = instance;
+    m_surface        = surface;
+    m_vulkanInstance = instance;
 
     if (!pickPhysicalDevice(instance, surface))     return false;
     if (!createLogicalDevice())                      return false;
@@ -1099,7 +1107,20 @@ void CRendererVulkan::recreateSwapchain()
     uint32_t h = m_spDisplay->Height();
 
     g_Log->Info("CRendererVulkan: recreating swapchain (%ux%u)", w, h);
-    createSwapchain(m_surface, w, h);
+    if (!createSwapchain(m_surface, w, h)) {
+        // Surface not ready (e.g. window minimized, zero-size extent from driver).
+        // Mark swapExtent as empty so BeginFrame retries next frame.
+        m_swapExtent = {0, 0};
+        return;
+    }
+
+    // Sync the display's tracked size to what the driver actually created.
+    // On X11 with Xfwm4 the driver enforces currentExtent which may differ
+    // slightly from the last ConfigureNotify value. Without this sync,
+    // BeginFrame's mismatch check fires immediately after recreation and
+    // loops forever.
+    m_spDisplay->SyncSize(m_swapExtent.width, m_swapExtent.height);
+
     createFramebuffers();
 }
 
@@ -1109,12 +1130,15 @@ bool CRendererVulkan::BeginFrame()
 {
     if (m_inFrame) return true;
 
+    // Skip frames while the window has no drawable area (minimized on some WMs).
+    if (m_spDisplay->Width() == 0 || m_spDisplay->Height() == 0)
+        return false;
+
     // Proactively recreate the swapchain if the window size changed.
     // Display()->Width/Height() is kept up-to-date by ConfigureNotify (X11) and
     // xdg_toplevel configure (Wayland), so comparing against m_swapExtent detects
     // fullscreen transitions and manual resizes exactly one frame after the WM sends
-    // the resize event — no spurious recreations since m_swapExtent is set from those
-    // same dimensions (never from stale caps.currentExtent).
+    // the resize event. After recreation, SyncSize() keeps them in agreement.
     if (m_spDisplay->Width() != m_swapExtent.width || m_spDisplay->Height() != m_swapExtent.height)
     {
         recreateSwapchain();

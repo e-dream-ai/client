@@ -799,7 +799,13 @@ bool CPlayer::Update(uint32_t displayUnit)
             m_nextDreamDecision->transition == PlaylistManager::TransitionType::Seamless;
 
         if (!m_nextClip->HasFinished() && !waitingForSeamless) {
-            m_nextClip->Update(m_TimelineTime, freezePlayback);
+            // Don't consume frames from m_nextClip until the crossfade has started —
+            // same reasoning as the seamless guard above. The decoder fills the queue
+            // to the backpressure cap; playback then starts from near frame 0 rather
+            // than mid-stream after the preload period drains the buffer.
+            if (m_nextClip->IsBuffering() || m_isTransitioning) {
+                m_nextClip->Update(m_TimelineTime, freezePlayback);
+            }
         }
 
         // Check if pending seek crossfade can now start (next clip finished buffering)
@@ -1435,12 +1441,19 @@ void CPlayer::UpdateTransition(double currentTime)
     double transitionProgress = (currentTime - m_transitionStartTime) / m_transitionDuration;
 
     bool nextClipBuffering = (m_nextClip && m_nextClip->IsBuffering());
-        
-    /*if (nextClipBuffering) {
-        g_Log->Info("Next clip still buffering during transition (progress: %.2f)",
-                    transitionProgress);
-    }*/
-    
+
+    // If the outgoing clip has exhausted all its frames, snap to completion immediately —
+    // even when the incoming clip is still buffering — to avoid an indefinite freeze.
+    if (m_currentClip && m_currentClip->HasFinished()) {
+        transitionProgress = 1.0;
+    }
+    // Otherwise freeze the crossfade timer until the next clip has frames — prevents
+    // a black flash when StartTransition fires before the decoder is primed.
+    else if (nextClipBuffering) {
+        m_transitionStartTime = currentTime;
+        return;
+    }
+
     // If we have preflight decision and it's seamless, but we're transitioning,
     // that means it was interrupted - convert to quick fade
     if (m_nextDreamDecision &&
