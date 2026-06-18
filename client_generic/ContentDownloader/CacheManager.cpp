@@ -151,9 +151,15 @@ void CacheManager::loadJsonFile(const std::string& filename) {
 
 void CacheManager::cleanupDiskCache() {
     std::vector<DiskCachedItem> itemsToRemove;
-    
+
     fs::path folderPath = PathManager::getInstance().mp4Path();
-    
+
+    if (!fs::exists(folderPath) || !fs::is_directory(folderPath)) {
+        g_Log->Error("cleanupDiskCache: mp4 directory missing (%s); skipping",
+                     folderPath.string().c_str());
+        return;
+    }
+
     // Look for temporary files
     for (const auto& entry : fs::directory_iterator(folderPath)) {
         const auto& path = entry.path();
@@ -207,9 +213,11 @@ void CacheManager::cleanupDiskCache() {
 
 void CacheManager::removeUnknownVideos() {
     fs::path folderPath = PathManager::getInstance().mp4Path();
-    
+
     if (!fs::exists(folderPath) || !fs::is_directory(folderPath)) {
-        throw std::runtime_error("Invalid folder path");
+        g_Log->Error("removeUnknownVideos: mp4 directory missing (%s); skipping",
+                     folderPath.string().c_str());
+        return;
     }
     
     std::vector<fs::path> filesToRemove;
@@ -308,6 +316,16 @@ void CacheManager::decreaseRemainingQuota(long long amount) {
 // MARK: - Metadata
 
 void CacheManager::loadCachedMetadata() {
+    // If the storage directories couldn't be created (e.g. the disk is full),
+    // there is nothing to scan and the directory iterators below would throw an
+    // uncaught exception that aborts the app at launch (issue #664). Skip the
+    // cache load; CheckDiskSpace() will flag the low-disk condition to the user.
+    if (!PathManager::getInstance().storageReady()) {
+        g_Log->Error("Storage not ready (disk full or unwritable); "
+                     "skipping cached metadata load.");
+        return;
+    }
+
     // Also load our internal Caches here !
     loadDiskCachedFromJson();
     loadHistoryFromJson();

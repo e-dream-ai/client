@@ -23,6 +23,10 @@ public:
     const std::filesystem::path& jsonDreamPath() const;
     const std::filesystem::path& jsonPlaylistPath() const;
 
+    // False if the storage directories could not be created (e.g. the disk is
+    // full or the location is unwritable). Callers should avoid content I/O.
+    bool storageReady() const;
+
 private:
     PathManager();
     PathManager(const PathManager&) = delete;
@@ -35,6 +39,7 @@ private:
     std::filesystem::path m_mp4Path;
     std::filesystem::path m_jsonDreamPath;
     std::filesystem::path m_jsonPlaylistPath;
+    bool m_storageReady = false;
 };
 
 } // namespace Cache

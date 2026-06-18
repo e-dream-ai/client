@@ -7,7 +7,9 @@
 
 #include "PathManager.h"
 #include "Settings.h"
+#include "Log.h"
 #include <stdexcept>
+#include <system_error>
 
 namespace Cache {
 
@@ -36,6 +38,10 @@ const std::filesystem::path& PathManager::jsonPlaylistPath() const {
     return m_jsonPlaylistPath;
 }
 
+bool PathManager::storageReady() const {
+    return m_storageReady;
+}
+
 void PathManager::initializePaths() {
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -47,11 +53,31 @@ void PathManager::initializePaths() {
     m_jsonDreamPath = m_rootPath / "json" / "dream";
     m_jsonPlaylistPath = m_rootPath / "json" / "playlist";
 
-    // Create directories
-    std::filesystem::create_directories(m_rootPath);
-    std::filesystem::create_directories(m_mp4Path);
-    std::filesystem::create_directories(m_jsonDreamPath);
-    std::filesystem::create_directories(m_jsonPlaylistPath);
+    // Create directories. Use the non-throwing overload: on a full or
+    // unwritable disk create_directories would otherwise throw an uncaught
+    // filesystem_error and abort the app at launch (issue #664). Instead we
+    // record the failure so callers can disable content I/O and report it.
+    const std::filesystem::path* dirs[] = {
+        &m_rootPath, &m_mp4Path, &m_jsonDreamPath, &m_jsonPlaylistPath
+    };
+
+    m_storageReady = true;
+    for (const auto* dir : dirs) {
+        std::error_code ec;
+        std::filesystem::create_directories(*dir, ec);
+        // create_directories returns false (no error) when the directory
+        // already exists; only a non-empty error_code is an actual failure.
+        if (ec) {
+            m_storageReady = false;
+            g_Log->Error("Failed to create directory %s: %s",
+                         dir->string().c_str(), ec.message().c_str());
+        }
+    }
+
+    if (!m_storageReady) {
+        g_Log->Error("Storage initialization failed (disk full or unwritable). "
+                     "Content downloads will be disabled.");
+    }
 }
 
 } // namespace Cache
