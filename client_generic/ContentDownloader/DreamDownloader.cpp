@@ -62,13 +62,16 @@ bool DreamDownloader::IsDiskSpaceLow() const {
 }
 
 void DreamDownloader::CheckDiskSpace() {
-    
-    auto freeSpace = Cache::CacheManager::getInstance().getFreeSpace(Cache::PathManager::getInstance().mp4Path());
+    auto& pathManager = Cache::PathManager::getInstance();
+    auto freeSpace = Cache::CacheManager::getInstance().getFreeSpace(pathManager.mp4Path());
     g_Log->Info("Disk space check at startup: %llu bytes free", (unsigned long long)freeSpace);
-    
-    if (freeSpace < minDiskSpace) {
+
+    // Treat a failed storage init (couldn't create the content directories)
+    // the same as low disk space: it almost always means the disk is full.
+    if (!pathManager.storageReady() || freeSpace < minDiskSpace) {
         g_Log->Info("Not enough disk space at startup");
         SetDiskSpaceLow(true);
+        SetDownloadStatus("Not enough disk space");
     } else {
         SetDiskSpaceLow(false);
     }

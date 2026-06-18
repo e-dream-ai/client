@@ -156,7 +156,8 @@ cbuffer QuadUniforms : register(b0) {
     float4 uvRect;
     float4 color;
     float brightness;
-    float3 padding;
+    int rotation;
+    float2 padding;
 };
 
 struct PSInput {
@@ -167,6 +168,7 @@ struct PSInput {
 float4 main(PSInput input) : SV_TARGET {
     float2 adjustedUV = (input.uv - rect.xy) / rect.zw;
     adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;
+    if (rotation == 90) adjustedUV = float2(adjustedUV.y, 1.0 - adjustedUV.x);  // portrait rotation
     float4 sampled = tx0.Sample(smp0, adjustedUV);
     sampled.rgb += brightness;
     return float4(sampled.rgb * color.rgb, color.a);
@@ -185,7 +187,8 @@ cbuffer QuadUniforms : register(b0) {
     float4 uvRect;
     float4 color;
     float brightness;
-    float3 padding;
+    int rotation;
+    float2 padding;
 };
 
 cbuffer LinearDeltaCB : register(b1) {
@@ -201,6 +204,7 @@ struct PSInput {
 float4 main(PSInput input) : SV_TARGET {
     float2 adjustedUV = (input.uv - rect.xy) / rect.zw;
     adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;
+    if (rotation == 90) adjustedUV = float2(adjustedUV.y, 1.0 - adjustedUV.x);  // portrait rotation
     float4 c1 = tx1.Sample(smp1, adjustedUV);
     float4 c2 = tx2.Sample(smp2, adjustedUV);
     float4 blended = lerp(c1, c2, delta);
@@ -240,7 +244,8 @@ cbuffer QuadUniforms : register(b0) {
     float4 uvRect;
     float4 color;
     float  brightness;
-    float3 padding;
+    int    rotation;
+    float2 padding;
 };
 
 struct PSInput { float4 position : SV_POSITION; float2 uv : TEXCOORD0; };
@@ -258,6 +263,7 @@ float4 SampleNV12(Texture2D yT, Texture2D uvT, SamplerState sY2, SamplerState sU
 float4 main(PSInput input) : SV_TARGET {
     float2 adjustedUV = (input.uv - rect.xy) / rect.zw;
     adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;
+    if (rotation == 90) adjustedUV = float2(adjustedUV.y, 1.0 - adjustedUV.x);  // portrait rotation
     float4 c = SampleNV12(yTex, uvTex, sY, sUV, adjustedUV);
     c.rgb += brightness;
     return float4(c.rgb * color.rgb, color.a);
@@ -276,7 +282,7 @@ SamplerState s4 : register(s4);
 SamplerState s5 : register(s5);
 
 cbuffer QuadUniforms : register(b0) {
-    float4 rect; float4 uvRect; float4 color; float brightness; float3 padding;
+    float4 rect; float4 uvRect; float4 color; float brightness; int rotation; float2 padding;
 };
 cbuffer LinearDeltaCB : register(b1) { float delta; float3 _padDelta; };
 
@@ -295,6 +301,7 @@ float4 SampleNV12_2(Texture2D yT, Texture2D uvT, SamplerState sY2, SamplerState 
 float4 main(PSInput input) : SV_TARGET {
     float2 adjustedUV = (input.uv - rect.xy) / rect.zw;
     adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;
+    if (rotation == 90) adjustedUV = float2(adjustedUV.y, 1.0 - adjustedUV.x);  // portrait rotation
     float4 c1 = SampleNV12_2(f1Y, f1UV, s2, s3, adjustedUV);
     float4 c2 = SampleNV12_2(f2Y, f2UV, s4, s5, adjustedUV);
     float4 blended = lerp(c1, c2, delta);
@@ -315,7 +322,7 @@ SamplerState s6 : register(s6);  SamplerState s7 : register(s7);
 SamplerState s8 : register(s8);  SamplerState s9 : register(s9);
 
 cbuffer QuadUniforms : register(b0) {
-    float4 rect; float4 uvRect; float4 color; float brightness; float3 padding;
+    float4 rect; float4 uvRect; float4 color; float brightness; int rotation; float2 padding;
 };
 cbuffer CubicWeightsCB : register(b1) { float4 weights; };
 
@@ -334,6 +341,7 @@ float4 SampleNV12_3(Texture2D yT, Texture2D uvT, SamplerState sY2, SamplerState 
 float4 main(PSInput input) : SV_TARGET {
     float2 adjustedUV = (input.uv - rect.xy) / rect.zw;
     adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;
+    if (rotation == 90) adjustedUV = float2(adjustedUV.y, 1.0 - adjustedUV.x);  // portrait rotation
     float4 c1 = SampleNV12_3(f1Y, f1UV, s2, s3, adjustedUV);
     float4 c2 = SampleNV12_3(f2Y, f2UV, s4, s5, adjustedUV);
     float4 c3 = SampleNV12_3(f3Y, f3UV, s6, s7, adjustedUV);
@@ -360,7 +368,8 @@ cbuffer QuadUniforms : register(b0) {
     float4 uvRect;
     float4 color;
     float brightness;
-    float3 padding;
+    int rotation;
+    float2 padding;
 };
 
 cbuffer CubicWeightsCB : register(b1) {
@@ -375,6 +384,7 @@ struct PSInput {
 float4 main(PSInput input) : SV_TARGET {
     float2 adjustedUV = (input.uv - rect.xy) / rect.zw;
     adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;
+    if (rotation == 90) adjustedUV = float2(adjustedUV.y, 1.0 - adjustedUV.x);  // portrait rotation
     float4 c1 = tx1.Sample(smp1, adjustedUV);
     float4 c2 = tx2.Sample(smp2, adjustedUV);
     float4 c3 = tx3.Sample(smp3, adjustedUV);
@@ -404,13 +414,21 @@ bool CreateDefaultSampler(ID3D11Device* device, ID3D11SamplerState** outSampler)
     return SUCCEEDED(hr);
 }
 
-bool CreateGlyphPointSampler(ID3D11Device* device, ID3D11SamplerState** outSampler)
+bool CreateGlyphSampler(ID3D11Device* device, ID3D11SamplerState** outSampler)
 {
     if (!device || !outSampler)
         return false;
 
     D3D11_SAMPLER_DESC samplerDesc = {};
-    samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+    // Linear, not point. The OSD text quads are almost never an exact 1:1
+    // texel->pixel map: the custom-titlebar viewport inset
+    // (BuildBaseViewportForDisplay / GetVideoViewportTopInsetPx) scales the
+    // text vertically by (height - inset)/height, DPI scaling adds more, and
+    // pen positions land on fractional pixels. With nearest-neighbor sampling
+    // that minification drops whole rows of texels, which showed up as text
+    // with a "missing row of pixels" on Windows (issue #652). Linear blends
+    // those rows instead of dropping them, matching the Vulkan glyph sampler.
+    samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
     samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
     samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
     samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -427,20 +445,23 @@ bool IsPreserveAspectEnabled()
     return g_Settings() && g_Settings()->Get("settings.player.preserve_AR", false);
 }
 
-bool ComputeAspectViewport16By9(float displayW, float displayH, D3D11_VIEWPORT& outViewport)
+// Compute a centered viewport of the given target aspect (width/height) inside the
+// display, letterboxing or pillarboxing as needed. targetAspect is 16:9 normally,
+// or 9:16 when the dream is rotated for a portrait display ("rotate_portrait").
+bool ComputeAspectViewport(float displayW, float displayH, float targetAspect,
+                           D3D11_VIEWPORT& outViewport)
 {
-    if (displayW <= 0.0f || displayH <= 0.0f)
+    if (displayW <= 0.0f || displayH <= 0.0f || targetAspect <= 0.0f)
         return false;
 
-    constexpr float kTargetAspect16By9 = 16.0f / 9.0f;
     const float displayAspect = displayW / displayH;
     float vpW = displayW;
     float vpH = displayH;
 
-    if (kTargetAspect16By9 > displayAspect)
-        vpH = std::max(1.0f, std::round(displayW / kTargetAspect16By9));
+    if (targetAspect > displayAspect)
+        vpH = std::max(1.0f, std::round(displayW / targetAspect));
     else
-        vpW = std::max(1.0f, std::round(displayH * kTargetAspect16By9));
+        vpW = std::max(1.0f, std::round(displayH * targetAspect));
 
     outViewport.TopLeftX = std::floor((displayW - vpW) * 0.5f);
     outViewport.TopLeftY = std::floor((displayH - vpH) * 0.5f);
@@ -728,7 +749,7 @@ bool CRendererDX11::Initialize(spCDisplayOutput _spDisplay) {
         g_Log->Error("Failed to create default DX11 sampler");
         return false;
     }
-    if (!CreateGlyphPointSampler(m_device.Get(), &m_glyphPointSampler))
+    if (!CreateGlyphSampler(m_device.Get(), &m_glyphSampler))
     {
         g_Log->Error("Failed to create glyph point sampler");
         return false;
@@ -1544,6 +1565,7 @@ bool CRendererDX11::EndFrame(bool drawn) {
             m_device.Get(), m_context.Get(), m_renderTargetView.Get(), viewportW, viewportH);
 
         // Custom titlebar strip + caption buttons: draw in DX so it never flashes.
+        bool drewCustomTitlebar = false;
         if (auto* dx = dynamic_cast<DisplayOutput::CDisplayDX11*>(m_spDisplay.get()))
         {
             if (!dx->IsFullscreen() && m_context && m_drawTextureShader)
@@ -1559,6 +1581,7 @@ bool CRendererDX11::EndFrame(bool drawn) {
                     dispW > 0u && dispH > 0u &&
                     titlebarPx < static_cast<int>(dispH) && EnsureSolidWhiteTexture())
                 {
+                    drewCustomTitlebar = true;
                     D3D11_VIEWPORT savedVp[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE] = {};
                     UINT savedVpCount = D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE;
                     m_context->RSGetViewports(&savedVpCount, savedVp);
@@ -1782,7 +1805,7 @@ bool CRendererDX11::EndFrame(bool drawn) {
 
         EndGpuTimingFrame();
 
-        if (effectiveDrawn || settingsVisible || aboutVisible)
+        if (effectiveDrawn || settingsVisible || aboutVisible || drewCustomTitlebar)
         {
             m_spDisplay->SwapBuffers();
             return true;
@@ -2036,7 +2059,7 @@ void CRendererDX11::DrawTextBatched(const std::shared_ptr<CTextDX11Atlas>& text,
     // Bind pipeline + issue one draw for all quads.
     ID3D11ShaderResourceView* srv = atlasDx11->GetSRV();
     m_context->PSSetShaderResources(0, 1, &srv);
-    ID3D11SamplerState* samp = m_glyphPointSampler ? m_glyphPointSampler.Get() : m_defaultSampler.Get();
+    ID3D11SamplerState* samp = m_glyphSampler ? m_glyphSampler.Get() : m_defaultSampler.Get();
     m_context->PSSetSamplers(0, 1, &samp);
 
     m_context->IASetInputLayout(m_textBatchInputLayout.Get());
@@ -2329,28 +2352,42 @@ void CRendererDX11::DrawTexturedQuad(const Base::Math::CRect& _rect,
 
     const CShaderDX11* selectedShaderDx11 =
         dynamic_cast<CShaderDX11*>(m_spSelectedShader.get());
-    const bool applyAspectViewport = selectedShaderDx11 &&
-                                     selectedShaderDx11->IsDecodedFrameShader() &&
-                                     IsPreserveAspectEnabled() && m_spDisplay;
+    const bool isDecodedFrame = selectedShaderDx11 &&
+                                selectedShaderDx11->IsDecodedFrameShader() && m_spDisplay;
 
     Base::Math::CRect drawRect = _rect;
     D3D11_VIEWPORT savedViewports[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE] = {};
     UINT savedViewportCount = D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE;
     bool viewportOverridden = false;
+    int videoRotation = 0;
 
-    if (applyAspectViewport)
+    if (isDecodedFrame)
     {
         const D3D11_VIEWPORT baseVp = BuildBaseViewportForDisplay(m_spDisplay);
-        D3D11_VIEWPORT letterboxVp = {};
-        if (ComputeAspectViewport16By9(baseVp.Width, baseVp.Height, letterboxVp))
+
+        // "Rotate On Portrait Displays" (issue #623): when enabled and the display
+        // is taller than it is wide, turn the dream 90 deg (done in the decoded-frame
+        // shaders via QuadUniforms.rotation) and target a 9:16 box instead of 16:9.
+        // Mirrors the macOS path; applies to both the screensaver and fullscreen app.
+        const bool rotatePortrait =
+            g_Settings() && g_Settings()->Get("settings.player.rotate_portrait", false);
+        const bool shouldRotate = rotatePortrait && baseVp.Height > baseVp.Width;
+        videoRotation = shouldRotate ? 90 : 0;
+
+        if (IsPreserveAspectEnabled())
         {
-            // Offset the letterbox viewport into the reserved client region (e.g. below titlebar).
-            letterboxVp.TopLeftY += baseVp.TopLeftY;
-            m_context->RSGetViewports(&savedViewportCount, savedViewports);
-            m_context->RSSetViewports(1, &letterboxVp);
-            // Draw decoded frame across the computed viewport only.
-            drawRect = Base::Math::CRect(0.f, 0.f, 1.f, 1.f);
-            viewportOverridden = true;
+            const float targetAspect = shouldRotate ? (9.0f / 16.0f) : (16.0f / 9.0f);
+            D3D11_VIEWPORT letterboxVp = {};
+            if (ComputeAspectViewport(baseVp.Width, baseVp.Height, targetAspect, letterboxVp))
+            {
+                // Offset the letterbox viewport into the reserved client region (e.g. below titlebar).
+                letterboxVp.TopLeftY += baseVp.TopLeftY;
+                m_context->RSGetViewports(&savedViewportCount, savedViewports);
+                m_context->RSSetViewports(1, &letterboxVp);
+                // Draw decoded frame across the computed viewport only.
+                drawRect = Base::Math::CRect(0.f, 0.f, 1.f, 1.f);
+                viewportOverridden = true;
+            }
         }
     }
 
@@ -2370,7 +2407,8 @@ void CRendererDX11::DrawTexturedQuad(const Base::Math::CRect& _rect,
     uniforms->color[2] = _color.m_Z;
     uniforms->color[3] = _color.m_W;
     uniforms->brightness = GetBrightness();
-    uniforms->padding[0] = uniforms->padding[1] = uniforms->padding[2] = 0.0f;
+    uniforms->rotation = videoRotation;
+    uniforms->padding[0] = uniforms->padding[1] = 0.0f;
 
     m_context->Unmap(m_quadUniformBuffer.Get(), 0);
     ID3D11Buffer* cb = m_quadUniformBuffer.Get();

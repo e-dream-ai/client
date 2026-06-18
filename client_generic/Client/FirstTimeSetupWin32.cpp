@@ -141,6 +141,10 @@ static float CenteredPanelTopPad(float bodyAvailH, float panelH)
 static bool g_emailFieldBorderActive = false;
 static bool g_otpFieldBorderActive = false;
 
+// One-shot focus requests: set when a step is first entered, consumed on the next frame the field draws.
+static bool g_focusEmailField = false;
+static bool g_focusOtpField = false;
+
 std::atomic<bool> g_overlayAllowed{true};
 std::atomic<bool> g_showRequested{false};
 std::atomic<bool> g_visible{false};
@@ -189,6 +193,8 @@ struct AuthDialogContent
     std::string message;
 };
 
+#include "AuthFailureDialogsWin32.inl"
+
 static DisplayOutput::CDisplayDX11* TryGetDx11Display();
 
 static void OnFirstTimeSetupRequested()
@@ -217,57 +223,6 @@ static void ShowAuthWarningDialog(const AuthDialogContent& content)
     if (auto* dx = TryGetDx11Display())
         owner = dx->GetWindowHandle();
     MessageBoxA(owner, content.message.c_str(), content.title, MB_OK | MB_ICONWARNING);
-}
-
-static AuthDialogContent BuildSendCodeFailureDialog(const EDreamClient::SendCodeResult& result)
-{
-    const bool isClientErrorHttp = (result.httpCode >= 400 && result.httpCode < 500);
-    const bool isServerErrorHttp = (result.httpCode >= 500);
-
-    if (isClientErrorHttp)
-    {
-        std::string message =
-            "We couldn't send a verification email. Make sure your email address is correct, then try Send code again.";
-        if (!result.message.empty())
-            message += "\n\n" + result.message;
-        return {"Unable to send code", message};
-    }
-
-    if (isServerErrorHttp)
-    {
-        std::string message = "Try again later.";
-        if (!result.message.empty())
-            message += " " + result.message;
-        return {"Server Error", message};
-    }
-
-    return {"Authentication Error",
-            result.message.empty() ? "Failed to send verification code." : result.message};
-}
-
-static AuthDialogContent BuildValidateFailureDialog(const EDreamClient::ValidateCodeResult& result)
-{
-    const bool isClientErrorHttp = (result.httpCode >= 400 && result.httpCode < 500);
-    const bool isServerErrorHttp = (result.httpCode >= 500);
-
-    if (isClientErrorHttp)
-    {
-        return {"Invalid Code",
-                "Check for typos and check to be sure you have the most recent code. Try again or start over"};
-    }
-
-    if (isServerErrorHttp)
-    {
-        std::string message = "Try again later.";
-        if (!result.message.empty())
-            message += " " + result.message;
-        return {"Server Error", message};
-    }
-
-    return {"Authentication Error",
-            result.message.empty()
-                ? "Backend is temporarily unavailable. Please try again shortly."
-                : result.message};
 }
 
 static int FilterDigitsOnly(ImGuiInputTextCallbackData* data)
@@ -688,6 +643,8 @@ static void ResetWizardForShow()
     std::string existing = g_Settings()->Get("settings.generator.nickname", std::string());
     std::strncpy(g_emailBuf, existing.c_str(), sizeof g_emailBuf - 1);
     g_emailBuf[sizeof g_emailBuf - 1] = '\0';
+    g_focusEmailField = true;
+    g_focusOtpField = false;
 }
 
 static void PollWorkerResults()
@@ -699,6 +656,7 @@ static void PollWorkerResults()
         {
             g_wizardStep = 1;
             g_errBuf[0] = '\0';
+            g_focusOtpField = true;
         }
         else
         {
@@ -859,6 +817,12 @@ static void DrawWizard()
         {
             ImGui::PushStyleColor(ImGuiCol_Border,
                                   g_emailFieldBorderActive ? kMacInputBorderFocus : kMacInputBorderIdle);
+            // Focus the email field on wizard open so the user can type and press Enter immediately (issue #644).
+            if (g_focusEmailField)
+            {
+                ImGui::SetKeyboardFocusHere();
+                g_focusEmailField = false;
+            }
             // EnterReturnsTrue so pressing Return submits, just like clicking Send code.
             emailEnter = ImGui::InputTextWithHint("##email", "your@email.com", g_emailBuf, sizeof g_emailBuf,
                                                   ImGuiInputTextFlags_EnterReturnsTrue);
@@ -972,6 +936,12 @@ static void DrawWizard()
         {
             ImGui::PushStyleColor(ImGuiCol_Border,
                                   g_otpFieldBorderActive ? kMacInputBorderFocus : kMacInputBorderIdle);
+            // Focus the OTP field on first appearance so the user can type and press Enter without clicking.
+            if (g_focusOtpField)
+            {
+                ImGui::SetKeyboardFocusHere();
+                g_focusOtpField = false;
+            }
             // EnterReturnsTrue plus the digit/edit callbacks: Enter submits, callbacks still filter input.
             otpEnter = ImGui::InputTextWithHint("##otp", "000000", g_codeBuf, sizeof g_codeBuf,
                                                 ImGuiInputTextFlags_CallbackCharFilter |

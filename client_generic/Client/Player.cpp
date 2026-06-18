@@ -198,7 +198,13 @@ int CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
     if (auto* dx11 = dynamic_cast<DisplayOutput::CDisplayDX11*>(spDisplay.get()))
     {
         dx11->SetTargetMonitorIndex(screen);
-        dx11->SetDisableExclusiveFullscreen(m_isScreenSaverRun);
+        // Issue #617: always use borderless windowed fullscreen (never DXGI
+        // exclusive fullscreen). Exclusive fullscreen on a secondary monitor breaks
+        // Win32 foreground/keyboard-focus recovery — once focus moves to the primary
+        // monitor, even clicking the fullscreen window failed to deliver key events.
+        // Borderless windowed restores normal click-to-focus activation. The
+        // screensaver already ran this way; this extends it to the app window.
+        dx11->SetDisableExclusiveFullscreen(true);
     }
 
 
@@ -354,6 +360,21 @@ void CPlayer::ForceWidthAndHeight(uint32_t du, uint32_t _w, uint32_t _h)
     {
         clip->SetDisplaySize((uint16_t)_w, (uint16_t)_h);
     }
+}
+
+void CPlayer::SetVideoRotation(uint32_t du, uint32_t _degrees)
+{
+    std::scoped_lock lockthis(m_displayListMutex);
+
+    if (du >= m_displayUnits.size())
+        return;
+
+    const std::shared_ptr<DisplayUnit> duptr = m_displayUnits[du];
+
+    if (duptr == nullptr || duptr->spRenderer == nullptr)
+        return;
+
+    duptr->spRenderer->SetVideoRotation((int)_degrees);
 }
 
 /*
@@ -853,7 +874,7 @@ bool CPlayer::RenderFrame(DisplayOutput::spCRenderer renderer) {
     return false;
 }
 
-bool CPlayer::PlayClip(const Cache::Dream* dream, double _startTime, int64_t _seekFrame, bool isTransition)
+bool CPlayer::PlayClip(const std::shared_ptr<const Cache::Dream>& dream, double _startTime, int64_t _seekFrame, bool isTransition)
 {
     if (!dream) {
         g_Log->Error("Attempted to play a null dream");
@@ -971,7 +992,7 @@ void CPlayer::PlayNextDream(bool quickFade) {
                 m_currentClip->SetTransitionLength(0.0, 0.0);
                 m_currentClip->ResetFinished();
 
-                const Cache::Dream* nextDream = m_playlistManager->moveToNextDream(*m_nextDreamDecision);
+                auto nextDream = m_playlistManager->moveToNextDream(*m_nextDreamDecision);
 
                 g_Log->Info("Seamless transition complete, syncing state to server");
                 EDreamClient::SendStateUpdate();
@@ -1021,7 +1042,7 @@ void CPlayer::PlayNextDream(bool quickFade) {
                 PlayClip(m_nextDreamDecision->dream, m_TimelineTime, -1, true);
             }
             
-            const Cache::Dream* nextDream = m_playlistManager->moveToNextDream(*m_nextDreamDecision);
+            auto nextDream = m_playlistManager->moveToNextDream(*m_nextDreamDecision);
             m_PreloadingNextClip = false;
             m_PreloadingDreamUUID = "";
 
@@ -1735,8 +1756,11 @@ void CPlayer::SkipForward(float _seconds)
         m_transitionDuration = 1.0f;
         m_pendingSeekCrossfade = true;  // Will start transition when next clip is ready
         
-        // Create the new clip at the target position (it will start buffering)
-        PlayClip(dream, m_TimelineTime, seekFrame, true);
+        // Create the new clip at the target position (it will start buffering).
+        // `dream` may point at a clip-owned Dream that isn't in the cache map, so
+        // wrap it in a non-owning shared_ptr: PlayClip copies the Dream synchronously
+        // and never outlives this call, so no ownership transfer is needed.
+        PlayClip(std::shared_ptr<const Cache::Dream>(std::shared_ptr<void>{}, dream), m_TimelineTime, seekFrame, true);
         if (m_nextClip) {
             m_nextClip->SetTransitionLength(1.0f, 5.0f);
         }
@@ -1757,14 +1781,18 @@ void CPlayer::SkipForward(float _seconds)
             // During transition: "previous" is the "from" dream (m_currentClip)
             // Not transitioning: "previous" is from playlist
             const Cache::Dream* targetDream = nullptr;
-            
+            // Keeps a playlist-sourced dream alive for the duration of this scope
+            // (getPreviousDream returns an owning handle); unused for the clip-owned case.
+            std::shared_ptr<const Cache::Dream> targetDreamHold;
+
             if (m_isTransitioning && m_nextClip) {
                 // During transition, go back to the "from" dream (m_currentClip)
                 targetDream = &m_currentClip->GetClipMetadata().dreamData;
                 g_Log->Info("Skip backward during transition - going back to 'from' dream");
             } else {
                 // Not transitioning, go to playlist's previous dream
-                targetDream = m_playlistManager->getPreviousDream();
+                targetDreamHold = m_playlistManager->getPreviousDream();
+                targetDream = targetDreamHold.get();
             }
             
             if (targetDream) {
@@ -1853,7 +1881,7 @@ void CPlayer::SkipForward(float _seconds)
                             seekFrame, offsetFromStart);
                 
                 // Use crossfade transition to the next dream
-                startSeekCrossfade(nextDecision->dream, seekFrame);
+                startSeekCrossfade(nextDecision->dream.get(), seekFrame);
                 m_playlistManager->moveToNextDream(*nextDecision);
                 EDreamClient::SendStateUpdate();
                 return;
@@ -1953,7 +1981,7 @@ void CPlayer::prepareSeamlessTransition() {
     // Make sure current clip won't transition
     m_currentClip->SetTransitionLength(0.0, 0.0);
 
-    const Cache::Dream* dream = m_nextDreamDecision->dream;
+    auto dream = m_nextDreamDecision->dream;
     if (!dream) return;
     
     // Check if we already have the path
@@ -2022,7 +2050,7 @@ void CPlayer::prepareCrossfadeTransition() {
         m_currentClip->SetTransitionLength(currentFadeIn, 5.0f);
     }
 
-    const Cache::Dream* dream = m_nextDreamDecision->dream;
+    auto dream = m_nextDreamDecision->dream;
     if (!dream) return;
     
     // Check if we already have the path
@@ -2057,7 +2085,7 @@ void CPlayer::prepareCrossfadeTransition() {
     g_Log->Info("Initiated async preparation for: %s", dream->uuid.c_str());
 }
 
-bool CPlayer::PreloadClip(const Cache::Dream* dream) {
+bool CPlayer::PreloadClip(const std::shared_ptr<const Cache::Dream>& dream) {
     if (!dream) {
         g_Log->Error("Attempted to preload a null dream");
         return false;

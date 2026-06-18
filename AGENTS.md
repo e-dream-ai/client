@@ -89,6 +89,15 @@ Runtime logs are written to one file per day (`YYYY_MM_DD.log`) in:
 - **Windows:** `%LOCALAPPDATA%\Infinidream\Logs\` (e.g., `C:\Users\<user>\AppData\Local\Infinidream\Logs\`; stage build uses `Infinidream-stage`)
 - **Linux:** `/tmp/infinidream-logs/`
 
+## Clean Install (testing)
+
+To simulate a fresh first-run ("clean the install"), quit the app and delete the per-user data root. Logs live inside it on macOS/Windows, separately on Linux. Stage builds use a parallel folder so prod and stage state don't collide.
+- **macOS:** `/Users/Shared/infinidream.ai/` (stage: `/Users/Shared/infinidream.ai-stage/`)
+- **Windows:** `%LOCALAPPDATA%\Infinidream\` (stage: `Infinidream-stage`)
+- **Linux:** `~/.config/infinidream/` plus `/tmp/infinidream-logs/`
+
+The screensaver pointer at `HKCU\Control Panel\Desktop\SCRNSAVE.EXE` (Windows) is left alone unless you're specifically re-testing the screensaver opt-in.
+
 ## Deployment
 
 GitHub releases as `infinidream-X.Y.Z.zip`. Appcast URLs:

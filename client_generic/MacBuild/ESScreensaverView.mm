@@ -15,6 +15,7 @@
 {
     BOOL m_bStarted;
     BOOL m_bPausedForSheet;  // YES when paused for Preferences sheet (no full shutdown)
+    BOOL m_shouldRotate;     // YES when rotating the dream 90 deg for a portrait display
     int m_displayIdx;
 }
 
@@ -120,14 +121,24 @@
         newFrame.origin.x = 0.0;
         newFrame.origin.y = 0.0;
 
+        // "Rotate on portrait displays": when enabled and the screen is taller
+        // than it is wide, the dream is turned 90 deg (handled in the shader).
+        // The constrained box then targets 9:16 instead of 16:9.
+        m_shouldRotate =
+            ESScreensaver_GetBoolSetting("settings.player.rotate_portrait", false) &&
+            (frame.size.width < frame.size.height);
+
         if (ESScreensaver_GetBoolSetting("settings.player.preserve_AR", true)) {
-            if (newFrame.size.width/newFrame.size.height < (16.0f / 9.0f) )
+            float targetAR = m_shouldRotate ? (9.0f / 16.0f) : (16.0f / 9.0f);
+            if (newFrame.size.width / newFrame.size.height > targetAR)
             {
-                newFrame.size = CGSizeMake(newFrame.size.width, newFrame.size.width * 9.0f / 16.0f);
-                newFrame.origin.y = (frame.size.height - newFrame.size.height) / 2;
-            } else {
-                newFrame.size = CGSizeMake(newFrame.size.height * 16.0f / 9.0f, newFrame.size.height);
+                // Wider than the target box: constrain width, center horizontally.
+                newFrame.size = CGSizeMake(newFrame.size.height * targetAR, newFrame.size.height);
                 newFrame.origin.x = (frame.size.width - newFrame.size.width) / 2;
+            } else {
+                // Taller than the target box: constrain height, center vertically.
+                newFrame.size = CGSizeMake(newFrame.size.width, newFrame.size.width / targetAR);
+                newFrame.origin.y = (frame.size.height - newFrame.size.height) / 2;
             }
         }
 
@@ -202,6 +213,9 @@
 
         if (!ESScreensaver_Start(m_isPreview, width, height))
             return;
+
+        // Apply portrait rotation now that the renderer exists.
+        ESScreensaver_SetVideoRotation(m_shouldRotate ? 90 : 0);
 
 #ifdef SCREEN_SAVER
         g_Log->Info("Saver startAnimation on %f %f ", self.frame.size.width, self.frame.size.height);
@@ -335,48 +349,54 @@ static void signnal_handler(int signal)
 - (void)windowDidResize
 {
     NSRect videoFrame = self.frame;
-    
+
+    // "Rotate on portrait displays": when enabled and the display is taller
+    // than it is wide (aspect < 1), the dream is turned 90 degrees so the
+    // landscape content fits a portrait screen. The shader does the actual
+    // rotation; here we just pick the target box aspect (9:16 when rotated).
+    BOOL shouldRotate =
+        ESScreensaver_GetBoolSetting("settings.player.rotate_portrait", false) &&
+        (self.frame.size.width < self.frame.size.height);
+
+    // Set background to black for letterboxing/pillarboxing
+    if (self.window) {
+        self.window.backgroundColor = [NSColor blackColor];
+    }
+
     // Only apply aspect ratio constraint if the setting is enabled
     if (ESScreensaver_GetBoolSetting("settings.player.preserve_AR", true)) {
-        // Set background to black for letterboxing/pillarboxing
-        if (self.window) {
-            self.window.backgroundColor = [NSColor blackColor];
-        }
-
-        // Calculate 16:9 constrained frame within the window
         float frameAR = self.frame.size.width / self.frame.size.height;
-        float targetAR = 16.0f / 9.0f;
+        // Rotated content is 9:16; otherwise the dream is 16:9.
+        float targetAR = shouldRotate ? (9.0f / 16.0f) : (16.0f / 9.0f);
 
-        // Only adjust if aspect ratio differs significantly from 16:9
+        // Only adjust if aspect ratio differs significantly from the target
         if (fabsf(frameAR - targetAR) > 0.01f)
         {
             NSSize constrainedSize = self.frame.size;
 
-            if (frameAR < targetAR)  // Frame is taller than 16:9 (e.g., 16:10)
-            {
-                // Constrain height and center vertically
-                constrainedSize.height = constrainedSize.width * 9.0f / 16.0f;
-                CGFloat yOffset = (self.frame.size.height - constrainedSize.height) / 2.0f;
-                videoFrame = NSMakeRect(0, yOffset, constrainedSize.width, constrainedSize.height);
-            }
-            else  // Frame is wider than 16:9
+            if (frameAR > targetAR)  // Frame is wider than the target box
             {
                 // Constrain width and center horizontally
-                constrainedSize.width = constrainedSize.height * 16.0f / 9.0f;
+                constrainedSize.width = constrainedSize.height * targetAR;
                 CGFloat xOffset = (self.frame.size.width - constrainedSize.width) / 2.0f;
                 videoFrame = NSMakeRect(xOffset, 0, constrainedSize.width, constrainedSize.height);
+            }
+            else  // Frame is taller than the target box
+            {
+                // Constrain height and center vertically
+                constrainedSize.height = constrainedSize.width / targetAR;
+                CGFloat yOffset = (self.frame.size.height - constrainedSize.height) / 2.0f;
+                videoFrame = NSMakeRect(0, yOffset, constrainedSize.width, constrainedSize.height);
             }
         }
     } else {
         // When preserve AR is disabled, fill the entire window
-        if (self.window) {
-            self.window.backgroundColor = [NSColor blackColor];
-        }
         videoFrame = self.frame;
     }
 
     view.frame = videoFrame;
 
+    ESScreensaver_SetVideoRotation(shouldRotate ? 90 : 0);
     ESScreensaver_ForceWidthAndHeight((uint32_t)videoFrame.size.width,
                                       (uint32_t)videoFrame.size.height);
 }

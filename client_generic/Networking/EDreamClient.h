@@ -25,6 +25,8 @@ class EDreamClient
         ValidationFailureReason reason;
         int httpCode;
         std::string message;
+        std::string errorCode;
+        int retryAfterSeconds = -1;
     };
 
     enum class HelloFailureReason { None, InvalidSession, TransientFailure };
@@ -41,6 +43,8 @@ class EDreamClient
         bool success;
         int httpCode;
         std::string message;
+        std::string errorCode;
+        int retryAfterSeconds = -1;
     };
 
   private:
@@ -79,6 +83,9 @@ private:
     static bool FetchDefaultPlaylist();
     static bool FetchDreamMetadata(std::string uuid);
     static bool FetchDreamsMetadata(const std::vector<std::string>& uuids);
+    // Fetches metadata for a single batch (<= server uuid cap). Callers should
+    // use FetchDreamsMetadata(), which pages large requests into batches.
+    static bool FetchDreamsMetadataBatch(const std::vector<std::string>& uuids);
     static std::string GetDreamDownloadLink(const std::string& uuid);
     
     static std::vector<PlaylistEntry> ParsePlaylist(std::string_view uuid);

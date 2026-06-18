@@ -34,13 +34,18 @@ CacheManager& CacheManager::getInstance() {
 }
 
 bool CacheManager::hasDream(const std::string& uuid) const {
+    std::shared_lock<std::shared_mutex> lock(dreamsMutex);
     return dreams.find(uuid) != dreams.end();
 }
 
-const Dream* CacheManager::getDream(const std::string& uuid) const {
+std::shared_ptr<const Dream> CacheManager::getDream(const std::string& uuid) const {
+    std::shared_lock<std::shared_mutex> lock(dreamsMutex);
     auto it = dreams.find(uuid);
     if (it != dreams.end()) {
-        return &(it->second);
+        // Return a copy of the owning handle. Even if another thread replaces or
+        // erases this entry right after we release the lock, the Dream stays alive
+        // for as long as the caller holds the returned shared_ptr.
+        return it->second;
     }
     return nullptr;
 }
@@ -60,7 +65,7 @@ std::vector<Dream> CacheManager::getAllCachedDreams() const {
     std::vector<Dream> cachedDreams;
     
     for (const auto& item : diskCached) {
-        const Dream* dream = getDream(item.uuid);
+        auto dream = getDream(item.uuid);
         if (dream) {
             cachedDreams.push_back(*dream);
         }
@@ -70,6 +75,7 @@ std::vector<Dream> CacheManager::getAllCachedDreams() const {
 }
 
 int CacheManager::dreamCount() const {
+    std::shared_lock<std::shared_mutex> lock(dreamsMutex);
     return (int)dreams.size();
 }
 
@@ -129,17 +135,31 @@ void CacheManager::loadJsonFile(const std::string& filename) {
             dream.timestamp = safe_get_int64(dream_obj, "timestamp");
             dream.activityLevel = safe_get_float(dream_obj, "activityLevel");
             dream.md5 = safe_get_string(dream_obj, "md5");
-            
-            dreams[dream.uuid] = dream;
+
+            // Build the shared Dream first, then index by its uuid. Don't move
+            // `dream` directly into the subscript expression: the RHS is sequenced
+            // before the LHS, so `dreams[dream.uuid]` would read a moved-from
+            // (empty) uuid and store every entry under "".
+            auto sharedDream = std::make_shared<Dream>(std::move(dream));
+            {
+                std::unique_lock<std::shared_mutex> lock(dreamsMutex);
+                dreams[sharedDream->uuid] = sharedDream;
+            }
         }
     }
 }
 
 void CacheManager::cleanupDiskCache() {
     std::vector<DiskCachedItem> itemsToRemove;
-    
+
     fs::path folderPath = PathManager::getInstance().mp4Path();
-    
+
+    if (!fs::exists(folderPath) || !fs::is_directory(folderPath)) {
+        g_Log->Error("cleanupDiskCache: mp4 directory missing (%s); skipping",
+                     folderPath.string().c_str());
+        return;
+    }
+
     // Look for temporary files
     for (const auto& entry : fs::directory_iterator(folderPath)) {
         const auto& path = entry.path();
@@ -193,9 +213,11 @@ void CacheManager::cleanupDiskCache() {
 
 void CacheManager::removeUnknownVideos() {
     fs::path folderPath = PathManager::getInstance().mp4Path();
-    
+
     if (!fs::exists(folderPath) || !fs::is_directory(folderPath)) {
-        throw std::runtime_error("Invalid folder path");
+        g_Log->Error("removeUnknownVideos: mp4 directory missing (%s); skipping",
+                     folderPath.string().c_str());
+        return;
     }
     
     std::vector<fs::path> filesToRemove;
@@ -279,10 +301,6 @@ bool CacheManager::deleteDream(const std::string& uuid) {
     return true;
 }
 
-const std::unordered_map<std::string, Dream>& CacheManager::getDreams() const {
-    return dreams;
-}
-
 // MARK: - Quota
 
 void CacheManager::decreaseRemainingQuota(long long amount) {
@@ -298,6 +316,16 @@ void CacheManager::decreaseRemainingQuota(long long amount) {
 // MARK: - Metadata
 
 void CacheManager::loadCachedMetadata() {
+    // If the storage directories couldn't be created (e.g. the disk is full),
+    // there is nothing to scan and the directory iterators below would throw an
+    // uncaught exception that aborts the app at launch (issue #664). Skip the
+    // cache load; CheckDiskSpace() will flag the low-disk condition to the user.
+    if (!PathManager::getInstance().storageReady()) {
+        g_Log->Error("Storage not ready (disk full or unwritable); "
+                     "skipping cached metadata load.");
+        return;
+    }
+
     // Also load our internal Caches here !
     loadDiskCachedFromJson();
     loadHistoryFromJson();
@@ -333,8 +361,11 @@ void CacheManager::loadCachedMetadata() {
             loadJsonFile(path.string());
         }
     }
-    
-    g_Log->Info("Local metadata cache initialized with %i dreams", dreams.size());
+
+    {
+        std::shared_lock<std::shared_mutex> lock(dreamsMutex);
+        g_Log->Info("Local metadata cache initialized with %zu dreams", dreams.size());
+    }
 }
 
 
@@ -344,13 +375,14 @@ bool CacheManager::areMetadataCached(std::string uuid) {
 }
 
 bool CacheManager::needsMetadata(std::string uuid, long long timeStamp) {
-    // Is it cached ?
-    if (!hasDream(uuid)) {
+    std::shared_lock<std::shared_mutex> lock(dreamsMutex);
+    auto it = dreams.find(uuid);
+    // Not cached at all -> we need it.
+    if (it == dreams.end()) {
         return true;
-    } else {
-        // Is the playlist timestamp newer ?
-        return dreams[uuid].timestamp < timeStamp;
     }
+    // Cached, but refetch if the playlist has a newer timestamp.
+    return it->second->timestamp < timeStamp;
 }
 
 void CacheManager::reloadMetadata(std::string uuid) {

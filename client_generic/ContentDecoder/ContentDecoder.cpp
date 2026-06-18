@@ -1274,12 +1274,25 @@ bool CContentDecoder::Start(const sClipMetadata& metadata, int64_t _seekFrame)
 void CContentDecoder::Stop()
 {
     m_bStop = true;
-    
+
     if (m_pDecoderThread)
     {
         m_pDecoderThread->interrupt();
-        m_pDecoderThread->join();
-        SAFE_DELETE(m_pDecoderThread);
+
+        // If Stop() runs on the decoder thread itself (e.g. exit() invoked from
+        // the SIGSEGV handler in ESScreensaverView), joining would throw
+        // resource_deadlock_would_occur out of a destructor and trip terminate().
+        // Detach in that case; the process is exiting anyway.
+        if (m_pDecoderThread->get_id() == boost::this_thread::get_id())
+        {
+            m_pDecoderThread->detach();
+            SAFE_DELETE(m_pDecoderThread);
+        }
+        else
+        {
+            m_pDecoderThread->join();
+            SAFE_DELETE(m_pDecoderThread);
+        }
     }
 }
 
@@ -1338,6 +1351,9 @@ bool CContentDecoder::OpenCacheFile() {
 }
 
 void CContentDecoder::CloseCacheFile() {
+    // Must hold m_CacheMutex: WriteToCache races with concurrent closes
+    // (signalShutdown/abortFutures path) and would otherwise fwrite a NULL FILE*.
+    std::lock_guard<std::mutex> lock(m_CacheMutex);
     if (m_CacheFile) {
         fflush(m_CacheFile);
         fclose(m_CacheFile);
@@ -1347,9 +1363,11 @@ void CContentDecoder::CloseCacheFile() {
 
 void CContentDecoder::WriteToCache(const uint8_t* buf, int buf_size, int64_t position)
 {
-    if (m_CacheFile && buf && buf_size > 0) {
-        std::lock_guard<std::mutex> lock(m_CacheMutex);
-        
+    if (!buf || buf_size <= 0)
+        return;
+
+    std::lock_guard<std::mutex> lock(m_CacheMutex);
+    if (m_CacheFile) {
         // Handle position mismatches (FFmpeg may seek around)
         if (position != m_CacheWritePosition) {
             if (position > m_CacheWritePosition) {
@@ -1357,7 +1375,7 @@ void CContentDecoder::WriteToCache(const uint8_t* buf, int buf_size, int64_t pos
                 m_CacheWritePosition = position;
             }
         }
-        
+
         fseek(m_CacheFile, m_CacheWritePosition, SEEK_SET);
         size_t written = fwrite(buf, 1, buf_size, m_CacheFile);
         

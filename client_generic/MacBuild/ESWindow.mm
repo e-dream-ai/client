@@ -116,8 +116,20 @@ static void ShowFirstTimeSetupCallback()
 
         [esView setAutoresizesSubviews:YES];
 
-        
+
         [self makeFirstResponder:esView];
+
+        // Hide the player view if the first-time wizard will be shown — auth runs from
+        // inside startAnimation and triggers the wizard, so we have to start the player
+        // for the wizard to appear, but we don't want video flashing behind the sheet.
+        // FirstTimeSetupManager.handleSheetCompletion unhides it after the wizard closes.
+        bool firstTimeSetupCompleted =
+            ESScreensaver_GetBoolSetting("settings.app.firsttimesetup", false);
+        if (!firstTimeSetupCompleted)
+        {
+            self.backgroundColor = [NSColor blackColor];
+            esView.hidden = YES;
+        }
 
         [self makeKeyAndOrderFront:nil];
 
@@ -140,15 +152,26 @@ static void ShowFirstTimeSetupCallback()
 
     if (ESScreensaver_GetBoolSetting("settings.player.preserve_AR", true)) {
         // Calculate current screen aspect ratio
-        float screenAR = self.screen.frame.size.width / self.screen.frame.size.height;
-        
-        // set a fixed ratio on full screen
-        if (screenAR < (16.0f/9.0f))
-        {
-            [self setMaxFullScreenContentSize:CGSizeMake(self.screen.frame.size.width, self.screen.frame.size.width * 9 / 16)];
+        float screenW = self.screen.frame.size.width;
+        float screenH = self.screen.frame.size.height;
+        float screenAR = screenW / screenH;
 
+        // "Rotate on portrait displays": on a portrait screen the rotated dream
+        // is 9:16, so the fullscreen content box must be allowed to be portrait
+        // (otherwise it would stay a landscape strip and rotation couldn't fill).
+        BOOL shouldRotate =
+            ESScreensaver_GetBoolSetting("settings.player.rotate_portrait", false) &&
+            (screenAR < 1.0f);
+        float targetAR = shouldRotate ? (9.0f / 16.0f) : (16.0f / 9.0f);
+
+        // set a fixed ratio on full screen
+        if (screenAR > targetAR)
+        {
+            // Wider than the target box: constrain width.
+            [self setMaxFullScreenContentSize:CGSizeMake(screenH * targetAR, screenH)];
         } else {
-            [self setMaxFullScreenContentSize:CGSizeMake(self.screen.frame.size.height * 16 / 9, self.screen.frame.size.height)];
+            // Taller than the target box: constrain height.
+            [self setMaxFullScreenContentSize:CGSizeMake(screenW, screenW / targetAR)];
         }
     } else {
         // Clear any previous constraint to allow full stretch

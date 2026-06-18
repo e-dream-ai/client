@@ -445,6 +445,7 @@ void CRendererMetal::DrawQuad(const Base::Math::CRect& _rect,
                                         _uvrect.m_X1 - _uvrect.m_X0,
                                         _uvrect.m_Y1 - _uvrect.m_Y0};
         uniforms.brightness = m_Brightness;
+        uniforms.rotation = m_VideoRotation;
 
         [renderEncoder setFragmentBytes:&uniforms
                                  length:sizeof(uniforms)

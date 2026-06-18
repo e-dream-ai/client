@@ -10,7 +10,12 @@
 #include "PlatformUtils.h"
 #include "CacheManager.h"
 
+#include "MagicLinkAuthAlertsApple.inl"
+
 //using namespace ContentDownloader;
+
+@interface ESConfiguration () <NSTextFieldDelegate>
+@end
 
 @implementation ESConfiguration
 
@@ -54,41 +59,6 @@
     [alert beginSheetModalForWindow:self.window completionHandler:nil];
 }
 
-- (void)showInvalidCodeValidationAlert {
-    NSAlert *alert = [[NSAlert alloc] init];
-    [alert setMessageText:@"Invalid Code"];
-    [alert setInformativeText:@"Check for typos and check to be sure you have the most recent code. Try again or start over"];
-    [alert addButtonWithTitle:@"OK"];
-    [alert beginSheetModalForWindow:self.window completionHandler:nil];
-}
-
-- (void)showSendCodeClientErrorAlertWithServerMessage:(NSString *)serverMessage {
-    NSMutableString *body = [NSMutableString stringWithString:
-        @"We couldn't send a verification email. Make sure your email address is correct, then try Send code again."];
-    if (serverMessage.length > 0) {
-        [body appendString:@"\n\n"];
-        [body appendString:serverMessage];
-    }
-    NSAlert *alert = [[NSAlert alloc] init];
-    [alert setMessageText:@"Unable to send code"];
-    [alert setInformativeText:body];
-    [alert addButtonWithTitle:@"OK"];
-    [alert beginSheetModalForWindow:self.window completionHandler:nil];
-}
-
-- (void)showServerErrorValidationAlertWithServerMessage:(NSString *)serverMessage {
-    NSMutableString *body = [NSMutableString stringWithString:@"Try again later."];
-    if (serverMessage.length > 0) {
-        [body appendString:@" "];
-        [body appendString:serverMessage];
-    }
-    NSAlert *alert = [[NSAlert alloc] init];
-    [alert setMessageText:@"Server Error"];
-    [alert setInformativeText:body];
-    [alert addButtonWithTitle:@"OK"];
-    [alert beginSheetModalForWindow:self.window completionHandler:nil];
-}
-
 - (void)awakeFromNib // was - (NSWindow *)window
 {
     CFBundleRef bndl = CopyDLBundle_ex();
@@ -107,6 +77,10 @@
     emailTextField.cell.scrollable = NO;
     emailTextField.cell.wraps = NO;
     [emailTextField.cell setUsesSingleLineMode:YES];
+
+    // Filter the verification code field to digits-only, max 6 chars
+    // (mirrors CodeStepViewController on first startup).
+    digitCodeTextField.delegate = self;
 
     // We initially load the settings here, this avoid flickering of the ui
     [self loadSettings];
@@ -197,7 +171,8 @@
             m_loginWasSuccessful = NO;
             
             signInButton.title = @"Validate";
-            [signInButton setEnabled:true];
+            // Only allow validating once a full 6-digit code is entered
+            [signInButton setEnabled:(digitCodeTextField.stringValue.length == 6)];
 
             [retryLoginButton setHidden:false];
             [retryLoginButton setEnabled:true];
@@ -295,6 +270,9 @@
 
     preserveAR.state =
         ESScreensaver_GetBoolSetting("settings.player.preserve_AR", false);
+
+    rotatePortrait.state =
+        ESScreensaver_GetBoolSetting("settings.player.rotate_portrait", false);
 
     blackoutMonitors.state =
         ESScreensaver_GetBoolSetting("settings.player.blackout_monitors", true);
@@ -403,6 +381,9 @@
 
     ESScreensaver_SetBoolSetting("settings.player.preserve_AR",
                                  preserveAR.state);
+
+    ESScreensaver_SetBoolSetting("settings.player.rotate_portrait",
+                                 rotatePortrait.state);
 
     ESScreensaver_SetBoolSetting("settings.player.blackout_monitors",
                                  blackoutMonitors.state);
@@ -558,26 +539,14 @@
                 // Keep email field enabled and reset the UI state
                 [emailTextField setEnabled:YES];
                 [digitCodeTextField setEnabled:NO];
-                const int httpCode = result.httpCode;
-                if (httpCode >= 400 && httpCode < 500) {
-                    NSString *serverMsg = result.message.empty()
-                        ? @""
-                        : [NSString stringWithUTF8String:result.message.c_str()];
-                    [self showSendCodeClientErrorAlertWithServerMessage:serverMsg];
-                } else if (httpCode >= 500) {
-                    NSString *serverMsg = result.message.empty()
-                        ? @""
-                        : [NSString stringWithUTF8String:result.message.c_str()];
-                    [self showServerErrorValidationAlertWithServerMessage:serverMsg];
-                } else {
-                    NSString *message = result.message.empty()
-                        ? @"Failed to send verification code."
-                        : [NSString stringWithUTF8String:result.message.c_str()];
-                    [self showErrorAlert:message];
-                }
+                MagicLink_ShowSendFailureAlert(self.window, result);
                 [self updateAuthUI];
             }
         } else {
+            if (digitCodeTextField.stringValue.length != 6) {
+                return;
+            }
+
             // Try validating code
             EDreamClient::ValidateCodeResult validateResult =
                 EDreamClient::ValidateCodeDetailed(digitCodeTextField.stringValue.UTF8String);
@@ -599,33 +568,7 @@
             } else {
                 // Code validation failed
                 m_loginWasSuccessful = false;
-                if (validateResult.reason == EDreamClient::ValidationFailureReason::InvalidSession) {
-                    // Keep m_sentCode YES so user stays in "enter code" flow; they can retry or use Start again.
-                    if (validateResult.httpCode >= 400 && validateResult.httpCode < 500) {
-                        [self showInvalidCodeValidationAlert];
-                    } else {
-                        NSString *message = validateResult.message.empty()
-                            ? @"Validation failed. Please request a new code and sign in again."
-                            : [NSString stringWithUTF8String:validateResult.message.c_str()];
-                        [self showErrorAlert:message];
-                    }
-                } else {
-                    if (validateResult.httpCode >= 500) {
-                        NSString *serverMessage = validateResult.message.empty()
-                            ? @""
-                            : [NSString stringWithUTF8String:validateResult.message.c_str()];
-                        [self showServerErrorValidationAlertWithServerMessage:serverMessage];
-                    } else {
-                        NSString *message = nil;
-                        if (!validateResult.message.empty()) {
-                            message = [NSString stringWithUTF8String:validateResult.message.c_str()];
-                        }
-                        if (message.length == 0) {
-                            message = @"Backend is temporarily unavailable. Please try again shortly.";
-                        }
-                        [self showErrorAlert:message];
-                    }
-                }
+                MagicLink_ShowValidateFailureAlert(self.window, validateResult);
                 [self updateAuthUI];
             }
         }
@@ -659,6 +602,38 @@
 #else
     [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://alpha.infinidream.ai/playlists"]];
 #endif
+}
+
+#pragma mark - NSTextFieldDelegate
+
+- (void)controlTextDidChange:(NSNotification *)notification
+{
+    if (notification.object != digitCodeTextField) {
+        return;
+    }
+
+    NSString *text = digitCodeTextField.stringValue;
+
+    // Remove non-digits
+    NSString *numbersOnly = [text stringByReplacingOccurrencesOfString:@"[^0-9]"
+                                                            withString:@""
+                                                               options:NSRegularExpressionSearch
+                                                                 range:NSMakeRange(0, text.length)];
+
+    // Limit to 6 digits
+    if (numbersOnly.length > 6) {
+        numbersOnly = [numbersOnly substringToIndex:6];
+    }
+
+    // Update field if changed
+    if (![text isEqualToString:numbersOnly]) {
+        digitCodeTextField.stringValue = numbersOnly;
+    }
+
+    // Only allow validating once a full 6-digit code is entered
+    if (m_sentCode && !EDreamClient::IsLoggedIn()) {
+        [signInButton setEnabled:(numbersOnly.length == 6)];
+    }
 }
 
 - (void)dealloc

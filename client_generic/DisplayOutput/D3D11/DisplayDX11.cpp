@@ -295,6 +295,42 @@ static void AppendMouseEvent(CMouseEvent::eMouseCode code, LPARAM lParam)
     }
 }
 
+// Multi-monitor keyboard-focus recovery (issue #617).
+//
+// When the dream is fullscreen (borderless) on a secondary monitor and another
+// process holds the foreground, Windows stops posting input (clicks, keys) to our
+// window even though it's topmost and the cursor is over it, so keyboard hotkeys
+// stop working. A bare SetForegroundWindow() is silently no-op'd by Windows when
+// the calling thread isn't allowed to steal foreground, so use the AttachThreadInput
+// dance: attach to the current foreground thread's input queue, claim
+// foreground+focus, then detach.
+static void ReclaimForegroundFocus(HWND hwnd)
+{
+    if (!hwnd || !IsWindow(hwnd))
+        return;
+    const HWND fg = GetForegroundWindow();
+    if (fg == hwnd)
+    {
+        // Already foreground; just make sure keyboard focus is on us.
+        SetFocus(hwnd);
+        return;
+    }
+
+    const DWORD myThread = GetCurrentThreadId();
+    const DWORD fgThread = fg ? GetWindowThreadProcessId(fg, nullptr) : 0;
+    const bool attach = (fgThread != 0 && fgThread != myThread);
+    BOOL attached = FALSE;
+    if (attach)
+        attached = AttachThreadInput(myThread, fgThread, TRUE);
+
+    BringWindowToTop(hwnd);
+    SetForegroundWindow(hwnd);
+    SetFocus(hwnd);
+
+    if (attach && attached)
+        AttachThreadInput(myThread, fgThread, FALSE);
+}
+
 static void LayoutFullscreenSaverWindow(HWND hwnd, IDXGISwapChain* swapChain)
 {
     if (!hwnd)
@@ -1117,6 +1153,9 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
     {
         if (self && self->m_bFullScreen && !self->m_bEmbeddedSaverPreview)
         {
+            // Issue #617: a posted click reaching us here means we already have (or are
+            // getting) activation; make sure keyboard focus comes with it.
+            ReclaimForegroundFocus(hWnd);
             AppendMouseEvent(CMouseEvent::Mouse_LEFT, lParam);
             return 0;
         }
@@ -1227,7 +1266,7 @@ HWND CDisplayDX11::CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen,
 
         auto clientSizeForPreserveAR = [&](uint32_t& cw, uint32_t& ch) {
             // Match D3D video region: drawable (cw × ch − title strip) stays 16:9 (see
-            // BuildBaseViewportForDisplay + ComputeAspectViewport16By9).
+            // BuildBaseViewportForDisplay + ComputeAspectViewport).
             if (!preserveAR || !customVideoTopInset)
                 return;
             const int tb = GetSystemTitlebarHeightPx();
@@ -1717,6 +1756,36 @@ void CDisplayDX11::Update() {
         TranslateMessage(&msg);
         DispatchMessageW(&msg);
     }
+
+#ifdef WIN32
+    // Issue #617: when the dream is fullscreen on a secondary monitor and another
+    // process holds the foreground, Windows stops *posting* input (clicks, keys) to
+    // our window even though the cursor is over it — so the usual click-to-focus
+    // path never fires (the WM_LBUTTONDOWN is never delivered). The render loop poll
+    // is the only place that can observe the user's intent. So: if the cursor is
+    // over our fullscreen window, we don't have the foreground, and the user is
+    // pressing the left mouse button, reclaim the foreground here. This keeps the
+    // "click the dream to take control" UX without relying on a posted click.
+    if (m_bFullScreen && m_WindowHandle && !m_bEmbeddedSaverPreview)
+    {
+        POINT cur{};
+        GetCursorPos(&cur);
+        const HWND under = WindowFromPoint(cur);
+        const HWND underTop = under ? GetAncestor(under, GA_ROOT) : nullptr;
+        const bool cursorOverUs = (underTop == m_WindowHandle);
+        const bool weAreForeground = (GetForegroundWindow() == m_WindowHandle);
+        const bool lbtnDown = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
+
+        // Click the dream to take control. We only see the click via this poll
+        // (avoid stealing focus on mere hover, and don't re-grab once we already
+        // hold the foreground).
+        if (cursorOverUs && !weAreForeground && lbtnDown)
+        {
+            g_Log->Info("Issue #617: reclaiming foreground after click on fullscreen dream");
+            ReclaimForegroundFocus(m_WindowHandle);
+        }
+    }
+#endif
 }
 
 void CDisplayDX11::SwapBuffers()
@@ -1770,13 +1839,20 @@ bool CDisplayDX11::SetFullscreen(const bool fullscreen)
         if (GetMonitorInfo(monitor, &mi))
         {
             SetWindowLongPtr(m_WindowHandle, GWL_STYLE, static_cast<LONG_PTR>(WS_POPUP | WS_VISIBLE));
-            SetWindowPos(m_WindowHandle, HWND_TOP, mi.rcMonitor.left, mi.rcMonitor.top,
+            // Issue #617: keep the borderless fullscreen window TOPMOST (like the
+            // screensaver path) so that after it loses activation it stays on top of
+            // its monitor and still receives mouse clicks (which can then reactivate
+            // it). A plain HWND_TOP window can drop behind and stop getting input.
+            LONG_PTR ex = GetWindowLongPtr(m_WindowHandle, GWL_EXSTYLE);
+            SetWindowLongPtr(m_WindowHandle, GWL_EXSTYLE, ex | WS_EX_TOPMOST | WS_EX_APPWINDOW);
+            SetWindowPos(m_WindowHandle, HWND_TOPMOST, mi.rcMonitor.left, mi.rcMonitor.top,
                          mi.rcMonitor.right - mi.rcMonitor.left,
                          mi.rcMonitor.bottom - mi.rcMonitor.top,
                          SWP_FRAMECHANGED | SWP_SHOWWINDOW | SWP_NOOWNERZORDER);
         }
         ShowCursor(FALSE);
         m_bFullScreen = true;
+        ReclaimForegroundFocus(m_WindowHandle);
         return true;
     }
 

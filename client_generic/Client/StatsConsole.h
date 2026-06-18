@@ -350,13 +350,54 @@ class CStatsConsole : public CConsole
         }
     }
 
+    // Set _text to _full, truncating with a trailing ellipsis if it would be
+    // wider than _maxWidth (normalized [0,1] screen width). _maxWidth <= 0 means
+    // "no limit". Truncation respects UTF-8 codepoint boundaries so multi-byte
+    // characters in dream names are never split. Returns the resulting extent.
+    static Base::Math::CVector2 SetTextFit(DisplayOutput::spCBaseText& _text,
+                                           const std::string& _full,
+                                           float _maxWidth)
+    {
+        _text->SetText(_full);
+        Base::Math::CVector2 size = _text->GetExtent();
+        if (_maxWidth <= 0.f || size.m_X <= _maxWidth || _full.size() <= 1)
+            return size;
+
+        // Byte offsets of each UTF-8 codepoint start, plus end-of-string.
+        std::vector<size_t> starts;
+        for (size_t i = 0; i < _full.size(); ++i)
+            if ((static_cast<unsigned char>(_full[i]) & 0xC0) != 0x80)
+                starts.push_back(i);
+        starts.push_back(_full.size());
+
+        // Plain ASCII "..." rather than U+2026: the Linux/ImGui font atlas only
+        // loads the default glyph range (U+0020..U+00FF), so a real ellipsis
+        // would render as a fallback box there. "..." renders on every platform.
+        static const std::string kEllipsis = "...";
+
+        // Largest prefix (in codepoints) such that prefix + ellipsis fits.
+        size_t lo = 0, hi = starts.size() - 1;
+        while (lo < hi)
+        {
+            size_t mid = (lo + hi + 1) / 2;
+            _text->SetText(_full.substr(0, starts[mid]) + kEllipsis);
+            if (_text->GetExtent().m_X <= _maxWidth)
+                lo = mid;
+            else
+                hi = mid - 1;
+        }
+
+        _text->SetText(_full.substr(0, starts[lo]) + kEllipsis);
+        return _text->GetExtent();
+    }
+
     bool Render(const double _time,
                 DisplayOutput::spCRenderer _spRenderer) override
     {
         if (!CHudEntry::Render(_time, _spRenderer))
             return false;
 
-        if (g_Player().Stopped() || m_Stats.empty() || !g_Player().HasStarted())
+        if (m_Stats.empty() || !g_Player().HasStarted())
             return true; // Skip rendering but keep entry alive (false = remove from HudManager)
 
         // Lazily initialize font/text now that we have a renderer.
@@ -395,6 +436,27 @@ class CStatsConsole : public CConsole
         float pos = 0;
         float edge = (float)m_Desc.Height() * hudScale / screenW;
 
+        // Pre-pass: measure right-aligned stats so left-aligned text sharing a
+        // row (e.g. a long dream title vs. the playlist index on the right) can
+        // be truncated before it overlaps them. Keyed by the left stat they
+        // align with; we keep the widest right stat on each row.
+        std::unordered_map<std::string, float> rightAlignedWidth;
+        for (auto& entry : m_Stats)
+        {
+            StatText& st = entry.second;
+            if (st.isRightAligned && st.stat && st.text && st.stat->Visible() &&
+                !st.alignWithStat.empty())
+            {
+                st.text->SyncLayoutDisplay(spDisplay->Width(),
+                                           spDisplay->Height());
+                st.text->SetText(st.stat->Report(_time));
+                float w = st.text->GetExtent().m_X;
+                auto it = rightAlignedWidth.find(st.alignWithStat);
+                if (it == rightAlignedWidth.end() || w > it->second)
+                    rightAlignedWidth[st.alignWithStat] = w;
+            }
+        }
+
         // First pass: update text content and calculate layout.
         // Always reserve space for every stat (visible or not) so that
         // toggling visibility doesn't shift other lines vertically.
@@ -412,8 +474,20 @@ class CStatsConsole : public CConsole
                 float lineHeight = step;
                 if (e->Visible())
                 {
-                    text->SetText(e->Report(_time));
-                    Base::Math::CVector2 size = text->GetExtent();
+                    Base::Math::CVector2 size;
+                    // Cap left-aligned text so it can't run into a right-aligned
+                    // stat sharing its row (0 = no limit).
+                    float maxWidth = 0.f;
+                    if (!i->second.isRightAligned)
+                    {
+                        auto rit = rightAlignedWidth.find(i->first);
+                        if (rit != rightAlignedWidth.end())
+                        {
+                            const float gap = edge * 2.f;
+                            maxWidth = 1.f - (edge * 2.f) - rit->second - gap;
+                        }
+                    }
+                    size = SetTextFit(text, e->Report(_time), maxWidth);
                     lineHeight = std::max(size.m_Y, step);
                     sizes[i->first] = {size.m_X, lineHeight};
                 }

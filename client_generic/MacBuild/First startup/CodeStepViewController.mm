@@ -12,6 +12,8 @@
 #include "EDreamClient.h"
 #include "Log.h"
 
+#include "../MagicLinkAuthAlertsApple.inl"
+
 @interface CodeStepViewController () <NSTextFieldDelegate>
 @property (weak) IBOutlet NSTextField *otpTextField;
 @property (weak) IBOutlet NSButton *verifyButton;
@@ -39,68 +41,9 @@
     }
 }
 
-- (NSString *)popupMessageForValidateResult:(const EDreamClient::ValidateCodeResult&)result
-{
-    if (!result.message.empty()) {
-        NSString *msg = [NSString stringWithUTF8String:result.message.c_str()];
-        if (msg.length > 0) {
-            return msg;
-        }
-    }
-    
-    if (result.reason == EDreamClient::ValidationFailureReason::InvalidSession) {
-        return @"Invalid verification code. Please try again.";
-    }
-    
-    if (result.httpCode >= 500) {
-        return [NSString stringWithFormat:@"Server error (HTTP %d). Please try again.", result.httpCode];
-    }
-    
-    return @"Backend is temporarily unavailable. Please try again shortly.";
-}
-
-- (NSString *)serverErrorDescriptionForResult:(const EDreamClient::ValidateCodeResult&)result
-{
-    NSMutableString *body = [NSMutableString stringWithString:@"Try again later."];
-    if (!result.message.empty()) {
-        NSString *serverText = [NSString stringWithUTF8String:result.message.c_str()];
-        if (serverText.length > 0) {
-            [body appendString:@" "];
-            [body appendString:serverText];
-        }
-    }
-    return body;
-}
-
 - (void)showValidationFailurePopupForResult:(const EDreamClient::ValidateCodeResult&)result
 {
-    const bool isClientErrorHttp =
-        (result.httpCode >= 400 && result.httpCode < 500);
-    const bool isServerErrorHttp = (result.httpCode >= 500);
-    NSString *title;
-    NSString *message;
-    if (isClientErrorHttp) {
-        title = @"Invalid Code";
-        message = @"Check for typos and check to be sure you have the most recent code. Try again or start over";
-    } else if (isServerErrorHttp) {
-        title = @"Server Error";
-        message = [self serverErrorDescriptionForResult:result];
-    } else {
-        title = @"Authentication Error";
-        message = [self popupMessageForValidateResult:result];
-    }
-    
-    NSAlert *alert = [[NSAlert alloc] init];
-    alert.messageText = title;
-    alert.informativeText = message;
-    alert.alertStyle = NSAlertStyleWarning;
-    [alert addButtonWithTitle:@"OK"];
-    
-    if (self.view.window) {
-        [alert beginSheetModalForWindow:self.view.window completionHandler:nil];
-    } else {
-        [alert runModal];
-    }
+    MagicLink_ShowValidateFailureAlert(self.view.window, result);
 }
 
 - (void)viewDidLoad {

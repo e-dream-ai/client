@@ -242,7 +242,23 @@ bool PlaylistManager::hasKeyframes() const {
 std::optional<std::string> PlaylistManager::getNextUncachedDream() const {
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
     auto& downloader = g_ContentDownloader().m_gDownloader;
-    
+
+    // In shuffle mode, playback order is random, so download order should be
+    // random too - don't follow keyframe chains or sequential successors (issue #521).
+    if (m_playbackMode == PlaybackMode::Shuffle) {
+        std::vector<std::string> uncached;
+        for (const auto& entry : m_playlist) {
+            if (!cm.hasDiskCachedItem(entry.uuid) &&
+                !downloader.IsDreamBeingDownloaded(entry.uuid)) {
+                uncached.push_back(entry.uuid);
+            }
+        }
+        if (uncached.empty())
+            return std::nullopt;
+        g_Log->Info("Shuffle mode: random uncached dream (%zu remaining)", uncached.size());
+        return uncached[rand() % uncached.size()];
+    }
+
     // Check if playlist has keyframes and randomly return an uncached dream 10% of the time
     if (hasKeyframes()) {
         // Generate random number between 0 and 99
@@ -474,7 +490,7 @@ size_t PlaylistManager::findPositionOfDream(const std::string& dreamUUID) const 
 bool PlaylistManager::isDreamProcessed(const std::string& uuid) const {
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
     if (cm.hasDream(uuid)) {
-        const Cache::Dream* dream = cm.getDream(uuid);
+        auto dream = cm.getDream(uuid);
         if (dream) {
             return dream->status == "processed";
         }
@@ -866,7 +882,7 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
     return decision;
 }
 
-const Cache::Dream* PlaylistManager::moveToNextDream(const NextDreamDecision& decision) {
+std::shared_ptr<const Cache::Dream> PlaylistManager::moveToNextDream(const NextDreamDecision& decision) {
     if (m_playlist.empty()) {
         return nullptr;
     }
@@ -987,7 +1003,7 @@ std::optional<PlaylistManager::DreamLookupResult> PlaylistManager::getDreamByUUI
     };
 }
 
-const Cache::Dream* PlaylistManager::getPreviousDream() {
+std::shared_ptr<const Cache::Dream> PlaylistManager::getPreviousDream() {
     if (m_playlist.empty()) {
         return nullptr;
     }
@@ -1048,7 +1064,7 @@ bool PlaylistManager::hasMoreDreams() const {
     return !m_playlist.empty();
 }
 
-const Cache::Dream* PlaylistManager::getCurrentDream() const {
+std::shared_ptr<const Cache::Dream> PlaylistManager::getCurrentDream() const {
     if (m_playlist.empty()) {
         return nullptr;
     }
@@ -1092,14 +1108,14 @@ std::tuple<std::string, std::string, bool, int64_t, int> PlaylistManager::getPla
     return {m_currentPlaylistName, m_currentPlaylistArtist, m_isPlaylistNSFW, m_playlistTimestamp, m_loopIterations};
 }
 
-const Cache::Dream* PlaylistManager::getDreamMetadata(const std::string& dreamUUID) const {
+std::shared_ptr<const Cache::Dream> PlaylistManager::getDreamMetadata(const std::string& dreamUUID) const {
     auto it = std::find_if(m_playlist.begin(), m_playlist.end(),
         [&dreamUUID](const PlaylistEntry& entry) {
             return entry.uuid == dreamUUID;
         });
 
     if (it != m_playlist.end()) {
-        const Cache::Dream* dream = m_cacheManager.getDream(dreamUUID);
+        auto dream = m_cacheManager.getDream(dreamUUID);
         if (dream) {
             return dream;
         }

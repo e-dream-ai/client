@@ -12,6 +12,7 @@
 #include <chrono>
 #include <utility>
 #include <algorithm>
+#include <cctype>
 #ifndef WIN32
 #include <unistd.h>
 #endif
@@ -302,6 +303,12 @@ void EDreamClient::UpdateQuota()
         }
     }
 
+    // FIX (issue #656): the backend silently rotates the session and returns the new
+    // sealed session only as a Set-Cookie header on an otherwise-200 response. This
+    // endpoint previously never called ParseAndSaveCookies, so that rotation was dropped
+    // and the stored session went stale, causing a delayed sign-out. Persist it here.
+    ParseAndSaveCookies(spDownload);
+
     // Parse the quota response
     try
     {
@@ -565,6 +572,22 @@ bool EDreamClient::SignInWithApiKey(const std::string& apiKey)
 // Returns true only if a sealed session was successfully obtained.
 // NOTE: ValidateCodeDetailed() calls RefreshSealedSession() internally, so
 // callers must NOT call RefreshSealedSession() again after this returns true.
+#ifdef LINUX_GNU
+namespace {
+
+static void PrintLinuxMagicLinkFailure(FILE* sink, const char* leadPrefix, const std::string& message,
+                                       int retryAfterSeconds)
+{
+    std::fprintf(sink, "%s%s", leadPrefix, message.c_str());
+    if (retryAfterSeconds >= 0)
+        std::fprintf(sink, "%sTry again in %d seconds.", message.empty() ? "\n" : "\n\n",
+                     retryAfterSeconds);
+    std::fputs("\n", sink);
+}
+
+}  // namespace
+#endif
+
 bool EDreamClient::LoginWithMagicLinkCode()
 {
 #ifndef LINUX_GNU
@@ -617,7 +640,8 @@ bool EDreamClient::LoginWithMagicLinkCode()
     auto sendResult = SendCode();
     if (!sendResult.success)
     {
-        fprintf(stderr, "Failed to send login code: %s\n", sendResult.message.c_str());
+        PrintLinuxMagicLinkFailure(stderr, "Failed to send login code: ", sendResult.message,
+                                   sendResult.retryAfterSeconds);
         return false;
     }
 
@@ -636,7 +660,7 @@ bool EDreamClient::LoginWithMagicLinkCode()
     auto result = ValidateCodeDetailed(code);
     if (!result.success)
     {
-        fprintf(stderr, "Login failed: %s\n", result.message.c_str());
+        PrintLinuxMagicLinkFailure(stderr, "Login failed: ", result.message, result.retryAfterSeconds);
         return false;
     }
 
@@ -764,6 +788,8 @@ bool EDreamClient::Authenticate()
                 ServerConfig::ServerConfigManager::getInstance().getEndpoint(
                     ServerConfig::Endpoint::QUOTA));
             const long httpCode = static_cast<long>(spValidate->ResponseCode());
+            // FIX (issue #656): persist any session rotation returned on this validation call.
+            ParseAndSaveCookies(spValidate);
 
             if (reachable && httpCode == 200)
             {
@@ -842,6 +868,8 @@ bool EDreamClient::Authenticate()
                 ServerConfig::ServerConfigManager::getInstance().getEndpoint(
                     ServerConfig::Endpoint::QUOTA));
             const long httpCode = static_cast<long>(spValidate->ResponseCode());
+            // FIX (issue #656): persist any session rotation returned on this validation call.
+            ParseAndSaveCookies(spValidate);
 
             if (reachable && httpCode == 200)
             {
@@ -1018,6 +1046,97 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
     return size * nmemb;
 }
 
+namespace {
+
+struct MagicLinkHeaderCtx {
+    int retryAfterSeconds = -1;
+};
+
+static std::string ToLowerAscii(std::string s)
+{
+    std::transform(s.begin(), s.end(), s.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    return s;
+}
+
+static size_t MagicLinkHeaderCallback(char* ptr, size_t size, size_t nmemb, void* userdata)
+{
+    const size_t nbytes = size * nmemb;
+    auto* ctx = static_cast<MagicLinkHeaderCtx*>(userdata);
+    std::string line(ptr, nbytes);
+    while (!line.empty() && (line.back() == '\r' || line.back() == '\n'))
+        line.pop_back();
+    const std::string::size_type colon = line.find(':');
+    if (colon == std::string::npos)
+        return nbytes;
+    std::string key = line.substr(0, colon);
+    while (!key.empty() && (key.back() == ' ' || key.back() == '\t'))
+        key.pop_back();
+    if (ToLowerAscii(std::move(key)) != "retry-after")
+        return nbytes;
+    std::string val = line.substr(colon + 1);
+    const auto start = val.find_first_not_of(" \t");
+    if (start == std::string::npos)
+        return nbytes;
+    val.erase(0, start);
+    const auto last = val.find_last_not_of(" \t\r\n");
+    if (last != std::string::npos)
+        val.erase(last + 1);
+    try {
+        const int sec = std::stoi(val);
+        if (sec >= 0)
+            ctx->retryAfterSeconds = sec;
+    } catch (...) {
+    }
+    return nbytes;
+}
+
+static void ParseMagicLinkErrorBody(const std::string& readBuffer,
+                                    std::string& inOutMessage,
+                                    std::string& outErrorCode,
+                                    int& outRetryAfterSeconds)
+{
+    outErrorCode.clear();
+    outRetryAfterSeconds = -1;
+    try {
+        const boost::json::value response = boost::json::parse(readBuffer);
+        if (!response.is_object())
+            return;
+        const boost::json::object& o = response.as_object();
+        if (o.contains("message")) {
+            const boost::json::value& msg = o.at("message");
+            if (msg.is_string())
+                inOutMessage = std::string(msg.as_string());
+        }
+        if (o.contains("errorCode")) {
+            const boost::json::value& ec = o.at("errorCode");
+            if (ec.is_string())
+                outErrorCode = std::string(ec.as_string());
+        }
+        if (o.contains("retryAfterSeconds")) {
+            const boost::json::value& r = o.at("retryAfterSeconds");
+            if (r.is_int64())
+                outRetryAfterSeconds = static_cast<int>(r.as_int64());
+            else if (r.is_uint64())
+                outRetryAfterSeconds = static_cast<int>(r.as_uint64());
+            else if (r.is_double())
+                outRetryAfterSeconds = static_cast<int>(r.as_double());
+        }
+    } catch (...) {
+    }
+}
+
+static int MergeMagicLinkRetryAfter(int fromJson, int fromHeader)
+{
+    if (fromJson >= 0)
+        return fromJson;
+    if (fromHeader >= 0)
+        return fromHeader;
+    return -1;
+}
+
+}  // namespace
+
 EDreamClient::SendCodeResult EDreamClient::SendCode() {
     std::string email = g_Settings()->Get("settings.generator.nickname", std::string(""));
     
@@ -1041,22 +1160,35 @@ EDreamClient::SendCodeResult EDreamClient::SendCode() {
         payload["email"] = email;
         std::string jsonBody = boost::json::serialize(payload);
         
+        MagicLinkHeaderCtx hdrCtx;
+        char errorBuffer[CURL_ERROR_SIZE] = {0};
         curl_easy_setopt(curl.get(), CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl.get(), CURLOPT_POSTFIELDS, jsonBody.c_str());
         curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, WriteCallback);
         curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &readBuffer);
-        
+        curl_easy_setopt(curl.get(), CURLOPT_HEADERFUNCTION, MagicLinkHeaderCallback);
+        curl_easy_setopt(curl.get(), CURLOPT_HEADERDATA, &hdrCtx);
+        curl_easy_setopt(curl.get(), CURLOPT_ERRORBUFFER, errorBuffer);
+#ifdef _WIN32
+        // Schannel hard-fails the TLS handshake when certificate revocation
+        // servers are unreachable (common behind AV TLS interception or
+        // filtered networks). Soft-fail like browsers do; genuinely revoked
+        // certs are still rejected. No-op on non-Schannel curl backends.
+        curl_easy_setopt(curl.get(), CURLOPT_SSL_OPTIONS, CURLSSLOPT_REVOKE_BEST_EFFORT);
+#endif
+
         // Set headers
         struct curl_slist *headers = NULL;
         headers = curl_slist_append(headers, "Content-Type: application/json");
         curl_easy_setopt(curl.get(), CURLOPT_HTTPHEADER, headers);
-        
+
         res = curl_easy_perform(curl.get());
         curl_slist_free_all(headers);
-        
+
         if(res != CURLE_OK) {
-            g_Log->Error("Failed to send verification code. Curl error: %s", curl_easy_strerror(res));
-            return SendCodeResult{false, 0, std::string("Error: ") + curl_easy_strerror(res)};
+            const char* detail = errorBuffer[0] ? errorBuffer : curl_easy_strerror(res);
+            g_Log->Error("Failed to send verification code. Curl error: %s", detail);
+            return SendCodeResult{false, 0, std::string("Error: ") + detail};
         }
         
         long http_code = 0;
@@ -1068,20 +1200,14 @@ EDreamClient::SendCodeResult EDreamClient::SendCode() {
         } else {
             g_Log->Error("Failed to send verification code. Server returned %ld: %s", http_code, readBuffer.c_str());
             
-            std::string errorMessage;
-            try {
-                boost::json::value response = boost::json::parse(readBuffer);
-                if (response.is_object() && response.as_object().contains("message")) {
-                    // Extract just the error message from the JSON
-                    errorMessage = response.as_object()["message"].as_string().c_str();
-                } else {
-                    errorMessage = readBuffer; // Use full response if not in expected format
-                }
-            } catch (...) {
-                errorMessage = readBuffer; // Use raw response if JSON parsing fails
-            }
+            std::string errorMessage = readBuffer.empty() ? std::string("Failed to send verification code.") : readBuffer;
+            std::string errorCode;
+            int retryFromJson = -1;
+            ParseMagicLinkErrorBody(readBuffer, errorMessage, errorCode, retryFromJson);
+            const int mergedRetry = MergeMagicLinkRetryAfter(retryFromJson, hdrCtx.retryAfterSeconds);
             
-            return SendCodeResult{false, static_cast<int>(http_code), errorMessage};
+            return SendCodeResult{false, static_cast<int>(http_code), std::move(errorMessage),
+                                  std::move(errorCode), mergedRetry};
         }
     }
 
@@ -1127,10 +1253,22 @@ EDreamClient::ValidateCodeResult EDreamClient::ValidateCodeDetailed(const std::s
         payload["code"] = code;
         std::string jsonBody = boost::json::serialize(payload);
 
+        MagicLinkHeaderCtx hdrCtx;
+        char errorBuffer[CURL_ERROR_SIZE] = {0};
         curl_easy_setopt(curl.get(), CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl.get(), CURLOPT_POSTFIELDS, jsonBody.c_str());
         curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, WriteCallback);
         curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &readBuffer);
+        curl_easy_setopt(curl.get(), CURLOPT_HEADERFUNCTION, MagicLinkHeaderCallback);
+        curl_easy_setopt(curl.get(), CURLOPT_HEADERDATA, &hdrCtx);
+        curl_easy_setopt(curl.get(), CURLOPT_ERRORBUFFER, errorBuffer);
+#ifdef _WIN32
+        // Schannel hard-fails the TLS handshake when certificate revocation
+        // servers are unreachable (common behind AV TLS interception or
+        // filtered networks). Soft-fail like browsers do; genuinely revoked
+        // certs are still rejected. No-op on non-Schannel curl backends.
+        curl_easy_setopt(curl.get(), CURLOPT_SSL_OPTIONS, CURLSSLOPT_REVOKE_BEST_EFFORT);
+#endif
 
         // Set headers
         struct curl_slist *headers = NULL;
@@ -1141,9 +1279,10 @@ EDreamClient::ValidateCodeResult EDreamClient::ValidateCodeDetailed(const std::s
         curl_slist_free_all(headers);
 
         if(res != CURLE_OK) {
-            g_Log->Error("Failed to validate code. Curl error: %s", curl_easy_strerror(res));
+            const char* detail = errorBuffer[0] ? errorBuffer : curl_easy_strerror(res);
+            g_Log->Error("Failed to validate code. Curl error: %s", detail);
             result.reason = ValidationFailureReason::TransientFailure;
-            result.message = std::string("Network error: ") + curl_easy_strerror(res);
+            result.message = std::string("Network error: ") + detail;
             return result;
         }
 
@@ -1226,20 +1365,11 @@ EDreamClient::ValidateCodeResult EDreamClient::ValidateCodeDetailed(const std::s
             }
         } else {
             g_Log->Error("Failed to validate code. Server returned %ld: %s", http_code, readBuffer.c_str());
-            std::string errorMessage = "Validation failed";
-            try {
-                boost::json::value response = boost::json::parse(readBuffer);
-                if (response.is_object() && response.as_object().contains("message")) {
-                    errorMessage = response.as_object()["message"].as_string().c_str();
-                } else if (!readBuffer.empty()) {
-                    errorMessage = readBuffer;
-                }
-            } catch (...) {
-                if (!readBuffer.empty()) {
-                    errorMessage = readBuffer;
-                }
-            }
-            
+            std::string errorMessage = readBuffer.empty() ? std::string("Validation failed") : readBuffer;
+            std::string errorCode;
+            int retryFromJson = -1;
+            ParseMagicLinkErrorBody(readBuffer, errorMessage, errorCode, retryFromJson);
+
             // Normalize non-descriptive backend "no" message.
             {
                 std::string lower = errorMessage;
@@ -1249,12 +1379,21 @@ EDreamClient::ValidateCodeResult EDreamClient::ValidateCodeDetailed(const std::s
                 }
             }
 
-            if (http_code >= 400 && http_code < 500) {
+            const int mergedRetry = MergeMagicLinkRetryAfter(retryFromJson, hdrCtx.retryAfterSeconds);
+            const bool rateLimited =
+                (http_code == 429) ||
+                (errorCode == "RATE_LIMITED");
+
+            if (rateLimited) {
+                result.reason = ValidationFailureReason::TransientFailure;
+            } else if (http_code >= 400 && http_code < 500) {
                 result.reason = ValidationFailureReason::InvalidSession;
             } else {
                 result.reason = ValidationFailureReason::TransientFailure;
             }
-            result.message = errorMessage;
+            result.message = std::move(errorMessage);
+            result.errorCode = std::move(errorCode);
+            result.retryAfterSeconds = mergedRetry;
             return result;
         }
     }
@@ -1489,7 +1628,7 @@ EDreamClient::HelloResult EDreamClient::HelloDetailed() {
         json::value dislikesCount = data.at("dislikesCount");
 
         remainingQuota = quota.as_int64();
-        int serverDislikes = dislikesCount.as_int64();
+        const int serverDislikes = static_cast<int>(dislikesCount.as_int64());
         
         // Update CacheManager with that info
         cm.setRemainingQuota(remainingQuota);
@@ -1682,6 +1821,9 @@ void EDreamClient::SendTelemetry(const std::string& eventType, const boost::json
     if (!spDownload->Perform(url)) {
         g_Log->Error("Failed to send telemetry. Server returned %i", spDownload->ResponseCode());
     }
+    // FIX (issue #656): persist any rotated session the backend returned via Set-Cookie,
+    // otherwise telemetry (like UpdateQuota) silently drops the rotation.
+    ParseAndSaveCookies(spDownload);
 }
 
 void EDreamClient::ReportMD5Failure(const std::string& uuid, const std::string& foundMd5, bool isStreaming) {
@@ -2020,7 +2162,44 @@ bool EDreamClient::FetchDreamsMetadata(const std::vector<std::string>& uuids) {
     if (uuids.empty()) {
         return false;
     }
-    
+
+    // The server caps a single metadata request (it rejects oversized bodies
+    // with HTTP 413, see client issue #522). Page large requests into batches
+    // so big playlists (e.g. a playlist-of-playlists) load their metadata
+    // instead of failing wholesale. Must stay <= the backend's
+    // CLIENT_DREAMS_MAX_UUIDS.
+    constexpr size_t kMetadataBatchSize = 1000;
+
+    if (uuids.size() <= kMetadataBatchSize) {
+        return FetchDreamsMetadataBatch(uuids);
+    }
+
+    bool allSucceeded = true;
+    for (size_t offset = 0; offset < uuids.size(); offset += kMetadataBatchSize) {
+        // Check for abort between batches to allow fast shutdown.
+        if (g_NetworkManager->IsAborted()) {
+            g_Log->Info("FetchDreamsMetadata() aborted due to shutdown");
+            return false;
+        }
+
+        const size_t end = std::min(offset + kMetadataBatchSize, uuids.size());
+        const std::vector<std::string> batch(uuids.begin() + offset,
+                                             uuids.begin() + end);
+        if (!FetchDreamsMetadataBatch(batch)) {
+            g_Log->Error("Failed to fetch metadata batch [%zu, %zu) of %zu dreams",
+                         offset, end, uuids.size());
+            // Keep going so we cache as much metadata as possible.
+            allSucceeded = false;
+        }
+    }
+    return allSucceeded;
+}
+
+bool EDreamClient::FetchDreamsMetadataBatch(const std::vector<std::string>& uuids) {
+    if (uuids.empty()) {
+        return false;
+    }
+
     auto jsonPath = Cache::PathManager::getInstance().jsonDreamPath();
     Network::spCFileDownloader spDownload;
     int maxAttempts = 3;
@@ -2277,10 +2456,19 @@ std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
         // Grab a pointer to the dream metadata
         auto dream = cm.getDream(needsStreamingUuid);
 
-        // Grab streaming URL and save it for later use
-        g_Log->Info("Parse playlist blocking call for download link");
-        auto path = EDreamClient::GetDreamDownloadLink(dream->uuid);
-        dream->setStreamingUrl(path);
+        if (dream) {
+            // Grab streaming URL and save it for later use
+            g_Log->Info("Parse playlist blocking call for download link");
+            auto path = EDreamClient::GetDreamDownloadLink(dream->uuid);
+            dream->setStreamingUrl(path);
+        } else {
+            // Metadata fetch failed or didn't include this dream; skip the
+            // prefetch. The entry gets filtered out of the playlist anyway
+            // (isDreamProcessed returns false without metadata), and PlayClip
+            // can fetch the link on demand if it ever does play.
+            g_Log->Error("No cached metadata for first uncached dream %s, skipping streaming link prefetch",
+                         needsStreamingUuid.c_str());
+        }
     } else if (!needsStreamingUuid.empty()) {
         g_Log->Info("Skipping blocking prefetch of streaming link (offline/not logged in). First uncached UUID: %s",
                     needsStreamingUuid.c_str());
@@ -2370,6 +2558,44 @@ bool EDreamClient::EnqueuePlaylist(std::string_view uuid) {
 }
 
 
+// ---------------------------------------------------------------------------
+// Known WebSocket event names — avoids repeated string-literal comparisons
+// and makes unhandled events easier to spot.
+// ---------------------------------------------------------------------------
+namespace WsEvent {
+    constexpr std::string_view kPlayDream        = "play_dream";
+    constexpr std::string_view kPlayPlaylist     = "play_playlist";
+    constexpr std::string_view kLike             = "like_current_dream";
+    constexpr std::string_view kDislike          = "dislike_current_dream";
+    constexpr std::string_view kReport           = "report_current_dream";
+    constexpr std::string_view kNext             = "next";
+    constexpr std::string_view kPrevious         = "previous";
+    constexpr std::string_view kShuffle          = "shuffle";
+    constexpr std::string_view kForward          = "forward";
+    constexpr std::string_view kBackward         = "backward";
+    constexpr std::string_view kPlaybackSlower   = "playback_slower";
+    constexpr std::string_view kPlaybackFaster   = "playback_faster";
+    constexpr std::string_view kRepeat           = "repeat";
+    constexpr std::string_view kHelp             = "help";
+    constexpr std::string_view kStatus           = "status";
+    constexpr std::string_view kPause            = "pause";
+    constexpr std::string_view kCredit           = "credit";
+    constexpr std::string_view kResetPlaylist    = "reset_playlist";
+    constexpr std::string_view kWeb              = "web";
+    constexpr std::string_view kBrighter         = "brighter";
+    constexpr std::string_view kDarker           = "darker";
+    constexpr std::string_view kSetSpeed1        = "set_speed_1";
+    constexpr std::string_view kSetSpeed2        = "set_speed_2";
+    constexpr std::string_view kSetSpeed3        = "set_speed_3";
+    constexpr std::string_view kSetSpeed4        = "set_speed_4";
+    constexpr std::string_view kSetSpeed5        = "set_speed_5";
+    constexpr std::string_view kSetSpeed6        = "set_speed_6";
+    constexpr std::string_view kSetSpeed7        = "set_speed_7";
+    constexpr std::string_view kSetSpeed8        = "set_speed_8";
+    constexpr std::string_view kSetSpeed9        = "set_speed_9";
+    constexpr std::string_view kPlaying          = "playing";
+} // namespace WsEvent
+
 static void OnWebSocketMessage(sio::event& _wsEvent)
 {
 
@@ -2382,170 +2608,174 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
     std::string_view event = eventObj->get_string();
 
     g_Log->Info("Received WebSocket message: %s", event.data());
-    printf("Received websocket message: %s", event.data());
-    
-    if (event == "play_dream") {
+
+    if (event == WsEvent::kPlayDream)
+    {
         std::shared_ptr<sio::string_message> uuidObj =
             std::dynamic_pointer_cast<sio::string_message>(response["uuid"]);
         std::string_view uuid = uuidObj->get_string();
-        
+
         int64_t frameNumber = -1;
         if (response.find("frameNumber") != response.end()) {
             std::shared_ptr<sio::int_message> frameNumberObj =
                         std::dynamic_pointer_cast<sio::int_message>(response["frameNumber"]);
             frameNumber = frameNumberObj->get_int();
-            printf("Frame number: %" PRId64, frameNumber);
         }
-        
+
         g_Log->Info("should play : %s", uuid.data());
         g_Player().PlayDreamNow(uuid.data(), frameNumber);
-    } else if (event == "play_playlist") {
+    }
+    else if (event == WsEvent::kPlayPlaylist)
+    {
         std::shared_ptr<sio::string_message> uuidObj =
             std::dynamic_pointer_cast<sio::string_message>(response["uuid"]);
         std::string_view uuid = uuidObj->get_string();
         g_Log->Info("should play : %s", uuid.data());
-        
         EDreamClient::EnqueuePlaylistAsync(uuid.data());
     }
-    else if (event == "like_current_dream")
+    else if (event == WsEvent::kLike)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_LIKE);
     }
-    else if (event == "dislike_current_dream")
+    else if (event == WsEvent::kDislike)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_DISLIKE);
     }
-    else if (event == "report_current_dream")
+    else if (event == WsEvent::kReport)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_REPORT);
     }
-    else if (event == "next")
+    else if (event == WsEvent::kNext)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_NEXT);
     }
-    else if (event == "previous")
+    else if (event == WsEvent::kPrevious)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_PREVIOUS);
     }
-    else if (event == "shuffle")
+    else if (event == WsEvent::kShuffle)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SHUFFLE);
     }
-    else if (event == "forward")
+    else if (event == WsEvent::kForward)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SKIP_FW);
     }
-    else if (event == "backward")
+    else if (event == WsEvent::kBackward)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SKIP_BW);
     }
-    else if (event == "playback_slower")
+    else if (event == WsEvent::kPlaybackSlower)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_PLAYBACK_SLOWER);
     }
-    else if (event == "playback_faster")
+    else if (event == WsEvent::kPlaybackFaster)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_PLAYBACK_FASTER);
     }
-    else if (event == "repeat")
+    else if (event == WsEvent::kRepeat)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_REPEAT);
     }
-    else if (event == "help")
+    else if (event == WsEvent::kHelp)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_F1);
     }
-    else if (event == "status")
+    else if (event == WsEvent::kStatus)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_F2);
     }
-    else if (event == "pause")
+    else if (event == WsEvent::kPause)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_PAUSE);
     }
-    else if (event == "credit")
+    else if (event == WsEvent::kCredit)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_CREDIT);
     }
-    else if (event == "reset_playlist")
+    else if (event == WsEvent::kResetPlaylist)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_RESET_PLAYLIST);
     }
-    else if (event == "web")
+    else if (event == WsEvent::kWeb)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_WEBPAGE);
     }
-    else if (event == "brighter")
+    else if (event == WsEvent::kBrighter)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_BRIGHTNESS_UP);
     }
-    else if (event == "darker")
+    else if (event == WsEvent::kDarker)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_BRIGHTNESS_DOWN);
     }
-    else if (event == "set_speed_1")
+    else if (event == WsEvent::kSetSpeed1)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_1);
     }
-    else if (event == "set_speed_2")
+    else if (event == WsEvent::kSetSpeed2)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_2);
     }
-    else if (event == "set_speed_3")
+    else if (event == WsEvent::kSetSpeed3)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_3);
     }
-    else if (event == "set_speed_4")
+    else if (event == WsEvent::kSetSpeed4)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_4);
     }
-    else if (event == "set_speed_5")
+    else if (event == WsEvent::kSetSpeed5)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_5);
     }
-    else if (event == "set_speed_6")
+    else if (event == WsEvent::kSetSpeed6)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_6);
     }
-    else if (event == "set_speed_7")
+    else if (event == WsEvent::kSetSpeed7)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_7);
     }
-    else if (event == "set_speed_8")
+    else if (event == WsEvent::kSetSpeed8)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_8);
     }
-    else if (event == "set_speed_9")
+    else if (event == WsEvent::kSetSpeed9)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_9);
+    }
+    else if (event == WsEvent::kPlaying)
+    {
+        // Server acknowledgement of our state_sync — no action needed.
     }
     else
     {

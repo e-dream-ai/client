@@ -23,7 +23,7 @@ protected:
     ComPtr<ID3D11BlendState> m_blendState;
     ComPtr<ID3D11DepthStencilState> m_depthStencilNoDepthTest;
     ComPtr<ID3D11SamplerState> m_defaultSampler;
-    ComPtr<ID3D11SamplerState> m_glyphPointSampler;
+    ComPtr<ID3D11SamplerState> m_glyphSampler;
     ComPtr<ID3D11RasterizerState> m_rasterizerDefault;
     ComPtr<ID3D11RasterizerState> m_rasterizerScissor;
     ComPtr<ID3D11ShaderResourceView> m_solidWhiteSrv;
@@ -88,7 +88,8 @@ private:
         float uvRect[4];
         float color[4];
         float brightness;
-        float padding[3];
+        int rotation;  // video rotation in degrees: 0 = none, 90 = rotate 90 CW
+        float padding[2];
     };
 
     struct Vertex

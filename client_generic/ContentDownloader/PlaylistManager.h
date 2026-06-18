@@ -84,7 +84,7 @@ public:
     
     // Get a dream by its UUID, set position if found in playlist, return nullopt if not in playlist
     struct DreamLookupResult {
-        const Cache::Dream* dream;
+        std::shared_ptr<const Cache::Dream> dream;
         std::optional<std::string> startKeyframe;
         std::optional<std::string> endKeyframe;
     };
@@ -101,7 +101,7 @@ public:
     struct NextDreamDecision {
         size_t position;            // Position we'll move to
         TransitionType transition;  // How we should transition
-        const Cache::Dream* dream;  // The dream metadata
+        std::shared_ptr<const Cache::Dream> dream;  // The dream metadata (owning handle)
         std::optional<std::string> startKeyframe;
         std::optional<std::string> endKeyframe;
     };
@@ -129,7 +129,7 @@ public:
     std::string getCurrentDreamUUID() const;
 
     // Actually move to the next dream based on preflight decision
-    const Cache::Dream* moveToNextDream(const NextDreamDecision& decision);
+    std::shared_ptr<const Cache::Dream> moveToNextDream(const NextDreamDecision& decision);
 
     
 /*    // Get the next dream in the playlist
@@ -138,7 +138,7 @@ public:
     std::optional<DreamLookupResult> peekNextDream() const;
 */
     // Get the previous dream in the playlist
-    const Cache::Dream* getPreviousDream();
+    std::shared_ptr<const Cache::Dream> getPreviousDream();
     
 private:
     // Keep track of preflight decision
@@ -152,7 +152,7 @@ public:
     bool hasMoreDreams() const;
 
     // Get the current dream without advancing the playlist
-    const Cache::Dream* getCurrentDream() const;
+    std::shared_ptr<const Cache::Dream> getCurrentDream() const;
 
     // Set the current position in the playlist
     void setCurrentPosition(size_t position);
@@ -202,14 +202,14 @@ private:
     int64_t m_playlistTimestamp;
     
     size_t m_currentPosition;
-    const Cache::Dream* m_currentDream;
+    std::shared_ptr<const Cache::Dream> m_currentDream;
     std::string m_currentDreamUUID;  // Store the UUID of the currently playing dream
     mutable std::mutex m_stateMutex;
 
     Cache::CacheManager& m_cacheManager;
 
     // Helper function to get dream metadata
-    const Cache::Dream* getDreamMetadata(const std::string& dreamUUID) const;
+    std::shared_ptr<const Cache::Dream> getDreamMetadata(const std::string& dreamUUID) const;
     
     bool isDreamProcessed(const std::string& uuid) const;
     

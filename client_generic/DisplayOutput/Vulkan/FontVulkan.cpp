@@ -3,11 +3,9 @@
 #include "FontVulkan.h"
 #include "RendererVulkan.h"
 #include "Log.h"
+#include "PlatformUtils.h"
 
 #include <imgui.h>
-#include <cstdio>
-#include <string>
-#include <unistd.h>
 
 namespace DisplayOutput
 {
@@ -15,56 +13,37 @@ namespace DisplayOutput
 // ---------------------------------------------------------------------------
 // CreateWithRenderer — register font with ImGui's global atlas.
 //
-// Tries to load Lato-Regular.ttf from the executable directory (bundled in
-// the build output / Runtime).  Falls back to the embedded ProggyClean font
-// when the file is absent.
+// Loads Lato-Regular.ttf from the binary directory (copied there by CMake).
+// Falls back to the embedded ProggyForever font if the file is not found.
 // ---------------------------------------------------------------------------
 bool CFontImGui::CreateWithRenderer(CRendererVulkan* /*renderer*/)
 {
-    m_fontSize = static_cast<float>(m_FontDescription.Height());
+    m_fontSizePx = static_cast<float>(m_FontDescription.Height());
+    const bool isBold = m_FontDescription.Style() >= CFontDescription::Bold;
+
+    std::string fontPath = PlatformUtils::GetWorkingDir() + "Lato-Regular.ttf";
+    m_imFont = ImGui::GetIO().Fonts->AddFontFromFileTTF(fontPath.c_str(), m_fontSizePx);
+    if (m_imFont)
+    {
+        g_Log->Info("CFontImGui: loaded Lato-Regular.ttf at %.0fpx%s",
+                    m_fontSizePx, isBold ? " (bold)" : "");
+        return true;
+    }
+
+    g_Log->Warning("CFontImGui: Lato-Regular.ttf not found at %s, using embedded font",
+                   fontPath.c_str());
 
     ImFontConfig cfg;
-    cfg.SizePixels  = m_fontSize;
-    cfg.OversampleH = 2;
-    cfg.OversampleV = 2;
-
-    // Resolve the directory containing the running executable.
-    ImFont* loaded = nullptr;
-    {
-        char exeBuf[4096] = {};
-        const ssize_t exeLen = readlink("/proc/self/exe", exeBuf, sizeof(exeBuf) - 1);
-        if (exeLen > 0)
-        {
-            exeBuf[exeLen] = '\0';
-            std::string exeDir(exeBuf);
-            const auto slash = exeDir.rfind('/');
-            if (slash != std::string::npos)
-                exeDir = exeDir.substr(0, slash + 1);
-
-            const std::string latoPath = exeDir + "Lato-Regular.ttf";
-            if (FILE* f = fopen(latoPath.c_str(), "rb"))
-            {
-                fclose(f);
-                loaded = ImGui::GetIO().Fonts->AddFontFromFileTTF(latoPath.c_str(), m_fontSize, &cfg);
-                if (loaded)
-                    g_Log->Info("CFontImGui: loaded Lato-Regular.ttf at %.0fpx", m_fontSize);
-            }
-        }
-    }
-
-    if (!loaded)
-    {
-        loaded = ImGui::GetIO().Fonts->AddFontDefaultVector(&cfg);
-        if (loaded)
-            g_Log->Info("CFontImGui: Lato-Regular.ttf not found, using embedded font at %.0fpx", m_fontSize);
-    }
-
-    m_imFont = loaded;
+    cfg.SizePixels = m_fontSizePx;
+    m_imFont = ImGui::GetIO().Fonts->AddFontDefaultVector(&cfg);
     if (!m_imFont)
     {
-        g_Log->Warning("CFontImGui: font load failed at %.0fpx", m_fontSize);
+        g_Log->Warning("CFontImGui: AddFontDefaultVector also failed at %.0fpx", m_fontSizePx);
         return false;
     }
+
+    g_Log->Info("CFontImGui: registered embedded font at %.0fpx%s",
+                m_fontSizePx, isBold ? " (bold)" : "");
     return true;
 }
 
@@ -98,8 +77,8 @@ Base::Math::CVector2 CTextImGui::GetExtent()
 
     static constexpr float kHudReferenceHeight = 1080.f;
     const float scale    = screenH / kHudReferenceHeight;
-    const float fontSize = spFI->FontSize() * scale;
-    ImVec2 sz = font->CalcTextSizeA(fontSize, FLT_MAX, 0.f, m_text.c_str());
+    const float fontSizePx = spFI->FontSize() * scale;
+    ImVec2 sz = font->CalcTextSizeA(fontSizePx, FLT_MAX, 0.f, m_text.c_str());
     return {sz.x / screenW, sz.y / screenH};
 }
 
