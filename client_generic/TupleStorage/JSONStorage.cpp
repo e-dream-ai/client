@@ -103,6 +103,12 @@ bool JSONStorage::GetOrSetValue(
                 {
                     g_Log->Warning("JSONStorage: value for '%s' has unexpected type (%s); using default",
                                    std::string(_entry).c_str(), e.what());
+                    // On a write, repair the corrupt slot in place so the bad value
+                    // doesn't persist / recur on the next read.
+                    if (set)
+                    {
+                        _emplace(dict, token, _targetValue);
+                    }
                     return false;
                 }
             }

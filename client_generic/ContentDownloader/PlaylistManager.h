@@ -112,7 +112,8 @@ public:
 
     // Calculate what will be played next without changing state
     // canStream: if true, allows selecting dreams that aren't cached (will stream)
-    //            if false, only considers cached dreams
+    //            if false, prefers cached dreams but will still stream as a last resort
+    //            when the cache is completely empty (otherwise the caller busy-loops).
     // forceNext: if true, advances to next dream even in repeat mode (for explicit user "next" command)
     std::optional<NextDreamDecision> preflightNextDream(bool canStream = true, bool forceNext = false) const;
 

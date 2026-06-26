@@ -746,7 +746,7 @@ bool CPlayer::Update(uint32_t displayUnit)
                 } else {
                     // Get the next dream decision
                     g_Log->Info("Update will preflight");
-                    // Natural transition - don't allow streaming
+                    // Natural transition - prefer cached (canStream=false still streams if the cache is totally empty).
                     m_nextDreamDecision = m_playlistManager->preflightNextDream(false);
                     
                     if (m_nextDreamDecision) {
@@ -1058,7 +1058,7 @@ void CPlayer::PlayNextDream(bool quickFade) {
         m_nextDreamDecision = std::nullopt;
     } else {
         // No preflight decision, get one now (fallback case)
-        // Natural transition - don't allow streaming
+        // Natural transition - prefer cached (canStream=false still streams if the cache is totally empty).
         auto nextDecision = m_playlistManager->preflightNextDream(false);
         if (nextDecision) {
             StartTransition();
@@ -1507,7 +1507,7 @@ void CPlayer::UpdateTransition(double currentTime)
         EDreamClient::SendStateUpdate();
     } else if (!m_nextClip) {
         // If we don't have a next clip yet, try to get one
-        // Natural transition fallback - don't allow streaming
+        // Natural transition fallback - prefer cached (canStream=false still streams if the cache is totally empty).
         auto nextDecision = m_playlistManager->preflightNextDream(false);
         if (nextDecision) {
             // We're in mid-transition without a next clip, must be user/network forced
