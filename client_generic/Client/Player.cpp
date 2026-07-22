@@ -1574,6 +1574,19 @@ void CPlayer::UpdateTransition(double currentTime)
         return;
     }
 
+    if (m_nextClip->IsPreloadFailed())
+    {
+        g_Log->Warning("Cancelling transition because replacement decoder failed to open");
+        destroyClipAsync(std::move(m_nextClip));
+        m_nextClip = nullptr;
+        m_isTransitioning = false;
+        m_pendingSeekCrossfade = false;
+        m_PreloadingNextClip = false;
+        m_PreloadingDreamUUID.clear();
+        m_nextDreamDecision = std::nullopt;
+        return;
+    }
+
     // Opening the decoder is not enough to begin a transition. Wait until it
     // has buffered frames, then start its playback clock and anchor it to the
     // current timeline before allowing the crossfade timer to advance.

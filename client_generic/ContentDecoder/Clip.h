@@ -113,6 +113,10 @@ public:
     
     bool Preload(int64_t _seekFrame = -1);
     bool IsPreloadComplete() const;
+    bool IsPreloadFailed() const
+    {
+        return m_spDecoder && m_spDecoder->FailedToOpen();
+    }
 
     bool StartPlayback(int64_t _seekFrame = -1);
     

@@ -213,6 +213,13 @@ void DreamDownloader::FindDreamsThread() {
                         std::lock_guard<std::mutex> lock(m_downloadingMutex);
                         m_currentlyDownloading.reset();
                     }
+
+                    // A transient network failure otherwise selects the same
+                    // uncached successor again immediately and spins at thousands
+                    // of requests per second (especially after shutdown aborts I/O).
+                    if (!isRunning.load())
+                        break;
+                    boost::this_thread::sleep_for(boost::chrono::seconds(1));
                 }
 
             }
