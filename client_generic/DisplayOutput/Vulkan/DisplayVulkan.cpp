@@ -609,9 +609,9 @@ void CDisplayVulkan::onPointerEnter(void* data, wl_pointer*, uint32_t serial,
     FirstTimeSetupVulkan_FeedMousePos(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
     SettingsDialogVulkan_FeedMousePos(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
 
-    auto& onMouseMovedCallback = PlatformUtils_GetOnMouseMovedCallback();
-    if (onMouseMovedCallback)
-        onMouseMovedCallback(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
+    auto& mouseCallback = PlatformUtils_GetMouseCallback();
+    if (mouseCallback)
+        mouseCallback(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
 }
 
 void CDisplayVulkan::onPointerLeave(void* data, wl_pointer*, uint32_t, wl_surface*)
@@ -638,9 +638,9 @@ void CDisplayVulkan::onPointerMotion(void* data, wl_pointer*, uint32_t,
     FirstTimeSetupVulkan_FeedMousePos(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
     SettingsDialogVulkan_FeedMousePos(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
 
-    auto& onMouseMovedCallback = PlatformUtils_GetOnMouseMovedCallback();
-    if (onMouseMovedCallback)
-        onMouseMovedCallback(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
+    auto& mouseCallback = PlatformUtils_GetMouseCallback();
+    if (mouseCallback)
+        mouseCallback(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
 }
 
 void CDisplayVulkan::onPointerButton(void* data, wl_pointer*, uint32_t serial,
@@ -1264,8 +1264,8 @@ void CDisplayVulkan::checkEvents()
         {
             FirstTimeSetupVulkan_FeedMousePos(xEvent.xmotion.x, xEvent.xmotion.y);
             SettingsDialogVulkan_FeedMousePos(xEvent.xmotion.x, xEvent.xmotion.y);
-            auto& onMouseMovedCallback = PlatformUtils_GetOnMouseMovedCallback();
-            if (onMouseMovedCallback) onMouseMovedCallback(xEvent.xmotion.x, xEvent.xmotion.y);
+            auto& mouseCallback = PlatformUtils_GetMouseCallback();
+            if (mouseCallback) mouseCallback(xEvent.xmotion.x, xEvent.xmotion.y);
         }
 
         if (xEvent.type == ButtonPress || xEvent.type == ButtonRelease)

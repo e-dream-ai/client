@@ -123,6 +123,21 @@ bool CClip::Start(int64_t _seekFrame)
 
 void CClip::Stop() { m_spDecoder->Stop(); }
 
+void CClip::ReleaseRenderResources()
+{
+    if (m_spRenderer)
+        m_spRenderer->WaitForIdle();
+
+    // Vulkan textures and command buffers are owned by the frame display. Release
+    // them while serialized with rendering; decoder teardown may then happen on a
+    // worker without touching the renderer or its command pool.
+    m_spFrameDisplay.reset();
+    m_spFrameData.reset();
+    m_LastValidFrame.reset();
+    m_spImageRef.reset();
+    m_spRenderer.reset();
+}
+
 bool CClip::Preload(int64_t _seekFrame)
 {
     g_Log->Info("Starting preloading %s at frame %d", m_ClipMetadata.path.c_str(), _seekFrame);

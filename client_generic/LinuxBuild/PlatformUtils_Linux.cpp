@@ -184,16 +184,16 @@ void PlatformUtils::SetCursorHidden(bool _hidden)
 
 bool PlatformUtils_GetCursorHidden() { return s_cursorHidden; }
 
-static std::function<void(int, int)> s_onMouseMovedCallback;
+static std::function<void(int, int)> s_mouseCallback;
 
 void PlatformUtils::SetOnMouseMovedCallback(std::function<void(int, int)> _callback)
 {
-    s_onMouseMovedCallback = std::move(_callback);
+    s_mouseCallback = std::move(_callback);
 }
 
-std::function<void(int, int)>& PlatformUtils_GetOnMouseMovedCallback()
+std::function<void(int, int)>& PlatformUtils_GetMouseCallback()
 {
-    return s_onMouseMovedCallback;
+    return s_mouseCallback;
 }
 
 // ---------------------------------------------------------------------------

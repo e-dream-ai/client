@@ -31,8 +31,8 @@ namespace DisplayOutput
 CRendererVulkan::CRendererVulkan()
 {
     memset(m_imageAvailable, 0, sizeof(m_imageAvailable));
-    memset(m_renderFinished, 0, sizeof(m_renderFinished));
     memset(m_inFlightFence,  0, sizeof(m_inFlightFence));
+    memset(m_timestampSlotValid, 0, sizeof(m_timestampSlotValid));
     memset(m_vertexBuffer,   0, sizeof(m_vertexBuffer));
     memset(m_vertexMemory,   0, sizeof(m_vertexMemory));
     memset(m_mappedVertex,   0, sizeof(m_mappedVertex));
@@ -42,6 +42,17 @@ CRendererVulkan::~CRendererVulkan()
 {
     if (m_device == VK_NULL_HANDLE) return;
     vkDeviceWaitIdle(m_device);
+
+    // CRenderer's base destructor runs after this derived destructor. Release
+    // its bound Vulkan objects now, while the device and command pool they use
+    // for teardown are still valid.
+    for (uint32_t i = 0; i < MAX_TEXUNIT; ++i)
+    {
+        m_aspActiveTextures[i].reset();
+        m_aspSelectedTextures[i].reset();
+    }
+    m_spActiveShader.reset();
+    m_spSelectedShader.reset();
 
     // Shut down ImGui before any Vulkan resources are destroyed.
     if (m_imguiInitialized)
@@ -72,11 +83,10 @@ CRendererVulkan::~CRendererVulkan()
         }
         if (m_imageAvailable[i] != VK_NULL_HANDLE)
             vkDestroySemaphore(m_device, m_imageAvailable[i], nullptr);
-        if (m_renderFinished[i] != VK_NULL_HANDLE)
-            vkDestroySemaphore(m_device, m_renderFinished[i], nullptr);
         if (m_inFlightFence[i] != VK_NULL_HANDLE)
             vkDestroyFence(m_device, m_inFlightFence[i], nullptr);
     }
+    destroyPresentSemaphores();
 
     if (m_timestampPool       != VK_NULL_HANDLE) vkDestroyQueryPool(m_device, m_timestampPool, nullptr);
     // Command buffers freed with pool
@@ -100,6 +110,12 @@ CRendererVulkan::~CRendererVulkan()
     // Null the handle so any CTextureFlatVulkan dtor that still holds a raw
     // renderer pointer sees VK_NULL_HANDLE and skips destroy calls safely.
     m_device = VK_NULL_HANDLE;
+}
+
+void CRendererVulkan::WaitForIdle()
+{
+    if (m_device != VK_NULL_HANDLE)
+        vkDeviceWaitIdle(m_device);
 }
 
 // ---------------------------------------------------------------------------
@@ -766,11 +782,38 @@ bool CRendererVulkan::createSyncObjects()
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         if (vkCreateSemaphore(m_device, &si, nullptr, &m_imageAvailable[i]) != VK_SUCCESS ||
-            vkCreateSemaphore(m_device, &si, nullptr, &m_renderFinished[i]) != VK_SUCCESS ||
             vkCreateFence    (m_device, &fi, nullptr, &m_inFlightFence[i])  != VK_SUCCESS)
             return false;
     }
-    return true;
+    return createPresentSemaphores();
+}
+
+bool CRendererVulkan::createPresentSemaphores()
+{
+    destroyPresentSemaphores();
+    m_renderFinished.resize(m_swapImages.size(), VK_NULL_HANDLE);
+
+    VkSemaphoreCreateInfo info{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+    for (auto& semaphore : m_renderFinished)
+    {
+        if (vkCreateSemaphore(m_device, &info, nullptr, &semaphore) != VK_SUCCESS)
+        {
+            destroyPresentSemaphores();
+            return false;
+        }
+    }
+    return !m_renderFinished.empty();
+}
+
+void CRendererVulkan::destroyPresentSemaphores()
+{
+    if (m_device != VK_NULL_HANDLE)
+    {
+        for (VkSemaphore semaphore : m_renderFinished)
+            if (semaphore != VK_NULL_HANDLE)
+                vkDestroySemaphore(m_device, semaphore, nullptr);
+    }
+    m_renderFinished.clear();
 }
 
 // ---------------------------------------------------------------------------
@@ -1084,6 +1127,7 @@ float CRendererVulkan::GetGPUUtilization()
 void CRendererVulkan::recreateSwapchain()
 {
     vkDeviceWaitIdle(m_device);
+    destroyPresentSemaphores();
 
     // Destroy framebuffers
     for (auto fb : m_framebuffers)
@@ -1110,6 +1154,12 @@ void CRendererVulkan::recreateSwapchain()
     if (!createSwapchain(m_surface, w, h)) {
         // Surface not ready (e.g. window minimized, zero-size extent from driver).
         // Mark swapExtent as empty so BeginFrame retries next frame.
+        m_swapExtent = {0, 0};
+        return;
+    }
+
+    if (!createPresentSemaphores()) {
+        g_Log->Error("CRendererVulkan: failed to recreate presentation semaphores");
         m_swapExtent = {0, 0};
         return;
     }
@@ -1175,7 +1225,7 @@ bool CRendererVulkan::BeginFrame()
     // then reset + write the start timestamp for this slot.
     if (m_timestampPool != VK_NULL_HANDLE)
     {
-        if (m_timestampsValid)
+        if (m_timestampSlotValid[m_currentFrame])
         {
             uint64_t ts[2] = {};
             if (vkGetQueryPoolResults(m_device, m_timestampPool,
@@ -1260,7 +1310,7 @@ bool CRendererVulkan::EndFrame(bool /*drawn*/)
     {
         vkCmdWriteTimestamp(cmd, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
                             m_timestampPool, m_currentFrame * 2 + 1);
-        m_timestampsValid = true;
+        m_timestampSlotValid[m_currentFrame] = true;
     }
 
     vkEndCommandBuffer(cmd);
@@ -1273,12 +1323,13 @@ bool CRendererVulkan::EndFrame(bool /*drawn*/)
     si.commandBufferCount   = 1;
     si.pCommandBuffers      = &cmd;
     si.signalSemaphoreCount = 1;
-    si.pSignalSemaphores    = &m_renderFinished[m_currentFrame];
+    VkSemaphore& renderFinished = m_renderFinished[m_currentImageIndex];
+    si.pSignalSemaphores    = &renderFinished;
     vkQueueSubmit(m_graphicsQueue, 1, &si, m_inFlightFence[m_currentFrame]);
 
     VkPresentInfoKHR pi{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
     pi.waitSemaphoreCount = 1;
-    pi.pWaitSemaphores    = &m_renderFinished[m_currentFrame];
+    pi.pWaitSemaphores    = &renderFinished;
     pi.swapchainCount     = 1;
     pi.pSwapchains        = &m_swapchain;
     pi.pImageIndices      = &m_currentImageIndex;

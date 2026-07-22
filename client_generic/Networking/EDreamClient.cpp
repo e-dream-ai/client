@@ -1900,14 +1900,8 @@ std::future<bool> EDreamClient::EnqueuePlaylistAsync(const std::string& uuid) {
         // save the current playlist id, this will get reused at next startup
         g_Settings()->Set("settings.content.current_playlist_uuid", uuid);
         
-        std::thread([uuid]() {
-            // These operations must happen on the main/UI thread
-            g_Log->Info("Will call set playlist");
-            g_Player().SetPlaylist(std::string(uuid), false);
-            g_Player().SetTransitionDuration(1.0f);
-            g_Log->Info("Will call start transition");
-            g_Player().StartTransition();
-        }).detach();
+        // Player and renderer state is owned by the frame-update thread.
+        g_Player().EnqueuePlaylistChange(uuid);
         
         return true;
     });
@@ -2549,10 +2543,7 @@ bool EDreamClient::EnqueuePlaylist(std::string_view uuid) {
 
     // save the current playlist id, this will get reused at next startup
     g_Settings()->Set("settings.content.current_playlist_uuid", uuid);
-    g_Player().SetPlaylist(std::string(uuid), false);
-    
-    g_Player().SetTransitionDuration(1.0f);
-    g_Player().StartTransition();
+    g_Player().EnqueuePlaylistChange(std::string(uuid));
     
     return true;
 }
@@ -2623,7 +2614,7 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
         }
 
         g_Log->Info("should play : %s", uuid.data());
-        g_Player().PlayDreamNow(uuid.data(), frameNumber);
+        g_Player().EnqueuePlayDream(std::string(uuid), frameNumber);
     }
     else if (event == WsEvent::kPlayPlaylist)
     {
@@ -2975,4 +2966,3 @@ void EDreamClient::Report(std::string uuid) {
 
 
 void EDreamClient::SetCPUUsage(int _cpuUsage) { fCpuUsage.exchange(_cpuUsage); }
-

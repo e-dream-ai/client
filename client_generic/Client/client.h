@@ -1087,6 +1087,7 @@ class CElectricSheep
         m_SplashFilename = std::string();
         m_spCrossFade = nullptr;
         m_StartupScreen = nullptr;
+        m_spOSD = nullptr;
         m_HudManager = nullptr;
         m_bPaused = false;
 

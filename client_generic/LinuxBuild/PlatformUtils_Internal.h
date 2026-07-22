@@ -12,7 +12,7 @@ void PlatformUtils_DrainMainThreadQueue();
 bool PlatformUtils_GetCursorHidden();
 
 // Returns the mouse-moved callback stored by SetOnMouseMovedCallback().
-std::function<void(int, int)>& PlatformUtils_GetOnMouseMovedCallback();
+std::function<void(int, int)>& PlatformUtils_GetMouseCallback();
 
 // UI scale factor for ImGui dialogs (1.0 = 96 DPI, 2.0 = 192 DPI, etc.).
 // InitUIScale() seeds from env vars (GDK_SCALE, QT_SCALE_FACTOR); display

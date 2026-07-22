@@ -52,7 +52,7 @@ class CClip
 
 public: // tmp public for debug
     sClipMetadata m_ClipMetadata;
-    DecoderClock m_DecoderClock;
+    DecoderClock m_DecoderClock{};
 private: //tmp
     // m_spRenderer must be declared before m_spFrameDisplay so that the frame
     // display (and its CTextureFlatVulkan) is destroyed BEFORE the renderer
@@ -66,8 +66,8 @@ public: // tmp public for debug
     sFrameMetadata m_CurrentFrameMetadata;
 private: // tmp
     mutable std::shared_mutex m_CurrentFrameMetadataLock;
-    double m_StartTime;
-    double m_EndTime;
+    double m_StartTime = 0.0;
+    double m_EndTime = 0.0;
     boost::atomic<bool> m_HasFinished;
     boost::atomic<bool> m_IsFadingOut;
 public:
@@ -108,6 +108,8 @@ public:
           uint32_t _displayHeight);
     bool Start(int64_t _seekFrame = -1);
     void Stop();
+    // Must be called by the render/update thread before asynchronous teardown.
+    void ReleaseRenderResources();
     
     bool Preload(int64_t _seekFrame = -1);
     bool IsPreloadComplete() const;
