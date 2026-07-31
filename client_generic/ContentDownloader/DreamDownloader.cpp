@@ -219,7 +219,8 @@ void DreamDownloader::FindDreamsThread() {
                     // of requests per second (especially after shutdown aborts I/O).
                     if (!isRunning.load())
                         break;
-                    boost::this_thread::sleep_for(boost::chrono::seconds(1));
+                    boost::this_thread::sleep(boost::get_system_time() +
+                                              boost::posix_time::seconds(1));
                 }
 
             }
