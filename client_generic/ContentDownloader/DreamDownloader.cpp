@@ -91,7 +91,8 @@ void DreamDownloader::FindDreamsThread() {
         // Minimum space in cache/quota to consider downloading (100 MB)
         std::uintmax_t minSpaceForDream = (std::uintmax_t)1024 * 1024 * 100;
 
-        bool quotaWarningLogged = false;
+        bool quotaWarningLogged  = false;
+        bool allCachedWarningLogged = false;
 
         while (isRunning.load()) {
         //g_Log->Info("Searching for dreams to download...");
@@ -132,9 +133,21 @@ void DreamDownloader::FindDreamsThread() {
             // First check if there's a dream to download
             auto nextDream = GetNextDreamToDownload();
             if (!nextDream.has_value()) {
-                // No more uncached dreams to download
+                if (!allCachedWarningLogged) {
+                    auto& pm = g_Player().GetPlaylistManager();
+                    g_Log->Warning(
+                        "All %zu dreams in playlist \"%s\" are already cached — "
+                        "nothing to download. If unexpected, check your server-side "
+                        "playlist assignment (remaining quota: %.2f GB).",
+                        pm.getPlaylistSize(),
+                        pm.getPlaylistName().c_str(),
+                        static_cast<double>(cm.getRemainingQuota()) / (1024.0 * 1024.0 * 1024.0));
+                    allCachedWarningLogged = true;
+                }
+                SetDownloadStatus("All playlist dreams cached");
                 break;
             }
+            allCachedWarningLogged = false;
             
             // Preflight checks - only clean cache if we have something to download
             
@@ -200,6 +213,13 @@ void DreamDownloader::FindDreamsThread() {
                         std::lock_guard<std::mutex> lock(m_downloadingMutex);
                         m_currentlyDownloading.reset();
                     }
+
+                    // A transient network failure otherwise selects the same
+                    // uncached successor again immediately and spins at thousands
+                    // of requests per second (especially after shutdown aborts I/O).
+                    if (!isRunning.load())
+                        break;
+                    boost::this_thread::sleep_for(boost::chrono::seconds(1));
                 }
 
             }

@@ -498,6 +498,10 @@ def assemble_appdir() -> None:
     (APPDIR / "usr" / "lib").mkdir(parents=True, exist_ok=True)
 
     shutil.copy2(BUILD_DIR / "infinidream", APPDIR / "usr" / "bin" / "infinidream")
+    # PlatformUtils reads build metadata beside the executable. Keep the
+    # packaged runtime banner consistent with an unpackaged Linux build.
+    shutil.copy2(BUILD_DIR / "BuildData.json",
+                 APPDIR / "usr" / "bin" / "BuildData.json")
 
     shaders_src = BUILD_DIR / "shaders"
     shaders_dst = APPDIR / "usr" / "bin" / "shaders"

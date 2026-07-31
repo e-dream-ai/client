@@ -147,6 +147,7 @@ class CDisplayVulkan : public CDisplayOutput
     void setWindowDecorations(bool enabled);
     void checkEvents();
     void applyInvisibleCursor();
+    void applyDefaultCursor();
 
   public:
     CDisplayVulkan();

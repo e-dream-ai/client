@@ -113,7 +113,7 @@ struct sOpenVideoInfo
 */
 class CContentDecoder
 {
-    bool m_bStop;
+    std::atomic<bool> m_bStop{true};
 
     SwsContext* m_pScaler;
     uint32_t m_ScalerWidth;
@@ -121,6 +121,7 @@ class CContentDecoder
 
     boost::thread* m_pDecoderThread;
     void ReadFramesThread();
+    void OpenAndReadFramesThread();
 
     //	Queue for decoded frames.
     Base::CBlockingQueue<CVideoFrame*> m_FrameQueue;
@@ -132,9 +133,11 @@ class CContentDecoder
     std::atomic<int64_t> m_SkipToFrame{-1};  // The displayed frame index to use as base for skip
     boost::atomic<bool> m_HasStarted{false};
     boost::atomic<bool> m_HasEnded;
+    std::atomic<bool> m_OpenFailed{false};
 
     void Destroy();
     bool Open();
+    static int InterruptIO(void* opaque);
     CVideoFrame* ReadOneFrame();
     static int DumpError(int _err);
 
@@ -165,7 +168,8 @@ class CContentDecoder
     spCVideoFrame PopVideoFrame();
     bool HasEnded() const { return m_HasEnded.load() && !m_FrameQueue.size(); }
     bool DecoderThreadEnded() const { return m_HasEnded.load(); }  // True when decoder thread finished, regardless of queue state
-    bool Stopped() { return m_bStop; };
+    bool Stopped() const { return m_bStop.load(); };
+    bool FailedToOpen() const { return m_OpenFailed.load(); }
     uint32_t QueueLength();
     void ClearQueue(uint32_t leave = 0);
     void SkipTime(float _secondsForward, int64_t _displayedFrameIdx = -1)
