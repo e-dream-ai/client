@@ -430,17 +430,7 @@ class CElectricSheep_Win32 : public CElectricSheep
 
         _chdir(m_WorkingDir.c_str());
 
-        // Mirror the Mac behavior: when the user-facing app launches, reassert
-        // ourselves as the active screensaver if the preference is on. Done
-        // here (not in the installer) so HKCU resolves to the actual user, not
-        // the elevated installer's admin token. Skipped for screensaver/preview
-        // modes — only the desktop app should be writing this preference.
-        if (m_ScrMode == eWindowed ||
-            m_ScrMode == eWindowed_AllowMultipleInstances ||
-            m_ScrMode == eFullScreenStandalone)
-        {
-            ScreensaverInstallerWin32::EnsureScreensaverActive(m_WorkingDir);
-        }
+        
 
         if (m_ScrMode == eConfig)
         {
@@ -619,8 +609,30 @@ class CElectricSheep_Win32 : public CElectricSheep
                     g_Log->Error("AddDisplay failed for screen %d", dw);
             }*/
         //
+
+    // Save the backup BEFORE CElectricSheep::Startup() reopens settings in
+        // read-only mode. EnsureScreensaverActive is split into two parts:
+        // the backup save happens here while settings is still writable,
+        // and the registry write happens after Startup().
+        if (m_ScrMode == eWindowed ||
+            m_ScrMode == eWindowed_AllowMultipleInstances ||
+            m_ScrMode == eFullScreenStandalone)
+        {
+            if (g_Settings()->Get("settings.app.keep_screensaver_enabled",
+                                  true))
+                ScreensaverInstallerWin32::SaveOriginalScreensaverSettingsOnce(
+                    m_WorkingDir);
+        }
+
         if (CElectricSheep::Startup() == false)
             return false;
+
+        if (m_ScrMode == eWindowed ||
+            m_ScrMode == eWindowed_AllowMultipleInstances ||
+            m_ScrMode == eFullScreenStandalone)
+        {
+            ScreensaverInstallerWin32::EnsureScreensaverActive(m_WorkingDir);
+        }
 
         // Keep the dream rendering while a menu bar popup is open.
         // Windows enters a modal menu-tracking loop on the main thread when the

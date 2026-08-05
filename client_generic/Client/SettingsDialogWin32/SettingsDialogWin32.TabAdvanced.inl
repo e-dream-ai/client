@@ -18,7 +18,25 @@ const float fieldRowGap = S(2.f);
 ImGui::SetWindowFontScale(topCheckboxFontScale);
 ImGui::SetCursorPosY(ImGui::GetCursorPosY() + firstCheckboxDownOffset);
 ImGui::SetCursorPosX(leftInset);
+const bool wasKeepScreensaverEnabled = g_keepScreensaverEnabled;
 StyledCheckbox("Keep screensaver enabled", &g_keepScreensaverEnabled);
+
+if (wasKeepScreensaverEnabled != g_keepScreensaverEnabled)
+{
+    g_Settings()->Set("settings.app.keep_screensaver_enabled",
+                      g_keepScreensaverEnabled);
+    g_Settings()->Storage()->Commit();
+
+    if (g_keepScreensaverEnabled)
+    {
+        ScreensaverInstallerWin32::EnsureScreensaverActive(
+            PlatformUtils::GetWorkingDir());
+    }
+    else
+    {
+        ScreensaverInstallerWin32::RestoreOriginalScreensaverSettings();
+    }
+}
 ImGui::SetWindowFontScale(advancedFontScale);
 
 #ifdef DEBUG
