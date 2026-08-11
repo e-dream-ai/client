@@ -1,0 +1,14 @@
+name: Lint
+run-name: ${{ github.actor }} is running lint checks 🔍
+on: [push, pull_request]
+jobs:
+  platform-paths:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Shared code must not hardcode platform paths
+        run: python scripts/check_platform_paths.py

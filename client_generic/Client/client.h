@@ -851,24 +851,37 @@ class CElectricSheep
             (CPlayer::MultiDisplayMode)g_Settings()->Get(
                 "settings.player.MultiDisplayMode", 0));
 
-#ifdef LINUX_GNU
-        // Linux/headless: pre-check auth / cache state before the window opens.
+        // --cached: play locally cached videos without a session. Parsed and honoured
+        // on every platform, so keep this branch out of any platform guard.
         if (m_CachedOnlyMode)
         {
-            // --cached: play locally cached videos without a session.
             Cache::CacheManager& cmPre = Cache::CacheManager::getInstance();
             cmPre.loadDiskCachedFromJson();
             size_t cachedCount = cmPre.getCachedDreamCount();
             double cachedGB    = cmPre.getCacheSize();
             if (cachedCount == 0 && cachedGB < 0.001)
             {
-                fprintf(stderr, "No cached videos found. Run without --cached first to download content.\n");
+                // Error() hands the message to PlatformUtils::NotifyError() as well as
+                // the log (see CLog::Error) — that is the platform seam for putting a
+                // failure in front of a user: stderr on Linux, a TODO stub on Windows
+                // and Mac. So this one call both records the failure and delivers it to
+                // whatever those stubs grow into. Until they grow something, the log
+                // file is all a Windows user has: the client is a GUI binary there,
+                // with no console attached.
+                g_Log->Error("--cached requested but no cached videos found. "
+                             "Run without --cached first to download content.");
                 return false;
             }
+
+            g_Log->Info("--cached: no sealed session token, cycling through %zu (%.1f GB) of cached videos.",
+                        cachedCount, cachedGB);
             printf("No sealed session token — cycling through %zu (%.1f GB) of cached videos.\n",
                    cachedCount, cachedGB);
             m_MultipleInstancesMode = true;  // forces offline mode through the rest of Startup()
         }
+#ifdef LINUX_GNU
+        // Linux/headless only: the console magic-link flow, before the window opens.
+        // Mac and Windows reach their own GUI sign-in wizard instead.
         else
         {
             std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));

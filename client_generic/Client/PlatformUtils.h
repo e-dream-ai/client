@@ -41,12 +41,13 @@ class PlatformUtils
     static void NotifyError(std::string_view errorMessage);
     static std::string CalculateFileMD5(const std::string& filepath);
 
-#ifdef WIN32
-    /// HWND for SetTimer-based delayed work and input hooks (registered from the player window).
-    static void Win32SetMessageWindow(void* hwnd);
-    /// Called from display WM_MOUSEMOVE (client coordinates).
-    static void NotifyMouseMoved(int x, int y);
-#endif
+    /// Native window handle used for delayed work and input hooks, registered from
+    /// the player window (an HWND on Windows). Platforms that route those through
+    /// other means implement this as a no-op.
+    static void SetNativeMessageWindow(void* _nativeHandle);
+    /// Called from the display's mouse-move event, in client coordinates.
+    /// Platforms that deliver mouse moves directly implement this as a no-op.
+    static void NotifyMouseMoved(int _x, int _y);
 };
 
 class CDelayedDispatch

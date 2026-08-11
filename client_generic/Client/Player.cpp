@@ -346,7 +346,7 @@ void CPlayer::SetHWND(HWND _hWnd)
     if (m_hWnd == nullptr)
     {
         m_hWnd = _hWnd;
-        PlatformUtils::Win32SetMessageWindow(static_cast<void*>(_hWnd));
+        PlatformUtils::SetNativeMessageWindow(static_cast<void*>(_hWnd));
     }
 }
 #endif
