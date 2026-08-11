@@ -855,6 +855,14 @@ class CElectricSheep
         // on every platform, so keep this branch out of any platform guard.
         if (m_CachedOnlyMode)
         {
+            // Set this up front rather than after the cache check below. It gates
+            // EDreamClient::InitializeClient(), which is what keeps the auth thread —
+            // and so the sign-in wizard — out of an explicitly offline session. The
+            // failure path returns early, so assigning it last meant a --cached run
+            // with an empty cache still started auth during teardown and told the
+            // user to "run with --cached", which is what they had just done.
+            m_MultipleInstancesMode = true;  // forces offline mode through the rest of Startup()
+
             Cache::CacheManager& cmPre = Cache::CacheManager::getInstance();
             cmPre.loadDiskCachedFromJson();
             size_t cachedCount = cmPre.getCachedDreamCount();
@@ -877,7 +885,6 @@ class CElectricSheep
                         cachedCount, cachedGB);
             printf("No sealed session token — cycling through %zu (%.1f GB) of cached videos.\n",
                    cachedCount, cachedGB);
-            m_MultipleInstancesMode = true;  // forces offline mode through the rest of Startup()
         }
 #ifdef LINUX_GNU
         // Linux/headless only: the console magic-link flow, before the window opens.
