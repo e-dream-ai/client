@@ -51,6 +51,14 @@ class CElectricSheep_Linux : public CElectricSheep
         std::string tmp = "Working dir: " + m_WorkingDir;
         g_Log->Info(tmp.c_str());
 
+        // Check --cached against the disk cache here, before AddDisplay() below
+        // creates a window -- an empty cache should exit with no window ever
+        // appearing. Needs InitStorage()/AttachLog() above to have run, so the
+        // failure reaches the log. CElectricSheep::Startup() re-checks this, but
+        // CheckCachedOnlyMode() is a no-op once already run.
+        if (m_CachedOnlyMode && !CheckCachedOnlyMode())
+            return false;
+
         //	Run gui.
 
         // Start windowed by default; --fullscreen (m_StartFullscreen) opts into

@@ -830,11 +830,11 @@ class CElectricSheep
 
     // --cached: play locally cached videos without a session. Parsed and honoured
     // on every platform, so this lives outside any platform guard. Idempotent
-    // (m_CachedOnlyModeChecked) because Windows calls it early, before creating any
-    // window -- an empty cache should exit with no window ever appearing, but
-    // win32's own Startup() creates its display before reaching the shared
-    // Startup() below, so it calls this first and bails out ahead of that.
-    // Mac/Linux only reach it from Startup() below.
+    // (m_CachedOnlyModeChecked) because Windows and Linux both call it early,
+    // before creating any window -- an empty cache should exit with no window ever
+    // appearing, but each of those platforms' own Startup() creates its display
+    // before reaching the shared Startup() below, so they call this first and bail
+    // out ahead of that. Mac only reaches it from Startup() below.
     bool CheckCachedOnlyMode()
     {
         if (m_CachedOnlyModeChecked)
@@ -903,8 +903,8 @@ class CElectricSheep
 
         // --cached: play locally cached videos without a session. Parsed and honoured
         // on every platform, so keep this branch out of any platform guard. Windows
-        // already ran this (see CheckCachedOnlyMode()) before creating its window;
-        // this call is then a no-op. Mac/Linux hit it here for the first time.
+        // and Linux already ran this (see CheckCachedOnlyMode()) before creating
+        // their window; the call is then a no-op. Mac hits it here for the first time.
         if (m_CachedOnlyMode)
         {
             if (!CheckCachedOnlyMode())
