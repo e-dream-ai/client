@@ -196,6 +196,7 @@ class CElectricSheep
     std::string m_PreviousDlState; // Track download status
     bool m_MultipleInstancesMode;
     bool m_CachedOnlyMode = false;
+    bool m_CachedOnlyModeChecked = false;
     bool m_StartFullscreen = false;  // Linux: start fullscreen (--fullscreen); default is windowed
     bool m_OfflineDueToNoInternetOnly = false;  // true when m_MultipleInstancesMode was set only because internet was down (don't show Busy in that case)
     bool m_bConfigMode;
@@ -827,6 +828,55 @@ class CElectricSheep
         }
     }
 
+    // --cached: play locally cached videos without a session. Parsed and honoured
+    // on every platform, so this lives outside any platform guard. Idempotent
+    // (m_CachedOnlyModeChecked) because Windows and Linux both call it early,
+    // before creating any window -- an empty cache should exit with no window ever
+    // appearing, but each of those platforms' own Startup() creates its display
+    // before reaching the shared Startup() below, so they call this first and bail
+    // out ahead of that. Mac only reaches it from Startup() below.
+    bool CheckCachedOnlyMode()
+    {
+        if (m_CachedOnlyModeChecked)
+            return true;
+        m_CachedOnlyModeChecked = true;
+
+        if (!m_CachedOnlyMode)
+            return true;
+
+        // Set this up front rather than after the cache check below. It gates
+        // EDreamClient::InitializeClient(), which is what keeps the auth thread —
+        // and so the sign-in wizard — out of an explicitly offline session. The
+        // failure path returns early, so assigning it last meant a --cached run
+        // with an empty cache still started auth during teardown and told the
+        // user to "run with --cached", which is what they had just done.
+        m_MultipleInstancesMode = true;  // forces offline mode through the rest of Startup()
+
+        Cache::CacheManager& cmPre = Cache::CacheManager::getInstance();
+        cmPre.loadDiskCachedFromJson();
+        size_t cachedCount = cmPre.getCachedDreamCount();
+        double cachedGB    = cmPre.getCacheSize();
+        if (cachedCount == 0 && cachedGB < 0.001)
+        {
+            // Error() hands the message to PlatformUtils::NotifyError() as well as
+            // the log (see CLog::Error) — that is the platform seam for putting a
+            // failure in front of a user: stderr on Linux, a TODO stub on Windows
+            // and Mac. So this one call both records the failure and delivers it to
+            // whatever those stubs grow into. Until they grow something, the log
+            // file is all a Windows user has: the client is a GUI binary there,
+            // with no console attached.
+            g_Log->Error("--cached requested but no cached videos found. "
+                         "Run without --cached first to download content.");
+            return false;
+        }
+
+        g_Log->Info("--cached: no sealed session token, cycling through %zu (%.1f GB) of cached videos.",
+                    cachedCount, cachedGB);
+        printf("No sealed session token — cycling through %zu (%.1f GB) of cached videos.\n",
+               cachedCount, cachedGB);
+        return true;
+    }
+
     //
     virtual bool Startup()
     {
@@ -851,24 +901,18 @@ class CElectricSheep
             (CPlayer::MultiDisplayMode)g_Settings()->Get(
                 "settings.player.MultiDisplayMode", 0));
 
-#ifdef LINUX_GNU
-        // Linux/headless: pre-check auth / cache state before the window opens.
+        // --cached: play locally cached videos without a session. Parsed and honoured
+        // on every platform, so keep this branch out of any platform guard. Windows
+        // and Linux already ran this (see CheckCachedOnlyMode()) before creating
+        // their window; the call is then a no-op. Mac hits it here for the first time.
         if (m_CachedOnlyMode)
         {
-            // --cached: play locally cached videos without a session.
-            Cache::CacheManager& cmPre = Cache::CacheManager::getInstance();
-            cmPre.loadDiskCachedFromJson();
-            size_t cachedCount = cmPre.getCachedDreamCount();
-            double cachedGB    = cmPre.getCacheSize();
-            if (cachedCount == 0 && cachedGB < 0.001)
-            {
-                fprintf(stderr, "No cached videos found. Run without --cached first to download content.\n");
+            if (!CheckCachedOnlyMode())
                 return false;
-            }
-            printf("No sealed session token — cycling through %zu (%.1f GB) of cached videos.\n",
-                   cachedCount, cachedGB);
-            m_MultipleInstancesMode = true;  // forces offline mode through the rest of Startup()
         }
+#ifdef LINUX_GNU
+        // Linux/headless only: the console magic-link flow, before the window opens.
+        // Mac and Windows reach their own GUI sign-in wizard instead.
         else
         {
             std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
@@ -980,8 +1024,11 @@ class CElectricSheep
         
         if (m_MultipleInstancesMode) {
             g_Player().SetOfflineMode(true);
-            // Show busy indicator only for actual multiple instances, not when offline due to no internet
-            if (!IsPreview() && !m_OfflineDueToNoInternetOnly) {
+            // Show busy indicator only for actual multiple instances -- not when
+            // offline due to no internet, and not for --cached, which also forces
+            // m_MultipleInstancesMode true to get offline behaviour but isn't a
+            // second instance at all; "Busy" would misleadingly suggest one.
+            if (!IsPreview() && !m_OfflineDueToNoInternetOnly && !m_CachedOnlyMode) {
                 m_BusyIndicatorEndTime = m_Timer.Time() + 30.0;
             }
         }
@@ -1895,9 +1942,13 @@ class CElectricSheep
                 // Show standalone indicator HUD only when credits overlay is hidden
                 // and any indicator timer is active (hide all in preview mode)
                 bool showDisk = m_DiskIndicatorEndTime > 0.0 && !IsPreview();
-                bool showBusy = m_BusyIndicatorEndTime > 0.0 && !IsPreview();
+                // --cached never starts the auth thread or a WebSocket connection
+                // (that's the point of offline mode), so it would otherwise read as
+                // a permanent "Busy"/"Remote" problem rather than the intended,
+                // expected offline state. Suppress both here too.
+                bool showBusy = m_BusyIndicatorEndTime > 0.0 && !IsPreview() && !m_CachedOnlyMode;
                 bool showNet = m_NetworkIndicatorEndTime > 0.0 && !IsPreview();
-                bool showRemote = m_RemoteIndicatorEndTime > 0.0 && !IsPreview() && !inInitialAuthWindow;
+                bool showRemote = m_RemoteIndicatorEndTime > 0.0 && !IsPreview() && !inInitialAuthWindow && !m_CachedOnlyMode;
                 bool showUpdate = m_UpdateIndicatorEndTime > 0.0;
                 
                 bool shouldShowIndicatorHUD = !creditsVisible &&
@@ -2016,9 +2067,12 @@ class CElectricSheep
                     bool updateAvailable = m_RuntimeDiagnostics.updateAvailable;
 
                     bool showDisk = diskSpaceLow && !IsPreview();
-                    showBusy = m_MultipleInstancesMode && !m_OfflineDueToNoInternetOnly && !IsPreview();
+                    // Same --cached suppression as the standalone indicator HUD above:
+                    // offline mode here is intentional (no auth thread, no WebSocket),
+                    // not a stuck "Busy"/"Remote" state worth flagging to the user.
+                    showBusy = m_MultipleInstancesMode && !m_OfflineDueToNoInternetOnly && !IsPreview() && !m_CachedOnlyMode;
                     showNet = !internetConnected && !IsPreview();
-                    showRemote = !wsConnected && !IsPreview() && !inInitialAuthWindow;
+                    showRemote = !wsConnected && !IsPreview() && !inInitialAuthWindow && !m_CachedOnlyMode;
                     showUpdate = updateAvailable;
 
                     // Disk needs spacing for: Busy (if shown) + Net (if shown) + Remote (if shown) + Update (if shown)

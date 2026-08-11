@@ -128,6 +128,12 @@ void PlatformUtils::SetOnMouseMovedCallback(
     }
 }
 
+// No-ops on Mac: there is no HWND to register, and SetOnMouseMovedCallback above
+// installs an NSEvent monitor that delivers mouse moves directly.
+void PlatformUtils::SetNativeMessageWindow(void* /*_nativeHandle*/) {}
+
+void PlatformUtils::NotifyMouseMoved(int /*_x*/, int /*_y*/) {}
+
 void PlatformUtils::OpenURLExternally(std::string_view _url)
 {
     NSString* str = [[NSString alloc] initWithBytes:_url.data()

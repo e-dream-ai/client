@@ -326,6 +326,15 @@ class CElectricSheep_Win32 : public CElectricSheep
                 m_ScrMode = eFullScreenStandalone;
                 m_bAllowFKey = true;
             }
+            else
+            {
+                // Unrecognized flag -- e.g. --cached, which main() already parsed
+                // separately via CommandLineToArgvW into m_CachedOnlyMode. Leaving
+                // m_ScrMode at eNone here fails the mode check below and aborts
+                // Startup() before CElectricSheep::Startup() (where the --cached
+                // logic lives) ever runs, so fall back to windowed mode instead.
+                m_ScrMode = eWindowed;
+            }
         }
 
         //	Check for multiple instances if we're not specifically asked not
@@ -429,6 +438,14 @@ class CElectricSheep_Win32 : public CElectricSheep
         g_Log->Info("Commandline: %s", GetCommandLineA());
 
         _chdir(m_WorkingDir.c_str());
+
+        // Check --cached against the disk cache now, before any window/display is
+        // created below -- an empty cache should exit with no window ever
+        // appearing. CElectricSheep::Startup() (called further down) re-checks
+        // this too, for Mac/Linux, but CheckCachedOnlyMode() is a no-op there
+        // once already run here.
+        if (m_CachedOnlyMode && !CheckCachedOnlyMode())
+            return false;
 
         // Mirror the Mac behavior: when the user-facing app launches, reassert
         // ourselves as the active screensaver if the preference is on. Done
