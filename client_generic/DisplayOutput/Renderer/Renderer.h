@@ -149,6 +149,8 @@ class CRenderer
     //
     virtual bool BeginFrame(void) { return (true); };
     virtual bool EndFrame(bool drawn = true) { return (drawn); };
+    // Synchronize outstanding GPU work before render-owned resources are released.
+    virtual void WaitForIdle() {};
 
     //	Textures.
     virtual spCTextureFlat

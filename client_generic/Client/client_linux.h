@@ -7,6 +7,8 @@
 
 #include "DisplayVulkan.h"
 #include "Exception.h"
+#include "FirstTimeSetupVulkan.h"
+#include "SettingsDialogVulkan.h"
 #include "Log.h"
 #include "MathBase.h"
 #include "PlatformUtils.h"
@@ -65,6 +67,9 @@ class CElectricSheep_Linux : public CElectricSheep
             // );
         }
 
+        FirstTimeSetupVulkan_Register();
+        SettingsDialogVulkan_Register();
+
         if (CElectricSheep::Startup() == false)
             return false;
 
@@ -84,6 +89,12 @@ class CElectricSheep_Linux : public CElectricSheep
         auto spKey = std::static_pointer_cast<DisplayOutput::CKeyEvent>(spEvent);
         if (!spKey->m_bPressed)
             return true; // swallow all key releases
+
+        // Wizard/settings have already consumed this via FeedKey; block game bindings while up.
+        if (FirstTimeSetupVulkan_IsWizardVisible())
+            return true;
+        if (SettingsDialogVulkan_IsVisible())
+            return true;
 
         switch (spKey->m_Code)
         {
@@ -160,6 +171,12 @@ class CElectricSheep_Linux : public CElectricSheep
 #endif
                 return true;
             }
+            CElectricSheep::HandleOneEvent(spEvent);
+            return true;
+
+        // Linux-only: Ctrl+, opens the settings dialog (matches Mac/Windows).
+        case DisplayOutput::CKeyEvent::KEY_Comma:
+            if (spKey->m_bCtrl) { ESShowPreferences(); return true; }
             CElectricSheep::HandleOneEvent(spEvent);
             return true;
 

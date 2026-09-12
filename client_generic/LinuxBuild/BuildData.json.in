@@ -1,0 +1,5 @@
+{
+  "VERSION": "@APP_VERSION@",
+  "REVISION": "@GIT_REVISION@",
+  "BUILD_DATE": "@BUILD_DATE@"
+}

@@ -204,6 +204,13 @@ bool CContentDecoder::IsURL(const std::string& path)
     return path.substr(0, 7) == "http://" || path.substr(0, 8) == "https://";
 }
 
+int CContentDecoder::InterruptIO(void* opaque)
+{
+    auto* decoder = static_cast<CContentDecoder*>(opaque);
+    return decoder &&
+           (decoder->m_bStop.load() || decoder->m_isShuttingDown.load());
+}
+
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
 // Prefers AV_PIX_FMT_D3D11 when available; falls back to first software format.
 // Also creates the hw_frames_ctx here because coded_width/coded_height are only
@@ -289,7 +296,9 @@ bool CContentDecoder::Open()
         }
         
         // For URLs, we use avio_open2
-        ret = avio_open2(&m_pIOContext, _filename.c_str(), AVIO_FLAG_READ, nullptr, nullptr);
+        AVIOInterruptCB interruptCallback{&CContentDecoder::InterruptIO, this};
+        ret = avio_open2(&m_pIOContext, _filename.c_str(), AVIO_FLAG_READ,
+                         &interruptCallback, nullptr);
         if (ret < 0)
         {
             g_Log->Warning("Failed to open URL %s...", _filename.c_str());
@@ -314,6 +323,12 @@ bool CContentDecoder::Open()
         }
 
         ovi->m_pFormatContext = avformat_alloc_context();
+        if (!ovi->m_pFormatContext)
+        {
+            g_Log->Error("Failed to allocate format context for %s", _filename.c_str());
+            return false;
+        }
+        ovi->m_pFormatContext->interrupt_callback = interruptCallback;
         ovi->m_pFormatContext->pb = custom_io;
         ovi->m_pFormatContext->flags |= AVFMT_FLAG_CUSTOM_IO;
     } else {
@@ -595,12 +610,12 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
     sOpenVideoInfo* ovi = m_CurrentVideoInfo.get();
     if (ovi == nullptr)
         return nullptr;
-    
+
     AVFormatContext* pFormatContext = ovi->m_pFormatContext;
-    
+
     if (!pFormatContext)
         return nullptr;
-    
+
     AVRational timeBase =
     pFormatContext->streams[ovi->m_VideoStreamID]->time_base;
     double frameRate = av_q2d(
@@ -608,6 +623,8 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
     AVPacket* packet;
     AVPacket* filteredPacket;
     int frameDecoded = 0;
+    int eagainCount = 0;
+    auto readOneFrameStart = std::chrono::steady_clock::now();
     AVFrame* pFrame = ovi->m_pFrame;
     AVCodecContext* pVideoCodecContext = ovi->m_pVideoCodecContext;
     CVideoFrame* pVideoFrame = nullptr;
@@ -622,7 +639,17 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
         bool endOfPackets = false;
         if (!ovi->m_ReadingTrailingFrames)
         {
-            if (av_read_frame(pFormatContext, packet) < 0)
+            auto t0 = std::chrono::steady_clock::now();
+            int avrf_ret = av_read_frame(pFormatContext, packet);
+            auto avrfMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - t0).count();
+            if (avrfMs > 500) {
+                g_Log->Warning("ReadOneFrame: av_read_frame SLOW (%lldms) ret=%d seekTarget=%lld frame=%lld",
+                               (long long)avrfMs, avrf_ret,
+                               (long long)ovi->m_SeekTargetFrame,
+                               (long long)ovi->m_CurrentFrameIndex);
+            }
+            if (avrf_ret < 0)
             {
                 // Reached end of packets, now flush decoder
                 ovi->m_ReadingTrailingFrames = true;
@@ -721,13 +748,22 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
         {
             av_packet_free(&packet);
             av_packet_free(&filteredPacket);
-            
+
             if (endOfPackets) {
                 // If we're flushing and get EAGAIN, we're done
                 m_HasEnded.exchange(true);
                 return nullptr;
             }
-            
+
+            eagainCount++;
+            if (eagainCount == 50 || eagainCount % 500 == 0) {
+                auto eagainMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::steady_clock::now() - readOneFrameStart).count();
+                g_Log->Warning("ReadOneFrame: stuck in EAGAIN loop — count=%d elapsed=%lldms seekTarget=%lld frame=%lld",
+                               eagainCount, (long long)eagainMs,
+                               (long long)ovi->m_SeekTargetFrame,
+                               (long long)ovi->m_CurrentFrameIndex);
+            }
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
             continue;
         }
@@ -830,6 +866,7 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
         {
             if (ovi->m_CurrentFrameIndex >= ovi->m_SeekTargetFrame)
             {
+                ovi->m_SeekTargetFrame = -1;  // resume normal playback; prevents re-seek loop
                 break;
             }
             else
@@ -976,11 +1013,58 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
     
     av_packet_free(&packet);
     av_packet_free(&filteredPacket);
-    
+
+    auto totalMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - readOneFrameStart).count();
+    if (totalMs > 2000) {
+        g_Log->Warning("ReadOneFrame: completed in %lldms (EAGAIN×%d) seekTarget=%lld frame=%lld",
+                       (long long)totalMs, eagainCount,
+                       (long long)ovi->m_SeekTargetFrame,
+                       (long long)ovi->m_CurrentFrameIndex);
+    }
+
     return pVideoFrame;
 }
 
 // MARK: Read Frames Thread
+void CContentDecoder::OpenAndReadFramesThread()
+{
+    PlatformUtils::SetThreadName("OpenVideo");
+
+    try
+    {
+        if (m_bStop.load() || m_isShuttingDown.load())
+        {
+            m_HasEnded.store(true);
+            return;
+        }
+
+        if (!Open())
+        {
+            m_OpenFailed.store(true);
+            m_HasEnded.store(true);
+            g_Log->Error("Asynchronous decoder open failed for %s",
+                         m_Metadata.dreamData.uuid.c_str());
+            return;
+        }
+
+        if (m_bStop.load() || m_isShuttingDown.load())
+        {
+            m_HasEnded.store(true);
+            return;
+        }
+
+        ReadFramesThread();
+    }
+    catch (const std::exception& e)
+    {
+        m_OpenFailed.store(true);
+        m_HasEnded.store(true);
+        g_Log->Error("Exception while opening decoder for %s: %s",
+                     m_Metadata.dreamData.uuid.c_str(), e.what());
+    }
+}
+
 void CContentDecoder::ReadFramesThread()
 {
     try
@@ -1142,6 +1226,8 @@ void CContentDecoder::ReadFramesThread()
 #else
                 avcodec_flush_buffers(m_CurrentVideoInfo->m_pVideoCodecContext);
 #endif
+                if (m_CurrentVideoInfo->m_pBsfContext)
+                    av_bsf_flush(m_CurrentVideoInfo->m_pBsfContext);
 
                 if (seek < 0)
                 {
@@ -1259,14 +1345,32 @@ bool CContentDecoder::Start(const sClipMetadata& metadata, int64_t _seekFrame)
     m_CurrentVideoInfo->m_Path = metadata.path;
     m_CurrentVideoInfo->m_SeekTargetFrame = _seekFrame;
     m_HasEnded.exchange(false);
-    
-    if (!Open())
-        return false;
-    
-    //	Start by opening, so we have a context to work with.
+    m_OpenFailed.store(false);
     m_bStop = false;
-    m_pDecoderThread =
-    new thread(bind(&CContentDecoder::ReadFramesThread, this));
+
+    // Remote demuxer initialization can spend seconds in avio_open2,
+    // avformat_open_input, or avformat_find_stream_info. Keep that work off the
+    // player/render thread so the outgoing clip remains responsive. Local files
+    // retain synchronous validation so callers still get immediate failures for
+    // missing or corrupt cache entries.
+    if (IsURL(metadata.path))
+    {
+        g_Log->Info("Opening remote decoder asynchronously for %s",
+                    metadata.dreamData.uuid.c_str());
+        m_pDecoderThread =
+            new thread(bind(&CContentDecoder::OpenAndReadFramesThread, this));
+    }
+    else
+    {
+        if (!Open())
+        {
+            m_OpenFailed.store(true);
+            m_HasEnded.store(true);
+            return false;
+        }
+        m_pDecoderThread =
+            new thread(bind(&CContentDecoder::ReadFramesThread, this));
+    }
     
     return true;
 }

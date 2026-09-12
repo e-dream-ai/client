@@ -11,6 +11,9 @@
 #include <imgui.h>
 #include <backends/imgui_impl_vulkan.h>
 
+#include "FirstTimeSetupVulkan.h"
+#include "SettingsDialogVulkan.h"
+
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -28,8 +31,8 @@ namespace DisplayOutput
 CRendererVulkan::CRendererVulkan()
 {
     memset(m_imageAvailable, 0, sizeof(m_imageAvailable));
-    memset(m_renderFinished, 0, sizeof(m_renderFinished));
     memset(m_inFlightFence,  0, sizeof(m_inFlightFence));
+    memset(m_timestampSlotValid, 0, sizeof(m_timestampSlotValid));
     memset(m_vertexBuffer,   0, sizeof(m_vertexBuffer));
     memset(m_vertexMemory,   0, sizeof(m_vertexMemory));
     memset(m_mappedVertex,   0, sizeof(m_mappedVertex));
@@ -39,6 +42,17 @@ CRendererVulkan::~CRendererVulkan()
 {
     if (m_device == VK_NULL_HANDLE) return;
     vkDeviceWaitIdle(m_device);
+
+    // CRenderer's base destructor runs after this derived destructor. Release
+    // its bound Vulkan objects now, while the device and command pool they use
+    // for teardown are still valid.
+    for (uint32_t i = 0; i < MAX_TEXUNIT; ++i)
+    {
+        m_aspActiveTextures[i].reset();
+        m_aspSelectedTextures[i].reset();
+    }
+    m_spActiveShader.reset();
+    m_spSelectedShader.reset();
 
     // Shut down ImGui before any Vulkan resources are destroyed.
     if (m_imguiInitialized)
@@ -69,11 +83,10 @@ CRendererVulkan::~CRendererVulkan()
         }
         if (m_imageAvailable[i] != VK_NULL_HANDLE)
             vkDestroySemaphore(m_device, m_imageAvailable[i], nullptr);
-        if (m_renderFinished[i] != VK_NULL_HANDLE)
-            vkDestroySemaphore(m_device, m_renderFinished[i], nullptr);
         if (m_inFlightFence[i] != VK_NULL_HANDLE)
             vkDestroyFence(m_device, m_inFlightFence[i], nullptr);
     }
+    destroyPresentSemaphores();
 
     if (m_timestampPool       != VK_NULL_HANDLE) vkDestroyQueryPool(m_device, m_timestampPool, nullptr);
     // Command buffers freed with pool
@@ -97,6 +110,12 @@ CRendererVulkan::~CRendererVulkan()
     // Null the handle so any CTextureFlatVulkan dtor that still holds a raw
     // renderer pointer sees VK_NULL_HANDLE and skips destroy calls safely.
     m_device = VK_NULL_HANDLE;
+}
+
+void CRendererVulkan::WaitForIdle()
+{
+    if (m_device != VK_NULL_HANDLE)
+        vkDeviceWaitIdle(m_device);
 }
 
 // ---------------------------------------------------------------------------
@@ -291,12 +310,20 @@ bool CRendererVulkan::createSwapchain(VkSurfaceKHR surface,
     // Mailbox would spin the CPU freely between presents, burning cycles for no benefit.
     VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
 
-    // Always use the requested dimensions clamped to surface bounds.
-    // Never blindly trust caps.currentExtent — on X11 it can lag behind ConfigureNotify
-    // by several frames, causing the swapchain to be created at the wrong size while
-    // Display()->Width/Height() already reflects the new window dimensions.
-    m_swapExtent.width  = std::clamp(width,  caps.minImageExtent.width,  caps.maxImageExtent.width);
-    m_swapExtent.height = std::clamp(height, caps.minImageExtent.height, caps.maxImageExtent.height);
+    // Vulkan spec: when currentExtent is not {UINT32_MAX, UINT32_MAX} the swapchain
+    // MUST use that exact size. Some drivers (common on X11 with XFCE/Xfwm4) also set
+    // minImageExtent == maxImageExtent == currentExtent, so ignoring currentExtent and
+    // clamping by min/max yields the same forced value — but leaves m_swapExtent
+    // differing from m_spDisplay->Width/Height(), triggering an infinite recreation loop.
+    // Use currentExtent directly when valid; fall back to the requested size otherwise.
+    if (caps.currentExtent.width != UINT32_MAX) {
+        if (caps.currentExtent.width == 0 || caps.currentExtent.height == 0)
+            return false;  // Window minimized/hidden — caller will retry next frame
+        m_swapExtent = caps.currentExtent;
+    } else {
+        m_swapExtent.width  = std::clamp(width,  caps.minImageExtent.width,  caps.maxImageExtent.width);
+        m_swapExtent.height = std::clamp(height, caps.minImageExtent.height, caps.maxImageExtent.height);
+    }
 
     uint32_t imageCount = caps.minImageCount + 1;
     if (caps.maxImageCount > 0 && imageCount > caps.maxImageCount)
@@ -755,11 +782,38 @@ bool CRendererVulkan::createSyncObjects()
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         if (vkCreateSemaphore(m_device, &si, nullptr, &m_imageAvailable[i]) != VK_SUCCESS ||
-            vkCreateSemaphore(m_device, &si, nullptr, &m_renderFinished[i]) != VK_SUCCESS ||
             vkCreateFence    (m_device, &fi, nullptr, &m_inFlightFence[i])  != VK_SUCCESS)
             return false;
     }
-    return true;
+    return createPresentSemaphores();
+}
+
+bool CRendererVulkan::createPresentSemaphores()
+{
+    destroyPresentSemaphores();
+    m_renderFinished.resize(m_swapImages.size(), VK_NULL_HANDLE);
+
+    VkSemaphoreCreateInfo info{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+    for (auto& semaphore : m_renderFinished)
+    {
+        if (vkCreateSemaphore(m_device, &info, nullptr, &semaphore) != VK_SUCCESS)
+        {
+            destroyPresentSemaphores();
+            return false;
+        }
+    }
+    return !m_renderFinished.empty();
+}
+
+void CRendererVulkan::destroyPresentSemaphores()
+{
+    if (m_device != VK_NULL_HANDLE)
+    {
+        for (VkSemaphore semaphore : m_renderFinished)
+            if (semaphore != VK_NULL_HANDLE)
+                vkDestroySemaphore(m_device, semaphore, nullptr);
+    }
+    m_renderFinished.clear();
 }
 
 // ---------------------------------------------------------------------------
@@ -956,8 +1010,8 @@ bool CRendererVulkan::Initialize(spCDisplayOutput _spDisplay)
     VkSurfaceKHR surface  = disp->GetSurface();
     uint32_t     w        = disp->Width();
     uint32_t     h        = disp->Height();
-    m_surface         = surface;
-    m_vulkanInstance  = instance;
+    m_surface        = surface;
+    m_vulkanInstance = instance;
 
     if (!pickPhysicalDevice(instance, surface))     return false;
     if (!createLogicalDevice())                      return false;
@@ -1073,6 +1127,7 @@ float CRendererVulkan::GetGPUUtilization()
 void CRendererVulkan::recreateSwapchain()
 {
     vkDeviceWaitIdle(m_device);
+    destroyPresentSemaphores();
 
     // Destroy framebuffers
     for (auto fb : m_framebuffers)
@@ -1096,7 +1151,26 @@ void CRendererVulkan::recreateSwapchain()
     uint32_t h = m_spDisplay->Height();
 
     g_Log->Info("CRendererVulkan: recreating swapchain (%ux%u)", w, h);
-    createSwapchain(m_surface, w, h);
+    if (!createSwapchain(m_surface, w, h)) {
+        // Surface not ready (e.g. window minimized, zero-size extent from driver).
+        // Mark swapExtent as empty so BeginFrame retries next frame.
+        m_swapExtent = {0, 0};
+        return;
+    }
+
+    if (!createPresentSemaphores()) {
+        g_Log->Error("CRendererVulkan: failed to recreate presentation semaphores");
+        m_swapExtent = {0, 0};
+        return;
+    }
+
+    // Sync the display's tracked size to what the driver actually created.
+    // On X11 with Xfwm4 the driver enforces currentExtent which may differ
+    // slightly from the last ConfigureNotify value. Without this sync,
+    // BeginFrame's mismatch check fires immediately after recreation and
+    // loops forever.
+    m_spDisplay->SyncSize(m_swapExtent.width, m_swapExtent.height);
+
     createFramebuffers();
 }
 
@@ -1106,12 +1180,15 @@ bool CRendererVulkan::BeginFrame()
 {
     if (m_inFrame) return true;
 
+    // Skip frames while the window has no drawable area (minimized on some WMs).
+    if (m_spDisplay->Width() == 0 || m_spDisplay->Height() == 0)
+        return false;
+
     // Proactively recreate the swapchain if the window size changed.
     // Display()->Width/Height() is kept up-to-date by ConfigureNotify (X11) and
     // xdg_toplevel configure (Wayland), so comparing against m_swapExtent detects
     // fullscreen transitions and manual resizes exactly one frame after the WM sends
-    // the resize event — no spurious recreations since m_swapExtent is set from those
-    // same dimensions (never from stale caps.currentExtent).
+    // the resize event. After recreation, SyncSize() keeps them in agreement.
     if (m_spDisplay->Width() != m_swapExtent.width || m_spDisplay->Height() != m_swapExtent.height)
     {
         recreateSwapchain();
@@ -1148,7 +1225,7 @@ bool CRendererVulkan::BeginFrame()
     // then reset + write the start timestamp for this slot.
     if (m_timestampPool != VK_NULL_HANDLE)
     {
-        if (m_timestampsValid)
+        if (m_timestampSlotValid[m_currentFrame])
         {
             uint64_t ts[2] = {};
             if (vkGetQueryPoolResults(m_device, m_timestampPool,
@@ -1218,6 +1295,8 @@ bool CRendererVulkan::EndFrame(bool /*drawn*/)
     // Render ImGui draw data (text overlays etc.) inside the active render pass.
     if (m_imguiInitialized)
     {
+        FirstTimeSetupVulkan_DrawIfNeeded();
+        SettingsDialogVulkan_DrawIfNeeded();
         ImGui::Render();
         ImDrawData* drawData = ImGui::GetDrawData();
         if (drawData && drawData->TotalVtxCount > 0)
@@ -1231,7 +1310,7 @@ bool CRendererVulkan::EndFrame(bool /*drawn*/)
     {
         vkCmdWriteTimestamp(cmd, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
                             m_timestampPool, m_currentFrame * 2 + 1);
-        m_timestampsValid = true;
+        m_timestampSlotValid[m_currentFrame] = true;
     }
 
     vkEndCommandBuffer(cmd);
@@ -1244,12 +1323,13 @@ bool CRendererVulkan::EndFrame(bool /*drawn*/)
     si.commandBufferCount   = 1;
     si.pCommandBuffers      = &cmd;
     si.signalSemaphoreCount = 1;
-    si.pSignalSemaphores    = &m_renderFinished[m_currentFrame];
+    VkSemaphore& renderFinished = m_renderFinished[m_currentImageIndex];
+    si.pSignalSemaphores    = &renderFinished;
     vkQueueSubmit(m_graphicsQueue, 1, &si, m_inFlightFence[m_currentFrame]);
 
     VkPresentInfoKHR pi{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
     pi.waitSemaphoreCount = 1;
-    pi.pWaitSemaphores    = &m_renderFinished[m_currentFrame];
+    pi.pWaitSemaphores    = &renderFinished;
     pi.swapchainCount     = 1;
     pi.pSwapchains        = &m_swapchain;
     pi.pImageIndices      = &m_currentImageIndex;

@@ -123,6 +123,21 @@ bool CClip::Start(int64_t _seekFrame)
 
 void CClip::Stop() { m_spDecoder->Stop(); }
 
+void CClip::ReleaseRenderResources()
+{
+    if (m_spRenderer)
+        m_spRenderer->WaitForIdle();
+
+    // Vulkan textures and command buffers are owned by the frame display. Release
+    // them while serialized with rendering; decoder teardown may then happen on a
+    // worker without touching the renderer or its command pool.
+    m_spFrameDisplay.reset();
+    m_spFrameData.reset();
+    m_LastValidFrame.reset();
+    m_spImageRef.reset();
+    m_spRenderer.reset();
+}
+
 bool CClip::Preload(int64_t _seekFrame)
 {
     g_Log->Info("Starting preloading %s at frame %d", m_ClipMetadata.path.c_str(), _seekFrame);
@@ -150,7 +165,7 @@ bool CClip::IsPreloadComplete() const {
     
     // Require a minimum number of frames to consider preloading complete
     uint32_t queueLength = m_spDecoder->QueueLength();
-    uint32_t minFramesRequired = 10;  // Require at least 10 frames
+    uint32_t minFramesRequired = 5;  // Match the Rebuffering exit threshold in Update()
     
     bool complete = queueLength >= minFramesRequired;
     
@@ -223,8 +238,8 @@ int CClip::GetFramesToAdvance(double _timelineTime,
     _decoderClock->interframeDelta = _decoderClock->acc / dt;
 
     if (framesToAdvance > 1) {
-        g_Log->Info("Frame timing catch-up: advancing %d frames (deltaTime: %.4f, dt: %.4f)",
-                    framesToAdvance, deltaTime, dt);
+        g_Log->Debug("Frame timing catch-up: advancing %d frames (deltaTime: %.4f, dt: %.4f)",
+                     framesToAdvance, deltaTime, dt);
     }
 
     return framesToAdvance;

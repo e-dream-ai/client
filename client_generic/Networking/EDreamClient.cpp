@@ -75,6 +75,11 @@ void ESShowFirstTimeSetup()
     }
 }
 
+bool ESHasFirstTimeSetupCallback()
+{
+    return gShowFirstTimeSetupCallback != nullptr;
+}
+
 long long EDreamClient::remainingQuota = 0;
 std::chrono::system_clock::time_point EDreamClient::quotaExpiresAt = std::chrono::system_clock::now();
 
@@ -681,9 +686,17 @@ bool EDreamClient::Authenticate()
         g_Log->Warning("No sealed session found");
 
         // Try magic link login via email in settings (settings.generator.nickname).
+        // On Linux, skip the console path if a GUI wizard is registered — the wizard
+        // will handle authentication and the auth loop will retry automatically.
+        // On Mac/Windows the GUI wizard is always registered but those platforms use
+        // their own GUI auth flow; magic link is still attempted as a fallback.
         // ValidateCodeDetailed() calls RefreshSealedSession() internally — no
         // second refresh needed if this returns true.
+#ifdef LINUX_GNU
+        if (!ESHasFirstTimeSetupCallback() && LoginWithMagicLinkCode())
+#else
         if (LoginWithMagicLinkCode())
+#endif
         {
             fIsLoggedIn.exchange(true);
             fInitialAuthComplete.store(true);
@@ -732,10 +745,7 @@ bool EDreamClient::Authenticate()
         fAuthCV.notify_one();
         if (!shownSettingsOnce) {
             shownSettingsOnce = true;
-            bool firstTimeSetupCompleted = g_Settings()->Get("settings.app.firsttimesetup", false);
-            if (!firstTimeSetupCompleted) {
-                ESShowFirstTimeSetup();
-            }
+            ESShowFirstTimeSetup();
         }
         return false;
     }
@@ -1887,17 +1897,21 @@ std::future<bool> EDreamClient::EnqueuePlaylistAsync(const std::string& uuid) {
             return false;
         }
 
+        // Parse on this network worker before handing the playlist to the
+        // player thread. ParsePlaylist fills any missing dream metadata and
+        // prefetches the first streaming URL; both operations may block on the
+        // server and must not pause rendering during a playlist switch.
+        auto entries = ParsePlaylist(uuid);
+        if (entries.empty()) {
+            g_Log->Error("Failed to prepare playlist. UUID: %s", uuid.c_str());
+            return false;
+        }
+
         // save the current playlist id, this will get reused at next startup
         g_Settings()->Set("settings.content.current_playlist_uuid", uuid);
         
-        std::thread([uuid]() {
-            // These operations must happen on the main/UI thread
-            g_Log->Info("Will call set playlist");
-            g_Player().SetPlaylist(std::string(uuid), false);
-            g_Player().SetTransitionDuration(1.0f);
-            g_Log->Info("Will call start transition");
-            g_Player().StartTransition();
-        }).detach();
+        // Player and renderer state is owned by the frame-update thread.
+        g_Player().EnqueuePlaylistChange(uuid);
         
         return true;
     });
@@ -2447,10 +2461,14 @@ std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
         auto dream = cm.getDream(needsStreamingUuid);
 
         if (dream) {
-            // Grab streaming URL and save it for later use
-            g_Log->Info("Parse playlist blocking call for download link");
-            auto path = EDreamClient::GetDreamDownloadLink(dream->uuid);
-            dream->setStreamingUrl(path);
+            // EnqueuePlaylistAsync prepares this on its network worker before
+            // the player parses the playlist. Do not perform the request again
+            // when the player-thread parse sees the already prepared dream.
+            if (dream->getStreamingUrl().empty()) {
+                g_Log->Info("Parse playlist blocking call for download link");
+                auto path = EDreamClient::GetDreamDownloadLink(dream->uuid);
+                dream->setStreamingUrl(path);
+            }
         } else {
             // Metadata fetch failed or didn't include this dream; skip the
             // prefetch. The entry gets filtered out of the playlist anyway
@@ -2539,10 +2557,7 @@ bool EDreamClient::EnqueuePlaylist(std::string_view uuid) {
 
     // save the current playlist id, this will get reused at next startup
     g_Settings()->Set("settings.content.current_playlist_uuid", uuid);
-    g_Player().SetPlaylist(std::string(uuid), false);
-    
-    g_Player().SetTransitionDuration(1.0f);
-    g_Player().StartTransition();
+    g_Player().EnqueuePlaylistChange(std::string(uuid));
     
     return true;
 }
@@ -2613,7 +2628,7 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
         }
 
         g_Log->Info("should play : %s", uuid.data());
-        g_Player().PlayDreamNow(uuid.data(), frameNumber);
+        g_Player().EnqueuePlayDream(std::string(uuid), frameNumber);
     }
     else if (event == WsEvent::kPlayPlaylist)
     {
@@ -2965,4 +2980,3 @@ void EDreamClient::Report(std::string uuid) {
 
 
 void EDreamClient::SetCPUUsage(int _cpuUsage) { fCpuUsage.exchange(_cpuUsage); }
-

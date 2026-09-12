@@ -2,7 +2,10 @@
 #define _PLAYER_H_
 
 #include <atomic>
+#include <deque>
+#include <future>
 #include <queue>
+#include <thread>
 
 #ifdef WIN32
 //#include <d3d12.h>
@@ -43,12 +46,54 @@ class CPlayer : public Base::CSingleton<CPlayer>
     void SetOfflineMode(bool offline);
     bool IsOfflineMode() const;
   private:
-    bool m_hasStarted = false;
+    std::atomic<bool> m_hasStarted{false};
     
-    bool m_offlineMode;
+    std::atomic<bool> m_offlineMode{false};
     
     std::atomic<bool> m_shutdownFlag{false};
     std::shared_ptr<std::thread> m_startupThread;
+
+    enum class PendingCommandType {
+        ChangePlaylist,
+        PlayDream,
+        PlayPreparedDream,
+        PreloadPreparedDream,
+        InitializePlaylist
+    };
+
+    struct PendingCommand {
+        PendingCommandType type;
+        std::string uuid;
+        int64_t frameNumber = -1;
+        std::shared_ptr<const Cache::Dream> dream;
+        std::string streamingPath;
+        bool seamless = false;
+        std::string resumeDreamUuid;
+        bool offline = false;
+    };
+
+    std::mutex m_pendingCommandMutex;
+    std::deque<PendingCommand> m_pendingCommands;
+    std::thread::id m_updateThreadId;
+    std::mutex m_backgroundTaskMutex;
+    std::vector<std::future<void>> m_backgroundTasks;
+
+    void ProcessPendingCommands();
+    void EnqueuePlaylistInitialization(std::string playlistUuid,
+                                       std::string resumeDreamUuid,
+                                       bool offline);
+    void EnqueuePreparedDream(std::shared_ptr<const Cache::Dream> dream,
+                              std::string streamingPath, int64_t frameNumber);
+    void ApplyPreparedDream(const std::shared_ptr<const Cache::Dream>& dream,
+                            int64_t frameNumber);
+    void RequestPreloadClip(const std::shared_ptr<const Cache::Dream>& dream,
+                            bool seamless);
+    void EnqueuePreparedPreload(std::shared_ptr<const Cache::Dream> dream,
+                                std::string streamingPath, bool seamless);
+    void ApplyPreparedPreload(const std::shared_ptr<const Cache::Dream>& dream,
+                              const std::string& streamingPath, bool seamless);
+    void ReapBackgroundTasks();
+    void WaitForBackgroundTasks();
     
     ContentDecoder::spCClip m_currentClip;
     ContentDecoder::spCClip m_nextClip;
@@ -241,6 +286,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
     PlaylistManager& GetPlaylistManager() { return *m_playlistManager; }
     
     void PlayDreamNow(std::string_view _uuid, int64_t frameNumber);
+    void EnqueuePlayDream(std::string uuid, int64_t frameNumber = -1);
+    void EnqueuePlaylistChange(std::string uuid);
     void ResetPlaylist();
     
     // Set playlist from the start

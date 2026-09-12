@@ -3,6 +3,8 @@
 #include "DisplayVulkan.h"
 #include "PlatformUtils_Internal.h"
 #include "Log.h"
+#include "FirstTimeSetupVulkan.h"
+#include "SettingsDialogVulkan.h"
 
 #include <X11/Xutil.h>
 #include <chrono>
@@ -103,6 +105,58 @@ void CDisplayVulkan::onLibdecorCommit(struct libdecor_frame*, void* data)
 }
 #endif
 
+// wl_output listener — derives UI scale from physical DPI, same method as the
+// X11 path. Integer wl_output.scale is a fallback for compositors that don't
+// report physical dimensions (physical_width_mm == 0).
+namespace {
+struct WlOutputState { int32_t physWidthMm = 0; int32_t pixelWidth = 0; };
+static WlOutputState s_wlOutputState;
+}
+
+static void onWlOutputGeometry(void*, wl_output*, int32_t, int32_t,
+                                int32_t physical_width_mm, int32_t,
+                                int32_t, const char*, const char*, int32_t)
+{
+    s_wlOutputState.physWidthMm = physical_width_mm;
+}
+static void onWlOutputMode(void*, wl_output*, uint32_t flags, int32_t width, int32_t, int32_t)
+{
+    // WL_OUTPUT_MODE_CURRENT = 0x1
+    if (flags & 0x1)
+        s_wlOutputState.pixelWidth = width;
+}
+static void onWlOutputDone(void*, wl_output*)
+{
+    // Compute DPI-based scale once both geometry and mode have arrived.
+    g_Log->Info("CDisplayVulkan: wl_output done — physWidthMm=%d pixelWidth=%d",
+                s_wlOutputState.physWidthMm, s_wlOutputState.pixelWidth);
+    if (s_wlOutputState.physWidthMm > 0 && s_wlOutputState.pixelWidth > 0)
+    {
+        float dpi = static_cast<float>(s_wlOutputState.pixelWidth) * 25.4f
+                    / static_cast<float>(s_wlOutputState.physWidthMm);
+        float scale = dpi / 96.0f;
+        g_Log->Info("CDisplayVulkan: wl_output DPI=%.1f -> uiScale=%.3f", dpi, scale);
+        // Use the highest scale across all connected outputs — avoids a lower-DPI
+        // secondary monitor overwriting the scale of the primary HiDPI display.
+        if (scale > PlatformUtils_GetUIScale())
+            PlatformUtils_SetUIScale(scale);
+    }
+    else
+    {
+        g_Log->Info("CDisplayVulkan: wl_output no physical dimensions, uiScale unchanged at %.3f",
+                    PlatformUtils_GetUIScale());
+    }
+}
+static void onWlOutputScale(void*, wl_output*, int32_t factor)
+{
+    // Only used as fallback when physical dimensions are unavailable.
+    if (factor >= 2 && s_wlOutputState.physWidthMm == 0)
+        PlatformUtils_SetUIScale(static_cast<float>(factor));
+}
+static const wl_output_listener s_wlOutputListener = {
+    onWlOutputGeometry, onWlOutputMode, onWlOutputDone, onWlOutputScale,
+};
+
 void CDisplayVulkan::onRegistryGlobal(void* data, wl_registry* registry,
                                        uint32_t name, const char* interface,
                                        uint32_t version)
@@ -140,6 +194,13 @@ void CDisplayVulkan::onRegistryGlobal(void* data, wl_registry* registry,
     {
         self->m_pDecorationManager = static_cast<zxdg_decoration_manager_v1*>(
             wl_registry_bind(registry, name, &zxdg_decoration_manager_v1_interface, 1));
+    }
+    else if (strcmp(interface, "wl_output") == 0 && version >= 2)
+    {
+        // Bind the first output to read its integer scale factor for HiDPI.
+        wl_output* output = static_cast<wl_output*>(
+            wl_registry_bind(registry, name, &wl_output_interface, 2));
+        wl_output_add_listener(output, &s_wlOutputListener, nullptr);
     }
 }
 
@@ -497,6 +558,7 @@ void CDisplayVulkan::onKeyboardKey(void* data, wl_keyboard*, uint32_t,
     case XKB_KEY_n:      spEvent->m_Code = CKeyEvent::KEY_N;     break;
     case XKB_KEY_b:      spEvent->m_Code = CKeyEvent::KEY_B;     break;
     case XKB_KEY_q:      spEvent->m_Code = CKeyEvent::KEY_Q;     break;
+    case XKB_KEY_comma:  spEvent->m_Code = CKeyEvent::KEY_Comma; break;
     case XKB_KEY_space:  spEvent->m_Code = CKeyEvent::KEY_SPACE; break;
     case XKB_KEY_Left:   spEvent->m_Code = CKeyEvent::KEY_LEFT;  break;
     case XKB_KEY_Right:  spEvent->m_Code = CKeyEvent::KEY_RIGHT; break;
@@ -505,6 +567,12 @@ void CDisplayVulkan::onKeyboardKey(void* data, wl_keyboard*, uint32_t,
     case XKB_KEY_Escape: spEvent->m_Code = CKeyEvent::KEY_Esc;   break;
     default:             spEvent->m_Code = CKeyEvent::KEY_NONE;  break;
     }
+
+    // Feed into ImGui overlays while they're visible; consume the event if accepted.
+    if (FirstTimeSetupVulkan_FeedKey(key, keysym, spEvent->m_bPressed, self->m_pXkbState))
+        return;
+    if (SettingsDialogVulkan_FeedKey(key, keysym, spEvent->m_bPressed, self->m_pXkbState))
+        return;
 
     self->m_EventQueue.push(std::static_pointer_cast<CEvent>(spEvent));
 }
@@ -538,9 +606,12 @@ void CDisplayVulkan::onPointerEnter(void* data, wl_pointer*, uint32_t serial,
 #endif
     self->updateWaylandCursor();
 
-    auto& cb = PlatformUtils_GetMouseCallback();
-    if (cb)
-        cb(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
+    FirstTimeSetupVulkan_FeedMousePos(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
+    SettingsDialogVulkan_FeedMousePos(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
+
+    auto& mouseCallback = PlatformUtils_GetMouseCallback();
+    if (mouseCallback)
+        mouseCallback(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
 }
 
 void CDisplayVulkan::onPointerLeave(void* data, wl_pointer*, uint32_t, wl_surface*)
@@ -564,9 +635,12 @@ void CDisplayVulkan::onPointerMotion(void* data, wl_pointer*, uint32_t,
 #endif
     self->updateWaylandCursor();
 
-    auto& cb = PlatformUtils_GetMouseCallback();
-    if (cb)
-        cb(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
+    FirstTimeSetupVulkan_FeedMousePos(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
+    SettingsDialogVulkan_FeedMousePos(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
+
+    auto& mouseCallback = PlatformUtils_GetMouseCallback();
+    if (mouseCallback)
+        mouseCallback(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
 }
 
 void CDisplayVulkan::onPointerButton(void* data, wl_pointer*, uint32_t serial,
@@ -587,6 +661,9 @@ void CDisplayVulkan::onPointerButton(void* data, wl_pointer*, uint32_t serial,
                               serial, self->m_hoverResizeEdge);
     }
 #endif
+
+    FirstTimeSetupVulkan_FeedMouseButton(button, state == WL_POINTER_BUTTON_STATE_PRESSED);
+    SettingsDialogVulkan_FeedMouseButton(button, state == WL_POINTER_BUTTON_STATE_PRESSED);
 }
 
 void CDisplayVulkan::onPointerAxis(void*, wl_pointer*, uint32_t, uint32_t, wl_fixed_t) {}
@@ -808,6 +885,10 @@ bool CDisplayVulkan::Initialize(const uint32_t _width, const uint32_t _height,
     m_Width  = _width;
     m_Height = _height;
 
+    // Seed UI scale from desktop env vars early; display-specific init below
+    // may override with a more precise value (wl_output scale or X11 DPI).
+    PlatformUtils_InitUIScale();
+
     const char* xssId = getenv("XSCREENSAVER_WINDOW");
 
 #ifdef HAVE_WAYLAND
@@ -845,6 +926,16 @@ bool CDisplayVulkan::Initialize(const uint32_t _width, const uint32_t _height,
     int screen = DefaultScreen(m_pDisplay);
     m_WidthFS  = static_cast<uint32_t>(DisplayWidth (m_pDisplay, screen));
     m_HeightFS = static_cast<uint32_t>(DisplayHeight(m_pDisplay, screen));
+
+    // Derive UI scale from physical display DPI (DisplayWidthMM is the physical
+    // width in millimetres reported by the X server / XRandR).
+    int physWidthMM = DisplayWidthMM(m_pDisplay, screen);
+    if (physWidthMM > 0)
+    {
+        float dpi = static_cast<float>(DisplayWidth(m_pDisplay, screen)) * 25.4f
+                    / static_cast<float>(physWidthMM);
+        PlatformUtils_SetUIScale(dpi / 96.0f);
+    }
 
     m_wmDeleteWindow  = XInternAtom(m_pDisplay, "WM_DELETE_WINDOW",         False);
     m_netWmState      = XInternAtom(m_pDisplay, "_NET_WM_STATE",            False);
@@ -886,7 +977,7 @@ bool CDisplayVulkan::Initialize(const uint32_t _width, const uint32_t _height,
 
         XSelectInput(m_pDisplay, m_Window,
                      StructureNotifyMask | KeyPressMask | KeyReleaseMask |
-                     ButtonPressMask | PointerMotionMask);
+                     ButtonPressMask | ButtonReleaseMask | PointerMotionMask);
         XSetWMProtocols(m_pDisplay, m_Window, &m_wmDeleteWindow, 1);
         setWindowDecorations(!_bFullscreen);
 
@@ -1058,6 +1149,15 @@ void CDisplayVulkan::checkEvents()
     }
 #endif
 
+    // Show cursor while any ImGui overlay is up; hide it otherwise.
+    {
+        const bool overlayUp = FirstTimeSetupVulkan_IsWizardVisible() ||
+                               SettingsDialogVulkan_IsVisible();
+        static bool s_cursorVisible = false;
+        if (overlayUp && !s_cursorVisible)  { applyDefaultCursor();   s_cursorVisible = true;  }
+        if (!overlayUp && s_cursorVisible)  { applyInvisibleCursor(); s_cursorVisible = false; }
+    }
+
     XEvent xEvent;
     while (XPending(m_pDisplay))
     {
@@ -1081,9 +1181,11 @@ void CDisplayVulkan::checkEvents()
             int nSyms = 0;
             KeySym* syms = XGetKeyboardMapping(m_pDisplay,
                                                xEvent.xkey.keycode, 1, &nSyms);
+            KeySym x11keysym = XK_VoidSymbol;
             if (syms)
             {
-                switch (syms[0])
+                x11keysym = syms[0];
+                switch (x11keysym)
                 {
                 case XK_F1:     spEvent->m_Code = CKeyEvent::KEY_F1;    break;
                 case XK_F2:     spEvent->m_Code = CKeyEvent::KEY_F2;    break;
@@ -1115,6 +1217,7 @@ void CDisplayVulkan::checkEvents()
                 case XK_n:      spEvent->m_Code = CKeyEvent::KEY_N;     break;
                 case XK_b:      spEvent->m_Code = CKeyEvent::KEY_B;     break;
                 case XK_q:      spEvent->m_Code = CKeyEvent::KEY_Q;     break;
+                case XK_comma:  spEvent->m_Code = CKeyEvent::KEY_Comma; break;
                 case XK_space:  spEvent->m_Code = CKeyEvent::KEY_SPACE; break;
                 case XK_Left:   spEvent->m_Code = CKeyEvent::KEY_LEFT;  break;
                 case XK_Right:  spEvent->m_Code = CKeyEvent::KEY_RIGHT; break;
@@ -1125,6 +1228,23 @@ void CDisplayVulkan::checkEvents()
                 }
                 XFree(syms);
             }
+
+            // Feed into ImGui overlays on X11. XKB and X11 keysym values match for
+            // all keys used by the overlay input handlers. Pass nullptr for xkb_state
+            // (FeedKey handles this gracefully; text entry via XLookupString is a
+            // follow-up task).
+#ifdef HAVE_WAYLAND
+            if (x11keysym != XK_VoidSymbol)
+            {
+                const uint32_t evdevKey = static_cast<uint32_t>(xEvent.xkey.keycode) - 8;
+                if (FirstTimeSetupVulkan_FeedKey(evdevKey,
+                        static_cast<xkb_keysym_t>(x11keysym), spEvent->m_bPressed, nullptr))
+                    continue;
+                if (SettingsDialogVulkan_FeedKey(evdevKey,
+                        static_cast<xkb_keysym_t>(x11keysym), spEvent->m_bPressed, nullptr))
+                    continue;
+            }
+#endif
             m_EventQueue.push(std::static_pointer_cast<CEvent>(spEvent));
         }
 
@@ -1142,8 +1262,21 @@ void CDisplayVulkan::checkEvents()
 
         if (xEvent.type == MotionNotify)
         {
-            auto& cb = PlatformUtils_GetMouseCallback();
-            if (cb) cb(xEvent.xmotion.x, xEvent.xmotion.y);
+            FirstTimeSetupVulkan_FeedMousePos(xEvent.xmotion.x, xEvent.xmotion.y);
+            SettingsDialogVulkan_FeedMousePos(xEvent.xmotion.x, xEvent.xmotion.y);
+            auto& mouseCallback = PlatformUtils_GetMouseCallback();
+            if (mouseCallback) mouseCallback(xEvent.xmotion.x, xEvent.xmotion.y);
+        }
+
+        if (xEvent.type == ButtonPress || xEvent.type == ButtonRelease)
+        {
+            // Map X11 button numbers to BTN_LEFT/RIGHT/MIDDLE (linux/input-event-codes.h).
+            static const uint32_t kX11ToLinux[] = {0, 272, 273, 274};
+            const uint32_t btn = (xEvent.xbutton.button <= 3)
+                                 ? kX11ToLinux[xEvent.xbutton.button] : 0;
+            const bool pressed = (xEvent.type == ButtonPress);
+            FirstTimeSetupVulkan_FeedMouseButton(btn, pressed);
+            SettingsDialogVulkan_FeedMouseButton(btn, pressed);
         }
     }
 }
@@ -1261,6 +1394,15 @@ void CDisplayVulkan::applyInvisibleCursor()
     XDefineCursor(m_pDisplay, m_Window, cur);
     XFreeCursor(m_pDisplay, cur);
     XFreePixmap(m_pDisplay, bm);
+}
+
+void CDisplayVulkan::applyDefaultCursor()
+{
+    if (!m_pDisplay || !m_Window) return;
+    // XC_left_ptr (68) is the standard arrow cursor.
+    Cursor cur = XCreateFontCursor(m_pDisplay, 68);
+    XDefineCursor(m_pDisplay, m_Window, cur);
+    XFreeCursor(m_pDisplay, cur);
 }
 
 } // namespace DisplayOutput

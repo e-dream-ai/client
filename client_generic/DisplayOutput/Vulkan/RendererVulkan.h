@@ -100,7 +100,9 @@ class CRendererVulkan : public CRenderer
 
     // Synchronisation
     VkSemaphore m_imageAvailable[MAX_FRAMES_IN_FLIGHT]{};
-    VkSemaphore m_renderFinished[MAX_FRAMES_IN_FLIGHT]{};
+    // Presentation wait semaphores are indexed by swapchain image. A frame
+    // fence does not guarantee the presentation engine has released one.
+    std::vector<VkSemaphore> m_renderFinished;
     VkFence     m_inFlightFence [MAX_FRAMES_IN_FLIGHT]{};
 
     // Per-frame vertex buffers (HOST_VISIBLE for immediate writes)
@@ -139,7 +141,7 @@ class CRendererVulkan : public CRenderer
     VkQueryPool m_timestampPool    = VK_NULL_HANDLE;
     float       m_gpuFrameTimeMs   = 0.0f;
     float       m_timestampPeriodNs = 0.0f;
-    bool        m_timestampsValid  = false;
+    bool        m_timestampSlotValid[MAX_FRAMES_IN_FLIGHT]{};
 
     // Initialisation helpers
     bool pickPhysicalDevice(VkInstance instance, VkSurfaceKHR surface);
@@ -158,6 +160,8 @@ class CRendererVulkan : public CRenderer
     bool createCommandPool();
     bool createCommandBuffers();
     bool createSyncObjects();
+    bool createPresentSemaphores();
+    void destroyPresentSemaphores();
     bool createVertexBuffers();
     bool createWhiteTexture();
     VkShaderModule loadShader(const std::string& path);
@@ -176,6 +180,7 @@ class CRendererVulkan : public CRenderer
     virtual void Defaults() override;
     virtual bool BeginFrame(void) override;
     virtual bool EndFrame(bool drawn = true) override;
+    virtual void WaitForIdle() override;
     virtual void Apply() override;
     virtual void Reset(const uint32_t _flags) override;
 

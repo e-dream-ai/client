@@ -27,7 +27,43 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <thread>
+#include <algorithm>
+#include <cstdlib>
 #include <unistd.h>
+
+// ---------------------------------------------------------------------------
+// UI scale factor — set once at display init, read by ImGui dialog code.
+// ---------------------------------------------------------------------------
+static float g_platformUIScale = 1.0f;
+
+void PlatformUtils_InitUIScale()
+{
+    // Seed from desktop env vars — set by GNOME/KDE/etc. on HiDPI Wayland sessions.
+    // X11 init in DisplayVulkan will later override with the actual DPI value.
+    const char* gdk = std::getenv("GDK_SCALE");
+    if (gdk)
+    {
+        float v = std::atof(gdk);
+        if (v >= 1.0f) { g_platformUIScale = v; return; }
+    }
+    const char* qt = std::getenv("QT_SCALE_FACTOR");
+    if (qt)
+    {
+        float v = std::atof(qt);
+        if (v >= 1.0f) { g_platformUIScale = v; return; }
+    }
+}
+
+float PlatformUtils_GetUIScale()
+{
+    return g_platformUIScale;
+}
+
+void PlatformUtils_SetUIScale(float scale)
+{
+    // Clamp to a sane range; fractional values (e.g. 1.25, 1.5) are valid.
+    g_platformUIScale = std::max(1.0f, std::min(scale, 4.0f));
+}
 
 // ---------------------------------------------------------------------------
 // Internet reachability — try a non-blocking connect to 8.8.8.8:53

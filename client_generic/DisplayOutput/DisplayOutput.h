@@ -266,6 +266,10 @@ class CDisplayOutput
     float Aspect() { return ((float)m_Height / (float)m_Width); };
     bool Closed() { return (m_bClosed); };
     void Close() { m_bClosed = true; };
+    // Allow the renderer to sync tracked dimensions after a swapchain recreation
+    // where the Vulkan driver enforced a size (via currentExtent) that differs
+    // from what ConfigureNotify last reported.
+    void SyncSize(uint32_t w, uint32_t h) { m_Width = w; m_Height = h; };
 };
 
 MakeSmartPointers(CDisplayOutput);

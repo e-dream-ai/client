@@ -174,6 +174,8 @@ set(SOURCES
     ${CLIENT}/Player.cpp
     ${CLIENT}/Hud.cpp
     ${CLIENT}/StringFormat.cpp
+    ${CLIENT}/FirstTimeSetupVulkan.cpp
+    ${CLIENT}/SettingsDialogVulkan.cpp
 
     # Common
     ${COMMON}/AlignedBuffer.cpp
@@ -342,4 +344,33 @@ add_custom_command(TARGET infinidream POST_BUILD
         ${BASE}/Runtime
         $<TARGET_FILE_DIR:infinidream>
     COMMENT "Copying runtime assets to binary directory"
+)
+
+# ---------------------------------------------------------------------------
+# Generate BuildData.json next to the binary so the version string is correct
+# ---------------------------------------------------------------------------
+if(NOT DEFINED APP_VERSION)
+    set(APP_VERSION "0.0.0")
+endif()
+
+find_package(Git QUIET)
+if(GIT_FOUND)
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_REVISION
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+endif()
+if(NOT GIT_REVISION)
+    set(GIT_REVISION "unknown")
+endif()
+
+string(TIMESTAMP BUILD_DATE "%Y-%m-%d" UTC)
+
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/BuildData.json.in
+    ${CMAKE_CURRENT_BINARY_DIR}/BuildData.json
+    @ONLY
 )
