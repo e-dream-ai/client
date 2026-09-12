@@ -869,6 +869,29 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
         // so fall back to it even though this is a canStream=false (prefer-cached)
         // request. Cached content was preferred above; this only fires as a last
         // resort (e.g. a fresh install with an exhausted download quota).
+        //
+        // The dream we hand back is by construction not on disk, and having never
+        // been preflighted for streaming it has no URL either, so the caller has to
+        // resolve one over the network — and the most common reason for an empty
+        // cache is that the network is unreachable. Without a guard that just trades
+        // the busy-loop for a blocking one: the caller does a synchronous lookup
+        // while holding the update mutex, fails, clears the decision, and repeats on
+        // the next update, freezing rendering on one timeout per cycle. So don't try
+        // while we know we're offline, and try at most once per interval otherwise.
+        if (m_offlineMode) {
+            g_Log->Warning("Preflight : no cached dreams available and we're offline");
+            return std::nullopt;
+        }
+
+        const auto now = std::chrono::steady_clock::now();
+        if (now - m_lastStreamFallback < kStreamFallbackInterval) {
+            return std::nullopt;
+        }
+        m_lastStreamFallback = now;
+
+        // On a single-entry playlist this is necessarily the dream that just played,
+        // and re-streaming it is all we can do; the interval above keeps that from
+        // becoming a fetch per update.
         size_t streamPos = (m_currentPosition + 1) % m_playlist.size();
         const auto& streamEntry = m_playlist[streamPos];
         g_Log->Warning("Preflight : no cached dreams available; streaming next dream at position %zu", streamPos);

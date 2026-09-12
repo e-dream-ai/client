@@ -53,6 +53,25 @@ bool JSONStorage::Initialise(std::string_view _sRoot,
 
 bool JSONStorage::Finalise() { return false; }
 
+// An empty json::value of the kind the callbacks for T use, so a stored value of
+// the wrong kind can be replaced before retrying a Set. int32_t is stored as an
+// int64 because that's what its callbacks go through.
+template <typename T> static json::value DefaultValueForType()
+{
+    if constexpr (std::is_same_v<T, bool>)
+        return json::value(false);
+    else if constexpr (std::is_same_v<T, std::string>)
+        return json::value(json::string());
+    else if constexpr (std::is_same_v<T, std::vector<std::string>>)
+        return json::value(json::array());
+    else if constexpr (std::is_same_v<T, double>)
+        return json::value(0.0);
+    else if constexpr (std::is_same_v<T, uint64_t>)
+        return json::value(std::uint64_t{0});
+    else
+        return json::value(std::int64_t{0});
+}
+
 template <typename T>
 bool JSONStorage::GetOrSetValue(
     std::string_view _entry, T& _targetValue,
@@ -89,18 +108,35 @@ bool JSONStorage::GetOrSetValue(
                         }
                     }
                 }
-                // The callback extracts the value via boost::json as_*() accessors,
-                // which throw if the stored value isn't the expected kind — e.g. a
-                // hand-edited or out-of-range number (an integer too large for
-                // int64/uint64 is parsed as a double). Treat any such mismatch as
-                // "not found" so the caller falls back to its default instead of
-                // letting the exception escape and terminate the process.
+                // The callback extracts (or, when setting, assigns through) the
+                // value via boost::json as_*() accessors, which throw if the stored
+                // value isn't the expected kind — e.g. a hand-edited or out-of-range
+                // number (an integer too large for int64/uint64 is parsed as a
+                // double). Don't let that escape and terminate the process.
                 try
                 {
                     _targetValue = callback(currentValue);
                 }
                 catch (const std::exception& e)
                 {
+                    if (set)
+                    {
+                        // A write has to land even on a mismatched value, or the bad
+                        // entry can never be corrected from inside the app: Settings::Get
+                        // repairs a failed read by calling Set, and that repair would
+                        // silently fail too, leaving every read to warn and rewrite the
+                        // whole settings file. Replace the node with one of the right
+                        // kind and let the callback write the real value into it.
+                        g_Log->Warning("JSONStorage: value for '%s' has unexpected type (%s); overwriting it",
+                                       std::string(_entry).c_str(), e.what());
+                        dict->at(token) = DefaultValueForType<T>();
+                        currentValue = &dict->at(token);
+                        _targetValue = callback(currentValue);
+                        return true;
+                    }
+
+                    // Reading: treat the mismatch as "not found" so the caller falls
+                    // back to its default.
                     g_Log->Warning("JSONStorage: value for '%s' has unexpected type (%s); using default",
                                    std::string(_entry).c_str(), e.what());
                     return false;

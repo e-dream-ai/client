@@ -8,6 +8,7 @@
 #ifndef PLAYLIST_MANAGER_H
 #define PLAYLIST_MANAGER_H
 
+#include <chrono>
 #include <condition_variable>
 #include <mutex>
 #include <string>
@@ -252,6 +253,12 @@ private:
 
     // Download lookahead configuration
     size_t m_downloadLookaheadLimit = 5;
+
+    // Rate limit for preflightNextDream's last-resort "nothing is cached, stream it
+    // instead" fallback, which hands back a dream the caller still has to resolve a
+    // streaming URL for. See the comment at the fallback for why that needs a leash.
+    static constexpr std::chrono::seconds kStreamFallbackInterval{10};
+    mutable std::chrono::steady_clock::time_point m_lastStreamFallback{};
 };
 
 
