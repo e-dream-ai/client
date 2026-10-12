@@ -30,6 +30,9 @@
 
 - (nonnull id)initWithFrame:(NSRect)frameRect;
 
+/// Stop the repeating redraw timer so the runloop can idle / the process can exit.
+- (void)stopRedrawTimer;
+
 - (BOOL)needsDisplay;
 
 @property(nonatomic, readonly, nonnull) id<MTLDevice> device;
