@@ -17,6 +17,11 @@
     BOOL m_bPausedForSheet;  // YES when paused for Preferences sheet (no full shutdown)
     BOOL m_shouldRotate;     // YES when rotating the dream 90 deg for a portrait display
     int m_displayIdx;
+#ifdef SCREEN_SAVER
+    NSTimer *m_screenCheckTimer;  // Fallback when macOS never calls stopAnimation
+    int m_notVisibleCount;        // Consecutive checks where the window looks dismissed
+    BOOL m_forceExiting;          // Guard against re-entrant force-exit
+#endif
 }
 
 - (instancetype)initWithFrame:(NSRect)frame isPreview:(BOOL)isPreview
@@ -40,6 +45,11 @@
     m_isFullScreen = !isPreview;
     m_isStopped = YES;
     m_bPausedForSheet = NO;
+#ifdef SCREEN_SAVER
+    m_screenCheckTimer = nil;
+    m_notVisibleCount = 0;
+    m_forceExiting = NO;
+#endif
 
     m_isPreview = isPreview;
     DEBUG_LOG("INIT");
@@ -223,6 +233,9 @@
        
         [self _beginThread];
         m_bStarted = YES;
+#ifdef SCREEN_SAVER
+        [self _startScreenConnectionMonitor];
+#endif
     }
     
 #ifdef SCREEN_SAVER
@@ -233,7 +246,9 @@
 - (void)stopAnimation
 {
 #ifdef SCREEN_SAVER
+    [self _stopScreenConnectionMonitor];
     [NSCursor unhide];
+    [self _tearDownKeepAlives];
 #endif
     m_bPausedForSheet = NO;
     if (m_bStarted)
@@ -256,6 +271,9 @@
 
 - (void)pauseAnimationForSheet
 {
+#ifdef SCREEN_SAVER
+    [self _stopScreenConnectionMonitor];
+#endif
     if (!m_bStarted || m_bPausedForSheet)
         return;
     [self _endThread];
@@ -273,6 +291,7 @@
     m_bStarted = YES;
     m_bPausedForSheet = NO;
 #ifdef SCREEN_SAVER
+    [self _startScreenConnectionMonitor];
     [super startAnimation];
 #endif
     return YES;  // Caller must NOT call startAnimation (would re-add display and retrigger full startup)
@@ -306,21 +325,23 @@ static void signnal_handler(int signal)
            selector:@selector(onSleepNote:)
                name:NSNotificationName(@"com.apple.screensaver.willstop")
              object:nil];
+    // didstop is more reliably delivered than willstop on some macOS versions.
+    [NSDistributedNotificationCenter.defaultCenter
+        addObserver:self
+           selector:@selector(onSleepNote:)
+               name:NSNotificationName(@"com.apple.screensaver.didstop")
+             object:nil];
     std::signal(SIGSEGV, signnal_handler);
 }
 
 - (void)willStop:(NSNotification*)notification
 {
 #ifdef SCREEN_SAVER
-    g_Log->Info("Killed by system from willStop");
+    // NSWorkspaceWillSleepNotification — machine sleep, not screensaver dismiss.
+    g_Log->Info("Killed by system from willStop (sleep)");
     if (@available(macOS 14.0, *)) {
-        g_Log->Info("Deinit");
-        ESScreensaver_Deinit();
-        g_Log->Info("Log shutdown, will exit in 2 seconds");
-        g_Log->Shutdown();
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-            exit(0);
-        });
+        // Delay slightly so macOS can finish sleep transitions without relaunch churn.
+        [self _forceExitScreensaverWithReason:"willStop/sleep" delaySeconds:2.0];
     }
 #endif
 }
@@ -329,15 +350,129 @@ static void signnal_handler(int signal)
 {
 #ifdef SCREEN_SAVER
     g_Log->Info("Killed by system from onSleepNote %s", notif.name.UTF8String);
-    NSLog(@"notif.object:%@", notif.object);
-
     if (@available(macOS 14.0, *)) {
-        g_Log->Info("Deinit");
+        [self _forceExitScreensaverWithReason:"com.apple.screensaver.willstop" delaySeconds:0];
+    }
+#endif
+}
+
+#pragma mark - Keep-alive teardown + dismiss fallback
+
+// legacyScreenSaver.appex often neither calls stopAnimation nor posts willstop
+// (FB13041503). Without an explicit exit(0), Metal's redraw timer and Sparkle
+// keep the appex process alive after the user dismisses the saver.
+
+- (void)_tearDownKeepAlives
+{
+#ifdef SCREEN_SAVER
+#ifdef USE_METAL
+    if ([view respondsToSelector:@selector(stopRedrawTimer)]) {
+        [view stopRedrawTimer];
+    }
+#endif
+    if (m_sparkleUpdater) {
+        m_sparkleUpdater.automaticallyChecksForUpdates = NO;
+        m_sparkleUpdater = nil;
+    }
+    m_sparkleUserDriver = nil;
+#endif
+}
+
+- (void)_forceExitScreensaverWithReason:(const char *)reason delaySeconds:(NSTimeInterval)delaySeconds
+{
+#ifdef SCREEN_SAVER
+    if (m_forceExiting)
+        return;
+    m_forceExiting = YES;
+
+    [self _stopScreenConnectionMonitor];
+    [self _tearDownKeepAlives];
+    m_isStopped = YES;
+
+    g_Log->Info("Screensaver force-exit (%s)", reason ? reason : "unknown");
+    // Avoid double-Deinit if stopAnimation already ran.
+    if (m_bStarted) {
+        ESScreensaver_Stop();
         ESScreensaver_Deinit();
-        g_Log->Info("Log shutdown, will exit");
-        g_Log->Shutdown();
+        m_bStarted = NO;
+    }
+    g_Log->Shutdown();
+
+    if (delaySeconds <= 0) {
         exit(0);
     }
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delaySeconds * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+                       exit(0);
+                   });
+#endif
+}
+
+- (void)_startScreenConnectionMonitor
+{
+#ifdef SCREEN_SAVER
+    if (m_isPreview)
+        return;
+
+    [self _stopScreenConnectionMonitor];
+
+    // Grace period so we don't false-positive during the screensaver fade-in.
+    __weak ESScreensaverView *weakSelf = self;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+        ESScreensaverView *strongSelf = weakSelf;
+        if (!strongSelf || strongSelf->m_isStopped || strongSelf->m_forceExiting)
+            return;
+
+        strongSelf->m_notVisibleCount = 0;
+        strongSelf->m_screenCheckTimer =
+            [NSTimer scheduledTimerWithTimeInterval:1.0
+                                             target:strongSelf
+                                           selector:@selector(_checkScreenConnection:)
+                                           userInfo:nil
+                                            repeats:YES];
+        g_Log->Info("Screen connection monitor started");
+    });
+#endif
+}
+
+- (void)_stopScreenConnectionMonitor
+{
+#ifdef SCREEN_SAVER
+    if (m_screenCheckTimer) {
+        [m_screenCheckTimer invalidate];
+        m_screenCheckTimer = nil;
+    }
+#endif
+}
+
+- (void)_checkScreenConnection:(NSTimer *)timer
+{
+#ifdef SCREEN_SAVER
+    if (m_isPreview || m_forceExiting)
+        return;
+
+    NSWindow *win = self.window;
+
+    // Only hard teardown signals. Soft checks (isVisible / window level /
+    // occlusion) false-positive under legacyScreenSaver.appex — the hosted
+    // window often reports isVisible=NO while the saver is still running,
+    // which caused an exit→relaunch loop every few seconds.
+    if (win == nil) {
+        m_notVisibleCount++;
+        if (m_notVisibleCount >= 2) {
+            [self _forceExitScreensaverWithReason:"no window" delaySeconds:0];
+        }
+        return;
+    }
+    if (win.screen == nil) {
+        m_notVisibleCount++;
+        if (m_notVisibleCount >= 2) {
+            [self _forceExitScreensaverWithReason:"window not on any screen" delaySeconds:0];
+        }
+        return;
+    }
+
+    m_notVisibleCount = 0;
 #endif
 }
 
