@@ -58,7 +58,34 @@ int ESScreenSaver_AddGraphicsContext(void* _glContext)
 
 bool ESScreensaver_Start(bool _bPreview, uint32 _width, uint32 _height)
 {
-    // Always set preview mode flag
+#ifdef SCREEN_SAVER
+    // Settings thumbnail uses preview/busy mode. Full-screen Preview / real saver
+    // must clear that so a later non-preview start in the same appex process is
+    // not stuck offline after the thumbnail already started the engine.
+    if (_bPreview) {
+        gClient.SetIsPreview(true);
+        gClient.ReleaseLockFile();
+        gClient.ForceMultipleInstancesMode(true);
+    } else {
+        gClient.SetIsPreview(false);
+        gClient.ForceMultipleInstancesMode(false);
+    }
+
+    if (g_Player().Display() == NULL)
+    {
+        DisplayOutput::CDisplayMetal::SetDefaultWidthAndHeight(_width, _height);
+        gClient.Startup();
+        g_Player().ForceWidthAndHeight(0, _width, _height);
+    }
+    else if (g_Player().Stopped())
+    {
+        // Engine still alive (another view holds it) but paused — keep playing.
+        g_Player().ResumeAfterPause();
+    }
+    // Do not ForceWidthAndHeight(0) on secondary starts — that would resize the
+    // Settings thumbnail (often display 0) to the full-screen size.
+#else
+    // App path unchanged.
     gClient.SetIsPreview(_bPreview);
     
     // Force busy mode for preview to avoid network/auth activity
@@ -77,18 +104,8 @@ bool ESScreensaver_Start(bool _bPreview, uint32 _width, uint32 _height)
         // sure. g_Player().Stop();
     }
 
-    // g_Player().Display()->SetContext((CGLContextObj)_glContext);
     g_Player().ForceWidthAndHeight(0, _width, _height);
-
-    // g_Player().SetGLContext((CGLContextObj)_glContext, _bPreview);
-
-    // if (g_Player().Renderer() != NULL)
-    //{
-    // g_Player().Renderer()->Defaults();
-    //}
-
-    // if (g_Player().Stopped())
-    // g_Player().Start();
+#endif
 
     return true;
 }

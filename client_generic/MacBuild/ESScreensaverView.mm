@@ -10,6 +10,14 @@
 #include "libgen.h"
 #include "Log.h"
 #include "DisplayOutput.h"
+#include <atomic>
+
+#ifdef SCREEN_SAVER
+// All ScreenSaverView instances in legacyScreenSaver.appex share one gClient/g_Player.
+// Refcount so Settings thumbnail stopAnimation cannot Deinit while Preview/fullscreen
+// views are still running (that left a frozen last frame on screen).
+static std::atomic<int> s_activeEngineViews{0};
+#endif
 
 @implementation ESScreensaverView
 {
@@ -18,8 +26,8 @@
     BOOL m_shouldRotate;     // YES when rotating the dream 90 deg for a portrait display
     int m_displayIdx;
 #ifdef SCREEN_SAVER
+    BOOL m_graphicsContextAdded;  // AddGraphicsContext once per view (startAnimation may re-enter)
     NSTimer *m_screenCheckTimer;  // Fallback when macOS never calls stopAnimation
-    int m_notVisibleCount;        // Consecutive checks where the window looks dismissed
     BOOL m_forceExiting;          // Guard against re-entrant force-exit
 #endif
 }
@@ -45,9 +53,10 @@
     m_isFullScreen = !isPreview;
     m_isStopped = YES;
     m_bPausedForSheet = NO;
+    m_displayIdx = 0;
 #ifdef SCREEN_SAVER
+    m_graphicsContextAdded = NO;
     m_screenCheckTimer = nil;
-    m_notVisibleCount = 0;
     m_forceExiting = NO;
 #endif
 
@@ -206,10 +215,20 @@
             [self addSubview:view];
         }
     }
+#ifdef SCREEN_SAVER
+    // macOS may re-enter startAnimation; only register the Metal view once or we
+    // pile up duplicate displays and stall shared playback.
+    if (view != NULL && !m_graphicsContextAdded)
+    {
+        m_displayIdx = ESScreenSaver_AddGraphicsContext((__bridge void*)view);
+        m_graphicsContextAdded = YES;
+    }
+#else
     if (view != NULL)
     {
         m_displayIdx = ESScreenSaver_AddGraphicsContext((__bridge void*)view);
     }
+#endif
 
     uint32_t width = (uint32_t)theRect.size.width;
     uint32_t height = (uint32_t)theRect.size.height;
@@ -228,12 +247,14 @@
         ESScreensaver_SetVideoRotation(m_shouldRotate ? 90 : 0);
 
 #ifdef SCREEN_SAVER
-        g_Log->Info("Saver startAnimation on %f %f ", self.frame.size.width, self.frame.size.height);
+        g_Log->Info("Saver startAnimation on %f %f (preview=%d)",
+                    self.frame.size.width, self.frame.size.height, (int)m_isPreview);
 #endif
        
         [self _beginThread];
         m_bStarted = YES;
 #ifdef SCREEN_SAVER
+        s_activeEngineViews.fetch_add(1);
         [self _startScreenConnectionMonitor];
 #endif
     }
@@ -248,17 +269,34 @@
 #ifdef SCREEN_SAVER
     [self _stopScreenConnectionMonitor];
     [NSCursor unhide];
-    [self _tearDownKeepAlives];
+    [self _stopRedrawTimer];
 #endif
     m_bPausedForSheet = NO;
     if (m_bStarted)
     {
         [self _endThread];
-
-        ESScreensaver_Stop();
-
-        ESScreensaver_Deinit();
         m_bStarted = NO;
+
+#ifdef SCREEN_SAVER
+        // Only tear down the shared engine when the last view stops. Settings
+        // thumbnail stop must not Kill Preview / real-saver playback.
+        int remaining = s_activeEngineViews.fetch_sub(1) - 1;
+        if (remaining < 0) {
+            s_activeEngineViews.store(0);
+            remaining = 0;
+        }
+        if (remaining == 0) {
+            [self _tearDownKeepAlives];
+            ESScreensaver_Stop();
+            ESScreensaver_Deinit();
+        } else {
+            g_Log->Info("Saver stopAnimation: %d view(s) still active, keeping engine",
+                        remaining);
+        }
+#else
+        ESScreensaver_Stop();
+        ESScreensaver_Deinit();
+#endif
     }
 
 #ifdef SCREEN_SAVER
@@ -315,6 +353,11 @@ static void signnal_handler(int signal)
 {
     DEBUG_LOG("BEGINTHREAD");
     m_isStopped = NO;
+#ifdef SCREEN_SAVER
+    // Avoid duplicate observers if start/resume re-enters.
+    [NSWorkspace.sharedWorkspace.notificationCenter removeObserver:self];
+    [NSDistributedNotificationCenter.defaultCenter removeObserver:self];
+#endif
     [NSWorkspace.sharedWorkspace.notificationCenter
         addObserver:self
            selector:@selector(willStop:)
@@ -338,6 +381,9 @@ static void signnal_handler(int signal)
 {
 #ifdef SCREEN_SAVER
     // NSWorkspaceWillSleepNotification — machine sleep, not screensaver dismiss.
+    // Settings thumbnail must not exit the appex (would freeze Preview/fullscreen).
+    if (m_isPreview)
+        return;
     g_Log->Info("Killed by system from willStop (sleep)");
     if (@available(macOS 14.0, *)) {
         // Delay slightly so macOS can finish sleep transitions without relaunch churn.
@@ -349,6 +395,10 @@ static void signnal_handler(int signal)
 - (void)onSleepNote:(NSNotification*)notif
 {
 #ifdef SCREEN_SAVER
+    // Preview thumbnail shares this process; ignore dismiss notes so we don't
+    // exit(0) while a full-screen Preview/saver view is still alive.
+    if (m_isPreview)
+        return;
     g_Log->Info("Killed by system from onSleepNote %s", notif.name.UTF8String);
     if (@available(macOS 14.0, *)) {
         [self _forceExitScreensaverWithReason:"com.apple.screensaver.willstop" delaySeconds:0];
@@ -362,7 +412,7 @@ static void signnal_handler(int signal)
 // (FB13041503). Without an explicit exit(0), Metal's redraw timer and Sparkle
 // keep the appex process alive after the user dismisses the saver.
 
-- (void)_tearDownKeepAlives
+- (void)_stopRedrawTimer
 {
 #ifdef SCREEN_SAVER
 #ifdef USE_METAL
@@ -370,6 +420,13 @@ static void signnal_handler(int signal)
         [view stopRedrawTimer];
     }
 #endif
+#endif
+}
+
+- (void)_tearDownKeepAlives
+{
+#ifdef SCREEN_SAVER
+    [self _stopRedrawTimer];
     if (m_sparkleUpdater) {
         m_sparkleUpdater.automaticallyChecksForUpdates = NO;
         m_sparkleUpdater = nil;
@@ -390,11 +447,16 @@ static void signnal_handler(int signal)
     m_isStopped = YES;
 
     g_Log->Info("Screensaver force-exit (%s)", reason ? reason : "unknown");
-    // Avoid double-Deinit if stopAnimation already ran.
+    // Process is dying — shut down the shared engine regardless of other views.
     if (m_bStarted) {
+        s_activeEngineViews.store(0);
         ESScreensaver_Stop();
         ESScreensaver_Deinit();
         m_bStarted = NO;
+    } else if (s_activeEngineViews.load() > 0) {
+        s_activeEngineViews.store(0);
+        ESScreensaver_Stop();
+        ESScreensaver_Deinit();
     }
     g_Log->Shutdown();
 
@@ -411,27 +473,11 @@ static void signnal_handler(int signal)
 - (void)_startScreenConnectionMonitor
 {
 #ifdef SCREEN_SAVER
-    if (m_isPreview)
-        return;
-
-    [self _stopScreenConnectionMonitor];
-
-    // Grace period so we don't false-positive during the screensaver fade-in.
-    __weak ESScreensaverView *weakSelf = self;
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-        ESScreensaverView *strongSelf = weakSelf;
-        if (!strongSelf || strongSelf->m_isStopped || strongSelf->m_forceExiting)
-            return;
-
-        strongSelf->m_notVisibleCount = 0;
-        strongSelf->m_screenCheckTimer =
-            [NSTimer scheduledTimerWithTimeInterval:1.0
-                                             target:strongSelf
-                                           selector:@selector(_checkScreenConnection:)
-                                           userInfo:nil
-                                            repeats:YES];
-        g_Log->Info("Screen connection monitor started");
-    });
+    // Intentionally disabled: checking self.window == nil / win.screen == nil
+    // false-positives under System Settings Preview and legacyScreenSaver.appex
+    // (force-exit "no window" left a frozen frame). Rely on willstop/didstop +
+    // stopAnimation instead.
+    (void)m_screenCheckTimer;
 #endif
 }
 
@@ -445,40 +491,13 @@ static void signnal_handler(int signal)
 #endif
 }
 
-- (void)_checkScreenConnection:(NSTimer *)timer
-{
-#ifdef SCREEN_SAVER
-    if (m_isPreview || m_forceExiting)
-        return;
-
-    NSWindow *win = self.window;
-
-    // Only hard teardown signals. Soft checks (isVisible / window level /
-    // occlusion) false-positive under legacyScreenSaver.appex — the hosted
-    // window often reports isVisible=NO while the saver is still running,
-    // which caused an exit→relaunch loop every few seconds.
-    if (win == nil) {
-        m_notVisibleCount++;
-        if (m_notVisibleCount >= 2) {
-            [self _forceExitScreensaverWithReason:"no window" delaySeconds:0];
-        }
-        return;
-    }
-    if (win.screen == nil) {
-        m_notVisibleCount++;
-        if (m_notVisibleCount >= 2) {
-            [self _forceExitScreensaverWithReason:"window not on any screen" delaySeconds:0];
-        }
-        return;
-    }
-
-    m_notVisibleCount = 0;
-#endif
-}
-
 - (void)_endThread
 {
     m_isStopped = YES;
+#ifdef SCREEN_SAVER
+    [NSWorkspace.sharedWorkspace.notificationCenter removeObserver:self];
+    [NSDistributedNotificationCenter.defaultCenter removeObserver:self];
+#endif
 }
 
 - (void)windowDidResize

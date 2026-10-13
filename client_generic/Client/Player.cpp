@@ -901,10 +901,32 @@ bool CPlayer::Update(uint32_t displayUnit)
         std::scoped_lock lockthis(m_displayListMutex);
         displayCount = m_displayUnits.size();
     }
+#ifdef SCREEN_SAVER
+    // Screensaver only: Settings thumbnail is often display 0. When it stops,
+    // full-screen Preview (display 1+) must still be able to advance playback.
+    // Advance at most once per ~frame from whichever display draws first.
+    bool sharedRenderOnly = false;
+    if ((displayCount > 1) && (m_MultiDisplayMode == kMDSharedMode))
+    {
+        std::lock_guard<std::mutex> advanceLock(m_SharedAdvanceMutex);
+        const double now = m_Timer.Time();
+        constexpr double kMinAdvanceInterval = 1.0 / 120.0; // ~half a 60fps frame
+        if (m_LastSharedAdvanceTime >= 0.0 &&
+            (now - m_LastSharedAdvanceTime) < kMinAdvanceInterval)
+        {
+            sharedRenderOnly = true;
+        }
+        else
+        {
+            m_LastSharedAdvanceTime = now;
+        }
+    }
+#else
     const bool sharedRenderOnly =
         (displayCount > 1) &&
         (m_MultiDisplayMode == kMDSharedMode) &&
         (displayUnit != 0);
+#endif
 
     if (sharedRenderOnly)
     {
