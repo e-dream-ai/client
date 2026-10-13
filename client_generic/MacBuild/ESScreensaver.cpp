@@ -56,19 +56,25 @@ int ESScreenSaver_AddGraphicsContext(void* _glContext)
     return gClient.AddGraphicsContext((CGraphicsContext)_glContext);
 }
 
+bool ESScreensaver_IsSecondaryInstance(void)
+{
+    return gClient.IsMultipleInstancesMode();
+}
+
 bool ESScreensaver_Start(bool _bPreview, uint32 _width, uint32 _height)
 {
 #ifdef SCREEN_SAVER
-    // Settings thumbnail uses preview/busy mode. Full-screen Preview / real saver
-    // must clear that so a later non-preview start in the same appex process is
-    // not stuck offline after the thumbnail already started the engine.
+    // Settings thumbnail: mark preview + offline/busy, but KEEP the instance lock.
+    // Releasing it (old behavior) let a second legacyScreenSaver process take the
+    // lock, keep playing after Settings closed, and made hot-corner resume mid-clip.
     if (_bPreview) {
         gClient.SetIsPreview(true);
-        gClient.ReleaseLockFile();
         gClient.ForceMultipleInstancesMode(true);
     } else {
         gClient.SetIsPreview(false);
-        gClient.ForceMultipleInstancesMode(false);
+        // Only clear busy if we actually own the lock (primary process).
+        if (!gClient.IsMultipleInstancesMode())
+            gClient.ForceMultipleInstancesMode(false);
     }
 
     if (g_Player().Display() == NULL)

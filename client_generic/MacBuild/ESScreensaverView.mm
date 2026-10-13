@@ -70,13 +70,16 @@ static std::atomic<int> s_activeEngineViews{0};
     NSLog(@"ESScreensaverView: Initializing Sparkle...");
     
 #ifdef SCREEN_SAVER
-    NSLog(@"ESScreensaverView: Running in SCREEN_SAVER mode");
+    NSLog(@"ESScreensaverView: Running in SCREEN_SAVER mode (preview=%d)", (int)isPreview);
     // For screensaver: use explicit bundle initialization
     // This ensures Sparkle reads SUPublicEDKey and other settings from our bundle
     m_updater = nil;
     m_sparkleUpdater = nil;
     m_sparkleUserDriver = nil;
-    
+
+    // Settings thumbnail must not start Sparkle — it keeps legacyScreenSaver alive
+    // after System Settings closes (and is useless in the preview host).
+    if (!isPreview) {
     @try {
         NSBundle *screensaverBundle = [NSBundle bundleForClass:[self class]];
         NSLog(@"Sparkle: initializing for screensaver bundle: %@ at %@", 
@@ -107,6 +110,7 @@ static std::atomic<int> s_activeEngineViews{0};
         }
     } @catch (NSException *exception) {
         NSLog(@"Sparkle: exception during initialization - %@: %@", exception.name, exception.reason);
+    }
     }
 #else
     NSLog(@"ESScreensaverView: Running in APP mode");
@@ -177,8 +181,43 @@ static std::atomic<int> s_activeEngineViews{0};
     return self;
 }
 
+#ifdef SCREEN_SAVER
+static BOOL ESSystemSettingsIsRunning(void)
+{
+    for (NSRunningApplication *app in NSWorkspace.sharedWorkspace.runningApplications) {
+        NSString *bid = app.bundleIdentifier;
+        if ([bid isEqualToString:@"com.apple.SystemSettings"] ||
+            [bid isEqualToString:@"com.apple.systempreferences"] ||
+            [bid isEqualToString:@"com.apple.Preferences"]) {
+            return YES;
+        }
+    }
+    return NO;
+}
+
+static BOOL ESIsSystemSettingsApp_(NSRunningApplication *app)
+{
+    NSString *bid = app.bundleIdentifier;
+    return [bid isEqualToString:@"com.apple.SystemSettings"] ||
+           [bid isEqualToString:@"com.apple.systempreferences"] ||
+           [bid isEqualToString:@"com.apple.Preferences"];
+}
+#endif
+
 - (void)startAnimation
 {
+#ifdef SCREEN_SAVER
+    // Opening Screensaver settings often spawns a second legacyScreenSaver process
+    // (not the "(System Settings)" one). If we already lost the instance lock, that
+    // ghost must not start a full engine — it survives Settings close and makes
+    // hot-corner continue from the preview position.
+    if (!m_isPreview && ESScreensaver_IsSecondaryInstance()) {
+        g_Log->Info("Secondary non-preview screensaver instance — exiting (avoid Settings ghost)");
+        [self _forceExitScreensaverWithReason:"secondary-instance" delaySeconds:0];
+        return;
+    }
+#endif
+
     //g_Log->Error("Test error 2");
     if (view == NULL)
     {
@@ -286,9 +325,17 @@ static std::atomic<int> s_activeEngineViews{0};
             remaining = 0;
         }
         if (remaining == 0) {
+            BOOL wasPreview = m_isPreview;
             [self _tearDownKeepAlives];
             ESScreensaver_Stop();
             ESScreensaver_Deinit();
+            // Settings "(System Settings)" host often leaves the appex alive unless
+            // we exit. Real fullscreen dismiss uses willstop → exit already.
+            if (wasPreview) {
+                g_Log->Info("Preview stopAnimation complete — exiting process");
+                g_Log->Shutdown();
+                exit(0);
+            }
         } else {
             g_Log->Info("Saver stopAnimation: %d view(s) still active, keeping engine",
                         remaining);
@@ -374,8 +421,36 @@ static void signnal_handler(int signal)
            selector:@selector(onSleepNote:)
                name:NSNotificationName(@"com.apple.screensaver.didstop")
              object:nil];
+#ifdef SCREEN_SAVER
+    // If System Settings spawned/warmed this non-preview process, it often never
+    // gets stopAnimation when Settings closes — only the "(System Settings)"
+    // process dies. Exit when System Settings quits so hot-corner gets a fresh start.
+    if (!m_isPreview && ESSystemSettingsIsRunning()) {
+        [NSWorkspace.sharedWorkspace.notificationCenter
+            addObserver:self
+               selector:@selector(onAppTerminated:)
+                   name:NSWorkspaceDidTerminateApplicationNotification
+                 object:nil];
+        g_Log->Info("Watching System Settings terminate (warm non-preview instance)");
+    }
+#endif
     std::signal(SIGSEGV, signnal_handler);
 }
+
+#ifdef SCREEN_SAVER
+- (void)onAppTerminated:(NSNotification *)notif
+{
+    NSRunningApplication *app = notif.userInfo[NSWorkspaceApplicationKey];
+    if (!app || !ESIsSystemSettingsApp_(app))
+        return;
+    // Real hot-corner / Preview fullscreen uses screensaver window level; leave those alone.
+    NSWindow *win = self.window;
+    if (win && win.level >= NSScreenSaverWindowLevel)
+        return;
+    g_Log->Info("System Settings terminated — exiting warm screensaver process");
+    [self _forceExitScreensaverWithReason:"system-settings-quit" delaySeconds:0];
+}
+#endif
 
 - (void)willStop:(NSNotification*)notification
 {

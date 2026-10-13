@@ -690,7 +690,10 @@ void CPlayer::Stop()
     }
     
     writer_lock l(m_UpdateMutex);
-    if (m_bStarted && m_currentClip)
+    // Settings thumbnail / preview must not overwrite resume position — otherwise
+    // the next real screensaver (hot corner) continues mid-clip from the preview.
+    if (m_bStarted && m_currentClip &&
+        !(g_Client() && g_Client()->IsPreview()))
     {
         // Don't save the path if it's a link
         auto uuid = m_currentClip->GetClipMetadata().dreamData.uuid;
