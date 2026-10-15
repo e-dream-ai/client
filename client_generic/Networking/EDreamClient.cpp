@@ -1,6 +1,3 @@
-/*#include <websocketpp/config/asio_client.hpp>
-#include <websocketpp/client.hpp>
-#include <websocketpp/config/asio_no_tls_client.hpp>*/
 #include <sio_client.h>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>

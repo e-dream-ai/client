@@ -76,7 +76,7 @@ sudo pacman -S --needed \
 Wayland support is optional — the build falls back to X11/XWayland if the
 Wayland packages are absent.
 
-Also initialise the submodules (socket.io dependency and ImGui UI library):
+Also initialise the submodules (ImGui UI library):
 
 ```bash
 git submodule update --init
