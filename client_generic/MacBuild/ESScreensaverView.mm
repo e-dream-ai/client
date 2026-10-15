@@ -202,6 +202,30 @@ static BOOL ESIsSystemSettingsApp_(NSRunningApplication *app)
            [bid isEqualToString:@"com.apple.systempreferences"] ||
            [bid isEqualToString:@"com.apple.Preferences"];
 }
+
+// Seconds a non-preview view's window may stay off-screen before we decide no
+// host will ever show or stop us. Generous so slow fades / display wake don't trip it.
+static const NSTimeInterval kOrphanOffscreenSeconds = 10.0;
+
+// YES only when the window exists and WindowServer reports it off-screen.
+// A nil window is treated as unknown (that's what false-positived under
+// System Settings Preview before), never as orphaned.
+static BOOL ESWindowIsKnownOffscreen(NSWindow *win)
+{
+    if (!win || win.windowNumber <= 0)
+        return NO;
+    CFArrayRef info = CGWindowListCopyWindowInfo(kCGWindowListOptionIncludingWindow,
+                                                 (CGWindowID)win.windowNumber);
+    if (!info)
+        return NO;
+    BOOL offscreen = NO;
+    if (CFArrayGetCount(info) > 0) {
+        NSDictionary *d = (__bridge NSDictionary *)CFArrayGetValueAtIndex(info, 0);
+        offscreen = ![d[(__bridge NSString *)kCGWindowIsOnscreen] boolValue];
+    }
+    CFRelease(info);
+    return offscreen;
+}
 #endif
 
 - (void)startAnimation
@@ -476,7 +500,15 @@ static void signnal_handler(int signal)
         return;
     g_Log->Info("Killed by system from onSleepNote %s", notif.name.UTF8String);
     if (@available(macOS 14.0, *)) {
-        [self _forceExitScreensaverWithReason:"com.apple.screensaver.willstop" delaySeconds:0];
+        // Engine is torn down immediately; only the exit is delayed. Exiting
+        // instantly races WallpaperAgent: loginwindow releases its wallpaper
+        // assertions ~300ms apart, and if we die between them WallpaperAgent
+        // treats it as a crash and relaunches the extension, then fails to kill
+        // the relaunch ("Could not signal service ... Operation not permitted"),
+        // leaving an orphan that gets startAnimation and plays forever (#690).
+        // In practice legacyScreenSaver calls exit() itself ~200ms after
+        // willstop, before this timer; ESLogExitTiming holds that exit instead.
+        [self _forceExitScreensaverWithReason:notif.name.UTF8String delaySeconds:2.0];
     }
 #endif
 }
@@ -510,12 +542,56 @@ static void signnal_handler(int signal)
 #endif
 }
 
+#ifdef SCREEN_SAVER
+// Exit-timing diagnostics (#690): who ends the process after a force-exit
+// request — our delayed exit(0), some other exit() (e.g. the extension runtime
+// after WallpaperAgent drops us), or neither line logged => killed by signal.
+static CFAbsoluteTime s_exitRequestedAt = 0;
+static bool s_exitRequested = false;
+static std::atomic<bool> s_logShutDown{false};
+
+static void ESShutdownLogOnce(void)
+{
+    if (!s_logShutDown.exchange(true))
+        g_Log->Shutdown();
+}
+
+// legacyScreenSaver's own code calls exit() ~200ms after loginwindow stops the
+// saver. WallpaperAgent decides to remove the saver only when loginwindow
+// releases its second assertion, 300-370ms after the first (observed on
+// macOS 26.6). If the process dies before that, WallpaperAgent treats it as a
+// crash and relaunches an orphan (#690). Nothing in-process signals the remove,
+// so hold the dying process until a fixed point after willstop. Heuristic; the
+// off-screen watchdog is the backstop if Apple's timing drifts past this.
+static const NSTimeInterval kExitHoldAfterWillStopSeconds = 1.0;
+
+static void ESLogExitTiming(void)
+{
+    if (s_logShutDown.load() || !s_exitRequested)
+        return;
+    NSTimeInterval elapsed = CFAbsoluteTimeGetCurrent() - s_exitRequestedAt;
+    g_Log->Info("Process exit() %.0f ms after force-exit request (not our delayed exit)",
+                elapsed * 1000.0);
+    if (elapsed < kExitHoldAfterWillStopSeconds) {
+        NSTimeInterval hold = kExitHoldAfterWillStopSeconds - elapsed;
+        g_Log->Info("Holding exit %.0f ms so WallpaperAgent removes the saver first", hold * 1000.0);
+        usleep((useconds_t)(hold * 1e6));
+    }
+    ESShutdownLogOnce();
+}
+#endif
+
 - (void)_forceExitScreensaverWithReason:(const char *)reason delaySeconds:(NSTimeInterval)delaySeconds
 {
 #ifdef SCREEN_SAVER
     if (m_forceExiting)
         return;
     m_forceExiting = YES;
+    if (!s_exitRequested) {
+        s_exitRequested = true;
+        s_exitRequestedAt = CFAbsoluteTimeGetCurrent();
+        atexit(ESLogExitTiming);
+    }
 
     [self _stopScreenConnectionMonitor];
     [self _tearDownKeepAlives];
@@ -533,13 +609,19 @@ static void signnal_handler(int signal)
         ESScreensaver_Stop();
         ESScreensaver_Deinit();
     }
-    g_Log->Shutdown();
 
     if (delaySeconds <= 0) {
+        ESShutdownLogOnce();
         exit(0);
     }
+    // Keep the log open during the delay so ESLogExitTiming can record an
+    // earlier exit by someone else.
+    g_Log->Info("Engine stopped; exit(0) scheduled in %.1fs", delaySeconds);
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delaySeconds * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{
+                       g_Log->Info("Delayed exit(0) firing %.0f ms after force-exit request",
+                                   (CFAbsoluteTimeGetCurrent() - s_exitRequestedAt) * 1000.0);
+                       ESShutdownLogOnce();
                        exit(0);
                    });
 #endif
@@ -548,11 +630,31 @@ static void signnal_handler(int signal)
 - (void)_startScreenConnectionMonitor
 {
 #ifdef SCREEN_SAVER
-    // Intentionally disabled: checking self.window == nil / win.screen == nil
-    // false-positives under System Settings Preview and legacyScreenSaver.appex
-    // (force-exit "no window" left a frozen frame). Rely on willstop/didstop +
-    // stopAnimation instead.
-    (void)m_screenCheckTimer;
+    // Orphan watchdog. WallpaperAgent can relaunch the appex right after a
+    // dismiss and then fail to kill it; that process gets startAnimation with
+    // an off-screen layer-0 window and never receives stopAnimation/willstop
+    // (#690). A real saver or Settings "Preview" window is on-screen.
+    if (m_isPreview)
+        return;
+    [self _stopScreenConnectionMonitor];
+    __block NSTimeInterval offscreenFor = 0;
+    __weak ESScreensaverView *weakSelf = self;
+    m_screenCheckTimer = [NSTimer scheduledTimerWithTimeInterval:2.0 repeats:YES block:^(NSTimer *t) {
+        ESScreensaverView *strongSelf = weakSelf;
+        if (!strongSelf) { [t invalidate]; return; }
+        // Asleep displays can report windows off-screen; don't count that time.
+        if (CGDisplayIsAsleep(CGMainDisplayID()) ||
+            !ESWindowIsKnownOffscreen(strongSelf.window)) {
+            offscreenFor = 0;
+            return;
+        }
+        offscreenFor += t.timeInterval;
+        if (offscreenFor >= kOrphanOffscreenSeconds) {
+            g_Log->Info("Saver window off-screen for %.0fs with no stop from host",
+                        offscreenFor);
+            [strongSelf _forceExitScreensaverWithReason:"orphan-offscreen" delaySeconds:0];
+        }
+    }];
 #endif
 }
 
