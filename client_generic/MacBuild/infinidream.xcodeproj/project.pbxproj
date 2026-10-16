@@ -42,7 +42,6 @@
 		123A0C8B2B87B1E600A616E4 /* SettingsDialog.xib in Resources */ = {isa = PBXBuildFile; fileRef = F0E9CE352C136B0500C4D695 /* SettingsDialog.xib */; };
 		1243576C2B31FC1B00CCD62A /* BuildData.json in Resources */ = {isa = PBXBuildFile; fileRef = 1243576B2B31FC1B00CCD62A /* BuildData.json */; };
 		1243576D2B31FC1B00CCD62A /* BuildData.json in Resources */ = {isa = PBXBuildFile; fileRef = 1243576B2B31FC1B00CCD62A /* BuildData.json */; };
-		12440CBB2B85F49B00A23253 /* libsioclient_tls.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 12CA4A452B83DE3D00A2EAD6 /* libsioclient_tls.a */; };
 		12440CBC2B85F4DF00A23253 /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 12D020022B83C86C0036357D /* libssl.a */; };
 		12440CBD2B85F52500A23253 /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 12579D482B83C91E00604B41 /* libcrypto.a */; };
 		12579D492B83C98D00604B41 /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 12579D482B83C91E00604B41 /* libcrypto.a */; };
@@ -53,7 +52,6 @@
 		12A00CDA2B0FCA39001C0792 /* infinidream.icns in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD82B0FCA39001C0792 /* infinidream.icns */; };
 		12A00CDC2B0FCA6C001C0792 /* e-dream-attr.png in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */; };
 		12A00CDD2B0FCA6C001C0792 /* e-dream-attr.png in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */; };
-		12CA4A462B83DE3D00A2EAD6 /* libsioclient_tls.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 12CA4A452B83DE3D00A2EAD6 /* libsioclient_tls.a */; };
 		1BEBFE3E2ECB6B2B00F39019 /* osd-next.png in Resources */ = {isa = PBXBuildFile; fileRef = 1BEBFE3D2ECB6B2B00F39019 /* osd-next.png */; };
 		1BEBFE3F2ECB6B2B00F39019 /* osd-next.png in Resources */ = {isa = PBXBuildFile; fileRef = 1BEBFE3D2ECB6B2B00F39019 /* osd-next.png */; };
 		1BEBFE402ECB6B2B00F39019 /* osd-next.png in Resources */ = {isa = PBXBuildFile; fileRef = 1BEBFE3D2ECB6B2B00F39019 /* osd-next.png */; };
@@ -189,7 +187,7 @@
 		464A49E82AB89D9100C77F6D /* liblzma.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49E72AB89D8300C77F6D /* liblzma.tbd */; };
 		464A49E92AB89D9D00C77F6D /* liblzma.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49E72AB89D8300C77F6D /* liblzma.tbd */; };
 		4665198F2ACC8C5100ADB56E /* IOSurface.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4665198E2ACC8C5000ADB56E /* IOSurface.framework */; };
-		466C2AAA2AFA5B8600ED939F /* libpng_universal.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 466C2AA92AFA5B8600ED939F /* libpng_universal.a */; };
+		466C2AAA2AFA5B8600ED939F /* libpng16.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 466C2AA92AFA5B8600ED939F /* libpng16.a */; };
 		467230B72AC17A9E00017C51 /* ESMetalView.m in Sources */ = {isa = PBXBuildFile; fileRef = 467230B62AC17A9E00017C51 /* ESMetalView.m */; };
 		467230B92AC17C0400017C51 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 467230B82AC17C0400017C51 /* MetalKit.framework */; };
 		467230BA2AC17E4600017C51 /* ESMetalView.m in Sources */ = {isa = PBXBuildFile; fileRef = 467230B62AC17A9E00017C51 /* ESMetalView.m */; };
@@ -201,7 +199,11 @@
 		467230C62AC18FDB00017C51 /* FontMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C42AC18FDB00017C51 /* FontMetal.mm */; };
 		467230C82AC1AE9D00017C51 /* TextureFlatMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C72AC1AE9D00017C51 /* TextureFlatMetal.mm */; };
 		467230C92AC1AE9D00017C51 /* TextureFlatMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C72AC1AE9D00017C51 /* TextureFlatMetal.mm */; };
-		467A64922B1F722E00510BEE /* libpng_universal.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 466C2AA92AFA5B8600ED939F /* libpng_universal.a */; };
+		467A64922B1F722E00510BEE /* libpng16.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 466C2AA92AFA5B8600ED939F /* libpng16.a */; };
+		A1BEE5700000000000000010 /* sio_beast.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A1BEE5700000000000000001 /* sio_beast.cpp */; };
+		A1BEE5700000000000000011 /* sio_beast.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A1BEE5700000000000000001 /* sio_beast.cpp */; };
+		A1BEE5700000000000000012 /* sio_beast.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A1BEE5700000000000000001 /* sio_beast.cpp */; };
+		A1BEE5700000000000000013 /* sio_beast.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A1BEE5700000000000000001 /* sio_beast.cpp */; };
 		467B6FC92AE6D031001C80CB /* EDreamClient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 467B6FC82AE6D031001C80CB /* EDreamClient.cpp */; };
 		467B6FCA2AE6D031001C80CB /* EDreamClient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 467B6FC82AE6D031001C80CB /* EDreamClient.cpp */; };
 		46C427BB2AF8F575009C3879 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 467230BC2AC17EAA00017C51 /* Metal.framework */; };
@@ -307,9 +309,6 @@
 		F059946E2BA0A07300B018C7 /* osd-forward.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994632BA0A07100B018C7 /* osd-forward.png */; };
 		F059946F2BA0A07300B018C7 /* osd-play.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994642BA0A07200B018C7 /* osd-play.png */; };
 		F05994702BA0A07300B018C7 /* osd-play.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994642BA0A07200B018C7 /* osd-play.png */; };
-		F0PLAYLIST02 /* play-playlist.png in Resources */ = {isa = PBXBuildFile; fileRef = F0PLAYLIST01 /* play-playlist.png */; };
-		F0PLAYLIST03 /* play-playlist.png in Resources */ = {isa = PBXBuildFile; fileRef = F0PLAYLIST01 /* play-playlist.png */; };
-		F0PLAYLIST04 /* play-playlist.png in Resources */ = {isa = PBXBuildFile; fileRef = F0PLAYLIST01 /* play-playlist.png */; };
 		F05994712BA0A07300B018C7 /* osd-speed.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994652BA0A07200B018C7 /* osd-speed.png */; };
 		F05994722BA0A07300B018C7 /* osd-speed.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994652BA0A07200B018C7 /* osd-speed.png */; };
 		F05994732BA0A07300B018C7 /* osd-forward10.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994662BA0A07200B018C7 /* osd-forward10.png */; };
@@ -432,7 +431,7 @@
 		F0C100502C1372EF007FA505 /* ESConfiguration.mm in Sources */ = {isa = PBXBuildFile; fileRef = 21AAA0EE0F70453200AC23A8 /* ESConfiguration.mm */; };
 		F0C100522C1372EF007FA505 /* RendererMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C12AC1817500017C51 /* RendererMetal.mm */; };
 		F0C100552C1372EF007FA505 /* libboost_thread.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071D32C0E052B008219A4 /* libboost_thread.a */; };
-		F0C100562C1372EF007FA505 /* libpng_universal.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 466C2AA92AFA5B8600ED939F /* libpng_universal.a */; };
+		F0C100562C1372EF007FA505 /* libpng16.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 466C2AA92AFA5B8600ED939F /* libpng16.a */; };
 		F0C100572C1372EF007FA505 /* libboost_log_setup.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071CE2C0E052A008219A4 /* libboost_log_setup.a */; };
 		F0C100582C1372EF007FA505 /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 12D020022B83C86C0036357D /* libssl.a */; };
 		F0C100592C1372EF007FA505 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49DD2AB88E1A00C77F6D /* Security.framework */; };
@@ -454,7 +453,6 @@
 		F0C1006F2C1372EF007FA505 /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49E42AB89CEA00C77F6D /* AudioToolbox.framework */; };
 		F0C100702C1372EF007FA505 /* libz.1.2.5.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1AD90E8E6E0100CE185C /* libz.1.2.5.dylib */; };
 		F0C100712C1372EF007FA505 /* libbz2.1.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1ADD0E8E6E5000CE185C /* libbz2.1.0.dylib */; };
-		F0C100722C1372EF007FA505 /* libsioclient_tls.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 12CA4A452B83DE3D00A2EAD6 /* libsioclient_tls.a */; };
 		F0C100732C1372EF007FA505 /* libiconv.2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 21A8AFBA18416ECA00F77369 /* libiconv.2.dylib */; };
 		F0C100742C1372EF007FA505 /* libcurl.4.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 211CDDEB0ED0BE8300EB9394 /* libcurl.4.dylib */; };
 		F0C100752C1372EF007FA505 /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 12579D482B83C91E00604B41 /* libcrypto.a */; };
@@ -538,7 +536,7 @@
 		F0E9CE7B2C136B0500C4D694 /* ESScreensaver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA540EC74853005E246D /* ESScreensaver.cpp */; };
 		F0E9CE7C2C136B0500C4D694 /* ESConfiguration.mm in Sources */ = {isa = PBXBuildFile; fileRef = 21AAA0EE0F70453200AC23A8 /* ESConfiguration.mm */; };
 		F0E9CE7D2C136B0500C4D694 /* DisplayMetal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 46ED5CB02AF5326A00AF8F45 /* DisplayMetal.cpp */; };
-		F0E9CE7F2C136B0500C4D694 /* libpng_universal.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 466C2AA92AFA5B8600ED939F /* libpng_universal.a */; };
+		F0E9CE7F2C136B0500C4D694 /* libpng16.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 466C2AA92AFA5B8600ED939F /* libpng16.a */; };
 		F0E9CE802C136B0500C4D694 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 467230BC2AC17EAA00017C51 /* Metal.framework */; };
 		F0E9CE812C136B0500C4D694 /* libboost_log_setup.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071CE2C0E052A008219A4 /* libboost_log_setup.a */; };
 		F0E9CE822C136B0500C4D694 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 467230B82AC17C0400017C51 /* MetalKit.framework */; };
@@ -558,7 +556,6 @@
 		F0E9CE932C136B0500C4D694 /* libiconv.2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 21A8AFBA18416ECA00F77369 /* libiconv.2.dylib */; };
 		F0E9CE942C136B0500C4D694 /* IOSurface.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4665198E2ACC8C5000ADB56E /* IOSurface.framework */; };
 		F0E9CE962C136B0500C4D694 /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 12579D482B83C91E00604B41 /* libcrypto.a */; };
-		F0E9CE972C136B0500C4D694 /* libsioclient_tls.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 12CA4A452B83DE3D00A2EAD6 /* libsioclient_tls.a */; };
 		F0E9CE982C136B0500C4D694 /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 12D020022B83C86C0036357D /* libssl.a */; };
 		F0E9CE9C2C136B0500C4D694 /* libz.1.2.5.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1AD90E8E6E0100CE185C /* libz.1.2.5.dylib */; };
 		F0E9CE9D2C136B0500C4D694 /* libbz2.1.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1ADD0E8E6E5000CE185C /* libbz2.1.0.dylib */; };
@@ -575,6 +572,9 @@
 		F0F6D4272BCD504500222647 /* osd-like.png in Resources */ = {isa = PBXBuildFile; fileRef = F0F6D4242BCD504500222647 /* osd-like.png */; };
 		F0F6D4282BCD504500222647 /* osd-dislike.png in Resources */ = {isa = PBXBuildFile; fileRef = F0F6D4252BCD504500222647 /* osd-dislike.png */; };
 		F0F6D4292BCD504500222647 /* osd-dislike.png in Resources */ = {isa = PBXBuildFile; fileRef = F0F6D4252BCD504500222647 /* osd-dislike.png */; };
+		F0PLAYLIST02 /* ../Runtime/play-playlist.png in Resources */ = {isa = PBXBuildFile; fileRef = F0PLAYLIST01 /* ../Runtime/play-playlist.png */; };
+		F0PLAYLIST03 /* ../Runtime/play-playlist.png in Resources */ = {isa = PBXBuildFile; fileRef = F0PLAYLIST01 /* ../Runtime/play-playlist.png */; };
+		F0PLAYLIST04 /* ../Runtime/play-playlist.png in Resources */ = {isa = PBXBuildFile; fileRef = F0PLAYLIST01 /* ../Runtime/play-playlist.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -769,7 +769,6 @@
 		12726C132B694F36003C0FF6 /* infinidream App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "infinidream App.entitlements"; sourceTree = "<group>"; };
 		12A00CD82B0FCA39001C0792 /* infinidream.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = infinidream.icns; sourceTree = SOURCE_ROOT; };
 		12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "e-dream-attr.png"; sourceTree = "<group>"; };
-		12CA4A452B83DE3D00A2EAD6 /* libsioclient_tls.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libsioclient_tls.a; path = "../socket.io-client-cpp/lib/libsioclient_tls.a"; sourceTree = "<group>"; };
 		12D020022B83C86C0036357D /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = "../../cache/univ-osx/lib/libssl.a"; sourceTree = "<group>"; };
 		1BEBFE3D2ECB6B2B00F39019 /* osd-next.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-next.png"; sourceTree = "<group>"; };
 		21006FBD1017BC2C004A6511 /* Credits.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = Credits.html; sourceTree = SOURCE_ROOT; };
@@ -863,6 +862,7 @@
 		467230C42AC18FDB00017C51 /* FontMetal.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = FontMetal.mm; path = ../../DisplayOutput/Metal/FontMetal.mm; sourceTree = "<group>"; };
 		467230C72AC1AE9D00017C51 /* TextureFlatMetal.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = TextureFlatMetal.mm; path = ../../DisplayOutput/Metal/TextureFlatMetal.mm; sourceTree = "<group>"; };
 		467B6FC72AE6CFFB001C80CB /* EDreamClient.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = EDreamClient.h; path = ../Networking/EDreamClient.h; sourceTree = "<group>"; };
+		A1BEE5700000000000000001 /* sio_beast.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = sio_beast.cpp; path = ../Networking/sio/sio_beast.cpp; sourceTree = "<group>"; };
 		467B6FC82AE6D031001C80CB /* EDreamClient.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = EDreamClient.cpp; path = ../Networking/EDreamClient.cpp; sourceTree = "<group>"; };
 		46D2E8E62AFBA57E0054049D /* ESMetalView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ESMetalView.h; path = ../../DisplayOutput/Metal/ESMetalView.h; sourceTree = "<group>"; };
 		46D2E8F52AFBAE230054049D /* Font.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Font.h; path = ../DisplayOutput/Renderer/Font.h; sourceTree = "<group>"; };
@@ -925,7 +925,6 @@
 		F05994632BA0A07100B018C7 /* osd-forward.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-forward.png"; sourceTree = "<group>"; };
 		F05994642BA0A07200B018C7 /* osd-play.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-play.png"; sourceTree = "<group>"; };
 		F05994652BA0A07200B018C7 /* osd-speed.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-speed.png"; sourceTree = "<group>"; };
-		F0PLAYLIST01 /* play-playlist.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "../Runtime/play-playlist.png"; sourceTree = SOURCE_ROOT; };
 		F05994662BA0A07200B018C7 /* osd-forward10.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-forward10.png"; sourceTree = "<group>"; };
 		F05994672BA0A07300B018C7 /* osd-brightness.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-brightness.png"; sourceTree = "<group>"; };
 		F05994682BA0A07300B018C7 /* osd-pause.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-pause.png"; sourceTree = "<group>"; };
@@ -961,6 +960,7 @@
 		F0F4CE4E2E785E7100C1F6AA /* infinidream App Prod-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "infinidream App Prod-Bridging-Header.h"; sourceTree = "<group>"; };
 		F0F6D4242BCD504500222647 /* osd-like.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-like.png"; sourceTree = "<group>"; };
 		F0F6D4252BCD504500222647 /* osd-dislike.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-dislike.png"; sourceTree = "<group>"; };
+		F0PLAYLIST01 /* ../Runtime/play-playlist.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "../Runtime/play-playlist.png"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -968,7 +968,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				466C2AAA2AFA5B8600ED939F /* libpng_universal.a in Frameworks */,
+				466C2AAA2AFA5B8600ED939F /* libpng16.a in Frameworks */,
 				467230BD2AC17EAA00017C51 /* Metal.framework in Frameworks */,
 				F0141B9E2C663E8900DBA60E /* libswscale.a in Frameworks */,
 				F07071D62C0E05DA008219A4 /* libboost_log_setup.a in Frameworks */,
@@ -996,7 +996,6 @@
 				F0141B9B2C663E8900DBA60E /* libavformat.a in Frameworks */,
 				12579D492B83C98D00604B41 /* libcrypto.a in Frameworks */,
 				F0351BEC2CB5BBF10055091F /* Bugsnag in Frameworks */,
-				12CA4A462B83DE3D00A2EAD6 /* libsioclient_tls.a in Frameworks */,
 				12579D4A2B83C99100604B41 /* libssl.a in Frameworks */,
 				2160FCAB0F30F48200B2C27A /* libz.1.2.5.dylib in Frameworks */,
 				F0141B9D2C663E8900DBA60E /* libswresample.a in Frameworks */,
@@ -1017,7 +1016,7 @@
 				F082D4412CBD5CA4001934FB /* Bugsnag in Frameworks */,
 				F0C100002C1372C4007FA505 /* libboost_thread.a in Frameworks */,
 				F0141B972C663E2700DBA60E /* libavfilter.a in Frameworks */,
-				467A64922B1F722E00510BEE /* libpng_universal.a in Frameworks */,
+				467A64922B1F722E00510BEE /* libpng16.a in Frameworks */,
 				F0C1FFFD2C1372C4007FA505 /* libboost_log_setup.a in Frameworks */,
 				F0141B942C663E2700DBA60E /* libavformat.a in Frameworks */,
 				12440CBC2B85F4DF00A23253 /* libssl.a in Frameworks */,
@@ -1045,7 +1044,6 @@
 				2161F1940ECF8CEF00FE48E9 /* libz.1.2.5.dylib in Frameworks */,
 				21887A240EC6CDF9001ABD2E /* libbz2.1.0.dylib in Frameworks */,
 				F0141B922C663E2700DBA60E /* libswresample.a in Frameworks */,
-				12440CBB2B85F49B00A23253 /* libsioclient_tls.a in Frameworks */,
 				21A8AFBB18416ECA00F77369 /* libiconv.2.dylib in Frameworks */,
 				21DC0CAC1263B99000D60C6A /* libcurl.4.dylib in Frameworks */,
 				12440CBD2B85F52500A23253 /* libcrypto.a in Frameworks */,
@@ -1061,7 +1059,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F0C100552C1372EF007FA505 /* libboost_thread.a in Frameworks */,
-				F0C100562C1372EF007FA505 /* libpng_universal.a in Frameworks */,
+				F0C100562C1372EF007FA505 /* libpng16.a in Frameworks */,
 				F0C100572C1372EF007FA505 /* libboost_log_setup.a in Frameworks */,
 				F0C100582C1372EF007FA505 /* libssl.a in Frameworks */,
 				F0C100592C1372EF007FA505 /* Security.framework in Frameworks */,
@@ -1090,7 +1088,6 @@
 				F0C100702C1372EF007FA505 /* libz.1.2.5.dylib in Frameworks */,
 				F03CF2722CB7F5FC009F51D8 /* libavutil.a in Frameworks */,
 				F0C100712C1372EF007FA505 /* libbz2.1.0.dylib in Frameworks */,
-				F0C100722C1372EF007FA505 /* libsioclient_tls.a in Frameworks */,
 				F0C100732C1372EF007FA505 /* libiconv.2.dylib in Frameworks */,
 				F0C100742C1372EF007FA505 /* libcurl.4.dylib in Frameworks */,
 				F0C100752C1372EF007FA505 /* libcrypto.a in Frameworks */,
@@ -1106,7 +1103,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F0E9CE7F2C136B0500C4D694 /* libpng_universal.a in Frameworks */,
+				F0E9CE7F2C136B0500C4D694 /* libpng16.a in Frameworks */,
 				F0E9CE802C136B0500C4D694 /* Metal.framework in Frameworks */,
 				F0141BAC2C663F1500DBA60E /* libswscale.a in Frameworks */,
 				F0E9CE812C136B0500C4D694 /* libboost_log_setup.a in Frameworks */,
@@ -1134,7 +1131,6 @@
 				F0141BA92C663F1500DBA60E /* libavformat.a in Frameworks */,
 				F0E9CE962C136B0500C4D694 /* libcrypto.a in Frameworks */,
 				F0351BEE2CB5BBF90055091F /* Bugsnag in Frameworks */,
-				F0E9CE972C136B0500C4D694 /* libsioclient_tls.a in Frameworks */,
 				F0E9CE982C136B0500C4D694 /* libssl.a in Frameworks */,
 				F0E9CE9C2C136B0500C4D694 /* libz.1.2.5.dylib in Frameworks */,
 				F0141BAB2C663F1500DBA60E /* libswresample.a in Frameworks */,
@@ -1334,6 +1330,7 @@
 				212B19600E8E5CCE00CE185C /* Player.cpp */,
 				12478A832B03B584006A8669 /* Player.h */,
 				467B6FC72AE6CFFB001C80CB /* EDreamClient.h */,
+				A1BEE5700000000000000001 /* sio_beast.cpp */,
 				467B6FC82AE6D031001C80CB /* EDreamClient.cpp */,
 				12478A772B03B2D0006A8669 /* client.h */,
 				21DD8C6F0EA9BA5F00BB9EC7 /* Splash.h */,
@@ -1449,7 +1446,7 @@
 				F05994552BA0912200B018C7 /* osd-pill.png */,
 				F059946A2BA0A07300B018C7 /* osd-bg-sq.png */,
 				F05994642BA0A07200B018C7 /* osd-play.png */,
-				F0PLAYLIST01 /* play-playlist.png */,
+				F0PLAYLIST01 /* ../Runtime/play-playlist.png */,
 				F05994682BA0A07300B018C7 /* osd-pause.png */,
 				F05994692BA0A07300B018C7 /* osd-back.png */,
 				F05994632BA0A07100B018C7 /* osd-forward.png */,
@@ -1503,10 +1500,9 @@
 				F07071CE2C0E052A008219A4 /* libboost_log_setup.a */,
 				F07071CF2C0E052A008219A4 /* libboost_log.a */,
 				F07071D32C0E052B008219A4 /* libboost_thread.a */,
-				12CA4A452B83DE3D00A2EAD6 /* libsioclient_tls.a */,
 				12579D482B83C91E00604B41 /* libcrypto.a */,
 				12D020022B83C86C0036357D /* libssl.a */,
-				466C2AA92AFA5B8600ED939F /* libpng_universal.a */,
+				466C2AA92AFA5B8600ED939F /* libpng16.a */,
 				4665198E2ACC8C5000ADB56E /* IOSurface.framework */,
 				467230BC2AC17EAA00017C51 /* Metal.framework */,
 				467230B82AC17C0400017C51 /* MetalKit.framework */,
@@ -1740,7 +1736,7 @@
 				F059945E2BA0912300B018C7 /* osd-bg-700.png in Resources */,
 				F02C15172E0194BB00BFFFF4 /* ThanksStepViewController.xib in Resources */,
 				F059946F2BA0A07300B018C7 /* osd-play.png in Resources */,
-				F0PLAYLIST02 /* play-playlist.png in Resources */,
+				F0PLAYLIST02 /* ../Runtime/play-playlist.png in Resources */,
 				F06C22AC2DA6CAE500D54DB2 /* osd-report.png in Resources */,
 				4628A55E2B0F84EF001C3078 /* Lato-Regular.ttf in Resources */,
 				F059945C2BA0912300B018C7 /* osd-pill.png in Resources */,
@@ -1796,7 +1792,7 @@
 				21ADBB251305D380000A9F20 /* red.tif in Resources */,
 				1243576D2B31FC1B00CCD62A /* BuildData.json in Resources */,
 				F05994702BA0A07300B018C7 /* osd-play.png in Resources */,
-				F0PLAYLIST03 /* play-playlist.png in Resources */,
+				F0PLAYLIST03 /* ../Runtime/play-playlist.png in Resources */,
 				F00638D72E83121600A1B908 /* infinidream.saver in Resources */,
 				F02C14EF2E01904600BFFFF4 /* StartupWindowController.xib in Resources */,
 				F0F6D4292BCD504500222647 /* osd-dislike.png in Resources */,
@@ -1890,7 +1886,7 @@
 				F0E9CE442C136B0500C4D694 /* red.tif in Resources */,
 				F0E9CE452C136B0500C4D694 /* BuildData.json in Resources */,
 				F0E9CE462C136B0500C4D694 /* osd-play.png in Resources */,
-				F0PLAYLIST04 /* play-playlist.png in Resources */,
+				F0PLAYLIST04 /* ../Runtime/play-playlist.png in Resources */,
 				F00638D82E83121600A1B908 /* infinidream.saver in Resources */,
 				F02C14F22E01904600BFFFF4 /* StartupWindowController.xib in Resources */,
 				F0E9CE472C136B0500C4D694 /* osd-dislike.png in Resources */,
@@ -2002,6 +1998,7 @@
 				2160FACF0F30F45100B2C27A /* LoadDDS.cpp in Sources */,
 				2160FAD00F30F45100B2C27A /* LoadPNG.cpp in Sources */,
 				467230C32AC1835300017C51 /* RendererMetal.mm in Sources */,
+				A1BEE5700000000000000010 /* sio_beast.cpp in Sources */,
 				467B6FCA2AE6D031001C80CB /* EDreamClient.cpp in Sources */,
 				46D2E9022AFBC3720054049D /* Text.cpp in Sources */,
 				2160FAD50F30F45100B2C27A /* Font.cpp in Sources */,
@@ -2076,6 +2073,7 @@
 				F0917E0B2E32764C000DBED8 /* ESAppDelegate.mm in Sources */,
 				2135DA530EC7479A005E246D /* ESScreensaverView.mm in Sources */,
 				2135DA550EC74853005E246D /* ESScreensaver.cpp in Sources */,
+				A1BEE5700000000000000011 /* sio_beast.cpp in Sources */,
 				467B6FC92AE6D031001C80CB /* EDreamClient.cpp in Sources */,
 				211CDDDB0ED0BD9200EB9394 /* Download.cpp in Sources */,
 				211CDDDC0ED0BD9200EB9394 /* Networking.cpp in Sources */,
@@ -2137,6 +2135,7 @@
 				F0917E0C2E32764C000DBED8 /* ESAppDelegate.mm in Sources */,
 				F0C100402C1372EF007FA505 /* ESScreensaverView.mm in Sources */,
 				F0C100412C1372EF007FA505 /* ESScreensaver.cpp in Sources */,
+				A1BEE5700000000000000012 /* sio_beast.cpp in Sources */,
 				F0C100422C1372EF007FA505 /* EDreamClient.cpp in Sources */,
 				F0C100432C1372EF007FA505 /* Download.cpp in Sources */,
 				F0C100442C1372EF007FA505 /* Networking.cpp in Sources */,
@@ -2188,6 +2187,7 @@
 				F0E9CE5B2C136B0500C4D694 /* LoadDDS.cpp in Sources */,
 				F0E9CE5C2C136B0500C4D694 /* LoadPNG.cpp in Sources */,
 				F0E9CE5D2C136B0500C4D694 /* RendererMetal.mm in Sources */,
+				A1BEE5700000000000000013 /* sio_beast.cpp in Sources */,
 				F0E9CE5E2C136B0500C4D694 /* EDreamClient.cpp in Sources */,
 				F0E9CE5F2C136B0500C4D694 /* Text.cpp in Sources */,
 				F0E9CE612C136B0500C4D694 /* Font.cpp in Sources */,
@@ -2317,12 +2317,11 @@
 					../DisplayOutput/Renderer,
 					../Networking,
 					..,
-					"../socket.io-client-cpp/include",
+					../Networking/sio,
 				);
 				LIBRARY_SEARCH_PATHS = (
 					"../../cache/univ-osx/lib",
 					"\"$(SRCROOT)/../ffmpeg/osx/lib\"",
-					"\"$(SRCROOT)/../socket.io-client-cpp/lib\"",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				ONLY_ACTIVE_ARCH = NO;
@@ -2394,12 +2393,11 @@
 					../DisplayOutput/Renderer,
 					../Networking,
 					..,
-					"../socket.io-client-cpp/include",
+					../Networking/sio,
 				);
 				LIBRARY_SEARCH_PATHS = (
 					"../../cache/univ-osx/lib",
 					"\"$(SRCROOT)/../ffmpeg/osx/lib\"",
-					"\"$(SRCROOT)/../socket.io-client-cpp/lib\"",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				OTHER_LDFLAGS = "";
@@ -2506,13 +2504,13 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = "infinidream AppRelease.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = BNXH8TLP5D;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
@@ -2632,14 +2630,14 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
 				CLANG_CXX_LIBRARY = "libc++";
 				CODE_SIGN_IDENTITY = "Apple Development";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = YES;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEPLOYMENT_POSTPROCESSING = NO;
-				DEVELOPMENT_TEAM = BNXH8TLP5D;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_NS_ASSERTIONS = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -2752,13 +2750,14 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
 				CLANG_CXX_LIBRARY = "libc++";
 				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = YES;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEPLOYMENT_POSTPROCESSING = NO;
-				DEVELOPMENT_TEAM = BNXH8TLP5D;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_NS_ASSERTIONS = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -2894,12 +2893,13 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = "infinidream AppRelease.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = YES;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = BNXH8TLP5D;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;

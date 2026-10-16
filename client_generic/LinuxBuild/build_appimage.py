@@ -14,8 +14,7 @@ Requirements:
   - Build tools: cmake, gcc, g++, make, perl
   - curl / Python urllib  (downloads sources + linuxdeploy / appimagetool on first run)
   - zig         (used ONLY to compile OpenSSL and FFmpeg against glibc 2.35;
-                 the main binary uses system g++ for compatibility with
-                 the pre-built libsioclient_tls.a static archive)
+                 the main binary uses system g++)
                  Install: pacman -S zig  OR  apt install zig
   - nasm/yasm   (FFmpeg assembly optimisations; skipped gracefully if absent)
   - FUSE or kernel >= 5.13 with /dev/fuse available (for running AppImages).
@@ -181,8 +180,7 @@ def write_zig_wrappers() -> tuple[Path, Path]:
 
     zig cc wraps clang and enforces a hard glibc ABI ceiling at compile+link
     time via --target.  These wrappers are used ONLY for OpenSSL and FFmpeg.
-    The main infinidream binary is compiled with system g++ to preserve ABI
-    compatibility with the pre-built libsioclient_tls.a (libstdc++).
+    The main infinidream binary is compiled with system g++.
     """
     zig_cc  = TOOLS_DIR / "zig-cc"
     zig_cxx = TOOLS_DIR / "zig-cxx"
@@ -416,9 +414,8 @@ def build_infinidream(shim_obj: Path) -> None:
     """
     Build infinidream (Release) with system g++.
 
-    System g++ is used (not zig) because zig c++ uses libc++ (LLVM ABI) while
-    libsioclient_tls.a was compiled with libstdc++ (GNU ABI).  The shim object
-    is injected via CMAKE_EXE_LINKER_FLAGS to intercept versioned symbol bindings.
+    The glibc compat shim object is injected via CMAKE_EXE_LINKER_FLAGS to
+    intercept versioned symbol bindings.
     """
     nproc = os.cpu_count() or 1
 
