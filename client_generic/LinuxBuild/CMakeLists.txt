@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.20)
 project(infinidream LANGUAGES C CXX)
 
 # Suppress deprecated FindBoost warning on CMake 3.30+
-cmake_policy(SET CMP0167 NEW)
+if(POLICY CMP0167)
+    cmake_policy(SET CMP0167 NEW)
+endif()
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -231,6 +233,7 @@ set(SOURCES
     ${NET}/EDreamClient.cpp
     ${NET}/Networking.cpp
     ${NET}/Upload.cpp
+    ${NET}/sio/sio_beast.cpp
 
     # Storage
     ${STORE}/JSONStorage.cpp
@@ -272,8 +275,7 @@ target_include_directories(infinidream PRIVATE
     ${BASE}                               # client_generic root
     ${BASE}/MacBuild                         # OSD.hpp, etc.
     ${BASE}/libpng/include
-    ${BASE}/socket.io-client-cpp/include
-    ${BASE}/websocketpp
+    ${NET}/sio
     ${BASE}/boost
     ${VULKAN_INCLUDE_DIRS}
     ${X11_INCLUDE_DIR}
@@ -309,7 +311,6 @@ target_link_libraries(infinidream PRIVATE
     swscale
     ${PNG_LIBRARIES}
     dl
-    ${BASE}/socket.io-client-cpp/lib/linux/libsioclient_tls.a
     OpenSSL::SSL
     OpenSSL::Crypto
     $<$<BOOL:${WAYLAND_CLIENT_FOUND}>:${WAYLAND_CLIENT_LIBRARIES}>
