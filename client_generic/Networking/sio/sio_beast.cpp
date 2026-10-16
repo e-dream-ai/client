@@ -268,7 +268,16 @@ public:
         , m_ping_timer(m_strand)
         , m_reconnect_timer(m_strand)
     {
+        // On Windows, OpenSSL's default verify paths do not include the system
+        // certificate store (unlike curl/Schannel used for REST). Load it so
+        // wss:// handshakes can verify public CAs (e.g. api-alpha).
+#if defined(_WIN32)
+        // OpenSSL defaults omit the Windows system store; curl/Schannel does not.
+        if (SSL_CTX_load_verify_store(m_ssl_ctx.native_handle(), "org.openssl.winstore://") != 1)
+            m_ssl_ctx.set_default_verify_paths();
+#else
         m_ssl_ctx.set_default_verify_paths();
+#endif
         m_ssl_ctx.set_verify_mode(ssl::verify_peer);
         m_network_thread = std::thread([this]() { m_ioc.run(); });
     }
@@ -468,6 +477,7 @@ private:
         m_parsed = parsed;
 
         m_ws = std::make_unique<ws_stream>(m_strand, m_ssl_ctx);
+        m_ws->next_layer().set_verify_callback(ssl::host_name_verification(m_parsed.host));
 
         m_resolver.async_resolve(
             m_parsed.host, m_parsed.port,
