@@ -141,10 +141,10 @@ void EDreamClient::SendPing()
         return;
     }
 
-    // If socket is available but callbacks aren't bound yet, bind them now
-    // This handles the race condition where namespace becomes ready after OnWebSocketConnected
-    if (!fIsWebSocketConnected.load()) {
-        g_Log->Info("SendPing: Socket available but not marked connected, binding callbacks now");
+    // Only mark connected / bind once the namespace is actually open. Emits before
+    // open are queued by the sio client and flushed on CONNECT.
+    if (!fIsWebSocketConnected.load() && s_SIOClient.opened()) {
+        g_Log->Info("SendPing: Socket open but not marked connected, binding callbacks now");
         socket->off("new_remote_control_event");
         socket->on("new_remote_control_event", &OnWebSocketMessage);
         socket->off("quota_update");

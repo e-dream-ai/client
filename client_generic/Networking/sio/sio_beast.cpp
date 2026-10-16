@@ -19,6 +19,7 @@
 #include <chrono>
 #include <cmath>
 #include <condition_variable>
+#include <cstdint>
 #include <deque>
 #include <memory>
 #include <mutex>
@@ -285,6 +286,7 @@ public:
     void shutdown()
     {
         m_abort_retries = true;
+        ++m_conn_id;
         m_work.reset();
         m_ioc.stop();
         if (m_network_thread.joinable() &&
@@ -292,6 +294,7 @@ public:
             m_network_thread.join();
         m_ws.reset();
         m_write_queue.clear();
+        m_pending_emits.clear();
         m_writing = false;
     }
 
@@ -376,8 +379,11 @@ public:
     {
         m_abort_retries = true;
         net::post(m_strand, [self = shared_from_this()]() {
+            ++self->m_conn_id;
             self->m_reconnect_timer.cancel();
             self->m_ping_timer.cancel();
+            self->m_resolver.cancel();
+            self->m_pending_emits.clear();
             self->close_socket_unlocked();
             if (self->m_opened.exchange(false))
             {
@@ -406,22 +412,14 @@ public:
     void emit(std::string const& nsp, std::string const& name, message::list const& msglist)
     {
         net::post(m_strand, [self = shared_from_this(), nsp, name, msglist]() {
-            if (!self->m_ws || !self->m_opened.load())
-                return;
-
-            boost::json::array arr;
-            arr.emplace_back(name);
-            for (size_t i = 0; i < msglist.size(); ++i)
-                arr.push_back(message_to_json(msglist[i]));
-
-            std::string payload = "42";
-            if (nsp != "/")
+            if (!self->m_opened.load() || !self->m_ws)
             {
-                payload += nsp;
-                payload += ",";
+                if (self->m_pending_emits.size() >= kMaxPendingEmits)
+                    self->m_pending_emits.pop_front();
+                self->m_pending_emits.push_back({nsp, name, msglist});
+                return;
             }
-            payload += boost::json::serialize(arr);
-            self->write_text(payload);
+            self->send_emit_unlocked(nsp, name, msglist);
         });
     }
 
@@ -464,6 +462,13 @@ private:
 
     void do_connect()
     {
+        // Invalidate in-flight resolve/connect/handshake/read/write handlers.
+        ++m_conn_id;
+        std::uint64_t const id = m_conn_id;
+
+        m_reconnect_timer.cancel();
+        m_ping_timer.cancel();
+        m_resolver.cancel();
         close_socket_unlocked();
         m_opened = false;
         m_nsp_connected = false;
@@ -481,11 +486,15 @@ private:
 
         m_resolver.async_resolve(
             m_parsed.host, m_parsed.port,
-            beast::bind_front_handler(&client_impl::on_resolve, shared_from_this()));
+            beast::bind_front_handler(&client_impl::on_resolve, shared_from_this(), id));
     }
 
-    void on_resolve(beast::error_code ec, tcp::resolver::results_type results)
+    bool is_current(std::uint64_t id) const { return id == m_conn_id && m_ws; }
+
+    void on_resolve(std::uint64_t id, beast::error_code ec, tcp::resolver::results_type results)
     {
+        if (!is_current(id))
+            return;
         if (ec)
         {
             fail_and_maybe_reconnect();
@@ -493,11 +502,13 @@ private:
         }
         beast::get_lowest_layer(*m_ws).expires_after(std::chrono::seconds(30));
         beast::get_lowest_layer(*m_ws).async_connect(
-            results, beast::bind_front_handler(&client_impl::on_connect, shared_from_this()));
+            results, beast::bind_front_handler(&client_impl::on_connect, shared_from_this(), id));
     }
 
-    void on_connect(beast::error_code ec, tcp::resolver::results_type::endpoint_type)
+    void on_connect(std::uint64_t id, beast::error_code ec, tcp::resolver::results_type::endpoint_type)
     {
+        if (!is_current(id))
+            return;
         if (ec)
         {
             fail_and_maybe_reconnect();
@@ -513,11 +524,13 @@ private:
         beast::get_lowest_layer(*m_ws).expires_after(std::chrono::seconds(30));
         m_ws->next_layer().async_handshake(
             ssl::stream_base::client,
-            beast::bind_front_handler(&client_impl::on_ssl_handshake, shared_from_this()));
+            beast::bind_front_handler(&client_impl::on_ssl_handshake, shared_from_this(), id));
     }
 
-    void on_ssl_handshake(beast::error_code ec)
+    void on_ssl_handshake(std::uint64_t id, beast::error_code ec)
     {
+        if (!is_current(id))
+            return;
         if (ec)
         {
             fail_and_maybe_reconnect();
@@ -539,11 +552,13 @@ private:
 
         m_ws->async_handshake(
             m_parsed.host, target.str(),
-            beast::bind_front_handler(&client_impl::on_ws_handshake, shared_from_this()));
+            beast::bind_front_handler(&client_impl::on_ws_handshake, shared_from_this(), id));
     }
 
-    void on_ws_handshake(beast::error_code ec)
+    void on_ws_handshake(std::uint64_t id, beast::error_code ec)
     {
+        if (!is_current(id))
+            return;
         if (ec)
         {
             fail_and_maybe_reconnect();
@@ -551,19 +566,21 @@ private:
         }
         m_writing = false;
         m_write_queue.clear();
-        do_read();
+        do_read(id);
     }
 
-    void do_read()
+    void do_read(std::uint64_t id)
     {
-        if (!m_ws)
+        if (!is_current(id))
             return;
         m_ws->async_read(
-            m_buffer, beast::bind_front_handler(&client_impl::on_read, shared_from_this()));
+            m_buffer, beast::bind_front_handler(&client_impl::on_read, shared_from_this(), id));
     }
 
-    void on_read(beast::error_code ec, std::size_t)
+    void on_read(std::uint64_t id, beast::error_code ec, std::size_t)
     {
+        if (!is_current(id))
+            return;
         if (ec)
         {
             on_disconnected(client::close_reason_drop);
@@ -573,14 +590,14 @@ private:
         if (!m_ws->got_text())
         {
             m_buffer.consume(m_buffer.size());
-            do_read();
+            do_read(id);
             return;
         }
 
         std::string data = beast::buffers_to_string(m_buffer.data());
         m_buffer.consume(m_buffer.size());
         handle_packet(data);
-        do_read();
+        do_read(id);
     }
 
     void handle_packet(std::string const& data)
@@ -682,6 +699,7 @@ private:
                     m_nsp_connected = true;
                     m_opened = true;
                     m_reconn_made = 0;
+                    flush_pending_emits();
                     if (m_socket_open_listener)
                         m_socket_open_listener(nsp);
                     if (m_open_listener)
@@ -719,6 +737,34 @@ private:
         }
     }
 
+    void send_emit_unlocked(std::string const& nsp, std::string const& name,
+                            message::list const& msglist)
+    {
+        boost::json::array arr;
+        arr.emplace_back(name);
+        for (size_t i = 0; i < msglist.size(); ++i)
+            arr.push_back(message_to_json(msglist[i]));
+
+        std::string payload = "42";
+        if (nsp != "/")
+        {
+            payload += nsp;
+            payload += ",";
+        }
+        payload += boost::json::serialize(arr);
+        write_text(payload);
+    }
+
+    void flush_pending_emits()
+    {
+        while (!m_pending_emits.empty() && m_opened.load() && m_ws)
+        {
+            pending_emit item = std::move(m_pending_emits.front());
+            m_pending_emits.pop_front();
+            send_emit_unlocked(item.nsp, item.name, item.msglist);
+        }
+    }
+
     void write_text(std::string const& text)
     {
         m_write_queue.push_back(text);
@@ -734,15 +780,18 @@ private:
             return;
         }
         m_writing = true;
+        std::uint64_t const id = m_conn_id;
         auto& front = m_write_queue.front();
         m_ws->text(true);
         m_ws->async_write(
             net::buffer(front),
-            beast::bind_front_handler(&client_impl::on_write, shared_from_this()));
+            beast::bind_front_handler(&client_impl::on_write, shared_from_this(), id));
     }
 
-    void on_write(beast::error_code ec, std::size_t)
+    void on_write(std::uint64_t id, beast::error_code ec, std::size_t)
     {
+        if (!is_current(id))
+            return;
         if (ec)
         {
             on_disconnected(client::close_reason_drop);
@@ -759,23 +808,30 @@ private:
     void arm_ping_watchdog()
     {
         m_ping_timer.cancel();
+        std::uint64_t const id = m_conn_id;
         auto timeout = std::chrono::milliseconds(m_ping_interval_ms + m_ping_timeout_ms);
         m_ping_timer.expires_after(timeout);
-        m_ping_timer.async_wait([self = shared_from_this()](beast::error_code ec) {
-            if (ec)
+        m_ping_timer.async_wait([self = shared_from_this(), id](beast::error_code ec) {
+            if (ec || id != self->m_conn_id)
                 return;
             self->on_disconnected(client::close_reason_drop);
         });
     }
 
+    // Tear down the active stream without destroying it inside a completion
+    // handler for that same stream (Beast UB). Cancel the TCP layer, move the
+    // stream off m_ws, and defer destruction until after the current strand
+    // handler returns.
     void close_socket_unlocked()
     {
         m_ping_timer.cancel();
         if (m_ws)
         {
-            beast::error_code ec;
-            m_ws->close(websocket::close_code::normal, ec);
-            m_ws.reset();
+            // Cancels outstanding ops and closes the TCP socket.
+            beast::get_lowest_layer(*m_ws).close();
+            // Destroy outside this completion handler (Beast requirement).
+            auto dying = std::move(m_ws);
+            net::post(m_strand, [dying = std::move(dying)]() mutable { dying.reset(); });
         }
         m_write_queue.clear();
         m_writing = false;
@@ -784,6 +840,10 @@ private:
 
     void on_disconnected(client::close_reason reason)
     {
+        // Invalidate any handlers still queued for this connection.
+        ++m_conn_id;
+        m_resolver.cancel();
+
         bool was_open = m_opened.exchange(false);
         m_nsp_connected = false;
         close_socket_unlocked();
@@ -799,6 +859,8 @@ private:
 
     void fail_and_maybe_reconnect()
     {
+        ++m_conn_id;
+        m_resolver.cancel();
         m_opened = false;
         m_nsp_connected = false;
         close_socket_unlocked();
@@ -863,8 +925,19 @@ private:
     parsed_uri m_parsed;
     std::string m_sid;
 
+    struct pending_emit
+    {
+        std::string nsp;
+        std::string name;
+        message::list msglist;
+    };
+
+    static constexpr std::size_t kMaxPendingEmits = 32;
+
     std::deque<std::string> m_write_queue;
+    std::deque<pending_emit> m_pending_emits;
     bool m_writing = false;
+    std::uint64_t m_conn_id = 0;
 
     std::atomic<bool> m_opened{false};
     bool m_nsp_connected = false;
