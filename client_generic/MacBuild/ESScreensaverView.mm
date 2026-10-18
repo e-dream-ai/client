@@ -10,6 +10,14 @@
 #include "libgen.h"
 #include "Log.h"
 #include "DisplayOutput.h"
+#include <atomic>
+
+#ifdef SCREEN_SAVER
+// All ScreenSaverView instances in legacyScreenSaver.appex share one gClient/g_Player.
+// Refcount so Settings thumbnail stopAnimation cannot Deinit while Preview/fullscreen
+// views are still running (that left a frozen last frame on screen).
+static std::atomic<int> s_activeEngineViews{0};
+#endif
 
 @implementation ESScreensaverView
 {
@@ -17,6 +25,11 @@
     BOOL m_bPausedForSheet;  // YES when paused for Preferences sheet (no full shutdown)
     BOOL m_shouldRotate;     // YES when rotating the dream 90 deg for a portrait display
     int m_displayIdx;
+#ifdef SCREEN_SAVER
+    BOOL m_graphicsContextAdded;  // AddGraphicsContext once per view (startAnimation may re-enter)
+    NSTimer *m_screenCheckTimer;  // Fallback when macOS never calls stopAnimation
+    BOOL m_forceExiting;          // Guard against re-entrant force-exit
+#endif
 }
 
 - (instancetype)initWithFrame:(NSRect)frame isPreview:(BOOL)isPreview
@@ -40,6 +53,12 @@
     m_isFullScreen = !isPreview;
     m_isStopped = YES;
     m_bPausedForSheet = NO;
+    m_displayIdx = 0;
+#ifdef SCREEN_SAVER
+    m_graphicsContextAdded = NO;
+    m_screenCheckTimer = nil;
+    m_forceExiting = NO;
+#endif
 
     m_isPreview = isPreview;
     DEBUG_LOG("INIT");
@@ -51,13 +70,16 @@
     NSLog(@"ESScreensaverView: Initializing Sparkle...");
     
 #ifdef SCREEN_SAVER
-    NSLog(@"ESScreensaverView: Running in SCREEN_SAVER mode");
+    NSLog(@"ESScreensaverView: Running in SCREEN_SAVER mode (preview=%d)", (int)isPreview);
     // For screensaver: use explicit bundle initialization
     // This ensures Sparkle reads SUPublicEDKey and other settings from our bundle
     m_updater = nil;
     m_sparkleUpdater = nil;
     m_sparkleUserDriver = nil;
-    
+
+    // Settings thumbnail must not start Sparkle — it keeps legacyScreenSaver alive
+    // after System Settings closes (and is useless in the preview host).
+    if (!isPreview) {
     @try {
         NSBundle *screensaverBundle = [NSBundle bundleForClass:[self class]];
         NSLog(@"Sparkle: initializing for screensaver bundle: %@ at %@", 
@@ -88,6 +110,7 @@
         }
     } @catch (NSException *exception) {
         NSLog(@"Sparkle: exception during initialization - %@: %@", exception.name, exception.reason);
+    }
     }
 #else
     NSLog(@"ESScreensaverView: Running in APP mode");
@@ -158,8 +181,67 @@
     return self;
 }
 
+#ifdef SCREEN_SAVER
+static BOOL ESSystemSettingsIsRunning(void)
+{
+    for (NSRunningApplication *app in NSWorkspace.sharedWorkspace.runningApplications) {
+        NSString *bid = app.bundleIdentifier;
+        if ([bid isEqualToString:@"com.apple.SystemSettings"] ||
+            [bid isEqualToString:@"com.apple.systempreferences"] ||
+            [bid isEqualToString:@"com.apple.Preferences"]) {
+            return YES;
+        }
+    }
+    return NO;
+}
+
+static BOOL ESIsSystemSettingsApp_(NSRunningApplication *app)
+{
+    NSString *bid = app.bundleIdentifier;
+    return [bid isEqualToString:@"com.apple.SystemSettings"] ||
+           [bid isEqualToString:@"com.apple.systempreferences"] ||
+           [bid isEqualToString:@"com.apple.Preferences"];
+}
+
+// Seconds a non-preview view's window may stay off-screen before we decide no
+// host will ever show or stop us. Generous so slow fades / display wake don't trip it.
+static const NSTimeInterval kOrphanOffscreenSeconds = 10.0;
+
+// YES only when the window exists and WindowServer reports it off-screen.
+// A nil window is treated as unknown (that's what false-positived under
+// System Settings Preview before), never as orphaned.
+static BOOL ESWindowIsKnownOffscreen(NSWindow *win)
+{
+    if (!win || win.windowNumber <= 0)
+        return NO;
+    CFArrayRef info = CGWindowListCopyWindowInfo(kCGWindowListOptionIncludingWindow,
+                                                 (CGWindowID)win.windowNumber);
+    if (!info)
+        return NO;
+    BOOL offscreen = NO;
+    if (CFArrayGetCount(info) > 0) {
+        NSDictionary *d = (__bridge NSDictionary *)CFArrayGetValueAtIndex(info, 0);
+        offscreen = ![d[(__bridge NSString *)kCGWindowIsOnscreen] boolValue];
+    }
+    CFRelease(info);
+    return offscreen;
+}
+#endif
+
 - (void)startAnimation
 {
+#ifdef SCREEN_SAVER
+    // Opening Screensaver settings often spawns a second legacyScreenSaver process
+    // (not the "(System Settings)" one). If we already lost the instance lock, that
+    // ghost must not start a full engine — it survives Settings close and makes
+    // hot-corner continue from the preview position.
+    if (!m_isPreview && ESScreensaver_IsSecondaryInstance()) {
+        g_Log->Info("Secondary non-preview screensaver instance — exiting (avoid Settings ghost)");
+        [self _forceExitScreensaverWithReason:"secondary-instance" delaySeconds:0];
+        return;
+    }
+#endif
+
     //g_Log->Error("Test error 2");
     if (view == NULL)
     {
@@ -196,10 +278,20 @@
             [self addSubview:view];
         }
     }
+#ifdef SCREEN_SAVER
+    // macOS may re-enter startAnimation; only register the Metal view once or we
+    // pile up duplicate displays and stall shared playback.
+    if (view != NULL && !m_graphicsContextAdded)
+    {
+        m_displayIdx = ESScreenSaver_AddGraphicsContext((__bridge void*)view);
+        m_graphicsContextAdded = YES;
+    }
+#else
     if (view != NULL)
     {
         m_displayIdx = ESScreenSaver_AddGraphicsContext((__bridge void*)view);
     }
+#endif
 
     uint32_t width = (uint32_t)theRect.size.width;
     uint32_t height = (uint32_t)theRect.size.height;
@@ -218,11 +310,16 @@
         ESScreensaver_SetVideoRotation(m_shouldRotate ? 90 : 0);
 
 #ifdef SCREEN_SAVER
-        g_Log->Info("Saver startAnimation on %f %f ", self.frame.size.width, self.frame.size.height);
+        g_Log->Info("Saver startAnimation on %f %f (preview=%d)",
+                    self.frame.size.width, self.frame.size.height, (int)m_isPreview);
 #endif
        
         [self _beginThread];
         m_bStarted = YES;
+#ifdef SCREEN_SAVER
+        s_activeEngineViews.fetch_add(1);
+        [self _startScreenConnectionMonitor];
+#endif
     }
     
 #ifdef SCREEN_SAVER
@@ -233,17 +330,44 @@
 - (void)stopAnimation
 {
 #ifdef SCREEN_SAVER
+    [self _stopScreenConnectionMonitor];
     [NSCursor unhide];
+    [self _stopRedrawTimer];
 #endif
     m_bPausedForSheet = NO;
     if (m_bStarted)
     {
         [self _endThread];
-
-        ESScreensaver_Stop();
-
-        ESScreensaver_Deinit();
         m_bStarted = NO;
+
+#ifdef SCREEN_SAVER
+        // Only tear down the shared engine when the last view stops. Settings
+        // thumbnail stop must not Kill Preview / real-saver playback.
+        int remaining = s_activeEngineViews.fetch_sub(1) - 1;
+        if (remaining < 0) {
+            s_activeEngineViews.store(0);
+            remaining = 0;
+        }
+        if (remaining == 0) {
+            BOOL wasPreview = m_isPreview;
+            [self _tearDownKeepAlives];
+            ESScreensaver_Stop();
+            ESScreensaver_Deinit();
+            // Settings "(System Settings)" host often leaves the appex alive unless
+            // we exit. Real fullscreen dismiss uses willstop → exit already.
+            if (wasPreview) {
+                g_Log->Info("Preview stopAnimation complete — exiting process");
+                g_Log->Shutdown();
+                exit(0);
+            }
+        } else {
+            g_Log->Info("Saver stopAnimation: %d view(s) still active, keeping engine",
+                        remaining);
+        }
+#else
+        ESScreensaver_Stop();
+        ESScreensaver_Deinit();
+#endif
     }
 
 #ifdef SCREEN_SAVER
@@ -256,6 +380,9 @@
 
 - (void)pauseAnimationForSheet
 {
+#ifdef SCREEN_SAVER
+    [self _stopScreenConnectionMonitor];
+#endif
     if (!m_bStarted || m_bPausedForSheet)
         return;
     [self _endThread];
@@ -273,6 +400,7 @@
     m_bStarted = YES;
     m_bPausedForSheet = NO;
 #ifdef SCREEN_SAVER
+    [self _startScreenConnectionMonitor];
     [super startAnimation];
 #endif
     return YES;  // Caller must NOT call startAnimation (would re-add display and retrigger full startup)
@@ -296,6 +424,11 @@ static void signnal_handler(int signal)
 {
     DEBUG_LOG("BEGINTHREAD");
     m_isStopped = NO;
+#ifdef SCREEN_SAVER
+    // Avoid duplicate observers if start/resume re-enters.
+    [NSWorkspace.sharedWorkspace.notificationCenter removeObserver:self];
+    [NSDistributedNotificationCenter.defaultCenter removeObserver:self];
+#endif
     [NSWorkspace.sharedWorkspace.notificationCenter
         addObserver:self
            selector:@selector(willStop:)
@@ -306,21 +439,54 @@ static void signnal_handler(int signal)
            selector:@selector(onSleepNote:)
                name:NSNotificationName(@"com.apple.screensaver.willstop")
              object:nil];
+    // didstop is more reliably delivered than willstop on some macOS versions.
+    [NSDistributedNotificationCenter.defaultCenter
+        addObserver:self
+           selector:@selector(onSleepNote:)
+               name:NSNotificationName(@"com.apple.screensaver.didstop")
+             object:nil];
+#ifdef SCREEN_SAVER
+    // If System Settings spawned/warmed this non-preview process, it often never
+    // gets stopAnimation when Settings closes — only the "(System Settings)"
+    // process dies. Exit when System Settings quits so hot-corner gets a fresh start.
+    if (!m_isPreview && ESSystemSettingsIsRunning()) {
+        [NSWorkspace.sharedWorkspace.notificationCenter
+            addObserver:self
+               selector:@selector(onAppTerminated:)
+                   name:NSWorkspaceDidTerminateApplicationNotification
+                 object:nil];
+        g_Log->Info("Watching System Settings terminate (warm non-preview instance)");
+    }
+#endif
     std::signal(SIGSEGV, signnal_handler);
 }
+
+#ifdef SCREEN_SAVER
+- (void)onAppTerminated:(NSNotification *)notif
+{
+    NSRunningApplication *app = notif.userInfo[NSWorkspaceApplicationKey];
+    if (!app || !ESIsSystemSettingsApp_(app))
+        return;
+    // Real hot-corner / Preview fullscreen uses screensaver window level; leave those alone.
+    NSWindow *win = self.window;
+    if (win && win.level >= NSScreenSaverWindowLevel)
+        return;
+    g_Log->Info("System Settings terminated — exiting warm screensaver process");
+    [self _forceExitScreensaverWithReason:"system-settings-quit" delaySeconds:0];
+}
+#endif
 
 - (void)willStop:(NSNotification*)notification
 {
 #ifdef SCREEN_SAVER
-    g_Log->Info("Killed by system from willStop");
+    // NSWorkspaceWillSleepNotification — machine sleep, not screensaver dismiss.
+    // Settings thumbnail must not exit the appex (would freeze Preview/fullscreen).
+    if (m_isPreview)
+        return;
+    g_Log->Info("Killed by system from willStop (sleep)");
     if (@available(macOS 14.0, *)) {
-        g_Log->Info("Deinit");
-        ESScreensaver_Deinit();
-        g_Log->Info("Log shutdown, will exit in 2 seconds");
-        g_Log->Shutdown();
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-            exit(0);
-        });
+        // Delay slightly so macOS can finish sleep transitions without relaunch churn.
+        [self _forceExitScreensaverWithReason:"willStop/sleep" delaySeconds:2.0];
     }
 #endif
 }
@@ -328,15 +494,176 @@ static void signnal_handler(int signal)
 - (void)onSleepNote:(NSNotification*)notif
 {
 #ifdef SCREEN_SAVER
+    // Preview thumbnail shares this process; ignore dismiss notes so we don't
+    // exit(0) while a full-screen Preview/saver view is still alive.
+    if (m_isPreview)
+        return;
     g_Log->Info("Killed by system from onSleepNote %s", notif.name.UTF8String);
-    NSLog(@"notif.object:%@", notif.object);
-
     if (@available(macOS 14.0, *)) {
-        g_Log->Info("Deinit");
-        ESScreensaver_Deinit();
-        g_Log->Info("Log shutdown, will exit");
+        // Engine is torn down immediately; only the exit is delayed. Exiting
+        // instantly races WallpaperAgent: loginwindow releases its wallpaper
+        // assertions ~300ms apart, and if we die between them WallpaperAgent
+        // treats it as a crash and relaunches the extension, then fails to kill
+        // the relaunch ("Could not signal service ... Operation not permitted"),
+        // leaving an orphan that gets startAnimation and plays forever (#690).
+        // In practice legacyScreenSaver calls exit() itself ~200ms after
+        // willstop, before this timer; ESLogExitTiming holds that exit instead.
+        [self _forceExitScreensaverWithReason:notif.name.UTF8String delaySeconds:2.0];
+    }
+#endif
+}
+
+#pragma mark - Keep-alive teardown + dismiss fallback
+
+// legacyScreenSaver.appex often neither calls stopAnimation nor posts willstop
+// (FB13041503). Without an explicit exit(0), Metal's redraw timer and Sparkle
+// keep the appex process alive after the user dismisses the saver.
+
+- (void)_stopRedrawTimer
+{
+#ifdef SCREEN_SAVER
+#ifdef USE_METAL
+    if ([view respondsToSelector:@selector(stopRedrawTimer)]) {
+        [view stopRedrawTimer];
+    }
+#endif
+#endif
+}
+
+- (void)_tearDownKeepAlives
+{
+#ifdef SCREEN_SAVER
+    [self _stopRedrawTimer];
+    if (m_sparkleUpdater) {
+        m_sparkleUpdater.automaticallyChecksForUpdates = NO;
+        m_sparkleUpdater = nil;
+    }
+    m_sparkleUserDriver = nil;
+#endif
+}
+
+#ifdef SCREEN_SAVER
+// Exit-timing diagnostics (#690): who ends the process after a force-exit
+// request — our delayed exit(0), some other exit() (e.g. the extension runtime
+// after WallpaperAgent drops us), or neither line logged => killed by signal.
+static CFAbsoluteTime s_exitRequestedAt = 0;
+static bool s_exitRequested = false;
+static std::atomic<bool> s_logShutDown{false};
+
+static void ESShutdownLogOnce(void)
+{
+    if (!s_logShutDown.exchange(true))
         g_Log->Shutdown();
+}
+
+// legacyScreenSaver's own code calls exit() ~200ms after loginwindow stops the
+// saver. WallpaperAgent decides to remove the saver only when loginwindow
+// releases its second assertion, 300-370ms after the first (observed on
+// macOS 26.6). If the process dies before that, WallpaperAgent treats it as a
+// crash and relaunches an orphan (#690). Nothing in-process signals the remove,
+// so hold the dying process until a fixed point after willstop. Heuristic; the
+// off-screen watchdog is the backstop if Apple's timing drifts past this.
+static const NSTimeInterval kExitHoldAfterWillStopSeconds = 1.0;
+
+static void ESLogExitTiming(void)
+{
+    if (s_logShutDown.load() || !s_exitRequested)
+        return;
+    NSTimeInterval elapsed = CFAbsoluteTimeGetCurrent() - s_exitRequestedAt;
+    g_Log->Info("Process exit() %.0f ms after force-exit request (not our delayed exit)",
+                elapsed * 1000.0);
+    if (elapsed < kExitHoldAfterWillStopSeconds) {
+        NSTimeInterval hold = kExitHoldAfterWillStopSeconds - elapsed;
+        g_Log->Info("Holding exit %.0f ms so WallpaperAgent removes the saver first", hold * 1000.0);
+        usleep((useconds_t)(hold * 1e6));
+    }
+    ESShutdownLogOnce();
+}
+#endif
+
+- (void)_forceExitScreensaverWithReason:(const char *)reason delaySeconds:(NSTimeInterval)delaySeconds
+{
+#ifdef SCREEN_SAVER
+    if (m_forceExiting)
+        return;
+    m_forceExiting = YES;
+    if (!s_exitRequested) {
+        s_exitRequested = true;
+        s_exitRequestedAt = CFAbsoluteTimeGetCurrent();
+        atexit(ESLogExitTiming);
+    }
+
+    [self _stopScreenConnectionMonitor];
+    [self _tearDownKeepAlives];
+    m_isStopped = YES;
+
+    g_Log->Info("Screensaver force-exit (%s)", reason ? reason : "unknown");
+    // Process is dying — shut down the shared engine regardless of other views.
+    if (m_bStarted) {
+        s_activeEngineViews.store(0);
+        ESScreensaver_Stop();
+        ESScreensaver_Deinit();
+        m_bStarted = NO;
+    } else if (s_activeEngineViews.load() > 0) {
+        s_activeEngineViews.store(0);
+        ESScreensaver_Stop();
+        ESScreensaver_Deinit();
+    }
+
+    if (delaySeconds <= 0) {
+        ESShutdownLogOnce();
         exit(0);
+    }
+    // Keep the log open during the delay so ESLogExitTiming can record an
+    // earlier exit by someone else.
+    g_Log->Info("Engine stopped; exit(0) scheduled in %.1fs", delaySeconds);
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delaySeconds * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+                       g_Log->Info("Delayed exit(0) firing %.0f ms after force-exit request",
+                                   (CFAbsoluteTimeGetCurrent() - s_exitRequestedAt) * 1000.0);
+                       ESShutdownLogOnce();
+                       exit(0);
+                   });
+#endif
+}
+
+- (void)_startScreenConnectionMonitor
+{
+#ifdef SCREEN_SAVER
+    // Orphan watchdog. WallpaperAgent can relaunch the appex right after a
+    // dismiss and then fail to kill it; that process gets startAnimation with
+    // an off-screen layer-0 window and never receives stopAnimation/willstop
+    // (#690). A real saver or Settings "Preview" window is on-screen.
+    if (m_isPreview)
+        return;
+    [self _stopScreenConnectionMonitor];
+    __block NSTimeInterval offscreenFor = 0;
+    __weak ESScreensaverView *weakSelf = self;
+    m_screenCheckTimer = [NSTimer scheduledTimerWithTimeInterval:2.0 repeats:YES block:^(NSTimer *t) {
+        ESScreensaverView *strongSelf = weakSelf;
+        if (!strongSelf) { [t invalidate]; return; }
+        // Asleep displays can report windows off-screen; don't count that time.
+        if (CGDisplayIsAsleep(CGMainDisplayID()) ||
+            !ESWindowIsKnownOffscreen(strongSelf.window)) {
+            offscreenFor = 0;
+            return;
+        }
+        offscreenFor += t.timeInterval;
+        if (offscreenFor >= kOrphanOffscreenSeconds) {
+            g_Log->Info("Saver window off-screen for %.0fs with no stop from host",
+                        offscreenFor);
+            [strongSelf _forceExitScreensaverWithReason:"orphan-offscreen" delaySeconds:0];
+        }
+    }];
+#endif
+}
+
+- (void)_stopScreenConnectionMonitor
+{
+#ifdef SCREEN_SAVER
+    if (m_screenCheckTimer) {
+        [m_screenCheckTimer invalidate];
+        m_screenCheckTimer = nil;
     }
 #endif
 }
@@ -344,6 +671,10 @@ static void signnal_handler(int signal)
 - (void)_endThread
 {
     m_isStopped = YES;
+#ifdef SCREEN_SAVER
+    [NSWorkspace.sharedWorkspace.notificationCenter removeObserver:self];
+    [NSDistributedNotificationCenter.defaultCenter removeObserver:self];
+#endif
 }
 
 - (void)windowDidResize
