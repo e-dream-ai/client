@@ -2920,7 +2920,9 @@ void EDreamClient::ConnectRemoteControlSocket()
     // Send first ping immediately so frontend knows we're here
     SendPing();
 
-    // Run the io_context in a separate thread
+    // Run the app io_context (ping/quota timers) on a detached thread.
+    // The Socket.IO Beast shim drives WebSocket I/O on its own m_ioc thread;
+    // this run() no longer pumps the socket.
     std::thread([]() {
         io_context->run();
     }).detach();
