@@ -4,6 +4,8 @@
 #include "sio_client.h"
 #include "sio_socket.h"
 
+#include "Log.h"
+
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/asio/strand.hpp>
@@ -14,12 +16,14 @@
 #include <boost/json.hpp>
 
 #include <openssl/ssl.h>
+#include <openssl/x509.h>
 
 #include <atomic>
 #include <chrono>
 #include <cmath>
 #include <condition_variable>
 #include <cstdint>
+#include <cstdlib>
 #include <deque>
 #include <memory>
 #include <mutex>
@@ -265,16 +269,50 @@ public:
         : m_work(net::make_work_guard(m_ioc))
         , m_strand(net::make_strand(m_ioc))
         , m_resolver(m_strand)
-        , m_ssl_ctx(ssl::context::tlsv12_client)
+        , m_ssl_ctx(ssl::context::tls_client)
         , m_ping_timer(m_strand)
         , m_reconnect_timer(m_strand)
+        , m_nsp_connect_timer(m_strand)
     {
+        // Allow TLS 1.2+ (including 1.3). tlsv12_client pins max to 1.2.
+        SSL_CTX_set_min_proto_version(m_ssl_ctx.native_handle(), TLS1_2_VERSION);
+
         // On Windows, OpenSSL's default verify paths do not include the system
         // certificate store (unlike curl/Schannel used for REST). Load it so
         // wss:// handshakes can verify public CAs (e.g. api-alpha).
+        // On Linux AppImage, OPENSSLDIR points at the build machine; load a
+        // system CA bundle instead.
 #if defined(_WIN32)
         // OpenSSL defaults omit the Windows system store; curl/Schannel does not.
         if (SSL_CTX_load_verify_store(m_ssl_ctx.native_handle(), "org.openssl.winstore://") != 1)
+            m_ssl_ctx.set_default_verify_paths();
+#elif defined(__linux__)
+        bool loaded = false;
+        if (const char* certFile = std::getenv("SSL_CERT_FILE"))
+        {
+            beast::error_code ec;
+            m_ssl_ctx.load_verify_file(certFile, ec);
+            loaded = !ec;
+        }
+        if (!loaded)
+        {
+            static const char* kCaPaths[] = {
+                "/etc/ssl/certs/ca-certificates.crt",
+                "/etc/pki/tls/certs/ca-bundle.crt",
+                "/etc/ssl/cert.pem",
+            };
+            for (const char* path : kCaPaths)
+            {
+                beast::error_code ec;
+                m_ssl_ctx.load_verify_file(path, ec);
+                if (!ec)
+                {
+                    loaded = true;
+                    break;
+                }
+            }
+        }
+        if (!loaded)
             m_ssl_ctx.set_default_verify_paths();
 #else
         m_ssl_ctx.set_default_verify_paths();
@@ -382,6 +420,7 @@ public:
             ++self->m_conn_id;
             self->m_reconnect_timer.cancel();
             self->m_ping_timer.cancel();
+            self->m_nsp_connect_timer.cancel();
             self->m_resolver.cancel();
             self->m_pending_emits.clear();
             self->close_socket_unlocked();
@@ -438,22 +477,37 @@ public:
 
         event ev(nsp, name, std::move(messages), false);
         auto* impl = sock->m_impl;
-        std::lock_guard<std::mutex> lock(impl->m_event_mutex);
-        auto it = impl->m_event_binding.find(name);
-        if (it != impl->m_event_binding.end() && it->second)
-            it->second(ev);
-        auto it_aux = impl->m_event_binding_aux.find(name);
-        if (it_aux != impl->m_event_binding_aux.end() && it_aux->second)
+
+        // Copy listeners under the lock, then invoke unlocked so handlers can
+        // safely re-bind via socket::on()/off() without deadlocking.
+        socket::event_listener listener;
+        socket::event_listener_aux listener_aux;
+        socket::event_listener any;
+        socket::event_listener_aux any_aux;
         {
-            message::list ack;
-            it_aux->second(name, ev.get_message(), false, ack);
+            std::lock_guard<std::mutex> lock(impl->m_event_mutex);
+            auto it = impl->m_event_binding.find(name);
+            if (it != impl->m_event_binding.end())
+                listener = it->second;
+            auto it_aux = impl->m_event_binding_aux.find(name);
+            if (it_aux != impl->m_event_binding_aux.end())
+                listener_aux = it_aux->second;
+            any = impl->m_any;
+            any_aux = impl->m_any_aux;
         }
-        if (impl->m_any)
-            impl->m_any(ev);
-        if (impl->m_any_aux)
+        if (listener)
+            listener(ev);
+        if (listener_aux)
         {
             message::list ack;
-            impl->m_any_aux(name, ev.get_message(), false, ack);
+            listener_aux(name, ev.get_message(), false, ack);
+        }
+        if (any)
+            any(ev);
+        if (any_aux)
+        {
+            message::list ack;
+            any_aux(name, ev.get_message(), false, ack);
         }
     }
 
@@ -468,6 +522,7 @@ private:
 
         m_reconnect_timer.cancel();
         m_ping_timer.cancel();
+        m_nsp_connect_timer.cancel();
         m_resolver.cancel();
         close_socket_unlocked();
         m_opened = false;
@@ -533,6 +588,14 @@ private:
             return;
         if (ec)
         {
+            long verifyResult = X509_V_OK;
+            if (m_ws)
+                verifyResult = SSL_get_verify_result(m_ws->next_layer().native_handle());
+            g_Log->Error(
+                "TLS handshake failed: %s (verify_result=%ld %s)",
+                ec.message().c_str(),
+                verifyResult,
+                X509_verify_cert_error_string(verifyResult));
             fail_and_maybe_reconnect();
             return;
         }
@@ -630,9 +693,9 @@ private:
                 // keep defaults
             }
             arm_ping_watchdog();
-            // Connect default + /remote-control namespaces used by the app.
-            write_text("40");
+            // Only /remote-control is used by the app (do not CONNECT default "/").
             write_text("40/remote-control,");
+            arm_nsp_connect_timeout();
             break;
         }
         case '2': // ping
@@ -692,19 +755,17 @@ private:
         switch (type)
         {
         case '0': // CONNECT
-            if (nsp == "/remote-control" || (!m_nsp_connected && nsp == "/"))
+            if (nsp == "/remote-control")
             {
-                if (nsp == "/remote-control")
-                {
-                    m_nsp_connected = true;
-                    m_opened = true;
-                    m_reconn_made = 0;
-                    flush_pending_emits();
-                    if (m_socket_open_listener)
-                        m_socket_open_listener(nsp);
-                    if (m_open_listener)
-                        m_open_listener();
-                }
+                m_nsp_connect_timer.cancel();
+                m_nsp_connected = true;
+                m_opened = true;
+                m_reconn_made = 0;
+                flush_pending_emits();
+                if (m_socket_open_listener)
+                    m_socket_open_listener(nsp);
+                if (m_open_listener)
+                    m_open_listener();
             }
             break;
         case '1': // DISCONNECT
@@ -732,6 +793,12 @@ private:
             }
             break;
         }
+        case '4': // CONNECT_ERROR
+            g_Log->Error("Socket.IO CONNECT_ERROR nsp=%s payload=%s",
+                         nsp.c_str(), payload.c_str());
+            m_nsp_connect_timer.cancel();
+            on_disconnected(client::close_reason_drop);
+            break;
         default:
             break;
         }
@@ -825,6 +892,7 @@ private:
     void close_socket_unlocked()
     {
         m_ping_timer.cancel();
+        m_nsp_connect_timer.cancel();
         if (m_ws)
         {
             // Cancels outstanding ops and closes the TCP socket.
@@ -838,11 +906,29 @@ private:
         m_buffer.consume(m_buffer.size());
     }
 
+    void arm_nsp_connect_timeout()
+    {
+        // Match upstream socket.io-client-cpp namespace connect timeout (20s).
+        std::uint64_t const id = m_conn_id;
+        m_nsp_connect_timer.expires_after(std::chrono::seconds(20));
+        m_nsp_connect_timer.async_wait(
+            [self = shared_from_this(), id](beast::error_code ec) {
+                if (ec || self->m_abort_retries)
+                    return;
+                if (id != self->m_conn_id || self->m_nsp_connected)
+                    return;
+                g_Log->Error(
+                    "Socket.IO namespace /remote-control connect timed out after 20s");
+                self->on_disconnected(client::close_reason_drop);
+            });
+    }
+
     void on_disconnected(client::close_reason reason)
     {
         // Invalidate any handlers still queued for this connection.
         ++m_conn_id;
         m_resolver.cancel();
+        m_nsp_connect_timer.cancel();
 
         bool was_open = m_opened.exchange(false);
         m_nsp_connected = false;
@@ -861,6 +947,7 @@ private:
     {
         ++m_conn_id;
         m_resolver.cancel();
+        m_nsp_connect_timer.cancel();
         m_opened = false;
         m_nsp_connected = false;
         close_socket_unlocked();
@@ -913,6 +1000,7 @@ private:
     beast::flat_buffer m_buffer;
     net::steady_timer m_ping_timer;
     net::steady_timer m_reconnect_timer;
+    net::steady_timer m_nsp_connect_timer;
     std::thread m_network_thread;
 
     std::mutex m_state_mutex;
