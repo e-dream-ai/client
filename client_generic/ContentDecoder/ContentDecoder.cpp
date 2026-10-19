@@ -39,6 +39,7 @@
 #include "PlatformUtils.h"
 #include "PathManager.h"
 #include "EDreamClient.h"
+#include "ProgressiveHttpStream.h"
 
 using namespace boost;
 namespace fs = std::filesystem;
@@ -151,7 +152,10 @@ void CContentDecoder::Destroy()
 void CContentDecoder::abortFutures() {
     // First mark all operations as needing to stop
     m_HasEnded.store(true);
-    
+
+    if (m_httpStream)
+        m_httpStream->Stop();
+
     // Close cache file immediately if open
     CloseCacheFile();
     
@@ -276,10 +280,7 @@ bool CContentDecoder::Open()
     std::string _filename = ovi->m_Path;
     ovi->m_TotalFrameCount = 0;
     g_Log->Info("Opening: %s", _filename.c_str());
-    
-    avformat_network_init();  // Initialize network
-    
-    int ret;
+
     if (IsURL(_filename))
     {
         m_IsStreaming = true;
@@ -288,24 +289,27 @@ bool CContentDecoder::Open()
         // Generate a cache file path
         std::string cacheFileName = GenerateCacheFileName();
         SetCachePath(cacheFileName);
-        
-        if (!OpenCacheFile())
+
+        // libcurl owns the HTTPS byte stream; ffmpeg only sees a custom AVIO
+        // over the progressive on-disk cache (file protocol / no network).
+        m_httpStream = std::make_unique<Network::ProgressiveHttpStream>();
+        // AVIO unblocks on decoder stop; curl keeps downloading until
+        // shutdown/Stop so stream-to-disk can still complete.
+        if (!m_httpStream->Start(
+                _filename, m_CachePath,
+                /*readInterrupt=*/
+                [this]() {
+                    return m_bStop.load() || m_isShuttingDown.load();
+                },
+                /*downloadAbort=*/
+                [this]() { return m_isShuttingDown.load(); }))
         {
-            g_Log->Warning("Failed to open cache file for writing");
-            m_IsStreaming = false;
-        }
-        
-        // For URLs, we use avio_open2
-        AVIOInterruptCB interruptCallback{&CContentDecoder::InterruptIO, this};
-        ret = avio_open2(&m_pIOContext, _filename.c_str(), AVIO_FLAG_READ,
-                         &interruptCallback, nullptr);
-        if (ret < 0)
-        {
-            g_Log->Warning("Failed to open URL %s...", _filename.c_str());
+            g_Log->Warning("Failed to start progressive download for %s",
+                           _filename.c_str());
+            m_httpStream.reset();
             return false;
         }
 
-        // Create a new AVIOContext that wraps the original one
         constexpr int kIOBufferSize = 32768;
         unsigned char* buffer = static_cast<unsigned char*>(av_malloc(kIOBufferSize));
         if (!buffer) {
@@ -328,6 +332,7 @@ bool CContentDecoder::Open()
             g_Log->Error("Failed to allocate format context for %s", _filename.c_str());
             return false;
         }
+        AVIOInterruptCB interruptCallback{&CContentDecoder::InterruptIO, this};
         ovi->m_pFormatContext->interrupt_callback = interruptCallback;
         ovi->m_pFormatContext->pb = custom_io;
         ovi->m_pFormatContext->flags |= AVFMT_FLAG_CUSTOM_IO;
@@ -555,54 +560,34 @@ void CContentDecoder::Close()
         avformat_close_input(&m_CurrentVideoInfo->m_pFormatContext);
     }
 
+    if (m_httpStream)
+    {
+        m_httpStream->Stop();
+        m_httpStream.reset();
+    }
 
     CloseCacheFile();
     m_CacheWritePosition = 0;
 
     Destroy();
 
-    
-    if (m_pIOContext)
-    {
-        avio_close(m_pIOContext);
-        m_pIOContext = nullptr;
-    }
-    
-    if (m_pIOBuffer)
-    {
-        av_free(m_pIOBuffer);
-        m_pIOBuffer = nullptr;
-    }
-    
-    avformat_network_deinit();
     g_Log->Info("closed...");
 }
 
 int CContentDecoder::ReadPacket(void* opaque, uint8_t* buf, int buf_size)
 {
     CContentDecoder* decoder = static_cast<CContentDecoder*>(opaque);
-    int bytesRead = avio_read(decoder->m_pIOContext, buf, buf_size);
-    
-    if (bytesRead > 0 && decoder->m_IsStreaming) {
-        int64_t currentPos = avio_tell(decoder->m_pIOContext) - bytesRead;
-        decoder->WriteToCache(buf, bytesRead, currentPos);
-    }
-    
-    return bytesRead;
+    if (!decoder->m_httpStream)
+        return AVERROR(EIO);
+    return decoder->m_httpStream->Read(buf, buf_size);
 }
 
 int64_t CContentDecoder::SeekPacket(void* opaque, int64_t offset, int whence)
 {
     CContentDecoder* decoder = static_cast<CContentDecoder*>(opaque);
-    if (whence & AVSEEK_SIZE) {
-        return avio_size(decoder->m_pIOContext);
-    }
-    int64_t ret = avio_seek(decoder->m_pIOContext, offset, whence);
-    if (ret >= 0) {
-        std::lock_guard<std::mutex> lock(decoder->m_CacheMutex);
-        decoder->m_CacheWritePosition = ret;
-    }
-    return ret;
+    if (!decoder->m_httpStream)
+        return -1;
+    return decoder->m_httpStream->Seek(offset, whence);
 }
 
 CVideoFrame* CContentDecoder::ReadOneFrame()
@@ -1274,15 +1259,9 @@ void CContentDecoder::ReadFramesThread()
             m_CurrentVideoInfo->m_SeekTargetFrame = -1;
         }
         
-        // Only try grabbing the remainder of the video if we have a md5 to verify it
-        if (m_IsStreaming && !m_Metadata.dreamData.md5.empty()) {
-            // Try to read any remaining data
-            unsigned char buffer[4096];
-            int bytesRead;
-            while ((bytesRead = avio_read(m_pIOContext, buffer, sizeof(buffer))) > 0) {
-                WriteToCache(buffer, bytesRead, avio_tell(m_pIOContext) - bytesRead);
-            }
-        }
+        // Let the curl worker finish filling the cache file when we intend to keep it.
+        if (m_IsStreaming && !m_Metadata.dreamData.md5.empty() && m_httpStream)
+            m_httpStream->WaitUntilFinished();
 
         m_HasEnded.store(true);
         
@@ -1294,17 +1273,14 @@ void CContentDecoder::ReadFramesThread()
     {
         g_Log->Info("Thread Interrupted: Ending main video frame reading thread for %s", m_Metadata.dreamData.uuid.c_str());
 
-        // Before opening a thread to grab the remainder of the video ,make sure we intend to save it
-        if (!m_isShuttingDown.load() && m_IsStreaming && !m_Metadata.dreamData.md5.empty()) {
-            g_Log->Info("Read frames thread interrupted, trying to fetch remaining data asynchronously.");
+        // Keep downloading in the background so stream-to-disk can complete.
+        if (!m_isShuttingDown.load() && m_IsStreaming &&
+            !m_Metadata.dreamData.md5.empty() && m_httpStream)
+        {
+            g_Log->Info("Read frames thread interrupted, waiting for progressive download to finish.");
             m_futures.emplace_back(std::async(std::launch::async, [this]() {
-                // Try to read any remaining data
-                unsigned char buffer[4096];
-                int bytesRead;
-                while ((bytesRead = avio_read(m_pIOContext, buffer, sizeof(buffer))) > 0) {
-                    WriteToCache(buffer, bytesRead, avio_tell(m_pIOContext) - bytesRead);
-                }
-                
+                if (m_httpStream)
+                    m_httpStream->WaitUntilFinished();
                 m_HasEnded.store(true);
                 FinalizeCacheFile();
             }));
@@ -1348,7 +1324,7 @@ bool CContentDecoder::Start(const sClipMetadata& metadata, int64_t _seekFrame)
     m_OpenFailed.store(false);
     m_bStop = false;
 
-    // Remote demuxer initialization can spend seconds in avio_open2,
+    // Remote demuxer initialization can spend seconds in curl startup,
     // avformat_open_input, or avformat_find_stream_info. Keep that work off the
     // player/render thread so the outgoing clip remains responsive. Local files
     // retain synchronous validation so callers still get immediate failures for
@@ -1515,16 +1491,20 @@ std::string CContentDecoder::GetFinalFileName() const {
 
 bool CContentDecoder::IsDownloadComplete() const
 {
-    if (!m_IsStreaming || !m_CurrentVideoInfo)
+    if (!m_IsStreaming || !m_httpStream)
         return false;
 
-    // Check if we've reached the end of the stream, avio_size can be innacurate in some cases
-    int64_t totalSize = avio_size(m_pIOContext);
+    if (!m_httpStream->Finished() || m_httpStream->Failed())
+        return false;
+
+    const int64_t totalSize = m_httpStream->Size();
+    const int64_t downloaded = m_httpStream->BytesDownloaded();
     constexpr int64_t threshold = 16 * 1024;  // 16 KB threshold
 
-    //g_Log->Info("POS : %lld %lld", m_CacheWritePosition, totalSize);
+    if (totalSize < 0)
+        return downloaded > 0;
 
-    return m_HasEnded.load() && (m_CacheWritePosition >= totalSize - threshold);
+    return downloaded >= totalSize - threshold;
 }
 
 void CContentDecoder::FinalizeCacheFile()
@@ -1533,12 +1513,18 @@ void CContentDecoder::FinalizeCacheFile()
     if (m_isShuttingDown.load()) {
         return;
     }
-    
+
+    if (!(m_IsStreaming && IsDownloadComplete() && !m_CachePath.empty()))
+        return;
+
+    // Release the progressive-download FILE* before rename/MD5.
+    if (m_httpStream)
+        m_httpStream->Stop();
+
     std::lock_guard<std::mutex> lock(m_CacheMutex);
 
-    if (m_IsStreaming && IsDownloadComplete() && !m_CachePath.empty())
     {
-        // File integrity checks - ensure file is properly closed and flushed
+        // Legacy path: decoder-owned cache FILE* (unused for curl streaming).
         if (m_CacheFile) {
             fflush(m_CacheFile);
             
