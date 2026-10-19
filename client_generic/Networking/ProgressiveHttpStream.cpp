@@ -17,6 +17,10 @@ namespace Network
 namespace
 {
 constexpr int64_t kAvSeekSize = 0x10000;
+// Wait for the active sequential fill when the read is within this of the tip.
+constexpr int64_t kFarJumpBytes = 512 * 1024;
+// Treat seeks into the last N bytes as moov-at-end (always allow Range).
+constexpr int64_t kMoovTailBytes = 2 * 1024 * 1024;
 
 void MergeInterval(std::map<int64_t, int64_t>& intervals, int64_t start,
                    int64_t end)
@@ -63,6 +67,7 @@ size_t ProgressiveHttpStream_Write(char* ptr, size_t size, size_t nmemb,
     const size_t written = fwrite(ptr, 1, nbytes, self->m_file);
     if (written != nbytes)
         return 0;
+    // Required before another thread fseek/fread on the same FILE*.
     fflush(self->m_file);
 
     self->AddFilled(state->writePos,
@@ -294,16 +299,37 @@ void ProgressiveHttpStream::RequestOffset(int64_t offset)
     if (m_contentLength >= 0 && offset >= m_contentLength)
         return;
 
-    // Already fetching exactly this offset.
-    if (m_activeTransferStart == offset)
+    const int64_t contig = ContiguousEndLocked();
+    const bool nearEnd =
+        m_contentLength > 0 && offset + kMoovTailBytes >= m_contentLength;
+    const bool farJump = offset > contig + kFarJumpBytes;
+
+    // Active GET writes forward from activeStart. Waiting reaches offset unless
+    // this is a large seek ahead of a from-start download (or moov-at-end).
+    if (m_activeTransferStart >= 0 && m_activeTransferStart <= offset)
+    {
+        const int64_t activeTip =
+            m_activeTransferStart +
+            std::max<int64_t>(0, AvailableFromLocked(m_activeTransferStart));
+        const bool closeToActive =
+            offset <= m_activeTransferStart + kFarJumpBytes ||
+            offset <= activeTip + kFarJumpBytes;
+        if (closeToActive)
+            return;
+        if (!farJump && !nearEnd)
+            return;
+    }
+    else if (!farJump && !nearEnd)
+    {
+        // Sequential worker will catch up from ContiguousEnd — do not abort.
+        return;
+    }
+
+    if (m_urgentOffset == offset && m_restart.load())
         return;
 
-    // Forward seek past the contiguous prefix → Range GET (moov-at-end).
-    if (offset >= ContiguousEndLocked())
-    {
-        m_urgentOffset = offset;
-        m_restart.store(true);
-    }
+    m_urgentOffset = offset;
+    m_restart.store(true);
 }
 
 bool ProgressiveHttpStream::RunTransfer(int64_t startOffset)

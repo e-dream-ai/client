@@ -14,8 +14,8 @@ namespace Network
 
 // Progressive HTTPS download into a seekable on-disk store for FFmpeg AVIO.
 // Background libcurl fills the cache file; Read/Seek block until the requested
-// bytes are present. Seeks past the contiguous prefix trigger HTTP Range GETs
-// (needed for moov-at-end mp4).
+// bytes are present. Far seeks / moov-at-end trigger HTTP Range GETs; nearby
+// forward reads wait on the active sequential transfer instead of aborting it.
 class ProgressiveHttpStream
 {
   public:
