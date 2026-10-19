@@ -64,6 +64,7 @@
 		211CDDDB0ED0BD9200EB9394 /* Download.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDD60ED0BD9200EB9394 /* Download.cpp */; };
 		211CDDDC0ED0BD9200EB9394 /* Networking.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDD80ED0BD9200EB9394 /* Networking.cpp */; };
 		211CDDDD0ED0BD9200EB9394 /* Upload.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDDA0ED0BD9200EB9394 /* Upload.cpp */; };
+		CF0BDFD8D80843548EBC36A2 /* ProgressiveHttpStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 967FB9FBC5B445FD99099352 /* ProgressiveHttpStream.cpp */; };
 		212313270F503C4500702B2C /* ContentDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212313190F503C4500702B2C /* ContentDownloader.cpp */; };
 		2123132E0F503C4500702B2C /* ContentDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212313190F503C4500702B2C /* ContentDownloader.cpp */; };
 		2135D2690EC70571005E246D /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2135D2670EC70571005E246D /* AppKit.framework */; };
@@ -91,6 +92,7 @@
 		2160FADB0F30F45100B2C27A /* Hud.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 21D90D010EA1D52000F8E5D5 /* Hud.cpp */; };
 		2160FADC0F30F45100B2C27A /* Rect.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 214B75060EBBA78900B5B897 /* Rect.cpp */; };
 		2160FADE0F30F45100B2C27A /* Download.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDD60ED0BD9200EB9394 /* Download.cpp */; };
+		1EF725DD92CD44099F63B461 /* ProgressiveHttpStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 967FB9FBC5B445FD99099352 /* ProgressiveHttpStream.cpp */; };
 		2160FADF0F30F45100B2C27A /* Networking.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDD80ED0BD9200EB9394 /* Networking.cpp */; };
 		2160FAE00F30F45100B2C27A /* Upload.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDDA0ED0BD9200EB9394 /* Upload.cpp */; };
 		2160FC9D0F30F48200B2C27A /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 09AB6884FE841BABC02AAC07 /* CoreFoundation.framework */; };
@@ -229,25 +231,16 @@
 		F0141B812C594A2D00DBA60E /* MessageQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B7F2C594A2D00DBA60E /* MessageQueue.cpp */; };
 		F0141B822C594A2D00DBA60E /* MessageQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B7F2C594A2D00DBA60E /* MessageQueue.cpp */; };
 		F0141B832C594A2D00DBA60E /* MessageQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B7F2C594A2D00DBA60E /* MessageQueue.cpp */; };
-		F0141B922C663E2700DBA60E /* libswresample.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B902C663DEF00DBA60E /* libswresample.a */; };
-		F0141B932C663E2700DBA60E /* libavdevice.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8C2C663DE800DBA60E /* libavdevice.a */; };
 		F0141B942C663E2700DBA60E /* libavformat.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8E2C663DE800DBA60E /* libavformat.a */; };
 		F0141B952C663E2700DBA60E /* libavcodec.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8B2C663DE800DBA60E /* libavcodec.a */; };
 		F0141B962C663E2700DBA60E /* libavutil.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8F2C663DE800DBA60E /* libavutil.a */; };
-		F0141B972C663E2700DBA60E /* libavfilter.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8D2C663DE800DBA60E /* libavfilter.a */; };
 		F0141B982C663E8900DBA60E /* libavcodec.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8B2C663DE800DBA60E /* libavcodec.a */; };
-		F0141B992C663E8900DBA60E /* libavdevice.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8C2C663DE800DBA60E /* libavdevice.a */; };
-		F0141B9A2C663E8900DBA60E /* libavfilter.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8D2C663DE800DBA60E /* libavfilter.a */; };
 		F0141B9B2C663E8900DBA60E /* libavformat.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8E2C663DE800DBA60E /* libavformat.a */; };
 		F0141B9C2C663E8900DBA60E /* libavutil.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8F2C663DE800DBA60E /* libavutil.a */; };
-		F0141B9D2C663E8900DBA60E /* libswresample.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B902C663DEF00DBA60E /* libswresample.a */; };
 		F0141B9E2C663E8900DBA60E /* libswscale.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B912C663DEF00DBA60E /* libswscale.a */; };
 		F0141BA62C663F1500DBA60E /* libavcodec.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141BA02C663EDA00DBA60E /* libavcodec.a */; };
-		F0141BA72C663F1500DBA60E /* libavdevice.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141BA12C663EDA00DBA60E /* libavdevice.a */; };
-		F0141BA82C663F1500DBA60E /* libavfilter.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141BA32C663EDA00DBA60E /* libavfilter.a */; };
 		F0141BA92C663F1500DBA60E /* libavformat.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141BA22C663EDA00DBA60E /* libavformat.a */; };
 		F0141BAA2C663F1500DBA60E /* libavutil.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B9F2C663EDA00DBA60E /* libavutil.a */; };
-		F0141BAB2C663F1500DBA60E /* libswresample.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141BA52C663EDA00DBA60E /* libswresample.a */; };
 		F0141BAC2C663F1500DBA60E /* libswscale.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141BA42C663EDA00DBA60E /* libswscale.a */; };
 		F0141BB02C6BBB9D00DBA60E /* PlaylistManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141BAF2C6BBB9D00DBA60E /* PlaylistManager.cpp */; };
 		F0141BB12C6BBB9D00DBA60E /* PlaylistManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141BAF2C6BBB9D00DBA60E /* PlaylistManager.cpp */; };
@@ -285,11 +278,8 @@
 		F0387EA12E0EF1D4005410D5 /* ESWindow.mm in Sources */ = {isa = PBXBuildFile; fileRef = 21EE63951013A674000CE53E /* ESWindow.mm */; };
 		F03CF26D2CB7F578009F51D8 /* libswscale.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B912C663DEF00DBA60E /* libswscale.a */; };
 		F03CF26E2CB7F5FC009F51D8 /* libavcodec.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8B2C663DE800DBA60E /* libavcodec.a */; };
-		F03CF26F2CB7F5FC009F51D8 /* libavdevice.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8C2C663DE800DBA60E /* libavdevice.a */; };
-		F03CF2702CB7F5FC009F51D8 /* libavfilter.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8D2C663DE800DBA60E /* libavfilter.a */; };
 		F03CF2712CB7F5FC009F51D8 /* libavformat.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8E2C663DE800DBA60E /* libavformat.a */; };
 		F03CF2722CB7F5FC009F51D8 /* libavutil.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8F2C663DE800DBA60E /* libavutil.a */; };
-		F03CF2732CB7F5FC009F51D8 /* libswresample.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B902C663DEF00DBA60E /* libswresample.a */; };
 		F03CF2742CB7F5FC009F51D8 /* libswscale.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B912C663DEF00DBA60E /* libswscale.a */; };
 		F05994582BA0912300B018C7 /* osd-pill-r.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994532BA0912200B018C7 /* osd-pill-r.png */; };
 		F05994592BA0912300B018C7 /* osd-pill-r.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994532BA0912200B018C7 /* osd-pill-r.png */; };
@@ -421,6 +411,7 @@
 		F0C100412C1372EF007FA505 /* ESScreensaver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA540EC74853005E246D /* ESScreensaver.cpp */; };
 		F0C100422C1372EF007FA505 /* EDreamClient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 467B6FC82AE6D031001C80CB /* EDreamClient.cpp */; };
 		F0C100432C1372EF007FA505 /* Download.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDD60ED0BD9200EB9394 /* Download.cpp */; };
+		799AB22CF2B44F56AEFC66ED /* ProgressiveHttpStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 967FB9FBC5B445FD99099352 /* ProgressiveHttpStream.cpp */; };
 		F0C100442C1372EF007FA505 /* Networking.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDD80ED0BD9200EB9394 /* Networking.cpp */; };
 		F0C100452C1372EF007FA505 /* Upload.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDDA0ED0BD9200EB9394 /* Upload.cpp */; };
 		F0C100462C1372EF007FA505 /* DisplayMetal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 46ED5CB02AF5326A00AF8F45 /* DisplayMetal.cpp */; };
@@ -528,6 +519,7 @@
 		F0E9CE6D2C136B0500C4D694 /* Rect.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 214B75060EBBA78900B5B897 /* Rect.cpp */; };
 		F0E9CE6E2C136B0500C4D694 /* ESMetalView.m in Sources */ = {isa = PBXBuildFile; fileRef = 467230B62AC17A9E00017C51 /* ESMetalView.m */; };
 		F0E9CE6F2C136B0500C4D694 /* Download.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDD60ED0BD9200EB9394 /* Download.cpp */; };
+		301D08773F784ABCB52C0F43 /* ProgressiveHttpStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 967FB9FBC5B445FD99099352 /* ProgressiveHttpStream.cpp */; };
 		F0E9CE702C136B0500C4D694 /* Networking.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDD80ED0BD9200EB9394 /* Networking.cpp */; };
 		F0E9CE712C136B0500C4D694 /* Upload.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDDA0ED0BD9200EB9394 /* Upload.cpp */; };
 		F0E9CE722C136B0500C4D694 /* ContentDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212313190F503C4500702B2C /* ContentDownloader.cpp */; };
@@ -778,6 +770,8 @@
 		211CDDD60ED0BD9200EB9394 /* Download.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Download.cpp; sourceTree = "<group>"; };
 		211CDDD80ED0BD9200EB9394 /* Networking.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Networking.cpp; sourceTree = "<group>"; };
 		211CDDDA0ED0BD9200EB9394 /* Upload.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Upload.cpp; sourceTree = "<group>"; };
+		967FB9FBC5B445FD99099352 /* ProgressiveHttpStream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ProgressiveHttpStream.cpp; sourceTree = "<group>"; };
+		8DE72BA2E7984A16A934E796 /* ProgressiveHttpStream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ProgressiveHttpStream.h; sourceTree = "<group>"; };
 		211CDDEB0ED0BE8300EB9394 /* libcurl.4.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libcurl.4.dylib; path = usr/lib/libcurl.4.dylib; sourceTree = SDKROOT; };
 		212313190F503C4500702B2C /* ContentDownloader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ContentDownloader.cpp; sourceTree = "<group>"; };
 		2123131A0F503C4500702B2C /* ContentDownloader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ContentDownloader.h; sourceTree = "<group>"; };
@@ -889,19 +883,13 @@
 		F0141B7F2C594A2D00DBA60E /* MessageQueue.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MessageQueue.cpp; sourceTree = "<group>"; };
 		F0141B842C5A79F800DBA60E /* Dream.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Dream.h; sourceTree = "<group>"; };
 		F0141B8B2C663DE800DBA60E /* libavcodec.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavcodec.a; path = "../../cache/univ-osx/lib/libavcodec.a"; sourceTree = "<group>"; };
-		F0141B8C2C663DE800DBA60E /* libavdevice.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavdevice.a; path = "../../cache/univ-osx/lib/libavdevice.a"; sourceTree = "<group>"; };
-		F0141B8D2C663DE800DBA60E /* libavfilter.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavfilter.a; path = "../../cache/univ-osx/lib/libavfilter.a"; sourceTree = "<group>"; };
 		F0141B8E2C663DE800DBA60E /* libavformat.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavformat.a; path = "../../cache/univ-osx/lib/libavformat.a"; sourceTree = "<group>"; };
 		F0141B8F2C663DE800DBA60E /* libavutil.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavutil.a; path = "../../cache/univ-osx/lib/libavutil.a"; sourceTree = "<group>"; };
-		F0141B902C663DEF00DBA60E /* libswresample.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswresample.a; path = "../../cache/univ-osx/lib/libswresample.a"; sourceTree = "<group>"; };
 		F0141B912C663DEF00DBA60E /* libswscale.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswscale.a; path = "../../cache/univ-osx/lib/libswscale.a"; sourceTree = "<group>"; };
 		F0141B9F2C663EDA00DBA60E /* libavutil.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavutil.a; path = "../../cache/univ-osx/debug/lib/libavutil.a"; sourceTree = "<group>"; };
 		F0141BA02C663EDA00DBA60E /* libavcodec.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavcodec.a; path = "../../cache/univ-osx/debug/lib/libavcodec.a"; sourceTree = "<group>"; };
-		F0141BA12C663EDA00DBA60E /* libavdevice.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavdevice.a; path = "../../cache/univ-osx/debug/lib/libavdevice.a"; sourceTree = "<group>"; };
 		F0141BA22C663EDA00DBA60E /* libavformat.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavformat.a; path = "../../cache/univ-osx/debug/lib/libavformat.a"; sourceTree = "<group>"; };
-		F0141BA32C663EDA00DBA60E /* libavfilter.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavfilter.a; path = "../../cache/univ-osx/debug/lib/libavfilter.a"; sourceTree = "<group>"; };
 		F0141BA42C663EDA00DBA60E /* libswscale.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswscale.a; path = "../../cache/univ-osx/debug/lib/libswscale.a"; sourceTree = "<group>"; };
-		F0141BA52C663EDA00DBA60E /* libswresample.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswresample.a; path = "../../cache/univ-osx/debug/lib/libswresample.a"; sourceTree = "<group>"; };
 		F0141BAE2C6BBB9D00DBA60E /* PlaylistManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PlaylistManager.h; sourceTree = "<group>"; };
 		F0141BAF2C6BBB9D00DBA60E /* PlaylistManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PlaylistManager.cpp; sourceTree = "<group>"; };
 		F01CCF152C3D5E9D004E6DE9 /* CacheManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CacheManager.h; sourceTree = "<group>"; };
@@ -986,12 +974,10 @@
 				2197D56319B06F4600EFA1F2 /* VideoDecodeAcceleration.framework in Frameworks */,
 				464A49E82AB89D9100C77F6D /* liblzma.tbd in Frameworks */,
 				2197D56019B06ED300EFA1F2 /* CoreVideo.framework in Frameworks */,
-				F0141B9A2C663E8900DBA60E /* libavfilter.a in Frameworks */,
 				F07071D82C0E05DA008219A4 /* libboost_thread.a in Frameworks */,
 				F0141B9C2C663E8900DBA60E /* libavutil.a in Frameworks */,
 				464A49E62AB89CFC00C77F6D /* AudioToolbox.framework in Frameworks */,
 				21A8AFBC18416ECA00F77369 /* libiconv.2.dylib in Frameworks */,
-				F0141B992C663E8900DBA60E /* libavdevice.a in Frameworks */,
 				4665198F2ACC8C5100ADB56E /* IOSurface.framework in Frameworks */,
 				F0141B9B2C663E8900DBA60E /* libavformat.a in Frameworks */,
 				12579D492B83C98D00604B41 /* libcrypto.a in Frameworks */,
@@ -999,7 +985,6 @@
 				12CA4A462B83DE3D00A2EAD6 /* libsioclient_tls.a in Frameworks */,
 				12579D4A2B83C99100604B41 /* libssl.a in Frameworks */,
 				2160FCAB0F30F48200B2C27A /* libz.1.2.5.dylib in Frameworks */,
-				F0141B9D2C663E8900DBA60E /* libswresample.a in Frameworks */,
 				2160FCAC0F30F48200B2C27A /* libbz2.1.0.dylib in Frameworks */,
 				464A49E02AB89C1A00C77F6D /* Security.framework in Frameworks */,
 				21DC0CA91263B98200D60C6A /* libcurl.4.dylib in Frameworks */,
@@ -1016,7 +1001,6 @@
 			files = (
 				F082D4412CBD5CA4001934FB /* Bugsnag in Frameworks */,
 				F0C100002C1372C4007FA505 /* libboost_thread.a in Frameworks */,
-				F0141B972C663E2700DBA60E /* libavfilter.a in Frameworks */,
 				467A64922B1F722E00510BEE /* libpng_universal.a in Frameworks */,
 				F0C1FFFD2C1372C4007FA505 /* libboost_log_setup.a in Frameworks */,
 				F0141B942C663E2700DBA60E /* libavformat.a in Frameworks */,
@@ -1038,13 +1022,11 @@
 				21887A140EC6CDF9001ABD2E /* GLUT.framework in Frameworks */,
 				21887A150EC6CDF9001ABD2E /* OpenGL.framework in Frameworks */,
 				467230B92AC17C0400017C51 /* MetalKit.framework in Frameworks */,
-				F0141B932C663E2700DBA60E /* libavdevice.a in Frameworks */,
 				2197D55F19B06ED300EFA1F2 /* CoreVideo.framework in Frameworks */,
 				464A49DC2AB88A8200C77F6D /* VideoToolbox.framework in Frameworks */,
 				464A49E52AB89CEB00C77F6D /* AudioToolbox.framework in Frameworks */,
 				2161F1940ECF8CEF00FE48E9 /* libz.1.2.5.dylib in Frameworks */,
 				21887A240EC6CDF9001ABD2E /* libbz2.1.0.dylib in Frameworks */,
-				F0141B922C663E2700DBA60E /* libswresample.a in Frameworks */,
 				12440CBB2B85F49B00A23253 /* libsioclient_tls.a in Frameworks */,
 				21A8AFBB18416ECA00F77369 /* libiconv.2.dylib in Frameworks */,
 				21DC0CAC1263B99000D60C6A /* libcurl.4.dylib in Frameworks */,
@@ -1068,7 +1050,6 @@
 				F0C1005A2C1372EF007FA505 /* libboost_log.a in Frameworks */,
 				063B5C632F19947D00B5E553 /* Sparkle.framework in Frameworks */,
 				F0C1005C2C1372EF007FA505 /* Metal.framework in Frameworks */,
-				F03CF2732CB7F5FC009F51D8 /* libswresample.a in Frameworks */,
 				F03CF26E2CB7F5FC009F51D8 /* libavcodec.a in Frameworks */,
 				F0C1005D2C1372EF007FA505 /* IOKit.framework in Frameworks */,
 				F0C1005E2C1372EF007FA505 /* libboost_filesystem.a in Frameworks */,
@@ -1078,7 +1059,6 @@
 				F0C100632C1372EF007FA505 /* liblzma.tbd in Frameworks */,
 				F03CF2712CB7F5FC009F51D8 /* libavformat.a in Frameworks */,
 				F0351BF02CB5BBFF0055091F /* Bugsnag in Frameworks */,
-				F03CF26F2CB7F5FC009F51D8 /* libavdevice.a in Frameworks */,
 				F0C100642C1372EF007FA505 /* ScreenSaver.framework in Frameworks */,
 				F0C100652C1372EF007FA505 /* CoreFoundation.framework in Frameworks */,
 				F0C100662C1372EF007FA505 /* GLUT.framework in Frameworks */,
@@ -1094,7 +1074,6 @@
 				F0C100732C1372EF007FA505 /* libiconv.2.dylib in Frameworks */,
 				F0C100742C1372EF007FA505 /* libcurl.4.dylib in Frameworks */,
 				F0C100752C1372EF007FA505 /* libcrypto.a in Frameworks */,
-				F03CF2702CB7F5FC009F51D8 /* libavfilter.a in Frameworks */,
 				F0C100762C1372EF007FA505 /* AppKit.framework in Frameworks */,
 				F03CF2742CB7F5FC009F51D8 /* libswscale.a in Frameworks */,
 				F0C100772C1372EF007FA505 /* VideoDecodeAcceleration.framework in Frameworks */,
@@ -1124,12 +1103,10 @@
 				F0E9CE8C2C136B0500C4D694 /* VideoDecodeAcceleration.framework in Frameworks */,
 				F0E9CE8E2C136B0500C4D694 /* liblzma.tbd in Frameworks */,
 				F0E9CE8F2C136B0500C4D694 /* CoreVideo.framework in Frameworks */,
-				F0141BA82C663F1500DBA60E /* libavfilter.a in Frameworks */,
 				F0E9CE902C136B0500C4D694 /* libboost_thread.a in Frameworks */,
 				F0141BAA2C663F1500DBA60E /* libavutil.a in Frameworks */,
 				F0E9CE922C136B0500C4D694 /* AudioToolbox.framework in Frameworks */,
 				F0E9CE932C136B0500C4D694 /* libiconv.2.dylib in Frameworks */,
-				F0141BA72C663F1500DBA60E /* libavdevice.a in Frameworks */,
 				F0E9CE942C136B0500C4D694 /* IOSurface.framework in Frameworks */,
 				F0141BA92C663F1500DBA60E /* libavformat.a in Frameworks */,
 				F0E9CE962C136B0500C4D694 /* libcrypto.a in Frameworks */,
@@ -1137,7 +1114,6 @@
 				F0E9CE972C136B0500C4D694 /* libsioclient_tls.a in Frameworks */,
 				F0E9CE982C136B0500C4D694 /* libssl.a in Frameworks */,
 				F0E9CE9C2C136B0500C4D694 /* libz.1.2.5.dylib in Frameworks */,
-				F0141BAB2C663F1500DBA60E /* libswresample.a in Frameworks */,
 				F0E9CE9D2C136B0500C4D694 /* libbz2.1.0.dylib in Frameworks */,
 				F0E9CE9E2C136B0500C4D694 /* Security.framework in Frameworks */,
 				F0E9CEA02C136B0500C4D694 /* libcurl.4.dylib in Frameworks */,
@@ -1219,6 +1195,8 @@
 				211CDDD60ED0BD9200EB9394 /* Download.cpp */,
 				211CDDD80ED0BD9200EB9394 /* Networking.cpp */,
 				12478A672B03B194006A8669 /* Networking.h */,
+				967FB9FBC5B445FD99099352 /* ProgressiveHttpStream.cpp */,
+				8DE72BA2E7984A16A934E796 /* ProgressiveHttpStream.h */,
 				211CDDDA0ED0BD9200EB9394 /* Upload.cpp */,
 				F08A7DC42CD507BC00D43977 /* NetworkConfig.h */,
 			);
@@ -1484,16 +1462,10 @@
 			children = (
 				063B5C5C2F198F1500B5E553 /* Sparkle.framework */,
 				063B5C5B2F172FAB00B5E553 /* .gitignore */,
-				F0141B902C663DEF00DBA60E /* libswresample.a */,
-				F0141BA52C663EDA00DBA60E /* libswresample.a */,
 				F0141B912C663DEF00DBA60E /* libswscale.a */,
 				F0141B8B2C663DE800DBA60E /* libavcodec.a */,
-				F0141B8C2C663DE800DBA60E /* libavdevice.a */,
-				F0141B8D2C663DE800DBA60E /* libavfilter.a */,
-				F0141BA32C663EDA00DBA60E /* libavfilter.a */,
 				F0141B8E2C663DE800DBA60E /* libavformat.a */,
 				F0141BA02C663EDA00DBA60E /* libavcodec.a */,
-				F0141BA12C663EDA00DBA60E /* libavdevice.a */,
 				F0141BA22C663EDA00DBA60E /* libavformat.a */,
 				F0141B8F2C663DE800DBA60E /* libavutil.a */,
 				F0141B9F2C663EDA00DBA60E /* libavutil.a */,
@@ -2021,6 +1993,7 @@
 				F0141B772C59115500DBA60E /* PathManager.cpp in Sources */,
 				467230BA2AC17E4600017C51 /* ESMetalView.m in Sources */,
 				2160FADE0F30F45100B2C27A /* Download.cpp in Sources */,
+				1EF725DD92CD44099F63B461 /* ProgressiveHttpStream.cpp in Sources */,
 				2160FADF0F30F45100B2C27A /* Networking.cpp in Sources */,
 				2160FAE00F30F45100B2C27A /* Upload.cpp in Sources */,
 				2123132E0F503C4500702B2C /* ContentDownloader.cpp in Sources */,
@@ -2078,6 +2051,7 @@
 				2135DA550EC74853005E246D /* ESScreensaver.cpp in Sources */,
 				467B6FC92AE6D031001C80CB /* EDreamClient.cpp in Sources */,
 				211CDDDB0ED0BD9200EB9394 /* Download.cpp in Sources */,
+				CF0BDFD8D80843548EBC36A2 /* ProgressiveHttpStream.cpp in Sources */,
 				211CDDDC0ED0BD9200EB9394 /* Networking.cpp in Sources */,
 				211CDDDD0ED0BD9200EB9394 /* Upload.cpp in Sources */,
 				46ED5CB32AF5326A00AF8F45 /* DisplayMetal.cpp in Sources */,
@@ -2139,6 +2113,7 @@
 				F0C100412C1372EF007FA505 /* ESScreensaver.cpp in Sources */,
 				F0C100422C1372EF007FA505 /* EDreamClient.cpp in Sources */,
 				F0C100432C1372EF007FA505 /* Download.cpp in Sources */,
+				799AB22CF2B44F56AEFC66ED /* ProgressiveHttpStream.cpp in Sources */,
 				F0C100442C1372EF007FA505 /* Networking.cpp in Sources */,
 				F0C100452C1372EF007FA505 /* Upload.cpp in Sources */,
 				F0C100462C1372EF007FA505 /* DisplayMetal.cpp in Sources */,
@@ -2207,6 +2182,7 @@
 				F0141B752C59115500DBA60E /* PathManager.cpp in Sources */,
 				F0E9CE6E2C136B0500C4D694 /* ESMetalView.m in Sources */,
 				F0E9CE6F2C136B0500C4D694 /* Download.cpp in Sources */,
+				301D08773F784ABCB52C0F43 /* ProgressiveHttpStream.cpp in Sources */,
 				F0E9CE702C136B0500C4D694 /* Networking.cpp in Sources */,
 				F0E9CE712C136B0500C4D694 /* Upload.cpp in Sources */,
 				F0E9CE722C136B0500C4D694 /* ContentDownloader.cpp in Sources */,

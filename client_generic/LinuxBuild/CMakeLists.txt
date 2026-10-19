@@ -230,6 +230,7 @@ set(SOURCES
     ${NET}/Download.cpp
     ${NET}/EDreamClient.cpp
     ${NET}/Networking.cpp
+    ${NET}/ProgressiveHttpStream.cpp
     ${NET}/Upload.cpp
 
     # Storage
