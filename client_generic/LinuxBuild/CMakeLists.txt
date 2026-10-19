@@ -39,7 +39,6 @@ if(PKG_CONFIG_FOUND)
         libavformat
         libavutil
         libswscale
-        libswresample
     )
 endif()
 
