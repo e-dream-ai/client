@@ -3,13 +3,13 @@
   "spdxVersion": "SPDX-2.2",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "documentNamespace": "https://spdx.org/spdxdocs/vcpkg-tool-meson-arm64-osx-1.9.0#4-fc4c21d6-bc3b-4e1d-83d1-544680236680",
-  "name": "vcpkg-tool-meson:arm64-osx@1.9.0#4 7ff9dfded3b774171366f61381ae8bb7cf02bc0235273aed5e46211181f96dd2",
+  "documentNamespace": "https://spdx.org/spdxdocs/vcpkg-tool-meson-arm64-osx-1.9.0#4-224c3f85-50f8-449c-8359-ba5623bb3174",
+  "name": "vcpkg-tool-meson:arm64-osx@1.9.0#4 38100a9260555bbd5e8f8e3bad70617ecc5528c2eb20607d6121457c732dd110",
   "creationInfo": {
     "creators": [
       "Tool: vcpkg-2026-03-04-4b3e4c276b5b87a649e66341e11553e8c577459c"
     ],
-    "created": "2026-04-17T03:31:42Z"
+    "created": "2026-10-08T13:16:35Z"
   },
   "relationships": [
     {
@@ -154,7 +154,7 @@
     {
       "name": "vcpkg-tool-meson:arm64-osx",
       "SPDXID": "SPDXRef-binary",
-      "versionInfo": "7ff9dfded3b774171366f61381ae8bb7cf02bc0235273aed5e46211181f96dd2",
+      "versionInfo": "38100a9260555bbd5e8f8e3bad70617ecc5528c2eb20607d6121457c732dd110",
       "downloadLocation": "NONE",
       "licenseConcluded": "Apache-2.0",
       "licenseDeclared": "NOASSERTION",
