@@ -743,11 +743,15 @@ string(APPEND OPTIONS
     " --disable-programs --disable-doc"
 )
 if(VCPKG_TARGET_IS_WINDOWS)
+    # d3d11va2 exposes AV_PIX_FMT_D3D11 (hw_device_ctx API used by ContentDecoder).
+    # Legacy d3d11va uses AV_PIX_FMT_D3D11VA_VLD and must not be the get_format fallback.
     string(APPEND OPTIONS
         " --enable-d3d11va --enable-dxva2 --enable-mediafoundation"
         " --enable-hwaccel=h264_d3d11va"
+        " --enable-hwaccel=h264_d3d11va2"
         " --enable-hwaccel=h264_dxva2"
         " --enable-hwaccel=hevc_d3d11va"
+        " --enable-hwaccel=hevc_d3d11va2"
         " --enable-hwaccel=hevc_dxva2"
     )
 elseif(VCPKG_TARGET_IS_OSX OR VCPKG_TARGET_IS_IOS)

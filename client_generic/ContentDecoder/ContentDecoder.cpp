@@ -59,6 +59,13 @@ static AVPixelFormat vaapi_get_format(AVCodecContext* /*ctx*/,
 {
     for (const AVPixelFormat* p = fmts; *p != AV_PIX_FMT_NONE; ++p)
         if (*p == AV_PIX_FMT_VAAPI) return AV_PIX_FMT_VAAPI;
+    // Do not return fmts[0] blindly — it may be another HW format we did not set up.
+    for (const AVPixelFormat* p = fmts; *p != AV_PIX_FMT_NONE; ++p)
+    {
+        const AVPixFmtDescriptor* desc = av_pix_fmt_desc_get(*p);
+        if (desc && !(desc->flags & AV_PIX_FMT_FLAG_HWACCEL))
+            return *p;
+    }
     return fmts[0];
 }
 #elif defined(MAC)
@@ -69,6 +76,13 @@ static AVPixelFormat vt_get_format(AVCodecContext* /*ctx*/,
 {
     for (const AVPixelFormat* p = fmts; *p != AV_PIX_FMT_NONE; ++p)
         if (*p == AV_PIX_FMT_VIDEOTOOLBOX) return AV_PIX_FMT_VIDEOTOOLBOX;
+    // Do not return fmts[0] blindly — it may be another HW format we did not set up.
+    for (const AVPixelFormat* p = fmts; *p != AV_PIX_FMT_NONE; ++p)
+    {
+        const AVPixFmtDescriptor* desc = av_pix_fmt_desc_get(*p);
+        if (desc && !(desc->flags & AV_PIX_FMT_FLAG_HWACCEL))
+            return *p;
+    }
     return fmts[0];
 }
 #endif
@@ -110,6 +124,9 @@ CContentDecoder::CContentDecoder(const uint32_t _queueLenght,
     m_WantedPixelFormat = _wantedFormat;
     m_bStop = true;
     m_CurrentVideoInfo = nullptr;
+    m_CacheFile = nullptr;
+    m_CacheWritePosition = 0;
+    m_IsStreaming = false;
     av_log_set_callback(AVCodecLogCallback);
 }
 
@@ -224,49 +241,78 @@ int CContentDecoder::InterruptIO(void* opaque)
 AVPixelFormat CContentDecoder::GetHWFormat(AVCodecContext* ctx,
                                             const AVPixelFormat* pix_fmts)
 {
+    // Trimmed ffmpeg builds may list AV_PIX_FMT_D3D11 without compiling hevc_d3d11va2.
+    // Selecting D3D11 then crashes in avcodec_send_packet / software pred with null planes.
+    // Only take D3D11 when the codec advertises HW_DEVICE_CTX support for it.
+    auto codecSupportsD3D11 = [](const AVCodecContext* c) -> bool {
+        if (!c || !c->codec)
+            return false;
+        for (int i = 0;; ++i)
+        {
+            const AVCodecHWConfig* cfg = avcodec_get_hw_config(c->codec, i);
+            if (!cfg)
+                return false;
+            if (cfg->pix_fmt == AV_PIX_FMT_D3D11 &&
+                (cfg->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX) &&
+                cfg->device_type == AV_HWDEVICE_TYPE_D3D11VA)
+                return true;
+        }
+    };
+
+    const bool d3d11Ok = codecSupportsD3D11(ctx) && ctx->hw_device_ctx;
+
     for (const AVPixelFormat* p = pix_fmts; *p != AV_PIX_FMT_NONE; ++p)
     {
-        if (*p == AV_PIX_FMT_D3D11)
+        if (*p != AV_PIX_FMT_D3D11 || !d3d11Ok)
+            continue;
+
+        AVBufferRef* framesRef = av_hwframe_ctx_alloc(ctx->hw_device_ctx);
+        if (!framesRef)
+            break;
+
+        auto* framesCtx = reinterpret_cast<AVHWFramesContext*>(framesRef->data);
+        framesCtx->format            = AV_PIX_FMT_D3D11;
+        framesCtx->sw_format         = AV_PIX_FMT_NV12;
+        framesCtx->width             = ctx->coded_width;
+        framesCtx->height            = ctx->coded_height;
+        // Pool of 32: decoder needs ~8 DPB refs + ~16 frame-queue slots + margin.
+        framesCtx->initial_pool_size = 32;
+
+        auto* d3d11Frames = reinterpret_cast<AVD3D11VAFramesContext*>(framesCtx->hwctx);
+        // D3D11_BIND_SHADER_RESOURCE is required to create SRVs for the Y/UV planes.
+        d3d11Frames->BindFlags = D3D11_BIND_DECODER | D3D11_BIND_SHADER_RESOURCE;
+
+        if (av_hwframe_ctx_init(framesRef) != 0)
         {
-            if (ctx->hw_device_ctx)
-            {
-                AVBufferRef* framesRef = av_hwframe_ctx_alloc(ctx->hw_device_ctx);
-                if (framesRef)
-                {
-                    auto* framesCtx = reinterpret_cast<AVHWFramesContext*>(framesRef->data);
-                    framesCtx->format            = AV_PIX_FMT_D3D11;
-                    framesCtx->sw_format         = AV_PIX_FMT_NV12;
-                    framesCtx->width             = ctx->coded_width;
-                    framesCtx->height            = ctx->coded_height;
-                    // Pool of 32: decoder needs ~8 DPB refs + ~16 frame-queue slots + margin.
-                    // Keeping this moderate prevents burst-decodes after a seek from flooding
-                    // the GPU command queue with too many simultaneous decode operations.
-                    framesCtx->initial_pool_size = 32;
-
-                    auto* d3d11Frames = reinterpret_cast<AVD3D11VAFramesContext*>(framesCtx->hwctx);
-                    // D3D11_BIND_SHADER_RESOURCE is required to create SRVs for the Y/UV planes.
-                    d3d11Frames->BindFlags = D3D11_BIND_DECODER | D3D11_BIND_SHADER_RESOURCE;
-
-                    if (av_hwframe_ctx_init(framesRef) == 0)
-                    {
-                        av_buffer_unref(&ctx->hw_frames_ctx);
-                        ctx->hw_frames_ctx = framesRef;
-                        g_Log->Info("D3D11VA get_format: hw_frames_ctx set (coded %dx%d, pool %d)",
-                                    ctx->coded_width, ctx->coded_height,
-                                    framesCtx->initial_pool_size);
-                    }
-                    else
-                    {
-                        g_Log->Warning("D3D11VA get_format: av_hwframe_ctx_init failed; decoder will use default pool");
-                        av_buffer_unref(&framesRef);
-                    }
-                }
-            }
-            g_Log->Info("D3D11VA get_format: selected AV_PIX_FMT_D3D11");
-            return AV_PIX_FMT_D3D11;
+            g_Log->Warning("D3D11VA get_format: av_hwframe_ctx_init failed; falling back to software");
+            av_buffer_unref(&framesRef);
+            break;
         }
+
+        av_buffer_unref(&ctx->hw_frames_ctx);
+        ctx->hw_frames_ctx = framesRef;
+        g_Log->Info("D3D11VA get_format: hw_frames_ctx set (coded %dx%d, pool %d)",
+                    ctx->coded_width, ctx->coded_height,
+                    framesCtx->initial_pool_size);
+        g_Log->Info("D3D11VA get_format: selected AV_PIX_FMT_D3D11");
+        return AV_PIX_FMT_D3D11;
     }
-    g_Log->Warning("D3D11VA get_format: AV_PIX_FMT_D3D11 not offered; using software format");
+
+    // pix_fmts[0] is often a legacy HW format (e.g. D3D11VA_VLD / DXVA2_VLD), not software.
+    // Picking those without the matching old-style hwaccel setup yields null frame planes and
+    // crashes inside software intra prediction (pred_planar writing near 0x0).
+    for (const AVPixelFormat* p = pix_fmts; *p != AV_PIX_FMT_NONE; ++p)
+    {
+        const AVPixFmtDescriptor* desc = av_pix_fmt_desc_get(*p);
+        if (!desc || (desc->flags & AV_PIX_FMT_FLAG_HWACCEL))
+            continue;
+        g_Log->Warning("D3D11VA get_format: AV_PIX_FMT_D3D11 not offered; using software format %d",
+                       (int)*p);
+        return *p;
+    }
+
+    g_Log->Warning("D3D11VA get_format: no software format in list; using first offered %d",
+                   (int)pix_fmts[0]);
     return pix_fmts[0];
 }
 #endif
@@ -513,6 +559,18 @@ bool CContentDecoder::Open()
     }
 #endif
 #endif
+    // Copy codec parameters before open. When mp4toannexb BSF is active, use
+    // par_out (annex-B extradata) — stream codecpar is HVCC/AVCC length-prefixed
+    // and mismatches annex-B packets, causing "Invalid NAL unit size" and zero frames.
+    const AVCodecParameters* paramsForCodec =
+        ovi->m_pBsfContext ? ovi->m_pBsfContext->par_out : codecPar;
+    if (DumpError(avcodec_parameters_to_context(ovi->m_pVideoCodecContext,
+                                               paramsForCodec)) < 0)
+    {
+        g_Log->Error("avcodec_parameters_to_context failed for %s", _filename.c_str());
+        return false;
+    }
+
     // Initialize the codec context
     ovi->m_pFormatContext->flags |= AVFMT_FLAG_IGNIDX;   //	Ignore index.
     ovi->m_pFormatContext->flags |= AVFMT_FLAG_NONBLOCK; //	Do not
