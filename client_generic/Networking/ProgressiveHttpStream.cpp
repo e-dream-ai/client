@@ -5,6 +5,7 @@
 #include <chrono>
 #include <cstdio>
 #include <cstring>
+#include <thread>
 
 #include <curl/curl.h>
 
@@ -219,10 +220,12 @@ void ProgressiveHttpStream::Stop()
 void ProgressiveHttpStream::WaitUntilFinished()
 {
     std::unique_lock<std::mutex> lock(m_mutex);
-    m_cv.wait(lock, [this] {
-        return m_finished.load() || m_failed.load() || m_stop.load() ||
-               ShouldAbortDownload();
-    });
+    // Poll: downloadAbort may become true without notifying m_cv (e.g. m_bStop).
+    while (!m_finished.load() && !m_failed.load() && !m_stop.load() &&
+           !ShouldAbortDownload())
+    {
+        m_cv.wait_for(lock, std::chrono::milliseconds(100));
+    }
 }
 
 bool ProgressiveHttpStream::ShouldAbortDownload() const
@@ -382,6 +385,10 @@ bool ProgressiveHttpStream::RunTransfer(int64_t startOffset)
     set(curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, &XferInfoCallback));
     set(curl_easy_setopt(curl, CURLOPT_XFERINFODATA, this));
     set(curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L));
+    // Stall detection: abort transfers that make no progress (Wi-Fi drop, sleep).
+    set(curl_easy_setopt(curl, CURLOPT_LOW_SPEED_LIMIT, 1024L)); // 1 KB/s
+    set(curl_easy_setopt(curl, CURLOPT_LOW_SPEED_TIME, 30L));    // 30 s
+    set(curl_easy_setopt(curl, CURLOPT_TCP_KEEPALIVE, 1L));
     if (headers)
         set(curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers));
 
@@ -438,6 +445,9 @@ void ProgressiveHttpStream::WorkerMain()
 {
     g_Log->Info("ProgressiveHttpStream: worker start");
 
+    constexpr int kMaxTransferRetries = 3;
+    int consecutiveFailures = 0;
+
     while (!ShouldAbortDownload())
     {
         int64_t start = 0;
@@ -462,11 +472,34 @@ void ProgressiveHttpStream::WorkerMain()
 
         if (!RunTransfer(start))
         {
-            if (!ShouldAbortDownload())
+            if (ShouldAbortDownload())
+                break;
+
+            ++consecutiveFailures;
+            if (consecutiveFailures >= kMaxTransferRetries)
+            {
+                g_Log->Warning(
+                    "ProgressiveHttpStream: giving up after %d failed transfers",
+                    consecutiveFailures);
                 m_failed.store(true);
-            m_cv.notify_all();
-            break;
+                m_cv.notify_all();
+                break;
+            }
+
+            int64_t retryFrom = 0;
+            {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                retryFrom = ContiguousEndLocked();
+            }
+            g_Log->Info(
+                "ProgressiveHttpStream: transfer failed, retry %d/%d from offset %lld",
+                consecutiveFailures, kMaxTransferRetries,
+                static_cast<long long>(retryFrom));
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            continue;
         }
+
+        consecutiveFailures = 0;
 
         if (m_restart.load() && !ShouldAbortDownload())
             continue;

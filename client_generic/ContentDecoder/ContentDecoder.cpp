@@ -28,11 +28,11 @@
 #include <io.h>  // _commit()
 #endif
 #include <algorithm>
+#include <atomic>
 #include <filesystem>
 #include <future>
 #include <fcntl.h>
 #include <thread>
-#include <sstream>
 
 #include "ContentDecoder.h"
 #include "Log.h"
@@ -145,7 +145,21 @@ CContentDecoder::~CContentDecoder()
         g_Log->Info("Shutdown detected, aborting futures");
         abortFutures();
     }
-    
+
+    if (m_httpStream)
+    {
+        m_httpStream->Stop();
+        m_httpStream.reset();
+    }
+    // Aborted or incomplete stream: discard the partial .tmp.
+    // FinalizeCacheFile clears m_CachePath after a successful rename.
+    if (!m_CachePath.empty())
+    {
+        std::error_code ec;
+        fs::remove(m_CachePath, ec);
+        m_CachePath.clear();
+    }
+
     Destroy();
 }
 
@@ -339,16 +353,15 @@ bool CContentDecoder::Open()
         // libcurl owns the HTTPS byte stream; ffmpeg only sees a custom AVIO
         // over the progressive on-disk cache (file protocol / no network).
         m_httpStream = std::make_unique<Network::ProgressiveHttpStream>();
-        // AVIO unblocks on decoder stop; curl keeps downloading until
-        // shutdown/Stop so stream-to-disk can still complete.
-        if (!m_httpStream->Start(
-                _filename, m_CachePath,
-                /*readInterrupt=*/
-                [this]() {
-                    return m_bStop.load() || m_isShuttingDown.load();
-                },
-                /*downloadAbort=*/
-                [this]() { return m_isShuttingDown.load(); }))
+        // Abort both AVIO waits and the curl worker when the clip stops
+        // (skip/Next/seek/teardown). Only dreams that play to the end are
+        // cached; interrupted downloads discard their .tmp.
+        auto stopped = [this]() {
+            return m_bStop.load() || m_isShuttingDown.load();
+        };
+        if (!m_httpStream->Start(_filename, m_CachePath,
+                                /*readInterrupt=*/stopped,
+                                /*downloadAbort=*/stopped))
         {
             g_Log->Warning("Failed to start progressive download for %s",
                            _filename.c_str());
@@ -1330,19 +1343,9 @@ void CContentDecoder::ReadFramesThread()
     catch (thread_interrupted const&)
     {
         g_Log->Info("Thread Interrupted: Ending main video frame reading thread for %s", m_Metadata.dreamData.uuid.c_str());
-
-        // Keep downloading in the background so stream-to-disk can complete.
-        if (!m_isShuttingDown.load() && m_IsStreaming &&
-            !m_Metadata.dreamData.md5.empty() && m_httpStream)
-        {
-            g_Log->Info("Read frames thread interrupted, waiting for progressive download to finish.");
-            m_futures.emplace_back(std::async(std::launch::async, [this]() {
-                if (m_httpStream)
-                    m_httpStream->WaitUntilFinished();
-                m_HasEnded.store(true);
-                FinalizeCacheFile();
-            }));
-        }
+        // Do not finish the download in the background: skipped/seeked clips
+        // abort curl (downloadAbort) and discard the partial .tmp in ~CContentDecoder.
+        m_HasEnded.store(true);
     }
     catch (std::exception const& e)
     {
@@ -1531,14 +1534,13 @@ void CContentDecoder::WriteToCache(const uint8_t* buf, int buf_size, int64_t pos
 std::string CContentDecoder::GenerateCacheFileName() {
     std::string uuid = m_Metadata.dreamData.uuid;
     fs::path mp4Path = Cache::PathManager::getInstance().mp4Path();
-    
-    // Add thread ID to make filename unique per thread to prevent race conditions
-    std::thread::id threadId = std::this_thread::get_id();
-    std::ostringstream oss;
-    oss << threadId;
-    std::string threadIdStr = oss.str();
-    
-    return (mp4Path / (uuid + "_" + threadIdStr + ".tmp")).string();
+
+    // Process-wide counter: thread ids are reused on macOS, and seeks briefly
+    // overlap two clips of the same dream during crossfade.
+    static std::atomic<uint64_t> s_tmpCounter{0};
+    const uint64_t n = s_tmpCounter.fetch_add(1, std::memory_order_relaxed);
+
+    return (mp4Path / (uuid + "_" + std::to_string(n) + ".tmp")).string();
 }
 
 std::string CContentDecoder::GetFinalFileName() const {

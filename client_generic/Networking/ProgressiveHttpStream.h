@@ -29,14 +29,14 @@ class ProgressiveHttpStream
 
     // Opens cachePath (wb+) and starts a background download of url.
     // readInterrupt: unblock AVIO Read/Seek (e.g. decoder stop).
-    // downloadAbort: cancel the curl worker (omit to keep downloading after
-    // readInterrupt, so stream-to-disk can finish).
+    // downloadAbort: cancel the curl worker (defaults to readInterrupt).
     bool Start(const std::string& url, const std::string& cachePath,
                AbortFn readInterrupt, AbortFn downloadAbort = {});
     // Aborts the transfer and joins the worker.
     void Stop();
 
-    // Block until the background transfer finishes (success or failure).
+    // Block until the background transfer finishes (success, failure, or abort).
+    // Polls so a downloadAbort that does not notify still wakes promptly.
     void WaitUntilFinished();
 
     // AVIO-style read from the current read position.
