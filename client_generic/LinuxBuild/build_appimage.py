@@ -147,7 +147,7 @@ FFMPEG_SRC_DIR   = DEPS_SRC / f"ffmpeg-{FFMPEG_VERSION}"
 FFMPEG_INSTALL   = SCRIPT_DIR / "ffmpeg-minimal"
 
 # Bump when FFmpeg configure flags change — forces a clean rebuild
-FFMPEG_CONFIG_TAG = "novdpau"
+FFMPEG_CONFIG_TAG = "hevc-h264-mp4-nonet"
 
 LINUXDEPLOY_BIN  = f"linuxdeploy-{ARCH}.AppImage"
 APPIMAGETOOL_BIN = f"appimagetool-{ARCH}.AppImage"
@@ -272,7 +272,9 @@ def build_openssl(zig_cc: Path, zig_cxx: Path) -> None:
 # ---------------------------------------------------------------------------
 def build_ffmpeg(zig_cc: Path, zig_cxx: Path) -> None:
     """
-    Build a minimal FFmpeg (h264/hevc decode, mov/mkv demux, OpenSSL TLS).
+    Build a minimal FFmpeg aligned with overlays/ffmpeg (#556):
+    H.264/HEVC decode, mov demux, file protocol only. No network/TLS/audio —
+    libcurl owns HTTPS (ProgressiveHttpStream).
 
     Uses the zig wrappers so bundled .so files are glibc-2.35 clean.
     """
@@ -305,8 +307,6 @@ def build_ffmpeg(zig_cc: Path, zig_cxx: Path) -> None:
         f"--cc={zig_cc}",
         f"--cxx={zig_cxx}",
         f"--ld={zig_cc}",
-        f"--extra-cflags=-I{OPENSSL_INSTALL}/include",
-        f"--extra-ldflags=-L{OPENSSL_INSTALL}/lib",
         "--disable-everything",
         "--enable-shared",
         "--disable-static",
@@ -315,22 +315,15 @@ def build_ffmpeg(zig_cc: Path, zig_cxx: Path) -> None:
         "--enable-avcodec",
         "--enable-avutil",
         "--enable-swscale",
-        "--enable-swresample",
-        "--enable-network",
-        "--enable-openssl",
-        "--enable-protocol=file",
-        "--enable-protocol=http",
-        "--enable-protocol=https",
-        "--enable-protocol=tcp",
-        "--enable-protocol=tls",
-        "--enable-demuxer=mov",
-        "--enable-demuxer=matroska",
         "--enable-decoder=h264",
         "--enable-decoder=hevc",
         "--enable-parser=h264",
         "--enable-parser=hevc",
         "--enable-bsf=h264_mp4toannexb",
         "--enable-bsf=hevc_mp4toannexb",
+        "--enable-demuxer=mov",
+        "--enable-protocol=file",
+        "--disable-network",
         "--disable-doc",
         "--disable-programs",
         "--disable-vdpau",

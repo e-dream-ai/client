@@ -1,10 +1,14 @@
 #!/bin/sh
 
+# Overlay ports (minimal ffmpeg, etc.) live in ./overlays — also declared in
+# vcpkg-configuration.json; pass explicitly so CI/local runs stay consistent.
+OVERLAY_PORTS="--overlay-ports=overlays"
+
 # vcpkg arm64
-./vcpkg/vcpkg install --triplet=arm64-osx --x-install-root vcpkg_installed
+./vcpkg/vcpkg install ${OVERLAY_PORTS} --triplet=arm64-osx --x-install-root vcpkg_installed
 
 # vcpkg x64 
-./vcpkg/vcpkg install --triplet=x64-osx --x-install-root vcpkg_x86
+./vcpkg/vcpkg install ${OVERLAY_PORTS} --triplet=x64-osx --x-install-root vcpkg_x86
 
 # remove old universal libs 
 rm -rf cache/univ-osx

@@ -3,13 +3,13 @@
   "spdxVersion": "SPDX-2.2",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "documentNamespace": "https://spdx.org/spdxdocs/ffmpeg-arm64-osx-8.0.1#2-43f52830-51ba-4b2b-994f-c963598a4f10",
-  "name": "ffmpeg:arm64-osx@8.0.1#2 f0c3ad3e12936eb0d5bb207b585d40ef8fd7e26469c5d556c78ddba321a507fc",
+  "documentNamespace": "https://spdx.org/spdxdocs/ffmpeg-arm64-osx-8.0.1#4-551e59d2-510a-48f1-b547-7d9b101e23dc",
+  "name": "ffmpeg:arm64-osx@8.0.1#4 59d89189f9f904934853e83bf2f14f11e4631c48938bd0448850289b4a31bb34",
   "creationInfo": {
     "creators": [
       "Tool: vcpkg-2026-03-04-4b3e4c276b5b87a649e66341e11553e8c577459c"
     ],
-    "created": "2026-04-22T17:03:30Z"
+    "created": "2026-10-19T17:08:39Z"
   },
   "relationships": [
     {
@@ -1016,129 +1016,14 @@
       "spdxElementId": "SPDXRef-binary",
       "relationshipType": "CONTAINS",
       "relatedSpdxElement": "SPDXRef-binary-file-178"
-    },
-    {
-      "spdxElementId": "SPDXRef-binary",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-binary-file-179"
-    },
-    {
-      "spdxElementId": "SPDXRef-binary",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-binary-file-180"
-    },
-    {
-      "spdxElementId": "SPDXRef-binary",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-binary-file-181"
-    },
-    {
-      "spdxElementId": "SPDXRef-binary",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-binary-file-182"
-    },
-    {
-      "spdxElementId": "SPDXRef-binary",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-binary-file-183"
-    },
-    {
-      "spdxElementId": "SPDXRef-binary",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-binary-file-184"
-    },
-    {
-      "spdxElementId": "SPDXRef-binary",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-binary-file-185"
-    },
-    {
-      "spdxElementId": "SPDXRef-binary",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-binary-file-186"
-    },
-    {
-      "spdxElementId": "SPDXRef-binary",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-binary-file-187"
-    },
-    {
-      "spdxElementId": "SPDXRef-binary",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-binary-file-188"
-    },
-    {
-      "spdxElementId": "SPDXRef-binary",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-binary-file-189"
-    },
-    {
-      "spdxElementId": "SPDXRef-binary",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-binary-file-190"
-    },
-    {
-      "spdxElementId": "SPDXRef-binary",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-binary-file-191"
-    },
-    {
-      "spdxElementId": "SPDXRef-binary",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-binary-file-192"
-    },
-    {
-      "spdxElementId": "SPDXRef-binary",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-binary-file-193"
-    },
-    {
-      "spdxElementId": "SPDXRef-binary",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-binary-file-194"
-    },
-    {
-      "spdxElementId": "SPDXRef-binary",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-binary-file-195"
-    },
-    {
-      "spdxElementId": "SPDXRef-binary",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-binary-file-196"
-    },
-    {
-      "spdxElementId": "SPDXRef-binary",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-binary-file-197"
-    },
-    {
-      "spdxElementId": "SPDXRef-binary",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-binary-file-198"
-    },
-    {
-      "spdxElementId": "SPDXRef-binary",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-binary-file-199"
-    },
-    {
-      "spdxElementId": "SPDXRef-binary",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-binary-file-200"
-    },
-    {
-      "spdxElementId": "SPDXRef-binary",
-      "relationshipType": "CONTAINS",
-      "relatedSpdxElement": "SPDXRef-binary-file-201"
     }
   ],
   "packages": [
     {
       "name": "ffmpeg",
       "SPDXID": "SPDXRef-port",
-      "versionInfo": "8.0.1#2",
-      "downloadLocation": "git+https://github.com/Microsoft/vcpkg@9c05f44e0620c7727bf47629cc031001dbae9bd4",
+      "versionInfo": "8.0.1#4",
+      "downloadLocation": "NOASSERTION",
       "homepage": "https://ffmpeg.org",
       "licenseConcluded": "LicenseRef-vcpkg-null",
       "licenseDeclared": "NOASSERTION",
@@ -1149,7 +1034,7 @@
     {
       "name": "ffmpeg:arm64-osx",
       "SPDXID": "SPDXRef-binary",
-      "versionInfo": "f0c3ad3e12936eb0d5bb207b585d40ef8fd7e26469c5d556c78ddba321a507fc",
+      "versionInfo": "59d89189f9f904934853e83bf2f14f11e4631c48938bd0448850289b4a31bb34",
       "downloadLocation": "NONE",
       "licenseConcluded": "LicenseRef-vcpkg-null",
       "licenseDeclared": "NOASSERTION",
@@ -1346,7 +1231,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "5b121f9d9e139068eff0933f92a80ded8ad591ae3af950a73c236f94977037cd"
+          "checksumValue": "ed133ba25615ce0d1b4e1c2c5676391824b88e842ebe500cc8d6dc74972b4d3d"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -1370,7 +1255,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "624b6ba9f087c9aeb65a73cf6fb3a9137d209988085ab247d44b875871273d11"
+          "checksumValue": "ef55be77c3140037239c423616db502b8b0f1407c34b6c1bfe7a90a5bf5648c1"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -1413,68 +1298,8 @@
       "copyrightText": "NOASSERTION"
     },
     {
-      "fileName": "./include/libavfilter/version.h",
-      "SPDXID": "SPDXRef-binary-file-0",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "3469d7376608039a622aad725daaf5d624bd8e9e25d6956eea621ab2a237a66b"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
-      "fileName": "./include/libavfilter/buffersrc.h",
-      "SPDXID": "SPDXRef-binary-file-1",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "46aab1ad49c01771c5729327c2f564797a2157a27bd400fb3127eba67dd5186f"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
-      "fileName": "./include/libavfilter/version_major.h",
-      "SPDXID": "SPDXRef-binary-file-2",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "07e3b2d86f0cdedaf3146f644770e51d89586ec1cde698cf8405448e78613fb3"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
-      "fileName": "./include/libavfilter/buffersink.h",
-      "SPDXID": "SPDXRef-binary-file-3",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "e8145a55e87c2cc18c94a92f05bb17aa6ff9eeef4fe1dd6b8285c7f03f84e199"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
-      "fileName": "./include/libavfilter/avfilter.h",
-      "SPDXID": "SPDXRef-binary-file-4",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "b6c47cb142a3dc92aed0756bc63f55964eb91dbed9f36aa529da7c7dca783349"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
       "fileName": "./include/libavutil/hwcontext.h",
-      "SPDXID": "SPDXRef-binary-file-5",
+      "SPDXID": "SPDXRef-binary-file-0",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1486,7 +1311,7 @@
     },
     {
       "fileName": "./include/libavutil/time.h",
-      "SPDXID": "SPDXRef-binary-file-6",
+      "SPDXID": "SPDXRef-binary-file-1",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1498,7 +1323,7 @@
     },
     {
       "fileName": "./include/libavutil/hwcontext_cuda.h",
-      "SPDXID": "SPDXRef-binary-file-7",
+      "SPDXID": "SPDXRef-binary-file-2",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1510,7 +1335,7 @@
     },
     {
       "fileName": "./include/libavutil/iamf.h",
-      "SPDXID": "SPDXRef-binary-file-8",
+      "SPDXID": "SPDXRef-binary-file-3",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1522,7 +1347,7 @@
     },
     {
       "fileName": "./include/libavutil/intfloat.h",
-      "SPDXID": "SPDXRef-binary-file-9",
+      "SPDXID": "SPDXRef-binary-file-4",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1534,7 +1359,7 @@
     },
     {
       "fileName": "./include/libavutil/error.h",
-      "SPDXID": "SPDXRef-binary-file-10",
+      "SPDXID": "SPDXRef-binary-file-5",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1546,7 +1371,7 @@
     },
     {
       "fileName": "./include/libavutil/detection_bbox.h",
-      "SPDXID": "SPDXRef-binary-file-11",
+      "SPDXID": "SPDXRef-binary-file-6",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1558,7 +1383,7 @@
     },
     {
       "fileName": "./include/libavutil/ambient_viewing_environment.h",
-      "SPDXID": "SPDXRef-binary-file-12",
+      "SPDXID": "SPDXRef-binary-file-7",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1570,7 +1395,7 @@
     },
     {
       "fileName": "./include/libavutil/fifo.h",
-      "SPDXID": "SPDXRef-binary-file-13",
+      "SPDXID": "SPDXRef-binary-file-8",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1582,7 +1407,7 @@
     },
     {
       "fileName": "./include/libavutil/blowfish.h",
-      "SPDXID": "SPDXRef-binary-file-14",
+      "SPDXID": "SPDXRef-binary-file-9",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1594,7 +1419,7 @@
     },
     {
       "fileName": "./include/libavutil/hwcontext_mediacodec.h",
-      "SPDXID": "SPDXRef-binary-file-15",
+      "SPDXID": "SPDXRef-binary-file-10",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1606,7 +1431,7 @@
     },
     {
       "fileName": "./include/libavutil/replaygain.h",
-      "SPDXID": "SPDXRef-binary-file-16",
+      "SPDXID": "SPDXRef-binary-file-11",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1618,7 +1443,7 @@
     },
     {
       "fileName": "./include/libavutil/version.h",
-      "SPDXID": "SPDXRef-binary-file-17",
+      "SPDXID": "SPDXRef-binary-file-12",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1630,7 +1455,7 @@
     },
     {
       "fileName": "./include/libavutil/murmur3.h",
-      "SPDXID": "SPDXRef-binary-file-18",
+      "SPDXID": "SPDXRef-binary-file-13",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1642,7 +1467,7 @@
     },
     {
       "fileName": "./include/libavutil/stereo3d.h",
-      "SPDXID": "SPDXRef-binary-file-19",
+      "SPDXID": "SPDXRef-binary-file-14",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1654,7 +1479,7 @@
     },
     {
       "fileName": "./include/libavutil/samplefmt.h",
-      "SPDXID": "SPDXRef-binary-file-20",
+      "SPDXID": "SPDXRef-binary-file-15",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1666,7 +1491,7 @@
     },
     {
       "fileName": "./include/libavutil/pixdesc.h",
-      "SPDXID": "SPDXRef-binary-file-21",
+      "SPDXID": "SPDXRef-binary-file-16",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1678,7 +1503,7 @@
     },
     {
       "fileName": "./include/libavutil/base64.h",
-      "SPDXID": "SPDXRef-binary-file-22",
+      "SPDXID": "SPDXRef-binary-file-17",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1690,7 +1515,7 @@
     },
     {
       "fileName": "./include/libavutil/rational.h",
-      "SPDXID": "SPDXRef-binary-file-23",
+      "SPDXID": "SPDXRef-binary-file-18",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1702,7 +1527,7 @@
     },
     {
       "fileName": "./include/libavutil/tdrdi.h",
-      "SPDXID": "SPDXRef-binary-file-24",
+      "SPDXID": "SPDXRef-binary-file-19",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1714,7 +1539,7 @@
     },
     {
       "fileName": "./include/libavutil/sha.h",
-      "SPDXID": "SPDXRef-binary-file-25",
+      "SPDXID": "SPDXRef-binary-file-20",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1726,7 +1551,7 @@
     },
     {
       "fileName": "./include/libavutil/motion_vector.h",
-      "SPDXID": "SPDXRef-binary-file-26",
+      "SPDXID": "SPDXRef-binary-file-21",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1738,7 +1563,7 @@
     },
     {
       "fileName": "./include/libavutil/uuid.h",
-      "SPDXID": "SPDXRef-binary-file-27",
+      "SPDXID": "SPDXRef-binary-file-22",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1750,7 +1575,7 @@
     },
     {
       "fileName": "./include/libavutil/avconfig.h",
-      "SPDXID": "SPDXRef-binary-file-28",
+      "SPDXID": "SPDXRef-binary-file-23",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1762,7 +1587,7 @@
     },
     {
       "fileName": "./include/libavutil/lfg.h",
-      "SPDXID": "SPDXRef-binary-file-29",
+      "SPDXID": "SPDXRef-binary-file-24",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1774,7 +1599,7 @@
     },
     {
       "fileName": "./include/libavutil/avutil.h",
-      "SPDXID": "SPDXRef-binary-file-30",
+      "SPDXID": "SPDXRef-binary-file-25",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1786,7 +1611,7 @@
     },
     {
       "fileName": "./include/libavutil/hwcontext_vulkan.h",
-      "SPDXID": "SPDXRef-binary-file-31",
+      "SPDXID": "SPDXRef-binary-file-26",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1798,7 +1623,7 @@
     },
     {
       "fileName": "./include/libavutil/xtea.h",
-      "SPDXID": "SPDXRef-binary-file-32",
+      "SPDXID": "SPDXRef-binary-file-27",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1810,7 +1635,7 @@
     },
     {
       "fileName": "./include/libavutil/crc.h",
-      "SPDXID": "SPDXRef-binary-file-33",
+      "SPDXID": "SPDXRef-binary-file-28",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1822,7 +1647,7 @@
     },
     {
       "fileName": "./include/libavutil/hwcontext_vdpau.h",
-      "SPDXID": "SPDXRef-binary-file-34",
+      "SPDXID": "SPDXRef-binary-file-29",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1834,7 +1659,7 @@
     },
     {
       "fileName": "./include/libavutil/frame.h",
-      "SPDXID": "SPDXRef-binary-file-35",
+      "SPDXID": "SPDXRef-binary-file-30",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1846,7 +1671,7 @@
     },
     {
       "fileName": "./include/libavutil/file.h",
-      "SPDXID": "SPDXRef-binary-file-36",
+      "SPDXID": "SPDXRef-binary-file-31",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1858,7 +1683,7 @@
     },
     {
       "fileName": "./include/libavutil/md5.h",
-      "SPDXID": "SPDXRef-binary-file-37",
+      "SPDXID": "SPDXRef-binary-file-32",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1870,7 +1695,7 @@
     },
     {
       "fileName": "./include/libavutil/cast5.h",
-      "SPDXID": "SPDXRef-binary-file-38",
+      "SPDXID": "SPDXRef-binary-file-33",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1882,7 +1707,7 @@
     },
     {
       "fileName": "./include/libavutil/hwcontext_vaapi.h",
-      "SPDXID": "SPDXRef-binary-file-39",
+      "SPDXID": "SPDXRef-binary-file-34",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1894,7 +1719,7 @@
     },
     {
       "fileName": "./include/libavutil/spherical.h",
-      "SPDXID": "SPDXRef-binary-file-40",
+      "SPDXID": "SPDXRef-binary-file-35",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1906,7 +1731,7 @@
     },
     {
       "fileName": "./include/libavutil/ffversion.h",
-      "SPDXID": "SPDXRef-binary-file-41",
+      "SPDXID": "SPDXRef-binary-file-36",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1918,7 +1743,7 @@
     },
     {
       "fileName": "./include/libavutil/hwcontext_opencl.h",
-      "SPDXID": "SPDXRef-binary-file-42",
+      "SPDXID": "SPDXRef-binary-file-37",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1930,7 +1755,7 @@
     },
     {
       "fileName": "./include/libavutil/audio_fifo.h",
-      "SPDXID": "SPDXRef-binary-file-43",
+      "SPDXID": "SPDXRef-binary-file-38",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1942,7 +1767,7 @@
     },
     {
       "fileName": "./include/libavutil/tree.h",
-      "SPDXID": "SPDXRef-binary-file-44",
+      "SPDXID": "SPDXRef-binary-file-39",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1954,7 +1779,7 @@
     },
     {
       "fileName": "./include/libavutil/threadmessage.h",
-      "SPDXID": "SPDXRef-binary-file-45",
+      "SPDXID": "SPDXRef-binary-file-40",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1966,7 +1791,7 @@
     },
     {
       "fileName": "./include/libavutil/attributes.h",
-      "SPDXID": "SPDXRef-binary-file-46",
+      "SPDXID": "SPDXRef-binary-file-41",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1978,7 +1803,7 @@
     },
     {
       "fileName": "./include/libavutil/hdr_dynamic_vivid_metadata.h",
-      "SPDXID": "SPDXRef-binary-file-47",
+      "SPDXID": "SPDXRef-binary-file-42",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -1990,7 +1815,7 @@
     },
     {
       "fileName": "./include/libavutil/adler32.h",
-      "SPDXID": "SPDXRef-binary-file-48",
+      "SPDXID": "SPDXRef-binary-file-43",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2002,7 +1827,7 @@
     },
     {
       "fileName": "./include/libavutil/hwcontext_d3d11va.h",
-      "SPDXID": "SPDXRef-binary-file-49",
+      "SPDXID": "SPDXRef-binary-file-44",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2014,7 +1839,7 @@
     },
     {
       "fileName": "./include/libavutil/timecode.h",
-      "SPDXID": "SPDXRef-binary-file-50",
+      "SPDXID": "SPDXRef-binary-file-45",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2026,7 +1851,7 @@
     },
     {
       "fileName": "./include/libavutil/hwcontext_oh.h",
-      "SPDXID": "SPDXRef-binary-file-51",
+      "SPDXID": "SPDXRef-binary-file-46",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2038,7 +1863,7 @@
     },
     {
       "fileName": "./include/libavutil/dovi_meta.h",
-      "SPDXID": "SPDXRef-binary-file-52",
+      "SPDXID": "SPDXRef-binary-file-47",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2050,7 +1875,7 @@
     },
     {
       "fileName": "./include/libavutil/hwcontext_d3d12va.h",
-      "SPDXID": "SPDXRef-binary-file-53",
+      "SPDXID": "SPDXRef-binary-file-48",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2062,7 +1887,7 @@
     },
     {
       "fileName": "./include/libavutil/tx.h",
-      "SPDXID": "SPDXRef-binary-file-54",
+      "SPDXID": "SPDXRef-binary-file-49",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2074,7 +1899,7 @@
     },
     {
       "fileName": "./include/libavutil/sha512.h",
-      "SPDXID": "SPDXRef-binary-file-55",
+      "SPDXID": "SPDXRef-binary-file-50",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2086,7 +1911,7 @@
     },
     {
       "fileName": "./include/libavutil/refstruct.h",
-      "SPDXID": "SPDXRef-binary-file-56",
+      "SPDXID": "SPDXRef-binary-file-51",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2098,7 +1923,7 @@
     },
     {
       "fileName": "./include/libavutil/hwcontext_dxva2.h",
-      "SPDXID": "SPDXRef-binary-file-57",
+      "SPDXID": "SPDXRef-binary-file-52",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2110,7 +1935,7 @@
     },
     {
       "fileName": "./include/libavutil/display.h",
-      "SPDXID": "SPDXRef-binary-file-58",
+      "SPDXID": "SPDXRef-binary-file-53",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2122,7 +1947,7 @@
     },
     {
       "fileName": "./include/libavutil/buffer.h",
-      "SPDXID": "SPDXRef-binary-file-59",
+      "SPDXID": "SPDXRef-binary-file-54",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2134,7 +1959,7 @@
     },
     {
       "fileName": "./include/libavutil/camellia.h",
-      "SPDXID": "SPDXRef-binary-file-60",
+      "SPDXID": "SPDXRef-binary-file-55",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2146,7 +1971,7 @@
     },
     {
       "fileName": "./include/libavutil/csp.h",
-      "SPDXID": "SPDXRef-binary-file-61",
+      "SPDXID": "SPDXRef-binary-file-56",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2158,7 +1983,7 @@
     },
     {
       "fileName": "./include/libavutil/video_hint.h",
-      "SPDXID": "SPDXRef-binary-file-62",
+      "SPDXID": "SPDXRef-binary-file-57",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2170,7 +1995,7 @@
     },
     {
       "fileName": "./include/libavutil/pixelutils.h",
-      "SPDXID": "SPDXRef-binary-file-63",
+      "SPDXID": "SPDXRef-binary-file-58",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2182,7 +2007,7 @@
     },
     {
       "fileName": "./include/libavutil/hwcontext_drm.h",
-      "SPDXID": "SPDXRef-binary-file-64",
+      "SPDXID": "SPDXRef-binary-file-59",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2194,7 +2019,7 @@
     },
     {
       "fileName": "./include/libavutil/common.h",
-      "SPDXID": "SPDXRef-binary-file-65",
+      "SPDXID": "SPDXRef-binary-file-60",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2206,7 +2031,7 @@
     },
     {
       "fileName": "./include/libavutil/hmac.h",
-      "SPDXID": "SPDXRef-binary-file-66",
+      "SPDXID": "SPDXRef-binary-file-61",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2218,7 +2043,7 @@
     },
     {
       "fileName": "./include/libavutil/eval.h",
-      "SPDXID": "SPDXRef-binary-file-67",
+      "SPDXID": "SPDXRef-binary-file-62",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2230,7 +2055,7 @@
     },
     {
       "fileName": "./include/libavutil/executor.h",
-      "SPDXID": "SPDXRef-binary-file-68",
+      "SPDXID": "SPDXRef-binary-file-63",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2242,7 +2067,7 @@
     },
     {
       "fileName": "./include/libavutil/dict.h",
-      "SPDXID": "SPDXRef-binary-file-69",
+      "SPDXID": "SPDXRef-binary-file-64",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2254,7 +2079,7 @@
     },
     {
       "fileName": "./include/libavutil/container_fifo.h",
-      "SPDXID": "SPDXRef-binary-file-70",
+      "SPDXID": "SPDXRef-binary-file-65",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2266,7 +2091,7 @@
     },
     {
       "fileName": "./include/libavutil/hwcontext_amf.h",
-      "SPDXID": "SPDXRef-binary-file-71",
+      "SPDXID": "SPDXRef-binary-file-66",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2278,7 +2103,7 @@
     },
     {
       "fileName": "./include/libavutil/random_seed.h",
-      "SPDXID": "SPDXRef-binary-file-72",
+      "SPDXID": "SPDXRef-binary-file-67",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2290,7 +2115,7 @@
     },
     {
       "fileName": "./include/libavutil/opt.h",
-      "SPDXID": "SPDXRef-binary-file-73",
+      "SPDXID": "SPDXRef-binary-file-68",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2302,7 +2127,7 @@
     },
     {
       "fileName": "./include/libavutil/mastering_display_metadata.h",
-      "SPDXID": "SPDXRef-binary-file-74",
+      "SPDXID": "SPDXRef-binary-file-69",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2314,7 +2139,7 @@
     },
     {
       "fileName": "./include/libavutil/log.h",
-      "SPDXID": "SPDXRef-binary-file-75",
+      "SPDXID": "SPDXRef-binary-file-70",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2326,7 +2151,7 @@
     },
     {
       "fileName": "./include/libavutil/aes.h",
-      "SPDXID": "SPDXRef-binary-file-76",
+      "SPDXID": "SPDXRef-binary-file-71",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2338,7 +2163,7 @@
     },
     {
       "fileName": "./include/libavutil/macros.h",
-      "SPDXID": "SPDXRef-binary-file-77",
+      "SPDXID": "SPDXRef-binary-file-72",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2350,7 +2175,7 @@
     },
     {
       "fileName": "./include/libavutil/bswap.h",
-      "SPDXID": "SPDXRef-binary-file-78",
+      "SPDXID": "SPDXRef-binary-file-73",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2362,7 +2187,7 @@
     },
     {
       "fileName": "./include/libavutil/rc4.h",
-      "SPDXID": "SPDXRef-binary-file-79",
+      "SPDXID": "SPDXRef-binary-file-74",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2374,7 +2199,7 @@
     },
     {
       "fileName": "./include/libavutil/tea.h",
-      "SPDXID": "SPDXRef-binary-file-80",
+      "SPDXID": "SPDXRef-binary-file-75",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2386,7 +2211,7 @@
     },
     {
       "fileName": "./include/libavutil/cpu.h",
-      "SPDXID": "SPDXRef-binary-file-81",
+      "SPDXID": "SPDXRef-binary-file-76",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2398,7 +2223,7 @@
     },
     {
       "fileName": "./include/libavutil/lzo.h",
-      "SPDXID": "SPDXRef-binary-file-82",
+      "SPDXID": "SPDXRef-binary-file-77",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2410,7 +2235,7 @@
     },
     {
       "fileName": "./include/libavutil/des.h",
-      "SPDXID": "SPDXRef-binary-file-83",
+      "SPDXID": "SPDXRef-binary-file-78",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2422,7 +2247,7 @@
     },
     {
       "fileName": "./include/libavutil/channel_layout.h",
-      "SPDXID": "SPDXRef-binary-file-84",
+      "SPDXID": "SPDXRef-binary-file-79",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2434,7 +2259,7 @@
     },
     {
       "fileName": "./include/libavutil/encryption_info.h",
-      "SPDXID": "SPDXRef-binary-file-85",
+      "SPDXID": "SPDXRef-binary-file-80",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2446,7 +2271,7 @@
     },
     {
       "fileName": "./include/libavutil/twofish.h",
-      "SPDXID": "SPDXRef-binary-file-86",
+      "SPDXID": "SPDXRef-binary-file-81",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2458,7 +2283,7 @@
     },
     {
       "fileName": "./include/libavutil/imgutils.h",
-      "SPDXID": "SPDXRef-binary-file-87",
+      "SPDXID": "SPDXRef-binary-file-82",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2470,7 +2295,7 @@
     },
     {
       "fileName": "./include/libavutil/hwcontext_videotoolbox.h",
-      "SPDXID": "SPDXRef-binary-file-88",
+      "SPDXID": "SPDXRef-binary-file-83",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2482,7 +2307,7 @@
     },
     {
       "fileName": "./include/libavutil/video_enc_params.h",
-      "SPDXID": "SPDXRef-binary-file-89",
+      "SPDXID": "SPDXRef-binary-file-84",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2494,7 +2319,7 @@
     },
     {
       "fileName": "./include/libavutil/mem.h",
-      "SPDXID": "SPDXRef-binary-file-90",
+      "SPDXID": "SPDXRef-binary-file-85",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2506,7 +2331,7 @@
     },
     {
       "fileName": "./include/libavutil/parseutils.h",
-      "SPDXID": "SPDXRef-binary-file-91",
+      "SPDXID": "SPDXRef-binary-file-86",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2518,7 +2343,7 @@
     },
     {
       "fileName": "./include/libavutil/ripemd.h",
-      "SPDXID": "SPDXRef-binary-file-92",
+      "SPDXID": "SPDXRef-binary-file-87",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2530,7 +2355,7 @@
     },
     {
       "fileName": "./include/libavutil/bprint.h",
-      "SPDXID": "SPDXRef-binary-file-93",
+      "SPDXID": "SPDXRef-binary-file-88",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2542,7 +2367,7 @@
     },
     {
       "fileName": "./include/libavutil/hdr_dynamic_metadata.h",
-      "SPDXID": "SPDXRef-binary-file-94",
+      "SPDXID": "SPDXRef-binary-file-89",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2554,7 +2379,7 @@
     },
     {
       "fileName": "./include/libavutil/hwcontext_qsv.h",
-      "SPDXID": "SPDXRef-binary-file-95",
+      "SPDXID": "SPDXRef-binary-file-90",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2566,7 +2391,7 @@
     },
     {
       "fileName": "./include/libavutil/pixfmt.h",
-      "SPDXID": "SPDXRef-binary-file-96",
+      "SPDXID": "SPDXRef-binary-file-91",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2578,7 +2403,7 @@
     },
     {
       "fileName": "./include/libavutil/aes_ctr.h",
-      "SPDXID": "SPDXRef-binary-file-97",
+      "SPDXID": "SPDXRef-binary-file-92",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2590,7 +2415,7 @@
     },
     {
       "fileName": "./include/libavutil/timestamp.h",
-      "SPDXID": "SPDXRef-binary-file-98",
+      "SPDXID": "SPDXRef-binary-file-93",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2602,7 +2427,7 @@
     },
     {
       "fileName": "./include/libavutil/downmix_info.h",
-      "SPDXID": "SPDXRef-binary-file-99",
+      "SPDXID": "SPDXRef-binary-file-94",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2614,7 +2439,7 @@
     },
     {
       "fileName": "./include/libavutil/avassert.h",
-      "SPDXID": "SPDXRef-binary-file-100",
+      "SPDXID": "SPDXRef-binary-file-95",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2626,7 +2451,7 @@
     },
     {
       "fileName": "./include/libavutil/hash.h",
-      "SPDXID": "SPDXRef-binary-file-101",
+      "SPDXID": "SPDXRef-binary-file-96",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2638,7 +2463,7 @@
     },
     {
       "fileName": "./include/libavutil/mathematics.h",
-      "SPDXID": "SPDXRef-binary-file-102",
+      "SPDXID": "SPDXRef-binary-file-97",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2650,7 +2475,7 @@
     },
     {
       "fileName": "./include/libavutil/intreadwrite.h",
-      "SPDXID": "SPDXRef-binary-file-103",
+      "SPDXID": "SPDXRef-binary-file-98",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2662,7 +2487,7 @@
     },
     {
       "fileName": "./include/libavutil/film_grain_params.h",
-      "SPDXID": "SPDXRef-binary-file-104",
+      "SPDXID": "SPDXRef-binary-file-99",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2674,7 +2499,7 @@
     },
     {
       "fileName": "./include/libavutil/avstring.h",
-      "SPDXID": "SPDXRef-binary-file-105",
+      "SPDXID": "SPDXRef-binary-file-100",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2685,44 +2510,8 @@
       "copyrightText": "NOASSERTION"
     },
     {
-      "fileName": "./include/libavdevice/version.h",
-      "SPDXID": "SPDXRef-binary-file-106",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "8e58aa03551c966dfe9c0b98b26e7dba02131c2285c11f63d867724556a07a04"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
-      "fileName": "./include/libavdevice/avdevice.h",
-      "SPDXID": "SPDXRef-binary-file-107",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "a4d649615eeab8d4c2cf882a6dd06be4a95f74a1f6cf18d6ea819186c2d60ac3"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
-      "fileName": "./include/libavdevice/version_major.h",
-      "SPDXID": "SPDXRef-binary-file-108",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "23f24a56925e7bc6c73f18300a42374286204d4b65cb06d6ce8ce07361ad7205"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
       "fileName": "./include/libavformat/version.h",
-      "SPDXID": "SPDXRef-binary-file-109",
+      "SPDXID": "SPDXRef-binary-file-101",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2734,7 +2523,7 @@
     },
     {
       "fileName": "./include/libavformat/version_major.h",
-      "SPDXID": "SPDXRef-binary-file-110",
+      "SPDXID": "SPDXRef-binary-file-102",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2746,7 +2535,7 @@
     },
     {
       "fileName": "./include/libavformat/avio.h",
-      "SPDXID": "SPDXRef-binary-file-111",
+      "SPDXID": "SPDXRef-binary-file-103",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2758,7 +2547,7 @@
     },
     {
       "fileName": "./include/libavformat/avformat.h",
-      "SPDXID": "SPDXRef-binary-file-112",
+      "SPDXID": "SPDXRef-binary-file-104",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2770,7 +2559,7 @@
     },
     {
       "fileName": "./include/libswscale/version.h",
-      "SPDXID": "SPDXRef-binary-file-113",
+      "SPDXID": "SPDXRef-binary-file-105",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2782,7 +2571,7 @@
     },
     {
       "fileName": "./include/libswscale/swscale.h",
-      "SPDXID": "SPDXRef-binary-file-114",
+      "SPDXID": "SPDXRef-binary-file-106",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2794,7 +2583,7 @@
     },
     {
       "fileName": "./include/libswscale/version_major.h",
-      "SPDXID": "SPDXRef-binary-file-115",
+      "SPDXID": "SPDXRef-binary-file-107",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2806,7 +2595,7 @@
     },
     {
       "fileName": "./include/libavcodec/adts_parser.h",
-      "SPDXID": "SPDXRef-binary-file-116",
+      "SPDXID": "SPDXRef-binary-file-108",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2818,7 +2607,7 @@
     },
     {
       "fileName": "./include/libavcodec/avcodec.h",
-      "SPDXID": "SPDXRef-binary-file-117",
+      "SPDXID": "SPDXRef-binary-file-109",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2830,7 +2619,7 @@
     },
     {
       "fileName": "./include/libavcodec/defs.h",
-      "SPDXID": "SPDXRef-binary-file-118",
+      "SPDXID": "SPDXRef-binary-file-110",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2842,7 +2631,7 @@
     },
     {
       "fileName": "./include/libavcodec/version.h",
-      "SPDXID": "SPDXRef-binary-file-119",
+      "SPDXID": "SPDXRef-binary-file-111",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2854,7 +2643,7 @@
     },
     {
       "fileName": "./include/libavcodec/vdpau.h",
-      "SPDXID": "SPDXRef-binary-file-120",
+      "SPDXID": "SPDXRef-binary-file-112",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2866,7 +2655,7 @@
     },
     {
       "fileName": "./include/libavcodec/codec_par.h",
-      "SPDXID": "SPDXRef-binary-file-121",
+      "SPDXID": "SPDXRef-binary-file-113",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2878,7 +2667,7 @@
     },
     {
       "fileName": "./include/libavcodec/qsv.h",
-      "SPDXID": "SPDXRef-binary-file-122",
+      "SPDXID": "SPDXRef-binary-file-114",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2890,7 +2679,7 @@
     },
     {
       "fileName": "./include/libavcodec/codec_desc.h",
-      "SPDXID": "SPDXRef-binary-file-123",
+      "SPDXID": "SPDXRef-binary-file-115",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2902,7 +2691,7 @@
     },
     {
       "fileName": "./include/libavcodec/videotoolbox.h",
-      "SPDXID": "SPDXRef-binary-file-124",
+      "SPDXID": "SPDXRef-binary-file-116",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2914,7 +2703,7 @@
     },
     {
       "fileName": "./include/libavcodec/mediacodec.h",
-      "SPDXID": "SPDXRef-binary-file-125",
+      "SPDXID": "SPDXRef-binary-file-117",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2926,7 +2715,7 @@
     },
     {
       "fileName": "./include/libavcodec/d3d11va.h",
-      "SPDXID": "SPDXRef-binary-file-126",
+      "SPDXID": "SPDXRef-binary-file-118",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2938,7 +2727,7 @@
     },
     {
       "fileName": "./include/libavcodec/codec.h",
-      "SPDXID": "SPDXRef-binary-file-127",
+      "SPDXID": "SPDXRef-binary-file-119",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2950,7 +2739,7 @@
     },
     {
       "fileName": "./include/libavcodec/jni.h",
-      "SPDXID": "SPDXRef-binary-file-128",
+      "SPDXID": "SPDXRef-binary-file-120",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2962,7 +2751,7 @@
     },
     {
       "fileName": "./include/libavcodec/smpte_436m.h",
-      "SPDXID": "SPDXRef-binary-file-129",
+      "SPDXID": "SPDXRef-binary-file-121",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2974,7 +2763,7 @@
     },
     {
       "fileName": "./include/libavcodec/packet.h",
-      "SPDXID": "SPDXRef-binary-file-130",
+      "SPDXID": "SPDXRef-binary-file-122",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2986,7 +2775,7 @@
     },
     {
       "fileName": "./include/libavcodec/version_major.h",
-      "SPDXID": "SPDXRef-binary-file-131",
+      "SPDXID": "SPDXRef-binary-file-123",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -2998,7 +2787,7 @@
     },
     {
       "fileName": "./include/libavcodec/bsf.h",
-      "SPDXID": "SPDXRef-binary-file-132",
+      "SPDXID": "SPDXRef-binary-file-124",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3010,7 +2799,7 @@
     },
     {
       "fileName": "./include/libavcodec/codec_id.h",
-      "SPDXID": "SPDXRef-binary-file-133",
+      "SPDXID": "SPDXRef-binary-file-125",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3022,7 +2811,7 @@
     },
     {
       "fileName": "./include/libavcodec/dirac.h",
-      "SPDXID": "SPDXRef-binary-file-134",
+      "SPDXID": "SPDXRef-binary-file-126",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3034,7 +2823,7 @@
     },
     {
       "fileName": "./include/libavcodec/avdct.h",
-      "SPDXID": "SPDXRef-binary-file-135",
+      "SPDXID": "SPDXRef-binary-file-127",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3046,7 +2835,7 @@
     },
     {
       "fileName": "./include/libavcodec/ac3_parser.h",
-      "SPDXID": "SPDXRef-binary-file-136",
+      "SPDXID": "SPDXRef-binary-file-128",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3058,7 +2847,7 @@
     },
     {
       "fileName": "./include/libavcodec/vorbis_parser.h",
-      "SPDXID": "SPDXRef-binary-file-137",
+      "SPDXID": "SPDXRef-binary-file-129",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3070,7 +2859,7 @@
     },
     {
       "fileName": "./include/libavcodec/dxva2.h",
-      "SPDXID": "SPDXRef-binary-file-138",
+      "SPDXID": "SPDXRef-binary-file-130",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3082,7 +2871,7 @@
     },
     {
       "fileName": "./include/libavcodec/dv_profile.h",
-      "SPDXID": "SPDXRef-binary-file-139",
+      "SPDXID": "SPDXRef-binary-file-131",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3093,44 +2882,8 @@
       "copyrightText": "NOASSERTION"
     },
     {
-      "fileName": "./include/libswresample/version.h",
-      "SPDXID": "SPDXRef-binary-file-140",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "ef5335ca64942dfab264b956bd7c7953a10fb20a8a99dbcd44e5dd346c8ab6cb"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
-      "fileName": "./include/libswresample/version_major.h",
-      "SPDXID": "SPDXRef-binary-file-141",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "5ded851cffe3a75e556e6914551ee8331c9b6eaa515307c88ceff8c9ab8b2dd1"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
-      "fileName": "./include/libswresample/swresample.h",
-      "SPDXID": "SPDXRef-binary-file-142",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "b23e625ab295d57a3d1ae0142c937b485dc386a36e4ed63f4b99ed886dc905e1"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
       "fileName": "./BUILD_INFO",
-      "SPDXID": "SPDXRef-binary-file-143",
+      "SPDXID": "SPDXRef-binary-file-132",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3142,7 +2895,7 @@
     },
     {
       "fileName": "./lib/pkgconfig/libswscale.pc",
-      "SPDXID": "SPDXRef-binary-file-144",
+      "SPDXID": "SPDXRef-binary-file-133",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3153,36 +2906,12 @@
       "copyrightText": "NOASSERTION"
     },
     {
-      "fileName": "./lib/pkgconfig/libswresample.pc",
-      "SPDXID": "SPDXRef-binary-file-145",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "7cc43a5660348777815e92b9ab97e3bc16a59d6041b18356c6934eeb4d65179a"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
-      "fileName": "./lib/pkgconfig/libavdevice.pc",
-      "SPDXID": "SPDXRef-binary-file-146",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "49acb2e2b4f11ca3a2a9312a279fa213c3a6db05f19019c3ad8d211c146b4e3b"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
       "fileName": "./lib/pkgconfig/libavcodec.pc",
-      "SPDXID": "SPDXRef-binary-file-147",
+      "SPDXID": "SPDXRef-binary-file-134",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "6045f23fbe0f8ee48aa13b50e9bc568fce5fe87260c18e6285e4f97c5d8f1cfa"
+          "checksumValue": "043c843bb540c83d991f41c3d3969f62cf701a330622677d622d11216cb0caf2"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -3190,11 +2919,11 @@
     },
     {
       "fileName": "./lib/pkgconfig/libavformat.pc",
-      "SPDXID": "SPDXRef-binary-file-148",
+      "SPDXID": "SPDXRef-binary-file-135",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "2bc47fb84397a588e1a236cf1e9dbf6ba62d1479ba33f1b1a553c7a00ab22759"
+          "checksumValue": "f1861478703e1a4c7de41101bb51a67bb2ebe7e6f9330664b64f2cacd8c2a034"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -3202,23 +2931,11 @@
     },
     {
       "fileName": "./lib/pkgconfig/libavutil.pc",
-      "SPDXID": "SPDXRef-binary-file-149",
+      "SPDXID": "SPDXRef-binary-file-136",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "d21d86196b651980639b0c47c51c8f18836019ea43766bd1189700b0853576ec"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
-      "fileName": "./lib/pkgconfig/libavfilter.pc",
-      "SPDXID": "SPDXRef-binary-file-150",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "d5d5935e563dd2f8357579f1e47cac2116c6499e78df992290fc3fd6c9b800d1"
+          "checksumValue": "1ac26a47e929f70eb3077bcae0170c3651608c7488a7e8acc33a2bb40df2e13c"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -3226,23 +2943,11 @@
     },
     {
       "fileName": "./lib/libavutil.a",
-      "SPDXID": "SPDXRef-binary-file-151",
+      "SPDXID": "SPDXRef-binary-file-137",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "f7ba2fd1884022f6aec2d5bb8bdfe9f14926b4e1b23b217fb65b1552932ab6d3"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
-      "fileName": "./lib/libavfilter.a",
-      "SPDXID": "SPDXRef-binary-file-152",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "840c0f46371d251864ce78f0062e670f13a9f28eddf50dd6c5ef9010fabc526a"
+          "checksumValue": "c63433d7a18e92966111a135f3c98a4fa8f256bb3ec07aeba8cb915bbfb5d3de"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -3250,11 +2955,11 @@
     },
     {
       "fileName": "./lib/libavcodec.a",
-      "SPDXID": "SPDXRef-binary-file-153",
+      "SPDXID": "SPDXRef-binary-file-138",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "bcedccfdc91af626fb001c4ba1fa1ac37c9aa2c17fc94342bdeafdb13f109ca5"
+          "checksumValue": "6b6cd665f1360360146377a8680e2365791f8347b0442de266ef9379f10fe49e"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -3262,35 +2967,11 @@
     },
     {
       "fileName": "./lib/libavformat.a",
-      "SPDXID": "SPDXRef-binary-file-154",
+      "SPDXID": "SPDXRef-binary-file-139",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "ef50d255a90cfacbe8b76b47ccc136bae44b5dcf10b4f0aa582b60ee09b5cec5"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
-      "fileName": "./lib/libavdevice.a",
-      "SPDXID": "SPDXRef-binary-file-155",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "6faed34f034a2204958534bd3c9213a4a88b6b4c4b83f084be75250f4cfa0b95"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
-      "fileName": "./lib/libswresample.a",
-      "SPDXID": "SPDXRef-binary-file-156",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "0ea18a54ebfec57a2a8f63db64ad82266e55a0d2accf374ea5976d95700747cf"
+          "checksumValue": "3f6b6b88f6eb9424ea708c4a2c530ed267388ce3fea5f80b608fc88881a467d8"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -3298,11 +2979,11 @@
     },
     {
       "fileName": "./lib/libswscale.a",
-      "SPDXID": "SPDXRef-binary-file-157",
+      "SPDXID": "SPDXRef-binary-file-140",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "2ac4ff29d49f0c70324a03571db520c7cb9781d2638bdea1d05a78d71fe23c96"
+          "checksumValue": "ae576c6e1867b8ce3bab62b3ad9c4c0b3d3a4f3bac9514bb000c5db63417bb5a"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -3310,7 +2991,7 @@
     },
     {
       "fileName": "./debug/lib/pkgconfig/libswscale.pc",
-      "SPDXID": "SPDXRef-binary-file-158",
+      "SPDXID": "SPDXRef-binary-file-141",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3321,36 +3002,12 @@
       "copyrightText": "NOASSERTION"
     },
     {
-      "fileName": "./debug/lib/pkgconfig/libswresample.pc",
-      "SPDXID": "SPDXRef-binary-file-159",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "d9732f44690d7c994ffcb1d98f15ccde1973c8fda7126547f18c748216be6521"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
-      "fileName": "./debug/lib/pkgconfig/libavdevice.pc",
-      "SPDXID": "SPDXRef-binary-file-160",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "bf97aa7363a92c19a615cf7e7dfd3e402f92327aca49850400ef9802c579f486"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
       "fileName": "./debug/lib/pkgconfig/libavcodec.pc",
-      "SPDXID": "SPDXRef-binary-file-161",
+      "SPDXID": "SPDXRef-binary-file-142",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "f3400920dc6c2e73b7dcb32baf56c95b81050df7b1a04f6d09cc8bc502e9e00f"
+          "checksumValue": "48ade01cb25e7f33031e9446358fa697dba859be1e44a267027aaf5e93b8bf05"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -3358,11 +3015,11 @@
     },
     {
       "fileName": "./debug/lib/pkgconfig/libavformat.pc",
-      "SPDXID": "SPDXRef-binary-file-162",
+      "SPDXID": "SPDXRef-binary-file-143",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "ca726da52e787a1c99d9b216ae278485ac95068aa2c4319aae1de55a1f3afd0e"
+          "checksumValue": "32b86ce09d613405940ce7a50e55e2ab622b54dcbec33b0ab87f944eb64ee1cb"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -3370,23 +3027,11 @@
     },
     {
       "fileName": "./debug/lib/pkgconfig/libavutil.pc",
-      "SPDXID": "SPDXRef-binary-file-163",
+      "SPDXID": "SPDXRef-binary-file-144",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "4042f4398134730d34437c753b8020580f13dcbecd17a7f4d385215f5f11ed64"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
-      "fileName": "./debug/lib/pkgconfig/libavfilter.pc",
-      "SPDXID": "SPDXRef-binary-file-164",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "691730594ac46514ed535dd180abd9ae204ff5b13c998cd793ff63d1bbe2ba60"
+          "checksumValue": "86e213bac95db9a453e0a4fe7f0bda1b0922ad5b38fc1506b9fa49913b567935"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -3394,23 +3039,11 @@
     },
     {
       "fileName": "./debug/lib/libavutil.a",
-      "SPDXID": "SPDXRef-binary-file-165",
+      "SPDXID": "SPDXRef-binary-file-145",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "ef0a576834def2250bd7ab6acdfdd90fc515032dafa77db73db908ecbb8f0da4"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
-      "fileName": "./debug/lib/libavfilter.a",
-      "SPDXID": "SPDXRef-binary-file-166",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "8afacbbae565474602cd93e1090ef3d89213b02afd6d30144a3ef31ebcb05126"
+          "checksumValue": "536007f94b8ab806d40e0ec42a49eb038ec5976f06368276487b344a46dd40df"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -3418,11 +3051,11 @@
     },
     {
       "fileName": "./debug/lib/libavcodec.a",
-      "SPDXID": "SPDXRef-binary-file-167",
+      "SPDXID": "SPDXRef-binary-file-146",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "d9978ccab3471ea7b27b0856932c4b88dbed43c9b0007e5b6a318a076bb3fbcc"
+          "checksumValue": "eb627c4845589dcac8aee996ccc1655eadfb0033c1d928e54395e6f24b245f01"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -3430,35 +3063,11 @@
     },
     {
       "fileName": "./debug/lib/libavformat.a",
-      "SPDXID": "SPDXRef-binary-file-168",
+      "SPDXID": "SPDXRef-binary-file-147",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "fd794add8f9405cc5b8816fd50b567d6edb95390ac2d20591e4a3e7deea14aa6"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
-      "fileName": "./debug/lib/libavdevice.a",
-      "SPDXID": "SPDXRef-binary-file-169",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "8529600fe35d8f81de3fc058a51d12611e83ccc20dba96162c4461fe1cb9f7dc"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "copyrightText": "NOASSERTION"
-    },
-    {
-      "fileName": "./debug/lib/libswresample.a",
-      "SPDXID": "SPDXRef-binary-file-170",
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "e46a5bb287a3b1fca1ad2ba01548b32113e10c76b6d19b8bce8cfc4092d99bb9"
+          "checksumValue": "45628cca97aa7c1e457057fa6927f108ce3d7a2bf4d7b0e8b2e918e4d1e01244"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -3466,11 +3075,11 @@
     },
     {
       "fileName": "./debug/lib/libswscale.a",
-      "SPDXID": "SPDXRef-binary-file-171",
+      "SPDXID": "SPDXRef-binary-file-148",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "64e03ece3672e011f74ae3f9d161dcd78c089f0ccfd82504daeea1f64faac472"
+          "checksumValue": "19be1e9926c31da6b83c0908f219af6721d2cd116c8ed8b821fa38cea83e1565"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -3478,11 +3087,11 @@
     },
     {
       "fileName": "./share/ffmpeg/FindFFMPEG.cmake",
-      "SPDXID": "SPDXRef-binary-file-172",
+      "SPDXID": "SPDXRef-binary-file-149",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "df15245e1cb3764c7f5f6b3f6d3d76a01359f2289acbd781e7110885cd00975d"
+          "checksumValue": "152007dd7022550f72ab88e2e3587efc6f0e9e2cba542018b474593309a4462c"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -3490,7 +3099,7 @@
     },
     {
       "fileName": "./share/ffmpeg/usage",
-      "SPDXID": "SPDXRef-binary-file-173",
+      "SPDXID": "SPDXRef-binary-file-150",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3502,7 +3111,7 @@
     },
     {
       "fileName": "./share/ffmpeg/examples/scale_video.c",
-      "SPDXID": "SPDXRef-binary-file-174",
+      "SPDXID": "SPDXRef-binary-file-151",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3514,7 +3123,7 @@
     },
     {
       "fileName": "./share/ffmpeg/examples/vaapi_transcode.c",
-      "SPDXID": "SPDXRef-binary-file-175",
+      "SPDXID": "SPDXRef-binary-file-152",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3526,7 +3135,7 @@
     },
     {
       "fileName": "./share/ffmpeg/examples/transcode_aac.c",
-      "SPDXID": "SPDXRef-binary-file-176",
+      "SPDXID": "SPDXRef-binary-file-153",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3538,7 +3147,7 @@
     },
     {
       "fileName": "./share/ffmpeg/examples/show_metadata.c",
-      "SPDXID": "SPDXRef-binary-file-177",
+      "SPDXID": "SPDXRef-binary-file-154",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3550,7 +3159,7 @@
     },
     {
       "fileName": "./share/ffmpeg/examples/qsv_decode.c",
-      "SPDXID": "SPDXRef-binary-file-178",
+      "SPDXID": "SPDXRef-binary-file-155",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3562,7 +3171,7 @@
     },
     {
       "fileName": "./share/ffmpeg/examples/avio_http_serve_files.c",
-      "SPDXID": "SPDXRef-binary-file-179",
+      "SPDXID": "SPDXRef-binary-file-156",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3574,7 +3183,7 @@
     },
     {
       "fileName": "./share/ffmpeg/examples/decode_filter_audio.c",
-      "SPDXID": "SPDXRef-binary-file-180",
+      "SPDXID": "SPDXRef-binary-file-157",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3586,7 +3195,7 @@
     },
     {
       "fileName": "./share/ffmpeg/examples/avio_read_callback.c",
-      "SPDXID": "SPDXRef-binary-file-181",
+      "SPDXID": "SPDXRef-binary-file-158",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3598,7 +3207,7 @@
     },
     {
       "fileName": "./share/ffmpeg/examples/vaapi_encode.c",
-      "SPDXID": "SPDXRef-binary-file-182",
+      "SPDXID": "SPDXRef-binary-file-159",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3610,7 +3219,7 @@
     },
     {
       "fileName": "./share/ffmpeg/examples/Makefile",
-      "SPDXID": "SPDXRef-binary-file-183",
+      "SPDXID": "SPDXRef-binary-file-160",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3622,7 +3231,7 @@
     },
     {
       "fileName": "./share/ffmpeg/examples/transcode.c",
-      "SPDXID": "SPDXRef-binary-file-184",
+      "SPDXID": "SPDXRef-binary-file-161",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3634,7 +3243,7 @@
     },
     {
       "fileName": "./share/ffmpeg/examples/encode_audio.c",
-      "SPDXID": "SPDXRef-binary-file-185",
+      "SPDXID": "SPDXRef-binary-file-162",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3646,7 +3255,7 @@
     },
     {
       "fileName": "./share/ffmpeg/examples/extract_mvs.c",
-      "SPDXID": "SPDXRef-binary-file-186",
+      "SPDXID": "SPDXRef-binary-file-163",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3658,7 +3267,7 @@
     },
     {
       "fileName": "./share/ffmpeg/examples/hw_decode.c",
-      "SPDXID": "SPDXRef-binary-file-187",
+      "SPDXID": "SPDXRef-binary-file-164",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3670,7 +3279,7 @@
     },
     {
       "fileName": "./share/ffmpeg/examples/demux_decode.c",
-      "SPDXID": "SPDXRef-binary-file-188",
+      "SPDXID": "SPDXRef-binary-file-165",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3682,7 +3291,7 @@
     },
     {
       "fileName": "./share/ffmpeg/examples/decode_video.c",
-      "SPDXID": "SPDXRef-binary-file-189",
+      "SPDXID": "SPDXRef-binary-file-166",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3694,7 +3303,7 @@
     },
     {
       "fileName": "./share/ffmpeg/examples/resample_audio.c",
-      "SPDXID": "SPDXRef-binary-file-190",
+      "SPDXID": "SPDXRef-binary-file-167",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3706,7 +3315,7 @@
     },
     {
       "fileName": "./share/ffmpeg/examples/README",
-      "SPDXID": "SPDXRef-binary-file-191",
+      "SPDXID": "SPDXRef-binary-file-168",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3718,7 +3327,7 @@
     },
     {
       "fileName": "./share/ffmpeg/examples/encode_video.c",
-      "SPDXID": "SPDXRef-binary-file-192",
+      "SPDXID": "SPDXRef-binary-file-169",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3730,7 +3339,7 @@
     },
     {
       "fileName": "./share/ffmpeg/examples/avio_list_dir.c",
-      "SPDXID": "SPDXRef-binary-file-193",
+      "SPDXID": "SPDXRef-binary-file-170",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3742,7 +3351,7 @@
     },
     {
       "fileName": "./share/ffmpeg/examples/qsv_transcode.c",
-      "SPDXID": "SPDXRef-binary-file-194",
+      "SPDXID": "SPDXRef-binary-file-171",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3754,7 +3363,7 @@
     },
     {
       "fileName": "./share/ffmpeg/examples/filter_audio.c",
-      "SPDXID": "SPDXRef-binary-file-195",
+      "SPDXID": "SPDXRef-binary-file-172",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3766,7 +3375,7 @@
     },
     {
       "fileName": "./share/ffmpeg/examples/mux.c",
-      "SPDXID": "SPDXRef-binary-file-196",
+      "SPDXID": "SPDXRef-binary-file-173",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3778,7 +3387,7 @@
     },
     {
       "fileName": "./share/ffmpeg/examples/remux.c",
-      "SPDXID": "SPDXRef-binary-file-197",
+      "SPDXID": "SPDXRef-binary-file-174",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3790,7 +3399,7 @@
     },
     {
       "fileName": "./share/ffmpeg/examples/decode_audio.c",
-      "SPDXID": "SPDXRef-binary-file-198",
+      "SPDXID": "SPDXRef-binary-file-175",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3802,7 +3411,7 @@
     },
     {
       "fileName": "./share/ffmpeg/examples/decode_filter_video.c",
-      "SPDXID": "SPDXRef-binary-file-199",
+      "SPDXID": "SPDXRef-binary-file-176",
       "checksums": [
         {
           "algorithm": "SHA256",
@@ -3814,11 +3423,11 @@
     },
     {
       "fileName": "./share/ffmpeg/copyright",
-      "SPDXID": "SPDXRef-binary-file-200",
+      "SPDXID": "SPDXRef-binary-file-177",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768"
+          "checksumValue": "246041b6ecf9bc32d718a62c57877c78b5eb397b6467e74ed7ae2626ab189c30"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -3826,11 +3435,11 @@
     },
     {
       "fileName": "./share/ffmpeg/vcpkg-cmake-wrapper.cmake",
-      "SPDXID": "SPDXRef-binary-file-201",
+      "SPDXID": "SPDXRef-binary-file-178",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "9d6b261f66b329bf0412c90505ed8240c4e07fb2f960ea09a9119186a87c7512"
+          "checksumValue": "047a73853d6dbbb5a7bc290cb7e24aa76fab4b7dee609ada3b869c8c269b23e5"
         }
       ],
       "licenseConcluded": "NOASSERTION",

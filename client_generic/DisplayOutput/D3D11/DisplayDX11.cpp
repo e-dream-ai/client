@@ -1496,6 +1496,24 @@ bool CDisplayDX11::CreateDeviceAndSwapChain() {
                 createDeviceFlags, featureLevels, 1,
                 D3D11_SDK_VERSION, &g_sharedDevice, nullptr, &g_sharedContext);
 
+            // Debug builds request D3D11_CREATE_DEVICE_DEBUG, which requires the
+            // Graphics Tools / SDK Layers optional feature. Without it, CreateDevice
+            // fails and every monitor falls through — retry without the debug flag.
+            if (FAILED(hr) && (createDeviceFlags & D3D11_CREATE_DEVICE_DEBUG))
+            {
+                createDeviceFlags &= ~D3D11_CREATE_DEVICE_DEBUG;
+                g_Log->Warning(
+                    "D3D11 debug layer unavailable (hr=%08X); creating device without "
+                    "D3D11_CREATE_DEVICE_DEBUG",
+                    hr);
+                g_sharedDevice.Reset();
+                g_sharedContext.Reset();
+                hr = D3D11CreateDevice(
+                    nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
+                    createDeviceFlags, featureLevels, 1,
+                    D3D11_SDK_VERSION, &g_sharedDevice, nullptr, &g_sharedContext);
+            }
+
             if (FAILED(hr) || !g_sharedDevice || !g_sharedContext)
             {
                 g_Log->Error("Failed to create shared D3D11 device/context");
