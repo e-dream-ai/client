@@ -60,9 +60,3 @@ client_generic/WinBuild/__pycache__/
 client_generic/RuntimeMSVC/*.exe
 client_generic/RuntimeMSVC/*.dll
 client_generic/RuntimeMSVC/*.pdb
-
-# sioclient
-_build_sioclient_win32/
-client_generic/_build_socketio/cmake-build-x64/
-client_generic/_build_socketio/socket.io-client-cpp-src/
-client_generic/_build_socketio/openssl-msvc-x64-layout/

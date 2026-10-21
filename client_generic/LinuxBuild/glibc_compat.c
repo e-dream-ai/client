@@ -7,9 +7,8 @@
  *   ./infinidream: /lib/x86_64-linux-gnu/libm.so.6: version 'GLIBC_2.43' not found
  *
  * Solution: define each problematic symbol here (satisfying ALL references at
- * link time — including those from pre-built archives like libsioclient_tls.a),
- * and inside each wrapper call a version-pinned alias that binds to a glibc
- * version present since at least Ubuntu 22.04.
+ * link time), and inside each wrapper call a version-pinned alias that binds
+ * to a glibc version present since at least Ubuntu 22.04.
  *
  * How it works:
  *   __asm__(".symver __real_foo,foo@GLIBC_2.2.5") on an extern declaration
