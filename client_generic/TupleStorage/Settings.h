@@ -62,6 +62,17 @@ class CSettings : public Base::CSingleton<CSettings>
         return m_pStorage->Root();
     };
 
+    //	Absolute path of the settings file, per-platform, as actually resolved
+    //	at Init() time. Use this in any message that tells a user where their
+    //	settings live — never hardcode a path, it differs on every platform.
+    std::string ConfigPath()
+    {
+        if (!m_pStorage)
+            return "?";
+
+        return m_pStorage->ConfigPath();
+    };
+
     //	Init.
     bool Init(std::string_view _sRoot, std::string_view _workingDir,
               bool _bReadOnly = false)

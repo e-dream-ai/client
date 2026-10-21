@@ -29,6 +29,11 @@ class IStorageInterface
 
     std::string Root() { return (m_sRoot); };
 
+    //	Absolute path of the file backing this storage, as resolved at
+    //	Initialise() time. Prefer this over hardcoding a per-platform location:
+    //	it is by construction the file the client actually reads and writes.
+    virtual std::string ConfigPath() = PureVirtual;
+
     //
     virtual bool Initialise(std::string_view _sRoot,
                             std::string_view _sWorkingDir,

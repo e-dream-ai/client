@@ -8,3 +8,7 @@ deps-src/
 openssl-minimal/
 ffmpeg-minimal/
 *.AppImage
+
+# Bytecode from build_appimage.py, same as WinBuild/__pycache__/ in the root
+# .gitignore. Anyone who runs the AppImage build generates it.
+__pycache__/

@@ -9,6 +9,9 @@
 #ifdef WIN32
 #include <process.h>
 #include <windows.h>
+#include <shellapi.h>  // CommandLineToArgvW — must follow windows.h
+#include <cwchar>
+#pragma comment(lib, "shell32.lib")
 #endif
 #include <float.h>
 #include <signal.h>
@@ -35,7 +38,20 @@ typedef CElectricSheep_Linux CElectricSheepClient;
 int32_t APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                          LPSTR lpCmdLine, int nCmdShow)
 {
-    bool cachedOnlyMode = false; // WIN32 does not support --cached flag parsing yet
+    // lpCmdLine is ANSI and untokenised. CommandLineToArgvW splits the wide command
+    // line with the same quoting rules the CRT gives argv, so we get argv semantics
+    // without hand-rolling a parser. Screensaver flags (/s, /c, /p) are parsed
+    // separately in client_win32.h off GetCommandLineA(); this only wants --cached.
+    bool cachedOnlyMode = false;
+    int wideArgCount = 0;
+    LPWSTR* wideArgs = CommandLineToArgvW(GetCommandLineW(), &wideArgCount);
+    if (wideArgs != nullptr)
+    {
+        for (int i = 1; i < wideArgCount; ++i)
+            if (wcscmp(wideArgs[i], L"--cached") == 0) { cachedOnlyMode = true; break; }
+
+        LocalFree(wideArgs);
+    }
 #else
 int32_t main(int argc, char* argv[])
 {

@@ -19,7 +19,7 @@ Cross-platform native desktop application and screensaver for infinidream.ai (ma
 ```
 client_generic/
   MacBuild/
-    e-dream.xcodeproj   # Xcode project
+    infinidream.xcodeproj   # Xcode project
     build.py             # Build script (-r release, -s stage, -n notarize, -v version)
     release.py           # Publish release with Sparkle appcast generation
   MSVC/
@@ -44,7 +44,7 @@ Shared setup (all platforms): clone with submodules (`git submodule update --ini
 ```bash
 brew install git-lfs && git lfs install          # Required for binary assets
 ./vcpkg/bootstrap-vcpkg.sh && ./vcpkg/vcpkg install  # Install C++ deps
-open client_generic/MacBuild/e-dream.xcodeproj   # Open in Xcode
+open client_generic/MacBuild/infinidream.xcodeproj   # Open in Xcode
 cd client_generic/MacBuild && ./build.py               # Build app (Debug)
 cd client_generic/MacBuild && ./build.py -r -n         # Release build with notarization
 cd client_generic/MacBuild && ./release.py -v X.Y.Z    # Publish release (appcast)
@@ -81,6 +81,50 @@ Linux has no UI sign-in: authenticate with `INFINIDREAM_API_KEY` env var or `~/.
 - Screensaver: embedded in the app bundle (macOS `.saver`); separate `infinidream.scr` on Windows; not applicable on Linux
 - Code signing: macOS auto-discovers Developer ID from Keychain; Windows uses Authenticode (`release.py --sign`)
 - Auto-update via Sparkle appcast XML — macOS only; Windows/Linux ship via GitHub releases without in-app update
+
+## Platform-Specific Code
+
+**Shared code asks for platform facts; it never states them.** A hardcoded
+`~/.config/infinidream/settings.json` in shared code compiles cleanly on all
+three platforms and is wrong on two of them, with no build-time signal — that is
+how [#675](https://github.com/e-dream-ai/client/issues/675) happened.
+
+The seam is `client_generic/Client/PlatformUtils.h`: one header of `static`
+declarations, with exactly one implementation compiled per build system.
+
+| Platform | Implementation | Wired into |
+|---|---|---|
+| Windows | `client_generic/MSVC/PlatformUtils_win.cpp` | `MSVC/electricsheep.vcxproj` |
+| macOS | `client_generic/MacBuild/PlatformUtils_Mac.mm` | `MacBuild/infinidream.xcodeproj` |
+| Linux | `client_generic/LinuxBuild/PlatformUtils_Linux.cpp` | `LinuxBuild/CMakeLists.txt` |
+
+Because the declarations are unconditional, **adding a method and forgetting an
+implementation is a link error on that platform** — loud and immediate. That is
+the property an `#ifdef` cannot give you: a missing or wrong `#ifdef` branch
+fails silently at runtime, usually in a user's log.
+
+Rules:
+
+- Need a platform-specific value or behaviour in shared code? Add a
+  `PlatformUtils` method and implement it in **all three** files. Where a
+  platform has nothing to do, write an explicit no-op with a comment saying why.
+- Never add an `#ifdef WIN32` / `MAC` / `LINUX_GNU` to `PlatformUtils.h` itself.
+  Platform-private helpers go in that platform's own internal header — see
+  `LinuxBuild/PlatformUtils_Internal.h`.
+- For the settings file location, use `g_Settings()->ConfigPath()`. It returns
+  the path the client actually opened, so it cannot drift from reality.
+- To put an error in front of a user, call `g_Log->Error()`. It already forwards
+  to `PlatformUtils::NotifyError()` (see `CLog::Error` in `Common/Log.cpp`), so
+  calling the seam directly as well reports the same failure twice.
+  `NotifyError()` is currently a `TODO` stub on Windows and Mac — the log file is
+  the only channel that reaches a user there.
+- `#ifdef` is still fine for `#include`s and for genuinely platform-shaped APIs
+  (a function taking an `HWND`). It is not fine for facts that shared code could
+  have asked for.
+
+`scripts/check_platform_paths.py` enforces the path half of this in CI
+(`.github/workflows/lint.yml`). Run it locally with
+`python scripts/check_platform_paths.py`.
 
 ## Runtime Logs
 

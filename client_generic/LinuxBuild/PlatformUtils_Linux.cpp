@@ -196,6 +196,13 @@ std::function<void(int, int)>& PlatformUtils_GetMouseCallback()
     return s_mouseCallback;
 }
 
+// No-ops on Linux: there is no HWND to register, and CDisplayVulkan invokes the
+// mouse-moved callback directly from the Wayland/X11 event loop rather than
+// routing through PlatformUtils.
+void PlatformUtils::SetNativeMessageWindow(void* /*_nativeHandle*/) {}
+
+void PlatformUtils::NotifyMouseMoved(int /*_x*/, int /*_y*/) {}
+
 // ---------------------------------------------------------------------------
 // Thread name
 // ---------------------------------------------------------------------------

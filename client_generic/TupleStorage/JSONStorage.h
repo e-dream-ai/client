@@ -37,6 +37,8 @@ class JSONStorage : public IStorageInterface
                             bool _bReadOnly = false) override;
     virtual bool Finalise() override;
 
+    virtual std::string ConfigPath() override { return m_ConfigPath; }
+
     //    Set values.
     virtual bool Set(std::string_view _entry, bool _val) override;
     virtual bool Set(std::string_view _entry, int32_t _val) override;
