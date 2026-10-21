@@ -154,6 +154,12 @@ class CPlayer : public Base::CSingleton<CPlayer>
 
     boost::atomic<bool> m_bStarted;
 
+#ifdef SCREEN_SAVER
+    // Shared multi-display (screensaver): wall time of last clip advance.
+    double m_LastSharedAdvanceTime = -1.0;
+    std::mutex m_SharedAdvanceMutex;
+#endif
+
     //	Used to keep track of elapsed time since last frame.
     double m_CapClock;
 
