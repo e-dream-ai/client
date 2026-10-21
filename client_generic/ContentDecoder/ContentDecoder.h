@@ -156,6 +156,20 @@ class CContentDecoder
     {
         m_d3d11Device = _device;
     }
+#elif defined(LINUX_GNU)
+    // _decodeDevice: Vulkan GPU name for FFmpeg's Vulkan Video decoder (the
+    // renderer's GPU); empty disables hardware decoding.
+    // _gpuYUVConversion: the renderer converts 8-bit 4:2:0 YUV frames itself,
+    // so they are queued as-is instead of being converted with swscale.
+    void SetVulkanOutput(const std::string& _decodeDevice, bool _gpuYUVConversion)
+    {
+        m_VulkanDecodeDevice = _decodeDevice;
+        m_GPUYUVConversion   = _gpuYUVConversion;
+    }
+
+    // Drops the process-wide reference to the shared Vulkan decode device.
+    // Open decoders keep their own references, so this is safe at any time.
+    static void ReleaseSharedVulkanDevice();
 #endif
 
     void Close();
@@ -215,6 +229,10 @@ class CContentDecoder
     ComPtr<ID3D11Device> m_d3d11Device;
     static AVPixelFormat GetHWFormat(AVCodecContext* ctx,
                                      const AVPixelFormat* pix_fmts);
+#elif defined(LINUX_GNU)
+    std::string m_VulkanDecodeDevice;
+    bool m_GPUYUVConversion = false;
+    static AVBufferRef* AcquireSharedVulkanDevice(const std::string& deviceName);
 #endif
 };
 

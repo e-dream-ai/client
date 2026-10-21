@@ -136,11 +136,27 @@ if(GLSLC)
         DEPENDS ${SHADER_SRC_DIR}/blend_cubic.frag
         COMMENT "Compiling blend_cubic.frag → SPIR-V"
     )
+    add_custom_command(
+        OUTPUT  ${SHADER_OUT_DIR}/fullscreen.vert.spv
+        COMMAND ${GLSLC} -o ${SHADER_OUT_DIR}/fullscreen.vert.spv
+                         ${SHADER_SRC_DIR}/fullscreen.vert
+        DEPENDS ${SHADER_SRC_DIR}/fullscreen.vert
+        COMMENT "Compiling fullscreen.vert → SPIR-V"
+    )
+    add_custom_command(
+        OUTPUT  ${SHADER_OUT_DIR}/yuv_to_rgb.frag.spv
+        COMMAND ${GLSLC} -o ${SHADER_OUT_DIR}/yuv_to_rgb.frag.spv
+                         ${SHADER_SRC_DIR}/yuv_to_rgb.frag
+        DEPENDS ${SHADER_SRC_DIR}/yuv_to_rgb.frag
+        COMMENT "Compiling yuv_to_rgb.frag → SPIR-V"
+    )
     add_custom_target(compile_shaders ALL DEPENDS
         ${SHADER_OUT_DIR}/quad.vert.spv
         ${SHADER_OUT_DIR}/quad.frag.spv
         ${SHADER_OUT_DIR}/blend_linear.frag.spv
         ${SHADER_OUT_DIR}/blend_cubic.frag.spv
+        ${SHADER_OUT_DIR}/fullscreen.vert.spv
+        ${SHADER_OUT_DIR}/yuv_to_rgb.frag.spv
     )
 else()
     message(WARNING "glslc not found. Shaders will not be compiled automatically.")

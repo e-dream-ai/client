@@ -746,6 +746,11 @@ bool CPlayer::Shutdown(void)
         m_PreloadingDreamUUID.clear();
     }
 
+#ifdef LINUX_GNU
+    // Decoders still tearing down hold their own references to the device.
+    ContentDecoder::CContentDecoder::ReleaseSharedVulkanDevice();
+#endif
+
     {
         std::scoped_lock lock(m_pendingCommandMutex);
         m_pendingCommands.clear();

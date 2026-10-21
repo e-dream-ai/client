@@ -14,6 +14,8 @@
 
 #ifdef WIN32
 #include "../DisplayOutput/D3D11/RendererDX11.h"
+#elif defined(LINUX_GNU)
+#include "../DisplayOutput/Vulkan/RendererVulkan.h"
 #endif
 
 namespace ContentDecoder
@@ -90,6 +92,18 @@ m_CurrentFrameMetadata{}, m_HasFinished(false), m_IsFadingOut(false)
             m_spDecoder->SetD3D11Device(rendererDX11->GetDevice());
         else
             g_Log->Warning("CClip: renderer is not CRendererDX11; hw decode will be unavailable");
+    }
+#elif defined(LINUX_GNU)
+    // Decode on the renderer's GPU via Vulkan Video when it supports it, and
+    // leave YUV frames for the renderer to convert when it can.
+    if (m_spRenderer)
+    {
+        auto* rendererVulkan = dynamic_cast<DisplayOutput::CRendererVulkan*>(m_spRenderer.get());
+        if (rendererVulkan)
+            m_spDecoder->SetVulkanOutput(rendererVulkan->GetVideoDecodeDeviceName(),
+                                         rendererVulkan->HasYUVConversion());
+        else
+            g_Log->Warning("CClip: renderer is not CRendererVulkan; hw decode will be unavailable");
     }
 #endif
 }
@@ -522,10 +536,13 @@ bool CClip::GrabVideoFrame()
             /*g_Log->Info("GrabVideoFrame() - Successfully grabbed frame %d",
                         m_CurrentFrameMetadata.frameIdx);*/
         }
-        const bool isHWFrame = m_spFrameData->IsHWFrame();
+        // GPU-resident hw frames and YUV frames awaiting GPU conversion are
+        // handed to the texture as AVFrames; everything else is CPU RGBA.
+        const bool bindFrame =
+            m_spFrameData->IsHWFrame() || m_spFrameData->IsYUVFrame();
 
-        // CPU-path: keep a sized CImage ref for Upload(). Not needed for GPU frames.
-        if (!isHWFrame)
+        // CPU-path: keep a sized CImage ref for Upload(). Not needed for bound frames.
+        if (!bindFrame)
         {
             if (m_spImageRef->GetWidth() != m_spFrameData->Width() ||
                 m_spImageRef->GetHeight() != m_spFrameData->Height())
@@ -545,10 +562,11 @@ bool CClip::GrabVideoFrame()
             return false;
         if (m_spFrameData->Frame())
         {
-            if (isHWFrame)
+            if (bindFrame)
             {
                 // GPU-backed frame (D3D11VA / VideoToolbox): bind directly —
-                // no sws_scale, no CPU→GPU upload.
+                // no sws_scale, no CPU→GPU upload. YUV frames (Vulkan): upload
+                // the planes and convert on the GPU.
                 if (!currentTexture->BindFrame(m_spFrameData))
                 {
                     // BindFrame can fail for unsupported surface formats (e.g. P010).
@@ -557,7 +575,7 @@ bool CClip::GrabVideoFrame()
                     static bool s_bindFrameFailLogged = false;
                     if (!s_bindFrameFailLogged)
                     {
-                        g_Log->Warning("CClip: BindFrame failed for hw frame; dropping frame "
+                        g_Log->Warning("CClip: BindFrame failed; dropping frame "
                                        "(unsupported surface format?)");
                         s_bindFrameFailLogged = true;
                     }
