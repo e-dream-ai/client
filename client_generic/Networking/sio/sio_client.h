@@ -82,6 +82,10 @@ namespace sio
 
         void set_logs_verbose();
 
+        // Only "/remote-control" is ever connected: the Beast shim hardcodes
+        // that namespace's CONNECT packet. A socket for any other namespace
+        // is returned but never sends CONNECT; its emits go out once
+        // /remote-control opens and are dropped by the server.
         sio::socket::ptr const& socket(const std::string& nsp = "");
 
         void close();
