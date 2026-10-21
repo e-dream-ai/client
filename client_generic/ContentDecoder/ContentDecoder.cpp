@@ -50,15 +50,73 @@ namespace ContentDecoder
 std::mutex CContentDecoder::s_RenameMutex;
 
 #ifdef LINUX_GNU
-// Prefer AV_PIX_FMT_VAAPI when the codec offers it; otherwise take the first
-// software format in the list.  This is the required get_format() hook for
-// FFmpeg hardware-accelerated decoding.
-static AVPixelFormat vaapi_get_format(AVCodecContext* /*ctx*/,
-                                      const AVPixelFormat* fmts)
+// Prefer AV_PIX_FMT_VULKAN when the codec offers it; otherwise take the first
+// software format in the list. FFmpeg only offers it when its Vulkan hwaccel
+// can handle the stream, and drops it again if hwaccel init fails, so a
+// software fallback needs no extra handling here.
+static AVPixelFormat vulkan_get_format(AVCodecContext* /*ctx*/,
+                                       const AVPixelFormat* fmts)
 {
     for (const AVPixelFormat* p = fmts; *p != AV_PIX_FMT_NONE; ++p)
-        if (*p == AV_PIX_FMT_VAAPI) return AV_PIX_FMT_VAAPI;
+    {
+        if (*p == AV_PIX_FMT_VULKAN)
+        {
+            g_Log->Info("Vulkan Video get_format: selected AV_PIX_FMT_VULKAN");
+            return AV_PIX_FMT_VULKAN;
+        }
+    }
+    g_Log->Info("Vulkan Video get_format: not offered for this stream; using software decoding");
     return fmts[0];
+}
+
+namespace
+{
+std::mutex   s_VulkanDeviceMutex;
+AVBufferRef* s_VulkanDevice = nullptr;  // process-wide reference
+std::string  s_VulkanDeviceName;        // GPU it was created (or failed) for
+bool         s_VulkanDeviceFailed = false;
+}
+
+// Returns a new reference to the process-wide FFmpeg Vulkan device on
+// deviceName, creating it on first use, or nullptr if that failed. Creating a
+// Vulkan instance and device per clip would be slow; FFmpeg serialises queue
+// access between the decoders sharing it.
+AVBufferRef* CContentDecoder::AcquireSharedVulkanDevice(const std::string& deviceName)
+{
+    std::lock_guard<std::mutex> lock(s_VulkanDeviceMutex);
+    if (s_VulkanDeviceName != deviceName)
+    {
+        av_buffer_unref(&s_VulkanDevice);
+        s_VulkanDeviceName   = deviceName;
+        s_VulkanDeviceFailed = false;
+    }
+    if (!s_VulkanDevice && !s_VulkanDeviceFailed)
+    {
+        // A non-numeric device string selects the GPU whose name contains it.
+        const int ret = av_hwdevice_ctx_create(&s_VulkanDevice, AV_HWDEVICE_TYPE_VULKAN,
+                                               deviceName.c_str(), nullptr, 0);
+        if (ret < 0)
+        {
+            char err[AV_ERROR_MAX_STRING_SIZE] = {};
+            av_strerror(ret, err, sizeof(err));
+            g_Log->Warning("Vulkan Video: decode device creation failed on %s (%s); "
+                           "using software decoding", deviceName.c_str(), err);
+            s_VulkanDeviceFailed = true;
+        }
+        else
+        {
+            g_Log->Info("Vulkan Video: decode device created on %s", deviceName.c_str());
+        }
+    }
+    return s_VulkanDevice ? av_buffer_ref(s_VulkanDevice) : nullptr;
+}
+
+void CContentDecoder::ReleaseSharedVulkanDevice()
+{
+    std::lock_guard<std::mutex> lock(s_VulkanDeviceMutex);
+    av_buffer_unref(&s_VulkanDevice);
+    s_VulkanDeviceName.clear();
+    s_VulkanDeviceFailed = false;
 }
 #elif defined(MAC)
 // Prefer AV_PIX_FMT_VIDEOTOOLBOX so frames arrive as CVPixelBufferRef in
@@ -468,21 +526,14 @@ bool CContentDecoder::Open()
         g_Log->Warning("No D3D11 device set on decoder; falling back to software decode");
     }
 #elif defined(LINUX_GNU)
-    // VAAPI: Falls back silently to software if VAAPI is not available
-    // (e.g. no DRI device, VM, etc.).
+    // Vulkan Video on the renderer's GPU. The renderer leaves the device name
+    // empty when its GPU has no Vulkan Video decode.
+    if (!m_VulkanDecodeDevice.empty())
     {
-        AVBufferRef* hw_ctx = nullptr;
-        if (av_hwdevice_ctx_create(&hw_ctx, AV_HWDEVICE_TYPE_VAAPI,
-                                   nullptr, nullptr, 0) == 0)
+        if (AVBufferRef* hwDevice = AcquireSharedVulkanDevice(m_VulkanDecodeDevice))
         {
-            ovi->m_pVideoCodecContext->hw_device_ctx = av_buffer_ref(hw_ctx);
-            ovi->m_pVideoCodecContext->get_format     = vaapi_get_format;
-            av_buffer_unref(&hw_ctx);
-            g_Log->Info("VAAPI hardware decoding enabled");
-        }
-        else
-        {
-            g_Log->Info("VAAPI unavailable — using software decoding");
+            ovi->m_pVideoCodecContext->hw_device_ctx = hwDevice;
+            ovi->m_pVideoCodecContext->get_format    = vulkan_get_format;
         }
     }
 #else
@@ -791,17 +842,16 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
         ovi->m_ActualFrameCount++;
 
 #ifdef LINUX_GNU
-        // If VAAPI produced a hardware frame, copy it to system RAM so the
-        // regular swscale path below can process it normally.
-        if (pFrame->format == AV_PIX_FMT_VAAPI)
+        // Vulkan Video frames live in the decode device's GPU memory; copy
+        // them to system RAM (NV12 for 8-bit content) for the renderer.
+        if (pFrame->format == AV_PIX_FMT_VULKAN)
         {
             AVFrame* sw_frame = av_frame_alloc();
-            if (av_hwframe_transfer_data(sw_frame, pFrame, 0) == 0)
+            // av_hwframe_transfer_data copies only pixel data; the props
+            // carry timing and colour metadata.
+            if (sw_frame && av_hwframe_transfer_data(sw_frame, pFrame, 0) == 0 &&
+                av_frame_copy_props(sw_frame, pFrame) == 0)
             {
-                // av_hwframe_transfer_data copies only pixel data — preserve timing metadata manually.
-                sw_frame->pts                   = pFrame->pts;
-                sw_frame->pkt_dts               = pFrame->pkt_dts;
-                sw_frame->best_effort_timestamp = pFrame->best_effort_timestamp;
                 av_frame_unref(pFrame);
                 av_frame_move_ref(pFrame, sw_frame);
             }
@@ -892,7 +942,17 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
             || pFrame->format == AV_PIX_FMT_D3D11
 #endif
         ));
-        if (USE_HW_ACCELERATION && isGPUFrame)
+#ifdef LINUX_GNU
+        // 8-bit 4:2:0 frames (NV12 from Vulkan Video, YUV420P from software)
+        // are converted to RGB on the GPU by the renderer, so queue them as-is.
+        const bool isRendererYUV = m_GPUYUVConversion && pFrame &&
+            (pFrame->format == AV_PIX_FMT_NV12 ||
+             pFrame->format == AV_PIX_FMT_YUV420P ||
+             pFrame->format == AV_PIX_FMT_YUVJ420P);
+#else
+        const bool isRendererYUV = false;
+#endif
+        if ((USE_HW_ACCELERATION && isGPUFrame) || isRendererYUV)
         {
             const std::string frameSource = ovi ? ovi->m_Path : std::string();
             pVideoFrame = new CVideoFrame(pFrame, frameNumber,
