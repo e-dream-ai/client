@@ -1263,19 +1263,19 @@ bool PlaylistManager::checkForPlaylistChanges() {
     g_Log->Info("Old timestamp: %lld, New timestamp: %lld",
                 oldTimestamp, newTimestamp);
     
+    {
+        std::lock_guard lock(m_stateMutex);
+        if (m_currentPlaylistUUID != playlistUUID) {
+            g_Log->Info("Ignoring periodic update for stale playlist %s",
+                        playlistUUID.c_str());
+            return false;
+        }
+    }
+
     if (newTimestamp > oldTimestamp) {
         g_Log->Info("Playlist change detected. Old timestamp: %lld, New timestamp: %lld",
                     oldTimestamp, newTimestamp);
 
-        {
-            std::lock_guard lock(m_stateMutex);
-            if (m_currentPlaylistUUID != playlistUUID) {
-                g_Log->Info("Ignoring periodic update for stale playlist %s",
-                            playlistUUID.c_str());
-                return false;
-            }
-        }
-        
         // Update the playlist
         if (updatePlaylist(true)) {
             g_Log->Info("Playlist updated successfully");
@@ -1284,7 +1284,11 @@ bool PlaylistManager::checkForPlaylistChanges() {
             g_Log->Error("Failed to update playlist");
         }
     } else {
-        g_Log->Info("No playlist changes detected");
+        // Playlist-document timestamp may be unchanged when a contained dream is
+        // re-encoded. Fresh FetchPlaylist still carries per-entry dream timestamps;
+        // ParsePlaylist refreshes metadata and validates cached video md5s.
+        g_Log->Info("No playlist-document changes; refreshing dream metadata/cache validation");
+        EDreamClient::ParsePlaylist(playlistUUID);
     }
     
     return false;
