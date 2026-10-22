@@ -1894,6 +1894,15 @@ void EDreamClient::ReportMD5Failure(const std::string& uuid, const std::string& 
     SendTelemetry("md5-mismatch", eventData);
 }
 
+void EDreamClient::ReportVideoInvalidated(const std::string& uuid, const std::string& oldMd5, const std::string& newMd5) {
+    boost::json::object eventData;
+    eventData["uuid"] = uuid;
+    eventData["oldMd5"] = oldMd5;
+    eventData["newMd5"] = newMd5;
+
+    SendTelemetry("video-invalidated", eventData);
+}
+
 // MARK: - Async funtions
 std::future<bool> EDreamClient::FetchPlaylistAsync(const std::string& uuid) {
     return std::async(std::launch::async, [uuid]() {
@@ -2502,7 +2511,8 @@ std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
             // send that array and try to fetch all at once
             FetchDreamsMetadata(needsMetadataUuids);
 
-            // Then reload metadata for each of the uuids
+            // Then reload metadata for each of the uuids (reloadMetadata also
+            // validates cached video md5 and may invalidate stale MP4s).
             for (const auto& needsMetadata : needsMetadataUuids) {
                 cm.reloadMetadata(needsMetadata);
             }
