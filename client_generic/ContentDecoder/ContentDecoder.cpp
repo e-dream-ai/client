@@ -1605,6 +1605,20 @@ void CContentDecoder::FinalizeCacheFile()
             if (fs::exists(tmpPath)) {
                 // Use static mutex to ensure atomic rename operation across all threads
                 std::lock_guard<std::mutex> renameLock(s_RenameMutex);
+
+                Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+                // Refuse to promote a stream that started with a stale clip-snapshot
+                // md5 after invalidateVideo refreshed metadata / dropped the file.
+                auto currentDream = cm.getDream(m_Metadata.dreamData.uuid);
+                if (!currentDream || currentDream->md5.empty() ||
+                    currentDream->md5 != m_Metadata.dreamData.md5) {
+                    g_Log->Info(
+                        "Discarding stream finalize for %s: clip md5 stale vs cache metadata",
+                        m_Metadata.dreamData.uuid.c_str());
+                    fs::remove(tmpPath);
+                    m_CachePath.clear();
+                    return;
+                }
                 
                 if (!fs::exists(finalPath)) {
                     fs::rename(tmpPath, finalPath);
@@ -1616,10 +1630,12 @@ void CContentDecoder::FinalizeCacheFile()
                     newDiskItem.uuid = m_Metadata.dreamData.uuid;
                     newDiskItem.version = m_Metadata.dreamData.video_timestamp;
                     newDiskItem.downloadDate = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+                    newDiskItem.md5 = m_Metadata.dreamData.md5;
 
-                    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
                     cm.addDiskCachedItem(newDiskItem);
                 } else {
+                    // A newer download may already own the path after invalidate+redownload;
+                    // never resurrect this tmp as the cache entry.
                     g_Log->Info("Final file %s already exists, removing temporary file %s", 
                                 finalPath.string().c_str(), tmpPath.string().c_str());
                     fs::remove(tmpPath);
