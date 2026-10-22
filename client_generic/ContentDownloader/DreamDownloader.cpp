@@ -328,6 +328,7 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
     newDiskItem.uuid = uuid;
     newDiskItem.version = dream->video_timestamp;
     newDiskItem.downloadDate = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    newDiskItem.md5 = dream->md5;
 
     cm.addDiskCachedItem(newDiskItem);
     cm.decreaseRemainingQuota(dream->size);

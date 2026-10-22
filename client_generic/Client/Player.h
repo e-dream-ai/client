@@ -303,6 +303,11 @@ class CPlayer : public Base::CSingleton<CPlayer>
     bool SetPlaylistAtDream(const std::string& playlistUUID, const std::string& dreamUUID, bool fetchPlaylist);
    
     void MarkForDeletion(std::string_view _uuid);
+    // Drop a preloaded next clip for uuid if m_UpdateMutex can be taken without
+    // blocking (no-op when InitializePlaylist/Update already holds the lock).
+    void TryCancelPreloadForUuid(const std::string& uuid);
+    // Retry deferred MP4 deletes for UUIDs that are no longer current/next.
+    void FlushPendingVideoInvalidations();
     void SkipToNext();
     void ReturnToPrevious();
     void SkipForward(float _seconds);
