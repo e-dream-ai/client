@@ -914,6 +914,13 @@ static const char* GetClipboardText(void*)
     static std::string s_clipboardBuf;
     s_clipboardBuf.clear();
 
+    // Native Wayland clipboard first; the tools below are often not installed.
+    s_clipboardBuf = PlatformUtils_ReadClipboard();
+    while (!s_clipboardBuf.empty() && (s_clipboardBuf.back() == '\n' || s_clipboardBuf.back() == '\r'))
+        s_clipboardBuf.pop_back();
+    if (!s_clipboardBuf.empty())
+        return s_clipboardBuf.c_str();
+
     // Try wl-paste first (native Wayland), then fall back to X11 tools.
     static const char* const kCmds[] = {
         "wl-paste --no-newline 2>/dev/null",

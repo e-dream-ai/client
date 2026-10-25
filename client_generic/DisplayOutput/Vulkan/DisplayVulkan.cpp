@@ -13,7 +13,9 @@
 #include <cstring>
 #include <sys/select.h>
 #ifdef HAVE_WAYLAND
+#include <fcntl.h>
 #include <poll.h>
+#include <unordered_map>
 #include <sys/mman.h>
 #include <unistd.h>
 #endif
@@ -147,6 +149,113 @@ static const wl_output_listener s_wlOutputListener = {
     onWlOutputGeometry, onWlOutputMode, onWlOutputDone, onWlOutputScale,
 };
 
+// Clipboard (wl_data_device) — lets the wizard and settings dialog paste with
+// Ctrl+V without wl-paste/xclip/xsel, which a stock desktop doesn't have.
+namespace {
+// Best text MIME type each live offer advertised.
+std::unordered_map<wl_data_offer*, std::string> s_offerTextMime;
+
+int textMimeRank(const char* mime)
+{
+    static const char* const kPreferred[] = {
+        "text/plain;charset=utf-8", "UTF8_STRING", "text/plain", "STRING", "TEXT",
+    };
+    for (int i = 0; i < 5; ++i)
+        if (strcmp(mime, kPreferred[i]) == 0) return i;
+    return -1;
+}
+
+void onDataOfferOffer(void*, wl_data_offer* offer, const char* mime)
+{
+    const int rank = textMimeRank(mime);
+    if (rank < 0) return;
+    std::string& best = s_offerTextMime[offer];
+    if (best.empty() || rank < textMimeRank(best.c_str()))
+        best = mime;
+}
+void onDataOfferSourceActions(void*, wl_data_offer*, uint32_t) {}
+void onDataOfferAction(void*, wl_data_offer*, uint32_t) {}
+const wl_data_offer_listener s_dataOfferListener = {
+    onDataOfferOffer, onDataOfferSourceActions, onDataOfferAction,
+};
+
+void destroyOffer(wl_data_offer* offer)
+{
+    if (!offer) return;
+    s_offerTextMime.erase(offer);
+    wl_data_offer_destroy(offer);
+}
+
+void onDataDeviceDataOffer(void*, wl_data_device*, wl_data_offer* offer)
+{
+    wl_data_offer_add_listener(offer, &s_dataOfferListener, nullptr);
+}
+// Drag-and-drop isn't supported; release the offer straight away.
+void onDataDeviceEnter(void*, wl_data_device*, uint32_t, wl_surface*,
+                       wl_fixed_t, wl_fixed_t, wl_data_offer* offer)
+{
+    destroyOffer(offer);
+}
+void onDataDeviceLeave(void*, wl_data_device*) {}
+void onDataDeviceMotion(void*, wl_data_device*, uint32_t, wl_fixed_t, wl_fixed_t) {}
+void onDataDeviceDrop(void*, wl_data_device*) {}
+} // namespace
+
+void CDisplayVulkan::onDataDeviceSelection(void* data, wl_data_device*, wl_data_offer* offer)
+{
+    auto* self = static_cast<CDisplayVulkan*>(data);
+    if (self->m_pSelectionOffer != offer)
+        destroyOffer(self->m_pSelectionOffer);
+    self->m_pSelectionOffer = offer;
+}
+
+// Needs both the seat and the data device manager, whichever is bound last.
+void CDisplayVulkan::createDataDevice()
+{
+    if (m_pDataDevice || !m_pDataDeviceManager || !m_pWlSeat)
+        return;
+    m_pDataDevice = wl_data_device_manager_get_data_device(m_pDataDeviceManager, m_pWlSeat);
+    static const wl_data_device_listener s_dataDeviceListener = {
+        onDataDeviceDataOffer, onDataDeviceEnter, onDataDeviceLeave,
+        onDataDeviceMotion, onDataDeviceDrop, onDataDeviceSelection,
+    };
+    wl_data_device_add_listener(m_pDataDevice, &s_dataDeviceListener, this);
+    PlatformUtils_SetClipboardReader([this]() { return readClipboardText(); });
+}
+
+std::string CDisplayVulkan::readClipboardText()
+{
+    auto it = s_offerTextMime.find(m_pSelectionOffer);
+    if (!m_pSelectionOffer || it == s_offerTextMime.end())
+        return {};
+
+    int fds[2];
+    if (pipe2(fds, O_CLOEXEC) != 0)
+        return {};
+    wl_data_offer_receive(m_pSelectionOffer, it->second.c_str(), fds[1]);
+    close(fds[1]);
+    wl_display_flush(m_pWlDisplay);
+
+    // The source app writes asynchronously; don't let a stuck one hang the UI.
+    std::string text;
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(500);
+    char buf[4096];
+    while (text.size() < 64 * 1024)
+    {
+        const auto left = std::chrono::duration_cast<std::chrono::milliseconds>(
+            deadline - std::chrono::steady_clock::now()).count();
+        pollfd pfd{fds[0], POLLIN, 0};
+        if (left <= 0 || poll(&pfd, 1, static_cast<int>(left)) <= 0)
+            break;
+        const ssize_t n = read(fds[0], buf, sizeof buf);
+        if (n <= 0)
+            break;
+        text.append(buf, static_cast<size_t>(n));
+    }
+    close(fds[0]);
+    return text;
+}
+
 void CDisplayVulkan::onRegistryGlobal(void* data, wl_registry* registry,
                                        uint32_t name, const char* interface,
                                        uint32_t version)
@@ -179,6 +288,14 @@ void CDisplayVulkan::onRegistryGlobal(void* data, wl_registry* registry,
             onSeatName,
         };
         wl_seat_add_listener(self->m_pWlSeat, &s_seatListener, self);
+        self->createDataDevice();
+    }
+    else if (strcmp(interface, wl_data_device_manager_interface.name) == 0)
+    {
+        self->m_pDataDeviceManager = static_cast<wl_data_device_manager*>(
+            wl_registry_bind(registry, name, &wl_data_device_manager_interface,
+                             version < 3 ? version : 3));
+        self->createDataDevice();
     }
     else if (strcmp(interface, zxdg_decoration_manager_v1_interface.name) == 0)
     {
@@ -779,6 +896,11 @@ void CDisplayVulkan::destroyWayland()
     if (m_pCursorSurface)     { wl_surface_destroy(m_pCursorSurface);                      m_pCursorSurface     = nullptr; }
     if (m_pWlPointer)         { wl_pointer_destroy(m_pWlPointer);                          m_pWlPointer         = nullptr; }
     if (m_pWlKeyboard)        { wl_keyboard_destroy(m_pWlKeyboard);                        m_pWlKeyboard        = nullptr; }
+    PlatformUtils_SetClipboardReader(nullptr);
+    destroyOffer(m_pSelectionOffer);
+    m_pSelectionOffer = nullptr;
+    if (m_pDataDevice)        { wl_data_device_destroy(m_pDataDevice);                     m_pDataDevice        = nullptr; }
+    if (m_pDataDeviceManager) { wl_data_device_manager_destroy(m_pDataDeviceManager);      m_pDataDeviceManager = nullptr; }
     if (m_pWlSeat)            { wl_seat_destroy(m_pWlSeat);                                m_pWlSeat            = nullptr; }
     if (m_pToplevelDecoration){ zxdg_toplevel_decoration_v1_destroy(m_pToplevelDecoration);m_pToplevelDecoration= nullptr; }
     if (m_pDecorationManager) { zxdg_decoration_manager_v1_destroy(m_pDecorationManager);  m_pDecorationManager = nullptr; }

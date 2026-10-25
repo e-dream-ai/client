@@ -196,6 +196,18 @@ std::function<void(int, int)>& PlatformUtils_GetMouseCallback()
     return s_mouseCallback;
 }
 
+static std::function<std::string()> s_clipboardReader;
+
+void PlatformUtils_SetClipboardReader(std::function<std::string()> reader)
+{
+    s_clipboardReader = std::move(reader);
+}
+
+std::string PlatformUtils_ReadClipboard()
+{
+    return s_clipboardReader ? s_clipboardReader() : std::string();
+}
+
 // ---------------------------------------------------------------------------
 // Thread name
 // ---------------------------------------------------------------------------

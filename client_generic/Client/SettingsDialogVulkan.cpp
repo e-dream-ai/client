@@ -167,6 +167,13 @@ static const char* GetClipboardText(void*)
 {
     static std::string s_buf;
     s_buf.clear();
+
+    // Native Wayland clipboard first; the tools below are often not installed.
+    s_buf = PlatformUtils_ReadClipboard();
+    while (!s_buf.empty() && (s_buf.back() == '\n' || s_buf.back() == '\r'))
+        s_buf.pop_back();
+    if (!s_buf.empty())
+        return s_buf.c_str();
     static const char* const kCmds[] = {
         "wl-paste --no-newline 2>/dev/null",
         "xclip -selection clipboard -o 2>/dev/null",
