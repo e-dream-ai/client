@@ -119,6 +119,17 @@ The binary is placed at `client_generic/LinuxBuild/build/infinidream`, with
 compiled shaders in `build/shaders/` and `logo.png` copied next to it
 automatically.
 
+For a stage build (talks to `api-stage.infinidream.ai` and keeps its data in
+`~/.config/infinidream-stage/`), use a separate build tree:
+
+```bash
+cmake -B build-stage -DCMAKE_BUILD_TYPE=Release -DINFINIDREAM_STAGE=ON
+cmake --build build-stage -j$(nproc)
+```
+
+To package a portable AppImage, run `./build_appimage.py` (add `--stage` for
+a stage AppImage).
+
 ### Authentication
 
 On first run the client signs in with a code emailed to you: the first-run

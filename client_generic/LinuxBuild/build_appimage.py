@@ -6,9 +6,11 @@ Builds infinidream and packages it as a self-contained AppImage.
 
 Usage:
     cd client/client_generic/LinuxBuild
-    ./build.py
+    ./build_appimage.py            # prod
+    ./build_appimage.py --stage    # stage (api-stage.infinidream.ai)
 
-Output: infinidream-<arch>.AppImage in this directory.
+Output: infinidream-<arch>.AppImage (or infinidream-stage-<arch>.AppImage)
+in this directory.
 
 Requirements:
   - Build tools: cmake, gcc, g++, make, perl
@@ -21,6 +23,7 @@ Requirements:
     The script sets APPIMAGE_EXTRACT_AND_RUN=1 automatically without FUSE.
 """
 
+import argparse
 import os
 import platform
 import shutil
@@ -410,7 +413,7 @@ def compile_glibc_shim() -> Path:
 # ---------------------------------------------------------------------------
 # CMake build
 # ---------------------------------------------------------------------------
-def build_infinidream(shim_obj: Path) -> None:
+def build_infinidream(shim_obj: Path, stage: bool) -> None:
     """
     Build infinidream (Release) with system g++.
 
@@ -443,6 +446,7 @@ def build_infinidream(shim_obj: Path) -> None:
         f"-DOPENSSL_ROOT_DIR={OPENSSL_INSTALL}",
         "-DBoost_USE_STATIC_LIBS=ON",
         f"-DCMAKE_EXE_LINKER_FLAGS={linker_flags}",
+        f"-DINFINIDREAM_STAGE={'ON' if stage else 'OFF'}",
     ], env={"PKG_CONFIG_PATH": pkg_config_path, **os.environ})
 
     log(f"Compiling ({nproc} jobs) ...")
@@ -577,6 +581,14 @@ def create_appimage(appimagetool: Path) -> None:
 # Main
 # ---------------------------------------------------------------------------
 def main() -> None:
+    global OUTPUT_APPIMAGE
+    parser = argparse.ArgumentParser(description="Build the infinidream Linux AppImage.")
+    parser.add_argument("--stage", action="store_true",
+                        help="build against api-stage.infinidream.ai")
+    args = parser.parse_args()
+    if args.stage:
+        OUTPUT_APPIMAGE = SCRIPT_DIR / f"infinidream-stage-{ARCH}.AppImage"
+
     # Clean AppDir and cmake build tree unconditionally at startup
     if APPDIR.exists():
         shutil.rmtree(APPDIR)
@@ -603,7 +615,7 @@ def main() -> None:
     linuxdeploy, appimagetool = prepare_appimage_tools()
 
     shim_obj = compile_glibc_shim()
-    build_infinidream(shim_obj)
+    build_infinidream(shim_obj, args.stage)
     verify_glibc_ceiling()
 
     assemble_appdir()

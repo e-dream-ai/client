@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/spot/e-dream-ai/client/client_generic/LinuxBuild/build-stage/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

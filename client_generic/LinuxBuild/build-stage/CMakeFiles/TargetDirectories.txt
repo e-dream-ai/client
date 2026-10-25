@@ -1,0 +1,4 @@
+/home/spot/e-dream-ai/client/client_generic/LinuxBuild/build-stage/CMakeFiles/compile_shaders.dir
+/home/spot/e-dream-ai/client/client_generic/LinuxBuild/build-stage/CMakeFiles/infinidream.dir
+/home/spot/e-dream-ai/client/client_generic/LinuxBuild/build-stage/CMakeFiles/edit_cache.dir
+/home/spot/e-dream-ai/client/client_generic/LinuxBuild/build-stage/CMakeFiles/rebuild_cache.dir
