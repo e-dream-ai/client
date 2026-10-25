@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <limits>
@@ -97,6 +98,10 @@ CRendererVulkan::~CRendererVulkan()
     if (m_pipelineLayoutLinear!= VK_NULL_HANDLE) vkDestroyPipelineLayout(m_device, m_pipelineLayoutLinear, nullptr);
     if (m_pipelineCubic       != VK_NULL_HANDLE) vkDestroyPipeline(m_device, m_pipelineCubic, nullptr);
     if (m_pipelineLayoutCubic != VK_NULL_HANDLE) vkDestroyPipelineLayout(m_device, m_pipelineLayoutCubic, nullptr);
+    if (m_yuvPipeline         != VK_NULL_HANDLE) vkDestroyPipeline(m_device, m_yuvPipeline, nullptr);
+    if (m_yuvPipelineLayout   != VK_NULL_HANDLE) vkDestroyPipelineLayout(m_device, m_yuvPipelineLayout, nullptr);
+    if (m_yuvRenderPass       != VK_NULL_HANDLE) vkDestroyRenderPass(m_device, m_yuvRenderPass, nullptr);
+    if (m_yuvSetLayout        != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(m_device, m_yuvSetLayout, nullptr);
     if (m_descriptorPool      != VK_NULL_HANDLE) vkDestroyDescriptorPool(m_device, m_descriptorPool, nullptr);
     if (m_descriptorSetLayout != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayout, nullptr);
     if (m_defaultSampler      != VK_NULL_HANDLE) vkDestroySampler(m_device, m_defaultSampler, nullptr);
@@ -536,7 +541,8 @@ VkShaderModule CRendererVulkan::loadShader(const std::string& path)
 // shader modules and a pre-created pipeline layout.
 // ---------------------------------------------------------------------------
 bool CRendererVulkan::buildGraphicsPipeline(VkShaderModule vert, VkShaderModule frag,
-                                             VkPipelineLayout layout, VkPipeline& outPipeline)
+                                             VkPipelineLayout layout, VkPipeline& outPipeline,
+                                             VkRenderPass renderPass, bool fullscreenTriangle)
 {
     VkPipelineShaderStageCreateInfo stages[2]{};
     stages[0].sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -562,11 +568,14 @@ bool CRendererVulkan::buildGraphicsPipeline(VkShaderModule vert, VkShaderModule 
     attrs[1].offset   = offsetof(QuadVertex, u);
 
     VkPipelineVertexInputStateCreateInfo vertInput{};
-    vertInput.sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertInput.vertexBindingDescriptionCount   = 1;
-    vertInput.pVertexBindingDescriptions      = &binding;
-    vertInput.vertexAttributeDescriptionCount = 2;
-    vertInput.pVertexAttributeDescriptions    = attrs;
+    vertInput.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    if (!fullscreenTriangle)
+    {
+        vertInput.vertexBindingDescriptionCount   = 1;
+        vertInput.pVertexBindingDescriptions      = &binding;
+        vertInput.vertexAttributeDescriptionCount = 2;
+        vertInput.pVertexAttributeDescriptions    = attrs;
+    }
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType    = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -595,7 +604,7 @@ bool CRendererVulkan::buildGraphicsPipeline(VkShaderModule vert, VkShaderModule 
     ms.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
     VkPipelineColorBlendAttachmentState blendAtt{};
-    blendAtt.blendEnable         = VK_TRUE;
+    blendAtt.blendEnable         = fullscreenTriangle ? VK_FALSE : VK_TRUE;
     blendAtt.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
     blendAtt.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
     blendAtt.colorBlendOp        = VK_BLEND_OP_ADD;
@@ -622,7 +631,7 @@ bool CRendererVulkan::buildGraphicsPipeline(VkShaderModule vert, VkShaderModule 
     pci.pColorBlendState    = &blend;
     pci.pDynamicState       = &dynState;
     pci.layout              = layout;
-    pci.renderPass          = m_renderPass;
+    pci.renderPass          = (renderPass != VK_NULL_HANDLE) ? renderPass : m_renderPass;
 
     return vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pci,
                                      nullptr, &outPipeline) == VK_SUCCESS;
@@ -745,6 +754,158 @@ bool CRendererVulkan::createCubicBlendPipeline()
     vkDestroyShaderModule(m_device, frag, nullptr);
     if (ok) g_Log->Info("CRendererVulkan: cubic frame-blend pipeline ready");
     return ok;
+}
+
+// ---------------------------------------------------------------------------
+// YUV→RGB conversion pipeline. Renders decoded video planes into a frame
+// texture's RGBA image, which the blend pipelines then sample as usual.
+// ---------------------------------------------------------------------------
+bool CRendererVulkan::createYUVConversionPipeline()
+{
+    // Set 0: Y plane, U (or interleaved UV) plane, V plane.
+    VkDescriptorSetLayoutBinding bindings[3]{};
+    for (uint32_t i = 0; i < 3; ++i)
+    {
+        bindings[i].binding         = i;
+        bindings[i].descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        bindings[i].descriptorCount = 1;
+        bindings[i].stageFlags      = VK_SHADER_STAGE_FRAGMENT_BIT;
+    }
+    VkDescriptorSetLayoutCreateInfo dslci{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
+    dslci.bindingCount = 3;
+    dslci.pBindings    = bindings;
+    if (vkCreateDescriptorSetLayout(m_device, &dslci, nullptr, &m_yuvSetLayout) != VK_SUCCESS)
+        return false;
+
+    // The pass overwrites the whole image, so its previous contents are
+    // discarded, and it ends in the layout the blend pipelines sample from.
+    VkAttachmentDescription colorAtt{};
+    colorAtt.format         = VK_FORMAT_R8G8B8A8_SRGB;
+    colorAtt.samples        = VK_SAMPLE_COUNT_1_BIT;
+    colorAtt.loadOp         = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colorAtt.storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAtt.stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colorAtt.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    colorAtt.initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorAtt.finalLayout    = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+    VkAttachmentReference colorRef{0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint    = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments    = &colorRef;
+
+    VkSubpassDependency deps[2]{};
+    // Earlier frames may still be sampling this texture: wait for those reads
+    // before overwriting it.
+    deps[0].srcSubpass    = VK_SUBPASS_EXTERNAL;
+    deps[0].dstSubpass    = 0;
+    deps[0].srcStageMask  = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    deps[0].srcAccessMask = 0;
+    deps[0].dstStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    deps[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    // Make the converted pixels visible to later blend draws.
+    deps[1].srcSubpass    = 0;
+    deps[1].dstSubpass    = VK_SUBPASS_EXTERNAL;
+    deps[1].srcStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    deps[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    deps[1].dstStageMask  = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    deps[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+    VkRenderPassCreateInfo rpci{VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
+    rpci.attachmentCount = 1;
+    rpci.pAttachments    = &colorAtt;
+    rpci.subpassCount    = 1;
+    rpci.pSubpasses      = &subpass;
+    rpci.dependencyCount = 2;
+    rpci.pDependencies   = deps;
+    if (vkCreateRenderPass(m_device, &rpci, nullptr, &m_yuvRenderPass) != VK_SUCCESS)
+        return false;
+
+    VkPushConstantRange pcRange{};
+    pcRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    pcRange.offset     = 0;
+    pcRange.size       = sizeof(VkPushConstantsYUV);
+
+    VkPipelineLayoutCreateInfo plci{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
+    plci.setLayoutCount         = 1;
+    plci.pSetLayouts            = &m_yuvSetLayout;
+    plci.pushConstantRangeCount = 1;
+    plci.pPushConstantRanges    = &pcRange;
+    if (vkCreatePipelineLayout(m_device, &plci, nullptr, &m_yuvPipelineLayout) != VK_SUCCESS)
+        return false;
+
+    std::string shaderDir = PlatformUtils::GetWorkingDir() + "shaders/";
+    VkShaderModule vert = loadShader(shaderDir + "fullscreen.vert.spv");
+    VkShaderModule frag = loadShader(shaderDir + "yuv_to_rgb.frag.spv");
+    if (vert == VK_NULL_HANDLE || frag == VK_NULL_HANDLE)
+    {
+        if (vert != VK_NULL_HANDLE) vkDestroyShaderModule(m_device, vert, nullptr);
+        if (frag != VK_NULL_HANDLE) vkDestroyShaderModule(m_device, frag, nullptr);
+        return false;
+    }
+
+    bool ok = buildGraphicsPipeline(vert, frag, m_yuvPipelineLayout, m_yuvPipeline,
+                                    m_yuvRenderPass, true);
+    vkDestroyShaderModule(m_device, vert, nullptr);
+    vkDestroyShaderModule(m_device, frag, nullptr);
+    if (ok) g_Log->Info("CRendererVulkan: YUV→RGB conversion pipeline ready");
+    return ok;
+}
+
+// ---------------------------------------------------------------------------
+// Vulkan Video decode support on the selected GPU. FFmpeg creates its own
+// device for decoding; this only decides whether that is worth attempting
+// and which GPU it should pick.
+// ---------------------------------------------------------------------------
+void CRendererVulkan::queryVideoDecodeSupport()
+{
+    m_videoDecodeDeviceName.clear();
+
+    // Literal values: headers older than 1.3.238 only define these behind
+    // VK_ENABLE_BETA_EXTENSIONS.
+    constexpr VkQueueFlags kQueueVideoDecodeBit = 0x00000020;  // VK_QUEUE_VIDEO_DECODE_BIT_KHR
+
+    uint32_t qCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice, &qCount, nullptr);
+    std::vector<VkQueueFamilyProperties> qProps(qCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice, &qCount, qProps.data());
+    const bool hasDecodeQueue = std::any_of(qProps.begin(), qProps.end(),
+        [&](const VkQueueFamilyProperties& q) { return (q.queueFlags & kQueueVideoDecodeBit) != 0; });
+
+    uint32_t extCount = 0;
+    vkEnumerateDeviceExtensionProperties(m_physicalDevice, nullptr, &extCount, nullptr);
+    std::vector<VkExtensionProperties> exts(extCount);
+    vkEnumerateDeviceExtensionProperties(m_physicalDevice, nullptr, &extCount, exts.data());
+    auto hasExt = [&](const char* name) {
+        return std::any_of(exts.begin(), exts.end(),
+            [&](const VkExtensionProperties& e) { return strcmp(e.extensionName, name) == 0; });
+    };
+    const bool h264 = hasExt("VK_KHR_video_decode_h264");
+    const bool h265 = hasExt("VK_KHR_video_decode_h265");
+
+    VkPhysicalDeviceProperties props;
+    vkGetPhysicalDeviceProperties(m_physicalDevice, &props);
+
+    // Escape hatch for driver bugs and for testing the software path.
+    if (getenv("INFINIDREAM_NO_HW_DECODE"))
+    {
+        g_Log->Info("CRendererVulkan: INFINIDREAM_NO_HW_DECODE set; video will be decoded in software");
+        return;
+    }
+
+    if (hasDecodeQueue && hasExt("VK_KHR_video_decode_queue") && (h264 || h265))
+    {
+        m_videoDecodeDeviceName = props.deviceName;
+        g_Log->Info("CRendererVulkan: Vulkan Video decode available on %s (H.264: %s, H.265: %s)",
+                    props.deviceName, h264 ? "yes" : "no", h265 ? "yes" : "no");
+    }
+    else
+    {
+        g_Log->Info("CRendererVulkan: no Vulkan Video decode on %s; video will be decoded in software",
+                    props.deviceName);
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1032,6 +1193,10 @@ bool CRendererVulkan::Initialize(spCDisplayOutput _spDisplay)
         g_Log->Warning("CRendererVulkan: linear blend pipeline unavailable (missing blend_linear.frag.spv?)");
     if (!createCubicBlendPipeline())
         g_Log->Warning("CRendererVulkan: cubic blend pipeline unavailable (missing blend_cubic.frag.spv?)");
+    if (!createYUVConversionPipeline())
+        g_Log->Warning("CRendererVulkan: YUV conversion pipeline unavailable (missing yuv_to_rgb.frag.spv?); "
+                       "video frames will be converted on the CPU");
+    queryVideoDecodeSupport();
     if (!createVertexBuffers())                      return false;
 
     m_currentDescSet = m_whiteDescSet;

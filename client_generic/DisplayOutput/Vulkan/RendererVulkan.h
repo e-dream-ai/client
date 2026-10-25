@@ -48,6 +48,13 @@ struct VkPushConstantsCubic {
     float w0, w1, w2, w3;
 };
 
+// Push constants for the YUV→RGB conversion pass — must match yuv_to_rgb.frag.
+struct VkPushConstantsYUV {
+    float   matrix[4];  // Cr->R, Cb->G, Cr->G, Cb->B
+    float   range[4];   // luma scale, luma offset, chroma scale, chroma offset
+    int32_t interleavedChroma;
+};
+
 /*
     CRendererVulkan.
     Implements the CRenderer interface using Vulkan.
@@ -90,6 +97,18 @@ class CRendererVulkan : public CRenderer
     // Cubic frame-blend pipeline (4 textures at sets 1–4)
     VkPipelineLayout m_pipelineLayoutCubic = VK_NULL_HANDLE;
     VkPipeline       m_pipelineCubic       = VK_NULL_HANDLE;
+
+    // YUV→RGB conversion pass: renders decoded video planes (set 0, bindings
+    // 0–2) into a frame texture's RGBA image. Optional — without it, video
+    // frames are converted on the CPU.
+    VkDescriptorSetLayout m_yuvSetLayout      = VK_NULL_HANDLE;
+    VkRenderPass          m_yuvRenderPass     = VK_NULL_HANDLE;
+    VkPipelineLayout      m_yuvPipelineLayout = VK_NULL_HANDLE;
+    VkPipeline            m_yuvPipeline       = VK_NULL_HANDLE;
+
+    // deviceName of the selected GPU when it exposes Vulkan Video H.264 or
+    // H.265 decode; empty otherwise.
+    std::string m_videoDecodeDeviceName;
 
     // Currently bound pipeline (tracked to avoid redundant vkCmdBindPipeline calls)
     VkPipeline m_activePipeline = VK_NULL_HANDLE;
@@ -155,8 +174,14 @@ class CRendererVulkan : public CRenderer
     bool createPipeline();
     bool createLinearBlendPipeline();
     bool createCubicBlendPipeline();
+    bool createYUVConversionPipeline();
+    void queryVideoDecodeSupport();
+    // renderPass defaults to the swapchain pass. fullscreenTriangle builds a
+    // pipeline with no vertex input and no blending (for fullscreen.vert).
     bool buildGraphicsPipeline(VkShaderModule vert, VkShaderModule frag,
-                               VkPipelineLayout layout, VkPipeline& outPipeline);
+                               VkPipelineLayout layout, VkPipeline& outPipeline,
+                               VkRenderPass renderPass = VK_NULL_HANDLE,
+                               bool fullscreenTriangle = false);
     bool createCommandPool();
     bool createCommandBuffers();
     bool createSyncObjects();
@@ -219,6 +244,17 @@ class CRendererVulkan : public CRenderer
     VkDescriptorSetLayout GetDescriptorSetLayout()const { return m_descriptorSetLayout; }
     VkSampler             GetDefaultSampler()     const { return m_defaultSampler; }
     uint32_t  FindMemType(uint32_t filter, VkMemoryPropertyFlags props);
+
+    // YUV→RGB conversion pass (used by CTextureFlatVulkan::BindFrame).
+    bool                  HasYUVConversion()      const { return m_yuvPipeline != VK_NULL_HANDLE; }
+    VkDescriptorSetLayout GetYUVSetLayout()       const { return m_yuvSetLayout; }
+    VkRenderPass          GetYUVRenderPass()      const { return m_yuvRenderPass; }
+    VkPipelineLayout      GetYUVPipelineLayout()  const { return m_yuvPipelineLayout; }
+    VkPipeline            GetYUVPipeline()        const { return m_yuvPipeline; }
+
+    // GPU name to hand to FFmpeg's Vulkan hwdevice so video decodes on the
+    // same GPU that renders it. Empty when the GPU has no Vulkan Video decode.
+    const std::string& GetVideoDecodeDeviceName() const { return m_videoDecodeDeviceName; }
 
     // Single-time command helpers (used by CTextureFlatVulkan for uploads)
     VkCommandBuffer BeginSingleTimeCommands();

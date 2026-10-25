@@ -117,8 +117,13 @@ inline std::recursive_mutex& GetD3D11ImmediateContextMutex()
 #define USE_HW_ACCELERATION_WIN32 1
 #undef USE_HW_ACCELERATION
 #define USE_HW_ACCELERATION 1
+#elif defined(LINUX_GNU)
+// Linux path: hw acceleration enabled via Vulkan Video (falls back to
+// software when the GPU or FFmpeg build lacks it).
+#undef USE_HW_ACCELERATION
+#define USE_HW_ACCELERATION 1
 #else
-// All other platforms (Linux, etc.): no hw acceleration.
+// All other platforms: no hw acceleration.
 #undef USE_HW_ACCELERATION
 #define USE_HW_ACCELERATION 0
 #endif

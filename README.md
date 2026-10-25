@@ -136,6 +136,21 @@ Arrow keys navigate between dreams. `F1`–`F4` toggle HUD overlays (help,
 server stats, render stats, display stats). Close the window or press `Esc`
 to quit.
 
+### Hardware video decoding
+
+Video is decoded with Vulkan Video on the rendering GPU when the driver
+supports it (NVIDIA proprietary drivers, AMD with recent Mesa), and in
+software otherwise. Either way, YUV→RGB conversion runs on the GPU. The log
+says which path was chosen (`Vulkan Video decode available on ...` or
+`no Vulkan Video decode on ...`).
+
+Intel's Mesa driver only exposes Vulkan Video when `ANV_DEBUG=video-decode`
+is set. To force software decoding, for example to rule out a driver bug:
+
+```bash
+INFINIDREAM_NO_HW_DECODE=1 ./infinidream
+```
+
 ---
 
 ## Build on macOS

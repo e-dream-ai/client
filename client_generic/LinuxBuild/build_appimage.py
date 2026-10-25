@@ -17,6 +17,7 @@ Requirements:
                  the main binary uses system g++)
                  Install: pacman -S zig  OR  apt install zig
   - nasm/yasm   (FFmpeg assembly optimisations; skipped gracefully if absent)
+  - Vulkan headers >= 1.3.277 (FFmpeg Vulkan Video decode)
   - FUSE or kernel >= 5.13 with /dev/fuse available (for running AppImages).
     The script sets APPIMAGE_EXTRACT_AND_RUN=1 automatically without FUSE.
 """
@@ -139,14 +140,17 @@ OPENSSL_URL      = (f"https://github.com/openssl/openssl/releases/download/"
 OPENSSL_SRC_DIR  = DEPS_SRC / f"openssl-{OPENSSL_VERSION}"
 OPENSSL_INSTALL  = SCRIPT_DIR / "openssl-minimal"
 
-FFMPEG_VERSION   = "7.1.1"
+# 9.x reuses a staging buffer for Vulkan frame downloads on NVIDIA; 8.x
+# imports (allocates and frees) GPU memory for every decoded frame there.
+# Windows/macOS stay on vcpkg's FFmpeg — they never download Vulkan frames.
+FFMPEG_VERSION   = "9.0.2"
 FFMPEG_TARBALL   = f"ffmpeg-{FFMPEG_VERSION}.tar.xz"
 FFMPEG_URL       = f"https://ffmpeg.org/releases/{FFMPEG_TARBALL}"
 FFMPEG_SRC_DIR   = DEPS_SRC / f"ffmpeg-{FFMPEG_VERSION}"
 FFMPEG_INSTALL   = SCRIPT_DIR / "ffmpeg-minimal"
 
 # Bump when FFmpeg configure flags change — forces a clean rebuild
-FFMPEG_CONFIG_TAG = "novdpau"
+FFMPEG_CONFIG_TAG = "novdpau-vulkan-udp"
 
 LINUXDEPLOY_BIN  = f"linuxdeploy-{ARCH}.AppImage"
 APPIMAGETOOL_BIN = f"appimagetool-{ARCH}.AppImage"
@@ -270,13 +274,14 @@ def build_openssl(zig_cc: Path, zig_cxx: Path) -> None:
 # ---------------------------------------------------------------------------
 def build_ffmpeg(zig_cc: Path, zig_cxx: Path) -> None:
     """
-    Build a minimal FFmpeg (h264/hevc decode, mov/mkv demux, OpenSSL TLS).
+    Build a minimal FFmpeg (h264/hevc decode with Vulkan Video, mov/mkv demux,
+    OpenSSL TLS).
 
     Uses the zig wrappers so bundled .so files are glibc-2.35 clean.
     """
     marker           = FFMPEG_INSTALL / "lib" / "pkgconfig" / "libavcodec.pc"
     toolchain_marker = FFMPEG_INSTALL / ".toolchain-target"
-    expected_tag     = f"{GLIBC_TARGET}-{FFMPEG_CONFIG_TAG}"
+    expected_tag     = f"{GLIBC_TARGET}-{FFMPEG_VERSION}-{FFMPEG_CONFIG_TAG}"
 
     if cache_valid(marker, toolchain_marker, expected_tag):
         log(f"Minimal FFmpeg {FFMPEG_VERSION} already built for {expected_tag}, skipping.")
@@ -321,6 +326,9 @@ def build_ffmpeg(zig_cc: Path, zig_cxx: Path) -> None:
         "--enable-protocol=https",
         "--enable-protocol=tcp",
         "--enable-protocol=tls",
+        # Since FFmpeg 8, tls_openssl.c includes DTLS code that calls into
+        # udp.c, so the TLS protocol needs UDP built in to link.
+        "--enable-protocol=udp",
         "--enable-demuxer=mov",
         "--enable-demuxer=matroska",
         "--enable-decoder=h264",
@@ -329,10 +337,27 @@ def build_ffmpeg(zig_cc: Path, zig_cxx: Path) -> None:
         "--enable-parser=hevc",
         "--enable-bsf=h264_mp4toannexb",
         "--enable-bsf=hevc_mp4toannexb",
+        # Vulkan Video hardware decode. FFmpeg loads libvulkan at runtime, so
+        # this adds no link dependency; it needs Vulkan headers >= 1.3.277 at
+        # build time.
+        "--enable-vulkan",
+        "--enable-hwaccel=h264_vulkan",
+        "--enable-hwaccel=hevc_vulkan",
         "--disable-doc",
         "--disable-programs",
         "--disable-vdpau",
+        # VAAPI is unused; if autodetected it would make libva a hard runtime
+        # dependency of the AppImage.
+        "--disable-vaapi",
     ], cwd=FFMPEG_SRC_DIR)
+
+    # --enable-hwaccel silently drops hwaccels whose dependencies are missing,
+    # so check they made it in rather than shipping software-only decode.
+    components = (FFMPEG_SRC_DIR / "config_components.h").read_text()
+    for define in ("CONFIG_H264_VULKAN_HWACCEL", "CONFIG_HEVC_VULKAN_HWACCEL"):
+        if f"#define {define} 1" not in components:
+            die(f"FFmpeg configure did not enable {define} (are the Vulkan "
+                f"headers >= 1.3.277 installed?)")
 
     # zig cc bundles glibc headers that include sys/sysctl.h, so configure
     # incorrectly sets HAVE_SYSCTL=1.  Fix before compiling.
@@ -565,6 +590,31 @@ def bundle_libraries(linuxdeploy: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Unresolved symbol check
+# ---------------------------------------------------------------------------
+def verify_symbols_resolve() -> None:
+    """
+    Fail if any bundled library references a symbol nothing provides.
+
+    The binary links with --allow-shlib-undefined, so a minimal FFmpeg that
+    is missing an internal object still builds but cannot start.
+    """
+    log("Verifying all symbols resolve against the bundled libraries ...")
+    result = subprocess.run(
+        ["ldd", "-r", str(APPDIR / "usr" / "bin" / "infinidream")],
+        capture_output=True, text=True,
+        env={**os.environ, "LD_LIBRARY_PATH": str(APPDIR / "usr" / "lib")})
+    bad = [line.strip() for line in (result.stdout + result.stderr).splitlines()
+           if "undefined symbol" in line or "not found" in line]
+    if bad:
+        print("\nERROR: unresolved symbols in the AppDir:", file=sys.stderr)
+        for line in bad:
+            print(f"  {line}", file=sys.stderr)
+        sys.exit(1)
+    log("Symbol check passed.")
+
+
+# ---------------------------------------------------------------------------
 # Create the AppImage
 # ---------------------------------------------------------------------------
 def create_appimage(appimagetool: Path) -> None:
@@ -608,6 +658,7 @@ def main() -> None:
 
     assemble_appdir()
     bundle_libraries(linuxdeploy)
+    verify_symbols_resolve()
     create_appimage(appimagetool)
 
     print()
