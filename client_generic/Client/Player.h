@@ -2,6 +2,7 @@
 #define _PLAYER_H_
 
 #include <atomic>
+#include <chrono>
 #include <deque>
 #include <future>
 #include <queue>
@@ -347,6 +348,10 @@ class CPlayer : public Base::CSingleton<CPlayer>
 
     // Keep track of preflight decision
     std::optional<PlaylistManager::NextDreamDecision> m_nextDreamDecision;
+
+    // After a natural-transition preflight finds nothing cached, wait before
+    // retrying instead of preflighting (and logging) on every frame.
+    std::chrono::steady_clock::time_point m_nextTransitionPreflight{};
     
     // Check if we need to prepare for transition
     bool shouldPrepareTransition(const ContentDecoder::spCClip& clip) const;

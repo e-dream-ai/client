@@ -385,6 +385,24 @@ void EDreamClient::SendGoodbye()
     }
 }
 
+void EDreamClient::SendGoodbyeAndDisconnect()
+{
+    if (!s_SIOClient.opened())
+    {
+        g_Log->Info("WebSocket not connected, skipping goodbye message");
+        return;
+    }
+
+    SendGoodbye();
+    // emit() only queues the frame; wait for it to be written so the
+    // shutdown watchdog's _exit() can't drop it.
+    if (!s_SIOClient.wait_for_writes(std::chrono::milliseconds(300)))
+        g_Log->Warning("Goodbye not written before timeout");
+    // Close so no later ping or state_sync makes the player look present
+    // again after the goodbye, and so the socket doesn't reconnect.
+    s_SIOClient.sync_close();
+}
+
 static void BindWebSocketCallbacks()
 {
     g_Log->Info("Binding web socket callbacks");

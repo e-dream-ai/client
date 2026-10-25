@@ -25,6 +25,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <deque>
+#include <future>
 #include <memory>
 #include <mutex>
 #include <sstream>
@@ -461,6 +462,28 @@ public:
         });
         std::unique_lock<std::mutex> lock(m);
         cv.wait_for(lock, std::chrono::seconds(2), [&]() { return done; });
+    }
+
+    // Wait until every queued frame has been handed to the socket, so a
+    // caller about to exit doesn't drop it. Returns false on timeout.
+    bool wait_for_writes(std::chrono::milliseconds timeout)
+    {
+        auto const deadline = std::chrono::steady_clock::now() + timeout;
+        while (true)
+        {
+            auto idle = std::make_shared<std::promise<bool>>();
+            auto result = idle->get_future();
+            net::post(m_strand, [self = shared_from_this(), idle]() {
+                idle->set_value(!self->m_writing && self->m_write_queue.empty());
+            });
+            if (result.wait_until(deadline) != std::future_status::ready)
+                return false;
+            if (result.get())
+                return true;
+            if (std::chrono::steady_clock::now() >= deadline)
+                return false;
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
     }
 
     void emit(std::string const& nsp, std::string const& name, message::list const& msglist)
@@ -1241,6 +1264,7 @@ sio::socket::ptr const& client::socket(const std::string& nsp)
 
 void client::close() { m_impl->close(); }
 void client::sync_close() { m_impl->sync_close(); }
+bool client::wait_for_writes(std::chrono::milliseconds timeout) { return m_impl->wait_for_writes(timeout); }
 void client::set_proxy_basic_auth(const std::string&, const std::string&, const std::string&) {}
 bool client::opened() const { return m_impl->opened(); }
 std::string const& client::get_sessionid() const { return m_impl->get_sessionid(); }
