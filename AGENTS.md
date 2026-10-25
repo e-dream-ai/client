@@ -73,7 +73,9 @@ cmake --build build -j$(nproc)
 ./build/infinidream                            # binary at build/infinidream
 ```
 
-Linux has no UI sign-in: authenticate with `INFINIDREAM_API_KEY` env var or `~/.config/infinidream/settings.json`.
+Linux signs in with an emailed code (the first-run wizard, or a console prompt when no GUI wizard is registered), which stores a sealed session in `~/.config/infinidream/settings.json`. `INFINIDREAM_API_KEY` or `settings.content.api_key` still works as a fallback, but API-key auth skips the sealed-session refresh paths.
+
+The Linux CMake build never defines `STAGE`, so every Linux build, Debug included, targets `api-alpha`. To test against stage, set `settings.content.server` to `api-stage.infinidream.ai`, ideally under a separate `HOME` (e.g. `HOME=~/infinidream-stage-home ./build/infinidream`), because Linux has no parallel stage data folder.
 
 ## Key Patterns
 
@@ -87,14 +89,14 @@ Linux has no UI sign-in: authenticate with `INFINIDREAM_API_KEY` env var or `~/.
 Runtime logs are written to one file per day (`YYYY_MM_DD.log`) in:
 - **macOS:** `/Users/Shared/infinidream.ai/Logs/`
 - **Windows:** `%LOCALAPPDATA%\Infinidream\Logs\` (e.g., `C:\Users\<user>\AppData\Local\Infinidream\Logs\`; stage build uses `Infinidream-stage`)
-- **Linux:** `/tmp/infinidream-logs/`
+- **Linux:** `~/.config/infinidream/Logs/`
 
 ## Clean Install (testing)
 
-To simulate a fresh first-run ("clean the install"), quit the app and delete the per-user data root. Logs live inside it on macOS/Windows, separately on Linux. Stage builds use a parallel folder so prod and stage state don't collide.
+To simulate a fresh first-run ("clean the install"), quit the app and delete the per-user data root. Logs live inside it on every platform. Stage builds use a parallel folder on macOS and Windows so prod and stage state don't collide; Linux has no stage build (see above).
 - **macOS:** `/Users/Shared/infinidream.ai/` (stage: `/Users/Shared/infinidream.ai-stage/`)
 - **Windows:** `%LOCALAPPDATA%\Infinidream\` (stage: `Infinidream-stage`)
-- **Linux:** `~/.config/infinidream/` plus `/tmp/infinidream-logs/`
+- **Linux:** `~/.config/infinidream/`
 
 The screensaver pointer at `HKCU\Control Panel\Desktop\SCRNSAVE.EXE` (Windows) is left alone unless you're specifically re-testing the screensaver opt-in.
 
