@@ -583,11 +583,16 @@ void CDisplayVulkan::onKeyboardModifiers(void* data, wl_keyboard*, uint32_t,
 void CDisplayVulkan::onKeyboardRepeatInfo(void*, wl_keyboard*, int32_t, int32_t) {}
 
 void CDisplayVulkan::onPointerEnter(void* data, wl_pointer*, uint32_t serial,
-                                    wl_surface*, wl_fixed_t surface_x, wl_fixed_t surface_y)
+                                    wl_surface* surface, wl_fixed_t surface_x, wl_fixed_t surface_y)
 {
     auto* self = static_cast<CDisplayVulkan*>(data);
     self->m_lastPointerSerial = serial;
-    self->m_bPointerInsideContent = true;
+    // The wl_pointer also reports libdecor's decoration surfaces (title bar,
+    // borders); libdecor handles those itself. Treating their coordinates and
+    // clicks as ours put phantom presses into ImGui.
+    self->m_bPointerInsideContent = (surface == self->m_pWlSurface);
+    if (!self->m_bPointerInsideContent)
+        return;
     self->m_lastPointerX = wl_fixed_to_int(surface_x);
     self->m_lastPointerY = wl_fixed_to_int(surface_y);
 #ifdef HAVE_LIBDECOR
@@ -604,19 +609,31 @@ void CDisplayVulkan::onPointerEnter(void* data, wl_pointer*, uint32_t serial,
         mouseCallback(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
 }
 
-void CDisplayVulkan::onPointerLeave(void* data, wl_pointer*, uint32_t, wl_surface*)
+void CDisplayVulkan::onPointerLeave(void* data, wl_pointer*, uint32_t, wl_surface* surface)
 {
     auto* self = static_cast<CDisplayVulkan*>(data);
+    if (surface != self->m_pWlSurface)
+        return;
     self->m_bPointerInsideContent = false;
 #ifdef HAVE_LIBDECOR
     self->m_hoverResizeEdge = LIBDECOR_RESIZE_EDGE_NONE;
 #endif
+    // A press that starts a compositor grab (window move or resize) never gets
+    // its release; without this ImGui keeps the button held and swallows the
+    // next click.
+    for (uint32_t button : {kWaylandButtonLeft, kWaylandButtonLeft + 1, kWaylandButtonLeft + 2})
+    {
+        FirstTimeSetupVulkan_FeedMouseButton(button, false);
+        SettingsDialogVulkan_FeedMouseButton(button, false);
+    }
 }
 
 void CDisplayVulkan::onPointerMotion(void* data, wl_pointer*, uint32_t,
                                      wl_fixed_t surface_x, wl_fixed_t surface_y)
 {
     auto* self = static_cast<CDisplayVulkan*>(data);
+    if (!self->m_bPointerInsideContent)
+        return;
     self->m_lastPointerX = wl_fixed_to_int(surface_x);
     self->m_lastPointerY = wl_fixed_to_int(surface_y);
 #ifdef HAVE_LIBDECOR
@@ -637,6 +654,8 @@ void CDisplayVulkan::onPointerButton(void* data, wl_pointer*, uint32_t serial,
                                      uint32_t, uint32_t button, uint32_t state)
 {
     auto* self = static_cast<CDisplayVulkan*>(data);
+    if (!self->m_bPointerInsideContent)
+        return;
     self->m_lastPointerSerial = serial;
 #ifdef HAVE_LIBDECOR
     if (button == kWaylandButtonLeft &&
