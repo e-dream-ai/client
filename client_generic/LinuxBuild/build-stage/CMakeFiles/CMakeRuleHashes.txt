@@ -1,8 +1,0 @@
-# Hashes of file build rules.
-a8f28d9686d2759fcf516592a56bfa39 CMakeFiles/compile_shaders
-61aa72175785c2b909dc388693e51392 shaders/blend_cubic.frag.spv
-3eb68acf2c34c8c124e8c82008c63fd2 shaders/blend_linear.frag.spv
-d7c02a13bf862ade6960f5a988109f9c shaders/quad.frag.spv
-5704ae0cf629db2af106b2edcc4bbac2 shaders/quad.vert.spv
-f9ea0de97e47acb220f5225d6088343a xdg-decoration-unstable-v1-protocol.c
-08de43248fad03d10584bdfccadcd427 xdg-shell-protocol.c
