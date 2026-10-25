@@ -73,6 +73,24 @@ sudo pacman -S --needed \
     libxkbcommon
 ```
 
+On Ubuntu (tested on 26.04):
+
+```bash
+sudo apt install -y \
+    build-essential cmake pkg-config \
+    libvulkan-dev glslc \
+    libx11-dev \
+    libssl-dev \
+    libboost-all-dev \
+    libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libswresample-dev \
+    libpng-dev libcurl4-openssl-dev \
+    libwayland-dev wayland-protocols libxkbcommon-dev libdecor-0-dev
+```
+
+A distro upgrade can remove the Boost development packages; if CMake reports
+`Could not find a package configuration file provided by "Boost"`, reinstall
+`libboost-all-dev` and reconfigure with `cmake --fresh -B build`.
+
 Wayland support is optional — the build falls back to X11/XWayland if the
 Wayland packages are absent.
 
@@ -103,7 +121,13 @@ automatically.
 
 ### Authentication
 
-Linux has no UI sign-in flow. Authenticate via API key:
+On first run the client signs in with a code emailed to you: the first-run
+wizard asks for your email and the code, or a console prompt does when no GUI
+wizard is available. This stores a sealed session in
+`~/.config/infinidream/settings.json`, so later launches sign in automatically.
+
+An API key still works as a fallback (for headless use), but it skips the
+sealed-session refresh paths:
 
 **Option 1 — environment variable (one-off or scripted):**
 ```bash
