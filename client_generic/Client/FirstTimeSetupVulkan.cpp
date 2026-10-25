@@ -320,9 +320,11 @@ static void ApplyLightSheetStyle()
 
     ImVec4 text(0.10f, 0.11f, 0.13f, 1.f);
     ImVec4 winBg(0.965f, 0.967f, 0.975f, 0.985f);
-    ImVec4 btn(1.f, 1.f, 1.f, 1.f);
-    ImVec4 btnHov(0.96f, 0.96f, 0.98f, 1.f);
-    ImVec4 btnAct(0.90f, 0.90f, 0.93f, 1.f);
+    // Neutral buttons need a fill clearly darker than the sheet; white ones
+    // were hard to tell from the background. Primary actions use kMacAccentBtn.
+    ImVec4 btn(0.86f, 0.86f, 0.88f, 1.f);
+    ImVec4 btnHov(0.81f, 0.81f, 0.83f, 1.f);
+    ImVec4 btnAct(0.75f, 0.75f, 0.78f, 1.f);
     ImVec4 borderChrome(0.74f, 0.74f, 0.76f, 1.f);
 
     s.Colors[ImGuiCol_Text]           = text;
@@ -679,7 +681,13 @@ static void DrawWizard()
         ImGui::SetCursorPosX((S(kCodeStepPanelW) - S(kCodeVerifyW)) * 0.5f);
         if (!canVerify || busy) ImGui::BeginDisabled();
         if (g_fontButton) ImGui::PushFont(g_fontButton);
+        ImGui::PushStyleColor(ImGuiCol_Button,        kMacAccentBtn);
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, kMacAccentBtnHov);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  kMacAccentBtnAct);
+        ImGui::PushStyleColor(ImGuiCol_Border,        kMacAccentBtnBorder);
+        ImGui::PushStyleColor(ImGuiCol_Text,          ImVec4(1.f, 1.f, 1.f, 1.f));
         const bool verifyClicked = ImGui::Button("Verify code", ImVec2(S(kCodeVerifyW), S(36.f)));
+        ImGui::PopStyleColor(5);
         if (g_fontButton) ImGui::PopFont();
         if (!canVerify || busy) ImGui::EndDisabled();
 

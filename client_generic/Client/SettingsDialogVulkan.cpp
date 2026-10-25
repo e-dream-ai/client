@@ -257,9 +257,10 @@ static void DrawSettingsDialog(float viewportW, float viewportH)
     ImGui::PushStyleColor(ImGuiCol_Tab,           ImVec4(0.92f, 0.92f, 0.92f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_TabActive,     ImVec4(0.98f, 0.98f, 0.98f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_TabHovered,    ImVec4(0.95f, 0.95f, 0.95f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.93f, 0.93f, 0.93f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.88f, 0.88f, 0.88f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.84f, 0.84f, 0.84f, 1.00f));
+    // Clearly darker than the 0.98 window so buttons read as buttons.
+    ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.86f, 0.86f, 0.86f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.81f, 0.81f, 0.81f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.75f, 0.75f, 0.75f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_FrameBg,       ImVec4(1.00f, 1.00f, 1.00f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_FrameBgHovered,ImVec4(0.97f, 0.97f, 0.97f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.95f, 0.95f, 0.95f, 1.00f));
