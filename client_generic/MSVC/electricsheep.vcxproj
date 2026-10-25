@@ -672,7 +672,9 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     <ClCompile Include="..\DisplayOutput\D3D11\ShaderDX11.cpp" />
     <ClCompile Include="..\DisplayOutput\D3D11\TextureFlatDX11.cpp" />
     <ClCompile Include="..\Networking\EDreamClient.cpp" />
-    <ClCompile Include="..\Networking\sio\sio_beast.cpp" />
+    <ClCompile Include="..\Networking\sio\sio_beast.cpp">
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
     <ClCompile Include="..\TupleStorage\JSONStorage.cpp" />
     <ClCompile Include="msvc_fix.cpp" />
     <ClCompile Include="..\Client\Player.cpp" />
