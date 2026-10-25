@@ -2867,19 +2867,29 @@ void EDreamClient::ConnectRemoteControlSocket()
     
     g_Log->Info("Performing remote control connect.");
     
-    // Check if socket is already connected AND io_context is running AND namespace is available
+    // If io_context was stopped (e.g. by a player restart), restart it. The WebSocket
+    // runs on its own thread and may still be open, so this doesn't imply a reconnect.
+    const bool ioWasStopped = io_context->stopped();
+    if (ioWasStopped) {
+        g_Log->Info("io_context was stopped, restarting...");
+        io_context->restart();
+    }
+
+    // Already connected: rebind instead of unbinding and calling connect(), which
+    // the sio client ignores while open, so the callbacks would stay unbound.
     auto existingSocket = s_SIOClient.socket("/remote-control");
-    if (s_SIOClient.opened() && !io_context->stopped() && existingSocket)
+    if (s_SIOClient.opened() && existingSocket)
     {
         g_Log->Info("WebSocket already connected with namespace, skipping reconnection.");
         BindWebSocketCallbacks();
+        if (ioWasStopped) {
+            // Re-arm the ping timer and pump the restarted io_context.
+            SendPing();
+            std::thread([]() {
+                io_context->run();
+            }).detach();
+        }
         return;
-    }
-
-    // If io_context was stopped, restart it
-    if (io_context->stopped()) {
-        g_Log->Info("io_context was stopped, restarting...");
-        io_context->restart();
     }
 
     // Unbind old callbacks before reconnecting

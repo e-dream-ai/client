@@ -404,13 +404,25 @@ public:
                  std::map<std::string, std::string> const& headers,
                  message::ptr const& /*auth*/)
     {
-        m_abort_retries = false;
-        m_uri = uri;
-        m_query = query;
-        m_headers = headers;
-        m_reconn_made = 0;
-
-        net::post(m_strand, [self = shared_from_this()]() { self->do_connect(); });
+        // Runs on the strand so it can't race an in-flight do_connect() reading m_uri/m_headers.
+        net::post(m_strand, [self = shared_from_this(), uri, query, headers]() {
+            // Like upstream socket.io-client-cpp: a connect() while already connecting or
+            // connected is a no-op, so overlapping callers don't abort the handshake in
+            // progress. A change of target or credentials still reconnects.
+            if (!self->m_abort_retries && (self->m_opened || self->m_connecting) &&
+                uri == self->m_uri && query == self->m_query && headers == self->m_headers)
+            {
+                g_Log->Info("Socket.IO connect() ignored: connection already %s",
+                            self->m_opened ? "open" : "in progress");
+                return;
+            }
+            self->m_abort_retries = false;
+            self->m_uri = uri;
+            self->m_query = query;
+            self->m_headers = headers;
+            self->m_reconn_made = 0;
+            self->do_connect();
+        });
     }
 
     void close()
@@ -418,6 +430,7 @@ public:
         m_abort_retries = true;
         net::post(m_strand, [self = shared_from_this()]() {
             ++self->m_conn_id;
+            self->m_connecting = false;
             self->m_reconnect_timer.cancel();
             self->m_ping_timer.cancel();
             self->m_nsp_connect_timer.cancel();
@@ -527,6 +540,7 @@ private:
         close_socket_unlocked();
         m_opened = false;
         m_nsp_connected = false;
+        m_connecting = true;
 
         parsed_uri parsed;
         if (!parse_uri(m_uri, parsed) || !parsed.secure)
@@ -760,6 +774,7 @@ private:
                 m_nsp_connect_timer.cancel();
                 m_nsp_connected = true;
                 m_opened = true;
+                m_connecting = false;
                 m_reconn_made = 0;
                 flush_pending_emits();
                 if (m_socket_open_listener)
@@ -932,6 +947,7 @@ private:
 
         bool was_open = m_opened.exchange(false);
         m_nsp_connected = false;
+        m_connecting = false;
         close_socket_unlocked();
 
         if (was_open && m_close_listener)
@@ -950,6 +966,7 @@ private:
         m_nsp_connect_timer.cancel();
         m_opened = false;
         m_nsp_connected = false;
+        m_connecting = false;
         close_socket_unlocked();
         if (!m_abort_retries)
             schedule_reconnect();
@@ -1029,6 +1046,8 @@ private:
 
     std::atomic<bool> m_opened{false};
     bool m_nsp_connected = false;
+    // An attempt is in flight: set by do_connect(), cleared on open, failure or close.
+    bool m_connecting = false;
     std::atomic<bool> m_abort_retries{false};
 
     unsigned m_ping_interval_ms = 25000;
