@@ -419,6 +419,10 @@ void SettingsDialogVulkan_DrawIfNeeded()
         g_showRequested.store(false, std::memory_order_release);
 
         g_uiScale = PlatformUtils_GetUIScale();
+        // Shrink to fit the 541x450 design (plus margin) in the window.
+        const ImVec2 display = ImGui::GetIO().DisplaySize;
+        if (display.x > 0.f && display.y > 0.f)
+            g_uiScale = (std::min)(g_uiScale, (std::min)(display.x / 605.f, display.y / 514.f));
         LoadDialogFonts();
 
         // Re-apply io.FontDefault on every open: the wizard may have overwritten it

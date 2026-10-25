@@ -105,9 +105,11 @@ void CDisplayVulkan::onLibdecorCommit(struct libdecor_frame*, void* data)
 }
 #endif
 
-// wl_output listener — derives UI scale from physical DPI, same method as the
-// X11 path. Integer wl_output.scale is a fallback for compositors that don't
-// report physical dimensions (physical_width_mm == 0).
+// wl_output listener — logs the output's DPI for diagnostics only. The surface
+// is committed at buffer scale 1, so the compositor already enlarges it by the
+// desktop scale factor (as for GTK/Qt apps). Deriving uiScale from DPI or from
+// wl_output.scale as well double-scaled the UI, e.g. 1.67 x 1.25 on a 27" 4K
+// display at 125%, which made the sign-in wizard overflow its window.
 namespace {
 struct WlOutputState { int32_t physWidthMm = 0; int32_t pixelWidth = 0; };
 static WlOutputState s_wlOutputState;
@@ -134,24 +136,12 @@ static void onWlOutputDone(void*, wl_output*)
     {
         float dpi = static_cast<float>(s_wlOutputState.pixelWidth) * 25.4f
                     / static_cast<float>(s_wlOutputState.physWidthMm);
-        float scale = dpi / 96.0f;
-        g_Log->Info("CDisplayVulkan: wl_output DPI=%.1f -> uiScale=%.3f", dpi, scale);
-        // Use the highest scale across all connected outputs — avoids a lower-DPI
-        // secondary monitor overwriting the scale of the primary HiDPI display.
-        if (scale > PlatformUtils_GetUIScale())
-            PlatformUtils_SetUIScale(scale);
-    }
-    else
-    {
-        g_Log->Info("CDisplayVulkan: wl_output no physical dimensions, uiScale unchanged at %.3f",
-                    PlatformUtils_GetUIScale());
+        g_Log->Info("CDisplayVulkan: wl_output DPI=%.1f (uiScale stays %.3f; compositor applies desktop scale)",
+                    dpi, PlatformUtils_GetUIScale());
     }
 }
-static void onWlOutputScale(void*, wl_output*, int32_t factor)
+static void onWlOutputScale(void*, wl_output*, int32_t)
 {
-    // Only used as fallback when physical dimensions are unavailable.
-    if (factor >= 2 && s_wlOutputState.physWidthMm == 0)
-        PlatformUtils_SetUIScale(static_cast<float>(factor));
 }
 static const wl_output_listener s_wlOutputListener = {
     onWlOutputGeometry, onWlOutputMode, onWlOutputDone, onWlOutputScale,

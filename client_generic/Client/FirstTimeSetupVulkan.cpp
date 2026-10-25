@@ -127,6 +127,7 @@ char g_emailBuf[256] = {};
 char g_codeBuf[16]   = {};
 char g_errBuf[512]   = {};
 int  g_wizardStep    = 0;
+int  g_focusedStep   = -1; // step whose text field has been given keyboard focus
 
 bool g_emailFieldBorderActive = false;
 bool g_otpFieldBorderActive   = false;
@@ -370,6 +371,7 @@ static void ApplyWizardPauseState(bool visible)
 static void ResetWizardForShow()
 {
     g_wizardStep             = 0;
+    g_focusedStep            = -1;
     g_emailFieldBorderActive = false;
     g_otpFieldBorderActive   = false;
     g_codeBuf[0]             = '\0';
@@ -524,6 +526,11 @@ static void DrawWizard()
         {
             ImGui::PushStyleColor(ImGuiCol_Border,
                                   g_emailFieldBorderActive ? kMacInputBorderFocus : kMacInputBorderIdle);
+            if (g_focusedStep != 0)
+            {
+                ImGui::SetKeyboardFocusHere();
+                g_focusedStep = 0;
+            }
             emailEnter = ImGui::InputTextWithHint("##email", "your@email.com", g_emailBuf, sizeof g_emailBuf,
                                                   ImGuiInputTextFlags_EnterReturnsTrue);
             ImGui::PopStyleColor();
@@ -631,6 +638,11 @@ static void DrawWizard()
         {
             ImGui::PushStyleColor(ImGuiCol_Border,
                                   g_otpFieldBorderActive ? kMacInputBorderFocus : kMacInputBorderIdle);
+            if (g_focusedStep != 1)
+            {
+                ImGui::SetKeyboardFocusHere();
+                g_focusedStep = 1;
+            }
             otpEnter = ImGui::InputTextWithHint("##otp", "000000", g_codeBuf, sizeof g_codeBuf,
                                                 ImGuiInputTextFlags_CallbackCharFilter |
                                                     ImGuiInputTextFlags_CallbackEdit |
@@ -957,6 +969,11 @@ void FirstTimeSetupVulkan_DrawIfNeeded()
         g_showRequested.store(false, std::memory_order_release);
 
         g_uiScale = PlatformUtils_GetUIScale();
+        // Shrink to fit: a card larger than the window was clamped to it with
+        // its contents spilling out, putting the skip footer over the email field.
+        const ImVec2 display = ImGui::GetIO().DisplaySize;
+        if (display.x > 0.f && display.y > 0.f)
+            g_uiScale = (std::min)(g_uiScale, (std::min)(display.x / kDesignWinW, display.y / kDesignWinH));
 
         // Load wizard fonts into the shared atlas on first show.
         // ImGui_ImplVulkan_NewFrame() handles re-uploading the atlas automatically.
