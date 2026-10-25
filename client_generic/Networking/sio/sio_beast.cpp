@@ -348,6 +348,7 @@ public:
     void set_close_listener(client::close_listener const& l) { m_close_listener = l; }
     void set_socket_open_listener(client::socket_listener const& l) { m_socket_open_listener = l; }
     void set_socket_close_listener(client::socket_listener const& l) { m_socket_close_listener = l; }
+    void set_connect_error_listener(client::connect_error_listener const& l) { m_connect_error_listener = l; }
 
     void clear_con_listeners()
     {
@@ -356,6 +357,7 @@ public:
         m_reconnecting_listener = nullptr;
         m_reconnect_listener = nullptr;
         m_close_listener = nullptr;
+        m_connect_error_listener = nullptr;
     }
 
     void clear_socket_listeners()
@@ -813,6 +815,8 @@ private:
                          nsp.c_str(), payload.c_str());
             m_nsp_connect_timer.cancel();
             on_disconnected(client::close_reason_drop);
+            if (m_connect_error_listener)
+                m_connect_error_listener(nsp, payload);
             break;
         default:
             break;
@@ -1064,6 +1068,7 @@ private:
     client::close_listener m_close_listener;
     client::socket_listener m_socket_open_listener;
     client::socket_listener m_socket_close_listener;
+    client::connect_error_listener m_connect_error_listener;
 };
 
 // ---------------------------------------------------------------------------
@@ -1184,6 +1189,7 @@ void client::set_reconnect_listener(reconnect_listener const& l) { m_impl->set_r
 void client::set_close_listener(close_listener const& l) { m_impl->set_close_listener(l); }
 void client::set_socket_open_listener(socket_listener const& l) { m_impl->set_socket_open_listener(l); }
 void client::set_socket_close_listener(socket_listener const& l) { m_impl->set_socket_close_listener(l); }
+void client::set_connect_error_listener(connect_error_listener const& l) { m_impl->set_connect_error_listener(l); }
 void client::clear_con_listeners() { m_impl->clear_con_listeners(); }
 void client::clear_socket_listeners() { m_impl->clear_socket_listeners(); }
 
