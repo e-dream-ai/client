@@ -468,6 +468,45 @@ static void OnWebSocketReconnect(unsigned _num, unsigned _delay)
     BindWebSocketCallbacks();
 }
 
+static std::atomic<bool> fWebSocketReauthInFlight(false);
+static std::atomic<int64_t> fWebSocketLastReauthMs(0);
+
+// The server validates the wos-session cookie on the socket handshake but, unlike the
+// REST endpoints, never refreshes it, and the sio client's reconnect loop keeps resending
+// the cookie captured at connect(). Once the access token has expired every reconnect is
+// rejected, so refresh the sealed session and reconnect with the new cookie.
+static void OnWebSocketConnectError(std::string const& nsp, std::string const& payload)
+{
+    if (payload.find("UNAUTHORIZED") == std::string::npos)
+        return;
+    // Api-Key auth has nothing to refresh.
+    if (g_Settings()->Get("settings.content.sealed_session", std::string("")).empty())
+        return;
+
+    // At most one refresh per minute, so a server that rejects even a fresh cookie
+    // doesn't turn the 5-25 s reconnect backoff into a refresh loop.
+    const int64_t nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+    if (nowMs - fWebSocketLastReauthMs.load() < 60000)
+        return;
+    if (fWebSocketReauthInFlight.exchange(true))
+        return;
+    fWebSocketLastReauthMs.store(nowMs);
+
+    // Called on the sio network thread; the refresh is a blocking HTTP request.
+    std::thread([]() {
+        g_Log->Info("WebSocket session rejected, refreshing sealed session before reconnecting");
+        EDreamClient::AuthRefreshResult result = EDreamClient::RefreshSealedSession();
+        if (result == EDreamClient::AuthRefreshResult::Success) {
+            EDreamClient::ConnectRemoteControlSocket();
+        } else {
+            g_Log->Warning("WebSocket session refresh failed (%d), will retry on a later rejection",
+                           static_cast<int>(result));
+        }
+        fWebSocketReauthInFlight.store(false);
+    }).detach();
+}
+
 void EDreamClient::InitializeClient()
 {
     if (g_Client()->IsMultipleInstancesMode()) {
@@ -489,6 +528,7 @@ void EDreamClient::InitializeClient()
     s_SIOClient.set_fail_listener(&OnWebSocketFail);
     s_SIOClient.set_reconnecting_listener(&OnWebSocketReconnecting);
     s_SIOClient.set_reconnect_listener(&OnWebSocketReconnect);
+    s_SIOClient.set_connect_error_listener(&OnWebSocketConnectError);
 
     fInitialAuthComplete.store(false);
 

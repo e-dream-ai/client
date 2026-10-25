@@ -34,6 +34,9 @@ namespace sio
 
         typedef std::function<void(std::string const& nsp)> socket_listener;
 
+        // Server rejected the namespace CONNECT; payload is the raw CONNECT_ERROR JSON.
+        typedef std::function<void(std::string const& nsp, std::string const& payload)> connect_error_listener;
+
         client();
         client(client_options const& options);
         ~client();
@@ -51,6 +54,8 @@ namespace sio
         void set_socket_open_listener(socket_listener const& l);
 
         void set_socket_close_listener(socket_listener const& l);
+
+        void set_connect_error_listener(connect_error_listener const& l);
 
         void clear_con_listeners();
 
