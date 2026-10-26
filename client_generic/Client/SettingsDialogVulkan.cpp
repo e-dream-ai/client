@@ -167,6 +167,13 @@ static const char* GetClipboardText(void*)
 {
     static std::string s_buf;
     s_buf.clear();
+
+    // Native Wayland clipboard first; the tools below are often not installed.
+    s_buf = PlatformUtils_ReadClipboard();
+    while (!s_buf.empty() && (s_buf.back() == '\n' || s_buf.back() == '\r'))
+        s_buf.pop_back();
+    if (!s_buf.empty())
+        return s_buf.c_str();
     static const char* const kCmds[] = {
         "wl-paste --no-newline 2>/dev/null",
         "xclip -selection clipboard -o 2>/dev/null",
@@ -250,9 +257,10 @@ static void DrawSettingsDialog(float viewportW, float viewportH)
     ImGui::PushStyleColor(ImGuiCol_Tab,           ImVec4(0.92f, 0.92f, 0.92f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_TabActive,     ImVec4(0.98f, 0.98f, 0.98f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_TabHovered,    ImVec4(0.95f, 0.95f, 0.95f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.93f, 0.93f, 0.93f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.88f, 0.88f, 0.88f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.84f, 0.84f, 0.84f, 1.00f));
+    // Clearly darker than the 0.98 window so buttons read as buttons.
+    ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.86f, 0.86f, 0.86f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.81f, 0.81f, 0.81f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.75f, 0.75f, 0.75f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_FrameBg,       ImVec4(1.00f, 1.00f, 1.00f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_FrameBgHovered,ImVec4(0.97f, 0.97f, 0.97f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.95f, 0.95f, 0.95f, 1.00f));
@@ -419,6 +427,10 @@ void SettingsDialogVulkan_DrawIfNeeded()
         g_showRequested.store(false, std::memory_order_release);
 
         g_uiScale = PlatformUtils_GetUIScale();
+        // Shrink to fit the 541x450 design (plus margin) in the window.
+        const ImVec2 display = ImGui::GetIO().DisplaySize;
+        if (display.x > 0.f && display.y > 0.f)
+            g_uiScale = (std::min)(g_uiScale, (std::min)(display.x / 605.f, display.y / 514.f));
         LoadDialogFonts();
 
         // Re-apply io.FontDefault on every open: the wizard may have overwritten it

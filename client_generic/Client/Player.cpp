@@ -949,7 +949,9 @@ bool CPlayer::Update(uint32_t displayUnit)
         if (!freezePlayback && !IsAnyClipBuffering()) {
             // Check if we need to prepare for transition
             // Skip if we have a pending seek crossfade (user-initiated skip with seek offset)
-            if (!m_isTransitioning && !m_nextDreamDecision && !m_pendingSeekCrossfade && shouldPrepareTransition(m_currentClip)) {
+            if (!m_isTransitioning && !m_nextDreamDecision && !m_pendingSeekCrossfade &&
+                std::chrono::steady_clock::now() >= m_nextTransitionPreflight &&
+                shouldPrepareTransition(m_currentClip)) {
                 // If we should transition, but we are already prealoding a manual transition, then we have to pause
                 if (IsPreloading()) {
                     g_Log->Info("Force pausing as we are already preloading");
@@ -960,6 +962,8 @@ bool CPlayer::Update(uint32_t displayUnit)
                     g_Log->Info("Update will preflight");
                     // Natural transition - don't allow streaming
                     m_nextDreamDecision = m_playlistManager->preflightNextDream(false);
+                    if (!m_nextDreamDecision)
+                        m_nextTransitionPreflight = std::chrono::steady_clock::now() + std::chrono::seconds(1);
                     
                     if (m_nextDreamDecision) {
                         if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::Seamless) {

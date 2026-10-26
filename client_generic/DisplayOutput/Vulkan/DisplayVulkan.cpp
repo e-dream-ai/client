@@ -13,7 +13,9 @@
 #include <cstring>
 #include <sys/select.h>
 #ifdef HAVE_WAYLAND
+#include <fcntl.h>
 #include <poll.h>
+#include <unordered_map>
 #include <sys/mman.h>
 #include <unistd.h>
 #endif
@@ -105,9 +107,11 @@ void CDisplayVulkan::onLibdecorCommit(struct libdecor_frame*, void* data)
 }
 #endif
 
-// wl_output listener — derives UI scale from physical DPI, same method as the
-// X11 path. Integer wl_output.scale is a fallback for compositors that don't
-// report physical dimensions (physical_width_mm == 0).
+// wl_output listener — logs the output's DPI for diagnostics only. The surface
+// is committed at buffer scale 1, so the compositor already enlarges it by the
+// desktop scale factor (as for GTK/Qt apps). Deriving uiScale from DPI or from
+// wl_output.scale as well double-scaled the UI, e.g. 1.67 x 1.25 on a 27" 4K
+// display at 125%, which made the sign-in wizard overflow its window.
 namespace {
 struct WlOutputState { int32_t physWidthMm = 0; int32_t pixelWidth = 0; };
 static WlOutputState s_wlOutputState;
@@ -134,28 +138,123 @@ static void onWlOutputDone(void*, wl_output*)
     {
         float dpi = static_cast<float>(s_wlOutputState.pixelWidth) * 25.4f
                     / static_cast<float>(s_wlOutputState.physWidthMm);
-        float scale = dpi / 96.0f;
-        g_Log->Info("CDisplayVulkan: wl_output DPI=%.1f -> uiScale=%.3f", dpi, scale);
-        // Use the highest scale across all connected outputs — avoids a lower-DPI
-        // secondary monitor overwriting the scale of the primary HiDPI display.
-        if (scale > PlatformUtils_GetUIScale())
-            PlatformUtils_SetUIScale(scale);
-    }
-    else
-    {
-        g_Log->Info("CDisplayVulkan: wl_output no physical dimensions, uiScale unchanged at %.3f",
-                    PlatformUtils_GetUIScale());
+        g_Log->Info("CDisplayVulkan: wl_output DPI=%.1f (uiScale stays %.3f; compositor applies desktop scale)",
+                    dpi, PlatformUtils_GetUIScale());
     }
 }
-static void onWlOutputScale(void*, wl_output*, int32_t factor)
+static void onWlOutputScale(void*, wl_output*, int32_t)
 {
-    // Only used as fallback when physical dimensions are unavailable.
-    if (factor >= 2 && s_wlOutputState.physWidthMm == 0)
-        PlatformUtils_SetUIScale(static_cast<float>(factor));
 }
 static const wl_output_listener s_wlOutputListener = {
     onWlOutputGeometry, onWlOutputMode, onWlOutputDone, onWlOutputScale,
 };
+
+// Clipboard (wl_data_device) — lets the wizard and settings dialog paste with
+// Ctrl+V without wl-paste/xclip/xsel, which a stock desktop doesn't have.
+namespace {
+// Best text MIME type each live offer advertised.
+std::unordered_map<wl_data_offer*, std::string> s_offerTextMime;
+
+int textMimeRank(const char* mime)
+{
+    static const char* const kPreferred[] = {
+        "text/plain;charset=utf-8", "UTF8_STRING", "text/plain", "STRING", "TEXT",
+    };
+    for (int i = 0; i < 5; ++i)
+        if (strcmp(mime, kPreferred[i]) == 0) return i;
+    return -1;
+}
+
+void onDataOfferOffer(void*, wl_data_offer* offer, const char* mime)
+{
+    const int rank = textMimeRank(mime);
+    if (rank < 0) return;
+    std::string& best = s_offerTextMime[offer];
+    if (best.empty() || rank < textMimeRank(best.c_str()))
+        best = mime;
+}
+void onDataOfferSourceActions(void*, wl_data_offer*, uint32_t) {}
+void onDataOfferAction(void*, wl_data_offer*, uint32_t) {}
+const wl_data_offer_listener s_dataOfferListener = {
+    onDataOfferOffer, onDataOfferSourceActions, onDataOfferAction,
+};
+
+void destroyOffer(wl_data_offer* offer)
+{
+    if (!offer) return;
+    s_offerTextMime.erase(offer);
+    wl_data_offer_destroy(offer);
+}
+
+void onDataDeviceDataOffer(void*, wl_data_device*, wl_data_offer* offer)
+{
+    wl_data_offer_add_listener(offer, &s_dataOfferListener, nullptr);
+}
+// Drag-and-drop isn't supported; release the offer straight away.
+void onDataDeviceEnter(void*, wl_data_device*, uint32_t, wl_surface*,
+                       wl_fixed_t, wl_fixed_t, wl_data_offer* offer)
+{
+    destroyOffer(offer);
+}
+void onDataDeviceLeave(void*, wl_data_device*) {}
+void onDataDeviceMotion(void*, wl_data_device*, uint32_t, wl_fixed_t, wl_fixed_t) {}
+void onDataDeviceDrop(void*, wl_data_device*) {}
+} // namespace
+
+void CDisplayVulkan::onDataDeviceSelection(void* data, wl_data_device*, wl_data_offer* offer)
+{
+    auto* self = static_cast<CDisplayVulkan*>(data);
+    if (self->m_pSelectionOffer != offer)
+        destroyOffer(self->m_pSelectionOffer);
+    self->m_pSelectionOffer = offer;
+}
+
+// Needs both the seat and the data device manager, whichever is bound last.
+void CDisplayVulkan::createDataDevice()
+{
+    if (m_pDataDevice || !m_pDataDeviceManager || !m_pWlSeat)
+        return;
+    m_pDataDevice = wl_data_device_manager_get_data_device(m_pDataDeviceManager, m_pWlSeat);
+    static const wl_data_device_listener s_dataDeviceListener = {
+        onDataDeviceDataOffer, onDataDeviceEnter, onDataDeviceLeave,
+        onDataDeviceMotion, onDataDeviceDrop, onDataDeviceSelection,
+    };
+    wl_data_device_add_listener(m_pDataDevice, &s_dataDeviceListener, this);
+    PlatformUtils_SetClipboardReader([this]() { return readClipboardText(); });
+}
+
+std::string CDisplayVulkan::readClipboardText()
+{
+    auto it = s_offerTextMime.find(m_pSelectionOffer);
+    if (!m_pSelectionOffer || it == s_offerTextMime.end())
+        return {};
+
+    int fds[2];
+    if (pipe2(fds, O_CLOEXEC) != 0)
+        return {};
+    wl_data_offer_receive(m_pSelectionOffer, it->second.c_str(), fds[1]);
+    close(fds[1]);
+    wl_display_flush(m_pWlDisplay);
+
+    // The source app writes asynchronously; don't let a stuck one hang the UI.
+    std::string text;
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(500);
+    char buf[4096];
+    while (text.size() < 64 * 1024)
+    {
+        const auto left = std::chrono::duration_cast<std::chrono::milliseconds>(
+            deadline - std::chrono::steady_clock::now()).count();
+        pollfd pfd{fds[0], POLLIN, 0};
+        if (left <= 0 || poll(&pfd, 1, static_cast<int>(left)) <= 0)
+            break;
+        const ssize_t n = read(fds[0], buf, sizeof buf);
+        if (n <= 0)
+            break;
+        text.append(buf, static_cast<size_t>(n));
+    }
+    close(fds[0]);
+    return text;
+}
 
 void CDisplayVulkan::onRegistryGlobal(void* data, wl_registry* registry,
                                        uint32_t name, const char* interface,
@@ -189,6 +288,14 @@ void CDisplayVulkan::onRegistryGlobal(void* data, wl_registry* registry,
             onSeatName,
         };
         wl_seat_add_listener(self->m_pWlSeat, &s_seatListener, self);
+        self->createDataDevice();
+    }
+    else if (strcmp(interface, wl_data_device_manager_interface.name) == 0)
+    {
+        self->m_pDataDeviceManager = static_cast<wl_data_device_manager*>(
+            wl_registry_bind(registry, name, &wl_data_device_manager_interface,
+                             version < 3 ? version : 3));
+        self->createDataDevice();
     }
     else if (strcmp(interface, zxdg_decoration_manager_v1_interface.name) == 0)
     {
@@ -593,11 +700,16 @@ void CDisplayVulkan::onKeyboardModifiers(void* data, wl_keyboard*, uint32_t,
 void CDisplayVulkan::onKeyboardRepeatInfo(void*, wl_keyboard*, int32_t, int32_t) {}
 
 void CDisplayVulkan::onPointerEnter(void* data, wl_pointer*, uint32_t serial,
-                                    wl_surface*, wl_fixed_t surface_x, wl_fixed_t surface_y)
+                                    wl_surface* surface, wl_fixed_t surface_x, wl_fixed_t surface_y)
 {
     auto* self = static_cast<CDisplayVulkan*>(data);
     self->m_lastPointerSerial = serial;
-    self->m_bPointerInsideContent = true;
+    // The wl_pointer also reports libdecor's decoration surfaces (title bar,
+    // borders); libdecor handles those itself. Treating their coordinates and
+    // clicks as ours put phantom presses into ImGui.
+    self->m_bPointerInsideContent = (surface == self->m_pWlSurface);
+    if (!self->m_bPointerInsideContent)
+        return;
     self->m_lastPointerX = wl_fixed_to_int(surface_x);
     self->m_lastPointerY = wl_fixed_to_int(surface_y);
 #ifdef HAVE_LIBDECOR
@@ -614,19 +726,31 @@ void CDisplayVulkan::onPointerEnter(void* data, wl_pointer*, uint32_t serial,
         mouseCallback(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
 }
 
-void CDisplayVulkan::onPointerLeave(void* data, wl_pointer*, uint32_t, wl_surface*)
+void CDisplayVulkan::onPointerLeave(void* data, wl_pointer*, uint32_t, wl_surface* surface)
 {
     auto* self = static_cast<CDisplayVulkan*>(data);
+    if (surface != self->m_pWlSurface)
+        return;
     self->m_bPointerInsideContent = false;
 #ifdef HAVE_LIBDECOR
     self->m_hoverResizeEdge = LIBDECOR_RESIZE_EDGE_NONE;
 #endif
+    // A press that starts a compositor grab (window move or resize) never gets
+    // its release; without this ImGui keeps the button held and swallows the
+    // next click.
+    for (uint32_t button : {kWaylandButtonLeft, kWaylandButtonLeft + 1, kWaylandButtonLeft + 2})
+    {
+        FirstTimeSetupVulkan_FeedMouseButton(button, false);
+        SettingsDialogVulkan_FeedMouseButton(button, false);
+    }
 }
 
 void CDisplayVulkan::onPointerMotion(void* data, wl_pointer*, uint32_t,
                                      wl_fixed_t surface_x, wl_fixed_t surface_y)
 {
     auto* self = static_cast<CDisplayVulkan*>(data);
+    if (!self->m_bPointerInsideContent)
+        return;
     self->m_lastPointerX = wl_fixed_to_int(surface_x);
     self->m_lastPointerY = wl_fixed_to_int(surface_y);
 #ifdef HAVE_LIBDECOR
@@ -647,6 +771,8 @@ void CDisplayVulkan::onPointerButton(void* data, wl_pointer*, uint32_t serial,
                                      uint32_t, uint32_t button, uint32_t state)
 {
     auto* self = static_cast<CDisplayVulkan*>(data);
+    if (!self->m_bPointerInsideContent)
+        return;
     self->m_lastPointerSerial = serial;
 #ifdef HAVE_LIBDECOR
     if (button == kWaylandButtonLeft &&
@@ -770,6 +896,11 @@ void CDisplayVulkan::destroyWayland()
     if (m_pCursorSurface)     { wl_surface_destroy(m_pCursorSurface);                      m_pCursorSurface     = nullptr; }
     if (m_pWlPointer)         { wl_pointer_destroy(m_pWlPointer);                          m_pWlPointer         = nullptr; }
     if (m_pWlKeyboard)        { wl_keyboard_destroy(m_pWlKeyboard);                        m_pWlKeyboard        = nullptr; }
+    PlatformUtils_SetClipboardReader(nullptr);
+    destroyOffer(m_pSelectionOffer);
+    m_pSelectionOffer = nullptr;
+    if (m_pDataDevice)        { wl_data_device_destroy(m_pDataDevice);                     m_pDataDevice        = nullptr; }
+    if (m_pDataDeviceManager) { wl_data_device_manager_destroy(m_pDataDeviceManager);      m_pDataDeviceManager = nullptr; }
     if (m_pWlSeat)            { wl_seat_destroy(m_pWlSeat);                                m_pWlSeat            = nullptr; }
     if (m_pToplevelDecoration){ zxdg_toplevel_decoration_v1_destroy(m_pToplevelDecoration);m_pToplevelDecoration= nullptr; }
     if (m_pDecorationManager) { zxdg_decoration_manager_v1_destroy(m_pDecorationManager);  m_pDecorationManager = nullptr; }

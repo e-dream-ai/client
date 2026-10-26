@@ -156,6 +156,9 @@
     <ClCompile Include="..\Networking\EDreamClient.cpp">
       <Filter>Networking</Filter>
     </ClCompile>
+    <ClCompile Include="..\Networking\sio\sio_beast.cpp">
+      <Filter>Networking</Filter>
+    </ClCompile>
     <ClCompile Include="PlatformUtils_win.cpp">
       <Filter>Client\Code</Filter>
     </ClCompile>
@@ -405,6 +408,15 @@
       <Filter>Client\Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\Networking\EDreamClient.h">
+      <Filter>Networking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Networking\sio\sio_client.h">
+      <Filter>Networking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Networking\sio\sio_socket.h">
+      <Filter>Networking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Networking\sio\sio_message.h">
       <Filter>Networking</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\JSONUtil.h">
