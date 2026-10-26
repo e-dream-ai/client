@@ -132,6 +132,8 @@ public:
     // Legacy entries with empty stored md5 adopt the metadata md5 when their
     // video_timestamp is unchanged, and are hashed on a background worker if not.
     void validateCachedVideo(const std::string& uuid);
+    // validateCachedVideo for every disk-cache entry not in skipUuids.
+    void validateAllCachedVideos(const std::unordered_set<std::string>& skipUuids);
 
     // Drop the cached MP4 + disk entry but keep metadata so it can re-download.
     // Defers while the UUID is open for decode (Windows file locks).

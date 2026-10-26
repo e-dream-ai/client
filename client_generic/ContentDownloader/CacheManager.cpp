@@ -495,6 +495,23 @@ void CacheManager::runMd5Backfill() {
     }
 }
 
+void CacheManager::validateAllCachedVideos(const std::unordered_set<std::string>& skipUuids) {
+    // Snapshot first: validation may remove entries from diskCached.
+    std::vector<std::string> uuids;
+    {
+        std::shared_lock<std::shared_mutex> lock(diskCachedMutex);
+        uuids.reserve(diskCached.size());
+        for (const auto& item : diskCached) {
+            uuids.push_back(item.uuid);
+        }
+    }
+    for (const auto& uuid : uuids) {
+        if (skipUuids.count(uuid) == 0) {
+            validateCachedVideo(uuid);
+        }
+    }
+}
+
 void CacheManager::updateDiskCachedItemMd5(const std::string& uuid, const std::string& md5) {
     std::unique_lock<std::shared_mutex> lock(diskCachedMutex);
     auto it = std::find_if(diskCached.begin(), diskCached.end(),
