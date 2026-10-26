@@ -10,6 +10,17 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # ---------------------------------------------------------------------------
+# Stage build: api-stage.infinidream.ai, stage web links, and a separate data
+# folder (~/.config/infinidream-stage). Use its own build tree, e.g.
+#   cmake -B build-stage -DINFINIDREAM_STAGE=ON
+# ---------------------------------------------------------------------------
+option(INFINIDREAM_STAGE "Build against the stage backend" OFF)
+if(INFINIDREAM_STAGE)
+    add_compile_definitions(STAGE)
+    message(STATUS "Stage build — api-stage.infinidream.ai, ~/.config/infinidream-stage")
+endif()
+
+# ---------------------------------------------------------------------------
 # Compile definitions
 # ---------------------------------------------------------------------------
 add_compile_definitions(

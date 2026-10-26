@@ -42,7 +42,12 @@ class CElectricSheep_Linux : public CElectricSheep
 
         printf("Startup()\n");
 
+        // Stage keeps its own folder so prod and stage state don't collide.
+#ifdef STAGE
+        m_AppData = std::string(getenv("HOME")) + "/.config/infinidream-stage/";
+#else
         m_AppData = std::string(getenv("HOME")) + "/.config/infinidream/";
+#endif
         m_WorkingDir = PlatformUtils::GetWorkingDir();
 
         InitStorage();

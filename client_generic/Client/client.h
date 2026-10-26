@@ -1041,6 +1041,11 @@ class CElectricSheep
         
         if (useAggressiveShutdown)
         {
+            // Say goodbye before arming the watchdog. Sent from
+            // DeinitializeClient() at the end of shutdown, it raced the
+            // watchdog's _exit() 200 ms later and was sometimes lost.
+            EDreamClient::SendGoodbyeAndDisconnect();
+
             // Arm a force-exit watchdog to guarantee instant shutdown.
             // The watchdog checks s_shutdownCancelled before exiting, so if
             // Startup() is called (e.g., when restarting after wizard), it

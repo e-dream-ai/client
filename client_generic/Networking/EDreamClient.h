@@ -76,6 +76,7 @@ private:
     static void EnsureIOContext();
     static void InitializeClient();
     static void DeinitializeClient();
+    static void SendGoodbyeAndDisconnect();
     static std::string GetCurrentServerPlaylist();
 
     static std::vector<std::string> FetchUserDislikes();

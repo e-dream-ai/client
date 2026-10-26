@@ -1,5 +1,6 @@
 #ifndef SIO_CLIENT_H
 #define SIO_CLIENT_H
+#include <chrono>
 #include <string>
 #include <functional>
 #include <map>
@@ -96,6 +97,9 @@ namespace sio
         void close();
 
         void sync_close();
+
+        // Block until queued emits have been written, or the timeout passes.
+        bool wait_for_writes(std::chrono::milliseconds timeout);
 
         void set_proxy_basic_auth(const std::string& uri, const std::string& username, const std::string& password);
 

@@ -385,6 +385,24 @@ void EDreamClient::SendGoodbye()
     }
 }
 
+void EDreamClient::SendGoodbyeAndDisconnect()
+{
+    if (!s_SIOClient.opened())
+    {
+        g_Log->Info("WebSocket not connected, skipping goodbye message");
+        return;
+    }
+
+    SendGoodbye();
+    // emit() only queues the frame; wait for it to be written so the
+    // shutdown watchdog's _exit() can't drop it.
+    if (!s_SIOClient.wait_for_writes(std::chrono::milliseconds(300)))
+        g_Log->Warning("Goodbye not written before timeout");
+    // Close so no later ping or state_sync makes the player look present
+    // again after the goodbye, and so the socket doesn't reconnect.
+    s_SIOClient.sync_close();
+}
+
 static void BindWebSocketCallbacks()
 {
     g_Log->Info("Binding web socket callbacks");
@@ -507,6 +525,19 @@ static void OnWebSocketConnectError(std::string const& nsp, std::string const& p
     }).detach();
 }
 
+// Both startup and DidSignIn() install these; DidSignIn() used to re-add all
+// but the connect-error listener, so after an interactive sign-in an expired
+// session was never refreshed on reconnect.
+static void SetWebSocketListeners()
+{
+    s_SIOClient.set_open_listener(&OnWebSocketConnected);
+    s_SIOClient.set_close_listener(&OnWebSocketClosed);
+    s_SIOClient.set_fail_listener(&OnWebSocketFail);
+    s_SIOClient.set_reconnecting_listener(&OnWebSocketReconnecting);
+    s_SIOClient.set_reconnect_listener(&OnWebSocketReconnect);
+    s_SIOClient.set_connect_error_listener(&OnWebSocketConnectError);
+}
+
 void EDreamClient::InitializeClient()
 {
     if (g_Client()->IsMultipleInstancesMode()) {
@@ -523,12 +554,7 @@ void EDreamClient::InitializeClient()
     // remote/online UI from appearing before we know the auth result.
     g_Player().SetOfflineMode(true);
 
-    s_SIOClient.set_open_listener(&OnWebSocketConnected);
-    s_SIOClient.set_close_listener(&OnWebSocketClosed);
-    s_SIOClient.set_fail_listener(&OnWebSocketFail);
-    s_SIOClient.set_reconnecting_listener(&OnWebSocketReconnecting);
-    s_SIOClient.set_reconnect_listener(&OnWebSocketReconnect);
-    s_SIOClient.set_connect_error_listener(&OnWebSocketConnectError);
+    SetWebSocketListeners();
 
     fInitialAuthComplete.store(false);
 
@@ -990,11 +1016,7 @@ void EDreamClient::DidSignIn()
 
     // Reset socket listeners and reconnect immediately (no fixed delay).
     s_SIOClient.clear_con_listeners();
-    s_SIOClient.set_open_listener(&OnWebSocketConnected);
-    s_SIOClient.set_close_listener(&OnWebSocketClosed);
-    s_SIOClient.set_fail_listener(&OnWebSocketFail);
-    s_SIOClient.set_reconnecting_listener(&OnWebSocketReconnecting);
-    s_SIOClient.set_reconnect_listener(&OnWebSocketReconnect);
+    SetWebSocketListeners();
 
     EDreamClient::ConnectRemoteControlSocket();
 
