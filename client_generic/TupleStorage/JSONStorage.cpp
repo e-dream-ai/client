@@ -89,7 +89,22 @@ bool JSONStorage::GetOrSetValue(
                         }
                     }
                 }
-                _targetValue = callback(currentValue);
+                // The callback extracts the value via boost::json as_*() accessors,
+                // which throw if the stored value isn't the expected kind — e.g. a
+                // hand-edited or out-of-range number (an integer too large for
+                // int64/uint64 is parsed as a double). Treat any such mismatch as
+                // "not found" so the caller falls back to its default instead of
+                // letting the exception escape and terminate the process.
+                try
+                {
+                    _targetValue = callback(currentValue);
+                }
+                catch (const std::exception& e)
+                {
+                    g_Log->Warning("JSONStorage: value for '%s' has unexpected type (%s); using default",
+                                   std::string(_entry).c_str(), e.what());
+                    return false;
+                }
             }
             else
             {
