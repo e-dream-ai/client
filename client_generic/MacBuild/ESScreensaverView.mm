@@ -3,7 +3,9 @@
 #import "ESScreensaverView.h"
 #import "ESScreensaver.h"
 #import <Bugsnag/Bugsnag.h>
+#ifndef SCREEN_SAVER
 #import <Sparkle/Sparkle.h>
+#endif
 #include <csignal>
 
 #include "dlfcn.h"
@@ -13,9 +15,9 @@
 #include <atomic>
 
 #ifdef SCREEN_SAVER
-// All ScreenSaverView instances in legacyScreenSaver.appex share one gClient/g_Player.
-// Refcount so Settings thumbnail stopAnimation cannot Deinit while Preview/fullscreen
-// views are still running (that left a frozen last frame on screen).
+// All ScreenSaverView instances in one appex process share one gClient/g_Player.
+// Refcount so one view's stopAnimation cannot Deinit while other displays
+// are still running.
 static std::atomic<int> s_activeEngineViews{0};
 #endif
 
@@ -28,7 +30,6 @@ static std::atomic<int> s_activeEngineViews{0};
 #ifdef SCREEN_SAVER
     BOOL m_graphicsContextAdded;  // AddGraphicsContext once per view (startAnimation may re-enter)
     NSTimer *m_screenCheckTimer;  // Fallback when macOS never calls stopAnimation
-    BOOL m_forceExiting;          // Guard against re-entrant force-exit
 #endif
 }
 
@@ -45,10 +46,12 @@ static std::atomic<int> s_activeEngineViews{0};
     //os_log(OS_LOG_DEFAULT, "EDTEST  INIT");
 
 
+    m_updateAvailable = NO;
+#ifndef SCREEN_SAVER
     m_updater = NULL;
     m_sparkleUpdater = NULL;
     m_sparkleUserDriver = nil;
-    m_updateAvailable = NO;
+#endif
 
     m_isFullScreen = !isPreview;
     m_isStopped = YES;
@@ -57,69 +60,20 @@ static std::atomic<int> s_activeEngineViews{0};
 #ifdef SCREEN_SAVER
     m_graphicsContextAdded = NO;
     m_screenCheckTimer = nil;
-    m_forceExiting = NO;
 #endif
 
     m_isPreview = isPreview;
     DEBUG_LOG("INIT");
 
-    // Initialize Sparkle updater for both app and screensaver
-    // For screensaver: explicitly specify the bundle so Sparkle can find Info.plist
-    // For app: full functionality with menu item connection
-    
-    NSLog(@"ESScreensaverView: Initializing Sparkle...");
-    
 #ifdef SCREEN_SAVER
-    NSLog(@"ESScreensaverView: Running in SCREEN_SAVER mode (preview=%d)", (int)isPreview);
-    // For screensaver: use explicit bundle initialization
-    // This ensures Sparkle reads SUPublicEDKey and other settings from our bundle
-    m_updater = nil;
-    m_sparkleUpdater = nil;
-    m_sparkleUserDriver = nil;
-
-    // Settings thumbnail must not start Sparkle — it keeps legacyScreenSaver alive
-    // after System Settings closes (and is useless in the preview host).
-    if (!isPreview) {
-    @try {
-        NSBundle *screensaverBundle = [NSBundle bundleForClass:[self class]];
-        NSLog(@"Sparkle: initializing for screensaver bundle: %@ at %@", 
-              screensaverBundle.bundleIdentifier, screensaverBundle.bundlePath);
-        
-        SPUStandardUserDriver *userDriver = [[SPUStandardUserDriver alloc] initWithHostBundle:screensaverBundle delegate:self];
-        m_sparkleUserDriver = userDriver;
-        SPUUpdater *updater = [[SPUUpdater alloc] initWithHostBundle:screensaverBundle
-                                                   applicationBundle:screensaverBundle
-                                                          userDriver:userDriver
-                                                            delegate:self];
-        
-        NSError *error = nil;
-        if ([updater startUpdater:&error]) {
-            m_sparkleUpdater = updater;
-            m_sparkleUpdater.automaticallyChecksForUpdates = YES;
-            // Hide "Skip this version" in update dialog (Sparkle 2.x allowsSkippingUpdates)
-            if ([m_sparkleUpdater respondsToSelector:NSSelectorFromString(@"setAllowsSkippingUpdates:")]) {
-                [m_sparkleUpdater setValue:@NO forKey:@"allowsSkippingUpdates"];
-            }
-            NSLog(@"Sparkle: successfully started for screensaver");
-            
-            // Trigger an immediate background check for updates
-            [m_sparkleUpdater checkForUpdatesInBackground];
-            NSLog(@"Sparkle: initiated background update check");
-        } else {
-            NSLog(@"Sparkle: failed to start - %@", error.localizedDescription);
-        }
-    } @catch (NSException *exception) {
-        NSLog(@"Sparkle: exception during initialization - %@: %@", exception.name, exception.reason);
-    }
-    }
+    NSLog(@"ESScreensaverView: Running in SCREEN_SAVER appex mode (preview=%d)", (int)isPreview);
 #else
-    NSLog(@"ESScreensaverView: Running in APP mode");
-    // For app: use standard controller
+    NSLog(@"ESScreensaverView: Running in APP mode — initializing Sparkle");
     m_sparkleUpdater = nil;
     m_updater = [[SPUStandardUpdaterController alloc] initWithStartingUpdater:YES
                                                               updaterDelegate:self
                                                            userDriverDelegate:self];
-    
+
     if (m_updater) {
         SPUUpdater *appUpdater = m_updater.updater;
         // Hide "Skip this version" in update dialog (Sparkle 2.x allowsSkippingUpdates)
@@ -128,8 +82,7 @@ static std::atomic<int> s_activeEngineViews{0};
         }
         [appUpdater checkForUpdatesInBackground];
     }
-    
-    // Connect "Check for Updates..." menu item to the updater (app only)
+
     [self connectCheckForUpdatesMenuItem];
 #endif
 
@@ -182,27 +135,6 @@ static std::atomic<int> s_activeEngineViews{0};
 }
 
 #ifdef SCREEN_SAVER
-static BOOL ESSystemSettingsIsRunning(void)
-{
-    for (NSRunningApplication *app in NSWorkspace.sharedWorkspace.runningApplications) {
-        NSString *bid = app.bundleIdentifier;
-        if ([bid isEqualToString:@"com.apple.SystemSettings"] ||
-            [bid isEqualToString:@"com.apple.systempreferences"] ||
-            [bid isEqualToString:@"com.apple.Preferences"]) {
-            return YES;
-        }
-    }
-    return NO;
-}
-
-static BOOL ESIsSystemSettingsApp_(NSRunningApplication *app)
-{
-    NSString *bid = app.bundleIdentifier;
-    return [bid isEqualToString:@"com.apple.SystemSettings"] ||
-           [bid isEqualToString:@"com.apple.systempreferences"] ||
-           [bid isEqualToString:@"com.apple.Preferences"];
-}
-
 // Seconds a non-preview view's window may stay off-screen before we decide no
 // host will ever show or stop us. Generous so slow fades / display wake don't trip it.
 static const NSTimeInterval kOrphanOffscreenSeconds = 10.0;
@@ -231,14 +163,10 @@ static BOOL ESWindowIsKnownOffscreen(NSWindow *win)
 - (void)startAnimation
 {
 #ifdef SCREEN_SAVER
-    // Opening Screensaver settings often spawns a second legacyScreenSaver process
-    // (not the "(System Settings)" one). If we already lost the instance lock, that
-    // ghost must not start a full engine — it survives Settings close and makes
-    // hot-corner continue from the preview position.
+    // Appex hosts (System Settings + WallpaperAgent) may run two processes.
+    // Secondary keeps busy/offline mode via the instance lock — do not exit.
     if (!m_isPreview && ESScreensaver_IsSecondaryInstance()) {
-        g_Log->Info("Secondary non-preview screensaver instance — exiting (avoid Settings ghost)");
-        [self _forceExitScreensaverWithReason:"secondary-instance" delaySeconds:0];
-        return;
+        g_Log->Info("Secondary screensaver instance — starting in multiple-instances mode");
     }
 #endif
 
@@ -349,17 +277,11 @@ static BOOL ESWindowIsKnownOffscreen(NSWindow *win)
             remaining = 0;
         }
         if (remaining == 0) {
-            BOOL wasPreview = m_isPreview;
             [self _tearDownKeepAlives];
             ESScreensaver_Stop();
             ESScreensaver_Deinit();
-            // Settings "(System Settings)" host often leaves the appex alive unless
-            // we exit. Real fullscreen dismiss uses willstop → exit already.
-            if (wasPreview) {
-                g_Log->Info("Preview stopAnimation complete — exiting process");
-                g_Log->Shutdown();
-                exit(0);
-            }
+            // WallpaperAgent keeps the appex process across sessions — do not exit.
+            g_Log->Info("stopAnimation: last view stopped, engine torn down (process stays)");
         } else {
             g_Log->Info("Saver stopAnimation: %d view(s) still active, keeping engine",
                         remaining);
@@ -445,79 +367,53 @@ static void signnal_handler(int signal)
            selector:@selector(onSleepNote:)
                name:NSNotificationName(@"com.apple.screensaver.didstop")
              object:nil];
-#ifdef SCREEN_SAVER
-    // If System Settings spawned/warmed this non-preview process, it often never
-    // gets stopAnimation when Settings closes — only the "(System Settings)"
-    // process dies. Exit when System Settings quits so hot-corner gets a fresh start.
-    if (!m_isPreview && ESSystemSettingsIsRunning()) {
-        [NSWorkspace.sharedWorkspace.notificationCenter
-            addObserver:self
-               selector:@selector(onAppTerminated:)
-                   name:NSWorkspaceDidTerminateApplicationNotification
-                 object:nil];
-        g_Log->Info("Watching System Settings terminate (warm non-preview instance)");
-    }
-#endif
     std::signal(SIGSEGV, signnal_handler);
 }
-
-#ifdef SCREEN_SAVER
-- (void)onAppTerminated:(NSNotification *)notif
-{
-    NSRunningApplication *app = notif.userInfo[NSWorkspaceApplicationKey];
-    if (!app || !ESIsSystemSettingsApp_(app))
-        return;
-    // Real hot-corner / Preview fullscreen uses screensaver window level; leave those alone.
-    NSWindow *win = self.window;
-    if (win && win.level >= NSScreenSaverWindowLevel)
-        return;
-    g_Log->Info("System Settings terminated — exiting warm screensaver process");
-    [self _forceExitScreensaverWithReason:"system-settings-quit" delaySeconds:0];
-}
-#endif
 
 - (void)willStop:(NSNotification*)notification
 {
 #ifdef SCREEN_SAVER
-    // NSWorkspaceWillSleepNotification — machine sleep, not screensaver dismiss.
-    // Settings thumbnail must not exit the appex (would freeze Preview/fullscreen).
+    // Machine sleep — pause playback; WallpaperAgent may reuse this process.
     if (m_isPreview)
         return;
-    g_Log->Info("Killed by system from willStop (sleep)");
-    if (@available(macOS 14.0, *)) {
-        // Delay slightly so macOS can finish sleep transitions without relaunch churn.
-        [self _forceExitScreensaverWithReason:"willStop/sleep" delaySeconds:2.0];
-    }
+    g_Log->Info("willStop (sleep) — stopping animation without exiting process");
+    [self stopAnimation];
 #endif
 }
 
 - (void)onSleepNote:(NSNotification*)notif
 {
 #ifdef SCREEN_SAVER
-    // Preview thumbnail shares this process; ignore dismiss notes so we don't
-    // exit(0) while a full-screen Preview/saver view is still alive.
+    // Screensaver dismiss (willstop/didstop). Tear down views; keep process alive
+    // so WallpaperAgent does not treat exit as a crash and relaunch an orphan.
     if (m_isPreview)
         return;
-    g_Log->Info("Killed by system from onSleepNote %s", notif.name.UTF8String);
-    if (@available(macOS 14.0, *)) {
-        // Engine is torn down immediately; only the exit is delayed. Exiting
-        // instantly races WallpaperAgent: loginwindow releases its wallpaper
-        // assertions ~300ms apart, and if we die between them WallpaperAgent
-        // treats it as a crash and relaunches the extension, then fails to kill
-        // the relaunch ("Could not signal service ... Operation not permitted"),
-        // leaving an orphan that gets startAnimation and plays forever (#690).
-        // In practice legacyScreenSaver calls exit() itself ~200ms after
-        // willstop, before this timer; ESLogExitTiming holds that exit instead.
-        [self _forceExitScreensaverWithReason:notif.name.UTF8String delaySeconds:2.0];
-    }
+    g_Log->Info("screensaver stop note %s — stopping animation (no exit)",
+                notif.name.UTF8String);
+    [self stopAnimation];
 #endif
 }
 
+#ifdef SCREEN_SAVER
+// Host attaches at 0×0 then resizes; stopAnimation is often omitted when views
+// are released. Drive start/stop from window attach like AppexSaverMinimal.
+- (void)viewDidMoveToWindow
+{
+    [super viewDidMoveToWindow];
+    if (self.window != nil) {
+        if (!m_bStarted && !m_bPausedForSheet)
+            [self startAnimation];
+    } else {
+        if (m_bStarted)
+            [self stopAnimation];
+    }
+}
+#endif
+
 #pragma mark - Keep-alive teardown + dismiss fallback
 
-// legacyScreenSaver.appex often neither calls stopAnimation nor posts willstop
-// (FB13041503). Without an explicit exit(0), Metal's redraw timer and Sparkle
-// keep the appex process alive after the user dismisses the saver.
+// Host may omit stopAnimation when releasing views; viewDidMoveToWindow and
+// willstop/didstop tear down playback. Process stays alive under WallpaperAgent.
 
 - (void)_stopRedrawTimer
 {
@@ -534,106 +430,13 @@ static void signnal_handler(int signal)
 {
 #ifdef SCREEN_SAVER
     [self _stopRedrawTimer];
-    if (m_sparkleUpdater) {
-        m_sparkleUpdater.automaticallyChecksForUpdates = NO;
-        m_sparkleUpdater = nil;
-    }
-    m_sparkleUserDriver = nil;
-#endif
-}
-
-#ifdef SCREEN_SAVER
-// Exit-timing diagnostics (#690): who ends the process after a force-exit
-// request — our delayed exit(0), some other exit() (e.g. the extension runtime
-// after WallpaperAgent drops us), or neither line logged => killed by signal.
-static CFAbsoluteTime s_exitRequestedAt = 0;
-static bool s_exitRequested = false;
-static std::atomic<bool> s_logShutDown{false};
-
-static void ESShutdownLogOnce(void)
-{
-    if (!s_logShutDown.exchange(true))
-        g_Log->Shutdown();
-}
-
-// legacyScreenSaver's own code calls exit() ~200ms after loginwindow stops the
-// saver. WallpaperAgent decides to remove the saver only when loginwindow
-// releases its second assertion, 300-370ms after the first (observed on
-// macOS 26.6). If the process dies before that, WallpaperAgent treats it as a
-// crash and relaunches an orphan (#690). Nothing in-process signals the remove,
-// so hold the dying process until a fixed point after willstop. Heuristic; the
-// off-screen watchdog is the backstop if Apple's timing drifts past this.
-static const NSTimeInterval kExitHoldAfterWillStopSeconds = 1.0;
-
-static void ESLogExitTiming(void)
-{
-    if (s_logShutDown.load() || !s_exitRequested)
-        return;
-    NSTimeInterval elapsed = CFAbsoluteTimeGetCurrent() - s_exitRequestedAt;
-    g_Log->Info("Process exit() %.0f ms after force-exit request (not our delayed exit)",
-                elapsed * 1000.0);
-    if (elapsed < kExitHoldAfterWillStopSeconds) {
-        NSTimeInterval hold = kExitHoldAfterWillStopSeconds - elapsed;
-        g_Log->Info("Holding exit %.0f ms so WallpaperAgent removes the saver first", hold * 1000.0);
-        usleep((useconds_t)(hold * 1e6));
-    }
-    ESShutdownLogOnce();
-}
-#endif
-
-- (void)_forceExitScreensaverWithReason:(const char *)reason delaySeconds:(NSTimeInterval)delaySeconds
-{
-#ifdef SCREEN_SAVER
-    if (m_forceExiting)
-        return;
-    m_forceExiting = YES;
-    if (!s_exitRequested) {
-        s_exitRequested = true;
-        s_exitRequestedAt = CFAbsoluteTimeGetCurrent();
-        atexit(ESLogExitTiming);
-    }
-
-    [self _stopScreenConnectionMonitor];
-    [self _tearDownKeepAlives];
-    m_isStopped = YES;
-
-    g_Log->Info("Screensaver force-exit (%s)", reason ? reason : "unknown");
-    // Process is dying — shut down the shared engine regardless of other views.
-    if (m_bStarted) {
-        s_activeEngineViews.store(0);
-        ESScreensaver_Stop();
-        ESScreensaver_Deinit();
-        m_bStarted = NO;
-    } else if (s_activeEngineViews.load() > 0) {
-        s_activeEngineViews.store(0);
-        ESScreensaver_Stop();
-        ESScreensaver_Deinit();
-    }
-
-    if (delaySeconds <= 0) {
-        ESShutdownLogOnce();
-        exit(0);
-    }
-    // Keep the log open during the delay so ESLogExitTiming can record an
-    // earlier exit by someone else.
-    g_Log->Info("Engine stopped; exit(0) scheduled in %.1fs", delaySeconds);
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delaySeconds * NSEC_PER_SEC)),
-                   dispatch_get_main_queue(), ^{
-                       g_Log->Info("Delayed exit(0) firing %.0f ms after force-exit request",
-                                   (CFAbsoluteTimeGetCurrent() - s_exitRequestedAt) * 1000.0);
-                       ESShutdownLogOnce();
-                       exit(0);
-                   });
 #endif
 }
 
 - (void)_startScreenConnectionMonitor
 {
 #ifdef SCREEN_SAVER
-    // Orphan watchdog. WallpaperAgent can relaunch the appex right after a
-    // dismiss and then fail to kill it; that process gets startAnimation with
-    // an off-screen layer-0 window and never receives stopAnimation/willstop
-    // (#690). A real saver or Settings "Preview" window is on-screen.
+    // Orphan watchdog for a view left attached off-screen with no stop from host.
     if (m_isPreview)
         return;
     [self _stopScreenConnectionMonitor];
@@ -650,9 +453,10 @@ static void ESLogExitTiming(void)
         }
         offscreenFor += t.timeInterval;
         if (offscreenFor >= kOrphanOffscreenSeconds) {
-            g_Log->Info("Saver window off-screen for %.0fs with no stop from host",
+            g_Log->Info("Saver window off-screen for %.0fs — stopping animation (no exit)",
                         offscreenFor);
-            [strongSelf _forceExitScreensaverWithReason:"orphan-offscreen" delaySeconds:0];
+            [strongSelf stopAnimation];
+            [t invalidate];
         }
     }];
 #endif
@@ -853,18 +657,21 @@ static void ESLogExitTiming(void)
         [super keyDown:ev];
 }
 
+// Check if an update is available
+- (BOOL)isUpdateAvailable
+{
+    return m_updateAvailable;
+}
+
+#ifndef SCREEN_SAVER
 // Called immediately before relaunching.
 - (void)updaterWillRelaunchApplication:(SPUUpdater*)__unused updater
 {
-    // Close any open configuration sheet
     if (m_config != NULL)
         [NSApp endSheet:m_config.window];
-    
-    // Stop animation and cleanup before relaunch
     [self stopAnimation];
 }
 
-// Called when Sparkle finds a valid update
 - (void)updater:(SPUUpdater *)updater didFindValidUpdate:(SUAppcastItem *)item
 {
     m_updateAvailable = YES;
@@ -872,7 +679,6 @@ static void ESLogExitTiming(void)
     NSLog(@"Sparkle found valid update: %@", item.displayVersionString);
 }
 
-// Called when Sparkle does not find an update
 - (void)updaterDidNotFindUpdate:(SPUUpdater *)updater
 {
     m_updateAvailable = NO;
@@ -880,56 +686,33 @@ static void ESLogExitTiming(void)
     NSLog(@"Sparkle did not find an update");
 }
 
-// Provide the appcast URL for Sparkle (required for screensaver bundle)
 - (nullable NSString *)feedURLStringForUpdater:(SPUUpdater *)updater
 {
-    // First try to get URL from bundle's Info.plist
     NSBundle *bundle = [NSBundle bundleForClass:[self class]];
     NSString *feedURL = [bundle objectForInfoDictionaryKey:@"SUFeedURL"];
-    
     if (feedURL && feedURL.length > 0) {
         NSLog(@"Sparkle feed URL from bundle: %@", feedURL);
         return feedURL;
     }
-    
-    // Fallback to hardcoded URL based on build configuration
 #ifdef DEBUG
     feedURL = @"https://infinidream.ai/stage/appcast.xml";
 #else
     feedURL = @"https://infinidream.ai/alpha/appcast.xml";
 #endif
-    
     NSLog(@"Sparkle feed URL (fallback): %@", feedURL);
     return feedURL;
 }
 
-// For screensaver: don't prompt user for permission, just check silently
 - (BOOL)updaterShouldPromptForPermissionToCheckForUpdates:(SPUUpdater *)updater
 {
-#ifdef SCREEN_SAVER
-    // Screensaver should never show permission dialogs
-    return NO;
-#else
-    // App can show the standard permission dialog
     return YES;
-#endif
 }
 
 #pragma mark - SPUStandardUserDriverDelegate (hide "Skip this version" button)
 
-// Prevent Sparkle from showing modal update dialogs in screensaver
-// Modal dialogs cause legacyScreenSaver.appex to crash/terminate
 - (BOOL)standardUserDriverShouldHandleShowingScheduledUpdate:(SUAppcastItem *)update andInImmediateFocus:(BOOL)immediateFocus
 {
-#ifdef SCREEN_SAVER
-    // Screensaver: Don't show modal update dialog - just track that update is available
-    // The HUD indicator will show the update icon to the user
-    NSLog(@"Sparkle: Update available but suppressing modal dialog in screensaver: %@", update.displayVersionString);
-    return NO;  // Don't show the dialog
-#else
-    // App: Show the update dialog normally
     return YES;
-#endif
 }
 
 static void hideSkipButtonInView(NSView *view)
@@ -949,18 +732,10 @@ static void hideSkipButtonInView(NSView *view)
 
 - (void)standardUserDriverWillHandleShowingUpdate:(BOOL)handleShowingUpdate forUpdate:(SUAppcastItem *)update state:(SPUUserUpdateState *)state
 {
-#ifdef SCREEN_SAVER
-    // Screensaver: We suppress the modal dialog, so this should not be called
-    // But if it is, do nothing to avoid any modal UI
-    NSLog(@"Sparkle: standardUserDriverWillHandleShowingUpdate called in screensaver (should be suppressed)");
-    return;
-#else
-    // App: Hide the "Skip this version" button in the update dialog
     id userDriver = m_updater ? m_updater.userDriver : nil;
     if (!userDriver) return;
 
     __weak id weakDriver = userDriver;
-    // Run after the update alert window is built and shown
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.15 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         id driver = weakDriver;
         if (!driver) return;
@@ -971,16 +746,8 @@ static void hideSkipButtonInView(NSView *view)
         NSView *contentView = [window contentView];
         hideSkipButtonInView(contentView);
     });
-#endif
 }
 
-// Check if an update is available
-- (BOOL)isUpdateAvailable
-{
-    return m_updateAvailable;
-}
-
-#ifndef SCREEN_SAVER
 - (void)checkForUpdates:(id)sender
 {
     if (m_updater != nil) {
@@ -995,19 +762,16 @@ static void hideSkipButtonInView(NSView *view)
 
 - (void)connectCheckForUpdatesMenuItem
 {
-    // Find the "Check for Updates..." menu item and connect it to the updater
     NSMenu *mainMenu = [NSApp mainMenu];
     if (!mainMenu) return;
-    
-    // Search through all menu items
+
     for (NSMenuItem *topItem in mainMenu.itemArray) {
         NSMenu *submenu = topItem.submenu;
         if (!submenu) continue;
-        
+
         for (NSMenuItem *item in submenu.itemArray) {
             if ([item.title isEqualToString:@"Check for Updates..."] ||
                 [item.title hasPrefix:@"Check for Updates"]) {
-                // Connect to our updater controller
                 item.target = m_updater;
                 item.action = @selector(checkForUpdates:);
                 NSLog(@"Connected 'Check for Updates' menu item to Sparkle updater");

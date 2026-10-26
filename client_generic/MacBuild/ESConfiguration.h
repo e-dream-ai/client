@@ -1,4 +1,3 @@
-#import "Sparkle/Sparkle.h"
 #import <Cocoa/Cocoa.h>
 
 @interface ESConfiguration : NSWindowController <NSTextFieldDelegate>

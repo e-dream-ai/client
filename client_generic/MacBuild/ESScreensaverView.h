@@ -8,7 +8,9 @@
 #import "ESOpenGLView.h"
 #endif
 #import "ESConfiguration.h"
+#ifndef SCREEN_SAVER
 #import "Sparkle/Sparkle.h"
+#endif
 
 @class EDreamUpdaterDelegate;
 
@@ -18,18 +20,21 @@
 #else
     : NSView
 #endif
+#ifndef SCREEN_SAVER
       <SPUUpdaterDelegate,
        SPUStandardUserDriverDelegate
 #ifdef USE_METAL
-#ifdef SCREEN_SAVER
-       ,
-       ESMetalViewDelegate
-#else  /*SCREEN_SAVER*/
        ,
        MTKViewDelegate
-#endif /*SCREEN_SAVER*/
-#endif /*USE_METAL*/
+#endif
        >
+#else /* SCREEN_SAVER */
+#ifdef USE_METAL
+      <ESMetalViewDelegate>
+#else
+      <NSObject>
+#endif
+#endif /* SCREEN_SAVER */
 {
     // So what do you need to make an OpenGL screen saver? Just an NSOpenGLView
     // (or subclass thereof) So we'll put one in here.
@@ -56,10 +61,12 @@
 
     ESConfiguration* m_config;
 
+#ifndef SCREEN_SAVER
     SPUStandardUpdaterController* m_updater;
-    SPUUpdater* m_sparkleUpdater;  // Direct updater reference for screensaver
-    SPUStandardUserDriver* m_sparkleUserDriver;  // For screensaver: access activeUpdateAlert to hide Skip button
-    BOOL m_updateAvailable;  // Track if Sparkle found a valid update
+    SPUUpdater* m_sparkleUpdater;
+    SPUStandardUserDriver* m_sparkleUserDriver;
+#endif
+    BOOL m_updateAvailable;
 }
 
 - (id)initWithFrame:(NSRect)frame isPreview:(BOOL)isPreview;
@@ -81,12 +88,11 @@
 
 - (void)windowDidResize;
 
-- (void)updaterWillRelaunchApplication:(SPUUpdater*)updater;
-
 - (BOOL)fullscreen;
 - (void)setFullScreen:(BOOL)fullscreen;
 
 #ifndef SCREEN_SAVER
+- (void)updaterWillRelaunchApplication:(SPUUpdater*)updater;
 - (void)checkForUpdates:(id)sender;
 - (SPUStandardUpdaterController*)updaterController;
 - (void)connectCheckForUpdatesMenuItem;
