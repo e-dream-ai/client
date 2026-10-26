@@ -59,6 +59,11 @@ size_t ProgressiveHttpStream_Write(char* ptr, size_t size, size_t nmemb,
     if (nbytes == 0)
         return 0;
 
+    // Only 200/206 bodies are video bytes; anything else (an error page that
+    // slipped past FAILONERROR) must never land in the cache file.
+    if (state->httpStatus != 200 && state->httpStatus != 206)
+        return 0;
+
     std::lock_guard<std::mutex> lock(self->m_mutex);
     if (!self->m_file || self->ShouldAbortDownload())
         return 0;
@@ -81,9 +86,36 @@ size_t ProgressiveHttpStream_Write(char* ptr, size_t size, size_t nmemb,
 size_t ProgressiveHttpStream_Header(char* buffer, size_t size, size_t nitems,
                                     void* userdata)
 {
-    auto* self = static_cast<ProgressiveHttpStream*>(userdata);
+    auto* state =
+        static_cast<ProgressiveHttpStream::TransferState*>(userdata);
+    ProgressiveHttpStream* self = state->self;
     const size_t nbytes = size * nitems;
     std::string line(buffer, nbytes);
+
+    // Status line starts a new response (curl reports every hop of a
+    // redirect chain here).
+    if (line.compare(0, 5, "HTTP/") == 0)
+    {
+        state->httpStatus = 0;
+        auto sp = line.find(' ');
+        if (sp != std::string::npos)
+        {
+            try
+            {
+                state->httpStatus = std::stol(line.substr(sp + 1));
+            }
+            catch (...)
+            {
+            }
+        }
+        // A server that ignores Range sends the whole file from byte 0.
+        if (state->httpStatus == 200)
+            state->writePos = 0;
+        return nbytes;
+    }
+
+    if (state->httpStatus != 200 && state->httpStatus != 206)
+        return nbytes;
 
     auto colon = line.find(':');
     if (colon == std::string::npos)
@@ -101,7 +133,9 @@ size_t ProgressiveHttpStream_Header(char* buffer, size_t size, size_t nitems,
         c = static_cast<char>(::tolower(static_cast<unsigned char>(c)));
 
     std::lock_guard<std::mutex> lock(self->m_mutex);
-    if (name == "content-length" && self->m_activeTransferStart == 0)
+    // On a 206 Content-Length is only the remaining range; the total comes
+    // from Content-Range instead.
+    if (name == "content-length" && state->httpStatus == 200)
     {
         try
         {
@@ -381,7 +415,9 @@ bool ProgressiveHttpStream::RunTransfer(int64_t startOffset)
     set(curl_easy_setopt(curl, CURLOPT_WRITEDATA, &state));
     set(curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION,
                          &ProgressiveHttpStream_Header));
-    set(curl_easy_setopt(curl, CURLOPT_HEADERDATA, this));
+    set(curl_easy_setopt(curl, CURLOPT_HEADERDATA, &state));
+    // Fail on 4xx/5xx before any body is delivered.
+    set(curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L));
     set(curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, &XferInfoCallback));
     set(curl_easy_setopt(curl, CURLOPT_XFERINFODATA, this));
     set(curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L));
@@ -402,7 +438,7 @@ bool ProgressiveHttpStream::RunTransfer(int64_t startOffset)
     curl_off_t cl = -1;
     if (curl_easy_getinfo(curl, CURLINFO_CONTENT_LENGTH_DOWNLOAD_T, &cl) ==
             CURLE_OK &&
-        cl > 0 && startOffset == 0)
+        cl > 0 && httpCode == 200)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         if (m_contentLength < 0)

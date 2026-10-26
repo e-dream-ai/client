@@ -53,6 +53,9 @@ class ProgressiveHttpStream
     {
         ProgressiveHttpStream* self = nullptr;
         int64_t writePos = 0;
+        // Status of the response currently being received (reset on each
+        // status line, so redirect and 1xx headers are never trusted).
+        long httpStatus = 0;
     };
 
   private:
