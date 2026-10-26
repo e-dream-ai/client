@@ -129,9 +129,9 @@ public:
     std::optional<DiskCachedItem> getDiskCachedItem(const std::string& uuid) const;
 
     // Compare server dream md5 to the disk-cache entry; invalidate on mismatch.
-    // Legacy entries with empty stored md5 are hashed on a background worker
-    // when allowHash is set, and skipped otherwise.
-    void validateCachedVideo(const std::string& uuid, bool allowHash = true);
+    // Legacy entries with empty stored md5 adopt the metadata md5 when their
+    // video_timestamp is unchanged, and are hashed on a background worker if not.
+    void validateCachedVideo(const std::string& uuid);
 
     // Drop the cached MP4 + disk entry but keep metadata so it can re-download.
     // Defers while the UUID is open for decode (Windows file locks).

@@ -400,7 +400,7 @@ void CacheManager::flushPendingVideoInvalidations(const std::unordered_set<std::
     }
 }
 
-void CacheManager::validateCachedVideo(const std::string& uuid, bool allowHash) {
+void CacheManager::validateCachedVideo(const std::string& uuid) {
     auto diskItem = getDiskCachedItem(uuid);
     if (!diskItem) {
         return;
@@ -414,8 +414,15 @@ void CacheManager::validateCachedVideo(const std::string& uuid, bool allowHash) 
     const std::string serverMd5 = dream->md5;
 
     if (diskItem->md5.empty()) {
-        // Legacy entry: hash once on the backfill worker, persist, then compare.
-        if (allowHash) {
+        // Legacy entry from before md5 was stored. version is the video_timestamp
+        // it was downloaded with, and video_timestamp moves whenever the MP4 is
+        // reprocessed, so an unchanged value means the bytes are current: adopt
+        // the metadata md5 without reading the file. Otherwise the dream was
+        // reprocessed since download (possibly without changing the bytes, e.g.
+        // filmstrip or md5 backfill), so hash once to decide.
+        if (diskItem->version == dream->video_timestamp) {
+            updateDiskCachedItemMd5(uuid, serverMd5);
+        } else {
             enqueueMd5Backfill(uuid);
         }
         return;

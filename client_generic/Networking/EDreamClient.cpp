@@ -2526,15 +2526,16 @@ std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
     // Re-check every cached video against its metadata md5, not only the ones
     // just refreshed. A mismatch can outlive the refresh that found it: on
     // Windows the delete is deferred while the clip is open, and that pending
-    // list is lost on exit. Only compares stored strings; legacy entries are
-    // hashed solely from reloadMetadata. Skipped offline so we never drop a
-    // video we cannot re-download.
+    // list is lost on exit. Also covers entries cached before md5 was stored,
+    // including dreams re-encoded before this client was installed (see
+    // validateCachedVideo). Skipped offline so we never drop a video we cannot
+    // re-download.
     if (EDreamClient::IsLoggedIn() && !g_Player().IsOfflineMode()) {
         std::unordered_set<std::string> refreshed(needsMetadataUuids.begin(),
                                                   needsMetadataUuids.end());
         for (const auto& entry : entries) {
             if (refreshed.count(entry.uuid) == 0) {
-                cm.validateCachedVideo(entry.uuid, false);
+                cm.validateCachedVideo(entry.uuid);
             }
         }
     }
