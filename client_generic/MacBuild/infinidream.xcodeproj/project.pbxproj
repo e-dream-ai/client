@@ -68,6 +68,13 @@
 		2123132E0F503C4500702B2C /* ContentDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212313190F503C4500702B2C /* ContentDownloader.cpp */; };
 		2135D2690EC70571005E246D /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2135D2670EC70571005E246D /* AppKit.framework */; };
 		2135DA530EC7479A005E246D /* ESScreensaverView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA520EC7479A005E246D /* ESScreensaverView.mm */; };
+		A10000000000000000000011 /* ESScreenSaverExtension.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* ESScreenSaverExtension.mm */; };
+		A10000000000000000000012 /* ESScreenSaverViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000004 /* ESScreenSaverViewController.mm */; };
+		A10000000000000000000013 /* ESScreenSaverExtension.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* ESScreenSaverExtension.mm */; };
+		A10000000000000000000014 /* ESScreenSaverViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000004 /* ESScreenSaverViewController.mm */; };
+		A10000000000000000000051 /* infinidream.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 218878D00EC6CD7E001ABD2E /* infinidream.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A10000000000000000000052 /* infinidream-stage.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = F0C100842C1372EF007FA505 /* infinidream-stage.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+
 		2135DA550EC74853005E246D /* ESScreensaver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA540EC74853005E246D /* ESScreensaver.cpp */; };
 		2135DB250EC75133005E246D /* ScreenSaver.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2135DB240EC75133005E246D /* ScreenSaver.framework */; };
 		213D535111F79C8D00CF500D /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 213D529B11F79B0000CF500D /* IOKit.framework */; };
@@ -603,6 +610,21 @@
 /* End PBXBuildRule section */
 
 /* Begin PBXContainerItemProxy section */
+		A10000000000000000000042 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 08FB7793FE84155DC02AAC07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 218878CF0EC6CD7E001ABD2E;
+			remoteInfo = "ScreenSaver Prod";
+		};
+		A10000000000000000000044 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 08FB7793FE84155DC02AAC07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F0C100012C1372EF007FA505;
+			remoteInfo = "ScreenSaver stage";
+		};
+
 		12726C232B6BF538003C0FF6 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 08FB7793FE84155DC02AAC07 /* Project object */;
@@ -620,13 +642,36 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		A10000000000000000000031 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A10000000000000000000051 /* infinidream.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+
+		A10000000000000000000032 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A10000000000000000000052 /* infinidream-stage.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+
 		215542511261FE2100AB51BF /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				063B5C602F198F2900B5E553 /* Sparkle.framework in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -677,7 +722,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				063B5C642F19947D00B5E553 /* Sparkle.framework in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -804,13 +848,20 @@
 		212B1ADD0E8E6E5000CE185C /* libbz2.1.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libbz2.1.0.dylib; path = usr/lib/libbz2.1.0.dylib; sourceTree = SDKROOT; };
 		2135D2670EC70571005E246D /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
 		2135DA520EC7479A005E246D /* ESScreensaverView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ESScreensaverView.mm; sourceTree = "<group>"; };
+		A10000000000000000000001 /* ESScreenSaverExtension.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ESScreenSaverExtension.h; sourceTree = "<group>"; };
+		A10000000000000000000002 /* ESScreenSaverExtension.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ESScreenSaverExtension.mm; sourceTree = "<group>"; };
+		A10000000000000000000003 /* ESScreenSaverViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ESScreenSaverViewController.h; sourceTree = "<group>"; };
+		A10000000000000000000004 /* ESScreenSaverViewController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ESScreenSaverViewController.mm; sourceTree = "<group>"; };
+		A10000000000000000000005 /* ScreenSaverPrivate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ScreenSaverPrivate.h; path = PrivateHeaders/ScreenSaverPrivate.h; sourceTree = "<group>"; };
+		A10000000000000000000006 /* Screensaver.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Screensaver.entitlements; sourceTree = "<group>"; };
+
 		2135DA540EC74853005E246D /* ESScreensaver.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ESScreensaver.cpp; sourceTree = "<group>"; };
 		2135DB240EC75133005E246D /* ScreenSaver.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ScreenSaver.framework; path = System/Library/Frameworks/ScreenSaver.framework; sourceTree = SDKROOT; };
 		213D529B11F79B0000CF500D /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		214B75060EBBA78900B5B897 /* Rect.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Rect.cpp; path = ../Common/Math/Rect.cpp; sourceTree = SOURCE_ROOT; };
 		2160FAAD0F30F43600B2C27A /* infinidream.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = infinidream.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2160FE240F30F82800B2C27A /* logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = logo.png; sourceTree = "<group>"; };
-		218878D00EC6CD7E001ABD2E /* infinidream.saver */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = infinidream.saver; sourceTree = BUILT_PRODUCTS_DIR; };
+		218878D00EC6CD7E001ABD2E /* infinidream.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = infinidream.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		218878D10EC6CD7E001ABD2E /* Screensaver-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Screensaver-Info.plist"; sourceTree = "<group>"; };
 		2188A6CF17EB94F30078C91C /* ApplicationServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ApplicationServices.framework; path = System/Library/Frameworks/ApplicationServices.framework; sourceTree = SDKROOT; };
 		2191E23719B5111700F5B82D /* FrameDisplay.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = FrameDisplay.h; path = ../Client/FrameDisplay.h; sourceTree = "<group>"; };
@@ -948,7 +999,7 @@
 		F0B66ADD2E02DB8200751811 /* StartupWindowController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = StartupWindowController.mm; sourceTree = "<group>"; };
 		F0B66ADE2E02DB8200751811 /* ThanksStepViewController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ThanksStepViewController.mm; sourceTree = "<group>"; };
 		F0B754502DBFCE4400C59D7A /* network.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = network.png; sourceTree = "<group>"; };
-		F0C100842C1372EF007FA505 /* infinidream-stage.saver */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "infinidream-stage.saver"; sourceTree = BUILT_PRODUCTS_DIR; };
+		F0C100842C1372EF007FA505 /* infinidream-stage.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "infinidream-stage.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F0C100852C1372F0007FA505 /* Screensaver-Stage-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Screensaver-Stage-Info.plist"; sourceTree = "<group>"; };
 		F0C16C102E01DE870039EC33 /* FirstTimeSetupManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FirstTimeSetupManager.h; sourceTree = "<group>"; };
 		F0C16C112E01DE870039EC33 /* FirstTimeSetupManager.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = FirstTimeSetupManager.mm; sourceTree = "<group>"; };
@@ -1021,7 +1072,6 @@
 				F0C1FFFD2C1372C4007FA505 /* libboost_log_setup.a in Frameworks */,
 				F0141B942C663E2700DBA60E /* libavformat.a in Frameworks */,
 				12440CBC2B85F4DF00A23253 /* libssl.a in Frameworks */,
-				063B5C5F2F198F2900B5E553 /* Sparkle.framework in Frameworks */,
 				464A49DE2AB88E1A00C77F6D /* Security.framework in Frameworks */,
 				F0C1FFFE2C1372C4007FA505 /* libboost_log.a in Frameworks */,
 				46C427BB2AF8F575009C3879 /* Metal.framework in Frameworks */,
@@ -1066,7 +1116,6 @@
 				F0C100582C1372EF007FA505 /* libssl.a in Frameworks */,
 				F0C100592C1372EF007FA505 /* Security.framework in Frameworks */,
 				F0C1005A2C1372EF007FA505 /* libboost_log.a in Frameworks */,
-				063B5C632F19947D00B5E553 /* Sparkle.framework in Frameworks */,
 				F0C1005C2C1372EF007FA505 /* Metal.framework in Frameworks */,
 				F03CF2732CB7F5FC009F51D8 /* libswresample.a in Frameworks */,
 				F03CF26E2CB7F5FC009F51D8 /* libavcodec.a in Frameworks */,
@@ -1205,10 +1254,10 @@
 		19C28FBDFE9D53C911CA2CBB /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				218878D00EC6CD7E001ABD2E /* infinidream.saver */,
+				218878D00EC6CD7E001ABD2E /* infinidream.appex */,
 				2160FAAD0F30F43600B2C27A /* infinidream.app */,
 				F0E9CEB12C136B0500C4D694 /* infinidream stage.app */,
-				F0C100842C1372EF007FA505 /* infinidream-stage.saver */,
+				F0C100842C1372EF007FA505 /* infinidream-stage.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -1316,6 +1365,12 @@
 				21AAA0ED0F70453200AC23A8 /* ESConfiguration.h */,
 				21AAA0EE0F70453200AC23A8 /* ESConfiguration.mm */,
 				2135DA520EC7479A005E246D /* ESScreensaverView.mm */,
+				A10000000000000000000001 /* ESScreenSaverExtension.h */,
+				A10000000000000000000002 /* ESScreenSaverExtension.mm */,
+				A10000000000000000000003 /* ESScreenSaverViewController.h */,
+				A10000000000000000000004 /* ESScreenSaverViewController.mm */,
+				A10000000000000000000005 /* ScreenSaverPrivate.h */,
+				A10000000000000000000006 /* Screensaver.entitlements */,
 				2135DA540EC74853005E246D /* ESScreensaver.cpp */,
 				12478A7E2B03B317006A8669 /* ESScreensaver.h */,
 				2191E23719B5111700F5B82D /* FrameDisplay.h */,
@@ -1575,10 +1630,12 @@
 				2160FAAB0F30F43600B2C27A /* Frameworks */,
 				2160FCB60F30F4C600B2C27A /* CopyFiles */,
 				2155439B1262042D00AB51BF /* CopyFiles */,
+				A10000000000000000000031 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				A10000000000000000000041 /* PBXTargetDependency */,
 			);
 			name = "infinidream App Prod";
 			packageProductDependencies = (
@@ -1610,8 +1667,8 @@
 				F0351BE92CB5BB4F0055091F /* Bugsnag */,
 			);
 			productName = ScreenSaver;
-			productReference = 218878D00EC6CD7E001ABD2E /* infinidream.saver */;
-			productType = "com.apple.product-type.bundle";
+			productReference = 218878D00EC6CD7E001ABD2E /* infinidream.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 		F0C100012C1372EF007FA505 /* ScreenSaver stage */ = {
 			isa = PBXNativeTarget;
@@ -1634,8 +1691,8 @@
 				F0351BEF2CB5BBFF0055091F /* Bugsnag */,
 			);
 			productName = ScreenSaver;
-			productReference = F0C100842C1372EF007FA505 /* infinidream-stage.saver */;
-			productType = "com.apple.product-type.bundle";
+			productReference = F0C100842C1372EF007FA505 /* infinidream-stage.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 		F0E9CE2A2C136B0500C4D694 /* infinidream Stage */ = {
 			isa = PBXNativeTarget;
@@ -1647,10 +1704,12 @@
 				F0E9CE7E2C136B0500C4D694 /* Frameworks */,
 				F0E9CEA42C136B0500C4D694 /* CopyFiles */,
 				F0E9CEAD2C136B0500C4D694 /* CopyFiles */,
+				A10000000000000000000032 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				A10000000000000000000043 /* PBXTargetDependency */,
 			);
 			name = "infinidream Stage";
 			packageProductDependencies = (
@@ -1797,7 +1856,6 @@
 				1243576D2B31FC1B00CCD62A /* BuildData.json in Resources */,
 				F05994702BA0A07300B018C7 /* osd-play.png in Resources */,
 				F0PLAYLIST03 /* play-playlist.png in Resources */,
-				F00638D72E83121600A1B908 /* infinidream.saver in Resources */,
 				F02C14EF2E01904600BFFFF4 /* StartupWindowController.xib in Resources */,
 				F0F6D4292BCD504500222647 /* osd-dislike.png in Resources */,
 				21ADBB261305D380000A9F20 /* yellow.tif in Resources */,
@@ -1891,7 +1949,6 @@
 				F0E9CE452C136B0500C4D694 /* BuildData.json in Resources */,
 				F0E9CE462C136B0500C4D694 /* osd-play.png in Resources */,
 				F0PLAYLIST04 /* play-playlist.png in Resources */,
-				F00638D82E83121600A1B908 /* infinidream.saver in Resources */,
 				F02C14F22E01904600BFFFF4 /* StartupWindowController.xib in Resources */,
 				F0E9CE472C136B0500C4D694 /* osd-dislike.png in Resources */,
 				F0E9CE482C136B0500C4D694 /* yellow.tif in Resources */,
@@ -2075,6 +2132,8 @@
 				467230B72AC17A9E00017C51 /* ESMetalView.m in Sources */,
 				F0917E0B2E32764C000DBED8 /* ESAppDelegate.mm in Sources */,
 				2135DA530EC7479A005E246D /* ESScreensaverView.mm in Sources */,
+				A10000000000000000000011 /* ESScreenSaverExtension.mm in Sources */,
+				A10000000000000000000012 /* ESScreenSaverViewController.mm in Sources */,
 				2135DA550EC74853005E246D /* ESScreensaver.cpp in Sources */,
 				467B6FC92AE6D031001C80CB /* EDreamClient.cpp in Sources */,
 				211CDDDB0ED0BD9200EB9394 /* Download.cpp in Sources */,
@@ -2136,6 +2195,8 @@
 				F0C1003E2C1372EF007FA505 /* ESMetalView.m in Sources */,
 				F0917E0C2E32764C000DBED8 /* ESAppDelegate.mm in Sources */,
 				F0C100402C1372EF007FA505 /* ESScreensaverView.mm in Sources */,
+				A10000000000000000000013 /* ESScreenSaverExtension.mm in Sources */,
+				A10000000000000000000014 /* ESScreenSaverViewController.mm in Sources */,
 				F0C100412C1372EF007FA505 /* ESScreensaver.cpp in Sources */,
 				F0C100422C1372EF007FA505 /* EDreamClient.cpp in Sources */,
 				F0C100432C1372EF007FA505 /* Download.cpp in Sources */,
@@ -2225,6 +2286,17 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		A10000000000000000000041 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 218878CF0EC6CD7E001ABD2E /* ScreenSaver Prod */;
+			targetProxy = A10000000000000000000042 /* PBXContainerItemProxy */;
+		};
+		A10000000000000000000043 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F0C100012C1372EF007FA505 /* ScreenSaver stage */;
+			targetProxy = A10000000000000000000044 /* PBXContainerItemProxy */;
+		};
+
 		12726C242B6BF538003C0FF6 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 218878CF0EC6CD7E001ABD2E /* ScreenSaver Prod */;
@@ -2604,11 +2676,17 @@
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = Screensaver.entitlements;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/PrivateHeaders",
+				);
 				INFOPLIST_FILE = "Screensaver-Info.plist";
-				INSTALL_PATH = "$(HOME)/Library/ScreenSavers";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/PlugIns";
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../Frameworks";
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
-				MACOSX_DEPLOYMENT_TARGET = 12.4;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 0.3.4test;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_LDFLAGS = (
@@ -2616,12 +2694,12 @@
 					suppress,
 				);
 				"OTHER_LDFLAGS[arch=x86_64]" = "";
-				PRODUCT_BUNDLE_IDENTIFIER = ai.infinidream.alpha.screensaver;
+				PRODUCT_BUNDLE_IDENTIFIER = ai.infinidream.alpha.app.screensaver;
 				PRODUCT_NAME = infinidream;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
 				VALID_ARCHS = "arm64 arm64e i386 x86_64";
-				WRAPPER_EXTENSION = saver;
+				WRAPPER_EXTENSION = appex;
 			};
 			name = Debug;
 		};
@@ -2661,12 +2739,18 @@
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = Screensaver.entitlements;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/PrivateHeaders",
+				);
 				INFOPLIST_FILE = "Screensaver-Info.plist";
-				INSTALL_PATH = "$(HOME)/Library/Bundles";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/PlugIns";
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../Frameworks";
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				LINKER_DISPLAYS_MANGLED_NAMES = YES;
-				MACOSX_DEPLOYMENT_TARGET = 12.4;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 0.3.4test;
 				OTHER_LDFLAGS = (
 					"-read_only_relocs",
@@ -2674,7 +2758,7 @@
 				);
 				"OTHER_LDFLAGS[arch=x86_64]" = "";
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = ai.infinidream.alpha.screensaver;
+				PRODUCT_BUNDLE_IDENTIFIER = ai.infinidream.alpha.app.screensaver;
 				PRODUCT_NAME = infinidream;
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -2683,7 +2767,7 @@
 				STRIP_INSTALLED_PRODUCT = YES;
 				STRIP_STYLE = debugging;
 				VALID_ARCHS = "arm64 arm64e i386 x86_64";
-				WRAPPER_EXTENSION = saver;
+				WRAPPER_EXTENSION = appex;
 			};
 			name = Release;
 		};
@@ -2724,11 +2808,17 @@
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = Screensaver.entitlements;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/PrivateHeaders",
+				);
 				INFOPLIST_FILE = "Screensaver-Stage-Info.plist";
-				INSTALL_PATH = "$(HOME)/Library/ScreenSavers";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/PlugIns";
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../Frameworks";
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
-				MACOSX_DEPLOYMENT_TARGET = 12.4;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 0.3.4test;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_LDFLAGS = (
@@ -2736,12 +2826,12 @@
 					suppress,
 				);
 				"OTHER_LDFLAGS[arch=x86_64]" = "";
-				PRODUCT_BUNDLE_IDENTIFIER = ai.infinidream.stage.screensaver;
+				PRODUCT_BUNDLE_IDENTIFIER = ai.infinidream.stage.app.screensaver;
 				PRODUCT_NAME = "infinidream-stage";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
 				VALID_ARCHS = "arm64 arm64e i386 x86_64";
-				WRAPPER_EXTENSION = saver;
+				WRAPPER_EXTENSION = appex;
 			};
 			name = Debug;
 		};
@@ -2781,12 +2871,18 @@
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = Screensaver.entitlements;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/PrivateHeaders",
+				);
 				INFOPLIST_FILE = "Screensaver-Stage-Info.plist";
-				INSTALL_PATH = "$(HOME)/Library/Bundles";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/PlugIns";
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../Frameworks";
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				LINKER_DISPLAYS_MANGLED_NAMES = YES;
-				MACOSX_DEPLOYMENT_TARGET = 12.4;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 0.3.4test;
 				OTHER_LDFLAGS = (
 					"-read_only_relocs",
@@ -2794,7 +2890,7 @@
 				);
 				"OTHER_LDFLAGS[arch=x86_64]" = "";
 				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = ai.infinidream.stage.screensaver;
+				PRODUCT_BUNDLE_IDENTIFIER = ai.infinidream.stage.app.screensaver;
 				PRODUCT_NAME = "infinidream-stage";
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -2803,7 +2899,7 @@
 				STRIP_INSTALLED_PRODUCT = YES;
 				STRIP_STYLE = debugging;
 				VALID_ARCHS = "arm64 arm64e i386 x86_64";
-				WRAPPER_EXTENSION = saver;
+				WRAPPER_EXTENSION = appex;
 			};
 			name = Release;
 		};

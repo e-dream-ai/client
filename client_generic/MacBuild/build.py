@@ -264,12 +264,12 @@ class BuildConfig:
         if self.stage:
             self.screensaver_scheme = "ScreenSaver Stage"
             self.app_scheme = "infinidream App Stage"
-            self.screensaver_name = "infinidream-stage.saver"
+            self.screensaver_name = "infinidream-stage.appex"
             self.app_name = "infinidream stage.app"
         else:
             self.screensaver_scheme = "ScreenSaver Prod"
             self.app_scheme = "infinidream App Prod"
-            self.screensaver_name = "infinidream.saver"
+            self.screensaver_name = "infinidream.appex"
             self.app_name = "infinidream.app"
 
         # Signing configuration
@@ -518,12 +518,15 @@ def step1_build_screensaver(config: BuildConfig) -> Path:
 
 
 def copy_screensaver(config: BuildConfig, source_path: Path) -> tuple[Path, Path, Path]:
-    """Copy screensaver to output and Resources directories. Returns (output_saver, project_saver, zip_path)."""
+    """Copy .appex to output for notarization/distribution.
+
+    The app embeds the appex via an Xcode \"Embed App Extensions\" phase
+    (Contents/PlugIns/), so Resources/ is no longer used for install.
+    """
     output_dir = config.build_dir / config.build_config
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Copy to output directory
-    print_yellow("Copying screensaver to output directory...")
+    print_yellow("Copying screensaver appex to output directory...")
     output_saver = output_dir / config.screensaver_name
     if output_saver.exists():
         shutil.rmtree(output_saver)
@@ -534,8 +537,8 @@ def copy_screensaver(config: BuildConfig, source_path: Path) -> tuple[Path, Path
         print_red("Failed to copy screensaver to output directory")
         sys.exit(1)
 
-    # Copy to project Resources directory
-    print_yellow("Copying screensaver to project Resources directory...")
+    # Keep a project-local copy for notarize/staple (same path used historically).
+    print_yellow("Copying screensaver appex to project Resources directory...")
     project_saver = Path("Resources") / config.screensaver_name
 
     if project_saver.exists():
