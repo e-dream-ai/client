@@ -16,6 +16,7 @@
 #include <string>
 #include <algorithm>
 #include <thread>
+#include <unordered_set>
 
 #include "Log.h"
 #include "MathBase.h"
@@ -1166,6 +1167,9 @@ bool CPlayer::PlayClip(const std::shared_ptr<const Cache::Dream>& dream, double 
 
 void CPlayer::PlayNextDream(bool quickFade) {
     if (!m_playlistManager) return;
+
+    // After leaving a clip, retry deferred MP4 deletes that were blocked while decoding.
+    FlushPendingVideoInvalidations();
     
     // For user-forced transitions, we don't use the preflight decision
     if (quickFade) {
@@ -1215,6 +1219,9 @@ void CPlayer::PlayNextDream(bool quickFade) {
                 m_currentClip->ResetFinished();
 
                 auto nextDream = m_playlistManager->moveToNextDream(*m_nextDreamDecision);
+
+                // Outgoing clip is tearing down; retry deferred video invalidations.
+                FlushPendingVideoInvalidations();
 
                 g_Log->Info("Seamless transition complete, syncing state to server");
                 EDreamClient::SendStateUpdate();
@@ -1676,6 +1683,9 @@ void CPlayer::UpdateTransition(double currentTime)
         }
         
         m_currentClip = m_nextClip;
+
+        // Outgoing clip is tearing down; retry deferred video invalidations.
+        FlushPendingVideoInvalidations();
         
         if (m_currentClip) {
             // Transition already handled the fade-in visually, so disable the clip's internal
@@ -1757,6 +1767,50 @@ void CPlayer::MarkForDeletion(std::string_view _uuid)
         g_Log->Debug("Evicting UUID: %s", _uuid);
         cm.addEvictedUUID(std::string(_uuid));
     }
+}
+
+void CPlayer::TryCancelPreloadForUuid(const std::string& uuid)
+{
+    // Must not block: invalidateVideo can run under InitializePlaylist's writer_lock.
+    // try_lock on a mutex this thread already owns is undefined, so skip on the
+    // player thread. A preload we can't drop plays the old file once at most.
+    if (std::this_thread::get_id() == m_updateThreadId) {
+        return;
+    }
+    writer_lock l(m_UpdateMutex, std::try_to_lock);
+    if (!l.owns_lock()) {
+        return;
+    }
+    if (!m_nextClip) {
+        return;
+    }
+    if (m_nextClip->GetClipMetadata().dreamData.uuid != uuid) {
+        return;
+    }
+    g_Log->Info("TryCancelPreloadForUuid: dropping next clip for %s", uuid.c_str());
+    if (m_nextClip->GetClipMetadata().path.substr(0, 4) == "http") {
+        m_nextClip->GetDecoder()->signalShutdown();
+    }
+    destroyClipAsync(std::move(m_nextClip));
+    m_nextClip = nullptr;
+    m_PreloadingNextClip = false;
+    m_PreloadingDreamUUID = "";
+    m_nextDreamDecision = std::nullopt;
+}
+
+void CPlayer::FlushPendingVideoInvalidations()
+{
+    // Caller holds m_UpdateMutex (Update / PlayNextDream / transition), so read
+    // the clips directly; re-locking here would self-deadlock.
+    std::unordered_set<std::string> openUuids;
+    if (m_currentClip) {
+        openUuids.insert(m_currentClip->GetClipMetadata().dreamData.uuid);
+    }
+    if (m_nextClip) {
+        openUuids.insert(m_nextClip->GetClipMetadata().dreamData.uuid);
+    }
+
+    Cache::CacheManager::getInstance().flushPendingVideoInvalidations(openUuids);
 }
 
 void CPlayer::SkipToNext()

@@ -10,6 +10,7 @@
 #include <utility>
 #include <algorithm>
 #include <cctype>
+#include <unordered_set>
 #ifndef WIN32
 #include <unistd.h>
 #endif
@@ -1894,6 +1895,15 @@ void EDreamClient::ReportMD5Failure(const std::string& uuid, const std::string& 
     SendTelemetry("md5-mismatch", eventData);
 }
 
+void EDreamClient::ReportVideoInvalidated(const std::string& uuid, const std::string& oldMd5, const std::string& newMd5) {
+    boost::json::object eventData;
+    eventData["uuid"] = uuid;
+    eventData["oldMd5"] = oldMd5;
+    eventData["newMd5"] = newMd5;
+
+    SendTelemetry("video-invalidated", eventData);
+}
+
 // MARK: - Async funtions
 std::future<bool> EDreamClient::FetchPlaylistAsync(const std::string& uuid) {
     return std::async(std::launch::async, [uuid]() {
@@ -2502,7 +2512,8 @@ std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
             // send that array and try to fetch all at once
             FetchDreamsMetadata(needsMetadataUuids);
 
-            // Then reload metadata for each of the uuids
+            // Then reload metadata for each of the uuids (reloadMetadata also
+            // validates cached video md5 and may invalidate stale MP4s).
             for (const auto& needsMetadata : needsMetadataUuids) {
                 cm.reloadMetadata(needsMetadata);
             }
@@ -2510,6 +2521,19 @@ std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
             g_Log->Info("Skipping metadata fetch at startup (offline/not logged in). Missing metadata count: %zu",
                         needsMetadataUuids.size());
         }
+    }
+
+    // Re-check every cached video against its metadata md5, not only the ones
+    // just refreshed or in this playlist (a dream can also be played on its own). A mismatch can outlive the refresh that found it: on
+    // Windows the delete is deferred while the clip is open, and that pending
+    // list is lost on exit. Also covers entries cached before md5 was stored,
+    // including dreams re-encoded before this client was installed (see
+    // validateCachedVideo). Skipped offline so we never drop a video we cannot
+    // re-download.
+    if (EDreamClient::IsLoggedIn() && !g_Player().IsOfflineMode()) {
+        std::unordered_set<std::string> refreshed(needsMetadataUuids.begin(),
+                                                  needsMetadataUuids.end());
+        cm.validateAllCachedVideos(refreshed);
     }
 
     // Downloads will be pulled dynamically by FindDreamsThread from PlaylistManager
