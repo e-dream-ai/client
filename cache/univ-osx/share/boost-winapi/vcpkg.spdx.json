@@ -3,13 +3,13 @@
   "spdxVersion": "SPDX-2.2",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "documentNamespace": "https://spdx.org/spdxdocs/boost-winapi-arm64-osx-1.90.0#1-f31514b2-5bd0-4dc2-9e97-5365de9f8d79",
-  "name": "boost-winapi:arm64-osx@1.90.0#1 3dd53d0545662ad808b302d5ff32680916569c943d70d1d99ae966890156f56b",
+  "documentNamespace": "https://spdx.org/spdxdocs/boost-winapi-arm64-osx-1.90.0#1-39b802d1-22e8-4490-be45-24fc04c66dd8",
+  "name": "boost-winapi:arm64-osx@1.90.0#1 bea8ebb9158aa99d5be07576ea0d57f6f99007f8e2f11a7da069c3e73313f664",
   "creationInfo": {
     "creators": [
       "Tool: vcpkg-2026-03-04-4b3e4c276b5b87a649e66341e11553e8c577459c"
     ],
-    "created": "2026-04-17T03:28:56Z"
+    "created": "2026-10-08T13:04:36Z"
   },
   "relationships": [
     {
@@ -674,7 +674,7 @@
     {
       "name": "boost-winapi:arm64-osx",
       "SPDXID": "SPDXRef-binary",
-      "versionInfo": "3dd53d0545662ad808b302d5ff32680916569c943d70d1d99ae966890156f56b",
+      "versionInfo": "bea8ebb9158aa99d5be07576ea0d57f6f99007f8e2f11a7da069c3e73313f664",
       "downloadLocation": "NONE",
       "licenseConcluded": "BSL-1.0",
       "licenseDeclared": "NOASSERTION",

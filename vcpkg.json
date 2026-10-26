@@ -12,8 +12,11 @@
     "curl",
     "libpng",
     { "name": "directxtk12", "platform": "windows" },
-    { "name": "ffmpeg", "features": [ "openssl" ], "platform": "!windows" },
-    { "name": "ffmpeg", "platform": "windows" },
+    {
+      "name": "ffmpeg",
+      "default-features": false,
+      "features": [ "avcodec", "avformat", "swscale" ]
+    },
     {
       "name": "imgui",
       "platform": "windows",

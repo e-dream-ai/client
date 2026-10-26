@@ -138,6 +138,9 @@
     <ClCompile Include="..\Networking\Networking.cpp">
       <Filter>Networking</Filter>
     </ClCompile>
+    <ClCompile Include="..\Networking\ProgressiveHttpStream.cpp">
+      <Filter>Networking</Filter>
+    </ClCompile>
     <ClCompile Include="..\Networking\Upload.cpp">
       <Filter>Networking</Filter>
     </ClCompile>
@@ -378,6 +381,9 @@
       <Filter>DisplayOutput\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="..\Networking\Networking.h">
+      <Filter>Networking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Networking\ProgressiveHttpStream.h">
       <Filter>Networking</Filter>
     </ClInclude>
     <ClInclude Include="..\TupleStorage\Settings.h">

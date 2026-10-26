@@ -41,6 +41,7 @@ extern "C"
 #include "libavformat/avformat.h"
 #include "libavutil/hwcontext.h"
 #include "libavutil/imgutils.h"
+#include "libavutil/pixdesc.h"
 #include "libswscale/swscale.h"
 }
 
@@ -59,6 +60,7 @@ extern "C" {
 #include "BlockingQueue.h"
 #include "Frame.h"
 #include "CacheManager.h"
+#include "ProgressiveHttpStream.h"
 
 namespace ContentDecoder
 {
@@ -186,16 +188,16 @@ class CContentDecoder
     std::vector<std::future<void>> m_futures;
     sClipMetadata m_Metadata;
     bool IsURL(const std::string& path);
-    AVIOContext* m_pIOContext;
-    unsigned char* m_pIOBuffer;
-    const int kIOBufferSize = 32768;  // 32 KB buffer
 
-    int64_t m_CacheWritePosition;
+    // libcurl-owned progressive download for HTTPS paths (ffmpeg is file/AVIO only).
+    std::unique_ptr<Network::ProgressiveHttpStream> m_httpStream;
+
+    int64_t m_CacheWritePosition = 0;
     std::mutex m_CacheMutex;
     
     std::string m_CachePath;
-    FILE* m_CacheFile;
-    bool m_IsStreaming;
+    FILE* m_CacheFile = nullptr;
+    bool m_IsStreaming = false;
     static int ReadPacket(void* opaque, uint8_t* buf, int buf_size);
     static int64_t SeekPacket(void* opaque, int64_t offset, int whence);
     void SetCachePath(const std::string& path);
