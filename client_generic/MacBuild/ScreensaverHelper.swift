@@ -17,18 +17,25 @@ import PaperSaverKit
         super.init()
     }
     
+    /// PaperSaver identifies an appex screensaver by the .appex file stem
+    /// (PRODUCT_NAME), not CFBundleDisplayName.
+    private var moduleName: String {
+        let bid = Bundle.main.bundleIdentifier ?? ""
+        return bid.contains("stage") ? "infinidream-stage" : "infinidream"
+    }
+
     /// Check if infinidream is the currently active screensaver
     @objc public func isInfinidreamActive() -> Bool {
         let activeScreensavers = paperSaver.getActiveScreensavers()
-        return activeScreensavers.count == 1 && activeScreensavers[0] == "infinidream"
+        return activeScreensavers.contains(moduleName)
     }
     
     /// Set infinidream as the active screensaver
     @objc public func setInfinidreamAsActive(completion: @escaping (Bool, Error?) -> Void) {
+        let module = moduleName
         Task {
             do {
-                // Use "infinidream" as the module name
-                try await paperSaver.setScreensaverEverywhere(module: "infinidream")
+                try await paperSaver.setScreensaverEverywhere(module: module)
                 await MainActor.run {
                     completion(true, nil)
                 }

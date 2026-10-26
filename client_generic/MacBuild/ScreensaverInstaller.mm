@@ -2,7 +2,8 @@
 //  ScreensaverInstaller.mm
 //  infinidream
 //
-//  Handles automatic installation and updating of the bundled screensaver
+//  Registers the embedded screensaver .appex with PlugInKit and enables it
+//  via PaperSaver.
 //
 
 #import "ScreensaverInstaller.h"
@@ -44,157 +45,143 @@
     }
 }
 
+- (NSString *)embeddedExtensionPath {
+    NSString *plugins = [[NSBundle mainBundle] builtInPlugInsPath];
+    if (!plugins)
+        return nil;
+#ifdef STAGE
+    return [plugins stringByAppendingPathComponent:@"infinidream-stage.appex"];
+#else
+    return [plugins stringByAppendingPathComponent:@"infinidream.appex"];
+#endif
+}
+
+- (NSString *)extensionBundleIdentifier {
+#ifdef STAGE
+    return @"ai.infinidream.stage.app.screensaver";
+#else
+    return @"ai.infinidream.alpha.app.screensaver";
+#endif
+}
+
 - (BOOL)isScreensaverInstalled {
-    NSString *installPath = [self getInstallationPath];
-    return [[NSFileManager defaultManager] fileExistsAtPath:installPath];
-}
-
-- (NSString *)getInstallationPath {
-    NSString *homeDirectory = NSHomeDirectory();
-    return [homeDirectory stringByAppendingPathComponent:@"Library/Screen Savers/infinidream.saver"];
-}
-
-- (NSString *)getBundledScreensaverPath {
-    NSString *bundlePath = [[NSBundle mainBundle] pathForResource:@"infinidream" ofType:@"saver"];
-    return bundlePath;
+    NSString *bid = [self extensionBundleIdentifier];
+    NSTask *task = [[NSTask alloc] init];
+    task.executableURL = [NSURL fileURLWithPath:@"/usr/bin/pluginkit"];
+    task.arguments = @[ @"-m", @"-v", @"-p", @"com.apple.screensaver" ];
+    NSPipe *pipe = [NSPipe pipe];
+    task.standardOutput = pipe;
+    task.standardError = pipe;
+    NSError *error = nil;
+    if (![task launchAndReturnError:&error]) {
+        g_Log->Warning("ScreensaverInstaller: pluginkit query failed: %s",
+                       error.localizedDescription.UTF8String);
+        return NO;
+    }
+    [task waitUntilExit];
+    NSData *data = [[pipe fileHandleForReading] readDataToEndOfFile];
+    NSString *output = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] ?: @"";
+    return [output containsString:bid];
 }
 
 - (nullable NSString *)getInstalledVersion {
-    if (![self isScreensaverInstalled]) {
-        return nil;
-    }
-    
-    NSString *installPath = [self getInstallationPath];
-    NSString *infoPlistPath = [installPath stringByAppendingPathComponent:@"Contents/Info.plist"];
-    
-    NSDictionary *infoPlist = [NSDictionary dictionaryWithContentsOfFile:infoPlistPath];
-    if (!infoPlist) {
-        g_Log->Warning("ScreensaverInstaller: Could not read installed screensaver Info.plist");
-        return nil;
-    }
-    
-    return infoPlist[@"CFBundleShortVersionString"];
+    // PlugInKit listing includes (version); fall back to embedded Info.plist.
+    return [self getBundledVersion];
 }
 
 - (nullable NSString *)getBundledVersion {
-    NSString *bundlePath = [self getBundledScreensaverPath];
-    if (!bundlePath) {
-        g_Log->Error("ScreensaverInstaller: Could not find bundled screensaver");
+    NSString *path = [self embeddedExtensionPath];
+    if (!path)
         return nil;
-    }
-    
-    NSString *infoPlistPath = [bundlePath stringByAppendingPathComponent:@"Contents/Info.plist"];
-    
-    NSDictionary *infoPlist = [NSDictionary dictionaryWithContentsOfFile:infoPlistPath];
-    if (!infoPlist) {
-        g_Log->Warning("ScreensaverInstaller: Could not read bundled screensaver Info.plist");
-        return nil;
-    }
-    
-    return infoPlist[@"CFBundleShortVersionString"];
+    NSBundle *bundle = [NSBundle bundleWithPath:path];
+    return bundle.infoDictionary[@"CFBundleShortVersionString"];
 }
 
 - (BOOL)shouldUpdate {
-    NSString *installedVersion = [self getInstalledVersion];
-    NSString *bundledVersion = [self getBundledVersion];
-    
-    if (!installedVersion || !bundledVersion) {
-        // If we can't determine versions, err on the side of caution and don't update
+    // Always re-register so pluginkit picks up the appex from the current app
+    // bundle path after Sparkle updates (duplicate registrations prefer the
+    // newest /Applications copy).
+    NSString *path = [self embeddedExtensionPath];
+    if (!path || ![[NSFileManager defaultManager] fileExistsAtPath:path])
         return NO;
-    }
-    
-    // Simple string comparison should work for most version formats (e.g., "1.2.3")
-    // For more sophisticated version comparison, we could use NSVersionOfRunTimeLibrary or a custom comparator
-    NSComparisonResult result = [bundledVersion compare:installedVersion options:NSNumericSearch];
-    
-    g_Log->Info("ScreensaverInstaller: Version comparison - Bundled: %s, Installed: %s", 
-                [bundledVersion UTF8String], [installedVersion UTF8String]);
-    
-    return result == NSOrderedDescending; // bundled version is greater than installed version
+    return YES;
 }
 
 - (BOOL)installScreensaver {
-    NSString *sourcePath = [self getBundledScreensaverPath];
-    if (!sourcePath) {
-        g_Log->Error("ScreensaverInstaller: Could not find bundled screensaver to install");
+    NSString *extensionPath = [self embeddedExtensionPath];
+    if (!extensionPath ||
+        ![[NSFileManager defaultManager] fileExistsAtPath:extensionPath]) {
+        g_Log->Error("ScreensaverInstaller: Embedded .appex not found at %s",
+                     extensionPath ? extensionPath.UTF8String : "(nil)");
         return NO;
     }
-    
-    NSString *destinationPath = [self getInstallationPath];
-    NSString *destinationDirectory = [destinationPath stringByDeletingLastPathComponent];
-    
-    NSFileManager *fileManager = [NSFileManager defaultManager];
+
+    g_Log->Info("ScreensaverInstaller: pluginkit -a %s", extensionPath.UTF8String);
+
+    NSTask *task = [[NSTask alloc] init];
+    task.executableURL = [NSURL fileURLWithPath:@"/usr/bin/pluginkit"];
+    task.arguments = @[ @"-a", extensionPath ];
+    NSPipe *pipe = [NSPipe pipe];
+    task.standardOutput = pipe;
+    task.standardError = pipe;
     NSError *error = nil;
-    
-    // Create Screen Savers directory if it doesn't exist
-    if (![fileManager fileExistsAtPath:destinationDirectory]) {
-        g_Log->Info("ScreensaverInstaller: Creating Screen Savers directory");
-        if (![fileManager createDirectoryAtPath:destinationDirectory
-                    withIntermediateDirectories:YES
-                                     attributes:nil
-                                          error:&error]) {
-            g_Log->Error("ScreensaverInstaller: Failed to create directory: %s", 
-                        [error.localizedDescription UTF8String]);
-            return NO;
-        }
-    }
-    
-    // Remove existing installation if present
-    if ([fileManager fileExistsAtPath:destinationPath]) {
-        g_Log->Info("ScreensaverInstaller: Removing existing installation");
-        if (![fileManager removeItemAtPath:destinationPath error:&error]) {
-            g_Log->Error("ScreensaverInstaller: Failed to remove existing installation: %s", 
-                        [error.localizedDescription UTF8String]);
-            return NO;
-        }
-    }
-    
-    // Copy the screensaver bundle
-    g_Log->Info("ScreensaverInstaller: Copying screensaver from %s to %s", 
-                [sourcePath UTF8String], [destinationPath UTF8String]);
-    
-    if (![fileManager copyItemAtPath:sourcePath toPath:destinationPath error:&error]) {
-        g_Log->Error("ScreensaverInstaller: Failed to copy screensaver: %s", 
-                    [error.localizedDescription UTF8String]);
+    if (![task launchAndReturnError:&error]) {
+        g_Log->Error("ScreensaverInstaller: pluginkit -a failed: %s",
+                     error.localizedDescription.UTF8String);
         return NO;
     }
-    
-    g_Log->Info("ScreensaverInstaller: Successfully installed screensaver");
-    return YES;
+    [task waitUntilExit];
+
+    NSData *data = [[pipe fileHandleForReading] readDataToEndOfFile];
+    NSString *output = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+    if (output.length > 0)
+        g_Log->Info("ScreensaverInstaller: pluginkit output: %s", output.UTF8String);
+
+    // Non-zero can still mean success for pluginkit; verify via query.
+    BOOL registered = [self isScreensaverInstalled];
+    if (!registered)
+        g_Log->Warning("ScreensaverInstaller: pluginkit -a returned but extension not listed yet");
+    return registered || task.terminationStatus == 0;
 }
 
 - (void)enableScreensaverIfNeeded {
     // Check if screensaver is installed first
     if (![self isScreensaverInstalled]) {
-        if (g_Log) g_Log->Info("ScreensaverInstaller: Cannot enable - screensaver not installed");
-        return;
+        // Try register once more before enabling.
+        if (![self installScreensaver]) {
+            if (g_Log)
+                g_Log->Info("ScreensaverInstaller: Cannot enable — extension not registered");
+            return;
+        }
     }
-    
-    if (g_Log) g_Log->Info("ScreensaverInstaller: Checking if screensaver needs to be enabled");
-    
-    // Check if infinidream is already the active screensaver
+
+    if (g_Log)
+        g_Log->Info("ScreensaverInstaller: Checking if screensaver needs to be enabled");
+
     ScreensaverHelper *helper = [ScreensaverHelper shared];
     if (![helper isInfinidreamActive]) {
-        if (g_Log) g_Log->Info("ScreensaverInstaller: infinidream is not active, setting it now");
-        
-        // Get current active screensaver name for logging
+        if (g_Log)
+            g_Log->Info("ScreensaverInstaller: infinidream is not active, setting it now");
+
         NSString *currentScreensaver = [helper getActiveScreensaverName];
-        if (currentScreensaver) {
-            if (g_Log) g_Log->Info("ScreensaverInstaller: Current active screensaver is: %s", 
-                                   [currentScreensaver UTF8String]);
+        if (currentScreensaver && g_Log) {
+            g_Log->Info("ScreensaverInstaller: Current active screensaver is: %s",
+                        [currentScreensaver UTF8String]);
         }
-        
-        // Set infinidream as the active screensaver
+
         [helper setInfinidreamAsActiveWithCompletion:^(BOOL success, NSError *error) {
             if (success) {
-                if (g_Log) g_Log->Info("ScreensaverInstaller: Successfully set infinidream as active screensaver");
+                if (g_Log)
+                    g_Log->Info("ScreensaverInstaller: Successfully set infinidream as active screensaver");
             } else {
-                if (g_Log) g_Log->Error("ScreensaverInstaller: Failed to set infinidream as active: %s", 
-                                        error ? [[error localizedDescription] UTF8String] : "Unknown error");
+                if (g_Log)
+                    g_Log->Error("ScreensaverInstaller: Failed to set infinidream as active: %s",
+                                 error ? [[error localizedDescription] UTF8String] : "Unknown error");
             }
         }];
     } else {
-        if (g_Log) g_Log->Info("ScreensaverInstaller: infinidream is already the active screensaver");
+        if (g_Log)
+            g_Log->Info("ScreensaverInstaller: infinidream is already the active screensaver");
     }
 }
 
