@@ -8,6 +8,7 @@
 #ifndef CACHE_MANAGER_H
 #define CACHE_MANAGER_H
 
+#include <deque>
 #include <fstream>
 #include <memory>
 #include <optional>
@@ -128,8 +129,9 @@ public:
     std::optional<DiskCachedItem> getDiskCachedItem(const std::string& uuid) const;
 
     // Compare server dream md5 to the disk-cache entry; invalidate on mismatch.
-    // Legacy entries with empty stored md5 are hashed on a background thread.
-    void validateCachedVideo(const std::string& uuid);
+    // Legacy entries with empty stored md5 are hashed on a background worker
+    // when allowHash is set, and skipped otherwise.
+    void validateCachedVideo(const std::string& uuid, bool allowHash = true);
 
     // Drop the cached MP4 + disk entry but keep metadata so it can re-download.
     // Defers while the UUID is open for decode (Windows file locks).
@@ -192,6 +194,12 @@ private:
     // UUIDs waiting for decode to finish before MP4 delete (Windows locks).
     std::unordered_set<std::string> m_pendingVideoInvalidations;
     mutable std::mutex m_pendingVideoInvalidationsMutex;
+
+    // Legacy entries waiting to be hashed by the single backfill worker.
+    std::deque<std::string> m_md5BackfillQueue;
+    std::unordered_set<std::string> m_md5BackfillQueued;
+    bool m_md5BackfillRunning = false;
+    std::mutex m_md5BackfillMutex;
     
     // Mutex to protect diskCached container from concurrent access
     mutable std::shared_mutex diskCachedMutex;
@@ -208,6 +216,8 @@ private:
 
     bool invalidateVideoNow(const std::string& uuid);
     void updateDiskCachedItemMd5(const std::string& uuid, const std::string& md5);
+    void enqueueMd5Backfill(const std::string& uuid);
+    void runMd5Backfill();
     
     // JSON Parser helpers
     std::string safe_get_string(const boost::json::object& obj, const char* key, const std::string& default_value = "") {

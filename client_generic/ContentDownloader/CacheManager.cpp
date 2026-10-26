@@ -341,7 +341,7 @@ bool CacheManager::invalidateVideoNow(const std::string& uuid) {
             std::lock_guard<std::mutex> lock(m_pendingVideoInvalidationsMutex);
             m_pendingVideoInvalidations.insert(uuid);
         }
-        g_Log->Error(
+        g_Log->Warning(
             "invalidateVideo: failed to remove %s (%d: %s); will retry",
             filePath.c_str(), ec.value(), ec.message().c_str());
         return false;
@@ -400,7 +400,7 @@ void CacheManager::flushPendingVideoInvalidations(const std::unordered_set<std::
     }
 }
 
-void CacheManager::validateCachedVideo(const std::string& uuid) {
+void CacheManager::validateCachedVideo(const std::string& uuid, bool allowHash) {
     auto diskItem = getDiskCachedItem(uuid);
     if (!diskItem) {
         return;
@@ -414,33 +414,10 @@ void CacheManager::validateCachedVideo(const std::string& uuid) {
     const std::string serverMd5 = dream->md5;
 
     if (diskItem->md5.empty()) {
-        // Legacy entry: hash once on a background thread, persist, then compare.
-        const std::string path = getDreamPath(uuid);
-        if (path.empty()) {
-            return;
+        // Legacy entry: hash once on the backfill worker, persist, then compare.
+        if (allowHash) {
+            enqueueMd5Backfill(uuid);
         }
-
-        std::thread([uuid, path, serverMd5]() {
-            PlatformUtils::SetThreadName("BackfillVideoMd5");
-            const std::string localMd5 = PlatformUtils::CalculateFileMD5(path);
-            if (localMd5.empty()) {
-                g_Log->Warning("validateCachedVideo: failed to hash %s", uuid.c_str());
-                return;
-            }
-
-            auto& cm = CacheManager::getInstance();
-            cm.updateDiskCachedItemMd5(uuid, localMd5);
-
-            auto currentDream = cm.getDream(uuid);
-            const std::string expected =
-                (currentDream && !currentDream->md5.empty()) ? currentDream->md5 : serverMd5;
-            if (!expected.empty() && localMd5 != expected) {
-                g_Log->Info(
-                    "validateCachedVideo: legacy md5 mismatch for %s (local=%s server=%s)",
-                    uuid.c_str(), localMd5.c_str(), expected.c_str());
-                cm.invalidateVideo(uuid);
-            }
-        }).detach();
         return;
     }
 
@@ -449,6 +426,65 @@ void CacheManager::validateCachedVideo(const std::string& uuid) {
             "validateCachedVideo: md5 mismatch for %s (cached=%s server=%s)",
             uuid.c_str(), diskItem->md5.c_str(), serverMd5.c_str());
         invalidateVideo(uuid);
+    }
+}
+
+void CacheManager::enqueueMd5Backfill(const std::string& uuid) {
+    std::lock_guard<std::mutex> lock(m_md5BackfillMutex);
+    if (!m_md5BackfillQueued.insert(uuid).second) {
+        return;
+    }
+    m_md5BackfillQueue.push_back(uuid);
+    if (m_md5BackfillRunning) {
+        return;
+    }
+    // One worker hashes sequentially so a large metadata refresh doesn't start
+    // a parallel full-file read per legacy entry. It exits when the queue drains.
+    m_md5BackfillRunning = true;
+    std::thread([this]() {
+        PlatformUtils::SetThreadName("BackfillVideoMd5");
+        runMd5Backfill();
+    }).detach();
+}
+
+void CacheManager::runMd5Backfill() {
+    for (;;) {
+        std::string uuid;
+        {
+            std::lock_guard<std::mutex> lock(m_md5BackfillMutex);
+            if (m_md5BackfillQueue.empty()) {
+                m_md5BackfillRunning = false;
+                return;
+            }
+            uuid = m_md5BackfillQueue.front();
+            m_md5BackfillQueue.pop_front();
+            m_md5BackfillQueued.erase(uuid);
+        }
+
+        // Re-read state: the entry may have been redownloaded or removed while queued.
+        auto diskItem = getDiskCachedItem(uuid);
+        if (!diskItem || !diskItem->md5.empty()) {
+            continue;
+        }
+        const std::string path = getDreamPath(uuid);
+        if (path.empty()) {
+            continue;
+        }
+
+        const std::string localMd5 = PlatformUtils::CalculateFileMD5(path);
+        if (localMd5.empty()) {
+            g_Log->Warning("validateCachedVideo: failed to hash %s", uuid.c_str());
+            continue;
+        }
+        updateDiskCachedItemMd5(uuid, localMd5);
+
+        auto dream = getDream(uuid);
+        if (dream && !dream->md5.empty() && localMd5 != dream->md5) {
+            g_Log->Info(
+                "validateCachedVideo: legacy md5 mismatch for %s (local=%s server=%s)",
+                uuid.c_str(), localMd5.c_str(), dream->md5.c_str());
+            invalidateVideo(uuid);
+        }
     }
 }
 

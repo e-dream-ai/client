@@ -1772,6 +1772,11 @@ void CPlayer::MarkForDeletion(std::string_view _uuid)
 void CPlayer::TryCancelPreloadForUuid(const std::string& uuid)
 {
     // Must not block: invalidateVideo can run under InitializePlaylist's writer_lock.
+    // try_lock on a mutex this thread already owns is undefined, so skip on the
+    // player thread. A preload we can't drop plays the old file once at most.
+    if (std::this_thread::get_id() == m_updateThreadId) {
+        return;
+    }
     writer_lock l(m_UpdateMutex, std::try_to_lock);
     if (!l.owns_lock()) {
         return;
@@ -1795,20 +1800,15 @@ void CPlayer::TryCancelPreloadForUuid(const std::string& uuid)
 
 void CPlayer::FlushPendingVideoInvalidations()
 {
-    // May run while Update already holds m_UpdateMutex (PlayNextDream / transition).
-    // Gather open UUIDs without re-locking, then ask CacheManager to flush the rest.
+    // Caller holds m_UpdateMutex (Update / PlayNextDream / transition), so read
+    // the clips directly; re-locking here would self-deadlock.
     std::unordered_set<std::string> openUuids;
-    auto gather = [&]() {
-        if (m_currentClip) {
-            openUuids.insert(m_currentClip->GetClipMetadata().dreamData.uuid);
-        }
-        if (m_nextClip) {
-            openUuids.insert(m_nextClip->GetClipMetadata().dreamData.uuid);
-        }
-    };
-
-    reader_lock l(m_UpdateMutex, std::try_to_lock);
-    gather(); // Safe if we own the lock, or this thread already holds it via Update.
+    if (m_currentClip) {
+        openUuids.insert(m_currentClip->GetClipMetadata().dreamData.uuid);
+    }
+    if (m_nextClip) {
+        openUuids.insert(m_nextClip->GetClipMetadata().dreamData.uuid);
+    }
 
     Cache::CacheManager::getInstance().flushPendingVideoInvalidations(openUuids);
 }

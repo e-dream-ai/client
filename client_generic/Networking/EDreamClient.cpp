@@ -10,6 +10,7 @@
 #include <utility>
 #include <algorithm>
 #include <cctype>
+#include <unordered_set>
 #ifndef WIN32
 #include <unistd.h>
 #endif
@@ -2519,6 +2520,22 @@ std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
         } else {
             g_Log->Info("Skipping metadata fetch at startup (offline/not logged in). Missing metadata count: %zu",
                         needsMetadataUuids.size());
+        }
+    }
+
+    // Re-check every cached video against its metadata md5, not only the ones
+    // just refreshed. A mismatch can outlive the refresh that found it: on
+    // Windows the delete is deferred while the clip is open, and that pending
+    // list is lost on exit. Only compares stored strings; legacy entries are
+    // hashed solely from reloadMetadata. Skipped offline so we never drop a
+    // video we cannot re-download.
+    if (EDreamClient::IsLoggedIn() && !g_Player().IsOfflineMode()) {
+        std::unordered_set<std::string> refreshed(needsMetadataUuids.begin(),
+                                                  needsMetadataUuids.end());
+        for (const auto& entry : entries) {
+            if (refreshed.count(entry.uuid) == 0) {
+                cm.validateCachedVideo(entry.uuid, false);
+            }
         }
     }
 
