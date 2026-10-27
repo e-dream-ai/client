@@ -9,6 +9,7 @@
         <customObject id="-2" userLabel="File's Owner" customClass="StartupWindowController">
             <connections>
                 <outlet property="containerView" destination="u0i-x2-tkf" id="HT4-Ha-zrR"/>
+                <outlet property="headerIcon" destination="CDn-Bw-w4B" id="hIc-0n-Rr1"/>
                 <outlet property="skipButton" destination="AMM-27-0Hx" id="6Wg-2d-QQn"/>
                 <outlet property="window" destination="F0z-JX-Cv5" id="gIp-Ho-8D9"/>
             </connections>

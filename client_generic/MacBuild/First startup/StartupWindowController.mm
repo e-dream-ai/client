@@ -34,6 +34,9 @@
 @property (strong) ThanksStepViewController *thanksStepVC;
 @property (strong) NSViewController *currentStepVC;
 @property (weak) IBOutlet NSButton *skipButton;
+@property (weak) IBOutlet NSImageView *headerIcon;
+@property (strong) NSImage *appIcon;
+@property (strong) NSImage *logo;
 
 @end
 
@@ -45,6 +48,15 @@
     // Make it a modal
     self.window.level = NSModalPanelWindowLevel;
 
+    // Header icon follows the theme; see updateHeaderIcon.
+    self.appIcon = self.headerIcon.image;
+    self.logo = [[NSBundle bundleForClass:[self class]] imageForResource:@"logo"];
+    self.headerIcon.wantsLayer = YES;
+    self.headerIcon.layer.cornerCurve = kCACornerCurveContinuous;
+    self.headerIcon.layer.masksToBounds = YES;
+    [self updateHeaderIcon];
+    [self.window addObserver:self forKeyPath:@"effectiveAppearance" options:0 context:nil];
+
     // Hide skip button to prevent crash when clicked during async operations
     // [_skipButton setHidden:YES];
 
@@ -54,6 +66,27 @@
 
     // Show first step
     [self showEmailStep];
+}
+
+- (void)dealloc {
+    if (self.isWindowLoaded)
+        [self.window removeObserver:self forKeyPath:@"effectiveAppearance"];
+}
+
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object
+                        change:(NSDictionary *)change context:(void *)context {
+    [self updateHeaderIcon];
+}
+
+// Dark: the circular logo with its transparent corners, straight on the dark
+// window. Light: the app icon, whose art is a full-bleed square, clipped to
+// a rounded rect like the Dock (22.37% is the macOS app icon corner radius).
+- (void)updateHeaderIcon {
+    NSAppearanceName name = [self.window.effectiveAppearance
+        bestMatchFromAppearancesWithNames:@[NSAppearanceNameAqua, NSAppearanceNameDarkAqua]];
+    BOOL dark = [name isEqualToString:NSAppearanceNameDarkAqua] && self.logo;
+    self.headerIcon.image = dark ? self.logo : self.appIcon;
+    self.headerIcon.layer.cornerRadius = dark ? 0 : 0.2237 * NSWidth(self.headerIcon.bounds);
 }
 
 - (void)switchToViewController:(NSViewController *)newVC {
