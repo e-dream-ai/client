@@ -2,7 +2,8 @@
 //  ScreensaverInstaller.h
 //  infinidream
 //
-//  Handles automatic installation and updating of the bundled screensaver
+//  Registers the embedded screensaver .appex with PlugInKit and enables it
+//  as screensaver and/or desktop wallpaper via PaperSaver.
 //
 
 #import <Foundation/Foundation.h>
@@ -14,7 +15,7 @@ NS_ASSUME_NONNULL_BEGIN
 /// Shared singleton instance
 + (instancetype)sharedInstaller;
 
-/// Main method - checks if installation/update is needed and performs it
+/// Register the embedded .appex with PlugInKit when missing/outdated.
 - (void)installScreensaverIfNeeded;
 
 /// Check if the screensaver is currently installed
@@ -29,11 +30,14 @@ NS_ASSUME_NONNULL_BEGIN
 /// Check if the bundled version is newer than installed version
 - (BOOL)shouldUpdate;
 
-/// Install/update the screensaver to user's Screen Savers directory
+/// Register the embedded .appex with PlugInKit (pluginkit -a).
 - (BOOL)installScreensaver;
 
-/// Enable the screensaver in System Preferences if it's installed
+/// Set as the active system screensaver (Idle slot) if not already.
 - (void)enableScreensaverIfNeeded;
+
+/// Set as the System Settings desktop wallpaper (Desktop slot) if not already.
+- (void)enableWallpaperIfNeeded;
 
 @end
 

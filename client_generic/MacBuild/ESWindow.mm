@@ -91,6 +91,12 @@ static void ShowFirstTimeSetupCallback()
         if (g_Log) g_Log->Info("Keep screensaver enabled preference is set");
         [[ScreensaverInstaller sharedInstaller] enableScreensaverIfNeeded];
     }
+
+    // Enable live desktop wallpaper if needed (same appex, Desktop slot)
+    if (ESScreensaver_GetBoolSetting("settings.app.keep_wallpaper_enabled", false)) {
+        if (g_Log) g_Log->Info("Keep wallpaper enabled preference is set");
+        [[ScreensaverInstaller sharedInstaller] enableWallpaperIfNeeded];
+    }
 #endif
     
     [self makeFirstResponder:self->mESView];

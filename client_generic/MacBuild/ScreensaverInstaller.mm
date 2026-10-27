@@ -144,15 +144,17 @@
     return registered || task.terminationStatus == 0;
 }
 
+- (BOOL)ensureRegistered {
+    if ([self isScreensaverInstalled])
+        return YES;
+    return [self installScreensaver];
+}
+
 - (void)enableScreensaverIfNeeded {
-    // Check if screensaver is installed first
-    if (![self isScreensaverInstalled]) {
-        // Try register once more before enabling.
-        if (![self installScreensaver]) {
-            if (g_Log)
-                g_Log->Info("ScreensaverInstaller: Cannot enable — extension not registered");
-            return;
-        }
+    if (![self ensureRegistered]) {
+        if (g_Log)
+            g_Log->Info("ScreensaverInstaller: Cannot enable screensaver — extension not registered");
+        return;
     }
 
     if (g_Log)
@@ -182,6 +184,37 @@
     } else {
         if (g_Log)
             g_Log->Info("ScreensaverInstaller: infinidream is already the active screensaver");
+    }
+}
+
+- (void)enableWallpaperIfNeeded {
+    if (![self ensureRegistered]) {
+        if (g_Log)
+            g_Log->Info("ScreensaverInstaller: Cannot enable wallpaper — extension not registered");
+        return;
+    }
+
+    if (g_Log)
+        g_Log->Info("ScreensaverInstaller: Checking if wallpaper needs to be enabled");
+
+    ScreensaverHelper *helper = [ScreensaverHelper shared];
+    if (![helper isInfinidreamWallpaperActive]) {
+        if (g_Log)
+            g_Log->Info("ScreensaverInstaller: infinidream is not wallpaper, setting it now");
+
+        [helper setInfinidreamAsWallpaperWithCompletion:^(BOOL success, NSError *error) {
+            if (success) {
+                if (g_Log)
+                    g_Log->Info("ScreensaverInstaller: Successfully set infinidream as wallpaper");
+            } else {
+                if (g_Log)
+                    g_Log->Error("ScreensaverInstaller: Failed to set wallpaper: %s",
+                                 error ? [[error localizedDescription] UTF8String] : "Unknown error");
+            }
+        }];
+    } else {
+        if (g_Log)
+            g_Log->Info("ScreensaverInstaller: infinidream is already the desktop wallpaper");
     }
 }
 
