@@ -1,7 +1,9 @@
 #!/bin/sh
 
 
-GIT_REV=`git rev-parse --short HEAD`
+# Tag-relative revision with a -dirty suffix for uncommitted changes (#662),
+# e.g. 0.16.1-11-gedfd089a-dirty. Shown in the log banner, OSD and settings.
+GIT_REV=`git describe --tags --always --dirty`
 BUILD_DATE=`date -u`
 
 json_content='{
