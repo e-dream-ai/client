@@ -127,6 +127,7 @@ char g_emailBuf[256] = {};
 char g_codeBuf[16]   = {};
 char g_errBuf[512]   = {};
 int  g_wizardStep    = 0;
+int  g_focusedStep   = -1; // step whose text field has been given keyboard focus
 
 bool g_emailFieldBorderActive = false;
 bool g_otpFieldBorderActive   = false;
@@ -319,9 +320,11 @@ static void ApplyLightSheetStyle()
 
     ImVec4 text(0.10f, 0.11f, 0.13f, 1.f);
     ImVec4 winBg(0.965f, 0.967f, 0.975f, 0.985f);
-    ImVec4 btn(1.f, 1.f, 1.f, 1.f);
-    ImVec4 btnHov(0.96f, 0.96f, 0.98f, 1.f);
-    ImVec4 btnAct(0.90f, 0.90f, 0.93f, 1.f);
+    // Neutral buttons need a fill clearly darker than the sheet; white ones
+    // were hard to tell from the background. Primary actions use kMacAccentBtn.
+    ImVec4 btn(0.86f, 0.86f, 0.88f, 1.f);
+    ImVec4 btnHov(0.81f, 0.81f, 0.83f, 1.f);
+    ImVec4 btnAct(0.75f, 0.75f, 0.78f, 1.f);
     ImVec4 borderChrome(0.74f, 0.74f, 0.76f, 1.f);
 
     s.Colors[ImGuiCol_Text]           = text;
@@ -370,6 +373,7 @@ static void ApplyWizardPauseState(bool visible)
 static void ResetWizardForShow()
 {
     g_wizardStep             = 0;
+    g_focusedStep            = -1;
     g_emailFieldBorderActive = false;
     g_otpFieldBorderActive   = false;
     g_codeBuf[0]             = '\0';
@@ -524,6 +528,11 @@ static void DrawWizard()
         {
             ImGui::PushStyleColor(ImGuiCol_Border,
                                   g_emailFieldBorderActive ? kMacInputBorderFocus : kMacInputBorderIdle);
+            if (g_focusedStep != 0)
+            {
+                ImGui::SetKeyboardFocusHere();
+                g_focusedStep = 0;
+            }
             emailEnter = ImGui::InputTextWithHint("##email", "your@email.com", g_emailBuf, sizeof g_emailBuf,
                                                   ImGuiInputTextFlags_EnterReturnsTrue);
             ImGui::PopStyleColor();
@@ -631,6 +640,11 @@ static void DrawWizard()
         {
             ImGui::PushStyleColor(ImGuiCol_Border,
                                   g_otpFieldBorderActive ? kMacInputBorderFocus : kMacInputBorderIdle);
+            if (g_focusedStep != 1)
+            {
+                ImGui::SetKeyboardFocusHere();
+                g_focusedStep = 1;
+            }
             otpEnter = ImGui::InputTextWithHint("##otp", "000000", g_codeBuf, sizeof g_codeBuf,
                                                 ImGuiInputTextFlags_CallbackCharFilter |
                                                     ImGuiInputTextFlags_CallbackEdit |
@@ -667,7 +681,13 @@ static void DrawWizard()
         ImGui::SetCursorPosX((S(kCodeStepPanelW) - S(kCodeVerifyW)) * 0.5f);
         if (!canVerify || busy) ImGui::BeginDisabled();
         if (g_fontButton) ImGui::PushFont(g_fontButton);
+        ImGui::PushStyleColor(ImGuiCol_Button,        kMacAccentBtn);
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, kMacAccentBtnHov);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  kMacAccentBtnAct);
+        ImGui::PushStyleColor(ImGuiCol_Border,        kMacAccentBtnBorder);
+        ImGui::PushStyleColor(ImGuiCol_Text,          ImVec4(1.f, 1.f, 1.f, 1.f));
         const bool verifyClicked = ImGui::Button("Verify code", ImVec2(S(kCodeVerifyW), S(36.f)));
+        ImGui::PopStyleColor(5);
         if (g_fontButton) ImGui::PopFont();
         if (!canVerify || busy) ImGui::EndDisabled();
 
@@ -902,6 +922,13 @@ static const char* GetClipboardText(void*)
     static std::string s_clipboardBuf;
     s_clipboardBuf.clear();
 
+    // Native Wayland clipboard first; the tools below are often not installed.
+    s_clipboardBuf = PlatformUtils_ReadClipboard();
+    while (!s_clipboardBuf.empty() && (s_clipboardBuf.back() == '\n' || s_clipboardBuf.back() == '\r'))
+        s_clipboardBuf.pop_back();
+    if (!s_clipboardBuf.empty())
+        return s_clipboardBuf.c_str();
+
     // Try wl-paste first (native Wayland), then fall back to X11 tools.
     static const char* const kCmds[] = {
         "wl-paste --no-newline 2>/dev/null",
@@ -957,6 +984,11 @@ void FirstTimeSetupVulkan_DrawIfNeeded()
         g_showRequested.store(false, std::memory_order_release);
 
         g_uiScale = PlatformUtils_GetUIScale();
+        // Shrink to fit: a card larger than the window was clamped to it with
+        // its contents spilling out, putting the skip footer over the email field.
+        const ImVec2 display = ImGui::GetIO().DisplaySize;
+        if (display.x > 0.f && display.y > 0.f)
+            g_uiScale = (std::min)(g_uiScale, (std::min)(display.x / kDesignWinW, display.y / kDesignWinH));
 
         // Load wizard fonts into the shared atlas on first show.
         // ImGui_ImplVulkan_NewFrame() handles re-uploading the atlas automatically.

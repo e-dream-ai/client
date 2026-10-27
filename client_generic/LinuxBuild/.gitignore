@@ -1,4 +1,5 @@
 build/
+build-stage/
 build-appimage/
 build-glibc-check/
 a.out

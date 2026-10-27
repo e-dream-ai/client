@@ -28,17 +28,18 @@
 #include <io.h>  // _commit()
 #endif
 #include <algorithm>
+#include <atomic>
 #include <filesystem>
 #include <future>
 #include <fcntl.h>
 #include <thread>
-#include <sstream>
 
 #include "ContentDecoder.h"
 #include "Log.h"
 #include "PlatformUtils.h"
 #include "PathManager.h"
 #include "EDreamClient.h"
+#include "ProgressiveHttpStream.h"
 
 using namespace boost;
 namespace fs = std::filesystem;
@@ -58,6 +59,13 @@ static AVPixelFormat vaapi_get_format(AVCodecContext* /*ctx*/,
 {
     for (const AVPixelFormat* p = fmts; *p != AV_PIX_FMT_NONE; ++p)
         if (*p == AV_PIX_FMT_VAAPI) return AV_PIX_FMT_VAAPI;
+    // Do not return fmts[0] blindly — it may be another HW format we did not set up.
+    for (const AVPixelFormat* p = fmts; *p != AV_PIX_FMT_NONE; ++p)
+    {
+        const AVPixFmtDescriptor* desc = av_pix_fmt_desc_get(*p);
+        if (desc && !(desc->flags & AV_PIX_FMT_FLAG_HWACCEL))
+            return *p;
+    }
     return fmts[0];
 }
 #elif defined(MAC)
@@ -68,6 +76,13 @@ static AVPixelFormat vt_get_format(AVCodecContext* /*ctx*/,
 {
     for (const AVPixelFormat* p = fmts; *p != AV_PIX_FMT_NONE; ++p)
         if (*p == AV_PIX_FMT_VIDEOTOOLBOX) return AV_PIX_FMT_VIDEOTOOLBOX;
+    // Do not return fmts[0] blindly — it may be another HW format we did not set up.
+    for (const AVPixelFormat* p = fmts; *p != AV_PIX_FMT_NONE; ++p)
+    {
+        const AVPixFmtDescriptor* desc = av_pix_fmt_desc_get(*p);
+        if (desc && !(desc->flags & AV_PIX_FMT_FLAG_HWACCEL))
+            return *p;
+    }
     return fmts[0];
 }
 #endif
@@ -109,6 +124,9 @@ CContentDecoder::CContentDecoder(const uint32_t _queueLenght,
     m_WantedPixelFormat = _wantedFormat;
     m_bStop = true;
     m_CurrentVideoInfo = nullptr;
+    m_CacheFile = nullptr;
+    m_CacheWritePosition = 0;
+    m_IsStreaming = false;
     av_log_set_callback(AVCodecLogCallback);
 }
 
@@ -127,7 +145,21 @@ CContentDecoder::~CContentDecoder()
         g_Log->Info("Shutdown detected, aborting futures");
         abortFutures();
     }
-    
+
+    if (m_httpStream)
+    {
+        m_httpStream->Stop();
+        m_httpStream.reset();
+    }
+    // Aborted or incomplete stream: discard the partial .tmp.
+    // FinalizeCacheFile clears m_CachePath after a successful rename.
+    if (!m_CachePath.empty())
+    {
+        std::error_code ec;
+        fs::remove(m_CachePath, ec);
+        m_CachePath.clear();
+    }
+
     Destroy();
 }
 
@@ -151,7 +183,10 @@ void CContentDecoder::Destroy()
 void CContentDecoder::abortFutures() {
     // First mark all operations as needing to stop
     m_HasEnded.store(true);
-    
+
+    if (m_httpStream)
+        m_httpStream->Stop();
+
     // Close cache file immediately if open
     CloseCacheFile();
     
@@ -220,49 +255,78 @@ int CContentDecoder::InterruptIO(void* opaque)
 AVPixelFormat CContentDecoder::GetHWFormat(AVCodecContext* ctx,
                                             const AVPixelFormat* pix_fmts)
 {
+    // Trimmed ffmpeg builds may list AV_PIX_FMT_D3D11 without compiling hevc_d3d11va2.
+    // Selecting D3D11 then crashes in avcodec_send_packet / software pred with null planes.
+    // Only take D3D11 when the codec advertises HW_DEVICE_CTX support for it.
+    auto codecSupportsD3D11 = [](const AVCodecContext* c) -> bool {
+        if (!c || !c->codec)
+            return false;
+        for (int i = 0;; ++i)
+        {
+            const AVCodecHWConfig* cfg = avcodec_get_hw_config(c->codec, i);
+            if (!cfg)
+                return false;
+            if (cfg->pix_fmt == AV_PIX_FMT_D3D11 &&
+                (cfg->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX) &&
+                cfg->device_type == AV_HWDEVICE_TYPE_D3D11VA)
+                return true;
+        }
+    };
+
+    const bool d3d11Ok = codecSupportsD3D11(ctx) && ctx->hw_device_ctx;
+
     for (const AVPixelFormat* p = pix_fmts; *p != AV_PIX_FMT_NONE; ++p)
     {
-        if (*p == AV_PIX_FMT_D3D11)
+        if (*p != AV_PIX_FMT_D3D11 || !d3d11Ok)
+            continue;
+
+        AVBufferRef* framesRef = av_hwframe_ctx_alloc(ctx->hw_device_ctx);
+        if (!framesRef)
+            break;
+
+        auto* framesCtx = reinterpret_cast<AVHWFramesContext*>(framesRef->data);
+        framesCtx->format            = AV_PIX_FMT_D3D11;
+        framesCtx->sw_format         = AV_PIX_FMT_NV12;
+        framesCtx->width             = ctx->coded_width;
+        framesCtx->height            = ctx->coded_height;
+        // Pool of 32: decoder needs ~8 DPB refs + ~16 frame-queue slots + margin.
+        framesCtx->initial_pool_size = 32;
+
+        auto* d3d11Frames = reinterpret_cast<AVD3D11VAFramesContext*>(framesCtx->hwctx);
+        // D3D11_BIND_SHADER_RESOURCE is required to create SRVs for the Y/UV planes.
+        d3d11Frames->BindFlags = D3D11_BIND_DECODER | D3D11_BIND_SHADER_RESOURCE;
+
+        if (av_hwframe_ctx_init(framesRef) != 0)
         {
-            if (ctx->hw_device_ctx)
-            {
-                AVBufferRef* framesRef = av_hwframe_ctx_alloc(ctx->hw_device_ctx);
-                if (framesRef)
-                {
-                    auto* framesCtx = reinterpret_cast<AVHWFramesContext*>(framesRef->data);
-                    framesCtx->format            = AV_PIX_FMT_D3D11;
-                    framesCtx->sw_format         = AV_PIX_FMT_NV12;
-                    framesCtx->width             = ctx->coded_width;
-                    framesCtx->height            = ctx->coded_height;
-                    // Pool of 32: decoder needs ~8 DPB refs + ~16 frame-queue slots + margin.
-                    // Keeping this moderate prevents burst-decodes after a seek from flooding
-                    // the GPU command queue with too many simultaneous decode operations.
-                    framesCtx->initial_pool_size = 32;
-
-                    auto* d3d11Frames = reinterpret_cast<AVD3D11VAFramesContext*>(framesCtx->hwctx);
-                    // D3D11_BIND_SHADER_RESOURCE is required to create SRVs for the Y/UV planes.
-                    d3d11Frames->BindFlags = D3D11_BIND_DECODER | D3D11_BIND_SHADER_RESOURCE;
-
-                    if (av_hwframe_ctx_init(framesRef) == 0)
-                    {
-                        av_buffer_unref(&ctx->hw_frames_ctx);
-                        ctx->hw_frames_ctx = framesRef;
-                        g_Log->Info("D3D11VA get_format: hw_frames_ctx set (coded %dx%d, pool %d)",
-                                    ctx->coded_width, ctx->coded_height,
-                                    framesCtx->initial_pool_size);
-                    }
-                    else
-                    {
-                        g_Log->Warning("D3D11VA get_format: av_hwframe_ctx_init failed; decoder will use default pool");
-                        av_buffer_unref(&framesRef);
-                    }
-                }
-            }
-            g_Log->Info("D3D11VA get_format: selected AV_PIX_FMT_D3D11");
-            return AV_PIX_FMT_D3D11;
+            g_Log->Warning("D3D11VA get_format: av_hwframe_ctx_init failed; falling back to software");
+            av_buffer_unref(&framesRef);
+            break;
         }
+
+        av_buffer_unref(&ctx->hw_frames_ctx);
+        ctx->hw_frames_ctx = framesRef;
+        g_Log->Info("D3D11VA get_format: hw_frames_ctx set (coded %dx%d, pool %d)",
+                    ctx->coded_width, ctx->coded_height,
+                    framesCtx->initial_pool_size);
+        g_Log->Info("D3D11VA get_format: selected AV_PIX_FMT_D3D11");
+        return AV_PIX_FMT_D3D11;
     }
-    g_Log->Warning("D3D11VA get_format: AV_PIX_FMT_D3D11 not offered; using software format");
+
+    // pix_fmts[0] is often a legacy HW format (e.g. D3D11VA_VLD / DXVA2_VLD), not software.
+    // Picking those without the matching old-style hwaccel setup yields null frame planes and
+    // crashes inside software intra prediction (pred_planar writing near 0x0).
+    for (const AVPixelFormat* p = pix_fmts; *p != AV_PIX_FMT_NONE; ++p)
+    {
+        const AVPixFmtDescriptor* desc = av_pix_fmt_desc_get(*p);
+        if (!desc || (desc->flags & AV_PIX_FMT_FLAG_HWACCEL))
+            continue;
+        g_Log->Warning("D3D11VA get_format: AV_PIX_FMT_D3D11 not offered; using software format %d",
+                       (int)*p);
+        return *p;
+    }
+
+    g_Log->Warning("D3D11VA get_format: no software format in list; using first offered %d",
+                   (int)pix_fmts[0]);
     return pix_fmts[0];
 }
 #endif
@@ -276,10 +340,7 @@ bool CContentDecoder::Open()
     std::string _filename = ovi->m_Path;
     ovi->m_TotalFrameCount = 0;
     g_Log->Info("Opening: %s", _filename.c_str());
-    
-    avformat_network_init();  // Initialize network
-    
-    int ret;
+
     if (IsURL(_filename))
     {
         m_IsStreaming = true;
@@ -288,24 +349,26 @@ bool CContentDecoder::Open()
         // Generate a cache file path
         std::string cacheFileName = GenerateCacheFileName();
         SetCachePath(cacheFileName);
-        
-        if (!OpenCacheFile())
+
+        // libcurl owns the HTTPS byte stream; ffmpeg only sees a custom AVIO
+        // over the progressive on-disk cache (file protocol / no network).
+        m_httpStream = std::make_unique<Network::ProgressiveHttpStream>();
+        // Abort both AVIO waits and the curl worker when the clip stops
+        // (skip/Next/seek/teardown). Only dreams that play to the end are
+        // cached; interrupted downloads discard their .tmp.
+        auto stopped = [this]() {
+            return m_bStop.load() || m_isShuttingDown.load();
+        };
+        if (!m_httpStream->Start(_filename, m_CachePath,
+                                /*readInterrupt=*/stopped,
+                                /*downloadAbort=*/stopped))
         {
-            g_Log->Warning("Failed to open cache file for writing");
-            m_IsStreaming = false;
-        }
-        
-        // For URLs, we use avio_open2
-        AVIOInterruptCB interruptCallback{&CContentDecoder::InterruptIO, this};
-        ret = avio_open2(&m_pIOContext, _filename.c_str(), AVIO_FLAG_READ,
-                         &interruptCallback, nullptr);
-        if (ret < 0)
-        {
-            g_Log->Warning("Failed to open URL %s...", _filename.c_str());
+            g_Log->Warning("Failed to start progressive download for %s",
+                           _filename.c_str());
+            m_httpStream.reset();
             return false;
         }
 
-        // Create a new AVIOContext that wraps the original one
         constexpr int kIOBufferSize = 32768;
         unsigned char* buffer = static_cast<unsigned char*>(av_malloc(kIOBufferSize));
         if (!buffer) {
@@ -328,6 +391,7 @@ bool CContentDecoder::Open()
             g_Log->Error("Failed to allocate format context for %s", _filename.c_str());
             return false;
         }
+        AVIOInterruptCB interruptCallback{&CContentDecoder::InterruptIO, this};
         ovi->m_pFormatContext->interrupt_callback = interruptCallback;
         ovi->m_pFormatContext->pb = custom_io;
         ovi->m_pFormatContext->flags |= AVFMT_FLAG_CUSTOM_IO;
@@ -508,6 +572,18 @@ bool CContentDecoder::Open()
     }
 #endif
 #endif
+    // Copy codec parameters before open. When mp4toannexb BSF is active, use
+    // par_out (annex-B extradata) — stream codecpar is HVCC/AVCC length-prefixed
+    // and mismatches annex-B packets, causing "Invalid NAL unit size" and zero frames.
+    const AVCodecParameters* paramsForCodec =
+        ovi->m_pBsfContext ? ovi->m_pBsfContext->par_out : codecPar;
+    if (DumpError(avcodec_parameters_to_context(ovi->m_pVideoCodecContext,
+                                               paramsForCodec)) < 0)
+    {
+        g_Log->Error("avcodec_parameters_to_context failed for %s", _filename.c_str());
+        return false;
+    }
+
     // Initialize the codec context
     ovi->m_pFormatContext->flags |= AVFMT_FLAG_IGNIDX;   //	Ignore index.
     ovi->m_pFormatContext->flags |= AVFMT_FLAG_NONBLOCK; //	Do not
@@ -555,54 +631,34 @@ void CContentDecoder::Close()
         avformat_close_input(&m_CurrentVideoInfo->m_pFormatContext);
     }
 
+    if (m_httpStream)
+    {
+        m_httpStream->Stop();
+        m_httpStream.reset();
+    }
 
     CloseCacheFile();
     m_CacheWritePosition = 0;
 
     Destroy();
 
-    
-    if (m_pIOContext)
-    {
-        avio_close(m_pIOContext);
-        m_pIOContext = nullptr;
-    }
-    
-    if (m_pIOBuffer)
-    {
-        av_free(m_pIOBuffer);
-        m_pIOBuffer = nullptr;
-    }
-    
-    avformat_network_deinit();
     g_Log->Info("closed...");
 }
 
 int CContentDecoder::ReadPacket(void* opaque, uint8_t* buf, int buf_size)
 {
     CContentDecoder* decoder = static_cast<CContentDecoder*>(opaque);
-    int bytesRead = avio_read(decoder->m_pIOContext, buf, buf_size);
-    
-    if (bytesRead > 0 && decoder->m_IsStreaming) {
-        int64_t currentPos = avio_tell(decoder->m_pIOContext) - bytesRead;
-        decoder->WriteToCache(buf, bytesRead, currentPos);
-    }
-    
-    return bytesRead;
+    if (!decoder->m_httpStream)
+        return AVERROR(EIO);
+    return decoder->m_httpStream->Read(buf, buf_size);
 }
 
 int64_t CContentDecoder::SeekPacket(void* opaque, int64_t offset, int whence)
 {
     CContentDecoder* decoder = static_cast<CContentDecoder*>(opaque);
-    if (whence & AVSEEK_SIZE) {
-        return avio_size(decoder->m_pIOContext);
-    }
-    int64_t ret = avio_seek(decoder->m_pIOContext, offset, whence);
-    if (ret >= 0) {
-        std::lock_guard<std::mutex> lock(decoder->m_CacheMutex);
-        decoder->m_CacheWritePosition = ret;
-    }
-    return ret;
+    if (!decoder->m_httpStream)
+        return -1;
+    return decoder->m_httpStream->Seek(offset, whence);
 }
 
 CVideoFrame* CContentDecoder::ReadOneFrame()
@@ -1274,15 +1330,9 @@ void CContentDecoder::ReadFramesThread()
             m_CurrentVideoInfo->m_SeekTargetFrame = -1;
         }
         
-        // Only try grabbing the remainder of the video if we have a md5 to verify it
-        if (m_IsStreaming && !m_Metadata.dreamData.md5.empty()) {
-            // Try to read any remaining data
-            unsigned char buffer[4096];
-            int bytesRead;
-            while ((bytesRead = avio_read(m_pIOContext, buffer, sizeof(buffer))) > 0) {
-                WriteToCache(buffer, bytesRead, avio_tell(m_pIOContext) - bytesRead);
-            }
-        }
+        // Let the curl worker finish filling the cache file when we intend to keep it.
+        if (m_IsStreaming && !m_Metadata.dreamData.md5.empty() && m_httpStream)
+            m_httpStream->WaitUntilFinished();
 
         m_HasEnded.store(true);
         
@@ -1293,22 +1343,9 @@ void CContentDecoder::ReadFramesThread()
     catch (thread_interrupted const&)
     {
         g_Log->Info("Thread Interrupted: Ending main video frame reading thread for %s", m_Metadata.dreamData.uuid.c_str());
-
-        // Before opening a thread to grab the remainder of the video ,make sure we intend to save it
-        if (!m_isShuttingDown.load() && m_IsStreaming && !m_Metadata.dreamData.md5.empty()) {
-            g_Log->Info("Read frames thread interrupted, trying to fetch remaining data asynchronously.");
-            m_futures.emplace_back(std::async(std::launch::async, [this]() {
-                // Try to read any remaining data
-                unsigned char buffer[4096];
-                int bytesRead;
-                while ((bytesRead = avio_read(m_pIOContext, buffer, sizeof(buffer))) > 0) {
-                    WriteToCache(buffer, bytesRead, avio_tell(m_pIOContext) - bytesRead);
-                }
-                
-                m_HasEnded.store(true);
-                FinalizeCacheFile();
-            }));
-        }
+        // Do not finish the download in the background: skipped/seeked clips
+        // abort curl (downloadAbort) and discard the partial .tmp in ~CContentDecoder.
+        m_HasEnded.store(true);
     }
     catch (std::exception const& e)
     {
@@ -1348,7 +1385,7 @@ bool CContentDecoder::Start(const sClipMetadata& metadata, int64_t _seekFrame)
     m_OpenFailed.store(false);
     m_bStop = false;
 
-    // Remote demuxer initialization can spend seconds in avio_open2,
+    // Remote demuxer initialization can spend seconds in curl startup,
     // avformat_open_input, or avformat_find_stream_info. Keep that work off the
     // player/render thread so the outgoing clip remains responsive. Local files
     // retain synchronous validation so callers still get immediate failures for
@@ -1497,14 +1534,13 @@ void CContentDecoder::WriteToCache(const uint8_t* buf, int buf_size, int64_t pos
 std::string CContentDecoder::GenerateCacheFileName() {
     std::string uuid = m_Metadata.dreamData.uuid;
     fs::path mp4Path = Cache::PathManager::getInstance().mp4Path();
-    
-    // Add thread ID to make filename unique per thread to prevent race conditions
-    std::thread::id threadId = std::this_thread::get_id();
-    std::ostringstream oss;
-    oss << threadId;
-    std::string threadIdStr = oss.str();
-    
-    return (mp4Path / (uuid + "_" + threadIdStr + ".tmp")).string();
+
+    // Process-wide counter: thread ids are reused on macOS, and seeks briefly
+    // overlap two clips of the same dream during crossfade.
+    static std::atomic<uint64_t> s_tmpCounter{0};
+    const uint64_t n = s_tmpCounter.fetch_add(1, std::memory_order_relaxed);
+
+    return (mp4Path / (uuid + "_" + std::to_string(n) + ".tmp")).string();
 }
 
 std::string CContentDecoder::GetFinalFileName() const {
@@ -1515,16 +1551,20 @@ std::string CContentDecoder::GetFinalFileName() const {
 
 bool CContentDecoder::IsDownloadComplete() const
 {
-    if (!m_IsStreaming || !m_CurrentVideoInfo)
+    if (!m_IsStreaming || !m_httpStream)
         return false;
 
-    // Check if we've reached the end of the stream, avio_size can be innacurate in some cases
-    int64_t totalSize = avio_size(m_pIOContext);
+    if (!m_httpStream->Finished() || m_httpStream->Failed())
+        return false;
+
+    const int64_t totalSize = m_httpStream->Size();
+    const int64_t downloaded = m_httpStream->BytesDownloaded();
     constexpr int64_t threshold = 16 * 1024;  // 16 KB threshold
 
-    //g_Log->Info("POS : %lld %lld", m_CacheWritePosition, totalSize);
+    if (totalSize < 0)
+        return downloaded > 0;
 
-    return m_HasEnded.load() && (m_CacheWritePosition >= totalSize - threshold);
+    return downloaded >= totalSize - threshold;
 }
 
 void CContentDecoder::FinalizeCacheFile()
@@ -1533,12 +1573,18 @@ void CContentDecoder::FinalizeCacheFile()
     if (m_isShuttingDown.load()) {
         return;
     }
-    
+
+    if (!(m_IsStreaming && IsDownloadComplete() && !m_CachePath.empty()))
+        return;
+
+    // Release the progressive-download FILE* before rename/MD5.
+    if (m_httpStream)
+        m_httpStream->Stop();
+
     std::lock_guard<std::mutex> lock(m_CacheMutex);
 
-    if (m_IsStreaming && IsDownloadComplete() && !m_CachePath.empty())
     {
-        // File integrity checks - ensure file is properly closed and flushed
+        // Legacy path: decoder-owned cache FILE* (unused for curl streaming).
         if (m_CacheFile) {
             fflush(m_CacheFile);
             
@@ -1605,6 +1651,20 @@ void CContentDecoder::FinalizeCacheFile()
             if (fs::exists(tmpPath)) {
                 // Use static mutex to ensure atomic rename operation across all threads
                 std::lock_guard<std::mutex> renameLock(s_RenameMutex);
+
+                Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+                // Refuse to promote a stream that started with a stale clip-snapshot
+                // md5 after invalidateVideo refreshed metadata / dropped the file.
+                auto currentDream = cm.getDream(m_Metadata.dreamData.uuid);
+                if (!currentDream || currentDream->md5.empty() ||
+                    currentDream->md5 != m_Metadata.dreamData.md5) {
+                    g_Log->Info(
+                        "Discarding stream finalize for %s: clip md5 stale vs cache metadata",
+                        m_Metadata.dreamData.uuid.c_str());
+                    fs::remove(tmpPath);
+                    m_CachePath.clear();
+                    return;
+                }
                 
                 if (!fs::exists(finalPath)) {
                     fs::rename(tmpPath, finalPath);
@@ -1616,10 +1676,12 @@ void CContentDecoder::FinalizeCacheFile()
                     newDiskItem.uuid = m_Metadata.dreamData.uuid;
                     newDiskItem.version = m_Metadata.dreamData.video_timestamp;
                     newDiskItem.downloadDate = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+                    newDiskItem.md5 = m_Metadata.dreamData.md5;
 
-                    Cache::CacheManager& cm = Cache::CacheManager::getInstance();
                     cm.addDiskCachedItem(newDiskItem);
                 } else {
+                    // A newer download may already own the path after invalidate+redownload;
+                    // never resurrect this tmp as the cache entry.
                     g_Log->Info("Final file %s already exists, removing temporary file %s", 
                                 finalPath.string().c_str(), tmpPath.string().c_str());
                     fs::remove(tmpPath);

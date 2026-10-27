@@ -3,13 +3,13 @@
   "spdxVersion": "SPDX-2.2",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "documentNamespace": "https://spdx.org/spdxdocs/boost-integer-arm64-osx-1.90.0#1-58e3eb8a-d6e9-4360-ac2c-26191cb8fc33",
-  "name": "boost-integer:arm64-osx@1.90.0#1 a8b422bfb7641a87ae18c30282cbb8121199e198cfff01ecc9aef8c8747618ca",
+  "documentNamespace": "https://spdx.org/spdxdocs/boost-integer-arm64-osx-1.90.0#1-706f2f8a-b29a-4fa7-a640-eb5c03071284",
+  "name": "boost-integer:arm64-osx@1.90.0#1 01c62295f01902443ce91ce763f9dcc0a6d67f1446be3e0145ccc7540f6c4717",
   "creationInfo": {
     "creators": [
       "Tool: vcpkg-2026-03-04-4b3e4c276b5b87a649e66341e11553e8c577459c"
     ],
-    "created": "2026-04-17T03:29:32Z"
+    "created": "2026-10-08T13:05:27Z"
   },
   "relationships": [
     {
@@ -139,7 +139,7 @@
     {
       "name": "boost-integer:arm64-osx",
       "SPDXID": "SPDXRef-binary",
-      "versionInfo": "a8b422bfb7641a87ae18c30282cbb8121199e198cfff01ecc9aef8c8747618ca",
+      "versionInfo": "01c62295f01902443ce91ce763f9dcc0a6d67f1446be3e0145ccc7540f6c4717",
       "downloadLocation": "NONE",
       "licenseConcluded": "BSL-1.0",
       "licenseDeclared": "NOASSERTION",

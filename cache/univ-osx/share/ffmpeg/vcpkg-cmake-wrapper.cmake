@@ -321,7 +321,7 @@ if(OFF)
   endif()
 endif()
 
-if(ON)
+if(OFF)
   find_package(OpenSSL REQUIRED)
   list(APPEND FFMPEG_LIBRARIES $<LINK_ONLY:OpenSSL::SSL>)
   if(vcpkg_no_avformat_target AND TARGET FFmpeg::avformat)

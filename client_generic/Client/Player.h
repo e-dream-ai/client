@@ -2,6 +2,7 @@
 #define _PLAYER_H_
 
 #include <atomic>
+#include <chrono>
 #include <deque>
 #include <future>
 #include <queue>
@@ -303,6 +304,12 @@ class CPlayer : public Base::CSingleton<CPlayer>
     bool SetPlaylistAtDream(const std::string& playlistUUID, const std::string& dreamUUID, bool fetchPlaylist);
    
     void MarkForDeletion(std::string_view _uuid);
+    // Drop a preloaded next clip for uuid if m_UpdateMutex can be taken without
+    // blocking. No-op on the player thread, which may already hold the lock.
+    void TryCancelPreloadForUuid(const std::string& uuid);
+    // Retry deferred MP4 deletes for UUIDs that are no longer current/next.
+    // Caller must hold m_UpdateMutex (Update, PlayNextDream, transitions).
+    void FlushPendingVideoInvalidations();
     void SkipToNext();
     void ReturnToPrevious();
     void SkipForward(float _seconds);
@@ -347,6 +354,10 @@ class CPlayer : public Base::CSingleton<CPlayer>
 
     // Keep track of preflight decision
     std::optional<PlaylistManager::NextDreamDecision> m_nextDreamDecision;
+
+    // After a natural-transition preflight finds nothing cached, wait before
+    // retrying instead of preflighting (and logging) on every frame.
+    std::chrono::steady_clock::time_point m_nextTransitionPreflight{};
     
     // Check if we need to prepare for transition
     bool shouldPrepareTransition(const ContentDecoder::spCClip& clip) const;

@@ -76,6 +76,7 @@ private:
     static void EnsureIOContext();
     static void InitializeClient();
     static void DeinitializeClient();
+    static void SendGoodbyeAndDisconnect();
     static std::string GetCurrentServerPlaylist();
 
     static std::vector<std::string> FetchUserDislikes();
@@ -96,6 +97,7 @@ private:
     // Telemetry reporting
     static void SendTelemetry(const std::string& eventType, const boost::json::object& eventData);
     static void ReportMD5Failure(const std::string& uuid, const std::string& foundMd5, bool isStreaming);
+    static void ReportVideoInvalidated(const std::string& uuid, const std::string& oldMd5, const std::string& newMd5);
     
     static std::future<bool> EnqueuePlaylistAsync(const std::string& uuid);
     static bool EnqueuePlaylist(std::string_view uuid);

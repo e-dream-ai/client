@@ -1,6 +1,3 @@
-/*#include <websocketpp/config/asio_client.hpp>
-#include <websocketpp/client.hpp>
-#include <websocketpp/config/asio_no_tls_client.hpp>*/
 #include <sio_client.h>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
@@ -13,6 +10,7 @@
 #include <utility>
 #include <algorithm>
 #include <cctype>
+#include <unordered_set>
 #ifndef WIN32
 #include <unistd.h>
 #endif
@@ -144,10 +142,10 @@ void EDreamClient::SendPing()
         return;
     }
 
-    // If socket is available but callbacks aren't bound yet, bind them now
-    // This handles the race condition where namespace becomes ready after OnWebSocketConnected
-    if (!fIsWebSocketConnected.load()) {
-        g_Log->Info("SendPing: Socket available but not marked connected, binding callbacks now");
+    // Only mark connected / bind once the namespace is actually open. Emits before
+    // open are queued by the sio client and flushed on CONNECT.
+    if (!fIsWebSocketConnected.load() && s_SIOClient.opened()) {
+        g_Log->Info("SendPing: Socket open but not marked connected, binding callbacks now");
         socket->off("new_remote_control_event");
         socket->on("new_remote_control_event", &OnWebSocketMessage);
         socket->off("quota_update");
@@ -388,6 +386,24 @@ void EDreamClient::SendGoodbye()
     }
 }
 
+void EDreamClient::SendGoodbyeAndDisconnect()
+{
+    if (!s_SIOClient.opened())
+    {
+        g_Log->Info("WebSocket not connected, skipping goodbye message");
+        return;
+    }
+
+    SendGoodbye();
+    // emit() only queues the frame; wait for it to be written so the
+    // shutdown watchdog's _exit() can't drop it.
+    if (!s_SIOClient.wait_for_writes(std::chrono::milliseconds(300)))
+        g_Log->Warning("Goodbye not written before timeout");
+    // Close so no later ping or state_sync makes the player look present
+    // again after the goodbye, and so the socket doesn't reconnect.
+    s_SIOClient.sync_close();
+}
+
 static void BindWebSocketCallbacks()
 {
     g_Log->Info("Binding web socket callbacks");
@@ -471,6 +487,58 @@ static void OnWebSocketReconnect(unsigned _num, unsigned _delay)
     BindWebSocketCallbacks();
 }
 
+static std::atomic<bool> fWebSocketReauthInFlight(false);
+static std::atomic<int64_t> fWebSocketLastReauthMs(0);
+
+// The server validates the wos-session cookie on the socket handshake but, unlike the
+// REST endpoints, never refreshes it, and the sio client's reconnect loop keeps resending
+// the cookie captured at connect(). Once the access token has expired every reconnect is
+// rejected, so refresh the sealed session and reconnect with the new cookie.
+static void OnWebSocketConnectError(std::string const& nsp, std::string const& payload)
+{
+    if (payload.find("UNAUTHORIZED") == std::string::npos)
+        return;
+    // Api-Key auth has nothing to refresh.
+    if (g_Settings()->Get("settings.content.sealed_session", std::string("")).empty())
+        return;
+
+    // At most one refresh per minute, so a server that rejects even a fresh cookie
+    // doesn't turn the 5-25 s reconnect backoff into a refresh loop.
+    const int64_t nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+    if (nowMs - fWebSocketLastReauthMs.load() < 60000)
+        return;
+    if (fWebSocketReauthInFlight.exchange(true))
+        return;
+    fWebSocketLastReauthMs.store(nowMs);
+
+    // Called on the sio network thread; the refresh is a blocking HTTP request.
+    std::thread([]() {
+        g_Log->Info("WebSocket session rejected, refreshing sealed session before reconnecting");
+        EDreamClient::AuthRefreshResult result = EDreamClient::RefreshSealedSession();
+        if (result == EDreamClient::AuthRefreshResult::Success) {
+            EDreamClient::ConnectRemoteControlSocket();
+        } else {
+            g_Log->Warning("WebSocket session refresh failed (%d), will retry on a later rejection",
+                           static_cast<int>(result));
+        }
+        fWebSocketReauthInFlight.store(false);
+    }).detach();
+}
+
+// Both startup and DidSignIn() install these; DidSignIn() used to re-add all
+// but the connect-error listener, so after an interactive sign-in an expired
+// session was never refreshed on reconnect.
+static void SetWebSocketListeners()
+{
+    s_SIOClient.set_open_listener(&OnWebSocketConnected);
+    s_SIOClient.set_close_listener(&OnWebSocketClosed);
+    s_SIOClient.set_fail_listener(&OnWebSocketFail);
+    s_SIOClient.set_reconnecting_listener(&OnWebSocketReconnecting);
+    s_SIOClient.set_reconnect_listener(&OnWebSocketReconnect);
+    s_SIOClient.set_connect_error_listener(&OnWebSocketConnectError);
+}
+
 void EDreamClient::InitializeClient()
 {
     if (g_Client()->IsMultipleInstancesMode()) {
@@ -487,11 +555,7 @@ void EDreamClient::InitializeClient()
     // remote/online UI from appearing before we know the auth result.
     g_Player().SetOfflineMode(true);
 
-    s_SIOClient.set_open_listener(&OnWebSocketConnected);
-    s_SIOClient.set_close_listener(&OnWebSocketClosed);
-    s_SIOClient.set_fail_listener(&OnWebSocketFail);
-    s_SIOClient.set_reconnecting_listener(&OnWebSocketReconnecting);
-    s_SIOClient.set_reconnect_listener(&OnWebSocketReconnect);
+    SetWebSocketListeners();
 
     fInitialAuthComplete.store(false);
 
@@ -953,11 +1017,7 @@ void EDreamClient::DidSignIn()
 
     // Reset socket listeners and reconnect immediately (no fixed delay).
     s_SIOClient.clear_con_listeners();
-    s_SIOClient.set_open_listener(&OnWebSocketConnected);
-    s_SIOClient.set_close_listener(&OnWebSocketClosed);
-    s_SIOClient.set_fail_listener(&OnWebSocketFail);
-    s_SIOClient.set_reconnecting_listener(&OnWebSocketReconnecting);
-    s_SIOClient.set_reconnect_listener(&OnWebSocketReconnect);
+    SetWebSocketListeners();
 
     EDreamClient::ConnectRemoteControlSocket();
 
@@ -1835,6 +1895,15 @@ void EDreamClient::ReportMD5Failure(const std::string& uuid, const std::string& 
     SendTelemetry("md5-mismatch", eventData);
 }
 
+void EDreamClient::ReportVideoInvalidated(const std::string& uuid, const std::string& oldMd5, const std::string& newMd5) {
+    boost::json::object eventData;
+    eventData["uuid"] = uuid;
+    eventData["oldMd5"] = oldMd5;
+    eventData["newMd5"] = newMd5;
+
+    SendTelemetry("video-invalidated", eventData);
+}
+
 // MARK: - Async funtions
 std::future<bool> EDreamClient::FetchPlaylistAsync(const std::string& uuid) {
     return std::async(std::launch::async, [uuid]() {
@@ -2443,7 +2512,8 @@ std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
             // send that array and try to fetch all at once
             FetchDreamsMetadata(needsMetadataUuids);
 
-            // Then reload metadata for each of the uuids
+            // Then reload metadata for each of the uuids (reloadMetadata also
+            // validates cached video md5 and may invalidate stale MP4s).
             for (const auto& needsMetadata : needsMetadataUuids) {
                 cm.reloadMetadata(needsMetadata);
             }
@@ -2451,6 +2521,19 @@ std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
             g_Log->Info("Skipping metadata fetch at startup (offline/not logged in). Missing metadata count: %zu",
                         needsMetadataUuids.size());
         }
+    }
+
+    // Re-check every cached video against its metadata md5, not only the ones
+    // just refreshed or in this playlist (a dream can also be played on its own). A mismatch can outlive the refresh that found it: on
+    // Windows the delete is deferred while the clip is open, and that pending
+    // list is lost on exit. Also covers entries cached before md5 was stored,
+    // including dreams re-encoded before this client was installed (see
+    // validateCachedVideo). Skipped offline so we never drop a video we cannot
+    // re-download.
+    if (EDreamClient::IsLoggedIn() && !g_Player().IsOfflineMode()) {
+        std::unordered_set<std::string> refreshed(needsMetadataUuids.begin(),
+                                                  needsMetadataUuids.end());
+        cm.validateAllCachedVideos(refreshed);
     }
 
     // Downloads will be pulled dynamically by FindDreamsThread from PlaylistManager
@@ -2870,19 +2953,29 @@ void EDreamClient::ConnectRemoteControlSocket()
     
     g_Log->Info("Performing remote control connect.");
     
-    // Check if socket is already connected AND io_context is running AND namespace is available
+    // If io_context was stopped (e.g. by a player restart), restart it. The WebSocket
+    // runs on its own thread and may still be open, so this doesn't imply a reconnect.
+    const bool ioWasStopped = io_context->stopped();
+    if (ioWasStopped) {
+        g_Log->Info("io_context was stopped, restarting...");
+        io_context->restart();
+    }
+
+    // Already connected: rebind instead of unbinding and calling connect(), which
+    // the sio client ignores while open, so the callbacks would stay unbound.
     auto existingSocket = s_SIOClient.socket("/remote-control");
-    if (s_SIOClient.opened() && !io_context->stopped() && existingSocket)
+    if (s_SIOClient.opened() && existingSocket)
     {
         g_Log->Info("WebSocket already connected with namespace, skipping reconnection.");
         BindWebSocketCallbacks();
+        if (ioWasStopped) {
+            // Re-arm the ping timer and pump the restarted io_context.
+            SendPing();
+            std::thread([]() {
+                io_context->run();
+            }).detach();
+        }
         return;
-    }
-
-    // If io_context was stopped, restart it
-    if (io_context->stopped()) {
-        g_Log->Info("io_context was stopped, restarting...");
-        io_context->restart();
     }
 
     // Unbind old callbacks before reconnecting
@@ -2923,7 +3016,9 @@ void EDreamClient::ConnectRemoteControlSocket()
     // Send first ping immediately so frontend knows we're here
     SendPing();
 
-    // Run the io_context in a separate thread
+    // Run the app io_context (ping/quota timers) on a detached thread.
+    // The Socket.IO Beast shim drives WebSocket I/O on its own m_ioc thread;
+    // this run() no longer pumps the socket.
     std::thread([]() {
         io_context->run();
     }).detach();

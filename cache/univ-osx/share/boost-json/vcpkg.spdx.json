@@ -3,13 +3,13 @@
   "spdxVersion": "SPDX-2.2",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "documentNamespace": "https://spdx.org/spdxdocs/boost-json-arm64-osx-1.90.0#1-91a03565-aa54-4b22-bf71-0c94522ede0d",
-  "name": "boost-json:arm64-osx@1.90.0#1 71ab1c75b6121f932ec7c99d423d617c5208df8b84bfc4eb2363d6dcbb2a68a4",
+  "documentNamespace": "https://spdx.org/spdxdocs/boost-json-arm64-osx-1.90.0#1-aae40fb4-5990-44ff-af0f-51e1908ddbb8",
+  "name": "boost-json:arm64-osx@1.90.0#1 4222900cdf4bcdb82019afdbc4bb4f00b8721688a6ed5dbf3e331ffba35c917f",
   "creationInfo": {
     "creators": [
       "Tool: vcpkg-2026-03-04-4b3e4c276b5b87a649e66341e11553e8c577459c"
     ],
-    "created": "2026-04-17T03:29:31Z"
+    "created": "2026-10-08T13:05:25Z"
   },
   "relationships": [
     {
@@ -719,7 +719,7 @@
     {
       "name": "boost-json:arm64-osx",
       "SPDXID": "SPDXRef-binary",
-      "versionInfo": "71ab1c75b6121f932ec7c99d423d617c5208df8b84bfc4eb2363d6dcbb2a68a4",
+      "versionInfo": "4222900cdf4bcdb82019afdbc4bb4f00b8721688a6ed5dbf3e331ffba35c917f",
       "downloadLocation": "NONE",
       "licenseConcluded": "BSL-1.0",
       "licenseDeclared": "NOASSERTION",
@@ -2284,7 +2284,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "80a3d16d3d2c1e0d496ac0babf75ca26551a6c164321adf31763cb3a6fadece6"
+          "checksumValue": "3387548dca251c82317f8b869fdbe64e9f867b0a82bfa963f7543b89f86765a4"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -2296,7 +2296,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "df420cdd5c1d65bf76530682fdf361be7b1fb2020933079591b01809df385b9f"
+          "checksumValue": "2f8bb70b2981f53e16df3ae28a2a545e58feb16596359bdb00a56a9852a53a87"
         }
       ],
       "licenseConcluded": "NOASSERTION",

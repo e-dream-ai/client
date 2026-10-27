@@ -7,8 +7,10 @@
 //  This class manages the local cache and makes sure we have the correct associated metadata
 
 #include "CacheManager.h"
+#include <algorithm>
 #include <iostream>
 #include <mutex>
+#include <thread>
 #include <boost/json.hpp>
 #include <unordered_set>
 
@@ -17,6 +19,7 @@
 #include "ContentDownloader.h"
 #include "Settings.h"
 #include "Player.h"
+#include "PlatformUtils.h"
 #include "Log.h"
 
 namespace Cache {
@@ -301,6 +304,229 @@ bool CacheManager::deleteDream(const std::string& uuid) {
     return true;
 }
 
+bool CacheManager::invalidateVideo(const std::string& uuid) {
+    if (!hasDiskCachedItem(uuid)) {
+        g_Log->Warning("invalidateVideo: no disk cache entry for %s", uuid.c_str());
+        return false;
+    }
+
+    // Drop any preload for this UUID if we can take the player lock without
+    // blocking. ParsePlaylist often runs under m_UpdateMutex (InitializePlaylist);
+    // a blocking CancelPreload here deadlocks that thread.
+    g_Player().TryCancelPreloadForUuid(uuid);
+
+    // Attempt delete now. If the MP4 is still open (common on Windows), remove
+    // fails and invalidateVideoNow re-pends for flush after the clip ends.
+    // On macOS/Linux an open file can usually be unlinked immediately.
+    return invalidateVideoNow(uuid);
+}
+
+bool CacheManager::invalidateVideoNow(const std::string& uuid) {
+    auto diskItem = getDiskCachedItem(uuid);
+    if (!diskItem) {
+        return false;
+    }
+
+    std::string filePath = getDreamPath(uuid);
+    if (filePath.empty()) {
+        g_Log->Error("invalidateVideo: unable to get file path for %s", uuid.c_str());
+        return false;
+    }
+
+    std::error_code ec;
+    std::filesystem::remove(std::filesystem::path(filePath), ec);
+    if (ec) {
+        // Still locked or otherwise unavailable — retry on next flush.
+        {
+            std::lock_guard<std::mutex> lock(m_pendingVideoInvalidationsMutex);
+            m_pendingVideoInvalidations.insert(uuid);
+        }
+        g_Log->Warning(
+            "invalidateVideo: failed to remove %s (%d: %s); will retry",
+            filePath.c_str(), ec.value(), ec.message().c_str());
+        return false;
+    }
+
+    std::string oldMd5 = diskItem->md5;
+    removeDiskCachedItem(uuid);
+
+    HistoryItem historyItem;
+    historyItem.uuid = diskItem->uuid;
+    historyItem.version = diskItem->version;
+    historyItem.downloadDate = diskItem->downloadDate;
+    historyItem.deletedDate = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    addHistoryItem(historyItem);
+
+    // Keep metadata so FindDreamsThread can re-download with current server info.
+    // Clear any signed streaming URL so PlayClip cannot reuse a stale link.
+    if (auto dream = getDream(uuid)) {
+        dream->setStreamingUrl("");
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(m_pendingVideoInvalidationsMutex);
+        m_pendingVideoInvalidations.erase(uuid);
+    }
+
+    std::string newMd5;
+    if (auto dream = getDream(uuid)) {
+        newMd5 = dream->md5;
+    }
+
+    g_Log->Info("invalidateVideo: dropped cached video for %s (md5 %s -> %s)",
+                uuid.c_str(), oldMd5.c_str(), newMd5.c_str());
+
+    // Never block the player/ParsePlaylist thread on telemetry I/O.
+    std::thread([uuid, oldMd5, newMd5]() {
+        PlatformUtils::SetThreadName("VideoInvalidatedTelemetry");
+        EDreamClient::ReportVideoInvalidated(uuid, oldMd5, newMd5);
+    }).detach();
+
+    return true;
+}
+
+void CacheManager::flushPendingVideoInvalidations(const std::unordered_set<std::string>& stillOpenUuids) {
+    std::vector<std::string> pending;
+    {
+        std::lock_guard<std::mutex> lock(m_pendingVideoInvalidationsMutex);
+        pending.assign(m_pendingVideoInvalidations.begin(), m_pendingVideoInvalidations.end());
+    }
+
+    for (const auto& uuid : pending) {
+        if (stillOpenUuids.count(uuid) != 0) {
+            continue;
+        }
+        invalidateVideoNow(uuid);
+    }
+}
+
+void CacheManager::validateCachedVideo(const std::string& uuid) {
+    auto diskItem = getDiskCachedItem(uuid);
+    if (!diskItem) {
+        return;
+    }
+
+    auto dream = getDream(uuid);
+    if (!dream || dream->md5.empty()) {
+        return;
+    }
+
+    const std::string serverMd5 = dream->md5;
+
+    if (diskItem->md5.empty()) {
+        // Legacy entry from before md5 was stored. version is the video_timestamp
+        // it was downloaded with, and video_timestamp moves whenever the MP4 is
+        // reprocessed, so an unchanged value means the bytes are current: adopt
+        // the metadata md5 without reading the file. Otherwise the dream was
+        // reprocessed since download (possibly without changing the bytes, e.g.
+        // filmstrip or md5 backfill), so hash once to decide.
+        if (diskItem->version == dream->video_timestamp) {
+            updateDiskCachedItemMd5(uuid, serverMd5);
+        } else {
+            enqueueMd5Backfill(uuid);
+        }
+        return;
+    }
+
+    if (diskItem->md5 != serverMd5) {
+        g_Log->Info(
+            "validateCachedVideo: md5 mismatch for %s (cached=%s server=%s)",
+            uuid.c_str(), diskItem->md5.c_str(), serverMd5.c_str());
+        invalidateVideo(uuid);
+    }
+}
+
+void CacheManager::enqueueMd5Backfill(const std::string& uuid) {
+    std::lock_guard<std::mutex> lock(m_md5BackfillMutex);
+    if (!m_md5BackfillQueued.insert(uuid).second) {
+        return;
+    }
+    m_md5BackfillQueue.push_back(uuid);
+    if (m_md5BackfillRunning) {
+        return;
+    }
+    // One worker hashes sequentially so a large metadata refresh doesn't start
+    // a parallel full-file read per legacy entry. It exits when the queue drains.
+    m_md5BackfillRunning = true;
+    std::thread([this]() {
+        PlatformUtils::SetThreadName("BackfillVideoMd5");
+        runMd5Backfill();
+    }).detach();
+}
+
+void CacheManager::runMd5Backfill() {
+    for (;;) {
+        std::string uuid;
+        {
+            std::lock_guard<std::mutex> lock(m_md5BackfillMutex);
+            if (m_md5BackfillQueue.empty()) {
+                m_md5BackfillRunning = false;
+                return;
+            }
+            uuid = m_md5BackfillQueue.front();
+            m_md5BackfillQueue.pop_front();
+            m_md5BackfillQueued.erase(uuid);
+        }
+
+        // Re-read state: the entry may have been redownloaded or removed while queued.
+        auto diskItem = getDiskCachedItem(uuid);
+        if (!diskItem || !diskItem->md5.empty()) {
+            continue;
+        }
+        const std::string path = getDreamPath(uuid);
+        if (path.empty()) {
+            continue;
+        }
+
+        const std::string localMd5 = PlatformUtils::CalculateFileMD5(path);
+        if (localMd5.empty()) {
+            g_Log->Warning("validateCachedVideo: failed to hash %s", uuid.c_str());
+            continue;
+        }
+        updateDiskCachedItemMd5(uuid, localMd5);
+
+        auto dream = getDream(uuid);
+        if (dream && !dream->md5.empty() && localMd5 != dream->md5) {
+            g_Log->Info(
+                "validateCachedVideo: legacy md5 mismatch for %s (local=%s server=%s)",
+                uuid.c_str(), localMd5.c_str(), dream->md5.c_str());
+            invalidateVideo(uuid);
+        }
+    }
+}
+
+void CacheManager::validateAllCachedVideos(const std::unordered_set<std::string>& skipUuids) {
+    // Snapshot first: validation may remove entries from diskCached.
+    std::vector<std::string> uuids;
+    {
+        std::shared_lock<std::shared_mutex> lock(diskCachedMutex);
+        uuids.reserve(diskCached.size());
+        for (const auto& item : diskCached) {
+            uuids.push_back(item.uuid);
+        }
+    }
+    for (const auto& uuid : uuids) {
+        if (skipUuids.count(uuid) == 0) {
+            validateCachedVideo(uuid);
+        }
+    }
+}
+
+void CacheManager::updateDiskCachedItemMd5(const std::string& uuid, const std::string& md5) {
+    std::unique_lock<std::shared_mutex> lock(diskCachedMutex);
+    auto it = std::find_if(diskCached.begin(), diskCached.end(),
+        [&uuid](const DiskCachedItem& item) { return item.uuid == uuid; });
+    if (it == diskCached.end()) {
+        return;
+    }
+    if (it->md5 == md5) {
+        return;
+    }
+    it->md5 = md5;
+    lock.unlock();
+    saveDiskCachedToJson();
+}
+
 // MARK: - Quota
 
 void CacheManager::decreaseRemainingQuota(long long amount) {
@@ -388,8 +614,8 @@ bool CacheManager::needsMetadata(std::string uuid, long long timeStamp) {
 void CacheManager::reloadMetadata(std::string uuid) {
     fs::path filename = PathManager::getInstance().jsonDreamPath() / (uuid + ".json");
     loadJsonFile(filename.string());
-    
-    return;
+    // After metadata refresh, drop a cached MP4 whose bytes no longer match server md5.
+    validateCachedVideo(uuid);
 }
 
 bool CacheManager::deleteMetadata(const std::string& uuid) {
@@ -584,6 +810,18 @@ bool CacheManager::hasDiskCachedItem(const std::string& uuid) const {
         });
 }
 
+std::optional<CacheManager::DiskCachedItem> CacheManager::getDiskCachedItem(const std::string& uuid) const {
+    std::shared_lock<std::shared_mutex> lock(diskCachedMutex);
+    auto it = std::find_if(diskCached.begin(), diskCached.end(),
+        [&uuid](const DiskCachedItem& item) {
+            return item.uuid == uuid;
+        });
+    if (it == diskCached.end()) {
+        return std::nullopt;
+    }
+    return *it;
+}
+
 void CacheManager::addHistoryItem(const HistoryItem& item) {
     history.push_back(item);
     saveHistoryToJson();
@@ -676,6 +914,9 @@ boost::property_tree::ptree CacheManager::serializeDiskCachedItem(const DiskCach
     pt.put("uuid", item.uuid);
     pt.put("version", item.version);
     pt.put("downloadDate", item.downloadDate);
+    if (!item.md5.empty()) {
+        pt.put("md5", item.md5);
+    }
     return pt;
 }
 
@@ -693,6 +934,7 @@ CacheManager::DiskCachedItem CacheManager::deserializeDiskCachedItem(const boost
     item.uuid = pt.get<std::string>("uuid");
     item.version = pt.get<long long>("version");
     item.downloadDate = pt.get<long long>("downloadDate");
+    item.md5 = pt.get<std::string>("md5", "");
     return item;
 }
 
