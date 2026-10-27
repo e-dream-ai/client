@@ -1706,6 +1706,18 @@ void CPlayer::UpdateTransition(double currentTime)
             }
         }
         
+        // A playlist switch preloads its first dream and starts this transition
+        // directly, without going through PlayNextDream, so its decision has not
+        // been committed yet. Commit it now that the clip is on screen, or the
+        // playlist stays unstarted at position 0 and the next preflight replays
+        // the same dream (#705). Other paths commit and clear the decision
+        // before the transition starts, so a leftover decision for a different
+        // dream (e.g. Previous during a pending preflight) is ignored.
+        if (m_nextDreamDecision && m_nextDreamDecision->dream && m_currentClip &&
+            m_currentClip->GetClipMetadata().dreamData.uuid == m_nextDreamDecision->dream->uuid) {
+            m_playlistManager->moveToNextDream(*m_nextDreamDecision);
+        }
+
         m_nextClip = nullptr;
         m_transitionDuration = 5.0f;
         m_nextDreamDecision = std::nullopt;  // Clear any pending decision
