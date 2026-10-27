@@ -17,7 +17,7 @@
                             <menuItem title="About infinidream" id="58">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="orderFrontStandardAboutPanel:" target="-2" id="495"/>
+                                    <action selector="showInfinidreamAboutPanel:" target="-2" id="495"/>
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="236">

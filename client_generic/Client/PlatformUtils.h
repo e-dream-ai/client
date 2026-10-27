@@ -29,6 +29,19 @@ class PlatformUtils
     static std::string GetBuildDate();
     static std::string GetGitRevision();
     static std::string GetAppVersion();
+    /// Version and git revision without repeating the tag: the revision alone
+    /// when it starts with the version (e.g. "0.16.1-12-gc7171648-dirty"),
+    /// otherwise "version (revision)".
+    static std::string GetVersionDescription()
+    {
+        const std::string ver = GetAppVersion();
+        const std::string rev = GetGitRevision();
+        if (rev.empty() || rev == ver)
+            return ver;
+        if (rev.rfind(ver + "-", 0) == 0)
+            return rev;
+        return ver + " (" + rev + ")";
+    }
     static std::string GetPlatformName();
     static std::string GetWorkingDir();
     static void OpenURLExternally(std::string_view _url);

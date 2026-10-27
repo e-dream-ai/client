@@ -336,9 +336,8 @@
             .stringByAbbreviatingWithTildeInPath;
 
     // Put full version with git + date
-    version.stringValue = [NSString stringWithFormat:@"%@ %@ %@",
-                           (__bridge NSString*)ESScreensaver_GetVersion(),
-                           [NSString stringWithUTF8String:PlatformUtils::GetGitRevision().c_str()],
+    version.stringValue = [NSString stringWithFormat:@"%@ %@",
+                           [NSString stringWithUTF8String:PlatformUtils::GetVersionDescription().c_str()],
                            [NSString stringWithUTF8String:PlatformUtils::GetBuildDate().c_str()]];
 
 #ifndef DEBUG

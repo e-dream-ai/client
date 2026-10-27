@@ -402,11 +402,9 @@ class CElectricSheep
             ""));
 #undef BK
 
-        std::string ver = GetVersion();
-
         spHelpMessage->Add(
             new Hud::CStringStat("version", "\nVersion: ",
-                                 ver + " " + PlatformUtils::GetGitRevision() +
+                                 PlatformUtils::GetVersionDescription() +
                                      " " + PlatformUtils::GetBuildDate()));
     }
     
