@@ -211,12 +211,7 @@ else
     const float signOutX = safePanelWidth - sidePadding - actionButtonWidth;
     if (signOutX > 0.f)
         ImGui::SetCursorPosX(signOutX);
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.00f, 0.48f, 1.00f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.10f, 0.56f, 1.00f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.00f, 0.40f, 0.86f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
-    if (g_boldUiFont)
-        ImGui::PushFont(g_boldUiFont);
+    // Plain button: once signed in, Close in the footer is the default (blue, Return).
     if (ImGui::Button("Sign out", ImVec2(actionButtonWidth, actionButtonHeight)))
     {
         std::strncpy(g_previousLoginEmailBuf, g_nicknameBuf, sizeof g_previousLoginEmailBuf - 1);
@@ -227,9 +222,6 @@ else
         g_codeBuf[0] = '\0';
         SetStatus("Signed out.");
     }
-    if (g_boldUiFont)
-        ImGui::PopFont();
-    ImGui::PopStyleColor(4);
 }
 
 ImGui::EndChild();

@@ -608,9 +608,27 @@ static void DrawSettingsDialog(float viewportW, float viewportH)
             const float textY = rowCenterY - (ImGui::GetTextLineHeight() * 0.5f);
             const float closeX = originX + contentWidth - closeButtonWidth;
 
+            // Once signed in, Close is the default button (blue, Return); while signed out,
+            // Send Code / Validate on the Account tab hold that role.
+            const bool closeIsDefault = EDreamClient::IsLoggedIn();
+            if (closeIsDefault)
+            {
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.00f, 0.48f, 1.00f, 1.00f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.10f, 0.56f, 1.00f, 1.00f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.00f, 0.40f, 0.86f, 1.00f));
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
+                if (g_boldUiFont)
+                    ImGui::PushFont(g_boldUiFont);
+            }
             ImGui::SetCursorPos(ImVec2(closeX, buttonY));
             if (ImGui::Button("Close", ImVec2(closeButtonWidth, closeButtonHeight)))
                 CloseDialog(true);
+            if (closeIsDefault)
+            {
+                if (g_boldUiFont)
+                    ImGui::PopFont();
+                ImGui::PopStyleColor(4);
+            }
 
             ImGui::SetCursorPos(ImVec2(originX, rowCenterY - (helpButtonSize * 0.5f)));
             ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, helpButtonSize * 0.5f);
@@ -630,6 +648,13 @@ static void DrawSettingsDialog(float viewportW, float viewportH)
     ImGui::PopStyleVar(4);
 
     if (ImGui::IsKeyPressed(ImGuiKey_Escape))
+        CloseDialog(true);
+
+    // Return activates the default button. Skip it while a text field has focus or keyboard
+    // nav has a visibly focused widget, so Return still means "press this" there.
+    const ImGuiIO& io = ImGui::GetIO();
+    if (EDreamClient::IsLoggedIn() && !io.WantTextInput && !io.NavVisible &&
+        (ImGui::IsKeyPressed(ImGuiKey_Enter, false) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter, false)))
         CloseDialog(true);
 }
 
