@@ -146,11 +146,7 @@ CContentDecoder::~CContentDecoder()
         abortFutures();
     }
 
-    if (m_httpStream)
-    {
-        m_httpStream->Stop();
-        m_httpStream.reset();
-    }
+    ReleaseStream();
     // Aborted or incomplete stream: discard the partial .tmp.
     // FinalizeCacheFile clears m_CachePath after a successful rename.
     if (!m_CachePath.empty())
@@ -184,8 +180,7 @@ void CContentDecoder::abortFutures() {
     // First mark all operations as needing to stop
     m_HasEnded.store(true);
 
-    if (m_httpStream)
-        m_httpStream->Stop();
+    StopOwnedStream();
 
     // Close cache file immediately if open
     CloseCacheFile();
@@ -345,28 +340,46 @@ bool CContentDecoder::Open()
     {
         m_IsStreaming = true;
         m_CacheWritePosition = 0;
-        
-        // Generate a cache file path
-        std::string cacheFileName = GenerateCacheFileName();
-        SetCachePath(cacheFileName);
 
-        // libcurl owns the HTTPS byte stream; ffmpeg only sees a custom AVIO
-        // over the progressive on-disk cache (file protocol / no network).
-        m_httpStream = std::make_unique<Network::ProgressiveHttpStream>();
-        // Abort both AVIO waits and the curl worker when the clip stops
-        // (skip/Next/seek/teardown). Only dreams that play to the end are
-        // cached; interrupted downloads discard their .tmp.
+        const std::string& uuid = m_Metadata.dreamData.uuid;
         auto stopped = [this]() {
             return m_bStop.load() || m_isShuttingDown.load();
         };
-        if (!m_httpStream->Start(_filename, m_CachePath,
-                                /*readInterrupt=*/stopped,
-                                /*downloadAbort=*/stopped))
+        m_httpCursor = Network::ProgressiveHttpStream::Cursor{0, stopped};
+
+        // The prefetcher may already be downloading this dream: read its
+        // download instead of fetching a second copy (client#706). It keeps
+        // going and caches the dream even if this clip is skipped.
+        auto& registry = Network::DownloadRegistry::Instance();
+        m_httpStream = registry.Attach(uuid, stopped);
+        m_httpStreamShared = m_httpStream != nullptr;
+        if (m_httpStreamShared)
         {
-            g_Log->Warning("Failed to start progressive download for %s",
-                           _filename.c_str());
-            m_httpStream.reset();
-            return false;
+            g_Log->Info("Attaching to in-flight download of %s", uuid.c_str());
+        }
+        else
+        {
+            // Generate a cache file path
+            std::string cacheFileName = GenerateCacheFileName();
+            SetCachePath(cacheFileName);
+
+            // libcurl owns the HTTPS byte stream; ffmpeg only sees a custom AVIO
+            // over the progressive on-disk cache (file protocol / no network).
+            m_httpStream = std::make_shared<Network::ProgressiveHttpStream>();
+            // Abort the curl worker when the clip stops (skip/Next/seek/
+            // teardown). Only dreams that play to the end are cached;
+            // interrupted downloads discard their .tmp.
+            if (!m_httpStream->Start(_filename, m_CachePath,
+                                    /*downloadAbort=*/stopped))
+            {
+                g_Log->Warning("Failed to start progressive download for %s",
+                               _filename.c_str());
+                m_httpStream.reset();
+                return false;
+            }
+            // Keeps the prefetcher off this dream while we stream it. Another
+            // clip of the same dream may already hold the entry; that's fine.
+            registry.AddPrivate(uuid, m_httpStream);
         }
 
         constexpr int kIOBufferSize = 32768;
@@ -631,11 +644,7 @@ void CContentDecoder::Close()
         avformat_close_input(&m_CurrentVideoInfo->m_pFormatContext);
     }
 
-    if (m_httpStream)
-    {
-        m_httpStream->Stop();
-        m_httpStream.reset();
-    }
+    ReleaseStream();
 
     CloseCacheFile();
     m_CacheWritePosition = 0;
@@ -650,7 +659,7 @@ int CContentDecoder::ReadPacket(void* opaque, uint8_t* buf, int buf_size)
     CContentDecoder* decoder = static_cast<CContentDecoder*>(opaque);
     if (!decoder->m_httpStream)
         return AVERROR(EIO);
-    return decoder->m_httpStream->Read(buf, buf_size);
+    return decoder->m_httpStream->Read(decoder->m_httpCursor, buf, buf_size);
 }
 
 int64_t CContentDecoder::SeekPacket(void* opaque, int64_t offset, int whence)
@@ -658,7 +667,27 @@ int64_t CContentDecoder::SeekPacket(void* opaque, int64_t offset, int whence)
     CContentDecoder* decoder = static_cast<CContentDecoder*>(opaque);
     if (!decoder->m_httpStream)
         return -1;
-    return decoder->m_httpStream->Seek(offset, whence);
+    return decoder->m_httpStream->Seek(decoder->m_httpCursor, offset, whence);
+}
+
+void CContentDecoder::StopOwnedStream()
+{
+    // A shared stream belongs to the prefetcher; our reads are already
+    // unblocked by m_httpCursor.interrupt.
+    if (m_httpStream && !m_httpStreamShared)
+        m_httpStream->Stop();
+}
+
+void CContentDecoder::ReleaseStream()
+{
+    if (!m_httpStream)
+        return;
+    StopOwnedStream();
+    if (!m_httpStreamShared)
+        Network::DownloadRegistry::Instance().Remove(m_Metadata.dreamData.uuid,
+                                                     m_httpStream.get());
+    m_httpStream.reset();
+    m_httpStreamShared = false;
 }
 
 CVideoFrame* CContentDecoder::ReadOneFrame()
@@ -1331,7 +1360,8 @@ void CContentDecoder::ReadFramesThread()
         }
         
         // Let the curl worker finish filling the cache file when we intend to keep it.
-        if (m_IsStreaming && !m_Metadata.dreamData.md5.empty() && m_httpStream)
+        if (m_IsStreaming && !m_Metadata.dreamData.md5.empty() && m_httpStream &&
+            !m_httpStreamShared)
             m_httpStream->WaitUntilFinished();
 
         m_HasEnded.store(true);

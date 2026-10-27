@@ -190,7 +190,13 @@ class CContentDecoder
     bool IsURL(const std::string& path);
 
     // libcurl-owned progressive download for HTTPS paths (ffmpeg is file/AVIO only).
-    std::unique_ptr<Network::ProgressiveHttpStream> m_httpStream;
+    // Either our own, or the prefetcher's in-flight download of the same dream
+    // (m_httpStreamShared): that one is never stopped or finalized here.
+    std::shared_ptr<Network::ProgressiveHttpStream> m_httpStream;
+    Network::ProgressiveHttpStream::Cursor m_httpCursor;
+    bool m_httpStreamShared = false;
+    void StopOwnedStream();
+    void ReleaseStream();
 
     int64_t m_CacheWritePosition = 0;
     std::mutex m_CacheMutex;
