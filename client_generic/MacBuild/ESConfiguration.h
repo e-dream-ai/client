@@ -68,6 +68,8 @@
     __weak IBOutlet NSButton *installAndUpdateScreensaverButton;
     
     __weak IBOutlet NSButton *keepScreensaverEnabledButton;
+
+    __weak IBOutlet NSButton *keepWallpaperEnabledButton;
     
     NSString* m_origNickname;
     NSString* m_previousLoginEmail;
@@ -98,6 +100,7 @@
 - (IBAction)validateLogin:(id)sender;
 - (IBAction)installAndUpdateScreensaver:(id)sender;
 - (IBAction)keepScreensaverEnabled:(id)sender;
+- (IBAction)keepWallpaperEnabled:(id)sender;
 
 
 - (void)fixFlockSize;

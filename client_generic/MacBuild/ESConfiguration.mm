@@ -48,6 +48,19 @@
 }
 
 - (IBAction)keepScreensaverEnabled:(id)sender {
+#ifndef SCREEN_SAVER
+    if (keepScreensaverEnabledButton.state == NSControlStateValueOn) {
+        [[ScreensaverInstaller sharedInstaller] enableScreensaverIfNeeded];
+    }
+#endif
+}
+
+- (IBAction)keepWallpaperEnabled:(id)sender {
+#ifndef SCREEN_SAVER
+    if (keepWallpaperEnabledButton.state == NSControlStateValueOn) {
+        [[ScreensaverInstaller sharedInstaller] enableWallpaperIfNeeded];
+    }
+#endif
 }
 
 // Helper to show a message box
@@ -353,6 +366,8 @@
         ESScreensaver_GetBoolSetting("settings.app.auto_install_screensaver", false);
     keepScreensaverEnabledButton.state = 
         ESScreensaver_GetBoolSetting("settings.app.keep_screensaver_enabled", false);
+    keepWallpaperEnabledButton.state =
+        ESScreensaver_GetBoolSetting("settings.app.keep_wallpaper_enabled", false);
 
     [self updateAuthUI];
 }
@@ -435,6 +450,7 @@
     
     ESScreensaver_SetBoolSetting("settings.app.auto_install_screensaver", installAndUpdateScreensaverButton.state);
     ESScreensaver_SetBoolSetting("settings.app.keep_screensaver_enabled", keepScreensaverEnabledButton.state);
+    ESScreensaver_SetBoolSetting("settings.app.keep_wallpaper_enabled", keepWallpaperEnabledButton.state);
 }
 
 // MARK: Create Account
