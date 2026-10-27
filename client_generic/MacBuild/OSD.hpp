@@ -442,7 +442,19 @@ public:
         // Remember to clean up the temporary image
         tmpBuffering = NULL;
     };
-    
+
+    using CHudEntry::Visible;
+
+    // Hiding (e.g. HideAll() when credits are toggled) stops Render() from
+    // being called, so the FPS text must be disabled here or it stays on screen.
+    // Showing is left to Render(), which enables the text only for Speed.
+    virtual void Visible(const bool _bState) override
+    {
+        CHudEntry::Visible(_bState);
+        if (!_bState && m_spFpsText != NULL)
+            m_spFpsText->SetEnabled(false);
+    }
+
     bool Render(const double _time, DisplayOutput::spCRenderer _spRenderer)
     {
         if (!CHudEntry::Render(_time, _spRenderer))
