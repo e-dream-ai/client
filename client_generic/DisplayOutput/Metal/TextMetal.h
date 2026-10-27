@@ -26,11 +26,13 @@ class CTextMetal : public CBaseText
     std::string m_Text;
     spCFontMetal m_spFont;
     CATextLayer* m_TextLayer;
+    MTKView* m_View;
     Base::Math::CVector2 m_Extents;
     bool m_Enabled = false;
     Base::Math::CVector4 m_Color;
 
     void UpdateExtents();
+    void UpdateContentsScale();
 
   public:
     CTextMetal(spCFontMetal _font, MTKView* _view);
