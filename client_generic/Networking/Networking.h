@@ -174,6 +174,11 @@ class CManager : public Base::CSingleton<CManager>
     void UpdateProgress(CCurlTransfer* _pTransfer,
                         const double _percentComplete,
                         const double _bytesTransferred);
+    //	Same, for transfers that are not CCurlTransfers.
+    void UpdateProgress(const std::string& _name, const std::string& _status,
+                        const double _percentComplete,
+                        const double _bytesTransferred);
+    void Remove(const std::string& _name);
 
     // Used to abort any curl transfer
 

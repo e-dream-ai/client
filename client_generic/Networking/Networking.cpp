@@ -492,17 +492,26 @@ void CManager::UpdateProgress(CCurlTransfer* _pTransfer,
                               const double _percentComplete,
                               const double _bytesTransferred)
 {
-    std::scoped_lock locker(m_Lock);
-
     // g_Log->Info( "UpdateProgress()" );
 
     if (!_pTransfer)
         return;
 
+    UpdateProgress(_pTransfer->Name(), _pTransfer->Status(), _percentComplete,
+                   _bytesTransferred);
+}
+
+void CManager::UpdateProgress(const std::string& _name,
+                              const std::string& _status,
+                              const double _percentComplete,
+                              const double _bytesTransferred)
+{
+    std::scoped_lock locker(m_Lock);
+
     std::stringstream tmp;
-    tmp << _pTransfer->Name();
-    tmp << "\nDownload status: " << _pTransfer->Status();
-    if (_pTransfer->Status() == "Active")
+    tmp << _name;
+    tmp << "\nDownload status: " << _status;
+    if (_status == "Active")
     {
         tmp << ", " << (int32_t)_percentComplete << "%";
         if (_bytesTransferred > 1024 * 1024)
@@ -517,7 +526,7 @@ void CManager::UpdateProgress(CCurlTransfer* _pTransfer,
     }
 
     // g_Log->Info( "Setting progress!" );
-    m_ProgressMap[_pTransfer->Name()] = tmp.str();
+    m_ProgressMap[_name] = tmp.str();
 }
 
 /*
@@ -565,8 +574,13 @@ std::string CManager::Status()
 void CManager::Remove(CCurlTransfer* _pTransfer)
 {
     g_Log->Info("Remove()");
+    Remove(_pTransfer->Name());
+}
+
+void CManager::Remove(const std::string& _name)
+{
     std::scoped_lock locker(m_Lock);
-    m_ProgressMap.erase(_pTransfer->Name());
+    m_ProgressMap.erase(_name);
 }
 
 /*
