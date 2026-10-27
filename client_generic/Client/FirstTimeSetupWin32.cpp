@@ -596,8 +596,8 @@ static bool TryInitImGui()
 
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 
-    // Manifest is system-DPI-aware (electricsheep.vcxproj), so this returns the system DPI;
-    // dialog opens at the same scale on every monitor for the life of the process.
+    // Per-monitor DPI aware (MSVC/dpi-aware.manifest): the DPI of the window's current monitor
+    // when the wizard opens.
     HWND hwnd = dx->GetWindowHandle();
     const UINT dpi = GetDpiForWindow(hwnd);
     const float dpiScale = (dpi > 0u) ? (static_cast<float>(dpi) / 96.0f) : 1.0f;

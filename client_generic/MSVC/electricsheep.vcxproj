@@ -207,6 +207,9 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     <PostBuildEvent>
       <Command>copy /y "$(TargetPath)" "$(OutDir)$(ProjectName)d.scr"</Command>
     </PostBuildEvent>
+    <Manifest>
+      <AdditionalManifestFiles>dpi-aware.manifest</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <PreBuildEvent>
@@ -249,6 +252,9 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     <PostBuildEvent>
       <Command>copy /y "$(TargetPath)" "$(OutDir)$(TargetName).scr"</Command>
     </PostBuildEvent>
+    <Manifest>
+      <AdditionalManifestFiles>dpi-aware.manifest</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <PreBuildEvent>
@@ -313,7 +319,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
       <Command>copy /y "$(TargetPath)" "$(OutDir)$(ProjectName).scr"</Command>
     </PostBuildEvent>
     <Manifest>
-      <EnableDPIAwareness>true</EnableDPIAwareness>
+      <AdditionalManifestFiles>dpi-aware.manifest</AdditionalManifestFiles>
     </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugMD|Win32'">
@@ -379,7 +385,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
       <Command>copy /y "$(TargetPath)" "$(OutDir)$(ProjectName).scr"</Command>
     </PostBuildEvent>
     <Manifest>
-      <EnableDPIAwareness>true</EnableDPIAwareness>
+      <AdditionalManifestFiles>dpi-aware.manifest</AdditionalManifestFiles>
     </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugMDd|Win32'">
@@ -445,7 +451,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
       <Command>copy /y "$(TargetPath)" "$(OutDir)$(ProjectName).scr"</Command>
     </PostBuildEvent>
     <Manifest>
-      <EnableDPIAwareness>true</EnableDPIAwareness>
+      <AdditionalManifestFiles>dpi-aware.manifest</AdditionalManifestFiles>
     </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -511,6 +517,9 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     <PostBuildEvent>
       <Command>copy /y "$(TargetPath)" "$(OutDir)$(ProjectName).scr"</Command>
     </PostBuildEvent>
+    <Manifest>
+      <AdditionalManifestFiles>dpi-aware.manifest</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugMD|x64'">
     <PreBuildEvent>
@@ -576,6 +585,9 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     <PostBuildEvent>
       <Command>copy /y "$(TargetPath)" "$(OutDir)$(TargetName).scr"</Command>
     </PostBuildEvent>
+    <Manifest>
+      <AdditionalManifestFiles>dpi-aware.manifest</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugMDd|x64'">
     <PreBuildEvent>
@@ -641,6 +653,9 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     <PostBuildEvent>
       <Command>copy /y "$(TargetPath)" "$(OutDir)$(TargetName).scr"</Command>
     </PostBuildEvent>
+    <Manifest>
+      <AdditionalManifestFiles>dpi-aware.manifest</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
     <None Include="..\runtime\Lato-Regular.ttf" />

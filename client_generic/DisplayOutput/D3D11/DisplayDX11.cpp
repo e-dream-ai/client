@@ -58,19 +58,32 @@ enum DX11MenuCmd : UINT
 static void OpenInfinidreamWebUrl(int which);
 static void AppendKeyEvent(CKeyEvent::eKeyCode code, bool dedupeF1);
 
-static int GetSystemTitlebarHeightPx()
+// The process is per-monitor DPI aware (MSVC/dpi-aware.manifest), so chrome metrics come
+// from the window's own DPI; plain GetSystemMetrics reports the primary monitor's at startup.
+static UINT WindowDpi(HWND hWnd)
 {
-    const int caption = GetSystemMetrics(SM_CYCAPTION);
-    const int frame = GetSystemMetrics(SM_CYSIZEFRAME);
-    const int padded = GetSystemMetrics(SM_CXPADDEDBORDER);
+    const UINT dpi = hWnd ? GetDpiForWindow(hWnd) : 0u;
+    return dpi ? dpi : GetDpiForSystem();
+}
+
+static int ScaleForDpi(int px, UINT dpi)
+{
+    return MulDiv(px, static_cast<int>(dpi), USER_DEFAULT_SCREEN_DPI);
+}
+
+static int GetSystemTitlebarHeightPx(UINT dpi)
+{
+    const int caption = GetSystemMetricsForDpi(SM_CYCAPTION, dpi);
+    const int frame = GetSystemMetricsForDpi(SM_CYSIZEFRAME, dpi);
+    const int padded = GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
     const int h = caption + frame + padded;
     return (h > 0) ? h : 0;
 }
 
-static int GetResizeBorderThicknessPx()
+static int GetResizeBorderThicknessPx(UINT dpi)
 {
-    const int frame = GetSystemMetrics(SM_CXSIZEFRAME);
-    const int padded = GetSystemMetrics(SM_CXPADDEDBORDER);
+    const int frame = GetSystemMetricsForDpi(SM_CXSIZEFRAME, dpi);
+    const int padded = GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
     const int t = frame + padded;
     return (t > 0) ? t : 1;
 }
@@ -92,12 +105,14 @@ static void ComputeCaptionButtonRects(HWND hWnd, int titlebarHeightPx, RECT& out
     GetClientRect(hWnd, &client);
     const int w = client.right - client.left;
 
-    const int btnH = (titlebarHeightPx > 0) ? titlebarHeightPx : (std::max)(GetSystemMetrics(SM_CYSIZE), 20);
-    const int baseW = (std::max)(GetSystemMetrics(SM_CXSIZE), 30);
-    const int baseH = (std::max)(GetSystemMetrics(SM_CYSIZE), 20);
+    // Must match the DX titlebar overlay in CRendererDX11::EndFrame.
+    const UINT dpi = WindowDpi(hWnd);
+    const int baseW = (std::max)(GetSystemMetricsForDpi(SM_CXSIZE, dpi), ScaleForDpi(30, dpi));
+    const int baseH = (std::max)(GetSystemMetricsForDpi(SM_CYSIZE, dpi), ScaleForDpi(20, dpi));
+    const int btnH = (titlebarHeightPx > 0) ? titlebarHeightPx : baseH;
     // Scale width proportionally so buttons stay "Explorer-like" when titlebar height changes.
     int btnW = (baseH > 0) ? MulDiv(baseW, btnH, baseH) : baseW;
-    btnW = (std::max)(btnW, (std::max)(40, baseW));
+    btnW = (std::max)(btnW, (std::max)(ScaleForDpi(40, dpi), baseW));
     const int topPad = 0;
 
     // Right-aligned: [min][max][close]
@@ -106,11 +121,11 @@ static void ComputeCaptionButtonRects(HWND hWnd, int titlebarHeightPx, RECT& out
     outMin = {w - (3 * btnW), topPad, w - (2 * btnW), topPad + btnH};
 }
 
-static RECT ComputeTitlebarLogoRect(int titlebarHeightPx)
+static RECT ComputeTitlebarLogoRect(int titlebarHeightPx, UINT dpi)
 {
     // Must match the DX titlebar overlay's logo placement.
-    constexpr int kLogoPx = 24;
-    constexpr int kLogoPadPx = 10;
+    const int kLogoPx = ScaleForDpi(24, dpi);
+    const int kLogoPadPx = ScaleForDpi(10, dpi);
     const int h = (titlebarHeightPx > 0) ? titlebarHeightPx : kLogoPx;
     const int y = (std::max)(0, (h - kLogoPx) / 2);
     RECT r{};
@@ -121,14 +136,14 @@ static RECT ComputeTitlebarLogoRect(int titlebarHeightPx)
     return r;
 }
 
-static void ComputeTitlebarLeftButtonRects(int titlebarHeightPx, const RECT& logoRect,
+static void ComputeTitlebarLeftButtonRects(int titlebarHeightPx, UINT dpi, const RECT& logoRect,
                                            RECT& outGear, RECT& outFullscreen, RECT& outMenu)
 {
     // Must match the DX titlebar overlay's left-button placement.
-    constexpr int kLogoPadPx = 10;   // right padding of logo (must equal left padding)
-    constexpr int kSplitterPx = 1;   // vertical separator width
-    constexpr int kGapPx = 8;        // gap after splitter before first button
-    const int btnH = (titlebarHeightPx > 0) ? titlebarHeightPx : 24;
+    const int kLogoPadPx = ScaleForDpi(10, dpi); // right padding of logo (must equal left padding)
+    constexpr int kSplitterPx = 1;               // vertical separator width (hairline at any DPI)
+    const int kGapPx = ScaleForDpi(8, dpi);      // gap after splitter before first button
+    const int btnH = (titlebarHeightPx > 0) ? titlebarHeightPx : ScaleForDpi(24, dpi);
     // Square hit targets (width matches titlebar strip height).
     const int btnW = btnH;
     int x = logoRect.right + kLogoPadPx + kSplitterPx + kGapPx;
@@ -551,11 +566,16 @@ CDisplayDX11::CDisplayDX11()
     g_Log->Info("CDisplayDX11()");
 
 #ifdef WIN32
-    m_customTitlebarHeightPx = GetSystemTitlebarHeightPx();
+    m_customTitlebarHeightPx = GetSystemTitlebarHeightPx(GetDpiForSystem());
 #endif
 }
 
 #ifdef WIN32
+UINT CDisplayDX11::GetDpi() const
+{
+    return WindowDpi(m_WindowHandle);
+}
+
 int CDisplayDX11::GetVideoViewportTopInsetPx() const
 {
     if (!m_WindowHandle || m_bFullScreen || m_bEmbeddedSaverPreview)
@@ -608,15 +628,16 @@ void CDisplayDX11::UpdateTitlebarChromeRects(CDisplayDX11* self, HWND hWnd)
     if (!self || !hWnd)
         return;
 
+    const UINT dpi = WindowDpi(hWnd);
     const int titlebarH = (self->m_customTitlebarHeightPx > 0) ? self->m_customTitlebarHeightPx
-                                                               : GetSystemTitlebarHeightPx();
+                                                               : GetSystemTitlebarHeightPx(dpi);
     RECT minRc{}, maxRc{}, closeRc{};
     ComputeCaptionButtonRects(hWnd, titlebarH, minRc, maxRc, closeRc);
     self->m_captionBtnMinRect = minRc;
     self->m_captionBtnMaxRect = maxRc;
     self->m_captionBtnCloseRect = closeRc;
-    self->m_titlebarLogoRect = ComputeTitlebarLogoRect(titlebarH);
-    ComputeTitlebarLeftButtonRects(titlebarH, self->m_titlebarLogoRect,
+    self->m_titlebarLogoRect = ComputeTitlebarLogoRect(titlebarH, dpi);
+    ComputeTitlebarLeftButtonRects(titlebarH, dpi, self->m_titlebarLogoRect,
                                    self->m_titlebarGearRect, self->m_titlebarFullscreenRect, self->m_titlebarMenuRect);
     self->m_customTitlebarHeightPx = titlebarH;
 }
@@ -705,7 +726,7 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
             auto* params = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
             if (params && IsZoomed(hWnd))
             {
-                const int inset = GetResizeBorderThicknessPx();
+                const int inset = GetResizeBorderThicknessPx(WindowDpi(hWnd));
                 params->rgrc[0].left += inset;
                 params->rgrc[0].top += inset;
                 params->rgrc[0].right -= inset;
@@ -740,7 +761,7 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
         const int h = rc.bottom - rc.top;
         // When maximized, the client rect may already be inset via WM_NCCALCSIZE. Treat the
         // top/edges as client so caption buttons remain clickable.
-        const int border = IsZoomed(hWnd) ? 0 : GetResizeBorderThicknessPx();
+        const int border = IsZoomed(hWnd) ? 0 : GetResizeBorderThicknessPx(WindowDpi(hWnd));
 
         const bool left = ptClient.x < border;
         const bool right = ptClient.x >= (w - border);
@@ -908,6 +929,23 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
         }
         return DefWindowProc(hWnd, msg, wParam, lParam);
 
+    case WM_DPICHANGED:
+        // Moved to a monitor with a different scale, or the scale changed. Re-derive the title
+        // bar from the new DPI and take the rect Windows suggests; WM_SIZE resizes the swap chain.
+        // The renderer re-rasterizes HUD text and title-bar art from GetDpi() on the next frame.
+        if (self && !self->m_bFullScreen && !self->m_bEmbeddedSaverPreview)
+        {
+            if (self->m_customTitlebarHeightPx > 0)
+                self->m_customTitlebarHeightPx = GetSystemTitlebarHeightPx(HIWORD(wParam));
+            if (const auto* suggested = reinterpret_cast<const RECT*>(lParam))
+                SetWindowPos(hWnd, nullptr, suggested->left, suggested->top,
+                             suggested->right - suggested->left, suggested->bottom - suggested->top,
+                             SWP_NOZORDER | SWP_NOACTIVATE);
+            UpdateTitlebarChromeRects(self, hWnd);
+            return 0;
+        }
+        return DefWindowProc(hWnd, msg, wParam, lParam);
+
     case WM_GETMINMAXINFO:
         if (self && !self->m_bFullScreen && !self->m_bEmbeddedSaverPreview)
         {
@@ -916,8 +954,9 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
                 // Hard floor: leaves room for the custom titlebar buttons and a usable client area.
                 // Without this, drag-resize can pull the window down to ~0 or negative size and
                 // collapse the titlebar chrome (issue #611).
-                const LONG minW = 480;
-                const LONG minH = 320;
+                const UINT dpi = WindowDpi(hWnd);
+                const LONG minW = ScaleForDpi(480, dpi);
+                const LONG minH = ScaleForDpi(320, dpi);
                 mmi->ptMinTrackSize.x = (std::max)(mmi->ptMinTrackSize.x, minW);
                 mmi->ptMinTrackSize.y = (std::max)(mmi->ptMinTrackSize.y, minH);
                 return 0;
@@ -1250,10 +1289,11 @@ HWND CDisplayDX11::CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen,
     DWORD style = fullscreen ? WS_POPUP : GetDefaultWindowedStyle(m_useCustomWindowChrome);
     int posX = CW_USEDEFAULT;
     int posY = CW_USEDEFAULT;
+    UINT monitorDpi = GetDpiForSystem();
 
     if (!fullscreen)
     {
-        // Manifest is system-DPI-aware (electricsheep.vcxproj), so CreateWindow takes
+        // Manifest is per-monitor DPI aware (MSVC/dpi-aware.manifest), so CreateWindow takes
         // physical pixels and DX11 swap chains aren't bitmap-virtualized — meaning a
         // 1920x1080 window stays 1920 physical pixels even on a high-DPI external monitor
         // (1/4 of a 4K screen at 200%). Pick the cursor's monitor, query its effective DPI,
@@ -1269,7 +1309,7 @@ HWND CDisplayDX11::CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen,
             // BuildBaseViewportForDisplay + ComputeAspectViewport).
             if (!preserveAR || !customVideoTopInset)
                 return;
-            const int tb = GetSystemTitlebarHeightPx();
+            const int tb = GetSystemTitlebarHeightPx(monitorDpi);
             if (tb <= 0 || cw == 0)
                 return;
             const auto dh =
@@ -1290,6 +1330,7 @@ HWND CDisplayDX11::CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen,
             GetDpiForMonitor(mon, MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
         if (dpiX > 0 && dpiY > 0)
         {
+            monitorDpi = dpiY;
             w = MulDiv(w, dpiX, 96);
             h = MulDiv(h, dpiY, 96);
         }
@@ -1361,7 +1402,7 @@ HWND CDisplayDX11::CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen,
     m_Height = h;
 
     if (!fullscreen)
-        m_customTitlebarHeightPx = GetSystemTitlebarHeightPx();
+        m_customTitlebarHeightPx = GetSystemTitlebarHeightPx(monitorDpi);
 
     RECT rc = {0, 0, (LONG)w, (LONG)h};
     AdjustWindowRect(&rc, style, hMenu ? TRUE : FALSE);
@@ -1651,7 +1692,7 @@ HWND CDisplayDX11::Initialize(uint32_t width, uint32_t height, bool fullscreen) 
             GetClientRect(m_WindowHandle, &client);
             RECT strip = client;
             const int titlebarH = (m_customTitlebarHeightPx > 0) ? m_customTitlebarHeightPx
-                                                                 : GetSystemTitlebarHeightPx();
+                                                                 : GetSystemTitlebarHeightPx(WindowDpi(m_WindowHandle));
             strip.bottom = (std::min)(strip.bottom, strip.top + titlebarH);
             InvalidateRect(m_WindowHandle, &strip, FALSE);
         }

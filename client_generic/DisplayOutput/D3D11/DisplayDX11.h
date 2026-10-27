@@ -95,6 +95,9 @@ private:
     // Use this as the "spacer under titlebar" when laying out your UI.
     int GetCustomTitlebarHeightPx() const { return m_customTitlebarHeightPx; }
 
+    // The window's current DPI (96 = 100%). Per-monitor: changes when it moves between monitors.
+    UINT GetDpi() const;
+
     /// Client-area height (px) excluded from the D3D video viewport (custom title strip when there is no WS_CAPTION).
     /// Matches `BuildBaseViewportForDisplay` / preserve-AR letterboxing; 0 when the full client is used for video.
     int GetVideoViewportTopInsetPx() const;

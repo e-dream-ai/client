@@ -1193,18 +1193,73 @@ static bool CreateSrvFromRgba(ID3D11Device* device, const std::vector<uint8_t>& 
     return outSrv != nullptr;
 }
 
-bool CRendererDX11::EnsureTitlebarLogoTexture(HWND hwnd)
+// Box-filter downscale of straight-alpha RGBA, weighting color by alpha so transparent
+// pixels don't darken the edges.
+static void DownscaleRgbaArea(const std::vector<uint8_t>& src, uint32_t sw, uint32_t sh,
+                              uint32_t dw, uint32_t dh, std::vector<uint8_t>& dst)
 {
-    if (m_titlebarLogoSrv)
+    dst.assign(static_cast<size_t>(dw) * dh * 4u, 0);
+    for (uint32_t y = 0; y < dh; ++y)
+    {
+        const double sy0 = static_cast<double>(y) * sh / dh;
+        const double sy1 = static_cast<double>(y + 1) * sh / dh;
+        for (uint32_t x = 0; x < dw; ++x)
+        {
+            const double sx0 = static_cast<double>(x) * sw / dw;
+            const double sx1 = static_cast<double>(x + 1) * sw / dw;
+            double r = 0, g = 0, b = 0, a = 0, area = 0;
+            for (uint32_t yy = static_cast<uint32_t>(sy0); yy < sh && yy < sy1; ++yy)
+            {
+                const double wy = (std::min)(sy1, yy + 1.0) - (std::max)(sy0, static_cast<double>(yy));
+                for (uint32_t xx = static_cast<uint32_t>(sx0); xx < sw && xx < sx1; ++xx)
+                {
+                    const double wx = (std::min)(sx1, xx + 1.0) - (std::max)(sx0, static_cast<double>(xx));
+                    const double wgt = wx * wy;
+                    const uint8_t* p = &src[(static_cast<size_t>(yy) * sw + xx) * 4u];
+                    const double pa = p[3] / 255.0 * wgt;
+                    r += p[0] * pa;
+                    g += p[1] * pa;
+                    b += p[2] * pa;
+                    a += pa;
+                    area += wgt;
+                }
+            }
+            uint8_t* q = &dst[(static_cast<size_t>(y) * dw + x) * 4u];
+            if (a > 0.0)
+            {
+                q[0] = static_cast<uint8_t>(std::lround(r / a));
+                q[1] = static_cast<uint8_t>(std::lround(g / a));
+                q[2] = static_cast<uint8_t>(std::lround(b / a));
+            }
+            q[3] = (area > 0.0) ? static_cast<uint8_t>(std::lround(255.0 * a / area)) : 0;
+        }
+    }
+}
+
+bool CRendererDX11::EnsureTitlebarLogoTexture(HWND hwnd, int sizePx)
+{
+    if (m_titlebarLogoSrv && m_titlebarLogoPx == sizePx)
         return true;
-    if (!m_device || !hwnd)
+    m_titlebarLogoSrv.Reset();
+    if (!m_device || !hwnd || sizePx <= 0)
         return false;
 
-    HICON icon = GetBestWindowIcon(hwnd);
-    std::vector<uint8_t> rgba;
-    uint32_t w = 0, h = 0;
-    if (!ExtractIconRgba8(icon, rgba, w, h))
+    // Take the app icon's largest image and area-downscale it to the exact display size. The
+    // window's big icon drawn into a smaller quad was minified with no mips, which aliased.
+    HICON big = static_cast<HICON>(LoadImageW(GetModuleHandleW(nullptr), MAKEINTRESOURCEW(1), IMAGE_ICON,
+                                              256, 256, LR_DEFAULTCOLOR));
+    std::vector<uint8_t> srcRgba;
+    uint32_t sw = 0, sh = 0;
+    const bool extracted = ExtractIconRgba8(big ? big : GetBestWindowIcon(hwnd), srcRgba, sw, sh);
+    if (big)
+        DestroyIcon(big);
+    if (!extracted)
         return false;
+
+    std::vector<uint8_t> rgba;
+    const uint32_t w = static_cast<uint32_t>(sizePx);
+    const uint32_t h = static_cast<uint32_t>(sizePx);
+    DownscaleRgbaArea(srcRgba, sw, sh, w, h, rgba);
 
     D3D11_TEXTURE2D_DESC desc{};
     desc.Width = w;
@@ -1229,17 +1284,25 @@ bool CRendererDX11::EnsureTitlebarLogoTexture(HWND hwnd)
 
     m_titlebarLogoW = w;
     m_titlebarLogoH = h;
+    m_titlebarLogoPx = sizePx;
     return true;
 }
 
-bool CRendererDX11::EnsureMdl2GlyphTextures()
+bool CRendererDX11::EnsureMdl2GlyphTextures(int sizePx)
 {
+    if (m_mdl2GlyphPx != sizePx)
+    {
+        m_mdl2GearSrv.Reset();
+        m_mdl2FullscreenSrv.Reset();
+        m_mdl2MenuSrv.Reset();
+        m_mdl2GlyphPx = sizePx;
+    }
     if (m_mdl2GearSrv && m_mdl2FullscreenSrv && m_mdl2MenuSrv)
         return true;
     if (!m_device)
         return false;
 
-    constexpr int kGlyphPx = 14;
+    const int kGlyphPx = sizePx;
     std::vector<uint8_t> rgba;
     uint32_t w = 0, h = 0;
 
@@ -1265,14 +1328,22 @@ bool CRendererDX11::EnsureMdl2GlyphTextures()
     return true;
 }
 
-bool CRendererDX11::EnsureMdl2ChromeGlyphTextures()
+bool CRendererDX11::EnsureMdl2ChromeGlyphTextures(int sizePx)
 {
+    if (m_mdl2ChromeGlyphPx != sizePx)
+    {
+        m_mdl2ChromeMinimizeSrv.Reset();
+        m_mdl2ChromeMaximizeSrv.Reset();
+        m_mdl2ChromeRestoreSrv.Reset();
+        m_mdl2ChromeCloseSrv.Reset();
+        m_mdl2ChromeGlyphPx = sizePx;
+    }
     if (m_mdl2ChromeMinimizeSrv && m_mdl2ChromeMaximizeSrv && m_mdl2ChromeRestoreSrv && m_mdl2ChromeCloseSrv)
         return true;
     if (!m_device)
         return false;
 
-    constexpr int kGlyphPx = 14;
+    const int kGlyphPx = sizePx;
     std::vector<uint8_t> rgba;
     uint32_t w = 0, h = 0;
 
@@ -1595,11 +1666,16 @@ bool CRendererDX11::EndFrame(bool drawn) {
 
                     // Compute button rects directly (don't rely on WM_NCHITTEST having run).
                     // Buttons match titlebar height; width scales proportionally (Explorer-like).
+                    // Sizes are DPI-scaled exactly like ComputeCaptionButtonRects in DisplayDX11.cpp.
+                    const UINT dpi = dx->GetDpi();
+                    const auto scalePx = [dpi](int px) {
+                        return MulDiv(px, static_cast<int>(dpi), USER_DEFAULT_SCREEN_DPI);
+                    };
                     const int btnH = titlebarPx;
-                    const int baseW = (std::max)(GetSystemMetrics(SM_CXSIZE), 30);
-                    const int baseH = (std::max)(GetSystemMetrics(SM_CYSIZE), 20);
+                    const int baseW = (std::max)(GetSystemMetricsForDpi(SM_CXSIZE, dpi), scalePx(30));
+                    const int baseH = (std::max)(GetSystemMetricsForDpi(SM_CYSIZE, dpi), scalePx(20));
                     int btnW = (baseH > 0) ? MulDiv(baseW, btnH, baseH) : baseW;
-                    btnW = (std::max)(btnW, (std::max)(40, baseW));
+                    btnW = (std::max)(btnW, (std::max)(scalePx(40), baseW));
                     const int topPad = 0;
                     const RECT rClose{static_cast<LONG>(dispW - btnW), topPad, static_cast<LONG>(dispW), topPad + btnH};
                     const RECT rMax{static_cast<LONG>(dispW - (2 * btnW)), topPad, static_cast<LONG>(dispW - btnW), topPad + btnH};
@@ -1611,6 +1687,16 @@ bool CRendererDX11::EndFrame(bool drawn) {
                         const float y0 = static_cast<float>(r.top) / static_cast<float>(dispH);
                         const float y1 = static_cast<float>(r.bottom) / static_cast<float>(dispH);
                         return Base::Math::CRect(x0, y0, x1, y1);
+                    };
+
+                    // Center a square icon in a pixel rect on whole pixels, so the icon texture
+                    // (rasterized at iconPx) maps 1:1 onto the backbuffer.
+                    const auto iconInRectPx = [&](const RECT& r, int iconPx) {
+                        const int side = (std::max)(1, (std::min)(iconPx, (std::min)(static_cast<int>(r.right - r.left),
+                                                                                   static_cast<int>(r.bottom - r.top))));
+                        const LONG left = r.left + (r.right - r.left - side) / 2;
+                        const LONG top = r.top + (r.bottom - r.top - side) / 2;
+                        return rectToNorm(RECT{left, top, left + side, top + side});
                     };
 
                     const int hoverId = dx->GetCaptionButtonHoverId();
@@ -1644,15 +1730,14 @@ bool CRendererDX11::EndFrame(bool drawn) {
                     drawBtnBg(3, rClose, true);
 
                     // Logo (left side), drawn as a textured quad.
-                    if (hwnd && EnsureTitlebarLogoTexture(hwnd) && m_titlebarLogoSrv && m_titlebarLogoW > 0 && m_titlebarLogoH > 0)
+                    const int logoPx = scalePx(24);
+                    if (hwnd && EnsureTitlebarLogoTexture(hwnd, logoPx) && m_titlebarLogoSrv && m_titlebarLogoW > 0 && m_titlebarLogoH > 0)
                     {
-                        // Fixed display size for the logo inside the titlebar.
-                        constexpr float kLogoPx = 24.0f;
-                        const float logoW = kLogoPx / static_cast<float>(dispW);
-                        const float logoH = kLogoPx / static_cast<float>(dispH);
-                        const float logoPadX = 10.0f / static_cast<float>(dispW); // left padding (right padding matches via splitter placement)
-                        const float cy = (th) * 0.5f;
-                        const Base::Math::CRect logoRect(logoPadX, cy - logoH * 0.5f, logoPadX + logoW, cy + logoH * 0.5f);
+                        // Same placement as ComputeTitlebarLogoRect in DisplayDX11.cpp (left padding;
+                        // right padding matches via splitter placement).
+                        const LONG logoX = scalePx(10);
+                        const LONG logoY = (std::max)(0, (titlebarPx - logoPx) / 2);
+                        const Base::Math::CRect logoRect = rectToNorm(RECT{logoX, logoY, logoX + logoPx, logoY + logoPx});
 
                         m_overrideTex0Srv = m_titlebarLogoSrv;
                         // Color acts as tint; keep white to show original colors.
@@ -1666,13 +1751,13 @@ bool CRendererDX11::EndFrame(bool drawn) {
                     // Left buttons: gear (settings), fullscreen, menu (kebab/hamburger)
                     {
                         // Compute in integer pixels to match Win32 hit-testing exactly, then convert to normalized.
-                        constexpr int kLogoPadPx = 10;   // left/right padding of logo
-                        constexpr int kLogoPx = 24;
-                        constexpr int kSplitterPx = 1;
-                        constexpr int kGapPxI = 8;       // gap after splitter
-                        constexpr int kSplitterPadTopPx = 6;
-                        constexpr int kSplitterPadBottomPx = 6;
-                        const int btnHPx = (titlebarPx > 0) ? titlebarPx : 24;
+                        const int kLogoPadPx = scalePx(10); // left/right padding of logo
+                        const int kLogoPx = logoPx;
+                        constexpr int kSplitterPx = 1;      // hairline at any DPI
+                        const int kGapPxI = scalePx(8);     // gap after splitter
+                        const int kSplitterPadTopPx = scalePx(6);
+                        const int kSplitterPadBottomPx = scalePx(6);
+                        const int btnHPx = (titlebarPx > 0) ? titlebarPx : scalePx(24);
                         const int btnWPx = btnHPx; // square buttons (match DisplayDX11 hit rects)
 
                         // Splitter sits after logo with equal right padding; buttons start after splitter+gap.
@@ -1720,22 +1805,12 @@ bool CRendererDX11::EndFrame(bool drawn) {
                         drawBtnBgNorm(5, fsRect, false);
                         drawBtnBgNorm(6, menuRect, false);
 
-                        if (EnsureMdl2GlyphTextures())
+                        const int glyphPx = scalePx(14);
+                        if (EnsureMdl2GlyphTextures(glyphPx))
                         {
-                            // Fixed pixel size for glyphs (same as textures).
-                            constexpr float kGlyphPx = 14.0f;
-                            const auto squareInRectPx = [&](const Base::Math::CRect& r, float iconPx) {
-                                const float sideX = iconPx / static_cast<float>(dispW);
-                                const float sideY = iconPx / static_cast<float>(dispH);
-                                const float cx = r.m_X0 + r.Width() * 0.5f;
-                                const float cy = r.m_Y0 + r.Height() * 0.5f;
-                                return Base::Math::CRect(cx - sideX * 0.5f, cy - sideY * 0.5f,
-                                                        cx + sideX * 0.5f, cy + sideY * 0.5f);
-                            };
-
-                            const Base::Math::CRect gearBox = squareInRectPx(gearRect, kGlyphPx);
-                            const Base::Math::CRect fsBox = squareInRectPx(fsRect, kGlyphPx);
-                            const Base::Math::CRect menuBox = squareInRectPx(menuRect, kGlyphPx);
+                            const Base::Math::CRect gearBox = iconInRectPx(gearPx, glyphPx);
+                            const Base::Math::CRect fsBox = iconInRectPx(fsPx, glyphPx);
+                            const Base::Math::CRect menuBox = iconInRectPx(menuPx, glyphPx);
 
                             // Draw as textured quads (white-tinted).
                             m_overrideTex0Srv = m_mdl2GearSrv;
@@ -1755,29 +1830,13 @@ bool CRendererDX11::EndFrame(bool drawn) {
                         }
                     }
 
-                    auto squareInButtonPx = [&](const RECT& r, float iconPx) {
-                        const auto btn = rectToNorm(r);
-                        const float btnPxW = static_cast<float>(r.right - r.left);
-                        const float btnPxH = static_cast<float>(r.bottom - r.top);
-                        const float maxSidePx = (std::max)(1.0f, (std::min)(btnPxW, btnPxH));
-                        const float sidePx = (std::min)(iconPx, maxSidePx);
-
-                        const float sideX = sidePx / static_cast<float>(dispW);
-                        const float sideY = sidePx / static_cast<float>(dispH);
-
-                        const float cx = btn.m_X0 + btn.Width() * 0.5f;
-                        const float cy = btn.m_Y0 + btn.Height() * 0.5f;
-                        return Base::Math::CRect(cx - sideX * 0.5f, cy - sideY * 0.5f,
-                                                cx + sideX * 0.5f, cy + sideY * 0.5f);
-                    };
-
                     // Right caption glyphs: use Windows Segoe MDL2 Assets (ChromeMinimize/Maximize/Restore/Close).
-                    if (EnsureMdl2ChromeGlyphTextures())
+                    const int chromeGlyphPx = scalePx(14);
+                    if (EnsureMdl2ChromeGlyphTextures(chromeGlyphPx))
                     {
-                        constexpr float kChromeGlyphPx = 14.0f;
-                        const Base::Math::CRect minBox = squareInButtonPx(rMin, kChromeGlyphPx);
-                        const Base::Math::CRect maxBox = squareInButtonPx(rMax, kChromeGlyphPx);
-                        const Base::Math::CRect closeBox = squareInButtonPx(rClose, kChromeGlyphPx);
+                        const Base::Math::CRect minBox = iconInRectPx(rMin, chromeGlyphPx);
+                        const Base::Math::CRect maxBox = iconInRectPx(rMax, chromeGlyphPx);
+                        const Base::Math::CRect closeBox = iconInRectPx(rClose, chromeGlyphPx);
 
                         m_overrideTex0Srv = m_mdl2ChromeMinimizeSrv;
                         DrawTexturedQuad(minBox, Base::Math::CVector4(1.f, 1.f, 1.f, 1.f),
@@ -1837,6 +1896,31 @@ void CRendererDX11::DrawTextBatched(const std::shared_ptr<CTextDX11Atlas>& text,
     if (!font)
         return;
 
+    auto display = std::dynamic_pointer_cast<DisplayOutput::CDisplayDX11>(m_spDisplay);
+    if (!display)
+        return;
+
+    // Rebuilds the atlas if the window moved to a monitor with a different DPI.
+    const float dpiScale = static_cast<float>(display->GetDpi()) / USER_DEFAULT_SCREEN_DPI;
+    font->SetPixelScale(dpiScale);
+
+    // Soft drop shadow: a core copy of each glyph offset down-right, plus a faint 1px halo
+    // around it. The offset grows with DPI (1px at 100%, 2px at 150%, 3px at 200%).
+    struct ShadowTap
+    {
+        float dx, dy, alpha;
+    };
+    const float shadowOffsetPx = (std::max)(1.0f, std::round(dpiScale * 1.25f));
+    const ShadowTap kShadowTaps[] = {
+        {shadowOffsetPx, shadowOffsetPx, 0.6f},
+        {shadowOffsetPx - 1.f, shadowOffsetPx, 0.3f},
+        {shadowOffsetPx + 1.f, shadowOffsetPx, 0.3f},
+        {shadowOffsetPx, shadowOffsetPx - 1.f, 0.3f},
+        {shadowOffsetPx, shadowOffsetPx + 1.f, 0.3f},
+    };
+    constexpr uint32_t kShadowTapCount = static_cast<uint32_t>(sizeof(kShadowTaps) / sizeof(kShadowTaps[0]));
+    const LONG shadowReachPx = static_cast<LONG>(shadowOffsetPx) + 1;
+
     auto atlasTex = font->AtlasTexture();
     if (!atlasTex)
         return;
@@ -1846,10 +1930,6 @@ void CRendererDX11::DrawTextBatched(const std::shared_ptr<CTextDX11Atlas>& text,
 
     auto atlasDx11 = std::dynamic_pointer_cast<CTextureFlatDX11>(atlasTex);
     if (!atlasDx11 || !atlasDx11->GetSRV())
-        return;
-
-    auto display = std::dynamic_pointer_cast<DisplayOutput::CDisplayDX11>(m_spDisplay);
-    if (!display)
         return;
 
     const uint32_t dispW = display->Width();
@@ -1888,8 +1968,8 @@ void CRendererDX11::DrawTextBatched(const std::shared_ptr<CTextDX11Atlas>& text,
     if (glyphCount == 0u)
         return;
 
-    // Two quads per glyph (shadow + foreground).
-    const uint32_t quadCount = glyphCount * 2u;
+    // Shadow taps plus the foreground quad per glyph.
+    const uint32_t quadCount = glyphCount * (kShadowTapCount + 1u);
     const uint32_t verticesNeeded = quadCount * 4u;
     const uint32_t indicesNeeded = quadCount * 6u;
 
@@ -1952,14 +2032,12 @@ void CRendererDX11::DrawTextBatched(const std::shared_ptr<CTextDX11Atlas>& text,
     if (!ensureBuffers(verticesNeeded, indicesNeeded))
         return;
 
-    // Scissor to the text rect. Normalized rect coords are mapped to the
-    // current viewport — which is offset/shrunk by the custom titlebar inset
-    // (see BuildBaseViewportForDisplay). Computing the scissor against the full
-    // swap chain dims would clip the text where the viewport doesn't reach
-    // (issue #609: FPS OSD text cropped on small Windows windows).
-    if (m_rasterizerScissor)
+    // Normalized rect coords are mapped to the current viewport, which is offset/shrunk
+    // by the custom titlebar inset (see BuildBaseViewportForDisplay). Glyphs are laid
+    // out in that viewport's pixels; normalizing against the full swap chain height
+    // squeezed them vertically by the inset, and the filter then blurred them.
+    D3D11_VIEWPORT vp = {};
     {
-        D3D11_VIEWPORT vp = {};
         UINT vpCount = 1;
         m_context->RSGetViewports(&vpCount, &vp);
         if (vpCount == 0u || vp.Width <= 0.f || vp.Height <= 0.f)
@@ -1969,11 +2047,20 @@ void CRendererDX11::DrawTextBatched(const std::shared_ptr<CTextDX11Atlas>& text,
             vp.Width = static_cast<float>(dispW);
             vp.Height = static_cast<float>(dispH);
         }
+    }
+    const float vpW = vp.Width;
+    const float vpH = vp.Height;
+
+    // Scissor to the text rect in the same viewport space. Computing it against the full
+    // swap chain dims would clip the text where the viewport doesn't reach
+    // (issue #609: FPS OSD text cropped on small Windows windows).
+    if (m_rasterizerScissor)
+    {
         D3D11_RECT sc = {};
         sc.left = static_cast<LONG>(std::floor(vp.TopLeftX + r.m_X0 * vp.Width));
         sc.top = static_cast<LONG>(std::floor(vp.TopLeftY + r.m_Y0 * vp.Height));
-        sc.right = static_cast<LONG>(std::ceil(vp.TopLeftX + r.m_X1 * vp.Width)) + 1;
-        sc.bottom = static_cast<LONG>(std::ceil(vp.TopLeftY + r.m_Y1 * vp.Height)) + 1;
+        sc.right = static_cast<LONG>(std::ceil(vp.TopLeftX + r.m_X1 * vp.Width)) + shadowReachPx;
+        sc.bottom = static_cast<LONG>(std::ceil(vp.TopLeftY + r.m_Y1 * vp.Height)) + shadowReachPx;
         const LONG dw = static_cast<LONG>(dispW);
         const LONG dh = static_cast<LONG>(dispH);
         sc.left = std::max(0L, std::min(sc.left, dw));
@@ -1993,11 +2080,11 @@ void CRendererDX11::DrawTextBatched(const std::shared_ptr<CTextDX11Atlas>& text,
     auto* verts = reinterpret_cast<TextBatchVertex*>(mapped.pData);
     uint32_t v = 0;
 
-    float penXpx = r.m_X0 * static_cast<float>(dispW);
-    float penYpx = r.m_Y0 * static_cast<float>(dispH);
+    // Pens start on whole pixels and each glyph quad is snapped to a whole pixel, so atlas
+    // texels map 1:1 to backbuffer pixels (the counterpart of the Mac origin snap).
+    float penXpx = std::round(r.m_X0 * vpW);
+    float penYpx = std::round(r.m_Y0 * vpH);
     const float lineHeightPx = static_cast<float>(font->LineHeightPx());
-    const float kTextShadowDx = 1.f;
-    const float kTextShadowDy = 1.f;
 
     auto emitQuad = [&](const Base::Math::CRect& dest, const Base::Math::CRect& uv,
                         const Base::Math::CVector4& c)
@@ -2020,7 +2107,7 @@ void CRendererDX11::DrawTextBatched(const std::shared_ptr<CTextDX11Atlas>& text,
         }
         if (body[ti] == '\n')
         {
-            penXpx = r.m_X0 * static_cast<float>(dispW);
+            penXpx = std::round(r.m_X0 * vpW);
             penYpx += lineHeightPx;
             ++ti;
             continue;
@@ -2035,20 +2122,22 @@ void CRendererDX11::DrawTextBatched(const std::shared_ptr<CTextDX11Atlas>& text,
             continue;
         }
 
-        const float quadLeftPx = penXpx + g.penOffsetXPx;
+        const float quadLeftPx = std::round(penXpx + g.penOffsetXPx);
         Base::Math::CRect dest(
-            quadLeftPx / static_cast<float>(dispW),
-            penYpx / static_cast<float>(dispH),
-            (quadLeftPx + static_cast<float>(g.widthPx)) / static_cast<float>(dispW),
-            (penYpx + static_cast<float>(g.heightPx)) / static_cast<float>(dispH));
+            quadLeftPx / vpW,
+            penYpx / vpH,
+            (quadLeftPx + static_cast<float>(g.widthPx)) / vpW,
+            (penYpx + static_cast<float>(g.heightPx)) / vpH);
 
-        Base::Math::CRect shadowDest(
-            (quadLeftPx + kTextShadowDx) / static_cast<float>(dispW),
-            (penYpx + kTextShadowDy) / static_cast<float>(dispH),
-            (quadLeftPx + kTextShadowDx + static_cast<float>(g.widthPx)) / static_cast<float>(dispW),
-            (penYpx + kTextShadowDy + static_cast<float>(g.heightPx)) / static_cast<float>(dispH));
-
-        emitQuad(shadowDest, g.uvRect, Base::Math::CVector4(0.f, 0.f, 0.f, color.m_W));
+        for (const ShadowTap& tap : kShadowTaps)
+        {
+            const Base::Math::CRect shadowDest(
+                (quadLeftPx + tap.dx) / vpW,
+                (penYpx + tap.dy) / vpH,
+                (quadLeftPx + tap.dx + static_cast<float>(g.widthPx)) / vpW,
+                (penYpx + tap.dy + static_cast<float>(g.heightPx)) / vpH);
+            emitQuad(shadowDest, g.uvRect, Base::Math::CVector4(0.f, 0.f, 0.f, color.m_W * tap.alpha));
+        }
         emitQuad(dest, g.uvRect, color);
 
         penXpx += g.advancePx;
@@ -2131,6 +2220,9 @@ spCBaseFont CRendererDX11::GetFont(CFontDescription& _desc) {
 
     auto font = std::make_shared<CFontDX11DirectWriteAtlas>(m_device, m_context);
     font->FontDescription(_desc);
+    // Description heights are in DIPs, like points on macOS; rasterize at the window's DPI.
+    if (auto display = std::dynamic_pointer_cast<DisplayOutput::CDisplayDX11>(m_spDisplay))
+        font->SetPixelScale(static_cast<float>(display->GetDpi()) / USER_DEFAULT_SCREEN_DPI);
     if (!font->EnsureCreated())
     {
         g_Log->Warning("DX11 font '%s' unavailable, trying Arial fallback", _desc.TypeFace().c_str());
@@ -2152,8 +2244,12 @@ spCBaseText CRendererDX11::NewText(spCBaseFont _font, const std::string& _text) 
     auto display = std::dynamic_pointer_cast<DisplayOutput::CDisplayDX11>(m_spDisplay);
     if (!display)
         return nullptr;
+    std::weak_ptr<DisplayOutput::CDisplayDX11> weakDisplay = display;
     return std::make_shared<CTextDX11Atlas>(
-        font, _text, display->Width(), display->Height());
+        font, _text, display->Width(), display->Height(), [weakDisplay]() -> uint32_t {
+            const auto d = weakDisplay.lock();
+            return d ? static_cast<uint32_t>((std::max)(0, d->GetVideoViewportTopInsetPx())) : 0u;
+        });
 }
 
 spCShader CRendererDX11::NewShader(const char* _pVertexShader, const char* _pFragmentShader,
