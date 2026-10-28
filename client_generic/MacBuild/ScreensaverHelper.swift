@@ -11,9 +11,9 @@ import PaperSaverKit
 @objc public class ScreensaverHelper: NSObject {
     /// PaperSaver 0.4+ validates wallpaper extensions against the
     /// `com.apple.wallpaper` pluginkit point. Our appex is still
-    /// `com.apple.screensaver` (Phase 1); disable that check so the Desktop
-    /// slot can be written with our bundle ID. WallpaperAgent already hosts
-    /// screensaver appexes as desktop-level content.
+    /// `com.apple.screensaver` (Phase 1); disable that check so Desktop/Idle
+    /// slots can be written with our bundle ID. WallpaperAgent hosts
+    /// screensaver appexes for both slots.
     private lazy var paperSaver: PaperSaver = {
         var config = PaperSaverConfiguration()
         config.validatesWallpaperExtensions = false
@@ -25,9 +25,10 @@ import PaperSaverKit
     private override init() {
         super.init()
     }
-    
-    /// PaperSaver identifies an appex screensaver by the .appex file stem
-    /// (PRODUCT_NAME), not CFBundleDisplayName.
+
+    /// Legacy module stem (PRODUCT_NAME). Only used as a fallback for classic
+    /// `.saver` discovery via ModuleLocator — embedded appexes are selected by
+    /// bundle ID instead (see setInfinidreamAsActive).
     private var moduleName: String {
         let bid = Bundle.main.bundleIdentifier ?? ""
         return bid.contains("stage") ? "infinidream-stage" : "infinidream"
@@ -44,22 +45,44 @@ import PaperSaverKit
     // MARK: - Screensaver (Idle slot)
 
     @objc public func isInfinidreamActive() -> Bool {
+        if #available(macOS 14.0, *),
+           paperSaver.getCurrentScreensaverExtension() == extensionBundleID {
+            return true
+        }
         let active = paperSaver.getActiveScreensavers()
         return active.contains(moduleName) || active.contains(extensionBundleID)
     }
-    
-    /// Set infinidream as the active screensaver
+
+    /// Set our appex as the system screensaver (Idle slot).
+    ///
+    /// Uses `setWallpaperExtension(…, slot: .screensaver)` by bundle ID — the same
+    /// path that works for Desktop wallpaper. `setScreensaverEverywhere(module:)`
+    /// looks up `infinidream-stage` via PlugInKit/ModuleLocator and fails when the
+    /// appex is only embedded in the app (Debug/adhoc builds often never appear in
+    /// `pluginkit -m`).
     @objc public func setInfinidreamAsActive(completion: @escaping (Bool, Error?) -> Void) {
+        let bundleID = extensionBundleID
         let module = moduleName
         Task {
             do {
-                try await paperSaver.setScreensaverEverywhere(module: module)
-                await MainActor.run {
-                    completion(true, nil)
+                if #available(macOS 14.0, *) {
+                    _ = try await paperSaver.setWallpaperExtension(
+                        bundleID: bundleID,
+                        slot: .screensaver
+                    )
+                    await MainActor.run { completion(true, nil) }
+                } else {
+                    try await paperSaver.setScreensaverEverywhere(module: module)
+                    await MainActor.run { completion(true, nil) }
                 }
             } catch {
-                await MainActor.run {
-                    completion(false, error)
+                // Last resort: classic module name lookup (prebuilt .saver in
+                // ~/Library/Screen Savers, or a fully registered PlugInKit appex).
+                do {
+                    try await paperSaver.setScreensaverEverywhere(module: module)
+                    await MainActor.run { completion(true, nil) }
+                } catch {
+                    await MainActor.run { completion(false, error) }
                 }
             }
         }
@@ -68,10 +91,15 @@ import PaperSaverKit
     /// Check if any screensaver (not just infinidream) is active
     @objc public func hasActiveScreensaver() -> Bool {
         return !paperSaver.getActiveScreensavers().isEmpty
+            || paperSaver.getCurrentScreensaverExtension() != nil
     }
 
     /// Get the name of the first currently active screensaver
     @objc public func getActiveScreensaverName() -> String? {
+        if #available(macOS 14.0, *),
+           let bid = paperSaver.getCurrentScreensaverExtension() {
+            return bid
+        }
         return paperSaver.getActiveScreensavers().first
     }
 
@@ -120,6 +148,7 @@ import PaperSaverKit
         completion: @escaping (Bool, Error?) -> Void
     ) {
         let bundleID = extensionBundleID
+        let module = moduleName
         Task {
             do {
                 if #available(macOS 14.0, *) {
@@ -129,8 +158,7 @@ import PaperSaverKit
                     )
                     await MainActor.run { completion(true, nil) }
                 } else {
-                    // Fall back to screensaver-only on older macOS.
-                    try await paperSaver.setScreensaverEverywhere(module: moduleName)
+                    try await paperSaver.setScreensaverEverywhere(module: module)
                     await MainActor.run { completion(true, nil) }
                 }
             } catch {
