@@ -77,23 +77,29 @@ static void ShowFirstTimeSetupCallback()
     ESSetShowPreferencesCallback(ShowPreferencesCallback);
     ESSetShowFirstTimeSetupCallback(ShowFirstTimeSetupCallback);
     
-    // Check if user has enabled auto-install screensaver and install if needed
     // Only run this in the app, not in the screensaver itself
 #ifndef SCREEN_SAVER
+    const bool autoInstall =
+        ESScreensaver_GetBoolSetting("settings.app.auto_install_screensaver", false);
+    const bool keepScreensaver =
+        ESScreensaver_GetBoolSetting("settings.app.keep_screensaver_enabled", false);
+    const bool keepWallpaper =
+        ESScreensaver_GetBoolSetting("settings.app.keep_wallpaper_enabled", false);
+
+    // Re-register the embedded appex after Sparkle updates whenever any keep-*
+    // preference is on (not only when auto_install is set).
     if (g_Log) g_Log->Info("Will check for install");
-    if (ESScreensaver_GetBoolSetting("settings.app.auto_install_screensaver", false)) {
-        if (g_Log) g_Log->Info("Auto install enabled");
+    if (autoInstall || keepScreensaver || keepWallpaper) {
+        if (g_Log) g_Log->Info("Auto install / keep-enabled: registering appex");
         [[ScreensaverInstaller sharedInstaller] installScreensaverIfNeeded];
     }
-    
-    // Enable screensaver if needed
-    if (ESScreensaver_GetBoolSetting("settings.app.keep_screensaver_enabled", false)) {
+
+    if (keepScreensaver) {
         if (g_Log) g_Log->Info("Keep screensaver enabled preference is set");
         [[ScreensaverInstaller sharedInstaller] enableScreensaverIfNeeded];
     }
 
-    // Enable live desktop wallpaper if needed (same appex, Desktop slot)
-    if (ESScreensaver_GetBoolSetting("settings.app.keep_wallpaper_enabled", false)) {
+    if (keepWallpaper) {
         if (g_Log) g_Log->Info("Keep wallpaper enabled preference is set");
         [[ScreensaverInstaller sharedInstaller] enableWallpaperIfNeeded];
     }

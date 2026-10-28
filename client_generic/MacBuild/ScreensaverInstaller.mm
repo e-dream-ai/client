@@ -145,8 +145,8 @@
 }
 
 - (BOOL)ensureRegistered {
-    if ([self isScreensaverInstalled])
-        return YES;
+    // Always re-run pluginkit -a so Sparkle-updated app paths replace stale
+    // registrations (listing by bundle ID alone can still point at an old copy).
     return [self installScreensaver];
 }
 

@@ -226,8 +226,6 @@
 		46ED5CB42AF5326A00AF8F45 /* DisplayMetal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 46ED5CB02AF5326A00AF8F45 /* DisplayMetal.cpp */; };
 		46FA9E1A2B03CB0500708000 /* ShaderMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 46FA9E192B03CB0500708000 /* ShaderMetal.mm */; };
 		46FA9E1B2B03CB0B00708000 /* ShaderMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 46FA9E192B03CB0500708000 /* ShaderMetal.mm */; };
-		F00638D72E83121600A1B908 /* infinidream.saver in Resources */ = {isa = PBXBuildFile; fileRef = F00638D62E83121600A1B908 /* infinidream.saver */; };
-		F00638D82E83121600A1B908 /* infinidream.saver in Resources */ = {isa = PBXBuildFile; fileRef = F00638D62E83121600A1B908 /* infinidream.saver */; };
 		F0141B742C59115400DBA60E /* PathManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B732C59115400DBA60E /* PathManager.cpp */; };
 		F0141B752C59115500DBA60E /* PathManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B732C59115400DBA60E /* PathManager.cpp */; };
 		F0141B762C59115500DBA60E /* PathManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B732C59115400DBA60E /* PathManager.cpp */; };
@@ -925,7 +923,6 @@
 		46ED5CB02AF5326A00AF8F45 /* DisplayMetal.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = DisplayMetal.cpp; path = ../../DisplayOutput/Metal/DisplayMetal.cpp; sourceTree = "<group>"; };
 		46FA9E182B03CB0500708000 /* ShaderMetal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShaderMetal.h; sourceTree = "<group>"; };
 		46FA9E192B03CB0500708000 /* ShaderMetal.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ShaderMetal.mm; sourceTree = "<group>"; };
-		F00638D62E83121600A1B908 /* infinidream.saver */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = infinidream.saver; path = Resources/infinidream.saver; sourceTree = "<group>"; };
 		F0141B722C59115400DBA60E /* PathManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PathManager.h; sourceTree = "<group>"; };
 		F0141B732C59115400DBA60E /* PathManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PathManager.cpp; sourceTree = "<group>"; };
 		F0141B782C5925C900DBA60E /* ServerConfig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ServerConfig.h; sourceTree = "<group>"; };
@@ -1498,7 +1495,6 @@
 			children = (
 				12726C132B694F36003C0FF6 /* infinidream App.entitlements */,
 				21EE634D10139BEF000CE53E /* MainMenu.xib */,
-				F00638D62E83121600A1B908 /* infinidream.saver */,
 				F0633F482DF1EF500092BCDB /* App-Info.plist */,
 				218878D10EC6CD7E001ABD2E /* Screensaver-Info.plist */,
 				F0E9CEB22C136B0600C4D694 /* App-Stage-Info.plist */,
@@ -1824,7 +1820,6 @@
 				1243576D2B31FC1B00CCD62A /* BuildData.json in Resources */,
 				F05994702BA0A07300B018C7 /* osd-play.png in Resources */,
 				F0PLAYLIST03 /* ../Runtime/play-playlist.png in Resources */,
-				F00638D72E83121600A1B908 /* infinidream.saver in Resources */,
 				F02C14EF2E01904600BFFFF4 /* StartupWindowController.xib in Resources */,
 				F0F6D4292BCD504500222647 /* osd-dislike.png in Resources */,
 				21ADBB261305D380000A9F20 /* yellow.tif in Resources */,
@@ -1918,7 +1913,6 @@
 				F0E9CE452C136B0500C4D694 /* BuildData.json in Resources */,
 				F0E9CE462C136B0500C4D694 /* osd-play.png in Resources */,
 				F0PLAYLIST04 /* ../Runtime/play-playlist.png in Resources */,
-				F00638D82E83121600A1B908 /* infinidream.saver in Resources */,
 				F02C14F22E01904600BFFFF4 /* StartupWindowController.xib in Resources */,
 				F0E9CE472C136B0500C4D694 /* osd-dislike.png in Resources */,
 				F0E9CE482C136B0500C4D694 /* yellow.tif in Resources */,
