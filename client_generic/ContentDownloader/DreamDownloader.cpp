@@ -198,7 +198,7 @@ void DreamDownloader::FindDreamsThread() {
                 // Check for interruption before making network call
                 boost::this_thread::interruption_point();
 
-                const bool downloaded = ClaimAndDownload(current_uuid);
+                const bool downloaded = ClaimAndDownload(current_uuid, /*playlistPrefetch=*/true);
 
                 // Clear the currently downloading flag
                 {
@@ -246,7 +246,7 @@ std::future<bool> DreamDownloader::DownloadImmediately(const std::string& uuid, 
     );
 }
 
-bool DreamDownloader::ClaimAndDownload(const std::string& uuid) {
+bool DreamDownloader::ClaimAndDownload(const std::string& uuid, bool playlistPrefetch) {
     auto& registry = Network::DownloadRegistry::Instance();
     // Claim before fetching the link so a Next landing meanwhile waits to
     // attach instead of starting its own download.
@@ -271,11 +271,12 @@ bool DreamDownloader::ClaimAndDownload(const std::string& uuid) {
     g_Log->Info("Download link received: %s", link.c_str());
     SetDownloadStatus("");
 
-    return DownloadDream(uuid, link, stream);
+    return DownloadDream(uuid, link, stream, playlistPrefetch);
 }
 
 bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& downloadLink,
-                                    std::shared_ptr<Network::ProgressiveHttpStream>& stream) {
+                                    std::shared_ptr<Network::ProgressiveHttpStream>& stream,
+                                    bool playlistPrefetch) {
     // Grab the CacheManager
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
     
@@ -333,7 +334,18 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
         }
     } cleanup{progressName, *stream, tmpPath, committed};
 
+    auto& playlistMgr = g_Player().GetPlaylistManager();
     while (!stream->Done()) {
+        if (playlistPrefetch && !playlistMgr.containsDream(uuid)) {
+            // Unpublish first so no clip can attach while we decide.
+            Network::DownloadRegistry::Instance().Remove(uuid, stream.get());
+            if (stream->Readers() == 0) {
+                g_Log->Info("Cancelling prefetch of %s: no longer in the playlist", uuid.c_str());
+                SetDownloadStatus("");
+                return false;
+            }
+        }
+
         const int64_t size = stream->Size();
         const int64_t got = stream->BytesDownloaded();
         g_NetworkManager->UpdateProgress(progressName, "Active",
@@ -406,7 +418,7 @@ bool DreamDownloader::DownloadDreamNow(const std::string& uuid, std::function<vo
             }
         }
 
-        bool success = ClaimAndDownload(uuid);
+        bool success = ClaimAndDownload(uuid, /*playlistPrefetch=*/false);
 
         if (success) {
             g_Log->Info("Successfully immediately downloaded dream with UUID: %s", uuid.c_str());

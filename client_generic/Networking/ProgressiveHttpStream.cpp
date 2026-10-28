@@ -755,7 +755,12 @@ DownloadRegistry::Attach(const std::string& id,
         if (it == m_entries.end() || !it->second.shareable)
             return nullptr;
         if (it->second.stream)
+        {
+            // Under m_mutex, so an owner that Remove()s and then sees no
+            // readers knows none can attach any more.
+            it->second.stream->AddReader();
             return it->second.stream;
+        }
         // Claimed: the prefetcher is fetching the signed URL. Poll so
         // interrupt is honored even without a notify.
         if (interrupt && interrupt())

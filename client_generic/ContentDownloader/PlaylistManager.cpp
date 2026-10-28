@@ -148,6 +148,14 @@ std::vector<std::string> PlaylistManager::getCurrentPlaylistUUIDs() const {
     return uuids;
 }
 
+bool PlaylistManager::containsDream(const std::string& uuid) const {
+    std::lock_guard lock(m_stateMutex);
+    if (m_initializeInProgress || m_playlist.empty())
+        return true;
+    return std::any_of(m_playlist.begin(), m_playlist.end(),
+                       [&uuid](const PlaylistEntry& entry) { return entry.uuid == uuid; });
+}
+
 bool PlaylistManager::parsePlaylist(const std::string& playlistUUID,
                                     uint64_t expectedGeneration,
                                     bool preserveCurrent,

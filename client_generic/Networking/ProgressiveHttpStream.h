@@ -65,6 +65,11 @@ class ProgressiveHttpStream
     // The worker has exited: finished, failed, or aborted.
     bool Done() const { return m_done.load(); }
 
+    // Clips reading a shared download (counted by DownloadRegistry::Attach).
+    void AddReader() { ++m_readers; }
+    void RemoveReader() { --m_readers; }
+    int Readers() const { return m_readers.load(); }
+
     struct TransferState
     {
         ProgressiveHttpStream* self = nullptr;
@@ -106,6 +111,7 @@ class ProgressiveHttpStream
     std::atomic<bool> m_finished{false};
     std::atomic<bool> m_restart{false};
     std::atomic<bool> m_done{false};
+    std::atomic<int> m_readers{0};
 
     std::thread m_worker;
 };
@@ -134,7 +140,8 @@ class DownloadRegistry
 
     bool Contains(const std::string& id) const;
     // The shareable stream for id, waiting while it is claimed but not yet
-    // published. nullptr if there is none, or interrupt fires.
+    // published. nullptr if there is none, or interrupt fires. Counts the
+    // caller as a reader; it calls RemoveReader() when done.
     std::shared_ptr<ProgressiveHttpStream>
     Attach(const std::string& id, const ProgressiveHttpStream::AbortFn& interrupt);
 

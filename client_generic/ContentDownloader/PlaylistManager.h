@@ -68,6 +68,10 @@ public:
     }
     
     std::vector<std::string> getCurrentPlaylistUUIDs() const;
+    // Whether uuid is in the current playlist. True while a playlist change is
+    // still loading (or the playlist is empty), so callers never act on a
+    // half-switched playlist.
+    bool containsDream(const std::string& uuid) const;
     
     std::vector<PlaylistEntry> filterActiveAndProcessedDreams(const std::vector<PlaylistEntry>& entries) const;
     std::vector<PlaylistEntry> filterUncachedDreams(const std::vector<PlaylistEntry>& entries) const;

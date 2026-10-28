@@ -683,7 +683,9 @@ void CContentDecoder::ReleaseStream()
     if (!m_httpStream)
         return;
     StopOwnedStream();
-    if (!m_httpStreamShared)
+    if (m_httpStreamShared)
+        m_httpStream->RemoveReader();
+    else
         Network::DownloadRegistry::Instance().Remove(m_Metadata.dreamData.uuid,
                                                      m_httpStream.get());
     m_httpStream.reset();

@@ -69,9 +69,12 @@ private:
 
     // Download uuid unless someone already is; shared with the player via
     // Network::DownloadRegistry so Next on it never starts a second copy.
-    bool ClaimAndDownload(const std::string& uuid);
+    // playlistPrefetch: cancel if the dream leaves the playlist (e.g. a
+    // playlist switch) while no clip is reading it.
+    bool ClaimAndDownload(const std::string& uuid, bool playlistPrefetch);
     bool DownloadDream(const std::string& uuid, const std::string& downloadLink,
-                       std::shared_ptr<Network::ProgressiveHttpStream>& stream);
+                       std::shared_ptr<Network::ProgressiveHttpStream>& stream,
+                       bool playlistPrefetch);
     std::atomic<bool> m_stopping{false};
     
     boost::thread thread;
