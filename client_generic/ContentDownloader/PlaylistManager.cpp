@@ -148,6 +148,14 @@ std::vector<std::string> PlaylistManager::getCurrentPlaylistUUIDs() const {
     return uuids;
 }
 
+bool PlaylistManager::containsDream(const std::string& uuid) const {
+    std::lock_guard lock(m_stateMutex);
+    if (m_initializeInProgress || m_playlist.empty())
+        return true;
+    return std::any_of(m_playlist.begin(), m_playlist.end(),
+                       [&uuid](const PlaylistEntry& entry) { return entry.uuid == uuid; });
+}
+
 bool PlaylistManager::parsePlaylist(const std::string& playlistUUID,
                                     uint64_t expectedGeneration,
                                     bool preserveCurrent,
@@ -896,7 +904,11 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
     // But if canStream is false, we need to find a cached dream
     if (!canStream) {
         g_Log->Info("Preflight : looking for any cached dream (canStream=false)");
-        for (size_t i = 0; i < m_playlist.size(); i++) {
+        // Scan forward from the current dream, so it is picked again only
+        // when no other dream is cached (client#710).
+        const size_t start = m_started ? m_currentPosition + 1 : 0;
+        for (size_t j = 0; j < m_playlist.size(); j++) {
+            const size_t i = (start + j) % m_playlist.size();
             if (m_cacheManager.hasDiskCachedItem(m_playlist[i].uuid)) {
                 const auto& cachedEntry = m_playlist[i];
                 decision = {

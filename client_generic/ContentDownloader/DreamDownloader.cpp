@@ -15,6 +15,7 @@
 #include "Log.h"
 #include "NetworkConfig.h"
 #include "PlaylistManager.h"
+#include "ProgressiveHttpStream.h"
 
 namespace ContentDownloader
 {
@@ -27,6 +28,7 @@ void DreamDownloader::FindDreamsToDownload() {
         std::cout << "FindDreamsToDownload is already running." << std::endl;
         return;
     }
+    m_stopping.store(false);
 
     thread = boost::thread(&DreamDownloader::FindDreamsThread, this);
     
@@ -39,8 +41,12 @@ std::optional<std::string> DreamDownloader::GetNextDreamToDownload() {
 }
 
 bool DreamDownloader::IsDreamBeingDownloaded(const std::string& uuid) const {
-    std::lock_guard<std::mutex> lock(m_downloadingMutex);
-    return m_currentlyDownloading.has_value() && m_currentlyDownloading.value() == uuid;
+    {
+        std::lock_guard<std::mutex> lock(m_downloadingMutex);
+        if (m_currentlyDownloading.has_value() && m_currentlyDownloading.value() == uuid)
+            return true;
+    }
+    return Network::DownloadRegistry::Instance().Contains(uuid);
 }
 // MARK: Download status
 void DreamDownloader::SetDownloadStatus(const std::string& status) {
@@ -117,7 +123,7 @@ void DreamDownloader::FindDreamsThread() {
             // Preflight checklist
  
             // Check quota status
-            bool hasEnoughQuota = cm.getRemainingQuota() >= (long long)minSpaceForDream;
+            bool hasEnoughQuota = cm.hasQuotaToDownload();
 
             if (!hasEnoughQuota) {
                 if (!quotaWarningLogged) {
@@ -191,29 +197,16 @@ void DreamDownloader::FindDreamsThread() {
             if (!cm.hasDiskCachedItem(current_uuid.c_str())) {
                 // Check for interruption before making network call
                 boost::this_thread::interruption_point();
-                
-                auto link = EDreamClient::GetDreamDownloadLink(current_uuid);
-                
-                if (!link.empty()) {
-                    g_Log->Info("Download link received: %s", link.c_str());
-                    SetDownloadStatus("");
 
-                    DownloadDream(current_uuid, link);
-                    
-                    // Clear the currently downloading flag
-                    {
-                        std::lock_guard<std::mutex> lock(m_downloadingMutex);
-                        m_currentlyDownloading.reset();
-                    }
-                    
-                } else {
-                    g_Log->Error("Download link denied");
-                    // Clear the currently downloading flag on error
-                    {
-                        std::lock_guard<std::mutex> lock(m_downloadingMutex);
-                        m_currentlyDownloading.reset();
-                    }
+                const bool downloaded = ClaimAndDownload(current_uuid, /*playlistPrefetch=*/true);
 
+                // Clear the currently downloading flag
+                {
+                    std::lock_guard<std::mutex> lock(m_downloadingMutex);
+                    m_currentlyDownloading.reset();
+                }
+
+                if (!downloaded) {
                     // A transient network failure otherwise selects the same
                     // uncached successor again immediately and spins at thousands
                     // of requests per second (especially after shutdown aborts I/O).
@@ -222,7 +215,6 @@ void DreamDownloader::FindDreamsThread() {
                     boost::this_thread::sleep(boost::get_system_time() +
                                               boost::posix_time::seconds(1));
                 }
-
             }
             
         }
@@ -254,7 +246,37 @@ std::future<bool> DreamDownloader::DownloadImmediately(const std::string& uuid, 
     );
 }
 
-bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& downloadLink, bool enqueue) {
+bool DreamDownloader::ClaimAndDownload(const std::string& uuid, bool playlistPrefetch) {
+    auto& registry = Network::DownloadRegistry::Instance();
+    // Claim before fetching the link so a Next landing meanwhile waits to
+    // attach instead of starting its own download.
+    if (!registry.Claim(uuid)) {
+        g_Log->Info("Dream %s is already downloading, skipping", uuid.c_str());
+        return false;
+    }
+
+    std::shared_ptr<Network::ProgressiveHttpStream> stream;
+    // Release the entry on every exit, including thread interruption.
+    struct Unclaim {
+        const std::string& uuid;
+        const std::shared_ptr<Network::ProgressiveHttpStream>& stream;
+        ~Unclaim() { Network::DownloadRegistry::Instance().Remove(uuid, stream.get()); }
+    } unclaim{uuid, stream};
+
+    auto link = EDreamClient::GetDreamDownloadLink(uuid);
+    if (link.empty()) {
+        g_Log->Error("Download link denied");
+        return false;
+    }
+    g_Log->Info("Download link received: %s", link.c_str());
+    SetDownloadStatus("");
+
+    return DownloadDream(uuid, link, stream, playlistPrefetch);
+}
+
+bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& downloadLink,
+                                    std::shared_ptr<Network::ProgressiveHttpStream>& stream,
+                                    bool playlistPrefetch) {
     // Grab the CacheManager
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
     
@@ -266,15 +288,8 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
     }
 
     auto dream = cm.getDream(uuid);
-    
-    Network::spCFileDownloader spDownload = std::make_shared<Network::CFileDownloader>("Downloading dream: " + dream->name);
-    Network::NetworkHeaders::addStandardHeaders(spDownload);
-    
-    if (!spDownload->Perform(downloadLink)) {
-        SetDownloadStatus("Download failed for " + dream->name);
-        g_Log->Error("Failed to download dream. Server returned %i: %s",
-                     spDownload->ResponseCode(),
-                     spDownload->Data().c_str());
+    if (!dream) {
+        g_Log->Error("No metadata for dream %s, cannot download", uuid.c_str());
         return false;
     }
 
@@ -287,12 +302,62 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
         return false;
     }
 
-    // Save with .tmp extension first
+    // Download into .tmp first; the player may read it while it fills.
     fs::path tmpPath = savePath / (uuid + ".tmp");
     fs::path finalPath = savePath / (uuid + ".mp4");
 
-    if (!spDownload->Save(tmpPath.string())) {
-        g_Log->Error("Failed to save downloaded dream to %s", tmpPath.string().c_str());
+    stream = std::make_shared<Network::ProgressiveHttpStream>();
+    if (!stream->Start(downloadLink, tmpPath.string(),
+                       /*downloadAbort=*/[this]() { return m_stopping.load(); })) {
+        g_Log->Error("Failed to start download of dream %s", uuid.c_str());
+        stream.reset();
+        return false;
+    }
+    Network::DownloadRegistry::Instance().Publish(uuid, stream);
+
+    const std::string progressName = "Downloading dream: " + dream->name;
+    bool committed = false;
+    // Unless the file reached the cache, stop the transfer (failing any
+    // attached reader) and drop the partial file.
+    struct Cleanup {
+        const std::string& progressName;
+        Network::ProgressiveHttpStream& stream;
+        const fs::path& tmpPath;
+        const bool& committed;
+        ~Cleanup() {
+            g_NetworkManager->Remove(progressName);
+            if (!committed) {
+                stream.Stop();
+                std::error_code ec;
+                fs::remove(tmpPath, ec);
+            }
+        }
+    } cleanup{progressName, *stream, tmpPath, committed};
+
+    auto& playlistMgr = g_Player().GetPlaylistManager();
+    while (!stream->Done()) {
+        if (playlistPrefetch && !playlistMgr.containsDream(uuid)) {
+            // Unpublish first so no clip can attach while we decide.
+            Network::DownloadRegistry::Instance().Remove(uuid, stream.get());
+            if (stream->Readers() == 0) {
+                g_Log->Info("Cancelling prefetch of %s: no longer in the playlist", uuid.c_str());
+                SetDownloadStatus("");
+                return false;
+            }
+        }
+
+        const int64_t size = stream->Size();
+        const int64_t got = stream->BytesDownloaded();
+        g_NetworkManager->UpdateProgress(progressName, "Active",
+                                         size > 0 ? 100.0 * got / size : 0.0,
+                                         static_cast<double>(got));
+        boost::this_thread::sleep(boost::get_system_time() +
+                                  boost::posix_time::milliseconds(250));
+    }
+
+    if (!stream->Finished()) {
+        SetDownloadStatus("Download failed for " + dream->name);
+        g_Log->Error("Failed to download dream %s", uuid.c_str());
         return false;
     }
 
@@ -303,7 +368,6 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
             g_Log->Error("md5 mismatch for %s. Expected: %s, Got: %s",
                          uuid.c_str(), dream->md5.c_str(), downloadedMd5.c_str());
             EDreamClient::ReportMD5Failure(uuid, downloadedMd5, false);
-            fs::remove(tmpPath);
             return false;
         }
         // TODO : remove that from log at some point
@@ -313,13 +377,12 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
         g_Log->Info("No md5 in metadata");
     }
 
-    // Rename tmp to mp4
-    try {
-        fs::rename(tmpPath, finalPath);
-    } catch (const fs::filesystem_error& e) {
-        g_Log->Error("Failed to rename tmp file to mp4: %s", e.what());
+    // Rename tmp to mp4; attached readers carry on from the new path
+    if (!stream->CommitTo(finalPath.string())) {
+        g_Log->Error("Failed to rename tmp file to mp4 for %s", uuid.c_str());
         return false;
     }
+    committed = true;
 
     g_Log->Info("Successfully downloaded and saved dream to %s", finalPath.string().c_str());
     SetDownloadStatus("");
@@ -332,10 +395,6 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
 
     cm.addDiskCachedItem(newDiskItem);
     cm.decreaseRemainingQuota(dream->size);
-    
-    if (enqueue) {
-        // g_Player().Add(fullSavePath.string().c_str());
-    }
     
     return true;
 }
@@ -359,27 +418,20 @@ bool DreamDownloader::DownloadDreamNow(const std::string& uuid, std::function<vo
             }
         }
 
-        auto link = EDreamClient::GetDreamDownloadLink(uuid);
+        bool success = ClaimAndDownload(uuid, /*playlistPrefetch=*/false);
 
-        if (!link.empty()) {
-            g_Log->Info("Download link received: %s", link.c_str());
-            bool success = DownloadDream(uuid, link, false);
-            
-            if (success) {
-                g_Log->Info("Successfully immediately downloaded dream with UUID: %s", uuid.c_str());
-            } else {
-                g_Log->Info("Failed to immediately download dream with UUID: %s", uuid.c_str());
-            }
-            
-            // Execute the callback if provided
-            if (callback) {
-                callback(true, uuid);
-            }
-            
-            return success;
+        if (success) {
+            g_Log->Info("Successfully immediately downloaded dream with UUID: %s", uuid.c_str());
         } else {
-            g_Log->Error("Download link denied");
+            g_Log->Info("Failed to immediately download dream with UUID: %s", uuid.c_str());
         }
+
+        // Execute the callback if provided
+        if (callback) {
+            callback(true, uuid);
+        }
+
+        return success;
     }
     
     return false;
