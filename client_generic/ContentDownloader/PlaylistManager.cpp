@@ -904,7 +904,11 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
     // But if canStream is false, we need to find a cached dream
     if (!canStream) {
         g_Log->Info("Preflight : looking for any cached dream (canStream=false)");
-        for (size_t i = 0; i < m_playlist.size(); i++) {
+        // Scan forward from the current dream, so it is picked again only
+        // when no other dream is cached (client#710).
+        const size_t start = m_started ? m_currentPosition + 1 : 0;
+        for (size_t j = 0; j < m_playlist.size(); j++) {
+            const size_t i = (start + j) % m_playlist.size();
             if (m_cacheManager.hasDiskCachedItem(m_playlist[i].uuid)) {
                 const auto& cachedEntry = m_playlist[i];
                 decision = {

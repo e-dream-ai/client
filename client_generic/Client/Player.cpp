@@ -1829,12 +1829,12 @@ void CPlayer::SkipToNext()
 {
     g_Log->Info("Next");
 
-    // Check quota first - if quota is 0, don't allow streaming
+    // Check quota first - below the download minimum, don't allow streaming
     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
-    bool canStream = cm.getRemainingQuota() > 0;
+    bool canStream = cm.hasQuotaToDownload();
 
     if (!canStream) {
-        g_Log->Info("Quota is 0, using cache-only mode for Next");
+        g_Log->Info("Quota too low, using cache-only mode for Next");
     }
 
     // Get the next dream decision - use forceNext=true to advance even in repeat mode
@@ -1852,7 +1852,7 @@ void CPlayer::SkipToNext()
 
     if (!isDreamCached) {
         if (!canStream) {
-            g_Log->Warning("Next dream is not cached and quota is 0, cannot stream");
+            g_Log->Warning("Next dream is not cached and quota is too low, cannot stream");
             return;
         }
         g_Log->Info("Next dream is not cached, will try loading and playin immediately");
@@ -1939,8 +1939,8 @@ void CPlayer::ReturnToPrevious()
     if (!isDreamCached) {
         // Check quota before allowing streaming
         Cache::CacheManager& cm = Cache::CacheManager::getInstance();
-        if (cm.getRemainingQuota() <= 0) {
-            g_Log->Warning("Previous dream is not cached and quota is 0, cannot stream");
+        if (!cm.hasQuotaToDownload()) {
+            g_Log->Warning("Previous dream is not cached and quota is too low, cannot stream");
             return;
         }
         g_Log->Info("Previous dream is not cached, will try loading and playing immediately");
@@ -2077,8 +2077,8 @@ void CPlayer::SkipForward(float _seconds)
                 bool isDreamCached = !targetDream->getCachedPath().empty();
                 if (!isDreamCached) {
                     Cache::CacheManager& cm = Cache::CacheManager::getInstance();
-                    if (cm.getRemainingQuota() <= 0) {
-                        g_Log->Warning("Target dream is not cached and quota is 0, cannot stream");
+                    if (!cm.hasQuotaToDownload()) {
+                        g_Log->Warning("Target dream is not cached and quota is too low, cannot stream");
                         // Fall back to crossfade seek to start of current dream
                         const Cache::Dream* currentDream = &referenceClip->GetClipMetadata().dreamData;
                         startSeekCrossfade(currentDream, 0);
@@ -2133,13 +2133,13 @@ void CPlayer::SkipForward(float _seconds)
             
             // Get the next dream decision
             Cache::CacheManager& cm = Cache::CacheManager::getInstance();
-            bool canStream = cm.getRemainingQuota() > 0;
+            bool canStream = cm.hasQuotaToDownload();
             auto nextDecision = m_playlistManager->preflightNextDream(canStream, true);
             
             if (nextDecision && nextDecision->dream) {
                 bool isDreamCached = !nextDecision->dream->getCachedPath().empty();
                 if (!isDreamCached && !canStream) {
-                    g_Log->Warning("Next dream is not cached and quota is 0, cannot stream");
+                    g_Log->Warning("Next dream is not cached and quota is too low, cannot stream");
                     // Crossfade to end of current clip
                     const Cache::Dream* currentDream = &targetClip->GetClipMetadata().dreamData;
                     int64_t nearEndFrame = toMetadata.maxFrameIdx - static_cast<int64_t>(0.5 * toFps);

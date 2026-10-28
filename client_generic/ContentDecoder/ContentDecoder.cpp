@@ -1711,6 +1711,8 @@ void CContentDecoder::FinalizeCacheFile()
                     newDiskItem.md5 = m_Metadata.dreamData.md5;
 
                     cm.addDiskCachedItem(newDiskItem);
+                    // Charge the quota like a prefetch does (client#710).
+                    cm.decreaseRemainingQuota(m_Metadata.dreamData.size);
                 } else {
                     // A newer download may already own the path after invalidate+redownload;
                     // never resurrect this tmp as the cache entry.

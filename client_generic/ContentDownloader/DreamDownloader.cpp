@@ -123,7 +123,7 @@ void DreamDownloader::FindDreamsThread() {
             // Preflight checklist
  
             // Check quota status
-            bool hasEnoughQuota = cm.getRemainingQuota() >= (long long)minSpaceForDream;
+            bool hasEnoughQuota = cm.hasQuotaToDownload();
 
             if (!hasEnoughQuota) {
                 if (!quotaWarningLogged) {
