@@ -13,6 +13,7 @@
 
 #include <string_view>
 #include <pthread.h>
+#include <sys/sysctl.h>
 #include <CoreFoundation/CoreFoundation.h>
 
 #include "Log.h"
@@ -87,8 +88,28 @@ std::string PlatformUtils::GetAppVersion()
     return str.UTF8String;
 }
 
+// Reports the hardware architecture, not the build slice: the x86_64 slice
+// running under Rosetta reports arm64, since that machine can run an
+// arm64-only build.
+static const char* GetHardwareArch()
+{
+    int value = 0;
+    size_t size = sizeof(value);
+    if (sysctlbyname("hw.optional.arm64", &value, &size, NULL, 0) == 0 &&
+        value == 1)
+        return "arm64";
+    return "x86_64";
+}
+
 std::string PlatformUtils::GetPlatformName() {
-    return "native macOS";
+    static const std::string name = [] {
+        NSOperatingSystemVersion v =
+            [[NSProcessInfo processInfo] operatingSystemVersion];
+        return std::string("native macOS ") + GetHardwareArch() + " " +
+               std::to_string(v.majorVersion) + "." +
+               std::to_string(v.minorVersion);
+    }();
+    return name;
 }
 
 std::string PlatformUtils::GetWorkingDir() {
