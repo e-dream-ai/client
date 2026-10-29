@@ -11,6 +11,7 @@
 #include <condition_variable>
 #include <cstdint>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <vector>
 #include <queue>
@@ -144,6 +145,11 @@ public:
     void setLoopIterations(int iterations) {
         std::lock_guard lock(m_stateMutex);
         m_loopIterations = iterations;
+    }
+    // Playlist crossfade seconds; nullopt = use the client default.
+    std::optional<float> getTransitionTime() const {
+        std::lock_guard lock(m_stateMutex);
+        return m_transitionTime;
     }
     int getCurrentLoopCount() const {
         std::lock_guard lock(m_stateMutex);
@@ -284,6 +290,7 @@ private:
     // Loop iteration settings
     int m_loopIterations = 0;           // 0 = no special loop handling, N > 0 = play loops N times
     mutable int m_currentLoopCount = 0; // Tracks how many times we've looped at current keyframe group
+    std::optional<float> m_transitionTime; // Crossfade seconds; nullopt = client default
 
     // Download lookahead configuration
     size_t m_downloadLookaheadLimit = 5;

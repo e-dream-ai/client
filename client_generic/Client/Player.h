@@ -359,6 +359,10 @@ class CPlayer : public Base::CSingleton<CPlayer>
     // retrying instead of preflighting (and logging) on every frame.
     std::chrono::steady_clock::time_point m_nextTransitionPreflight{};
     
+    // Length of a natural (not user-initiated) crossfade: the playlist's
+    // transitionTime, or the default when unset, clamped to fit the clip.
+    float NaturalFadeSeconds(const ContentDecoder::spCClip& clip = nullptr) const;
+
     // Check if we need to prepare for transition
     bool shouldPrepareTransition(const ContentDecoder::spCClip& clip) const;
     

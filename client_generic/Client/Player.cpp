@@ -48,6 +48,15 @@
 #include "PlatformUtils.h"
 #include "EDreamClient.h"
 
+namespace {
+// Natural crossfade length when the playlist does not set transitionTime.
+constexpr float kDefaultFadeSeconds = 5.0f;
+// transitionTime 0 is a hard cut. Keep a frame or so of fade so the
+// crossfade math never divides by zero and the outgoing clip still
+// signals its fade-out, which is what starts the transition.
+constexpr float kMinFadeSeconds = 0.05f;
+}
+
 /*
 #include "boost/filesystem/convenience.hpp"
 #include "boost/filesystem/operations.hpp"
@@ -127,7 +136,7 @@ CPlayer::CPlayer() : m_isFirstPlay(true), m_offlineMode(false), m_pendingSeekCro
     m_bStarted = false;
     m_CapClock = 0.0;
     m_TimelineTime = 0.0;
-    m_transitionDuration = 5.0;
+    m_transitionDuration = kDefaultFadeSeconds;
 #ifdef WIN32
     m_hWnd = nullptr;
     m_previewParentHwnd = nullptr;
@@ -1186,7 +1195,7 @@ void CPlayer::PlayNextDream(bool quickFade) {
             m_playlistManager->moveToNextDream(*nextDecision);
             
             if (m_nextClip) {
-                m_nextClip->SetTransitionLength(1.0f, 5.0f);
+                m_nextClip->SetTransitionLength(1.0f, NaturalFadeSeconds(m_nextClip));
             }
         }
         return;
@@ -1261,7 +1270,11 @@ void CPlayer::PlayNextDream(bool quickFade) {
                 
                 // Set the start time for the preloaded clip
                 m_nextClip->SetStartTime(m_TimelineTime);
-                m_nextClip->SetTransitionLength(5.0f, 5.0f);
+                // The fade length was chosen at preflight from the outgoing
+                // clip; also keep it within half of the incoming one.
+                m_transitionDuration = std::fmax(
+                    m_nextClip->ClampFadeToLength(m_transitionDuration), kMinFadeSeconds);
+                m_nextClip->SetTransitionLength(m_transitionDuration, NaturalFadeSeconds(m_nextClip));
                 m_nextClip->ResetFinished();
                 
                 m_nextClip->StartPlayback(0);
@@ -1269,6 +1282,8 @@ void CPlayer::PlayNextDream(bool quickFade) {
                 // Fallback to direct load if preloading didn't complete
                 g_Log->Info("Fallback as we didn't preload fully");
                 PlayClip(m_nextDreamDecision->dream, m_TimelineTime, -1, true);
+                if (m_nextClip)
+                    m_nextClip->SetTransitionLength(m_transitionDuration, NaturalFadeSeconds(m_nextClip));
             }
             
             auto nextDream = m_playlistManager->moveToNextDream(*m_nextDreamDecision);
@@ -1290,8 +1305,11 @@ void CPlayer::PlayNextDream(bool quickFade) {
         // Natural transition - don't allow streaming
         auto nextDecision = m_playlistManager->preflightNextDream(false);
         if (nextDecision) {
+            m_transitionDuration = NaturalFadeSeconds(m_currentClip);
             StartTransition();
             PlayClip(nextDecision->dream, m_TimelineTime, -1, true);
+            if (m_nextClip)
+                m_nextClip->SetTransitionLength(m_transitionDuration, NaturalFadeSeconds(m_nextClip));
             m_playlistManager->moveToNextDream(*nextDecision);
             g_Log->Info("Fallback transition complete, syncing state to server");
             EDreamClient::SendStateUpdate();
@@ -1400,7 +1418,7 @@ void CPlayer::ApplyPreparedDream(
     m_pendingSeekCrossfade = true;
 
     if (PlayClip(dream, m_TimelineTime, frameNumber, true) && m_nextClip)
-        m_nextClip->SetTransitionLength(1.0f, 5.0f);
+        m_nextClip->SetTransitionLength(1.0f, NaturalFadeSeconds(m_nextClip));
 }
 
 std::string CPlayer::GetPlaylistName() const
@@ -1433,7 +1451,8 @@ bool CPlayer::SetPlaylist(const std::string& playlistUUID, bool fetchPlaylist = 
                 
                 // Explicitly set the fade-in and fade-out lengths
                 if (m_currentClip) {
-                    m_currentClip->SetTransitionLength(5.0, 5.0);
+                    const float fade = NaturalFadeSeconds(m_currentClip);
+                    m_currentClip->SetTransitionLength(fade, fade);
                 }
 
                 g_Log->Info("Playlist changed, syncing state to server");
@@ -1465,7 +1484,7 @@ bool CPlayer::SetPlaylist(const std::string& playlistUUID, bool fetchPlaylist = 
             m_nextDreamDecision = nextDecision;
             RequestPreloadClip(nextDecision->dream, false);
             if (m_nextClip)
-                m_nextClip->SetTransitionLength(1.0f, 5.0f);
+                m_nextClip->SetTransitionLength(1.0f, NaturalFadeSeconds(m_nextClip));
         }
     }
 
@@ -1500,7 +1519,8 @@ bool CPlayer::SetPlaylistAtDream(const std::string& playlistUUID, const std::str
                     
                     // Explicitly set the fade-in and fade-out lengths
                     if (m_currentClip) {
-                        m_currentClip->SetTransitionLength(5.0, 5.0);
+                        const float fade = NaturalFadeSeconds(m_currentClip);
+                        m_currentClip->SetTransitionLength(fade, fade);
                     }
                     return true;
                 }
@@ -1528,7 +1548,8 @@ bool CPlayer::SetPlaylistAtDream(const std::string& playlistUUID, const std::str
     if (PlayClip(optionalDream->dream, m_TimelineTime, seekFrame)) {
         if (m_currentClip) {
             m_currentClip->SetResumeTime(m_TimelineTime);
-            m_currentClip->SetTransitionLength(5.0, 5.0);
+            const float fade = NaturalFadeSeconds(m_currentClip);
+            m_currentClip->SetTransitionLength(fade, fade);
         }
         return true;
     }
@@ -1719,7 +1740,7 @@ void CPlayer::UpdateTransition(double currentTime)
         }
 
         m_nextClip = nullptr;
-        m_transitionDuration = 5.0f;
+        m_transitionDuration = NaturalFadeSeconds();
         m_nextDreamDecision = std::nullopt;  // Clear any pending decision
         
         // Sync state to server after transition completes
@@ -1734,7 +1755,7 @@ void CPlayer::UpdateTransition(double currentTime)
             PlayClip(nextDecision->dream, currentTime, -1, true);
             if (m_nextClip) {
                 // Use quick fade for interrupted transitions
-                m_nextClip->SetTransitionLength(1.0f, 5.0f);
+                m_nextClip->SetTransitionLength(1.0f, NaturalFadeSeconds(m_nextClip));
                 m_playlistManager->moveToNextDream(*nextDecision);
             }
         }
@@ -1742,7 +1763,7 @@ void CPlayer::UpdateTransition(double currentTime)
         /*PlayClip(nextDecision->dream, currentTime, -1, true);
         if (m_nextClip) {
             // Use quick fade for interrupted transitions
-            m_nextClip->SetTransitionLength(1.0f, 5.0f);
+            m_nextClip->SetTransitionLength(1.0f, NaturalFadeSeconds(m_nextClip));
             m_playlistManager->moveToNextDream(*nextDecision);
         }
         if (nextDecision) {
@@ -1889,7 +1910,7 @@ void CPlayer::SkipToNext()
             m_playlistManager->moveToNextDream(*nextDecision);
             
             if (m_nextClip) {
-                m_nextClip->SetTransitionLength(1.0f, 5.0f);
+                m_nextClip->SetTransitionLength(1.0f, NaturalFadeSeconds(m_nextClip));
                 
                 // Maintain visual continuity
                 if (currentProgress > 0.1) {
@@ -1922,7 +1943,7 @@ void CPlayer::SkipToNext()
         m_playlistManager->moveToNextDream(*nextDecision);
 
         if (m_nextClip) {
-            m_nextClip->SetTransitionLength(1.0f, 5.0f);
+            m_nextClip->SetTransitionLength(1.0f, NaturalFadeSeconds(m_nextClip));
         }
 
         g_Log->Info("User skip to next, syncing state to server");
@@ -1962,7 +1983,7 @@ void CPlayer::ReturnToPrevious()
         PlayClip(previousDream, m_TimelineTime, -1, true);
 
         if (m_nextClip) {
-            m_nextClip->SetTransitionLength(1.0f, 5.0f);
+            m_nextClip->SetTransitionLength(1.0f, NaturalFadeSeconds(m_nextClip));
 
             // Maintain visual continuity
             if (currentProgress > 0.1) {
@@ -1978,7 +1999,7 @@ void CPlayer::ReturnToPrevious()
     m_transitionDuration = 1.0f;
     StartTransition();
     PlayClip(previousDream, m_TimelineTime, -1, true);
-    m_nextClip->SetTransitionLength(1.0f, 5.0f);
+    m_nextClip->SetTransitionLength(1.0f, NaturalFadeSeconds(m_nextClip));
 
     g_Log->Info("User skip to previous, syncing state to server");
     EDreamClient::SendStateUpdate();
@@ -1990,7 +2011,7 @@ void CPlayer::RepeatClip()
     auto currentDream = m_playlistManager->getCurrentDream();
     StartTransition();
     PlayClip(currentDream, m_TimelineTime, -1, true);
-    m_nextClip->SetTransitionLength(1.0f, 5.0f);
+    m_nextClip->SetTransitionLength(1.0f, NaturalFadeSeconds(m_nextClip));
 }
 
 void CPlayer::SkipForward(float _seconds)
@@ -2040,7 +2061,7 @@ void CPlayer::SkipForward(float _seconds)
         // and never outlives this call, so no ownership transfer is needed.
         PlayClip(std::shared_ptr<const Cache::Dream>(std::shared_ptr<void>{}, dream), m_TimelineTime, seekFrame, true);
         if (m_nextClip) {
-            m_nextClip->SetTransitionLength(1.0f, 5.0f);
+            m_nextClip->SetTransitionLength(1.0f, NaturalFadeSeconds(m_nextClip));
         }
     };
     
@@ -2246,8 +2267,20 @@ bool CPlayer::shouldPrepareTransition(const ContentDecoder::spCClip& clip) const
     double wallclockLeftSeconds = clip->GetEndTime() - m_TimelineTime;
     double timeRemaining = std::fmin(framesLeftSeconds, wallclockLeftSeconds);
 
-    // Start preparing transition when we're within 8 seconds of the end
-    return timeRemaining <= 8.0;
+    // Start preparing the transition early enough to preload the next clip
+    // (~3s) before the fade begins; never later than the historical 8s.
+    return timeRemaining <= std::fmax(8.0, NaturalFadeSeconds(clip) + 3.0);
+}
+
+float CPlayer::NaturalFadeSeconds(const ContentDecoder::spCClip& clip) const {
+    float fade = kDefaultFadeSeconds;
+    if (m_playlistManager) {
+        if (auto transitionTime = m_playlistManager->getTransitionTime())
+            fade = *transitionTime;
+    }
+    if (clip)
+        fade = clip->ClampFadeToLength(fade);
+    return std::fmax(fade, kMinFadeSeconds);
 }
 
 void CPlayer::prepareSeamlessTransition() {
@@ -2280,10 +2313,12 @@ void CPlayer::prepareCrossfadeTransition() {
         return;
     }
     
-    // Ensure current clip has proper fadeout time for crossfade
+    // Decide the crossfade length now, before the fade starts, so the
+    // outgoing fade-out and the transition timer agree.
     if (m_currentClip) {
         float currentFadeIn = m_currentClip->m_FadeInSeconds;
-        m_currentClip->SetTransitionLength(currentFadeIn, 5.0f);
+        m_transitionDuration = NaturalFadeSeconds(m_currentClip);
+        m_currentClip->SetTransitionLength(currentFadeIn, m_transitionDuration);
     }
 
     auto dream = m_nextDreamDecision->dream;
