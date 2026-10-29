@@ -140,6 +140,11 @@ private:
   public:
     static void ConnectRemoteControlSocket();
     static void SendPlayingDream(std::string uuid);
+    // Report that playback of a dream ended (#691): why, how far through it
+    // got, and how long it played.
+    static void SendFinishedDream(const std::string& uuid, std::string_view reason,
+                                  uint32_t frame, uint32_t frameCount,
+                                  double seconds);
     static void SendPing();
     static void SendStateUpdate();  // Send state update immediately when values change
     static void UnbindWebSocketCallbacks();

@@ -2389,11 +2389,11 @@ class CElectricSheep
                         if (g_Player().m_playlistManager) {
                             g_Player().m_playlistManager->removeCurrentDream();
                         }
-                        g_Player().SkipToNext();
+                        g_Player().SkipToNext("dislike");
                         m_spCrossFade->Reset();
                         m_HudManager->Add("fade", m_spCrossFade, 1);
                     } else {
-                        g_Player().SkipToNext();
+                        g_Player().SkipToNext("dislike");
                         m_spCrossFade->Reset();
                         m_HudManager->Add("fade", m_spCrossFade, 1);
                     }
