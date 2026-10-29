@@ -2948,6 +2948,33 @@ void EDreamClient::SendPlayingDream(std::string uuid)
     }
 }
 
+void EDreamClient::SendFinishedDream(const std::string& uuid,
+                                     std::string_view reason, uint32_t frame,
+                                     uint32_t frameCount, double seconds)
+{
+    std::shared_ptr<sio::object_message> ms =
+        std::dynamic_pointer_cast<sio::object_message>(
+            sio::object_message::create());
+    ms->insert("event", "finished");
+    ms->insert("uuid", uuid);
+    ms->insert("reason", std::string(reason));
+    ms->insert("frame", sio::int_message::create(frame));
+    ms->insert("frames", sio::int_message::create(frameCount));
+    // frame is 0-based, so the last frame counts as 100%.
+    if (frameCount > 0)
+        ms->insert("progress",
+                   sio::double_message::create(
+                       100.0 * std::min(frame + 1, frameCount) / frameCount));
+    ms->insert("seconds", sio::double_message::create(seconds));
+
+    sio::message::list list;
+    list.push(ms);
+    auto socket = s_SIOClient.socket("/remote-control");
+    if (socket) {
+        socket->emit("new_remote_control_event", list);
+    }
+}
+
 void EDreamClient::ConnectRemoteControlSocket()
 {
     PlatformUtils::SetThreadName("ConnectRemoteControl");

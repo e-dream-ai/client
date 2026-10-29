@@ -614,7 +614,8 @@ const sFrameMetadata& CClip::GetCurrentFrameMetadata() const
 
 uint32_t CClip::GetFrameCount() const
 {
-    return m_spDecoder->GetVideoInfo()->m_TotalFrameCount;
+    const auto* info = m_spDecoder ? m_spDecoder->GetVideoInfo() : nullptr;
+    return info ? info->m_TotalFrameCount : 0;
 }
 
 void CClip::SetStartTime(double _startTime)
