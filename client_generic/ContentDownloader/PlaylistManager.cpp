@@ -170,7 +170,7 @@ bool PlaylistManager::parsePlaylist(const std::string& playlistUUID,
     }
 
     // Get the playlist metadata
-    auto [playlistName, playlistArtist, isNSFW, timestamp, loops] = EDreamClient::ParsePlaylistMetadata(playlistUUID);
+    auto metadata = EDreamClient::ParsePlaylistMetadata(playlistUUID);
 
     bool offline = false;
     {
@@ -204,14 +204,15 @@ bool PlaylistManager::parsePlaylist(const std::string& playlistUUID,
         }
 
         m_playlist = std::move(filtered);
-        m_currentPlaylistName = playlistName;
-        m_currentPlaylistArtist = playlistArtist;
-        m_isPlaylistNSFW = isNSFW;
-        m_playlistTimestamp = timestamp;
+        m_currentPlaylistName = metadata.name;
+        m_currentPlaylistArtist = metadata.artist;
+        m_isPlaylistNSFW = metadata.nsfw;
+        m_playlistTimestamp = metadata.timestamp;
 
-        if (loops != m_loopIterations)
+        if (metadata.loops != m_loopIterations)
             m_currentLoopCount = 0;
-        m_loopIterations = loops;
+        m_loopIterations = metadata.loops;
+        m_transitionTime = metadata.transitionTime;
 
         if (preserveCurrent)
         {
@@ -219,7 +220,8 @@ bool PlaylistManager::parsePlaylist(const std::string& playlistUUID,
             m_currentDreamUUID = m_playlist[m_currentPosition].uuid;
         }
 
-        g_Log->Info("Playlist loops: %d", m_loopIterations);
+        g_Log->Info("Playlist loops: %d, transition time: %s", m_loopIterations,
+                    m_transitionTime ? std::to_string(*m_transitionTime).c_str() : "default");
         g_Log->Info("Updated playlist: %s by %s (UUID: %s, NSFW: %s, Timestamp: %lld) with %zu dreams",
                     m_currentPlaylistName.c_str(), m_currentPlaylistArtist.c_str(),
                     m_currentPlaylistUUID.c_str(), m_isPlaylistNSFW ? "Yes" : "No",
@@ -1270,7 +1272,7 @@ bool PlaylistManager::checkForPlaylistChanges() {
     }
 
     // Then parse the metadata to get the new timestamp
-    auto [newName, newArtist, newNSFW, newTimestamp, newLoops] = EDreamClient::ParsePlaylistMetadata(playlistUUID);
+    const int64_t newTimestamp = EDreamClient::ParsePlaylistMetadata(playlistUUID).timestamp;
     
     g_Log->Info("Old timestamp: %lld, New timestamp: %lld",
                 oldTimestamp, newTimestamp);

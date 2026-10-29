@@ -16,6 +16,17 @@
 #include "Networking.h"
 #include "PlaylistManager.h"
 
+struct PlaylistMetadata
+{
+    std::string name;
+    std::string artist;
+    bool nsfw = false;
+    int64_t timestamp = 0;
+    int loops = 0;
+    // Crossfade seconds between dreams; nullopt = client default.
+    std::optional<float> transitionTime;
+};
+
 class EDreamClient
 {
   public:
@@ -92,7 +103,7 @@ private:
     static std::vector<PlaylistEntry> ParsePlaylist(std::string_view uuid);
 
 
-    static std::tuple<std::string, std::string, bool, int64_t, int> ParsePlaylistMetadata(std::string_view uuid);
+    static PlaylistMetadata ParsePlaylistMetadata(std::string_view uuid);
 
     // Telemetry reporting
     static void SendTelemetry(const std::string& eventType, const boost::json::object& eventData);
