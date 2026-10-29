@@ -286,6 +286,7 @@ class CElectricSheep
                     PlatformUtils::GetAppVersion().c_str(),
                     PlatformUtils::GetGitRevision().c_str(),
                     PlatformUtils::GetBuildDate().c_str());
+        g_Log->Info("Platform: %s", PlatformUtils::GetPlatformName().c_str());
     }
 
   public:
