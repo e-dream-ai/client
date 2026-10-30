@@ -131,6 +131,44 @@ void EDreamClient::EnsureIOContext()
 
 static void OnQuotaUpdate(sio::event& _wsEvent);
 
+// The server replies with "Validation error" when it rejects one of our
+// remote-control events, and "Error" when it can't act on one (e.g. an
+// unknown dream). Neither says which event it was, so log the message.
+static const char* const kServerErrorEvents[] = {"Validation error", "Error"};
+
+static void OnServerError(sio::event& _wsEvent)
+{
+    std::string message;
+    auto msg = _wsEvent.get_message();
+    if (msg && msg->get_flag() == sio::message::flag_object)
+    {
+        const auto& map = msg->get_map();
+        auto it = map.find("error");
+        if (it != map.end() && it->second &&
+            it->second->get_flag() == sio::message::flag_string)
+            message = it->second->get_string();
+    }
+    else if (msg && msg->get_flag() == sio::message::flag_string)
+    {
+        message = msg->get_string();
+    }
+    g_Log->Error("WebSocket server error (%s): %s", _wsEvent.get_name().c_str(),
+                 message.empty() ? "<no message>" : message.c_str());
+}
+
+static void BindRemoteControlEvents(const sio::socket::ptr& socket)
+{
+    socket->off("new_remote_control_event");
+    socket->on("new_remote_control_event", &OnWebSocketMessage);
+    socket->off("quota_update");
+    socket->on("quota_update", &OnQuotaUpdate);
+    for (const char* event : kServerErrorEvents)
+    {
+        socket->off(event);
+        socket->on(event, &OnServerError);
+    }
+}
+
 // MARK: Ping via websocket
 void EDreamClient::SendPing()
 {
@@ -146,10 +184,7 @@ void EDreamClient::SendPing()
     // open are queued by the sio client and flushed on CONNECT.
     if (!fIsWebSocketConnected.load() && s_SIOClient.opened()) {
         g_Log->Info("SendPing: Socket open but not marked connected, binding callbacks now");
-        socket->off("new_remote_control_event");
-        socket->on("new_remote_control_event", &OnWebSocketMessage);
-        socket->off("quota_update");
-        socket->on("quota_update", &OnQuotaUpdate);
+        BindRemoteControlEvents(socket);
         fIsWebSocketConnected.exchange(true);
     }
 
@@ -410,10 +445,7 @@ static void BindWebSocketCallbacks()
     auto socket = s_SIOClient.socket("/remote-control");
     if (socket) {
         g_Log->Info("WebSocket socket found, binding callbacks");
-        socket->off("new_remote_control_event");
-        socket->on("new_remote_control_event", &OnWebSocketMessage);
-        socket->off("quota_update");
-        socket->on("quota_update", &OnQuotaUpdate);
+        BindRemoteControlEvents(socket);
         EDreamClient::fIsWebSocketConnected.exchange(true);
     } else {
         // Namespace socket not ready yet - retry after a short delay
@@ -423,10 +455,7 @@ static void BindWebSocketCallbacks()
             auto socket = s_SIOClient.socket("/remote-control");
             if (socket) {
                 g_Log->Info("WebSocket socket found on retry, binding callbacks");
-                socket->off("new_remote_control_event");
-                socket->on("new_remote_control_event", &OnWebSocketMessage);
-                socket->off("quota_update");
-                socket->on("quota_update", &OnQuotaUpdate);
+                BindRemoteControlEvents(socket);
                 EDreamClient::fIsWebSocketConnected.exchange(true);
             } else {
                 g_Log->Error("WebSocket namespace still not available after retry");
@@ -442,6 +471,8 @@ void EDreamClient::UnbindWebSocketCallbacks()
     if (socket) {
         socket->off("new_remote_control_event");
         socket->off("quota_update");
+        for (const char* event : kServerErrorEvents)
+            socket->off(event);
     }
 }
 
