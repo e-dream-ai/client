@@ -28,12 +28,8 @@
 /* Begin PBXBuildFile section */
 		063B5C5D2F198F1500B5E553 /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 063B5C5C2F198F1500B5E553 /* Sparkle.framework */; };
 		063B5C5E2F198F1500B5E553 /* Sparkle.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 063B5C5C2F198F1500B5E553 /* Sparkle.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		063B5C5F2F198F2900B5E553 /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 063B5C5C2F198F1500B5E553 /* Sparkle.framework */; };
-		063B5C602F198F2900B5E553 /* Sparkle.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 063B5C5C2F198F1500B5E553 /* Sparkle.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		063B5C612F19946300B5E553 /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 063B5C5C2F198F1500B5E553 /* Sparkle.framework */; };
 		063B5C622F19946300B5E553 /* Sparkle.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 063B5C5C2F198F1500B5E553 /* Sparkle.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		063B5C632F19947D00B5E553 /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 063B5C5C2F198F1500B5E553 /* Sparkle.framework */; };
-		063B5C642F19947D00B5E553 /* Sparkle.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 063B5C5C2F198F1500B5E553 /* Sparkle.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		121FCCB72B484B8B00F58DD5 /* Clip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 121FCCB52B484B8B00F58DD5 /* Clip.cpp */; };
 		121FCCB82B484B8B00F58DD5 /* Clip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 121FCCB52B484B8B00F58DD5 /* Clip.cpp */; };
 		1220B5392B3DC64D00D68410 /* StringFormat.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1220B5382B3DC64D00D68410 /* StringFormat.cpp */; };
@@ -56,24 +52,17 @@
 		1BEBFE3F2ECB6B2B00F39019 /* osd-next.png in Resources */ = {isa = PBXBuildFile; fileRef = 1BEBFE3D2ECB6B2B00F39019 /* osd-next.png */; };
 		1BEBFE402ECB6B2B00F39019 /* osd-next.png in Resources */ = {isa = PBXBuildFile; fileRef = 1BEBFE3D2ECB6B2B00F39019 /* osd-next.png */; };
 		1BEBFE412ECB6B2B00F39019 /* osd-next.png in Resources */ = {isa = PBXBuildFile; fileRef = 1BEBFE3D2ECB6B2B00F39019 /* osd-next.png */; };
+		1EF725DD92CD44099F63B461 /* ProgressiveHttpStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 967FB9FBC5B445FD99099352 /* ProgressiveHttpStream.cpp */; };
 		21006FC81017BC4B004A6511 /* Credits.html in CopyFiles */ = {isa = PBXBuildFile; fileRef = 21006FBD1017BC2C004A6511 /* Credits.html */; };
 		210335040F549BEF00A83F17 /* AlignedBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 210335030F549BEF00A83F17 /* AlignedBuffer.cpp */; };
 		210335050F549BEF00A83F17 /* AlignedBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 210335030F549BEF00A83F17 /* AlignedBuffer.cpp */; };
 		211CDDDB0ED0BD9200EB9394 /* Download.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDD60ED0BD9200EB9394 /* Download.cpp */; };
 		211CDDDC0ED0BD9200EB9394 /* Networking.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDD80ED0BD9200EB9394 /* Networking.cpp */; };
 		211CDDDD0ED0BD9200EB9394 /* Upload.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDDA0ED0BD9200EB9394 /* Upload.cpp */; };
-		CF0BDFD8D80843548EBC36A2 /* ProgressiveHttpStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 967FB9FBC5B445FD99099352 /* ProgressiveHttpStream.cpp */; };
 		212313270F503C4500702B2C /* ContentDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212313190F503C4500702B2C /* ContentDownloader.cpp */; };
 		2123132E0F503C4500702B2C /* ContentDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212313190F503C4500702B2C /* ContentDownloader.cpp */; };
 		2135D2690EC70571005E246D /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2135D2670EC70571005E246D /* AppKit.framework */; };
 		2135DA530EC7479A005E246D /* ESScreensaverView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA520EC7479A005E246D /* ESScreensaverView.mm */; };
-		A10000000000000000000011 /* ESScreenSaverExtension.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* ESScreenSaverExtension.mm */; };
-		A10000000000000000000012 /* ESScreenSaverViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000004 /* ESScreenSaverViewController.mm */; };
-		A10000000000000000000013 /* ESScreenSaverExtension.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* ESScreenSaverExtension.mm */; };
-		A10000000000000000000014 /* ESScreenSaverViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000004 /* ESScreenSaverViewController.mm */; };
-		A10000000000000000000051 /* infinidream.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 218878D00EC6CD7E001ABD2E /* infinidream.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		A10000000000000000000052 /* infinidream-stage.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = F0C100842C1372EF007FA505 /* infinidream-stage.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-
 		2135DA550EC74853005E246D /* ESScreensaver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA540EC74853005E246D /* ESScreensaver.cpp */; };
 		2135DB250EC75133005E246D /* ScreenSaver.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2135DB240EC75133005E246D /* ScreenSaver.framework */; };
 		213D535111F79C8D00CF500D /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 213D529B11F79B0000CF500D /* IOKit.framework */; };
@@ -97,7 +86,6 @@
 		2160FADB0F30F45100B2C27A /* Hud.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 21D90D010EA1D52000F8E5D5 /* Hud.cpp */; };
 		2160FADC0F30F45100B2C27A /* Rect.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 214B75060EBBA78900B5B897 /* Rect.cpp */; };
 		2160FADE0F30F45100B2C27A /* Download.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDD60ED0BD9200EB9394 /* Download.cpp */; };
-		1EF725DD92CD44099F63B461 /* ProgressiveHttpStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 967FB9FBC5B445FD99099352 /* ProgressiveHttpStream.cpp */; };
 		2160FADF0F30F45100B2C27A /* Networking.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDD80ED0BD9200EB9394 /* Networking.cpp */; };
 		2160FAE00F30F45100B2C27A /* Upload.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDDA0ED0BD9200EB9394 /* Upload.cpp */; };
 		2160FC9D0F30F48200B2C27A /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 09AB6884FE841BABC02AAC07 /* CoreFoundation.framework */; };
@@ -157,6 +145,7 @@
 		21EE63C21013A879000CE53E /* ESScreensaverView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA520EC7479A005E246D /* ESScreensaverView.mm */; };
 		21EE63C31013A87F000CE53E /* ESScreensaver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA540EC74853005E246D /* ESScreensaver.cpp */; };
 		21EE63CF1013A93A000CE53E /* ESConfiguration.mm in Sources */ = {isa = PBXBuildFile; fileRef = 21AAA0EE0F70453200AC23A8 /* ESConfiguration.mm */; };
+		301D08773F784ABCB52C0F43 /* ProgressiveHttpStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 967FB9FBC5B445FD99099352 /* ProgressiveHttpStream.cpp */; };
 		343948532ED6669E00DCF85E /* osd-repeat.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948512ED6669E00DCF85E /* osd-repeat.png */; };
 		343948542ED6669E00DCF85E /* osd-shuffle.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948522ED6669E00DCF85E /* osd-shuffle.png */; };
 		343948552ED6669E00DCF85E /* osd-repeat.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948512ED6669E00DCF85E /* osd-repeat.png */; };
@@ -196,7 +185,7 @@
 		464A49E82AB89D9100C77F6D /* liblzma.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49E72AB89D8300C77F6D /* liblzma.tbd */; };
 		464A49E92AB89D9D00C77F6D /* liblzma.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49E72AB89D8300C77F6D /* liblzma.tbd */; };
 		4665198F2ACC8C5100ADB56E /* IOSurface.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4665198E2ACC8C5000ADB56E /* IOSurface.framework */; };
-		466C2AAA2AFA5B8600ED939F /* libpng_universal.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 466C2AA92AFA5B8600ED939F /* libpng_universal.a */; };
+		466C2AAA2AFA5B8600ED939F /* libpng16.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 466C2AA92AFA5B8600ED939F /* libpng16.a */; };
 		467230B72AC17A9E00017C51 /* ESMetalView.m in Sources */ = {isa = PBXBuildFile; fileRef = 467230B62AC17A9E00017C51 /* ESMetalView.m */; };
 		467230B92AC17C0400017C51 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 467230B82AC17C0400017C51 /* MetalKit.framework */; };
 		467230BA2AC17E4600017C51 /* ESMetalView.m in Sources */ = {isa = PBXBuildFile; fileRef = 467230B62AC17A9E00017C51 /* ESMetalView.m */; };
@@ -208,11 +197,7 @@
 		467230C62AC18FDB00017C51 /* FontMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C42AC18FDB00017C51 /* FontMetal.mm */; };
 		467230C82AC1AE9D00017C51 /* TextureFlatMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C72AC1AE9D00017C51 /* TextureFlatMetal.mm */; };
 		467230C92AC1AE9D00017C51 /* TextureFlatMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C72AC1AE9D00017C51 /* TextureFlatMetal.mm */; };
-		467A64922B1F722E00510BEE /* libpng_universal.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 466C2AA92AFA5B8600ED939F /* libpng_universal.a */; };
-		A1BEE5700000000000000010 /* sio_beast.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A1BEE5700000000000000001 /* sio_beast.cpp */; };
-		A1BEE5700000000000000011 /* sio_beast.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A1BEE5700000000000000001 /* sio_beast.cpp */; };
-		A1BEE5700000000000000012 /* sio_beast.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A1BEE5700000000000000001 /* sio_beast.cpp */; };
-		A1BEE5700000000000000013 /* sio_beast.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A1BEE5700000000000000001 /* sio_beast.cpp */; };
+		467A64922B1F722E00510BEE /* libpng16.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 466C2AA92AFA5B8600ED939F /* libpng16.a */; };
 		467B6FC92AE6D031001C80CB /* EDreamClient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 467B6FC82AE6D031001C80CB /* EDreamClient.cpp */; };
 		467B6FCA2AE6D031001C80CB /* EDreamClient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 467B6FC82AE6D031001C80CB /* EDreamClient.cpp */; };
 		46C427BB2AF8F575009C3879 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 467230BC2AC17EAA00017C51 /* Metal.framework */; };
@@ -226,6 +211,18 @@
 		46ED5CB42AF5326A00AF8F45 /* DisplayMetal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 46ED5CB02AF5326A00AF8F45 /* DisplayMetal.cpp */; };
 		46FA9E1A2B03CB0500708000 /* ShaderMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 46FA9E192B03CB0500708000 /* ShaderMetal.mm */; };
 		46FA9E1B2B03CB0B00708000 /* ShaderMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 46FA9E192B03CB0500708000 /* ShaderMetal.mm */; };
+		799AB22CF2B44F56AEFC66ED /* ProgressiveHttpStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 967FB9FBC5B445FD99099352 /* ProgressiveHttpStream.cpp */; };
+		A10000000000000000000011 /* ESScreenSaverExtension.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* ESScreenSaverExtension.mm */; };
+		A10000000000000000000012 /* ESScreenSaverViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000004 /* ESScreenSaverViewController.mm */; };
+		A10000000000000000000013 /* ESScreenSaverExtension.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* ESScreenSaverExtension.mm */; };
+		A10000000000000000000014 /* ESScreenSaverViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000004 /* ESScreenSaverViewController.mm */; };
+		A10000000000000000000051 /* infinidream.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 218878D00EC6CD7E001ABD2E /* infinidream.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A10000000000000000000052 /* infinidream-stage.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = F0C100842C1372EF007FA505 /* infinidream-stage.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A1BEE5700000000000000010 /* sio_beast.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A1BEE5700000000000000001 /* sio_beast.cpp */; };
+		A1BEE5700000000000000011 /* sio_beast.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A1BEE5700000000000000001 /* sio_beast.cpp */; };
+		A1BEE5700000000000000012 /* sio_beast.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A1BEE5700000000000000001 /* sio_beast.cpp */; };
+		A1BEE5700000000000000013 /* sio_beast.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A1BEE5700000000000000001 /* sio_beast.cpp */; };
+		CF0BDFD8D80843548EBC36A2 /* ProgressiveHttpStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 967FB9FBC5B445FD99099352 /* ProgressiveHttpStream.cpp */; };
 		F0141B742C59115400DBA60E /* PathManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B732C59115400DBA60E /* PathManager.cpp */; };
 		F0141B752C59115500DBA60E /* PathManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B732C59115400DBA60E /* PathManager.cpp */; };
 		F0141B762C59115500DBA60E /* PathManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B732C59115400DBA60E /* PathManager.cpp */; };
@@ -415,7 +412,6 @@
 		F0C100412C1372EF007FA505 /* ESScreensaver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA540EC74853005E246D /* ESScreensaver.cpp */; };
 		F0C100422C1372EF007FA505 /* EDreamClient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 467B6FC82AE6D031001C80CB /* EDreamClient.cpp */; };
 		F0C100432C1372EF007FA505 /* Download.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDD60ED0BD9200EB9394 /* Download.cpp */; };
-		799AB22CF2B44F56AEFC66ED /* ProgressiveHttpStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 967FB9FBC5B445FD99099352 /* ProgressiveHttpStream.cpp */; };
 		F0C100442C1372EF007FA505 /* Networking.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDD80ED0BD9200EB9394 /* Networking.cpp */; };
 		F0C100452C1372EF007FA505 /* Upload.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDDA0ED0BD9200EB9394 /* Upload.cpp */; };
 		F0C100462C1372EF007FA505 /* DisplayMetal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 46ED5CB02AF5326A00AF8F45 /* DisplayMetal.cpp */; };
@@ -427,7 +423,7 @@
 		F0C100502C1372EF007FA505 /* ESConfiguration.mm in Sources */ = {isa = PBXBuildFile; fileRef = 21AAA0EE0F70453200AC23A8 /* ESConfiguration.mm */; };
 		F0C100522C1372EF007FA505 /* RendererMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C12AC1817500017C51 /* RendererMetal.mm */; };
 		F0C100552C1372EF007FA505 /* libboost_thread.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071D32C0E052B008219A4 /* libboost_thread.a */; };
-		F0C100562C1372EF007FA505 /* libpng_universal.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 466C2AA92AFA5B8600ED939F /* libpng_universal.a */; };
+		F0C100562C1372EF007FA505 /* libpng16.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 466C2AA92AFA5B8600ED939F /* libpng16.a */; };
 		F0C100572C1372EF007FA505 /* libboost_log_setup.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071CE2C0E052A008219A4 /* libboost_log_setup.a */; };
 		F0C100582C1372EF007FA505 /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 12D020022B83C86C0036357D /* libssl.a */; };
 		F0C100592C1372EF007FA505 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49DD2AB88E1A00C77F6D /* Security.framework */; };
@@ -522,7 +518,6 @@
 		F0E9CE6D2C136B0500C4D694 /* Rect.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 214B75060EBBA78900B5B897 /* Rect.cpp */; };
 		F0E9CE6E2C136B0500C4D694 /* ESMetalView.m in Sources */ = {isa = PBXBuildFile; fileRef = 467230B62AC17A9E00017C51 /* ESMetalView.m */; };
 		F0E9CE6F2C136B0500C4D694 /* Download.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDD60ED0BD9200EB9394 /* Download.cpp */; };
-		301D08773F784ABCB52C0F43 /* ProgressiveHttpStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 967FB9FBC5B445FD99099352 /* ProgressiveHttpStream.cpp */; };
 		F0E9CE702C136B0500C4D694 /* Networking.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDD80ED0BD9200EB9394 /* Networking.cpp */; };
 		F0E9CE712C136B0500C4D694 /* Upload.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDDA0ED0BD9200EB9394 /* Upload.cpp */; };
 		F0E9CE722C136B0500C4D694 /* ContentDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212313190F503C4500702B2C /* ContentDownloader.cpp */; };
@@ -533,7 +528,7 @@
 		F0E9CE7B2C136B0500C4D694 /* ESScreensaver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA540EC74853005E246D /* ESScreensaver.cpp */; };
 		F0E9CE7C2C136B0500C4D694 /* ESConfiguration.mm in Sources */ = {isa = PBXBuildFile; fileRef = 21AAA0EE0F70453200AC23A8 /* ESConfiguration.mm */; };
 		F0E9CE7D2C136B0500C4D694 /* DisplayMetal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 46ED5CB02AF5326A00AF8F45 /* DisplayMetal.cpp */; };
-		F0E9CE7F2C136B0500C4D694 /* libpng_universal.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 466C2AA92AFA5B8600ED939F /* libpng_universal.a */; };
+		F0E9CE7F2C136B0500C4D694 /* libpng16.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 466C2AA92AFA5B8600ED939F /* libpng16.a */; };
 		F0E9CE802C136B0500C4D694 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 467230BC2AC17EAA00017C51 /* Metal.framework */; };
 		F0E9CE812C136B0500C4D694 /* libboost_log_setup.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071CE2C0E052A008219A4 /* libboost_log_setup.a */; };
 		F0E9CE822C136B0500C4D694 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 467230B82AC17C0400017C51 /* MetalKit.framework */; };
@@ -600,21 +595,6 @@
 /* End PBXBuildRule section */
 
 /* Begin PBXContainerItemProxy section */
-		A10000000000000000000042 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 08FB7793FE84155DC02AAC07 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 218878CF0EC6CD7E001ABD2E;
-			remoteInfo = "ScreenSaver Prod";
-		};
-		A10000000000000000000044 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 08FB7793FE84155DC02AAC07 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = F0C100012C1372EF007FA505;
-			remoteInfo = "ScreenSaver stage";
-		};
-
 		12726C232B6BF538003C0FF6 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 08FB7793FE84155DC02AAC07 /* Project object */;
@@ -629,33 +609,23 @@
 			remoteGlobalIDString = 2160FAAC0F30F43600B2C27A;
 			remoteInfo = "e-dream App";
 		};
+		A10000000000000000000042 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 08FB7793FE84155DC02AAC07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 218878CF0EC6CD7E001ABD2E;
+			remoteInfo = "ScreenSaver Prod";
+		};
+		A10000000000000000000044 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 08FB7793FE84155DC02AAC07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F0C100012C1372EF007FA505;
+			remoteInfo = "ScreenSaver stage";
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		A10000000000000000000031 /* Embed App Extensions */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 13;
-			files = (
-				A10000000000000000000051 /* infinidream.appex in Embed App Extensions */,
-			);
-			name = "Embed App Extensions";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-
-		A10000000000000000000032 /* Embed App Extensions */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 13;
-			files = (
-				A10000000000000000000052 /* infinidream-stage.appex in Embed App Extensions */,
-			);
-			name = "Embed App Extensions";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-
 		215542511261FE2100AB51BF /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -694,6 +664,28 @@
 			files = (
 				2160FEED0F30F9FB00B2C27A /* logo.png in CopyFiles */,
 			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A10000000000000000000031 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A10000000000000000000051 /* infinidream.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A10000000000000000000032 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A10000000000000000000052 /* infinidream-stage.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		F0C100792C1372EF007FA505 /* CopyFiles */ = {
@@ -811,8 +803,6 @@
 		211CDDD60ED0BD9200EB9394 /* Download.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Download.cpp; sourceTree = "<group>"; };
 		211CDDD80ED0BD9200EB9394 /* Networking.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Networking.cpp; sourceTree = "<group>"; };
 		211CDDDA0ED0BD9200EB9394 /* Upload.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Upload.cpp; sourceTree = "<group>"; };
-		967FB9FBC5B445FD99099352 /* ProgressiveHttpStream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ProgressiveHttpStream.cpp; sourceTree = "<group>"; };
-		8DE72BA2E7984A16A934E796 /* ProgressiveHttpStream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ProgressiveHttpStream.h; sourceTree = "<group>"; };
 		211CDDEB0ED0BE8300EB9394 /* libcurl.4.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libcurl.4.dylib; path = usr/lib/libcurl.4.dylib; sourceTree = SDKROOT; };
 		212313190F503C4500702B2C /* ContentDownloader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ContentDownloader.cpp; sourceTree = "<group>"; };
 		2123131A0F503C4500702B2C /* ContentDownloader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ContentDownloader.h; sourceTree = "<group>"; };
@@ -839,13 +829,6 @@
 		212B1ADD0E8E6E5000CE185C /* libbz2.1.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libbz2.1.0.dylib; path = usr/lib/libbz2.1.0.dylib; sourceTree = SDKROOT; };
 		2135D2670EC70571005E246D /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
 		2135DA520EC7479A005E246D /* ESScreensaverView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ESScreensaverView.mm; sourceTree = "<group>"; };
-		A10000000000000000000001 /* ESScreenSaverExtension.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ESScreenSaverExtension.h; sourceTree = "<group>"; };
-		A10000000000000000000002 /* ESScreenSaverExtension.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ESScreenSaverExtension.mm; sourceTree = "<group>"; };
-		A10000000000000000000003 /* ESScreenSaverViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ESScreenSaverViewController.h; sourceTree = "<group>"; };
-		A10000000000000000000004 /* ESScreenSaverViewController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ESScreenSaverViewController.mm; sourceTree = "<group>"; };
-		A10000000000000000000005 /* ScreenSaverPrivate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ScreenSaverPrivate.h; path = PrivateHeaders/ScreenSaverPrivate.h; sourceTree = "<group>"; };
-		A10000000000000000000006 /* Screensaver.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Screensaver.entitlements; sourceTree = "<group>"; };
-
 		2135DA540EC74853005E246D /* ESScreensaver.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ESScreensaver.cpp; sourceTree = "<group>"; };
 		2135DB240EC75133005E246D /* ScreenSaver.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ScreenSaver.framework; path = System/Library/Frameworks/ScreenSaver.framework; sourceTree = SDKROOT; };
 		213D529B11F79B0000CF500D /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
@@ -905,7 +888,6 @@
 		467230C42AC18FDB00017C51 /* FontMetal.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = FontMetal.mm; path = ../../DisplayOutput/Metal/FontMetal.mm; sourceTree = "<group>"; };
 		467230C72AC1AE9D00017C51 /* TextureFlatMetal.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = TextureFlatMetal.mm; path = ../../DisplayOutput/Metal/TextureFlatMetal.mm; sourceTree = "<group>"; };
 		467B6FC72AE6CFFB001C80CB /* EDreamClient.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = EDreamClient.h; path = ../Networking/EDreamClient.h; sourceTree = "<group>"; };
-		A1BEE5700000000000000001 /* sio_beast.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = sio_beast.cpp; path = ../Networking/sio/sio_beast.cpp; sourceTree = "<group>"; };
 		467B6FC82AE6D031001C80CB /* EDreamClient.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = EDreamClient.cpp; path = ../Networking/EDreamClient.cpp; sourceTree = "<group>"; };
 		46D2E8E62AFBA57E0054049D /* ESMetalView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ESMetalView.h; path = ../../DisplayOutput/Metal/ESMetalView.h; sourceTree = "<group>"; };
 		46D2E8F52AFBAE230054049D /* Font.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Font.h; path = ../DisplayOutput/Renderer/Font.h; sourceTree = "<group>"; };
@@ -923,6 +905,15 @@
 		46ED5CB02AF5326A00AF8F45 /* DisplayMetal.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = DisplayMetal.cpp; path = ../../DisplayOutput/Metal/DisplayMetal.cpp; sourceTree = "<group>"; };
 		46FA9E182B03CB0500708000 /* ShaderMetal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShaderMetal.h; sourceTree = "<group>"; };
 		46FA9E192B03CB0500708000 /* ShaderMetal.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ShaderMetal.mm; sourceTree = "<group>"; };
+		8DE72BA2E7984A16A934E796 /* ProgressiveHttpStream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ProgressiveHttpStream.h; sourceTree = "<group>"; };
+		967FB9FBC5B445FD99099352 /* ProgressiveHttpStream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ProgressiveHttpStream.cpp; sourceTree = "<group>"; };
+		A10000000000000000000001 /* ESScreenSaverExtension.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ESScreenSaverExtension.h; sourceTree = "<group>"; };
+		A10000000000000000000002 /* ESScreenSaverExtension.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ESScreenSaverExtension.mm; sourceTree = "<group>"; };
+		A10000000000000000000003 /* ESScreenSaverViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ESScreenSaverViewController.h; sourceTree = "<group>"; };
+		A10000000000000000000004 /* ESScreenSaverViewController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ESScreenSaverViewController.mm; sourceTree = "<group>"; };
+		A10000000000000000000005 /* ScreenSaverPrivate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ScreenSaverPrivate.h; path = PrivateHeaders/ScreenSaverPrivate.h; sourceTree = "<group>"; };
+		A10000000000000000000006 /* Screensaver.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Screensaver.entitlements; sourceTree = "<group>"; };
+		A1BEE5700000000000000001 /* sio_beast.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = sio_beast.cpp; path = ../Networking/sio/sio_beast.cpp; sourceTree = "<group>"; };
 		F0141B722C59115400DBA60E /* PathManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PathManager.h; sourceTree = "<group>"; };
 		F0141B732C59115400DBA60E /* PathManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PathManager.cpp; sourceTree = "<group>"; };
 		F0141B782C5925C900DBA60E /* ServerConfig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ServerConfig.h; sourceTree = "<group>"; };
@@ -1004,7 +995,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				466C2AAA2AFA5B8600ED939F /* libpng_universal.a in Frameworks */,
+				466C2AAA2AFA5B8600ED939F /* libpng16.a in Frameworks */,
 				467230BD2AC17EAA00017C51 /* Metal.framework in Frameworks */,
 				F0141B9E2C663E8900DBA60E /* libswscale.a in Frameworks */,
 				F07071D62C0E05DA008219A4 /* libboost_log_setup.a in Frameworks */,
@@ -1048,7 +1039,7 @@
 			files = (
 				F082D4412CBD5CA4001934FB /* Bugsnag in Frameworks */,
 				F0C100002C1372C4007FA505 /* libboost_thread.a in Frameworks */,
-				467A64922B1F722E00510BEE /* libpng_universal.a in Frameworks */,
+				467A64922B1F722E00510BEE /* libpng16.a in Frameworks */,
 				F0C1FFFD2C1372C4007FA505 /* libboost_log_setup.a in Frameworks */,
 				F0141B942C663E2700DBA60E /* libavformat.a in Frameworks */,
 				12440CBC2B85F4DF00A23253 /* libssl.a in Frameworks */,
@@ -1088,7 +1079,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F0C100552C1372EF007FA505 /* libboost_thread.a in Frameworks */,
-				F0C100562C1372EF007FA505 /* libpng_universal.a in Frameworks */,
+				F0C100562C1372EF007FA505 /* libpng16.a in Frameworks */,
 				F0C100572C1372EF007FA505 /* libboost_log_setup.a in Frameworks */,
 				F0C100582C1372EF007FA505 /* libssl.a in Frameworks */,
 				F0C100592C1372EF007FA505 /* Security.framework in Frameworks */,
@@ -1128,7 +1119,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F0E9CE7F2C136B0500C4D694 /* libpng_universal.a in Frameworks */,
+				F0E9CE7F2C136B0500C4D694 /* libpng16.a in Frameworks */,
 				F0E9CE802C136B0500C4D694 /* Metal.framework in Frameworks */,
 				F0141BAC2C663F1500DBA60E /* libswscale.a in Frameworks */,
 				F0E9CE812C136B0500C4D694 /* libboost_log_setup.a in Frameworks */,
@@ -1525,7 +1516,7 @@
 				F07071D32C0E052B008219A4 /* libboost_thread.a */,
 				12579D482B83C91E00604B41 /* libcrypto.a */,
 				12D020022B83C86C0036357D /* libssl.a */,
-				466C2AA92AFA5B8600ED939F /* libpng_universal.a */,
+				466C2AA92AFA5B8600ED939F /* libpng16.a */,
 				4665198E2ACC8C5000ADB56E /* IOSurface.framework */,
 				467230BC2AC17EAA00017C51 /* Metal.framework */,
 				467230B82AC17C0400017C51 /* MetalKit.framework */,
@@ -2258,17 +2249,6 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		A10000000000000000000041 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 218878CF0EC6CD7E001ABD2E /* ScreenSaver Prod */;
-			targetProxy = A10000000000000000000042 /* PBXContainerItemProxy */;
-		};
-		A10000000000000000000043 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = F0C100012C1372EF007FA505 /* ScreenSaver stage */;
-			targetProxy = A10000000000000000000044 /* PBXContainerItemProxy */;
-		};
-
 		12726C242B6BF538003C0FF6 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 218878CF0EC6CD7E001ABD2E /* ScreenSaver Prod */;
@@ -2278,6 +2258,16 @@
 			isa = PBXTargetDependency;
 			target = 2160FAAC0F30F43600B2C27A /* infinidream App Prod */;
 			targetProxy = 12726C252B6BF53B003C0FF6 /* PBXContainerItemProxy */;
+		};
+		A10000000000000000000041 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 218878CF0EC6CD7E001ABD2E /* ScreenSaver Prod */;
+			targetProxy = A10000000000000000000042 /* PBXContainerItemProxy */;
+		};
+		A10000000000000000000043 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F0C100012C1372EF007FA505 /* ScreenSaver stage */;
+			targetProxy = A10000000000000000000044 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -2473,13 +2463,13 @@
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = "infinidream App.entitlements";
-				CODE_SIGN_IDENTITY = "";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = "";
+				DEVELOPMENT_TEAM = BNXH8TLP5D;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
@@ -2613,18 +2603,19 @@
 		218878D20EC6CD7F001ABD2E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
 				BUILD_VARIANTS = normal;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
 				CLANG_CXX_LIBRARY = "libc++";
-				CODE_SIGN_IDENTITY = "";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_ENTITLEMENTS = Screensaver.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = FCG855WTXV;
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = "";
+				DEVELOPMENT_TEAM = BNXH8TLP5D;
 				ENABLE_NS_ASSERTIONS = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -2646,8 +2637,6 @@
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				APPLICATION_EXTENSION_API_ONLY = YES;
-				CODE_SIGN_ENTITLEMENTS = Screensaver.entitlements;
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/PrivateHeaders",
@@ -2676,9 +2665,11 @@
 		218878D30EC6CD7F001ABD2E /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
 				BUILD_VARIANTS = normal;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
 				CLANG_CXX_LIBRARY = "libc++";
+				CODE_SIGN_ENTITLEMENTS = Screensaver.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
@@ -2709,8 +2700,6 @@
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				APPLICATION_EXTENSION_API_ONLY = YES;
-				CODE_SIGN_ENTITLEMENTS = Screensaver.entitlements;
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/PrivateHeaders",
@@ -2744,18 +2733,19 @@
 		F0C100822C1372EF007FA505 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
 				BUILD_VARIANTS = normal;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
 				CLANG_CXX_LIBRARY = "libc++";
-				CODE_SIGN_IDENTITY = "";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_ENTITLEMENTS = Screensaver.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = FCG855WTXV;
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = "";
+				DEVELOPMENT_TEAM = J4KXDFT4C5;
 				ENABLE_NS_ASSERTIONS = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -2778,8 +2768,6 @@
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				APPLICATION_EXTENSION_API_ONLY = YES;
-				CODE_SIGN_ENTITLEMENTS = Screensaver.entitlements;
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/PrivateHeaders",
@@ -2808,17 +2796,20 @@
 		F0C100832C1372EF007FA505 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
 				BUILD_VARIANTS = normal;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
 				CLANG_CXX_LIBRARY = "libc++";
+				CODE_SIGN_ENTITLEMENTS = Screensaver.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = YES;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEPLOYMENT_POSTPROCESSING = NO;
-				DEVELOPMENT_TEAM = BNXH8TLP5D;
+				DEVELOPMENT_TEAM = J4KXDFT4C5;
 				ENABLE_NS_ASSERTIONS = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -2841,8 +2832,6 @@
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				APPLICATION_EXTENSION_API_ONLY = YES;
-				CODE_SIGN_ENTITLEMENTS = Screensaver.entitlements;
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/PrivateHeaders",
@@ -2884,13 +2873,13 @@
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = "infinidream App.entitlements";
-				CODE_SIGN_IDENTITY = "";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = "";
+				DEVELOPMENT_TEAM = J4KXDFT4C5;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -2960,12 +2949,13 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = "infinidream AppRelease.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = YES;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = BNXH8TLP5D;
+				DEVELOPMENT_TEAM = J4KXDFT4C5;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
