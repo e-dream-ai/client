@@ -63,19 +63,47 @@
     [self setNeedsDisplay:YES];
 }
 
+- (void)_updateMetalDrawableSize
+{
+    if (self.layer.sublayers.count == 0)
+        return;
+    CAMetalLayer* metalLayer = (CAMetalLayer*)self.layer.sublayers[0];
+    CGFloat scale = self.window.backingScaleFactor;
+    if (scale <= 0)
+        scale = NSScreen.mainScreen.backingScaleFactor;
+    if (scale <= 0)
+        scale = 1.0;
+    CGSize size = self.bounds.size;
+    // WallpaperAgent/System Settings attach at 0×0 before remoteViewSizeChanged;
+    // never ask Metal for a zero-sized drawable.
+    if (size.width < 1.0 || size.height < 1.0)
+        return;
+    size.width *= scale;
+    size.height *= scale;
+    if (!CGSizeEqualToSize(metalLayer.drawableSize, size))
+        metalLayer.drawableSize = size;
+}
+
+- (void)layout
+{
+    [super layout];
+    [self _updateMetalDrawableSize];
+}
+
 - (void)viewDidEndLiveResize
 {
     [super viewDidEndLiveResize];
-    CAMetalLayer* metalLayer = (CAMetalLayer*)self.layer.sublayers[0];
-    CGSize size = self.bounds.size;
-    size.width *= [NSScreen mainScreen].backingScaleFactor;
-    size.height *= [NSScreen mainScreen].backingScaleFactor;
-    metalLayer.drawableSize = size;
+    [self _updateMetalDrawableSize];
 }
 
 - (void)drawRect:(NSRect)dirtyRect
 {
+    if (self.bounds.size.width < 1.0 || self.bounds.size.height < 1.0)
+        return;
+    if (self.layer.sublayers.count == 0)
+        return;
     CAMetalLayer* metalLayer = (CAMetalLayer*)self.layer.sublayers[0];
+    [self _updateMetalDrawableSize];
     metalLayer.bounds = self.layer.bounds;
     metalLayer.frame = self.bounds;
     id<CAMetalDrawable> drawable = [metalLayer nextDrawable];

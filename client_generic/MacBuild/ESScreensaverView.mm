@@ -30,6 +30,7 @@ static std::atomic<int> s_activeEngineViews{0};
 #ifdef SCREEN_SAVER
     BOOL m_graphicsContextAdded;  // AddGraphicsContext once per view (startAnimation may re-enter)
     NSTimer *m_screenCheckTimer;  // Fallback when macOS never calls stopAnimation
+    NSSize m_lastLaidOutSize;     // Avoid ForceWidthAndHeight on every layout pass
 #endif
 }
 
@@ -60,6 +61,7 @@ static std::atomic<int> s_activeEngineViews{0};
 #ifdef SCREEN_SAVER
     m_graphicsContextAdded = NO;
     m_screenCheckTimer = nil;
+    m_lastLaidOutSize = NSZeroSize;
 #endif
 
     m_isPreview = isPreview;
@@ -160,6 +162,36 @@ static BOOL ESWindowIsKnownOffscreen(NSWindow *win)
 }
 #endif
 
+#ifdef SCREEN_SAVER
+// Recompute letterboxed video rect from the current view bounds. Init often
+// sees NSZeroRect; WallpaperAgent sizes the remote view after attach.
+- (void)_recomputeVideoRectFromBounds
+{
+    NSRect frame = self.bounds;
+    NSRect newFrame = frame;
+    newFrame.origin.x = 0.0;
+    newFrame.origin.y = 0.0;
+
+    m_shouldRotate =
+        ESScreensaver_GetBoolSetting("settings.player.rotate_portrait", false) &&
+        (frame.size.width < frame.size.height);
+
+    if (ESScreensaver_GetBoolSetting("settings.player.preserve_AR", true) &&
+        frame.size.width > 0.0 && frame.size.height > 0.0) {
+        float targetAR = m_shouldRotate ? (9.0f / 16.0f) : (16.0f / 9.0f);
+        if (newFrame.size.width / newFrame.size.height > targetAR)
+        {
+            newFrame.size = CGSizeMake(newFrame.size.height * targetAR, newFrame.size.height);
+            newFrame.origin.x = (frame.size.width - newFrame.size.width) / 2;
+        } else {
+            newFrame.size = CGSizeMake(newFrame.size.width, newFrame.size.width / targetAR);
+            newFrame.origin.y = (frame.size.height - newFrame.size.height) / 2;
+        }
+    }
+    theRect = newFrame;
+}
+#endif
+
 - (void)startAnimation
 {
 #ifdef SCREEN_SAVER
@@ -168,6 +200,21 @@ static BOOL ESWindowIsKnownOffscreen(NSWindow *win)
     if (!m_isPreview && ESScreensaver_IsSecondaryInstance()) {
         g_Log->Info("Secondary screensaver instance — starting in multiple-instances mode");
     }
+
+    // Host attaches at 0×0 then sizes ~15–25ms later. Starting the shared engine
+    // at 0×0 yields a dead Metal drawable and races teardown when the host
+    // briefly detaches before sizing (SIGSEGV during buffering in logs).
+    if (NSWidth(self.bounds) < 1.0 || NSHeight(self.bounds) < 1.0) {
+        if (g_Log) {
+            g_Log->Info("Saver startAnimation deferred (bounds %.0fx%.0f, preview=%d)",
+                        self.bounds.size.width, self.bounds.size.height,
+                        (int)m_isPreview);
+        }
+        [super startAnimation];
+        return;
+    }
+
+    [self _recomputeVideoRectFromBounds];
 #endif
 
     //g_Log->Error("Test error 2");
@@ -239,7 +286,7 @@ static BOOL ESWindowIsKnownOffscreen(NSWindow *win)
 
 #ifdef SCREEN_SAVER
         g_Log->Info("Saver startAnimation on %f %f (preview=%d)",
-                    self.frame.size.width, self.frame.size.height, (int)m_isPreview);
+                    self.bounds.size.width, self.bounds.size.height, (int)m_isPreview);
 #endif
        
         [self _beginThread];
@@ -334,10 +381,13 @@ static BOOL ESWindowIsKnownOffscreen(NSWindow *win)
 
 static void signnal_handler(int signal)
 {
-    if (signal == SIGSEGV || signal == SIGTERM || signal == SIGKILL)
+    // Do not catch SIGSEGV — that masked real crashes (screensaver was dying
+    // mid-buffer with "RECEIVED SIGSEGV" and never filling frames). Only handle
+    // graceful terminate requests.
+    if (signal == SIGTERM)
     {
-        g_Log->Info("RECEIVED SIGSEGV");
-        //g_Log->Shutdown();
+        if (g_Log)
+            g_Log->Info("RECEIVED SIGTERM");
         exit(0);
     }
 }
@@ -367,7 +417,7 @@ static void signnal_handler(int signal)
            selector:@selector(onSleepNote:)
                name:NSNotificationName(@"com.apple.screensaver.didstop")
              object:nil];
-    std::signal(SIGSEGV, signnal_handler);
+    std::signal(SIGTERM, signnal_handler);
 }
 
 - (void)willStop:(NSNotification*)notification
@@ -402,10 +452,29 @@ static void signnal_handler(int signal)
     [super viewDidMoveToWindow];
     if (self.window != nil) {
         if (!m_bStarted && !m_bPausedForSheet)
-            [self startAnimation];
+            [self startAnimation]; // no-ops until bounds are non-zero
     } else {
         if (m_bStarted)
             [self stopAnimation];
+    }
+}
+
+// remoteViewSizeChanged lands as a layout pass; start (or resize) once we have
+// a real frame so Metal/engine are not created at 0×0.
+- (void)layout
+{
+    [super layout];
+    if (self.window == nil)
+        return;
+    NSSize size = self.bounds.size;
+    if (size.width < 1.0 || size.height < 1.0)
+        return;
+    if (!m_bStarted && !m_bPausedForSheet) {
+        [self startAnimation];
+        m_lastLaidOutSize = size;
+    } else if (m_bStarted && !NSEqualSizes(size, m_lastLaidOutSize)) {
+        m_lastLaidOutSize = size;
+        [self windowDidResize];
     }
 }
 #endif
@@ -804,7 +873,11 @@ static void hideSkipButtonInView(NSView *view)
 #endif
 {
     DEBUG_LOG("DRAW_IN_METAL_VIEW");
-    if (!m_isStopped)
+    if (!m_isStopped && m_bStarted
+#ifdef SCREEN_SAVER
+        && NSWidth(self.bounds) >= 1.0 && NSHeight(self.bounds) >= 1.0
+#endif
+        )
     {
         @autoreleasepool
         {
