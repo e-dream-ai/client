@@ -327,6 +327,9 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
         ~Cleanup() {
             g_NetworkManager->Remove(progressName);
             if (!committed) {
+                g_Log->Info("Stopping uncommitted prefetch %s (readers=%d done=%d finished=%d)",
+                            stream.Label().c_str(), stream.Readers(),
+                            stream.Done() ? 1 : 0, stream.Finished() ? 1 : 0);
                 stream.Stop();
                 std::error_code ec;
                 fs::remove(tmpPath, ec);
@@ -335,6 +338,7 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
     } cleanup{progressName, *stream, tmpPath, committed};
 
     auto& playlistMgr = g_Player().GetPlaylistManager();
+    bool loggedUnpublished = false;
     while (!stream->Done()) {
         if (playlistPrefetch && !playlistMgr.containsDream(uuid)) {
             // Unpublish first so no clip can attach while we decide.
@@ -343,6 +347,11 @@ bool DreamDownloader::DownloadDream(const std::string& uuid, const std::string& 
                 g_Log->Info("Cancelling prefetch of %s: no longer in the playlist", uuid.c_str());
                 SetDownloadStatus("");
                 return false;
+            }
+            if (!loggedUnpublished) {
+                loggedUnpublished = true;
+                g_Log->Info("Prefetch of %s no longer in the playlist; unpublished, "
+                            "keeping it for %d reader(s)", uuid.c_str(), stream->Readers());
             }
         }
 

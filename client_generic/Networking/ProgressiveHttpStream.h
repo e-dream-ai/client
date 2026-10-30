@@ -70,6 +70,10 @@ class ProgressiveHttpStream
     void RemoveReader() { --m_readers; }
     int Readers() const { return m_readers.load(); }
 
+    // "<cache file name>@<this>" for logs, so lines from different streams
+    // of the same dream can be told apart (client#728).
+    const std::string& Label() const { return m_label; }
+
     struct TransferState
     {
         ProgressiveHttpStream* self = nullptr;
@@ -92,9 +96,12 @@ class ProgressiveHttpStream
     int64_t AvailableFromLocked(int64_t pos) const;
     bool ShouldAbortDownload() const;
     bool ShouldInterruptRead(const Cursor& cursor) const;
+    // Which ShouldAbortDownload() condition holds right now, or "none".
+    const char* AbortReason() const;
 
     std::string m_url;
     std::string m_cachePath;
+    std::string m_label;
     AbortFn m_downloadAbort;
 
     mutable std::mutex m_mutex;

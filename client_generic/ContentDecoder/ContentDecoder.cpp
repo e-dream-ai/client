@@ -355,7 +355,8 @@ bool CContentDecoder::Open()
         m_httpStreamShared = m_httpStream != nullptr;
         if (m_httpStreamShared)
         {
-            g_Log->Info("Attaching to in-flight download of %s", uuid.c_str());
+            g_Log->Info("Attaching to in-flight download of %s (%s)", uuid.c_str(),
+                        m_httpStream->Label().c_str());
         }
         else
         {
@@ -379,7 +380,9 @@ bool CContentDecoder::Open()
             }
             // Keeps the prefetcher off this dream while we stream it. Another
             // clip of the same dream may already hold the entry; that's fine.
-            registry.AddPrivate(uuid, m_httpStream);
+            const bool registered = registry.AddPrivate(uuid, m_httpStream);
+            g_Log->Info("Private download of %s (%s, registered=%d)", uuid.c_str(),
+                        m_httpStream->Label().c_str(), registered ? 1 : 0);
         }
 
         constexpr int kIOBufferSize = 32768;
@@ -682,6 +685,11 @@ void CContentDecoder::ReleaseStream()
 {
     if (!m_httpStream)
         return;
+    g_Log->Info("Releasing %s download of %s (%s, readers=%d done=%d finished=%d)",
+                m_httpStreamShared ? "shared" : "private",
+                m_Metadata.dreamData.uuid.c_str(), m_httpStream->Label().c_str(),
+                m_httpStream->Readers(), m_httpStream->Done() ? 1 : 0,
+                m_httpStream->Finished() ? 1 : 0);
     StopOwnedStream();
     if (m_httpStreamShared)
         m_httpStream->RemoveReader();

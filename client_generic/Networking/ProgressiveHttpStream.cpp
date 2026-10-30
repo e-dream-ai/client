@@ -214,6 +214,9 @@ bool ProgressiveHttpStream::Start(const std::string& url,
         std::lock_guard<std::mutex> lock(m_mutex);
         m_url = url;
         m_cachePath = cachePath;
+        char self[32];
+        snprintf(self, sizeof(self), "@%p", static_cast<void*>(this));
+        m_label = std::filesystem::path(cachePath).filename().string() + self;
         m_downloadAbort = std::move(downloadAbort);
         m_file = file;
         m_filled.clear();
@@ -301,6 +304,18 @@ bool ProgressiveHttpStream::ShouldAbortDownload() const
         g_NetworkManager->IsAborted())
         return true;
     return false;
+}
+
+const char* ProgressiveHttpStream::AbortReason() const
+{
+    if (m_stop.load())
+        return "stop";
+    if (m_downloadAbort && m_downloadAbort())
+        return "downloadAbort";
+    if (g_NetworkManager && g_NetworkManager->SingletonActive() &&
+        g_NetworkManager->IsAborted())
+        return "network";
+    return "none";
 }
 
 bool ProgressiveHttpStream::ShouldInterruptRead(const Cursor& cursor) const
@@ -508,7 +523,7 @@ bool ProgressiveHttpStream::RunTransfer(int64_t startOffset)
 
 void ProgressiveHttpStream::WorkerMain()
 {
-    g_Log->Info("ProgressiveHttpStream: worker start");
+    g_Log->Info("ProgressiveHttpStream: worker start %s", m_label.c_str());
 
     constexpr int kMaxTransferRetries = 3;
     int consecutiveFailures = 0;
@@ -590,10 +605,23 @@ void ProgressiveHttpStream::WorkerMain()
         }
     }
 
+    // Read before m_done: the reason may revert later (client#728).
+    const char* reason = AbortReason();
+    int64_t contig = 0;
+    int64_t length = 0;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        contig = ContiguousEndLocked();
+        length = m_contentLength;
+    }
     m_done.store(true);
     m_cv.notify_all();
-    g_Log->Info("ProgressiveHttpStream: worker end (finished=%d failed=%d)",
-                m_finished.load() ? 1 : 0, m_failed.load() ? 1 : 0);
+    g_Log->Info("ProgressiveHttpStream: worker end %s (finished=%d failed=%d "
+                "reason=%s contiguous=%lld/%lld readers=%d)",
+                m_label.c_str(), m_finished.load() ? 1 : 0,
+                m_failed.load() ? 1 : 0, reason,
+                static_cast<long long>(contig), static_cast<long long>(length),
+                m_readers.load());
 }
 
 int ProgressiveHttpStream::Read(Cursor& cursor, uint8_t* buf, int size)
@@ -602,6 +630,8 @@ int ProgressiveHttpStream::Read(Cursor& cursor, uint8_t* buf, int size)
         return 0;
 
     std::unique_lock<std::mutex> lock(m_mutex);
+    const auto waitStart = std::chrono::steady_clock::now();
+    auto nextWarn = waitStart + std::chrono::seconds(10);
     while (true)
     {
         if (ShouldInterruptRead(cursor))
@@ -609,6 +639,23 @@ int ProgressiveHttpStream::Read(Cursor& cursor, uint8_t* buf, int size)
 
         if (m_failed.load() || !m_file)
             return -1;
+
+        // A read that never returns hangs its clip (client#728).
+        const auto now = std::chrono::steady_clock::now();
+        if (now >= nextWarn)
+        {
+            nextWarn = now + std::chrono::seconds(10);
+            g_Log->Warning(
+                "ProgressiveHttpStream: read waiting %llds on %s at %lld "
+                "(contiguous=%lld/%lld workerDone=%d reason=%s readers=%d)",
+                static_cast<long long>(
+                    std::chrono::duration_cast<std::chrono::seconds>(
+                        now - waitStart).count()),
+                m_label.c_str(), static_cast<long long>(cursor.pos),
+                static_cast<long long>(ContiguousEndLocked()),
+                static_cast<long long>(m_contentLength), m_done.load() ? 1 : 0,
+                AbortReason(), m_readers.load());
+        }
 
         if (m_contentLength >= 0 && cursor.pos >= m_contentLength)
             return 0;
@@ -713,6 +760,8 @@ void DownloadRegistry::Publish(const std::string& id,
         auto it = m_entries.find(id);
         if (it == m_entries.end() || !it->second.shareable || it->second.stream)
             return;
+        g_Log->Info("DownloadRegistry: publish %s -> %s", id.c_str(),
+                    stream->Label().c_str());
         it->second.stream = std::move(stream);
     }
     m_cv.notify_all();
@@ -733,6 +782,8 @@ void DownloadRegistry::Remove(const std::string& id,
         auto it = m_entries.find(id);
         if (it == m_entries.end() || it->second.stream.get() != stream)
             return;
+        g_Log->Info("DownloadRegistry: remove %s (%s)", id.c_str(),
+                    stream ? stream->Label().c_str() : "unpublished claim");
         m_entries.erase(it);
     }
     m_cv.notify_all();
@@ -758,8 +809,15 @@ DownloadRegistry::Attach(const std::string& id,
         {
             // Under m_mutex, so an owner that Remove()s and then sees no
             // readers knows none can attach any more.
-            it->second.stream->AddReader();
-            return it->second.stream;
+            const auto& stream = it->second.stream;
+            stream->AddReader();
+            // A Done() unfinished stream here is the client#728 hang.
+            g_Log->Info("DownloadRegistry: attach %s -> %s (readers=%d "
+                        "done=%d finished=%d failed=%d)",
+                        id.c_str(), stream->Label().c_str(), stream->Readers(),
+                        stream->Done() ? 1 : 0, stream->Finished() ? 1 : 0,
+                        stream->Failed() ? 1 : 0);
+            return stream;
         }
         // Claimed: the prefetcher is fetching the signed URL. Poll so
         // interrupt is honored even without a notify.
