@@ -469,12 +469,9 @@ def step1_build_screensaver(config: BuildConfig) -> Path:
             'OTHER_CODE_SIGN_FLAGS=--timestamp',
         ]
     else:
-        # Debug build without code signing
-        args = common_args + [
-            'CODE_SIGN_IDENTITY=',
-            'CODE_SIGNING_REQUIRED=NO',
-            'CODE_SIGNING_ALLOWED=NO',
-        ]
+        # Debug: leave signing to the Xcode project (Automatic / Apple
+        # Development). Unsigned appexes are often ignored by PlugInKit.
+        args = common_args
 
     run_xcodebuild(args, env=env)
 
@@ -518,10 +515,10 @@ def step1_build_screensaver(config: BuildConfig) -> Path:
 
 
 def copy_screensaver(config: BuildConfig, source_path: Path) -> tuple[Path, Path, Path]:
-    """Copy .appex to output for notarization/distribution.
+    """Copy .appex to output and MacBuild/Resources for notarization/staple.
 
-    The app embeds the appex via an Xcode \"Embed App Extensions\" phase
-    (Contents/PlugIns/), so Resources/ is no longer used for install.
+    Runtime install uses the appex embedded by Xcode under Contents/PlugIns/;
+    the Resources/ copy is only for the notarize/staple steps below.
     """
     output_dir = config.build_dir / config.build_config
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -700,11 +697,9 @@ def step3_archive_app(config: BuildConfig) -> Path:
             'OTHER_CODE_SIGN_FLAGS=--timestamp',
         ]
     else:
-        args = common_args + [
-            'CODE_SIGN_IDENTITY=',
-            'CODE_SIGNING_REQUIRED=NO',
-            'CODE_SIGNING_ALLOWED=NO',
-        ]
+        # Debug: use project signing (Apple Development) so the embedded
+        # screensaver appex is PlugInKit-listable.
+        args = common_args
 
     run_xcodebuild(args, env=env)
 
@@ -780,37 +775,44 @@ def step4_export_app(config: BuildConfig, archive_path: Path) -> Path:
     print("STEP 4: Exporting App")
     print("========================================")
 
-    export_options_path = config.build_dir / config.build_config / "AppExportOptions.plist"
+    export_path = config.build_dir / config.build_config / "AppExport"
+    export_path.mkdir(parents=True, exist_ok=True)
 
     if config.release:
+        export_options_path = config.build_dir / config.build_config / "AppExportOptions.plist"
         export_options = {
             'method': 'developer-id',
             'teamID': config.team_id,
             'signingStyle': 'automatic',
             'signingCertificate': 'Developer ID Application',
         }
+        with open(export_options_path, 'wb') as f:
+            plistlib.dump(export_options, f)
+
+        print_yellow("Exporting app for distribution...")
+        run_xcodebuild([
+            '-exportArchive',
+            '-archivePath', str(archive_path),
+            '-exportPath', str(export_path),
+            '-exportOptionsPlist', str(export_options_path),
+        ])
+        exported_apps = list(export_path.glob("*.app"))
     else:
-        export_options = {
-            'method': 'development',
-            'teamID': config.team_id,
-            'signingStyle': 'automatic',
-        }
+        # Debug archives often have no export methods on modern Xcode
+        # (`method=development` → "expected one {} but found development").
+        # Copy the .app out of the archive for local testing instead.
+        print_yellow("Debug build: copying app from archive (skip exportArchive)...")
+        archived_apps = list((archive_path / "Products").rglob("*.app"))
+        if not archived_apps:
+            print_red(f"No .app found under {archive_path / 'Products'}")
+            sys.exit(1)
+        archived_app = archived_apps[0]
+        dest_app = export_path / archived_app.name
+        if dest_app.exists():
+            shutil.rmtree(dest_app)
+        run_command(['ditto', str(archived_app), str(dest_app)])
+        exported_apps = [dest_app]
 
-    with open(export_options_path, 'wb') as f:
-        plistlib.dump(export_options, f)
-
-    print_yellow("Exporting app for distribution...")
-    export_path = config.build_dir / config.build_config / "AppExport"
-
-    run_xcodebuild([
-        '-exportArchive',
-        '-archivePath', str(archive_path),
-        '-exportPath', str(export_path),
-        '-exportOptionsPlist', str(export_options_path),
-    ])
-
-    # Find the exported app
-    exported_apps = list(export_path.glob("*.app"))
     if not exported_apps:
         print_red("Failed to export app")
         print("Export path contents:")
