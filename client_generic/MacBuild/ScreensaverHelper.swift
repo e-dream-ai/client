@@ -2,23 +2,14 @@
 //  ScreensaverHelper.swift
 //  infinidream
 //
-//  Objective-C bridge for PaperSaver screensaver + wallpaper extension APIs.
+//  Objective-C bridge for PaperSaver screensaver + wallpaper APIs.
 //
 
 import Foundation
 import PaperSaverKit
 
 @objc public class ScreensaverHelper: NSObject {
-    /// PaperSaver 0.4+ validates wallpaper extensions against the
-    /// `com.apple.wallpaper` pluginkit point. Our appex is still
-    /// `com.apple.screensaver` (Phase 1); disable that check so the Desktop
-    /// slot can be written with our bundle ID. Idle uses the classic
-    /// `com.apple.wallpaper.choice.screen-saver` module path instead.
-    private lazy var paperSaver: PaperSaver = {
-        var config = PaperSaverConfiguration()
-        config.validatesWallpaperExtensions = false
-        return PaperSaver(configuration: config)
-    }()
+    private lazy var paperSaver: PaperSaver = PaperSaver()
 
     @objc nonisolated(unsafe) public static let shared = ScreensaverHelper()
 
@@ -54,7 +45,7 @@ import PaperSaverKit
     }
 
     /// `~/Library/Screen Savers/<module>.appex`. Earlier builds symlinked the
-    /// appex here; WallpaperAgent rejects an Idle module URL that points at it.
+    /// appex here; WallpaperAgent rejects a module URL that points at it.
     private var userScreenSaversAppexURL: URL? {
         guard let library = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first else {
             return nil
@@ -90,7 +81,7 @@ import PaperSaverKit
     @objc public func setInfinidreamAsActive(completion: @escaping (Bool, Error?) -> Void) {
         Task {
             do {
-                try await writeIdleModuleChoice()
+                try await writeScreenSaverModuleChoice(slots: [.screensaver])
                 await MainActor.run { completion(true, nil) }
             } catch {
                 await MainActor.run { completion(false, error) }
@@ -121,22 +112,26 @@ import PaperSaverKit
 
     // MARK: - Wallpaper (Desktop slot)
 
-    /// True when our appex is the System Settings desktop wallpaper extension.
+    /// True when Desktop is a screen-saver choice whose module is our appex.
+    ///
+    /// A raw Provider equal to our bundle ID is NOT treated as active: WallpaperAgent
+    /// fails `makeWallpaper` for screensaver-point appexes (`no provider found`) and
+    /// falls back to Aerials while leaving that Provider in the store.
     @objc public func isInfinidreamWallpaperActive() -> Bool {
         guard #available(macOS 14.0, *) else { return false }
-        return paperSaver.getCurrentWallpaperExtension() == extensionBundleID
+        return desktopPointsAtInfinidream()
     }
 
     /// Set our appex as the live desktop wallpaper on every display/Space.
+    ///
+    /// Desktop must use the same `com.apple.wallpaper.choice.screen-saver` + module
+    /// URL shape as Idle. `setWallpaperExtension` writes a wallpaper-extension
+    /// Provider, which WallpaperAgent cannot resolve for a `com.apple.screensaver` appex.
     @objc public func setInfinidreamAsWallpaper(completion: @escaping (Bool, Error?) -> Void) {
-        let bundleID = extensionBundleID
         Task {
             do {
                 if #available(macOS 14.0, *) {
-                    _ = try await paperSaver.setWallpaperExtension(
-                        bundleID: bundleID,
-                        slot: .desktop
-                    )
+                    try await writeScreenSaverModuleChoice(slots: [.desktop])
                     await MainActor.run { completion(true, nil) }
                 } else {
                     await MainActor.run {
@@ -159,24 +154,17 @@ import PaperSaverKit
         }
     }
 
-    /// Set our appex as desktop wallpaper and Idle screensaver.
-    ///
-    /// Desktop uses wallpaper-extension Provider (bundle ID). Idle uses the
-    /// classic screen-saver module choice — not a combined `slots:` write,
-    /// which would put the wrong shape on Idle.
+    /// Set our appex as desktop wallpaper and Idle screensaver in one store write.
     @objc public func setInfinidreamAsWallpaperAndScreensaver(
         completion: @escaping (Bool, Error?) -> Void
     ) {
-        let bundleID = extensionBundleID
         Task {
             do {
                 if #available(macOS 14.0, *) {
-                    _ = try await paperSaver.setWallpaperExtension(
-                        bundleID: bundleID,
-                        slot: .desktop
-                    )
+                    try await writeScreenSaverModuleChoice(slots: [.desktop, .screensaver])
+                } else {
+                    try await writeScreenSaverModuleChoice(slots: [.screensaver])
                 }
-                try await writeIdleModuleChoice()
                 await MainActor.run { completion(true, nil) }
             } catch {
                 await MainActor.run { completion(false, error) }
@@ -184,7 +172,7 @@ import PaperSaverKit
         }
     }
 
-    // MARK: - Idle helpers
+    // MARK: - Slot helpers
 
     /// True when the wallpaper store Idle slot selects our appex/module.
     private func idlePointsAtInfinidream() -> Bool {
@@ -195,23 +183,49 @@ import PaperSaverKit
             if info.provider == extensionBundleID {
                 return true
             }
-            if let path = info.modulePath {
-                if path.hasSuffix("/\(embeddedAppexName)") || path.contains("/\(embeddedAppexName)/") {
-                    return true
-                }
-                if let embedded = embeddedAppexURL, path == embedded.path {
-                    return true
-                }
+            if let path = info.modulePath, modulePathPointsAtUs(path) {
+                return true
             }
+        }
+        if slotPointsAtOurScreenSaverModule(.screensaver) {
+            return true
         }
         let names = paperSaver.getActiveScreensavers()
         return names.contains(moduleName) || names.contains(extensionBundleID)
     }
 
-    /// Write Idle as a screen-saver choice whose module URL is the embedded
-    /// appex, restart WallpaperAgent, and confirm it kept the choice. Restores
-    /// the previous store when the agent drops it.
-    private func writeIdleModuleChoice() async throws {
+    /// True when Desktop is a screen-saver choice whose module URL is our appex.
+    private func desktopPointsAtInfinidream() -> Bool {
+        slotPointsAtOurScreenSaverModule(.desktop)
+    }
+
+    private func slotPointsAtOurScreenSaverModule(_ slot: WallpaperSlot) -> Bool {
+        guard let choice = paperSaver.currentWallpaperChoice(slot: slot),
+              choice.provider == .screenSaver,
+              case .screenSaver(let url)? = choice.configuration else {
+            return false
+        }
+        return modulePathPointsAtUs(url.path)
+    }
+
+    private func modulePathPointsAtUs(_ path: String) -> Bool {
+        if path.hasSuffix("/\(embeddedAppexName)") || path.contains("/\(embeddedAppexName)/") {
+            return true
+        }
+        if let embedded = embeddedAppexURL?.resolvingSymlinksInPath(),
+           path == embedded.path {
+            return true
+        }
+        return false
+    }
+
+    /// Write Desktop and/or Idle as screen-saver choices whose module URL is the
+    /// embedded appex, restart WallpaperAgent, and confirm it kept the choice(s).
+    /// Restores the previous store when the agent drops them.
+    private func writeScreenSaverModuleChoice(slots: Set<WallpaperSlot>) async throws {
+        guard !slots.isEmpty else {
+            throw Self.error(4, "No wallpaper slots to write")
+        }
         guard let embedded = embeddedAppexURL?.resolvingSymlinksInPath() else {
             throw Self.error(3, "Embedded screensaver appex not found in app PlugIns")
         }
@@ -221,14 +235,19 @@ import PaperSaverKit
         // no trailing slash and option values are `{values: {}}`, as it writes them.
         let appexURL = URL(fileURLWithPath: embedded.path, isDirectory: false)
         let file = StoreFile(url: paperSaver.configuration.storeURL)
-        let choice = SlotConfiguration(
+        let moduleChoice = SlotConfiguration(
             choice: try WallpaperChoice(provider: .screenSaver,
                                         configuration: .screenSaver(moduleURL: appexURL)),
             optionValues: .values(.empty), shuffle: .null)
-        let updated = try file.read().setting(
-            .screensaver, to: choice, in: .everywhere, otherSlot: .keep,
-            strategy: paperSaver.configuration.screensaverOnlyStrategy,
-            systemDefault: paperSaver.configuration.systemDefault)
+
+        var updated = try file.read()
+        let ordered = WallpaperSlot.allCases.filter(slots.contains)
+        for slot in ordered {
+            updated = try updated.setting(
+                slot, to: moduleChoice, in: .everywhere, otherSlot: .keep,
+                strategy: paperSaver.configuration.screensaverOnlyStrategy,
+                systemDefault: paperSaver.configuration.systemDefault)
+        }
         let snapshot = try file.write(updated)
 
         let agent = WallpaperAgent()
@@ -237,10 +256,19 @@ import PaperSaverKit
         // The agent rewrites the store shortly after launch when it rejects a choice.
         try await Task.sleep(for: .seconds(2))
 
-        if !idlePointsAtInfinidream() {
+        var failed: [String] = []
+        if slots.contains(.screensaver), !idlePointsAtInfinidream() {
+            failed.append("Idle")
+        }
+        if slots.contains(.desktop), !desktopPointsAtInfinidream() {
+            failed.append("Desktop")
+        }
+        if !failed.isEmpty {
             try? file.restore(snapshot)
             try? await agent.restart()
-            throw Self.error(2, "WallpaperAgent did not keep the Idle choice for \(appexURL.path)")
+            throw Self.error(
+                2,
+                "WallpaperAgent did not keep the \(failed.joined(separator: "+")) choice for \(appexURL.path)")
         }
     }
 
