@@ -181,14 +181,16 @@ to quit.
 
 ### Quick Build for Debugging
 
-The just run the app in xcode with the debugger and without
-making the embedded screensaver:
+Open `client_generic/MacBuild/infinidream.xcodeproj` and run the app scheme
+(⌘R). The screensaver is an `.appex` embedded via Xcode’s **Embed App
+Extensions** phase; no `Resources/*.saver` stub is required.
 
-   cd client_generic/MacBuild
-   mkdir -p Resources/infinidream.saver
+Prefer **Apple Development** signing for Debug so PlugInKit will list the
+extension (`pluginkit -m -v -p com.apple.screensaver`). Unsigned/ad-hoc
+Debug appexes often never appear in System Settings.
 
-Then in xcode just use command-R.
-
+On first launch the app registers the embedded appex (`pluginkit -a`) and,
+when keep-enabled is on, sets it as the system screensaver (Idle slot).
 
 ### Build Script
 ```bash
@@ -238,10 +240,15 @@ Default keychain profile: `infinidream-notarization`
 ```
 
 ### Output
-- Screensaver: `build/DerivedData/Build/Products/{Debug|Release}/infinidream.saver`
-- Application: `build/{Debug|Release}/AppExport/infinidream.app`
+- Screensaver (prod): `build/DerivedData/Build/Products/{Debug|Release}/infinidream.appex`
+- Screensaver (stage): `…/infinidream-stage.appex`
+- Application: `build/{Debug|Release}/AppExport/infinidream.app` (stage: `infinidream stage.app`)
 
-The app bundle contains the embedded screensaver at `infinidream.app/Contents/Resources/infinidream.saver`.
+The app embeds the screensaver at
+`infinidream.app/Contents/PlugIns/infinidream.appex` (stage:
+`infinidream stage.app/Contents/PlugIns/infinidream-stage.appex`).
+`build.py` may also copy the `.appex` under `MacBuild/Resources/` for
+notarize/staple; that copy is not what the running app loads.
 
 ## Build on Windows
 
@@ -476,7 +483,9 @@ This will:
 **Important**: If you generate new keys, you must update `SUPublicEDKey` in:
 - `App-Info.plist`
 - `App-Stage-Info.plist`
-- `Screensaver-Info.plist`
+
+(Sparkle updates the host app only; the embedded screensaver `.appex` is
+not updated separately.)
 
 Existing users won't be able to update if the public key changes, so only regenerate keys if the private key is lost.
 
@@ -511,8 +520,20 @@ to test while streaming.
 Then do a basic test after `rm -rf /Users/Shared/infinidream.ai/`
 to test sign-in flow.
 
-Then disable the screensaver, then uninstall the screen saver, then
-run the app and make sure it installs and selects the screen saver.
+Then deselect infinidream in System Settings → Screen Saver (pick another
+module), unregister the appex, and confirm the app re-registers and
+selects it again:
+
+```bash
+# Stage example — adjust the DerivedData / Products path as needed:
+pluginkit -r "$HOME/Library/Developer/Xcode/DerivedData/"*"/Build/Products/Debug/infinidream stage.app/Contents/PlugIns/infinidream-stage.appex"
+pluginkit -m -v -p com.apple.screensaver | grep -i infinidream || echo "unregistered"
+```
+
+There is no Settings “Delete” for an app-hosted `.appex` (unlike a legacy
+`.saver` in `~/Library/Screen Savers`). Full removal is `pluginkit -r`
+and/or deleting the host app; turn off keep-screensaver-enabled first or
+the next launch will re-register it.
 
 ## Upload symbols to BugSnag
 
