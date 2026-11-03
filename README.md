@@ -174,7 +174,7 @@ A bare host always means `https`/`wss`, and so does `http://` when `INFINIDREAM_
 isn't set. Over `http` the client logs a warning, ignores any stored login and sends only
 `INFINIDREAM_API_KEY`, so set that variable; an `api_key` in `settings.json` isn't used.
 
-The log gets a `Heartbeat` line from the render thread every 10 seconds; set
+The log gets a `Heartbeat` line from the render thread every 60 seconds; set
 `INFINIDREAM_HEARTBEAT_SECONDS=1` to get one per second. It stops whenever frames stop,
 which includes a locked screen on macOS, so check for that before calling a missing
 heartbeat a hang.

@@ -1182,11 +1182,11 @@ void CPlayer::LogHeartbeat()
     ++m_HeartbeatTicks;
     m_HeartbeatMaxTickMs = std::max(m_HeartbeatMaxTickMs, tickMs);
 
-    // Every 10 s normally; the test harness (client#733) asks for 1 s to catch hangs quickly.
+    // Every 60 s normally; the test harness (client#733) asks for 1 s to catch hangs quickly.
     static const std::chrono::seconds interval = []() {
         const char* env = std::getenv("INFINIDREAM_HEARTBEAT_SECONDS");
         const int seconds = env ? std::atoi(env) : 0;
-        return std::chrono::seconds(seconds > 0 ? seconds : 10);
+        return std::chrono::seconds(seconds > 0 ? seconds : 60);
     }();
     if (now - m_HeartbeatLastLog < interval)
         return;
