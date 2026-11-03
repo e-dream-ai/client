@@ -171,6 +171,18 @@ class CVideoFrame
         ;
     }
 
+    // Returns true for decoded 8-bit 4:2:0 YUV frames that the decoder left
+    // unconverted so the renderer can convert them on the GPU (Vulkan). Like
+    // hw frames, these must go through BindFrame() rather than StorageBuffer().
+    bool IsYUVFrame() const
+    {
+        if (!m_pFrame || m_spBuffer)
+            return false;
+        const int fmt = m_pFrame->format;
+        return fmt == AV_PIX_FMT_NV12 || fmt == AV_PIX_FMT_YUV420P ||
+               fmt == AV_PIX_FMT_YUVJ420P;
+    }
+
     inline const sFrameMetadata& GetMetaData() { return m_MetaData; }
 
     inline void SetMetaData_Fade(float _fade) { m_MetaData.fade = _fade; }
