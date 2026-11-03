@@ -162,6 +162,9 @@ Add the key directly to `~/.config/infinidream/settings.json`:
 
 ### Running against a test server
 
+[`client_generic/tests/mock-server`](client_generic/tests/mock-server) has a mock server that stands
+in for the backend, and an end-to-end test that runs the Mac client against it. See its README.
+
 For test runs (see #733), set `INFINIDREAM_DATA_DIR` to keep settings, cache and logs
 in their own folder. The run leaves the installed client alone: it skips the instance
 check, auto-update (Mac), crash reporting (Mac) and screensaver activation (Windows).
