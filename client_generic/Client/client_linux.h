@@ -48,6 +48,7 @@ class CElectricSheep_Linux : public CElectricSheep
 #else
         m_AppData = std::string(getenv("HOME")) + "/.config/infinidream/";
 #endif
+        ApplyDataDirOverride();
         m_WorkingDir = PlatformUtils::GetWorkingDir();
 
         InitStorage();

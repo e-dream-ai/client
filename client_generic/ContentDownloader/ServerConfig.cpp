@@ -6,14 +6,36 @@
 //
 
 #include "ServerConfig.h"
+#include "Log.h"
 #include "Settings.h" // Include for g_Settings()
 
 namespace ServerConfig {
 
 ServerConfigManager::ServerConfigManager() {
-    m_dreamServer = "https://" + g_Settings()->Get("settings.content.server", std::string(DEFAULT_DREAM_SERVER));
-    m_websocketServer = "wss://" + g_Settings()->Get("settings.content.server", std::string(DEFAULT_DREAM_SERVER));
+    // A bare host means TLS. "http://" has to be asked for explicitly: it exists so the
+    // client can run against a local fake server (client#733).
+    std::string server = g_Settings()->Get("settings.content.server", std::string(DEFAULT_DREAM_SERVER));
+    while (!server.empty() && server.back() == '/')
+        server.pop_back();
+
+    constexpr std::string_view kHttp = "http://";
+    constexpr std::string_view kHttps = "https://";
+    std::string host = server;
+    if (server.rfind(kHttp, 0) == 0) {
+        m_isPlaintext = true;
+        host = server.substr(kHttp.size());
+    } else if (server.rfind(kHttps, 0) == 0) {
+        host = server.substr(kHttps.size());
+    }
+
+    m_dreamServer = (m_isPlaintext ? "http://" : "https://") + host;
+    m_websocketServer = (m_isPlaintext ? "ws://" : "wss://") + host;
     initializeEndpoints();
+
+    if (m_isPlaintext) {
+        g_Log->Warning("Server connection is UNENCRYPTED (%s). Stored logins are not sent; "
+                       "only INFINIDREAM_API_KEY is used.", m_dreamServer.c_str());
+    }
 }
 
 void ServerConfigManager::initializeEndpoints() {

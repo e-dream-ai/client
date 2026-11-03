@@ -15,6 +15,8 @@
 #include <limits>
 #include <string>
 #include <algorithm>
+#include <cstdlib>
+#include "StringFormat.h"
 #include <thread>
 #include <unordered_set>
 
@@ -1154,9 +1156,58 @@ bool CPlayer::Update(uint32_t displayUnit)
                      m_nextClip->m_FadeInSeconds);
     }*/
     
+    LogHeartbeat();
+
     bool drew = RenderFrame(du->spRenderer);
 
     return drew;
+}
+
+void CPlayer::LogHeartbeat()
+{
+    using clock = std::chrono::steady_clock;
+    using ms = std::chrono::duration<double, std::milli>;
+
+    const auto now = clock::now();
+    const bool firstTick = m_HeartbeatLastTick == clock::time_point{};
+    const double tickMs = firstTick ? 0.0 : ms(now - m_HeartbeatLastTick).count();
+    m_HeartbeatLastTick = now;
+    if (firstTick)
+        m_HeartbeatLastLog = now;
+    ++m_HeartbeatTicks;
+    m_HeartbeatMaxTickMs = std::max(m_HeartbeatMaxTickMs, tickMs);
+
+    // Every 10 s normally; the test harness (client#733) asks for 1 s to catch hangs quickly.
+    static const std::chrono::seconds interval = []() {
+        const char* env = std::getenv("INFINIDREAM_HEARTBEAT_SECONDS");
+        const int seconds = env ? std::atoi(env) : 0;
+        return std::chrono::seconds(seconds > 0 ? seconds : 10);
+    }();
+    if (now - m_HeartbeatLastLog < interval)
+        return;
+
+    const auto describeClip = [](const ContentDecoder::spCClip& clip) -> std::string {
+        if (!clip)
+            return "-";
+        const auto decoder = clip->GetDecoder();
+        const char* state = clip->IsRebuffering() ? "rebuffering"
+                            : clip->IsBuffering() ? "buffering"
+                                                  : "playing";
+        return string_format("%s frame=%u/%u queue=%u %s",
+                             clip->GetClipMetadata().dreamData.uuid.c_str(),
+                             clip->GetCurrentFrameIdx(), clip->GetFrameCount(),
+                             decoder ? decoder->QueueLength() : 0, state);
+    };
+
+    g_Log->Info("Heartbeat ticks=%u tick_ms=%.1f max_tick_ms=%.1f timeline=%.3f paused=%d "
+                "buffering_pause=%d transitioning=%d pending_seek_crossfade=%d preloading=%d current=%s next=%s",
+                m_HeartbeatTicks, tickMs, m_HeartbeatMaxTickMs, m_TimelineTime, m_bPaused ? 1 : 0,
+                m_PausedForBuffering ? 1 : 0, m_isTransitioning ? 1 : 0, m_pendingSeekCrossfade ? 1 : 0, IsPreloading() ? 1 : 0,
+                describeClip(m_currentClip).c_str(), describeClip(m_nextClip).c_str());
+
+    m_HeartbeatLastLog = now;
+    m_HeartbeatTicks = 0;
+    m_HeartbeatMaxTickMs = 0.0;
 }
 
 bool CPlayer::RenderFrame(DisplayOutput::spCRenderer renderer) {

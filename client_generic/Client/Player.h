@@ -96,6 +96,12 @@ class CPlayer : public Base::CSingleton<CPlayer>
     void ApplyPreparedPreload(const std::shared_ptr<const Cache::Dream>& dream,
                               const std::string& streamingPath, bool seamless);
     void ReapBackgroundTasks();
+    /// Periodic log line from the render thread: its absence is the hang signal.
+    void LogHeartbeat();
+    std::chrono::steady_clock::time_point m_HeartbeatLastTick{};
+    std::chrono::steady_clock::time_point m_HeartbeatLastLog{};
+    double m_HeartbeatMaxTickMs = 0.0;
+    uint32_t m_HeartbeatTicks = 0;
     void WaitForBackgroundTasks();
     
     ContentDecoder::spCClip m_currentClip;

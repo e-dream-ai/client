@@ -116,7 +116,9 @@ static std::atomic<int> s_activeEngineViews{0};
     NSLog(@"ESScreensaverView: Running in APP mode");
     // For app: use standard controller
     m_sparkleUpdater = nil;
-    m_updater = [[SPUStandardUpdaterController alloc] initWithStartingUpdater:YES
+    // Isolated test runs (client#733) must not update themselves or prompt to.
+    const BOOL startUpdater = getenv("INFINIDREAM_DATA_DIR") == NULL;
+    m_updater = [[SPUStandardUpdaterController alloc] initWithStartingUpdater:startUpdater
                                                               updaterDelegate:self
                                                            userDriverDelegate:self];
     
@@ -126,7 +128,9 @@ static std::atomic<int> s_activeEngineViews{0};
         if ([appUpdater respondsToSelector:NSSelectorFromString(@"setAllowsSkippingUpdates:")]) {
             [appUpdater setValue:@NO forKey:@"allowsSkippingUpdates"];
         }
-        [appUpdater checkForUpdatesInBackground];
+        if (startUpdater) {
+            [appUpdater checkForUpdatesInBackground];
+        }
     }
     
     // Connect "Check for Updates..." menu item to the updater (app only)

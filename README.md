@@ -160,6 +160,24 @@ Add the key directly to `~/.config/infinidream/settings.json`:
 }
 ```
 
+### Running against a test server
+
+For test runs (see #733), set `INFINIDREAM_DATA_DIR` to keep settings, cache and logs
+in their own folder. The run leaves the installed client alone: it skips the instance
+check, auto-update (Mac), crash reporting (Mac) and screensaver activation (Windows).
+
+To use a server without TLS, give the scheme explicitly in that folder's `settings.json`:
+```json
+{ "settings": { "content": { "server": "http://127.0.0.1:8765" } } }
+```
+A bare host always means `https`/`wss`. Over `http` the client logs a warning, ignores
+any stored login and sends only `INFINIDREAM_API_KEY`.
+
+The log gets a `Heartbeat` line from the render thread every 10 seconds; set
+`INFINIDREAM_HEARTBEAT_SECONDS=1` to get one per second. It stops whenever frames stop,
+which includes a locked screen on macOS, so check for that before calling a missing
+heartbeat a hang.
+
 ### Running
 
 ```bash

@@ -259,6 +259,18 @@ class CElectricSheep
     std::mutex m_BarrierMutex;
 #endif
 
+    //	Replace m_AppData if INFINIDREAM_DATA_DIR is set. Call before anything reads it.
+    void ApplyDataDirOverride()
+    {
+        std::string dir = PlatformUtils::GetDataDirOverride();
+        if (dir.empty())
+            return;
+        if (dir.back() != '/' && dir.back() != '\\')
+            dir += '/';
+        TupleStorage::IStorageInterface::CreateFullDirectory(dir);
+        m_AppData = dir;
+    }
+
     //	Init tuplestorage.
     bool InitStorage(bool _bReadOnly = false)
     {
@@ -287,6 +299,8 @@ class CElectricSheep
                     PlatformUtils::GetGitRevision().c_str(),
                     PlatformUtils::GetBuildDate().c_str());
         g_Log->Info("Platform: %s", PlatformUtils::GetPlatformName().c_str());
+        if (!PlatformUtils::GetDataDirOverride().empty())
+            g_Log->Info("Data dir overridden by INFINIDREAM_DATA_DIR: %s", m_AppData.c_str());
     }
 
   public:
