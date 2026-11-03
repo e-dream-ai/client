@@ -7,13 +7,17 @@
 
 #include "ServerConfig.h"
 #include "Log.h"
+#include "PlatformUtils.h"
 #include "Settings.h" // Include for g_Settings()
+
+#include <boost/algorithm/string/predicate.hpp>
 
 namespace ServerConfig {
 
 ServerConfigManager::ServerConfigManager() {
-    // A bare host means TLS. "http://" has to be asked for explicitly: it exists so the
-    // client can run against a local fake server (client#733).
+    // A bare host means TLS. "http://" has to be asked for explicitly, and only counts on
+    // an isolated test run: it exists so the client can use a local fake server (client#733),
+    // and a stray setting must not switch an everyday install to plaintext.
     std::string server = g_Settings()->Get("settings.content.server", std::string(DEFAULT_DREAM_SERVER));
     while (!server.empty() && server.back() == '/')
         server.pop_back();
@@ -21,10 +25,14 @@ ServerConfigManager::ServerConfigManager() {
     constexpr std::string_view kHttp = "http://";
     constexpr std::string_view kHttps = "https://";
     std::string host = server;
-    if (server.rfind(kHttp, 0) == 0) {
-        m_isPlaintext = true;
+    if (boost::algorithm::istarts_with(server, kHttp)) {
+        m_isPlaintext = !PlatformUtils::GetDataDirOverride().empty();
         host = server.substr(kHttp.size());
-    } else if (server.rfind(kHttps, 0) == 0) {
+        if (!m_isPlaintext) {
+            g_Log->Warning("Ignoring http:// in settings.content.server without "
+                           "INFINIDREAM_DATA_DIR; using https://%s", host.c_str());
+        }
+    } else if (boost::algorithm::istarts_with(server, kHttps)) {
         host = server.substr(kHttps.size());
     }
 

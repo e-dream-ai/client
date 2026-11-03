@@ -170,8 +170,9 @@ To use a server without TLS, give the scheme explicitly in that folder's `settin
 ```json
 { "settings": { "content": { "server": "http://127.0.0.1:8765" } } }
 ```
-A bare host always means `https`/`wss`. Over `http` the client logs a warning, ignores
-any stored login and sends only `INFINIDREAM_API_KEY`.
+A bare host always means `https`/`wss`, and so does `http://` when `INFINIDREAM_DATA_DIR`
+isn't set. Over `http` the client logs a warning, ignores any stored login and sends only
+`INFINIDREAM_API_KEY`, so set that variable; an `api_key` in `settings.json` isn't used.
 
 The log gets a `Heartbeat` line from the render thread every 10 seconds; set
 `INFINIDREAM_HEARTBEAT_SECONDS=1` to get one per second. It stops whenever frames stop,
