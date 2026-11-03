@@ -14,6 +14,7 @@
 #include "AboutDialogWin32.h"
 #include "FirstTimeSetupWin32.h"
 #include "SettingsDialogWin32.h"
+#include "ThemeWin32.h"
 #include <windows.h>
 #include <vector>
 #endif
@@ -1702,11 +1703,17 @@ bool CRendererDX11::EndFrame(bool drawn) {
                     const int hoverId = dx->GetCaptionButtonHoverId();
                     const int pressedId = dx->GetCaptionButtonPressedId();
 
-                    // Dark theme palette (default buttons are transparent).
-                    const Base::Math::CVector4 stripBg(0.08f, 0.08f, 0.08f, 1.f);
-                    const Base::Math::CVector4 glyph(0.92f, 0.92f, 0.92f, 1.f);
-                    const Base::Math::CVector4 hoverBg(0.28f, 0.28f, 0.28f, 1.f);
-                    const Base::Math::CVector4 pressedBg(0.20f, 0.20f, 0.20f, 1.f);
+                    // Follows the system theme (default buttons are transparent).
+                    const bool darkTheme = ThemeWin32::IsDark();
+                    const float stripGray = darkTheme ? 0.08f : 0.95f;
+                    const float hoverGray = darkTheme ? 0.28f : 0.86f;
+                    const float pressedGray = darkTheme ? 0.20f : 0.78f;
+                    const float splitterGray = darkTheme ? 0.30f : 0.76f;
+                    const float glyphGray = darkTheme ? 1.f : 0.10f;
+                    const Base::Math::CVector4 stripBg(stripGray, stripGray, stripGray, 1.f);
+                    const Base::Math::CVector4 hoverBg(hoverGray, hoverGray, hoverGray, 1.f);
+                    const Base::Math::CVector4 pressedBg(pressedGray, pressedGray, pressedGray, 1.f);
+                    const Base::Math::CVector4 glyphTint(glyphGray, glyphGray, glyphGray, 1.f);
                     const Base::Math::CVector4 closeHoverBg(0.85f, 0.20f, 0.20f, 1.f);
                     const Base::Math::CVector4 closePressedBg(0.65f, 0.15f, 0.15f, 1.f);
 
@@ -1787,8 +1794,9 @@ bool CRendererDX11::EndFrame(bool drawn) {
                             const float sx1 = static_cast<float>(splitterXPx + kSplitterPx) / static_cast<float>(dispW);
                             const float sy0 = static_cast<float>(kSplitterPadTopPx) / static_cast<float>(dispH);
                             const float sy1 = static_cast<float>(btnHPx - kSplitterPadBottomPx) / static_cast<float>(dispH);
-                            // Slightly lighter than background.
-                            DrawQuad(Base::Math::CRect(sx0, sy0, sx1, sy1), Base::Math::CVector4(0.30f, 0.30f, 0.30f, 1.f));
+                            // Slightly stronger than background.
+                            DrawQuad(Base::Math::CRect(sx0, sy0, sx1, sy1),
+                                     Base::Math::CVector4(splitterGray, splitterGray, splitterGray, 1.f));
                         }
 
                         // Hover/press backgrounds (ids: 4 gear, 5 fullscreen, 6 menu).
@@ -1812,17 +1820,17 @@ bool CRendererDX11::EndFrame(bool drawn) {
                             const Base::Math::CRect fsBox = iconInRectPx(fsPx, glyphPx);
                             const Base::Math::CRect menuBox = iconInRectPx(menuPx, glyphPx);
 
-                            // Draw as textured quads (white-tinted).
+                            // White masks tinted to the theme's glyph color.
                             m_overrideTex0Srv = m_mdl2GearSrv;
-                            DrawTexturedQuad(gearBox, Base::Math::CVector4(1.f, 1.f, 1.f, 1.f),
+                            DrawTexturedQuad(gearBox, glyphTint,
                                              Base::Math::CRect(0.f, 0.f, 1.f, 1.f), m_defaultSampler.Get());
 
                             m_overrideTex0Srv = m_mdl2FullscreenSrv;
-                            DrawTexturedQuad(fsBox, Base::Math::CVector4(1.f, 1.f, 1.f, 1.f),
+                            DrawTexturedQuad(fsBox, glyphTint,
                                              Base::Math::CRect(0.f, 0.f, 1.f, 1.f), m_defaultSampler.Get());
 
                             m_overrideTex0Srv = m_mdl2MenuSrv;
-                            DrawTexturedQuad(menuBox, Base::Math::CVector4(1.f, 1.f, 1.f, 1.f),
+                            DrawTexturedQuad(menuBox, glyphTint,
                                              Base::Math::CRect(0.f, 0.f, 1.f, 1.f), m_defaultSampler.Get());
 
                             // Restore solid-white for subsequent line glyphs.
@@ -1839,16 +1847,18 @@ bool CRendererDX11::EndFrame(bool drawn) {
                         const Base::Math::CRect closeBox = iconInRectPx(rClose, chromeGlyphPx);
 
                         m_overrideTex0Srv = m_mdl2ChromeMinimizeSrv;
-                        DrawTexturedQuad(minBox, Base::Math::CVector4(1.f, 1.f, 1.f, 1.f),
+                        DrawTexturedQuad(minBox, glyphTint,
                                          Base::Math::CRect(0.f, 0.f, 1.f, 1.f), m_defaultSampler.Get());
 
                         const bool maximized = hwnd && (IsZoomed(hwnd) != FALSE);
                         m_overrideTex0Srv = maximized ? m_mdl2ChromeRestoreSrv : m_mdl2ChromeMaximizeSrv;
-                        DrawTexturedQuad(maxBox, Base::Math::CVector4(1.f, 1.f, 1.f, 1.f),
+                        DrawTexturedQuad(maxBox, glyphTint,
                                          Base::Math::CRect(0.f, 0.f, 1.f, 1.f), m_defaultSampler.Get());
 
                         m_overrideTex0Srv = m_mdl2ChromeCloseSrv;
-                        DrawTexturedQuad(closeBox, Base::Math::CVector4(1.f, 1.f, 1.f, 1.f),
+                        // White on the red hover/press background in either theme.
+                        const bool closeLit = (hoverId == 3) || (pressedId == 3);
+                        DrawTexturedQuad(closeBox, closeLit ? Base::Math::CVector4(1.f, 1.f, 1.f, 1.f) : glyphTint,
                                          Base::Math::CRect(0.f, 0.f, 1.f, 1.f), m_defaultSampler.Get());
 
                         // Restore solid-white for any following geometry (if any).
