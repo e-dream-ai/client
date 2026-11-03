@@ -46,13 +46,15 @@ find_package(Boost REQUIRED COMPONENTS filesystem thread log log_setup json)
 
 # Debian/Ubuntu build Boost with ICU, so their static CMake configs add
 # icudata/icui18n/icuuc to Boost::log, Boost::log_setup and Boost::regex, and
-# the link fails without libicu-dev (#738). None of those libraries reference
-# ICU (Boost.Regex's ICU support is header-only, and we don't use it or
-# Boost.Locale), so drop the entries instead of linking or bundling ICU.
+# the link fails without libicu-dev (#738). None of those three libraries
+# reference ICU (Boost.Regex's ICU support is header-only), so drop the entries
+# from them only, instead of linking or bundling ICU. Libraries that do use ICU,
+# such as Boost.Locale, keep it.
 if(Boost_USE_STATIC_LIBS)
-    get_property(_imported DIRECTORY PROPERTY IMPORTED_TARGETS)
-    list(FILTER _imported INCLUDE REGEX "^Boost::")
-    foreach(_target IN LISTS _imported)
+    foreach(_target IN ITEMS Boost::log Boost::log_setup Boost::regex)
+        if(NOT TARGET ${_target})
+            continue()
+        endif()
         get_target_property(_libs ${_target} INTERFACE_LINK_LIBRARIES)
         if(_libs AND _libs MATCHES "icu(data|i18n|uc)")
             # Handles plain entries and "$<$<CONFIG:release>:icudata;...>".
