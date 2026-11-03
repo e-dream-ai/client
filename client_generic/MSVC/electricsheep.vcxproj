@@ -777,6 +777,7 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     <ClInclude Include="..\ContentDecoder\SimplePlaylist.h" />
     <ClInclude Include="..\Client\client.h" />
     <ClInclude Include="..\Client\FirstTimeSetupWin32.h" />
+    <ClInclude Include="..\Client\ThemeWin32.h" />
     <ClInclude Include="..\Client\AboutDialogWin32.h" />
     <ClInclude Include="..\Client\ScreensaverInstallerWin32.h" />
     <ClInclude Include="..\Client\SettingsDialogWin32.h" />
