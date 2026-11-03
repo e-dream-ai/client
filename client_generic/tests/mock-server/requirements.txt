@@ -1,0 +1,3 @@
+aiohttp>=3.9
+Pillow>=10
+pyobjc-framework-Quartz>=10; sys_platform == "darwin"
