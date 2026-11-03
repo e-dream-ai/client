@@ -79,7 +79,7 @@ On Ubuntu (tested on 26.04):
 sudo apt install -y \
     build-essential cmake pkg-config \
     libvulkan-dev glslc \
-    libx11-dev \
+    libx11-dev libxrender-dev \
     libssl-dev \
     libboost-all-dev \
     libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libswresample-dev \

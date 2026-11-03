@@ -44,6 +44,25 @@ find_package(OpenSSL REQUIRED)
 # Boost — filesystem + thread (boost_system is header-only since 1.69)
 find_package(Boost REQUIRED COMPONENTS filesystem thread log log_setup json)
 
+# Debian/Ubuntu build Boost with ICU, so their static CMake configs add
+# icudata/icui18n/icuuc to Boost::log, Boost::log_setup and Boost::regex, and
+# the link fails without libicu-dev (#738). None of those libraries reference
+# ICU (Boost.Regex's ICU support is header-only, and we don't use it or
+# Boost.Locale), so drop the entries instead of linking or bundling ICU.
+if(Boost_USE_STATIC_LIBS)
+    get_property(_imported DIRECTORY PROPERTY IMPORTED_TARGETS)
+    list(FILTER _imported INCLUDE REGEX "^Boost::")
+    foreach(_target IN LISTS _imported)
+        get_target_property(_libs ${_target} INTERFACE_LINK_LIBRARIES)
+        if(_libs AND _libs MATCHES "icu(data|i18n|uc)")
+            # Handles plain entries and "$<$<CONFIG:release>:icudata;...>".
+            string(REGEX REPLACE "icu(data|i18n|uc);?" "" _libs "${_libs}")
+            set_target_properties(${_target} PROPERTIES INTERFACE_LINK_LIBRARIES "${_libs}")
+            message(STATUS "Dropped unused ICU link dependency from ${_target}")
+        endif()
+    endforeach()
+endif()
+
 # FFmpeg — try pkg-config first, then manual paths
 find_package(PkgConfig)
 if(PKG_CONFIG_FOUND)
