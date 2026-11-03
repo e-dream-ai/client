@@ -8,6 +8,7 @@
 #include "PlatformUtils.h"
 #include "PlatformUtils_Internal.h"
 #include "Player.h"
+#include "DialogImageLinux.h"
 #include "ServerConfig.h"
 #include "Settings.h"
 #include "storage.h"

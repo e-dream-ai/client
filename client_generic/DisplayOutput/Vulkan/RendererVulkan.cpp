@@ -53,6 +53,7 @@ CRendererVulkan::~CRendererVulkan()
     }
     m_spActiveShader.reset();
     m_spSelectedShader.reset();
+    m_uiTextures.clear();
 
     // Shut down ImGui before any Vulkan resources are destroyed.
     if (m_imguiInitialized)
@@ -1527,6 +1528,67 @@ spCTextureFlat CRendererVulkan::NewTextureFlat(spCImage _spImage,
     return tex;
 }
 
+// A 2x2 box-filtered half-size copy of an RGBA8 image. Color is weighted by alpha so
+// the color of fully transparent pixels doesn't fringe the edges.
+static spCImage HalveRgbaImage(const spCImage& _src)
+{
+    const uint32_t srcW = _src->GetWidth(0);
+    const uint32_t dstW = srcW / 2;
+    const uint32_t dstH = _src->GetHeight(0) / 2;
+    auto dst = std::make_shared<CImage>();
+    dst->Create(dstW, dstH, eImage_RGBA8, false, false);
+    const uint8_t* in = _src->GetData(0);
+    uint8_t* out = dst->GetData(0);
+    for (uint32_t y = 0; y < dstH; ++y)
+    {
+        for (uint32_t x = 0; x < dstW; ++x)
+        {
+            const uint8_t* row0 = in + (y * 2 * srcW + x * 2) * 4;
+            const uint8_t* row1 = row0 + srcW * 4;
+            const uint8_t* texels[4] = {row0, row0 + 4, row1, row1 + 4};
+            uint32_t rgb[3] = {0, 0, 0};
+            uint32_t alpha = 0;
+            for (const uint8_t* t : texels)
+            {
+                for (int c = 0; c < 3; ++c)
+                    rgb[c] += t[c] * t[3];
+                alpha += t[3];
+            }
+            uint8_t* px = out + (y * dstW + x) * 4;
+            for (int c = 0; c < 3; ++c)
+                px[c] = alpha ? static_cast<uint8_t>((rgb[c] + alpha / 2) / alpha) : 0;
+            px[3] = static_cast<uint8_t>((alpha + 2) / 4);
+        }
+    }
+    return dst;
+}
+
+VkDescriptorSet CRendererVulkan::GetUiTexture(const std::string& _fileName, uint32_t _drawnSize)
+{
+    const auto key = std::make_pair(_fileName, _drawnSize);
+    auto it = m_uiTextures.find(key);
+    if (it == m_uiTextures.end())
+    {
+        spCTextureFlatVulkan tex;
+        spCImage image = std::make_shared<CImage>();
+        // Upload() takes 4 bytes per pixel and only the top mip.
+        if (image->Load(_fileName, false) && image->GetFormat().getFormatEnum() == eImage_RGBA8)
+        {
+            // Bilinear sampling alone gets jagged beyond 2x reduction.
+            const uint32_t minSize = (std::max)(_drawnSize, 1u);
+            while (image->GetWidth(0) / 2 >= minSize && image->GetHeight(0) / 2 >= minSize)
+                image = HalveRgbaImage(image);
+            tex = std::make_shared<CTextureFlatVulkan>(this, 0);
+            if (!tex->Upload(image))
+                tex.reset();
+        }
+        if (!tex)
+            g_Log->Warning("CRendererVulkan: could not load UI texture %s", _fileName.c_str());
+        it = m_uiTextures.emplace(key, tex).first;
+    }
+    return it->second ? it->second->DescSet() : VK_NULL_HANDLE;
+}
+
 // ---------------------------------------------------------------------------
 // Fonts / Text
 // ---------------------------------------------------------------------------
@@ -1581,14 +1643,7 @@ void CRendererVulkan::DrawText(spCBaseText _text,
 
     ImFont* normalFont = spFI->GetImFont();
 
-    // Scale the font size so the overlay occupies the same visual proportion
-    // of the screen regardless of resolution.  1080p is the reference at which
-    // the baked font size (24 px) looks correct; above that we scale up, below
-    // we scale down.  ImGui accepts any size in AddText regardless of the atlas
-    // bake size — it rasterises at bake size and scales to display size.
-    static constexpr float kHudReferenceHeight = 1080.f;
-    const float scale    = static_cast<float>(m_spDisplay->Height()) / kHudReferenceHeight;
-    const float fontSizePx = spFI->FontSize() * scale;
+    const float fontSizePx = spFI->DrawnSizePx();
 
     // Convert normalised rect [0,1] → pixel coords (ImGui origin is top-left).
     Base::Math::CRect r = _text->GetRect();
@@ -1597,7 +1652,6 @@ void CRendererVulkan::DrawText(spCBaseText _text,
 
     ImU32 col       = ImGui::ColorConvertFloat4ToU32(
         ImVec4(_color.m_X, _color.m_Y, _color.m_Z, _color.m_W));
-    ImU32 shadowCol = IM_COL32(0, 0, 0, static_cast<ImU32>(_color.m_W * 255.f));
 
     ImDrawList*        dl   = ImGui::GetBackgroundDrawList();
     const std::string& text = spTV->Text();
@@ -1651,8 +1705,24 @@ void CRendererVulkan::DrawText(spCBaseText _text,
             dl->AddText(normalFont, fontSizePx, cur, color, segBegin, p);
     };
 
-    // Drop-shadow: 1 px down-right in black (matches Mac: shadowOffset=(1,-1), shadowRadius=0).
-    renderAt({cursor.x + 1.0f, cursor.y + 1.0f}, shadowCol);
+    // Soft drop shadow, as on Windows: a core copy of the text offset down-right, plus a
+    // faint 1px halo around it. The offset grows with the text. The swapchain is sRGB, so
+    // these alphas blend in linear light; they appear as about 0.6 and 0.3.
+    struct ShadowTap
+    {
+        float dx, dy, alpha;
+    };
+    const float offset = (std::max)(1.0f, std::round(fontSizePx / 16.0f));
+    const ShadowTap shadowTaps[] = {
+        {offset, offset, 0.87f},
+        {offset - 1.0f, offset, 0.54f},
+        {offset + 1.0f, offset, 0.54f},
+        {offset, offset - 1.0f, 0.54f},
+        {offset, offset + 1.0f, 0.54f},
+    };
+    for (const ShadowTap& tap : shadowTaps)
+        renderAt({cursor.x + tap.dx, cursor.y + tap.dy},
+                 IM_COL32(0, 0, 0, static_cast<ImU32>(_color.m_W * tap.alpha * 255.f)));
     renderAt(cursor, col);
 }
 

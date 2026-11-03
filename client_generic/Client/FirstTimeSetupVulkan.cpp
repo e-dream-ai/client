@@ -6,6 +6,7 @@
 #include "PlatformUtils.h"
 #include "PlatformUtils_Internal.h"
 #include "Player.h"
+#include "DialogImageLinux.h"
 #include "Settings.h"
 #include "storage.h"
 #include "ThemeLinux.h"
@@ -318,7 +319,7 @@ static void ApplySheetColors(bool dark)
         ImGui::StyleColorsLight(&s);
 
     ImVec4 text = dark ? ThemeLinux::DarkColor(0.92f, 0.92f, 0.94f, 1.f) : ImVec4(0.10f, 0.11f, 0.13f, 1.f);
-    ImVec4 winBg = dark ? ThemeLinux::DarkColor(0.15f, 0.15f, 0.16f, 0.985f) : ImVec4(0.965f, 0.967f, 0.975f, 0.985f);
+    ImVec4 winBg = dark ? ThemeLinux::DarkColor(0.15f, 0.15f, 0.16f, 1.f) : ImVec4(0.965f, 0.967f, 0.975f, 1.f);
     // Neutral buttons need a fill that stands out from the sheet; white ones
     // were hard to tell from the background. Primary actions use kMacAccentBtn.
     ImVec4 btn = dark ? ThemeLinux::DarkColor(0.30f, 0.30f, 0.32f, 1.f) : ImVec4(0.86f, 0.86f, 0.88f, 1.f);
@@ -494,6 +495,13 @@ static void DrawWizard()
         const float logoSz   = S(kLogoDisplay);
         const float hdrH     = logoSz + S(11.f) + S(8.f);
         const float winInnerW = ImGui::GetWindowWidth();
+
+        const ImTextureID logo = DialogImage("logo.png", logoSz);
+        if (logo != ImTextureID_Invalid)
+        {
+            ImGui::SetCursorPos(ImVec2(S(10.f), S(11.f)));
+            ImGui::Image(logo, ImVec2(logoSz, logoSz));
+        }
 
         if (g_fontHeadline) ImGui::PushFont(g_fontHeadline);
         const char* headline = "Welcome to Infinidream";
@@ -823,14 +831,24 @@ static void DrawWizard()
                           ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar |
                               ImGuiWindowFlags_NoScrollWithMouse);
         {
+            const ImTextureID playlistIcon = DialogImage("play-playlist.png", S(kThanksPlaylistImg));
+            const float textWrapW = playlistIcon != ImTextureID_Invalid
+                                        ? colW - S(kThanksCellPad) - S(kThanksTextImgGap) - S(kThanksPlaylistImg) - S(kThanksImgTrail)
+                                        : colW - 2.f * S(kThanksCellPad);
             if (g_fontThanksCopy) ImGui::PushFont(g_fontThanksCopy);
             ImGui::SetCursorPos(ImVec2(S(kThanksCellPad), S(kThanksCellPad)));
-            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + colW - 2.f * S(kThanksCellPad));
+            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + textWrapW);
             ImGui::TextWrapped(
                 "Change your dreams by selecting a playlist from the browser. Click the button on a "
                 "thumbnail to start that playlist.");
             ImGui::PopTextWrapPos();
             if (g_fontThanksCopy) ImGui::PopFont();
+
+            if (playlistIcon != ImTextureID_Invalid)
+            {
+                ImGui::SetCursorPos(ImVec2(colW - S(kThanksImgTrail) - S(kThanksPlaylistImg), S(kThanksImgTop)));
+                ImGui::Image(playlistIcon, ImVec2(S(kThanksPlaylistImg), S(kThanksPlaylistImg)));
+            }
 
             const float btnY = S(kThanksRowTopH) - S(kThanksBtnBottom) - S(kThanksTipsBtnH);
             ImGui::SetCursorPos(ImVec2((colW - S(kThanksOpenPlaylistBtnW)) * 0.5f, btnY));

@@ -7,6 +7,7 @@
 #include <vulkan/vulkan.h>
 #include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
 // Forward-declare ImGui context so we need not include imgui.h in this header.
@@ -132,6 +133,10 @@ class CRendererVulkan : public CRenderer
     // Font pool
     std::map<std::string, spCBaseFont> m_fontPool;
 
+    // PNGs drawn through ImGui by the dialogs, by path and drawn size. Owned here so they are freed
+    // before the device. A null entry records a failed load, so it isn't retried every frame.
+    std::map<std::pair<std::string, uint32_t>, spCTextureFlatVulkan> m_uiTextures;
+
     // ImGui state (Vulkan backend for text / UI overlay rendering)
     VkInstance       m_vulkanInstance    = VK_NULL_HANDLE;
     ImGuiContext*    m_imguiContext      = nullptr;
@@ -209,6 +214,11 @@ class CRendererVulkan : public CRenderer
     virtual void DrawSoftQuad(const Base::Math::CRect& _rect,
                                const Base::Math::CVector4& _color,
                                const float _width);
+
+    // Descriptor set for a PNG to pass to ImGui::Image(), loaded on first use and shrunk
+    // to suit being drawn _drawnSize pixels wide, as these textures have no mipmaps.
+    // VK_NULL_HANDLE if it can't be loaded. Call from the render thread.
+    VkDescriptorSet GetUiTexture(const std::string& _fileName, uint32_t _drawnSize);
 
     // Accessors used by CTextureFlatVulkan
     VkDevice              GetDevice()             const { return m_device; }
