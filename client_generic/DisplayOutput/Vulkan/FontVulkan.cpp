@@ -4,6 +4,7 @@
 #include "RendererVulkan.h"
 #include "Log.h"
 #include "PlatformUtils.h"
+#include "PlatformUtils_Internal.h"
 
 #include <imgui.h>
 
@@ -47,6 +48,11 @@ bool CFontImGui::CreateWithRenderer(CRendererVulkan* /*renderer*/)
     return true;
 }
 
+float CFontImGui::DrawnSizePx() const
+{
+    return m_fontSizePx * PlatformUtils_GetUIScale();
+}
+
 // ---------------------------------------------------------------------------
 // CTextImGui
 // ---------------------------------------------------------------------------
@@ -75,10 +81,7 @@ Base::Math::CVector2 CTextImGui::GetExtent()
     float screenH = static_cast<float>(m_renderer->Display()->Height());
     if (screenW <= 0.f || screenH <= 0.f) return {0.f, 0.f};
 
-    static constexpr float kHudReferenceHeight = 1080.f;
-    const float scale    = screenH / kHudReferenceHeight;
-    const float fontSizePx = spFI->FontSize() * scale;
-    ImVec2 sz = font->CalcTextSizeA(fontSizePx, FLT_MAX, 0.f, m_text.c_str());
+    ImVec2 sz = font->CalcTextSizeA(spFI->DrawnSizePx(), FLT_MAX, 0.f, m_text.c_str());
     return {sz.x / screenW, sz.y / screenH};
 }
 

@@ -57,11 +57,7 @@ if (loggedIn)
     // Sign out button: right-aligned on the same row
     const float signOutX = safePanelWidth - sidePadding - actionButtonWidth;
     ImGui::SetCursorPos(ImVec2(signOutX, rowY));
-    ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.00f, 0.48f, 1.00f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.10f, 0.56f, 1.00f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.00f, 0.40f, 0.86f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_Text,          ImVec4(1.f, 1.f, 1.f, 1.f));
-    if (g_boldUiFont) ImGui::PushFont(g_boldUiFont);
+    // Plain button: once signed in, Close in the footer is the default (blue, Return).
     if (ImGui::Button("Sign out", ImVec2(actionButtonWidth, actionButtonHeight)))
     {
         std::strncpy(g_previousLoginEmailBuf, g_nicknameBuf, sizeof g_previousLoginEmailBuf - 1);
@@ -72,8 +68,6 @@ if (loggedIn)
         g_codeBuf[0] = '\0';
         std::strncpy(g_statusBuf, "Signed out.", sizeof g_statusBuf - 1);
     }
-    if (g_boldUiFont) ImGui::PopFont();
-    ImGui::PopStyleColor(4);
 }
 
 bool emailEnter = false;
@@ -220,10 +214,10 @@ if (!loggedIn)
     }
 
     ImGui::SetCursorPosX(sidePadding);
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.90f, 0.90f, 0.90f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.86f, 0.86f, 0.86f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.82f, 0.82f, 0.82f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.08f, 0.08f, 0.08f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_Button, Palette().secondaryButton);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Palette().secondaryButtonHovered);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, Palette().secondaryButtonActive);
+    ImGui::PushStyleColor(ImGuiCol_Text, Palette().text);
     if (ImGui::Button("Need an account? Create one", ImVec2(contentW, actionButtonHeight)))
         PlatformUtils::OpenURLExternally(kUrlCreateAccount);
     ImGui::PopStyleColor(4);

@@ -423,8 +423,8 @@ class CStatsConsole : public CConsole
         if (!spDisplay)
             return true;
 
-        // Scale step and edge proportionally with screen height (same reference as
-        // DrawText/GetExtent) so the overlay stays visually consistent at any resolution.
+        // Scale step and edge proportionally with screen height so the overlay's minimum
+        // line spacing and margins stay in proportion at any resolution.
         static constexpr float kHudReferenceHeight = 1080.f;
         const float screenH = static_cast<float>(spDisplay->Height());
         const float screenW = static_cast<float>(spDisplay->Width());

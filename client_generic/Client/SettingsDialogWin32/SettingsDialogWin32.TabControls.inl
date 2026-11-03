@@ -8,7 +8,7 @@ const float buttonWidth = S(170.f);
 const float buttonHeight = S(30.f);
 const float footerRowHeight = S(34.f);
 const float dividerWidth = S(1.f);
-const ImVec4 sectionDividerColor(0.90f, 0.90f, 0.90f, 1.00f);
+const ImVec4 sectionDividerColor = Palette().sectionDivider;
 
 const float controlsFontScale = 14.0f / 17.0f;
 ImGui::SetWindowFontScale(controlsFontScale); // Match macOS controls-tab text and button sizing.

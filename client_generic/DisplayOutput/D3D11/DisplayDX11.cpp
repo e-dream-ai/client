@@ -18,6 +18,7 @@
 #include "AboutDialogWin32.h"
 #include "FirstTimeSetupWin32.h"
 #include "SettingsDialogWin32.h"
+#include "ThemeWin32.h"
 #include <dwmapi.h>
 #include <ShellScalingApi.h>
 #include <windowsx.h>
@@ -657,6 +658,15 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
 
 #ifdef WIN32
     const int captionPressedSnapshot = (self && msg == WM_LBUTTONUP) ? self->m_captionBtnPressed : 0;
+
+    // The user switched light/dark. Handled ahead of the dialogs' WndProc hooks, which may consume messages.
+    if (msg == WM_SETTINGCHANGE && lParam &&
+        wcscmp(reinterpret_cast<const wchar_t*>(lParam), L"ImmersiveColorSet") == 0)
+    {
+        ThemeWin32::Refresh();
+        if (self)
+            self->ApplyThemeToTitlebar();
+    }
 
     // When settings (ImGui) is visible, it can consume mouse input before our titlebar WM_* cases run.
     // Pre-handle only the gear rect so it still toggles settings; other chrome uses the normal path.
@@ -1423,11 +1433,11 @@ HWND CDisplayDX11::CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen,
                            rc.bottom - rc.top, nullptr, hMenu, hInstance, this);
 }
 
-void CDisplayDX11::ApplyDarkTitlebarIfSupported()
+void CDisplayDX11::ApplyThemeToTitlebar()
 {
     if (!m_WindowHandle || !IsWindow(m_WindowHandle))
         return;
-    SetDwmImmersiveDarkMode(m_WindowHandle, true);
+    SetDwmImmersiveDarkMode(m_WindowHandle, ThemeWin32::IsDark());
 }
 #endif
 
@@ -1670,7 +1680,7 @@ HWND CDisplayDX11::Initialize(uint32_t width, uint32_t height, bool fullscreen) 
     if (!m_WindowHandle) return nullptr;
 
 #ifdef WIN32
-    ApplyDarkTitlebarIfSupported();
+    ApplyThemeToTitlebar();
 #endif
 
     if (!CreateDeviceAndSwapChain()) {
