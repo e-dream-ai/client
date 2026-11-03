@@ -12,6 +12,7 @@
 #include "Settings.h"
 #include "storage.h"
 #include "client.h"
+#include "ThemeLinux.h"
 #include "Log.h"
 
 #include <atomic>
@@ -43,6 +44,63 @@ constexpr const char* kUrlHelp          = "https://alpha.infinidream.ai/help";
 constexpr const char* kUrlWebRemote     = "https://alpha.infinidream.ai/rc";
 constexpr const char* kUrlPlaylists     = "https://alpha.infinidream.ai/playlists";
 #endif
+
+// Colors the settings dialog draws with beyond ImGui's base light/dark style.
+struct SettingsPalette
+{
+    ImVec4 windowBg, border, text, textDisabled;
+    ImVec4 tab, tabActive, tabHovered, flatTabHovered;
+    ImVec4 button, buttonHovered, buttonActive;
+    ImVec4 frameBg, frameBgHovered, frameBgActive;
+    ImVec4 secondaryButton, secondaryButtonHovered, secondaryButtonActive;
+    ImVec4 sectionDivider;
+    ImVec4 backdrop; // over the dream scene, under the dialog
+    ImU32 controlBorder;
+};
+
+const SettingsPalette kSettingsLight = {
+    ImVec4(0.98f, 0.98f, 0.98f, 1.00f), ImVec4(0.82f, 0.82f, 0.82f, 1.00f),
+    ImVec4(0.08f, 0.08f, 0.08f, 1.00f), ImVec4(0.40f, 0.40f, 0.40f, 1.00f),
+    ImVec4(0.92f, 0.92f, 0.92f, 1.00f), ImVec4(0.98f, 0.98f, 0.98f, 1.00f),
+    ImVec4(0.95f, 0.95f, 0.95f, 1.00f), ImVec4(0.f, 0.f, 0.f, 0.06f),
+    // Clearly darker than the 0.98 window so buttons read as buttons.
+    ImVec4(0.86f, 0.86f, 0.86f, 1.00f), ImVec4(0.81f, 0.81f, 0.81f, 1.00f), ImVec4(0.75f, 0.75f, 0.75f, 1.00f),
+    ImVec4(1.00f, 1.00f, 1.00f, 1.00f), ImVec4(0.97f, 0.97f, 0.97f, 1.00f), ImVec4(0.95f, 0.95f, 0.95f, 1.00f),
+    ImVec4(0.90f, 0.90f, 0.90f, 1.00f), ImVec4(0.86f, 0.86f, 0.86f, 1.00f), ImVec4(0.82f, 0.82f, 0.82f, 1.00f),
+    ImVec4(0.90f, 0.90f, 0.90f, 1.00f),
+    ImVec4(1.0f, 1.0f, 1.0f, 0.16f),
+    IM_COL32(224, 224, 224, 255),
+};
+
+const SettingsPalette kSettingsDark = {
+    ThemeLinux::DarkColor(0.15f, 0.15f, 0.16f, 1.00f), ThemeLinux::DarkColor(0.32f, 0.32f, 0.34f, 1.00f),
+    ThemeLinux::DarkColor(0.92f, 0.92f, 0.94f, 1.00f), ThemeLinux::DarkColor(0.60f, 0.60f, 0.62f, 1.00f),
+    ThemeLinux::DarkColor(0.20f, 0.20f, 0.21f, 1.00f), ThemeLinux::DarkColor(0.15f, 0.15f, 0.16f, 1.00f),
+    ThemeLinux::DarkColor(0.18f, 0.18f, 0.19f, 1.00f), ImVec4(1.f, 1.f, 1.f, 0.08f),
+    ThemeLinux::DarkColor(0.30f, 0.30f, 0.32f, 1.00f), ThemeLinux::DarkColor(0.36f, 0.36f, 0.38f, 1.00f), ThemeLinux::DarkColor(0.24f, 0.24f, 0.26f, 1.00f),
+    ThemeLinux::DarkColor(0.20f, 0.20f, 0.21f, 1.00f), ThemeLinux::DarkColor(0.23f, 0.23f, 0.24f, 1.00f), ThemeLinux::DarkColor(0.25f, 0.25f, 0.26f, 1.00f),
+    ThemeLinux::DarkColor(0.30f, 0.30f, 0.32f, 1.00f), ThemeLinux::DarkColor(0.36f, 0.36f, 0.38f, 1.00f), ThemeLinux::DarkColor(0.24f, 0.24f, 0.26f, 1.00f),
+    ThemeLinux::DarkColor(0.28f, 0.28f, 0.30f, 1.00f),
+    ImVec4(0.0f, 0.0f, 0.0f, 0.30f),
+    ImGui::ColorConvertFloat4ToU32(ThemeLinux::DarkColor(92 / 255.f, 92 / 255.f, 96 / 255.f, 1.f)),
+};
+
+const SettingsPalette& Palette()
+{
+    return ThemeLinux::IsDark() ? kSettingsDark : kSettingsLight;
+}
+
+// Whichever ImGui's base colors were last set for.
+bool g_styleIsDark = true;
+
+void SetStyleColors(bool dark)
+{
+    g_styleIsDark = dark;
+    if (dark)
+        ThemeLinux::ApplyDarkBaseColors(ImGui::GetStyle());
+    else
+        ImGui::StyleColorsLight();
+}
 
 static float g_uiScale = 1.0f; // refreshed from PlatformUtils_GetUIScale() on each show
 static inline float S(float v) { return v * g_uiScale; }
@@ -250,20 +308,20 @@ static void DrawSettingsDialog(float viewportW, float viewportH)
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(S(18.f), S(16.f)));
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, S(6.f));
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(S(10.f), S(10.f)));
-    ImGui::PushStyleColor(ImGuiCol_WindowBg,      ImVec4(0.98f, 0.98f, 0.98f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_Border,        ImVec4(0.82f, 0.82f, 0.82f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_Text,          ImVec4(0.08f, 0.08f, 0.08f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_TextDisabled,  ImVec4(0.40f, 0.40f, 0.40f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_Tab,           ImVec4(0.92f, 0.92f, 0.92f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_TabActive,     ImVec4(0.98f, 0.98f, 0.98f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_TabHovered,    ImVec4(0.95f, 0.95f, 0.95f, 1.00f));
-    // Clearly darker than the 0.98 window so buttons read as buttons.
-    ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.86f, 0.86f, 0.86f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.81f, 0.81f, 0.81f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.75f, 0.75f, 0.75f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_FrameBg,       ImVec4(1.00f, 1.00f, 1.00f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered,ImVec4(0.97f, 0.97f, 0.97f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.95f, 0.95f, 0.95f, 1.00f));
+    const SettingsPalette& palette = Palette();
+    ImGui::PushStyleColor(ImGuiCol_WindowBg,      palette.windowBg);
+    ImGui::PushStyleColor(ImGuiCol_Border,        palette.border);
+    ImGui::PushStyleColor(ImGuiCol_Text,          palette.text);
+    ImGui::PushStyleColor(ImGuiCol_TextDisabled,  palette.textDisabled);
+    ImGui::PushStyleColor(ImGuiCol_Tab,           palette.tab);
+    ImGui::PushStyleColor(ImGuiCol_TabActive,     palette.tabActive);
+    ImGui::PushStyleColor(ImGuiCol_TabHovered,    palette.tabHovered);
+    ImGui::PushStyleColor(ImGuiCol_Button,        palette.button);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, palette.buttonHovered);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive,  palette.buttonActive);
+    ImGui::PushStyleColor(ImGuiCol_FrameBg,       palette.frameBg);
+    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered,palette.frameBgHovered);
+    ImGui::PushStyleColor(ImGuiCol_FrameBgActive, palette.frameBgActive);
 
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
                              ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
@@ -280,7 +338,7 @@ static void DrawSettingsDialog(float viewportW, float viewportH)
 
         // Flat tab strip with hairline + accent underline on active tab.
         ImGui::PushStyleColor(ImGuiCol_Tab,              ImVec4(0.f, 0.f, 0.f, 0.f));
-        ImGui::PushStyleColor(ImGuiCol_TabHovered,       ImVec4(0.f, 0.f, 0.f, 0.06f));
+        ImGui::PushStyleColor(ImGuiCol_TabHovered,       palette.flatTabHovered);
         ImGui::PushStyleColor(ImGuiCol_TabActive,        ImVec4(0.f, 0.f, 0.f, 0.f));
         ImGui::PushStyleColor(ImGuiCol_TabUnfocused,     ImVec4(0.f, 0.f, 0.f, 0.f));
         ImGui::PushStyleColor(ImGuiCol_TabUnfocusedActive, ImVec4(0.f, 0.f, 0.f, 0.f));
@@ -462,7 +520,7 @@ void SettingsDialogVulkan_DrawIfNeeded()
             ImGui::GetIO().FontDefault = g_regularUiFont;
 
         ImGui::GetStyle().ScaleAllSizes(g_uiScale);
-        ImGui::StyleColorsLight();
+        SetStyleColors(ThemeLinux::IsDark());
         ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
         ImGui::GetIO().GetClipboardTextFn = GetClipboardText;
 
@@ -476,13 +534,16 @@ void SettingsDialogVulkan_DrawIfNeeded()
 
     if (!g_visible.load(std::memory_order_acquire)) return;
 
+    if (ThemeLinux::IsDark() != g_styleIsDark)
+        SetStyleColors(ThemeLinux::IsDark());
+
     const float vpW = ImGui::GetIO().DisplaySize.x;
     const float vpH = ImGui::GetIO().DisplaySize.y;
 
-    // Lighten the dream scene under the dialog.
+    // Tint the dream scene under the dialog.
     ImGui::GetBackgroundDrawList()->AddRectFilled(
         ImVec2(0.f, 0.f), ImVec2(vpW, vpH),
-        ImGui::GetColorU32(ImVec4(1.f, 1.f, 1.f, 0.16f)));
+        ImGui::GetColorU32(Palette().backdrop));
 
     // Push the dialog font at S(20) so all dialog text renders at the correct
     // size regardless of what FontSizeBase was set to during earlier frames

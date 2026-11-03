@@ -214,10 +214,10 @@ if (!loggedIn)
     }
 
     ImGui::SetCursorPosX(sidePadding);
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.90f, 0.90f, 0.90f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.86f, 0.86f, 0.86f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.82f, 0.82f, 0.82f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.08f, 0.08f, 0.08f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_Button, Palette().secondaryButton);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Palette().secondaryButtonHovered);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, Palette().secondaryButtonActive);
+    ImGui::PushStyleColor(ImGuiCol_Text, Palette().text);
     if (ImGui::Button("Need an account? Create one", ImVec2(contentW, actionButtonHeight)))
         PlatformUtils::OpenURLExternally(kUrlCreateAccount);
     ImGui::PopStyleColor(4);

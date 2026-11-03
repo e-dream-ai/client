@@ -15,6 +15,7 @@
 #include "Player.h"
 #include "Settings.h"
 #include "SimplePlaylist.h"
+#include "ThemeLinux.h"
 #include "Timer.h"
 #include "base.h"
 #include "storage.h"
@@ -41,6 +42,8 @@ class CElectricSheep_Linux : public CElectricSheep
         using namespace DisplayOutput;
 
         printf("Startup()\n");
+
+        ThemeLinux::Start();
 
         // Stage keeps its own folder so prod and stage state don't collide.
 #ifdef STAGE

@@ -188,6 +188,7 @@ set(SOURCES
     ${CLIENT}/StringFormat.cpp
     ${CLIENT}/FirstTimeSetupVulkan.cpp
     ${CLIENT}/SettingsDialogVulkan.cpp
+    ${CLIENT}/ThemeLinux.cpp
 
     # Common
     ${COMMON}/AlignedBuffer.cpp
