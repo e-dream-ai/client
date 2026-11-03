@@ -16,7 +16,7 @@ namespace ServerConfig {
 
 ServerConfigManager::ServerConfigManager() {
     // A bare host means TLS. "http://" has to be asked for explicitly, and only counts on
-    // an isolated test run: it exists so the client can use a local fake server (client#733),
+    // an isolated test run: it exists so the client can use a local mock server (client#733),
     // and a stray setting must not switch an everyday install to plaintext.
     std::string server = g_Settings()->Get("settings.content.server", std::string(DEFAULT_DREAM_SERVER));
     while (!server.empty() && server.back() == '/')
