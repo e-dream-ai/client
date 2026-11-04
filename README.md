@@ -182,15 +182,21 @@ to quit.
 ### Quick Build for Debugging
 
 Open `client_generic/MacBuild/infinidream.xcodeproj` and run the app scheme
-(⌘R). The screensaver is an `.appex` embedded via Xcode’s **Embed App
-Extensions** phase; no `Resources/*.saver` stub is required.
+(⌘R). Desktop and Idle are **separate** appexes under `Contents/PlugIns/`:
+
+- Desktop: `com.apple.wallpaper` via **Embed Wallpaper Extension**
+  (`embed_wallpaper.sh` → `infinidream[-stage]-wallpaper.appex`)
+- Idle: `com.apple.screensaver` via **Embed Screensaver Extension**
+  (`embed_screensaver.sh` → `infinidream[-stage].appex`)
 
 Prefer **Apple Development** signing for Debug so PlugInKit will list the
-extension (`pluginkit -m -v -p com.apple.screensaver`). Unsigned/ad-hoc
-Debug appexes often never appear in System Settings.
+extensions (`pluginkit -m -v -p com.apple.wallpaper` /
+`com.apple.screensaver`). Unsigned/ad-hoc Debug appexes often never appear
+in System Settings.
 
-On first launch the app registers the embedded appex (`pluginkit -a`) and,
-when keep-enabled is on, sets it as the system screensaver (Idle slot).
+On first launch the app registers both appexes (`pluginkit -a`) and, when
+keep-enabled is on, sets Desktop via PaperSaver `setWallpaperExtension` and
+Idle via the screensaver module URL.
 
 ### Build Script
 ```bash
@@ -240,15 +246,11 @@ Default keychain profile: `infinidream-notarization`
 ```
 
 ### Output
-- Screensaver (prod): `build/DerivedData/Build/Products/{Debug|Release}/infinidream.appex`
-- Screensaver (stage): `…/infinidream-stage.appex`
 - Application: `build/{Debug|Release}/AppExport/infinidream.app` (stage: `infinidream stage.app`)
+- Wallpaper appex (inside the app): `Contents/PlugIns/infinidream-wallpaper.appex` (stage: `infinidream-stage-wallpaper.appex`)
 
-The app embeds the screensaver at
-`infinidream.app/Contents/PlugIns/infinidream.appex` (stage:
-`infinidream stage.app/Contents/PlugIns/infinidream-stage.appex`).
-`build.py` may also copy the `.appex` under `MacBuild/Resources/` for
-notarize/staple; that copy is not what the running app loads.
+The legacy `com.apple.screensaver` appex is no longer embedded (Milestone 4).
+ScreenSaver Xcode targets remain in the project for rollback only.
 
 ## Build on Windows
 
@@ -520,20 +522,19 @@ to test while streaming.
 Then do a basic test after `rm -rf /Users/Shared/infinidream.ai/`
 to test sign-in flow.
 
-Then deselect infinidream in System Settings → Screen Saver (pick another
-module), unregister the appex, and confirm the app re-registers and
+Then deselect infinidream in System Settings → Wallpaper / Screen Saver,
+unregister the wallpaper appex, and confirm the app re-registers and
 selects it again:
 
 ```bash
 # Stage example — adjust the DerivedData / Products path as needed:
-pluginkit -r "$HOME/Library/Developer/Xcode/DerivedData/"*"/Build/Products/Debug/infinidream stage.app/Contents/PlugIns/infinidream-stage.appex"
-pluginkit -m -v -p com.apple.screensaver | grep -i infinidream || echo "unregistered"
+pluginkit -r "$HOME/Library/Developer/Xcode/DerivedData/"*"/Build/Products/Debug/infinidream stage.app/Contents/PlugIns/infinidream-stage-wallpaper.appex"
+pluginkit -m -v -p com.apple.wallpaper | grep -i infinidream || echo "unregistered"
 ```
 
-There is no Settings “Delete” for an app-hosted `.appex` (unlike a legacy
-`.saver` in `~/Library/Screen Savers`). Full removal is `pluginkit -r`
-and/or deleting the host app; turn off keep-screensaver-enabled first or
-the next launch will re-register it.
+There is no Settings “Delete” for an app-hosted `.appex`. Full removal is
+`pluginkit -r` and/or deleting the host app; turn off keep-screensaver-enabled
+first or the next launch will re-register it.
 
 ## Upload symbols to BugSnag
 

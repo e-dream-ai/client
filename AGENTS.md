@@ -87,7 +87,7 @@ cmake --build build-stage -j$(nproc)
 ## Key Patterns
 
 - Dual mode: production (infinidream.ai) and staging (stage.infinidream.ai)
-- Screensaver: embedded in the app bundle (macOS `.appex` under `Contents/PlugIns/`, registered via `pluginkit`); separate `infinidream.scr` on Windows; not applicable on Linux
+- Live wallpaper + Idle (macOS) are separate processes: Desktop uses `com.apple.wallpaper` (`infinidream-wallpaper.appex` / `infinidream-stage-wallpaper.appex`); Idle uses `com.apple.screensaver` (`infinidream.appex` / `infinidream-stage.appex`). Both live under `Contents/PlugIns/`. Windows still uses `infinidream.scr`; not applicable on Linux
 - Code signing: macOS auto-discovers Developer ID from Keychain; Windows uses Authenticode (`release.py --sign`)
 - Auto-update via Sparkle appcast XML — macOS only; Windows/Linux ship via GitHub releases without in-app update
 
