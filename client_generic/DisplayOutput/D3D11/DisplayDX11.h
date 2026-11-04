@@ -97,6 +97,7 @@ private:
 
     // The window's current DPI (96 = 100%). Per-monitor: changes when it moves between monitors.
     UINT GetDpi() const;
+    float TextScale() const override { return static_cast<float>(GetDpi()) / USER_DEFAULT_SCREEN_DPI; }
 
     /// Client-area height (px) excluded from the D3D video viewport (custom title strip when there is no WS_CAPTION).
     /// Matches `BuildBaseViewportForDisplay` / preserve-AR letterboxing; 0 when the full client is used for video.
