@@ -249,7 +249,13 @@ class CElectricSheep
 
     std::deque<std::string> m_ConnectionErrors;
     std::string m_HudFontName;
-    int m_HudFontSize;
+    // HUD text height in font units (see CFontDescription::Height). Windows units draw larger
+    // than Mac points on a similar screen, so it uses a smaller number for the same size.
+#ifdef WIN32
+    static constexpr uint32_t kHudFontSize = 20;
+#else
+    static constexpr uint32_t kHudFontSize = 24;
+#endif
 
 #ifdef DO_THREAD_UPDATE
     boost::barrier* m_pUpdateBarrier;
@@ -349,11 +355,9 @@ class CElectricSheep
     
     void CreateHud()
     {
-        //    Get hud font size.
+        //    Get hud font name.
         m_HudFontName = g_Settings()->Get(
             "settings.player.m_HudFontName", std::string("Lato"));
-        m_HudFontSize = static_cast<uint32_t>(
-            g_Settings()->Get("settings.player.m_HudFontSize", 24));
 
         m_PNGDelayTimer =
             g_Settings()->Get("settings.player.pngdelaytimer", 600);
@@ -365,7 +369,7 @@ class CElectricSheep
     {
         m_HudManager->Add("helpmessage", std::make_shared<Hud::CStatsConsole>(
                                              Base::Math::CRect(1, 1),
-                                             m_HudFontName, m_HudFontSize));
+                                             m_HudFontName, kHudFontSize));
         m_HudManager->Hide("helpmessage");
         Hud::spCStatsConsole spHelpMessage =
             std::dynamic_pointer_cast<Hud::CStatsConsole>(
@@ -413,7 +417,7 @@ class CElectricSheep
     {
         m_HudManager->Add("dreamstats", std::make_shared<Hud::CStatsConsole>(
                                             Base::Math::CRect(1, 1),
-                                            m_HudFontName, m_HudFontSize));
+                                            m_HudFontName, kHudFontSize));
         m_HudManager->Hide("dreamstats");
         Hud::spCStatsConsole spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
             m_HudManager->Get("dreamstats"));
@@ -478,7 +482,7 @@ class CElectricSheep
     {
         auto creditsConsole = std::make_shared<Hud::CStatsConsole>(
                                               Base::Math::CRect(1, 1),
-                                              m_HudFontName, m_HudFontSize);
+                                              m_HudFontName, kHudFontSize);
         m_HudManager->Add("dreamcredits", creditsConsole);
         m_HudManager->Hide("dreamcredits");
 
@@ -508,7 +512,7 @@ class CElectricSheep
         // Create a separate HUD for network status indicator (shown outside credits overlay)
         auto networkConsole = std::make_shared<Hud::CStatsConsole>(
                                               Base::Math::CRect(1, 1),
-                                              m_HudFontName, m_HudFontSize);
+                                              m_HudFontName, kHudFontSize);
         m_HudManager->Add("network-indicator", networkConsole);
         m_HudManager->Hide("network-indicator");
 
@@ -794,7 +798,7 @@ class CElectricSheep
     {
         m_HudManager->Add("progress", std::make_shared<Hud::CStatsConsole>(
                                             Base::Math::CRect(1, 1),
-                                            m_HudFontName, m_HudFontSize));
+                                            m_HudFontName, kHudFontSize));
         Hud::spCStatsConsole spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
             m_HudManager->Get("progress"));
         if (spStats)

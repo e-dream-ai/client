@@ -264,6 +264,8 @@ class CDisplayOutput
     uint32_t Width() { return (m_Width); };
     uint32_t Height() { return (m_Height); };
     float Aspect() { return ((float)m_Height / (float)m_Width); };
+    // Width() and Height() units per font height unit, for sizing text from the display size.
+    virtual float TextScale() const { return 1.0f; }
     bool Closed() { return (m_bClosed); };
     void Close() { m_bClosed = true; };
     // Allow the renderer to sync tracked dimensions after a swapchain recreation

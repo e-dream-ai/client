@@ -394,7 +394,9 @@ public:
         // Scale font size with app size: proportional to OSD bg height in pixels
         DisplayOutput::spCDisplayOutput spDisplayForFont = g_Player().Display();
         const float displayHForFont =
-            (spDisplayForFont != nullptr) ? static_cast<float>(spDisplayForFont->Height()) : 0.0f;
+            (spDisplayForFont != nullptr)
+                ? static_cast<float>(spDisplayForFont->Height()) / spDisplayForFont->TextScale()
+                : 0.0f;
         float fontPx = m_BgCRect.Height() * displayHForFont * 0.3f; // tuned for readability
         m_FontDesc.Height(fontPx);
         m_FontDesc.Style(DisplayOutput::CFontDescription::Normal);
@@ -570,6 +572,9 @@ public:
                 float displayW = (float)displayWInt;
                 float displayH = (float)displayHInt;
                 float fontPx = m_BgCRect.Height() * displayH * 0.3f;
+                if (spDisplayForFps) {
+                    fontPx /= spDisplayForFps->TextScale();
+                }
 
                 bool fontChanged = false;
                 if (fontPx > 0.0f &&

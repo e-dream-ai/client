@@ -47,6 +47,7 @@ class CFontDescription
     bool operator==(const CFontDescription& _rhs) const;
 
     //
+    // In DIPs on Windows and points on Mac, not pixels: the renderer applies the display scale.
     void Height(uint32_t _h) { m_Height = _h; };
     uint32_t Height(void) const { return (m_Height); };
 
