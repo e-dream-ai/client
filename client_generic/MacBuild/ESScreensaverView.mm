@@ -601,8 +601,11 @@ static void signnal_handler(int signal)
     view.frame = videoFrame;
 
     ESScreensaver_SetVideoRotation(shouldRotate ? 90 : 0);
-    ESScreensaver_ForceWidthAndHeight((uint32_t)videoFrame.size.width,
-                                      (uint32_t)videoFrame.size.height);
+    // Size this view's display unit only — Settings thumbnail is often 0;
+    // resizing 0 from a full-screen view blacks out the other surface.
+    ESScreensaver_ForceWidthAndHeightForDisplay(m_displayIdx,
+                                                (uint32_t)videoFrame.size.width,
+                                                (uint32_t)videoFrame.size.height);
 }
 
 - (BOOL)hasConfigureSheet

@@ -16,6 +16,9 @@ bool ESScreensaver_Stopped(void);
 /// True when this process failed to take the exclusive instance lock (secondary).
 bool ESScreensaver_IsSecondaryInstance(void);
 void ESScreensaver_ForceWidthAndHeight(uint32_t _width, uint32_t _height);
+/// Resize a specific display unit (preview vs Desktop/Idle must not share unit 0).
+void ESScreensaver_ForceWidthAndHeightForDisplay(int _displayIdx, uint32_t _width,
+                                                 uint32_t _height);
 void ESScreensaver_SetVideoRotation(uint32_t _degrees);
 void ESScreensaver_Deinit(void);
 

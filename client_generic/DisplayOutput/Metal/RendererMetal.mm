@@ -477,8 +477,17 @@ float CRendererMetal::GetGPUUtilization()
         (__bridge RendererContext*)m_pRendererContext;
     float gpuMs =
         rendererContext->avgGpuFrameTimeMs.load(std::memory_order_relaxed);
-    float budgetMs =
-        1000.0f / rendererContext->metalView.preferredFramesPerSecond;
+    // Graphics context may be ESMetalView, MTKView, or MetalDrawableAdapter —
+    // only query preferredFramesPerSecond when the selector exists.
+    NSInteger fps = 60;
+    id view = rendererContext->metalView;
+    if ([view respondsToSelector:@selector(preferredFramesPerSecond)])
+    {
+        fps = [view preferredFramesPerSecond];
+        if (fps < 1)
+            fps = 60;
+    }
+    float budgetMs = 1000.0f / (float)fps;
     return gpuMs / budgetMs * 100.0f;
 }
 

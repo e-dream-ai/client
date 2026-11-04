@@ -132,6 +132,14 @@ void ESScreensaver_ForceWidthAndHeight(uint32 _width, uint32 _height)
     g_Player().ForceWidthAndHeight(0, _width, _height);
 }
 
+void ESScreensaver_ForceWidthAndHeightForDisplay(int _displayIdx, uint32 _width,
+                                                 uint32 _height)
+{
+    if (_displayIdx < 0)
+        return;
+    g_Player().ForceWidthAndHeight((uint32_t)_displayIdx, _width, _height);
+}
+
 void ESScreensaver_SetVideoRotation(uint32 _degrees)
 {
     g_Player().SetVideoRotation(0, _degrees);

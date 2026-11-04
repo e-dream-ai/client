@@ -128,8 +128,16 @@ class CElectricSheep_Mac : public CElectricSheep
         bool exists = std::filesystem::exists(m_AppData);
         
         if (exists) {
-            // check the exclusive file lock to see if we are running alone...
+            // App, Desktop wallpaper, and Idle screensaver each get their own
+            // lock so any two can run together. Sharing a lock forces the
+            // loser into busy/offline (MultipleInstancesMode).
+#ifdef WALLPAPER_EXT
+            std::string lockfile = m_AppData + ".wallpaper-instance-lock";
+#elif defined(SCREEN_SAVER)
+            std::string lockfile = m_AppData + ".screensaver-instance-lock";
+#else
             std::string lockfile = m_AppData + ".instance-lock";
+#endif
             
             m_lckFile =
             open(lockfile.c_str(), O_WRONLY + O_EXLOCK + O_NONBLOCK + O_CREAT,

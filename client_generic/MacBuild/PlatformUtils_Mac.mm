@@ -6,10 +6,13 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <AppKit/AppKit.h>
 #import <SystemConfiguration/SystemConfiguration.h>
 #import <Bugsnag/Bugsnag.h>
 
+#ifndef WALLPAPER_EXT
 #import "ESScreensaverView.h"
+#endif
 
 #include <string_view>
 #include <pthread.h>
@@ -22,6 +25,16 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
+
+static NSBundle* ESResourceBundle(void)
+{
+#ifdef WALLPAPER_EXT
+    // Wallpaper appex has no ESScreensaverView; mainBundle is the .appex.
+    return [NSBundle mainBundle];
+#else
+    return [NSBundle bundleForClass:ESScreensaverView.class];
+#endif
+}
 
 bool PlatformUtils::IsInternetReachable()
 {
@@ -54,7 +67,7 @@ static std::string GetDictValue(std::string_view key)
     static NSDictionary* dict = nil;
     if (dict == nil)
     {
-        NSBundle* bundle = [NSBundle bundleForClass:ESScreensaverView.class];
+        NSBundle* bundle = ESResourceBundle();
         NSString* path = [bundle pathForResource:@"BuildData" ofType:@"json"];
         NSData* data = [NSData dataWithContentsOfFile:path];
         NSError* error;
@@ -81,10 +94,10 @@ std::string PlatformUtils::GetGitRevision() { return GetDictValue("REVISION"); }
 
 std::string PlatformUtils::GetAppVersion()
 {
-    NSBundle* bundle = [NSBundle bundleForClass:ESScreensaverView.class];
+    NSBundle* bundle = ESResourceBundle();
     NSString* str =
         [bundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
-    return str.UTF8String;
+    return str ? str.UTF8String : "";
 }
 
 std::string PlatformUtils::GetPlatformName() {
@@ -92,8 +105,8 @@ std::string PlatformUtils::GetPlatformName() {
 }
 
 std::string PlatformUtils::GetWorkingDir() {
-    // We have to access the bundle this way so it works in screensaver mode
-    NSBundle* bundle = [NSBundle bundleForClass:ESScreensaverView.class];
+    // Screensaver: bundleForClass(ESScreensaverView). Wallpaper: mainBundle.
+    NSBundle* bundle = ESResourceBundle();
     NSString* resourcePath = [[bundle resourcePath] stringByAppendingString:@"/"];
     return std::string([resourcePath UTF8String]);
 }
