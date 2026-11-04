@@ -88,11 +88,14 @@ struct WallpaperExtensionConfiguration: AppExtensionConfiguration {
 
         let handler = WallpaperXPCHandler()
         connection.exportedObject = handler
+        // Only drop Settings preview surfaces on XPC blips — keep live Desktop.
         connection.interruptionHandler = {
-            extLog("XPC interrupted pid=\(connection.processIdentifier)")
+            extLog("XPC interrupted pid=\(connection.processIdentifier) — drop Settings preview only")
+            handler.invalidateSettingsPreviewSessions()
         }
         connection.invalidationHandler = {
-            extLog("XPC invalidated pid=\(connection.processIdentifier)")
+            extLog("XPC invalidated pid=\(connection.processIdentifier) — drop Settings preview only")
+            handler.invalidateSettingsPreviewSessions()
             handler.agentProxy = nil
         }
         connection.resume()

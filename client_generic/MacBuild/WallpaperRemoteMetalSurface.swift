@@ -9,6 +9,7 @@ final class RemoteMetalSurface: @unchecked Sendable {
     enum Role: String {
         case desktop
         case idle
+        case settingsPreview
         case unknown
     }
 
@@ -28,6 +29,17 @@ final class RemoteMetalSurface: @unchecked Sendable {
     private let renderLock = NSLock()
     private var frameCount: UInt64 = 0
     private var playerStarted = false
+
+    /// Settings System Settings thumbnail — not a live Desktop/Idle surface.
+    var isSettingsPreview: Bool { role == .settingsPreview }
+
+    /// Current logical size (points). Used to reject Settings chrome resizes
+    /// aimed at a live Desktop session that shares the same wallpaper id.
+    var currentSize: CGSize {
+        renderLock.lock()
+        defer { renderLock.unlock() }
+        return size
+    }
 
     init?(
         wallpaperKey: String,
@@ -86,12 +98,14 @@ final class RemoteMetalSurface: @unchecked Sendable {
         CATransaction.flush()
 
         let adapter = MetalDrawableAdapter(metalLayer: metal, device: device)
-        // Live Desktop/Idle presentation (not Settings thumbnail offline mode).
+        // Settings preview gets preview:true only on a cold engine start;
+        // ESScreensaver_Start ignores the flag when Desktop is already live.
+        let preview = (role == .settingsPreview)
         let idx = WallpaperPlayerBridge.start(
             with: adapter,
             width: UInt32(safeSize.width),
             height: UInt32(safeSize.height),
-            preview: false
+            preview: preview
         )
         if idx < 0 {
             extLog("RemoteMetalSurface: WallpaperPlayerBridge start failed")
@@ -115,7 +129,7 @@ final class RemoteMetalSurface: @unchecked Sendable {
         startRenderLoop()
         extLog(
             "RemoteMetalSurface start key=\(wallpaperKey) role=\(role.rawValue) " +
-            "ctx=\(ctx.contextId) displayIdx=\(idx) " +
+            "preview=\(preview) ctx=\(ctx.contextId) displayIdx=\(idx) " +
             "size=\(Int(safeSize.width))x\(Int(safeSize.height))@\(safeScale)"
         )
     }
@@ -150,16 +164,18 @@ final class RemoteMetalSurface: @unchecked Sendable {
     func invalidate() {
         timer?.cancel()
         timer = nil
+        let idx = displayIdx
         if playerStarted {
-            WallpaperPlayerBridge.stopSession()
             playerStarted = false
+            displayIdx = -1
+            WallpaperPlayerBridge.stopSession(forDisplay: idx)
         }
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         context.layer = nil
         metalLayer.removeFromSuperlayer()
         CATransaction.commit()
-        extLog("RemoteMetalSurface invalidate key=\(wallpaperKey) ctx=\(contextId)")
+        extLog("RemoteMetalSurface invalidate key=\(wallpaperKey) role=\(role.rawValue) ctx=\(contextId)")
     }
 
     func makeSnapshotXPC() -> AnyObject? {
@@ -194,6 +210,8 @@ final class RemoteMetalSurface: @unchecked Sendable {
         switch role {
         case .idle:
             ctx.setFillColor(CGColor(red: 0.10, green: 0.10, blue: 0.18, alpha: 1))
+        case .settingsPreview:
+            ctx.setFillColor(CGColor(red: 0.08, green: 0.12, blue: 0.16, alpha: 1))
         case .desktop, .unknown:
             ctx.setFillColor(CGColor(red: 0.05, green: 0.08, blue: 0.12, alpha: 1))
         }

@@ -6,7 +6,7 @@ import QuartzCore
 extension CALayer: @unchecked @retroactive Sendable {}
 extension CAContext: @unchecked @retroactive Sendable {}
 
-/// Milestone 2: Metal remote-CAContext sessions for Desktop and Idle.
+/// Metal remote-CAContext sessions for Desktop and System Settings preview.
 final class WallpaperXPCHandler: NSObject, WallpaperExtensionXPCProtocol {
     var agentProxy: (any WallpaperExtensionProxyXPCProtocol)?
 
@@ -18,26 +18,69 @@ final class WallpaperXPCHandler: NSObject, WallpaperExtensionXPCProtocol {
 
     // MARK: - Lifecycle
 
+    /// Drop Settings preview surfaces only — keep live Desktop sessions.
+    func invalidateSettingsPreviewSessions() {
+        lock.lock()
+        var doomed: [RemoteMetalSurface] = []
+        for (key, surface) in sessions where surface.isSettingsPreview {
+            sessions.removeValue(forKey: key)
+            contextIndex.removeValue(forKey: surface.contextId)
+            doomed.append(surface)
+        }
+        lock.unlock()
+        for surface in doomed {
+            surface.invalidate()
+        }
+        if !doomed.isEmpty {
+            extLog("invalidateSettingsPreviewSessions removed \(doomed.count)")
+        }
+    }
+
     func acquire(withId id: Any?, request: Any?, reply: @escaping @Sendable (Any?, (any Error)?) -> Void) {
-        let key = Self.wallpaperKey(from: id) ?? UUID().uuidString
-        let parsed = Self.parseRequest(request)
+        let baseKey = Self.wallpaperKey(from: id) ?? UUID().uuidString
+        var parsed = Self.parseRequest(request)
+
+        lock.lock()
+        let existingDesktop = sessions[baseKey]
+        let desktopLive = existingDesktop?.role == .desktop
+        lock.unlock()
+
+        // Clicking our tile in System Settings reuses the Desktop WallpaperID.
+        // If Desktop is already playing, never replace that session — attach a
+        // namespaced Settings preview instead (otherwise Desktop goes black and
+        // the Settings pane shows a white/empty surface).
+        var role = parsed.role
+        if desktopLive {
+            role = .settingsPreview
+            parsed.role = .settingsPreview
+        }
+        let key = role == .settingsPreview ? "preview:\(baseKey)" : baseKey
         extLog(
-            "acquire key=\(key) role=\(parsed.role.rawValue) " +
+            "acquire key=\(key) role=\(role.rawValue) desktopLive=\(desktopLive) " +
             "size=\(Int(parsed.size.width))x\(Int(parsed.size.height)) " +
             "scale=\(parsed.scale) display=\(String(describing: parsed.displayID))"
         )
 
         lock.lock()
         if let existing = sessions[key] {
-            existing.invalidate()
-            contextIndex.removeValue(forKey: existing.contextId)
-            sessions.removeValue(forKey: key)
+            // Re-click in Settings re-acquires the same id. Hand back the live
+            // surface instead of rebuilding it, so neither Desktop nor the
+            // preview flashes or restarts the current dream.
+            let ctxId = existing.contextId
+            lock.unlock()
+            if parsed.size.width >= 1, parsed.size.height >= 1,
+               existing.role != .desktop {
+                existing.updateSize(parsed.size, scale: parsed.scale)
+            }
+            extLog("acquire reused key=\(key) role=\(existing.role.rawValue) contextId=\(ctxId)")
+            reply(Self.createRemoteContextXPC(contextId: ctxId), nil)
+            return
         }
         lock.unlock()
 
         guard let surface = RemoteMetalSurface(
             wallpaperKey: key,
-            role: parsed.role,
+            role: role,
             size: parsed.size,
             scale: parsed.scale,
             displayID: parsed.displayID
@@ -65,19 +108,37 @@ final class WallpaperXPCHandler: NSObject, WallpaperExtensionXPCProtocol {
     }
 
     func update(withId id: Any?, request: Any?, reply: @escaping @Sendable ((any Error)?) -> Void) {
-        let key = Self.wallpaperKey(from: id)
+        let baseKey = Self.wallpaperKey(from: id)
         let parsed = Self.parseRequest(request)
         extLog(
-            "update key=\(String(describing: key)) " +
+            "update key=\(String(describing: baseKey)) " +
             "size=\(Int(parsed.size.width))x\(Int(parsed.size.height)) scale=\(parsed.scale)"
         )
         lock.lock()
-        let surface: RemoteMetalSurface?
-        if let key {
-            surface = sessions[key]
-        } else {
-            surface = nil
-        }
+        let surface: RemoteMetalSurface? = {
+            guard let baseKey else { return nil }
+            // Settings updates share the Desktop wallpaper id — prefer the
+            // preview session so we never shrink live Desktop to chrome size.
+            if let preview = sessions["preview:\(baseKey)"] {
+                return preview
+            }
+            guard let s = sessions[baseKey] else { return nil }
+            if s.role == .desktop {
+                let cur = s.currentSize
+                let shrinks =
+                    parsed.size.width < cur.width * 0.85
+                    || parsed.size.height < cur.height * 0.85
+                if shrinks {
+                    extLog(
+                        "update ignored — Settings chrome " +
+                        "\(Int(parsed.size.width))x\(Int(parsed.size.height)) " +
+                        "would resize live Desktop \(Int(cur.width))x\(Int(cur.height))"
+                    )
+                    return nil
+                }
+            }
+            return s
+        }()
         lock.unlock()
         if let surface, parsed.size.width >= 1, parsed.size.height >= 1 {
             surface.updateSize(parsed.size, scale: parsed.scale)
@@ -86,20 +147,29 @@ final class WallpaperXPCHandler: NSObject, WallpaperExtensionXPCProtocol {
     }
 
     func invalidate(withId id: Any?, reply: @escaping @Sendable ((any Error)?) -> Void) {
-        let key = Self.wallpaperKey(from: id)
-        extLog("invalidate key=\(String(describing: key)) id=\(String(describing: id))")
+        let baseKey = Self.wallpaperKey(from: id)
+        extLog("invalidate key=\(String(describing: baseKey)) id=\(String(describing: id))")
         lock.lock()
-        let surface: RemoteMetalSurface?
-        if let key, let s = sessions.removeValue(forKey: key) {
-            contextIndex.removeValue(forKey: s.contextId)
-            surface = s
-        } else if let ctx = Self.contextId(from: id),
-                  let k = contextIndex.removeValue(forKey: ctx),
-                  let s = sessions.removeValue(forKey: k) {
-            surface = s
-        } else {
-            surface = nil
-        }
+        let surface: RemoteMetalSurface? = {
+            if let baseKey {
+                // Prefer Settings preview for the same wallpaper id so closing
+                // the Settings pane does not kill live Desktop.
+                if let preview = sessions.removeValue(forKey: "preview:\(baseKey)") {
+                    contextIndex.removeValue(forKey: preview.contextId)
+                    return preview
+                }
+                if let s = sessions.removeValue(forKey: baseKey) {
+                    contextIndex.removeValue(forKey: s.contextId)
+                    return s
+                }
+            }
+            if let ctx = Self.contextId(from: id),
+               let k = contextIndex.removeValue(forKey: ctx),
+               let s = sessions.removeValue(forKey: k) {
+                return s
+            }
+            return nil
+        }()
         lock.unlock()
         surface?.invalidate()
         extLog("invalidate done sessions=\(sessionCount())")
@@ -107,19 +177,24 @@ final class WallpaperXPCHandler: NSObject, WallpaperExtensionXPCProtocol {
     }
 
     func snapshot(withId id: Any?, reply: @escaping @Sendable (Any?, (any Error)?) -> Void) {
-        let key = Self.wallpaperKey(from: id)
-        extLog("snapshot key=\(String(describing: key))")
+        let baseKey = Self.wallpaperKey(from: id)
+        extLog("snapshot key=\(String(describing: baseKey))")
         lock.lock()
-        let surface: RemoteMetalSurface?
-        if let key {
-            surface = sessions[key]
-        } else if let ctx = Self.contextId(from: id),
-                  let k = contextIndex[ctx] {
-            surface = sessions[k]
-        } else {
-            // Settings may snapshot before acquire; use any live session or synthesize.
-            surface = sessions.values.first
-        }
+        let surface: RemoteMetalSurface? = {
+            if let baseKey {
+                if let preview = sessions["preview:\(baseKey)"] { return preview }
+                if let s = sessions[baseKey] { return s }
+            }
+            if let ctx = Self.contextId(from: id),
+               let k = contextIndex[ctx] {
+                return sessions[k]
+            }
+            // Prefer a preview surface for Settings tiles when present.
+            if let preview = sessions.values.first(where: { $0.isSettingsPreview }) {
+                return preview
+            }
+            return sessions.values.first
+        }()
         lock.unlock()
 
         if let snapshot = surface?.makeSnapshotXPC() {
@@ -170,10 +245,19 @@ final class WallpaperXPCHandler: NSObject, WallpaperExtensionXPCProtocol {
     ) { reply(nil, nil) }
 
     func removeChoiceRequest(withChoiceRequest _: Any?, reply: @escaping @Sendable ((any Error)?) -> Void) {
+        // Host is dropping our choice (user picked another wallpaper) — release
+        // Settings preview surfaces so the next select starts clean.
+        extLog("removeChoiceRequest — invalidating Settings preview sessions")
+        invalidateSettingsPreviewSessions()
         reply(nil)
     }
 
     func selectedChoicesDidChange(for _: Any?, reply: @escaping @Sendable ((any Error)?) -> Void) {
+        // Do not tear down here — this also fires when the user selects *us*,
+        // which would kill a freshly acquired Settings preview (black tile).
+        // Teardown is handled by invalidate(withId:), removeChoiceRequest, and
+        // XPC connection invalidation.
+        extLog("selectedChoicesDidChange")
         reply(nil)
     }
 
@@ -183,8 +267,8 @@ final class WallpaperXPCHandler: NSObject, WallpaperExtensionXPCProtocol {
         reply: @escaping @Sendable ((any Error)?) -> Void
     ) { reply(nil) }
 
-    func isChoiceDownloaded(with _: Any?, reply: @escaping @Sendable (Bool, (any Error)?) -> Void) {
-        reply(true, nil)
+    func isChoiceDownloaded(with _: Any?, reply: @escaping @Sendable (NSNumber?, (any Error)?) -> Void) {
+        reply(NSNumber(value: true), nil)
     }
 
     func download(withChoiceID _: Any?, reply: @escaping @Sendable ((any Error)?) -> Void) -> Any? {
@@ -266,6 +350,9 @@ final class WallpaperXPCHandler: NSObject, WallpaperExtensionXPCProtocol {
         let lower = desc.lowercased()
         if lower.contains("screensaver") || lower.contains("screen_saver") || lower.contains("idle") {
             parsed.role = .idle
+        } else if lower.contains("preview") || lower.contains("thumbnail")
+                    || lower.contains("settings") || lower.contains("picker") {
+            parsed.role = .settingsPreview
         } else if lower.contains("desktop") || lower.contains("wallpaper") {
             parsed.role = .desktop
         }
@@ -277,6 +364,12 @@ final class WallpaperXPCHandler: NSObject, WallpaperExtensionXPCProtocol {
                 parsed.size = CGSize(width: w, height: h)
                 parsed.scale = 1
             }
+        }
+
+        // Default unknown to desktop so preview teardown never sweeps a live
+        // screen surface. Settings preview is forced via desktopLive in acquire.
+        if parsed.role == .unknown {
+            parsed.role = .desktop
         }
         return parsed
     }
@@ -297,10 +390,13 @@ final class WallpaperXPCHandler: NSObject, WallpaperExtensionXPCProtocol {
                 if let n = nchild.value as? NSNumber { return n.stringValue }
             }
         }
-        // Stable fallback from description so Desktop/Idle don't collide randomly.
-        let desc = String(describing: id)
-        if desc.count < 200 { return desc }
-        return String(desc.prefix(200))
+        // WallpaperIDXPC is a fresh object per XPC message; its description is
+        // just a pointer. Key on the recursive field dump with addresses removed.
+        var dumped = ""
+        dump(id, to: &dumped)
+        let stable = dumped.replacingOccurrences(
+            of: "0x[0-9a-fA-F]+", with: "", options: .regularExpression)
+        return String(stable.prefix(400))
     }
 
     private static func createRemoteContextXPC(contextId: UInt32) -> AnyObject? {
