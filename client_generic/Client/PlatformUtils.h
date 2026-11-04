@@ -10,6 +10,7 @@
 
 #include "SmartPtr.h"
 #include <cstdio>
+#include <cstdlib>
 #include <string>
 #include <functional>
 
@@ -25,6 +26,13 @@ class PlatformUtils
     ~PlatformUtils() = delete;
 
   public:
+    /// INFINIDREAM_DATA_DIR, or empty if unset. When set, settings, cache and logs all
+    /// live there, and the run is isolated from the installed client (client#733).
+    static std::string GetDataDirOverride()
+    {
+        const char* dir = std::getenv("INFINIDREAM_DATA_DIR");
+        return dir ? dir : "";
+    }
     static bool IsInternetReachable();
     static std::string GetBuildDate();
     static std::string GetGitRevision();

@@ -6,14 +6,44 @@
 //
 
 #include "ServerConfig.h"
+#include "Log.h"
+#include "PlatformUtils.h"
 #include "Settings.h" // Include for g_Settings()
+
+#include <boost/algorithm/string/predicate.hpp>
 
 namespace ServerConfig {
 
 ServerConfigManager::ServerConfigManager() {
-    m_dreamServer = "https://" + g_Settings()->Get("settings.content.server", std::string(DEFAULT_DREAM_SERVER));
-    m_websocketServer = "wss://" + g_Settings()->Get("settings.content.server", std::string(DEFAULT_DREAM_SERVER));
+    // A bare host means TLS. "http://" has to be asked for explicitly, and only counts on
+    // an isolated test run: it exists so the client can use a local mock server (client#733),
+    // and a stray setting must not switch an everyday install to plaintext.
+    std::string server = g_Settings()->Get("settings.content.server", std::string(DEFAULT_DREAM_SERVER));
+    while (!server.empty() && server.back() == '/')
+        server.pop_back();
+
+    constexpr std::string_view kHttp = "http://";
+    constexpr std::string_view kHttps = "https://";
+    std::string host = server;
+    if (boost::algorithm::istarts_with(server, kHttp)) {
+        m_isPlaintext = !PlatformUtils::GetDataDirOverride().empty();
+        host = server.substr(kHttp.size());
+        if (!m_isPlaintext) {
+            g_Log->Warning("Ignoring http:// in settings.content.server without "
+                           "INFINIDREAM_DATA_DIR; using https://%s", host.c_str());
+        }
+    } else if (boost::algorithm::istarts_with(server, kHttps)) {
+        host = server.substr(kHttps.size());
+    }
+
+    m_dreamServer = (m_isPlaintext ? "http://" : "https://") + host;
+    m_websocketServer = (m_isPlaintext ? "ws://" : "wss://") + host;
     initializeEndpoints();
+
+    if (m_isPlaintext) {
+        g_Log->Warning("Server connection is UNENCRYPTED (%s). Stored logins are not sent; "
+                       "only INFINIDREAM_API_KEY is used.", m_dreamServer.c_str());
+    }
 }
 
 void ServerConfigManager::initializeEndpoints() {

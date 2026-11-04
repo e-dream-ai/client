@@ -31,6 +31,7 @@
 #include <sstream>
 #include <thread>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 namespace beast = boost::beast;
@@ -261,7 +262,9 @@ public:
 class client_impl : public std::enable_shared_from_this<client_impl>
 {
 public:
-    using ws_stream = websocket::stream<ssl::stream<beast::tcp_stream>>;
+    using tls_ws = websocket::stream<ssl::stream<beast::tcp_stream>>;
+    using plain_ws = websocket::stream<beast::tcp_stream>;
+    using ws_stream = std::variant<tls_ws, plain_ws>;
 
     // Keeps this object alive for shared_from_this while client exists.
     std::shared_ptr<client_impl> m_self;
@@ -568,15 +571,23 @@ private:
         m_connecting = true;
 
         parsed_uri parsed;
-        if (!parse_uri(m_uri, parsed) || !parsed.secure)
+        if (!parse_uri(m_uri, parsed))
         {
             fail_and_maybe_reconnect();
             return;
         }
         m_parsed = parsed;
 
-        m_ws = std::make_unique<ws_stream>(m_strand, m_ssl_ctx);
-        m_ws->next_layer().set_verify_callback(ssl::host_name_verification(m_parsed.host));
+        if (m_parsed.secure)
+        {
+            m_ws = std::make_unique<ws_stream>(std::in_place_type<tls_ws>, m_strand, m_ssl_ctx);
+            std::get<tls_ws>(*m_ws).next_layer().set_verify_callback(
+                ssl::host_name_verification(m_parsed.host));
+        }
+        else
+        {
+            m_ws = std::make_unique<ws_stream>(std::in_place_type<plain_ws>, m_strand);
+        }
 
         m_resolver.async_resolve(
             m_parsed.host, m_parsed.port,
@@ -584,6 +595,12 @@ private:
     }
 
     bool is_current(std::uint64_t id) const { return id == m_conn_id && m_ws; }
+
+    beast::tcp_stream& lowest_layer()
+    {
+        return std::visit(
+            [](auto& ws) -> beast::tcp_stream& { return beast::get_lowest_layer(ws); }, *m_ws);
+    }
 
     void on_resolve(std::uint64_t id, beast::error_code ec, tcp::resolver::results_type results)
     {
@@ -594,8 +611,8 @@ private:
             fail_and_maybe_reconnect();
             return;
         }
-        beast::get_lowest_layer(*m_ws).expires_after(std::chrono::seconds(30));
-        beast::get_lowest_layer(*m_ws).async_connect(
+        lowest_layer().expires_after(std::chrono::seconds(30));
+        lowest_layer().async_connect(
             results, beast::bind_front_handler(&client_impl::on_connect, shared_from_this(), id));
     }
 
@@ -609,14 +626,21 @@ private:
             return;
         }
 
-        if (!SSL_set_tlsext_host_name(m_ws->next_layer().native_handle(), m_parsed.host.c_str()))
+        if (!m_parsed.secure)
+        {
+            start_ws_handshake(id);
+            return;
+        }
+
+        auto& tls = std::get<tls_ws>(*m_ws);
+        if (!SSL_set_tlsext_host_name(tls.next_layer().native_handle(), m_parsed.host.c_str()))
         {
             fail_and_maybe_reconnect();
             return;
         }
 
-        beast::get_lowest_layer(*m_ws).expires_after(std::chrono::seconds(30));
-        m_ws->next_layer().async_handshake(
+        lowest_layer().expires_after(std::chrono::seconds(30));
+        tls.next_layer().async_handshake(
             ssl::stream_base::client,
             beast::bind_front_handler(&client_impl::on_ssl_handshake, shared_from_this(), id));
     }
@@ -629,7 +653,8 @@ private:
         {
             long verifyResult = X509_V_OK;
             if (m_ws)
-                verifyResult = SSL_get_verify_result(m_ws->next_layer().native_handle());
+                verifyResult = SSL_get_verify_result(
+                    std::get<tls_ws>(*m_ws).next_layer().native_handle());
             g_Log->Error(
                 "TLS handshake failed: %s (verify_result=%ld %s)",
                 ec.message().c_str(),
@@ -639,22 +664,31 @@ private:
             return;
         }
 
-        beast::get_lowest_layer(*m_ws).expires_never();
-        m_ws->set_option(websocket::stream_base::timeout::suggested(beast::role_type::client));
-        m_ws->set_option(websocket::stream_base::decorator(
-            [headers = m_headers](websocket::request_type& req) {
-                for (auto const& kv : headers)
-                    req.set(kv.first, kv.second);
-            }));
+        start_ws_handshake(id);
+    }
+
+    void start_ws_handshake(std::uint64_t id)
+    {
+        lowest_layer().expires_never();
 
         std::ostringstream target;
         target << m_parsed.path << "?EIO=4&transport=websocket";
         for (auto const& kv : m_query)
             target << "&" << url_encode(kv.first) << "=" << url_encode(kv.second);
 
-        m_ws->async_handshake(
-            m_parsed.host, target.str(),
-            beast::bind_front_handler(&client_impl::on_ws_handshake, shared_from_this(), id));
+        std::visit(
+            [&](auto& ws) {
+                ws.set_option(websocket::stream_base::timeout::suggested(beast::role_type::client));
+                ws.set_option(websocket::stream_base::decorator(
+                    [headers = m_headers](websocket::request_type& req) {
+                        for (auto const& kv : headers)
+                            req.set(kv.first, kv.second);
+                    }));
+                ws.async_handshake(
+                    m_parsed.host, target.str(),
+                    beast::bind_front_handler(&client_impl::on_ws_handshake, shared_from_this(), id));
+            },
+            *m_ws);
     }
 
     void on_ws_handshake(std::uint64_t id, beast::error_code ec)
@@ -675,8 +709,13 @@ private:
     {
         if (!is_current(id))
             return;
-        m_ws->async_read(
-            m_buffer, beast::bind_front_handler(&client_impl::on_read, shared_from_this(), id));
+        std::visit(
+            [&](auto& ws) {
+                ws.async_read(
+                    m_buffer,
+                    beast::bind_front_handler(&client_impl::on_read, shared_from_this(), id));
+            },
+            *m_ws);
     }
 
     void on_read(std::uint64_t id, beast::error_code ec, std::size_t)
@@ -689,7 +728,7 @@ private:
             return;
         }
 
-        if (!m_ws->got_text())
+        if (!std::visit([](auto& ws) { return ws.got_text(); }, *m_ws))
         {
             m_buffer.consume(m_buffer.size());
             do_read(id);
@@ -891,10 +930,14 @@ private:
         m_writing = true;
         std::uint64_t const id = m_conn_id;
         auto& front = m_write_queue.front();
-        m_ws->text(true);
-        m_ws->async_write(
-            net::buffer(front),
-            beast::bind_front_handler(&client_impl::on_write, shared_from_this(), id));
+        std::visit(
+            [&](auto& ws) {
+                ws.text(true);
+                ws.async_write(
+                    net::buffer(front),
+                    beast::bind_front_handler(&client_impl::on_write, shared_from_this(), id));
+            },
+            *m_ws);
     }
 
     void on_write(std::uint64_t id, beast::error_code ec, std::size_t)
@@ -938,7 +981,7 @@ private:
         if (m_ws)
         {
             // Cancels outstanding ops and closes the TCP socket.
-            beast::get_lowest_layer(*m_ws).close();
+            lowest_layer().close();
             // Destroy outside this completion handler (Beast requirement).
             auto dying = std::move(m_ws);
             net::post(m_strand, [dying = std::move(dying)]() mutable { dying.reset(); });

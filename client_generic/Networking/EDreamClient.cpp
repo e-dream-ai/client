@@ -518,6 +518,26 @@ static void OnWebSocketReconnect(unsigned _num, unsigned _delay)
     BindWebSocketCallbacks();
 }
 
+// Over plain http a real login must never leave the machine, even if a stray setting
+// points an everyday install at an http server: stored credentials read as absent and
+// only the env key is used.
+static std::string StoredSealedSession()
+{
+    if (ServerConfig::ServerConfigManager::getInstance().isPlaintext())
+        return "";
+    return g_Settings()->Get("settings.content.sealed_session", std::string(""));
+}
+
+static std::string CurrentApiKey()
+{
+    if (ServerConfig::ServerConfigManager::getInstance().isPlaintext())
+    {
+        const char* envKey = getenv("INFINIDREAM_API_KEY");
+        return envKey ? envKey : "";
+    }
+    return g_Settings()->Get("settings.content.api_key", std::string(""));
+}
+
 static std::atomic<bool> fWebSocketReauthInFlight(false);
 static std::atomic<int64_t> fWebSocketLastReauthMs(0);
 
@@ -530,7 +550,7 @@ static void OnWebSocketConnectError(std::string const& nsp, std::string const& p
     if (payload.find("UNAUTHORIZED") == std::string::npos)
         return;
     // Api-Key auth has nothing to refresh.
-    if (g_Settings()->Get("settings.content.sealed_session", std::string("")).empty())
+    if (StoredSealedSession().empty())
         return;
 
     // At most one refresh per minute, so a server that rejects even a fresh cookie
@@ -637,13 +657,13 @@ void EDreamClient::DeinitializeClient()
 // Prefers wos-session cookie (sealed session), falls back to Api-Key header.
 void EDreamClient::AppendAuthHeader(Network::spCFileDownloader& spDownload)
 {
-    std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
+    std::string sealedSession = StoredSealedSession();
     if (!sealedSession.empty())
     {
         spDownload->AppendHeader("Cookie: wos-session=" + sealedSession);
         return;
     }
-    std::string apiKey = g_Settings()->Get("settings.content.api_key", std::string(""));
+    std::string apiKey = CurrentApiKey();
     if (!apiKey.empty())
     {
         spDownload->AppendHeader("Api-Key: " + apiKey);
@@ -654,8 +674,12 @@ void EDreamClient::AppendAuthHeader(Network::spCFileDownloader& spDownload)
 // the backend middleware accepts Api-Key header directly on all protected endpoints).
 bool EDreamClient::SignInWithApiKey(const std::string& apiKey)
 {
-    g_Settings()->Set("settings.content.api_key", apiKey);
-    g_Settings()->Storage()->Commit();
+    // Don't let a test key replace a stored real one if a stray setting points here.
+    if (!ServerConfig::ServerConfigManager::getInstance().isPlaintext())
+    {
+        g_Settings()->Set("settings.content.api_key", apiKey);
+        g_Settings()->Storage()->Commit();
+    }
     g_Log->Info("Signed in with API key");
     return true;
 }
@@ -774,7 +798,7 @@ bool EDreamClient::Authenticate()
     g_Log->Info("Starting Authentication...");
 
     // Check if we have a sealed session
-    std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
+    std::string sealedSession = StoredSealedSession();
 
     if (sealedSession.empty())
     {
@@ -820,7 +844,7 @@ bool EDreamClient::Authenticate()
         }
         else
         {
-            std::string storedKey = g_Settings()->Get("settings.content.api_key", std::string(""));
+            std::string storedKey = CurrentApiKey();
             if (!storedKey.empty())
             {
                 g_Log->Info("Found stored API key, using it");
@@ -1064,7 +1088,7 @@ void EDreamClient::SignOut()
     {
         std::lock_guard<std::mutex> lock(fAuthMutex);
         // Retrieve the current sealed session from settings
-        currentSealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
+        currentSealedSession = StoredSealedSession();
 
         if (currentSealedSession.empty())
         {
@@ -1498,7 +1522,7 @@ EDreamClient::ValidateCodeResult EDreamClient::ValidateCodeDetailed(const std::s
 EDreamClient::AuthRefreshResult EDreamClient::RefreshSealedSession()
 {
     // Retrieve the current sealed session from settings
-    std::string currentSealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
+    std::string currentSealedSession = StoredSealedSession();
     
     if (currentSealedSession.empty())
     {
@@ -3046,8 +3070,8 @@ void EDreamClient::ConnectRemoteControlSocket()
     std::map<std::string, std::string> query;
     std::map<std::string, std::string> headers;
 
-    std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
-    std::string apiKey = g_Settings()->Get("settings.content.api_key", std::string(""));
+    std::string sealedSession = StoredSealedSession();
+    std::string apiKey = CurrentApiKey();
 
     if (sealedSession.empty() && apiKey.empty())
     {

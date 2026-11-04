@@ -160,6 +160,28 @@ Add the key directly to `~/.config/infinidream/settings.json`:
 }
 ```
 
+### Running against a test server
+
+[`client_generic/tests/mock-server`](client_generic/tests/mock-server) has a mock server that stands
+in for the backend, and an end-to-end test that runs the Mac client against it. See its README.
+
+For test runs (see #733), set `INFINIDREAM_DATA_DIR` to keep settings, cache and logs
+in their own folder. The run leaves the installed client alone: it skips the instance
+check, auto-update (Mac), crash reporting (Mac) and screensaver activation (Windows).
+
+To use a server without TLS, give the scheme explicitly in that folder's `settings.json`:
+```json
+{ "settings": { "content": { "server": "http://127.0.0.1:8765" } } }
+```
+A bare host always means `https`/`wss`, and so does `http://` when `INFINIDREAM_DATA_DIR`
+isn't set. Over `http` the client logs a warning, ignores any stored login and sends only
+`INFINIDREAM_API_KEY`, so set that variable; an `api_key` in `settings.json` isn't used.
+
+The log gets a `Heartbeat` line from the render thread every 60 seconds; set
+`INFINIDREAM_HEARTBEAT_SECONDS=1` to get one per second. It stops whenever frames stop,
+which includes a locked screen on macOS, so check for that before calling a missing
+heartbeat a hang.
+
 ### Running
 
 ```bash
