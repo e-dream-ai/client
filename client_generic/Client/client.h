@@ -383,20 +383,41 @@ class CElectricSheep
 #else
             "Use the remote control or keyboard to interact.\n\n"
 #endif
-            "Keyboard Commands:\n"
-            BK("A") ": Slower playback\t\t\t\t" BK("Up") ": Like this dream\n"
-            BK("D") ": Faster playback\t\t\t\t\t" BK("Down") ": Dislike and delete\n"
-            BK("J") ": Skip 10 seconds back\t\t\t" BK("Left") ": Previous dream\n"
-            BK("L") ": Skip 10 seconds forward\t\t" BK("Right") ": Next dream\n"
-            BK("R") ": Repeat current dream\t\t\t" BK("H") ": Shuffle mode\n"
-            BK("C") ": Show credit\t\t\t\t\t\t" BK("B") ": Report this dream\n"
-#ifdef LINUX_GNU
-            BK("V") ": Open web source\t\t\t\t" BK("F") ": Toggle full screen\n"
-#else
-            BK("V") ": Open web source\t\t\t\t" BK(FULLSCREEN_MODIFIER_KEY "-F") ": Toggle full screen\n"
-#endif
-            BK("F1") ": Help (this page)\t\t\t\t" BK("F2") ": Status overlay\n\n"
+            "Keyboard Commands:",
+            ""));
 
+        // One entry per row, so the two columns can't get out of step.
+        static const std::pair<const char*, const char*> kKeyRows[] = {
+            {BK("A") ": Slower playback", BK("Up") ": Like this dream"},
+            {BK("D") ": Faster playback", BK("Down") ": Dislike and delete"},
+            {BK("J") ": Skip 10 seconds back", BK("Left") ": Previous dream"},
+            {BK("L") ": Skip 10 seconds forward", BK("Right") ": Next dream"},
+            {BK("R") ": Repeat current dream", BK("H") ": Shuffle mode"},
+            {BK("C") ": Show credit", BK("B") ": Report this dream"},
+#ifdef LINUX_GNU
+            {BK("V") ": Open web source", BK("F") ": Toggle full screen"},
+#else
+            {BK("V") ": Open web source", BK(FULLSCREEN_MODIFIER_KEY "-F") ": Toggle full screen"},
+#endif
+            {BK("F1") ": Help (this page)", BK("F2") ": Status overlay"},
+        };
+        std::string keysLeft, keysRight;
+        for (const auto& row : kKeyRows)
+        {
+            if (!keysLeft.empty())
+            {
+                keysLeft += "\n";
+                keysRight += "\n";
+            }
+            keysLeft += row.first;
+            keysRight += row.second;
+        }
+        spHelpMessage->Add(new Hud::CStringStat("keys-left", keysLeft, ""));
+        spHelpMessage->AddColumn(new Hud::CStringStat("keys-right", keysRight, ""), "keys-left");
+
+        spHelpMessage->Add(new Hud::CStringStat(
+            "more-keys",
+            "\n"
             BK(FULLSCREEN_MODIFIER_KEY "-R") ": Open remote control\n"
             BK(FULLSCREEN_MODIFIER_KEY "-B") ": Browse playlists\n"
             BK(FULLSCREEN_MODIFIER_KEY "-Comma") ": Open settings"
