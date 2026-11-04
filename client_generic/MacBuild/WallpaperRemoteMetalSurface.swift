@@ -98,8 +98,9 @@ final class RemoteMetalSurface: @unchecked Sendable {
         CATransaction.flush()
 
         let adapter = MetalDrawableAdapter(metalLayer: metal, device: device)
-        // Settings preview gets preview:true only on a cold engine start;
-        // ESScreensaver_Start ignores the flag when Desktop is already live.
+        // Settings preview → preview:true on cold start only; attaching onto
+        // live Desktop leaves flags alone. Desktop → preview:false promotes
+        // out of a Settings-first cold start (clears sticky preview/busy).
         let preview = (role == .settingsPreview)
         let idx = WallpaperPlayerBridge.start(
             with: adapter,

@@ -1,11 +1,13 @@
 import AppKit
 import Foundation
 
-/// One choice for Desktop and Idle so Settings lists us on both content types.
+/// Desktop catalog only. Idle is owned by the screensaver appex
+/// (module-URL / com.apple.screensaver) — never advertise this wallpaper
+/// Provider under screenSaver or System Settings can bind Idle here.
 func buildSettingsViewModelsXPC() -> AnyObject? {
     let bundleID = Bundle.main.bundleIdentifier ?? "ai.infinidream.alpha.app.wallpaper"
     let choiceKey = "infinidream-metal"
-    // Group / tile label in System Settings → Wallpaper / Screen Saver.
+    // Group / tile label in System Settings → Wallpaper.
     let displayName = "Infinidream"
     let thumbURL = settingsThumbnailURL()
 
@@ -51,13 +53,18 @@ func buildSettingsViewModelsXPC() -> AnyObject? {
         contextMenu: nil,
         thumbnail: nil
     )
-    let viewModel = SettingsViewModel(
+    let desktop = SettingsViewModel(
         groups: [group],
         refreshPolicy: .default,
         isModificationDisabled: false
     )
-    extLog("settings view models name=\(displayName) thumb=\(thumbURL.path)")
-    return remapToRealXPC(SettingsViewModels(desktop: viewModel, screenSaver: viewModel))
+    let emptyIdle = SettingsViewModel(
+        groups: [],
+        refreshPolicy: .default,
+        isModificationDisabled: false
+    )
+    extLog("settings view models name=\(displayName) thumb=\(thumbURL.path) idle=empty")
+    return remapToRealXPC(SettingsViewModels(desktop: desktop, screenSaver: emptyIdle))
 }
 
 func makeEmptyGroupsResponse() -> AnyObject? {

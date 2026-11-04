@@ -73,9 +73,13 @@ bool ESScreensaver_Start(bool _bPreview, uint32 _width, uint32 _height)
 #ifdef SCREEN_SAVER
     const bool engineRunning = (g_Player().Display() != NULL);
 
-    // Preview/offline flags are process-global. Only apply them when bringing
-    // the engine up cold — attaching a Settings surface onto a live Desktop
-    // must not flip Desktop into preview/busy mode (or vice versa).
+    // Preview/offline flags are process-global.
+    // - Cold start: apply from _bPreview.
+    // - Settings attaching onto live Desktop (_bPreview, engineRunning): leave flags alone.
+    // - Desktop/full-screen after a Settings-preview cold start (!_bPreview, engineRunning):
+    //   promote out of preview/busy so auth and network work for the real surface.
+    //   (Preview forced busy while keeping the lock; the cold-start clear path above
+    //   cannot undo that once engineRunning is true.)
     if (!engineRunning) {
         // Settings thumbnail: mark preview + offline/busy, but KEEP the instance lock.
         // Releasing it (old behavior) let a second legacyScreenSaver process take the
@@ -88,6 +92,9 @@ bool ESScreensaver_Start(bool _bPreview, uint32 _width, uint32 _height)
             if (!gClient.IsMultipleInstancesMode())
                 gClient.ForceMultipleInstancesMode(false);
         }
+    } else if (!_bPreview && gClient.IsPreview()) {
+        gClient.SetIsPreview(false);
+        gClient.ForceMultipleInstancesMode(false);
     }
 
     if (!engineRunning)
