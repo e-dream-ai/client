@@ -26,10 +26,30 @@
 /* End PBXAggregateTarget section */
 
 /* Begin PBXBuildFile section */
+		00C4FD1F0F6544BC8445C918 /* Upload.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDDA0ED0BD9200EB9394 /* Upload.cpp */; };
+		0121192613A144EE98133CEB /* VideoDecodeAcceleration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2197D56119B06F4600EFA1F2 /* VideoDecodeAcceleration.framework */; };
+		0243B4C15C4541BE908A48F8 /* ScreenSaver.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2135DB240EC75133005E246D /* ScreenSaver.framework */; };
+		024802BC46824437AEA8C88F /* CacheManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */; };
+		02F177A1974945D5B3FC4D67 /* osd-brightness.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994672BA0A07300B018C7 /* osd-brightness.png */; };
+		02FF7E9A132C4956A2B4C354 /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49DA2AB8864600C77F6D /* VideoToolbox.framework */; };
+		03FAFDAF6BC84E39AE122865 /* WallpaperLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC2362FEF72A47038898AE06 /* WallpaperLog.swift */; };
+		051902241BF146A695A7B371 /* DisplayMetal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 46ED5CB02AF5326A00AF8F45 /* DisplayMetal.cpp */; };
+		05777C7C984C4370BF23E9F6 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B19850E8E5E9200CE185C /* OpenGL.framework */; };
+		05D6C85905BA4B9FBA7E48FF /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49DA2AB8864600C77F6D /* VideoToolbox.framework */; };
+		060299BA199A4ABC9A5BAAC9 /* osd-bg-sq.png in Resources */ = {isa = PBXBuildFile; fileRef = F059946A2BA0A07300B018C7 /* osd-bg-sq.png */; };
 		063B5C5D2F198F1500B5E553 /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 063B5C5C2F198F1500B5E553 /* Sparkle.framework */; };
 		063B5C5E2F198F1500B5E553 /* Sparkle.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 063B5C5C2F198F1500B5E553 /* Sparkle.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		063B5C612F19946300B5E553 /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 063B5C5C2F198F1500B5E553 /* Sparkle.framework */; };
 		063B5C622F19946300B5E553 /* Sparkle.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 063B5C5C2F198F1500B5E553 /* Sparkle.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		064D24317677463C85BE6A67 /* WallpaperLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC2362FEF72A47038898AE06 /* WallpaperLog.swift */; };
+		0675269E80E746ED9D37C4E0 /* TextureFlat.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A430E8E651000CE185C /* TextureFlat.cpp */; };
+		07F9559F7D9D4FFC82BE9DB2 /* thumbnail.tif in Resources */ = {isa = PBXBuildFile; fileRef = 21934CB819F3C2430096E7D7 /* thumbnail.tif */; };
+		09173C6212E14DE68850E785 /* JSONStorage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 461C9D7A2B28BA50000C44E9 /* JSONStorage.cpp */; };
+		0A82611755944F968390314E /* PlaylistManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141BAF2C6BBB9D00DBA60E /* PlaylistManager.cpp */; };
+		0D99496D1D6D44338AB30DE8 /* Rect.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 214B75060EBBA78900B5B897 /* Rect.cpp */; };
+		0F5BD6C6C3EB49719BDF17AB /* osd-turtle.png in Resources */ = {isa = PBXBuildFile; fileRef = 3439485D2F4F000100000001 /* osd-turtle.png */; };
+		105C15B688104ACDA94EC5B4 /* Networking.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDD80ED0BD9200EB9394 /* Networking.cpp */; };
+		10B99B12BA7F41C7A12C5036 /* SettingsDialog.xib in Resources */ = {isa = PBXBuildFile; fileRef = F0E9CE352C136B0500C4D695 /* SettingsDialog.xib */; };
 		121FCCB72B484B8B00F58DD5 /* Clip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 121FCCB52B484B8B00F58DD5 /* Clip.cpp */; };
 		121FCCB82B484B8B00F58DD5 /* Clip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 121FCCB52B484B8B00F58DD5 /* Clip.cpp */; };
 		1220B5392B3DC64D00D68410 /* StringFormat.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1220B5382B3DC64D00D68410 /* StringFormat.cpp */; };
@@ -48,11 +68,24 @@
 		12A00CDA2B0FCA39001C0792 /* infinidream.icns in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD82B0FCA39001C0792 /* infinidream.icns */; };
 		12A00CDC2B0FCA6C001C0792 /* e-dream-attr.png in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */; };
 		12A00CDD2B0FCA6C001C0792 /* e-dream-attr.png in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */; };
+		146E7F8DD78040D9BD5FF9ED /* Renderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A400E8E651000CE185C /* Renderer.cpp */; };
+		1496912EBE1E48C297A2A69A /* MetalShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 46ED5CAF2AF5326A00AF8F45 /* MetalShaders.metal */; };
+		150A0A8EF4F34885BB4C77D9 /* osd-snail.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948652F4F000100000009 /* osd-snail.png */; };
+		165EEEF1D04F4240A661EFDA /* CodeStepViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = F0B66ADB2E02DB8200751811 /* CodeStepViewController.mm */; };
+		167F39A8C44D49C3AEB6B660 /* TextureFlat.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A430E8E651000CE185C /* TextureFlat.cpp */; };
+		17BBA8A5E64A4EE69CD7F2BB /* osd-pill-u.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994542BA0912200B018C7 /* osd-pill-u.png */; };
+		181340AC066840908ED8C203 /* osd-pill-b.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994572BA0912300B018C7 /* osd-pill-b.png */; };
+		19EC03B161A0419B95E14DF1 /* PathManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B732C59115400DBA60E /* PathManager.cpp */; };
+		1B16E3C589C44EA9AC0EA0D7 /* Download.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDD60ED0BD9200EB9394 /* Download.cpp */; };
+		1BD360FA613C41049CFD8B28 /* DisplayMetal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 46ED5CB02AF5326A00AF8F45 /* DisplayMetal.cpp */; };
 		1BEBFE3E2ECB6B2B00F39019 /* osd-next.png in Resources */ = {isa = PBXBuildFile; fileRef = 1BEBFE3D2ECB6B2B00F39019 /* osd-next.png */; };
 		1BEBFE3F2ECB6B2B00F39019 /* osd-next.png in Resources */ = {isa = PBXBuildFile; fileRef = 1BEBFE3D2ECB6B2B00F39019 /* osd-next.png */; };
 		1BEBFE402ECB6B2B00F39019 /* osd-next.png in Resources */ = {isa = PBXBuildFile; fileRef = 1BEBFE3D2ECB6B2B00F39019 /* osd-next.png */; };
 		1BEBFE412ECB6B2B00F39019 /* osd-next.png in Resources */ = {isa = PBXBuildFile; fileRef = 1BEBFE3D2ECB6B2B00F39019 /* osd-next.png */; };
+		1C9FA9AC70394CCE9413A5BD /* infinidream.icns in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD82B0FCA39001C0792 /* infinidream.icns */; };
+		1EAC53887B9C4EFEA5517603 /* libbz2.1.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1ADD0E8E6E5000CE185C /* libbz2.1.0.dylib */; };
 		1EF725DD92CD44099F63B461 /* ProgressiveHttpStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 967FB9FBC5B445FD99099352 /* ProgressiveHttpStream.cpp */; };
+		20C506B859D64269A7D3A82D /* libboost_json.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071D02C0E052A008219A4 /* libboost_json.a */; };
 		21006FC81017BC4B004A6511 /* Credits.html in CopyFiles */ = {isa = PBXBuildFile; fileRef = 21006FBD1017BC2C004A6511 /* Credits.html */; };
 		210335040F549BEF00A83F17 /* AlignedBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 210335030F549BEF00A83F17 /* AlignedBuffer.cpp */; };
 		210335050F549BEF00A83F17 /* AlignedBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 210335030F549BEF00A83F17 /* AlignedBuffer.cpp */; };
@@ -97,6 +130,7 @@
 		2160FE800F30F8A000B2C27A /* logo.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE240F30F82800B2C27A /* logo.png */; };
 		2160FEED0F30F9FB00B2C27A /* logo.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE240F30F82800B2C27A /* logo.png */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		2161F1940ECF8CEF00FE48E9 /* libz.1.2.5.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1AD90E8E6E0100CE185C /* libz.1.2.5.dylib */; };
+		2172A49423944670B43A7083 /* libboost_filesystem.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071D12C0E052A008219A4 /* libboost_filesystem.a */; };
 		218878D50EC6CDE2001ABD2E /* Common.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B192A0E8E591000CE185C /* Common.cpp */; };
 		218878D60EC6CDE2001ABD2E /* Exception.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B192B0E8E591000CE185C /* Exception.cpp */; };
 		218878D70EC6CDE2001ABD2E /* Log.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B192C0E8E591000CE185C /* Log.cpp */; };
@@ -145,7 +179,20 @@
 		21EE63C21013A879000CE53E /* ESScreensaverView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA520EC7479A005E246D /* ESScreensaverView.mm */; };
 		21EE63C31013A87F000CE53E /* ESScreensaver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA540EC74853005E246D /* ESScreensaver.cpp */; };
 		21EE63CF1013A93A000CE53E /* ESConfiguration.mm in Sources */ = {isa = PBXBuildFile; fileRef = 21AAA0EE0F70453200AC23A8 /* ESConfiguration.mm */; };
+		225B12E30AE14B40896D802C /* EDreamClient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 467B6FC82AE6D031001C80CB /* EDreamClient.cpp */; };
+		23A81256550B4ABF9B025048 /* libboost_log_setup.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071CE2C0E052A008219A4 /* libboost_log_setup.a */; };
+		258A4C35238C4DF2893342BB /* thumbnail.tif in Resources */ = {isa = PBXBuildFile; fileRef = 21934CB819F3C2430096E7D7 /* thumbnail.tif */; };
+		26E00C2A0A94474293B7CFDD /* RendererMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C12AC1817500017C51 /* RendererMetal.mm */; };
+		27160901D8BE40278B1DB398 /* TextMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 46D2E8FC2AFBBBF50054049D /* TextMetal.mm */; };
+		28D67532393E4884ADA2D4BC /* osd-speed.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994652BA0A07200B018C7 /* osd-speed.png */; };
+		2B4053DB279C40AA98F88CF0 /* StartupWindowController.mm in Sources */ = {isa = PBXBuildFile; fileRef = F0B66ADD2E02DB8200751811 /* StartupWindowController.mm */; };
+		2B584DEA3678489AAAF52AFB /* storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19F40E8E639400CE185C /* storage.cpp */; };
+		2CAD6A6EEE3445EBA9D8FCDA /* Exception.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B192B0E8E591000CE185C /* Exception.cpp */; };
+		2D55C1E4E87E49369C5CE842 /* proximus.c in Sources */ = {isa = PBXBuildFile; fileRef = 21CE8B8E0F6ECFFC00DDF96A /* proximus.c */; };
+		2DD69EDFAEC34DF0B73A7813 /* SettingsDialog.xib in Resources */ = {isa = PBXBuildFile; fileRef = F0E9CE352C136B0500C4D695 /* SettingsDialog.xib */; };
+		2F4903D9BFD04333A52828D8 /* osd-forward.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994632BA0A07100B018C7 /* osd-forward.png */; };
 		301D08773F784ABCB52C0F43 /* ProgressiveHttpStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 967FB9FBC5B445FD99099352 /* ProgressiveHttpStream.cpp */; };
+		30A90E4A62264C89B33EEE54 /* ContentDecoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19400E8E59E700CE185C /* ContentDecoder.cpp */; };
 		343948532ED6669E00DCF85E /* osd-repeat.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948512ED6669E00DCF85E /* osd-repeat.png */; };
 		343948542ED6669E00DCF85E /* osd-shuffle.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948522ED6669E00DCF85E /* osd-shuffle.png */; };
 		343948552ED6669E00DCF85E /* osd-repeat.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948512ED6669E00DCF85E /* osd-repeat.png */; };
@@ -170,6 +217,26 @@
 		3439486C2F4F00010000000F /* osd-bird.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948662F4F00010000000E /* osd-bird.png */; };
 		3439486D2F4F000100000010 /* osd-bird.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948662F4F00010000000E /* osd-bird.png */; };
 		3439486E2F4F000100000011 /* osd-bird.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948662F4F00010000000E /* osd-bird.png */; };
+		3468A4EC702A41429466DF2F /* EDreamClient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 467B6FC82AE6D031001C80CB /* EDreamClient.cpp */; };
+		3548FBCCE04442D687161148 /* Font.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A3F0E8E651000CE185C /* Font.cpp */; };
+		363A2412EADB46AFBCD540A1 /* TextMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 46D2E8FC2AFBBBF50054049D /* TextMetal.mm */; };
+		36EAF206813745F0883C5BB2 /* osd-dislike.png in Resources */ = {isa = PBXBuildFile; fileRef = F0F6D4252BCD504500222647 /* osd-dislike.png */; };
+		37DF40D4C13B4121AA80A4B8 /* libavcodec.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8B2C663DE800DBA60E /* libavcodec.a */; };
+		398CE79ADF2D4F75BB72ABEC /* PathManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B732C59115400DBA60E /* PathManager.cpp */; };
+		39CB2B6A81B14149BF2A0F76 /* Screensaver-Stage-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F0C100852C1372F0007FA505 /* Screensaver-Stage-Info.plist */; };
+		3AE01954A1974F76A0510CF4 /* ESConfiguration.mm in Sources */ = {isa = PBXBuildFile; fileRef = 21AAA0EE0F70453200AC23A8 /* ESConfiguration.mm */; };
+		3AE2475F1CB64BF98C1CF75F /* libboost_thread.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071D32C0E052B008219A4 /* libboost_thread.a */; };
+		3B2ECDF272B745A59A44DC26 /* osd-turtle.png in Resources */ = {isa = PBXBuildFile; fileRef = 3439485D2F4F000100000001 /* osd-turtle.png */; };
+		3C20020F7FC2422BAD034929 /* osd-play.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994642BA0A07200B018C7 /* osd-play.png */; };
+		3D31F08A938C42F9948707F9 /* Image.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A110E8E646D00CE185C /* Image.cpp */; };
+		3DFDF5ED1F3D4A4AB6E6FEE5 /* sio_beast.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A1BEE5700000000000000001 /* sio_beast.cpp */; };
+		3FA50FAD51C44762B82B173A /* osd-forward10.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994662BA0A07200B018C7 /* osd-forward10.png */; };
+		3FAE2DAC0513467081E79EFE /* AlignedBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 210335030F549BEF00A83F17 /* AlignedBuffer.cpp */; };
+		43A10AAD81AD404491C5635E /* infinidream.icns in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD82B0FCA39001C0792 /* infinidream.icns */; };
+		43A494BD4D0A467A958949BD /* LoadDDS.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A120E8E646D00CE185C /* LoadDDS.cpp */; };
+		44788A0C82C14A1E9382D7A2 /* EmailStepViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = F02C14F92E01948200BFFFF4 /* EmailStepViewController.xib */; };
+		44840A60755B419296689A91 /* Texture.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A420E8E651000CE185C /* Texture.cpp */; };
+		44CD5686E5804F30A8E558E6 /* network.png in Resources */ = {isa = PBXBuildFile; fileRef = F0B754502DBFCE4400C59D7A /* network.png */; };
 		461C9D7C2B28BA50000C44E9 /* JSONStorage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 461C9D7A2B28BA50000C44E9 /* JSONStorage.cpp */; };
 		461C9D7D2B28BA50000C44E9 /* JSONStorage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 461C9D7A2B28BA50000C44E9 /* JSONStorage.cpp */; };
 		4628A55E2B0F84EF001C3078 /* Lato-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4628A55D2B0F84EF001C3078 /* Lato-Regular.ttf */; };
@@ -211,18 +278,210 @@
 		46ED5CB42AF5326A00AF8F45 /* DisplayMetal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 46ED5CB02AF5326A00AF8F45 /* DisplayMetal.cpp */; };
 		46FA9E1A2B03CB0500708000 /* ShaderMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 46FA9E192B03CB0500708000 /* ShaderMetal.mm */; };
 		46FA9E1B2B03CB0B00708000 /* ShaderMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 46FA9E192B03CB0500708000 /* ShaderMetal.mm */; };
+		4777C758699A42D4A8772EAE /* Font.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A3F0E8E651000CE185C /* Font.cpp */; };
+		48A462AA17BC4AA5BF58E4AB /* libavformat.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8E2C663DE800DBA60E /* libavformat.a */; };
+		48B9C89BE03A495999964925 /* osd-report.png in Resources */ = {isa = PBXBuildFile; fileRef = F06C22AA2DA6CAE500D54DB2 /* osd-report.png */; };
+		48BFDDA692FC479F97C0980E /* DisplayOutput.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A100E8E646D00CE185C /* DisplayOutput.cpp */; };
+		4A55078BC6EE4082A7E1A9D7 /* ThanksStepViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = F0B66ADE2E02DB8200751811 /* ThanksStepViewController.mm */; };
+		4ABCB73EF1144501AEDD14B1 /* osd-shuffle.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948522ED6669E00DCF85E /* osd-shuffle.png */; };
+		4AF2B7A4586848C7A7490DD2 /* libboost_log_setup.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071CE2C0E052A008219A4 /* libboost_log_setup.a */; };
+		4C82537AA43249A094E45EC2 /* ESMetalView.m in Sources */ = {isa = PBXBuildFile; fileRef = 467230B62AC17A9E00017C51 /* ESMetalView.m */; };
+		4D1BB219F6324C749798F3AB /* logo.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE240F30F82800B2C27A /* logo.png */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		4D5B81BA6F2C4D92ACA27F2A /* WallpaperSettingsProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 590B1CDFD4344D6DB8891B6E /* WallpaperSettingsProvider.swift */; };
+		4D6468E9065D44AA8677BCD1 /* AlignedBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 210335030F549BEF00A83F17 /* AlignedBuffer.cpp */; };
+		4DFCE474FF47439A8C7C9F98 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 467230B82AC17C0400017C51 /* MetalKit.framework */; };
+		4E667B8CDBA447D48489B886 /* ProgressiveHttpStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 967FB9FBC5B445FD99099352 /* ProgressiveHttpStream.cpp */; };
+		4E88E3CAF2F846A1AC2EA14A /* ContentDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212313190F503C4500702B2C /* ContentDownloader.cpp */; };
+		4F8114DAB760467B98A54B5B /* libavutil.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8F2C663DE800DBA60E /* libavutil.a */; };
+		50F49F282A934144A52636CF /* CodeStepViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = F0B66ADB2E02DB8200751811 /* CodeStepViewController.mm */; };
+		5144509F8CBF44B4A4ADBB98 /* FirstTimeSetupManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = F0C16C112E01DE870039EC33 /* FirstTimeSetupManager.mm */; };
+		5189E9759AF84EE69E9A7A66 /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 12D020022B83C86C0036357D /* libssl.a */; };
+		534AD1B0B3A446C6B7B19010 /* osd-pill-r.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994532BA0912200B018C7 /* osd-pill-r.png */; };
+		542B29E1177A4F33B55E06E4 /* liblzma.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49E72AB89D8300C77F6D /* liblzma.tbd */; };
+		55203779FAAE466E96C34A79 /* osd-snail.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948652F4F000100000009 /* osd-snail.png */; };
+		55D5E51484C5410B91B8C2E8 /* JSONStorage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 461C9D7A2B28BA50000C44E9 /* JSONStorage.cpp */; };
+		570466DB605B40FCA79C68A4 /* WallpaperPlayerBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = C482ECFDA54F4C9C82BF62D4 /* WallpaperPlayerBridge.mm */; };
+		57BA7528712748CD84DD2F9E /* libboost_thread.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071D32C0E052B008219A4 /* libboost_thread.a */; };
+		57E771398E7147429C5210CD /* DisplayOutput.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A100E8E646D00CE185C /* DisplayOutput.cpp */; };
+		5808649FDD4F4D9494B4845C /* osd-pill-r.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994532BA0912200B018C7 /* osd-pill-r.png */; };
+		5A726E1B74714312BA599E42 /* Player.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19600E8E5CCE00CE185C /* Player.cpp */; };
+		5AD4F72893764BE6AB2C6B7B /* WallpaperRemoteMetalSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F182A28ECD42DF8361DEA6 /* WallpaperRemoteMetalSurface.swift */; };
+		5B3037611ADA46B19332E2FB /* green.tif in Resources */ = {isa = PBXBuildFile; fileRef = 21ADBB211305D380000A9F20 /* green.tif */; };
+		5BB9BB78EBDB4903B6638F17 /* DreamDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F02A5C3C2C453FEF00B57FBD /* DreamDownloader.cpp */; };
+		5BE5A8F9258B4E67838D3890 /* libiconv.2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 21A8AFBA18416ECA00F77369 /* libiconv.2.dylib */; };
+		5E731A63B5F74E588D3136F1 /* osd-pill.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994552BA0912200B018C7 /* osd-pill.png */; };
+		6079DB645A034DBE9DFDCC1A /* LoadPNG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A130E8E646D00CE185C /* LoadPNG.cpp */; };
+		6234DF46C0CE47FA971F14F4 /* libiconv.2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 21A8AFBA18416ECA00F77369 /* libiconv.2.dylib */; };
+		62B476B67896448CB7C8EE39 /* network.png in Resources */ = {isa = PBXBuildFile; fileRef = F0B754502DBFCE4400C59D7A /* network.png */; };
+		645708DC76D1443D97D941BB /* Download.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDD60ED0BD9200EB9394 /* Download.cpp */; };
+		64A47A6553C941C2895718CE /* GLUT.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B196C0E8E5D0800CE185C /* GLUT.framework */; };
+		650B5C2E05E74E2DB6116A40 /* WallpaperXPCHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A501F10A07954D1BAEFD84F6 /* WallpaperXPCHandler.swift */; };
+		6513682B0F704123A014AB00 /* osd-pill-u.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994542BA0912200B018C7 /* osd-pill-u.png */; };
+		6607B0FB11A04B1D89D83114 /* TextureFlatMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C72AC1AE9D00017C51 /* TextureFlatMetal.mm */; };
+		670ADBA0E4AD4F278B9F39B0 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2197D55E19B06ED300EFA1F2 /* CoreVideo.framework */; };
+		6772C8C0EB2642808DC94C8D /* red.tif in Resources */ = {isa = PBXBuildFile; fileRef = 21ADBB221305D380000A9F20 /* red.tif */; };
+		680DF31CEBE443579EE0316C /* Renderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A400E8E651000CE185C /* Renderer.cpp */; };
+		687611D07F6C4F02A52BD370 /* libboost_filesystem.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071D12C0E052A008219A4 /* libboost_filesystem.a */; };
+		68EB0AC7E44C4947B5CA64FA /* EmailStepViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = F0B66ADC2E02DB8200751811 /* EmailStepViewController.mm */; };
+		69086041842B4E438C8AC28B /* libswscale.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B912C663DEF00DBA60E /* libswscale.a */; };
+		6C08CB64526A4D9083E2C245 /* EmailStepViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = F02C14F92E01948200BFFFF4 /* EmailStepViewController.xib */; };
+		6C7EEE82873D45F2B03B2C60 /* osd-back10.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994622BA0A07100B018C7 /* osd-back10.png */; };
+		6E4231C1A5E542B3B2F88FD5 /* MetalDrawableAdapter.m in Sources */ = {isa = PBXBuildFile; fileRef = 55D253AA47B34C79A515976C /* MetalDrawableAdapter.m */; };
+		6E94C14A60EE4D8FA118D79D /* VideoDecodeAcceleration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2197D56119B06F4600EFA1F2 /* VideoDecodeAcceleration.framework */; };
+		6EE3EB6E076346B18693D762 /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 12579D482B83C91E00604B41 /* libcrypto.a */; };
+		6F5C6EA2920449ECA128D93C /* ESScreensaver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA540EC74853005E246D /* ESScreensaver.cpp */; };
+		6FB15BC0D4DA4A96A2A98A89 /* CodeStepViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = F02C15042E0194A000BFFFF4 /* CodeStepViewController.xib */; };
+		702ADD53D1854E059C4A527D /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 467230B82AC17C0400017C51 /* MetalKit.framework */; };
+		705565121641484D8234B658 /* Clip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 121FCCB52B484B8B00F58DD5 /* Clip.cpp */; };
+		71A7056CA95B43CB879A003E /* MetalShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 46ED5CAF2AF5326A00AF8F45 /* MetalShaders.metal */; };
+		728F1C513D2C4FACA279271C /* Log.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B192C0E8E591000CE185C /* Log.cpp */; };
+		73A30C0764724B56ADB8CF48 /* Image.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A110E8E646D00CE185C /* Image.cpp */; };
+		74D036D48200466586BA94C9 /* MessageQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B7F2C594A2D00DBA60E /* MessageQueue.cpp */; };
+		75C598CD354440FD9AB71D6D /* osd-bg-sq.png in Resources */ = {isa = PBXBuildFile; fileRef = F059946A2BA0A07300B018C7 /* osd-bg-sq.png */; };
+		76B787893AF9439D91C03D95 /* Common.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B192A0E8E591000CE185C /* Common.cpp */; };
+		7731783C58F942E68E6F3C41 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2197D55E19B06ED300EFA1F2 /* CoreVideo.framework */; };
+		7797911AF9E64E2FBEA55C38 /* osd-repeat.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948512ED6669E00DCF85E /* osd-repeat.png */; };
+		77AF30F8B52A47FAA8504FDC /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49E42AB89CEA00C77F6D /* AudioToolbox.framework */; };
+		77B508DF2BCC4BD58FFED9A2 /* WallpaperSnapshotIOSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = E48F1275DBC549BDBFD98799 /* WallpaperSnapshotIOSurface.swift */; };
+		783625BB36064B40A666ED41 /* osd-bird.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948662F4F00010000000E /* osd-bird.png */; };
+		795313F243FC4048A0B78520 /* ContentDecoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19400E8E59E700CE185C /* ContentDecoder.cpp */; };
+		798EAA97333A4B399D13A9CD /* WallpaperPlayerBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = C482ECFDA54F4C9C82BF62D4 /* WallpaperPlayerBridge.mm */; };
 		799AB22CF2B44F56AEFC66ED /* ProgressiveHttpStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 967FB9FBC5B445FD99099352 /* ProgressiveHttpStream.cpp */; };
+		7A3F67A03B5D4784AE8DF7B5 /* libz.1.2.5.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1AD90E8E6E0100CE185C /* libz.1.2.5.dylib */; };
+		7BA8E963115B4ACFB8C902BA /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 467230BC2AC17EAA00017C51 /* Metal.framework */; };
+		7BC7579F071F45A1B63AE1AC /* ESWindow.mm in Sources */ = {isa = PBXBuildFile; fileRef = 21EE63951013A674000CE53E /* ESWindow.mm */; };
+		7C140F606B57441E8DEF39F0 /* Text.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 46D2E9002AFBC3720054049D /* Text.cpp */; };
+		7C99C554AD8047929C148DBC /* Player.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19600E8E5CCE00CE185C /* Player.cpp */; };
+		7CE8E838E6924398A5B03612 /* yellow.tif in Resources */ = {isa = PBXBuildFile; fileRef = 21ADBB231305D380000A9F20 /* yellow.tif */; };
+		7D4BD375BE954D04BB569A94 /* StartupWindowController.xib in Resources */ = {isa = PBXBuildFile; fileRef = F02C14EE2E01904600BFFFF4 /* StartupWindowController.xib */; };
+		7DE20FF09D954F5BB19E49A2 /* Log.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B192C0E8E591000CE185C /* Log.cpp */; };
+		7EDAA999FDDD4B36ADC34012 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2135D2670EC70571005E246D /* AppKit.framework */; };
+		7F8F2160D9364934AD756292 /* Common.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B192A0E8E591000CE185C /* Common.cpp */; };
+		7FB89BDD741041269E724491 /* osd-back10.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994622BA0A07100B018C7 /* osd-back10.png */; };
+		822EFBAF23FA41C48FA2AC9B /* BuildData.json in Resources */ = {isa = PBXBuildFile; fileRef = 1243576B2B31FC1B00CCD62A /* BuildData.json */; };
+		82335A59B21D4437B32E855F /* Texture.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A420E8E651000CE185C /* Texture.cpp */; };
+		83C78D1723DD4B4C844E4D32 /* osd-next.png in Resources */ = {isa = PBXBuildFile; fileRef = 1BEBFE3D2ECB6B2B00F39019 /* osd-next.png */; };
+		83DBB74CB41A4906A90206E2 /* WallpaperSettingsProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 590B1CDFD4344D6DB8891B6E /* WallpaperSettingsProvider.swift */; };
+		83E780BE7FBC47D7B012803B /* ApplicationServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2188A6CF17EB94F30078C91C /* ApplicationServices.framework */; };
+		84A4096DAAF447CA8EA64AAB /* LoadDDS.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A120E8E646D00CE185C /* LoadDDS.cpp */; };
+		8563D0FA58A3418A9DF04F45 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2135D2670EC70571005E246D /* AppKit.framework */; };
+		86094BD454494A3798E7D5C2 /* red.tif in Resources */ = {isa = PBXBuildFile; fileRef = 21ADBB221305D380000A9F20 /* red.tif */; };
+		86403B9C6E0148CBB80DA721 /* Hud.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 21D90D010EA1D52000F8E5D5 /* Hud.cpp */; };
+		87819723F6B64B5BB7F1EDF4 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 09AB6884FE841BABC02AAC07 /* CoreFoundation.framework */; };
+		87AA8BDB825246129732B958 /* StartupWindowController.xib in Resources */ = {isa = PBXBuildFile; fileRef = F02C14EE2E01904600BFFFF4 /* StartupWindowController.xib */; };
+		886615F9EAEA485E98ECC4F9 /* BuildData.json in Resources */ = {isa = PBXBuildFile; fileRef = 1243576B2B31FC1B00CCD62A /* BuildData.json */; };
+		8898B0861966491AB62A516C /* osd-rabbit.png in Resources */ = {isa = PBXBuildFile; fileRef = 3439485E2F4F000100000002 /* osd-rabbit.png */; };
+		88C94A932C924D38BB93DF8A /* osd-dislike.png in Resources */ = {isa = PBXBuildFile; fileRef = F0F6D4252BCD504500222647 /* osd-dislike.png */; };
+		89995771BC624C2AA03B8424 /* Lato-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4628A55D2B0F84EF001C3078 /* Lato-Regular.ttf */; };
+		8A9F7C918DF94E3385F151CE /* ThanksStepViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = F02C150F2E0194BB00BFFFF4 /* ThanksStepViewController.xib */; };
+		8C36A62F35474534ACAD2D12 /* CodeStepViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = F02C15042E0194A000BFFFF4 /* CodeStepViewController.xib */; };
+		8C6302956E4B47A5AF076239 /* libbz2.1.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1ADD0E8E6E5000CE185C /* libbz2.1.0.dylib */; };
+		8CCB238015AC4CE88AA48F94 /* GLUT.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B196C0E8E5D0800CE185C /* GLUT.framework */; };
+		8D617C89C3AC49E0B42F1653 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49E12AB89C5F00C77F6D /* CoreMedia.framework */; };
+		8DD60B48B2AE40FF8812C2AE /* sio_beast.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A1BEE5700000000000000001 /* sio_beast.cpp */; };
+		8F003B91DA6A4300AB58F055 /* libavformat.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8E2C663DE800DBA60E /* libavformat.a */; };
+		8F9A71A58DE84C8DBCD5D733 /* Networking.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDD80ED0BD9200EB9394 /* Networking.cpp */; };
+		8FD3F36FD121497C8022756D /* ThanksStepViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = F02C150F2E0194BB00BFFFF4 /* ThanksStepViewController.xib */; };
+		8FF8F5B78B884C64A7A7A182 /* yellow.tif in Resources */ = {isa = PBXBuildFile; fileRef = 21ADBB231305D380000A9F20 /* yellow.tif */; };
+		90DBBD0960BD40C49240DDF1 /* StartupWindowController.mm in Sources */ = {isa = PBXBuildFile; fileRef = F0B66ADD2E02DB8200751811 /* StartupWindowController.mm */; };
+		9268E143C8984E29919E7BE6 /* e-dream-attr.png in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */; };
+		93CC5CBE14114B398D154AEA /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 12579D482B83C91E00604B41 /* libcrypto.a */; };
+		9455B8BA5D594EDB819A7C51 /* osd-forward.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994632BA0A07100B018C7 /* osd-forward.png */; };
+		94E3F62EEB7445C6B6214037 /* osd-pill-b.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994572BA0912300B018C7 /* osd-pill-b.png */; };
+		95CE27A1A34B41B78FFA5FDA /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49E12AB89C5F00C77F6D /* CoreMedia.framework */; };
+		961DBAF3661B4EBDA71702D6 /* storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19F40E8E639400CE185C /* storage.cpp */; };
+		96E61E9C334646CF94B924E5 /* osd-pill.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994552BA0912200B018C7 /* osd-pill.png */; };
+		9760296DB6CC4C84A0FB5388 /* FontMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C42AC18FDB00017C51 /* FontMetal.mm */; };
+		97D78D882F8B4A29969976DA /* CacheManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F01CCF162C3D5E9D004E6DE9 /* CacheManager.cpp */; };
+		982D37E87B8141A7B37A9FF3 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 09AB6884FE841BABC02AAC07 /* CoreFoundation.framework */; };
+		9864000CF42C4F2BA46BE6CA /* ESMetalView.m in Sources */ = {isa = PBXBuildFile; fileRef = 467230B62AC17A9E00017C51 /* ESMetalView.m */; };
+		9AAE7D9E07EA4230BBFC4382 /* PlatformUtils_Mac.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1270D0EE2B28975400E1DCE3 /* PlatformUtils_Mac.mm */; };
+		9B42060BDAD64F879976C408 /* osd-bg-700.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994562BA0912300B018C7 /* osd-bg-700.png */; };
+		9C1A2DC8271C47768C56A45F /* green.tif in Resources */ = {isa = PBXBuildFile; fileRef = 21ADBB211305D380000A9F20 /* green.tif */; };
+		9CBB8B6A504C484C80F50FFC /* ESWindow.mm in Sources */ = {isa = PBXBuildFile; fileRef = 21EE63951013A674000CE53E /* ESWindow.mm */; };
+		9CF83427E30F4806ADEC9CA3 /* MetalDrawableAdapter.m in Sources */ = {isa = PBXBuildFile; fileRef = 55D253AA47B34C79A515976C /* MetalDrawableAdapter.m */; };
+		9D4E7C223F364867BF2B7190 /* osd-forward10.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994662BA0A07200B018C7 /* osd-forward10.png */; };
+		9F768281C8C046B5A6857E17 /* libboost_log.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071CF2C0E052A008219A4 /* libboost_log.a */; };
 		A10000000000000000000011 /* ESScreenSaverExtension.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* ESScreenSaverExtension.mm */; };
 		A10000000000000000000012 /* ESScreenSaverViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000004 /* ESScreenSaverViewController.mm */; };
 		A10000000000000000000013 /* ESScreenSaverExtension.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* ESScreenSaverExtension.mm */; };
 		A10000000000000000000014 /* ESScreenSaverViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000004 /* ESScreenSaverViewController.mm */; };
-		A10000000000000000000051 /* infinidream.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 218878D00EC6CD7E001ABD2E /* infinidream.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		A10000000000000000000052 /* infinidream-stage.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = F0C100842C1372EF007FA505 /* infinidream-stage.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A10000000000000000000051 /* infinidream.appex in None */ = {isa = PBXBuildFile; fileRef = 218878D00EC6CD7E001ABD2E /* infinidream.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A10000000000000000000052 /* infinidream-stage.appex in None */ = {isa = PBXBuildFile; fileRef = F0C100842C1372EF007FA505 /* infinidream-stage.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A13C015D9F3045629D1FE561 /* osd-bg-700.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994562BA0912300B018C7 /* osd-bg-700.png */; };
 		A1BEE5700000000000000010 /* sio_beast.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A1BEE5700000000000000001 /* sio_beast.cpp */; };
 		A1BEE5700000000000000011 /* sio_beast.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A1BEE5700000000000000001 /* sio_beast.cpp */; };
 		A1BEE5700000000000000012 /* sio_beast.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A1BEE5700000000000000001 /* sio_beast.cpp */; };
 		A1BEE5700000000000000013 /* sio_beast.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A1BEE5700000000000000001 /* sio_beast.cpp */; };
+		A4A293BC351547FBBA573D45 /* WallpaperCodableShims.swift in Sources */ = {isa = PBXBuildFile; fileRef = B032BBBA8FBA4BA18A5EBF73 /* WallpaperCodableShims.swift */; };
+		A523218F3ABF4B5AB313763B /* libavcodec.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8B2C663DE800DBA60E /* libavcodec.a */; };
+		A624F2F167654EEB9AB01CD3 /* osd-rabbit.png in Resources */ = {isa = PBXBuildFile; fileRef = 3439485E2F4F000100000002 /* osd-rabbit.png */; };
+		A65771DAF6364B49903B0184 /* Lato-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4628A55D2B0F84EF001C3078 /* Lato-Regular.ttf */; };
+		A6A6E96F79ED4857BB0E91A8 /* EmailStepViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = F0B66ADC2E02DB8200751811 /* EmailStepViewController.mm */; };
+		A74CB099118A43509EB10AF7 /* Clip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 121FCCB52B484B8B00F58DD5 /* Clip.cpp */; };
+		A8E50C9EA54D473C8464F779 /* proximus.c in Sources */ = {isa = PBXBuildFile; fileRef = 21CE8B8E0F6ECFFC00DDF96A /* proximus.c */; };
+		ABAE4F269AA64DE9AFEEF49D /* Exception.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B192B0E8E591000CE185C /* Exception.cpp */; };
+		ABF3FBA7DBC34CFC8513CEDF /* libboost_json.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071D02C0E052A008219A4 /* libboost_json.a */; };
+		AC7F9CEEF892411AA505B270 /* LoadPNG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A130E8E646D00CE185C /* LoadPNG.cpp */; };
+		ACFC5DFC49AE446E8BED20C3 /* e-dream-attr.png in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */; };
+		AD37931779BB4B6DB9C9CCCE /* WallpaperCodableShims.swift in Sources */ = {isa = PBXBuildFile; fileRef = B032BBBA8FBA4BA18A5EBF73 /* WallpaperCodableShims.swift */; };
+		AD442CA712424B38A4473E58 /* ThanksStepViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = F0B66ADE2E02DB8200751811 /* ThanksStepViewController.mm */; };
+		AFA66DC3A95A43DCB8E39987 /* ProgressiveHttpStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 967FB9FBC5B445FD99099352 /* ProgressiveHttpStream.cpp */; };
+		B0E31E688AD040919BE9E3A9 /* StringFormat.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1220B5382B3DC64D00D68410 /* StringFormat.cpp */; };
+		B150EE1C8D784794BEAA0FCD /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 12D020022B83C86C0036357D /* libssl.a */; };
+		B2EFCE275C584433BC1E017A /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 213D529B11F79B0000CF500D /* IOKit.framework */; };
+		B415565CEF714365826EB294 /* osd-report.png in Resources */ = {isa = PBXBuildFile; fileRef = F06C22AA2DA6CAE500D54DB2 /* osd-report.png */; };
+		B6598B7A3A8C4A5EB4CFF234 /* InfinidreamWallpaperExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF779CBCBEAE47888F150755 /* InfinidreamWallpaperExtension.swift */; };
+		B958C4F36C404CEE953115E1 /* ContentDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212313190F503C4500702B2C /* ContentDownloader.cpp */; };
+		B9ADD1EB276646CD8611C241 /* PlatformUtils_Mac.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1270D0EE2B28975400E1DCE3 /* PlatformUtils_Mac.mm */; };
+		BB63F9182E57404C99F98551 /* osd-next.png in Resources */ = {isa = PBXBuildFile; fileRef = 1BEBFE3D2ECB6B2B00F39019 /* osd-next.png */; };
+		BBAC5C96CD314B16A21DE2A6 /* Shader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A410E8E651000CE185C /* Shader.cpp */; };
+		BBEC60BCEAC846FDAE4AF9C7 /* osd-back.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994692BA0A07300B018C7 /* osd-back.png */; };
+		BC2B17CFF1EC4B78A6F2BD3D /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49DD2AB88E1A00C77F6D /* Security.framework */; };
+		BCEC8682C3454820A21AB499 /* Upload.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 211CDDDA0ED0BD9200EB9394 /* Upload.cpp */; };
+		BD17511D56BA46EA8712DAE5 /* RendererMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C12AC1817500017C51 /* RendererMetal.mm */; };
+		BFA8CF1A15FF4C4899E365AD /* libboost_log.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071CF2C0E052A008219A4 /* libboost_log.a */; };
+		BFC4F719C27E465F89C5D9E6 /* WallpaperSnapshotIOSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = E48F1275DBC549BDBFD98799 /* WallpaperSnapshotIOSurface.swift */; };
+		C01C713C22FC483AB94E83CA /* libz.1.2.5.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B1AD90E8E6E0100CE185C /* libz.1.2.5.dylib */; };
+		C03BA72754114E369785CF97 /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49E42AB89CEA00C77F6D /* AudioToolbox.framework */; };
+		C289F82861D04833AAF22EDE /* MessageQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B7F2C594A2D00DBA60E /* MessageQueue.cpp */; };
+		C2A0365AF1704EBDA95F8DD6 /* osd-shuffle.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948522ED6669E00DCF85E /* osd-shuffle.png */; };
+		C2FA1D7B218D490EA4878321 /* ShaderMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 46FA9E192B03CB0500708000 /* ShaderMetal.mm */; };
+		C324D31D66084F05B9A045E8 /* osd-brightness.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994672BA0A07300B018C7 /* osd-brightness.png */; };
+		C3E68A00BAE04DB0A3318F2D /* WallpaperRemoteMetalSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F182A28ECD42DF8361DEA6 /* WallpaperRemoteMetalSurface.swift */; };
+		C456FE108E2C47D1AB524F33 /* Shader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B1A410E8E651000CE185C /* Shader.cpp */; };
+		C7A88825280A4871B074F5A7 /* osd-pause.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994682BA0A07300B018C7 /* osd-pause.png */; };
+		C8E5F75EA9574CEEA2F7B2D8 /* ESScreensaver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2135DA540EC74853005E246D /* ESScreensaver.cpp */; };
+		C94B4DC267534E9295B969FD /* TextureFlatMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C72AC1AE9D00017C51 /* TextureFlatMetal.mm */; };
+		CC328ABA9AD0437F86EC58F3 /* libcurl.4.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 211CDDEB0ED0BE8300EB9394 /* libcurl.4.dylib */; };
+		CCD00178269449DE99F1D209 /* ShaderMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 46FA9E192B03CB0500708000 /* ShaderMetal.mm */; };
+		CD636B350ABC4C07A9E860A1 /* Rect.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 214B75060EBBA78900B5B897 /* Rect.cpp */; };
 		CF0BDFD8D80843548EBC36A2 /* ProgressiveHttpStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 967FB9FBC5B445FD99099352 /* ProgressiveHttpStream.cpp */; };
+		D004B7DBB89F46579E97A543 /* FontMetal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 467230C42AC18FDB00017C51 /* FontMetal.mm */; };
+		D073A777BB5D4D87964E05E8 /* DreamDownloader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F02A5C3C2C453FEF00B57FBD /* DreamDownloader.cpp */; };
+		D0C0FC81338C4D1AB73D6D24 /* WallpaperXPCHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A501F10A07954D1BAEFD84F6 /* WallpaperXPCHandler.swift */; };
+		D212423A6F5B41468331EE17 /* pool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19300E8E591000CE185C /* pool.cpp */; };
+		D26FAEFB8B2C4B35B2FE32CC /* pool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 212B19300E8E591000CE185C /* pool.cpp */; };
+		D370784264B54D2FA636CBEE /* osd-bird.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948662F4F00010000000E /* osd-bird.png */; };
+		D559C7FD0FFE4804A6533830 /* libpng16.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 466C2AA92AFA5B8600ED939F /* libpng16.a */; };
+		D8A508A4954844C0996760C0 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 21CE8E3B0F6EE12B00DDF96A /* SystemConfiguration.framework */; };
+		DA090E6D93D34E56ACC4168B /* ESAppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = F0917E082E32764C000DBED8 /* ESAppDelegate.mm */; };
+		DA16171143D64C4B8F0769D7 /* ScreenSaver.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2135DB240EC75133005E246D /* ScreenSaver.framework */; };
+		DAF84C39D554408EB2B1FC80 /* ESAppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = F0917E082E32764C000DBED8 /* ESAppDelegate.mm */; };
+		DC713592397844779B187000 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49DD2AB88E1A00C77F6D /* Security.framework */; };
+		DDC2D2F03782454E991FFD54 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 213D529B11F79B0000CF500D /* IOKit.framework */; };
+		DE78180BAC99463C8CF69B7E /* FirstTimeSetupManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = F0C16C112E01DE870039EC33 /* FirstTimeSetupManager.mm */; };
+		E0770CD4E5DC4481AFE01AB0 /* libavutil.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8F2C663DE800DBA60E /* libavutil.a */; };
+		E174D38961FF4FC5A43DE74E /* libswscale.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B912C663DEF00DBA60E /* libswscale.a */; };
+		E19FE955C1A640349B436E9B /* ../Runtime/play-playlist.png in Resources */ = {isa = PBXBuildFile; fileRef = F0PLAYLIST01 /* ../Runtime/play-playlist.png */; };
+		E2244970425F4290A2B1979F /* osd-play.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994642BA0A07200B018C7 /* osd-play.png */; };
+		E41C126F422B4559B4F78198 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 21CE8E3B0F6EE12B00DDF96A /* SystemConfiguration.framework */; };
+		E42089BAD1CA4AB5B0BD77CD /* osd-speed.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994652BA0A07200B018C7 /* osd-speed.png */; };
+		E77BFF5DF6E148BBA77470A8 /* Text.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 46D2E9002AFBC3720054049D /* Text.cpp */; };
+		E85061A568F44115865AEDDE /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 467230BC2AC17EAA00017C51 /* Metal.framework */; };
+		E85A58C8F3244F36BC69936E /* InfinidreamWallpaperExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF779CBCBEAE47888F150755 /* InfinidreamWallpaperExtension.swift */; };
+		EA2294AD1C104A44A32C3235 /* osd-pause.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994682BA0A07300B018C7 /* osd-pause.png */; };
+		EE3277BE324C4951B80FF628 /* osd-like.png in Resources */ = {isa = PBXBuildFile; fileRef = F0F6D4242BCD504500222647 /* osd-like.png */; };
 		F0141B742C59115400DBA60E /* PathManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B732C59115400DBA60E /* PathManager.cpp */; };
 		F0141B752C59115500DBA60E /* PathManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B732C59115400DBA60E /* PathManager.cpp */; };
 		F0141B762C59115500DBA60E /* PathManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B732C59115400DBA60E /* PathManager.cpp */; };
@@ -567,10 +826,26 @@
 		F0PLAYLIST02 /* ../Runtime/play-playlist.png in Resources */ = {isa = PBXBuildFile; fileRef = F0PLAYLIST01 /* ../Runtime/play-playlist.png */; };
 		F0PLAYLIST03 /* ../Runtime/play-playlist.png in Resources */ = {isa = PBXBuildFile; fileRef = F0PLAYLIST01 /* ../Runtime/play-playlist.png */; };
 		F0PLAYLIST04 /* ../Runtime/play-playlist.png in Resources */ = {isa = PBXBuildFile; fileRef = F0PLAYLIST01 /* ../Runtime/play-playlist.png */; };
+		F16DE6289F3B4ECF8D5F500E /* ESConfiguration.mm in Sources */ = {isa = PBXBuildFile; fileRef = 21AAA0EE0F70453200AC23A8 /* ESConfiguration.mm */; };
+		F24AEE943F8045769AFF6DC2 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 212B19850E8E5E9200CE185C /* OpenGL.framework */; };
+		F2B1F970085041BEAE70A6CD /* logo.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2160FE240F30F82800B2C27A /* logo.png */; };
+		F337B61876474ED9B1A6A87B /* ApplicationServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2188A6CF17EB94F30078C91C /* ApplicationServices.framework */; };
+		F377310F9BB74E5F9A0DC9E5 /* osd-repeat.png in Resources */ = {isa = PBXBuildFile; fileRef = 343948512ED6669E00DCF85E /* osd-repeat.png */; };
+		F52C587FB47B4CF88689FCA6 /* libpng16.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 466C2AA92AFA5B8600ED939F /* libpng16.a */; };
+		F55FEA4B79E24D75B23240A4 /* Hud.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 21D90D010EA1D52000F8E5D5 /* Hud.cpp */; };
+		F699F618AA5441E3ACF38FAF /* Screensaver-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 218878D10EC6CD7E001ABD2E /* Screensaver-Info.plist */; };
+		F6ACFA1392454EB089B0CDE1 /* osd-back.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994692BA0A07300B018C7 /* osd-back.png */; };
+		F6FF51D28DD04AE2B5D05CDE /* PlaylistManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141BAF2C6BBB9D00DBA60E /* PlaylistManager.cpp */; };
+		FA2C1C25192E485EA56CB7BB /* ServerConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B792C5925C900DBA60E /* ServerConfig.cpp */; };
+		FA60D30074D444A5A6B494A4 /* liblzma.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 464A49E72AB89D8300C77F6D /* liblzma.tbd */; };
+		FAC720D186BE4729B6CC0100 /* libcurl.4.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 211CDDEB0ED0BE8300EB9394 /* libcurl.4.dylib */; };
+		FC3AF46267F64406BD78DF8A /* osd-like.png in Resources */ = {isa = PBXBuildFile; fileRef = F0F6D4242BCD504500222647 /* osd-like.png */; };
+		FC59FD0A8CEC41519FF3E9D9 /* ServerConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B792C5925C900DBA60E /* ServerConfig.cpp */; };
+		FCE87BFCFCB044178D8FFFF1 /* StringFormat.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1220B5382B3DC64D00D68410 /* StringFormat.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
-		2135DA930EC74C6B005E246D /* PBXBuildRule */ = {
+		2135DA930EC74C6B005E246D = {
 			isa = PBXBuildRule;
 			compilerSpec = com.apple.compilers.llvm.clang.1_0;
 			fileType = sourcecode.cpp;
@@ -581,7 +856,29 @@
 			);
 			script = "# Type a script or drag a script file from your workspace to insert its path.\n";
 		};
-		F0C100802C1372EF007FA505 /* PBXBuildRule */ = {
+		45BE20EB08C64264BA27DF56 = {
+			isa = PBXBuildRule;
+			compilerSpec = com.apple.compilers.llvm.clang.1_0;
+			fileType = sourcecode.cpp;
+			inputFiles = (
+			);
+			isEditable = 1;
+			outputFiles = (
+			);
+			script = "# Type a script or drag a script file from your workspace to insert its path.\n";
+		};
+		CF2544B364A240A7A2CE12F3 = {
+			isa = PBXBuildRule;
+			compilerSpec = com.apple.compilers.llvm.clang.1_0;
+			fileType = sourcecode.cpp;
+			inputFiles = (
+			);
+			isEditable = 1;
+			outputFiles = (
+			);
+			script = "# Type a script or drag a script file from your workspace to insert its path.\n";
+		};
+		F0C100802C1372EF007FA505 = {
 			isa = PBXBuildRule;
 			compilerSpec = com.apple.compilers.llvm.clang.1_0;
 			fileType = sourcecode.cpp;
@@ -626,6 +923,16 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		1D5FE9A49E164EAF9B1F7C1C /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 7;
+			files = (
+				4D1BB219F6324C749798F3AB /* logo.png in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		215542511261FE2100AB51BF /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -666,13 +973,36 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		29AA75059F78413D8A2A56A9 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3E6F9B84C85E4FAEB0BC506F /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 7;
+			files = (
+				F2B1F970085041BEAE70A6CD /* logo.png in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		78B2428EB7BE4F61B15E9933 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A10000000000000000000031 /* Embed App Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				A10000000000000000000051 /* infinidream.appex in Embed App Extensions */,
 			);
 			name = "Embed App Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -683,7 +1013,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				A10000000000000000000052 /* infinidream-stage.appex in Embed App Extensions */,
 			);
 			name = "Embed App Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -731,9 +1060,11 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		05F182A28ECD42DF8361DEA6 /* WallpaperRemoteMetalSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperRemoteMetalSurface.swift; sourceTree = "<group>"; };
 		063B5C5B2F172FAB00B5E553 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; name = .gitignore; path = ../../../../webminds/ReplayVideoCapture/.gitignore; sourceTree = "<group>"; };
 		063B5C5C2F198F1500B5E553 /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Sparkle.framework; path = Frameworks/Sparkle.framework; sourceTree = "<group>"; };
 		09AB6884FE841BABC02AAC07 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
+		0FA152393B084DB1A018F570 /* infinidream-wallpaper.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; name = "infinidream-wallpaper.appex"; path = "infinidream-wallpaper.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		121FCCB52B484B8B00F58DD5 /* Clip.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Clip.cpp; path = ../ContentDecoder/Clip.cpp; sourceTree = "<group>"; };
 		121FCCB62B484B8B00F58DD5 /* Clip.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Clip.h; path = ../ContentDecoder/Clip.h; sourceTree = "<group>"; };
 		1220B5372B3DC4F700D68410 /* StringFormat.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StringFormat.h; path = ../Client/StringFormat.h; sourceTree = "<group>"; };
@@ -905,8 +1236,13 @@
 		46ED5CB02AF5326A00AF8F45 /* DisplayMetal.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = DisplayMetal.cpp; path = ../../DisplayOutput/Metal/DisplayMetal.cpp; sourceTree = "<group>"; };
 		46FA9E182B03CB0500708000 /* ShaderMetal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShaderMetal.h; sourceTree = "<group>"; };
 		46FA9E192B03CB0500708000 /* ShaderMetal.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ShaderMetal.mm; sourceTree = "<group>"; };
+		4F06AEA0A7DB4EFE9172C083 /* WallpaperPlayerBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WallpaperPlayerBridge.h; sourceTree = "<group>"; };
+		55D253AA47B34C79A515976C /* MetalDrawableAdapter.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MetalDrawableAdapter.m; sourceTree = "<group>"; };
+		590B1CDFD4344D6DB8891B6E /* WallpaperSettingsProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperSettingsProvider.swift; sourceTree = "<group>"; };
 		8DE72BA2E7984A16A934E796 /* ProgressiveHttpStream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ProgressiveHttpStream.h; sourceTree = "<group>"; };
+		8E771040541A42959BBC4628 /* MetalDrawableAdapter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MetalDrawableAdapter.h; sourceTree = "<group>"; };
 		967FB9FBC5B445FD99099352 /* ProgressiveHttpStream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ProgressiveHttpStream.cpp; sourceTree = "<group>"; };
+		9BD2008890524B209AAC6182 /* Wallpaper-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Wallpaper-Bridging-Header.h"; sourceTree = "<group>"; };
 		A10000000000000000000001 /* ESScreenSaverExtension.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ESScreenSaverExtension.h; sourceTree = "<group>"; };
 		A10000000000000000000002 /* ESScreenSaverExtension.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ESScreenSaverExtension.mm; sourceTree = "<group>"; };
 		A10000000000000000000003 /* ESScreenSaverViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ESScreenSaverViewController.h; sourceTree = "<group>"; };
@@ -914,6 +1250,13 @@
 		A10000000000000000000005 /* ScreenSaverPrivate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ScreenSaverPrivate.h; path = PrivateHeaders/ScreenSaverPrivate.h; sourceTree = "<group>"; };
 		A10000000000000000000006 /* Screensaver.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Screensaver.entitlements; sourceTree = "<group>"; };
 		A1BEE5700000000000000001 /* sio_beast.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = sio_beast.cpp; path = ../Networking/sio/sio_beast.cpp; sourceTree = "<group>"; };
+		A501F10A07954D1BAEFD84F6 /* WallpaperXPCHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperXPCHandler.swift; sourceTree = "<group>"; };
+		B0017379155F472D9831370E /* infinidream-stage-wallpaper.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; name = "infinidream-stage-wallpaper.appex"; path = "infinidream-stage-wallpaper.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		B032BBBA8FBA4BA18A5EBF73 /* WallpaperCodableShims.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperCodableShims.swift; sourceTree = "<group>"; };
+		C482ECFDA54F4C9C82BF62D4 /* WallpaperPlayerBridge.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = WallpaperPlayerBridge.mm; sourceTree = "<group>"; };
+		DC2362FEF72A47038898AE06 /* WallpaperLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperLog.swift; sourceTree = "<group>"; };
+		E48F1275DBC549BDBFD98799 /* WallpaperSnapshotIOSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperSnapshotIOSurface.swift; sourceTree = "<group>"; };
+		EF779CBCBEAE47888F150755 /* InfinidreamWallpaperExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InfinidreamWallpaperExtension.swift; sourceTree = "<group>"; };
 		F0141B722C59115400DBA60E /* PathManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PathManager.h; sourceTree = "<group>"; };
 		F0141B732C59115400DBA60E /* PathManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PathManager.cpp; sourceTree = "<group>"; };
 		F0141B782C5925C900DBA60E /* ServerConfig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ServerConfig.h; sourceTree = "<group>"; };
@@ -991,6 +1334,46 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		188D8038870845B8BB3818CD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3AE2475F1CB64BF98C1CF75F /* libboost_thread.a in Frameworks */,
+				F52C587FB47B4CF88689FCA6 /* libpng16.a in Frameworks */,
+				23A81256550B4ABF9B025048 /* libboost_log_setup.a in Frameworks */,
+				48A462AA17BC4AA5BF58E4AB /* libavformat.a in Frameworks */,
+				5189E9759AF84EE69E9A7A66 /* libssl.a in Frameworks */,
+				DC713592397844779B187000 /* Security.framework in Frameworks */,
+				9F768281C8C046B5A6857E17 /* libboost_log.a in Frameworks */,
+				E85061A568F44115865AEDDE /* Metal.framework in Frameworks */,
+				DDC2D2F03782454E991FFD54 /* IOKit.framework in Frameworks */,
+				2172A49423944670B43A7083 /* libboost_filesystem.a in Frameworks */,
+				83E780BE7FBC47D7B012803B /* ApplicationServices.framework in Frameworks */,
+				37DF40D4C13B4121AA80A4B8 /* libavcodec.a in Frameworks */,
+				8D617C89C3AC49E0B42F1653 /* CoreMedia.framework in Frameworks */,
+				20C506B859D64269A7D3A82D /* libboost_json.a in Frameworks */,
+				FA60D30074D444A5A6B494A4 /* liblzma.tbd in Frameworks */,
+				0243B4C15C4541BE908A48F8 /* ScreenSaver.framework in Frameworks */,
+				982D37E87B8141A7B37A9FF3 /* CoreFoundation.framework in Frameworks */,
+				4F8114DAB760467B98A54B5B /* libavutil.a in Frameworks */,
+				64A47A6553C941C2895718CE /* GLUT.framework in Frameworks */,
+				05777C7C984C4370BF23E9F6 /* OpenGL.framework in Frameworks */,
+				4DFCE474FF47439A8C7C9F98 /* MetalKit.framework in Frameworks */,
+				7731783C58F942E68E6F3C41 /* CoreVideo.framework in Frameworks */,
+				02FF7E9A132C4956A2B4C354 /* VideoToolbox.framework in Frameworks */,
+				C03BA72754114E369785CF97 /* AudioToolbox.framework in Frameworks */,
+				C01C713C22FC483AB94E83CA /* libz.1.2.5.dylib in Frameworks */,
+				1EAC53887B9C4EFEA5517603 /* libbz2.1.0.dylib in Frameworks */,
+				5BE5A8F9258B4E67838D3890 /* libiconv.2.dylib in Frameworks */,
+				CC328ABA9AD0437F86EC58F3 /* libcurl.4.dylib in Frameworks */,
+				93CC5CBE14114B398D154AEA /* libcrypto.a in Frameworks */,
+				8563D0FA58A3418A9DF04F45 /* AppKit.framework in Frameworks */,
+				E174D38961FF4FC5A43DE74E /* libswscale.a in Frameworks */,
+				6E94C14A60EE4D8FA118D79D /* VideoDecodeAcceleration.framework in Frameworks */,
+				D8A508A4954844C0996760C0 /* SystemConfiguration.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		2160FAAB0F30F43600B2C27A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -1071,6 +1454,46 @@
 				F03CF26D2CB7F578009F51D8 /* libswscale.a in Frameworks */,
 				2197D56219B06F4600EFA1F2 /* VideoDecodeAcceleration.framework in Frameworks */,
 				21CE8E3D0F6EE12B00DDF96A /* SystemConfiguration.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C0613EC810C14FF9ABCEB660 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				57BA7528712748CD84DD2F9E /* libboost_thread.a in Frameworks */,
+				D559C7FD0FFE4804A6533830 /* libpng16.a in Frameworks */,
+				4AF2B7A4586848C7A7490DD2 /* libboost_log_setup.a in Frameworks */,
+				B150EE1C8D784794BEAA0FCD /* libssl.a in Frameworks */,
+				BC2B17CFF1EC4B78A6F2BD3D /* Security.framework in Frameworks */,
+				BFA8CF1A15FF4C4899E365AD /* libboost_log.a in Frameworks */,
+				7BA8E963115B4ACFB8C902BA /* Metal.framework in Frameworks */,
+				A523218F3ABF4B5AB313763B /* libavcodec.a in Frameworks */,
+				B2EFCE275C584433BC1E017A /* IOKit.framework in Frameworks */,
+				687611D07F6C4F02A52BD370 /* libboost_filesystem.a in Frameworks */,
+				F337B61876474ED9B1A6A87B /* ApplicationServices.framework in Frameworks */,
+				95CE27A1A34B41B78FFA5FDA /* CoreMedia.framework in Frameworks */,
+				ABF3FBA7DBC34CFC8513CEDF /* libboost_json.a in Frameworks */,
+				542B29E1177A4F33B55E06E4 /* liblzma.tbd in Frameworks */,
+				8F003B91DA6A4300AB58F055 /* libavformat.a in Frameworks */,
+				DA16171143D64C4B8F0769D7 /* ScreenSaver.framework in Frameworks */,
+				87819723F6B64B5BB7F1EDF4 /* CoreFoundation.framework in Frameworks */,
+				8CCB238015AC4CE88AA48F94 /* GLUT.framework in Frameworks */,
+				F24AEE943F8045769AFF6DC2 /* OpenGL.framework in Frameworks */,
+				702ADD53D1854E059C4A527D /* MetalKit.framework in Frameworks */,
+				670ADBA0E4AD4F278B9F39B0 /* CoreVideo.framework in Frameworks */,
+				05D6C85905BA4B9FBA7E48FF /* VideoToolbox.framework in Frameworks */,
+				77AF30F8B52A47FAA8504FDC /* AudioToolbox.framework in Frameworks */,
+				7A3F67A03B5D4784AE8DF7B5 /* libz.1.2.5.dylib in Frameworks */,
+				E0770CD4E5DC4481AFE01AB0 /* libavutil.a in Frameworks */,
+				8C6302956E4B47A5AF076239 /* libbz2.1.0.dylib in Frameworks */,
+				6234DF46C0CE47FA971F14F4 /* libiconv.2.dylib in Frameworks */,
+				FAC720D186BE4729B6CC0100 /* libcurl.4.dylib in Frameworks */,
+				6EE3EB6E076346B18693D762 /* libcrypto.a in Frameworks */,
+				7EDAA999FDDD4B36ADC34012 /* AppKit.framework in Frameworks */,
+				69086041842B4E438C8AC28B /* libswscale.a in Frameworks */,
+				0121192613A144EE98133CEB /* VideoDecodeAcceleration.framework in Frameworks */,
+				E41C126F422B4559B4F78198 /* SystemConfiguration.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1171,6 +1594,7 @@
 				08FB779DFE84155DC02AAC07 /* External Frameworks and Libraries */,
 				19C28FBDFE9D53C911CA2CBB /* Products */,
 				464A49D92AB8864600C77F6D /* Frameworks */,
+				33C0D648CFB54222A773F5E8,
 			);
 			name = ElectricSheep;
 			sourceTree = "<group>";
@@ -1218,6 +1642,8 @@
 				2160FAAD0F30F43600B2C27A /* infinidream.app */,
 				F0E9CEB12C136B0500C4D694 /* infinidream stage.app */,
 				F0C100842C1372EF007FA505 /* infinidream-stage.appex */,
+				0FA152393B084DB1A018F570 /* infinidream-wallpaper.appex */,
+				B0017379155F472D9831370E /* infinidream-stage-wallpaper.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -1496,6 +1922,25 @@
 			name = Resources;
 			sourceTree = "<group>";
 		};
+		33C0D648CFB54222A773F5E8 /* Wallpaper */ = {
+			isa = PBXGroup;
+			children = (
+				EF779CBCBEAE47888F150755,
+				B032BBBA8FBA4BA18A5EBF73,
+				DC2362FEF72A47038898AE06,
+				05F182A28ECD42DF8361DEA6,
+				590B1CDFD4344D6DB8891B6E,
+				E48F1275DBC549BDBFD98799,
+				A501F10A07954D1BAEFD84F6,
+				55D253AA47B34C79A515976C,
+				C482ECFDA54F4C9C82BF62D4,
+				8E771040541A42959BBC4628,
+				4F06AEA0A7DB4EFE9172C083,
+				9BD2008890524B209AAC6182,
+			);
+			name = Wallpaper;
+			sourceTree = "<group>";
+		};
 		464A49D92AB8864600C77F6D /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -1586,11 +2031,12 @@
 				2160FCB60F30F4C600B2C27A /* CopyFiles */,
 				2155439B1262042D00AB51BF /* CopyFiles */,
 				A10000000000000000000031 /* Embed App Extensions */,
+				WPEMBED0000000000000001,
+				SSEMBED0000000000000001,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				A10000000000000000000041 /* PBXTargetDependency */,
 			);
 			name = "infinidream App Prod";
 			packageProductDependencies = (
@@ -1613,7 +2059,7 @@
 				215542511261FE2100AB51BF /* CopyFiles */,
 			);
 			buildRules = (
-				2135DA930EC74C6B005E246D /* PBXBuildRule */,
+				2135DA930EC74C6B005E246D,
 			);
 			dependencies = (
 			);
@@ -1623,6 +2069,50 @@
 			);
 			productName = ScreenSaver;
 			productReference = 218878D00EC6CD7E001ABD2E /* infinidream.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		594A37478EE049B986CCC33B /* Wallpaper Stage */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 89AA196C85684A81B24AAC1E /* Build configuration list for PBXNativeTarget "Wallpaper Stage" */;
+			buildPhases = (
+				B862AB5036FF4E27B7A899FA /* ShellScript */,
+				0BB92CFFA1734C10B5502409 /* Resources */,
+				EBF2E7A6928644FB8692B7AD /* Sources */,
+				C0613EC810C14FF9ABCEB660 /* Frameworks */,
+				3E6F9B84C85E4FAEB0BC506F /* CopyFiles */,
+				29AA75059F78413D8A2A56A9 /* CopyFiles */,
+			);
+			buildRules = (
+				CF2544B364A240A7A2CE12F3,
+			);
+			name = "Wallpaper Stage";
+			packageProductDependencies = (
+				F0351BEF2CB5BBFF0055091F /* Bugsnag */,
+			);
+			productName = "infinidream-stage-wallpaper";
+			productReference = B0017379155F472D9831370E /* infinidream-stage-wallpaper.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		CC1C638FB85F474398173545 /* Wallpaper Prod */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 09D216F314824F8CB2E36B3C /* Build configuration list for PBXNativeTarget "Wallpaper Prod" */;
+			buildPhases = (
+				E5F69E768BFD43B9B7129911 /* ShellScript */,
+				3E885521FA9B4C218B418C62 /* Resources */,
+				6E5D17B08F0944AB937A4051 /* Sources */,
+				188D8038870845B8BB3818CD /* Frameworks */,
+				1D5FE9A49E164EAF9B1F7C1C /* CopyFiles */,
+				78B2428EB7BE4F61B15E9933 /* CopyFiles */,
+			);
+			buildRules = (
+				45BE20EB08C64264BA27DF56,
+			);
+			name = "Wallpaper Prod";
+			packageProductDependencies = (
+				F0351BE92CB5BB4F0055091F /* Bugsnag */,
+			);
+			productName = "infinidream-wallpaper";
+			productReference = 0FA152393B084DB1A018F570 /* infinidream-wallpaper.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 		F0C100012C1372EF007FA505 /* ScreenSaver stage */ = {
@@ -1637,7 +2127,7 @@
 				F0C1007F2C1372EF007FA505 /* CopyFiles */,
 			);
 			buildRules = (
-				F0C100802C1372EF007FA505 /* PBXBuildRule */,
+				F0C100802C1372EF007FA505,
 			);
 			dependencies = (
 			);
@@ -1660,11 +2150,12 @@
 				F0E9CEA42C136B0500C4D694 /* CopyFiles */,
 				F0E9CEAD2C136B0500C4D694 /* CopyFiles */,
 				A10000000000000000000032 /* Embed App Extensions */,
+				WPEMBED0000000000000002,
+				SSEMBED0000000000000002,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				A10000000000000000000043 /* PBXTargetDependency */,
 			);
 			name = "infinidream Stage";
 			packageProductDependencies = (
@@ -1694,7 +2185,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 1DEB924B08733DCA0010E9CD /* Build configuration list for PBXProject "infinidream" */;
+			buildConfigurationList = 1DEB924B08733DCA0010E9CD /* Build configuration list for PBXProject "ScreenSaver Prod" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
 			hasScannedForEncodings = 1;
@@ -1718,11 +2209,59 @@
 				F0C100012C1372EF007FA505 /* ScreenSaver stage */,
 				F0E9CE2A2C136B0500C4D694 /* infinidream Stage */,
 				12726C1F2B6BF43C003C0FF6 /* All */,
+				CC1C638FB85F474398173545 /* Wallpaper Prod */,
+				594A37478EE049B986CCC33B /* Wallpaper Stage */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		0BB92CFFA1734C10B5502409 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				39CB2B6A81B14149BF2A0F76 /* Screensaver-Stage-Info.plist in Resources */,
+				2DD69EDFAEC34DF0B73A7813 /* SettingsDialog.xib in Resources */,
+				534AD1B0B3A446C6B7B19010 /* osd-pill-r.png in Resources */,
+				822EFBAF23FA41C48FA2AC9B /* BuildData.json in Resources */,
+				9D4E7C223F364867BF2B7190 /* osd-forward10.png in Resources */,
+				83C78D1723DD4B4C844E4D32 /* osd-next.png in Resources */,
+				02F177A1974945D5B3FC4D67 /* osd-brightness.png in Resources */,
+				EE3277BE324C4951B80FF628 /* osd-like.png in Resources */,
+				43A10AAD81AD404491C5635E /* infinidream.icns in Resources */,
+				7FB89BDD741041269E724491 /* osd-back10.png in Resources */,
+				36EAF206813745F0883C5BB2 /* osd-dislike.png in Resources */,
+				EA2294AD1C104A44A32C3235 /* osd-pause.png in Resources */,
+				6C08CB64526A4D9083E2C245 /* EmailStepViewController.xib in Resources */,
+				7797911AF9E64E2FBEA55C38 /* osd-repeat.png in Resources */,
+				C2A0365AF1704EBDA95F8DD6 /* osd-shuffle.png in Resources */,
+				0F5BD6C6C3EB49719BDF17AB /* osd-turtle.png in Resources */,
+				8898B0861966491AB62A516C /* osd-rabbit.png in Resources */,
+				55203779FAAE466E96C34A79 /* osd-snail.png in Resources */,
+				D370784264B54D2FA636CBEE /* osd-bird.png in Resources */,
+				17BBA8A5E64A4EE69CD7F2BB /* osd-pill-u.png in Resources */,
+				BBEC60BCEAC846FDAE4AF9C7 /* osd-back.png in Resources */,
+				44CD5686E5804F30A8E558E6 /* network.png in Resources */,
+				181340AC066840908ED8C203 /* osd-pill-b.png in Resources */,
+				2F4903D9BFD04333A52828D8 /* osd-forward.png in Resources */,
+				A13C015D9F3045629D1FE561 /* osd-bg-700.png in Resources */,
+				8A9F7C918DF94E3385F151CE /* ThanksStepViewController.xib in Resources */,
+				E2244970425F4290A2B1979F /* osd-play.png in Resources */,
+				B415565CEF714365826EB294 /* osd-report.png in Resources */,
+				A65771DAF6364B49903B0184 /* Lato-Regular.ttf in Resources */,
+				96E61E9C334646CF94B924E5 /* osd-pill.png in Resources */,
+				258A4C35238C4DF2893342BB /* thumbnail.tif in Resources */,
+				5B3037611ADA46B19332E2FB /* green.tif in Resources */,
+				8C36A62F35474534ACAD2D12 /* CodeStepViewController.xib in Resources */,
+				86094BD454494A3798E7D5C2 /* red.tif in Resources */,
+				87AA8BDB825246129732B958 /* StartupWindowController.xib in Resources */,
+				9268E143C8984E29919E7BE6 /* e-dream-attr.png in Resources */,
+				8FF8F5B78B884C64A7A7A182 /* yellow.tif in Resources */,
+				E42089BAD1CA4AB5B0BD77CD /* osd-speed.png in Resources */,
+				060299BA199A4ABC9A5BAAC9 /* osd-bg-sq.png in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		21AAA0C80F7040ED00AC23A8 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -1814,6 +2353,53 @@
 				F02C14EF2E01904600BFFFF4 /* StartupWindowController.xib in Resources */,
 				F0F6D4292BCD504500222647 /* osd-dislike.png in Resources */,
 				21ADBB261305D380000A9F20 /* yellow.tif in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3E885521FA9B4C218B418C62 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F699F618AA5441E3ACF38FAF /* Screensaver-Info.plist in Resources */,
+				5808649FDD4F4D9494B4845C /* osd-pill-r.png in Resources */,
+				886615F9EAEA485E98ECC4F9 /* BuildData.json in Resources */,
+				3FA50FAD51C44762B82B173A /* osd-forward10.png in Resources */,
+				BB63F9182E57404C99F98551 /* osd-next.png in Resources */,
+				C324D31D66084F05B9A045E8 /* osd-brightness.png in Resources */,
+				FC3AF46267F64406BD78DF8A /* osd-like.png in Resources */,
+				1C9FA9AC70394CCE9413A5BD /* infinidream.icns in Resources */,
+				6C7EEE82873D45F2B03B2C60 /* osd-back10.png in Resources */,
+				88C94A932C924D38BB93DF8A /* osd-dislike.png in Resources */,
+				C7A88825280A4871B074F5A7 /* osd-pause.png in Resources */,
+				10B99B12BA7F41C7A12C5036 /* SettingsDialog.xib in Resources */,
+				44788A0C82C14A1E9382D7A2 /* EmailStepViewController.xib in Resources */,
+				F377310F9BB74E5F9A0DC9E5 /* osd-repeat.png in Resources */,
+				4ABCB73EF1144501AEDD14B1 /* osd-shuffle.png in Resources */,
+				3B2ECDF272B745A59A44DC26 /* osd-turtle.png in Resources */,
+				A624F2F167654EEB9AB01CD3 /* osd-rabbit.png in Resources */,
+				150A0A8EF4F34885BB4C77D9 /* osd-snail.png in Resources */,
+				783625BB36064B40A666ED41 /* osd-bird.png in Resources */,
+				6513682B0F704123A014AB00 /* osd-pill-u.png in Resources */,
+				F6ACFA1392454EB089B0CDE1 /* osd-back.png in Resources */,
+				62B476B67896448CB7C8EE39 /* network.png in Resources */,
+				94E3F62EEB7445C6B6214037 /* osd-pill-b.png in Resources */,
+				9455B8BA5D594EDB819A7C51 /* osd-forward.png in Resources */,
+				9B42060BDAD64F879976C408 /* osd-bg-700.png in Resources */,
+				8FD3F36FD121497C8022756D /* ThanksStepViewController.xib in Resources */,
+				3C20020F7FC2422BAD034929 /* osd-play.png in Resources */,
+				E19FE955C1A640349B436E9B /* ../Runtime/play-playlist.png in Resources */,
+				48B9C89BE03A495999964925 /* osd-report.png in Resources */,
+				89995771BC624C2AA03B8424 /* Lato-Regular.ttf in Resources */,
+				5E731A63B5F74E588D3136F1 /* osd-pill.png in Resources */,
+				07F9559F7D9D4FFC82BE9DB2 /* thumbnail.tif in Resources */,
+				9C1A2DC8271C47768C56A45F /* green.tif in Resources */,
+				6FB15BC0D4DA4A96A2A98A89 /* CodeStepViewController.xib in Resources */,
+				6772C8C0EB2642808DC94C8D /* red.tif in Resources */,
+				7D4BD375BE954D04BB569A94 /* StartupWindowController.xib in Resources */,
+				ACFC5DFC49AE446E8BED20C3 /* e-dream-attr.png in Resources */,
+				7CE8E838E6924398A5B03612 /* yellow.tif in Resources */,
+				28D67532393E4884ADA2D4BC /* osd-speed.png in Resources */,
+				75C598CD354440FD9AB71D6D /* osd-bg-sq.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1947,6 +2533,36 @@
 			shellPath = /bin/sh;
 			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Use BUILD_VERSION env var if set, otherwise get the latest Git tag\nif [ -n \"$BUILD_VERSION\" ]; then\n    latest_tag=\"$BUILD_VERSION\"\nelse\n    latest_tag=$(git describe --tags --abbrev=0)\nfi\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" ${INFOPLIST_FILE}\n\nsh generate_builddata.sh\n";
 		};
+		B862AB5036FF4E27B7A899FA /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Use BUILD_VERSION env var if set, otherwise get the latest Git tag\nif [ -n \"$BUILD_VERSION\" ]; then\n    latest_tag=\"$BUILD_VERSION\"\nelse\n    latest_tag=$(git describe --tags --abbrev=0)\nfi\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" ${INFOPLIST_FILE}\n\nsh generate_builddata.sh\n";
+		};
+		E5F69E768BFD43B9B7129911 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Use BUILD_VERSION env var if set, otherwise get the latest Git tag\nif [ -n \"$BUILD_VERSION\" ]; then\n    latest_tag=\"$BUILD_VERSION\"\nelse\n    latest_tag=$(git describe --tags --abbrev=0)\nfi\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" ${INFOPLIST_FILE}\n\nsh generate_builddata.sh\n";
+		};
 		F0C100022C1372EF007FA505 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -1980,6 +2596,90 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Use BUILD_VERSION env var if set, otherwise get the latest Git tag\nif [ -n \"$BUILD_VERSION\" ]; then\n    latest_tag=\"$BUILD_VERSION\"\nelse\n    latest_tag=$(git describe --tags --abbrev=0)\nfi\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" ${INFOPLIST_FILE}\nsh generate_builddata.sh\n\n# go to root of repo and run vcpkg\n# todo : somehow fails with openssl, feels like a path issue, unclear, could be the build environment from the toolchain setting unexpected stuff that trips vcpkg. For now : run manually once in a while to generate the cache of universal libs. That cache is also temporarirly committed to repo for github integration\n#cd ../../\n#sh build_mac_libs_vcpkg.sh\n";
+		};
+		'WPEMBED0000000000000001' = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/embed_wallpaper.sh",
+			);
+			name = "Embed Wallpaper Extension";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/PlugIns/infinidream-wallpaper.appex",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/embed_wallpaper.sh\"\n";
+		};
+		'WPEMBED0000000000000002' = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/embed_wallpaper.sh",
+			);
+			name = "Embed Wallpaper Extension";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/PlugIns/infinidream-stage-wallpaper.appex",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/embed_wallpaper.sh\" stage\n";
+		};
+		'SSEMBED0000000000000001' = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/embed_screensaver.sh",
+			);
+			name = "Embed Screensaver Extension";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/PlugIns/infinidream.appex",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/embed_screensaver.sh\"\n";
+		};
+		'SSEMBED0000000000000002' = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/embed_screensaver.sh",
+			);
+			name = "Embed Screensaver Extension";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/PlugIns/infinidream-stage.appex",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/embed_screensaver.sh\" stage\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -2112,6 +2812,142 @@
 				F0B66AE52E02DB8200751811 /* StartupWindowController.mm in Sources */,
 				F0B66AE62E02DB8200751811 /* ThanksStepViewController.mm in Sources */,
 				467230C22AC1817500017C51 /* RendererMetal.mm in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6E5D17B08F0944AB937A4051 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2D55C1E4E87E49369C5CE842 /* proximus.c in Sources */,
+				F6FF51D28DD04AE2B5D05CDE /* PlaylistManager.cpp in Sources */,
+				7F8F2160D9364934AD756292 /* Common.cpp in Sources */,
+				2CAD6A6EEE3445EBA9D8FCDA /* Exception.cpp in Sources */,
+				7DE20FF09D954F5BB19E49A2 /* Log.cpp in Sources */,
+				D212423A6F5B41468331EE17 /* pool.cpp in Sources */,
+				795313F243FC4048A0B78520 /* ContentDecoder.cpp in Sources */,
+				55D5E51484C5410B91B8C2E8 /* JSONStorage.cpp in Sources */,
+				7C99C554AD8047929C148DBC /* Player.cpp in Sources */,
+				2B584DEA3678489AAAF52AFB /* storage.cpp in Sources */,
+				57E771398E7147429C5210CD /* DisplayOutput.cpp in Sources */,
+				FA2C1C25192E485EA56CB7BB /* ServerConfig.cpp in Sources */,
+				73A30C0764724B56ADB8CF48 /* Image.cpp in Sources */,
+				74D036D48200466586BA94C9 /* MessageQueue.cpp in Sources */,
+				84A4096DAAF447CA8EA64AAB /* LoadDDS.cpp in Sources */,
+				024802BC46824437AEA8C88F /* CacheManager.cpp in Sources */,
+				398CE79ADF2D4F75BB72ABEC /* PathManager.cpp in Sources */,
+				6079DB645A034DBE9DFDCC1A /* LoadPNG.cpp in Sources */,
+				7C140F606B57441E8DEF39F0 /* Text.cpp in Sources */,
+				3548FBCCE04442D687161148 /* Font.cpp in Sources */,
+				9AAE7D9E07EA4230BBFC4382 /* PlatformUtils_Mac.mm in Sources */,
+				680DF31CEBE443579EE0316C /* Renderer.cpp in Sources */,
+				C456FE108E2C47D1AB524F33 /* Shader.cpp in Sources */,
+				44840A60755B419296689A91 /* Texture.cpp in Sources */,
+				9760296DB6CC4C84A0FB5388 /* FontMetal.mm in Sources */,
+				FCE87BFCFCB044178D8FFFF1 /* StringFormat.cpp in Sources */,
+				0675269E80E746ED9D37C4E0 /* TextureFlat.cpp in Sources */,
+				86403B9C6E0148CBB80DA721 /* Hud.cpp in Sources */,
+				705565121641484D8234B658 /* Clip.cpp in Sources */,
+				CD636B350ABC4C07A9E860A1 /* Rect.cpp in Sources */,
+				71A7056CA95B43CB879A003E /* MetalShaders.metal in Sources */,
+				4C82537AA43249A094E45EC2 /* ESMetalView.m in Sources */,
+				6F5C6EA2920449ECA128D93C /* ESScreensaver.cpp in Sources */,
+				3DFDF5ED1F3D4A4AB6E6FEE5 /* sio_beast.cpp in Sources */,
+				225B12E30AE14B40896D802C /* EDreamClient.cpp in Sources */,
+				1B16E3C589C44EA9AC0EA0D7 /* Download.cpp in Sources */,
+				4E667B8CDBA447D48489B886 /* ProgressiveHttpStream.cpp in Sources */,
+				8F9A71A58DE84C8DBCD5D733 /* Networking.cpp in Sources */,
+				00C4FD1F0F6544BC8445C918 /* Upload.cpp in Sources */,
+				1BD360FA613C41049CFD8B28 /* DisplayMetal.cpp in Sources */,
+				4E88E3CAF2F846A1AC2EA14A /* ContentDownloader.cpp in Sources */,
+				5BB9BB78EBDB4903B6638F17 /* DreamDownloader.cpp in Sources */,
+				CCD00178269449DE99F1D209 /* ShaderMetal.mm in Sources */,
+				3FAE2DAC0513467081E79EFE /* AlignedBuffer.cpp in Sources */,
+				C94B4DC267534E9295B969FD /* TextureFlatMetal.mm in Sources */,
+				27160901D8BE40278B1DB398 /* TextMetal.mm in Sources */,
+				F16DE6289F3B4ECF8D5F500E /* ESConfiguration.mm in Sources */,
+				165EEEF1D04F4240A661EFDA /* CodeStepViewController.mm in Sources */,
+				A6A6E96F79ED4857BB0E91A8 /* EmailStepViewController.mm in Sources */,
+				90DBBD0960BD40C49240DDF1 /* StartupWindowController.mm in Sources */,
+				AD442CA712424B38A4473E58 /* ThanksStepViewController.mm in Sources */,
+				26E00C2A0A94474293B7CFDD /* RendererMetal.mm in Sources */,
+				B6598B7A3A8C4A5EB4CFF234,
+				AD37931779BB4B6DB9C9CCCE,
+				03FAFDAF6BC84E39AE122865,
+				5AD4F72893764BE6AB2C6B7B,
+				83DBB74CB41A4906A90206E2,
+				77B508DF2BCC4BD58FFED9A2,
+				D0C0FC81338C4D1AB73D6D24,
+				9CF83427E30F4806ADEC9CA3,
+				570466DB605B40FCA79C68A4,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EBF2E7A6928644FB8692B7AD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A8E50C9EA54D473C8464F779 /* proximus.c in Sources */,
+				0A82611755944F968390314E /* PlaylistManager.cpp in Sources */,
+				76B787893AF9439D91C03D95 /* Common.cpp in Sources */,
+				ABAE4F269AA64DE9AFEEF49D /* Exception.cpp in Sources */,
+				728F1C513D2C4FACA279271C /* Log.cpp in Sources */,
+				D26FAEFB8B2C4B35B2FE32CC /* pool.cpp in Sources */,
+				30A90E4A62264C89B33EEE54 /* ContentDecoder.cpp in Sources */,
+				09173C6212E14DE68850E785 /* JSONStorage.cpp in Sources */,
+				5A726E1B74714312BA599E42 /* Player.cpp in Sources */,
+				961DBAF3661B4EBDA71702D6 /* storage.cpp in Sources */,
+				48BFDDA692FC479F97C0980E /* DisplayOutput.cpp in Sources */,
+				FC59FD0A8CEC41519FF3E9D9 /* ServerConfig.cpp in Sources */,
+				3D31F08A938C42F9948707F9 /* Image.cpp in Sources */,
+				C289F82861D04833AAF22EDE /* MessageQueue.cpp in Sources */,
+				43A494BD4D0A467A958949BD /* LoadDDS.cpp in Sources */,
+				97D78D882F8B4A29969976DA /* CacheManager.cpp in Sources */,
+				19EC03B161A0419B95E14DF1 /* PathManager.cpp in Sources */,
+				AC7F9CEEF892411AA505B270 /* LoadPNG.cpp in Sources */,
+				E77BFF5DF6E148BBA77470A8 /* Text.cpp in Sources */,
+				4777C758699A42D4A8772EAE /* Font.cpp in Sources */,
+				B9ADD1EB276646CD8611C241 /* PlatformUtils_Mac.mm in Sources */,
+				146E7F8DD78040D9BD5FF9ED /* Renderer.cpp in Sources */,
+				BBAC5C96CD314B16A21DE2A6 /* Shader.cpp in Sources */,
+				82335A59B21D4437B32E855F /* Texture.cpp in Sources */,
+				D004B7DBB89F46579E97A543 /* FontMetal.mm in Sources */,
+				B0E31E688AD040919BE9E3A9 /* StringFormat.cpp in Sources */,
+				167F39A8C44D49C3AEB6B660 /* TextureFlat.cpp in Sources */,
+				F55FEA4B79E24D75B23240A4 /* Hud.cpp in Sources */,
+				A74CB099118A43509EB10AF7 /* Clip.cpp in Sources */,
+				0D99496D1D6D44338AB30DE8 /* Rect.cpp in Sources */,
+				1496912EBE1E48C297A2A69A /* MetalShaders.metal in Sources */,
+				9864000CF42C4F2BA46BE6CA /* ESMetalView.m in Sources */,
+				C8E5F75EA9574CEEA2F7B2D8 /* ESScreensaver.cpp in Sources */,
+				8DD60B48B2AE40FF8812C2AE /* sio_beast.cpp in Sources */,
+				3468A4EC702A41429466DF2F /* EDreamClient.cpp in Sources */,
+				645708DC76D1443D97D941BB /* Download.cpp in Sources */,
+				AFA66DC3A95A43DCB8E39987 /* ProgressiveHttpStream.cpp in Sources */,
+				105C15B688104ACDA94EC5B4 /* Networking.cpp in Sources */,
+				BCEC8682C3454820A21AB499 /* Upload.cpp in Sources */,
+				051902241BF146A695A7B371 /* DisplayMetal.cpp in Sources */,
+				B958C4F36C404CEE953115E1 /* ContentDownloader.cpp in Sources */,
+				D073A777BB5D4D87964E05E8 /* DreamDownloader.cpp in Sources */,
+				C2FA1D7B218D490EA4878321 /* ShaderMetal.mm in Sources */,
+				4D6468E9065D44AA8677BCD1 /* AlignedBuffer.cpp in Sources */,
+				6607B0FB11A04B1D89D83114 /* TextureFlatMetal.mm in Sources */,
+				363A2412EADB46AFBCD540A1 /* TextMetal.mm in Sources */,
+				3AE01954A1974F76A0510CF4 /* ESConfiguration.mm in Sources */,
+				50F49F282A934144A52636CF /* CodeStepViewController.mm in Sources */,
+				68EB0AC7E44C4947B5CA64FA /* EmailStepViewController.mm in Sources */,
+				2B4053DB279C40AA98F88CF0 /* StartupWindowController.mm in Sources */,
+				4A55078BC6EE4082A7E1A9D7 /* ThanksStepViewController.mm in Sources */,
+				BD17511D56BA46EA8712DAE5 /* RendererMetal.mm in Sources */,
+				E85A58C8F3244F36BC69936E,
+				A4A293BC351547FBBA573D45,
+				064D24317677463C85BE6A67,
+				C3E68A00BAE04DB0A3318F2D,
+				4D5B81BA6F2C4D92ACA27F2A,
+				BFC4F719C27E465F89C5D9E6,
+				650B5C2E05E74E2DB6116A40,
+				6E4231C1A5E542B3B2F88FD5,
+				798EAA97333A4B399D13A9CD,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2730,6 +3566,282 @@
 			};
 			name = Release;
 		};
+		26627D74B5174BDCB681632A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				BUILD_VARIANTS = normal;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
+				CLANG_CXX_LIBRARY = "libc++";
+				CODE_SIGN_ENTITLEMENTS = Wallpaper.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				COPY_PHASE_STRIP = YES;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEPLOYMENT_POSTPROCESSING = NO;
+				DEVELOPMENT_TEAM = BNXH8TLP5D;
+				ENABLE_NS_ASSERTIONS = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Frameworks",
+				);
+				GCC_C_LANGUAGE_STANDARD = "compiler-default";
+				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+				GCC_PRECOMPILE_PREFIX_HEADER = NO;
+				GCC_PREFIX_HEADER = "";
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					MAC,
+					SCREEN_SAVER,
+					WALLPAPER_EXT,
+					"BOOST_FILESYSTEM_VERSION=3",
+					NDEBUG,
+					NS_BLOCK_ASSERTIONS,
+					USE_METAL,
+					BOOST_NETWORK_ENABLE_HTTPS,
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/PrivateHeaders",
+				);
+				INFOPLIST_FILE = "Wallpaper-Info.plist";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/PlugIns";
+				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../Frameworks";
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
+				LINKER_DISPLAYS_MANGLED_NAMES = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.3.4test;
+				OTHER_LDFLAGS = (
+					"-read_only_relocs",
+					suppress,
+				);
+				"OTHER_LDFLAGS[arch=x86_64]" = "";
+				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = ai.infinidream.alpha.app.wallpaper;
+				PRODUCT_NAME = "infinidream-wallpaper";
+				PROVISIONING_PROFILE = "";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = macosx;
+				SEPARATE_STRIP = NO;
+				STRIP_INSTALLED_PRODUCT = YES;
+				STRIP_STYLE = debugging;
+				SWIFT_OBJC_BRIDGING_HEADER = "Wallpaper-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+				VALID_ARCHS = "arm64 arm64e i386 x86_64";
+				WRAPPER_EXTENSION = appex;
+			};
+			name = Release;
+		};
+		2AE96219912C4B6B8B73BA30 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				BUILD_VARIANTS = normal;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
+				CLANG_CXX_LIBRARY = "libc++";
+				CODE_SIGN_ENTITLEMENTS = Wallpaper.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = BNXH8TLP5D;
+				ENABLE_NS_ASSERTIONS = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Frameworks",
+				);
+				GCC_C_LANGUAGE_STANDARD = "compiler-default";
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PRECOMPILE_PREFIX_HEADER = NO;
+				GCC_PREFIX_HEADER = "";
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					MAC,
+					SCREEN_SAVER,
+					WALLPAPER_EXT,
+					DEBUG,
+					"BOOST_FILESYSTEM_VERSION=3",
+					USE_METAL,
+					BOOST_NETWORK_ENABLE_HTTPS,
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/PrivateHeaders",
+				);
+				INFOPLIST_FILE = "Wallpaper-Info.plist";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/PlugIns";
+				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../Frameworks";
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.3.4test;
+				ONLY_ACTIVE_ARCH = NO;
+				OTHER_LDFLAGS = (
+					"-read_only_relocs",
+					suppress,
+				);
+				"OTHER_LDFLAGS[arch=x86_64]" = "";
+				PRODUCT_BUNDLE_IDENTIFIER = ai.infinidream.alpha.app.wallpaper;
+				PRODUCT_NAME = "infinidream-wallpaper";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = macosx;
+				SWIFT_OBJC_BRIDGING_HEADER = "Wallpaper-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+				VALID_ARCHS = "arm64 arm64e i386 x86_64";
+				WRAPPER_EXTENSION = appex;
+			};
+			name = Debug;
+		};
+		4238B8D5239B4BC6BF8F5B78 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				BUILD_VARIANTS = normal;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
+				CLANG_CXX_LIBRARY = "libc++";
+				CODE_SIGN_ENTITLEMENTS = Wallpaper.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = J4KXDFT4C5;
+				ENABLE_NS_ASSERTIONS = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Frameworks",
+				);
+				GCC_C_LANGUAGE_STANDARD = "compiler-default";
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PRECOMPILE_PREFIX_HEADER = NO;
+				GCC_PREFIX_HEADER = "";
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					MAC,
+					SCREEN_SAVER,
+					WALLPAPER_EXT,
+					DEBUG,
+					"BOOST_FILESYSTEM_VERSION=3",
+					USE_METAL,
+					BOOST_NETWORK_ENABLE_HTTPS,
+					STAGE,
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/PrivateHeaders",
+				);
+				INFOPLIST_FILE = "Wallpaper-Stage-Info.plist";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/PlugIns";
+				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../Frameworks";
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.3.4test;
+				ONLY_ACTIVE_ARCH = NO;
+				OTHER_LDFLAGS = (
+					"-read_only_relocs",
+					suppress,
+				);
+				"OTHER_LDFLAGS[arch=x86_64]" = "";
+				OTHER_SWIFT_FLAGS = "$(inherited) -DSTAGE";
+				PRODUCT_BUNDLE_IDENTIFIER = ai.infinidream.stage.app.wallpaper;
+				PRODUCT_NAME = "infinidream-stage-wallpaper";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = macosx;
+				SWIFT_OBJC_BRIDGING_HEADER = "Wallpaper-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+				VALID_ARCHS = "arm64 arm64e i386 x86_64";
+				WRAPPER_EXTENSION = appex;
+			};
+			name = Debug;
+		};
+		68D9DCA80B764BB5B63B2FE0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				BUILD_VARIANTS = normal;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
+				CLANG_CXX_LIBRARY = "libc++";
+				CODE_SIGN_ENTITLEMENTS = Wallpaper.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				COPY_PHASE_STRIP = YES;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEPLOYMENT_POSTPROCESSING = NO;
+				DEVELOPMENT_TEAM = J4KXDFT4C5;
+				ENABLE_NS_ASSERTIONS = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Frameworks",
+				);
+				GCC_C_LANGUAGE_STANDARD = "compiler-default";
+				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+				GCC_PRECOMPILE_PREFIX_HEADER = NO;
+				GCC_PREFIX_HEADER = "";
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					MAC,
+					SCREEN_SAVER,
+					WALLPAPER_EXT,
+					"BOOST_FILESYSTEM_VERSION=3",
+					NDEBUG,
+					NS_BLOCK_ASSERTIONS,
+					USE_METAL,
+					BOOST_NETWORK_ENABLE_HTTPS,
+					STAGE,
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/PrivateHeaders",
+				);
+				INFOPLIST_FILE = "Wallpaper-Stage-Info.plist";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/PlugIns";
+				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../Frameworks";
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
+				LINKER_DISPLAYS_MANGLED_NAMES = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.3.4test;
+				OTHER_LDFLAGS = (
+					"-read_only_relocs",
+					suppress,
+				);
+				"OTHER_LDFLAGS[arch=x86_64]" = "";
+				OTHER_SWIFT_FLAGS = "$(inherited) -DSTAGE";
+				PRESERVE_DEAD_CODE_INITS_AND_TERMS = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = ai.infinidream.stage.app.wallpaper;
+				PRODUCT_NAME = "infinidream-stage-wallpaper";
+				PROVISIONING_PROFILE = "";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = macosx;
+				SEPARATE_STRIP = NO;
+				STRIP_INSTALLED_PRODUCT = YES;
+				STRIP_STYLE = debugging;
+				SWIFT_OBJC_BRIDGING_HEADER = "Wallpaper-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+				VALID_ARCHS = "arm64 arm64e i386 x86_64";
+				WRAPPER_EXTENSION = appex;
+			};
+			name = Release;
+		};
 		F0C100822C1372EF007FA505 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -2760,6 +3872,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					MAC,
 					SCREEN_SAVER,
+					WALLPAPER_EXT,
 					DEBUG,
 					"BOOST_FILESYSTEM_VERSION=3",
 					USE_METAL,
@@ -3014,6 +4127,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		09D216F314824F8CB2E36B3C /* Build configuration list for PBXNativeTarget "Wallpaper Prod" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2AE96219912C4B6B8B73BA30 /* Debug */,
+				26627D74B5174BDCB681632A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		12726C222B6BF43D003C0FF6 /* Build configuration list for PBXAggregateTarget "All" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -3023,7 +4145,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		1DEB924B08733DCA0010E9CD /* Build configuration list for PBXProject "infinidream" */ = {
+		1DEB924B08733DCA0010E9CD /* Build configuration list for PBXProject "ScreenSaver Prod" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				1DEB924C08733DCA0010E9CD /* Debug */,
@@ -3046,6 +4168,15 @@
 			buildConfigurations = (
 				218878D20EC6CD7F001ABD2E /* Debug */,
 				218878D30EC6CD7F001ABD2E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		89AA196C85684A81B24AAC1E /* Build configuration list for PBXNativeTarget "Wallpaper Stage" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4238B8D5239B4BC6BF8F5B78 /* Debug */,
+				68D9DCA80B764BB5B63B2FE0 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
