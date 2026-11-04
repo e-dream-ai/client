@@ -7,6 +7,8 @@
 CFBundleRef CopyDLBundle_ex(void);
 
 int ESScreenSaver_AddGraphicsContext(void* _graphicsContext);
+/// Drop one display unit (Settings preview teardown) without full Shutdown.
+bool ESScreensaver_RemoveGraphicsContext(int displayIdx);
 
 bool ESScreensaver_Start(bool _bPreview, uint32_t _width, uint32_t _height);
 bool ESScreensaver_DoFrame(int _displayIdx);

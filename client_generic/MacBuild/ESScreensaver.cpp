@@ -56,6 +56,13 @@ int ESScreenSaver_AddGraphicsContext(void* _glContext)
     return gClient.AddGraphicsContext((CGraphicsContext)_glContext);
 }
 
+bool ESScreensaver_RemoveGraphicsContext(int displayIdx)
+{
+    if (displayIdx < 0)
+        return false;
+    return g_Player().RemoveDisplay(static_cast<uint32_t>(displayIdx));
+}
+
 bool ESScreensaver_IsSecondaryInstance(void)
 {
     return gClient.IsMultipleInstancesMode();
@@ -64,20 +71,26 @@ bool ESScreensaver_IsSecondaryInstance(void)
 bool ESScreensaver_Start(bool _bPreview, uint32 _width, uint32 _height)
 {
 #ifdef SCREEN_SAVER
-    // Settings thumbnail: mark preview + offline/busy, but KEEP the instance lock.
-    // Releasing it (old behavior) let a second legacyScreenSaver process take the
-    // lock, keep playing after Settings closed, and made hot-corner resume mid-clip.
-    if (_bPreview) {
-        gClient.SetIsPreview(true);
-        gClient.ForceMultipleInstancesMode(true);
-    } else {
-        gClient.SetIsPreview(false);
-        // Only clear busy if we actually own the lock (primary process).
-        if (!gClient.IsMultipleInstancesMode())
-            gClient.ForceMultipleInstancesMode(false);
+    const bool engineRunning = (g_Player().Display() != NULL);
+
+    // Preview/offline flags are process-global. Only apply them when bringing
+    // the engine up cold — attaching a Settings surface onto a live Desktop
+    // must not flip Desktop into preview/busy mode (or vice versa).
+    if (!engineRunning) {
+        // Settings thumbnail: mark preview + offline/busy, but KEEP the instance lock.
+        // Releasing it (old behavior) let a second legacyScreenSaver process take the
+        // lock, keep playing after Settings closed, and made hot-corner resume mid-clip.
+        if (_bPreview) {
+            gClient.SetIsPreview(true);
+            gClient.ForceMultipleInstancesMode(true);
+        } else {
+            gClient.SetIsPreview(false);
+            if (!gClient.IsMultipleInstancesMode())
+                gClient.ForceMultipleInstancesMode(false);
+        }
     }
 
-    if (g_Player().Display() == NULL)
+    if (!engineRunning)
     {
         DisplayOutput::CDisplayMetal::SetDefaultWidthAndHeight(_width, _height);
         gClient.Startup();

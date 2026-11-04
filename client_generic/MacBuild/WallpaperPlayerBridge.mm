@@ -27,7 +27,8 @@ static std::atomic<int> s_activeSessions{0};
         return -1;
 
     // Always size *this* unit. Start() only Forces unit 0 on first engine
-    // bring-up; a secondary Desktop/Idle/preview session must not resize unit 0.
+    // bring-up; a secondary Desktop/Settings-preview session must not resize
+    // unit 0.
     ESScreensaver_ForceWidthAndHeightForDisplay(displayIdx, width, height);
     s_activeSessions.fetch_add(1);
     return displayIdx;
@@ -52,8 +53,11 @@ static std::atomic<int> s_activeSessions{0};
     ESScreensaver_SetVideoRotation(degrees);
 }
 
-+ (void)stopSession
++ (void)stopSessionForDisplay:(int)displayIdx
 {
+    if (displayIdx >= 0)
+        ESScreensaver_RemoveGraphicsContext(displayIdx);
+
     int prev = s_activeSessions.fetch_sub(1);
     if (prev <= 1) {
         s_activeSessions.store(0);
