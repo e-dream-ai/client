@@ -93,6 +93,13 @@ public:
        remainingQuota = newQuota;
     }
     void decreaseRemainingQuota(long long amount);
+
+    // Below this the prefetcher stops; streaming follows the same rule so Next
+    // and the automatic advance agree (client#710).
+    static constexpr long long kMinQuotaToDownload = 1024LL * 1024 * 100;
+    bool hasQuotaToDownload() const {
+        return remainingQuota >= kMinQuotaToDownload;
+    }
     
     // Quota expiration getter/setter
     std::chrono::system_clock::time_point getQuotaExpiresAt() const {

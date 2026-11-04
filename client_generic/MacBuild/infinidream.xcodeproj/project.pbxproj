@@ -2033,6 +2033,7 @@
 				A10000000000000000000031 /* Embed App Extensions */,
 				WPEMBED0000000000000001,
 				SSEMBED0000000000000001,
+				662A00000000000000000000 /* Stamp Version */,
 			);
 			buildRules = (
 			);
@@ -2057,6 +2058,7 @@
 				218878CE0EC6CD7E001ABD2E /* Frameworks */,
 				2160FF3D0F30FA6100B2C27A /* CopyFiles */,
 				215542511261FE2100AB51BF /* CopyFiles */,
+				662A00000000000000000001 /* Stamp Version */,
 			);
 			buildRules = (
 				2135DA930EC74C6B005E246D,
@@ -2125,6 +2127,7 @@
 				F0C100532C1372EF007FA505 /* Frameworks */,
 				F0C100792C1372EF007FA505 /* CopyFiles */,
 				F0C1007F2C1372EF007FA505 /* CopyFiles */,
+				662A00000000000000000002 /* Stamp Version */,
 			);
 			buildRules = (
 				F0C100802C1372EF007FA505,
@@ -2152,6 +2155,7 @@
 				A10000000000000000000032 /* Embed App Extensions */,
 				WPEMBED0000000000000002,
 				SSEMBED0000000000000002,
+				662A00000000000000000003 /* Stamp Version */,
 			);
 			buildRules = (
 			);
@@ -2499,6 +2503,86 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		662A00000000000000000000 /* Stamp Version */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
+			);
+			name = "Stamp Version";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Stamp the version into the built Info.plist, not the tracked source plist (#662).\n# Use BUILD_VERSION env var if set, otherwise get the latest Git tag\nif [ -n \"$BUILD_VERSION\" ]; then\n    latest_tag=\"$BUILD_VERSION\"\nelse\n    latest_tag=$(git describe --tags --abbrev=0)\nfi\n\nPLIST=\"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}\"\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" \"$PLIST\"\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" \"$PLIST\"\n";
+		};
+		662A00000000000000000001 /* Stamp Version */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
+			);
+			name = "Stamp Version";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Stamp the version into the built Info.plist, not the tracked source plist (#662).\n# Use BUILD_VERSION env var if set, otherwise get the latest Git tag\nif [ -n \"$BUILD_VERSION\" ]; then\n    latest_tag=\"$BUILD_VERSION\"\nelse\n    latest_tag=$(git describe --tags --abbrev=0)\nfi\n\nPLIST=\"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}\"\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" \"$PLIST\"\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" \"$PLIST\"\n";
+		};
+		662A00000000000000000002 /* Stamp Version */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
+			);
+			name = "Stamp Version";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Stamp the version into the built Info.plist, not the tracked source plist (#662).\n# Use BUILD_VERSION env var if set, otherwise get the latest Git tag\nif [ -n \"$BUILD_VERSION\" ]; then\n    latest_tag=\"$BUILD_VERSION\"\nelse\n    latest_tag=$(git describe --tags --abbrev=0)\nfi\n\nPLIST=\"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}\"\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" \"$PLIST\"\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" \"$PLIST\"\n";
+		};
+		662A00000000000000000003 /* Stamp Version */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
+			);
+			name = "Stamp Version";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Stamp the version into the built Info.plist, not the tracked source plist (#662).\n# Use BUILD_VERSION env var if set, otherwise get the latest Git tag\nif [ -n \"$BUILD_VERSION\" ]; then\n    latest_tag=\"$BUILD_VERSION\"\nelse\n    latest_tag=$(git describe --tags --abbrev=0)\nfi\n\nPLIST=\"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}\"\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" \"$PLIST\"\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" \"$PLIST\"\n";
+		};
 		1243576A2B31E89000CCD62A /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -2514,7 +2598,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Use BUILD_VERSION env var if set, otherwise get the latest Git tag\nif [ -n \"$BUILD_VERSION\" ]; then\n    latest_tag=\"$BUILD_VERSION\"\nelse\n    latest_tag=$(git describe --tags --abbrev=0)\nfi\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" ${INFOPLIST_FILE}\nsh generate_builddata.sh\n\n# go to root of repo and run vcpkg\n# todo : somehow fails with openssl, feels like a path issue, unclear, could be the build environment from the toolchain setting unexpected stuff that trips vcpkg. For now : run manually once in a while to generate the cache of universal libs. That cache is also temporarirly committed to repo for github integration\n#cd ../../\n#sh build_mac_libs_vcpkg.sh\n";
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\nsh generate_builddata.sh\n\n# go to root of repo and run vcpkg\n# todo : somehow fails with openssl, feels like a path issue, unclear, could be the build environment from the toolchain setting unexpected stuff that trips vcpkg. For now : run manually once in a while to generate the cache of universal libs. That cache is also temporarirly committed to repo for github integration\n#cd ../../\n#sh build_mac_libs_vcpkg.sh\n";
 		};
 		12B37C892B308A6300E86D2E /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -2531,7 +2615,37 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n\nsh generate_builddata.sh\n";
+		};
+		B862AB5036FF4E27B7A899FA /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
 			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Use BUILD_VERSION env var if set, otherwise get the latest Git tag\nif [ -n \"$BUILD_VERSION\" ]; then\n    latest_tag=\"$BUILD_VERSION\"\nelse\n    latest_tag=$(git describe --tags --abbrev=0)\nfi\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" ${INFOPLIST_FILE}\n\nsh generate_builddata.sh\n";
+		};
+		E5F69E768BFD43B9B7129911 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n\nsh generate_builddata.sh\n";
 		};
 		B862AB5036FF4E27B7A899FA /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -2578,7 +2692,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Use BUILD_VERSION env var if set, otherwise get the latest Git tag\nif [ -n \"$BUILD_VERSION\" ]; then\n    latest_tag=\"$BUILD_VERSION\"\nelse\n    latest_tag=$(git describe --tags --abbrev=0)\nfi\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" ${INFOPLIST_FILE}\n\nsh generate_builddata.sh\n";
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n\nsh generate_builddata.sh\n";
 		};
 		F0E9CE2D2C136B0500C4D694 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -2595,7 +2709,91 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Use BUILD_VERSION env var if set, otherwise get the latest Git tag\nif [ -n \"$BUILD_VERSION\" ]; then\n    latest_tag=\"$BUILD_VERSION\"\nelse\n    latest_tag=$(git describe --tags --abbrev=0)\nfi\n\n# Update Xcode project version\n/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $latest_tag\" ${INFOPLIST_FILE}\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $latest_tag\" ${INFOPLIST_FILE}\nsh generate_builddata.sh\n\n# go to root of repo and run vcpkg\n# todo : somehow fails with openssl, feels like a path issue, unclear, could be the build environment from the toolchain setting unexpected stuff that trips vcpkg. For now : run manually once in a while to generate the cache of universal libs. That cache is also temporarirly committed to repo for github integration\n#cd ../../\n#sh build_mac_libs_vcpkg.sh\n";
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\nsh generate_builddata.sh\n\n# go to root of repo and run vcpkg\n# todo : somehow fails with openssl, feels like a path issue, unclear, could be the build environment from the toolchain setting unexpected stuff that trips vcpkg. For now : run manually once in a while to generate the cache of universal libs. That cache is also temporarirly committed to repo for github integration\n#cd ../../\n#sh build_mac_libs_vcpkg.sh\n";
+		};
+		'WPEMBED0000000000000001' = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/embed_wallpaper.sh",
+			);
+			name = "Embed Wallpaper Extension";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/PlugIns/infinidream-wallpaper.appex",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/embed_wallpaper.sh\"\n";
+		};
+		'WPEMBED0000000000000002' = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/embed_wallpaper.sh",
+			);
+			name = "Embed Wallpaper Extension";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/PlugIns/infinidream-stage-wallpaper.appex",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/embed_wallpaper.sh\" stage\n";
+		};
+		'SSEMBED0000000000000001' = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/embed_screensaver.sh",
+			);
+			name = "Embed Screensaver Extension";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/PlugIns/infinidream.appex",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/embed_screensaver.sh\"\n";
+		};
+		'SSEMBED0000000000000002' = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/embed_screensaver.sh",
+			);
+			name = "Embed Screensaver Extension";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/PlugIns/infinidream-stage.appex",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/embed_screensaver.sh\" stage\n";
 		};
 		'WPEMBED0000000000000001' = {
 			isa = PBXShellScriptBuildPhase;

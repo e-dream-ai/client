@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -37,6 +38,10 @@ public:
 
     // Ensures the CPU atlas + GPU texture are built.
     bool EnsureCreated();
+
+    // Rasterize at FontDescription().Height() * scale pixels (window DPI / 96), the
+    // counterpart of CATextLayer.contentsScale on macOS. Rebuilds the atlas when it changes.
+    bool SetPixelScale(float scale);
 
     uint32_t LineHeightPx() const { return m_lineHeightPx; }
 
@@ -75,6 +80,8 @@ private:
     std::unordered_map<uint32_t, SGlyph> m_glyphByCodepoint;
     SGlyph m_spaceGlyph;
 
+    float m_pixelScale = 1.0f;
+
     // Font metrics for positioning.
     uint32_t m_ascentPx = 0;
     uint32_t m_lineHeightPx = 0;
@@ -87,10 +94,13 @@ private:
 class CTextDX11Atlas final : public CBaseText
 {
 public:
+    // topInsetPx reports the rows above the text viewport (the custom title bar), so
+    // extents are normalized against the same area DrawTextBatched draws into.
     CTextDX11Atlas(std::shared_ptr<CFontDX11DirectWriteAtlas> font,
                     std::string text,
                     uint32_t displayWidthPx,
-                    uint32_t displayHeightPx);
+                    uint32_t displayHeightPx,
+                    std::function<uint32_t()> topInsetPx = {});
 
     ~CTextDX11Atlas() override = default;
 
@@ -115,8 +125,9 @@ private:
     std::shared_ptr<CFontDX11DirectWriteAtlas> m_font;
     std::string m_text;
     bool m_enabled = true;
+    std::function<uint32_t()> m_topInsetPx;
 
-    // Used for normalized->pixel conversion and back.
+    // Used for normalized->pixel conversion and back (text viewport, below any title bar).
     uint32_t m_displayW = 1;
     uint32_t m_displayH = 1;
 };

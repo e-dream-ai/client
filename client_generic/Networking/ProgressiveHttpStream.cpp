@@ -5,6 +5,7 @@
 #include <chrono>
 #include <cstdio>
 #include <cstring>
+#include <filesystem>
 #include <thread>
 
 #include <curl/curl.h>
@@ -194,7 +195,7 @@ ProgressiveHttpStream::~ProgressiveHttpStream()
 
 bool ProgressiveHttpStream::Start(const std::string& url,
                                   const std::string& cachePath,
-                                  AbortFn readInterrupt, AbortFn downloadAbort)
+                                  AbortFn downloadAbort)
 {
     Stop();
 
@@ -212,15 +213,14 @@ bool ProgressiveHttpStream::Start(const std::string& url,
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_url = url;
-        m_readInterrupt = std::move(readInterrupt);
-        if (downloadAbort)
-            m_downloadAbort = std::move(downloadAbort);
-        else
-            m_downloadAbort = m_readInterrupt;
+        m_cachePath = cachePath;
+        char self[32];
+        snprintf(self, sizeof(self), "@%p", static_cast<void*>(this));
+        m_label = std::filesystem::path(cachePath).filename().string() + self;
+        m_downloadAbort = std::move(downloadAbort);
         m_file = file;
         m_filled.clear();
         m_contentLength = -1;
-        m_readPos = 0;
         m_bytesDownloaded = 0;
         m_urgentOffset = -1;
         m_activeTransferStart = -1;
@@ -228,6 +228,7 @@ bool ProgressiveHttpStream::Start(const std::string& url,
         m_failed.store(false);
         m_finished.store(false);
         m_restart.store(false);
+        m_done.store(false);
     }
 
     m_worker = std::thread(&ProgressiveHttpStream::WorkerMain, this);
@@ -249,6 +250,37 @@ void ProgressiveHttpStream::Stop()
         fclose(m_file);
         m_file = nullptr;
     }
+}
+
+bool ProgressiveHttpStream::CommitTo(const std::string& finalPath)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (!m_file || !m_finished.load())
+        return false;
+
+    fflush(m_file);
+    fclose(m_file);
+    m_file = nullptr;
+
+    std::error_code ec;
+    std::filesystem::rename(m_cachePath, finalPath, ec);
+    if (ec)
+    {
+        g_Log->Error("ProgressiveHttpStream: rename %s -> %s failed: %s",
+                     m_cachePath.c_str(), finalPath.c_str(),
+                     ec.message().c_str());
+        // Keep serving readers from the tmp; the caller discards it.
+        m_file = fopen(m_cachePath.c_str(), "rb");
+        return false;
+    }
+
+    m_cachePath = finalPath;
+    m_file = fopen(finalPath.c_str(), "rb");
+    if (!m_file)
+        g_Log->Warning("ProgressiveHttpStream: could not reopen %s for readers",
+                       finalPath.c_str());
+    m_cv.notify_all();
+    return true;
 }
 
 void ProgressiveHttpStream::WaitUntilFinished()
@@ -274,11 +306,23 @@ bool ProgressiveHttpStream::ShouldAbortDownload() const
     return false;
 }
 
-bool ProgressiveHttpStream::ShouldInterruptRead() const
+const char* ProgressiveHttpStream::AbortReason() const
+{
+    if (m_stop.load())
+        return "stop";
+    if (m_downloadAbort && m_downloadAbort())
+        return "downloadAbort";
+    if (g_NetworkManager && g_NetworkManager->SingletonActive() &&
+        g_NetworkManager->IsAborted())
+        return "network";
+    return "none";
+}
+
+bool ProgressiveHttpStream::ShouldInterruptRead(const Cursor& cursor) const
 {
     if (ShouldAbortDownload())
         return true;
-    if (m_readInterrupt && m_readInterrupt())
+    if (cursor.interrupt && cursor.interrupt())
         return true;
     return false;
 }
@@ -479,7 +523,7 @@ bool ProgressiveHttpStream::RunTransfer(int64_t startOffset)
 
 void ProgressiveHttpStream::WorkerMain()
 {
-    g_Log->Info("ProgressiveHttpStream: worker start");
+    g_Log->Info("ProgressiveHttpStream: worker start %s", m_label.c_str());
 
     constexpr int kMaxTransferRetries = 3;
     int consecutiveFailures = 0;
@@ -561,51 +605,84 @@ void ProgressiveHttpStream::WorkerMain()
         }
     }
 
+    // Read before m_done: the reason may revert later (client#728).
+    const char* reason = AbortReason();
+    int64_t contig = 0;
+    int64_t length = 0;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        contig = ContiguousEndLocked();
+        length = m_contentLength;
+    }
+    m_done.store(true);
     m_cv.notify_all();
-    g_Log->Info("ProgressiveHttpStream: worker end (finished=%d failed=%d)",
-                m_finished.load() ? 1 : 0, m_failed.load() ? 1 : 0);
+    g_Log->Info("ProgressiveHttpStream: worker end %s (finished=%d failed=%d "
+                "reason=%s contiguous=%lld/%lld readers=%d)",
+                m_label.c_str(), m_finished.load() ? 1 : 0,
+                m_failed.load() ? 1 : 0, reason,
+                static_cast<long long>(contig), static_cast<long long>(length),
+                m_readers.load());
 }
 
-int ProgressiveHttpStream::Read(uint8_t* buf, int size)
+int ProgressiveHttpStream::Read(Cursor& cursor, uint8_t* buf, int size)
 {
     if (!buf || size <= 0)
         return 0;
 
     std::unique_lock<std::mutex> lock(m_mutex);
+    const auto waitStart = std::chrono::steady_clock::now();
+    auto nextWarn = waitStart + std::chrono::seconds(10);
     while (true)
     {
-        if (ShouldInterruptRead())
+        if (ShouldInterruptRead(cursor))
             return -1;
 
-        if (m_failed.load())
+        if (m_failed.load() || !m_file)
             return -1;
 
-        if (m_contentLength >= 0 && m_readPos >= m_contentLength)
+        // A read that never returns hangs its clip (client#728).
+        const auto now = std::chrono::steady_clock::now();
+        if (now >= nextWarn)
+        {
+            nextWarn = now + std::chrono::seconds(10);
+            g_Log->Warning(
+                "ProgressiveHttpStream: read waiting %llds on %s at %lld "
+                "(contiguous=%lld/%lld workerDone=%d reason=%s readers=%d)",
+                static_cast<long long>(
+                    std::chrono::duration_cast<std::chrono::seconds>(
+                        now - waitStart).count()),
+                m_label.c_str(), static_cast<long long>(cursor.pos),
+                static_cast<long long>(ContiguousEndLocked()),
+                static_cast<long long>(m_contentLength), m_done.load() ? 1 : 0,
+                AbortReason(), m_readers.load());
+        }
+
+        if (m_contentLength >= 0 && cursor.pos >= m_contentLength)
             return 0;
 
-        const int64_t available = AvailableFromLocked(m_readPos);
+        const int64_t available = AvailableFromLocked(cursor.pos);
         if (available > 0)
         {
             const int toRead =
                 static_cast<int>(std::min<int64_t>(available, size));
-            if (fseek(m_file, m_readPos, SEEK_SET) != 0)
+            if (fseek(m_file, cursor.pos, SEEK_SET) != 0)
                 return -1;
             const size_t n = fread(buf, 1, toRead, m_file);
             if (n == 0)
                 return -1;
-            m_readPos += static_cast<int64_t>(n);
+            cursor.pos += static_cast<int64_t>(n);
             return static_cast<int>(n);
         }
 
         if (m_finished.load())
             return 0;
 
-        RequestOffset(m_readPos);
+        RequestOffset(cursor.pos);
         m_cv.wait_for(lock, std::chrono::milliseconds(100));
     }
 }
 
-int64_t ProgressiveHttpStream::Seek(int64_t offset, int whence)
+int64_t ProgressiveHttpStream::Seek(Cursor& cursor, int64_t offset, int whence)
 {
     std::unique_lock<std::mutex> lock(m_mutex);
 
@@ -613,9 +690,9 @@ int64_t ProgressiveHttpStream::Seek(int64_t offset, int whence)
     {
         if (m_contentLength < 0)
         {
-            m_cv.wait_for(lock, std::chrono::seconds(5), [this] {
+            m_cv.wait_for(lock, std::chrono::seconds(5), [&] {
                 return m_contentLength >= 0 || m_finished.load() ||
-                       m_failed.load() || ShouldInterruptRead();
+                       m_failed.load() || ShouldInterruptRead(cursor);
             });
         }
         if (m_contentLength >= 0)
@@ -625,21 +702,21 @@ int64_t ProgressiveHttpStream::Seek(int64_t offset, int whence)
         return -1;
     }
 
-    int64_t newPos = m_readPos;
+    int64_t newPos = cursor.pos;
     switch (whence)
     {
         case SEEK_SET:
             newPos = offset;
             break;
         case SEEK_CUR:
-            newPos = m_readPos + offset;
+            newPos = cursor.pos + offset;
             break;
         case SEEK_END:
             if (m_contentLength < 0)
             {
-                m_cv.wait_for(lock, std::chrono::seconds(5), [this] {
+                m_cv.wait_for(lock, std::chrono::seconds(5), [&] {
                     return m_contentLength >= 0 || m_finished.load() ||
-                           ShouldInterruptRead();
+                           ShouldInterruptRead(cursor);
                 });
             }
             if (m_contentLength < 0)
@@ -655,10 +732,99 @@ int64_t ProgressiveHttpStream::Seek(int64_t offset, int whence)
     if (m_contentLength >= 0 && newPos > m_contentLength)
         newPos = m_contentLength;
 
-    m_readPos = newPos;
+    cursor.pos = newPos;
     if (AvailableFromLocked(newPos) <= 0 && !m_finished.load())
         RequestOffset(newPos);
     return newPos;
+}
+
+// MARK: - DownloadRegistry
+
+DownloadRegistry& DownloadRegistry::Instance()
+{
+    static DownloadRegistry s_instance;
+    return s_instance;
+}
+
+bool DownloadRegistry::Claim(const std::string& id)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_entries.emplace(id, Entry{nullptr, true}).second;
+}
+
+void DownloadRegistry::Publish(const std::string& id,
+                               std::shared_ptr<ProgressiveHttpStream> stream)
+{
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        auto it = m_entries.find(id);
+        if (it == m_entries.end() || !it->second.shareable || it->second.stream)
+            return;
+        g_Log->Info("DownloadRegistry: publish %s -> %s", id.c_str(),
+                    stream->Label().c_str());
+        it->second.stream = std::move(stream);
+    }
+    m_cv.notify_all();
+}
+
+bool DownloadRegistry::AddPrivate(const std::string& id,
+                                  std::shared_ptr<ProgressiveHttpStream> stream)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_entries.emplace(id, Entry{std::move(stream), false}).second;
+}
+
+void DownloadRegistry::Remove(const std::string& id,
+                              const ProgressiveHttpStream* stream)
+{
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        auto it = m_entries.find(id);
+        if (it == m_entries.end() || it->second.stream.get() != stream)
+            return;
+        g_Log->Info("DownloadRegistry: remove %s (%s)", id.c_str(),
+                    stream ? stream->Label().c_str() : "unpublished claim");
+        m_entries.erase(it);
+    }
+    m_cv.notify_all();
+}
+
+bool DownloadRegistry::Contains(const std::string& id) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_entries.count(id) != 0;
+}
+
+std::shared_ptr<ProgressiveHttpStream>
+DownloadRegistry::Attach(const std::string& id,
+                         const ProgressiveHttpStream::AbortFn& interrupt)
+{
+    std::unique_lock<std::mutex> lock(m_mutex);
+    while (true)
+    {
+        auto it = m_entries.find(id);
+        if (it == m_entries.end() || !it->second.shareable)
+            return nullptr;
+        if (it->second.stream)
+        {
+            // Under m_mutex, so an owner that Remove()s and then sees no
+            // readers knows none can attach any more.
+            const auto& stream = it->second.stream;
+            stream->AddReader();
+            // A Done() unfinished stream here is the client#728 hang.
+            g_Log->Info("DownloadRegistry: attach %s -> %s (readers=%d "
+                        "done=%d finished=%d failed=%d)",
+                        id.c_str(), stream->Label().c_str(), stream->Readers(),
+                        stream->Done() ? 1 : 0, stream->Finished() ? 1 : 0,
+                        stream->Failed() ? 1 : 0);
+            return stream;
+        }
+        // Claimed: the prefetcher is fetching the signed URL. Poll so
+        // interrupt is honored even without a notify.
+        if (interrupt && interrupt())
+            return nullptr;
+        m_cv.wait_for(lock, std::chrono::milliseconds(100));
+    }
 }
 
 } // namespace Network

@@ -79,7 +79,7 @@ On Ubuntu (tested on 26.04):
 sudo apt install -y \
     build-essential cmake pkg-config \
     libvulkan-dev glslc \
-    libx11-dev \
+    libx11-dev libxrender-dev \
     libssl-dev \
     libboost-all-dev \
     libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libswresample-dev \
@@ -160,6 +160,28 @@ Add the key directly to `~/.config/infinidream/settings.json`:
 }
 ```
 
+### Running against a test server
+
+[`client_generic/tests/mock-server`](client_generic/tests/mock-server) has a mock server that stands
+in for the backend, and an end-to-end test that runs the Mac client against it. See its README.
+
+For test runs (see #733), set `INFINIDREAM_DATA_DIR` to keep settings, cache and logs
+in their own folder. The run leaves the installed client alone: it skips the instance
+check, auto-update (Mac), crash reporting (Mac) and screensaver activation (Windows).
+
+To use a server without TLS, give the scheme explicitly in that folder's `settings.json`:
+```json
+{ "settings": { "content": { "server": "http://127.0.0.1:8765" } } }
+```
+A bare host always means `https`/`wss`, and so does `http://` when `INFINIDREAM_DATA_DIR`
+isn't set. Over `http` the client logs a warning, ignores any stored login and sends only
+`INFINIDREAM_API_KEY`, so set that variable; an `api_key` in `settings.json` isn't used.
+
+The log gets a `Heartbeat` line from the render thread every 60 seconds; set
+`INFINIDREAM_HEARTBEAT_SECONDS=1` to get one per second. It stops whenever frames stop,
+which includes a locked screen on macOS, so check for that before calling a missing
+heartbeat a hang.
+
 ### Running
 
 ```bash
@@ -170,6 +192,23 @@ cd client_generic/LinuxBuild/build
 Arrow keys navigate between dreams. `F1`–`F4` toggle HUD overlays (help,
 server stats, render stats, display stats). Close the window or press `Esc`
 to quit.
+
+### Hardware video decoding
+
+Video is decoded with Vulkan Video on the rendering GPU when the driver
+supports it (NVIDIA proprietary drivers, AMD and Intel with recent Mesa), and
+in software otherwise. Either way, YUV→RGB conversion runs on the GPU. The log
+says which path was chosen (`Vulkan Video decode available on ...` or
+`no Vulkan Video decode on ...`).
+
+Intel's Mesa driver only exposes Vulkan Video when `ANV_DEBUG=video-decode`
+is set. The client sets it at startup and uses Vulkan Video on Intel from
+Mesa 26; older versions decode in software. To force software decoding, for
+example to rule out a driver bug:
+
+```bash
+INFINIDREAM_NO_HW_DECODE=1 ./infinidream
+```
 
 ---
 

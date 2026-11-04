@@ -34,6 +34,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 #include "storage.h"
 #include "CacheManager.h"
 #include "client.h"
+#include "ThemeWin32.h"
 
 #pragma comment(lib, "ole32.lib")
 #pragma comment(lib, "windowscodecs.lib")
@@ -51,6 +52,62 @@ constexpr const char* kUrlHelp = "https://alpha.infinidream.ai/help";
 constexpr const char* kUrlWebRemote = "https://alpha.infinidream.ai/rc";
 constexpr const char* kUrlPlaylists = "https://alpha.infinidream.ai/playlists";
 #endif
+
+// Colors the settings dialog draws with beyond ImGui's base light/dark style.
+struct SettingsPalette
+{
+    ImVec4 windowBg, border, text, textDisabled;
+    ImVec4 tab, tabActive, tabHovered, flatTabHovered;
+    ImVec4 button, buttonHovered, buttonActive;
+    ImVec4 frameBg, frameBgHovered, frameBgActive;
+    ImVec4 secondaryButton, secondaryButtonHovered, secondaryButtonActive;
+    ImVec4 sectionDivider;
+    ImVec4 backdrop; // over the dream scene, under the dialog
+    ImU32 controlBorder;
+};
+
+const SettingsPalette kSettingsLight = {
+    ImVec4(0.98f, 0.98f, 0.98f, 1.00f), ImVec4(0.82f, 0.82f, 0.82f, 1.00f),
+    ImVec4(0.08f, 0.08f, 0.08f, 1.00f), ImVec4(0.40f, 0.40f, 0.40f, 1.00f),
+    ImVec4(0.92f, 0.92f, 0.92f, 1.00f), ImVec4(0.98f, 0.98f, 0.98f, 1.00f),
+    ImVec4(0.95f, 0.95f, 0.95f, 1.00f), ImVec4(0.f, 0.f, 0.f, 0.06f),
+    ImVec4(0.93f, 0.93f, 0.93f, 1.00f), ImVec4(0.88f, 0.88f, 0.88f, 1.00f), ImVec4(0.84f, 0.84f, 0.84f, 1.00f),
+    ImVec4(1.00f, 1.00f, 1.00f, 1.00f), ImVec4(0.97f, 0.97f, 0.97f, 1.00f), ImVec4(0.95f, 0.95f, 0.95f, 1.00f),
+    ImVec4(0.90f, 0.90f, 0.90f, 1.00f), ImVec4(0.86f, 0.86f, 0.86f, 1.00f), ImVec4(0.82f, 0.82f, 0.82f, 1.00f),
+    ImVec4(0.90f, 0.90f, 0.90f, 1.00f),
+    ImVec4(1.0f, 1.0f, 1.0f, 0.16f),
+    IM_COL32(224, 224, 224, 255),
+};
+
+const SettingsPalette kSettingsDark = {
+    ImVec4(0.15f, 0.15f, 0.16f, 1.00f), ImVec4(0.32f, 0.32f, 0.34f, 1.00f),
+    ImVec4(0.92f, 0.92f, 0.94f, 1.00f), ImVec4(0.60f, 0.60f, 0.62f, 1.00f),
+    ImVec4(0.20f, 0.20f, 0.21f, 1.00f), ImVec4(0.15f, 0.15f, 0.16f, 1.00f),
+    ImVec4(0.18f, 0.18f, 0.19f, 1.00f), ImVec4(1.f, 1.f, 1.f, 0.08f),
+    ImVec4(0.30f, 0.30f, 0.32f, 1.00f), ImVec4(0.36f, 0.36f, 0.38f, 1.00f), ImVec4(0.24f, 0.24f, 0.26f, 1.00f),
+    ImVec4(0.20f, 0.20f, 0.21f, 1.00f), ImVec4(0.23f, 0.23f, 0.24f, 1.00f), ImVec4(0.25f, 0.25f, 0.26f, 1.00f),
+    ImVec4(0.30f, 0.30f, 0.32f, 1.00f), ImVec4(0.36f, 0.36f, 0.38f, 1.00f), ImVec4(0.24f, 0.24f, 0.26f, 1.00f),
+    ImVec4(0.28f, 0.28f, 0.30f, 1.00f),
+    ImVec4(0.0f, 0.0f, 0.0f, 0.30f),
+    IM_COL32(92, 92, 96, 255),
+};
+
+const SettingsPalette& Palette()
+{
+    return ThemeWin32::IsDark() ? kSettingsDark : kSettingsLight;
+}
+
+// Whichever ImGui's base colors were last set for.
+bool g_styleIsDark = false;
+
+void SetStyleColors(bool dark)
+{
+    g_styleIsDark = dark;
+    if (dark)
+        ImGui::StyleColorsDark();
+    else
+        ImGui::StyleColorsLight();
+}
 
 std::atomic<bool> g_overlayAllowed{true};
 std::atomic<bool> g_showRequested{false};
@@ -358,7 +415,8 @@ static bool TryInitImGui()
 
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 
-    // Manifest is system-DPI-aware (electricsheep.vcxproj); GetDpiForWindow returns the system DPI.
+    // Per-monitor DPI aware (MSVC/dpi-aware.manifest): the DPI of the window's current monitor,
+    // read each time the dialog opens.
     HWND hwnd = dx->GetWindowHandle();
     const UINT dpi = GetDpiForWindow(hwnd);
     const float dpiScale = (dpi > 0u) ? (static_cast<float>(dpi) / 96.0f) : 1.0f;
@@ -369,8 +427,8 @@ static bool TryInitImGui()
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.IniFilename = nullptr;
-    ImGui::StyleColorsLight();
-    // Scale paddings/spacing/rounding from the default light style.
+    SetStyleColors(ThemeWin32::IsDark());
+    // Scale paddings/spacing/rounding from the default style.
     ImGui::GetStyle().ScaleAllSizes(g_uiScale);
     g_boldUiFont = nullptr;
     {
@@ -502,19 +560,20 @@ static void DrawSettingsDialog(float viewportW, float viewportH)
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(S(18.f), S(16.f)));
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, S(6.f));
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(S(10.f), S(10.f)));
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.98f, 0.98f, 0.98f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.82f, 0.82f, 0.82f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.08f, 0.08f, 0.08f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_TextDisabled, ImVec4(0.40f, 0.40f, 0.40f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(0.92f, 0.92f, 0.92f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(0.98f, 0.98f, 0.98f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_TabHovered, ImVec4(0.95f, 0.95f, 0.95f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.93f, 0.93f, 0.93f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.88f, 0.88f, 0.88f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.84f, 0.84f, 0.84f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(1.00f, 1.00f, 1.00f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.97f, 0.97f, 0.97f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.95f, 0.95f, 0.95f, 1.00f));
+    const SettingsPalette& palette = Palette();
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, palette.windowBg);
+    ImGui::PushStyleColor(ImGuiCol_Border, palette.border);
+    ImGui::PushStyleColor(ImGuiCol_Text, palette.text);
+    ImGui::PushStyleColor(ImGuiCol_TextDisabled, palette.textDisabled);
+    ImGui::PushStyleColor(ImGuiCol_Tab, palette.tab);
+    ImGui::PushStyleColor(ImGuiCol_TabActive, palette.tabActive);
+    ImGui::PushStyleColor(ImGuiCol_TabHovered, palette.tabHovered);
+    ImGui::PushStyleColor(ImGuiCol_Button, palette.button);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, palette.buttonHovered);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, palette.buttonActive);
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, palette.frameBg);
+    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, palette.frameBgHovered);
+    ImGui::PushStyleColor(ImGuiCol_FrameBgActive, palette.frameBgActive);
 
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
                              ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
@@ -533,7 +592,7 @@ static void DrawSettingsDialog(float viewportW, float viewportH)
         // Flat tabs with a hairline below the strip and an accent underline on the active tab.
         // ImGui's default raised-button tab look reads as five buttons, not as a tab strip.
         ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(0.f, 0.f, 0.f, 0.f));
-        ImGui::PushStyleColor(ImGuiCol_TabHovered, ImVec4(0.f, 0.f, 0.f, 0.06f));
+        ImGui::PushStyleColor(ImGuiCol_TabHovered, palette.flatTabHovered);
         ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(0.f, 0.f, 0.f, 0.f));
         ImGui::PushStyleColor(ImGuiCol_TabUnfocused, ImVec4(0.f, 0.f, 0.f, 0.f));
         ImGui::PushStyleColor(ImGuiCol_TabUnfocusedActive, ImVec4(0.f, 0.f, 0.f, 0.f));
@@ -608,9 +667,27 @@ static void DrawSettingsDialog(float viewportW, float viewportH)
             const float textY = rowCenterY - (ImGui::GetTextLineHeight() * 0.5f);
             const float closeX = originX + contentWidth - closeButtonWidth;
 
+            // Once signed in, Close is the default button (blue, Return); while signed out,
+            // Send Code / Validate on the Account tab hold that role.
+            const bool closeIsDefault = EDreamClient::IsLoggedIn();
+            if (closeIsDefault)
+            {
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.00f, 0.48f, 1.00f, 1.00f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.10f, 0.56f, 1.00f, 1.00f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.00f, 0.40f, 0.86f, 1.00f));
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
+                if (g_boldUiFont)
+                    ImGui::PushFont(g_boldUiFont);
+            }
             ImGui::SetCursorPos(ImVec2(closeX, buttonY));
             if (ImGui::Button("Close", ImVec2(closeButtonWidth, closeButtonHeight)))
                 CloseDialog(true);
+            if (closeIsDefault)
+            {
+                if (g_boldUiFont)
+                    ImGui::PopFont();
+                ImGui::PopStyleColor(4);
+            }
 
             ImGui::SetCursorPos(ImVec2(originX, rowCenterY - (helpButtonSize * 0.5f)));
             ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, helpButtonSize * 0.5f);
@@ -630,6 +707,13 @@ static void DrawSettingsDialog(float viewportW, float viewportH)
     ImGui::PopStyleVar(4);
 
     if (ImGui::IsKeyPressed(ImGuiKey_Escape))
+        CloseDialog(true);
+
+    // Return activates the default button. Skip it while a text field has focus or keyboard
+    // nav has a visibly focused widget, so Return still means "press this" there.
+    const ImGuiIO& io = ImGui::GetIO();
+    if (EDreamClient::IsLoggedIn() && !io.WantTextInput && !io.NavVisible &&
+        (ImGui::IsKeyPressed(ImGuiKey_Enter, false) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter, false)))
         CloseDialog(true);
 }
 
@@ -734,15 +818,17 @@ bool SettingsDialogWin32_RenderIfNeeded(ID3D11Device* device, ID3D11DeviceContex
         return false;
 
     ImGui::SetCurrentContext(g_imguiContext);
+    if (ThemeWin32::IsDark() != g_styleIsDark)
+        SetStyleColors(ThemeWin32::IsDark());
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::GetIO().DisplaySize = ImVec2(viewportW, viewportH);
     ImGui::NewFrame();
 
-    // Keep the dream scene visible but slightly whitened under settings.
+    // Keep the dream scene visible but slightly washed toward the theme under settings.
     ImGui::GetBackgroundDrawList()->AddRectFilled(
         ImVec2(0.0f, 0.0f), ImVec2(viewportW, viewportH),
-        ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 1.0f, 0.16f)));
+        ImGui::GetColorU32(Palette().backdrop));
 
     DrawSettingsDialog(viewportW, viewportH);
 

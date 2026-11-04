@@ -153,6 +153,10 @@ public:
         m_FadeInSeconds = _fadeInSeconds;
         m_FadeOutSeconds = _fadeOutSeconds;
     }
+    // Fade-in and fade-out must together leave ~3s in the middle of the clip,
+    // the time the player needs to preload the next one (it cannot do so
+    // during a transition). Leaves the value alone while the length is unknown.
+    float ClampFadeToLength(float _seconds) const;
     std::tuple<float, float> GetTransitionLength() const
     {
         return {m_FadeInSeconds, m_FadeOutSeconds};

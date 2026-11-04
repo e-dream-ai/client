@@ -6,6 +6,7 @@
 #include "Player.h"
 #include "Settings.h"
 #include "SettingsDialogWin32.h"
+#include "ThemeWin32.h"
 
 #include <atomic>
 #include <array>
@@ -40,6 +41,18 @@ constexpr const char* kHomepageLinkPrefix = "learn more at ";
 constexpr const char* kHomepageLinkText = "infinidream.ai";
 // Matches typical NSHumanReadableCopyright when not set in Info.plist; adjust if legal adds a plist string.
 constexpr const char* kCopyrightLine = "Copyright \xC2\xA9 e-dream, inc.";
+
+// Whichever ImGui's base colors were last set for.
+bool g_styleIsDark = false;
+
+void SetStyleColors(bool dark)
+{
+    g_styleIsDark = dark;
+    if (dark)
+        ImGui::StyleColorsDark();
+    else
+        ImGui::StyleColorsLight();
+}
 
 std::atomic<bool> g_overlayAllowed{true};
 std::atomic<bool> g_showRequested{false};
@@ -297,7 +310,8 @@ static bool TryInitImGui()
 
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 
-    // Manifest is system-DPI-aware (electricsheep.vcxproj); GetDpiForWindow returns the system DPI.
+    // Per-monitor DPI aware (MSVC/dpi-aware.manifest): the DPI of the window's current monitor,
+    // read each time the dialog opens.
     HWND hwnd = dx->GetWindowHandle();
     const UINT dpi = GetDpiForWindow(hwnd);
     const float dpiScale = (dpi > 0u) ? (static_cast<float>(dpi) / 96.0f) : 1.0f;
@@ -308,8 +322,8 @@ static bool TryInitImGui()
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.IniFilename = nullptr;
-    ImGui::StyleColorsLight();
-    // Scale paddings/spacing/rounding from the default light style.
+    SetStyleColors(ThemeWin32::IsDark());
+    // Scale paddings/spacing/rounding from the default style.
     ImGui::GetStyle().ScaleAllSizes(g_uiScale);
     g_aboutBoldFont = nullptr;
 
@@ -422,7 +436,8 @@ static void CenteredPrefixedLink(const char* prefix, const char* linkText, const
         ImGui::SameLine(0.f, 0.f);
     }
 
-    const ImVec4 linkColor(0.10f, 0.40f, 0.85f, 1.00f);
+    const ImVec4 linkColor = ThemeWin32::IsDark() ? ImVec4(0.40f, 0.65f, 1.00f, 1.00f)
+                                                  : ImVec4(0.10f, 0.40f, 0.85f, 1.00f);
     ImGui::PushStyleColor(ImGuiCol_Text, linkColor);
     ImGui::TextUnformatted(linkText);
     ImGui::PopStyleColor();
@@ -453,13 +468,14 @@ static void DrawAboutDialog(float viewportW, float viewportH)
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(S(20.f), S(20.f)));
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, S(6.f));
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(S(8.f), S(6.f)));
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.98f, 0.98f, 0.98f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.82f, 0.82f, 0.82f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.08f, 0.08f, 0.08f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_TextDisabled, ImVec4(0.40f, 0.40f, 0.40f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.93f, 0.93f, 0.93f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.88f, 0.88f, 0.88f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.84f, 0.84f, 0.84f, 1.00f));
+    const bool dark = ThemeWin32::IsDark();
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, dark ? ImVec4(0.15f, 0.15f, 0.16f, 1.00f) : ImVec4(0.98f, 0.98f, 0.98f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_Border, dark ? ImVec4(0.32f, 0.32f, 0.34f, 1.00f) : ImVec4(0.82f, 0.82f, 0.82f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_Text, dark ? ImVec4(0.92f, 0.92f, 0.94f, 1.00f) : ImVec4(0.08f, 0.08f, 0.08f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_TextDisabled, dark ? ImVec4(0.60f, 0.60f, 0.62f, 1.00f) : ImVec4(0.40f, 0.40f, 0.40f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_Button, dark ? ImVec4(0.30f, 0.30f, 0.32f, 1.00f) : ImVec4(0.93f, 0.93f, 0.93f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, dark ? ImVec4(0.36f, 0.36f, 0.38f, 1.00f) : ImVec4(0.88f, 0.88f, 0.88f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, dark ? ImVec4(0.24f, 0.24f, 0.26f, 1.00f) : ImVec4(0.84f, 0.84f, 0.84f, 1.00f));
 
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
                              ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
@@ -603,6 +619,8 @@ bool AboutDialogWin32_RenderIfNeeded(ID3D11Device* device, ID3D11DeviceContext* 
         return false;
 
     ImGui::SetCurrentContext(g_imguiContext);
+    if (ThemeWin32::IsDark() != g_styleIsDark)
+        SetStyleColors(ThemeWin32::IsDark());
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::GetIO().DisplaySize = ImVec2(viewportW, viewportH);
@@ -610,7 +628,7 @@ bool AboutDialogWin32_RenderIfNeeded(ID3D11Device* device, ID3D11DeviceContext* 
 
     ImGui::GetBackgroundDrawList()->AddRectFilled(
         ImVec2(0.0f, 0.0f), ImVec2(viewportW, viewportH),
-        ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 1.0f, 0.16f)));
+        ImGui::GetColorU32(ThemeWin32::IsDark() ? ImVec4(0.0f, 0.0f, 0.0f, 0.30f) : ImVec4(1.0f, 1.0f, 1.0f, 0.16f)));
 
     DrawAboutDialog(viewportW, viewportH);
 

@@ -72,7 +72,9 @@ static std::atomic<int> s_activeEngineViews{0};
 #else
     NSLog(@"ESScreensaverView: Running in APP mode — initializing Sparkle");
     m_sparkleUpdater = nil;
-    m_updater = [[SPUStandardUpdaterController alloc] initWithStartingUpdater:YES
+    // Isolated test runs (client#733) must not update themselves or prompt to.
+    const BOOL startUpdater = getenv("INFINIDREAM_DATA_DIR") == NULL;
+    m_updater = [[SPUStandardUpdaterController alloc] initWithStartingUpdater:startUpdater
                                                               updaterDelegate:self
                                                            userDriverDelegate:self];
 
@@ -82,7 +84,9 @@ static std::atomic<int> s_activeEngineViews{0};
         if ([appUpdater respondsToSelector:NSSelectorFromString(@"setAllowsSkippingUpdates:")]) {
             [appUpdater setValue:@NO forKey:@"allowsSkippingUpdates"];
         }
-        [appUpdater checkForUpdatesInBackground];
+        if (startUpdater) {
+            [appUpdater checkForUpdatesInBackground];
+        }
     }
 
     [self connectCheckForUpdatesMenuItem];

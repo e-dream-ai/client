@@ -257,7 +257,8 @@ class CStatsConsole : public CConsole
         DisplayOutput::spCBaseText text;
         bool isRightAligned = false;
         Base::Math::CVector4 color = {1, 1, 1, 1};  // Default white
-        std::string alignWithStat;  // For right-aligned stats, which left stat to align with
+        std::string alignWithStat;  // For right-aligned stats and columns, which left stat to align with
+        bool isColumn = false;  // Drawn to the right of alignWithStat, on the same rows
     };
 
     std::vector<std::pair<std::string, StatText>> m_Stats;
@@ -313,6 +314,17 @@ class CStatsConsole : public CConsole
 
         m_Stats.emplace_back(_pStat->m_Name,
                              StatText{_pStat, newText, _isRightAligned, _color, _alignWithStat});
+    }
+
+    // Add a stat as a second column beside an already added left stat, starting just past
+    // its widest line. For multi-line stats, give both the same number of lines so they
+    // stay in rows. The renderers all handle tabs differently, so don't align with tabs.
+    void AddColumn(CStat* _pStat, const std::string& _alignWithStat)
+    {
+        const size_t count = m_Stats.size();
+        Add(_pStat, false, {1, 1, 1, 1}, _alignWithStat);
+        if (m_Stats.size() > count)
+            m_Stats.back().second.isColumn = true;
     }
 
     void SetColor(std::string_view _name, Base::Math::CVector4 _color)
@@ -423,8 +435,8 @@ class CStatsConsole : public CConsole
         if (!spDisplay)
             return true;
 
-        // Scale step and edge proportionally with screen height (same reference as
-        // DrawText/GetExtent) so the overlay stays visually consistent at any resolution.
+        // Scale step and edge proportionally with screen height so the overlay's minimum
+        // line spacing and margins stay in proportion at any resolution.
         static constexpr float kHudReferenceHeight = 1080.f;
         const float screenH = static_cast<float>(spDisplay->Height());
         const float screenW = static_cast<float>(spDisplay->Width());
@@ -496,7 +508,7 @@ class CStatsConsole : public CConsole
                     sizes[i->first] = {0, step};
                 }
 
-                if (!i->second.isRightAligned)
+                if (!i->second.isRightAligned && !i->second.isColumn)
                 {
                     m_TotalExtent = m_TotalExtent.Union(Base::Math::CRect(
                         0, pos, sizes[i->first].m_X + (edge * 2),
@@ -531,6 +543,20 @@ class CStatsConsole : public CConsole
                         float baseY = leftStatPositions[i->second.alignWithStat];
                         float rightX = 1.0f - edge - size.m_X;
                         text->SetRect(Base::Math::CRect(rightX, baseY, 1.0f - edge,
+                                                        size.m_Y + baseY + step));
+                    }
+                }
+            }
+            else if (i->second.isColumn)
+            {
+                if (e->Visible())
+                {
+                    DisplayOutput::spCBaseText& text = i->second.text;
+                    if (text)
+                    {
+                        float baseY = leftStatPositions[i->second.alignWithStat];
+                        float x = edge + sizes[i->second.alignWithStat].m_X + (edge * 3);
+                        text->SetRect(Base::Math::CRect(x, baseY, 1,
                                                         size.m_Y + baseY + step));
                     }
                 }

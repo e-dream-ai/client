@@ -249,7 +249,13 @@ class CElectricSheep
 
     std::deque<std::string> m_ConnectionErrors;
     std::string m_HudFontName;
-    int m_HudFontSize;
+    // HUD text height in font units (see CFontDescription::Height). Windows units draw larger
+    // than Mac points on a similar screen, so it uses a smaller number for the same size.
+#ifdef WIN32
+    static constexpr uint32_t kHudFontSize = 20;
+#else
+    static constexpr uint32_t kHudFontSize = 24;
+#endif
 
 #ifdef DO_THREAD_UPDATE
     boost::barrier* m_pUpdateBarrier;
@@ -258,6 +264,18 @@ class CElectricSheep
 
     std::mutex m_BarrierMutex;
 #endif
+
+    //	Replace m_AppData if INFINIDREAM_DATA_DIR is set. Call before anything reads it.
+    void ApplyDataDirOverride()
+    {
+        std::string dir = PlatformUtils::GetDataDirOverride();
+        if (dir.empty())
+            return;
+        if (dir.back() != '/' && dir.back() != '\\')
+            dir += '/';
+        TupleStorage::IStorageInterface::CreateFullDirectory(dir);
+        m_AppData = dir;
+    }
 
     //	Init tuplestorage.
     bool InitStorage(bool _bReadOnly = false)
@@ -286,6 +304,9 @@ class CElectricSheep
                     PlatformUtils::GetAppVersion().c_str(),
                     PlatformUtils::GetGitRevision().c_str(),
                     PlatformUtils::GetBuildDate().c_str());
+        g_Log->Info("Platform: %s", PlatformUtils::GetPlatformName().c_str());
+        if (!PlatformUtils::GetDataDirOverride().empty())
+            g_Log->Info("Data dir overridden by INFINIDREAM_DATA_DIR: %s", m_AppData.c_str());
     }
 
   public:
@@ -348,11 +369,9 @@ class CElectricSheep
     
     void CreateHud()
     {
-        //    Get hud font size.
+        //    Get hud font name.
         m_HudFontName = g_Settings()->Get(
             "settings.player.m_HudFontName", std::string("Lato"));
-        m_HudFontSize = static_cast<uint32_t>(
-            g_Settings()->Get("settings.player.m_HudFontSize", 24));
 
         m_PNGDelayTimer =
             g_Settings()->Get("settings.player.pngdelaytimer", 600);
@@ -364,7 +383,7 @@ class CElectricSheep
     {
         m_HudManager->Add("helpmessage", std::make_shared<Hud::CStatsConsole>(
                                              Base::Math::CRect(1, 1),
-                                             m_HudFontName, m_HudFontSize));
+                                             m_HudFontName, kHudFontSize));
         m_HudManager->Hide("helpmessage");
         Hud::spCStatsConsole spHelpMessage =
             std::dynamic_pointer_cast<Hud::CStatsConsole>(
@@ -378,20 +397,41 @@ class CElectricSheep
 #else
             "Use the remote control or keyboard to interact.\n\n"
 #endif
-            "Keyboard Commands:\n"
-            BK("A") ": Slower playback\t\t\t\t" BK("Up") ": Like this dream\n"
-            BK("D") ": Faster playback\t\t\t\t\t" BK("Down") ": Dislike and delete\n"
-            BK("J") ": Skip 10 seconds back\t\t\t" BK("Left") ": Previous dream\n"
-            BK("L") ": Skip 10 seconds forward\t\t" BK("Right") ": Next dream\n"
-            BK("R") ": Repeat current dream\t\t\t" BK("H") ": Shuffle mode\n"
-            BK("C") ": Show credit\t\t\t\t\t\t" BK("B") ": Report this dream\n"
-#ifdef LINUX_GNU
-            BK("V") ": Open web source\t\t\t\t" BK("F") ": Toggle full screen\n"
-#else
-            BK("V") ": Open web source\t\t\t\t" BK(FULLSCREEN_MODIFIER_KEY "-F") ": Toggle full screen\n"
-#endif
-            BK("F1") ": Help (this page)\t\t\t\t" BK("F2") ": Status overlay\n\n"
+            "Keyboard Commands:",
+            ""));
 
+        // One entry per row, so the two columns can't get out of step.
+        static const std::pair<const char*, const char*> kKeyRows[] = {
+            {BK("A") ": Slower playback", BK("Up") ": Like this dream"},
+            {BK("D") ": Faster playback", BK("Down") ": Dislike and delete"},
+            {BK("J") ": Skip 10 seconds back", BK("Left") ": Previous dream"},
+            {BK("L") ": Skip 10 seconds forward", BK("Right") ": Next dream"},
+            {BK("R") ": Repeat current dream", BK("H") ": Shuffle mode"},
+            {BK("C") ": Show credit", BK("B") ": Report this dream"},
+#ifdef LINUX_GNU
+            {BK("V") ": Open web source", BK("F") ": Toggle full screen"},
+#else
+            {BK("V") ": Open web source", BK(FULLSCREEN_MODIFIER_KEY "-F") ": Toggle full screen"},
+#endif
+            {BK("F1") ": Help (this page)", BK("F2") ": Status overlay"},
+        };
+        std::string keysLeft, keysRight;
+        for (const auto& row : kKeyRows)
+        {
+            if (!keysLeft.empty())
+            {
+                keysLeft += "\n";
+                keysRight += "\n";
+            }
+            keysLeft += row.first;
+            keysRight += row.second;
+        }
+        spHelpMessage->Add(new Hud::CStringStat("keys-left", keysLeft, ""));
+        spHelpMessage->AddColumn(new Hud::CStringStat("keys-right", keysRight, ""), "keys-left");
+
+        spHelpMessage->Add(new Hud::CStringStat(
+            "more-keys",
+            "\n"
             BK(FULLSCREEN_MODIFIER_KEY "-R") ": Open remote control\n"
             BK(FULLSCREEN_MODIFIER_KEY "-B") ": Browse playlists\n"
             BK(FULLSCREEN_MODIFIER_KEY "-Comma") ": Open settings"
@@ -402,11 +442,9 @@ class CElectricSheep
             ""));
 #undef BK
 
-        std::string ver = GetVersion();
-
         spHelpMessage->Add(
             new Hud::CStringStat("version", "\nVersion: ",
-                                 ver + " " + PlatformUtils::GetGitRevision() +
+                                 PlatformUtils::GetVersionDescription() +
                                      " " + PlatformUtils::GetBuildDate()));
     }
     
@@ -414,7 +452,7 @@ class CElectricSheep
     {
         m_HudManager->Add("dreamstats", std::make_shared<Hud::CStatsConsole>(
                                             Base::Math::CRect(1, 1),
-                                            m_HudFontName, m_HudFontSize));
+                                            m_HudFontName, kHudFontSize));
         m_HudManager->Hide("dreamstats");
         Hud::spCStatsConsole spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
             m_HudManager->Get("dreamstats"));
@@ -479,7 +517,7 @@ class CElectricSheep
     {
         auto creditsConsole = std::make_shared<Hud::CStatsConsole>(
                                               Base::Math::CRect(1, 1),
-                                              m_HudFontName, m_HudFontSize);
+                                              m_HudFontName, kHudFontSize);
         m_HudManager->Add("dreamcredits", creditsConsole);
         m_HudManager->Hide("dreamcredits");
 
@@ -509,7 +547,7 @@ class CElectricSheep
         // Create a separate HUD for network status indicator (shown outside credits overlay)
         auto networkConsole = std::make_shared<Hud::CStatsConsole>(
                                               Base::Math::CRect(1, 1),
-                                              m_HudFontName, m_HudFontSize);
+                                              m_HudFontName, kHudFontSize);
         m_HudManager->Add("network-indicator", networkConsole);
         m_HudManager->Hide("network-indicator");
 
@@ -795,7 +833,7 @@ class CElectricSheep
     {
         m_HudManager->Add("progress", std::make_shared<Hud::CStatsConsole>(
                                             Base::Math::CRect(1, 1),
-                                            m_HudFontName, m_HudFontSize));
+                                            m_HudFontName, kHudFontSize));
         Hud::spCStatsConsole spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
             m_HudManager->Get("progress"));
         if (spStats)
@@ -2396,11 +2434,11 @@ class CElectricSheep
                         if (g_Player().m_playlistManager) {
                             g_Player().m_playlistManager->removeCurrentDream();
                         }
-                        g_Player().SkipToNext();
+                        g_Player().SkipToNext("dislike");
                         m_spCrossFade->Reset();
                         m_HudManager->Add("fade", m_spCrossFade, 1);
                     } else {
-                        g_Player().SkipToNext();
+                        g_Player().SkipToNext("dislike");
                         m_spCrossFade->Reset();
                         m_HudManager->Add("fade", m_spCrossFade, 1);
                     }
