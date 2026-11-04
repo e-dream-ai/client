@@ -275,6 +275,10 @@ class CPlayer : public Base::CSingleton<CPlayer>
     sOpenVideoInfo* GetNextClipInfo();
 
 
+    /// Drop one display unit without full Shutdown. Leaves a null tombstone so
+    /// other sessions keep stable display indices. Returns false if missing.
+    bool RemoveDisplay(uint32_t displayUnit);
+
     int AddDisplay(uint32_t screen, CGraphicsContext _grapicsContext = nullptr,
                    bool _blank = false);
 
@@ -292,7 +296,16 @@ class CPlayer : public Base::CSingleton<CPlayer>
     {
         std::scoped_lock lockthis(m_displayListMutex);
 
-        if (du >= m_displayUnits.size())
+        if (du == 0) {
+            // Prefer the first live unit — display 0 may be a Settings tombstone.
+            for (const auto& unit : m_displayUnits) {
+                if (unit)
+                    return unit->spDisplay;
+            }
+            return nullptr;
+        }
+
+        if (du >= m_displayUnits.size() || !m_displayUnits[du])
             return nullptr;
 
         return m_displayUnits[du]->spDisplay;
@@ -302,7 +315,11 @@ class CPlayer : public Base::CSingleton<CPlayer>
     {
         std::scoped_lock lockthis(m_displayListMutex);
 
-        return m_displayUnits.empty() ? nullptr : m_displayUnits[0]->spRenderer;
+        for (const auto& unit : m_displayUnits) {
+            if (unit)
+                return unit->spRenderer;
+        }
+        return nullptr;
     }
 
     const ContentDecoder::sClipMetadata* GetCurrentPlayingClipMetadata() const;
@@ -362,7 +379,13 @@ class CPlayer : public Base::CSingleton<CPlayer>
     }
     uint32_t GetDisplayCount()
     {
-        return static_cast<uint32_t>(m_displayUnits.size());
+        std::scoped_lock lockthis(m_displayListMutex);
+        uint32_t live = 0;
+        for (const auto& unit : m_displayUnits) {
+            if (unit)
+                ++live;
+        }
+        return live;
     }
     void ForceWidthAndHeight(uint32_t du, uint32_t _w, uint32_t _h);
     void SetVideoRotation(uint32_t du, uint32_t _degrees);

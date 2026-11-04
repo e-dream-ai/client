@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Required: without App Sandbox, pluginkit -a silently ignores com.apple.wallpaper appexes. -->
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	</array>
+	<key>com.apple.security.network.client</key>
+	<true/>
+	<key>com.apple.security.temporary-exception.mach-lookup.global-name</key>
+	<array>
+		<string>com.apple.CARenderServer</string>
+		<string>com.apple.CoreDisplay.master</string>
+	</array>
+	<key>com.apple.security.temporary-exception.files.absolute-path.read-write</key>
+	<array>
+		<string>/Users/Shared/infinidream.ai/</string>
+		<string>/Users/Shared/infinidream.ai-stage/</string>
+	</array>
+</dict>
+</plist>

@@ -1072,10 +1072,15 @@ class CElectricSheep
         // Reset cancellation flag - Startup() will set it to true if this is a restart
         s_shutdownCancelled.store(false);
 
-        // Only use aggressive shutdown tactics when not in config mode.
-        // Config mode shutdown happens when transitioning from onboarding to playback,
-        // so we must not abort network or force-exit in that case.
-        bool useAggressiveShutdown = !m_bConfigMode;
+        // Aggressive force-exit is for the standalone app / legacy saver host.
+        // WallpaperAgent keeps the wallpaper appex process across sessions —
+        // Settings preview teardown must NOT exit(0) or Desktop never comes back.
+        // Config mode also must not force-exit (onboarding → playback restart).
+#ifdef WALLPAPER_EXT
+        const bool useAggressiveShutdown = false;
+#else
+        const bool useAggressiveShutdown = !m_bConfigMode;
+#endif
         
         if (useAggressiveShutdown)
         {
@@ -1116,8 +1121,9 @@ class CElectricSheep
         }
         else
         {
-            // For screensaver or config mode: still abort network operations
-            // but don't force-exit, allow normal cleanup
+            // Wallpaper appex / config mode: abort network ops but keep the
+            // process alive so WallpaperAgent can re-acquire Desktop.
+            EDreamClient::SendGoodbyeAndDisconnect();
             g_NetworkManager->Abort();
         }
 

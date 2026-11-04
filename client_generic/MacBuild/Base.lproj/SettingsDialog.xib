@@ -22,6 +22,7 @@
                 <outlet property="flockSizeText" destination="B6q-XX-CjP" id="Nhm-yF-ewS"/>
                 <outlet property="installAndUpdateScreensaverButton" destination="Jd6-Ha-rjH" id="Tf6-hw-ks0"/>
                 <outlet property="keepScreensaverEnabledButton" destination="Bnq-I4-c9S" id="37C-4p-862"/>
+                <outlet property="keepWallpaperEnabledButton" destination="Wp1-Ke-epW" id="wp-outlet-1"/>
                 <outlet property="loginStatusImage" destination="1119" id="1121"/>
                 <outlet property="loginTestStatusText" destination="1099" id="1108"/>
                 <outlet property="okButton" destination="331" id="Qns-8w-LN7"/>
@@ -755,6 +756,17 @@ room for new ones</string>
                                             </buttonCell>
                                             <connections>
                                                 <action selector="keepScreensaverEnabled:" target="-2" id="0CG-7h-Arr"/>
+                                            </connections>
+                                        </button>
+                                        <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Wp1-Ke-epW">
+                                            <rect key="frame" x="111" y="214" width="182" height="16"/>
+                                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                            <buttonCell key="cell" type="check" title="Keep wallpaper enabled" bezelStyle="regularSquare" imagePosition="left" inset="2" id="Wp1-cell-1">
+                                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                <font key="font" metaFont="system"/>
+                                            </buttonCell>
+                                            <connections>
+                                                <action selector="keepWallpaperEnabled:" target="-2" id="wp-action-1"/>
                                             </connections>
                                         </button>
                                         <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Jd6-Ha-rjH">

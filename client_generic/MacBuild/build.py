@@ -244,12 +244,14 @@ class BuildConfig:
         if self.stage:
             self.screensaver_scheme = "ScreenSaver Stage"
             self.app_scheme = "infinidream App Stage"
-            self.screensaver_name = "infinidream-stage.saver"
+            self.screensaver_name = "infinidream-stage.appex"
+            self.wallpaper_name = "infinidream-stage-wallpaper.appex"
             self.app_name = "infinidream stage.app"
         else:
             self.screensaver_scheme = "ScreenSaver Prod"
             self.app_scheme = "infinidream App Prod"
-            self.screensaver_name = "infinidream.saver"
+            self.screensaver_name = "infinidream.appex"
+            self.wallpaper_name = "infinidream-wallpaper.appex"
             self.app_name = "infinidream.app"
 
         # Signing configuration
@@ -266,9 +268,11 @@ class BuildConfig:
         if self.stage:
             self.app_info_plist = Path("App-Stage-Info.plist")
             self.saver_info_plist = Path("Screensaver-Stage-Info.plist")
+            self.wallpaper_info_plist = Path("Wallpaper-Stage-Info.plist")
         else:
             self.app_info_plist = Path("App-Info.plist")
             self.saver_info_plist = Path("Screensaver-Info.plist")
+            self.wallpaper_info_plist = Path("Wallpaper-Info.plist")
 
         # Compute plist version (with -stage suffix for stage builds).
         # Xcode stamps it into the built Info.plist via BUILD_VERSION; the
@@ -345,8 +349,8 @@ def print_build_info(config: BuildConfig) -> None:
         print(f"Environment: {Colors.GREEN}PRODUCTION{Colors.NC}")
 
     print(f"Configuration: {config.build_config}")
-    print(f"Screensaver Scheme: {config.screensaver_scheme}")
     print(f"App Scheme: {config.app_scheme}")
+    print(f"Wallpaper: {config.wallpaper_name}")
     print(f"Notarization: {'Enabled' if config.notarize else 'Disabled'}")
     print(f"GitHub Release: {'Enabled' if config.github_release else 'Disabled'}")
 
@@ -451,12 +455,9 @@ def step1_build_screensaver(config: BuildConfig) -> Path:
             'OTHER_CODE_SIGN_FLAGS=--timestamp',
         ]
     else:
-        # Debug build without code signing
-        args = common_args + [
-            'CODE_SIGN_IDENTITY=',
-            'CODE_SIGNING_REQUIRED=NO',
-            'CODE_SIGNING_ALLOWED=NO',
-        ]
+        # Debug: leave signing to the Xcode project (Automatic / Apple
+        # Development). Unsigned appexes are often ignored by PlugInKit.
+        args = common_args
 
     run_xcodebuild(args, env=env)
 
@@ -500,12 +501,15 @@ def step1_build_screensaver(config: BuildConfig) -> Path:
 
 
 def copy_screensaver(config: BuildConfig, source_path: Path) -> tuple[Path, Path, Path]:
-    """Copy screensaver to output and Resources directories. Returns (output_saver, project_saver, zip_path)."""
+    """Copy .appex to output and MacBuild/Resources for notarization/staple.
+
+    Runtime install uses the appex embedded by Xcode under Contents/PlugIns/;
+    the Resources/ copy is only for the notarize/staple steps below.
+    """
     output_dir = config.build_dir / config.build_config
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Copy to output directory
-    print_yellow("Copying screensaver to output directory...")
+    print_yellow("Copying screensaver appex to output directory...")
     output_saver = output_dir / config.screensaver_name
     if output_saver.exists():
         shutil.rmtree(output_saver)
@@ -516,8 +520,8 @@ def copy_screensaver(config: BuildConfig, source_path: Path) -> tuple[Path, Path
         print_red("Failed to copy screensaver to output directory")
         sys.exit(1)
 
-    # Copy to project Resources directory
-    print_yellow("Copying screensaver to project Resources directory...")
+    # Keep a project-local copy for notarize/staple (same path used historically).
+    print_yellow("Copying screensaver appex to project Resources directory...")
     project_saver = Path("Resources") / config.screensaver_name
 
     if project_saver.exists():
@@ -654,8 +658,6 @@ def step3_archive_app(config: BuildConfig) -> Path:
     print("STEP 3: Archiving App")
     print("========================================")
 
-    print_green("Found notarized screensaver in project Resources")
-
     print_yellow(f"Archiving app ({config.app_scheme})...")
 
     archive_path = config.build_dir / config.build_config / f"{config.app_name}.xcarchive"
@@ -679,11 +681,9 @@ def step3_archive_app(config: BuildConfig) -> Path:
             'OTHER_CODE_SIGN_FLAGS=--timestamp',
         ]
     else:
-        args = common_args + [
-            'CODE_SIGN_IDENTITY=',
-            'CODE_SIGNING_REQUIRED=NO',
-            'CODE_SIGNING_ALLOWED=NO',
-        ]
+        # Debug: use project signing (Apple Development) so the embedded
+        # screensaver appex is PlugInKit-listable.
+        args = common_args
 
     run_xcodebuild(args, env=env)
 
@@ -759,37 +759,44 @@ def step4_export_app(config: BuildConfig, archive_path: Path) -> Path:
     print("STEP 4: Exporting App")
     print("========================================")
 
-    export_options_path = config.build_dir / config.build_config / "AppExportOptions.plist"
+    export_path = config.build_dir / config.build_config / "AppExport"
+    export_path.mkdir(parents=True, exist_ok=True)
 
     if config.release:
+        export_options_path = config.build_dir / config.build_config / "AppExportOptions.plist"
         export_options = {
             'method': 'developer-id',
             'teamID': config.team_id,
             'signingStyle': 'automatic',
             'signingCertificate': 'Developer ID Application',
         }
+        with open(export_options_path, 'wb') as f:
+            plistlib.dump(export_options, f)
+
+        print_yellow("Exporting app for distribution...")
+        run_xcodebuild([
+            '-exportArchive',
+            '-archivePath', str(archive_path),
+            '-exportPath', str(export_path),
+            '-exportOptionsPlist', str(export_options_path),
+        ])
+        exported_apps = list(export_path.glob("*.app"))
     else:
-        export_options = {
-            'method': 'development',
-            'teamID': config.team_id,
-            'signingStyle': 'automatic',
-        }
+        # Debug archives often have no export methods on modern Xcode
+        # (`method=development` → "expected one {} but found development").
+        # Copy the .app out of the archive for local testing instead.
+        print_yellow("Debug build: copying app from archive (skip exportArchive)...")
+        archived_apps = list((archive_path / "Products").rglob("*.app"))
+        if not archived_apps:
+            print_red(f"No .app found under {archive_path / 'Products'}")
+            sys.exit(1)
+        archived_app = archived_apps[0]
+        dest_app = export_path / archived_app.name
+        if dest_app.exists():
+            shutil.rmtree(dest_app)
+        run_command(['ditto', str(archived_app), str(dest_app)])
+        exported_apps = [dest_app]
 
-    with open(export_options_path, 'wb') as f:
-        plistlib.dump(export_options, f)
-
-    print_yellow("Exporting app for distribution...")
-    export_path = config.build_dir / config.build_config / "AppExport"
-
-    run_xcodebuild([
-        '-exportArchive',
-        '-archivePath', str(archive_path),
-        '-exportPath', str(export_path),
-        '-exportOptionsPlist', str(export_options_path),
-    ])
-
-    # Find the exported app
-    exported_apps = list(export_path.glob("*.app"))
     if not exported_apps:
         print_red("Failed to export app")
         print("Export path contents:")
@@ -936,7 +943,7 @@ def step5_notarize_app(config: BuildConfig, exported_app: Path) -> None:
     app_zip.unlink()
 
 
-def step6_create_distribution(config: BuildConfig, exported_app: Path, output_saver: Path) -> Path:
+def step6_create_distribution(config: BuildConfig, exported_app: Path, _unused: Path = Path()) -> Path:
     """Create final distribution package. Returns path to final zip."""
     print()
     print("========================================")
@@ -1110,16 +1117,12 @@ def step7_github_release(config: BuildConfig, final_zip: Path) -> Optional[str]:
 
 def print_summary(
     config: BuildConfig,
-    output_saver: Path,
-    project_saver: Path,
-    screensaver_zip: Path,
     archive_path: Path,
     exported_app: Path,
     final_zip: Path,
     release_url: Optional[str] = None,
 ) -> None:
     """Print build summary."""
-    saver_size = get_dir_size(output_saver)
     app_size = get_dir_size(exported_app)
     zip_size = get_file_size(final_zip)
 
@@ -1140,16 +1143,22 @@ def print_summary(
 
     print()
     print("Build outputs:")
-    print(f"  Screensaver (DerivedData): {config.products_dir / config.screensaver_name} ({saver_size})")
-    print(f"  Screensaver (output): {output_saver}")
-    print(f"  Screensaver (Resources): {project_saver}")
-    print(f"  Screensaver zip: {screensaver_zip}")
     print(f"  App archive: {archive_path}")
     print(f"  App (exported): {exported_app} ({app_size})")
+    wallpaper_path = exported_app / "Contents" / "PlugIns" / config.wallpaper_name
+    if wallpaper_path.exists():
+        print(f"  Wallpaper: {wallpaper_path} ({get_dir_size(wallpaper_path)})")
+    else:
+        print(f"  Wallpaper: MISSING ({config.wallpaper_name})")
+    saver_path = exported_app / "Contents" / "PlugIns" / config.screensaver_name
+    if saver_path.exists():
+        print(f"  Screensaver: {saver_path} ({get_dir_size(saver_path)})")
+    else:
+        print(f"  Screensaver: MISSING ({config.screensaver_name})")
     print()
 
     if config.notarize:
-        print("Notarization: Complete (screensaver and app)")
+        print("Notarization: Complete (app + wallpaper + screensaver appexes)")
     else:
         print("Notarization: Skipped")
 
@@ -1173,6 +1182,72 @@ def print_summary(
         print_yellow("Note: This is a Release build without notarization.")
         print_yellow(f"To notarize, run: ./build.py -r -n{stage_flag}")
         print()
+
+    # Update Wallpaper Info.plist
+    if config.wallpaper_info_plist.exists():
+        current_version = read_plist_version(config.wallpaper_info_plist)
+        if current_version != config.plist_version:
+            print_yellow(
+                f"Updating {config.wallpaper_info_plist} version from "
+                f"{current_version} to {config.plist_version}..."
+            )
+            update_plist_version(config.wallpaper_info_plist, config.plist_version)
+            print_green(f"Version updated in {config.wallpaper_info_plist}")
+
+
+def _embed_appex_into_app(
+    config: BuildConfig,
+    app_path: Path,
+    script_name: str,
+    appex_name: str,
+    label: str,
+) -> None:
+    """Build + embed an appex into an .app (Contents/PlugIns/) via embed_*.sh."""
+    script = Path(script_name)
+    if not script.exists():
+        print_yellow(f"{script_name} missing — skipping {label} embed")
+        return
+
+    stage_arg = "stage" if config.stage else ""
+    cmd = ["bash", str(script)]
+    if stage_arg:
+        cmd.append(stage_arg)
+    else:
+        # embed_*.sh: $1=stage|empty, $2=app path. Pass empty stage token.
+        cmd.append("")
+    cmd.append(str(app_path))
+
+    print_yellow(f"Embedding {label} appex into {app_path.name}...")
+    env = os.environ.copy()
+    env["CONFIGURATION"] = config.build_config
+    env["DEVELOPMENT_TEAM"] = config.team_id or env.get("DEVELOPMENT_TEAM", "J4KXDFT4C5")
+    # Avoid inheriting an Xcode PRODUCT_BUNDLE_IDENTIFIER that would flip
+    # embed scripts between prod/stage incorrectly.
+    env.pop("PRODUCT_BUNDLE_IDENTIFIER", None)
+    result = subprocess.run(cmd, env=env, check=False)
+    if result.returncode != 0:
+        print_red(f"Failed to embed {label} appex")
+        sys.exit(1)
+
+    dest = app_path / "Contents" / "PlugIns" / appex_name
+    if not dest.exists():
+        print_red(f"{label.capitalize()} appex missing after embed: {dest}")
+        sys.exit(1)
+    print_green(f"Embedded {appex_name}")
+
+
+def embed_wallpaper_into_app(config: BuildConfig, app_path: Path) -> None:
+    """Build + embed the wallpaper appex into an .app (Contents/PlugIns/)."""
+    _embed_appex_into_app(
+        config, app_path, "embed_wallpaper.sh", config.wallpaper_name, "wallpaper"
+    )
+
+
+def embed_screensaver_into_app(config: BuildConfig, app_path: Path) -> None:
+    """Build + embed the screensaver appex into an .app (Contents/PlugIns/)."""
+    _embed_appex_into_app(
+        config, app_path, "embed_screensaver.sh", config.screensaver_name, "screensaver"
+    )
 
 
 def main() -> None:
@@ -1216,38 +1291,36 @@ Environment variables (optional overrides):
     # Step 0: Re-sign Sparkle.framework
     step0_resign_sparkle(config)
 
-    # Step 1: Build screensaver
-    screensaver_path = step1_build_screensaver(config)
+    # Desktop = wallpaper appex; Idle = screensaver appex (separate processes).
+    # Xcode Run Script phases embed both during archive; re-embed after export.
 
-    # Copy screensaver to various locations
-    output_saver, project_saver, screensaver_zip = copy_screensaver(config, screensaver_path)
-
-    # Step 2: Notarize screensaver
-    step2_notarize_screensaver(config, project_saver, screensaver_zip)
-
-    # Step 3: Archive app
+    # Step 1: Archive app (embeds wallpaper + screensaver via Run Script phases)
     archive_path = step3_archive_app(config)
 
     # Upload dSYMs to Bugsnag (only for GitHub releases)
     if config.github_release:
         upload_dsyms_to_bugsnag(config, archive_path)
 
-    # Step 4: Export app
+    # Step 2: Export app
     exported_app = step4_export_app(config, archive_path)
 
-    # Step 5: Notarize app
+    # Ensure both appexes are present (Xcode Run Script embeds during archive;
+    # re-run here so export/Debug-copy paths are covered before notarization).
+    embed_wallpaper_into_app(config, exported_app)
+    embed_screensaver_into_app(config, exported_app)
+
+    # Step 3: Notarize app
     step5_notarize_app(config, exported_app)
 
-    # Step 6: Create distribution package
-    final_zip = step6_create_distribution(config, exported_app, output_saver)
+    # Step 4: Create distribution package
+    final_zip = step6_create_distribution(config, exported_app, Path())
 
-    # Step 7: GitHub release
+    # Step 5: GitHub release
     release_url = step7_github_release(config, final_zip)
 
     # Print summary
     print_summary(
-        config, output_saver, project_saver, screensaver_zip,
-        archive_path, exported_app, final_zip, release_url
+        config, archive_path, exported_app, final_zip, release_url
     )
 
 

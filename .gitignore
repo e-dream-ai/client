@@ -7,6 +7,8 @@
 
 # --- macOS / Xcode ---
 client_generic/MacBuild/build
+client_generic/MacBuild/DerivedData-Wallpaper/
+client_generic/MacBuild/DerivedData-Screensaver/
 client_generic/MacBuild/gitversion.h
 client_generic/MacBuild/BuildData.json
 client_generic/MacBuild/ElectricSheep.xcodeproj/xcuserdata

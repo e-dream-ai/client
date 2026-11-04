@@ -16,7 +16,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "F0C100012C1372EF007FA505"
-               BuildableName = "infinidream-stage.saver"
+               BuildableName = "infinidream-stage.appex"
                BlueprintName = "ScreenSaver stage"
                ReferencedContainer = "container:infinidream.xcodeproj">
             </BuildableReference>
@@ -51,7 +51,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "F0C100012C1372EF007FA505"
-            BuildableName = "infinidream-stage.saver"
+            BuildableName = "infinidream-stage.appex"
             BlueprintName = "ScreenSaver stage"
             ReferencedContainer = "container:infinidream.xcodeproj">
          </BuildableReference>

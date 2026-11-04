@@ -56,6 +56,13 @@ int ESScreenSaver_AddGraphicsContext(void* _glContext)
     return gClient.AddGraphicsContext((CGraphicsContext)_glContext);
 }
 
+bool ESScreensaver_RemoveGraphicsContext(int displayIdx)
+{
+    if (displayIdx < 0)
+        return false;
+    return g_Player().RemoveDisplay(static_cast<uint32_t>(displayIdx));
+}
+
 bool ESScreensaver_IsSecondaryInstance(void)
 {
     return gClient.IsMultipleInstancesMode();
@@ -64,20 +71,33 @@ bool ESScreensaver_IsSecondaryInstance(void)
 bool ESScreensaver_Start(bool _bPreview, uint32 _width, uint32 _height)
 {
 #ifdef SCREEN_SAVER
-    // Settings thumbnail: mark preview + offline/busy, but KEEP the instance lock.
-    // Releasing it (old behavior) let a second legacyScreenSaver process take the
-    // lock, keep playing after Settings closed, and made hot-corner resume mid-clip.
-    if (_bPreview) {
-        gClient.SetIsPreview(true);
-        gClient.ForceMultipleInstancesMode(true);
-    } else {
+    const bool engineRunning = (g_Player().Display() != NULL);
+
+    // Preview/offline flags are process-global.
+    // - Cold start: apply from _bPreview.
+    // - Settings attaching onto live Desktop (_bPreview, engineRunning): leave flags alone.
+    // - Desktop/full-screen after a Settings-preview cold start (!_bPreview, engineRunning):
+    //   promote out of preview/busy so auth and network work for the real surface.
+    //   (Preview forced busy while keeping the lock; the cold-start clear path above
+    //   cannot undo that once engineRunning is true.)
+    if (!engineRunning) {
+        // Settings thumbnail: mark preview + offline/busy, but KEEP the instance lock.
+        // Releasing it (old behavior) let a second legacyScreenSaver process take the
+        // lock, keep playing after Settings closed, and made hot-corner resume mid-clip.
+        if (_bPreview) {
+            gClient.SetIsPreview(true);
+            gClient.ForceMultipleInstancesMode(true);
+        } else {
+            gClient.SetIsPreview(false);
+            if (!gClient.IsMultipleInstancesMode())
+                gClient.ForceMultipleInstancesMode(false);
+        }
+    } else if (!_bPreview && gClient.IsPreview()) {
         gClient.SetIsPreview(false);
-        // Only clear busy if we actually own the lock (primary process).
-        if (!gClient.IsMultipleInstancesMode())
-            gClient.ForceMultipleInstancesMode(false);
+        gClient.ForceMultipleInstancesMode(false);
     }
 
-    if (g_Player().Display() == NULL)
+    if (!engineRunning)
     {
         DisplayOutput::CDisplayMetal::SetDefaultWidthAndHeight(_width, _height);
         gClient.Startup();
@@ -130,6 +150,14 @@ bool ESScreensaver_Stopped(void) { return g_Player().Stopped(); }
 void ESScreensaver_ForceWidthAndHeight(uint32 _width, uint32 _height)
 {
     g_Player().ForceWidthAndHeight(0, _width, _height);
+}
+
+void ESScreensaver_ForceWidthAndHeightForDisplay(int _displayIdx, uint32 _width,
+                                                 uint32 _height)
+{
+    if (_displayIdx < 0)
+        return;
+    g_Player().ForceWidthAndHeight((uint32_t)_displayIdx, _width, _height);
 }
 
 void ESScreensaver_SetVideoRotation(uint32 _degrees)

@@ -13,6 +13,7 @@
 
 @interface ThanksStepViewController ()
 @property (weak) IBOutlet NSButton *installAndEnableScreensaver;
+@property (weak) IBOutlet NSButton *installAndEnableWallpaper;
 
 @end
 
@@ -40,20 +41,26 @@
 }
 
 - (IBAction)closeModal:(id)sender {
-    // Save the screensaver installation and keep enabled preferences
     BOOL installScreensaver = (self.installAndEnableScreensaver.state == NSControlStateValueOn);
-    ESScreensaver_SetBoolSetting("settings.app.auto_install_screensaver", installScreensaver);
+    BOOL installWallpaper = (self.installAndEnableWallpaper.state == NSControlStateValueOn);
+
+    ESScreensaver_SetBoolSetting("settings.app.auto_install_screensaver",
+                                 installScreensaver || installWallpaper);
     ESScreensaver_SetBoolSetting("settings.app.keep_screensaver_enabled", installScreensaver);
-    
+    ESScreensaver_SetBoolSetting("settings.app.keep_wallpaper_enabled", installWallpaper);
+
 #ifndef SCREEN_SAVER
-    // If user wants the screensaver, install and enable it now
-    if (installScreensaver) {
+    if (installScreensaver || installWallpaper) {
         [[ScreensaverInstaller sharedInstaller] installScreensaverIfNeeded];
+    }
+    if (installScreensaver) {
         [[ScreensaverInstaller sharedInstaller] enableScreensaverIfNeeded];
     }
+    if (installWallpaper) {
+        [[ScreensaverInstaller sharedInstaller] enableWallpaperIfNeeded];
+    }
 #endif
-    
-    // End the sheet with OK response
+
     [self.view.window.sheetParent endSheet:self.view.window returnCode:NSModalResponseOK];
 }
 

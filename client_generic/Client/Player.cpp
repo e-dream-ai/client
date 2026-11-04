@@ -478,13 +478,38 @@ int CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
 
         std::scoped_lock lockthis(m_displayListMutex);
 
-        if (g_Settings()->Get("settings.player.reversedisplays", false) == true)
+        if (g_Settings()->Get("settings.player.reversedisplays", false) == true) {
             m_displayUnits.insert(m_displayUnits.begin(), du);
-        else
-            m_displayUnits.push_back(du);
-    }
+            return 0;
+        }
 
-    return (int)m_displayUnits.size() - 1;
+        // Reuse tombstoned slots so Settings preview attach/detach does not
+        // keep growing the display list or shift live indices.
+        for (size_t i = 0; i < m_displayUnits.size(); ++i) {
+            if (!m_displayUnits[i]) {
+                m_displayUnits[i] = du;
+                return static_cast<int>(i);
+            }
+        }
+        m_displayUnits.push_back(du);
+        return static_cast<int>(m_displayUnits.size() - 1);
+    }
+}
+
+bool CPlayer::RemoveDisplay(uint32_t displayUnit)
+{
+    std::scoped_lock lockthis(m_displayListMutex);
+
+    if (displayUnit >= m_displayUnits.size() || !m_displayUnits[displayUnit])
+        return false;
+
+    g_Log->Info("CPlayer::RemoveDisplay(%u) — tombstoning slot", displayUnit);
+    m_displayUnits[displayUnit].reset();
+
+    while (!m_displayUnits.empty() && !m_displayUnits.back())
+        m_displayUnits.pop_back();
+
+    return true;
 }
 
 /*
@@ -924,7 +949,7 @@ bool CPlayer::BeginDisplayFrame(uint32_t displayUnit)
     {
         std::scoped_lock lockthis(m_displayListMutex);
 
-        if (displayUnit >= m_displayUnits.size())
+        if (displayUnit >= m_displayUnits.size() || !m_displayUnits[displayUnit])
             return false;
 
         du = m_displayUnits[displayUnit];
@@ -943,7 +968,7 @@ bool CPlayer::EndDisplayFrame(uint32_t displayUnit, bool drawn)
     {
         std::scoped_lock lockthis(m_displayListMutex);
 
-        if (displayUnit >= m_displayUnits.size())
+        if (displayUnit >= m_displayUnits.size() || !m_displayUnits[displayUnit])
             return false;
 
         du = m_displayUnits[displayUnit];
@@ -969,17 +994,32 @@ bool CPlayer::Update(uint32_t displayUnit)
     //g_Log->Info("Player update");
     // todo: need to check this
     std::shared_ptr<DisplayUnit> du;
+    size_t displayCount = 1;
+    bool isPrimaryLiveUnit = false;
 
     {
         std::scoped_lock lockthis(m_displayListMutex);
 
-        if (displayUnit >= m_displayUnits.size())
+        if (displayUnit >= m_displayUnits.size() || !m_displayUnits[displayUnit])
             return false;
 
         du = m_displayUnits[displayUnit];
+
+        size_t live = 0;
+        for (size_t i = 0; i < m_displayUnits.size(); ++i) {
+            if (!m_displayUnits[i])
+                continue;
+            if (live == 0)
+                isPrimaryLiveUnit = (i == displayUnit);
+            ++live;
+        }
+        displayCount = live;
     }
 
-    if (displayUnit == 0)
+    // Pending playlist/startup commands used to be hard-wired to unit 0. After
+    // Settings preview teardown, unit 0 may be a tombstone — run them from the
+    // first live unit instead.
+    if (isPrimaryLiveUnit)
         ProcessPendingCommands();
 
     du->spRenderer->Reset(eEverything);
@@ -990,11 +1030,6 @@ bool CPlayer::Update(uint32_t displayUnit)
     // monitor window, but we must NOT advance clip/transition state once per
     // display (that causes double-update flicker, odd color/alpha behavior,
     // and unstable transitions).
-    size_t displayCount = 1;
-    {
-        std::scoped_lock lockthis(m_displayListMutex);
-        displayCount = m_displayUnits.size();
-    }
 #ifdef SCREEN_SAVER
     // Screensaver only: Settings thumbnail is often display 0. When it stops,
     // full-screen Preview (display 1+) must still be able to advance playback.
@@ -1242,8 +1277,21 @@ bool CPlayer::PlayClip(const std::shared_ptr<const Cache::Dream>& dream, double 
         g_Log->Error("Attempted to play a null dream");
         return false;
     }
-    
-    auto du = m_displayUnits[0];
+
+    std::shared_ptr<DisplayUnit> du;
+    {
+        std::scoped_lock lockthis(m_displayListMutex);
+        for (const auto& unit : m_displayUnits) {
+            if (unit) {
+                du = unit;
+                break;
+            }
+        }
+    }
+    if (!du) {
+        g_Log->Error("PlayClip: no live display unit");
+        return false;
+    }
     int32_t displayMode = g_Settings()->Get("settings.player.DisplayMode", 2);
     
     auto path = dream->getCachedPath();
@@ -2552,8 +2600,23 @@ bool CPlayer::PreloadClip(const std::shared_ptr<const Cache::Dream>& dream) {
     
     m_PreloadingNextClip = true;
     m_PreloadingDreamUUID = dream->uuid;
-    
-    auto du = m_displayUnits[0];
+
+    std::shared_ptr<DisplayUnit> du;
+    {
+        std::scoped_lock lockthis(m_displayListMutex);
+        for (const auto& unit : m_displayUnits) {
+            if (unit) {
+                du = unit;
+                break;
+            }
+        }
+    }
+    if (!du) {
+        g_Log->Error("PreloadClip: no live display unit");
+        m_PreloadingNextClip = false;
+        m_PreloadingDreamUUID.clear();
+        return false;
+    }
     int32_t displayMode = g_Settings()->Get("settings.player.DisplayMode", 2);
     
     auto path = dream->getCachedPath();
