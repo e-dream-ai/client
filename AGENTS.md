@@ -109,6 +109,6 @@ The screensaver pointer at `HKCU\Control Panel\Desktop\SCRNSAVE.EXE` (Windows) i
 
 ## Deployment
 
-GitHub releases as `infinidream-X.Y.Z.zip`. Appcast URLs:
+GitHub releases as `infinidream-X.Y.Z.dmg`. Appcast URLs:
 - Production: `https://infinidream.ai/appcast.xml`
 - Stage: `https://infinidream.ai/stage/appcast.xml`
