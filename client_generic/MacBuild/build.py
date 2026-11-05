@@ -937,7 +937,7 @@ def step5_notarize_app(config: BuildConfig, exported_app: Path) -> None:
 
 
 def step6_create_distribution(config: BuildConfig, exported_app: Path, output_saver: Path) -> Path:
-    """Create final distribution package. Returns path to final zip."""
+    """Create final distribution DMG. Returns path to the .dmg."""
     print()
     print("========================================")
     print("STEP 6: Creating Distribution Package")
@@ -946,18 +946,140 @@ def step6_create_distribution(config: BuildConfig, exported_app: Path, output_sa
     # Determine output filename
     stage_suffix = "-stage" if config.stage else ""
     if config.version:
-        final_zip = config.build_dir / config.build_config / f"infinidream-{config.version}{stage_suffix}.zip"
+        final_dmg = config.build_dir / config.build_config / f"infinidream-{config.version}{stage_suffix}.dmg"
     else:
         date_str = datetime.now().strftime("%Y%m%d")
-        final_zip = config.build_dir / config.build_config / f"infinidream-{date_str}{stage_suffix}.zip"
+        final_dmg = config.build_dir / config.build_config / f"infinidream-{date_str}{stage_suffix}.dmg"
 
-    print_yellow("Creating final distribution package...")
+    staging_dir = config.build_dir / config.build_config / "dmg_staging"
+    if staging_dir.exists():
+        shutil.rmtree(staging_dir)
+    staging_dir.mkdir(parents=True)
+
+    print_yellow("Preparing DMG staging folder...")
+    staged_app = staging_dir / exported_app.name
+    run_command(['ditto', str(exported_app), str(staged_app)])
+    applications_link = staging_dir / "Applications"
+    if applications_link.exists() or applications_link.is_symlink():
+        applications_link.unlink()
+    applications_link.symlink_to("/Applications")
+
+    if final_dmg.exists():
+        final_dmg.unlink()
+
+    # APFS + lzfse (ULFO) — Sparkle's recommended DMG format
+    volume_name = "infinidream stage" if config.stage else "infinidream"
+    print_yellow(f"Creating DMG ({volume_name})...")
     run_command([
-        'ditto', '-c', '-k', '--keepParent', '--norsrc',
-        str(exported_app), str(final_zip)
+        'hdiutil', 'create',
+        '-volname', volume_name,
+        '-srcfolder', str(staging_dir),
+        '-ov',
+        '-format', 'ULFO',
+        str(final_dmg),
     ])
+    print_green(f"DMG created: {final_dmg}")
 
-    return final_zip
+    # Staging is only needed for hdiutil create
+    shutil.rmtree(staging_dir)
+
+    if config.notarize:
+        notarize_and_staple_dmg(config, final_dmg)
+
+    return final_dmg
+
+
+def notarize_and_staple_dmg(config: BuildConfig, dmg_path: Path) -> None:
+    """Codesign, notarize, and staple the distribution DMG."""
+    print()
+    print("========================================")
+    print("STEP 6b: Notarizing Distribution DMG")
+    print("========================================")
+
+    print_yellow("Codesigning DMG...")
+    result = run_command(
+        [
+            'codesign', '--force', '--sign', config.developer_id_cert,
+            '--timestamp', str(dmg_path),
+        ],
+        check=False,
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        print_red("Failed to codesign DMG")
+        print(result.stderr or result.stdout)
+        sys.exit(1)
+    print_green("DMG codesigned")
+
+    print_yellow("Submitting DMG to Apple for notarization...")
+    print_yellow("This may take several minutes...")
+    result = run_command(
+        [
+            'xcrun', 'notarytool', 'submit', str(dmg_path),
+            '--keychain-profile', config.keychain_profile, '--wait',
+        ],
+        capture_output=True,
+        check=False,
+    )
+
+    notary_output = result.stdout + (result.stderr or "")
+    print(notary_output)
+
+    submission_id = None
+    match = re.search(r'id: ([a-f0-9-]+)', notary_output)
+    if match:
+        submission_id = match.group(1)
+
+    if 'status: Invalid' in notary_output or 'status: Rejected' in notary_output:
+        print()
+        print_red("DMG notarization failed - Status: Invalid/Rejected")
+        print()
+        if submission_id:
+            print(f"Submission ID: {submission_id}")
+            print()
+            print("To see why notarization failed, run:")
+            print(f"  xcrun notarytool log {submission_id} --keychain-profile '{config.keychain_profile}'")
+            print()
+        sys.exit(1)
+
+    if 'status: Accepted' not in notary_output:
+        print()
+        print_red("DMG notarization failed")
+        print()
+        print("To notarize manually:")
+        print(f"1. codesign --force --sign '{config.developer_id_cert}' --timestamp '{dmg_path}'")
+        print(f"2. xcrun notarytool submit '{dmg_path}' --keychain-profile '{config.keychain_profile}' --wait")
+        print(f"3. xcrun stapler staple '{dmg_path}'")
+        sys.exit(1)
+
+    print_green("DMG notarization successful")
+
+    print_yellow("Stapling notarization ticket to DMG...")
+    result = run_command(
+        ['xcrun', 'stapler', 'staple', str(dmg_path)],
+        check=False,
+    )
+    if result.returncode != 0:
+        print_red("Failed to staple notarization ticket to DMG")
+        print("The DMG was notarized but stapling failed.")
+        print("Users will need internet access to verify on first open.")
+    else:
+        print_green("Notarization ticket stapled to DMG")
+
+    print_yellow("Verifying DMG signature...")
+    result = run_command(
+        ['spctl', '--assess', '--type', 'open', '--context', 'context:primary-signature',
+         '-vv', str(dmg_path)],
+        check=False,
+        capture_output=True,
+    )
+    assessment = (result.stderr or "") + (result.stdout or "")
+    if 'accepted' in assessment:
+        print_green("DMG Gatekeeper assessment passed")
+    else:
+        print_yellow("Warning: Could not fully verify DMG Gatekeeper assessment (may still be valid)")
+        if assessment.strip():
+            print(assessment.strip())
 
 
 def get_dir_size(path: Path) -> str:
@@ -972,8 +1094,8 @@ def get_file_size(path: Path) -> str:
     return result.split()[0] if result else "?"
 
 
-def step7_github_release(config: BuildConfig, final_zip: Path) -> Optional[str]:
-    """Create GitHub release with tag and upload zip. Returns release URL or None."""
+def step7_github_release(config: BuildConfig, final_dmg: Path) -> Optional[str]:
+    """Create GitHub release with tag and upload DMG. Returns release URL or None."""
     if not config.github_release:
         return None
 
@@ -1056,7 +1178,7 @@ def step7_github_release(config: BuildConfig, final_zip: Path) -> Optional[str]:
     result = run_command(
         [
             'gh', 'release', 'create', tag,
-            str(final_zip),
+            str(final_dmg),
             '--title', release_name,
             '--generate-notes',
             '--prerelease'
@@ -1115,13 +1237,13 @@ def print_summary(
     screensaver_zip: Path,
     archive_path: Path,
     exported_app: Path,
-    final_zip: Path,
+    final_dmg: Path,
     release_url: Optional[str] = None,
 ) -> None:
     """Print build summary."""
     saver_size = get_dir_size(output_saver)
     app_size = get_dir_size(exported_app)
-    zip_size = get_file_size(final_zip)
+    dmg_size = get_file_size(final_dmg)
 
     print()
     print_green("========================================")
@@ -1149,7 +1271,7 @@ def print_summary(
     print()
 
     if config.notarize:
-        print("Notarization: Complete (screensaver and app)")
+        print("Notarization: Complete (screensaver, app, and DMG)")
     else:
         print("Notarization: Skipped")
 
@@ -1161,7 +1283,7 @@ def print_summary(
         print("GitHub Release: Skipped")
 
     print()
-    print(f"Distribution package: {final_zip} ({zip_size})")
+    print(f"Distribution package: {final_dmg} ({dmg_size})")
 
     print()
     print("To test the app, run:")
@@ -1196,7 +1318,7 @@ Environment variables (optional overrides):
     parser.add_argument('-g', '--github', action='store_true',
                         help='Create GitHub release with tag (requires -v)')
     parser.add_argument('-v', '--version', type=str,
-                        help='Version string (e.g., 0.12.0) - used for zip naming and GitHub release')
+                        help='Version string (e.g., 0.12.0) - used for DMG naming and GitHub release')
     parser.add_argument('--force', action='store_true',
                         help='Overwrite an existing tag/release (destroys existing release notes)')
 
@@ -1239,15 +1361,15 @@ Environment variables (optional overrides):
     step5_notarize_app(config, exported_app)
 
     # Step 6: Create distribution package
-    final_zip = step6_create_distribution(config, exported_app, output_saver)
+    final_dmg = step6_create_distribution(config, exported_app, output_saver)
 
     # Step 7: GitHub release
-    release_url = step7_github_release(config, final_zip)
+    release_url = step7_github_release(config, final_dmg)
 
     # Print summary
     print_summary(
         config, output_saver, project_saver, screensaver_zip,
-        archive_path, exported_app, final_zip, release_url
+        archive_path, exported_app, final_dmg, release_url
     )
 
 
