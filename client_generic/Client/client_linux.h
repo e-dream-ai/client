@@ -15,6 +15,7 @@
 #include "Player.h"
 #include "Settings.h"
 #include "SimplePlaylist.h"
+#include "ThemeLinux.h"
 #include "Timer.h"
 #include "base.h"
 #include "storage.h"
@@ -42,7 +43,15 @@ class CElectricSheep_Linux : public CElectricSheep
 
         printf("Startup()\n");
 
+        ThemeLinux::Start();
+
+        // Stage keeps its own folder so prod and stage state don't collide.
+#ifdef STAGE
+        m_AppData = std::string(getenv("HOME")) + "/.config/infinidream-stage/";
+#else
         m_AppData = std::string(getenv("HOME")) + "/.config/infinidream/";
+#endif
+        ApplyDataDirOverride();
         m_WorkingDir = PlatformUtils::GetWorkingDir();
 
         InitStorage();

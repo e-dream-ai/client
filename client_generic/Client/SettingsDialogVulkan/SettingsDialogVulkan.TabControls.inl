@@ -1,5 +1,4 @@
 // Controls tab — mirrors SettingsDialogWin32.TabControls.inl.
-// Linux: no playlist icon texture (skip image rendering).
 
 const float sectionHeight = S(240.f);
 const float panelGap = S(4.f);
@@ -8,19 +7,29 @@ const float buttonWidth = S(170.f);
 const float buttonHeight = S(30.f);
 const float footerRowHeight = S(40.f);
 const float dividerWidth = S(1.f);
-const ImVec4 sectionDividerColor(0.90f, 0.90f, 0.90f, 1.00f);
+const float iconSize = S(44.f);
+const ImVec4 sectionDividerColor = Palette().sectionDivider;
 
 const float rowStartY = ImGui::GetCursorPosY();
 const float availWidth = ImGui::GetContentRegionAvail().x;
 const float panelWidth = (availWidth - (panelGap * 2.f) - dividerWidth) * 0.5f;
 
-auto drawControlPanel = [&](const char* panelId, const char* bodyText, const char* buttonLabel, const char* url) {
+auto drawControlPanel = [&](const char* panelId, const char* bodyText, const char* buttonLabel, const char* url,
+                            ImTextureID icon) {
     ImGui::BeginChild(panelId, ImVec2(panelWidth, sectionHeight), false,
                       ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
     ImGui::SetCursorPos(ImVec2(panelInnerPadding, panelInnerPadding));
-    ImGui::PushTextWrapPos(panelWidth - panelInnerPadding);
+    const float iconGap = S(8.f);
+    const bool showIcon = icon != ImTextureID_Invalid;
+    ImGui::PushTextWrapPos(panelWidth - panelInnerPadding - (showIcon ? iconSize + iconGap : 0.f));
     ImGui::TextWrapped("%s", bodyText);
     ImGui::PopTextWrapPos();
+
+    if (showIcon)
+    {
+        ImGui::SetCursorPos(ImVec2(panelWidth - panelInnerPadding - iconSize, panelInnerPadding));
+        ImGui::Image(icon, ImVec2(iconSize, iconSize));
+    }
 
     const float buttonX = (panelWidth - buttonWidth) * 0.5f;
     const float buttonY = sectionHeight - buttonHeight - S(10.f);
@@ -32,7 +41,7 @@ auto drawControlPanel = [&](const char* panelId, const char* bodyText, const cha
 
 drawControlPanel("controls_remote_panel",
                  "Use the A and D keys to adjust the speed of playback. Press F1 to see more keyboard controls. You can also interact with the remote control installed on your phone, or from a web browser:",
-                 "Open web remote", kUrlWebRemote);
+                 "Open web remote", kUrlWebRemote, ImTextureID_Invalid);
 
 ImGui::SameLine(0.f, panelGap);
 ImGui::BeginGroup();
@@ -48,7 +57,7 @@ ImGui::EndGroup();
 ImGui::SameLine(0.f, panelGap);
 drawControlPanel("controls_playlist_panel",
                  "Change your dreams by selecting a playlist from the browser. Click the button on a thumbnail to start that playlist.",
-                 "Open playlist browser", kUrlPlaylists);
+                 "Open playlist browser", kUrlPlaylists, DialogImage("play-playlist.png", iconSize));
 
 ImGui::SetCursorPosY(rowStartY + sectionHeight + panelGap);
 ImGui::PushStyleColor(ImGuiCol_Separator, sectionDividerColor);

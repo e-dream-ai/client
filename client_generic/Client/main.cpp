@@ -1,5 +1,6 @@
 #include <cstddef>
 #include <cstdio>
+#include <cstdlib>
 #include <string>
 #include <sys/types.h>
 #if defined(WIN32) && !defined(_MSC_VER)
@@ -53,8 +54,28 @@ int32_t APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         LocalFree(wideArgs);
     }
 #else
+#if !defined(WIN32) && !defined(MAC)
+// Mesa's Intel Vulkan driver only exposes Vulkan Video when ANV_DEBUG contains
+// video-decode, and reads it when a Vulkan instance is created. Must run before
+// that and before any other thread starts, because setenv isn't thread-safe.
+// Other drivers ignore the variable; CRendererVulkan decides whether to use it.
+static void EnableIntelVulkanVideoDecode()
+{
+    if (getenv("INFINIDREAM_NO_HW_DECODE"))
+        return;
+    const char* current = getenv("ANV_DEBUG");
+    if (!current || !*current)
+        setenv("ANV_DEBUG", "video-decode", 1);
+    else if (!strstr(current, "video-decode"))
+        setenv("ANV_DEBUG", (std::string(current) + ",video-decode").c_str(), 1);
+}
+#endif
+
 int32_t main(int argc, char* argv[])
 {
+#if !defined(WIN32) && !defined(MAC)
+    EnableIntelVulkanVideoDecode();
+#endif
     // Parse our flags before glutInit so GLUT doesn't interfere.
     bool cachedOnlyMode = false;
     for (int i = 1; i < argc; ++i)

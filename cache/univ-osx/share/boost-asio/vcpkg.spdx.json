@@ -3,13 +3,13 @@
   "spdxVersion": "SPDX-2.2",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "documentNamespace": "https://spdx.org/spdxdocs/boost-asio-arm64-osx-1.90.0#1-eafa058a-1bf1-4b79-8f39-64ff563b73aa",
-  "name": "boost-asio:arm64-osx@1.90.0#1 a72014da961b862bca773e04e7d4286054d41ee9ba7afc2ec545c9e5cdb150c7",
+  "documentNamespace": "https://spdx.org/spdxdocs/boost-asio-arm64-osx-1.90.0#1-dabf7581-5cff-462c-bb01-14d6cdcf0c00",
+  "name": "boost-asio:arm64-osx@1.90.0#1 f4abdbbc6fa9b068520ac51e8af82809bed6b2e0abbe4bb84b9d785650f867d4",
   "creationInfo": {
     "creators": [
       "Tool: vcpkg-2026-03-04-4b3e4c276b5b87a649e66341e11553e8c577459c"
     ],
-    "created": "2026-04-17T03:30:06Z"
+    "created": "2026-10-08T13:06:15Z"
   },
   "relationships": [
     {
@@ -3269,7 +3269,7 @@
     {
       "name": "boost-asio:arm64-osx",
       "SPDXID": "SPDXRef-binary",
-      "versionInfo": "a72014da961b862bca773e04e7d4286054d41ee9ba7afc2ec545c9e5cdb150c7",
+      "versionInfo": "f4abdbbc6fa9b068520ac51e8af82809bed6b2e0abbe4bb84b9d785650f867d4",
       "downloadLocation": "NONE",
       "licenseConcluded": "BSL-1.0",
       "licenseDeclared": "NOASSERTION",

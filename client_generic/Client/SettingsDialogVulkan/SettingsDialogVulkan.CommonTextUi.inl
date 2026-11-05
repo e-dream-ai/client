@@ -54,7 +54,7 @@ static void DrawFocusedInputDecoration(bool focused)
     const ImVec2 min = ImGui::GetItemRectMin();
     const ImVec2 max = ImGui::GetItemRectMax();
     const float rounding = ImGui::GetStyle().FrameRounding;
-    const ImU32 borderColor = focused ? IM_COL32(0, 122, 255, 255) : IM_COL32(224, 224, 224, 255);
+    const ImU32 borderColor = focused ? IM_COL32(0, 122, 255, 255) : Palette().controlBorder;
 
     if (focused)
     {
@@ -73,7 +73,7 @@ static bool StyledCheckbox(const char* label, bool* value)
     const ImVec2 max(min.x + frameSize, min.y + frameSize);
     const float rounding = ImGui::GetStyle().FrameRounding;
     const bool focused = ImGui::IsItemActive() || ImGui::IsItemFocused();
-    const ImU32 borderColor = focused ? IM_COL32(0, 122, 255, 255) : IM_COL32(224, 224, 224, 255);
+    const ImU32 borderColor = focused ? IM_COL32(0, 122, 255, 255) : Palette().controlBorder;
     drawList->AddRect(min, max, borderColor, rounding, 0, focused ? 1.6f : 1.2f);
     return changed;
 }
@@ -90,7 +90,7 @@ static bool StyledRadioButton(const char* label, bool active, float scale = 1.0f
         center.x = static_cast<float>(static_cast<int>(center.x + 0.5f));
         center.y = static_cast<float>(static_cast<int>(center.y + 0.5f));
         const bool focused = ImGui::IsItemActive() || ImGui::IsItemFocused();
-        const ImU32 borderColor = focused ? IM_COL32(0, 122, 255, 255) : IM_COL32(224, 224, 224, 255);
+        const ImU32 borderColor = focused ? IM_COL32(0, 122, 255, 255) : Palette().controlBorder;
         const float radius = ((frameSize - 1.0f) * 0.5f) - 0.5f;
         drawList->AddCircle(center, radius, borderColor, 24, focused ? 1.6f : 1.2f);
         return changed;
@@ -127,7 +127,7 @@ static bool StyledRadioButton(const char* label, bool active, float scale = 1.0f
         drawList->AddCircleFilled(center, radius - pad, ImGui::GetColorU32(ImGuiCol_CheckMark), 24);
     }
 
-    const ImU32 borderColor = focused ? IM_COL32(0, 122, 255, 255) : IM_COL32(224, 224, 224, 255);
+    const ImU32 borderColor = focused ? IM_COL32(0, 122, 255, 255) : Palette().controlBorder;
     drawList->AddCircle(center, radius, borderColor, 24, focused ? 1.6f : 1.2f);
 
     if (labelSize.x > 0.f)

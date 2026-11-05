@@ -3,13 +3,13 @@
   "spdxVersion": "SPDX-2.2",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "documentNamespace": "https://spdx.org/spdxdocs/boost-lexical-cast-arm64-osx-1.90.0#1-b1914d1e-a55f-4a19-be79-8417c073b786",
-  "name": "boost-lexical-cast:arm64-osx@1.90.0#1 245b2a583a0ad9a987e72d3c03d97deb4831911241ab5f58b9635be841ce7a97",
+  "documentNamespace": "https://spdx.org/spdxdocs/boost-lexical-cast-arm64-osx-1.90.0#1-bb51ea33-9762-437f-b3af-d45af8f7e29c",
+  "name": "boost-lexical-cast:arm64-osx@1.90.0#1 d81799d5c71fdad46b31f3eb0b427482f2b9cb51d952c20e9e5f2fa8426fafd2",
   "creationInfo": {
     "creators": [
       "Tool: vcpkg-2026-03-04-4b3e4c276b5b87a649e66341e11553e8c577459c"
     ],
-    "created": "2026-04-17T03:29:39Z"
+    "created": "2026-10-08T13:05:39Z"
   },
   "relationships": [
     {
@@ -154,7 +154,7 @@
     {
       "name": "boost-lexical-cast:arm64-osx",
       "SPDXID": "SPDXRef-binary",
-      "versionInfo": "245b2a583a0ad9a987e72d3c03d97deb4831911241ab5f58b9635be841ce7a97",
+      "versionInfo": "d81799d5c71fdad46b31f3eb0b427482f2b9cb51d952c20e9e5f2fa8426fafd2",
       "downloadLocation": "NONE",
       "licenseConcluded": "BSL-1.0",
       "licenseDeclared": "NOASSERTION",

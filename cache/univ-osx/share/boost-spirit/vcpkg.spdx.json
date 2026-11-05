@@ -3,13 +3,13 @@
   "spdxVersion": "SPDX-2.2",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "documentNamespace": "https://spdx.org/spdxdocs/boost-spirit-arm64-osx-1.90.0#1-5ab13c80-11ce-48c6-9c6b-d74f200f7cc9",
-  "name": "boost-spirit:arm64-osx@1.90.0#1 a48ab040db05b1c734420777e0359c9a0cccaeae23a298c5f1e63094b3b1303b",
+  "documentNamespace": "https://spdx.org/spdxdocs/boost-spirit-arm64-osx-1.90.0#1-fac2c6cc-4086-468d-8d9a-5d44edb6860e",
+  "name": "boost-spirit:arm64-osx@1.90.0#1 5b1199f4b5ece4f359752d193c89a707fd8ae9aaa7de98cd93dcfea93bc456ff",
   "creationInfo": {
     "creators": [
       "Tool: vcpkg-2026-03-04-4b3e4c276b5b87a649e66341e11553e8c577459c"
     ],
-    "created": "2026-04-17T03:29:51Z"
+    "created": "2026-10-08T13:05:54Z"
   },
   "relationships": [
     {
@@ -5349,7 +5349,7 @@
     {
       "name": "boost-spirit:arm64-osx",
       "SPDXID": "SPDXRef-binary",
-      "versionInfo": "a48ab040db05b1c734420777e0359c9a0cccaeae23a298c5f1e63094b3b1303b",
+      "versionInfo": "5b1199f4b5ece4f359752d193c89a707fd8ae9aaa7de98cd93dcfea93bc456ff",
       "downloadLocation": "NONE",
       "licenseConcluded": "BSL-1.0",
       "licenseDeclared": "NOASSERTION",

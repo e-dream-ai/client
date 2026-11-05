@@ -125,6 +125,8 @@ class CElectricSheep_Mac : public CElectricSheep
             CFRelease(bundle);
         }
 
+        ApplyDataDirOverride();
+
         bool exists = std::filesystem::exists(m_AppData);
         
         if (exists) {

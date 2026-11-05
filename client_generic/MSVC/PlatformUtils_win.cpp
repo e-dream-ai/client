@@ -212,7 +212,61 @@ std::string PlatformUtils::GetAppVersion()
     return version;
 }
 
-std::string PlatformUtils::GetPlatformName() { return "native W64"; }
+// The hardware, not the build: an x64 build emulated on ARM still reports arm64.
+// GetNativeSystemInfo can't tell that (it says x64 under emulation), so it's only
+// the fallback for Windows older than 10 1709, which lacks IsWow64Process2.
+static const char* GetHardwareArch()
+{
+    using IsWow64Process2Fn = BOOL(WINAPI*)(HANDLE, USHORT*, USHORT*);
+    USHORT nativeMachine = IMAGE_FILE_MACHINE_UNKNOWN;
+    USHORT processMachine = IMAGE_FILE_MACHINE_UNKNOWN;
+    const auto isWow64Process2 = reinterpret_cast<IsWow64Process2Fn>(
+        GetProcAddress(GetModuleHandleA("kernel32.dll"), "IsWow64Process2"));
+    if (isWow64Process2 &&
+        isWow64Process2(GetCurrentProcess(), &processMachine, &nativeMachine))
+    {
+        switch (nativeMachine)
+        {
+        case IMAGE_FILE_MACHINE_AMD64: return "x64";
+        case IMAGE_FILE_MACHINE_ARM64: return "arm64";
+        case IMAGE_FILE_MACHINE_I386:  return "x86";
+        default:                       return "unknown";
+        }
+    }
+
+    SYSTEM_INFO info{};
+    GetNativeSystemInfo(&info);
+    switch (info.wProcessorArchitecture)
+    {
+    case PROCESSOR_ARCHITECTURE_AMD64: return "x64";
+    case PROCESSOR_ARCHITECTURE_ARM64: return "arm64";
+    case PROCESSOR_ARCHITECTURE_INTEL: return "x86";
+    default:                           return "unknown";
+    }
+}
+
+// Windows 11 still reports major version 10, so the build number is what tells
+// them apart. RtlGetVersion because GetVersionEx lies without a manifest.
+static std::string GetOSVersion()
+{
+    using RtlGetVersionFn = LONG(WINAPI*)(PRTL_OSVERSIONINFOW);
+    const auto rtlGetVersion = reinterpret_cast<RtlGetVersionFn>(
+        GetProcAddress(GetModuleHandleA("ntdll.dll"), "RtlGetVersion"));
+    RTL_OSVERSIONINFOW v{};
+    v.dwOSVersionInfoSize = sizeof(v);
+    if (!rtlGetVersion || rtlGetVersion(&v) != 0)
+        return "unknown";
+    return std::to_string(v.dwMajorVersion) + "." +
+           std::to_string(v.dwMinorVersion) + "." +
+           std::to_string(v.dwBuildNumber);
+}
+
+std::string PlatformUtils::GetPlatformName()
+{
+    static const std::string name = std::string("native W64 ") +
+                                    GetHardwareArch() + " " + GetOSVersion();
+    return name;
+}
 
 std::string PlatformUtils::GetWorkingDir()
 {

@@ -52,6 +52,12 @@
     _preferredFramesPerSecond = preferredFramesPerSecond;
 }
 
+- (void)stopRedrawTimer
+{
+    [_redrawTimer invalidate];
+    _redrawTimer = nil;
+}
+
 - (void)redraw
 {
     [self setNeedsDisplay:YES];

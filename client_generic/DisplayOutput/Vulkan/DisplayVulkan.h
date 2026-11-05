@@ -66,6 +66,9 @@ class CDisplayVulkan : public CDisplayOutput
     struct wl_seat*       m_pWlSeat       = nullptr;
     struct wl_keyboard*   m_pWlKeyboard   = nullptr;
     struct wl_pointer*    m_pWlPointer    = nullptr;
+    struct wl_data_device_manager* m_pDataDeviceManager = nullptr;
+    struct wl_data_device* m_pDataDevice    = nullptr;
+    struct wl_data_offer* m_pSelectionOffer = nullptr; // current clipboard contents
     struct zxdg_decoration_manager_v1*   m_pDecorationManager = nullptr;
     struct zxdg_toplevel_decoration_v1*  m_pToplevelDecoration = nullptr;
 #ifdef HAVE_LIBDECOR
@@ -98,6 +101,8 @@ class CDisplayVulkan : public CDisplayOutput
 
     bool initWayland(uint32_t w, uint32_t h, bool bFullscreen);
     void destroyWayland();
+    void createDataDevice();
+    std::string readClipboardText();
     void updateWaylandCursor();
 #ifdef HAVE_LIBDECOR
     enum libdecor_resize_edge getWaylandResizeEdge(int32_t x, int32_t y) const;
@@ -113,6 +118,7 @@ class CDisplayVulkan : public CDisplayOutput
     static void onXdgToplevelClose(void*, xdg_toplevel*);
     static void onSeatCapabilities(void*, wl_seat*, uint32_t);
     static void onSeatName(void*, wl_seat*, const char*);
+    static void onDataDeviceSelection(void*, wl_data_device*, wl_data_offer*);
     static void onKeyboardKeymap(void*, wl_keyboard*, uint32_t, int32_t, uint32_t);
     static void onKeyboardEnter(void*, wl_keyboard*, uint32_t, wl_surface*, wl_array*);
     static void onKeyboardLeave(void*, wl_keyboard*, uint32_t, wl_surface*);

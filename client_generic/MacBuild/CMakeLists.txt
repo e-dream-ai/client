@@ -43,6 +43,7 @@ set(SHARED_SOURCES
     ${METAL_HELPERS}
     ${SWIFT_SOURCES}
     proximus.c
+    ../Networking/sio/sio_beast.cpp
 )
 
 # Create App Prod target
@@ -73,8 +74,8 @@ target_include_directories(infinidream_app PRIVATE
     ../DisplayOutput/Renderer
     ../DisplayOutput/Metal
     ../Networking
+    ../Networking/sio
     ..
-    ../socket.io-client-cpp/include
 )
 
 target_include_directories(infinidream_saver PRIVATE
@@ -92,21 +93,19 @@ target_include_directories(infinidream_saver PRIVATE
     ../DisplayOutput/Renderer
     ../DisplayOutput/Metal
     ../Networking
+    ../Networking/sio
     ..
-    ../socket.io-client-cpp/include
 )
 
 # Library search paths
 target_link_directories(infinidream_app PRIVATE
     ../../cache/univ-osx/lib
     ../ffmpeg/osx/lib
-    ../socket.io-client-cpp/lib
 )
 
 target_link_directories(infinidream_saver PRIVATE
     ../../cache/univ-osx/lib
     ../ffmpeg/osx/lib
-    ../socket.io-client-cpp/lib
 )
 
 # Import Sparkle framework
@@ -126,7 +125,6 @@ target_link_libraries(infinidream_app
     "-lobjc"
     ssl
     crypto
-    sioclient_tls
 )
 
 # Link frameworks - ScreenSaver
@@ -139,7 +137,6 @@ target_link_libraries(infinidream_saver
     "-lobjc"
     ssl
     crypto
-    sioclient_tls
 )
 
 # Copy Sparkle framework to app bundle

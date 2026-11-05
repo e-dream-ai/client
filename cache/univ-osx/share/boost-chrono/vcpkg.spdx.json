@@ -3,13 +3,13 @@
   "spdxVersion": "SPDX-2.2",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "documentNamespace": "https://spdx.org/spdxdocs/boost-chrono-arm64-osx-1.90.0#1-68ba4746-be05-46f7-9447-ffc88294f235",
-  "name": "boost-chrono:arm64-osx@1.90.0#1 61e247861e9949e309d5264dd4e341bfaaff70d3cb49ce9570decb5f21619a2b",
+  "documentNamespace": "https://spdx.org/spdxdocs/boost-chrono-arm64-osx-1.90.0#1-33dcadbf-8cfc-4826-83b6-e3f303d621d8",
+  "name": "boost-chrono:arm64-osx@1.90.0#1 4ea5bacd6cfd96f732379f2d7e4d81aa45ee40755219c8afb43101efb1f5ce82",
   "creationInfo": {
     "creators": [
       "Tool: vcpkg-2026-03-04-4b3e4c276b5b87a649e66341e11553e8c577459c"
     ],
-    "created": "2026-04-17T03:29:44Z"
+    "created": "2026-10-08T13:05:45Z"
   },
   "relationships": [
     {
@@ -339,7 +339,7 @@
     {
       "name": "boost-chrono:arm64-osx",
       "SPDXID": "SPDXRef-binary",
-      "versionInfo": "61e247861e9949e309d5264dd4e341bfaaff70d3cb49ce9570decb5f21619a2b",
+      "versionInfo": "4ea5bacd6cfd96f732379f2d7e4d81aa45ee40755219c8afb43101efb1f5ce82",
       "downloadLocation": "NONE",
       "licenseConcluded": "BSL-1.0",
       "licenseDeclared": "NOASSERTION",
@@ -992,7 +992,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "11395889c2d8a27fe66223cdbef15040e0b5285b225acc3a91267ad48cf594ef"
+          "checksumValue": "fbb5bcbb4cf9ce9aa15359edd5897c005fc40a0d4727771ee709cf881dbdbd6b"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -1004,7 +1004,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "b78ffabf10a655d25655788ec4fff01aab10314c45bf15d47e882af3c1e443c6"
+          "checksumValue": "cd97157cd447ea5102da2b4bcd0035991f9ba30a2a91786ca0a4d5bf563574b6"
         }
       ],
       "licenseConcluded": "NOASSERTION",

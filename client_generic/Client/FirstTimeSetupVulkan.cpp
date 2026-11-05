@@ -6,8 +6,10 @@
 #include "PlatformUtils.h"
 #include "PlatformUtils_Internal.h"
 #include "Player.h"
+#include "DialogImageLinux.h"
 #include "Settings.h"
 #include "storage.h"
+#include "ThemeLinux.h"
 
 #include <atomic>
 #include <cstdio>
@@ -89,6 +91,9 @@ constexpr float kThanksBtnFontSize  = kUiTextSize;
 
 static constexpr ImVec4 kMacInputBorderFocus(0.f, 0.478f, 1.f, 1.f);
 static constexpr ImVec4 kMacInputBorderIdle(0.74f, 0.74f, 0.76f, 1.f);
+static const ImVec4 kMacInputBorderIdleDark = ThemeLinux::DarkColor(0.36f, 0.36f, 0.38f, 1.f);
+static constexpr ImVec4 kErrorText(0.75f, 0.18f, 0.18f, 1.f);
+static const ImVec4 kErrorTextDark = ThemeLinux::DarkColor(1.f, 0.45f, 0.42f, 1.f);
 static constexpr ImVec4 kMacAccentBtn(0.f, 0.478f, 1.f, 1.f);
 static constexpr ImVec4 kMacAccentBtnHov(0.10f, 0.54f, 1.f, 1.f);
 static constexpr ImVec4 kMacAccentBtnAct(0.f, 0.40f, 0.88f, 1.f);
@@ -127,6 +132,7 @@ char g_emailBuf[256] = {};
 char g_codeBuf[16]   = {};
 char g_errBuf[512]   = {};
 int  g_wizardStep    = 0;
+int  g_focusedStep   = -1; // step whose text field has been given keyboard focus
 
 bool g_emailFieldBorderActive = false;
 bool g_otpFieldBorderActive   = false;
@@ -300,10 +306,47 @@ static void LoadWizardFonts()
 
 // --- Style -------------------------------------------------------------------
 
-static void ApplyLightSheetStyle()
+// Whichever the sheet's colors were last set for; see ApplySheetColors().
+static bool g_sheetIsDark = true;
+
+static void ApplySheetColors(bool dark)
+{
+    g_sheetIsDark = dark;
+    ImGuiStyle& s = ImGui::GetStyle();
+    if (dark)
+        ThemeLinux::ApplyDarkBaseColors(s);
+    else
+        ImGui::StyleColorsLight(&s);
+
+    ImVec4 text = dark ? ThemeLinux::DarkColor(0.92f, 0.92f, 0.94f, 1.f) : ImVec4(0.10f, 0.11f, 0.13f, 1.f);
+    ImVec4 winBg = dark ? ThemeLinux::DarkColor(0.15f, 0.15f, 0.16f, 1.f) : ImVec4(0.965f, 0.967f, 0.975f, 1.f);
+    // Neutral buttons need a fill that stands out from the sheet; white ones
+    // were hard to tell from the background. Primary actions use kMacAccentBtn.
+    ImVec4 btn = dark ? ThemeLinux::DarkColor(0.30f, 0.30f, 0.32f, 1.f) : ImVec4(0.86f, 0.86f, 0.88f, 1.f);
+    ImVec4 btnHov = dark ? ThemeLinux::DarkColor(0.36f, 0.36f, 0.38f, 1.f) : ImVec4(0.81f, 0.81f, 0.83f, 1.f);
+    ImVec4 btnAct = dark ? ThemeLinux::DarkColor(0.24f, 0.24f, 0.26f, 1.f) : ImVec4(0.75f, 0.75f, 0.78f, 1.f);
+    ImVec4 borderChrome = dark ? kMacInputBorderIdleDark : kMacInputBorderIdle;
+
+    s.Colors[ImGuiCol_Text]           = text;
+    s.Colors[ImGuiCol_TextDisabled]   = dark ? ThemeLinux::DarkColor(0.58f, 0.58f, 0.60f, 1.f) : ImVec4(0.45f, 0.47f, 0.50f, 1.f);
+    s.Colors[ImGuiCol_WindowBg]       = winBg;
+    s.Colors[ImGuiCol_ChildBg]        = winBg;
+    s.Colors[ImGuiCol_Border]         = borderChrome;
+    s.Colors[ImGuiCol_BorderShadow]   = ImVec4(0.f, 0.f, 0.f, 0.f);
+    s.Colors[ImGuiCol_FrameBg]        = dark ? ThemeLinux::DarkColor(0.20f, 0.20f, 0.21f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f);
+    s.Colors[ImGuiCol_FrameBgHovered] = dark ? ThemeLinux::DarkColor(0.23f, 0.23f, 0.24f, 1.f) : ImVec4(0.98f, 0.98f, 0.99f, 1.f);
+    s.Colors[ImGuiCol_FrameBgActive]  = dark ? ThemeLinux::DarkColor(0.20f, 0.20f, 0.21f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f);
+    s.Colors[ImGuiCol_Button]         = btn;
+    s.Colors[ImGuiCol_ButtonHovered]  = btnHov;
+    s.Colors[ImGuiCol_ButtonActive]   = btnAct;
+    s.Colors[ImGuiCol_Header]         = dark ? ThemeLinux::DarkColor(0.24f, 0.33f, 0.50f, 1.f) : ImVec4(0.86f, 0.89f, 0.97f, 1.f);
+    s.Colors[ImGuiCol_ScrollbarBg]    = dark ? ThemeLinux::DarkColor(0.12f, 0.12f, 0.13f, 0.85f) : ImVec4(0.93f, 0.94f, 0.96f, 0.85f);
+    s.Colors[ImGuiCol_NavHighlight]   = ImVec4(0.f, 0.478f, 1.f, 0.55f);
+}
+
+static void ApplySheetStyle()
 {
     ImGuiStyle& s = ImGui::GetStyle();
-    ImGui::StyleColorsLight(&s);
     s.WindowRounding  = 8.f;
     s.ChildRounding   = 6.f;
     s.FrameRounding   = 5.f;
@@ -316,29 +359,6 @@ static void ApplyLightSheetStyle()
     s.ItemSpacing     = ImVec2(10.f, 8.f);
     s.CellPadding     = ImVec2(6.f, 4.f);
     s.FramePadding    = ImVec2(10.f, 8.f);
-
-    ImVec4 text(0.10f, 0.11f, 0.13f, 1.f);
-    ImVec4 winBg(0.965f, 0.967f, 0.975f, 0.985f);
-    ImVec4 btn(1.f, 1.f, 1.f, 1.f);
-    ImVec4 btnHov(0.96f, 0.96f, 0.98f, 1.f);
-    ImVec4 btnAct(0.90f, 0.90f, 0.93f, 1.f);
-    ImVec4 borderChrome(0.74f, 0.74f, 0.76f, 1.f);
-
-    s.Colors[ImGuiCol_Text]           = text;
-    s.Colors[ImGuiCol_TextDisabled]   = ImVec4(0.45f, 0.47f, 0.50f, 1.f);
-    s.Colors[ImGuiCol_WindowBg]       = winBg;
-    s.Colors[ImGuiCol_ChildBg]        = winBg;
-    s.Colors[ImGuiCol_Border]         = borderChrome;
-    s.Colors[ImGuiCol_BorderShadow]   = ImVec4(0.f, 0.f, 0.f, 0.f);
-    s.Colors[ImGuiCol_FrameBg]        = ImVec4(1.f, 1.f, 1.f, 1.f);
-    s.Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.98f, 0.98f, 0.99f, 1.f);
-    s.Colors[ImGuiCol_FrameBgActive]  = ImVec4(1.f, 1.f, 1.f, 1.f);
-    s.Colors[ImGuiCol_Button]         = btn;
-    s.Colors[ImGuiCol_ButtonHovered]  = btnHov;
-    s.Colors[ImGuiCol_ButtonActive]   = btnAct;
-    s.Colors[ImGuiCol_Header]         = ImVec4(0.86f, 0.89f, 0.97f, 1.f);
-    s.Colors[ImGuiCol_ScrollbarBg]    = ImVec4(0.93f, 0.94f, 0.96f, 0.85f);
-    s.Colors[ImGuiCol_NavHighlight]   = ImVec4(0.f, 0.478f, 1.f, 0.55f);
 }
 
 // --- Playback pause management -----------------------------------------------
@@ -370,6 +390,7 @@ static void ApplyWizardPauseState(bool visible)
 static void ResetWizardForShow()
 {
     g_wizardStep             = 0;
+    g_focusedStep            = -1;
     g_emailFieldBorderActive = false;
     g_otpFieldBorderActive   = false;
     g_codeBuf[0]             = '\0';
@@ -475,6 +496,13 @@ static void DrawWizard()
         const float hdrH     = logoSz + S(11.f) + S(8.f);
         const float winInnerW = ImGui::GetWindowWidth();
 
+        const ImTextureID logo = DialogImage("logo.png", logoSz);
+        if (logo != ImTextureID_Invalid)
+        {
+            ImGui::SetCursorPos(ImVec2(S(10.f), S(11.f)));
+            ImGui::Image(logo, ImVec2(logoSz, logoSz));
+        }
+
         if (g_fontHeadline) ImGui::PushFont(g_fontHeadline);
         const char* headline = "Welcome to Infinidream";
         const ImVec2 ts = ImGui::CalcTextSize(headline);
@@ -523,7 +551,14 @@ static void DrawWizard()
         bool emailEnter = false;
         {
             ImGui::PushStyleColor(ImGuiCol_Border,
-                                  g_emailFieldBorderActive ? kMacInputBorderFocus : kMacInputBorderIdle);
+                                  g_emailFieldBorderActive ? kMacInputBorderFocus
+                                  : g_sheetIsDark            ? kMacInputBorderIdleDark
+                                                             : kMacInputBorderIdle);
+            if (g_focusedStep != 0)
+            {
+                ImGui::SetKeyboardFocusHere();
+                g_focusedStep = 0;
+            }
             emailEnter = ImGui::InputTextWithHint("##email", "your@email.com", g_emailBuf, sizeof g_emailBuf,
                                                   ImGuiInputTextFlags_EnterReturnsTrue);
             ImGui::PopStyleColor();
@@ -577,7 +612,7 @@ static void DrawWizard()
         {
             ImGui::SetCursorPos(ImVec2(S(kEmailPromptL), S(kEmailErrorOffsetY)));
             if (g_fontButton) ImGui::PushFont(g_fontButton);
-            ImGui::TextColored(ImVec4(0.75f, 0.18f, 0.18f, 1.f), "%s", g_errBuf);
+            ImGui::TextColored(g_sheetIsDark ? kErrorTextDark : kErrorText, "%s", g_errBuf);
             if (g_fontButton) ImGui::PopFont();
         }
         // Draw button label centered (button uses "##" id to hide ImGui's label)
@@ -630,7 +665,14 @@ static void DrawWizard()
         bool otpEnter = false;
         {
             ImGui::PushStyleColor(ImGuiCol_Border,
-                                  g_otpFieldBorderActive ? kMacInputBorderFocus : kMacInputBorderIdle);
+                                  g_otpFieldBorderActive ? kMacInputBorderFocus
+                                  : g_sheetIsDark          ? kMacInputBorderIdleDark
+                                                           : kMacInputBorderIdle);
+            if (g_focusedStep != 1)
+            {
+                ImGui::SetKeyboardFocusHere();
+                g_focusedStep = 1;
+            }
             otpEnter = ImGui::InputTextWithHint("##otp", "000000", g_codeBuf, sizeof g_codeBuf,
                                                 ImGuiInputTextFlags_CallbackCharFilter |
                                                     ImGuiInputTextFlags_CallbackEdit |
@@ -653,7 +695,7 @@ static void DrawWizard()
             if (g_fontButton) ImGui::PushFont(g_fontButton);
             ImGui::SetCursorPosX(S(18.f));
             ImGui::PushTextWrapPos(S(18.f) + S(473.f));
-            ImGui::TextColored(ImVec4(0.75f, 0.18f, 0.18f, 1.f), "%s", g_errBuf);
+            ImGui::TextColored(g_sheetIsDark ? kErrorTextDark : kErrorText, "%s", g_errBuf);
             ImGui::PopTextWrapPos();
             if (g_fontButton) ImGui::PopFont();
             ImGui::Dummy(ImVec2(0.f, S(12.f)));
@@ -667,7 +709,13 @@ static void DrawWizard()
         ImGui::SetCursorPosX((S(kCodeStepPanelW) - S(kCodeVerifyW)) * 0.5f);
         if (!canVerify || busy) ImGui::BeginDisabled();
         if (g_fontButton) ImGui::PushFont(g_fontButton);
+        ImGui::PushStyleColor(ImGuiCol_Button,        kMacAccentBtn);
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, kMacAccentBtnHov);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  kMacAccentBtnAct);
+        ImGui::PushStyleColor(ImGuiCol_Border,        kMacAccentBtnBorder);
+        ImGui::PushStyleColor(ImGuiCol_Text,          ImVec4(1.f, 1.f, 1.f, 1.f));
         const bool verifyClicked = ImGui::Button("Verify code", ImVec2(S(kCodeVerifyW), S(36.f)));
+        ImGui::PopStyleColor(5);
         if (g_fontButton) ImGui::PopFont();
         if (!canVerify || busy) ImGui::EndDisabled();
 
@@ -783,14 +831,24 @@ static void DrawWizard()
                           ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar |
                               ImGuiWindowFlags_NoScrollWithMouse);
         {
+            const ImTextureID playlistIcon = DialogImage("play-playlist.png", S(kThanksPlaylistImg));
+            const float textWrapW = playlistIcon != ImTextureID_Invalid
+                                        ? colW - S(kThanksCellPad) - S(kThanksTextImgGap) - S(kThanksPlaylistImg) - S(kThanksImgTrail)
+                                        : colW - 2.f * S(kThanksCellPad);
             if (g_fontThanksCopy) ImGui::PushFont(g_fontThanksCopy);
             ImGui::SetCursorPos(ImVec2(S(kThanksCellPad), S(kThanksCellPad)));
-            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + colW - 2.f * S(kThanksCellPad));
+            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + textWrapW);
             ImGui::TextWrapped(
                 "Change your dreams by selecting a playlist from the browser. Click the button on a "
                 "thumbnail to start that playlist.");
             ImGui::PopTextWrapPos();
             if (g_fontThanksCopy) ImGui::PopFont();
+
+            if (playlistIcon != ImTextureID_Invalid)
+            {
+                ImGui::SetCursorPos(ImVec2(colW - S(kThanksImgTrail) - S(kThanksPlaylistImg), S(kThanksImgTop)));
+                ImGui::Image(playlistIcon, ImVec2(S(kThanksPlaylistImg), S(kThanksPlaylistImg)));
+            }
 
             const float btnY = S(kThanksRowTopH) - S(kThanksBtnBottom) - S(kThanksTipsBtnH);
             ImGui::SetCursorPos(ImVec2((colW - S(kThanksOpenPlaylistBtnW)) * 0.5f, btnY));
@@ -902,6 +960,13 @@ static const char* GetClipboardText(void*)
     static std::string s_clipboardBuf;
     s_clipboardBuf.clear();
 
+    // Native Wayland clipboard first; the tools below are often not installed.
+    s_clipboardBuf = PlatformUtils_ReadClipboard();
+    while (!s_clipboardBuf.empty() && (s_clipboardBuf.back() == '\n' || s_clipboardBuf.back() == '\r'))
+        s_clipboardBuf.pop_back();
+    if (!s_clipboardBuf.empty())
+        return s_clipboardBuf.c_str();
+
     // Try wl-paste first (native Wayland), then fall back to X11 tools.
     static const char* const kCmds[] = {
         "wl-paste --no-newline 2>/dev/null",
@@ -957,14 +1022,20 @@ void FirstTimeSetupVulkan_DrawIfNeeded()
         g_showRequested.store(false, std::memory_order_release);
 
         g_uiScale = PlatformUtils_GetUIScale();
+        // Shrink to fit: a card larger than the window was clamped to it with
+        // its contents spilling out, putting the skip footer over the email field.
+        const ImVec2 display = ImGui::GetIO().DisplaySize;
+        if (display.x > 0.f && display.y > 0.f)
+            g_uiScale = (std::min)(g_uiScale, (std::min)(display.x / kDesignWinW, display.y / kDesignWinH));
 
         // Load wizard fonts into the shared atlas on first show.
         // ImGui_ImplVulkan_NewFrame() handles re-uploading the atlas automatically.
         LoadWizardFonts();
 
-        // Save current style and apply wizard light-sheet style.
+        // Save current style and apply wizard sheet style.
         // (Restored in the same call via PushStyleVar/Color inside DrawWizard.)
-        ApplyLightSheetStyle();
+        ApplySheetColors(ThemeLinux::IsDark());
+        ApplySheetStyle();
         ImGui::GetStyle().ScaleAllSizes(g_uiScale);
 
         g_visible.store(true, std::memory_order_release);
@@ -979,6 +1050,9 @@ void FirstTimeSetupVulkan_DrawIfNeeded()
     }
 
     if (!g_visible.load(std::memory_order_acquire)) return;
+
+    if (ThemeLinux::IsDark() != g_sheetIsDark)
+        ApplySheetColors(ThemeLinux::IsDark());
 
     PollWorkerResults();
     DrawWizard();

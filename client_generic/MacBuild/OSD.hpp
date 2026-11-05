@@ -394,7 +394,9 @@ public:
         // Scale font size with app size: proportional to OSD bg height in pixels
         DisplayOutput::spCDisplayOutput spDisplayForFont = g_Player().Display();
         const float displayHForFont =
-            (spDisplayForFont != nullptr) ? static_cast<float>(spDisplayForFont->Height()) : 0.0f;
+            (spDisplayForFont != nullptr)
+                ? static_cast<float>(spDisplayForFont->Height()) / spDisplayForFont->TextScale()
+                : 0.0f;
         float fontPx = m_BgCRect.Height() * displayHForFont * 0.3f; // tuned for readability
         m_FontDesc.Height(fontPx);
         m_FontDesc.Style(DisplayOutput::CFontDescription::Normal);
@@ -442,7 +444,19 @@ public:
         // Remember to clean up the temporary image
         tmpBuffering = NULL;
     };
-    
+
+    using CHudEntry::Visible;
+
+    // Hiding (e.g. HideAll() when credits are toggled) stops Render() from
+    // being called, so the FPS text must be disabled here or it stays on screen.
+    // Showing is left to Render(), which enables the text only for Speed.
+    virtual void Visible(const bool _bState) override
+    {
+        CHudEntry::Visible(_bState);
+        if (!_bState && m_spFpsText != NULL)
+            m_spFpsText->SetEnabled(false);
+    }
+
     bool Render(const double _time, DisplayOutput::spCRenderer _spRenderer)
     {
         if (!CHudEntry::Render(_time, _spRenderer))
@@ -558,6 +572,9 @@ public:
                 float displayW = (float)displayWInt;
                 float displayH = (float)displayHInt;
                 float fontPx = m_BgCRect.Height() * displayH * 0.3f;
+                if (spDisplayForFps) {
+                    fontPx /= spDisplayForFps->TextScale();
+                }
 
                 bool fontChanged = false;
                 if (fontPx > 0.0f &&

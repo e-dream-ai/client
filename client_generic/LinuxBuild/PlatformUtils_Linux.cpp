@@ -26,8 +26,10 @@
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/utsname.h>
 #include <thread>
 #include <algorithm>
+#include <cctype>
 #include <cstdlib>
 #include <unistd.h>
 
@@ -142,7 +144,55 @@ std::string PlatformUtils::GetAppVersion()
     return v.empty() ? "0.0.0" : v;
 }
 
-std::string PlatformUtils::GetPlatformName() { return "Linux"; }
+// The distro, e.g. "ubuntu 26.04", since the kernel version says little about the
+// system. Rolling releases have no VERSION_ID, so that's just "arch". os-release
+// values may be quoted; this also keeps anything else out of the HTTP header.
+static std::string GetDistro()
+{
+    std::ifstream f("/etc/os-release");
+    if (!f.is_open())
+        f.open("/usr/lib/os-release");
+
+    const auto clean = [](std::string value)
+    {
+        value.erase(std::remove_if(value.begin(), value.end(),
+                                   [](unsigned char c)
+                                   {
+                                       return !std::isalnum(c) && c != '.' &&
+                                              c != '_' && c != '-';
+                                   }),
+                    value.end());
+        return value;
+    };
+
+    std::string id, versionId, line;
+    while (std::getline(f, line))
+    {
+        if (line.rfind("ID=", 0) == 0)
+            id = clean(line.substr(3));
+        else if (line.rfind("VERSION_ID=", 0) == 0)
+            versionId = clean(line.substr(11));
+    }
+    if (id.empty())
+        return "";
+    return versionId.empty() ? id : id + " " + versionId;
+}
+
+std::string PlatformUtils::GetPlatformName()
+{
+    static const std::string name = []
+    {
+        struct utsname u{};
+        std::string result = "Linux";
+        if (uname(&u) == 0)
+            result += std::string(" ") + u.machine;
+        const std::string distro = GetDistro();
+        if (!distro.empty())
+            result += " " + distro;
+        return result;
+    }();
+    return name;
+}
 
 // ---------------------------------------------------------------------------
 // App / working directory
@@ -202,6 +252,18 @@ std::function<void(int, int)>& PlatformUtils_GetMouseCallback()
 void PlatformUtils::SetNativeMessageWindow(void* /*_nativeHandle*/) {}
 
 void PlatformUtils::NotifyMouseMoved(int /*_x*/, int /*_y*/) {}
+
+static std::function<std::string()> s_clipboardReader;
+
+void PlatformUtils_SetClipboardReader(std::function<std::string()> reader)
+{
+    s_clipboardReader = std::move(reader);
+}
+
+std::string PlatformUtils_ReadClipboard()
+{
+    return s_clipboardReader ? s_clipboardReader() : std::string();
+}
 
 // ---------------------------------------------------------------------------
 // Thread name

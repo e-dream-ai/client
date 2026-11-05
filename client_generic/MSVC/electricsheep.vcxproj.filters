@@ -138,6 +138,9 @@
     <ClCompile Include="..\Networking\Networking.cpp">
       <Filter>Networking</Filter>
     </ClCompile>
+    <ClCompile Include="..\Networking\ProgressiveHttpStream.cpp">
+      <Filter>Networking</Filter>
+    </ClCompile>
     <ClCompile Include="..\Networking\Upload.cpp">
       <Filter>Networking</Filter>
     </ClCompile>
@@ -151,6 +154,9 @@
       <Filter>ContentDecoder\Code</Filter>
     </ClCompile>
     <ClCompile Include="..\Networking\EDreamClient.cpp">
+      <Filter>Networking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Networking\sio\sio_beast.cpp">
       <Filter>Networking</Filter>
     </ClCompile>
     <ClCompile Include="PlatformUtils_win.cpp">
@@ -308,6 +314,9 @@
     <ClInclude Include="..\Client\SettingsDialogWin32.h">
       <Filter>Client\Headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\Client\ThemeWin32.h">
+      <Filter>Client\Headers</Filter>
+    </ClInclude>
     <ClInclude Include="..\Client\client_win32.h">
       <Filter>Client\Headers</Filter>
     </ClInclude>
@@ -377,6 +386,9 @@
     <ClInclude Include="..\Networking\Networking.h">
       <Filter>Networking</Filter>
     </ClInclude>
+    <ClInclude Include="..\Networking\ProgressiveHttpStream.h">
+      <Filter>Networking</Filter>
+    </ClInclude>
     <ClInclude Include="..\TupleStorage\Settings.h">
       <Filter>TupleStorage</Filter>
     </ClInclude>
@@ -399,6 +411,15 @@
       <Filter>Client\Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\Networking\EDreamClient.h">
+      <Filter>Networking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Networking\sio\sio_client.h">
+      <Filter>Networking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Networking\sio\sio_socket.h">
+      <Filter>Networking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Networking\sio\sio_message.h">
       <Filter>Networking</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\JSONUtil.h">

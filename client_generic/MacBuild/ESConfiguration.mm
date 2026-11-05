@@ -189,6 +189,17 @@
             [digitCodeTextField setEnabled:YES];
         }
     }
+
+    // Return goes to the default (blue) button: Close once signed in,
+    // otherwise Send code / Validate. Escape still closes via cancelOperation:.
+    BOOL signedIn = EDreamClient::IsLoggedIn();
+    okButton.keyEquivalent = signedIn ? @"\r" : @"";
+    signInButton.keyEquivalent = signedIn ? @"" : @"\r";
+}
+
+- (void)cancelOperation:(id)sender
+{
+    [self ok:sender];
 }
 
 - (void)connection:(NSURLConnection*)__unused connection
@@ -336,9 +347,8 @@
             .stringByAbbreviatingWithTildeInPath;
 
     // Put full version with git + date
-    version.stringValue = [NSString stringWithFormat:@"%@ %@ %@",
-                           (__bridge NSString*)ESScreensaver_GetVersion(),
-                           [NSString stringWithUTF8String:PlatformUtils::GetGitRevision().c_str()],
+    version.stringValue = [NSString stringWithFormat:@"%@ %@",
+                           [NSString stringWithUTF8String:PlatformUtils::GetVersionDescription().c_str()],
                            [NSString stringWithUTF8String:PlatformUtils::GetBuildDate().c_str()]];
 
 #ifndef DEBUG

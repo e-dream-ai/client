@@ -160,6 +160,9 @@ void CLog::Attach(const std::string& _location, bool multipleInstance)
         {
             m_Sink = boost::log::add_file_log(
                 f,
+                // Append: each legacyScreenSaver launch is a new process, and the
+                // default (trunc) wiped earlier sessions from the day's log.
+                boost::log::keywords::open_mode = std::ios_base::app,
                 boost::log::keywords::format =
                     "[%TimeStamp% - %Severity%]: %Message%");
         }

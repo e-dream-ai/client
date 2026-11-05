@@ -148,6 +148,14 @@ std::vector<std::string> PlaylistManager::getCurrentPlaylistUUIDs() const {
     return uuids;
 }
 
+bool PlaylistManager::containsDream(const std::string& uuid) const {
+    std::lock_guard lock(m_stateMutex);
+    if (m_initializeInProgress || m_playlist.empty())
+        return true;
+    return std::any_of(m_playlist.begin(), m_playlist.end(),
+                       [&uuid](const PlaylistEntry& entry) { return entry.uuid == uuid; });
+}
+
 bool PlaylistManager::parsePlaylist(const std::string& playlistUUID,
                                     uint64_t expectedGeneration,
                                     bool preserveCurrent,
@@ -162,7 +170,7 @@ bool PlaylistManager::parsePlaylist(const std::string& playlistUUID,
     }
 
     // Get the playlist metadata
-    auto [playlistName, playlistArtist, isNSFW, timestamp, loops] = EDreamClient::ParsePlaylistMetadata(playlistUUID);
+    auto metadata = EDreamClient::ParsePlaylistMetadata(playlistUUID);
 
     bool offline = false;
     {
@@ -196,14 +204,15 @@ bool PlaylistManager::parsePlaylist(const std::string& playlistUUID,
         }
 
         m_playlist = std::move(filtered);
-        m_currentPlaylistName = playlistName;
-        m_currentPlaylistArtist = playlistArtist;
-        m_isPlaylistNSFW = isNSFW;
-        m_playlistTimestamp = timestamp;
+        m_currentPlaylistName = metadata.name;
+        m_currentPlaylistArtist = metadata.artist;
+        m_isPlaylistNSFW = metadata.nsfw;
+        m_playlistTimestamp = metadata.timestamp;
 
-        if (loops != m_loopIterations)
+        if (metadata.loops != m_loopIterations)
             m_currentLoopCount = 0;
-        m_loopIterations = loops;
+        m_loopIterations = metadata.loops;
+        m_transitionTime = metadata.transitionTime;
 
         if (preserveCurrent)
         {
@@ -211,7 +220,8 @@ bool PlaylistManager::parsePlaylist(const std::string& playlistUUID,
             m_currentDreamUUID = m_playlist[m_currentPosition].uuid;
         }
 
-        g_Log->Info("Playlist loops: %d", m_loopIterations);
+        g_Log->Info("Playlist loops: %d, transition time: %s", m_loopIterations,
+                    m_transitionTime ? std::to_string(*m_transitionTime).c_str() : "default");
         g_Log->Info("Updated playlist: %s by %s (UUID: %s, NSFW: %s, Timestamp: %lld) with %zu dreams",
                     m_currentPlaylistName.c_str(), m_currentPlaylistArtist.c_str(),
                     m_currentPlaylistUUID.c_str(), m_isPlaylistNSFW ? "Yes" : "No",
@@ -896,7 +906,11 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
     // But if canStream is false, we need to find a cached dream
     if (!canStream) {
         g_Log->Info("Preflight : looking for any cached dream (canStream=false)");
-        for (size_t i = 0; i < m_playlist.size(); i++) {
+        // Scan forward from the current dream, so it is picked again only
+        // when no other dream is cached (client#710).
+        const size_t start = m_started ? m_currentPosition + 1 : 0;
+        for (size_t j = 0; j < m_playlist.size(); j++) {
+            const size_t i = (start + j) % m_playlist.size();
             if (m_cacheManager.hasDiskCachedItem(m_playlist[i].uuid)) {
                 const auto& cachedEntry = m_playlist[i];
                 decision = {
@@ -1258,24 +1272,24 @@ bool PlaylistManager::checkForPlaylistChanges() {
     }
 
     // Then parse the metadata to get the new timestamp
-    auto [newName, newArtist, newNSFW, newTimestamp, newLoops] = EDreamClient::ParsePlaylistMetadata(playlistUUID);
+    const int64_t newTimestamp = EDreamClient::ParsePlaylistMetadata(playlistUUID).timestamp;
     
     g_Log->Info("Old timestamp: %lld, New timestamp: %lld",
                 oldTimestamp, newTimestamp);
     
+    {
+        std::lock_guard lock(m_stateMutex);
+        if (m_currentPlaylistUUID != playlistUUID) {
+            g_Log->Info("Ignoring periodic update for stale playlist %s",
+                        playlistUUID.c_str());
+            return false;
+        }
+    }
+
     if (newTimestamp > oldTimestamp) {
         g_Log->Info("Playlist change detected. Old timestamp: %lld, New timestamp: %lld",
                     oldTimestamp, newTimestamp);
 
-        {
-            std::lock_guard lock(m_stateMutex);
-            if (m_currentPlaylistUUID != playlistUUID) {
-                g_Log->Info("Ignoring periodic update for stale playlist %s",
-                            playlistUUID.c_str());
-                return false;
-            }
-        }
-        
         // Update the playlist
         if (updatePlaylist(true)) {
             g_Log->Info("Playlist updated successfully");
@@ -1284,7 +1298,11 @@ bool PlaylistManager::checkForPlaylistChanges() {
             g_Log->Error("Failed to update playlist");
         }
     } else {
-        g_Log->Info("No playlist changes detected");
+        // Playlist-document timestamp may be unchanged when a contained dream is
+        // re-encoded. Fresh FetchPlaylist still carries per-entry dream timestamps;
+        // ParsePlaylist refreshes metadata and validates cached video md5s.
+        g_Log->Info("No playlist-document changes; refreshing dream metadata/cache validation");
+        EDreamClient::ParsePlaylist(playlistUUID);
     }
     
     return false;

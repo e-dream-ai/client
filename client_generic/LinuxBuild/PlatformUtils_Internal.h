@@ -3,6 +3,7 @@
 #pragma once
 
 #include <functional>
+#include <string>
 
 // Drain the main-thread dispatch queue posted via DispatchOnMainThread().
 // Call once per iteration of the main loop.
@@ -20,3 +21,8 @@ std::function<void(int, int)>& PlatformUtils_GetMouseCallback();
 void  PlatformUtils_InitUIScale();
 float PlatformUtils_GetUIScale();
 void  PlatformUtils_SetUIScale(float scale);
+
+// Clipboard text read natively by the display backend (Wayland wl_data_device).
+// Returns "" when no reader is registered or the clipboard holds no text.
+void        PlatformUtils_SetClipboardReader(std::function<std::string()> reader);
+std::string PlatformUtils_ReadClipboard();

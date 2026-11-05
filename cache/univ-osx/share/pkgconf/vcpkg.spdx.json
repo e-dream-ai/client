@@ -3,13 +3,13 @@
   "spdxVersion": "SPDX-2.2",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "documentNamespace": "https://spdx.org/spdxdocs/pkgconf-arm64-osx-2.5.1#4-24ca0cef-bce6-476c-8e04-fe3592c32c0f",
-  "name": "pkgconf:arm64-osx@2.5.1#4 f9bbd305ce3b735e78709ef410a5d4d0a248b2f8a447dd21e5ae6acbd2401da7",
+  "documentNamespace": "https://spdx.org/spdxdocs/pkgconf-arm64-osx-2.5.1#4-8a858e77-5244-42a1-8b40-b5ac8e04dd9b",
+  "name": "pkgconf:arm64-osx@2.5.1#4 7653e8d097c8de9841dc97a75849b4a7d38e814651f4f37a04d35a43f96a969b",
   "creationInfo": {
     "creators": [
       "Tool: vcpkg-2026-03-04-4b3e4c276b5b87a649e66341e11553e8c577459c"
     ],
-    "created": "2026-04-17T03:31:48Z"
+    "created": "2026-10-08T13:16:43Z"
   },
   "relationships": [
     {
@@ -124,7 +124,7 @@
     {
       "name": "pkgconf:arm64-osx",
       "SPDXID": "SPDXRef-binary",
-      "versionInfo": "f9bbd305ce3b735e78709ef410a5d4d0a248b2f8a447dd21e5ae6acbd2401da7",
+      "versionInfo": "7653e8d097c8de9841dc97a75849b4a7d38e814651f4f37a04d35a43f96a969b",
       "downloadLocation": "NONE",
       "licenseConcluded": "LicenseRef-vcpkg-null",
       "licenseDeclared": "NOASSERTION",
@@ -189,7 +189,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "472f7f2056b49e6c74f50565b8730e4e774e01f33ac7defc3f609d5d3eee5c0c"
+          "checksumValue": "d1c0d5bfa4195d3f3957ecfe27ee10ecd3dd2fdba0afe7de9d415847c5b317e5"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -201,7 +201,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "3b95e3cd3195af60414a4c8e2165bb15cf1978ba0cf35a8c1f6116edfdb5961c"
+          "checksumValue": "248faaa181e4be5d053d100242ea9da63016e21316bf20d2e9c7e828ecd57c40"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -297,7 +297,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "63782a2c22044999dfdc0ceacb2df450799387ef5007dcb8be807577b384f1e0"
+          "checksumValue": "79faf7d75c804427f6032eebca3ac0a7dafb057cb747a5fde36ffb3a7511062a"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -321,7 +321,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "8267b6d0b77becef0ed6edaa938b2dad62a7ce7b2952f1402bc6f21c46a77323"
+          "checksumValue": "ab76a476a54a16c48ab7f23ff3ebe3531a96779de20eb7a1fb06207197e58ec6"
         }
       ],
       "licenseConcluded": "NOASSERTION",
