@@ -47,5 +47,4 @@ counters, `INFINIDREAM_TEST_STALL_MS=150` makes the render thread spin for 150 m
 No videos are stored in this repo. The server reads `<uuid>.mp4` files from `--media-dir`,
 which defaults to the alpha client's cache at `/Users/Shared/infinidream.ai/content/mp4`,
 and serves the three smallest (or with `--pick largest`, the largest) that have at least 900
-frames, so a dream doesn't end by
-itself during a test. Nothing in that folder is changed.
+frames, so a dream doesn't end by itself during a test. Nothing in that folder is changed.
