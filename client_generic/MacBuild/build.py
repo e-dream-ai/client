@@ -759,34 +759,48 @@ def step4_export_app(config: BuildConfig, archive_path: Path) -> Path:
     print("STEP 4: Exporting App")
     print("========================================")
 
-    export_options_path = config.build_dir / config.build_config / "AppExportOptions.plist"
+    export_path = config.build_dir / config.build_config / "AppExport"
+    if export_path.exists():
+        shutil.rmtree(export_path)
+    export_path.mkdir(parents=True)
 
     if config.release:
+        # Signed Release: use xcodebuild -exportArchive with Developer ID
+        export_options_path = config.build_dir / config.build_config / "AppExportOptions.plist"
         export_options = {
             'method': 'developer-id',
             'teamID': config.team_id,
             'signingStyle': 'automatic',
             'signingCertificate': 'Developer ID Application',
         }
+        with open(export_options_path, 'wb') as f:
+            plistlib.dump(export_options, f)
+
+        print_yellow("Exporting app for distribution...")
+        run_xcodebuild([
+            '-exportArchive',
+            '-archivePath', str(archive_path),
+            '-exportPath', str(export_path),
+            '-exportOptionsPlist', str(export_options_path),
+        ])
     else:
-        export_options = {
-            'method': 'development',
-            'teamID': config.team_id,
-            'signingStyle': 'automatic',
-        }
-
-    with open(export_options_path, 'wb') as f:
-        plistlib.dump(export_options, f)
-
-    print_yellow("Exporting app for distribution...")
-    export_path = config.build_dir / config.build_config / "AppExport"
-
-    run_xcodebuild([
-        '-exportArchive',
-        '-archivePath', str(archive_path),
-        '-exportPath', str(export_path),
-        '-exportOptionsPlist', str(export_options_path),
-    ])
+        # Unsigned Debug: copy .app straight from the archive (no cert required).
+        # Without signing, xcodebuild often installs under Products/Users/.../Applications
+        # instead of Products/Applications.
+        print_yellow("Copying unsigned app from archive (Debug, no codesigning)...")
+        products_dir = archive_path / "Products"
+        archive_apps = list((products_dir / "Applications").glob("*.app"))
+        if not archive_apps:
+            archive_apps = list(products_dir.rglob("*.app"))
+            # Prefer the top-level app bundle, not nested Sparkle Updater.app etc.
+            archive_apps = [
+                p for p in archive_apps
+                if 'Contents/Frameworks' not in str(p) and 'Contents/Resources' not in str(p)
+            ]
+        if not archive_apps:
+            print_red(f"No .app found under {products_dir}")
+            sys.exit(1)
+        run_command(['ditto', str(archive_apps[0]), str(export_path / archive_apps[0].name)])
 
     # Find the exported app
     exported_apps = list(export_path.glob("*.app"))
