@@ -718,7 +718,8 @@ bool EDreamClient::LoginWithMagicLinkCode()
     {
         if (email.empty())
             g_Log->Warning("No email in settings and no tty — "
-                           "set settings.generator.nickname in ~/.config/infinidream/settings.json");
+                           "set settings.generator.nickname in %s",
+                           g_Settings()->ConfigPath().c_str());
         else
             g_Log->Warning("No tty for magic link code entry — "
                            "run interactively once to establish a session");
@@ -731,8 +732,9 @@ bool EDreamClient::LoginWithMagicLinkCode()
         fprintf(stderr,
             "\nWelcome to infinidream!\n"
             "Enter your invited email address to get started.\n"
-            "It will be saved to ~/.config/infinidream/settings.json for future runs.\n"
-            "Email: ");
+            "It will be saved to %s for future runs.\n"
+            "Email: ",
+            g_Settings()->ConfigPath().c_str());
         fflush(stderr);
 
         if (!std::getline(std::cin, email)) return false;
@@ -857,8 +859,9 @@ bool EDreamClient::Authenticate()
         }
 
         g_Log->Warning("No sealed session or API key found. "
-                       "Set settings.generator.nickname in ~/.config/infinidream/settings.json "
-                       "and run interactively, or run with --cached to play cached videos.");
+                       "Set settings.generator.nickname in %s "
+                       "and run interactively, or run with --cached to play cached videos.",
+                       g_Settings()->ConfigPath().c_str());
         fIsLoggedIn.exchange(false);
         fInitialAuthComplete.store(true);
         fAuthCV.notify_one();
