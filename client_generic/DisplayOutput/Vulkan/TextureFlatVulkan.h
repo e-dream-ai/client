@@ -5,6 +5,8 @@
 #include <vulkan/vulkan.h>
 #include <cstdint>
 
+struct AVFrame;
+
 // Forward declaration to avoid circular include
 namespace DisplayOutput { class CRendererVulkan; }
 
@@ -13,8 +15,10 @@ namespace DisplayOutput
 
 /*
     CTextureFlatVulkan.
-    A flat (2-D) texture backed by a VkImage.
-    Uploading data goes through a HOST_VISIBLE staging buffer.
+    A flat (2-D) texture backed by an RGBA VkImage.
+    Uploading data goes through a HOST_VISIBLE staging buffer. Decoded 8-bit
+    4:2:0 video (NV12 / YUV420P) is uploaded as separate planes and converted
+    into the RGBA image on the GPU.
 */
 class CTextureFlatVulkan : public CTextureFlat
 {
@@ -26,6 +30,18 @@ class CTextureFlatVulkan : public CTextureFlat
     VkDeviceMemory m_imageMem   = VK_NULL_HANDLE;
     VkImageView    m_imageView  = VK_NULL_HANDLE;
     VkDescriptorSet m_descSet   = VK_NULL_HANDLE;
+
+    // YUV planes (Y, U or interleaved UV, V) and the conversion pass target.
+    // Created on the first YUV upload; plane 2 is unused for NV12.
+    static const int kMaxPlanes = 3;
+    VkImage         m_planeImage[kMaxPlanes]{};
+    VkDeviceMemory  m_planeMem[kMaxPlanes]{};
+    VkImageView     m_planeView[kMaxPlanes]{};
+    VkDescriptorSet m_planeDescSet  = VK_NULL_HANDLE;
+    VkFramebuffer   m_framebuffer   = VK_NULL_HANDLE;
+    uint32_t        m_planeWidth    = 0;  // luma size the planes were created for
+    uint32_t        m_planeHeight   = 0;
+    bool            m_planesInterleaved = false;
 
     uint32_t m_imgWidth  = 0;
     uint32_t m_imgHeight = 0;
@@ -44,7 +60,14 @@ class CTextureFlatVulkan : public CTextureFlat
     bool            m_copyPending     = false;
 
     bool allocStaging(VkDeviceSize size);
+    bool ensureImage(uint32_t w, uint32_t h);
     bool uploadToImage(uint32_t w, uint32_t h);
+    VkCommandBuffer beginUpload();
+    void submitUpload();
+
+    bool ensurePlanes(uint32_t w, uint32_t h, bool interleaved);
+    void destroyPlanes();
+    bool uploadYUV(const AVFrame* frame, bool interleaved);
 
   public:
     CTextureFlatVulkan(CRendererVulkan* renderer, const uint32_t flags);

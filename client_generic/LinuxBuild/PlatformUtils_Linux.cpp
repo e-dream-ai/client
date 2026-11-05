@@ -26,8 +26,46 @@
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/utsname.h>
 #include <thread>
+#include <algorithm>
+#include <cctype>
+#include <cstdlib>
 #include <unistd.h>
+
+// ---------------------------------------------------------------------------
+// UI scale factor — set once at display init, read by ImGui dialog code.
+// ---------------------------------------------------------------------------
+static float g_platformUIScale = 1.0f;
+
+void PlatformUtils_InitUIScale()
+{
+    // Seed from desktop env vars — set by GNOME/KDE/etc. on HiDPI Wayland sessions.
+    // X11 init in DisplayVulkan will later override with the actual DPI value.
+    const char* gdk = std::getenv("GDK_SCALE");
+    if (gdk)
+    {
+        float v = std::atof(gdk);
+        if (v >= 1.0f) { g_platformUIScale = v; return; }
+    }
+    const char* qt = std::getenv("QT_SCALE_FACTOR");
+    if (qt)
+    {
+        float v = std::atof(qt);
+        if (v >= 1.0f) { g_platformUIScale = v; return; }
+    }
+}
+
+float PlatformUtils_GetUIScale()
+{
+    return g_platformUIScale;
+}
+
+void PlatformUtils_SetUIScale(float scale)
+{
+    // Clamp to a sane range; fractional values (e.g. 1.25, 1.5) are valid.
+    g_platformUIScale = std::max(1.0f, std::min(scale, 4.0f));
+}
 
 // ---------------------------------------------------------------------------
 // Internet reachability — try a non-blocking connect to 8.8.8.8:53
@@ -106,7 +144,55 @@ std::string PlatformUtils::GetAppVersion()
     return v.empty() ? "0.0.0" : v;
 }
 
-std::string PlatformUtils::GetPlatformName() { return "Linux"; }
+// The distro, e.g. "ubuntu 26.04", since the kernel version says little about the
+// system. Rolling releases have no VERSION_ID, so that's just "arch". os-release
+// values may be quoted; this also keeps anything else out of the HTTP header.
+static std::string GetDistro()
+{
+    std::ifstream f("/etc/os-release");
+    if (!f.is_open())
+        f.open("/usr/lib/os-release");
+
+    const auto clean = [](std::string value)
+    {
+        value.erase(std::remove_if(value.begin(), value.end(),
+                                   [](unsigned char c)
+                                   {
+                                       return !std::isalnum(c) && c != '.' &&
+                                              c != '_' && c != '-';
+                                   }),
+                    value.end());
+        return value;
+    };
+
+    std::string id, versionId, line;
+    while (std::getline(f, line))
+    {
+        if (line.rfind("ID=", 0) == 0)
+            id = clean(line.substr(3));
+        else if (line.rfind("VERSION_ID=", 0) == 0)
+            versionId = clean(line.substr(11));
+    }
+    if (id.empty())
+        return "";
+    return versionId.empty() ? id : id + " " + versionId;
+}
+
+std::string PlatformUtils::GetPlatformName()
+{
+    static const std::string name = []
+    {
+        struct utsname u{};
+        std::string result = "Linux";
+        if (uname(&u) == 0)
+            result += std::string(" ") + u.machine;
+        const std::string distro = GetDistro();
+        if (!distro.empty())
+            result += " " + distro;
+        return result;
+    }();
+    return name;
+}
 
 // ---------------------------------------------------------------------------
 // App / working directory
@@ -158,6 +244,18 @@ void PlatformUtils::SetOnMouseMovedCallback(std::function<void(int, int)> _callb
 std::function<void(int, int)>& PlatformUtils_GetMouseCallback()
 {
     return s_mouseCallback;
+}
+
+static std::function<std::string()> s_clipboardReader;
+
+void PlatformUtils_SetClipboardReader(std::function<std::string()> reader)
+{
+    s_clipboardReader = std::move(reader);
+}
+
+std::string PlatformUtils_ReadClipboard()
+{
+    return s_clipboardReader ? s_clipboardReader() : std::string();
 }
 
 // ---------------------------------------------------------------------------

@@ -328,13 +328,18 @@ class CElectricSheep_Win32 : public CElectricSheep
             }
         }
 
+        // The instance mutex guards the shared data folder; a run with its own folder
+        // doesn't share it, so it's unaffected by the installed client (and vice versa).
+        const bool anotherInstance = PlatformUtils::GetDataDirOverride().empty() &&
+                                     g_SingleInstanceObj.IsAnotherInstanceRunning();
+
         //	Check for multiple instances if we're not specifically asked not
         // to.
         if (m_ScrMode != eWindowed_AllowMultipleInstances &&
             m_ScrMode != eSaver && m_ScrMode != eConfig &&
             m_ScrMode != eFullScreenStandalone)
         {
-            if (g_SingleInstanceObj.IsAnotherInstanceRunning())
+            if (anotherInstance)
             {
                 // return false; // we could also exit here to prevent second
                 // instance
@@ -344,7 +349,7 @@ class CElectricSheep_Win32 : public CElectricSheep
         else
         {
             //	Instance check taken care of so revert back to eWindowed.
-            if (g_SingleInstanceObj.IsAnotherInstanceRunning() == false)
+            if (anotherInstance == false)
             {
                 if (m_ScrMode != eSaver && m_ScrMode != eConfig &&
                     m_ScrMode != eFullScreenStandalone)
@@ -372,6 +377,7 @@ class CElectricSheep_Win32 : public CElectricSheep
             PathAddBackslashA(szPath);
             m_AppData = szPath;
         }
+        ApplyDataDirOverride();
 
         //	Get the application installation directory from the registry.
         //(stored by
@@ -421,7 +427,7 @@ class CElectricSheep_Win32 : public CElectricSheep
             return false;
         }
 
-        if (g_SingleInstanceObj.IsAnotherInstanceRunning() == false)
+        if (anotherInstance == false)
             AttachLog();
 
         std::string tmp = "Working dir: " + m_WorkingDir;
@@ -435,9 +441,11 @@ class CElectricSheep_Win32 : public CElectricSheep
         // here (not in the installer) so HKCU resolves to the actual user, not
         // the elevated installer's admin token. Skipped for screensaver/preview
         // modes — only the desktop app should be writing this preference.
-        if (m_ScrMode == eWindowed ||
-            m_ScrMode == eWindowed_AllowMultipleInstances ||
-            m_ScrMode == eFullScreenStandalone)
+        // Also skipped for isolated test runs, which must not touch the real install.
+        if (PlatformUtils::GetDataDirOverride().empty() &&
+            (m_ScrMode == eWindowed ||
+             m_ScrMode == eWindowed_AllowMultipleInstances ||
+             m_ScrMode == eFullScreenStandalone))
         {
             ScreensaverInstallerWin32::EnsureScreensaverActive(m_WorkingDir);
         }

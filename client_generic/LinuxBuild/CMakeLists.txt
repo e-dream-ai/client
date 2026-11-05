@@ -2,10 +2,23 @@ cmake_minimum_required(VERSION 3.20)
 project(infinidream LANGUAGES C CXX)
 
 # Suppress deprecated FindBoost warning on CMake 3.30+
-cmake_policy(SET CMP0167 NEW)
+if(POLICY CMP0167)
+    cmake_policy(SET CMP0167 NEW)
+endif()
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# ---------------------------------------------------------------------------
+# Stage build: api-stage.infinidream.ai, stage web links, and a separate data
+# folder (~/.config/infinidream-stage). Use its own build tree, e.g.
+#   cmake -B build-stage -DINFINIDREAM_STAGE=ON
+# ---------------------------------------------------------------------------
+option(INFINIDREAM_STAGE "Build against the stage backend" OFF)
+if(INFINIDREAM_STAGE)
+    add_compile_definitions(STAGE)
+    message(STATUS "Stage build — api-stage.infinidream.ai, ~/.config/infinidream-stage")
+endif()
 
 # ---------------------------------------------------------------------------
 # Compile definitions
@@ -31,6 +44,27 @@ find_package(OpenSSL REQUIRED)
 # Boost — filesystem + thread (boost_system is header-only since 1.69)
 find_package(Boost REQUIRED COMPONENTS filesystem thread log log_setup json)
 
+# Debian/Ubuntu build Boost with ICU, so their static CMake configs add
+# icudata/icui18n/icuuc to Boost::log, Boost::log_setup and Boost::regex, and
+# the link fails without libicu-dev (#738). None of those three libraries
+# reference ICU (Boost.Regex's ICU support is header-only), so drop the entries
+# from them only, instead of linking or bundling ICU. Libraries that do use ICU,
+# such as Boost.Locale, keep it.
+if(Boost_USE_STATIC_LIBS)
+    foreach(_target IN ITEMS Boost::log Boost::log_setup Boost::regex)
+        if(NOT TARGET ${_target})
+            continue()
+        endif()
+        get_target_property(_libs ${_target} INTERFACE_LINK_LIBRARIES)
+        if(_libs AND _libs MATCHES "icu(data|i18n|uc)")
+            # Handles plain entries and "$<$<CONFIG:release>:icudata;...>".
+            string(REGEX REPLACE "icu(data|i18n|uc);?" "" _libs "${_libs}")
+            set_target_properties(${_target} PROPERTIES INTERFACE_LINK_LIBRARIES "${_libs}")
+            message(STATUS "Dropped unused ICU link dependency from ${_target}")
+        endif()
+    endforeach()
+endif()
+
 # FFmpeg — try pkg-config first, then manual paths
 find_package(PkgConfig)
 if(PKG_CONFIG_FOUND)
@@ -39,7 +73,6 @@ if(PKG_CONFIG_FOUND)
         libavformat
         libavutil
         libswscale
-        libswresample
     )
 endif()
 
@@ -136,11 +169,27 @@ if(GLSLC)
         DEPENDS ${SHADER_SRC_DIR}/blend_cubic.frag
         COMMENT "Compiling blend_cubic.frag → SPIR-V"
     )
+    add_custom_command(
+        OUTPUT  ${SHADER_OUT_DIR}/fullscreen.vert.spv
+        COMMAND ${GLSLC} -o ${SHADER_OUT_DIR}/fullscreen.vert.spv
+                         ${SHADER_SRC_DIR}/fullscreen.vert
+        DEPENDS ${SHADER_SRC_DIR}/fullscreen.vert
+        COMMENT "Compiling fullscreen.vert → SPIR-V"
+    )
+    add_custom_command(
+        OUTPUT  ${SHADER_OUT_DIR}/yuv_to_rgb.frag.spv
+        COMMAND ${GLSLC} -o ${SHADER_OUT_DIR}/yuv_to_rgb.frag.spv
+                         ${SHADER_SRC_DIR}/yuv_to_rgb.frag
+        DEPENDS ${SHADER_SRC_DIR}/yuv_to_rgb.frag
+        COMMENT "Compiling yuv_to_rgb.frag → SPIR-V"
+    )
     add_custom_target(compile_shaders ALL DEPENDS
         ${SHADER_OUT_DIR}/quad.vert.spv
         ${SHADER_OUT_DIR}/quad.frag.spv
         ${SHADER_OUT_DIR}/blend_linear.frag.spv
         ${SHADER_OUT_DIR}/blend_cubic.frag.spv
+        ${SHADER_OUT_DIR}/fullscreen.vert.spv
+        ${SHADER_OUT_DIR}/yuv_to_rgb.frag.spv
     )
 else()
     message(WARNING "glslc not found. Shaders will not be compiled automatically.")
@@ -174,6 +223,9 @@ set(SOURCES
     ${CLIENT}/Player.cpp
     ${CLIENT}/Hud.cpp
     ${CLIENT}/StringFormat.cpp
+    ${CLIENT}/FirstTimeSetupVulkan.cpp
+    ${CLIENT}/SettingsDialogVulkan.cpp
+    ${CLIENT}/ThemeLinux.cpp
 
     # Common
     ${COMMON}/AlignedBuffer.cpp
@@ -228,7 +280,9 @@ set(SOURCES
     ${NET}/Download.cpp
     ${NET}/EDreamClient.cpp
     ${NET}/Networking.cpp
+    ${NET}/ProgressiveHttpStream.cpp
     ${NET}/Upload.cpp
+    ${NET}/sio/sio_beast.cpp
 
     # Storage
     ${STORE}/JSONStorage.cpp
@@ -270,8 +324,7 @@ target_include_directories(infinidream PRIVATE
     ${BASE}                               # client_generic root
     ${BASE}/MacBuild                         # OSD.hpp, etc.
     ${BASE}/libpng/include
-    ${BASE}/socket.io-client-cpp/include
-    ${BASE}/websocketpp
+    ${NET}/sio
     ${BASE}/boost
     ${VULKAN_INCLUDE_DIRS}
     ${X11_INCLUDE_DIR}
@@ -307,7 +360,6 @@ target_link_libraries(infinidream PRIVATE
     swscale
     ${PNG_LIBRARIES}
     dl
-    ${BASE}/socket.io-client-cpp/lib/linux/libsioclient_tls.a
     OpenSSL::SSL
     OpenSSL::Crypto
     $<$<BOOL:${WAYLAND_CLIENT_FOUND}>:${WAYLAND_CLIENT_LIBRARIES}>
@@ -342,4 +394,33 @@ add_custom_command(TARGET infinidream POST_BUILD
         ${BASE}/Runtime
         $<TARGET_FILE_DIR:infinidream>
     COMMENT "Copying runtime assets to binary directory"
+)
+
+# ---------------------------------------------------------------------------
+# Generate BuildData.json next to the binary so the version string is correct
+# ---------------------------------------------------------------------------
+if(NOT DEFINED APP_VERSION)
+    set(APP_VERSION "0.0.0")
+endif()
+
+find_package(Git QUIET)
+if(GIT_FOUND)
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_REVISION
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+endif()
+if(NOT GIT_REVISION)
+    set(GIT_REVISION "unknown")
+endif()
+
+string(TIMESTAMP BUILD_DATE "%Y-%m-%d" UTC)
+
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/BuildData.json.in
+    ${CMAKE_CURRENT_BINARY_DIR}/BuildData.json
+    @ONLY
 )

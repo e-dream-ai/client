@@ -266,6 +266,20 @@ bool CFontDX11DirectWriteAtlas::EnsureCreated()
     return true;
 }
 
+bool CFontDX11DirectWriteAtlas::SetPixelScale(float scale)
+{
+    if (!(scale > 0.0f) || std::fabs(scale - m_pixelScale) < 0.001f)
+        return true;
+
+    m_pixelScale = scale;
+    if (!m_spAtlasTexture)
+        return true; // EnsureCreated() will build at the new scale.
+
+    m_spAtlasTexture.reset();
+    m_atlasRGBA.clear();
+    return EnsureCreated();
+}
+
 void CFontDX11DirectWriteAtlas::ConvertAtlasToRGBA(std::vector<uint8_t>& outRGBA) const
 {
     outRGBA = m_atlasRGBA;
@@ -409,7 +423,7 @@ bool CFontDX11DirectWriteAtlas::BuildAtlasDirectWriteOnce()
     DWRITE_FONT_METRICS fontMetrics = {};
     fontFace->GetMetrics(&fontMetrics);
 
-    const float emSize = static_cast<float>(FontDescription().Height());
+    const float emSize = static_cast<float>(FontDescription().Height()) * m_pixelScale;
     const float designToPx = emSize / static_cast<float>(fontMetrics.designUnitsPerEm);
 
     const float ascentF = static_cast<float>(fontMetrics.ascent) * designToPx;
@@ -679,16 +693,20 @@ bool CFontDX11DirectWriteAtlas::BuildAtlasDirectWriteOnce()
 CTextDX11Atlas::CTextDX11Atlas(std::shared_ptr<CFontDX11DirectWriteAtlas> font,
                                  std::string text,
                                  uint32_t displayWidthPx,
-                                 uint32_t displayHeightPx)
+                                 uint32_t displayHeightPx,
+                                 std::function<uint32_t()> topInsetPx)
     : m_font(std::move(font)),
       m_text(std::move(text)),
-      m_displayW(displayWidthPx ? displayWidthPx : 1),
-      m_displayH(displayHeightPx ? displayHeightPx : 1)
+      m_topInsetPx(std::move(topInsetPx))
 {
+    SetDisplaySize(displayWidthPx, displayHeightPx);
 }
 
 void CTextDX11Atlas::SetDisplaySize(uint32_t widthPx, uint32_t heightPx)
 {
+    const uint32_t inset = m_topInsetPx ? m_topInsetPx() : 0u;
+    if (inset < heightPx)
+        heightPx -= inset;
     m_displayW = widthPx ? widthPx : 1;
     m_displayH = heightPx ? heightPx : 1;
 }

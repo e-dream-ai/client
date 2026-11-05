@@ -3,6 +3,7 @@
 #pragma once
 
 #include <functional>
+#include <string>
 
 // Drain the main-thread dispatch queue posted via DispatchOnMainThread().
 // Call once per iteration of the main loop.
@@ -13,3 +14,15 @@ bool PlatformUtils_GetCursorHidden();
 
 // Returns the mouse-moved callback stored by SetOnMouseMovedCallback().
 std::function<void(int, int)>& PlatformUtils_GetMouseCallback();
+
+// UI scale factor for ImGui dialogs (1.0 = 96 DPI, 2.0 = 192 DPI, etc.).
+// InitUIScale() seeds from env vars (GDK_SCALE, QT_SCALE_FACTOR); display
+// init then calls SetUIScale() with a more precise value if available.
+void  PlatformUtils_InitUIScale();
+float PlatformUtils_GetUIScale();
+void  PlatformUtils_SetUIScale(float scale);
+
+// Clipboard text read natively by the display backend (Wayland wl_data_device).
+// Returns "" when no reader is registered or the clipboard holds no text.
+void        PlatformUtils_SetClipboardReader(std::function<std::string()> reader);
+std::string PlatformUtils_ReadClipboard();

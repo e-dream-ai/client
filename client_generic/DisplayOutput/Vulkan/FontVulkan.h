@@ -38,7 +38,10 @@ class CFontImGui : public CBaseFont
     bool CreateWithRenderer(CRendererVulkan* renderer);
 
     ImFont* GetImFont() const { return m_imFont; }
-    float   FontSize()  const { return m_fontSizePx; }
+
+    // Size to draw this font at, in window pixels. A fixed size on screen whatever the
+    // window size, the same as on Mac and Windows.
+    float DrawnSizePx() const;
 
   private:
     ImFont* m_imFont     = nullptr;

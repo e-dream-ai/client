@@ -3,13 +3,13 @@
   "spdxVersion": "SPDX-2.2",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "documentNamespace": "https://spdx.org/spdxdocs/boost-predef-arm64-osx-1.90.0#1-df28bcf8-8724-4bca-97a0-4aea251c3726",
-  "name": "boost-predef:arm64-osx@1.90.0#1 ef4525d81c5d528a97040dd9c3c33617eda0160ae4cdb7a85a6c59f46c6f4dd5",
+  "documentNamespace": "https://spdx.org/spdxdocs/boost-predef-arm64-osx-1.90.0#1-633227f7-b154-45b8-a232-bfb640775272",
+  "name": "boost-predef:arm64-osx@1.90.0#1 baa3285a9ddbf84ce913cd279ba53680cfa6bdc152e2e4d993de5260151033b8",
   "creationInfo": {
     "creators": [
       "Tool: vcpkg-2026-03-04-4b3e4c276b5b87a649e66341e11553e8c577459c"
     ],
-    "created": "2026-04-17T03:28:56Z"
+    "created": "2026-10-08T13:04:34Z"
   },
   "relationships": [
     {
@@ -849,7 +849,7 @@
     {
       "name": "boost-predef:arm64-osx",
       "SPDXID": "SPDXRef-binary",
-      "versionInfo": "ef4525d81c5d528a97040dd9c3c33617eda0160ae4cdb7a85a6c59f46c6f4dd5",
+      "versionInfo": "baa3285a9ddbf84ce913cd279ba53680cfa6bdc152e2e4d993de5260151033b8",
       "downloadLocation": "NONE",
       "licenseConcluded": "BSL-1.0",
       "licenseDeclared": "NOASSERTION",

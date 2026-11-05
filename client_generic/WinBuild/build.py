@@ -241,10 +241,14 @@ def run_vcpkg_install(repo_root: Path, triplet: str, vcpkg_root: Optional[Path])
     if not exe.is_file():
         print_red(f"vcpkg.exe not found at {exe}. Run vcpkg\\bootstrap-vcpkg.bat first.")
         sys.exit(1)
-    print_blue(f"Running vcpkg install --triplet {triplet} ...")
+    overlay = repo_root / "overlays"
+    print_blue(f"Running vcpkg install --triplet {triplet} (overlay-ports={overlay}) ...")
     env = {"VCPKG_ROOT": str(root)}
+    cmd = [str(exe), "install", f"--triplet={triplet}"]
+    if overlay.is_dir():
+        cmd.append(f"--overlay-ports={overlay}")
     run_command(
-        [str(exe), "install", f"--triplet={triplet}"],
+        cmd,
         cwd=str(repo_root),
         env=env,
     )

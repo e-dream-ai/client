@@ -31,6 +31,9 @@ protected:
     ComPtr<ID3D11ShaderResourceView> m_titlebarLogoSrv;
     uint32_t m_titlebarLogoW = 0;
     uint32_t m_titlebarLogoH = 0;
+    int m_titlebarLogoPx = 0;   // display size the logo texture was built for
+    int m_mdl2GlyphPx = 0;      // ditto for the left title-bar glyphs
+    int m_mdl2ChromeGlyphPx = 0; // ditto for the caption-button glyphs
     ComPtr<ID3D11ShaderResourceView> m_mdl2GearSrv;
     ComPtr<ID3D11ShaderResourceView> m_mdl2FullscreenSrv;
     ComPtr<ID3D11ShaderResourceView> m_mdl2MenuSrv;
@@ -158,9 +161,11 @@ private:
     bool CreateDepthStencilStates();
     bool CreateRasterizerStates();
     bool EnsureSolidWhiteTexture();
-    bool EnsureTitlebarLogoTexture(HWND hwnd);
-    bool EnsureMdl2GlyphTextures();
-    bool EnsureMdl2ChromeGlyphTextures();
+    // Title-bar art is rasterized at its on-screen pixel size (DPI-scaled) and rebuilt when
+    // that size changes, so it is drawn 1:1 rather than resampled.
+    bool EnsureTitlebarLogoTexture(HWND hwnd, int sizePx);
+    bool EnsureMdl2GlyphTextures(int sizePx);
+    bool EnsureMdl2ChromeGlyphTextures(int sizePx);
 
 };
 

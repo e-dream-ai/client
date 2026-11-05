@@ -54,6 +54,8 @@ public:
     std::string getDreamServer() const;
     std::string getWebsocketServer() const;
     std::string getEndpoint(Endpoint endpoint) const;
+    /// True when settings.content.server explicitly asks for http://.
+    bool isPlaintext() const { return m_isPlaintext; }
 
 private:
     ServerConfigManager();
@@ -64,6 +66,7 @@ private:
 
     std::string m_dreamServer;
     std::string m_websocketServer;
+    bool m_isPlaintext = false;
     std::map<Endpoint, std::string> m_endpoints;
 };
 

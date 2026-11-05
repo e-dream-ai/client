@@ -11,8 +11,12 @@
 #include <imgui.h>
 #include <backends/imgui_impl_vulkan.h>
 
+#include "FirstTimeSetupVulkan.h"
+#include "SettingsDialogVulkan.h"
+
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <limits>
@@ -28,8 +32,8 @@ namespace DisplayOutput
 CRendererVulkan::CRendererVulkan()
 {
     memset(m_imageAvailable, 0, sizeof(m_imageAvailable));
-    memset(m_renderFinished, 0, sizeof(m_renderFinished));
     memset(m_inFlightFence,  0, sizeof(m_inFlightFence));
+    memset(m_timestampSlotValid, 0, sizeof(m_timestampSlotValid));
     memset(m_vertexBuffer,   0, sizeof(m_vertexBuffer));
     memset(m_vertexMemory,   0, sizeof(m_vertexMemory));
     memset(m_mappedVertex,   0, sizeof(m_mappedVertex));
@@ -39,6 +43,18 @@ CRendererVulkan::~CRendererVulkan()
 {
     if (m_device == VK_NULL_HANDLE) return;
     vkDeviceWaitIdle(m_device);
+
+    // CRenderer's base destructor runs after this derived destructor. Release
+    // its bound Vulkan objects now, while the device and command pool they use
+    // for teardown are still valid.
+    for (uint32_t i = 0; i < MAX_TEXUNIT; ++i)
+    {
+        m_aspActiveTextures[i].reset();
+        m_aspSelectedTextures[i].reset();
+    }
+    m_spActiveShader.reset();
+    m_spSelectedShader.reset();
+    m_uiTextures.clear();
 
     // Shut down ImGui before any Vulkan resources are destroyed.
     if (m_imguiInitialized)
@@ -69,11 +85,10 @@ CRendererVulkan::~CRendererVulkan()
         }
         if (m_imageAvailable[i] != VK_NULL_HANDLE)
             vkDestroySemaphore(m_device, m_imageAvailable[i], nullptr);
-        if (m_renderFinished[i] != VK_NULL_HANDLE)
-            vkDestroySemaphore(m_device, m_renderFinished[i], nullptr);
         if (m_inFlightFence[i] != VK_NULL_HANDLE)
             vkDestroyFence(m_device, m_inFlightFence[i], nullptr);
     }
+    destroyPresentSemaphores();
 
     if (m_timestampPool       != VK_NULL_HANDLE) vkDestroyQueryPool(m_device, m_timestampPool, nullptr);
     // Command buffers freed with pool
@@ -84,6 +99,10 @@ CRendererVulkan::~CRendererVulkan()
     if (m_pipelineLayoutLinear!= VK_NULL_HANDLE) vkDestroyPipelineLayout(m_device, m_pipelineLayoutLinear, nullptr);
     if (m_pipelineCubic       != VK_NULL_HANDLE) vkDestroyPipeline(m_device, m_pipelineCubic, nullptr);
     if (m_pipelineLayoutCubic != VK_NULL_HANDLE) vkDestroyPipelineLayout(m_device, m_pipelineLayoutCubic, nullptr);
+    if (m_yuvPipeline         != VK_NULL_HANDLE) vkDestroyPipeline(m_device, m_yuvPipeline, nullptr);
+    if (m_yuvPipelineLayout   != VK_NULL_HANDLE) vkDestroyPipelineLayout(m_device, m_yuvPipelineLayout, nullptr);
+    if (m_yuvRenderPass       != VK_NULL_HANDLE) vkDestroyRenderPass(m_device, m_yuvRenderPass, nullptr);
+    if (m_yuvSetLayout        != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(m_device, m_yuvSetLayout, nullptr);
     if (m_descriptorPool      != VK_NULL_HANDLE) vkDestroyDescriptorPool(m_device, m_descriptorPool, nullptr);
     if (m_descriptorSetLayout != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayout, nullptr);
     if (m_defaultSampler      != VK_NULL_HANDLE) vkDestroySampler(m_device, m_defaultSampler, nullptr);
@@ -97,6 +116,12 @@ CRendererVulkan::~CRendererVulkan()
     // Null the handle so any CTextureFlatVulkan dtor that still holds a raw
     // renderer pointer sees VK_NULL_HANDLE and skips destroy calls safely.
     m_device = VK_NULL_HANDLE;
+}
+
+void CRendererVulkan::WaitForIdle()
+{
+    if (m_device != VK_NULL_HANDLE)
+        vkDeviceWaitIdle(m_device);
 }
 
 // ---------------------------------------------------------------------------
@@ -291,12 +316,20 @@ bool CRendererVulkan::createSwapchain(VkSurfaceKHR surface,
     // Mailbox would spin the CPU freely between presents, burning cycles for no benefit.
     VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
 
-    // Always use the requested dimensions clamped to surface bounds.
-    // Never blindly trust caps.currentExtent — on X11 it can lag behind ConfigureNotify
-    // by several frames, causing the swapchain to be created at the wrong size while
-    // Display()->Width/Height() already reflects the new window dimensions.
-    m_swapExtent.width  = std::clamp(width,  caps.minImageExtent.width,  caps.maxImageExtent.width);
-    m_swapExtent.height = std::clamp(height, caps.minImageExtent.height, caps.maxImageExtent.height);
+    // Vulkan spec: when currentExtent is not {UINT32_MAX, UINT32_MAX} the swapchain
+    // MUST use that exact size. Some drivers (common on X11 with XFCE/Xfwm4) also set
+    // minImageExtent == maxImageExtent == currentExtent, so ignoring currentExtent and
+    // clamping by min/max yields the same forced value — but leaves m_swapExtent
+    // differing from m_spDisplay->Width/Height(), triggering an infinite recreation loop.
+    // Use currentExtent directly when valid; fall back to the requested size otherwise.
+    if (caps.currentExtent.width != UINT32_MAX) {
+        if (caps.currentExtent.width == 0 || caps.currentExtent.height == 0)
+            return false;  // Window minimized/hidden — caller will retry next frame
+        m_swapExtent = caps.currentExtent;
+    } else {
+        m_swapExtent.width  = std::clamp(width,  caps.minImageExtent.width,  caps.maxImageExtent.width);
+        m_swapExtent.height = std::clamp(height, caps.minImageExtent.height, caps.maxImageExtent.height);
+    }
 
     uint32_t imageCount = caps.minImageCount + 1;
     if (caps.maxImageCount > 0 && imageCount > caps.maxImageCount)
@@ -509,7 +542,8 @@ VkShaderModule CRendererVulkan::loadShader(const std::string& path)
 // shader modules and a pre-created pipeline layout.
 // ---------------------------------------------------------------------------
 bool CRendererVulkan::buildGraphicsPipeline(VkShaderModule vert, VkShaderModule frag,
-                                             VkPipelineLayout layout, VkPipeline& outPipeline)
+                                             VkPipelineLayout layout, VkPipeline& outPipeline,
+                                             VkRenderPass renderPass, bool fullscreenTriangle)
 {
     VkPipelineShaderStageCreateInfo stages[2]{};
     stages[0].sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -535,11 +569,14 @@ bool CRendererVulkan::buildGraphicsPipeline(VkShaderModule vert, VkShaderModule 
     attrs[1].offset   = offsetof(QuadVertex, u);
 
     VkPipelineVertexInputStateCreateInfo vertInput{};
-    vertInput.sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertInput.vertexBindingDescriptionCount   = 1;
-    vertInput.pVertexBindingDescriptions      = &binding;
-    vertInput.vertexAttributeDescriptionCount = 2;
-    vertInput.pVertexAttributeDescriptions    = attrs;
+    vertInput.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    if (!fullscreenTriangle)
+    {
+        vertInput.vertexBindingDescriptionCount   = 1;
+        vertInput.pVertexBindingDescriptions      = &binding;
+        vertInput.vertexAttributeDescriptionCount = 2;
+        vertInput.pVertexAttributeDescriptions    = attrs;
+    }
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType    = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -568,7 +605,7 @@ bool CRendererVulkan::buildGraphicsPipeline(VkShaderModule vert, VkShaderModule 
     ms.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
     VkPipelineColorBlendAttachmentState blendAtt{};
-    blendAtt.blendEnable         = VK_TRUE;
+    blendAtt.blendEnable         = fullscreenTriangle ? VK_FALSE : VK_TRUE;
     blendAtt.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
     blendAtt.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
     blendAtt.colorBlendOp        = VK_BLEND_OP_ADD;
@@ -595,7 +632,7 @@ bool CRendererVulkan::buildGraphicsPipeline(VkShaderModule vert, VkShaderModule 
     pci.pColorBlendState    = &blend;
     pci.pDynamicState       = &dynState;
     pci.layout              = layout;
-    pci.renderPass          = m_renderPass;
+    pci.renderPass          = (renderPass != VK_NULL_HANDLE) ? renderPass : m_renderPass;
 
     return vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pci,
                                      nullptr, &outPipeline) == VK_SUCCESS;
@@ -721,6 +758,171 @@ bool CRendererVulkan::createCubicBlendPipeline()
 }
 
 // ---------------------------------------------------------------------------
+// YUV→RGB conversion pipeline. Renders decoded video planes into a frame
+// texture's RGBA image, which the blend pipelines then sample as usual.
+// ---------------------------------------------------------------------------
+bool CRendererVulkan::createYUVConversionPipeline()
+{
+    // Set 0: Y plane, U (or interleaved UV) plane, V plane.
+    VkDescriptorSetLayoutBinding bindings[3]{};
+    for (uint32_t i = 0; i < 3; ++i)
+    {
+        bindings[i].binding         = i;
+        bindings[i].descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        bindings[i].descriptorCount = 1;
+        bindings[i].stageFlags      = VK_SHADER_STAGE_FRAGMENT_BIT;
+    }
+    VkDescriptorSetLayoutCreateInfo dslci{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
+    dslci.bindingCount = 3;
+    dslci.pBindings    = bindings;
+    if (vkCreateDescriptorSetLayout(m_device, &dslci, nullptr, &m_yuvSetLayout) != VK_SUCCESS)
+        return false;
+
+    // The pass overwrites the whole image, so its previous contents are
+    // discarded, and it ends in the layout the blend pipelines sample from.
+    VkAttachmentDescription colorAtt{};
+    colorAtt.format         = VK_FORMAT_R8G8B8A8_SRGB;
+    colorAtt.samples        = VK_SAMPLE_COUNT_1_BIT;
+    colorAtt.loadOp         = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colorAtt.storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAtt.stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colorAtt.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    colorAtt.initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorAtt.finalLayout    = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+    VkAttachmentReference colorRef{0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint    = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments    = &colorRef;
+
+    VkSubpassDependency deps[2]{};
+    // Earlier frames may still be sampling this texture: wait for those reads
+    // before overwriting it.
+    deps[0].srcSubpass    = VK_SUBPASS_EXTERNAL;
+    deps[0].dstSubpass    = 0;
+    deps[0].srcStageMask  = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    deps[0].srcAccessMask = 0;
+    deps[0].dstStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    deps[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    // Make the converted pixels visible to later blend draws.
+    deps[1].srcSubpass    = 0;
+    deps[1].dstSubpass    = VK_SUBPASS_EXTERNAL;
+    deps[1].srcStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    deps[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    deps[1].dstStageMask  = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    deps[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+    VkRenderPassCreateInfo rpci{VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
+    rpci.attachmentCount = 1;
+    rpci.pAttachments    = &colorAtt;
+    rpci.subpassCount    = 1;
+    rpci.pSubpasses      = &subpass;
+    rpci.dependencyCount = 2;
+    rpci.pDependencies   = deps;
+    if (vkCreateRenderPass(m_device, &rpci, nullptr, &m_yuvRenderPass) != VK_SUCCESS)
+        return false;
+
+    VkPushConstantRange pcRange{};
+    pcRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    pcRange.offset     = 0;
+    pcRange.size       = sizeof(VkPushConstantsYUV);
+
+    VkPipelineLayoutCreateInfo plci{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
+    plci.setLayoutCount         = 1;
+    plci.pSetLayouts            = &m_yuvSetLayout;
+    plci.pushConstantRangeCount = 1;
+    plci.pPushConstantRanges    = &pcRange;
+    if (vkCreatePipelineLayout(m_device, &plci, nullptr, &m_yuvPipelineLayout) != VK_SUCCESS)
+        return false;
+
+    std::string shaderDir = PlatformUtils::GetWorkingDir() + "shaders/";
+    VkShaderModule vert = loadShader(shaderDir + "fullscreen.vert.spv");
+    VkShaderModule frag = loadShader(shaderDir + "yuv_to_rgb.frag.spv");
+    if (vert == VK_NULL_HANDLE || frag == VK_NULL_HANDLE)
+    {
+        if (vert != VK_NULL_HANDLE) vkDestroyShaderModule(m_device, vert, nullptr);
+        if (frag != VK_NULL_HANDLE) vkDestroyShaderModule(m_device, frag, nullptr);
+        return false;
+    }
+
+    bool ok = buildGraphicsPipeline(vert, frag, m_yuvPipelineLayout, m_yuvPipeline,
+                                    m_yuvRenderPass, true);
+    vkDestroyShaderModule(m_device, vert, nullptr);
+    vkDestroyShaderModule(m_device, frag, nullptr);
+    if (ok) g_Log->Info("CRendererVulkan: YUV→RGB conversion pipeline ready");
+    return ok;
+}
+
+// ---------------------------------------------------------------------------
+// Vulkan Video decode support on the selected GPU. FFmpeg creates its own
+// device for decoding; this only decides whether that is worth attempting
+// and which GPU it should pick.
+// ---------------------------------------------------------------------------
+void CRendererVulkan::queryVideoDecodeSupport()
+{
+    m_videoDecodeDeviceName.clear();
+
+    // Literal values: headers older than 1.3.238 only define these behind
+    // VK_ENABLE_BETA_EXTENSIONS.
+    constexpr VkQueueFlags kQueueVideoDecodeBit = 0x00000020;  // VK_QUEUE_VIDEO_DECODE_BIT_KHR
+
+    uint32_t qCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice, &qCount, nullptr);
+    std::vector<VkQueueFamilyProperties> qProps(qCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice, &qCount, qProps.data());
+    const bool hasDecodeQueue = std::any_of(qProps.begin(), qProps.end(),
+        [&](const VkQueueFamilyProperties& q) { return (q.queueFlags & kQueueVideoDecodeBit) != 0; });
+
+    uint32_t extCount = 0;
+    vkEnumerateDeviceExtensionProperties(m_physicalDevice, nullptr, &extCount, nullptr);
+    std::vector<VkExtensionProperties> exts(extCount);
+    vkEnumerateDeviceExtensionProperties(m_physicalDevice, nullptr, &extCount, exts.data());
+    auto hasExt = [&](const char* name) {
+        return std::any_of(exts.begin(), exts.end(),
+            [&](const VkExtensionProperties& e) { return strcmp(e.extensionName, name) == 0; });
+    };
+    const bool h264 = hasExt("VK_KHR_video_decode_h264");
+    const bool h265 = hasExt("VK_KHR_video_decode_h265");
+
+    VkPhysicalDeviceProperties props;
+    vkGetPhysicalDeviceProperties(m_physicalDevice, &props);
+
+    // Escape hatch for driver bugs and for testing the software path.
+    if (getenv("INFINIDREAM_NO_HW_DECODE"))
+    {
+        g_Log->Info("CRendererVulkan: INFINIDREAM_NO_HW_DECODE set; video will be decoded in software");
+        return;
+    }
+
+    // Mesa hides Vulkan Video on Intel behind ANV_DEBUG (see main.cpp), and it has
+    // only been tested from Mesa 26. Older drivers decode in software.
+    constexpr uint32_t kIntelVendorID = 0x8086;
+    constexpr uint32_t kMinIntelMesaMajor = 26;
+    if (props.vendorID == kIntelVendorID &&
+        VK_VERSION_MAJOR(props.driverVersion) < kMinIntelMesaMajor)
+    {
+        g_Log->Info("CRendererVulkan: Vulkan Video not used on %s with Mesa %u; "
+                    "video will be decoded in software",
+                    props.deviceName, VK_VERSION_MAJOR(props.driverVersion));
+        return;
+    }
+
+    if (hasDecodeQueue && hasExt("VK_KHR_video_decode_queue") && (h264 || h265))
+    {
+        m_videoDecodeDeviceName = props.deviceName;
+        g_Log->Info("CRendererVulkan: Vulkan Video decode available on %s (H.264: %s, H.265: %s)",
+                    props.deviceName, h264 ? "yes" : "no", h265 ? "yes" : "no");
+    }
+    else
+    {
+        g_Log->Info("CRendererVulkan: no Vulkan Video decode on %s; video will be decoded in software",
+                    props.deviceName);
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Command pool + buffers
 // ---------------------------------------------------------------------------
 bool CRendererVulkan::createCommandPool()
@@ -755,11 +957,38 @@ bool CRendererVulkan::createSyncObjects()
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         if (vkCreateSemaphore(m_device, &si, nullptr, &m_imageAvailable[i]) != VK_SUCCESS ||
-            vkCreateSemaphore(m_device, &si, nullptr, &m_renderFinished[i]) != VK_SUCCESS ||
             vkCreateFence    (m_device, &fi, nullptr, &m_inFlightFence[i])  != VK_SUCCESS)
             return false;
     }
-    return true;
+    return createPresentSemaphores();
+}
+
+bool CRendererVulkan::createPresentSemaphores()
+{
+    destroyPresentSemaphores();
+    m_renderFinished.resize(m_swapImages.size(), VK_NULL_HANDLE);
+
+    VkSemaphoreCreateInfo info{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+    for (auto& semaphore : m_renderFinished)
+    {
+        if (vkCreateSemaphore(m_device, &info, nullptr, &semaphore) != VK_SUCCESS)
+        {
+            destroyPresentSemaphores();
+            return false;
+        }
+    }
+    return !m_renderFinished.empty();
+}
+
+void CRendererVulkan::destroyPresentSemaphores()
+{
+    if (m_device != VK_NULL_HANDLE)
+    {
+        for (VkSemaphore semaphore : m_renderFinished)
+            if (semaphore != VK_NULL_HANDLE)
+                vkDestroySemaphore(m_device, semaphore, nullptr);
+    }
+    m_renderFinished.clear();
 }
 
 // ---------------------------------------------------------------------------
@@ -956,8 +1185,8 @@ bool CRendererVulkan::Initialize(spCDisplayOutput _spDisplay)
     VkSurfaceKHR surface  = disp->GetSurface();
     uint32_t     w        = disp->Width();
     uint32_t     h        = disp->Height();
-    m_surface         = surface;
-    m_vulkanInstance  = instance;
+    m_surface        = surface;
+    m_vulkanInstance = instance;
 
     if (!pickPhysicalDevice(instance, surface))     return false;
     if (!createLogicalDevice())                      return false;
@@ -978,6 +1207,10 @@ bool CRendererVulkan::Initialize(spCDisplayOutput _spDisplay)
         g_Log->Warning("CRendererVulkan: linear blend pipeline unavailable (missing blend_linear.frag.spv?)");
     if (!createCubicBlendPipeline())
         g_Log->Warning("CRendererVulkan: cubic blend pipeline unavailable (missing blend_cubic.frag.spv?)");
+    if (!createYUVConversionPipeline())
+        g_Log->Warning("CRendererVulkan: YUV conversion pipeline unavailable (missing yuv_to_rgb.frag.spv?); "
+                       "video frames will be converted on the CPU");
+    queryVideoDecodeSupport();
     if (!createVertexBuffers())                      return false;
 
     m_currentDescSet = m_whiteDescSet;
@@ -1073,6 +1306,7 @@ float CRendererVulkan::GetGPUUtilization()
 void CRendererVulkan::recreateSwapchain()
 {
     vkDeviceWaitIdle(m_device);
+    destroyPresentSemaphores();
 
     // Destroy framebuffers
     for (auto fb : m_framebuffers)
@@ -1096,7 +1330,26 @@ void CRendererVulkan::recreateSwapchain()
     uint32_t h = m_spDisplay->Height();
 
     g_Log->Info("CRendererVulkan: recreating swapchain (%ux%u)", w, h);
-    createSwapchain(m_surface, w, h);
+    if (!createSwapchain(m_surface, w, h)) {
+        // Surface not ready (e.g. window minimized, zero-size extent from driver).
+        // Mark swapExtent as empty so BeginFrame retries next frame.
+        m_swapExtent = {0, 0};
+        return;
+    }
+
+    if (!createPresentSemaphores()) {
+        g_Log->Error("CRendererVulkan: failed to recreate presentation semaphores");
+        m_swapExtent = {0, 0};
+        return;
+    }
+
+    // Sync the display's tracked size to what the driver actually created.
+    // On X11 with Xfwm4 the driver enforces currentExtent which may differ
+    // slightly from the last ConfigureNotify value. Without this sync,
+    // BeginFrame's mismatch check fires immediately after recreation and
+    // loops forever.
+    m_spDisplay->SyncSize(m_swapExtent.width, m_swapExtent.height);
+
     createFramebuffers();
 }
 
@@ -1106,12 +1359,15 @@ bool CRendererVulkan::BeginFrame()
 {
     if (m_inFrame) return true;
 
+    // Skip frames while the window has no drawable area (minimized on some WMs).
+    if (m_spDisplay->Width() == 0 || m_spDisplay->Height() == 0)
+        return false;
+
     // Proactively recreate the swapchain if the window size changed.
     // Display()->Width/Height() is kept up-to-date by ConfigureNotify (X11) and
     // xdg_toplevel configure (Wayland), so comparing against m_swapExtent detects
     // fullscreen transitions and manual resizes exactly one frame after the WM sends
-    // the resize event — no spurious recreations since m_swapExtent is set from those
-    // same dimensions (never from stale caps.currentExtent).
+    // the resize event. After recreation, SyncSize() keeps them in agreement.
     if (m_spDisplay->Width() != m_swapExtent.width || m_spDisplay->Height() != m_swapExtent.height)
     {
         recreateSwapchain();
@@ -1148,7 +1404,7 @@ bool CRendererVulkan::BeginFrame()
     // then reset + write the start timestamp for this slot.
     if (m_timestampPool != VK_NULL_HANDLE)
     {
-        if (m_timestampsValid)
+        if (m_timestampSlotValid[m_currentFrame])
         {
             uint64_t ts[2] = {};
             if (vkGetQueryPoolResults(m_device, m_timestampPool,
@@ -1218,6 +1474,8 @@ bool CRendererVulkan::EndFrame(bool /*drawn*/)
     // Render ImGui draw data (text overlays etc.) inside the active render pass.
     if (m_imguiInitialized)
     {
+        FirstTimeSetupVulkan_DrawIfNeeded();
+        SettingsDialogVulkan_DrawIfNeeded();
         ImGui::Render();
         ImDrawData* drawData = ImGui::GetDrawData();
         if (drawData && drawData->TotalVtxCount > 0)
@@ -1231,7 +1489,7 @@ bool CRendererVulkan::EndFrame(bool /*drawn*/)
     {
         vkCmdWriteTimestamp(cmd, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
                             m_timestampPool, m_currentFrame * 2 + 1);
-        m_timestampsValid = true;
+        m_timestampSlotValid[m_currentFrame] = true;
     }
 
     vkEndCommandBuffer(cmd);
@@ -1244,12 +1502,13 @@ bool CRendererVulkan::EndFrame(bool /*drawn*/)
     si.commandBufferCount   = 1;
     si.pCommandBuffers      = &cmd;
     si.signalSemaphoreCount = 1;
-    si.pSignalSemaphores    = &m_renderFinished[m_currentFrame];
+    VkSemaphore& renderFinished = m_renderFinished[m_currentImageIndex];
+    si.pSignalSemaphores    = &renderFinished;
     vkQueueSubmit(m_graphicsQueue, 1, &si, m_inFlightFence[m_currentFrame]);
 
     VkPresentInfoKHR pi{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
     pi.waitSemaphoreCount = 1;
-    pi.pWaitSemaphores    = &m_renderFinished[m_currentFrame];
+    pi.pWaitSemaphores    = &renderFinished;
     pi.swapchainCount     = 1;
     pi.pSwapchains        = &m_swapchain;
     pi.pImageIndices      = &m_currentImageIndex;
@@ -1447,6 +1706,67 @@ spCTextureFlat CRendererVulkan::NewTextureFlat(spCImage _spImage,
     return tex;
 }
 
+// A 2x2 box-filtered half-size copy of an RGBA8 image. Color is weighted by alpha so
+// the color of fully transparent pixels doesn't fringe the edges.
+static spCImage HalveRgbaImage(const spCImage& _src)
+{
+    const uint32_t srcW = _src->GetWidth(0);
+    const uint32_t dstW = srcW / 2;
+    const uint32_t dstH = _src->GetHeight(0) / 2;
+    auto dst = std::make_shared<CImage>();
+    dst->Create(dstW, dstH, eImage_RGBA8, false, false);
+    const uint8_t* in = _src->GetData(0);
+    uint8_t* out = dst->GetData(0);
+    for (uint32_t y = 0; y < dstH; ++y)
+    {
+        for (uint32_t x = 0; x < dstW; ++x)
+        {
+            const uint8_t* row0 = in + (y * 2 * srcW + x * 2) * 4;
+            const uint8_t* row1 = row0 + srcW * 4;
+            const uint8_t* texels[4] = {row0, row0 + 4, row1, row1 + 4};
+            uint32_t rgb[3] = {0, 0, 0};
+            uint32_t alpha = 0;
+            for (const uint8_t* t : texels)
+            {
+                for (int c = 0; c < 3; ++c)
+                    rgb[c] += t[c] * t[3];
+                alpha += t[3];
+            }
+            uint8_t* px = out + (y * dstW + x) * 4;
+            for (int c = 0; c < 3; ++c)
+                px[c] = alpha ? static_cast<uint8_t>((rgb[c] + alpha / 2) / alpha) : 0;
+            px[3] = static_cast<uint8_t>((alpha + 2) / 4);
+        }
+    }
+    return dst;
+}
+
+VkDescriptorSet CRendererVulkan::GetUiTexture(const std::string& _fileName, uint32_t _drawnSize)
+{
+    const auto key = std::make_pair(_fileName, _drawnSize);
+    auto it = m_uiTextures.find(key);
+    if (it == m_uiTextures.end())
+    {
+        spCTextureFlatVulkan tex;
+        spCImage image = std::make_shared<CImage>();
+        // Upload() takes 4 bytes per pixel and only the top mip.
+        if (image->Load(_fileName, false) && image->GetFormat().getFormatEnum() == eImage_RGBA8)
+        {
+            // Bilinear sampling alone gets jagged beyond 2x reduction.
+            const uint32_t minSize = (std::max)(_drawnSize, 1u);
+            while (image->GetWidth(0) / 2 >= minSize && image->GetHeight(0) / 2 >= minSize)
+                image = HalveRgbaImage(image);
+            tex = std::make_shared<CTextureFlatVulkan>(this, 0);
+            if (!tex->Upload(image))
+                tex.reset();
+        }
+        if (!tex)
+            g_Log->Warning("CRendererVulkan: could not load UI texture %s", _fileName.c_str());
+        it = m_uiTextures.emplace(key, tex).first;
+    }
+    return it->second ? it->second->DescSet() : VK_NULL_HANDLE;
+}
+
 // ---------------------------------------------------------------------------
 // Fonts / Text
 // ---------------------------------------------------------------------------
@@ -1501,14 +1821,7 @@ void CRendererVulkan::DrawText(spCBaseText _text,
 
     ImFont* normalFont = spFI->GetImFont();
 
-    // Scale the font size so the overlay occupies the same visual proportion
-    // of the screen regardless of resolution.  1080p is the reference at which
-    // the baked font size (24 px) looks correct; above that we scale up, below
-    // we scale down.  ImGui accepts any size in AddText regardless of the atlas
-    // bake size — it rasterises at bake size and scales to display size.
-    static constexpr float kHudReferenceHeight = 1080.f;
-    const float scale    = static_cast<float>(m_spDisplay->Height()) / kHudReferenceHeight;
-    const float fontSizePx = spFI->FontSize() * scale;
+    const float fontSizePx = spFI->DrawnSizePx();
 
     // Convert normalised rect [0,1] → pixel coords (ImGui origin is top-left).
     Base::Math::CRect r = _text->GetRect();
@@ -1517,7 +1830,6 @@ void CRendererVulkan::DrawText(spCBaseText _text,
 
     ImU32 col       = ImGui::ColorConvertFloat4ToU32(
         ImVec4(_color.m_X, _color.m_Y, _color.m_Z, _color.m_W));
-    ImU32 shadowCol = IM_COL32(0, 0, 0, static_cast<ImU32>(_color.m_W * 255.f));
 
     ImDrawList*        dl   = ImGui::GetBackgroundDrawList();
     const std::string& text = spTV->Text();
@@ -1571,8 +1883,24 @@ void CRendererVulkan::DrawText(spCBaseText _text,
             dl->AddText(normalFont, fontSizePx, cur, color, segBegin, p);
     };
 
-    // Drop-shadow: 1 px down-right in black (matches Mac: shadowOffset=(1,-1), shadowRadius=0).
-    renderAt({cursor.x + 1.0f, cursor.y + 1.0f}, shadowCol);
+    // Soft drop shadow, as on Windows: a core copy of the text offset down-right, plus a
+    // faint 1px halo around it. The offset grows with the text. The swapchain is sRGB, so
+    // these alphas blend in linear light; they appear as about 0.6 and 0.3.
+    struct ShadowTap
+    {
+        float dx, dy, alpha;
+    };
+    const float offset = (std::max)(1.0f, std::round(fontSizePx / 16.0f));
+    const ShadowTap shadowTaps[] = {
+        {offset, offset, 0.87f},
+        {offset - 1.0f, offset, 0.54f},
+        {offset + 1.0f, offset, 0.54f},
+        {offset, offset - 1.0f, 0.54f},
+        {offset, offset + 1.0f, 0.54f},
+    };
+    for (const ShadowTap& tap : shadowTaps)
+        renderAt({cursor.x + tap.dx, cursor.y + tap.dy},
+                 IM_COL32(0, 0, 0, static_cast<ImU32>(_color.m_W * tap.alpha * 255.f)));
     renderAt(cursor, col);
 }
 

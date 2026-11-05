@@ -10,7 +10,9 @@
 
 #include <chrono>
 #include <condition_variable>
+#include <cstdint>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <vector>
 #include <queue>
@@ -62,9 +64,16 @@ public:
     bool initializePlaylist(const std::string& playlistUUID, bool fetchPlaylist);
 
     void setOfflineMode(bool offline);
-    bool isOfflineMode() const { return m_offlineMode; }
+    bool isOfflineMode() const {
+        std::lock_guard lock(m_stateMutex);
+        return m_offlineMode;
+    }
     
     std::vector<std::string> getCurrentPlaylistUUIDs() const;
+    // Whether uuid is in the current playlist. True while a playlist change is
+    // still loading (or the playlist is empty), so callers never act on a
+    // half-switched playlist.
+    bool containsDream(const std::string& uuid) const;
     
     std::vector<PlaylistEntry> filterActiveAndProcessedDreams(const std::vector<PlaylistEntry>& entries) const;
     std::vector<PlaylistEntry> filterUncachedDreams(const std::vector<PlaylistEntry>& entries) const;
@@ -76,8 +85,14 @@ public:
     size_t countCachedDreamsAhead() const;
     
     // Get the lookahead limit for downloading
-    size_t getDownloadLookaheadLimit() const { return m_downloadLookaheadLimit; }
-    void setDownloadLookaheadLimit(size_t limit) { m_downloadLookaheadLimit = limit; }
+    size_t getDownloadLookaheadLimit() const {
+        std::lock_guard lock(m_stateMutex);
+        return m_downloadLookaheadLimit;
+    }
+    void setDownloadLookaheadLimit(size_t limit) {
+        std::lock_guard lock(m_stateMutex);
+        m_downloadLookaheadLimit = limit;
+    }
     
     // Check if any dream in the playlist has keyframes
     bool hasKeyframes() const;
@@ -124,9 +139,23 @@ public:
     bool isLoopingDream(const PlaylistEntry& entry) const;
 
     // Loop iteration control
-    int getLoopIterations() const { return m_loopIterations; }
-    void setLoopIterations(int iterations) { m_loopIterations = iterations; }
-    int getCurrentLoopCount() const { return m_currentLoopCount; }
+    int getLoopIterations() const {
+        std::lock_guard lock(m_stateMutex);
+        return m_loopIterations;
+    }
+    void setLoopIterations(int iterations) {
+        std::lock_guard lock(m_stateMutex);
+        m_loopIterations = iterations;
+    }
+    // Playlist crossfade seconds; nullopt = use the client default.
+    std::optional<float> getTransitionTime() const {
+        std::lock_guard lock(m_stateMutex);
+        return m_transitionTime;
+    }
+    int getCurrentLoopCount() const {
+        std::lock_guard lock(m_stateMutex);
+        return m_currentLoopCount;
+    }
     std::string getCurrentDreamUUID() const;
 
     // Actually move to the next dream based on preflight decision
@@ -169,8 +198,14 @@ public:
     // Get various metadata of the current playlist
     std::string getPlaylistName() const;
     std::string getPlaylistUUID() const;
-    bool isPlaylistNSFW() const { return m_isPlaylistNSFW; }
-    int64_t getPlaylistTimestamp() const { return m_playlistTimestamp; }
+    bool isPlaylistNSFW() const {
+        std::lock_guard lock(m_stateMutex);
+        return m_isPlaylistNSFW;
+    }
+    int64_t getPlaylistTimestamp() const {
+        std::lock_guard lock(m_stateMutex);
+        return m_playlistTimestamp;
+    }
 
     // Clear the current playlist
     void clearPlaylist();
@@ -186,7 +221,10 @@ public:
     
     std::chrono::seconds getTimeUntilNextCheck() const;
     void removeCurrentDream();
-    bool isReady() { return !m_initializeInProgress; };
+    bool isReady() const {
+        std::lock_guard lock(m_stateMutex);
+        return !m_initializeInProgress;
+    };
 
 private:
     std::vector<PlaylistEntry> m_playlist;
@@ -205,7 +243,7 @@ private:
     size_t m_currentPosition;
     std::shared_ptr<const Cache::Dream> m_currentDream;
     std::string m_currentDreamUUID;  // Store the UUID of the currently playing dream
-    mutable std::mutex m_stateMutex;
+    mutable std::recursive_mutex m_stateMutex;
 
     Cache::CacheManager& m_cacheManager;
 
@@ -215,7 +253,7 @@ private:
     bool isDreamProcessed(const std::string& uuid) const;
     
     std::atomic<bool> m_isCheckingActive;
-    bool m_shouldTerminate;
+    std::atomic<bool> m_shouldTerminate;
     
     std::thread m_checkingThread;
     std::chrono::minutes m_checkInterval{60};
@@ -228,7 +266,10 @@ private:
     bool checkForPlaylistChanges();
     bool updatePlaylist(bool alreadyFetched = false);
 
-    bool parsePlaylist(const std::string& playlistUUID);
+    bool parsePlaylist(const std::string& playlistUUID, uint64_t expectedGeneration,
+                       bool preserveCurrent = false,
+                       const std::string& currentDreamUUID = {},
+                       size_t oldPosition = 0);
     size_t findPositionOfDream(const std::string& dreamUUID) const;
     
     std::atomic<std::chrono::steady_clock::time_point> m_nextCheckTime;
@@ -250,9 +291,11 @@ private:
     // Loop iteration settings
     int m_loopIterations = 0;           // 0 = no special loop handling, N > 0 = play loops N times
     mutable int m_currentLoopCount = 0; // Tracks how many times we've looped at current keyframe group
+    std::optional<float> m_transitionTime; // Crossfade seconds; nullopt = client default
 
     // Download lookahead configuration
     size_t m_downloadLookaheadLimit = 5;
+    uint64_t m_playlistGeneration = 0;
 
     // Rate limit for preflightNextDream's last-resort "nothing is cached, stream it
     // instead" fallback, which hands back a dream the caller still has to resolve a
