@@ -77,7 +77,7 @@ def snapshot_real_installs():
 
 
 class Run:
-    def __init__(self, work, app, media_dir):
+    def __init__(self, work, app, media_dir, server_args=()):
         self.work = Path(work)
         self.data = self.work / "data"
         self.event_path = self.work / "events.jsonl"
@@ -88,6 +88,7 @@ class Run:
         self.client = None
         self.watcher = None
         self.marks = {}
+        self.server_args = server_args
 
     def events(self, kind=None):
         if not self.event_path.exists():
@@ -120,7 +121,7 @@ class Run:
             "content": {"server": BASE, "sealed_session": STORED_SESSION, "api_key": STORED_KEY}}}))
         self.server = subprocess.Popen([
             sys.executable, str(HERE / "server.py"), "--media-dir", str(self.media_dir),
-            "--port", str(PORT), "--event-log", str(self.event_path)])
+            "--port", str(PORT), "--event-log", str(self.event_path), *self.server_args])
 
         def healthy():
             try:
@@ -217,7 +218,7 @@ def scenario(run):
     require_alive()
 
 
-def verify(run, before):
+def verify(run, before, require_download=True):
     http = run.events("http")
     socket_opens = run.events("ws_open")
 
@@ -251,7 +252,7 @@ def verify(run, before):
     wrong = [p.name for p in cached if p.stem in records
              and hashlib.md5(p.read_bytes()).hexdigest() != records[p.stem]["md5"]]
     checked = sum(p.stem in records for p in cached)
-    check("Finished downloads match their md5", checked > 0 and not wrong,
+    check("Finished downloads match their md5", (checked > 0 or not require_download) and not wrong,
           f"{checked} checked" + (f", wrong: {wrong}" if wrong else ""))
 
     check("Client's log is in the test folder", "Attaching Log" in run.log_text())
