@@ -1,16 +1,19 @@
-/*#include <websocketpp/config/asio_client.hpp>
-#include <websocketpp/client.hpp>
-#include <websocketpp/config/asio_no_tls_client.hpp>*/
 #include <sio_client.h>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <cstdio>
 #include <future>
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 #include <chrono>
 #include <utility>
 #include <algorithm>
+#include <cctype>
+#include <unordered_set>
+#ifndef WIN32
+#include <unistd.h>
+#endif
 #include <ctime>
 
 #include "ContentDownloader.h"
@@ -70,6 +73,11 @@ void ESShowFirstTimeSetup()
     }
 }
 
+bool ESHasFirstTimeSetupCallback()
+{
+    return gShowFirstTimeSetupCallback != nullptr;
+}
+
 long long EDreamClient::remainingQuota = 0;
 std::chrono::system_clock::time_point EDreamClient::quotaExpiresAt = std::chrono::system_clock::now();
 
@@ -123,6 +131,44 @@ void EDreamClient::EnsureIOContext()
 
 static void OnQuotaUpdate(sio::event& _wsEvent);
 
+// The server replies with "Validation error" when it rejects one of our
+// remote-control events, and "Error" when it can't act on one (e.g. an
+// unknown dream). Neither says which event it was, so log the message.
+static const char* const kServerErrorEvents[] = {"Validation error", "Error"};
+
+static void OnServerError(sio::event& _wsEvent)
+{
+    std::string message;
+    auto msg = _wsEvent.get_message();
+    if (msg && msg->get_flag() == sio::message::flag_object)
+    {
+        const auto& map = msg->get_map();
+        auto it = map.find("error");
+        if (it != map.end() && it->second &&
+            it->second->get_flag() == sio::message::flag_string)
+            message = it->second->get_string();
+    }
+    else if (msg && msg->get_flag() == sio::message::flag_string)
+    {
+        message = msg->get_string();
+    }
+    g_Log->Error("WebSocket server error (%s): %s", _wsEvent.get_name().c_str(),
+                 message.empty() ? "<no message>" : message.c_str());
+}
+
+static void BindRemoteControlEvents(const sio::socket::ptr& socket)
+{
+    socket->off("new_remote_control_event");
+    socket->on("new_remote_control_event", &OnWebSocketMessage);
+    socket->off("quota_update");
+    socket->on("quota_update", &OnQuotaUpdate);
+    for (const char* event : kServerErrorEvents)
+    {
+        socket->off(event);
+        socket->on(event, &OnServerError);
+    }
+}
+
 // MARK: Ping via websocket
 void EDreamClient::SendPing()
 {
@@ -134,14 +180,11 @@ void EDreamClient::SendPing()
         return;
     }
 
-    // If socket is available but callbacks aren't bound yet, bind them now
-    // This handles the race condition where namespace becomes ready after OnWebSocketConnected
-    if (!fIsWebSocketConnected.load()) {
-        g_Log->Info("SendPing: Socket available but not marked connected, binding callbacks now");
-        socket->off("new_remote_control_event");
-        socket->on("new_remote_control_event", &OnWebSocketMessage);
-        socket->off("quota_update");
-        socket->on("quota_update", &OnQuotaUpdate);
+    // Only mark connected / bind once the namespace is actually open. Emits before
+    // open are queued by the sio client and flushed on CONNECT.
+    if (!fIsWebSocketConnected.load() && s_SIOClient.opened()) {
+        g_Log->Info("SendPing: Socket open but not marked connected, binding callbacks now");
+        BindRemoteControlEvents(socket);
         fIsWebSocketConnected.exchange(true);
     }
 
@@ -260,18 +303,7 @@ void EDreamClient::UpdateQuota()
         Network::NetworkHeaders::addStandardHeaders(spDownload);
         spDownload->AppendHeader("Content-Type: application/json");
 
-        // Retrieve the sealed session from settings
-        std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
-
-        if (sealedSession.empty()) {
-            g_Log->Error("UpdateQuota: Sealed session not found in settings");
-            ScheduleNextQuotaUpdate();
-            return;
-        }
-
-        // Set the cookie with the sealed session
-        std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
-        spDownload->AppendHeader(cookieHeader);
+        AppendAuthHeader(spDownload);
 
         std::string url{ ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::QUOTA) };
 
@@ -303,6 +335,12 @@ void EDreamClient::UpdateQuota()
             }
         }
     }
+
+    // FIX (issue #656): the backend silently rotates the session and returns the new
+    // sealed session only as a Set-Cookie header on an otherwise-200 response. This
+    // endpoint previously never called ParseAndSaveCookies, so that rotation was dropped
+    // and the stored session went stale, causing a delayed sign-out. Persist it here.
+    ParseAndSaveCookies(spDownload);
 
     // Parse the quota response
     try
@@ -383,16 +421,31 @@ void EDreamClient::SendGoodbye()
     }
 }
 
+void EDreamClient::SendGoodbyeAndDisconnect()
+{
+    if (!s_SIOClient.opened())
+    {
+        g_Log->Info("WebSocket not connected, skipping goodbye message");
+        return;
+    }
+
+    SendGoodbye();
+    // emit() only queues the frame; wait for it to be written so the
+    // shutdown watchdog's _exit() can't drop it.
+    if (!s_SIOClient.wait_for_writes(std::chrono::milliseconds(300)))
+        g_Log->Warning("Goodbye not written before timeout");
+    // Close so no later ping or state_sync makes the player look present
+    // again after the goodbye, and so the socket doesn't reconnect.
+    s_SIOClient.sync_close();
+}
+
 static void BindWebSocketCallbacks()
 {
     g_Log->Info("Binding web socket callbacks");
     auto socket = s_SIOClient.socket("/remote-control");
     if (socket) {
         g_Log->Info("WebSocket socket found, binding callbacks");
-        socket->off("new_remote_control_event");
-        socket->on("new_remote_control_event", &OnWebSocketMessage);
-        socket->off("quota_update");
-        socket->on("quota_update", &OnQuotaUpdate);
+        BindRemoteControlEvents(socket);
         EDreamClient::fIsWebSocketConnected.exchange(true);
     } else {
         // Namespace socket not ready yet - retry after a short delay
@@ -402,10 +455,7 @@ static void BindWebSocketCallbacks()
             auto socket = s_SIOClient.socket("/remote-control");
             if (socket) {
                 g_Log->Info("WebSocket socket found on retry, binding callbacks");
-                socket->off("new_remote_control_event");
-                socket->on("new_remote_control_event", &OnWebSocketMessage);
-                socket->off("quota_update");
-                socket->on("quota_update", &OnQuotaUpdate);
+                BindRemoteControlEvents(socket);
                 EDreamClient::fIsWebSocketConnected.exchange(true);
             } else {
                 g_Log->Error("WebSocket namespace still not available after retry");
@@ -421,6 +471,8 @@ void EDreamClient::UnbindWebSocketCallbacks()
     if (socket) {
         socket->off("new_remote_control_event");
         socket->off("quota_update");
+        for (const char* event : kServerErrorEvents)
+            socket->off(event);
     }
 }
 
@@ -466,6 +518,78 @@ static void OnWebSocketReconnect(unsigned _num, unsigned _delay)
     BindWebSocketCallbacks();
 }
 
+// Over plain http a real login must never leave the machine, even if a stray setting
+// points an everyday install at an http server: stored credentials read as absent and
+// only the env key is used.
+static std::string StoredSealedSession()
+{
+    if (ServerConfig::ServerConfigManager::getInstance().isPlaintext())
+        return "";
+    return g_Settings()->Get("settings.content.sealed_session", std::string(""));
+}
+
+static std::string CurrentApiKey()
+{
+    if (ServerConfig::ServerConfigManager::getInstance().isPlaintext())
+    {
+        const char* envKey = getenv("INFINIDREAM_API_KEY");
+        return envKey ? envKey : "";
+    }
+    return g_Settings()->Get("settings.content.api_key", std::string(""));
+}
+
+static std::atomic<bool> fWebSocketReauthInFlight(false);
+static std::atomic<int64_t> fWebSocketLastReauthMs(0);
+
+// The server validates the wos-session cookie on the socket handshake but, unlike the
+// REST endpoints, never refreshes it, and the sio client's reconnect loop keeps resending
+// the cookie captured at connect(). Once the access token has expired every reconnect is
+// rejected, so refresh the sealed session and reconnect with the new cookie.
+static void OnWebSocketConnectError(std::string const& nsp, std::string const& payload)
+{
+    if (payload.find("UNAUTHORIZED") == std::string::npos)
+        return;
+    // Api-Key auth has nothing to refresh.
+    if (StoredSealedSession().empty())
+        return;
+
+    // At most one refresh per minute, so a server that rejects even a fresh cookie
+    // doesn't turn the 5-25 s reconnect backoff into a refresh loop.
+    const int64_t nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+    if (nowMs - fWebSocketLastReauthMs.load() < 60000)
+        return;
+    if (fWebSocketReauthInFlight.exchange(true))
+        return;
+    fWebSocketLastReauthMs.store(nowMs);
+
+    // Called on the sio network thread; the refresh is a blocking HTTP request.
+    std::thread([]() {
+        g_Log->Info("WebSocket session rejected, refreshing sealed session before reconnecting");
+        EDreamClient::AuthRefreshResult result = EDreamClient::RefreshSealedSession();
+        if (result == EDreamClient::AuthRefreshResult::Success) {
+            EDreamClient::ConnectRemoteControlSocket();
+        } else {
+            g_Log->Warning("WebSocket session refresh failed (%d), will retry on a later rejection",
+                           static_cast<int>(result));
+        }
+        fWebSocketReauthInFlight.store(false);
+    }).detach();
+}
+
+// Both startup and DidSignIn() install these; DidSignIn() used to re-add all
+// but the connect-error listener, so after an interactive sign-in an expired
+// session was never refreshed on reconnect.
+static void SetWebSocketListeners()
+{
+    s_SIOClient.set_open_listener(&OnWebSocketConnected);
+    s_SIOClient.set_close_listener(&OnWebSocketClosed);
+    s_SIOClient.set_fail_listener(&OnWebSocketFail);
+    s_SIOClient.set_reconnecting_listener(&OnWebSocketReconnecting);
+    s_SIOClient.set_reconnect_listener(&OnWebSocketReconnect);
+    s_SIOClient.set_connect_error_listener(&OnWebSocketConnectError);
+}
+
 void EDreamClient::InitializeClient()
 {
     if (g_Client()->IsMultipleInstancesMode()) {
@@ -482,11 +606,7 @@ void EDreamClient::InitializeClient()
     // remote/online UI from appearing before we know the auth result.
     g_Player().SetOfflineMode(true);
 
-    s_SIOClient.set_open_listener(&OnWebSocketConnected);
-    s_SIOClient.set_close_listener(&OnWebSocketClosed);
-    s_SIOClient.set_fail_listener(&OnWebSocketFail);
-    s_SIOClient.set_reconnecting_listener(&OnWebSocketReconnecting);
-    s_SIOClient.set_reconnect_listener(&OnWebSocketReconnect);
+    SetWebSocketListeners();
 
     fInitialAuthComplete.store(false);
 
@@ -533,6 +653,142 @@ void EDreamClient::DeinitializeClient()
     s_SIOClient.set_reconnect_listener(nullptr);*/
 }
 
+// Appends the appropriate auth header to a request.
+// Prefers wos-session cookie (sealed session), falls back to Api-Key header.
+void EDreamClient::AppendAuthHeader(Network::spCFileDownloader& spDownload)
+{
+    std::string sealedSession = StoredSealedSession();
+    if (!sealedSession.empty())
+    {
+        spDownload->AppendHeader("Cookie: wos-session=" + sealedSession);
+        return;
+    }
+    std::string apiKey = CurrentApiKey();
+    if (!apiKey.empty())
+    {
+        spDownload->AppendHeader("Api-Key: " + apiKey);
+    }
+}
+
+// Marks the client as authenticated using a bare API key (no session exchange needed —
+// the backend middleware accepts Api-Key header directly on all protected endpoints).
+bool EDreamClient::SignInWithApiKey(const std::string& apiKey)
+{
+    // Don't let a test key replace a stored real one if a stray setting points here.
+    if (!ServerConfig::ServerConfigManager::getInstance().isPlaintext())
+    {
+        g_Settings()->Set("settings.content.api_key", apiKey);
+        g_Settings()->Storage()->Commit();
+    }
+    g_Log->Info("Signed in with API key");
+    return true;
+}
+
+// Interactive magic-link login. Reads the user's email from
+// settings.generator.nickname (settings.json), prompts for confirmation, sends
+// a one-time code to that address, reads the code from stdin, and exchanges it
+// for a sealed session (saved to settings). Requires a tty.
+// Returns true only if a sealed session was successfully obtained.
+// NOTE: ValidateCodeDetailed() calls RefreshSealedSession() internally, so
+// callers must NOT call RefreshSealedSession() again after this returns true.
+#ifdef LINUX_GNU
+namespace {
+
+static void PrintLinuxMagicLinkFailure(FILE* sink, const char* leadPrefix, const std::string& message,
+                                       int retryAfterSeconds)
+{
+    std::fprintf(sink, "%s%s", leadPrefix, message.c_str());
+    if (retryAfterSeconds >= 0)
+        std::fprintf(sink, "%sTry again in %d seconds.", message.empty() ? "\n" : "\n\n",
+                     retryAfterSeconds);
+    std::fputs("\n", sink);
+}
+
+}  // namespace
+#endif
+
+bool EDreamClient::LoginWithMagicLinkCode()
+{
+#ifndef LINUX_GNU
+    return false;  // Interactive terminal auth is Linux/headless only.
+#else
+    std::string email = g_Settings()->Get("settings.generator.nickname", std::string(""));
+
+    if (!isatty(STDIN_FILENO))
+    {
+        if (email.empty())
+            g_Log->Warning("No email in settings and no tty — "
+                           "set settings.generator.nickname in ~/.config/infinidream/settings.json");
+        else
+            g_Log->Warning("No tty for magic link code entry — "
+                           "run interactively once to establish a session");
+        return false;
+    }
+
+    if (email.empty())
+    {
+        // First run: prompt the user for their email and save it to settings.
+        fprintf(stderr,
+            "\nWelcome to infinidream!\n"
+            "Enter your invited email address to get started.\n"
+            "It will be saved to ~/.config/infinidream/settings.json for future runs.\n"
+            "Email: ");
+        fflush(stderr);
+
+        if (!std::getline(std::cin, email)) return false;
+
+        email.erase(0, email.find_first_not_of(" \t\r\n"));
+        auto trimEnd = email.find_last_not_of(" \t\r\n");
+        if (trimEnd != std::string::npos) email.erase(trimEnd + 1);
+        if (email.empty()) return false;
+
+        g_Settings()->Set("settings.generator.nickname", email);
+        g_Settings()->Storage()->Commit();
+        fprintf(stderr, "(Email saved to settings.json)\n\n");
+        g_Log->Info("Email saved to settings");
+    }
+
+    fprintf(stderr, "No sealed session token found. Would you like us to send a login code to %s? (y/N): ",
+            email.c_str());
+    fflush(stderr);
+
+    std::string response;
+    if (!std::getline(std::cin, response) || (response != "y" && response != "Y"))
+        return false;
+
+    auto sendResult = SendCode();
+    if (!sendResult.success)
+    {
+        PrintLinuxMagicLinkFailure(stderr, "Failed to send login code: ", sendResult.message,
+                                   sendResult.retryAfterSeconds);
+        return false;
+    }
+
+    fprintf(stderr, "Check your email for the code then enter it here: ");
+    fflush(stderr);
+
+    std::string code;
+    if (!std::getline(std::cin, code) || code.empty())
+        return false;
+
+    // Trim whitespace from code
+    code.erase(0, code.find_first_not_of(" \t\r\n"));
+    auto last = code.find_last_not_of(" \t\r\n");
+    if (last != std::string::npos) code.erase(last + 1);
+
+    auto result = ValidateCodeDetailed(code);
+    if (!result.success)
+    {
+        PrintLinuxMagicLinkFailure(stderr, "Login failed: ", result.message, result.retryAfterSeconds);
+        return false;
+    }
+
+    fprintf(stderr, "Login successful!\n");
+    g_Log->Info("Magic link login successful, sealed session saved");
+    return true;
+#endif  // LINUX_GNU
+}
+
 // MARK : Auth (via refresh)
 bool EDreamClient::Authenticate()
 {
@@ -542,20 +798,73 @@ bool EDreamClient::Authenticate()
     g_Log->Info("Starting Authentication...");
 
     // Check if we have a sealed session
-    std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
+    std::string sealedSession = StoredSealedSession();
 
     if (sealedSession.empty())
     {
         g_Log->Warning("No sealed session found");
+
+        // Try magic link login via email in settings (settings.generator.nickname).
+        // On Linux, skip the console path if a GUI wizard is registered — the wizard
+        // will handle authentication and the auth loop will retry automatically.
+        // On Mac/Windows the GUI wizard is always registered but those platforms use
+        // their own GUI auth flow; magic link is still attempted as a fallback.
+        // ValidateCodeDetailed() calls RefreshSealedSession() internally — no
+        // second refresh needed if this returns true.
+#ifdef LINUX_GNU
+        if (!ESHasFirstTimeSetupCallback() && LoginWithMagicLinkCode())
+#else
+        if (LoginWithMagicLinkCode())
+#endif
+        {
+            fIsLoggedIn.exchange(true);
+            fInitialAuthComplete.store(true);
+            g_Player().SetOfflineMode(false);
+            fAuthCV.notify_one();
+            g_Log->Info("Sign in success via magic link");
+            boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
+            return true;
+        }
+
+        // Fallback: API key auth (Linux / headless environments).
+        // Check the INFINIDREAM_API_KEY env var first so users can pass a key without
+        // editing the settings file. If present it is persisted for future runs.
+        const char* envKey = getenv("INFINIDREAM_API_KEY");
+        if (envKey && *envKey)
+        {
+            g_Log->Info("Found INFINIDREAM_API_KEY env var, using it");
+            if (SignInWithApiKey(std::string(envKey)))
+            {
+                fIsLoggedIn.exchange(true);
+                fInitialAuthComplete.store(true);
+                fAuthCV.notify_one();
+                boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
+                return true;
+            }
+        }
+        else
+        {
+            std::string storedKey = CurrentApiKey();
+            if (!storedKey.empty())
+            {
+                g_Log->Info("Found stored API key, using it");
+                fIsLoggedIn.exchange(true);
+                fInitialAuthComplete.store(true);
+                fAuthCV.notify_one();
+                boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
+                return true;
+            }
+        }
+
+        g_Log->Warning("No sealed session or API key found. "
+                       "Set settings.generator.nickname in ~/.config/infinidream/settings.json "
+                       "and run interactively, or run with --cached to play cached videos.");
         fIsLoggedIn.exchange(false);
         fInitialAuthComplete.store(true);
         fAuthCV.notify_one();
         if (!shownSettingsOnce) {
             shownSettingsOnce = true;
-            bool firstTimeSetupCompleted = g_Settings()->Get("settings.app.firsttimesetup", false);
-            if (!firstTimeSetupCompleted) {
-                ESShowFirstTimeSetup();
-            }
+            ESShowFirstTimeSetup();
         }
         return false;
     }
@@ -579,13 +888,61 @@ bool EDreamClient::Authenticate()
 
     if (result == AuthRefreshResult::InvalidSession)
     {
-        g_Log->Warning("Auth refresh failed: session invalid or expired");
+        // The refresh endpoint rejected the session, but this doesn't necessarily mean the
+        // session is dead for all API calls. The same 400 is returned for a genuinely expired
+        // grant AND for edge cases like MFA re-enrolment or SSO policy changes, where the
+        // session token may still be accepted by other endpoints.
+        //
+        // Rather than blindly wiping the session (original behaviour — wrong for the above
+        // edge cases) or blindly proceeding as logged-in (wrong for a genuinely expired
+        // session), we make a real authenticated request to the QUOTA endpoint. The server's
+        // response tells us definitively whether the token still works:
+        //   HTTP 200 → token is valid for API calls → proceed logged in, keep session
+        //   HTTP 4xx → token is dead everywhere    → wipe session, force re-login
+        {
+            auto spValidate = std::make_shared<Network::CFileDownloader>("ValidateSession");
+            Network::NetworkHeaders::addStandardHeaders(spValidate);
+            AppendAuthHeader(spValidate);
+            const bool reachable = spValidate->Perform(
+                ServerConfig::ServerConfigManager::getInstance().getEndpoint(
+                    ServerConfig::Endpoint::QUOTA));
+            const long httpCode = static_cast<long>(spValidate->ResponseCode());
+            // FIX (issue #656): persist any session rotation returned on this validation call.
+            ParseAndSaveCookies(spValidate);
+
+            if (reachable && httpCode == 200)
+            {
+                g_Log->Info("Auth refresh rejected but session is still valid (HTTP 200 on QUOTA) — proceeding as logged in.");
+                fIsLoggedIn.exchange(true);
+                fInitialAuthComplete.store(true);
+                g_Player().SetOfflineMode(false);
+                fAuthCV.notify_one();
+                boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
+                return true;
+            }
+
+            // 4xx (or network failure) — session is genuinely unusable.
+            g_Log->Warning("Auth refresh failed and session validation returned HTTP %ld — session is invalid, wiping.", httpCode);
+        }
+
+        // Before giving up, try re-acquiring a session via magic link.
+        if (LoginWithMagicLinkCode())
+        {
+            // ValidateCodeDetailed() already called RefreshSealedSession() — session is fresh.
+            g_Log->Info("Stale session replaced via magic link — session is fresh and valid");
+            fIsLoggedIn.exchange(true);
+            fInitialAuthComplete.store(true);
+            g_Player().SetOfflineMode(false);
+            fAuthCV.notify_one();
+            boost::thread webSocketThread(&EDreamClient::ConnectRemoteControlSocket);
+            return true;
+        }
+
         fIsLoggedIn.exchange(false);
         g_Settings()->Set("settings.content.sealed_session", std::string(""));
         g_Settings()->Storage()->Commit();
         fInitialAuthComplete.store(true);
         fAuthCV.notify_one();
-        // Do not auto-open login/settings UI on initial auth failure; HUD will show \"Please open settings to sign in.\"
         return false;
     }
 
@@ -622,11 +979,41 @@ bool EDreamClient::Authenticate()
         }
         if (result == AuthRefreshResult::InvalidSession)
         {
-            g_Log->Warning("Auth refresh failed on retry: session invalid or expired");
+            // Same validation approach as the initial auth attempt above.
+            auto spValidate = std::make_shared<Network::CFileDownloader>("ValidateSession");
+            Network::NetworkHeaders::addStandardHeaders(spValidate);
+            AppendAuthHeader(spValidate);
+            const bool reachable = spValidate->Perform(
+                ServerConfig::ServerConfigManager::getInstance().getEndpoint(
+                    ServerConfig::Endpoint::QUOTA));
+            const long httpCode = static_cast<long>(spValidate->ResponseCode());
+            // FIX (issue #656): persist any session rotation returned on this validation call.
+            ParseAndSaveCookies(spValidate);
+
+            if (reachable && httpCode == 200)
+            {
+                g_Log->Info("Auth refresh rejected on retry but session still valid (HTTP 200 on QUOTA) — proceeding as logged in.");
+                fAuthRetryPending.store(false);
+                fIsLoggedIn.exchange(true);
+                DidSignIn();
+                return true;
+            }
+
+            g_Log->Warning("Auth refresh failed on retry and session validation returned HTTP %ld — wiping session.", httpCode);
             fAuthRetryPending.store(false);
+
+            // Try re-acquiring a session via magic link before giving up.
+            if (LoginWithMagicLinkCode())
+            {
+                // ValidateCodeDetailed() already called RefreshSealedSession() — session is fresh.
+                g_Log->Info("Stale session replaced via magic link during retry — session is fresh and valid");
+                fIsLoggedIn.exchange(true);
+                DidSignIn();
+                return true;
+            }
+
             g_Settings()->Set("settings.content.sealed_session", std::string(""));
             g_Settings()->Storage()->Commit();
-            // Do not auto-open login/settings UI here; HUD will show \"Please open settings to sign in.\"
             return false;
         }
         // TransientFailure again: increase delay (3x, cap 24h)
@@ -685,11 +1072,7 @@ void EDreamClient::DidSignIn()
 
     // Reset socket listeners and reconnect immediately (no fixed delay).
     s_SIOClient.clear_con_listeners();
-    s_SIOClient.set_open_listener(&OnWebSocketConnected);
-    s_SIOClient.set_close_listener(&OnWebSocketClosed);
-    s_SIOClient.set_fail_listener(&OnWebSocketFail);
-    s_SIOClient.set_reconnecting_listener(&OnWebSocketReconnecting);
-    s_SIOClient.set_reconnect_listener(&OnWebSocketReconnect);
+    SetWebSocketListeners();
 
     EDreamClient::ConnectRemoteControlSocket();
 
@@ -705,7 +1088,7 @@ void EDreamClient::SignOut()
     {
         std::lock_guard<std::mutex> lock(fAuthMutex);
         // Retrieve the current sealed session from settings
-        currentSealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
+        currentSealedSession = StoredSealedSession();
 
         if (currentSealedSession.empty())
         {
@@ -718,9 +1101,7 @@ void EDreamClient::SignOut()
     Network::NetworkHeaders::addStandardHeaders(spDownload);
     spDownload->AppendHeader("Content-Type: application/json");
 
-    // Set the cookie with the current sealed session
-    std::string cookieHeader = "Cookie: wos-session=" + currentSealedSession;
-    spDownload->AppendHeader(cookieHeader);
+    AppendAuthHeader(spDownload);
 
     if (spDownload->Perform(ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::LOGOUT)))
     {
@@ -780,6 +1161,97 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
     return size * nmemb;
 }
 
+namespace {
+
+struct MagicLinkHeaderCtx {
+    int retryAfterSeconds = -1;
+};
+
+static std::string ToLowerAscii(std::string s)
+{
+    std::transform(s.begin(), s.end(), s.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    return s;
+}
+
+static size_t MagicLinkHeaderCallback(char* ptr, size_t size, size_t nmemb, void* userdata)
+{
+    const size_t nbytes = size * nmemb;
+    auto* ctx = static_cast<MagicLinkHeaderCtx*>(userdata);
+    std::string line(ptr, nbytes);
+    while (!line.empty() && (line.back() == '\r' || line.back() == '\n'))
+        line.pop_back();
+    const std::string::size_type colon = line.find(':');
+    if (colon == std::string::npos)
+        return nbytes;
+    std::string key = line.substr(0, colon);
+    while (!key.empty() && (key.back() == ' ' || key.back() == '\t'))
+        key.pop_back();
+    if (ToLowerAscii(std::move(key)) != "retry-after")
+        return nbytes;
+    std::string val = line.substr(colon + 1);
+    const auto start = val.find_first_not_of(" \t");
+    if (start == std::string::npos)
+        return nbytes;
+    val.erase(0, start);
+    const auto last = val.find_last_not_of(" \t\r\n");
+    if (last != std::string::npos)
+        val.erase(last + 1);
+    try {
+        const int sec = std::stoi(val);
+        if (sec >= 0)
+            ctx->retryAfterSeconds = sec;
+    } catch (...) {
+    }
+    return nbytes;
+}
+
+static void ParseMagicLinkErrorBody(const std::string& readBuffer,
+                                    std::string& inOutMessage,
+                                    std::string& outErrorCode,
+                                    int& outRetryAfterSeconds)
+{
+    outErrorCode.clear();
+    outRetryAfterSeconds = -1;
+    try {
+        const boost::json::value response = boost::json::parse(readBuffer);
+        if (!response.is_object())
+            return;
+        const boost::json::object& o = response.as_object();
+        if (o.contains("message")) {
+            const boost::json::value& msg = o.at("message");
+            if (msg.is_string())
+                inOutMessage = std::string(msg.as_string());
+        }
+        if (o.contains("errorCode")) {
+            const boost::json::value& ec = o.at("errorCode");
+            if (ec.is_string())
+                outErrorCode = std::string(ec.as_string());
+        }
+        if (o.contains("retryAfterSeconds")) {
+            const boost::json::value& r = o.at("retryAfterSeconds");
+            if (r.is_int64())
+                outRetryAfterSeconds = static_cast<int>(r.as_int64());
+            else if (r.is_uint64())
+                outRetryAfterSeconds = static_cast<int>(r.as_uint64());
+            else if (r.is_double())
+                outRetryAfterSeconds = static_cast<int>(r.as_double());
+        }
+    } catch (...) {
+    }
+}
+
+static int MergeMagicLinkRetryAfter(int fromJson, int fromHeader)
+{
+    if (fromJson >= 0)
+        return fromJson;
+    if (fromHeader >= 0)
+        return fromHeader;
+    return -1;
+}
+
+}  // namespace
+
 EDreamClient::SendCodeResult EDreamClient::SendCode() {
     std::string email = g_Settings()->Get("settings.generator.nickname", std::string(""));
     
@@ -803,47 +1275,54 @@ EDreamClient::SendCodeResult EDreamClient::SendCode() {
         payload["email"] = email;
         std::string jsonBody = boost::json::serialize(payload);
         
+        MagicLinkHeaderCtx hdrCtx;
+        char errorBuffer[CURL_ERROR_SIZE] = {0};
         curl_easy_setopt(curl.get(), CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl.get(), CURLOPT_POSTFIELDS, jsonBody.c_str());
         curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, WriteCallback);
         curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &readBuffer);
-        
+        curl_easy_setopt(curl.get(), CURLOPT_HEADERFUNCTION, MagicLinkHeaderCallback);
+        curl_easy_setopt(curl.get(), CURLOPT_HEADERDATA, &hdrCtx);
+        curl_easy_setopt(curl.get(), CURLOPT_ERRORBUFFER, errorBuffer);
+#ifdef _WIN32
+        // Schannel hard-fails the TLS handshake when certificate revocation
+        // servers are unreachable (common behind AV TLS interception or
+        // filtered networks). Soft-fail like browsers do; genuinely revoked
+        // certs are still rejected. No-op on non-Schannel curl backends.
+        curl_easy_setopt(curl.get(), CURLOPT_SSL_OPTIONS, CURLSSLOPT_REVOKE_BEST_EFFORT);
+#endif
+
         // Set headers
         struct curl_slist *headers = NULL;
         headers = curl_slist_append(headers, "Content-Type: application/json");
         curl_easy_setopt(curl.get(), CURLOPT_HTTPHEADER, headers);
-        
+
         res = curl_easy_perform(curl.get());
         curl_slist_free_all(headers);
-        
+
         if(res != CURLE_OK) {
-            g_Log->Error("Failed to send verification code. Curl error: %s", curl_easy_strerror(res));
-            return SendCodeResult{false, 0, std::string("Error: ") + curl_easy_strerror(res)};
+            const char* detail = errorBuffer[0] ? errorBuffer : curl_easy_strerror(res);
+            g_Log->Error("Failed to send verification code. Curl error: %s", detail);
+            return SendCodeResult{false, 0, std::string("Error: ") + detail};
         }
         
         long http_code = 0;
         curl_easy_getinfo(curl.get(), CURLINFO_RESPONSE_CODE, &http_code);
         
         if (http_code == 200) {
-            g_Log->Info("Verification code sent successfully to %s", email.c_str());
+            g_Log->Info("Verification code sent successfully");
             return SendCodeResult{true, static_cast<int>(http_code), "Verification code sent successfully"};
         } else {
             g_Log->Error("Failed to send verification code. Server returned %ld: %s", http_code, readBuffer.c_str());
             
-            std::string errorMessage;
-            try {
-                boost::json::value response = boost::json::parse(readBuffer);
-                if (response.is_object() && response.as_object().contains("message")) {
-                    // Extract just the error message from the JSON
-                    errorMessage = response.as_object()["message"].as_string().c_str();
-                } else {
-                    errorMessage = readBuffer; // Use full response if not in expected format
-                }
-            } catch (...) {
-                errorMessage = readBuffer; // Use raw response if JSON parsing fails
-            }
+            std::string errorMessage = readBuffer.empty() ? std::string("Failed to send verification code.") : readBuffer;
+            std::string errorCode;
+            int retryFromJson = -1;
+            ParseMagicLinkErrorBody(readBuffer, errorMessage, errorCode, retryFromJson);
+            const int mergedRetry = MergeMagicLinkRetryAfter(retryFromJson, hdrCtx.retryAfterSeconds);
             
-            return SendCodeResult{false, static_cast<int>(http_code), errorMessage};
+            return SendCodeResult{false, static_cast<int>(http_code), std::move(errorMessage),
+                                  std::move(errorCode), mergedRetry};
         }
     }
 
@@ -889,10 +1368,22 @@ EDreamClient::ValidateCodeResult EDreamClient::ValidateCodeDetailed(const std::s
         payload["code"] = code;
         std::string jsonBody = boost::json::serialize(payload);
 
+        MagicLinkHeaderCtx hdrCtx;
+        char errorBuffer[CURL_ERROR_SIZE] = {0};
         curl_easy_setopt(curl.get(), CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl.get(), CURLOPT_POSTFIELDS, jsonBody.c_str());
         curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, WriteCallback);
         curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &readBuffer);
+        curl_easy_setopt(curl.get(), CURLOPT_HEADERFUNCTION, MagicLinkHeaderCallback);
+        curl_easy_setopt(curl.get(), CURLOPT_HEADERDATA, &hdrCtx);
+        curl_easy_setopt(curl.get(), CURLOPT_ERRORBUFFER, errorBuffer);
+#ifdef _WIN32
+        // Schannel hard-fails the TLS handshake when certificate revocation
+        // servers are unreachable (common behind AV TLS interception or
+        // filtered networks). Soft-fail like browsers do; genuinely revoked
+        // certs are still rejected. No-op on non-Schannel curl backends.
+        curl_easy_setopt(curl.get(), CURLOPT_SSL_OPTIONS, CURLSSLOPT_REVOKE_BEST_EFFORT);
+#endif
 
         // Set headers
         struct curl_slist *headers = NULL;
@@ -903,9 +1394,10 @@ EDreamClient::ValidateCodeResult EDreamClient::ValidateCodeDetailed(const std::s
         curl_slist_free_all(headers);
 
         if(res != CURLE_OK) {
-            g_Log->Error("Failed to validate code. Curl error: %s", curl_easy_strerror(res));
+            const char* detail = errorBuffer[0] ? errorBuffer : curl_easy_strerror(res);
+            g_Log->Error("Failed to validate code. Curl error: %s", detail);
             result.reason = ValidationFailureReason::TransientFailure;
-            result.message = std::string("Network error: ") + curl_easy_strerror(res);
+            result.message = std::string("Network error: ") + detail;
             return result;
         }
 
@@ -988,20 +1480,11 @@ EDreamClient::ValidateCodeResult EDreamClient::ValidateCodeDetailed(const std::s
             }
         } else {
             g_Log->Error("Failed to validate code. Server returned %ld: %s", http_code, readBuffer.c_str());
-            std::string errorMessage = "Validation failed";
-            try {
-                boost::json::value response = boost::json::parse(readBuffer);
-                if (response.is_object() && response.as_object().contains("message")) {
-                    errorMessage = response.as_object()["message"].as_string().c_str();
-                } else if (!readBuffer.empty()) {
-                    errorMessage = readBuffer;
-                }
-            } catch (...) {
-                if (!readBuffer.empty()) {
-                    errorMessage = readBuffer;
-                }
-            }
-            
+            std::string errorMessage = readBuffer.empty() ? std::string("Validation failed") : readBuffer;
+            std::string errorCode;
+            int retryFromJson = -1;
+            ParseMagicLinkErrorBody(readBuffer, errorMessage, errorCode, retryFromJson);
+
             // Normalize non-descriptive backend "no" message.
             {
                 std::string lower = errorMessage;
@@ -1011,12 +1494,21 @@ EDreamClient::ValidateCodeResult EDreamClient::ValidateCodeDetailed(const std::s
                 }
             }
 
-            if (http_code >= 400 && http_code < 500) {
+            const int mergedRetry = MergeMagicLinkRetryAfter(retryFromJson, hdrCtx.retryAfterSeconds);
+            const bool rateLimited =
+                (http_code == 429) ||
+                (errorCode == "RATE_LIMITED");
+
+            if (rateLimited) {
+                result.reason = ValidationFailureReason::TransientFailure;
+            } else if (http_code >= 400 && http_code < 500) {
                 result.reason = ValidationFailureReason::InvalidSession;
             } else {
                 result.reason = ValidationFailureReason::TransientFailure;
             }
-            result.message = errorMessage;
+            result.message = std::move(errorMessage);
+            result.errorCode = std::move(errorCode);
+            result.retryAfterSeconds = mergedRetry;
             return result;
         }
     }
@@ -1030,7 +1522,7 @@ EDreamClient::ValidateCodeResult EDreamClient::ValidateCodeDetailed(const std::s
 EDreamClient::AuthRefreshResult EDreamClient::RefreshSealedSession()
 {
     // Retrieve the current sealed session from settings
-    std::string currentSealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
+    std::string currentSealedSession = StoredSealedSession();
     
     if (currentSealedSession.empty())
     {
@@ -1194,20 +1686,8 @@ EDreamClient::HelloResult EDreamClient::HelloDetailed() {
         Network::NetworkHeaders::addStandardHeaders(spDownload);
         spDownload->AppendHeader("Content-Type: application/json");
         
-        // Retrieve the sealed session from settings
-        std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
-        
-        if (sealedSession.empty()) {
-            g_Log->Error("Sealed session not found in settings");
-            result.reason = HelloFailureReason::InvalidSession;
-            result.message = "No saved session token";
-            return result;
-        }
-        
-        // Set the cookie with the sealed session
-        std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
-        spDownload->AppendHeader(cookieHeader);
-       
+        // Retrieve the sealed session from settings (falls back to API key for Linux/headless)
+        AppendAuthHeader(spDownload);
         std::string url{ ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::HELLO) };
         
         if (spDownload->Perform(url))
@@ -1263,7 +1743,7 @@ EDreamClient::HelloResult EDreamClient::HelloDetailed() {
         json::value dislikesCount = data.at("dislikesCount");
 
         remainingQuota = quota.as_int64();
-        int serverDislikes = dislikesCount.as_int64();
+        const int serverDislikes = static_cast<int>(dislikesCount.as_int64());
         
         // Update CacheManager with that info
         cm.setRemainingQuota(remainingQuota);
@@ -1439,11 +1919,8 @@ void EDreamClient::SendTelemetry(const std::string& eventType, const boost::json
     Network::NetworkHeaders::addStandardHeaders(spDownload);
     spDownload->AppendHeader("Content-Type: application/json");
     
-    std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
-    if (!sealedSession.empty()) {
-        std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
-        spDownload->AppendHeader(cookieHeader);
-    }
+        AppendAuthHeader(spDownload);
+
 
     boost::json::object payload;
     payload["eventType"] = eventType;
@@ -1459,6 +1936,9 @@ void EDreamClient::SendTelemetry(const std::string& eventType, const boost::json
     if (!spDownload->Perform(url)) {
         g_Log->Error("Failed to send telemetry. Server returned %i", spDownload->ResponseCode());
     }
+    // FIX (issue #656): persist any rotated session the backend returned via Set-Cookie,
+    // otherwise telemetry (like UpdateQuota) silently drops the rotation.
+    ParseAndSaveCookies(spDownload);
 }
 
 void EDreamClient::ReportMD5Failure(const std::string& uuid, const std::string& foundMd5, bool isStreaming) {
@@ -1468,6 +1948,15 @@ void EDreamClient::ReportMD5Failure(const std::string& uuid, const std::string& 
     eventData["isStreaming"] = isStreaming;
     
     SendTelemetry("md5-mismatch", eventData);
+}
+
+void EDreamClient::ReportVideoInvalidated(const std::string& uuid, const std::string& oldMd5, const std::string& newMd5) {
+    boost::json::object eventData;
+    eventData["uuid"] = uuid;
+    eventData["oldMd5"] = oldMd5;
+    eventData["newMd5"] = newMd5;
+
+    SendTelemetry("video-invalidated", eventData);
 }
 
 // MARK: - Async funtions
@@ -1532,17 +2021,21 @@ std::future<bool> EDreamClient::EnqueuePlaylistAsync(const std::string& uuid) {
             return false;
         }
 
+        // Parse on this network worker before handing the playlist to the
+        // player thread. ParsePlaylist fills any missing dream metadata and
+        // prefetches the first streaming URL; both operations may block on the
+        // server and must not pause rendering during a playlist switch.
+        auto entries = ParsePlaylist(uuid);
+        if (entries.empty()) {
+            g_Log->Error("Failed to prepare playlist. UUID: %s", uuid.c_str());
+            return false;
+        }
+
         // save the current playlist id, this will get reused at next startup
         g_Settings()->Set("settings.content.current_playlist_uuid", uuid);
         
-        std::thread([uuid]() {
-            // These operations must happen on the main/UI thread
-            g_Log->Info("Will call set playlist");
-            g_Player().SetPlaylist(std::string(uuid), false);
-            g_Player().SetTransitionDuration(1.0f);
-            g_Log->Info("Will call start transition");
-            g_Player().StartTransition();
-        }).detach();
+        // Player and renderer state is owned by the frame-update thread.
+        g_Player().EnqueuePlaylistChange(uuid);
         
         return true;
     });
@@ -1561,17 +2054,7 @@ std::vector<std::string> EDreamClient::FetchUserDislikes() {
         Network::NetworkHeaders::addStandardHeaders(spDownload);
         spDownload->AppendHeader("Content-Type: application/json");
         // Retrieve the sealed session from settings
-        std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
-        
-        if (sealedSession.empty()) {
-            g_Log->Error("Sealed session not found in settings");
-            return dislikes;
-        }
-        
-        // Set the cookie with the sealed session
-        std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
-        spDownload->AppendHeader(cookieHeader);
-        
+        AppendAuthHeader(spDownload);
         std::string url = ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::GETDISLIKES);
         
         if (spDownload->Perform(url))
@@ -1650,21 +2133,9 @@ bool EDreamClient::FetchPlaylist(std::string_view uuid) {
         spDownload->AppendHeader("Content-Type: application/json");
         
         // Retrieve the sealed session from settings
-        std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
-        
-        if (sealedSession.empty()) {
-            g_Log->Error("Sealed session not found in settings");
-            return "";
-        }
-        
-        // Set the cookie with the sealed session
-        std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
-        spDownload->AppendHeader(cookieHeader);
-        
-        std::string url =
-            ServerConfig::ServerConfigManager::getInstance().getEndpoint(
-                ServerConfig::Endpoint::GETPLAYLIST) +
-            "/" + std::string(uuid);
+        AppendAuthHeader(spDownload);
+        std::string url{string_format(
+            "%s/%s", ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::GETPLAYLIST).c_str(), std::string(uuid).c_str())};
 
         printf("url : %s\n", url.c_str());
         
@@ -1722,17 +2193,7 @@ bool EDreamClient::FetchDefaultPlaylist() {
         spDownload->AppendHeader("Content-Type: application/json");
         
         // Retrieve the sealed session from settings
-        std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
-        
-        if (sealedSession.empty()) {
-            g_Log->Error("Sealed session not found in settings");
-            return "";
-        }
-        
-        // Set the cookie with the sealed session
-        std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
-        spDownload->AppendHeader(cookieHeader);
-        
+        AppendAuthHeader(spDownload);
         std::string url{ ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::GETDEFAULTPLAYLIST) };
         
         printf("url : %s\n", url.c_str());
@@ -1784,18 +2245,7 @@ bool EDreamClient::FetchDreamMetadata(std::string uuid) {
         spDownload->AppendHeader("Content-Type: application/json");
         
         // Retrieve the sealed session from settings
-        std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
-        
-        if (sealedSession.empty()) {
-            g_Log->Error("Sealed session not found in settings");
-            return false;
-        }
-        
-        // Set the cookie with the sealed session
-        std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
-        spDownload->AppendHeader(cookieHeader);
-        
-        
+        AppendAuthHeader(spDownload);
         std::string url = ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::GETDREAM) +
         "?uuids=" + uuid;
        
@@ -1840,7 +2290,44 @@ bool EDreamClient::FetchDreamsMetadata(const std::vector<std::string>& uuids) {
     if (uuids.empty()) {
         return false;
     }
-    
+
+    // The server caps a single metadata request (it rejects oversized bodies
+    // with HTTP 413, see client issue #522). Page large requests into batches
+    // so big playlists (e.g. a playlist-of-playlists) load their metadata
+    // instead of failing wholesale. Must stay <= the backend's
+    // CLIENT_DREAMS_MAX_UUIDS.
+    constexpr size_t kMetadataBatchSize = 1000;
+
+    if (uuids.size() <= kMetadataBatchSize) {
+        return FetchDreamsMetadataBatch(uuids);
+    }
+
+    bool allSucceeded = true;
+    for (size_t offset = 0; offset < uuids.size(); offset += kMetadataBatchSize) {
+        // Check for abort between batches to allow fast shutdown.
+        if (g_NetworkManager->IsAborted()) {
+            g_Log->Info("FetchDreamsMetadata() aborted due to shutdown");
+            return false;
+        }
+
+        const size_t end = std::min(offset + kMetadataBatchSize, uuids.size());
+        const std::vector<std::string> batch(uuids.begin() + offset,
+                                             uuids.begin() + end);
+        if (!FetchDreamsMetadataBatch(batch)) {
+            g_Log->Error("Failed to fetch metadata batch [%zu, %zu) of %zu dreams",
+                         offset, end, uuids.size());
+            // Keep going so we cache as much metadata as possible.
+            allSucceeded = false;
+        }
+    }
+    return allSucceeded;
+}
+
+bool EDreamClient::FetchDreamsMetadataBatch(const std::vector<std::string>& uuids) {
+    if (uuids.empty()) {
+        return false;
+    }
+
     auto jsonPath = Cache::PathManager::getInstance().jsonDreamPath();
     Network::spCFileDownloader spDownload;
     int maxAttempts = 3;
@@ -1852,17 +2339,7 @@ bool EDreamClient::FetchDreamsMetadata(const std::vector<std::string>& uuids) {
         spDownload->AppendHeader("Content-Type: application/json");
         
         // Retrieve the sealed session from settings
-        std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
-        
-        if (sealedSession.empty()) {
-            g_Log->Error("Sealed session not found in settings");
-            return false;
-        }
-        
-        // Set the cookie with the sealed session
-        std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
-        spDownload->AppendHeader(cookieHeader);
-        
+        AppendAuthHeader(spDownload);
         // Create request body
         boost::json::object requestBody;
         boost::json::array uuidArray;
@@ -1943,17 +2420,7 @@ std::string EDreamClient::GetDreamDownloadLink(const std::string& uuid) {
         Network::NetworkHeaders::addStandardHeaders(spDownload);
         spDownload->AppendHeader("Content-Type: application/json");
         // Retrieve the sealed session from settings
-        std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
-        
-        if (sealedSession.empty()) {
-            g_Log->Error("Sealed session not found in settings");
-            return "";
-        }
-        
-        // Set the cookie with the sealed session
-        std::string cookieHeader = "Cookie: wos-session=" + sealedSession;
-        spDownload->AppendHeader(cookieHeader);
-
+        AppendAuthHeader(spDownload);
         std::string url = ServerConfig::ServerConfigManager::getInstance().getEndpoint(ServerConfig::Endpoint::GETDREAM) +
                           "/" + uuid + "/url";
 
@@ -2100,7 +2567,8 @@ std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
             // send that array and try to fetch all at once
             FetchDreamsMetadata(needsMetadataUuids);
 
-            // Then reload metadata for each of the uuids
+            // Then reload metadata for each of the uuids (reloadMetadata also
+            // validates cached video md5 and may invalidate stale MP4s).
             for (const auto& needsMetadata : needsMetadataUuids) {
                 cm.reloadMetadata(needsMetadata);
             }
@@ -2110,6 +2578,19 @@ std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
         }
     }
 
+    // Re-check every cached video against its metadata md5, not only the ones
+    // just refreshed or in this playlist (a dream can also be played on its own). A mismatch can outlive the refresh that found it: on
+    // Windows the delete is deferred while the clip is open, and that pending
+    // list is lost on exit. Also covers entries cached before md5 was stored,
+    // including dreams re-encoded before this client was installed (see
+    // validateCachedVideo). Skipped offline so we never drop a video we cannot
+    // re-download.
+    if (EDreamClient::IsLoggedIn() && !g_Player().IsOfflineMode()) {
+        std::unordered_set<std::string> refreshed(needsMetadataUuids.begin(),
+                                                  needsMetadataUuids.end());
+        cm.validateAllCachedVideos(refreshed);
+    }
+
     // Downloads will be pulled dynamically by FindDreamsThread from PlaylistManager
     
     // Finally, if needed fetch streaming link for 1st video
@@ -2117,10 +2598,23 @@ std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
         // Grab a pointer to the dream metadata
         auto dream = cm.getDream(needsStreamingUuid);
 
-        // Grab streaming URL and save it for later use
-        g_Log->Info("Parse playlist blocking call for download link");
-        auto path = EDreamClient::GetDreamDownloadLink(dream->uuid);
-        dream->setStreamingUrl(path);
+        if (dream) {
+            // EnqueuePlaylistAsync prepares this on its network worker before
+            // the player parses the playlist. Do not perform the request again
+            // when the player-thread parse sees the already prepared dream.
+            if (dream->getStreamingUrl().empty()) {
+                g_Log->Info("Parse playlist blocking call for download link");
+                auto path = EDreamClient::GetDreamDownloadLink(dream->uuid);
+                dream->setStreamingUrl(path);
+            }
+        } else {
+            // Metadata fetch failed or didn't include this dream; skip the
+            // prefetch. The entry gets filtered out of the playlist anyway
+            // (isDreamProcessed returns false without metadata), and PlayClip
+            // can fetch the link on demand if it ever does play.
+            g_Log->Error("No cached metadata for first uncached dream %s, skipping streaming link prefetch",
+                         needsStreamingUuid.c_str());
+        }
     } else if (!needsStreamingUuid.empty()) {
         g_Log->Info("Skipping blocking prefetch of streaming link (offline/not logged in). First uncached UUID: %s",
                     needsStreamingUuid.c_str());
@@ -2129,10 +2623,10 @@ std::vector<PlaylistEntry> EDreamClient::ParsePlaylist(std::string_view uuid) {
     return entries;
 }
 
-std::tuple<std::string, std::string, bool, int64_t, int> EDreamClient::ParsePlaylistMetadata(std::string_view uuid) {
+PlaylistMetadata EDreamClient::ParsePlaylistMetadata(std::string_view uuid) {
     // Default playlist doesn't have any metadata right now, hardcoding this
     if (uuid.empty()) {
-        return {"Popular dreams", "Various artists", false, 0, 0};
+        return {"Popular dreams", "Various artists"};
     }
 
     // Open playlist and grab content
@@ -2141,7 +2635,7 @@ std::tuple<std::string, std::string, bool, int64_t, int> EDreamClient::ParsePlay
     if (!file.is_open())
     {
         g_Log->Error("Error opening file: %s", filePath.string().c_str());
-        return {"", "", false, 0, 0};
+        return {};
     }
     std::string contents{(std::istreambuf_iterator<char>(file)),
         (std::istreambuf_iterator<char>())};
@@ -2161,8 +2655,12 @@ std::tuple<std::string, std::string, bool, int64_t, int> EDreamClient::ParsePlay
         bool nsfw = playlist.get<bool>("nsfw", false);
         int64_t timestamp = playlist.get<int64_t>("timestamp", 0);
         int loops = playlist.get<int>("loops", 0);
+        // JSON null reads back as "null" and fails conversion -> nullopt.
+        std::optional<float> transitionTime;
+        if (auto t = playlist.get_optional<float>("transitionTime"))
+            transitionTime = *t;
 
-        return {name, artist, nsfw, timestamp, loops};
+        return {name, artist, nsfw, timestamp, loops, transitionTime};
     }
     catch (const boost::property_tree::json_parser_error& e)
     {
@@ -2173,7 +2671,7 @@ std::tuple<std::string, std::string, bool, int64_t, int> EDreamClient::ParsePlay
         g_Log->Error("Error parsing playlist metadata: %s", e.what());
     }
 
-    return {"", "", false, 0, 0};
+    return {};
 }
 
 
@@ -2201,14 +2699,49 @@ bool EDreamClient::EnqueuePlaylist(std::string_view uuid) {
 
     // save the current playlist id, this will get reused at next startup
     g_Settings()->Set("settings.content.current_playlist_uuid", uuid);
-    g_Player().SetPlaylist(std::string(uuid), false);
-    
-    g_Player().SetTransitionDuration(1.0f);
-    g_Player().StartTransition();
+    g_Player().EnqueuePlaylistChange(std::string(uuid));
     
     return true;
 }
 
+
+// ---------------------------------------------------------------------------
+// Known WebSocket event names — avoids repeated string-literal comparisons
+// and makes unhandled events easier to spot.
+// ---------------------------------------------------------------------------
+namespace WsEvent {
+    constexpr std::string_view kPlayDream        = "play_dream";
+    constexpr std::string_view kPlayPlaylist     = "play_playlist";
+    constexpr std::string_view kLike             = "like_current_dream";
+    constexpr std::string_view kDislike          = "dislike_current_dream";
+    constexpr std::string_view kReport           = "report_current_dream";
+    constexpr std::string_view kNext             = "next";
+    constexpr std::string_view kPrevious         = "previous";
+    constexpr std::string_view kShuffle          = "shuffle";
+    constexpr std::string_view kForward          = "forward";
+    constexpr std::string_view kBackward         = "backward";
+    constexpr std::string_view kPlaybackSlower   = "playback_slower";
+    constexpr std::string_view kPlaybackFaster   = "playback_faster";
+    constexpr std::string_view kRepeat           = "repeat";
+    constexpr std::string_view kHelp             = "help";
+    constexpr std::string_view kStatus           = "status";
+    constexpr std::string_view kPause            = "pause";
+    constexpr std::string_view kCredit           = "credit";
+    constexpr std::string_view kResetPlaylist    = "reset_playlist";
+    constexpr std::string_view kWeb              = "web";
+    constexpr std::string_view kBrighter         = "brighter";
+    constexpr std::string_view kDarker           = "darker";
+    constexpr std::string_view kSetSpeed1        = "set_speed_1";
+    constexpr std::string_view kSetSpeed2        = "set_speed_2";
+    constexpr std::string_view kSetSpeed3        = "set_speed_3";
+    constexpr std::string_view kSetSpeed4        = "set_speed_4";
+    constexpr std::string_view kSetSpeed5        = "set_speed_5";
+    constexpr std::string_view kSetSpeed6        = "set_speed_6";
+    constexpr std::string_view kSetSpeed7        = "set_speed_7";
+    constexpr std::string_view kSetSpeed8        = "set_speed_8";
+    constexpr std::string_view kSetSpeed9        = "set_speed_9";
+    constexpr std::string_view kPlaying          = "playing";
+} // namespace WsEvent
 
 static void OnWebSocketMessage(sio::event& _wsEvent)
 {
@@ -2222,170 +2755,174 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
     std::string_view event = eventObj->get_string();
 
     g_Log->Info("Received WebSocket message: %s", event.data());
-    printf("Received websocket message: %s", event.data());
-    
-    if (event == "play_dream") {
+
+    if (event == WsEvent::kPlayDream)
+    {
         std::shared_ptr<sio::string_message> uuidObj =
             std::dynamic_pointer_cast<sio::string_message>(response["uuid"]);
         std::string_view uuid = uuidObj->get_string();
-        
+
         int64_t frameNumber = -1;
         if (response.find("frameNumber") != response.end()) {
             std::shared_ptr<sio::int_message> frameNumberObj =
                         std::dynamic_pointer_cast<sio::int_message>(response["frameNumber"]);
             frameNumber = frameNumberObj->get_int();
-            printf("Frame number: %" PRId64, frameNumber);
         }
-        
+
         g_Log->Info("should play : %s", uuid.data());
-        g_Player().PlayDreamNow(uuid.data(), frameNumber);
-    } else if (event == "play_playlist") {
+        g_Player().EnqueuePlayDream(std::string(uuid), frameNumber);
+    }
+    else if (event == WsEvent::kPlayPlaylist)
+    {
         std::shared_ptr<sio::string_message> uuidObj =
             std::dynamic_pointer_cast<sio::string_message>(response["uuid"]);
         std::string_view uuid = uuidObj->get_string();
         g_Log->Info("should play : %s", uuid.data());
-        
         EDreamClient::EnqueuePlaylistAsync(uuid.data());
     }
-    else if (event == "like_current_dream")
+    else if (event == WsEvent::kLike)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_LIKE);
     }
-    else if (event == "dislike_current_dream")
+    else if (event == WsEvent::kDislike)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_DISLIKE);
     }
-    else if (event == "report_current_dream")
+    else if (event == WsEvent::kReport)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_REPORT);
     }
-    else if (event == "next")
+    else if (event == WsEvent::kNext)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_NEXT);
     }
-    else if (event == "previous")
+    else if (event == WsEvent::kPrevious)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_PREVIOUS);
     }
-    else if (event == "shuffle")
+    else if (event == WsEvent::kShuffle)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SHUFFLE);
     }
-    else if (event == "forward")
+    else if (event == WsEvent::kForward)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SKIP_FW);
     }
-    else if (event == "backward")
+    else if (event == WsEvent::kBackward)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SKIP_BW);
     }
-    else if (event == "playback_slower")
+    else if (event == WsEvent::kPlaybackSlower)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_PLAYBACK_SLOWER);
     }
-    else if (event == "playback_faster")
+    else if (event == WsEvent::kPlaybackFaster)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_PLAYBACK_FASTER);
     }
-    else if (event == "repeat")
+    else if (event == WsEvent::kRepeat)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_REPEAT);
     }
-    else if (event == "help")
+    else if (event == WsEvent::kHelp)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_F1);
     }
-    else if (event == "status")
+    else if (event == WsEvent::kStatus)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_F2);
     }
-    else if (event == "pause")
+    else if (event == WsEvent::kPause)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_PAUSE);
     }
-    else if (event == "credit")
+    else if (event == WsEvent::kCredit)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_CREDIT);
     }
-    else if (event == "reset_playlist")
+    else if (event == WsEvent::kResetPlaylist)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_RESET_PLAYLIST);
     }
-    else if (event == "web")
+    else if (event == WsEvent::kWeb)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_WEBPAGE);
     }
-    else if (event == "brighter")
+    else if (event == WsEvent::kBrighter)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_BRIGHTNESS_UP);
     }
-    else if (event == "darker")
+    else if (event == WsEvent::kDarker)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_BRIGHTNESS_DOWN);
     }
-    else if (event == "set_speed_1")
+    else if (event == WsEvent::kSetSpeed1)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_1);
     }
-    else if (event == "set_speed_2")
+    else if (event == WsEvent::kSetSpeed2)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_2);
     }
-    else if (event == "set_speed_3")
+    else if (event == WsEvent::kSetSpeed3)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_3);
     }
-    else if (event == "set_speed_4")
+    else if (event == WsEvent::kSetSpeed4)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_4);
     }
-    else if (event == "set_speed_5")
+    else if (event == WsEvent::kSetSpeed5)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_5);
     }
-    else if (event == "set_speed_6")
+    else if (event == WsEvent::kSetSpeed6)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_6);
     }
-    else if (event == "set_speed_7")
+    else if (event == WsEvent::kSetSpeed7)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_7);
     }
-    else if (event == "set_speed_8")
+    else if (event == WsEvent::kSetSpeed8)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_8);
     }
-    else if (event == "set_speed_9")
+    else if (event == WsEvent::kSetSpeed9)
     {
         g_Client()->EnqueueCommand(
             CElectricSheep::eClientCommand::CLIENT_COMMAND_SPEED_9);
+    }
+    else if (event == WsEvent::kPlaying)
+    {
+        // Server acknowledgement of our state_sync — no action needed.
     }
     else
     {
@@ -2466,6 +3003,33 @@ void EDreamClient::SendPlayingDream(std::string uuid)
     }
 }
 
+void EDreamClient::SendFinishedDream(const std::string& uuid,
+                                     std::string_view reason, uint32_t frame,
+                                     uint32_t frameCount, double seconds)
+{
+    std::shared_ptr<sio::object_message> ms =
+        std::dynamic_pointer_cast<sio::object_message>(
+            sio::object_message::create());
+    ms->insert("event", "finished");
+    ms->insert("uuid", uuid);
+    ms->insert("reason", std::string(reason));
+    ms->insert("frame", sio::int_message::create(frame));
+    ms->insert("frames", sio::int_message::create(frameCount));
+    // frame is 0-based, so the last frame counts as 100%.
+    if (frameCount > 0)
+        ms->insert("progress",
+                   sio::double_message::create(
+                       100.0 * std::min(frame + 1, frameCount) / frameCount));
+    ms->insert("seconds", sio::double_message::create(seconds));
+
+    sio::message::list list;
+    list.push(ms);
+    auto socket = s_SIOClient.socket("/remote-control");
+    if (socket) {
+        socket->emit("new_remote_control_event", list);
+    }
+}
+
 void EDreamClient::ConnectRemoteControlSocket()
 {
     PlatformUtils::SetThreadName("ConnectRemoteControl");
@@ -2475,54 +3039,72 @@ void EDreamClient::ConnectRemoteControlSocket()
     
     g_Log->Info("Performing remote control connect.");
     
-    // Check if socket is already connected AND io_context is running AND namespace is available
+    // If io_context was stopped (e.g. by a player restart), restart it. The WebSocket
+    // runs on its own thread and may still be open, so this doesn't imply a reconnect.
+    const bool ioWasStopped = io_context->stopped();
+    if (ioWasStopped) {
+        g_Log->Info("io_context was stopped, restarting...");
+        io_context->restart();
+    }
+
+    // Already connected: rebind instead of unbinding and calling connect(), which
+    // the sio client ignores while open, so the callbacks would stay unbound.
     auto existingSocket = s_SIOClient.socket("/remote-control");
-    if (s_SIOClient.opened() && !io_context->stopped() && existingSocket)
+    if (s_SIOClient.opened() && existingSocket)
     {
         g_Log->Info("WebSocket already connected with namespace, skipping reconnection.");
         BindWebSocketCallbacks();
+        if (ioWasStopped) {
+            // Re-arm the ping timer and pump the restarted io_context.
+            SendPing();
+            std::thread([]() {
+                io_context->run();
+            }).detach();
+        }
         return;
-    }
-
-    // If io_context was stopped, restart it
-    if (io_context->stopped()) {
-        g_Log->Info("io_context was stopped, restarting...");
-        io_context->restart();
     }
 
     // Unbind old callbacks before reconnecting
     EDreamClient::UnbindWebSocketCallbacks();
 
     std::map<std::string, std::string> query;
-    
-    std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
-    
-    if (sealedSession.empty())
+    std::map<std::string, std::string> headers;
+
+    std::string sealedSession = StoredSealedSession();
+    std::string apiKey = CurrentApiKey();
+
+    if (sealedSession.empty() && apiKey.empty())
     {
-        g_Log->Error("Cannot connect WebSocket: no sealed session available.");
+        g_Log->Error("Cannot connect WebSocket: no sealed session or API key available.");
         return;
     }
-    
-    if (sealedSession.empty())
-    {
-        g_Log->Error("Cannot connect WebSocket: no sealed session available.");
-        return;
-    }
-    
-    query["Cookie"] = string_format("wos-session=%s", sealedSession.c_str());
-    query["Edream-Client-Type"] = PlatformUtils::GetPlatformName();
-    query["Edream-Client-Version"] = PlatformUtils::GetAppVersion();
+
+    const std::string clientType = PlatformUtils::GetPlatformName();
+    const std::string clientVersion = PlatformUtils::GetAppVersion();
+
+    query["Edream-Client-Type"] = clientType;
+    query["Edream-Client-Version"] = clientVersion;
+
+    if (!sealedSession.empty())
+        headers["Cookie"] = string_format("wos-session=%s", sealedSession.c_str());
+    else
+        headers["Api-Key"] = apiKey;
+
+    headers["Edream-Client-Type"] = clientType;
+    headers["Edream-Client-Version"] = clientVersion;
 
     g_Log->Info("Connecting to WebSocket server: %s", 
                 ServerConfig::ServerConfigManager::getInstance().getWebsocketServer().c_str());
     
     // Always call connect() - Socket.IO client will handle reconnection internally
-    s_SIOClient.connect(ServerConfig::ServerConfigManager::getInstance().getWebsocketServer(), query, query);
+    s_SIOClient.connect(ServerConfig::ServerConfigManager::getInstance().getWebsocketServer(), query, headers);
     
     // Send first ping immediately so frontend knows we're here
     SendPing();
 
-    // Run the io_context in a separate thread
+    // Run the app io_context (ping/quota timers) on a detached thread.
+    // The Socket.IO Beast shim drives WebSocket I/O on its own m_ioc thread;
+    // this run() no longer pumps the socket.
     std::thread([]() {
         io_context->run();
     }).detach();
@@ -2579,4 +3161,3 @@ void EDreamClient::Report(std::string uuid) {
 
 
 void EDreamClient::SetCPUUsage(int _cpuUsage) { fCpuUsage.exchange(_cpuUsage); }
-

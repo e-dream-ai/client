@@ -132,29 +132,9 @@ def get_keychain_profile() -> str:
     return os.environ.get('KEYCHAIN_PROFILE', 'infinidream-notarization')
 
 
-def read_plist_version(plist_path: Path) -> Optional[str]:
-    """Read version from Info.plist file."""
-    try:
-        with open(plist_path, 'rb') as f:
-            plist = plistlib.load(f)
-        return plist.get('CFBundleShortVersionString')
-    except Exception:
-        return None
-
-
-def update_plist_version(plist_path: Path, version: str) -> None:
-    """Update version in Info.plist file."""
-    # Use PlistBuddy for consistent behavior with the shell script
-    run_command([
-        '/usr/libexec/PlistBuddy',
-        '-c', f'Set :CFBundleShortVersionString {version}',
-        str(plist_path)
-    ])
-    run_command([
-        '/usr/libexec/PlistBuddy',
-        '-c', f'Set :CFBundleVersion {version}',
-        str(plist_path)
-    ])
+def latest_git_tag() -> Optional[str]:
+    """Latest Git tag, the same fallback the Xcode Stamp Version phase uses."""
+    return run_command_with_output(['git', 'describe', '--tags', '--abbrev=0']) or None
 
 
 def compute_directory_md5(directory: Path) -> str:
@@ -290,15 +270,17 @@ class BuildConfig:
             self.app_info_plist = Path("App-Info.plist")
             self.saver_info_plist = Path("Screensaver-Info.plist")
 
-        # Compute plist version (with -stage suffix for stage builds)
+        # Compute plist version (with -stage suffix for stage builds).
+        # Xcode stamps it into the built Info.plist via BUILD_VERSION; the
+        # source plists are never modified (#662).
         if self.version and self.stage:
             self.plist_version = f"{self.version}-stage"
         else:
             self.plist_version = self.version or ""
 
-        # If version not provided, try to extract from Info.plist
+        # If version not provided, use the latest Git tag
         if not self.version:
-            self.version = read_plist_version(self.app_info_plist)
+            self.version = latest_git_tag()
             self.plist_version = self.version or ""
 
 
@@ -1193,26 +1175,6 @@ def print_summary(
         print()
 
 
-def update_version_in_plists(config: BuildConfig) -> None:
-    """Update version in Info.plist files if version was specified."""
-    if not config.version:
-        return
-
-    # Update App Info.plist
-    current_version = read_plist_version(config.app_info_plist)
-    if current_version != config.plist_version:
-        print_yellow(f"Updating {config.app_info_plist} version from {current_version} to {config.plist_version}...")
-        update_plist_version(config.app_info_plist, config.plist_version)
-        print_green(f"Version updated in {config.app_info_plist}")
-
-    # Update Screensaver Info.plist
-    current_version = read_plist_version(config.saver_info_plist)
-    if current_version != config.plist_version:
-        print_yellow(f"Updating {config.saver_info_plist} version from {current_version} to {config.plist_version}...")
-        update_plist_version(config.saver_info_plist, config.plist_version)
-        print_green(f"Version updated in {config.saver_info_plist}")
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(
         description='infinidream Unified Build Script',
@@ -1243,9 +1205,6 @@ Environment variables (optional overrides):
     config = BuildConfig(args)
     validate_config(config)
     print_build_info(config)
-
-    # Update version in plists
-    update_version_in_plists(config)
 
     # Clean previous builds
     clean_previous_builds(config.build_dir)

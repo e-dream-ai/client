@@ -3,13 +3,13 @@
   "spdxVersion": "SPDX-2.2",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "documentNamespace": "https://spdx.org/spdxdocs/boost-format-arm64-osx-1.90.0#1-ea7ae491-6753-4f3c-9648-414ee48126f6",
-  "name": "boost-format:arm64-osx@1.90.0#1 f39dac38e2ca0043e6d1f76c779ccf7046914b500609b5a9e124b07b522b434c",
+  "documentNamespace": "https://spdx.org/spdxdocs/boost-format-arm64-osx-1.90.0#1-0e2e7466-20ed-40ea-8feb-b35016e30262",
+  "name": "boost-format:arm64-osx@1.90.0#1 adc7a25e7823d6c16073cd633f486b26b217e060ca8c58ea87ee4292e0765c44",
   "creationInfo": {
     "creators": [
       "Tool: vcpkg-2026-03-04-4b3e4c276b5b87a649e66341e11553e8c577459c"
     ],
-    "created": "2026-04-17T03:29:22Z"
+    "created": "2026-10-08T13:05:14Z"
   },
   "relationships": [
     {
@@ -169,7 +169,7 @@
     {
       "name": "boost-format:arm64-osx",
       "SPDXID": "SPDXRef-binary",
-      "versionInfo": "f39dac38e2ca0043e6d1f76c779ccf7046914b500609b5a9e124b07b522b434c",
+      "versionInfo": "adc7a25e7823d6c16073cd633f486b26b217e060ca8c58ea87ee4292e0765c44",
       "downloadLocation": "NONE",
       "licenseConcluded": "BSL-1.0",
       "licenseDeclared": "NOASSERTION",

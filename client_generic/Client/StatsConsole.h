@@ -257,7 +257,8 @@ class CStatsConsole : public CConsole
         DisplayOutput::spCBaseText text;
         bool isRightAligned = false;
         Base::Math::CVector4 color = {1, 1, 1, 1};  // Default white
-        std::string alignWithStat;  // For right-aligned stats, which left stat to align with
+        std::string alignWithStat;  // For right-aligned stats and columns, which left stat to align with
+        bool isColumn = false;  // Drawn to the right of alignWithStat, on the same rows
     };
 
     std::vector<std::pair<std::string, StatText>> m_Stats;
@@ -315,6 +316,17 @@ class CStatsConsole : public CConsole
                              StatText{_pStat, newText, _isRightAligned, _color, _alignWithStat});
     }
 
+    // Add a stat as a second column beside an already added left stat, starting just past
+    // its widest line. For multi-line stats, give both the same number of lines so they
+    // stay in rows. The renderers all handle tabs differently, so don't align with tabs.
+    void AddColumn(CStat* _pStat, const std::string& _alignWithStat)
+    {
+        const size_t count = m_Stats.size();
+        Add(_pStat, false, {1, 1, 1, 1}, _alignWithStat);
+        if (m_Stats.size() > count)
+            m_Stats.back().second.isColumn = true;
+    }
+
     void SetColor(std::string_view _name, Base::Math::CVector4 _color)
     {
         auto it = std::find_if(m_Stats.begin(), m_Stats.end(),
@@ -350,13 +362,54 @@ class CStatsConsole : public CConsole
         }
     }
 
+    // Set _text to _full, truncating with a trailing ellipsis if it would be
+    // wider than _maxWidth (normalized [0,1] screen width). _maxWidth <= 0 means
+    // "no limit". Truncation respects UTF-8 codepoint boundaries so multi-byte
+    // characters in dream names are never split. Returns the resulting extent.
+    static Base::Math::CVector2 SetTextFit(DisplayOutput::spCBaseText& _text,
+                                           const std::string& _full,
+                                           float _maxWidth)
+    {
+        _text->SetText(_full);
+        Base::Math::CVector2 size = _text->GetExtent();
+        if (_maxWidth <= 0.f || size.m_X <= _maxWidth || _full.size() <= 1)
+            return size;
+
+        // Byte offsets of each UTF-8 codepoint start, plus end-of-string.
+        std::vector<size_t> starts;
+        for (size_t i = 0; i < _full.size(); ++i)
+            if ((static_cast<unsigned char>(_full[i]) & 0xC0) != 0x80)
+                starts.push_back(i);
+        starts.push_back(_full.size());
+
+        // Plain ASCII "..." rather than U+2026: the Linux/ImGui font atlas only
+        // loads the default glyph range (U+0020..U+00FF), so a real ellipsis
+        // would render as a fallback box there. "..." renders on every platform.
+        static const std::string kEllipsis = "...";
+
+        // Largest prefix (in codepoints) such that prefix + ellipsis fits.
+        size_t lo = 0, hi = starts.size() - 1;
+        while (lo < hi)
+        {
+            size_t mid = (lo + hi + 1) / 2;
+            _text->SetText(_full.substr(0, starts[mid]) + kEllipsis);
+            if (_text->GetExtent().m_X <= _maxWidth)
+                lo = mid;
+            else
+                hi = mid - 1;
+        }
+
+        _text->SetText(_full.substr(0, starts[lo]) + kEllipsis);
+        return _text->GetExtent();
+    }
+
     bool Render(const double _time,
                 DisplayOutput::spCRenderer _spRenderer) override
     {
         if (!CHudEntry::Render(_time, _spRenderer))
             return false;
 
-        if (g_Player().Stopped() || m_Stats.empty() || !g_Player().HasStarted())
+        if (m_Stats.empty() || !g_Player().HasStarted())
             return true; // Skip rendering but keep entry alive (false = remove from HudManager)
 
         // Lazily initialize font/text now that we have a renderer.
@@ -382,13 +435,39 @@ class CStatsConsole : public CConsole
         if (!spDisplay)
             return true;
 
-        float step = (float)m_Desc.Height() /
-                     (float)spDisplay->Height();
+        // Scale step and edge proportionally with screen height so the overlay's minimum
+        // line spacing and margins stay in proportion at any resolution.
+        static constexpr float kHudReferenceHeight = 1080.f;
+        const float screenH = static_cast<float>(spDisplay->Height());
+        const float screenW = static_cast<float>(spDisplay->Width());
+        const float hudScale = screenH / kHudReferenceHeight;
+        float step = (float)m_Desc.Height() * hudScale / screenH;
 #ifdef SCREEN_SAVER
         step *= 0.5f;
 #endif
         float pos = 0;
-        float edge = 24 / (float)spDisplay->Width();
+        float edge = (float)m_Desc.Height() * hudScale / screenW;
+
+        // Pre-pass: measure right-aligned stats so left-aligned text sharing a
+        // row (e.g. a long dream title vs. the playlist index on the right) can
+        // be truncated before it overlaps them. Keyed by the left stat they
+        // align with; we keep the widest right stat on each row.
+        std::unordered_map<std::string, float> rightAlignedWidth;
+        for (auto& entry : m_Stats)
+        {
+            StatText& st = entry.second;
+            if (st.isRightAligned && st.stat && st.text && st.stat->Visible() &&
+                !st.alignWithStat.empty())
+            {
+                st.text->SyncLayoutDisplay(spDisplay->Width(),
+                                           spDisplay->Height());
+                st.text->SetText(st.stat->Report(_time));
+                float w = st.text->GetExtent().m_X;
+                auto it = rightAlignedWidth.find(st.alignWithStat);
+                if (it == rightAlignedWidth.end() || w > it->second)
+                    rightAlignedWidth[st.alignWithStat] = w;
+            }
+        }
 
         // First pass: update text content and calculate layout.
         // Always reserve space for every stat (visible or not) so that
@@ -407,8 +486,20 @@ class CStatsConsole : public CConsole
                 float lineHeight = step;
                 if (e->Visible())
                 {
-                    text->SetText(e->Report(_time));
-                    Base::Math::CVector2 size = text->GetExtent();
+                    Base::Math::CVector2 size;
+                    // Cap left-aligned text so it can't run into a right-aligned
+                    // stat sharing its row (0 = no limit).
+                    float maxWidth = 0.f;
+                    if (!i->second.isRightAligned)
+                    {
+                        auto rit = rightAlignedWidth.find(i->first);
+                        if (rit != rightAlignedWidth.end())
+                        {
+                            const float gap = edge * 2.f;
+                            maxWidth = 1.f - (edge * 2.f) - rit->second - gap;
+                        }
+                    }
+                    size = SetTextFit(text, e->Report(_time), maxWidth);
                     lineHeight = std::max(size.m_Y, step);
                     sizes[i->first] = {size.m_X, lineHeight};
                 }
@@ -417,7 +508,7 @@ class CStatsConsole : public CConsole
                     sizes[i->first] = {0, step};
                 }
 
-                if (!i->second.isRightAligned)
+                if (!i->second.isRightAligned && !i->second.isColumn)
                 {
                     m_TotalExtent = m_TotalExtent.Union(Base::Math::CRect(
                         0, pos, sizes[i->first].m_X + (edge * 2),
@@ -452,6 +543,20 @@ class CStatsConsole : public CConsole
                         float baseY = leftStatPositions[i->second.alignWithStat];
                         float rightX = 1.0f - edge - size.m_X;
                         text->SetRect(Base::Math::CRect(rightX, baseY, 1.0f - edge,
+                                                        size.m_Y + baseY + step));
+                    }
+                }
+            }
+            else if (i->second.isColumn)
+            {
+                if (e->Visible())
+                {
+                    DisplayOutput::spCBaseText& text = i->second.text;
+                    if (text)
+                    {
+                        float baseY = leftStatPositions[i->second.alignWithStat];
+                        float x = edge + sizes[i->second.alignWithStat].m_X + (edge * 3);
+                        text->SetRect(Base::Math::CRect(x, baseY, 1,
                                                         size.m_Y + baseY + step));
                     }
                 }

@@ -31,6 +31,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 #include "Player.h"
 #include "Settings.h"
 #include "storage.h"
+#include "ThemeWin32.h"
 
 typedef void (*ShowFirstTimeSetupCallback_t)();
 extern void ESSetShowFirstTimeSetupCallback(ShowFirstTimeSetupCallback_t);
@@ -111,6 +112,9 @@ constexpr float kThanksBtnFontSize = 15.f;
 // macOS systemBlue focus ring; idle outline matches sheet borderChrome
 static constexpr ImVec4 kMacInputBorderFocus(0.f, 0.478f, 1.f, 1.f);
 static constexpr ImVec4 kMacInputBorderIdle(0.74f, 0.74f, 0.76f, 1.f);
+static constexpr ImVec4 kMacInputBorderIdleDark(0.36f, 0.36f, 0.38f, 1.f);
+static constexpr ImVec4 kErrorText(0.75f, 0.18f, 0.18f, 1.f);
+static constexpr ImVec4 kErrorTextDark(1.f, 0.45f, 0.42f, 1.f);
 // NSButton “default” / accent (key-style primary action)
 static constexpr ImVec4 kMacAccentBtn(0.f, 0.478f, 1.f, 1.f);
 static constexpr ImVec4 kMacAccentBtnHov(0.10f, 0.54f, 1.f, 1.f);
@@ -140,6 +144,10 @@ static float CenteredPanelTopPad(float bodyAvailH, float panelH)
 // Updated after each InputText; cleared when leaving email/code steps (public ImGui has no GetActiveID).
 static bool g_emailFieldBorderActive = false;
 static bool g_otpFieldBorderActive = false;
+
+// One-shot focus requests: set when a step is first entered, consumed on the next frame the field draws.
+static bool g_focusEmailField = false;
+static bool g_focusOtpField = false;
 
 std::atomic<bool> g_overlayAllowed{true};
 std::atomic<bool> g_showRequested{false};
@@ -189,6 +197,8 @@ struct AuthDialogContent
     std::string message;
 };
 
+#include "AuthFailureDialogsWin32.inl"
+
 static DisplayOutput::CDisplayDX11* TryGetDx11Display();
 
 static void OnFirstTimeSetupRequested()
@@ -217,57 +227,6 @@ static void ShowAuthWarningDialog(const AuthDialogContent& content)
     if (auto* dx = TryGetDx11Display())
         owner = dx->GetWindowHandle();
     MessageBoxA(owner, content.message.c_str(), content.title, MB_OK | MB_ICONWARNING);
-}
-
-static AuthDialogContent BuildSendCodeFailureDialog(const EDreamClient::SendCodeResult& result)
-{
-    const bool isClientErrorHttp = (result.httpCode >= 400 && result.httpCode < 500);
-    const bool isServerErrorHttp = (result.httpCode >= 500);
-
-    if (isClientErrorHttp)
-    {
-        std::string message =
-            "We couldn't send a verification email. Make sure your email address is correct, then try Send code again.";
-        if (!result.message.empty())
-            message += "\n\n" + result.message;
-        return {"Unable to send code", message};
-    }
-
-    if (isServerErrorHttp)
-    {
-        std::string message = "Try again later.";
-        if (!result.message.empty())
-            message += " " + result.message;
-        return {"Server Error", message};
-    }
-
-    return {"Authentication Error",
-            result.message.empty() ? "Failed to send verification code." : result.message};
-}
-
-static AuthDialogContent BuildValidateFailureDialog(const EDreamClient::ValidateCodeResult& result)
-{
-    const bool isClientErrorHttp = (result.httpCode >= 400 && result.httpCode < 500);
-    const bool isServerErrorHttp = (result.httpCode >= 500);
-
-    if (isClientErrorHttp)
-    {
-        return {"Invalid Code",
-                "Check for typos and check to be sure you have the most recent code. Try again or start over"};
-    }
-
-    if (isServerErrorHttp)
-    {
-        std::string message = "Try again later.";
-        if (!result.message.empty())
-            message += " " + result.message;
-        return {"Server Error", message};
-    }
-
-    return {"Authentication Error",
-            result.message.empty()
-                ? "Backend is temporarily unavailable. Please try again shortly."
-                : result.message};
 }
 
 static int FilterDigitsOnly(ImGuiInputTextCallbackData* data)
@@ -474,10 +433,49 @@ static bool TryLoadTextureFromPngUtf8(ID3D11Device* device, const std::string& p
     return true;
 }
 
-static void ApplyLightSheetStyle()
+// Whichever the sheet's colors were last set for; see ApplySheetColors().
+static bool g_sheetIsDark = false;
+
+static void ApplySheetColors(bool dark)
+{
+    g_sheetIsDark = dark;
+    ImGuiStyle& s = ImGui::GetStyle();
+    if (dark)
+        ImGui::StyleColorsDark(&s);
+    else
+        ImGui::StyleColorsLight(&s);
+
+    ImVec4 text = dark ? ImVec4(0.92f, 0.92f, 0.94f, 1.f) : ImVec4(0.10f, 0.11f, 0.13f, 1.f);
+    ImVec4 winBg = dark ? ImVec4(0.15f, 0.15f, 0.16f, 0.985f) : ImVec4(0.965f, 0.967f, 0.975f, 0.985f);
+    // Push button: white face in light, raised gray in dark, slight press; border = opaque separator gray (see ImGui::RenderFrame).
+    ImVec4 btn = dark ? ImVec4(0.30f, 0.30f, 0.32f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f);
+    ImVec4 btnHov = dark ? ImVec4(0.36f, 0.36f, 0.38f, 1.f) : ImVec4(0.96f, 0.96f, 0.98f, 1.f);
+    ImVec4 btnAct = dark ? ImVec4(0.24f, 0.24f, 0.26f, 1.f) : ImVec4(0.90f, 0.90f, 0.93f, 1.f);
+    // Unfocused controls: ~gridColor / systemGray (opaque so button outline reads clearly).
+    ImVec4 borderChrome = dark ? kMacInputBorderIdleDark : kMacInputBorderIdle;
+
+    s.Colors[ImGuiCol_Text] = text;
+    s.Colors[ImGuiCol_TextDisabled] = dark ? ImVec4(0.58f, 0.58f, 0.60f, 1.f) : ImVec4(0.45f, 0.47f, 0.50f, 1.f);
+    s.Colors[ImGuiCol_WindowBg] = winBg;
+    // Keep child panel backgrounds consistent with the main sheet like macOS.
+    s.Colors[ImGuiCol_ChildBg] = winBg;
+    s.Colors[ImGuiCol_Border] = borderChrome;
+    s.Colors[ImGuiCol_BorderShadow] = ImVec4(0.f, 0.f, 0.f, 0.f);
+    s.Colors[ImGuiCol_FrameBg] = dark ? ImVec4(0.20f, 0.20f, 0.21f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f);
+    s.Colors[ImGuiCol_FrameBgHovered] = dark ? ImVec4(0.23f, 0.23f, 0.24f, 1.f) : ImVec4(0.98f, 0.98f, 0.99f, 1.f);
+    s.Colors[ImGuiCol_FrameBgActive] = dark ? ImVec4(0.20f, 0.20f, 0.21f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f);
+    s.Colors[ImGuiCol_Button] = btn;
+    s.Colors[ImGuiCol_ButtonHovered] = btnHov;
+    s.Colors[ImGuiCol_ButtonActive] = btnAct;
+    s.Colors[ImGuiCol_Header] = dark ? ImVec4(0.24f, 0.33f, 0.50f, 1.f) : ImVec4(0.86f, 0.89f, 0.97f, 1.f);
+    s.Colors[ImGuiCol_ScrollbarBg] = dark ? ImVec4(0.12f, 0.12f, 0.13f, 0.85f) : ImVec4(0.93f, 0.94f, 0.96f, 0.85f);
+    // Keyboard/gamepad focus ring — keep visible; mouse-active fields use Border push below.
+    s.Colors[ImGuiCol_NavHighlight] = ImVec4(0.f, 0.478f, 1.f, 0.55f);
+}
+
+static void ApplySheetStyle()
 {
     ImGuiStyle& s = ImGui::GetStyle();
-    ImGui::StyleColorsLight(&s);
     s.WindowRounding = 8.f;
     s.ChildRounding = 6.f;
     // NSButton rounded bezel ~5pt corner radius on recent macOS.
@@ -493,33 +491,6 @@ static void ApplyLightSheetStyle()
     s.CellPadding = ImVec2(6.f, 4.f);
     // ~NSControlSizeLarge padding feel; email/OTP still override locally.
     s.FramePadding = ImVec2(10.f, 8.f);
-
-    ImVec4 text(0.10f, 0.11f, 0.13f, 1.f);
-    ImVec4 winBg(0.965f, 0.967f, 0.975f, 0.985f);
-    // Push button: white face, slight gray press; border = opaque separator gray (see ImGui::RenderFrame).
-    ImVec4 btn(1.f, 1.f, 1.f, 1.f);
-    ImVec4 btnHov(0.96f, 0.96f, 0.98f, 1.f);
-    ImVec4 btnAct(0.90f, 0.90f, 0.93f, 1.f);
-    // Unfocused controls: ~gridColor / systemGray in light mode (opaque so button outline reads clearly).
-    ImVec4 borderChrome(0.74f, 0.74f, 0.76f, 1.f);
-
-    s.Colors[ImGuiCol_Text] = text;
-    s.Colors[ImGuiCol_TextDisabled] = ImVec4(0.45f, 0.47f, 0.50f, 1.f);
-    s.Colors[ImGuiCol_WindowBg] = winBg;
-    // Keep child panel backgrounds consistent with the main sheet like macOS.
-    s.Colors[ImGuiCol_ChildBg] = winBg;
-    s.Colors[ImGuiCol_Border] = borderChrome;
-    s.Colors[ImGuiCol_BorderShadow] = ImVec4(0.f, 0.f, 0.f, 0.f);
-    s.Colors[ImGuiCol_FrameBg] = ImVec4(1.f, 1.f, 1.f, 1.f);
-    s.Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.98f, 0.98f, 0.99f, 1.f);
-    s.Colors[ImGuiCol_FrameBgActive] = ImVec4(1.f, 1.f, 1.f, 1.f);
-    s.Colors[ImGuiCol_Button] = btn;
-    s.Colors[ImGuiCol_ButtonHovered] = btnHov;
-    s.Colors[ImGuiCol_ButtonActive] = btnAct;
-    s.Colors[ImGuiCol_Header] = ImVec4(0.86f, 0.89f, 0.97f, 1.f);
-    s.Colors[ImGuiCol_ScrollbarBg] = ImVec4(0.93f, 0.94f, 0.96f, 0.85f);
-    // Keyboard/gamepad focus ring — keep visible; mouse-active fields use Border push below.
-    s.Colors[ImGuiCol_NavHighlight] = ImVec4(0.f, 0.478f, 1.f, 0.55f);
 }
 
 static void LoadSystemFonts()
@@ -641,8 +612,8 @@ static bool TryInitImGui()
 
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 
-    // Manifest is system-DPI-aware (electricsheep.vcxproj), so this returns the system DPI;
-    // dialog opens at the same scale on every monitor for the life of the process.
+    // Per-monitor DPI aware (MSVC/dpi-aware.manifest): the DPI of the window's current monitor
+    // when the wizard opens.
     HWND hwnd = dx->GetWindowHandle();
     const UINT dpi = GetDpiForWindow(hwnd);
     const float dpiScale = (dpi > 0u) ? (static_cast<float>(dpi) / 96.0f) : 1.0f;
@@ -654,8 +625,9 @@ static bool TryInitImGui()
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.IniFilename = nullptr;
 
-    ApplyLightSheetStyle();
-    // Scale paddings/spacing/rounding from the design values set in ApplyLightSheetStyle().
+    ApplySheetColors(ThemeWin32::IsDark());
+    ApplySheetStyle();
+    // Scale paddings/spacing/rounding from the design values set in ApplySheetStyle().
     ImGui::GetStyle().ScaleAllSizes(g_uiScale);
     LoadSystemFonts();
 
@@ -688,6 +660,8 @@ static void ResetWizardForShow()
     std::string existing = g_Settings()->Get("settings.generator.nickname", std::string());
     std::strncpy(g_emailBuf, existing.c_str(), sizeof g_emailBuf - 1);
     g_emailBuf[sizeof g_emailBuf - 1] = '\0';
+    g_focusEmailField = true;
+    g_focusOtpField = false;
 }
 
 static void PollWorkerResults()
@@ -699,6 +673,7 @@ static void PollWorkerResults()
         {
             g_wizardStep = 1;
             g_errBuf[0] = '\0';
+            g_focusOtpField = true;
         }
         else
         {
@@ -858,7 +833,15 @@ static void DrawWizard()
         bool emailEnter = false;
         {
             ImGui::PushStyleColor(ImGuiCol_Border,
-                                  g_emailFieldBorderActive ? kMacInputBorderFocus : kMacInputBorderIdle);
+                                  g_emailFieldBorderActive ? kMacInputBorderFocus
+                                  : g_sheetIsDark            ? kMacInputBorderIdleDark
+                                                             : kMacInputBorderIdle);
+            // Focus the email field on wizard open so the user can type and press Enter immediately (issue #644).
+            if (g_focusEmailField)
+            {
+                ImGui::SetKeyboardFocusHere();
+                g_focusEmailField = false;
+            }
             // EnterReturnsTrue so pressing Return submits, just like clicking Send code.
             emailEnter = ImGui::InputTextWithHint("##email", "your@email.com", g_emailBuf, sizeof g_emailBuf,
                                                   ImGuiInputTextFlags_EnterReturnsTrue);
@@ -920,7 +903,7 @@ static void DrawWizard()
         if (g_errBuf[0] != '\0')
         {
             ImGui::SetCursorPos(ImVec2(S(kEmailPromptL), S(kEmailErrorOffsetY)));
-            ImGui::TextColored(ImVec4(0.75f, 0.18f, 0.18f, 1.f), "%s", g_errBuf);
+            ImGui::TextColored(g_sheetIsDark ? kErrorTextDark : kErrorText, "%s", g_errBuf);
         }
         {
             // Draw label text centered within the button frame (Button label is hidden via "##send_code_btn").
@@ -971,7 +954,15 @@ static void DrawWizard()
         bool otpEnter = false;
         {
             ImGui::PushStyleColor(ImGuiCol_Border,
-                                  g_otpFieldBorderActive ? kMacInputBorderFocus : kMacInputBorderIdle);
+                                  g_otpFieldBorderActive ? kMacInputBorderFocus
+                                  : g_sheetIsDark          ? kMacInputBorderIdleDark
+                                                           : kMacInputBorderIdle);
+            // Focus the OTP field on first appearance so the user can type and press Enter without clicking.
+            if (g_focusOtpField)
+            {
+                ImGui::SetKeyboardFocusHere();
+                g_focusOtpField = false;
+            }
             // EnterReturnsTrue plus the digit/edit callbacks: Enter submits, callbacks still filter input.
             otpEnter = ImGui::InputTextWithHint("##otp", "000000", g_codeBuf, sizeof g_codeBuf,
                                                 ImGuiInputTextFlags_CallbackCharFilter |
@@ -992,7 +983,7 @@ static void DrawWizard()
         {
             ImGui::SetCursorPos(ImVec2(S(18.f), S(kCodeErrorOffsetY)));
             ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + S(473.f));
-            ImGui::TextColored(ImVec4(0.75f, 0.18f, 0.18f, 1.f), "%s", g_errBuf);
+            ImGui::TextColored(g_sheetIsDark ? kErrorTextDark : kErrorText, "%s", g_errBuf);
             ImGui::PopTextWrapPos();
         }
 
@@ -1000,7 +991,18 @@ static void DrawWizard()
         ImGui::SetCursorPos(ImVec2((S(kCodeStepPanelW) - S(kCodeVerifyW)) * 0.5f, S(kCodeVerifyOffsetY)));
         if (!canVerify || busy)
             ImGui::BeginDisabled();
+        // Accent (default) button once a full code is entered, like "Send code".
+        if (canVerify)
+        {
+            ImGui::PushStyleColor(ImGuiCol_Button, kMacAccentBtn);
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, kMacAccentBtnHov);
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, kMacAccentBtnAct);
+            ImGui::PushStyleColor(ImGuiCol_Border, kMacAccentBtnBorder);
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
+        }
         const bool verifyClicked = ImGui::Button("Verify code", ImVec2(S(kCodeVerifyW), S(36.f)));
+        if (canVerify)
+            ImGui::PopStyleColor(5);
         if ((verifyClicked || otpEnter) && canVerify && !busy)
         {
             g_errBuf[0] = '\0';
@@ -1331,6 +1333,9 @@ bool FirstTimeSetupWin32_RenderIfNeeded(ID3D11Device* device, ID3D11DeviceContex
     PollWorkerResults();
 
     ImGui::SetCurrentContext(g_imguiContext);
+
+    if (ThemeWin32::IsDark() != g_sheetIsDark)
+        ApplySheetColors(ThemeWin32::IsDark());
 
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();

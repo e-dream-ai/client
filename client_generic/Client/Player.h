@@ -2,7 +2,11 @@
 #define _PLAYER_H_
 
 #include <atomic>
+#include <chrono>
+#include <deque>
+#include <future>
 #include <queue>
+#include <thread>
 
 #ifdef WIN32
 //#include <d3d12.h>
@@ -43,12 +47,62 @@ class CPlayer : public Base::CSingleton<CPlayer>
     void SetOfflineMode(bool offline);
     bool IsOfflineMode() const;
   private:
-    bool m_hasStarted = false;
+    std::atomic<bool> m_hasStarted{false};
     
-    bool m_offlineMode;
+    std::atomic<bool> m_offlineMode{false};
     
     std::atomic<bool> m_shutdownFlag{false};
     std::shared_ptr<std::thread> m_startupThread;
+
+    enum class PendingCommandType {
+        ChangePlaylist,
+        PlayDream,
+        PlayPreparedDream,
+        PreloadPreparedDream,
+        InitializePlaylist
+    };
+
+    struct PendingCommand {
+        PendingCommandType type;
+        std::string uuid;
+        int64_t frameNumber = -1;
+        std::shared_ptr<const Cache::Dream> dream;
+        std::string streamingPath;
+        bool seamless = false;
+        std::string resumeDreamUuid;
+        bool offline = false;
+        std::string endReason;
+    };
+
+    std::mutex m_pendingCommandMutex;
+    std::deque<PendingCommand> m_pendingCommands;
+    std::thread::id m_updateThreadId;
+    std::mutex m_backgroundTaskMutex;
+    std::vector<std::future<void>> m_backgroundTasks;
+
+    void ProcessPendingCommands();
+    void EnqueuePlaylistInitialization(std::string playlistUuid,
+                                       std::string resumeDreamUuid,
+                                       bool offline);
+    void EnqueuePreparedDream(std::shared_ptr<const Cache::Dream> dream,
+                              std::string streamingPath, int64_t frameNumber,
+                              std::string endReason);
+    void ApplyPreparedDream(const std::shared_ptr<const Cache::Dream>& dream,
+                            int64_t frameNumber, std::string_view endReason);
+    void RequestPreloadClip(const std::shared_ptr<const Cache::Dream>& dream,
+                            bool seamless);
+    void EnqueuePreparedPreload(std::shared_ptr<const Cache::Dream> dream,
+                                std::string streamingPath, bool seamless);
+    void ApplyPreparedPreload(const std::shared_ptr<const Cache::Dream>& dream,
+                              const std::string& streamingPath, bool seamless);
+    void ReapBackgroundTasks();
+    /// Periodic log line from the render thread: its absence is the hang signal.
+    void LogHeartbeat();
+    std::chrono::steady_clock::time_point m_HeartbeatLastTick{};
+    std::chrono::steady_clock::time_point m_HeartbeatLastLog{};
+    double m_HeartbeatMaxTickMs = 0.0;
+    uint32_t m_HeartbeatTicks = 0;
+    void WaitForBackgroundTasks();
     
     ContentDecoder::spCClip m_currentClip;
     ContentDecoder::spCClip m_nextClip;
@@ -109,14 +163,45 @@ class CPlayer : public Base::CSingleton<CPlayer>
 
     boost::atomic<bool> m_bStarted;
 
+#ifdef SCREEN_SAVER
+    // Shared multi-display (screensaver): wall time of last clip advance.
+    double m_LastSharedAdvanceTime = -1.0;
+    std::mutex m_SharedAdvanceMutex;
+#endif
+
     //	Used to keep track of elapsed time since last frame.
     double m_CapClock;
 
     mutable std::shared_mutex m_UpdateMutex;
     boost::condition m_PlayCond;
 
-    // Last uuid reported to server
-    std::string lastReportedUUID;
+    // The play last reported to the server as "playing", so it can be
+    // reported as "finished" once another clip takes over (#691). Tracked by
+    // clip rather than uuid so a repeat of the same dream counts as a new
+    // play. Guarded by m_playReportMutex: user commands set endReason from
+    // the event thread.
+    struct PlayReport {
+        std::weak_ptr<ContentDecoder::CClip> clip;
+        std::string uuid;
+        double startTime = 0.0;   // m_TimelineTime when the play began
+        double endTime = 0.0;     // m_TimelineTime at the last position seen
+        uint32_t frameIdx = 0;    // last position seen while current
+        uint32_t frameCount = 0;
+        std::string endReason;    // user action that ended it; empty = natural
+    };
+    std::mutex m_playReportMutex;
+    PlayReport m_playReport;
+    // Clip created by a seek within the current dream: it continues the
+    // current play rather than starting a new one.
+    std::weak_ptr<ContentDecoder::CClip> m_seekClip;
+
+    void ReportPlayback();
+    void ReportPlaybackEnd(std::string_view reason);
+    // Record the user action that is ending the current play, freezing its
+    // position at this moment. The first action wins.
+    void MarkPlayEnd(std::string_view reason);
+    static void SendPlayFinished(const PlayReport& play,
+                                 std::string_view defaultReason);
 #ifdef WIN32
     // In Control Panel preview mode (/p), Windows passes an existing parent HWND.
     // Outside preview, we create our own top-level windows (potentially one per monitor).
@@ -136,11 +221,11 @@ class CPlayer : public Base::CSingleton<CPlayer>
   private:
 #endif
 
-    void FpsCap(const double _cap);
     /// Shared logged-in path: Hello/quota, server playlist, begin playback (used by startup and sign-in).
     void BootstrapLoggedInPlaylist();
 
   public:
+    void FpsCap(const double _cap);
     bool Startup();
     bool Shutdown(void);
     virtual ~CPlayer();
@@ -167,7 +252,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     bool Update(uint32_t displayUnit); //, bool& bPlayNoSheepIntro);
     //bool Update(double _timelineTime);
 
-    void RenderFrame(DisplayOutput::spCRenderer renderer);
+    bool RenderFrame(DisplayOutput::spCRenderer renderer);
     
     bool HasStarted() { return m_hasStarted; };
     void SetFirstRunWizardPlaybackHold(bool hold)
@@ -190,14 +275,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
     sOpenVideoInfo* GetNextClipInfo();
 
 
-#ifdef MAC
-    int AddDisplay(uint32_t screen, CGraphicsContext _grapicsContext,
+    int AddDisplay(uint32_t screen, CGraphicsContext _grapicsContext = nullptr,
                    bool _blank = false);
-#endif
-
-#ifdef WIN32
-    int AddDisplay(uint32_t screen, bool _blank = false);
-#endif
 
     inline void PlayCountsInitOff() { m_InitPlayCounts = false; };
 
@@ -205,6 +284,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     void SetPerceptualFPS(const double _fps);
     double GetPerceptualFPS();
     double GetDecoderFPS();
+    inline double GetDisplayFps() const { return m_DisplayFps; }
     inline void Fullscreen(const bool _bState) { m_bFullscreen = _bState; };
     inline bool Stopped() { return !m_bStarted; };
 
@@ -245,7 +325,10 @@ class CPlayer : public Base::CSingleton<CPlayer>
     // Get the PlaylistManager
     PlaylistManager& GetPlaylistManager() { return *m_playlistManager; }
     
-    void PlayDreamNow(std::string_view _uuid, int64_t frameNumber);
+    void PlayDreamNow(std::string_view _uuid, int64_t frameNumber,
+                      std::string_view endReason = "play_dream");
+    void EnqueuePlayDream(std::string uuid, int64_t frameNumber = -1);
+    void EnqueuePlaylistChange(std::string uuid);
     void ResetPlaylist();
     
     // Set playlist from the start
@@ -255,7 +338,13 @@ class CPlayer : public Base::CSingleton<CPlayer>
     bool SetPlaylistAtDream(const std::string& playlistUUID, const std::string& dreamUUID, bool fetchPlaylist);
    
     void MarkForDeletion(std::string_view _uuid);
-    void SkipToNext();
+    // Drop a preloaded next clip for uuid if m_UpdateMutex can be taken without
+    // blocking. No-op on the player thread, which may already hold the lock.
+    void TryCancelPreloadForUuid(const std::string& uuid);
+    // Retry deferred MP4 deletes for UUIDs that are no longer current/next.
+    // Caller must hold m_UpdateMutex (Update, PlayNextDream, transitions).
+    void FlushPendingVideoInvalidations();
+    void SkipToNext(std::string_view endReason = "next");
     void ReturnToPrevious();
     void SkipForward(float _seconds);
     void RepeatClip();
@@ -265,7 +354,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     /*bool PlayClip(std::string_view _clipPath, double _startTimelineTime,
                   int64_t _seekFrame = -1, bool fastFade = false);*/
     //bool PlayClip(const Cache::Dream& dream, double _startTime, int64_t _seekFrame = -1, bool fastFade = false);
-    bool PlayClip(const Cache::Dream* dream, double _startTime, int64_t _seekFrame = -1, bool isTransition = false);
+    bool PlayClip(const std::shared_ptr<const Cache::Dream>& dream, double _startTime, int64_t _seekFrame = -1, bool isTransition = false);
     
     void SetMultiDisplayMode(MultiDisplayMode mode)
     {
@@ -276,7 +365,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
         return static_cast<uint32_t>(m_displayUnits.size());
     }
     void ForceWidthAndHeight(uint32_t du, uint32_t _w, uint32_t _h);
-    
+    void SetVideoRotation(uint32_t du, uint32_t _degrees);
+
     void SetPaused(bool _bPaused, bool isUserInitiated = false) {
         bool stateChanged = (m_bPaused != _bPaused);
         m_bPaused = _bPaused;
@@ -298,7 +388,15 @@ class CPlayer : public Base::CSingleton<CPlayer>
 
     // Keep track of preflight decision
     std::optional<PlaylistManager::NextDreamDecision> m_nextDreamDecision;
+
+    // After a natural-transition preflight finds nothing cached, wait before
+    // retrying instead of preflighting (and logging) on every frame.
+    std::chrono::steady_clock::time_point m_nextTransitionPreflight{};
     
+    // Length of a natural (not user-initiated) crossfade: the playlist's
+    // transitionTime, or the default when unset, clamped to fit the clip.
+    float NaturalFadeSeconds(const ContentDecoder::spCClip& clip = nullptr) const;
+
     // Check if we need to prepare for transition
     bool shouldPrepareTransition(const ContentDecoder::spCClip& clip) const;
     
@@ -306,7 +404,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     void prepareSeamlessTransition();
     void prepareCrossfadeTransition();
 
-    bool PreloadClip(const Cache::Dream* dream);
+    bool PreloadClip(const std::shared_ptr<const Cache::Dream>& dream);
     
     // Handle buffering states
     void SetPausedForBuffering(bool paused) {

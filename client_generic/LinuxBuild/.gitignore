@@ -1,0 +1,11 @@
+build/
+build-stage/
+build-appimage/
+build-glibc-check/
+a.out
+AppDir/
+appimage-tools/
+deps-src/
+openssl-minimal/
+ffmpeg-minimal/
+*.AppImage

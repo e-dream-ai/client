@@ -52,10 +52,13 @@ class CClip
 
 public: // tmp public for debug
     sClipMetadata m_ClipMetadata;
-    DecoderClock m_DecoderClock;
+    DecoderClock m_DecoderClock{};
 private: //tmp
-    spCFrameDisplay m_spFrameDisplay;
+    // m_spRenderer must be declared before m_spFrameDisplay so that the frame
+    // display (and its CTextureFlatVulkan) is destroyed BEFORE the renderer
+    // ref count drops. C++ destructs members in reverse declaration order.
     spCRenderer m_spRenderer;
+    spCFrameDisplay m_spFrameDisplay;
     spCContentDecoder m_spDecoder;
     ContentDecoder::spCVideoFrame m_spFrameData;
     DisplayOutput::spCImage m_spImageRef;
@@ -63,8 +66,8 @@ public: // tmp public for debug
     sFrameMetadata m_CurrentFrameMetadata;
 private: // tmp
     mutable std::shared_mutex m_CurrentFrameMetadataLock;
-    double m_StartTime;
-    double m_EndTime;
+    double m_StartTime = 0.0;
+    double m_EndTime = 0.0;
     boost::atomic<bool> m_HasFinished;
     boost::atomic<bool> m_IsFadingOut;
 public:
@@ -105,9 +108,15 @@ public:
           uint32_t _displayHeight);
     bool Start(int64_t _seekFrame = -1);
     void Stop();
+    // Must be called by the render/update thread before asynchronous teardown.
+    void ReleaseRenderResources();
     
     bool Preload(int64_t _seekFrame = -1);
     bool IsPreloadComplete() const;
+    bool IsPreloadFailed() const
+    {
+        return m_spDecoder && m_spDecoder->FailedToOpen();
+    }
 
     bool StartPlayback(int64_t _seekFrame = -1);
     
@@ -144,6 +153,10 @@ public:
         m_FadeInSeconds = _fadeInSeconds;
         m_FadeOutSeconds = _fadeOutSeconds;
     }
+    // Fade-in and fade-out must together leave ~3s in the middle of the clip,
+    // the time the player needs to preload the next one (it cannot do so
+    // during a transition). Leaves the value alone while the length is unknown.
+    float ClampFadeToLength(float _seconds) const;
     std::tuple<float, float> GetTransitionLength() const
     {
         return {m_FadeInSeconds, m_FadeOutSeconds};

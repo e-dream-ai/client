@@ -41,6 +41,7 @@ extern "C"
 #include "libavformat/avformat.h"
 #include "libavutil/hwcontext.h"
 #include "libavutil/imgutils.h"
+#include "libavutil/pixdesc.h"
 #include "libswscale/swscale.h"
 }
 
@@ -59,6 +60,7 @@ extern "C" {
 #include "BlockingQueue.h"
 #include "Frame.h"
 #include "CacheManager.h"
+#include "ProgressiveHttpStream.h"
 
 namespace ContentDecoder
 {
@@ -113,7 +115,7 @@ struct sOpenVideoInfo
 */
 class CContentDecoder
 {
-    bool m_bStop;
+    std::atomic<bool> m_bStop{true};
 
     SwsContext* m_pScaler;
     uint32_t m_ScalerWidth;
@@ -121,6 +123,7 @@ class CContentDecoder
 
     boost::thread* m_pDecoderThread;
     void ReadFramesThread();
+    void OpenAndReadFramesThread();
 
     //	Queue for decoded frames.
     Base::CBlockingQueue<CVideoFrame*> m_FrameQueue;
@@ -132,9 +135,11 @@ class CContentDecoder
     std::atomic<int64_t> m_SkipToFrame{-1};  // The displayed frame index to use as base for skip
     boost::atomic<bool> m_HasStarted{false};
     boost::atomic<bool> m_HasEnded;
+    std::atomic<bool> m_OpenFailed{false};
 
     void Destroy();
     bool Open();
+    static int InterruptIO(void* opaque);
     CVideoFrame* ReadOneFrame();
     static int DumpError(int _err);
 
@@ -153,6 +158,20 @@ class CContentDecoder
     {
         m_d3d11Device = _device;
     }
+#elif defined(LINUX_GNU)
+    // _decodeDevice: Vulkan GPU name for FFmpeg's Vulkan Video decoder (the
+    // renderer's GPU); empty disables hardware decoding.
+    // _gpuYUVConversion: the renderer converts 8-bit 4:2:0 YUV frames itself,
+    // so they are queued as-is instead of being converted with swscale.
+    void SetVulkanOutput(const std::string& _decodeDevice, bool _gpuYUVConversion)
+    {
+        m_VulkanDecodeDevice = _decodeDevice;
+        m_GPUYUVConversion   = _gpuYUVConversion;
+    }
+
+    // Drops the process-wide reference to the shared Vulkan decode device.
+    // Open decoders keep their own references, so this is safe at any time.
+    static void ReleaseSharedVulkanDevice();
 #endif
 
     void Close();
@@ -165,7 +184,8 @@ class CContentDecoder
     spCVideoFrame PopVideoFrame();
     bool HasEnded() const { return m_HasEnded.load() && !m_FrameQueue.size(); }
     bool DecoderThreadEnded() const { return m_HasEnded.load(); }  // True when decoder thread finished, regardless of queue state
-    bool Stopped() { return m_bStop; };
+    bool Stopped() const { return m_bStop.load(); };
+    bool FailedToOpen() const { return m_OpenFailed.load(); }
     uint32_t QueueLength();
     void ClearQueue(uint32_t leave = 0);
     void SkipTime(float _secondsForward, int64_t _displayedFrameIdx = -1)
@@ -182,16 +202,22 @@ class CContentDecoder
     std::vector<std::future<void>> m_futures;
     sClipMetadata m_Metadata;
     bool IsURL(const std::string& path);
-    AVIOContext* m_pIOContext;
-    unsigned char* m_pIOBuffer;
-    const int kIOBufferSize = 32768;  // 32 KB buffer
 
-    int64_t m_CacheWritePosition;
+    // libcurl-owned progressive download for HTTPS paths (ffmpeg is file/AVIO only).
+    // Either our own, or the prefetcher's in-flight download of the same dream
+    // (m_httpStreamShared): that one is never stopped or finalized here.
+    std::shared_ptr<Network::ProgressiveHttpStream> m_httpStream;
+    Network::ProgressiveHttpStream::Cursor m_httpCursor;
+    bool m_httpStreamShared = false;
+    void StopOwnedStream();
+    void ReleaseStream();
+
+    int64_t m_CacheWritePosition = 0;
     std::mutex m_CacheMutex;
     
     std::string m_CachePath;
-    FILE* m_CacheFile;
-    bool m_IsStreaming;
+    FILE* m_CacheFile = nullptr;
+    bool m_IsStreaming = false;
     static int ReadPacket(void* opaque, uint8_t* buf, int buf_size);
     static int64_t SeekPacket(void* opaque, int64_t offset, int whence);
     void SetCachePath(const std::string& path);
@@ -211,6 +237,10 @@ class CContentDecoder
     ComPtr<ID3D11Device> m_d3d11Device;
     static AVPixelFormat GetHWFormat(AVCodecContext* ctx,
                                      const AVPixelFormat* pix_fmts);
+#elif defined(LINUX_GNU)
+    std::string m_VulkanDecodeDevice;
+    bool m_GPUYUVConversion = false;
+    static AVBufferRef* AcquireSharedVulkanDevice(const std::string& deviceName);
 #endif
 };
 

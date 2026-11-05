@@ -14,7 +14,9 @@
 #include "AboutDialogWin32.h"
 #include "FirstTimeSetupWin32.h"
 #include "SettingsDialogWin32.h"
+#include "ThemeWin32.h"
 #include <windows.h>
+#include <vector>
 #endif
 
 namespace DisplayOutput {
@@ -25,6 +27,32 @@ CBaseText::CBaseText() {}
 CBaseText::~CBaseText() {}
 
 namespace {
+
+static D3D11_VIEWPORT BuildBaseViewportForDisplay(const std::shared_ptr<CDisplayOutput>& display)
+{
+    D3D11_VIEWPORT vp{};
+    if (!display)
+        return vp;
+
+    vp.Width = static_cast<float>(display->Width());
+    vp.Height = static_cast<float>(display->Height());
+    vp.MinDepth = 0.0f;
+    vp.MaxDepth = 1.0f;
+
+#ifdef WIN32
+    if (auto* dx = dynamic_cast<DisplayOutput::CDisplayDX11*>(display.get()))
+    {
+        const int inset = dx->GetVideoViewportTopInsetPx();
+        if (inset > 0)
+        {
+            vp.TopLeftY = static_cast<float>(inset);
+            vp.Height = static_cast<float>(display->Height()) - vp.TopLeftY;
+        }
+    }
+#endif
+
+    return vp;
+}
 const char* kQuadPassVertexHlsl = R"(
 struct VSInput {
     float3 pos : POSITION;
@@ -129,7 +157,8 @@ cbuffer QuadUniforms : register(b0) {
     float4 uvRect;
     float4 color;
     float brightness;
-    float3 padding;
+    int rotation;
+    float2 padding;
 };
 
 struct PSInput {
@@ -140,6 +169,7 @@ struct PSInput {
 float4 main(PSInput input) : SV_TARGET {
     float2 adjustedUV = (input.uv - rect.xy) / rect.zw;
     adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;
+    if (rotation == 90) adjustedUV = float2(adjustedUV.y, 1.0 - adjustedUV.x);  // portrait rotation
     float4 sampled = tx0.Sample(smp0, adjustedUV);
     sampled.rgb += brightness;
     return float4(sampled.rgb * color.rgb, color.a);
@@ -158,7 +188,8 @@ cbuffer QuadUniforms : register(b0) {
     float4 uvRect;
     float4 color;
     float brightness;
-    float3 padding;
+    int rotation;
+    float2 padding;
 };
 
 cbuffer LinearDeltaCB : register(b1) {
@@ -174,6 +205,7 @@ struct PSInput {
 float4 main(PSInput input) : SV_TARGET {
     float2 adjustedUV = (input.uv - rect.xy) / rect.zw;
     adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;
+    if (rotation == 90) adjustedUV = float2(adjustedUV.y, 1.0 - adjustedUV.x);  // portrait rotation
     float4 c1 = tx1.Sample(smp1, adjustedUV);
     float4 c2 = tx2.Sample(smp2, adjustedUV);
     float4 blended = lerp(c1, c2, delta);
@@ -213,7 +245,8 @@ cbuffer QuadUniforms : register(b0) {
     float4 uvRect;
     float4 color;
     float  brightness;
-    float3 padding;
+    int    rotation;
+    float2 padding;
 };
 
 struct PSInput { float4 position : SV_POSITION; float2 uv : TEXCOORD0; };
@@ -231,6 +264,7 @@ float4 SampleNV12(Texture2D yT, Texture2D uvT, SamplerState sY2, SamplerState sU
 float4 main(PSInput input) : SV_TARGET {
     float2 adjustedUV = (input.uv - rect.xy) / rect.zw;
     adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;
+    if (rotation == 90) adjustedUV = float2(adjustedUV.y, 1.0 - adjustedUV.x);  // portrait rotation
     float4 c = SampleNV12(yTex, uvTex, sY, sUV, adjustedUV);
     c.rgb += brightness;
     return float4(c.rgb * color.rgb, color.a);
@@ -249,7 +283,7 @@ SamplerState s4 : register(s4);
 SamplerState s5 : register(s5);
 
 cbuffer QuadUniforms : register(b0) {
-    float4 rect; float4 uvRect; float4 color; float brightness; float3 padding;
+    float4 rect; float4 uvRect; float4 color; float brightness; int rotation; float2 padding;
 };
 cbuffer LinearDeltaCB : register(b1) { float delta; float3 _padDelta; };
 
@@ -268,6 +302,7 @@ float4 SampleNV12_2(Texture2D yT, Texture2D uvT, SamplerState sY2, SamplerState 
 float4 main(PSInput input) : SV_TARGET {
     float2 adjustedUV = (input.uv - rect.xy) / rect.zw;
     adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;
+    if (rotation == 90) adjustedUV = float2(adjustedUV.y, 1.0 - adjustedUV.x);  // portrait rotation
     float4 c1 = SampleNV12_2(f1Y, f1UV, s2, s3, adjustedUV);
     float4 c2 = SampleNV12_2(f2Y, f2UV, s4, s5, adjustedUV);
     float4 blended = lerp(c1, c2, delta);
@@ -288,7 +323,7 @@ SamplerState s6 : register(s6);  SamplerState s7 : register(s7);
 SamplerState s8 : register(s8);  SamplerState s9 : register(s9);
 
 cbuffer QuadUniforms : register(b0) {
-    float4 rect; float4 uvRect; float4 color; float brightness; float3 padding;
+    float4 rect; float4 uvRect; float4 color; float brightness; int rotation; float2 padding;
 };
 cbuffer CubicWeightsCB : register(b1) { float4 weights; };
 
@@ -307,6 +342,7 @@ float4 SampleNV12_3(Texture2D yT, Texture2D uvT, SamplerState sY2, SamplerState 
 float4 main(PSInput input) : SV_TARGET {
     float2 adjustedUV = (input.uv - rect.xy) / rect.zw;
     adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;
+    if (rotation == 90) adjustedUV = float2(adjustedUV.y, 1.0 - adjustedUV.x);  // portrait rotation
     float4 c1 = SampleNV12_3(f1Y, f1UV, s2, s3, adjustedUV);
     float4 c2 = SampleNV12_3(f2Y, f2UV, s4, s5, adjustedUV);
     float4 c3 = SampleNV12_3(f3Y, f3UV, s6, s7, adjustedUV);
@@ -333,7 +369,8 @@ cbuffer QuadUniforms : register(b0) {
     float4 uvRect;
     float4 color;
     float brightness;
-    float3 padding;
+    int rotation;
+    float2 padding;
 };
 
 cbuffer CubicWeightsCB : register(b1) {
@@ -348,6 +385,7 @@ struct PSInput {
 float4 main(PSInput input) : SV_TARGET {
     float2 adjustedUV = (input.uv - rect.xy) / rect.zw;
     adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;
+    if (rotation == 90) adjustedUV = float2(adjustedUV.y, 1.0 - adjustedUV.x);  // portrait rotation
     float4 c1 = tx1.Sample(smp1, adjustedUV);
     float4 c2 = tx2.Sample(smp2, adjustedUV);
     float4 c3 = tx3.Sample(smp3, adjustedUV);
@@ -377,13 +415,21 @@ bool CreateDefaultSampler(ID3D11Device* device, ID3D11SamplerState** outSampler)
     return SUCCEEDED(hr);
 }
 
-bool CreateGlyphPointSampler(ID3D11Device* device, ID3D11SamplerState** outSampler)
+bool CreateGlyphSampler(ID3D11Device* device, ID3D11SamplerState** outSampler)
 {
     if (!device || !outSampler)
         return false;
 
     D3D11_SAMPLER_DESC samplerDesc = {};
-    samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+    // Linear, not point. The OSD text quads are almost never an exact 1:1
+    // texel->pixel map: the custom-titlebar viewport inset
+    // (BuildBaseViewportForDisplay / GetVideoViewportTopInsetPx) scales the
+    // text vertically by (height - inset)/height, DPI scaling adds more, and
+    // pen positions land on fractional pixels. With nearest-neighbor sampling
+    // that minification drops whole rows of texels, which showed up as text
+    // with a "missing row of pixels" on Windows (issue #652). Linear blends
+    // those rows instead of dropping them, matching the Vulkan glyph sampler.
+    samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
     samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
     samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
     samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -400,20 +446,23 @@ bool IsPreserveAspectEnabled()
     return g_Settings() && g_Settings()->Get("settings.player.preserve_AR", false);
 }
 
-bool ComputeAspectViewport16By9(float displayW, float displayH, D3D11_VIEWPORT& outViewport)
+// Compute a centered viewport of the given target aspect (width/height) inside the
+// display, letterboxing or pillarboxing as needed. targetAspect is 16:9 normally,
+// or 9:16 when the dream is rotated for a portrait display ("rotate_portrait").
+bool ComputeAspectViewport(float displayW, float displayH, float targetAspect,
+                           D3D11_VIEWPORT& outViewport)
 {
-    if (displayW <= 0.0f || displayH <= 0.0f)
+    if (displayW <= 0.0f || displayH <= 0.0f || targetAspect <= 0.0f)
         return false;
 
-    constexpr float kTargetAspect16By9 = 16.0f / 9.0f;
     const float displayAspect = displayW / displayH;
     float vpW = displayW;
     float vpH = displayH;
 
-    if (kTargetAspect16By9 > displayAspect)
-        vpH = std::max(1.0f, std::round(displayW / kTargetAspect16By9));
+    if (targetAspect > displayAspect)
+        vpH = std::max(1.0f, std::round(displayW / targetAspect));
     else
-        vpW = std::max(1.0f, std::round(displayH * kTargetAspect16By9));
+        vpW = std::max(1.0f, std::round(displayH * targetAspect));
 
     outViewport.TopLeftX = std::floor((displayW - vpW) * 0.5f);
     outViewport.TopLeftY = std::floor((displayH - vpH) * 0.5f);
@@ -632,7 +681,7 @@ void CRendererDX11::EndGpuTimingFrame()
 
 float CRendererDX11::DisplayRefreshHz() const
 {
-    auto display = std::dynamic_pointer_cast<CDisplayDX11>(m_spDisplay);
+    auto display = std::dynamic_pointer_cast<DisplayOutput::CDisplayDX11>(m_spDisplay);
     if (!display)
         return 60.0f;
     IDXGISwapChain* sc = display->GetSwapChain();
@@ -701,7 +750,7 @@ bool CRendererDX11::Initialize(spCDisplayOutput _spDisplay) {
         g_Log->Error("Failed to create default DX11 sampler");
         return false;
     }
-    if (!CreateGlyphPointSampler(m_device.Get(), &m_glyphPointSampler))
+    if (!CreateGlyphSampler(m_device.Get(), &m_glyphSampler))
     {
         g_Log->Error("Failed to create glyph point sampler");
         return false;
@@ -782,12 +831,8 @@ bool CRendererDX11::CreateRenderTargets()
         return false;
     }
 
-    // Set the viewport
-    D3D11_VIEWPORT viewport = {};
-    viewport.Width = static_cast<float>(m_spDisplay->Width());
-    viewport.Height = static_cast<float>(m_spDisplay->Height());
-    viewport.MinDepth = 0.0f;
-    viewport.MaxDepth = 1.0f;
+    // Set the viewport (respect custom titlebar reserve if enabled).
+    D3D11_VIEWPORT viewport = BuildBaseViewportForDisplay(m_spDisplay);
     m_context->RSSetViewports(1, &viewport);
 
     return true;
@@ -881,6 +926,455 @@ void CRendererDX11::Defaults() {
     // Set default render states
 }
 
+bool CRendererDX11::EnsureSolidWhiteTexture()
+{
+    if (m_solidWhiteSrv)
+        return true;
+    if (!m_device)
+        return false;
+
+    D3D11_TEXTURE2D_DESC desc{};
+    desc.Width = 1;
+    desc.Height = 1;
+    desc.MipLevels = 1;
+    desc.ArraySize = 1;
+    desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    desc.SampleDesc.Count = 1;
+    desc.Usage = D3D11_USAGE_IMMUTABLE;
+    desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+    const uint32_t white = 0xFFFFFFFFu;
+    D3D11_SUBRESOURCE_DATA data{};
+    data.pSysMem = &white;
+    data.SysMemPitch = sizeof(uint32_t);
+
+    ComPtr<ID3D11Texture2D> tex;
+    HRESULT hr = m_device->CreateTexture2D(&desc, &data, &tex);
+    if (FAILED(hr))
+        return false;
+
+    hr = m_device->CreateShaderResourceView(tex.Get(), nullptr, &m_solidWhiteSrv);
+    return SUCCEEDED(hr) && m_solidWhiteSrv != nullptr;
+}
+
+static HICON GetBestWindowIcon(HWND hwnd)
+{
+    if (!hwnd)
+        return nullptr;
+
+    // Prefer big icon, then small icon, then class icon.
+    HICON icon = reinterpret_cast<HICON>(SendMessageW(hwnd, WM_GETICON, ICON_BIG, 0));
+    if (!icon)
+        icon = reinterpret_cast<HICON>(SendMessageW(hwnd, WM_GETICON, ICON_SMALL, 0));
+    if (!icon)
+        icon = reinterpret_cast<HICON>(GetClassLongPtrW(hwnd, GCLP_HICON));
+    if (!icon)
+        icon = reinterpret_cast<HICON>(GetClassLongPtrW(hwnd, GCLP_HICONSM));
+    return icon;
+}
+
+static bool ExtractIconRgba8(HICON icon, std::vector<uint8_t>& outRgba, uint32_t& outW, uint32_t& outH)
+{
+    outRgba.clear();
+    outW = outH = 0;
+    if (!icon)
+        return false;
+
+    ICONINFO ii{};
+    if (!GetIconInfo(icon, &ii))
+        return false;
+
+    BITMAP bm{};
+    if (!GetObject(ii.hbmColor ? ii.hbmColor : ii.hbmMask, sizeof(bm), &bm))
+    {
+        if (ii.hbmColor) DeleteObject(ii.hbmColor);
+        if (ii.hbmMask) DeleteObject(ii.hbmMask);
+        return false;
+    }
+
+    const uint32_t w = static_cast<uint32_t>(bm.bmWidth);
+    uint32_t h = static_cast<uint32_t>(bm.bmHeight);
+    if (!ii.hbmColor)
+    {
+        // Mask bitmap is double-height (AND + XOR).
+        h = h / 2;
+    }
+    if (w == 0 || h == 0)
+    {
+        if (ii.hbmColor) DeleteObject(ii.hbmColor);
+        if (ii.hbmMask) DeleteObject(ii.hbmMask);
+        return false;
+    }
+
+    BITMAPINFO bi{};
+    bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bi.bmiHeader.biWidth = static_cast<LONG>(w);
+    bi.bmiHeader.biHeight = -static_cast<LONG>(h); // top-down
+    bi.bmiHeader.biPlanes = 1;
+    bi.bmiHeader.biBitCount = 32;
+    bi.bmiHeader.biCompression = BI_RGB;
+
+    std::vector<uint8_t> bgra(w * h * 4);
+    HDC hdc = GetDC(nullptr);
+    bool ok = false;
+    if (hdc)
+    {
+        // If we have a color bitmap, use it. Otherwise render the icon.
+        if (ii.hbmColor)
+        {
+            if (GetDIBits(hdc, ii.hbmColor, 0, h, bgra.data(), &bi, DIB_RGB_COLORS) != 0)
+                ok = true;
+        }
+        else
+        {
+            // Render to a DIB section via DrawIconEx.
+            void* bits = nullptr;
+            HBITMAP dib = CreateDIBSection(hdc, &bi, DIB_RGB_COLORS, &bits, nullptr, 0);
+            if (dib && bits)
+            {
+                HDC mem = CreateCompatibleDC(hdc);
+                if (mem)
+                {
+                    HGDIOBJ old = SelectObject(mem, dib);
+                    RECT r{0, 0, static_cast<LONG>(w), static_cast<LONG>(h)};
+                    HBRUSH b = CreateSolidBrush(RGB(0, 0, 0));
+                    FillRect(mem, &r, b);
+                    DeleteObject(b);
+                    if (DrawIconEx(mem, 0, 0, icon, w, h, 0, nullptr, DI_NORMAL))
+                    {
+                        std::memcpy(bgra.data(), bits, bgra.size());
+                        ok = true;
+                    }
+                    SelectObject(mem, old);
+                    DeleteDC(mem);
+                }
+                DeleteObject(dib);
+            }
+        }
+        ReleaseDC(nullptr, hdc);
+    }
+
+    if (ii.hbmColor) DeleteObject(ii.hbmColor);
+    if (ii.hbmMask) DeleteObject(ii.hbmMask);
+
+    if (!ok)
+        return false;
+
+    outRgba.resize(w * h * 4);
+    for (size_t i = 0; i < w * h; ++i)
+    {
+        const uint8_t b = bgra[i * 4 + 0];
+        const uint8_t g = bgra[i * 4 + 1];
+        const uint8_t r = bgra[i * 4 + 2];
+        const uint8_t a = bgra[i * 4 + 3];
+        outRgba[i * 4 + 0] = r;
+        outRgba[i * 4 + 1] = g;
+        outRgba[i * 4 + 2] = b;
+        outRgba[i * 4 + 3] = a;
+    }
+    outW = w;
+    outH = h;
+    return true;
+}
+
+static bool RenderGlyphToRgbaMask(wchar_t glyph, int sizePx, std::vector<uint8_t>& outRgba, uint32_t& outW, uint32_t& outH)
+{
+    outRgba.clear();
+    outW = outH = 0;
+    if (sizePx <= 0)
+        return false;
+
+    const int w = sizePx;
+    const int h = sizePx;
+
+    BITMAPINFO bi{};
+    bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bi.bmiHeader.biWidth = w;
+    bi.bmiHeader.biHeight = -h; // top-down
+    bi.bmiHeader.biPlanes = 1;
+    bi.bmiHeader.biBitCount = 32;
+    bi.bmiHeader.biCompression = BI_RGB;
+
+    HDC hdc = GetDC(nullptr);
+    if (!hdc)
+        return false;
+
+    void* bits = nullptr;
+    HBITMAP dib = CreateDIBSection(hdc, &bi, DIB_RGB_COLORS, &bits, nullptr, 0);
+    if (!dib || !bits)
+    {
+        ReleaseDC(nullptr, hdc);
+        if (dib) DeleteObject(dib);
+        return false;
+    }
+
+    HDC mem = CreateCompatibleDC(hdc);
+    if (!mem)
+    {
+        DeleteObject(dib);
+        ReleaseDC(nullptr, hdc);
+        return false;
+    }
+
+    HGDIOBJ oldBmp = SelectObject(mem, dib);
+    RECT r{0, 0, w, h};
+    HBRUSH black = CreateSolidBrush(RGB(0, 0, 0));
+    FillRect(mem, &r, black);
+    DeleteObject(black);
+
+    HFONT font = CreateFontW(sizePx, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+                             OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
+                             DEFAULT_PITCH, L"Segoe MDL2 Assets");
+    HGDIOBJ oldFont = nullptr;
+    if (font)
+        oldFont = SelectObject(mem, font);
+
+    SetBkMode(mem, TRANSPARENT);
+    SetTextColor(mem, RGB(255, 255, 255));
+
+    wchar_t s[2]{glyph, 0};
+    DrawTextW(mem, s, 1, &r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+    if (oldFont)
+        SelectObject(mem, oldFont);
+    if (font)
+        DeleteObject(font);
+
+    // Convert BGRA to RGBA with alpha from luminance (white on black → alpha mask).
+    outRgba.resize(static_cast<size_t>(w) * static_cast<size_t>(h) * 4u);
+    const uint8_t* bgra = reinterpret_cast<const uint8_t*>(bits);
+    for (int i = 0; i < w * h; ++i)
+    {
+        const uint8_t b = bgra[i * 4 + 0];
+        const uint8_t g = bgra[i * 4 + 1];
+        const uint8_t rr = bgra[i * 4 + 2];
+        const uint8_t a = (std::max)({b, g, rr});
+        outRgba[i * 4 + 0] = 255;
+        outRgba[i * 4 + 1] = 255;
+        outRgba[i * 4 + 2] = 255;
+        outRgba[i * 4 + 3] = a;
+    }
+
+    SelectObject(mem, oldBmp);
+    DeleteDC(mem);
+    DeleteObject(dib);
+    ReleaseDC(nullptr, hdc);
+
+    outW = static_cast<uint32_t>(w);
+    outH = static_cast<uint32_t>(h);
+    return true;
+}
+
+static bool CreateSrvFromRgba(ID3D11Device* device, const std::vector<uint8_t>& rgba, uint32_t w, uint32_t h,
+                              ComPtr<ID3D11ShaderResourceView>& outSrv)
+{
+    outSrv.Reset();
+    if (!device || rgba.empty() || w == 0 || h == 0)
+        return false;
+
+    D3D11_TEXTURE2D_DESC desc{};
+    desc.Width = w;
+    desc.Height = h;
+    desc.MipLevels = 1;
+    desc.ArraySize = 1;
+    desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    desc.SampleDesc.Count = 1;
+    desc.Usage = D3D11_USAGE_IMMUTABLE;
+    desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+    D3D11_SUBRESOURCE_DATA data{};
+    data.pSysMem = rgba.data();
+    data.SysMemPitch = w * 4;
+
+    ComPtr<ID3D11Texture2D> tex;
+    if (FAILED(device->CreateTexture2D(&desc, &data, &tex)))
+        return false;
+    if (FAILED(device->CreateShaderResourceView(tex.Get(), nullptr, &outSrv)))
+        return false;
+    return outSrv != nullptr;
+}
+
+// Box-filter downscale of straight-alpha RGBA, weighting color by alpha so transparent
+// pixels don't darken the edges.
+static void DownscaleRgbaArea(const std::vector<uint8_t>& src, uint32_t sw, uint32_t sh,
+                              uint32_t dw, uint32_t dh, std::vector<uint8_t>& dst)
+{
+    dst.assign(static_cast<size_t>(dw) * dh * 4u, 0);
+    for (uint32_t y = 0; y < dh; ++y)
+    {
+        const double sy0 = static_cast<double>(y) * sh / dh;
+        const double sy1 = static_cast<double>(y + 1) * sh / dh;
+        for (uint32_t x = 0; x < dw; ++x)
+        {
+            const double sx0 = static_cast<double>(x) * sw / dw;
+            const double sx1 = static_cast<double>(x + 1) * sw / dw;
+            double r = 0, g = 0, b = 0, a = 0, area = 0;
+            for (uint32_t yy = static_cast<uint32_t>(sy0); yy < sh && yy < sy1; ++yy)
+            {
+                const double wy = (std::min)(sy1, yy + 1.0) - (std::max)(sy0, static_cast<double>(yy));
+                for (uint32_t xx = static_cast<uint32_t>(sx0); xx < sw && xx < sx1; ++xx)
+                {
+                    const double wx = (std::min)(sx1, xx + 1.0) - (std::max)(sx0, static_cast<double>(xx));
+                    const double wgt = wx * wy;
+                    const uint8_t* p = &src[(static_cast<size_t>(yy) * sw + xx) * 4u];
+                    const double pa = p[3] / 255.0 * wgt;
+                    r += p[0] * pa;
+                    g += p[1] * pa;
+                    b += p[2] * pa;
+                    a += pa;
+                    area += wgt;
+                }
+            }
+            uint8_t* q = &dst[(static_cast<size_t>(y) * dw + x) * 4u];
+            if (a > 0.0)
+            {
+                q[0] = static_cast<uint8_t>(std::lround(r / a));
+                q[1] = static_cast<uint8_t>(std::lround(g / a));
+                q[2] = static_cast<uint8_t>(std::lround(b / a));
+            }
+            q[3] = (area > 0.0) ? static_cast<uint8_t>(std::lround(255.0 * a / area)) : 0;
+        }
+    }
+}
+
+bool CRendererDX11::EnsureTitlebarLogoTexture(HWND hwnd, int sizePx)
+{
+    if (m_titlebarLogoSrv && m_titlebarLogoPx == sizePx)
+        return true;
+    m_titlebarLogoSrv.Reset();
+    if (!m_device || !hwnd || sizePx <= 0)
+        return false;
+
+    // Take the app icon's largest image and area-downscale it to the exact display size. The
+    // window's big icon drawn into a smaller quad was minified with no mips, which aliased.
+    HICON big = static_cast<HICON>(LoadImageW(GetModuleHandleW(nullptr), MAKEINTRESOURCEW(1), IMAGE_ICON,
+                                              256, 256, LR_DEFAULTCOLOR));
+    std::vector<uint8_t> srcRgba;
+    uint32_t sw = 0, sh = 0;
+    const bool extracted = ExtractIconRgba8(big ? big : GetBestWindowIcon(hwnd), srcRgba, sw, sh);
+    if (big)
+        DestroyIcon(big);
+    if (!extracted)
+        return false;
+
+    std::vector<uint8_t> rgba;
+    const uint32_t w = static_cast<uint32_t>(sizePx);
+    const uint32_t h = static_cast<uint32_t>(sizePx);
+    DownscaleRgbaArea(srcRgba, sw, sh, w, h, rgba);
+
+    D3D11_TEXTURE2D_DESC desc{};
+    desc.Width = w;
+    desc.Height = h;
+    desc.MipLevels = 1;
+    desc.ArraySize = 1;
+    desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    desc.SampleDesc.Count = 1;
+    desc.Usage = D3D11_USAGE_IMMUTABLE;
+    desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+    D3D11_SUBRESOURCE_DATA data{};
+    data.pSysMem = rgba.data();
+    data.SysMemPitch = w * 4;
+
+    ComPtr<ID3D11Texture2D> tex;
+    if (FAILED(m_device->CreateTexture2D(&desc, &data, &tex)))
+        return false;
+
+    if (FAILED(m_device->CreateShaderResourceView(tex.Get(), nullptr, &m_titlebarLogoSrv)))
+        return false;
+
+    m_titlebarLogoW = w;
+    m_titlebarLogoH = h;
+    m_titlebarLogoPx = sizePx;
+    return true;
+}
+
+bool CRendererDX11::EnsureMdl2GlyphTextures(int sizePx)
+{
+    if (m_mdl2GlyphPx != sizePx)
+    {
+        m_mdl2GearSrv.Reset();
+        m_mdl2FullscreenSrv.Reset();
+        m_mdl2MenuSrv.Reset();
+        m_mdl2GlyphPx = sizePx;
+    }
+    if (m_mdl2GearSrv && m_mdl2FullscreenSrv && m_mdl2MenuSrv)
+        return true;
+    if (!m_device)
+        return false;
+
+    const int kGlyphPx = sizePx;
+    std::vector<uint8_t> rgba;
+    uint32_t w = 0, h = 0;
+
+    // Gear (Settings) = E713, FullScreen = E740, Hamburger = E700.
+    if (!m_mdl2GearSrv)
+    {
+        if (!RenderGlyphToRgbaMask(static_cast<wchar_t>(0xE713), kGlyphPx, rgba, w, h) ||
+            !CreateSrvFromRgba(m_device.Get(), rgba, w, h, m_mdl2GearSrv))
+            return false;
+    }
+    if (!m_mdl2FullscreenSrv)
+    {
+        if (!RenderGlyphToRgbaMask(static_cast<wchar_t>(0xE740), kGlyphPx, rgba, w, h) ||
+            !CreateSrvFromRgba(m_device.Get(), rgba, w, h, m_mdl2FullscreenSrv))
+            return false;
+    }
+    if (!m_mdl2MenuSrv)
+    {
+        if (!RenderGlyphToRgbaMask(static_cast<wchar_t>(0xE700), kGlyphPx, rgba, w, h) ||
+            !CreateSrvFromRgba(m_device.Get(), rgba, w, h, m_mdl2MenuSrv))
+            return false;
+    }
+    return true;
+}
+
+bool CRendererDX11::EnsureMdl2ChromeGlyphTextures(int sizePx)
+{
+    if (m_mdl2ChromeGlyphPx != sizePx)
+    {
+        m_mdl2ChromeMinimizeSrv.Reset();
+        m_mdl2ChromeMaximizeSrv.Reset();
+        m_mdl2ChromeRestoreSrv.Reset();
+        m_mdl2ChromeCloseSrv.Reset();
+        m_mdl2ChromeGlyphPx = sizePx;
+    }
+    if (m_mdl2ChromeMinimizeSrv && m_mdl2ChromeMaximizeSrv && m_mdl2ChromeRestoreSrv && m_mdl2ChromeCloseSrv)
+        return true;
+    if (!m_device)
+        return false;
+
+    const int kGlyphPx = sizePx;
+    std::vector<uint8_t> rgba;
+    uint32_t w = 0, h = 0;
+
+    if (!m_mdl2ChromeMinimizeSrv)
+    {
+        if (!RenderGlyphToRgbaMask(static_cast<wchar_t>(0xE921), kGlyphPx, rgba, w, h) ||
+            !CreateSrvFromRgba(m_device.Get(), rgba, w, h, m_mdl2ChromeMinimizeSrv))
+            return false;
+    }
+    if (!m_mdl2ChromeMaximizeSrv)
+    {
+        if (!RenderGlyphToRgbaMask(static_cast<wchar_t>(0xE922), kGlyphPx, rgba, w, h) ||
+            !CreateSrvFromRgba(m_device.Get(), rgba, w, h, m_mdl2ChromeMaximizeSrv))
+            return false;
+    }
+    if (!m_mdl2ChromeRestoreSrv)
+    {
+        if (!RenderGlyphToRgbaMask(static_cast<wchar_t>(0xE923), kGlyphPx, rgba, w, h) ||
+            !CreateSrvFromRgba(m_device.Get(), rgba, w, h, m_mdl2ChromeRestoreSrv))
+            return false;
+    }
+    if (!m_mdl2ChromeCloseSrv)
+    {
+        if (!RenderGlyphToRgbaMask(static_cast<wchar_t>(0xE8BB), kGlyphPx, rgba, w, h) ||
+            !CreateSrvFromRgba(m_device.Get(), rgba, w, h, m_mdl2ChromeCloseSrv))
+            return false;
+    }
+    return true;
+}
+
 bool CRendererDX11::BeginFrame() {
     std::lock_guard<std::recursive_mutex> d3dLock(GetD3D11ImmediateContextMutex());
     m_pendingTextDraws.clear();
@@ -918,11 +1412,7 @@ bool CRendererDX11::BeginFrame() {
         m_context->OMSetDepthStencilState(m_depthStencilNoDepthTest.Get(), 0);
     }
 
-    D3D11_VIEWPORT viewport = {};
-    viewport.Width = static_cast<float>(m_spDisplay->Width());
-    viewport.Height = static_cast<float>(m_spDisplay->Height());
-    viewport.MinDepth = 0.0f;
-    viewport.MaxDepth = 1.0f;
+    D3D11_VIEWPORT viewport = BuildBaseViewportForDisplay(m_spDisplay);
     m_context->RSSetViewports(1, &viewport);
 
     // Clear render target and depth buffer
@@ -1075,7 +1565,7 @@ bool CRendererDX11::EndFrame(bool drawn) {
     }
 
     if (effectiveDrawn && m_context && m_spDisplay) {
-        auto display = std::dynamic_pointer_cast<CDisplayDX11>(m_spDisplay);
+        auto display = std::dynamic_pointer_cast<DisplayOutput::CDisplayDX11>(m_spDisplay);
         // Defer HUD text is drawn after the wizard; skip it so stats/indicators do not cover the dialog.
         if (display && !m_pendingTextDraws.empty() && !firstTimeWizardDrawn)
         {
@@ -1098,8 +1588,6 @@ bool CRendererDX11::EndFrame(bool drawn) {
                 if (!atlasTex)
                     continue;
 
-                // Bind atlas texture for the quad shader.
-                const Base::Math::CRect r = text->GetRect();
                 const uint32_t dispW = display->Width();
                 const uint32_t dispH = display->Height();
                 if (dispW == 0u || dispH == 0u)
@@ -1111,6 +1599,33 @@ bool CRendererDX11::EndFrame(bool drawn) {
                 if (m_context)
                     m_context->RSSetState(prevRasterizer.Get());
             }
+
+            // DrawTextBatched binds VS/PS/IA/VB/IB/CB/samplers directly on the immediate context and
+            // does not go through SetShader(), so m_spActiveShader can still name the decoded-frame
+            // shader from the video pass. The next Apply() then skips Unbind/Bind while the GPU is
+            // still running the text-batch pipeline — wrong IA/CB vs shader → garbage fullscreen draws
+            // (often during dream transitions when HUD stats refresh every frame).
+            if (m_context)
+            {
+                ID3D11ShaderResourceView* nullSrv = nullptr;
+                m_context->PSSetShaderResources(0, 1, &nullSrv);
+                ID3D11SamplerState* nullSamp = nullptr;
+                m_context->PSSetSamplers(0, 1, &nullSamp);
+
+                m_context->VSSetShader(nullptr, nullptr, 0);
+                m_context->PSSetShader(nullptr, nullptr, 0);
+                m_context->HSSetShader(nullptr, nullptr, 0);
+                m_context->DSSetShader(nullptr, nullptr, 0);
+                m_context->GSSetShader(nullptr, nullptr, 0);
+                m_context->IASetInputLayout(nullptr);
+                ID3D11Buffer* nullBuf = nullptr;
+                UINT zstride = 0, zoff = 0;
+                m_context->IASetVertexBuffers(0, 1, &nullBuf, &zstride, &zoff);
+                m_context->IASetIndexBuffer(nullptr, DXGI_FORMAT_R16_UINT, 0);
+                m_context->VSSetConstantBuffers(0, 1, &nullBuf);
+                m_context->PSSetConstantBuffers(0, 1, &nullBuf);
+            }
+            m_spActiveShader = nullptr;
         }
 
         // Draw settings then about so both stay above HUD; about is top-most when both run (normally exclusive).
@@ -1121,9 +1636,245 @@ bool CRendererDX11::EndFrame(bool drawn) {
         const bool aboutVisible = AboutDialogWin32_RenderIfNeeded(
             m_device.Get(), m_context.Get(), m_renderTargetView.Get(), viewportW, viewportH);
 
+        // Custom titlebar strip + caption buttons: draw in DX so it never flashes.
+        bool drewCustomTitlebar = false;
+        if (auto* dx = dynamic_cast<DisplayOutput::CDisplayDX11*>(m_spDisplay.get()))
+        {
+            if (!dx->IsFullscreen() && m_context && m_drawTextureShader)
+            {
+                const HWND hwnd = dx->GetWindowHandle();
+                const LONG_PTR style = hwnd ? GetWindowLongPtr(hwnd, GWL_STYLE) : 0;
+                const bool hasNativeCaption = (style & WS_CAPTION) != 0;
+                const int titlebarPx = dx->GetCustomTitlebarHeightPx();
+                const uint32_t dispW = dx->Width();
+                const uint32_t dispH = dx->Height();
+
+                if (!dx->IsEmbeddedSaverPreview() && !hasNativeCaption && titlebarPx > 0 &&
+                    dispW > 0u && dispH > 0u &&
+                    titlebarPx < static_cast<int>(dispH) && EnsureSolidWhiteTexture())
+                {
+                    drewCustomTitlebar = true;
+                    D3D11_VIEWPORT savedVp[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE] = {};
+                    UINT savedVpCount = D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE;
+                    m_context->RSGetViewports(&savedVpCount, savedVp);
+
+                    D3D11_VIEWPORT fullVp{};
+                    fullVp.Width = static_cast<float>(dispW);
+                    fullVp.Height = static_cast<float>(dispH);
+                    fullVp.MinDepth = 0.f;
+                    fullVp.MaxDepth = 1.f;
+                    m_context->RSSetViewports(1, &fullVp);
+
+                    // Compute button rects directly (don't rely on WM_NCHITTEST having run).
+                    // Buttons match titlebar height; width scales proportionally (Explorer-like).
+                    // Sizes are DPI-scaled exactly like ComputeCaptionButtonRects in DisplayDX11.cpp.
+                    const UINT dpi = dx->GetDpi();
+                    const auto scalePx = [dpi](int px) {
+                        return MulDiv(px, static_cast<int>(dpi), USER_DEFAULT_SCREEN_DPI);
+                    };
+                    const int btnH = titlebarPx;
+                    const int baseW = (std::max)(GetSystemMetricsForDpi(SM_CXSIZE, dpi), scalePx(30));
+                    const int baseH = (std::max)(GetSystemMetricsForDpi(SM_CYSIZE, dpi), scalePx(20));
+                    int btnW = (baseH > 0) ? MulDiv(baseW, btnH, baseH) : baseW;
+                    btnW = (std::max)(btnW, (std::max)(scalePx(40), baseW));
+                    const int topPad = 0;
+                    const RECT rClose{static_cast<LONG>(dispW - btnW), topPad, static_cast<LONG>(dispW), topPad + btnH};
+                    const RECT rMax{static_cast<LONG>(dispW - (2 * btnW)), topPad, static_cast<LONG>(dispW - btnW), topPad + btnH};
+                    const RECT rMin{static_cast<LONG>(dispW - (3 * btnW)), topPad, static_cast<LONG>(dispW - (2 * btnW)), topPad + btnH};
+
+                    auto rectToNorm = [&](const RECT& r) {
+                        const float x0 = static_cast<float>(r.left) / static_cast<float>(dispW);
+                        const float x1 = static_cast<float>(r.right) / static_cast<float>(dispW);
+                        const float y0 = static_cast<float>(r.top) / static_cast<float>(dispH);
+                        const float y1 = static_cast<float>(r.bottom) / static_cast<float>(dispH);
+                        return Base::Math::CRect(x0, y0, x1, y1);
+                    };
+
+                    // Center a square icon in a pixel rect on whole pixels, so the icon texture
+                    // (rasterized at iconPx) maps 1:1 onto the backbuffer.
+                    const auto iconInRectPx = [&](const RECT& r, int iconPx) {
+                        const int side = (std::max)(1, (std::min)(iconPx, (std::min)(static_cast<int>(r.right - r.left),
+                                                                                   static_cast<int>(r.bottom - r.top))));
+                        const LONG left = r.left + (r.right - r.left - side) / 2;
+                        const LONG top = r.top + (r.bottom - r.top - side) / 2;
+                        return rectToNorm(RECT{left, top, left + side, top + side});
+                    };
+
+                    const int hoverId = dx->GetCaptionButtonHoverId();
+                    const int pressedId = dx->GetCaptionButtonPressedId();
+
+                    // Follows the system theme (default buttons are transparent).
+                    const bool darkTheme = ThemeWin32::IsDark();
+                    const float stripGray = darkTheme ? 0.08f : 0.95f;
+                    const float hoverGray = darkTheme ? 0.28f : 0.86f;
+                    const float pressedGray = darkTheme ? 0.20f : 0.78f;
+                    const float splitterGray = darkTheme ? 0.30f : 0.76f;
+                    const float glyphGray = darkTheme ? 1.f : 0.10f;
+                    const Base::Math::CVector4 stripBg(stripGray, stripGray, stripGray, 1.f);
+                    const Base::Math::CVector4 hoverBg(hoverGray, hoverGray, hoverGray, 1.f);
+                    const Base::Math::CVector4 pressedBg(pressedGray, pressedGray, pressedGray, 1.f);
+                    const Base::Math::CVector4 glyphTint(glyphGray, glyphGray, glyphGray, 1.f);
+                    const Base::Math::CVector4 closeHoverBg(0.85f, 0.20f, 0.20f, 1.f);
+                    const Base::Math::CVector4 closePressedBg(0.65f, 0.15f, 0.15f, 1.f);
+
+                    m_overrideTex0Srv = m_solidWhiteSrv;
+                    SetShader(m_drawTextureShader);
+
+                    const float th = static_cast<float>(titlebarPx) / static_cast<float>(dispH);
+                    DrawQuad(Base::Math::CRect(0.f, 0.f, 1.f, th), stripBg);
+                    const auto drawBtnBg = [&](int id, const RECT& r, bool isClose) {
+                        const bool pressed = (pressedId == id);
+                        const bool hovered = (hoverId == id);
+                        if (!pressed && !hovered)
+                            return;
+                        const Base::Math::CVector4 bg =
+                            isClose ? (pressed ? closePressedBg : closeHoverBg)
+                                    : (pressed ? pressedBg : hoverBg);
+                        DrawQuad(rectToNorm(r), bg);
+                    };
+                    drawBtnBg(1, rMin, false);
+                    drawBtnBg(2, rMax, false);
+                    drawBtnBg(3, rClose, true);
+
+                    // Logo (left side), drawn as a textured quad.
+                    const int logoPx = scalePx(24);
+                    if (hwnd && EnsureTitlebarLogoTexture(hwnd, logoPx) && m_titlebarLogoSrv && m_titlebarLogoW > 0 && m_titlebarLogoH > 0)
+                    {
+                        // Same placement as ComputeTitlebarLogoRect in DisplayDX11.cpp (left padding;
+                        // right padding matches via splitter placement).
+                        const LONG logoX = scalePx(10);
+                        const LONG logoY = (std::max)(0, (titlebarPx - logoPx) / 2);
+                        const Base::Math::CRect logoRect = rectToNorm(RECT{logoX, logoY, logoX + logoPx, logoY + logoPx});
+
+                        m_overrideTex0Srv = m_titlebarLogoSrv;
+                        // Color acts as tint; keep white to show original colors.
+                        DrawTexturedQuad(logoRect, Base::Math::CVector4(1.f, 1.f, 1.f, 1.f),
+                                         Base::Math::CRect(0.f, 0.f, 1.f, 1.f), m_defaultSampler.Get());
+
+                        // Restore solid-white for subsequent line glyphs.
+                        m_overrideTex0Srv = m_solidWhiteSrv;
+                    }
+
+                    // Left buttons: gear (settings), fullscreen, menu (kebab/hamburger)
+                    {
+                        // Compute in integer pixels to match Win32 hit-testing exactly, then convert to normalized.
+                        const int kLogoPadPx = scalePx(10); // left/right padding of logo
+                        const int kLogoPx = logoPx;
+                        constexpr int kSplitterPx = 1;      // hairline at any DPI
+                        const int kGapPxI = scalePx(8);     // gap after splitter
+                        const int kSplitterPadTopPx = scalePx(6);
+                        const int kSplitterPadBottomPx = scalePx(6);
+                        const int btnHPx = (titlebarPx > 0) ? titlebarPx : scalePx(24);
+                        const int btnWPx = btnHPx; // square buttons (match DisplayDX11 hit rects)
+
+                        // Splitter sits after logo with equal right padding; buttons start after splitter+gap.
+                        const int splitterXPx = kLogoPadPx + kLogoPx + kLogoPadPx;
+                        int xPx = splitterXPx + kSplitterPx + kGapPxI;
+                        const RECT gearPx{xPx, 0, xPx + btnWPx, btnHPx};
+                        xPx += btnWPx;
+                        const RECT fsPx{xPx, 0, xPx + btnWPx, btnHPx};
+                        xPx += btnWPx;
+                        const RECT menuPx{xPx, 0, xPx + btnWPx, btnHPx};
+
+                        const auto rectPxToNorm = [&](const RECT& r) {
+                            const float x0 = static_cast<float>(r.left) / static_cast<float>(dispW);
+                            const float x1 = static_cast<float>(r.right) / static_cast<float>(dispW);
+                            const float y0 = static_cast<float>(r.top) / static_cast<float>(dispH);
+                            const float y1 = static_cast<float>(r.bottom) / static_cast<float>(dispH);
+                            return Base::Math::CRect(x0, y0, x1, y1);
+                        };
+
+                        const Base::Math::CRect gearRect = rectPxToNorm(gearPx);
+                        const Base::Math::CRect fsRect = rectPxToNorm(fsPx);
+                        const Base::Math::CRect menuRect = rectPxToNorm(menuPx);
+
+                        // Splitter between logo and buttons (with top/bottom padding).
+                        {
+                            const float sx0 = static_cast<float>(splitterXPx) / static_cast<float>(dispW);
+                            const float sx1 = static_cast<float>(splitterXPx + kSplitterPx) / static_cast<float>(dispW);
+                            const float sy0 = static_cast<float>(kSplitterPadTopPx) / static_cast<float>(dispH);
+                            const float sy1 = static_cast<float>(btnHPx - kSplitterPadBottomPx) / static_cast<float>(dispH);
+                            // Slightly stronger than background.
+                            DrawQuad(Base::Math::CRect(sx0, sy0, sx1, sy1),
+                                     Base::Math::CVector4(splitterGray, splitterGray, splitterGray, 1.f));
+                        }
+
+                        // Hover/press backgrounds (ids: 4 gear, 5 fullscreen, 6 menu).
+                        const auto drawBtnBgNorm = [&](int id, const Base::Math::CRect& r, bool isClose) {
+                            (void)isClose;
+                            const bool pressed = (pressedId == id);
+                            const bool hovered = (hoverId == id);
+                            if (!pressed && !hovered)
+                                return;
+                            const Base::Math::CVector4 bg = pressed ? pressedBg : hoverBg;
+                            DrawQuad(r, bg);
+                        };
+                        drawBtnBgNorm(4, gearRect, false);
+                        drawBtnBgNorm(5, fsRect, false);
+                        drawBtnBgNorm(6, menuRect, false);
+
+                        const int glyphPx = scalePx(14);
+                        if (EnsureMdl2GlyphTextures(glyphPx))
+                        {
+                            const Base::Math::CRect gearBox = iconInRectPx(gearPx, glyphPx);
+                            const Base::Math::CRect fsBox = iconInRectPx(fsPx, glyphPx);
+                            const Base::Math::CRect menuBox = iconInRectPx(menuPx, glyphPx);
+
+                            // White masks tinted to the theme's glyph color.
+                            m_overrideTex0Srv = m_mdl2GearSrv;
+                            DrawTexturedQuad(gearBox, glyphTint,
+                                             Base::Math::CRect(0.f, 0.f, 1.f, 1.f), m_defaultSampler.Get());
+
+                            m_overrideTex0Srv = m_mdl2FullscreenSrv;
+                            DrawTexturedQuad(fsBox, glyphTint,
+                                             Base::Math::CRect(0.f, 0.f, 1.f, 1.f), m_defaultSampler.Get());
+
+                            m_overrideTex0Srv = m_mdl2MenuSrv;
+                            DrawTexturedQuad(menuBox, glyphTint,
+                                             Base::Math::CRect(0.f, 0.f, 1.f, 1.f), m_defaultSampler.Get());
+
+                            // Restore solid-white for subsequent line glyphs.
+                            m_overrideTex0Srv = m_solidWhiteSrv;
+                        }
+                    }
+
+                    // Right caption glyphs: use Windows Segoe MDL2 Assets (ChromeMinimize/Maximize/Restore/Close).
+                    const int chromeGlyphPx = scalePx(14);
+                    if (EnsureMdl2ChromeGlyphTextures(chromeGlyphPx))
+                    {
+                        const Base::Math::CRect minBox = iconInRectPx(rMin, chromeGlyphPx);
+                        const Base::Math::CRect maxBox = iconInRectPx(rMax, chromeGlyphPx);
+                        const Base::Math::CRect closeBox = iconInRectPx(rClose, chromeGlyphPx);
+
+                        m_overrideTex0Srv = m_mdl2ChromeMinimizeSrv;
+                        DrawTexturedQuad(minBox, glyphTint,
+                                         Base::Math::CRect(0.f, 0.f, 1.f, 1.f), m_defaultSampler.Get());
+
+                        const bool maximized = hwnd && (IsZoomed(hwnd) != FALSE);
+                        m_overrideTex0Srv = maximized ? m_mdl2ChromeRestoreSrv : m_mdl2ChromeMaximizeSrv;
+                        DrawTexturedQuad(maxBox, glyphTint,
+                                         Base::Math::CRect(0.f, 0.f, 1.f, 1.f), m_defaultSampler.Get());
+
+                        m_overrideTex0Srv = m_mdl2ChromeCloseSrv;
+                        // White on the red hover/press background in either theme.
+                        const bool closeLit = (hoverId == 3) || (pressedId == 3);
+                        DrawTexturedQuad(closeBox, closeLit ? Base::Math::CVector4(1.f, 1.f, 1.f, 1.f) : glyphTint,
+                                         Base::Math::CRect(0.f, 0.f, 1.f, 1.f), m_defaultSampler.Get());
+
+                        // Restore solid-white for any following geometry (if any).
+                        m_overrideTex0Srv = m_solidWhiteSrv;
+                    }
+
+                    m_overrideTex0Srv.Reset();
+                    if (savedVpCount > 0)
+                        m_context->RSSetViewports(savedVpCount, savedVp);
+                }
+            }
+        }
+
         EndGpuTimingFrame();
 
-        if (effectiveDrawn || settingsVisible || aboutVisible)
+        if (effectiveDrawn || settingsVisible || aboutVisible || drewCustomTitlebar)
         {
             m_spDisplay->SwapBuffers();
             return true;
@@ -1155,6 +1906,31 @@ void CRendererDX11::DrawTextBatched(const std::shared_ptr<CTextDX11Atlas>& text,
     if (!font)
         return;
 
+    auto display = std::dynamic_pointer_cast<DisplayOutput::CDisplayDX11>(m_spDisplay);
+    if (!display)
+        return;
+
+    // Rebuilds the atlas if the window moved to a monitor with a different DPI.
+    const float dpiScale = static_cast<float>(display->GetDpi()) / USER_DEFAULT_SCREEN_DPI;
+    font->SetPixelScale(dpiScale);
+
+    // Soft drop shadow: a core copy of each glyph offset down-right, plus a faint 1px halo
+    // around it. The offset grows with DPI (1px at 100%, 2px at 150%, 3px at 200%).
+    struct ShadowTap
+    {
+        float dx, dy, alpha;
+    };
+    const float shadowOffsetPx = (std::max)(1.0f, std::round(dpiScale * 1.25f));
+    const ShadowTap kShadowTaps[] = {
+        {shadowOffsetPx, shadowOffsetPx, 0.6f},
+        {shadowOffsetPx - 1.f, shadowOffsetPx, 0.3f},
+        {shadowOffsetPx + 1.f, shadowOffsetPx, 0.3f},
+        {shadowOffsetPx, shadowOffsetPx - 1.f, 0.3f},
+        {shadowOffsetPx, shadowOffsetPx + 1.f, 0.3f},
+    };
+    constexpr uint32_t kShadowTapCount = static_cast<uint32_t>(sizeof(kShadowTaps) / sizeof(kShadowTaps[0]));
+    const LONG shadowReachPx = static_cast<LONG>(shadowOffsetPx) + 1;
+
     auto atlasTex = font->AtlasTexture();
     if (!atlasTex)
         return;
@@ -1164,10 +1940,6 @@ void CRendererDX11::DrawTextBatched(const std::shared_ptr<CTextDX11Atlas>& text,
 
     auto atlasDx11 = std::dynamic_pointer_cast<CTextureFlatDX11>(atlasTex);
     if (!atlasDx11 || !atlasDx11->GetSRV())
-        return;
-
-    auto display = std::dynamic_pointer_cast<CDisplayDX11>(m_spDisplay);
-    if (!display)
         return;
 
     const uint32_t dispW = display->Width();
@@ -1206,8 +1978,8 @@ void CRendererDX11::DrawTextBatched(const std::shared_ptr<CTextDX11Atlas>& text,
     if (glyphCount == 0u)
         return;
 
-    // Two quads per glyph (shadow + foreground).
-    const uint32_t quadCount = glyphCount * 2u;
+    // Shadow taps plus the foreground quad per glyph.
+    const uint32_t quadCount = glyphCount * (kShadowTapCount + 1u);
     const uint32_t verticesNeeded = quadCount * 4u;
     const uint32_t indicesNeeded = quadCount * 6u;
 
@@ -1270,16 +2042,35 @@ void CRendererDX11::DrawTextBatched(const std::shared_ptr<CTextDX11Atlas>& text,
     if (!ensureBuffers(verticesNeeded, indicesNeeded))
         return;
 
-    // Scissor to the text rect (same behavior as the legacy per-glyph path).
+    // Normalized rect coords are mapped to the current viewport, which is offset/shrunk
+    // by the custom titlebar inset (see BuildBaseViewportForDisplay). Glyphs are laid
+    // out in that viewport's pixels; normalizing against the full swap chain height
+    // squeezed them vertically by the inset, and the filter then blurred them.
+    D3D11_VIEWPORT vp = {};
+    {
+        UINT vpCount = 1;
+        m_context->RSGetViewports(&vpCount, &vp);
+        if (vpCount == 0u || vp.Width <= 0.f || vp.Height <= 0.f)
+        {
+            vp.TopLeftX = 0.f;
+            vp.TopLeftY = 0.f;
+            vp.Width = static_cast<float>(dispW);
+            vp.Height = static_cast<float>(dispH);
+        }
+    }
+    const float vpW = vp.Width;
+    const float vpH = vp.Height;
+
+    // Scissor to the text rect in the same viewport space. Computing it against the full
+    // swap chain dims would clip the text where the viewport doesn't reach
+    // (issue #609: FPS OSD text cropped on small Windows windows).
     if (m_rasterizerScissor)
     {
-        const float fdw = static_cast<float>(dispW);
-        const float fdh = static_cast<float>(dispH);
         D3D11_RECT sc = {};
-        sc.left = static_cast<LONG>(std::floor(r.m_X0 * fdw));
-        sc.top = static_cast<LONG>(std::floor(r.m_Y0 * fdh));
-        sc.right = static_cast<LONG>(std::ceil(r.m_X1 * fdw)) + 1;
-        sc.bottom = static_cast<LONG>(std::ceil(r.m_Y1 * fdh)) + 1;
+        sc.left = static_cast<LONG>(std::floor(vp.TopLeftX + r.m_X0 * vp.Width));
+        sc.top = static_cast<LONG>(std::floor(vp.TopLeftY + r.m_Y0 * vp.Height));
+        sc.right = static_cast<LONG>(std::ceil(vp.TopLeftX + r.m_X1 * vp.Width)) + shadowReachPx;
+        sc.bottom = static_cast<LONG>(std::ceil(vp.TopLeftY + r.m_Y1 * vp.Height)) + shadowReachPx;
         const LONG dw = static_cast<LONG>(dispW);
         const LONG dh = static_cast<LONG>(dispH);
         sc.left = std::max(0L, std::min(sc.left, dw));
@@ -1299,11 +2090,11 @@ void CRendererDX11::DrawTextBatched(const std::shared_ptr<CTextDX11Atlas>& text,
     auto* verts = reinterpret_cast<TextBatchVertex*>(mapped.pData);
     uint32_t v = 0;
 
-    float penXpx = r.m_X0 * static_cast<float>(dispW);
-    float penYpx = r.m_Y0 * static_cast<float>(dispH);
+    // Pens start on whole pixels and each glyph quad is snapped to a whole pixel, so atlas
+    // texels map 1:1 to backbuffer pixels (the counterpart of the Mac origin snap).
+    float penXpx = std::round(r.m_X0 * vpW);
+    float penYpx = std::round(r.m_Y0 * vpH);
     const float lineHeightPx = static_cast<float>(font->LineHeightPx());
-    const float kTextShadowDx = 1.f;
-    const float kTextShadowDy = 1.f;
 
     auto emitQuad = [&](const Base::Math::CRect& dest, const Base::Math::CRect& uv,
                         const Base::Math::CVector4& c)
@@ -1326,7 +2117,7 @@ void CRendererDX11::DrawTextBatched(const std::shared_ptr<CTextDX11Atlas>& text,
         }
         if (body[ti] == '\n')
         {
-            penXpx = r.m_X0 * static_cast<float>(dispW);
+            penXpx = std::round(r.m_X0 * vpW);
             penYpx += lineHeightPx;
             ++ti;
             continue;
@@ -1341,20 +2132,22 @@ void CRendererDX11::DrawTextBatched(const std::shared_ptr<CTextDX11Atlas>& text,
             continue;
         }
 
-        const float quadLeftPx = penXpx + g.penOffsetXPx;
+        const float quadLeftPx = std::round(penXpx + g.penOffsetXPx);
         Base::Math::CRect dest(
-            quadLeftPx / static_cast<float>(dispW),
-            penYpx / static_cast<float>(dispH),
-            (quadLeftPx + static_cast<float>(g.widthPx)) / static_cast<float>(dispW),
-            (penYpx + static_cast<float>(g.heightPx)) / static_cast<float>(dispH));
+            quadLeftPx / vpW,
+            penYpx / vpH,
+            (quadLeftPx + static_cast<float>(g.widthPx)) / vpW,
+            (penYpx + static_cast<float>(g.heightPx)) / vpH);
 
-        Base::Math::CRect shadowDest(
-            (quadLeftPx + kTextShadowDx) / static_cast<float>(dispW),
-            (penYpx + kTextShadowDy) / static_cast<float>(dispH),
-            (quadLeftPx + kTextShadowDx + static_cast<float>(g.widthPx)) / static_cast<float>(dispW),
-            (penYpx + kTextShadowDy + static_cast<float>(g.heightPx)) / static_cast<float>(dispH));
-
-        emitQuad(shadowDest, g.uvRect, Base::Math::CVector4(0.f, 0.f, 0.f, color.m_W));
+        for (const ShadowTap& tap : kShadowTaps)
+        {
+            const Base::Math::CRect shadowDest(
+                (quadLeftPx + tap.dx) / vpW,
+                (penYpx + tap.dy) / vpH,
+                (quadLeftPx + tap.dx + static_cast<float>(g.widthPx)) / vpW,
+                (penYpx + tap.dy + static_cast<float>(g.heightPx)) / vpH);
+            emitQuad(shadowDest, g.uvRect, Base::Math::CVector4(0.f, 0.f, 0.f, color.m_W * tap.alpha));
+        }
         emitQuad(dest, g.uvRect, color);
 
         penXpx += g.advancePx;
@@ -1365,7 +2158,7 @@ void CRendererDX11::DrawTextBatched(const std::shared_ptr<CTextDX11Atlas>& text,
     // Bind pipeline + issue one draw for all quads.
     ID3D11ShaderResourceView* srv = atlasDx11->GetSRV();
     m_context->PSSetShaderResources(0, 1, &srv);
-    ID3D11SamplerState* samp = m_glyphPointSampler ? m_glyphPointSampler.Get() : m_defaultSampler.Get();
+    ID3D11SamplerState* samp = m_glyphSampler ? m_glyphSampler.Get() : m_defaultSampler.Get();
     m_context->PSSetSamplers(0, 1, &samp);
 
     m_context->IASetInputLayout(m_textBatchInputLayout.Get());
@@ -1437,6 +2230,9 @@ spCBaseFont CRendererDX11::GetFont(CFontDescription& _desc) {
 
     auto font = std::make_shared<CFontDX11DirectWriteAtlas>(m_device, m_context);
     font->FontDescription(_desc);
+    // Description heights are in DIPs, like points on macOS; rasterize at the window's DPI.
+    if (auto display = std::dynamic_pointer_cast<DisplayOutput::CDisplayDX11>(m_spDisplay))
+        font->SetPixelScale(static_cast<float>(display->GetDpi()) / USER_DEFAULT_SCREEN_DPI);
     if (!font->EnsureCreated())
     {
         g_Log->Warning("DX11 font '%s' unavailable, trying Arial fallback", _desc.TypeFace().c_str());
@@ -1455,11 +2251,15 @@ spCBaseText CRendererDX11::NewText(spCBaseFont _font, const std::string& _text) 
     auto font = std::dynamic_pointer_cast<CFontDX11DirectWriteAtlas>(_font);
     if (!font)
         return nullptr;
-    auto display = std::dynamic_pointer_cast<CDisplayDX11>(m_spDisplay);
+    auto display = std::dynamic_pointer_cast<DisplayOutput::CDisplayDX11>(m_spDisplay);
     if (!display)
         return nullptr;
+    std::weak_ptr<DisplayOutput::CDisplayDX11> weakDisplay = display;
     return std::make_shared<CTextDX11Atlas>(
-        font, _text, display->Width(), display->Height());
+        font, _text, display->Width(), display->Height(), [weakDisplay]() -> uint32_t {
+            const auto d = weakDisplay.lock();
+            return d ? static_cast<uint32_t>((std::max)(0, d->GetVideoViewportTopInsetPx())) : 0u;
+        });
 }
 
 spCShader CRendererDX11::NewShader(const char* _pVertexShader, const char* _pFragmentShader,
@@ -1658,27 +2458,42 @@ void CRendererDX11::DrawTexturedQuad(const Base::Math::CRect& _rect,
 
     const CShaderDX11* selectedShaderDx11 =
         dynamic_cast<CShaderDX11*>(m_spSelectedShader.get());
-    const bool applyAspectViewport = selectedShaderDx11 &&
-                                     selectedShaderDx11->IsDecodedFrameShader() &&
-                                     IsPreserveAspectEnabled() && m_spDisplay;
+    const bool isDecodedFrame = selectedShaderDx11 &&
+                                selectedShaderDx11->IsDecodedFrameShader() && m_spDisplay;
 
     Base::Math::CRect drawRect = _rect;
     D3D11_VIEWPORT savedViewports[D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE] = {};
     UINT savedViewportCount = D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE;
     bool viewportOverridden = false;
+    int videoRotation = 0;
 
-    if (applyAspectViewport)
+    if (isDecodedFrame)
     {
-        D3D11_VIEWPORT letterboxVp = {};
-        if (ComputeAspectViewport16By9(static_cast<float>(m_spDisplay->Width()),
-                                       static_cast<float>(m_spDisplay->Height()),
-                                       letterboxVp))
+        const D3D11_VIEWPORT baseVp = BuildBaseViewportForDisplay(m_spDisplay);
+
+        // "Rotate On Portrait Displays" (issue #623): when enabled and the display
+        // is taller than it is wide, turn the dream 90 deg (done in the decoded-frame
+        // shaders via QuadUniforms.rotation) and target a 9:16 box instead of 16:9.
+        // Mirrors the macOS path; applies to both the screensaver and fullscreen app.
+        const bool rotatePortrait =
+            g_Settings() && g_Settings()->Get("settings.player.rotate_portrait", false);
+        const bool shouldRotate = rotatePortrait && baseVp.Height > baseVp.Width;
+        videoRotation = shouldRotate ? 90 : 0;
+
+        if (IsPreserveAspectEnabled())
         {
-            m_context->RSGetViewports(&savedViewportCount, savedViewports);
-            m_context->RSSetViewports(1, &letterboxVp);
-            // Draw decoded frame across the computed viewport only.
-            drawRect = Base::Math::CRect(0.f, 0.f, 1.f, 1.f);
-            viewportOverridden = true;
+            const float targetAspect = shouldRotate ? (9.0f / 16.0f) : (16.0f / 9.0f);
+            D3D11_VIEWPORT letterboxVp = {};
+            if (ComputeAspectViewport(baseVp.Width, baseVp.Height, targetAspect, letterboxVp))
+            {
+                // Offset the letterbox viewport into the reserved client region (e.g. below titlebar).
+                letterboxVp.TopLeftY += baseVp.TopLeftY;
+                m_context->RSGetViewports(&savedViewportCount, savedViewports);
+                m_context->RSSetViewports(1, &letterboxVp);
+                // Draw decoded frame across the computed viewport only.
+                drawRect = Base::Math::CRect(0.f, 0.f, 1.f, 1.f);
+                viewportOverridden = true;
+            }
         }
     }
 
@@ -1698,7 +2513,8 @@ void CRendererDX11::DrawTexturedQuad(const Base::Math::CRect& _rect,
     uniforms->color[2] = _color.m_Z;
     uniforms->color[3] = _color.m_W;
     uniforms->brightness = GetBrightness();
-    uniforms->padding[0] = uniforms->padding[1] = uniforms->padding[2] = 0.0f;
+    uniforms->rotation = videoRotation;
+    uniforms->padding[0] = uniforms->padding[1] = 0.0f;
 
     m_context->Unmap(m_quadUniformBuffer.Get(), 0);
     ID3D11Buffer* cb = m_quadUniformBuffer.Get();
@@ -1741,6 +2557,12 @@ void CRendererDX11::DrawTexturedQuad(const Base::Math::CRect& _rect,
 
     ID3D11SamplerState* samp = _pixelSampler ? _pixelSampler : m_defaultSampler.Get();
     m_context->PSSetSamplers(0, 1, &samp);
+
+    if (m_overrideTex0Srv)
+    {
+        ID3D11ShaderResourceView* srv = m_overrideTex0Srv.Get();
+        m_context->PSSetShaderResources(0, 1, &srv);
+    }
 
     ComPtr<ID3D11VertexShader> boundVertexShader;
     m_context->VSGetShader(&boundVertexShader, nullptr, nullptr);

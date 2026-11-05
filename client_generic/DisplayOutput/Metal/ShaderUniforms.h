@@ -9,6 +9,7 @@ struct QuadUniforms
     vector_float4 uvRect;
     vector_float4 color;
     float brightness;
+    int rotation;  // video rotation in degrees: 0 = none, 90 = rotate 90 CW
 };
 
 #endif /* ShaderUniforms_h */

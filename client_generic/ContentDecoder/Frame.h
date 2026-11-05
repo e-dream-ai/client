@@ -95,6 +95,9 @@ class CVideoFrame
                 static_cast<uint32_t>(numBytes) * sizeof(uint8_t));
             uint8_t* buffer = m_spBuffer->GetBufferPtr();
 
+            m_pFrame->format = static_cast<int>(_format);
+            m_pFrame->width  = _width;
+            m_pFrame->height = _height;
             int ret = av_image_fill_arrays(m_pFrame->data, m_pFrame->linesize,
                                            buffer, _format, _width, _height, 1);
             if (ret < 0)
@@ -166,6 +169,18 @@ class CVideoFrame
             || (fmt == AV_PIX_FMT_D3D11)
 #endif
         ;
+    }
+
+    // Returns true for decoded 8-bit 4:2:0 YUV frames that the decoder left
+    // unconverted so the renderer can convert them on the GPU (Vulkan). Like
+    // hw frames, these must go through BindFrame() rather than StorageBuffer().
+    bool IsYUVFrame() const
+    {
+        if (!m_pFrame || m_spBuffer)
+            return false;
+        const int fmt = m_pFrame->format;
+        return fmt == AV_PIX_FMT_NV12 || fmt == AV_PIX_FMT_YUV420P ||
+               fmt == AV_PIX_FMT_YUVJ420P;
     }
 
     inline const sFrameMetadata& GetMetaData() { return m_MetaData; }

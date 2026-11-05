@@ -69,6 +69,12 @@ class CElectricSheep_Win32 : public CElectricSheep
     bool m_bMouseUnknown;
     int32_t m_MouseX, m_MouseY;
 
+    //	Screen-space mouse tracking for /s saver mode. WM_MOUSEMOVE is not always
+    //	delivered when the cursor is hidden in borderless fullscreen.
+    bool m_bSaverPollMouseUnknown = true;
+    int32_t m_SaverPollMouseX = 0;
+    int32_t m_SaverPollMouseY = 0;
+
     bool m_bAllowFKey;
     bool m_bCtrlDown;
 
@@ -135,6 +141,47 @@ class CElectricSheep_Win32 : public CElectricSheep
         (*lpszResult)[(dwBufSize / sizeof(CHAR)) - 1] = '\0';
 
         return NOERROR;
+    }
+
+    // Returns true when mouse activity should dismiss the screensaver (/s).
+    bool PollSaverMouseDismiss()
+    {
+        if ((GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0 ||
+            (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0 ||
+            (GetAsyncKeyState(VK_MBUTTON) & 0x8000) != 0 ||
+            (GetAsyncKeyState(VK_XBUTTON1) & 0x8000) != 0 ||
+            (GetAsyncKeyState(VK_XBUTTON2) & 0x8000) != 0)
+        {
+            g_Log->Info("Screensaver mouse button down, closing...");
+            return true;
+        }
+
+        POINT pt{};
+        if (!GetCursorPos(&pt))
+            return false;
+
+        if (m_bSaverPollMouseUnknown)
+        {
+            m_SaverPollMouseX = pt.x;
+            m_SaverPollMouseY = pt.y;
+            m_bSaverPollMouseUnknown = false;
+            return false;
+        }
+
+        const float dx = static_cast<float>(pt.x - m_SaverPollMouseX);
+        const float dy = static_cast<float>(pt.y - m_SaverPollMouseY);
+        m_SaverPollMouseX = pt.x;
+        m_SaverPollMouseY = pt.y;
+
+        const float distSq = dx * dx + dy * dy;
+        if (distSq > 20.0f * 20.0f)
+        {
+            g_Log->Info("Screensaver mouse moved (%f), closing...",
+                        Base::Math::Sqrt(distSq));
+            return true;
+        }
+
+        return false;
     }
 
   public:
@@ -281,13 +328,18 @@ class CElectricSheep_Win32 : public CElectricSheep
             }
         }
 
+        // The instance mutex guards the shared data folder; a run with its own folder
+        // doesn't share it, so it's unaffected by the installed client (and vice versa).
+        const bool anotherInstance = PlatformUtils::GetDataDirOverride().empty() &&
+                                     g_SingleInstanceObj.IsAnotherInstanceRunning();
+
         //	Check for multiple instances if we're not specifically asked not
         // to.
         if (m_ScrMode != eWindowed_AllowMultipleInstances &&
             m_ScrMode != eSaver && m_ScrMode != eConfig &&
             m_ScrMode != eFullScreenStandalone)
         {
-            if (g_SingleInstanceObj.IsAnotherInstanceRunning())
+            if (anotherInstance)
             {
                 // return false; // we could also exit here to prevent second
                 // instance
@@ -297,7 +349,7 @@ class CElectricSheep_Win32 : public CElectricSheep
         else
         {
             //	Instance check taken care of so revert back to eWindowed.
-            if (g_SingleInstanceObj.IsAnotherInstanceRunning() == false)
+            if (anotherInstance == false)
             {
                 if (m_ScrMode != eSaver && m_ScrMode != eConfig &&
                     m_ScrMode != eFullScreenStandalone)
@@ -325,6 +377,7 @@ class CElectricSheep_Win32 : public CElectricSheep
             PathAddBackslashA(szPath);
             m_AppData = szPath;
         }
+        ApplyDataDirOverride();
 
         //	Get the application installation directory from the registry.
         //(stored by
@@ -374,7 +427,7 @@ class CElectricSheep_Win32 : public CElectricSheep
             return false;
         }
 
-        if (g_SingleInstanceObj.IsAnotherInstanceRunning() == false)
+        if (anotherInstance == false)
             AttachLog();
 
         std::string tmp = "Working dir: " + m_WorkingDir;
@@ -382,8 +435,6 @@ class CElectricSheep_Win32 : public CElectricSheep
         g_Log->Info("Commandline: %s", GetCommandLineA());
 
         _chdir(m_WorkingDir.c_str());
-
-        
 
         if (m_ScrMode == eConfig)
         {
@@ -499,7 +550,7 @@ class CElectricSheep_Win32 : public CElectricSheep
             bool anyOk = false;
             // Start with the requested screen (if in range), then create the rest.
             auto addOne = [&](uint32_t idx) {
-                if (g_Player().AddDisplay(idx, /*blankOtherDisplays*/ false) != -1)
+                if (g_Player().AddDisplay(idx, nullptr, false) != -1)
                 {
                     anyOk = true;
                     g_Log->Info("AddDisplay succeeded for screen %u", idx);
@@ -522,7 +573,7 @@ class CElectricSheep_Win32 : public CElectricSheep
             if (!anyOk)
                 return false;
         }
-        else if (g_Player().AddDisplay(requestedScreen, blankOtherDisplays) == -1)
+        else if (g_Player().AddDisplay(requestedScreen, nullptr, blankOtherDisplays) == -1)
         {
             bool foundfirstmon = false;
             g_Log->Error("AddDisplay failed for screen %d", monnum);
@@ -531,7 +582,7 @@ class CElectricSheep_Win32 : public CElectricSheep
             while (monnum < 9)
             {
                 g_Log->Info("Trying monitor %d", monnum);
-                if (g_Player().AddDisplay(monnum, blankOtherDisplays) != -1)
+                if (g_Player().AddDisplay(monnum, nullptr, blankOtherDisplays) != -1)
                 {
                     foundfirstmon = true;
                     g_Log->Info("Monitor %d ok", monnum);
@@ -567,9 +618,15 @@ class CElectricSheep_Win32 : public CElectricSheep
         // read-only mode. EnsureScreensaverActive is split into two parts:
         // the backup save happens here while settings is still writable,
         // and the registry write happens after Startup().
-        if (m_ScrMode == eWindowed ||
-            m_ScrMode == eWindowed_AllowMultipleInstances ||
-            m_ScrMode == eFullScreenStandalone)
+        // Both calls are skipped for isolated test runs (INFINIDREAM_DATA_DIR),
+        // which must not touch the real install's screensaver settings.
+        const bool manageScreensaver =
+            PlatformUtils::GetDataDirOverride().empty() &&
+            (m_ScrMode == eWindowed ||
+             m_ScrMode == eWindowed_AllowMultipleInstances ||
+             m_ScrMode == eFullScreenStandalone);
+
+        if (manageScreensaver)
         {
             if (g_Settings()->Get("settings.app.keep_screensaver_enabled",
                                   true))
@@ -580,9 +637,7 @@ class CElectricSheep_Win32 : public CElectricSheep
         if (CElectricSheep::Startup() == false)
             return false;
 
-        if (m_ScrMode == eWindowed ||
-            m_ScrMode == eWindowed_AllowMultipleInstances ||
-            m_ScrMode == eFullScreenStandalone)
+        if (manageScreensaver)
         {
             ScreensaverInstallerWin32::EnsureScreensaverActive(m_WorkingDir);
         }
@@ -607,6 +662,7 @@ class CElectricSheep_Win32 : public CElectricSheep
 
         //	Reset mouse calcs.
         m_bMouseUnknown = true;
+        m_bSaverPollMouseUnknown = true;
 
         return true;
     }
@@ -624,7 +680,7 @@ class CElectricSheep_Win32 : public CElectricSheep
                 return false;
             }
 
-            if (!spDisplay->ToggleFullscreen())
+            bool wasFullscreen = spDisplay->IsFullscreen(); spDisplay->ToggleFullscreen(); if (spDisplay->IsFullscreen() == wasFullscreen)
             {
                 g_Log->Warning("Fullscreen toggle failed");
                 return false;
@@ -765,6 +821,10 @@ class CElectricSheep_Win32 : public CElectricSheep
         DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
         if (!spDisplay)
             return true;
+
+        // Borderless fullscreen saver may not receive WM_MOUSEMOVE; poll cursor.
+        if (m_ScrMode == eSaver && PollSaverMouseDismiss())
+            return false;
 
         //	Handle events.
         DisplayOutput::spCEvent spEvent;

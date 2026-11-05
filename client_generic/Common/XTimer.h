@@ -5,8 +5,6 @@
 #error "XTimer.h included not from Timer.h"
 #endif
 
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
 #include <errno.h>
 #include <math.h>
 #include <time.h>
@@ -96,7 +94,7 @@ class CXTimer : public ITimer
 
     void Reset() { m_DeltaStart = m_Start = Tick(); }
 
-    double Time()
+    double Time() const
     {
         const uint64_t now = Tick();
         return m_Resolution * (now - m_Start);
@@ -136,7 +134,7 @@ class CXTimer : public ITimer
 
     void Reset() { m_DeltaStart = m_Start = realTime(); }
 
-    double Time() { return realTime() - m_Start; }
+    double Time() const { return realTime() - m_Start; }
 
     double Delta()
     {

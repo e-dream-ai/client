@@ -16,6 +16,17 @@
 #include "Networking.h"
 #include "PlaylistManager.h"
 
+struct PlaylistMetadata
+{
+    std::string name;
+    std::string artist;
+    bool nsfw = false;
+    int64_t timestamp = 0;
+    int loops = 0;
+    // Crossfade seconds between dreams; nullopt = client default.
+    std::optional<float> transitionTime;
+};
+
 class EDreamClient
 {
   public:
@@ -25,6 +36,8 @@ class EDreamClient
         ValidationFailureReason reason;
         int httpCode;
         std::string message;
+        std::string errorCode;
+        int retryAfterSeconds = -1;
     };
 
     enum class HelloFailureReason { None, InvalidSession, TransientFailure };
@@ -41,6 +54,8 @@ class EDreamClient
         bool success;
         int httpCode;
         std::string message;
+        std::string errorCode;
+        int retryAfterSeconds = -1;
     };
 
   private:
@@ -72,6 +87,7 @@ private:
     static void EnsureIOContext();
     static void InitializeClient();
     static void DeinitializeClient();
+    static void SendGoodbyeAndDisconnect();
     static std::string GetCurrentServerPlaylist();
 
     static std::vector<std::string> FetchUserDislikes();
@@ -79,16 +95,20 @@ private:
     static bool FetchDefaultPlaylist();
     static bool FetchDreamMetadata(std::string uuid);
     static bool FetchDreamsMetadata(const std::vector<std::string>& uuids);
+    // Fetches metadata for a single batch (<= server uuid cap). Callers should
+    // use FetchDreamsMetadata(), which pages large requests into batches.
+    static bool FetchDreamsMetadataBatch(const std::vector<std::string>& uuids);
     static std::string GetDreamDownloadLink(const std::string& uuid);
     
     static std::vector<PlaylistEntry> ParsePlaylist(std::string_view uuid);
 
 
-    static std::tuple<std::string, std::string, bool, int64_t, int> ParsePlaylistMetadata(std::string_view uuid);
+    static PlaylistMetadata ParsePlaylistMetadata(std::string_view uuid);
 
     // Telemetry reporting
     static void SendTelemetry(const std::string& eventType, const boost::json::object& eventData);
     static void ReportMD5Failure(const std::string& uuid, const std::string& foundMd5, bool isStreaming);
+    static void ReportVideoInvalidated(const std::string& uuid, const std::string& oldMd5, const std::string& newMd5);
     
     static std::future<bool> EnqueuePlaylistAsync(const std::string& uuid);
     static bool EnqueuePlaylist(std::string_view uuid);
@@ -108,12 +128,23 @@ private:
     static bool ValidateCode(const std::string& code);
     enum class AuthRefreshResult { Success, InvalidSession, TransientFailure };
     static AuthRefreshResult RefreshSealedSession();
+    static bool SignInWithApiKey(const std::string& apiKey);
+    static bool LoginWithMagicLinkCode();
+
+    // Appends the appropriate auth header to a request: wos-session cookie if we
+    // have a sealed session, Api-Key header if we have an API key, nothing otherwise.
+    static void AppendAuthHeader(Network::spCFileDownloader& spDownload);
     
     static constexpr int DREAMS_PER_PAGE = 10;
 
   public:
     static void ConnectRemoteControlSocket();
     static void SendPlayingDream(std::string uuid);
+    // Report that playback of a dream ended (#691): why, how far through it
+    // got, and how long it played.
+    static void SendFinishedDream(const std::string& uuid, std::string_view reason,
+                                  uint32_t frame, uint32_t frameCount,
+                                  double seconds);
     static void SendPing();
     static void SendStateUpdate();  // Send state update immediately when values change
     static void UnbindWebSocketCallbacks();

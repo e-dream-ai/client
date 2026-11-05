@@ -17,7 +17,7 @@
                             <menuItem title="About infinidream" id="58">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="orderFrontStandardAboutPanel:" target="-2" id="495"/>
+                                    <action selector="showInfinidreamAboutPanel:" target="-2" id="495"/>
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="236">
@@ -125,12 +125,6 @@
                                     <action selector="openBrowsePlaylist:" target="371" id="Rbv-DH-sX3"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Help" id="3002">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="goToHelpPage:" target="371" id="3003"/>
-                                </connections>
-                            </menuItem>
                         </items>
                     </menu>
                 </menuItem>
@@ -161,7 +155,11 @@
                 <menuItem title="Help" id="486">
                     <menu key="submenu" title="Help" id="487">
                         <items>
-                            <menuItem title="Instructions" keyEquivalent="?" id="488"/>
+                            <menuItem title="Infinidream Help" keyEquivalent="?" id="3002">
+                                <connections>
+                                    <action selector="goToHelpPage:" target="371" id="3003"/>
+                                </connections>
+                            </menuItem>
                         </items>
                     </menu>
                 </menuItem>

@@ -82,6 +82,7 @@ extern void ESShowPreferences();
 typedef void (*ShowFirstTimeSetupCallback_t)();
 extern void ESSetShowFirstTimeSetupCallback(ShowFirstTimeSetupCallback_t);
 extern void ESShowFirstTimeSetup();
+extern bool ESHasFirstTimeSetupCallback();
 
 #if defined(WIN32)
 /// True while the first-run ImGui wizard is active (used to skip game HUD compositing).
@@ -155,6 +156,35 @@ class CElectricSheep
     bool m_PrevDiskSpaceLow = false;         // Previous disk space state for transition detection
     double m_DiskIndicatorEndTime = 0.0;     // When to hide the disk indicator (0 = hidden)
 
+    struct RuntimeDiagnostics
+    {
+        double nextFastUpdateTime = 0.0;
+        double nextSlowUpdateTime = 0.0;
+        double nextCacheUpdateTime = 0.0;
+        double nextConnectivityUpdateTime = 0.0;
+        double nextPerfLogTime = 0.0;
+        bool internetConnected = true;
+        bool websocketConnected = false;
+        bool diskSpaceLow = false;
+        bool updateAvailable = false;
+        int cpuUsageTotal = -1;
+        int cpuUsageES = -1;
+        int gpuUsage = -1;
+        int numCores = 1;
+        float gpuFrameTimeMs = -1.0f;
+        float gpuUtilization = 0.0f;
+        size_t cachedDreamCount = 0;
+        double cacheSizeGB = 0.0;
+        bool cachePrimed = false;
+        std::string serverStatus;
+        std::string downloadStatus;
+        uint64_t frameCount = 0;
+        double frameTimeAccum = 0.0;
+        double hudTimeAccum = 0.0;
+        bool perfLoggingEnabled = false;
+    };
+    RuntimeDiagnostics m_RuntimeDiagnostics;
+
   protected:
     ESCpuUsage m_CpuUsage;
     double m_LastCPUCheckTime;
@@ -165,6 +195,8 @@ class CElectricSheep
     int m_CpuUsageThreshold;
     std::string m_PreviousDlState; // Track download status
     bool m_MultipleInstancesMode;
+    bool m_CachedOnlyMode = false;
+    bool m_StartFullscreen = false;  // Linux: start fullscreen (--fullscreen); default is windowed
     bool m_OfflineDueToNoInternetOnly = false;  // true when m_MultipleInstancesMode was set only because internet was down (don't show Busy in that case)
     bool m_bConfigMode;
     bool m_bIsPreview;
@@ -217,7 +249,13 @@ class CElectricSheep
 
     std::deque<std::string> m_ConnectionErrors;
     std::string m_HudFontName;
-    int m_HudFontSize;
+    // HUD text height in font units (see CFontDescription::Height). Windows units draw larger
+    // than Mac points on a similar screen, so it uses a smaller number for the same size.
+#ifdef WIN32
+    static constexpr uint32_t kHudFontSize = 20;
+#else
+    static constexpr uint32_t kHudFontSize = 24;
+#endif
 
 #ifdef DO_THREAD_UPDATE
     boost::barrier* m_pUpdateBarrier;
@@ -227,26 +265,28 @@ class CElectricSheep
     std::mutex m_BarrierMutex;
 #endif
 
+    //	Replace m_AppData if INFINIDREAM_DATA_DIR is set. Call before anything reads it.
+    void ApplyDataDirOverride()
+    {
+        std::string dir = PlatformUtils::GetDataDirOverride();
+        if (dir.empty())
+            return;
+        if (dir.back() != '/' && dir.back() != '\\')
+            dir += '/';
+        TupleStorage::IStorageInterface::CreateFullDirectory(dir);
+        m_AppData = dir;
+    }
+
     //	Init tuplestorage.
     bool InitStorage(bool _bReadOnly = false)
     {
         g_Log->Info("InitStorage()");
-#ifndef LINUX_GNU
         if (g_Settings()->Init(m_AppData, m_WorkingDir, _bReadOnly) == false)
-#else
-        char appdata[PATH_MAX];
-        snprintf(appdata, PATH_MAX, "%s/.electricsheep/", getenv("HOME"));
-        if (g_Settings()->Init(appdata, SHAREDIR) == false)
-#endif
             return false;
 
         //	Trigger this to exist in the settings.
         // We reset the installdir at launch here, ensuring the bundle can be moved around
-#ifndef LINUX_GNU
         g_Settings()->Set("settings.app.InstallDir", m_WorkingDir);
-#else
-        g_Settings()->Set("settings.app.InstallDir", SHAREDIR);
-#endif
         g_Settings()->Storage()->Commit();
         return true;
     }
@@ -264,6 +304,9 @@ class CElectricSheep
                     PlatformUtils::GetAppVersion().c_str(),
                     PlatformUtils::GetGitRevision().c_str(),
                     PlatformUtils::GetBuildDate().c_str());
+        g_Log->Info("Platform: %s", PlatformUtils::GetPlatformName().c_str());
+        if (!PlatformUtils::GetDataDirOverride().empty())
+            g_Log->Info("Data dir overridden by INFINIDREAM_DATA_DIR: %s", m_AppData.c_str());
     }
 
   public:
@@ -307,6 +350,14 @@ class CElectricSheep
     void ForceMultipleInstancesMode(bool force) {
         m_MultipleInstancesMode = force;
     }
+
+    void SetCachedOnlyMode(bool val) {
+        m_CachedOnlyMode = val;
+    }
+
+    void SetStartFullscreen(bool val) {
+        m_StartFullscreen = val;
+    }
     
     virtual void SetIsPreview(bool _isPreview) {
         m_bIsPreview = _isPreview;
@@ -318,11 +369,9 @@ class CElectricSheep
     
     void CreateHud()
     {
-        //    Get hud font size.
+        //    Get hud font name.
         m_HudFontName = g_Settings()->Get(
             "settings.player.m_HudFontName", std::string("Lato"));
-        m_HudFontSize = static_cast<uint32_t>(
-            g_Settings()->Get("settings.player.m_HudFontSize", 24));
 
         m_PNGDelayTimer =
             g_Settings()->Get("settings.player.pngdelaytimer", 600);
@@ -334,11 +383,12 @@ class CElectricSheep
     {
         m_HudManager->Add("helpmessage", std::make_shared<Hud::CStatsConsole>(
                                              Base::Math::CRect(1, 1),
-                                             m_HudFontName, m_HudFontSize));
+                                             m_HudFontName, kHudFontSize));
         m_HudManager->Hide("helpmessage");
         Hud::spCStatsConsole spHelpMessage =
             std::dynamic_pointer_cast<Hud::CStatsConsole>(
                 m_HudManager->Get("helpmessage"));
+#define BK(k) k
         spHelpMessage->Add(new Hud::CStringStat(
             "message",
             "infinidream: visuals for your vibe\n\n"
@@ -347,39 +397,54 @@ class CElectricSheep
 #else
             "Use the remote control or keyboard to interact.\n\n"
 #endif
-            "Keyboard Commands:\n"
-#ifdef MAC
-            "A: slower playback\t\t\t\t\tUp: like this dream\n"
-            "D: faster playback\t\t\t\t\tDown: dislike and delete\n"
-            "J: skip 10 seconds back\t\t\tLeft: previous dream\n"
-            "L: skip 10 seconds forward\tRight: next dream\n"
-            "R: repeat current dream\t\t\tH: shuffle mode\n"
-            "C: show credit\t\t\t\t\t\tB: report this dream\n"
-            "V: open web source\t\t\t\t" FULLSCREEN_MODIFIER_KEY "-F: toggle full screen\n"
-            "F1: help (this page)\t\t\t\tF2: status overlay\n\n"
-#else
-            "A: slower playback\t\t\t\t\t\t\t\t\t\t\t\t\t\t    Up: like this dream\n"
-            "D: faster playback\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t    Down: dislike and delete\n"
-            "J: skip 10 seconds back\t\t\t\t\t\t\t\t  Left: previous dream\n"
-            "L: skip 10 seconds forward\t\t\t\tRight: next dream\n"
-            "R: repeat current dream\t\t\t      H: shuffle mode\n"
-            "C: show credit\t\t\t\t\t\t                   B: report this dream\n"
-#ifdef WIN32
-            "V: open web source\t\t\t\t            F11 or Control-F: toggle full screen\n"
-#else
-            "V: open web source\t\t\t\t            " FULLSCREEN_MODIFIER_KEY "-F: toggle full screen\n"
-#endif
-            "F1: help (this page)\t\t\t\t              F2: status overlay\n\n"
-#endif
-
-            FULLSCREEN_MODIFIER_KEY "-R: open remote control\n" FULLSCREEN_MODIFIER_KEY "-B: browse playlists\n" FULLSCREEN_MODIFIER_KEY "-comma: open settings",
+            "Keyboard Commands:",
             ""));
 
-        std::string ver = GetVersion();
+        // One entry per row, so the two columns can't get out of step.
+        static const std::pair<const char*, const char*> kKeyRows[] = {
+            {BK("A") ": Slower playback", BK("Up") ": Like this dream"},
+            {BK("D") ": Faster playback", BK("Down") ": Dislike and delete"},
+            {BK("J") ": Skip 10 seconds back", BK("Left") ": Previous dream"},
+            {BK("L") ": Skip 10 seconds forward", BK("Right") ": Next dream"},
+            {BK("R") ": Repeat current dream", BK("H") ": Shuffle mode"},
+            {BK("C") ": Show credit", BK("B") ": Report this dream"},
+#ifdef LINUX_GNU
+            {BK("V") ": Open web source", BK("F") ": Toggle full screen"},
+#else
+            {BK("V") ": Open web source", BK(FULLSCREEN_MODIFIER_KEY "-F") ": Toggle full screen"},
+#endif
+            {BK("F1") ": Help (this page)", BK("F2") ": Status overlay"},
+        };
+        std::string keysLeft, keysRight;
+        for (const auto& row : kKeyRows)
+        {
+            if (!keysLeft.empty())
+            {
+                keysLeft += "\n";
+                keysRight += "\n";
+            }
+            keysLeft += row.first;
+            keysRight += row.second;
+        }
+        spHelpMessage->Add(new Hud::CStringStat("keys-left", keysLeft, ""));
+        spHelpMessage->AddColumn(new Hud::CStringStat("keys-right", keysRight, ""), "keys-left");
+
+        spHelpMessage->Add(new Hud::CStringStat(
+            "more-keys",
+            "\n"
+            BK(FULLSCREEN_MODIFIER_KEY "-R") ": Open remote control\n"
+            BK(FULLSCREEN_MODIFIER_KEY "-B") ": Browse playlists\n"
+            BK(FULLSCREEN_MODIFIER_KEY "-Comma") ": Open settings"
+#ifdef LINUX_GNU
+            "\n" BK(FULLSCREEN_MODIFIER_KEY "-Q") ": Quit"
+#endif
+            ,
+            ""));
+#undef BK
 
         spHelpMessage->Add(
             new Hud::CStringStat("version", "\nVersion: ",
-                                 ver + " " + PlatformUtils::GetGitRevision() +
+                                 PlatformUtils::GetVersionDescription() +
                                      " " + PlatformUtils::GetBuildDate()));
     }
     
@@ -387,7 +452,7 @@ class CElectricSheep
     {
         m_HudManager->Add("dreamstats", std::make_shared<Hud::CStatsConsole>(
                                             Base::Math::CRect(1, 1),
-                                            m_HudFontName, m_HudFontSize));
+                                            m_HudFontName, kHudFontSize));
         m_HudManager->Hide("dreamstats");
         Hud::spCStatsConsole spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
             m_HudManager->Get("dreamstats"));
@@ -452,7 +517,7 @@ class CElectricSheep
     {
         auto creditsConsole = std::make_shared<Hud::CStatsConsole>(
                                               Base::Math::CRect(1, 1),
-                                              m_HudFontName, m_HudFontSize);
+                                              m_HudFontName, kHudFontSize);
         m_HudManager->Add("dreamcredits", creditsConsole);
         m_HudManager->Hide("dreamcredits");
 
@@ -482,7 +547,7 @@ class CElectricSheep
         // Create a separate HUD for network status indicator (shown outside credits overlay)
         auto networkConsole = std::make_shared<Hud::CStatsConsole>(
                                               Base::Math::CRect(1, 1),
-                                              m_HudFontName, m_HudFontSize);
+                                              m_HudFontName, kHudFontSize);
         m_HudManager->Add("network-indicator", networkConsole);
         m_HudManager->Hide("network-indicator");
 
@@ -548,12 +613,131 @@ class CElectricSheep
         m_UpdateIndicatorEndTime = 0.0;
     }
 
+    void InitializeDiagnostics()
+    {
+        m_RuntimeDiagnostics = RuntimeDiagnostics{};
+        m_RuntimeDiagnostics.perfLoggingEnabled =
+            getenv("INFINIDREAM_PERF_LOG") != nullptr;
+    }
+
+    bool IsHudVisible(const char* hudId) const
+    {
+        if (!m_HudManager)
+            return false;
+        if (auto hud = m_HudManager->Get(hudId))
+            return hud->Visible();
+        return false;
+    }
+
+    void RefreshConnectivityState(double now, bool force = false)
+    {
+        if (!force && now < m_RuntimeDiagnostics.nextConnectivityUpdateTime)
+            return;
+
+        m_RuntimeDiagnostics.internetConnected = PlatformUtils::IsInternetReachable();
+        m_RuntimeDiagnostics.websocketConnected =
+            m_RuntimeDiagnostics.internetConnected &&
+            EDreamClient::IsWebSocketConnected();
+        m_RuntimeDiagnostics.nextConnectivityUpdateTime = now + 0.5;
+    }
+
+    void RefreshFastDiagnostics(double now, bool force = false)
+    {
+        if (!force && now < m_RuntimeDiagnostics.nextFastUpdateTime)
+            return;
+
+        m_CpuUsage.GetAppCpuUsage(m_CpuUsageES, m_CpuUsageTotal);
+        m_GpuUsage = m_CpuUsage.GetGpuUsage();
+
+        m_RuntimeDiagnostics.cpuUsageES = m_CpuUsageES;
+        m_RuntimeDiagnostics.cpuUsageTotal = m_CpuUsageTotal;
+        m_RuntimeDiagnostics.gpuUsage = m_GpuUsage;
+        m_RuntimeDiagnostics.numCores = m_CpuUsage.GetNumCores();
+        m_RuntimeDiagnostics.gpuFrameTimeMs =
+            g_Player().Renderer()->GetGPUFrameTimeMs();
+        m_RuntimeDiagnostics.gpuUtilization =
+            g_Player().Renderer()->GetGPUUtilization();
+        m_RuntimeDiagnostics.nextFastUpdateTime = now + 0.5;
+    }
+
+    void RefreshSlowDiagnostics(double now, bool force = false)
+    {
+        if (!force && now < m_RuntimeDiagnostics.nextSlowUpdateTime)
+            return;
+
+        RefreshConnectivityState(now, force);
+        m_RuntimeDiagnostics.diskSpaceLow =
+            g_ContentDownloader().m_gDownloader.IsDiskSpaceLow();
+        m_RuntimeDiagnostics.updateAvailable = ESScreensaver_IsUpdateAvailable();
+        m_RuntimeDiagnostics.nextSlowUpdateTime = now + 2.0;
+    }
+
+    void RefreshCacheDiagnostics(double now, bool force = false)
+    {
+        if (!force && now < m_RuntimeDiagnostics.nextCacheUpdateTime)
+            return;
+
+        Cache::CacheManager& cm = Cache::CacheManager::getInstance();
+        if (cm.dreamCount() > 0)
+        {
+            m_RuntimeDiagnostics.cachedDreamCount = cm.getCachedDreamCount();
+            m_RuntimeDiagnostics.cacheSizeGB = cm.getCacheSize();
+            m_RuntimeDiagnostics.cachePrimed = true;
+        }
+        else
+        {
+            m_RuntimeDiagnostics.cachedDreamCount = 0;
+            m_RuntimeDiagnostics.cacheSizeGB = 0.0;
+            m_RuntimeDiagnostics.cachePrimed = false;
+        }
+        m_RuntimeDiagnostics.nextCacheUpdateTime = now + 5.0;
+    }
+
+    void MaybeLogFramePerf(double now, double frameStartTime, double hudStartTime)
+    {
+        m_RuntimeDiagnostics.frameCount++;
+        m_RuntimeDiagnostics.frameTimeAccum += now - frameStartTime;
+        m_RuntimeDiagnostics.hudTimeAccum += now - hudStartTime;
+
+        if (!m_RuntimeDiagnostics.perfLoggingEnabled ||
+            now < m_RuntimeDiagnostics.nextPerfLogTime)
+            return;
+
+        if (m_RuntimeDiagnostics.frameCount > 0)
+        {
+            const double avgFrameMs =
+                (m_RuntimeDiagnostics.frameTimeAccum * 1000.0) /
+                static_cast<double>(m_RuntimeDiagnostics.frameCount);
+            const double avgHudMs =
+                (m_RuntimeDiagnostics.hudTimeAccum * 1000.0) /
+                static_cast<double>(m_RuntimeDiagnostics.frameCount);
+            const double avgFps =
+                (m_RuntimeDiagnostics.frameTimeAccum > 0.0)
+                    ? (static_cast<double>(m_RuntimeDiagnostics.frameCount) /
+                       m_RuntimeDiagnostics.frameTimeAccum)
+                    : 0.0;
+
+            g_Log->Info(
+                "Perf: avg=%.2fms %.2ffps hud=%.2fms cpu=%d%% total=%d%% gpu=%.2fms",
+                avgFrameMs, avgFps, avgHudMs,
+                m_RuntimeDiagnostics.cpuUsageES,
+                m_RuntimeDiagnostics.cpuUsageTotal,
+                m_RuntimeDiagnostics.gpuFrameTimeMs);
+        }
+
+        m_RuntimeDiagnostics.frameCount = 0;
+        m_RuntimeDiagnostics.frameTimeAccum = 0.0;
+        m_RuntimeDiagnostics.hudTimeAccum = 0.0;
+        m_RuntimeDiagnostics.nextPerfLogTime = now + 5.0;
+    }
+
     // Called when user performs an action that needs network (like, dislike, report)
     // Shows indicator for 5s if network is down
     void CheckNetworkForUserAction()
     {
-        bool internetConnected = PlatformUtils::IsInternetReachable();
-        bool wsConnected = internetConnected && EDreamClient::IsWebSocketConnected();
+        RefreshConnectivityState(m_Timer.Time(), true);
+        bool internetConnected = m_RuntimeDiagnostics.internetConnected;
+        bool wsConnected = m_RuntimeDiagnostics.websocketConnected;
         
         if (!internetConnected)
         {
@@ -649,7 +833,7 @@ class CElectricSheep
     {
         m_HudManager->Add("progress", std::make_shared<Hud::CStatsConsole>(
                                             Base::Math::CRect(1, 1),
-                                            m_HudFontName, m_HudFontSize));
+                                            m_HudFontName, kHudFontSize));
         Hud::spCStatsConsole spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
             m_HudManager->Get("progress"));
         if (spStats)
@@ -658,10 +842,12 @@ class CElectricSheep
     
     void SetupFramerate()
     {
-        m_PerceptualFPS = g_Settings()->Get("settings.player.perceptual_fps", 20.);
+        m_PerceptualFPS =
+            g_Settings()->Get("settings.player.perceptual_fps", 20.);
 
         // We give the perceptual FPS to the player, and it is its job to adjust it with dream level
         g_Player().SetPerceptualFPS(m_PerceptualFPS);
+        m_PerceptualFPS = g_Player().GetPerceptualFPS();
     }
     
     void SetupProxy()
@@ -703,6 +889,58 @@ class CElectricSheep
             (CPlayer::MultiDisplayMode)g_Settings()->Get(
                 "settings.player.MultiDisplayMode", 0));
 
+#ifdef LINUX_GNU
+        // Linux/headless: pre-check auth / cache state before the window opens.
+        if (m_CachedOnlyMode)
+        {
+            // --cached: play locally cached videos without a session.
+            Cache::CacheManager& cmPre = Cache::CacheManager::getInstance();
+            cmPre.loadDiskCachedFromJson();
+            size_t cachedCount = cmPre.getCachedDreamCount();
+            double cachedGB    = cmPre.getCacheSize();
+            if (cachedCount == 0 && cachedGB < 0.001)
+            {
+                fprintf(stderr, "No cached videos found. Run without --cached first to download content.\n");
+                return false;
+            }
+            printf("No sealed session token — cycling through %zu (%.1f GB) of cached videos.\n",
+                   cachedCount, cachedGB);
+            m_MultipleInstancesMode = true;  // forces offline mode through the rest of Startup()
+        }
+        else
+        {
+            std::string sealedSession = g_Settings()->Get("settings.content.sealed_session", std::string(""));
+            if (sealedSession.empty())
+            {
+                // Try to get a sealed session interactively before the window opens.
+                // Skip the console path entirely if a GUI wizard is registered — it will
+                // handle auth after the window opens.
+                if (!ESHasFirstTimeSetupCallback())
+                {
+                    if (!EDreamClient::LoginWithMagicLinkCode())
+                    {
+                        // Magic link not available (no credentials, no tty, or user declined).
+                        // Fall back to API key if one is configured.
+                        const char* envKey = getenv("INFINIDREAM_API_KEY");
+                        std::string storedKey = g_Settings()->Get("settings.content.api_key", std::string(""));
+                        if (!((envKey && *envKey) || !storedKey.empty()))
+                        {
+                            fprintf(stderr,
+                                "\nNo sealed session or API key found.\n"
+                                "Options:\n"
+                                "  1. Run interactively to be prompted for your email and log in\n"
+                                "  2. Set INFINIDREAM_API_KEY environment variable\n"
+                                "  3. Run with --cached to play locally cached videos\n");
+                            return false;
+                        }
+                        fprintf(stderr, "Warning: no sealed session token — video downloads may not work with API key only.\n");
+                    }
+                    // else: LoginWithMagicLinkCode() succeeded — sealed session now in settings
+                }
+            }
+        }
+#endif  // LINUX_GNU
+
         //	Init the display and create decoder.
         if (!g_Player().Startup())
             return false;
@@ -714,6 +952,7 @@ class CElectricSheep
         SetupFramerate();
 
         CreateHud();
+        InitializeDiagnostics();
         AddCreditsHud();
         AddNetworkIndicatorHud();
         AddHelpHud();
@@ -819,6 +1058,9 @@ class CElectricSheep
         g_Player().Start();
         m_F1F4Timer.Reset();
         m_LastCPUCheckTime = m_Timer.Time();
+        RefreshFastDiagnostics(m_LastCPUCheckTime, true);
+        RefreshSlowDiagnostics(m_LastCPUCheckTime, true);
+        RefreshCacheDiagnostics(m_LastCPUCheckTime, true);
         return true;
     }
 
@@ -837,6 +1079,11 @@ class CElectricSheep
         
         if (useAggressiveShutdown)
         {
+            // Say goodbye before arming the watchdog. Sent from
+            // DeinitializeClient() at the end of shutdown, it raced the
+            // watchdog's _exit() 200 ms later and was sometimes lost.
+            EDreamClient::SendGoodbyeAndDisconnect();
+
             // Arm a force-exit watchdog to guarantee instant shutdown.
             // The watchdog checks s_shutdownCancelled before exiting, so if
             // Startup() is called (e.g., when restarting after wizard), it
@@ -883,6 +1130,7 @@ class CElectricSheep
         m_SplashFilename = std::string();
         m_spCrossFade = nullptr;
         m_StartupScreen = nullptr;
+        m_spOSD = nullptr;
         m_HudManager = nullptr;
         m_bPaused = false;
 
@@ -913,26 +1161,22 @@ class CElectricSheep
     {
         while (true)
         {
-            // TODO : Some renderer changes have happened here
-#ifdef MAC
-            // g_Player().Renderer()->BeginFrame();
-
-            // if( !Update() )
-            {
-                g_Player().Renderer()->EndFrame();
-                return false;
-            }
-#else
-            // g_Player().Renderer()->BeginFrame();
-
-            if( !Update() )
+            if (!Update())
             {
                 if (auto spRenderer = g_Player().Renderer())
                     spRenderer->EndFrame();
                 return false;
             }
-
-#endif 
+#ifdef LINUX_GNU
+            // Pace the render loop to the display rate, NOT the perceptual
+            // (content) rate. Capping at m_PerceptualFPS throttled the whole
+            // loop to the dream animation rate (often 2-20 fps), making motion
+            // choppy and defeating frame blending. FIFO present already gates
+            // on vblank; this cap is a safety net. 0 = uncapped (let vsync pace).
+            double displayFps = g_Player().GetDisplayFps();
+            if (displayFps > 0.0)
+                g_Player().FpsCap(displayFps);
+#endif
         }
 
         return true;
@@ -1262,6 +1506,8 @@ class CElectricSheep
         if (!g_Player().BeginDisplayFrame(displayUnit))
             return true;
 
+        const double frameStartTime = m_Timer.Time();
+
         {
             // g_Player().Renderer()->BeginFrame();
 
@@ -1281,35 +1527,27 @@ class CElectricSheep
                 drawNoSheepIntro = true;
             }
             
-            if ((drawNoSheepIntro && displayUnit == 0) ||
-                (drawn && displayUnit == 0))
+            // Show the startup screen whenever the player has nothing to draw yet,
+            // or while it is still fading out after the player started.
+            bool showStartup = !drawn || drawNoSheepIntro ||
+                               (m_StartupScreen && !m_StartupScreen->IsFullyFaded());
+
+            if ((showStartup || drawn) && displayUnit == 0)
             {
                 
-                // /p preview: skip startup logo (oversized on tiny HWND, hides video).
-                if (!IsPreview() &&
-                    (drawNoSheepIntro ||
-                     (m_StartupScreen && !m_StartupScreen->IsFullyFaded())))
+                if (showStartup)
                 {
                     if (!m_StartupScreen)
                         m_StartupScreen = std::make_shared<Hud::CStartupScreen>(
-                            Base::Math::CRect(0, 0, 1., 1.), "Lato", 24);
-                            
+                            Base::Math::CRect(0, 0, 1., 1.));
+
                     // Start fading out when player has started and we're not already fading
                     if (g_Player().HasStarted() && !m_StartupScreen->IsFadingOut()) {
                         m_StartupScreen->StartFadeOut(m_Timer.Time());
                     }
-                    
+
                     m_StartupScreen->Render(m_Timer.Time(), g_Player().Renderer());
                 }
-                
-                /*if (drawNoSheepIntro)
-                {
-                    if (!m_StartupScreen)
-                        m_StartupScreen = std::make_shared<Hud::CStartupScreen>(
-                            Base::Math::CRect(0, 0, 1., 1.), "Lato", 24);
-                    m_StartupScreen->Render(0., g_Player().Renderer());
-                    
-                }*/
                 
                 Hud::spCStatsConsole spStats =
                     std::dynamic_pointer_cast<Hud::CStatsConsole>(
@@ -1427,19 +1665,19 @@ class CElectricSheep
                     m_HudManager->Hide("dreamstats");
                 }
 
+                const double now = m_Timer.Time();
+                RefreshFastDiagnostics(now);
+                RefreshSlowDiagnostics(now);
+                // Force live connectivity probes until the first websocket connection
+                // so the cached "not connected" state doesn't flash the Remote indicator at startup.
+                if (!m_RemoteFirstConnected)
+                    RefreshConnectivityState(now, /*force=*/true);
+
+                const bool dreamStatsVisible = IsHudVisible("dreamstats");
+                const bool creditsVisible = IsHudVisible("dreamcredits");
+                const bool needsTimecodeUpdate = dreamStatsVisible || creditsVisible;
+
                 std::string batteryStatus = "Unknown";
-                
-                // Update CPU and GPU usage measurements
-                // Both methods rate-limit internally to reduce jitter
-                m_CpuUsage.GetAppCpuUsage(m_CpuUsageES, m_CpuUsageTotal);
-                int prevGpuUsage = m_GpuUsage;
-                m_GpuUsage = m_CpuUsage.GetGpuUsage();
-                if (m_GpuUsage != prevGpuUsage)
-                {
-                    float metalMs = g_Player().Renderer()->GetGPUFrameTimeMs();
-                    // g_Log->Info("GPU: system=%d%%, metal=%.2fms",
-                    //             m_GpuUsage, metalMs);
-                }
 
                 switch (GetACLineStatus())
                 {
@@ -1477,10 +1715,7 @@ class CElectricSheep
                 else
                     ContentDownloader::Shepherd::SetRenderingAllowed(true);
 */
-                
-                // Update and display the time until next playlist check
-                updateNextCheckTimeDisplay();
-                
+
                 //	Update some stats.
                 spStats =
                     std::dynamic_pointer_cast<Hud::CStatsConsole>(
@@ -1501,11 +1736,16 @@ class CElectricSheep
 
                 const ContentDecoder::sFrameMetadata* frameMetadata =
                     g_Player().GetCurrentFrameMetadata();
-                UpdateTimecodeHUD();
+                if (needsTimecodeUpdate)
+                    UpdateTimecodeHUD();
                 
                 // Grab Perceptual FPS from player
                 double pFPS = g_Player().GetPerceptualFPS();
-                if (spStats) {
+                if (spStats && dreamStatsVisible) {
+                m_RuntimeDiagnostics.serverStatus = g_NetworkManager->Status();
+                m_RuntimeDiagnostics.downloadStatus =
+                    g_ContentDownloader().m_gDownloader.GetDownloadStatus();
+                updateNextCheckTimeDisplay();
                 if (isStreamingCurrent) {
                     ((Hud::CStringStat*)spStats->Get("decodefps"))
                         ->SetSample(
@@ -1601,8 +1841,8 @@ class CElectricSheep
                     m_HudManager->Get("dreamcredits"));
 
                 // Update status indicators with dynamic colors (always update, not conditional on metadata)
-                bool internetConnected = PlatformUtils::IsInternetReachable();
-                bool wsConnected = internetConnected && EDreamClient::IsWebSocketConnected();
+                bool internetConnected = m_RuntimeDiagnostics.internetConnected;
+                bool wsConnected = m_RuntimeDiagnostics.websocketConnected;
                 
                 // Detect network state transitions for standalone indicator
                 bool netWentDown = m_PrevNetworkUp && !internetConnected;
@@ -1656,7 +1896,7 @@ class CElectricSheep
                 }
 
                 // Check if update is available and detect transitions
-                bool updateAvailableForIndicator = ESScreensaver_IsUpdateAvailable();
+                bool updateAvailableForIndicator = m_RuntimeDiagnostics.updateAvailable;
 
                 // Detect update availability transition (from not available to available)
                 if (updateAvailableForIndicator && !m_PrevUpdateAvailable) {
@@ -1671,7 +1911,7 @@ class CElectricSheep
                 }
 
                 // Check disk space and detect transitions
-                bool diskSpaceLow = g_ContentDownloader().m_gDownloader.IsDiskSpaceLow();
+                bool diskSpaceLow = m_RuntimeDiagnostics.diskSpaceLow;
                 if (diskSpaceLow && !m_PrevDiskSpaceLow) {
                     // Disk space just became low - show indicator for 30 seconds
                     m_DiskIndicatorEndTime = m_Timer.Time() + 30.0;
@@ -1689,12 +1929,6 @@ class CElectricSheep
                 bool inInitialAuthWindow =
                     !EDreamClient::HasCompletedInitialAuth() &&
                     (m_Timer.Time() < m_RemoteIndicatorGraceEndTime);
-
-                // Check if credits overlay is visible
-                bool creditsVisible = false;
-                if (auto spCreditsHud = m_HudManager->Get("dreamcredits")) {
-                    creditsVisible = spCreditsHud->Visible();
-                }
 
                 // Check if busy indicator timer has expired
                 if (m_BusyIndicatorEndTime > 0.0 && m_Timer.Time() >= m_BusyIndicatorEndTime) {
@@ -1818,11 +2052,11 @@ class CElectricSheep
                     }
                 }
 
-                if (spStats)
+                if (spStats && creditsVisible)
                 {
                     // Disk space indicator - only show when disk space is low (hide all in preview mode)
-                    bool diskSpaceLow = g_ContentDownloader().m_gDownloader.IsDiskSpaceLow();
-                    bool updateAvailable = ESScreensaver_IsUpdateAvailable();
+                    bool diskSpaceLow = m_RuntimeDiagnostics.diskSpaceLow;
+                    bool updateAvailable = m_RuntimeDiagnostics.updateAvailable;
 
                     bool showDisk = diskSpaceLow && !IsPreview();
                     showBusy = m_MultipleInstancesMode && !m_OfflineDueToNoInternetOnly && !IsPreview();
@@ -1907,7 +2141,7 @@ class CElectricSheep
                     }
                 }
 
-                if (clipMetadata)
+                if (clipMetadata && spStats && creditsVisible)
                 {
                     // Set left-aligned title and right-aligned time info
                     ((Hud::CStringStat*)spStats->Get("credits-title"))
@@ -1951,27 +2185,31 @@ class CElectricSheep
                 //	Serverstats.
                 spStats = std::dynamic_pointer_cast<Hud::CStatsConsole>(
                     m_HudManager->Get("dreamstats"));
-                if (spStats) {
+                if (spStats && dreamStatsVisible) {
                 //    Prettify uptime.
                 uint64_t uptime = (uint64_t)m_Timer.Time();
 
                 ((Hud::CStringStat*)spStats->Get("uptime"))
                     ->SetSample(FormatTimeDiff(uptime, true));
                 // Update CPU usage display (percentage of total CPU capacity)
-                if (m_CpuUsageES >= 0)
+                if (m_RuntimeDiagnostics.cpuUsageES >= 0)
                 {
-                    int numCores = m_CpuUsage.GetNumCores();
                     ((Hud::CStringStat*)spStats->Get("zzacpu"))
                         ->SetSample(string_format("%i%% app, %i%% total (%d cores)", 
-                                                  m_CpuUsageES, m_CpuUsageTotal, numCores));
-                    EDreamClient::SetCPUUsage(m_CpuUsageES);
+                                                  m_RuntimeDiagnostics.cpuUsageES,
+                                                  m_RuntimeDiagnostics.cpuUsageTotal,
+                                                  m_RuntimeDiagnostics.numCores));
+                    EDreamClient::SetCPUUsage(m_RuntimeDiagnostics.cpuUsageES);
                 }
                 
                 // Update GPU usage display (Metal frame time + system GPU %)
                 {
-                    float gpuMs = g_Player().Renderer()->GetGPUFrameTimeMs();
+                    float gpuMs = m_RuntimeDiagnostics.gpuFrameTimeMs;
+                    float gpuPct = m_RuntimeDiagnostics.gpuUtilization;
                     std::string sysGpu =
-                        (m_GpuUsage >= 0) ? string_format(", %i%% app", m_GpuUsage) : "";
+                        (m_RuntimeDiagnostics.gpuUsage >= 0)
+                            ? string_format(", %i%%", m_RuntimeDiagnostics.gpuUsage)
+                            : "";
                     if (gpuMs >= 0)
                         ((Hud::CStringStat*)spStats->Get("zzagpu2"))
                             ->SetSample(string_format("%.2fms%s",
@@ -1983,17 +2221,15 @@ class CElectricSheep
 
                 Cache::CacheManager& cm = Cache::CacheManager::getInstance();
                 // Make sure the cache is primed before using those
-                if (cm.dreamCount() > 0) {
+                RefreshCacheDiagnostics(now, false);
+                if (m_RuntimeDiagnostics.cachePrimed) {
                     std::stringstream tmpstr;
-                    auto dreamCount = cm.getCachedDreamCount();
-                    
-                    auto cacheSizeGB = cm.getCacheSize();
                     std::stringstream stream;
-                    stream << std::fixed << std::setprecision(1) << cacheSizeGB;
-                    // std::string cacheSizeString = stream.str() + " GB";
-                    
-                    
-                    tmpstr << dreamCount << " dream" << (dreamCount > 1 ? "s" : "")
+                    stream << std::fixed << std::setprecision(1)
+                           << m_RuntimeDiagnostics.cacheSizeGB;
+
+                    tmpstr << m_RuntimeDiagnostics.cachedDreamCount << " dream"
+                    << (m_RuntimeDiagnostics.cachedDreamCount > 1 ? "s" : "")
                     << ", " << stream.str() << " GB";
                     ((Hud::CStringStat*)spStats->Get("all"))
                     ->SetSample(tmpstr.str());
@@ -2003,7 +2239,8 @@ class CElectricSheep
                     (Hud::CStringStat*)spStats->Get("transfers");
                 if (pTmp)
                 {
-                    std::string serverStatus = g_NetworkManager->Status();
+                    const std::string& serverStatus =
+                        m_RuntimeDiagnostics.serverStatus;
                     pTmp->SetSample(serverStatus.empty() ? " \n " : serverStatus);
                 }
 
@@ -2057,7 +2294,7 @@ class CElectricSheep
                 if (pTcd)
                 {
                     std::string dlState =
-                                        g_ContentDownloader().m_gDownloader.GetDownloadStatus();
+                        m_RuntimeDiagnostics.downloadStatus;
 
                     if (dlState != m_PreviousDlState)
                     {
@@ -2069,17 +2306,20 @@ class CElectricSheep
                 } // if (spStats) - dreamstats
 
                 //	Finally render hud.
-#if defined(WIN32)
-                if (!FirstTimeSetupWin32_IsWizardVisible())
-#endif
-                    m_HudManager->Render(g_Player().Renderer());
+                const double hudStartTime = m_Timer.Time();
+                m_HudManager->Render(g_Player().Renderer());
+                MaybeLogFramePerf(m_Timer.Time(), frameStartTime, hudStartTime);
 
                 //	Update display events.
                 if (auto spDisplay = g_Player().Display())
                     spDisplay->Update();
             }
 
-            g_Player().EndDisplayFrame(displayUnit, drawn);
+            bool frameDrawn = drawn;
+            if (displayUnit == 0 && (showStartup || drawn))
+                frameDrawn = true;
+
+            g_Player().EndDisplayFrame(displayUnit, frameDrawn);
         }
 
         return true;
@@ -2188,11 +2428,11 @@ class CElectricSheep
                         if (g_Player().m_playlistManager) {
                             g_Player().m_playlistManager->removeCurrentDream();
                         }
-                        g_Player().SkipToNext();
+                        g_Player().SkipToNext("dislike");
                         m_spCrossFade->Reset();
                         m_HudManager->Add("fade", m_spCrossFade, 1);
                     } else {
-                        g_Player().SkipToNext();
+                        g_Player().SkipToNext("dislike");
                         m_spCrossFade->Reset();
                         m_HudManager->Add("fade", m_spCrossFade, 1);
                     }
@@ -2405,8 +2645,7 @@ class CElectricSheep
 #endif
             DisplayOutput::spCKeyEvent spKey =
                 std::dynamic_pointer_cast<DisplayOutput::CKeyEvent>(_event);
-
-            g_Log->Info("Key event: %d", spKey->m_Code);
+            if (!spKey->m_bPressed) return true;  // ignore key-release events
             switch (spKey->m_Code)
             {
                     // Vote for sheep.
@@ -2478,10 +2717,12 @@ class CElectricSheep
                     return ExecuteCommand(CLIENT_COMMAND_BRIGHTNESS_UP);
                 case DisplayOutput::CKeyEvent::KEY_S:
                     return ExecuteCommand(CLIENT_COMMAND_BRIGHTNESS_DOWN);
+                case DisplayOutput::CKeyEvent::KEY_F:
+                    g_Player().Display()->ToggleFullscreen();
+                    return true;
                 //    All other keys needs to be ignored, they are handled somewhere
                 // else...
                 default:
-                    g_Log->Info("Key event, ignoring");
                     return false;
             }
         }

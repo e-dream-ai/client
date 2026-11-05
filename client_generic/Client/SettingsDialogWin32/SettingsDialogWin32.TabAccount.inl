@@ -80,8 +80,10 @@ if (!loggedIn)
     ImGui::PushItemWidth(codeInputW);
     // EnterReturnsTrue: pressing Return in the code field triggers Validate below.
     codeEnter = InputTextWithPlaceholder("##code", "6 digit code", g_codeBuf, sizeof g_codeBuf,
-                                         ImGuiInputTextFlags_CharsDecimal |
-                                             ImGuiInputTextFlags_EnterReturnsTrue);
+                                         ImGuiInputTextFlags_CallbackCharFilter |
+                                             ImGuiInputTextFlags_CallbackEdit |
+                                             ImGuiInputTextFlags_EnterReturnsTrue,
+                                         FilterDigitsOnly);
     StripNonDigits(g_codeBuf);
     DrawFocusedInputDecoration(ImGui::IsItemActive() || ImGui::IsItemFocused());
     ImGui::PopItemWidth();
@@ -155,8 +157,11 @@ if (!loggedIn)
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
         if (g_boldUiFont)
             ImGui::PushFont(g_boldUiFont);
+        const bool canValidate = std::strlen(g_codeBuf) == 6;
+        if (!canValidate)
+            ImGui::BeginDisabled();
         const bool validateClicked = ImGui::Button("Validate", ImVec2(actionButtonWidth, actionButtonHeight));
-        if (validateClicked || codeEnter)
+        if ((validateClicked || codeEnter) && canValidate)
         {
             StripNonDigits(g_codeBuf);
             const EDreamClient::ValidateCodeResult validateResult =
@@ -185,16 +190,18 @@ if (!loggedIn)
                 ShowAuthWarningDialog(dialog);
             }
         }
+        if (!canValidate)
+            ImGui::EndDisabled();
         if (g_boldUiFont)
             ImGui::PopFont();
         ImGui::PopStyleColor(4);
     }
 
     ImGui::SetCursorPosX(sidePadding);
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.90f, 0.90f, 0.90f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.86f, 0.86f, 0.86f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.82f, 0.82f, 0.82f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.08f, 0.08f, 0.08f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_Button, Palette().secondaryButton);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Palette().secondaryButtonHovered);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, Palette().secondaryButtonActive);
+    ImGui::PushStyleColor(ImGuiCol_Text, Palette().text);
     if (ImGui::Button("Need an account? Create one", ImVec2(contentW, actionButtonHeight)))
         PlatformUtils::OpenURLExternally(kUrlCreateAccount);
     ImGui::PopStyleColor(4);
@@ -204,12 +211,7 @@ else
     const float signOutX = safePanelWidth - sidePadding - actionButtonWidth;
     if (signOutX > 0.f)
         ImGui::SetCursorPosX(signOutX);
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.00f, 0.48f, 1.00f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.10f, 0.56f, 1.00f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.00f, 0.40f, 0.86f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
-    if (g_boldUiFont)
-        ImGui::PushFont(g_boldUiFont);
+    // Plain button: once signed in, Close in the footer is the default (blue, Return).
     if (ImGui::Button("Sign out", ImVec2(actionButtonWidth, actionButtonHeight)))
     {
         std::strncpy(g_previousLoginEmailBuf, g_nicknameBuf, sizeof g_previousLoginEmailBuf - 1);
@@ -220,9 +222,6 @@ else
         g_codeBuf[0] = '\0';
         SetStatus("Signed out.");
     }
-    if (g_boldUiFont)
-        ImGui::PopFont();
-    ImGui::PopStyleColor(4);
 }
 
 ImGui::EndChild();

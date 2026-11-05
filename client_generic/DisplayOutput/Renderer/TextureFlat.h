@@ -1,12 +1,13 @@
 #ifndef _TEXTUREFLAT_H
 #define _TEXTUREFLAT_H
 
+extern "C" {
 #include "libavcodec/avcodec.h"
-
 #include "libavformat/avformat.h"
 #include "libavutil/hwcontext.h"
 #include "libavutil/imgutils.h"
 #include "libswscale/swscale.h"
+}
 
 #include "AlignedBuffer.h"
 #include "Frame.h"

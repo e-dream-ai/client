@@ -110,9 +110,9 @@ public:
             // if playlistID is empty, we use the default playlist file (playlist_0.json)
             auto dreams = EDreamClient::ParsePlaylist(playlistId);
 
-            auto [name, userName, nsfw, timestamp, loops] = EDreamClient::ParsePlaylistMetadata(playlistId);
-            playlistName = name;
-            playlistUserName = userName;
+            auto metadata = EDreamClient::ParsePlaylistMetadata(playlistId);
+            playlistName = metadata.name;
+            playlistUserName = metadata.artist;
             
             for (auto dream : dreams) {
                 auto fileName = Cache::PathManager::getInstance().mp4Path() / (dream.uuid + ".mp4");

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- Per-monitor DPI awareness (PerMonitorV2, with the older per-monitor flag as a fallback).
+     Without it Windows renders the app at 96 DPI and bitmap-stretches the window above 100%
+     scaling, blurring the video, HUD text and title bar (issue #717). -->
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <application xmlns="urn:schemas-microsoft-com:asm.v3">
+    <windowsSettings>
+      <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true/pm</dpiAware>
+      <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2,PerMonitor</dpiAwareness>
+    </windowsSettings>
+  </application>
+</assembly>

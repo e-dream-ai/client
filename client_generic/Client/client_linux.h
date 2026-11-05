@@ -5,15 +5,21 @@
 #error This file is not supposed to be used for this platform...
 #endif
 
+#include "DisplayVulkan.h"
 #include "Exception.h"
+#include "FirstTimeSetupVulkan.h"
+#include "SettingsDialogVulkan.h"
 #include "Log.h"
 #include "MathBase.h"
+#include "PlatformUtils.h"
 #include "Player.h"
 #include "Settings.h"
 #include "SimplePlaylist.h"
+#include "ThemeLinux.h"
 #include "Timer.h"
 #include "base.h"
 #include "storage.h"
+#include <cstdio>
 #include <string>
 
 /*
@@ -37,8 +43,16 @@ class CElectricSheep_Linux : public CElectricSheep
 
         printf("Startup()\n");
 
-        m_AppData = std::string(getenv("HOME")) + "/.electricsheep/";
-        m_WorkingDir = SHAREDIR;
+        ThemeLinux::Start();
+
+        // Stage keeps its own folder so prod and stage state don't collide.
+#ifdef STAGE
+        m_AppData = std::string(getenv("HOME")) + "/.config/infinidream-stage/";
+#else
+        m_AppData = std::string(getenv("HOME")) + "/.config/infinidream/";
+#endif
+        ApplyDataDirOverride();
+        m_WorkingDir = PlatformUtils::GetWorkingDir();
 
         InitStorage();
         AttachLog();
@@ -48,7 +62,22 @@ class CElectricSheep_Linux : public CElectricSheep
 
         //	Run gui.
 
-        g_Player().AddDisplay(g_Settings()->Get("settings.player.screen", 0));
+        // Start windowed by default; --fullscreen (m_StartFullscreen) opts into
+        // fullscreen at launch. F toggles at runtime; ESC exits fullscreen.
+        g_Player().Fullscreen(m_StartFullscreen);
+
+        g_Player().AddDisplay(g_Settings()->Get("settings.player.screen", 0), nullptr);
+
+        // if( true )
+        {
+            g_Log->Info("Running config...");
+            // g_Settings()->Storage()->ConfigUI( m_WorkingDir +
+            // "Scripts/config.lua"
+            // );
+        }
+
+        FirstTimeSetupVulkan_Register();
+        SettingsDialogVulkan_Register();
 
         if (CElectricSheep::Startup() == false)
             return false;
@@ -59,6 +88,112 @@ class CElectricSheep_Linux : public CElectricSheep
         // //	Removed for 2.7b11...
 
         return true;
+    }
+
+    virtual bool HandleOneEvent(DisplayOutput::spCEvent& spEvent) override
+    {
+        if (spEvent->Type() != DisplayOutput::CEvent::Event_KEY)
+            return false;
+
+        auto spKey = std::static_pointer_cast<DisplayOutput::CKeyEvent>(spEvent);
+        if (!spKey->m_bPressed)
+            return true; // swallow all key releases
+
+        // Wizard/settings have already consumed this via FeedKey; block game bindings while up.
+        if (FirstTimeSetupVulkan_IsWizardVisible())
+            return true;
+        if (SettingsDialogVulkan_IsVisible())
+            return true;
+
+        switch (spKey->m_Code)
+        {
+        // Linux-only: ESC exits fullscreen back to windowed (never quits).
+        case DisplayOutput::CKeyEvent::KEY_Esc:
+        {
+            auto spDisp = g_Player().Display();
+            if (spDisp && spDisp->IsFullscreen())
+            {
+                auto spVk = std::dynamic_pointer_cast<DisplayOutput::CDisplayVulkan>(spDisp);
+                if (spVk) spVk->ToggleFullscreen(); // fullscreen -> windowed
+            }
+            return true;
+        }
+
+        // Linux-only: Ctrl+Q quits.
+        case DisplayOutput::CKeyEvent::KEY_Q:
+            if (spKey->m_bCtrl)
+            {
+                if (auto spDisp = g_Player().Display())
+                    spDisp->Close();
+                return true;
+            }
+            CElectricSheep::HandleOneEvent(spEvent);
+            return true;
+
+        // F: toggle fullscreen
+        case DisplayOutput::CKeyEvent::KEY_F:
+        {
+            auto spDisp = std::dynamic_pointer_cast<DisplayOutput::CDisplayVulkan>(
+                g_Player().Display());
+            if (spDisp) spDisp->ToggleFullscreen();
+            return true;
+        }
+
+        // Linux-only: HUD overlays
+        case DisplayOutput::CKeyEvent::KEY_F1:
+            m_F1F4Timer.Reset();
+            m_HudManager->Toggle("helpmessage");
+            return true;
+        case DisplayOutput::CKeyEvent::KEY_F2:
+            m_F1F4Timer.Reset();
+            m_HudManager->Toggle("dreamstats");
+            return true;
+        case DisplayOutput::CKeyEvent::KEY_F3:
+            m_F1F4Timer.Reset();
+            m_HudManager->Toggle("renderstats");
+            return true;
+        case DisplayOutput::CKeyEvent::KEY_F4:
+            m_F1F4Timer.Reset();
+            m_HudManager->Toggle("displaystats");
+            return true;
+
+        // Linux-only: Ctrl+R opens the remote-control page in a browser
+        case DisplayOutput::CKeyEvent::KEY_R:
+            if (spKey->m_bCtrl) {
+#ifdef STAGE
+                PlatformUtils::OpenURLExternally("https://stage.infinidream.ai/rc");
+#else
+                PlatformUtils::OpenURLExternally("https://alpha.infinidream.ai/rc");
+#endif
+                return true;
+            }
+            CElectricSheep::HandleOneEvent(spEvent);
+            return true;
+
+        // Linux-only: Ctrl+B opens the playlists page in a browser
+        case DisplayOutput::CKeyEvent::KEY_B:
+            if (spKey->m_bCtrl) {
+#ifdef STAGE
+                PlatformUtils::OpenURLExternally("https://stage.infinidream.ai/playlists");
+#else
+                PlatformUtils::OpenURLExternally("https://alpha.infinidream.ai/playlists");
+#endif
+                return true;
+            }
+            CElectricSheep::HandleOneEvent(spEvent);
+            return true;
+
+        // Linux-only: Ctrl+, opens the settings dialog (matches Mac/Windows).
+        case DisplayOutput::CKeyEvent::KEY_Comma:
+            if (spKey->m_bCtrl) { ESShowPreferences(); return true; }
+            CElectricSheep::HandleOneEvent(spEvent);
+            return true;
+
+        // Delegate everything else silently to parent
+        default:
+            CElectricSheep::HandleOneEvent(spEvent);
+            return true;
+        }
     }
 
     virtual bool HandleEvents()
@@ -76,6 +211,7 @@ class CElectricSheep_Linux : public CElectricSheep
             }
         }
 
+        ProcessCommandQueue();
         return true;
     }
 
@@ -84,104 +220,14 @@ class CElectricSheep_Linux : public CElectricSheep
     {
         using namespace DisplayOutput;
 
-        g_Player().Framerate(m_CurrentFps);
-
-        if (!CElectricSheep::Update())
+        g_Player().BeginFrameUpdate();
+        if (!DoRealFrameUpdate(0))
             return false;
+        g_Player().EndFrameUpdate();
 
-        DisplayOutput::spCDisplayOutput spDisplay = g_Player().Display();
-
-        //	Update display events.
-        spDisplay->Update();
-
-        static const float voteDelaySeconds = 1;
-
-        //	Handle events.
-        spCEvent spEvent;
-        while (spDisplay->GetEvent(spEvent))
-        {
-            //	Key events.
-            if (spEvent->Type() == CEvent::Event_KEY)
-            {
-                spCKeyEvent spKey = static_cast<spCKeyEvent>(spEvent);
-
-                switch (spKey->m_Code)
-                {
-                    //	Vote for sheep.
-
-                case DisplayOutput::CKeyEvent::KEY_UP:
-                    if (m_pVoter != NULL &&
-                        m_pVoter->Vote(g_Player().GetCurrentPlayingID(), true,
-                                       voteDelaySeconds))
-                        m_HudManager->Add("splash_pos", m_spSplashPos,
-                                          voteDelaySeconds * 0.9f);
-                    break;
-                case DisplayOutput::CKeyEvent::KEY_DOWN:
-                    if (m_pVoter != NULL &&
-                        m_pVoter->Vote(g_Player().GetCurrentPlayingID(), false,
-                                       voteDelaySeconds))
-                    {
-                        if (g_Settings()->Get("settings.content.negvotedeletes",
-                                              true))
-                        {
-                            // g_Player().Stop();
-                            m_spCrossFade->Reset();
-                            m_HudManager->Add("fade", m_spCrossFade, 1.5);
-                        }
-
-                        m_HudManager->Add("splash_pos", m_spSplashNeg,
-                                          voteDelaySeconds * 0.9f);
-                    }
-                    break;
-
-                    //	Repeat current sheep
-                case DisplayOutput::CKeyEvent::KEY_LEFT:
-                    g_Player().ReturnToPrevious();
-                    break;
-
-                    //  Force Next Sheep
-                case DisplayOutput::CKeyEvent::KEY_RIGHT:
-                    g_Player().SkipToNext();
-                    break;
-
-                    //	Repeat sheep
-                case DisplayOutput::CKeyEvent::KEY_F8:
-                    g_Player().RepeatSheep();
-                    break;
-
-                //	OSD info.
-                case DisplayOutput::CKeyEvent::KEY_F1:
-                    m_F1F4Timer.Reset();
-                    m_HudManager->Toggle("helpmessage");
-                    break;
-                case DisplayOutput::CKeyEvent::KEY_F2:
-                    m_F1F4Timer.Reset();
-                    m_HudManager->Toggle("serverstats");
-                    break;
-                case DisplayOutput::CKeyEvent::KEY_F3:
-                    m_F1F4Timer.Reset();
-                    m_HudManager->Toggle("renderstats");
-                    break;
-                case DisplayOutput::CKeyEvent::KEY_F4:
-                    m_F1F4Timer.Reset();
-                    m_HudManager->Toggle("displaystats");
-                    break;
-
-                case CKeyEvent::KEY_Esc:
-                    spDisplay->Close();
-                    break;
-
-                //	All other keys close...
-                // NO !!!
-                default:
-                    //	   spDisplay->Close();
-                    break;
-                }
-            }
-        }
+        HandleEvents();
 
         return true;
-        return HandleEvents();
     }
 
     //
@@ -210,6 +256,7 @@ class CElectricSheep_Linux : public CElectricSheep
                     g_Player().AddDisplay( _glContext );
             }
             } */
+
 };
 
 #endif // CLIENT_H_INCLUDED

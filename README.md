@@ -54,6 +54,164 @@ screensaver. The staging targets have their own directory
 /Users/Shared/infinidream.ai-stage that can coexist with the normal one
 /Users/Shared/infinidream.ai
 
+## Build on Linux
+
+### Prerequisites
+
+Install the required system packages (Arch Linux):
+
+```bash
+sudo pacman -S --needed \
+    base-devel cmake pkgconf \
+    vulkan-headers vulkan-icd-loader vulkan-tools shaderc \
+    libx11 \
+    openssl \
+    boost \
+    ffmpeg \
+    libpng curl \
+    wayland wayland-protocols \
+    libxkbcommon
+```
+
+On Ubuntu (tested on 26.04):
+
+```bash
+sudo apt install -y \
+    build-essential cmake pkg-config \
+    libvulkan-dev glslc \
+    libx11-dev libxrender-dev \
+    libssl-dev \
+    libboost-all-dev \
+    libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libswresample-dev \
+    libpng-dev libcurl4-openssl-dev \
+    libwayland-dev wayland-protocols libxkbcommon-dev libdecor-0-dev
+```
+
+A distro upgrade can remove the Boost development packages; if CMake reports
+`Could not find a package configuration file provided by "Boost"`, reinstall
+`libboost-all-dev` and reconfigure with `cmake --fresh -B build`.
+
+Wayland support is optional — the build falls back to X11/XWayland if the
+Wayland packages are absent.
+
+Also initialise the submodules (ImGui UI library):
+
+```bash
+git submodule update --init
+```
+
+### Build
+
+```bash
+cd client_generic/LinuxBuild
+cmake -B build
+cmake --build build -j$(nproc)
+```
+
+For a release build:
+
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j$(nproc)
+```
+
+The binary is placed at `client_generic/LinuxBuild/build/infinidream`, with
+compiled shaders in `build/shaders/` and `logo.png` copied next to it
+automatically.
+
+For a stage build (talks to `api-stage.infinidream.ai` and keeps its data in
+`~/.config/infinidream-stage/`), use a separate build tree:
+
+```bash
+cmake -B build-stage -DCMAKE_BUILD_TYPE=Release -DINFINIDREAM_STAGE=ON
+cmake --build build-stage -j$(nproc)
+```
+
+To package a portable AppImage, run `./build_appimage.py` (add `--stage` for
+a stage AppImage).
+
+### Authentication
+
+On first run the client signs in with a code emailed to you: the first-run
+wizard asks for your email and the code, or a console prompt does when no GUI
+wizard is available. This stores a sealed session in
+`~/.config/infinidream/settings.json`, so later launches sign in automatically.
+
+An API key still works as a fallback (for headless use), but it skips the
+sealed-session refresh paths:
+
+**Option 1 — environment variable (one-off or scripted):**
+```bash
+export INFINIDREAM_API_KEY=<your-key>
+./build/infinidream
+```
+The key is persisted to `~/.config/infinidream/settings.json` on first run,
+so subsequent launches work without the variable.
+
+**Option 2 — settings file (persistent):**
+Add the key directly to `~/.config/infinidream/settings.json`:
+```json
+{
+  "settings": {
+    "content": {
+      "api_key": "<your-key>"
+    }
+  }
+}
+```
+
+### Running against a test server
+
+[`client_generic/tests/mock-server`](client_generic/tests/mock-server) has a mock server that stands
+in for the backend, and an end-to-end test that runs the Mac client against it. See its README.
+
+For test runs (see #733), set `INFINIDREAM_DATA_DIR` to keep settings, cache and logs
+in their own folder. The run leaves the installed client alone: it skips the instance
+check, auto-update (Mac), crash reporting (Mac) and screensaver activation (Windows).
+
+To use a server without TLS, give the scheme explicitly in that folder's `settings.json`:
+```json
+{ "settings": { "content": { "server": "http://127.0.0.1:8765" } } }
+```
+A bare host always means `https`/`wss`, and so does `http://` when `INFINIDREAM_DATA_DIR`
+isn't set. Over `http` the client logs a warning, ignores any stored login and sends only
+`INFINIDREAM_API_KEY`, so set that variable; an `api_key` in `settings.json` isn't used.
+
+The log gets a `Heartbeat` line from the render thread every 60 seconds; set
+`INFINIDREAM_HEARTBEAT_SECONDS=1` to get one per second. It stops whenever frames stop,
+which includes a locked screen on macOS, so check for that before calling a missing
+heartbeat a hang.
+
+### Running
+
+```bash
+cd client_generic/LinuxBuild/build
+./infinidream
+```
+
+Arrow keys navigate between dreams. `F1`–`F4` toggle HUD overlays (help,
+server stats, render stats, display stats). Close the window or press `Esc`
+to quit.
+
+### Hardware video decoding
+
+Video is decoded with Vulkan Video on the rendering GPU when the driver
+supports it (NVIDIA proprietary drivers, AMD and Intel with recent Mesa), and
+in software otherwise. Either way, YUV→RGB conversion runs on the GPU. The log
+says which path was chosen (`Vulkan Video decode available on ...` or
+`no Vulkan Video decode on ...`).
+
+Intel's Mesa driver only exposes Vulkan Video when `ANV_DEBUG=video-decode`
+is set. The client sets it at startup and uses Vulkan Video on Intel from
+Mesa 26; older versions decode in software. To force software decoding, for
+example to rule out a driver bug:
+
+```bash
+INFINIDREAM_NO_HW_DECODE=1 ./infinidream
+```
+
+---
+
 ## Build on macOS
 
 ### Prerequisites

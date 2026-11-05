@@ -116,8 +116,20 @@ static void ShowFirstTimeSetupCallback()
 
         [esView setAutoresizesSubviews:YES];
 
-        
+
         [self makeFirstResponder:esView];
+
+        // Hide the player view if the first-time wizard will be shown — auth runs from
+        // inside startAnimation and triggers the wizard, so we have to start the player
+        // for the wizard to appear, but we don't want video flashing behind the sheet.
+        // FirstTimeSetupManager.handleSheetCompletion unhides it after the wizard closes.
+        bool firstTimeSetupCompleted =
+            ESScreensaver_GetBoolSetting("settings.app.firsttimesetup", false);
+        if (!firstTimeSetupCompleted)
+        {
+            self.backgroundColor = [NSColor blackColor];
+            esView.hidden = YES;
+        }
 
         [self makeKeyAndOrderFront:nil];
 
@@ -140,15 +152,26 @@ static void ShowFirstTimeSetupCallback()
 
     if (ESScreensaver_GetBoolSetting("settings.player.preserve_AR", true)) {
         // Calculate current screen aspect ratio
-        float screenAR = self.screen.frame.size.width / self.screen.frame.size.height;
-        
-        // set a fixed ratio on full screen
-        if (screenAR < (16.0f/9.0f))
-        {
-            [self setMaxFullScreenContentSize:CGSizeMake(self.screen.frame.size.width, self.screen.frame.size.width * 9 / 16)];
+        float screenW = self.screen.frame.size.width;
+        float screenH = self.screen.frame.size.height;
+        float screenAR = screenW / screenH;
 
+        // "Rotate on portrait displays": on a portrait screen the rotated dream
+        // is 9:16, so the fullscreen content box must be allowed to be portrait
+        // (otherwise it would stay a landscape strip and rotation couldn't fill).
+        BOOL shouldRotate =
+            ESScreensaver_GetBoolSetting("settings.player.rotate_portrait", false) &&
+            (screenAR < 1.0f);
+        float targetAR = shouldRotate ? (9.0f / 16.0f) : (16.0f / 9.0f);
+
+        // set a fixed ratio on full screen
+        if (screenAR > targetAR)
+        {
+            // Wider than the target box: constrain width.
+            [self setMaxFullScreenContentSize:CGSizeMake(screenH * targetAR, screenH)];
         } else {
-            [self setMaxFullScreenContentSize:CGSizeMake(self.screen.frame.size.height * 16 / 9, self.screen.frame.size.height)];
+            // Taller than the target box: constrain height.
+            [self setMaxFullScreenContentSize:CGSizeMake(screenW, screenW / targetAR)];
         }
     } else {
         // Clear any previous constraint to allow full stretch
@@ -512,3 +535,77 @@ static void ShowFirstTimeSetupCallback()
 }
 
 @end
+
+#ifndef SCREEN_SAVER
+// About box: show "Version X" once (not "Version X (X)") with the git
+// revision on a second line, e.g. 0.16.1-12-gc7171648-dirty (#662).
+@implementation NSApplication (InfinidreamAbout)
+
+- (IBAction)showInfinidreamAboutPanel:(id)sender
+{
+    NSString* revision =
+        [NSString stringWithUTF8String:PlatformUtils::GetGitRevision().c_str()];
+    NSMutableParagraphStyle* style = [[NSMutableParagraphStyle alloc] init];
+    style.alignment = NSTextAlignmentCenter;
+    style.paragraphSpacing = 6;
+    NSMutableAttributedString* credits = [[NSMutableAttributedString alloc]
+        initWithString:[revision stringByAppendingString:@"\n"]
+            attributes:@{
+                NSFontAttributeName : [NSFont systemFontOfSize:NSFont.smallSystemFontSize],
+                NSForegroundColorAttributeName : NSColor.secondaryLabelColor,
+                NSParagraphStyleAttributeName : style,
+            }];
+    // Passing credits replaces the panel's default Credits.html, so append it.
+    NSURL* creditsURL = [NSBundle.mainBundle URLForResource:@"Credits"
+                                              withExtension:@"html"];
+    if (creditsURL)
+    {
+        NSAttributedString* html =
+            [[NSAttributedString alloc] initWithURL:creditsURL
+                                            options:@{}
+                                 documentAttributes:nil
+                                              error:nil];
+        if (html)
+        {
+            // Drop the trailing newline(s) the HTML import adds, which leave
+            // a blank line at the bottom of the credits.
+            NSMutableAttributedString* trimmed = [html mutableCopy];
+            NSCharacterSet* ws = NSCharacterSet.whitespaceAndNewlineCharacterSet;
+            while (trimmed.length &&
+                   [ws characterIsMember:[trimmed.string characterAtIndex:trimmed.length - 1]])
+                [trimmed deleteCharactersInRange:NSMakeRange(trimmed.length - 1, 1)];
+            // The HTML has no font, so it imports as Times; use the panel's
+            // system font instead. Link attributes are kept.
+            [trimmed addAttributes:@{
+                NSFontAttributeName : [NSFont systemFontOfSize:NSFont.smallSystemFontSize],
+                NSParagraphStyleAttributeName : style,
+            }
+                             range:NSMakeRange(0, trimmed.length)];
+            // HTML text imports as full-brightness label color; match the
+            // revision line. Links keep their own color.
+            [trimmed enumerateAttribute:NSLinkAttributeName
+                                inRange:NSMakeRange(0, trimmed.length)
+                                options:0
+                             usingBlock:^(id link, NSRange range, BOOL*) {
+                                 if (!link)
+                                     [trimmed addAttribute:NSForegroundColorAttributeName
+                                                     value:NSColor.secondaryLabelColor
+                                                     range:range];
+                             }];
+            [credits appendAttributedString:trimmed];
+        }
+    }
+    NSMutableDictionary* options = [@{
+        NSAboutPanelOptionVersion : @"",
+        NSAboutPanelOptionCredits : credits,
+    } mutableCopy];
+    // The app icon is drawn as a rounded square on recent macOS; show the
+    // round logo on a transparent background instead.
+    NSImage* logo = [NSImage imageNamed:@"logo"];
+    if (logo)
+        options[NSAboutPanelOptionApplicationIcon] = logo;
+    [self orderFrontStandardAboutPanelWithOptions:options];
+}
+
+@end
+#endif

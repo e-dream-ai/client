@@ -26,6 +26,7 @@
                 <outlet property="loginTestStatusText" destination="1099" id="1108"/>
                 <outlet property="okButton" destination="331" id="Qns-8w-LN7"/>
                 <outlet property="preserveAR" destination="1191" id="1193"/>
+                <outlet property="rotatePortrait" destination="Rp1-bt-n01" id="Rp3-ol-n03"/>
                 <outlet property="proxyHost" destination="Q3k-U6-7Ad" id="ALD-hu-lzP"/>
                 <outlet property="proxyLogin" destination="gY4-Mj-Ffb" id="vlU-Ky-EMd"/>
                 <outlet property="proxyPassword" destination="q9Y-KC-fux" id="7Jk-w6-4dx"/>
@@ -579,6 +580,13 @@ room for new ones</string>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
                                         </button>
+                                        <button toolTip="Check to rotate the dream 90 degrees on displays that are taller than they are wide (portrait orientation)." translatesAutoresizingMaskIntoConstraints="NO" id="Rp1-bt-n01">
+                                            <rect key="frame" x="158" y="166" width="200" height="18"/>
+                                            <buttonCell key="cell" type="check" title="Rotate On Portrait Displays" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="Rp2-cl-n02">
+                                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                <font key="font" metaFont="system"/>
+                                            </buttonCell>
+                                        </button>
                                     </subviews>
                                     <constraints>
                                         <constraint firstItem="1041" firstAttribute="leading" secondItem="1040" secondAttribute="trailing" constant="8" symbolic="YES" id="EFn-CA-1Gv"/>
@@ -588,7 +596,9 @@ room for new ones</string>
                                         <constraint firstItem="1041" firstAttribute="firstBaseline" secondItem="1040" secondAttribute="firstBaseline" id="ctL-e2-R5i"/>
                                         <constraint firstItem="1191" firstAttribute="leading" secondItem="324" secondAttribute="leading" constant="160" id="m1n-dn-ySm"/>
                                         <constraint firstItem="1185" firstAttribute="top" secondItem="1041" secondAttribute="bottom" constant="24" id="m7d-8w-pdm"/>
-                                        <constraint firstItem="933" firstAttribute="top" secondItem="1191" secondAttribute="bottom" constant="8" id="mYm-6P-5kG"/>
+                                        <constraint firstItem="933" firstAttribute="top" secondItem="Rp1-bt-n01" secondAttribute="bottom" constant="8" id="mYm-6P-5kG"/>
+                                        <constraint firstItem="Rp1-bt-n01" firstAttribute="top" secondItem="1191" secondAttribute="bottom" constant="8" id="Rp4-tp-n04"/>
+                                        <constraint firstItem="Rp1-bt-n01" firstAttribute="leading" secondItem="324" secondAttribute="leading" constant="160" id="Rp5-ld-n05"/>
                                         <constraint firstItem="1191" firstAttribute="top" secondItem="1185" secondAttribute="bottom" constant="8" id="pGU-aw-jVg"/>
                                         <constraint firstItem="1185" firstAttribute="leading" secondItem="324" secondAttribute="leading" constant="200" id="pOq-Gj-AEO"/>
                                         <constraint firstItem="1041" firstAttribute="top" secondItem="324" secondAttribute="top" constant="20" symbolic="YES" id="s1g-o7-r9g"/>

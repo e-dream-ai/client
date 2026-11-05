@@ -1,0 +1,290 @@
+#ifndef _RENDERERVULKAN_H_
+#define _RENDERERVULKAN_H_
+
+#include "Renderer.h"
+#include "TextureFlatVulkan.h"
+#include "FontVulkan.h"
+#include <vulkan/vulkan.h>
+#include <map>
+#include <string>
+#include <utility>
+#include <vector>
+
+// Forward-declare ImGui context so we need not include imgui.h in this header.
+struct ImGuiContext;
+
+namespace DisplayOutput
+{
+
+static const int MAX_FRAMES_IN_FLIGHT = 2;
+static const int MAX_QUADS_PER_FRAME  = 4096;
+// Number of texture slots tracked for multi-texture blending (slots 0–4).
+static const int MAX_BLEND_TEXTURES   = 5;
+
+struct QuadVertex {
+    float x, y;
+    float u, v;
+};
+
+// Push constants for the no-blend pipeline — must match quad.vert / quad.frag.
+struct VkPushConstants {
+    float screenWidth;
+    float screenHeight;
+    float r, g, b, a;
+};
+
+// Extended push constants for linear frame blending.
+struct VkPushConstantsLinear {
+    float screenWidth;
+    float screenHeight;
+    float r, g, b, a;
+    float delta;
+};
+
+// Extended push constants for cubic frame blending.
+struct VkPushConstantsCubic {
+    float screenWidth;
+    float screenHeight;
+    float r, g, b, a;
+    float w0, w1, w2, w3;
+};
+
+// Push constants for the YUV→RGB conversion pass — must match yuv_to_rgb.frag.
+struct VkPushConstantsYUV {
+    float   matrix[4];  // Cr->R, Cb->G, Cr->G, Cb->B
+    float   range[4];   // luma scale, luma offset, chroma scale, chroma offset
+    int32_t interleavedChroma;
+};
+
+/*
+    CRendererVulkan.
+    Implements the CRenderer interface using Vulkan.
+*/
+class CRendererVulkan : public CRenderer
+{
+    // Physical + logical device
+    VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
+    VkDevice         m_device         = VK_NULL_HANDLE;
+    VkQueue          m_graphicsQueue  = VK_NULL_HANDLE;
+    VkQueue          m_presentQueue   = VK_NULL_HANDLE;
+    uint32_t         m_graphicsFamily = UINT32_MAX;
+    uint32_t         m_presentFamily  = UINT32_MAX;
+
+    // Swapchain
+    VkSurfaceKHR             m_surface    = VK_NULL_HANDLE;
+    VkSwapchainKHR           m_swapchain = VK_NULL_HANDLE;
+    std::vector<VkImage>     m_swapImages;
+    std::vector<VkImageView> m_swapImageViews;
+    VkExtent2D               m_swapExtent{};
+    VkFormat                 m_swapFormat = VK_FORMAT_UNDEFINED;
+
+    // Render pass + framebuffers
+    VkRenderPass               m_renderPass = VK_NULL_HANDLE;
+    std::vector<VkFramebuffer> m_framebuffers;
+
+    // Descriptor layout + pool + sampler
+    VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
+    VkDescriptorPool      m_descriptorPool      = VK_NULL_HANDLE;
+    VkSampler             m_defaultSampler      = VK_NULL_HANDLE;
+
+    // No-blend pipeline
+    VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
+    VkPipeline       m_pipeline       = VK_NULL_HANDLE;
+
+    // Linear frame-blend pipeline (2 textures at sets 1 and 2)
+    VkPipelineLayout m_pipelineLayoutLinear = VK_NULL_HANDLE;
+    VkPipeline       m_pipelineLinear       = VK_NULL_HANDLE;
+
+    // Cubic frame-blend pipeline (4 textures at sets 1–4)
+    VkPipelineLayout m_pipelineLayoutCubic = VK_NULL_HANDLE;
+    VkPipeline       m_pipelineCubic       = VK_NULL_HANDLE;
+
+    // YUV→RGB conversion pass: renders decoded video planes (set 0, bindings
+    // 0–2) into a frame texture's RGBA image. Optional — without it, video
+    // frames are converted on the CPU.
+    VkDescriptorSetLayout m_yuvSetLayout      = VK_NULL_HANDLE;
+    VkRenderPass          m_yuvRenderPass     = VK_NULL_HANDLE;
+    VkPipelineLayout      m_yuvPipelineLayout = VK_NULL_HANDLE;
+    VkPipeline            m_yuvPipeline       = VK_NULL_HANDLE;
+
+    // deviceName of the selected GPU when it exposes Vulkan Video H.264 or
+    // H.265 decode; empty otherwise.
+    std::string m_videoDecodeDeviceName;
+
+    // Currently bound pipeline (tracked to avoid redundant vkCmdBindPipeline calls)
+    VkPipeline m_activePipeline = VK_NULL_HANDLE;
+
+    // Command pool + buffers
+    VkCommandPool                m_commandPool = VK_NULL_HANDLE;
+    std::vector<VkCommandBuffer> m_commandBuffers;
+
+    // Synchronisation
+    VkSemaphore m_imageAvailable[MAX_FRAMES_IN_FLIGHT]{};
+    // Presentation wait semaphores are indexed by swapchain image. A frame
+    // fence does not guarantee the presentation engine has released one.
+    std::vector<VkSemaphore> m_renderFinished;
+    VkFence     m_inFlightFence [MAX_FRAMES_IN_FLIGHT]{};
+
+    // Per-frame vertex buffers (HOST_VISIBLE for immediate writes)
+    VkBuffer       m_vertexBuffer[MAX_FRAMES_IN_FLIGHT]{};
+    VkDeviceMemory m_vertexMemory[MAX_FRAMES_IN_FLIGHT]{};
+    void*          m_mappedVertex[MAX_FRAMES_IN_FLIGHT]{};
+
+    // White 1×1 fallback texture (used for solid-colour quads)
+    VkImage         m_whiteImage    = VK_NULL_HANDLE;
+    VkDeviceMemory  m_whiteImageMem = VK_NULL_HANDLE;
+    VkImageView     m_whiteView     = VK_NULL_HANDLE;
+    VkDescriptorSet m_whiteDescSet  = VK_NULL_HANDLE;
+
+    // Frame tracking
+    uint32_t m_currentFrame      = 0;
+    uint32_t m_currentImageIndex = 0;
+    bool     m_inFrame           = false;
+    uint32_t m_vertexCount       = 0;
+
+    // Per-slot descriptor sets for multi-texture rendering.
+    // Slot 0 mirrors m_currentDescSet; slots 1–4 hold blend frame textures.
+    VkDescriptorSet m_boundDescSets[MAX_BLEND_TEXTURES]{};
+
+    // Currently active texture's descriptor set (slot 0, backwards compat)
+    VkDescriptorSet m_currentDescSet = VK_NULL_HANDLE;
+
+    // Font pool
+    std::map<std::string, spCBaseFont> m_fontPool;
+
+    // PNGs drawn through ImGui by the dialogs, by path and drawn size. Owned here so they are freed
+    // before the device. A null entry records a failed load, so it isn't retried every frame.
+    std::map<std::pair<std::string, uint32_t>, spCTextureFlatVulkan> m_uiTextures;
+
+    // ImGui state (Vulkan backend for text / UI overlay rendering)
+    VkInstance       m_vulkanInstance    = VK_NULL_HANDLE;
+    ImGuiContext*    m_imguiContext      = nullptr;
+    bool             m_imguiInitialized = false;
+
+    // GPU frame-time measurement via Vulkan timestamp queries.
+    VkQueryPool m_timestampPool    = VK_NULL_HANDLE;
+    float       m_gpuFrameTimeMs   = 0.0f;
+    float       m_timestampPeriodNs = 0.0f;
+    bool        m_timestampSlotValid[MAX_FRAMES_IN_FLIGHT]{};
+
+    // Initialisation helpers
+    bool pickPhysicalDevice(VkInstance instance, VkSurfaceKHR surface);
+    bool createLogicalDevice();
+    bool createSwapchain(VkSurfaceKHR surface, uint32_t width, uint32_t height);
+    bool createRenderPass();
+    bool createFramebuffers();
+    bool createDescriptorSetLayout();
+    bool createDescriptorPool();
+    bool createSampler();
+    bool createPipeline();
+    bool createLinearBlendPipeline();
+    bool createCubicBlendPipeline();
+    bool createYUVConversionPipeline();
+    void queryVideoDecodeSupport();
+    // renderPass defaults to the swapchain pass. fullscreenTriangle builds a
+    // pipeline with no vertex input and no blending (for fullscreen.vert).
+    bool buildGraphicsPipeline(VkShaderModule vert, VkShaderModule frag,
+                               VkPipelineLayout layout, VkPipeline& outPipeline,
+                               VkRenderPass renderPass = VK_NULL_HANDLE,
+                               bool fullscreenTriangle = false);
+    bool createCommandPool();
+    bool createCommandBuffers();
+    bool createSyncObjects();
+    bool createPresentSemaphores();
+    void destroyPresentSemaphores();
+    bool createVertexBuffers();
+    bool createWhiteTexture();
+    VkShaderModule loadShader(const std::string& path);
+    void recreateSwapchain();
+    bool initImGui();
+
+  public:
+    CRendererVulkan();
+    virtual ~CRendererVulkan();
+
+    // CRenderer interface
+    virtual eRenderType Type(void) const override { return eMetal; } // enum reuse
+    virtual const std::string Description(void) const override { return "Vulkan"; }
+
+    virtual bool Initialize(spCDisplayOutput _spDisplay) override;
+    virtual void Defaults() override;
+    virtual bool BeginFrame(void) override;
+    virtual bool EndFrame(bool drawn = true) override;
+    virtual void WaitForIdle() override;
+    virtual void Apply() override;
+    virtual void Reset(const uint32_t _flags) override;
+
+    virtual spCTextureFlat NewTextureFlat(const uint32_t flags = 0) override;
+    virtual spCTextureFlat NewTextureFlat(spCImage _spImage,
+                                          const uint32_t flags = 0) override;
+
+    virtual spCBaseFont GetFont(CFontDescription& _desc) override;
+    virtual spCBaseText NewText(spCBaseFont _font,
+                                const std::string& _text) override;
+    virtual void DrawText(spCBaseText _text,
+                          const Base::Math::CVector4& _color) override;
+
+    virtual float GetGPUFrameTimeMs() override { return m_gpuFrameTimeMs; }
+    virtual float GetGPUUtilization() override;
+
+    virtual spCShader NewShader(
+        const char* _pVert, const char* _pFrag,
+        std::vector<std::pair<std::string, eUniformType>> uniforms = {}) override;
+
+    virtual void DrawQuad(const Base::Math::CRect& _rect,
+                          const Base::Math::CVector4& _color) override;
+    virtual void DrawQuad(const Base::Math::CRect& _rect,
+                          const Base::Math::CVector4& _color,
+                          const Base::Math::CRect& _uvRect) override;
+    virtual void DrawSoftQuad(const Base::Math::CRect& _rect,
+                               const Base::Math::CVector4& _color,
+                               const float _width);
+
+    // Descriptor set for a PNG to pass to ImGui::Image(), loaded on first use and shrunk
+    // to suit being drawn _drawnSize pixels wide, as these textures have no mipmaps.
+    // VK_NULL_HANDLE if it can't be loaded. Call from the render thread.
+    VkDescriptorSet GetUiTexture(const std::string& _fileName, uint32_t _drawnSize);
+
+    // Accessors used by CTextureFlatVulkan
+    VkDevice              GetDevice()             const { return m_device; }
+    VkPhysicalDevice      GetPhysicalDevice()     const { return m_physicalDevice; }
+    VkCommandPool         GetCommandPool()        const { return m_commandPool; }
+    VkQueue               GetGraphicsQueue()      const { return m_graphicsQueue; }
+    VkDescriptorPool      GetDescriptorPool()     const { return m_descriptorPool; }
+    VkDescriptorSetLayout GetDescriptorSetLayout()const { return m_descriptorSetLayout; }
+    VkSampler             GetDefaultSampler()     const { return m_defaultSampler; }
+    uint32_t  FindMemType(uint32_t filter, VkMemoryPropertyFlags props);
+
+    // YUV→RGB conversion pass (used by CTextureFlatVulkan::BindFrame).
+    bool                  HasYUVConversion()      const { return m_yuvPipeline != VK_NULL_HANDLE; }
+    VkDescriptorSetLayout GetYUVSetLayout()       const { return m_yuvSetLayout; }
+    VkRenderPass          GetYUVRenderPass()      const { return m_yuvRenderPass; }
+    VkPipelineLayout      GetYUVPipelineLayout()  const { return m_yuvPipelineLayout; }
+    VkPipeline            GetYUVPipeline()        const { return m_yuvPipeline; }
+
+    // GPU name to hand to FFmpeg's Vulkan hwdevice so video decodes on the
+    // same GPU that renders it. Empty when the GPU has no Vulkan Video decode.
+    const std::string& GetVideoDecodeDeviceName() const { return m_videoDecodeDeviceName; }
+
+    // Single-time command helpers (used by CTextureFlatVulkan for uploads)
+    VkCommandBuffer BeginSingleTimeCommands();
+    void            EndSingleTimeCommands(VkCommandBuffer cmd);
+
+    // Bind a texture's descriptor set at a specific slot.
+    // Slot 0 is used by no-blend draws; slots 1–4 are blend frame textures.
+    void SetDescriptorSet(VkDescriptorSet ds, uint32_t slot = 0)
+    {
+        if (slot < MAX_BLEND_TEXTURES)
+            m_boundDescSets[slot] = ds;
+        m_currentDescSet = ds;
+    }
+
+    // Swapchain extent — used by CTextImGui::GetExtent() for screen-space normalisation
+    VkExtent2D GetSwapExtent() const { return m_swapExtent; }
+};
+
+MakeSmartPointers(CRendererVulkan);
+
+} // namespace DisplayOutput
+
+#endif
