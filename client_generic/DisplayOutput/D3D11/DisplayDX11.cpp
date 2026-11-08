@@ -100,6 +100,17 @@ static DWORD GetDefaultWindowedStyle(bool useCustomChrome)
                            : WS_OVERLAPPEDWINDOW;
 }
 
+// Outer window rect for a given client rect. Custom chrome (captionless WS_THICKFRAME) has no
+// non-client frame: WM_NCCALCSIZE returns 0 so the whole window is client area, and the
+// resize border is hit-tested inside it. AdjustWindowRect would still add the thick-frame
+// border, making the window (and client) bigger than asked for (issue #750).
+static void ClientToOuterRect(RECT& rc, DWORD style, bool hasMenu, bool customChrome)
+{
+    if (customChrome && (style & WS_CAPTION) == 0 && !hasMenu)
+        return;
+    AdjustWindowRect(&rc, style, hasMenu ? TRUE : FALSE);
+}
+
 static void ComputeCaptionButtonRects(HWND hWnd, int titlebarHeightPx, RECT& outMin, RECT& outMax, RECT& outClose)
 {
     RECT client{};
@@ -1309,23 +1320,8 @@ HWND CDisplayDX11::CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen,
         // (1/4 of a 4K screen at 200%). Pick the cursor's monitor, query its effective DPI,
         // scale the requested size accordingly, and centre the window on that monitor so
         // CW_USEDEFAULT doesn't drop it onto the primary at a different scale.
-        const bool preserveAR =
-            g_Settings() && g_Settings()->Get("settings.player.preserve_AR", false);
         const bool customVideoTopInset =
             m_useCustomWindowChrome && ((style & WS_CAPTION) == 0);
-
-        auto clientSizeForPreserveAR = [&](uint32_t& cw, uint32_t& ch) {
-            // Match D3D video region: drawable (cw × ch − title strip) stays 16:9 (see
-            // BuildBaseViewportForDisplay + ComputeAspectViewport).
-            if (!preserveAR || !customVideoTopInset)
-                return;
-            const int tb = GetSystemTitlebarHeightPx(monitorDpi);
-            if (tb <= 0 || cw == 0)
-                return;
-            const auto dh =
-                std::max<int64_t>(1, llround(static_cast<double>(cw) * 9.0 / 16.0));
-            ch = static_cast<uint32_t>(tb) + static_cast<uint32_t>(dh);
-        };
 
         POINT pt{};
         HMONITOR mon = nullptr;
@@ -1345,63 +1341,51 @@ HWND CDisplayDX11::CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen,
             h = MulDiv(h, dpiY, 96);
         }
 
-        clientSizeForPreserveAR(w, h);
+        // w x h is the video area. With custom chrome the title strip is drawn inside the
+        // client area above the video (GetVideoViewportTopInsetPx), so the client gets taller
+        // by the strip rather than squeezing the video under it. That keeps the video an exact
+        // 1:1 pixel map at the natural window size (issue #750).
+        const uint32_t titleStripPx =
+            customVideoTopInset ? static_cast<uint32_t>(GetSystemTitlebarHeightPx(monitorDpi)) : 0u;
 
         MONITORINFO mi{};
         mi.cbSize = sizeof(mi);
-        if (mon && GetMonitorInfo(mon, &mi))
+        const bool haveWorkArea = mon && GetMonitorInfo(mon, &mi);
+        const LONG waW = mi.rcWork.right - mi.rcWork.left;
+        const LONG waH = mi.rcWork.bottom - mi.rcWork.top;
+        if (haveWorkArea)
         {
-            const LONG waW = mi.rcWork.right - mi.rcWork.left;
-            const LONG waH = mi.rcWork.bottom - mi.rcWork.top;
-            // Compute chrome thickness once (AdjustWindowRect with a zero rect returns just
-            // the borders/caption). Uniform-scale the client size so the design aspect ratio
-            // (16:9 for 1920x1080) is preserved when the work area can't fit it. Independent
-            // per-axis shrinking would skew the window — and since SettingsDialogWin32 snaps
-            // back to 16:9 on close (preserve_AR), a non-16:9 startup window triggers a
-            // SetWindowPos at close time, with subtle re-entrancy hazards.
+            // Frame thickness around the client (zero for custom chrome; see
+            // ClientToOuterRect). Uniform-scale the video size so the design aspect ratio
+            // (16:9) is preserved when the work area can't fit it. Independent per-axis
+            // shrinking would skew the window — and since SettingsDialogWin32 snaps back to
+            // 16:9 on close (preserve_AR), a non-16:9 startup window triggers a SetWindowPos
+            // at close time, with subtle re-entrancy hazards.
             RECT chrome = {0, 0, 0, 0};
-            AdjustWindowRect(&chrome, style, hMenu ? TRUE : FALSE);
+            ClientToOuterRect(chrome, style, hMenu != nullptr, m_useCustomWindowChrome);
             const LONG chromeW = chrome.right - chrome.left;
-            const LONG chromeH = chrome.bottom - chrome.top;
-            const LONG maxClientW = (waW > chromeW) ? (waW - chromeW) : 1;
-            const LONG maxClientH = (waH > chromeH) ? (waH - chromeH) : 1;
+            const LONG chromeH = (chrome.bottom - chrome.top) + static_cast<LONG>(titleStripPx);
+            const LONG maxVideoW = (waW > chromeW) ? (waW - chromeW) : 1;
+            const LONG maxVideoH = (waH > chromeH) ? (waH - chromeH) : 1;
             double scale = 1.0;
-            if (static_cast<LONG>(w) > maxClientW)
-                scale = (std::min)(scale, static_cast<double>(maxClientW) / static_cast<double>(w));
-            if (static_cast<LONG>(h) > maxClientH)
-                scale = (std::min)(scale, static_cast<double>(maxClientH) / static_cast<double>(h));
+            if (static_cast<LONG>(w) > maxVideoW)
+                scale = (std::min)(scale, static_cast<double>(maxVideoW) / static_cast<double>(w));
+            if (static_cast<LONG>(h) > maxVideoH)
+                scale = (std::min)(scale, static_cast<double>(maxVideoH) / static_cast<double>(h));
             if (scale < 1.0)
             {
-                w = static_cast<uint32_t>(static_cast<double>(w) * scale);
-                h = static_cast<uint32_t>(static_cast<double>(h) * scale);
+                const double aspect = static_cast<double>(w) / static_cast<double>(h);
+                w = (std::max)(1u, static_cast<uint32_t>(static_cast<double>(w) * scale));
+                h = (std::max)(1u, static_cast<uint32_t>(llround(static_cast<double>(w) / aspect)));
             }
+        }
 
-            clientSizeForPreserveAR(w, h);
+        h += titleStripPx;
 
-            // Uniform scaling uses full client ratio; restoring title-inset+break breaks outer fit.
-            if (preserveAR && customVideoTopInset)
-            {
-                auto outerPixelSize = [&](uint32_t cw, uint32_t ch, LONG& ow, LONG& oh) {
-                    RECT o = {0, 0, static_cast<LONG>(cw), static_cast<LONG>(ch)};
-                    AdjustWindowRect(&o, style, hMenu ? TRUE : FALSE);
-                    ow = o.right - o.left;
-                    oh = o.bottom - o.top;
-                };
-
-                LONG ow = 0, oh = 0;
-                outerPixelSize(w, h, ow, oh);
-                for (unsigned it = 0; it < 512u && (ow > waW || oh > waH); ++it)
-                {
-                    if (w < 96u)
-                        break;
-                    w -= (w > 512u) ? 32u : 16u;
-                    clientSizeForPreserveAR(w, h);
-                    outerPixelSize(w, h, ow, oh);
-                }
-            }
-
+        if (haveWorkArea)
+        {
             RECT outer = {0, 0, (LONG)w, (LONG)h};
-            AdjustWindowRect(&outer, style, hMenu ? TRUE : FALSE);
+            ClientToOuterRect(outer, style, hMenu != nullptr, m_useCustomWindowChrome);
             posX = mi.rcWork.left + (waW - (outer.right - outer.left)) / 2;
             posY = mi.rcWork.top + (waH - (outer.bottom - outer.top)) / 2;
         }
@@ -1415,7 +1399,7 @@ HWND CDisplayDX11::CreateDisplayWindow(uint32_t w, uint32_t h, bool fullscreen,
         m_customTitlebarHeightPx = GetSystemTitlebarHeightPx(monitorDpi);
 
     RECT rc = {0, 0, (LONG)w, (LONG)h};
-    AdjustWindowRect(&rc, style, hMenu ? TRUE : FALSE);
+    ClientToOuterRect(rc, style, hMenu != nullptr, m_useCustomWindowChrome);
 
     const DWORD exStyle =
         fullscreen ? (WS_EX_APPWINDOW | WS_EX_TOPMOST) : 0UL;
@@ -1681,14 +1665,49 @@ HWND CDisplayDX11::Initialize(uint32_t width, uint32_t height, bool fullscreen) 
 
 #ifdef WIN32
     ApplyThemeToTitlebar();
+
+    // Size the swap chain from the window's real client area, not the size we asked for.
+    // The WM_SIZE sent during CreateWindowExW arrives before the swap chain exists, so
+    // ResizeSwapChain can't pick it up; a mismatched back buffer gets point-stretched by
+    // DXGI on every Present (issue #750).
+    {
+        RECT client{};
+        if (GetClientRect(m_WindowHandle, &client) && client.right > client.left &&
+            client.bottom > client.top)
+        {
+            m_Width = static_cast<uint32_t>(client.right - client.left);
+            m_Height = static_cast<uint32_t>(client.bottom - client.top);
+        }
+    }
 #endif
 
     if (!CreateDeviceAndSwapChain()) {
         return nullptr;
     }
+    g_Log->Info("Swap chain created at %ux%u (client area)", m_Width, m_Height);
 
     ShowWindow(m_WindowHandle, SW_SHOW);
     ShowCursor(!fullscreen);
+
+#ifdef WIN32
+    // Showing the window can still change its size (e.g. a DPI or shell adjustment) without
+    // a WM_SIZE we acted on; re-check once and resize the buffers to match.
+    {
+        RECT client{};
+        if (GetClientRect(m_WindowHandle, &client) && client.right > client.left &&
+            client.bottom > client.top)
+        {
+            const auto cw = static_cast<uint32_t>(client.right - client.left);
+            const auto ch = static_cast<uint32_t>(client.bottom - client.top);
+            if (cw != m_Width || ch != m_Height)
+            {
+                g_Log->Info("Client area %ux%u differs from back buffer %ux%u after show; resizing",
+                            cw, ch, m_Width, m_Height);
+                ResizeSwapChain(cw, ch);
+            }
+        }
+    }
+#endif
 
 #ifdef WIN32
     // Ensure the custom titlebar strip is painted at least once on show.
