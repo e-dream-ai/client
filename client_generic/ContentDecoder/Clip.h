@@ -101,6 +101,9 @@ private:
     /// Discard frames from the queue without processing them (for catching up)
     void DiscardFrames(int count);
     spCVideoFrame m_LastValidFrame;  // Store the last successfully decoded frame
+    uint32_t m_FramesDiscarded = 0;
+    uint32_t m_FramesShort = 0;
+    uint32_t m_RebufferCount = 0;
 
 public:
     CClip(const sClipMetadata& _metadata, spCRenderer _spRenderer,
@@ -180,6 +183,11 @@ public:
 
     bool IsBuffering() const { return m_BufferingState != BufferingState::NotBuffering; }
     bool IsRebuffering() const { return m_BufferingState == BufferingState::Rebuffering; }
+    /// Frames thrown away to catch up with the timeline.
+    uint32_t GetFramesDiscarded() const { return m_FramesDiscarded; }
+    /// Frames the timeline had passed that weren't in the queue to discard.
+    uint32_t GetFramesShort() const { return m_FramesShort; }
+    uint32_t GetRebufferCount() const { return m_RebufferCount; }
     double GetActualStartTime() const { return m_ActualStartTime; }
     double GetTotalBufferingTime() const { return m_TotalBufferingTime; }
     bool HasStartedPlaying() const { return m_HasStartedPlaying; }

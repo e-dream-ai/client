@@ -102,6 +102,11 @@ class CPlayer : public Base::CSingleton<CPlayer>
     std::chrono::steady_clock::time_point m_HeartbeatLastLog{};
     double m_HeartbeatMaxTickMs = 0.0;
     uint32_t m_HeartbeatTicks = 0;
+    uint32_t m_HeartbeatLateTicks = 0;
+    uint32_t m_HeartbeatClampedTicks = 0;
+    double m_HeartbeatLostMs = 0.0;
+    /// Spins on the render thread, for testing the counters above (client#733).
+    void MaybeTestStall();
     void WaitForBackgroundTasks();
     
     ContentDecoder::spCClip m_currentClip;
