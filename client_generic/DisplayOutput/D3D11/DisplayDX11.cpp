@@ -360,7 +360,7 @@ static void ReclaimForegroundFocus(HWND hwnd)
         AttachThreadInput(myThread, fgThread, FALSE);
 }
 
-static void LayoutFullscreenSaverWindow(HWND hwnd, IDXGISwapChain* swapChain)
+static void LayoutFullscreenSaverWindow(HWND hwnd)
 {
     if (!hwnd)
         return;
@@ -379,13 +379,6 @@ static void LayoutFullscreenSaverWindow(HWND hwnd, IDXGISwapChain* swapChain)
                  mi.rcMonitor.right - mi.rcMonitor.left,
                  mi.rcMonitor.bottom - mi.rcMonitor.top,
                  SWP_FRAMECHANGED | SWP_SHOWWINDOW | SWP_NOOWNERZORDER);
-
-    if (swapChain)
-    {
-        const HRESULT hr = swapChain->SetFullscreenState(TRUE, nullptr);
-        if (FAILED(hr))
-            g_Log->Warning("SetFullscreenState(TRUE) after layout failed: %08X", hr);
-    }
 }
 
 struct MonitorInfoByIndex
@@ -1499,23 +1492,6 @@ bool CDisplayDX11::ResizeSwapChain(uint32_t width, uint32_t height)
 }
 
 bool CDisplayDX11::CreateDeviceAndSwapChain() {
-    DXGI_SWAP_CHAIN_DESC sd = {};
-    sd.BufferCount = 2;
-    sd.BufferDesc.Width = m_Width;
-    sd.BufferDesc.Height = m_Height;
-    sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    // Only matters in exclusive fullscreen; 0/0 lets DXGI use the output's current rate
-    // instead of asking for 60 Hz, which a display may not offer (issue #749).
-    sd.BufferDesc.RefreshRate.Numerator = 0;
-    sd.BufferDesc.RefreshRate.Denominator = 0;
-    sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    sd.OutputWindow = m_WindowHandle;
-    sd.SampleDesc.Count = 1;
-    sd.SampleDesc.Quality = 0;
-
-    const bool wantExclusiveFullscreen = m_bFullScreen && !m_disableExclusiveFullscreen;
-    sd.Windowed = !wantExclusiveFullscreen;
-
     // D3D11_CREATE_DEVICE_VIDEO_SUPPORT is REQUIRED because this same ID3D11Device
     // is shared with FFmpeg's D3D11VA decoder (see CContentDecoder::Open).  Without
     // it, the driver's ID3D11VideoDevice/ID3D11VideoContext interfaces sit on
@@ -1613,65 +1589,54 @@ bool CDisplayDX11::CreateDeviceAndSwapChain() {
             return false;
         }
 
-        // Issue #749: the old bitblt model (DXGI_SWAP_EFFECT_DISCARD) doesn't give one
-        // present per refresh in a window, so the loop ran 43-60 times a second on a 30 Hz
-        // display. Use the flip model with a frame-latency waitable object instead;
-        // WaitForNextFrame() then holds the loop to one frame per refresh. Exclusive
-        // fullscreen (never used: issue #617) and the /p preview keep the old swap chain.
+        // Issue #749: flip model with a frame-latency waitable object. The old bitblt model
+        // (DXGI_SWAP_EFFECT_DISCARD) doesn't give one present per refresh in a window: on a
+        // 30 Hz display the loop ran 43-60 times a second. WaitForNextFrame() holds the loop
+        // to one frame per refresh. This is the only swap chain: fullscreen is a borderless
+        // window (issue #617), since the waitable object doesn't support exclusive mode.
         m_swapChain.Reset();
-        m_swapChainFlags = 0;
         if (m_frameLatencyWaitable)
         {
             CloseHandle(m_frameLatencyWaitable);
             m_frameLatencyWaitable = nullptr;
         }
         ComPtr<IDXGIFactory2> factory2;
-        if (!wantExclusiveFullscreen && !m_bEmbeddedSaverPreview &&
-            SUCCEEDED(factory.As(&factory2)) && factory2)
+        hr = factory.As(&factory2);
+        if (FAILED(hr) || !factory2)
         {
-            DXGI_SWAP_CHAIN_DESC1 sd1 = {};
-            sd1.Width = m_Width;
-            sd1.Height = m_Height;
-            sd1.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-            sd1.SampleDesc.Count = 1;
-            sd1.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-            sd1.BufferCount = 2;
-            sd1.Scaling = DXGI_SCALING_STRETCH;
-            sd1.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-            sd1.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
-            sd1.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
-
-            ComPtr<IDXGISwapChain1> swapChain1;
-            hr = factory2->CreateSwapChainForHwnd(m_device.Get(), m_WindowHandle, &sd1, nullptr,
-                                                  nullptr, &swapChain1);
-            ComPtr<IDXGISwapChain2> swapChain2;
-            if (SUCCEEDED(hr) && swapChain1 && SUCCEEDED(swapChain1.As(&swapChain2)) && swapChain2)
-            {
-                swapChain2->SetMaximumFrameLatency(1);
-                m_frameLatencyWaitable = swapChain2->GetFrameLatencyWaitableObject();
-                m_swapChainFlags = sd1.Flags;
-                m_frameWaitOwed = true; // wait once before the first frame
-                m_swapChain = swapChain1;
-                // DXGI's own Alt+Enter would switch to exclusive fullscreen, which this
-                // swap chain doesn't support and issue #617 avoids anyway.
-                factory2->MakeWindowAssociation(m_WindowHandle, DXGI_MWA_NO_ALT_ENTER);
-                g_Log->Info("Flip-model swap chain with frame-latency wait");
-            }
-            else
-            {
-                g_Log->Warning("Flip-model swap chain failed (%08X); using the bitblt model", hr);
-            }
+            g_Log->Error("IDXGIFactory2 unavailable: %08X", hr);
+            return false;
         }
 
-        if (!m_swapChain)
+        DXGI_SWAP_CHAIN_DESC1 sd = {};
+        sd.Width = m_Width;
+        sd.Height = m_Height;
+        sd.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        sd.SampleDesc.Count = 1;
+        sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+        sd.BufferCount = 2;
+        sd.Scaling = DXGI_SCALING_STRETCH;
+        sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+        sd.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
+        sd.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
+
+        ComPtr<IDXGISwapChain1> swapChain1;
+        hr = factory2->CreateSwapChainForHwnd(m_device.Get(), m_WindowHandle, &sd, nullptr,
+                                              nullptr, &swapChain1);
+        ComPtr<IDXGISwapChain2> swapChain2;
+        if (FAILED(hr) || !swapChain1 || FAILED(swapChain1.As(&swapChain2)) || !swapChain2)
         {
-            hr = factory->CreateSwapChain(m_device.Get(), &sd, &m_swapChain);
-            if (FAILED(hr) || !m_swapChain)
-            {
-                g_Log->Error("Failed to create swap chain for window: %08X", hr);
-                return false;
-            }
+            g_Log->Error("Failed to create swap chain for window: %08X", hr);
+            return false;
         }
+        swapChain2->SetMaximumFrameLatency(1);
+        m_frameLatencyWaitable = swapChain2->GetFrameLatencyWaitableObject();
+        m_swapChainFlags = sd.Flags;
+        m_frameWaitOwed = true; // wait once before the first frame
+        m_swapChain = swapChain1;
+        // DXGI's own Alt+Enter would switch to exclusive fullscreen, which this swap chain
+        // doesn't support.
+        factory2->MakeWindowAssociation(m_WindowHandle, DXGI_MWA_NO_ALT_ENTER);
     }
 
     // Create render target view
@@ -1797,10 +1762,7 @@ HWND CDisplayDX11::Initialize(uint32_t width, uint32_t height, bool fullscreen) 
     {
         // Screensaver mode prefers borderless windowed fullscreen to avoid
         // DXGI exclusive fullscreen issues on multi-monitor setups.
-        if (m_disableExclusiveFullscreen)
-            LayoutFullscreenSaverWindow(m_WindowHandle, nullptr);
-        else
-            LayoutFullscreenSaverWindow(m_WindowHandle, m_swapChain.Get());
+        LayoutFullscreenSaverWindow(m_WindowHandle);
         SetForegroundWindow(m_WindowHandle);
         SetFocus(m_WindowHandle);
 
@@ -1946,9 +1908,7 @@ void CDisplayDX11::SwapBuffers()
     if (m_deviceLost)
         return;
 
-    // /p preview child: avoid vsync Present(1) stalling on the tiny HWND.
-    const UINT syncInterval = m_bEmbeddedSaverPreview ? 0u : 1u;
-    HRESULT hr = m_swapChain->Present(syncInterval, 0);
+    HRESULT hr = m_swapChain->Present(1, 0);
     if (FAILED(hr))
     {
         g_Log->Error("Present failed: %08X", hr);
@@ -2080,12 +2040,6 @@ bool CDisplayDX11::SetFullscreen(const bool fullscreen)
         if (GetWindowRect(m_WindowHandle, &m_windowedRect))
             m_hasWindowedRect = true;
 
-        if (!m_disableExclusiveFullscreen)
-        {
-            const HRESULT fsHr = m_swapChain->SetFullscreenState(TRUE, nullptr);
-            if (FAILED(fsHr))
-                g_Log->Warning("SetFullscreenState(TRUE) failed: %08X", fsHr);
-        }
 
         HMONITOR monitor = MonitorFromWindow(m_WindowHandle, MONITOR_DEFAULTTONEAREST);
         MONITORINFO mi = {};
@@ -2108,13 +2062,6 @@ bool CDisplayDX11::SetFullscreen(const bool fullscreen)
         m_bFullScreen = true;
         ReclaimForegroundFocus(m_WindowHandle);
         return true;
-    }
-
-    if (!m_disableExclusiveFullscreen)
-    {
-        const HRESULT wsHr = m_swapChain->SetFullscreenState(FALSE, nullptr);
-        if (FAILED(wsHr))
-            g_Log->Warning("SetFullscreenState(FALSE) failed: %08X", wsHr);
     }
 
     DWORD restoreStyle = m_windowedStyle ? m_windowedStyle : GetDefaultWindowedStyle(m_useCustomWindowChrome);

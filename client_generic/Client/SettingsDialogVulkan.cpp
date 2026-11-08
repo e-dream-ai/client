@@ -126,8 +126,6 @@ char g_errorPopupMessage[512]    = {};
 std::string g_versionText;
 
 double g_playerFps      = 23.0;
-double g_displayFps     = 60.0;
-bool   g_vsync          = false;
 bool   g_preserveAR     = false;
 bool   g_quietMode      = true;
 bool   g_showAttribution = false;

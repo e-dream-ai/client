@@ -70,8 +70,6 @@ private:
     int m_sizeMoveNested = 0;
     bool m_deviceLost = false;
 
-    // When set, fullscreen will be windowed-borderless (no DXGI exclusive mode).
-    bool m_disableExclusiveFullscreen = false;
 
     // Optional target monitor placement for fullscreen windows.
     bool m_hasTargetMonitorIndex = false;
@@ -139,8 +137,6 @@ private:
     void SetTargetMonitorIndex(uint32_t index) { m_hasTargetMonitorIndex = true; m_targetMonitorIndex = index; }
     void ClearTargetMonitor() { m_hasTargetMonitorIndex = false; m_hasTargetMonitorRect = false; }
 
-    // Screensaver mode uses borderless windowed fullscreen across monitors.
-    void SetDisableExclusiveFullscreen(bool disable) { m_disableExclusiveFullscreen = disable; }
 
     void SetMenuLoopRenderCallback(std::function<void()> cb) { m_menuLoopRenderCb = std::move(cb); }
 
