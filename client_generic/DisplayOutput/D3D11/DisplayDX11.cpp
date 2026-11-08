@@ -9,9 +9,11 @@
 #include <cstdlib>
 #include <mutex>
 #include <string>
+#include <vector>
 
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
 #include <d3d11_4.h>
+#include <dxgi1_3.h>
 #endif
 
 #ifdef WIN32
@@ -632,6 +634,8 @@ bool CDisplayDX11::EnsureWindowClassRegistered(HINSTANCE hInstance)
 
 CDisplayDX11::~CDisplayDX11() {
     g_Log->Info("~CDisplayDX11()");
+    if (m_frameLatencyWaitable)
+        CloseHandle(m_frameLatencyWaitable);
 }
 
 #ifdef WIN32
@@ -922,6 +926,12 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
     case WM_EXITMENULOOP:
         KillTimer(hWnd, kMenuLoopTimerId);
         return 0;
+
+    case WM_DISPLAYCHANGE:
+        // A mode change can change the refresh rate; re-detect it on the next frame.
+        if (self)
+            self->m_refreshDirty = true;
+        return DefWindowProc(hWnd, msg, wParam, lParam);
 
     case WM_SIZE:
         if (self && wParam != SIZE_MINIMIZED)
@@ -1443,7 +1453,7 @@ bool CDisplayDX11::ResizeSwapChain(uint32_t width, uint32_t height)
 
     m_renderTargetView.Reset();
 
-    HRESULT hr = m_swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+    HRESULT hr = m_swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, m_swapChainFlags);
     if (FAILED(hr))
     {
         g_Log->Error("ResizeBuffers failed: %08X", hr);
@@ -1494,8 +1504,10 @@ bool CDisplayDX11::CreateDeviceAndSwapChain() {
     sd.BufferDesc.Width = m_Width;
     sd.BufferDesc.Height = m_Height;
     sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    sd.BufferDesc.RefreshRate.Numerator = 60;
-    sd.BufferDesc.RefreshRate.Denominator = 1;
+    // Only matters in exclusive fullscreen; 0/0 lets DXGI use the output's current rate
+    // instead of asking for 60 Hz, which a display may not offer (issue #749).
+    sd.BufferDesc.RefreshRate.Numerator = 0;
+    sd.BufferDesc.RefreshRate.Denominator = 0;
     sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     sd.OutputWindow = m_WindowHandle;
     sd.SampleDesc.Count = 1;
@@ -1601,11 +1613,64 @@ bool CDisplayDX11::CreateDeviceAndSwapChain() {
             return false;
         }
 
-        hr = factory->CreateSwapChain(m_device.Get(), &sd, &m_swapChain);
-        if (FAILED(hr) || !m_swapChain)
+        // Issue #749: the old bitblt model (DXGI_SWAP_EFFECT_DISCARD) doesn't give one
+        // present per refresh in a window, so the loop ran 43-60 times a second on a 30 Hz
+        // display. Use the flip model with a frame-latency waitable object instead;
+        // WaitForNextFrame() then holds the loop to one frame per refresh. Exclusive
+        // fullscreen (never used: issue #617) and the /p preview keep the old swap chain.
+        m_swapChain.Reset();
+        m_swapChainFlags = 0;
+        if (m_frameLatencyWaitable)
         {
-            g_Log->Error("Failed to create swap chain for window: %08X", hr);
-            return false;
+            CloseHandle(m_frameLatencyWaitable);
+            m_frameLatencyWaitable = nullptr;
+        }
+        ComPtr<IDXGIFactory2> factory2;
+        if (!wantExclusiveFullscreen && !m_bEmbeddedSaverPreview &&
+            SUCCEEDED(factory.As(&factory2)) && factory2)
+        {
+            DXGI_SWAP_CHAIN_DESC1 sd1 = {};
+            sd1.Width = m_Width;
+            sd1.Height = m_Height;
+            sd1.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+            sd1.SampleDesc.Count = 1;
+            sd1.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+            sd1.BufferCount = 2;
+            sd1.Scaling = DXGI_SCALING_STRETCH;
+            sd1.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+            sd1.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
+            sd1.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
+
+            ComPtr<IDXGISwapChain1> swapChain1;
+            hr = factory2->CreateSwapChainForHwnd(m_device.Get(), m_WindowHandle, &sd1, nullptr,
+                                                  nullptr, &swapChain1);
+            ComPtr<IDXGISwapChain2> swapChain2;
+            if (SUCCEEDED(hr) && swapChain1 && SUCCEEDED(swapChain1.As(&swapChain2)) && swapChain2)
+            {
+                swapChain2->SetMaximumFrameLatency(1);
+                m_frameLatencyWaitable = swapChain2->GetFrameLatencyWaitableObject();
+                m_swapChainFlags = sd1.Flags;
+                m_frameWaitOwed = true; // wait once before the first frame
+                m_swapChain = swapChain1;
+                // DXGI's own Alt+Enter would switch to exclusive fullscreen, which this
+                // swap chain doesn't support and issue #617 avoids anyway.
+                factory2->MakeWindowAssociation(m_WindowHandle, DXGI_MWA_NO_ALT_ENTER);
+                g_Log->Info("Flip-model swap chain with frame-latency wait");
+            }
+            else
+            {
+                g_Log->Warning("Flip-model swap chain failed (%08X); using the bitblt model", hr);
+            }
+        }
+
+        if (!m_swapChain)
+        {
+            hr = factory->CreateSwapChain(m_device.Get(), &sd, &m_swapChain);
+            if (FAILED(hr) || !m_swapChain)
+            {
+                g_Log->Error("Failed to create swap chain for window: %08X", hr);
+                return false;
+            }
         }
     }
 
@@ -1896,8 +1961,109 @@ void CDisplayDX11::SwapBuffers()
         }
         return;
     }
+    m_frameWaitOwed = true;
 
     // Custom titlebar is drawn in the DX11 renderer overlay (stable, no GDI flashing).
+}
+
+void CDisplayDX11::WaitForNextFrame()
+{
+    // Wait only once per Present: the waitable object is a semaphore released once per
+    // retired frame, so waiting on a frame that was never presented would block until the
+    // timeout.
+    if (!m_frameLatencyWaitable || !m_frameWaitOwed || m_deviceLost)
+        return;
+    m_frameWaitOwed = false;
+    // A refresh is at most ~42 ms (24 Hz); the timeout only guards against a stuck queue.
+    const DWORD result = WaitForSingleObjectEx(m_frameLatencyWaitable, 250, FALSE);
+    if (result != WAIT_OBJECT_0)
+    {
+        static bool s_logged = false;
+        if (!s_logged)
+        {
+            g_Log->Warning("Frame-latency wait returned %lu", static_cast<unsigned long>(result));
+            s_logged = true;
+        }
+    }
+}
+
+// The refresh rate of the monitor's current mode, as an exact rational where possible
+// (29.97 Hz rather than 29). DwmGetCompositionTimingInfo failed on some machines (#749).
+static double QueryMonitorRefreshHz(HMONITOR monitor)
+{
+    MONITORINFOEXW mi = {};
+    mi.cbSize = sizeof(mi);
+    if (!monitor || !GetMonitorInfoW(monitor, &mi))
+        return 0.0;
+
+    std::vector<DISPLAYCONFIG_PATH_INFO> paths;
+    std::vector<DISPLAYCONFIG_MODE_INFO> modes;
+    LONG rc = ERROR_SUCCESS;
+    do
+    {
+        UINT32 numPaths = 0, numModes = 0;
+        rc = GetDisplayConfigBufferSizes(QDC_ONLY_ACTIVE_PATHS, &numPaths, &numModes);
+        if (rc != ERROR_SUCCESS)
+            break;
+        paths.resize(numPaths);
+        modes.resize(numModes);
+        rc = QueryDisplayConfig(QDC_ONLY_ACTIVE_PATHS, &numPaths, paths.data(), &numModes,
+                                modes.data(), nullptr);
+        paths.resize(numPaths);
+        modes.resize(numModes);
+    } while (rc == ERROR_INSUFFICIENT_BUFFER);
+
+    if (rc == ERROR_SUCCESS)
+    {
+        for (const auto& path : paths)
+        {
+            DISPLAYCONFIG_SOURCE_DEVICE_NAME source = {};
+            source.header.type = DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME;
+            source.header.size = sizeof(source);
+            source.header.adapterId = path.sourceInfo.adapterId;
+            source.header.id = path.sourceInfo.id;
+            if (DisplayConfigGetDeviceInfo(&source.header) != ERROR_SUCCESS ||
+                wcscmp(source.viewGdiDeviceName, mi.szDevice) != 0)
+                continue;
+
+            const UINT32 modeIdx = path.targetInfo.modeInfoIdx;
+            if (modeIdx != DISPLAYCONFIG_PATH_MODE_IDX_INVALID && modeIdx < modes.size() &&
+                modes[modeIdx].infoType == DISPLAYCONFIG_MODE_INFO_TYPE_TARGET)
+            {
+                const auto& vsync = modes[modeIdx].targetMode.targetVideoSignalInfo.vSyncFreq;
+                if (vsync.Numerator && vsync.Denominator)
+                    return static_cast<double>(vsync.Numerator) / vsync.Denominator;
+            }
+            const auto& rate = path.targetInfo.refreshRate;
+            if (rate.Numerator && rate.Denominator)
+                return static_cast<double>(rate.Numerator) / rate.Denominator;
+        }
+    }
+
+    DEVMODEW dm = {};
+    dm.dmSize = sizeof(dm);
+    if (EnumDisplaySettingsW(mi.szDevice, ENUM_CURRENT_SETTINGS, &dm) && dm.dmDisplayFrequency > 1)
+        return static_cast<double>(dm.dmDisplayFrequency);
+    return 0.0;
+}
+
+double CDisplayDX11::RefreshRateHz()
+{
+    if (!m_WindowHandle)
+        return 0.0;
+    // Cheap enough to call every frame; re-query only when the window has moved to another
+    // monitor or the display mode changed.
+    const HMONITOR monitor = MonitorFromWindow(m_WindowHandle, MONITOR_DEFAULTTONEAREST);
+    if (monitor != m_refreshMonitor || m_refreshDirty)
+    {
+        const double hz = QueryMonitorRefreshHz(monitor);
+        if (monitor != m_refreshMonitor || hz != m_refreshHz)
+            g_Log->Info("Display refresh rate %.3f Hz", hz);
+        m_refreshMonitor = monitor;
+        m_refreshHz = hz;
+        m_refreshDirty = false;
+    }
+    return m_refreshHz;
 }
 
 bool CDisplayDX11::SetFullscreen(const bool fullscreen)

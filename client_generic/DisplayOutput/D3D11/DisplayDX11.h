@@ -22,6 +22,15 @@ private:
     ComPtr<ID3D11DeviceContext> m_context;
     ComPtr<IDXGISwapChain> m_swapChain;
     ComPtr<ID3D11RenderTargetView> m_renderTargetView;
+    // Flip-model pacing (issue #749). The waitable object is signaled when the swap chain
+    // can take another frame; waiting on it before rendering gives one frame per refresh.
+    UINT m_swapChainFlags = 0;
+    HANDLE m_frameLatencyWaitable = nullptr;
+    bool m_frameWaitOwed = false; // a Present happened since the last wait
+    // Detected refresh rate, cached per monitor; m_refreshDirty forces a re-query.
+    HMONITOR m_refreshMonitor = nullptr;
+    double m_refreshHz = 0.0;
+    bool m_refreshDirty = true;
     RECT m_windowedRect;
     DWORD m_windowedStyle;
     DWORD m_windowedExStyle;
@@ -88,6 +97,10 @@ private:
     virtual void ToggleFullscreen() override;
     virtual bool SetFullscreen(const bool fullscreen) override;
     virtual bool IsFullscreen() const override { return m_bFullScreen; }
+    double RefreshRateHz() override;
+    // Block until the swap chain can take another frame (flip model only). Call before
+    // rendering each frame, without holding the D3D11 context lock.
+    void WaitForNextFrame();
     bool IsEmbeddedSaverPreview() const { return m_bEmbeddedSaverPreview; }
 
 #ifdef WIN32

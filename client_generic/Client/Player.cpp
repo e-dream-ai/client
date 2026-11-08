@@ -67,9 +67,6 @@ constexpr float kMinFadeSeconds = 0.05f;
 #include <boost/filesystem.hpp>
 
 #include "boost/filesystem.hpp"
-#if defined(MAC) || defined(WIN32)
-#define HONOR_VBL_SYNC
-#endif
 
 #ifdef DEBUG
 #define PRINTQUEUE(x, y, z, w) PrintQueue(x, y, z, w)
@@ -491,14 +488,8 @@ int CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
  */
 bool CPlayer::Startup()
 {
-    m_DisplayFps = g_Settings()->Get("settings.player.display_fps", 60.);
-
-#ifdef HONOR_VBL_SYNC
-    if (g_Settings()->Get("settings.player.vbl_sync", false))
-    {
-        m_DisplayFps = 0.0;
-    }
-#endif
+    // m_DisplayFps is detected from the display every frame (issue #749); the old
+    // settings.player.display_fps setting is no longer read.
     //	Grab some paths for the decoder.
     std::string content = g_Settings()->Root() + "content/";
 
@@ -987,7 +978,10 @@ bool CPlayer::Update(uint32_t displayUnit)
     }
 
     if (displayUnit == 0)
+    {
         ProcessPendingCommands();
+        UpdateDisplayFps(du->spDisplay);
+    }
 
     du->spRenderer->Reset(eEverything);
     du->spRenderer->Orthographic();
@@ -1201,6 +1195,14 @@ void CPlayer::MaybeTestStall()
     g_Log->Info("TestStall ms=%d", stallMs);
 }
 
+void CPlayer::UpdateDisplayFps(const DisplayOutput::spCDisplayOutput& display)
+{
+    // Detected refresh rate of the first display's monitor; 60 where a platform can't
+    // detect it yet. Used for the late-tick threshold and Linux's FpsCap.
+    const double hz = display ? display->RefreshRateHz() : 0.0;
+    m_DisplayFps = hz > 0.0 ? hz : 60.0;
+}
+
 void CPlayer::LogHeartbeat()
 {
     using clock = std::chrono::steady_clock;
@@ -1213,6 +1215,7 @@ void CPlayer::LogHeartbeat()
     if (firstTick)
         m_HeartbeatLastLog = now;
     ++m_HeartbeatTicks;
+    m_HeartbeatSumTickMs += tickMs;
     m_HeartbeatMaxTickMs = std::max(m_HeartbeatMaxTickMs, tickMs);
     // A tick over 1.5 display intervals means at least one vsync was missed.
     if (m_DisplayFps > 0.0 && tickMs > 1500.0 / m_DisplayFps)
@@ -1242,15 +1245,17 @@ void CPlayer::LogHeartbeat()
                              clip->GetRebufferCount());
     };
 
-    g_Log->Info("Heartbeat ticks=%u tick_ms=%.1f max_tick_ms=%.1f late_ticks=%u clamped_ticks=%u lost_ms=%.0f display_fps=%.1f timeline=%.3f paused=%d "
+    g_Log->Info("Heartbeat ticks=%u tick_ms=%.1f avg_tick_ms=%.1f max_tick_ms=%.1f late_ticks=%u clamped_ticks=%u lost_ms=%.0f display_fps=%.1f timeline=%.3f paused=%d "
                 "buffering_pause=%d transitioning=%d pending_seek_crossfade=%d preloading=%d current=%s next=%s",
-                m_HeartbeatTicks, tickMs, m_HeartbeatMaxTickMs, m_HeartbeatLateTicks, m_HeartbeatClampedTicks,
+                m_HeartbeatTicks, tickMs, m_HeartbeatTicks ? m_HeartbeatSumTickMs / m_HeartbeatTicks : 0.0,
+                m_HeartbeatMaxTickMs, m_HeartbeatLateTicks, m_HeartbeatClampedTicks,
                 m_HeartbeatLostMs, m_DisplayFps, m_TimelineTime, m_bPaused ? 1 : 0,
                 m_PausedForBuffering ? 1 : 0, m_isTransitioning ? 1 : 0, m_pendingSeekCrossfade ? 1 : 0, IsPreloading() ? 1 : 0,
                 describeClip(m_currentClip).c_str(), describeClip(m_nextClip).c_str());
 
     m_HeartbeatLastLog = now;
     m_HeartbeatTicks = 0;
+    m_HeartbeatSumTickMs = 0.0;
     m_HeartbeatMaxTickMs = 0.0;
     m_HeartbeatLateTicks = 0;
     m_HeartbeatClampedTicks = 0;
