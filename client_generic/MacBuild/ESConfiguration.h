@@ -13,6 +13,7 @@
     IBOutlet NSButton* showAttribution;
     IBOutlet NSButton* preserveAR;
     IBOutlet NSButton* rotatePortrait;
+    IBOutlet NSButton* syphonOutput;
 
     // login buttons
     IBOutlet NSButton* signInButton;
