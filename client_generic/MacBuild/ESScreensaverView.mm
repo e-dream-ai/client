@@ -12,6 +12,10 @@
 #include "DisplayOutput.h"
 #include <atomic>
 
+#ifndef SCREEN_SAVER
+#import "Metal/SyphonOutput.h"
+#endif
+
 #ifdef SCREEN_SAVER
 // All ScreenSaverView instances in legacyScreenSaver.appex share one gClient/g_Player.
 // Refcount so Settings thumbnail stopAnimation cannot Deinit while Preview/fullscreen
@@ -355,6 +359,8 @@ static BOOL ESWindowIsKnownOffscreen(NSWindow *win)
 #else
     [self _stopOcclusionDrivenRendering];
     [self _stopOcclusionObserving];
+    // Unregister from the Syphon directory before tearing down Metal/engine.
+    SyphonOutput_Stop();
 #endif
     m_bPausedForSheet = NO;
     if (m_bStarted)
